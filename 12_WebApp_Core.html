@@ -1,0 +1,213 @@
+<script>
+/**
+ * =================================================================
+ * 【ファイル名】: 12_WebApp_Core.html
+ * 【バージョン】: 1.1
+ * 【役割】: WebAppのフロントエンドにおける中核機能を集約します。
+ * - 状態管理 (State Management)
+ * - UIコンポーネント生成 (UI Components)
+ * - 汎用ユーティリティ (Utilities)
+ * - 会計計算ロジック (Calculation Logic)
+ * 【構成】: 14ファイル構成のうちの12番目
+ * 【v1.1での変更点】:
+ * - FE-16: calculateAccountingDetailsを修正。会計詳細JSONに保存される授業料の項目名に、
+ * 実際の利用時間(HH:mm - HH:mm)を含めるように変更。
+ * =================================================================
+ */
+
+// =================================================================
+// --- Application State Management ---
+// -----------------------------------------------------------------
+// アプリケーション全体の動的な状態を一元管理します。
+// ユーザー情報、予約データ、現在の表示画面などが含まれます。
+// =================================================================
+const appState = {
+    currentUser: null,
+    slots: [],
+    myBookings: [],
+    history: [],
+    historyTotal: 0,
+    view: 'login',
+    selectedClassroom: null,
+    selectedSlot: null,
+    phoneForRegistration: null,
+    completionMessage: '',
+    newlyBookedReservation: null,
+    editingReservationDetails: null,
+    accountingReservation: null,
+    accountingMaster: null,
+    accountingInitialValues: null,      
+    editingHistoryItem: null,
+    classrooms: ['東京教室', 'つくば教室', '沼津教室']
+};
+let onConfirmCallback = null; // モーダル確認時のコールバック関数を保持
+
+// =================================================================
+// --- UI Component Generators ---
+// -----------------------------------------------------------------
+// アプリ内で使用されるボタンや入力欄といった、再利用可能な
+// UI部品を生成する関数群です。
+// =================================================================
+const Components = {
+    createButton: (c) => `<button data-action="${c.action||''}" data-classroom="${c.classroom||''}" data-classroom-name="${c.classroomName||''}" data-date="${c.date||''}" data-reservation-id="${c.reservationId||''}" data-sheet-name="${c.sheetName||''}" data-copy-text="${c.copyText||''}" data-details='${c.details || ''}' class="${DesignConfig.buttons.base} ${c.widthClass||''} ${c.colorClass}" ${c.disabled ? 'disabled' : ''}>${c.text}</button>`,
+    createInput: (c) => `<div class="${c.containerClass||''} mb-4"><label for="${c.id}" class="${c.labelClass || 'block text-brand-text text-base font-bold mb-2'} ${c.isSrOnly?'sr-only':''}">${c.label}</label><input type="${c.type}" id="${c.id}" value="${c.value||''}" class="${DesignConfig.inputs.base} ${c.inputClass || ''}" placeholder="${c.placeholder||''}" ${c.required?'required':''} autocomplete="${c.autocomplete||'off'}" ${c.step ? `step="${c.step}"` : ''}></div>`,
+    createTextArea: (c) => `<div class="${c.containerClass||''} mb-4"><label for="${c.id}" class="block ${DesignConfig.colors.text} text-base font-bold mb-2">${c.label}</label><textarea id="${c.id}" class="${DesignConfig.inputs.textarea}" placeholder="${c.placeholder||''}">${c.value||''}</textarea></div>`,
+    createSelect: (c) => `<div class="${c.containerClass||''}"><label for="${c.id}" class="block text-brand-text text-base font-bold mb-2">${c.label}</label><select id="${c.id}" class="${DesignConfig.inputs.base} ${c.sizeClass || ''} accounting-item">${c.options}</select></div>`,
+    createCheckbox: (c) => `<label class="flex items-center space-x-2"><input type="checkbox" id="${c.id}" ${c.checked ? 'checked' : ''}><span>${c.label}</span></label>`,
+};
+
+// =================================================================
+// --- General Utilities ---
+// -----------------------------------------------------------------
+// 日付のフォーマット、ローディング表示、モーダルダイアログなど、
+// アプリ全体で汎用的に使用されるヘルパー関数群です。
+// =================================================================
+const formatDate = (dStr) => {
+    if (!dStr) return '';
+    const d = new Date(dStr);
+    if (isNaN(d)) return '';
+    d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+    const day = d.getDay();
+    const wd = ['日', '月', '火', '水', '木', '金', '土'];
+    return `${d.getMonth() + 1}/${d.getDate()} <span class="font-bold ${day === 0 ? 'text-red-500' : day === 6 ? 'text-blue-500' : ''}">${wd[day]}</span>`;
+};
+const showLoading = () => document.getElementById('loading').classList.remove('hidden');
+const hideLoading = () => document.getElementById('loading').classList.add('hidden');
+const showModal = (c) => {
+    const m = document.getElementById('custom-modal'), b = document.getElementById('modal-buttons');
+    b.innerHTML = '';
+    if (c.showCancel) {
+        b.innerHTML += Components.createButton({ text: c.cancelText || 'キャンセル', action: 'modalCancel', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.auto });
+    }
+    b.innerHTML += `<div class="w-3"></div>${Components.createButton({ text: c.confirmText, action: 'modalConfirm', colorClass: c.confirmColorClass, widthClass: DesignConfig.buttons.auto })}`;
+    onConfirmCallback = c.onConfirm;
+    document.getElementById('modal-title').textContent = c.title;
+    document.getElementById('modal-message').innerHTML = c.message;
+    m.classList.add('active');
+};
+const hideModal = () => { document.getElementById('custom-modal').classList.remove('active'); onConfirmCallback = null; };
+const showInfo = (msg, t = "情報", cb = null) => showModal({ title: t, message: msg, confirmText: 'OK', confirmColorClass: DesignConfig.colors.primary, onConfirm: cb });
+const showConfirm = (c) => showModal({ ...c, showCancel: true });
+
+// =================================================================
+// --- Accounting Calculation Logic ---
+// -----------------------------------------------------------------
+// 会計画面での複雑な料金計算ロジックです。
+// 授業料、材料費、割引などを動的に計算し、合計金額を算出します。
+// =================================================================
+function calculateAccountingDetails() {
+    if (!appState.accountingMaster) return null;
+    let tuitionSubtotal = 0;
+    let salesSubtotal = 0;
+    const details = { tuition: { items: [] }, sales: { items: [] }, grandTotal: 0, paymentMethod: '', items: [] };
+    const form = document.getElementById('accounting-form');
+    if(!form) return null;
+
+    const r = appState.accountingReservation;
+    const classroomRule = appState.accountingMaster.find(item => item['対象教室'] && item['対象教室'].includes(r.classroom) && item['種別'] === '授業料');
+    const isTimeBased = classroomRule && classroomRule['単位'] === '30分';
+    let tuitionBreakdownHtml = '';
+
+    if (isTimeBased) {
+        const startTime = document.getElementById('start-time')?.value;
+        const endTime = document.getElementById('end-time')?.value;
+        const breakMinutes = parseInt(document.getElementById('break-time')?.value || 0, 10);
+
+        if(startTime && endTime && startTime < endTime) {
+            const start = new Date(`1970-01-01T${startTime}:00`);
+            const end = new Date(`1970-01-01T${endTime}:00`);
+            let diffMinutes = (end - start) / 60000 - breakMinutes;
+
+            if (diffMinutes > 0) {
+                const billableUnits = Math.ceil(diffMinutes / 30);
+                const price = billableUnits * Number(classroomRule['単価']);
+                tuitionSubtotal += price;
+                //【FE-16】項目名に利用時間を追加
+                const tuitionItem = {name: `授業料 (${startTime} - ${endTime})`, price: price};
+                details.tuition.items.push(tuitionItem);
+                document.getElementById('calculated-hours').textContent = `受講時間: ${billableUnits * 0.5}時間 × ${classroomRule['単価']}円`;
+            } else {
+                document.getElementById('calculated-hours').textContent = ``;
+            }
+        }
+    }
+
+    form.querySelectorAll('input[type="checkbox"].accounting-item').forEach(cb => {
+        if(cb.checked || cb.disabled){
+            const itemName = cb.dataset.itemName;
+            const itemType = cb.dataset.itemType;
+            const masterItem = appState.accountingMaster.find(m => m['項目名'] === itemName && m['種別'] === itemType);
+            if (!masterItem) return;
+            const price = Number(masterItem['単価']);
+            const itemDetail = { name: itemName, price: price };
+            details.items.push(itemDetail);
+
+            if (itemType === '授業料') {
+                tuitionSubtotal += price;
+                details.tuition.items.push(itemDetail);
+                tuitionBreakdownHtml += `<div class="flex justify-between"><span>${itemDetail.name}</span><span>${itemDetail.price.toLocaleString()}円</span></div>`;
+            } else {
+                salesSubtotal += price;
+                details.sales.items.push(itemDetail);
+            }
+        }
+    });
+
+    const discountSelector = document.getElementById('discount-selector');
+    if(discountSelector) {
+        const discountRule = appState.accountingMaster.find(item => item['項目名'] === '初回講習同時間割引');
+        if(discountRule) {
+            const discountMinutes = parseInt(discountSelector.value, 10);
+            if(discountMinutes > 0) {
+                const discountAmount = (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
+                tuitionSubtotal -= discountAmount;
+                const discountItem = {name:`初回講習同時間割引 (${discountMinutes}分)`, price: -discountAmount};
+                details.tuition.items.push(discountItem);
+                tuitionBreakdownHtml += `<div class="flex justify-between text-red-600"><span>${discountItem.name}</span><span>${discountItem.price.toLocaleString()}円</span></div>`;
+            }
+        }
+    }
+
+    if(isTimeBased) document.getElementById('tuition-breakdown').innerHTML = tuitionBreakdownHtml;
+
+    const materialContainer = document.getElementById('materials-container');
+    if(materialContainer) {
+        const materialRows = materialContainer.querySelectorAll('div[data-material-row-index]');
+        materialRows.forEach((row, index) => {
+            const type = document.getElementById(`material-type-${index}`)?.value;
+            const masterItem = appState.accountingMaster.find(m => m['項目名'] === type);
+            const priceEl = document.getElementById(`material-price-${index}`);
+            if (!masterItem) { if(priceEl) priceEl.textContent = '0円'; return; }
+            const unitPrice = Number(masterItem['単価']); let finalName = type; let price = 0;
+            if (masterItem['単位'] === 'cm³') {
+                const l = document.getElementById(`material-l-${index}`)?.value || 0; const w = document.getElementById(`material-w-${index}`)?.value || 0; const h = document.getElementById(`material-h-${index}`)?.value || 0;
+                if (l > 0 && w > 0 && h > 0) { const volumeCm = (l / 10) * (w / 10) * (h / 10); let calculatedPrice = Math.round((volumeCm * unitPrice) / 100) * 100; price = Math.max(100, calculatedPrice); finalName = `${type} (${l}x${w}x${h}mm)`; }
+            } else { if(type) price = unitPrice; }
+            if(priceEl) priceEl.textContent = `${price.toLocaleString()}円`;
+            if (price > 0) { const itemDetail = { name: finalName, price: price }; salesSubtotal += price; details.sales.items.push(itemDetail); }
+        });
+    }
+    const otherSalesContainer = document.getElementById('other-sales-container');
+    if (otherSalesContainer) {
+        const otherSalesRows = otherSalesContainer.querySelectorAll('div[data-other-sales-row]');
+        otherSalesRows.forEach((row, index) => {
+            const name = document.getElementById(`other-sales-name-${index}`)?.value.trim();
+            const priceInput = document.getElementById(`other-sales-price-${index}`);
+            let priceValue = priceInput.value.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)).replace(/[^0-9.-]/g, '');
+            priceInput.value = priceValue;
+            const price = Number(priceValue || 0);
+            if(name && price !== 0){
+                const itemDetail = { name: name, price: price };
+                salesSubtotal += price;
+                details.sales.items.push(itemDetail);
+            }
+        });
+    }
+    details.tuition.subtotal = tuitionSubtotal; details.sales.subtotal = salesSubtotal; details.grandTotal = tuitionSubtotal + salesSubtotal;
+    document.getElementById('tuition-subtotal').textContent = `小計: ${tuitionSubtotal.toLocaleString()}円`;
+    document.getElementById('sales-subtotal').textContent = `小計: ${salesSubtotal.toLocaleString()}円`;
+    document.getElementById('grand-total-amount').textContent = `合計: ${details.grandTotal.toLocaleString()}円`;
+    details.paymentMethod = form.querySelector('input[name="payment-method"]:checked')?.value || '現金';
+    return details;
+}
+</script>

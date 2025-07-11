@@ -1,0 +1,81 @@
+<!--
+=================================================================
+【ファイル名】: 10_WebApp.html
+【バージョン】: 25.0 (ファイル分割対応版)
+【更新日時】: 2025-07-05
+【説明】:
+- ARC-11: JavaScriptコードを外部の.htmlファイルに分割し、
+  GASのスクリプトレット機能を使ってインクルードする方式に変更。
+- これにより、本体ファイルの可読性が向上し、各機能ブロックの
+  保守性が大幅に改善されました。
+=================================================================
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+    <title>川崎誠二 木彫り教室 きぼりのよやく・きろく・かいけい</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontSize: { '2xs': '0.625rem' },
+                    fontFamily: { sans: ['Zen Kaku Gothic New', 'sans-serif'] },
+                    colors: {
+                        'brand': { 'bg': '#f8f7f6', 'surface': '#ffffff', 'text': '#50312F', 'subtle': '#6b7280' },
+                        'action': { 'primary-bg': '#50312F', 'primary-text': '#ffffff', 'secondary-bg': '#e5e7eb', 'secondary-text': '#374151', 'danger-bg': '#CB0000', 'danger-text': '#ffffff', 'paid-bg': '#e0f2fe', 'paid-text': '#0c4a6e' },
+                        'state': { 'available-text': '#3F6C45', 'waitlist-text': '#854d0e', 'booked-text': '#0c4a6e' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { font-size: 16px; }
+        body { font-family: 'Zen Kaku Gothic New', sans-serif; background-color: #f8f7f6; -webkit-tap-highlight-color: transparent; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .spinner { border: 4px solid rgba(0,0,0,0.1); width: 32px; height: 32px; border-radius: 50%; border-left-color: #50312F; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .modal-overlay { position: fixed; inset: 0; background-color: rgba(40,35,30,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; backdrop-filter: blur(3px); }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-content { background: white; padding: 1.5rem; border-radius: 0.75rem; width: 90%; max-width: 400px; text-align: center; }
+        .modal-content p { margin-bottom: 1.25rem; }
+        .modal-content .modal-buttons { justify-content: center; }
+        details > summary { list-style: none; cursor: pointer; }
+        details > summary::-webkit-details-marker { display: none; }
+        details > summary { transition: margin-bottom 0.2s ease-in-out; }
+        details[open] > summary { margin-bottom: 0.5rem; }
+        details summary .arrow { display: inline-block; transition: transform 0.2s ease-in-out; }
+        details[open] summary .arrow { transform: rotate(90deg); }
+        .custom-placeholder::placeholder { font-size: 0.875rem; color: #9ca3af; }
+    </style>
+</head>
+<body class="bg-brand-bg font-sans">
+    <div id="app" class="max-w-screen-lg mx-auto p-2 sm:p-6">
+        <div id="loading" class="fixed inset-0 bg-white/75 flex items-center justify-center z-50 hidden backdrop-blur-sm"><div class="spinner"></div></div>
+        <div id="custom-modal" class="modal-overlay">
+            <div class="modal-content">
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-4"></h3>
+                <p id="modal-message" class="text-gray-600 mb-6"></p>
+                <div id="modal-buttons" class="flex justify-end space-x-3"></div>
+            </div>
+        </div>
+        <div id="view-container" class="bg-brand-surface rounded-xl p-4 sm:p-8 min-h-[400px] w-full">
+        </div>
+        <footer class="text-center text-sm text-gray-400 mt-4">きぼりのよやく・きろく・かいけい</footer>
+    </div>
+
+    <?!= include('11_WebApp_Config'); ?>
+    <?!= include('12_WebApp_Core'); ?>
+    <?!= include('13_WebApp_Views'); ?>
+    <?!= include('14_WebApp_Handlers'); ?>
+
+</body>
+</html>
