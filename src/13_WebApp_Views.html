@@ -658,7 +658,7 @@ const getAccountingView = () => {
             </div>
             ${paymentHtml}
             <div class="mt-8 flex flex-col space-y-3">
-                ${Components.createButton({text:"支払いました", action:"confirmAndPay", colorClass:DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full})}
+                ${Components.createButton({text:"料金の確認", action:"showAccountingConfirmation", colorClass:DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full})}
             </div>
         </div>`; 
 };

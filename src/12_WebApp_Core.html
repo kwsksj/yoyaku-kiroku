@@ -79,7 +79,7 @@ const showModal = (c) => {
     if (c.showCancel) {
         b.innerHTML += Components.createButton({ text: c.cancelText || 'キャンセル', action: 'modalCancel', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.auto });
     }
-    b.innerHTML += `<div class="w-3"></div>${Components.createButton({ text: c.confirmText, action: 'modalConfirm', colorClass: c.confirmColorClass, widthClass: DesignConfig.buttons.auto })}`;
+    b.innerHTML += `<div class="w-3"></div>${Components.createButton({ text: c.confirmText, action: 'modalConfirm', colorClass: c.confirmColorClass, widthClass: DesignConfig.buttons.auto, disabled: c.disableConfirm })}`;
     onConfirmCallback = c.onConfirm;
     document.getElementById('modal-title').textContent = c.title;
     document.getElementById('modal-message').innerHTML = c.message;

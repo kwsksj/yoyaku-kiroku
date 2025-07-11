@@ -225,47 +225,6 @@ const actionHandlers = {
         showInfo(message, '会計記録');
     },
 
-    /** 支払いを確定し、データを保存します */
-    confirmAndPay: () => {
-        const accountingDetails = calculateAccountingDetails();
-        if(accountingDetails.grandTotal <= 0) {
-            showInfo('合計金額が0円です。項目を選択してください。');
-            return;
-        }
-        showConfirm({
-            title: '会計の確認',
-            message: `合計金額は <b>${accountingDetails.grandTotal.toLocaleString()}円</b> です。<br>この内容で確定し、支払いますか？`,
-            confirmText: '確定・支払いました',
-            cancelText: '戻る',
-            confirmColorClass: DesignConfig.colors.primary,
-            onConfirm: () => {
-                const form = document.getElementById('accounting-form');
-                const optionsToUpdate = {
-                    startTime: form.querySelector('#start-time')?.value || null,
-                    endTime: form.querySelector('#end-time')?.value || null,
-                    firstLecture: form.querySelector('[data-item-name="初回講習"]')?.checked || false,
-                    earlyArrival: form.querySelector('[data-item-name="早出"]')?.checked || false,
-                    chiselRental: form.querySelector('[data-item-name="彫刻刀レンタル"]')?.checked || false,
-                };
-
-                showLoading();
-                google.script.run.withSuccessHandler(r => {
-                    hideLoading();
-                    if (r.success) {
-                        showInfo('会計情報を記録しました。\n続けて次の予約をされますか？', '記録完了', () => fetchSlotsAndSetState(appState.currentUser, 'classroomSelect'));
-                    } else {
-                        showInfo(r.message || '会計情報の記録に失敗しました。');
-                    }
-                }).withFailureHandler(handleServerError).saveAccountingDetails(
-                    appState.accountingReservation.reservationId, 
-                    appState.accountingReservation.classroom, 
-                    accountingDetails, 
-                    optionsToUpdate
-                );
-            }
-        });
-    },
-
     /** 会計画面で材料入力行を追加します */
     addMaterialRow: () => {
         const container = document.getElementById('materials-container');
@@ -372,6 +331,63 @@ const actionHandlers = {
     
     /** モーダルのキャンセルボタンを押したときの処理です */
     modalCancel: () => hideModal()
+};
+
+/**
+ * 会計の確認モーダルを表示し、支払い処理を行います。
+ */
+actionHandlers.showAccountingConfirmation = () => {
+    const accountingDetails = calculateAccountingDetails();
+    if (accountingDetails.grandTotal <= 0) {
+        showInfo('合計金額が0円です。項目を選択してください。');
+        return;
+    }
+
+    const message = `
+        <div class="p-4 bg-gray-50 rounded-lg text-left space-y-4 text-base">
+            <div><span class="font-bold">合計金額:</span> ${accountingDetails.grandTotal.toLocaleString()}円</div>
+            <div><span class="font-bold">支払い方法:</span> ${accountingDetails.paymentMethod}</div>
+            <label class="flex items-center space-x-2 mt-2">
+                <input type="checkbox" id="teacher-confirmed" class="h-5 w-5 rounded border-gray-300 text-brand-text focus:ring-brand-text">
+                <span>先生に内容を確認してもらいました</span>
+            </label>
+        </div>
+    `;
+
+    showConfirm({
+        title: 'お会計の確認',
+        message: message,
+        confirmText: 'この内容で支払う',
+        cancelText: 'キャンセル',
+        confirmColorClass: DesignConfig.colors.primary,
+        onConfirm: () => {
+            const form = document.getElementById('accounting-form');
+            const optionsToUpdate = {
+                startTime: form.querySelector('#start-time')?.value || null,
+                endTime: form.querySelector('#end-time')?.value || null,
+                firstLecture: form.querySelector('[data-item-name="初回講習"]')?.checked || false,
+                earlyArrival: form.querySelector('[data-item-name="早出"]')?.checked || false,
+                chiselRental: form.querySelector('[data-item-name="彫刻刀レンタル"]')?.checked || false,
+            };
+
+            showLoading();
+            google.script.run.withSuccessHandler(r => {
+                hideLoading();
+                if (r.success) {
+                    showInfo('会計情報を記録しました。\n続けて次の予約をされますか？', '記録完了', () => fetchSlotsAndSetState(appState.currentUser, 'classroomSelect'));
+                } else {
+                    showInfo(r.message || '会計情報の記録に失敗しました。');
+                }
+            }).withFailureHandler(handleServerError).saveAccountingDetails(
+                appState.accountingReservation.reservationId,
+                appState.accountingReservation.classroom,
+                accountingDetails,
+                optionsToUpdate
+            );
+        },
+        disableConfirm: true // 初期状態で確定ボタンを無効化
+    });
+    document.getElementById('teacher-confirmed').addEventListener('change', (e) => { document.querySelector('#custom-modal button[data-action="modalConfirm"]').disabled = !e.target.checked; });
 };
 
 // =================================================================
