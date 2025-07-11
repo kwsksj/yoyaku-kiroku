@@ -291,7 +291,7 @@ const getClassroomSelectView = () => {
                                     <div class="flex flex-col items-start">
                                         <p class="text-lg">${timeText}</p>
                                         <p class="text-lg break-words">${b.classroom} ${venueText}</p>
-                                        ${b.isWaiting ? `<p class="font-bold text-amber-700 text-lg">キャンセル待ち</p>` : ''}
+                                        ${b.isWaiting ? `<p class="font-bold text-amber-700 text-lg">キャンセル待ち（登録済み）</p>` : ''}
                                     </div>
                                 </div>
                                 <div class="bg-white p-2 rounded-md break-words flex-grow w-full sm:w-auto">
@@ -447,8 +447,13 @@ const getBookingView = (c) => {
             statusText = `空席 ${sl.availableSlots}`; 
         } 
         if (iB) { 
-            cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`; 
-            sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`; 
+            if (sl.isWaiting) { 
+                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`; 
+                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち（登録済み）</span>`; 
+            } else { 
+                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`; 
+                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`; 
+            }
             tag = 'div'; 
             act = ''; 
         } else if (sl.isFull) { 

@@ -2,6 +2,7 @@
   "timeZone": "Asia/Tokyo",
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
+  "rootDir": "src",
   "dependencies": {
     "libraries": [
       {

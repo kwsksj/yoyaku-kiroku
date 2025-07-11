@@ -170,6 +170,7 @@ function makeReservation(reservationInfo) {
             if (startTimeColIdx !== undefined) sheet.getRange(emptyRowIndex, startTimeColIdx + 1).setNumberFormat("HH:mm");
             if (endTimeColIdx !== undefined) sheet.getRange(emptyRowIndex, endTimeColIdx + 1).setNumberFormat("HH:mm");
             updateBillableTime(sheet, emptyRowIndex);
+            updateGanttChart(sheet, emptyRowIndex);
             populateReservationWithRosterData(user.studentId, sheet, emptyRowIndex);
         } else {
             const newRowValues = new Array(header.length).fill('');
@@ -189,6 +190,7 @@ function makeReservation(reservationInfo) {
             if (startTimeColIdx !== undefined) sheet.getRange(newRowIndex, startTimeColIdx + 1).setNumberFormat("HH:mm");
             if (endTimeColIdx !== undefined) sheet.getRange(newRowIndex, endTimeColIdx + 1).setNumberFormat("HH:mm");
             updateBillableTime(sheet, newRowIndex);
+            updateGanttChart(sheet, newRowIndex);
             populateReservationWithRosterData(user.studentId, sheet, newRowIndex);
         }
         
@@ -358,6 +360,7 @@ function updateReservationDetails(details) {
         }
         
         updateBillableTime(sheet, targetRowIndex);
+        updateGanttChart(sheet, targetRowIndex);
         SpreadsheetApp.flush();
 
         // 【NF-12】Update cache incrementally
