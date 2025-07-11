@@ -416,8 +416,11 @@ function saveAccountingDetails(reservationId, classroom, accountingDetails, opti
             chiselRental: HEADER_CHISEL_RENTAL
         };
 
+        // optionsがundefinedの場合は空オブジェクトにする
+        options = options || {};
+
         for (const key in optionMap) {
-            if (options.hasOwnProperty(key) && headerMap.has(optionMap[key])) {
+            if (options && options.hasOwnProperty(key) && headerMap.has(optionMap[key])) {
                 const colIdx = headerMap.get(optionMap[key]) + 1;
                 let value = options[key];
                 if ((key === 'startTime' || key === 'endTime') && value) {

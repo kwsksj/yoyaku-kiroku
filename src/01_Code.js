@@ -120,7 +120,7 @@ const UNIT_CM3 = 'cm³';
 // --- エントリーポイント関数 ---
 
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('10_WebApp.html').evaluate().setTitle('アトリエマネージャー').addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  return HtmlService.createTemplateFromFile('10_WebApp.html').evaluate().setTitle('きぼりの よやく・きろく').addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 function onOpen() {

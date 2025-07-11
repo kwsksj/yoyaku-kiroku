@@ -224,8 +224,8 @@ const getTimeBasedTuitionHtml = (rule, initial) => {
  */
 const getLoginView = () => `
     <div class="text-center pt-8 pb-4">
-        <h1 class="text-3xl font-bold ${DesignConfig.colors.text} tracking-tight">川崎誠二 木彫り教室</h1>
-        <h2 class="text-xl ${DesignConfig.colors.textSubtle} mt-2 mb-10">きぼりのよやく・きろく・かいけい</h2>
+        <h1 class="text-3xl font-bold ${DesignConfig.colors.text} tracking-tight">きぼりの よやく・きろく</h1>
+        <h2 class="text-xl ${DesignConfig.colors.textSubtle} mt-2 mb-10">川崎誠二 木彫り教室</h2>
     </div>
     ${Components.createInput({ id: 'phone', label: '電話番号', type: 'tel', placeholder: '090 1234 5678', containerClass: DesignConfig.inputs.container, autocomplete: 'tel', isSrOnly: false, labelClass: `block text-brand-subtle text-sm text-center mb-1`, inputClass: 'text-center' })}
     <div class="mt-6 flex justify-center">
@@ -498,7 +498,7 @@ const getConfirmationView = () => {
             const finalEndTime = `${String(endTimeHour).padStart(2, '0')}:${String(endTimeMinutes).padStart(2, '0')}`; 
             endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`; 
         } 
-        const timeInfoHtml = `<div class="text-sm text-gray-500 text-left mb-2">講座時間: ${classroomRule['講座開始']} - ${classroomRule['講座終了']} / 休憩: ${classroomRule['休憩開始'] || ''} - ${classroomRule['休憩終了'] || ''}</div>`; 
+        const timeInfoHtml = `<div class="text-sm text-gray-500 text-left mb-2">講座時間: ${classroomRule['講座開始']} - ${classroomRule['休憩開始'] + ',' || ''}  ${classroomRule['休憩終了'] +' - ' || ''}${classroomRule['講座終了']}</div>`; 
         const discountRule = master.find(item => item['項目名'] === ITEM_NAME_DISCOUNT); 
         let discountHtml = ''; 
         if (discountRule && (classroom === TSUKUBA_CLASSROOM_NAME || classroom === NUMAZU_CLASSROOM_NAME)) { 
@@ -591,9 +591,24 @@ const getCompleteView = (msg) => `
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-4 mb-2">ありがとうございました</h1>
-        <p class="${DesignConfig.colors.textSubtle} mb-6">${msg}</p>
-        ${Components.createButton({text:"予約一覧へ戻る",action:"goToDashboard",colorClass:DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full})}
+        <p class="${DesignConfig.colors.textSubtle} mb-6">${msg}</p>        
+        ${Components.createButton({
+            text: "次の予約をする",
+            action: "goToBooking",
+            classroom: appState.accountingReservation?.classroom || '',
+            colorClass: DesignConfig.colors.primary,
+            widthClass: DesignConfig.buttons.full
+        })}
+        <div class="mt-4">
+            ${Components.createButton({
+                text: "ダッシュボードへ戻る",
+                action: "goToDashboard",
+                colorClass: DesignConfig.colors.secondary,
+                widthClass: DesignConfig.buttons.full
+            })}
+        </div>
     </div>`;
+
 
 /**
  * 会計画面のUIを生成します。
@@ -640,25 +655,23 @@ const getAccountingView = () => {
     } 
     const salesItems = master.filter(item => item['種別'] === '物販'); 
     const salesHtml = `<div class="p-4 bg-gray-50 rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${getMaterialRowHtml(0)}</div></div> ${Components.createButton({text:"+ 材料を追加", action:"addMaterialRow", colorClass:"bg-gray-200 text-gray-700 w-full mt-3 text-base py-2"})} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2"><input type="checkbox" data-item-type="物販" data-item-name="${item['項目名']}" class="accounting-item"><span>${item['項目名']}</span></label> <span>${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t">${getOtherSalesRowHtml(0)}</div></div> ${Components.createButton({text:"+ 自由入力欄を追加", action:"addOtherSalesRow", colorClass:"bg-gray-200 text-gray-700 w-full mt-3 text-base py-2"})} </details> <div class="text-right font-bold mt-2" id="sales-subtotal">小計: 0円</div></div>`; 
-    const paymentHtml = `<div class="p-4 bg-gray-50 rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">お支払い</h3> <p class="text-base text-left text-red-700 bg-red-50 p-3 rounded-lg font-bold mb-4">${"料金を計算したら、先生に確認してもらってからお支払いください。お支払いが完了したら、必ず下の「支払いました」ボタンを押してください。"}</p> <div class="space-y-3 text-left">${getPaymentOptionsHtml()}</div> </div>`; 
     return `
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold ${DesignConfig.colors.text}">会計</h1>
             <button data-action="goBackToClassroomSelect" class="text-base text-brand-subtle hover:underline">戻る</button>
         </div>
         <div class="text-center py-4">
-            <p class="text-gray-600 mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
+            <p class="text-gray-600 mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p> 
         </div>
         <div id="accounting-form" class="space-y-6">
             ${tuitionHtml}
             ${salesHtml}
             <div class="text-right text-2xl font-bold py-4 border-t-2 border-gray-200 flex flex-col items-end">
                 <span id="grand-total-amount">合計: 0円</span>
-                <button data-action="copyGrandTotal" class="mt-2 text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold px-2 py-1 rounded w-24">合計をコピー</button>
             </div>
-            ${paymentHtml}
-            <div class="mt-8 flex flex-col space-y-3">
-                ${Components.createButton({text:"料金の確認", action:"showAccountingConfirmation", colorClass:DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full})}
+            <div class="mt-4 text-center">
+                <p class="text-base text-red-700 font-bold mb-2">金額を、先生に確認してもらってください</p>
+                ${Components.createButton({text:"先生の確認完了", action:"showAccountingConfirmation", colorClass:DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full})}
             </div>
         </div>`; 
 };

@@ -14,7 +14,7 @@
 <html>
 <head>
     <base target="_top">
-    <title>川崎誠二 木彫り教室 きぼりのよやく・きろく・かいけい</title>
+    <title>きぼりの よやく・きろく 川崎誠二木彫り教室</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,6 +43,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .spinner { border: 4px solid rgba(0,0,0,0.1); width: 32px; height: 32px; border-radius: 50%; border-left-color: #50312F; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+        #loading { z-index: 100; } /* ← 追加: ローディング画面を最前面に */
         .modal-overlay { position: fixed; inset: 0; background-color: rgba(40,35,30,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; backdrop-filter: blur(3px); }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
         .modal-content { background: white; padding: 1.5rem; border-radius: 0.75rem; width: 90%; max-width: 400px; text-align: center; }
@@ -69,7 +70,7 @@
         </div>
         <div id="view-container" class="bg-brand-surface rounded-xl p-4 sm:p-8 min-h-[400px] w-full">
         </div>
-        <footer class="text-center text-sm text-gray-400 mt-4">きぼりのよやく・きろく・かいけい</footer>
+        <footer class="text-center text-sm text-gray-400 mt-4">きぼりの よやく・きろく</footer>
     </div>
 
     <?!= include('11_WebApp_Config'); ?>
