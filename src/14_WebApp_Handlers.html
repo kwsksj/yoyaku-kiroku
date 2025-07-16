@@ -412,7 +412,7 @@ actionHandlers.confirmAndPay = () => {
     }
     // 支払い方法を上書き
     accountingDetails.paymentMethod = paymentMethod;
-
+    
     showLoading();
     google.script.run.withSuccessHandler(r => {
         
@@ -425,6 +425,7 @@ actionHandlers.confirmAndPay = () => {
             setState({
                 view: 'complete',
                 completionMessage: '会計情報を記録しました。続けて次の予約をされますか？',
+                myBookings: r.newBookingsCache,
                 // 完了画面で同じ教室の予約ボタンを表示するため
                 accountingReservation: appState.accountingReservation
             });
@@ -436,12 +437,8 @@ actionHandlers.confirmAndPay = () => {
         appState.accountingReservation.reservationId,
         appState.accountingReservation.classroom,
         accountingDetails,
-        {}
+        appState.currentUser.studentId
     );
-
-
-
-    
 };
 
 // =================================================================

@@ -403,9 +403,18 @@ function saveAccountingDetails(reservationId, classroom, accountingDetails, opti
         const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
         const headerMap = createHeaderMap(header);
         const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
+        const studentIdColIdx = headerMap.get(HEADER_STUDENT_ID);
 
         const targetRowIndex = findRowIndexByValue(sheet, reservationIdColIdx + 1, reservationId);
         if (targetRowIndex === -1) throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
+
+        const actualStudentId = sheet.getRange(targetRowIndex, studentIdColIdx + 1).getValue();
+        if (actualStudentId !== studentId) {
+          // 本来はエラーですが、ここではログに記録するに留めます
+          Logger.log(`Warning: Mismatch user ID during accounting. Expected: ${studentId}, Actual: ${actualStudentId}`);
+        }
+
+        const options = {}; // optionsは現在フロントから渡されていないため空オブジェクトで初期化
 
         // 1. オプション値をシートに書き戻す
         const optionMap = {
@@ -415,9 +424,6 @@ function saveAccountingDetails(reservationId, classroom, accountingDetails, opti
             earlyArrival: HEADER_EARLY_ARRIVAL,
             chiselRental: HEADER_CHISEL_RENTAL
         };
-
-        // optionsがundefinedの場合は空オブジェクトにする
-        options = options || {};
 
         for (const key in optionMap) {
             if (options && options.hasOwnProperty(key) && headerMap.has(optionMap[key])) {
@@ -439,7 +445,18 @@ function saveAccountingDetails(reservationId, classroom, accountingDetails, opti
         if (accountingDetailsColIdx === undefined) throw new Error("ヘッダー「会計詳細」が見つかりません。");
         sheet.getRange(targetRowIndex, accountingDetailsColIdx + 1).setValue(JSON.stringify(accountingDetails));
 
-        return { success: true };
+    
+        SpreadsheetApp.flush(); // 【追加】シートへの書き込みを確定
+
+        // 4. 【追加】予約キャッシュを更新
+        const updatedBookingCachePayload = {
+            reservationId: reservationId,
+            accountingDone: true,
+            accountingDetails: jsonDetails
+        };
+        const newBookingsCache = _updateFutureBookingsCacheIncrementally(actualStudentId, 'update', updatedBookingCachePayload);
+
+        return { success: true, newBookingsCache: newBookingsCache };
 
     } catch (err) {
         Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);

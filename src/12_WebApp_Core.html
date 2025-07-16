@@ -124,8 +124,8 @@ function calculateAccountingDetails() {
                 tuitionSubtotal += price;
                 //【FE-16】項目名に利用時間を追加
                 const tuitionItem = {name: `授業料 (${startTime} - ${endTime})`, price: price};
-                details.tuition.items.push(tuitionItem);
-                document.getElementById('calculated-hours').textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2 * classroomRule['単価']}円`;
+                details.tuition.items.push(tuitionItem);             
+                document.getElementById('calculated-hours').textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * classroomRule['単価']}円`;
             } else {
                 document.getElementById('calculated-hours').textContent = ``;
             }
