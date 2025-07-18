@@ -24,9 +24,11 @@ function processCellEdit(e) {
   
   if (sheetName === ROSTER_SHEET_NAME && startRow > 1) {
     handleRosterEdit(e);
+    logActivity('user', Session.getActiveUser().getEmail(), 'ROSTER_EDIT', 'SUCCESS', `範囲: ${range.getA1Notation()}`);
   } 
   else if (CLASSROOM_SHEET_NAMES.includes(sheetName) && startRow >= RESERVATION_DATA_START_ROW) {
     handleReservationSheetEdit(e);
+    logActivity('user', Session.getActiveUser().getEmail(), 'RESERVATION_EDIT', 'SUCCESS', `シート: ${sheetName}, 範囲: ${range.getA1Notation()}`);
   }
 }
 
@@ -53,6 +55,7 @@ function processChange(changeType) {
         triggerSummaryUpdateFromEdit(pseudoEvent);
       }
     }
+    logActivity('user', Session.getActiveUser().getEmail(), 'ROW_INSERT', 'SUCCESS', `シート: ${sheet.getName()}, 日付: ${insertedDate ? Utilities.formatDate(insertedDate, SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(), 'yyyy-MM-dd') : 'N/A'}`);
   }
 }
 

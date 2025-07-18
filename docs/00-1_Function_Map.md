@@ -70,9 +70,9 @@
   | | `countReservations` | 特定条件での予約数をカウント | `recalculateAndWriteSummary` | `createHeaderMap` |
   | | `getVenueForDate` | 特定日付の会場名を取得 | `recalculateAndWriteSummary` | `createHeaderMap` |
   | 04_Backend_User.gs | | | | |
-  | | `authenticateUser` | WebApp: 電話番号でユーザーを認証 | `registerNewUser`, (WebApp) | `_normalizeAndValidatePhone` |
-  | | `registerNewUser` | WebApp: 新規ユーザーを名簿に登録 | (WebApp) | `authenticateUser` |
-  | | `updateUserProfile` | WebApp: ユーザープロフィールを更新 | (WebApp) | - |
+  | | `authenticateUser` | WebApp: 電話番号でユーザーを認証 | `registerNewUser`, (WebApp) | `_normalizeAndValidatePhone`, `logActivity` |
+  | | `registerNewUser` | WebApp: 新規ユーザーを名簿に登録 | (WebApp) | `authenticateUser`, `logActivity` |
+  | | `updateUserProfile` | WebApp: ユーザープロフィールを更新 | (WebApp) | `logActivity` |
   | | `_normalizeAndValidatePhone`| 電話番号を正規化・検証 | `authenticateUser` | - |
   | 05-1_Backend_Read.gs | | | | |
   | | `getSlotsAndMyBookings` | WebApp: 予約枠と自身の予約情報を取得 | `getInitialWebApp_Data`, `makeReservationAndGetLatestData`, `cancelReservationAndGetLatestData`, `fetchSlotsAndSetState` | `createHeaderMap` |
@@ -82,12 +82,11 @@
   | | `getParticipationHistory` | WebApp: 参加履歴を取得 | `updateMemoAndGetLatestHistory`, (WebApp) | `createHeaderMap` |
   | 05-2_Backend_Write.gs | | | | |
   | | `_validateTimeBasedReservation`| 時間制予約の時刻を検証 | `makeReservation`, `updateReservationDetails` | - |
-  | | `makeReservation` | WebApp: 予約を作成 | `makeReservationAndGetLatestData` | `getAccountingMasterData`, `_validateTimeBasedReservation`, `createHeaderMap`, `sortAndRenumberDateBlock`, ... |
-  | | `cancelReservation` | WebApp: 予約をキャンセル | `cancelReservationAndGetLatestData` | `createHeaderMap`, `findRowIndexByValue`, `findLastRowOfDateBlock`, `sortAndRenumberDateBlock`, ... |
-  | | `updateReservationDetails`| WebApp: 予約詳細を更新 | (WebApp) | `getAccountingMasterData`, `_validateTimeBasedReservation`, `createHeaderMap`, `findRowIndexByValue`, `updateBillableTime` |
-  | | `saveAccountingDetails` | WebApp: 会計情報を保存 | (WebApp) | `createHeaderMap`, `findRowIndexByValue` |
-  | | `saveAccountingDetails` | WebApp: 会計情報を保存し、関連データを一括更新 | (WebApp) | `getAccountingMasterData`, `createHeaderMap`, `findRowIndexByValue`, `updateBillableTime`, `updateGanttChart`, `_updateFutureBookingsCacheIncrementally`, `_logSalesForSingleReservation`, `_updateRecordCacheForSingleReservation`, `updateSummaryAndForm`, `getParticipationHistory`, `_archiveSingleReservation` |
-  | | `updateMemoAndGetLatestHistory`| WebApp: 制作メモを更新し、最新履歴を返す | (WebApp) | `findRowIndexByValue`, `getParticipationHistory` |
+  | | `makeReservation` | WebApp: 予約を作成 | `makeReservationAndGetLatestData` | `logActivity`, `sendAdminNotification`, `getAccountingMasterData`, `_validateTimeBasedReservation`, ... |
+  | | `cancelReservation` | WebApp: 予約をキャンセル | `cancelReservationAndGetLatestData` | `logActivity`, `sendAdminNotification`, `createHeaderMap`, `findRowIndexByValue`, ... |
+  | | `updateReservationDetails`| WebApp: 予約詳細を更新 | (WebApp) | `logActivity`, `getAccountingMasterData`, `_validateTimeBasedReservation`, `createHeaderMap`, ... |
+  | | `saveAccountingDetails` | WebApp: 会計情報を保存し、関連データを一括更新 | (WebApp) | `logActivity`, `sendAdminNotification`, `getAccountingMasterData`, `createHeaderMap`, ... |
+  | | `updateMemoAndGetLatestHistory`| WebApp: 制作メモを更新し、最新履歴を返す | (WebApp) | `logActivity`, `findRowIndexByValue`, `getParticipationHistory` |
   | | `_logSalesForSingleReservation` | [Private] 単一予約の売上ログを転記 | `saveAccountingDetails` | `createSalesRow` |
   | | `_updateRecordCacheForSingleReservation` | [Private] 単一予約のきろくキャッシュを更新 | `saveAccountingDetails` | `createHeaderMap`, `JSON.stringify`, `JSON.parse` |
   | | `_archiveSingleReservation` | [Private] 単一予約をアーカイブし、元の行を削除 | `saveAccountingDetails` | `formatSheetWithBordersSafely` |

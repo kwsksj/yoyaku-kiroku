@@ -82,3 +82,16 @@ WebAppの空席表示を高速化するための、集計済みデータ。`rebu
 | `予約数` (`HEADER_SUMMARY_RESERVATION_COUNT`)| `Number` | 現在の予約者数。 |
 | `空席数` (`HEADER_SUMMARY_AVAILABLE_COUNT`)| `Number` | `定員 - 予約数`で算出される空席数。 |
 | `最終更新日時` (`HEADER_SUMMARY_LAST_UPDATED`)| `Timestamp` | この行が最後に更新された日時。 |
+
+## 5. アクティビティログシート (`LOG_SHEET_NAME`)
+
+ユーザーの操作やシステムの重要なイベントを時系列で記録する。問題発生時の追跡や利用状況の分析に用いる。
+
+| ヘッダー名 | データ型 | 説明 |
+|---|---|---|
+| `タイムスタンプ` | `Timestamp` | ログが記録された日時。 |
+| `生徒ID` | `String` | 操作を行ったユーザーの「生徒ID」。システムによる操作の場合は`system`や管理者メールアドレスが入る。 |
+| `ニックネーム` | `String` | 操作を行ったユーザーの表示名（ニックネーム、または本名）。 |
+| `アクション` | `String` | 操作の種類を識別する文字列 (例: `LOGIN_SUCCESS`, `RESERVATION_CREATE`)。 |
+| `結果` | `String` | 操作の結果 (`SUCCESS` or `FAILURE`)。 |
+| `詳細` | `String` | 操作に関する追加情報（予約ID、エラーメッセージなど）。 |

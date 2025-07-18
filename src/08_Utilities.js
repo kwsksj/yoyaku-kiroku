@@ -50,7 +50,14 @@ function shouldProcessRowByDate(rowDate, timezone, options) {
  * @param {boolean} isError - エラーかどうか
  */
 function handleError(message, isError) {
-    Logger.log(isError ? `エラー: ${message}` : `情報: ${message}`);
+    const logMessage = isError ? `エラー: ${message}` : `情報: ${message}`;
+    Logger.log(logMessage);
+    if (isError) {
+        // isErrorがtrueの場合、ログと通知を行う
+        const userEmail = Session.getActiveUser() ? Session.getActiveUser().getEmail() : 'system';
+        logActivity(userEmail, 'N/A', 'SYSTEM_ERROR', 'FAILURE', message);
+        sendAdminNotification('予約システムでエラーが発生しました', `エラー詳細:\n\n${message}`);
+    }
     try {
         SpreadsheetApp.getUi().alert(isError ? 'エラー' : '完了', message, SpreadsheetApp.getUi().ButtonSet.OK);
     } catch (e) {
@@ -138,4 +145,56 @@ function createSalesRow(baseInfo, category, itemName, price) {
 
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/**
+ * アプリケーションのアクティビティをログシートに記録します。
+ * ログシートが存在しない場合は自動的に作成します。
+ * @param {string} userId - 操作を行ったユーザーのID。'N/A'も可。
+ * @param {string} userName - 操作を行ったユーザーの名前。'N/A'も可。
+ * @param {string} action - 操作の種類 (例: 'LOGIN_SUCCESS', 'RESERVATION_CREATE')。
+ * @param {string} result - 操作の結果 ('SUCCESS' or 'FAILURE')。
+ * @param {string} details - 操作の詳細情報。
+ */
+function logActivity(userId, userName, action, result, details) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let logSheet = ss.getSheetByName(LOG_SHEET_NAME);
+    if (!logSheet) {
+      logSheet = ss.insertSheet(LOG_SHEET_NAME, 0); // 先頭にシートを作成
+      logSheet.appendRow(['タイムスタンプ', 'ユーザーID', 'ユーザー名', 'アクション', '結果', '詳細']);
+      logSheet.setFrozenRows(1);
+      logSheet.getRange('A:A').setNumberFormat('yyyy-mm-dd hh:mm:ss');
+      logSheet.setColumnWidth(1, 150);
+      logSheet.setColumnWidth(6, 400);
+    }
+    const timestamp = new Date();
+    // appendRowは遅いことがあるため、insertRowとsetValuesを使う
+    logSheet.insertRowAfter(1);
+    logSheet.getRange(2, 1, 1, 6).setValues([[timestamp, userId, userName, action, result, details]]);
+  } catch (e) {
+    Logger.log(`ログの記録に失敗しました: ${e.message}`);
+    // ここでエラーが発生しても、メインの処理は続行させる
+  }
+}
+
+/**
+ * 管理者にメールで通知を送信します。
+ * @param {string} subject - メールの件名。
+ * @param {string} body - メールの本文。
+ */
+function sendAdminNotification(subject, body) {
+  try {
+    if (!ADMIN_EMAIL || ADMIN_EMAIL === 'your-admin-email@example.com') {
+      Logger.log('管理者メールアドレスが設定されていないため、通知をスキップしました。');
+      return;
+    }
+    MailApp.sendEmail({
+      to: ADMIN_EMAIL,
+      subject: `[予約システム通知] ${subject}`,
+      body: body
+    });
+  } catch (e) {
+    Logger.log(`管理者への通知メール送信に失敗しました: ${e.message}`);
+  }
 }

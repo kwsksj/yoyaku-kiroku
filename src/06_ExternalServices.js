@@ -31,6 +31,7 @@ function setCheckboxChoices(classroomName) {
             }
         }
     } catch (e) {
+        logActivity('system', 'system', 'FORM_UPDATE_ERROR', 'FAILURE', `教室: ${classroomName}, エラー: ${e.message}`);
         Logger.log(`フォーム連携でエラー: ${e.message}`);
     }
 }
@@ -215,10 +216,12 @@ function addCalendarEventsToSheetWithSpecifics() {
       if (newRows.length > 0) {
         sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length).setValues(newRows);
         Logger.log(`シート "${sheetName}" に ${newRows.length} 行を追加しました。`);
+        logActivity('system', 'system', 'CALENDAR_SYNC', 'SUCCESS', `シート: ${sheetName}, 追加件数: ${newRows.length}`);
       }
     });
     
     handleError('全てのカレンダーとシートの処理が完了しました。' , false);
+    sendAdminNotification('カレンダー連携 完了', 'カレンダー連携処理が完了しました。スプレッドシートを確認してください。');
 
   } catch (err) {
     handleError(`カレンダーからの予定追加中にエラーが発生しました。\n詳細: ${err.message}`, true);

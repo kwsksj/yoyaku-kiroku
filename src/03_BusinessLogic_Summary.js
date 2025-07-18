@@ -22,6 +22,7 @@ function updateSummaryAndForm(classroom, date) {
     // Step 2: 対応する教室のフォーム選択肢を更新
     try { setCheckboxChoices(classroom); } catch (e) { Logger.log(`フォーム選択肢の更新に失敗: ${e.message}`); }
   } catch (err) {
+    logActivity('system', 'system', 'SUMMARY_UPDATE_ERROR', 'FAILURE', `教室: ${classroom}, 日付: ${date}, エラー: ${err.message}`);
     Logger.log(`updateSummaryAndForm Error for ${classroom} on ${date}: ${err.message}`);
   }
 }
@@ -71,6 +72,7 @@ function triggerSummaryUpdateFromEdit(e) {
     try { setCheckboxChoices(sheetName); } catch (e) { Logger.log(`フォーム選択肢の更新に失敗: ${e.message}`); }
 
   } catch (err) {
+    logActivity('system', 'system', 'SUMMARY_TRIGGER_ERROR', 'FAILURE', `シート: ${sheetName}, エラー: ${err.message}`);
     Logger.log(`triggerSummaryUpdateFromEdit Error: ${err.message} \n${err.stack}`);
   }
 }
@@ -296,6 +298,7 @@ function rebuildSummarySheet() {
         });
 
         handleError("予約サマリーの再構築が完了しました。", false);
+        logActivity('user', Session.getActiveUser().getEmail(), 'SUMMARY_REBUILD', 'SUCCESS', '全教室・全期間');
 
     } catch (err) {
         handleError(`予約サマリーの再構築中にエラーが発生しました: ${err.message}`, true);

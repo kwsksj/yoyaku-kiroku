@@ -50,6 +50,7 @@ function updateRosterCache() {
 
         SpreadsheetApp.getActiveSpreadsheet().toast('キャッシュの更新が完了しました。', '完了', 5);
         ui.alert('生徒名簿のキャッシュ更新が正常に完了しました。');
+        logActivity('user', Session.getActiveUser().getEmail(), 'CACHE_UPDATE_ROSTER', 'SUCCESS', '生徒名簿キャッシュを更新');
 
     } catch (e) {
         Logger.log(e);
@@ -370,6 +371,7 @@ function migrateAllRecordsToCache() {
 
         SpreadsheetApp.getActiveSpreadsheet().toast('全履歴のキャッシュ生成が完了しました。', '完了', 10);
         ui.alert('全生徒の「きろく」キャッシュ生成が正常に完了しました。');
+        logActivity('user', Session.getActiveUser().getEmail(), 'CACHE_MIGRATE_RECORDS', 'SUCCESS', '全履歴から「きろく」キャッシュを生成');
 
     } catch (e) {
         Logger.log(e);
@@ -443,6 +445,7 @@ function migrateAllFutureBookingsToCache() {
 
         SpreadsheetApp.getActiveSpreadsheet().toast('「よやくキャッシュ」の更新が完了しました。', '完了', 10);
         ui.alert('全生徒の「よやくキャッシュ」更新が正常に完了しました。');
+        logActivity('user', Session.getActiveUser().getEmail(), 'CACHE_MIGRATE_BOOKINGS', 'SUCCESS', '全予約から「よやくキャッシュ」を生成');
 
     } catch (e) {
         Logger.log(e);

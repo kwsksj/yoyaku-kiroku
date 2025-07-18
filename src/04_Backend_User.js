@@ -69,18 +69,24 @@ function authenticateUser(phoneNumber) {
     for (const row of data) {
       const storedPhone = String(row[phoneColIdx]).replace(/[^0-9]/g, '');
       if (storedPhone === normalizedInputPhone && storedPhone !== '') {
-        return { 
+        const user = {
           success: true, 
           studentId: row[idColIdx],
           displayName: row[nicknameColIdx] || row[realNameColIdx], 
           realName: row[realNameColIdx], 
           phone: row[phoneColIdx] 
         };
+        // ログイン成功ログを記録
+        logActivity(user.studentId, user.displayName, 'LOGIN_SUCCESS', 'SUCCESS', `Phone: ${phoneNumber}`);
+        return user;
       }
     }
     //【修正】認証失敗時にも正規化後の電話番号を返す
+    // ログイン失敗ログを記録
+    logActivity('N/A', 'N/A', 'LOGIN_FAILURE', 'FAILURE', `Phone: ${phoneNumber}`);
     return { success: false, message: '登録されている電話番号と一致しません。', phoneForRegistration: normalizedInputPhone };
   } catch (err) {
+    logActivity('N/A', 'N/A', 'LOGIN_ERROR', 'FAILURE', `Error: ${err.message}`);
     Logger.log(`authenticateUser Error: ${err.message}`);
     return { success: false, message: `サーバーエラーが発生しました。` };
   }
@@ -136,6 +142,9 @@ function registerNewUser(userInfo) {
     const lastRow = rosterSheet.getLastRow();
     rosterSheet.getRange(lastRow, phoneColIdx + 1).setNumberFormat('@');
 
+    // 新規登録成功ログを記録
+    logActivity(studentId, userInfo.nickname || userInfo.realName, 'REGISTER_SUCCESS', 'SUCCESS', `Phone: ${normalizedPhone}`);
+
     return { 
       success: true,
       studentId: studentId,
@@ -144,6 +153,7 @@ function registerNewUser(userInfo) {
       phone: normalizedPhone
     };
   } catch (err) {
+    logActivity(userInfo.realName, userInfo.nickname, 'REGISTER_ERROR', 'FAILURE', `Error: ${err.message}`);
     Logger.log(`registerNewUser Error: ${err.message}`);
     return { success: false, message: `サーバーエラーが発生しました。` };
   } finally {
@@ -180,11 +190,15 @@ function updateUserProfile(userInfo) {
       const rowIndexToUpdate = targetRowIndex + 2; // +1 for header, +1 for 0-based index
       rosterSheet.getRange(rowIndexToUpdate, realNameColIdx + 1).setValue(userInfo.realName);
       rosterSheet.getRange(rowIndexToUpdate, nicknameColIdx + 1).setValue(userInfo.displayName);
+      logActivity(userInfo.studentId, userInfo.displayName, 'PROFILE_UPDATE_SUCCESS', 'SUCCESS', `RealName: ${userInfo.realName}`);
       return { success: true, message: 'プロフィールを更新しました。' };
     } else {
+      logActivity(userInfo.studentId, userInfo.displayName, 'PROFILE_UPDATE_FAILURE', 'FAILURE', 'User not found');
       return { success: false, message: '更新対象のユーザーが見つかりませんでした。' };
     }
   } catch (err) {
+     const details = `ID: ${userInfo.studentId}, Name: ${userInfo.displayName}, Error: ${err.message}`;
+     logActivity(userInfo.studentId, userInfo.displayName, 'PROFILE_UPDATE_ERROR', 'FAILURE', details);
      Logger.log(`updateUserProfile Error: ${err.message}`);
      return { success: false, message: `サーバーエラーが発生しました。` };
   } finally {

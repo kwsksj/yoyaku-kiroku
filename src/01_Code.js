@@ -16,6 +16,10 @@ const RESERVATION_DATA_START_ROW = 2;
 const ROSTER_SHEET_NAME = '生徒名簿';
 const ACCOUNTING_MASTER_SHEET_NAME = '料金・商品マスタ';
 const SUMMARY_SHEET_NAME = '予約サマリー';
+const LOG_SHEET_NAME = 'アクティビティログ';
+
+//  管理者通知用のメールアドレス
+const ADMIN_EMAIL = '***REDACTED***'; // 管理者のメールアドレス
 
 // --- シート・ヘッダー関連の定数 ---
 const TOKYO_CLASSROOM_NAME = '東京教室';

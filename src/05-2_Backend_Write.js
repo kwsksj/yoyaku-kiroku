@@ -217,9 +217,22 @@ function makeReservation(reservationInfo) {
         };
         const newBookingsCache = _updateFutureBookingsCacheIncrementally(user.studentId, 'add', newBookingObject);
 
+        // ログと通知
         const message = !isFull ? '予約が完了しました。' : '満席のため、キャンセル待ちで登録しました。';
+        const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}`;
+        logActivity(user.studentId, user.displayName, 'RESERVATION_CREATE', 'SUCCESS', logDetails);
+
+        const subject = `新規予約 (${classroom})`;
+        const body = `${user.displayName} 様から新しい予約が入りました。\n\n` +
+                     `教室: ${classroom}\n` +
+                     `日付: ${date}\n` +
+                     `状態: ${isFull ? 'キャンセル待ち' : '確定'}\n\n` +
+                     `詳細はスプレッドシートを確認してください。`;
+        sendAdminNotification(subject, body);
+
         return { success: true, message: message, newBookingsCache: newBookingsCache };
     } catch (err) {
+        logActivity(reservationInfo.user.studentId, reservationInfo.user.displayName, 'RESERVATION_CREATE_ERROR', 'FAILURE', `Error: ${err.message}`);
         Logger.log(`makeReservation Error: ${err.message}\n${err.stack}`);
         return { success: false, message:  `予約処理中にエラーが発生しました。\n${err.message}`  };
     } finally {
@@ -291,9 +304,22 @@ function cancelReservation(cancelInfo) {
         // 【NF-12】Update cache incrementally
         const newBookingsCache = _updateFutureBookingsCacheIncrementally(studentId, 'remove', { reservationId });
 
+        // ログと通知
+        const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}`;
+        logActivity(studentId, '(N/A)', 'RESERVATION_CANCEL', 'SUCCESS', logDetails);
+
+        const subject = `予約キャンセル (${classroom})`;
+        const body = `予約がキャンセルされました。\n\n` +
+                     `教室: ${classroom}\n` +
+                     `予約ID: ${reservationId}\n` +
+                     `生徒ID: ${studentId}\n\n` +
+                     `詳細はスプレッドシートを確認してください。`;
+        sendAdminNotification(subject, body);
+
         return { success: true, message: "予約をキャンセルしました。", newBookingsCache: newBookingsCache };
 
     } catch (err) {
+        logActivity(cancelInfo.studentId, '(N/A)', 'RESERVATION_CANCEL_ERROR', 'FAILURE', `Error: ${err.message}`);
         Logger.log(`cancelReservation Error: ${err.message}\n${err.stack}`);
         return { success: false, message: `キャンセル処理中にエラーが発生しました。` };
     } finally {
@@ -378,6 +404,7 @@ function updateReservationDetails(details) {
         return { success: true, newBookingsCache: newBookingsCache };
 
     } catch (err) {
+        logActivity(details.studentId, '(N/A)', 'RESERVATION_UPDATE_ERROR', 'FAILURE', `Error: ${err.message}`);
         Logger.log(`updateReservationDetails Error: ${err.message}\n${err.stack}`);
         return { success: false, message: `詳細情報の更新中にエラーが発生しました。\n${err.message}` };
     } finally {
@@ -531,11 +558,25 @@ function saveAccountingDetails(payload) {
         // 9. 【NEW】会計済みの予約をアーカイブし、元の行を削除する
         _archiveSingleReservation(sheet, targetRowIndex, reservationDataRow);
 
+        // ログと通知
+        const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}, Total: ${finalAccountingDetails.grandTotal}`;
+        logActivity(studentId, '(N/A)', 'ACCOUNTING_SAVE', 'SUCCESS', logDetails);
+
+        const subject = `会計記録 (${classroom})`;
+        const body = `会計が記録されました。\n\n` +
+                     `教室: ${classroom}\n` +
+                     `予約ID: ${reservationId}\n` +
+                     `生徒ID: ${studentId}\n` +
+                     `合計金額: ${finalAccountingDetails.grandTotal.toLocaleString()} 円\n\n` +
+                     `詳細はスプレッドシートを確認してください。`;
+        sendAdminNotification(subject, body);
+
         // --- 追加処理ここまで ---
 
         return { success: true, newBookingsCache: newBookingsCache, newHistory: historyResult.history, newHistoryTotal: historyResult.total, message: "会計処理と関連データの更新がすべて完了しました。" };
 
     } catch (err) {
+        logActivity(payload.studentId, '(N/A)', 'ACCOUNTING_SAVE_ERROR', 'FAILURE', `Error: ${err.message}`);
         Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
         return { success: false, message: `会計情報の保存中にエラーが発生しました。\n${err.message}` };
     } finally {
@@ -711,9 +752,12 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
 
         sheet.getRange(targetRowIndex, wipColIdx + 1).setValue(newMemo);
         SpreadsheetApp.flush();
-
+        
+        logActivity(studentId, '(N/A)', 'MEMO_UPDATE_SUCCESS', 'SUCCESS', `ResID: ${reservationId}, Sheet: ${sheetName}`);
         return getParticipationHistory(studentId, null, null);
     } catch (err) {
+        const details = `ResID: ${reservationId}, Sheet: ${sheetName}, Error: ${err.message}`;
+        logActivity(studentId, '(N/A)', 'MEMO_UPDATE_ERROR', 'FAILURE', details);
         Logger.log(`updateMemo Error: ${err.message}\n${err.stack}`);
         return { success: false, message: `制作メモの更新中にエラーが発生しました。\n${err.message}` };
     } finally {
