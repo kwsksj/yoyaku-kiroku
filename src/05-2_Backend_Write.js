@@ -222,8 +222,10 @@ function makeReservation(reservationInfo) {
         const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}`;
         logActivity(user.studentId, user.displayName, 'RESERVATION_CREATE', 'SUCCESS', logDetails);
 
-        const subject = `新規予約 (${classroom})`;
-        const body = `${user.displayName} 様から新しい予約が入りました。\n\n` +
+        const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
+        const body = `新しい予約が入りました。\n\n` +
+                     `本名: ${user.realName}\n` +
+                     `ニックネーム: ${user.displayName}\n\n` +
                      `教室: ${classroom}\n` +
                      `日付: ${date}\n` +
                      `状態: ${isFull ? 'キャンセル待ち' : '確定'}\n\n` +
@@ -250,8 +252,9 @@ function cancelReservation(cancelInfo) {
     lock.waitLock(LOCK_WAIT_TIME_MS);
 
     try {
-        const { reservationId, classroom, studentId } = cancelInfo;
-        const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(classroom);
+        const { reservationId, classroom, studentId } = cancelInfo; // フロントエンドから渡される情報
+        const ss = SpreadsheetApp.getActiveSpreadsheet();
+        const sheet = ss.getSheetByName(classroom);
         if (!sheet) throw new Error( `予約シート「 ${classroom} 」が見つかりません。` );
 
         const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -276,7 +279,21 @@ function cancelReservation(cancelInfo) {
 
         const originalValues = sheet.getRange(targetRowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
         const status = String(originalValues[participantCountColIdx]).toLowerCase();
-        const targetDate = originalValues[dateColIdx];
+        const targetDate = originalValues[dateColIdx]; // キャンセルされた予約の日付を取得
+
+        // ユーザー情報を取得して、ログと通知をより具体的にする
+        const rosterSheet = ss.getSheetByName(ROSTER_SHEET_NAME);
+        let userInfo = { realName: '(不明)', displayName: '(不明)' };
+        if (rosterSheet) {
+            // 02-3_BusinessLogic_SheetUtils.js の関数を呼び出し
+            const rosterData = getRosterData(rosterSheet);
+            const userRow = rosterData.data.find(row => row[rosterData.idColIdx] === studentId);
+            if (userRow) {
+                userInfo.realName = userRow[rosterData.headerMap.get(HEADER_REAL_NAME)];
+                // ニックネームがなければ本名を使用
+                userInfo.displayName = userRow[rosterData.headerMap.get(HEADER_NICKNAME)] || userInfo.realName;
+            }
+        }
       
         const targetRowRange = sheet.getRange(targetRowIndex, 1, 1, sheet.getLastColumn());
         const valuesToUpdate = targetRowRange.getValues()[0];
@@ -306,13 +323,15 @@ function cancelReservation(cancelInfo) {
 
         // ログと通知
         const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}`;
-        logActivity(studentId, '(N/A)', 'RESERVATION_CANCEL', 'SUCCESS', logDetails);
+        logActivity(studentId, userInfo.displayName, 'RESERVATION_CANCEL', 'SUCCESS', logDetails);
 
-        const subject = `予約キャンセル (${classroom})`;
+        const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
         const body = `予約がキャンセルされました。\n\n` +
+                     `本名: ${userInfo.realName}\n` +
+                     `ニックネーム: ${userInfo.displayName}\n\n` +
                      `教室: ${classroom}\n` +
-                     `予約ID: ${reservationId}\n` +
-                     `生徒ID: ${studentId}\n\n` +
+                     `日付: ${Utilities.formatDate(targetDate, ss.getSpreadsheetTimeZone(), 'yyyy/MM/dd')}\n` +
+                     `予約ID: ${reservationId}\n\n` +
                      `詳細はスプレッドシートを確認してください。`;
         sendAdminNotification(subject, body);
 

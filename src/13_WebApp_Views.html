@@ -259,18 +259,22 @@ const getRegisterView = (p) => `
  * @returns {string} HTML文字列
  */
 const getClassroomSelectView = () => {
-    const sortedBookings = [...appState.myBookings].sort((a,b) => new Date(a.date) - new Date(b.date));
+    // 【改善】未来の予約が一番上に来るように、日付の降順でソート
+    const sortedBookings = [...appState.myBookings].sort((a,b) => new Date(b.date) - new Date(a.date));
     const today = new Date(); today.setHours(0,0,0,0);
 
-    const newBookingButtonHtml = `
-        <div class="mb-8 w-full">
-            ${Components.createButton({text: 'あたらしく よやく する', action: 'goToNewBookingView', colorClass: `${DesignConfig.colors.primary} text-xl`, widthClass: DesignConfig.buttons.full})}
-        </div>`;
-        
-    const yourBookingsHtml = sortedBookings.length > 0 ? `
+    // 【改善】「あたらしく よやく する」ボタンを予約リストの先頭に配置し、デザインを分かりやすく変更
+    const newBookingCardHtml = `
+        <button data-action="goToNewBookingView" class="w-full text-center p-4 rounded-lg border-2 border-dashed border-gray-400 hover:bg-gray-100 transition-colors">
+            <span class="text-xl font-bold text-gray-600">+ あたらしく よやく する</span>
+        </button>
+    `;
+
+    const yourBookingsHtml = `
         <div class="mb-8 w-full">
             <div class="bg-gray-100 p-3 rounded-lg space-y-3">
                 <h2 class="text-xl font-medium ${DesignConfig.colors.text} text-center mb-2">よやく</h2>
+                ${newBookingCardHtml}
                 ${sortedBookings.map(b => {
                     const cardColor = b.isWaiting ? DesignConfig.cards.state.waitlist : DesignConfig.cards.state.booked;
                     const venueText = b.venue;
@@ -315,7 +319,7 @@ const getClassroomSelectView = () => {
                         </div>`;
                 }).join('')}
             </div>
-        </div>` : '';
+        </div>`;
 
     let historyHtml = '';
     if (appState.history && appState.history.length > 0) {
@@ -372,7 +376,6 @@ const getClassroomSelectView = () => {
             <h1 class="text-xl sm:text-xl font-bold ${DesignConfig.colors.text} whitespace-nowrap mr-4 mb-2 sm:mb-0">ようこそ ${appState.currentUser.displayName} さん</h1>
             <button data-action="goToEditProfile" class="text-base ${DesignConfig.colors.textSubtle} hover:underline flex-shrink-0 text-right">プロフィールを編集</button>
         </div>
-        ${newBookingButtonHtml}
         ${yourBookingsHtml}
         ${historyHtml}
     `;
