@@ -281,7 +281,13 @@ const getClassroomSelectView = () => {
                     const resDate = new Date(b.date);
                     resDate.setMinutes(resDate.getMinutes() + resDate.getTimezoneOffset());
                     const isPastOrToday = resDate.getTime() <= today.getTime();
-                    const accountingBtn = isPastOrToday ? (b.accountingDone ? Components.createButton({action:'goToAccounting', classroom:b.classroom, reservationId:b.reservationId, date:b.date, text:'会計済', colorClass: `${DesignConfig.colors.paid} text-sm font-bold px-3 py-1.5 rounded`}) : Components.createButton({action:'goToAccounting', classroom:b.classroom, reservationId:b.reservationId, date:b.date, text:'会計', colorClass:'text-sm bg-yellow-100 text-yellow-800 font-bold px-3 py-1.5 rounded'})) : '';
+                    const accountingBtn = isPastOrToday ?
+                     (b.accountingDone ? 
+                        Components.createButton({action:'goToAccounting', classroom:b.classroom, reservationId:b.reservationId, date:b.date, text:'会計済', colorClass:`${DesignConfig.colors.paid} text-sm font-bold px-3 py-1.5 rounded`}) 
+                        : Components.createButton({action:'goToAccounting', classroom:b.classroom, reservationId:b.reservationId, date:b.date, text:'会計', colorClass:'text-sm bg-yellow-100 text-yellow-800 font-bold px-3 py-1.5 rounded'})
+                    ) 
+                    : '';
+
                     const cancelBtn = !b.accountingDone ? Components.createButton({action:'cancel', classroom:b.classroom, date:b.date, reservationId:b.reservationId, text:'取消', colorClass:'text-sm bg-red-100 text-red-700 font-bold px-3 py-1.5 rounded'}) : '';
                     return `
                         <div class="${cardColor.card} p-3 rounded-lg flex flex-col">
@@ -302,8 +308,8 @@ const getClassroomSelectView = () => {
                                 </div>
                             </div>
                             <div class="mt-4 flex justify-end items-center space-x-2 flex-shrink-0">
-                                ${accountingBtn}
-                                ${Components.createButton({action:'goToEditReservation', classroom:b.classroom, reservationId:b.reservationId, text:'編集', colorClass:'text-sm bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded'})}
+                                    ${accountingBtn}
+                                    ${!isPastOrToday && !b.accountingDone ? Components.createButton({action:'goToEditReservation', classroom:b.classroom, reservationId:b.reservationId, text:'編集', colorClass:'text-sm bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded'}) : ''}
                                 ${cancelBtn}
                             </div>
                         </div>`;
