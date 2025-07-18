@@ -372,19 +372,17 @@ actionHandlers.showAccountingConfirmation = () => {
                 </div>
             </div>
             <div class="mt-4">
-                <button data-action="confirmAndPay" class="w-full bg-brand-text text-white font-bold py-2 rounded">この内容で支払いました</button>
+                <button id="confirm-payment-button" data-action="confirmAndPay" class="w-full bg-brand-text text-white font-bold py-2 rounded disabled:bg-gray-400" disabled>この内容で支払いました</button>
             </div>
-            <p class="text-red-700 font-bold mt-2">必ずボタンを押してね</p>
+            <p class="text-red-700 font-bold mt-2 text-center">必ずボタンを押してね</p>
         </div>
     `;
-    showConfirm({
+    showModal({
         title: 'お会計',
         message: message,
-        confirmText: '', // confirmボタンは使わず、モーダル内ボタンで処理
+        showCancel: true,
         cancelText: 'キャンセル',
-        confirmColorClass: DesignConfig.colors.primary,
-        onConfirm: null,
-        disableConfirm: true
+        onConfirm: null
     });
 };
 
@@ -571,6 +569,10 @@ window.onload = function() {
         app.addEventListener(eventName, (e) => {
             if (appState.view === 'accounting' && e.target.closest('#accounting-form')) {
                 calculateAccountingDetails();
+            }
+            // changeイベントの場合のみ、支払い方法選択をチェック
+            if (eventName === 'change' && e.target.matches('#modal-accounting-form input[name="payment-method"]')) {
+                document.getElementById('confirm-payment-button')?.removeAttribute('disabled');
             }
         });
     });

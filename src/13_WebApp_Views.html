@@ -110,7 +110,7 @@ const getPaymentOptionsHtml = () => {
     return options.map((opt, i) => `
         <div>
             <label class="flex items-center space-x-2">
-                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item" ${i === 0 ? 'checked' : ''}>
+                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item">
                 <span>${opt.text}</span>
             </label>
             ${opt.details}

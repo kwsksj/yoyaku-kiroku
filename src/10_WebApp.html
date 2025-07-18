@@ -46,7 +46,10 @@
         #loading { z-index: 100; } /* ← 追加: ローディング画面を最前面に */
         .modal-overlay { position: fixed; inset: 0; background-color: rgba(40,35,30,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; opacity: 0; transition: opacity 0.3s ease; pointer-events: none; backdrop-filter: blur(3px); }
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
-        .modal-content { background: white; padding: 1.5rem; border-radius: 0.75rem; width: 90%; max-width: 400px; text-align: center; }
+        .modal-content { background: white; padding: 1.5rem; border-radius: 0.75rem; width: 90%; max-width: 400px; text-align: center; 
+            max-height: 85vh; /* 画面より大きい場合に備える */
+            overflow-y: auto; /* 縦方向にスクロール可能にする */
+        }
         .modal-content p { margin-bottom: 1.25rem; }
         .modal-content .modal-buttons { justify-content: center; }
         details > summary { list-style: none; cursor: pointer; }
