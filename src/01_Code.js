@@ -143,6 +143,8 @@ function addAdminMenu(menu) {
     .addSeparator()
     .addItem('予約サマリーを再構築', 'rebuildSummarySheet')
     .addSeparator()
+    .addItem('【開発用】テスト環境をセットアップ', 'setupTestEnvironment')
+    .addSeparator()
     .addItem('【東京】フォーム選択肢を更新', () => setCheckboxChoices(TOKYO_CLASSROOM_NAME))
     .addItem('【つくば】フォーム選択肢を更新', () => setCheckboxChoices(TSUKUBA_CLASSROOM_NAME))
     .addItem('【沼津】フォーム選択肢を更新', () => setCheckboxChoices(NUMAZU_CLASSROOM_NAME));

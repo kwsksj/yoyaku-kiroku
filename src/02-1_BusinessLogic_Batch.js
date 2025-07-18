@@ -310,3 +310,62 @@ function createSalesRow(baseInfo, category, itemName, price) {
     baseInfo.paymentMethod
   ];
 }
+
+/**
+ * 【開発用】テスト環境をセットアップします。
+ * 現在のスプレッドシートをコピーし、テスト用の新しい環境を作成します。
+ */
+function setupTestEnvironment() {
+  const ui = SpreadsheetApp.getUi();
+  const response = ui.alert(
+    'テスト環境の作成',
+    '現在のスプレッドシートの完全なコピーを作成し、テスト環境としてセットアップします。よろしいですか？',
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (response !== ui.Button.OK) {
+    ui.alert('処理を中断しました。');
+    return;
+  }
+
+  try {
+    SpreadsheetApp.getActiveSpreadsheet().toast('テスト環境を作成中です...', '処理中', -1);
+
+    const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sourceFile = DriveApp.getFileById(sourceSpreadsheet.getId());
+
+    // 1. スプレッドシートをコピー
+    const newFileName = `【テスト用】${sourceSpreadsheet.getName()}`;
+    const copiedFile = sourceFile.makeCopy(newFileName);
+    const copiedSpreadsheet = SpreadsheetApp.openById(copiedFile.getId());
+
+    // 2. コピーしたスプレッドシートの情報を取得
+    const newUrl = copiedSpreadsheet.getUrl();
+    const newId = copiedSpreadsheet.getId();
+
+    SpreadsheetApp.getActiveSpreadsheet().toast('テスト環境の作成が完了しました。', '完了', 5);
+
+    // 3. ユーザーに情報を提示
+    const htmlOutput = HtmlService.createHtmlOutput(
+      `<h4>テスト環境のセットアップが完了しました</h4>
+       <p>新しいテスト用スプレッドシートが作成されました。</p>
+       <p><b>ファイル名:</b> ${newFileName}</p>
+       <p><b>URL:</b> <a href="${newUrl}" target="_blank">ここをクリックして開く</a></p>
+       <p><b>スクリプトID:</b> <code>${newId}</code></p>
+       <hr>
+       <h4>ローカル開発環境の設定</h4>
+       <p>以下のコマンドをターミナルで実行し、<code>.clasp.json</code>を更新してください。</p>
+       <pre style="background-color:#f0f0f0; padding: 8px; border-radius: 4px; overflow-x: auto;"><code>clasp setting scriptId ${newId}</code></pre>
+       <p>その後、<code>clasp push</code>でコードをデプロイしてください。</p>
+       <br>
+       <input type="button" value="閉じる" onclick="google.script.host.close()" />`
+    )
+    .setWidth(600)
+    .setHeight(400);
+
+    ui.showModalDialog(htmlOutput, 'セットアップ完了');
+
+  } catch (err) {
+    handleError(`テスト環境の作成中にエラーが発生しました: ${err.message}`, true);
+  }
+}
