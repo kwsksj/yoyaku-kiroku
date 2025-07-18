@@ -62,7 +62,7 @@
   | | `manuallyFormatActiveSheet`| メニュー項目: 罫線を手動で再描画 | (UIメニュー) | `formatSheetWithBordersSafely` |
   | 03_BusinessLogic_Summary.gs| | | | |
   | | `updateSummarySheet` | 編集イベントに基づきサマリーを部分更新 | `handleReservationSheetEdit`, `processChange` | `createHeaderMap`, `recalculateAndWriteSummary` |
-  | | `recalculateAndWriteSummary`| 特定の日付・教室のサマリーを再計算・書き込み | `updateSummarySheet` | `createHeaderMap`, `getVenueForDate`, `countReservations`, `updateSummaryRow` |
+  | | `recalculateAndWriteSummary`| 特定の日付・教室のサマリーを再計算・書き込み | `updateSummarySheet` | `createHeaderMap`, `getVenueForDate`, `_getReservationCountsForDate`, `updateSummaryRow` |
   | | `updateSummaryRow` | サマリーシートの特定行を更新または新規作成 | `recalculateAndWriteSummary`, `rebuildSummarySheet` | - |
   | | `rebuildSummarySheet` | メニュー項目: サマリーシートをゼロから再構築 | (UIメニュー) | `handleError`, `createHeaderMap`, `updateSummaryRow` |
   | | `countReservations` | 特定条件での予約数をカウント | `recalculateAndWriteSummary` | `createHeaderMap` |
