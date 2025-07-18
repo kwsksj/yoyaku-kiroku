@@ -386,17 +386,25 @@ function updateReservationDetails(details) {
 }
 
 /**
- * 会計情報をJSON形式で保存し、同時に予約シートの関連情報を更新します。
- * @param {string} reservationId - 予約ID
- * @param {string} classroom - 教室名
- * @param {object} accountingDetails - 保存する会計情報のJSONオブジェクト
- * @param {object} options - シート更新用のオプション値 {startTime, endTime, firstLecture, ...}
+ * [設計思想] フロントエンドは「ユーザーが何を選択したか」という入力情報のみを渡し、
+ * バックエンドが料金マスタと照合して金額を再計算・検証する責務を持つ。
+ * これにより、フロントエンドのバグが誤った会計データを生成することを防ぎ、システムの堅牢性を高める。
+ * @param {object} payload - フロントエンドから渡される会計情報ペイロード。
+ * @param {string} payload.reservationId - 予約ID。
+ * @param {string} payload.classroom - 教室名。
+ * @param {string} payload.studentId - 生徒ID。
+ * @param {object} payload.userInput - ユーザーの入力内容。
  * @returns {object} - 処理結果。
  */
-function saveAccountingDetails(reservationId, classroom, accountingDetails, options) {
+function saveAccountingDetails(payload) {
     const lock = LockService.getScriptLock();
     lock.waitLock(LOCK_WAIT_TIME_MS);
     try {
+        const { reservationId, classroom, studentId, userInput } = payload;
+        if (!reservationId || !classroom || !studentId || !userInput) {
+            throw new Error("会計情報が不足しています。");
+        }
+
         const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(classroom);
         if (!sheet) throw new Error(`予約シート「${classroom}」が見つかりません。`);
 
@@ -404,55 +412,100 @@ function saveAccountingDetails(reservationId, classroom, accountingDetails, opti
         const headerMap = createHeaderMap(header);
         const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
         const studentIdColIdx = headerMap.get(HEADER_STUDENT_ID);
-
+ 
         const targetRowIndex = findRowIndexByValue(sheet, reservationIdColIdx + 1, reservationId);
         if (targetRowIndex === -1) throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
 
         const actualStudentId = sheet.getRange(targetRowIndex, studentIdColIdx + 1).getValue();
         if (actualStudentId !== studentId) {
-          // 本来はエラーですが、ここではログに記録するに留めます
-          Logger.log(`Warning: Mismatch user ID during accounting. Expected: ${studentId}, Actual: ${actualStudentId}`);
+            throw new Error("この予約の会計処理を行う権限がありません。");
         }
 
-        const options = {}; // optionsは現在フロントから渡されていないため空オブジェクトで初期化
-
-        // 1. オプション値をシートに書き戻す
-        const optionMap = {
-            startTime: HEADER_START_TIME,
-            endTime: HEADER_END_TIME,
-            firstLecture: HEADER_FIRST_LECTURE,
-            earlyArrival: HEADER_EARLY_ARRIVAL,
-            chiselRental: HEADER_CHISEL_RENTAL
+        // --- バックエンドでの再計算・検証ロジック ---
+        const masterData = getAccountingMasterData().data;
+        const finalAccountingDetails = {
+            tuition: { items: [], subtotal: 0 },
+            sales: { items: [], subtotal: 0 },
+            grandTotal: 0,
+            paymentMethod: userInput.paymentMethod || '現金'
         };
 
-        for (const key in optionMap) {
-            if (options && options.hasOwnProperty(key) && headerMap.has(optionMap[key])) {
-                const colIdx = headerMap.get(optionMap[key]) + 1;
-                let value = options[key];
-                if ((key === 'startTime' || key === 'endTime') && value) {
-                    value = new Date(`1970-01-01T${value}`);
+        // 授業料の計算
+        (userInput.tuitionItems || []).forEach(itemName => {
+            const masterItem = masterData.find(m => m['項目名'] === itemName && m['種別'] === ITEM_TYPE_TUITION);
+            if (masterItem) {
+                const price = Number(masterItem['単価']);
+                finalAccountingDetails.tuition.items.push({ name: itemName, price: price });
+                finalAccountingDetails.tuition.subtotal += price;
+            }
+        });
+
+        // 時間制授業料の計算
+        if (userInput.timeBased) {
+            const { startTime, endTime, breakMinutes, discountMinutes } = userInput.timeBased;
+            const classroomRule = masterData.find(item => item['対象教室'] && item['対象教室'].includes(classroom) && item['種別'] === ITEM_TYPE_TUITION && item['単位'] === UNIT_30_MIN);
+            if (classroomRule && startTime && endTime && startTime < endTime) {
+                const start = new Date(`1970-01-01T${startTime}:00`);
+                const end = new Date(`1970-01-01T${endTime}:00`);
+                let diffMinutes = (end - start) / 60000 - (breakMinutes || 0);
+                if (diffMinutes > 0) {
+                    const billableUnits = Math.ceil(diffMinutes / 30);
+                    const price = billableUnits * Number(classroomRule['単価']);
+                    finalAccountingDetails.tuition.items.push({ name: `授業料 (${startTime} - ${endTime})`, price: price });
+                    finalAccountingDetails.tuition.subtotal += price;
                 }
-                sheet.getRange(targetRowIndex, colIdx).setValue(value);
+            }
+            // 割引の計算
+            if (discountMinutes > 0) {
+                const discountRule = masterData.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
+                if (discountRule) {
+                    const discountAmount = (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
+                    finalAccountingDetails.tuition.items.push({ name: `${ITEM_NAME_DISCOUNT} (${discountMinutes}分)`, price: -discountAmount });
+                    finalAccountingDetails.tuition.subtotal -= discountAmount;
+                }
             }
         }
 
-        // 2. 受講時間とガントチャートを再計算・再描画
+        // 物販・材料費の計算
+        (userInput.salesItems || []).forEach(item => {
+            const masterItem = masterData.find(m => m['項目名'] === item.name && (m['種別'] === ITEM_TYPE_SALES || m['種別'] === ITEM_TYPE_MATERIAL));
+            if (masterItem) { // マスタに存在する商品
+                const price = item.price || Number(masterItem['単価']); // 材料費のように価格が計算される場合を考慮
+                finalAccountingDetails.sales.items.push({ name: item.name, price: price });
+                finalAccountingDetails.sales.subtotal += price;
+            } else if (item.price) { // 自由入力項目
+                const price = Number(item.price);
+                finalAccountingDetails.sales.items.push({ name: item.name, price: price });
+                finalAccountingDetails.sales.subtotal += price;
+            }
+        });
+
+        finalAccountingDetails.grandTotal = finalAccountingDetails.tuition.subtotal + finalAccountingDetails.sales.subtotal;
+        // --- ここまで ---
+
+        // 1. 時刻などをシートに書き戻す
+        if (userInput.timeBased) {
+            const { startTime, endTime } = userInput.timeBased;
+            if (headerMap.has(HEADER_START_TIME)) sheet.getRange(targetRowIndex, headerMap.get(HEADER_START_TIME) + 1).setValue(startTime ? new Date(`1970-01-01T${startTime}`) : null).setNumberFormat("HH:mm");
+            if (headerMap.has(HEADER_END_TIME)) sheet.getRange(targetRowIndex, headerMap.get(HEADER_END_TIME) + 1).setValue(endTime ? new Date(`1970-01-01T${endTime}`) : null).setNumberFormat("HH:mm");
+        }
+
+        // 2. 受講時間とガントチャートを再計算
         updateBillableTime(sheet, targetRowIndex);
         updateGanttChart(sheet, targetRowIndex);
         
-        // 3. 最後に会計詳細JSONを保存
+        // 3. 検証済みの会計詳細JSONを保存
         const accountingDetailsColIdx = headerMap.get(HEADER_ACCOUNTING_DETAILS);
         if (accountingDetailsColIdx === undefined) throw new Error("ヘッダー「会計詳細」が見つかりません。");
-        sheet.getRange(targetRowIndex, accountingDetailsColIdx + 1).setValue(JSON.stringify(accountingDetails));
-
+        sheet.getRange(targetRowIndex, accountingDetailsColIdx + 1).setValue(JSON.stringify(finalAccountingDetails));
     
-        SpreadsheetApp.flush(); // 【追加】シートへの書き込みを確定
+        SpreadsheetApp.flush();
 
-        // 4. 【追加】予約キャッシュを更新
+        // 4. 予約キャッシュを更新
         const updatedBookingCachePayload = {
             reservationId: reservationId,
             accountingDone: true,
-            accountingDetails: jsonDetails
+            accountingDetails: JSON.stringify(finalAccountingDetails)
         };
         const newBookingsCache = _updateFutureBookingsCacheIncrementally(actualStudentId, 'update', updatedBookingCachePayload);
 
@@ -460,7 +513,7 @@ function saveAccountingDetails(reservationId, classroom, accountingDetails, opti
 
     } catch (err) {
         Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
-        return { success: false, message: `会計情報の保存中にエラーが発生しました。` };
+        return { success: false, message: `会計情報の保存中にエラーが発生しました。\n${err.message}` };
     } finally {
         lock.releaseLock();
     }

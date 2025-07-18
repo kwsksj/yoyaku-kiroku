@@ -358,8 +358,7 @@ actionHandlers.showAccountingConfirmation = () => {
         showInfo('合計金額が0円です。項目を選択してください。');
         return;
     }
-    // グローバルに一時保存（支払い方法は未確定）
-    window._pendingAccountingDetails = accountingDetails;
+
     const message = `
         <div class="p-4 bg-gray-50 rounded-lg text-left space-y-4 text-base" id="modal-accounting-form">
             <div>
@@ -400,28 +399,60 @@ actionHandlers.confirmAndPay = () => {
         const selected = modalForm.querySelector('input[name="payment-method"]:checked');
         if (selected) paymentMethod = selected.value;
     }
-    // 事前に取得した会計情報を利用
-    const accountingDetails = window._pendingAccountingDetails;
-    if (!accountingDetails || typeof accountingDetails.grandTotal === 'undefined') {
-        showInfo('会計情報の取得に失敗しました。もう一度やり直してください。');
-        return;
+
+    // --- バックエンドに送信する「ユーザー入力」オブジェクトを構築 ---
+    const form = document.getElementById('accounting-form');
+    const userInput = {
+        paymentMethod: paymentMethod,
+        tuitionItems: [],
+        salesItems: [],
+        timeBased: null
+    };
+
+    // 授業料項目（チェックボックス）
+    form.querySelectorAll('input[type="checkbox"][data-item-type="授業料"]:checked').forEach(cb => {
+        userInput.tuitionItems.push(cb.dataset.itemName);
+    });
+
+    // 時間制授業料
+    if (document.getElementById('start-time')) {
+        userInput.timeBased = {
+            startTime: document.getElementById('start-time').value,
+            endTime: document.getElementById('end-time').value,
+            breakMinutes: parseInt(document.getElementById('break-time')?.value || 0, 10),
+            discountMinutes: parseInt(document.getElementById('discount-selector')?.value || 0, 10)
+        };
     }
-    if (accountingDetails.grandTotal <= 0) {
-        showInfo('合計金額が0円です。項目を選択してください。');
-        return;
+
+    // 物販・材料費項目
+    const materialContainer = document.getElementById('materials-container');
+    if (materialContainer) {
+        materialContainer.querySelectorAll('div[data-material-row-index]').forEach((row, index) => {
+            const name = document.getElementById(`material-type-${index}`)?.value;
+            const priceText = document.getElementById(`material-price-${index}`)?.textContent || '0';
+            const price = parseInt(priceText.replace(/[^0-9]/g, ''), 10);
+            if (name && price > 0) userInput.salesItems.push({ name: name, price: price });
+        });
     }
-    // 支払い方法を上書き
-    accountingDetails.paymentMethod = paymentMethod;
+    form.querySelectorAll('div[data-other-sales-row]').forEach((row, index) => {
+        const name = document.getElementById(`other-sales-name-${index}`)?.value.trim();
+        const price = document.getElementById(`other-sales-price-${index}`)?.value;
+        if (name && price) userInput.salesItems.push({ name: name, price: Number(price) });
+    });
+    // --- ここまで ---
     
+    const payload = {
+        reservationId: appState.accountingReservation.reservationId,
+        classroom: appState.accountingReservation.classroom,
+        studentId: appState.currentUser.studentId,
+        userInput: userInput
+    };
+
     showLoading();
     google.script.run.withSuccessHandler(r => {
-        
-        window._pendingAccountingDetails = null; // クリア
         if (r.success) {
             hideModal(); // モーダルを閉じる
             hideLoading();
-            // confirmAndPayのsetStateでcompletionMessageをセットし、getCompleteViewでその内容と「次の予約をする」ボタンを表示。
-            // 役割分担が適切で、重複はありません。
             setState({
                 view: 'complete',
                 completionMessage: '会計情報を記録しました。続けて次の予約をされますか？',
@@ -433,12 +464,7 @@ actionHandlers.confirmAndPay = () => {
             hideLoading();
             showInfo(r.message || '会計情報の記録に失敗しました。');
         }
-    }).withFailureHandler(handleServerError).saveAccountingDetails(
-        appState.accountingReservation.reservationId,
-        appState.accountingReservation.classroom,
-        accountingDetails,
-        appState.currentUser.studentId
-    );
+    }).withFailureHandler(handleServerError).saveAccountingDetails(payload);
 };
 
 // =================================================================
