@@ -85,7 +85,8 @@
   | | `makeReservation` | WebApp: 予約を作成 | `makeReservationAndGetLatestData` | `getAccountingMasterData`, `_validateTimeBasedReservation`, `createHeaderMap`, `sortAndRenumberDateBlock`, ... |
   | | `cancelReservation` | WebApp: 予約をキャンセル | `cancelReservationAndGetLatestData` | `createHeaderMap`, `findRowIndexByValue`, `findLastRowOfDateBlock`, `sortAndRenumberDateBlock`, ... |
   | | `updateReservationDetails`| WebApp: 予約詳細を更新 | (WebApp) | `getAccountingMasterData`, `_validateTimeBasedReservation`, `createHeaderMap`, `findRowIndexByValue`, `updateBillableTime` |
-   | | `saveAccountingDetails` | WebApp: 会計情報を保存し、関連データを一括更新 | (WebApp) | `getAccountingMasterData`, `createHeaderMap`, `findRowIndexByValue`, `updateBillableTime`, `updateGanttChart`, `_updateFutureBookingsCacheIncrementally`, `_logSalesForSingleReservation`, `_updateRecordCacheForSingleReservation`, `updateSummaryAndForm` |
+  | | `saveAccountingDetails` | WebApp: 会計情報を保存 | (WebApp) | `createHeaderMap`, `findRowIndexByValue` |
+  | | `saveAccountingDetails` | WebApp: 会計情報を保存し、関連データを一括更新 | (WebApp) | `getAccountingMasterData`, `createHeaderMap`, `findRowIndexByValue`, `updateBillableTime`, `updateGanttChart`, `_updateFutureBookingsCacheIncrementally`, `_logSalesForSingleReservation`, `_updateRecordCacheForSingleReservation`, `updateSummaryAndForm`, `getParticipationHistory` |
   | | `updateMemoAndGetLatestHistory`| WebApp: 制作メモを更新し、最新履歴を返す | (WebApp) | `findRowIndexByValue`, `getParticipationHistory` |
   | | `_logSalesForSingleReservation` | [Private] 単一予約の売上ログを転記 | `saveAccountingDetails` | `createSalesRow` |
   | | `_updateRecordCacheForSingleReservation` | [Private] 単一予約のきろくキャッシュを更新 | `saveAccountingDetails` | `createHeaderMap`, `JSON.stringify`, `JSON.parse` |

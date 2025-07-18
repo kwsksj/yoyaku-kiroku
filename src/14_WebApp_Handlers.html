@@ -457,6 +457,8 @@ actionHandlers.confirmAndPay = () => {
                 view: 'complete',
                 completionMessage: '会計情報を記録しました。続けて次の予約をされますか？',
                 myBookings: r.newBookingsCache,
+                history: r.newHistory,
+                historyTotal: r.newHistoryTotal,
                 // 完了画面で同じ教室の予約ボタンを表示するため
                 accountingReservation: appState.accountingReservation
             });

@@ -520,9 +520,16 @@ function saveAccountingDetails(payload) {
         if (targetDate instanceof Date) {
             updateSummaryAndForm(classroom, targetDate);
         }
+
+        // 8. 最新の参加履歴を取得して返す
+        const historyResult = getParticipationHistory(actualStudentId, null, null);
+        if (!historyResult.success) {
+            // 履歴取得に失敗しても、メインの会計処理は成功として扱う
+            Logger.log(`会計処理後の履歴取得に失敗: ${historyResult.message}`);
+        }
         // --- 追加処理ここまで ---
 
-        return { success: true, newBookingsCache: newBookingsCache, message: "会計処理と関連データの更新がすべて完了しました。" };
+        return { success: true, newBookingsCache: newBookingsCache, newHistory: historyResult.history, newHistoryTotal: historyResult.total, message: "会計処理と関連データの更新がすべて完了しました。" };
 
     } catch (err) {
         Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
