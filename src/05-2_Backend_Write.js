@@ -501,21 +501,141 @@ function saveAccountingDetails(payload) {
     
         SpreadsheetApp.flush();
 
-        // 4. 予約キャッシュを更新
-        const updatedBookingCachePayload = {
-            reservationId: reservationId,
-            accountingDone: true,
-            accountingDetails: JSON.stringify(finalAccountingDetails)
-        };
-        const newBookingsCache = _updateFutureBookingsCacheIncrementally(actualStudentId, 'update', updatedBookingCachePayload);
+        // 4. 「よやくキャッシュ」から会計済みの予約を削除
+        //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
+        //    よやくキャッシュからは削除し、きろくキャッシュに責務を移管する。
+        const newBookingsCache = _updateFutureBookingsCacheIncrementally(actualStudentId, 'remove', { reservationId });
 
-        return { success: true, newBookingsCache: newBookingsCache };
+        // --- ここからが追加の後続処理 ---
+        const reservationDataRow = sheet.getRange(targetRowIndex, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+        // 5. 売上ログへの転記
+        _logSalesForSingleReservation(reservationDataRow, headerMap, classroom, finalAccountingDetails);
+
+        // 6. 「きろくキャッシュ」に会計情報を含めて追加
+        _updateRecordCacheForSingleReservation(reservationDataRow, headerMap, classroom, finalAccountingDetails);
+
+        // 7. サマリーの更新
+        const targetDate = reservationDataRow[headerMap.get(HEADER_DATE)];
+        if (targetDate instanceof Date) {
+            updateSummaryAndForm(classroom, targetDate);
+        }
+        // --- 追加処理ここまで ---
+
+        return { success: true, newBookingsCache: newBookingsCache, message: "会計処理と関連データの更新がすべて完了しました。" };
 
     } catch (err) {
         Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
         return { success: false, message: `会計情報の保存中にエラーが発生しました。\n${err.message}` };
     } finally {
         lock.releaseLock();
+    }
+}
+
+/**
+ * [設計思想] 後続処理でエラーが発生してもメインの会計処理は成功と見なすため、
+ * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
+ * @private
+ * @param {Array} reservationDataRow - 売上ログを生成する対象の予約データ行。
+ * @param {Map<string, number>} headerMap - 予約シートのヘッダーマップ。
+ * @param {string} classroomName - 教室名。
+ * @param {object} accountingDetails - 計算済みの会計詳細オブジェクト。
+ */
+function _logSalesForSingleReservation(reservationDataRow, headerMap, classroomName, accountingDetails) {
+    try {
+        const baseInfo = {
+            date: reservationDataRow[headerMap.get(HEADER_DATE)],
+            studentId: reservationDataRow[headerMap.get(HEADER_STUDENT_ID)],
+            name: reservationDataRow[headerMap.get(HEADER_NAME)],
+            classroom: classroomName,
+            venue: reservationDataRow[headerMap.get(HEADER_VENUE)] || '',
+            paymentMethod: accountingDetails.paymentMethod || '不明'
+        };
+
+        const rowsToTransfer = [];
+        (accountingDetails.tuition?.items || []).forEach(item => {
+            rowsToTransfer.push(createSalesRow(baseInfo, ITEM_TYPE_TUITION, item.name, item.price));
+        });
+        (accountingDetails.sales?.items || []).forEach(item => {
+            rowsToTransfer.push(createSalesRow(baseInfo, ITEM_TYPE_SALES, item.name, item.price));
+        });
+
+        if (rowsToTransfer.length > 0) {
+            const salesSpreadsheet = SpreadsheetApp.openById(SALES_SPREADSHEET_ID);
+            const salesSheet = salesSpreadsheet.getSheetByName('売上ログ');
+            if (!salesSheet) throw new Error('売上スプレッドシートに「売上ログ」シートが見つかりません。');
+            salesSheet.getRange(salesSheet.getLastRow() + 1, 1, rowsToTransfer.length, rowsToTransfer[0].length).setValues(rowsToTransfer);
+        }
+    } catch (err) {
+        Logger.log(`_logSalesForSingleReservation Error: ${err.message}\n${err.stack}`);
+    }
+}
+
+/**
+ * [設計思想] 後続処理でエラーが発生してもメインの会計処理は成功と見なすため、
+ * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
+ * @private
+ * @param {Array} reservationDataRow - きろくキャッシュを更新する対象の予約データ行。
+ * @param {Map<string, number>} headerMap - 予約シートのヘッダーマップ。
+ * @param {string} classroomName - 教室名。
+ * @param {object} accountingDetails - 追加する会計詳細オブジェクト。
+ */
+function _updateRecordCacheForSingleReservation(reservationDataRow, headerMap, classroomName, accountingDetails) {
+    try {
+        const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+        if (!rosterSheet) return;
+
+        const studentId = reservationDataRow[headerMap.get(HEADER_STUDENT_ID)];
+        const date = reservationDataRow[headerMap.get(HEADER_DATE)];
+        if (!studentId || !(date instanceof Date)) return;
+
+        const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
+        const rosterHeaderMap = createHeaderMap(rosterHeader);
+        const studentIdColRoster = rosterHeaderMap.get(HEADER_STUDENT_ID);
+        if (studentIdColRoster === undefined) return;
+
+        const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, 1).getValues();
+        const targetRosterRow_0based = rosterData.findIndex(row => row[0] === studentId);
+        if (targetRosterRow_0based === -1) return;
+        const targetRosterRow_1based = targetRosterRow_0based + 2;
+
+        const year = date.getFullYear();
+        const colName = `きろく_${year}`;
+        let recordColIdx = rosterHeaderMap.get(colName);
+
+        if (recordColIdx === undefined) {
+            const lastCol = rosterSheet.getLastColumn();
+            rosterSheet.insertColumnAfter(lastCol);
+            recordColIdx = lastCol;
+            rosterSheet.getRange(1, recordColIdx + 1).setValue(colName);
+        }
+
+        const archiveSheetName = HEADER_ARCHIVE_PREFIX + classroomName.slice(0, -2);
+        const newRecord = {
+            reservationId: reservationDataRow[headerMap.get(HEADER_RESERVATION_ID)] || '',
+            sheetName: archiveSheetName,
+            date: Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+            classroom: classroomName,
+            venue: reservationDataRow[headerMap.get(HEADER_VENUE)] || '',
+            workInProgress: reservationDataRow[headerMap.get(HEADER_WORK_IN_PROGRESS)] || '',
+            accountingDetails: JSON.stringify(accountingDetails)
+        };
+
+        const cell = rosterSheet.getRange(targetRosterRow_1based, recordColIdx + 1);
+        const existingJson = cell.getValue();
+        let records = [];
+        if (existingJson) {
+            try { records = JSON.parse(existingJson); } catch (e) { /* 不正なJSONは上書き */ }
+        }
+
+        const recordExists = records.some(r => r.reservationId === newRecord.reservationId);
+        if (!recordExists) {
+            records.push(newRecord);
+            records.sort((a, b) => new Date(b.date) - new Date(a.date));
+            cell.setValue(JSON.stringify(records));
+        }
+    } catch (err) {
+        Logger.log(`_updateRecordCacheForSingleReservation Error: ${err.message}\n${err.stack}`);
     }
 }
 
