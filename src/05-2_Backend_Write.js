@@ -527,6 +527,10 @@ function saveAccountingDetails(payload) {
             // 履歴取得に失敗しても、メインの会計処理は成功として扱う
             Logger.log(`会計処理後の履歴取得に失敗: ${historyResult.message}`);
         }
+
+        // 9. 【NEW】会計済みの予約をアーカイブし、元の行を削除する
+        _archiveSingleReservation(sheet, targetRowIndex, reservationDataRow);
+
         // --- 追加処理ここまで ---
 
         return { success: true, newBookingsCache: newBookingsCache, newHistory: historyResult.history, newHistoryTotal: historyResult.total, message: "会計処理と関連データの更新がすべて完了しました。" };
@@ -643,6 +647,36 @@ function _updateRecordCacheForSingleReservation(reservationDataRow, headerMap, c
         }
     } catch (err) {
         Logger.log(`_updateRecordCacheForSingleReservation Error: ${err.message}\n${err.stack}`);
+    }
+}
+
+/**
+ * [設計思想] 後続処理でエラーが発生してもメインの会計処理は成功と見なすため、
+ * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
+ * @private
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sourceSheet - 予約シート
+ * @param {number} rowIndex - アーカイブ対象の行番号
+ * @param {Array} reservationDataRow - アーカイブ対象の行データ
+ */
+function _archiveSingleReservation(sourceSheet, rowIndex, reservationDataRow) {
+    try {
+        const classroomName = sourceSheet.getName();
+        const archiveSheetName = HEADER_ARCHIVE_PREFIX + classroomName.slice(0, -2);
+        const archiveSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(archiveSheetName);
+
+        if (!archiveSheet) {
+            Logger.log(`アーカイブシート「${archiveSheetName}」が見つかりません。アーカイブ処理をスキップします。`);
+            return;
+        }
+
+        // 1. アーカイブシートに転記
+        archiveSheet.getRange(archiveSheet.getLastRow() + 1, 1, 1, reservationDataRow.length).setValues([reservationDataRow]);
+        formatSheetWithBordersSafely(archiveSheet);
+
+        // 2. 元の予約シートから行を削除
+        sourceSheet.deleteRow(rowIndex);
+    } catch (err) {
+        Logger.log(`_archiveSingleReservation Error: ${err.message}\n${err.stack}`);
     }
 }
 

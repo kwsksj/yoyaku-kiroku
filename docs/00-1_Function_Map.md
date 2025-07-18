@@ -86,10 +86,11 @@
   | | `cancelReservation` | WebApp: 予約をキャンセル | `cancelReservationAndGetLatestData` | `createHeaderMap`, `findRowIndexByValue`, `findLastRowOfDateBlock`, `sortAndRenumberDateBlock`, ... |
   | | `updateReservationDetails`| WebApp: 予約詳細を更新 | (WebApp) | `getAccountingMasterData`, `_validateTimeBasedReservation`, `createHeaderMap`, `findRowIndexByValue`, `updateBillableTime` |
   | | `saveAccountingDetails` | WebApp: 会計情報を保存 | (WebApp) | `createHeaderMap`, `findRowIndexByValue` |
-  | | `saveAccountingDetails` | WebApp: 会計情報を保存し、関連データを一括更新 | (WebApp) | `getAccountingMasterData`, `createHeaderMap`, `findRowIndexByValue`, `updateBillableTime`, `updateGanttChart`, `_updateFutureBookingsCacheIncrementally`, `_logSalesForSingleReservation`, `_updateRecordCacheForSingleReservation`, `updateSummaryAndForm`, `getParticipationHistory` |
+  | | `saveAccountingDetails` | WebApp: 会計情報を保存し、関連データを一括更新 | (WebApp) | `getAccountingMasterData`, `createHeaderMap`, `findRowIndexByValue`, `updateBillableTime`, `updateGanttChart`, `_updateFutureBookingsCacheIncrementally`, `_logSalesForSingleReservation`, `_updateRecordCacheForSingleReservation`, `updateSummaryAndForm`, `getParticipationHistory`, `_archiveSingleReservation` |
   | | `updateMemoAndGetLatestHistory`| WebApp: 制作メモを更新し、最新履歴を返す | (WebApp) | `findRowIndexByValue`, `getParticipationHistory` |
   | | `_logSalesForSingleReservation` | [Private] 単一予約の売上ログを転記 | `saveAccountingDetails` | `createSalesRow` |
   | | `_updateRecordCacheForSingleReservation` | [Private] 単一予約のきろくキャッシュを更新 | `saveAccountingDetails` | `createHeaderMap`, `JSON.stringify`, `JSON.parse` |
+  | | `_archiveSingleReservation` | [Private] 単一予約をアーカイブし、元の行を削除 | `saveAccountingDetails` | `formatSheetWithBordersSafely` |
   | 06_ExternalServices.gs | | | | |
   | | `setCheckboxChoices` | Googleフォームの選択肢を更新 | `handleReservationSheetEdit` | `createStringArrayFromCounts`, `FormApp` |
   | | `createStringArrayFromCounts`| フォーム選択肢用の文字列配列を生成 | `setCheckboxChoices` | `createHeaderMap` |
