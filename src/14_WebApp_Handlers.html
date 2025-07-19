@@ -432,6 +432,12 @@ actionHandlers.confirmAndPay = () => {
             if (name && price > 0) userInput.salesItems.push({ name: name, price: price });
         });
     }
+
+    // 物販項目（チェックボックス）
+    form.querySelectorAll('input[type="checkbox"][data-item-type="物販"]:checked').forEach(cb => {
+        userInput.salesItems.push({ name: cb.dataset.itemName });
+    });
+
     form.querySelectorAll('div[data-other-sales-row]').forEach((row, index) => {
         const name = document.getElementById(`other-sales-name-${index}`)?.value.trim();
         const price = document.getElementById(`other-sales-price-${index}`)?.value;
