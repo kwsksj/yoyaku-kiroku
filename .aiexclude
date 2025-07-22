@@ -1,0 +1,4 @@
+# Gemini Code Assist のコンテキストから除外するファイルやフォルダ
+
+# 完了済みのタスクは、AIのノイズになるため除外する
+/completed-tasks/
