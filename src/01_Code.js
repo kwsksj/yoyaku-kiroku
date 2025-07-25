@@ -19,7 +19,7 @@ const SUMMARY_SHEET_NAME = '予約サマリー';
 const LOG_SHEET_NAME = 'アクティビティログ';
 
 //  管理者通知用のメールアドレス
-const ADMIN_EMAIL = '***REDACTED***'; // 管理者のメールアドレス
+const ADMIN_EMAIL = PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
 
 // --- シート・ヘッダー関連の定数 ---
 const TOKYO_CLASSROOM_NAME = '東京教室';
@@ -87,12 +87,9 @@ const CLASSROOM_TRANSFER_SETTINGS = [
 ];
 
 // --- 外部サービス連携用ID ---
-const SALES_SPREADSHEET_ID = '***REDACTED***';
-const GOOGLE_FORM_IDS = {
-  [TOKYO_CLASSROOM_NAME]: '***REDACTED***',
-  [TSUKUBA_CLASSROOM_NAME]: '***REDACTED***',
-  [NUMAZU_CLASSROOM_NAME]: '***REDACTED***'
-}
+const SALES_SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
+const GOOGLE_FORM_IDS_RAW = PropertiesService.getScriptProperties().getProperty('GOOGLE_FORM_IDS');
+const GOOGLE_FORM_IDS = GOOGLE_FORM_IDS_RAW ? JSON.parse(GOOGLE_FORM_IDS_RAW) : {};
 // --- Googleフォームの質問タイトル ---
 const FORM_QUESTION_TITLES = {
   [TOKYO_CLASSROOM_NAME]: '参加希望日・会場',
@@ -100,9 +97,8 @@ const FORM_QUESTION_TITLES = {
   [NUMAZU_CLASSROOM_NAME]: '参加希望日'
 }
 // --- GoogleカレンダーのID ---
-const CALENDAR_ID_TOKYO = '***REDACTED***';
-const CALENDAR_ID_NUMAZU = '***REDACTED***';
-const CALENDAR_ID_TSUKUBA = '***REDACTED***';
+const CALENDAR_IDS_RAW = PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
+const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
 
 // --- ステータス・種別関連の定数 ---
 const STATUS_WAITING = 'waiting';
