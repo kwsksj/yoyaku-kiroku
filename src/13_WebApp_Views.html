@@ -148,8 +148,9 @@ const getMaterialRowHtml = (index) => {
  * @returns {string} HTML文字列
  */
 const getOtherSalesRowHtml = (index) => {
+    // 親となるdiv要素を追加し、クラスとデータ属性をこちらに持たせる
     return `
-        <div data-other-sales-row="${index}" class="grid grid-cols-3 gap-2 items-center">
+        <div data-other-sales-row="${index}" class="mt-2 pt-2 border-t border-gray-200 grid grid-cols-3 gap-2 items-center">
             <input type="text" id="other-sales-name-${index}" placeholder="商品名" class="col-span-2 text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text accounting-item">
             <input type="text" inputmode="decimal" id="other-sales-price-${index}" placeholder="金額" class="text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text accounting-item">
         </div>`;

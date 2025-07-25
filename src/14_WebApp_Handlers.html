@@ -245,11 +245,8 @@ const actionHandlers = {
     addOtherSalesRow: () => {
         const container = document.getElementById('other-sales-container');
         const newIndex = container.querySelectorAll('div[data-other-sales-row]').length;
-        const newRow = document.createElement('div');
-        newRow.className = "mt-2 pt-2 border-t border-gray-200";
-        newRow.dataset.otherSalesRow = newIndex;
-        newRow.innerHTML = getOtherSalesRowHtml(newIndex);
-        container.appendChild(newRow);
+        // getOtherSalesRowHtmlが返すHTML文字列を、ラッパーを介さず直接コンテナの末尾に追加する
+        container.insertAdjacentHTML('beforeend', getOtherSalesRowHtml(newIndex));
     },
 
     /** 会計画面で合計金額をクリップボードにコピーします */
