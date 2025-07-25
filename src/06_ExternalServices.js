@@ -111,9 +111,9 @@ function addCalendarEventsToSheetWithSpecifics() {
   }
   try {
     const CLASSROOM_SETTINGS = [
-        { sheetName: TOKYO_CLASSROOM_NAME, calendarId: CALENDAR_ID_TOKYO, includeEventTitle: true },
-        { sheetName: NUMAZU_CLASSROOM_NAME, calendarId: CALENDAR_ID_NUMAZU, includeEventTitle: false },
-        { sheetName: TSUKUBA_CLASSROOM_NAME, calendarId: CALENDAR_ID_TSUKUBA, includeEventTitle: false }
+        { sheetName: TOKYO_CLASSROOM_NAME, calendarId: CALENDAR_IDS[TOKYO_CLASSROOM_NAME], includeEventTitle: true },
+        { sheetName: NUMAZU_CLASSROOM_NAME, calendarId: CALENDAR_IDS[NUMAZU_CLASSROOM_NAME], includeEventTitle: false },
+        { sheetName: TSUKUBA_CLASSROOM_NAME, calendarId: CALENDAR_IDS[TSUKUBA_CLASSROOM_NAME], includeEventTitle: false }
     ];
 
     const ss = SpreadsheetApp.openById(RESERVATION_SPREADSHEET_ID);
