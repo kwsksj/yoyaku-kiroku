@@ -61,7 +61,7 @@ function createStringArrayFromCounts(classroomName) {
     const sessionIdx = headerMap.get(HEADER_SUMMARY_SESSION);
     const availableIdx = headerMap.get(HEADER_SUMMARY_AVAILABLE_COUNT);
     const venueIdx = headerMap.get(HEADER_SUMMARY_VENUE);
-    
+
     const choiceData = summaryData
         .filter(row => {
             const classroom = row[classroomIdx];
@@ -135,7 +135,7 @@ function addCalendarEventsToSheetWithSpecifics() {
         Logger.log(`エラー: シート "${sheetName}" が見つかりません。この教室の処理をスキップします。`);
         return;
       }
-      
+
       const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
       const headerMap = createHeaderMap(header);
       const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
@@ -159,7 +159,7 @@ function addCalendarEventsToSheetWithSpecifics() {
       }
 
       events.sort((a, b) => a.getStartTime().getTime() - b.getStartTime().getTime());
-      
+
       const existingDates = new Set();
       if (sheet.getLastRow() > 1) {
         const datesInSheet = sheet.getRange(2, dateColIdx + 1, sheet.getLastRow() - 1, 1).getValues();
@@ -169,7 +169,7 @@ function addCalendarEventsToSheetWithSpecifics() {
           }
         });
       }
-      
+
       const newRows = [];
       events.forEach(event => {
         const eventTitle = event.getTitle();
@@ -219,7 +219,7 @@ function addCalendarEventsToSheetWithSpecifics() {
         logActivity('system', 'system', 'CALENDAR_SYNC', 'SUCCESS', `シート: ${sheetName}, 追加件数: ${newRows.length}`);
       }
     });
-    
+
     handleError('全てのカレンダーとシートの処理が完了しました。' , false);
     sendAdminNotification('カレンダー連携 完了', 'カレンダー連携処理が完了しました。スプレッドシートを確認してください。');
 

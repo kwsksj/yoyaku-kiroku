@@ -27,7 +27,7 @@ function getSlotsAndMyBookings(studentId) {
             const summaryData = summarySheet.getRange(2, 1, summarySheet.getLastRow() - 1, summarySheet.getLastColumn()).getValues();
             const summaryHeader = summarySheet.getRange(1, 1, 1, summarySheet.getLastColumn()).getValues()[0];
             const summaryHeaderMap = createHeaderMap(summaryHeader);
-            
+
             const dateIdx = summaryHeaderMap.get(HEADER_DATE);
             const classroomIdx = summaryHeaderMap.get(HEADER_SUMMARY_CLASSROOM);
             const sessionIdx = summaryHeaderMap.get(HEADER_SUMMARY_SESSION);
@@ -47,7 +47,7 @@ function getSlotsAndMyBookings(studentId) {
                     venue: row[venueIdx] || '',
                 };
             }).filter(s => s !== null);
-            
+
             const mainLectureKeys = new Set();
             allSummarySlots.forEach(slot => {
                 if (slot.session === '本講座') {
@@ -73,7 +73,7 @@ function getSlotsAndMyBookings(studentId) {
                         venue: slot.venue,
                     };
                 }
-                
+
                 if (slot.session === SESSION_MORNING) {
                     combinedSlots[key].morningSlots = slot.availableSlots;
                 } else if (slot.session === SESSION_AFTERNOON) {
@@ -89,7 +89,7 @@ function getSlotsAndMyBookings(studentId) {
                     slot.isFull = (slot.morningSlots || 0) <= 0 && (slot.afternoonSlots || 0) <= 0;
                 }
             });
-            
+
             allSlots = Object.values(combinedSlots);
         }
 
@@ -101,7 +101,7 @@ function getSlotsAndMyBookings(studentId) {
             const data = sheet.getDataRange().getValues();
             const header = data.shift();
             const headerMap = createHeaderMap(header);
-            
+
             const timeToString = (date) => date instanceof Date ? Utilities.formatDate(date, timezone, "HH:mm") : null;
 
             data.forEach(row => {
@@ -111,7 +111,7 @@ function getSlotsAndMyBookings(studentId) {
                 const date = row[headerMap.get(HEADER_DATE)];
                 const status = String(row[headerMap.get(HEADER_PARTICIPANT_COUNT)]).toLowerCase();
                 if (!(date instanceof Date) || date < today || status === STATUS_CANCEL) return;
-                
+
                 myBookings.push({
                     reservationId: row[headerMap.get(HEADER_RESERVATION_ID)],
                     classroom: sheetName,
@@ -156,7 +156,7 @@ function getReservationDetails(params) {
 
         const targetRowIndex = findRowIndexByValue(sheet, headerMap.get(HEADER_RESERVATION_ID) + 1, reservationId);
         if (targetRowIndex === -1) throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
-        
+
         const rowData = sheet.getRange(targetRowIndex, 1, 1, header.length).getValues()[0];
         const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
 
@@ -196,9 +196,9 @@ function getReservationDetailsForEdit(reservationId, classroom) {
 
         const targetRowIndex = findRowIndexByValue(sheet, reservationIdColIdx + 1, reservationId);
         if (targetRowIndex === -1) throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
-        
+
         const row = sheet.getRange(targetRowIndex, 1, 1, header.length).getValues()[0];
-        
+
         const timeToString = (date) => date instanceof Date ? Utilities.formatDate(date, timezone, "HH:mm") : '';
 
         const details = {
@@ -238,7 +238,7 @@ function getAccountingMasterData() {
         const data = sheet.getDataRange().getValues();
         const header = data.shift();
         const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
-        
+
         const timeColumns = [HEADER_CLASS_START, HEADER_CLASS_END, HEADER_BREAK_START, HEADER_BREAK_END];
         const timeColumnIndices = timeColumns.map(h => header.indexOf(h));
 
@@ -289,7 +289,7 @@ function getParticipationHistory(studentId, limit, offset) {
             const wipCol = headerMap.get(HEADER_WORK_IN_PROGRESS);
             const accCol = headerMap.get(HEADER_ACCOUNTING_DETAILS);
             const resIdCol = headerMap.get(HEADER_RESERVATION_ID);
-            
+
             if (idCol === undefined || dateCol === undefined) return;
 
             data.forEach(row => {
@@ -310,8 +310,8 @@ function getParticipationHistory(studentId, limit, offset) {
         history.sort((a, b) => new Date(b.date) - new Date(a.date));
 
         const total = history.length;
-        const limitedHistory = (limit && offset !== null) 
-            ? history.slice(offset, offset + limit) 
+        const limitedHistory = (limit && offset !== null)
+            ? history.slice(offset, offset + limit)
             : history;
 
         return { success: true, history: limitedHistory, total: total };

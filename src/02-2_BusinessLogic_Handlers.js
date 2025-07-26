@@ -21,11 +21,11 @@ function processCellEdit(e) {
   const sheet = range.getSheet();
   const sheetName = sheet.getName();
   const startRow = range.getRow();
-  
+
   if (sheetName === ROSTER_SHEET_NAME && startRow > 1) {
     handleRosterEdit(e);
     logActivity('user', Session.getActiveUser().getEmail(), 'ROSTER_EDIT', 'SUCCESS', `範囲: ${range.getA1Notation()}`);
-  } 
+  }
   else if (CLASSROOM_SHEET_NAMES.includes(sheetName) && startRow >= RESERVATION_DATA_START_ROW) {
     handleReservationSheetEdit(e);
     logActivity('user', Session.getActiveUser().getEmail(), 'RESERVATION_EDIT', 'SUCCESS', `シート: ${sheetName}, 範囲: ${range.getA1Notation()}`);
@@ -40,12 +40,12 @@ function processChange(changeType) {
   if (changeType === 'INSERT_ROW') {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     if (!CLASSROOM_SHEET_NAMES.includes(sheet.getName())) return;
-    
+
     const insertedDate = handleRowInsert(sheet);
     if (insertedDate) {
       SpreadsheetApp.flush();
       sortAndRenumberDateBlock(sheet, insertedDate);
-      
+
       const pseudoEvent = {
         range: sheet.getActiveRange(),
         source: SpreadsheetApp.getActiveSpreadsheet(),
@@ -85,7 +85,7 @@ function handleReservationSheetEdit(e) {
   } else if (editedHeader === HEADER_PARTICIPANT_COUNT) {
     _handleParticipantCountEditInReservation(range, header);
   }
-  
+
   // 【NF-12】編集された行の生徒IDを取得し、予約キャッシュを更新
   const studentIdColIdx = header.indexOf(HEADER_STUDENT_ID);
   if (studentIdColIdx !== -1) {
@@ -119,7 +119,7 @@ function handleRosterEdit(e) {
   for (let i = 0; i < range.getNumRows(); i++) {
     const currentRow = startRow + i;
     const idCell = sheet.getRange(currentRow, idColIdx + 1);
-    
+
     if (!idCell.getValue()) {
       const realName = sheet.getRange(currentRow, realNameColIdx + 1).getValue();
       const nickname = sheet.getRange(currentRow, nicknameColIdx + 1).getValue();
@@ -127,7 +127,7 @@ function handleRosterEdit(e) {
         idCell.setValue(`user_${Utilities.getUuid()}`);
       }
     }
-    
+
     const studentId = idCell.getValue();
     if (studentId && (SYNC_TARGET_HEADERS.includes(editedHeader) || editedHeader === HEADER_UNIFIED_CLASS_COUNT)) {
       const valueToSync = range.getCell(i + 1, 1).getValue();
@@ -156,7 +156,7 @@ function handleNameEdit(e, header) {
     const currentRow = startRow + i;
     const nameCell = range.getCell(i + 1, 1);
     const name = nameCell.getValue();
-    
+
     if (name) {
       let studentId = rosterData.nameToId.get(name.trim());
       if (!studentId) {
@@ -165,7 +165,7 @@ function handleNameEdit(e, header) {
         rosterData.nameToId.set(name.trim(), studentId);
       }
       sheet.getRange(currentRow, studentIdColIdx + 1).setValue(studentId);
-      populateReservationWithRosterData(studentId, sheet, currentRow); 
+      populateReservationWithRosterData(studentId, sheet, currentRow);
     } else {
       handleReservationNameClear(sheet, currentRow);
     }

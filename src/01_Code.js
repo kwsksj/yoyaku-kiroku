@@ -18,6 +18,13 @@ const ACCOUNTING_MASTER_SHEET_NAME = '料金・商品マスタ';
 const SUMMARY_SHEET_NAME = '予約サマリー';
 const LOG_SHEET_NAME = 'アクティビティログ';
 
+// NF-01: 電話番号なしユーザーの特殊ログインコマンド (PropertiesServiceから取得)
+// PropertiesServiceに SPECIAL_NO_PHONE_LOGIN_COMMAND キーで文字列を登録してください。
+// 例: キー 'SPECIAL_NO_PHONE_LOGIN_COMMAND', 値 'NO_PHONE_LOGIN'
+const SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE = PropertiesService.getScriptProperties().getProperty('SPECIAL_NO_PHONE_LOGIN_COMMAND');
+
+
+
 //  管理者通知用のメールアドレス
 const ADMIN_EMAIL = PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
 

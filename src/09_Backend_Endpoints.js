@@ -20,7 +20,7 @@
 function getInitialWebApp_Data(studentId) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    
+
     // --- 予約枠の取得 (サマリーから) ---
     const summarySheet = ss.getSheetByName(SUMMARY_SHEET_NAME);
     let availableSlots = [];
@@ -36,7 +36,7 @@ function getInitialWebApp_Data(studentId) {
         const rosterHeaderMap = createHeaderMap(rosterHeader);
         const studentIdCol = rosterHeaderMap.get(HEADER_STUDENT_ID);
         const cacheCol = rosterHeaderMap.get('よやくキャッシュ');
-        
+
         if (studentIdCol !== undefined && cacheCol !== undefined) {
             const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn()).getValues();
             const userRow = rosterData.find(row => row[studentIdCol] === studentId);
@@ -79,7 +79,7 @@ function getInitialWebApp_Data(studentId) {
         }
         myHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
-    
+
     return {
       success: true,
       availableSlots: availableSlots,
@@ -131,4 +131,12 @@ function updateReservationDetailsAndGetLatestData(details) {
   const result = updateReservationDetails(details);
   // この処理では日付や予約数に変動はないため、サマリー更新は不要。
   return result;
+}
+
+/**
+ * NF-01: 電話番号未登録ユーザーを検索するWebアプリ用エンドポイント。
+ * @returns {Array<object>} - { studentId: string, realName: string, nickname: string } の配列。
+ */
+function searchNoPhoneUsersByFilterForWebApp() {
+  return getUsersWithoutPhoneNumber();
 }

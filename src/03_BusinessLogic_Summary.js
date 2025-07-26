@@ -115,7 +115,7 @@ function _writeOrUpdateSummaryRow(summarySheet, key, newRowData, headerMap) {
             break;
         }
     }
-    
+
     if (targetRow !== -1) {
         summarySheet.getRange(targetRow, 1, 1, newRowData.length).setValues([newRowData]);
     } else {
@@ -165,7 +165,7 @@ function rebuildSummarySheet() {
 
                 const dateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
                 const venue = venueIdx !== undefined ? row[venueIdx] : '';
-                
+
                 let sessionsToCreate = [];
                 if (sheetName === TSUKUBA_CLASSROOM_NAME) {
                     sessionsToCreate.push(SESSION_MORNING, SESSION_AFTERNOON, ITEM_NAME_FIRST_LECTURE);
@@ -204,7 +204,7 @@ function rebuildSummarySheet() {
 
                 const isFirstLecture = firstLectureIdx !== undefined && row[firstLectureIdx] === true;
                 const dateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
-                
+
                 if (sheetName === TSUKUBA_CLASSROOM_NAME) {
                     const startTime = row[startTimeIdx];
                     const endTime = row[endTimeIdx];
@@ -283,7 +283,7 @@ function rebuildSummarySheet() {
             if (dateComp !== 0) return dateComp;
             return a[2].localeCompare(b[2]);
         });
-        
+
         const lastRow = summarySheet.getLastRow();
         if (lastRow > 1) {
             summarySheet.getRange(2, 1, lastRow - 1, summarySheet.getLastColumn()).clearContent();
@@ -345,7 +345,7 @@ function _getReservationCountsForDate(classroom, date) {
                     const startHour = startTime.getHours();
                     const endHour = endTime.getHours();
                     const endMinutes = endTime.getMinutes();
-                    
+
                     if (startHour < TSUKUBA_MORNING_SESSION_END_HOUR) {
                         counts.set(SESSION_MORNING, (counts.get(SESSION_MORNING) || 0) + 1);
                     }
@@ -360,7 +360,7 @@ function _getReservationCountsForDate(classroom, date) {
             } else if (classroom === TOKYO_CLASSROOM_NAME) {
                 // 本講座の予約数をインクリメント
                 counts.set(ITEM_NAME_MAIN_LECTURE, (counts.get(ITEM_NAME_MAIN_LECTURE) || 0) + 1);
-                
+
                 if (isFirstLecture) {
                     // 初回講習の予約数をインクリメント
                     counts.set(ITEM_NAME_FIRST_LECTURE, (counts.get(ITEM_NAME_FIRST_LECTURE) || 0) + 1);
@@ -397,7 +397,7 @@ function _createSummaryRowData(classroom, date, counts, venue, timezone) {
         const afternoonReservations = counts.get(SESSION_AFTERNOON) || 0;
         const morningAvailable = Math.max(0, capacity - morningReservations);
         const afternoonAvailable = Math.max(0, capacity - afternoonReservations);
-        
+
         rows.push([`${dateString}_${classroom}_${SESSION_MORNING}`, date, classroom, SESSION_MORNING, venue, capacity, morningReservations, morningAvailable, new Date()]);
         rows.push([`${dateString}_${classroom}_${SESSION_AFTERNOON}`, date, classroom, SESSION_AFTERNOON, venue, capacity, afternoonReservations, afternoonAvailable, new Date()]);
 
@@ -458,7 +458,7 @@ function _getVenueForDate(sheetName, date) {
     const dateIdx = headerMap.get(HEADER_DATE);
     const venueIdx = headerMap.get(HEADER_VENUE);
     if (dateIdx === undefined || venueIdx === undefined) return '';
-    
+
     const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
     const targetDateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
 

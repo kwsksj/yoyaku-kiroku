@@ -40,7 +40,7 @@ function updateRosterCache() {
         if (!rosterSheet) {
             throw new Error("シート「生徒名簿」が見つかりません。");
         }
-        
+
         const allStudentNames = getAllStudentNames();
         updateRosterSheet(rosterSheet, allStudentNames);
 
@@ -150,7 +150,7 @@ function getAllReservations() {
                 data.forEach(row => {
                     const name = row[nameColIdx];
                     if(!name || String(name).trim() === '') return;
-                    
+
                     const reservation = {
                         studentId: row[studentIdColIdx],
                         name: String(name).trim(),
@@ -191,7 +191,7 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
     const allYears = new Set(allReservations.filter(r => r.date instanceof Date).map(r => r.date.getFullYear()));
     let currentHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
     let headerMap = createHeaderMap(currentHeader);
-    
+
     const yearsToAdd = [];
     allYears.forEach(year => {
         const colName = `きろく_${year}`;
@@ -201,9 +201,9 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
     });
 
     if (yearsToAdd.length > 0) {
-        const lastCol = rosterSheet.getLastColumn(); 
-        rosterSheet.insertColumnsAfter(lastCol, yearsToAdd.length); 
-        const startCol = lastCol + 1; 
+        const lastCol = rosterSheet.getLastColumn();
+        rosterSheet.insertColumnsAfter(lastCol, yearsToAdd.length);
+        const startCol = lastCol + 1;
         rosterSheet.getRange(1, startCol, 1, yearsToAdd.length).setValues([yearsToAdd]);
     }
     // --- 構造変更ここまで ---
@@ -254,10 +254,10 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
         studentYears.forEach(year => {
             const colName = `きろく_${year}`;
             const recordColIdx_0based = finalHeaderMap.get(colName);
-            
+
             const yearKey = `${studentId}_${year}`;
             const yearRecords = recordsByStudentYear.get(yearKey) || [];
-            
+
             if (yearRecords.length > 0) {
                 totalParticipation += yearRecords.length;
                 yearRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -303,7 +303,7 @@ function getAllArchivedReservations() {
                 data.forEach(row => {
                     const name = row[nameColIdx];
                     if(!name || String(name).trim() === '') return;
-                    
+
                     const reservation = {
                         studentId: row[studentIdColIdx],
                         name: String(name).trim(),
@@ -366,7 +366,7 @@ function migrateAllRecordsToCache() {
             handleError("処理対象のログデータが見つかりませんでした。", false);
             return;
         }
-        
+
         updateRosterCacheColumns(rosterSheet, allArchivedReservations);
 
         SpreadsheetApp.getActiveSpreadsheet().toast('全履歴のキャッシュ生成が完了しました。', '完了', 10);
@@ -429,7 +429,7 @@ function migrateAllFutureBookingsToCache() {
         if (studentIdCol === undefined || cacheCol === undefined) {
             throw new Error("生徒名簿に「生徒ID」または「よやくキャッシュ」列が見つかりません。");
         }
-        
+
         const rosterRange = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn());
         const rosterData = rosterRange.getValues();
 
@@ -474,7 +474,7 @@ function getAllFutureReservations() {
         const data = sheet.getDataRange().getValues();
         const header = data.shift();
         const headerMap = createHeaderMap(header);
-        
+
         const timeToString = (date) => date instanceof Date ? Utilities.formatDate(date, timezone, "HH:mm") : null;
 
         data.forEach(row => {
@@ -483,9 +483,9 @@ function getAllFutureReservations() {
 
             const date = row[headerMap.get(HEADER_DATE)];
             const status = String(row[headerMap.get(HEADER_PARTICIPANT_COUNT)]).toLowerCase();
-            
+
             if (!(date instanceof Date) || date < today || status === STATUS_CANCEL) return;
-            
+
             reservations.push({
                 studentId: studentId,
                 reservationId: row[headerMap.get(HEADER_RESERVATION_ID)],

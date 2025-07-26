@@ -76,7 +76,7 @@ function findRowIndexByValue(sheet, col, value) {
     if (sheet.getLastRow() < RESERVATION_DATA_START_ROW) return -1;
     const allValues = sheet.getRange(RESERVATION_DATA_START_ROW, col, sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1, 1).getValues();
     for (let i = 0; i < allValues.length; i++) {
-        if (allValues[i][0] == value) { 
+        if (allValues[i][0] == value) {
             return i + RESERVATION_DATA_START_ROW;
         }
     }

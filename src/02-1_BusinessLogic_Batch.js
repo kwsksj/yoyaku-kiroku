@@ -153,7 +153,7 @@ function transferPastReservationsToArchive(options) {
   if (rowsToArchive.length > 0) {
     // 1. 売上ログに転記
     logSalesFromArchivedData(rowsToArchive, sourceHeaderMap, activeSheet.getName());
-    
+
     // 2. アーカイブシートに転記
     archiveSheet.getRange(archiveSheet.getLastRow() + 1, 1, rowsToArchive.length, rowsToArchive[0].length).setValues(rowsToArchive);
     formatSheetWithBordersSafely(archiveSheet);
@@ -222,7 +222,7 @@ function updateRosterWithRecordCache(archivedData, reservationHeaderMap, classro
   const accColRes = reservationHeaderMap.get(HEADER_ACCOUNTING_DETAILS);
 
   // 日付の降順でソートし、最新のメモが優先されるようにする
-  archivedData.sort((a, b) => new Date(b[dateColRes]) - new Date(a[dateColRes])); 
+  archivedData.sort((a, b) => new Date(b[dateColRes]) - new Date(a[dateColRes]));
 
   for (const row of archivedData) {
     const studentId = row[studentIdColRes];
@@ -349,17 +349,35 @@ function setupTestEnvironment() {
     // 3. ユーザーに情報を提示
     const htmlOutput = HtmlService.createHtmlOutput(
       `<h4>テスト環境のセットアップが完了しました</h4>
-       <p>新しいテスト用スプレッドシートが作成されました。</p>
+       <p>新しいテスト用スプレッドシートと、それに紐づくApps Scriptプロジェクトが作成されました。</p>
        <p><b>ファイル名:</b> ${newFileName}</p>
-       <p><b>URL:</b> <a href="${newUrl}" target="_blank">ここをクリックして開く</a></p>
-       <p><b>スクリプトID:</b> <code>${newId}</code></p>
+       <p><b>スプレッドシートURL:</b> <a href="${newUrl}" target="_blank">ここをクリックして開く</a></p>
+       <p><b>スプレッドシートID:</b> <code>${newId}</code></p>
        <hr>
-       <h4>ローカル開発環境の設定</h4>
-       <p>以下のコマンドをターミナルで実行し、<code>.clasp.json</code>を更新してください。</p>
-       <pre style="background-color:#f0f0f0; padding: 8px; border-radius: 4px; overflow-x: auto;"><code>clasp setting scriptId ${newId}</code></pre>
-       <p>その後、<code>clasp push</code>でコードをデプロイしてください。</p>
+       <h4>次のステップ: ローカル開発環境の接続とトリガー設定</h4>
+       <ol style="text-align: left; padding-left: 20px;">
+           <li>
+               <b>新しいスクリプトIDの確認:</b>
+               上記URLから新しいスプレッドシートを開き、拡張機能 &gt; Apps Script からスクリプトエディタを開いてください。
+               開いたら、左側の「プロジェクトの設定」（歯車のアイコン）をクリックし、<b>「スクリプトID」</b>をコピーしてください。
+           </li>
+           <li>
+               <b>ローカル環境（.clasp.json）の更新:</b>
+               ターミナルで以下のコマンドを実行し、<code>.clasp.json</code>の<code>scriptId</code>をコピーした<b>スクリプトID</b>に更新してください。<br>
+               <pre style="background-color:#f0f0f0; padding: 8px; border-radius: 4px; overflow-x: auto; font-size: 0.9em;"><code>clasp setting scriptId &lt;ここにコピーしたスクリプトIDをペースト&gt;</code></pre>
+           </li>
+           <li>
+               <b>コードのプッシュ:</b>
+               その後、<code>clasp push</code>でコードをデプロイしてください。
+           </li>
+           <li>
+               <b>トリガーの再設定:</b>
+               新しいスクリプトプロジェクトのエディタで、左側の「トリガー」（時計のアイコン）をクリックし、<code>handleOnChange</code>と<code>handleEdit</code>のトリガーを再設定してください。<br>
+               (イベントの種類: <code>変更時</code> と <code>編集時</code>)
+           </li>
+       </ol>
        <br>
-       <input type="button" value="閉じる" onclick="google.script.host.close()" />`
+       <input type="button" value="閉じる" onclick="google.script.host.close()" style="background-color: #f0f0f0; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">`
     )
     .setWidth(600)
     .setHeight(400);
