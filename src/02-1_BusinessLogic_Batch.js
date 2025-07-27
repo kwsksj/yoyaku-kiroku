@@ -417,3 +417,96 @@ function setupTestEnvironment() {
     handleError(`テスト環境の作成中にエラーが発生しました: ${err.message}`, true);
   }
 }
+
+/**
+ * 【新規】毎日定刻に実行され、全教室の当日分予約シートを整理するトリガー用メイン関数
+ */
+function archiveTodaysLeftovers_trigger() {
+  const allSheetNames = CLASSROOM_SHEET_NAMES; // グローバル定数を参照
+  allSheetNames.forEach(sheetName => {
+    try {
+      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+      if (sheet) {
+        _archiveTodaysLeftoversForSheet(sheet);
+      }
+    } catch (e) {
+      logActivity('system', '当日予約枠の自動整理', 'エラー', `シート[${sheetName}]の処理中にエラーが発生: ${e.message}`);
+    }
+  });
+}
+
+/**
+ * 【新規】指定された1枚のシートに対して、当日分の不要な行を整理（削除またはアーカイブ）するコア関数
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet 対象の予約シート
+ */
+function _archiveTodaysLeftoversForSheet(sheet) {
+  const sheetName = sheet.getName();
+  const lastRow = sheet.getLastRow();
+  if (lastRow < RESERVATION_DATA_START_ROW) return; // 処理対象データなし
+
+  // 1. アーカイブシートを準備
+  const archiveSheetName = HEADER_ARCHIVE_PREFIX + sheetName.slice(0, -2);
+  const archiveSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(archiveSheetName);
+  if (!archiveSheet) {
+    logActivity('system', '当日予約枠の自動整理', '失敗', `アーカイブシート[${archiveSheetName}]が見つかりません。`);
+    return;
+  }
+
+  // 2. 必要な情報を一度に読み込む
+  const fullDataRange = sheet.getRange(RESERVATION_DATA_START_ROW, 1, lastRow - RESERVATION_DATA_START_ROW + 1, sheet.getLastColumn());
+  const allData = fullDataRange.getValues();
+  const headerMap = createHeaderMap(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
+
+  const dateColIdx = headerMap.get(HEADER_DATE);
+  const nameColIdx = headerMap.get(HEADER_NAME);
+  const statusColIdx = headerMap.get(HEADER_PARTICIPANT_COUNT);
+
+  if (dateColIdx === undefined || nameColIdx === undefined || statusColIdx === undefined) {
+    logActivity('system', '当日予約枠の自動整理', '失敗', `シート[${sheetName}]の必須ヘッダーが見つかりません。`);
+    return;
+  }
+
+  const todayString = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
+  const rowsToArchive = [];
+  const rowNumbersToDelete = [];
+
+  // 3. 安全のため、末尾から行をスキャンする
+  for (let i = allData.length - 1; i >= 0; i--) {
+    const row = allData[i];
+    const rowDate = row[dateColIdx];
+
+    if (rowDate instanceof Date && Utilities.formatDate(rowDate, 'Asia/Tokyo', 'yyyy-MM-dd') === todayString) {
+      const currentPhysicalRow = i + RESERVATION_DATA_START_ROW;
+      const name = row[nameColIdx];
+      const status = String(row[statusColIdx]).toLowerCase();
+
+      // ケース1: 空席の行
+      if (!name) {
+        rowNumbersToDelete.push(currentPhysicalRow);
+      }
+      // ケース2: キャンセルまたはキャンセル待ちの行
+      else if (status === STATUS_CANCEL || status === STATUS_WAITING) {
+        rowsToArchive.push(row); // アーカイブ対象としてデータを保持
+        rowNumbersToDelete.push(currentPhysicalRow); // 削除対象として行番号を保持
+      }
+      // ケース3: 会計未処理の参加者の行は、このifブロックの条件に合致しないため、何もしない
+    }
+  }
+
+  // 4. アーカイブ処理
+  if (rowsToArchive.length > 0) {
+    // データを日付の昇順に戻す
+    rowsToArchive.reverse();
+    archiveSheet.getRange(archiveSheet.getLastRow() + 1, 1, rowsToArchive.length, rowsToArchive[0].length).setValues(rowsToArchive);
+    logActivity('system', '当日予約枠の自動整理', '成功', `シート[${sheetName}]から ${rowsToArchive.length} 件をアーカイブしました。`);
+  }
+
+  // 5. 削除処理
+  if (rowNumbersToDelete.length > 0) {
+    // 行番号は既に降順になっているので、そのまま削除
+    rowNumbersToDelete.forEach(rowNum => {
+      sheet.deleteRow(rowNum);
+    });
+    logActivity('system', '当日予約枠の自動整理', '成功', `シート[${sheetName}]から ${rowNumbersToDelete.length} 件の不要な行を削除しました。`);
+  }
+}
