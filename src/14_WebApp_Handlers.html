@@ -32,8 +32,18 @@
         .withSuccessHandler((r) => {
           hideLoading();
           if (r.success) {
-            // 認証成功時: 通常の初期データ取得とダッシュボード表示
-            fetchInitialData(r);
+            // ★★★ 変更点 ★★★
+            // 認証とデータ取得が一度で完了するため、ここで全ての状態を設定する
+            setState({
+              currentUser: r.user,
+              slots: r.initialData.availableSlots,
+              myBookings: r.initialData.myBookings,
+              accountingMaster: r.initialData.accountingMaster,
+              history: r.initialData.myHistory,
+              historyTotal: r.initialData.myHistory.length,
+              recordsToShow: 20,
+              view: 'classroomSelect',
+            });
           } else if (r.commandRecognized) {
             // 特殊コマンド認識時のフロー。電話番号未登録ユーザーリスト表示へ
             setState({
@@ -72,7 +82,18 @@
         .withSuccessHandler((res) => {
           hideLoading();
           if (res.success) {
-            fetchInitialData(res);
+            // ★★★ 変更点 ★★★
+            // 登録とデータ取得が一度で完了するため、ここで全ての状態を設定する
+            setState({
+              currentUser: res.user,
+              slots: res.initialData.availableSlots,
+              myBookings: res.initialData.myBookings,
+              accountingMaster: res.initialData.accountingMaster,
+              history: res.initialData.myHistory,
+              historyTotal: res.initialData.myHistory.length,
+              recordsToShow: 20,
+              view: 'classroomSelect',
+            });
           } else {
             showInfo(res.message || '登録に失敗しました');
           }
@@ -134,11 +155,11 @@
         .withSuccessHandler((res) => {
           hideLoading();
           if (res.success) {
-            showInfo('プロフィールを更新しました', '更新完了', () => {
-              // After showing the success message, fetch all initial data again
-              // to ensure the state is fresh and complete, then go to the dashboard.
-              fetchInitialData(u);
-            });
+            // ★★★ 変更点 ★★★
+            // 戻り値の更新されたユーザー情報でローカルの状態を更新し、
+            // 追加通信なしでダッシュボードに遷移する
+            showInfo('プロフィールを更新しました', '更新完了');
+            setState({ currentUser: res.updatedUser, view: 'classroomSelect' });
           } else {
             showInfo(res.message || '更新に失敗しました');
           }
@@ -647,55 +668,7 @@
   // 全体を制御するコアとなる関数群です。
   // =================================================================
 
-  /**
-   * アプリケーションの初期化に必要なデータを一括で取得します。
-   * @param {object} user - 認証済みのユーザー情報
-   */
-  function fetchInitialData(user) {
-    showLoading();
-    google.script.run
-      .withSuccessHandler((initialData) => {
-        hideLoading();
-        if (initialData.success) {
-          setState({
-            currentUser: user,
-            slots: initialData.availableSlots,
-            myBookings: initialData.myBookings,
-            accountingMaster: initialData.accountingMaster,
-            history: initialData.myHistory,
-            historyTotal: initialData.myHistory.length,
-            recordsToShow: 20,
-            view: 'classroomSelect',
-          });
-        } else {
-          showInfo('初期データの読み込みに失敗しました。');
-        }
-      })
-      .withFailureHandler(handleServerError)
-      .getInitialWebApp_Data(user.studentId);
-  }
-
-  /**
-   * 予約・空席情報を再取得し、指定された画面に遷移します。
-   * @param {object} user - 認証済みのユーザー情報
-   * @param {string} nextView - 次に表示する画面のID
-   */
-  function fetchSlotsAndSetState(user, nextView) {
-    showLoading();
-    google.script.run
-      .withSuccessHandler((data) => {
-        hideLoading();
-        setState({
-          ...appState,
-          currentUser: user,
-          slots: data.availableSlots,
-          myBookings: data.myBookings,
-          view: nextView,
-        });
-      })
-      .withFailureHandler(handleServerError)
-      .getSlotsAndMyBookings(user.studentId);
-  }
+  
 
   /**
    * サーバーサイドでエラーが発生した際の共通処理です。

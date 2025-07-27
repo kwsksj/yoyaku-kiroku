@@ -146,7 +146,20 @@ function authenticateUser(phoneNumber) {
           phone: row[relativePhoneColIdx],
         };
         logActivity(user.studentId, 'ログイン試行', '成功', `電話番号: ${phoneNumber}`);
-        return user;
+        // ★★★ 変更点 ★★★
+        // 認証成功後、そのまま初期データを取得して結合する
+        const initialData = getInitialWebApp_Data(user.studentId);
+        if (initialData.success) {
+          // フロントエンドに返す最終的な成功オブジェクト
+          return {
+            success: true,
+            user: user, // 認証したユーザー情報
+            initialData: initialData // アプリ初期化データ
+          };
+        } else {
+          // データ取得に失敗した場合はエラーとして扱う
+          throw new Error('認証には成功しましたが、初期データの取得に失敗しました。');
+        }
       }
     }
     logActivity('N/A', 'ログイン試行', '失敗', `電話番号: ${phoneNumber}`);
@@ -297,13 +310,24 @@ function registerNewUser(userInfo) {
 
     logActivity(studentId, '新規ユーザー登録', '成功', `電話番号: ${normalizedPhone}`);
 
-    return {
-      success: true,
-      studentId: studentId,
-      displayName: userInfo.nickname || userInfo.realName,
-      realName: userInfo.realName,
-      phone: normalizedPhone,
+    const newUserInfo = {
+        studentId: studentId,
+        displayName: userInfo.nickname || userInfo.realName,
+        realName: userInfo.realName,
+        phone: normalizedPhone,
     };
+
+    // ★★★ 変更点 ★★★
+    const initialData = getInitialWebApp_Data(studentId);
+    if (initialData.success) {
+        return {
+          success: true,
+          user: newUserInfo,
+          initialData: initialData
+        };
+    } else {
+        throw new Error('新規登録には成功しましたが、初期データの取得に失敗しました。');
+    }
   } catch (err) {
     logActivity('N/A', '新規ユーザー登録', 'エラー', `Error: ${err.message}`);
     Logger.log(`registerNewUser Error: ${err.message}`);
@@ -388,7 +412,12 @@ function updateUserProfile(userInfo) {
         '成功',
         `本名: ${userInfo.realName}, 電話番号: ${userInfo.phone || 'N/A'}`,
       );
-      return { success: true, message: 'プロフィールを更新しました。' };
+      // ★★★ 変更点 ★★★
+      // 更新後のユーザー情報を戻り値に追加
+      return {
+        success: true,
+        message: 'プロフィールを更新しました。',
+        updatedUser: userInfo };
     } else {
       logActivity(userInfo.studentId, 'プロフィール更新', 'エラー', details);
       return { success: false, message: '更新対象のユーザーが見つかりませんでした。' };
