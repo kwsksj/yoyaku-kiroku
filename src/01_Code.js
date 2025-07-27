@@ -21,9 +21,9 @@ const LOG_SHEET_NAME = 'アクティビティログ';
 // NF-01: 電話番号なしユーザーの特殊ログインコマンド (PropertiesServiceから取得)
 // PropertiesServiceに SPECIAL_NO_PHONE_LOGIN_COMMAND キーで文字列を登録してください。
 // 例: キー 'SPECIAL_NO_PHONE_LOGIN_COMMAND', 値 'NO_PHONE_LOGIN'
-const SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE = PropertiesService.getScriptProperties().getProperty('SPECIAL_NO_PHONE_LOGIN_COMMAND');
-
-
+const SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE = PropertiesService.getScriptProperties().getProperty(
+  'SPECIAL_NO_PHONE_LOGIN_COMMAND',
+);
 
 //  管理者通知用のメールアドレス
 const ADMIN_EMAIL = PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
@@ -69,7 +69,13 @@ const HEADER_BREAK_END = '休憩終了';
 const HEADER_START_TIME = '開始時刻';
 const HEADER_END_TIME = '終了時刻';
 
-const SYNC_TARGET_HEADERS = [HEADER_LINE, HEADER_IN_THE_FUTURE, HEADER_NOTES, HEADER_FROM, HEADER_CHISEL_RENTAL];
+const SYNC_TARGET_HEADERS = [
+  HEADER_LINE,
+  HEADER_IN_THE_FUTURE,
+  HEADER_NOTES,
+  HEADER_FROM,
+  HEADER_CHISEL_RENTAL,
+];
 const HEADER_REAL_NAME = '本名';
 const HEADER_NICKNAME = 'ニックネーム';
 const HEADER_PHONE = '電話番号';
@@ -83,26 +89,61 @@ const HEADER_SUMMARY_AVAILABLE_COUNT = '空席数';
 const HEADER_SUMMARY_LAST_UPDATED = '最終更新日時';
 
 const HEADER_ARCHIVE_PREFIX = 'old';
-const ARCHIVE_SHEET_NAMES = CLASSROOM_SHEET_NAMES.map(name => HEADER_ARCHIVE_PREFIX + name.slice(0, -2));
+const ARCHIVE_SHEET_NAMES = CLASSROOM_SHEET_NAMES.map(
+  (name) => HEADER_ARCHIVE_PREFIX + name.slice(0, -2),
+);
 
 const LOCK_WAIT_TIME_MS = 30000;
 
 const CLASSROOM_TRANSFER_SETTINGS = [
-  { sourceSheetName: TOKYO_CLASSROOM_NAME, transferColumns: [HEADER_DATE, HEADER_VENUE, HEADER_PARTICIPANT_COUNT, HEADER_CO, HEADER_NAME, HEADER_FIRST_LECTURE, HEADER_EARLY_ARRIVAL, HEADER_CHISEL_RENTAL] },
-  { sourceSheetName: NUMAZU_CLASSROOM_NAME, transferColumns: [HEADER_DATE, HEADER_PARTICIPANT_COUNT, HEADER_CO, HEADER_NAME, HEADER_TIME, HEADER_CHISEL_RENTAL] },
-  { sourceSheetName: TSUKUBA_CLASSROOM_NAME, transferColumns: [HEADER_DATE, HEADER_PARTICIPANT_COUNT, HEADER_CO, HEADER_NAME, HEADER_TIME, HEADER_CHISEL_RENTAL] }
+  {
+    sourceSheetName: TOKYO_CLASSROOM_NAME,
+    transferColumns: [
+      HEADER_DATE,
+      HEADER_VENUE,
+      HEADER_PARTICIPANT_COUNT,
+      HEADER_CO,
+      HEADER_NAME,
+      HEADER_FIRST_LECTURE,
+      HEADER_EARLY_ARRIVAL,
+      HEADER_CHISEL_RENTAL,
+    ],
+  },
+  {
+    sourceSheetName: NUMAZU_CLASSROOM_NAME,
+    transferColumns: [
+      HEADER_DATE,
+      HEADER_PARTICIPANT_COUNT,
+      HEADER_CO,
+      HEADER_NAME,
+      HEADER_TIME,
+      HEADER_CHISEL_RENTAL,
+    ],
+  },
+  {
+    sourceSheetName: TSUKUBA_CLASSROOM_NAME,
+    transferColumns: [
+      HEADER_DATE,
+      HEADER_PARTICIPANT_COUNT,
+      HEADER_CO,
+      HEADER_NAME,
+      HEADER_TIME,
+      HEADER_CHISEL_RENTAL,
+    ],
+  },
 ];
 
 // --- 外部サービス連携用ID ---
-const SALES_SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
+const SALES_SPREADSHEET_ID =
+  PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
 const GOOGLE_FORM_IDS_RAW = PropertiesService.getScriptProperties().getProperty('GOOGLE_FORM_IDS');
 const GOOGLE_FORM_IDS = GOOGLE_FORM_IDS_RAW ? JSON.parse(GOOGLE_FORM_IDS_RAW) : {};
 // --- Googleフォームの質問タイトル ---
 const FORM_QUESTION_TITLES = {
   [TOKYO_CLASSROOM_NAME]: '参加希望日・会場',
   [TSUKUBA_CLASSROOM_NAME]: '参加希望日',
-  [NUMAZU_CLASSROOM_NAME]: '参加希望日'
-}
+  [NUMAZU_CLASSROOM_NAME]: '参加希望日',
+};
 // --- GoogleカレンダーのID ---
 const CALENDAR_IDS_RAW = PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
 const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
@@ -127,7 +168,10 @@ const UNIT_CM3 = 'cm³';
 // --- エントリーポイント関数 ---
 
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('10_WebApp.html').evaluate().setTitle('きぼりの よやく・きろく').addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  return HtmlService.createTemplateFromFile('10_WebApp.html')
+    .evaluate()
+    .setTitle('きぼりの よやく・きろく')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
 function onOpen() {
@@ -139,7 +183,8 @@ function onOpen() {
 }
 
 function addAdminMenu(menu) {
-  menu.addItem('昨日までのデータ処理', 'processYesterdayData')
+  menu
+    .addItem('昨日までのデータ処理', 'processYesterdayData')
     .addItem('今日のデータ処理', 'processTodayData')
     .addItem('一番古い日付のデータ処理', 'processOldestDate')
     .addSeparator()
@@ -158,10 +203,14 @@ function addAdminMenu(menu) {
 }
 
 function addCacheMenu(menu) {
-  menu.addSeparator()
+  menu
+    .addSeparator()
     .addItem('生徒名簿キャッシュを更新（手動）', 'updateRosterCache')
     .addItem('【データ移行】全過去ログから「きろく」キャッシュを生成', 'migrateAllRecordsToCache')
-    .addItem('【データ移行】全予約から「よやくキャッシュ」を生成', 'migrateAllFutureBookingsToCache');
+    .addItem(
+      '【データ移行】全予約から「よやくキャッシュ」を生成',
+      'migrateAllFutureBookingsToCache',
+    );
 }
 
 /**

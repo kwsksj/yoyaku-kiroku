@@ -1,0 +1,27 @@
+{
+  "name": "yoyaku-kiroku",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kwsksj/yoyaku-kiroku.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kwsksj/yoyaku-kiroku/issues"
+  },
+  "homepage": "https://github.com/kwsksj/yoyaku-kiroku#readme",
+  "description": "",
+  "devDependencies": {
+    "@types/google-apps-script": "^1.0.99",
+    "prettier": "^3.6.2"
+  }
+}

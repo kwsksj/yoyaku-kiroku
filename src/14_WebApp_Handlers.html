@@ -1,459 +1,527 @@
 <script>
-    /**
-     * =================================================================
-     * 【ファイル名】: 14_WebApp_Handlers.html
-     * 【バージョン】: 1.3
-     * 【役割】: WebAppのフロントエンドにおける、ユーザーの操作に応じた
-     * アクションと、アプリケーション全体の制御フローを集約します。
-     * 【構成】: 14ファイル構成のうちの14番目
-     * 【v1.3での変更点】:
-     * - FE-18: confirmBookingとcancelアクションに楽観的UIを実装。
-     * サーバーからの応答を待たずに画面を更新し、体感速度を向上。
-     * =================================================================
-     */
+  /**
+   * =================================================================
+   * 【ファイル名】: 14_WebApp_Handlers.html
+   * 【バージョン】: 1.3
+   * 【役割】: WebAppのフロントエンドにおける、ユーザーの操作に応じた
+   * アクションと、アプリケーション全体の制御フローを集約します。
+   * 【構成】: 14ファイル構成のうちの14番目
+   * 【v1.3での変更点】:
+   * - FE-18: confirmBookingとcancelアクションに楽観的UIを実装。
+   * サーバーからの応答を待たずに画面を更新し、体感速度を向上。
+   * =================================================================
+   */
 
-    // =================================================================
-    // --- Action Handlers ---
-    // -----------------------------------------------------------------
-    // ユーザーの操作（ボタンクリックなど）を起点として実行される
-    // 全ての処理を定義するオブジェクトです。
-    // 各キーが data-action 属性に対応します。
-    // =================================================================
-    const actionHandlers = {
-        /** ログインまたは新規登録を開始します */
-        login: () => {
-            const p = document.getElementById('phone').value;
-            if (!p) return showInfo('電話番号を入力してください。');
-            const n = p.replace(/[‐－-]/g, "").replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
-            showLoading();
-            google.script.run.withSuccessHandler(r => {
-                hideLoading();
-                if (r.success) {
-                    // 認証成功時: 通常の初期データ取得とダッシュボード表示
-                    fetchInitialData(r);
-                } else if (r.commandRecognized) {
-                    // 特殊コマンド認識時のフロー。電話番号未登録ユーザーリスト表示へ
-                    setState({ view: 'noPhoneUserSelect', noPhoneUsers: [], selectedNoPhoneUser: null, searchAttempted: false });
-                } else {
-                    // 認証失敗時
-                    if (r.phoneForRegistration) { // 電話番号の形式は正しいが未登録の場合
-                        setState({ view: 'register', phoneForRegistration: n });
-                    } else { // 電話番号の形式自体が不正な場合など
-                        showInfo(r.message || 'ログインに失敗しました。電話番号が登録されていないか、形式が正しくありません。', 'エラー');
-                    }
-                }
-            }).withFailureHandler(handleServerError).authenticateUser(n);
-        },
-
-        /** 新規ユーザーを登録します */
-        register: () => {
-            const r = document.getElementById('reg-realname').value;
-            let n = document.getElementById('reg-nickname').value.trim();
-            if (!r) return showInfo('お名前（本名）は必須です。');
-            if (!n) n = r;
-            showLoading();
-            google.script.run.withSuccessHandler(res => {
-                hideLoading();
-                if (res.success) {
-                    fetchInitialData(res);
-                } else {
-                    showInfo(res.message || '登録に失敗しました');
-                }
-            }).withFailureHandler(handleServerError).registerNewUser({ phone: document.getElementById('reg-phone').value, realName: r, nickname: n });
-        },
-
-        /** きろくカードの編集ボタン */
-        editHistoryMemo: (d) => {
-            const item = appState.history.find(h => h.reservationId === d.reservationId);
-            if (!item) return;
-
-            const originalMemo = item.workInProgress;
-
-            showConfirm({
-                title: '制作メモの編集',
-                message: getMemoEditModalHtml(item),
-                confirmText: '保存する',
-                cancelText: 'キャンセル',
-                confirmColorClass: DesignConfig.colors.primary,
-                onConfirm: () => {
-                    const newMemo = document.getElementById('memo-edit-textarea').value;
-
-                    // 楽観的UI: まずフロントの表示を更新
-                    item.workInProgress = newMemo;
-                    setState({ history: [...appState.history] });
-
-                    // 裏側でサーバーに保存
-                    google.script.run.withFailureHandler(() => {
-                        item.workInProgress = originalMemo;
-                        setState({ history: [...appState.history] });
-                        showInfo('エラー: メモの保存に失敗しました。');
-                    }).updateMemo(item.reservationId, item.sheetName, newMemo);
-                }
+  // =================================================================
+  // --- Action Handlers ---
+  // -----------------------------------------------------------------
+  // ユーザーの操作（ボタンクリックなど）を起点として実行される
+  // 全ての処理を定義するオブジェクトです。
+  // 各キーが data-action 属性に対応します。
+  // =================================================================
+  const actionHandlers = {
+    /** ログインまたは新規登録を開始します */
+    login: () => {
+      const p = document.getElementById('phone').value;
+      if (!p) return showInfo('電話番号を入力してください。');
+      const n = p
+        .replace(/[‐－-]/g, '')
+        .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
+      showLoading();
+      google.script.run
+        .withSuccessHandler((r) => {
+          hideLoading();
+          if (r.success) {
+            // 認証成功時: 通常の初期データ取得とダッシュボード表示
+            fetchInitialData(r);
+          } else if (r.commandRecognized) {
+            // 特殊コマンド認識時のフロー。電話番号未登録ユーザーリスト表示へ
+            setState({
+              view: 'noPhoneUserSelect',
+              noPhoneUsers: [],
+              selectedNoPhoneUser: null,
+              searchAttempted: false,
             });
-        },
-
-        /** プロフィール情報を保存します */
-        saveProfile: () => {
-            const r = document.getElementById('edit-realname').value;
-            let n = document.getElementById('edit-nickname').value.trim();
-            if (!r) return showInfo('お名前（本名）は必須です。');
-            if (!n) n = r;
-
-            // NF-01: 電話番号入力欄があればその値も取得
-            const phoneInput = document.getElementById('edit-phone');
-            const phone = phoneInput ? phoneInput.value : appState.currentUser.phone; // 電話番号入力欄がなければ既存の電話番号を使用
-
-            const u = { ...appState.currentUser, realName: r, displayName: n, phone: phone }; // 電話番号も追加
-            showLoading();
-            google.script.run.withSuccessHandler(res => {
-                hideLoading();
-                if (res.success) {
-                    showInfo('プロフィールを更新しました', '更新完了', () => {
-                        // After showing the success message, fetch all initial data again
-                        // to ensure the state is fresh and complete, then go to the dashboard.
-                        fetchInitialData(u);
-                    });
-                } else {
-                    showInfo(res.message || '更新に失敗しました');
-                }
-            }).withFailureHandler(handleServerError).updateUserProfile(u);
-        },
-
-        /**
-         * NF-01: 電話番号未登録ユーザーの検索を実行します。
-         */
-        searchNoPhoneUser: () => {
-            const searchInput = document.getElementById('nickname-search-input');
-            const searchTerm = searchInput ? searchInput.value.trim() : ''; // 検索語をsearchTermに変更
-
-            if (!searchTerm) {
-                return showInfo('お名前（本名）またはニックネームを入力してください。');
+          } else {
+            // 認証失敗時
+            if (r.phoneForRegistration) {
+              // 電話番号の形式は正しいが未登録の場合
+              setState({ view: 'register', phoneForRegistration: n });
+            } else {
+              // 電話番号の形式自体が不正な場合など
+              showInfo(
+                r.message ||
+                  'ログインに失敗しました。電話番号が登録されていないか、形式が正しくありません。',
+                'エラー',
+              );
             }
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .authenticateUser(n);
+    },
 
-            showLoading();
+    /** 新規ユーザーを登録します */
+    register: () => {
+      const r = document.getElementById('reg-realname').value;
+      let n = document.getElementById('reg-nickname').value.trim();
+      if (!r) return showInfo('お名前（本名）は必須です。');
+      if (!n) n = r;
+      showLoading();
+      google.script.run
+        .withSuccessHandler((res) => {
+          hideLoading();
+          if (res.success) {
+            fetchInitialData(res);
+          } else {
+            showInfo(res.message || '登録に失敗しました');
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .registerNewUser({
+          phone: document.getElementById('reg-phone').value,
+          realName: r,
+          nickname: n,
+        });
+    },
 
-            // 検索語からスペースを除去して小文字化して比較に使う
-            const normalizedSearchTerm = searchTerm.replace(/\s+/g, '').toLowerCase();
+    /** きろくカードの編集ボタン */
+    editHistoryMemo: (d) => {
+      const item = appState.history.find((h) => h.reservationId === d.reservationId);
+      if (!item) return;
 
-            google.script.run
-                .withSuccessHandler(users => {
-                    hideLoading();
-                    // searchName (スペース除去済み・小文字化された結合名) を使ってフィルタリング
-                    const filteredUsers = users.filter(user =>
-                        user.searchName && user.searchName.includes(normalizedSearchTerm)
-                    );
+      const originalMemo = item.workInProgress;
 
-                    // NF-01: 検索が試行されたことを示すフラグをセット
-                    setState({ noPhoneUsers: filteredUsers, searchAttempted: true });
+      showConfirm({
+        title: '制作メモの編集',
+        message: getMemoEditModalHtml(item),
+        confirmText: '保存する',
+        cancelText: 'キャンセル',
+        confirmColorClass: DesignConfig.colors.primary,
+        onConfirm: () => {
+          const newMemo = document.getElementById('memo-edit-textarea').value;
 
-                    if (filteredUsers.length === 0) {
-                        // アカウントが見つからなかった場合のメッセージはビュー側で表示
-                    }
-                })
-                .withFailureHandler(handleServerError)
-                .searchNoPhoneUsersByFilterForWebApp();
+          // 楽観的UI: まずフロントの表示を更新
+          item.workInProgress = newMemo;
+          setState({ history: [...appState.history] });
+
+          // 裏側でサーバーに保存
+          google.script.run
+            .withFailureHandler(() => {
+              item.workInProgress = originalMemo;
+              setState({ history: [...appState.history] });
+              showInfo('エラー: メモの保存に失敗しました。');
+            })
+            .updateMemo(item.reservationId, item.sheetName, newMemo);
         },
+      });
+    },
 
-        /**
-         * NF-01: 検索結果から電話番号未登録ユーザーを選択します。
-         */
-        /**
-         * NF-01: 検索結果から電話番号未登録ユーザーを選択します。
-         */
-        selectNoPhoneUser: (d) => {
-            // ボタンに埋め込まれたデータから、まず仮のユーザー情報を作成
-            const tempUser = {
-                studentId: d.studentId,
-                realName: d.realName, // ボタンのdata属性から取得
-                displayName: d.nickname, // ボタンのdata属性から取得
-                phone: '' // 電話番号はまだないので空
-            };
+    /** プロフィール情報を保存します */
+    saveProfile: () => {
+      const r = document.getElementById('edit-realname').value;
+      let n = document.getElementById('edit-nickname').value.trim();
+      if (!r) return showInfo('お名前（本名）は必須です。');
+      if (!n) n = r;
 
-            showLoading();
+      // NF-01: 電話番号入力欄があればその値も取得
+      const phoneInput = document.getElementById('edit-phone');
+      const phone = phoneInput ? phoneInput.value : appState.currentUser.phone; // 電話番号入力欄がなければ既存の電話番号を使用
 
-            // studentIdを使って、サーバーから予約情報や履歴などの完全なデータを取得
-            google.script.run.withSuccessHandler(initialData => {
-                hideLoading();
-                if (initialData.success) {
-                    // サーバーからのデータと、ボタンからの名前情報を組み合わせて完全な状態を構築
-                    setState({
-                        currentUser: tempUser, // 名前情報を含む仮ユーザー情報
-                        slots: initialData.availableSlots,
-                        myBookings: initialData.myBookings,
-                        accountingMaster: initialData.accountingMaster,
-                        history: initialData.myHistory,
-                        historyTotal: initialData.myHistory.length,
-                        recordsToShow: 20,
-                        view: 'editProfile' // 電話番号登録を促すためプロフィール編集画面へ
-                    });
-                } else {
-                    showInfo('ユーザーデータの読み込みに失敗しました。');
-                }
-            }).withFailureHandler(handleServerError).getInitialWebApp_Data(tempUser.studentId);
-        },
-
-        /**
-         * NF-01: 自分のアカウントが見つからなかった場合に新規登録画面へ遷移します。
-         */
-        goToRegisterFromNoPhoneSearch: () => {
-            // 新規登録画面へ遷移。電話番号は未入力のまま。
-            setState({ view: 'register', phoneForRegistration: '' });
-        },
-
-        /** 予約をキャンセルします */
-        cancel: (d) => {
-            showConfirm({
-                title: '予約の取り消し',
-                message: `<b>${formatDate(d.date)}</b><br>${d.classroom}<br>この予約を取り消しますか？`,
-                confirmText: 'はい<br>取り消します',
-                cancelText: 'いいえ',
-                confirmColorClass: DesignConfig.colors.danger,
-                onConfirm: () => {
-                    showLoading();
-                    const p = { ...d, studentId: appState.currentUser.studentId };
-                    google.script.run.withSuccessHandler((r) => {
-                        hideLoading();
-                        if (r.success) {
-                            // 【NF-12】サーバーから返された最新のキャッシュで状態を更新
-                            setState({ myBookings: r.newBookingsCache });
-                            showInfo('予約を取り消しました。', 'キャンセル完了');
-                        } else {
-                            showInfo(r.message || 'キャンセル処理に失敗しました。');
-                        }
-                    }).withFailureHandler((err) => {
-                        // エラー時は画面を更新せず、元の状態を維持
-                        handleServerError(err);
-                    }).cancelReservationAndGetLatestData(p);
-                }
+      const u = { ...appState.currentUser, realName: r, displayName: n, phone: phone }; // 電話番号も追加
+      showLoading();
+      google.script.run
+        .withSuccessHandler((res) => {
+          hideLoading();
+          if (res.success) {
+            showInfo('プロフィールを更新しました', '更新完了', () => {
+              // After showing the success message, fetch all initial data again
+              // to ensure the state is fresh and complete, then go to the dashboard.
+              fetchInitialData(u);
             });
+          } else {
+            showInfo(res.message || '更新に失敗しました');
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .updateUserProfile(u);
+    },
+
+    /**
+     * NF-01: 電話番号未登録ユーザーの検索を実行します。
+     */
+    searchNoPhoneUser: () => {
+      const searchInput = document.getElementById('nickname-search-input');
+      const searchTerm = searchInput ? searchInput.value.trim() : ''; // 検索語をsearchTermに変更
+
+      if (!searchTerm) {
+        return showInfo('お名前（本名）またはニックネームを入力してください。');
+      }
+
+      showLoading();
+
+      // 検索語からスペースを除去して小文字化して比較に使う
+      const normalizedSearchTerm = searchTerm.replace(/\s+/g, '').toLowerCase();
+
+      google.script.run
+        .withSuccessHandler((users) => {
+          hideLoading();
+          // searchName (スペース除去済み・小文字化された結合名) を使ってフィルタリング
+          const filteredUsers = users.filter(
+            (user) => user.searchName && user.searchName.includes(normalizedSearchTerm),
+          );
+
+          // NF-01: 検索が試行されたことを示すフラグをセット
+          setState({ noPhoneUsers: filteredUsers, searchAttempted: true });
+
+          if (filteredUsers.length === 0) {
+            // アカウントが見つからなかった場合のメッセージはビュー側で表示
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .searchNoPhoneUsersByFilterForWebApp();
+    },
+
+    /**
+     * NF-01: 検索結果から電話番号未登録ユーザーを選択します。
+     */
+    /**
+     * NF-01: 検索結果から電話番号未登録ユーザーを選択します。
+     */
+    selectNoPhoneUser: (d) => {
+      // ボタンに埋め込まれたデータから、まず仮のユーザー情報を作成
+      const tempUser = {
+        studentId: d.studentId,
+        realName: d.realName, // ボタンのdata属性から取得
+        displayName: d.nickname, // ボタンのdata属性から取得
+        phone: '', // 電話番号はまだないので空
+      };
+
+      showLoading();
+
+      // studentIdを使って、サーバーから予約情報や履歴などの完全なデータを取得
+      google.script.run
+        .withSuccessHandler((initialData) => {
+          hideLoading();
+          if (initialData.success) {
+            // サーバーからのデータと、ボタンからの名前情報を組み合わせて完全な状態を構築
+            setState({
+              currentUser: tempUser, // 名前情報を含む仮ユーザー情報
+              slots: initialData.availableSlots,
+              myBookings: initialData.myBookings,
+              accountingMaster: initialData.accountingMaster,
+              history: initialData.myHistory,
+              historyTotal: initialData.myHistory.length,
+              recordsToShow: 20,
+              view: 'editProfile', // 電話番号登録を促すためプロフィール編集画面へ
+            });
+          } else {
+            showInfo('ユーザーデータの読み込みに失敗しました。');
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .getInitialWebApp_Data(tempUser.studentId);
+    },
+
+    /**
+     * NF-01: 自分のアカウントが見つからなかった場合に新規登録画面へ遷移します。
+     */
+    goToRegisterFromNoPhoneSearch: () => {
+      // 新規登録画面へ遷移。電話番号は未入力のまま。
+      setState({ view: 'register', phoneForRegistration: '' });
+    },
+
+    /** 予約をキャンセルします */
+    cancel: (d) => {
+      showConfirm({
+        title: '予約の取り消し',
+        message: `<b>${formatDate(d.date)}</b><br>${d.classroom}<br>この予約を取り消しますか？`,
+        confirmText: 'はい<br>取り消します',
+        cancelText: 'いいえ',
+        confirmColorClass: DesignConfig.colors.danger,
+        onConfirm: () => {
+          showLoading();
+          const p = { ...d, studentId: appState.currentUser.studentId };
+          google.script.run
+            .withSuccessHandler((r) => {
+              hideLoading();
+              if (r.success) {
+                // 【NF-12】サーバーから返された最新のキャッシュで状態を更新
+                setState({ myBookings: r.newBookingsCache });
+                showInfo('予約を取り消しました。', 'キャンセル完了');
+              } else {
+                showInfo(r.message || 'キャンセル処理に失敗しました。');
+              }
+            })
+            .withFailureHandler((err) => {
+              // エラー時は画面を更新せず、元の状態を維持
+              handleServerError(err);
+            })
+            .cancelReservationAndGetLatestData(p);
         },
+      });
+    },
 
-        /** 予約を確定します */
-        confirmBooking: () => {
-            const bookingOptions = {
-                earlyArrival: document.getElementById('option-hayade')?.checked || false,
-                chiselRental: document.getElementById('option-rental')?.checked || false,
-                firstLecture: document.getElementById('option-first-lecture')?.checked || false,
-                startTime: document.getElementById('res-start-time')?.value || '',
-                endTime: document.getElementById('res-end-time')?.value || '',
-                workInProgress: document.getElementById('wip-input')?.value || '',
-                order: document.getElementById('order-input')?.value || ''
-            };
-            showLoading();
-            const p = { ...appState.selectedSlot, user: appState.currentUser, options: bookingOptions };
+    /** 予約を確定します */
+    confirmBooking: () => {
+      const bookingOptions = {
+        earlyArrival: document.getElementById('option-hayade')?.checked || false,
+        chiselRental: document.getElementById('option-rental')?.checked || false,
+        firstLecture: document.getElementById('option-first-lecture')?.checked || false,
+        startTime: document.getElementById('res-start-time')?.value || '',
+        endTime: document.getElementById('res-end-time')?.value || '',
+        workInProgress: document.getElementById('wip-input')?.value || '',
+        order: document.getElementById('order-input')?.value || '',
+      };
+      showLoading();
+      const p = { ...appState.selectedSlot, user: appState.currentUser, options: bookingOptions };
 
-            google.script.run.withSuccessHandler(r => {
-                hideLoading();
-                if (r.success) {
-                    // 【NF-12】サーバーから返された最新のキャッシュで状態を更新
-                    setState({
-                        view: 'complete',
-                        completionMessage: r.message,
-                        myBookings: r.newBookingsCache
-                        // accountingReservationはセットしない
-                    });
-                } else {
-                    showInfo(r.message || '予約に失敗しました。');
-                }
-            }).withFailureHandler(handleServerError).makeReservationAndGetLatestData(p);
-        },
+      google.script.run
+        .withSuccessHandler((r) => {
+          hideLoading();
+          if (r.success) {
+            // 【NF-12】サーバーから返された最新のキャッシュで状態を更新
+            setState({
+              view: 'complete',
+              completionMessage: r.message,
+              myBookings: r.newBookingsCache,
+              // accountingReservationはセットしない
+            });
+          } else {
+            showInfo(r.message || '予約に失敗しました。');
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .makeReservationAndGetLatestData(p);
+    },
 
-        /** 予約編集画面に遷移します */
-        goToEditReservation: (d) => {
-            showLoading();
-            google.script.run.withSuccessHandler(r => {
-                hideLoading();
-                if (r.success) {
-                    setState({ view: 'editReservation', editingReservationDetails: r.details });
-                } else {
-                    showInfo(r.message || '予約詳細の取得に失敗しました。');
-                }
-            }).withFailureHandler(handleServerError).getReservationDetailsForEdit(d.reservationId, d.classroom);
-        },
+    /** 予約編集画面に遷移します */
+    goToEditReservation: (d) => {
+      showLoading();
+      google.script.run
+        .withSuccessHandler((r) => {
+          hideLoading();
+          if (r.success) {
+            setState({ view: 'editReservation', editingReservationDetails: r.details });
+          } else {
+            showInfo(r.message || '予約詳細の取得に失敗しました。');
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .getReservationDetailsForEdit(d.reservationId, d.classroom);
+    },
 
-        /** 予約情報を更新します */
-        updateReservation: () => {
-            const d = appState.editingReservationDetails;
-            const p = {
-                reservationId: d.reservationId,
-                classroom: d.classroom,
-                studentId: appState.currentUser.studentId,
-                earlyArrival: document.getElementById('edit-option-hayade')?.checked || false,
-                chiselRental: document.getElementById('edit-option-rental')?.checked || false,
-                startTime: document.getElementById('edit-start-time')?.value || '',
-                endTime: document.getElementById('edit-end-time')?.value || '',
-                workInProgress: document.getElementById('edit-wip-input').value,
-                order: document.getElementById('edit-order-input').value
-            };
+    /** 予約情報を更新します */
+    updateReservation: () => {
+      const d = appState.editingReservationDetails;
+      const p = {
+        reservationId: d.reservationId,
+        classroom: d.classroom,
+        studentId: appState.currentUser.studentId,
+        earlyArrival: document.getElementById('edit-option-hayade')?.checked || false,
+        chiselRental: document.getElementById('edit-option-rental')?.checked || false,
+        startTime: document.getElementById('edit-start-time')?.value || '',
+        endTime: document.getElementById('edit-end-time')?.value || '',
+        workInProgress: document.getElementById('edit-wip-input').value,
+        order: document.getElementById('edit-order-input').value,
+      };
 
-            showLoading();
-            google.script.run
-                .withSuccessHandler(r => {
-                    hideLoading();
-                    if (r.success) {
-                        // 【NF-12】サーバーから返された最新のキャッシュで状態を更新
-                        setState({ view: 'classroomSelect', myBookings: r.newBookingsCache });
-                        showInfo('予約内容を更新しました。', '更新完了');
-                    } else {
-                        showInfo(r.message || '更新に失敗しました。');
-                    }
-                })
-                .withFailureHandler(handleServerError).updateReservationDetailsAndGetLatestData(p);
-        },
+      showLoading();
+      google.script.run
+        .withSuccessHandler((r) => {
+          hideLoading();
+          if (r.success) {
+            // 【NF-12】サーバーから返された最新のキャッシュで状態を更新
+            setState({ view: 'classroomSelect', myBookings: r.newBookingsCache });
+            showInfo('予約内容を更新しました。', '更新完了');
+          } else {
+            showInfo(r.message || '更新に失敗しました。');
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .updateReservationDetailsAndGetLatestData(p);
+    },
 
-        /** 会計画面に遷移します */
-        goToAccounting: (d) => {
-            showLoading();
-            google.script.run.withSuccessHandler(res => {
-                hideLoading();
-                if (res.success) {
-                    setState({ view: 'accounting', accountingReservation: d, accountingInitialValues: res.details });
-                } else {
-                    showInfo(res.message || '予約詳細の取得に失敗しました。');
-                }
-            }).withFailureHandler(handleServerError).getReservationDetails(d);
-        },
+    /** 会計画面に遷移します */
+    goToAccounting: (d) => {
+      showLoading();
+      google.script.run
+        .withSuccessHandler((res) => {
+          hideLoading();
+          if (res.success) {
+            setState({
+              view: 'accounting',
+              accountingReservation: d,
+              accountingInitialValues: res.details,
+            });
+          } else {
+            showInfo(res.message || '予約詳細の取得に失敗しました。');
+          }
+        })
+        .withFailureHandler(handleServerError)
+        .getReservationDetails(d);
+    },
 
-        /** 履歴から会計詳細をモーダルで表示します */
-        showHistoryAccounting: (d) => {
-            const details = JSON.parse(d.details);
-            const tuitionItemsHtml = details.tuition.items.map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`).join('');
-            const salesItemsHtml = details.sales.items.map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`).join('');
-            const message = `
+    /** 履歴から会計詳細をモーダルで表示します */
+    showHistoryAccounting: (d) => {
+      const details = JSON.parse(d.details);
+      const tuitionItemsHtml = details.tuition.items
+        .map((i) => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
+        .join('');
+      const salesItemsHtml = details.sales.items
+        .map((i) => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
+        .join('');
+      const message = `
             <div class="p-4 bg-gray-50 rounded-lg text-left space-y-4 text-base">
                 ${tuitionItemsHtml ? `<b>授業料</b><ul class="list-disc list-inside">${tuitionItemsHtml}</ul>` : ''}
                 ${salesItemsHtml ? `<b class="mt-1 inline-block">販売</b><ul class="list-disc list-inside">${salesItemsHtml}</ul>` : ''}
                 <div class="font-bold mt-1 pt-1 border-t">合計: ${details.grandTotal.toLocaleString()}円</div><div class="text-right text-sm pt-1">支払方法: ${details.paymentMethod}</div></div>`;
-            showInfo(message, '会計記録');
-        },
+      showInfo(message, '会計記録');
+    },
 
-        /** 会計画面で材料入力行を追加します */
-        addMaterialRow: () => {
-            const container = document.getElementById('materials-container');
-            const newIndex = container.querySelectorAll('div[data-material-row-index]').length;
-            const newRow = document.createElement('div');
-            newRow.className = "mt-4 pt-4 border-t border-gray-200";
-            newRow.dataset.materialRowIndex = newIndex;
-            newRow.innerHTML = getMaterialRowHtml(newIndex);
-            container.appendChild(newRow);
-        },
+    /** 会計画面で材料入力行を追加します */
+    addMaterialRow: () => {
+      const container = document.getElementById('materials-container');
+      const newIndex = container.querySelectorAll('div[data-material-row-index]').length;
+      const newRow = document.createElement('div');
+      newRow.className = 'mt-4 pt-4 border-t border-gray-200';
+      newRow.dataset.materialRowIndex = newIndex;
+      newRow.innerHTML = getMaterialRowHtml(newIndex);
+      container.appendChild(newRow);
+    },
 
-        /** 会計画面でその他販売品入力行を追加します */
-        addOtherSalesRow: () => {
-            const container = document.getElementById('other-sales-container');
-            const newIndex = container.querySelectorAll('div[data-other-sales-row]').length;
-            // getOtherSalesRowHtmlが返すHTML文字列を、ラッパーを介さず直接コンテナの末尾に追加する
-            container.insertAdjacentHTML('beforeend', getOtherSalesRowHtml(newIndex));
-        },
+    /** 会計画面でその他販売品入力行を追加します */
+    addOtherSalesRow: () => {
+      const container = document.getElementById('other-sales-container');
+      const newIndex = container.querySelectorAll('div[data-other-sales-row]').length;
+      // getOtherSalesRowHtmlが返すHTML文字列を、ラッパーを介さず直接コンテナの末尾に追加する
+      container.insertAdjacentHTML('beforeend', getOtherSalesRowHtml(newIndex));
+    },
 
-        /** 会計画面で合計金額をクリップボードにコピーします */
-        copyGrandTotal: (button) => {
-            const totalText = document.getElementById('grand-total-amount')?.textContent || '';
-            const numericTotal = totalText.replace(/[^0-9-]/g, '');
-            actionHandlers.copyToClipboard(button, numericTotal);
-        },
+    /** 会計画面で合計金額をクリップボードにコピーします */
+    copyGrandTotal: (button) => {
+      const totalText = document.getElementById('grand-total-amount')?.textContent || '';
+      const numericTotal = totalText.replace(/[^0-9-]/g, '');
+      actionHandlers.copyToClipboard(button, numericTotal);
+    },
 
-        /** 指定されたテキストをクリップボードにコピーします */
-        copyToClipboard: (button, text) => {
-            const textToCopy = text || button.dataset.copyText;
-            const textArea = document.createElement("textarea");
-            textArea.style.position = 'fixed';
-            textArea.style.top = '-9999px';
-            textArea.style.left = '-9999px';
-            textArea.value = textToCopy.replace(/,/g, '');
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-            try {
-                const successful = document.execCommand('copy');
-                if (successful) {
-                    const originalText = button.textContent;
-                    button.textContent = 'コピーしました!';
-                    setTimeout(() => { button.textContent = originalText; }, 2000);
-                } else { showInfo('コピーに失敗しました。'); }
-            } catch (err) {
-                showInfo('コピーに失敗しました。');
-                console.error('Fallback: Oops, unable to copy', err);
-            }
-            document.body.removeChild(textArea);
-        },
-
-        /** 参加記録画面に遷移します */
-        goToHistory: () => setState({ view: 'history', recordsToShow: 20 }),
-
-        /** 参加記録を追加で読み込みます */
-        loadMoreHistory: () => {
-            const newCount = (appState.recordsToShow || 20) + 20;
-            setState({ recordsToShow: newCount });
-        },
-
-        /** 参加記録を強制的に再読み込みします */
-        forceGoToHistory: () => {
-            appState.history = [];
-            appState.historyTotal = 0;
-            actionHandlers.loadMoreHistory();
-        },
-
-        /** 新規予約のための教室選択画面に遷移します */
-        goToNewBookingView: () => setState({ view: 'newBooking' }),
-
-        /** プロフィール編集画面に遷移します */
-        goToEditProfile: () => setState({ view: 'editProfile' }),
-
-        /** 教室を選択し、予約枠一覧画面に遷移します */
-        selectClassroom: (d) => setState({ selectedClassroom: d.classroomName, view: 'booking' }),
-
-        /** 予約枠を選択し、予約確認画面に遷移します */
-        bookSlot: (d) => {
-            const foundSlot = appState.slots.find(s => s.classroom === d.classroom && s.date === d.date);
-            if (foundSlot) {
-                setState({ selectedSlot: foundSlot, view: 'confirm' });
-            } else {
-                showInfo("エラーが発生しました。選択した予約枠が見つかりません。");
-            }
-        },
-
-        /** ログイン画面に戻ります */
-        goBackToLogin: () => setState({ view: 'login' }),
-
-        /** 教室選択画面に戻ります */
-        goBackToClassroomSelect: () => setState({ view: 'classroomSelect' }),
-
-        /** 予約枠一覧画面に戻ります */
-        goBackToBooking: () => setState({ view: 'booking', selectedClassroom: appState.selectedSlot?.classroom || appState.accountingReservation?.classroom || appState.editingReservationDetails?.classroom }),
-
-        /** ダッシュボード（教室選択画面）に戻ります */
-        goToDashboard: () => setState({ view: 'classroomSelect' }),
-
-        /** モーダルの確認ボタンを押したときの処理です */
-        modalConfirm: () => { if (onConfirmCallback) onConfirmCallback(); hideModal(); },
-
-        /** モーダルのキャンセルボタンを押したときの処理です */
-        modalCancel: () => hideModal(),
-
-        /** 「次の予約をする」ボタンの処理（予約一覧画面へ遷移） */
-        goToBooking: (d) => {
-            // data-classroom属性から教室名を取得
-            const classroom = d.classroom || appState.accountingReservation?.classroom;
-            if (classroom) {
-                setState({ selectedClassroom: classroom, view: 'booking' });
-            } else {
-                showInfo('教室名が取得できませんでした。');
-            }
+    /** 指定されたテキストをクリップボードにコピーします */
+    copyToClipboard: (button, text) => {
+      const textToCopy = text || button.dataset.copyText;
+      const textArea = document.createElement('textarea');
+      textArea.style.position = 'fixed';
+      textArea.style.top = '-9999px';
+      textArea.style.left = '-9999px';
+      textArea.value = textToCopy.replace(/,/g, '');
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          const originalText = button.textContent;
+          button.textContent = 'コピーしました!';
+          setTimeout(() => {
+            button.textContent = originalText;
+          }, 2000);
+        } else {
+          showInfo('コピーに失敗しました。');
         }
-    };
+      } catch (err) {
+        showInfo('コピーに失敗しました。');
+        console.error('Fallback: Oops, unable to copy', err);
+      }
+      document.body.removeChild(textArea);
+    },
 
-    /**
-     * 会計の確認モーダルを表示
-     */
-    actionHandlers.showAccountingConfirmation = () => {
-        const accountingDetails = calculateAccountingDetails();
-        if (!accountingDetails || accountingDetails.grandTotal <= 0) {
-            showInfo('合計金額が0円です。項目を選択してください。');
-            return;
-        }
+    /** 参加記録画面に遷移します */
+    goToHistory: () => setState({ view: 'history', recordsToShow: 20 }),
 
-        const message = `
+    /** 参加記録を追加で読み込みます */
+    loadMoreHistory: () => {
+      const newCount = (appState.recordsToShow || 20) + 20;
+      setState({ recordsToShow: newCount });
+    },
+
+    /** 参加記録を強制的に再読み込みします */
+    forceGoToHistory: () => {
+      appState.history = [];
+      appState.historyTotal = 0;
+      actionHandlers.loadMoreHistory();
+    },
+
+    /** 新規予約のための教室選択画面に遷移します */
+    goToNewBookingView: () => setState({ view: 'newBooking' }),
+
+    /** プロフィール編集画面に遷移します */
+    goToEditProfile: () => setState({ view: 'editProfile' }),
+
+    /** 教室を選択し、予約枠一覧画面に遷移します */
+    selectClassroom: (d) => setState({ selectedClassroom: d.classroomName, view: 'booking' }),
+
+    /** 予約枠を選択し、予約確認画面に遷移します */
+    bookSlot: (d) => {
+      const foundSlot = appState.slots.find(
+        (s) => s.classroom === d.classroom && s.date === d.date,
+      );
+      if (foundSlot) {
+        setState({ selectedSlot: foundSlot, view: 'confirm' });
+      } else {
+        showInfo('エラーが発生しました。選択した予約枠が見つかりません。');
+      }
+    },
+
+    /** ログイン画面に戻ります */
+    goBackToLogin: () => setState({ view: 'login' }),
+
+    /** 教室選択画面に戻ります */
+    goBackToClassroomSelect: () => setState({ view: 'classroomSelect' }),
+
+    /** 予約枠一覧画面に戻ります */
+    goBackToBooking: () =>
+      setState({
+        view: 'booking',
+        selectedClassroom:
+          appState.selectedSlot?.classroom ||
+          appState.accountingReservation?.classroom ||
+          appState.editingReservationDetails?.classroom,
+      }),
+
+    /** ダッシュボード（教室選択画面）に戻ります */
+    goToDashboard: () => setState({ view: 'classroomSelect' }),
+
+    /** モーダルの確認ボタンを押したときの処理です */
+    modalConfirm: () => {
+      if (onConfirmCallback) onConfirmCallback();
+      hideModal();
+    },
+
+    /** モーダルのキャンセルボタンを押したときの処理です */
+    modalCancel: () => hideModal(),
+
+    /** 「次の予約をする」ボタンの処理（予約一覧画面へ遷移） */
+    goToBooking: (d) => {
+      // data-classroom属性から教室名を取得
+      const classroom = d.classroom || appState.accountingReservation?.classroom;
+      if (classroom) {
+        setState({ selectedClassroom: classroom, view: 'booking' });
+      } else {
+        showInfo('教室名が取得できませんでした。');
+      }
+    },
+  };
+
+  /**
+   * 会計の確認モーダルを表示
+   */
+  actionHandlers.showAccountingConfirmation = () => {
+    const accountingDetails = calculateAccountingDetails();
+    if (!accountingDetails || accountingDetails.grandTotal <= 0) {
+      showInfo('合計金額が0円です。項目を選択してください。');
+      return;
+    }
+
+    const message = `
         <div class="p-4 bg-gray-50 rounded-lg text-left space-y-4 text-base" id="modal-accounting-form">
             <div>
                 <span class="font-bold">合計金額:</span> ${accountingDetails.grandTotal.toLocaleString()}円
@@ -471,227 +539,271 @@
             <p class="text-red-700 font-bold mt-2 text-center">必ずボタンを押してね</p>
         </div>
     `;
-        showModal({
-            title: 'お会計',
-            message: message,
-            showCancel: true,
-            cancelText: 'キャンセル',
-            onConfirm: null
-        });
-    };
+    showModal({
+      title: 'お会計',
+      message: message,
+      showCancel: true,
+      cancelText: 'キャンセル',
+      onConfirm: null,
+    });
+  };
 
-    /**
-     * 「この内容で支払いました」ボタン押下時の処理
-     */
-    actionHandlers.confirmAndPay = () => {
-        // モーダル内の支払い方法を取得
-        const modalForm = document.getElementById('modal-accounting-form');
-        let paymentMethod = '現金';
-        if (modalForm) {
-            const selected = modalForm.querySelector('input[name="payment-method"]:checked');
-            if (selected) paymentMethod = selected.value;
-        }
-
-        // --- バックエンドに送信する「ユーザー入力」オブジェクトを構築 ---
-        const form = document.getElementById('accounting-form');
-        const userInput = {
-            paymentMethod: paymentMethod,
-            tuitionItems: [],
-            salesItems: [],
-            timeBased: null
-        };
-
-        // 授業料項目（チェックボックス）
-        form.querySelectorAll('input[type="checkbox"][data-item-type="授業料"]:checked').forEach(cb => {
-            userInput.tuitionItems.push(cb.dataset.itemName);
-        });
-
-        // 時間制授業料
-        if (document.getElementById('start-time')) {
-            userInput.timeBased = {
-                startTime: document.getElementById('start-time').value,
-                endTime: document.getElementById('end-time').value,
-                breakMinutes: parseInt(document.getElementById('break-time')?.value || 0, 10),
-                discountMinutes: parseInt(document.getElementById('discount-selector')?.value || 0, 10)
-            };
-        }
-
-        // 物販・材料費項目
-        const materialContainer = document.getElementById('materials-container');
-        if (materialContainer) {
-            materialContainer.querySelectorAll('div[data-material-row-index]').forEach((row, index) => {
-                const name = document.getElementById(`material-type-${index}`)?.value;
-                const priceText = document.getElementById(`material-price-${index}`)?.textContent || '0';
-                const price = parseInt(priceText.replace(/[^0-9]/g, ''), 10);
-                if (name && price > 0) userInput.salesItems.push({ name: name, price: price });
-            });
-        }
-
-        // 物販項目（チェックボックス）
-        form.querySelectorAll('input[type="checkbox"][data-item-type="物販"]:checked').forEach(cb => {
-            userInput.salesItems.push({ name: cb.dataset.itemName });
-        });
-
-        form.querySelectorAll('div[data-other-sales-row]').forEach((row, index) => {
-            const name = document.getElementById(`other-sales-name-${index}`)?.value.trim();
-            const price = document.getElementById(`other-sales-price-${index}`)?.value;
-            if (name && price) userInput.salesItems.push({ name: name, price: Number(price) });
-        });
-        // --- ここまで ---
-
-        const payload = {
-            reservationId: appState.accountingReservation.reservationId,
-            classroom: appState.accountingReservation.classroom,
-            studentId: appState.currentUser.studentId,
-            userInput: userInput
-        };
-
-        showLoading();
-        google.script.run.withSuccessHandler(r => {
-            if (r.success) {
-                hideModal(); // モーダルを閉じる
-                hideLoading();
-                setState({
-                    view: 'complete',
-                    completionMessage: '会計情報を記録しました。続けて次の予約をされますか？',
-                    myBookings: r.newBookingsCache,
-                    history: r.newHistory,
-                    historyTotal: r.newHistoryTotal,
-                    // 完了画面で同じ教室の予約ボタンを表示するため
-                    accountingReservation: appState.accountingReservation
-                });
-            } else {
-                hideLoading();
-                showInfo(r.message || '会計情報の記録に失敗しました。');
-            }
-        }).withFailureHandler(handleServerError).saveAccountingDetails(payload);
-    };
-
-    // =================================================================
-    // --- Main Application Logic ---
-    // -----------------------------------------------------------------
-    // アプリケーションの起動、サーバーとの通信、状態管理、画面描画など、
-    // 全体を制御するコアとなる関数群です。
-    // =================================================================
-
-    /**
-     * アプリケーションの初期化に必要なデータを一括で取得します。
-     * @param {object} user - 認証済みのユーザー情報
-     */
-    function fetchInitialData(user) {
-        showLoading();
-        google.script.run.withSuccessHandler(initialData => {
-            hideLoading();
-            if (initialData.success) {
-                setState({
-                    currentUser: user,
-                    slots: initialData.availableSlots,
-                    myBookings: initialData.myBookings,
-                    accountingMaster: initialData.accountingMaster,
-                    history: initialData.myHistory,
-                    historyTotal: initialData.myHistory.length,
-                    recordsToShow: 20,
-                    view: 'classroomSelect'
-                });
-            } else {
-                showInfo('初期データの読み込みに失敗しました。');
-            }
-        }).withFailureHandler(handleServerError).getInitialWebApp_Data(user.studentId);
+  /**
+   * 「この内容で支払いました」ボタン押下時の処理
+   */
+  actionHandlers.confirmAndPay = () => {
+    // モーダル内の支払い方法を取得
+    const modalForm = document.getElementById('modal-accounting-form');
+    let paymentMethod = '現金';
+    if (modalForm) {
+      const selected = modalForm.querySelector('input[name="payment-method"]:checked');
+      if (selected) paymentMethod = selected.value;
     }
 
-    /**
-     * 予約・空席情報を再取得し、指定された画面に遷移します。
-     * @param {object} user - 認証済みのユーザー情報
-     * @param {string} nextView - 次に表示する画面のID
-     */
-    function fetchSlotsAndSetState(user, nextView) {
-        showLoading();
-        google.script.run.withSuccessHandler(data => {
-            hideLoading();
-            setState({ ...appState, currentUser: user, slots: data.availableSlots, myBookings: data.myBookings, view: nextView });
-        }).withFailureHandler(handleServerError).getSlotsAndMyBookings(user.studentId);
+    // --- バックエンドに送信する「ユーザー入力」オブジェクトを構築 ---
+    const form = document.getElementById('accounting-form');
+    const userInput = {
+      paymentMethod: paymentMethod,
+      tuitionItems: [],
+      salesItems: [],
+      timeBased: null,
+    };
+
+    // 授業料項目（チェックボックス）
+    form
+      .querySelectorAll('input[type="checkbox"][data-item-type="授業料"]:checked')
+      .forEach((cb) => {
+        userInput.tuitionItems.push(cb.dataset.itemName);
+      });
+
+    // 時間制授業料
+    if (document.getElementById('start-time')) {
+      userInput.timeBased = {
+        startTime: document.getElementById('start-time').value,
+        endTime: document.getElementById('end-time').value,
+        breakMinutes: parseInt(document.getElementById('break-time')?.value || 0, 10),
+        discountMinutes: parseInt(document.getElementById('discount-selector')?.value || 0, 10),
+      };
     }
 
-    /**
-     * サーバーサイドでエラーが発生した際の共通処理です。
-     * @param {Error} err - サーバーから返されたエラーオブジェクト
-     */
-    function handleServerError(err) {
+    // 物販・材料費項目
+    const materialContainer = document.getElementById('materials-container');
+    if (materialContainer) {
+      materialContainer.querySelectorAll('div[data-material-row-index]').forEach((row, index) => {
+        const name = document.getElementById(`material-type-${index}`)?.value;
+        const priceText = document.getElementById(`material-price-${index}`)?.textContent || '0';
+        const price = parseInt(priceText.replace(/[^0-9]/g, ''), 10);
+        if (name && price > 0) userInput.salesItems.push({ name: name, price: price });
+      });
+    }
+
+    // 物販項目（チェックボックス）
+    form.querySelectorAll('input[type="checkbox"][data-item-type="物販"]:checked').forEach((cb) => {
+      userInput.salesItems.push({ name: cb.dataset.itemName });
+    });
+
+    form.querySelectorAll('div[data-other-sales-row]').forEach((row, index) => {
+      const name = document.getElementById(`other-sales-name-${index}`)?.value.trim();
+      const price = document.getElementById(`other-sales-price-${index}`)?.value;
+      if (name && price) userInput.salesItems.push({ name: name, price: Number(price) });
+    });
+    // --- ここまで ---
+
+    const payload = {
+      reservationId: appState.accountingReservation.reservationId,
+      classroom: appState.accountingReservation.classroom,
+      studentId: appState.currentUser.studentId,
+      userInput: userInput,
+    };
+
+    showLoading();
+    google.script.run
+      .withSuccessHandler((r) => {
+        if (r.success) {
+          hideModal(); // モーダルを閉じる
+          hideLoading();
+          setState({
+            view: 'complete',
+            completionMessage: '会計情報を記録しました。続けて次の予約をされますか？',
+            myBookings: r.newBookingsCache,
+            history: r.newHistory,
+            historyTotal: r.newHistoryTotal,
+            // 完了画面で同じ教室の予約ボタンを表示するため
+            accountingReservation: appState.accountingReservation,
+          });
+        } else {
+          hideLoading();
+          showInfo(r.message || '会計情報の記録に失敗しました。');
+        }
+      })
+      .withFailureHandler(handleServerError)
+      .saveAccountingDetails(payload);
+  };
+
+  // =================================================================
+  // --- Main Application Logic ---
+  // -----------------------------------------------------------------
+  // アプリケーションの起動、サーバーとの通信、状態管理、画面描画など、
+  // 全体を制御するコアとなる関数群です。
+  // =================================================================
+
+  /**
+   * アプリケーションの初期化に必要なデータを一括で取得します。
+   * @param {object} user - 認証済みのユーザー情報
+   */
+  function fetchInitialData(user) {
+    showLoading();
+    google.script.run
+      .withSuccessHandler((initialData) => {
         hideLoading();
-        console.error("Server Error Object:", err);
-        const errorMessage = (typeof err === 'object' && err.message) ? err.message : JSON.stringify(err);
-        showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
-    }
-
-    /**
-     * アプリケーションの状態を更新し、画面を再描画します。
-     * @param {object} newState - 更新する新しい状態オブジェクト
-     */
-    function setState(newState) {
-        Object.assign(appState, newState);
-        render();
-    }
-
-    /**
-     * 現在のアプリケーションの状態に基づいて、適切なビューを描画します。
-     */
-    function render() {
-        let v = '';
-        switch (appState.view) {
-            case 'login': v = getLoginView(); break;
-            case 'register': v = getRegisterView(appState.phoneForRegistration); break;
-            case 'classroomSelect': v = getClassroomSelectView(); break;
-            case 'newBooking': v = getNewBookingView(); break;
-            case 'editProfile': v = getEditProfileView(); break;
-            case 'booking': v = getBookingView(appState.selectedClassroom); break;
-            case 'confirm': v = getConfirmationView(); break;
-            case 'editReservation': v = getEditReservationView(); break;
-            case 'accounting': v = getAccountingView(); break;
-            case 'history': v = getHistoryView(); break;
-            case 'complete': v = getCompleteView(appState.completionMessage); break;
-            case 'noPhoneUserSelect': v = getNoPhoneUserSelectView(); break; // NF-01: 新しいビューを追加
+        if (initialData.success) {
+          setState({
+            currentUser: user,
+            slots: initialData.availableSlots,
+            myBookings: initialData.myBookings,
+            accountingMaster: initialData.accountingMaster,
+            history: initialData.myHistory,
+            historyTotal: initialData.myHistory.length,
+            recordsToShow: 20,
+            view: 'classroomSelect',
+          });
+        } else {
+          showInfo('初期データの読み込みに失敗しました。');
         }
-        document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
+      })
+      .withFailureHandler(handleServerError)
+      .getInitialWebApp_Data(user.studentId);
+  }
 
-        if (appState.view === 'accounting') {
-            requestAnimationFrame(calculateAccountingDetails);
-        }
+  /**
+   * 予約・空席情報を再取得し、指定された画面に遷移します。
+   * @param {object} user - 認証済みのユーザー情報
+   * @param {string} nextView - 次に表示する画面のID
+   */
+  function fetchSlotsAndSetState(user, nextView) {
+    showLoading();
+    google.script.run
+      .withSuccessHandler((data) => {
+        hideLoading();
+        setState({
+          ...appState,
+          currentUser: user,
+          slots: data.availableSlots,
+          myBookings: data.myBookings,
+          view: nextView,
+        });
+      })
+      .withFailureHandler(handleServerError)
+      .getSlotsAndMyBookings(user.studentId);
+  }
+
+  /**
+   * サーバーサイドでエラーが発生した際の共通処理です。
+   * @param {Error} err - サーバーから返されたエラーオブジェクト
+   */
+  function handleServerError(err) {
+    hideLoading();
+    console.error('Server Error Object:', err);
+    const errorMessage = typeof err === 'object' && err.message ? err.message : JSON.stringify(err);
+    showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
+  }
+
+  /**
+   * アプリケーションの状態を更新し、画面を再描画します。
+   * @param {object} newState - 更新する新しい状態オブジェクト
+   */
+  function setState(newState) {
+    Object.assign(appState, newState);
+    render();
+  }
+
+  /**
+   * 現在のアプリケーションの状態に基づいて、適切なビューを描画します。
+   */
+  function render() {
+    let v = '';
+    switch (appState.view) {
+      case 'login':
+        v = getLoginView();
+        break;
+      case 'register':
+        v = getRegisterView(appState.phoneForRegistration);
+        break;
+      case 'classroomSelect':
+        v = getClassroomSelectView();
+        break;
+      case 'newBooking':
+        v = getNewBookingView();
+        break;
+      case 'editProfile':
+        v = getEditProfileView();
+        break;
+      case 'booking':
+        v = getBookingView(appState.selectedClassroom);
+        break;
+      case 'confirm':
+        v = getConfirmationView();
+        break;
+      case 'editReservation':
+        v = getEditReservationView();
+        break;
+      case 'accounting':
+        v = getAccountingView();
+        break;
+      case 'history':
+        v = getHistoryView();
+        break;
+      case 'complete':
+        v = getCompleteView(appState.completionMessage);
+        break;
+      case 'noPhoneUserSelect':
+        v = getNoPhoneUserSelectView();
+        break; // NF-01: 新しいビューを追加
     }
+    document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
 
-    /**
-     * アプリケーションの起動点です。
-     * ページ読み込み完了時に実行され、イベントリスナーを設定します。
-     */
-    window.onload = function () {
-        const app = document.getElementById('app');
+    if (appState.view === 'accounting') {
+      requestAnimationFrame(calculateAccountingDetails);
+    }
+  }
 
-        // 会計計画面での入力変更を検知し、リアルタイムで再計算
-        ['input', 'change'].forEach(eventName => {
-            app.addEventListener(eventName, (e) => {
-                if (appState.view === 'accounting' && e.target.closest('#accounting-form')) {
-                    calculateAccountingDetails();
-                }
-                // changeイベントの場合のみ、支払い方法選択をチェック
-                if (eventName === 'change' && e.target.matches('#modal-accounting-form input[name="payment-method"]')) {
-                    document.getElementById('confirm-payment-button')?.removeAttribute('disabled');
-                }
-            });
-        });
+  /**
+   * アプリケーションの起動点です。
+   * ページ読み込み完了時に実行され、イベントリスナーを設定します。
+   */
+  window.onload = function () {
+    const app = document.getElementById('app');
 
-        // アプリ全体のクリックイベントを捕捉
-        app.addEventListener('click', (e) => {
-            const targetButton = e.target.closest('button');
-            if (targetButton?.dataset.action) {
-                const { action, ...data } = targetButton.dataset;
-                if (action === 'copyToClipboard' || action === 'copyGrandTotal') {
-                    actionHandlers[action](targetButton);
-                } else if (actionHandlers[action]) {
-                    actionHandlers[action](data);
-                }
-            }
-        });
+    // 会計計画面での入力変更を検知し、リアルタイムで再計算
+    ['input', 'change'].forEach((eventName) => {
+      app.addEventListener(eventName, (e) => {
+        if (appState.view === 'accounting' && e.target.closest('#accounting-form')) {
+          calculateAccountingDetails();
+        }
+        // changeイベントの場合のみ、支払い方法選択をチェック
+        if (
+          eventName === 'change' &&
+          e.target.matches('#modal-accounting-form input[name="payment-method"]')
+        ) {
+          document.getElementById('confirm-payment-button')?.removeAttribute('disabled');
+        }
+      });
+    });
 
-        // 初期画面を描画
-        render();
-    };
+    // アプリ全体のクリックイベントを捕捉
+    app.addEventListener('click', (e) => {
+      const targetButton = e.target.closest('button');
+      if (targetButton?.dataset.action) {
+        const { action, ...data } = targetButton.dataset;
+        if (action === 'copyToClipboard' || action === 'copyGrandTotal') {
+          actionHandlers[action](targetButton);
+        } else if (actionHandlers[action]) {
+          actionHandlers[action](data);
+        }
+      }
+    });
+
+    // 初期画面を描画
+    render();
+  };
 </script>

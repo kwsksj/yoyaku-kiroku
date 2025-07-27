@@ -10,177 +10,191 @@
   保守性が大幅に改善されました。
 =================================================================
 -->
-<!DOCTYPE html>
+<!doctype html>
 <html>
-
-<head>
-    <base target="_top">
+  <head>
+    <base target="_top" />
     <title>きぼりの よやく・きろく 川崎誠二木彫り教室</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
-        rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontSize: { '2xs': '0.625rem' },
-                    fontFamily: { sans: ['Zen Kaku Gothic New', 'sans-serif'] },
-                    colors: {
-                        'brand': { 'bg': '#f8f7f6', 'surface': '#ffffff', 'text': '#50312F', 'subtle': '#6b7280' },
-                        'action': { 'primary-bg': '#50312F', 'primary-text': '#ffffff', 'secondary-bg': '#e5e7eb', 'secondary-text': '#374151', 'danger-bg': '#CB0000', 'danger-text': '#ffffff', 'paid-bg': '#e0f2fe', 'paid-text': '#0c4a6e' },
-                        'state': { 'available-text': '#3F6C45', 'waitlist-text': '#854d0e', 'booked-text': '#0c4a6e' }
-                    }
-                }
-            }
-        }
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontSize: { '2xs': '0.625rem' },
+            fontFamily: { sans: ['Zen Kaku Gothic New', 'sans-serif'] },
+            colors: {
+              brand: { bg: '#f8f7f6', surface: '#ffffff', text: '#50312F', subtle: '#6b7280' },
+              action: {
+                'primary-bg': '#50312F',
+                'primary-text': '#ffffff',
+                'secondary-bg': '#e5e7eb',
+                'secondary-text': '#374151',
+                'danger-bg': '#CB0000',
+                'danger-text': '#ffffff',
+                'paid-bg': '#e0f2fe',
+                'paid-text': '#0c4a6e',
+              },
+              state: {
+                'available-text': '#3F6C45',
+                'waitlist-text': '#854d0e',
+                'booked-text': '#0c4a6e',
+              },
+            },
+          },
+        },
+      };
     </script>
     <style>
-        html {
-            font-size: 16px;
+      html {
+        font-size: 16px;
+      }
+
+      body {
+        font-family: 'Zen Kaku Gothic New', sans-serif;
+        background-color: #f8f7f6;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .fade-in {
+        animation: fadeIn 0.4s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
         }
 
-        body {
-            font-family: 'Zen Kaku Gothic New', sans-serif;
-            background-color: #f8f7f6;
-            -webkit-tap-highlight-color: transparent;
+        to {
+          opacity: 1;
+          transform: translateY(0);
         }
+      }
 
-        .fade-in {
-            animation: fadeIn 0.4s ease-in-out;
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border-left-color: #50312f;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
+      }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(8px);
-            }
+      #loading {
+        z-index: 100;
+      }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+      /* ← 追加: ローディング画面を最前面に */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(40, 35, 30, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        backdrop-filter: blur(3px);
+      }
 
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border-left-color: #50312F;
-            animation: spin 1s linear infinite;
-        }
+      .modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+      }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+      .modal-content {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        width: 90%;
+        max-width: 400px;
+        text-align: center;
+        max-height: 85vh;
+        /* 画面より大きい場合に備える */
+        overflow-y: auto;
+        /* 縦方向にスクロール可能にする */
+      }
 
-        #loading {
-            z-index: 100;
-        }
+      .modal-content p {
+        margin-bottom: 1.25rem;
+      }
 
-        /* ← 追加: ローディング画面を最前面に */
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(40, 35, 30, 0.6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-            backdrop-filter: blur(3px);
-        }
+      .modal-content .modal-buttons {
+        justify-content: center;
+      }
 
-        .modal-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
+      details > summary {
+        list-style: none;
+        cursor: pointer;
+      }
 
-        .modal-content {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            width: 90%;
-            max-width: 400px;
-            text-align: center;
-            max-height: 85vh;
-            /* 画面より大きい場合に備える */
-            overflow-y: auto;
-            /* 縦方向にスクロール可能にする */
-        }
+      details > summary::-webkit-details-marker {
+        display: none;
+      }
 
-        .modal-content p {
-            margin-bottom: 1.25rem;
-        }
+      details > summary {
+        transition: margin-bottom 0.2s ease-in-out;
+      }
 
-        .modal-content .modal-buttons {
-            justify-content: center;
-        }
+      details[open] > summary {
+        margin-bottom: 0.5rem;
+      }
 
-        details>summary {
-            list-style: none;
-            cursor: pointer;
-        }
+      details summary .arrow {
+        display: inline-block;
+        transition: transform 0.2s ease-in-out;
+      }
 
-        details>summary::-webkit-details-marker {
-            display: none;
-        }
+      details[open] summary .arrow {
+        transform: rotate(90deg);
+      }
 
-        details>summary {
-            transition: margin-bottom 0.2s ease-in-out;
-        }
-
-        details[open]>summary {
-            margin-bottom: 0.5rem;
-        }
-
-        details summary .arrow {
-            display: inline-block;
-            transition: transform 0.2s ease-in-out;
-        }
-
-        details[open] summary .arrow {
-            transform: rotate(90deg);
-        }
-
-        .custom-placeholder::placeholder {
-            font-size: 0.875rem;
-            color: #9ca3af;
-        }
+      .custom-placeholder::placeholder {
+        font-size: 0.875rem;
+        color: #9ca3af;
+      }
     </style>
-</head>
+  </head>
 
-<body class="bg-brand-bg font-sans">
+  <body class="bg-brand-bg font-sans">
     <div id="app" class="max-w-screen-lg mx-auto p-2 sm:p-6">
-        <div id="loading"
-            class="fixed inset-0 bg-white/75 flex items-center justify-center z-50 hidden backdrop-blur-sm">
-            <div class="spinner"></div>
+      <div
+        id="loading"
+        class="fixed inset-0 bg-white/75 flex items-center justify-center z-50 hidden backdrop-blur-sm"
+      >
+        <div class="spinner"></div>
+      </div>
+      <div id="custom-modal" class="modal-overlay">
+        <div class="modal-content">
+          <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-4"></h3>
+          <p id="modal-message" class="text-gray-600 mb-6"></p>
+          <div id="modal-buttons" class="flex justify-end space-x-3"></div>
         </div>
-        <div id="custom-modal" class="modal-overlay">
-            <div class="modal-content">
-                <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-4"></h3>
-                <p id="modal-message" class="text-gray-600 mb-6"></p>
-                <div id="modal-buttons" class="flex justify-end space-x-3"></div>
-            </div>
-        </div>
-        <div id="view-container" class="bg-brand-surface rounded-xl p-4 sm:p-8 min-h-[400px] w-full">
-        </div>
-        <footer class="text-center text-sm text-gray-400 mt-4">きぼりの よやく・きろく</footer>
+      </div>
+      <div
+        id="view-container"
+        class="bg-brand-surface rounded-xl p-4 sm:p-8 min-h-[400px] w-full"
+      ></div>
+      <footer class="text-center text-sm text-gray-400 mt-4">きぼりの よやく・きろく</footer>
     </div>
 
-    <?!= include('11_WebApp_Config'); ?>
-    <?!= include('12_WebApp_Core'); ?>
-    <?!= include('13_WebApp_Views'); ?>
-    <?!= include('14_WebApp_Handlers'); ?>
-
-</body>
-
+    <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_Core'); ?> <?!=
+    include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers'); ?>
+  </body>
 </html>

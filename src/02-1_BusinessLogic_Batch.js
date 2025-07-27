@@ -15,13 +15,19 @@
 // --- メニューからの処理実行 ---
 
 /** 昨日までのデータを処理します */
-function processYesterdayData() { processReservations('yesterday'); }
+function processYesterdayData() {
+  processReservations('yesterday');
+}
 
 /** 今日のデータを処理します */
-function processTodayData() { processReservations('today'); }
+function processTodayData() {
+  processReservations('today');
+}
 
 /** 最も古い日付のデータを処理します */
-function processOldestDate() { processReservations('oldest'); }
+function processOldestDate() {
+  processReservations('oldest');
+}
 
 /**
  * 予約処理のメイン関数。過去の予約をアーカイブし、売上データを転記する。
@@ -57,7 +63,13 @@ function processReservations(mode) {
   const rowsToDelete = transferPastReservationsToArchive({ sheet: activeSheet, ...options });
   if (rowsToDelete.length > 0) {
     deleteProcessedReservations(activeSheet, rowsToDelete);
-    logActivity('system', 'system', 'ARCHIVE_BATCH', 'SUCCESS', `シート: ${activeSheetName}, 処理件数: ${rowsToDelete.length}`);
+    logActivity(
+      'system',
+      'system',
+      'ARCHIVE_BATCH',
+      'SUCCESS',
+      `シート: ${activeSheetName}, 処理件数: ${rowsToDelete.length}`,
+    );
   }
   handleError(`${mode} のデータ処理が完了しました。`, false);
 }
@@ -85,7 +97,7 @@ function logSalesFromArchivedData(archivedData, headerMap, classroomName) {
   if (accountingColIdx === undefined) return;
 
   const rowsToTransfer = [];
-  archivedData.forEach(row => {
+  archivedData.forEach((row) => {
     const jsonStr = row[accountingColIdx];
     if (jsonStr && typeof jsonStr === 'string') {
       try {
@@ -96,16 +108,16 @@ function logSalesFromArchivedData(archivedData, headerMap, classroomName) {
           name: row[nameColIdx],
           classroom: classroomName,
           venue: row[venueColIdx] || '',
-          paymentMethod: details.paymentMethod || '不明'
+          paymentMethod: details.paymentMethod || '不明',
         };
 
         if (details.tuition && details.tuition.items) {
-          details.tuition.items.forEach(item => {
+          details.tuition.items.forEach((item) => {
             rowsToTransfer.push(createSalesRow(baseInfo, '授業料', item.name, item.price));
           });
         }
         if (details.sales && details.sales.items) {
-          details.sales.items.forEach(item => {
+          details.sales.items.forEach((item) => {
             rowsToTransfer.push(createSalesRow(baseInfo, '物販', item.name, item.price));
           });
         }
@@ -116,7 +128,9 @@ function logSalesFromArchivedData(archivedData, headerMap, classroomName) {
   });
 
   if (rowsToTransfer.length > 0) {
-    salesSheet.getRange(salesSheet.getLastRow() + 1, 1, rowsToTransfer.length, rowsToTransfer[0].length).setValues(rowsToTransfer);
+    salesSheet
+      .getRange(salesSheet.getLastRow() + 1, 1, rowsToTransfer.length, rowsToTransfer[0].length)
+      .setValues(rowsToTransfer);
   }
 }
 
@@ -135,8 +149,17 @@ function transferPastReservationsToArchive(options) {
   const lastRow = activeSheet.getLastRow();
   if (lastRow < RESERVATION_DATA_START_ROW) return [];
 
-  const allData = activeSheet.getRange(RESERVATION_DATA_START_ROW, 1, lastRow - RESERVATION_DATA_START_ROW + 1, activeSheet.getLastColumn()).getValues();
-  const sourceHeaderMap = createHeaderMap(activeSheet.getRange(1, 1, 1, activeSheet.getLastColumn()).getValues()[0]);
+  const allData = activeSheet
+    .getRange(
+      RESERVATION_DATA_START_ROW,
+      1,
+      lastRow - RESERVATION_DATA_START_ROW + 1,
+      activeSheet.getLastColumn(),
+    )
+    .getValues();
+  const sourceHeaderMap = createHeaderMap(
+    activeSheet.getRange(1, 1, 1, activeSheet.getLastColumn()).getValues()[0],
+  );
   const dateColIdx = sourceHeaderMap.get(HEADER_DATE);
   if (dateColIdx === undefined) return [];
 
@@ -155,7 +178,9 @@ function transferPastReservationsToArchive(options) {
     logSalesFromArchivedData(rowsToArchive, sourceHeaderMap, activeSheet.getName());
 
     // 2. アーカイブシートに転記
-    archiveSheet.getRange(archiveSheet.getLastRow() + 1, 1, rowsToArchive.length, rowsToArchive[0].length).setValues(rowsToArchive);
+    archiveSheet
+      .getRange(archiveSheet.getLastRow() + 1, 1, rowsToArchive.length, rowsToArchive[0].length)
+      .setValues(rowsToArchive);
     formatSheetWithBordersSafely(archiveSheet);
 
     // 3. 【NF-11】名簿の「きろく」キャッシュを更新
@@ -164,8 +189,10 @@ function transferPastReservationsToArchive(options) {
     // 4. 【NF-12】アーカイブされた予約の「よやくキャッシュ」を更新
     const studentIdColIdx = sourceHeaderMap.get(HEADER_STUDENT_ID);
     if (studentIdColIdx !== undefined) {
-      const uniqueStudentIds = [...new Set(rowsToArchive.map(row => row[studentIdColIdx]).filter(id => id))];
-      uniqueStudentIds.forEach(studentId => {
+      const uniqueStudentIds = [
+        ...new Set(rowsToArchive.map((row) => row[studentIdColIdx]).filter((id) => id)),
+      ];
+      uniqueStudentIds.forEach((studentId) => {
         _rebuildFutureBookingsCacheForStudent(studentId);
       });
     }
@@ -174,17 +201,17 @@ function transferPastReservationsToArchive(options) {
     const uniqueDateAndClassroom = new Map();
     const classroomName = activeSheet.getName();
 
-    rowsToArchive.forEach(row => {
-        const date = row[dateColIdx];
-        if (date instanceof Date) {
-            const dateString = Utilities.formatDate(date, ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
-            const key = `${dateString}|${classroomName}`;
-            if (!uniqueDateAndClassroom.has(key)) {
-                uniqueDateAndClassroom.set(key, { date: date, classroom: classroomName });
-            }
+    rowsToArchive.forEach((row) => {
+      const date = row[dateColIdx];
+      if (date instanceof Date) {
+        const dateString = Utilities.formatDate(date, ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+        const key = `${dateString}|${classroomName}`;
+        if (!uniqueDateAndClassroom.has(key)) {
+          uniqueDateAndClassroom.set(key, { date: date, classroom: classroomName });
         }
+      }
     });
-    uniqueDateAndClassroom.forEach(item => updateSummaryAndForm(item.classroom, item.date));
+    uniqueDateAndClassroom.forEach((item) => updateSummaryAndForm(item.classroom, item.date));
   }
   return rowsToDeleteIndices;
 }
@@ -201,7 +228,12 @@ function updateRosterWithRecordCache(archivedData, reservationHeaderMap, classro
 
   const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
   const rosterHeaderMap = createHeaderMap(rosterHeader);
-  const rosterDataRange = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn());
+  const rosterDataRange = rosterSheet.getRange(
+    2,
+    1,
+    rosterSheet.getLastRow() - 1,
+    rosterSheet.getLastColumn(),
+  );
   const rosterValues = rosterDataRange.getValues();
 
   const studentIdColRoster = rosterHeaderMap.get(HEADER_STUDENT_ID);
@@ -252,7 +284,7 @@ function updateRosterWithRecordCache(archivedData, reservationHeaderMap, classro
         classroom: classroomName,
         venue: row[venueColRes] || '',
         workInProgress: row[wipColRes] || '',
-        accountingDetails: row[accColRes] || null
+        accountingDetails: row[accColRes] || null,
       };
 
       const cell = rosterSheet.getRange(rowIndex + 2, recordColIdx + 1);
@@ -261,11 +293,13 @@ function updateRosterWithRecordCache(archivedData, reservationHeaderMap, classro
       if (existingJson) {
         try {
           records = JSON.parse(existingJson);
-        } catch (e) { /* JSONが不正な場合は新しい配列で上書き */ }
+        } catch (e) {
+          /* JSONが不正な場合は新しい配列で上書き */
+        }
       }
 
       // 重複チェック（同じ日付の記録は追加しない）
-      if (!records.some(r => r.date === newRecord.date)) {
+      if (!records.some((r) => r.date === newRecord.date)) {
         records.push(newRecord);
         records.sort((a, b) => new Date(b.date) - new Date(a.date)); // 日付の降順でソート
         cell.setValue(JSON.stringify(records));
@@ -280,13 +314,15 @@ function updateRosterWithRecordCache(archivedData, reservationHeaderMap, classro
  * @param {Array<number>} rowsToDelete - 削除対象の行番号の配列
  */
 function deleteProcessedReservations(sheet, rowsToDelete) {
-  rowsToDelete.sort((a, b) => b - a).forEach(rowIndex => {
-    try {
-      sheet.deleteRow(rowIndex);
-    } catch (e) {
-      Logger.log(`行 ${rowIndex} の削除中にエラー: ${e.message}`);
-    }
-  });
+  rowsToDelete
+    .sort((a, b) => b - a)
+    .forEach((rowIndex) => {
+      try {
+        sheet.deleteRow(rowIndex);
+      } catch (e) {
+        Logger.log(`行 ${rowIndex} の削除中にエラー: ${e.message}`);
+      }
+    });
 }
 
 /**
@@ -308,7 +344,7 @@ function createSalesRow(baseInfo, category, itemName, price) {
     itemName,
     1,
     price,
-    baseInfo.paymentMethod
+    baseInfo.paymentMethod,
   ];
 }
 
@@ -321,7 +357,7 @@ function setupTestEnvironment() {
   const response = ui.alert(
     'テスト環境の作成',
     '現在のスプレッドシートの完全なコピーを作成し、テスト環境としてセットアップします。よろしいですか？',
-    ui.ButtonSet.OK_CANCEL
+    ui.ButtonSet.OK_CANCEL,
   );
 
   if (response !== ui.Button.OK) {
@@ -377,13 +413,12 @@ function setupTestEnvironment() {
            </li>
        </ol>
        <br>
-       <input type="button" value="閉じる" onclick="google.script.host.close()" style="background-color: #f0f0f0; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">`
+       <input type="button" value="閉じる" onclick="google.script.host.close()" style="background-color: #f0f0f0; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold;">`,
     )
-    .setWidth(600)
-    .setHeight(400);
+      .setWidth(600)
+      .setHeight(400);
 
     ui.showModalDialog(htmlOutput, 'セットアップ完了');
-
   } catch (err) {
     handleError(`テスト環境の作成中にエラーが発生しました: ${err.message}`, true);
   }

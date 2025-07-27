@@ -25,59 +25,67 @@ function getInitialWebApp_Data(studentId) {
     const summarySheet = ss.getSheetByName(SUMMARY_SHEET_NAME);
     let availableSlots = [];
     if (summarySheet && summarySheet.getLastRow() > 1) {
-        availableSlots = getSlotsAndMyBookings("").availableSlots; // studentIdなしで呼び出し、枠情報のみ取得
+      availableSlots = getSlotsAndMyBookings('').availableSlots; // studentIdなしで呼び出し、枠情報のみ取得
     }
 
     // --- 【NF-12】自分の予約状況の取得 (生徒名簿キャッシュから) ---
     let myBookings = [];
     const rosterSheet = ss.getSheetByName(ROSTER_SHEET_NAME);
     if (rosterSheet) {
-        const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
-        const rosterHeaderMap = createHeaderMap(rosterHeader);
-        const studentIdCol = rosterHeaderMap.get(HEADER_STUDENT_ID);
-        const cacheCol = rosterHeaderMap.get('よやくキャッシュ');
+      const rosterHeader = rosterSheet
+        .getRange(1, 1, 1, rosterSheet.getLastColumn())
+        .getValues()[0];
+      const rosterHeaderMap = createHeaderMap(rosterHeader);
+      const studentIdCol = rosterHeaderMap.get(HEADER_STUDENT_ID);
+      const cacheCol = rosterHeaderMap.get('よやくキャッシュ');
 
-        if (studentIdCol !== undefined && cacheCol !== undefined) {
-            const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn()).getValues();
-            const userRow = rosterData.find(row => row[studentIdCol] === studentId);
-            if (userRow && userRow[cacheCol]) {
-                try {
-                    myBookings = JSON.parse(userRow[cacheCol]);
-                } catch(e) {
-                    Logger.log(`予約キャッシュのJSON解析に失敗 (生徒ID: ${studentId}): ${e.message}`);
-                }
-            }
+      if (studentIdCol !== undefined && cacheCol !== undefined) {
+        const rosterData = rosterSheet
+          .getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn())
+          .getValues();
+        const userRow = rosterData.find((row) => row[studentIdCol] === studentId);
+        if (userRow && userRow[cacheCol]) {
+          try {
+            myBookings = JSON.parse(userRow[cacheCol]);
+          } catch (e) {
+            Logger.log(`予約キャッシュのJSON解析に失敗 (生徒ID: ${studentId}): ${e.message}`);
+          }
         }
+      }
     }
 
     const accountingMaster = getAccountingMasterData();
-    if (!accountingMaster.success) throw new Error("会計マスタの取得に失敗しました。");
+    if (!accountingMaster.success) throw new Error('会計マスタの取得に失敗しました。');
 
     // --- 【NF-11】自分の過去の参加記録の取得 (生徒名簿キャッシュから) ---
     let myHistory = [];
     if (rosterSheet) {
-        const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
-        const rosterData = rosterSheet.getDataRange().getValues();
-        const studentIdCol = rosterHeader.indexOf(HEADER_STUDENT_ID);
+      const rosterHeader = rosterSheet
+        .getRange(1, 1, 1, rosterSheet.getLastColumn())
+        .getValues()[0];
+      const rosterData = rosterSheet.getDataRange().getValues();
+      const studentIdCol = rosterHeader.indexOf(HEADER_STUDENT_ID);
 
-        const userRow = rosterData.find(row => row[studentIdCol] === studentId);
+      const userRow = rosterData.find((row) => row[studentIdCol] === studentId);
 
-        if (userRow) {
-            rosterHeader.forEach((header, index) => {
-                if (String(header).startsWith('きろく_')) {
-                    const jsonStr = userRow[index];
-                    if (jsonStr) {
-                        try {
-                            const records = JSON.parse(jsonStr);
-                            myHistory.push(...records);
-                        } catch (e) {
-                            Logger.log(`履歴JSONの解析に失敗しました (生徒ID: ${studentId}, 列: ${header}): ${e.message}`);
-                        }
-                    }
-                }
-            });
-        }
-        myHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+      if (userRow) {
+        rosterHeader.forEach((header, index) => {
+          if (String(header).startsWith('きろく_')) {
+            const jsonStr = userRow[index];
+            if (jsonStr) {
+              try {
+                const records = JSON.parse(jsonStr);
+                myHistory.push(...records);
+              } catch (e) {
+                Logger.log(
+                  `履歴JSONの解析に失敗しました (生徒ID: ${studentId}, 列: ${header}): ${e.message}`,
+                );
+              }
+            }
+          }
+        });
+      }
+      myHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
     return {
@@ -85,7 +93,7 @@ function getInitialWebApp_Data(studentId) {
       availableSlots: availableSlots,
       myBookings: myBookings,
       accountingMaster: accountingMaster.data,
-      myHistory: myHistory
+      myHistory: myHistory,
     };
   } catch (err) {
     Logger.log(`getInitialWebApp_Data Error: ${err.message}`);

@@ -45,8 +45,10 @@ function updateAndSortSheet(sheet, editedRange, oldValue) {
   };
 
   if (editedRange) {
-    const dateValuesFromEditedRows = sheet.getRange(editedRange.getRow(), dateColIdx + 1, editedRange.getNumRows(), 1).getValues();
-    dateValuesFromEditedRows.flat().forEach(date => addNormalizedDate(date));
+    const dateValuesFromEditedRows = sheet
+      .getRange(editedRange.getRow(), dateColIdx + 1, editedRange.getNumRows(), 1)
+      .getValues();
+    dateValuesFromEditedRows.flat().forEach((date) => addNormalizedDate(date));
   }
 
   if (oldValue && (oldValue instanceof Date || !isNaN(new Date(oldValue).getTime()))) {
@@ -55,11 +57,16 @@ function updateAndSortSheet(sheet, editedRange, oldValue) {
 
   const lastRow = sheet.getLastRow();
   if (lastRow < RESERVATION_DATA_START_ROW) return;
-  const fullRange = sheet.getRange(RESERVATION_DATA_START_ROW, 1, lastRow - RESERVATION_DATA_START_ROW + 1, sheet.getLastColumn());
+  const fullRange = sheet.getRange(
+    RESERVATION_DATA_START_ROW,
+    1,
+    lastRow - RESERVATION_DATA_START_ROW + 1,
+    sheet.getLastColumn(),
+  );
   fullRange.sort({ column: dateColIdx + 1, ascending: true });
   SpreadsheetApp.flush();
 
-  datesToUpdate.forEach(dateInMillis => {
+  datesToUpdate.forEach((dateInMillis) => {
     if (dateInMillis > 0) {
       sortAndRenumberDateBlock(sheet, new Date(dateInMillis));
     }
@@ -83,7 +90,14 @@ function sortAndRenumberDateBlock(sheet, date) {
   const timezone = sheet.getParent().getSpreadsheetTimeZone();
   const targetDateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
 
-  const allData = sheet.getRange(RESERVATION_DATA_START_ROW, 1, sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1, sheet.getLastColumn()).getValues();
+  const allData = sheet
+    .getRange(
+      RESERVATION_DATA_START_ROW,
+      1,
+      sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
+      sheet.getLastColumn(),
+    )
+    .getValues();
   const headerMap = createHeaderMap(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
   const dateColIdx = headerMap.get(HEADER_DATE);
   const countColIdx = headerMap.get(HEADER_PARTICIPANT_COUNT);
@@ -96,7 +110,10 @@ function sortAndRenumberDateBlock(sheet, date) {
 
   for (let i = 0; i < allData.length; i++) {
     const rowDate = allData[i][dateColIdx];
-    if (rowDate instanceof Date && Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === targetDateString) {
+    if (
+      rowDate instanceof Date &&
+      Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === targetDateString
+    ) {
       if (firstRow === -1) {
         firstRow = i + RESERVATION_DATA_START_ROW;
       }
@@ -127,7 +144,7 @@ function sortAndRenumberDateBlock(sheet, date) {
   });
 
   let currentCount = 1;
-  dateBlockData.forEach(row => {
+  dateBlockData.forEach((row) => {
     const status = String(row[countColIdx]).toLowerCase();
     const name = row[nameColIdx];
     if (status !== STATUS_WAITING && status !== STATUS_CANCEL) {
@@ -149,7 +166,11 @@ function manuallyReSortAndNumberSheet() {
   }
 
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast('シート全体のソートと採番を開始します...', '処理中', 10);
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'シート全体のソートと採番を開始します...',
+      '処理中',
+      10,
+    );
 
     const lastRow = sheet.getLastRow();
     if (lastRow < RESERVATION_DATA_START_ROW) {
@@ -157,26 +178,47 @@ function manuallyReSortAndNumberSheet() {
       return;
     }
 
-    const dateColIdx = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].indexOf(HEADER_DATE) + 1;
+    const dateColIdx =
+      sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].indexOf(HEADER_DATE) + 1;
     if (dateColIdx === 0) {
       handleError('日付列が見つかりません。', true);
       return;
     }
 
-    const fullRange = sheet.getRange(RESERVATION_DATA_START_ROW, 1, lastRow - RESERVATION_DATA_START_ROW + 1, sheet.getLastColumn());
+    const fullRange = sheet.getRange(
+      RESERVATION_DATA_START_ROW,
+      1,
+      lastRow - RESERVATION_DATA_START_ROW + 1,
+      sheet.getLastColumn(),
+    );
     fullRange.sort({ column: dateColIdx, ascending: true });
     SpreadsheetApp.flush();
 
-    const dateColValues = sheet.getRange(RESERVATION_DATA_START_ROW, dateColIdx, lastRow - RESERVATION_DATA_START_ROW + 1, 1).getValues();
-    const uniqueDates = [...new Set(dateColValues.flat().map(d => d instanceof Date ? d.getTime() : null).filter(d => d !== null))];
+    const dateColValues = sheet
+      .getRange(RESERVATION_DATA_START_ROW, dateColIdx, lastRow - RESERVATION_DATA_START_ROW + 1, 1)
+      .getValues();
+    const uniqueDates = [
+      ...new Set(
+        dateColValues
+          .flat()
+          .map((d) => (d instanceof Date ? d.getTime() : null))
+          .filter((d) => d !== null),
+      ),
+    ];
 
-    uniqueDates.forEach(time => {
+    uniqueDates.forEach((time) => {
       sortAndRenumberDateBlock(sheet, new Date(time));
     });
 
     formatSheetWithBordersSafely(sheet);
     handleError('シート全体のソートと採番が完了しました。', false);
-    logActivity('user', Session.getActiveUser().getEmail(), 'MANUAL_SORT', 'SUCCESS', `シート: ${sheet.getName()}`);
+    logActivity(
+      'user',
+      Session.getActiveUser().getEmail(),
+      'MANUAL_SORT',
+      'SUCCESS',
+      `シート: ${sheet.getName()}`,
+    );
   } catch (err) {
     handleError(`手動ソート処理中にエラーが発生しました: ${err.message}`, true);
   }
@@ -197,22 +239,27 @@ function updateBillableTime(sheet, rowIndex) {
     const endTimeColIdx = headerMap.get(HEADER_END_TIME);
     const timeColIdx = headerMap.get(HEADER_TIME);
 
-    if ([dateColIdx, startTimeColIdx, endTimeColIdx, timeColIdx].some(idx => idx === undefined)) return;
+    if ([dateColIdx, startTimeColIdx, endTimeColIdx, timeColIdx].some((idx) => idx === undefined))
+      return;
 
     const row = sheet.getRange(rowIndex, 1, 1, header.length).getValues()[0];
     const reservationDate = row[dateColIdx];
     const startTimeFromCell = row[startTimeColIdx];
     const endTimeFromCell = row[endTimeColIdx];
 
-    if (!(reservationDate instanceof Date) || !(startTimeFromCell instanceof Date) || !(endTimeFromCell instanceof Date)) {
+    if (
+      !(reservationDate instanceof Date) ||
+      !(startTimeFromCell instanceof Date) ||
+      !(endTimeFromCell instanceof Date)
+    ) {
       sheet.getRange(rowIndex, timeColIdx + 1).setValue('');
       return;
     }
 
     const createFullDateTime = (date, time) => {
       const timezone = Session.getScriptTimeZone();
-      const dateString = Utilities.formatDate(date, timezone, "yyyy-MM-dd");
-      const timeString = Utilities.formatDate(time, timezone, "HH:mm:ss");
+      const dateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
+      const timeString = Utilities.formatDate(time, timezone, 'HH:mm:ss');
       return new Date(`${dateString}T${timeString}`);
     };
 
@@ -230,12 +277,16 @@ function updateBillableTime(sheet, rowIndex) {
     let breakEndTimeFromCell = row[headerMap.get(HEADER_BREAK_END)];
 
     if (!(breakStartTimeFromCell instanceof Date) || !(breakEndTimeFromCell instanceof Date)) {
-        const masterData = getAccountingMasterData().data;
-        const classroomRule = masterData.find(item => item['対象教室'] === sheet.getName() && item['単位'] === UNIT_30_MIN);
-        if (classroomRule) {
-            if(classroomRule[HEADER_BREAK_START]) breakStartTimeFromCell = new Date(`1970-01-01T${classroomRule[HEADER_BREAK_START]}`);
-            if(classroomRule[HEADER_BREAK_END]) breakEndTimeFromCell = new Date(`1970-01-01T${classroomRule[HEADER_BREAK_END]}`);
-        }
+      const masterData = getAccountingMasterData().data;
+      const classroomRule = masterData.find(
+        (item) => item['対象教室'] === sheet.getName() && item['単位'] === UNIT_30_MIN,
+      );
+      if (classroomRule) {
+        if (classroomRule[HEADER_BREAK_START])
+          breakStartTimeFromCell = new Date(`1970-01-01T${classroomRule[HEADER_BREAK_START]}`);
+        if (classroomRule[HEADER_BREAK_END])
+          breakEndTimeFromCell = new Date(`1970-01-01T${classroomRule[HEADER_BREAK_END]}`);
+      }
     }
 
     if (breakStartTimeFromCell instanceof Date && breakEndTimeFromCell instanceof Date) {
@@ -278,11 +329,17 @@ function handleRowInsert(sheet) {
   const firstDateCell = sheet.getRange(insertedRow, dateColIdx + 1);
   if (firstDateCell.getValue() instanceof Date) return null;
 
-  const insertedRange = sheet.getRange(insertedRow, 1, activeRange.getNumRows(), sheet.getLastColumn());
+  const insertedRange = sheet.getRange(
+    insertedRow,
+    1,
+    activeRange.getNumRows(),
+    sheet.getLastColumn(),
+  );
   const values = insertedRange.getValues();
 
   const dateFromAbove = sheet.getRange(insertedRow - 1, dateColIdx + 1).getValue();
-  const venueFromAbove = venueColIdx !== undefined ? sheet.getRange(insertedRow - 1, venueColIdx + 1).getValue() : '';
+  const venueFromAbove =
+    venueColIdx !== undefined ? sheet.getRange(insertedRow - 1, venueColIdx + 1).getValue() : '';
 
   if (!(dateFromAbove instanceof Date)) return null;
 
@@ -337,7 +394,15 @@ function insertEmptyRowForCancellation(sheet, rowIndex, headerMap) {
 function handleReservationNameClear(sheet, rowIndex) {
   const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const rowRange = sheet.getRange(rowIndex, 1, 1, header.length);
-  const columnsToKeep = [HEADER_RESERVATION_ID, HEADER_DATE, HEADER_VENUE, HEADER_CLASS_START, HEADER_CLASS_END, HEADER_BREAK_START, HEADER_BREAK_END];
+  const columnsToKeep = [
+    HEADER_RESERVATION_ID,
+    HEADER_DATE,
+    HEADER_VENUE,
+    HEADER_CLASS_START,
+    HEADER_CLASS_END,
+    HEADER_BREAK_START,
+    HEADER_BREAK_END,
+  ];
   const newValues = rowRange.getValues()[0].map((value, index) => {
     return columnsToKeep.includes(header[index]) ? value : '';
   });
@@ -360,7 +425,7 @@ function populateReservationWithRosterData(studentId, targetSheet, targetRowInde
     const rosterData = getRosterData(rosterSheet);
     const rosterIdColIdx = rosterData.headerMap.get(HEADER_STUDENT_ID);
 
-    const userRosterRow = rosterData.data.find(row => row[rosterIdColIdx] === studentId);
+    const userRosterRow = rosterData.data.find((row) => row[rosterIdColIdx] === studentId);
     if (!userRosterRow) return;
 
     const targetHeader = targetSheet.getRange(1, 1, 1, targetSheet.getLastColumn()).getValues()[0];
@@ -382,7 +447,7 @@ function populateReservationWithRosterData(studentId, targetSheet, targetRowInde
       }
     }
 
-    SYNC_TARGET_HEADERS.forEach(headerName => {
+    SYNC_TARGET_HEADERS.forEach((headerName) => {
       if (headerName === HEADER_CLASS_COUNT) return;
       const rosterColIdx = rosterData.headerMap.get(headerName);
       const targetColIdx = targetHeaderMap.get(headerName);
@@ -398,7 +463,6 @@ function populateReservationWithRosterData(studentId, targetSheet, targetRowInde
     if (valuesUpdated) {
       targetRow.setValues([targetValues]);
     }
-
   } catch (e) {
     Logger.log(`名簿データ転記中にエラーが発生しました: ${e.message}`);
   }
@@ -415,7 +479,7 @@ function updateFutureReservations(studentId, headerToUpdate, newValue) {
   today.setHours(0, 0, 0, 0);
   let updatedCount = 0;
 
-  CLASSROOM_SHEET_NAMES.forEach(sheetName => {
+  CLASSROOM_SHEET_NAMES.forEach((sheetName) => {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
     if (!sheet || sheet.getLastRow() < RESERVATION_DATA_START_ROW) return;
 
@@ -433,13 +497,22 @@ function updateFutureReservations(studentId, headerToUpdate, newValue) {
       return;
     }
 
-    const dataRange = sheet.getRange(RESERVATION_DATA_START_ROW, 1, sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1, sheet.getLastColumn());
+    const dataRange = sheet.getRange(
+      RESERVATION_DATA_START_ROW,
+      1,
+      sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
+      sheet.getLastColumn(),
+    );
     const values = dataRange.getValues();
 
     let sheetUpdated = false;
     values.forEach((row) => {
       const reservationDate = row[dateColIdx];
-      if (row[studentIdColIdx] === studentId && reservationDate instanceof Date && reservationDate.getTime() >= today.getTime()) {
+      if (
+        row[studentIdColIdx] === studentId &&
+        reservationDate instanceof Date &&
+        reservationDate.getTime() >= today.getTime()
+      ) {
         if (headerToUpdate === HEADER_UNIFIED_CLASS_COUNT) {
           const newCount = (parseInt(newValue, 10) || 0) + 1;
           if (row[targetColIdx] != newCount) {
@@ -461,7 +534,10 @@ function updateFutureReservations(studentId, headerToUpdate, newValue) {
   });
 
   if (updatedCount > 0) {
-    SpreadsheetApp.getActiveSpreadsheet().toast(`${updatedCount}件の将来の予約を更新しました。`, '予約データ同期');
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      `${updatedCount}件の将来の予約を更新しました。`,
+      '予約データ同期',
+    );
   }
 }
 
@@ -477,7 +553,7 @@ function _createNameToIdMap(data, headerMap) {
   const realNameColIdx = headerMap.get(HEADER_REAL_NAME);
   const nicknameColIdx = headerMap.get(HEADER_NICKNAME);
 
-  data.forEach(row => {
+  data.forEach((row) => {
     const id = row[idColIdx];
     const realName = row[realNameColIdx];
     const nickname = row[nicknameColIdx];
@@ -501,7 +577,13 @@ function getRosterData(rosterSheet) {
 
   const nameToId = _createNameToIdMap(data, headerMap);
 
-  return { data: data, headerMap: headerMap, idColIdx: idColIdx, unifiedCountColIdx: unifiedCountColIdx, nameToId: nameToId };
+  return {
+    data: data,
+    headerMap: headerMap,
+    idColIdx: idColIdx,
+    unifiedCountColIdx: unifiedCountColIdx,
+    nameToId: nameToId,
+  };
 }
 
 /**
@@ -546,24 +628,35 @@ function updateGanttChart(sheet, rowIndex) {
 
     // ガントチャート範囲を一度クリア
     const ganttCols = Array.from(timeHeaderMap.values());
-    ganttCols.forEach(colIdx => {
+    ganttCols.forEach((colIdx) => {
       sheet.getRange(rowIndex, colIdx + 1).clearContent();
     });
 
     const startTime = rowValues[startTimeIdx];
     const endTime = rowValues[endTimeIdx];
-    const isFirstLecture = firstLectureIdx !== undefined ? rowValues[firstLectureIdx] === true : false;
+    const isFirstLecture =
+      firstLectureIdx !== undefined ? rowValues[firstLectureIdx] === true : false;
 
     // 料金マスタから教室ルールを取得
     const masterData = getAccountingMasterData().data;
-    const classroomRule = masterData.find(item => item['対象教室'] === sheetName && item['単位'] === UNIT_30_MIN);
-    const firstLectureRule = masterData.find(item => item['項目名'] === ITEM_NAME_FIRST_LECTURE && item['対象教室'] === sheetName);
+    const classroomRule = masterData.find(
+      (item) => item['対象教室'] === sheetName && item['単位'] === UNIT_30_MIN,
+    );
+    const firstLectureRule = masterData.find(
+      (item) => item['項目名'] === ITEM_NAME_FIRST_LECTURE && item['対象教室'] === sheetName,
+    );
 
     if (!classroomRule) return;
 
     // 休憩時間（分単位に変換）
-    const breakStart = classroomRule[HEADER_BREAK_START] ? new Date(`1970-01-01T${classroomRule[HEADER_BREAK_START]}`).getHours() * 60 + new Date(`1970-01-01T${classroomRule[HEADER_BREAK_START]}`).getMinutes() : -1;
-    const breakEnd = classroomRule[HEADER_BREAK_END] ? new Date(`1970-01-01T${classroomRule[HEADER_BREAK_END]}`).getHours() * 60 + new Date(`1970-01-01T${classroomRule[HEADER_BREAK_END]}`).getMinutes() : -1;
+    const breakStart = classroomRule[HEADER_BREAK_START]
+      ? new Date(`1970-01-01T${classroomRule[HEADER_BREAK_START]}`).getHours() * 60 +
+        new Date(`1970-01-01T${classroomRule[HEADER_BREAK_START]}`).getMinutes()
+      : -1;
+    const breakEnd = classroomRule[HEADER_BREAK_END]
+      ? new Date(`1970-01-01T${classroomRule[HEADER_BREAK_END]}`).getHours() * 60 +
+        new Date(`1970-01-01T${classroomRule[HEADER_BREAK_END]}`).getMinutes()
+      : -1;
 
     // 描画する記号と範囲を格納するMap
     const ganttValues = new Map();
@@ -608,7 +701,6 @@ function updateGanttChart(sheet, rowIndex) {
     ganttValues.forEach((symbol, colIdx) => {
       sheet.getRange(rowIndex, colIdx + 1).setValue(symbol);
     });
-
   } catch (err) {
     Logger.log(`ガントチャートの更新中にエラーが発生しました (行: ${rowIndex}): ${err.message}`);
   }
@@ -636,8 +728,12 @@ function _rebuildFutureBookingsCacheForStudent(studentId) {
       return;
     }
 
-    const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn()).getValues();
-    const targetRowIndex_0based = rosterData.findIndex(row => row[studentIdColRoster] === studentId);
+    const rosterData = rosterSheet
+      .getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn())
+      .getValues();
+    const targetRowIndex_0based = rosterData.findIndex(
+      (row) => row[studentIdColRoster] === studentId,
+    );
 
     if (targetRowIndex_0based === -1) return; // 生徒が見つからない
 
@@ -646,45 +742,45 @@ function _rebuildFutureBookingsCacheForStudent(studentId) {
     today.setHours(0, 0, 0, 0);
     const futureBookings = [];
 
-    CLASSROOM_SHEET_NAMES.forEach(sheetName => {
-        const sheet = ss.getSheetByName(sheetName);
-        if (!sheet || sheet.getLastRow() < 2) return;
-        const data = sheet.getDataRange().getValues();
-        const header = data.shift();
-        const headerMap = createHeaderMap(header);
+    CLASSROOM_SHEET_NAMES.forEach((sheetName) => {
+      const sheet = ss.getSheetByName(sheetName);
+      if (!sheet || sheet.getLastRow() < 2) return;
+      const data = sheet.getDataRange().getValues();
+      const header = data.shift();
+      const headerMap = createHeaderMap(header);
 
-        const timeToString = (date) => date instanceof Date ? Utilities.formatDate(date, timezone, "HH:mm") : null;
+      const timeToString = (date) =>
+        date instanceof Date ? Utilities.formatDate(date, timezone, 'HH:mm') : null;
 
-        data.forEach(row => {
-            if (row[headerMap.get(HEADER_STUDENT_ID)] !== studentId) return;
+      data.forEach((row) => {
+        if (row[headerMap.get(HEADER_STUDENT_ID)] !== studentId) return;
 
-            const date = row[headerMap.get(HEADER_DATE)];
-            const status = String(row[headerMap.get(HEADER_PARTICIPANT_COUNT)]).toLowerCase();
-            if (!(date instanceof Date) || date < today || status === STATUS_CANCEL) return;
+        const date = row[headerMap.get(HEADER_DATE)];
+        const status = String(row[headerMap.get(HEADER_PARTICIPANT_COUNT)]).toLowerCase();
+        if (!(date instanceof Date) || date < today || status === STATUS_CANCEL) return;
 
-            futureBookings.push({
-                reservationId: row[headerMap.get(HEADER_RESERVATION_ID)],
-                classroom: sheetName,
-                date: Utilities.formatDate(date, timezone, 'yyyy-MM-dd'),
-                isWaiting: status === STATUS_WAITING,
-                venue: row[headerMap.get(HEADER_VENUE)] || '',
-                startTime: timeToString(row[headerMap.get(HEADER_START_TIME)]),
-                endTime: timeToString(row[headerMap.get(HEADER_END_TIME)]),
-                earlyArrival: row[headerMap.get(HEADER_EARLY_ARRIVAL)] === true,
-                firstLecture: row[headerMap.get(HEADER_FIRST_LECTURE)] === true,
-                workInProgress: row[headerMap.get(HEADER_WORK_IN_PROGRESS)] || '',
-                order: row[headerMap.get(HEADER_ORDER)] || '',
-                accountingDone: !!row[headerMap.get(HEADER_ACCOUNTING_DETAILS)],
-                accountingDetails: row[headerMap.get(HEADER_ACCOUNTING_DETAILS)] || ''
-            });
+        futureBookings.push({
+          reservationId: row[headerMap.get(HEADER_RESERVATION_ID)],
+          classroom: sheetName,
+          date: Utilities.formatDate(date, timezone, 'yyyy-MM-dd'),
+          isWaiting: status === STATUS_WAITING,
+          venue: row[headerMap.get(HEADER_VENUE)] || '',
+          startTime: timeToString(row[headerMap.get(HEADER_START_TIME)]),
+          endTime: timeToString(row[headerMap.get(HEADER_END_TIME)]),
+          earlyArrival: row[headerMap.get(HEADER_EARLY_ARRIVAL)] === true,
+          firstLecture: row[headerMap.get(HEADER_FIRST_LECTURE)] === true,
+          workInProgress: row[headerMap.get(HEADER_WORK_IN_PROGRESS)] || '',
+          order: row[headerMap.get(HEADER_ORDER)] || '',
+          accountingDone: !!row[headerMap.get(HEADER_ACCOUNTING_DETAILS)],
+          accountingDetails: row[headerMap.get(HEADER_ACCOUNTING_DETAILS)] || '',
         });
+      });
     });
 
     futureBookings.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     const cacheJson = JSON.stringify(futureBookings);
     rosterSheet.getRange(targetRowIndex_0based + 2, cacheColRoster + 1).setValue(cacheJson);
-
   } catch (err) {
     Logger.log(`将来の予約キャッシュ更新中にエラー (生徒ID: ${studentId}): ${err.message}`);
   }
@@ -704,7 +800,7 @@ function _updateFutureBookingsCacheIncrementally(studentId, changeType, payload)
     switch (changeType) {
       case 'add':
         // 既に同じ予約IDがあれば更新、なければ追加
-        const addIndex = cache.findIndex(b => b.reservationId === payload.reservationId);
+        const addIndex = cache.findIndex((b) => b.reservationId === payload.reservationId);
         if (addIndex !== -1) {
           cache[addIndex] = payload;
         } else {
@@ -713,11 +809,11 @@ function _updateFutureBookingsCacheIncrementally(studentId, changeType, payload)
         break;
 
       case 'remove':
-        cache = cache.filter(b => b.reservationId !== payload.reservationId);
+        cache = cache.filter((b) => b.reservationId !== payload.reservationId);
         break;
 
       case 'update':
-        const updateIndex = cache.findIndex(b => b.reservationId === payload.reservationId);
+        const updateIndex = cache.findIndex((b) => b.reservationId === payload.reservationId);
         if (updateIndex !== -1) {
           // 既存のオブジェクトにペイロードのプロパティをマージ
           cache[updateIndex] = { ...cache[updateIndex], ...payload };
@@ -730,9 +826,10 @@ function _updateFutureBookingsCacheIncrementally(studentId, changeType, payload)
 
     _writeCache(studentId, cache);
     return cache;
-
   } catch (err) {
-    Logger.log(`キャッシュの差分更新中にエラー (生徒ID: ${studentId}, type: ${changeType}): ${err.message}`);
+    Logger.log(
+      `キャッシュの差分更新中にエラー (生徒ID: ${studentId}, type: ${changeType}): ${err.message}`,
+    );
     // エラー発生時は、信頼性のある全スキャン更新にフォールバックする
     return _rebuildFutureBookingsCacheForStudent(studentId);
   }
@@ -747,14 +844,18 @@ function _getExistingCache(studentId) {
   const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
   if (!rosterSheet) return [];
 
-  const headerMap = createHeaderMap(rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0]);
+  const headerMap = createHeaderMap(
+    rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0],
+  );
   const studentIdCol = headerMap.get(HEADER_STUDENT_ID);
   const cacheCol = headerMap.get('よやくキャッシュ');
 
   if (studentIdCol === undefined || cacheCol === undefined) return [];
 
-  const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn()).getValues();
-  const userRow = rosterData.find(row => row[studentIdCol] === studentId);
+  const rosterData = rosterSheet
+    .getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn())
+    .getValues();
+  const userRow = rosterData.find((row) => row[studentIdCol] === studentId);
 
   if (userRow && userRow[cacheCol]) {
     try {
@@ -775,7 +876,9 @@ function _writeCache(studentId, bookingsArray) {
   const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
   if (!rosterSheet) return;
 
-  const headerMap = createHeaderMap(rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0]);
+  const headerMap = createHeaderMap(
+    rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0],
+  );
   const studentIdCol = headerMap.get(HEADER_STUDENT_ID);
   const cacheCol = headerMap.get('よやくキャッシュ');
 
@@ -783,7 +886,7 @@ function _writeCache(studentId, bookingsArray) {
 
   // findRowIndexByValueは予約シートを前提としているため、ここでは使わない
   const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, 1).getValues();
-  const targetRowIndex_0based = rosterData.findIndex(row => row[0] === studentId);
+  const targetRowIndex_0based = rosterData.findIndex((row) => row[0] === studentId);
 
   if (targetRowIndex_0based !== -1) {
     const targetRow_1based = targetRowIndex_0based + 2;

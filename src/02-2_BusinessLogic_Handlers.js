@@ -24,11 +24,22 @@ function processCellEdit(e) {
 
   if (sheetName === ROSTER_SHEET_NAME && startRow > 1) {
     handleRosterEdit(e);
-    logActivity('user', Session.getActiveUser().getEmail(), 'ROSTER_EDIT', 'SUCCESS', `範囲: ${range.getA1Notation()}`);
-  }
-  else if (CLASSROOM_SHEET_NAMES.includes(sheetName) && startRow >= RESERVATION_DATA_START_ROW) {
+    logActivity(
+      'user',
+      Session.getActiveUser().getEmail(),
+      'ROSTER_EDIT',
+      'SUCCESS',
+      `範囲: ${range.getA1Notation()}`,
+    );
+  } else if (CLASSROOM_SHEET_NAMES.includes(sheetName) && startRow >= RESERVATION_DATA_START_ROW) {
     handleReservationSheetEdit(e);
-    logActivity('user', Session.getActiveUser().getEmail(), 'RESERVATION_EDIT', 'SUCCESS', `シート: ${sheetName}, 範囲: ${range.getA1Notation()}`);
+    logActivity(
+      'user',
+      Session.getActiveUser().getEmail(),
+      'RESERVATION_EDIT',
+      'SUCCESS',
+      `シート: ${sheetName}, 範囲: ${range.getA1Notation()}`,
+    );
   }
 }
 
@@ -49,13 +60,27 @@ function processChange(changeType) {
       const pseudoEvent = {
         range: sheet.getActiveRange(),
         source: SpreadsheetApp.getActiveSpreadsheet(),
-        changeType: changeType
+        changeType: changeType,
       };
       if (typeof triggerSummaryUpdateFromEdit !== 'undefined') {
         triggerSummaryUpdateFromEdit(pseudoEvent);
       }
     }
-    logActivity('user', Session.getActiveUser().getEmail(), 'ROW_INSERT', 'SUCCESS', `シート: ${sheet.getName()}, 日付: ${insertedDate ? Utilities.formatDate(insertedDate, SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(), 'yyyy-MM-dd') : 'N/A'}`);
+    logActivity(
+      'user',
+      Session.getActiveUser().getEmail(),
+      'ROW_INSERT',
+      'SUCCESS',
+      `シート: ${sheet.getName()}, 日付: ${
+        insertedDate
+          ? Utilities.formatDate(
+              insertedDate,
+              SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(),
+              'yyyy-MM-dd',
+            )
+          : 'N/A'
+      }`,
+    );
   }
 }
 
@@ -89,8 +114,11 @@ function handleReservationSheetEdit(e) {
   // 【NF-12】編集された行の生徒IDを取得し、予約キャッシュを更新
   const studentIdColIdx = header.indexOf(HEADER_STUDENT_ID);
   if (studentIdColIdx !== -1) {
-      const studentId = range.getSheet().getRange(range.getRow(), studentIdColIdx + 1).getValue();
-      if (studentId) _rebuildFutureBookingsCacheForStudent(studentId);
+    const studentId = range
+      .getSheet()
+      .getRange(range.getRow(), studentIdColIdx + 1)
+      .getValue();
+    if (studentId) _rebuildFutureBookingsCacheForStudent(studentId);
   }
 
   // 最後にソートを実行
@@ -129,7 +157,10 @@ function handleRosterEdit(e) {
     }
 
     const studentId = idCell.getValue();
-    if (studentId && (SYNC_TARGET_HEADERS.includes(editedHeader) || editedHeader === HEADER_UNIFIED_CLASS_COUNT)) {
+    if (
+      studentId &&
+      (SYNC_TARGET_HEADERS.includes(editedHeader) || editedHeader === HEADER_UNIFIED_CLASS_COUNT)
+    ) {
       const valueToSync = range.getCell(i + 1, 1).getValue();
       updateFutureReservations(studentId, editedHeader, valueToSync);
     }

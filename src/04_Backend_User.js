@@ -31,17 +31,23 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
 
   // 全角数字を半角に変換し、数字以外のすべての文字（ハイフン、スペース等）を削除
   const normalized = phoneNumber
-    .replace(/[‐－-]/g, "") // NF-01: ハイフンも除去対象に追加
-    .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+    .replace(/[‐－-]/g, '') // NF-01: ハイフンも除去対象に追加
+    .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
     .replace(/[^0-9]/g, '');
 
-  if (allowEmpty && normalized === '') { // 追加: allowEmptyがtrueで、正規化後も空なら有効
+  if (allowEmpty && normalized === '') {
+    // 追加: allowEmptyがtrueで、正規化後も空なら有効
     return { isValid: true, normalized: '', message: '' };
   }
 
   // 日本の携帯電話番号の形式（070, 080, 090で始まる11桁）を正規表現でチェック
   if (!/^(070|080|090)\d{8}$/.test(normalized)) {
-    return { isValid: false, normalized: normalized, message: '電話番号の形式が正しくありません。（070, 080, 090で始まる11桁の番号を入力してください）' };
+    return {
+      isValid: false,
+      normalized: normalized,
+      message:
+        '電話番号の形式が正しくありません。（070, 080, 090で始まる11桁の番号を入力してください）',
+    };
   }
 
   return { isValid: true, normalized: normalized, message: '' };
@@ -61,26 +67,42 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
  */
 function authenticateUser(phoneNumber) {
   try {
-    const noPhoneLoginCommand = PropertiesService.getScriptProperties().getProperty('SPECIAL_NO_PHONE_LOGIN_COMMAND');
+    const noPhoneLoginCommand = PropertiesService.getScriptProperties().getProperty(
+      'SPECIAL_NO_PHONE_LOGIN_COMMAND',
+    );
 
     // NF-01: 特殊コマンドが入力された場合、電話番号なしユーザーリストの表示を促す
     if (noPhoneLoginCommand && phoneNumber === noPhoneLoginCommand) {
-      logActivity('N/A', 'N/A', 'SPECIAL_LOGIN_COMMAND_RECOGNIZED', 'SUCCESS', `Command: ${phoneNumber}`);
+      logActivity(
+        'N/A',
+        'N/A',
+        'SPECIAL_LOGIN_COMMAND_RECOGNIZED',
+        'SUCCESS',
+        `Command: ${phoneNumber}`,
+      );
       return { success: false, commandRecognized: 'all' }; // commandRecognizedは'all'に固定
     }
 
     const validationResult = _normalizeAndValidatePhone(phoneNumber);
     if (!validationResult.isValid) {
       // 認証失敗時にも正規化後の電話番号を返す (登録画面へ遷移するため)
-      return { success: false, message: validationResult.message, phoneForRegistration: validationResult.normalized };
+      return {
+        success: false,
+        message: validationResult.message,
+        phoneForRegistration: validationResult.normalized,
+      };
     }
     const normalizedInputPhone = validationResult.normalized;
 
     const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
-    if (!rosterSheet) throw new new Error('シート「生徒名簿」が見つかりません。'); // Typo here, should be `new Error`. Corrected in final snippet below.
+    if (!rosterSheet) throw new new Error('シート「生徒名簿」が見つかりません。')(); // Typo here, should be `new Error`. Corrected in final snippet below.
 
     if (rosterSheet.getLastRow() < RESERVATION_DATA_START_ROW) {
-      return { success: false, message: '生徒名簿にデータがありません。', phoneForRegistration: normalizedInputPhone };
+      return {
+        success: false,
+        message: '生徒名簿にデータがありません。',
+        phoneForRegistration: normalizedInputPhone,
+      };
     }
 
     // --- 【最適化】必要な列のみを読み込む ---
@@ -93,7 +115,9 @@ function authenticateUser(phoneNumber) {
 
     // 必要なヘッダーが全て見つかるか確認
     if (idColIdx === -1 || phoneColIdx === -1 || realNameColIdx === -1 || nicknameColIdx === -1) {
-      throw new Error("生徒名簿のヘッダーが正しくありません。必要な列（生徒ID, 電話番号, 本名, ニックネーム）が見つかりません。");
+      throw new Error(
+        '生徒名簿のヘッダーが正しくありません。必要な列（生徒ID, 電話番号, 本名, ニックネーム）が見つかりません。',
+      );
     }
 
     // 必要な列の最小と最大のインデックスを特定
@@ -105,7 +129,7 @@ function authenticateUser(phoneNumber) {
       RESERVATION_DATA_START_ROW,
       minColIdx + 1, // 1-based index
       rosterSheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
-      maxColIdx - minColIdx + 1
+      maxColIdx - minColIdx + 1,
     );
     const fetchedData = fetchedDataRange.getValues();
 
@@ -115,27 +139,42 @@ function authenticateUser(phoneNumber) {
     const relativeRealNameColIdx = realNameColIdx - minColIdx;
     const relativeNicknameColIdx = nicknameColIdx - minColIdx;
 
-
     for (const row of fetchedData) {
-      const storedPhone = String(row[relativePhoneColIdx]).replace(/^'/, '').replace(/[^0-9]/g, '');
+      const storedPhone = String(row[relativePhoneColIdx])
+        .replace(/^'/, '')
+        .replace(/[^0-9]/g, '');
       if (storedPhone === normalizedInputPhone && storedPhone !== '') {
         const user = {
           success: true,
           studentId: row[relativeIdColIdx],
           displayName: row[relativeNicknameColIdx] || row[relativeRealNameColIdx],
           realName: row[relativeRealNameColIdx],
-          phone: row[relativePhoneColIdx]
+          phone: row[relativePhoneColIdx],
         };
-        logActivity(user.studentId, user.displayName, 'LOGIN_SUCCESS', 'SUCCESS', `Phone: ${phoneNumber}`);
+        logActivity(
+          user.studentId,
+          user.displayName,
+          'LOGIN_SUCCESS',
+          'SUCCESS',
+          `Phone: ${phoneNumber}`,
+        );
         return user;
       }
     }
     logActivity('N/A', 'N/A', 'LOGIN_FAILURE', 'FAILURE', `Phone: ${phoneNumber}`);
-    return { success: false, message: '登録されている電話番号と一致しません。', phoneForRegistration: normalizedInputPhone };
+    return {
+      success: false,
+      message: '登録されている電話番号と一致しません。',
+      phoneForRegistration: normalizedInputPhone,
+    };
   } catch (err) {
     logActivity('N/A', 'N/A', 'LOGIN_ERROR', 'FAILURE', `Error: ${err.message}`);
     Logger.log(`authenticateUser Error: ${err.message}`);
-    return { success: false, message: `サーバーエラーが発生しました。`, phoneForRegistration: phoneNumber };
+    return {
+      success: false,
+      message: `サーバーエラーが発生しました。`,
+      phoneForRegistration: phoneNumber,
+    };
   }
 }
 
@@ -161,13 +200,16 @@ function getUsersWithoutPhoneNumber() {
     const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
 
     if (idColIdx === -1 || phoneColIdx === -1 || realNameColIdx === -1 || nicknameColIdx === -1) {
-      throw new Error("生徒名簿のヘッダーが正しくありません。");
+      throw new Error('生徒名簿のヘッダーが正しくありません。');
     }
 
     const usersWithoutPhone = [];
     for (const row of data) {
-      const storedPhone = String(row[phoneColIdx]).replace(/^'/, '').replace(/[^0-9]/g, '');
-      if (storedPhone === '') { // 電話番号が空の場合
+      const storedPhone = String(row[phoneColIdx])
+        .replace(/^'/, '')
+        .replace(/[^0-9]/g, '');
+      if (storedPhone === '') {
+        // 電話番号が空の場合
         const realName = String(row[realNameColIdx] || '').trim();
         const nickname = String(row[nicknameColIdx] || '').trim();
         const searchName = (realName + nickname).replace(/\s+/g, '').toLowerCase(); // スペースを除去して結合、小文字化
@@ -176,11 +218,17 @@ function getUsersWithoutPhoneNumber() {
           studentId: row[idColIdx],
           realName: realName,
           nickname: nickname || realName, // ニックネームがなければ本名を使用
-          searchName: searchName // 検索用の結合済み・スペース除去済み名前
+          searchName: searchName, // 検索用の結合済み・スペース除去済み名前
         });
       }
     }
-    logActivity('N/A', 'N/A', 'GET_NO_PHONE_USERS', 'SUCCESS', `Found ${usersWithoutPhone.length} users without phone numbers.`);
+    logActivity(
+      'N/A',
+      'N/A',
+      'GET_NO_PHONE_USERS',
+      'SUCCESS',
+      `Found ${usersWithoutPhone.length} users without phone numbers.`,
+    );
     return usersWithoutPhone;
   } catch (err) {
     logActivity('N/A', 'N/A', 'GET_NO_PHONE_USERS', 'FAILURE', `Error: ${err.message}`);
@@ -204,24 +252,24 @@ function getUsersWithoutPhoneNumber() {
  * @returns {Array<object>} - { studentId: string, realName: string, nickname: string, searchName: string } の配列。
  */
 
-
 /**
-* 新規ユーザーを生徒名簿に登録します。
-* 登録時にユニークな生徒IDを生成します。電話番号なしでの登録も可能です。
-* (ただし、WebアプリのUIからは電話番号必須の新規登録を想定)
-* @param {object} userInfo - { phone?: string, realName: string, nickname?: string }
-* @returns {object} - { success: boolean, studentId?: string, ... }
+ * 新規ユーザーを生徒名簿に登録します。
+ * 登録時にユニークな生徒IDを生成します。電話番号なしでの登録も可能です。
+ * (ただし、WebアプリのUIからは電話番号必須の新規登録を想定)
+ * @param {object} userInfo - { phone?: string, realName: string, nickname?: string }
+ * @returns {object} - { success: boolean, studentId?: string, ... }
  */
 function registerNewUser(userInfo) {
   const lock = LockService.getScriptLock();
   lock.waitLock(LOCK_WAIT_TIME_MS);
   try {
-    const validationResult =_normalizeAndValidatePhone(userInfo.phone || '', true); // 修正: 空文字列を許容しつつ形式チェック
+    const validationResult = _normalizeAndValidatePhone(userInfo.phone || '', true); // 修正: 空文字列を許容しつつ形式チェック
     const normalizedPhone = validationResult.normalized;
 
     // 電話番号が提供されたが、不正な形式だった場合 (WebアプリのUIで必須とするため、ここではエラーを返す)
-    if (!validationResult.isValid && userInfo.phone) { // userInfo.phone が存在しかつ無効ならエラー
-        return { success: false, message: validationResult.message };
+    if (!validationResult.isValid && userInfo.phone) {
+      // userInfo.phone が存在しかつ無効ならエラー
+      return { success: false, message: validationResult.message };
     }
     // WebアプリUI側で電話番号入力が必須となるため、ここでは normalizedPhone が空であることのエラーはチェックしない。
     // その代わり、UI側で電話番号が空の場合は登録できないようにする。
@@ -231,14 +279,14 @@ function registerNewUser(userInfo) {
 
     // 電話番号が提供された場合のみ、既存ユーザーチェックを行う
     if (normalizedPhone !== '') {
-        const existingUser = authenticateUser(normalizedPhone);
-        if (existingUser.success) {
-            return { success: false, message: 'この電話番号は既に登録されています。' };
-        }
+      const existingUser = authenticateUser(normalizedPhone);
+      if (existingUser.success) {
+        return { success: false, message: 'この電話番号は既に登録されています。' };
+      }
     } else {
-        // NF-01: Webアプリからの新規登録では電話番号が必須となるため、ここを通過することはない想定。
-        // 万が一通過した場合でも、電話番号なしの新規登録は許容しないため、ここでエラーを返す。
-        return { success: false, message: '電話番号は必須です。' }; // 追加: Webアプリからの新規登録で電話番号が空の場合は弾く
+      // NF-01: Webアプリからの新規登録では電話番号が必須となるため、ここを通過することはない想定。
+      // 万が一通過した場合でも、電話番号なしの新規登録は許容しないため、ここでエラーを返す。
+      return { success: false, message: '電話番号は必須です。' }; // 追加: Webアプリからの新規登録で電話番号が空の場合は弾く
     }
 
     const header = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
@@ -248,7 +296,7 @@ function registerNewUser(userInfo) {
     const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
 
     if (idColIdx === -1 || phoneColIdx === -1 || realNameColIdx === -1 || nicknameColIdx === -1) {
-         throw new Error("生徒名簿のヘッダーが正しくありません。");
+      throw new Error('生徒名簿のヘッダーが正しくありません。');
     }
 
     const studentId = `user_${Utilities.getUuid()}`;
@@ -265,17 +313,29 @@ function registerNewUser(userInfo) {
     const lastRow = rosterSheet.getLastRow();
     rosterSheet.getRange(lastRow, phoneColIdx + 1).setNumberFormat('@');
 
-    logActivity(studentId, userInfo.nickname || userInfo.realName, 'REGISTER_SUCCESS', 'SUCCESS', `Phone: ${normalizedPhone}`);
+    logActivity(
+      studentId,
+      userInfo.nickname || userInfo.realName,
+      'REGISTER_SUCCESS',
+      'SUCCESS',
+      `Phone: ${normalizedPhone}`,
+    );
 
     return {
       success: true,
       studentId: studentId,
       displayName: userInfo.nickname || userInfo.realName,
       realName: userInfo.realName,
-      phone: normalizedPhone
+      phone: normalizedPhone,
     };
   } catch (err) {
-    logActivity(userInfo.realName, userInfo.nickname, 'REGISTER_ERROR', 'FAILURE', `Error: ${err.message}`);
+    logActivity(
+      userInfo.realName,
+      userInfo.nickname,
+      'REGISTER_ERROR',
+      'FAILURE',
+      `Error: ${err.message}`,
+    );
     Logger.log(`registerNewUser Error: ${err.message}`);
     return { success: false, message: `サーバーエラーが発生しました。` };
   } finally {
@@ -284,10 +344,10 @@ function registerNewUser(userInfo) {
 }
 
 /**
-* ユーザーのプロフィール（本名、ニックネーム、電話番号）を更新します。
-* 生徒IDをキーに更新対象を特定します。電話番号の後からの登録・修正に対応します。
-* @param {object} userInfo - { studentId: string, realName: string, displayName: string, phone?: string }
-* @returns {object} - { success: boolean, message: string }
+ * ユーザーのプロフィール（本名、ニックネーム、電話番号）を更新します。
+ * 生徒IDをキーに更新対象を特定します。電話番号の後からの登録・修正に対応します。
+ * @param {object} userInfo - { studentId: string, realName: string, displayName: string, phone?: string }
+ * @returns {object} - { success: boolean, message: string }
  */
 function updateUserProfile(userInfo) {
   const lock = LockService.getScriptLock();
@@ -304,10 +364,12 @@ function updateUserProfile(userInfo) {
     const phoneColIdx = header.indexOf(HEADER_PHONE); // 追加
 
     if (idColIdx === -1 || realNameColIdx === -1 || nicknameColIdx === -1 || phoneColIdx === -1) {
-      throw new Error("生徒名簿のヘッダー（生徒ID, 本名, ニックネーム, 電話番号など）が正しくありません。");
+      throw new Error(
+        '生徒名簿のヘッダー（生徒ID, 本名, ニックネーム, 電話番号など）が正しくありません。',
+      );
     }
 
-    const targetRowIndex = data.findIndex(row => row[idColIdx] === userInfo.studentId);
+    const targetRowIndex = data.findIndex((row) => row[idColIdx] === userInfo.studentId);
 
     if (targetRowIndex !== -1) {
       const rowIndexToUpdate = targetRowIndex + 2; // +1 for header, +1 for 0-based index
@@ -319,43 +381,66 @@ function updateUserProfile(userInfo) {
       // 電話番号の更新ロジック
       // userInfo.phone が undefined または null の場合は、電話番号の更新は行わない
       if (userInfo.phone !== undefined && userInfo.phone !== null) {
-          const validationResult = _normalizeAndValidatePhone(userInfo.phone, true); // 修正: 空文字列も許容
+        const validationResult = _normalizeAndValidatePhone(userInfo.phone, true); // 修正: 空文字列も許容
 
-          // 電話番号が提供されたが、不正な形式だった場合
-          if (!validationResult.isValid && userInfo.phone !== '') {
-              throw new Error(validationResult.message);
+        // 電話番号が提供されたが、不正な形式だった場合
+        if (!validationResult.isValid && userInfo.phone !== '') {
+          throw new Error(validationResult.message);
+        }
+        const normalizedNewPhone = validationResult.normalized;
+
+        // 新しい電話番号が既存の他のユーザーと重複していないかチェック
+        if (normalizedNewPhone !== '') {
+          // 新しい電話番号が空でない場合のみ重複チェック
+          for (let i = 0; i < data.length; i++) {
+            // 更新対象の行自身はスキップ
+            if (i === targetRowIndex) continue; // 同じ生徒IDを持つ行自身はスキップ
+
+            const storedPhone = String(data[i][phoneColIdx])
+              .replace(/^'/, '')
+              .replace(/[^0-9]/g, '');
+            if (storedPhone === normalizedNewPhone) {
+              throw new Error('この電話番号は既に他のユーザーに登録されています。');
+            }
           }
-          const normalizedNewPhone = validationResult.normalized;
-
-          // 新しい電話番号が既存の他のユーザーと重複していないかチェック
-          if (normalizedNewPhone !== '') { // 新しい電話番号が空でない場合のみ重複チェック
-              for (let i = 0; i < data.length; i++) {
-                  // 更新対象の行自身はスキップ
-                  if (i === targetRowIndex) continue; // 同じ生徒IDを持つ行自身はスキップ
-
-                  const storedPhone = String(data[i][phoneColIdx]).replace(/^'/, '').replace(/[^0-9]/g, '');
-                  if (storedPhone === normalizedNewPhone) {
-                      throw new Error('この電話番号は既に他のユーザーに登録されています。');
-                  }
-              }
-              rosterSheet.getRange(rowIndexToUpdate, phoneColIdx + 1).setValue("'" + normalizedNewPhone);
-              rosterSheet.getRange(rowIndexToUpdate, phoneColIdx + 1).setNumberFormat('@'); // テキストとして保持
-          } else {
-              rosterSheet.getRange(rowIndexToUpdate, phoneColIdx + 1).setValue(''); // 空文字列で更新
-          }
+          rosterSheet
+            .getRange(rowIndexToUpdate, phoneColIdx + 1)
+            .setValue("'" + normalizedNewPhone);
+          rosterSheet.getRange(rowIndexToUpdate, phoneColIdx + 1).setNumberFormat('@'); // テキストとして保持
+        } else {
+          rosterSheet.getRange(rowIndexToUpdate, phoneColIdx + 1).setValue(''); // 空文字列で更新
+        }
       }
 
-      logActivity(userInfo.studentId, userInfo.displayName, 'PROFILE_UPDATE_SUCCESS', 'SUCCESS', `RealName: ${userInfo.realName}, Phone: ${userInfo.phone || 'N/A'}`);
+      logActivity(
+        userInfo.studentId,
+        userInfo.displayName,
+        'PROFILE_UPDATE_SUCCESS',
+        'SUCCESS',
+        `RealName: ${userInfo.realName}, Phone: ${userInfo.phone || 'N/A'}`,
+      );
       return { success: true, message: 'プロフィールを更新しました。' };
     } else {
-      logActivity(userInfo.studentId, userInfo.displayName, 'PROFILE_UPDATE_FAILURE', 'FAILURE', 'User not found');
+      logActivity(
+        userInfo.studentId,
+        userInfo.displayName,
+        'PROFILE_UPDATE_FAILURE',
+        'FAILURE',
+        'User not found',
+      );
       return { success: false, message: '更新対象のユーザーが見つかりませんでした。' };
     }
   } catch (err) {
-     const details = `ID: ${userInfo.studentId}, Name: ${userInfo.displayName}, Error: ${err.message}`;
-     logActivity(userInfo.studentId, userInfo.displayName, 'PROFILE_UPDATE_ERROR', 'FAILURE', details);
-     Logger.log(`updateUserProfile Error: ${err.message}`);
-     return { success: false, message: `サーバーエラーが発生しました。\n${err.message}` };
+    const details = `ID: ${userInfo.studentId}, Name: ${userInfo.displayName}, Error: ${err.message}`;
+    logActivity(
+      userInfo.studentId,
+      userInfo.displayName,
+      'PROFILE_UPDATE_ERROR',
+      'FAILURE',
+      details,
+    );
+    Logger.log(`updateUserProfile Error: ${err.message}`);
+    return { success: false, message: `サーバーエラーが発生しました。\n${err.message}` };
   } finally {
     lock.releaseLock();
   }

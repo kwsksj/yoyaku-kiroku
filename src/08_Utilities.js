@@ -16,13 +16,13 @@
  * @returns {Map<string, number>}
  */
 function createHeaderMap(headerRow) {
-    const map = new Map();
-    headerRow.forEach((c, i) => {
-        if (c && typeof c === 'string') {
-            map.set(c.trim(), i);
-        }
-    });
-    return map;
+  const map = new Map();
+  headerRow.forEach((c, i) => {
+    if (c && typeof c === 'string') {
+      map.set(c.trim(), i);
+    }
+  });
+  return map;
 }
 
 /**
@@ -33,15 +33,17 @@ function createHeaderMap(headerRow) {
  * @returns {boolean}
  */
 function shouldProcessRowByDate(rowDate, timezone, options) {
-    if (!(rowDate instanceof Date)) return false;
-    const d = Utilities.formatDate(rowDate, timezone, 'yyyy/MM/dd');
-    if (options.endDate) {
-        return new Date(d) <= new Date(Utilities.formatDate(options.endDate, timezone, 'yyyy/MM/dd'));
-    }
-    if (options.targetDates) {
-        return options.targetDates.map(dt => Utilities.formatDate(dt, timezone, 'yyyy/MM/dd')).includes(d);
-    }
-    return true; // オプションがなければ常にtrue
+  if (!(rowDate instanceof Date)) return false;
+  const d = Utilities.formatDate(rowDate, timezone, 'yyyy/MM/dd');
+  if (options.endDate) {
+    return new Date(d) <= new Date(Utilities.formatDate(options.endDate, timezone, 'yyyy/MM/dd'));
+  }
+  if (options.targetDates) {
+    return options.targetDates
+      .map((dt) => Utilities.formatDate(dt, timezone, 'yyyy/MM/dd'))
+      .includes(d);
+  }
+  return true; // オプションがなければ常にtrue
 }
 
 /**
@@ -50,19 +52,23 @@ function shouldProcessRowByDate(rowDate, timezone, options) {
  * @param {boolean} isError - エラーかどうか
  */
 function handleError(message, isError) {
-    const logMessage = isError ? `エラー: ${message}` : `情報: ${message}`;
-    Logger.log(logMessage);
-    if (isError) {
-        // isErrorがtrueの場合、ログと通知を行う
-        const userEmail = Session.getActiveUser() ? Session.getActiveUser().getEmail() : 'system';
-        logActivity(userEmail, 'N/A', 'SYSTEM_ERROR', 'FAILURE', message);
-        sendAdminNotification('予約システムでエラーが発生しました', `エラー詳細:\n\n${message}`);
-    }
-    try {
-        SpreadsheetApp.getUi().alert(isError ? 'エラー' : '完了', message, SpreadsheetApp.getUi().ButtonSet.OK);
-    } catch (e) {
-        // UIが使えない環境（例：トリガー実行時）では何もしない
-    }
+  const logMessage = isError ? `エラー: ${message}` : `情報: ${message}`;
+  Logger.log(logMessage);
+  if (isError) {
+    // isErrorがtrueの場合、ログと通知を行う
+    const userEmail = Session.getActiveUser() ? Session.getActiveUser().getEmail() : 'system';
+    logActivity(userEmail, 'N/A', 'SYSTEM_ERROR', 'FAILURE', message);
+    sendAdminNotification('予約システムでエラーが発生しました', `エラー詳細:\n\n${message}`);
+  }
+  try {
+    SpreadsheetApp.getUi().alert(
+      isError ? 'エラー' : '完了',
+      message,
+      SpreadsheetApp.getUi().ButtonSet.OK,
+    );
+  } catch (e) {
+    // UIが使えない環境（例：トリガー実行時）では何もしない
+  }
 }
 
 /**
@@ -73,14 +79,21 @@ function handleError(message, isError) {
  * @returns {number} - 見つかった行のインデックス (1-based)。見つからない場合は-1。
  */
 function findRowIndexByValue(sheet, col, value) {
-    if (sheet.getLastRow() < RESERVATION_DATA_START_ROW) return -1;
-    const allValues = sheet.getRange(RESERVATION_DATA_START_ROW, col, sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1, 1).getValues();
-    for (let i = 0; i < allValues.length; i++) {
-        if (allValues[i][0] == value) {
-            return i + RESERVATION_DATA_START_ROW;
-        }
+  if (sheet.getLastRow() < RESERVATION_DATA_START_ROW) return -1;
+  const allValues = sheet
+    .getRange(
+      RESERVATION_DATA_START_ROW,
+      col,
+      sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
+      1,
+    )
+    .getValues();
+  for (let i = 0; i < allValues.length; i++) {
+    if (allValues[i][0] == value) {
+      return i + RESERVATION_DATA_START_ROW;
     }
-    return -1;
+  }
+  return -1;
 }
 
 /**
@@ -91,17 +104,27 @@ function findRowIndexByValue(sheet, col, value) {
  * @returns {number} - 見つかった最後の行番号。見つからない場合は-1。
  */
 function findLastRowOfDateBlock(sheet, date, dateColIdx) {
-    const data = sheet.getRange(RESERVATION_DATA_START_ROW, dateColIdx + 1, sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1, 1).getValues();
-    const timezone = sheet.getParent().getSpreadsheetTimeZone();
-    const targetDateString = Utilities.formatDate(date, timezone, "yyyy-MM-dd");
-    let lastRow = -1;
-    for (let i = data.length - 1; i >= 0; i--) {
-        if (data[i][0] instanceof Date && Utilities.formatDate(data[i][0], timezone, "yyyy-MM-dd") === targetDateString) {
-            lastRow = i + RESERVATION_DATA_START_ROW;
-            break;
-        }
+  const data = sheet
+    .getRange(
+      RESERVATION_DATA_START_ROW,
+      dateColIdx + 1,
+      sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
+      1,
+    )
+    .getValues();
+  const timezone = sheet.getParent().getSpreadsheetTimeZone();
+  const targetDateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
+  let lastRow = -1;
+  for (let i = data.length - 1; i >= 0; i--) {
+    if (
+      data[i][0] instanceof Date &&
+      Utilities.formatDate(data[i][0], timezone, 'yyyy-MM-dd') === targetDateString
+    ) {
+      lastRow = i + RESERVATION_DATA_START_ROW;
+      break;
     }
-    return lastRow;
+  }
+  return lastRow;
 }
 
 /**
@@ -114,7 +137,9 @@ function formatSheetWithBordersSafely(sheet) {
     try {
       drawBorders.formatSheetWithBorders(sheet);
     } catch (err) {
-      Logger.log(`The 'drawBorders' library exists but failed to execute for sheet '${sheet.getName()}': ${err.message}`);
+      Logger.log(
+        `The 'drawBorders' library exists but failed to execute for sheet '${sheet.getName()}': ${err.message}`,
+      );
     }
   }
 }
@@ -130,16 +155,16 @@ function formatSheetWithBordersSafely(sheet) {
 function createSalesRow(baseInfo, category, itemName, price) {
   // 注意：この配列の順序は、実際の「売上ログ」シートの列の順序と一致させる必要があります。
   return [
-    baseInfo.date,          // 日付
-    baseInfo.classroom,     // 教室
-    baseInfo.venue,         // 会場
-    baseInfo.studentId,     // 生徒ID
-    baseInfo.name,          // 名前
-    category,               // 大項目 (授業料/物販)
-    itemName,               // 中項目 (商品名など)
-    1,                      // 数量 (常に1として計上)
-    price,                  // 金額
-    baseInfo.paymentMethod  // 支払手段
+    baseInfo.date, // 日付
+    baseInfo.classroom, // 教室
+    baseInfo.venue, // 会場
+    baseInfo.studentId, // 生徒ID
+    baseInfo.name, // 名前
+    category, // 大項目 (授業料/物販)
+    itemName, // 中項目 (商品名など)
+    1, // 数量 (常に1として計上)
+    price, // 金額
+    baseInfo.paymentMethod, // 支払手段
   ];
 }
 
@@ -162,7 +187,14 @@ function logActivity(userId, userName, action, result, details) {
     let logSheet = ss.getSheetByName(LOG_SHEET_NAME);
     if (!logSheet) {
       logSheet = ss.insertSheet(LOG_SHEET_NAME, 0); // 先頭にシートを作成
-      logSheet.appendRow(['タイムスタンプ', 'ユーザーID', 'ユーザー名', 'アクション', '結果', '詳細']);
+      logSheet.appendRow([
+        'タイムスタンプ',
+        'ユーザーID',
+        'ユーザー名',
+        'アクション',
+        '結果',
+        '詳細',
+      ]);
       logSheet.setFrozenRows(1);
       logSheet.getRange('A:A').setNumberFormat('yyyy-mm-dd hh:mm:ss');
       logSheet.setColumnWidth(1, 150);
@@ -171,7 +203,9 @@ function logActivity(userId, userName, action, result, details) {
     const timestamp = new Date();
     // appendRowは遅いことがあるため、insertRowとsetValuesを使う
     logSheet.insertRowAfter(1);
-    logSheet.getRange(2, 1, 1, 6).setValues([[timestamp, userId, userName, action, result, details]]);
+    logSheet
+      .getRange(2, 1, 1, 6)
+      .setValues([[timestamp, userId, userName, action, result, details]]);
   } catch (e) {
     Logger.log(`ログの記録に失敗しました: ${e.message}`);
     // ここでエラーが発生しても、メインの処理は続行させる
@@ -192,7 +226,7 @@ function sendAdminNotification(subject, body) {
     MailApp.sendEmail({
       to: ADMIN_EMAIL,
       subject: `[予約システム通知] ${subject}`,
-      body: body
+      body: body,
     });
   } catch (e) {
     Logger.log(`管理者への通知メール送信に失敗しました: ${e.message}`);

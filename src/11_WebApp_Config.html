@@ -1,66 +1,66 @@
 <script>
-    /**
-     * =================================================================
-     * 【ファイル名】: 11_WebApp_Config.html
-     * 【バージョン】: 1.1
-     * 【役割】: WebAppのフロントエンドで使用される、変更頻度の低い
-     * 基本的な定数やデザイン設定を集約します。
-     * 【構成】: 14ファイル構成のうちの11番目
-     * 【v1.1での変更点】:
-     * - 将来の混乱を避けるため、内部コメントから旧ファイル名への言及を削除。
-     * =================================================================
-     */
+  /**
+   * =================================================================
+   * 【ファイル名】: 11_WebApp_Config.html
+   * 【バージョン】: 1.1
+   * 【役割】: WebAppのフロントエンドで使用される、変更頻度の低い
+   * 基本的な定数やデザイン設定を集約します。
+   * 【構成】: 14ファイル構成のうちの11番目
+   * 【v1.1での変更点】:
+   * - 将来の混乱を避けるため、内部コメントから旧ファイル名への言及を削除。
+   * =================================================================
+   */
 
-    // =================================================================
-    // --- Application Constants ---
-    // -----------------------------------------------------------------
-    // GAS側で定義された定数のうち、フロントエンドのロジックで
-    // 直接参照する必要があるもののみを定義します。
-    // =================================================================
-    const TOKYO_CLASSROOM_NAME = '東京教室';
-    const NUMAZU_CLASSROOM_NAME = '沼津教室';
-    const TSUKUBA_CLASSROOM_NAME = 'つくば教室';
-    const ITEM_NAME_DISCOUNT = '初回講習同時間割引';
+  // =================================================================
+  // --- Application Constants ---
+  // -----------------------------------------------------------------
+  // GAS側で定義された定数のうち、フロントエンドのロジックで
+  // 直接参照する必要があるもののみを定義します。
+  // =================================================================
+  const TOKYO_CLASSROOM_NAME = '東京教室';
+  const NUMAZU_CLASSROOM_NAME = '沼津教室';
+  const TSUKUBA_CLASSROOM_NAME = 'つくば教室';
+  const ITEM_NAME_DISCOUNT = '初回講習同時間割引';
 
-
-    // =================================================================
-    // --- Design Configuration ---
-    // -----------------------------------------------------------------
-    // Tailwind CSS のクラスを意味的な名前でグルーピングし、
-    // アプリ全体のデザインの一貫性を保ちます。
-    // =================================================================
-    const DesignConfig = {
-        // テキストや背景の色設定
-        colors: {
-            text: 'text-brand-text',
-            textSubtle: 'text-brand-subtle',
-            primary: 'bg-action-primary-bg text-action-primary-text',
-            secondary: 'bg-action-secondary-bg text-action-secondary-text',
-            danger: 'bg-action-danger-bg text-action-danger-text',
-            paid: 'bg-action-paid-bg text-action-paid-text'
-        },
-        // ボタンの基本スタイル
-        buttons: {
-            base: 'font-bold py-2.5 px-5 rounded-md transition-transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2',
-            full: 'w-full',
-            auto: 'w-auto'
-        },
-        // カード型コンポーネントのスタイル
-        cards: {
-            base: 'w-full text-left p-3 rounded-lg',
-            container: 'max-w-md mx-auto space-y-3',
-            // 予約状況に応じた状態別スタイル
-            state: {
-                available: { card: 'bg-gray-50', text: 'text-state-available-text' },
-                waitlist: { card: 'bg-yellow-50', text: 'text-state-waitlist-text' },
-                booked: { card: 'bg-teal-50', text: 'text-state-booked-text' }
-            }
-        },
-        // 入力フォームのスタイル
-        inputs: {
-            container: 'max-w-xs mx-auto',
-            base: 'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text',
-            textarea: 'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24'
-        },
-    };
+  // =================================================================
+  // --- Design Configuration ---
+  // -----------------------------------------------------------------
+  // Tailwind CSS のクラスを意味的な名前でグルーピングし、
+  // アプリ全体のデザインの一貫性を保ちます。
+  // =================================================================
+  const DesignConfig = {
+    // テキストや背景の色設定
+    colors: {
+      text: 'text-brand-text',
+      textSubtle: 'text-brand-subtle',
+      primary: 'bg-action-primary-bg text-action-primary-text',
+      secondary: 'bg-action-secondary-bg text-action-secondary-text',
+      danger: 'bg-action-danger-bg text-action-danger-text',
+      paid: 'bg-action-paid-bg text-action-paid-text',
+    },
+    // ボタンの基本スタイル
+    buttons: {
+      base: 'font-bold py-2.5 px-5 rounded-md transition-transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2',
+      full: 'w-full',
+      auto: 'w-auto',
+    },
+    // カード型コンポーネントのスタイル
+    cards: {
+      base: 'w-full text-left p-3 rounded-lg',
+      container: 'max-w-md mx-auto space-y-3',
+      // 予約状況に応じた状態別スタイル
+      state: {
+        available: { card: 'bg-gray-50', text: 'text-state-available-text' },
+        waitlist: { card: 'bg-yellow-50', text: 'text-state-waitlist-text' },
+        booked: { card: 'bg-teal-50', text: 'text-state-booked-text' },
+      },
+    },
+    // 入力フォームのスタイル
+    inputs: {
+      container: 'max-w-xs mx-auto',
+      base: 'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text',
+      textarea:
+        'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24',
+    },
+  };
 </script>
