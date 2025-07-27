@@ -63,13 +63,7 @@ function processReservations(mode) {
   const rowsToDelete = transferPastReservationsToArchive({ sheet: activeSheet, ...options });
   if (rowsToDelete.length > 0) {
     deleteProcessedReservations(activeSheet, rowsToDelete);
-    logActivity(
-      'system',
-      'system',
-      'ARCHIVE_BATCH',
-      'SUCCESS',
-      `シート: ${activeSheetName}, 処理件数: ${rowsToDelete.length}`,
-    );
+    logActivity('system', 'バッチ処理(アーカイブ)', '成功', `シート: ${activeSheetName}, 処理件数: ${rowsToDelete.length}`);
   }
   handleError(`${mode} のデータ処理が完了しました。`, false);
 }

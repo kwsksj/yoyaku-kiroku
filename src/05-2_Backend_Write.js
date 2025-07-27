@@ -285,7 +285,7 @@ function makeReservation(reservationInfo) {
     // ログと通知
     const message = !isFull ? '予約が完了しました。' : '満席のため、キャンセル待ちで登録しました。';
     const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}`;
-    logActivity(user.studentId, user.displayName, 'RESERVATION_CREATE', 'SUCCESS', logDetails);
+        logActivity(user.studentId, '予約作成', '成功', logDetails);
 
     const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
     const body =
@@ -300,13 +300,7 @@ function makeReservation(reservationInfo) {
 
     return { success: true, message: message, newBookingsCache: newBookingsCache };
   } catch (err) {
-    logActivity(
-      reservationInfo.user.studentId,
-      reservationInfo.user.displayName,
-      'RESERVATION_CREATE_ERROR',
-      'FAILURE',
-      `Error: ${err.message}`,
-    );
+    logActivity(reservationInfo.user.studentId, '予約作成', 'エラー', `Error: ${err.message}`);
     Logger.log(`makeReservation Error: ${err.message}\n${err.stack}`);
     return { success: false, message: `予約処理中にエラーが発生しました。\n${err.message}` };
   } finally {
@@ -400,7 +394,7 @@ function cancelReservation(cancelInfo) {
 
     // ログと通知
     const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}`;
-    logActivity(studentId, userInfo.displayName, 'RESERVATION_CANCEL', 'SUCCESS', logDetails);
+    logActivity(studentId, '予約キャンセル', '成功', logDetails);
 
     const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
     const body =
@@ -419,13 +413,7 @@ function cancelReservation(cancelInfo) {
       newBookingsCache: newBookingsCache,
     };
   } catch (err) {
-    logActivity(
-      cancelInfo.studentId,
-      '(N/A)',
-      'RESERVATION_CANCEL_ERROR',
-      'FAILURE',
-      `Error: ${err.message}`,
-    );
+    logActivity(cancelInfo.studentId, '予約キャンセル', 'エラー', `Error: ${err.message}`);
     Logger.log(`cancelReservation Error: ${err.message}\n${err.stack}`);
     return { success: false, message: `キャンセル処理中にエラーが発生しました。` };
   } finally {
@@ -519,13 +507,7 @@ function updateReservationDetails(details) {
     );
     return { success: true, newBookingsCache: newBookingsCache };
   } catch (err) {
-    logActivity(
-      details.studentId,
-      '(N/A)',
-      'RESERVATION_UPDATE_ERROR',
-      'FAILURE',
-      `Error: ${err.message}`,
-    );
+    logActivity(details.studentId || '(N/A)', '予約詳細更新', 'エラー', `Error: ${err.message}`);
     Logger.log(`updateReservationDetails Error: ${err.message}\n${err.stack}`);
     return { success: false, message: `詳細情報の更新中にエラーが発生しました。\n${err.message}` };
   } finally {
@@ -723,7 +705,7 @@ function saveAccountingDetails(payload) {
 
     // ログと通知
     const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}, Total: ${finalAccountingDetails.grandTotal}`;
-    logActivity(studentId, '(N/A)', 'ACCOUNTING_SAVE', 'SUCCESS', logDetails);
+        logActivity(studentId, '会計記録保存', '成功', logDetails);
 
     const subject = `会計記録 (${classroom})`;
     const body =
@@ -745,13 +727,7 @@ function saveAccountingDetails(payload) {
       message: '会計処理と関連データの更新がすべて完了しました。',
     };
   } catch (err) {
-    logActivity(
-      payload.studentId,
-      '(N/A)',
-      'ACCOUNTING_SAVE_ERROR',
-      'FAILURE',
-      `Error: ${err.message}`,
-    );
+    logActivity(payload.studentId, '会計記録保存', 'エラー', `Error: ${err.message}`);
     Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
     return { success: false, message: `会計情報の保存中にエラーが発生しました。\n${err.message}` };
   } finally {
@@ -949,17 +925,11 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
     sheet.getRange(targetRowIndex, wipColIdx + 1).setValue(newMemo);
     SpreadsheetApp.flush();
 
-    logActivity(
-      studentId,
-      '(N/A)',
-      'MEMO_UPDATE_SUCCESS',
-      'SUCCESS',
-      `ResID: ${reservationId}, Sheet: ${sheetName}`,
-    );
+    logActivity(studentId, '制作メモ更新', '成功', `ResID: ${reservationId}, Sheet: ${sheetName}`);
     return getParticipationHistory(studentId, null, null);
   } catch (err) {
     const details = `ResID: ${reservationId}, Sheet: ${sheetName}, Error: ${err.message}`;
-    logActivity(studentId, '(N/A)', 'MEMO_UPDATE_ERROR', 'FAILURE', details);
+    logActivity(studentId, '制作メモ更新', 'エラー', details);
     Logger.log(`updateMemo Error: ${err.message}\n${err.stack}`);
     return { success: false, message: `制作メモの更新中にエラーが発生しました。\n${err.message}` };
   } finally {

@@ -174,41 +174,29 @@ function include(filename) {
 
 /**
  * アプリケーションのアクティビティをログシートに記録します。
- * ログシートが存在しない場合は自動的に作成します。
- * @param {string} userId - 操作を行ったユーザーのID。'N/A'も可。
- * @param {string} userName - 操作を行ったユーザーの名前。'N/A'も可。
- * @param {string} action - 操作の種類 (例: 'LOGIN_SUCCESS', 'RESERVATION_CREATE')。
- * @param {string} result - 操作の結果 ('SUCCESS' or 'FAILURE')。
+ * 新しい行は常に2行目に挿入されます。
+ * 本名とニックネームはスプレッドシートのARRAYFORMULAによって自動的に表示されます。
+ * @param {string} userId - 操作を行ったユーザーのID。'system'なども可。
+ * @param {string} action - 操作の種類 (日本語推奨)。
+ * @param {string} result - 操作の結果 ('成功' or '失敗')。
  * @param {string} details - 操作の詳細情報。
  */
-function logActivity(userId, userName, action, result, details) {
+function logActivity(userId, action, result, details) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let logSheet = ss.getSheetByName(LOG_SHEET_NAME);
+    const logSheet = ss.getSheetByName('アクティビティログ');
+    // シートや数式が未設定の場合は、エラーを出さずに処理を中断する
     if (!logSheet) {
-      logSheet = ss.insertSheet(LOG_SHEET_NAME, 0); // 先頭にシートを作成
-      logSheet.appendRow([
-        'タイムスタンプ',
-        'ユーザーID',
-        'ユーザー名',
-        'アクション',
-        '結果',
-        '詳細',
-      ]);
-      logSheet.setFrozenRows(1);
-      logSheet.getRange('A:A').setNumberFormat('yyyy-mm-dd hh:mm:ss');
-      logSheet.setColumnWidth(1, 150);
-      logSheet.setColumnWidth(6, 400);
+      console.log('ログシートが見つかりません。処理をスキップしました。');
+      return;
     }
+
+    logSheet.insertRowAfter(1); // 常にヘッダーの直下(2行目)に行を挿入
     const timestamp = new Date();
-    // appendRowは遅いことがあるため、insertRowとsetValuesを使う
-    logSheet.insertRowAfter(1);
-    logSheet
-      .getRange(2, 1, 1, 6)
-      .setValues([[timestamp, userId, userName, action, result, details]]);
+    // A, B, E, F, G列に値を設定。C,D列は数式が自動計算するため書き込まない。
+    logSheet.getRange('A2:G2').setValues([[timestamp, userId, '', '', action, result, details]]);
   } catch (e) {
     Logger.log(`ログの記録に失敗しました: ${e.message}`);
-    // ここでエラーが発生しても、メインの処理は続行させる
   }
 }
 
@@ -231,4 +219,121 @@ function sendAdminNotification(subject, body) {
   } catch (e) {
     Logger.log(`管理者への通知メール送信に失敗しました: ${e.message}`);
   }
+}
+
+/**
+ * アクティビティログシートに、定義済みの条件付き書式を一括で設定します。
+ * F列は自身の値、G列はE列の値に基づいて背景色が設定されます。
+ * 実行前に既存のルールはすべてクリアされるため、常に新しい状態でルールが適用されます。
+ */
+function setupConditionalFormattingForLogSheet() {
+  const sheetName = 'アクティビティログ';
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(sheetName);
+
+  if (!sheet) {
+    SpreadsheetApp.getUi().alert(`シート「${sheetName}」が見つかりません。`);
+    return;
+  }
+
+  // --- 書式ルールの定義 ---
+  const colors = {
+    lightGreen: '#d9ead3', // 成功
+    lightRed: '#f4cccc', // 失敗・エラー
+    lightBlue: '#cfe2f3', // ユーザーの主要アクション
+    lightOrange: '#fce5cd', // 編集・変更系アクション
+    lightPurple: '#d9d2e9', // システム・バッチ処理
+  };
+
+  const rules = [];
+
+  // --- 「結果」列 (F列) のルール ---
+  rules.push(
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('成功')
+      .setBackground(colors.lightGreen)
+      .setRanges([sheet.getRange('F:F')])
+      .build(),
+  );
+  rules.push(
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('失敗')
+      .setBackground(colors.lightRed)
+      .setRanges([sheet.getRange('F:F')])
+      .build(),
+  );
+  rules.push(
+    SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo('エラー')
+      .setBackground(colors.lightRed)
+      .setRanges([sheet.getRange('F:F')])
+      .build(),
+  );
+
+  // --- 「アクション」列 (E列) と「詳細」列 (G列) のルール定義 ---
+  const actionRules = [
+    {
+      text: [
+        'ログイン試行',
+        '特殊ログイン試行',
+        '電話番号なしユーザー検索',
+        '新規ユーザー登録',
+        '予約作成',
+      ],
+      color: colors.lightBlue,
+    },
+    {
+      text: [
+        'プロフィール更新',
+        '予約詳細更新',
+        '制作メモ更新',
+        '予約キャンセル',
+        '名簿編集',
+        '予約シート編集',
+        '行挿入',
+      ],
+      color: colors.lightOrange,
+    },
+    {
+      text: [
+        '会計記録保存',
+        'バッチ処理(アーカイブ)',
+        '手動ソート実行',
+        'サマリー再構築',
+        'カレンダー同期',
+        '名簿キャッシュ更新',
+        '履歴キャッシュ移行',
+        '予約キャッシュ移行',
+        'フォーム選択肢更新',
+        'サマリー更新',
+        'サマリー更新(トリガー)',
+      ],
+      color: colors.lightPurple,
+    },
+  ];
+
+  actionRules.forEach((rule) => {
+    rule.text.forEach((text) => {
+      // 【E列用のルール】E列自身のテキストを評価します
+      const ruleForE = SpreadsheetApp.newConditionalFormatRule()
+        .whenTextEqualTo(text)
+        .setBackground(rule.color)
+        .setRanges([sheet.getRange('E:E')]);
+      rules.push(ruleForE.build());
+
+      // 【G列用のルール】カスタム数式を使い、E列のテキストを評価します
+      const formula = `=$E1="${text}"`;
+      const ruleForG = SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied(formula) // 正しいメソッドを使用します
+        .setBackground(rule.color)
+        .setRanges([sheet.getRange('G:G')]);
+      rules.push(ruleForG.build());
+    });
+  });
+
+  // --- ルールの適用 ---
+  sheet.clearConditionalFormatRules();
+  sheet.setConditionalFormatRules(rules);
+
+  SpreadsheetApp.getUi().alert('アクティビティログの条件付き書式を更新しました。');
 }

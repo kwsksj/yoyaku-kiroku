@@ -73,13 +73,7 @@ function authenticateUser(phoneNumber) {
 
     // NF-01: 特殊コマンドが入力された場合、電話番号なしユーザーリストの表示を促す
     if (noPhoneLoginCommand && phoneNumber === noPhoneLoginCommand) {
-      logActivity(
-        'N/A',
-        'N/A',
-        'SPECIAL_LOGIN_COMMAND_RECOGNIZED',
-        'SUCCESS',
-        `Command: ${phoneNumber}`,
-      );
+      logActivity('N/A', '特殊ログイン試行', '成功', `Command: ${phoneNumber}`);
       return { success: false, commandRecognized: 'all' }; // commandRecognizedは'all'に固定
     }
 
@@ -151,24 +145,18 @@ function authenticateUser(phoneNumber) {
           realName: row[relativeRealNameColIdx],
           phone: row[relativePhoneColIdx],
         };
-        logActivity(
-          user.studentId,
-          user.displayName,
-          'LOGIN_SUCCESS',
-          'SUCCESS',
-          `Phone: ${phoneNumber}`,
-        );
+        logActivity(user.studentId, 'ログイン試行', '成功', `電話番号: ${phoneNumber}`);
         return user;
       }
     }
-    logActivity('N/A', 'N/A', 'LOGIN_FAILURE', 'FAILURE', `Phone: ${phoneNumber}`);
+    logActivity('N/A', 'ログイン試行', '失敗', `電話番号: ${phoneNumber}`);
     return {
       success: false,
       message: '登録されている電話番号と一致しません。',
       phoneForRegistration: normalizedInputPhone,
     };
   } catch (err) {
-    logActivity('N/A', 'N/A', 'LOGIN_ERROR', 'FAILURE', `Error: ${err.message}`);
+    logActivity('N/A', 'ログイン試行', 'エラー', `Error: ${err.message}`);
     Logger.log(`authenticateUser Error: ${err.message}`);
     return {
       success: false,
@@ -222,16 +210,10 @@ function getUsersWithoutPhoneNumber() {
         });
       }
     }
-    logActivity(
-      'N/A',
-      'N/A',
-      'GET_NO_PHONE_USERS',
-      'SUCCESS',
-      `Found ${usersWithoutPhone.length} users without phone numbers.`,
-    );
+    logActivity('N/A', '電話番号なしユーザー検索', '成功', `発見数: ${usersWithoutPhone.length}`);
     return usersWithoutPhone;
   } catch (err) {
-    logActivity('N/A', 'N/A', 'GET_NO_PHONE_USERS', 'FAILURE', `Error: ${err.message}`);
+    logActivity('N/A', '電話番号なしユーザー検索', 'エラー', `Error: ${err.message}`);
     Logger.log(`getUsersWithoutPhoneNumber Error: ${err.message}`);
     return []; // エラー時は空配列を返す
   }
@@ -313,13 +295,7 @@ function registerNewUser(userInfo) {
     const lastRow = rosterSheet.getLastRow();
     rosterSheet.getRange(lastRow, phoneColIdx + 1).setNumberFormat('@');
 
-    logActivity(
-      studentId,
-      userInfo.nickname || userInfo.realName,
-      'REGISTER_SUCCESS',
-      'SUCCESS',
-      `Phone: ${normalizedPhone}`,
-    );
+    logActivity(studentId, '新規ユーザー登録', '成功', `電話番号: ${normalizedPhone}`);
 
     return {
       success: true,
@@ -329,13 +305,7 @@ function registerNewUser(userInfo) {
       phone: normalizedPhone,
     };
   } catch (err) {
-    logActivity(
-      userInfo.realName,
-      userInfo.nickname,
-      'REGISTER_ERROR',
-      'FAILURE',
-      `Error: ${err.message}`,
-    );
+    logActivity('N/A', '新規ユーザー登録', 'エラー', `Error: ${err.message}`);
     Logger.log(`registerNewUser Error: ${err.message}`);
     return { success: false, message: `サーバーエラーが発生しました。` };
   } finally {
@@ -414,31 +384,18 @@ function updateUserProfile(userInfo) {
 
       logActivity(
         userInfo.studentId,
-        userInfo.displayName,
-        'PROFILE_UPDATE_SUCCESS',
-        'SUCCESS',
-        `RealName: ${userInfo.realName}, Phone: ${userInfo.phone || 'N/A'}`,
+        'プロフィール更新',
+        '成功',
+        `本名: ${userInfo.realName}, 電話番号: ${userInfo.phone || 'N/A'}`,
       );
       return { success: true, message: 'プロフィールを更新しました。' };
     } else {
-      logActivity(
-        userInfo.studentId,
-        userInfo.displayName,
-        'PROFILE_UPDATE_FAILURE',
-        'FAILURE',
-        'User not found',
-      );
+      logActivity(userInfo.studentId, 'プロフィール更新', 'エラー', details);
       return { success: false, message: '更新対象のユーザーが見つかりませんでした。' };
     }
   } catch (err) {
     const details = `ID: ${userInfo.studentId}, Name: ${userInfo.displayName}, Error: ${err.message}`;
-    logActivity(
-      userInfo.studentId,
-      userInfo.displayName,
-      'PROFILE_UPDATE_ERROR',
-      'FAILURE',
-      details,
-    );
+    logActivity(userInfo.studentId, 'プロフィール更新エラー', '失敗', details);
     Logger.log(`updateUserProfile Error: ${err.message}`);
     return { success: false, message: `サーバーエラーが発生しました。\n${err.message}` };
   } finally {

@@ -33,13 +33,7 @@ function setCheckboxChoices(classroomName) {
       }
     }
   } catch (e) {
-    logActivity(
-      'system',
-      'system',
-      'FORM_UPDATE_ERROR',
-      'FAILURE',
-      `教室: ${classroomName}, エラー: ${e.message}`,
-    );
+    logActivity('system', 'フォーム選択肢更新', 'エラー', `教室: ${classroomName}, エラー: ${e.message}`);
     Logger.log(`フォーム連携でエラー: ${e.message}`);
   }
 }
@@ -265,14 +259,8 @@ function addCalendarEventsToSheetWithSpecifics() {
         sheet
           .getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length)
           .setValues(newRows);
-        Logger.log(`シート "${sheetName}" に ${newRows.length} 行を追加しました。`);
-        logActivity(
-          'system',
-          'system',
-          'CALENDAR_SYNC',
-          'SUCCESS',
-          `シート: ${sheetName}, 追加件数: ${newRows.length}`,
-        );
+        Logger.log(`シート "${sheetName}" に ${newRows.length} 行を追加しました。`);;
+        logActivity('system', 'カレンダー同期', '成功', `シート: ${sheetName}, 追加件数: ${newRows.length}`);
       }
     });
 

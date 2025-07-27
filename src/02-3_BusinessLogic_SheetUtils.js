@@ -212,13 +212,7 @@ function manuallyReSortAndNumberSheet() {
 
     formatSheetWithBordersSafely(sheet);
     handleError('シート全体のソートと採番が完了しました。', false);
-    logActivity(
-      'user',
-      Session.getActiveUser().getEmail(),
-      'MANUAL_SORT',
-      'SUCCESS',
-      `シート: ${sheet.getName()}`,
-    );
+    logActivity(Session.getActiveUser().getEmail(), '手動ソート実行', '成功', `シート: ${sheet.getName()}`);
   } catch (err) {
     handleError(`手動ソート処理中にエラーが発生しました: ${err.message}`, true);
   }
