@@ -645,11 +645,11 @@
           hideLoading();
           setState({
             view: 'complete',
-            completionMessage: '会計情報を記録しました。続けて次の予約をされますか？',
+            completionMessage: '会計情報を記録しました。',
             myBookings: r.newBookingsCache,
             history: r.newHistory,
             historyTotal: r.newHistoryTotal,
-            // 完了画面で同じ教室の予約ボタンを表示するため
+            slots: r.updatedSlots, // <--- これを追加
             accountingReservation: appState.accountingReservation,
           });
         } else {
@@ -668,7 +668,7 @@
   // 全体を制御するコアとなる関数群です。
   // =================================================================
 
-  
+
 
   /**
    * サーバーサイドでエラーが発生した際の共通処理です。

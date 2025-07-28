@@ -285,7 +285,7 @@ function makeReservation(reservationInfo) {
     // ログと通知
     const message = !isFull ? '予約が完了しました。' : '満席のため、キャンセル待ちで登録しました。';
     const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}`;
-        logActivity(user.studentId, '予約作成', '成功', logDetails);
+    logActivity(user.studentId, '予約作成', '成功', logDetails);
 
     const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
     const body =
@@ -700,30 +700,43 @@ function saveAccountingDetails(payload) {
       Logger.log(`会計処理後の履歴取得に失敗: ${historyResult.message}`);
     }
 
+    // [追加] 9. 更新されたサマリーから、最新の空き枠情報を取得する
+    const updatedSlotsResult = getSlotsAndMyBookings(actualStudentId);
+    const updatedSlotsForClassroom = updatedSlotsResult.success
+      ? updatedSlotsResult.availableSlots
+      : [];
+
     // 9. 【NEW】会計済みの予約をアーカイブし、元の行を削除する
     _archiveSingleReservation(sheet, targetRowIndex, reservationDataRow);
 
     // ログと通知
     const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}, Total: ${finalAccountingDetails.grandTotal}`;
-        logActivity(studentId, '会計記録保存', '成功', logDetails);
+    logActivity(studentId, '会計記録保存', '成功', logDetails);
 
     const subject = `会計記録 (${classroom})`;
     const body =
-      `会計が記録されました。\n\n` +
-      `教室: ${classroom}\n` +
-      `予約ID: ${reservationId}\n` +
-      `生徒ID: ${studentId}\n` +
-      `合計金額: ${finalAccountingDetails.grandTotal.toLocaleString()} 円\n\n` +
+      `会計が記録されました。
+
+` +
+      `教室: ${classroom}
+` +
+      `予約ID: ${reservationId}
+` +
+      `生徒ID: ${studentId}
+` +
+      `合計金額: ${finalAccountingDetails.grandTotal.toLocaleString()} 円
+
+` +
       `詳細はスプレッドシートを確認してください。`;
     sendAdminNotification(subject, body);
 
-    // --- 追加処理ここまで ---
-
+    // [変更] 戻り値に updatedSlots を追加
     return {
       success: true,
       newBookingsCache: newBookingsCache,
       newHistory: historyResult.history,
       newHistoryTotal: historyResult.total,
+      updatedSlots: updatedSlotsForClassroom, // <--- これを追加
       message: '会計処理と関連データの更新がすべて完了しました。',
     };
   } catch (err) {
