@@ -100,6 +100,7 @@ function makeReservation(reservationInfo) {
     const endTimeColIdx = headerMap.get(HEADER_END_TIME);
     const wipColIdx = headerMap.get(HEADER_WORK_IN_PROGRESS);
     const orderColIdx = headerMap.get(HEADER_ORDER);
+    const messageColIdx = headerMap.get(HEADER_MESSAGE_TO_TEACHER);
     const capacity = CLASSROOM_CAPACITIES[classroom] || 8;
 
     let isFull = false;
@@ -207,6 +208,7 @@ function makeReservation(reservationInfo) {
       if (rentalColIdx !== undefined) values[rentalColIdx] = options.chiselRental || false;
       if (wipColIdx !== undefined) values[wipColIdx] = options.workInProgress || '';
       if (orderColIdx !== undefined) values[orderColIdx] = options.order || '';
+      if (messageColIdx !== undefined) values[messageColIdx] = options.messageToTeacher || '';
 
       targetRowValues = values; // 【NF-12】
     };
@@ -283,6 +285,7 @@ function makeReservation(reservationInfo) {
       firstLecture: options.firstLecture || false,
       workInProgress: options.workInProgress || '',
       order: options.order || '',
+      messageToTeacher: options.messageToTeacher || '',
       accountingDone: false,
       accountingDetails: '',
     };
@@ -294,17 +297,21 @@ function makeReservation(reservationInfo) {
 
     // ログと通知
     const message = !isFull ? '予約が完了しました。' : '満席のため、キャンセル待ちで登録しました。';
-    const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}`;
+    const messageToTeacher = options.messageToTeacher || '';
+    const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
+    const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}${messageLog}`;
     logActivity(user.studentId, '予約作成', '成功', logDetails);
 
     const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
+    const messageToTeacher = options.messageToTeacher || '';
+    const messageSection = messageToTeacher ? `\n先生へのメッセージ: ${messageToTeacher}\n` : '';
     const body =
       `新しい予約が入りました。\n\n` +
       `本名: ${user.realName}\n` +
       `ニックネーム: ${user.displayName}\n\n` +
       `教室: ${classroom}\n` +
       `日付: ${date}\n` +
-      `状態: ${isFull ? 'キャンセル待ち' : '確定'}\n\n` +
+      `状態: ${isFull ? 'キャンセル待ち' : '確定'}${messageSection}\n` +
       `詳細はスプレッドシートを確認してください。`;
     sendAdminNotification(subject, body);
 
@@ -403,17 +410,21 @@ function cancelReservation(cancelInfo) {
     });
 
     // ログと通知
-    const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}`;
+    const cancelMessage = cancelInfo.cancelMessage || '';
+    const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
+    const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}${messageLog}`;
     logActivity(studentId, '予約キャンセル', '成功', logDetails);
 
     const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
+    const cancelMessage = cancelInfo.cancelMessage || '';
+    const messageSection = cancelMessage ? `\n先生へのメッセージ: ${cancelMessage}\n` : '';
     const body =
       `予約がキャンセルされました。\n\n` +
       `本名: ${userInfo.realName}\n` +
       `ニックネーム: ${userInfo.displayName}\n\n` +
       `教室: ${classroom}\n` +
       `日付: ${Utilities.formatDate(targetDate, ss.getSpreadsheetTimeZone(), 'yyyy/MM/dd')}\n` +
-      `予約ID: ${reservationId}\n\n` +
+      `予約ID: ${reservationId}${messageSection}\n` +
       `詳細はスプレッドシートを確認してください。`;
     sendAdminNotification(subject, body);
 
@@ -477,6 +488,7 @@ function updateReservationDetails(details) {
       endTime: HEADER_END_TIME,
       workInProgress: HEADER_WORK_IN_PROGRESS,
       order: HEADER_ORDER,
+      messageToTeacher: HEADER_MESSAGE_TO_TEACHER,
     };
 
     for (const key in colMap) {
@@ -509,12 +521,20 @@ function updateReservationDetails(details) {
       chiselRental: details.chiselRental || false,
       workInProgress: details.workInProgress || '',
       order: details.order || '',
+      messageToTeacher: details.messageToTeacher || '',
     };
     const newBookingsCache = _updateFutureBookingsCacheIncrementally(
       studentId,
       'update',
       updatedBookingObject,
     );
+
+    // ログ記録
+    const messageToTeacher = details.messageToTeacher || '';
+    const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
+    const logDetails = `ReservationID: ${details.reservationId}, Classroom: ${details.classroom}${messageLog}`;
+    logActivity(studentId, '予約詳細更新', '成功', logDetails);
+
     return { success: true, newBookingsCache: newBookingsCache };
   } catch (err) {
     logActivity(details.studentId || '(N/A)', '予約詳細更新', 'エラー', `Error: ${err.message}`);

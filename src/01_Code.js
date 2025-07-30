@@ -57,6 +57,7 @@ const HEADER_CHISEL_RENTAL = '彫刻刀レンタル';
 const HEADER_TIME = '受講時間';
 const HEADER_WORK_IN_PROGRESS = '制作メモ';
 const HEADER_ORDER = 'order';
+const HEADER_MESSAGE_TO_TEACHER = 'メッセージ';
 const HEADER_ACCOUNTING_DETAILS = '会計詳細';
 const HEADER_LINE = 'LINE';
 const HEADER_IN_THE_FUTURE = 'in the future';

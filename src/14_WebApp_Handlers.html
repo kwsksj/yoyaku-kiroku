@@ -275,15 +275,29 @@
 
     /** 予約をキャンセルします */
     cancel: (d) => {
+      const message = `
+        <div class="text-left space-y-4">
+          <p class="text-center"><b>${formatDate(d.date)}</b><br>${d.classroom}<br>この予約を取り消しますか？</p>
+          <div class="pt-4 border-t">
+            <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
+            <textarea id="cancel-message" class="w-full p-2 border border-gray-300 rounded" rows="3" placeholder=""></textarea>
+          </div>
+        </div>
+      `;
       showConfirm({
         title: '予約の取り消し',
-        message: `<b>${formatDate(d.date)}</b><br>${d.classroom}<br>この予約を取り消しますか？`,
+        message: message,
         confirmText: 'はい<br>取り消します',
         cancelText: 'いいえ',
         confirmColorClass: DesignConfig.colors.danger,
         onConfirm: () => {
           showLoading();
-          const p = { ...d, studentId: appState.currentUser.studentId };
+          const cancelMessage = document.getElementById('cancel-message')?.value || '';
+          const p = {
+            ...d,
+            studentId: appState.currentUser.studentId,
+            cancelMessage: cancelMessage,
+          };
           google.script.run
             .withSuccessHandler((r) => {
               hideLoading();
@@ -314,6 +328,7 @@
         endTime: document.getElementById('res-end-time')?.value || '',
         workInProgress: document.getElementById('wip-input')?.value || '',
         order: document.getElementById('order-input')?.value || '',
+        messageToTeacher: document.getElementById('message-input')?.value || '',
       };
       showLoading();
       const p = { ...appState.selectedSlot, user: appState.currentUser, options: bookingOptions };
@@ -366,6 +381,7 @@
         endTime: document.getElementById('edit-end-time')?.value || '',
         workInProgress: document.getElementById('edit-wip-input').value,
         order: document.getElementById('edit-order-input').value,
+        messageToTeacher: document.getElementById('edit-message-input').value,
       };
 
       showLoading();

@@ -48,7 +48,7 @@ function shouldProcessRowByDate(rowDate, timezone, options) {
 
 /**
  * エラーまたは情報メッセージをログとUIに表示します。
- * @param {string} message - 表示するメッセージ
+ * @param {string} message - 表示する
  * @param {boolean} isError - エラーかどうか
  */
 function handleError(message, isError) {
@@ -202,6 +202,7 @@ function logActivity(userId, action, result, details) {
 
 /**
  * 管理者にメールで通知を送信します。
+ * 現在のユーザーが管理者自身の場合は通知を送信しません。
  * @param {string} subject - メールの件名。
  * @param {string} body - メールの本文。
  */
@@ -211,6 +212,14 @@ function sendAdminNotification(subject, body) {
       Logger.log('管理者メールアドレスが設定されていないため、通知をスキップしました。');
       return;
     }
+
+    // 現在のユーザーが管理者自身の場合は通知をスキップ
+    const currentUserEmail = Session.getActiveUser() ? Session.getActiveUser().getEmail() : null;
+    if (currentUserEmail === ADMIN_EMAIL) {
+      Logger.log('管理者自身の操作のため、通知をスキップしました。');
+      return;
+    }
+
     MailApp.sendEmail({
       to: ADMIN_EMAIL,
       subject: `[予約システム通知] ${subject}`,

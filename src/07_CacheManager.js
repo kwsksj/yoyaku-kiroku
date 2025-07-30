@@ -147,6 +147,7 @@ function getAllReservations() {
   const cacheFields = [
     HEADER_VENUE,
     HEADER_WORK_IN_PROGRESS,
+    HEADER_MESSAGE_TO_TEACHER,
     HEADER_IN_THE_FUTURE,
     HEADER_NOTES,
     HEADER_FROM,
@@ -328,6 +329,7 @@ function getAllArchivedReservations() {
   const cacheFields = [
     HEADER_VENUE,
     HEADER_WORK_IN_PROGRESS,
+    HEADER_MESSAGE_TO_TEACHER,
     HEADER_IN_THE_FUTURE,
     HEADER_NOTES,
     HEADER_FROM,
@@ -590,6 +592,7 @@ function getAllFutureReservations() {
         firstLecture: row[headerMap.get(HEADER_FIRST_LECTURE)] === true,
         workInProgress: row[headerMap.get(HEADER_WORK_IN_PROGRESS)] || '',
         order: row[headerMap.get(HEADER_ORDER)] || '',
+        messageToTeacher: row[headerMap.get(HEADER_MESSAGE_TO_TEACHER)] || '',
         accountingDone: !!row[headerMap.get(HEADER_ACCOUNTING_DETAILS)],
         accountingDetails: row[headerMap.get(HEADER_ACCOUNTING_DETAILS)] || '',
       });

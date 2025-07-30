@@ -260,7 +260,7 @@
    */
   const getLoginView = () => `
     <div class="text-center pt-8 pb-4">
-        <h1 class="text-3xl font-bold ${DesignConfig.colors.text} tracking-tight">きぼりの よやく・きろく</h1>
+        <h1 class="text-3xl font-bold ${DesignConfig.colors.text} tracking-tight">きぼりの<br>よやく・きろく</h1>
         <h2 class="text-xl ${DesignConfig.colors.textSubtle} mt-2 mb-10">川崎誠二 木彫り教室</h2>
     </div>
     ${Components.createInput({ id: 'phone', label: '電話番号', type: 'tel', placeholder: '090 1234 5678', containerClass: DesignConfig.inputs.container, autocomplete: 'tel', isSrOnly: false, labelClass: `block text-brand-subtle text-sm text-center mb-1`, inputClass: 'text-center', inputmode: 'numeric', pattern: '[0-9]*' })}
@@ -726,7 +726,7 @@
     if (typeof morningSlots !== 'undefined') {
       statusHtml = `空席: 午前 ${morningSlots} / 午後 ${afternoonSlots}`;
     }
-    const detailsInputHtml = `<div class="mt-4 pt-4 border-t space-y-4">${Components.createTextArea({ id: 'wip-input', label: '制作メモ', placeholder: '（任意）例：猫の木彫り、ジェルトン、10cm、荒彫りから…' })}${Components.createInput({ id: 'order-input', label: '購入希望', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト' })}</div>`;
+    const detailsInputHtml = `<div class="mt-4 pt-4 border-t space-y-4">${Components.createTextArea({ id: 'wip-input', label: '制作メモ', placeholder: '（任意）例：猫の木彫り、ジェルトン、10cm、荒彫りから…' })}${Components.createInput({ id: 'order-input', label: '購入希望', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト' })}${Components.createTextArea({ id: 'message-input', label: '先生へのメッセージ', placeholder: '（任意）' })}</div>`;
     return `
         <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${isFull ? 'キャンセル待ちの確認' : '予約内容の確認'}</h1>
         <div class="space-y-4 text-left p-4 bg-gray-50 rounded-lg">
@@ -787,6 +787,7 @@
         <div class="mt-4 pt-4 border-t space-y-4">
             ${Components.createTextArea({ id: 'edit-wip-input', label: '制作メモ', placeholder: '（任意）例：猫の置物、楠、15cm、荒彫りから…', value: d.workInProgress || '' })}
             ${Components.createInput({ id: 'edit-order-input', label: '購入希望', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト', value: d.order || '' })}
+            ${Components.createTextArea({ id: 'edit-message-input', label: '先生へのメッセージ', placeholder: '（任意）', value: d.messageToTeacher || '' })}
         </div>
         <div class="mt-8 flex flex-col space-y-3">
             ${Components.createButton({ text: 'この内容で更新', action: 'updateReservation', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}

@@ -266,6 +266,9 @@ function getReservationDetailsForEdit(reservationId, classroom) {
         ? row[headerMap.get(HEADER_WORK_IN_PROGRESS)]
         : '',
       order: headerMap.has(HEADER_ORDER) ? row[headerMap.get(HEADER_ORDER)] : '',
+      messageToTeacher: headerMap.has(HEADER_MESSAGE_TO_TEACHER)
+        ? row[headerMap.get(HEADER_MESSAGE_TO_TEACHER)]
+        : '',
     };
 
     return { success: true, details: details };
