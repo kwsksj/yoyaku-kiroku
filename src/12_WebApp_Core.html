@@ -2,16 +2,17 @@
   /**
    * =================================================================
    * 【ファイル名】: 12_WebApp_Core.html
-   * 【バージョン】: 1.1
+   * 【バージョン】: 1.2
    * 【役割】: WebAppのフロントエンドにおける中核機能を集約します。
    * - 状態管理 (State Management)
    * - UIコンポーネント生成 (UI Components)
    * - 汎用ユーティリティ (Utilities)
    * - 会計計算ロジック (Calculation Logic)
    * 【構成】: 14ファイル構成のうちの12番目
-   * 【v1.1での変更点】:
-   * - FE-16: calculateAccountingDetailsを修正。会計詳細JSONに保存される授業料の項目名に、
-   * 実際の利用時間(HH:mm - HH:mm)を含めるように変更。
+   * 【v1.2での変更点】:
+   * - リファクタリング: 日付・スロット処理の共通ユーティリティ関数を追加。
+   * - filterFutureAvailableSlots, groupSlotsByMonth 関数を新規追加。
+   * - コードの可読性とメンテナンス性を向上。
    * =================================================================
    */
 
@@ -115,6 +116,45 @@
       onConfirm: cb,
     });
   const showConfirm = (c) => showModal({ ...c, showCancel: true });
+
+  // =================================================================
+  // --- Date and Slot Utilities ---
+  // -----------------------------------------------------------------
+  // 日付やスロット操作に関する共通ユーティリティ関数群です。
+  // =================================================================
+
+  /**
+   * 指定された教室の、今日以降の空きスロットをフィルタリングします。
+   * @param {Array} slots - 全スロットの配列
+   * @param {string} classroom - 教室名
+   * @returns {Array} フィルタリングされたスロット配列
+   */
+  const filterFutureAvailableSlots = (slots, classroom) => {
+    if (!slots || !classroom) return [];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return slots.filter((s) => {
+      const slotDate = new Date(s.date);
+      slotDate.setMinutes(slotDate.getMinutes() + slotDate.getTimezoneOffset());
+      return s.classroom === classroom && slotDate >= today && !s.isFull;
+    });
+  };
+
+  /**
+   * スロットを月別にグループ化します。
+   * @param {Array} slots - スロットの配列
+   * @returns {Object} 月をキーとしたスロットのオブジェクト
+   */
+  const groupSlotsByMonth = (slots) => {
+    return slots.reduce((acc, slot) => {
+      const month = new Date(slot.date).getMonth() + 1;
+      if (!acc[month]) acc[month] = [];
+      acc[month].push(slot);
+      return acc;
+    }, {});
+  };
 
   // =================================================================
   // --- Accounting Calculation Logic ---

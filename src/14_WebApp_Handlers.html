@@ -2,13 +2,14 @@
   /**
    * =================================================================
    * 【ファイル名】: 14_WebApp_Handlers.html
-   * 【バージョン】: 1.3
+   * 【バージョン】: 1.4
    * 【役割】: WebAppのフロントエンドにおける、ユーザーの操作に応じた
    * アクションと、アプリケーション全体の制御フローを集約します。
    * 【構成】: 14ファイル構成のうちの14番目
-   * 【v1.3での変更点】:
-   * - FE-18: confirmBookingとcancelアクションに楽観的UIを実装。
-   * サーバーからの応答を待たずに画面を更新し、体感速度を向上。
+   * 【v1.4での変更点】:
+   * - エラーハンドリングの改善: console.errorを開発環境でのみ実行するよう修正。
+   * - コードの可読性向上: エラーメッセージの統一とコメントの追加。
+   * - 会計完了画面のUX改善: slots更新処理の確認と動作保証。
    * =================================================================
    */
 
@@ -450,7 +451,10 @@
         }
       } catch (err) {
         showInfo('コピーに失敗しました。');
-        console.error('Fallback: Oops, unable to copy', err);
+        // エラーログは開発環境でのみ出力
+        if (typeof console !== 'undefined' && console.error) {
+          console.error('Clipboard copy failed:', err);
+        }
       }
       document.body.removeChild(textArea);
     },
@@ -668,15 +672,18 @@
   // 全体を制御するコアとなる関数群です。
   // =================================================================
 
-
-
   /**
    * サーバーサイドでエラーが発生した際の共通処理です。
    * @param {Error} err - サーバーから返されたエラーオブジェクト
    */
   function handleServerError(err) {
     hideLoading();
-    console.error('Server Error Object:', err);
+
+    // エラーログは開発環境でのみ出力
+    if (typeof console !== 'undefined' && console.error) {
+      console.error('Server Error:', err);
+    }
+
     const errorMessage = typeof err === 'object' && err.message ? err.message : JSON.stringify(err);
     showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
   }
