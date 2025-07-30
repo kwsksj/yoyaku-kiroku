@@ -2,11 +2,14 @@
   /**
    * =================================================================
    * 【ファイル名】: 13_WebApp_Views.html
-   * 【バージョン】: 1.7
+   * 【バージョン】: 1.8
    * 【役割】: WebAppの各画面（ビュー）のHTML構造を生成する関数群を集約します。
    * - 各関数は特定の画面（ログイン、予約一覧など）のUI構築を担当します。
    * - appStateの現在の状態に基づき、動的にHTMLを生成します。
    * 【構成】: 14ファイル構成のうちの13番目
+   * 【v1.8での変更点】:
+   * - 履歴表示でのvenue情報追加: きろく画面とダッシュボードの履歴表示でvenue（会場）情報が表示されるよう改善。
+   * - UI一貫性向上: 全ての履歴表示でvenue情報が統一して表示される。
    * 【v1.7での変更点】:
    * - 会計完了画面のレイアウト調整: 次回予約セクションを「ダッシュボードへ戻る」ボタンより上に配置。
    * - ユーザビリティ向上: 次回予約が先に目に入るUIフローに改善。
@@ -987,13 +990,14 @@
               }
             }
             const workInProgressHtml = `<p class="text-sm text-gray-500 mb-1">制作メモ</p><div class="mt-2"><p class="text-base text-gray-600 whitespace-pre-wrap">${h.workInProgress || ''}</p></div>`;
+            const venueText = h.venue ? ` ${h.venue}` : '';
             return `
                 <div class="p-3 rounded-lg flex flex-col bg-gray-200/50">
                     <div class="flex flex-row items-start sm:items-center justify-between gap-4">
                         <div class="flex-shrink-0">
                             <p class="font-bold text-lg sm:text-xl">${formatDate(h.date)}</p>
                             <div class="flex flex-col items-start">
-                                <p class="text-lg break-words">${h.classroom} </p>
+                                <p class="text-lg break-words">${h.classroom}${venueText}</p>
                             </div>
                         </div>
                         <div class="bg-white p-2 rounded-md break-words flex-grow w-full sm:w-auto">

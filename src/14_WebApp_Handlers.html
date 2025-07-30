@@ -2,14 +2,14 @@
   /**
    * =================================================================
    * 【ファイル名】: 14_WebApp_Handlers.html
-   * 【バージョン】: 1.4
+   * 【バージョン】: 1.5
    * 【役割】: WebAppのフロントエンドにおける、ユーザーの操作に応じた
    * アクションと、アプリケーション全体の制御フローを集約します。
    * 【構成】: 14ファイル構成のうちの14番目
-   * 【v1.4での変更点】:
-   * - エラーハンドリングの改善: console.errorを開発環境でのみ実行するよう修正。
-   * - コードの可読性向上: エラーメッセージの統一とコメントの追加。
-   * - 会計完了画面のUX改善: slots更新処理の確認と動作保証。
+   * 【v1.5での変更点】:
+   * - 制作メモ編集機能の強化: きろくキャッシュと予約シートの両方に保存するよう改善。
+   * - サーバー通信の改善: 成功時に最新履歴でフロントエンド状態を更新。
+   * - ユーザビリティ向上: 適切なローディング表示と成功メッセージの追加。
    * =================================================================
    */
 
@@ -127,14 +127,34 @@
           item.workInProgress = newMemo;
           setState({ history: [...appState.history] });
 
-          // 裏側でサーバーに保存
+          showLoading();
+
+          // サーバーに保存し、最新の履歴を取得
           google.script.run
-            .withFailureHandler(() => {
+            .withSuccessHandler((result) => {
+              hideLoading();
+              if (result.success) {
+                // サーバーから最新の履歴データで状態を更新
+                setState({
+                  history: result.history || appState.history,
+                  historyTotal: result.total || appState.historyTotal,
+                });
+                showInfo('制作メモを更新しました。', '保存完了');
+              } else {
+                // サーバーエラーの場合は元に戻す
+                item.workInProgress = originalMemo;
+                setState({ history: [...appState.history] });
+                showInfo(result.message || 'メモの保存に失敗しました。', 'エラー');
+              }
+            })
+            .withFailureHandler((err) => {
+              hideLoading();
+              // 通信エラーの場合は元に戻す
               item.workInProgress = originalMemo;
               setState({ history: [...appState.history] });
-              showInfo('エラー: メモの保存に失敗しました。');
+              handleServerError(err);
             })
-            .updateMemo(item.reservationId, item.sheetName, newMemo);
+            .updateMemo(d.reservationId, d.sheetName, newMemo, appState.currentUser.studentId);
         },
       });
     },

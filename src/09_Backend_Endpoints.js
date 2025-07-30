@@ -1,14 +1,13 @@
 /**
  * =================================================================
  * 【ファイル名】: 09_Backend_Endpoints.gs
- * 【バージョン】: 1.4
+ * 【バージョン】: 1.5
  * 【役割】: WebAppからの呼び出しを集約する統合エンドポイント。
  * 通信回数を削減し、UXを向上させることを目的とする。
  * 【構成】: 14ファイル構成のうちの10番目
- * 【v1.4での変更点】:
- * - FE-18: make/cancelReservationAndGetLatestDataから、時間のかかる
- * getSlotsAndMyBookingsの呼び出しを削除。フロントエンドの体感速度を向上させる。
- * サマリー更新は同期的、予約キャッシュ更新は非同期的に行われる。
+ * 【v1.5での変更点】:
+ * - 制作メモ更新用エンドポイント（updateMemo）を追加。
+ * - きろくキャッシュと予約シートの両方を更新する機能を実装。
  * =================================================================
  */
 
@@ -147,4 +146,16 @@ function updateReservationDetailsAndGetLatestData(details) {
  */
 function searchNoPhoneUsersByFilterForWebApp() {
   return getUsersWithoutPhoneNumber();
+}
+
+/**
+ * きろく画面で制作メモを更新し、最新の履歴を返すWebApp用エンドポイント。
+ * @param {string} reservationId - 予約ID
+ * @param {string} sheetName - 予約が記録されているシート名
+ * @param {string} newMemo - 新しい制作メモの内容
+ * @param {string} studentId - メモを更新する対象の生徒ID
+ * @returns {object} - { success: boolean, history?: object[], total?: number, message?: string }
+ */
+function updateMemo(reservationId, sheetName, newMemo, studentId) {
+  return updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studentId);
 }

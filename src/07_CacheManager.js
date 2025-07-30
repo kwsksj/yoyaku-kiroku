@@ -1,10 +1,17 @@
 /**
  * =================================================================
  * 【ファイル名】: 07_CacheManager.gs
- * 【バージョン】: 2.5
+ * 【バージョン】: 2.7
  * 【役割】: 生徒名簿シートのキャッシュ列（参加回数や最新の制作メモなど）を
  * 更新する、重く独立したバッチ処理。
  * 【構成】: 14ファイル構成のうちの8番目
+ * 【v2.7での変更点】:
+ * - 設計の簡素化: 統合「きろくキャッシュ」列を削除し、年別「きろく_YYYY」列のみを使用。
+ *   元の設計意図に戻し、パフォーマンスと保守性を向上。
+ * 【v2.6での変更点】:
+ * - 年別きろく_YYYYキャッシュのフォーマット統一: 現在の記録形式に合わせ、
+ *   reservationId, sheetName, accountingDetails フィールドを追加。
+ * - 統合きろくキャッシュ列の生成: 年別キャッシュに加え、全履歴統合キャッシュも更新。
  * 【v2.5での変更点】:
  * - migrateAllFutureBookingsToCacheを修正。先に全予約シートを一度だけ読み込み、
  * メモリ上でデータを処理することで、パフォーマンスを劇的に向上。
@@ -50,7 +57,12 @@ function updateRosterCache() {
 
     SpreadsheetApp.getActiveSpreadsheet().toast('キャッシュの更新が完了しました。', '完了', 5);
     ui.alert('生徒名簿のキャッシュ更新が正常に完了しました。');
-    logActivity(Session.getActiveUser().getEmail(), '名簿キャッシュ更新', '成功', '生徒名簿キャッシュを更新');
+    logActivity(
+      Session.getActiveUser().getEmail(),
+      '名簿キャッシュ更新',
+      '成功',
+      '生徒名簿キャッシュを更新',
+    );
   } catch (e) {
     Logger.log(e);
     handleError(`キャッシュの更新中にエラーが発生しました。\n\n詳細: ${e.message}`, true);
@@ -150,6 +162,8 @@ function getAllReservations() {
       const dateColIdx = header.indexOf(HEADER_DATE);
       const countColIdx = header.indexOf(HEADER_PARTICIPANT_COUNT);
       const studentIdColIdx = header.indexOf(HEADER_STUDENT_ID);
+      const reservationIdColIdx = header.indexOf(HEADER_RESERVATION_ID);
+      const accountingDetailsColIdx = header.indexOf(HEADER_ACCOUNTING_DETAILS);
 
       const fieldIndices = {};
       cacheFields.forEach((field) => {
@@ -166,8 +180,11 @@ function getAllReservations() {
             name: String(name).trim(),
             date: row[dateColIdx],
             classroom: sheetName.startsWith('old') ? `${sheetName.slice(3)}教室` : sheetName,
+            sheetName: sheetName, // シート名を追加
             isTokyo: sheetName.includes('東京'),
             isCancelled: String(row[countColIdx]).toLowerCase() === STATUS_CANCEL,
+            [HEADER_RESERVATION_ID]: row[reservationIdColIdx] || '',
+            [HEADER_ACCOUNTING_DETAILS]: row[accountingDetailsColIdx] || null,
           };
 
           cacheFields.forEach((field) => {
@@ -242,11 +259,16 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
     if (!recordsByStudentYear.has(yearKey)) {
       recordsByStudentYear.set(yearKey, []);
     }
+
+    // 現在の記録形式に合わせたフィールド構成
     recordsByStudentYear.get(yearKey).push({
+      reservationId: r[HEADER_RESERVATION_ID] || '',
+      sheetName: r.sheetName || '',
       date: Utilities.formatDate(r.date, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
       classroom: r.classroom,
       venue: r[HEADER_VENUE] || '',
       workInProgress: r[HEADER_WORK_IN_PROGRESS] || '',
+      accountingDetails: r[HEADER_ACCOUNTING_DETAILS] || null,
     });
   });
 
@@ -321,6 +343,8 @@ function getAllArchivedReservations() {
       const dateColIdx = header.indexOf(HEADER_DATE);
       const countColIdx = header.indexOf(HEADER_PARTICIPANT_COUNT);
       const studentIdColIdx = header.indexOf(HEADER_STUDENT_ID);
+      const reservationIdColIdx = header.indexOf(HEADER_RESERVATION_ID);
+      const accountingDetailsColIdx = header.indexOf(HEADER_ACCOUNTING_DETAILS);
 
       const fieldIndices = {};
       cacheFields.forEach((field) => {
@@ -337,8 +361,11 @@ function getAllArchivedReservations() {
             name: String(name).trim(),
             date: row[dateColIdx],
             classroom: sheetName.startsWith('old') ? `${sheetName.slice(3)}教室` : sheetName,
+            sheetName: sheetName, // シート名を追加
             isTokyo: sheetName.includes('東京'),
             isCancelled: String(row[countColIdx]).toLowerCase() === STATUS_CANCEL,
+            [HEADER_RESERVATION_ID]: row[reservationIdColIdx] || '',
+            [HEADER_ACCOUNTING_DETAILS]: row[accountingDetailsColIdx] || null,
           };
 
           cacheFields.forEach((field) => {
@@ -407,7 +434,12 @@ function migrateAllRecordsToCache() {
       10,
     );
     ui.alert('全生徒の「きろく」キャッシュ生成が正常に完了しました。');
-    logActivity(Session.getActiveUser().getEmail(), '履歴キャッシュ移行', '成功', '全履歴から「きろく」キャッシュを生成');
+    logActivity(
+      Session.getActiveUser().getEmail(),
+      '履歴キャッシュ移行',
+      '成功',
+      '全履歴から「きろく」キャッシュを生成',
+    );
   } catch (e) {
     Logger.log(e);
     handleError(`全履歴のキャッシュ生成中にエラーが発生しました。\n\n詳細: ${e.message}`, true);
@@ -496,7 +528,12 @@ function migrateAllFutureBookingsToCache() {
       10,
     );
     ui.alert('全生徒の「よやくキャッシュ」更新が正常に完了しました。');
-    logActivity(Session.getActiveUser().getEmail(), '予約キャッシュ移行', '成功', '全予約から「よやくキャッシュ」を生成');
+    logActivity(
+      Session.getActiveUser().getEmail(),
+      '予約キャッシュ移行',
+      '成功',
+      '全予約から「よやくキャッシュ」を生成',
+    );
   } catch (e) {
     Logger.log(e);
     handleError(
@@ -559,4 +596,43 @@ function getAllFutureReservations() {
     });
   });
   return reservations;
+}
+
+/**
+ * 更新された予約データに基づいて、生徒名簿のキャッシュを更新します。
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} rosterSheet - 生徒名簿シート
+ * @param {Object} updatedRow - 更新された予約データの行
+ */
+function updateRosterCacheByReservation(rosterSheet, updatedRow) {
+  const studentId = updatedRow[HEADER_STUDENT_ID];
+  if (!studentId) return;
+
+  const rosterHeaders = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
+  const rosterStudentIdCol = rosterHeaders.indexOf(HEADER_STUDENT_ID);
+  if (rosterStudentIdCol === -1) return;
+
+  // 生徒名簿の年別きろく_YYYYキャッシュを更新
+  const reservationYear = new Date(updatedRow[dateCol]).getFullYear();
+  const cacheColumnName = `きろく_${reservationYear}`;
+
+  try {
+    const studentRow = rosterSheet
+      .getRange(1, 1, rosterSheet.getLastRow(), rosterSheet.getLastColumn())
+      .getValues()
+      .findIndex((row) => row[rosterStudentIdCol] === studentId);
+
+    if (studentRow !== -1) {
+      const cacheCol = rosterHeaders.indexOf(cacheColumnName);
+      if (cacheCol !== -1) {
+        // 該当年の履歴のみを取得してキャッシュ更新
+        const yearHistory = latestHistory.filter(
+          (h) => new Date(h.date).getFullYear() === reservationYear,
+        );
+        const cacheValue = JSON.stringify(yearHistory);
+        rosterSheet.getRange(studentRow + 1, cacheCol + 1).setValue(cacheValue);
+      }
+    }
+  } catch (error) {
+    console.error('年別きろく_YYYYキャッシュの更新でエラー:', error);
+  }
 }

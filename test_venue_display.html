@@ -1,0 +1,208 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Venue表示機能テスト</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .test-container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+      }
+      .result-success {
+        color: #059669;
+        font-weight: bold;
+      }
+      .result-error {
+        color: #dc2626;
+        font-weight: bold;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: { bg: '#f8f7f6', surface: '#ffffff', text: '#50312F', subtle: '#6b7280' },
+              action: {
+                'primary-bg': '#50312F',
+                'primary-text': '#ffffff',
+                'secondary-bg': '#e5e7eb',
+                'secondary-text': '#374151',
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-gray-100 font-sans">
+    <div class="test-container">
+      <h1 class="text-3xl font-bold text-center mb-8">Venue表示機能テスト</h1>
+
+      <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">機能概要</h2>
+        <p class="mb-4">
+          きろくキャッシュの内容にvenueフィールドを追加し、アプリ上の履歴表示でもvenueが表示されるようにする機能をテストします。
+        </p>
+        <ul class="list-disc pl-6 space-y-2">
+          <li>CacheManager: きろくキャッシュ生成時にvenueフィールドを含める</li>
+          <li>Backend Read: getParticipationHistory関数でvenueを返す</li>
+          <li>Frontend Views: 履歴表示画面でvenueを表示</li>
+        </ul>
+      </div>
+
+      <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">変更されたファイル</h2>
+        <div class="bg-white p-4 rounded-lg">
+          <div class="space-y-4">
+            <div>
+              <h3 class="font-medium text-green-700">✅ 07_CacheManager.js (v2.6)</h3>
+              <p class="text-sm text-gray-600">
+                年別キャッシュと統合キャッシュの両方にvenueフィールドを追加
+              </p>
+              <div class="mt-2 bg-gray-100 p-2 rounded text-sm font-mono">
+                venue: r[HEADER_VENUE] || '',
+              </div>
+            </div>
+            <div>
+              <h3 class="font-medium text-green-700">✅ 05-1_Backend_Read.js (v1.1)</h3>
+              <p class="text-sm text-gray-600">
+                getParticipationHistory関数にvenueフィールドを追加
+              </p>
+              <div class="mt-2 bg-gray-100 p-2 rounded text-sm font-mono">
+                const venueCol = headerMap.get(HEADER_VENUE);<br />
+                venue: row[venueCol] || '',
+              </div>
+            </div>
+            <div>
+              <h3 class="font-medium text-green-700">✅ 13_WebApp_Views.js (v1.8)</h3>
+              <p class="text-sm text-gray-600">履歴表示画面でvenueが表示されるよう改善</p>
+              <div class="mt-2 bg-gray-100 p-2 rounded text-sm font-mono">
+                const venueText = h.venue ? ` ${h.venue}` : '';<br />
+                ${h.classroom}${venueText}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">テストデータ例</h2>
+        <div class="bg-white p-4 rounded-lg">
+          <h3 class="text-lg font-medium mb-2">修正前のキャッシュデータ</h3>
+          <div class="bg-gray-100 p-3 rounded mb-4 text-sm font-mono">
+            {<br />
+            &nbsp;&nbsp;"reservationId": "RES123",<br />
+            &nbsp;&nbsp;"sheetName": "東京教室",<br />
+            &nbsp;&nbsp;"date": "2024-08-15",<br />
+            &nbsp;&nbsp;"classroom": "東京教室",<br />
+            &nbsp;&nbsp;"workInProgress": "木彫り作品制作中",<br />
+            &nbsp;&nbsp;"accountingDetails": null<br />
+            }
+          </div>
+
+          <h3 class="text-lg font-medium mb-2">修正後のキャッシュデータ</h3>
+          <div class="bg-green-50 p-3 rounded text-sm font-mono">
+            {<br />
+            &nbsp;&nbsp;"reservationId": "RES123",<br />
+            &nbsp;&nbsp;"sheetName": "東京教室",<br />
+            &nbsp;&nbsp;"date": "2024-08-15",<br />
+            &nbsp;&nbsp;"classroom": "東京教室",<br />
+            &nbsp;&nbsp;<span class="bg-yellow-200">"venue": "A会場",</span><br />
+            &nbsp;&nbsp;"workInProgress": "木彫り作品制作中",<br />
+            &nbsp;&nbsp;"accountingDetails": null<br />
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">UI表示の変更</h2>
+        <div class="bg-white p-4 rounded-lg">
+          <h3 class="text-lg font-medium mb-2">修正前の表示</h3>
+          <div class="bg-gray-100 p-3 rounded mb-4">
+            <div class="font-bold">8/15 水</div>
+            <div class="text-gray-600">東京教室</div>
+          </div>
+
+          <h3 class="text-lg font-medium mb-2">修正後の表示</h3>
+          <div class="bg-green-50 p-3 rounded">
+            <div class="font-bold">8/15 水</div>
+            <div class="text-gray-600">東京教室 <span class="bg-yellow-200">A会場</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">テスト手順</h2>
+        <div class="bg-white p-4 rounded-lg">
+          <ol class="list-decimal pl-6 space-y-2">
+            <li>スプレッドシートのメニューから「キャッシュ → 全履歴キャッシュ生成」を実行</li>
+            <li>WebAppにログインし、ダッシュボードの「きろく」セクションを確認</li>
+            <li>会場情報がある履歴項目で、「教室名 会場名」の形式で表示されることを確認</li>
+            <li>履歴画面（「きろく」ボタンクリック）でも同様にvenue情報が表示されることを確認</li>
+            <li>制作メモ編集後も、venue情報が正しく保持されることを確認</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">期待される結果</h2>
+        <div class="bg-white p-4 rounded-lg">
+          <ul class="space-y-2">
+            <li class="flex items-center">
+              <span
+                class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3"
+                >✓</span
+              >
+              キャッシュ生成時にvenueフィールドが含まれる
+            </li>
+            <li class="flex items-center">
+              <span
+                class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3"
+                >✓</span
+              >
+              履歴取得APIでvenue情報が返される
+            </li>
+            <li class="flex items-center">
+              <span
+                class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3"
+                >✓</span
+              >
+              ダッシュボードと履歴画面でvenue情報が表示される
+            </li>
+            <li class="flex items-center">
+              <span
+                class="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-sm mr-3"
+                >✓</span
+              >
+              venue情報がない場合は教室名のみ表示される
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">注意事項</h2>
+        <div class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
+          <ul class="list-disc pl-6 space-y-1">
+            <li>
+              既存のキャッシュデータはvenueフィールドを含まないため、キャッシュ再生成が必要です
+            </li>
+            <li>venue情報は予約シートの「会場」列から取得されます</li>
+            <li>旧データ（old～シート）からもvenue情報が正しく取得されることを確認してください</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

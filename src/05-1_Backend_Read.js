@@ -1,10 +1,13 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-1_Backend_Read.gs
- * 【バージョン】: 1.0
+ * 【バージョン】: 1.1
  * 【役割】: WebAppからのデータ取得要求（Read）に特化したバックエンド機能。
  * - 予約枠、ユーザー自身の予約、会計マスタ、参加履歴などの読み取り処理を担当します。
  * 【構成】: 14ファイル構成のうちの6番目
+ * 【v1.1での変更点】:
+ * - getParticipationHistory関数にvenueフィールドを追加。
+ * - 履歴データで会場情報も表示されるよう改善。
  * =================================================================
  */
 
@@ -354,6 +357,7 @@ function getParticipationHistory(studentId, limit, offset) {
       const wipCol = headerMap.get(HEADER_WORK_IN_PROGRESS);
       const accCol = headerMap.get(HEADER_ACCOUNTING_DETAILS);
       const resIdCol = headerMap.get(HEADER_RESERVATION_ID);
+      const venueCol = headerMap.get(HEADER_VENUE);
 
       if (idCol === undefined || dateCol === undefined) return;
 
@@ -365,6 +369,7 @@ function getParticipationHistory(studentId, limit, offset) {
             sheetName: sheetName,
             date: Utilities.formatDate(row[dateCol], timezone, 'yyyy-MM-dd'),
             classroom: sheetName.startsWith('old') ? `${sheetName.slice(3)}教室` : sheetName,
+            venue: row[venueCol] || '',
             workInProgress: row[wipCol] || '',
             accountingDetails: row[accCol] || null,
           });

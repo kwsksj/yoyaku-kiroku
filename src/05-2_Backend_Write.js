@@ -1,10 +1,20 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-2_Backend_Write.gs
- * 【バージョン】: 1.1
+ * 【バージョン】: 1.9
  * 【役割】: WebAppからのデータ書き込み・更新要求（Write）と、
  * それに付随する検証ロジックに特化したバックエンド機能。
  * 【構成】: 14ファイル構成のうちの7番目
+ * 【v1.9での変更点】:
+ * - 設計の簡素化: 制作メモ更新時に統合「きろくキャッシュ」列を削除し、
+ *   年別「きろく_YYYY」列のみを更新するよう修正。元の設計に戻す。
+ * 【v1.8での変更点】:
+ * - 制作メモ更新時の年別キャッシュ更新: updateMemoAndGetLatestHistory関数で、
+ *   統合きろくキャッシュに加えて年別キャッシュ（きろく_YYYY）も同時に更新。
+ * 【v1.7での変更点】:
+ * - 制作メモ更新機能の強化: updateMemoAndGetLatestHistory関数で、
+ *   予約シートと年別きろく_YYYYキャッシュの両方を同時に更新するよう改善。
+ * - ログ記録の詳細化: 更新されたメモの文字数も記録。
  * 【v1.1での変更点】:
  * - FE-16: saveAccountingDetailsを修正。会計処理時に、時刻やオプションの値を
  * 予約シート本体に書き戻し、受講時間とガントチャートを再計算・再描画する機能を追加。
@@ -666,7 +676,7 @@ function saveAccountingDetails(payload) {
 
     // 4. 「よやくキャッシュ」から会計済みの予約を削除
     //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
-    //    よやくキャッシュからは削除し、きろくキャッシュに責務を移管する。
+    //    よやくキャッシュからは削除し、年別きろく_YYYYキャッシュに責務を移管する。
     const newBookingsCache = _updateFutureBookingsCacheIncrementally(actualStudentId, 'remove', {
       reservationId,
     });
@@ -679,7 +689,7 @@ function saveAccountingDetails(payload) {
     // 5. 売上ログへの転記
     _logSalesForSingleReservation(reservationDataRow, headerMap, classroom, finalAccountingDetails);
 
-    // 6. 「きろくキャッシュ」に会計情報を含めて追加
+    // 6. 年別「きろく_YYYY」キャッシュに会計情報を含めて追加
     _updateRecordCacheForSingleReservation(
       reservationDataRow,
       headerMap,
@@ -799,7 +809,7 @@ function _logSalesForSingleReservation(
  * [設計思想] 後続処理でエラーが発生してもメインの会計処理は成功と見なすため、
  * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
  * @private
- * @param {Array} reservationDataRow - きろくキャッシュを更新する対象の予約データ行。
+ * @param {Array} reservationDataRow - 年別きろく_YYYYキャッシュを更新する対象の予約データ行。
  * @param {Map<string, number>} headerMap - 予約シートのヘッダーマップ。
  * @param {string} classroomName - 教室名。
  * @param {object} accountingDetails - 追加する会計詳細オブジェクト。
@@ -918,7 +928,10 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
   const lock = LockService.getScriptLock();
   lock.waitLock(LOCK_WAIT_TIME_MS);
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // 1. 予約シートの制作メモを更新
+    const sheet = ss.getSheetByName(sheetName);
     if (!sheet) throw new Error(`シート「${sheetName}」が見つかりません。`);
 
     const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -938,7 +951,51 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
     sheet.getRange(targetRowIndex, wipColIdx + 1).setValue(newMemo);
     SpreadsheetApp.flush();
 
-    logActivity(studentId, '制作メモ更新', '成功', `ResID: ${reservationId}, Sheet: ${sheetName}`);
+    // 2. 生徒名簿の年別きろくキャッシュを更新
+    const rosterSheet = ss.getSheetByName(ROSTER_SHEET_NAME);
+    if (rosterSheet) {
+      const rosterHeader = rosterSheet
+        .getRange(1, 1, 1, rosterSheet.getLastColumn())
+        .getValues()[0];
+      const rosterHeaderMap = createHeaderMap(rosterHeader);
+      const studentIdCol = rosterHeaderMap.get(HEADER_STUDENT_ID);
+
+      if (studentIdCol !== undefined) {
+        const rosterData = rosterSheet
+          .getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn())
+          .getValues();
+        const userRowIndex = rosterData.findIndex((row) => row[studentIdCol] === studentId);
+
+        if (userRowIndex !== -1) {
+          // 更新された予約の年を取得
+          const updatedDate = new Date(
+            sheet.getRange(targetRowIndex, headerMap.get(HEADER_DATE) + 1).getValue(),
+          );
+          const year = updatedDate.getFullYear();
+          const yearCacheCol = rosterHeaderMap.get(`きろく_${year}`);
+
+          if (yearCacheCol !== undefined) {
+            // 最新の履歴を取得し、該当年の履歴のみフィルタリング
+            const historyResult = getParticipationHistory(studentId, null, null);
+            if (historyResult.success) {
+              const yearHistory = (historyResult.history || []).filter((h) => {
+                const historyDate = new Date(h.date);
+                return historyDate.getFullYear() === year;
+              });
+              const yearHistoryCache = JSON.stringify(yearHistory);
+              rosterSheet.getRange(userRowIndex + 2, yearCacheCol + 1).setValue(yearHistoryCache);
+            }
+          }
+        }
+      }
+    }
+
+    logActivity(
+      studentId,
+      '制作メモ更新',
+      '成功',
+      `ResID: ${reservationId}, Sheet: ${sheetName}, Memo: ${newMemo.length}文字`,
+    );
     return getParticipationHistory(studentId, null, null);
   } catch (err) {
     const details = `ResID: ${reservationId}, Sheet: ${sheetName}, Error: ${err.message}`;
