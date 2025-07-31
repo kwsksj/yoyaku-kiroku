@@ -81,17 +81,16 @@ function makeReservation(reservationInfo) {
       _validateTimeBasedReservation(startTime, endTime, classroomRule);
     }
 
-    const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    // 1回のシート読み込みで全データを取得（効率化）
+    const allSheetData = sheet.getDataRange().getValues();
+    if (allSheetData.length === 0) throw new Error('予約シートにデータがありません。');
+
+    const header = allSheetData[0];
     const headerMap = createHeaderMap(header);
     const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
-    const data = sheet
-      .getRange(
-        RESERVATION_DATA_START_ROW,
-        1,
-        sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
-        sheet.getLastColumn(),
-      )
-      .getValues();
+
+    // データ部分のみを抽出（ヘッダー行以降）
+    const data = allSheetData.slice(RESERVATION_DATA_START_ROW - 1);
 
     const dateColIdx = headerMap.get(HEADER_DATE);
     const countColIdx = headerMap.get(HEADER_PARTICIPANT_COUNT);
@@ -303,7 +302,6 @@ function makeReservation(reservationInfo) {
     logActivity(user.studentId, '予約作成', '成功', logDetails);
 
     const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
-    const messageToTeacher = options.messageToTeacher || '';
     const messageSection = messageToTeacher ? `\n先生へのメッセージ: ${messageToTeacher}\n` : '';
     const body =
       `新しい予約が入りました。\n\n` +
@@ -340,7 +338,11 @@ function cancelReservation(cancelInfo) {
     const sheet = ss.getSheetByName(classroom);
     if (!sheet) throw new Error(`予約シート「 ${classroom} 」が見つかりません。`);
 
-    const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    // 1回のシート読み込みで全データを取得（効率化）
+    const allData = sheet.getDataRange().getValues();
+    if (allData.length === 0) throw new Error('予約シートにデータがありません。');
+
+    const header = allData[0];
     const headerMap = createHeaderMap(header);
     const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
     const studentIdColIdx = headerMap.get(HEADER_STUDENT_ID);
@@ -352,17 +354,18 @@ function cancelReservation(cancelInfo) {
       throw new Error('必要なヘッダー（予約ID, 生徒ID）が見つかりません。');
     }
 
-    const targetRowIndex = findRowIndexByValue(sheet, reservationIdColIdx + 1, reservationId);
-    if (targetRowIndex === -1) throw new Error('キャンセル対象の予約が見つかりませんでした。');
+    // データ行から対象の予約を検索
+    const dataRows = allData.slice(1);
+    const targetRowData = dataRows.find((row) => row[reservationIdColIdx] === reservationId);
+    if (!targetRowData) throw new Error('キャンセル対象の予約が見つかりませんでした。');
 
-    const ownerId = sheet.getRange(targetRowIndex, studentIdColIdx + 1).getValue();
+    const targetRowIndex = dataRows.indexOf(targetRowData) + 2; // 1-based + header row
+    const ownerId = targetRowData[studentIdColIdx];
     if (ownerId !== studentId) {
       throw new Error('この予約をキャンセルする権限がありません。');
     }
 
-    const originalValues = sheet
-      .getRange(targetRowIndex, 1, 1, sheet.getLastColumn())
-      .getValues()[0];
+    const originalValues = targetRowData;
     const status = String(originalValues[participantCountColIdx]).toLowerCase();
     const targetDate = originalValues[dateColIdx]; // キャンセルされた予約の日付を取得
 
@@ -370,14 +373,23 @@ function cancelReservation(cancelInfo) {
     const rosterSheet = ss.getSheetByName(ROSTER_SHEET_NAME);
     let userInfo = { realName: '(不明)', displayName: '(不明)' };
     if (rosterSheet) {
-      // 02-3_BusinessLogic_SheetUtils.js の関数を呼び出し
-      const rosterData = getRosterData(rosterSheet);
-      const userRow = rosterData.data.find((row) => row[rosterData.idColIdx] === studentId);
-      if (userRow) {
-        userInfo.realName = userRow[rosterData.headerMap.get(HEADER_REAL_NAME)];
-        // ニックネームがなければ本名を使用
-        userInfo.displayName =
-          userRow[rosterData.headerMap.get(HEADER_NICKNAME)] || userInfo.realName;
+      // 効率化：生徒名簿も1回の読み込みで取得
+      const rosterAllData = rosterSheet.getDataRange().getValues();
+      if (rosterAllData.length > 1) {
+        const rosterHeader = rosterAllData[0];
+        const rosterHeaderMap = createHeaderMap(rosterHeader);
+        const rosterStudentIdCol = rosterHeaderMap.get(HEADER_STUDENT_ID);
+
+        if (rosterStudentIdCol !== undefined) {
+          const userRow = rosterAllData
+            .slice(1)
+            .find((row) => row[rosterStudentIdCol] === studentId);
+          if (userRow) {
+            userInfo.realName = userRow[rosterHeaderMap.get(HEADER_REAL_NAME)] || '(不明)';
+            userInfo.displayName =
+              userRow[rosterHeaderMap.get(HEADER_NICKNAME)] || userInfo.realName;
+          }
+        }
       }
     }
 
@@ -416,7 +428,6 @@ function cancelReservation(cancelInfo) {
     logActivity(studentId, '予約キャンセル', '成功', logDetails);
 
     const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
-    const cancelMessage = cancelInfo.cancelMessage || '';
     const messageSection = cancelMessage ? `\n先生へのメッセージ: ${cancelMessage}\n` : '';
     const body =
       `予約がキャンセルされました。\n\n` +
