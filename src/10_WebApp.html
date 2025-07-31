@@ -178,7 +178,10 @@
         id="loading"
         class="fixed inset-0 bg-white/75 flex items-center justify-center z-50 hidden backdrop-blur-sm"
       >
-        <div class="spinner"></div>
+        <div class="flex flex-col items-center">
+          <div class="spinner"></div>
+          <p id="loading-message" class="mt-4 text-brand-text text-sm font-medium">読み込み中...</p>
+        </div>
       </div>
       <div id="custom-modal" class="modal-overlay">
         <div class="modal-content">

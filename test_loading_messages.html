@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ローディングメッセージ テスト - UI-11</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        border-left-color: #50312f;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 font-sans">
+    <div class="max-w-screen-lg mx-auto p-6">
+      <h1 class="text-2xl font-bold text-gray-800 mb-6">
+        UI-11: ローディングメッセージの多様化テスト
+      </h1>
+
+      <div class="bg-white rounded-xl p-6 mb-4">
+        <h2 class="text-lg font-semibold mb-4">テストボタン</h2>
+        <div class="space-x-4">
+          <button
+            onclick="testLogin()"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            ログインテスト
+          </button>
+          <button
+            onclick="testBooking()"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          >
+            申し込みテスト
+          </button>
+          <button
+            onclick="testAccounting()"
+            class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
+          >
+            会計テスト
+          </button>
+          <button
+            onclick="testDefault()"
+            class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+          >
+            デフォルトテスト
+          </button>
+          <button
+            onclick="hideLoading()"
+            class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+          >
+            停止
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-6">
+        <h2 class="text-lg font-semibold mb-4">実装済みメッセージ一覧</h2>
+
+        <div class="grid md:grid-cols-2 gap-4">
+          <div>
+            <h3 class="font-semibold text-blue-600 mb-2">ログイン時</h3>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>• めいぼ を さがしています．．．</li>
+              <li>• めいぼじたい を さがしています．．．</li>
+              <li>• きろく を おもいだし ちゅうです．．．</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-green-600 mb-2">申し込み時</h3>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>• よやく を もうしこみ ちゅうです．．．</li>
+              <li>• しんせいしょ を ていしゅつしています．．．</li>
+              <li>• はんこ を さがしています．．．</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-purple-600 mb-2">会計時</h3>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>• でんぴょう を おくっています．．．</li>
+              <li>• ちょうぼ を つけています．．．</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-gray-600 mb-2">デフォルト</h3>
+            <ul class="text-sm text-gray-700 space-y-1">
+              <li>• せんせい を さがしています．．．</li>
+              <li>• しょるい を さがしています．．．</li>
+              <li>• しょるい を ながめています．．．</li>
+              <li>• きくず を かたずけています．．．</li>
+              <li>• ことば を えらんでいます．．．</li>
+              <li>• ていさい を ととのえています．．．</li>
+              <li>• みぎ のもの を ひだり に うごかしています．．．</li>
+              <li>• ひだり のもの を みぎ に うごかしています．．．</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ローディング画面 -->
+    <div
+      id="loading"
+      class="fixed inset-0 bg-white/75 flex items-center justify-center z-50 hidden backdrop-blur-sm"
+    >
+      <div class="flex flex-col items-center">
+        <div class="spinner"></div>
+        <p id="loading-message" class="mt-4 text-gray-800 text-sm font-medium">読み込み中...</p>
+      </div>
+    </div>
+
+    <script>
+      // ===============================
+      // ローディングメッセージシステム
+      // ===============================
+      let loadingMessageTimer = null;
+
+      const LoadingMessages = {
+        // ログイン時のメッセージ
+        login: [
+          'めいぼ を さがしています．．．',
+          'めいぼじたい を さがしています．．．',
+          'きろく を おもいだし ちゅうです．．．',
+        ],
+
+        // 申し込み時のメッセージ（キャンセル時は除く）
+        booking: [
+          'よやく を もうしこみ ちゅうです．．．',
+          'しんせいしょ を ていしゅつしています．．．',
+          'はんこ を さがしています．．．',
+        ],
+
+        // 会計時のメッセージ
+        accounting: ['でんぴょう を おくっています．．．', 'ちょうぼ を つけています．．．'],
+
+        // デフォルトのメッセージ
+        default: [
+          'せんせい を さがしています．．．',
+          'しょるい を さがしています．．．',
+          'しょるい を ながめています．．．',
+          'きくず を かたずけています．．．',
+          'ことば を えらんでいます．．．',
+          'ていさい を ととのえています．．．',
+          'みぎ のもの を ひだり に うごかしています．．．',
+          'ひだり のもの を みぎ に うごかしています．．．',
+        ],
+      };
+
+      const getRandomMessage = (category = 'default') => {
+        const messages = [...(LoadingMessages[category] || []), ...LoadingMessages.default];
+        return messages[Math.floor(Math.random() * messages.length)];
+      };
+
+      const updateLoadingMessage = (category = 'default') => {
+        const messageElement = document.getElementById('loading-message');
+        if (messageElement) {
+          messageElement.textContent = getRandomMessage(category);
+        }
+      };
+
+      const startLoadingMessageRotation = (category = 'default') => {
+        // 初期メッセージを設定
+        updateLoadingMessage(category);
+
+        // 3秒ごとにメッセージを更新
+        loadingMessageTimer = setInterval(() => {
+          updateLoadingMessage(category);
+        }, 3000);
+      };
+
+      const stopLoadingMessageRotation = () => {
+        if (loadingMessageTimer) {
+          clearInterval(loadingMessageTimer);
+          loadingMessageTimer = null;
+        }
+      };
+
+      const showLoading = (category = 'default') => {
+        document.getElementById('loading').classList.remove('hidden');
+        startLoadingMessageRotation(category);
+      };
+
+      const hideLoading = () => {
+        document.getElementById('loading').classList.add('hidden');
+        stopLoadingMessageRotation();
+      };
+
+      // ===============================
+      // テスト関数
+      // ===============================
+      function testLogin() {
+        showLoading('login');
+      }
+
+      function testBooking() {
+        showLoading('booking');
+      }
+
+      function testAccounting() {
+        showLoading('accounting');
+      }
+
+      function testDefault() {
+        showLoading('default');
+      }
+    </script>
+  </body>
+</html>

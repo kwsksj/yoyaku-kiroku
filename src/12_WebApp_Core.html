@@ -67,9 +67,122 @@
   };
 
   // =================================================================
+  // --- Loading Message System ---
+  // -----------------------------------------------------------------
+  // UI-11: ローディングメッセージの多様化機能
+  // 状況に応じたメッセージとユーモラスなメッセージをランダムに表示し、
+  // 数秒ごとに自動で切り替える機能を提供します。
+  // =================================================================
+  let loadingMessageTimer = null;
+
+  const LoadingMessages = {
+    // ログイン時のメッセージ
+    login: [
+      'めいぼ を さがしています．．．',
+      'めいぼじたい を さがしています．．．',
+      'きろく を おもいだし ちゅうです．．．',
+      'なまえ を かくにん しています．．．',
+      'とうろく が あるか しらべています．．．',
+    ],
+
+    // 申し込み時のメッセージ
+    booking: [
+      'よやく を もうしこみ ちゅうです．．．',
+      'しんせいしょ を ていしゅつしています．．．',
+      'はんこ を さがしています．．．',
+      'ひづけ を かくにんしています．．．',
+      'カレンダー に かきこんでいます．．．',
+    ],
+
+    // 予約キャンセル時のメッセージ
+    cancel: [
+      'よやく を とりけしています．．．',
+      'けしごむ を さがしています．．．',
+      'とりけしせん を ひいています．．．',
+    ],
+
+    // 予約編集時のメッセージ
+    edit: [
+      'へんこう を ほぞんしています．．．',
+      'あたらしい ないよう に かきかえています．．．',
+      'まちがい が ないか かくにんしています．．．',
+    ],
+
+    // 会計時のメッセージ
+    accounting: [
+      'でんぴょう を おくっています．．．',
+      'ちょうぼ を つけています．．．',
+      'おかね を かぞえています．．．',
+      'おつり を じゅんびしています．．．',
+    ],
+
+    // データ取得時のメッセージ
+    dataFetch: [
+      'データ を よみこんでいます．．．',
+      'じょうほう を あつめています．．．',
+      'ひつような もの を さがしています．．．',
+    ],
+
+    // デフォルトのメッセージ
+    default: [
+      'せんせい を さがしています．．．',
+      'しょるい を さがしています．．．',
+      'しょるい を ながめています．．．',
+      'きくず を かたずけています．．．',
+      'ことば を えらんでいます．．．',
+      'ていさい を ととのえています．．．',
+      'みぎ のもの を ひだり に うごかしています．．．',
+      'ひだり のもの を みぎ に うごかしています．．．',
+      'コーヒー を いれています．．．',
+      'すこし きゅうけい しています．．．',
+      'ねこ の て を かりようとしています．．．',
+      'はもの を ととのえています．．．',
+    ],
+  };
+
+  const getRandomMessage = (category = 'default') => {
+    const messages = [...(LoadingMessages[category] || []), ...LoadingMessages.default];
+    return messages[Math.floor(Math.random() * messages.length)];
+  };
+
+  const updateLoadingMessage = (category = 'default') => {
+    const messageElement = document.getElementById('loading-message');
+    if (messageElement) {
+      messageElement.textContent = getRandomMessage(category);
+    }
+  };
+
+  const startLoadingMessageRotation = (category = 'default') => {
+    // 初期メッセージを設定
+    updateLoadingMessage(category);
+
+    // 3秒ごとにメッセージを更新
+    loadingMessageTimer = setInterval(() => {
+      updateLoadingMessage(category);
+    }, 3000);
+  };
+
+  const stopLoadingMessageRotation = () => {
+    if (loadingMessageTimer) {
+      clearInterval(loadingMessageTimer);
+      loadingMessageTimer = null;
+    }
+  };
+
+  const showLoading = (category = 'default') => {
+    document.getElementById('loading').classList.remove('hidden');
+    startLoadingMessageRotation(category);
+  };
+
+  const hideLoading = () => {
+    document.getElementById('loading').classList.add('hidden');
+    stopLoadingMessageRotation();
+  };
+
+  // =================================================================
   // --- General Utilities ---
   // -----------------------------------------------------------------
-  // 日付のフォーマット、ローディング表示、モーダルダイアログなど、
+  // 日付のフォーマット、モーダルダイアログなど、
   // アプリ全体で汎用的に使用されるヘルパー関数群です。
   // =================================================================
   const formatDate = (dStr) => {
@@ -81,8 +194,6 @@
     const wd = ['日', '月', '火', '水', '木', '金', '土'];
     return `${d.getMonth() + 1}/${d.getDate()} <span class="font-bold ${day === 0 ? 'text-red-500' : day === 6 ? 'text-blue-500' : ''}">${wd[day]}</span>`;
   };
-  const showLoading = () => document.getElementById('loading').classList.remove('hidden');
-  const hideLoading = () => document.getElementById('loading').classList.add('hidden');
   const showModal = (c) => {
     const m = document.getElementById('custom-modal'),
       b = document.getElementById('modal-buttons');

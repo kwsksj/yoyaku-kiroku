@@ -28,7 +28,7 @@
       const n = p
         .replace(/[‐－-]/g, '')
         .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 65248));
-      showLoading();
+      showLoading('login');
       google.script.run
         .withSuccessHandler((r) => {
           hideLoading();
@@ -78,7 +78,7 @@
       let n = document.getElementById('reg-nickname').value.trim();
       if (!r) return showInfo('お名前（本名）は必須です。');
       if (!n) n = r;
-      showLoading();
+      showLoading('login');
       google.script.run
         .withSuccessHandler((res) => {
           hideLoading();
@@ -200,7 +200,7 @@
         return showInfo('お名前（本名）またはニックネームを入力してください。');
       }
 
-      showLoading();
+      showLoading('login');
 
       // 検索語からスペースを除去して小文字化して比較に使う
       const normalizedSearchTerm = searchTerm.replace(/\s+/g, '').toLowerCase();
@@ -239,7 +239,7 @@
         phone: '', // 電話番号はまだないので空
       };
 
-      showLoading();
+      showLoading('login');
 
       // studentIdを使って、サーバーから予約情報や履歴などの完全なデータを取得
       google.script.run
@@ -291,7 +291,7 @@
         cancelText: 'いいえ',
         confirmColorClass: DesignConfig.colors.danger,
         onConfirm: () => {
-          showLoading();
+          showLoading('cancel');
           const cancelMessage = document.getElementById('cancel-message')?.value || '';
           const p = {
             ...d,
@@ -330,7 +330,7 @@
         order: document.getElementById('order-input')?.value || '',
         messageToTeacher: document.getElementById('message-input')?.value || '',
       };
-      showLoading();
+      showLoading('booking');
       const p = { ...appState.selectedSlot, user: appState.currentUser, options: bookingOptions };
 
       google.script.run
@@ -384,7 +384,7 @@
         messageToTeacher: document.getElementById('edit-message-input').value,
       };
 
-      showLoading();
+      showLoading('booking');
       google.script.run
         .withSuccessHandler((r) => {
           hideLoading();
@@ -402,7 +402,7 @@
 
     /** 会計画面に遷移します */
     goToAccounting: (d) => {
-      showLoading();
+      showLoading('accounting');
       google.script.run
         .withSuccessHandler((res) => {
           hideLoading();
@@ -677,7 +677,7 @@
       userInput: userInput,
     };
 
-    showLoading();
+    showLoading('accounting');
     google.script.run
       .withSuccessHandler((r) => {
         if (r.success) {
