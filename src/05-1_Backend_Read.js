@@ -12,10 +12,14 @@
  */
 
 /**
+ * 【DEPRECATED】この関数は非推奨です。
+ * パフォーマンス改善のため、getAvailableSlotsFromSummary()を使用してください。
+ *
  * WebAppに必要な予約枠と自分の予約情報を取得します。
  * @param {string} studentId - ログインしたユーザーの生徒ID
  * @returns {object} { success: boolean, availableSlots: Array, myBookings: Array, message?: string }
  */
+/* DEPRECATED - パフォーマンス改善のため使用中止
 function getSlotsAndMyBookings(studentId) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -158,6 +162,7 @@ function getSlotsAndMyBookings(studentId) {
     };
   }
 }
+*/
 
 /**
  * 【旧・詳細取得】会計画面に表示する詳細情報を取得します。
@@ -167,7 +172,7 @@ function getSlotsAndMyBookings(studentId) {
 function getReservationDetails(params) {
   try {
     const { reservationId, classroom } = params;
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(classroom);
+    const sheet = getSheetByName(classroom);
     if (!sheet) throw new Error(`予約シート「${classroom}」が見つかりません。`);
 
     const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -182,7 +187,7 @@ function getReservationDetails(params) {
       throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
 
     const rowData = sheet.getRange(targetRowIndex, 1, 1, header.length).getValues()[0];
-    const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const timezone = getSpreadsheetTimezone();
 
     const details = {
       firstLecture: headerMap.has(HEADER_FIRST_LECTURE)
@@ -223,12 +228,12 @@ function getReservationDetails(params) {
  */
 function getReservationDetailsForEdit(reservationId, classroom) {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(classroom);
+    const sheet = getSheetByName(classroom);
     if (!sheet) throw new Error(`予約シート「${classroom}」が見つかりません。`);
 
     const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     const headerMap = createHeaderMap(header);
-    const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const timezone = getSpreadsheetTimezone();
 
     const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
     if (reservationIdColIdx === undefined) throw new Error('ヘッダー「予約ID」が見つかりません。');
@@ -287,9 +292,7 @@ function getReservationDetailsForEdit(reservationId, classroom) {
  */
 function getAccountingMasterData() {
   try {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(
-      ACCOUNTING_MASTER_SHEET_NAME,
-    );
+    const sheet = getSheetByName(ACCOUNTING_MASTER_SHEET_NAME);
     if (!sheet) throw new Error('シート「料金・商品マスタ」が見つかりません。');
 
     if (sheet.getLastRow() < 2) {
@@ -298,7 +301,7 @@ function getAccountingMasterData() {
 
     const data = sheet.getDataRange().getValues();
     const header = data.shift();
-    const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+    const timezone = getSpreadsheetTimezone();
 
     const timeColumns = [
       HEADER_CLASS_START,
@@ -341,13 +344,13 @@ function getAccountingMasterData() {
  */
 function getParticipationHistory(studentId, limit, offset) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const timezone = ss.getSpreadsheetTimeZone();
+    const ss = getActiveSpreadsheet();
+    const timezone = getSpreadsheetTimezone();
     const allSheetNames = [...CLASSROOM_SHEET_NAMES, ...ARCHIVE_SHEET_NAMES];
     let history = [];
 
     allSheetNames.forEach((sheetName) => {
-      const sheet = ss.getSheetByName(sheetName);
+      const sheet = getSheetByName(sheetName);
       if (!sheet || sheet.getLastRow() < 2) return;
 
       const data = sheet.getDataRange().getValues();

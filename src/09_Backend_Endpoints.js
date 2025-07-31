@@ -18,19 +18,22 @@
  */
 function getInitialWebApp_Data(studentId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // スプレッドシートマネージャーを使用（1回のみ取得）
+    const ss = getActiveSpreadsheet();
 
-    // --- 予約枠の取得 (サマリーから) ---
-    const summarySheet = ss.getSheetByName(SUMMARY_SHEET_NAME);
+    // --- 予約枠の取得 (サマリーから直接取得) ---
     let availableSlots = [];
-    if (summarySheet && summarySheet.getLastRow() > 1) {
-      availableSlots = getSlotsAndMyBookings('').availableSlots; // studentIdなしで呼び出し、枠情報のみ取得
+    try {
+      availableSlots = getAvailableSlotsFromSummary(ss);
+    } catch (e) {
+      Logger.log(`予約枠取得に失敗: ${e.message}`);
+      availableSlots = [];
     }
 
     // --- 【NF-11/NF-12】自分の予約状況と参加記録の効率的な取得 (生徒名簿キャッシュから) ---
     let myBookings = [];
     let myHistory = [];
-    const rosterSheet = ss.getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
 
     if (rosterSheet) {
       // 1回のシート読み込みで全データを取得（効率化）
@@ -153,4 +156,49 @@ function searchNoPhoneUsersByFilterForWebApp() {
  */
 function updateMemo(reservationId, sheetName, newMemo, studentId) {
   return updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studentId);
+}
+
+/**
+ * サマリーシートから予約枠データを直接取得するヘルパー関数
+ * @param {Spreadsheet} ss - スプレッドシートオブジェクト（省略時は自動取得）
+ * @returns {Array} availableSlots - 予約枠の配列
+ */
+function getAvailableSlotsFromSummary(ss) {
+  try {
+    // スプレッドシートオブジェクトが渡されていない場合のみ取得
+    const spreadsheet = ss || getActiveSpreadsheet();
+    const summarySheet = getSheetByName(SUMMARY_SHEET_NAME);
+
+    if (!summarySheet || summarySheet.getLastRow() <= 1) {
+      return [];
+    }
+
+    const summaryData = summarySheet.getDataRange().getValues();
+    if (summaryData.length <= 1) {
+      return [];
+    }
+
+    const summaryHeader = summaryData[0];
+    const summaryHeaderMap = createHeaderMap(summaryHeader);
+
+    // サマリーシートから直接予約枠データを構築
+    return summaryData
+      .slice(1)
+      .filter((row) => row[summaryHeaderMap.get(HEADER_DATE)] instanceof Date)
+      .map((row) => ({
+        classroom: row[summaryHeaderMap.get(HEADER_SUMMARY_CLASSROOM)],
+        date: Utilities.formatDate(
+          row[summaryHeaderMap.get(HEADER_DATE)],
+          getSpreadsheetTimezone(),
+          'yyyy-MM-dd',
+        ),
+        session: row[summaryHeaderMap.get(HEADER_SUMMARY_SESSION)],
+        availableSlots: row[summaryHeaderMap.get(HEADER_SUMMARY_AVAILABLE_COUNT)],
+        venue: row[summaryHeaderMap.get(HEADER_SUMMARY_VENUE)] || '',
+        maxCapacity: row[summaryHeaderMap.get(HEADER_SUMMARY_CAPACITY)] || 0,
+      }));
+  } catch (e) {
+    Logger.log(`サマリーシートからの予約枠取得に失敗: ${e.message}`);
+    return [];
+  }
 }

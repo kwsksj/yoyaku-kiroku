@@ -742,10 +742,15 @@ function saveAccountingDetails(payload) {
     }
 
     // [追加] 9. 更新されたサマリーから、最新の空き枠情報を取得する
-    const updatedSlotsResult = getSlotsAndMyBookings(actualStudentId);
-    const updatedSlotsForClassroom = updatedSlotsResult.success
-      ? updatedSlotsResult.availableSlots
-      : [];
+    let updatedSlotsForClassroom = [];
+    try {
+      // 既にアクティブなスプレッドシートオブジェクトを渡して重複を避ける
+      const ss = SpreadsheetApp.getActiveSpreadsheet();
+      updatedSlotsForClassroom = getAvailableSlotsFromSummary(ss);
+    } catch (e) {
+      Logger.log(`会計処理後の予約枠取得に失敗: ${e.message}`);
+      updatedSlotsForClassroom = [];
+    }
 
     // 9. 【NEW】会計済みの予約をアーカイブし、元の行を削除する
     _archiveSingleReservation(sheet, targetRowIndex, reservationDataRow);

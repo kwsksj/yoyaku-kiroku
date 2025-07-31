@@ -169,10 +169,22 @@ const UNIT_CM3 = 'cm³';
 // --- エントリーポイント関数 ---
 
 function doGet(e) {
-  return HtmlService.createTemplateFromFile('10_WebApp.html')
-    .evaluate()
-    .setTitle('きぼりの よやく・きろく')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  // URLパラメータでテストモードかどうかを判定
+  const isTestMode = e && e.parameter && e.parameter.test === 'true';
+
+  if (isTestMode) {
+    // テストモード: パフォーマンステスト画面を表示
+    return HtmlService.createTemplateFromFile('test_performance_webapp')
+      .evaluate()
+      .setTitle('パフォーマンス改善テスト')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  } else {
+    // 通常モード: メインアプリケーションを表示
+    return HtmlService.createTemplateFromFile('10_WebApp.html')
+      .evaluate()
+      .setTitle('きぼりの よやく・きろく')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
 }
 
 function onOpen() {
@@ -247,4 +259,123 @@ function handleEdit(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/**
+ * テスト用WebAppのエントリーポイント
+ * パフォーマンステスト画面を表示します
+ */
+function doGetTest() {
+  try {
+    const htmlOutput = HtmlService.createTemplateFromFile('test_performance_webapp')
+      .evaluate()
+      .setTitle('パフォーマンス改善テスト')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+
+    // GASエディタから実行された場合のデバッグ情報
+    Logger.log('テスト用WebAppが生成されました');
+    Logger.log('URLでアクセスするか、doGetテストをWebAppとしてデプロイしてください');
+
+    return htmlOutput;
+  } catch (error) {
+    Logger.log('doGetTest エラー: ' + error.message);
+    throw error;
+  }
+}
+
+/**
+ * デバッグ用：テスト関数が正常に動作するかチェック
+ */
+function debugTestSetup() {
+  try {
+    Logger.log('=== テストセットアップ開始 ===');
+
+    // HTMLファイルの存在確認
+    try {
+      const htmlTemplate = HtmlService.createTemplateFromFile('test_performance_webapp');
+      Logger.log('✓ HTMLテンプレートが見つかりました');
+    } catch (e) {
+      Logger.log('✗ HTMLテンプレートエラー: ' + e.message);
+      throw e;
+    }
+
+    // スプレッドシートマネージャーの動作確認
+    try {
+      const ss = getActiveSpreadsheet();
+      Logger.log('✓ SpreadsheetManagerが動作しています: ' + ss.getId());
+    } catch (e) {
+      Logger.log('✗ SpreadsheetManagerエラー: ' + e.message);
+      throw e;
+    }
+
+    // テスト関数の動作確認
+    try {
+      const testResult = testSpreadsheetManagerFunction();
+      Logger.log('✓ テスト関数が動作しています');
+      Logger.log('テスト結果: ' + JSON.stringify(testResult, null, 2));
+    } catch (e) {
+      Logger.log('✗ テスト関数エラー: ' + e.message);
+      throw e;
+    }
+
+    Logger.log('=== テストセットアップ完了 ===');
+    return {
+      success: true,
+      message: 'すべてのテストセットアップが正常です',
+    };
+  } catch (error) {
+    Logger.log('✗ セットアップエラー: ' + error.message);
+    Logger.log('エラーの詳細: ' + error.stack);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+}
+
+/**
+ * GASエディタで直接実行可能なテスト関数
+ */
+function runDirectTest() {
+  Logger.log('=== 直接テスト実行開始 ===');
+
+  try {
+    // 1. SpreadsheetManager テスト
+    Logger.log('--- SpreadsheetManager テスト ---');
+    const managerResult = testSpreadsheetManagerFunction();
+    Logger.log('結果: ' + JSON.stringify(managerResult, null, 2));
+
+    // 2. 予約枠取得テスト
+    Logger.log('--- 予約枠取得テスト ---');
+    const slotsResult = testAvailableSlotsFunction();
+    Logger.log('結果: ' + JSON.stringify(slotsResult, null, 2));
+
+    // 3. パフォーマンス比較
+    Logger.log('--- パフォーマンス比較テスト ---');
+    const perfResult = performanceComparisonFunction();
+    Logger.log('結果: ' + JSON.stringify(perfResult, null, 2));
+
+    Logger.log('=== 直接テスト実行完了 ===');
+    return {
+      success: true,
+      managerTest: managerResult,
+      slotsTest: slotsResult,
+      performanceTest: perfResult,
+    };
+  } catch (error) {
+    Logger.log('✗ 直接テストエラー: ' + error.message);
+    Logger.log('エラーの詳細: ' + error.stack);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+}
+
+/**
+ * 別のデプロイメント用のエントリーポイント
+ * テスト専用のデプロイメントを作成する場合に使用
+ */
+function doGetPerformanceTest(e) {
+  return doGetTest();
 }
