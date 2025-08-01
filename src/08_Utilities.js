@@ -40,7 +40,7 @@ function shouldProcessRowByDate(rowDate, timezone, options) {
   }
   if (options.targetDates) {
     return options.targetDates
-      .map((dt) => Utilities.formatDate(dt, timezone, 'yyyy/MM/dd'))
+      .map(dt => Utilities.formatDate(dt, timezone, 'yyyy/MM/dd'))
       .includes(d);
   }
   return true; // オプションがなければ常にtrue
@@ -112,7 +112,7 @@ function findLastRowOfDateBlock(sheet, date, dateColIdx) {
       1,
     )
     .getValues();
-  const timezone = sheet.getParent().getSpreadsheetTimeZone();
+  const timezone = getSpreadsheetTimezone();
   const targetDateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
   let lastRow = -1;
   for (let i = data.length - 1; i >= 0; i--) {
@@ -183,7 +183,7 @@ function include(filename) {
  */
 function logActivity(userId, action, result, details) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getActiveSpreadsheet();
     const logSheet = ss.getSheetByName('アクティビティログ');
     // シートや数式が未設定の場合は、エラーを出さずに処理を中断する
     if (!logSheet) {
@@ -237,7 +237,7 @@ function sendAdminNotification(subject, body) {
  */
 function setupConditionalFormattingForLogSheet() {
   const sheetName = 'アクティビティログ';
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {
@@ -321,8 +321,8 @@ function setupConditionalFormattingForLogSheet() {
     },
   ];
 
-  actionRules.forEach((rule) => {
-    rule.text.forEach((text) => {
+  actionRules.forEach(rule => {
+    rule.text.forEach(text => {
       // 【E列用のルール】E列自身のテキストを評価します
       const ruleForE = SpreadsheetApp.newConditionalFormatRule()
         .whenTextEqualTo(text)

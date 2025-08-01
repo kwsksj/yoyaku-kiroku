@@ -15,5 +15,8 @@
   },
   "files.eol": "\n",
   "files.insertFinalNewline": true,
-  "files.trimTrailingWhitespace": true
+  "files.trimTrailingWhitespace": true,
+  "github.copilot.advanced": {
+    "instructions": "テスト作成・修正時の品質保証ルール: 1) grep_search で関数・定数の実在性を確認してから参照 2) semantic_search で実際の使用パターンを調査 3) read_file で戻り値・引数の実際の形式を確認 4) 実装確認せずに推測でテストコードを書かない 5) テストエラー時は実際のコード使用方法を調査してから修正方針を決定"
+  }
 }

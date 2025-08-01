@@ -47,7 +47,7 @@ function processCellEdit(e) {
  */
 function processChange(changeType) {
   if (changeType === 'INSERT_ROW') {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const sheet = getActiveSpreadsheet().getActiveSheet();
     if (!CLASSROOM_SHEET_NAMES.includes(sheet.getName())) return;
 
     const insertedDate = handleRowInsert(sheet);
@@ -57,7 +57,7 @@ function processChange(changeType) {
 
       const pseudoEvent = {
         range: sheet.getActiveRange(),
-        source: SpreadsheetApp.getActiveSpreadsheet(),
+        source: getActiveSpreadsheet(),
         changeType: changeType,
       };
       if (typeof triggerSummaryUpdateFromEdit !== 'undefined') {
@@ -67,11 +67,7 @@ function processChange(changeType) {
 
     // logActivityは教室シートでの行挿入時のみ実行
     const dateStr = insertedDate
-      ? Utilities.formatDate(
-          insertedDate,
-          SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(),
-          'yyyy-MM-dd',
-        )
+      ? Utilities.formatDate(insertedDate, getSpreadsheetTimezone(), 'yyyy-MM-dd')
       : 'N/A';
     logActivity(
       Session.getActiveUser().getEmail(),
@@ -175,7 +171,7 @@ function handleNameEdit(e, header) {
   const sheet = range.getSheet();
   const startRow = range.getRow();
 
-  const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+  const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
   if (!rosterSheet) return;
 
   const rosterData = getRosterData(rosterSheet);

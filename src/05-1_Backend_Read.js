@@ -22,8 +22,8 @@
 /* DEPRECATED - パフォーマンス改善のため使用中止
 function getSlotsAndMyBookings(studentId) {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const timezone = ss.getSpreadsheetTimeZone();
+    const ss = getActiveSpreadsheet();
+    const timezone = getSpreadsheetTimezone();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -244,7 +244,7 @@ function getReservationDetailsForEdit(reservationId, classroom) {
 
     const row = sheet.getRange(targetRowIndex, 1, 1, header.length).getValues()[0];
 
-    const timeToString = (date) =>
+    const timeToString = date =>
       date instanceof Date ? Utilities.formatDate(date, timezone, 'HH:mm') : '';
 
     const details = {
@@ -309,11 +309,11 @@ function getAccountingMasterData() {
       HEADER_BREAK_START,
       HEADER_BREAK_END,
     ];
-    const timeColumnIndices = timeColumns.map((h) => header.indexOf(h));
+    const timeColumnIndices = timeColumns.map(h => header.indexOf(h));
 
     return {
       success: true,
-      data: data.map((row) => {
+      data: data.map(row => {
         let item = {};
         header.forEach((key, index) => {
           if (timeColumnIndices.includes(index) && row[index] instanceof Date) {
@@ -349,7 +349,7 @@ function getParticipationHistory(studentId, limit, offset) {
     const allSheetNames = [...CLASSROOM_SHEET_NAMES, ...ARCHIVE_SHEET_NAMES];
     let history = [];
 
-    allSheetNames.forEach((sheetName) => {
+    allSheetNames.forEach(sheetName => {
       const sheet = getSheetByName(sheetName);
       if (!sheet || sheet.getLastRow() < 2) return;
 
@@ -367,7 +367,7 @@ function getParticipationHistory(studentId, limit, offset) {
 
       if (idCol === undefined || dateCol === undefined) return;
 
-      data.forEach((row) => {
+      data.forEach(row => {
         const status = String(row[statusCol]).toLowerCase();
         if (row[idCol] === studentId && status !== STATUS_CANCEL && status !== STATUS_WAITING) {
           history.push({

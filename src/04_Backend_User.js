@@ -32,7 +32,7 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
   // 全角数字を半角に変換し、数字以外のすべての文字（ハイフン、スペース等）を削除
   const normalized = phoneNumber
     .replace(/[‐－-]/g, '') // NF-01: ハイフンも除去対象に追加
-    .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+    .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
     .replace(/[^0-9]/g, '');
 
   if (allowEmpty && normalized === '') {
@@ -88,8 +88,8 @@ function authenticateUser(phoneNumber) {
     }
     const normalizedInputPhone = validationResult.normalized;
 
-    const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
-    if (!rosterSheet) throw new new Error('シート「生徒名簿」が見つかりません。')(); // Typo here, should be `new Error`. Corrected in final snippet below.
+    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+    if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
     if (rosterSheet.getLastRow() < RESERVATION_DATA_START_ROW) {
       return {
@@ -154,7 +154,7 @@ function authenticateUser(phoneNumber) {
           return {
             success: true,
             user: user, // 認証したユーザー情報
-            initialData: initialData // アプリ初期化データ
+            initialData: initialData, // アプリ初期化データ
           };
         } else {
           // データ取得に失敗した場合はエラーとして扱う
@@ -186,7 +186,7 @@ function authenticateUser(phoneNumber) {
  */
 function getUsersWithoutPhoneNumber() {
   try {
-    const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
     if (rosterSheet.getLastRow() < RESERVATION_DATA_START_ROW) {
@@ -269,7 +269,7 @@ function registerNewUser(userInfo) {
     // WebアプリUI側で電話番号入力が必須となるため、ここでは normalizedPhone が空であることのエラーはチェックしない。
     // その代わり、UI側で電話番号が空の場合は登録できないようにする。
 
-    const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
     // 電話番号が提供された場合のみ、既存ユーザーチェックを行う
@@ -311,22 +311,22 @@ function registerNewUser(userInfo) {
     logActivity(studentId, '新規ユーザー登録', '成功', `電話番号: ${normalizedPhone}`);
 
     const newUserInfo = {
-        studentId: studentId,
-        displayName: userInfo.nickname || userInfo.realName,
-        realName: userInfo.realName,
-        phone: normalizedPhone,
+      studentId: studentId,
+      displayName: userInfo.nickname || userInfo.realName,
+      realName: userInfo.realName,
+      phone: normalizedPhone,
     };
 
     // ★★★ 変更点 ★★★
     const initialData = getInitialWebApp_Data(studentId);
     if (initialData.success) {
-        return {
-          success: true,
-          user: newUserInfo,
-          initialData: initialData
-        };
+      return {
+        success: true,
+        user: newUserInfo,
+        initialData: initialData,
+      };
     } else {
-        throw new Error('新規登録には成功しましたが、初期データの取得に失敗しました。');
+      throw new Error('新規登録には成功しましたが、初期データの取得に失敗しました。');
     }
   } catch (err) {
     logActivity('N/A', '新規ユーザー登録', 'エラー', `Error: ${err.message}`);
@@ -347,7 +347,7 @@ function updateUserProfile(userInfo) {
   const lock = LockService.getScriptLock();
   lock.waitLock(LOCK_WAIT_TIME_MS);
   try {
-    const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
     const data = rosterSheet.getDataRange().getValues();
@@ -363,7 +363,7 @@ function updateUserProfile(userInfo) {
       );
     }
 
-    const targetRowIndex = data.findIndex((row) => row[idColIdx] === userInfo.studentId);
+    const targetRowIndex = data.findIndex(row => row[idColIdx] === userInfo.studentId);
 
     if (targetRowIndex !== -1) {
       const rowIndexToUpdate = targetRowIndex + 2; // +1 for header, +1 for 0-based index
@@ -417,7 +417,8 @@ function updateUserProfile(userInfo) {
       return {
         success: true,
         message: 'プロフィールを更新しました。',
-        updatedUser: userInfo };
+        updatedUser: userInfo,
+      };
     } else {
       logActivity(userInfo.studentId, 'プロフィール更新', 'エラー', details);
       return { success: false, message: '更新対象のユーザーが見つかりませんでした。' };

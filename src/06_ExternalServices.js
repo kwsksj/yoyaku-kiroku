@@ -27,13 +27,18 @@ function setCheckboxChoices(classroomName) {
     if (choices.length > 0) {
       const item = form
         .getItems(FormApp.ItemType.CHECKBOX)
-        .find((i) => i.getTitle() === questionTitle);
+        .find(i => i.getTitle() === questionTitle);
       if (item) {
-        item.asCheckboxItem().setChoices(choices.map((c) => item.asCheckboxItem().createChoice(c)));
+        item.asCheckboxItem().setChoices(choices.map(c => item.asCheckboxItem().createChoice(c)));
       }
     }
   } catch (e) {
-    logActivity('system', 'フォーム選択肢更新', 'エラー', `教室: ${classroomName}, エラー: ${e.message}`);
+    logActivity(
+      'system',
+      'フォーム選択肢更新',
+      'エラー',
+      `教室: ${classroomName}, エラー: ${e.message}`,
+    );
     Logger.log(`フォーム連携でエラー: ${e.message}`);
   }
 }
@@ -44,7 +49,7 @@ function setCheckboxChoices(classroomName) {
  * @returns {string[]} - Googleフォームの選択肢として表示する文字列の配列
  */
 function createStringArrayFromCounts(classroomName) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const summarySheet = ss.getSheetByName(SUMMARY_SHEET_NAME);
   if (!summarySheet || summarySheet.getLastRow() < 2) {
     return [];
@@ -52,7 +57,7 @@ function createStringArrayFromCounts(classroomName) {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const timezone = ss.getSpreadsheetTimeZone();
+  const timezone = getSpreadsheetTimezone();
   const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
 
   const summaryData = summarySheet
@@ -69,7 +74,7 @@ function createStringArrayFromCounts(classroomName) {
   const venueIdx = headerMap.get(HEADER_SUMMARY_VENUE);
 
   const choiceData = summaryData
-    .filter((row) => {
+    .filter(row => {
       const classroom = row[classroomIdx];
       const session = row[sessionIdx];
       const date = row[dateIdx];
@@ -81,7 +86,7 @@ function createStringArrayFromCounts(classroomName) {
         date >= today
       );
     })
-    .map((row) => ({
+    .map(row => ({
       dateObj: row[dateIdx],
       venue: row[venueIdx] || '',
       available: row[availableIdx],
@@ -91,7 +96,7 @@ function createStringArrayFromCounts(classroomName) {
   const resultArray = [];
   let currentMonth = null;
 
-  choiceData.forEach((data) => {
+  choiceData.forEach(data => {
     const month = data.dateObj.getMonth() + 1;
     if (currentMonth !== month) {
       resultArray.push(`-- ${month}月 --`);
@@ -150,7 +155,7 @@ function addCalendarEventsToSheetWithSpecifics() {
       `カレンダーから予定を取得する期間: ${Utilities.formatDate(tomorrow, Session.getScriptTimeZone(), 'yyyy/MM/dd')} から ${Utilities.formatDate(oneYearLater, Session.getScriptTimeZone(), 'yyyy/MM/dd')} まで`,
     );
 
-    CLASSROOM_SETTINGS.forEach((setting) => {
+    CLASSROOM_SETTINGS.forEach(setting => {
       const { sheetName, calendarId, includeEventTitle } = setting;
       Logger.log(`\n--- 処理開始: シート "${sheetName}" / カレンダー "${calendarId}" ---`);
 
@@ -195,7 +200,7 @@ function addCalendarEventsToSheetWithSpecifics() {
         const datesInSheet = sheet
           .getRange(2, dateColIdx + 1, sheet.getLastRow() - 1, 1)
           .getValues();
-        datesInSheet.forEach((row) => {
+        datesInSheet.forEach(row => {
           if (row[0] instanceof Date) {
             existingDates.add(
               Utilities.formatDate(row[0], Session.getScriptTimeZone(), 'yyyy-MM-dd'),
@@ -205,7 +210,7 @@ function addCalendarEventsToSheetWithSpecifics() {
       }
 
       const newRows = [];
-      events.forEach((event) => {
+      events.forEach(event => {
         const eventTitle = event.getTitle();
         let currentDay = new Date(event.getStartTime());
         currentDay.setHours(0, 0, 0, 0);
@@ -259,8 +264,13 @@ function addCalendarEventsToSheetWithSpecifics() {
         sheet
           .getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length)
           .setValues(newRows);
-        Logger.log(`シート "${sheetName}" に ${newRows.length} 行を追加しました。`);;
-        logActivity('system', 'カレンダー同期', '成功', `シート: ${sheetName}, 追加件数: ${newRows.length}`);
+        Logger.log(`シート "${sheetName}" に ${newRows.length} 行を追加しました。`);
+        logActivity(
+          'system',
+          'カレンダー同期',
+          '成功',
+          `シート: ${sheetName}, 追加件数: ${newRows.length}`,
+        );
       }
     });
 

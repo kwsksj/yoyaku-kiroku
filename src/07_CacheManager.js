@@ -41,9 +41,9 @@ function updateRosterCache() {
   }
 
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast('キャッシュ更新処理を開始しました...', '処理状況');
+    getActiveSpreadsheet().toast('キャッシュ更新処理を開始しました...', '処理状況');
 
-    const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('生徒名簿');
+    const rosterSheet = getSheetByName('生徒名簿');
     if (!rosterSheet) {
       throw new Error('シート「生徒名簿」が見つかりません。');
     }
@@ -55,7 +55,7 @@ function updateRosterCache() {
 
     updateRosterCacheColumns(rosterSheet, allReservations);
 
-    SpreadsheetApp.getActiveSpreadsheet().toast('キャッシュの更新が完了しました。', '完了', 5);
+    getActiveSpreadsheet().toast('キャッシュの更新が完了しました。', '完了', 5);
     ui.alert('生徒名簿のキャッシュ更新が正常に完了しました。');
     logActivity(
       Session.getActiveUser().getEmail(),
@@ -76,11 +76,11 @@ function updateRosterCache() {
  * @returns {Set<string>} 生徒名のセット
  */
 function getAllStudentNames() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const studentNames = new Set();
   const sheetNames = [...CLASSROOM_SHEET_NAMES, ...ARCHIVE_SHEET_NAMES];
 
-  sheetNames.forEach((sheetName) => {
+  sheetNames.forEach(sheetName => {
     const sheet = ss.getSheetByName(sheetName);
     if (sheet && sheet.getLastRow() > 1) {
       const data = sheet.getDataRange().getValues();
@@ -88,7 +88,7 @@ function getAllStudentNames() {
       const nameColIdx = header.indexOf(HEADER_NAME);
 
       if (nameColIdx !== -1) {
-        data.forEach((row) => {
+        data.forEach(row => {
           const name = row[nameColIdx];
           if (name && typeof name === 'string' && name.trim() !== '') {
             studentNames.add(name.trim());
@@ -97,7 +97,7 @@ function getAllStudentNames() {
       }
     }
   });
-  return studentNames;
+  return studentNames; // Setを返す（元の仕様通り）
 }
 
 /**
@@ -112,7 +112,7 @@ function updateRosterSheet(rosterSheet, allStudentNames) {
   const nicknameColIdx = rosterHeader.indexOf(HEADER_NICKNAME);
 
   const existingNames = new Set();
-  rosterData.forEach((row) => {
+  rosterData.forEach(row => {
     if (row[nameColIdx] && String(row[nameColIdx]).trim())
       existingNames.add(String(row[nameColIdx]).trim());
     if (row[nicknameColIdx] && String(row[nicknameColIdx]).trim())
@@ -120,7 +120,7 @@ function updateRosterSheet(rosterSheet, allStudentNames) {
   });
 
   const newStudents = [];
-  allStudentNames.forEach((name) => {
+  allStudentNames.forEach(name => {
     if (!existingNames.has(name)) {
       const newRow = new Array(rosterHeader.length).fill('');
       newRow[nameColIdx] = name; // 本名として登録
@@ -141,7 +141,7 @@ function updateRosterSheet(rosterSheet, allStudentNames) {
  * @returns {Array<object>} 予約データの配列
  */
 function getAllReservations() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const reservations = [];
   const sheetNames = [...CLASSROOM_SHEET_NAMES, ...ARCHIVE_SHEET_NAMES];
   const cacheFields = [
@@ -154,7 +154,7 @@ function getAllReservations() {
     HEADER_LINE,
   ];
 
-  sheetNames.forEach((sheetName) => {
+  sheetNames.forEach(sheetName => {
     const sheet = ss.getSheetByName(sheetName);
     if (sheet && sheet.getLastRow() > 1) {
       const data = sheet.getDataRange().getValues();
@@ -167,12 +167,12 @@ function getAllReservations() {
       const accountingDetailsColIdx = header.indexOf(HEADER_ACCOUNTING_DETAILS);
 
       const fieldIndices = {};
-      cacheFields.forEach((field) => {
+      cacheFields.forEach(field => {
         fieldIndices[field] = header.indexOf(field);
       });
 
       if (nameColIdx !== -1 && dateColIdx !== -1) {
-        data.forEach((row) => {
+        data.forEach(row => {
           const name = row[nameColIdx];
           if (!name || String(name).trim() === '') return;
 
@@ -188,7 +188,7 @@ function getAllReservations() {
             [HEADER_ACCOUNTING_DETAILS]: row[accountingDetailsColIdx] || null,
           };
 
-          cacheFields.forEach((field) => {
+          cacheFields.forEach(field => {
             const idx = fieldIndices[field];
             if (idx !== -1 && row[idx]) {
               reservation[field] = row[idx];
@@ -217,13 +217,13 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
 
   // --- STEP 1: 必要な「きろく_YYYY」列を特定し、不足分を追加 ---
   const allYears = new Set(
-    allReservations.filter((r) => r.date instanceof Date).map((r) => r.date.getFullYear()),
+    allReservations.filter(r => r.date instanceof Date).map(r => r.date.getFullYear()),
   );
   let currentHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
   let headerMap = createHeaderMap(currentHeader);
 
   const yearsToAdd = [];
-  allYears.forEach((year) => {
+  allYears.forEach(year => {
     const colName = `きろく_${year}`;
     if (!headerMap.has(colName)) {
       yearsToAdd.push(colName);
@@ -251,7 +251,7 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
 
   // --- STEP 3: 全予約データを生徒IDと年でグループ化 ---
   const recordsByStudentYear = new Map();
-  allReservations.forEach((r) => {
+  allReservations.forEach(r => {
     if (!r.studentId || r.isCancelled || !(r.date instanceof Date)) return;
     const year = r.date.getFullYear();
     const studentKey = r.studentId;
@@ -283,8 +283,8 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
 
     const studentYears = new Set(
       allReservations
-        .filter((r) => r.studentId === studentId && r.date instanceof Date)
-        .map((r) => r.date.getFullYear()),
+        .filter(r => r.studentId === studentId && r.date instanceof Date)
+        .map(r => r.date.getFullYear()),
     );
     let totalParticipation = 0;
 
@@ -295,7 +295,7 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
       }
     });
 
-    studentYears.forEach((year) => {
+    studentYears.forEach(year => {
       const colName = `きろく_${year}`;
       const recordColIdx_0based = finalHeaderMap.get(colName);
 
@@ -323,7 +323,7 @@ function updateRosterCacheColumns(rosterSheet, allReservations) {
  * @returns {Array<object>} 予約データの配列
  */
 function getAllArchivedReservations() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const reservations = [];
   const sheetNames = ARCHIVE_SHEET_NAMES;
   const cacheFields = [
@@ -336,7 +336,7 @@ function getAllArchivedReservations() {
     HEADER_LINE,
   ];
 
-  sheetNames.forEach((sheetName) => {
+  sheetNames.forEach(sheetName => {
     const sheet = ss.getSheetByName(sheetName);
     if (sheet && sheet.getLastRow() > 1) {
       const data = sheet.getDataRange().getValues();
@@ -349,12 +349,12 @@ function getAllArchivedReservations() {
       const accountingDetailsColIdx = header.indexOf(HEADER_ACCOUNTING_DETAILS);
 
       const fieldIndices = {};
-      cacheFields.forEach((field) => {
+      cacheFields.forEach(field => {
         fieldIndices[field] = header.indexOf(field);
       });
 
       if (nameColIdx !== -1 && dateColIdx !== -1) {
-        data.forEach((row) => {
+        data.forEach(row => {
           const name = row[nameColIdx];
           if (!name || String(name).trim() === '') return;
 
@@ -370,7 +370,7 @@ function getAllArchivedReservations() {
             [HEADER_ACCOUNTING_DETAILS]: row[accountingDetailsColIdx] || null,
           };
 
-          cacheFields.forEach((field) => {
+          cacheFields.forEach(field => {
             const idx = fieldIndices[field];
             if (idx !== -1 && row[idx]) {
               reservation[field] = row[idx];
@@ -413,13 +413,13 @@ function migrateAllRecordsToCache() {
   }
 
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast(
+    getActiveSpreadsheet().toast(
       '全履歴のキャッシュ生成を開始しました...完了までしばらくお待ちください。',
       '処理中',
       -1,
     );
 
-    const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
     const allArchivedReservations = getAllArchivedReservations();
@@ -430,11 +430,7 @@ function migrateAllRecordsToCache() {
 
     updateRosterCacheColumns(rosterSheet, allArchivedReservations);
 
-    SpreadsheetApp.getActiveSpreadsheet().toast(
-      '全履歴のキャッシュ生成が完了しました。',
-      '完了',
-      10,
-    );
+    getActiveSpreadsheet().toast('全履歴のキャッシュ生成が完了しました。', '完了', 10);
     ui.alert('全生徒の「きろく」キャッシュ生成が正常に完了しました。');
     logActivity(
       Session.getActiveUser().getEmail(),
@@ -475,13 +471,9 @@ function migrateAllFutureBookingsToCache() {
   }
 
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast(
-      '全生徒の「よやくキャッシュ」更新を開始しました...',
-      '処理中',
-      -1,
-    );
+    getActiveSpreadsheet().toast('全生徒の「よやくキャッシュ」更新を開始しました...', '処理中', -1);
 
-    const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
     // --- STEP 1: 全ての現役予約シートから、一度だけデータを読み込む ---
@@ -489,7 +481,7 @@ function migrateAllFutureBookingsToCache() {
 
     // --- STEP 2: 読み込んだデータを生徒IDでグループ化 ---
     const bookingsByStudent = new Map();
-    allFutureReservations.forEach((res) => {
+    allFutureReservations.forEach(res => {
       if (!bookingsByStudent.has(res.studentId)) {
         bookingsByStudent.set(res.studentId, []);
       }
@@ -514,7 +506,7 @@ function migrateAllFutureBookingsToCache() {
     );
     const rosterData = rosterRange.getValues();
 
-    rosterData.forEach((row) => {
+    rosterData.forEach(row => {
       const studentId = row[studentIdCol];
       const studentBookings = bookingsByStudent.get(studentId) || [];
       studentBookings.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -524,11 +516,7 @@ function migrateAllFutureBookingsToCache() {
     // --- STEP 4: 更新したデータを一括で書き戻す ---
     rosterRange.setValues(rosterData);
 
-    SpreadsheetApp.getActiveSpreadsheet().toast(
-      '「よやくキャッシュ」の更新が完了しました。',
-      '完了',
-      10,
-    );
+    getActiveSpreadsheet().toast('「よやくキャッシュ」の更新が完了しました。', '完了', 10);
     ui.alert('全生徒の「よやくキャッシュ」更新が正常に完了しました。');
     logActivity(
       Session.getActiveUser().getEmail(),
@@ -552,14 +540,14 @@ function migrateAllFutureBookingsToCache() {
  * @returns {Array<object>} 将来の予約データの配列
  */
 function getAllFutureReservations() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const reservations = [];
   const sheetNames = CLASSROOM_SHEET_NAMES; // 現役シートのみを対象とする
-  const timezone = ss.getSpreadsheetTimeZone();
+  const timezone = getSpreadsheetTimezone();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  sheetNames.forEach((sheetName) => {
+  sheetNames.forEach(sheetName => {
     const sheet = ss.getSheetByName(sheetName);
     if (!sheet || sheet.getLastRow() < 2) return;
 
@@ -567,10 +555,10 @@ function getAllFutureReservations() {
     const header = data.shift();
     const headerMap = createHeaderMap(header);
 
-    const timeToString = (date) =>
+    const timeToString = date =>
       date instanceof Date ? Utilities.formatDate(date, timezone, 'HH:mm') : null;
 
-    data.forEach((row) => {
+    data.forEach(row => {
       const studentId = row[headerMap.get(HEADER_STUDENT_ID)];
       if (!studentId) return;
 
@@ -622,14 +610,14 @@ function updateRosterCacheByReservation(rosterSheet, updatedRow) {
     const studentRow = rosterSheet
       .getRange(1, 1, rosterSheet.getLastRow(), rosterSheet.getLastColumn())
       .getValues()
-      .findIndex((row) => row[rosterStudentIdCol] === studentId);
+      .findIndex(row => row[rosterStudentIdCol] === studentId);
 
     if (studentRow !== -1) {
       const cacheCol = rosterHeaders.indexOf(cacheColumnName);
       if (cacheCol !== -1) {
         // 該当年の履歴のみを取得してキャッシュ更新
         const yearHistory = latestHistory.filter(
-          (h) => new Date(h.date).getFullYear() === reservationYear,
+          h => new Date(h.date).getFullYear() === reservationYear,
         );
         const cacheValue = JSON.stringify(yearHistory);
         rosterSheet.getRange(studentRow + 1, cacheCol + 1).setValue(cacheValue);

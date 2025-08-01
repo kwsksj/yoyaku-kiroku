@@ -37,7 +37,7 @@ function updateAndSortSheet(sheet, editedRange, oldValue) {
   }
 
   const datesToUpdate = new Set();
-  const addNormalizedDate = (date) => {
+  const addNormalizedDate = date => {
     if (date instanceof Date) {
       const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       datesToUpdate.add(normalized.getTime());
@@ -48,7 +48,7 @@ function updateAndSortSheet(sheet, editedRange, oldValue) {
     const dateValuesFromEditedRows = sheet
       .getRange(editedRange.getRow(), dateColIdx + 1, editedRange.getNumRows(), 1)
       .getValues();
-    dateValuesFromEditedRows.flat().forEach((date) => addNormalizedDate(date));
+    dateValuesFromEditedRows.flat().forEach(date => addNormalizedDate(date));
   }
 
   if (oldValue && (oldValue instanceof Date || !isNaN(new Date(oldValue).getTime()))) {
@@ -66,7 +66,7 @@ function updateAndSortSheet(sheet, editedRange, oldValue) {
   fullRange.sort({ column: dateColIdx + 1, ascending: true });
   SpreadsheetApp.flush();
 
-  datesToUpdate.forEach((dateInMillis) => {
+  datesToUpdate.forEach(dateInMillis => {
     if (dateInMillis > 0) {
       sortAndRenumberDateBlock(sheet, new Date(dateInMillis));
     }
@@ -87,7 +87,7 @@ function updateAndSortSheet(sheet, editedRange, oldValue) {
  * @param {Date} date - 対象の日付
  */
 function sortAndRenumberDateBlock(sheet, date) {
-  const timezone = sheet.getParent().getSpreadsheetTimeZone();
+  const timezone = getSpreadsheetTimezone();
   const targetDateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
 
   const allData = sheet
@@ -144,7 +144,7 @@ function sortAndRenumberDateBlock(sheet, date) {
   });
 
   let currentCount = 1;
-  dateBlockData.forEach((row) => {
+  dateBlockData.forEach(row => {
     const status = String(row[countColIdx]).toLowerCase();
     const name = row[nameColIdx];
     if (status !== STATUS_WAITING && status !== STATUS_CANCEL) {
@@ -159,18 +159,14 @@ function sortAndRenumberDateBlock(sheet, date) {
  * メニューからシート全体を手動でソート・採番する。
  */
 function manuallyReSortAndNumberSheet() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const sheet = getActiveSpreadsheet().getActiveSheet();
   if (!CLASSROOM_SHEET_NAMES.includes(sheet.getName())) {
     handleError(`このシート (${sheet.getName()}) は手動ソートの対象外です。`, true);
     return;
   }
 
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast(
-      'シート全体のソートと採番を開始します...',
-      '処理中',
-      10,
-    );
+    getActiveSpreadsheet().toast('シート全体のソートと採番を開始します...', '処理中', 10);
 
     const lastRow = sheet.getLastRow();
     if (lastRow < RESERVATION_DATA_START_ROW) {
@@ -201,18 +197,23 @@ function manuallyReSortAndNumberSheet() {
       ...new Set(
         dateColValues
           .flat()
-          .map((d) => (d instanceof Date ? d.getTime() : null))
-          .filter((d) => d !== null),
+          .map(d => (d instanceof Date ? d.getTime() : null))
+          .filter(d => d !== null),
       ),
     ];
 
-    uniqueDates.forEach((time) => {
+    uniqueDates.forEach(time => {
       sortAndRenumberDateBlock(sheet, new Date(time));
     });
 
     formatSheetWithBordersSafely(sheet);
     handleError('シート全体のソートと採番が完了しました。', false);
-    logActivity(Session.getActiveUser().getEmail(), '手動ソート実行', '成功', `シート: ${sheet.getName()}`);
+    logActivity(
+      Session.getActiveUser().getEmail(),
+      '手動ソート実行',
+      '成功',
+      `シート: ${sheet.getName()}`,
+    );
   } catch (err) {
     handleError(`手動ソート処理中にエラーが発生しました: ${err.message}`, true);
   }
@@ -233,7 +234,7 @@ function updateBillableTime(sheet, rowIndex) {
     const endTimeColIdx = headerMap.get(HEADER_END_TIME);
     const timeColIdx = headerMap.get(HEADER_TIME);
 
-    if ([dateColIdx, startTimeColIdx, endTimeColIdx, timeColIdx].some((idx) => idx === undefined))
+    if ([dateColIdx, startTimeColIdx, endTimeColIdx, timeColIdx].some(idx => idx === undefined))
       return;
 
     const row = sheet.getRange(rowIndex, 1, 1, header.length).getValues()[0];
@@ -273,7 +274,7 @@ function updateBillableTime(sheet, rowIndex) {
     if (!(breakStartTimeFromCell instanceof Date) || !(breakEndTimeFromCell instanceof Date)) {
       const masterData = getAccountingMasterData().data;
       const classroomRule = masterData.find(
-        (item) => item['対象教室'] === sheet.getName() && item['単位'] === UNIT_30_MIN,
+        item => item['対象教室'] === sheet.getName() && item['単位'] === UNIT_30_MIN,
       );
       if (classroomRule) {
         if (classroomRule[HEADER_BREAK_START])
@@ -413,13 +414,13 @@ function populateReservationWithRosterData(studentId, targetSheet, targetRowInde
   if (!studentId) return;
 
   try {
-    const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) return;
 
     const rosterData = getRosterData(rosterSheet);
     const rosterIdColIdx = rosterData.headerMap.get(HEADER_STUDENT_ID);
 
-    const userRosterRow = rosterData.data.find((row) => row[rosterIdColIdx] === studentId);
+    const userRosterRow = rosterData.data.find(row => row[rosterIdColIdx] === studentId);
     if (!userRosterRow) return;
 
     const targetHeader = targetSheet.getRange(1, 1, 1, targetSheet.getLastColumn()).getValues()[0];
@@ -441,7 +442,7 @@ function populateReservationWithRosterData(studentId, targetSheet, targetRowInde
       }
     }
 
-    SYNC_TARGET_HEADERS.forEach((headerName) => {
+    SYNC_TARGET_HEADERS.forEach(headerName => {
       if (headerName === HEADER_CLASS_COUNT) return;
       const rosterColIdx = rosterData.headerMap.get(headerName);
       const targetColIdx = targetHeaderMap.get(headerName);
@@ -473,8 +474,8 @@ function updateFutureReservations(studentId, headerToUpdate, newValue) {
   today.setHours(0, 0, 0, 0);
   let updatedCount = 0;
 
-  CLASSROOM_SHEET_NAMES.forEach((sheetName) => {
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  CLASSROOM_SHEET_NAMES.forEach(sheetName => {
+    const sheet = getSheetByName(sheetName);
     if (!sheet || sheet.getLastRow() < RESERVATION_DATA_START_ROW) return;
 
     const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -500,7 +501,7 @@ function updateFutureReservations(studentId, headerToUpdate, newValue) {
     const values = dataRange.getValues();
 
     let sheetUpdated = false;
-    values.forEach((row) => {
+    values.forEach(row => {
       const reservationDate = row[dateColIdx];
       if (
         row[studentIdColIdx] === studentId &&
@@ -528,10 +529,7 @@ function updateFutureReservations(studentId, headerToUpdate, newValue) {
   });
 
   if (updatedCount > 0) {
-    SpreadsheetApp.getActiveSpreadsheet().toast(
-      `${updatedCount}件の将来の予約を更新しました。`,
-      '予約データ同期',
-    );
+    getActiveSpreadsheet().toast(`${updatedCount}件の将来の予約を更新しました。`, '予約データ同期');
   }
 }
 
@@ -547,7 +545,7 @@ function _createNameToIdMap(data, headerMap) {
   const realNameColIdx = headerMap.get(HEADER_REAL_NAME);
   const nicknameColIdx = headerMap.get(HEADER_NICKNAME);
 
-  data.forEach((row) => {
+  data.forEach(row => {
     const id = row[idColIdx];
     const realName = row[realNameColIdx];
     const nickname = row[nicknameColIdx];
@@ -584,7 +582,7 @@ function getRosterData(rosterSheet) {
  * メニューからアクティブシートの罫線を手動で再描画する。
  */
 function manuallyFormatActiveSheet() {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const sheet = getActiveSpreadsheet().getActiveSheet();
   formatSheetWithBordersSafely(sheet);
 }
 
@@ -622,7 +620,7 @@ function updateGanttChart(sheet, rowIndex) {
 
     // ガントチャート範囲を一度クリア
     const ganttCols = Array.from(timeHeaderMap.values());
-    ganttCols.forEach((colIdx) => {
+    ganttCols.forEach(colIdx => {
       sheet.getRange(rowIndex, colIdx + 1).clearContent();
     });
 
@@ -634,10 +632,10 @@ function updateGanttChart(sheet, rowIndex) {
     // 料金マスタから教室ルールを取得
     const masterData = getAccountingMasterData().data;
     const classroomRule = masterData.find(
-      (item) => item['対象教室'] === sheetName && item['単位'] === UNIT_30_MIN,
+      item => item['対象教室'] === sheetName && item['単位'] === UNIT_30_MIN,
     );
     const firstLectureRule = masterData.find(
-      (item) => item['項目名'] === ITEM_NAME_FIRST_LECTURE && item['対象教室'] === sheetName,
+      item => item['項目名'] === ITEM_NAME_FIRST_LECTURE && item['対象教室'] === sheetName,
     );
 
     if (!classroomRule) return;
@@ -708,7 +706,7 @@ function _rebuildFutureBookingsCacheForStudent(studentId) {
   if (!studentId) return;
 
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getActiveSpreadsheet();
     const rosterSheet = ss.getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) return;
 
@@ -726,27 +724,27 @@ function _rebuildFutureBookingsCacheForStudent(studentId) {
       .getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn())
       .getValues();
     const targetRowIndex_0based = rosterData.findIndex(
-      (row) => row[studentIdColRoster] === studentId,
+      row => row[studentIdColRoster] === studentId,
     );
 
     if (targetRowIndex_0based === -1) return; // 生徒が見つからない
 
-    const timezone = ss.getSpreadsheetTimeZone();
+    const timezone = getSpreadsheetTimezone();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const futureBookings = [];
 
-    CLASSROOM_SHEET_NAMES.forEach((sheetName) => {
+    CLASSROOM_SHEET_NAMES.forEach(sheetName => {
       const sheet = ss.getSheetByName(sheetName);
       if (!sheet || sheet.getLastRow() < 2) return;
       const data = sheet.getDataRange().getValues();
       const header = data.shift();
       const headerMap = createHeaderMap(header);
 
-      const timeToString = (date) =>
+      const timeToString = date =>
         date instanceof Date ? Utilities.formatDate(date, timezone, 'HH:mm') : null;
 
-      data.forEach((row) => {
+      data.forEach(row => {
         if (row[headerMap.get(HEADER_STUDENT_ID)] !== studentId) return;
 
         const date = row[headerMap.get(HEADER_DATE)];
@@ -794,7 +792,7 @@ function _updateFutureBookingsCacheIncrementally(studentId, changeType, payload)
     switch (changeType) {
       case 'add':
         // 既に同じ予約IDがあれば更新、なければ追加
-        const addIndex = cache.findIndex((b) => b.reservationId === payload.reservationId);
+        const addIndex = cache.findIndex(b => b.reservationId === payload.reservationId);
         if (addIndex !== -1) {
           cache[addIndex] = payload;
         } else {
@@ -803,11 +801,11 @@ function _updateFutureBookingsCacheIncrementally(studentId, changeType, payload)
         break;
 
       case 'remove':
-        cache = cache.filter((b) => b.reservationId !== payload.reservationId);
+        cache = cache.filter(b => b.reservationId !== payload.reservationId);
         break;
 
       case 'update':
-        const updateIndex = cache.findIndex((b) => b.reservationId === payload.reservationId);
+        const updateIndex = cache.findIndex(b => b.reservationId === payload.reservationId);
         if (updateIndex !== -1) {
           // 既存のオブジェクトにペイロードのプロパティをマージ
           cache[updateIndex] = { ...cache[updateIndex], ...payload };
@@ -835,7 +833,7 @@ function _updateFutureBookingsCacheIncrementally(studentId, changeType, payload)
  * @returns {Array<object>} パースされたキャッシュ配列。失敗時は空配列。
  */
 function _getExistingCache(studentId) {
-  const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+  const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
   if (!rosterSheet) return [];
 
   const headerMap = createHeaderMap(
@@ -849,7 +847,7 @@ function _getExistingCache(studentId) {
   const rosterData = rosterSheet
     .getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn())
     .getValues();
-  const userRow = rosterData.find((row) => row[studentIdCol] === studentId);
+  const userRow = rosterData.find(row => row[studentIdCol] === studentId);
 
   if (userRow && userRow[cacheCol]) {
     try {
@@ -867,7 +865,7 @@ function _getExistingCache(studentId) {
  * @param {Array<object>} bookingsArray - 書き込む予約情報の配列
  */
 function _writeCache(studentId, bookingsArray) {
-  const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+  const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
   if (!rosterSheet) return;
 
   const headerMap = createHeaderMap(
@@ -880,7 +878,7 @@ function _writeCache(studentId, bookingsArray) {
 
   // findRowIndexByValueは予約シートを前提としているため、ここでは使わない
   const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, 1).getValues();
-  const targetRowIndex_0based = rosterData.findIndex((row) => row[0] === studentId);
+  const targetRowIndex_0based = rosterData.findIndex(row => row[0] === studentId);
 
   if (targetRowIndex_0based !== -1) {
     const targetRow_1based = targetRowIndex_0based + 2;

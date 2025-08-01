@@ -26,7 +26,12 @@ function updateSummaryAndForm(classroom, date) {
       Logger.log(`フォーム選択肢の更新に失敗: ${e.message}`);
     }
   } catch (err) {
-    logActivity('system', 'サマリー更新', 'エラー', `教室: ${classroom}, 日付: ${date}, エラー: ${err.message}`);
+    logActivity(
+      'system',
+      'サマリー更新',
+      'エラー',
+      `教室: ${classroom}, 日付: ${date}, エラー: ${err.message}`,
+    );
     Logger.log(`updateSummaryAndForm Error for ${classroom} on ${date}: ${err.message}`);
   }
 }
@@ -73,7 +78,7 @@ function triggerSummaryUpdateFromEdit(e) {
       }
     }
 
-    editedDates.forEach((time) => {
+    editedDates.forEach(time => {
       _updateSummaryForDate(sheetName, new Date(time));
     });
 
@@ -84,7 +89,12 @@ function triggerSummaryUpdateFromEdit(e) {
       Logger.log(`フォーム選択肢の更新に失敗: ${e.message}`);
     }
   } catch (err) {
-    logActivity('system', 'サマリー更新(トリガー)', 'エラー', `シート: ${sheetName}, エラー: ${err.message}`);
+    logActivity(
+      'system',
+      'サマリー更新(トリガー)',
+      'エラー',
+      `シート: ${sheetName}, エラー: ${err.message}`,
+    );
     Logger.log(`triggerSummaryUpdateFromEdit Error: ${err.message} \n${err.stack}`);
   }
 }
@@ -95,7 +105,7 @@ function triggerSummaryUpdateFromEdit(e) {
  * @param {Date} date - 対象の日付
  */
 function _updateSummaryForDate(sheetName, date) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const summarySheet = ss.getSheetByName(SUMMARY_SHEET_NAME);
   if (!summarySheet) return;
 
@@ -106,11 +116,11 @@ function _updateSummaryForDate(sheetName, date) {
   const venue = _getVenueForDate(sheetName, date);
 
   const counts = _getReservationCountsForDate(sheetName, date);
-  const timezone = ss.getSpreadsheetTimeZone();
+  const timezone = getSpreadsheetTimezone();
 
   const newRows = _createSummaryRowData(sheetName, date, counts, venue, timezone);
 
-  newRows.forEach((rowData) => {
+  newRows.forEach(rowData => {
     const key = rowData[0];
     _writeOrUpdateSummaryRow(summarySheet, key, rowData, summaryHeaderMap);
   });
@@ -144,17 +154,17 @@ function _writeOrUpdateSummaryRow(summarySheet, key, newRowData, headerMap) {
  */
 function rebuildSummarySheet() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const ss = getActiveSpreadsheet();
     const summarySheet = ss.getSheetByName(SUMMARY_SHEET_NAME);
     if (!summarySheet) throw new Error('「予約サマリー」シートが見つかりません。');
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const timezone = ss.getSpreadsheetTimeZone();
+    const timezone = getSpreadsheetTimezone();
 
     const summaryAggregator = new Map();
 
-    CLASSROOM_SHEET_NAMES.forEach((sheetName) => {
+    CLASSROOM_SHEET_NAMES.forEach(sheetName => {
       const sheet = ss.getSheetByName(sheetName);
       if (!sheet || sheet.getLastRow() < RESERVATION_DATA_START_ROW) return;
 
@@ -173,7 +183,7 @@ function rebuildSummarySheet() {
       if (dateIdx === undefined) return;
 
       // Pass 1: 全ての開催日を登録
-      data.forEach((row) => {
+      data.forEach(row => {
         const date = row[dateIdx];
         if (!(date instanceof Date) || date < today) return;
 
@@ -189,7 +199,7 @@ function rebuildSummarySheet() {
           sessionsToCreate.push(SESSION_ALL_DAY, ITEM_NAME_FIRST_LECTURE);
         }
 
-        sessionsToCreate.forEach((session) => {
+        sessionsToCreate.forEach(session => {
           const key = `${dateString}|${sheetName}|${session}`;
           if (!summaryAggregator.has(key)) {
             summaryAggregator.set(key, {
@@ -207,7 +217,7 @@ function rebuildSummarySheet() {
       });
 
       // Pass 2: 予約者数を集計
-      data.forEach((row) => {
+      data.forEach(row => {
         const date = row[dateIdx];
         const name = row[nameIdx];
         const status = String(row[countIdx]).toLowerCase();
@@ -315,7 +325,7 @@ function rebuildSummarySheet() {
     }
 
     // STEP 4: 全ての教室のフォーム選択肢を更新
-    Object.keys(GOOGLE_FORM_IDS).forEach((classroomName) => {
+    Object.keys(GOOGLE_FORM_IDS).forEach(classroomName => {
       try {
         setCheckboxChoices(classroomName);
       } catch (e) {
@@ -338,7 +348,7 @@ function rebuildSummarySheet() {
  */
 function _getReservationCountsForDate(classroom, date) {
   const counts = new Map();
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(classroom);
+  const sheet = getSheetByName(classroom);
   if (!sheet || sheet.getLastRow() < RESERVATION_DATA_START_ROW) return counts;
 
   const data = sheet
@@ -359,10 +369,10 @@ function _getReservationCountsForDate(classroom, date) {
   const firstLectureIdx = headerMap.get(HEADER_FIRST_LECTURE);
 
   if (dateIdx === undefined) return counts;
-  const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const timezone = getSpreadsheetTimezone();
   const targetDateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
 
-  data.forEach((row) => {
+  data.forEach(row => {
     const rowDate = row[dateIdx];
     const status = String(row[countIdx]).toLowerCase();
     const name = row[nameIdx];
@@ -561,7 +571,7 @@ function _calculateTokyoAvailability(mainCount, introCount) {
  * @returns {string} 会場名
  */
 function _getVenueForDate(sheetName, date) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  const sheet = getSheetByName(sheetName);
   if (!sheet) return '';
   const data = sheet.getDataRange().getValues();
   const headerMap = createHeaderMap(data.shift());
@@ -569,11 +579,11 @@ function _getVenueForDate(sheetName, date) {
   const venueIdx = headerMap.get(HEADER_VENUE);
   if (dateIdx === undefined || venueIdx === undefined) return '';
 
-  const timezone = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const timezone = getSpreadsheetTimezone();
   const targetDateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
 
   const row = data.find(
-    (r) =>
+    r =>
       r[dateIdx] instanceof Date &&
       Utilities.formatDate(r[dateIdx], timezone, 'yyyy-MM-dd') === targetDateString &&
       r[venueIdx],

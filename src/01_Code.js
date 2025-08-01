@@ -11,7 +11,7 @@
  */
 
 // --- グローバル定数定義 ---
-const RESERVATION_SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+const RESERVATION_SPREADSHEET_ID = getActiveSpreadsheet().getId();
 const RESERVATION_DATA_START_ROW = 2;
 const ROSTER_SHEET_NAME = '生徒名簿';
 const ACCOUNTING_MASTER_SHEET_NAME = '料金・商品マスタ';
@@ -91,7 +91,7 @@ const HEADER_SUMMARY_LAST_UPDATED = '最終更新日時';
 
 const HEADER_ARCHIVE_PREFIX = 'old';
 const ARCHIVE_SHEET_NAMES = CLASSROOM_SHEET_NAMES.map(
-  (name) => HEADER_ARCHIVE_PREFIX + name.slice(0, -2),
+  name => HEADER_ARCHIVE_PREFIX + name.slice(0, -2),
 );
 
 const LOCK_WAIT_TIME_MS = 30000;
@@ -378,4 +378,48 @@ function runDirectTest() {
  */
 function doGetPerformanceTest(e) {
   return doGetTest();
+}
+
+/**
+ * 機能回帰テストの実行
+ * GASエディタから直接実行可能
+ */
+function runRegressionTest() {
+  Logger.log('=== 機能回帰テスト実行開始 ===');
+
+  try {
+    // 基本機能テストを実行
+    const basicResult = testBasicFunctionality();
+    Logger.log('基本機能テスト結果: ' + JSON.stringify(basicResult, null, 2));
+
+    if (basicResult.success) {
+      // 基本機能が正常な場合、包括テストを実行
+      const regressionResult = testRegressionSuite();
+      Logger.log('包括機能テスト結果: ' + JSON.stringify(regressionResult, null, 2));
+
+      // エラーハンドリングテストも実行
+      const errorResult = testErrorHandling();
+      Logger.log('エラーハンドリングテスト結果: ' + JSON.stringify(errorResult, null, 2));
+
+      return {
+        success: true,
+        basicTest: basicResult,
+        regressionTest: regressionResult,
+        errorTest: errorResult,
+        message: '全テスト完了',
+      };
+    } else {
+      return {
+        success: false,
+        basicTest: basicResult,
+        message: '基本機能テストで問題が検出されました',
+      };
+    }
+  } catch (error) {
+    Logger.log('テスト実行エラー: ' + error.message);
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
 }

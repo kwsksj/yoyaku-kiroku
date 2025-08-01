@@ -1,0 +1,287 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <title>パフォーマンス改善テスト</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        background-color: #f9f9f9;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: #fafafa;
+      }
+      .success {
+        color: #28a745;
+        font-weight: bold;
+      }
+      .error {
+        color: #dc3545;
+        font-weight: bold;
+      }
+      .info {
+        color: #007bff;
+      }
+      .warning {
+        color: #ffc107;
+      }
+
+      button {
+        padding: 12px 24px;
+        margin: 5px;
+        border: none;
+        border-radius: 4px;
+        background: #007bff;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+
+      .results {
+        margin-top: 15px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 4px solid #007bff;
+        min-height: 50px;
+      }
+      .timing {
+        font-weight: bold;
+        color: #6c757d;
+        background: #e9ecef;
+        padding: 4px 8px;
+        border-radius: 3px;
+        display: inline-block;
+        margin-top: 8px;
+      }
+
+      input[type='text'] {
+        padding: 8px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        width: 300px;
+      }
+
+      .performance-chart {
+        margin: 15px 0;
+        padding: 10px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+      }
+
+      .loading {
+        color: #007bff;
+        animation: pulse 1.5s ease-in-out infinite alternate;
+      }
+
+      @keyframes pulse {
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0.5;
+        }
+      }
+
+      .metric {
+        display: inline-block;
+        margin: 5px 10px;
+        padding: 8px 12px;
+        background: #e9ecef;
+        border-radius: 4px;
+        font-family: monospace;
+      }
+
+      .improvement {
+        background: #d4edda !important;
+        color: #155724;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🚀 パフォーマンス改善テスト</h1>
+      <p class="info">
+        SpreadsheetManagerの導入効果を測定します。各テストを順番に実行してください。
+      </p>
+
+      <div class="test-section">
+        <h2>1. 📊 スプレッドシートマネージャーテスト</h2>
+        <p>SpreadsheetManagerの基本動作を確認します。</p>
+        <button onclick="testSpreadsheetManager()">SpreadsheetManager 動作確認</button>
+        <div id="manager-results" class="results">テスト結果がここに表示されます...</div>
+      </div>
+
+      <div class="test-section">
+        <h2>2. 📅 予約枠取得テスト</h2>
+        <p>最適化された予約枠取得関数をテストします。</p>
+        <button onclick="testAvailableSlots()">予約枠取得テスト</button>
+        <div id="slots-results" class="results">テスト結果がここに表示されます...</div>
+      </div>
+
+      <div class="test-section">
+        <h2>3. 🔐 ログインフローテスト</h2>
+        <p>実際のログインフローのパフォーマンスを測定します。</p>
+        <input type="text" id="test-phone" placeholder="テスト用電話番号 (例: 09012345678)" />
+        <br /><br />
+        <button onclick="testLoginFlow()">ログインフローテスト</button>
+        <div id="login-results" class="results">テスト結果がここに表示されます...</div>
+      </div>
+
+      <div class="test-section">
+        <h2>4. ⚡ パフォーマンス比較テスト</h2>
+        <p>従来方式との速度比較を行います。</p>
+        <button onclick="performanceComparison()">パフォーマンス測定</button>
+        <button onclick="loadTest()" style="background: #28a745">負荷テスト実行</button>
+        <div id="performance-results" class="results">テスト結果がここに表示されます...</div>
+      </div>
+
+      <div class="test-section">
+        <h2>5. 🧪 統合テスト</h2>
+        <p>全ての最適化機能を総合的にテストします。</p>
+        <button onclick="runAllTests()" style="background: #6f42c1">全テスト実行</button>
+        <div id="integration-results" class="results">テスト結果がここに表示されます...</div>
+      </div>
+    </div>
+
+    <script>
+      // 共通のユーティリティ関数
+      function showLoading(elementId, message = 'テスト実行中...') {
+        const element = document.getElementById(elementId);
+        element.innerHTML = `<div class="loading">${message}</div>`;
+      }
+
+      function showResult(elementId, result) {
+        const element = document.getElementById(elementId);
+        if (result.success) {
+          element.innerHTML = result.html || generateSuccessHtml(result);
+        } else {
+          element.innerHTML = `<div class="error">✗ エラー: ${result.message}</div>`;
+        }
+      }
+
+      function generateSuccessHtml(result) {
+        let html = '<div class="success">✓ テスト成功</div>';
+
+        // 実行時間の表示
+        if (result.executionTime !== undefined) {
+          html += `<div class="timing">実行時間: ${result.executionTime}ms</div>`;
+        }
+
+        // その他の結果データ
+        Object.keys(result).forEach((key) => {
+          if (key !== 'success' && key !== 'executionTime' && key !== 'html') {
+            html += `<div class="metric">${key}: ${JSON.stringify(result[key])}</div>`;
+          }
+        });
+
+        return html;
+      }
+
+      // テスト関数群
+      function testSpreadsheetManager() {
+        showLoading('manager-results');
+        google.script.run
+          .withSuccessHandler((result) => showResult('manager-results', result))
+          .withFailureHandler((error) =>
+            showResult('manager-results', { success: false, message: error.message }),
+          )
+          .testSpreadsheetManagerFunction();
+      }
+
+      function testAvailableSlots() {
+        showLoading('slots-results');
+        google.script.run
+          .withSuccessHandler((result) => showResult('slots-results', result))
+          .withFailureHandler((error) =>
+            showResult('slots-results', { success: false, message: error.message }),
+          )
+          .testAvailableSlotsFunction();
+      }
+
+      function testLoginFlow() {
+        const phoneNumber = document.getElementById('test-phone').value;
+        if (!phoneNumber) {
+          showResult('login-results', { success: false, message: '電話番号を入力してください' });
+          return;
+        }
+
+        showLoading('login-results', 'ログインフローテスト実行中...');
+        google.script.run
+          .withSuccessHandler((result) => showResult('login-results', result))
+          .withFailureHandler((error) =>
+            showResult('login-results', { success: false, message: error.message }),
+          )
+          .testLoginFlowFunction(phoneNumber);
+      }
+
+      function performanceComparison() {
+        showLoading('performance-results', 'パフォーマンス測定中...');
+        google.script.run
+          .withSuccessHandler((result) => {
+            if (result.success) {
+              const html = `
+                            <div class="success">✓ パフォーマンス測定完了</div>
+                            <div class="performance-chart">
+                                <div class="metric">最適化版: ${result.optimizedTime}ms</div>
+                                <div class="metric">従来版: ${result.traditionalTime}ms</div>
+                                <div class="metric improvement">改善率: ${result.improvementPercentage}%</div>
+                            </div>
+                            <div class="info">※ 数値が小さいほど高速です</div>
+                        `;
+              showResult('performance-results', { success: true, html: html });
+            } else {
+              showResult('performance-results', result);
+            }
+          })
+          .withFailureHandler((error) =>
+            showResult('performance-results', { success: false, message: error.message }),
+          )
+          .performanceComparisonFunction();
+      }
+
+      function loadTest() {
+        showLoading('performance-results', '負荷テスト実行中...');
+        google.script.run
+          .withSuccessHandler((result) => showResult('performance-results', result))
+          .withFailureHandler((error) =>
+            showResult('performance-results', { success: false, message: error.message }),
+          )
+          .compareLoadTest();
+      }
+
+      function runAllTests() {
+        showLoading('integration-results', '統合テスト実行中...');
+        google.script.run
+          .withSuccessHandler((result) => showResult('integration-results', result))
+          .withFailureHandler((error) =>
+            showResult('integration-results', { success: false, message: error.message }),
+          )
+          .runAllTests();
+      }
+    </script>
+  </body>
+</html>

@@ -14,11 +14,11 @@ echo "=================================="
 setup_test_environment() {
     echo "📋 テスト環境をセットアップ中..."
 
-    # gas-testsから必要なファイルをsrc/にコピー
-    cp "$PROJECT_ROOT/src/gas-tests/test_functions.js" "$PROJECT_ROOT/src/"
-    cp "$PROJECT_ROOT/src/gas-tests/load_test_functions.js" "$PROJECT_ROOT/src/"
-    cp "$PROJECT_ROOT/src/gas-tests/test_name_auto_population.js" "$PROJECT_ROOT/src/"
-    cp "$PROJECT_ROOT/src/gas-tests/test_performance_webapp.html" "$PROJECT_ROOT/src/"
+    # 新しい整理されたディレクトリ構造からファイルをコピー
+    cp "$PROJECT_ROOT/src/gas-tests/core/test-functions-legacy.js" "$PROJECT_ROOT/src/test_functions.js"
+    cp "$PROJECT_ROOT/src/gas-tests/core/test-performance.js" "$PROJECT_ROOT/src/load_test_functions.js"
+    cp "$PROJECT_ROOT/src/gas-tests/features/test-name-population.js" "$PROJECT_ROOT/src/test_name_auto_population.js"
+    cp "$PROJECT_ROOT/src/gas-tests/webapp/performance-test.html" "$PROJECT_ROOT/src/test_performance_webapp.html"
 
     echo "✅ テストファイルをsrc/にコピー完了"
 }

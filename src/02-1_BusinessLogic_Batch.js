@@ -9,7 +9,24 @@
  * 【v1.1での変更点】:
  * - NF-11: 予約アーカイブ時に、名簿の「きろく」キャッシュを更新する
  * updateRosterWithRecordCache() を呼び出すように変更。
- * =================================================================
+ * =============================================    con    // 2. コピーしたスプレッドシートの情報を取得
+    const newUrl = copiedSpreadsheet.getUrl();
+    const newId = copiedSpreadsheet.getId();
+
+    getActiveSpreadsheet().toast('テスト環境の作成が完了しました。', '完了', 5);
+
+    // 3. ユーザーに情報を提示
+    const htmlOutput = HtmlService.createHtmlOutput(
+      `<h4>テスト環境のセットアップが完了しました</h4>
+       <p>新しいテスト用スプレッドシートと、それに紐づくApps Scriptプロジェクトが作成されました。</p>`= copiedSpreadsheet.getUrl();
+    const newId = copiedSpreadsheet.getId();
+
+    getActiveSpreadsheet().toast('テスト環境の作成が完了しました。', '完了', 5);
+
+    // 3. ユーザーに情報を提示
+    const htmlOutput = HtmlService.createHtmlOutput(
+      `<h4>テスト環境のセットアップが完了しました</h4>
+       <p>新しいテスト用スプレッドシートと、それに紐づくApps Scriptプロジェクトが作成されました。</p>`===========
  */
 
 // --- メニューからの処理実行 ---
@@ -34,7 +51,7 @@ function processOldestDate() {
  * @param {string} mode - 'yesterday', 'today', 'oldest' のいずれか
  */
 function processReservations(mode) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const activeSheet = ss.getActiveSheet();
   const activeSheetName = activeSheet.getName();
   if (!CLASSROOM_SHEET_NAMES.includes(activeSheetName)) {
@@ -63,7 +80,12 @@ function processReservations(mode) {
   const rowsToDelete = transferPastReservationsToArchive({ sheet: activeSheet, ...options });
   if (rowsToDelete.length > 0) {
     deleteProcessedReservations(activeSheet, rowsToDelete);
-    logActivity('system', 'バッチ処理(アーカイブ)', '成功', `シート: ${activeSheetName}, 処理件数: ${rowsToDelete.length}`);
+    logActivity(
+      'system',
+      'バッチ処理(アーカイブ)',
+      '成功',
+      `シート: ${activeSheetName}, 処理件数: ${rowsToDelete.length}`,
+    );
   }
   handleError(`${mode} のデータ処理が完了しました。`, false);
 }
@@ -91,7 +113,7 @@ function logSalesFromArchivedData(archivedData, headerMap, classroomName) {
   if (accountingColIdx === undefined) return;
 
   const rowsToTransfer = [];
-  archivedData.forEach((row) => {
+  archivedData.forEach(row => {
     const jsonStr = row[accountingColIdx];
     if (jsonStr && typeof jsonStr === 'string') {
       try {
@@ -106,12 +128,12 @@ function logSalesFromArchivedData(archivedData, headerMap, classroomName) {
         };
 
         if (details.tuition && details.tuition.items) {
-          details.tuition.items.forEach((item) => {
+          details.tuition.items.forEach(item => {
             rowsToTransfer.push(createSalesRow(baseInfo, '授業料', item.name, item.price));
           });
         }
         if (details.sales && details.sales.items) {
-          details.sales.items.forEach((item) => {
+          details.sales.items.forEach(item => {
             rowsToTransfer.push(createSalesRow(baseInfo, '物販', item.name, item.price));
           });
         }
@@ -134,7 +156,7 @@ function logSalesFromArchivedData(archivedData, headerMap, classroomName) {
  * @returns {Array<number>} 削除対象の行インデックス配列
  */
 function transferPastReservationsToArchive(options) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getActiveSpreadsheet();
   const activeSheet = options.sheet;
   const archiveSheetName = HEADER_ARCHIVE_PREFIX + activeSheet.getName().slice(0, -2);
   const archiveSheet = ss.getSheetByName(archiveSheetName);
@@ -158,7 +180,7 @@ function transferPastReservationsToArchive(options) {
   if (dateColIdx === undefined) return [];
 
   const rowsToDeleteIndices = [];
-  const timezone = ss.getSpreadsheetTimeZone();
+  const timezone = getSpreadsheetTimezone();
   const rowsToArchive = allData.filter((row, index) => {
     if (shouldProcessRowByDate(row[dateColIdx], timezone, options)) {
       rowsToDeleteIndices.push(RESERVATION_DATA_START_ROW + index);
@@ -184,9 +206,9 @@ function transferPastReservationsToArchive(options) {
     const studentIdColIdx = sourceHeaderMap.get(HEADER_STUDENT_ID);
     if (studentIdColIdx !== undefined) {
       const uniqueStudentIds = [
-        ...new Set(rowsToArchive.map((row) => row[studentIdColIdx]).filter((id) => id)),
+        ...new Set(rowsToArchive.map(row => row[studentIdColIdx]).filter(id => id)),
       ];
-      uniqueStudentIds.forEach((studentId) => {
+      uniqueStudentIds.forEach(studentId => {
         _rebuildFutureBookingsCacheForStudent(studentId);
       });
     }
@@ -195,17 +217,17 @@ function transferPastReservationsToArchive(options) {
     const uniqueDateAndClassroom = new Map();
     const classroomName = activeSheet.getName();
 
-    rowsToArchive.forEach((row) => {
+    rowsToArchive.forEach(row => {
       const date = row[dateColIdx];
       if (date instanceof Date) {
-        const dateString = Utilities.formatDate(date, ss.getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+        const dateString = Utilities.formatDate(date, getSpreadsheetTimezone(), 'yyyy-MM-dd');
         const key = `${dateString}|${classroomName}`;
         if (!uniqueDateAndClassroom.has(key)) {
           uniqueDateAndClassroom.set(key, { date: date, classroom: classroomName });
         }
       }
     });
-    uniqueDateAndClassroom.forEach((item) => updateSummaryAndForm(item.classroom, item.date));
+    uniqueDateAndClassroom.forEach(item => updateSummaryAndForm(item.classroom, item.date));
   }
   return rowsToDeleteIndices;
 }
@@ -217,7 +239,7 @@ function transferPastReservationsToArchive(options) {
  * @param {string} classroomName - 教室名
  */
 function updateRosterWithRecordCache(archivedData, reservationHeaderMap, classroomName) {
-  const rosterSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(ROSTER_SHEET_NAME);
+  const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
   if (!rosterSheet || archivedData.length === 0) return;
 
   const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
@@ -293,7 +315,7 @@ function updateRosterWithRecordCache(archivedData, reservationHeaderMap, classro
       }
 
       // 重複チェック（同じ日付の記録は追加しない）
-      if (!records.some((r) => r.date === newRecord.date)) {
+      if (!records.some(r => r.date === newRecord.date)) {
         records.push(newRecord);
         records.sort((a, b) => new Date(b.date) - new Date(a.date)); // 日付の降順でソート
         cell.setValue(JSON.stringify(records));
@@ -310,7 +332,7 @@ function updateRosterWithRecordCache(archivedData, reservationHeaderMap, classro
 function deleteProcessedReservations(sheet, rowsToDelete) {
   rowsToDelete
     .sort((a, b) => b - a)
-    .forEach((rowIndex) => {
+    .forEach(rowIndex => {
       try {
         sheet.deleteRow(rowIndex);
       } catch (e) {
@@ -360,9 +382,9 @@ function setupTestEnvironment() {
   }
 
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast('テスト環境を作成中です...', '処理中', -1);
+    getActiveSpreadsheet().toast('テスト環境を作成中です...', '処理中', -1);
 
-    const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const sourceSpreadsheet = getActiveSpreadsheet();
     const sourceFile = DriveApp.getFileById(sourceSpreadsheet.getId());
 
     // 1. スプレッドシートをコピー
@@ -374,7 +396,7 @@ function setupTestEnvironment() {
     const newUrl = copiedSpreadsheet.getUrl();
     const newId = copiedSpreadsheet.getId();
 
-    SpreadsheetApp.getActiveSpreadsheet().toast('テスト環境の作成が完了しました。', '完了', 5);
+    getActiveSpreadsheet().toast('テスト環境の作成が完了しました。', '完了', 5);
 
     // 3. ユーザーに情報を提示
     const htmlOutput = HtmlService.createHtmlOutput(
@@ -425,12 +447,17 @@ function archiveTodaysLeftovers_trigger() {
   const allSheetNames = CLASSROOM_SHEET_NAMES; // グローバル定数を参照
   allSheetNames.forEach(sheetName => {
     try {
-      const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+      const sheet = getSheetByName(sheetName);
       if (sheet) {
         _archiveTodaysLeftoversForSheet(sheet);
       }
     } catch (e) {
-      logActivity('system', '当日予約枠の自動整理', 'エラー', `シート[${sheetName}]の処理中にエラーが発生: ${e.message}`);
+      logActivity(
+        'system',
+        '当日予約枠の自動整理',
+        'エラー',
+        `シート[${sheetName}]の処理中にエラーが発生: ${e.message}`,
+      );
     }
   });
 }
@@ -446,14 +473,24 @@ function _archiveTodaysLeftoversForSheet(sheet) {
 
   // 1. アーカイブシートを準備
   const archiveSheetName = HEADER_ARCHIVE_PREFIX + sheetName.slice(0, -2);
-  const archiveSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(archiveSheetName);
+  const archiveSheet = getSheetByName(archiveSheetName);
   if (!archiveSheet) {
-    logActivity('system', '当日予約枠の自動整理', '失敗', `アーカイブシート[${archiveSheetName}]が見つかりません。`);
+    logActivity(
+      'system',
+      '当日予約枠の自動整理',
+      '失敗',
+      `アーカイブシート[${archiveSheetName}]が見つかりません。`,
+    );
     return;
   }
 
   // 2. 必要な情報を一度に読み込む
-  const fullDataRange = sheet.getRange(RESERVATION_DATA_START_ROW, 1, lastRow - RESERVATION_DATA_START_ROW + 1, sheet.getLastColumn());
+  const fullDataRange = sheet.getRange(
+    RESERVATION_DATA_START_ROW,
+    1,
+    lastRow - RESERVATION_DATA_START_ROW + 1,
+    sheet.getLastColumn(),
+  );
   const allData = fullDataRange.getValues();
   const headerMap = createHeaderMap(sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]);
 
@@ -462,7 +499,12 @@ function _archiveTodaysLeftoversForSheet(sheet) {
   const statusColIdx = headerMap.get(HEADER_PARTICIPANT_COUNT);
 
   if (dateColIdx === undefined || nameColIdx === undefined || statusColIdx === undefined) {
-    logActivity('system', '当日予約枠の自動整理', '失敗', `シート[${sheetName}]の必須ヘッダーが見つかりません。`);
+    logActivity(
+      'system',
+      '当日予約枠の自動整理',
+      '失敗',
+      `シート[${sheetName}]の必須ヘッダーが見つかりません。`,
+    );
     return;
   }
 
@@ -475,7 +517,10 @@ function _archiveTodaysLeftoversForSheet(sheet) {
     const row = allData[i];
     const rowDate = row[dateColIdx];
 
-    if (rowDate instanceof Date && Utilities.formatDate(rowDate, 'Asia/Tokyo', 'yyyy-MM-dd') === todayString) {
+    if (
+      rowDate instanceof Date &&
+      Utilities.formatDate(rowDate, 'Asia/Tokyo', 'yyyy-MM-dd') === todayString
+    ) {
       const currentPhysicalRow = i + RESERVATION_DATA_START_ROW;
       const name = row[nameColIdx];
       const status = String(row[statusColIdx]).toLowerCase();
@@ -497,8 +542,15 @@ function _archiveTodaysLeftoversForSheet(sheet) {
   if (rowsToArchive.length > 0) {
     // データを日付の昇順に戻す
     rowsToArchive.reverse();
-    archiveSheet.getRange(archiveSheet.getLastRow() + 1, 1, rowsToArchive.length, rowsToArchive[0].length).setValues(rowsToArchive);
-    logActivity('system', '当日予約枠の自動整理', '成功', `シート[${sheetName}]から ${rowsToArchive.length} 件をアーカイブしました。`);
+    archiveSheet
+      .getRange(archiveSheet.getLastRow() + 1, 1, rowsToArchive.length, rowsToArchive[0].length)
+      .setValues(rowsToArchive);
+    logActivity(
+      'system',
+      '当日予約枠の自動整理',
+      '成功',
+      `シート[${sheetName}]から ${rowsToArchive.length} 件をアーカイブしました。`,
+    );
   }
 
   // 5. 削除処理
@@ -507,6 +559,11 @@ function _archiveTodaysLeftoversForSheet(sheet) {
     rowNumbersToDelete.forEach(rowNum => {
       sheet.deleteRow(rowNum);
     });
-    logActivity('system', '当日予約枠の自動整理', '成功', `シート[${sheetName}]から ${rowNumbersToDelete.length} 件の不要な行を削除しました。`);
+    logActivity(
+      'system',
+      '当日予約枠の自動整理',
+      '成功',
+      `シート[${sheetName}]から ${rowNumbersToDelete.length} 件の不要な行を削除しました。`,
+    );
   }
 }
