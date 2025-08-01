@@ -41,27 +41,27 @@
     },
     // ボタンの基本スタイル
     buttons: {
-      base: 'font-bold py-2.5 px-5 rounded-md transition-transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2',
+      base: 'font-bold py-2.5 px-5 rounded-md transition-transform active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
       full: 'w-full',
       auto: 'w-auto',
     },
     // カード型コンポーネントのスタイル
     cards: {
-      base: 'w-full text-left p-3 rounded-lg',
+      base: 'w-full text-left p-3 rounded-lg mobile-card touch-friendly',
       container: 'max-w-md mx-auto space-y-3',
       // 予約状況に応じた状態別スタイル
       state: {
-        available: { card: 'bg-gray-50', text: 'text-state-available-text' },
-        waitlist: { card: 'bg-yellow-50', text: 'text-state-waitlist-text' },
-        booked: { card: 'bg-teal-50', text: 'text-state-booked-text' },
+        available: { card: 'bg-gray-50 mobile-card', text: 'text-state-available-text' },
+        waitlist: { card: 'bg-yellow-50 mobile-card', text: 'text-state-waitlist-text' },
+        booked: { card: 'bg-teal-50 mobile-card', text: 'text-state-booked-text' },
       },
     },
     // 入力フォームのスタイル
     inputs: {
       container: 'max-w-xs mx-auto',
-      base: 'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text',
+      base: 'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly',
       textarea:
-        'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24',
+        'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input',
     },
   };
 </script>

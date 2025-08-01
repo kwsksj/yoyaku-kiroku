@@ -36,6 +36,11 @@ docs/                  # 詳細ドキュメント
 1. HTMLファイルを右クリック
 2. "Open with Live Server" を選択
 
+**特に推奨**:
+
+- `local-tests/test_real_webapp_ui.html` で実アプリと同一のUI確認
+- `local-tests/test_mobile_ui_improvements.html` でモバイル向けUI改善を確認
+
 **詳細**: [`TEST_USAGE.md`](TEST_USAGE.md) を参照
 
 ### GAS環境テスト（バックエンド）

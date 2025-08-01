@@ -169,15 +169,118 @@
         font-size: 0.875rem;
         color: #9ca3af;
       }
+
+      /* モバイル向けボタンとカードの影とタッチフィードバック */
+      .mobile-button {
+        /* 最初から押しやすい見た目の影を付ける */
+        box-shadow:
+          0 3px 12px rgba(80, 49, 47, 0.18),
+          0 1px 4px rgba(80, 49, 47, 0.12);
+        transition: all 0.15s ease;
+        touch-action: manipulation;
+        user-select: none;
+        /* モバイルでは最初から少し浮いた感じに */
+        transform: translateY(-1px);
+      }
+
+      /* デスクトップのみホバー効果を適用 */
+      @media (hover: hover) and (pointer: fine) {
+        .mobile-button:hover {
+          box-shadow:
+            0 4px 16px rgba(80, 49, 47, 0.25),
+            0 2px 6px rgba(80, 49, 47, 0.15);
+          transform: translateY(-2px);
+        }
+      }
+
+      .mobile-button:active {
+        /* タッチ時は押し込まれた感じを演出 */
+        transform: translateY(0px) scale(0.97);
+        box-shadow:
+          0 1px 6px rgba(80, 49, 47, 0.15),
+          0 1px 2px rgba(80, 49, 47, 0.1);
+      }
+
+      .mobile-card {
+        /* カードも最初から適度な影で立体感を演出 */
+        box-shadow:
+          0 2px 8px rgba(0, 0, 0, 0.1),
+          0 1px 3px rgba(0, 0, 0, 0.06);
+        transition: all 0.15s ease;
+        touch-action: manipulation;
+      }
+
+      /* デスクトップのみホバー効果を適用 */
+      @media (hover: hover) and (pointer: fine) {
+        .mobile-card:hover {
+          box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.15),
+            0 2px 6px rgba(0, 0, 0, 0.08);
+          transform: translateY(-1px);
+        }
+      }
+
+      .mobile-card:active {
+        transform: translateY(0px) scale(0.98);
+        box-shadow:
+          0 1px 4px rgba(0, 0, 0, 0.08),
+          0 1px 2px rgba(0, 0, 0, 0.04);
+      }
+
+      .mobile-input {
+        /* 入力フィールドも最初から軽い影で立体感を演出 */
+        box-shadow:
+          0 1px 6px rgba(0, 0, 0, 0.08),
+          inset 0 1px 2px rgba(0, 0, 0, 0.04);
+        transition: box-shadow 0.15s ease;
+      }
+
+      .mobile-input:focus {
+        /* フォーカス時はより強い影とブランドカラーのリング */
+        box-shadow:
+          0 2px 12px rgba(80, 49, 47, 0.15),
+          0 0 0 3px rgba(80, 49, 47, 0.1);
+      }
+
+      /* モーダル要素の影 */
+      .modal-content {
+        /* モーダルはより深い影で背景から浮き上がらせる */
+        box-shadow:
+          0 12px 40px rgba(0, 0, 0, 0.2),
+          0 4px 16px rgba(0, 0, 0, 0.1);
+      }
+
+      /* ローディング画面の要素にも影を追加 */
+      .spinner {
+        box-shadow: 0 2px 8px rgba(80, 49, 47, 0.1);
+      }
+
+      /* 大きなタッチターゲットエリア */
+      .touch-friendly {
+        min-height: 44px;
+        min-width: 44px;
+      }
+
+      /* iOS Safariでのタップ時のフィードバック改善 */
+      button,
+      [role='button'],
+      .mobile-button,
+      .mobile-card {
+        -webkit-tap-highlight-color: rgba(80, 49, 47, 0.1);
+      }
+
+      /* フォーカス可能な要素のアウトライン改善 */
+      .mobile-button:focus-visible,
+      .mobile-input:focus-visible {
+        outline: 2px solid #50312f;
+        outline-offset: 2px;
+      }
     </style>
   </head>
 
   <body class="bg-brand-bg font-sans">
     <div id="app" class="max-w-screen-lg mx-auto p-2 sm:p-6">
-      <div
-        id="loading"
-        class="fixed inset-0 bg-white/75 flex items-center justify-center z-50 hidden backdrop-blur-sm"
-      >
+      <div id="loading" class="fixed inset-0 bg-white/75 flex items-center justify-center z-50 hidden backdrop-blur-sm">
         <div class="flex flex-col items-center">
           <div class="spinner"></div>
           <p id="loading-message" class="mt-4 text-brand-text text-sm font-medium">読み込み中...</p>
@@ -190,14 +293,11 @@
           <div id="modal-buttons" class="flex justify-end space-x-3"></div>
         </div>
       </div>
-      <div
-        id="view-container"
-        class="bg-brand-surface rounded-xl p-4 sm:p-8 min-h-[400px] w-full"
-      ></div>
+      <div id="view-container" class="bg-brand-surface rounded-xl p-4 sm:p-8 min-h-[400px] w-full shadow-lg"></div>
       <footer class="text-center text-sm text-gray-400 mt-4">きぼりの よやく・きろく</footer>
     </div>
 
-    <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_Core'); ?> <?!=
-    include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers'); ?>
+    <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_Core'); ?> <?!= include('13_WebApp_Views'); ?> <?!=
+    include('14_WebApp_Handlers'); ?>
   </body>
 </html>
