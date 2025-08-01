@@ -24,7 +24,20 @@ function processCellEdit(e) {
 
   if (sheetName === ROSTER_SHEET_NAME && startRow > 1) {
     handleRosterEdit(e);
-    logActivity(Session.getActiveUser().getEmail(), '名簿編集', '成功', `範囲: ${range.getA1Notation()}`);
+    logActivity(
+      Session.getActiveUser().getEmail(),
+      '名簿編集',
+      '成功',
+      `範囲: ${range.getA1Notation()}`,
+    );
+  } else if (CLASSROOM_SHEET_NAMES.includes(sheetName) && startRow > 1) {
+    handleReservationSheetEdit(e);
+    logActivity(
+      Session.getActiveUser().getEmail(),
+      '予約編集',
+      '成功',
+      `範囲: ${range.getA1Notation()}`,
+    );
   }
 }
 
@@ -51,8 +64,19 @@ function processChange(changeType) {
         triggerSummaryUpdateFromEdit(pseudoEvent);
       }
     }
-    const dateStr = insertedDate ? Utilities.formatDate(insertedDate, SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(), 'yyyy-MM-dd') : 'N/A';
-    logActivity(Session.getActiveUser().getEmail(), '行挿入', '成功', `シート: ${sheet.getName()}, 日付: ${dateStr}`);
+    const dateStr = insertedDate
+      ? Utilities.formatDate(
+          insertedDate,
+          SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone(),
+          'yyyy-MM-dd',
+        )
+      : 'N/A';
+    logActivity(
+      Session.getActiveUser().getEmail(),
+      '行挿入',
+      '成功',
+      `シート: ${sheet.getName()}, 日付: ${dateStr}`,
+    );
   }
 }
 
