@@ -1,11 +1,15 @@
 {
   "compilerOptions": {
     "target": "es2020",
+    "lib": ["es2020"],
     "checkJs": false,
-    "strict": false
+    "allowJs": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "typeRoots": ["node_modules/@types"]
   },
-  "include": [
-    "src/**/*.js",
-    "src/**/*.html"
-  ]
+  "include": ["src/**/*.js", "src/**/*.html", "local-tests/**/*.js", "local-tests/**/*.html"],
+  "exclude": ["node_modules", "src/gas-tests"]
 }

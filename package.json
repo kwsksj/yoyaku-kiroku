@@ -7,8 +7,15 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "format": "prettier --write \"**/*.{js,html,json,md}",
-    "check-format": "prettier --check \"**/*.{js,html,json,md}"
+    "format": "prettier --write \"**/*.{js,html,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,html,json,md}\"",
+    "format:src": "prettier --write \"src/**/*.{js,html}\"",
+    "lint": "echo \"Linting with VS Code...\"",
+    "gas:setup": "cd src/gas-tests && ./gas-test.sh setup",
+    "gas:cleanup": "cd src/gas-tests && ./gas-test.sh cleanup",
+    "gas:status": "cd src/gas-tests && ./gas-test.sh status",
+    "dev:serve": "echo \"Live Server: 右クリックでHTMLファイルを'Open with Live Server'で開いてください\"",
+    "precommit": "npm run format:check"
   },
   "repository": {
     "type": "git",

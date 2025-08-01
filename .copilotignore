@@ -17,7 +17,9 @@ yarn.lock
 .env.production.local
 
 # IDEとエディタ設定
-.vscode/
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/*.code-workspace
 .idea/
 *.swp
 *.swo
@@ -69,3 +71,5 @@ jsconfig.json
 *.tar.gz
 *.rar
 *.7z
+new-folder/
+new-folder/
