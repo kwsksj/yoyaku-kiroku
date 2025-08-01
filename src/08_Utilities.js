@@ -57,7 +57,7 @@ function handleError(message, isError) {
   if (isError) {
     // isErrorがtrueの場合、ログと通知を行う
     const userEmail = Session.getActiveUser() ? Session.getActiveUser().getEmail() : 'system';
-    logActivity(userEmail, 'N/A', 'SYSTEM_ERROR', 'FAILURE', message);
+    logActivity(userEmail, 'システムエラー', '失敗', message);
     sendAdminNotification('予約システムでエラーが発生しました', `エラー詳細:\n\n${message}`);
   }
   try {

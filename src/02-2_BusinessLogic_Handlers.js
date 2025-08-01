@@ -64,6 +64,8 @@ function processChange(changeType) {
         triggerSummaryUpdateFromEdit(pseudoEvent);
       }
     }
+
+    // logActivityは教室シートでの行挿入時のみ実行
     const dateStr = insertedDate
       ? Utilities.formatDate(
           insertedDate,
