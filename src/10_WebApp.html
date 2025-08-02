@@ -31,21 +31,49 @@
             fontSize: { '2xs': '0.625rem' },
             fontFamily: { sans: ['Zen Kaku Gothic New', 'sans-serif'] },
             colors: {
-              brand: { bg: '#f8f7f6', surface: '#ffffff', text: '#50312F', subtle: '#6b7280' },
+              brand: {
+                bg: '#f1f5f9',
+                surface: '#ffffff',
+                text: '#1e40af',
+                subtle: '#64748b',
+                light: '#f8fafc',
+                lighter: '#fefefe',
+                dark: '#1e3a8a',
+                muted: '#94a3b8',
+              },
               action: {
-                'primary-bg': '#50312F',
+                'primary-bg': '#1e40af',
                 'primary-text': '#ffffff',
-                'secondary-bg': '#e5e7eb',
-                'secondary-text': '#374151',
-                'danger-bg': '#CB0000',
+                'primary-hover': '#1e3a8a',
+                'primary-light': '#93c5fd',
+                'secondary-bg': '#e2e8f0',
+                'secondary-text': '#334155',
+                'secondary-hover': '#cbd5e1',
+                'danger-bg': '#dc2626',
                 'danger-text': '#ffffff',
-                'paid-bg': '#e0f2fe',
-                'paid-text': '#0c4a6e',
+                'danger-light': '#fee2e2',
+                'paid-bg': '#dbeafe',
+                'paid-text': '#1d4ed8',
+                'paid-light': '#f0f9ff',
               },
               state: {
-                'available-text': '#3F6C45',
-                'waitlist-text': '#854d0e',
-                'booked-text': '#0c4a6e',
+                'available-text': '#059669',
+                'available-bg': '#ecfdf5',
+                'available-border': '#a7f3d0',
+                'waitlist-text': '#d97706',
+                'waitlist-bg': '#fffbeb',
+                'waitlist-border': '#fed7aa',
+                'booked-text': '#2563eb',
+                'booked-bg': '#eff6ff',
+                'booked-border': '#bfdbfe',
+              },
+              ui: {
+                border: '#e2e8f0',
+                'border-light': '#f1f5f9',
+                input: '#f8fafc',
+                'input-focus': '#ffffff',
+                shadow: 'rgba(30, 64, 175, 0.1)',
+                'shadow-light': 'rgba(30, 64, 175, 0.05)',
               },
             },
           },
@@ -59,7 +87,7 @@
 
       body {
         font-family: 'Zen Kaku Gothic New', sans-serif;
-        background-color: #f8f7f6;
+        background-color: #f1f5f9;
         -webkit-tap-highlight-color: transparent;
       }
 
@@ -102,7 +130,7 @@
       .modal-overlay {
         position: fixed;
         inset: 0;
-        background-color: rgba(40, 35, 30, 0.6);
+        background-color: rgba(30, 64, 175, 0.6);
         display: flex;
         align-items: center;
         justify-content: center;

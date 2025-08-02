@@ -51,17 +51,26 @@
       container: 'max-w-md mx-auto space-y-3',
       // 予約状況に応じた状態別スタイル
       state: {
-        available: { card: 'bg-gray-50 mobile-card', text: 'text-state-available-text' },
-        waitlist: { card: 'bg-yellow-50 mobile-card', text: 'text-state-waitlist-text' },
-        booked: { card: 'bg-teal-50 mobile-card', text: 'text-state-booked-text' },
+        available: {
+          card: 'bg-state-available-bg border border-state-available-border mobile-card',
+          text: 'text-state-available-text',
+        },
+        waitlist: {
+          card: 'bg-state-waitlist-bg border border-state-waitlist-border mobile-card',
+          text: 'text-state-waitlist-text',
+        },
+        booked: {
+          card: 'bg-state-booked-bg border border-state-booked-border mobile-card',
+          text: 'text-state-booked-text',
+        },
       },
     },
     // 入力フォームのスタイル
     inputs: {
       container: 'max-w-xs mx-auto',
-      base: 'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly',
+      base: 'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus',
       textarea:
-        'text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input',
+        'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus',
     },
   };
 </script>
