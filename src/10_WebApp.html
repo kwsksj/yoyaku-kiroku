@@ -32,48 +32,54 @@
             fontFamily: { sans: ['Zen Kaku Gothic New', 'sans-serif'] },
             colors: {
               brand: {
-                bg: '#f1f5f9',
+                bg: '#f8f7f6',
                 surface: '#ffffff',
-                text: '#1e40af',
-                subtle: '#64748b',
-                light: '#f8fafc',
+                text: '#50312F',
+                subtle: '#6b7280',
+                light: '#f5f4f2',
                 lighter: '#fefefe',
-                dark: '#1e3a8a',
-                muted: '#94a3b8',
+                dark: '#3d251f',
+                muted: '#8d7a72',
               },
               action: {
-                'primary-bg': '#1e40af',
+                'primary-bg': '#50312F',
                 'primary-text': '#ffffff',
-                'primary-hover': '#1e3a8a',
-                'primary-light': '#93c5fd',
-                'secondary-bg': '#e2e8f0',
-                'secondary-text': '#334155',
-                'secondary-hover': '#cbd5e1',
-                'danger-bg': '#dc2626',
+                'primary-hover': '#3d251f',
+                'primary-light': '#d4c4b8',
+                'secondary-bg': '#e5e7eb',
+                'secondary-text': '#374151',
+                'secondary-hover': '#d1d5db',
+                'danger-bg': '#CB0000',
                 'danger-text': '#ffffff',
                 'danger-light': '#fee2e2',
-                'paid-bg': '#dbeafe',
-                'paid-text': '#1d4ed8',
+                'paid-bg': '#e0f2fe',
+                'paid-text': '#0c4a6e',
                 'paid-light': '#f0f9ff',
               },
               state: {
-                'available-text': '#059669',
+                'available-text': '#3F6C45',
                 'available-bg': '#ecfdf5',
                 'available-border': '#a7f3d0',
-                'waitlist-text': '#d97706',
+                'waitlist-text': '#854d0e',
                 'waitlist-bg': '#fffbeb',
                 'waitlist-border': '#fed7aa',
-                'booked-text': '#2563eb',
+                'booked-text': '#0c4a6e',
                 'booked-bg': '#eff6ff',
                 'booked-border': '#bfdbfe',
               },
               ui: {
-                border: '#e2e8f0',
-                'border-light': '#f1f5f9',
-                input: '#f8fafc',
+                border: '#e5e7eb',
+                'border-light': '#f3f4f6',
+                input: '#f9fafb',
                 'input-focus': '#ffffff',
-                shadow: 'rgba(30, 64, 175, 0.1)',
-                'shadow-light': 'rgba(30, 64, 175, 0.05)',
+                'error-text': '#dc2626',
+                'error-bg': '#fef2f2',
+                'warning-text': '#d97706',
+                'warning-bg': '#fffbeb',
+                'warning-light': '#fef3c7',
+                'link-text': '#0369a1',
+                'weekend-sunday': '#dc2626',
+                'weekend-saturday': '#2563eb',
               },
             },
           },
@@ -81,13 +87,33 @@
       };
     </script>
     <style>
+      /* CSS変数でTailwindカラーと統合 */
+      :root {
+        --brand-bg: #f8f7f6;
+        --brand-text: #50312f;
+        --brand-dark: #3d251f;
+        /* 統合された影システム */
+        --ui-shadow: rgba(80, 49, 47, 0.1);
+        --ui-shadow-light: rgba(80, 49, 47, 0.05);
+        --ui-shadow-medium: rgba(80, 49, 47, 0.15);
+        --ui-shadow-strong: rgba(80, 49, 47, 0.25);
+        /* グレー系の影（汎用） */
+        --shadow-neutral: rgba(0, 0, 0, 0.1);
+        --shadow-neutral-light: rgba(0, 0, 0, 0.06);
+        --shadow-neutral-medium: rgba(0, 0, 0, 0.15);
+        --shadow-neutral-strong: rgba(0, 0, 0, 0.2);
+        /* モーダル・オーバーレイ */
+        --modal-overlay: rgba(40, 35, 30, 0.6);
+        --spinner-border: rgba(0, 0, 0, 0.1);
+      }
+
       html {
         font-size: 16px;
       }
 
       body {
         font-family: 'Zen Kaku Gothic New', sans-serif;
-        background-color: #f1f5f9;
+        background-color: var(--brand-bg);
         -webkit-tap-highlight-color: transparent;
       }
 
@@ -108,11 +134,11 @@
       }
 
       .spinner {
-        border: 4px solid rgba(0, 0, 0, 0.1);
+        border: 4px solid var(--spinner-border);
         width: 32px;
         height: 32px;
         border-radius: 50%;
-        border-left-color: #50312f;
+        border-left-color: var(--brand-text);
         animation: spin 1s linear infinite;
       }
 
@@ -130,7 +156,7 @@
       .modal-overlay {
         position: fixed;
         inset: 0;
-        background-color: rgba(30, 64, 175, 0.6);
+        background-color: var(--modal-overlay);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -202,8 +228,8 @@
       .mobile-button {
         /* 最初から押しやすい見た目の影を付ける */
         box-shadow:
-          0 3px 12px rgba(80, 49, 47, 0.18),
-          0 1px 4px rgba(80, 49, 47, 0.12);
+          0 3px 12px var(--ui-shadow),
+          0 1px 4px var(--ui-shadow-light);
         transition: all 0.15s ease;
         touch-action: manipulation;
         user-select: none;
@@ -215,8 +241,8 @@
       @media (hover: hover) and (pointer: fine) {
         .mobile-button:hover {
           box-shadow:
-            0 4px 16px rgba(80, 49, 47, 0.25),
-            0 2px 6px rgba(80, 49, 47, 0.15);
+            0 4px 16px var(--ui-shadow-strong),
+            0 2px 6px var(--ui-shadow-medium);
           transform: translateY(-2px);
         }
       }
@@ -225,15 +251,15 @@
         /* タッチ時は押し込まれた感じを演出 */
         transform: translateY(0px) scale(0.97);
         box-shadow:
-          0 1px 6px rgba(80, 49, 47, 0.15),
-          0 1px 2px rgba(80, 49, 47, 0.1);
+          0 1px 6px var(--ui-shadow-medium),
+          0 1px 2px var(--ui-shadow);
       }
 
       .mobile-card {
         /* カードも最初から適度な影で立体感を演出 */
         box-shadow:
-          0 2px 8px rgba(0, 0, 0, 0.1),
-          0 1px 3px rgba(0, 0, 0, 0.06);
+          0 2px 8px var(--shadow-neutral),
+          0 1px 3px var(--shadow-neutral-light);
         transition: all 0.15s ease;
         touch-action: manipulation;
       }
@@ -242,8 +268,8 @@
       @media (hover: hover) and (pointer: fine) {
         .mobile-card:hover {
           box-shadow:
-            0 4px 12px rgba(0, 0, 0, 0.15),
-            0 2px 6px rgba(0, 0, 0, 0.08);
+            0 4px 12px var(--shadow-neutral-medium),
+            0 2px 6px var(--shadow-neutral-light);
           transform: translateY(-1px);
         }
       }
@@ -251,14 +277,14 @@
       .mobile-card:active {
         transform: translateY(0px) scale(0.98);
         box-shadow:
-          0 1px 4px rgba(0, 0, 0, 0.08),
-          0 1px 2px rgba(0, 0, 0, 0.04);
+          0 1px 4px var(--shadow-neutral-light),
+          0 1px 2px var(--shadow-neutral-light);
       }
 
       .mobile-input {
         /* 入力フィールドも最初から軽い影で立体感を演出 */
         box-shadow:
-          0 1px 6px rgba(0, 0, 0, 0.08),
+          0 1px 6px var(--shadow-neutral-light),
           inset 0 1px 2px rgba(0, 0, 0, 0.04);
         transition: box-shadow 0.15s ease;
       }
@@ -266,21 +292,21 @@
       .mobile-input:focus {
         /* フォーカス時はより強い影とブランドカラーのリング */
         box-shadow:
-          0 2px 12px rgba(80, 49, 47, 0.15),
-          0 0 0 3px rgba(80, 49, 47, 0.1);
+          0 2px 12px var(--ui-shadow-medium),
+          0 0 0 3px var(--ui-shadow);
       }
 
       /* モーダル要素の影 */
       .modal-content {
         /* モーダルはより深い影で背景から浮き上がらせる */
         box-shadow:
-          0 12px 40px rgba(0, 0, 0, 0.2),
-          0 4px 16px rgba(0, 0, 0, 0.1);
+          0 12px 40px var(--shadow-neutral-strong),
+          0 4px 16px var(--shadow-neutral);
       }
 
       /* ローディング画面の要素にも影を追加 */
       .spinner {
-        box-shadow: 0 2px 8px rgba(80, 49, 47, 0.1);
+        box-shadow: 0 2px 8px var(--ui-shadow);
       }
 
       /* 大きなタッチターゲットエリア */
@@ -294,13 +320,13 @@
       [role='button'],
       .mobile-button,
       .mobile-card {
-        -webkit-tap-highlight-color: rgba(80, 49, 47, 0.1);
+        -webkit-tap-highlight-color: var(--ui-shadow);
       }
 
       /* フォーカス可能な要素のアウトライン改善 */
       .mobile-button:focus-visible,
       .mobile-input:focus-visible {
-        outline: 2px solid #50312f;
+        outline: 2px solid var(--brand-text);
         outline-offset: 2px;
       }
     </style>
@@ -308,7 +334,10 @@
 
   <body class="bg-brand-bg font-sans">
     <div id="app" class="max-w-screen-lg mx-auto p-2 sm:p-6">
-      <div id="loading" class="fixed inset-0 bg-white/75 flex items-center justify-center z-50 hidden backdrop-blur-sm">
+      <div
+        id="loading"
+        class="fixed inset-0 bg-brand-lighter/75 flex items-center justify-center z-50 hidden backdrop-blur-sm"
+      >
         <div class="flex flex-col items-center">
           <div class="spinner"></div>
           <p id="loading-message" class="mt-4 text-brand-text text-sm font-medium">読み込み中...</p>
@@ -316,13 +345,13 @@
       </div>
       <div id="custom-modal" class="modal-overlay">
         <div class="modal-content">
-          <h3 id="modal-title" class="text-xl font-bold text-gray-800 mb-4"></h3>
-          <p id="modal-message" class="text-gray-600 mb-6"></p>
+          <h3 id="modal-title" class="text-xl font-bold text-brand-text mb-4"></h3>
+          <p id="modal-message" class="text-brand-subtle mb-6"></p>
           <div id="modal-buttons" class="flex justify-end space-x-3"></div>
         </div>
       </div>
       <div id="view-container" class="bg-brand-surface rounded-xl p-4 sm:p-8 min-h-[400px] w-full shadow-lg"></div>
-      <footer class="text-center text-sm text-gray-400 mt-4">きぼりの よやく・きろく</footer>
+      <footer class="text-center text-sm text-brand-muted mt-4">きぼりの よやく・きろく</footer>
     </div>
 
     <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_Core'); ?> <?!= include('13_WebApp_Views'); ?> <?!=

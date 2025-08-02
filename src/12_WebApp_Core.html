@@ -54,15 +54,15 @@
   // UI部品を生成する関数群です。
   // =================================================================
   const Components = {
-    createButton: (c) =>
+    createButton: c =>
       `<button data-action="${c.action || ''}" data-classroom="${c.classroom || ''}" data-classroom-name="${c.classroomName || ''}" data-date="${c.date || ''}" data-reservation-id="${c.reservationId || ''}" data-sheet-name="${c.sheetName || ''}" data-copy-text="${c.copyText || ''}" data-details='${c.details || ''}' data-student-id="${c.studentId || ''}" data-real-name="${c.realName || ''}" data-nickname="${c.nickname || ''}" class="${DesignConfig.buttons.base} ${c.widthClass || ''} ${c.colorClass}" ${c.disabled ? 'disabled' : ''}>${c.text}</button>`,
-    createInput: (c) =>
+    createInput: c =>
       `<div class="${c.containerClass || ''} mb-4"><label for="${c.id}" class="${c.labelClass || 'block text-brand-text text-base font-bold mb-2'} ${c.isSrOnly ? 'sr-only' : ''}">${c.label}</label><input type="${c.type}" id="${c.id}" value="${c.value || ''}" class="${DesignConfig.inputs.base} ${c.inputClass || ''}" placeholder="${c.placeholder || ''}" ${c.required ? 'required' : ''} autocomplete="${c.autocomplete || 'off'}" ${c.step ? `step="${c.step}"` : ''}></div>`,
-    createTextArea: (c) =>
+    createTextArea: c =>
       `<div class="${c.containerClass || ''} mb-4"><label for="${c.id}" class="block ${DesignConfig.colors.text} text-base font-bold mb-2">${c.label}</label><textarea id="${c.id}" class="${DesignConfig.inputs.textarea}" placeholder="${c.placeholder || ''}">${c.value || ''}</textarea></div>`,
-    createSelect: (c) =>
+    createSelect: c =>
       `<div class="${c.containerClass || ''}"><label for="${c.id}" class="block text-brand-text text-base font-bold mb-2">${c.label}</label><select id="${c.id}" class="${DesignConfig.inputs.base} ${c.sizeClass || ''} accounting-item">${c.options}</select></div>`,
-    createCheckbox: (c) =>
+    createCheckbox: c =>
       `<label class="flex items-center space-x-2"><input type="checkbox" id="${c.id}" ${c.checked ? 'checked' : ''}><span>${c.label}</span></label>`,
   };
 
@@ -185,16 +185,16 @@
   // 日付のフォーマット、モーダルダイアログなど、
   // アプリ全体で汎用的に使用されるヘルパー関数群です。
   // =================================================================
-  const formatDate = (dStr) => {
+  const formatDate = dStr => {
     if (!dStr) return '';
     const d = new Date(dStr);
     if (isNaN(d)) return '';
     d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
     const day = d.getDay();
     const wd = ['日', '月', '火', '水', '木', '金', '土'];
-    return `${d.getMonth() + 1}/${d.getDate()} <span class="font-bold ${day === 0 ? 'text-red-500' : day === 6 ? 'text-blue-500' : ''}">${wd[day]}</span>`;
+    return `${d.getMonth() + 1}/${d.getDate()} <span class="font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day]}</span>`;
   };
-  const showModal = (c) => {
+  const showModal = c => {
     const m = document.getElementById('custom-modal'),
       b = document.getElementById('modal-buttons');
     b.innerHTML = '';
@@ -226,7 +226,7 @@
       confirmColorClass: DesignConfig.colors.primary,
       onConfirm: cb,
     });
-  const showConfirm = (c) => showModal({ ...c, showCancel: true });
+  const showConfirm = c => showModal({ ...c, showCancel: true });
 
   // =================================================================
   // --- Date and Slot Utilities ---
@@ -246,10 +246,10 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return slots.filter((s) => {
+    return slots.filter(s => {
       const slotDate = new Date(s.date);
       slotDate.setMinutes(slotDate.getMinutes() + slotDate.getTimezoneOffset());
-      return s.classroom === classroom && slotDate >= today && !s.isFull;
+      return s.classroom === classroom && slotDate >= today && !s.isFull && s.session !== '初回講習';
     });
   };
 
@@ -258,7 +258,7 @@
    * @param {Array} slots - スロットの配列
    * @returns {Object} 月をキーとしたスロットのオブジェクト
    */
-  const groupSlotsByMonth = (slots) => {
+  const groupSlotsByMonth = slots => {
     return slots.reduce((acc, slot) => {
       const month = new Date(slot.date).getMonth() + 1;
       if (!acc[month]) acc[month] = [];
@@ -289,8 +289,7 @@
 
     const r = appState.accountingReservation;
     const classroomRule = appState.accountingMaster.find(
-      (item) =>
-        item['対象教室'] && item['対象教室'].includes(r.classroom) && item['種別'] === '授業料',
+      item => item['対象教室'] && item['対象教室'].includes(r.classroom) && item['種別'] === '授業料',
     );
     const isTimeBased = classroomRule && classroomRule['単位'] === '30分';
     let tuitionBreakdownHtml = '';
@@ -320,13 +319,11 @@
       }
     }
 
-    form.querySelectorAll('input[type="checkbox"].accounting-item').forEach((cb) => {
+    form.querySelectorAll('input[type="checkbox"].accounting-item').forEach(cb => {
       if (cb.checked || cb.disabled) {
         const itemName = cb.dataset.itemName;
         const itemType = cb.dataset.itemType;
-        const masterItem = appState.accountingMaster.find(
-          (m) => m['項目名'] === itemName && m['種別'] === itemType,
-        );
+        const masterItem = appState.accountingMaster.find(m => m['項目名'] === itemName && m['種別'] === itemType);
         if (!masterItem) return;
         const price = Number(masterItem['単価']);
         const itemDetail = { name: itemName, price: price };
@@ -345,9 +342,7 @@
 
     const discountSelector = document.getElementById('discount-selector');
     if (discountSelector) {
-      const discountRule = appState.accountingMaster.find(
-        (item) => item['項目名'] === '初回講習同時間割引',
-      );
+      const discountRule = appState.accountingMaster.find(item => item['項目名'] === '初回講習同時間割引');
       if (discountRule) {
         const discountMinutes = parseInt(discountSelector.value, 10);
         if (discountMinutes > 0) {
@@ -370,7 +365,7 @@
       const materialRows = materialContainer.querySelectorAll('div[data-material-row-index]');
       materialRows.forEach((row, index) => {
         const type = document.getElementById(`material-type-${index}`)?.value;
-        const masterItem = appState.accountingMaster.find((m) => m['項目名'] === type);
+        const masterItem = appState.accountingMaster.find(m => m['項目名'] === type);
         const priceEl = document.getElementById(`material-price-${index}`);
         if (!masterItem) {
           if (priceEl) priceEl.textContent = '0円';
@@ -407,7 +402,7 @@
         const name = document.getElementById(`other-sales-name-${index}`)?.value.trim();
         const priceInput = document.getElementById(`other-sales-price-${index}`);
         let priceValue = priceInput.value
-          .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+          .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
           .replace(/[^0-9.-]/g, '');
         priceInput.value = priceValue;
         const price = Number(priceValue || 0);
@@ -421,14 +416,10 @@
     details.tuition.subtotal = tuitionSubtotal;
     details.sales.subtotal = salesSubtotal;
     details.grandTotal = tuitionSubtotal + salesSubtotal;
-    document.getElementById('tuition-subtotal').textContent =
-      `小計: ${tuitionSubtotal.toLocaleString()}円`;
-    document.getElementById('sales-subtotal').textContent =
-      `小計: ${salesSubtotal.toLocaleString()}円`;
-    document.getElementById('grand-total-amount').textContent =
-      `合計: ${details.grandTotal.toLocaleString()}円`;
-    details.paymentMethod =
-      form.querySelector('input[name="payment-method"]:checked')?.value || '現金';
+    document.getElementById('tuition-subtotal').textContent = `小計: ${tuitionSubtotal.toLocaleString()}円`;
+    document.getElementById('sales-subtotal').textContent = `小計: ${salesSubtotal.toLocaleString()}円`;
+    document.getElementById('grand-total-amount').textContent = `合計: ${details.grandTotal.toLocaleString()}円`;
+    details.paymentMethod = form.querySelector('input[name="payment-method"]:checked')?.value || '現金';
     return details;
   }
 </script>
