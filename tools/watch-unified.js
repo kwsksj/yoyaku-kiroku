@@ -9,8 +9,9 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const srcDir = __dirname;
+const srcDir = path.join(__dirname, '../src');
 const watchFiles = [
+  '10_WebApp.html',
   '11_WebApp_Config.html',
   '12_WebApp_Core.html',
   '13_WebApp_Views.html',
