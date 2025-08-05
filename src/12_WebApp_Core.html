@@ -333,6 +333,58 @@
   };
 
   // =================================================================
+  // --- Accounting Cache Utilities ---
+  // -----------------------------------------------------------------
+  // FE-14: 会計入力内容をlocalStorageに一時保存する機能
+  // =================================================================
+
+  /**
+   * 会計入力のキャッシュデータをlocalStorageに保存する
+   * @param {string} reservationId - 予約ID
+   * @param {object} accountingData - 保存する会計データオブジェクト
+   */
+  function saveAccountingCache(reservationId, accountingData) {
+    if (!reservationId || !accountingData) return;
+    const cacheKey = `accounting_cache_${reservationId}`;
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(accountingData));
+    } catch (e) {
+      console.error('Failed to save accounting cache:', e);
+    }
+  }
+
+  /**
+   * localStorageから会計入力のキャッシュデータを読み込む
+   * @param {string} reservationId - 予約ID
+   * @returns {object|null} - 読み込んだ会計データオブジェクト、またはnull
+   */
+  function loadAccountingCache(reservationId) {
+    if (!reservationId) return null;
+    const cacheKey = `accounting_cache_${reservationId}`;
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      return cachedData ? JSON.parse(cachedData) : null;
+    } catch (e) {
+      console.error('Failed to load accounting cache:', e);
+      return null;
+    }
+  }
+
+  /**
+   * localStorageから会計入力のキャッシュデータを削除する
+   * @param {string} reservationId - 予約ID
+   */
+  function clearAccountingCache(reservationId) {
+    if (!reservationId) return;
+    const cacheKey = `accounting_cache_${reservationId}`;
+    try {
+      localStorage.removeItem(cacheKey);
+    } catch (e) {
+      console.error('Failed to clear accounting cache:', e);
+    }
+  }
+
+  // =================================================================
   // --- Accounting Calculation Logic ---
   // -----------------------------------------------------------------
   // 会計画面での複雑な料金計算ロジックです。

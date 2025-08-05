@@ -2,16 +2,65 @@
   /**
    * =================================================================
    * 【ファイル名】: 14_WebApp_Handlers.html
-   * 【バージョン】: 1.5
+   * 【バージョン】: 1.6
    * 【役割】: WebAppのフロントエンドにおける、ユーザーの操作に応じた
    * アクションと、アプリケーション全体の制御フローを集約します。
    * 【構成】: 14ファイル構成のうちの14番目
-   * 【v1.5での変更点】:
-   * - 制作メモ編集機能の強化: きろくキャッシュと予約シートの両方に保存するよう改善。
-   * - サーバー通信の改善: 成功時に最新履歴でフロントエンド状態を更新。
-   * - ユーザビリティ向上: 適切なローディング表示と成功メッセージの追加。
+   * 【v1.6での変更点】:
+   * - FE-14: 会計入力のキャッシュ機能を追加。
+   *   - localStorageへの保存、読み込み、削除処理を実装。
+   *   - 画面遷移、保存、キャンセル時にキャッシュを適切に操作するよう修正。
    * =================================================================
    */
+
+  // =================================================================
+  // --- Accounting Cache Helper Functions (FE-14) ---
+  // -----------------------------------------------------------------
+  // 会計フォームのデータを操作するためのヘルパー関数群
+  // =================================================================
+
+  /**
+   * 会計フォームから現在の入力内容をオブジェクトとして取得します。
+   * @returns {object} フォームデータ
+   */
+  function getAccountingFormData() {
+    const form = document.getElementById('accounting-form');
+    if (!form) return {};
+
+    const data = {};
+    const elements = form.elements;
+
+    for (let i = 0; i < elements.length; i++) {
+      const item = elements[i];
+      if (item.name) {
+        if (item.type === 'checkbox') {
+          data[item.name] = item.checked;
+        } else if (item.type === 'radio') {
+          if (item.checked) {
+            data[item.name] = item.value;
+          }
+        } else {
+          data[item.name] = item.value;
+        }
+      }
+    }
+    return data;
+  }
+
+  /**
+   * 会計画面の入力イベントを監視するリスナーを設定します。
+   * @param {string} reservationId - 予約ID
+   */
+  function setupAccountingFormListeners(reservationId) {
+    const form = document.getElementById('accounting-form');
+    if (!form) return;
+
+    form.addEventListener('input', () => {
+      const accountingData = getAccountingFormData();
+      saveAccountingCache(reservationId, accountingData);
+    });
+  }
+
 
   // =================================================================
   // --- Action Handlers ---
@@ -415,18 +464,21 @@
 
     /** 会計画面に遷移します */
     goToAccounting: d => {
-      console.log('[DEBUG] goToAccounting called with data:', d);
-      console.log('[DEBUG] Current myBookings:', appState.myBookings);
       showLoading('accounting');
       google.script.run
         .withSuccessHandler(res => {
-          console.log('[DEBUG] getReservationDetails response:', res);
           hideLoading();
           if (res.success) {
+            const reservationId = d.reservationId;
+            const cachedData = loadAccountingCache(reservationId);
+            
+            // サーバーデータとキャッシュデータをマージ (キャッシュを優先)
+            const initialValues = { ...res.details, ...cachedData };
+
             setState({
               view: 'accounting',
               accountingReservation: d,
-              accountingInitialValues: res.details,
+              accountingInitialValues: initialValues,
             });
           } else {
             showInfo(res.message || '予約詳細の取得に失敗しました。');
@@ -560,14 +612,35 @@
     goToDashboard: () => setState({ view: 'classroomSelect' }),
 
     /** 予約枠一覧画面に戻ります */
-    goBackToBooking: () =>
-      setState({
-        view: 'booking',
-        selectedClassroom:
-          appState.selectedSlot?.classroom ||
-          appState.accountingReservation?.classroom ||
-          appState.editingReservationDetails?.classroom,
-      }),
+    goBackToBooking: () => {
+      if (appState.view === 'accounting') {
+        showConfirm({
+          title: '確認',
+          message: '会計入力を破棄しますか？<br>（入力内容はクリアされます）',
+          confirmText: 'はい',
+          cancelText: 'いいえ',
+          confirmColorClass: DesignConfig.colors.danger,
+          onConfirm: () => {
+            clearAccountingCache(appState.accountingReservation.reservationId);
+            setState({
+              view: 'booking',
+              selectedClassroom:
+                appState.selectedSlot?.classroom ||
+                appState.accountingReservation?.classroom ||
+                appState.editingReservationDetails?.classroom,
+            });
+          },
+        });
+      } else {
+        setState({
+          view: 'booking',
+          selectedClassroom:
+            appState.selectedSlot?.classroom ||
+            appState.accountingReservation?.classroom ||
+            appState.editingReservationDetails?.classroom,
+        });
+      }
+    },
 
     /** ダッシュボード（教室選択画面）に戻ります */
     goToDashboard: () => setState({ view: 'classroomSelect' }),
@@ -634,6 +707,7 @@
    * 「この内容で支払いました」ボタン押下時の処理
    */
   actionHandlers.confirmAndPay = () => {
+    const reservationId = appState.accountingReservation.reservationId;
     // モーダル内の支払い方法を取得
     const modalForm = document.getElementById('modal-accounting-form');
     let paymentMethod = '現金';
@@ -700,6 +774,7 @@
     google.script.run
       .withSuccessHandler(r => {
         if (r.success) {
+          clearAccountingCache(reservationId); // <-- キャッシュ削除
           hideModal(); // モーダルを閉じる
           hideLoading();
           setState({
@@ -827,7 +902,10 @@
     document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
 
     if (appState.view === 'accounting') {
-      requestAnimationFrame(calculateAccountingDetails);
+      requestAnimationFrame(() => {
+        calculateAccountingDetails();
+        setupAccountingFormListeners(appState.accountingReservation.reservationId);
+      });
     }
   }
 

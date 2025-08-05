@@ -1180,6 +1180,58 @@
   };
 
   // =================================================================
+  // --- Accounting Cache Utilities ---
+  // -----------------------------------------------------------------
+  // FE-14: 会計入力内容をlocalStorageに一時保存する機能
+  // =================================================================
+
+  /**
+   * 会計入力のキャッシュデータをlocalStorageに保存する
+   * @param {string} reservationId - 予約ID
+   * @param {object} accountingData - 保存する会計データオブジェクト
+   */
+  function saveAccountingCache(reservationId, accountingData) {
+    if (!reservationId || !accountingData) return;
+    const cacheKey = `accounting_cache_${reservationId}`;
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(accountingData));
+    } catch (e) {
+      console.error('Failed to save accounting cache:', e);
+    }
+  }
+
+  /**
+   * localStorageから会計入力のキャッシュデータを読み込む
+   * @param {string} reservationId - 予約ID
+   * @returns {object|null} - 読み込んだ会計データオブジェクト、またはnull
+   */
+  function loadAccountingCache(reservationId) {
+    if (!reservationId) return null;
+    const cacheKey = `accounting_cache_${reservationId}`;
+    try {
+      const cachedData = localStorage.getItem(cacheKey);
+      return cachedData ? JSON.parse(cachedData) : null;
+    } catch (e) {
+      console.error('Failed to load accounting cache:', e);
+      return null;
+    }
+  }
+
+  /**
+   * localStorageから会計入力のキャッシュデータを削除する
+   * @param {string} reservationId - 予約ID
+   */
+  function clearAccountingCache(reservationId) {
+    if (!reservationId) return;
+    const cacheKey = `accounting_cache_${reservationId}`;
+    try {
+      localStorage.removeItem(cacheKey);
+    } catch (e) {
+      console.error('Failed to clear accounting cache:', e);
+    }
+  }
+
+  // =================================================================
   // --- Accounting Calculation Logic ---
   // -----------------------------------------------------------------
   // 会計画面での複雑な料金計算ロジックです。
@@ -1342,17 +1394,14 @@
   /**
    * =================================================================
    * 【ファイル名】: 13_WebApp_Views.html
-   * 【バージョン】: 1.8
+   * 【バージョン】: 1.9
    * 【役割】: WebAppの各画面（ビュー）のHTML構造を生成する関数群を集約します。
    * - 各関数は特定の画面（ログイン、予約一覧など）のUI構築を担当します。
    * - appStateの現在の状態に基づき、動的にHTMLを生成します。
    * 【構成】: 14ファイル構成でのビュー管理
-   * 【v1.8での変更点】:
-   * - 履歴表示でのvenue情報追加: きろく画面とダッシュボードの履歴表示でvenue（会場）情報が表示されるよう改善。
-   * - UI一貫性向上: 全ての履歴表示でvenue情報が統一して表示される。
-   * 【v1.7での変更点】:
-   * - 会計完了画面のレイアウト調整: 次回予約セクションを「ダッシュボードへ戻る」ボタンより上に配置。
-   * - ユーザビリティ向上: 次回予約が先に目に入るUIフローに改善。
+   * 【v1.9での変更点】:
+   * - FE-14: 会計画面の入力保持機能を実装。
+   *   - getAccountingViewでキャッシュされたデータをフォームの初期値として設定するよう修正。
    * =================================================================
    */
 
@@ -1384,9 +1433,10 @@
   /**
    * 割引選択用のUIを生成します。
    * @param {object} discountRule - 料金マスタから取得した割引ルールオブジェクト
+   * @param {string} selectedValue - 選択済みの値
    * @returns {string} HTML文字列
    */
-  const getDiscountHtml = discountRule => {
+  const getDiscountHtml = (discountRule, selectedValue) => {
     if (!discountRule) return '';
     const options = [
       { value: 0, text: 'なし' },
@@ -1396,8 +1446,8 @@
     return `
         <div class="mt-4 pt-4 border-t border-ui-border-light">
             <label class="${DesignConfig.text.labelBlock}">${discountRule['項目名']}</label>
-            <select id="discount-selector" class="${DesignConfig.inputs.base} p-2 text-base accounting-item">
-                ${options.map(o => `<option value="${o.value}">${o.text}</option>`).join('')}
+            <select id="discount-selector" name="discountMinutes" class="${DesignConfig.inputs.base} p-2 text-base accounting-item">
+                ${options.map(o => `<option value="${o.value}" ${String(o.value) === selectedValue ? 'selected' : ''}>${o.text}</option>`).join('')}
             </select>
         </div>`;
   };
@@ -1429,9 +1479,10 @@
 
   /**
    * 支払い方法の選択肢（ラジオボタン）UIを生成します。
+   * @param {string} selectedValue - 選択済みの支払い方法
    * @returns {string} HTML文字列
    */
-  const getPaymentOptionsHtml = () => {
+  const getPaymentOptionsHtml = (selectedValue) => {
     const cotraDetails = `
         <details class="mt-2 ml-6">
             <summary class="inline-block px-2 py-1 bg-ui-warning-light text-ui-warning-text text-sm font-semibold rounded-md active:bg-ui-warning-bg">
@@ -1454,7 +1505,7 @@
           (opt, i) => `
         <div>
             <label class="flex items-center space-x-2 text-brand-text">
-                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item accent-action-primary-bg">
+                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item accent-action-primary-bg" ${opt.value === selectedValue ? 'checked' : ''}>
                 <span>${opt.text}</span>
             </label>
             ${opt.details}
@@ -1469,25 +1520,26 @@
   /**
    * 会計画面の材料入力行を生成します。
    * @param {number} index - 材料行のインデックス
+   * @param {object} [data={}] - 初期データ
    * @returns {string} HTML文字列
    */
-  const getMaterialRowHtml = index => {
+  const getMaterialRowHtml = (index, data = {}) => {
     const materialOptions = appState.accountingMaster
       .filter(m => m['種別'] === '材料')
-      .map(m => `<option value="${m['項目名']}">${m['項目名']}</option>`)
+      .map(m => `<option value="${m['項目名']}" ${data.type === m['項目名'] ? 'selected' : ''}>${m['項目名']}</option>`)
       .join('');
     return `
         <div data-material-row-index="${index}">
             <div class="grid grid-cols-1 gap-y-2">
-                <select id="material-type-${index}" class="${DesignConfig.inputs.base} accounting-item">
+                <select id="material-type-${index}" name="materialType${index}" class="${DesignConfig.inputs.base} accounting-item">
                     <option value="">-- 樹種を選択 --</option>
                     ${materialOptions}
                 </select>
             </div>
             <div class="grid grid-cols-4 gap-2 mt-2 items-center">
-                <input type="number" id="material-l-${index}" placeholder="縦(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
-                <input type="number" id="material-w-${index}" placeholder="横(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
-                <input type="number" id="material-h-${index}" placeholder="厚(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
+                <input type="number" id="material-l-${index}" name="materialL${index}" value="${data.l || ''}" placeholder="縦(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
+                <input type="number" id="material-w-${index}" name="materialW${index}" value="${data.w || ''}" placeholder="横(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
+                <input type="number" id="material-h-${index}" name="materialH${index}" value="${data.h || ''}" placeholder="厚(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
                 <div id="material-price-${index}" class="text-right text-base text-brand-subtle">0円</div>
             </div>
         </div>`;
@@ -1496,14 +1548,14 @@
   /**
    * 会計画面の「その他販売品」入力行を生成します。
    * @param {number} index - 入力行のインデックス
+   * @param {object} [data={}] - 初期データ
    * @returns {string} HTML文字列
    */
-  const getOtherSalesRowHtml = index => {
-    // 親となるdiv要素を追加し、クラスとデータ属性をこちらに持たせる
+  const getOtherSalesRowHtml = (index, data = {}) => {
     return `
         <div data-other-sales-row="${index}" class="mt-2 pt-2 border-t border-ui-border grid grid-cols-3 gap-2 items-center">
-            <input type="text" id="other-sales-name-${index}" placeholder="商品名" class="col-span-2 ${DesignConfig.inputs.base} accounting-item">
-            <input type="text" inputmode="decimal" id="other-sales-price-${index}" placeholder="金額" class="${DesignConfig.inputs.base} accounting-item">
+            <input type="text" id="other-sales-name-${index}" name="otherSalesName${index}" value="${data.name || ''}" placeholder="商品名" class="col-span-2 ${DesignConfig.inputs.base} accounting-item">
+            <input type="text" inputmode="decimal" id="other-sales-price-${index}" name="otherSalesPrice${index}" value="${data.price || ''}" placeholder="金額" class="${DesignConfig.inputs.base} accounting-item">
         </div>`;
   };
 
@@ -1620,31 +1672,31 @@
     const classEnd = parseInt(rule['講座終了'].split(':')[0]);
     const endBuffer = 3;
 
-    const breakOptions = [...Array(5).keys()].map(i => `<option value="${i * 30}">${i * 30}分</option>`).join('');
+    const breakOptions = [...Array(5).keys()].map(i => `<option value="${i * 30}" ${String(i * 30) === (initial.breakTime || '0') ? 'selected' : ''}>${i * 30}分</option>`).join('');
 
     const startTimeOptions = getTimeOptionsHtml(classStart, classEnd + endBuffer, 30, initial.startTime);
     const endTimeOptions = getTimeOptionsHtml(classStart, classEnd + endBuffer, 30, initial.endTime);
 
-    const rentalChecked = initial.chiselRental ? 'checked' : '';
+    const rentalChecked = initial.chiselRental || (initial['彫刻刀レンタル'] === true) ? 'checked' : '';
 
     const discountRule = appState.accountingMaster.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
     const discountHtml = discountRule
-      ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule)}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
+      ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule, initial.discountMinutes || '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
       : '';
 
     return `
         <div class="p-4 ${DesignConfig.cards.background} rounded-lg space-y-3">
             <h3 class="${DesignConfig.text.heading} mb-2">授業料</h3>
             <div class="grid grid-cols-3 gap-2 items-end">
-                ${Components.createSelect({ id: 'start-time', label: '開始時刻', containerClass: 'col-span-1', options: startTimeOptions })}
-                ${Components.createSelect({ id: 'end-time', label: '終了時刻', containerClass: 'col-span-1', options: endTimeOptions })}
-                ${Components.createSelect({ id: 'break-time', label: '休憩時間', containerClass: 'col-span-1', options: breakOptions })}
+                ${Components.createSelect({ id: 'start-time', name: 'startTime', label: '開始時刻', containerClass: 'col-span-1', options: startTimeOptions })}
+                ${Components.createSelect({ id: 'end-time', name: 'endTime', label: '終了時刻', containerClass: 'col-span-1', options: endTimeOptions })}
+                ${Components.createSelect({ id: 'break-time', name: 'breakTime', label: '休憩時間', containerClass: 'col-span-1', options: breakOptions })}
             </div>
             <div id="calculated-hours" class="text-left text-base ${DesignConfig.colors.textSubtle} mt-2"></div>
             <div class="pt-3 mt-3 border-t border-gray-200">
                 <label class="flex items-center justify-between">
                     <span class="text-brand-text">彫刻刀レンタル</span>
-                    <input type="checkbox" data-item-type="授業料" data-item-name="彫刻刀レンタル" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text" ${rentalChecked}>
+                    <input type="checkbox" name="chiselRental" data-item-type="授業料" data-item-name="彫刻刀レンタル" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text" ${rentalChecked}>
                 </label>
             </div>
             ${discountHtml}
@@ -2365,18 +2417,18 @@
       tuitionHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3> <div class="space-y-3">${tuitionItems
         .map(item => {
           const isMandatory = item['項目名'] === '本講座';
-          let isChecked = isMandatory;
+          let isChecked = isMandatory || initial[item['項目名']] === true;
           if (item['項目名'] === '初回講習' && initial.firstLecture) isChecked = true;
           if (item['項目名'] === '早出' && initial.earlyArrival) isChecked = true;
           if (item['項目名'] === '彫刻刀レンタル' && initial.chiselRental) isChecked = true;
-          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" data-item-type="授業料" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`;
+          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" name="${item['項目名']}" data-item-type="授業料" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`;
         })
         .join(
           '',
         )}</div> <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base text-brand-subtle"></div> <div class="text-right font-bold mt-2 text-brand-text" id="tuition-subtotal">小計: 0円</div></div>`;
     }
     const salesItems = master.filter(item => item['種別'] === '物販');
-    const salesHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${getMaterialRowHtml(0)}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" data-item-type="物販" data-item-name="${item['項目名']}" class="accounting-item accent-action-primary-bg"><span>${item['項目名']}</span></label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">${getOtherSalesRowHtml(0)}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} </details> <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div></div>`;
+    const salesHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${getMaterialRowHtml(0, { type: initial.materialType0, l: initial.materialL0, w: initial.materialW0, h: initial.materialH0 })}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" name="${item['項目名']}" data-item-type="物販" data-item-name="${item['項目名']}" class="accounting-item accent-action-primary-bg" ${initial[item['項目名']] ? 'checked' : ''}><span>${item['項目名']}</span></label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">${getOtherSalesRowHtml(0, { name: initial.otherSalesName0, price: initial.otherSalesPrice0 })}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} </details> <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div></div>`;
     return `
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold text-brand-text">会計</h1>
@@ -2385,7 +2437,7 @@
         <div class="text-center py-4">
             <p class="text-brand-subtle mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
         </div>
-        <div id="accounting-form" class="space-y-6">
+        <form id="accounting-form" class="space-y-6">
             ${tuitionHtml}
             ${salesHtml}
             <div class="text-right text-2xl font-bold py-4 border-t-2 border-ui-border flex flex-col items-end">
@@ -2398,7 +2450,7 @@
                     ${Components.createButton({ text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
                 </div>
             </div>
-        </div>`;
+        </form>`;
   };
 
     // ========== /13_WebApp_Views.html ==========
@@ -2408,16 +2460,65 @@
   /**
    * =================================================================
    * 【ファイル名】: 14_WebApp_Handlers.html
-   * 【バージョン】: 1.5
+   * 【バージョン】: 1.6
    * 【役割】: WebAppのフロントエンドにおける、ユーザーの操作に応じた
    * アクションと、アプリケーション全体の制御フローを集約します。
    * 【構成】: 14ファイル構成のうちの14番目
-   * 【v1.5での変更点】:
-   * - 制作メモ編集機能の強化: きろくキャッシュと予約シートの両方に保存するよう改善。
-   * - サーバー通信の改善: 成功時に最新履歴でフロントエンド状態を更新。
-   * - ユーザビリティ向上: 適切なローディング表示と成功メッセージの追加。
+   * 【v1.6での変更点】:
+   * - FE-14: 会計入力のキャッシュ機能を追加。
+   *   - localStorageへの保存、読み込み、削除処理を実装。
+   *   - 画面遷移、保存、キャンセル時にキャッシュを適切に操作するよう修正。
    * =================================================================
    */
+
+  // =================================================================
+  // --- Accounting Cache Helper Functions (FE-14) ---
+  // -----------------------------------------------------------------
+  // 会計フォームのデータを操作するためのヘルパー関数群
+  // =================================================================
+
+  /**
+   * 会計フォームから現在の入力内容をオブジェクトとして取得します。
+   * @returns {object} フォームデータ
+   */
+  function getAccountingFormData() {
+    const form = document.getElementById('accounting-form');
+    if (!form) return {};
+
+    const data = {};
+    const elements = form.elements;
+
+    for (let i = 0; i < elements.length; i++) {
+      const item = elements[i];
+      if (item.name) {
+        if (item.type === 'checkbox') {
+          data[item.name] = item.checked;
+        } else if (item.type === 'radio') {
+          if (item.checked) {
+            data[item.name] = item.value;
+          }
+        } else {
+          data[item.name] = item.value;
+        }
+      }
+    }
+    return data;
+  }
+
+  /**
+   * 会計画面の入力イベントを監視するリスナーを設定します。
+   * @param {string} reservationId - 予約ID
+   */
+  function setupAccountingFormListeners(reservationId) {
+    const form = document.getElementById('accounting-form');
+    if (!form) return;
+
+    form.addEventListener('input', () => {
+      const accountingData = getAccountingFormData();
+      saveAccountingCache(reservationId, accountingData);
+    });
+  }
+
 
   // =================================================================
   // --- Action Handlers ---
@@ -2821,18 +2922,21 @@
 
     /** 会計画面に遷移します */
     goToAccounting: d => {
-      console.log('[DEBUG] goToAccounting called with data:', d);
-      console.log('[DEBUG] Current myBookings:', appState.myBookings);
       showLoading('accounting');
       google.script.run
         .withSuccessHandler(res => {
-          console.log('[DEBUG] getReservationDetails response:', res);
           hideLoading();
           if (res.success) {
+            const reservationId = d.reservationId;
+            const cachedData = loadAccountingCache(reservationId);
+            
+            // サーバーデータとキャッシュデータをマージ (キャッシュを優先)
+            const initialValues = { ...res.details, ...cachedData };
+
             setState({
               view: 'accounting',
               accountingReservation: d,
-              accountingInitialValues: res.details,
+              accountingInitialValues: initialValues,
             });
           } else {
             showInfo(res.message || '予約詳細の取得に失敗しました。');
@@ -2966,14 +3070,35 @@
     goToDashboard: () => setState({ view: 'classroomSelect' }),
 
     /** 予約枠一覧画面に戻ります */
-    goBackToBooking: () =>
-      setState({
-        view: 'booking',
-        selectedClassroom:
-          appState.selectedSlot?.classroom ||
-          appState.accountingReservation?.classroom ||
-          appState.editingReservationDetails?.classroom,
-      }),
+    goBackToBooking: () => {
+      if (appState.view === 'accounting') {
+        showConfirm({
+          title: '確認',
+          message: '会計入力を破棄しますか？<br>（入力内容はクリアされます）',
+          confirmText: 'はい',
+          cancelText: 'いいえ',
+          confirmColorClass: DesignConfig.colors.danger,
+          onConfirm: () => {
+            clearAccountingCache(appState.accountingReservation.reservationId);
+            setState({
+              view: 'booking',
+              selectedClassroom:
+                appState.selectedSlot?.classroom ||
+                appState.accountingReservation?.classroom ||
+                appState.editingReservationDetails?.classroom,
+            });
+          },
+        });
+      } else {
+        setState({
+          view: 'booking',
+          selectedClassroom:
+            appState.selectedSlot?.classroom ||
+            appState.accountingReservation?.classroom ||
+            appState.editingReservationDetails?.classroom,
+        });
+      }
+    },
 
     /** ダッシュボード（教室選択画面）に戻ります */
     goToDashboard: () => setState({ view: 'classroomSelect' }),
@@ -3040,6 +3165,7 @@
    * 「この内容で支払いました」ボタン押下時の処理
    */
   actionHandlers.confirmAndPay = () => {
+    const reservationId = appState.accountingReservation.reservationId;
     // モーダル内の支払い方法を取得
     const modalForm = document.getElementById('modal-accounting-form');
     let paymentMethod = '現金';
@@ -3106,6 +3232,7 @@
     google.script.run
       .withSuccessHandler(r => {
         if (r.success) {
+          clearAccountingCache(reservationId); // <-- キャッシュ削除
           hideModal(); // モーダルを閉じる
           hideLoading();
           setState({
@@ -3233,7 +3360,10 @@
     document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
 
     if (appState.view === 'accounting') {
-      requestAnimationFrame(calculateAccountingDetails);
+      requestAnimationFrame(() => {
+        calculateAccountingDetails();
+        setupAccountingFormListeners(appState.accountingReservation.reservationId);
+      });
     }
   }
 
