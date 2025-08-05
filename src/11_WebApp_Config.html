@@ -2,21 +2,20 @@
   /**
    * =================================================================
    * 【ファイル名】: 11_WebApp_Config.html
-   * 【バージョン】: 1.5
+   * 【バージョン】: 1.7
    * 【役割】: WebAppのフロントエンドで使用される設定とスタイル定義
    * 【構成】: 14ファイル構成のうちの11番目
-   * 【v1.5での変更点】:
-   * - コード構造とコメントを整理
-   * - 処理順序を論理的に配置
-   * - 保守性の向上
+   * 【v1.7での変更点】:
+   * - 全体的な配色をよりエネルギッシュで温かみのあるテーマに更新
+   * - ボタンのテキストの可読性を向上
+   * - 会計ボタンに黄色系の配色を適用
+   * - 記録カードに背景色を追加
    * =================================================================
    */
 
   // =================================================================
   // 1. APPLICATION CONSTANTS
   // =================================================================
-  // GAS側で定義された定数のうち、フロントエンドのロジックで
-  // 直接参照する必要があるもののみを定義します。
   const TOKYO_CLASSROOM_NAME = '東京教室';
   const NUMAZU_CLASSROOM_NAME = '沼津教室';
   const TSUKUBA_CLASSROOM_NAME = 'つくば教室';
@@ -25,21 +24,19 @@
   // =================================================================
   // 2. DESIGN CONFIGURATION
   // =================================================================
-  // 直接的なTailwindクラスを意味的な名前でグルーピングし、
-  // アプリ全体のデザインの一貫性を保ちます。
   const DesignConfig = {
-    // テキストや背景の色設定（4色ベース）
+    // テキストや背景の色設定（温かみと活気のある配色）
     colors: {
-      text: 'text-brand-text', // #50312F (eggplant) - メインテキスト
-      textSubtle: 'text-brand-subtle', // #8d7a72 - サブテキスト
-      textMuted: 'text-brand-muted', // #d1cbc7 - 薄いテキスト
-      primary: 'bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover', // strawberry
-      secondary: 'bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover', // lemon lime
-      attention: 'bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover', // basil green
-      danger: 'bg-state-danger-bg text-state-danger-text active:bg-state-danger-hover', // strawberry
-      success: 'bg-state-success-bg text-state-success-text active:bg-state-success-hover', // basil green
-      paid: 'bg-action-paid-bg text-action-paid-text', // basil green light
-      // 新しい色設定
+      text: 'text-brand-text', // メインテキスト
+      textSubtle: 'text-brand-subtle', // サブテキスト
+      textMuted: 'text-brand-muted', // 薄いテキスト
+      primary: 'bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover', // プライマリ (テラコッタ)
+      secondary: 'bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover', // セカンダリ (明るいベージュ)
+      attention: 'bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover', // 注意 (若葉色)
+      accounting: 'bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover', // 会計 (アンバー)
+      danger: 'bg-state-danger-bg text-state-danger-text active:bg-state-danger-hover', // 危険 (落ち着いた赤)
+      success: 'bg-state-success-bg text-state-success-text active:bg-state-success-hover', // 成功 (若葉色)
+      paid: 'bg-action-paid-bg text-action-paid-text', // 支払い済み (薄い緑)
       info: 'bg-ui-surface text-brand-text border border-ui-border',
       warning: 'bg-ui-warning-bg text-ui-warning-text border border-ui-warning-border',
       error: 'bg-ui-error-bg text-ui-error-text border border-ui-error-border',
@@ -50,18 +47,18 @@
       base: 'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
       full: 'w-[250px] mx-auto block',
       auto: 'w-auto',
-      // 意味的なボタンスタイル（基本スタイル + 色）
       primary:
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover',
       secondary:
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover',
       attention:
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover',
+      accounting:
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover',
     },
 
     // テキストスタイル設定
     text: {
-      // よく使われるテキストスタイルの組み合わせ
       heading: 'text-xl font-bold text-brand-text',
       subheading: 'text-lg font-medium text-brand-text',
       body: 'text-base text-brand-text',
@@ -71,18 +68,17 @@
       labelBlock: 'block text-brand-text text-base font-bold mb-2',
     },
 
-    // カード型コンポーネントのスタイル
     // レイアウトユーティリティ
     layout: {
       container: 'max-w-screen-sm mx-auto p-4',
       containerNoPadding: 'max-w-screen-sm mx-auto',
       section: 'mb-8',
-      card: 'shadow-card rounded-lg border border-solid border-card-border', // cardsスタイルと統合
+      card: 'shadow-card rounded-lg border border-solid border-card-border',
       centerContent: 'flex items-center justify-center',
       spaceBetween: 'flex items-center justify-between',
     },
 
-    // よく使われるユーティリティクラスの組み合わせ
+    // ユーティリティクラス
     utils: {
       hidden: 'hidden',
       loading: 'opacity-50 pointer-events-none',
@@ -93,23 +89,26 @@
       autoMargin: 'mx-auto',
     },
 
+    // カードスタイル
     cards: {
       base: 'w-full text-left p-3 rounded-lg mobile-card touch-friendly transition-all duration-150',
       container: 'max-w-md mx-auto space-y-3',
       background: 'bg-ui-surface border border-ui-border',
-      // 予約状況に応じた状態別スタイル（4色ベース）
       state: {
         available: {
           card: 'bg-state-available-bg border border-state-available-border mobile-card active:bg-state-success-hover',
-          text: 'text-state-available-text', // basil green
+          text: 'text-state-available-text',
         },
         waitlist: {
           card: 'bg-state-waitlist-bg border border-state-waitlist-border mobile-card',
-          text: 'text-state-waitlist-text', // eggplant on lemon lime
+          text: 'text-state-waitlist-text',
         },
         booked: {
           card: 'bg-state-booked-bg border border-state-booked-border mobile-card',
-          text: 'text-state-booked-text', // eggplant
+          text: 'text-state-booked-text',
+        },
+        history: {
+          card: 'bg-brand-light border border-ui-border mobile-card',
         },
       },
     },
@@ -126,30 +125,32 @@
   // =================================================================
   // 3. CSS STYLES SETUP
   // =================================================================
-  // カスタムCSSスタイルを動的に追加
   const addCustomStyles = () => {
     const style = document.createElement('style');
     style.textContent = `
       /* ========== CSS Variables ========== */
       :root {
-        --brand-text: #50312F;
-        --brand-subtle: #8d7a72;
-        --brand-muted: #d1cbc7;
-        --brand-bg: #f8f7f6;
-        --brand-surface: #ffffff;
-        --brand-light: #f5f4f2;
+        /* Energetic and warm theme for a wood carving school */
+        --brand-text: #4E342E;       /* Dark Brown for high readability */
+        --brand-subtle: #785A4E;     /* Medium Brown for sub-text */
+        --brand-muted: #A1887F;      /* Lighter, soft brown */
+        --brand-bg: #FFFDF5;         /* Warm, very light cream background */
+        --brand-surface: #FFFFFF;    /* White for card backgrounds for a clean look */
+        --brand-light: #F5F1ED;      /* Light, warm beige for hover states */
 
-        --action-primary: #CB0000;
-        --action-secondary: #D8E661;
-        --action-attention: #3F6C45;
+        --action-primary: #C86F34;   /* Energetic terracotta for main actions */
+        --action-secondary: #E4CDBA; /* Light, warm beige for secondary actions */
+        --action-attention: #5A8C36; /* Lively, fresh green for attention */
+        --action-accounting: #F59E0B;/* Bright amber for accounting actions */
+        --action-danger: #B91C1C;    /* A clear, strong red for danger */
 
-        --state-available: #3F6C45;
-        --state-waitlist: #D8E661;
-        --state-booked: #50312F;
+        --state-available: #5A8C36;  /* Lively green for available slots */
+        --state-waitlist: #F59E0B;   /* Bright amber for waitlist */
+        --state-booked: #785A4E;     /* Medium brown for booked slots */
 
-        --ui-border: #e5e7eb;
-        --ui-input: #f9fafb;
-        --ui-surface: #ffffff;
+        --ui-border: #E4CDBA;        /* Soft, warm beige for borders */
+        --ui-input: #FAFAFA;         /* Neutral light gray for inputs */
+        --ui-surface: #FFFFFF;
 
         --modal-overlay: rgba(0, 0, 0, 0.5);
         --spinner-border: #f3f4f6;
@@ -164,39 +165,19 @@
       }
 
       /* ========== Mobile-Friendly Components ========== */
-      .mobile-button {
-        min-height: 48px;
-        min-width: 48px;
-      }
-
-      .mobile-input {
+      .mobile-button, .mobile-input, .mobile-card {
         min-height: 48px;
       }
-
-      .mobile-card {
-        min-height: 60px;
-      }
-
       .touch-friendly {
         touch-action: manipulation;
       }
 
       /* ========== Animations ========== */
-      .fade-in {
-        animation: fadeInUp 0.3s ease-out;
-      }
-
+      .fade-in { animation: fadeInUp 0.3s ease-out; }
       @keyframes fadeInUp {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
       }
-
       .spinner {
         border: 4px solid var(--spinner-border);
         width: 32px;
@@ -205,110 +186,48 @@
         border-left-color: var(--brand-text);
         animation: spin 1s linear infinite;
       }
-
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
+      @keyframes spin { to { transform: rotate(360deg); } }
 
       /* ========== Layout Components ========== */
-      #loading {
-        z-index: 100;
-      }
-
+      #loading { z-index: 100; }
       .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background-color: var(--modal-overlay);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 50;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-        backdrop-filter: blur(3px);
+        position: fixed; inset: 0; background-color: var(--modal-overlay);
+        display: flex; align-items: center; justify-content: center;
+        z-index: 50; opacity: 0; transition: opacity 0.3s ease;
+        pointer-events: none; backdrop-filter: blur(3px);
       }
-
-      .modal-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      /* Custom Modal Styles */
+      .modal-overlay.active { opacity: 1; pointer-events: auto; }
       #custom-modal {
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
+        opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
       }
-
-      #custom-modal.active {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
+      #custom-modal.active { opacity: 1; pointer-events: auto; }
       .modal-content {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        width: 90%;
-        max-width: 400px;
-        text-align: center;
-        max-height: 85vh;
-        overflow-y: auto;
+        background: white; padding: 1.5rem; border-radius: 0.75rem;
+        width: 90%; max-width: 400px; text-align: center;
+        max-height: 85vh; overflow-y: auto;
       }
-
-      .modal-content p {
-        margin-bottom: 1.25rem;
-      }
-
-      .modal-content .modal-buttons {
-        justify-content: center;
-      }
+      .modal-content p { margin-bottom: 1.25rem; }
+      .modal-content .modal-buttons { justify-content: center; }
 
       /* ========== Custom Components ========== */
-      details > summary {
-        list-style: none;
-        cursor: pointer;
-      }
+      details > summary { list-style: none; cursor: pointer; }
+      details > summary::-webkit-details-marker { display: none; }
 
-      details > summary::-webkit-details-marker {
-        display: none;
-      }
-
-      .accounting-item {
+      .accounting-item, .reservation-card {
+        background-color: var(--brand-surface);
+        border: 1px solid var(--ui-border);
         transition: all 0.2s ease;
       }
-
-      .accounting-item:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-
-      .reservation-card {
-        transition: all 0.2s ease;
-      }
-
-      .reservation-card:hover {
+      .accounting-item:hover, .reservation-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        border-color: var(--brand-muted);
       }
 
       /* ========== Responsive Design ========== */
       @media (max-width: 640px) {
-        .modal-content {
-          width: 95%;
-          padding: 1rem;
-        }
-
-        .mobile-button {
-          font-size: 16px;
-        }
-
-        .mobile-input {
-          font-size: 16px;
-        }
+        .modal-content { width: 95%; padding: 1rem; }
+        .mobile-button, .mobile-input { font-size: 16px; }
       }
     `;
     document.head.appendChild(style);
@@ -317,85 +236,79 @@
   // =================================================================
   // 4. TAILWIND CSS SETUP
   // =================================================================
-  // Tailwind CSS CDNを動的に読み込み、設定を適用
   const setupTailwindCSS = () => {
     const tailwindScript = document.createElement('script');
     tailwindScript.src = 'https://cdn.tailwindcss.com';
 
     tailwindScript.onload = function () {
-      // Tailwind CSS読み込み完了後にconfigを設定
       if (window.tailwind) {
         window.tailwind.config = {
           theme: {
             extend: {
-              fontSize: {
-                '2xs': '0.625rem',
-              },
-              fontFamily: {
-                sans: ['Zen Kaku Gothic New', 'sans-serif'],
-              },
+              fontSize: { '2xs': '0.625rem' },
+              fontFamily: { sans: ['Zen Kaku Gothic New', 'sans-serif'] },
               colors: {
                 brand: {
-                  bg: '#f8f7f6',
-                  surface: '#ffffff',
-                  text: '#50312F',
-                  subtle: '#8d7a72',
-                  light: '#f5f4f2',
-                  lighter: '#fefefe',
-                  dark: '#3d251f',
-                  muted: '#d1cbc7',
+                  bg: '#FFFDF5',
+                  surface: '#FFFFFF',
+                  text: '#4E342E',
+                  subtle: '#785A4E',
+                  light: '#F5F1ED',
+                  dark: '#4E342E',
+                  muted: '#A1887F',
                 },
                 action: {
-                  'primary-bg': '#CB0000',
-                  'primary-text': '#ffffff',
-                  'primary-hover': '#a50000',
-                  'primary-light': '#fee2e2',
-                  'secondary-bg': '#D8E661',
-                  'secondary-text': '#2D3D0F',
-                  'secondary-hover': '#c4d949',
-                  'attention-bg': '#3F6C45',
-                  'attention-text': '#ffffff',
-                  'attention-hover': '#2d4f32',
-                  'danger-bg': '#CB0000',
-                  'danger-text': '#ffffff',
-                  'danger-hover': '#a50000',
-                  'paid-bg': '#D4EDDA',
-                  'paid-text': '#155724',
-                  'paid-light': '#e8f5e8',
+                  'primary-bg': '#C86F34',
+                  'primary-text': '#FFFFFF',
+                  'primary-hover': '#A95B2A',
+                  'secondary-bg': '#E4CDBA',
+                  'secondary-text': '#4E342E', // Improved contrast
+                  'secondary-hover': '#D7BCA9',
+                  'attention-bg': '#5A8C36',
+                  'attention-text': '#FFFFFF',
+                  'attention-hover': '#4A732C',
+                  'accounting-bg': '#F59E0B', // Amber
+                  'accounting-text': '#4E342E', // Dark text for readability
+                  'accounting-hover': '#D97706',
+                  'danger-bg': '#B91C1C',
+                  'danger-text': '#FFFFFF',
+                  'danger-hover': '#991B1B',
+                  'paid-bg': '#F0FDF4',
+                  'paid-text': '#166534',
                 },
                 state: {
-                  'available-text': '#3F6C45',
-                  'available-bg': '#ecfdf5',
-                  'available-border': '#a7f3d0',
-                  'available-hover': '#d1fae5',
-                  'waitlist-text': '#2D3D0F',
-                  'waitlist-bg': '#FFFBE6',
-                  'waitlist-border': '#D8E661',
-                  'booked-text': '#50312F',
-                  'booked-bg': '#f5f4f2',
-                  'booked-border': '#d1cbc7',
-                  'success-bg': '#ecfdf5',
-                  'success-text': '#3F6C45',
-                  'success-border': '#a7f3d0',
-                  'success-hover': '#d1fae5',
-                  'danger-bg': '#fee2e2',
-                  'danger-text': '#CB0000',
-                  'danger-border': '#fecaca',
-                  'danger-hover': '#fef2f2',
+                  'available-text': '#166534',
+                  'available-bg': '#F0FDF4',
+                  'available-border': '#A7F3D0',
+                  'available-hover': '#D1FAE5',
+                  'waitlist-text': '#B45309',
+                  'waitlist-bg': '#FFFBEB',
+                  'waitlist-border': '#FDE68A',
+                  'booked-text': '#44403C',
+                  'booked-bg': '#F5F5F4',
+                  'booked-border': '#E7E5E4',
+                  'success-bg': '#F0FDF4',
+                  'success-text': '#166534',
+                  'success-border': '#A7F3D0',
+                  'success-hover': '#D1FAE5',
+                  'danger-bg': '#FEF2F2',
+                  'danger-text': '#B91C1C',
+                  'danger-border': '#FECACA',
+                  'danger-hover': '#FEE2E2',
                 },
                 ui: {
-                  border: '#e5e7eb',
-                  'border-light': '#f3f4f6',
-                  surface: '#ffffff',
-                  input: '#f9fafb',
-                  'input-focus': '#ffffff',
-                  'error-text': '#CB0000',
-                  'error-bg': '#fee2e2',
-                  'error-border': '#fecaca',
-                  'warning-text': '#d97706',
-                  'warning-bg': '#fffbeb',
-                  'warning-border': '#fed7aa',
-                  'link-text': '#0369a1',
+                  border: '#E4CDBA',
+                  'border-light': '#F5F1ED',
+                  surface: '#FFFFFF',
+                  input: '#FAFAFA',
+                  'input-focus': '#FFFFFF',
+                  'error-text': '#B91C1C',
+                  'error-bg': '#FEF2F2',
+                  'error-border': '#FECACA',
+                  'warning-text': '#B45309',
+                  'warning-bg': '#FFFBEB',
+                  'warning-border': '#FDE68A',
+                  'link-text': '#0369A1',
                 },
               },
             },
@@ -415,14 +328,8 @@
   // =================================================================
   // 5. INITIALIZATION
   // =================================================================
-  // 設定の初期化を実行
   console.log('[CONFIG] 設定ファイルを読み込み中...');
-
-  // CSSスタイルを追加
   addCustomStyles();
-
-  // Tailwind CSSを設定
   setupTailwindCSS();
-
   console.log('[CONFIG] 設定ファイルの読み込みが完了しました');
 </script>

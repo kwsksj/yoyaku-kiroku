@@ -190,11 +190,12 @@
       timeText = `<span>${item.startTime} - ${item.endTime}</span>`;
     }
 
-    // カードの背景色設定
     let cardColorClass = 'bg-ui-surface border border-ui-border';
     if (isBooking) {
       const cardColor = item.isWaiting ? DesignConfig.cards.state.waitlist : DesignConfig.cards.state.booked;
       cardColorClass = cardColor.card;
+    } else if (type === 'history') {
+      cardColorClass = DesignConfig.cards.state.history.card;
     }
 
     // 制作メモ部分の背景色
@@ -231,10 +232,10 @@
       <div class="${cardColorClass || 'bg-ui-surface border border-ui-border'} p-3 rounded-lg flex flex-col space-y-3">
         <div class="flex-shrink-0">
           <div >
-            <span class="text-brand-text text-base sm:text-xl">${formatDate(item.date || '')} </span>
+            <span class="text-brand-text font-bold text-base sm:text-xl">${formatDate(item.date || '')} </span>
             <span class="text-brand-text text-base time-display">${timeText || ''}</span>
           </div>
-          <p class="text-brand-text text-lg break-words">${item.classroom || ''} ${venueText || ''}</p>
+          <p class="text-brand-text font-bold text-base break-words">${item.classroom || ''} ${venueText || ''}</p>
           ${statusBadges || ''}
         </div>
         <div class="${memoBackgroundClass || 'bg-ui-surface'} p-3 rounded-md w-full border border-ui-border">
@@ -572,7 +573,7 @@
                           action: 'goToAccounting',
                           text: '会計',
                           colorClass:
-                            'text-base bg-action-attention-bg text-action-attention-text font-bold px-3 py-1.5 rounded active:bg-action-attention-hover focus:bg-action-attention-hover mobile-button',
+                          `text-base ${DesignConfig.colors.accounting} font-bold px-3 py-1.5 rounded mobile-button`,
                         });
                       }
                     }
@@ -591,7 +592,7 @@
                     if (!b.accountingDone) {
                       buttons.push({
                         action: 'cancel',
-                        text: '取消',
+                        text: 'cancel',
                         colorClass:
                           'text-base bg-state-danger-bg text-state-danger-text font-bold px-3 py-1.5 rounded active:bg-state-danger-hover focus:bg-state-danger-hover mobile-button',
                       });
