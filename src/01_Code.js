@@ -166,6 +166,16 @@ const ITEM_NAME_DISCOUNT = '初回講習同時間割引';
 const UNIT_30_MIN = '30分';
 const UNIT_CM3 = 'cm³';
 
+
+/**
+ * HTMLテンプレートのサブファイルをテンプレート評価の文脈で読み込むためのinclude関数
+ * @param {string} filename - 読み込むHTMLファイル名（拡張子不要）
+ * @returns {string} - サブファイルのHTML文字列
+ */
+function include(filename) {
+  return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
 // --- エントリーポイント関数 ---
 
 function doGet(e) {
@@ -180,7 +190,7 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } else {
     // 通常モード: メインアプリケーションを表示
-    return HtmlService.createTemplateFromFile('10_WebApp.html')
+    return HtmlService.createTemplateFromFile('10_WebApp')
       .evaluate()
       .setTitle('きぼりの よやく・きろく')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1');

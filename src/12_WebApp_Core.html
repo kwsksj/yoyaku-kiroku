@@ -22,13 +22,63 @@
   // アプリケーション全体の動的な状態を一元管理します。
   // ユーザー情報、予約データ、現在の表示画面などが含まれます。
   // =================================================================
+
+  // =================================================================
+  // --- Environment Detection & Data Management ---
+  // -----------------------------------------------------------------
+  // 実行環境を自動検出し、適切なデータソースを選択します。
+  // テスト環境: ブラウザ + モックデータ
+  // 本番環境: Google Apps Script + 実データ
+  // =================================================================
+
+  /**
+   * 実行環境の検出
+   * @returns {string} 'test' | 'production'
+   */
+  const detectEnvironment = () => {
+    try {
+      // GAS環境の検出
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        return 'production';
+      }
+      return 'test';
+    } catch (error) {
+      return 'test';
+    }
+  };
+
+  /**
+   * 環境に応じたデータ取得
+   * @param {string} dataType - データタイプ
+   * @param {any} fallback - フォールバックデータ
+   */
+  const getEnvironmentData = (dataType, fallback = null) => {
+    const env = detectEnvironment();
+
+    if (env === 'test' && typeof MockData !== 'undefined') {
+      return MockData[dataType] || fallback;
+    }
+
+    // GAS環境では初期値のみ返し、データは後でAPI呼び出しで取得
+    return fallback;
+  };
+
+  // 環境情報
+  const isTestEnvironment = detectEnvironment() === 'test';
+
+  // 開発時のログ出力
+  if (isTestEnvironment) {
+    console.log('🧪 Test Environment Detected');
+    console.log('MockData available:', typeof MockData !== 'undefined');
+  }
+
   const appState = {
-    currentUser: null,
-    slots: [],
-    myBookings: [],
-    history: [],
-    historyTotal: 0,
-    view: 'login',
+    currentUser: getEnvironmentData('currentUser'),
+    slots: getEnvironmentData('slots', []),
+    myBookings: getEnvironmentData('myBookings', []),
+    history: getEnvironmentData('history', []),
+    historyTotal: getEnvironmentData('history', []).length,
+    view: isTestEnvironment ? 'login' : 'login',
     selectedClassroom: null,
     selectedSlot: null,
     phoneForRegistration: null,
@@ -36,16 +86,28 @@
     newlyBookedReservation: null,
     editingReservationDetails: null,
     accountingReservation: null,
-    accountingMaster: null,
+    accountingMaster: getEnvironmentData('accountingMaster'),
     accountingInitialValues: null,
     editingHistoryItem: null,
-    classrooms: ['東京教室', 'つくば教室', '沼津教室'],
+    classrooms: getEnvironmentData('classrooms', ['東京教室', 'つくば教室', '沼津教室']),
     // NF-01: 電話番号未登録ユーザー選択フロー用の状態
     noPhoneUsers: [], // 検索結果のユーザーリスト
     selectedNoPhoneUser: null, // 選択されたユーザー
     searchAttempted: false, // NF-01: 検索が一度試行されたかを示すフラグ
   };
   let onConfirmCallback = null; // モーダル確認時のコールバック関数を保持
+
+  // テスト環境の初期化ログ
+  if (isTestEnvironment) {
+    console.log('[TEST] テスト環境で実行中です');
+    console.log('[TEST] appState初期化:', {
+      currentUser: appState.currentUser,
+      slotsCount: appState.slots.length,
+      bookingsCount: appState.myBookings.length,
+      historyCount: appState.history.length,
+      classrooms: appState.classrooms,
+    });
+  }
 
   // =================================================================
   // --- UI Component Generators ---
@@ -59,11 +121,11 @@
     createInput: c =>
       `<div class="${c.containerClass || ''} mb-4"><label for="${c.id}" class="${c.labelClass || 'block text-brand-text text-base font-bold mb-2'} ${c.isSrOnly ? 'sr-only' : ''}">${c.label}</label><input type="${c.type}" id="${c.id}" value="${c.value || ''}" class="${DesignConfig.inputs.base} ${c.inputClass || ''}" placeholder="${c.placeholder || ''}" ${c.required ? 'required' : ''} autocomplete="${c.autocomplete || 'off'}" ${c.step ? `step="${c.step}"` : ''}></div>`,
     createTextArea: c =>
-      `<div class="${c.containerClass || ''} mb-4"><label for="${c.id}" class="block ${DesignConfig.colors.text} text-base font-bold mb-2">${c.label}</label><textarea id="${c.id}" class="${DesignConfig.inputs.textarea}" placeholder="${c.placeholder || ''}">${c.value || ''}</textarea></div>`,
+      `<div class="${c.containerClass || ''} mb-4"><label for="${c.id}" class="block text-brand-text text-base font-bold mb-2">${c.label}</label><textarea id="${c.id}" class="${DesignConfig.inputs.textarea}" placeholder="${c.placeholder || ''}">${c.value || ''}</textarea></div>`,
     createSelect: c =>
       `<div class="${c.containerClass || ''}"><label for="${c.id}" class="block text-brand-text text-base font-bold mb-2">${c.label}</label><select id="${c.id}" class="${DesignConfig.inputs.base} ${c.sizeClass || ''} accounting-item">${c.options}</select></div>`,
     createCheckbox: c =>
-      `<label class="flex items-center space-x-2"><input type="checkbox" id="${c.id}" ${c.checked ? 'checked' : ''}><span>${c.label}</span></label>`,
+      `<label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" id="${c.id}" ${c.checked ? 'checked' : ''} class="accent-action-primary-bg"><span>${c.label}</span></label>`,
   };
 
   // =================================================================
@@ -131,11 +193,12 @@
       'きくず を かたずけています．．．',
       'ことば を えらんでいます．．．',
       'ていさい を ととのえています．．．',
-      'みぎ のもの を ひだり に うごかしています．．．',
-      'ひだり のもの を みぎ に うごかしています．．．',
+      'みぎ の もの を ひだり に うごかしています．．．',
+      'ひだり の もの を みぎ に うごかしています．．．',
       'コーヒー を いれています．．．',
       'すこし きゅうけい しています．．．',
       'ねこ の て を かりようとしています．．．',
+      'はむすたー の て を かりようとしています．．．',
       'はもの を ととのえています．．．',
     ],
   };
@@ -159,7 +222,7 @@
     // 3秒ごとにメッセージを更新
     loadingMessageTimer = setInterval(() => {
       updateLoadingMessage(category);
-    }, 3000);
+    }, 3500);
   };
 
   const stopLoadingMessageRotation = () => {
@@ -171,11 +234,13 @@
 
   const showLoading = (category = 'default') => {
     document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('main-content').classList.add('hidden');
     startLoadingMessageRotation(category);
   };
 
   const hideLoading = () => {
     document.getElementById('loading').classList.add('hidden');
+    document.getElementById('main-content').classList.remove('hidden');
     stopLoadingMessageRotation();
   };
 

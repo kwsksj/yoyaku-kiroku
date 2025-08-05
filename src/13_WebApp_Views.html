@@ -6,7 +6,7 @@
    * 【役割】: WebAppの各画面（ビュー）のHTML構造を生成する関数群を集約します。
    * - 各関数は特定の画面（ログイン、予約一覧など）のUI構築を担当します。
    * - appStateの現在の状態に基づき、動的にHTMLを生成します。
-   * 【構成】: 14ファイル構成のうちの13番目
+   * 【構成】: 14ファイル構成でのビュー管理
    * 【v1.8での変更点】:
    * - 履歴表示でのvenue情報追加: きろく画面とダッシュボードの履歴表示でvenue（会場）情報が表示されるよう改善。
    * - UI一貫性向上: 全ての履歴表示でvenue情報が統一して表示される。
@@ -55,7 +55,7 @@
     ];
     return `
         <div class="mt-4 pt-4 border-t border-ui-border-light">
-            <label class="block text-brand-text text-base font-bold mb-2">${discountRule['項目名']}</label>
+            <label class="${DesignConfig.text.labelBlock}">${discountRule['項目名']}</label>
             <select id="discount-selector" class="${DesignConfig.inputs.base} p-2 text-base accounting-item">
                 ${options.map(o => `<option value="${o.value}">${o.text}</option>`).join('')}
             </select>
@@ -68,21 +68,21 @@
    */
   const getPaymentInfoHtml = () => {
     return `
-        <div class="bg-brand-light p-2 rounded-md">
+        <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
-                <div><span class="font-bold">ことら送金:</span><span class="ml-2">09013755977</span></div>
-                <button data-action="copyToClipboard" data-copy-text="09013755977" class="flex-shrink-0 text-sm bg-action-secondary-bg hover:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded">コピー</button>
+                <div class="${DesignConfig.text.body}"><span class="font-bold">ことら送金:</span><span class="ml-2">09013755977</span></div>
+                <button data-action="copyToClipboard" data-copy-text="09013755977" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>
-        <div class="bg-brand-light p-2 rounded-md">
-            <div><span class="font-bold">振込先:</span><span class="ml-2">ゆうちょ銀行</span></div>
+        <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
+            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">ゆうちょ銀行</span></div>
             <div class="mt-1 flex justify-between items-center">
-                <div class="text-base">店番: 818</div>
-                <button data-action="copyToClipboard" data-copy-text="818" class="text-sm bg-action-secondary-bg hover:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded">コピー</button>
+                <div class="text-base text-brand-text">店番: 818</div>
+                <button data-action="copyToClipboard" data-copy-text="818" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
             <div class="mt-1 flex justify-between items-center">
-                <div class="text-base">普通: 2661797</div>
-                <button data-action="copyToClipboard" data-copy-text="2661797" class="text-sm bg-action-secondary-bg hover:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded">コピー</button>
+                <div class="text-base text-brand-text">普通: 2661797</div>
+                <button data-action="copyToClipboard" data-copy-text="2661797" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>`;
   };
@@ -94,13 +94,13 @@
   const getPaymentOptionsHtml = () => {
     const cotraDetails = `
         <details class="mt-2 ml-6">
-            <summary class="inline-block px-2 py-1 bg-ui-warning-light text-ui-warning-text text-sm font-semibold rounded-md cursor-pointer hover:bg-ui-warning-bg">
+            <summary class="inline-block px-2 py-1 bg-ui-warning-light text-ui-warning-text text-sm font-semibold rounded-md active:bg-ui-warning-bg">
                 ことら送金とは？ <span class="arrow">▼</span>
             </summary>
             <p class="mt-2 p-2 bg-ui-warning-bg rounded-md text-sm text-left text-brand-subtle">
                 電話番号だけで銀行口座間で送金できるサービスです。手数料無料。対応の銀行アプリから利用できます。<br>
                 (例：ゆうちょ通帳アプリ、三井住友銀行アプリ、住信SBIネット銀行アプリなど)
-                <a href="https://www.cotra.ne.jp/member/" target="_blank" class="text-ui-link-text hover:underline">対応アプリ一覧</a>
+                <a href="https://www.cotra.ne.jp/member/" target="_blank" class="text-ui-link-text">対応アプリ一覧</a>
             </p>
         </details>`;
     const options = [
@@ -113,8 +113,8 @@
         .map(
           (opt, i) => `
         <div>
-            <label class="flex items-center space-x-2">
-                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item">
+            <label class="flex items-center space-x-2 text-brand-text">
+                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item accent-action-primary-bg">
                 <span>${opt.text}</span>
             </label>
             ${opt.details}
@@ -161,10 +161,90 @@
   const getOtherSalesRowHtml = index => {
     // 親となるdiv要素を追加し、クラスとデータ属性をこちらに持たせる
     return `
-        <div data-other-sales-row="${index}" class="mt-2 pt-2 border-t border-gray-200 grid grid-cols-3 gap-2 items-center">
-            <input type="text" id="other-sales-name-${index}" placeholder="商品名" class="col-span-2 text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text accounting-item">
-            <input type="text" inputmode="decimal" id="other-sales-price-${index}" placeholder="金額" class="text-lg w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text accounting-item">
+        <div data-other-sales-row="${index}" class="mt-2 pt-2 border-t border-ui-border grid grid-cols-3 gap-2 items-center">
+            <input type="text" id="other-sales-name-${index}" placeholder="商品名" class="col-span-2 ${DesignConfig.inputs.base} accounting-item">
+            <input type="text" inputmode="decimal" id="other-sales-price-${index}" placeholder="金額" class="${DesignConfig.inputs.base} accounting-item">
         </div>`;
+  };
+
+  /**
+   * 予約・履歴カード用の共通カード構造を生成します。
+   * @param {object} config - カード設定オブジェクト
+   * @returns {string} HTML文字列
+   */
+  const createReservationCard = config => {
+    const {
+      type, // 'booking' | 'history'
+      item,
+      today,
+      buttons = [],
+    } = config;
+
+    const isBooking = type === 'booking';
+    const venueText = item.venue || '';
+    const isPastOrToday = isBooking ? new Date(item.date).getTime() <= today.getTime() : true;
+
+    // 時刻表示の生成
+    let timeText = '';
+    if (item.startTime && item.endTime) {
+      timeText = `<span>${item.startTime} - ${item.endTime}</span>`;
+    }
+
+    // カードの背景色設定
+    let cardColorClass = 'bg-ui-surface border border-ui-border';
+    if (isBooking) {
+      const cardColor = item.isWaiting ? DesignConfig.cards.state.waitlist : DesignConfig.cards.state.booked;
+      cardColorClass = cardColor.card;
+    }
+
+    // 制作メモ部分の背景色
+    const memoBackgroundClass = isBooking ? 'bg-ui-surface' : 'bg-ui-surface';
+
+    // ステータス表示（予約のみ）
+    let statusBadges = '';
+    if (isBooking) {
+      if (item.firstLecture) {
+        statusBadges += `<p class="font-bold text-action-attention-bg text-lg">初回講習</p>`;
+      }
+      if (item.isWaiting) {
+        statusBadges += `<p class="font-bold ${DesignConfig.cards.state.waitlist.text} text-lg">キャンセル待ち</p>`;
+      }
+    }
+
+    // ボタン部分の生成
+    const buttonsHtml = buttons
+      .map(btn =>
+        Components.createButton({
+          action: btn.action,
+          classroom: btn.classroom || item.classroom,
+          reservationId: btn.reservationId || item.reservationId,
+          date: btn.date || item.date,
+          sheetName: btn.sheetName || item.sheetName,
+          details: btn.details,
+          text: btn.text,
+          colorClass: btn.colorClass,
+        }),
+      )
+      .join('');
+
+    return `
+      <div class="${cardColorClass || 'bg-ui-surface border border-ui-border'} p-3 rounded-lg flex flex-col space-y-3">
+        <div class="flex-shrink-0">
+          <div >
+            <span class="text-brand-text text-base sm:text-xl">${formatDate(item.date || '')} </span>
+            <span class="text-brand-text text-base time-display">${timeText || ''}</span>
+          </div>
+          <p class="text-brand-text text-lg break-words">${item.classroom || ''} ${venueText || ''}</p>
+          ${statusBadges || ''}
+        </div>
+        <div class="${memoBackgroundClass || 'bg-ui-surface'} p-3 rounded-md w-full border border-ui-border">
+          <div class="w-full min-h-[3rem] flex items-start">
+            <p class="text-base text-brand-text whitespace-pre-wrap break-words w-full leading-relaxed">${item.workInProgress != null && item.workInProgress !== '' ? item.workInProgress : `<span class="text-brand-muted">制作メモ</span>`}</p>
+          </div>
+        </div>
+        ${buttonsHtml ? `<div class="flex justify-end items-center space-x-2 flex-shrink-0">${buttonsHtml}</div>` : ''}
+      </div>
+    `;
   };
 
   /**
@@ -174,7 +254,7 @@
    */
   const getMemoEditModalHtml = item => {
     return `
-        <p class="text-base text-gray-500 mb-4">${formatDate(item.date)}  ${item.classroom}</p>
+        <p class="text-base ${DesignConfig.colors.textSubtle} mb-4">${formatDate(item.date)}  ${item.classroom}</p>
         <textarea id="memo-edit-textarea" class="${DesignConfig.inputs.textarea} h-32" placeholder="制作メモを入力…">${item.workInProgress || ''}</textarea>
     `;
   };
@@ -208,26 +288,26 @@
 
     const discountRule = appState.accountingMaster.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
     const discountHtml = discountRule
-      ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule)}<p class="text-sm text-gray-500 mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
+      ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule)}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
       : '';
 
     return `
-        <div class="p-4 bg-gray-50 rounded-lg space-y-3">
-            <h3 class="text-xl font-bold mb-2 text-brand-text">授業料</h3>
+        <div class="p-4 ${DesignConfig.cards.background} rounded-lg space-y-3">
+            <h3 class="${DesignConfig.text.heading} mb-2">授業料</h3>
             <div class="grid grid-cols-3 gap-2 items-end">
                 ${Components.createSelect({ id: 'start-time', label: '開始時刻', containerClass: 'col-span-1', options: startTimeOptions })}
                 ${Components.createSelect({ id: 'end-time', label: '終了時刻', containerClass: 'col-span-1', options: endTimeOptions })}
                 ${Components.createSelect({ id: 'break-time', label: '休憩時間', containerClass: 'col-span-1', options: breakOptions })}
             </div>
-            <div id="calculated-hours" class="text-left text-base text-gray-600 mt-2"></div>
+            <div id="calculated-hours" class="text-left text-base ${DesignConfig.colors.textSubtle} mt-2"></div>
             <div class="pt-3 mt-3 border-t border-gray-200">
                 <label class="flex items-center justify-between">
                     <span class="text-brand-text">彫刻刀レンタル</span>
-                    <input type="checkbox" data-item-type="授業料" data-item-name="彫刻刀レンタル" class="accounting-item h-5 w-5 rounded border-gray-300 text-brand-text focus:ring-brand-text" ${rentalChecked}>
+                    <input type="checkbox" data-item-type="授業料" data-item-name="彫刻刀レンタル" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text" ${rentalChecked}>
                 </label>
             </div>
             ${discountHtml}
-            <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-gray-200 space-y-1 text-base text-gray-600"></div>
+            <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base ${DesignConfig.colors.textSubtle}"></div>
             <div class="text-right font-bold mt-2" id="tuition-subtotal">小計: 0円</div>
         </div>`;
   };
@@ -244,8 +324,8 @@
    */
   const getLoginView = () => `
     <div class="text-center pt-8 pb-4">
-        <h1 class="text-3xl font-bold ${DesignConfig.colors.text} tracking-tight">きぼりの<br>よやく・きろく</h1>
-        <h2 class="text-xl ${DesignConfig.colors.textSubtle} mt-2 mb-10">川崎誠二 木彫り教室</h2>
+        <h1 class="text-3xl font-bold text-brand-text tracking-tight">きぼりの<br>よやく・きろく</h1>
+        <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
     </div>
     ${Components.createInput({ id: 'phone', label: '電話番号', type: 'tel', placeholder: '090 1234 5678', containerClass: DesignConfig.inputs.container, autocomplete: 'tel', isSrOnly: false, labelClass: `block text-brand-subtle text-sm text-center mb-1`, inputClass: 'text-center', inputmode: 'numeric', pattern: '[0-9]*' })}
     <div class="mt-6 flex justify-center">
@@ -255,24 +335,113 @@
     </div>`;
 
   /**
+   * ユーザー情報入力フォーム（新規登録・プロフィール編集共通）
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.mode - 'register' または 'edit'
+   * @param {string} [config.phone] - 電話番号（新規登録時）
+   * @returns {string} HTML文字列
+   */
+  const getUserFormView = config => {
+    const { mode, phone } = config;
+    const isEdit = mode === 'edit';
+    const u = appState.currentUser || {};
+
+    // 電話番号表示の判定
+    const isPhoneInputNeeded = isEdit && (appState.phoneForRegistration || !u.phone);
+
+    // タイトルと説明文
+    const title = isEdit ? 'プロフィール編集' : '新規登録';
+    const description = isEdit ? '' : '<p class="text-brand-subtle mb-6">お名前を登録してください。</p>';
+
+    // 電話番号セクション
+    let phoneSection = '';
+    if (!isEdit) {
+      // 新規登録時：電話番号を表示のみ
+      phoneSection = `
+        <div class="mb-4">
+            <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
+            <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block">${phone}</p>
+            <input type="hidden" id="reg-phone" value="${phone}">
+        </div>`;
+    } else if (isPhoneInputNeeded) {
+      // プロフィール編集時：電話番号入力が必要
+      phoneSection = `
+        <div class="mb-4">
+            <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">電話番号</label>
+            <input type="tel" id="edit-phone" value="${u.phone || appState.phoneForRegistration || ''}"
+                   class="${DesignConfig.inputs.base}" placeholder="090 1234 5678"
+                   autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
+            <p class="text-sm text-brand-subtle mt-1">電話番号を登録すると次回からスムーズにログインできます。</p>
+        </div>`;
+    } else {
+      // プロフィール編集時：電話番号表示のみ
+      phoneSection = `
+        <div class="mb-4">
+            <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
+            <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block">${u.phone}</p>
+        </div>`;
+    }
+
+    // ボタン設定
+    const buttons = isEdit
+      ? [
+          { text: 'この内容で更新', action: 'saveProfile', colorClass: DesignConfig.colors.primary },
+          { text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary },
+        ]
+      : [
+          { text: '登録して予約へ進む', action: 'register', colorClass: DesignConfig.colors.primary },
+          { text: '戻る', action: 'goBackToLogin', colorClass: DesignConfig.colors.secondary },
+        ];
+
+    const nameIdPrefix = isEdit ? 'edit' : 'reg';
+
+    return `
+        <div class="max-w-md mx-auto">
+            <h1 class="text-xl font-bold text-brand-text mb-4">${title}</h1>
+            ${description}
+            <div class="space-y-4">
+                ${Components.createInput({
+                  id: `${nameIdPrefix}-realname`,
+                  label: 'お名前（本名）',
+                  type: 'text',
+                  required: true,
+                  value: isEdit ? u.realName : '',
+                  containerClass: '',
+                  autocomplete: 'name',
+                })}
+                ${Components.createInput({
+                  id: `${nameIdPrefix}-nickname`,
+                  label: 'ニックネーム（表示名）',
+                  type: 'text',
+                  value: isEdit ? u.displayName : '',
+                  placeholder: '空欄の場合は本名',
+                  containerClass: '',
+                })}
+                ${phoneSection}
+            </div>
+            <div class="mt-6">
+                <div class="space-y-3">
+                    ${buttons
+                      .map(btn =>
+                        Components.createButton({
+                          text: btn.text,
+                          action: btn.action,
+                          colorClass: btn.colorClass,
+                          widthClass: DesignConfig.buttons.full,
+                        }),
+                      )
+                      .join('')}
+                </div>
+            </div>
+        </div>`;
+  };
+
+  /**
    * 新規登録画面のUIを生成します。
    * @param {string} p - ログイン試行時に入力された電話番号
    * @returns {string} HTML文字列
    */
-  const getRegisterView = p => `
-    <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">新規登録</h1>
-    <p class="${DesignConfig.colors.textSubtle} mb-6">お名前を登録してください。</p>
-    <div class="mb-4">
-        <label class="block ${DesignConfig.colors.text} text-base font-bold mb-2">電話番号</label>
-        <p class="font-semibold p-3 bg-gray-100 rounded-lg">${p}</p>
-        <input type="hidden" id="reg-phone" value="${p}">
-    </div>
-    ${Components.createInput({ id: 'reg-realname', label: 'お名前（本名）', type: 'text', required: true, autocomplete: 'name' })}
-    ${Components.createInput({ id: 'reg-nickname', label: 'ニックネーム（表示名）', type: 'text', placeholder: '空欄の場合は本名' })}
-    <div class="mt-6 flex flex-col space-y-3">
-        ${Components.createButton({ text: '登録して予約へ進む', action: 'register', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
-        ${Components.createButton({ text: '戻る', action: 'goBackToLogin', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-    </div>`;
+  const getRegisterView = p => getUserFormView({ mode: 'register', phone: p });
 
   /**
    * NF-01: 電話番号未登録ユーザーの検索・選択画面のUIを生成します。
@@ -284,9 +453,9 @@
     const hasSearchedAndNoResults = appState.searchAttempted && users.length === 0;
 
     return `
-        <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">アカウントを探す</h1>
-        <p class="${DesignConfig.colors.textSubtle} mb-6">お名前（本名）またはニックネームを入力して、あなたのアカウントを見つけてください。<br>
-        <span class="text-sm text-gray-500">（漢字が異なる場合や、姓と名の間が開いている場合でも、スペースを入れずに、苗字だけでも試してみてください）</span></p>
+        <h1 class="text-xl font-bold text-brand-text mb-4">アカウントを探す</h1>
+        <p class="text-brand-subtle mb-6">お名前（本名）またはニックネームを入力して、あなたのアカウントを見つけてください。<br>
+        <span class="text-sm text-brand-muted">（漢字が異なる場合や、姓と名の間が開いている場合でも、スペースを入れずに、苗字だけでも試してみてください）</span></p>
 
         <div class="${DesignConfig.inputs.container} mb-4">
             ${Components.createInput({
@@ -315,7 +484,7 @@
                 ${users
                   .map(
                     user => `
-                    <div class="bg-gray-100 p-3 rounded-lg flex justify-between items-center">
+                    <div class="${DesignConfig.cards.background} p-3 rounded-lg flex justify-between items-center">
                         <p class="text-base font-semibold">${user.realName}（${user.nickname}）</p> // 本名とニックネームを両方表示
                         ${Components.createButton({
                           text: 'これだ！',
@@ -323,7 +492,8 @@
                           studentId: user.studentId,
                           realName: user.realName,
                           nickname: user.nickname,
-                          colorClass: 'bg-green-100 text-green-800 text-sm py-1 px-3 rounded',
+                          colorClass:
+                            'bg-state-success-bg text-state-success-text text-sm py-1 px-3 rounded active:bg-state-success-hover focus:bg-state-success-hover mobile-button',
                         })}
                     </div>
                 `,
@@ -358,92 +528,81 @@
 
   /**
    * メインのダッシュボード画面のUIを生成します。
+   * ユーザーの予約一覧と履歴一覧を統合表示します。
    * @returns {string} HTML文字列
    */
-  const getClassroomSelectView = () => {
-    // 【改善】未来の予約が一番上に来るように、日付の降順でソート
+  const getDashboardView = () => {
+    // 【時系列統一】予約と履歴を日付順にソートして統合表示
+    // 上ほど未来、下ほど過去になるように配置
     const sortedBookings = [...appState.myBookings].sort((a, b) => new Date(b.date) - new Date(a.date));
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // 【改善】「あたらしく よやく する」ボタンを予約リストの先頭に配置し、デザインを分かりやすく変更
     const newBookingCardHtml = `
-        <button data-action="goToNewBookingView" class="w-full text-center p-4 rounded-lg border-2 border-dashed border-gray-400 hover:bg-gray-100 transition-colors">
-            <span class="text-xl font-bold text-gray-600">+ あたらしく よやく する</span>
+        <button data-action="goToNewBookingView" class="w-full text-center p-4 rounded-lg border-2 border-dashed border-action-primary-border bg-action-primary-light active:bg-action-primary-subtle focus:bg-action-primary-subtle mobile-button touch-friendly">
+            <span class="text-xl font-bold text-action-primary-bg">+ あたらしく よやく する</span>
         </button>
     `;
 
     const yourBookingsHtml = `
         <div class="mb-8 w-full">
-            <div class="bg-gray-100 p-3 rounded-lg space-y-3">
-                <h2 class="text-xl font-medium ${DesignConfig.colors.text} text-center mb-2">よやく</h2>
+            <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
+                <h2 class="text-xl font-medium text-brand-text text-center mb-2">よやく</h2>
                 ${newBookingCardHtml}
                 ${sortedBookings
                   .map(b => {
-                    const cardColor = b.isWaiting ? DesignConfig.cards.state.waitlist : DesignConfig.cards.state.booked;
-                    const venueText = b.venue;
-                    let timeText = '';
-                    if (b.startTime && b.endTime) {
-                      timeText = `<span>${b.startTime} - ${b.endTime}</span>`;
-                    }
                     const resDate = new Date(b.date);
                     resDate.setMinutes(resDate.getMinutes() + resDate.getTimezoneOffset());
                     const isPastOrToday = resDate.getTime() <= today.getTime();
-                    const accountingBtn = isPastOrToday
-                      ? b.accountingDone
-                        ? Components.createButton({
-                            action: 'goToAccounting',
-                            classroom: b.classroom,
-                            reservationId: b.reservationId,
-                            date: b.date,
-                            text: '会計済',
-                            colorClass: `${DesignConfig.colors.paid} text-base font-bold px-3 py-1.5 rounded`,
-                          })
-                        : Components.createButton({
-                            action: 'goToAccounting',
-                            classroom: b.classroom,
-                            reservationId: b.reservationId,
-                            date: b.date,
-                            text: '会計',
-                            colorClass: 'text-base bg-yellow-100 text-yellow-800 font-bold px-3 py-1.5 rounded',
-                          })
-                      : '';
 
-                    const cancelBtn = !b.accountingDone
-                      ? Components.createButton({
-                          action: 'cancel',
-                          classroom: b.classroom,
-                          date: b.date,
-                          reservationId: b.reservationId,
-                          text: '取消',
-                          colorClass: 'text-base bg-red-100 text-red-700 font-bold px-3 py-1.5 rounded',
-                        })
-                      : '';
-                    return `
-                        <div class="${cardColor.card} p-3 rounded-lg flex flex-col">
-                            <div class="flex flex-row items-start sm:items-center justify-between gap-4">
-                                <div class="flex-shrink-0">
-                                    <p class="font-bold text-lg sm:text-xl">${formatDate(b.date)}</p>
-                                    <div class="flex flex-col items-start">
-                                        <p class="text-lg">${timeText}</p>
-                                        <p class="text-lg break-words">${b.classroom} ${venueText}</p>
-                                        ${b.firstLecture ? `<p class="font-bold text-blue-600 text-lg">初回講習</p>` : ''}
-                                        ${b.isWaiting ? `<p class="font-bold ${DesignConfig.cards.state.waitlist.text} text-lg">キャンセル待ち</p>` : ''}
-                                    </div>
-                                </div>
-                                <div class="bg-white p-2 rounded-md break-words flex-grow w-full sm:w-auto">
-                                    <p class="text-sm text-brand-muted mb-1">制作メモ</p>
-                                    <div class="mt-2">
-                                        <p class="text-base text-brand-text whitespace-pre-wrap">${b.workInProgress || ''}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex justify-end items-center space-x-2 flex-shrink-0">
-                                    ${accountingBtn}
-                                    ${!isPastOrToday && !b.accountingDone ? Components.createButton({ action: 'goToEditReservation', classroom: b.classroom, reservationId: b.reservationId, text: '編集', colorClass: 'text-base bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded' }) : ''}
-                                ${cancelBtn}
-                            </div>
-                        </div>`;
+                    // ボタン配列を構築
+                    const buttons = [];
+
+                    // 会計ボタン
+                    if (isPastOrToday) {
+                      if (b.accountingDone) {
+                        buttons.push({
+                          action: 'goToAccounting',
+                          text: '会計済',
+                          colorClass: `${DesignConfig.colors.paid} text-base font-bold px-3 py-1.5 rounded`,
+                        });
+                      } else {
+                        buttons.push({
+                          action: 'goToAccounting',
+                          text: '会計',
+                          colorClass:
+                            'text-base bg-action-attention-bg text-action-attention-text font-bold px-3 py-1.5 rounded active:bg-action-attention-hover focus:bg-action-attention-hover mobile-button',
+                        });
+                      }
+                    }
+
+                    // 編集ボタン
+                    if (!isPastOrToday && !b.accountingDone) {
+                      buttons.push({
+                        action: 'goToEditReservation',
+                        text: '編集',
+                        colorClass:
+                          'text-base bg-action-secondary-bg text-action-secondary-text font-bold px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
+                      });
+                    }
+
+                    // キャンセルボタン
+                    if (!b.accountingDone) {
+                      buttons.push({
+                        action: 'cancel',
+                        text: '取消',
+                        colorClass:
+                          'text-base bg-state-danger-bg text-state-danger-text font-bold px-3 py-1.5 rounded active:bg-state-danger-hover focus:bg-state-danger-hover mobile-button',
+                      });
+                    }
+
+                    return createReservationCard({
+                      type: 'booking',
+                      item: b,
+                      today: today,
+                      buttons: buttons,
+                    });
                   })
                   .join('')}
             </div>
@@ -451,19 +610,23 @@
 
     let historyHtml = '';
     if (appState.history && appState.history.length > 0) {
-      const recordsToShow = appState.history.slice(0, appState.recordsToShow || 20);
+      // 【修正】履歴も新しい順にソート（日付降順）で時系列を統一
+      const sortedHistory = [...appState.history].sort((a, b) => new Date(b.date) - new Date(a.date));
+      const recordsToShow = sortedHistory.slice(0, appState.recordsToShow || 20);
       historyHtml = `
             <div class="mb-8 w-full">
-                <div class="bg-blue-50 p-3 rounded-lg space-y-3">
-                    <h2 class="text-xl font-medium text-blue-900 text-center mb-2">きろく</h2>
+            <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
+                    <h2 class="text-xl font-medium text-brand-text text-center mb-2">きろく</h2>
                     ${recordsToShow
                       .map(h => {
-                        const venueText = h.venue || '';
-                        let accountingBtn = '';
+                        // ボタン配列を構築
+                        const buttons = [];
+
+                        // 会計記録ボタン
                         if (h.accountingDetails) {
                           try {
                             const acc = JSON.parse(h.accountingDetails);
-                            accountingBtn = Components.createButton({
+                            buttons.push({
                               action: 'showHistoryAccounting',
                               details: h.accountingDetails,
                               text: '会計記録',
@@ -471,38 +634,27 @@
                                 'text-sm bg-action-paid-bg text-action-paid-text font-bold px-3 py-1.5 rounded',
                             });
                           } catch (e) {
-                            accountingBtn = `<span class="text-xs text-ui-error-text">会計記録エラー</span>`;
+                            // エラーハンドリングは個別に行う
                           }
                         }
-                        return `
-                        <div class="bg-white p-3 rounded-lg flex flex-col">
-                            <div class="flex flex-row items-start sm:items-center justify-between gap-4">
-                                <div class="flex-shrink-0">
-                                    <p class="font-bold text-lg sm:text-xl">${formatDate(h.date)}</p>
-                                    <div class="flex flex-col items-start">
-                                        <p class="text-lg break-words">${h.classroom} ${venueText}</p>
-                                    </div>
-                                </div>
-                                <div class="bg-brand-light p-2 rounded-md break-words flex-grow w-full sm:w-auto">
-                                    <p class="text-sm text-brand-muted mb-1">制作メモ</p>
-                                    <p class="text-base text-brand-text whitespace-pre-wrap">${h.workInProgress || ''}</p>
-                                </div>
-                            </div>
-                            <div class="mt-4 flex justify-end items-center space-x-2 flex-shrink-0">
-                                ${accountingBtn}
-                                ${Components.createButton({
-                                  action: 'editHistoryMemo',
-                                  reservationId: h.reservationId,
-                                  sheetName: h.sheetName,
-                                  text: '編集',
-                                  colorClass: 'text-sm bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded',
-                                })}
-                            </div>
-                        </div>
-                        `;
+
+                        // 編集ボタン
+                        buttons.push({
+                          action: 'editHistoryMemo',
+                          text: '編集',
+                          colorClass:
+                            'text-sm bg-action-secondary-bg text-action-secondary-text font-bold px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
+                        });
+
+                        return createReservationCard({
+                          type: 'history',
+                          item: h,
+                          today: null, // 履歴では不要
+                          buttons: buttons,
+                        });
                       })
                       .join('')}
-                    ${(appState.recordsToShow || 20) < appState.history.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-base ${DesignConfig.colors.textSubtle} hover:underline">もっとみる</button></div>` : ''}
+                    ${(appState.recordsToShow || 20) < sortedHistory.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">もっとみる</button></div>` : ''}
                 </div>
             </div>
         `;
@@ -510,8 +662,8 @@
 
     return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-            <h1 class="text-xl sm:text-xl font-bold ${DesignConfig.colors.text} whitespace-nowrap mr-4 mb-2 sm:mb-0">ようこそ ${appState.currentUser.displayName} さん</h1>
-            <button data-action="goToEditProfile" class="text-base ${DesignConfig.colors.textSubtle} hover:underline flex-shrink-0 text-right">プロフィールを編集</button>
+            <h1 class="text-xl sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-2 sm:mb-0">ようこそ <span class="whitespace-nowrap">${appState.currentUser.displayName} さん</span></h1>
+            <button data-action="goToEditProfile" class="self-end sm:self-auto text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">プロフィール編集</button>
         </div>
         ${yourBookingsHtml}
         ${historyHtml}
@@ -528,20 +680,20 @@
         Components.createButton({
           action: 'selectClassroom',
           classroomName: n,
-          text: `<span class="text-xl font-bold ${DesignConfig.colors.text} text-center block">${n}</span>`,
-          colorClass: `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card} p-4 flex items-center justify-center`,
+          text: n,
+          colorClass: `w-full h-16 text-left px-4 py-3 rounded-lg mobile-card touch-friendly transition-all duration-150 bg-state-available-bg border border-state-available-border active:bg-state-success-hover flex items-center text-xl font-bold text-brand-text`,
         }),
       )
       .join('');
 
     return `
-        <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">あたらしい よやく</h1>
-        <p class="${DesignConfig.colors.textSubtle} text-center mb-6">教室 を おえらびください</p>
-        <div class="${DesignConfig.cards.container} grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
+        <p class="text-brand-subtle text-center mb-6">教室 を おえらびください</p>
+        <div class="max-w-md mx-auto space-y-3">
             ${classroomButtonsHtml}
         </div>
-        <div class="mt-6">
-            <button data-action="goBackToClassroomSelect" class="w-full text-base ${DesignConfig.colors.textSubtle} hover:underline">戻る</button>
+        <div class="mt-6 max-w-md mx-auto">
+            ${Components.createButton({ text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
         </div>
     `;
   };
@@ -550,41 +702,7 @@
    * プロフィール編集画面のUIを生成します。
    * @returns {string} HTML文字列
    */
-  const getEditProfileView = () => {
-    const u = appState.currentUser;
-    // NF-01: 電話番号未登録ユーザーからの遷移の場合、電話番号入力欄を表示。
-    // phoneForRegistration があれば、その番号を初期値として表示 (新規登録後の遷移用)。
-    // そうでなく、かつ appState.currentUser.phone が空なら入力欄を表示。
-    const isPhoneInputNeeded = appState.phoneForRegistration || !u.phone;
-    const phoneInputHtml = isPhoneInputNeeded
-      ? `
-        <div class="mb-4">
-            <label for="edit-phone" class="block ${DesignConfig.colors.text} text-base font-bold mb-2">電話番号</label>
-            <input type="tel" id="edit-phone" value="${u.phone || appState.phoneForRegistration || ''}"
-                   class="${DesignConfig.inputs.base}" placeholder="090 1234 5678"
-                   autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
-            <p class="text-sm text-gray-500 mt-1">電話番号を登録すると次回からスムーズにログインできます。</p>
-        </div>`
-      : `
-        <div class="mb-4">
-            <label class="block ${DesignConfig.colors.text} text-base font-bold mb-2">電話番号</label>
-            <p class="font-semibold p-3 bg-gray-100 rounded-lg">${u.phone}</p>
-        </div>`;
-
-    return `
-        <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-6">プロフィール編集</h1>
-        <div class="space-y-4">
-            ${Components.createInput({ id: 'edit-realname', label: 'お名前（本名）', type: 'text', required: true, value: u.realName, containerClass: DesignConfig.inputs.container, autocomplete: 'name' })}
-            ${Components.createInput({ id: 'edit-nickname', label: 'ニックネーム（表示名）', type: 'text', value: u.displayName, containerClass: DesignConfig.inputs.container })}
-            ${phoneInputHtml}
-        </div>
-        <div class="mt-8 flex justify-center">
-            <div class="space-y-3 ${DesignConfig.inputs.container}">
-                ${Components.createButton({ text: 'この内容で更新', action: 'saveProfile', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
-                ${Components.createButton({ text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-            </div>
-        </div>`;
-  };
+  const getEditProfileView = () => getUserFormView({ mode: 'edit' });
 
   /**
    * 特定の教室の予約枠一覧画面のUIを生成します。
@@ -595,9 +713,13 @@
     const s = appState.slots.filter(sl => sl.classroom === c && sl.session !== '初回講習');
     if (s.length === 0) {
       return `
-            <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${c}</h1>
-            <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
-            <button data-action="goBackToClassroomSelect" class="w-full mt-6 text-base ${DesignConfig.colors.textSubtle} hover:underline">教室選択に戻る</button>`;
+            <div class="max-w-md mx-auto">
+                <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${c}</h1>
+                <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
+                <div class="mt-6">
+                    ${Components.createButton({ text: '教室選択に戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                </div>
+            </div>`;
     }
     let currentMonth = null;
     const bHtml = s
@@ -606,7 +728,7 @@
         const month = slotDate.getMonth() + 1;
         let monthHeader = '';
         if (month !== currentMonth) {
-          monthHeader = `<h3 class="text-xl font-medium ${DesignConfig.colors.textSubtle} mt-6 mb-2 text-center">${month}月</h3>`;
+          monthHeader = `<h3 class="text-xl font-medium text-brand-subtle mt-6 mb-2 text-center">${month}月</h3>`;
           currentMonth = month;
         }
         const iB = appState.myBookings.some(b => b.date === sl.date && b.classroom === sl.classroom);
@@ -642,9 +764,13 @@
       })
       .join('');
     return `
-        <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${c}</h1>
-        <div class="${DesignConfig.cards.container}">${bHtml}</div>
-        <button data-action="goBackToClassroomSelect" class="w-full mt-6 text-base ${DesignConfig.colors.textSubtle} hover:underline">教室選択に戻る</button>`;
+        <div class="max-w-md mx-auto">
+            <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${c}</h1>
+            <div class="${DesignConfig.cards.container}">${bHtml}</div>
+            <div class="mt-6">
+                ${Components.createButton({ text: '教室選択に戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+            </div>
+        </div>`;
   };
 
   /**
@@ -675,20 +801,20 @@
         const finalEndTime = `${String(endTimeHour).padStart(2, '0')}:${String(endTimeMinutes).padStart(2, '0')}`;
         endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
       }
-      const timeInfoHtml = `<div class="text-sm text-gray-500 text-left mb-2">講座時間: ${classroomRule['講座開始']} - ${classroomRule['休憩開始'] + ',' || ''}  ${classroomRule['休憩終了'] + ' - ' || ''}${classroomRule['講座終了']}</div>`;
+      const timeInfoHtml = `<div class="text-sm text-brand-subtle text-left mb-2">講座時間: ${classroomRule['講座開始']} - ${classroomRule['休憩開始'] + ',' || ''}  ${classroomRule['休憩終了'] + ' - ' || ''}${classroomRule['講座終了']}</div>`;
       const discountRule = master.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
       let discountHtml = '';
       if (discountRule && (classroom === TSUKUBA_CLASSROOM_NAME || classroom === NUMAZU_CLASSROOM_NAME)) {
         const discountAmountText = `${Math.abs(Number(discountRule['単価']))}円`;
         const discountUnitText = discountRule['単位'];
-        discountHtml = `<p class="text-sm text-gray-500 mt-2 text-left">${discountRule['項目名']}: ${discountRule.説明 || `初回講習と同時刻に参加の場合、${discountUnitText}あたり${discountAmountText}割引。ただし、初回講習参加者がいる場合のみ`}</p>`;
+        discountHtml = `<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule['項目名']}: ${discountRule.説明 || `初回講習と同時刻に参加の場合、${discountUnitText}あたり${discountAmountText}割引。ただし、初回講習参加者がいる場合のみ`}</p>`;
       }
       timeOptionsHtml = `<div class="mt-4 pt-4 border-t">${timeInfoHtml}<div class="grid grid-cols-2 gap-4"> ${Components.createSelect({ id: 'res-start-time', label: '開始時刻', options: startTimeOptions })} ${Components.createSelect({ id: 'res-end-time', label: '終了時刻', options: endTimeOptions })} </div>${discountHtml}</div>`;
     }
     let bookingOptionsHtml = `<div class="mt-4 pt-4 border-t"><h4 class="font-bold text-left mb-2">オプション</h4>`;
     if (classroom === TOKYO_CLASSROOM_NAME) {
       bookingOptionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture"><span>初回講習</span></label>`;
-      bookingOptionsHtml += `<label class="flex items-center space-x-2 mt-2"><input type="checkbox" id="option-hayade"><span>早出<span class="text-sm text-gray-500">（初回講習の時間に半自習的に参加できます）</span></span></label>`;
+      bookingOptionsHtml += `<label class="flex items-center space-x-2 mt-2"><input type="checkbox" id="option-hayade"><span>早出<span class="text-sm ${DesignConfig.colors.textSubtle}">（初回講習の時間に半自習的に参加できます）</span></span></label>`;
     }
     bookingOptionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental"><span>彫刻刀レンタル</span></label></div></div>`;
     let statusHtml = `空席 ${availableSlots} 席`;
@@ -698,7 +824,7 @@
     const detailsInputHtml = `<div class="mt-4 pt-4 border-t space-y-4">${Components.createTextArea({ id: 'wip-input', label: '制作メモ', placeholder: '（任意）例：猫の木彫り、ジェルトン、10cm、荒彫りから…' })}${Components.createInput({ id: 'order-input', label: '購入希望', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト' })}${Components.createTextArea({ id: 'message-input', label: '先生へのメッセージ', placeholder: '（任意）' })}</div>`;
     return `
         <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${isFull ? 'キャンセル待ち申込みの確認' : '予約内容の確認'}</h1>
-        <div class="space-y-4 text-left p-4 bg-gray-50 rounded-lg">
+        <div class="space-y-4 text-left p-4 ${DesignConfig.cards.background} rounded-lg">
             <p><span class="font-bold w-20 inline-block">お名前:</span> ${appState.currentUser.displayName}さん</p>
             <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venueDisplay}</p>
             <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(date)}</p>
@@ -741,15 +867,15 @@
     }
     let bookingOptionsHtml = `<div class="mt-4 ${isTimeBased ? '' : 'pt-4 border-t'}"><h4 class="font-bold text-left mb-2">オプション</h4>`;
     if (isTokyo) {
-      bookingOptionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="edit-option-hayade" ${d.earlyArrival ? 'checked' : ''}><span>早出<span class="text-sm text-gray-500">（初回講習の時間に半自習的に参加できます）</span></span></label>`;
+      bookingOptionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="edit-option-hayade" ${d.earlyArrival ? 'checked' : ''}><span>早出<span class="text-sm ${DesignConfig.colors.textSubtle}">（初回講習の時間に半自習的に参加できます）</span></span></label>`;
     }
     bookingOptionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="edit-option-rental" ${d.chiselRental ? 'checked' : ''}><span>彫刻刀レンタル</span></label></div></div>`;
     return `
         <div class="text-center py-4">
             <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-4 mb-2">予約内容の編集</h1>
-            <p class="text-gray-600 mb-6"><b>${formatDate(d.date)}</b><br>${d.classroom}${v}</p>
+            <p class="${DesignConfig.colors.textSubtle} mb-6"><b>${formatDate(d.date)}</b><br>${d.classroom}${v}</p>
         </div>
-        <div class="space-y-4 text-left p-4 bg-gray-50 rounded-lg">
+        <div class="space-y-4 text-left p-4 ${DesignConfig.cards.background} rounded-lg">
             ${timeOptionsHtml}
             ${bookingOptionsHtml}
         </div>
@@ -865,14 +991,14 @@
           .join('');
         return `
                 <div class="text-center py-4">
-                    <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-4 mb-2">会計済み</h1>
-                    <p class="text-gray-600 mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
+                    <h1 class="text-2xl font-bold text-brand-text mt-4 mb-2">会計済み</h1>
+                    <p class="text-brand-subtle mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
                 </div>
-                <div class="p-4 bg-gray-50 rounded-lg text-left space-y-4">
-                    <div><h3 class="font-bold border-b mb-1 pb-1">授業料</h3><div class="space-y-1">${tuitionItemsHtml || 'なし'}</div></div>
-                    <div><h3 class="font-bold border-b mb-1 pb-1">販売</h3><div class="space-y-1">${salesItemsHtml || 'なし'}</div></div>
-                    <div class="text-right font-bold text-xl pt-2 border-t">合計: ${details.grandTotal.toLocaleString()}円</div>
-                    <div class="text-right text-base pt-2">支払方法: ${details.paymentMethod}</div>
+                <div class="p-4 bg-ui-surface border border-ui-border rounded-lg text-left space-y-4">
+                    <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">授業料</h3><div class="space-y-1 text-brand-text">${tuitionItemsHtml || 'なし'}</div></div>
+                    <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">販売</h3><div class="space-y-1 text-brand-text">${salesItemsHtml || 'なし'}</div></div>
+                    <div class="text-right font-bold text-xl pt-2 border-t border-ui-border text-brand-text">合計: ${details.grandTotal.toLocaleString()}円</div>
+                    <div class="text-right text-base pt-2 text-brand-subtle">支払方法: ${details.paymentMethod}</div>
                 </div>
                 <div class="mt-8 flex flex-col space-y-3">
                     ${Components.createButton({ text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
@@ -895,130 +1021,42 @@
           item['種別'] === '授業料' &&
           (item['対象教室'] === '共通' || (item['対象教室'] && item['対象教室'].includes(r.classroom))),
       );
-      tuitionHtml = `<div class="p-4 bg-gray-50 rounded-lg"> <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3> <div class="space-y-3">${tuitionItems
+      tuitionHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3> <div class="space-y-3">${tuitionItems
         .map(item => {
           const isMandatory = item['項目名'] === '本講座';
           let isChecked = isMandatory;
           if (item['項目名'] === '初回講習' && initial.firstLecture) isChecked = true;
           if (item['項目名'] === '早出' && initial.earlyArrival) isChecked = true;
           if (item['項目名'] === '彫刻刀レンタル' && initial.chiselRental) isChecked = true;
-          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" data-item-type="授業料" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-gray-300 text-brand-text focus:ring-brand-text" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-gray-600">${item['単価'].toLocaleString()}円</span> </div>`;
+          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" data-item-type="授業料" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`;
         })
         .join(
           '',
-        )}</div> <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-gray-200 space-y-1 text-base"></div> <div class="text-right font-bold mt-2" id="tuition-subtotal">小計: 0円</div></div>`;
+        )}</div> <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base text-brand-subtle"></div> <div class="text-right font-bold mt-2 text-brand-text" id="tuition-subtotal">小計: 0円</div></div>`;
     }
     const salesItems = master.filter(item => item['種別'] === '物販');
-    const salesHtml = `<div class="p-4 bg-gray-50 rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${getMaterialRowHtml(0)}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-gray-200 text-gray-700 w-full mt-3 text-base py-2' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2"><input type="checkbox" data-item-type="物販" data-item-name="${item['項目名']}" class="accounting-item"><span>${item['項目名']}</span></label> <span>${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t">${getOtherSalesRowHtml(0)}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-gray-200 text-gray-700 w-full mt-3 text-base py-2' })} </details> <div class="text-right font-bold mt-2" id="sales-subtotal">小計: 0円</div></div>`;
+    const salesHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${getMaterialRowHtml(0)}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" data-item-type="物販" data-item-name="${item['項目名']}" class="accounting-item accent-action-primary-bg"><span>${item['項目名']}</span></label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">${getOtherSalesRowHtml(0)}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} </details> <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div></div>`;
     return `
         <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold ${DesignConfig.colors.text}">会計</h1>
-            <button data-action="goBackToClassroomSelect" class="text-base text-brand-subtle hover:underline">戻る</button>
+            <h1 class="text-2xl font-bold text-brand-text">会計</h1>
+            <button data-action="goBackToClassroomSelect" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">戻る</button>
         </div>
         <div class="text-center py-4">
-            <p class="text-gray-600 mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
+            <p class="text-brand-subtle mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
         </div>
         <div id="accounting-form" class="space-y-6">
             ${tuitionHtml}
             ${salesHtml}
-            <div class="text-right text-2xl font-bold py-4 border-t-2 border-gray-200 flex flex-col items-end">
-                <span id="grand-total-amount">合計: 0円</span>
+            <div class="text-right text-2xl font-bold py-4 border-t-2 border-ui-border flex flex-col items-end">
+                <span id="grand-total-amount" class="text-brand-text">合計: 0円</span>
             </div>
             <div class="mt-4 text-center">
-                <p class="text-base text-red-700 font-bold mb-2">金額を、先生に確認してもらってください</p>
+                <p class="text-base text-state-danger-text font-bold mb-2">金額を、先生に確認してもらってください</p>
                 <div class="space-y-3">
                     ${Components.createButton({ text: '先生の確認が完了しました', action: 'showAccountingConfirmation', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
                     ${Components.createButton({ text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
                 </div>
             </div>
         </div>`;
-  };
-
-  /**
-   * 過去の参加記録画面のUIを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getHistoryView = () => {
-    const history = appState.history;
-    let content;
-    if (history.length === 0) {
-      content = `<p class="${DesignConfig.colors.textSubtle}">過去の参加記録はありません。</p>`;
-    } else {
-      content =
-        `<div class="space-y-4">` +
-        appState.history
-          .slice(0, appState.recordsToShow || 20)
-          .map(h => {
-            let accountingHtml = '';
-            if (h.accountingDetails) {
-              try {
-                const acc = JSON.parse(h.accountingDetails);
-                accountingHtml = `
-                        <button data-action="showHistoryAccounting" data-details='${JSON.stringify(acc)}' class="inline-block text-sm font-semibold text-action-paid-text bg-action-paid-bg px-2 py-1 rounded-md cursor-pointer hover:bg-action-paid-light">会計記録</button>
-                    `;
-              } catch (e) {
-                accountingHtml = `<p class="text-sm text-ui-error-text">会計詳細の表示エラー</p>`;
-              }
-            }
-            const workInProgressHtml = `<p class="text-sm text-gray-500 mb-1">制作メモ</p><div class="mt-2"><p class="text-base text-gray-600 whitespace-pre-wrap">${h.workInProgress || ''}</p></div>`;
-            const venueText = h.venue ? ` ${h.venue}` : '';
-            return `
-                <div class="p-3 rounded-lg flex flex-col bg-gray-200/50">
-                    <div class="flex flex-row items-start sm:items-center justify-between gap-4">
-                        <div class="flex-shrink-0">
-                            <p class="font-bold text-lg sm:text-xl">${formatDate(h.date)}</p>
-                            <div class="flex flex-col items-start">
-                                <p class="text-lg break-words">${h.classroom}${venueText}</p>
-                            </div>
-                        </div>
-                        <div class="bg-white p-2 rounded-md break-words flex-grow w-full sm:w-auto">
-                            ${workInProgressHtml}
-                        </div>
-                    </div>
-                    <div class="mt-4 flex justify-end items-center space-x-2 flex-shrink-0">
-                        ${accountingHtml}
-                        <button data-action="editHistoryMemo" data-reservation-id="${h.reservationId}" data-sheet-name="${h.sheetName}" class="p-2 text-gray-500 hover:text-gray-800">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                        </button>
-                    </div>
-                </div>`;
-          })
-          .join('') +
-        `</div>`;
-    }
-    return `
-        ${getHistoryHeaderHtml()}
-        ${content}
-        ${getLoadMoreHistoryButtonHtml()}
-    `;
-  };
-
-  /**
-   * 履歴ビューのヘッダー部分を生成します。
-   * @returns {string} HTML文字列
-   */
-  const getHistoryHeaderHtml = () => {
-    return `
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-xl font-bold ${DesignConfig.colors.text}">木彫り の きろく</h1>
-            <div class="flex items-center space-x-2">
-                <button data-action="forceGoToHistory" class="text-sm ${DesignConfig.colors.textSubtle} hover:underline">再読み込み</button>
-                <button data-action="goBackToClassroomSelect" class="text-base ${DesignConfig.colors.textSubtle} hover:underline">戻る</button>
-            </div>
-        </div>`;
-  };
-
-  /**
-   * 履歴ビューの「さらに表示」ボタンを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getLoadMoreHistoryButtonHtml = () => {
-    if (appState.recordsToShow < appState.historyTotal) {
-      return `
-            <div class="mt-6">
-                ${Components.createButton({ text: 'もっとみる', action: 'loadMoreHistory', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-            </div>`;
-    }
-    return '';
   };
 </script>

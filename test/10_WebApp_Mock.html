@@ -1,0 +1,442 @@
+<script>
+  /**
+   * =================================================================
+   * 【ファイル名】: 10_WebApp_Mock.html
+   * 【バージョン】: 2.0
+   * 【役割】: Google Apps Script環境をブラウザで模擬するモック機能
+   * - google.script.run API の完全な模擬
+   * - テストデータの提供
+   * - チェーン可能なAPI構造のサポート
+   * =================================================================
+   */
+
+  // ブラウザ環境の検出
+  if (typeof window !== 'undefined' && !window.google) {
+    console.log('[TEST] ブラウザ環境を検出しました');
+
+    // モックデータの定義
+    window.MockData = {
+      currentUser: {
+        studentId: 'TEST001',
+        nickname: 'テストユーザー',
+        realName: '山田太郎',
+        phone: '09012345678',
+      },
+      slots: [
+        {
+          classroom: '東京教室',
+          date: '2025-08-10',
+          time: '09:00-12:00',
+          session: '午前',
+          availableSlots: 3,
+          venue: '東京スタジオ',
+          maxCapacity: 6,
+          teacher: '田中先生',
+        },
+        {
+          classroom: '東京教室',
+          date: '2025-08-10',
+          time: '13:00-16:00',
+          session: '午後',
+          availableSlots: 2,
+          venue: '東京スタジオ',
+          maxCapacity: 6,
+          teacher: '佐藤先生',
+        },
+        {
+          classroom: 'つくば教室',
+          date: '2025-08-15',
+          time: '09:00-12:00',
+          session: '午前',
+          availableSlots: 4,
+          venue: 'つくばスタジオ',
+          maxCapacity: 8,
+          teacher: '鈴木先生',
+        },
+        {
+          classroom: '沼津教室',
+          date: '2025-08-20',
+          time: '14:00-17:00',
+          session: '午後',
+          availableSlots: 1,
+          venue: '沼津スタジオ',
+          maxCapacity: 4,
+          teacher: '高橋先生',
+        },
+      ],
+      myBookings: [
+        {
+          reservationId: 'RES001',
+          date: '2025-08-05',
+          time: '09:00-12:00',
+          classroom: '東京教室',
+          venue: '東京スタジオ',
+          teacher: '山田先生',
+          studentId: 'TEST001',
+          studentName: 'テスト太郎',
+          status: 'confirmed',
+          accountingDone: false,
+          accountingDetails: null,
+        },
+      ],
+      history: [
+        {
+          date: '2025-07-25',
+          studentId: 'TEST001',
+          studentName: 'テスト太郎',
+          amount: 2000,
+          items: ['教材費', '施設利用料'],
+          status: 'completed',
+        },
+      ],
+      classrooms: ['東京教室', 'つくば教室', '沼津教室'],
+      accountingMaster: [
+        // 授業料 - 東京教室
+        { 種別: '授業料', 項目名: '初回講習', 単価: 2000, 単位: '回', 対象教室: '東京教室' },
+        { 種別: '授業料', 項目名: '早出', 単価: 600, 単位: '回', 対象教室: '東京教室' },
+        { 種別: '授業料', 項目名: '本講座', 単価: 6600, 単位: '回', 対象教室: '東京教室' },
+
+        // 授業料 - つくば教室
+        { 種別: '授業料', 項目名: '30分あたり', 単価: 600, 単位: '30分', 対象教室: 'つくば教室' },
+        { 種別: '授業料', 項目名: '初回講習', 単価: 600, 単位: '30分', 対象教室: 'つくば教室' },
+        { 種別: '授業料', 項目名: '初回講習同時間割引', 単価: -300, 単位: '30分', 対象教室: 'つくば教室' },
+
+        // 授業料 - 沼津教室
+        { 種別: '授業料', 項目名: '30分あたり', 単価: 600, 単位: '30分', 対象教室: '沼津教室' },
+        { 種別: '授業料', 項目名: '初回講習', 単価: 600, 単位: '30分', 対象教室: '沼津教室' },
+        { 種別: '授業料', 項目名: '初回講習同時間割引', 単価: -300, 単位: '30分', 対象教室: '沼津教室' },
+
+        // 共通授業料
+        { 種別: '授業料', 項目名: '彫刻刀レンタル', 単価: 500, 単位: '回', 対象教室: '共通' },
+
+        // 物販
+        { 種別: '物販', 項目名: 'ハイス鋼 彫刻刀 5本set 桐箱付き', 単価: 17000, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: 'ハイス鋼 彫刻刀3本set', 単価: 9800, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: '刃物鋼 彫刻刀 5本set', 単価: 10200, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: '刃物鋼 彫刻刀3本set', 単価: 6200, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: 'テキスト', 単価: 1650, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: '作業台（最新版）', 単価: 3500, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: '作業台 中古', 単価: 1000, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: 'コルク板', 単価: 500, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: '耐切創手袋（片手）', 単価: 1000, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: '革砥セット', 単価: 3000, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: 'ノコギリセット', 単価: 2300, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: '金具類 1組', 単価: 100, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: 'ガチャ１（６体セット）', 単価: 2000, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: 'ガチャ２（６体セット）', 単価: 2000, 単位: '個', 対象教室: '共通' },
+        { 種別: '物販', 項目名: 'ガチャ３（５体セット）', 単価: 2000, 単位: '個', 対象教室: '共通' },
+
+        // 材料（固定料金）
+        {
+          種別: '材料',
+          項目名: '材料代 ¥100（固定）',
+          単価: 100,
+          単位: '個',
+          対象教室: '共通',
+          備考: '計算不要の材料',
+        },
+        {
+          種別: '材料',
+          項目名: '材料代 ¥200（固定）',
+          単価: 200,
+          単位: '個',
+          対象教室: '共通',
+          備考: '計算不要の材料',
+        },
+        {
+          種別: '材料',
+          項目名: '材料代 ¥300（固定）',
+          単価: 300,
+          単位: '個',
+          対象教室: '共通',
+          備考: '計算不要の材料',
+        },
+
+        // 材料（体積計算）
+        { 種別: '材料', 項目名: 'バスウッド・シナ', 単価: 2, 単位: 'cm³', 対象教室: '共通' },
+        { 種別: '材料', 項目名: 'ジェルトン', 単価: 2, 単位: 'cm³', 対象教室: '共通' },
+        { 種別: '材料', 項目名: '木曽桧', 単価: 6, 単位: 'cm³', 対象教室: '共通' },
+        { 種別: '材料', 項目名: '米ヒバ', 単価: 3, 単位: 'cm³', 対象教室: '共通' },
+      ],
+    };
+
+    // Google Apps Script APIのモック
+    window.google = {
+      script: {
+        run: new Proxy(
+          {},
+          {
+            get: function (target, prop) {
+              if (prop === 'withSuccessHandler') {
+                return function (successCallback) {
+                  return {
+                    withFailureHandler: function (failureCallback) {
+                      return createMockFunctions(successCallback, failureCallback);
+                    },
+                  };
+                };
+              }
+              if (prop === 'withFailureHandler') {
+                return function (failureCallback) {
+                  return {
+                    withSuccessHandler: function (successCallback) {
+                      return createMockFunctions(successCallback, failureCallback);
+                    },
+                  };
+                };
+              }
+              return createMockFunctions(null, null)[prop];
+            },
+          },
+        ),
+      },
+    };
+
+    // モック関数の生成
+    function createMockFunctions(successCallback, failureCallback) {
+      const mockFunctions = {};
+
+      const gasFunctions = [
+        'authenticateUser',
+        'getInitialWebApp_Data',
+        'getReservationDetails',
+        'registerNewUser',
+        'updateUserProfile',
+        'makeReservationAndGetLatestData',
+        'cancelReservationAndGetLatestData',
+        'makeAccountingAndGetLatestData',
+        'saveAccountingDetails',
+        'searchNoPhoneUsersByFilterForWebApp',
+        'updateHistoryMemoAndGetData',
+        'editProfileAndGetData',
+        'removeAccountingItemFromPendingAndGetData',
+      ];
+
+      gasFunctions.forEach(funcName => {
+        mockFunctions[funcName] = function (...args) {
+          console.log(`[MOCK] ${funcName} called with:`, args);
+
+          let response;
+          switch (funcName) {
+            case 'authenticateUser':
+              response = {
+                success: true,
+                user: window.MockData.currentUser,
+                initialData: {
+                  availableSlots: window.MockData.slots,
+                  myBookings: window.MockData.myBookings,
+                  accountingMaster: window.MockData.accountingMaster,
+                  myHistory: window.MockData.history,
+                },
+              };
+              break;
+            case 'getInitialWebApp_Data':
+              response = {
+                success: true,
+                user: window.MockData.currentUser,
+                initialData: {
+                  availableSlots: window.MockData.slots,
+                  myBookings: window.MockData.myBookings,
+                  accountingMaster: window.MockData.accountingMaster,
+                  myHistory: window.MockData.history,
+                },
+              };
+              break;
+            case 'getReservationDetails':
+              const reservationData = args[0] || {};
+              const classroom = reservationData.classroom || '東京教室';
+              const tuitionItems = window.MockData.accountingMaster.filter(
+                item => item['種別'] === '授業料' && (item['対象教室'] === classroom || item['対象教室'] === '共通'),
+              );
+              const salesItems = window.MockData.accountingMaster.filter(
+                item => item['種別'] === '物販' && item['対象教室'] === '共通',
+              );
+              const materialItems = window.MockData.accountingMaster.filter(
+                item => item['種別'] === '材料' && item['対象教室'] === '共通',
+              );
+              response = {
+                success: true,
+                details: {
+                  currentBookings: window.MockData.myBookings,
+                  pendingAccountingItems: [],
+                  accountingMaster: window.MockData.accountingMaster,
+                  tuitionItems: tuitionItems,
+                  salesItems: salesItems,
+                  materialItems: materialItems,
+                  selectedClassroom: classroom,
+                  myHistory: window.MockData.history,
+                },
+              };
+              break;
+            case 'registerNewUser':
+              const [newUserData] = args;
+              const newUser = {
+                studentId: 'NEW_USER_' + Date.now(),
+                realName: newUserData.realName,
+                displayName: newUserData.nickname,
+                phone: newUserData.phone,
+              };
+              // 新規ユーザーをcurrentUserに反映
+              window.MockData.currentUser = newUser;
+              response = {
+                success: true,
+                message: 'ユーザー登録が完了しました',
+                user: newUser,
+              };
+              break;
+            case 'updateUserProfile':
+              const [profileUpdateData] = args;
+              Object.assign(window.MockData.currentUser, profileUpdateData);
+              response = {
+                success: true,
+                message: 'プロフィールを更新しました',
+                user: window.MockData.currentUser,
+              };
+              break;
+            case 'makeReservationAndGetLatestData':
+              const [slotData] = args;
+              const newBooking = {
+                reservationId: 'RES' + Date.now(),
+                date: slotData.date,
+                time: slotData.time || '09:00-12:00',
+                classroom: slotData.classroom,
+                venue: slotData.venue || slotData.classroom + 'スタジオ',
+                teacher: slotData.teacher || '講師',
+                studentId: window.MockData.currentUser.studentId,
+                studentName: window.MockData.currentUser.realName,
+                status: 'confirmed',
+                accountingDone: false,
+                accountingDetails: null,
+                workInProgress: '',
+              };
+              window.MockData.myBookings.push(newBooking);
+              response = {
+                success: true,
+                message: '予約が完了しました',
+                availableSlots: window.MockData.slots,
+                myBookings: window.MockData.myBookings,
+                accountingMaster: window.MockData.accountingMaster,
+              };
+              break;
+            case 'cancelReservationAndGetLatestData':
+              const [cancelData] = args;
+              const beforeCount = window.MockData.myBookings.length;
+              window.MockData.myBookings = window.MockData.myBookings.filter(booking => {
+                if (cancelData.reservationId) {
+                  return booking.reservationId !== cancelData.reservationId;
+                } else {
+                  return !(booking.date === cancelData.date && booking.time === cancelData.time);
+                }
+              });
+              const canceled = beforeCount > window.MockData.myBookings.length;
+              response = {
+                success: canceled,
+                message: canceled ? '予約をキャンセルしました' : '対象の予約が見つかりませんでした',
+                availableSlots: window.MockData.slots,
+                myBookings: window.MockData.myBookings,
+                accountingMaster: window.MockData.accountingMaster,
+              };
+              break;
+            case 'makeAccountingAndGetLatestData':
+              const [accountingData] = args;
+              const newAccountingRecord = {
+                date: new Date().toISOString().split('T')[0],
+                studentId: window.MockData.currentUser.studentId,
+                studentName: window.MockData.currentUser.realName,
+                amount: accountingData.amount || 1000,
+                items: accountingData.items || ['テスト項目'],
+                status: 'completed',
+              };
+              window.MockData.history.push(newAccountingRecord);
+              response = {
+                success: true,
+                message: '会計処理が完了しました',
+                myHistory: window.MockData.history,
+                accountingMaster: window.MockData.accountingMaster,
+              };
+              break;
+            case 'saveAccountingDetails':
+              const [saveAccountingData] = args;
+              const targetBooking = window.MockData.myBookings.find(
+                booking => booking.reservationId === saveAccountingData.reservationId,
+              );
+              if (targetBooking) {
+                targetBooking.accountingDone = true;
+                targetBooking.accountingDetails = JSON.stringify(saveAccountingData.details || {});
+              }
+              const detailedRecord = {
+                date: new Date().toISOString().split('T')[0],
+                studentId: window.MockData.currentUser.studentId,
+                studentName: window.MockData.currentUser.realName,
+                reservationId: saveAccountingData.reservationId,
+                details: saveAccountingData.details,
+                totalAmount: saveAccountingData.totalAmount || 0,
+                status: 'completed',
+              };
+              window.MockData.history.push(detailedRecord);
+              response = {
+                success: true,
+                message: '会計詳細が保存されました',
+                myBookings: window.MockData.myBookings,
+                myHistory: window.MockData.history,
+              };
+              break;
+            case 'searchNoPhoneUsersByFilterForWebApp':
+              response = {
+                success: true,
+                users: [
+                  { studentId: 'NO_PHONE_001', realName: '未登録太郎', displayName: '未登録ユーザー1' },
+                  { studentId: 'NO_PHONE_002', realName: '未登録花子', displayName: '未登録ユーザー2' },
+                ],
+              };
+              break;
+            case 'updateHistoryMemoAndGetData':
+              const [memoData] = args;
+              // historyの該当項目にmemoを追加
+              const targetHistory = window.MockData.history.find(h => h.date === memoData.date);
+              if (targetHistory) targetHistory.memo = memoData.memo;
+              response = {
+                success: true,
+                message: 'メモを更新しました',
+                myHistory: window.MockData.history,
+              };
+              break;
+            case 'editProfileAndGetData':
+              const [profileData] = args;
+              Object.assign(window.MockData.currentUser, profileData);
+              response = {
+                success: true,
+                message: 'プロフィールを更新しました',
+                user: window.MockData.currentUser,
+              };
+              break;
+            case 'removeAccountingItemFromPendingAndGetData':
+              const [removeData] = args;
+              // accountingMasterから該当項目を削除
+              window.MockData.accountingMaster = window.MockData.accountingMaster.filter(
+                item => item.項目名 !== removeData.itemName,
+              );
+              response = {
+                success: true,
+                message: '項目を削除しました',
+                accountingMaster: window.MockData.accountingMaster,
+              };
+              break;
+            default:
+              response = { success: true, message: `Mock response for ${funcName}` };
+          }
+
+          setTimeout(() => {
+            if (successCallback) {
+              successCallback(response);
+            }
+          }, 100);
+        };
+      });
+
+      return mockFunctions;
+    }
+
+    console.log('[TEST] 拡張モック環境が設定されました');
+  }
+</script>

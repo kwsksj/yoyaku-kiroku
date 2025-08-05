@@ -15,6 +15,10 @@
     "gas:cleanup": "cd src/gas-tests && ./gas-test.sh cleanup",
     "gas:status": "cd src/gas-tests && ./gas-test.sh status",
     "dev:serve": "echo \"Live Server: 右クリックでHTMLファイルを'Open with Live Server'で開いてください\"",
+    "build:unified": "node tools/build-unified.js",
+    "dev:unified": "npm run build:unified && echo 'Live Serverで test/10_WebApp_Unified_Test.html を開いてください'",
+    "watch:unified": "node tools/watch-unified.js",
+    "dev:auto": "npm run watch:unified",
     "precommit": "npm run format:check"
   },
   "repository": {

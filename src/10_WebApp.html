@@ -1,18 +1,18 @@
 <!--
 =================================================================
 【ファイル名】: 10_WebApp.html
-【バージョン】: 25.0 (ファイル分割対応版)
-【更新日時】: 2025-07-05
+【バージョン】: 26.0 (モジュール化対応版)
+【更新日時】: 2025-08-04
 【説明】:
-- ARC-11: JavaScriptコードを外部の.htmlファイルに分割し、
-  GASのスクリプトレット機能を使ってインクルードする方式に変更。
-- これにより、本体ファイルの可読性が向上し、各機能ブロックの
-  保守性が大幅に改善されました。
+- 設定とモック機能を外部ファイルに分離
+- より保守性の高い構造に改善
+- テスト環境とプロダクション環境の分離
 =================================================================
 -->
 <!doctype html>
-<html>
+<html lang="ja">
   <head>
+    <meta charset="UTF-8" />
     <base target="_top" />
     <title>きぼりの よやく・きろく 川崎誠二木彫り教室</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,338 +23,56 @@
       href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontSize: { '2xs': '0.625rem' },
-            fontFamily: { sans: ['Zen Kaku Gothic New', 'sans-serif'] },
-            colors: {
-              brand: {
-                bg: '#f8f7f6',
-                surface: '#ffffff',
-                text: '#50312F',
-                subtle: '#6b7280',
-                light: '#f5f4f2',
-                lighter: '#fefefe',
-                dark: '#3d251f',
-                muted: '#8d7a72',
-              },
-              action: {
-                'primary-bg': '#50312F',
-                'primary-text': '#ffffff',
-                'primary-hover': '#3d251f',
-                'primary-light': '#d4c4b8',
-                'secondary-bg': '#e5e7eb',
-                'secondary-text': '#374151',
-                'secondary-hover': '#d1d5db',
-                'danger-bg': '#CB0000',
-                'danger-text': '#ffffff',
-                'danger-light': '#fee2e2',
-                'paid-bg': '#e0f2fe',
-                'paid-text': '#0c4a6e',
-                'paid-light': '#f0f9ff',
-              },
-              state: {
-                'available-text': '#3F6C45',
-                'available-bg': '#ecfdf5',
-                'available-border': '#a7f3d0',
-                'waitlist-text': '#854d0e',
-                'waitlist-bg': '#fffbeb',
-                'waitlist-border': '#fed7aa',
-                'booked-text': '#0c4a6e',
-                'booked-bg': '#eff6ff',
-                'booked-border': '#bfdbfe',
-              },
-              ui: {
-                border: '#e5e7eb',
-                'border-light': '#f3f4f6',
-                input: '#f9fafb',
-                'input-focus': '#ffffff',
-                'error-text': '#dc2626',
-                'error-bg': '#fef2f2',
-                'warning-text': '#d97706',
-                'warning-bg': '#fffbeb',
-                'warning-light': '#fef3c7',
-                'link-text': '#0369a1',
-                'weekend-sunday': '#dc2626',
-                'weekend-saturday': '#2563eb',
-              },
-            },
-          },
-        },
-      };
-    </script>
-    <style>
-      /* CSS変数でTailwindカラーと統合 */
-      :root {
-        --brand-bg: #f8f7f6;
-        --brand-text: #50312f;
-        --brand-dark: #3d251f;
-        /* 統合された影システム */
-        --ui-shadow: rgba(80, 49, 47, 0.1);
-        --ui-shadow-light: rgba(80, 49, 47, 0.05);
-        --ui-shadow-medium: rgba(80, 49, 47, 0.15);
-        --ui-shadow-strong: rgba(80, 49, 47, 0.25);
-        /* グレー系の影（汎用） */
-        --shadow-neutral: rgba(0, 0, 0, 0.1);
-        --shadow-neutral-light: rgba(0, 0, 0, 0.06);
-        --shadow-neutral-medium: rgba(0, 0, 0, 0.15);
-        --shadow-neutral-strong: rgba(0, 0, 0, 0.2);
-        /* モーダル・オーバーレイ */
-        --modal-overlay: rgba(40, 35, 30, 0.6);
-        --spinner-border: rgba(0, 0, 0, 0.1);
-      }
-
-      html {
-        font-size: 16px;
-      }
-
-      body {
-        font-family: 'Zen Kaku Gothic New', sans-serif;
-        background-color: var(--brand-bg);
-        -webkit-tap-highlight-color: transparent;
-      }
-
-      .fade-in {
-        animation: fadeIn 0.4s ease-in-out;
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-
-      .spinner {
-        border: 4px solid var(--spinner-border);
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        border-left-color: var(--brand-text);
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      #loading {
-        z-index: 100;
-      }
-
-      /* ← 追加: ローディング画面を最前面に */
-      .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background-color: var(--modal-overlay);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 50;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-        backdrop-filter: blur(3px);
-      }
-
-      .modal-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
-      }
-
-      .modal-content {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        width: 90%;
-        max-width: 400px;
-        text-align: center;
-        max-height: 85vh;
-        /* 画面より大きい場合に備える */
-        overflow-y: auto;
-        /* 縦方向にスクロール可能にする */
-      }
-
-      .modal-content p {
-        margin-bottom: 1.25rem;
-      }
-
-      .modal-content .modal-buttons {
-        justify-content: center;
-      }
-
-      details > summary {
-        list-style: none;
-        cursor: pointer;
-      }
-
-      details > summary::-webkit-details-marker {
-        display: none;
-      }
-
-      details > summary {
-        transition: margin-bottom 0.2s ease-in-out;
-      }
-
-      details[open] > summary {
-        margin-bottom: 0.5rem;
-      }
-
-      details summary .arrow {
-        display: inline-block;
-        transition: transform 0.2s ease-in-out;
-      }
-
-      details[open] summary .arrow {
-        transform: rotate(90deg);
-      }
-
-      .custom-placeholder::placeholder {
-        font-size: 0.875rem;
-        color: #9ca3af;
-      }
-
-      /* モバイル向けボタンとカードの影とタッチフィードバック */
-      .mobile-button {
-        /* 最初から押しやすい見た目の影を付ける */
-        box-shadow:
-          0 3px 12px var(--ui-shadow),
-          0 1px 4px var(--ui-shadow-light);
-        transition: all 0.15s ease;
-        touch-action: manipulation;
-        user-select: none;
-        /* モバイルでは最初から少し浮いた感じに */
-        transform: translateY(-1px);
-      }
-
-      /* デスクトップのみホバー効果を適用 */
-      @media (hover: hover) and (pointer: fine) {
-        .mobile-button:hover {
-          box-shadow:
-            0 4px 16px var(--ui-shadow-strong),
-            0 2px 6px var(--ui-shadow-medium);
-          transform: translateY(-2px);
-        }
-      }
-
-      .mobile-button:active {
-        /* タッチ時は押し込まれた感じを演出 */
-        transform: translateY(0px) scale(0.97);
-        box-shadow:
-          0 1px 6px var(--ui-shadow-medium),
-          0 1px 2px var(--ui-shadow);
-      }
-
-      .mobile-card {
-        /* カードも最初から適度な影で立体感を演出 */
-        box-shadow:
-          0 2px 8px var(--shadow-neutral),
-          0 1px 3px var(--shadow-neutral-light);
-        transition: all 0.15s ease;
-        touch-action: manipulation;
-      }
-
-      /* デスクトップのみホバー効果を適用 */
-      @media (hover: hover) and (pointer: fine) {
-        .mobile-card:hover {
-          box-shadow:
-            0 4px 12px var(--shadow-neutral-medium),
-            0 2px 6px var(--shadow-neutral-light);
-          transform: translateY(-1px);
-        }
-      }
-
-      .mobile-card:active {
-        transform: translateY(0px) scale(0.98);
-        box-shadow:
-          0 1px 4px var(--shadow-neutral-light),
-          0 1px 2px var(--shadow-neutral-light);
-      }
-
-      .mobile-input {
-        /* 入力フィールドも最初から軽い影で立体感を演出 */
-        box-shadow:
-          0 1px 6px var(--shadow-neutral-light),
-          inset 0 1px 2px rgba(0, 0, 0, 0.04);
-        transition: box-shadow 0.15s ease;
-      }
-
-      .mobile-input:focus {
-        /* フォーカス時はより強い影とブランドカラーのリング */
-        box-shadow:
-          0 2px 12px var(--ui-shadow-medium),
-          0 0 0 3px var(--ui-shadow);
-      }
-
-      /* モーダル要素の影 */
-      .modal-content {
-        /* モーダルはより深い影で背景から浮き上がらせる */
-        box-shadow:
-          0 12px 40px var(--shadow-neutral-strong),
-          0 4px 16px var(--shadow-neutral);
-      }
-
-      /* ローディング画面の要素にも影を追加 */
-      .spinner {
-        box-shadow: 0 2px 8px var(--ui-shadow);
-      }
-
-      /* 大きなタッチターゲットエリア */
-      .touch-friendly {
-        min-height: 44px;
-        min-width: 44px;
-      }
-
-      /* iOS Safariでのタップ時のフィードバック改善 */
-      button,
-      [role='button'],
-      .mobile-button,
-      .mobile-card {
-        -webkit-tap-highlight-color: var(--ui-shadow);
-      }
-
-      /* フォーカス可能な要素のアウトライン改善 */
-      .mobile-button:focus-visible,
-      .mobile-input:focus-visible {
-        outline: 2px solid var(--brand-text);
-        outline-offset: 2px;
-      }
-    </style>
   </head>
+  <body class="bg-brand-bg min-h-screen">
+    <!-- アプリケーションのメインコンテナ -->
+    <div id="app" class="container mx-auto px-4 max-w-lg">
+      <!-- ローディング画面 -->
+      <div id="loading" class="fixed inset-0 bg-brand-bg flex flex-col items-center justify-center z-50">
+        <div class="spinner mb-4"></div>
+        <p id="loading-message" class="text-brand-text">アプリケーションを読み込み中...</p>
+      </div>
 
-  <body class="bg-brand-bg font-sans">
-    <div id="app" class="max-w-screen-lg mx-auto p-2 sm:p-6">
-      <div
-        id="loading"
-        class="fixed inset-0 bg-brand-lighter/75 flex items-center justify-center z-50 hidden backdrop-blur-sm"
-      >
-        <div class="flex flex-col items-center">
-          <div class="spinner"></div>
-          <p id="loading-message" class="mt-4 text-brand-text text-sm font-medium">読み込み中...</p>
+      <!-- メインコンテンツ -->
+      <main id="main-content" class="hidden py-6">
+        <div id="view-container"></div>
+      </main>
+
+      <!-- モーダルオーバーレイ -->
+      <div id="modal-overlay" class="modal-overlay">
+        <div id="modal-content" class="modal-content">
+          <div id="modal-body"></div>
         </div>
       </div>
-      <div id="custom-modal" class="modal-overlay">
-        <div class="modal-content">
-          <h3 id="modal-title" class="text-xl font-bold text-brand-text mb-4"></h3>
-          <p id="modal-message" class="text-brand-subtle mb-6"></p>
-          <div id="modal-buttons" class="flex justify-end space-x-3"></div>
+
+      <!-- カスタムモーダル -->
+      <div id="custom-modal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
+          <h3 id="modal-title" class="text-lg font-bold mb-4"></h3>
+          <div id="modal-message" class="mb-6"></div>
+          <div id="modal-buttons" class="flex gap-3 justify-end"></div>
         </div>
       </div>
-      <div id="view-container" class="bg-brand-surface rounded-xl p-4 sm:p-8 min-h-[400px] w-full shadow-lg"></div>
       <footer class="text-center text-sm text-brand-muted mt-4">きぼりの よやく・きろく</footer>
     </div>
 
+    <!-- GAS環境用のJavaScriptファイル読み込み（テンプレート評価対応） -->
     <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_Core'); ?> <?!= include('13_WebApp_Views'); ?> <?!=
     include('14_WebApp_Handlers'); ?>
+
+    <script>
+      // GAS環境かどうかを判定
+      const isGAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
+
+      if (isGAS) {
+        // GAS本番環境のみ初期化
+        console.log('[GAS版] 全ファイル読み込み完了、アプリケーション初期化開始');
+        window.addEventListener('DOMContentLoaded', () => {
+          console.log('[GAS] DOMContentLoaded - アプリケーション初期化');
+          setState({ view: 'login' });
+          hideLoading();
+        });
+      }
+    </script>
   </body>
 </html>

@@ -27,11 +27,31 @@
       if (!p) return showInfo('電話番号を入力してください。');
       const n = p.replace(/[‐－-]/g, '').replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
       showLoading('login');
+
+      // 環境分岐: テスト環境の場合はモックデータを使用
+      if (isTestEnvironment) {
+        console.log('🧪 Using mock login data');
+        setTimeout(() => {
+          hideLoading();
+          setState({
+            currentUser: getEnvironmentData('currentUser', { displayName: 'テストユーザー', phone: n }),
+            slots: getEnvironmentData('slots', []),
+            myBookings: getEnvironmentData('myBookings', []),
+            accountingMaster: getEnvironmentData('accountingMaster', {}),
+            history: getEnvironmentData('history', []),
+            historyTotal: getEnvironmentData('history', []).length,
+            recordsToShow: 20,
+            view: 'dashboard', // テスト環境ではダッシュボードに直接遷移
+          });
+        }, 300);
+        return;
+      }
+
+      // 本番環境: 実際のGAS関数を呼び出し
       google.script.run
         .withSuccessHandler(r => {
           hideLoading();
           if (r.success) {
-            // ★★★ 変更点 ★★★
             // 認証とデータ取得が一度で完了するため、ここで全ての状態を設定する
             setState({
               currentUser: r.user,
@@ -80,7 +100,6 @@
         .withSuccessHandler(res => {
           hideLoading();
           if (res.success) {
-            // ★★★ 変更点 ★★★
             // 登録とデータ取得が一度で完了するため、ここで全ての状態を設定する
             setState({
               currentUser: res.user,
@@ -222,9 +241,6 @@
     /**
      * NF-01: 検索結果から電話番号未登録ユーザーを選択します。
      */
-    /**
-     * NF-01: 検索結果から電話番号未登録ユーザーを選択します。
-     */
     selectNoPhoneUser: d => {
       // ボタンに埋め込まれたデータから、まず仮のユーザー情報を作成
       const tempUser = {
@@ -239,6 +255,8 @@
       // studentIdを使って、サーバーから予約情報や履歴などの完全なデータを取得
       google.script.run
         .withSuccessHandler(initialData => {
+          console.log('[APP] Received initialData:', initialData);
+          console.log('[APP] availableSlots check:', initialData.availableSlots);
           hideLoading();
           if (initialData.success) {
             // サーバーからのデータと、ボタンからの名前情報を組み合わせて完全な状態を構築
@@ -397,9 +415,12 @@
 
     /** 会計画面に遷移します */
     goToAccounting: d => {
+      console.log('[DEBUG] goToAccounting called with data:', d);
+      console.log('[DEBUG] Current myBookings:', appState.myBookings);
       showLoading('accounting');
       google.script.run
         .withSuccessHandler(res => {
+          console.log('[DEBUG] getReservationDetails response:', res);
           hideLoading();
           if (res.success) {
             setState({
@@ -488,20 +509,13 @@
       document.body.removeChild(textArea);
     },
 
-    /** 参加記録画面に遷移します */
-    goToHistory: () => setState({ view: 'history', recordsToShow: 20 }),
+    // 【LEGACY REMOVED】古い個別履歴ページ関数を削除
+    // goToHistory, forceGoToHistory は統合ダッシュボードに移行済み
 
-    /** 参加記録を追加で読み込みます */
+    /** 参加記録を追加で読み込みます（統合ダッシュボード用） */
     loadMoreHistory: () => {
       const newCount = (appState.recordsToShow || 20) + 20;
       setState({ recordsToShow: newCount });
-    },
-
-    /** 参加記録を強制的に再読み込みします */
-    forceGoToHistory: () => {
-      appState.history = [];
-      appState.historyTotal = 0;
-      actionHandlers.loadMoreHistory();
     },
 
     /** 新規予約のための教室選択画面に遷移します */
@@ -539,8 +553,11 @@
     /** ログイン画面に戻ります */
     goBackToLogin: () => setState({ view: 'login' }),
 
-    /** 教室選択画面に戻ります */
+    /** ダッシュボード（メイン画面）に戻ります */
     goBackToClassroomSelect: () => setState({ view: 'classroomSelect' }),
+
+    /** ダッシュボード（メイン画面）に戻ります（別名） */
+    goToDashboard: () => setState({ view: 'classroomSelect' }),
 
     /** 予約枠一覧画面に戻ります */
     goBackToBooking: () =>
@@ -590,7 +607,7 @@
         <div class="p-4 bg-brand-light rounded-lg text-left space-y-4 text-base" id="modal-accounting-form">
             <div>
                 <span class="font-bold">合計金額:</span> ${accountingDetails.grandTotal.toLocaleString()}円
-                <button data-action="copyGrandTotal" class="ml-2 text-sm bg-action-secondary-bg hover:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded">コピー</button>
+                <button data-action="copyGrandTotal" class="ml-2 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded">コピー</button>
             </div>
             <div>
                 <span class="font-bold">支払い方法:</span>
@@ -731,9 +748,40 @@
    * @param {object} newState - 更新する新しい状態オブジェクト
    */
   function setState(newState) {
+    // テスト環境でのみデバッグログを表示
+    const isTestEnvironment =
+      typeof window !== 'undefined' &&
+      (window.location.protocol === 'file:' || window.location.hostname === 'localhost');
+
+    if (isTestEnvironment) {
+      console.log('[DEBUG] setState called with:', newState);
+      console.log('[DEBUG] Current appState before update:', appState);
+    }
+
     Object.assign(appState, newState);
+
+    // myBookingsが配列でない場合の防御的プログラミング（本番環境でも重要）
+    if (appState.myBookings && !Array.isArray(appState.myBookings)) {
+      if (isTestEnvironment) {
+        console.warn('[DEBUG] myBookings is not an array, converting:', appState.myBookings);
+      }
+      appState.myBookings = [];
+    }
+
+    // myBookingsがundefinedの場合も配列で初期化
+    if (!appState.myBookings) {
+      appState.myBookings = [];
+    }
+
+    if (isTestEnvironment) {
+      console.log('[DEBUG] Updated appState:', appState);
+    }
+
     render();
   }
+  window.setState = setState;
+  this.setState = setState;
+  self.setState = setState;
 
   /**
    * 現在のアプリケーションの状態に基づいて、適切なビューを描画します。
@@ -748,7 +796,7 @@
         v = getRegisterView(appState.phoneForRegistration);
         break;
       case 'classroomSelect':
-        v = getClassroomSelectView();
+        v = getDashboardView();
         break;
       case 'newBooking':
         v = getNewBookingView();
@@ -768,9 +816,7 @@
       case 'accounting':
         v = getAccountingView();
         break;
-      case 'history':
-        v = getHistoryView();
-        break;
+      // 【LEGACY REMOVED】 case 'history' - 統合ダッシュボードに移行済み
       case 'complete':
         v = getCompleteView(appState.completionMessage);
         break;
