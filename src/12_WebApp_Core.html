@@ -97,7 +97,7 @@
     // NF-04: 新規ユーザー登録フロー用の状態
     registrationStep: 1, // 新規登録フローの現在のステップ (1, 2, 3)
     registrationData: {}, // 各ステップで入力された情報を一時的に蓄積する
-    isNewUserFlow: false, // 新規登録フローの直後かどうかを示すフラグ
+    isFirstTimeBooking: false, // 初回予約かどうかを示すフラグ
   };
   let onConfirmCallback = null; // モーダル確認時のコールバック関数を保持
 
@@ -119,17 +119,94 @@
   // アプリ内で使用されるボタンや入力欄といった、再利用可能な
   // UI部品を生成する関数群です。
   // =================================================================
+
+  /**
+   * HTML文字列をエスケープします。
+   * @param {string} str エスケープする文字列
+   * @returns {string} エスケープされた文字列
+   */
+  const escapeHTML = str => {
+    if (typeof str !== 'string') {
+      return str;
+    }
+    return str.replace(/[&<>"']/g, function (match) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[match];
+    });
+  };
+
   const Components = {
     createButton: c =>
-      `<button data-action="${c.action || ''}" data-classroom="${c.classroom || ''}" data-classroom-name="${c.classroomName || ''}" data-date="${c.date || ''}" data-reservation-id="${c.reservationId || ''}" data-sheet-name="${c.sheetName || ''}" data-copy-text="${c.copyText || ''}" data-details='${c.details || ''}' data-student-id="${c.studentId || ''}" data-real-name="${c.realName || ''}" data-nickname="${c.nickname || ''}" class="${DesignConfig.buttons.base} ${c.widthClass || ''} ${c.colorClass}" ${c.disabled ? 'disabled' : ''}>${c.text}</button>`,
+      `<button
+        data-action="${escapeHTML(c.action || '')}"
+        data-classroom="${escapeHTML(c.classroom || '')}"
+        data-classroom-name="${escapeHTML(c.classroomName || '')}"
+        data-date="${escapeHTML(c.date || '')}"
+        data-reservation-id="${escapeHTML(c.reservationId || '')}"
+        data-sheet-name="${escapeHTML(c.sheetName || '')}"
+        data-copy-text="${escapeHTML(c.copyText || '')}"
+        data-details="${escapeHTML(c.details || '')}"
+        data-student-id="${escapeHTML(c.studentId || '')}"
+        data-real-name="${escapeHTML(c.realName || '')}"
+        data-nickname="${escapeHTML(c.nickname || '')}"
+        class="${DesignConfig.buttons.base} ${c.widthClass || ''} ${c.colorClass}"
+        ${c.disabled ? 'disabled' : ''}
+      >${escapeHTML(c.text)}</button>`,
+
     createInput: c =>
-      `<div class="${c.containerClass || ''} mb-4"><label for="${c.id}" class="${c.labelClass || 'block text-brand-text text-base font-bold mb-2'} ${c.isSrOnly ? 'sr-only' : ''}">${c.label}</label><input type="${c.type}" id="${c.id}" value="${c.value || ''}" class="${DesignConfig.inputs.base} ${c.inputClass || ''}" placeholder="${c.placeholder || ''}" ${c.required ? 'required' : ''} autocomplete="${c.autocomplete || 'off'}" ${c.step ? `step="${c.step}"` : ''}></div>`,
+      `<div class="${c.containerClass || ''} mb-4">
+        <label
+          for="${c.id}"
+          class="${c.labelClass || DesignConfig.text.labelBlock} ${c.isSrOnly ? 'sr-only' : ''}"
+        >${escapeHTML(c.label)}</label>
+        ${c.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(c.caption)}</p>` : ''}
+        <input
+          type="${c.type}"
+          id="${c.id}"
+          value="${escapeHTML(c.value || '')}"
+          class="${DesignConfig.inputs.base} ${c.inputClass || ''}"
+          placeholder="${escapeHTML(c.placeholder || '')}"
+          ${c.required ? 'required' : ''}
+          autocomplete="${c.autocomplete || 'off'}"
+          ${c.step ? `step="${c.step}"` : ''}
+        >
+      </div>`,
+
     createTextArea: c =>
-      `<div class="${c.containerClass || ''} mb-4"><label for="${c.id}" class="block text-brand-text text-base font-bold mb-2">${c.label}</label><textarea id="${c.id}" class="${DesignConfig.inputs.textarea}" placeholder="${c.placeholder || ''}">${c.value || ''}</textarea></div>`,
+      `<div class="${c.containerClass || ''} mb-4">
+        <label for="${c.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(c.label)}</label>
+        ${c.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(c.caption)}</p>` : ''}
+        <textarea
+          id="${c.id}"
+          class="${DesignConfig.inputs.textarea}"
+          placeholder="${escapeHTML(c.placeholder || '')}"
+        >${escapeHTML(c.value || '')}</textarea>
+      </div>`,
+
     createSelect: c =>
-      `<div class="${c.containerClass || ''}"><label for="${c.id}" class="block text-brand-text text-base font-bold mb-2">${c.label}</label><select id="${c.id}" class="${DesignConfig.inputs.base} ${c.sizeClass || ''} accounting-item">${c.options}</select></div>`,
+      `<div class="${c.containerClass || ''}">
+        <label for="${c.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(c.label)}</label>
+        <select
+          id="${c.id}"
+          class="${DesignConfig.inputs.base} ${c.sizeClass || ''} accounting-item"
+        >${c.options}</select>
+      </div>`,
+
     createCheckbox: c =>
-      `<label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" id="${c.id}" ${c.checked ? 'checked' : ''} class="accent-action-primary-bg"><span>${c.label}</span></label>`,
+      `<label class="flex items-center space-x-2 ${DesignConfig.colors.text}">
+        <input
+          type="checkbox"
+          id="${c.id}"
+          ${c.checked ? 'checked' : ''}
+          class="accent-action-primary-bg"
+        >
+        <span>${escapeHTML(c.label)}</span>
+      </label>`,
   };
 
   // =================================================================
@@ -161,11 +238,7 @@
     ],
 
     // 予約キャンセル時のメッセージ
-    cancel: [
-      'よやく を とりけしています...',
-      'けしごむ を さがしています...',
-      'とりけしせん を ひいています...',
-    ],
+    cancel: ['よやく を とりけしています...', 'けしごむ を さがしています...', 'とりけしせん を ひいています...'],
 
     // 予約編集時のメッセージ
     edit: [

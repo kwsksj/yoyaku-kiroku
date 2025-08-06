@@ -64,13 +64,30 @@
       // GAS環境かどうかを判定
       const isGAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
 
+      function initializeApp() {
+        // 必要な変数や関数が定義されるまで待機
+        const checkReady = setInterval(() => {
+          // DesignConfig, appState, setState, hideLoadingが利用可能か確認
+          if (
+            typeof DesignConfig !== 'undefined' &&
+            typeof appState !== 'undefined' &&
+            typeof setState === 'function' &&
+            typeof hideLoading === 'function'
+          ) {
+            clearInterval(checkReady);
+            console.log('[GAS] 初期化条件を満たしました。アプリケーションを開始します。');
+            setState({ view: 'login' });
+            hideLoading();
+          }
+        }, 100);
+      }
+
       if (isGAS) {
         // GAS本番環境のみ初期化
         console.log('[GAS版] 全ファイル読み込み完了、アプリケーション初期化開始');
         window.addEventListener('DOMContentLoaded', () => {
-          console.log('[GAS] DOMContentLoaded - アプリケーション初期化');
-          setState({ view: 'login' });
-          hideLoading();
+          console.log('[GAS] DOMContentLoaded - 初期化処理を開始します。');
+          initializeApp();
         });
       }
     </script>

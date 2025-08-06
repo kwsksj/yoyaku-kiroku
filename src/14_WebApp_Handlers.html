@@ -102,6 +102,10 @@
         .withSuccessHandler(r => {
           hideLoading();
           if (r.success) {
+            // NF-04.2: 初回予約判定
+            const isFirstTime =
+              (!r.initialData.myBookings || r.initialData.myBookings.length === 0) &&
+              (!r.initialData.myHistory || r.initialData.myHistory.length === 0);
             setState({
               currentUser: r.user,
               slots: r.initialData.availableSlots,
@@ -110,6 +114,7 @@
               history: r.initialData.myHistory,
               historyTotal: r.initialData.myHistory.length,
               recordsToShow: 20,
+              isFirstTimeBooking: isFirstTime,
               view: 'classroomSelect',
             });
           } else if (r.commandRecognized) {
@@ -225,7 +230,6 @@
               myBookings: res.initialData.myBookings,
               accountingMaster: res.initialData.accountingMaster,
               history: res.initialData.myHistory,
-              isNewUserFlow: true,
               view: 'newBooking',
             });
           } else {
@@ -455,7 +459,12 @@
         workInProgress: document.getElementById('wip-input')?.value || '',
         order: document.getElementById('order-input')?.value || '',
         messageToTeacher: document.getElementById('message-input')?.value || '',
+        materialInfo: document.getElementById('material-input')?.value || '',
       };
+      // 初回予約時
+      if (appState.isFirstTimeBooking) {
+        bookingOptions.isNewUser = true;
+      }
       showLoading('booking');
       const p = { ...appState.selectedSlot, user: appState.currentUser, options: bookingOptions };
 
@@ -985,6 +994,8 @@
         setupAccountingFormListeners(appState.accountingReservation.reservationId);
       });
     }
+
+    window.scrollTo(0, 0);
   }
 
   /**

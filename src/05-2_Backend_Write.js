@@ -205,7 +205,12 @@ function makeReservation(reservationInfo) {
         values[headerMap.get(HEADER_FIRST_LECTURE)] = options.firstLecture || false;
       if (hayadeColIdx !== undefined) values[hayadeColIdx] = options.earlyArrival || false;
       if (rentalColIdx !== undefined) values[rentalColIdx] = options.chiselRental || false;
-      if (wipColIdx !== undefined) values[wipColIdx] = options.workInProgress || '';
+
+      let workInProgress = options.workInProgress || '';
+      const materialInfo = `\n【希望材料】: ${options.materialInfo || '指定なし'}`;
+      workInProgress += materialInfo;
+
+      if (wipColIdx !== undefined) values[wipColIdx] = workInProgress || '';
       if (orderColIdx !== undefined) values[orderColIdx] = options.order || '';
       if (messageColIdx !== undefined) values[messageColIdx] = options.messageToTeacher || '';
 
