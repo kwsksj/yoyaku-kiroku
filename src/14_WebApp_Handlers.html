@@ -138,38 +138,86 @@
         .authenticateUser(n);
     },
 
-    /** 新規ユーザーを登録します */
-    register: () => {
-      const r = document.getElementById('reg-realname').value;
-      let n = document.getElementById('reg-nickname').value.trim();
-      if (!r) return showInfo('お名前（本名）は必須です。');
-      if (!n) n = r;
+    /** 新規ユーザー登録：Step1からStep2へ */
+    goToStep2: () => {
+      const realName = document.getElementById('reg-realname').value;
+      const nickname = document.getElementById('reg-nickname').value.trim();
+      if (!realName) return showInfo('お名前（本名）は必須です。');
+
+      const step1Data = {
+        phone: document.getElementById('reg-phone').value,
+        realName: realName,
+        nickname: nickname || realName,
+      };
+
+      console.log('goToStep2: step1Data', step1Data);
+      setState({
+        registrationData: { ...appState.registrationData, ...step1Data },
+        registrationStep: 2,
+        view: 'registrationStep2',
+      });
+      console.log('goToStep2: appState after setState', appState);
+    },
+
+    /** 新規ユーザー登録：Step2からStep1へ戻る */
+    backToStep1: () => setState({ view: 'register', registrationStep: 1 }),
+
+    /** 新規ユーザー登録：Step2からStep3へ進む */
+    goToStep3: () => {
+      const email = document.getElementById('q-email').value;
+      if (!email || !email.includes('@')) {
+        return showInfo('有効なメールアドレスを入力してください。');
+      }
+
+      const step2Data = {
+        email: email,
+        wantsEmail: document.getElementById('q-wants-email').checked,
+        ageGroup: document.getElementById('q-age-group').value,
+        gender: document.querySelector('input[name="gender"]:checked')?.value || '',
+        dominantHand: document.querySelector('input[name="dominantHand"]:checked')?.value || '',
+        address: document.getElementById('q-address').value,
+      };
+
+      setState({
+        registrationData: { ...appState.registrationData, ...step2Data },
+        registrationStep: 3,
+        view: 'registrationStep3',
+      });
+    },
+
+    /** 新規ユーザー登録：Step3からStep2へ戻る */
+    backToStep2: () => setState({ view: 'registrationStep2', registrationStep: 2 }),
+
+    /** 新規ユーザー登録：最終データをサーバーに送信 */
+    submitRegistration: () => {
+      const step3Data = {
+        experience: document.querySelector('input[name="experience"]:checked')?.value || '',
+        pastWork: document.getElementById('q-past-work').value,
+        futureGoal: document.getElementById('q-future-goal').value,
+      };
+
+      const finalUserData = { ...appState.registrationData, ...step3Data };
+
       showLoading('login');
       google.script.run
         .withSuccessHandler(res => {
           hideLoading();
           if (res.success) {
-            // 登録とデータ取得が一度で完了するため、ここで全ての状態を設定する
             setState({
               currentUser: res.user,
               slots: res.initialData.availableSlots,
               myBookings: res.initialData.myBookings,
               accountingMaster: res.initialData.accountingMaster,
               history: res.initialData.myHistory,
-              historyTotal: res.initialData.myHistory.length,
-              recordsToShow: 20,
-              view: 'classroomSelect',
+              isNewUserFlow: true,
+              view: 'newBooking',
             });
           } else {
             showInfo(res.message || '登録に失敗しました');
           }
         })
         .withFailureHandler(handleServerError)
-        .registerNewUser({
-          phone: document.getElementById('reg-phone').value,
-          realName: r,
-          nickname: n,
-        });
+        .registerNewUser(finalUserData);
     },
 
     /** きろくカードの編集ボタン */
@@ -471,7 +519,7 @@
           if (res.success) {
             const reservationId = d.reservationId;
             const cachedData = loadAccountingCache(reservationId);
-            
+
             // サーバーデータとキャッシュデータをマージ (キャッシュを優先)
             const initialValues = { ...res.details, ...cachedData };
 
@@ -870,6 +918,12 @@
       case 'register':
         v = getRegisterView(appState.phoneForRegistration);
         break;
+      case 'registrationStep2':
+        v = getRegistrationStep2View();
+        break;
+      case 'registrationStep3':
+        v = getRegistrationStep3View();
+        break;
       case 'classroomSelect':
         v = getDashboardView();
         break;
@@ -899,7 +953,9 @@
         v = getNoPhoneUserSelectView();
         break; // NF-01: 新しいビューを追加
     }
+    console.log('Rendered view HTML:', v);
     document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
+    console.log('view-container innerHTML after update:', document.getElementById('view-container').innerHTML);
 
     if (appState.view === 'accounting') {
       requestAnimationFrame(() => {
@@ -938,6 +994,20 @@
           actionHandlers[action](targetButton);
         } else if (actionHandlers[action]) {
           actionHandlers[action](data);
+        }
+      }
+    });
+
+    // NF-04: 木彫り経験ラジオボタンの変更を監視
+    app.addEventListener('change', e => {
+      if (e.target.closest('#experience-radio-group')) {
+        const container = document.getElementById('past-work-container');
+        if (container) {
+            if (e.target.value === 'はじめて！') {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+            }
         }
       }
     });

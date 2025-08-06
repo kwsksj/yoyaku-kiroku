@@ -94,6 +94,10 @@
     noPhoneUsers: [], // 検索結果のユーザーリスト
     selectedNoPhoneUser: null, // 選択されたユーザー
     searchAttempted: false, // NF-01: 検索が一度試行されたかを示すフラグ
+    // NF-04: 新規ユーザー登録フロー用の状態
+    registrationStep: 1, // 新規登録フローの現在のステップ (1, 2, 3)
+    registrationData: {}, // 各ステップで入力された情報を一時的に蓄積する
+    isNewUserFlow: false, // 新規登録フローの直後かどうかを示すフラグ
   };
   let onConfirmCallback = null; // モーダル確認時のコールバック関数を保持
 

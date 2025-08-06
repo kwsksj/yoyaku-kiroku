@@ -77,16 +77,7 @@ function authenticateUser(phoneNumber) {
       return { success: false, commandRecognized: 'all' }; // commandRecognizedは'all'に固定
     }
 
-    const validationResult = _normalizeAndValidatePhone(phoneNumber);
-    if (!validationResult.isValid) {
-      // 認証失敗時にも正規化後の電話番号を返す (登録画面へ遷移するため)
-      return {
-        success: false,
-        message: validationResult.message,
-        phoneForRegistration: validationResult.normalized,
-      };
-    }
-    const normalizedInputPhone = validationResult.normalized;
+    const normalizedInputPhone = phoneNumber;
 
     const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
@@ -302,6 +293,32 @@ function registerNewUser(userInfo) {
 
     newRow[realNameColIdx] = userInfo.realName;
     newRow[nicknameColIdx] = userInfo.nickname || '';
+
+    // --- Step 2 データ ---
+    const emailColIdx = header.indexOf('メールアドレス');
+    if (emailColIdx !== -1) newRow[emailColIdx] = userInfo.email || '';
+    const wantsEmailColIdx = header.indexOf('メール連絡希望');
+    if (wantsEmailColIdx !== -1) newRow[wantsEmailColIdx] = userInfo.wantsEmail || false;
+    const ageGroupColIdx = header.indexOf('年代');
+    if (ageGroupColIdx !== -1) newRow[ageGroupColIdx] = userInfo.ageGroup || '';
+    const genderColIdx = header.indexOf('性別');
+    if (genderColIdx !== -1) newRow[genderColIdx] = userInfo.gender || '';
+    const dominantHandColIdx = header.indexOf('利き手');
+    if (dominantHandColIdx !== -1) newRow[dominantHandColIdx] = userInfo.dominantHand || '';
+    const addressColIdx = header.indexOf('住所');
+    if (addressColIdx !== -1) newRow[addressColIdx] = userInfo.address || '';
+
+    // --- Step 3 データ ---
+    const experienceColIdx = header.indexOf('木彫り経験');
+    if (experienceColIdx !== -1) newRow[experienceColIdx] = userInfo.experience || '';
+    const pastWorkColIdx = header.indexOf('過去の制作物');
+    if (pastWorkColIdx !== -1) newRow[pastWorkColIdx] = userInfo.pastWork || '';
+    const futureGoalColIdx = header.indexOf('将来制作したいもの');
+    if (futureGoalColIdx !== -1) newRow[futureGoalColIdx] = userInfo.futureGoal || '';
+
+    // 登録日時を追加
+    const registrationDateColIdx = header.indexOf('登録日時');
+    if (registrationDateColIdx !== -1) newRow[registrationDateColIdx] = new Date();
 
     rosterSheet.appendRow(newRow);
 

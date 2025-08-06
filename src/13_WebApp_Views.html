@@ -390,7 +390,7 @@
           { text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary },
         ]
       : [
-          { text: '登録して予約へ進む', action: 'register', colorClass: DesignConfig.colors.primary },
+          { text: '次へ進む', action: 'goToStep2', colorClass: DesignConfig.colors.primary },
           { text: '戻る', action: 'goBackToLogin', colorClass: DesignConfig.colors.secondary },
         ];
 
@@ -443,6 +443,70 @@
    * @returns {string} HTML文字列
    */
   const getRegisterView = p => getUserFormView({ mode: 'register', phone: p });
+
+  /**
+ * 新規登録フローのステップ2（プロフィール情報）のUIを生成します。
+ */
+const getRegistrationStep2View = () => {
+  console.log('getRegistrationStep2View called');
+  console.log('DesignConfig:', typeof DesignConfig, DesignConfig);
+  console.log('Components:', typeof Components, Components); // Componentsのログを追加
+  const data = appState.registrationData;
+  const genderOptions = ['女性', '男性', 'その他'].map(opt => `<label class="flex items-center space-x-2"><input type="radio" name="gender" value="${opt}" ${data.gender === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`).join('');
+  const handOptions = ['右利き', '左利き'].map(opt => `<label class="flex items-center space-x-2"><input type="radio" name="dominantHand" value="${opt}" ${data.dominantHand === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`).join('');
+  const ageOptions = ['10代（16歳以上）', '20代', '30代', '40代', '50代', '60代', '70代', '80代以上', 'ひみつ'].map(opt => `<option value="${opt}" ${data.ageGroup === opt ? 'selected' : ''}>${opt}</option>`).join('');
+
+  return `
+    <div class="max-w-md mx-auto text-left">
+      <h1 class="text-xl font-bold text-brand-text mb-4 text-center">プロフィール</h1>
+      <form id="step2-form" class="space-y-6">
+        ${Components.createInput({ id: 'q-email', label: 'メールアドレス', type: 'email', value: data.email || '', required: true })}
+        <div class="p-3 bg-ui-surface rounded-md">
+          <label class="flex items-center space-x-3">
+            <input type="checkbox" id="q-wants-email" name="wantsEmail" class="h-5 w-5 accent-action-primary-bg" ${data.wantsEmail ? 'checked' : ''}>
+            <span class="text-brand-text text-sm">教室の開催予定など、メールでの連絡を希望します</span>
+          </label>
+        </div>
+        ${Components.createSelect({ id: 'q-age-group', label: 'お年頃', options: ageOptions })}
+        <div><label class="block text-brand-text text-base font-bold mb-2">性別</label><div class="flex space-x-4">${genderOptions}</div></div>
+        <div><label class="block text-brand-text text-base font-bold mb-2">利き手</label><div class="flex space-x-4">${handOptions}</div></div>
+        ${Components.createInput({ id: 'q-address', label: '住所（市区町村まででOK！）', type: 'text', value: data.address || '' })}
+      </form>
+      <div class="mt-8 grid grid-cols-2 gap-3">
+        ${Components.createButton({ text: '前に戻る', action: 'backToStep1', colorClass: DesignConfig.colors.secondary })}
+        ${Components.createButton({ text: '次へ進む', action: 'goToStep3', colorClass: DesignConfig.colors.primary })}
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * 新規登録フローのステップ3（木彫りについて）のUIを生成します。
+ */
+const getRegistrationStep3View = () => {
+  const data = appState.registrationData;
+  const experienceOptions = ['はじめて！', 'ちょっと', 'そこそこ', 'かなり'].map(opt => `<label class="flex items-center space-x-2"><input type="radio" name="experience" value="${opt}" ${data.experience === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`).join('');
+
+  return `
+    <div class="max-w-md mx-auto text-left">
+      <h1 class="text-xl font-bold text-brand-text mb-4 text-center">木彫りについて</h1>
+      <form id="step3-form" class="space-y-6">
+        <div>
+          <label class="block text-brand-text text-base font-bold mb-2">木彫りの経験はありますか？</label>
+          <div class="space-y-2" id="experience-radio-group">${experienceOptions}</div>
+        </div>
+        <div id="past-work-container" class="${data.experience === 'はじめて！' ? 'hidden' : ''}">
+            ${Components.createTextArea({ id: 'q-past-work', label: 'いつ頃、どこで、何を作りましたか？（だいたいでOK!）', value: data.pastWork || '' })}
+        </div>
+        ${Components.createTextArea({ id: 'q-future-goal', label: '将来的に制作したいもの（曖昧な内容でも大丈夫！）', value: data.futureGoal || '' })}
+      </form>
+      <div class="mt-8 flex flex-col space-y-3">
+        ${Components.createButton({ text: 'この内容で登録して予約へ進む', action: 'submitRegistration', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+        ${Components.createButton({ text: '前に戻る', action: 'backToStep2', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+      </div>
+    </div>
+  `;
+};
 
   /**
    * NF-01: 電話番号未登録ユーザーの検索・選択画面のUIを生成します。

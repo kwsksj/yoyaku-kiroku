@@ -941,6 +941,10 @@
     noPhoneUsers: [], // 検索結果のユーザーリスト
     selectedNoPhoneUser: null, // 選択されたユーザー
     searchAttempted: false, // NF-01: 検索が一度試行されたかを示すフラグ
+    // NF-04: 新規ユーザー登録フロー用の状態
+    registrationStep: 1, // 新規登録フローの現在のステップ (1, 2, 3)
+    registrationData: {}, // 各ステップで入力された情報を一時的に蓄積する
+    isNewUserFlow: false, // 新規登録フローの直後かどうかを示すフラグ
   };
   let onConfirmCallback = null; // モーダル確認時のコールバック関数を保持
 
@@ -1782,7 +1786,7 @@
           { text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary },
         ]
       : [
-          { text: '登録して予約へ進む', action: 'register', colorClass: DesignConfig.colors.primary },
+          { text: '次へ進む', action: 'goToStep2', colorClass: DesignConfig.colors.primary },
           { text: '戻る', action: 'goBackToLogin', colorClass: DesignConfig.colors.secondary },
         ];
 
@@ -1835,6 +1839,70 @@
    * @returns {string} HTML文字列
    */
   const getRegisterView = p => getUserFormView({ mode: 'register', phone: p });
+
+  /**
+ * 新規登録フローのステップ2（プロフィール情報）のUIを生成します。
+ */
+const getRegistrationStep2View = () => {
+  console.log('getRegistrationStep2View called');
+  console.log('DesignConfig:', typeof DesignConfig, DesignConfig);
+  console.log('Components:', typeof Components, Components); // Componentsのログを追加
+  const data = appState.registrationData;
+  const genderOptions = ['女性', '男性', 'その他'].map(opt => `<label class="flex items-center space-x-2"><input type="radio" name="gender" value="${opt}" ${data.gender === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`).join('');
+  const handOptions = ['右利き', '左利き'].map(opt => `<label class="flex items-center space-x-2"><input type="radio" name="dominantHand" value="${opt}" ${data.dominantHand === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`).join('');
+  const ageOptions = ['10代（16歳以上）', '20代', '30代', '40代', '50代', '60代', '70代', '80代以上', 'ひみつ'].map(opt => `<option value="${opt}" ${data.ageGroup === opt ? 'selected' : ''}>${opt}</option>`).join('');
+
+  return `
+    <div class="max-w-md mx-auto text-left">
+      <h1 class="text-xl font-bold text-brand-text mb-4 text-center">プロフィール</h1>
+      <form id="step2-form" class="space-y-6">
+        ${Components.createInput({ id: 'q-email', label: 'メールアドレス', type: 'email', value: data.email || '', required: true })}
+        <div class="p-3 bg-ui-surface rounded-md">
+          <label class="flex items-center space-x-3">
+            <input type="checkbox" id="q-wants-email" name="wantsEmail" class="h-5 w-5 accent-action-primary-bg" ${data.wantsEmail ? 'checked' : ''}>
+            <span class="text-brand-text text-sm">教室の開催予定など、メールでの連絡を希望します</span>
+          </label>
+        </div>
+        ${Components.createSelect({ id: 'q-age-group', label: 'お年頃', options: ageOptions })}
+        <div><label class="block text-brand-text text-base font-bold mb-2">性別</label><div class="flex space-x-4">${genderOptions}</div></div>
+        <div><label class="block text-brand-text text-base font-bold mb-2">利き手</label><div class="flex space-x-4">${handOptions}</div></div>
+        ${Components.createInput({ id: 'q-address', label: '住所（市区町村まででOK！）', type: 'text', value: data.address || '' })}
+      </form>
+      <div class="mt-8 grid grid-cols-2 gap-3">
+        ${Components.createButton({ text: '前に戻る', action: 'backToStep1', colorClass: DesignConfig.colors.secondary })}
+        ${Components.createButton({ text: '次へ進む', action: 'goToStep3', colorClass: DesignConfig.colors.primary })}
+      </div>
+    </div>
+  `;
+};
+
+/**
+ * 新規登録フローのステップ3（木彫りについて）のUIを生成します。
+ */
+const getRegistrationStep3View = () => {
+  const data = appState.registrationData;
+  const experienceOptions = ['はじめて！', 'ちょっと', 'そこそこ', 'かなり'].map(opt => `<label class="flex items-center space-x-2"><input type="radio" name="experience" value="${opt}" ${data.experience === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`).join('');
+
+  return `
+    <div class="max-w-md mx-auto text-left">
+      <h1 class="text-xl font-bold text-brand-text mb-4 text-center">木彫りについて</h1>
+      <form id="step3-form" class="space-y-6">
+        <div>
+          <label class="block text-brand-text text-base font-bold mb-2">木彫りの経験はありますか？</label>
+          <div class="space-y-2" id="experience-radio-group">${experienceOptions}</div>
+        </div>
+        <div id="past-work-container" class="${data.experience === 'はじめて！' ? 'hidden' : ''}">
+            ${Components.createTextArea({ id: 'q-past-work', label: 'いつ頃、どこで、何を作りましたか？（だいたいでOK!）', value: data.pastWork || '' })}
+        </div>
+        ${Components.createTextArea({ id: 'q-future-goal', label: '将来的に制作したいもの（曖昧な内容でも大丈夫！）', value: data.futureGoal || '' })}
+      </form>
+      <div class="mt-8 flex flex-col space-y-3">
+        ${Components.createButton({ text: 'この内容で登録して予約へ進む', action: 'submitRegistration', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+        ${Components.createButton({ text: '前に戻る', action: 'backToStep2', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+      </div>
+    </div>
+  `;
+};
 
   /**
    * NF-01: 電話番号未登録ユーザーの検索・選択画面のUIを生成します。
@@ -2596,38 +2664,86 @@
         .authenticateUser(n);
     },
 
-    /** 新規ユーザーを登録します */
-    register: () => {
-      const r = document.getElementById('reg-realname').value;
-      let n = document.getElementById('reg-nickname').value.trim();
-      if (!r) return showInfo('お名前（本名）は必須です。');
-      if (!n) n = r;
+    /** 新規ユーザー登録：Step1からStep2へ */
+    goToStep2: () => {
+      const realName = document.getElementById('reg-realname').value;
+      const nickname = document.getElementById('reg-nickname').value.trim();
+      if (!realName) return showInfo('お名前（本名）は必須です。');
+
+      const step1Data = {
+        phone: document.getElementById('reg-phone').value,
+        realName: realName,
+        nickname: nickname || realName,
+      };
+
+      console.log('goToStep2: step1Data', step1Data);
+      setState({
+        registrationData: { ...appState.registrationData, ...step1Data },
+        registrationStep: 2,
+        view: 'registrationStep2',
+      });
+      console.log('goToStep2: appState after setState', appState);
+    },
+
+    /** 新規ユーザー登録：Step2からStep1へ戻る */
+    backToStep1: () => setState({ view: 'register', registrationStep: 1 }),
+
+    /** 新規ユーザー登録：Step2からStep3へ進む */
+    goToStep3: () => {
+      const email = document.getElementById('q-email').value;
+      if (!email || !email.includes('@')) {
+        return showInfo('有効なメールアドレスを入力してください。');
+      }
+
+      const step2Data = {
+        email: email,
+        wantsEmail: document.getElementById('q-wants-email').checked,
+        ageGroup: document.getElementById('q-age-group').value,
+        gender: document.querySelector('input[name="gender"]:checked')?.value || '',
+        dominantHand: document.querySelector('input[name="dominantHand"]:checked')?.value || '',
+        address: document.getElementById('q-address').value,
+      };
+
+      setState({
+        registrationData: { ...appState.registrationData, ...step2Data },
+        registrationStep: 3,
+        view: 'registrationStep3',
+      });
+    },
+
+    /** 新規ユーザー登録：Step3からStep2へ戻る */
+    backToStep2: () => setState({ view: 'registrationStep2', registrationStep: 2 }),
+
+    /** 新規ユーザー登録：最終データをサーバーに送信 */
+    submitRegistration: () => {
+      const step3Data = {
+        experience: document.querySelector('input[name="experience"]:checked')?.value || '',
+        pastWork: document.getElementById('q-past-work').value,
+        futureGoal: document.getElementById('q-future-goal').value,
+      };
+
+      const finalUserData = { ...appState.registrationData, ...step3Data };
+
       showLoading('login');
       google.script.run
         .withSuccessHandler(res => {
           hideLoading();
           if (res.success) {
-            // 登録とデータ取得が一度で完了するため、ここで全ての状態を設定する
             setState({
               currentUser: res.user,
               slots: res.initialData.availableSlots,
               myBookings: res.initialData.myBookings,
               accountingMaster: res.initialData.accountingMaster,
               history: res.initialData.myHistory,
-              historyTotal: res.initialData.myHistory.length,
-              recordsToShow: 20,
-              view: 'classroomSelect',
+              isNewUserFlow: true,
+              view: 'newBooking',
             });
           } else {
             showInfo(res.message || '登録に失敗しました');
           }
         })
         .withFailureHandler(handleServerError)
-        .registerNewUser({
-          phone: document.getElementById('reg-phone').value,
-          realName: r,
-          nickname: n,
-        });
+        .registerNewUser(finalUserData);
     },
 
     /** きろくカードの編集ボタン */
@@ -2929,7 +3045,7 @@
           if (res.success) {
             const reservationId = d.reservationId;
             const cachedData = loadAccountingCache(reservationId);
-            
+
             // サーバーデータとキャッシュデータをマージ (キャッシュを優先)
             const initialValues = { ...res.details, ...cachedData };
 
@@ -3328,6 +3444,12 @@
       case 'register':
         v = getRegisterView(appState.phoneForRegistration);
         break;
+      case 'registrationStep2':
+        v = getRegistrationStep2View();
+        break;
+      case 'registrationStep3':
+        v = getRegistrationStep3View();
+        break;
       case 'classroomSelect':
         v = getDashboardView();
         break;
@@ -3357,7 +3479,9 @@
         v = getNoPhoneUserSelectView();
         break; // NF-01: 新しいビューを追加
     }
+    console.log('Rendered view HTML:', v);
     document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
+    console.log('view-container innerHTML after update:', document.getElementById('view-container').innerHTML);
 
     if (appState.view === 'accounting') {
       requestAnimationFrame(() => {
@@ -3396,6 +3520,20 @@
           actionHandlers[action](targetButton);
         } else if (actionHandlers[action]) {
           actionHandlers[action](data);
+        }
+      }
+    });
+
+    // NF-04: 木彫り経験ラジオボタンの変更を監視
+    app.addEventListener('change', e => {
+      if (e.target.closest('#experience-radio-group')) {
+        const container = document.getElementById('past-work-container');
+        if (container) {
+            if (e.target.value === 'はじめて！') {
+                container.classList.add('hidden');
+            } else {
+                container.classList.remove('hidden');
+            }
         }
       }
     });
