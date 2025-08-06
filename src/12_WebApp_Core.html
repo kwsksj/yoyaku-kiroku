@@ -190,7 +190,8 @@
 
     createSelect: c =>
       `<div class="${c.containerClass || ''}">
-        <label for="${c.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(c.label)}</label>
+        ${c.label ? `<label for="${c.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(c.label)}</label>` : ''}
+        ${c.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(c.caption)}</p>` : ''}
         <select
           id="${c.id}"
           class="${DesignConfig.inputs.base} ${c.sizeClass || ''} accounting-item"
@@ -327,6 +328,31 @@
   // 日付のフォーマット、モーダルダイアログなど、
   // アプリ全体で汎用的に使用されるヘルパー関数群です。
   // =================================================================
+
+  /**
+   * 電話番号を 090 1234 5678 のような形式で表示する
+   */
+  function formatPhoneDisplay(phone) {
+    const digits = String(phone).replace(/[^0-9]/g, '');
+    return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
+  }
+
+  /**
+   * サーバーサイドでエラーが発生した際の共通処理です。
+   * @param {Error} err - サーバーから返されたエラーオブジェクト
+   */
+  function handleServerError(err) {
+    hideLoading();
+
+    // エラーログは開発環境でのみ出力
+    if (typeof console !== 'undefined' && console.error) {
+      console.error('Server Error:', err);
+    }
+
+    const errorMessage = typeof err === 'object' && err.message ? err.message : JSON.stringify(err);
+    showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
+  }
+
   const formatDate = dStr => {
     if (!dStr) return '';
     const d = new Date(dStr);
@@ -462,6 +488,28 @@
   }
 
   // =================================================================
+  // --- Accounting Utilities ---
+  // -----------------------------------------------------------------
+
+  /**
+   * 料金マスタから、指定された教室と項目名に合致する授業料ルールを取得します。
+   * @param {Array} master - 料金マスタ (appState.accountingMaster)
+   * @param {string} classroom - 教室名
+   * @param {string} itemName - 項目名
+   * @returns {object|undefined} - 該当する授業料ルールオブジェクト
+   */
+  const getTuitionItemRule = (master, classroom, itemName) => {
+    if (!master || !classroom || !itemName) return undefined;
+    return master.find(
+      item =>
+        item['種別'] === '授業料' &&
+        item['項目名'] === itemName &&
+        item['対象教室'] &&
+        item['対象教室'].includes(classroom)
+    );
+  };
+
+  // =================================================================
   // --- Accounting Calculation Logic ---
   // -----------------------------------------------------------------
   // 会計画面での複雑な料金計算ロジックです。
@@ -482,10 +530,8 @@
     if (!form) return null;
 
     const r = appState.accountingReservation;
-    const classroomRule = appState.accountingMaster.find(
-      item => item['対象教室'] && item['対象教室'].includes(r.classroom) && item['種別'] === '授業料',
-    );
-    const isTimeBased = classroomRule && classroomRule['単位'] === '30分';
+    const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, '本講座');
+    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === '30分';
     let tuitionBreakdownHtml = '';
 
     if (isTimeBased) {
@@ -500,13 +546,13 @@
 
         if (diffMinutes > 0) {
           const billableUnits = Math.ceil(diffMinutes / 30);
-          const price = billableUnits * Number(classroomRule['単価']);
+          const price = billableUnits * Number(tuitionItemRule['単価']);
           tuitionSubtotal += price;
           //【FE-16】項目名に利用時間を追加
           const tuitionItem = { name: `授業料 (${startTime} - ${endTime})`, price: price };
           details.tuition.items.push(tuitionItem);
           document.getElementById('calculated-hours').textContent =
-            `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * classroomRule['単価']}円`;
+            `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule['単価']}円`;
         } else {
           document.getElementById('calculated-hours').textContent = ``;
         }

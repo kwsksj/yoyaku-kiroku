@@ -1037,7 +1037,8 @@
 
     createSelect: c =>
       `<div class="${c.containerClass || ''}">
-        <label for="${c.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(c.label)}</label>
+        ${c.label ? `<label for="${c.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(c.label)}</label>` : ''}
+        ${c.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(c.caption)}</p>` : ''}
         <select
           id="${c.id}"
           class="${DesignConfig.inputs.base} ${c.sizeClass || ''} accounting-item"
@@ -1174,6 +1175,31 @@
   // 日付のフォーマット、モーダルダイアログなど、
   // アプリ全体で汎用的に使用されるヘルパー関数群です。
   // =================================================================
+
+  /**
+   * 電話番号を 090 1234 5678 のような形式で表示する
+   */
+  function formatPhoneDisplay(phone) {
+    const digits = String(phone).replace(/[^0-9]/g, '');
+    return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
+  }
+
+  /**
+   * サーバーサイドでエラーが発生した際の共通処理です。
+   * @param {Error} err - サーバーから返されたエラーオブジェクト
+   */
+  function handleServerError(err) {
+    hideLoading();
+
+    // エラーログは開発環境でのみ出力
+    if (typeof console !== 'undefined' && console.error) {
+      console.error('Server Error:', err);
+    }
+
+    const errorMessage = typeof err === 'object' && err.message ? err.message : JSON.stringify(err);
+    showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
+  }
+
   const formatDate = dStr => {
     if (!dStr) return '';
     const d = new Date(dStr);
@@ -1309,6 +1335,28 @@
   }
 
   // =================================================================
+  // --- Accounting Utilities ---
+  // -----------------------------------------------------------------
+
+  /**
+   * 料金マスタから、指定された教室と項目名に合致する授業料ルールを取得します。
+   * @param {Array} master - 料金マスタ (appState.accountingMaster)
+   * @param {string} classroom - 教室名
+   * @param {string} itemName - 項目名
+   * @returns {object|undefined} - 該当する授業料ルールオブジェクト
+   */
+  const getTuitionItemRule = (master, classroom, itemName) => {
+    if (!master || !classroom || !itemName) return undefined;
+    return master.find(
+      item =>
+        item['種別'] === '授業料' &&
+        item['項目名'] === itemName &&
+        item['対象教室'] &&
+        item['対象教室'].includes(classroom)
+    );
+  };
+
+  // =================================================================
   // --- Accounting Calculation Logic ---
   // -----------------------------------------------------------------
   // 会計画面での複雑な料金計算ロジックです。
@@ -1329,10 +1377,8 @@
     if (!form) return null;
 
     const r = appState.accountingReservation;
-    const classroomRule = appState.accountingMaster.find(
-      item => item['対象教室'] && item['対象教室'].includes(r.classroom) && item['種別'] === '授業料',
-    );
-    const isTimeBased = classroomRule && classroomRule['単位'] === '30分';
+    const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, '本講座');
+    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === '30分';
     let tuitionBreakdownHtml = '';
 
     if (isTimeBased) {
@@ -1347,13 +1393,13 @@
 
         if (diffMinutes > 0) {
           const billableUnits = Math.ceil(diffMinutes / 30);
-          const price = billableUnits * Number(classroomRule['単価']);
+          const price = billableUnits * Number(tuitionItemRule['単価']);
           tuitionSubtotal += price;
           //【FE-16】項目名に利用時間を追加
           const tuitionItem = { name: `授業料 (${startTime} - ${endTime})`, price: price };
           details.tuition.items.push(tuitionItem);
           document.getElementById('calculated-hours').textContent =
-            `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * classroomRule['単価']}円`;
+            `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule['単価']}円`;
         } else {
           document.getElementById('calculated-hours').textContent = ``;
         }
@@ -1487,14 +1533,6 @@
   // -----------------------------------------------------------------
   // 各ビューを構成するための、より小さな部品を生成するヘルパー関数群。
   // =================================================================
-
-  /**
-   * 電話番号を 090 1234 5678 のような形式で表示する
-   */
-  function formatPhoneDisplay(phone) {
-    const digits = String(phone).replace(/[^0-9]/g, '');
-    return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
-  }
 
   /**
    * 時刻選択用の<option>タグ群を生成します。
@@ -1895,7 +1933,7 @@
             <div class="space-y-4">
                 ${Components.createInput({
                   id: `${nameIdPrefix}-realname`,
-                  label: 'お名前（本名 必須項目）',
+                  label: 'お名前',
                   type: 'text',
                   required: true,
                   value: realNameValue,
@@ -1904,10 +1942,11 @@
                 })}
                 ${Components.createInput({
                   id: `${nameIdPrefix}-nickname`,
-                  label: 'ニックネーム（表示名 他の生徒さんにも表示されます）',
+                  label: 'ニックネーム（表示名）',
+                  caption:'他の生徒さんにも表示されます',
                   type: 'text',
                   value: nicknameValue,
-                  placeholder: '空欄の場合は本名',
+                  placeholder: '空欄の場合はお名前',
                   containerClass: '',
                 })}
                 ${phoneSection}
@@ -2154,19 +2193,9 @@
                     if (!isPastOrToday && !b.accountingDone) {
                       buttons.push({
                         action: 'goToEditReservation',
-                        text: '編集',
+                        text: '確認/編集',
                         colorClass:
-                          'text-base bg-action-secondary-bg text-action-secondary-text font-bold px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
-                      });
-                    }
-
-                    // キャンセルボタン
-                    if (!b.accountingDone) {
-                      buttons.push({
-                        action: 'cancel',
-                        text: 'cancel',
-                        colorClass:
-                          'text-base bg-state-danger-bg text-state-danger-text font-bold px-3 py-1.5 rounded active:bg-state-danger-hover focus:bg-state-danger-hover mobile-button',
+                          'text-base bg-action-secondary-bg text-action-secondary-text font-medium px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
                       });
                     }
 
@@ -2234,9 +2263,9 @@
     }
 
     return `
-        <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4">
-            <h1 class="text-xl sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-2 sm:mb-0">ようこそ <span class="whitespace-nowrap">${appState.currentUser.displayName} さん</span></h1>
-            <button data-action="goToEditProfile" class="self-end sm:self-auto text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">プロフィール編集</button>
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-2">
+            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${appState.currentUser.displayName} <span class="text-base">さん</span></span></h1>
+            <button data-action="goToEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
         </div>
         ${yourBookingsHtml}
         ${historyHtml}
@@ -2347,25 +2376,53 @@
   };
 
   /**
-   * 予約確認画面のUIを生成します。
+   * 予約の詳細入力・編集画面のUIを生成します。
+   * @param {string} mode - 'new' または 'edit'
    * @returns {string} HTML文字列
    */
-  const getConfirmationView = () => {
-    // --- State and Data Preparation ---
-    const { classroom, date, availableSlots, venue, morningSlots, afternoonSlots, isFull } = appState.selectedSlot;
-    const { isFirstTimeBooking: isFirstTime, currentUser, accountingMaster: master } = appState;
-    const venueDisplay = venue ? `（${venue}）` : '';
+  const getReservationFormView = (mode = 'new') => {
+    const isEdit = mode === 'edit';
 
-    const classroomRule = master.find(
-      item => item['対象教室'] && item['対象教室'].includes(classroom) && item['種別'] === '授業料',
-    );
+    // --- 1. データの準備 ---
+    // 編集時は editingReservationDetails から、新規作成時は selectedSlot からデータを取得
+    const sourceData = isEdit ? appState.editingReservationDetails : appState.selectedSlot;
+    if (!sourceData) return 'エラー: 予約情報が見つかりません。';
 
-    // --- Helper Functions for UI Sections ---
+    const {
+      classroom,
+      date,
+      venue,
+      isWaiting,
+      startTime,
+      endTime,
+      firstLecture,
+      hayade,
+      rental,
+      workInProgress,
+      material,
+      order,
+      message,
+    } = sourceData;
+    const { currentUser, accountingMaster: master } = appState;
+    const tuitionItemRule = getTuitionItemRule(master, classroom, '本講座');
 
+    // 新規作成時のみ利用するデータ
+    const { availableSlots, morningSlots, afternoonSlots, isFull } = appState.selectedSlot || {};
+    const isFirstTime = appState.isFirstTimeBooking && !isEdit;
+
+    // --- 2. モードに応じた設定 ---
+    const title = isEdit ? '予約内容の編集' : isFull ? 'キャンセル待ち申込み' : '予約詳細の入力';
+    const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
+    const submitButtonText = isEdit ? 'この内容で更新する' : isFull ? 'キャンセル待ちで登録する' : 'この内容で予約する';
+
+    // --- 3. UI生成ヘルパー関数 ---
     /**
      * 予約状況の表示を生成します。
      */
     const _renderStatusHtml = () => {
+      if (isEdit) {
+        return sourceData.isWaiting ? 'キャンセル待ち' : '予約済み';
+      }
       if (isFull) return '満席（キャンセル待ち申込み）';
       if (typeof morningSlots !== 'undefined') {
         return `空き 午前 ${morningSlots} | 午後 ${afternoonSlots}`;
@@ -2378,20 +2435,20 @@
      */
     const _renderTimeOptionsSection = () => {
       // 30分単位の教室の場合
-      if (classroomRule && classroomRule['単位'] === '30分') {
-        const classStartHour = parseInt(classroomRule['講座開始'].split(':')[0]);
-        const classEndHour = parseInt(classroomRule['講座終了'].split(':')[0]);
-        const classEndMinutes = parseInt(classroomRule['講座終了'].split(':')[1]);
+      if (tuitionItemRule && tuitionItemRule['単位'] === '30分') {
+        const classStartHour = parseInt(tuitionItemRule['講座開始'].split(':')[0]);
+        const classEndHour = parseInt(tuitionItemRule['講座終了'].split(':')[0]);
+        const classEndMinutes = parseInt(tuitionItemRule['講座終了'].split(':')[1]);
 
         // Note: 外部で定義されている `getTimeOptionsHtml` を呼び出していると想定
-        const startTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, 30, null);
-        let endTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, 30, null);
+        const startTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, 30, startTime);
+        let endTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, 30, endTime);
         if (classEndMinutes > 0) {
           const finalEndTime = `${String(classEndHour).padStart(2, '0')}:${String(classEndMinutes).padStart(2, '0')}`;
           endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
         }
 
-        const discountRule = master.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
+        const discountRule = getTuitionItemRule(master, classroom, ITEM_NAME_DISCOUNT);
         let discountHtml = '';
         if (discountRule && (classroom === TSUKUBA_CLASSROOM_NAME || classroom === NUMAZU_CLASSROOM_NAME)) {
           const discountAmountText = `${Math.abs(Number(discountRule['単価']))}円`;
@@ -2402,7 +2459,7 @@
         return `
           <div class="mt-4 pt-4 border-t">
             <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間</h4>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-2 gap-4 mb-2">
               ${Components.createSelect({ id: 'res-start-time', caption: '開始予定', options: startTimeOptions })}
               ${Components.createSelect({ id: 'res-end-time', caption: '終了予定', options: endTimeOptions })}
             </div>
@@ -2417,11 +2474,15 @@
      */
     const _renderBookingOptionsSection = () => {
       let optionsHtml = '';
+      const firstLectureChecked = firstLecture ? 'checked' : '';
+      const hayadeChecked = hayade ? 'checked' : '';
+      const rentalChecked = rental ? 'checked' : '';
+
       if (classroom === TOKYO_CLASSROOM_NAME) {
-        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture"><span>初回講習</span></label>`;
-        optionsHtml += `<label class="flex items-center space-x-2 mt-2"><input type="checkbox" id="option-hayade"><span>早出<span class="text-sm ${DesignConfig.colors.textSubtle}">（初回講習の時間に半自習的に参加できます）</span></span></label>`;
+        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked}><span>初回講習</span></label>`;
+        optionsHtml += `<label class="flex items-center space-x-2 mt-2"><input type="checkbox" id="option-hayade" ${hayadeChecked}><span>早出<span class="text-sm ${DesignConfig.colors.textSubtle}">（初回講習の時間に半自習的に参加できます）</span></span></label>`;
       }
-      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental"><span>彫刻刀レンタル</span></label></div>`;
+      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>彫刻刀レンタル</span></label></div>`;
 
       return `
         <div class="mt-4 pt-4 border-t">
@@ -2447,25 +2508,50 @@
               ? '作りたいものがある方はご記入ください。仮でもOK! * ご自身の作り途中の作品や、材料の持ち込みも可'
               : '',
             placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！',
+            value: workInProgress || '',
           })}
           ${Components.createTextArea({
             id: 'material-input',
             label: '材料のサイズや樹種の希望',
             caption: 'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
             placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
+            value: material || '',
           })}
           ${isFirstTime ? firstTimeGuidance : ''}
         </div>
         <div class="mt-4 pt-4 border-t space-y-4">
-          ${Components.createInput({ id: 'order-input', label: '購入希望', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト' })}
-          ${Components.createTextArea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '' })}
+          ${Components.createInput({ id: 'order-input', label: '購入希望', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
+          ${Components.createTextArea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: message || '' })}
         </div>`;
     };
 
-    // --- Main View Assembly ---
-    const title = isFull ? 'キャンセル待ち申込みの確認' : '予約詳細';
-    const submitButtonText = isFull ? 'キャンセル待ちで登録' : 'この内容で予約';
+    // --- 4. メインHTMLの組み立て ---
+    let buttonsHtml = `
+      ${Components.createButton({ text: submitButtonText, action: submitAction, colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+    `;
+    // 編集時のみキャンセルボタンを追加
+    if (isEdit) {
+      buttonsHtml += Components.createButton({
+        text: 'この予約をキャンセルする',
+        action: 'cancel',
+        colorClass: DesignConfig.colors.danger,
+        widthClass: DesignConfig.buttons.full,
+        reservationId: sourceData.reservationId, // キャンセルに必要な情報を付与
+        classroom: sourceData.classroom,
+        date: sourceData.date,
+        sheetName: sourceData.sheetName,
+      });
+    }
+    buttonsHtml += Components.createButton({
+      text: '戻る',
+      action: 'goBackToBooking',
+      colorClass: DesignConfig.colors.secondary,
+      widthClass: DesignConfig.buttons.full,
+    });
 
+    const venueDisplay = venue ? ` ${venue}` : '';
+
+    // --- Main View Assembly ---
     return `
       <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${title}</h1>
       <div class="space-y-4 text-left p-4 ${DesignConfig.cards.background} rounded-lg">
@@ -2473,14 +2559,13 @@
         <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venueDisplay}</p>
         <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(date)}</p>
         <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
-        <p><span class="font-bold w-20 inline-block">開講時間:</span>${classroomRule['講座開始']} - ${classroomRule['休憩開始'] || ''}${classroomRule['休憩開始'] ? ',…,' : ''}  ${classroomRule['休憩終了'] || ''}${classroomRule['休憩終了'] ? ' - ' : ''}${classroomRule['講座終了']}</p>
+        <p><span class="font-bold w-20 inline-block">開講時間:</span>${tuitionItemRule['講座開始']} ~ ${tuitionItemRule['休憩開始'] || ''}${tuitionItemRule['休憩開始'] ? ' ,  ' : ''}  ${tuitionItemRule['休憩終了'] || ''}${tuitionItemRule['休憩終了'] ? ' ~ ' : ''}${tuitionItemRule['講座終了']}</p>
         ${_renderTimeOptionsSection()}
         ${_renderBookingOptionsSection()}
         ${_renderDetailsInputSection()}
       </div>
       <div class="mt-8 flex flex-col space-y-3">
-        ${Components.createButton({ text: submitButtonText, action: 'confirmBooking', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
-        ${Components.createButton({ text: '戻る', action: 'goBackToBooking', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+        ${buttonsHtml}
       </div>`;
   };
 
@@ -2602,13 +2687,11 @@
       }
     }
     const master = appState.accountingMaster;
-    const classroomRule = master.find(
-      item => item['対象教室'] && item['対象教室'].includes(r.classroom) && item['種別'] === '授業料',
-    );
-    const isTimeBased = classroomRule && classroomRule['単位'] === '30分';
+    const tuitionItemRule = getTuitionItemRule(master, r.classroom, '本講座');
+    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === '30分';
     let tuitionHtml;
     if (isTimeBased) {
-      tuitionHtml = getTimeBasedTuitionHtml(classroomRule, initial);
+      tuitionHtml = getTimeBasedTuitionHtml(tuitionItemRule, initial);
     } else {
       const tuitionItems = master.filter(
         item =>
@@ -3076,7 +3159,7 @@
       showConfirm({
         title: '予約の取り消し',
         message: message,
-        confirmText: 'はい<br>取り消します',
+        confirmText: 'はい　取り消します',
         cancelText: 'いいえ',
         confirmColorClass: DesignConfig.colors.danger,
         onConfirm: () => {
@@ -3120,10 +3203,7 @@
         messageToTeacher: document.getElementById('message-input')?.value || '',
         materialInfo: document.getElementById('material-input')?.value || '',
       };
-      // 初回予約時
-      if (appState.isFirstTimeBooking) {
-        bookingOptions.isNewUser = true;
-      }
+
       showLoading('booking');
       const p = { ...appState.selectedSlot, user: appState.currentUser, options: bookingOptions };
 
@@ -3153,7 +3233,7 @@
         .withSuccessHandler(r => {
           hideLoading();
           if (r.success) {
-            setState({ view: 'editReservation', editingReservationDetails: r.details });
+            setState({ view: 'reservationForm', editingReservationDetails: r.details });
           } else {
             showInfo(r.message || '予約詳細の取得に失敗しました。');
           }
@@ -3177,7 +3257,6 @@
         order: document.getElementById('edit-order-input').value,
         messageToTeacher: document.getElementById('edit-message-input').value,
       };
-
       showLoading('booking');
       google.script.run
         .withSuccessHandler(r => {
@@ -3327,7 +3406,7 @@
             ...foundSlot,
             isFull: isFullSlot,
           },
-          view: 'confirm',
+          view: 'reservationForm',
         });
       } else {
         showInfo('エラーが発生しました。選択した予約枠が見つかりません。');
@@ -3541,22 +3620,6 @@
   // =================================================================
 
   /**
-   * サーバーサイドでエラーが発生した際の共通処理です。
-   * @param {Error} err - サーバーから返されたエラーオブジェクト
-   */
-  function handleServerError(err) {
-    hideLoading();
-
-    // エラーログは開発環境でのみ出力
-    if (typeof console !== 'undefined' && console.error) {
-      console.error('Server Error:', err);
-    }
-
-    const errorMessage = typeof err === 'object' && err.message ? err.message : JSON.stringify(err);
-    showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
-  }
-
-  /**
    * アプリケーションの状態を更新し、画面を再描画します。
    * @param {object} newState - 更新する新しい状態オブジェクト
    */
@@ -3626,11 +3689,8 @@
       case 'booking':
         v = getBookingView(appState.selectedClassroom);
         break;
-      case 'confirm':
-        v = getConfirmationView();
-        break;
-      case 'editReservation':
-        v = getEditReservationView();
+      case 'reservationForm':
+        v = getReservationFormView(appState.editingReservationDetails ? 'edit' : 'new');
         break;
       case 'accounting':
         v = getAccountingView();

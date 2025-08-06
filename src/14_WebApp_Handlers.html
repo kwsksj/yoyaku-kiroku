@@ -417,7 +417,7 @@
       showConfirm({
         title: '予約の取り消し',
         message: message,
-        confirmText: 'はい<br>取り消します',
+        confirmText: 'はい　取り消します',
         cancelText: 'いいえ',
         confirmColorClass: DesignConfig.colors.danger,
         onConfirm: () => {
@@ -461,10 +461,7 @@
         messageToTeacher: document.getElementById('message-input')?.value || '',
         materialInfo: document.getElementById('material-input')?.value || '',
       };
-      // 初回予約時
-      if (appState.isFirstTimeBooking) {
-        bookingOptions.isNewUser = true;
-      }
+
       showLoading('booking');
       const p = { ...appState.selectedSlot, user: appState.currentUser, options: bookingOptions };
 
@@ -494,7 +491,7 @@
         .withSuccessHandler(r => {
           hideLoading();
           if (r.success) {
-            setState({ view: 'editReservation', editingReservationDetails: r.details });
+            setState({ view: 'reservationForm', editingReservationDetails: r.details });
           } else {
             showInfo(r.message || '予約詳細の取得に失敗しました。');
           }
@@ -518,7 +515,6 @@
         order: document.getElementById('edit-order-input').value,
         messageToTeacher: document.getElementById('edit-message-input').value,
       };
-
       showLoading('booking');
       google.script.run
         .withSuccessHandler(r => {
@@ -668,7 +664,7 @@
             ...foundSlot,
             isFull: isFullSlot,
           },
-          view: 'confirm',
+          view: 'reservationForm',
         });
       } else {
         showInfo('エラーが発生しました。選択した予約枠が見つかりません。');
@@ -882,22 +878,6 @@
   // =================================================================
 
   /**
-   * サーバーサイドでエラーが発生した際の共通処理です。
-   * @param {Error} err - サーバーから返されたエラーオブジェクト
-   */
-  function handleServerError(err) {
-    hideLoading();
-
-    // エラーログは開発環境でのみ出力
-    if (typeof console !== 'undefined' && console.error) {
-      console.error('Server Error:', err);
-    }
-
-    const errorMessage = typeof err === 'object' && err.message ? err.message : JSON.stringify(err);
-    showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
-  }
-
-  /**
    * アプリケーションの状態を更新し、画面を再描画します。
    * @param {object} newState - 更新する新しい状態オブジェクト
    */
@@ -967,11 +947,8 @@
       case 'booking':
         v = getBookingView(appState.selectedClassroom);
         break;
-      case 'confirm':
-        v = getConfirmationView();
-        break;
-      case 'editReservation':
-        v = getEditReservationView();
+      case 'reservationForm':
+        v = getReservationFormView(appState.editingReservationDetails ? 'edit' : 'new');
         break;
       case 'accounting':
         v = getAccountingView();
