@@ -61,7 +61,6 @@
     });
   }
 
-
   // =================================================================
   // --- Action Handlers ---
   // -----------------------------------------------------------------
@@ -73,6 +72,8 @@
     /** ログインまたは新規登録を開始します */
     login: () => {
       const p = document.getElementById('phone').value;
+      // 入力値をappStateに保存
+      appState.loginPhone = p;
       if (!p) return showInfo('電話番号を入力してください。');
       const n = p.replace(/[‐－-]/g, '').replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
       showLoading('login');
@@ -101,7 +102,6 @@
         .withSuccessHandler(r => {
           hideLoading();
           if (r.success) {
-            // 認証とデータ取得が一度で完了するため、ここで全ての状態を設定する
             setState({
               currentUser: r.user,
               slots: r.initialData.availableSlots,
@@ -113,7 +113,6 @@
               view: 'classroomSelect',
             });
           } else if (r.commandRecognized) {
-            // 特殊コマンド認識時のフロー。電話番号未登録ユーザーリスト表示へ
             setState({
               view: 'noPhoneUserSelect',
               noPhoneUsers: [],
@@ -123,10 +122,13 @@
           } else {
             // 認証失敗時
             if (r.phoneForRegistration) {
-              // 電話番号の形式は正しいが未登録の場合
+              // 新規登録画面に遷移する際、最新の電話番号をregistrationData.phoneにセット
+              appState.registrationData = {
+                ...appState.registrationData,
+                phone: r.phoneForRegistration || appState.loginPhone || n,
+              };
               setState({ view: 'register', phoneForRegistration: n });
             } else {
-              // 電話番号の形式自体が不正な場合など
               showInfo(
                 r.message || 'ログインに失敗しました。電話番号が登録されていないか、形式が正しくありません。',
                 'エラー',
@@ -142,25 +144,39 @@
     goToStep2: () => {
       const realName = document.getElementById('reg-realname').value;
       const nickname = document.getElementById('reg-nickname').value.trim();
-      if (!realName) return showInfo('お名前（本名）は必須です。');
-
-      const step1Data = {
-        phone: document.getElementById('reg-phone').value,
-        realName: realName,
+      const phone = document.getElementById('reg-phone').value;
+      // 入力値をappState.registrationDataに保存
+      appState.registrationData = {
+        ...appState.registrationData,
+        phone,
+        realName,
         nickname: nickname || realName,
       };
-
-      console.log('goToStep2: step1Data', step1Data);
+      if (!realName) return showInfo('お名前（本名）は必須です。');
       setState({
-        registrationData: { ...appState.registrationData, ...step1Data },
+        registrationData: { ...appState.registrationData },
         registrationStep: 2,
         view: 'registrationStep2',
       });
-      console.log('goToStep2: appState after setState', appState);
     },
 
     /** 新規ユーザー登録：Step2からStep1へ戻る */
     backToStep1: () => setState({ view: 'register', registrationStep: 1 }),
+    // Step2からStep1へ戻る時も入力値を保存
+    backToStep1: () => {
+      const realName = document.getElementById('reg-realname')?.value;
+      const nickname = document.getElementById('reg-nickname')?.value;
+      const phone = document.getElementById('reg-phone')?.value;
+      if (realName || nickname || phone) {
+        appState.registrationData = {
+          ...appState.registrationData,
+          realName: realName || appState.registrationData?.realName || '',
+          nickname: nickname || appState.registrationData?.nickname || '',
+          phone: phone || appState.registrationData?.phone || '',
+        };
+      }
+      setState({ view: 'register', registrationStep: 1 });
+    },
 
     /** 新規ユーザー登録：Step2からStep3へ進む */
     goToStep3: () => {
@@ -652,6 +668,12 @@
 
     /** ログイン画面に戻ります */
     goBackToLogin: () => setState({ view: 'login' }),
+    // 「戻る」時も電話番号入力値を保存
+    goBackToLogin: () => {
+      const phoneInput = document.getElementById('phone');
+      if (phoneInput) appState.loginPhone = phoneInput.value;
+      setState({ view: 'login' });
+    },
 
     /** ダッシュボード（メイン画面）に戻ります */
     goBackToClassroomSelect: () => setState({ view: 'classroomSelect' }),
@@ -1003,11 +1025,11 @@
       if (e.target.closest('#experience-radio-group')) {
         const container = document.getElementById('past-work-container');
         if (container) {
-            if (e.target.value === 'はじめて！') {
-                container.classList.add('hidden');
-            } else {
-                container.classList.remove('hidden');
-            }
+          if (e.target.value === 'はじめて！') {
+            container.classList.add('hidden');
+          } else {
+            container.classList.remove('hidden');
+          }
         }
       }
     });
