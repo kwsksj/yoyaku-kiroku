@@ -137,7 +137,23 @@ function getSlotsAndMyBookings(studentId) {
           earlyArrival: row[headerMap.get(HEADER_EARLY_ARRIVAL)] === true,
           firstLecture: row[headerMap.get(HEADER_FIRST_LECTURE)] === true,
           workInProgress: row[headerMap.get(HEADER_WORK_IN_PROGRESS)] || '',
-          order: row[headerMap.get(HEADER_ORDER)] || '',
+          order: row[headerMap.get(HEADER_ORDER)] || '', // 予約シートから取得
+          // 生徒名簿からも取得（上書き優先）
+          ...(function() {
+            try {
+              const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+              const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
+              const orderColIdx = rosterHeader.indexOf(HEADER_ORDER);
+              const studentIdColIdx = rosterHeader.indexOf(HEADER_STUDENT_ID);
+              const rosterData = rosterSheet.getDataRange().getValues();
+              for (let i = 1; i < rosterData.length; i++) {
+                if (rosterData[i][studentIdColIdx] === studentId) {
+                  return { order: rosterData[i][orderColIdx] || '' };
+                }
+              }
+            } catch (e) {}
+            return {};
+          })(),
           accountingDone: !!row[headerMap.get(HEADER_ACCOUNTING_DETAILS)],
           accountingDetails: row[headerMap.get(HEADER_ACCOUNTING_DETAILS)] || '',
         });

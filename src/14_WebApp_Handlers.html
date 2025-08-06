@@ -507,13 +507,13 @@
         reservationId: d.reservationId,
         classroom: d.classroom,
         studentId: appState.currentUser.studentId,
-        earlyArrival: document.getElementById('edit-option-hayade')?.checked || false,
-        chiselRental: document.getElementById('edit-option-rental')?.checked || false,
-        startTime: document.getElementById('edit-start-time')?.value || '',
-        endTime: document.getElementById('edit-end-time')?.value || '',
-        workInProgress: document.getElementById('edit-wip-input').value,
-        order: document.getElementById('edit-order-input').value,
-        messageToTeacher: document.getElementById('edit-message-input').value,
+        earlyArrival: document.getElementById('option-hayade')?.checked || false,
+        chiselRental: document.getElementById('option-rental')?.checked || false,
+        startTime: document.getElementById('start-time')?.value || '',
+        endTime: document.getElementById('end-time')?.value || '',
+        workInProgress: document.getElementById('wip-input').value,
+        order: document.getElementById('order-input').value,
+        messageToTeacher: document.getElementById('message-input').value,
       };
       showLoading('booking');
       google.script.run

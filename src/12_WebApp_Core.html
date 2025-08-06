@@ -324,6 +324,49 @@
 
   // =================================================================
   // --- General Utilities ---
+  /**
+   * 販売品マスタから物販チェックリスト（折り畳み可能）を生成する関数
+   * @param {Array} accountingMaster - 販売品マスタ
+   * @param {Array} checkedValues - チェック済み項目名配列（任意）
+   * @param {string} [title='販売品リスト'] - 見出しタイトル
+   * @returns {string} HTML文字列
+   */
+  function getCollapsibleSalesChecklistHtml(accountingMaster, checkedValues = [], title = '販売品リスト') {
+    const salesList = (accountingMaster || []).filter(item => item['種別'] === '物販');
+    if (!salesList.length) return '';
+    const checklistHtml = getSalesCheckboxListHtml(salesList, checkedValues);
+    return `
+    <details class="mt-4">
+      <summary class="cursor-pointer font-bold text-base py-2 px-3 bg-ui-surface border border-ui-border rounded hover:bg-ui-hover">${title} <span class="ml-2 text-sm text-brand-subtle">（クリックで展開）</span></summary>
+      <div class="pt-2">${checklistHtml}</div>
+    </details>
+  `;
+  }
+  /**
+   * 物販リストをチェックボックスで表示するHTMLを返す（再利用可能）
+   * @param {Array} salesList - 物販アイテム配列
+   * @param {Array} checkedValues - チェック済み項目名配列（任意）
+   * @returns {string} HTML文字列
+   */
+  function getSalesCheckboxListHtml(salesList, checkedValues = []) {
+    if (!salesList || salesList.length === 0) return '';
+    return `
+    <div class="mt-4 pt-4 border-t">
+      <label class="font-bold mb-2 block">購入希望（チェック可）</label>
+      <div class="grid grid-cols-2 gap-2">
+        ${salesList
+          .map(
+            item => `
+          <label class="flex items-center space-x-2">
+            <input type="checkbox" name="orderSales" value="${item['項目名']}" class="accent-action-primary-bg" ${checkedValues.includes(item['項目名']) ? 'checked' : ''}>
+            <span>${item['項目名']}${item['単価'] ? `（${item['単価']}円）` : ''}</span>
+          </label>
+        `,
+          )
+          .join('')}
+      </div>
+    </div>`;
+  }
   // -----------------------------------------------------------------
   // 日付のフォーマット、モーダルダイアログなど、
   // アプリ全体で汎用的に使用されるヘルパー関数群です。
@@ -505,7 +548,7 @@
         item['種別'] === '授業料' &&
         item['項目名'] === itemName &&
         item['対象教室'] &&
-        item['対象教室'].includes(classroom)
+        item['対象教室'].includes(classroom),
     );
   };
 

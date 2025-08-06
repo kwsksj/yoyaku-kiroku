@@ -428,7 +428,7 @@
                 ${Components.createInput({
                   id: `${nameIdPrefix}-nickname`,
                   label: 'ニックネーム（表示名）',
-                  caption:'他の生徒さんにも表示されます',
+                  caption: '他の生徒さんにも表示されます',
                   type: 'text',
                   value: nicknameValue,
                   placeholder: '空欄の場合はお名前',
@@ -978,11 +978,18 @@
 
     /**
      * 詳細入力欄のUIを生成します。
+     * 購入希望欄を折り畳み物販チェックリスト＋自由記入欄に変更
      */
     const _renderDetailsInputSection = () => {
       const firstTimeGuidance = `
         <p class="${DesignConfig.text.caption}">- 教室サイトの作例などは作りやすいです（特に「だるま」など）</p>
         <p class="${DesignConfig.text.caption}">- 作品のサイズや題材によりますが、**1回の参加では完成しない可能性があります**</p>`;
+
+      // 物販チェックリスト（折り畳み）
+      const salesChecklistHtml =
+        typeof getCollapsibleSalesChecklistHtml === 'function'
+          ? getCollapsibleSalesChecklistHtml(appState.accountingMaster)
+          : '';
 
       return `
         <div class="mt-4 pt-4 border-t space-y-4">
@@ -1005,10 +1012,32 @@
           ${isFirstTime ? firstTimeGuidance : ''}
         </div>
         <div class="mt-4 pt-4 border-t space-y-4">
-          ${Components.createInput({ id: 'order-input', label: '購入希望', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
+          ${salesChecklistHtml}
+          ${Components.createInput({ id: 'order-input', label: 'その他・自由記入（購入希望）', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
           ${Components.createTextArea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: message || '' })}
         </div>`;
     };
+    // 予約送信時にチェックされた物販をorderに渡す処理を追加
+    const _getSelectedSalesOrder = () => {
+      const checked = Array.from(document.querySelectorAll('input[name="orderSales"]:checked'));
+      return checked.map(cb => cb.value).join(', ');
+    };
+
+    // 送信ボタンのクリック時にorder値をセット
+    setTimeout(() => {
+      const submitBtn = document.querySelector('[data-action="confirmBooking"], [data-action="updateReservation"]');
+      if (submitBtn) {
+        submitBtn.addEventListener('click', () => {
+          const selectedOrder = _getSelectedSalesOrder();
+          const orderInput = document.getElementById('order-input');
+          if (orderInput) {
+            // 既存の自由記入とチェックリストを合成
+            const freeText = orderInput.value.trim();
+            orderInput.value = selectedOrder ? (freeText ? selectedOrder + ', ' + freeText : selectedOrder) : freeText;
+          }
+        });
+      }
+    }, 300);
 
     // --- 4. メインHTMLの組み立て ---
     let buttonsHtml = `
