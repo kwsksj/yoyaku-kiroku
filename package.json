@@ -31,6 +31,7 @@
   "homepage": "https://github.com/kwsksj/yoyaku-kiroku#readme",
   "description": "",
   "devDependencies": {
+    "@google/clasp": "^3.0.6-alpha",
     "@types/google-apps-script": "^1.0.99",
     "prettier": "^3.6.2"
   }
