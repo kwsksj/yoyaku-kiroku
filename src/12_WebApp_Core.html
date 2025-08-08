@@ -117,7 +117,7 @@
   // =================================================================
   const Components = {
     createButton: c =>
-      `<button data-action="${c.action || ''}" data-classroom="${c.classroom || ''}" data-classroom-name="${c.classroomName || ''}" data-date="${c.date || ''}" data-reservation-id="${c.reservationId || ''}" data-sheet-name="${c.sheetName || ''}" data-copy-text="${c.copyText || ''}" data-details='${c.details || ''}' data-student-id="${c.studentId || ''}" data-real-name="${c.realName || ''}" data-nickname="${c.nickname || ''}" class="${DesignConfig.buttons.base} ${c.widthClass || ''} ${c.colorClass}" ${c.disabled ? 'disabled' : ''}>${c.text}</button>`,
+      `<button type="button" data-action="${c.action || ''}" data-classroom="${c.classroom || ''}" data-classroom-name="${c.classroomName || ''}" data-date="${c.date || ''}" data-reservation-id="${c.reservationId || ''}" data-sheet-name="${c.sheetName || ''}" data-copy-text="${c.copyText || ''}" data-details='${c.details || ''}' data-student-id="${c.studentId || ''}" data-real-name="${c.realName || ''}" data-nickname="${c.nickname || ''}" class="${DesignConfig.buttons.base} ${c.widthClass || ''} ${c.colorClass}" ${c.disabled ? 'disabled' : ''}>${c.text}</button>`,
     createInput: c =>
       `<div class="${c.containerClass || ''} mb-4"><label for="${c.id}" class="${c.labelClass || 'block text-brand-text text-base font-bold mb-2'} ${c.isSrOnly ? 'sr-only' : ''}">${c.label}</label><input type="${c.type}" id="${c.id}" value="${c.value || ''}" class="${DesignConfig.inputs.base} ${c.inputClass || ''}" placeholder="${c.placeholder || ''}" ${c.required ? 'required' : ''} autocomplete="${c.autocomplete || 'off'}" ${c.step ? `step="${c.step}"` : ''}></div>`,
     createTextArea: c =>
