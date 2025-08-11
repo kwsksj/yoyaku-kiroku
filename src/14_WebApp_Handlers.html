@@ -745,6 +745,7 @@
    * 会計の確認モーダルを表示
    */
   actionHandlers.showAccountingConfirmation = () => {
+    console.log(appState);
     const accountingDetails = calculateAccountingDetails();
     if (!accountingDetails || accountingDetails.grandTotal <= 0) {
       showInfo('合計金額が0円です。項目を選択してください。');

@@ -192,7 +192,8 @@ function doGet(e) {
     return HtmlService.createTemplateFromFile('10_WebApp')
       .evaluate()
       .setTitle('きぼりの よやく・きろく')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
 }
 
