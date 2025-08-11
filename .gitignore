@@ -30,6 +30,7 @@ Thumbs.db
 # ==============================================================================
 .clasp.json
 .clasp.json.bak
+.clasp.config.json
 /dist
 /build
 

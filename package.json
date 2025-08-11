@@ -9,14 +9,18 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write \"**/*.{js,html,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,html,json,md}\"",
-    "format:src": "prettier --write \"src/**/*.{js,html}\"",
-    "lint": "echo \"Linting with VS Code...\"",
-    "dev:serve": "echo \"Live Server: 右クリックでHTMLファイルを'Open with Live Server'で開いてください\"",
-    "build:unified": "node tools/build-unified.js",
-    "dev:unified": "npm run build:unified && echo 'Live Serverで test/10_WebApp_Unified_Test.html を開いてください'",
-    "watch:unified": "node tools/watch-unified.js",
-    "dev:auto": "npm run watch:unified",
-    "precommit": "npm run format:check"
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix",
+    "check": "npm run format:check && npm run lint",
+    "build": "node tools/build-unified.js",
+    "watch": "node tools/watch-unified.js",
+    "switch:env": "node tools/switch-env.js",
+    "push:prod": "npm run switch:env -- prod && clasp push --force",
+    "push:test": "npm run switch:env -- test && clasp push --force",
+    "deploy:prod": "npm run switch:env -- prod && clasp push --force && clasp deploy",
+    "deploy:test": "npm run switch:env -- test && clasp push --force && clasp deploy",
+    "open:dev:prod": "npm run switch:env -- prod && clasp push --force && clasp open-web-app",
+    "open:dev:test": "npm run switch:env -- test && clasp push --force && clasp open-web-app"
   },
   "repository": {
     "type": "git",
@@ -31,7 +35,9 @@
   "homepage": "https://github.com/kwsksj/yoyaku-kiroku#readme",
   "description": "",
   "devDependencies": {
+    "@google/clasp": "^3.0.6-alpha",
     "@types/google-apps-script": "^1.0.99",
+    "eslint": "^9.33.0",
     "prettier": "^3.6.2"
   }
 }

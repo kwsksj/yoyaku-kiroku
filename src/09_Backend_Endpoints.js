@@ -46,7 +46,7 @@ function getInitialWebApp_Data(studentId) {
 
         if (studentIdCol !== undefined) {
           // 該当ユーザーの行を検索
-          const userRow = rosterData.slice(1).find((row) => row[studentIdCol] === studentId);
+          const userRow = rosterData.slice(1).find(row => row[studentIdCol] === studentId);
 
           if (userRow) {
             // --- 【NF-12】予約キャッシュの取得 ---
@@ -184,8 +184,8 @@ function getAvailableSlotsFromSummary(ss) {
     // サマリーシートから直接予約枠データを構築
     return summaryData
       .slice(1)
-      .filter((row) => row[summaryHeaderMap.get(HEADER_DATE)] instanceof Date)
-      .map((row) => ({
+      .filter(row => row[summaryHeaderMap.get(HEADER_DATE)] instanceof Date)
+      .map(row => ({
         classroom: row[summaryHeaderMap.get(HEADER_SUMMARY_CLASSROOM)],
         date: Utilities.formatDate(
           row[summaryHeaderMap.get(HEADER_DATE)],

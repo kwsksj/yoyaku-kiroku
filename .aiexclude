@@ -55,6 +55,7 @@ completed-tasks/
 jsconfig.json
 .clasp.json
 .clasprc.json
+.clasp.config.json
 
 # Google Apps Script関連の自動生成ファイル
 .clasp/

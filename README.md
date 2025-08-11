@@ -38,22 +38,50 @@ docs/                  # 詳細ドキュメント
 
 ### GAS環境テスト（バックエンド）
 
-## 🔧 **開発コマンド**
+## 🔧 開発コマンド
 
-```bash
-# コードフォーマット
-npm run format              # 全ファイル一括
-npm run format:src          # srcフォルダのみ
-npm run format:check        # フォーマット確認
+プロジェクトのビルド、テスト、デプロイ、コード品質管理に使用するスクリプトです。
 
-```
+### ローカル開発
+
+- `npm run build`
+  - `src`内のWebアプリ関連ファイルを`test/10_WebApp_Unified_Test.html`に統合し、ローカルでのテスト環境を構築します。
+
+- `npm run watch`
+  - `src`内のファイルの変更を監視し、変更があるたびに自動で`npm run build`を実行します。ローカルでの開発時に便利です。
+
+### デプロイ (本番/テスト環境)
+
+**セットアップ:**
+最初に `clasp.config.json` ファイルに、本番用(`prod`)とテスト用(`test`)の `deploymentId` を設定してください。
+
+- `npm run push:prod` / `npm run push:test`
+  - 指定した環境（本番/テスト）にソースコードをプッシュ（アップロード）します。
+
+- `npm run deploy:prod` / `npm run deploy:test`
+  - 指定した環境にソースコードをプッシュし、Webアプリとしてデプロイを更新します。ユーザーに影響があるのはこのコマンドです。
+
+- `npm run open:dev:prod` / `npm run open:dev:test`
+  - 指定した環境に最新コードを**プッシュ**し、開発用URL（`clasp open-web-app`で開かれるURL）をブラウザで開きます。`deploy`コマンドを実行せずに最新コードを素早く確認したい場合に使用します。GASエディタの「デプロイをテスト」に相当します。
+
+### コード品質
+
+- `npm run check`
+  - `prettier`によるフォーマットチェックと`eslint`による静的解析をまとめて実行します。
+
+- `npm run format`
+  - `prettier`を使い、プロジェクト全体のコードを自動でフォーマットします。
+
+- `npm run lint` / `npm run lint:fix`
+  - `eslint`を使い、コードの静的解析と自動修正を実行します。
 
 ## ⚙️ **設定ファイル**
 
 - `.prettierrc.json` - コードフォーマット設定
 - `jsconfig.json` - JavaScript/TypeScript設定
 - `.vscode/settings.json` - VS Code設定
-- `.clasp.json` - GAS同期設定（`skipSubdirectories: true`）
+- `.clasp.json` - GAS同期設定
+- `.clasp.config.json` - テスト環境・本番環境のプッシュ・デプロイ設定
 - `.copilotignore` / `.aiexclude` - AI支援除外設定
 
 ## 📚 **詳細ドキュメント**

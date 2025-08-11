@@ -166,7 +166,6 @@ const ITEM_NAME_DISCOUNT = '初回講習同時間割引';
 const UNIT_30_MIN = '30分';
 const UNIT_CM3 = 'cm³';
 
-
 /**
  * HTMLテンプレートのサブファイルをテンプレート評価の文脈で読み込むためのinclude関数
  * @param {string} filename - 読み込むHTMLファイル名（拡張子不要）
