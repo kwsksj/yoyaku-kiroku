@@ -805,7 +805,7 @@
                   'danger-border': '#FECACA',
                   'danger-hover': '#FEE2E2',
                 },
-                ui: {
+                                  ui: {
                   border: '#E4CDBA',
                   'border-light': '#F5F1ED',
                   surface: '#FFFFFF',
@@ -818,6 +818,8 @@
                   'warning-bg': '#FFFBEB',
                   'warning-border': '#FDE68A',
                   'link-text': '#0369A1',
+                  'weekend-sunday': '#B91C1C',
+                  'weekend-saturday': '#0369A1',
                 },
               },
             },
@@ -989,7 +991,7 @@
 
   const Components = {
     createButton: c =>
-      `<button
+      `<button type="button"
         data-action="${escapeHTML(c.action || '')}"
         data-classroom="${escapeHTML(c.classroom || '')}"
         data-classroom-name="${escapeHTML(c.classroomName || '')}"
@@ -1249,8 +1251,8 @@
     if (isNaN(d)) return '';
     d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
     const day = d.getDay();
-    const wd = ['日', '月', '火', '水', '木', '金', '土'];
-    return `${d.getMonth() + 1}/${d.getDate()} <span class="font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day]}</span>`;
+    const wd = ['日', '月', '火', '水', '木', '金', '土'];    return `${d.getMonth() + 1}/${d.getDate()} <span class="font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day]}</span>`;
+
   };
   const showModal = c => {
     const m = document.getElementById('custom-modal'),
@@ -2350,13 +2352,82 @@
   const getEditProfileView = () => getUserFormView({ mode: 'edit' });
 
   /**
+   * 予約スロットのリストからHTMLを生成します。
+   * この関数は getBookingView と getCompleteView で共有されます。
+   * @param {Array<object>} slots - 表示する予約スロットの配列
+   * @returns {string} HTML文字列
+   */
+  const renderBookingSlots = slots => {
+    if (!slots || slots.length === 0) {
+      return '';
+    }
+
+    // `getCompleteView`で使われている`groupSlotsByMonth`を利用
+    const slotsByMonth = groupSlotsByMonth(slots);
+
+    return Object.keys(slotsByMonth)
+      .sort((a, b) => a - b)
+      .map(month => {
+        const monthHeader = `<h4 class="text-lg font-medium ${DesignConfig.colors.textSubtle} mt-4 mb-2 text-center">${month}月</h4>`;
+        
+        const slotsHtml = slotsByMonth[month]
+          .map(sl => {
+            const iB = appState.myBookings.some(b => b.date === sl.date && b.classroom === sl.classroom);
+            let cC, sB, act;
+            const tag = iB ? 'div' : 'button';
+
+            let statusText;
+            if (typeof sl.morningSlots !== 'undefined') {
+              statusText = `午前 ${sl.morningSlots} | 午後 ${sl.afternoonSlots}`;
+            } else {
+              statusText = `空き ${sl.availableSlots}`;
+            }
+
+            if (iB) {
+              // 予約済みの場合
+              if (sl.isWaiting) {
+                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
+                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
+              } else {
+                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
+                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`;
+              }
+              act = '';
+            } else if (sl.isFull || sl.availableSlots === 0 || (sl.morningSlots === 0 && sl.afternoonSlots === 0)) {
+              // 満席（キャンセル待ち）の場合
+              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
+              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
+              act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
+            } else {
+              // 予約可能な場合
+              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
+              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
+              act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
+            }
+            
+            const venueDisplay = sl.venue ? ` ${sl.venue}` : '';
+            const text = `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(sl.date)}${venueDisplay}</span>${sB}</div>`;
+            
+            // getBookingViewのロジックをベースに、buttonとdivを使い分ける
+            return `<${tag} ${act} class="${cC}">${text}</${tag}>`;
+          })
+          .join('');
+          
+        return monthHeader + slotsHtml;
+      })
+      .join('');
+  };
+
+  /**
    * 特定の教室の予約枠一覧画面のUIを生成します。
    * @param {string} c - 教室名
    * @returns {string} HTML文字列
    */
   const getBookingView = c => {
     const s = appState.slots.filter(sl => sl.classroom === c && sl.session !== '初回講習');
-    if (s.length === 0) {
+    const bHtml = renderBookingSlots(s);
+
+    if (!bHtml) {
       return `
             <div class="max-w-md mx-auto">
                 <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${c}</h1>
@@ -2366,48 +2437,7 @@
                 </div>
             </div>`;
     }
-    let currentMonth = null;
-    const bHtml = s
-      .map(sl => {
-        const slotDate = new Date(sl.date);
-        const month = slotDate.getMonth() + 1;
-        let monthHeader = '';
-        if (month !== currentMonth) {
-          monthHeader = `<h3 class="text-xl font-medium text-brand-subtle mt-6 mb-2 text-center">${month}月</h3>`;
-          currentMonth = month;
-        }
-        const iB = appState.myBookings.some(b => b.date === sl.date && b.classroom === sl.classroom);
-        let cC,
-          sB,
-          tag = 'button',
-          act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
-        let statusText;
-        if (typeof sl.morningSlots !== 'undefined') {
-          statusText = `午前 ${sl.morningSlots} | 午後 ${sl.afternoonSlots}`;
-        } else {
-          statusText = `空き ${sl.availableSlots}`;
-        }
-        if (iB) {
-          if (sl.isWaiting) {
-            cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-            sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
-          } else {
-            cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
-            sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`;
-          }
-          tag = 'div';
-          act = '';
-        } else if (sl.isFull || sl.availableSlots === 0 || (sl.morningSlots === 0 && sl.afternoonSlots === 0)) {
-          cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-          sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
-        } else {
-          cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
-          sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
-        }
-        const venueDisplay = sl.venue ? ` ${sl.venue}` : '';
-        return `${monthHeader}<${tag} ${act} class="${cC}"><div class="flex justify-between items-center"><span class="${DesignConfig.colors.text}">${formatDate(sl.date)}${venueDisplay}</span>${sB}</div></${tag}>`;
-      })
-      .join('');
+    
     return `
         <div class="max-w-md mx-auto">
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${c}</h1>
@@ -2623,6 +2653,21 @@
 
     const venueDisplay = venue ? ` ${venue}` : '';
 
+    const _renderOpeningHoursHtml = () => {
+      if (!tuitionItemRule) {
+        return '<span class="text-ui-error-text">開講時間未設定</span>';
+      }
+      const startTime = tuitionItemRule['講座開始'] || '';
+      const endTime = tuitionItemRule['講座終了'] || '';
+      const breakStart = tuitionItemRule['休憩開始'] || '';
+      const breakEnd = tuitionItemRule['休憩終了'] || '';
+
+      if (breakStart && breakEnd) {
+        return `${startTime} ~ ${breakStart} ,  ${breakEnd} ~ ${endTime}`;
+      }
+      return `${startTime} ~ ${endTime}`;
+    };
+
     // --- Main View Assembly ---
     return `
       <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${title}</h1>
@@ -2631,7 +2676,7 @@
         <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venueDisplay}</p>
         <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(date)}</p>
         <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
-        <p><span class="font-bold w-20 inline-block">開講時間:</span>${tuitionItemRule['講座開始']} ~ ${tuitionItemRule['休憩開始'] || ''}${tuitionItemRule['休憩開始'] ? ' ,  ' : ''}  ${tuitionItemRule['休憩終了'] || ''}${tuitionItemRule['休憩終了'] ? ' ~ ' : ''}${tuitionItemRule['講座終了']}</p>
+        <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
         ${_renderTimeOptionsSection()}
         ${_renderBookingOptionsSection()}
         ${_renderDetailsInputSection()}
@@ -2655,39 +2700,14 @@
     if (classroom && appState.slots) {
       // 新しいユーティリティ関数を使用してスロットをフィルタリング
       const relevantSlots = filterFutureAvailableSlots(appState.slots, classroom);
+      const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
-      if (relevantSlots.length > 0) {
-        // getBookingViewと同様のロジックで予約カードのHTMLを生成
-        const slotsByMonth = groupSlotsByMonth(relevantSlots);
-
+      if (bookingSlotsHtml) {
         nextBookingHtml = `
           <div class="mt-10 pt-6 border-t border-gray-200">
               <h3 class="text-xl font-bold text-brand-text text-center mb-4">次回の予約</h3>
               <div class="${DesignConfig.cards.container}">
-              ${Object.keys(slotsByMonth)
-                .sort((a, b) => a - b)
-                .map(month => {
-                  const monthHeader = `<h4 class="text-lg font-medium ${DesignConfig.colors.textSubtle} mt-4 mb-2 text-center">${month}月</h4>`;
-                  const slotsHtml = slotsByMonth[month]
-                    .map(sl => {
-                      let statusText = `空き ${sl.availableSlots}`;
-                      if (typeof sl.morningSlots !== 'undefined') {
-                        statusText = `午前 ${sl.morningSlots} | 午後 ${sl.afternoonSlots}`;
-                      }
-                      const sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
-                      const venueDisplay = sl.venue ? ` ${sl.venue}` : '';
-                      return Components.createButton({
-                        action: 'bookSlot',
-                        classroom: sl.classroom,
-                        date: sl.date,
-                        text: `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(sl.date)}${venueDisplay}</span>${sB}</div>`,
-                        colorClass: `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`,
-                      });
-                    })
-                    .join('');
-                  return monthHeader + slotsHtml;
-                })
-                .join('')}
+              ${bookingSlotsHtml}
               </div>
           </div>`;
       }
@@ -3559,6 +3579,7 @@
    * 会計の確認モーダルを表示
    */
   actionHandlers.showAccountingConfirmation = () => {
+    console.log(appState);
     const accountingDetails = calculateAccountingDetails();
     if (!accountingDetails || accountingDetails.grandTotal <= 0) {
       showInfo('合計金額が0円です。項目を選択してください。');

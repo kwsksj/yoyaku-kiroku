@@ -26,7 +26,7 @@ console.log('⏹️  終了するには Ctrl+C を押してください\n');
 // 初回統合
 console.log('🚀 初回統合を実行...');
 try {
-  execSync('npm run build:unified', { stdio: 'inherit' });
+  execSync('npm run build', { stdio: 'inherit' });
   console.log('✅ 初回統合完了\n');
 } catch (error) {
   console.error('❌ 初回統合に失敗:', error.message);

@@ -11,7 +11,7 @@
    * 【構成】: 14ファイル構成のうちの12番目
    * 【v1.2での変更点】:
    * - リファクタリング: 日付・スロット処理の共通ユーティリティ関数を追加。
-   * - filterFutureAvailableSlots, groupSlotsByMonth 関数を新規追加。
+   * - filterFutureSlots, groupSlotsByMonth 関数を新規追加。
    * - コードの可読性とメンテナンス性を向上。
    * =================================================================
    */
@@ -451,7 +451,7 @@
    * @param {string} classroom - 教室名
    * @returns {Array} フィルタリングされたスロット配列
    */
-  const filterFutureAvailableSlots = (slots, classroom) => {
+  const filterFutureSlots = (slots, classroom) => {
     if (!slots || !classroom) return [];
 
     const today = new Date();
@@ -460,7 +460,7 @@
     return slots.filter(s => {
       const slotDate = new Date(s.date);
       slotDate.setMinutes(slotDate.getMinutes() + slotDate.getTimezoneOffset());
-      return s.classroom === classroom && slotDate >= today && !s.isFull && s.session !== '初回講習';
+      return s.classroom === classroom && slotDate >= today && s.session !== '初回講習';
     });
   };
 
