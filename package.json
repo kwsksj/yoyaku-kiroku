@@ -19,8 +19,8 @@
     "push:test": "npm run switch:env -- test && clasp push --force",
     "deploy:prod": "npm run switch:env -- prod && clasp push --force && clasp deploy",
     "deploy:test": "npm run switch:env -- test && clasp push --force && clasp deploy",
-    "open:dev:prod": "npm run switch:env -- prod && clasp push --force && clasp open-web-app",
-    "open:dev:test": "npm run switch:env -- test && clasp push --force && clasp open-web-app"
+    "open:dev:prod": "npm run switch:env -- prod && clasp push --force && node tools/open-dev-url.js prod",
+    "open:dev:test": "npm run switch:env -- test && clasp push --force && node tools/open-dev-url.js test"
   },
   "repository": {
     "type": "git",
