@@ -84,6 +84,17 @@ for (const sourceFile of sourceFiles) {
 // GASスクリプトレット（<?= ... ?>）を統合されたコードで置換
 let unifiedContent = templateContent;
 
+// frontend-test.js の内容を取得
+const frontendTestPath = path.join(__dirname, 'frontend-test.js');
+let frontendTestContent = '';
+try {
+  frontendTestContent = fs.readFileSync(frontendTestPath, 'utf-8');
+  console.log('✅ frontend-test.js を読み込みました:', frontendTestPath);
+} catch (error) {
+  console.error('❌ frontend-test.js の読み込みに失敗:', error.message);
+  // テストスクリプトがなくても続行
+}
+
 // その他の動的読み込み部分も置換
 unifiedContent = unifiedContent.replace(
   /<!-- GAS環境用のJavaScriptファイル読み込み（テンプレート評価対応） -->[\s\S]*?<\/script>/,
@@ -109,8 +120,17 @@ unifiedContent = unifiedContent.replace(
         } else if (typeof render === 'function') {
           render();
         }
+      }, 100);
 
-       }, 100);
+      // ======= frontend-test.js (自動テスト) =======
+      try {
+        (function(){
+        ${frontendTestContent.replace(/<script>|<\/script>/g, '').replace(/^[ \t]*\/\/.*$/gm, '')}
+        })();
+      } catch(e) {
+        console.error('自動テストスクリプトの実行エラー:', e);
+      }
+      // ======= /frontend-test.js =======
     </script>`,
 );
 

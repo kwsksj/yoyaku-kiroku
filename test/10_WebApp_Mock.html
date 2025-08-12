@@ -14,6 +14,62 @@
   if (typeof window !== 'undefined' && !window.google) {
     console.log('[TEST] ブラウザ環境を検出しました');
 
+    // テスト用ユーティリティ
+    window.MockTestUtils = {
+      resetBookings: function () {
+        window.MockData.myBookings = [
+          {
+            reservationId: 'RES001',
+            date: '2025-08-05',
+            time: '09:00-12:00',
+            classroom: '東京教室',
+            venue: '東京スタジオ',
+            teacher: '山田先生',
+            studentId: 'TEST001',
+            studentName: 'テスト太郎',
+            status: 'confirmed',
+            accountingDone: false,
+            accountingDetails: null,
+          },
+        ];
+      },
+      addDummyBooking: function () {
+        window.MockData.myBookings.push({
+          reservationId: 'RES' + Date.now(),
+          date: '2025-08-15',
+          time: '13:00-16:00',
+          classroom: 'つくば教室',
+          venue: 'つくばスタジオ',
+          teacher: '鈴木先生',
+          studentId: 'TEST001',
+          studentName: 'テスト太郎',
+          status: 'confirmed',
+          accountingDone: false,
+          accountingDetails: null,
+        });
+      },
+      setNoSlots: function () {
+        window.MockData.slots.forEach(slot => (slot.availableSlots = 0));
+      },
+      setUserNotFound: function () {
+        window.MockData.currentUser = null;
+      },
+      resetUser: function () {
+        window.MockData.currentUser = {
+          studentId: 'TEST001',
+          nickname: 'テストユーザー',
+          realName: '山田太郎',
+          phone: '09012345678',
+        };
+      },
+      forceApiFailure: function (apiName) {
+        window.MockTestUtils._failApi = apiName;
+      },
+      clearApiFailure: function () {
+        window.MockTestUtils._failApi = null;
+      },
+      _failApi: null,
+    };
     // モックデータの定義
     window.MockData = {
       currentUser: {
@@ -97,12 +153,12 @@
         { 種別: '授業料', 項目名: '本講座', 単価: 6600, 単位: '回', 対象教室: '東京教室' },
 
         // 授業料 - つくば教室
-        { 種別: '授業料', 項目名: '30分あたり', 単価: 600, 単位: '30分', 対象教室: 'つくば教室' },
+        { 種別: '授業料', 項目名: '本講座', 単価: 600, 単位: '30分', 対象教室: 'つくば教室' },
         { 種別: '授業料', 項目名: '初回講習', 単価: 600, 単位: '30分', 対象教室: 'つくば教室' },
         { 種別: '授業料', 項目名: '初回講習同時間割引', 単価: -300, 単位: '30分', 対象教室: 'つくば教室' },
 
         // 授業料 - 沼津教室
-        { 種別: '授業料', 項目名: '30分あたり', 単価: 600, 単位: '30分', 対象教室: '沼津教室' },
+        { 種別: '授業料', 項目名: '本講座', 単価: 600, 単位: '30分', 対象教室: '沼津教室' },
         { 種別: '授業料', 項目名: '初回講習', 単価: 600, 単位: '30分', 対象教室: '沼津教室' },
         { 種別: '授業料', 項目名: '初回講習同時間割引', 単価: -300, 単位: '30分', 対象教室: '沼津教室' },
 
@@ -195,243 +251,45 @@
     // モック関数の生成
     function createMockFunctions(successCallback, failureCallback) {
       const mockFunctions = {};
+      // window上の関数名からAPI名を動的抽出
+      const apiNames = Object.keys(window).filter(
+        key => typeof window[key] === 'function' && /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key),
+      );
 
-      const gasFunctions = [
-        'authenticateUser',
-        'getInitialWebApp_Data',
-        'getReservationDetails',
-        'registerNewUser',
-        'updateUserProfile',
-        'makeReservationAndGetLatestData',
-        'cancelReservationAndGetLatestData',
-        'makeAccountingAndGetLatestData',
-        'saveAccountingDetails',
-        'searchNoPhoneUsersByFilterForWebApp',
-        'updateHistoryMemoAndGetData',
-        'editProfileAndGetData',
-        'removeAccountingItemFromPendingAndGetData',
-      ];
+      apiNames.forEach(funcName => {
+        mockFunctions[funcName] = window[funcName];
+      });
 
-      gasFunctions.forEach(funcName => {
-        mockFunctions[funcName] = function (...args) {
-          console.log(`[MOCK] ${funcName} called with:`, args);
-
-          let response;
-          switch (funcName) {
-            case 'authenticateUser':
-              response = {
-                success: true,
-                user: window.MockData.currentUser,
-                initialData: {
-                  availableSlots: window.MockData.slots,
-                  myBookings: window.MockData.myBookings,
-                  accountingMaster: window.MockData.accountingMaster,
-                  myHistory: window.MockData.history,
-                },
-              };
-              break;
-            case 'getInitialWebApp_Data':
-              response = {
-                success: true,
-                user: window.MockData.currentUser,
-                initialData: {
-                  availableSlots: window.MockData.slots,
-                  myBookings: window.MockData.myBookings,
-                  accountingMaster: window.MockData.accountingMaster,
-                  myHistory: window.MockData.history,
-                },
-              };
-              break;
-            case 'getReservationDetails':
-              const reservationData = args[0] || {};
-              const classroom = reservationData.classroom || '東京教室';
-              const tuitionItems = window.MockData.accountingMaster.filter(
-                item => item['種別'] === '授業料' && (item['対象教室'] === classroom || item['対象教室'] === '共通'),
-              );
-              const salesItems = window.MockData.accountingMaster.filter(
-                item => item['種別'] === '物販' && item['対象教室'] === '共通',
-              );
-              const materialItems = window.MockData.accountingMaster.filter(
-                item => item['種別'] === '材料' && item['対象教室'] === '共通',
-              );
-              response = {
-                success: true,
-                details: {
-                  currentBookings: window.MockData.myBookings,
-                  pendingAccountingItems: [],
-                  accountingMaster: window.MockData.accountingMaster,
-                  tuitionItems: tuitionItems,
-                  salesItems: salesItems,
-                  materialItems: materialItems,
-                  selectedClassroom: classroom,
-                  myHistory: window.MockData.history,
-                },
-              };
-              break;
-            case 'registerNewUser':
-              const [newUserData] = args;
-              const newUser = {
-                studentId: 'NEW_USER_' + Date.now(),
-                realName: newUserData.realName,
-                displayName: newUserData.nickname,
-                phone: newUserData.phone,
-              };
-              // 新規ユーザーをcurrentUserに反映
-              window.MockData.currentUser = newUser;
-              response = {
-                success: true,
-                message: 'ユーザー登録が完了しました',
-                user: newUser,
-              };
-              break;
-            case 'updateUserProfile':
-              const [profileUpdateData] = args;
-              Object.assign(window.MockData.currentUser, profileUpdateData);
-              response = {
-                success: true,
-                message: 'プロフィールを更新しました',
-                user: window.MockData.currentUser,
-              };
-              break;
-            case 'makeReservationAndGetLatestData':
-              const [slotData] = args;
-              const newBooking = {
-                reservationId: 'RES' + Date.now(),
-                date: slotData.date,
-                time: slotData.time || '09:00-12:00',
-                classroom: slotData.classroom,
-                venue: slotData.venue || slotData.classroom + 'スタジオ',
-                teacher: slotData.teacher || '講師',
-                studentId: window.MockData.currentUser.studentId,
-                studentName: window.MockData.currentUser.realName,
-                status: 'confirmed',
-                accountingDone: false,
-                accountingDetails: null,
-                workInProgress: '',
-              };
-              window.MockData.myBookings.push(newBooking);
-              response = {
-                success: true,
-                message: '予約が完了しました',
-                availableSlots: window.MockData.slots,
-                myBookings: window.MockData.myBookings,
-                accountingMaster: window.MockData.accountingMaster,
-              };
-              break;
-            case 'cancelReservationAndGetLatestData':
-              const [cancelData] = args;
-              const beforeCount = window.MockData.myBookings.length;
-              window.MockData.myBookings = window.MockData.myBookings.filter(booking => {
-                if (cancelData.reservationId) {
-                  return booking.reservationId !== cancelData.reservationId;
-                } else {
-                  return !(booking.date === cancelData.date && booking.time === cancelData.time);
-                }
-              });
-              const canceled = beforeCount > window.MockData.myBookings.length;
-              response = {
-                success: canceled,
-                message: canceled ? '予約をキャンセルしました' : '対象の予約が見つかりませんでした',
-                availableSlots: window.MockData.slots,
-                myBookings: window.MockData.myBookings,
-                accountingMaster: window.MockData.accountingMaster,
-              };
-              break;
-            case 'makeAccountingAndGetLatestData':
-              const [accountingData] = args;
-              const newAccountingRecord = {
-                date: new Date().toISOString().split('T')[0],
-                studentId: window.MockData.currentUser.studentId,
-                studentName: window.MockData.currentUser.realName,
-                amount: accountingData.amount || 1000,
-                items: accountingData.items || ['テスト項目'],
-                status: 'completed',
-              };
-              window.MockData.history.push(newAccountingRecord);
-              response = {
-                success: true,
-                message: '会計処理が完了しました',
-                myHistory: window.MockData.history,
-                accountingMaster: window.MockData.accountingMaster,
-              };
-              break;
-            case 'saveAccountingDetails':
-              const [saveAccountingData] = args;
-              const targetBooking = window.MockData.myBookings.find(
-                booking => booking.reservationId === saveAccountingData.reservationId,
-              );
-              if (targetBooking) {
-                targetBooking.accountingDone = true;
-                targetBooking.accountingDetails = JSON.stringify(saveAccountingData.details || {});
-              }
-              const detailedRecord = {
-                date: new Date().toISOString().split('T')[0],
-                studentId: window.MockData.currentUser.studentId,
-                studentName: window.MockData.currentUser.realName,
-                reservationId: saveAccountingData.reservationId,
-                details: saveAccountingData.details,
-                totalAmount: saveAccountingData.totalAmount || 0,
-                status: 'completed',
-              };
-              window.MockData.history.push(detailedRecord);
-              response = {
-                success: true,
-                message: '会計詳細が保存されました',
-                myBookings: window.MockData.myBookings,
-                myHistory: window.MockData.history,
-              };
-              break;
-            case 'searchNoPhoneUsersByFilterForWebApp':
-              response = {
-                success: true,
-                users: [
-                  { studentId: 'NO_PHONE_001', realName: '未登録太郎', displayName: '未登録ユーザー1' },
-                  { studentId: 'NO_PHONE_002', realName: '未登録花子', displayName: '未登録ユーザー2' },
-                ],
-              };
-              break;
-            case 'updateHistoryMemoAndGetData':
-              const [memoData] = args;
-              // historyの該当項目にmemoを追加
-              const targetHistory = window.MockData.history.find(h => h.date === memoData.date);
-              if (targetHistory) targetHistory.memo = memoData.memo;
-              response = {
-                success: true,
-                message: 'メモを更新しました',
-                myHistory: window.MockData.history,
-              };
-              break;
-            case 'editProfileAndGetData':
-              const [profileData] = args;
-              Object.assign(window.MockData.currentUser, profileData);
-              response = {
-                success: true,
-                message: 'プロフィールを更新しました',
-                user: window.MockData.currentUser,
-              };
-              break;
-            case 'removeAccountingItemFromPendingAndGetData':
-              const [removeData] = args;
-              // accountingMasterから該当項目を削除
-              window.MockData.accountingMaster = window.MockData.accountingMaster.filter(
-                item => item.項目名 !== removeData.itemName,
-              );
-              response = {
-                success: true,
-                message: '項目を削除しました',
-                accountingMaster: window.MockData.accountingMaster,
-              };
-              break;
-            default:
-              response = { success: true, message: `Mock response for ${funcName}` };
-          }
-
-          setTimeout(() => {
-            if (successCallback) {
-              successCallback(response);
+      // authenticateUser など、windowに存在しない場合のみ最低限のモックを提供
+      const requiredMocks = ['authenticateUser'];
+      requiredMocks.forEach(funcName => {
+        if (!mockFunctions[funcName]) {
+          mockFunctions[funcName] = function (...args) {
+            console.log(`[MOCK] ${funcName} called with:`, args);
+            let response;
+            switch (funcName) {
+              case 'authenticateUser':
+                response = {
+                  success: true,
+                  user: window.MockData.currentUser,
+                  initialData: {
+                    availableSlots: window.MockData.slots,
+                    myBookings: window.MockData.myBookings,
+                    accountingMaster: window.MockData.accountingMaster,
+                    myHistory: window.MockData.history,
+                  },
+                };
+                break;
+              default:
+                response = { success: true, message: `Mock response for ${funcName}` };
             }
-          }, 100);
-        };
+            setTimeout(() => {
+              if (successCallback) {
+                successCallback(response);
+              }
+            }, 100);
+          };
+        }
       });
 
       return mockFunctions;
