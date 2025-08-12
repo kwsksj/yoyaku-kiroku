@@ -54,7 +54,7 @@ watchFiles.forEach(filename => {
         debounceTimer = setTimeout(() => {
           console.log('🔄 自動統合を実行中...');
           try {
-            execSync('npm run build:unified', { stdio: 'inherit' });
+            execSync('npm run build', { stdio: 'inherit' });
             console.log('✅ 自動統合完了\n');
           } catch (error) {
             console.error('❌ 自動統合に失敗:', error.message);

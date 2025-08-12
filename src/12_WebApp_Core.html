@@ -125,7 +125,7 @@
    * @param {string} str エスケープする文字列
    * @returns {string} エスケープされた文字列
    */
-  const escapeHTML = str => {
+  window.escapeHTML = str => {
     if (typeof str !== 'string') {
       return str;
     }
