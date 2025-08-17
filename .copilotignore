@@ -50,7 +50,7 @@ build/
 out/
 
 # 完了済みタスクディレクトリ（設計書やドキュメントが含まれており、コード補完には不要）
-completed-tasks/
+archive/
 
 # 設定ファイル（プロジェクト固有の設定で補完不要）
 jsconfig.json

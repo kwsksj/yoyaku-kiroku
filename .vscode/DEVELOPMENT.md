@@ -36,7 +36,7 @@
 ### GitHub Copilot
 
 - `.copilotignore` で不要ファイルを除外
-- `completed-tasks/`, `node_modules/` 等は提案から除外
+- `archive/`, `node_modules/` 等は提案から除外
 - `src/gas-tests/` は提案に含む（開発支援）
 
 ### Gemini Code Assist
