@@ -60,11 +60,16 @@ The project uses a numbered file naming convention in `src/`:
 
 The system uses Google Sheets with these main sheets:
 
-- **Reservation sheets** (per classroom): Main reservation data with student info, dates, attendance
-- **生徒名簿 (Student Roster)**: Master student data with caching for performance
-- **料金・商品マスタ (Pricing Master)**: Fee structures and product definitions
-- **予約サマリー (Reservation Summary)**: Aggregated availability data
-- **アクティビティログ (Activity Log)**: User action tracking
+- **Reservation sheets** (per classroom): Main reservation data with student info, dates, attendance, accounting details
+- **生徒名簿 (Student Roster)**: Comprehensive 36-column student master data including:
+  - Basic info (ID, name, phone, email)
+  - Participation counts per classroom
+  - Profile information (age, gender, address, tools rental)
+  - Wood carving experience and preferences
+  - Communication notes and cache data (bookings cache, yearly participation records)
+- **料金・商品マスタ (Pricing Master)**: Complete fee structures with time-based billing, materials, sales items
+- **予約サマリー (Reservation Summary)**: Real-time aggregated availability data for form integration
+- **アクティビティログ (Activity Log)**: Comprehensive user action tracking and system audit trail
 
 ### Build System
 
@@ -90,10 +95,22 @@ The system uses Google Sheets with these main sheets:
 
 ## Important Notes
 
+### Development Practices
 - Never edit the unified test HTML directly - always edit source files in `src/`
-- The system uses Google Sheets as database - be careful with data operations
-- Cache management is critical for performance - understand cache update mechanisms
-- All user actions are logged to activity log sheet for auditing
-- The web app supports both time-based and session-based billing models
-- Use `SS_MANAGER` global instance for spreadsheet operations to benefit from caching
+- Run `npm run check` before committing to ensure code quality
+- Use `SS_MANAGER` global instance for all spreadsheet operations to benefit from caching
 - Helper functions `getActiveSpreadsheet()`, `getSheetByName()`, `getSpreadsheetTimezone()` provide backward compatibility
+
+### Data & Performance
+- The system uses Google Sheets as database - be careful with data operations and always validate input
+- **Multi-layer caching is critical**: Spreadsheet object cache, student roster cache, and summary cache
+- Understand cache update mechanisms and when to trigger manual cache rebuilds
+- Batch operations when possible - avoid single-cell operations in loops
+- Monitor performance as system scales - current limits are 6min execution time, API quotas
+
+### System Operations
+- All user actions are logged to activity log sheet for auditing and troubleshooting
+- The web app supports both time-based (30min units) and session-based billing models
+- Data integrity is managed through real-time triggers and batch processing
+- Emergency procedures: cache rebuild (`updateRosterCache()`), summary rebuild (`rebuildSummarySheet()`)
+- For detailed architecture, error handling, and performance guidelines, see `docs/ARCHITECTURE.md`
