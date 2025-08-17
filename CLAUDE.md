@@ -1,10 +1,13 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this
+repository.
 
 ## Project Overview
 
-This is a Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving classroom business. The system uses Google Sheets as the database and provides a web application interface for reservations and management.
+This is a Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a
+wood carving classroom business. The system uses Google Sheets as the database and provides a web
+application interface for reservations and management.
 
 ## Key Development Commands
 
@@ -21,7 +24,8 @@ This is a Google Apps Script (GAS) reservation management system "きぼりの �
 - `npm run switch:env -- prod|test` - Switches between production and test environments
 - `npm run push:prod` / `npm run push:test` - Pushes code to respective GAS environments
 - `npm run deploy:prod` / `npm run deploy:test` - Deploys web app to respective environments
-- `npm run open:dev:prod` / `npm run open:dev:test` - Opens development URL after pushing latest code
+- `npm run open:dev:prod` / `npm run open:dev:test` - Opens development URL after pushing latest
+  code
 
 ### Testing
 
@@ -37,9 +41,11 @@ The project uses a numbered file naming convention in `src/`:
 
 **Core System Files:**
 
-- `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance optimization
+- `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance
+  optimization
 - `01_Code.js` - Entry point with global constants, UI definitions, and trigger functions
-- `02-*_BusinessLogic_*.js` - Core business logic (batch processing, event handlers, sheet utilities)
+- `02-*_BusinessLogic_*.js` - Core business logic (batch processing, event handlers, sheet
+  utilities)
 - `03_BusinessLogic_Summary.js` - Summary sheet management
 - `04_Backend_User.js` - User authentication and management
 - `05-*_Backend_*.js` - API endpoints for read/write operations
@@ -60,15 +66,18 @@ The project uses a numbered file naming convention in `src/`:
 
 The system uses Google Sheets with these main sheets:
 
-- **Reservation sheets** (per classroom): Main reservation data with student info, dates, attendance, accounting details
+- **Reservation sheets** (per classroom): Main reservation data with student info, dates,
+  attendance, accounting details
 - **生徒名簿 (Student Roster)**: Comprehensive 36-column student master data including:
   - Basic info (ID, name, phone, email)
   - Participation counts per classroom
   - Profile information (age, gender, address, tools rental)
   - Wood carving experience and preferences
   - Communication notes and cache data (bookings cache, yearly participation records)
-- **料金・商品マスタ (Pricing Master)**: Complete fee structures with time-based billing, materials, sales items
-- **予約サマリー (Reservation Summary)**: Real-time aggregated availability data for form integration
+- **料金・商品マスタ (Pricing Master)**: Complete fee structures with time-based billing, materials,
+  sales items
+- **予約サマリー (Reservation Summary)**: Real-time aggregated availability data for form
+  integration
 - **アクティビティログ (Activity Log)**: Comprehensive user action tracking and system audit trail
 
 ### Build System
@@ -91,26 +100,34 @@ The system uses Google Sheets with these main sheets:
 2. **Testing**: Open unified test file with Live Server, check automated test results
 3. **Code Quality**: Run `npm run check` before committing
 4. **Deployment**: Use `npm run deploy:test` for testing, `npm run deploy:prod` for production
-5. **Environment Setup**: Ensure `.clasp.config.json` has correct `scriptId` and `deploymentId` values
+5. **Environment Setup**: Ensure `.clasp.config.json` has correct `scriptId` and `deploymentId`
+   values
 
 ## Important Notes
 
 ### Development Practices
+
 - Never edit the unified test HTML directly - always edit source files in `src/`
 - Run `npm run check` before committing to ensure code quality
 - Use `SS_MANAGER` global instance for all spreadsheet operations to benefit from caching
-- Helper functions `getActiveSpreadsheet()`, `getSheetByName()`, `getSpreadsheetTimezone()` provide backward compatibility
+- Helper functions `getActiveSpreadsheet()`, `getSheetByName()`, `getSpreadsheetTimezone()` provide
+  backward compatibility
 
 ### Data & Performance
-- The system uses Google Sheets as database - be careful with data operations and always validate input
-- **Multi-layer caching is critical**: Spreadsheet object cache, student roster cache, and summary cache
+
+- The system uses Google Sheets as database - be careful with data operations and always validate
+  input
+- **Multi-layer caching is critical**: Spreadsheet object cache, student roster cache, and summary
+  cache
 - Understand cache update mechanisms and when to trigger manual cache rebuilds
 - Batch operations when possible - avoid single-cell operations in loops
 - Monitor performance as system scales - current limits are 6min execution time, API quotas
 
 ### System Operations
+
 - All user actions are logged to activity log sheet for auditing and troubleshooting
 - The web app supports both time-based (30min units) and session-based billing models
 - Data integrity is managed through real-time triggers and batch processing
-- Emergency procedures: cache rebuild (`updateRosterCache()`), summary rebuild (`rebuildSummarySheet()`)
+- Emergency procedures: cache rebuild (`updateRosterCache()`), summary rebuild
+  (`rebuildSummarySheet()`)
 - For detailed architecture, error handling, and performance guidelines, see `docs/ARCHITECTURE.md`

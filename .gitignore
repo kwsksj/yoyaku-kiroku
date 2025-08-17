@@ -56,7 +56,7 @@ yarn-error.log*
 # Gemini CLI
 gemimi.md
 # Completed Tasks
-completed-tasks/
+archive/
 
 # ==============================================================================
 # Test files
