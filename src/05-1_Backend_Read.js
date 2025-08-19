@@ -414,3 +414,138 @@ function getParticipationHistory(studentId, limit, offset) {
     };
   }
 }
+
+//=================================================================
+// 新しいキャッシュベースのデータ取得関数
+//=================================================================
+
+/**
+ * 生徒データを新しいキャッシュシステムから取得
+ * キャッシュにない場合は構築してから返す
+ * @param {string} studentId - 生徒ID
+ * @returns {Object} { success: boolean, data: Object, message?: string }
+ */
+function getStudentDataOptimized(studentId) {
+  try {
+    // まずPropertiesServiceから取得を試行
+    let studentData = getStudentDataFromProperties(studentId);
+
+    if (!studentData) {
+      // キャッシュにない場合は構築
+      studentData = buildAndCacheStudentData(studentId);
+    }
+
+    return { success: true, data: studentData };
+  } catch (err) {
+    Logger.log(`getStudentDataOptimized Error: ${err.message}\n${err.stack}`);
+    return {
+      success: false,
+      message: '生徒データの取得中にエラーが発生しました。',
+    };
+  }
+}
+
+/**
+ * 参加履歴を新しいキャッシュシステムから取得（最新20件制限付き）
+ * より多くの履歴が必要な場合は getAllRecordsForStudent を使用
+ * @param {string} studentId - 生徒ID
+ * @param {number} limit - 取得件数制限（デフォルト20件）
+ * @param {number} offset - オフセット（デフォルト0）
+ * @returns {Object} { success: boolean, history: Array, total: number, message?: string }
+ */
+function getParticipationHistoryOptimized(studentId, limit = 20, offset = 0) {
+  try {
+    // PropertiesServiceから生徒データを取得
+    let studentData = getStudentDataFromProperties(studentId);
+
+    if (!studentData) {
+      // キャッシュにない場合は構築
+      studentData = buildAndCacheStudentData(studentId);
+    }
+
+    const allRecords = studentData.recentRecords;
+    const total = allRecords.length;
+
+    // 20件を超える履歴が必要で、キャッシュデータが20件の場合
+    if (limit > 20 || offset + limit > 20) {
+      // オンデマンドで全記録を取得
+      const allFullRecords = getAllRecordsForStudent(studentId);
+      const limitedHistory = allFullRecords.slice(offset, offset + limit);
+      return { success: true, history: limitedHistory, total: allFullRecords.length, fromSpreadsheet: true };
+    }
+
+    // キャッシュデータから必要な分だけ返す
+    const limitedHistory = allRecords.slice(offset, Math.min(offset + limit, allRecords.length));
+    return { success: true, history: limitedHistory, total: total };
+
+  } catch (err) {
+    Logger.log(`getParticipationHistoryOptimized Error: ${err.message}\n${err.stack}`);
+    return {
+      success: false,
+      message: '参加履歴の取得中にエラーが発生しました。',
+    };
+  }
+}
+
+/**
+ * 予約サマリーを新しいキャッシュシステムから取得
+ * キャッシュが無効な場合はフォールバック処理
+ * @returns {Object} { success: boolean, summary: Object, message?: string }
+ */
+function getReservationSummaryOptimized() {
+  try {
+    // まずCacheServiceから取得を試行
+    let summary = getReservationSummaryFromCache();
+
+    if (!summary) {
+      // キャッシュにない場合は従来の方法でサマリーシートから取得
+      const summarySheet = SS_MANAGER.getSheet(SUMMARY_SHEET_NAME);
+      if (!summarySheet || summarySheet.getLastRow() < 2) {
+        return { success: false, message: '予約サマリーデータが見つかりません。' };
+      }
+
+      // フォールバック: サマリーシートから直接読み込み
+      const summaryData = summarySheet.getRange(2, 1, summarySheet.getLastRow() - 1, summarySheet.getLastColumn()).getValues();
+      const summaryHeader = summarySheet.getRange(1, 1, 1, summarySheet.getLastColumn()).getValues()[0];
+
+      summary = {
+        fallbackData: summaryData,
+        fallbackHeader: summaryHeader,
+        lastUpdated: new Date().toISOString(),
+        isFallback: true
+      };
+    }
+
+    return { success: true, summary: summary };
+  } catch (err) {
+    Logger.log(`getReservationSummaryOptimized Error: ${err.message}\n${err.stack}`);
+    return {
+      success: false,
+      message: '予約サマリーの取得中にエラーが発生しました。',
+    };
+  }
+}
+
+/**
+ * 料金・商品マスタを新しいキャッシュシステムから取得
+ * @returns {Object} { success: boolean, masterData: Object, message?: string }
+ */
+function getMasterDataOptimized() {
+  try {
+    // PropertiesServiceから取得を試行
+    let masterData = getMasterDataFromProperties();
+
+    if (!masterData) {
+      // キャッシュにない場合は構築
+      masterData = buildAndCacheMasterData();
+    }
+
+    return { success: true, masterData: masterData };
+  } catch (err) {
+    Logger.log(`getMasterDataOptimized Error: ${err.message}\n${err.stack}`);
+    return {
+      success: false,
+      message: 'マスタデータの取得中にエラーが発生しました。',
+    };
+  }
+}

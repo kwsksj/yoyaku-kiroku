@@ -229,6 +229,12 @@ function addCacheMenu(menu) {
   menu
     .addSeparator()
     .addItem('生徒名簿キャッシュを更新（手動）', 'updateRosterCache')
+    .addSeparator()
+    .addItem('【新システム】全キャッシュを一括更新', 'rebuildAllCaches')
+    .addItem('【新システム】キャッシュシステムをテスト', 'testNewCacheSystem')
+    .addItem('【新システム】キャッシュ容量チェック', 'checkCacheCapacity')
+    .addItem('【新システム】古いキャッシュをクリーンアップ', 'cleanupOldCaches')
+    .addSeparator()
     .addItem('【データ移行】全過去ログから「きろく」キャッシュを生成', 'migrateAllRecordsToCache')
     .addItem(
       '【データ移行】全予約から「よやくキャッシュ」を生成',

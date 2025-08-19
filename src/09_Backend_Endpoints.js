@@ -202,3 +202,144 @@ function getAvailableSlotsFromSummary(ss) {
     return [];
   }
 }
+
+//=================================================================
+// 新しいキャッシュシステム対応のエンドポイント関数
+//=================================================================
+
+/**
+ * WebAppの初期化に必要な全てのデータを新しいキャッシュシステムから取得する
+ * @param {string} studentId - ログインしたユーザーの生徒ID
+ * @returns {object} - 予約枠、自身の予約、会計マスタ、参加履歴を含むオブジェクト
+ */
+function getInitialWebApp_DataOptimized(studentId) {
+  try {
+    // 1. 生徒データをPropertiesServiceから取得
+    const studentDataResult = getStudentDataOptimized(studentId);
+    if (!studentDataResult.success) {
+      return {
+        success: false,
+        message: studentDataResult.message || '生徒データの取得に失敗しました'
+      };
+    }
+    
+    const studentData = studentDataResult.data;
+    
+    // 2. 予約サマリーをCacheServiceから取得（フォールバック付き）
+    const summaryResult = getReservationSummaryOptimized();
+    let availableSlots = [];
+    
+    if (summaryResult.success && summaryResult.summary) {
+      if (summaryResult.summary.isFallback) {
+        // フォールバック: 従来の処理でスロットを生成
+        availableSlots = getAvailableSlotsFromSummary();
+      } else {
+        // 新しいキャッシュから予約枠を構築
+        availableSlots = buildSlotsFromCachedSummary(summaryResult.summary);
+      }
+    }
+    
+    // 3. 料金・商品マスタをPropertiesServiceから取得
+    const masterDataResult = getMasterDataOptimized();
+    let accountingMaster = [];
+    
+    if (masterDataResult.success && masterDataResult.masterData) {
+      accountingMaster = masterDataResult.masterData.items || [];
+    }
+    
+    return {
+      success: true,
+      availableSlots: availableSlots,
+      myBookings: studentData.allReservations,
+      myHistory: studentData.recentRecords,
+      accountingMaster: accountingMaster,
+      cacheInfo: {
+        studentDataFrom: 'PropertiesService',
+        summaryFrom: summaryResult.summary?.isFallback ? 'Spreadsheet-Fallback' : 'CacheService',
+        masterDataFrom: 'PropertiesService',
+        lastUpdated: studentData.lastUpdated
+      }
+    };
+    
+  } catch (err) {
+    Logger.log(`getInitialWebApp_DataOptimized Error: ${err.message}\n${err.stack}`);
+    return {
+      success: false,
+      message: '初期データの取得中にエラーが発生しました。',
+    };
+  }
+}
+
+/**
+ * キャッシュされた予約サマリーから予約枠リストを構築
+ * @param {Object} cachedSummary - CacheServiceから取得した予約サマリー
+ * @returns {Array} 予約枠の配列
+ */
+function buildSlotsFromCachedSummary(cachedSummary) {
+  const slots = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  Object.keys(cachedSummary.classrooms).forEach(classroomName => {
+    const classroomData = cachedSummary.classrooms[classroomName];
+    
+    Object.keys(classroomData.sessions).forEach(sessionKey => {
+      const session = classroomData.sessions[sessionKey];
+      const sessionDate = new Date(session.date);
+      
+      if (sessionDate >= today) {
+        // 定員の計算（教室ごとのルールに基づく）
+        const capacity = CLASSROOM_CAPACITIES[classroomName] || 8;
+        const available = Math.max(0, capacity - session.reservationCount);
+        
+        slots.push({
+          classroom: classroomName,
+          date: session.date,
+          venue: session.venue,
+          reservationCount: session.reservationCount,
+          waitingCount: session.waitingCount || 0,
+          available: available,
+          capacity: capacity,
+          isFull: available === 0
+        });
+      }
+    });
+  });
+  
+  // 日付順にソート
+  return slots.sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+/**
+ * 参加履歴を新しいキャッシュシステムから取得（ページネーション対応）
+ * @param {string} studentId - 生徒ID
+ * @param {number} limit - 取得件数制限
+ * @param {number} offset - オフセット
+ * @returns {Object} 参加履歴データ
+ */
+function getParticipationHistoryOptimizedEndpoint(studentId, limit = 20, offset = 0) {
+  return getParticipationHistoryOptimized(studentId, limit, offset);
+}
+
+/**
+ * 指定生徒の全記録を取得（「全きろくを表示」ボタン用）
+ * @param {string} studentId - 生徒ID
+ * @returns {Object} 全記録データ
+ */
+function getAllRecordsEndpoint(studentId) {
+  try {
+    const allRecords = getAllRecordsForStudent(studentId);
+    return {
+      success: true,
+      history: allRecords,
+      total: allRecords.length,
+      message: `全${allRecords.length}件の記録を取得しました`
+    };
+  } catch (err) {
+    Logger.log(`getAllRecordsEndpoint Error: ${err.message}\n${err.stack}`);
+    return {
+      success: false,
+      message: '全記録の取得中にエラーが発生しました。',
+    };
+  }
+}
