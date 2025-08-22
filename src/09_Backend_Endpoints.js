@@ -1,345 +1,410 @@
 /**
  * =================================================================
  * 【ファイル名】: 09_Backend_Endpoints.gs
- * 【バージョン】: 1.5
- * 【役割】: WebAppからの呼び出しを集約する統合エンドポイント。
- * 通信回数を削減し、UXを向上させることを目的とする。
- * 【構成】: 14ファイル構成のうちの10番目
- * 【v1.5での変更点】:
- * - 制作メモ更新用エンドポイント（updateMemo）を追加。
- * - きろくキャッシュと予約シートの両方を更新する機能を実装。
+ * 【バージョン】: 2.2
+ * 【役割】: WebAppとの通信を最適化するための統合APIエンドポイント。
+ * 【v2.2での変更点】:
+ * - getInitialDataForNewWebAppが料金マスタをCacheServiceから取得するように修正。
  * =================================================================
  */
 
 /**
- * WebAppの初期化に必要な全てのデータを一度に取得する。
- * @param {string} studentId - ログインしたユーザーの生徒ID。
- * @returns {object} - 予約枠、自身の予約、会計マスタ、参加履歴を含むオブジェクト。
+ * 予約を実行し、成功した場合に最新の全初期化データを返す。
+ * @param {object} reservationInfo - 予約情報
+ * @returns {object} 処理結果と最新の初期化データ
  */
-function getInitialWebApp_Data(studentId) {
+function makeReservationAndGetLatestData(reservationInfo) {
   try {
-    // スプレッドシートマネージャーを使用（1回のみ取得）
-    const ss = getActiveSpreadsheet();
+    const result = makeReservation(reservationInfo);
+    rebuildAllReservationsToCache();
+    if (result.success) {
+      const initialData = getInitialDataForNewWebApp();
+      if (!initialData.success) {
+        return initialData;
+      }
 
-    // --- 予約枠の取得 (サマリーから直接取得) ---
-    let availableSlots = [];
-    try {
-      availableSlots = getAvailableSlotsFromSummary(ss);
-    } catch (e) {
-      Logger.log(`予約枠取得に失敗: ${e.message}`);
-      availableSlots = [];
+      // 特定ユーザーの予約情報をフィルタリング
+      const userReservations = filterUserReservations(
+        initialData.data.allReservations,
+        reservationInfo.studentId,
+        initialData.data.today,
+      );
+
+      const response = createApiResponse(true, {
+        message: result.message,
+        data: {
+          myBookings: userReservations.myBookings,
+          initialData: initialData.data,
+        },
+      });
+
+      return response;
+    } else {
+      return result;
+    }
+  } catch (e) {
+    return createApiResponse(false, {
+      message: `予約処理中にエラーが発生しました: ${e.message}`,
+    });
+  }
+}
+
+/**
+ * 予約をキャンセルし、成功した場合に最新の全初期化データを返す。
+ * @param {object} cancelInfo - キャンセル情報
+ * @returns {object} 処理結果と最新の初期化データ
+ */
+function cancelReservationAndGetLatestData(cancelInfo) {
+  try {
+    const result = cancelReservation(cancelInfo);
+    rebuildAllReservationsToCache();
+    if (result.success) {
+      const initialData = getInitialDataForNewWebApp();
+      if (!initialData.success) {
+        return initialData;
+      }
+
+      // 特定ユーザーの予約情報をフィルタリング
+      const userReservations = filterUserReservations(
+        initialData.data.allReservations,
+        cancelInfo.studentId,
+        initialData.data.today,
+      );
+
+      return createApiResponse(true, {
+        message: result.message,
+        data: {
+          myBookings: userReservations.myBookings,
+          initialData: initialData.data,
+        },
+      });
+    } else {
+      return result;
+    }
+  } catch (e) {
+    return createApiResponse(false, {
+      message: `キャンセル処理中にエラーが発生しました: ${e.message}`,
+    });
+  }
+}
+
+/**
+ * 予約詳細を更新し、成功した場合に最新の全初期化データを返す。
+ * @param {object} details - 更新する予約詳細
+ * @returns {object} 処理結果と最新の初期化データ
+ */
+function updateReservationDetailsAndGetLatestData(details) {
+  try {
+    const result = updateReservationDetails(details);
+    rebuildAllReservationsToCache();
+    if (result.success) {
+      const initialData = getInitialDataForNewWebApp();
+      if (!initialData.success) {
+        return initialData;
+      }
+
+      // 特定ユーザーの予約情報をフィルタリング
+      const userReservations = filterUserReservations(
+        initialData.data.allReservations,
+        details.studentId,
+        initialData.data.today,
+      );
+
+      const response = createApiResponse(true, {
+        message: result.message,
+        data: {
+          myBookings: userReservations.myBookings,
+          initialData: initialData.data,
+        },
+      });
+
+      return response;
+    } else {
+      return result;
+    }
+  } catch (e) {
+    return createApiResponse(false, {
+      message: `予約詳細の更新中にエラーが発生しました: ${e.message}`,
+    });
+  }
+}
+
+/**
+ * WebApp専用：電話番号未登録ユーザーをフィルタリングして検索する。
+ * @param {string} filterText - 検索文字列
+ * @returns {object} 処理結果とユーザーリスト
+ */
+function searchNoPhoneUsersByFilterForWebApp(filterText) {
+  try {
+    const users = getUsersWithoutPhoneNumber(filterText);
+    return createApiResponse(true, {
+      data: users,
+    });
+  } catch (e) {
+    return createApiResponse(false, {
+      message: `電話番号未登録ユーザーの検索中にエラーが発生しました: ${e.message}`,
+    });
+  }
+}
+
+/**
+ * メモを更新し、最新の参加履歴を返す。
+ * @param {string} reservationId - 予約ID
+ * @param {string} studentId - 生徒ID
+ * @param {string} newMemo - 新しいメモ
+ * @returns {object} 処理結果と最新の参加履歴
+ */
+function updateMemo(reservationId, studentId, newMemo) {
+  try {
+    const result = updateMemoAndGetLatestHistory(reservationId, studentId, newMemo);
+    if (result.success) {
+      return createApiResponse(true, {
+        data: result.history,
+        meta: { total: result.total },
+      });
+    } else {
+      return result;
+    }
+  } catch (e) {
+    return createApiResponse(false, {
+      message: `メモの更新中にエラーが発生しました: ${e.message}`,
+    });
+  }
+}
+
+/**
+ * 【新WebApp用】新しいデータモデル（キャッシュ）から初期化データを取得する
+ */
+function getInitialDataForNewWebApp() {
+  try {
+    const cache = CacheService.getScriptCache();
+    Logger.log('getInitialDataForNewWebApp開始');
+
+    // 1. 予約データはフロントエンドに送信しない（個人用はgetUserReservationsで別途取得）
+    // 予約キャッシュのバージョン情報のみ取得
+    let allReservationsCacheJSON = cache.get('all_reservations');
+    const allReservationsCache = JSON.parse(allReservationsCacheJSON || '{}');
+
+    // 2. 生徒基本情報キャッシュを取得（なければ再構築）
+    let studentsCacheJSON = cache.get('all_students_basic');
+    Logger.log(`生徒キャッシュ取得: ${studentsCacheJSON ? 'あり' : 'なし'}`);
+    if (!studentsCacheJSON) {
+      Logger.log('生徒キャッシュを再構築中...');
+      rebuildAllStudentsBasicToCache();
+      studentsCacheJSON = cache.get('all_students_basic');
+      Logger.log(`生徒キャッシュ再構築後: ${studentsCacheJSON ? 'あり' : 'なし'}`);
+    }
+    const studentsCache = JSON.parse(studentsCacheJSON || '{}');
+    Logger.log(
+      `生徒データ件数: ${studentsCache.students ? Object.keys(studentsCache.students).length : 0}`,
+    );
+
+    // 3. 料金マスタデータを取得（CacheServiceから, なければ再構築）
+    let accountingMasterCacheJSON = cache.get('master_accounting_data');
+    Logger.log(`会計マスタキャッシュ取得: ${accountingMasterCacheJSON ? 'あり' : 'なし'}`);
+    if (!accountingMasterCacheJSON) {
+      Logger.log('会計マスタキャッシュを再構築中...');
+      const accountingMasterCache = buildAndCacheAccountingMasterToCache();
+      accountingMasterCacheJSON = JSON.stringify(accountingMasterCache);
+    }
+    const accountingMaster = JSON.parse(accountingMasterCacheJSON || '{}');
+    Logger.log(`会計マスタデータ件数: ${accountingMaster.items?.length || 0}`);
+
+    // 4. 日程マスタはフロントエンドには送信しない（空席計算で内部使用）
+    // バージョン情報のみ取得
+    let scheduleMasterCacheJSON = cache.get('master_schedule_data');
+    const scheduleMaster = JSON.parse(scheduleMasterCacheJSON || '{}');
+
+    // 5. 今日の日付文字列を追加
+    const today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
+
+    const result = {
+      success: true,
+      data: {
+        allStudents: studentsCache.students || {},
+        accountingMaster: accountingMaster.items || [],
+        today: today,
+        cacheVersions: {
+          allReservations: allReservationsCache.version || 0,
+          students: studentsCache.version || 0,
+          accountingMaster: accountingMaster.version || 0,
+          scheduleMaster: scheduleMaster.version || 0,
+        },
+      },
+    };
+
+    Logger.log('getInitialDataForNewWebApp完了');
+    return result;
+  } catch (e) {
+    Logger.log(`getInitialDataForNewWebAppでエラー: ${e.message}\nStack: ${e.stack}`);
+    return handleError(`新しいWebAppの初期データ取得中にエラー: ${e.message}`, true);
+  }
+}
+
+/**
+ * 【ログイン統合用】初期データと空席情報を同時に取得する
+ * @param {string} phone - 電話番号（ユーザー認証用）
+ */
+function getInitialDataWithAvailableSlots(phone) {
+  try {
+    Logger.log(`getInitialDataWithAvailableSlots開始: phone=${phone}`);
+
+    // 統合バッチ処理で一度にすべてのデータを取得
+    const batchResult = getBatchDataForWebApp(['initial', 'slots', 'reservations'], phone);
+    if (!batchResult.success) {
+      return batchResult;
     }
 
-    // --- 【NF-11/NF-12】自分の予約状況と参加記録の効率的な取得 (生徒名簿キャッシュから) ---
-    let myBookings = [];
-    let myHistory = [];
-    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+    if (batchResult.data.userReservations) {
+      batchResult.data.initial.userReservations = batchResult.data.userReservations;
+    }
 
-    if (rosterSheet) {
-      // 1回のシート読み込みで全データを取得（効率化）
-      const rosterData = rosterSheet.getDataRange().getValues();
-      if (rosterData.length > 1) {
-        const rosterHeader = rosterData[0];
-        const rosterHeaderMap = createHeaderMap(rosterHeader);
-        const studentIdCol = rosterHeaderMap.get(HEADER_STUDENT_ID);
-        const cacheCol = rosterHeaderMap.get('よやくキャッシュ');
+    const result = {
+      success: true,
+      data: batchResult.data.initial,
+      availableSlots: batchResult.data.slots,
+      userFound: batchResult.userFound,
+      user: batchResult.user,
+    };
 
-        if (studentIdCol !== undefined) {
-          // 該当ユーザーの行を検索
-          const userRow = rosterData.slice(1).find(row => row[studentIdCol] === studentId);
+    Logger.log(`getInitialDataWithAvailableSlots完了: userFound=${result.userFound}`);
+    return result;
+  } catch (e) {
+    Logger.log(`getInitialDataWithAvailableSlotsでエラー: ${e.message}\nStack: ${e.stack}`);
+    return handleError(`ログイン用データ取得中にエラー: ${e.message}`, true);
+  }
+}
 
-          if (userRow) {
-            // --- 【NF-12】予約キャッシュの取得 ---
-            if (cacheCol !== undefined && userRow[cacheCol]) {
-              try {
-                myBookings = JSON.parse(userRow[cacheCol]);
-              } catch (e) {
-                Logger.log(`予約キャッシュのJSON解析に失敗 (生徒ID: ${studentId}): ${e.message}`);
-              }
-            }
+/**
+ * 【バッチ処理統合】複数データを一度に取得する統合エンドポイント
+ * @param {Array} dataTypes - 取得するデータタイプの配列 ['initial', 'slots', 'history']
+ * @param {string} phone - 電話番号（ユーザー特定用、任意）
+ * @param {string} studentId - 生徒ID（履歴取得用、任意）
+ * @returns {object} 要求されたすべてのデータを含む統合レスポンス
+ */
+function getBatchDataForWebApp(dataTypes = [], phone = null, studentId = null) {
+  try {
+    Logger.log(
+      `getBatchDataForWebApp開始: dataTypes=${JSON.stringify(dataTypes)}, phone=${phone}, studentId=${studentId}`,
+    );
 
-            // --- 【NF-11】参加記録キャッシュの取得 ---
-            rosterHeader.forEach((header, index) => {
-              if (String(header).startsWith('きろく_')) {
-                const jsonStr = userRow[index];
-                if (jsonStr) {
-                  try {
-                    const records = JSON.parse(jsonStr);
-                    myHistory.push(...records);
-                  } catch (e) {
-                    Logger.log(
-                      `履歴JSONの解析に失敗しました (生徒ID: ${studentId}, 列: ${header}): ${e.message}`,
-                    );
-                  }
-                }
-              }
-            });
+    const result = {
+      success: true,
+      data: {},
+      userFound: false,
+      user: null,
+    };
 
-            // 参加記録を日付順にソート
-            myHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
-          }
+    // 1. 初期データが要求されている場合
+    if (dataTypes.includes('initial')) {
+      const initialDataResult = getInitialDataForNewWebApp();
+      if (!initialDataResult.success) {
+        return initialDataResult;
+      }
+      result.data.initial = initialDataResult.data;
+
+      // 電話番号でユーザーを検索
+      if (phone) {
+        const currentUser = Object.values(initialDataResult.data.allStudents).find(
+          student => student.phone === phone,
+        );
+        result.userFound = !!currentUser;
+        result.user = currentUser || null;
+      }
+    }
+
+    // 2. 空席情報が要求されている場合
+    if (dataTypes.includes('slots')) {
+      Logger.log('getBatchDataForWebApp: slots要求 - getAvailableSlots呼び出し開始');
+      const availableSlotsResult = getAvailableSlots();
+      Logger.log(`getBatchDataForWebApp: getAvailableSlots結果 - success: ${availableSlotsResult.success}, data.length: ${availableSlotsResult.data ? availableSlotsResult.data.length : 'null'}`);
+      if (!availableSlotsResult.success) {
+        Logger.log(`getBatchDataForWebApp: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`);
+        return availableSlotsResult;
+      }
+      result.data.slots = availableSlotsResult.data;
+      Logger.log(`getBatchDataForWebApp: result.data.slotsに${availableSlotsResult.data.length}件設定完了`);
+    }
+
+    // 3. 個人予約データが要求されている場合
+    if (dataTypes.includes('reservations')) {
+      const targetStudentId = studentId || (result.user ? result.user.studentId : null);
+      if (targetStudentId) {
+        const userReservationsResult = getUserReservations(targetStudentId);
+        if (userReservationsResult.success) {
+          result.data.userReservations = userReservationsResult.data;
         }
       }
     }
 
-    const accountingMaster = getAccountingMasterData();
-    if (!accountingMaster.success) throw new Error('会計マスタの取得に失敗しました。');
+    // 4. 履歴データが要求されている場合
+    if (dataTypes.includes('history') && studentId) {
+      const historyResult = getUserHistoryFromCache(studentId);
+      if (historyResult.success) {
+        result.data.history = historyResult.data;
+        result.data.historyTotal = historyResult.total;
+      }
+    }
 
-    return {
-      success: true,
-      availableSlots: availableSlots,
-      myBookings: myBookings,
-      accountingMaster: accountingMaster.data,
-      myHistory: myHistory,
-    };
-  } catch (err) {
-    Logger.log(`getInitialWebApp_Data Error: ${err.message}`);
-    return { success: false, message: `初期データの取得中にエラーが発生しました: ${err.message}` };
-  }
-}
+    // 5. ユーザー固有データが要求されている場合
+    if (dataTypes.includes('userdata') && (studentId || result.user)) {
+      const targetStudentId = studentId || result.user.studentId;
+      const userData = filterUserDataFromBatch(result.data, targetStudentId);
+      result.data.userBookings = userData.myBookings;
+      result.data.userHistory = userData.myHistory;
+    }
 
-/**
- * 予約を実行し、成功した場合、更新後の最新予約情報を返す。
- * @param {object} reservationInfo - 予約情報。
- * @returns {object} - 処理結果。
- */
-function makeReservationAndGetLatestData(reservationInfo) {
-  const result = makeReservation(reservationInfo);
-  if (!result.success) {
-    return result; // 予約失敗時はそのままエラーを返す
-  }
-  updateSummaryAndForm(reservationInfo.classroom, new Date(reservationInfo.date));
-
-  return result;
-}
-
-/**
- * 予約をキャンセルし、成功した場合、更新後の最新予約情報を返す。
- * @param {object} cancelInfo - { reservationId, classroom, studentId }
- * @returns {object} - 処理結果。
- */
-function cancelReservationAndGetLatestData(cancelInfo) {
-  const result = cancelReservation(cancelInfo);
-  if (!result.success) {
+    Logger.log(`getBatchDataForWebApp完了: dataTypes=${dataTypes.length}件`);
     return result;
-  }
-  updateSummaryAndForm(cancelInfo.classroom, new Date(cancelInfo.date));
-  return result;
-}
-
-/**
- * 予約詳細を更新し、成功した場合、更新後の最新予約情報を返す。
- * @param {object} details - 予約詳細情報。
- * @returns {object} - 処理結果。
- */
-function updateReservationDetailsAndGetLatestData(details) {
-  const result = updateReservationDetails(details);
-  // この処理では日付や予約数に変動はないため、サマリー更新は不要。
-  return result;
-}
-
-/**
- * NF-01: 電話番号未登録ユーザーを検索するWebアプリ用エンドポイント。
- * @returns {Array<object>} - { studentId: string, realName: string, nickname: string } の配列。
- */
-function searchNoPhoneUsersByFilterForWebApp() {
-  return getUsersWithoutPhoneNumber();
-}
-
-/**
- * きろく画面で制作メモを更新し、最新の履歴を返すWebApp用エンドポイント。
- * @param {string} reservationId - 予約ID
- * @param {string} sheetName - 予約が記録されているシート名
- * @param {string} newMemo - 新しい制作メモの内容
- * @param {string} studentId - メモを更新する対象の生徒ID
- * @returns {object} - { success: boolean, history?: object[], total?: number, message?: string }
- */
-function updateMemo(reservationId, sheetName, newMemo, studentId) {
-  return updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studentId);
-}
-
-/**
- * サマリーシートから予約枠データを直接取得するヘルパー関数
- * @param {Spreadsheet} ss - スプレッドシートオブジェクト（省略時は自動取得）
- * @returns {Array} availableSlots - 予約枠の配列
- */
-function getAvailableSlotsFromSummary(ss) {
-  try {
-    // スプレッドシートオブジェクトが渡されていない場合のみ取得
-    const spreadsheet = ss || getActiveSpreadsheet();
-    const summarySheet = getSheetByName(SUMMARY_SHEET_NAME);
-
-    if (!summarySheet || summarySheet.getLastRow() <= 1) {
-      return [];
-    }
-
-    const summaryData = summarySheet.getDataRange().getValues();
-    if (summaryData.length <= 1) {
-      return [];
-    }
-
-    const summaryHeader = summaryData[0];
-    const summaryHeaderMap = createHeaderMap(summaryHeader);
-
-    // サマリーシートから直接予約枠データを構築
-    return summaryData
-      .slice(1)
-      .filter(row => row[summaryHeaderMap.get(HEADER_DATE)] instanceof Date)
-      .map(row => ({
-        classroom: row[summaryHeaderMap.get(HEADER_SUMMARY_CLASSROOM)],
-        date: Utilities.formatDate(
-          row[summaryHeaderMap.get(HEADER_DATE)],
-          getSpreadsheetTimezone(),
-          'yyyy-MM-dd',
-        ),
-        session: row[summaryHeaderMap.get(HEADER_SUMMARY_SESSION)],
-        availableSlots: row[summaryHeaderMap.get(HEADER_SUMMARY_AVAILABLE_COUNT)],
-        venue: row[summaryHeaderMap.get(HEADER_SUMMARY_VENUE)] || '',
-        maxCapacity: row[summaryHeaderMap.get(HEADER_SUMMARY_CAPACITY)] || 0,
-      }));
   } catch (e) {
-    Logger.log(`サマリーシートからの予約枠取得に失敗: ${e.message}`);
-    return [];
-  }
-}
-
-//=================================================================
-// 新しいキャッシュシステム対応のエンドポイント関数
-//=================================================================
-
-/**
- * WebAppの初期化に必要な全てのデータを新しいキャッシュシステムから取得する
- * @param {string} studentId - ログインしたユーザーの生徒ID
- * @returns {object} - 予約枠、自身の予約、会計マスタ、参加履歴を含むオブジェクト
- */
-function getInitialWebApp_DataOptimized(studentId) {
-  try {
-    // 1. 生徒データをPropertiesServiceから取得
-    const studentDataResult = getStudentDataOptimized(studentId);
-    if (!studentDataResult.success) {
-      return {
-        success: false,
-        message: studentDataResult.message || '生徒データの取得に失敗しました'
-      };
-    }
-    
-    const studentData = studentDataResult.data;
-    
-    // 2. 予約サマリーをCacheServiceから取得（フォールバック付き）
-    const summaryResult = getReservationSummaryOptimized();
-    let availableSlots = [];
-    
-    if (summaryResult.success && summaryResult.summary) {
-      if (summaryResult.summary.isFallback) {
-        // フォールバック: 従来の処理でスロットを生成
-        availableSlots = getAvailableSlotsFromSummary();
-      } else {
-        // 新しいキャッシュから予約枠を構築
-        availableSlots = buildSlotsFromCachedSummary(summaryResult.summary);
-      }
-    }
-    
-    // 3. 料金・商品マスタをPropertiesServiceから取得
-    const masterDataResult = getMasterDataOptimized();
-    let accountingMaster = [];
-    
-    if (masterDataResult.success && masterDataResult.masterData) {
-      accountingMaster = masterDataResult.masterData.items || [];
-    }
-    
-    return {
-      success: true,
-      availableSlots: availableSlots,
-      myBookings: studentData.allReservations,
-      myHistory: studentData.recentRecords,
-      accountingMaster: accountingMaster,
-      cacheInfo: {
-        studentDataFrom: 'PropertiesService',
-        summaryFrom: summaryResult.summary?.isFallback ? 'Spreadsheet-Fallback' : 'CacheService',
-        masterDataFrom: 'PropertiesService',
-        lastUpdated: studentData.lastUpdated
-      }
-    };
-    
-  } catch (err) {
-    Logger.log(`getInitialWebApp_DataOptimized Error: ${err.message}\n${err.stack}`);
-    return {
-      success: false,
-      message: '初期データの取得中にエラーが発生しました。',
-    };
+    Logger.log(`getBatchDataForWebAppでエラー: ${e.message}\nStack: ${e.stack}`);
+    return handleError(`バッチデータ取得中にエラー: ${e.message}`, true);
   }
 }
 
 /**
- * キャッシュされた予約サマリーから予約枠リストを構築
- * @param {Object} cachedSummary - CacheServiceから取得した予約サマリー
- * @returns {Array} 予約枠の配列
+ * バッチ取得されたデータからユーザー固有データを抽出
+ * @param {object} batchData - getBatchDataForWebAppで取得したデータ
+ * @param {string} studentId - 生徒ID
+ * @returns {object} ユーザーの予約・履歴データ
  */
-function buildSlotsFromCachedSummary(cachedSummary) {
-  const slots = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  Object.keys(cachedSummary.classrooms).forEach(classroomName => {
-    const classroomData = cachedSummary.classrooms[classroomName];
-    
-    Object.keys(classroomData.sessions).forEach(sessionKey => {
-      const session = classroomData.sessions[sessionKey];
-      const sessionDate = new Date(session.date);
-      
-      if (sessionDate >= today) {
-        // 定員の計算（教室ごとのルールに基づく）
-        const capacity = CLASSROOM_CAPACITIES[classroomName] || 8;
-        const available = Math.max(0, capacity - session.reservationCount);
-        
-        slots.push({
-          classroom: classroomName,
-          date: session.date,
-          venue: session.venue,
-          reservationCount: session.reservationCount,
-          waitingCount: session.waitingCount || 0,
-          available: available,
-          capacity: capacity,
-          isFull: available === 0
-        });
+function filterUserDataFromBatch(batchData, studentId) {
+  const result = {
+    myBookings: [],
+    myHistory: [],
+  };
+
+  if (batchData.initial && batchData.initial.allReservations) {
+    const today = batchData.initial.today;
+    batchData.initial.allReservations.forEach(resArray => {
+      // 配列形式の予約データをオブジェクト形式に変換
+      const resObj = transformReservationArrayToObject(resArray);
+      if (!resObj) return; // 変換失敗の場合はスキップ
+
+      if (resObj.studentId === studentId && resObj.status !== STATUS_CANCEL) {
+        if (resObj.date >= today) {
+          result.myBookings.push(resObj);
+        } else {
+          result.myHistory.push(resObj);
+        }
       }
     });
-  });
-  
-  // 日付順にソート
-  return slots.sort((a, b) => new Date(a.date) - new Date(b.date));
-}
-
-/**
- * 参加履歴を新しいキャッシュシステムから取得（ページネーション対応）
- * @param {string} studentId - 生徒ID
- * @param {number} limit - 取得件数制限
- * @param {number} offset - オフセット
- * @returns {Object} 参加履歴データ
- */
-function getParticipationHistoryOptimizedEndpoint(studentId, limit = 20, offset = 0) {
-  return getParticipationHistoryOptimized(studentId, limit, offset);
-}
-
-/**
- * 指定生徒の全記録を取得（「全きろくを表示」ボタン用）
- * @param {string} studentId - 生徒ID
- * @returns {Object} 全記録データ
- */
-function getAllRecordsEndpoint(studentId) {
-  try {
-    const allRecords = getAllRecordsForStudent(studentId);
-    return {
-      success: true,
-      history: allRecords,
-      total: allRecords.length,
-      message: `全${allRecords.length}件の記録を取得しました`
-    };
-  } catch (err) {
-    Logger.log(`getAllRecordsEndpoint Error: ${err.message}\n${err.stack}`);
-    return {
-      success: false,
-      message: '全記録の取得中にエラーが発生しました。',
-    };
   }
+
+  return result;
+}
+
+/**
+ * 汎用エラーハンドラ（統一APIレスポンス形式を使用）
+ * @param {string} message - エラーメッセージ
+ * @param {boolean} log - Loggerに記録するかどうか
+ * @returns {object} 統一されたエラーオブジェクト
+ */
+function handleError(message, log = false) {
+  if (log) {
+    Logger.log(message);
+  }
+  return createApiResponse(false, {
+    message: message,
+  });
 }

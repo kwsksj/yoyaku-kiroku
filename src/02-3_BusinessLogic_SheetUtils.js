@@ -759,7 +759,6 @@ function _rebuildFutureBookingsCacheForStudent(studentId) {
           venue: row[headerMap.get(HEADER_VENUE)] || '',
           startTime: timeToString(row[headerMap.get(HEADER_START_TIME)]),
           endTime: timeToString(row[headerMap.get(HEADER_END_TIME)]),
-          earlyArrival: row[headerMap.get(HEADER_EARLY_ARRIVAL)] === true,
           firstLecture: row[headerMap.get(HEADER_FIRST_LECTURE)] === true,
           workInProgress: row[headerMap.get(HEADER_WORK_IN_PROGRESS)] || '',
           order: row[headerMap.get(HEADER_ORDER)] || '',

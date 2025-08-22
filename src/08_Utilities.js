@@ -247,10 +247,10 @@ function setupConditionalFormattingForLogSheet() {
 
   // --- 書式ルールの定義 ---
   const colors = {
-    lightGreen: '#d9ead3', // 成功
-    lightRed: '#f4cccc', // 失敗・エラー
-    lightBlue: '#cfe2f3', // ユーザーの主要アクション
-    lightOrange: '#fce5cd', // 編集・変更系アクション
+    lightGreen: COLOR_LIGHT_GREEN, // 成功
+    lightRed: COLOR_LIGHT_RED, // 失敗・エラー
+    lightBlue: COLOR_LIGHT_BLUE, // ユーザーの主要アクション
+    lightOrange: COLOR_LIGHT_ORANGE, // 編集・変更系アクション
     lightPurple: '#d9d2e9', // システム・バッチ処理
   };
 
@@ -345,4 +345,113 @@ function setupConditionalFormattingForLogSheet() {
   sheet.setConditionalFormatRules(rules);
 
   SpreadsheetApp.getUi().alert('アクティビティログの条件付き書式を更新しました。');
+}
+
+// ===================================================================
+// データ形式統一のためのユーティリティ関数群
+// ===================================================================
+
+/**
+ * 配列形式の予約データをオブジェクト形式に変換
+ * フロントエンドの transformReservationArrayToObject と同じロジック
+ * @param {Array} resArray - 配列形式の予約データ
+ * @returns {Object|null} オブジェクト形式の予約データ
+ */
+function transformReservationArrayToObject(resArray) {
+  if (!Array.isArray(resArray) || resArray.length < 15) {
+    return null;
+  }
+
+  const [
+    reservationId,
+    studentId,
+    date,
+    classroom,
+    venue,
+    startTime,
+    endTime,
+    status,
+    chiselRental,
+    firstLecture,
+    _,
+    __,
+    workInProgress,
+    order,
+    message, // 来場手段, 送迎はまだ使わないのでスキップ
+  ] = resArray;
+
+  return {
+    reservationId,
+    studentId,
+    date,
+    classroom,
+    venue,
+    startTime,
+    endTime,
+    status,
+    chiselRental,
+    firstLecture,
+    workInProgress,
+    order,
+    messageToTeacher: message,
+  };
+}
+
+/**
+ * 統一されたAPIレスポンス形式を作成
+ * @param {boolean} success - 成功フラグ
+ * @param {Object} options - オプション
+ * @param {*} options.data - データペイロード
+ * @param {string} options.message - メッセージ
+ * @param {Object} options.meta - メタデータ（total, page等）
+ * @returns {Object} 統一されたAPIレスポンス
+ */
+function createApiResponse(success, options = {}) {
+  const response = {
+    success: success,
+  };
+
+  if (options.data !== undefined) {
+    response.data = options.data;
+  }
+
+  if (options.message) {
+    response.message = options.message;
+  }
+
+  if (options.meta) {
+    response.meta = options.meta;
+  }
+
+  return response;
+}
+
+/**
+ * 特定ユーザーの予約データをフィルタリング
+ * @param {Array} allReservations - 全予約データ（配列形式）
+ * @param {string} studentId - 生徒ID
+ * @param {string} today - 今日の日付（YYYY-MM-DD）
+ * @returns {Object} フィルタリングされたユーザーデータ
+ */
+function filterUserReservations(allReservations, studentId, today) {
+  const myBookings = [];
+  const myHistory = [];
+
+  if (Array.isArray(allReservations)) {
+    allReservations.forEach(resArray => {
+      const resObj = transformReservationArrayToObject(resArray);
+      if (resObj && resObj.studentId === studentId && resObj.status !== STATUS_CANCEL) {
+        if (resObj.date >= today) {
+          myBookings.push(resObj);
+        } else {
+          myHistory.push(resObj);
+        }
+      }
+    });
+  }
+
+  return {
+    myBookings: myBookings.sort((a, b) => a.date.localeCompare(b.date)),
+    myHistory: myHistory.sort((a, b) => b.date.localeCompare(a.date)),
+  };
 }

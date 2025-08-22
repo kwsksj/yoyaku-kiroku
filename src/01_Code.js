@@ -14,7 +14,7 @@
 const RESERVATION_SPREADSHEET_ID = getActiveSpreadsheet().getId();
 const RESERVATION_DATA_START_ROW = 2;
 const ROSTER_SHEET_NAME = '生徒名簿';
-const ACCOUNTING_MASTER_SHEET_NAME = '料金・商品マスタ';
+const ACCOUNTING_MASTER_SHEET_NAME = '会計マスタ';
 const SUMMARY_SHEET_NAME = '予約サマリー';
 const LOG_SHEET_NAME = 'アクティビティログ';
 
@@ -52,7 +52,6 @@ const HEADER_NAME = '名前';
 const HEADER_CLASS_COUNT = '回数';
 const HEADER_UNIFIED_CLASS_COUNT = '参加回数';
 const HEADER_FIRST_LECTURE = '初講';
-const HEADER_EARLY_ARRIVAL = '早出';
 const HEADER_CHISEL_RENTAL = '彫刻刀レンタル';
 const HEADER_TIME = '受講時間';
 const HEADER_WORK_IN_PROGRESS = '制作メモ';
@@ -69,6 +68,12 @@ const HEADER_BREAK_START = '休憩開始';
 const HEADER_BREAK_END = '休憩終了';
 const HEADER_START_TIME = '開始時刻';
 const HEADER_END_TIME = '終了時刻';
+
+// 統合予約シート用の追加定数
+const HEADER_CLASSROOM = '教室';
+const HEADER_STATUS = 'ステータス';
+const HEADER_TRANSPORTATION = '来場手段';
+const HEADER_PICKUP = '送迎';
 
 const SYNC_TARGET_HEADERS = [
   HEADER_LINE,
@@ -96,6 +101,54 @@ const ARCHIVE_SHEET_NAMES = CLASSROOM_SHEET_NAMES.map(
 
 const LOCK_WAIT_TIME_MS = 30000;
 
+// --- UI・表示関連の定数 ---
+const COLUMN_WIDTH_DATE = 100; // 日付列の幅
+const COLUMN_WIDTH_CLASSROOM = 100; // 教室列の幅
+const COLUMN_WIDTH_VENUE = 150; // 会場列の幅
+const COLUMN_WIDTH_CLASSROOM_TYPE = 120; // 教室形式列の幅
+const COLUMN_WIDTH_TIME = 80; // 時間関連列の幅
+const COLUMN_WIDTH_BEGINNER_START = 100; // 初心者開始列の幅
+const COLUMN_WIDTH_CAPACITY = 80; // 定員関連列の幅
+const COLUMN_WIDTH_STATUS = 80; // 状態列の幅
+const COLUMN_WIDTH_NOTES = 200; // 備考列の幅
+
+// --- システム処理関連の定数 ---
+const CACHE_EXPIRY_SECONDS = 86400; // キャッシュ有効期限（24時間）
+const SAMPLE_DATA_DAYS = 30; // サンプルデータ生成日数（1ヶ月）
+const WEEKEND_SUNDAY = 0; // 日曜日の曜日コード
+const WEEKEND_SATURDAY = 6; // 土曜日の曜日コード
+const HEADER_ROW = 1; // ヘッダー行番号
+const DATA_START_ROW = 2; // データ開始行番号
+
+// --- エラーメッセージ・ログメッセージ関連の定数 ---
+const MSG_PROCESSING_INTERRUPTED = '処理を中断しました。';
+const MSG_SHEET_INITIALIZATION = '日程マスタシートの初期化';
+const MSG_EXISTING_SHEET_WARNING =
+  '「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）';
+const MSG_SUCCESS = '成功';
+const MSG_ERROR = 'エラー';
+const MSG_CANCEL = 'キャンセル';
+
+// --- アクティビティログ関連の定数 ---
+const LOG_ACTION_ROSTER_EDIT = '名簿編集';
+const LOG_ACTION_RESERVATION_EDIT = '予約編集';
+const LOG_ACTION_ROW_INSERT = '行挿入';
+const LOG_ACTION_RESERVATION_CANCEL = '予約キャンセル';
+
+// --- 材料情報関連の定数 ---
+const MATERIAL_INFO_PREFIX = '\n【希望材料】: ';
+
+// --- UI色・スタイル関連の定数 ---
+const COLOR_LIGHT_GREEN = '#d9ead3'; // 成功
+const COLOR_LIGHT_RED = '#f4cccc'; // 失敗・エラー
+const COLOR_LIGHT_BLUE = '#cfe2f3'; // ユーザーの主要アクション
+const COLOR_LIGHT_ORANGE = '#fce5cd'; // 編集・変更系アクション
+const COLOR_HEADER_BACKGROUND = '#E8F0FE'; // ヘッダーの背景色
+
+// --- 売上カテゴリ関連の定数 ---
+const SALES_CATEGORY_TUITION = '授業料';
+const SALES_CATEGORY_SALES = '物販';
+
 const CLASSROOM_TRANSFER_SETTINGS = [
   {
     sourceSheetName: TOKYO_CLASSROOM_NAME,
@@ -106,7 +159,6 @@ const CLASSROOM_TRANSFER_SETTINGS = [
       HEADER_CO,
       HEADER_NAME,
       HEADER_FIRST_LECTURE,
-      HEADER_EARLY_ARRIVAL,
       HEADER_CHISEL_RENTAL,
     ],
   },
@@ -160,11 +212,55 @@ const ITEM_TYPE_MATERIAL = '材料';
 const ITEM_TYPE_SALES = '物販';
 const ITEM_NAME_MAIN_LECTURE = '本講座';
 const ITEM_NAME_FIRST_LECTURE = '初回講習';
-const ITEM_NAME_EARLY_ARRIVAL = '早出';
 const ITEM_NAME_CHISEL_RENTAL = '彫刻刀レンタル';
 const ITEM_NAME_DISCOUNT = '初回講習同時間割引';
 const UNIT_30_MIN = '30分';
 const UNIT_CM3 = 'cm³';
+
+// --- 日程マスタ関連の定数 ---
+const SCHEDULE_MASTER_SHEET_NAME = '日程マスタ';
+
+// 教室形式の定数
+const CLASSROOM_TYPE_SESSION_BASED = 'セッション制'; // セッション制（東京教室）
+const CLASSROOM_TYPE_TIME_DUAL = '時間制・2部制'; // 時間制・2部制（つくば教室）
+const CLASSROOM_TYPE_TIME_FULL = '時間制・全日'; // 時間制・全日（沼津教室）
+
+// 開催日程の状態
+const SCHEDULE_STATUS_SCHEDULED = '開催予定'; // 開催予定
+const SCHEDULE_STATUS_CANCELLED = '休講'; // 休講
+const SCHEDULE_STATUS_COMPLETED = '開催済み'; // 開催済み
+
+// 日程マスタの個別ヘッダー定数
+const HEADER_SCHEDULE_DATE = '日付';
+const HEADER_SCHEDULE_CLASSROOM = '教室';
+const HEADER_SCHEDULE_VENUE = '会場';
+const HEADER_SCHEDULE_TYPE = '教室形式';
+const HEADER_SCHEDULE_FIRST_START = '1部開始';
+const HEADER_SCHEDULE_FIRST_END = '1部終了';
+const HEADER_SCHEDULE_SECOND_START = '2部開始';
+const HEADER_SCHEDULE_SECOND_END = '2部終了';
+const HEADER_SCHEDULE_BEGINNER_START = '初心者開始';
+const HEADER_SCHEDULE_TOTAL_CAPACITY = '全体定員';
+const HEADER_SCHEDULE_BEGINNER_CAPACITY = '初心者定員';
+const HEADER_SCHEDULE_STATUS = '状態';
+const HEADER_SCHEDULE_NOTES = '備考';
+
+// 日程マスタのヘッダー定義
+const SCHEDULE_MASTER_HEADERS = [
+  '日付',
+  '教室',
+  '会場',
+  '教室形式',
+  '1部開始',
+  '1部終了',
+  '2部開始',
+  '2部終了',
+  '初心者開始',
+  '全体定員',
+  '初心者定員',
+  '状態',
+  '備考',
+];
 
 /**
  * HTMLテンプレートのサブファイルをテンプレート評価の文脈で読み込むためのinclude関数
@@ -216,9 +312,17 @@ function addAdminMenu(menu) {
     .addItem('シート全体を再ソート＆採番', 'manuallyReSortAndNumberSheet')
     .addItem('アクティブシートの罫線を再描画', 'manuallyFormatActiveSheet')
     .addSeparator()
-    .addItem('予約サマリーを再構築', 'rebuildSummarySheet')
+    .addItem('日程マスタを作成', 'createScheduleMasterSheet')
+    .addItem(
+      '【移行用】予約データから日程マスタを生成',
+      'generateScheduleMasterFromExistingReservationsWithUI',
+    )
     .addSeparator()
     .addItem('【開発用】テスト環境をセットアップ', 'setupTestEnvironment')
+    .addSeparator()
+    .addItem('【本番移行】統合予約シート作成', 'createIntegratedSheet')
+    .addItem('【本番移行】データを統合シートへ移行', 'migrateDataToIntegratedSheet')
+    .addItem('【本番移行】移行データ整合性チェック', 'verifyMigratedData')
     .addSeparator()
     .addItem('【東京】フォーム選択肢を更新', () => setCheckboxChoices(TOKYO_CLASSROOM_NAME))
     .addItem('【つくば】フォーム選択肢を更新', () => setCheckboxChoices(TSUKUBA_CLASSROOM_NAME))
@@ -228,18 +332,14 @@ function addAdminMenu(menu) {
 function addCacheMenu(menu) {
   menu
     .addSeparator()
-    .addItem('生徒名簿キャッシュを更新（手動）', 'updateRosterCache')
+    .addItem('キャッシュサービスを一括更新', 'rebuildNewCaches_entryPoint')
     .addSeparator()
-    .addItem('【新システム】全キャッシュを一括更新', 'rebuildAllCaches')
-    .addItem('【新システム】キャッシュシステムをテスト', 'testNewCacheSystem')
-    .addItem('【新システム】キャッシュ容量チェック', 'checkCacheCapacity')
-    .addItem('【新システム】古いキャッシュをクリーンアップ', 'cleanupOldCaches')
+    .addItem('【緊急】プロパティサービスをクリア・再構築', 'clearAndRebuildAllCaches')
     .addSeparator()
-    .addItem('【データ移行】全過去ログから「きろく」キャッシュを生成', 'migrateAllRecordsToCache')
-    .addItem(
-      '【データ移行】全予約から「よやくキャッシュ」を生成',
-      'migrateAllFutureBookingsToCache',
-    );
+    .addItem('キャッシュサービス容量チェック', 'checkCacheCapacity')
+    .addItem('古いプロパティサービスデータをクリーンアップ', 'cleanupOldCaches')
+    .addSeparator()
+    .addItem('【旧システム】名簿キャッシュを更新', 'updateRosterCache');
 }
 
 /**

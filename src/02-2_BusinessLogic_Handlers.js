@@ -26,16 +26,16 @@ function processCellEdit(e) {
     handleRosterEdit(e);
     logActivity(
       Session.getActiveUser().getEmail(),
-      '名簿編集',
-      '成功',
+      LOG_ACTION_ROSTER_EDIT,
+      MSG_SUCCESS,
       `範囲: ${range.getA1Notation()}`,
     );
   } else if (CLASSROOM_SHEET_NAMES.includes(sheetName) && startRow > 1) {
     handleReservationSheetEdit(e);
     logActivity(
       Session.getActiveUser().getEmail(),
-      '予約編集',
-      '成功',
+      LOG_ACTION_RESERVATION_EDIT,
+      MSG_SUCCESS,
       `範囲: ${range.getA1Notation()}`,
     );
   }
@@ -71,8 +71,8 @@ function processChange(changeType) {
       : 'N/A';
     logActivity(
       Session.getActiveUser().getEmail(),
-      '行挿入',
-      '成功',
+      LOG_ACTION_ROW_INSERT,
+      MSG_SUCCESS,
       `シート: ${sheet.getName()}, 日付: ${dateStr}`,
     );
   }
@@ -88,7 +88,7 @@ function handleReservationSheetEdit(e) {
   const range = e.range;
   const sheet = range.getSheet();
   const sheetName = sheet.getName();
-  const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const header = sheet.getRange(HEADER_ROW, 1, 1, sheet.getLastColumn()).getValues()[0];
   const editedHeader = header[range.getColumn() - 1];
 
   // 編集された列に応じて、それぞれの処理を呼び出す
@@ -132,7 +132,7 @@ function handleRosterEdit(e) {
   const range = e.range;
   const sheet = range.getSheet();
   const startRow = range.getRow();
-  const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const header = sheet.getRange(HEADER_ROW, 1, 1, sheet.getLastColumn()).getValues()[0];
   const editedHeader = header[range.getColumn() - 1];
   const idColIdx = header.indexOf(HEADER_STUDENT_ID);
   const realNameColIdx = header.indexOf(HEADER_REAL_NAME);
