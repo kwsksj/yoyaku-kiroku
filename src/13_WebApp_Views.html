@@ -212,7 +212,7 @@
       }
       // キャンセル済みstatus は予約・履歴どちらでも表示（英語・日本語両方に対応）
       const isCancelled =
-        item.status === STATUS_CANCEL || item.status === 'キャンセル' || item.status === 'キャンセル済み';
+        item.status === 'cancel' || item.status === 'キャンセル' || item.status === 'キャンセル済み' || item.status === STATUS_CANCEL;
       if (isCancelled) {
         statusBadges += `<p class="font-bold text-ui-error-text text-lg">キャンセル済</p>`;
       }
@@ -470,9 +470,7 @@
    * 新規登録フローのステップ2（プロフィール情報）のUIを生成します。
    */
   const getRegistrationStep2View = () => {
-    console.log('getRegistrationStep2View called');
-    console.log('DesignConfig:', typeof DesignConfig, DesignConfig);
-    console.log('Components:', typeof Components, Components); // Componentsのログを追加
+    // デバッグログは削除済み
     const data = appState.registrationData;
     const genderOptions = ['女性', '男性', 'その他']
       .map(
@@ -636,11 +634,18 @@
    * @returns {string} HTML文字列
    */
   const getDashboardView = () => {
-    // 計算済みデータを使用してパフォーマンス向上
-    updateComputedData();
+    // 計算済みデータを使用してパフォーマンス向上（setState()で自動更新済み）
     const sortedBookings = appState.computed.sortedBookings;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    
+    // デバッグ: 予約データのstatus値をコンソール出力
+    console.log('[デバッグ] sortedBookingsの全データ:', sortedBookings.map(b => ({ 
+      date: b.date, 
+      classroom: b.classroom, 
+      status: b.status,
+      statusType: typeof b.status
+    })));
 
     // 【改善】「あたらしく よやく する」ボタンを予約リストの先頭に配置し、デザインを分かりやすく変更
     const newBookingCardHtml = `
@@ -657,8 +662,12 @@
                 ${sortedBookings
                   .filter(b => {
                     const isCancelled =
-                      b.status === STATUS_CANCEL || b.status === 'キャンセル' || b.status === 'キャンセル済み';
-                    return !isCancelled; // キャンセル済み予約を念のため除外
+                      b.status === 'cancel' || b.status === 'キャンセル' || b.status === 'キャンセル済み' || b.status === STATUS_CANCEL;
+                    // デバッグ: フィルタリング結果をコンソール出力
+                    if (isCancelled) {
+                      console.log(`[デバッグ] キャンセル済み予約を除外: ${b.date} ${b.classroom} (status: "${b.status}")`);
+                    }
+                    return !isCancelled; // キャンセル済み予約を除外
                   })
                   .map(b => {
                     const resDate = new Date(b.date);
@@ -717,8 +726,12 @@
                     ${recordsToShow
                       .filter(h => {
                         const isCancelled =
-                          h.status === STATUS_CANCEL || h.status === 'キャンセル' || h.status === 'キャンセル済み';
-                        return !isCancelled; // キャンセル済み予約を念のため除外
+                          h.status === 'cancel' || h.status === 'キャンセル' || h.status === 'キャンセル済み' || h.status === STATUS_CANCEL;
+                        // デバッグ: 履歴のフィルタリング結果をコンソール出力
+                        if (isCancelled) {
+                          console.log(`[デバッグ] キャンセル済み履歴を除外: ${h.date} ${h.classroom} (status: "${h.status}")`);
+                        }
+                        return !isCancelled; // キャンセル済み予約を除外
                       })
                       .map(h => {
                         // ボタン配列を構築
@@ -777,9 +790,7 @@
    * @returns {string} HTML文字列
    */
   const getClassroomSelectionView = () => {
-    console.log('getClassroomSelectionView - appState.classrooms:', appState.classrooms);
-    console.log('getClassroomSelectionView - appState.classrooms length:', appState.classrooms ? appState.classrooms.length : 'null/undefined');
-    console.log('getClassroomSelectionView - full appState:', appState);
+    // デバッグログは削除済み
     
     // デバッグ情報を画面表示用に準備
     const sampleSlots = appState.slots ? appState.slots.slice(0, 2) : [];
@@ -942,8 +953,7 @@
     
     // デバッグ用：データ構造を確認
     if (detectEnvironment() === 'test' && relevantSlots.length > 0) {
-      console.log('getBookingView - relevantSlots sample:', relevantSlots[0]);
-      console.log('getBookingView - appState.slots sample:', appState.slots[0]);
+      // デバッグログは削除済み
     }
     
     // デバッグ情報を画面表示用に準備
@@ -1273,7 +1283,6 @@
     if (!appState.accountingMaster || !appState.accountingInitialValues)
       return '<div class="flex justify-center items-center h-full"><div class="spinner"></div></div>';
     const r = appState.accountingReservation;
-    updateComputedData();
     const b = appState.computed.sortedBookings.find(b => b.reservationId === r.reservationId);
     const v = b.venue ? `（${b.venue}）` : '';
     const initial = appState.accountingInitialValues;

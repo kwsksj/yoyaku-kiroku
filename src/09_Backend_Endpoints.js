@@ -16,25 +16,29 @@
 function makeReservationAndGetLatestData(reservationInfo) {
   try {
     const result = makeReservation(reservationInfo);
-    rebuildAllReservationsToCache();
+    // キャッシュ更新は makeReservation() 内で実行済み
     if (result.success) {
       const initialData = getInitialDataForNewWebApp();
       if (!initialData.success) {
         return initialData;
       }
 
-      // 特定ユーザーの予約情報をフィルタリング
-      const userReservations = filterUserReservations(
-        initialData.data.allReservations,
-        reservationInfo.studentId,
-        initialData.data.today,
-      );
+      // 特定ユーザーの予約情報を取得（キャッシュは既に更新済み）
+      const studentId = reservationInfo.studentId || reservationInfo.user?.studentId;
+      const userReservationsResult = getUserReservations(studentId);
+      
+      if (!userReservationsResult.success) {
+        return userReservationsResult;
+      }
 
       const response = createApiResponse(true, {
         message: result.message,
         data: {
-          myBookings: userReservations.myBookings,
-          initialData: initialData.data,
+          myBookings: userReservationsResult.data.myBookings,
+          initialData: {
+            ...initialData.data,
+            myHistory: userReservationsResult.data.myHistory,
+          },
         },
       });
 
@@ -57,25 +61,28 @@ function makeReservationAndGetLatestData(reservationInfo) {
 function cancelReservationAndGetLatestData(cancelInfo) {
   try {
     const result = cancelReservation(cancelInfo);
-    rebuildAllReservationsToCache();
+    // キャッシュ更新は cancelReservation() 内で実行済み
     if (result.success) {
       const initialData = getInitialDataForNewWebApp();
       if (!initialData.success) {
         return initialData;
       }
 
-      // 特定ユーザーの予約情報をフィルタリング
-      const userReservations = filterUserReservations(
-        initialData.data.allReservations,
-        cancelInfo.studentId,
-        initialData.data.today,
-      );
+      // 特定ユーザーの予約情報を取得（キャッシュは既に更新済み）
+      const userReservationsResult = getUserReservations(cancelInfo.studentId);
+      
+      if (!userReservationsResult.success) {
+        return userReservationsResult;
+      }
 
       return createApiResponse(true, {
         message: result.message,
         data: {
-          myBookings: userReservations.myBookings,
-          initialData: initialData.data,
+          myBookings: userReservationsResult.data.myBookings,
+          initialData: {
+            ...initialData.data,
+            myHistory: userReservationsResult.data.myHistory,
+          },
         },
       });
     } else {
@@ -96,25 +103,28 @@ function cancelReservationAndGetLatestData(cancelInfo) {
 function updateReservationDetailsAndGetLatestData(details) {
   try {
     const result = updateReservationDetails(details);
-    rebuildAllReservationsToCache();
+    // キャッシュ更新は updateReservationDetails() 内で実行済み
     if (result.success) {
       const initialData = getInitialDataForNewWebApp();
       if (!initialData.success) {
         return initialData;
       }
 
-      // 特定ユーザーの予約情報をフィルタリング
-      const userReservations = filterUserReservations(
-        initialData.data.allReservations,
-        details.studentId,
-        initialData.data.today,
-      );
+      // 特定ユーザーの予約情報を取得（キャッシュは既に更新済み）
+      const userReservationsResult = getUserReservations(details.studentId);
+      
+      if (!userReservationsResult.success) {
+        return userReservationsResult;
+      }
 
       const response = createApiResponse(true, {
-        message: result.message,
+        message: '予約内容を更新しました。',
         data: {
-          myBookings: userReservations.myBookings,
-          initialData: initialData.data,
+          myBookings: userReservationsResult.data.myBookings,
+          initialData: {
+            ...initialData.data,
+            myHistory: userReservationsResult.data.myHistory,
+          },
         },
       });
 

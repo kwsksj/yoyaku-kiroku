@@ -440,7 +440,18 @@ function filterUserReservations(allReservations, studentId, today) {
   if (Array.isArray(allReservations)) {
     allReservations.forEach(resArray => {
       const resObj = transformReservationArrayToObject(resArray);
-      if (resObj && resObj.studentId === studentId && resObj.status !== STATUS_CANCEL) {
+      // デバッグ: ステータス値をログ出力
+      if (resObj && resObj.studentId === studentId) {
+        Logger.log(`[デバッグ] 生徒ID ${studentId} の予約 - status: "${resObj.status}", date: ${resObj.date}, classroom: ${resObj.classroom}`);
+      }
+      
+      const isCancelled = 
+        resObj.status === STATUS_CANCEL || 
+        resObj.status === 'cancel' || 
+        resObj.status === 'キャンセル' || 
+        resObj.status === 'キャンセル済み';
+      
+      if (resObj && resObj.studentId === studentId && !isCancelled) {
         if (resObj.date >= today) {
           myBookings.push(resObj);
         } else {

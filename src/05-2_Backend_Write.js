@@ -252,9 +252,6 @@ function makeReservation(reservationInfo) {
 
     SpreadsheetApp.flush(); // シート書き込み完了を保証
 
-    // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsToCache();
-
     // 【NF-12】Construct new booking object for cache (統合予約シート対応)
     const timeToString = date =>
       date instanceof Date ? Utilities.formatDate(date, getSpreadsheetTimezone(), 'HH:mm') : null;
@@ -396,9 +393,6 @@ function cancelReservation(cancelInfo) {
 
     SpreadsheetApp.flush();
 
-    // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsToCache();
-
     // 【NF-12】Update cache incrementally
     const newBookingsCache = _updateFutureBookingsCacheIncrementally(studentId, 'remove', {
       reservationId,
@@ -467,9 +461,11 @@ function updateReservationDetails(details) {
     const integratedSheet = getSheetByName('統合予約シート');
     if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
-    const header = integratedSheet
-      .getRange(1, 1, 1, integratedSheet.getLastColumn())
-      .getValues()[0];
+    // 1回のシート読み込みで全データを取得（効率化）
+    const allData = integratedSheet.getDataRange().getValues();
+    if (allData.length === 0) throw new Error('統合予約シートにデータがありません。');
+
+    const header = allData[0];
     const headerMap = createHeaderMap(header);
 
     // 統合予約シートの列インデックス（新しいデータモデル）
@@ -477,6 +473,7 @@ function updateReservationDetails(details) {
     const studentIdColIdx = headerMap.get('生徒ID');
     const startTimeColIdx = headerMap.get('開始時刻');
     const endTimeColIdx = headerMap.get('終了時刻');
+    const firstLectureColIdx = headerMap.get('初回講習');
     const chiselRentalColIdx = headerMap.get('彫刻刻レンタル');
     const wipColIdx = headerMap.get('制作メモ');
     const orderColIdx = headerMap.get('order');
@@ -537,9 +534,6 @@ function updateReservationDetails(details) {
     }
 
     SpreadsheetApp.flush();
-
-    // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsToCache();
 
     // 【NF-12】Update cache incrementally (統合予約シート対応)
     const studentId = integratedSheet.getRange(targetRowIndex, studentIdColIdx + 1).getValue();
@@ -795,8 +789,6 @@ function saveAccountingDetails(payload) {
 ` +
       `詳細はスプレッドシートを確認してください。`;
     sendAdminNotification(subject, body);
-
-    rebuildAllReservationsToCache();
 
     // [変更] 戻り値に updatedSlots を追加
     return {

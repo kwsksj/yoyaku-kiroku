@@ -387,6 +387,9 @@ function updateUserProfile(userInfo) {
         }
       }
 
+      // 生徒基本情報キャッシュを更新
+      rebuildAllStudentsBasicToCache();
+      
       logActivity(
         userInfo.studentId,
         'プロフィール更新',

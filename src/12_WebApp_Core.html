@@ -646,7 +646,7 @@
    * @returns {Array} フィルタリングされたスロット配列
    */
   const filterFutureSlots = (slots, classroom) => {
-    updateComputedData(); // 計算データを更新
+    // 計算データはsetState()で自動更新済み
     return appState.computed.slotsByClassroom[classroom] || [];
   };
 
@@ -656,7 +656,7 @@
    * @returns {Object} 月をキーとしたスロットのオブジェクト
    */
   const groupSlotsByMonth = slots => {
-    updateComputedData(); // 計算データを更新
+    // 計算データはsetState()で自動更新済み
     return appState.computed.slotsByMonth;
   };
 

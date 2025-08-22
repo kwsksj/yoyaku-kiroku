@@ -164,16 +164,48 @@ function rebuildAllReservationsToCache() {
       .getRange(2, 1, integratedSheet.getLastRow() - 1, integratedSheet.getLastColumn())
       .getValues();
 
-    const timezone = 'Asia/Tokyo';
+    // 最適化：日付フォーマット処理の高速化
+    // カスタム高速日付フォーマット関数
+    const fastFormatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const fastFormatTime = (date) => {
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+
+    // 列インデックスが有効な場合のみ処理
+    const columnsToProcess = [];
+    if (dateCol !== undefined) columnsToProcess.push({ col: dateCol, formatter: fastFormatDate });
+    if (startTimeCol !== undefined) columnsToProcess.push({ col: startTimeCol, formatter: fastFormatTime });
+    if (endTimeCol !== undefined) columnsToProcess.push({ col: endTimeCol, formatter: fastFormatTime });
+
+    if (columnsToProcess.length > 0) {
+      reservationValues.forEach(row => {
+        columnsToProcess.forEach(({ col, formatter }) => {
+          const cellValue = row[col];
+          if (cellValue instanceof Date) {
+            row[col] = formatter(cellValue);
+          }
+        });
+      });
+    }
+
+    const reservationIdCol = headerMap.get(HEADER_RESERVATION_ID);
+    if (reservationIdCol === undefined) {
+      throw new Error('ヘッダー「予約ID」が見つかりません。');
+    }
+
+    const reservationsMap = {};
     reservationValues.forEach(row => {
-      if (dateCol !== undefined && row[dateCol] instanceof Date) {
-        row[dateCol] = Utilities.formatDate(row[dateCol], timezone, 'yyyy-MM-dd');
-      }
-      if (startTimeCol !== undefined && row[startTimeCol] instanceof Date) {
-        row[startTimeCol] = Utilities.formatDate(row[startTimeCol], timezone, 'HH:mm');
-      }
-      if (endTimeCol !== undefined && row[endTimeCol] instanceof Date) {
-        row[endTimeCol] = Utilities.formatDate(row[endTimeCol], timezone, 'HH:mm');
+      const reservationId = row[reservationIdCol];
+      if (reservationId) {
+        reservationsMap[reservationId] = row;
       }
     });
 
@@ -184,7 +216,7 @@ function rebuildAllReservationsToCache() {
 
     CacheService.getScriptCache().put('all_reservations', JSON.stringify(cacheData), 21600);
     Logger.log(
-      `all_reservationsキャッシュサービスを更新しました。件数: ${reservationValues.length}`,
+      `all_reservationsキャッシュサービスを更新しました。件数: ${Object.keys(reservationsMap).length}`,
     );
   } catch (e) {
     Logger.log(`rebuildAllReservationsToCacheでエラー: ${e.message}`);
@@ -295,7 +327,7 @@ function rebuildAccountingMasterToCache() {
       version: new Date().getTime(),
       data: processedData,
     };
-    
+
     CacheService.getScriptCache().put('accounting_master_data', JSON.stringify(cacheData), 21600); // 6時間
     Logger.log(`会計マスタデータキャッシュを更新しました。件数: ${processedData.length}`);
   } catch (e) {
