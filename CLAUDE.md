@@ -5,9 +5,14 @@ repository.
 
 ## Project Overview
 
-This is a Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a
-wood carving classroom business. The system uses Google Sheets as the database and provides a web
-application interface for reservations and management.
+Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving classroom business. Uses Google Sheets as database with web application interface.
+
+### ⚠️ Data Model Redesign in Progress
+
+Currently migrating from classroom-specific distributed data structure to an integrated, normalized data model.
+Detailed design: **[data_model_redesign.md](docs/data_model_redesign.md)**
+
+**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ | Frontend Integration 🔧 | Record Cache 🗓️
 
 ## Key Development Commands
 
@@ -31,7 +36,6 @@ application interface for reservations and management.
 
 - Frontend testing: Open `test/10_WebApp_Unified_Test.html` with Live Server
 - The test file includes automated UI tests that display results at the bottom of the page
-- Always run `npm run build` before testing to ensure latest changes are included
 
 ## Architecture Overview
 
@@ -41,14 +45,17 @@ The project uses a numbered file naming convention in `src/`:
 
 **Core System Files:**
 
-- `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance
-  optimization
+- `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance optimization
 - `01_Code.js` - Entry point with global constants, UI definitions, and trigger functions
-- `02-*_BusinessLogic_*.js` - Core business logic (batch processing, event handlers, sheet
-  utilities)
+- `02-1_BusinessLogic_Batch.js` - Batch processing and data import functions
+- `02-2_BusinessLogic_Handlers.js` - Event handlers and business logic
+- `02-3_BusinessLogic_SheetUtils.js` - Sheet utility functions and data manipulation
+- `02-4_BusinessLogic_ScheduleMaster.js` - Schedule master management **[新規]**
 - `03_BusinessLogic_Summary.js` - Summary sheet management
 - `04_Backend_User.js` - User authentication and management
-- `05-*_Backend_*.js` - API endpoints for read/write operations
+- `05-1_Backend_Read.js` - Data reading API endpoints
+- `05-2_Backend_Write.js` - Data writing API endpoints
+- `05-3_Backend_AvailableSlots.js` - Available slots calculation API **[新規]**
 - `06_ExternalServices.js` - Google Forms/Calendar integration
 - `07_CacheManager.js` - Cache management for performance
 - `08_Utilities.js` - Common utility functions
@@ -62,72 +69,71 @@ The project uses a numbered file naming convention in `src/`:
 - `13_WebApp_Views.html` - UI view generation functions
 - `14_WebApp_Handlers.html` - Event handlers and app flow control
 
-### Data Model
+### Data Model & Caching
 
-The system uses Google Sheets with these main sheets:
+Google Sheets-based integrated data model. Details: [data_model_redesign.md](docs/data_model_redesign.md)
 
-- **Reservation sheets** (per classroom): Main reservation data with student info, dates,
-  attendance, accounting details
-- **生徒名簿 (Student Roster)**: Comprehensive 36-column student master data including:
-  - Basic info (ID, name, phone, email)
-  - Participation counts per classroom
-  - Profile information (age, gender, address, tools rental)
-  - Wood carving experience and preferences
-  - Communication notes and cache data (bookings cache, yearly participation records)
-- **料金・商品マスタ (Pricing Master)**: Complete fee structures with time-based billing, materials,
-  sales items
-- **予約サマリー (Reservation Summary)**: Real-time aggregated availability data for form
-  integration
-- **アクティビティログ (Activity Log)**: Comprehensive user action tracking and system audit trail
+**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Record Cache, Pricing Master, Activity Log
 
-### Build System
+**Multi-layer Cache**:
+
+- **CacheService**: Schedule master, all reservations, student info, pricing (6-24 hours)
+- **PropertiesService**: Per-student participation history (persistent, 9KB limit)
+- **SpreadsheetManager**: Spreadsheet object cache (session-scoped)
+
+### Build & Configuration
+
+**Build Tools**:
 
 - `tools/build-unified.js` - Merges all HTML/JS files into single test file
 - `tools/switch-env.js` - Manages environment switching via `.clasp.json` updates
 - `tools/frontend-test.js` - Automated frontend testing framework
 - Test environment uses mock data to avoid affecting production sheets
 
-### Configuration Files
+**Config Files**: `.clasp.json`, `.clasp.config.json`, `jsconfig.json`, `.prettierrc.json`
 
-- `.clasp.json` - GAS deployment configuration (switched by environment)
-- `.clasp.config.json` - Contains prod/test environment settings
-- `jsconfig.json` - JavaScript/TypeScript IDE configuration
-- `.prettierrc.json` - Code formatting rules
+## Development Guidelines
 
-## Development Workflow
+### Workflow
 
-1. **Local Development**: Edit files in `src/`, run `npm run watch` for auto-rebuild
-2. **Testing**: Open unified test file with Live Server, check automated test results
-3. **Code Quality**: Run `npm run check` before committing
-4. **Deployment**: Use `npm run deploy:test` for testing, `npm run deploy:prod` for production
-5. **Environment Setup**: Ensure `.clasp.config.json` has correct `scriptId` and `deploymentId`
-   values
+1. **Development**: Edit `src/` files → `npm run watch` for auto-rebuild
+2. **Quality**: Run `npm run check` before committing
+3. **Testing**: Open unified test file with Live Server
+4. **Deployment**: `npm run deploy:test` → `npm run deploy:prod`
 
-## Important Notes
+### Code Standards
 
-### Development Practices
+- Always edit source files in `src/`, never the unified test HTML directly
+- Use `SS_MANAGER` global instance for all spreadsheet operations
+- Follow numbered file naming convention
+- Maintain integration with multi-layer caching system
 
-- Never edit the unified test HTML directly - always edit source files in `src/`
-- Run `npm run check` before committing to ensure code quality
-- Use `SS_MANAGER` global instance for all spreadsheet operations to benefit from caching
-- Helper functions `getActiveSpreadsheet()`, `getSheetByName()`, `getSpreadsheetTimezone()` provide
-  backward compatibility
+### Performance & Data
 
-### Data & Performance
+- Google Sheets = database → validate data operations carefully
+- Prioritize batch processing, avoid single-cell operations in loops
+- Monitor 6-minute execution limits and API quotas
+- Cache strategy: version-managed updates + time-driven rebuilds + real-time polling
+- Emergency procedures: `rebuildNewCaches_entryPoint()`, `trigger_rebuildAllCaches()`
 
-- The system uses Google Sheets as database - be careful with data operations and always validate
-  input
-- **Multi-layer caching is critical**: Spreadsheet object cache, student roster cache, and summary
-  cache
-- Understand cache update mechanisms and when to trigger manual cache rebuilds
-- Batch operations when possible - avoid single-cell operations in loops
-- Monitor performance as system scales - current limits are 6min execution time, API quotas
+Detailed architecture: `docs/ARCHITECTURE.md`
 
-### System Operations
+## Instructions for Claude Code
 
-- All user actions are logged to activity log sheet for auditing and troubleshooting
-- The web app supports both time-based (30min units) and session-based billing models
-- Data integrity is managed through real-time triggers and batch processing
-- Emergency procedures: cache rebuild (`updateRosterCache()`), summary rebuild
-  (`rebuildSummarySheet()`)
-- For detailed architecture, error handling, and performance guidelines, see `docs/ARCHITECTURE.md`
+### Communication and Language
+
+- **Primary Language**: Respond in Japanese whenever possible
+- **Code Comments**: Write code comments in Japanese when adding new comments
+- **User Preference**: The user prefers Japanese communication for better understanding
+
+### Claude Code Development Guidelines
+
+- **After Code Changes**: Run `npm run push:test` when testing is needed and prompt user to test
+- **Data Model Migration**: Frontend integration with unified model is currently in progress
+
+### Code Quality Standards
+
+- Follow the established numbered file naming convention in `src/`
+- Maintain consistency with existing code style and patterns
+- Ensure all changes integrate properly with the multi-layer caching system
+- Validate that modifications don't break the spreadsheet-based data model

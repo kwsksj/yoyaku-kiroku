@@ -10,12 +10,6 @@
     "baseUrl": ".",
     "typeRoots": ["node_modules/@types"]
   },
-  "include": [
-    "src/**/*.js",
-    "src/**/*.html",
-    "test/**/*.js",
-    "test/**/*.html",
-    "tools/**/*.js"
-  ],
+  "include": ["src/**/*.js", "src/**/*.html", "test/**/*.js", "test/**/*.html", "tools/**/*.js"],
   "exclude": ["node_modules"]
 }
