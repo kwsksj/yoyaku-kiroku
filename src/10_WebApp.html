@@ -25,6 +25,12 @@
     />
   </head>
   <body class="bg-brand-bg min-h-screen">
+    <!-- デバッグ情報表示エリア -->
+    <div id="debug" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-xs">
+      <strong>デバッグ情報:</strong>
+      <div id="debug-content">初期化中...</div>
+    </div>
+
     <!-- アプリケーションのメインコンテナ -->
     <div id="app" class="container mx-auto px-4 max-w-lg">
       <!-- ローディング画面 -->
@@ -61,12 +67,42 @@
     include('14_WebApp_Handlers'); ?>
 
     <script>
+      // デバッグ情報を画面に表示する関数
+      function debugLog(message) {
+        const debugContent = document.getElementById('debug-content');
+        if (debugContent) {
+          debugContent.innerHTML += '<br>' + new Date().toISOString() + ': ' + message;
+        }
+      }
+      
+      // 最初のテスト - これが表示されなければHTMLファイル自体が読み込まれていない
+      console.log('=== HTMLファイル読み込み確認テスト ===');
+      console.log('ページURL:', window.location.href);
+      console.log('現在時刻:', new Date().toISOString());
+      
+      debugLog('HTMLファイル読み込み確認テスト完了');
+      debugLog('ページURL: ' + window.location.href);
+      
       // GAS環境かどうかを判定
       const isGAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
+      console.log('GAS環境判定:', isGAS);
+      debugLog('GAS環境判定: ' + isGAS);
 
       function initializeApp() {
+        debugLog('initializeApp実行開始');
+        debugLog('isGAS: ' + isGAS);
+        
         // 必要な変数や関数が定義されるまで待機
         const checkReady = setInterval(() => {
+          const status = {
+            DesignConfig: typeof DesignConfig !== 'undefined',
+            appState: typeof appState !== 'undefined',  
+            setState: typeof setState === 'function',
+            hideLoading: typeof hideLoading === 'function'
+          };
+          
+          debugLog('初期化条件チェック: ' + JSON.stringify(status));
+          
           // DesignConfig, appState, setState, hideLoadingが利用可能か確認
           if (
             typeof DesignConfig !== 'undefined' &&
@@ -75,7 +111,10 @@
             typeof hideLoading === 'function'
           ) {
             clearInterval(checkReady);
-            console.log('[GAS] 初期化条件を満たしました。アプリケーションを開始します。');
+            debugLog('初期化条件を満たしました！');
+            debugLog('appState.slots: ' + (appState.slots ? appState.slots.length + '件' : 'null'));
+            debugLog('appState.classrooms: ' + JSON.stringify(appState.classrooms));
+            
             setState({ view: 'login' });
             hideLoading();
           }

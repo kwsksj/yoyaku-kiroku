@@ -16,6 +16,64 @@
    * =================================================================
    */
 
+  /**
+   * =================================================================
+   * --- New Data Model Client-Side Processing (2025-08-19) ---
+   * =================================================================
+   */
+
+  // calculateSlotsFromReservations関数とtransformReservationArrayToObject関数は削除されました
+  // 予約データの処理は全てバックエンドで実行され、getAvailableSlots()とgetUserReservations()を使用します
+
+  /**
+   * 新しい初期データを受け取り、クライアントサイドで処理してappStateを構築する
+   * @param {object} data - getInitialDataForNewWebAppから返されたデータオブジェクト
+   * @param {string} phone - ログイン試行された電話番号
+   * @param {Array} availableSlots - バックエンドから取得済みの空席情報
+   * @returns {object} setStateに渡すための新しい状態オブジェクト
+   */
+  function processInitialData(data, phone, availableSlots, userReservations = null) {
+    const { allStudents, accountingMaster, cacheVersions, today } = data;
+
+    // 1. 電話番号でユーザーを検索
+    const currentUser = Object.values(allStudents).find(student => student.phone === phone);
+
+    if (!currentUser) {
+      return { currentUser: null }; // ユーザーが見つからない
+    }
+
+    // currentUserのdisplayNameをセット
+    currentUser.displayName = currentUser.nickname || currentUser.realName;
+
+    // 2. 個人予約データはバックエンドから取得済み
+    const myBookings = userReservations ? userReservations.myBookings : [];
+    const myHistory = userReservations ? userReservations.myHistory : [];
+
+    // 3. スロットデータから教室一覧を動的に取得
+    console.log('processInitialData - availableSlots:', availableSlots);
+    console.log('processInitialData - availableSlots length:', availableSlots ? availableSlots.length : 'null/undefined');
+    
+    const classroomsFromSlots = availableSlots && availableSlots.length > 0 
+      ? [...new Set(availableSlots.map(slot => slot.classroom))]
+      : [];
+      
+    console.log('processInitialData - classroomsFromSlots:', classroomsFromSlots);
+
+    // 4. appStateを構築
+    return {
+      view: 'dashboard',
+      currentUser: currentUser,
+      myBookings: myBookings,
+      history: myHistory,
+      slots: availableSlots,
+      classrooms: classroomsFromSlots,
+      accountingMaster: accountingMaster,
+      today: today,
+      _allStudents: allStudents,
+      _cacheVersions: cacheVersions,
+    };
+  }
+
   // =================================================================
   // --- Application State Management ---
   // -----------------------------------------------------------------
@@ -70,36 +128,73 @@
   if (isTestEnvironment) {
     console.log('🧪 Test Environment Detected');
     console.log('MockData available:', typeof MockData !== 'undefined');
+  } else {
+    console.log('🚀 Production Environment Detected');
   }
 
   const appState = {
+    // 基本データ
     currentUser: getEnvironmentData('currentUser'),
     slots: getEnvironmentData('slots', []),
     myBookings: getEnvironmentData('myBookings', []),
     history: getEnvironmentData('history', []),
     historyTotal: getEnvironmentData('history', []).length,
+    accountingMaster: getEnvironmentData('accountingMaster'),
+    classrooms: [], // スロットデータから動的に取得
+
+    // 計算済みデータ（パフォーマンス最適化用）
+    computed: {
+      slotsByClassroom: {}, // 教室別スロット: { '東京教室': [...], ... }
+      slotsByMonth: {}, // 月別スロット: { 1: [...], 2: [...], ... }
+      filteredSlots: {}, // フィルタリング済みスロット（キャッシュ用）
+      sortedBookings: [], // ソート済み予約リスト
+      sortedHistory: [], // ソート済み履歴リスト
+      displayHistory: [], // 表示用履歴（recordsToShow分）
+      classroomBookingStatus: {}, // 教室別予約状況
+      accountingCalculation: null, // 会計計算結果
+    },
+
+    // UI状態
     view: isTestEnvironment ? 'login' : 'login',
     selectedClassroom: null,
     selectedSlot: null,
     phoneForRegistration: null,
     completionMessage: '',
+    recordsToShow: UI_HISTORY_INITIAL_RECORDS,
+
+    // 編集・操作状態
     newlyBookedReservation: null,
     editingReservationDetails: null,
     accountingReservation: null,
-    accountingMaster: getEnvironmentData('accountingMaster'),
     accountingInitialValues: null,
     editingHistoryItem: null,
-    classrooms: getEnvironmentData('classrooms', ['東京教室', 'つくば教室', '沼津教室']),
+
     // NF-01: 電話番号未登録ユーザー選択フロー用の状態
-    noPhoneUsers: [], // 検索結果のユーザーリスト
-    selectedNoPhoneUser: null, // 選択されたユーザー
+    searchedUsers: [], // 検索結果のユーザーリスト
+    selectedSearchedUser: null, // 選択されたユーザー
     searchAttempted: false, // NF-01: 検索が一度試行されたかを示すフラグ
+
     // NF-04: 新規ユーザー登録フロー用の状態
     registrationStep: 1, // 新規登録フローの現在のステップ (1, 2, 3)
     registrationData: {}, // 各ステップで入力された情報を一時的に蓄積する
     isFirstTimeBooking: false, // 初回予約かどうかを示すフラグ
+
+    // システム内部状態
+    today: null,
+    loginPhone: '',
+    _freshDataLoaded: false,
+    _dataUpdateInProgress: false,
+    _allReservations: [],
+    _allStudents: {},
+    _cacheVersions: {},
   };
   let onConfirmCallback = null; // モーダル確認時のコールバック関数を保持
+
+  // 初期appState確認ログ
+  console.log('appState初期化完了:', appState);
+  console.log('appState.view:', appState.view);
+  console.log('appState.slots:', appState.slots);
+  console.log('appState.classrooms:', appState.classrooms);
 
   // テスト環境の初期化ログ
   if (isTestEnvironment) {
@@ -300,7 +395,7 @@
     // 3秒ごとにメッセージを更新
     loadingMessageTimer = setInterval(() => {
       updateLoadingMessage(category);
-    }, 3500);
+    }, UI_LOADING_MESSAGE_INTERVAL);
   };
 
   const stopLoadingMessageRotation = () => {
@@ -390,9 +485,25 @@
     // エラーログは開発環境でのみ出力
     if (typeof console !== 'undefined' && console.error) {
       console.error('Server Error:', err);
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        cause: err.cause,
+        type: typeof err,
+        keys: Object.keys(err || {}),
+      });
     }
 
-    const errorMessage = typeof err === 'object' && err.message ? err.message : JSON.stringify(err);
+    let errorMessage;
+    if (typeof err === 'object' && err.message) {
+      errorMessage = err.message;
+      if (err.cause && err.cause.message) {
+        errorMessage += `<br>原因: ${err.cause.message}`;
+      }
+    } else {
+      errorMessage = JSON.stringify(err);
+    }
+
     showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
   }
 
@@ -440,42 +551,113 @@
   const showConfirm = c => showModal({ ...c, showCancel: true });
 
   // =================================================================
-  // --- Date and Slot Utilities ---
+  // --- Computed Data Management ---
   // -----------------------------------------------------------------
-  // 日付やスロット操作に関する共通ユーティリティ関数群です。
+  // appState.computedの計算・更新処理を管理します。
   // =================================================================
 
   /**
-   * 指定された教室の、今日以降の空きスロットをフィルタリングします。
-   * @param {Array} slots - 全スロットの配列
-   * @param {string} classroom - 教室名
-   * @returns {Array} フィルタリングされたスロット配列
+   * appState.computedの全データを再計算します。
+   * データが変更された際に呼び出されます。
    */
-  const filterFutureSlots = (slots, classroom) => {
-    if (!slots || !classroom) return [];
+  function updateComputedData() {
+    const state = appState;
+
+    // 基本チェック
+    if (!state.slots) state.slots = [];
+    if (!state.myBookings) state.myBookings = [];
+    if (!state.history) state.history = [];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    return slots.filter(s => {
-      const slotDate = new Date(s.date);
-      slotDate.setMinutes(slotDate.getMinutes() + slotDate.getTimezoneOffset());
-      return s.classroom === classroom && slotDate >= today && s.session !== '初回講習';
-    });
-  };
+    // 0. スロットデータから教室一覧を動的に取得
+    const classroomsFromSlots = [...new Set(state.slots.map(slot => slot.classroom))];
+    if (classroomsFromSlots.length > 0) {
+      state.classrooms = classroomsFromSlots;
+    }
 
-  /**
-   * スロットを月別にグループ化します。
-   * @param {Array} slots - スロットの配列
-   * @returns {Object} 月をキーとしたスロットのオブジェクト
-   */
-  const groupSlotsByMonth = slots => {
-    return slots.reduce((acc, slot) => {
+    // 1. 教室別スロット
+    state.computed.slotsByClassroom = {};
+    state.classrooms.forEach(classroom => {
+      state.computed.slotsByClassroom[classroom] = state.slots.filter(s => {
+        const slotDate = new Date(s.date);
+        slotDate.setMinutes(slotDate.getMinutes() + slotDate.getTimezoneOffset());
+        const isClassroomMatch = s.classroom === classroom;
+        const isDateFuture = slotDate >= today;
+        const isNotFirstLecture = s.session !== ITEM_NAME_FIRST_LECTURE;
+
+        // デバッグ用ログ（開発環境のみ）
+        if (detectEnvironment() === 'test' && s.classroom && classroom === TOKYO_CLASSROOM_NAME) {
+          console.log(
+            `フィルター詳細 - スロット教室: "${s.classroom}", 検索教室: "${classroom}", 一致: ${isClassroomMatch}, 日付: ${s.date}, 未来: ${isDateFuture}, セッション: "${s.session}", 初回除外: ${isNotFirstLecture}`,
+          );
+        }
+
+        return isClassroomMatch && isDateFuture && isNotFirstLecture;
+      });
+    });
+
+    // 2. 月別スロット
+    state.computed.slotsByMonth = state.slots.reduce((acc, slot) => {
       const month = new Date(slot.date).getMonth() + 1;
       if (!acc[month]) acc[month] = [];
       acc[month].push(slot);
       return acc;
     }, {});
+
+    // 3. ソート済み予約リスト
+    state.computed.sortedBookings = [...state.myBookings].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // 4. ソート済み履歴リスト
+    state.computed.sortedHistory = [...state.history].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // 5. 表示用履歴（recordsToShow分）
+    state.computed.displayHistory = state.computed.sortedHistory.slice(0, state.recordsToShow || UI_HISTORY_INITIAL_RECORDS);
+
+    // 6. 教室別予約状況
+    state.computed.classroomBookingStatus = {};
+    state.classrooms.forEach(classroom => {
+      const classroomSlots = state.computed.slotsByClassroom[classroom] || [];
+      state.computed.classroomBookingStatus[classroom] = {
+        totalSlots: classroomSlots.length,
+        availableSlots: classroomSlots.filter(s => !s.isFull).length,
+        myBookingsCount: state.myBookings.filter(b => b.classroom === classroom).length,
+        slotsByMonth: classroomSlots.reduce((acc, slot) => {
+          const month = new Date(slot.date).getMonth() + 1;
+          if (!acc[month]) acc[month] = [];
+          acc[month].push(slot);
+          return acc;
+        }, {}),
+      };
+    });
+  }
+
+  // =================================================================
+  // --- Legacy Utilities (Backward Compatibility) ---
+  // -----------------------------------------------------------------
+  // 既存コードとの互換性のための関数群です。
+  // =================================================================
+
+  /**
+   * 指定された教室の、今日以降の空きスロットをフィルタリングします。
+   * @param {Array} slots - 全スロットの配列（未使用、互換性のため残存）
+   * @param {string} classroom - 教室名
+   * @returns {Array} フィルタリングされたスロット配列
+   */
+  const filterFutureSlots = (slots, classroom) => {
+    updateComputedData(); // 計算データを更新
+    return appState.computed.slotsByClassroom[classroom] || [];
+  };
+
+  /**
+   * スロットを月別にグループ化します。
+   * @param {Array} slots - スロットの配列（未使用、互換性のため残存）
+   * @returns {Object} 月をキーとしたスロットのオブジェクト
+   */
+  const groupSlotsByMonth = slots => {
+    updateComputedData(); // 計算データを更新
+    return appState.computed.slotsByMonth;
   };
 
   // =================================================================
@@ -545,7 +727,7 @@
     if (!master || !classroom || !itemName) return undefined;
     return master.find(
       item =>
-        item['種別'] === '授業料' &&
+        item['種別'] === ITEM_TYPE_TUITION &&
         item['項目名'] === itemName &&
         item['対象教室'] &&
         item['対象教室'].includes(classroom),
@@ -558,8 +740,30 @@
   // 会計画面での複雑な料金計算ロジックです。
   // 授業料、材料費、割引などを動的に計算し、合計金額を算出します。
   // =================================================================
+
+  /**
+   * 会計計算を実行し、appState.computed.accountingCalculationに結果を保存します。
+   * @returns {object} 計算結果詳細
+   */
   function calculateAccountingDetails() {
     if (!appState.accountingMaster) return null;
+
+    const details = calculateAccountingDetailsFromForm();
+
+    // appState.computedに結果を保存
+    appState.computed.accountingCalculation = details;
+
+    // UI要素の更新
+    updateAccountingUI(details);
+
+    return details;
+  }
+
+  /**
+   * フォームの内容から会計計算を実行します（appState独立）。
+   * @returns {object} 計算結果詳細
+   */
+  function calculateAccountingDetailsFromForm() {
     let tuitionSubtotal = 0;
     let salesSubtotal = 0;
     const details = {
@@ -570,78 +774,146 @@
       items: [],
     };
     const form = document.getElementById('accounting-form');
-    if (!form) return null;
+    if (!form) return details;
 
     const r = appState.accountingReservation;
-    const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, '本講座');
-    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === '30分';
-    let tuitionBreakdownHtml = '';
+    const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, ITEM_NAME_MAIN_LECTURE);
+    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === UNIT_30_MIN;
 
+    // 時間制授業料計算
     if (isTimeBased) {
-      const startTime = document.getElementById('start-time')?.value;
-      const endTime = document.getElementById('end-time')?.value;
-      const breakMinutes = parseInt(document.getElementById('break-time')?.value || 0, 10);
-
-      if (startTime && endTime && startTime < endTime) {
-        const start = new Date(`1970-01-01T${startTime}:00`);
-        const end = new Date(`1970-01-01T${endTime}:00`);
-        let diffMinutes = (end - start) / 60000 - breakMinutes;
-
-        if (diffMinutes > 0) {
-          const billableUnits = Math.ceil(diffMinutes / 30);
-          const price = billableUnits * Number(tuitionItemRule['単価']);
-          tuitionSubtotal += price;
-          //【FE-16】項目名に利用時間を追加
-          const tuitionItem = { name: `授業料 (${startTime} - ${endTime})`, price: price };
-          details.tuition.items.push(tuitionItem);
-          document.getElementById('calculated-hours').textContent =
-            `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule['単価']}円`;
-        } else {
-          document.getElementById('calculated-hours').textContent = ``;
-        }
+      const timeBasedResult = calculateTimeBasedTuition(tuitionItemRule);
+      if (timeBasedResult) {
+        tuitionSubtotal += timeBasedResult.price;
+        details.tuition.items.push(timeBasedResult.item);
       }
     }
 
+    // チェックボックス項目計算
+    const checkboxResult = calculateCheckboxItems();
+    tuitionSubtotal += checkboxResult.tuitionSubtotal;
+    salesSubtotal += checkboxResult.salesSubtotal;
+    details.tuition.items.push(...checkboxResult.tuitionItems);
+    details.sales.items.push(...checkboxResult.salesItems);
+    details.items.push(...checkboxResult.allItems);
+
+    // 割引計算
+    const discountResult = calculateDiscount();
+    if (discountResult) {
+      tuitionSubtotal -= discountResult.amount;
+      details.tuition.items.push(discountResult.item);
+    }
+
+    // 材料費計算
+    const materialResult = calculateMaterials();
+    salesSubtotal += materialResult.subtotal;
+    details.sales.items.push(...materialResult.items);
+
+    // その他販売品計算
+    const otherSalesResult = calculateOtherSales();
+    salesSubtotal += otherSalesResult.subtotal;
+    details.sales.items.push(...otherSalesResult.items);
+
+    // 合計計算
+    details.tuition.subtotal = tuitionSubtotal;
+    details.sales.subtotal = salesSubtotal;
+    details.grandTotal = tuitionSubtotal + salesSubtotal;
+    details.paymentMethod = form.querySelector('input[name="payment-method"]:checked')?.value || '現金';
+
+    return details;
+  }
+
+  /**
+   * 時間制授業料を計算します。
+   */
+  function calculateTimeBasedTuition(tuitionItemRule) {
+    const startTime = document.getElementById('start-time')?.value;
+    const endTime = document.getElementById('end-time')?.value;
+    const breakMinutes = parseInt(document.getElementById('break-time')?.value || 0, 10);
+
+    if (startTime && endTime && startTime < endTime) {
+      const start = new Date(`1970-01-01T${startTime}:00`);
+      const end = new Date(`1970-01-01T${endTime}:00`);
+      let diffMinutes = (end - start) / 60000 - breakMinutes;
+
+      if (diffMinutes > 0) {
+        const billableUnits = Math.ceil(diffMinutes / 30);
+        const price = billableUnits * Number(tuitionItemRule['単価']);
+        return {
+          price: price,
+          item: { name: `授業料 (${startTime} - ${endTime})`, price: price },
+          billableUnits: billableUnits,
+        };
+      }
+    }
+    return null;
+  }
+
+  /**
+   * チェックボックス項目を計算します。
+   */
+  function calculateCheckboxItems() {
+    let tuitionSubtotal = 0;
+    let salesSubtotal = 0;
+    const tuitionItems = [];
+    const salesItems = [];
+    const allItems = [];
+
+    const form = document.getElementById('accounting-form');
     form.querySelectorAll('input[type="checkbox"].accounting-item').forEach(cb => {
       if (cb.checked || cb.disabled) {
         const itemName = cb.dataset.itemName;
         const itemType = cb.dataset.itemType;
         const masterItem = appState.accountingMaster.find(m => m['項目名'] === itemName && m['種別'] === itemType);
         if (!masterItem) return;
+
         const price = Number(masterItem['単価']);
         const itemDetail = { name: itemName, price: price };
-        details.items.push(itemDetail);
+        allItems.push(itemDetail);
 
-        if (itemType === '授業料') {
+        if (itemType === ITEM_TYPE_TUITION) {
           tuitionSubtotal += price;
-          details.tuition.items.push(itemDetail);
-          tuitionBreakdownHtml += `<div class="flex justify-between"><span>${itemDetail.name}</span><span>${itemDetail.price.toLocaleString()}円</span></div>`;
+          tuitionItems.push(itemDetail);
         } else {
           salesSubtotal += price;
-          details.sales.items.push(itemDetail);
+          salesItems.push(itemDetail);
         }
       }
     });
 
+    return { tuitionSubtotal, salesSubtotal, tuitionItems, salesItems, allItems };
+  }
+
+  /**
+   * 割引を計算します。
+   */
+  function calculateDiscount() {
     const discountSelector = document.getElementById('discount-selector');
     if (discountSelector) {
-      const discountRule = appState.accountingMaster.find(item => item['項目名'] === '初回講習同時間割引');
+      const discountRule = appState.accountingMaster.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
       if (discountRule) {
         const discountMinutes = parseInt(discountSelector.value, 10);
         if (discountMinutes > 0) {
           const discountAmount = (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
-          tuitionSubtotal -= discountAmount;
-          const discountItem = {
-            name: `初回講習同時間割引 (${discountMinutes}分)`,
-            price: -discountAmount,
+          return {
+            amount: discountAmount,
+            item: {
+              name: `${ITEM_NAME_DISCOUNT} (${discountMinutes}分)`,
+              price: -discountAmount,
+            },
           };
-          details.tuition.items.push(discountItem);
-          tuitionBreakdownHtml += `<div class="flex justify-between text-red-600"><span>${discountItem.name}</span><span>${discountItem.price.toLocaleString()}円</span></div>`;
         }
       }
     }
+    return null;
+  }
 
-    if (isTimeBased) document.getElementById('tuition-breakdown').innerHTML = tuitionBreakdownHtml;
+  /**
+   * 材料費を計算します。
+   */
+  function calculateMaterials() {
+    let subtotal = 0;
+    const items = [];
 
     const materialContainer = document.getElementById('materials-container');
     if (materialContainer) {
@@ -650,14 +922,17 @@
         const type = document.getElementById(`material-type-${index}`)?.value;
         const masterItem = appState.accountingMaster.find(m => m['項目名'] === type);
         const priceEl = document.getElementById(`material-price-${index}`);
+
         if (!masterItem) {
           if (priceEl) priceEl.textContent = '0円';
           return;
         }
+
         const unitPrice = Number(masterItem['単価']);
         let finalName = type;
         let price = 0;
-        if (masterItem['単位'] === 'cm³') {
+
+        if (masterItem['単位'] === UNIT_CM3) {
           const l = document.getElementById(`material-l-${index}`)?.value || 0;
           const w = document.getElementById(`material-w-${index}`)?.value || 0;
           const h = document.getElementById(`material-h-${index}`)?.value || 0;
@@ -670,14 +945,26 @@
         } else {
           if (type) price = unitPrice;
         }
+
         if (priceEl) priceEl.textContent = `${price.toLocaleString()}円`;
         if (price > 0) {
           const itemDetail = { name: finalName, price: price };
-          salesSubtotal += price;
-          details.sales.items.push(itemDetail);
+          subtotal += price;
+          items.push(itemDetail);
         }
       });
     }
+
+    return { subtotal, items };
+  }
+
+  /**
+   * その他販売品を計算します。
+   */
+  function calculateOtherSales() {
+    let subtotal = 0;
+    const items = [];
+
     const otherSalesContainer = document.getElementById('other-sales-container');
     if (otherSalesContainer) {
       const otherSalesRows = otherSalesContainer.querySelectorAll('div[data-other-sales-row]');
@@ -689,20 +976,57 @@
           .replace(/[^0-9.-]/g, '');
         priceInput.value = priceValue;
         const price = Number(priceValue || 0);
+
         if (name && price !== 0) {
           const itemDetail = { name: name, price: price };
-          salesSubtotal += price;
-          details.sales.items.push(itemDetail);
+          subtotal += price;
+          items.push(itemDetail);
         }
       });
     }
-    details.tuition.subtotal = tuitionSubtotal;
-    details.sales.subtotal = salesSubtotal;
-    details.grandTotal = tuitionSubtotal + salesSubtotal;
-    document.getElementById('tuition-subtotal').textContent = `小計: ${tuitionSubtotal.toLocaleString()}円`;
-    document.getElementById('sales-subtotal').textContent = `小計: ${salesSubtotal.toLocaleString()}円`;
-    document.getElementById('grand-total-amount').textContent = `合計: ${details.grandTotal.toLocaleString()}円`;
-    details.paymentMethod = form.querySelector('input[name="payment-method"]:checked')?.value || '現金';
-    return details;
+
+    return { subtotal, items };
+  }
+
+  /**
+   * 会計UIを更新します。
+   */
+  function updateAccountingUI(details) {
+    const tuitionBreakdownEl = document.getElementById('tuition-breakdown');
+    const calculatedHoursEl = document.getElementById('calculated-hours');
+    const tuitionSubtotalEl = document.getElementById('tuition-subtotal');
+    const salesSubtotalEl = document.getElementById('sales-subtotal');
+    const grandTotalEl = document.getElementById('grand-total-amount');
+
+    // 時間制授業料の表示更新
+    if (tuitionBreakdownEl) {
+      const tuitionBreakdownHtml = details.tuition.items
+        .map(
+          item =>
+            `<div class="flex justify-between${item.price < 0 ? ' text-red-600' : ''}"><span>${item.name}</span><span>${item.price.toLocaleString()}円</span></div>`,
+        )
+        .join('');
+      tuitionBreakdownEl.innerHTML = tuitionBreakdownHtml;
+    }
+
+    // 受講時間表示の更新
+    if (calculatedHoursEl && appState.computed.accountingCalculation) {
+      const timeBasedItems = details.tuition.items.filter(item => item.name.includes('授業料 ('));
+      if (timeBasedItems.length > 0) {
+        const r = appState.accountingReservation;
+        const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, ITEM_NAME_MAIN_LECTURE);
+        if (tuitionItemRule) {
+          const billableUnits = Math.ceil(timeBasedItems[0].price / Number(tuitionItemRule['単価']));
+          calculatedHoursEl.textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule['単価']}円`;
+        }
+      } else {
+        calculatedHoursEl.textContent = '';
+      }
+    }
+
+    // 小計・合計の表示更新
+    if (tuitionSubtotalEl) tuitionSubtotalEl.textContent = `小計: ${details.tuition.subtotal.toLocaleString()}円`;
+    if (salesSubtotalEl) salesSubtotalEl.textContent = `小計: ${details.sales.subtotal.toLocaleString()}円`;
+    if (grandTotalEl) grandTotalEl.textContent = `合計: ${details.grandTotal.toLocaleString()}円`;
   }
 </script>

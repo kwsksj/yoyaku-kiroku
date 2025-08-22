@@ -47,9 +47,9 @@
   const getDiscountHtml = (discountRule, selectedValue) => {
     if (!discountRule) return '';
     const options = [
-      { value: 0, text: 'なし' },
-      { value: 30, text: `30分 (${Math.abs(Number(discountRule['単価']))}円引)` },
-      { value: 60, text: `60分 (${Math.abs(Number(discountRule['単価'])) * 2}円引)` },
+      { value: DISCOUNT_OPTION_NONE, text: 'なし' },
+      { value: DISCOUNT_OPTION_30MIN, text: `30分 (${Math.abs(Number(discountRule['単価']))}円引)` },
+      { value: DISCOUNT_OPTION_60MIN, text: `60分 (${Math.abs(Number(discountRule['単価'])) * 2}円引)` },
     ];
     return `
         <div class="mt-4 pt-4 border-t border-ui-border-light">
@@ -68,19 +68,19 @@
     return `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
-                <div class="${DesignConfig.text.body}"><span class="font-bold">ことら送金:</span><span class="ml-2">09013755977</span></div>
-                <button data-action="copyToClipboard" data-copy-text="09013755977" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="${DesignConfig.text.body}"><span class="font-bold">${PAYMENT_METHOD_COTRA}:</span><span class="ml-2">${BANK_COTRA_PHONE}</span></div>
+                <button data-action="copyToClipboard" data-copy-text="${BANK_COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
-            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">ゆうちょ銀行</span></div>
+            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${BANK_NAME}</span></div>
             <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">店番: 818</div>
-                <button data-action="copyToClipboard" data-copy-text="818" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="text-base text-brand-text">店番: ${BANK_BRANCH}</div>
+                <button data-action="copyToClipboard" data-copy-text="${BANK_BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
             <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">普通: 2661797</div>
-                <button data-action="copyToClipboard" data-copy-text="2661797" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="text-base text-brand-text">普通: ${BANK_ACCOUNT}</div>
+                <button data-action="copyToClipboard" data-copy-text="${BANK_ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>`;
   };
@@ -103,9 +103,9 @@
             </p>
         </details>`;
     const options = [
-      { value: '現金', text: '現金', details: '' },
-      { value: 'ことら送金', text: 'ことら送金', details: cotraDetails },
-      { value: '振込', text: '振込', details: '' },
+      { value: PAYMENT_METHOD_CASH, text: PAYMENT_METHOD_CASH, details: '' },
+      { value: PAYMENT_METHOD_COTRA, text: PAYMENT_METHOD_COTRA, details: cotraDetails },
+      { value: PAYMENT_METHOD_BANK_TRANSFER, text: PAYMENT_METHOD_BANK_TRANSFER, details: '' },
     ];
     return (
       options
@@ -133,7 +133,7 @@
    */
   const getMaterialRowHtml = (index, data = {}) => {
     const materialOptions = appState.accountingMaster
-      .filter(m => m['種別'] === '材料')
+      .filter(m => m['種別'] === ITEM_TYPE_MATERIAL)
       .map(m => `<option value="${m['項目名']}" ${data.type === m['項目名'] ? 'selected' : ''}>${m['項目名']}</option>`)
       .join('');
     return `
@@ -209,6 +209,12 @@
       }
       if (item.isWaiting) {
         statusBadges += `<p class="font-bold ${DesignConfig.cards.state.waitlist.text} text-lg">キャンセル待ち</p>`;
+      }
+      // キャンセル済みstatus は予約・履歴どちらでも表示（英語・日本語両方に対応）
+      const isCancelled =
+        item.status === STATUS_CANCEL || item.status === 'キャンセル' || item.status === 'キャンセル済み';
+      if (isCancelled) {
+        statusBadges += `<p class="font-bold text-ui-error-text text-lg">キャンセル済</p>`;
       }
     }
 
@@ -308,8 +314,8 @@
             <div id="calculated-hours" class="text-left text-base ${DesignConfig.colors.textSubtle} mt-2"></div>
             <div class="pt-3 mt-3 border-t border-gray-200">
                 <label class="flex items-center justify-between">
-                    <span class="text-brand-text">彫刻刀レンタル</span>
-                    <input type="checkbox" name="chiselRental" data-item-type="授業料" data-item-name="彫刻刀レンタル" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text" ${rentalChecked}>
+                    <span class="text-brand-text">${ITEM_NAME_CHISEL_RENTAL}</span>
+                    <input type="checkbox" name="chiselRental" data-item-type="${ITEM_TYPE_TUITION}" data-item-name="${ITEM_NAME_CHISEL_RENTAL}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text" ${rentalChecked}>
                 </label>
             </div>
             ${discountHtml}
@@ -402,7 +408,7 @@
     const buttons = isEdit
       ? [
           { text: 'この内容で更新', action: 'saveProfile', colorClass: DesignConfig.colors.primary },
-          { text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary },
+          { text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary },
         ]
       : [
           { text: '次へ進む', action: 'goToStep2', colorClass: DesignConfig.colors.primary },
@@ -545,8 +551,8 @@
    * NF-01: 電話番号未登録ユーザーの検索・選択画面のUIを生成します。
    * @returns {string} HTML文字列
    */
-  const getNoPhoneUserSelectView = () => {
-    const users = appState.noPhoneUsers;
+  const getUserSearchView = () => {
+    const users = appState.searchedUsers;
     // NF-01: 検索が実行され、結果が0件の場合にメッセージを表示
     const hasSearchedAndNoResults = appState.searchAttempted && users.length === 0;
 
@@ -567,7 +573,7 @@
             <div class="mt-4 flex justify-center">
                 ${Components.createButton({
                   text: '検索',
-                  action: 'searchNoPhoneUser',
+                  action: 'searchUserByName',
                   colorClass: DesignConfig.colors.primary,
                   widthClass: DesignConfig.buttons.full,
                 })}
@@ -586,7 +592,7 @@
                         <p class="text-base font-semibold">${user.realName}（${user.nickname}）</p> // 本名とニックネームを両方表示
                         ${Components.createButton({
                           text: 'これだ！',
-                          action: 'selectNoPhoneUser',
+                          action: 'selectSearchedUser',
                           studentId: user.studentId,
                           realName: user.realName,
                           nickname: user.nickname,
@@ -610,7 +616,7 @@
             <h2 class="text-lg font-bold ${DesignConfig.colors.text} text-center mb-2">見つからない場合</h2>
             ${Components.createButton({
               text: '自分のアカウントが見つからないので、新規登録する',
-              action: 'goToRegisterFromNoPhoneSearch',
+              action: 'goToRegisterFromUserSearch',
               colorClass: DesignConfig.colors.primary,
               widthClass: DesignConfig.buttons.full,
             })}
@@ -630,15 +636,15 @@
    * @returns {string} HTML文字列
    */
   const getDashboardView = () => {
-    // 【時系列統一】予約と履歴を日付順にソートして統合表示
-    // 上ほど未来、下ほど過去になるように配置
-    const sortedBookings = [...appState.myBookings].sort((a, b) => new Date(b.date) - new Date(a.date));
+    // 計算済みデータを使用してパフォーマンス向上
+    updateComputedData();
+    const sortedBookings = appState.computed.sortedBookings;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     // 【改善】「あたらしく よやく する」ボタンを予約リストの先頭に配置し、デザインを分かりやすく変更
     const newBookingCardHtml = `
-        <button data-action="goToNewBookingView" class="w-full text-center p-4 rounded-lg border-2 border-dashed border-action-primary-border bg-action-primary-light active:bg-action-primary-subtle focus:bg-action-primary-subtle mobile-button touch-friendly">
+        <button data-action="goToClassroomSelection" class="w-full text-center p-4 rounded-lg border-2 border-dashed border-action-primary-border bg-action-primary-light active:bg-action-primary-subtle focus:bg-action-primary-subtle mobile-button touch-friendly">
             <span class="text-xl font-bold text-action-primary-bg">+ あたらしく よやく する</span>
         </button>
     `;
@@ -649,6 +655,11 @@
                 <h2 class="text-xl font-medium text-brand-text text-center mb-2">よやく</h2>
                 ${newBookingCardHtml}
                 ${sortedBookings
+                  .filter(b => {
+                    const isCancelled =
+                      b.status === STATUS_CANCEL || b.status === 'キャンセル' || b.status === 'キャンセル済み';
+                    return !isCancelled; // キャンセル済み予約を念のため除外
+                  })
                   .map(b => {
                     const resDate = new Date(b.date);
                     resDate.setMinutes(resDate.getMinutes() + resDate.getTimezoneOffset());
@@ -697,14 +708,18 @@
 
     let historyHtml = '';
     if (appState.history && appState.history.length > 0) {
-      // 【修正】履歴も新しい順にソート（日付降順）で時系列を統一
-      const sortedHistory = [...appState.history].sort((a, b) => new Date(b.date) - new Date(a.date));
-      const recordsToShow = sortedHistory.slice(0, appState.recordsToShow || 20);
+      // 計算済みデータを使用
+      const recordsToShow = appState.computed.displayHistory;
       historyHtml = `
             <div class="mb-8 w-full">
             <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
                     <h2 class="text-xl font-medium text-brand-text text-center mb-2">きろく</h2>
                     ${recordsToShow
+                      .filter(h => {
+                        const isCancelled =
+                          h.status === STATUS_CANCEL || h.status === 'キャンセル' || h.status === 'キャンセル済み';
+                        return !isCancelled; // キャンセル済み予約を念のため除外
+                      })
                       .map(h => {
                         // ボタン配列を構築
                         const buttons = [];
@@ -741,7 +756,7 @@
                         });
                       })
                       .join('')}
-                    ${(appState.recordsToShow || 20) < sortedHistory.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">もっとみる</button></div>` : ''}
+                    ${(appState.recordsToShow || UI_HISTORY_INITIAL_RECORDS) < appState.computed.sortedHistory.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">もっとみる</button></div>` : ''}
                 </div>
             </div>
         `;
@@ -761,8 +776,29 @@
    * 新規予約のための教室選択画面のUIを生成します。
    * @returns {string} HTML文字列
    */
-  const getNewBookingView = () => {
-    const classroomButtonsHtml = appState.classrooms
+  const getClassroomSelectionView = () => {
+    console.log('getClassroomSelectionView - appState.classrooms:', appState.classrooms);
+    console.log('getClassroomSelectionView - appState.classrooms length:', appState.classrooms ? appState.classrooms.length : 'null/undefined');
+    console.log('getClassroomSelectionView - full appState:', appState);
+    
+    // デバッグ情報を画面表示用に準備
+    const sampleSlots = appState.slots ? appState.slots.slice(0, 2) : [];
+    const debugInfo = `
+      <div style="background: #fee; border: 1px solid #fcc; padding: 10px; margin: 10px 0; font-size: 12px;">
+        <strong>デバッグ情報:</strong><br>
+        appState.classrooms: ${JSON.stringify(appState.classrooms)}<br>
+        classrooms.length: ${appState.classrooms ? appState.classrooms.length : 'null/undefined'}<br>
+        appState.slots.length: ${appState.slots ? appState.slots.length : 'null/undefined'}<br>
+        appState.currentUser: ${appState.currentUser ? appState.currentUser.displayName : 'null'}<br>
+        appState.view: ${appState.view}<br>
+        <strong>サンプルスロットデータ（最初の2件）:</strong><br>
+        ${sampleSlots.map((slot, i) => 
+          `[${i}] ${JSON.stringify(slot)}<br>`
+        ).join('')}
+      </div>
+    `;
+    
+    const classroomButtonsHtml = (appState.classrooms || [])
       .map(n =>
         Components.createButton({
           action: 'selectClassroom',
@@ -773,14 +809,34 @@
       )
       .join('');
 
+    // データが取得できていない場合の表示
+    if (!appState.classrooms || appState.classrooms.length === 0) {
+      return `
+        ${debugInfo}
+        <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
+        <div class="max-w-md mx-auto text-center">
+          <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
+            <strong>データ取得エラー</strong><br>
+            教室情報を取得できませんでした。<br>
+            ネットワーク接続またはサーバーに問題がある可能性があります。
+          </div>
+          <div class="space-y-3">
+            ${Components.createButton({ text: 'データを再取得', action: 'reloadClassroomData', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+            ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+          </div>
+        </div>
+      `;
+    }
+
     return `
+        ${debugInfo}
         <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
         <p class="text-brand-subtle text-center mb-6">教室 を おえらびください</p>
         <div class="max-w-md mx-auto space-y-3">
             ${classroomButtonsHtml}
         </div>
         <div class="mt-6 max-w-md mx-auto">
-            ${Components.createButton({ text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+            ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
         </div>
     `;
   };
@@ -802,8 +858,13 @@
       return '';
     }
 
-    // `getCompleteView`で使われている`groupSlotsByMonth`を利用
-    const slotsByMonth = groupSlotsByMonth(slots);
+    // 受け取ったslotsを月別にグループ化
+    const slotsByMonth = slots.reduce((acc, slot) => {
+      const month = new Date(slot.date).getMonth() + 1;
+      if (!acc[month]) acc[month] = [];
+      acc[month].push(slot);
+      return acc;
+    }, {});
 
     return Object.keys(slotsByMonth)
       .sort((a, b) => a - b)
@@ -812,20 +873,32 @@
 
         const slotsHtml = slotsByMonth[month]
           .map(sl => {
-            const iB = appState.myBookings.some(b => b.date === sl.date && b.classroom === sl.classroom);
+            const iB = appState.computed.sortedBookings.some(b => b.date === sl.date && b.classroom === sl.classroom);
             let cC, sB, act;
             const tag = iB ? 'div' : 'button';
 
+            // 新しいslot構造に対応したステータステキスト生成
             let statusText;
-            if (typeof sl.morningSlots !== 'undefined') {
-              statusText = `午前 ${sl.morningSlots} | 午後 ${sl.afternoonSlots}`;
-            } else {
+            if (typeof sl.morningSlots !== 'undefined' && typeof sl.afternoonSlots !== 'undefined') {
+              // つくば教室: 午前・午後制
+              statusText = `午前空き ${sl.morningSlots} | 午後空き ${sl.afternoonSlots}`;
+            } else if (typeof sl.availableSlots !== 'undefined') {
+              // 東京教室・沼津教室: 単一セッション制
               statusText = `空き ${sl.availableSlots}`;
+            } else {
+              // フォールバック
+              statusText = '空き状況不明';
+            }
+
+            // 初回講習の空き枠も表示
+            if (sl.firstLectureSlots > 0) {
+              statusText += ` | 初回 ${sl.firstLectureSlots}`;
             }
 
             if (iB) {
               // 予約済みの場合
-              if (sl.isWaiting) {
+              const booking = appState.computed.sortedBookings.find(b => b.date === sl.date && b.classroom === sl.classroom);
+              if (booking && booking.status === STATUS_WAITING) {
                 cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
               } else {
@@ -833,7 +906,7 @@
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`;
               }
               act = '';
-            } else if (sl.isFull || sl.availableSlots === 0 || (sl.morningSlots === 0 && sl.afternoonSlots === 0)) {
+            } else if (sl.isFull) {
               // 満席（キャンセル待ち）の場合
               cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
               sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
@@ -864,25 +937,45 @@
    * @returns {string} HTML文字列
    */
   const getBookingView = classroom => {
-    const relevantSlots = filterFutureSlots(appState.slots, classroom);
+    // バックエンドで計算済みの空き情報を直接使用
+    const relevantSlots = appState.slots ? appState.slots.filter(slot => slot.classroom === classroom) : [];
+    
+    // デバッグ用：データ構造を確認
+    if (detectEnvironment() === 'test' && relevantSlots.length > 0) {
+      console.log('getBookingView - relevantSlots sample:', relevantSlots[0]);
+      console.log('getBookingView - appState.slots sample:', appState.slots[0]);
+    }
+    
+    // デバッグ情報を画面表示用に準備
+    const debugInfo = `
+      <div style="background: #ffe; border: 1px solid #ffc; padding: 10px; margin: 10px 0; font-size: 12px;">
+        <strong>${classroom}のスロット詳細:</strong><br>
+        関連スロット数: ${relevantSlots.length}件<br>
+        ${relevantSlots.slice(0, 3).map((slot, i) => 
+          `[${i}] 日付:${slot.date}, 午前:${slot.morningSlots}, 午後:${slot.afternoonSlots}, 空き:${slot.availableSlots}, 満席:${slot.isFull}<br>`
+        ).join('')}
+      </div>
+    `;
+    
     const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
     if (!bookingSlotsHtml) {
       return `
         <div class="max-w-md mx-auto">
-            <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${c}</h1>
+            <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${classroom}</h1>
             <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
             <div class="mt-6">
-                ${Components.createButton({ text: '教室選択に戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                ${Components.createButton({ text: 'ダッシュボードに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
             </div>
         </div>`;
     } else {
       return `
         <div class="max-w-md mx-auto">
+            ${debugInfo}
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${classroom}</h1>
             <div class="${DesignConfig.cards.container}">${bookingSlotsHtml}</div>
             <div class="mt-6">
-                ${Components.createButton({ text: '教室選択に戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                ${Components.createButton({ text: 'ダッシュボードに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
             </div>
         </div>`;
     }
@@ -909,8 +1002,7 @@
       startTime,
       endTime,
       firstLecture,
-      hayade,
-      rental,
+      chiselRental,
       workInProgress,
       material,
       order,
@@ -938,7 +1030,7 @@
       }
       if (isFull) return '満席（キャンセル待ち申込み）';
       if (typeof morningSlots !== 'undefined') {
-        return `空き 午前 ${morningSlots} | 午後 ${afternoonSlots}`;
+        return `午前空き ${morningSlots} | 午後空き ${afternoonSlots}`;
       }
       return `空き ${availableSlots}`;
     };
@@ -948,14 +1040,14 @@
      */
     const _renderTimeOptionsSection = () => {
       // 30分単位の教室の場合
-      if (tuitionItemRule && tuitionItemRule['単位'] === '30分') {
+      if (tuitionItemRule && tuitionItemRule['単位'] === UNIT_30_MIN) {
         const classStartHour = parseInt(tuitionItemRule['講座開始'].split(':')[0]);
         const classEndHour = parseInt(tuitionItemRule['講座終了'].split(':')[0]);
         const classEndMinutes = parseInt(tuitionItemRule['講座終了'].split(':')[1]);
 
         // Note: 外部で定義されている `getTimeOptionsHtml` を呼び出していると想定
-        const startTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, 30, startTime);
-        let endTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, 30, endTime);
+        const startTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, TIME_STEP_MINUTES, startTime);
+        let endTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, TIME_STEP_MINUTES, endTime);
         if (classEndMinutes > 0) {
           const finalEndTime = `${String(classEndHour).padStart(2, '0')}:${String(classEndMinutes).padStart(2, '0')}`;
           endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
@@ -988,14 +1080,12 @@
     const _renderBookingOptionsSection = () => {
       let optionsHtml = '';
       const firstLectureChecked = firstLecture ? 'checked' : '';
-      const hayadeChecked = hayade ? 'checked' : '';
-      const rentalChecked = rental ? 'checked' : '';
+      const rentalChecked = chiselRental ? 'checked' : '';
 
       if (classroom === TOKYO_CLASSROOM_NAME) {
-        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked}><span>初回講習</span></label>`;
-        optionsHtml += `<label class="flex items-center space-x-2 mt-2"><input type="checkbox" id="option-hayade" ${hayadeChecked}><span>早出<span class="text-sm ${DesignConfig.colors.textSubtle}">（初回講習の時間に半自習的に参加できます）</span></span></label>`;
+        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked}><span>${ITEM_NAME_FIRST_LECTURE}</span></label>`;
       }
-      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>彫刻刀レンタル</span></label></div>`;
+      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>${ITEM_NAME_CHISEL_RENTAL}</span></label></div>`;
 
       return `
         <div class="mt-4 pt-4 border-t">
@@ -1084,9 +1174,10 @@
         sheetName: sourceData.sheetName,
       });
     }
+    // 戻るボタン：編集時はダッシュボードへ、新規作成時は予約一覧へ
     buttonsHtml += Components.createButton({
       text: '戻る',
-      action: 'goBackToBooking',
+      action: isEdit ? 'goBackToDashboard' : 'goBackToBooking',
       colorClass: DesignConfig.colors.secondary,
       widthClass: DesignConfig.buttons.full,
     });
@@ -1132,14 +1223,14 @@
    * @returns {string} HTML文字列
    */
   const getCompleteView = msg => {
-    // 会計処理を行った教室の情報を取得
-    const classroom = appState.accountingReservation?.classroom;
+    // 教室情報を取得（会計処理時は accountingReservation から、予約作成時は selectedSlot から）
+    const classroom = appState.accountingReservation?.classroom || appState.selectedSlot?.classroom;
     let nextBookingHtml = '';
 
     // 該当教室の未来の予約枠が存在する場合
     if (classroom && appState.slots) {
-      // 新しいユーティリティ関数を使用してスロットをフィルタリング
-      const relevantSlots = filterFutureSlots(appState.slots, classroom);
+      // バックエンドで計算済みの空き情報を直接使用
+      const relevantSlots = appState.slots.filter(slot => slot.classroom === classroom);
       const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
       if (bookingSlotsHtml) {
@@ -1182,7 +1273,8 @@
     if (!appState.accountingMaster || !appState.accountingInitialValues)
       return '<div class="flex justify-center items-center h-full"><div class="spinner"></div></div>';
     const r = appState.accountingReservation;
-    const b = appState.myBookings.find(b => b.reservationId === r.reservationId);
+    updateComputedData();
+    const b = appState.computed.sortedBookings.find(b => b.reservationId === r.reservationId);
     const v = b.venue ? `（${b.venue}）` : '';
     const initial = appState.accountingInitialValues;
     if (b.accountingDone && b.accountingDetails) {
@@ -1212,43 +1304,42 @@
                     <div class="text-right text-base pt-2 text-brand-subtle">支払方法: ${details.paymentMethod}</div>
                 </div>
                 <div class="mt-8 flex flex-col space-y-3">
-                    ${Components.createButton({ text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                    ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
                 </div>`;
       } catch (e) {
         return '会計詳細の表示に失敗しました。';
       }
     }
     const master = appState.accountingMaster;
-    const tuitionItemRule = getTuitionItemRule(master, r.classroom, '本講座');
-    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === '30分';
+    const tuitionItemRule = getTuitionItemRule(master, r.classroom, ITEM_NAME_MAIN_LECTURE);
+    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === UNIT_30_MIN;
     let tuitionHtml;
     if (isTimeBased) {
       tuitionHtml = getTimeBasedTuitionHtml(tuitionItemRule, initial);
     } else {
       const tuitionItems = master.filter(
         item =>
-          item['種別'] === '授業料' &&
+          item['種別'] === ITEM_TYPE_TUITION &&
           (item['対象教室'] === '共通' || (item['対象教室'] && item['対象教室'].includes(r.classroom))),
       );
       tuitionHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3> <div class="space-y-3">${tuitionItems
         .map(item => {
-          const isMandatory = item['項目名'] === '本講座';
+          const isMandatory = item['項目名'] === ITEM_NAME_MAIN_LECTURE;
           let isChecked = isMandatory || initial[item['項目名']] === true;
-          if (item['項目名'] === '初回講習' && initial.firstLecture) isChecked = true;
-          if (item['項目名'] === '早出' && initial.earlyArrival) isChecked = true;
-          if (item['項目名'] === '彫刻刀レンタル' && initial.chiselRental) isChecked = true;
-          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" name="${item['項目名']}" data-item-type="授業料" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`;
+          if (item['項目名'] === ITEM_NAME_FIRST_LECTURE && initial.firstLecture) isChecked = true;
+          if (item['項目名'] === ITEM_NAME_CHISEL_RENTAL && initial.chiselRental) isChecked = true;
+          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" name="${item['項目名']}" data-item-type="${ITEM_TYPE_TUITION}" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`;
         })
         .join(
           '',
         )}</div> <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base text-brand-subtle"></div> <div class="text-right font-bold mt-2 text-brand-text" id="tuition-subtotal">小計: 0円</div></div>`;
     }
-    const salesItems = master.filter(item => item['種別'] === '物販');
-    const salesHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${getMaterialRowHtml(0, { type: initial.materialType0, l: initial.materialL0, w: initial.materialW0, h: initial.materialH0 })}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" name="${item['項目名']}" data-item-type="物販" data-item-name="${item['項目名']}" class="accounting-item accent-action-primary-bg" ${initial[item['項目名']] ? 'checked' : ''}><span>${item['項目名']}</span></label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">${getOtherSalesRowHtml(0, { name: initial.otherSalesName0, price: initial.otherSalesPrice0 })}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} </details> <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div></div>`;
+    const salesItems = master.filter(item => item['種別'] === ITEM_TYPE_SALES);
+    const salesHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${getMaterialRowHtml(0, { type: initial.materialType0, l: initial.materialL0, w: initial.materialW0, h: initial.materialH0 })}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" name="${item['項目名']}" data-item-type="${ITEM_TYPE_SALES}" data-item-name="${item['項目名']}" class="accounting-item accent-action-primary-bg" ${initial[item['項目名']] ? 'checked' : ''}><span>${item['項目名']}</span></label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">${getOtherSalesRowHtml(0, { name: initial.otherSalesName0, price: initial.otherSalesPrice0 })}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} </details> <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div></div>`;
     return `
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold text-brand-text">会計</h1>
-            <button data-action="goBackToClassroomSelect" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">戻る</button>
+            <button data-action="goBackToDashboard" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">戻る</button>
         </div>
         <div class="text-center py-4">
             <p class="text-brand-subtle mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
@@ -1263,7 +1354,7 @@
                 <p class="text-base text-state-danger-text font-bold mb-2">金額を、先生に確認してもらってください</p>
                 <div class="space-y-3">
                     ${Components.createButton({ text: '先生の確認が完了しました', action: 'showAccountingConfirmation', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
-                    ${Components.createButton({ text: '戻る', action: 'goBackToClassroomSelect', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                    ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
                 </div>
             </div>
         </form>`;

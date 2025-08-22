@@ -21,7 +21,9 @@ const deploymentId = config[env]?.deploymentId;
 
 if (!deploymentId) {
   console.error(`❌ ${env} の deploymentId が clasp.config.json に設定されていません。`);
-  console.error('👉 GASエディタの「デプロイ」>「デプロイをテスト」からヘッドデプロイIDを取得して設定してください。');
+  console.error(
+    '👉 GASエディタの「デプロイ」>「デプロイをテスト」からヘッドデプロイIDを取得して設定してください。',
+  );
   process.exit(1);
 }
 
@@ -45,7 +47,7 @@ switch (process.platform) {
 
 console.log(`
 🔄 ブラウザで開いています...`);
-exec(`${openCommand} "${devUrl}"`, (error) => {
+exec(`${openCommand} "${devUrl}"`, error => {
   if (error) {
     console.error(`❌ ブラウザを自動で開けませんでした。上記URLをコピーして手動で開いてください。`);
     console.error(error);
