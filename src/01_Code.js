@@ -332,9 +332,9 @@ function addAdminMenu(menu) {
 function addCacheMenu(menu) {
   menu
     .addSeparator()
-    .addItem('キャッシュサービスを一括更新', 'rebuildNewCaches_entryPoint')
+    .addItem('キャッシュサービスを一括更新', 'rebuildAllCachesEntryPoint')
     .addSeparator()
-    .addItem('【緊急】プロパティサービスをクリア・再構築', 'clearAndRebuildAllCaches')
+    .addItem('【管理者専用】PropertiesServiceクリーンアップ', 'cleanupPropertiesServiceCache')
     .addSeparator()
     .addItem('キャッシュサービス容量チェック', 'checkCacheCapacity')
     .addItem('古いプロパティサービスデータをクリーンアップ', 'cleanupOldCaches')

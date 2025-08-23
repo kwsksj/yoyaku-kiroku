@@ -1,49 +1,79 @@
 /**
  * =================================================================
  * 【ファイル名】: 07_CacheManager.js
- * 【バージョン】: 4.1
- * 【役割】: 新しい統合予約シートとキャッシュサービスベースの高速データ管理システム
- * 【v4.1での変更点】:
- * - 会計マスタをCacheServiceに保存・管理する機能を追加。
- * - buildAndCacheAccountingMasterToCache関数を新設。
- * - 各種一括更新トリガーに上記関数呼び出しを追加。
+ * 【バージョン】: 5.0
+ * 【役割】: CacheServiceベースの統合キャッシュ管理システム
+ *
+ * 【主要機能】:
+ * ✅ 統合データキャッシュ管理
+ *   - 全予約データ（統合予約シート）
+ *   - 生徒基本情報（生徒名簿）
+ *   - 日程マスターデータ
+ *   - 会計マスターデータ
+ *
+ * ✅ キャッシュ操作API
+ *   - getCachedData(): 統一キャッシュ取得インターフェース
+ *   - 自動再構築機能（キャッシュ未存在時）
+ *   - キャッシュ情報管理（バージョン、件数、更新日時）
+ *
+ * ✅ 管理・保守機能
+ *   - 一括キャッシュ再構築（UI付き）
+ *   - 定期自動再構築（トリガー実行）
+ *   - PropertiesServiceクリーンアップ（古いキャッシュ削除）
+ *
+ * 【v5.0での変更点】:
+ * - rebuild系関数名を統一（rebuildAll***Cache, rebuild***Cache）
+ * - getCachedData()による統一キャッシュアクセスAPI導入
+ * - CACHE_KEYS定数による一元管理
+ * - JSDocとエラーハンドリングの全面改善
+ * - PropertiesService整理機能の責任分離と特化
  * =================================================================
  */
 
-// ... (DEPRECATED functions are omitted for brevity but remain in the actual file) ...
-
 /**
- * PropertiesServiceのキャッシュデータをクリアして新しい形式で再構築する関数
- * 重要な設定値（ADMIN_EMAIL, CALENDAR_IDS等）は保護し、キャッシュデータのみクリア
+ * PropertiesServiceの古いキャッシュデータをクリーンアップする関数
+ * 重要な設定値（ADMIN_EMAIL、CALENDAR_IDS等）は保護し、不要な古いキャッシュデータのみ削除します。
+ *
+ * 保護される設定値:
+ * - ADMIN_EMAIL: 管理者メールアドレス
+ * - CALENDAR_IDS: Googleカレンダー連携設定
+ * - GOOGLE_FORM_IDS: Googleフォーム連携設定
+ * - SALES_SPREADSHEET_ID: 売上管理スプレッドシート連携設定
+ * - SPECIAL_NO_PHONE_LOGIN_COMMAND: 特別ログインコマンド
+ *
+ * @throws {Error} PropertiesServiceの操作中にエラーが発生した場合
  */
-function clearAndRebuildAllCaches() {
-  const ui = SpreadsheetApp.getUi();
-  const response = ui.alert(
-    'プロパティサービスのキャッシュデータクリア・再構築',
-    '\n\nプロパティサービスのキャッシュデータをクリアして、現在の形式で新しいキャッシュサービスを構築します。' +
-      '\n重要: ADMIN_EMAIL、CALENDAR_IDS等の設定値は保護されます。' +
+function cleanupPropertiesServiceCache() {
+  const userInterface = SpreadsheetApp.getUi();
+  const userConfirmation = userInterface.alert(
+    'PropertiesService キャッシュクリーンアップ',
+    'PropertiesServiceに残っている古いキャッシュデータをクリーンアップします。\n\n' +
+      '⚠️ 重要: 管理者設定（メール、カレンダーID等）は保護されます。\n' +
+      '⚠️ この操作により古い形式のキャッシュが削除されます。\n\n' +
       '実行しますか？',
-    ui.ButtonSet.YES_NO,
+    userInterface.ButtonSet.YES_NO,
   );
 
-  if (response !== ui.Button.YES) {
-    ui.alert('処理を中断しました。');
+  if (userConfirmation !== userInterface.Button.YES) {
+    userInterface.alert('処理を中断しました。');
     return;
   }
 
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(LOCK_WAIT_TIME_MS)) {
-    ui.alert('現在、他の重い処理が実行中です。しばらく経ってから再度お試しください。');
+  const scriptLock = LockService.getScriptLock();
+  if (!scriptLock.tryLock(LOCK_WAIT_TIME_MS)) {
+    userInterface.alert('現在、他の重い処理が実行中です。しばらく経ってから再度お試しください。');
     return;
   }
 
   try {
-    getActiveSpreadsheet().toast('プロパティサービスのキャッシュデータをクリア中...', '処理中', -1);
+    const spreadsheet = getActiveSpreadsheet();
+    spreadsheet.toast('PropertiesServiceをクリーンアップ中...', 'クリーンアップ処理', -1);
 
-    const properties = PropertiesService.getScriptProperties();
-    const allProperties = properties.getProperties();
+    const scriptProperties = PropertiesService.getScriptProperties();
+    const allStoredProperties = scriptProperties.getProperties();
 
-    const protectedKeys = [
+    // 保護対象の重要設定値を定義
+    const protectedPropertyKeys = [
       'ADMIN_EMAIL',
       'CALENDAR_IDS',
       'GOOGLE_FORM_IDS',
@@ -51,72 +81,81 @@ function clearAndRebuildAllCaches() {
       'SPECIAL_NO_PHONE_LOGIN_COMMAND',
     ];
 
-    const protectedData = {};
-    protectedKeys.forEach(key => {
-      if (allProperties[key]) {
-        protectedData[key] = allProperties[key];
+    // 保護対象の設定値をバックアップ
+    const protectedSettings = {};
+    protectedPropertyKeys.forEach(protectedKey => {
+      if (allStoredProperties[protectedKey]) {
+        protectedSettings[protectedKey] = allStoredProperties[protectedKey];
+        Logger.log(
+          `保護設定確認: ${protectedKey} = ${allStoredProperties[protectedKey].substring(0, 50)}...`,
+        );
       }
     });
 
-    const allKeys = Object.keys(allProperties);
-    const keysToDelete = allKeys.filter(key => !protectedKeys.includes(key));
+    // 削除対象のキーを特定（保護対象以外の全て）
+    const allPropertyKeys = Object.keys(allStoredProperties);
+    const deletablePropertyKeys = allPropertyKeys.filter(
+      propertyKey => !protectedPropertyKeys.includes(propertyKey),
+    );
 
-    keysToDelete.forEach(key => {
-      properties.deleteProperty(key);
+    Logger.log(
+      `PropertiesService分析完了: 全${allPropertyKeys.length}件中、${deletablePropertyKeys.length}件を削除対象、${Object.keys(protectedSettings).length}件を保護`,
+    );
+
+    // 古いキャッシュデータを削除
+    deletablePropertyKeys.forEach(keyToDelete => {
+      scriptProperties.deleteProperty(keyToDelete);
     });
 
-    getActiveSpreadsheet().toast('新しいキャッシュサービスを構築中...', '処理中', -1);
+    spreadsheet.toast('PropertiesServiceのクリーンアップが完了しました。', '完了', 3);
 
-    CacheService.getScriptCache().removeAll([
-      'all_reservations',
-      'all_students_basic',
-      'master_schedule_data',
-      'master_accounting_data',
-    ]);
+    // 結果報告
+    const protectedCount = Object.keys(protectedSettings).length;
+    userInterface.alert(
+      `PropertiesServiceクリーンアップが完了しました。\n\n` +
+        `✅ 削除した古いキャッシュ: ${deletablePropertyKeys.length}件\n` +
+        `✅ 保護した重要設定: ${protectedCount}件\n\n` +
+        `PropertiesServiceが整理されました。`,
+    );
 
-    rebuildAllReservationsToCache();
-    rebuildAllStudentsBasicToCache();
-    buildAndCacheScheduleMasterToCache();
-    buildAndCacheAccountingMasterToCache(); // ★★★ 追加 ★★★
-
-    getActiveSpreadsheet().toast('キャッシュサービスの完全再構築が完了しました。', '完了', 5);
-
-    const protectedKeysCount = Object.keys(protectedData).length;
-    ui.alert(`プロパティサービスのキャッシュデータクリア・再構築が完了しました。
-
-削除キー数: ${keysToDelete.length}
-保護された設定: ${protectedKeysCount}
-新しい形式で再構築されました。`);
-
+    // アクティビティログに記録
     logActivity(
       Session.getActiveUser().getEmail(),
-      'プロパティサービスキャッシュ再構築',
+      'PropertiesServiceクリーンアップ',
       '成功',
-      `${keysToDelete.length}件のキーをクリア、${protectedKeysCount}件を保護、新形式で再構築`,
+      `削除:${deletablePropertyKeys.length}件, 保護:${protectedCount}件`,
     );
-  } catch (e) {
-    Logger.log(`プロパティサービスのキャッシュ再構築でエラー: ${e.message}`);
+  } catch (error) {
+    Logger.log(`PropertiesServiceクリーンアップでエラー: ${error.message}`);
     handleError(
-      `プロパティサービスのキャッシュ再構築中にエラーが発生しました。
-
-詳細: ${e.message}`,
+      `PropertiesServiceのクリーンアップ中にエラーが発生しました。\n\n` +
+        `詳細: ${error.message}\n\n` +
+        `システム管理者に連絡してください。`,
       true,
     );
   } finally {
-    lock.releaseLock();
+    scriptLock.releaseLock();
   }
 }
 
-// ... (Other functions like cleanupOldCaches remain) ...
-
 /**
- * 【移行】新しいキャッシュサービス（予約、生徒基本情報）を一括で再構築するエントリーポイント
+ * 全てのキャッシュデータを一括で再構築するエントリーポイント関数
+ * UI確認ダイアログを表示してから、全種類のキャッシュを順次再構築します。
+ * スプレッドシートのメニューから手動実行される場合に使用されます。
+ *
+ * 再構築対象:
+ * - 統合予約データキャッシュ
+ * - 生徒基本情報キャッシュ
+ * - 会計マスターキャッシュ
+ * - 日程マスターキャッシュ
+ *
+ * @throws {Error} いずれかのキャッシュ再構築中にエラーが発生した場合
  */
-function rebuildNewCaches_entryPoint() {
+function rebuildAllCachesEntryPoint() {
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
-    '新しいキャッシュサービスの構築',
-    '「統合予約シート」と「生徒名簿」から新しいキャッシュサービスを構築します。よろしいですか？',
+    'キャッシュデータの一括再構築',
+    '全てのキャッシュデータ（予約、生徒、会計マスター、日程マスター）を再構築します。よろしいですか？',
     ui.ButtonSet.OK_CANCEL,
   );
   if (response !== ui.Button.OK) {
@@ -125,187 +164,224 @@ function rebuildNewCaches_entryPoint() {
   }
 
   try {
-    getActiveSpreadsheet().toast('新しいキャッシュサービスの構築を開始しました...', '処理中', -1);
-    rebuildAllReservationsToCache();
-    rebuildAllStudentsBasicToCache();
-    buildAndCacheAccountingMasterToCache();
-    buildAndCacheScheduleMasterToCache(); // ★★★ 追加 ★★★
-    getActiveSpreadsheet().toast('新しいキャッシュサービスの構築が完了しました。', '成功', 5);
+    getActiveSpreadsheet().toast('キャッシュデータの一括再構築を開始しました...', '処理中', -1);
+
+    // 全てのキャッシュを順次再構築
+    rebuildAllReservationsCache();
+    rebuildAllStudentsBasicCache();
+    rebuildAccountingMasterCache();
+    rebuildScheduleMasterCache();
+
+    getActiveSpreadsheet().toast('キャッシュデータの一括再構築が完了しました。', '成功', 5);
+
     logActivity(
       'system',
-      '新キャッシュサービス構築',
+      'キャッシュ一括再構築',
       '成功',
-      'all_reservations, all_students_basic, master_accounting_data, master_schedule_dataキャッシュサービスを構築',
+      '全キャッシュ（予約、生徒、会計マスター、日程マスター）を再構築完了',
     );
-  } catch (e) {
-    handleError(`新しいキャッシュサービスの構築中にエラーが発生しました: ${e.message}`, true);
+  } catch (error) {
+    handleError(`キャッシュデータの一括再構築中にエラーが発生しました: ${error.message}`, true);
   }
 }
 
 /**
- * 「統合予約シート」から全予約データを読み込み、CacheServiceに保存する
+ * 統合予約シートから全予約データを読み込み、CacheServiceに保存する
+ * 日付・時刻列を適切にフォーマットして配列形式でキャッシュに保存します。
+ *
+ * @throws {Error} 統合予約シートが見つからない場合
+ * @throws {Error} データ処理中にエラーが発生した場合
  */
-function rebuildAllReservationsToCache() {
+function rebuildAllReservationsCache() {
   try {
-    const integratedSheet = getSheetByName('統合予約シート');
-    if (!integratedSheet || integratedSheet.getLastRow() < 2) {
+    const integratedReservationSheet = getSheetByName('統合予約シート');
+    if (!integratedReservationSheet || integratedReservationSheet.getLastRow() < 2) {
       Logger.log('統合予約シートが見つからないか、データが空です。');
+      // 空データの場合もキャッシュを作成
+      const emptyCacheData = {
+        version: new Date().getTime(),
+        reservations: [],
+      };
+      CacheService.getScriptCache().put(
+        CACHE_KEYS.ALL_RESERVATIONS,
+        JSON.stringify(emptyCacheData),
+        CACHE_EXPIRY_SECONDS,
+      );
       return;
     }
-    const header = integratedSheet
-      .getRange(1, 1, 1, integratedSheet.getLastColumn())
-      .getValues()[0];
-    const headerMap = createHeaderMap(header);
-    const startTimeCol = headerMap.get(HEADER_START_TIME);
-    const endTimeCol = headerMap.get(HEADER_END_TIME);
-    const dateCol = headerMap.get(HEADER_DATE);
 
-    const reservationValues = integratedSheet
-      .getRange(2, 1, integratedSheet.getLastRow() - 1, integratedSheet.getLastColumn())
+    // ヘッダー行を取得してマッピングを作成
+    const headerRow = integratedReservationSheet
+      .getRange(1, 1, 1, integratedReservationSheet.getLastColumn())
+      .getValues()[0];
+    const headerColumnMap = createHeaderMap(headerRow);
+
+    // 日付・時刻列のインデックスを取得
+    const dateColumnIndex = headerColumnMap.get(HEADER_DATE);
+    const startTimeColumnIndex = headerColumnMap.get(HEADER_START_TIME);
+    const endTimeColumnIndex = headerColumnMap.get(HEADER_END_TIME);
+
+    // データ行を取得
+    const dataRowCount = integratedReservationSheet.getLastRow() - 1;
+    const allReservationRows = integratedReservationSheet
+      .getRange(2, 1, dataRowCount, integratedReservationSheet.getLastColumn())
       .getValues();
 
-    // カスタム高速日付フォーマット関数
-    const fastFormatDate = date => {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
+    // 日付・時刻のフォーマット関数
+    const formatDateString = dateValue => {
+      if (!(dateValue instanceof Date)) return dateValue;
+      const year = dateValue.getFullYear();
+      const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+      const day = String(dateValue.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
 
-    const fastFormatTime = date => {
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
+    const formatTimeString = dateValue => {
+      if (!(dateValue instanceof Date)) return dateValue;
+      const hours = String(dateValue.getHours()).padStart(2, '0');
+      const minutes = String(dateValue.getMinutes()).padStart(2, '0');
       return `${hours}:${minutes}`;
     };
 
-    // 列インデックスが有効な場合のみ処理
-    const columnsToProcess = [];
-    if (dateCol !== undefined) columnsToProcess.push({ col: dateCol, formatter: fastFormatDate });
-    if (startTimeCol !== undefined)
-      columnsToProcess.push({ col: startTimeCol, formatter: fastFormatTime });
-    if (endTimeCol !== undefined)
-      columnsToProcess.push({ col: endTimeCol, formatter: fastFormatTime });
+    // 日付・時刻列をフォーマット
+    const dateTimeColumns = [
+      { index: dateColumnIndex, formatter: formatDateString },
+      { index: startTimeColumnIndex, formatter: formatTimeString },
+      { index: endTimeColumnIndex, formatter: formatTimeString },
+    ].filter(column => column.index !== undefined);
 
-    if (columnsToProcess.length > 0) {
-      reservationValues.forEach(row => {
-        columnsToProcess.forEach(({ col, formatter }) => {
-          const cellValue = row[col];
-          if (cellValue instanceof Date) {
-            row[col] = formatter(cellValue);
-          }
-        });
+    // データを処理
+    allReservationRows.forEach(reservationRow => {
+      dateTimeColumns.forEach(({ index, formatter }) => {
+        const originalValue = reservationRow[index];
+        if (originalValue instanceof Date) {
+          reservationRow[index] = formatter(originalValue);
+        }
       });
-    }
+    });
 
     const cacheData = {
       version: new Date().getTime(),
-      reservations: reservationValues,
+      reservations: allReservationRows,
+      metadata: {
+        totalCount: allReservationRows.length,
+        lastUpdated: new Date().toISOString(),
+      },
     };
 
-    CacheService.getScriptCache().put('all_reservations', JSON.stringify(cacheData), 21600);
-    Logger.log(
-      `all_reservationsキャッシュサービスを更新しました。件数: ${reservationValues.length}`,
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      JSON.stringify(cacheData),
+      CACHE_EXPIRY_SECONDS,
     );
+
+    Logger.log(`全予約データキャッシュを更新しました。件数: ${allReservationRows.length}`);
   } catch (e) {
-    Logger.log(`rebuildAllReservationsToCacheでエラー: ${e.message}`);
+    Logger.log(`rebuildAllReservationsCacheでエラー: ${e.message}`);
     throw e;
   }
 }
 
 /**
- * ★★★ 新規作成 ★★★
- * 会計マスタを読み込み、CacheServiceに保存する
+ * 日程マスターデータを読み込み、CacheServiceに保存する
+ * 今日から1年後までの日程データを取得し、キャッシュに保存します。
+ *
+ * @param {string} [fromDate] - 取得開始日（YYYY-MM-DD形式、省略時は今日）
+ * @param {string} [toDate] - 取得終了日（YYYY-MM-DD形式、省略時は1年後）
+ * @throws {Error} 日程データの取得や処理中にエラーが発生した場合
  */
-function buildAndCacheAccountingMasterToCache() {
+function rebuildScheduleMasterCache(fromDate, toDate) {
   try {
-    const masterDataResult = getAccountingMasterData();
-
-    if (masterDataResult.success && masterDataResult.data.length > 0) {
-      const cacheData = {
-        version: new Date().getTime(),
-        items: masterDataResult.data,
-      };
-      CacheService.getScriptCache().put('master_accounting_data', JSON.stringify(cacheData), 21600);
-      Logger.log(
-        `master_accounting_dataキャッシュを更新しました。件数: ${masterDataResult.data.length}`,
-      );
-      return cacheData;
-    } else {
-      Logger.log('キャッシュする会計マスターデータがありませんでした。');
-      if (!masterDataResult.success) {
-        throw new Error(masterDataResult.message);
-      }
-    }
-  } catch (e) {
-    Logger.log(`buildAndCacheAccountingMasterToCacheでエラー: ${e.message}`);
-    throw new Error(`会計マスタのキャッシュ作成に失敗しました: ${e.message}`);
-  }
-}
-
-/**
- * 日程マスタを読み込み、CacheServiceに保存する
- */
-function buildAndCacheScheduleMasterToCache() {
-  try {
+    // デフォルトの日付範囲を設定（今日から1年後まで）
     const today = new Date();
-    const fromDate = Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    const startDate =
+      fromDate || Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 
     const oneYearLater = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-    const toDate = Utilities.formatDate(oneYearLater, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    const endDate =
+      toDate || Utilities.formatDate(oneYearLater, Session.getScriptTimeZone(), 'yyyy-MM-dd');
 
-    const scheduleData = getScheduleDataFromSheet(fromDate, toDate);
+    const scheduleDataList = getScheduleDataFromSheet(startDate, endDate);
 
-    if (scheduleData && scheduleData.length > 0) {
-      const cacheData = {
-        version: new Date().getTime(),
-        schedule: scheduleData,
-      };
-      CacheService.getScriptCache().put('master_schedule_data', JSON.stringify(cacheData), 21600);
-      Logger.log(`master_schedule_dataキャッシュを更新しました。件数: ${scheduleData.length}`);
-    } else {
-      Logger.log('キャッシュする日程マスターデータがありませんでした。');
-    }
-  } catch (e) {
-    Logger.log(`buildAndCacheScheduleMasterToCacheでエラー: ${e.message}`);
-    throw new Error(`日程マスタのキャッシュ作成に失敗しました: ${e.message}`);
+    const cacheData = {
+      version: new Date().getTime(),
+      schedule: scheduleDataList || [],
+      dateRange: {
+        from: startDate,
+        to: endDate,
+        cached: new Date().toISOString(),
+      },
+    };
+
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      JSON.stringify(cacheData),
+      CACHE_EXPIRY_SECONDS,
+    );
+
+    Logger.log(
+      `日程マスターデータキャッシュを更新しました。件数: ${scheduleDataList?.length || 0}、期間: ${startDate} ～ ${endDate}`,
+    );
+    return cacheData;
+  } catch (error) {
+    Logger.log(`rebuildScheduleMasterCacheでエラー: ${error.message}`);
+    throw new Error(`日程マスターのキャッシュ作成に失敗しました: ${error.message}`);
   }
 }
 
 /**
- * 会計マスタデータをキャッシュに保存する
+ * 会計マスターデータを読み込み、CacheServiceに保存する
+ * スプレッドシートの「会計マスタ」シートから直接データを読み込み、
+ * 時間列を適切にフォーマットしてキャッシュに保存します。
+ *
+ * @throws {Error} 会計マスタシートが見つからない場合
+ * @throws {Error} データ処理中にエラーが発生した場合
  */
-function rebuildAccountingMasterToCache() {
+function rebuildAccountingMasterCache() {
   try {
     const sheet = getSheetByName(ACCOUNTING_MASTER_SHEET_NAME);
     if (!sheet) {
-      Logger.log('会計マスタシートが見つかりません');
-      return;
+      throw new Error('会計マスタシートが見つかりません');
     }
 
     if (sheet.getLastRow() < 2) {
       Logger.log('会計マスタシートにデータがありません');
+      const emptyCacheData = {
+        version: new Date().getTime(),
+        items: [],
+      };
+      CacheService.getScriptCache().put(
+        CACHE_KEYS.MASTER_ACCOUNTING_DATA,
+        JSON.stringify(emptyCacheData),
+        CACHE_EXPIRY_SECONDS,
+      );
       return;
     }
 
-    const data = sheet.getDataRange().getValues();
-    const header = data.shift();
+    const allData = sheet.getDataRange().getValues();
+    const headers = allData.shift();
     const timezone = getSpreadsheetTimezone();
 
-    const timeColumns = [
+    // 時間列のインデックスを特定
+    const timeColumnNames = [
       HEADER_CLASS_START,
       HEADER_CLASS_END,
       HEADER_BREAK_START,
       HEADER_BREAK_END,
     ];
-    const timeColumnIndices = timeColumns.map(h => header.indexOf(h));
+    const timeColumnIndices = timeColumnNames.map(columnName => headers.indexOf(columnName));
 
-    const processedData = data.map(row => {
-      let item = {};
-      header.forEach((key, index) => {
-        if (timeColumnIndices.includes(index) && row[index] instanceof Date) {
-          item[key] = Utilities.formatDate(row[index], timezone, 'HH:mm');
+    // データを処理してオブジェクト形式に変換
+    const processedItems = allData.map(rowData => {
+      const item = {};
+      headers.forEach((headerName, columnIndex) => {
+        const cellValue = rowData[columnIndex];
+
+        // 時間列の場合は HH:mm 形式にフォーマット
+        if (timeColumnIndices.includes(columnIndex) && cellValue instanceof Date) {
+          item[headerName] = Utilities.formatDate(cellValue, timezone, 'HH:mm');
         } else {
-          item[key] = row[index];
+          item[headerName] = cellValue;
         }
       });
       return item;
@@ -313,118 +389,165 @@ function rebuildAccountingMasterToCache() {
 
     const cacheData = {
       version: new Date().getTime(),
-      data: processedData,
+      items: processedItems,
     };
 
-    CacheService.getScriptCache().put('accounting_master_data', JSON.stringify(cacheData), 21600); // 6時間
-    Logger.log(`会計マスタデータキャッシュを更新しました。件数: ${processedData.length}`);
-  } catch (e) {
-    Logger.log(`rebuildAccountingMasterToCacheでエラー: ${e.message}`);
-    throw new Error(`会計マスタのキャッシュ作成に失敗しました: ${e.message}`);
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.MASTER_ACCOUNTING_DATA,
+      JSON.stringify(cacheData),
+      CACHE_EXPIRY_SECONDS,
+    );
+
+    Logger.log(`会計マスターデータキャッシュを更新しました。件数: ${processedItems.length}`);
+    return cacheData;
+  } catch (error) {
+    Logger.log(`rebuildAccountingMasterCacheでエラー: ${error.message}`);
+    throw new Error(`会計マスターのキャッシュ作成に失敗しました: ${error.message}`);
   }
 }
 
 /**
- * 「生徒名簿」から主要4項目を読み込み、CacheServiceに保存する
+ * 生徒名簿から基本情報（ID、本名、ニックネーム、電話番号）を読み込み、CacheServiceに保存する
+ * 生徒IDをキーとしたオブジェクト形式でキャッシュに保存します。
+ *
+ * @throws {Error} 生徒名簿シートが見つからない場合
+ * @throws {Error} 必須ヘッダーが見つからない場合
+ * @throws {Error} データ処理中にエラーが発生した場合
  */
-function rebuildAllStudentsBasicToCache() {
+function rebuildAllStudentsBasicCache() {
   try {
-    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
-    if (!rosterSheet || rosterSheet.getLastRow() < 2) {
+    const studentRosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+    if (!studentRosterSheet || studentRosterSheet.getLastRow() < 2) {
       Logger.log('生徒名簿シートが見つからないか、データが空です。');
+      // 空データの場合もキャッシュを作成
+      const emptyCacheData = {
+        version: new Date().getTime(),
+        students: {},
+      };
+      CacheService.getScriptCache().put(
+        CACHE_KEYS.ALL_STUDENTS_BASIC,
+        JSON.stringify(emptyCacheData),
+        CACHE_EXPIRY_SECONDS,
+      );
       return;
     }
 
-    const header = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
-    const headerMap = createHeaderMap(header);
+    // ヘッダー行を取得してマッピングを作成
+    const headerRow = studentRosterSheet
+      .getRange(1, 1, 1, studentRosterSheet.getLastColumn())
+      .getValues()[0];
+    const headerColumnMap = createHeaderMap(headerRow);
 
-    const studentIdCol = headerMap.get(HEADER_STUDENT_ID);
-    const realNameCol = headerMap.get(HEADER_REAL_NAME);
-    const nicknameCol = headerMap.get(HEADER_NICKNAME);
-    const phoneCol = headerMap.get(HEADER_PHONE);
+    // 必須列のインデックスを取得
+    const requiredColumns = {
+      studentId: headerColumnMap.get(HEADER_STUDENT_ID),
+      realName: headerColumnMap.get(HEADER_REAL_NAME),
+      nickname: headerColumnMap.get(HEADER_NICKNAME),
+      phone: headerColumnMap.get(HEADER_PHONE),
+    };
 
-    if (
-      studentIdCol === undefined ||
-      realNameCol === undefined ||
-      nicknameCol === undefined ||
-      phoneCol === undefined
-    ) {
-      throw new Error(
-        '生徒名簿の必須ヘッダー（生徒ID, 本名, ニックネーム, 電話番号）が見つかりません。',
-      );
+    // 必須列の存在確認
+    const missingColumns = Object.entries(requiredColumns)
+      .filter(([, index]) => index === undefined)
+      .map(([columnName]) => columnName);
+
+    if (missingColumns.length > 0) {
+      throw new Error(`生徒名簿の必須ヘッダーが見つかりません: ${missingColumns.join(', ')}`);
     }
 
-    const allRosterData = rosterSheet
-      .getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn())
+    // データ行を取得
+    const dataRowCount = studentRosterSheet.getLastRow() - 1;
+    const allStudentRows = studentRosterSheet
+      .getRange(2, 1, dataRowCount, studentRosterSheet.getLastColumn())
       .getValues();
-    const studentsBasicData = {};
 
-    allRosterData.forEach(row => {
-      const studentId = row[studentIdCol];
-      if (studentId) {
-        studentsBasicData[studentId] = {
+    // 生徒データをオブジェクト形式に変換
+    const studentsDataMap = {};
+    allStudentRows.forEach(studentRow => {
+      const studentId = studentRow[requiredColumns.studentId];
+      if (studentId && String(studentId).trim()) {
+        studentsDataMap[studentId] = {
           studentId: studentId,
-          realName: row[realNameCol],
-          nickname: row[nicknameCol],
-          phone: row[phoneCol],
+          realName: studentRow[requiredColumns.realName] || '',
+          nickname: studentRow[requiredColumns.nickname] || '',
+          phone: studentRow[requiredColumns.phone] || '',
         };
       }
     });
 
     const cacheData = {
       version: new Date().getTime(),
-      students: studentsBasicData,
+      students: studentsDataMap,
+      metadata: {
+        totalCount: Object.keys(studentsDataMap).length,
+        lastUpdated: new Date().toISOString(),
+      },
     };
 
     CacheService.getScriptCache().put(
-      'all_students_basic',
+      CACHE_KEYS.ALL_STUDENTS_BASIC,
       JSON.stringify(cacheData),
       CACHE_EXPIRY_SECONDS,
     );
+
     Logger.log(
-      `all_students_basicキャッシュサービスを更新しました。件数: ${Object.keys(studentsBasicData).length}`,
+      `生徒基本情報キャッシュを更新しました。件数: ${Object.keys(studentsDataMap).length}`,
     );
   } catch (e) {
-    Logger.log(`rebuildAllStudentsBasicToCacheでエラー: ${e.message}`);
+    Logger.log(`rebuildAllStudentsBasicCacheでエラー: ${e.message}`);
     throw e;
   }
 }
 
 /**
- * 時間主導型トリガーから実行されるキャッシュ再構築関数
+ * 時間主導型トリガーから自動実行されるキャッシュ再構築関数
+ * 定期的にスケジュールされたトリガーが呼び出す関数です。
+ * スクリプトロックを使用して同時実行を防止します。
+ *
+ * 処理内容:
+ * - 全キャッシュデータの定期再構築
+ * - エラー発生時のログ記録
+ * - アクティビティログの記録
+ *
+ * @throws {Error} ロック取得失敗やキャッシュ再構築中のエラーは内部でキャッチされログに記録
  */
-function trigger_rebuildAllCaches() {
-  const lock = LockService.getScriptLock();
-  if (!lock.tryLock(LOCK_WAIT_TIME_MS)) {
-    Logger.log('trigger_rebuildAllCaches: 他の処理が実行中のためスキップしました。');
+function triggerScheduledCacheRebuild() {
+  const scriptLock = LockService.getScriptLock();
+
+  // 他の処理が実行中の場合はスキップ
+  if (!scriptLock.tryLock(LOCK_WAIT_TIME_MS)) {
+    Logger.log('定期キャッシュ再構築: 他の処理が実行中のためスキップしました。');
     return;
   }
 
   try {
-    Logger.log('trigger_rebuildAllCaches: キャッシュ再構築を開始します。');
-    rebuildAllReservationsToCache();
-    rebuildAllStudentsBasicToCache();
-    buildAndCacheScheduleMasterToCache();
-    buildAndCacheAccountingMasterToCache(); // ★★★ 追加 ★★★
-    Logger.log('trigger_rebuildAllCaches: キャッシュ再構築が完了しました。');
+    Logger.log('定期キャッシュ再構築: 開始します。');
+
+    // 全てのキャッシュを順次再構築
+    rebuildAllReservationsCache();
+    rebuildAllStudentsBasicCache();
+    rebuildScheduleMasterCache();
+    rebuildAccountingMasterCache();
+
+    Logger.log('定期キャッシュ再構築: 正常に完了しました。');
+
     logActivity(
       'system',
       '定期キャッシュ再構築',
       '成功',
-      '時間主導型トリガーによる全キャッシュ再構築',
+      '時間主導型トリガーによる全キャッシュ自動再構築完了',
     );
-  } catch (e) {
-    Logger.log(`trigger_rebuildAllCaches: キャッシュ再構築中にエラーが発生しました: ${e.message}`);
-    logActivity('system', '定期キャッシュ再構築', '失敗', `エラー: ${e.message}`);
+  } catch (error) {
+    Logger.log(`定期キャッシュ再構築: エラーが発生しました - ${error.message}`);
+    logActivity('system', '定期キャッシュ再構築', '失敗', `エラー: ${error.message}`);
   } finally {
-    lock.releaseLock();
+    scriptLock.releaseLock();
   }
 }
 
 // =================================================================
 // キャッシュサービスからのデータ取得関数群
 // =================================================================
-
 
 /**
  * 指定されたキャッシュキーからデータを取得する汎用関数（キャッシュがない場合は自動再構築）
@@ -435,23 +558,23 @@ function trigger_rebuildAllCaches() {
 function getCachedData(cacheKey, autoRebuild = true) {
   try {
     let cachedData = CacheService.getScriptCache().get(cacheKey);
-    
+
     if (!cachedData && autoRebuild) {
       Logger.log(`${cacheKey}キャッシュが見つかりません。自動再構築を開始します...`);
       try {
         // キャッシュキーに応じて適切な再構築関数を呼び出し
         switch (cacheKey) {
           case CACHE_KEYS.ALL_RESERVATIONS:
-            rebuildAllReservationsToCache();
+            rebuildAllReservationsCache();
             break;
           case CACHE_KEYS.ALL_STUDENTS_BASIC:
-            rebuildAllStudentsBasicToCache();
+            rebuildAllStudentsBasicCache();
             break;
           case CACHE_KEYS.MASTER_SCHEDULE_DATA:
-            buildAndCacheScheduleMasterToCache();
+            rebuildScheduleMasterCache();
             break;
           case CACHE_KEYS.MASTER_ACCOUNTING_DATA:
-            buildAndCacheAccountingMasterToCache();
+            rebuildAccountingMasterCache();
             break;
           default:
             Logger.log(`${cacheKey}の自動再構築方法が不明です`);
@@ -535,9 +658,9 @@ function getAllCacheInfo() {
  */
 const CACHE_KEYS = {
   ALL_RESERVATIONS: 'all_reservations',
-  ALL_STUDENTS_BASIC: 'all_students_basic', 
+  ALL_STUDENTS_BASIC: 'all_students_basic',
   MASTER_SCHEDULE_DATA: 'master_schedule_data',
-  MASTER_ACCOUNTING_DATA: 'master_accounting_data'
+  MASTER_ACCOUNTING_DATA: 'master_accounting_data',
 };
 
 /**

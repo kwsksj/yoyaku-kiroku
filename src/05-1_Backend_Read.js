@@ -135,24 +135,10 @@ function getReservationDetailsForEdit(reservationId, classroom) {
 function getAccountingMasterData() {
   try {
     // 1. キャッシュからデータを取得
-    const cache = CacheService.getScriptCache();
-    let accountingCacheJSON = cache.get('accounting_master_data');
+    const accountingCache = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
 
-    if (!accountingCacheJSON) {
-      // キャッシュが見つからない場合、再構築を試みる
-      Logger.log('会計マスタキャッシュが見つからないため、キャッシュを再構築します');
-      try {
-        rebuildAccountingMasterToCache(); // このような関数が存在すると仮定
-      } catch (rebuildError) {
-        Logger.log(`会計マスタキャッシュ再構築エラー: ${rebuildError.message}`);
-      }
-      accountingCacheJSON = cache.get('accounting_master_data');
-    }
-
-    if (accountingCacheJSON) {
-      const accountingCache = JSON.parse(accountingCacheJSON);
-      Logger.log(`キャッシュから会計マスタデータを取得: ${accountingCache.data?.length || 0} 件`);
-      return { success: true, data: accountingCache.data || [] };
+    if (accountingCache) {
+      return { success: true, data: accountingCache.items || [] };
     }
 
     // 2. キャッシュ再構築も失敗した場合のフォールバック

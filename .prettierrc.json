@@ -8,6 +8,7 @@
   "bracketSpacing": true,
   "arrowParens": "avoid",
   "endOfLine": "lf",
+  "proseWrap": "never",
   "overrides": [
     {
       "files": "*.html",

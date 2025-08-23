@@ -33,23 +33,8 @@ function getAvailableSlots() {
     }
 
     // 2. キャッシュから全予約データを取得
-    const cache = CacheService.getScriptCache();
-    let reservationsCacheJSON = cache.get('all_reservations');
-    if (!reservationsCacheJSON) {
-      Logger.log('全予約キャッシュが見つからないため再構築します');
-      rebuildAllReservationsToCache();
-      reservationsCacheJSON = cache.get('all_reservations');
-
-      if (!reservationsCacheJSON) {
-        Logger.log('エラー: キャッシュ再構築後も全予約データが見つかりません');
-      } else {
-        Logger.log('全予約キャッシュ再構築成功');
-      }
-    } else {
-      Logger.log('既存の全予約キャッシュを使用');
-    }
-    const reservationsCache = JSON.parse(reservationsCacheJSON || '{}');
-    const allReservations = reservationsCache.reservations || [];
+    const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    const allReservations = reservationsCache ? reservationsCache.reservations || [] : [];
     Logger.log(`全予約キャッシュから取得した予約データ: ${allReservations.length} 件`);
 
     if (allReservations.length === 0) {
@@ -309,15 +294,8 @@ function getAvailableSlotsForClassroom(classroom) {
  */
 function getUserReservations(studentId) {
   try {
-    const cache = CacheService.getScriptCache();
-    let reservationsCacheJSON = cache.get('all_reservations');
-    if (!reservationsCacheJSON) {
-      Logger.log('全予約キャッシュが見つからないため再構築します');
-      rebuildAllReservationsToCache();
-      reservationsCacheJSON = cache.get('all_reservations');
-    }
-    const reservationsCache = JSON.parse(reservationsCacheJSON || '{}');
-    const allReservations = reservationsCache.reservations || [];
+    const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    const allReservations = reservationsCache ? reservationsCache.reservations || [] : [];
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

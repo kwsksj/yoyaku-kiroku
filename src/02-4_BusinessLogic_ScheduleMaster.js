@@ -194,18 +194,9 @@ function createSampleScheduleData() {
 function getAllScheduledDates(fromDate, toDate) {
   try {
     // 1. キャッシュからデータを取得
-    const cache = CacheService.getScriptCache();
-    let scheduleCacheJSON = cache.get('master_schedule_data');
+    const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
 
-    if (!scheduleCacheJSON) {
-      // キャッシュが見つからない場合、再構築を試みる
-      Logger.log('日程マスタキャッシュが見つからないため、キャッシュを再構築します');
-      buildAndCacheScheduleMasterToCache(fromDate, toDate);
-      scheduleCacheJSON = cache.get('master_schedule_data');
-    }
-
-    if (scheduleCacheJSON) {
-      const scheduleCache = JSON.parse(scheduleCacheJSON);
+    if (scheduleCache) {
       const cachedSchedules = scheduleCache.schedule || [];
       Logger.log(`キャッシュから日程マスタデータを取得: ${cachedSchedules.length} 件`);
       return filterSchedulesByDateRange(cachedSchedules, fromDate, toDate);

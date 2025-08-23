@@ -164,38 +164,21 @@ function getInitialDataForNewWebApp() {
 
     // 1. 予約データはフロントエンドに送信しない（個人用はgetUserReservationsで別途取得）
     // 予約キャッシュのバージョン情報のみ取得
-    let allReservationsCacheJSON = cache.get('all_reservations');
-    const allReservationsCache = JSON.parse(allReservationsCacheJSON || '{}');
+    const allReservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
 
     // 2. 生徒基本情報キャッシュを取得（なければ再構築）
-    let studentsCacheJSON = cache.get('all_students_basic');
-    Logger.log(`生徒キャッシュ取得: ${studentsCacheJSON ? 'あり' : 'なし'}`);
-    if (!studentsCacheJSON) {
-      Logger.log('生徒キャッシュを再構築中...');
-      rebuildAllStudentsBasicToCache();
-      studentsCacheJSON = cache.get('all_students_basic');
-      Logger.log(`生徒キャッシュ再構築後: ${studentsCacheJSON ? 'あり' : 'なし'}`);
-    }
-    const studentsCache = JSON.parse(studentsCacheJSON || '{}');
+    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
     Logger.log(
-      `生徒データ件数: ${studentsCache.students ? Object.keys(studentsCache.students).length : 0}`,
+      `生徒データ件数: ${studentsCache?.students ? Object.keys(studentsCache.students).length : 0}`,
     );
 
     // 3. 料金マスタデータを取得（CacheServiceから, なければ再構築）
-    let accountingMasterCacheJSON = cache.get('master_accounting_data');
-    Logger.log(`会計マスタキャッシュ取得: ${accountingMasterCacheJSON ? 'あり' : 'なし'}`);
-    if (!accountingMasterCacheJSON) {
-      Logger.log('会計マスタキャッシュを再構築中...');
-      const accountingMasterCache = buildAndCacheAccountingMasterToCache();
-      accountingMasterCacheJSON = JSON.stringify(accountingMasterCache);
-    }
-    const accountingMaster = JSON.parse(accountingMasterCacheJSON || '{}');
-    Logger.log(`会計マスタデータ件数: ${accountingMaster.items?.length || 0}`);
+    const accountingMaster = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
+    Logger.log(`会計マスタデータ件数: ${accountingMaster?.items?.length || 0}`);
 
     // 4. 日程マスタはフロントエンドには送信しない（空席計算で内部使用）
     // バージョン情報のみ取得
-    let scheduleMasterCacheJSON = cache.get('master_schedule_data');
-    const scheduleMaster = JSON.parse(scheduleMasterCacheJSON || '{}');
+    const scheduleMaster = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
 
     // 5. 今日の日付文字列を追加
     const today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
@@ -203,14 +186,14 @@ function getInitialDataForNewWebApp() {
     const result = {
       success: true,
       data: {
-        allStudents: studentsCache.students || {},
-        accountingMaster: accountingMaster.items || [],
+        allStudents: studentsCache?.students || {},
+        accountingMaster: accountingMaster?.items || [],
         today: today,
         cacheVersions: {
-          allReservations: allReservationsCache.version || 0,
-          students: studentsCache.version || 0,
-          accountingMaster: accountingMaster.version || 0,
-          scheduleMaster: scheduleMaster.version || 0,
+          allReservations: allReservationsCache?.version || 0,
+          students: studentsCache?.version || 0,
+          accountingMaster: accountingMaster?.version || 0,
+          scheduleMaster: scheduleMaster?.version || 0,
         },
       },
     };

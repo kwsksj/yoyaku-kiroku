@@ -253,7 +253,7 @@ function makeReservation(reservationInfo) {
     SpreadsheetApp.flush(); // シート書き込み完了を保証
 
     // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsToCache();
+    rebuildAllReservationsCache();
 
     // 【NF-12】Construct new booking object for cache (統合予約シート対応)
     const timeToString = date =>
@@ -397,7 +397,7 @@ function cancelReservation(cancelInfo) {
     SpreadsheetApp.flush();
 
     // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsToCache();
+    rebuildAllReservationsCache();
 
     // 【NF-12】Update cache incrementally
     const newBookingsCache = _updateFutureBookingsCacheIncrementally(studentId, 'remove', {
@@ -542,7 +542,7 @@ function updateReservationDetails(details) {
     SpreadsheetApp.flush();
 
     // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsToCache();
+    rebuildAllReservationsCache();
 
     // 【NF-12】Update cache incrementally (統合予約シート対応)
     const studentId = integratedSheet.getRange(targetRowIndex, studentIdColIdx + 1).getValue();
@@ -799,7 +799,7 @@ function saveAccountingDetails(payload) {
       `詳細はスプレッドシートを確認してください。`;
     sendAdminNotification(subject, body);
 
-    rebuildAllReservationsToCache();
+    rebuildAllReservationsCache();
 
     // [変更] 戻り値に updatedSlots を追加
     return {

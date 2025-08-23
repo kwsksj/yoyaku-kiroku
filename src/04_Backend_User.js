@@ -292,7 +292,7 @@ function registerNewUser(userInfo) {
     rosterSheet.appendRow(newRow);
     rosterSheet.getRange(rosterSheet.getLastRow(), phoneColIdx + 1).setNumberFormat('@');
 
-    rebuildAllStudentsBasicToCache();
+    rebuildAllStudentsBasicCache();
 
     const newUserInfo = {
       studentId: studentId,
