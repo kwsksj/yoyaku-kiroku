@@ -1,21 +1,51 @@
 /**
  * =================================================================
- * 【ファイル名】: 09_Backend_Endpoints.gs
- * 【バージョン】: 2.2
- * 【役割】: WebAppとの通信を最適化するための統合APIエンドポイント。
- * 【v2.2での変更点】:
- * - getInitialDataForNewWebAppが料金マスタをCacheServiceから取得するように修正。
+ * 【ファイル名】: 09_Backend_Endpoints.js
+ * 【バージョン】: 3.0
+ * 【役割】: WebApp用統合APIエンドポイント関数
+ *
+ * 【主要機能】:
+ * ✅ アプリ初期化データ管理
+ *   - getAppInitialData(): アプリ起動時の基本データ取得
+ *   - getLoginData(): ユーザーログイン時の全データ取得
+ *   - getBatchData(): 複数データタイプの一括取得
+ *
+ * ✅ 予約操作統合API
+ *   - executeOperationAndGetLatestData(): 予約操作後の最新データ取得
+ *   - makeReservationAndGetLatestData(): 予約作成+最新データ返却
+ *   - cancelReservationAndGetLatestData(): 予約キャンセル+最新データ返却
+ *   - updateReservationDetailsAndGetLatestData(): 予約更新+最新データ返却
+ *
+ * ✅ ユーザー管理・検索機能
+ *   - searchUsersWithoutPhone(): 電話番号未登録ユーザー検索
+ *   - updateReservationMemo(): 予約メモ更新+履歴取得
+ *   - extractUserDataFromBatch(): バッチデータからユーザーデータ抽出
+ *
+ * ✅ ユーティリティ関数
+ *   - handleError(): 統一APIレスポンス形式のエラーハンドラ
+ *
+ * 【データフロー】:
+ * 1. フロントエンドからAPI呼び出し
+ * 2. getCachedData()でキャッシュからデータ取得
+ * 3. 必要に応じて他のBackend関数を呼び出し
+ * 4. 統一APIレスポンス形式で結果を返却
+ *
+ * 【v3.0での変更点】:
+ * - 関数名の統一化と明確化（getAppInitialData, getLoginData, getBatchData）
+ * - JSDocコメントの全面改善と型情報の統一
+ * - キャッシュ管理システムとの連携最適化
+ * - エラーハンドリングとログ出力の改善
  * =================================================================
  */
 
 /**
- * 操作実行後の最新データ取得処理の汎用関数
+ * 予約操作後に最新データを取得して返す汎用関数
  * @param {string} operationType - 操作タイプ ('makeReservation'|'cancelReservation'|'updateReservation')
- * @param {Function} operationFunction - 実行する操作の関数
- * @param {Object} operationParams - 操作に渡すパラメータ
- * @param {string} studentId - 学生ID
- * @param {string} successMessage - 成功時のメッセージ
- * @returns {Object} APIレスポンス
+ * @param {Function} operationFunction - 実行する操作関数
+ * @param {Object} operationParams - 操作関数に渡すパラメータ
+ * @param {string} studentId - 対象生徒のID
+ * @param {string} successMessage - 操作成功時のメッセージ
+ * @returns {Object} 操作結果と最新データを含むAPIレスポンス
  */
 function executeOperationAndGetLatestData(
   operationType,
@@ -29,7 +59,7 @@ function executeOperationAndGetLatestData(
     // キャッシュ更新は各操作関数内で実行済み
     if (result.success) {
       // ログイン時と同じ方法でデータを取得
-      const batchResult = getBatchDataForWebApp(['initial', 'reservations'], null, studentId);
+      const batchResult = getBatchData(['initial', 'reservations'], null, studentId);
       if (!batchResult.success) {
         return batchResult;
       }
@@ -112,11 +142,11 @@ function updateReservationDetailsAndGetLatestData(details) {
 }
 
 /**
- * WebApp専用：電話番号未登録ユーザーをフィルタリングして検索する。
- * @param {string} filterText - 検索文字列
- * @returns {object} 処理結果とユーザーリスト
+ * 電話番号未登録のユーザーをフィルタリング検索する
+ * @param {string} filterText - 検索条件文字列
+ * @returns {Object} 検索結果とユーザーリスト
  */
-function searchNoPhoneUsersByFilterForWebApp(filterText) {
+function searchUsersWithoutPhone(filterText) {
   try {
     const users = getUsersWithoutPhoneNumber(filterText);
     return createApiResponse(true, {
@@ -130,13 +160,13 @@ function searchNoPhoneUsersByFilterForWebApp(filterText) {
 }
 
 /**
- * メモを更新し、最新の参加履歴を返す。
- * @param {string} reservationId - 予約ID
- * @param {string} studentId - 生徒ID
- * @param {string} newMemo - 新しいメモ
- * @returns {object} 処理結果と最新の参加履歴
+ * 予約のメモを更新し、更新後の参加履歴を返す
+ * @param {string} reservationId - 更新対象の予約ID
+ * @param {string} studentId - 対象生徒のID
+ * @param {string} newMemo - 新しいメモ内容
+ * @returns {Object} 更新結果と最新の参加履歴
  */
-function updateMemo(reservationId, studentId, newMemo) {
+function updateReservationMemo(reservationId, studentId, newMemo) {
   try {
     const result = updateMemoAndGetLatestHistory(reservationId, studentId, newMemo);
     if (result.success) {
@@ -155,12 +185,12 @@ function updateMemo(reservationId, studentId, newMemo) {
 }
 
 /**
- * 【新WebApp用】新しいデータモデル（キャッシュ）から初期化データを取得する
+ * アプリ初期化用の基本データをキャッシュから取得する
+ * @returns {Object} 初期化データ（生徒情報、料金マスタ、バージョン情報等）
  */
-function getInitialDataForNewWebApp() {
+function getAppInitialData() {
   try {
-    const cache = CacheService.getScriptCache();
-    Logger.log('getInitialDataForNewWebApp開始');
+    Logger.log('getAppInitialData開始');
 
     // 1. 予約データはフロントエンドに送信しない（個人用はgetUserReservationsで別途取得）
     // 予約キャッシュのバージョン情報のみ取得
@@ -198,24 +228,25 @@ function getInitialDataForNewWebApp() {
       },
     };
 
-    Logger.log('getInitialDataForNewWebApp完了');
+    Logger.log('getAppInitialData完了');
     return result;
   } catch (e) {
-    Logger.log(`getInitialDataForNewWebAppでエラー: ${e.message}\nStack: ${e.stack}`);
-    return handleError(`新しいWebAppの初期データ取得中にエラー: ${e.message}`, true);
+    Logger.log(`getAppInitialDataでエラー: ${e.message}\nStack: ${e.stack}`);
+    return handleError(`アプリ初期データ取得中にエラー: ${e.message}`, true);
   }
 }
 
 /**
- * 【ログイン統合用】初期データと空席情報を同時に取得する
+ * ユーザーログイン時に必要な全データを取得する
  * @param {string} phone - 電話番号（ユーザー認証用）
+ * @returns {Object} 初期データ、空席情報、ユーザー情報を含む結果
  */
-function getInitialDataWithAvailableSlots(phone) {
+function getLoginData(phone) {
   try {
-    Logger.log(`getInitialDataWithAvailableSlots開始: phone=${phone}`);
+    Logger.log(`getLoginData開始: phone=${phone}`);
 
     // 統合バッチ処理で一度にすべてのデータを取得
-    const batchResult = getBatchDataForWebApp(['initial', 'slots', 'reservations'], phone);
+    const batchResult = getBatchData(['initial', 'slots', 'reservations'], phone);
     if (!batchResult.success) {
       return batchResult;
     }
@@ -232,25 +263,25 @@ function getInitialDataWithAvailableSlots(phone) {
       user: batchResult.user,
     };
 
-    Logger.log(`getInitialDataWithAvailableSlots完了: userFound=${result.userFound}`);
+    Logger.log(`getLoginData完了: userFound=${result.userFound}`);
     return result;
   } catch (e) {
-    Logger.log(`getInitialDataWithAvailableSlotsでエラー: ${e.message}\nStack: ${e.stack}`);
-    return handleError(`ログイン用データ取得中にエラー: ${e.message}`, true);
+    Logger.log(`getLoginDataでエラー: ${e.message}\nStack: ${e.stack}`);
+    return handleError(`ログインデータ取得中にエラー: ${e.message}`, true);
   }
 }
 
 /**
- * 【バッチ処理統合】複数データを一度に取得する統合エンドポイント
- * @param {Array} dataTypes - 取得するデータタイプの配列 ['initial', 'slots', 'history']
- * @param {string} phone - 電話番号（ユーザー特定用、任意）
- * @param {string} studentId - 生徒ID（履歴取得用、任意）
- * @returns {object} 要求されたすべてのデータを含む統合レスポンス
+ * 複数のデータタイプを一度に取得するバッチ処理関数
+ * @param {Array} dataTypes - 取得するデータタイプの配列 ['initial', 'slots', 'reservations', 'history', 'userdata']
+ * @param {string|null} phone - 電話番号（ユーザー特定用、任意）
+ * @param {string|null} studentId - 生徒ID（個人データ取得用、任意）
+ * @returns {Object} 要求されたすべてのデータを含む統合レスポンス
  */
-function getBatchDataForWebApp(dataTypes = [], phone = null, studentId = null) {
+function getBatchData(dataTypes = [], phone = null, studentId = null) {
   try {
     Logger.log(
-      `getBatchDataForWebApp開始: dataTypes=${JSON.stringify(dataTypes)}, phone=${phone}, studentId=${studentId}`,
+      `getBatchData開始: dataTypes=${JSON.stringify(dataTypes)}, phone=${phone}, studentId=${studentId}`,
     );
 
     const result = {
@@ -262,7 +293,7 @@ function getBatchDataForWebApp(dataTypes = [], phone = null, studentId = null) {
 
     // 1. 初期データが要求されている場合
     if (dataTypes.includes('initial')) {
-      const initialDataResult = getInitialDataForNewWebApp();
+      const initialDataResult = getAppInitialData();
       if (!initialDataResult.success) {
         return initialDataResult;
       }
@@ -280,20 +311,20 @@ function getBatchDataForWebApp(dataTypes = [], phone = null, studentId = null) {
 
     // 2. 空席情報が要求されている場合
     if (dataTypes.includes('slots')) {
-      Logger.log('getBatchDataForWebApp: slots要求 - getAvailableSlots呼び出し開始');
+      Logger.log('getBatchData: slots要求 - getAvailableSlots呼び出し開始');
       const availableSlotsResult = getAvailableSlots();
       Logger.log(
-        `getBatchDataForWebApp: getAvailableSlots結果 - success: ${availableSlotsResult.success}, data.length: ${availableSlotsResult.data ? availableSlotsResult.data.length : 'null'}`,
+        `getBatchData: getAvailableSlots結果 - success: ${availableSlotsResult.success}, data.length: ${availableSlotsResult.data ? availableSlotsResult.data.length : 'null'}`,
       );
       if (!availableSlotsResult.success) {
         Logger.log(
-          `getBatchDataForWebApp: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`,
+          `getBatchData: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`,
         );
         return availableSlotsResult;
       }
       result.data.slots = availableSlotsResult.data;
       Logger.log(
-        `getBatchDataForWebApp: result.data.slotsに${availableSlotsResult.data.length}件設定完了`,
+        `getBatchData: result.data.slotsに${availableSlotsResult.data.length}件設定完了`,
       );
     }
 
@@ -320,26 +351,26 @@ function getBatchDataForWebApp(dataTypes = [], phone = null, studentId = null) {
     // 5. ユーザー固有データが要求されている場合
     if (dataTypes.includes('userdata') && (studentId || result.user)) {
       const targetStudentId = studentId || result.user.studentId;
-      const userData = filterUserDataFromBatch(result.data, targetStudentId);
+      const userData = extractUserDataFromBatch(result.data, targetStudentId);
       result.data.userBookings = userData.myBookings;
       result.data.userHistory = userData.myHistory;
     }
 
-    Logger.log(`getBatchDataForWebApp完了: dataTypes=${dataTypes.length}件`);
+    Logger.log(`getBatchData完了: dataTypes=${dataTypes.length}件`);
     return result;
   } catch (e) {
-    Logger.log(`getBatchDataForWebAppでエラー: ${e.message}\nStack: ${e.stack}`);
+    Logger.log(`getBatchDataでエラー: ${e.message}\nStack: ${e.stack}`);
     return handleError(`バッチデータ取得中にエラー: ${e.message}`, true);
   }
 }
 
 /**
- * バッチ取得されたデータからユーザー固有データを抽出
- * @param {object} batchData - getBatchDataForWebAppで取得したデータ
- * @param {string} studentId - 生徒ID
- * @returns {object} ユーザーの予約・履歴データ
+ * バッチ取得されたデータから特定ユーザーのデータを抽出
+ * @param {Object} batchData - getBatchDataで取得したデータ
+ * @param {string} studentId - 抽出対象の生徒ID
+ * @returns {Object} ユーザーの予約・履歴データ
  */
-function filterUserDataFromBatch(batchData, studentId) {
+function extractUserDataFromBatch(batchData, studentId) {
   const result = {
     myBookings: [],
     myHistory: [],
@@ -366,10 +397,10 @@ function filterUserDataFromBatch(batchData, studentId) {
 }
 
 /**
- * 汎用エラーハンドラ（統一APIレスポンス形式を使用）
+ * 統一APIレスポンス形式のエラーハンドラ
  * @param {string} message - エラーメッセージ
- * @param {boolean} log - Loggerに記録するかどうか
- * @returns {object} 統一されたエラーオブジェクト
+ * @param {boolean} [log=false] - Loggerにエラーを記録するか
+ * @returns {Object} 統一されたエラーレスポンス
  */
 function handleError(message, log = false) {
   if (log) {
