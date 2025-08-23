@@ -9,34 +9,42 @@
  */
 
 /**
- * 予約を実行し、成功した場合に最新の全初期化データを返す。
- * @param {object} reservationInfo - 予約情報
- * @returns {object} 処理結果と最新の初期化データ
+ * 操作実行後の最新データ取得処理の汎用関数
+ * @param {string} operationType - 操作タイプ ('makeReservation'|'cancelReservation'|'updateReservation')
+ * @param {Function} operationFunction - 実行する操作の関数
+ * @param {Object} operationParams - 操作に渡すパラメータ
+ * @param {string} studentId - 学生ID
+ * @param {string} successMessage - 成功時のメッセージ
+ * @returns {Object} APIレスポンス
  */
-function makeReservationAndGetLatestData(reservationInfo) {
+function executeOperationAndGetLatestData(
+  operationType,
+  operationFunction,
+  operationParams,
+  studentId,
+  successMessage,
+) {
   try {
-    const result = makeReservation(reservationInfo);
-    // キャッシュ更新は makeReservation() 内で実行済み
+    const result = operationFunction(operationParams);
+    // キャッシュ更新は各操作関数内で実行済み
     if (result.success) {
-      const initialData = getInitialDataForNewWebApp();
-      if (!initialData.success) {
-        return initialData;
+      // ログイン時と同じ方法でデータを取得
+      const batchResult = getBatchDataForWebApp(['initial', 'reservations'], null, studentId);
+      if (!batchResult.success) {
+        return batchResult;
       }
 
-      // 特定ユーザーの予約情報をフィルタリング
-      const userReservations = filterUserReservations(
-        initialData.data.allReservations,
-        reservationInfo.studentId,
-        initialData.data.today,
-      );
-
       const response = createApiResponse(true, {
-        message: result.message,
+        message: result.message || successMessage,
         data: {
-          myBookings: userReservations.myBookings,
+          myBookings: batchResult.data.userReservations
+            ? batchResult.data.userReservations.myBookings
+            : [],
           initialData: {
-            ...initialData.data,
-            myHistory: userReservations.myHistory,
+            ...batchResult.data.initial,
+            myHistory: batchResult.data.userReservations
+              ? batchResult.data.userReservations.myHistory
+              : [],
           },
         },
       });
@@ -46,10 +54,31 @@ function makeReservationAndGetLatestData(reservationInfo) {
       return result;
     }
   } catch (e) {
+    const errorMessages = {
+      makeReservation: '予約処理中にエラーが発生しました',
+      cancelReservation: 'キャンセル処理中にエラーが発生しました',
+      updateReservation: '更新処理中にエラーが発生しました',
+    };
+
     return createApiResponse(false, {
-      message: `予約処理中にエラーが発生しました: ${e.message}`,
+      message: `${errorMessages[operationType] || '処理中にエラーが発生しました'}: ${e.message}`,
     });
   }
+}
+
+/**
+ * 予約を実行し、成功した場合に最新の全初期化データを返す。
+ * @param {object} reservationInfo - 予約情報
+ * @returns {object} 処理結果と最新の初期化データ
+ */
+function makeReservationAndGetLatestData(reservationInfo) {
+  return executeOperationAndGetLatestData(
+    'makeReservation',
+    makeReservation,
+    reservationInfo,
+    reservationInfo.studentId,
+    '予約を作成しました。',
+  );
 }
 
 /**
@@ -58,40 +87,13 @@ function makeReservationAndGetLatestData(reservationInfo) {
  * @returns {object} 処理結果と最新の初期化データ
  */
 function cancelReservationAndGetLatestData(cancelInfo) {
-  try {
-    const result = cancelReservation(cancelInfo);
-    // キャッシュ更新は cancelReservation() 内で実行済み
-    if (result.success) {
-      const initialData = getInitialDataForNewWebApp();
-      if (!initialData.success) {
-        return initialData;
-      }
-
-      // 特定ユーザーの予約情報をフィルタリング
-      const userReservations = filterUserReservations(
-        initialData.data.allReservations,
-        cancelInfo.studentId,
-        initialData.data.today,
-      );
-
-      return createApiResponse(true, {
-        message: result.message,
-        data: {
-          myBookings: userReservations.myBookings,
-          initialData: {
-            ...initialData.data,
-            myHistory: userReservations.myHistory,
-          },
-        },
-      });
-    } else {
-      return result;
-    }
-  } catch (e) {
-    return createApiResponse(false, {
-      message: `キャンセル処理中にエラーが発生しました: ${e.message}`,
-    });
-  }
+  return executeOperationAndGetLatestData(
+    'cancelReservation',
+    cancelReservation,
+    cancelInfo,
+    cancelInfo.studentId,
+    '予約をキャンセルしました。',
+  );
 }
 
 /**
@@ -100,42 +102,13 @@ function cancelReservationAndGetLatestData(cancelInfo) {
  * @returns {object} 処理結果と最新の初期化データ
  */
 function updateReservationDetailsAndGetLatestData(details) {
-  try {
-    const result = updateReservationDetails(details);
-    // キャッシュ更新は updateReservationDetails() 内で実行済み
-    if (result.success) {
-      const initialData = getInitialDataForNewWebApp();
-      if (!initialData.success) {
-        return initialData;
-      }
-
-      // 特定ユーザーの予約情報をフィルタリング
-      const userReservations = filterUserReservations(
-        initialData.data.allReservations,
-        details.studentId,
-        initialData.data.today,
-      );
-
-      const response = createApiResponse(true, {
-        message: '予約内容を更新しました。',
-        data: {
-          myBookings: userReservations.myBookings,
-          initialData: {
-            ...initialData.data,
-            myHistory: userReservations.myHistory,
-          },
-        },
-      });
-
-      return response;
-    } else {
-      return result;
-    }
-  } catch (e) {
-    return createApiResponse(false, {
-      message: `予約詳細の更新中にエラーが発生しました: ${e.message}`,
-    });
-  }
+  return executeOperationAndGetLatestData(
+    'updateReservation',
+    updateReservationDetails,
+    details,
+    details.studentId,
+    '予約内容を更新しました。',
+  );
 }
 
 /**
@@ -326,13 +299,19 @@ function getBatchDataForWebApp(dataTypes = [], phone = null, studentId = null) {
     if (dataTypes.includes('slots')) {
       Logger.log('getBatchDataForWebApp: slots要求 - getAvailableSlots呼び出し開始');
       const availableSlotsResult = getAvailableSlots();
-      Logger.log(`getBatchDataForWebApp: getAvailableSlots結果 - success: ${availableSlotsResult.success}, data.length: ${availableSlotsResult.data ? availableSlotsResult.data.length : 'null'}`);
+      Logger.log(
+        `getBatchDataForWebApp: getAvailableSlots結果 - success: ${availableSlotsResult.success}, data.length: ${availableSlotsResult.data ? availableSlotsResult.data.length : 'null'}`,
+      );
       if (!availableSlotsResult.success) {
-        Logger.log(`getBatchDataForWebApp: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`);
+        Logger.log(
+          `getBatchDataForWebApp: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`,
+        );
         return availableSlotsResult;
       }
       result.data.slots = availableSlotsResult.data;
-      Logger.log(`getBatchDataForWebApp: result.data.slotsに${availableSlotsResult.data.length}件設定完了`);
+      Logger.log(
+        `getBatchDataForWebApp: result.data.slotsに${availableSlotsResult.data.length}件設定完了`,
+      );
     }
 
     // 3. 個人予約データが要求されている場合

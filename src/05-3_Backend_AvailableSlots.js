@@ -39,7 +39,7 @@ function getAvailableSlots() {
       Logger.log('全予約キャッシュが見つからないため再構築します');
       rebuildAllReservationsToCache();
       reservationsCacheJSON = cache.get('all_reservations');
-      
+
       if (!reservationsCacheJSON) {
         Logger.log('エラー: キャッシュ再構築後も全予約データが見つかりません');
       } else {
@@ -51,39 +51,47 @@ function getAvailableSlots() {
     const reservationsCache = JSON.parse(reservationsCacheJSON || '{}');
     const allReservations = reservationsCache.reservations || [];
     Logger.log(`全予約キャッシュから取得した予約データ: ${allReservations.length} 件`);
-    
+
     if (allReservations.length === 0) {
-      Logger.log('警告: 全予約データが0件です - キャッシュまたはデータに問題がある可能性があります');
+      Logger.log(
+        '警告: 全予約データが0件です - キャッシュまたはデータに問題がある可能性があります',
+      );
     } else {
       Logger.log(`全予約データサンプル: ${JSON.stringify(allReservations[0])}`);
     }
 
     // 3. 配列形式の予約データをオブジェクト形式に変換
-    const convertedReservations = allReservations.map(reservation => {
-      // 既存のUtilitiesの変換関数を使用
-      if (Array.isArray(reservation)) {
-        return transformReservationArrayToObject(reservation);
-      }
-      // 既にオブジェクト形式の場合はそのまま返す
-      return reservation;
-    }).filter(reservation => reservation !== null); // nullの場合は除外
-    
+    const convertedReservations = allReservations
+      .map(reservation => {
+        // 既存のUtilitiesの変換関数を使用
+        if (Array.isArray(reservation)) {
+          return transformReservationArrayToObject(reservation);
+        }
+        // 既にオブジェクト形式の場合はそのまま返す
+        return reservation;
+      })
+      .filter(reservation => reservation !== null); // nullの場合は除外
+
     Logger.log(`全予約データ変換完了: ${convertedReservations.length} 件`);
     if (convertedReservations.length > 0) {
       Logger.log(`変換後サンプル: ${JSON.stringify(convertedReservations[0])}`);
     }
-    
+
     // 4. 有効な予約のみを事前にフィルタリング＆日付文字列でマップ化
     const reservationsByDateClassroom = new Map();
-    
+
     const validReservations = convertedReservations.filter(reservation => {
       const reservationDate = new Date(reservation.date);
-      return reservationDate >= today &&
-             reservation.status !== STATUS_CANCEL &&
-             reservation.status !== STATUS_WAITING;
+      return (
+        reservationDate >= today &&
+        reservation.status !== STATUS_CANCEL &&
+        reservation.status !== STATUS_WAITING
+      );
     });
-    
-    Logger.log(`有効な予約データ（今日以降、キャンセル・キャンセル待ち除外）: ${validReservations.length} 件`);
+
+    Logger.log(
+      `有効な予約データ（今日以降、キャンセル・キャンセル待ち除外）: ${validReservations.length} 件`,
+    );
     if (validReservations.length === 0) {
       Logger.log('警告: 有効な予約データが0件です');
     }
@@ -92,7 +100,7 @@ function getAvailableSlots() {
       const reservationDate = new Date(reservation.date);
       const dateString = Utilities.formatDate(reservationDate, timezone, 'yyyy-MM-dd');
       const key = `${dateString}|${reservation.classroom}`;
-      
+
       if (!reservationsByDateClassroom.has(key)) {
         reservationsByDateClassroom.set(key, []);
       }
@@ -105,19 +113,25 @@ function getAvailableSlots() {
     scheduledDates.forEach(schedule => {
       const key = `${schedule.date}|${schedule.classroom}`;
       const reservationsForDate = reservationsByDateClassroom.get(key) || [];
-      
-      Logger.log(`計算開始: ${schedule.date} ${schedule.classroom} - 予約数: ${reservationsForDate.length}件`);
-      
+
+      Logger.log(
+        `計算開始: ${schedule.date} ${schedule.classroom} - 予約数: ${reservationsForDate.length}件`,
+      );
+
       // 時間解析結果をキャッシュ
       const timeCache = {
         firstEndTime: schedule.firstEnd ? new Date(`1970-01-01T${schedule.firstEnd}`) : null,
-        secondStartTime: schedule.secondStart ? new Date(`1970-01-01T${schedule.secondStart}`) : null,
-        beginnerStartTime: schedule.beginnerStart ? new Date(`1970-01-01T${schedule.beginnerStart}`) : null,
+        secondStartTime: schedule.secondStart
+          ? new Date(`1970-01-01T${schedule.secondStart}`)
+          : null,
+        beginnerStartTime: schedule.beginnerStart
+          ? new Date(`1970-01-01T${schedule.beginnerStart}`)
+          : null,
       };
 
       // セッション別予約数をカウント
       const sessionCounts = new Map();
-      
+
       reservationsForDate.forEach(reservation => {
         // 教室形式別のセッション集計ロジック
         if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
@@ -125,7 +139,9 @@ function getAvailableSlots() {
           const startTime = reservation.startTime
             ? new Date(`1970-01-01T${reservation.startTime}`)
             : null;
-          const endTime = reservation.endTime ? new Date(`1970-01-01T${reservation.endTime}`) : null;
+          const endTime = reservation.endTime
+            ? new Date(`1970-01-01T${reservation.endTime}`)
+            : null;
 
           if (startTime && endTime && timeCache.firstEndTime && timeCache.secondStartTime) {
             // 1部（午前）：開始時刻が1部終了時刻以前
@@ -154,7 +170,9 @@ function getAvailableSlots() {
           const startTime = reservation.startTime
             ? new Date(`1970-01-01T${reservation.startTime}`)
             : null;
-          const endTime = reservation.endTime ? new Date(`1970-01-01T${reservation.endTime}`) : null;
+          const endTime = reservation.endTime
+            ? new Date(`1970-01-01T${reservation.endTime}`)
+            : null;
 
           // 予約時間が初心者開始時刻と重複するかチェック
           if (
@@ -307,13 +325,15 @@ function getUserReservations(studentId) {
     const myHistory = [];
 
     // 配列形式のデータをオブジェクト形式に変換（既存のUtilities関数を使用）
-    const convertedReservations = allReservations.map(reservation => {
-      if (Array.isArray(reservation)) {
-        return transformReservationArrayToObject(reservation);
-      }
-      return reservation;
-    }).filter(reservation => reservation !== null); // nullの場合は除外
-    
+    const convertedReservations = allReservations
+      .map(reservation => {
+        if (Array.isArray(reservation)) {
+          return transformReservationArrayToObject(reservation);
+        }
+        return reservation;
+      })
+      .filter(reservation => reservation !== null); // nullの場合は除外
+
     convertedReservations.forEach(reservation => {
       if (reservation.studentId !== studentId) return;
 
