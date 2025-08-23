@@ -165,14 +165,14 @@ function rebuildAllReservationsToCache() {
       .getValues();
 
     // カスタム高速日付フォーマット関数
-    const fastFormatDate = (date) => {
+    const fastFormatDate = date => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       return `${year}-${month}-${day}`;
     };
 
-    const fastFormatTime = (date) => {
+    const fastFormatTime = date => {
       const hours = String(date.getHours()).padStart(2, '0');
       const minutes = String(date.getMinutes()).padStart(2, '0');
       return `${hours}:${minutes}`;
@@ -181,8 +181,10 @@ function rebuildAllReservationsToCache() {
     // 列インデックスが有効な場合のみ処理
     const columnsToProcess = [];
     if (dateCol !== undefined) columnsToProcess.push({ col: dateCol, formatter: fastFormatDate });
-    if (startTimeCol !== undefined) columnsToProcess.push({ col: startTimeCol, formatter: fastFormatTime });
-    if (endTimeCol !== undefined) columnsToProcess.push({ col: endTimeCol, formatter: fastFormatTime });
+    if (startTimeCol !== undefined)
+      columnsToProcess.push({ col: startTimeCol, formatter: fastFormatTime });
+    if (endTimeCol !== undefined)
+      columnsToProcess.push({ col: endTimeCol, formatter: fastFormatTime });
 
     if (columnsToProcess.length > 0) {
       reservationValues.forEach(row => {
@@ -313,7 +315,7 @@ function rebuildAccountingMasterToCache() {
       version: new Date().getTime(),
       data: processedData,
     };
-    
+
     CacheService.getScriptCache().put('accounting_master_data', JSON.stringify(cacheData), 21600); // 6時間
     Logger.log(`会計マスタデータキャッシュを更新しました。件数: ${processedData.length}`);
   } catch (e) {
@@ -416,5 +418,145 @@ function trigger_rebuildAllCaches() {
     logActivity('system', '定期キャッシュ再構築', '失敗', `エラー: ${e.message}`);
   } finally {
     lock.releaseLock();
+  }
+}
+
+// =================================================================
+// キャッシュサービスからのデータ取得関数群
+// =================================================================
+
+
+/**
+ * 指定されたキャッシュキーからデータを取得する汎用関数（キャッシュがない場合は自動再構築）
+ * @param {string} cacheKey - キャッシュキー（CACHE_KEYS定数の使用推奨）
+ * @param {boolean} autoRebuild - キャッシュがない場合に自動再構築するか（デフォルト: true）
+ * @returns {object|null} キャッシュされたデータまたはnull
+ */
+function getCachedData(cacheKey, autoRebuild = true) {
+  try {
+    let cachedData = CacheService.getScriptCache().get(cacheKey);
+    
+    if (!cachedData && autoRebuild) {
+      Logger.log(`${cacheKey}キャッシュが見つかりません。自動再構築を開始します...`);
+      try {
+        // キャッシュキーに応じて適切な再構築関数を呼び出し
+        switch (cacheKey) {
+          case CACHE_KEYS.ALL_RESERVATIONS:
+            rebuildAllReservationsToCache();
+            break;
+          case CACHE_KEYS.ALL_STUDENTS_BASIC:
+            rebuildAllStudentsBasicToCache();
+            break;
+          case CACHE_KEYS.MASTER_SCHEDULE_DATA:
+            buildAndCacheScheduleMasterToCache();
+            break;
+          case CACHE_KEYS.MASTER_ACCOUNTING_DATA:
+            buildAndCacheAccountingMasterToCache();
+            break;
+          default:
+            Logger.log(`${cacheKey}の自動再構築方法が不明です`);
+            return null;
+        }
+        cachedData = CacheService.getScriptCache().get(cacheKey);
+      } catch (rebuildError) {
+        Logger.log(`${cacheKey}キャッシュ再構築エラー: ${rebuildError.message}`);
+        return null;
+      }
+    }
+
+    if (!cachedData) {
+      Logger.log(`${cacheKey}キャッシュが見つかりません`);
+      return null;
+    }
+
+    const parsedData = JSON.parse(cachedData);
+    const dataCount = getDataCount(parsedData, cacheKey);
+    Logger.log(`${cacheKey}キャッシュから取得完了。件数: ${dataCount}`);
+    return parsedData;
+  } catch (e) {
+    Logger.log(`getCachedData(${cacheKey})でエラー: ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * キャッシュの存在確認とバージョン情報を取得する
+ * @param {string} cacheKey - キャッシュキー
+ * @returns {object} { exists: boolean, version: number|null, dataCount: number|null }
+ */
+function getCacheInfo(cacheKey) {
+  try {
+    const cachedData = CacheService.getScriptCache().get(cacheKey);
+    if (!cachedData) {
+      return { exists: false, version: null, dataCount: null };
+    }
+
+    const parsedData = JSON.parse(cachedData);
+    let dataCount = null;
+
+    if (parsedData.reservations) {
+      dataCount = parsedData.reservations.length;
+    } else if (parsedData.students) {
+      dataCount = Object.keys(parsedData.students).length;
+    } else if (parsedData.schedule) {
+      dataCount = parsedData.schedule.length;
+    } else if (parsedData.items) {
+      dataCount = parsedData.items.length;
+    } else if (parsedData.data) {
+      dataCount = Array.isArray(parsedData.data) ? parsedData.data.length : null;
+    }
+
+    return {
+      exists: true,
+      version: parsedData.version || null,
+      dataCount: dataCount,
+    };
+  } catch (e) {
+    Logger.log(`getCacheInfo(${cacheKey})でエラー: ${e.message}`);
+    return { exists: false, version: null, dataCount: null, error: e.message };
+  }
+}
+
+/**
+ * すべてのキャッシュの状態を取得する
+ * @returns {object} 各キャッシュの状態情報
+ */
+function getAllCacheInfo() {
+  const result = {};
+  Object.values(CACHE_KEYS).forEach(key => {
+    result[key] = getCacheInfo(key);
+  });
+
+  return result;
+}
+
+/**
+ * 使いやすさのための定数定義
+ */
+const CACHE_KEYS = {
+  ALL_RESERVATIONS: 'all_reservations',
+  ALL_STUDENTS_BASIC: 'all_students_basic', 
+  MASTER_SCHEDULE_DATA: 'master_schedule_data',
+  MASTER_ACCOUNTING_DATA: 'master_accounting_data'
+};
+
+/**
+ * 各キャッシュキーに対応するデータ件数取得関数
+ * @param {object} parsedData - パース済みキャッシュデータ
+ * @param {string} cacheKey - キャッシュキー
+ * @returns {number} データ件数
+ */
+function getDataCount(parsedData, cacheKey) {
+  switch (cacheKey) {
+    case CACHE_KEYS.ALL_RESERVATIONS:
+      return parsedData.reservations?.length || 0;
+    case CACHE_KEYS.ALL_STUDENTS_BASIC:
+      return Object.keys(parsedData.students || {}).length;
+    case CACHE_KEYS.MASTER_SCHEDULE_DATA:
+      return parsedData.schedule?.length || 0;
+    case CACHE_KEYS.MASTER_ACCOUNTING_DATA:
+      return parsedData.items?.length || 0;
+    default:
+      return parsedData.data ? (Array.isArray(parsedData.data) ? parsedData.data.length : 0) : 0;
   }
 }

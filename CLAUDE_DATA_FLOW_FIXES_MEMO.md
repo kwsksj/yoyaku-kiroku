@@ -2,8 +2,7 @@
 
 ## 概要
 
-キャンセル後のダッシュボードで予約が表示されない問題と、データ更新後の画面反映における一貫性の問題を解決。
-新しい統合エンドポイント（`AndGetLatestData`パターン）を活用した効率的なデータフローを実装。
+キャンセル後のダッシュボードで予約が表示されない問題と、データ更新後の画面反映における一貫性の問題を解決。新しい統合エンドポイント（`AndGetLatestData`パターン）を活用した効率的なデータフローを実装。
 
 ## 根本的な問題
 
@@ -42,8 +41,8 @@
 
 #### 1-1. キャンセル処理の修正（449-503行目）
 
-**問題**: `cancelReservation(p)`使用により最新データが返されない
-**修正**: `cancelReservationAndGetLatestData(p)`に変更
+**問題**: `cancelReservation(p)`使用により最新データが返されない **修正**:
+`cancelReservationAndGetLatestData(p)`に変更
 
 ```javascript
 // 旧実装
@@ -77,8 +76,8 @@ if (r.data) {
 
 #### 1-2. 予約作成処理の修正（508-552行目）
 
-**問題**: `makeReservation(p)`使用により最新データが返されない
-**修正**: `makeReservationAndGetLatestData(p)`に変更
+**問題**: `makeReservation(p)`使用により最新データが返されない **修正**:
+`makeReservationAndGetLatestData(p)`に変更
 
 ```javascript
 // 旧実装
@@ -110,8 +109,8 @@ if (r.data) {
 
 #### 1-3. 予約詳細更新処理の修正（582-624行目）
 
-**問題**: `updateReservationDetails(p)`使用により最新データが返されない
-**修正**: `updateReservationDetailsAndGetLatestData(p)`に変更
+**問題**: `updateReservationDetails(p)`使用により最新データが返されない **修正**:
+`updateReservationDetailsAndGetLatestData(p)`に変更
 
 同様のパターンでデータ処理を統一。
 
@@ -124,7 +123,9 @@ if (r.data) {
 ```javascript
 // 追加したデバッグログ
 if (resObj && resObj.studentId === studentId) {
-  Logger.log(`[デバッグ] 生徒ID ${studentId} の予約 - status: "${resObj.status}", date: ${resObj.date}, classroom: ${resObj.classroom}`);
+  Logger.log(
+    `[デバッグ] 生徒ID ${studentId} の予約 - status: "${resObj.status}", date: ${resObj.date}, classroom: ${resObj.classroom}`,
+  );
 }
 
 // キャンセル判定の強化
@@ -163,16 +164,21 @@ const getDashboardView = () => {
 
 ```javascript
 // ダッシュボード表示時のデータ確認
-console.log('[デバッグ] sortedBookingsの全データ:', sortedBookings.map(b => ({
-  date: b.date,
-  classroom: b.classroom,
-  status: b.status,
-  statusType: typeof b.status
-})));
+console.log(
+  '[デバッグ] sortedBookingsの全データ:',
+  sortedBookings.map(b => ({
+    date: b.date,
+    classroom: b.classroom,
+    status: b.status,
+    statusType: typeof b.status,
+  })),
+);
 
 // フィルタリング動作の確認
 if (isCancelled) {
-  console.log(`[デバッグ] キャンセル済み予約を除外: ${b.date} ${b.classroom} (status: "${b.status}")`);
+  console.log(
+    `[デバッグ] キャンセル済み予約を除外: ${b.date} ${b.classroom} (status: "${b.status}")`,
+  );
 }
 ```
 

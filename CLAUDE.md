@@ -5,14 +5,16 @@ repository.
 
 ## Project Overview
 
-Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving classroom business. Uses Google Sheets as database with web application interface.
+Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving
+classroom business. Uses Google Sheets as database with web application interface.
 
 ### ⚠️ Data Model Redesign in Progress
 
-Currently migrating from classroom-specific distributed data structure to an integrated, normalized data model.
-Detailed design: **[data_model_redesign.md](docs/data_model_redesign.md)**
+Currently migrating from classroom-specific distributed data structure to an integrated, normalized
+data model. Detailed design: **[data_model_redesign.md](docs/data_model_redesign.md)**
 
-**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ | Frontend Integration 🔧 | Record Cache 🗓️
+**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ |
+Frontend Integration 🔧 | Record Cache 🗓️
 
 ## Key Development Commands
 
@@ -45,7 +47,8 @@ The project uses a numbered file naming convention in `src/`:
 
 **Core System Files:**
 
-- `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance optimization
+- `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance
+  optimization
 - `01_Code.js` - Entry point with global constants, UI definitions, and trigger functions
 - `02-1_BusinessLogic_Batch.js` - Batch processing and data import functions
 - `02-2_BusinessLogic_Handlers.js` - Event handlers and business logic
@@ -71,9 +74,11 @@ The project uses a numbered file naming convention in `src/`:
 
 ### Data Model & Caching
 
-Google Sheets-based integrated data model. Details: [data_model_redesign.md](docs/data_model_redesign.md)
+Google Sheets-based integrated data model. Details:
+[data_model_redesign.md](docs/data_model_redesign.md)
 
-**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Record Cache, Pricing Master, Activity Log
+**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Record Cache, Pricing
+Master, Activity Log
 
 **Multi-layer Cache**:
 

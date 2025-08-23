@@ -2,8 +2,8 @@
 
 ## 概要
 
-WeAppでの予約編集時の「allData is not defined」エラーと、処理時間12-14秒 → 8秒への最適化。
-過去のセッション履歴（2025-08-23-weapp.txt）を基に、段階的な修正プロセスと最終的な解決策を記録。
+WeAppでの予約編集時の「allData is not defined」エラーと、処理時間12-14秒 →
+8秒への最適化。過去のセッション履歴（2025-08-23-weapp.txt）を基に、段階的な修正プロセスと最終的な解決策を記録。
 
 ## 設計思想・基本方針
 
@@ -35,9 +35,8 @@ WeAppでの予約編集時の「allData is not defined」エラーと、処理�
 
 #### 1-1. 「allData is not defined」エラー
 
-**発生場所**: `src/05-2_Backend_Write.js:571` (updateReservationDetails関数)
-**原因**: allData変数が定義される前に使用
-**修正**: 471行目に変数定義を追加
+**発生場所**: `src/05-2_Backend_Write.js:571` (updateReservationDetails関数) **原因**:
+allData変数が定義される前に使用 **修正**: 471行目に変数定義を追加
 
 ```javascript
 // 1回のシート読み込みで全データを取得（効率化）
@@ -49,8 +48,7 @@ const header = allData[0];
 
 #### 1-2. 不足列マッピングの追加
 
-**問題**: `firstLectureColIdx` が未定義
-**修正**: 482行目に列マッピング追加
+**問題**: `firstLectureColIdx` が未定義 **修正**: 482行目に列マッピング追加
 
 ```javascript
 const firstLectureColIdx = headerMap.get('初回講習');
@@ -60,8 +58,8 @@ const firstLectureColIdx = headerMap.get('初回講習');
 
 #### 2-1. 予約更新後のダッシュボード表示問題
 
-**現象**: 予約更新後にダッシュボードに予約データが表示されない
-**原因**: `updateReservationDetailsAndGetLatestData`でresult.messageを参照するが、成功時にmessageが返されない
+**現象**: 予約更新後にダッシュボードに予約データが表示されない **原因**:
+`updateReservationDetailsAndGetLatestData`でresult.messageを参照するが、成功時にmessageが返されない
 **修正**: src/09_Backend_Endpoints.js:114
 
 ```javascript
@@ -89,8 +87,7 @@ initialData: {
 
 #### 3-2. 存在しない関数の呼び出し問題
 
-**問題**: `getAllReservationsFromCache is not defined`
-**根本原因**: 不適切なデータフロー設計
+**問題**: `getAllReservationsFromCache is not defined` **根本原因**: 不適切なデータフロー設計
 **解決方針**: シート更新→キャッシュ更新→画面描画の正しいフローに修正
 
 **修正前（不適切）**:
@@ -158,8 +155,8 @@ rebuildAllStudentsBasicToCache();
 
 #### 4-3. 日付フォーマット処理の高速化
 
-**問題**: `Utilities.formatDate()`が重く、全行で最大3回実行
-**効果**: さらに1-2秒の短縮（8秒 → 6-7秒見込み）
+**問題**: `Utilities.formatDate()`が重く、全行で最大3回実行 **効果**: さらに1-2秒の短縮（8秒 →
+6-7秒見込み）
 
 **段階1**: 処理の構造化（src/07_CacheManager.js:183-196）
 
@@ -186,14 +183,14 @@ if (columnsToProcess.length > 0) {
 
 ```javascript
 // カスタム高速日付フォーマット関数
-const fastFormatDate = (date) => {
+const fastFormatDate = date => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
-const fastFormatTime = (date) => {
+const fastFormatTime = date => {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
@@ -201,7 +198,8 @@ const fastFormatTime = (date) => {
 
 // Utilities.formatDate()をカスタム関数に置換
 if (dateCol !== undefined) columnsToProcess.push({ col: dateCol, formatter: fastFormatDate });
-if (startTimeCol !== undefined) columnsToProcess.push({ col: startTimeCol, formatter: fastFormatTime });
+if (startTimeCol !== undefined)
+  columnsToProcess.push({ col: startTimeCol, formatter: fastFormatTime });
 if (endTimeCol !== undefined) columnsToProcess.push({ col: endTimeCol, formatter: fastFormatTime });
 ```
 

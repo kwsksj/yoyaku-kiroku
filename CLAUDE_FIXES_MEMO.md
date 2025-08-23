@@ -39,8 +39,7 @@ WeAppでの予約編集時の「allData is not defined」エラーと、処理�
 
 #### 1-1. updateReservationDetails関数 (449行目付近)
 
-**問題**: `allData is not defined` エラー
-**修正**: 471行目に変数定義を追加
+**問題**: `allData is not defined` エラー **修正**: 471行目に変数定義を追加
 
 ```javascript
 // 1回のシート読み込みで全データを取得（効率化）
@@ -67,20 +66,19 @@ const firstLectureColIdx = headerMap.get('初回講習');
 
 #### 2-2. データ構造の修正
 
-**問題**: フロントエンドが期待する `myHistory` プロパティが欠如
-**修正**: `getInitialDataWrapper` の戻り値に `myHistory` を追加
+**問題**: フロントエンドが期待する `myHistory` プロパティが欠如 **修正**: `getInitialDataWrapper`
+の戻り値に `myHistory` を追加
 
 #### 2-3. 存在しない関数の置換
 
-**問題**: `getAllReservationsFromCache is not defined`
-**修正**: `getAllReservationsFromCache()` を `getUserReservations()` に置換
+**問題**: `getAllReservationsFromCache is not defined` **修正**: `getAllReservationsFromCache()` を
+`getUserReservations()` に置換
 
 ### 3. src/04_Backend_User.js の修正
 
 #### 3-1. キャッシュ更新の追加
 
-**問題**: `updateUserProfile` でキャッシュが更新されない
-**修正**: 関数末尾にキャッシュ更新を追加
+**問題**: `updateUserProfile` でキャッシュが更新されない **修正**: 関数末尾にキャッシュ更新を追加
 
 ```javascript
 // 生徒基本情報キャッシュを更新
@@ -91,19 +89,19 @@ rebuildAllStudentsBasicToCache();
 
 #### 4-1. 日付フォーマット処理の高速化
 
-**問題**: `Utilities.formatDate()` が遅い
-**修正**: `rebuildAllReservationsToCache` 関数内（168-180行目付近）にカスタム関数を追加
+**問題**: `Utilities.formatDate()` が遅い **修正**: `rebuildAllReservationsToCache`
+関数内（168-180行目付近）にカスタム関数を追加
 
 ```javascript
 // カスタム高速日付フォーマット関数
-const fastFormatDate = (date) => {
+const fastFormatDate = date => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
-const fastFormatTime = (date) => {
+const fastFormatTime = date => {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${hours}:${minutes}`;
