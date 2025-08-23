@@ -212,7 +212,10 @@
       }
       // キャンセル済みstatus は予約・履歴どちらでも表示（英語・日本語両方に対応）
       const isCancelled =
-        item.status === STATUS_CANCEL || item.status === 'キャンセル' || item.status === 'キャンセル済み';
+        item.status === 'cancel' ||
+        item.status === 'キャンセル' ||
+        item.status === 'キャンセル済み' ||
+        item.status === STATUS_CANCEL;
       if (isCancelled) {
         statusBadges += `<p class="font-bold text-ui-error-text text-lg">キャンセル済</p>`;
       }
@@ -636,8 +639,7 @@
    * @returns {string} HTML文字列
    */
   const getDashboardView = () => {
-    // 計算済みデータを使用してパフォーマンス向上
-    updateComputedData();
+    // 計算済みデータを使用（setState()で自動更新済み）
     const sortedBookings = appState.computed.sortedBookings;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -657,7 +659,10 @@
                 ${sortedBookings
                   .filter(b => {
                     const isCancelled =
-                      b.status === STATUS_CANCEL || b.status === 'キャンセル' || b.status === 'キャンセル済み';
+                      b.status === 'cancel' ||
+                      b.status === 'キャンセル' ||
+                      b.status === 'キャンセル済み' ||
+                      b.status === STATUS_CANCEL;
                     return !isCancelled; // キャンセル済み予約を念のため除外
                   })
                   .map(b => {
@@ -1273,7 +1278,7 @@
     if (!appState.accountingMaster || !appState.accountingInitialValues)
       return '<div class="flex justify-center items-center h-full"><div class="spinner"></div></div>';
     const r = appState.accountingReservation;
-    updateComputedData();
+    // 計算済みデータを使用（setState()で自動更新済み）
     const b = appState.computed.sortedBookings.find(b => b.reservationId === r.reservationId);
     const v = b.venue ? `（${b.venue}）` : '';
     const initial = appState.accountingInitialValues;

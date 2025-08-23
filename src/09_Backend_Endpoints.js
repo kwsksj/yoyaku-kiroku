@@ -16,7 +16,7 @@
 function makeReservationAndGetLatestData(reservationInfo) {
   try {
     const result = makeReservation(reservationInfo);
-    rebuildAllReservationsToCache();
+    // キャッシュ更新は makeReservation() 内で実行済み
     if (result.success) {
       const initialData = getInitialDataForNewWebApp();
       if (!initialData.success) {
@@ -34,7 +34,10 @@ function makeReservationAndGetLatestData(reservationInfo) {
         message: result.message,
         data: {
           myBookings: userReservations.myBookings,
-          initialData: initialData.data,
+          initialData: {
+            ...initialData.data,
+            myHistory: userReservations.myHistory,
+          },
         },
       });
 
@@ -57,7 +60,7 @@ function makeReservationAndGetLatestData(reservationInfo) {
 function cancelReservationAndGetLatestData(cancelInfo) {
   try {
     const result = cancelReservation(cancelInfo);
-    rebuildAllReservationsToCache();
+    // キャッシュ更新は cancelReservation() 内で実行済み
     if (result.success) {
       const initialData = getInitialDataForNewWebApp();
       if (!initialData.success) {
@@ -75,7 +78,10 @@ function cancelReservationAndGetLatestData(cancelInfo) {
         message: result.message,
         data: {
           myBookings: userReservations.myBookings,
-          initialData: initialData.data,
+          initialData: {
+            ...initialData.data,
+            myHistory: userReservations.myHistory,
+          },
         },
       });
     } else {
@@ -96,7 +102,7 @@ function cancelReservationAndGetLatestData(cancelInfo) {
 function updateReservationDetailsAndGetLatestData(details) {
   try {
     const result = updateReservationDetails(details);
-    rebuildAllReservationsToCache();
+    // キャッシュ更新は updateReservationDetails() 内で実行済み
     if (result.success) {
       const initialData = getInitialDataForNewWebApp();
       if (!initialData.success) {
@@ -111,10 +117,13 @@ function updateReservationDetailsAndGetLatestData(details) {
       );
 
       const response = createApiResponse(true, {
-        message: result.message,
+        message: '予約内容を更新しました。',
         data: {
           myBookings: userReservations.myBookings,
-          initialData: initialData.data,
+          initialData: {
+            ...initialData.data,
+            myHistory: userReservations.myHistory,
+          },
         },
       });
 

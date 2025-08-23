@@ -164,18 +164,36 @@ function rebuildAllReservationsToCache() {
       .getRange(2, 1, integratedSheet.getLastRow() - 1, integratedSheet.getLastColumn())
       .getValues();
 
-    const timezone = 'Asia/Tokyo';
-    reservationValues.forEach(row => {
-      if (dateCol !== undefined && row[dateCol] instanceof Date) {
-        row[dateCol] = Utilities.formatDate(row[dateCol], timezone, 'yyyy-MM-dd');
-      }
-      if (startTimeCol !== undefined && row[startTimeCol] instanceof Date) {
-        row[startTimeCol] = Utilities.formatDate(row[startTimeCol], timezone, 'HH:mm');
-      }
-      if (endTimeCol !== undefined && row[endTimeCol] instanceof Date) {
-        row[endTimeCol] = Utilities.formatDate(row[endTimeCol], timezone, 'HH:mm');
-      }
-    });
+    // カスタム高速日付フォーマット関数
+    const fastFormatDate = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const fastFormatTime = (date) => {
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    };
+
+    // 列インデックスが有効な場合のみ処理
+    const columnsToProcess = [];
+    if (dateCol !== undefined) columnsToProcess.push({ col: dateCol, formatter: fastFormatDate });
+    if (startTimeCol !== undefined) columnsToProcess.push({ col: startTimeCol, formatter: fastFormatTime });
+    if (endTimeCol !== undefined) columnsToProcess.push({ col: endTimeCol, formatter: fastFormatTime });
+
+    if (columnsToProcess.length > 0) {
+      reservationValues.forEach(row => {
+        columnsToProcess.forEach(({ col, formatter }) => {
+          const cellValue = row[col];
+          if (cellValue instanceof Date) {
+            row[col] = formatter(cellValue);
+          }
+        });
+      });
+    }
 
     const cacheData = {
       version: new Date().getTime(),

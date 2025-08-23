@@ -467,9 +467,11 @@ function updateReservationDetails(details) {
     const integratedSheet = getSheetByName('統合予約シート');
     if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
-    const header = integratedSheet
-      .getRange(1, 1, 1, integratedSheet.getLastColumn())
-      .getValues()[0];
+    // 1回のシート読み込みで全データを取得（効率化）
+    const allData = integratedSheet.getDataRange().getValues();
+    if (allData.length === 0) throw new Error('統合予約シートにデータがありません。');
+
+    const header = allData[0];
     const headerMap = createHeaderMap(header);
 
     // 統合予約シートの列インデックス（新しいデータモデル）
@@ -481,6 +483,7 @@ function updateReservationDetails(details) {
     const wipColIdx = headerMap.get('制作メモ');
     const orderColIdx = headerMap.get('order');
     const messageColIdx = headerMap.get('メッセージ');
+    const firstLectureColIdx = headerMap.get('初回講習');
 
     if (reservationIdColIdx === undefined) throw new Error('ヘッダー「予約ID」が見つかりません。');
 
