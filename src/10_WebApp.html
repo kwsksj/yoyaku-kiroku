@@ -74,15 +74,15 @@
           debugContent.innerHTML += '<br>' + new Date().toISOString() + ': ' + message;
         }
       }
-      
+
       // 最初のテスト - これが表示されなければHTMLファイル自体が読み込まれていない
       console.log('=== HTMLファイル読み込み確認テスト ===');
       console.log('ページURL:', window.location.href);
       console.log('現在時刻:', new Date().toISOString());
-      
+
       debugLog('HTMLファイル読み込み確認テスト完了');
       debugLog('ページURL: ' + window.location.href);
-      
+
       // GAS環境かどうかを判定
       const isGAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
       console.log('GAS環境判定:', isGAS);
@@ -91,18 +91,18 @@
       function initializeApp() {
         debugLog('initializeApp実行開始');
         debugLog('isGAS: ' + isGAS);
-        
+
         // 必要な変数や関数が定義されるまで待機
         const checkReady = setInterval(() => {
           const status = {
             DesignConfig: typeof DesignConfig !== 'undefined',
-            appState: typeof appState !== 'undefined',  
+            appState: typeof appState !== 'undefined',
             setState: typeof setState === 'function',
-            hideLoading: typeof hideLoading === 'function'
+            hideLoading: typeof hideLoading === 'function',
           };
-          
+
           debugLog('初期化条件チェック: ' + JSON.stringify(status));
-          
+
           // DesignConfig, appState, setState, hideLoadingが利用可能か確認
           if (
             typeof DesignConfig !== 'undefined' &&
@@ -114,7 +114,7 @@
             debugLog('初期化条件を満たしました！');
             debugLog('appState.slots: ' + (appState.slots ? appState.slots.length + '件' : 'null'));
             debugLog('appState.classrooms: ' + JSON.stringify(appState.classrooms));
-            
+
             setState({ view: 'login' });
             hideLoading();
           }

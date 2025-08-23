@@ -137,7 +137,7 @@ function getAccountingMasterData() {
     // 1. キャッシュからデータを取得
     const cache = CacheService.getScriptCache();
     let accountingCacheJSON = cache.get('accounting_master_data');
-    
+
     if (!accountingCacheJSON) {
       // キャッシュが見つからない場合、再構築を試みる
       Logger.log('会計マスタキャッシュが見つからないため、キャッシュを再構築します');
@@ -248,7 +248,8 @@ function getParticipationHistory(studentId, limit, offset) {
 
       data.forEach(row => {
         const status = String(row[statusCol]).toLowerCase();
-        const isCancelled = status === STATUS_CANCEL || status === 'キャンセル' || status === 'キャンセル済み';
+        const isCancelled =
+          status === STATUS_CANCEL || status === 'キャンセル' || status === 'キャンセル済み';
         if (row[idCol] === studentId && !isCancelled && status !== STATUS_WAITING) {
           history.push({
             reservationId: row[resIdCol] || '',
@@ -266,7 +267,7 @@ function getParticipationHistory(studentId, limit, offset) {
     history.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     const total = history.length;
-    const limitedHistory = 
+    const limitedHistory =
       limit && offset !== null ? history.slice(offset, offset + limit) : history;
 
     return { success: true, history: limitedHistory, total: total };

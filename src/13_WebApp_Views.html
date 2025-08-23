@@ -783,9 +783,12 @@
    */
   const getClassroomSelectionView = () => {
     console.log('getClassroomSelectionView - appState.classrooms:', appState.classrooms);
-    console.log('getClassroomSelectionView - appState.classrooms length:', appState.classrooms ? appState.classrooms.length : 'null/undefined');
+    console.log(
+      'getClassroomSelectionView - appState.classrooms length:',
+      appState.classrooms ? appState.classrooms.length : 'null/undefined',
+    );
     console.log('getClassroomSelectionView - full appState:', appState);
-    
+
     // デバッグ情報を画面表示用に準備
     const sampleSlots = appState.slots ? appState.slots.slice(0, 2) : [];
     const debugInfo = `
@@ -797,12 +800,10 @@
         appState.currentUser: ${appState.currentUser ? appState.currentUser.displayName : 'null'}<br>
         appState.view: ${appState.view}<br>
         <strong>サンプルスロットデータ（最初の2件）:</strong><br>
-        ${sampleSlots.map((slot, i) => 
-          `[${i}] ${JSON.stringify(slot)}<br>`
-        ).join('')}
+        ${sampleSlots.map((slot, i) => `[${i}] ${JSON.stringify(slot)}<br>`).join('')}
       </div>
     `;
-    
+
     const classroomButtonsHtml = (appState.classrooms || [])
       .map(n =>
         Components.createButton({
@@ -902,7 +903,9 @@
 
             if (iB) {
               // 予約済みの場合
-              const booking = appState.computed.sortedBookings.find(b => b.date === sl.date && b.classroom === sl.classroom);
+              const booking = appState.computed.sortedBookings.find(
+                b => b.date === sl.date && b.classroom === sl.classroom,
+              );
               if (booking && booking.status === STATUS_WAITING) {
                 cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
@@ -944,24 +947,28 @@
   const getBookingView = classroom => {
     // バックエンドで計算済みの空き情報を直接使用
     const relevantSlots = appState.slots ? appState.slots.filter(slot => slot.classroom === classroom) : [];
-    
+
     // デバッグ用：データ構造を確認
     if (detectEnvironment() === 'test' && relevantSlots.length > 0) {
       console.log('getBookingView - relevantSlots sample:', relevantSlots[0]);
       console.log('getBookingView - appState.slots sample:', appState.slots[0]);
     }
-    
+
     // デバッグ情報を画面表示用に準備
     const debugInfo = `
       <div style="background: #ffe; border: 1px solid #ffc; padding: 10px; margin: 10px 0; font-size: 12px;">
         <strong>${classroom}のスロット詳細:</strong><br>
         関連スロット数: ${relevantSlots.length}件<br>
-        ${relevantSlots.slice(0, 3).map((slot, i) => 
-          `[${i}] 日付:${slot.date}, 午前:${slot.morningSlots}, 午後:${slot.afternoonSlots}, 空き:${slot.availableSlots}, 満席:${slot.isFull}<br>`
-        ).join('')}
+        ${relevantSlots
+          .slice(0, 3)
+          .map(
+            (slot, i) =>
+              `[${i}] 日付:${slot.date}, 午前:${slot.morningSlots}, 午後:${slot.afternoonSlots}, 空き:${slot.availableSlots}, 満席:${slot.isFull}<br>`,
+          )
+          .join('')}
       </div>
     `;
-    
+
     const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
     if (!bookingSlotsHtml) {

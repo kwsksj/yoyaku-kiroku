@@ -196,14 +196,14 @@ function getAllScheduledDates(fromDate, toDate) {
     // 1. キャッシュからデータを取得
     const cache = CacheService.getScriptCache();
     let scheduleCacheJSON = cache.get('master_schedule_data');
-    
+
     if (!scheduleCacheJSON) {
       // キャッシュが見つからない場合、再構築を試みる
       Logger.log('日程マスタキャッシュが見つからないため、キャッシュを再構築します');
       buildAndCacheScheduleMasterToCache(fromDate, toDate);
       scheduleCacheJSON = cache.get('master_schedule_data');
     }
-    
+
     if (scheduleCacheJSON) {
       const scheduleCache = JSON.parse(scheduleCacheJSON);
       const cachedSchedules = scheduleCache.schedule || [];

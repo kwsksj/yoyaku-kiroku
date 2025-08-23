@@ -51,12 +51,14 @@
 
     // 3. スロットデータから教室一覧を動的に取得
     console.log('processInitialData - availableSlots:', availableSlots);
-    console.log('processInitialData - availableSlots length:', availableSlots ? availableSlots.length : 'null/undefined');
-    
-    const classroomsFromSlots = availableSlots && availableSlots.length > 0 
-      ? [...new Set(availableSlots.map(slot => slot.classroom))]
-      : [];
-      
+    console.log(
+      'processInitialData - availableSlots length:',
+      availableSlots ? availableSlots.length : 'null/undefined',
+    );
+
+    const classroomsFromSlots =
+      availableSlots && availableSlots.length > 0 ? [...new Set(availableSlots.map(slot => slot.classroom))] : [];
+
     console.log('processInitialData - classroomsFromSlots:', classroomsFromSlots);
 
     // 4. appStateを構築
@@ -613,7 +615,10 @@
     state.computed.sortedHistory = [...state.history].sort((a, b) => new Date(b.date) - new Date(a.date));
 
     // 5. 表示用履歴（recordsToShow分）
-    state.computed.displayHistory = state.computed.sortedHistory.slice(0, state.recordsToShow || UI_HISTORY_INITIAL_RECORDS);
+    state.computed.displayHistory = state.computed.sortedHistory.slice(
+      0,
+      state.recordsToShow || UI_HISTORY_INITIAL_RECORDS,
+    );
 
     // 6. 教室別予約状況
     state.computed.classroomBookingStatus = {};

@@ -104,19 +104,29 @@
           console.log('初期データ取得レスポンス:', response);
           console.log('response.data:', response.data);
           console.log('response.data.slots:', response.data.slots);
-          
+
           // デバッグ情報を画面に表示
           debugLog('初期データ取得完了');
           debugLog('response.success: ' + response.success);
           debugLog('response.userFound: ' + response.userFound);
-          debugLog('response.availableSlots: ' + (response.availableSlots ? response.availableSlots.length + '件' : 'null/undefined'));
+          debugLog(
+            'response.availableSlots: ' +
+              (response.availableSlots ? response.availableSlots.length + '件' : 'null/undefined'),
+          );
           debugLog('response.data: ' + (response.data ? 'あり' : 'null/undefined'));
-          
+
           if (response.success && response.userFound) {
             // ユーザーが見つかった場合：クライアントサイド処理で状態構築
-            const newAppState = processInitialData(response.data, n, response.availableSlots, response.data.userReservations);
+            const newAppState = processInitialData(
+              response.data,
+              n,
+              response.availableSlots,
+              response.data.userReservations,
+            );
             console.log('processInitialData後のnewAppState:', newAppState);
-            debugLog('processInitialData完了 - slots: ' + (newAppState.slots ? newAppState.slots.length + '件' : 'null'));
+            debugLog(
+              'processInitialData完了 - slots: ' + (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
+            );
             debugLog('processInitialData完了 - classrooms: ' + JSON.stringify(newAppState.classrooms));
             // NF-04.2: 初回予約判定
             const isFirstTime =
@@ -232,7 +242,7 @@
                 console.log('バッチデータ取得レスポンス:', batchResult);
                 console.log('batchResult.data:', batchResult.data);
                 console.log('batchResult.data.slots:', batchResult.data.slots);
-                
+
                 if (batchResult.success) {
                   const newAppState = processInitialData(
                     batchResult.data.initial,
@@ -735,26 +745,29 @@
 
     /** プロフィール編集画面に遷移します */
     goToEditProfile: () => setState({ view: 'editProfile' }),
-    
+
     /** 教室データを再取得します */
     reloadClassroomData: () => {
       showLoading();
       debugLog('教室データ再取得開始');
-      
+
       google.script.run
         .withSuccessHandler(response => {
           hideLoading();
           debugLog('教室データ再取得完了 - success: ' + response.success);
-          debugLog('response.data.slots: ' + (response.data && response.data.slots ? response.data.slots.length + '件' : 'null/undefined'));
-          
+          debugLog(
+            'response.data.slots: ' +
+              (response.data && response.data.slots ? response.data.slots.length + '件' : 'null/undefined'),
+          );
+
           if (response.success && response.data && response.data.slots) {
             const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
             debugLog('再取得した教室一覧: ' + JSON.stringify(classroomsFromSlots));
-            
+
             setState({
               slots: response.data.slots,
               classrooms: classroomsFromSlots,
-              view: 'classroomSelection'
+              view: 'classroomSelection',
             });
           } else {
             debugLog('データ再取得に失敗');
@@ -1115,7 +1128,7 @@
   function render() {
     console.log('render() 実行開始 - view:', appState.view);
     console.log('render() - appState:', appState);
-    
+
     // データ表示が必要な画面では、描画前にappStateを最新化
     if (shouldUpdateAppStateForView(appState.view)) {
       console.log('render() - データ更新が必要な画面のため updateAppStateFromCache() 実行');
