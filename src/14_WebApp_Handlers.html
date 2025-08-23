@@ -153,7 +153,7 @@
           debugLog('初期データ取得エラー: ' + err.message);
           handleServerError(err);
         })
-        .getInitialDataWithAvailableSlots(n);
+        .getLoginData(n);
     },
 
     /** 【削除済み】新しいログインフロー（メインのloginに統合済み） */
@@ -260,7 +260,7 @@
                 }
               })
               .withFailureHandler(handleServerError)
-              .getBatchDataForWebApp(['initial', 'slots'], res.user.phone);
+              .getBatchData(['initial', 'slots'], res.user.phone);
           } else {
             hideLoading();
             showInfo(res.message || '登録に失敗しました');
@@ -320,7 +320,7 @@
               setState({ history: [...appState.history] });
               handleServerError(err);
             })
-            .updateMemo(d.reservationId, d.sheetName, newMemo, appState.currentUser.studentId);
+            .updateReservationMemo(d.reservationId, appState.currentUser.studentId, newMemo);
         },
       });
     },
@@ -390,7 +390,7 @@
           }
         })
         .withFailureHandler(handleServerError)
-        .searchNoPhoneUsersByFilterForWebApp(searchTerm);
+        .searchUsersWithoutPhone(searchTerm);
     },
 
     /**
@@ -444,7 +444,7 @@
           }
         })
         .withFailureHandler(handleServerError)
-        .getBatchDataForWebApp(['initial', 'slots', 'reservations'], null, tempUser.studentId);
+        .getBatchData(['initial', 'slots', 'reservations'], null, tempUser.studentId);
     },
 
     /**
@@ -779,7 +779,7 @@
           debugLog('データ再取得エラー: ' + error.message);
           showInfo('データの再取得中にエラーが発生しました: ' + error.message);
         })
-        .getBatchDataForWebApp(['slots'], appState.currentUser.phone);
+        .getBatchData(['slots'], appState.currentUser.phone);
     },
 
     /** 教室を選択し、予約枠一覧画面に遷移します */
@@ -1119,7 +1119,7 @@
         handleServerError(err);
         render(); // エラーでもとりあえず描画
       })
-      .getBatchDataForWebApp(['initial', 'slots'], appState.currentUser.phone);
+      .getBatchData(['initial', 'slots'], appState.currentUser.phone);
   }
 
   /**

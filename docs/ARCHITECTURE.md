@@ -403,8 +403,8 @@ WebAppの空席表示を高速化するための、集計済みデータ。`rebu
     | `makeReservationAndGetLatestData()`          | 予約実行と成功時の最新予約情報同期取得。             |
     | `cancelReservationAndGetLatestData()`        | 予約キャンセルと成功時の最新予約情報同期取得。       |
     | `updateReservationDetailsAndGetLatestData()` | 予約詳細更新と成功時の最新情報同期取得。             |
-    | `searchNoPhoneUsersByFilterForWebApp()`      | 電話番号未登録ユーザー検索専用WebAppエンドポイント。 |
-    | `updateMemo()`                               | メモ更新と最新履歴の同期取得。                       |
+    | `searchUsersWithoutPhone()`                  | 電話番号未登録ユーザー検索専用WebAppエンドポイント。 |
+    | `updateReservationMemo()`                    | メモ更新と最新履歴の同期取得。                       |
     | `getAvailableSlotsFromSummary()`             | サマリーからの効率的空席情報取得。                   |
 
   - **最適化戦略**: 「操作実行 + 最新データ取得」の組み合わせにより、WebAppの通信回数を大幅削減してUXを向上。

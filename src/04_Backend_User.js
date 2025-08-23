@@ -46,7 +46,7 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
 /**
  * キャッシュデータから個人用データを抽出する
  * @param {string} studentId - 生徒ID
- * @param {object} cacheData - getInitialDataForNewWebAppから取得したキャッシュデータ
+ * @param {object} cacheData - getAppInitialDataから取得したキャッシュデータ
  * @returns {object} - 個人の予約、履歴、利用可能枠データ
  */
 function extractPersonalDataFromCache(studentId, cacheData) {
@@ -96,7 +96,7 @@ function authenticateUser(phoneNumber) {
     }
 
     Logger.log('初期データの取得を開始...');
-    const initialDataResult = getInitialDataForNewWebApp();
+    const initialDataResult = getAppInitialData();
     Logger.log(`初期データ取得結果: success=${initialDataResult.success}`);
 
     if (!initialDataResult.success) {
@@ -301,7 +301,7 @@ function registerNewUser(userInfo) {
       phone: normalizedPhone,
     };
 
-    const initialData = getInitialDataForNewWebApp();
+    const initialData = getAppInitialData();
     if (initialData.success) {
       logActivity(
         studentId,
