@@ -1,22 +1,23 @@
 /**
  * =================================================================
  * 【ファイル名】: 01_Code.gs
- * 【バージョン】: 2.2
+ * 【バージョン】: 2.3
  * 【役割】: グローバル定数、UI定義、トリガー関数を集約するプロジェクトのエントリーポイント。
- * 【構成】: 17ファイル構成のうちの1番目
- * 【v2.2での変更点】:
- * - NF-12: キャッシュメニューに、将来の予約キャッシュを一括生成する
- * 「migrateAllFutureBookingsToCache」関数を呼び出す項目を追加。
+ * 【構成】: 18ファイル構成のうちの1番目（新規00_Constants.jsを含む）
+ * 【v2.3での変更点】:
+ * - フェーズ1リファクタリング: 定数の統一管理のため、00_Constants.jsで定義された統一定数を使用
+ * - 重複定義されていた教室名、ヘッダー名などを削除し、統一ファイルから継承
  * =================================================================
  */
+
+// =================================================================
+// 統一定数ファイル（00_Constants.js）から継承
+// 基本的な定数は00_Constants.jsで統一管理されています
+// =================================================================
 
 // --- グローバル定数定義 ---
 const RESERVATION_SPREADSHEET_ID = getActiveSpreadsheet().getId();
 const RESERVATION_DATA_START_ROW = 2;
-const ROSTER_SHEET_NAME = '生徒名簿';
-const ACCOUNTING_MASTER_SHEET_NAME = '会計マスタ';
-const SUMMARY_SHEET_NAME = '予約サマリー';
-const LOG_SHEET_NAME = 'アクティビティログ';
 
 // NF-01: 電話番号なしユーザーの特殊ログインコマンド (PropertiesServiceから取得)
 // PropertiesServiceに SPECIAL_NO_PHONE_LOGIN_COMMAND キーで文字列を登録してください。
@@ -28,52 +29,13 @@ const SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE = PropertiesService.getScriptProperti
 //  管理者通知用のメールアドレス
 const ADMIN_EMAIL = PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
 
-// --- シート・ヘッダー関連の定数 ---
-const TOKYO_CLASSROOM_NAME = '東京教室';
-const NUMAZU_CLASSROOM_NAME = '沼津教室';
-const TSUKUBA_CLASSROOM_NAME = 'つくば教室';
-const CLASSROOM_SHEET_NAMES = [TOKYO_CLASSROOM_NAME, NUMAZU_CLASSROOM_NAME, TSUKUBA_CLASSROOM_NAME];
-
-const CLASSROOM_CAPACITIES = {
-  [TOKYO_CLASSROOM_NAME]: 8,
-  [NUMAZU_CLASSROOM_NAME]: 8,
-  [TSUKUBA_CLASSROOM_NAME]: 8,
-};
-const INTRO_LECTURE_CAPACITY = 4;
-const TSUKUBA_MORNING_SESSION_END_HOUR = 13;
-
-const HEADER_STUDENT_ID = '生徒ID';
-const HEADER_RESERVATION_ID = '予約ID';
-const HEADER_DATE = '日付';
-const HEADER_VENUE = '会場';
-const HEADER_PARTICIPANT_COUNT = '人数';
-const HEADER_CO = 'co';
-const HEADER_NAME = '名前';
-const HEADER_CLASS_COUNT = '回数';
-const HEADER_UNIFIED_CLASS_COUNT = '参加回数';
-const HEADER_FIRST_LECTURE = '初講';
-const HEADER_CHISEL_RENTAL = '彫刻刀レンタル';
-const HEADER_TIME = '受講時間';
-const HEADER_WORK_IN_PROGRESS = '制作メモ';
-const HEADER_ORDER = 'order';
-const HEADER_MESSAGE_TO_TEACHER = 'メッセージ';
-const HEADER_ACCOUNTING_DETAILS = '会計詳細';
+// --- シート名関連の定数（継続使用） ---
+// 同期対象ヘッダーで使用される定数（00_Constants.jsで統一管理されていないもの）
 const HEADER_LINE = 'LINE';
 const HEADER_IN_THE_FUTURE = 'in the future';
 const HEADER_NOTES = 'notes';
 const HEADER_FROM = 'from';
-const HEADER_CLASS_START = '講座開始';
-const HEADER_CLASS_END = '講座終了';
-const HEADER_BREAK_START = '休憩開始';
-const HEADER_BREAK_END = '休憩終了';
-const HEADER_START_TIME = '開始時刻';
-const HEADER_END_TIME = '終了時刻';
-
-// 統合予約シート用の追加定数
-const HEADER_CLASSROOM = '教室';
-const HEADER_STATUS = 'ステータス';
-const HEADER_TRANSPORTATION = '来場手段';
-const HEADER_PICKUP = '送迎';
+// HEADER_CHISEL_RENTAL は 00_Constants.js で定義済み
 
 const SYNC_TARGET_HEADERS = [
   HEADER_LINE,
@@ -82,9 +44,8 @@ const SYNC_TARGET_HEADERS = [
   HEADER_FROM,
   HEADER_CHISEL_RENTAL,
 ];
-const HEADER_REAL_NAME = '本名';
-const HEADER_NICKNAME = 'ニックネーム';
-const HEADER_PHONE = '電話番号';
+
+// サマリーシート用のヘッダー定数
 const HEADER_SUMMARY_UNIQUE_KEY = 'ユニークキー';
 const HEADER_SUMMARY_CLASSROOM = '教室名';
 const HEADER_SUMMARY_SESSION = 'セッション';
@@ -94,12 +55,11 @@ const HEADER_SUMMARY_RESERVATION_COUNT = '予約数';
 const HEADER_SUMMARY_AVAILABLE_COUNT = '空席数';
 const HEADER_SUMMARY_LAST_UPDATED = '最終更新日時';
 
+// アーカイブ関連定数
 const HEADER_ARCHIVE_PREFIX = 'old';
 const ARCHIVE_SHEET_NAMES = CLASSROOM_SHEET_NAMES.map(
   name => HEADER_ARCHIVE_PREFIX + name.slice(0, -2),
 );
-
-const LOCK_WAIT_TIME_MS = 30000;
 
 // --- UI・表示関連の定数 ---
 const COLUMN_WIDTH_DATE = 100; // 日付列の幅
@@ -148,6 +108,8 @@ const COLOR_HEADER_BACKGROUND = '#E8F0FE'; // ヘッダーの背景色
 // --- 売上カテゴリ関連の定数 ---
 const SALES_CATEGORY_TUITION = '授業料';
 const SALES_CATEGORY_SALES = '物販';
+
+// 注意: 主要な定数（教室名、ヘッダー名、ステータスなど）は00_Constants.jsで統一管理されています
 
 const CLASSROOM_TRANSFER_SETTINGS = [
   {
@@ -201,21 +163,17 @@ const FORM_QUESTION_TITLES = {
 const CALENDAR_IDS_RAW = PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
 const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
 
-// --- ステータス・種別関連の定数 ---
-const STATUS_WAITING = 'waiting';
-const STATUS_CANCEL = 'cancel';
+// --- ステータス・種別関連の定数（00_Constants.jsで重複定義されていないもののみ） ---
 const SESSION_MORNING = '午前';
 const SESSION_AFTERNOON = '午後';
 const SESSION_ALL_DAY = '全日';
-const ITEM_TYPE_TUITION = '授業料';
-const ITEM_TYPE_MATERIAL = '材料';
-const ITEM_TYPE_SALES = '物販';
-const ITEM_NAME_MAIN_LECTURE = '本講座';
-const ITEM_NAME_FIRST_LECTURE = '初回講習';
-const ITEM_NAME_CHISEL_RENTAL = '彫刻刀レンタル';
-const ITEM_NAME_DISCOUNT = '初回講習同時間割引';
-const UNIT_30_MIN = '30分';
-const UNIT_CM3 = 'cm³';
+const ITEM_TYPE_MATERIAL = '材料'; // 00_Constants.jsには未定義
+const ITEM_NAME_DISCOUNT = '初回講習同時間割引'; // フロントエンド専用
+const UNIT_CM3 = 'cm³'; // 00_Constants.jsには未定義
+
+// 注意: STATUS_WAITING, STATUS_CANCEL, ITEM_TYPE_TUITION, ITEM_TYPE_SALES, 
+// ITEM_NAME_MAIN_LECTURE, ITEM_NAME_FIRST_LECTURE, ITEM_NAME_CHISEL_RENTAL, UNIT_30_MIN
+// は00_Constants.jsで定義済みのため削除
 
 // --- 日程マスタ関連の定数 ---
 const SCHEDULE_MASTER_SHEET_NAME = '日程マスタ';

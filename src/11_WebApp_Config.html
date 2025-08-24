@@ -14,71 +14,53 @@
    */
 
   // =================================================================
-  // 1. APPLICATION CONSTANTS
+  // 1. APPLICATION CONSTANTS（統一定数ファイルから継承）
   // =================================================================
-
-  // --- 教室名定数（バックエンドと統一） ---
-  const TOKYO_CLASSROOM_NAME = '東京教室';
-  const NUMAZU_CLASSROOM_NAME = '沼津教室';
-  const TSUKUBA_CLASSROOM_NAME = 'つくば教室';
-
-  // --- 項目名定数（バックエンドと統一） ---
-  const ITEM_NAME_MAIN_LECTURE = '本講座';
-  const ITEM_NAME_FIRST_LECTURE = '初回講習';
+  
+  // 統一定数ファイル（00_Constants.js）で定義された定数を使用
+  // 教室名、項目名、ステータスなどの基本定数は00_Constants.jsで統一管理
+  
+  // --- フロントエンド固有の定数のみここで定義 ---
+  
+  // 特別な項目名（フロントエンド専用）
   const ITEM_NAME_DISCOUNT = '初回講習同時間割引';
-  const ITEM_NAME_CHISEL_RENTAL = '彫刻刀レンタル';
-
-  // --- 種別定数 ---
-  const ITEM_TYPE_TUITION = '授業料';
-  const ITEM_TYPE_MATERIAL = '材料';
-  const ITEM_TYPE_SALES = '物販';
-
-  // --- ステータス定数（バックエンドと統一） ---
-  const STATUS_WAITING = 'waiting';
-  const STATUS_CANCEL = 'cancel';
-
-  // --- セッション定数（バックエンドと統一） ---
+  
+  // セッション定数
   const SESSION_MORNING = '午前';
   const SESSION_AFTERNOON = '午後';
   const SESSION_ALL_DAY = '全日';
-
-  // --- 単位定数（バックエンドと統一） ---
-  const UNIT_30_MIN = '30分';
+  
+  // 単位定数（追加分）
   const UNIT_CM3 = 'cm³';
-
-  // --- 支払い方法定数 ---
+  
+  // 支払い方法定数（表示用）
   const PAYMENT_METHOD_CASH = '現金';
   const PAYMENT_METHOD_COTRA = 'ことら送金';
   const PAYMENT_METHOD_BANK_TRANSFER = '振込';
-
-  // --- 銀行情報定数 ---
+  
+  // 銀行情報定数
   const BANK_COTRA_PHONE = '09013755977';
   const BANK_NAME = 'ゆうちょ銀行';
   const BANK_BRANCH = '818';
   const BANK_ACCOUNT = '2661797';
-
-  // --- UI設定定数 ---
-  const UI_LOADING_MESSAGE_INTERVAL = 3500; // ローディングメッセージ切り替え間隔（ミリ秒）
-  const UI_HISTORY_INITIAL_RECORDS = 20; // 履歴の初期表示件数
-  const UI_HISTORY_LOAD_MORE_RECORDS = 20; // 「もっとみる」で追加読み込みする件数
-
-  // --- 割引時間選択肢定数 ---
+  
+  // UI設定定数（フロントエンド専用）
+  // 注意: UI_LOADING_MESSAGE_INTERVAL、UI_HISTORY_INITIAL_RECORDS、UI_HISTORY_LOAD_MORE_RECORDS は
+  // 00_Constants.jsで統一管理されています。フロントエンド固有の値が必要な場合のみここで再定義してください。
+  
+  // フロントエンド専用のUI定数（00_Constants.jsと異なる値を使用する場合）
+  // const UI_LOADING_MESSAGE_INTERVAL = 3500; // 00_Constants.jsでは2000ms、フロントエンドで異なる値が必要な場合のみ
+  // const UI_HISTORY_INITIAL_RECORDS = 20; // 00_Constants.jsでは10件、フロントエンドで異なる値が必要な場合のみ
+  // const UI_HISTORY_LOAD_MORE_RECORDS = 20; // 00_Constants.jsでは10件、フロントエンドで異なる値が必要な場合のみ
+  
+  // 割引時間選択肢定数
   const DISCOUNT_OPTION_NONE = 0;
   const DISCOUNT_OPTION_30MIN = 30;
   const DISCOUNT_OPTION_60MIN = 60;
-
-  // --- 時間設定定数 ---
+  
+  // 時間設定定数
   const TIME_STEP_MINUTES = 30; // 時刻選択の間隔（分）
   const TIME_END_BUFFER_HOURS = 3; // 講座終了時刻からのバッファ（時間）
-
-  // --- Added for New Slot Calculation (2025-08-19) ---
-  const CLASSROOM_CAPACITIES = {
-    [TOKYO_CLASSROOM_NAME]: 8,
-    [NUMAZU_CLASSROOM_NAME]: 8,
-    [TSUKUBA_CLASSROOM_NAME]: 8,
-  };
-  const INTRO_LECTURE_CAPACITY = 4;
-  const TSUKUBA_MORNING_SESSION_END_HOUR = 13;
 
   // =================================================================
   // 2. DESIGN CONFIGURATION

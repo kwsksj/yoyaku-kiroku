@@ -1,14 +1,22 @@
 /**
  * =================================================================
  * 【ファイル名】: 06_ExternalServices.gs
- * 【バージョン】: 2.4
+ * 【バージョン】: 3.0
  * 【役割】: GoogleフォームやGoogleカレンダーといった、スプレッドシートの
  * 「外」にあるGoogleサービスとの連携に特化した機能。
+ * 【v3.0での変更点】:
+ * - フェーズ1リファクタリング: 統一定数ファイル（00_Constants.js）から定数を参照
+ * - 旧定数（TOKYO_CLASSROOM_NAME等）を統一定数（CONSTANTS.CLASSROOMS.TOKYO等）に移行
  * 【v2.4 での変更点】
  * - createStringArrayFromCounts内の不要な空席数再計算ロジックを削除。
  * - サマリーシートから取得した値を直接信頼するよう修正。
  * =================================================================
  */
+
+// =================================================================
+// 統一定数ファイル（00_Constants.js）から定数を継承
+// 基本的な定数は00_Constants.jsで統一管理されています
+// =================================================================
 
 /**
  * Googleフォームの予約選択肢を、現在の予約状況に基づいて更新します。
@@ -127,18 +135,18 @@ function addCalendarEventsToSheetWithSpecifics() {
   try {
     const CLASSROOM_SETTINGS = [
       {
-        sheetName: TOKYO_CLASSROOM_NAME,
-        calendarId: CALENDAR_IDS[TOKYO_CLASSROOM_NAME],
+        sheetName: CONSTANTS.CLASSROOMS.TOKYO,
+        calendarId: CALENDAR_IDS[CONSTANTS.CLASSROOMS.TOKYO],
         includeEventTitle: true,
       },
       {
-        sheetName: NUMAZU_CLASSROOM_NAME,
-        calendarId: CALENDAR_IDS[NUMAZU_CLASSROOM_NAME],
+        sheetName: CONSTANTS.CLASSROOMS.NUMAZU,
+        calendarId: CALENDAR_IDS[CONSTANTS.CLASSROOMS.NUMAZU],
         includeEventTitle: false,
       },
       {
-        sheetName: TSUKUBA_CLASSROOM_NAME,
-        calendarId: CALENDAR_IDS[TSUKUBA_CLASSROOM_NAME],
+        sheetName: CONSTANTS.CLASSROOMS.TSUKUBA,
+        calendarId: CALENDAR_IDS[CONSTANTS.CLASSROOMS.TSUKUBA],
         includeEventTitle: false,
       },
     ];

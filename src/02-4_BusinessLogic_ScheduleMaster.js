@@ -1,9 +1,13 @@
 /**
  * =================================================================
  * 【ファイル名】: 02-4_BusinessLogic_ScheduleMaster.js
- * 【バージョン】: 1.0
+ * 【バージョン】: 2.0
  * 【役割】: 日程マスタシートの管理機能
- * 【構成】: 14ファイル構成への追加ファイル
+ * 【構成】: 18ファイル構成のうちの追加ファイル（00_Constants.js、08_ErrorHandler.jsを含む）
+ * 【v2.0での変更点】:
+ * - フェーズ1リファクタリング: 統一定数ファイル（00_Constants.js）から定数を参照
+ * - 旧定数（TOKYO_CLASSROOM_NAME等）を統一定数（CONSTANTS.CLASSROOMS.TOKYO等）に移行
+ * - 定数の重複定義を削除し、保守性を向上
  * 【新機能】:
  * - 日程マスタシートの作成・初期化
  * - 開催日程データの取得・更新
@@ -11,7 +15,11 @@
  * =================================================================
  */
 
+// =================================================================
+// 統一定数ファイル（00_Constants.js）から定数を継承
+// 基本的な定数は00_Constants.jsで統一管理されています
 // 日程マスタ関連の定数は01_Code.jsで定義済み
+// =================================================================
 
 /**
  * 日程マスタシートを作成または初期化する
@@ -118,17 +126,17 @@ function createSampleScheduleData() {
       // 教室をローテーション
       const classrooms = [
         {
-          name: TOKYO_CLASSROOM_NAME,
+          name: CONSTANTS.CLASSROOMS.TOKYO,
           venue: '新宿区民会館',
           type: CLASSROOM_TYPE_SESSION_BASED,
         },
         {
-          name: TSUKUBA_CLASSROOM_NAME,
+          name: CONSTANTS.CLASSROOMS.TSUKUBA,
           venue: 'つくば市民会館',
           type: CLASSROOM_TYPE_TIME_DUAL,
         },
         {
-          name: NUMAZU_CLASSROOM_NAME,
+          name: CONSTANTS.CLASSROOMS.NUMAZU,
           venue: '沼津市民会館',
           type: CLASSROOM_TYPE_TIME_FULL,
         },
@@ -176,7 +184,7 @@ function createSampleScheduleData() {
         8, // 全体定員
         4, // 初心者定員
         SCHEDULE_STATUS_SCHEDULED, // 状態
-        classroom.name === TOKYO_CLASSROOM_NAME ? '初心者歓迎日' : '', // 備考
+        classroom.name === CONSTANTS.CLASSROOMS.TOKYO ? '初心者歓迎日' : '', // 備考
       ]);
     }
   }

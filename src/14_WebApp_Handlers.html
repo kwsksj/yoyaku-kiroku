@@ -136,7 +136,7 @@
               ...newAppState,
               isFirstTimeBooking: isFirstTime,
               recordsToShow: UI_HISTORY_INITIAL_RECORDS,
-              _freshDataLoaded: true, // ログイン時にデータを読み込んだことを記録
+              isDataFresh: true, // ログイン時にデータを読み込んだことを記録
             });
           } else {
             // ユーザーが見つからない場合または特別コマンド認識時
@@ -279,7 +279,7 @@
 
       showConfirm({
         title: '制作メモの編集',
-        message: getMemoEditModalHtml(item),
+        message: buildMemoEditModal(item),
         confirmText: '保存する',
         cancelText: 'キャンセル',
         confirmColorClass: DesignConfig.colors.primary,
@@ -452,7 +452,7 @@
      */
     goToRegisterFromUserSearch: () => {
       // 新規登録画面へ遷移。電話番号は未入力のまま。
-      setState({ view: 'register', phoneForRegistration: '' });
+      setState({ view: 'register', registrationPhone: '' });
     },
 
     /** 予約をキャンセルします */
@@ -491,12 +491,12 @@
                     history: r.data.initialData.myHistory || [],
                     historyTotal: (r.data.initialData.myHistory || []).length,
                     view: 'dashboard',
-                    _freshDataLoaded: true, // 最新データ受信済み
+                    isDataFresh: true, // 最新データ受信済み
                   });
                 } else {
                   setState({
                     view: 'dashboard',
-                    _freshDataLoaded: false, // 再読み込み必要
+                    isDataFresh: false, // 再読み込み必要
                   });
                 }
                 showInfo(r.message || '予約を取り消しました。', 'キャンセル完了');
@@ -541,13 +541,13 @@
                 historyTotal: (r.data.initialData.myHistory || []).length,
                 view: 'complete',
                 completionMessage: r.message,
-                _freshDataLoaded: true, // 最新データ受信済み
+                isDataFresh: true, // 最新データ受信済み
               });
             } else {
               setState({
                 view: 'complete',
                 completionMessage: r.message,
-                _freshDataLoaded: false, // 再読み込み必要
+                isDataFresh: false, // 再読み込み必要
               });
             }
           } else {
@@ -611,12 +611,12 @@
                 history: r.data.initialData.myHistory || [],
                 historyTotal: (r.data.initialData.myHistory || []).length,
                 view: 'dashboard',
-                _freshDataLoaded: true, // 最新データ受信済み
+                isDataFresh: true, // 最新データ受信済み
               });
             } else {
               setState({
                 view: 'dashboard',
-                _freshDataLoaded: false, // 再読み込み必要
+                isDataFresh: false, // 再読み込み必要
               });
             }
             showInfo(r.message || '予約内容を更新しました。', '更新完了');
@@ -680,7 +680,7 @@
       const newRow = document.createElement('div');
       newRow.className = 'mt-4 pt-4 border-t border-ui-border-light';
       newRow.dataset.materialRowIndex = newIndex;
-      newRow.innerHTML = getMaterialRowHtml(newIndex);
+      newRow.innerHTML = buildMaterialRow(newIndex);
       container.appendChild(newRow);
     },
 
@@ -1068,7 +1068,7 @@
       dataRequiredViews.includes(view) &&
       appState.currentUser &&
       !appState._dataUpdateInProgress && // 更新中フラグでループ防止
-      !appState._freshDataLoaded
+      !appState.isDataFresh
     ); // 既に新鮮なデータが読み込まれている場合はスキップ
   }
 
@@ -1104,7 +1104,7 @@
             selectedSlot: appState.selectedSlot,
             editingDetails: appState.editingDetails,
             accountingReservation: appState.accountingReservation,
-            _freshDataLoaded: true, // 新鮮なデータが読み込まれたことを記録
+            isDataFresh: true, // 新鮮なデータが読み込まれたことを記録
           };
           Object.assign(appState, newAppState, preservedState);
           render(); // 更新後に再描画
@@ -1142,7 +1142,7 @@
         v = getLoginView();
         break;
       case 'register':
-        v = getRegisterView(appState.phoneForRegistration);
+        v = getRegisterView(appState.registrationPhone);
         break;
       case 'registrationStep2':
         v = getRegistrationStep2View();

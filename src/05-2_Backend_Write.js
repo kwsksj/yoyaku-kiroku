@@ -1,10 +1,14 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-2_Backend_Write.gs
- * 【バージョン】: 1.9
+ * 【バージョン】: 2.0
  * 【役割】: WebAppからのデータ書き込み・更新要求（Write）と、
  * それに付随する検証ロジックに特化したバックエンド機能。
- * 【構成】: 14ファイル構成のうちの7番目
+ * 【構成】: 18ファイル構成のうちの7番目（00_Constants.js、08_ErrorHandler.jsを含む）
+ * 【v2.0での変更点】:
+ * - フェーズ1リファクタリング: 統一定数ファイル（00_Constants.js）から定数を参照
+ * - 旧定数（TOKYO_CLASSROOM_NAME等）を統一定数（CONSTANTS.CLASSROOMS.TOKYO等）に移行
+ * - 定数の重複定義を削除し、保守性を向上
  * 【v1.9での変更点】:
  * - 設計の簡素化: 制作メモ更新時に統合「きろくキャッシュ」列を削除し、
  *   年別「きろく_YYYY」列のみを更新するよう修正。元の設計に戻す。
@@ -20,6 +24,11 @@
  * 予約シート本体に書き戻し、受講時間とガントチャートを再計算・再描画する機能を追加。
  * =================================================================
  */
+
+// =================================================================
+// 統一定数ファイル（00_Constants.js）から定数を継承
+// 基本的な定数は00_Constants.jsで統一管理されています
+// =================================================================
 
 /**
  * 時間制予約の時刻に関する検証を行うプライベートヘルパー関数。
@@ -108,7 +117,7 @@ function makeReservation(reservationInfo) {
     const orderColIdx = headerMap.get('order');
     const messageColIdx = headerMap.get('メッセージ');
 
-    const capacity = CLASSROOM_CAPACITIES[classroom] || CLASSROOM_CAPACITIES[TOKYO_CLASSROOM_NAME];
+    const capacity = CLASSROOM_CAPACITIES[classroom] || CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
     let isFull = false;
 
     // 同日同教室の予約をフィルタリング
@@ -125,7 +134,7 @@ function makeReservation(reservationInfo) {
       );
     };
 
-    if (classroom === TSUKUBA_CLASSROOM_NAME) {
+    if (classroom === CONSTANTS.CLASSROOMS.TSUKUBA) {
       const reqStartHour = startTime ? new Date(`1970-01-01T${startTime}`).getHours() : 0;
       const reqEndHour = endTime ? new Date(`1970-01-01T${endTime}`).getHours() : 24;
 
@@ -183,11 +192,11 @@ function makeReservation(reservationInfo) {
     newRowData[statusColIdx] = isFull ? STATUS_WAITING : '確定';
 
     // 時刻設定（教室別のロジック）
-    if (classroom === TOKYO_CLASSROOM_NAME) {
+    if (classroom === CONSTANTS.CLASSROOMS.TOKYO) {
       const master = getAccountingMasterData().data;
       const tokyoRule = master.find(
         item =>
-          item['項目名'] === ITEM_NAME_MAIN_LECTURE && item['対象教室'] === TOKYO_CLASSROOM_NAME,
+          item['項目名'] === CONSTANTS.ITEMS.MAIN_LECTURE && item['対象教室'] === CONSTANTS.CLASSROOMS.TOKYO,
       );
       if (tokyoRule) {
         let finalStartTime = tokyoRule[HEADER_CLASS_START];

@@ -20,7 +20,7 @@
 - `13_WebApp_Views.html` - 各画面のHTML生成
 - `14_WebApp_Handlers.html` - イベントハンドラとアプリ制御
 
-### 🔴 重大な問題点
+### 🔴 フロントエンドの重大な問題点
 
 #### 1. **命名規則の不統一**
 
@@ -159,7 +159,7 @@ function handleServerError(err) {
 
 ### データフロー図（現状の問題）
 
-```
+```text
 [Server] → [actionHandlers] → [setState] → [appState] → [render] → [DOM]
                 ↑                ↑           ↑
             [複数箇所で状態更新]  [楽観的UI]   [計算済みデータ]

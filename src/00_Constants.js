@@ -1,0 +1,199 @@
+/**
+ * =================================================================
+ * 【ファイル名】: 00_Constants.js
+ * 【バージョン】: 1.0
+ * 【役割】: プロジェクト全体で使用する統一定数定義
+ * - フロントエンドとバックエンド間での定数重複を解消
+ * - 真実の情報源（Single Source of Truth）として機能
+ * 【構成】: 18ファイル構成のうちの0番目（新規追加）
+ * =================================================================
+ */
+
+/**
+ * 教室関連の定数
+ */
+const CONSTANTS = {
+  // 教室名
+  CLASSROOMS: {
+    TOKYO: '東京教室',
+    NUMAZU: '沼津教室',
+    TSUKUBA: 'つくば教室'
+  },
+
+  // 教室定員
+  CLASSROOM_CAPACITIES: {
+    '東京教室': 8,
+    '沼津教室': 8,
+    'つくば教室': 8
+  },
+
+  // ヘッダー名
+  HEADERS: {
+    STUDENT_ID: '生徒ID',
+    RESERVATION_ID: '予約ID',
+    DATE: '日付',
+    VENUE: '会場',
+    PARTICIPANT_COUNT: '人数',
+    CO: 'co',
+    NAME: '名前',
+    CLASS_COUNT: '回数',
+    UNIFIED_CLASS_COUNT: '参加回数',
+    FIRST_LECTURE: '初講',
+    CHISEL_RENTAL: '彫刻刀レンタル',
+    TIME: '受講時間',
+    WORK_IN_PROGRESS: '制作メモ',
+    ORDER: 'order',
+    MESSAGE_TO_TEACHER: 'メッセージ',
+    ACCOUNTING_DETAILS: '会計詳細',
+    LINE: 'LINE',
+    IN_THE_FUTURE: 'in the future',
+    NOTES: 'notes',
+    FROM: 'from',
+    CLASS_START: '講座開始',
+    CLASS_END: '講座終了',
+    BREAK_START: '休憩開始',
+    BREAK_END: '休憩終了',
+    START_TIME: '開始時刻',
+    END_TIME: '終了時刻',
+    CLASSROOM: '教室',
+    STATUS: 'ステータス',
+    TRANSPORTATION: '来場手段',
+    PICKUP: '送迎',
+    REAL_NAME: '本名',
+    NICKNAME: 'ニックネーム',
+    PHONE: '電話番号'
+  },
+
+  // 項目名
+  ITEMS: {
+    MAIN_LECTURE: '本講座',
+    FIRST_LECTURE: '初回講習',
+    CHISEL_RENTAL: '彫刻刀レンタル',
+    TOOL_SET: '道具セット',
+    MATERIAL_FEE: '材料費'
+  },
+
+  // ステータス
+  STATUS: {
+    WAITING: 'waiting',
+    CANCEL: 'cancel',
+    COMPLETED: 'completed'
+  },
+
+  // 項目種別
+  ITEM_TYPES: {
+    TUITION: '授業料',
+    SALES: '物販'
+  },
+
+  // 単位
+  UNITS: {
+    THIRTY_MIN: '30分',
+    PIECE: '個',
+    SET: 'セット'
+  },
+
+  // 支払い方法
+  PAYMENT_METHODS: {
+    CASH: 'cash',
+    CARD: 'card',
+    TRANSFER: 'transfer'
+  },
+
+  // UI関連の定数
+  UI: {
+    HISTORY_INITIAL_RECORDS: 10,
+    HISTORY_LOAD_MORE_RECORDS: 10,
+    LOADING_MESSAGE_INTERVAL: 2000,
+    MODAL_FADE_DURATION: 300
+  },
+
+  // 容量・制限
+  LIMITS: {
+    INTRO_LECTURE_CAPACITY: 4,
+    TSUKUBA_MORNING_SESSION_END_HOUR: 13,
+    LOCK_WAIT_TIME_MS: 30000,
+    MAX_RETRY_COUNT: 3
+  },
+
+  // シート名
+  SHEET_NAMES: {
+    ROSTER: '生徒名簿',
+    ACCOUNTING_MASTER: '会計マスタ',
+    SUMMARY: '予約サマリー',
+    LOG: 'アクティビティログ',
+    INTEGRATED_RESERVATIONS: '統合予約シート',
+    SCHEDULE_MASTER: '日程マスタ',
+    RECORD_CACHE: 'きろくキャッシュ'
+  }
+};
+
+// =================================================================
+// 後方互換性定数 - 既存コードとの互換性を保つため
+// 段階的に CONSTANTS オブジェクトへの移行を推進
+// =================================================================
+
+// 教室名の後方互換性
+const TOKYO_CLASSROOM_NAME = CONSTANTS.CLASSROOMS.TOKYO;
+const NUMAZU_CLASSROOM_NAME = CONSTANTS.CLASSROOMS.NUMAZU;
+const TSUKUBA_CLASSROOM_NAME = CONSTANTS.CLASSROOMS.TSUKUBA;
+const CLASSROOM_SHEET_NAMES = [
+  CONSTANTS.CLASSROOMS.TOKYO,
+  CONSTANTS.CLASSROOMS.NUMAZU,
+  CONSTANTS.CLASSROOMS.TSUKUBA
+];
+const CLASSROOM_CAPACITIES = CONSTANTS.CLASSROOM_CAPACITIES;
+
+// 制限値の後方互換性
+const INTRO_LECTURE_CAPACITY = CONSTANTS.LIMITS.INTRO_LECTURE_CAPACITY;
+const TSUKUBA_MORNING_SESSION_END_HOUR = CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR;
+const LOCK_WAIT_TIME_MS = CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS;
+
+// シート名の後方互換性
+const ROSTER_SHEET_NAME = CONSTANTS.SHEET_NAMES.ROSTER;
+const ACCOUNTING_MASTER_SHEET_NAME = CONSTANTS.SHEET_NAMES.ACCOUNTING_MASTER;
+const SUMMARY_SHEET_NAME = CONSTANTS.SHEET_NAMES.SUMMARY;
+const LOG_SHEET_NAME = CONSTANTS.SHEET_NAMES.LOG;
+
+// ヘッダー名の後方互換性（よく使用されるもの）
+const HEADER_STUDENT_ID = CONSTANTS.HEADERS.STUDENT_ID;
+const HEADER_RESERVATION_ID = CONSTANTS.HEADERS.RESERVATION_ID;
+const HEADER_DATE = CONSTANTS.HEADERS.DATE;
+const HEADER_VENUE = CONSTANTS.HEADERS.VENUE;
+const HEADER_FIRST_LECTURE = CONSTANTS.HEADERS.FIRST_LECTURE;
+const HEADER_CHISEL_RENTAL = CONSTANTS.HEADERS.CHISEL_RENTAL;
+const HEADER_START_TIME = CONSTANTS.HEADERS.START_TIME;
+const HEADER_END_TIME = CONSTANTS.HEADERS.END_TIME;
+const HEADER_CLASS_START = CONSTANTS.HEADERS.CLASS_START;
+const HEADER_CLASS_END = CONSTANTS.HEADERS.CLASS_END;
+const HEADER_BREAK_START = CONSTANTS.HEADERS.BREAK_START;
+const HEADER_BREAK_END = CONSTANTS.HEADERS.BREAK_END;
+const HEADER_CLASSROOM = CONSTANTS.HEADERS.CLASSROOM;
+const HEADER_STATUS = CONSTANTS.HEADERS.STATUS;
+const HEADER_REAL_NAME = CONSTANTS.HEADERS.REAL_NAME;
+const HEADER_NICKNAME = CONSTANTS.HEADERS.NICKNAME;
+const HEADER_PHONE = CONSTANTS.HEADERS.PHONE;
+
+// 項目名の後方互換性
+const ITEM_NAME_MAIN_LECTURE = CONSTANTS.ITEMS.MAIN_LECTURE;
+const ITEM_NAME_FIRST_LECTURE = CONSTANTS.ITEMS.FIRST_LECTURE;
+const ITEM_NAME_CHISEL_RENTAL = CONSTANTS.ITEMS.CHISEL_RENTAL;
+
+// ステータスの後方互換性
+const STATUS_WAITING = CONSTANTS.STATUS.WAITING;
+const STATUS_CANCEL = CONSTANTS.STATUS.CANCEL;
+
+// 項目種別の後方互換性
+const ITEM_TYPE_TUITION = CONSTANTS.ITEM_TYPES.TUITION;
+const ITEM_TYPE_SALES = CONSTANTS.ITEM_TYPES.SALES;
+
+// 単位の後方互換性
+const UNIT_30_MIN = CONSTANTS.UNITS.THIRTY_MIN;
+
+// 支払い方法の後方互換性
+const PAYMENT_METHOD_CASH = CONSTANTS.PAYMENT_METHODS.CASH;
+
+// UI定数の後方互換性
+const UI_HISTORY_INITIAL_RECORDS = CONSTANTS.UI.HISTORY_INITIAL_RECORDS;
+const UI_HISTORY_LOAD_MORE_RECORDS = CONSTANTS.UI.HISTORY_LOAD_MORE_RECORDS;
+const UI_LOADING_MESSAGE_INTERVAL = CONSTANTS.UI.LOADING_MESSAGE_INTERVAL;

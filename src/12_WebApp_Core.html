@@ -160,7 +160,7 @@
     view: isTestEnvironment ? 'login' : 'login',
     selectedClassroom: null,
     selectedSlot: null,
-    phoneForRegistration: null,
+    registrationPhone: null,
     completionMessage: '',
     recordsToShow: UI_HISTORY_INITIAL_RECORDS,
 
@@ -184,7 +184,7 @@
     // システム内部状態
     today: null,
     loginPhone: '',
-    _freshDataLoaded: false,
+    isDataFresh: false,
     _dataUpdateInProgress: false,
     _allReservations: [],
     _allStudents: {},
@@ -428,7 +428,7 @@
    * @param {string} [title='販売品リスト'] - 見出しタイトル
    * @returns {string} HTML文字列
    */
-  function getCollapsibleSalesChecklistHtml(accountingMaster, checkedValues = [], title = '販売品リスト') {
+  function buildSalesChecklist(accountingMaster, checkedValues = [], title = '販売品リスト') {
     const salesList = (accountingMaster || []).filter(item => item['種別'] === '物販');
     if (!salesList.length) return '';
     const checklistHtml = getSalesCheckboxListHtml(salesList, checkedValues);
@@ -477,37 +477,124 @@
     return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
   }
 
+  // =================================================================
+  // 統一エラーハンドリングシステム（08_ErrorHandler.jsから統合）
+  // =================================================================
+  
   /**
-   * サーバーサイドでエラーが発生した際の共通処理です。
+   * フロントエンド統一エラーハンドラー
+   */
+  class FrontendErrorHandler {
+    /**
+     * エラーを処理し、ユーザーに適切に通知
+     * @param {Error} error - エラーオブジェクト
+     * @param {string} context - エラーコンテキスト
+     * @param {Object} additionalInfo - 追加情報
+     */
+    static handle(error, context = '', additionalInfo = {}) {
+      hideLoading(); // 既存のローディング非表示処理
+      
+      const errorInfo = {
+        message: error.message || 'Unknown error',
+        stack: error.stack || 'No stack trace available',
+        context: context,
+        timestamp: new Date().toISOString(),
+        userId: appState.currentUser?.studentId || 'anonymous',
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+        additionalInfo: additionalInfo
+      };
+
+      // コンソールログに出力
+      console.error('[ERROR]', context, errorInfo);
+
+      // ユーザーへの通知
+      const userMessage = this.getUserFriendlyMessage(error, context);
+      showInfo(userMessage, 'エラー');
+
+      // 重要なエラーの場合は詳細ログを送信（将来的にSentryなどへ）
+      if (this.isCriticalError(error)) {
+        this.reportError(errorInfo);
+      }
+    }
+
+    /**
+     * ユーザーフレンドリーなエラーメッセージを生成
+     * @param {Error} error - エラーオブジェクト
+     * @param {string} context - エラーコンテキスト
+     * @returns {string} ユーザー向けメッセージ
+     */
+    static getUserFriendlyMessage(error, context) {
+      // コンテキストに基づいて適切なメッセージを返す
+      const contextMessages = {
+        'login': 'ログイン処理中にエラーが発生しました。電話番号を確認してもう一度お試しください。',
+        'booking': '予約処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
+        'cancel': 'キャンセル処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
+        'accounting': '会計処理中にエラーが発生しました。入力内容を確認してもう一度お試しください。',
+        'data-load': 'データの読み込み中にエラーが発生しました。ページを更新してもう一度お試しください。'
+      };
+
+      return contextMessages[context] || 
+             `エラーが発生しました: ${error.message}\n\n時間をおいてもう一度お試しください。`;
+    }
+
+    /**
+     * 重要なエラーかどうかを判定
+     * @param {Error} error - エラーオブジェクト
+     * @returns {boolean}
+     */
+    static isCriticalError(error) {
+      const criticalMessages = [
+        'Script runtime exceeded',
+        'Service invoked too many times',
+        'Network error',
+        'Timeout'
+      ];
+
+      return criticalMessages.some(msg => 
+        error.message && error.message.includes(msg)
+      );
+    }
+
+    /**
+     * エラーレポート送信（将来的にSentryなどの監視サービスへ）
+     * @param {Object} errorInfo - エラー情報
+     */
+    static reportError(errorInfo) {
+      // 現在はコンソールログのみ
+      // 将来的にSentry、Bugsnag、LogRocketなどに送信
+      console.log('[CRITICAL ERROR REPORT]', errorInfo);
+      
+      // 管理者への緊急通知も検討
+      // この部分は将来的に実装予定
+    }
+  }
+  
+  /**
+   * 既存のhandleServerError関数との互換性を保つラッパー関数
+   * 段階的移行のため既存コードとの互換性を維持
    * @param {Error} err - サーバーから返されたエラーオブジェクト
    */
   function handleServerError(err) {
-    hideLoading();
-
-    // エラーログは開発環境でのみ出力
-    if (typeof console !== 'undefined' && console.error) {
-      console.error('Server Error:', err);
-      console.error('Error details:', {
-        message: err.message,
-        stack: err.stack,
-        cause: err.cause,
-        type: typeof err,
-        keys: Object.keys(err || {}),
-      });
-    }
-
-    let errorMessage;
-    if (typeof err === 'object' && err.message) {
-      errorMessage = err.message;
-      if (err.cause && err.cause.message) {
-        errorMessage += `<br>原因: ${err.cause.message}`;
-      }
-    } else {
-      errorMessage = JSON.stringify(err);
-    }
-
-    showInfo(`サーバーでエラーが発生しました。<br><br>詳細: ${errorMessage}`, 'エラー');
+    FrontendErrorHandler.handle(err, 'server-error');
   }
+  
+  // グローバルエラーハンドラーの設定
+  window.addEventListener('error', (event) => {
+    FrontendErrorHandler.handle(event.error, 'global-error', {
+      filename: event.filename,
+      lineno: event.lineno,
+      colno: event.colno
+    });
+  });
+
+  // Promise拒否エラーのハンドリング
+  window.addEventListener('unhandledrejection', (event) => {
+    FrontendErrorHandler.handle(
+      new Error(event.reason), 
+      'unhandled-promise-rejection'
+    );
+  });
 
   const formatDate = dStr => {
     if (!dStr) return '';

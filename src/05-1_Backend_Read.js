@@ -1,13 +1,23 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-1_Backend_Read.gs
- * 【バージョン】: 2.0
+ * 【バージョン】: 3.0
  * 【役割】: WebAppからのデータ取得要求（Read）に特化したバックエンド機能。
  * - 予約枠、ユーザー自身の予約、会計マスタ、参加履歴などの読み取り処理を担当します。
+ * 【v3.0での変更点】:
+ * - フェーズ1リファクタリング: 統一APIレスポンス形式への移行
+ * - 旧形式 { success: true, details: {...} } を統一形式 { success: true, data: {...}, meta: {...} } に変更
+ * - 統一エラーハンドリングシステム（08_ErrorHandler.js）を使用
  * 【v2.0での変更点】:
  * - 設計変更の過程で残された、未使用の最適化関数群を削除。
  * =================================================================
  */
+
+// =================================================================
+// 統一定数ファイル（00_Constants.js）から定数を継承
+// 統一エラーハンドラー（08_ErrorHandler.js）を使用
+// 基本的な定数は00_Constants.jsで統一管理されています
+// =================================================================
 
 /**
  * 【旧・詳細取得】会計画面に表示する詳細情報を取得します。
@@ -52,13 +62,9 @@ function getReservationDetails(params) {
           : null,
     };
 
-    return { success: true, details: details };
+    return createApiResponse(true, details);
   } catch (err) {
-    Logger.log(`getReservationDetails Error: ${err.message}\n${err.stack}`);
-    return {
-      success: false,
-      message: `予約詳細情報の取得中にエラーが発生しました。`,
-    };
+    return BackendErrorHandler.handle(err, 'getReservationDetails');
   }
 }
 
@@ -118,19 +124,15 @@ function getReservationDetailsForEdit(reservationId, classroom) {
         : '',
     };
 
-    return { success: true, details: details };
+    return createApiResponse(true, details);
   } catch (err) {
-    Logger.log(`getReservationDetailsForEdit Error: ${err.message}\n${err.stack}`);
-    return {
-      success: false,
-      message: `予約詳細の取得中にエラーが発生しました。`,
-    };
+    return BackendErrorHandler.handle(err, 'getReservationDetailsForEdit');
   }
 }
 
 /**
  * 会計マスタのデータを取得します。
- * @returns {object} - { success: boolean, data: object[] }
+ * @returns {object} - 統一APIレスポンス形式
  */
 function getAccountingMasterData() {
   try {
@@ -138,7 +140,7 @@ function getAccountingMasterData() {
     const accountingCache = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
 
     if (accountingCache) {
-      return { success: true, data: accountingCache.items || [] };
+      return createApiResponse(true, accountingCache.items || []);
     }
 
     // 2. キャッシュ再構築も失敗した場合のフォールバック
@@ -147,7 +149,7 @@ function getAccountingMasterData() {
     if (!sheet) throw new Error('シート「会計マスタ」が見つかりません。');
 
     if (sheet.getLastRow() < 2) {
-      return { success: true, data: [] };
+      return createApiResponse(true, []);
     }
 
     const data = sheet.getDataRange().getValues();
@@ -186,16 +188,9 @@ function getAccountingMasterData() {
       Logger.log(`会計マスタキャッシュ保存エラー: ${cacheError.message}`);
     }
 
-    return {
-      success: true,
-      data: processedData,
-    };
+    return createApiResponse(true, processedData);
   } catch (err) {
-    Logger.log(`getAccountingMasterData Error: ${err.message}\n${err.stack}`);
-    return {
-      success: false,
-      message: '会計マスタの取得中にエラーが発生しました。',
-    };
+    return BackendErrorHandler.handle(err, 'getAccountingMasterData');
   }
 }
 
@@ -256,12 +251,8 @@ function getParticipationHistory(studentId, limit, offset) {
     const limitedHistory =
       limit && offset !== null ? history.slice(offset, offset + limit) : history;
 
-    return { success: true, history: limitedHistory, total: total };
+    return createApiResponse(true, { history: limitedHistory, total: total });
   } catch (err) {
-    Logger.log(`getParticipationHistory Error: ${err.message}\n${err.stack}`);
-    return {
-      success: false,
-      message: '過去の参加履歴の取得中にエラーが発生しました。',
-    };
+    return BackendErrorHandler.handle(err, 'getParticipationHistory');
   }
 }
