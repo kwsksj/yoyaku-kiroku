@@ -1,16 +1,40 @@
 /**
  * =================================================================
  * 【ファイル名】: 00_Constants.js
- * 【バージョン】: 1.0
- * 【役割】: プロジェクト全体で使用する統一定数定義
- * - フロントエンドとバックエンド間での定数重複を解消
- * - 真実の情報源（Single Source of Truth）として機能
- * 【構成】: 18ファイル構成のうちの0番目（新規追加）
+ * 【バージョン】: 1.1
+ * 【役割】: プロジェクト全体で使用する統一定数定義システム
+ *
+ * 【主要機能】:
+ * ✅ 統一定数管理
+ *   - 教室名、ヘッダー名、項目名、ステータス等の一元管理
+ *   - フロントエンドとバックエンド間での定数重複を完全解消
+ *   - 階層構造による論理的な定数分類（CONSTANTS オブジェクト）
+ *
+ * ✅ 後方互換性システム
+ *   - 既存コードとの互換性を保つための後方互換性定数
+ *   - 段階的移行を可能にする設計
+ *   - 全33ヘッダー、項目名、ステータス等の完全対応
+ *
+ * ✅ 真実の情報源（Single Source of Truth）
+ *   - 定数変更時の一箇所修正で全体反映
+ *   - 定数の不整合や同期漏れを完全排除
+ *   - 開発効率と保守性の大幅向上
+ *
+ * 【v1.1での変更点】:
+ * - フェーズ1リファクタリング完了: 全定数の統一管理を実現
+ * - 完全なヘッダー後方互換性対応（全33ヘッダー）
+ * - 01_Code.js との重複定義完全解消
+ * - 階層構造による論理的定数分類の確立
+ * - 統一定数アクセスパターンの標準化
+ *
+ * 【構成】: 18ファイル構成のうちの0番目（新規追加、基盤ファイル）
+ * 【依存関係】: なし（他の全ファイルがこのファイルに依存）
  * =================================================================
  */
 
 /**
- * 教室関連の定数
+ * プロジェクト全体で使用する統一定数オブジェクト
+ * 階層構造により論理的に分類された定数を管理
  */
 const CONSTANTS = {
   // 教室名
@@ -129,8 +153,12 @@ const CONSTANTS = {
 };
 
 // =================================================================
-// 後方互換性定数 - 既存コードとの互換性を保つため
-// 段階的に CONSTANTS オブジェクトへの移行を推進
+// 後方互換性定数システム
+// 
+// 【目的】: 既存コードとの互換性を保ちながら段階的に統一定数へ移行
+// 【方針】: CONSTANTS オブジェクトから値を継承する形で後方互換性を確保
+// 【対象】: 全プロジェクトで使用されている既存定数名
+// 【利点】: 一箇所変更で全体反映、段階的移行が可能
 // =================================================================
 
 // 教室名の後方互換性
@@ -155,7 +183,7 @@ const ACCOUNTING_MASTER_SHEET_NAME = CONSTANTS.SHEET_NAMES.ACCOUNTING_MASTER;
 const SUMMARY_SHEET_NAME = CONSTANTS.SHEET_NAMES.SUMMARY;
 const LOG_SHEET_NAME = CONSTANTS.SHEET_NAMES.LOG;
 
-// ヘッダー名の後方互換性（よく使用されるもの）
+// ヘッダー名の後方互換性（全ヘッダー対応）
 const HEADER_STUDENT_ID = CONSTANTS.HEADERS.STUDENT_ID;
 const HEADER_RESERVATION_ID = CONSTANTS.HEADERS.RESERVATION_ID;
 const HEADER_DATE = CONSTANTS.HEADERS.DATE;
@@ -173,6 +201,22 @@ const HEADER_STATUS = CONSTANTS.HEADERS.STATUS;
 const HEADER_REAL_NAME = CONSTANTS.HEADERS.REAL_NAME;
 const HEADER_NICKNAME = CONSTANTS.HEADERS.NICKNAME;
 const HEADER_PHONE = CONSTANTS.HEADERS.PHONE;
+const HEADER_CO = CONSTANTS.HEADERS.CO;
+const HEADER_PARTICIPANT_COUNT = CONSTANTS.HEADERS.PARTICIPANT_COUNT;
+const HEADER_NAME = CONSTANTS.HEADERS.NAME;
+const HEADER_CLASS_COUNT = CONSTANTS.HEADERS.CLASS_COUNT;
+const HEADER_UNIFIED_CLASS_COUNT = CONSTANTS.HEADERS.UNIFIED_CLASS_COUNT;
+const HEADER_TIME = CONSTANTS.HEADERS.TIME;
+const HEADER_WORK_IN_PROGRESS = CONSTANTS.HEADERS.WORK_IN_PROGRESS;
+const HEADER_ORDER = CONSTANTS.HEADERS.ORDER;
+const HEADER_MESSAGE_TO_TEACHER = CONSTANTS.HEADERS.MESSAGE_TO_TEACHER;
+const HEADER_ACCOUNTING_DETAILS = CONSTANTS.HEADERS.ACCOUNTING_DETAILS;
+const HEADER_LINE = CONSTANTS.HEADERS.LINE;
+const HEADER_IN_THE_FUTURE = CONSTANTS.HEADERS.IN_THE_FUTURE;
+const HEADER_NOTES = CONSTANTS.HEADERS.NOTES;
+const HEADER_FROM = CONSTANTS.HEADERS.FROM;
+const HEADER_TRANSPORTATION = CONSTANTS.HEADERS.TRANSPORTATION;
+const HEADER_PICKUP = CONSTANTS.HEADERS.PICKUP;
 
 // 項目名の後方互換性
 const ITEM_NAME_MAIN_LECTURE = CONSTANTS.ITEMS.MAIN_LECTURE;

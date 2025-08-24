@@ -261,16 +261,12 @@ function getAvailableSlots() {
 
     Logger.log(`利用可能な予約枠を ${availableSlots.length} 件計算しました`);
     Logger.log('=== getAvailableSlots 正常終了 ===');
-    return { success: true, data: availableSlots };
+    return createApiResponse(true, availableSlots);
   } catch (error) {
     Logger.log('=== getAvailableSlots エラー ===');
     Logger.log(`エラーメッセージ: ${error.message}`);
     Logger.log(`スタックトレース: ${error.stack}`);
-    return {
-      success: false,
-      message: `予約枠の取得中にエラーが発生しました: ${error.message}`,
-      data: [],
-    };
+    return BackendErrorHandler.handle(error, 'getAvailableSlots', { data: [] });
   }
 }
 
@@ -282,9 +278,9 @@ function getAvailableSlots() {
 function getAvailableSlotsForClassroom(classroom) {
   const result = getAvailableSlots();
   if (!result.success) {
-    return { success: false, message: result.message, data: [] };
+    return createApiResponse(false, { message: result.message, data: [] });
   }
-  return { success: true, data: result.data.filter(slot => slot.classroom === classroom) };
+  return createApiResponse(true, result.data.filter(slot => slot.classroom === classroom));
 }
 
 /**
@@ -337,19 +333,14 @@ function getUserReservations(studentId) {
     Logger.log(
       `生徒ID ${studentId} の予約を取得: 今後の予約 ${myBookings.length} 件、履歴 ${myHistory.length} 件`,
     );
-    return {
-      success: true,
-      data: {
-        myBookings: myBookings,
-        myHistory: myHistory,
-      },
-    };
+    return createApiResponse(true, {
+      myBookings: myBookings,
+      myHistory: myHistory,
+    });
   } catch (error) {
     Logger.log(`getUserReservations エラー: ${error.message}`);
-    return {
-      success: false,
-      message: `予約データの取得中にエラーが発生しました: ${error.message}`,
-      data: { myBookings: [], myHistory: [] },
-    };
+    return BackendErrorHandler.handle(error, 'getUserReservations', { 
+      data: { myBookings: [], myHistory: [] }
+    });
   }
 }

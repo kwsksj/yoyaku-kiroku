@@ -30,12 +30,7 @@ const SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE = PropertiesService.getScriptProperti
 const ADMIN_EMAIL = PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
 
 // --- シート名関連の定数（継続使用） ---
-// 同期対象ヘッダーで使用される定数（00_Constants.jsで統一管理されていないもの）
-const HEADER_LINE = 'LINE';
-const HEADER_IN_THE_FUTURE = 'in the future';
-const HEADER_NOTES = 'notes';
-const HEADER_FROM = 'from';
-// HEADER_CHISEL_RENTAL は 00_Constants.js で定義済み
+// 同期対象ヘッダー - すべて00_Constants.jsで定義済み
 
 const SYNC_TARGET_HEADERS = [
   HEADER_LINE,
@@ -44,22 +39,6 @@ const SYNC_TARGET_HEADERS = [
   HEADER_FROM,
   HEADER_CHISEL_RENTAL,
 ];
-
-// サマリーシート用のヘッダー定数
-const HEADER_SUMMARY_UNIQUE_KEY = 'ユニークキー';
-const HEADER_SUMMARY_CLASSROOM = '教室名';
-const HEADER_SUMMARY_SESSION = 'セッション';
-const HEADER_SUMMARY_VENUE = '会場';
-const HEADER_SUMMARY_CAPACITY = '定員';
-const HEADER_SUMMARY_RESERVATION_COUNT = '予約数';
-const HEADER_SUMMARY_AVAILABLE_COUNT = '空席数';
-const HEADER_SUMMARY_LAST_UPDATED = '最終更新日時';
-
-// アーカイブ関連定数
-const HEADER_ARCHIVE_PREFIX = 'old';
-const ARCHIVE_SHEET_NAMES = CLASSROOM_SHEET_NAMES.map(
-  name => HEADER_ARCHIVE_PREFIX + name.slice(0, -2),
-);
 
 // --- UI・表示関連の定数 ---
 const COLUMN_WIDTH_DATE = 100; // 日付列の幅
@@ -171,7 +150,7 @@ const ITEM_TYPE_MATERIAL = '材料'; // 00_Constants.jsには未定義
 const ITEM_NAME_DISCOUNT = '初回講習同時間割引'; // フロントエンド専用
 const UNIT_CM3 = 'cm³'; // 00_Constants.jsには未定義
 
-// 注意: STATUS_WAITING, STATUS_CANCEL, ITEM_TYPE_TUITION, ITEM_TYPE_SALES, 
+// 注意: STATUS_WAITING, STATUS_CANCEL, ITEM_TYPE_TUITION, ITEM_TYPE_SALES,
 // ITEM_NAME_MAIN_LECTURE, ITEM_NAME_FIRST_LECTURE, ITEM_NAME_CHISEL_RENTAL, UNIT_30_MIN
 // は00_Constants.jsで定義済みのため削除
 

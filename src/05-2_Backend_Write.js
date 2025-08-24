@@ -311,11 +311,14 @@ function makeReservation(reservationInfo) {
       `詳細はスプレッドシートを確認してください。`;
     sendAdminNotification(subject, body);
 
-    return { success: true, message: message, newBookingsCache: newBookingsCache };
+    return createApiResponse(true, { 
+      message: message, 
+      newBookingsCache: newBookingsCache 
+    });
   } catch (err) {
     logActivity(reservationInfo.user.studentId, '予約作成', 'エラー', `Error: ${err.message}`);
     Logger.log(`makeReservation Error: ${err.message}\n${err.stack}`);
-    return { success: false, message: `予約処理中にエラーが発生しました。\n${err.message}` };
+    return BackendErrorHandler.handle(err, 'makeReservation');
   } finally {
     lock.releaseLock();
   }
@@ -444,7 +447,7 @@ function cancelReservation(cancelInfo) {
       `Error: ${err.message}`,
     );
     Logger.log(`cancelReservation Error: ${err.message}\n${err.stack}`);
-    return { success: false, message: `キャンセル処理中にエラーが発生しました。` };
+    return BackendErrorHandler.handle(err, 'cancelReservation');
   } finally {
     lock.releaseLock();
   }
@@ -576,11 +579,11 @@ function updateReservationDetails(details) {
     const logDetails = `ReservationID: ${details.reservationId}, Classroom: ${details.classroom}${messageLog}`;
     logActivity(studentId, '予約詳細更新', '成功', logDetails);
 
-    return { success: true, newBookingsCache: newBookingsCache };
+    return createApiResponse(true, { newBookingsCache: newBookingsCache });
   } catch (err) {
     logActivity(details.studentId || '(N/A)', '予約詳細更新', 'エラー', `Error: ${err.message}`);
     Logger.log(`updateReservationDetails Error: ${err.message}\n${err.stack}`);
-    return { success: false, message: `詳細情報の更新中にエラーが発生しました。\n${err.message}` };
+    return BackendErrorHandler.handle(err, 'updateReservationDetails');
   } finally {
     lock.releaseLock();
   }
@@ -811,18 +814,17 @@ function saveAccountingDetails(payload) {
     rebuildAllReservationsCache();
 
     // [変更] 戻り値に updatedSlots を追加
-    return {
-      success: true,
+    return createApiResponse(true, {
       newBookingsCache: newBookingsCache,
       newHistory: historyResult.history,
       newHistoryTotal: historyResult.total,
       updatedSlots: updatedSlotsForClassroom, // <--- これを追加
       message: '会計処理と関連データの更新がすべて完了しました。',
-    };
+    });
   } catch (err) {
     logActivity(payload.studentId, '会計記録保存', 'エラー', `Error: ${err.message}`);
     Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
-    return { success: false, message: `会計情報の保存中にエラーが発生しました。\n${err.message}` };
+    return BackendErrorHandler.handle(err, 'saveAccountingDetails');
   } finally {
     lock.releaseLock();
   }
@@ -1071,7 +1073,7 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
     const details = `ResID: ${reservationId}, Sheet: ${sheetName}, Error: ${err.message}`;
     logActivity(studentId, '制作メモ更新', 'エラー', details);
     Logger.log(`updateMemo Error: ${err.message}\n${err.stack}`);
-    return { success: false, message: `制作メモの更新中にエラーが発生しました。\n${err.message}` };
+    return BackendErrorHandler.handle(err, 'updateMemo');
   } finally {
     lock.releaseLock();
   }

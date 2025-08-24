@@ -178,7 +178,7 @@ function authenticateUser(phoneNumber) {
       return {
         success: false,
         message: '登録されている電話番号と一致しません。',
-        phoneForRegistration: phoneNumber,
+        registrationPhone: phoneNumber,
       };
     }
   } catch (err) {
@@ -187,7 +187,7 @@ function authenticateUser(phoneNumber) {
     return {
       success: false,
       message: `サーバーエラーが発生しました。`,
-      phoneForRegistration: phoneNumber,
+      registrationPhone: phoneNumber,
     };
   }
 }
