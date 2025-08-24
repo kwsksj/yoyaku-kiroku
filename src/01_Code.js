@@ -179,9 +179,9 @@ const UNIT_CM3 = 'cm³'; // 00_Constants.jsには未定義
 const SCHEDULE_MASTER_SHEET_NAME = '日程マスタ';
 
 // 教室形式の定数
-const CLASSROOM_TYPE_SESSION_BASED = 'セッション制'; // セッション制（東京教室）
-const CLASSROOM_TYPE_TIME_DUAL = '時間制・2部制'; // 時間制・2部制（つくば教室）
-const CLASSROOM_TYPE_TIME_FULL = '時間制・全日'; // 時間制・全日（沼津教室）
+const CLASSROOM_TYPE_SESSION_BASED = 'セッション制'; // セッション制（${CONSTANTS.CLASSROOMS.TOKYO}）
+const CLASSROOM_TYPE_TIME_DUAL = '時間制・2部制'; // 時間制・2部制（${CONSTANTS.CLASSROOMS.TSUKUBA}）
+const CLASSROOM_TYPE_TIME_FULL = '時間制・全日'; // 時間制・全日（${CONSTANTS.CLASSROOMS.NUMAZU}）
 
 // 開催日程の状態
 const SCHEDULE_STATUS_SCHEDULED = '開催予定'; // 開催予定

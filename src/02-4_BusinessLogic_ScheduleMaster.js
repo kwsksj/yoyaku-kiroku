@@ -149,21 +149,21 @@ function createSampleScheduleData() {
       let firstStart, firstEnd, secondStart, secondEnd, beginnerStart;
 
       if (classroom.type === CLASSROOM_TYPE_SESSION_BASED) {
-        // 東京教室：セッション制（本講座と初心者講習が同時間帯）
+        // ${CONSTANTS.CLASSROOMS.TOKYO}：セッション制（本講座と初心者講習が同時間帯）
         firstStart = '10:00';
         firstEnd = '16:00';
         secondStart = ''; // 2部なし
         secondEnd = '';
         beginnerStart = '13:30'; // 初心者は午後から
       } else if (classroom.type === CLASSROOM_TYPE_TIME_DUAL) {
-        // つくば教室：2部制
+        // ${CONSTANTS.CLASSROOMS.TSUKUBA}：2部制
         firstStart = '10:00'; // 1部（午前）
         firstEnd = '12:30';
         secondStart = '13:30'; // 2部（午後）
         secondEnd = '16:00';
         beginnerStart = '13:30'; // 初心者は午後から
       } else {
-        // 沼津教室：全日制
+        // ${CONSTANTS.CLASSROOMS.NUMAZU}：全日制
         firstStart = '10:00';
         firstEnd = '16:00';
         secondStart = ''; // 2部なし
@@ -474,7 +474,7 @@ function extractUniqueDateClassroomCombinations() {
                   originalSheet: sheetName,
                 });
               } else {
-                // 既存のエントリに会場情報を追加（東京教室の場合）
+                // 既存のエントリに会場情報を追加（${CONSTANTS.CLASSROOMS.TOKYO}の場合）
                 const existingEntry = uniqueCombinations.get(key);
                 if (venue && !existingEntry.venue) {
                   existingEntry.venue = venue;
@@ -596,7 +596,7 @@ function getClassroomDefaults(classroom) {
   // 教室名に基づいて設定を決定
   if (classroom.includes('東京') || classroom === TOKYO_CLASSROOM_NAME) {
     return {
-      venue: '', // 東京教室は予約データから取得するため空欄
+      venue: '', // ${CONSTANTS.CLASSROOMS.TOKYO}は予約データから取得するため空欄
       classroomType: CLASSROOM_TYPE_SESSION_BASED,
       firstStart: '12:00',
       firstEnd: '16:00',
@@ -608,7 +608,7 @@ function getClassroomDefaults(classroom) {
     };
   } else if (classroom.includes('つくば') || classroom === TSUKUBA_CLASSROOM_NAME) {
     return {
-      venue: '', // つくば教室は空欄
+      venue: '', // ${CONSTANTS.CLASSROOMS.TSUKUBA}は空欄
       classroomType: CLASSROOM_TYPE_TIME_DUAL,
       firstStart: '09:00',
       firstEnd: '13:00',
@@ -620,7 +620,7 @@ function getClassroomDefaults(classroom) {
     };
   } else if (classroom.includes('沼津') || classroom === NUMAZU_CLASSROOM_NAME) {
     return {
-      venue: '', // 沼津教室は空欄
+      venue: '', // ${CONSTANTS.CLASSROOMS.NUMAZU}は空欄
       classroomType: CLASSROOM_TYPE_TIME_FULL,
       firstStart: '12:00',
       firstEnd: '16:00',

@@ -146,7 +146,7 @@
 
     // 計算済みデータ（パフォーマンス最適化用）
     computed: {
-      slotsByClassroom: {}, // 教室別スロット: { '東京教室': [...], ... }
+      slotsByClassroom: {}, // 教室別スロット: { '${CONSTANTS.CLASSROOMS.TOKYO}': [...], ... }
       slotsByMonth: {}, // 月別スロット: { 1: [...], 2: [...], ... }
       filteredSlots: {}, // フィルタリング済みスロット（キャッシュ用）
       sortedBookings: [], // ソート済み予約リスト
@@ -190,7 +190,22 @@
     _allStudents: {},
     _cacheVersions: {},
   };
-  let onConfirmCallback = null; // モーダル確認時のコールバック関数を保持
+  // モーダル管理オブジェクト - カプセル化された方式でコールバックを管理
+  const ModalManager = {
+    onConfirmCallback: null,
+    setCallback: function(callback) {
+      this.onConfirmCallback = callback;
+    },
+    clearCallback: function() {
+      this.onConfirmCallback = null;
+    },
+    executeCallback: function() {
+      if (this.onConfirmCallback) {
+        this.onConfirmCallback();
+        this.clearCallback();
+      }
+    }
+  };
 
   // 初期appState確認ログ
   console.log('appState初期化完了:', appState);
@@ -620,14 +635,14 @@
     if (c.confirmText) {
       b.innerHTML += `<div class="w-3"></div>${Components.createButton({ text: c.confirmText, action: 'modalConfirm', colorClass: c.confirmColorClass, widthClass: DesignConfig.buttons.auto, disabled: c.disableConfirm })}`;
     }
-    onConfirmCallback = c.onConfirm;
+    ModalManager.setCallback(c.onConfirm);
     document.getElementById('modal-title').textContent = c.title;
     document.getElementById('modal-message').innerHTML = c.message;
     m.classList.add('active');
   };
   const hideModal = () => {
     document.getElementById('custom-modal').classList.remove('active');
-    onConfirmCallback = null;
+    ModalManager.clearCallback();
   };
   const showInfo = (msg, t = '情報', cb = null) =>
     showModal({

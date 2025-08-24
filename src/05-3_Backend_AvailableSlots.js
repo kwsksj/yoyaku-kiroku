@@ -120,7 +120,7 @@ function getAvailableSlots() {
       reservationsForDate.forEach(reservation => {
         // 教室形式別のセッション集計ロジック
         if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
-          // つくば教室: 2部制時間制
+          // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 2部制時間制
           const startTime = reservation.startTime
             ? new Date(`1970-01-01T${reservation.startTime}`)
             : null;
@@ -140,13 +140,13 @@ function getAvailableSlots() {
             }
           }
         } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
-          // 東京教室: セッション制
+          // ${CONSTANTS.CLASSROOMS.TOKYO}: セッション制
           sessionCounts.set(
             ITEM_NAME_MAIN_LECTURE,
             (sessionCounts.get(ITEM_NAME_MAIN_LECTURE) || 0) + 1,
           );
         } else {
-          // 沼津教室など: 全日時間制
+          // ${CONSTANTS.CLASSROOMS.NUMAZU}など: 全日時間制
           sessionCounts.set(SESSION_ALL_DAY, (sessionCounts.get(SESSION_ALL_DAY) || 0) + 1);
         }
 
@@ -179,7 +179,7 @@ function getAvailableSlots() {
       const beginnerCapacity = schedule.beginnerCapacity || INTRO_LECTURE_CAPACITY;
 
       if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
-        // つくば教室: 午前・午後セッション
+        // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 午前・午後セッション
         const morningCount = sessionCounts.get(SESSION_MORNING) || 0;
         const afternoonCount = sessionCounts.get(SESSION_AFTERNOON) || 0;
         const introCount = sessionCounts.get(ITEM_NAME_FIRST_LECTURE) || 0;

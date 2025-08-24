@@ -857,7 +857,7 @@
 
     /** モーダルの確認ボタンを押したときの処理です */
     modalConfirm: () => {
-      if (onConfirmCallback) onConfirmCallback();
+      ModalManager.executeCallback();
       hideModal();
     },
 

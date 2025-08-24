@@ -399,32 +399,10 @@ function transformReservationArrayToObject(resArray) {
 
 /**
  * 統一されたAPIレスポンス形式を作成
- * @param {boolean} success - 成功フラグ
- * @param {Object} options - オプション
- * @param {*} options.data - データペイロード
- * @param {string} options.message - メッセージ
- * @param {Object} options.meta - メタデータ（total, page等）
- * @returns {Object} 統一されたAPIレスポンス
+ * 注: この関数は 08_ErrorHandler.js の createApiResponse に統合されました
+ * より包括的なエラーハンドリングと統一性のため、そちらを使用してください
  */
-function createApiResponse(success, options = {}) {
-  const response = {
-    success: success,
-  };
-
-  if (options.data !== undefined) {
-    response.data = options.data;
-  }
-
-  if (options.message) {
-    response.message = options.message;
-  }
-
-  if (options.meta) {
-    response.meta = options.meta;
-  }
-
-  return response;
-}
+// createApiResponse 関数は 08_ErrorHandler.js に移動されました
 
 /**
  * 特定ユーザーの予約データをフィルタリング
