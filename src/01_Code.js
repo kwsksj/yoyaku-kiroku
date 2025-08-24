@@ -59,34 +59,14 @@ const WEEKEND_SATURDAY = 6; // 土曜日の曜日コード
 const HEADER_ROW = 1; // ヘッダー行番号
 const DATA_START_ROW = 2; // データ開始行番号
 
-// --- エラーメッセージ・ログメッセージ関連の定数 ---
-const MSG_PROCESSING_INTERRUPTED = '処理を中断しました。';
-const MSG_SHEET_INITIALIZATION = '日程マスタシートの初期化';
-const MSG_EXISTING_SHEET_WARNING =
-  '「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）';
-const MSG_SUCCESS = '成功';
-const MSG_ERROR = 'エラー';
-const MSG_CANCEL = 'キャンセル';
-
-// --- アクティビティログ関連の定数 ---
-const LOG_ACTION_ROSTER_EDIT = '名簿編集';
-const LOG_ACTION_RESERVATION_EDIT = '予約編集';
-const LOG_ACTION_ROW_INSERT = '行挿入';
-const LOG_ACTION_RESERVATION_CANCEL = '予約キャンセル';
-
-// --- 材料情報関連の定数 ---
+// --- 材料情報関連の定数（00_Constants.jsに未統合） ---
 const MATERIAL_INFO_PREFIX = '\n【希望材料】: ';
 
-// --- UI色・スタイル関連の定数 ---
-const COLOR_LIGHT_GREEN = '#d9ead3'; // 成功
-const COLOR_LIGHT_RED = '#f4cccc'; // 失敗・エラー
-const COLOR_LIGHT_BLUE = '#cfe2f3'; // ユーザーの主要アクション
-const COLOR_LIGHT_ORANGE = '#fce5cd'; // 編集・変更系アクション
-const COLOR_HEADER_BACKGROUND = '#E8F0FE'; // ヘッダーの背景色
-
-// --- 売上カテゴリ関連の定数 ---
+// --- 売上カテゴリ関連の定数（00_Constants.jsに未統合） ---
 const SALES_CATEGORY_TUITION = '授業料';
 const SALES_CATEGORY_SALES = '物販';
+
+// 注意: MSG_*, LOG_ACTION_*, COLOR_* 定数は00_Constants.jsで定義済みのため削除
 
 // 注意: 主要な定数（教室名、ヘッダー名、ステータスなど）は00_Constants.jsで統一管理されています
 
@@ -143,44 +123,20 @@ const CALENDAR_IDS_RAW = PropertiesService.getScriptProperties().getProperty('CA
 const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
 
 // --- ステータス・種別関連の定数（00_Constants.jsで重複定義されていないもののみ） ---
-const SESSION_MORNING = '午前';
-const SESSION_AFTERNOON = '午後';
-const SESSION_ALL_DAY = '全日';
 const ITEM_TYPE_MATERIAL = '材料'; // 00_Constants.jsには未定義
-const ITEM_NAME_DISCOUNT = '初回講習同時間割引'; // フロントエンド専用
-const UNIT_CM3 = 'cm³'; // 00_Constants.jsには未定義
+
+// 注意: SESSION_MORNING, SESSION_AFTERNOON, SESSION_ALL_DAY, ITEM_NAME_DISCOUNT, UNIT_CM3
+// は00_Constants.jsで定義済みのため削除
 
 // 注意: STATUS_WAITING, STATUS_CANCEL, ITEM_TYPE_TUITION, ITEM_TYPE_SALES,
 // ITEM_NAME_MAIN_LECTURE, ITEM_NAME_FIRST_LECTURE, ITEM_NAME_CHISEL_RENTAL, UNIT_30_MIN
 // は00_Constants.jsで定義済みのため削除
 
-// --- 日程マスタ関連の定数 ---
+// --- 日程マスタ関連の定数（00_Constants.jsに未統合） ---
 const SCHEDULE_MASTER_SHEET_NAME = '日程マスタ';
 
-// 教室形式の定数
-const CLASSROOM_TYPE_SESSION_BASED = 'セッション制'; // セッション制（${CONSTANTS.CLASSROOMS.TOKYO}）
-const CLASSROOM_TYPE_TIME_DUAL = '時間制・2部制'; // 時間制・2部制（${CONSTANTS.CLASSROOMS.TSUKUBA}）
-const CLASSROOM_TYPE_TIME_FULL = '時間制・全日'; // 時間制・全日（${CONSTANTS.CLASSROOMS.NUMAZU}）
-
-// 開催日程の状態
-const SCHEDULE_STATUS_SCHEDULED = '開催予定'; // 開催予定
-const SCHEDULE_STATUS_CANCELLED = '休講'; // 休講
-const SCHEDULE_STATUS_COMPLETED = '開催済み'; // 開催済み
-
-// 日程マスタの個別ヘッダー定数
-const HEADER_SCHEDULE_DATE = '日付';
-const HEADER_SCHEDULE_CLASSROOM = '教室';
-const HEADER_SCHEDULE_VENUE = '会場';
-const HEADER_SCHEDULE_TYPE = '教室形式';
-const HEADER_SCHEDULE_FIRST_START = '1部開始';
-const HEADER_SCHEDULE_FIRST_END = '1部終了';
-const HEADER_SCHEDULE_SECOND_START = '2部開始';
-const HEADER_SCHEDULE_SECOND_END = '2部終了';
-const HEADER_SCHEDULE_BEGINNER_START = '初心者開始';
-const HEADER_SCHEDULE_TOTAL_CAPACITY = '全体定員';
-const HEADER_SCHEDULE_BEGINNER_CAPACITY = '初心者定員';
-const HEADER_SCHEDULE_STATUS = '状態';
-const HEADER_SCHEDULE_NOTES = '備考';
+// 注意: CLASSROOM_TYPE_*, SCHEDULE_STATUS_*, HEADER_SCHEDULE_* 定数は
+// 00_Constants.jsで定義済みのため削除
 
 // 日程マスタのヘッダー定義
 const SCHEDULE_MASTER_HEADERS = [

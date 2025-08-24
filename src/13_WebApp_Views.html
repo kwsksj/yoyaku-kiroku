@@ -68,19 +68,19 @@
     return `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
-                <div class="${DesignConfig.text.body}"><span class="font-bold">${PAYMENT_METHOD_COTRA}:</span><span class="ml-2">${BANK_COTRA_PHONE}</span></div>
-                <button data-action="copyToClipboard" data-copy-text="${BANK_COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="${DesignConfig.text.body}"><span class="font-bold">${appState.constants?.paymentDisplay?.COTRA || 'ことら送金'}:</span><span class="ml-2">${appState.constants?.bankInfo?.COTRA_PHONE || BANK_COTRA_PHONE}</span></div>
+                <button data-action="copyToClipboard" data-copy-text="${appState.constants?.bankInfo?.COTRA_PHONE || BANK_COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
-            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${BANK_NAME}</span></div>
+            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${appState.constants?.bankInfo?.NAME || BANK_NAME}</span></div>
             <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">店番: ${BANK_BRANCH}</div>
-                <button data-action="copyToClipboard" data-copy-text="${BANK_BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="text-base text-brand-text">店番: ${appState.constants?.bankInfo?.BRANCH || BANK_BRANCH}</div>
+                <button data-action="copyToClipboard" data-copy-text="${appState.constants?.bankInfo?.BRANCH || BANK_BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
             <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">普通: ${BANK_ACCOUNT}</div>
-                <button data-action="copyToClipboard" data-copy-text="${BANK_ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="text-base text-brand-text">普通: ${appState.constants?.bankInfo?.ACCOUNT || BANK_ACCOUNT}</div>
+                <button data-action="copyToClipboard" data-copy-text="${appState.constants?.bankInfo?.ACCOUNT || BANK_ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>`;
   };
@@ -103,9 +103,21 @@
             </p>
         </details>`;
     const options = [
-      { value: PAYMENT_METHOD_CASH, text: PAYMENT_METHOD_CASH, details: '' },
-      { value: PAYMENT_METHOD_COTRA, text: PAYMENT_METHOD_COTRA, details: cotraDetails },
-      { value: PAYMENT_METHOD_BANK_TRANSFER, text: PAYMENT_METHOD_BANK_TRANSFER, details: '' },
+      { 
+        value: appState.constants?.paymentDisplay?.CASH || PAYMENT_METHOD_CASH, 
+        text: appState.constants?.paymentDisplay?.CASH || PAYMENT_METHOD_CASH, 
+        details: '' 
+      },
+      { 
+        value: appState.constants?.paymentDisplay?.COTRA || PAYMENT_METHOD_COTRA, 
+        text: appState.constants?.paymentDisplay?.COTRA || PAYMENT_METHOD_COTRA, 
+        details: cotraDetails 
+      },
+      { 
+        value: appState.constants?.paymentDisplay?.BANK_TRANSFER || PAYMENT_METHOD_BANK_TRANSFER, 
+        text: appState.constants?.paymentDisplay?.BANK_TRANSFER || PAYMENT_METHOD_BANK_TRANSFER, 
+        details: '' 
+      },
     ];
     return (
       options
@@ -212,10 +224,9 @@
       }
       // キャンセル済みstatus は予約・履歴どちらでも表示（英語・日本語両方に対応）
       const isCancelled =
-        item.status === 'cancel' ||
+        item.status === STATUS_CANCEL ||
         item.status === 'キャンセル' ||
-        item.status === 'キャンセル済み' ||
-        item.status === STATUS_CANCEL;
+        item.status === 'キャンセル済み';
       if (isCancelled) {
         statusBadges += `<p class="font-bold text-ui-error-text text-lg">キャンセル済</p>`;
       }
@@ -659,10 +670,9 @@
                 ${sortedBookings
                   .filter(b => {
                     const isCancelled =
-                      b.status === 'cancel' ||
+                      b.status === STATUS_CANCEL ||
                       b.status === 'キャンセル' ||
-                      b.status === 'キャンセル済み' ||
-                      b.status === STATUS_CANCEL;
+                      b.status === 'キャンセル済み';
                     return !isCancelled; // キャンセル済み予約を念のため除外
                   })
                   .map(b => {
@@ -886,8 +896,10 @@
             // 新しいslot構造に対応したステータステキスト生成
             let statusText;
             if (typeof sl.morningSlots !== 'undefined' && typeof sl.afternoonSlots !== 'undefined') {
-              // つくば教室: 午前・午後制
-              statusText = `午前空き ${sl.morningSlots} | 午後空き ${sl.afternoonSlots}`;
+              // つくば教室: 午前・午後制（統一定数を使用）
+              const morningLabel = appState.constants?.sessions?.MORNING || '午前';
+              const afternoonLabel = appState.constants?.sessions?.AFTERNOON || '午後';
+              statusText = `${morningLabel}空き ${sl.morningSlots} | ${afternoonLabel}空き ${sl.afternoonSlots}`;
             } else if (typeof sl.availableSlots !== 'undefined') {
               // 東京教室・沼津教室: 単一セッション制
               statusText = `空き ${sl.availableSlots}`;
@@ -1042,7 +1054,9 @@
       }
       if (isFull) return '満席（キャンセル待ち申込み）';
       if (typeof morningSlots !== 'undefined') {
-        return `午前空き ${morningSlots} | 午後空き ${afternoonSlots}`;
+        const morningLabel = appState.constants?.sessions?.MORNING || '午前';
+        const afternoonLabel = appState.constants?.sessions?.AFTERNOON || '午後';
+        return `${morningLabel}空き ${morningSlots} | ${afternoonLabel}空き ${afternoonSlots}`;
       }
       return `空き ${availableSlots}`;
     };

@@ -14,53 +14,40 @@
    */
 
   // =================================================================
-  // 1. APPLICATION CONSTANTS（統一定数ファイルから継承）
+  // 1. APPLICATION CONSTANTS（統一定数システム）
   // =================================================================
   
-  // 統一定数ファイル（00_Constants.js）で定義された定数を使用
-  // 教室名、項目名、ステータスなどの基本定数は00_Constants.jsで統一管理
+  // 【重要】統一定数は getAppInitialData() で取得される constants オブジェクトを使用
+  // バックエンドの 00_Constants.js で定義された統一定数がフロントエンドに配信される
+  //
+  // 使用例:
+  // - appState.constants.classrooms.TOKYO （'東京教室'）
+  // - appState.constants.headers.STUDENT_ID （'生徒ID'）  
+  // - appState.constants.status.WAITING （'waiting'）
+  // - appState.constants.sessions.MORNING （'午前'）
+  // - appState.constants.bankInfo.NAME （'ゆうちょ銀行'）
+  // - appState.constants.frontendUi.DISCOUNT_OPTIONS.THIRTY_MIN （30）
+  //
+  // 注意: このファイルでは、バックエンド定数との重複を避けるため
+  // フロントエンド固有の定数のみ定義する
   
-  // --- フロントエンド固有の定数のみここで定義 ---
+  // --- フロントエンド専用定数（統一定数システムに移行済み） ---
   
-  // 特別な項目名（フロントエンド専用）
-  const ITEM_NAME_DISCOUNT = '初回講習同時間割引';
+  // 【移行完了】以下の定数は 00_Constants.js に移行し、constants オブジェクトでアクセス可能
+  // - ITEM_NAME_DISCOUNT → appState.constants.items.DISCOUNT
+  // - SESSION_MORNING/AFTERNOON/ALL_DAY → appState.constants.sessions.MORNING/AFTERNOON/ALL_DAY
+  // - UNIT_CM3 → appState.constants.units.CM3
+  // - PAYMENT_METHOD_* → appState.constants.paymentDisplay.*
+  // - BANK_* → appState.constants.bankInfo.*
+  // - DISCOUNT_OPTION_* → appState.constants.frontendUi.DISCOUNT_OPTIONS.*
+  // - TIME_STEP_MINUTES → appState.constants.frontendUi.TIME_SETTINGS.STEP_MINUTES
+  // - TIME_END_BUFFER_HOURS → appState.constants.frontendUi.TIME_SETTINGS.END_BUFFER_HOURS
   
-  // セッション定数
-  const SESSION_MORNING = '午前';
-  const SESSION_AFTERNOON = '午後';
-  const SESSION_ALL_DAY = '全日';
+  // 【互換性】既存コードとの互換性のため、必要に応じて個別定数も利用可能
+  // 例: const SESSION_MORNING = appState.constants.sessions.MORNING;
   
-  // 単位定数（追加分）
-  const UNIT_CM3 = 'cm³';
-  
-  // 支払い方法定数（表示用）
-  const PAYMENT_METHOD_CASH = '現金';
-  const PAYMENT_METHOD_COTRA = 'ことら送金';
-  const PAYMENT_METHOD_BANK_TRANSFER = '振込';
-  
-  // 銀行情報定数
-  const BANK_COTRA_PHONE = '09013755977';
-  const BANK_NAME = 'ゆうちょ銀行';
-  const BANK_BRANCH = '818';
-  const BANK_ACCOUNT = '2661797';
-  
-  // UI設定定数（フロントエンド専用）
-  // 注意: UI_LOADING_MESSAGE_INTERVAL、UI_HISTORY_INITIAL_RECORDS、UI_HISTORY_LOAD_MORE_RECORDS は
-  // 00_Constants.jsで統一管理されています。フロントエンド固有の値が必要な場合のみここで再定義してください。
-  
-  // フロントエンド専用のUI定数（00_Constants.jsと異なる値を使用する場合）
-  // const UI_LOADING_MESSAGE_INTERVAL = 3500; // 00_Constants.jsでは2000ms、フロントエンドで異なる値が必要な場合のみ
-  // const UI_HISTORY_INITIAL_RECORDS = 20; // 00_Constants.jsでは10件、フロントエンドで異なる値が必要な場合のみ
-  // const UI_HISTORY_LOAD_MORE_RECORDS = 20; // 00_Constants.jsでは10件、フロントエンドで異なる値が必要な場合のみ
-  
-  // 割引時間選択肢定数
-  const DISCOUNT_OPTION_NONE = 0;
-  const DISCOUNT_OPTION_30MIN = 30;
-  const DISCOUNT_OPTION_60MIN = 60;
-  
-  // 時間設定定数
-  const TIME_STEP_MINUTES = 30; // 時刻選択の間隔（分）
-  const TIME_END_BUFFER_HOURS = 3; // 講座終了時刻からのバッファ（時間）
+  // 【純粋にフロントエンド専用】以下は本当にフロントエンドでしか使わない定数のみ
+  // 現在、純粋にフロントエンド専用の定数はありません
 
   // =================================================================
   // 2. DESIGN CONFIGURATION
