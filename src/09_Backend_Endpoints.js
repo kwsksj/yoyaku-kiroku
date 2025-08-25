@@ -22,7 +22,7 @@
  *   - extractUserDataFromBatch(): バッチデータからユーザーデータ抽出
  *
  * ✅ ユーティリティ関数
- *   - handleError(): 統一APIレスポンス形式のエラーハンドラ
+ *   - createApiErrorResponse(): 統一APIレスポンス形式のエラーハンドラ
  *
  * 【データフロー】:
  * 1. フロントエンドからAPI呼び出し
@@ -255,7 +255,7 @@ function getAppInitialData() {
     return result;
   } catch (e) {
     Logger.log(`getAppInitialDataでエラー: ${e.message}\nStack: ${e.stack}`);
-    return handleError(`アプリ初期データ取得中にエラー: ${e.message}`, true);
+    return createApiErrorResponse(`アプリ初期データ取得中にエラー: ${e.message}`, true);
   }
 }
 
@@ -290,7 +290,7 @@ function getLoginData(phone) {
     return result;
   } catch (e) {
     Logger.log(`getLoginDataでエラー: ${e.message}\nStack: ${e.stack}`);
-    return handleError(`ログインデータ取得中にエラー: ${e.message}`, true);
+    return createApiErrorResponse(`ログインデータ取得中にエラー: ${e.message}`, true);
   }
 }
 
@@ -379,7 +379,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
     return result;
   } catch (e) {
     Logger.log(`getBatchDataでエラー: ${e.message}\nStack: ${e.stack}`);
-    return handleError(`バッチデータ取得中にエラー: ${e.message}`, true);
+    return createApiErrorResponse(`バッチデータ取得中にエラー: ${e.message}`, true);
   }
 }
 
@@ -421,7 +421,7 @@ function extractUserDataFromBatch(batchData, studentId) {
  * @param {boolean} [log=false] - Loggerにエラーを記録するか
  * @returns {Object} 統一されたエラーレスポンス
  */
-function handleError(message, log = false) {
+function createApiErrorResponse(message, log = false) {
   if (log) {
     Logger.log(message);
   }

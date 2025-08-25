@@ -97,6 +97,7 @@ function makeReservation(reservationInfo) {
     const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
     const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
     const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
+    const venueColIdx = headerMap.get(CONSTANTS.HEADERS.VENUE);
     const chiselRentalColIdx = headerMap.get(CONSTANTS.HEADERS.CHISEL_RENTAL);
     const firstLectureColIdx = headerMap.get(CONSTANTS.HEADERS.FIRST_LECTURE);
     const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
@@ -746,8 +747,6 @@ function saveAccountingDetails(payload) {
     // [追加] 9. 更新されたサマリーから、最新の空き枠情報を取得する
     let updatedSlotsForClassroom = [];
     try {
-      // 既にアクティブなスプレッドシートオブジェクトを渡して重複を避ける
-      const ss = getActiveSpreadsheet();
       const slotsResult = getAvailableSlots();
       updatedSlotsForClassroom = slotsResult.success ? slotsResult.data : [];
     } catch (e) {
@@ -914,7 +913,7 @@ function _updateRecordCacheForSingleReservation(
     if (existingJson) {
       try {
         records = JSON.parse(existingJson);
-      } catch (e) {
+      } catch {
         /* 不正なJSONは上書き */
       }
     }
@@ -976,8 +975,6 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
   const lock = LockService.getScriptLock();
   lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
   try {
-    const ss = getActiveSpreadsheet();
-
     // 1. 予約シートの制作メモを更新
     const sheet = getSheetByName(sheetName);
     if (!sheet) throw new Error(`シート「${sheetName}」が見つかりません。`);

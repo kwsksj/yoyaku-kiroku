@@ -181,7 +181,7 @@ class FrontendErrorHandler {
       'data-load': 'データの読み込み中にエラーが発生しました。ページを更新してもう一度お試しください。'
     };
 
-    return contextMessages[context] || 
+    return contextMessages[context] ||
            \`エラーが発生しました: \${error.message}\\n\\n時間をおいてもう一度お試しください。\`;
   }
 
@@ -198,7 +198,7 @@ class FrontendErrorHandler {
       'Timeout'
     ];
 
-    return criticalMessages.some(msg => 
+    return criticalMessages.some(msg =>
       error.message && error.message.includes(msg)
     );
   }
@@ -211,7 +211,7 @@ class FrontendErrorHandler {
     // 現在はコンソールログのみ
     // 将来的にSentry、Bugsnag、LogRocketなどに送信
     console.log('[CRITICAL ERROR REPORT]', errorInfo);
-    
+
     // 管理者への緊急通知も検討
     // この部分は将来的に実装予定
   }
@@ -229,7 +229,7 @@ window.addEventListener('error', (event) => {
 // Promise拒否エラーのハンドリング
 window.addEventListener('unhandledrejection', (event) => {
   FrontendErrorHandler.handle(
-    new Error(event.reason), 
+    new Error(event.reason),
     'unhandled-promise-rejection'
   );
 });

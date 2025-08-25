@@ -16,7 +16,7 @@ const claspConfigFile = path.join(__dirname, '../.clasp.config.json');
 let config;
 try {
   config = JSON.parse(fs.readFileSync(claspConfigFile, 'utf8'));
-} catch (error) {
+} catch {
   console.error(`❌ ${claspConfigFile} の読み込みに失敗しました。`);
   process.exit(1);
 }

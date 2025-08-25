@@ -204,7 +204,6 @@ function getAccountingMasterData() {
  */
 function getParticipationHistory(studentId, limit, offset) {
   try {
-    const ss = getActiveSpreadsheet();
     const timezone = getSpreadsheetTimezone();
     const allSheetNames = [...CLASSROOM_SHEET_NAMES, ...ARCHIVE_SHEET_NAMES];
     const history = [];

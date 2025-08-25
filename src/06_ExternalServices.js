@@ -21,7 +21,7 @@ function addCalendarEventsToSheetWithSpecifics() {
   if (!lock.tryLock(LOCK_WAIT_TIME_MS)) {
     try {
       handleError('現在、他の処理が実行中です。しばらく経ってから再度お試しください。', true);
-    } catch (e) {
+    } catch {
       Logger.log('現在、他の処理が実行中です。');
     }
     return;

@@ -49,7 +49,7 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
  * @param {object} cacheData - getAppInitialDataから取得したキャッシュデータ
  * @returns {object} - 個人の予約、履歴、利用可能枠データ
  */
-function extractPersonalDataFromCache(studentId, cacheData) {
+function extractPersonalDataFromCache(studentId, _cacheData) {
   try {
     Logger.log(`個人データ抽出開始: ${studentId}`);
 

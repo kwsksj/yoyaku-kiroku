@@ -211,7 +211,7 @@ function addCacheMenu(menu) {
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processChange` へ委譲します。
  * @param {Object} e - Google Sheets のイベントオブジェクト
  */
-function handleOnChange(e) {
+function handleOnChange(_e) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(LOCK_WAIT_TIME_MS)) return;
 
@@ -228,7 +228,7 @@ function handleOnChange(e) {
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processCellEdit` へ委譲します。
  * @param {Object} e - Google Sheets のイベントオブジェクト
  */
-function handleEdit(e) {
+function handleEdit(_e) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(LOCK_WAIT_TIME_MS)) return;
   try {
@@ -353,7 +353,7 @@ function runDirectTest() {
  * 別のデプロイメント用のエントリーポイント
  * テスト専用のデプロイメントを作成する場合に使用
  */
-function doGetPerformanceTest(e) {
+function doGetPerformanceTest(_e) {
   return doGetTest();
 }
 

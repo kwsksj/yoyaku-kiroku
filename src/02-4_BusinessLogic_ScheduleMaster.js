@@ -453,7 +453,7 @@ function extractUniqueDateClassroomCombinations() {
         const dataRange = sheet.getRange(DATA_START_ROW, 1, lastRow - 1, sheet.getLastColumn());
         const data = dataRange.getValues();
 
-        data.forEach((row, index) => {
+        data.forEach((row, _index) => {
           const date = row[dateIndex];
           const classroom = row[classroomIndex];
           const venue = venueIndex !== -1 ? row[venueIndex] : '';
@@ -555,7 +555,7 @@ function prepareScheduleMasterSheet() {
 function generateScheduleDataWithDefaults(uniqueCombinations) {
   const scheduleData = [];
 
-  uniqueCombinations.forEach((combo, key) => {
+  uniqueCombinations.forEach((combo, _key) => {
     const { date, classroom, venue } = combo;
 
     // 教室に応じたデフォルト設定を適用

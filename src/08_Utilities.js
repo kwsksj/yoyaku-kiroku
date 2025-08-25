@@ -66,7 +66,7 @@ function handleError(message, isError) {
       message,
       SpreadsheetApp.getUi().ButtonSet.OK,
     );
-  } catch (e) {
+  } catch {
     // UIが使えない環境（例：トリガー実行時）では何もしない
   }
 }
@@ -166,10 +166,6 @@ function createSalesRow(baseInfo, category, itemName, price) {
     price, // 金額
     baseInfo.paymentMethod, // 支払手段
   ];
-}
-
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 /**
@@ -372,12 +368,13 @@ function transformReservationArrayToObject(resArray) {
     endTime,
     status,
     chiselRental,
-    firstLecture,
-    _,
-    __,
+    firstLecture, // 来場手段をスキップ
+    ,
+    ,
+    // 送迎をスキップ
     workInProgress,
     order,
-    message, // 来場手段, 送迎はまだ使わないのでスキップ
+    message, // 先生へのメッセージ
   ] = resArray;
 
   return {

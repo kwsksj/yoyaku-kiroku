@@ -21,7 +21,7 @@ console.log(`🔧 [${env}] 環境に切り替えています...`);
 let config;
 try {
   config = JSON.parse(fs.readFileSync(claspConfigFile, 'utf8'));
-} catch (error) {
+} catch {
   console.error(`❌ ${claspConfigFile} の読み込みに失敗しました。`);
   process.exit(1);
 }
@@ -37,7 +37,7 @@ const { scriptId, deploymentId } = config[env];
 let claspConfig;
 try {
   claspConfig = JSON.parse(fs.readFileSync(claspFile, 'utf8'));
-} catch (error) {
+} catch {
   console.error(`❌ ${claspFile} の読み込みに失敗しました。`);
   process.exit(1);
 }
@@ -80,7 +80,7 @@ try {
   fs.writeFileSync(claspFile, JSON.stringify(claspConfig, null, 2), 'utf8');
   console.log(`✅ .clasp.json を [${env}] 環境に更新しました。`);
   console.log(`   - Script ID: ${scriptId}`);
-} catch (error) {
+} catch {
   console.error(`❌ ${claspFile} の書き込みに失敗しました。`);
   process.exit(1);
 }
