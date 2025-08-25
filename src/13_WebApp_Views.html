@@ -1027,9 +1027,9 @@
       firstLecture,
       chiselRental,
       workInProgress,
-      material,
+      materialInfo,
       order,
-      message,
+      messageToTeacher,
     } = sourceData;
     const { currentUser, accountingMaster: master } = appState;
     const tuitionItemRule = getTuitionItemRule(master, classroom, '本講座');
@@ -1158,14 +1158,14 @@
             label: '材料のサイズや樹種の希望',
             caption: 'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
             placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
-            value: material || '',
+            value: materialInfo || '',
           })}
           ${isFirstTime ? firstTimeGuidance : ''}
         </div>
         <div class="mt-4 pt-4 border-t space-y-4">
           ${salesChecklistHtml}
           ${Components.createInput({ id: 'order-input', label: 'その他・自由記入（購入希望）', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
-          ${Components.createTextArea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: message || '' })}
+          ${Components.createTextArea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
         </div>`;
     };
     // 予約送信時にチェックされた物販をorderに渡す処理を追加

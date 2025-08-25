@@ -57,10 +57,9 @@ const SAMPLE_DATA_DAYS = 30; // サンプルデータ生成日数（1ヶ月）
 const WEEKEND_SUNDAY = 0; // 日曜日の曜日コード
 const WEEKEND_SATURDAY = 6; // 土曜日の曜日コード
 const HEADER_ROW = 1; // ヘッダー行番号
-const DATA_START_ROW = 2; // データ開始行番号
+// DATA_START_ROWは00_Constants.jsで統一管理されています
 
-// --- 材料情報関連の定数（00_Constants.jsに未統合） ---
-const MATERIAL_INFO_PREFIX = '\n【希望材料】: ';
+// --- 材料情報関連の定数は00_Constants.jsで統一管理されています ---
 
 // --- 売上カテゴリ関連の定数（00_Constants.jsに未統合） ---
 const SALES_CATEGORY_TUITION = '授業料';
@@ -108,8 +107,7 @@ const CLASSROOM_TRANSFER_SETTINGS = [
 ];
 
 // --- 外部サービス連携用ID ---
-const SALES_SPREADSHEET_ID =
-  PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
+// SALES_SPREADSHEET_IDは00_Constants.jsで統一管理されています
 const GOOGLE_FORM_IDS_RAW = PropertiesService.getScriptProperties().getProperty('GOOGLE_FORM_IDS');
 const GOOGLE_FORM_IDS = GOOGLE_FORM_IDS_RAW ? JSON.parse(GOOGLE_FORM_IDS_RAW) : {};
 // --- Googleフォームの質問タイトル ---
@@ -121,22 +119,6 @@ const FORM_QUESTION_TITLES = {
 // --- GoogleカレンダーのID ---
 const CALENDAR_IDS_RAW = PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
 const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
-
-// --- ステータス・種別関連の定数（00_Constants.jsで重複定義されていないもののみ） ---
-const ITEM_TYPE_MATERIAL = '材料'; // 00_Constants.jsには未定義
-
-// 注意: SESSION_MORNING, SESSION_AFTERNOON, SESSION_ALL_DAY, ITEM_NAME_DISCOUNT, UNIT_CM3
-// は00_Constants.jsで定義済みのため削除
-
-// 注意: STATUS_WAITING, STATUS_CANCEL, ITEM_TYPE_TUITION, ITEM_TYPE_SALES,
-// ITEM_NAME_MAIN_LECTURE, ITEM_NAME_FIRST_LECTURE, ITEM_NAME_CHISEL_RENTAL, UNIT_30_MIN
-// は00_Constants.jsで定義済みのため削除
-
-// --- 日程マスタ関連の定数（00_Constants.jsに未統合） ---
-const SCHEDULE_MASTER_SHEET_NAME = '日程マスタ';
-
-// 注意: CLASSROOM_TYPE_*, SCHEDULE_STATUS_*, HEADER_SCHEDULE_* 定数は
-// 00_Constants.jsで定義済みのため削除
 
 // 日程マスタのヘッダー定義
 const SCHEDULE_MASTER_HEADERS = [

@@ -583,6 +583,7 @@
           workInProgress: reservation.workInProgress || '',
           order: reservation.order || '',
           messageToTeacher: reservation.message || '',
+          materialInfo: reservation.materialInfo || '',
         };
         setState({ view: 'editReservation', editingReservationDetails: editingDetails });
       } else {
@@ -598,11 +599,13 @@
         classroom: d.classroom,
         studentId: appState.currentUser.studentId,
         chiselRental: document.getElementById('option-rental')?.checked || false,
-        startTime: document.getElementById('start-time')?.value || '',
-        endTime: document.getElementById('end-time')?.value || '',
+        firstLecture: document.getElementById('option-first-lecture')?.checked || false,
+        startTime: document.getElementById('res-start-time')?.value || '',
+        endTime: document.getElementById('res-end-time')?.value || '',
         workInProgress: document.getElementById('wip-input').value,
         order: document.getElementById('order-input').value,
         messageToTeacher: document.getElementById('message-input').value,
+        materialInfo: document.getElementById('material-input')?.value || '',
       };
       showLoading('booking');
       google.script.run

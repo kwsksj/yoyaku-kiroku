@@ -28,7 +28,7 @@
 function createScheduleMasterSheet() {
   try {
     const ss = getActiveSpreadsheet();
-    let scheduleSheet = getSheetByName(SCHEDULE_MASTER_SHEET_NAME);
+    let scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
 
     // シートが既に存在する場合は確認
     if (scheduleSheet) {
@@ -49,7 +49,7 @@ function createScheduleMasterSheet() {
     }
 
     // 新しいシートを作成
-    scheduleSheet = ss.insertSheet(SCHEDULE_MASTER_SHEET_NAME);
+    scheduleSheet = ss.insertSheet(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
 
     // ヘッダーを設定
     scheduleSheet
@@ -85,12 +85,12 @@ function createScheduleMasterSheet() {
     const ui = SpreadsheetApp.getUi();
     ui.alert(
       '日程マスタシート作成完了',
-      `「${SCHEDULE_MASTER_SHEET_NAME}」シートを作成しました。\nサンプルデータ ${sampleData.length} 件を挿入しました。`,
+      `「${CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER}」シートを作成しました。\nサンプルデータ ${sampleData.length} 件を挿入しました。`,
       ui.ButtonSet.OK,
     );
 
     // 作成後、シートキャッシュをクリア
-    SS_MANAGER.clearSheetCache(SCHEDULE_MASTER_SHEET_NAME);
+    SS_MANAGER.clearSheetCache(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
 
     // アクティビティログに記録
     logActivity(
@@ -249,7 +249,7 @@ function filterSchedulesByDateRange(schedules, fromDate, toDate) {
  */
 function getScheduleDataFromSheet(fromDate, toDate) {
   try {
-    const scheduleSheet = getSheetByName(SCHEDULE_MASTER_SHEET_NAME);
+    const scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
 
     if (!scheduleSheet) {
       Logger.log('日程マスタシートが見つかりません');
@@ -350,7 +350,7 @@ function generateScheduleMasterFromExistingReservations() {
     writeScheduleDataToSheet(scheduleData);
 
     // キャッシュをクリア
-    SS_MANAGER.clearSheetCache(SCHEDULE_MASTER_SHEET_NAME);
+    SS_MANAGER.clearSheetCache(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
 
     // アクティビティログに記録
     logActivity(
@@ -519,12 +519,12 @@ function isReservationSheet(sheetName) {
  * 日程マスタシートを準備する（既存データをクリア）
  */
 function prepareScheduleMasterSheet() {
-  let scheduleSheet = getSheetByName(SCHEDULE_MASTER_SHEET_NAME);
+  let scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
 
   if (!scheduleSheet) {
     // シートが存在しない場合は作成
     const ss = getActiveSpreadsheet();
-    scheduleSheet = ss.insertSheet(SCHEDULE_MASTER_SHEET_NAME);
+    scheduleSheet = ss.insertSheet(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
 
     // ヘッダーを設定
     scheduleSheet
@@ -656,7 +656,7 @@ function writeScheduleDataToSheet(scheduleData) {
     return;
   }
 
-  const scheduleSheet = getSheetByName(SCHEDULE_MASTER_SHEET_NAME);
+  const scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
   if (!scheduleSheet) {
     throw new Error('日程マスタシートが見つかりません');
   }

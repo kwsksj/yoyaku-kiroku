@@ -70,13 +70,13 @@ function _validateTimeBasedReservation(startTime, endTime, classroomRule) {
  */
 function makeReservation(reservationInfo) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(LOCK_WAIT_TIME_MS);
+  lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
   try {
     const { classroom, date, user, options } = reservationInfo;
     const { startTime, endTime } = options;
 
     // 統合予約シートを取得
-    const integratedSheet = getSheetByName('統合予約シート');
+    const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
     if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
     const masterData = getAccountingMasterData().data;
@@ -84,10 +84,10 @@ function makeReservation(reservationInfo) {
       item =>
         item['対象教室'] &&
         item['対象教室'].includes(classroom) &&
-        item['種別'] === ITEM_TYPE_TUITION,
+        item['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
     );
 
-    if (classroomRule && classroomRule['単位'] === UNIT_30_MIN) {
+    if (classroomRule && classroomRule['単位'] === CONSTANTS.UNITS.THIRTY_MIN) {
       _validateTimeBasedReservation(startTime, endTime, classroomRule);
     }
 
@@ -103,22 +103,22 @@ function makeReservation(reservationInfo) {
     const data = allSheetData.slice(1);
 
     // 統合予約シートの列インデックス（新しいデータモデル）
-    const reservationIdColIdx = headerMap.get('予約ID');
-    const studentIdColIdx = headerMap.get('生徒ID');
-    const dateColIdx = headerMap.get('日付');
-    const classroomColIdx = headerMap.get('教室');
-    const venueColIdx = headerMap.get('会場');
-    const startTimeColIdx = headerMap.get('開始時刻');
-    const endTimeColIdx = headerMap.get('終了時刻');
-    const statusColIdx = headerMap.get('ステータス');
-    const chiselRentalColIdx = headerMap.get('彫刻刻レンタル');
-    const firstLectureColIdx = headerMap.get('初講');
-    const wipColIdx = headerMap.get('制作メモ');
-    const orderColIdx = headerMap.get('order');
-    const messageColIdx = headerMap.get('メッセージ');
+    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
+    const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
+    const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
+    const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
+    const venueColIdx = headerMap.get(CONSTANTS.HEADERS.VENUE);
+    const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
+    const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
+    const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
+    const chiselRentalColIdx = headerMap.get(CONSTANTS.HEADERS.CHISEL_RENTAL);
+    const firstLectureColIdx = headerMap.get(CONSTANTS.HEADERS.FIRST_LECTURE);
+    const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
+    const orderColIdx = headerMap.get(CONSTANTS.HEADERS.ORDER);
+    const messageColIdx = headerMap.get(CONSTANTS.HEADERS.MESSAGE_TO_TEACHER);
 
     const capacity =
-      CLASSROOM_CAPACITIES[classroom] || CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
+      CONSTANTS.CLASSROOM_CAPACITIES[classroom] || CONSTANTS.CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
     let isFull = false;
 
     // 同日同教室の予約をフィルタリング
@@ -130,7 +130,7 @@ function makeReservation(reservationInfo) {
         rowDate instanceof Date &&
         Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === date &&
         rowClassroom === classroom &&
-        rowStatus !== STATUS_CANCEL &&
+        rowStatus !== CONSTANTS.STATUS.CANCEL &&
         !!row[studentIdColIdx] // 生徒IDが存在する行のみ
       );
     };
@@ -147,15 +147,15 @@ function makeReservation(reservationInfo) {
         const rStartHour = rStart instanceof Date ? rStart.getHours() : 0;
         const rEndHour = rEnd instanceof Date ? rEnd.getHours() : 24;
 
-        if (rStartHour < TSUKUBA_MORNING_SESSION_END_HOUR) morningCount++;
-        if (rEndHour >= TSUKUBA_MORNING_SESSION_END_HOUR) afternoonCount++;
+        if (rStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) morningCount++;
+        if (rEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) afternoonCount++;
       });
 
       const morningFull = morningCount >= capacity;
       const afternoonFull = afternoonCount >= capacity;
 
-      if (reqStartHour < TSUKUBA_MORNING_SESSION_END_HOUR && morningFull) isFull = true;
-      if (reqEndHour >= TSUKUBA_MORNING_SESSION_END_HOUR && afternoonFull) isFull = true;
+      if (reqStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && morningFull) isFull = true;
+      if (reqEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && afternoonFull) isFull = true;
     } else {
       const reservationsOnDate = data.filter(dateFilter).length;
       isFull = reservationsOnDate >= capacity;
@@ -190,7 +190,7 @@ function makeReservation(reservationInfo) {
     newRowData[dateColIdx] = targetDate;
     newRowData[classroomColIdx] = classroom;
     newRowData[venueColIdx] = venue;
-    newRowData[statusColIdx] = isFull ? STATUS_WAITING : '確定';
+    newRowData[statusColIdx] = isFull ? CONSTANTS.STATUS.WAITING : CONSTANTS.STATUS.COMPLETED;
 
     // 時刻設定（教室別のロジック）
     if (classroom === CONSTANTS.CLASSROOMS.TOKYO) {
@@ -201,8 +201,8 @@ function makeReservation(reservationInfo) {
           item['対象教室'] === CONSTANTS.CLASSROOMS.TOKYO,
       );
       if (tokyoRule) {
-        let finalStartTime = tokyoRule[HEADER_CLASS_START];
-        let finalEndTime = tokyoRule[HEADER_CLASS_END];
+        let finalStartTime = tokyoRule[CONSTANTS.HEADERS.CLASS_START];
+        let finalEndTime = tokyoRule[CONSTANTS.HEADERS.CLASS_END];
         if (finalStartTime)
           newRowData[startTimeColIdx] = new Date(`1970-01-01T${finalStartTime}:00`);
         if (finalEndTime) newRowData[endTimeColIdx] = new Date(`1970-01-01T${finalEndTime}:00`);
@@ -221,7 +221,7 @@ function makeReservation(reservationInfo) {
     // 制作メモ（材料情報を含む）
     let workInProgress = options.workInProgress || '';
     if (options.materialInfo) {
-      workInProgress += MATERIAL_INFO_PREFIX + options.materialInfo;
+      workInProgress += CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + options.materialInfo;
     }
     if (wipColIdx !== undefined) newRowData[wipColIdx] = workInProgress;
 
@@ -273,7 +273,7 @@ function makeReservation(reservationInfo) {
       reservationId: newReservationId,
       classroom: classroom,
       date: Utilities.formatDate(targetDate, getSpreadsheetTimezone(), 'yyyy-MM-dd'),
-      status: isFull ? STATUS_WAITING : '確定',
+      status: isFull ? CONSTANTS.STATUS.WAITING : CONSTANTS.STATUS.COMPLETED,
       venue: venue,
       startTime: timeToString(newRowData[startTimeColIdx]),
       endTime: timeToString(newRowData[endTimeColIdx]),
@@ -299,7 +299,7 @@ function makeReservation(reservationInfo) {
     const messageToTeacher = options.messageToTeacher || '';
     const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
     const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}${messageLog}`;
-    logActivity(user.studentId, '予約作成', '成功', logDetails);
+    logActivity(user.studentId, '予約作成', CONSTANTS.MESSAGES.SUCCESS, logDetails);
 
     const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
     const messageSection = messageToTeacher ? `\n先生へのメッセージ: ${messageToTeacher}\n` : '';
@@ -318,7 +318,7 @@ function makeReservation(reservationInfo) {
       newBookingsCache: newBookingsCache,
     });
   } catch (err) {
-    logActivity(reservationInfo.user.studentId, '予約作成', 'エラー', `Error: ${err.message}`);
+    logActivity(reservationInfo.user.studentId, '予約作成', CONSTANTS.MESSAGES.ERROR, `Error: ${err.message}`);
     Logger.log(`makeReservation Error: ${err.message}\n${err.stack}`);
     return BackendErrorHandler.handle(err, 'makeReservation');
   } finally {
@@ -333,13 +333,13 @@ function makeReservation(reservationInfo) {
  */
 function cancelReservation(cancelInfo) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(LOCK_WAIT_TIME_MS);
+  lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
 
   try {
     const { reservationId, classroom, studentId } = cancelInfo; // フロントエンドから渡される情報
 
     // 統合予約シートを取得
-    const integratedSheet = getSheetByName('統合予約シート');
+    const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
     if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
     // 1回のシート読み込みで全データを取得（効率化）
@@ -350,12 +350,12 @@ function cancelReservation(cancelInfo) {
     const headerMap = createHeaderMap(header);
 
     // 統合予約シートの列インデックス（新しいデータモデル）
-    const reservationIdColIdx = headerMap.get('予約ID');
-    const studentIdColIdx = headerMap.get('生徒ID');
-    const dateColIdx = headerMap.get('日付');
-    const statusColIdx = headerMap.get('ステータス');
-    const classroomColIdx = headerMap.get('教室');
-    const venueColIdx = headerMap.get('会場');
+    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
+    const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
+    const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
+    const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
+    const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
+    const venueColIdx = headerMap.get(CONSTANTS.HEADERS.VENUE);
 
     if (reservationIdColIdx === undefined || studentIdColIdx === undefined) {
       throw new Error('必要なヘッダー（予約ID, 生徒ID）が見つかりません。');
@@ -379,7 +379,7 @@ function cancelReservation(cancelInfo) {
     const targetDate = originalValues[dateColIdx]; // キャンセルされた予約の日付を取得
 
     // ユーザー情報を取得して、ログと通知をより具体的にする
-    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
     let userInfo = { realName: '(不明)', displayName: '(不明)' };
     if (rosterSheet) {
       // 効率化：生徒名簿も1回の読み込みで取得
@@ -387,14 +387,14 @@ function cancelReservation(cancelInfo) {
       if (rosterAllData.length > 1) {
         const rosterHeader = rosterAllData[0];
         const rosterHeaderMap = createHeaderMap(rosterHeader);
-        const rosterStudentIdCol = rosterHeaderMap.get(HEADER_STUDENT_ID);
+        const rosterStudentIdCol = rosterHeaderMap.get(CONSTANTS.HEADERS.STUDENT_ID);
 
         if (rosterStudentIdCol !== undefined) {
           const userRow = rosterAllData.slice(1).find(row => row[rosterStudentIdCol] === studentId);
           if (userRow) {
-            userInfo.realName = userRow[rosterHeaderMap.get(HEADER_REAL_NAME)] || '(不明)';
+            userInfo.realName = userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.REAL_NAME)] || '(不明)';
             userInfo.displayName =
-              userRow[rosterHeaderMap.get(HEADER_NICKNAME)] || userInfo.realName;
+              userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.NICKNAME)] || userInfo.realName;
           }
         }
       }
@@ -402,7 +402,7 @@ function cancelReservation(cancelInfo) {
 
     // メモリ上でステータスを「キャンセル」に更新
     const dataRowIndex = targetRowIndex - 2; // ヘッダー行を除く配列インデックス
-    allData[targetRowIndex - 1][statusColIdx] = STATUS_CANCEL; // allDataの該当行を更新
+    allData[targetRowIndex - 1][statusColIdx] = CONSTANTS.STATUS.CANCEL; // allDataの該当行を更新
 
     // 更新されたデータを一括でシートに書き戻し
     integratedSheet.clear();
@@ -422,7 +422,7 @@ function cancelReservation(cancelInfo) {
     const cancelMessage = cancelInfo.cancelMessage || '';
     const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
     const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}${messageLog}`;
-    logActivity(studentId, LOG_ACTION_RESERVATION_CANCEL, MSG_SUCCESS, logDetails);
+    logActivity(studentId, CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL, CONSTANTS.MESSAGES.SUCCESS, logDetails);
 
     const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
     const messageSection = cancelMessage ? `\n先生へのメッセージ: ${cancelMessage}\n` : '';
@@ -444,8 +444,8 @@ function cancelReservation(cancelInfo) {
   } catch (err) {
     logActivity(
       cancelInfo.studentId,
-      LOG_ACTION_RESERVATION_CANCEL,
-      MSG_ERROR,
+      CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
+      CONSTANTS.MESSAGES.ERROR,
       `Error: ${err.message}`,
     );
     Logger.log(`cancelReservation Error: ${err.message}\n${err.stack}`);
@@ -462,7 +462,7 @@ function cancelReservation(cancelInfo) {
  */
 function updateReservationDetails(details) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(LOCK_WAIT_TIME_MS);
+  lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
   try {
     const { reservationId, classroom } = details;
     const masterData = getAccountingMasterData().data;
@@ -470,15 +470,15 @@ function updateReservationDetails(details) {
       item =>
         item['対象教室'] &&
         item['対象教室'].includes(classroom) &&
-        item['種別'] === ITEM_TYPE_TUITION,
+        item['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
     );
 
-    if (classroomRule && classroomRule['単位'] === UNIT_30_MIN) {
+    if (classroomRule && classroomRule['単位'] === CONSTANTS.UNITS.THIRTY_MIN) {
       _validateTimeBasedReservation(details.startTime, details.endTime, classroomRule);
     }
 
     // 統合予約シートを取得
-    const integratedSheet = getSheetByName('統合予約シート');
+    const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
     if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
     // 1回のシート読み込みで全データを取得（効率化）
@@ -489,15 +489,15 @@ function updateReservationDetails(details) {
     const headerMap = createHeaderMap(header);
 
     // 統合予約シートの列インデックス（新しいデータモデル）
-    const reservationIdColIdx = headerMap.get('予約ID');
-    const studentIdColIdx = headerMap.get('生徒ID');
-    const startTimeColIdx = headerMap.get('開始時刻');
-    const endTimeColIdx = headerMap.get('終了時刻');
-    const chiselRentalColIdx = headerMap.get('彫刻刻レンタル');
-    const wipColIdx = headerMap.get('制作メモ');
-    const orderColIdx = headerMap.get('order');
-    const messageColIdx = headerMap.get('メッセージ');
-    const firstLectureColIdx = headerMap.get('初回講習');
+    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
+    const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
+    const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
+    const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
+    const chiselRentalColIdx = headerMap.get(CONSTANTS.HEADERS.CHISEL_RENTAL);
+    const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
+    const orderColIdx = headerMap.get(CONSTANTS.HEADERS.ORDER);
+    const messageColIdx = headerMap.get(CONSTANTS.HEADERS.MESSAGE_TO_TEACHER);
+    const firstLectureColIdx = headerMap.get(CONSTANTS.HEADERS.FIRST_LECTURE);
 
     if (reservationIdColIdx === undefined) throw new Error('ヘッダー「予約ID」が見つかりません。');
 
@@ -530,7 +530,11 @@ function updateReservationDetails(details) {
     }
 
     if (wipColIdx !== undefined) {
-      rowData[wipColIdx] = details.workInProgress || '';
+      let workInProgress = details.workInProgress || '';
+      if (details.materialInfo) {
+        workInProgress += CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + details.materialInfo;
+      }
+      rowData[wipColIdx] = workInProgress;
     }
 
     if (orderColIdx !== undefined) {
@@ -579,14 +583,14 @@ function updateReservationDetails(details) {
     const messageToTeacher = details.messageToTeacher || '';
     const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
     const logDetails = `ReservationID: ${details.reservationId}, Classroom: ${details.classroom}${messageLog}`;
-    logActivity(studentId, '予約詳細更新', '成功', logDetails);
+    logActivity(studentId, '予約詳細更新', CONSTANTS.MESSAGES.SUCCESS, logDetails);
 
     return createApiResponse(true, {
       newBookingsCache: newBookingsCache,
       message: '予約内容を更新しました。',
     });
   } catch (err) {
-    logActivity(details.studentId || '(N/A)', '予約詳細更新', 'エラー', `Error: ${err.message}`);
+    logActivity(details.studentId || '(N/A)', '予約詳細更新', CONSTANTS.MESSAGES.ERROR, `Error: ${err.message}`);
     Logger.log(`updateReservationDetails Error: ${err.message}\n${err.stack}`);
     return BackendErrorHandler.handle(err, 'updateReservationDetails');
   } finally {
@@ -607,7 +611,7 @@ function updateReservationDetails(details) {
  */
 function saveAccountingDetails(payload) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(LOCK_WAIT_TIME_MS);
+  lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
   try {
     const { reservationId, classroom, studentId, userInput } = payload;
     if (!reservationId || !classroom || !studentId || !userInput) {
@@ -619,8 +623,8 @@ function saveAccountingDetails(payload) {
 
     const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     const headerMap = createHeaderMap(header);
-    const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
-    const studentIdColIdx = headerMap.get(HEADER_STUDENT_ID);
+    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
+    const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
 
     const targetRowIndex = findRowIndexByValue(sheet, reservationIdColIdx + 1, reservationId);
     if (targetRowIndex === -1)
@@ -637,13 +641,13 @@ function saveAccountingDetails(payload) {
       tuition: { items: [], subtotal: 0 },
       sales: { items: [], subtotal: 0 },
       grandTotal: 0,
-      paymentMethod: userInput.paymentMethod || '現金',
+      paymentMethod: userInput.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH,
     };
 
     // 授業料の計算
     (userInput.tuitionItems || []).forEach(itemName => {
       const masterItem = masterData.find(
-        m => m['項目名'] === itemName && m['種別'] === ITEM_TYPE_TUITION,
+        m => m['項目名'] === itemName && m['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
       );
       if (masterItem) {
         const price = Number(masterItem['単価']);
@@ -659,8 +663,8 @@ function saveAccountingDetails(payload) {
         item =>
           item['対象教室'] &&
           item['対象教室'].includes(classroom) &&
-          item['種別'] === ITEM_TYPE_TUITION &&
-          item['単位'] === UNIT_30_MIN,
+          item['種別'] === CONSTANTS.ITEM_TYPES.TUITION &&
+          item['単位'] === CONSTANTS.UNITS.THIRTY_MIN,
       );
       if (classroomRule && startTime && endTime && startTime < endTime) {
         const start = new Date(`1970-01-01T${startTime}:00`);
@@ -678,11 +682,11 @@ function saveAccountingDetails(payload) {
       }
       // 割引の計算
       if (discountMinutes > 0) {
-        const discountRule = masterData.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
+        const discountRule = masterData.find(item => item['項目名'] === CONSTANTS.ITEMS.DISCOUNT);
         if (discountRule) {
           const discountAmount = (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
           finalAccountingDetails.tuition.items.push({
-            name: `${ITEM_NAME_DISCOUNT} (${discountMinutes}分)`,
+            name: `${CONSTANTS.ITEMS.DISCOUNT} (${discountMinutes}分)`,
             price: -discountAmount,
           });
           finalAccountingDetails.tuition.subtotal -= discountAmount;
@@ -695,7 +699,7 @@ function saveAccountingDetails(payload) {
       const masterItem = masterData.find(
         m =>
           m['項目名'] === item.name &&
-          (m['種別'] === ITEM_TYPE_SALES || m['種別'] === ITEM_TYPE_MATERIAL),
+          (m['種別'] === CONSTANTS.ITEM_TYPES.SALES || m['種別'] === CONSTANTS.ITEM_TYPES.MATERIAL),
       );
       if (masterItem) {
         // マスタに存在する商品
@@ -717,14 +721,14 @@ function saveAccountingDetails(payload) {
     // 1. 時刻などをシートに書き戻す
     if (userInput.timeBased) {
       const { startTime, endTime } = userInput.timeBased;
-      if (headerMap.has(HEADER_START_TIME))
+      if (headerMap.has(CONSTANTS.HEADERS.START_TIME))
         sheet
-          .getRange(targetRowIndex, headerMap.get(HEADER_START_TIME) + 1)
+          .getRange(targetRowIndex, headerMap.get(CONSTANTS.HEADERS.START_TIME) + 1)
           .setValue(startTime ? new Date(`1970-01-01T${startTime}`) : null)
           .setNumberFormat('HH:mm');
-      if (headerMap.has(HEADER_END_TIME))
+      if (headerMap.has(CONSTANTS.HEADERS.END_TIME))
         sheet
-          .getRange(targetRowIndex, headerMap.get(HEADER_END_TIME) + 1)
+          .getRange(targetRowIndex, headerMap.get(CONSTANTS.HEADERS.END_TIME) + 1)
           .setValue(endTime ? new Date(`1970-01-01T${endTime}`) : null)
           .setNumberFormat('HH:mm');
     }
@@ -734,7 +738,7 @@ function saveAccountingDetails(payload) {
     updateGanttChart(sheet, targetRowIndex);
 
     // 3. 検証済みの会計詳細JSONを保存
-    const accountingDetailsColIdx = headerMap.get(HEADER_ACCOUNTING_DETAILS);
+    const accountingDetailsColIdx = headerMap.get(CONSTANTS.HEADERS.ACCOUNTING_DETAILS);
     if (accountingDetailsColIdx === undefined)
       throw new Error('ヘッダー「会計詳細」が見つかりません。');
     sheet
@@ -767,7 +771,7 @@ function saveAccountingDetails(payload) {
     );
 
     // 7. サマリーの更新
-    const targetDate = reservationDataRow[headerMap.get(HEADER_DATE)];
+    const targetDate = reservationDataRow[headerMap.get(CONSTANTS.HEADERS.DATE)];
     if (targetDate instanceof Date) {
       // サマリーシート更新は廃止 (05-3_Backend_AvailableSlots.jsに置き換え)
       // updateSummaryAndForm(classroom, targetDate);
@@ -797,7 +801,7 @@ function saveAccountingDetails(payload) {
 
     // ログと通知
     const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}, Total: ${finalAccountingDetails.grandTotal}`;
-    logActivity(studentId, '会計記録保存', '成功', logDetails);
+    logActivity(studentId, '会計記録保存', CONSTANTS.MESSAGES.SUCCESS, logDetails);
 
     const subject = `会計記録 (${classroom})`;
     const body =
@@ -827,7 +831,7 @@ function saveAccountingDetails(payload) {
       message: '会計処理と関連データの更新がすべて完了しました。',
     });
   } catch (err) {
-    logActivity(payload.studentId, '会計記録保存', 'エラー', `Error: ${err.message}`);
+    logActivity(payload.studentId, '会計記録保存', CONSTANTS.MESSAGES.ERROR, `Error: ${err.message}`);
     Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
     return BackendErrorHandler.handle(err, 'saveAccountingDetails');
   } finally {
@@ -852,20 +856,20 @@ function _logSalesForSingleReservation(
 ) {
   try {
     const baseInfo = {
-      date: reservationDataRow[headerMap.get(HEADER_DATE)],
-      studentId: reservationDataRow[headerMap.get(HEADER_STUDENT_ID)],
-      name: reservationDataRow[headerMap.get(HEADER_NAME)],
+      date: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.DATE)],
+      studentId: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.STUDENT_ID)],
+      name: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.NAME)],
       classroom: classroomName,
-      venue: reservationDataRow[headerMap.get(HEADER_VENUE)] || '',
+      venue: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.VENUE)] || '',
       paymentMethod: accountingDetails.paymentMethod || '不明',
     };
 
     const rowsToTransfer = [];
     (accountingDetails.tuition?.items || []).forEach(item => {
-      rowsToTransfer.push(createSalesRow(baseInfo, ITEM_TYPE_TUITION, item.name, item.price));
+      rowsToTransfer.push(createSalesRow(baseInfo, CONSTANTS.ITEM_TYPES.TUITION, item.name, item.price));
     });
     (accountingDetails.sales?.items || []).forEach(item => {
-      rowsToTransfer.push(createSalesRow(baseInfo, ITEM_TYPE_SALES, item.name, item.price));
+      rowsToTransfer.push(createSalesRow(baseInfo, CONSTANTS.ITEM_TYPES.SALES, item.name, item.price));
     });
 
     if (rowsToTransfer.length > 0) {
@@ -898,16 +902,16 @@ function _updateRecordCacheForSingleReservation(
   accountingDetails,
 ) {
   try {
-    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
     if (!rosterSheet) return;
 
-    const studentId = reservationDataRow[headerMap.get(HEADER_STUDENT_ID)];
-    const date = reservationDataRow[headerMap.get(HEADER_DATE)];
+    const studentId = reservationDataRow[headerMap.get(CONSTANTS.HEADERS.STUDENT_ID)];
+    const date = reservationDataRow[headerMap.get(CONSTANTS.HEADERS.DATE)];
     if (!studentId || !(date instanceof Date)) return;
 
     const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
     const rosterHeaderMap = createHeaderMap(rosterHeader);
-    const studentIdColRoster = rosterHeaderMap.get(HEADER_STUDENT_ID);
+    const studentIdColRoster = rosterHeaderMap.get(CONSTANTS.HEADERS.STUDENT_ID);
     if (studentIdColRoster === undefined) return;
 
     const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, 1).getValues();
@@ -926,14 +930,14 @@ function _updateRecordCacheForSingleReservation(
       rosterSheet.getRange(1, recordColIdx + 1).setValue(colName);
     }
 
-    const archiveSheetName = HEADER_ARCHIVE_PREFIX + classroomName.slice(0, -2);
+    const archiveSheetName = CONSTANTS.SYSTEM.ARCHIVE_PREFIX + classroomName.slice(0, -2);
     const newRecord = {
-      reservationId: reservationDataRow[headerMap.get(HEADER_RESERVATION_ID)] || '',
+      reservationId: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID)] || '',
       sheetName: archiveSheetName,
       date: Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
       classroom: classroomName,
-      venue: reservationDataRow[headerMap.get(HEADER_VENUE)] || '',
-      workInProgress: reservationDataRow[headerMap.get(HEADER_WORK_IN_PROGRESS)] || '',
+      venue: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.VENUE)] || '',
+      workInProgress: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS)] || '',
       accountingDetails: JSON.stringify(accountingDetails),
     };
 
@@ -970,7 +974,7 @@ function _updateRecordCacheForSingleReservation(
 function _archiveSingleReservation(sourceSheet, rowIndex, reservationDataRow) {
   try {
     const classroomName = sourceSheet.getName();
-    const archiveSheetName = HEADER_ARCHIVE_PREFIX + classroomName.slice(0, -2);
+    const archiveSheetName = CONSTANTS.SYSTEM.ARCHIVE_PREFIX + classroomName.slice(0, -2);
     const archiveSheet = getSheetByName(archiveSheetName);
 
     if (!archiveSheet) {
@@ -1003,7 +1007,7 @@ function _archiveSingleReservation(sourceSheet, rowIndex, reservationDataRow) {
  */
 function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studentId) {
   const lock = LockService.getScriptLock();
-  lock.waitLock(LOCK_WAIT_TIME_MS);
+  lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
   try {
     const ss = getActiveSpreadsheet();
 
@@ -1013,8 +1017,8 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
 
     const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     const headerMap = createHeaderMap(header);
-    const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
-    const wipColIdx = headerMap.get(HEADER_WORK_IN_PROGRESS);
+    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
+    const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
 
     if (reservationIdColIdx === undefined || wipColIdx === undefined) {
       throw new Error(`必要なヘッダー（予約ID, 制作メモ）が見つかりません。`);
@@ -1029,13 +1033,13 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
     SpreadsheetApp.flush();
 
     // 2. 生徒名簿の年別きろくキャッシュを更新
-    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
     if (rosterSheet) {
       const rosterHeader = rosterSheet
         .getRange(1, 1, 1, rosterSheet.getLastColumn())
         .getValues()[0];
       const rosterHeaderMap = createHeaderMap(rosterHeader);
-      const studentIdCol = rosterHeaderMap.get(HEADER_STUDENT_ID);
+      const studentIdCol = rosterHeaderMap.get(CONSTANTS.HEADERS.STUDENT_ID);
 
       if (studentIdCol !== undefined) {
         const rosterData = rosterSheet
@@ -1046,7 +1050,7 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
         if (userRowIndex !== -1) {
           // 更新された予約の年を取得
           const updatedDate = new Date(
-            sheet.getRange(targetRowIndex, headerMap.get(HEADER_DATE) + 1).getValue(),
+            sheet.getRange(targetRowIndex, headerMap.get(CONSTANTS.HEADERS.DATE) + 1).getValue(),
           );
           const year = updatedDate.getFullYear();
           const yearCacheCol = rosterHeaderMap.get(`きろく_${year}`);
@@ -1070,13 +1074,13 @@ function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studen
     logActivity(
       studentId,
       '制作メモ更新',
-      '成功',
+      CONSTANTS.MESSAGES.SUCCESS,
       `ResID: ${reservationId}, Sheet: ${sheetName}, Memo: ${newMemo.length}文字`,
     );
     return getParticipationHistory(studentId, null, null);
   } catch (err) {
     const details = `ResID: ${reservationId}, Sheet: ${sheetName}, Error: ${err.message}`;
-    logActivity(studentId, '制作メモ更新', 'エラー', details);
+    logActivity(studentId, '制作メモ更新', CONSTANTS.MESSAGES.ERROR, details);
     Logger.log(`updateMemo Error: ${err.message}\n${err.stack}`);
     return BackendErrorHandler.handle(err, 'updateMemo');
   } finally {
