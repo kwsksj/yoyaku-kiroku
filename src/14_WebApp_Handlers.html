@@ -90,7 +90,7 @@
             accountingMaster: getEnvironmentData('accountingMaster', {}),
             history: getEnvironmentData('history', []),
             historyTotal: getEnvironmentData('history', []).length,
-            recordsToShow: UI_HISTORY_INITIAL_RECORDS,
+            recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
             view: 'dashboard', // テスト環境ではダッシュボードに直接遷移
           });
         }, 300);
@@ -135,7 +135,7 @@
             setState({
               ...newAppState,
               isFirstTimeBooking: isFirstTime,
-              recordsToShow: UI_HISTORY_INITIAL_RECORDS,
+              recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
               isDataFresh: true, // ログイン時にデータを読み込んだことを記録
             });
           } else {
@@ -433,7 +433,7 @@
               accountingMaster: response.data.initial.accountingMaster,
               history: myHistory,
               historyTotal: myHistory.length,
-              recordsToShow: UI_HISTORY_INITIAL_RECORDS,
+              recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
               view: 'editProfile', // 電話番号登録を促すためプロフィール編集画面へ
               today: today,
               _allStudents: response.data.initial.allStudents,
@@ -527,7 +527,12 @@
       };
 
       showLoading('booking');
-      const p = { ...appState.selectedSlot, user: appState.currentUser, options: bookingOptions };
+      const p = { 
+        ...appState.selectedSlot, 
+        user: appState.currentUser, 
+        studentId: appState.currentUser.studentId,
+        options: bookingOptions 
+      };
 
       google.script.run
         .withSuccessHandler(r => {
@@ -736,7 +741,8 @@
 
     /** 参加記録を追加で読み込みます（統合ダッシュボード用） */
     loadMoreHistory: () => {
-      const newCount = (appState.recordsToShow || UI_HISTORY_INITIAL_RECORDS) + UI_HISTORY_LOAD_MORE_RECORDS;
+      const newCount =
+        (appState.recordsToShow || UI?.HISTORY_INITIAL_RECORDS || 10) + (UI?.HISTORY_LOAD_MORE_RECORDS || 10);
       setState({ recordsToShow: newCount });
     },
 
@@ -921,7 +927,7 @@
     const reservationId = appState.accountingReservation.reservationId;
     // モーダル内の支払い方法を取得
     const modalForm = document.getElementById('modal-accounting-form');
-    let paymentMethod = PAYMENT_METHOD_CASH;
+    let paymentMethod = PAYMENT.CASH;
     if (modalForm) {
       const selected = modalForm.querySelector('input[name="payment-method"]:checked');
       if (selected) paymentMethod = selected.value;
@@ -937,7 +943,7 @@
     };
 
     // 授業料項目（チェックボックス）
-    form.querySelectorAll(`input[type="checkbox"][data-item-type="${ITEM_TYPE_TUITION}"]:checked`).forEach(cb => {
+    form.querySelectorAll(`input[type="checkbox"][data-item-type="${C.itemTypes.TUITION}"]:checked`).forEach(cb => {
       userInput.tuitionItems.push(cb.dataset.itemName);
     });
 
@@ -1023,6 +1029,11 @@
     Object.assign(appState, newState);
     console.log('setState() - 変更後のappState:', appState);
 
+    // 統一定数の短縮参照を初期化（constants が設定された場合）
+    if (newState.constants) {
+      initializeConstantShortcuts();
+    }
+
     // データの整合性チェック
     if (appState.myBookings && !Array.isArray(appState.myBookings)) {
       appState.myBookings = [];
@@ -1038,8 +1049,9 @@
     }
 
     // データが変更された場合、計算済みデータを更新
+    // 統一定数が初期化されている場合のみ実行
     const dataChanged = hasDataChanged(newState);
-    if (dataChanged) {
+    if (dataChanged && C) {
       updateComputedData();
     }
 

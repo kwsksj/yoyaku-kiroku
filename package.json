@@ -1,6 +1,7 @@
 {
   "name": "yoyaku-kiroku",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "directories": {
     "doc": "docs"
@@ -38,6 +39,7 @@
     "@google/clasp": "^3.0.6-alpha",
     "@types/google-apps-script": "^1.0.99",
     "eslint": "^9.33.0",
+    "globals": "^16.3.0",
     "prettier": "^3.6.2"
   }
 }

@@ -35,6 +35,7 @@ function getAvailableSlots() {
     // 2. キャッシュから全予約データを取得
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     const allReservations = reservationsCache ? reservationsCache.reservations || [] : [];
+    const headerMap = reservationsCache ? reservationsCache.headerMap : null;
     Logger.log(`全予約キャッシュから取得した予約データ: ${allReservations.length} 件`);
 
     if (allReservations.length === 0) {
@@ -48,9 +49,9 @@ function getAvailableSlots() {
     // 3. 配列形式の予約データをオブジェクト形式に変換
     const convertedReservations = allReservations
       .map(reservation => {
-        // 既存のUtilitiesの変換関数を使用
+        // ヘッダーマップを使用した変換関数を使用
         if (Array.isArray(reservation)) {
-          return transformReservationArrayToObject(reservation);
+          return transformReservationArrayToObjectWithHeaders(reservation, headerMap);
         }
         // 既にオブジェクト形式の場合はそのまま返す
         return reservation;
@@ -280,7 +281,10 @@ function getAvailableSlotsForClassroom(classroom) {
   if (!result.success) {
     return createApiResponse(false, { message: result.message, data: [] });
   }
-  return createApiResponse(true, result.data.filter(slot => slot.classroom === classroom));
+  return createApiResponse(
+    true,
+    result.data.filter(slot => slot.classroom === classroom),
+  );
 }
 
 /**
@@ -292,17 +296,18 @@ function getUserReservations(studentId) {
   try {
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     const allReservations = reservationsCache ? reservationsCache.reservations || [] : [];
+    const headerMap = reservationsCache ? reservationsCache.headerMap : null;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const myBookings = [];
     const myHistory = [];
 
-    // 配列形式のデータをオブジェクト形式に変換（既存のUtilities関数を使用）
+    // 配列形式のデータをオブジェクト形式に変換（ヘッダーマップを使用）
     const convertedReservations = allReservations
       .map(reservation => {
         if (Array.isArray(reservation)) {
-          return transformReservationArrayToObject(reservation);
+          return transformReservationArrayToObjectWithHeaders(reservation, headerMap);
         }
         return reservation;
       })
@@ -339,8 +344,8 @@ function getUserReservations(studentId) {
     });
   } catch (error) {
     Logger.log(`getUserReservations エラー: ${error.message}`);
-    return BackendErrorHandler.handle(error, 'getUserReservations', { 
-      data: { myBookings: [], myHistory: [] }
+    return BackendErrorHandler.handle(error, 'getUserReservations', {
+      data: { myBookings: [], myHistory: [] },
     });
   }
 }

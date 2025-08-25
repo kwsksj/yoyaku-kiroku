@@ -133,7 +133,13 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 
 ### Claude Code Development Guidelines
 
-- **After Code Changes**: Run `npm run push:test` when testing is needed and prompt user to test
+- **Testing and Deployment**:
+  - **For Testing**: Use `npm run push:test` to push code to test environment
+  - **For Production**: Use `npm run push:prod` only after thorough testing
+  - **DO NOT use** `npm run build` for deployment - it only creates local unified test HTML
+  - The test environment has a head deployment ID configured in `.clasp.json`
+- **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to
+  test
 - **Data Model Migration**: Frontend integration with unified model is currently in progress
 
 ### Code Quality Standards

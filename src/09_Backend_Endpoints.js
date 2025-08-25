@@ -240,7 +240,7 @@ function getAppInitialData() {
           colors: CONSTANTS.COLORS,
           classroomTypes: CONSTANTS.CLASSROOM_TYPES,
           scheduleStatus: CONSTANTS.SCHEDULE_STATUS,
-          scheduleHeaders: CONSTANTS.SCHEDULE_HEADERS
+          scheduleHeaders: CONSTANTS.SCHEDULE_HEADERS,
         },
         cacheVersions: {
           allReservations: allReservationsCache?.version || 0,
@@ -340,15 +340,11 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
         `getBatchData: getAvailableSlots結果 - success: ${availableSlotsResult.success}, data.length: ${availableSlotsResult.data ? availableSlotsResult.data.length : 'null'}`,
       );
       if (!availableSlotsResult.success) {
-        Logger.log(
-          `getBatchData: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`,
-        );
+        Logger.log(`getBatchData: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`);
         return availableSlotsResult;
       }
       result.data.slots = availableSlotsResult.data;
-      Logger.log(
-        `getBatchData: result.data.slotsに${availableSlotsResult.data.length}件設定完了`,
-      );
+      Logger.log(`getBatchData: result.data.slotsに${availableSlotsResult.data.length}件設定完了`);
     }
 
     // 3. 個人予約データが要求されている場合

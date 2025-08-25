@@ -117,7 +117,8 @@ function makeReservation(reservationInfo) {
     const orderColIdx = headerMap.get('order');
     const messageColIdx = headerMap.get('メッセージ');
 
-    const capacity = CLASSROOM_CAPACITIES[classroom] || CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
+    const capacity =
+      CLASSROOM_CAPACITIES[classroom] || CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
     let isFull = false;
 
     // 同日同教室の予約をフィルタリング
@@ -196,7 +197,8 @@ function makeReservation(reservationInfo) {
       const master = getAccountingMasterData().data;
       const tokyoRule = master.find(
         item =>
-          item['項目名'] === CONSTANTS.ITEMS.MAIN_LECTURE && item['対象教室'] === CONSTANTS.CLASSROOMS.TOKYO,
+          item['項目名'] === CONSTANTS.ITEMS.MAIN_LECTURE &&
+          item['対象教室'] === CONSTANTS.CLASSROOMS.TOKYO,
       );
       if (tokyoRule) {
         let finalStartTime = tokyoRule[HEADER_CLASS_START];
@@ -311,9 +313,9 @@ function makeReservation(reservationInfo) {
       `詳細はスプレッドシートを確認してください。`;
     sendAdminNotification(subject, body);
 
-    return createApiResponse(true, { 
-      message: message, 
-      newBookingsCache: newBookingsCache 
+    return createApiResponse(true, {
+      message: message,
+      newBookingsCache: newBookingsCache,
     });
   } catch (err) {
     logActivity(reservationInfo.user.studentId, '予約作成', 'エラー', `Error: ${err.message}`);
@@ -579,7 +581,10 @@ function updateReservationDetails(details) {
     const logDetails = `ReservationID: ${details.reservationId}, Classroom: ${details.classroom}${messageLog}`;
     logActivity(studentId, '予約詳細更新', '成功', logDetails);
 
-    return createApiResponse(true, { newBookingsCache: newBookingsCache });
+    return createApiResponse(true, {
+      newBookingsCache: newBookingsCache,
+      message: '予約内容を更新しました。',
+    });
   } catch (err) {
     logActivity(details.studentId || '(N/A)', '予約詳細更新', 'エラー', `Error: ${err.message}`);
     Logger.log(`updateReservationDetails Error: ${err.message}\n${err.stack}`);

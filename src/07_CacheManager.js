@@ -263,6 +263,7 @@ function rebuildAllReservationsCache() {
     const cacheData = {
       version: new Date().getTime(),
       reservations: allReservationRows,
+      headerMap: Object.fromEntries(headerColumnMap), // MapオブジェクトをPlainオブジェクトに変換
       metadata: {
         totalCount: allReservationRows.length,
         lastUpdated: new Date().toISOString(),

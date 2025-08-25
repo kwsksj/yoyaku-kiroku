@@ -47,9 +47,12 @@
   const getDiscountHtml = (discountRule, selectedValue) => {
     if (!discountRule) return '';
     const options = [
-      { value: DISCOUNT_OPTION_NONE, text: 'なし' },
-      { value: DISCOUNT_OPTION_30MIN, text: `30分 (${Math.abs(Number(discountRule['単価']))}円引)` },
-      { value: DISCOUNT_OPTION_60MIN, text: `60分 (${Math.abs(Number(discountRule['単価'])) * 2}円引)` },
+      { value: C.frontendUi.DISCOUNT_OPTIONS.NONE, text: 'なし' },
+      { value: C.frontendUi.DISCOUNT_OPTIONS.THIRTY_MIN, text: `30分 (${Math.abs(Number(discountRule['単価']))}円引)` },
+      {
+        value: C.frontendUi.DISCOUNT_OPTIONS.SIXTY_MIN,
+        text: `60分 (${Math.abs(Number(discountRule['単価'])) * 2}円引)`,
+      },
     ];
     return `
         <div class="mt-4 pt-4 border-t border-ui-border-light">
@@ -68,19 +71,19 @@
     return `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
-                <div class="${DesignConfig.text.body}"><span class="font-bold">${appState.constants?.paymentDisplay?.COTRA || 'ことら送金'}:</span><span class="ml-2">${appState.constants?.bankInfo?.COTRA_PHONE || BANK_COTRA_PHONE}</span></div>
-                <button data-action="copyToClipboard" data-copy-text="${appState.constants?.bankInfo?.COTRA_PHONE || BANK_COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="${DesignConfig.text.body}"><span class="font-bold">${PAYMENT.COTRA}:</span><span class="ml-2">${BANK.COTRA_PHONE}</span></div>
+                <button data-action="copyToClipboard" data-copy-text="${BANK.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
-            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${appState.constants?.bankInfo?.NAME || BANK_NAME}</span></div>
+            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${BANK.NAME}</span></div>
             <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">店番: ${appState.constants?.bankInfo?.BRANCH || BANK_BRANCH}</div>
-                <button data-action="copyToClipboard" data-copy-text="${appState.constants?.bankInfo?.BRANCH || BANK_BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="text-base text-brand-text">店番: ${BANK.BRANCH}</div>
+                <button data-action="copyToClipboard" data-copy-text="${BANK.BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
             <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">普通: ${appState.constants?.bankInfo?.ACCOUNT || BANK_ACCOUNT}</div>
-                <button data-action="copyToClipboard" data-copy-text="${appState.constants?.bankInfo?.ACCOUNT || BANK_ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+                <div class="text-base text-brand-text">普通: ${BANK.ACCOUNT}</div>
+                <button data-action="copyToClipboard" data-copy-text="${BANK.ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>`;
   };
@@ -103,20 +106,20 @@
             </p>
         </details>`;
     const options = [
-      { 
-        value: appState.constants?.paymentDisplay?.CASH || PAYMENT_METHOD_CASH, 
-        text: appState.constants?.paymentDisplay?.CASH || PAYMENT_METHOD_CASH, 
-        details: '' 
+      {
+        value: PAYMENT.CASH,
+        text: PAYMENT.CASH,
+        details: '',
       },
-      { 
-        value: appState.constants?.paymentDisplay?.COTRA || PAYMENT_METHOD_COTRA, 
-        text: appState.constants?.paymentDisplay?.COTRA || PAYMENT_METHOD_COTRA, 
-        details: cotraDetails 
+      {
+        value: PAYMENT.COTRA,
+        text: PAYMENT.COTRA,
+        details: cotraDetails,
       },
-      { 
-        value: appState.constants?.paymentDisplay?.BANK_TRANSFER || PAYMENT_METHOD_BANK_TRANSFER, 
-        text: appState.constants?.paymentDisplay?.BANK_TRANSFER || PAYMENT_METHOD_BANK_TRANSFER, 
-        details: '' 
+      {
+        value: PAYMENT.BANK_TRANSFER,
+        text: PAYMENT.BANK_TRANSFER,
+        details: '',
       },
     ];
     return (
@@ -224,9 +227,7 @@
       }
       // キャンセル済みstatus は予約・履歴どちらでも表示（英語・日本語両方に対応）
       const isCancelled =
-        item.status === STATUS_CANCEL ||
-        item.status === 'キャンセル' ||
-        item.status === 'キャンセル済み';
+        item.status === STATUS.CANCEL || item.status === 'キャンセル' || item.status === 'キャンセル済み';
       if (isCancelled) {
         statusBadges += `<p class="font-bold text-ui-error-text text-lg">キャンセル済</p>`;
       }
@@ -312,7 +313,7 @@
 
     const rentalChecked = initial.chiselRental || initial['彫刻刀レンタル'] === true ? 'checked' : '';
 
-    const discountRule = appState.accountingMaster.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
+    const discountRule = appState.accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
     const discountHtml = discountRule
       ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule, initial.discountMinutes || '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
       : '';
@@ -328,8 +329,8 @@
             <div id="calculated-hours" class="text-left text-base ${DesignConfig.colors.textSubtle} mt-2"></div>
             <div class="pt-3 mt-3 border-t border-gray-200">
                 <label class="flex items-center justify-between">
-                    <span class="text-brand-text">${ITEM_NAME_CHISEL_RENTAL}</span>
-                    <input type="checkbox" name="chiselRental" data-item-type="${ITEM_TYPE_TUITION}" data-item-name="${ITEM_NAME_CHISEL_RENTAL}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text" ${rentalChecked}>
+                    <span class="text-brand-text">${C.items.CHISEL_RENTAL}</span>
+                    <input type="checkbox" name="chiselRental" data-item-type="${C.itemTypes.TUITION}" data-item-name="${C.items.CHISEL_RENTAL}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text" ${rentalChecked}>
                 </label>
             </div>
             ${discountHtml}
@@ -670,9 +671,7 @@
                 ${sortedBookings
                   .filter(b => {
                     const isCancelled =
-                      b.status === STATUS_CANCEL ||
-                      b.status === 'キャンセル' ||
-                      b.status === 'キャンセル済み';
+                      b.status === STATUS.CANCEL || b.status === 'キャンセル' || b.status === 'キャンセル済み';
                     return !isCancelled; // キャンセル済み予約を念のため除外
                   })
                   .map(b => {
@@ -732,7 +731,7 @@
                     ${recordsToShow
                       .filter(h => {
                         const isCancelled =
-                          h.status === STATUS_CANCEL || h.status === 'キャンセル' || h.status === 'キャンセル済み';
+                          h.status === STATUS.CANCEL || h.status === 'キャンセル' || h.status === 'キャンセル済み';
                         return !isCancelled; // キャンセル済み予約を念のため除外
                       })
                       .map(h => {
@@ -771,7 +770,7 @@
                         });
                       })
                       .join('')}
-                    ${(appState.recordsToShow || UI_HISTORY_INITIAL_RECORDS) < appState.computed.sortedHistory.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">もっとみる</button></div>` : ''}
+                    ${(appState.recordsToShow || 10) < appState.computed.sortedHistory.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">もっとみる</button></div>` : ''}
                 </div>
             </div>
         `;
@@ -918,7 +917,7 @@
               const booking = appState.computed.sortedBookings.find(
                 b => b.date === sl.date && b.classroom === sl.classroom,
               );
-              if (booking && booking.status === STATUS_WAITING) {
+              if (booking && booking.status === STATUS.WAITING) {
                 cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
               } else {
@@ -1066,22 +1065,32 @@
      */
     const _renderTimeOptionsSection = () => {
       // 30分単位の教室の場合
-      if (tuitionItemRule && tuitionItemRule['単位'] === UNIT_30_MIN) {
+      if (tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN) {
         const classStartHour = parseInt(tuitionItemRule['講座開始'].split(':')[0]);
         const classEndHour = parseInt(tuitionItemRule['講座終了'].split(':')[0]);
         const classEndMinutes = parseInt(tuitionItemRule['講座終了'].split(':')[1]);
 
         // Note: 外部で定義されている `getTimeOptionsHtml` を呼び出していると想定
-        const startTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, TIME_STEP_MINUTES, startTime);
-        let endTimeOptions = getTimeOptionsHtml(classStartHour, classEndHour, TIME_STEP_MINUTES, endTime);
+        const startTimeOptions = getTimeOptionsHtml(
+          classStartHour,
+          classEndHour,
+          C.frontendUi.TIME_SETTINGS.STEP_MINUTES,
+          startTime,
+        );
+        let endTimeOptions = getTimeOptionsHtml(
+          classStartHour,
+          classEndHour,
+          C.frontendUi.TIME_SETTINGS.STEP_MINUTES,
+          endTime,
+        );
         if (classEndMinutes > 0) {
           const finalEndTime = `${String(classEndHour).padStart(2, '0')}:${String(classEndMinutes).padStart(2, '0')}`;
           endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
         }
 
-        const discountRule = getTuitionItemRule(master, classroom, ITEM_NAME_DISCOUNT);
+        const discountRule = getTuitionItemRule(master, classroom, C.items.DISCOUNT);
         let discountHtml = '';
-        if (discountRule && (classroom === TSUKUBA_CLASSROOM_NAME || classroom === NUMAZU_CLASSROOM_NAME)) {
+        if (discountRule && (classroom === C.classrooms.TSUKUBA || classroom === C.classrooms.NUMAZU)) {
           const discountAmountText = `${Math.abs(Number(discountRule['単価']))}円`;
           const discountUnitText = discountRule['単位'];
           discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule['項目名']}: ${discountRule.説明 || `参加時間が初回講習と重なる場合、${discountUnitText}あたり${discountAmountText}割引`}</p>`;
@@ -1108,10 +1117,10 @@
       const firstLectureChecked = firstLecture ? 'checked' : '';
       const rentalChecked = chiselRental ? 'checked' : '';
 
-      if (classroom === TOKYO_CLASSROOM_NAME) {
-        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked}><span>${ITEM_NAME_FIRST_LECTURE}</span></label>`;
+      if (classroom === C.classrooms.TOKYO) {
+        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked}><span>${C.items.FIRST_LECTURE}</span></label>`;
       }
-      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>${ITEM_NAME_CHISEL_RENTAL}</span></label></div>`;
+      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>${C.items.CHISEL_RENTAL}</span></label></div>`;
 
       return `
         <div class="mt-4 pt-4 border-t">
@@ -1131,9 +1140,7 @@
 
       // 物販チェックリスト（折り畳み）
       const salesChecklistHtml =
-        typeof buildSalesChecklist === 'function'
-          ? buildSalesChecklist(appState.accountingMaster)
-          : '';
+        typeof buildSalesChecklist === 'function' ? buildSalesChecklist(appState.accountingMaster) : '';
 
       return `
         <div class="mt-4 pt-4 border-t space-y-4">
@@ -1337,24 +1344,24 @@
       }
     }
     const master = appState.accountingMaster;
-    const tuitionItemRule = getTuitionItemRule(master, r.classroom, ITEM_NAME_MAIN_LECTURE);
-    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === UNIT_30_MIN;
+    const tuitionItemRule = getTuitionItemRule(master, r.classroom, C.items.MAIN_LECTURE);
+    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
     let tuitionHtml;
     if (isTimeBased) {
       tuitionHtml = getTimeBasedTuitionHtml(tuitionItemRule, initial);
     } else {
       const tuitionItems = master.filter(
         item =>
-          item['種別'] === ITEM_TYPE_TUITION &&
+          item['種別'] === C.itemTypes.TUITION &&
           (item['対象教室'] === '共通' || (item['対象教室'] && item['対象教室'].includes(r.classroom))),
       );
       tuitionHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3> <div class="space-y-3">${tuitionItems
         .map(item => {
-          const isMandatory = item['項目名'] === ITEM_NAME_MAIN_LECTURE;
+          const isMandatory = item['項目名'] === C.items.MAIN_LECTURE;
           let isChecked = isMandatory || initial[item['項目名']] === true;
-          if (item['項目名'] === ITEM_NAME_FIRST_LECTURE && initial.firstLecture) isChecked = true;
-          if (item['項目名'] === ITEM_NAME_CHISEL_RENTAL && initial.chiselRental) isChecked = true;
-          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" name="${item['項目名']}" data-item-type="${ITEM_TYPE_TUITION}" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`;
+          if (item['項目名'] === C.items.FIRST_LECTURE && initial.firstLecture) isChecked = true;
+          if (item['項目名'] === C.items.CHISEL_RENTAL && initial.chiselRental) isChecked = true;
+          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" name="${item['項目名']}" data-item-type="${C.itemTypes.TUITION}" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`;
         })
         .join(
           '',

@@ -10,7 +10,7 @@
 
 ## フロントエンドの精査結果
 
-### 構造概要
+### 構造概要（フロントエンド）
 
 フロントエンドは5つのHTMLファイルに分かれて構成されています：
 
@@ -20,7 +20,7 @@
 - `13_WebApp_Views.html` - 各画面のHTML生成
 - `14_WebApp_Handlers.html` - イベントハンドラとアプリ制御
 
-### 🔴 フロントエンドの重大な問題点
+### 🔴 重大な問題点（フロントエンド）
 
 #### 1. **命名規則の不統一**
 
@@ -69,16 +69,16 @@ const TSUKUBA_CLASSROOM_NAME = 'つくば教室';
 ```javascript
 // 12_WebApp_Core.html:484-510行
 function handleServerError(err) {
-    // エラーの型チェックが不適切
-    if (typeof err === 'object' && err.message) {
-        errorMessage = err.message;
-    } else {
-        errorMessage = JSON.stringify(err);
-    }
+  // エラーの型チェックが不適切
+  if (typeof err === 'object' && err.message) {
+    errorMessage = err.message;
+  } else {
+    errorMessage = JSON.stringify(err);
+  }
 }
 ```
 
-### 🟡 改善が必要な問題点
+### 🟡 改善が必要な問題点（フロントエンド）
 
 #### 7. **HTML生成の非効率性**
 
@@ -104,7 +104,7 @@ function handleServerError(err) {
 - コンソールログの過剰出力
 - デバッグHTMLの埋め込み（13_WebApp_Views.html:794-805行）
 
-### 🟢 良好な点
+### 🟢 良好な点（フロントエンド）
 
 #### 11. **モジュール分離**
 
@@ -122,8 +122,8 @@ function handleServerError(err) {
 
 ### 関数名の問題例
 
-| 現在の名前                         | 問題点               | 改善案                |
-| ---------------------------------- | -------------------- | --------------------- |
+| 現在の名前                         | 問題点                | 改善案                |
+| ---------------------------------- | --------------------- | --------------------- |
 | `getLoginView`                     | ✅ 適切               | -                     |
 | `getUserSearchView`                | ✅ 適切               | -                     |
 | `getMemoEditModalHtml`             | 🔴 長すぎ、役割不明確 | `buildMemoEditModal`  |
@@ -135,8 +135,8 @@ function handleServerError(err) {
 
 ### 変数名の問題例
 
-| 現在の名前                  | 問題点                 | 改善案               |
-| --------------------------- | ---------------------- | -------------------- |
+| 現在の名前                  | 問題点                  | 改善案               |
+| --------------------------- | ----------------------- | -------------------- |
 | `myBookings`                | 🟡 所有者不明確         | `userBookings`       |
 | `phoneForRegistration`      | 🔴 冗長                 | `registrationPhone`  |
 | `editingReservationDetails` | 🔴 冗長                 | `editingReservation` |
@@ -146,8 +146,8 @@ function handleServerError(err) {
 
 ### 定数名の問題例
 
-| 現在の名前                    | 問題点 | 改善案              |
-| ----------------------------- | ------ | ------------------- |
+| 現在の名前                    | 問題点  | 改善案              |
+| ----------------------------- | ------- | ------------------- |
 | `TOKYO_CLASSROOM_NAME`        | 🔴 冗長 | `CLASSROOM.TOKYO`   |
 | `ITEM_NAME_MAIN_LECTURE`      | 🔴 冗長 | `ITEM.MAIN_LECTURE` |
 | `UI_LOADING_MESSAGE_INTERVAL` | 🔴 冗長 | `LOADING_INTERVAL`  |
@@ -198,7 +198,7 @@ if (appState.view === 'accounting') {
 ```javascript
 window.escapeHTML = str => {
   // エスケープ処理があるが、使用箇所が統一されていない
-}
+};
 ```
 
 ### 🟡 論理的な不整合
@@ -221,7 +221,7 @@ window.escapeHTML = str => {
 
 ## バックエンドの精査結果
 
-### 構造概要
+### 構造概要（バックエンド）
 
 バックエンドは機能別に17のJavaScriptファイルに分かれています：
 
@@ -232,7 +232,7 @@ window.escapeHTML = str => {
 - `07_CacheManager.js` - キャッシュ管理システム
 - その他（ビジネスロジック、ユーティリティなど）
 
-### 🔴 重大な問題点
+### 🔴 重大な問題点（バックエンド）
 
 #### 1. **定数の重複定義**
 
@@ -280,15 +280,15 @@ const TSUKUBA_CLASSROOM_NAME = 'つくば教室';
 ```javascript
 // 07_CacheManager.js:63行 - tryLockパターン
 if (!scriptLock.tryLock(LOCK_WAIT_TIME_MS)) {
-    userInterface.alert('現在、他の重い処理が実行中です。');
-    return;
+  userInterface.alert('現在、他の重い処理が実行中です。');
+  return;
 }
 
 // 05-2_Backend_Write.js:63行 - waitLockパターン
 lock.waitLock(LOCK_WAIT_TIME_MS);
 ```
 
-### 🟡 改善が必要な問題点
+### 🟡 改善が必要な問題点（バックエンド）
 
 #### 5. **トランザクション管理の不備**
 
@@ -308,7 +308,7 @@ lock.waitLock(LOCK_WAIT_TIME_MS);
 - 非効率的なデータ取得パターン
 - 不要なデータの重複取得
 
-### 🟢 良好な点
+### 🟢 良好な点（バックエンド）
 
 #### 8. **統合エンドポイント設計**
 
@@ -343,17 +343,17 @@ const CONSTANTS = {
   CLASSROOMS: {
     TOKYO: '東京教室',
     NUMAZU: '沼津教室',
-    TSUKUBA: 'つくば教室'
+    TSUKUBA: 'つくば教室',
   },
   ITEMS: {
     MAIN_LECTURE: '本講座',
     FIRST_LECTURE: '初回講習',
-    CHISEL_RENTAL: '彫刻刀レンタル'
+    CHISEL_RENTAL: '彫刻刀レンタル',
   },
   STATUS: {
     WAITING: 'waiting',
-    CANCEL: 'cancel'
-  }
+    CANCEL: 'cancel',
+  },
 };
 
 // 使用例（フロントエンド）
@@ -429,7 +429,7 @@ function getReservationDetails(params) {
 - 状態更新の起点が複数存在
 - 楽観的UIと悲観的UIの混在
 
-**改修案：Redux風の状態管理**
+改修案：**Redux風の状態管理**
 
 ```javascript
 // 新規作成: 12_WebApp_StateManager.html
@@ -437,15 +437,18 @@ const StateManager = {
   state: {
     user: null,
     bookings: [],
-    ui: { view: 'login', loading: false }
+    ui: { view: 'login', loading: false },
   },
 
   reducers: {
     user: (state, action) => {
-      switch(action.type) {
-        case 'SET_USER': return action.payload;
-        case 'CLEAR_USER': return null;
-        default: return state;
+      switch (action.type) {
+        case 'SET_USER':
+          return action.payload;
+        case 'CLEAR_USER':
+          return null;
+        default:
+          return state;
       }
     },
     // 他のreducerも定義
@@ -461,7 +464,7 @@ const StateManager = {
   render() {
     // 既存のrender関数を呼び出し
     render();
-  }
+  },
 };
 ```
 
@@ -478,7 +481,7 @@ class ErrorHandler {
       stack: error.stack,
       context: context,
       timestamp: new Date().toISOString(),
-      userId: appState.currentUser?.studentId || 'anonymous'
+      userId: appState.currentUser?.studentId || 'anonymous',
     };
 
     // ログ記録
@@ -499,7 +502,7 @@ class ErrorHandler {
 
 #### 6. **キャッシュシステムの最適化**
 
-**改修案：キャッシュ戦略の明確化**
+改修案：**キャッシュ戦略の明確化**
 
 ```javascript
 // キャッシュ戦略の定義
@@ -511,7 +514,7 @@ const CACHE_STRATEGY = {
   MASTER_DATA: { service: 'PropertiesService', ttl: -1 }, // 無期限
 
   // 中頻度更新、中期間保持
-  RESERVATION_DATA: { service: 'CacheService', ttl: 3600 } // 1時間
+  RESERVATION_DATA: { service: 'CacheService', ttl: 3600 }, // 1時間
 };
 ```
 

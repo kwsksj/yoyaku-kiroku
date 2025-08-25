@@ -16,36 +16,36 @@
   // =================================================================
   // 1. APPLICATION CONSTANTS（統一定数システム）
   // =================================================================
-  
+
   // 【重要】統一定数は getAppInitialData() で取得される constants オブジェクトを使用
   // バックエンドの 00_Constants.js で定義された統一定数がフロントエンドに配信される
   //
   // 使用例:
   // - appState.constants.classrooms.TOKYO （'東京教室'）
-  // - appState.constants.headers.STUDENT_ID （'生徒ID'）  
-  // - appState.constants.status.WAITING （'waiting'）
+  // - appState.constants.headers.STUDENT_ID （'生徒ID'）
+  // - STATUS.WAITING （'waiting'）
   // - appState.constants.sessions.MORNING （'午前'）
-  // - appState.constants.bankInfo.NAME （'ゆうちょ銀行'）
+  // - BANK.NAME （'ゆうちょ銀行'）
   // - appState.constants.frontendUi.DISCOUNT_OPTIONS.THIRTY_MIN （30）
   //
   // 注意: このファイルでは、バックエンド定数との重複を避けるため
   // フロントエンド固有の定数のみ定義する
-  
+
   // --- フロントエンド専用定数（統一定数システムに移行済み） ---
-  
+
   // 【移行完了】以下の定数は 00_Constants.js に移行し、constants オブジェクトでアクセス可能
   // - ITEM_NAME_DISCOUNT → appState.constants.items.DISCOUNT
   // - SESSION_MORNING/AFTERNOON/ALL_DAY → appState.constants.sessions.MORNING/AFTERNOON/ALL_DAY
   // - UNIT_CM3 → appState.constants.units.CM3
-  // - PAYMENT_METHOD_* → appState.constants.paymentDisplay.*
-  // - BANK_* → appState.constants.bankInfo.*
+  // - PAYMENT.* → appState.constants.paymentDisplay.*
+  // - BANK_* → BANK.*
   // - DISCOUNT_OPTION_* → appState.constants.frontendUi.DISCOUNT_OPTIONS.*
   // - TIME_STEP_MINUTES → appState.constants.frontendUi.TIME_SETTINGS.STEP_MINUTES
   // - TIME_END_BUFFER_HOURS → appState.constants.frontendUi.TIME_SETTINGS.END_BUFFER_HOURS
-  
+
   // 【互換性】既存コードとの互換性のため、必要に応じて個別定数も利用可能
   // 例: const SESSION_MORNING = appState.constants.sessions.MORNING;
-  
+
   // 【純粋にフロントエンド専用】以下は本当にフロントエンドでしか使わない定数のみ
   // 現在、純粋にフロントエンド専用の定数はありません
 

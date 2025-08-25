@@ -29,7 +29,7 @@ class BackendErrorHandler {
       context: context,
       timestamp: new Date().toISOString(),
       additionalInfo: additionalInfo,
-      type: error.constructor.name || 'Error'
+      type: error.constructor.name || 'Error',
     };
 
     // 構造化ログ出力
@@ -53,16 +53,16 @@ class BackendErrorHandler {
       meta: {
         timestamp: new Date().toISOString(),
         context: context,
-        errorId: this.generateErrorId()
+        errorId: this.generateErrorId(),
       },
       // 開発環境でのみエラー詳細を含める
-      ...(this.isDevelopmentMode() && { 
+      ...(this.isDevelopmentMode() && {
         debug: {
           stack: errorInfo.stack,
           type: errorInfo.type,
-          additionalInfo: errorInfo.additionalInfo
-        }
-      })
+          additionalInfo: errorInfo.additionalInfo,
+        },
+      }),
     };
   }
 
@@ -92,7 +92,7 @@ class BackendErrorHandler {
   static notifyAdmin(errorInfo, isCritical = false) {
     if (!ADMIN_EMAIL) return;
 
-    const subject = isCritical 
+    const subject = isCritical
       ? `🚨 [重要] システムエラー: ${errorInfo.context}`
       : `⚠️ システムエラー: ${errorInfo.context}`;
 
@@ -117,7 +117,7 @@ ${JSON.stringify(errorInfo.additionalInfo, null, 2)}
       MailApp.sendEmail({
         to: ADMIN_EMAIL,
         subject: subject,
-        body: body
+        body: body,
       });
     } catch (mailError) {
       Logger.log(`[ERROR] Admin notification failed: ${mailError.message}`);
@@ -245,7 +245,7 @@ function handleServerError(error, context = 'server-error') {
 
 /**
  * 統一APIレスポンス作成関数
- * @param {boolean} success - 成功フラグ  
+ * @param {boolean} success - 成功フラグ
  * @param {Object} data - レスポンスデータまたはエラー情報
  * @returns {Object} 統一APIレスポンス
  */
@@ -254,21 +254,21 @@ function createApiResponse(success, data = {}) {
     success: success,
     meta: {
       timestamp: new Date().toISOString(),
-      version: 1
-    }
+      version: 1,
+    },
   };
 
   if (success) {
     return {
       ...baseResponse,
       data: data.data || data,
-      message: data.message || 'Success'
+      message: data.message || 'Success',
     };
   } else {
     return {
       ...baseResponse,
       message: data.message || 'Error occurred',
-      ...(data.debug && { debug: data.debug })
+      ...(data.debug && { debug: data.debug }),
     };
   }
 }

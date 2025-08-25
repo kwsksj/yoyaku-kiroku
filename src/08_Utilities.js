@@ -398,6 +398,74 @@ function transformReservationArrayToObject(resArray) {
 }
 
 /**
+ * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
+ * @param {Array} resArray - 予約データの配列
+ * @param {Map} headerMap - ヘッダー名とインデックスのマッピング
+ * @returns {Object|null} - 変換された予約オブジェクト、失敗時はnull
+ */
+function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
+  if (!Array.isArray(resArray) || !headerMap) {
+    return transformReservationArrayToObject(resArray); // フォールバック
+  }
+
+  // ヘッダーマップから各フィールドのインデックスを取得
+  // CacheServiceでシリアライゼーション後はMapオブジェクトが通常のオブジェクトになる可能性がある
+  const getIndex = headerName => {
+    if (headerMap.get && typeof headerMap.get === 'function') {
+      return headerMap.get(headerName); // Mapオブジェクトの場合
+    } else if (typeof headerMap === 'object') {
+      return headerMap[headerName]; // 通常のオブジェクトの場合
+    }
+    return undefined;
+  };
+
+  // デバッグ情報を追加
+  const reservationIdIndex = getIndex(HEADER_RESERVATION_ID);
+  const studentIdIndex = getIndex(HEADER_STUDENT_ID);
+  const dateIndex = getIndex(HEADER_DATE);
+  
+  // インデックスが取得できているか確認
+  if (reservationIdIndex === undefined || studentIdIndex === undefined || dateIndex === undefined) {
+    Logger.log(`ヘッダーマップエラー: reservationId=${reservationIdIndex}, studentId=${studentIdIndex}, date=${dateIndex}`);
+    
+    // headerMapの型とプロパティを安全に確認
+    if (headerMap && typeof headerMap === 'object') {
+      if (headerMap.keys && typeof headerMap.keys === 'function') {
+        const headerKeys = Array.from(headerMap.keys());
+        Logger.log(`利用可能なヘッダー(Map): ${headerKeys.join(', ')}`);
+        Logger.log(`ヘッダー数: ${headerKeys.length}`);
+      } else {
+        const headerKeys = Object.keys(headerMap);
+        Logger.log(`利用可能なヘッダー(Object): ${headerKeys.join(', ')}`);
+        Logger.log(`ヘッダー数: ${headerKeys.length}`);
+        Logger.log(`ヘッダーマップ内容: ${JSON.stringify(headerMap)}`);
+      }
+    } else {
+      Logger.log(`headerMapの型: ${typeof headerMap}, 値: ${JSON.stringify(headerMap)}`);
+    }
+    
+    // フォールバックとして従来の変換関数を使用
+    return transformReservationArrayToObject(resArray);
+  }
+
+  return {
+    reservationId: resArray[getIndex(HEADER_RESERVATION_ID)],
+    studentId: resArray[getIndex(HEADER_STUDENT_ID)],
+    date: resArray[getIndex(HEADER_DATE)],
+    classroom: resArray[getIndex(HEADER_CLASSROOM)] || resArray[getIndex(HEADER_VENUE)],
+    venue: resArray[getIndex(HEADER_VENUE)],
+    startTime: resArray[getIndex(HEADER_START_TIME)],
+    endTime: resArray[getIndex(HEADER_END_TIME)],
+    status: resArray[getIndex(HEADER_STATUS)],
+    chiselRental: resArray[getIndex(HEADER_CHISEL_RENTAL)],
+    firstLecture: resArray[getIndex(HEADER_FIRST_LECTURE)],
+    workInProgress: resArray[getIndex(HEADER_WORK_IN_PROGRESS)],
+    order: resArray[getIndex(HEADER_ORDER)],
+    messageToTeacher: resArray[getIndex(HEADER_MESSAGE_TO_TEACHER)],
+  };
+}
+
+/**
  * 統一されたAPIレスポンス形式を作成
  * 注: この関数は 08_ErrorHandler.js の createApiResponse に統合されました
  * より包括的なエラーハンドリングと統一性のため、そちらを使用してください

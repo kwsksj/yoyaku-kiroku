@@ -393,6 +393,16 @@ function updateUserProfile(userInfo) {
         '成功',
         `本名: ${userInfo.realName}, 電話番号: ${userInfo.phone || 'N/A'}`,
       );
+
+      // プロフィール更新後に生徒データキャッシュを再構築
+      try {
+        rebuildAllStudentsBasicCache();
+        Logger.log('プロフィール更新後に生徒データキャッシュを再構築しました');
+      } catch (cacheError) {
+        Logger.log(`キャッシュ再構築エラー: ${cacheError.message}`);
+        // キャッシュエラーはプロフィール更新の成功を妨げない
+      }
+
       return {
         success: true,
         message: 'プロフィールを更新しました。',

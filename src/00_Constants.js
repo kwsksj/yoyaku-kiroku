@@ -41,14 +41,14 @@ const CONSTANTS = {
   CLASSROOMS: {
     TOKYO: '東京教室',
     NUMAZU: '沼津教室',
-    TSUKUBA: 'つくば教室'
+    TSUKUBA: 'つくば教室',
   },
 
   // 教室定員
   CLASSROOM_CAPACITIES: {
-    '東京教室': 8,
-    '沼津教室': 8,
-    'つくば教室': 8
+    東京教室: 8,
+    沼津教室: 8,
+    つくば教室: 8,
   },
 
   // ヘッダー名
@@ -85,7 +85,7 @@ const CONSTANTS = {
     PICKUP: '送迎',
     REAL_NAME: '本名',
     NICKNAME: 'ニックネーム',
-    PHONE: '電話番号'
+    PHONE: '電話番号',
   },
 
   // 項目名
@@ -95,20 +95,20 @@ const CONSTANTS = {
     CHISEL_RENTAL: '彫刻刀レンタル',
     TOOL_SET: '道具セット',
     MATERIAL_FEE: '材料費',
-    DISCOUNT: '初回講習同時間割引'
+    DISCOUNT: '初回講習同時間割引',
   },
 
   // ステータス
   STATUS: {
     WAITING: 'waiting',
     CANCEL: 'cancel',
-    COMPLETED: 'completed'
+    COMPLETED: 'completed',
   },
 
   // 項目種別
   ITEM_TYPES: {
     TUITION: '授業料',
-    SALES: '物販'
+    SALES: '物販',
   },
 
   // 単位
@@ -116,14 +116,14 @@ const CONSTANTS = {
     THIRTY_MIN: '30分',
     PIECE: '個',
     SET: 'セット',
-    CM3: 'cm³'
+    CM3: 'cm³',
   },
 
   // 支払い方法
   PAYMENT_METHODS: {
     CASH: 'cash',
     CARD: 'card',
-    TRANSFER: 'transfer'
+    TRANSFER: 'transfer',
   },
 
   // UI関連の定数
@@ -131,7 +131,7 @@ const CONSTANTS = {
     HISTORY_INITIAL_RECORDS: 10,
     HISTORY_LOAD_MORE_RECORDS: 10,
     LOADING_MESSAGE_INTERVAL: 2000,
-    MODAL_FADE_DURATION: 300
+    MODAL_FADE_DURATION: 300,
   },
 
   // 容量・制限
@@ -139,7 +139,7 @@ const CONSTANTS = {
     INTRO_LECTURE_CAPACITY: 4,
     TSUKUBA_MORNING_SESSION_END_HOUR: 13,
     LOCK_WAIT_TIME_MS: 30000,
-    MAX_RETRY_COUNT: 3
+    MAX_RETRY_COUNT: 3,
   },
 
   // シート名
@@ -150,21 +150,21 @@ const CONSTANTS = {
     LOG: 'アクティビティログ',
     INTEGRATED_RESERVATIONS: '統合予約シート',
     SCHEDULE_MASTER: '日程マスタ',
-    RECORD_CACHE: 'きろくキャッシュ'
+    RECORD_CACHE: 'きろくキャッシュ',
   },
 
   // セッション関連
   SESSIONS: {
     MORNING: '午前',
     AFTERNOON: '午後',
-    ALL_DAY: '全日'
+    ALL_DAY: '全日',
   },
 
   // 支払い方法（表示用）
   PAYMENT_DISPLAY: {
     CASH: '現金',
     COTRA: 'ことら送金',
-    BANK_TRANSFER: '振込'
+    BANK_TRANSFER: '振込',
   },
 
   // 銀行情報
@@ -172,7 +172,7 @@ const CONSTANTS = {
     COTRA_PHONE: '09013755977',
     NAME: 'ゆうちょ銀行',
     BRANCH: '818',
-    ACCOUNT: '2661797'
+    ACCOUNT: '2661797',
   },
 
   // フロントエンド固有のUI設定
@@ -180,22 +180,23 @@ const CONSTANTS = {
     DISCOUNT_OPTIONS: {
       NONE: 0,
       THIRTY_MIN: 30,
-      SIXTY_MIN: 60
+      SIXTY_MIN: 60,
     },
     TIME_SETTINGS: {
       STEP_MINUTES: 30,
-      END_BUFFER_HOURS: 3
-    }
+      END_BUFFER_HOURS: 3,
+    },
   },
 
   // メッセージ定数
   MESSAGES: {
     PROCESSING_INTERRUPTED: '処理を中断しました。',
     SHEET_INITIALIZATION: '日程マスタシートの初期化',
-    EXISTING_SHEET_WARNING: '「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）',
+    EXISTING_SHEET_WARNING:
+      '「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）',
     SUCCESS: '成功',
     ERROR: 'エラー',
-    CANCEL: 'キャンセル'
+    CANCEL: 'キャンセル',
   },
 
   // ログアクション定数
@@ -203,30 +204,30 @@ const CONSTANTS = {
     ROSTER_EDIT: '名簿編集',
     RESERVATION_EDIT: '予約編集',
     ROW_INSERT: '行挿入',
-    RESERVATION_CANCEL: '予約キャンセル'
+    RESERVATION_CANCEL: '予約キャンセル',
   },
 
   // 表示色定数
   COLORS: {
-    LIGHT_GREEN: '#d9ead3',    // 成功
-    LIGHT_RED: '#f4cccc',      // 失敗・エラー
-    LIGHT_BLUE: '#cfe2f3',     // ユーザーの主要アクション
-    LIGHT_ORANGE: '#fce5cd',   // 編集・変更系アクション
-    HEADER_BACKGROUND: '#E8F0FE' // ヘッダーの背景色
+    LIGHT_GREEN: '#d9ead3', // 成功
+    LIGHT_RED: '#f4cccc', // 失敗・エラー
+    LIGHT_BLUE: '#cfe2f3', // ユーザーの主要アクション
+    LIGHT_ORANGE: '#fce5cd', // 編集・変更系アクション
+    HEADER_BACKGROUND: '#E8F0FE', // ヘッダーの背景色
   },
 
   // 教室タイプ定数
   CLASSROOM_TYPES: {
     SESSION_BASED: 'セッション制',
     TIME_DUAL: '時間制・2部制',
-    TIME_FULL: '時間制・全日'
+    TIME_FULL: '時間制・全日',
   },
 
   // スケジュールステータス定数
   SCHEDULE_STATUS: {
     SCHEDULED: '開催予定',
     CANCELLED: '休講',
-    COMPLETED: '開催済み'
+    COMPLETED: '開催済み',
   },
 
   // スケジュールヘッダー定数（日程マスタ専用）
@@ -243,8 +244,8 @@ const CONSTANTS = {
     TOTAL_CAPACITY: '全体定員',
     BEGINNER_CAPACITY: '初心者定員',
     STATUS: '状態',
-    NOTES: '備考'
-  }
+    NOTES: '備考',
+  },
 };
 
 // =================================================================
@@ -263,7 +264,7 @@ const TSUKUBA_CLASSROOM_NAME = CONSTANTS.CLASSROOMS.TSUKUBA;
 const CLASSROOM_SHEET_NAMES = [
   CONSTANTS.CLASSROOMS.TOKYO,
   CONSTANTS.CLASSROOMS.NUMAZU,
-  CONSTANTS.CLASSROOMS.TSUKUBA
+  CONSTANTS.CLASSROOMS.TSUKUBA,
 ];
 const CLASSROOM_CAPACITIES = CONSTANTS.CLASSROOM_CAPACITIES;
 
@@ -332,7 +333,7 @@ const UNIT_30_MIN = CONSTANTS.UNITS.THIRTY_MIN;
 const UNIT_CM3 = CONSTANTS.UNITS.CM3;
 
 // 支払い方法の後方互換性
-const PAYMENT_METHOD_CASH = CONSTANTS.PAYMENT_METHODS.CASH;
+const PAYMENT_CASH = CONSTANTS.PAYMENT_METHODS.CASH;
 
 // セッションの後方互換性
 const SESSION_MORNING = CONSTANTS.SESSIONS.MORNING;
@@ -340,8 +341,8 @@ const SESSION_AFTERNOON = CONSTANTS.SESSIONS.AFTERNOON;
 const SESSION_ALL_DAY = CONSTANTS.SESSIONS.ALL_DAY;
 
 // 支払い方法表示の後方互換性
-const PAYMENT_METHOD_COTRA = CONSTANTS.PAYMENT_DISPLAY.COTRA;
-const PAYMENT_METHOD_BANK_TRANSFER = CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER;
+const PAYMENT_COTRA = CONSTANTS.PAYMENT_DISPLAY.COTRA;
+const PAYMENT_BANK_TRANSFER = CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER;
 
 // 銀行情報の後方互換性
 const BANK_COTRA_PHONE = CONSTANTS.BANK_INFO.COTRA_PHONE;

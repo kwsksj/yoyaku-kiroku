@@ -33,7 +33,7 @@
    * @returns {object} setStateに渡すための新しい状態オブジェクト
    */
   function processInitialData(data, phone, availableSlots, userReservations = null) {
-    const { allStudents, accountingMaster, cacheVersions, today } = data;
+    const { allStudents, accountingMaster, cacheVersions, today, constants } = data;
 
     // 1. 電話番号でユーザーを検索
     const currentUser = Object.values(allStudents).find(student => student.phone === phone);
@@ -71,6 +71,7 @@
       classrooms: classroomsFromSlots,
       accountingMaster: accountingMaster,
       today: today,
+      constants: constants, // 統一定数を追加
       _allStudents: allStudents,
       _cacheVersions: cacheVersions,
     };
@@ -162,7 +163,7 @@
     selectedSlot: null,
     registrationPhone: null,
     completionMessage: '',
-    recordsToShow: UI_HISTORY_INITIAL_RECORDS,
+    recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
 
     // 編集・操作状態
     newlyBookedReservation: null,
@@ -193,19 +194,55 @@
   // モーダル管理オブジェクト - カプセル化された方式でコールバックを管理
   const ModalManager = {
     onConfirmCallback: null,
-    setCallback: function(callback) {
+    setCallback: function (callback) {
       this.onConfirmCallback = callback;
     },
-    clearCallback: function() {
+    clearCallback: function () {
       this.onConfirmCallback = null;
     },
-    executeCallback: function() {
+    executeCallback: function () {
       if (this.onConfirmCallback) {
         this.onConfirmCallback();
         this.clearCallback();
       }
-    }
+    },
   };
+
+  // =================================================================
+  // --- 統一定数システム短縮アクセス参照 ---
+  // -----------------------------------------------------------------
+  // フロントエンドでの定数アクセスを簡潔にするための短縮参照パターン
+  // グローバル変数の乱用を避けながら、appState.constantsからの参照を短縮
+  // =================================================================
+
+  /**
+   * 統一定数システムの短縮アクセス用参照
+   * appState.constants が利用可能になった後に初期化される
+   */
+  let C, STATUS, UI, BANK, PAYMENT; // 短縮参照用変数
+
+  /**
+   * 統一定数の短縮参照を初期化する関数
+   * appState.constants が利用可能になったタイミングで呼び出される
+   */
+  function initializeConstantShortcuts() {
+    if (appState.constants) {
+      C = appState.constants; // 短縮アクセス用の参照
+
+      // よく使用される定数グループのエイリアス
+      STATUS = C.status || {};
+      UI = C.ui || {};
+      BANK = C.bankInfo || {};
+      PAYMENT = C.paymentDisplay || {};
+
+      // 初期化後にハードコードした値をUI定数で更新
+      if (appState.recordsToShow === 10) {
+        appState.recordsToShow = UI.HISTORY_INITIAL_RECORDS;
+      }
+
+      console.log('統一定数の短縮参照を初期化しました');
+    }
+  }
 
   // 初期appState確認ログ
   console.log('appState初期化完了:', appState);
@@ -412,7 +449,7 @@
     // 3秒ごとにメッセージを更新
     loadingMessageTimer = setInterval(() => {
       updateLoadingMessage(category);
-    }, UI_LOADING_MESSAGE_INTERVAL);
+    }, UI?.LOADING_MESSAGE_INTERVAL || 3000);
   };
 
   const stopLoadingMessageRotation = () => {
@@ -495,7 +532,7 @@
   // =================================================================
   // 統一エラーハンドリングシステム（08_ErrorHandler.jsから統合）
   // =================================================================
-  
+
   /**
    * フロントエンド統一エラーハンドラー
    */
@@ -508,7 +545,7 @@
      */
     static handle(error, context = '', additionalInfo = {}) {
       hideLoading(); // 既存のローディング非表示処理
-      
+
       const errorInfo = {
         message: error.message || 'Unknown error',
         stack: error.stack || 'No stack trace available',
@@ -517,7 +554,7 @@
         userId: appState.currentUser?.studentId || 'anonymous',
         userAgent: navigator.userAgent,
         url: window.location.href,
-        additionalInfo: additionalInfo
+        additionalInfo: additionalInfo,
       };
 
       // コンソールログに出力
@@ -542,15 +579,16 @@
     static getUserFriendlyMessage(error, context) {
       // コンテキストに基づいて適切なメッセージを返す
       const contextMessages = {
-        'login': 'ログイン処理中にエラーが発生しました。電話番号を確認してもう一度お試しください。',
-        'booking': '予約処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
-        'cancel': 'キャンセル処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
-        'accounting': '会計処理中にエラーが発生しました。入力内容を確認してもう一度お試しください。',
-        'data-load': 'データの読み込み中にエラーが発生しました。ページを更新してもう一度お試しください。'
+        login: 'ログイン処理中にエラーが発生しました。電話番号を確認してもう一度お試しください。',
+        booking: '予約処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
+        cancel: 'キャンセル処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
+        accounting: '会計処理中にエラーが発生しました。入力内容を確認してもう一度お試しください。',
+        'data-load': 'データの読み込み中にエラーが発生しました。ページを更新してもう一度お試しください。',
       };
 
-      return contextMessages[context] || 
-             `エラーが発生しました: ${error.message}\n\n時間をおいてもう一度お試しください。`;
+      return (
+        contextMessages[context] || `エラーが発生しました: ${error.message}\n\n時間をおいてもう一度お試しください。`
+      );
     }
 
     /**
@@ -563,12 +601,10 @@
         'Script runtime exceeded',
         'Service invoked too many times',
         'Network error',
-        'Timeout'
+        'Timeout',
       ];
 
-      return criticalMessages.some(msg => 
-        error.message && error.message.includes(msg)
-      );
+      return criticalMessages.some(msg => error.message && error.message.includes(msg));
     }
 
     /**
@@ -579,12 +615,12 @@
       // 現在はコンソールログのみ
       // 将来的にSentry、Bugsnag、LogRocketなどに送信
       console.log('[CRITICAL ERROR REPORT]', errorInfo);
-      
+
       // 管理者への緊急通知も検討
       // この部分は将来的に実装予定
     }
   }
-  
+
   /**
    * 既存のhandleServerError関数との互換性を保つラッパー関数
    * 段階的移行のため既存コードとの互換性を維持
@@ -593,22 +629,19 @@
   function handleServerError(err) {
     FrontendErrorHandler.handle(err, 'server-error');
   }
-  
+
   // グローバルエラーハンドラーの設定
-  window.addEventListener('error', (event) => {
+  window.addEventListener('error', event => {
     FrontendErrorHandler.handle(event.error, 'global-error', {
       filename: event.filename,
       lineno: event.lineno,
-      colno: event.colno
+      colno: event.colno,
     });
   });
 
   // Promise拒否エラーのハンドリング
-  window.addEventListener('unhandledrejection', (event) => {
-    FrontendErrorHandler.handle(
-      new Error(event.reason), 
-      'unhandled-promise-rejection'
-    );
+  window.addEventListener('unhandledrejection', event => {
+    FrontendErrorHandler.handle(new Error(event.reason), 'unhandled-promise-rejection');
   });
 
   const formatDate = dStr => {
@@ -665,6 +698,12 @@
    * データが変更された際に呼び出されます。
    */
   function updateComputedData() {
+    // 統一定数が未初期化の場合は処理をスキップ
+    if (!C || !C.items) {
+      console.warn('統一定数が未初期化のため、updateComputedData()をスキップします');
+      return;
+    }
+
     const state = appState;
 
     // 基本チェック
@@ -689,10 +728,10 @@
         slotDate.setMinutes(slotDate.getMinutes() + slotDate.getTimezoneOffset());
         const isClassroomMatch = s.classroom === classroom;
         const isDateFuture = slotDate >= today;
-        const isNotFirstLecture = s.session !== ITEM_NAME_FIRST_LECTURE;
+        const isNotFirstLecture = s.session !== C.items.FIRST_LECTURE;
 
         // デバッグ用ログ（開発環境のみ）
-        if (detectEnvironment() === 'test' && s.classroom && classroom === TOKYO_CLASSROOM_NAME) {
+        if (detectEnvironment() === 'test' && s.classroom && classroom === C.classrooms.TOKYO) {
           console.log(
             `フィルター詳細 - スロット教室: "${s.classroom}", 検索教室: "${classroom}", 一致: ${isClassroomMatch}, 日付: ${s.date}, 未来: ${isDateFuture}, セッション: "${s.session}", 初回除外: ${isNotFirstLecture}`,
           );
@@ -719,7 +758,7 @@
     // 5. 表示用履歴（recordsToShow分）
     state.computed.displayHistory = state.computed.sortedHistory.slice(
       0,
-      state.recordsToShow || UI_HISTORY_INITIAL_RECORDS,
+      state.recordsToShow || UI?.HISTORY_INITIAL_RECORDS || 10,
     );
 
     // 6. 教室別予約状況
@@ -834,7 +873,7 @@
     if (!master || !classroom || !itemName) return undefined;
     return master.find(
       item =>
-        item['種別'] === ITEM_TYPE_TUITION &&
+        item['種別'] === C.itemTypes.TUITION &&
         item['項目名'] === itemName &&
         item['対象教室'] &&
         item['対象教室'].includes(classroom),
@@ -884,8 +923,8 @@
     if (!form) return details;
 
     const r = appState.accountingReservation;
-    const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, ITEM_NAME_MAIN_LECTURE);
-    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === UNIT_30_MIN;
+    const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, C.items.MAIN_LECTURE);
+    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
 
     // 時間制授業料計算
     if (isTimeBased) {
@@ -978,7 +1017,7 @@
         const itemDetail = { name: itemName, price: price };
         allItems.push(itemDetail);
 
-        if (itemType === ITEM_TYPE_TUITION) {
+        if (itemType === C.itemTypes.TUITION) {
           tuitionSubtotal += price;
           tuitionItems.push(itemDetail);
         } else {
@@ -997,7 +1036,7 @@
   function calculateDiscount() {
     const discountSelector = document.getElementById('discount-selector');
     if (discountSelector) {
-      const discountRule = appState.accountingMaster.find(item => item['項目名'] === ITEM_NAME_DISCOUNT);
+      const discountRule = appState.accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
       if (discountRule) {
         const discountMinutes = parseInt(discountSelector.value, 10);
         if (discountMinutes > 0) {
@@ -1005,7 +1044,7 @@
           return {
             amount: discountAmount,
             item: {
-              name: `${ITEM_NAME_DISCOUNT} (${discountMinutes}分)`,
+              name: `${C.items.DISCOUNT} (${discountMinutes}分)`,
               price: -discountAmount,
             },
           };
@@ -1121,7 +1160,7 @@
       const timeBasedItems = details.tuition.items.filter(item => item.name.includes('授業料 ('));
       if (timeBasedItems.length > 0) {
         const r = appState.accountingReservation;
-        const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, ITEM_NAME_MAIN_LECTURE);
+        const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, C.items.MAIN_LECTURE);
         if (tuitionItemRule) {
           const billableUnits = Math.ceil(timeBasedItems[0].price / Number(tuitionItemRule['単価']));
           calculatedHoursEl.textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule['単価']}円`;
