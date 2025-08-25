@@ -200,6 +200,7 @@ function createIntegratedSheet() {
       '制作メモ',
       'order',
       'メッセージ',
+      '会計詳細',
     ];
 
     newSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -213,6 +214,7 @@ function createIntegratedSheet() {
     newSheet.setColumnWidth(4, 100); // 教室
     newSheet.setColumnWidth(13, 200); // 制作メモ
     newSheet.setColumnWidth(15, 200); // メッセージ
+    newSheet.setColumnWidth(16, 300); // 会計詳細
 
     ss.toast(`シート「${sheetName}」を正常に作成しました。`, '成功', 5);
     logActivity('system', '移行作業', '成功', '統合予約シートを作成しました。');

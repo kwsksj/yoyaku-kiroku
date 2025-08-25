@@ -160,28 +160,24 @@ function searchUsersWithoutPhone(filterText) {
 }
 
 /**
- * 予約のメモを更新し、更新後の参加履歴を返す
+ * 予約のメモを更新し、成功した場合に最新の全初期化データを返す
  * @param {string} reservationId - 更新対象の予約ID
  * @param {string} studentId - 対象生徒のID
  * @param {string} newMemo - 新しいメモ内容
- * @returns {Object} 更新結果と最新の参加履歴
+ * @returns {Object} 処理結果と最新の初期化データ
  */
-function updateReservationMemo(reservationId, studentId, newMemo) {
-  try {
-    const result = updateMemoAndGetLatestHistory(reservationId, studentId, newMemo);
-    if (result.success) {
-      return createApiResponse(true, {
-        data: result.history,
-        meta: { total: result.total },
-      });
-    } else {
-      return result;
-    }
-  } catch (e) {
-    return createApiResponse(false, {
-      message: `メモの更新中にエラーが発生しました: ${e.message}`,
-    });
-  }
+function updateReservationMemoAndGetLatestData(reservationId, studentId, newMemo) {
+  return executeOperationAndGetLatestData(
+    'updateMemo',
+    updateReservationDetails,
+    {
+      reservationId,
+      studentId,
+      workInProgress: newMemo, // 制作メモのみを更新
+    },
+    studentId,
+    '制作メモを更新しました。',
+  );
 }
 
 /**
@@ -327,6 +323,11 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
         const currentUser = Object.values(initialDataResult.data.allStudents).find(
           student => student.phone === phone,
         );
+        result.userFound = !!currentUser;
+        result.user = currentUser || null;
+      } else if (studentId) {
+        // studentIdが指定されている場合もユーザー情報を設定する
+        const currentUser = initialDataResult.data.allStudents[studentId];
         result.userFound = !!currentUser;
         result.user = currentUser || null;
       }

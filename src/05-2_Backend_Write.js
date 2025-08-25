@@ -722,41 +722,6 @@ function saveAccountingDetails(payload) {
     // 5. 売上ログへの転記
     _logSalesForSingleReservation(reservationDataRow, headerMap, classroom, finalAccountingDetails);
 
-    // 6. 年別「きろく_YYYY」キャッシュに会計情報を含めて追加
-    _updateRecordCacheForSingleReservation(
-      reservationDataRow,
-      headerMap,
-      classroom,
-      finalAccountingDetails,
-    );
-
-    // 7. サマリーの更新
-    const targetDate = reservationDataRow[headerMap.get(CONSTANTS.HEADERS.DATE)];
-    if (targetDate instanceof Date) {
-      // サマリーシート更新は廃止 (05-3_Backend_AvailableSlots.jsに置き換え)
-      // updateSummaryAndForm(classroom, targetDate);
-    }
-
-    // 8. 最新の参加履歴を取得して返す
-    const historyResult = getParticipationHistory(actualStudentId, null, null);
-    if (!historyResult.success) {
-      // 履歴取得に失敗しても、メインの会計処理は成功として扱う
-      Logger.log(`会計処理後の履歴取得に失敗: ${historyResult.message}`);
-    }
-
-    // [追加] 9. 更新されたサマリーから、最新の空き枠情報を取得する
-    let updatedSlotsForClassroom = [];
-    try {
-      const slotsResult = getAvailableSlots();
-      updatedSlotsForClassroom = slotsResult.success ? slotsResult.data : [];
-    } catch (e) {
-      Logger.log(`会計処理後の予約枠取得に失敗: ${e.message}`);
-      updatedSlotsForClassroom = [];
-    }
-
-    // 9. 【NEW】会計済みの予約をアーカイブし、元の行を削除する
-    _archiveSingleReservation(sheet, targetRowIndex, reservationDataRow, classroom);
-
     // ログと通知
     const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}, Total: ${finalAccountingDetails.grandTotal}`;
     logActivity(studentId, '会計記録保存', CONSTANTS.MESSAGES.SUCCESS, logDetails);
@@ -782,9 +747,6 @@ function saveAccountingDetails(payload) {
 
     // [変更] 戻り値に updatedSlots を追加
     return createApiResponse(true, {
-      newHistory: historyResult.history,
-      newHistoryTotal: historyResult.total,
-      updatedSlots: updatedSlotsForClassroom, // <--- これを追加
       message: '会計処理と関連データの更新がすべて完了しました。',
     });
   } catch (err) {
@@ -960,94 +922,5 @@ function _archiveSingleReservation(sourceSheet, rowIndex, reservationDataRow, cl
     sourceSheet.deleteRow(rowIndex);
   } catch (err) {
     Logger.log(`_archiveSingleReservation Error: ${err.message}\n${err.stack}`);
-  }
-}
-
-/**
- * 【改修】指定された予約の制作メモを更新し、最新の参加履歴を返す。
- * @param {string} reservationId - 予約ID
- * @param {string} sheetName - 予約が記録されているシート名
- * @param {string} newMemo - 新しい制作メモの内容
- * @param {string} studentId - メモを更新する対象の生徒ID
- * @returns {object} - { success: boolean, history?: object[], total?: number, message?: string }
- */
-function updateMemoAndGetLatestHistory(reservationId, sheetName, newMemo, studentId) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
-  try {
-    // 1. 予約シートの制作メモを更新
-    const sheet = getSheetByName(sheetName);
-    if (!sheet) throw new Error(`シート「${sheetName}」が見つかりません。`);
-
-    const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const headerMap = createHeaderMap(header);
-    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
-    const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
-
-    if (reservationIdColIdx === undefined || wipColIdx === undefined) {
-      throw new Error(`必要なヘッダー（予約ID, 制作メモ）が見つかりません。`);
-    }
-
-    const targetRowIndex = findRowIndexByValue(sheet, reservationIdColIdx + 1, reservationId);
-    if (targetRowIndex === -1) {
-      throw new Error(`予約ID「${reservationId}」がシート「${sheetName}」で見つかりませんでした。`);
-    }
-
-    sheet.getRange(targetRowIndex, wipColIdx + 1).setValue(newMemo);
-    SpreadsheetApp.flush();
-
-    // 2. 生徒名簿の年別きろくキャッシュを更新
-    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
-    if (rosterSheet) {
-      const rosterHeader = rosterSheet
-        .getRange(1, 1, 1, rosterSheet.getLastColumn())
-        .getValues()[0];
-      const rosterHeaderMap = createHeaderMap(rosterHeader);
-      const studentIdCol = rosterHeaderMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-
-      if (studentIdCol !== undefined) {
-        const rosterData = rosterSheet
-          .getRange(2, 1, rosterSheet.getLastRow() - 1, rosterSheet.getLastColumn())
-          .getValues();
-        const userRowIndex = rosterData.findIndex(row => row[studentIdCol] === studentId);
-
-        if (userRowIndex !== -1) {
-          // 更新された予約の年を取得
-          const updatedDate = new Date(
-            sheet.getRange(targetRowIndex, headerMap.get(CONSTANTS.HEADERS.DATE) + 1).getValue(),
-          );
-          const year = updatedDate.getFullYear();
-          const yearCacheCol = rosterHeaderMap.get(`きろく_${year}`);
-
-          if (yearCacheCol !== undefined) {
-            // 最新の履歴を取得し、該当年の履歴のみフィルタリング
-            const historyResult = getParticipationHistory(studentId, null, null);
-            if (historyResult.success) {
-              const yearHistory = (historyResult.history || []).filter(h => {
-                const historyDate = new Date(h.date);
-                return historyDate.getFullYear() === year;
-              });
-              const yearHistoryCache = JSON.stringify(yearHistory);
-              rosterSheet.getRange(userRowIndex + 2, yearCacheCol + 1).setValue(yearHistoryCache);
-            }
-          }
-        }
-      }
-    }
-
-    logActivity(
-      studentId,
-      '制作メモ更新',
-      CONSTANTS.MESSAGES.SUCCESS,
-      `ResID: ${reservationId}, Sheet: ${sheetName}, Memo: ${newMemo.length}文字`,
-    );
-    return getParticipationHistory(studentId, null, null);
-  } catch (err) {
-    const details = `ResID: ${reservationId}, Sheet: ${sheetName}, Error: ${err.message}`;
-    logActivity(studentId, '制作メモ更新', CONSTANTS.MESSAGES.ERROR, details);
-    Logger.log(`updateMemo Error: ${err.message}\n${err.stack}`);
-    return BackendErrorHandler.handle(err, 'updateMemo');
-  } finally {
-    lock.releaseLock();
   }
 }

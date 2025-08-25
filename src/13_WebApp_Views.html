@@ -675,9 +675,18 @@
                     return !isCancelled; // キャンセル済み予約を念のため除外
                   })
                   .map(b => {
-                    const resDate = new Date(b.date);
-                    resDate.setMinutes(resDate.getMinutes() + resDate.getTimezoneOffset());
-                    const isPastOrToday = resDate.getTime() <= today.getTime();
+                    // 予約日時を現在日時と比較
+                    let isPastOrToday;
+                    if (b.startTime) {
+                      // 開始時刻がある場合は、その時刻と比較
+                      const resDateTime = new Date(`${b.date}T${b.startTime}`);
+                      isPastOrToday = resDateTime.getTime() <= new Date().getTime();
+                    } else {
+                      // 開始時刻がない場合は日付のみで比較
+                      const resDate = new Date(b.date);
+                      resDate.setHours(0, 0, 0, 0);
+                      isPastOrToday = resDate.getTime() <= today.getTime();
+                    }
 
                     // ボタン配列を構築
                     const buttons = [];

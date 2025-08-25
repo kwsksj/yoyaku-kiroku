@@ -292,25 +292,29 @@
 
           showLoading();
 
-          // サーバーに保存（メモ更新はキャッシュが自動更新される）
+          // サーバーに保存（統合予約シート更新 + キャッシュ再構築 + 最新データ取得）
           google.script.run
-            .withSuccessHandler(result => {
+            .withSuccessHandler(r => {
               hideLoading();
-              if (result.success) {
-                // メモ更新成功時はキャッシュが自動更新されているので、楽観的UIをそのまま維持
+              if (r.success) {
                 showInfo('制作メモを更新しました。', '保存完了');
-                // 必要に応じて最新の履歴を再取得（通常は楽観的UIで十分）
-                if (result.data) {
+                // 他の操作と同様に最新データで状態を更新
+                if (r.data) {
                   setState({
-                    history: result.data,
-                    historyTotal: result.meta?.total || appState.historyTotal,
+                    ...r.data.initialData,
+                    myBookings: r.data.myBookings || [],
+                    history: r.data.initialData.myHistory || [],
+                    historyTotal: (r.data.initialData.myHistory || []).length,
+                    isDataFresh: true, // 最新データ受信済み
                   });
+                } else {
+                  setState({ view: 'dashboard' });
                 }
               } else {
                 // サーバーエラーの場合は元に戻す
                 item.workInProgress = originalMemo;
                 setState({ history: [...appState.history] });
-                showInfo(result.message || 'メモの保存に失敗しました。', 'エラー');
+                showInfo(r.message || 'メモの保存に失敗しました。', 'エラー');
               }
             })
             .withFailureHandler(err => {
@@ -320,7 +324,7 @@
               setState({ history: [...appState.history] });
               handleServerError(err);
             })
-            .updateReservationMemo(d.reservationId, appState.currentUser.studentId, newMemo);
+            .updateReservationMemoAndGetLatestData(d.reservationId, appState.currentUser.studentId, newMemo);
         },
       });
     },
@@ -739,9 +743,6 @@
       document.body.removeChild(textArea);
     },
 
-    // 【LEGACY REMOVED】古い個別履歴ページ関数を削除
-    // goToHistory, forceGoToHistory は統合ダッシュボードに移行済み
-
     /** 参加記録を追加で読み込みます（統合ダッシュボード用） */
     loadMoreHistory: () => {
       const newCount =
@@ -750,49 +751,80 @@
     },
 
     /** 新規予約のための教室選択画面に遷移します */
-    goToClassroomSelection: () => setState({ view: 'classroomSelection' }),
+    goToClassroomSelection: () => {
+      // 教室選択画面に遷移する前に、最新のスロット情報（教室一覧の元データ）を効率的に取得
+      showLoading('教室情報を取得中...');
+      actionHandlers.refreshAndUpdateSlots(response => {
+        hideLoading();
+        if (response.success) {
+          setState({ view: 'classroomSelection' });
+        } else {
+          showInfo('教室情報の取得に失敗しました。ダッシュボードに戻ります。');
+          setState({ view: 'dashboard' });
+        }
+      });
+    },
 
     /** プロフィール編集画面に遷移します */
     goToEditProfile: () => setState({ view: 'editProfile' }),
+
+    /** スロット情報をキャッシュから取得して状態を更新する統合関数 */
+    refreshAndUpdateSlots: function (onComplete) {
+      google.script.run
+        .withSuccessHandler(response => {
+          debugLog('スロット取得完了 - success: ' + response.success);
+
+          if (response.success && response.data && response.data.slots) {
+            const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
+            debugLog('取得したスロット: ' + response.data.slots.length + '件');
+
+            setState({
+              slots: response.data.slots,
+              classrooms: classroomsFromSlots,
+            });
+          } else {
+            debugLog('スロット取得に失敗');
+          }
+
+          if (onComplete) onComplete(response);
+        })
+        .withFailureHandler(error => {
+          debugLog('スロット取得エラー: ' + error.message);
+          if (onComplete) onComplete({ success: false, message: error.message });
+        })
+        .getBatchData(['slots'], appState.currentUser.phone);
+    },
 
     /** 教室データを再取得します */
     reloadClassroomData: () => {
       showLoading();
       debugLog('教室データ再取得開始');
 
-      google.script.run
-        .withSuccessHandler(response => {
-          hideLoading();
-          debugLog('教室データ再取得完了 - success: ' + response.success);
-          debugLog(
-            'response.data.slots: ' +
-              (response.data && response.data.slots ? response.data.slots.length + '件' : 'null/undefined'),
-          );
+      actionHandlers.refreshAndUpdateSlots(response => {
+        hideLoading();
 
-          if (response.success && response.data && response.data.slots) {
-            const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
-            debugLog('再取得した教室一覧: ' + JSON.stringify(classroomsFromSlots));
-
-            setState({
-              slots: response.data.slots,
-              classrooms: classroomsFromSlots,
-              view: 'classroomSelection',
-            });
-          } else {
-            debugLog('データ再取得に失敗');
-            showInfo('データの再取得に失敗しました。しばらく時間をおいてからお試しください。');
-          }
-        })
-        .withFailureHandler(error => {
-          hideLoading();
-          debugLog('データ再取得エラー: ' + error.message);
-          showInfo('データの再取得中にエラーが発生しました: ' + error.message);
-        })
-        .getBatchData(['slots'], appState.currentUser.phone);
+        if (response.success) {
+          setState({ view: 'classroomSelection' });
+        } else {
+          showInfo('データの再取得に失敗しました。しばらく時間をおいてからお試しください。');
+        }
+      });
     },
 
     /** 教室を選択し、予約枠一覧画面に遷移します */
-    selectClassroom: d => setState({ selectedClassroom: d.classroomName, view: 'booking' }),
+    selectClassroom: d => {
+      // 教室選択時にスロット情報を更新してから画面遷移することで、常に最新の空き状況を表示
+      showLoading('予約枠を更新中...');
+      actionHandlers.refreshAndUpdateSlots(response => {
+        hideLoading();
+        if (response.success) {
+          // slotsはrefreshAndUpdateSlots内で更新済み。ここでは画面遷移と教室選択の状態をセット。
+          setState({ selectedClassroom: d.classroomName, view: 'booking' });
+        } else {
+          showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
+        }
+      });
+    },
 
     /** 予約枠を選択し、予約確認画面に遷移します */
     bookSlot: d => {
@@ -861,7 +893,7 @@
       }
     },
 
-    /** ダッシュボード（教室選択画面）に戻ります */
+    /** ダッシュボードに戻ります */
     goToDashboard: () => setState({ view: 'dashboard' }),
 
     /** モーダルの確認ボタンを押したときの処理です */
@@ -873,12 +905,14 @@
     /** モーダルのキャンセルボタンを押したときの処理です */
     modalCancel: () => hideModal(),
 
-    /** 「次の予約をする」ボタンの処理（予約一覧画面へ遷移） */
+    /** 「次の予約をする」ボタンの処理（スロット更新 + 予約一覧画面へ遷移） */
     goToBooking: d => {
-      // data-classroom属性から教室名を取得
       const classroom = d.classroom || appState.accountingReservation?.classroom;
       if (classroom) {
-        setState({ selectedClassroom: classroom, view: 'booking' });
+        // 会計完了後はスロット情報を更新してから予約画面に遷移
+        actionHandlers.refreshAndUpdateSlots(response => {
+          setState({ selectedClassroom: classroom, view: 'booking' });
+        });
       } else {
         showInfo('教室名が取得できませんでした。');
       }
@@ -1000,11 +1034,8 @@
           setState({
             view: 'complete',
             completionMessage: '会計情報を記録しました。',
-            myBookings: r.newBookingsCache,
-            history: r.newHistory,
-            historyTotal: r.newHistoryTotal,
-            slots: r.updatedSlots, // <--- これを追加
             accountingReservation: appState.accountingReservation,
+            isDataFresh: false, // 最新スロット情報を取得するため
           });
         } else {
           hideLoading();
@@ -1078,7 +1109,8 @@
    * 指定されたビューで最新データが必要かどうかを判定
    */
   function shouldUpdateAppStateForView(view) {
-    const dataRequiredViews = ['dashboard', 'classroomSelection', 'editProfile'];
+    // 教室選択画面は専用の更新処理(refreshAndUpdateSlots)に任せるため、ここからは除外
+    const dataRequiredViews = ['dashboard', 'editProfile', 'booking', 'complete'];
     return (
       dataRequiredViews.includes(view) &&
       appState.currentUser &&
@@ -1117,38 +1149,51 @@
             view: appState.view,
             selectedClassroom: appState.selectedClassroom,
             selectedSlot: appState.selectedSlot,
-            editingDetails: appState.editingDetails,
+            editingReservationDetails: appState.editingReservationDetails,
             accountingReservation: appState.accountingReservation,
             isDataFresh: true, // 新鮮なデータが読み込まれたことを記録
           };
-          Object.assign(appState, newAppState, preservedState);
-          render(); // 更新後に再描画
+          setState({ ...newAppState, ...preservedState }); // setStateに統合し、状態更新と再描画を一元化
         } else {
-          showInfo('データの取得に失敗しました。');
-          render(); // エラーでもとりあえず描画
+          // 失敗時もsetStateを介して状態を更新し、再描画をトリガーする
+          setState({ _dataUpdateInProgress: false });
+          showInfo(response.message || 'データの取得に失敗しました。');
         }
       })
       .withFailureHandler(err => {
         hideLoading();
         setState({ _dataUpdateInProgress: false }); // フラグをクリア
         handleServerError(err);
-        render(); // エラーでもとりあえず描画
+        // setStateがrenderを呼び出すので、ここでのrender()は不要
       })
       .getBatchData(['initial', 'slots'], appState.currentUser.phone);
   }
 
   /**
+
    * 現在のアプリケーションの状態に基づいて、適切なビューを描画します。
    */
   function render() {
     console.log('render() 実行開始 - view:', appState.view);
     console.log('render() - appState:', appState);
 
-    // データ表示が必要な画面では、描画前にappStateを最新化
-    if (shouldUpdateAppStateForView(appState.view)) {
-      console.log('render() - データ更新が必要な画面のため updateAppStateFromCache() 実行');
+    const updateType = getUpdateTypeForView(appState.view);
+
+    if (updateType === 'full') {
+      console.log('render() - フルデータ更新が必要な画面のため updateAppStateFromCache() 実行');
       updateAppStateFromCache();
       return; // updateAppStateFromCache内で再度render()が呼ばれるため、ここで終了
+    } else if (updateType === 'slotsOnly') {
+      console.log('render() - スロットデータ更新が必要な画面のため refreshAndUpdateSlots() 実行');
+      showLoading('最新データを取得中...'); // ローディング表示
+      actionHandlers.refreshAndUpdateSlots(response => {
+        hideLoading(); // ローディング非表示
+        if (!response.success) {
+          showInfo('データの取得に失敗しました。');
+        }
+        render(); // スロット更新後に再度renderを呼び出す
+      });
+      return; // refreshAndUpdateSlots内で再度render()が呼ばれるため、ここで終了
     }
 
     let v = '';
