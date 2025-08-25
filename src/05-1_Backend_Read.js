@@ -165,7 +165,7 @@ function getAccountingMasterData() {
     const timeColumnIndices = timeColumns.map(h => header.indexOf(h));
 
     const processedData = data.map(row => {
-      let item = {};
+      const item = {};
       header.forEach((key, index) => {
         if (timeColumnIndices.includes(index) && row[index] instanceof Date) {
           item[key] = Utilities.formatDate(row[index], timezone, 'HH:mm');
@@ -207,7 +207,7 @@ function getParticipationHistory(studentId, limit, offset) {
     const ss = getActiveSpreadsheet();
     const timezone = getSpreadsheetTimezone();
     const allSheetNames = [...CLASSROOM_SHEET_NAMES, ...ARCHIVE_SHEET_NAMES];
-    let history = [];
+    const history = [];
 
     allSheetNames.forEach(sheetName => {
       const sheet = getSheetByName(sheetName);

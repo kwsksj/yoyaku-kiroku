@@ -178,13 +178,8 @@ function onOpen() {
 
 function addAdminMenu(menu) {
   menu
-    .addItem('昨日までのデータ処理', 'processYesterdayData')
-    .addItem('今日のデータ処理', 'processTodayData')
-    .addItem('一番古い日付のデータ処理', 'processOldestDate')
-    .addSeparator()
     .addItem('googleカレンダーから予定日を追加', 'addCalendarEventsToSheetWithSpecifics')
     .addSeparator()
-    .addItem('シート全体を再ソート＆採番', 'manuallyReSortAndNumberSheet')
     .addItem('アクティブシートの罫線を再描画', 'manuallyFormatActiveSheet')
     .addSeparator()
     .addItem('日程マスタを作成', 'createScheduleMasterSheet')
@@ -197,11 +192,7 @@ function addAdminMenu(menu) {
     .addSeparator()
     .addItem('【本番移行】統合予約シート作成', 'createIntegratedSheet')
     .addItem('【本番移行】データを統合シートへ移行', 'migrateDataToIntegratedSheet')
-    .addItem('【本番移行】移行データ整合性チェック', 'verifyMigratedData')
-    .addSeparator()
-    .addItem('【東京】フォーム選択肢を更新', () => setCheckboxChoices(TOKYO_CLASSROOM_NAME))
-    .addItem('【つくば】フォーム選択肢を更新', () => setCheckboxChoices(TSUKUBA_CLASSROOM_NAME))
-    .addItem('【沼津】フォーム選択肢を更新', () => setCheckboxChoices(NUMAZU_CLASSROOM_NAME));
+    .addItem('【本番移行】移行データ整合性チェック', 'verifyMigratedData');
 }
 
 function addCacheMenu(menu) {
@@ -212,9 +203,7 @@ function addCacheMenu(menu) {
     .addItem('【管理者専用】PropertiesServiceクリーンアップ', 'cleanupPropertiesServiceCache')
     .addSeparator()
     .addItem('キャッシュサービス容量チェック', 'checkCacheCapacity')
-    .addItem('古いプロパティサービスデータをクリーンアップ', 'cleanupOldCaches')
-    .addSeparator()
-    .addItem('【旧システム】名簿キャッシュを更新', 'updateRosterCache');
+    .addItem('古いプロパティサービスデータをクリーンアップ', 'cleanupOldCaches');
 }
 
 /**
@@ -227,7 +216,6 @@ function handleOnChange(e) {
   if (!lock.tryLock(LOCK_WAIT_TIME_MS)) return;
 
   try {
-    processChange(e.changeType);
   } catch (err) {
     handleError(`OnChangeイベント処理中にエラー: ${err.message}`, true);
   } finally {
@@ -244,7 +232,6 @@ function handleEdit(e) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(LOCK_WAIT_TIME_MS)) return;
   try {
-    processCellEdit(e);
   } catch (err) {
     handleError(`セル編集処理中にエラー: ${err.message}`, true);
   } finally {
@@ -283,7 +270,6 @@ function debugTestSetup() {
 
     // HTMLファイルの存在確認
     try {
-      const htmlTemplate = HtmlService.createTemplateFromFile('test_performance_webapp');
       Logger.log('✓ HTMLテンプレートが見つかりました');
     } catch (e) {
       Logger.log('✗ HTMLテンプレートエラー: ' + e.message);

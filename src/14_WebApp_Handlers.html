@@ -527,11 +527,11 @@
       };
 
       showLoading('booking');
-      const p = { 
-        ...appState.selectedSlot, 
-        user: appState.currentUser, 
+      const p = {
+        ...appState.selectedSlot,
+        user: appState.currentUser,
         studentId: appState.currentUser.studentId,
-        options: bookingOptions 
+        options: bookingOptions,
       };
 
       google.script.run

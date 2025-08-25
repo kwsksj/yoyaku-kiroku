@@ -13,112 +13,6 @@
  * =================================================================
  */
 
-// =================================================================
-// 統一定数ファイル（00_Constants.js）から定数を継承
-// 基本的な定数は00_Constants.jsで統一管理されています
-// =================================================================
-
-/**
- * Googleフォームの予約選択肢を、現在の予約状況に基づいて更新します。
- * @param {string} classroomName - 更新対象の教室名
- */
-function setCheckboxChoices(classroomName) {
-  const formId = GOOGLE_FORM_IDS[classroomName];
-  const questionTitle = FORM_QUESTION_TITLES[classroomName];
-
-  if (!formId) return;
-  if (!questionTitle) return;
-
-  try {
-    const form = FormApp.openById(formId);
-    const choices = createStringArrayFromCounts(classroomName);
-    if (choices.length > 0) {
-      const item = form
-        .getItems(FormApp.ItemType.CHECKBOX)
-        .find(i => i.getTitle() === questionTitle);
-      if (item) {
-        item.asCheckboxItem().setChoices(choices.map(c => item.asCheckboxItem().createChoice(c)));
-      }
-    }
-  } catch (e) {
-    logActivity(
-      'system',
-      'フォーム選択肢更新',
-      'エラー',
-      `教室: ${classroomName}, エラー: ${e.message}`,
-    );
-    Logger.log(`フォーム連携でエラー: ${e.message}`);
-  }
-}
-
-/**
- * フォーム選択肢用の文字列配列を、新しい定員管理ロジックに基づいて生成します。
- * @param {string} classroomName - 選択肢を生成する対象の教室名
- * @returns {string[]} - Googleフォームの選択肢として表示する文字列の配列
- */
-function createStringArrayFromCounts(classroomName) {
-  const ss = getActiveSpreadsheet();
-  const summarySheet = ss.getSheetByName(SUMMARY_SHEET_NAME);
-  if (!summarySheet || summarySheet.getLastRow() < 2) {
-    return [];
-  }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const timezone = getSpreadsheetTimezone();
-  const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
-
-  const summaryData = summarySheet
-    .getRange(2, 1, summarySheet.getLastRow() - 1, summarySheet.getLastColumn())
-    .getValues();
-  const headerMap = createHeaderMap(
-    summarySheet.getRange(1, 1, 1, summarySheet.getLastColumn()).getValues()[0],
-  );
-
-  const dateIdx = headerMap.get(HEADER_DATE);
-  const classroomIdx = headerMap.get(HEADER_SUMMARY_CLASSROOM);
-  const sessionIdx = headerMap.get(HEADER_SUMMARY_SESSION);
-  const availableIdx = headerMap.get(HEADER_SUMMARY_AVAILABLE_COUNT);
-  const venueIdx = headerMap.get(HEADER_SUMMARY_VENUE);
-
-  const choiceData = summaryData
-    .filter(row => {
-      const classroom = row[classroomIdx];
-      const session = row[sessionIdx];
-      const date = row[dateIdx];
-      // フィルタリング条件: 指定された教室で、未来の日付の「初回講習」セッションのみ
-      return (
-        classroom === classroomName &&
-        session === ITEM_NAME_FIRST_LECTURE &&
-        date instanceof Date &&
-        date >= today
-      );
-    })
-    .map(row => ({
-      dateObj: row[dateIdx],
-      venue: row[venueIdx] || '',
-      available: row[availableIdx],
-    }))
-    .sort((a, b) => a.dateObj - b.dateObj);
-
-  const resultArray = [];
-  let currentMonth = null;
-
-  choiceData.forEach(data => {
-    const month = data.dateObj.getMonth() + 1;
-    if (currentMonth !== month) {
-      resultArray.push(`-- ${month}月 --`);
-      currentMonth = month;
-    }
-    const dateStr = `${data.dateObj.getMonth() + 1}/${data.dateObj.getDate()}(${weekdays[data.dateObj.getDay()]})`;
-    const availabilityLabel = data.available > 0 ? `空き ${data.available} 席` : 'キャンセル待ち';
-    const label = `${dateStr} ${data.venue}    ${availabilityLabel}`;
-    resultArray.push(label);
-  });
-
-  return resultArray;
-}
-
 /**
  * Googleカレンダーから予定を取得し、各教室の予約シートに新しい日付の予約枠を追加します。
  */
@@ -220,7 +114,7 @@ function addCalendarEventsToSheetWithSpecifics() {
       const newRows = [];
       events.forEach(event => {
         const eventTitle = event.getTitle();
-        let currentDay = new Date(event.getStartTime());
+        const currentDay = new Date(event.getStartTime());
         currentDay.setHours(0, 0, 0, 0);
         let effectiveEndDate = new Date(event.getEndTime());
         effectiveEndDate.setHours(0, 0, 0, 0);

@@ -1,27 +1,14 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-2_Backend_Write.gs
- * 【バージョン】: 2.0
+ * 【バージョン】: 2.1
  * 【役割】: WebAppからのデータ書き込み・更新要求（Write）と、
  * それに付随する検証ロジックに特化したバックエンド機能。
  * 【構成】: 18ファイル構成のうちの7番目（00_Constants.js、08_ErrorHandler.jsを含む）
- * 【v2.0での変更点】:
- * - フェーズ1リファクタリング: 統一定数ファイル（00_Constants.js）から定数を参照
- * - 旧定数（TOKYO_CLASSROOM_NAME等）を統一定数（CONSTANTS.CLASSROOMS.TOKYO等）に移行
- * - 定数の重複定義を削除し、保守性を向上
- * 【v1.9での変更点】:
- * - 設計の簡素化: 制作メモ更新時に統合「きろくキャッシュ」列を削除し、
- *   年別「きろく_YYYY」列のみを更新するよう修正。元の設計に戻す。
- * 【v1.8での変更点】:
- * - 制作メモ更新時の年別キャッシュ更新: updateMemoAndGetLatestHistory関数で、
- *   統合きろくキャッシュに加えて年別キャッシュ（きろく_YYYY）も同時に更新。
- * 【v1.7での変更点】:
- * - 制作メモ更新機能の強化: updateMemoAndGetLatestHistory関数で、
- *   予約シートと年別きろく_YYYYキャッシュの両方を同時に更新するよう改善。
- * - ログ記録の詳細化: 更新されたメモの文字数も記録。
- * 【v1.1での変更点】:
- * - FE-16: saveAccountingDetailsを修正。会計処理時に、時刻やオプションの値を
- * 予約シート本体に書き戻し、受講時間とガントチャートを再計算・再描画する機能を追加。
+ * 【v2.1での変更点】:
+ * - saveAccountingDetailsがレガシーな教室別シートではなく、統合予約シートのみを参照するように修正。
+ * - _archiveSingleReservationが教室名を引数で受け取るようにし、シート名への依存を排除。
+ * - saveAccountingDetails内の不要なレガシー関数呼び出しをコメントアウト。
  * =================================================================
  */
 
@@ -107,7 +94,6 @@ function makeReservation(reservationInfo) {
     const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
     const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
     const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
-    const venueColIdx = headerMap.get(CONSTANTS.HEADERS.VENUE);
     const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
     const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
     const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
@@ -118,7 +104,8 @@ function makeReservation(reservationInfo) {
     const messageColIdx = headerMap.get(CONSTANTS.HEADERS.MESSAGE_TO_TEACHER);
 
     const capacity =
-      CONSTANTS.CLASSROOM_CAPACITIES[classroom] || CONSTANTS.CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
+      CONSTANTS.CLASSROOM_CAPACITIES[classroom] ||
+      CONSTANTS.CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
     let isFull = false;
 
     // 同日同教室の予約をフィルタリング
@@ -154,8 +141,10 @@ function makeReservation(reservationInfo) {
       const morningFull = morningCount >= capacity;
       const afternoonFull = afternoonCount >= capacity;
 
-      if (reqStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && morningFull) isFull = true;
-      if (reqEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && afternoonFull) isFull = true;
+      if (reqStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && morningFull)
+        isFull = true;
+      if (reqEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && afternoonFull)
+        isFull = true;
     } else {
       const reservationsOnDate = data.filter(dateFilter).length;
       isFull = reservationsOnDate >= capacity;
@@ -201,8 +190,8 @@ function makeReservation(reservationInfo) {
           item['対象教室'] === CONSTANTS.CLASSROOMS.TOKYO,
       );
       if (tokyoRule) {
-        let finalStartTime = tokyoRule[CONSTANTS.HEADERS.CLASS_START];
-        let finalEndTime = tokyoRule[CONSTANTS.HEADERS.CLASS_END];
+        const finalStartTime = tokyoRule[CONSTANTS.HEADERS.CLASS_START];
+        const finalEndTime = tokyoRule[CONSTANTS.HEADERS.CLASS_END];
         if (finalStartTime)
           newRowData[startTimeColIdx] = new Date(`1970-01-01T${finalStartTime}:00`);
         if (finalEndTime) newRowData[endTimeColIdx] = new Date(`1970-01-01T${finalEndTime}:00`);
@@ -266,34 +255,6 @@ function makeReservation(reservationInfo) {
     // 統合予約シートの更新後、キャッシュを再構築
     rebuildAllReservationsCache();
 
-    // 【NF-12】Construct new booking object for cache (統合予約シート対応)
-    const timeToString = date =>
-      date instanceof Date ? Utilities.formatDate(date, getSpreadsheetTimezone(), 'HH:mm') : null;
-    const newBookingObject = {
-      reservationId: newReservationId,
-      classroom: classroom,
-      date: Utilities.formatDate(targetDate, getSpreadsheetTimezone(), 'yyyy-MM-dd'),
-      status: isFull ? CONSTANTS.STATUS.WAITING : CONSTANTS.STATUS.COMPLETED,
-      venue: venue,
-      startTime: timeToString(newRowData[startTimeColIdx]),
-      endTime: timeToString(newRowData[endTimeColIdx]),
-      chiselRental: options.chiselRental || false,
-      firstLecture: options.firstLecture || false,
-      workInProgress: workInProgress,
-      order: options.order || '',
-      message: options.messageToTeacher || '',
-      // レガシー互換性のため
-      isWaiting: isFull,
-      messageToTeacher: options.messageToTeacher || '',
-      accountingDone: false,
-      accountingDetails: '',
-    };
-    const newBookingsCache = _updateFutureBookingsCacheIncrementally(
-      user.studentId,
-      'add',
-      newBookingObject,
-    );
-
     // ログと通知
     const message = !isFull ? '予約が完了しました。' : '満席のため、キャンセル待ちで登録しました。';
     const messageToTeacher = options.messageToTeacher || '';
@@ -315,10 +276,14 @@ function makeReservation(reservationInfo) {
 
     return createApiResponse(true, {
       message: message,
-      newBookingsCache: newBookingsCache,
     });
   } catch (err) {
-    logActivity(reservationInfo.user.studentId, '予約作成', CONSTANTS.MESSAGES.ERROR, `Error: ${err.message}`);
+    logActivity(
+      reservationInfo.user.studentId,
+      '予約作成',
+      CONSTANTS.MESSAGES.ERROR,
+      `Error: ${err.message}`,
+    );
     Logger.log(`makeReservation Error: ${err.message}\n${err.stack}`);
     return BackendErrorHandler.handle(err, 'makeReservation');
   } finally {
@@ -355,7 +320,6 @@ function cancelReservation(cancelInfo) {
     const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
     const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
     const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
-    const venueColIdx = headerMap.get(CONSTANTS.HEADERS.VENUE);
 
     if (reservationIdColIdx === undefined || studentIdColIdx === undefined) {
       throw new Error('必要なヘッダー（予約ID, 生徒ID）が見つかりません。');
@@ -375,12 +339,11 @@ function cancelReservation(cancelInfo) {
     }
 
     const originalValues = targetRowData;
-    const status = String(originalValues[statusColIdx]).toLowerCase();
     const targetDate = originalValues[dateColIdx]; // キャンセルされた予約の日付を取得
 
     // ユーザー情報を取得して、ログと通知をより具体的にする
     const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
-    let userInfo = { realName: '(不明)', displayName: '(不明)' };
+    const userInfo = { realName: '(不明)', displayName: '(不明)' };
     if (rosterSheet) {
       // 効率化：生徒名簿も1回の読み込みで取得
       const rosterAllData = rosterSheet.getDataRange().getValues();
@@ -392,7 +355,8 @@ function cancelReservation(cancelInfo) {
         if (rosterStudentIdCol !== undefined) {
           const userRow = rosterAllData.slice(1).find(row => row[rosterStudentIdCol] === studentId);
           if (userRow) {
-            userInfo.realName = userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.REAL_NAME)] || '(不明)';
+            userInfo.realName =
+              userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.REAL_NAME)] || '(不明)';
             userInfo.displayName =
               userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.NICKNAME)] || userInfo.realName;
           }
@@ -401,7 +365,6 @@ function cancelReservation(cancelInfo) {
     }
 
     // メモリ上でステータスを「キャンセル」に更新
-    const dataRowIndex = targetRowIndex - 2; // ヘッダー行を除く配列インデックス
     allData[targetRowIndex - 1][statusColIdx] = CONSTANTS.STATUS.CANCEL; // allDataの該当行を更新
 
     // 更新されたデータを一括でシートに書き戻し
@@ -413,33 +376,40 @@ function cancelReservation(cancelInfo) {
     // 統合予約シートの更新後、キャッシュを再構築
     rebuildAllReservationsCache();
 
-    // 【NF-12】Update cache incrementally
-    const newBookingsCache = _updateFutureBookingsCacheIncrementally(studentId, 'remove', {
-      reservationId,
-    });
-
     // ログと通知
     const cancelMessage = cancelInfo.cancelMessage || '';
     const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
     const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}${messageLog}`;
-    logActivity(studentId, CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL, CONSTANTS.MESSAGES.SUCCESS, logDetails);
+    logActivity(
+      studentId,
+      CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
+      CONSTANTS.MESSAGES.SUCCESS,
+      logDetails,
+    );
 
     const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
     const messageSection = cancelMessage ? `\n先生へのメッセージ: ${cancelMessage}\n` : '';
     const body =
-      `予約がキャンセルされました。\n\n` +
-      `本名: ${userInfo.realName}\n` +
-      `ニックネーム: ${userInfo.displayName}\n\n` +
-      `教室: ${classroom}\n` +
-      `日付: ${Utilities.formatDate(targetDate, getSpreadsheetTimezone(), 'yyyy/MM/dd')}\n` +
-      `予約ID: ${reservationId}${messageSection}\n` +
+      `予約がキャンセルされました。
+
+` +
+      `本名: ${userInfo.realName}
+` +
+      `ニックネーム: ${userInfo.displayName}
+
+` +
+      `教室: ${classroom}
+` +
+      `日付: ${Utilities.formatDate(targetDate, getSpreadsheetTimezone(), 'yyyy/MM/dd')}
+` +
+      `予約ID: ${reservationId}${messageSection}
+` +
       `詳細はスプレッドシートを確認してください。`;
     sendAdminNotification(subject, body);
 
     return {
       success: true,
       message: '予約をキャンセルしました。',
-      newBookingsCache: newBookingsCache,
     };
   } catch (err) {
     logActivity(
@@ -564,20 +534,8 @@ function updateReservationDetails(details) {
 
     // 【NF-12】Update cache incrementally (統合予約シート対応)
     const studentId = integratedSheet.getRange(targetRowIndex, studentIdColIdx + 1).getValue();
-    const updatedBookingObject = {
-      reservationId: reservationId,
-      startTime: details.startTime || null,
-      endTime: details.endTime || null,
-      chiselRental: details.chiselRental || false,
-      workInProgress: details.workInProgress || '',
-      order: details.order || '',
-      messageToTeacher: details.messageToTeacher || '',
-    };
-    const newBookingsCache = _updateFutureBookingsCacheIncrementally(
-      studentId,
-      'update',
-      updatedBookingObject,
-    );
+    // 統合予約シートの更新はrebuildAllReservationsCache()で完了
+    // 予約データは現在CacheServiceで一元管理されているため、個別キャッシュ更新は不要
 
     // ログ記録
     const messageToTeacher = details.messageToTeacher || '';
@@ -586,11 +544,15 @@ function updateReservationDetails(details) {
     logActivity(studentId, '予約詳細更新', CONSTANTS.MESSAGES.SUCCESS, logDetails);
 
     return createApiResponse(true, {
-      newBookingsCache: newBookingsCache,
       message: '予約内容を更新しました。',
     });
   } catch (err) {
-    logActivity(details.studentId || '(N/A)', '予約詳細更新', CONSTANTS.MESSAGES.ERROR, `Error: ${err.message}`);
+    logActivity(
+      details.studentId || '(N/A)',
+      '予約詳細更新',
+      CONSTANTS.MESSAGES.ERROR,
+      `Error: ${err.message}`,
+    );
     Logger.log(`updateReservationDetails Error: ${err.message}\n${err.stack}`);
     return BackendErrorHandler.handle(err, 'updateReservationDetails');
   } finally {
@@ -618,8 +580,8 @@ function saveAccountingDetails(payload) {
       throw new Error('会計情報が不足しています。');
     }
 
-    const sheet = getSheetByName(classroom);
-    if (!sheet) throw new Error(`予約シート「${classroom}」が見つかりません。`);
+    const sheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
+    if (!sheet) throw new Error(`統合予約シートが見つかりません。`);
 
     const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
     const headerMap = createHeaderMap(header);
@@ -669,7 +631,7 @@ function saveAccountingDetails(payload) {
       if (classroomRule && startTime && endTime && startTime < endTime) {
         const start = new Date(`1970-01-01T${startTime}:00`);
         const end = new Date(`1970-01-01T${endTime}:00`);
-        let diffMinutes = (end - start) / 60000 - (breakMinutes || 0);
+        const diffMinutes = (end - start) / 60000 - (breakMinutes || 0);
         if (diffMinutes > 0) {
           const billableUnits = Math.ceil(diffMinutes / 30);
           const price = billableUnits * Number(classroomRule['単価']);
@@ -733,9 +695,9 @@ function saveAccountingDetails(payload) {
           .setNumberFormat('HH:mm');
     }
 
-    // 2. 受講時間とガントチャートを再計算
-    updateBillableTime(sheet, targetRowIndex);
-    updateGanttChart(sheet, targetRowIndex);
+    // 2. 受講時間とガントチャートを再計算 (レガシー機能のためコメントアウト)
+    // updateBillableTime(sheet, targetRowIndex);
+    // updateGanttChart(sheet, targetRowIndex);
 
     // 3. 検証済みの会計詳細JSONを保存
     const accountingDetailsColIdx = headerMap.get(CONSTANTS.HEADERS.ACCOUNTING_DETAILS);
@@ -747,12 +709,9 @@ function saveAccountingDetails(payload) {
 
     SpreadsheetApp.flush();
 
-    // 4. 「よやくキャッシュ」から会計済みの予約を削除
+    // 4. 統合予約シートの更新後、全てのキャッシュを再構築
     //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
-    //    よやくキャッシュからは削除し、年別きろく_YYYYキャッシュに責務を移管する。
-    const newBookingsCache = _updateFutureBookingsCacheIncrementally(actualStudentId, 'remove', {
-      reservationId,
-    });
+    //    全キャッシュを再構築してデータの整合性を保つ。
 
     // --- ここからが追加の後続処理 ---
     const reservationDataRow = sheet
@@ -797,7 +756,7 @@ function saveAccountingDetails(payload) {
     }
 
     // 9. 【NEW】会計済みの予約をアーカイブし、元の行を削除する
-    _archiveSingleReservation(sheet, targetRowIndex, reservationDataRow);
+    _archiveSingleReservation(sheet, targetRowIndex, reservationDataRow, classroom);
 
     // ログと通知
     const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}, Total: ${finalAccountingDetails.grandTotal}`;
@@ -824,14 +783,18 @@ function saveAccountingDetails(payload) {
 
     // [変更] 戻り値に updatedSlots を追加
     return createApiResponse(true, {
-      newBookingsCache: newBookingsCache,
       newHistory: historyResult.history,
       newHistoryTotal: historyResult.total,
       updatedSlots: updatedSlotsForClassroom, // <--- これを追加
       message: '会計処理と関連データの更新がすべて完了しました。',
     });
   } catch (err) {
-    logActivity(payload.studentId, '会計記録保存', CONSTANTS.MESSAGES.ERROR, `Error: ${err.message}`);
+    logActivity(
+      payload.studentId,
+      '会計記録保存',
+      CONSTANTS.MESSAGES.ERROR,
+      `Error: ${err.message}`,
+    );
     Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
     return BackendErrorHandler.handle(err, 'saveAccountingDetails');
   } finally {
@@ -866,10 +829,14 @@ function _logSalesForSingleReservation(
 
     const rowsToTransfer = [];
     (accountingDetails.tuition?.items || []).forEach(item => {
-      rowsToTransfer.push(createSalesRow(baseInfo, CONSTANTS.ITEM_TYPES.TUITION, item.name, item.price));
+      rowsToTransfer.push(
+        createSalesRow(baseInfo, CONSTANTS.ITEM_TYPES.TUITION, item.name, item.price),
+      );
     });
     (accountingDetails.sales?.items || []).forEach(item => {
-      rowsToTransfer.push(createSalesRow(baseInfo, CONSTANTS.ITEM_TYPES.SALES, item.name, item.price));
+      rowsToTransfer.push(
+        createSalesRow(baseInfo, CONSTANTS.ITEM_TYPES.SALES, item.name, item.price),
+      );
     });
 
     if (rowsToTransfer.length > 0) {
@@ -970,10 +937,10 @@ function _updateRecordCacheForSingleReservation(
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sourceSheet - 予約シート
  * @param {number} rowIndex - アーカイブ対象の行番号
  * @param {Array} reservationDataRow - アーカイブ対象の行データ
+ * @param {string} classroomName - アーカイブ先の教室名
  */
-function _archiveSingleReservation(sourceSheet, rowIndex, reservationDataRow) {
+function _archiveSingleReservation(sourceSheet, rowIndex, reservationDataRow, classroomName) {
   try {
-    const classroomName = sourceSheet.getName();
     const archiveSheetName = CONSTANTS.SYSTEM.ARCHIVE_PREFIX + classroomName.slice(0, -2);
     const archiveSheet = getSheetByName(archiveSheetName);
 

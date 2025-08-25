@@ -423,11 +423,13 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
   const reservationIdIndex = getIndex(HEADER_RESERVATION_ID);
   const studentIdIndex = getIndex(HEADER_STUDENT_ID);
   const dateIndex = getIndex(HEADER_DATE);
-  
+
   // インデックスが取得できているか確認
   if (reservationIdIndex === undefined || studentIdIndex === undefined || dateIndex === undefined) {
-    Logger.log(`ヘッダーマップエラー: reservationId=${reservationIdIndex}, studentId=${studentIdIndex}, date=${dateIndex}`);
-    
+    Logger.log(
+      `ヘッダーマップエラー: reservationId=${reservationIdIndex}, studentId=${studentIdIndex}, date=${dateIndex}`,
+    );
+
     // headerMapの型とプロパティを安全に確認
     if (headerMap && typeof headerMap === 'object') {
       if (headerMap.keys && typeof headerMap.keys === 'function') {
@@ -443,7 +445,7 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
     } else {
       Logger.log(`headerMapの型: ${typeof headerMap}, 値: ${JSON.stringify(headerMap)}`);
     }
-    
+
     // フォールバックとして従来の変換関数を使用
     return transformReservationArrayToObject(resArray);
   }

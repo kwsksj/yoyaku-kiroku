@@ -423,4 +423,5 @@ const HEADER_ARCHIVE_PREFIX = CONSTANTS.SYSTEM.ARCHIVE_PREFIX;
 const DATA_START_ROW = CONSTANTS.SYSTEM.DATA_START_ROW;
 
 // 実行時取得定数
-const SALES_SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
+const SALES_SPREADSHEET_ID =
+  PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
