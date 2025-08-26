@@ -28,7 +28,7 @@
     <!-- デバッグ情報表示エリア -->
     <div id="debug" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-xs">
       <strong>デバッグ情報:</strong>
-      <div id="debug-content">初期化中...</div>
+      <div id="debug-content" class="mt-2 max-h-32 overflow-y-auto border border-red-300 bg-red-50 p-2 rounded text-xs">初期化中...</div>
     </div>
 
     <!-- アプリケーションのメインコンテナ -->
@@ -76,16 +76,11 @@
       }
 
       // 最初のテスト - これが表示されなければHTMLファイル自体が読み込まれていない
-      console.log('=== HTMLファイル読み込み確認テスト ===');
-      console.log('ページURL:', window.location.href);
-      console.log('現在時刻:', new Date().toISOString());
-
       debugLog('HTMLファイル読み込み確認テスト完了');
       debugLog('ページURL: ' + window.location.href);
 
       // GAS環境かどうかを判定
       const isGAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
-      console.log('GAS環境判定:', isGAS);
       debugLog('GAS環境判定: ' + isGAS);
 
       function initializeApp() {
@@ -123,9 +118,7 @@
 
       if (isGAS) {
         // GAS本番環境のみ初期化
-        console.log('[GAS版] 全ファイル読み込み完了、アプリケーション初期化開始');
         window.addEventListener('DOMContentLoaded', () => {
-          console.log('[GAS] DOMContentLoaded - 初期化処理を開始します。');
           initializeApp();
         });
       }
