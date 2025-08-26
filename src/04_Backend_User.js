@@ -59,21 +59,15 @@ function extractPersonalDataFromCache(studentId, _cacheData) {
       ? userReservationsResult.data
       : { myBookings: [], myHistory: [] };
 
-    // 空き枠データを取得
-    Logger.log('getAvailableSlotsを使用して空き枠を計算中...');
-    const availableSlotsResult = getAvailableSlots();
-    const availableSlots = availableSlotsResult.success ? availableSlotsResult.data : [];
-
     Logger.log(
-      `個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件, 枠${availableSlots.length}件`,
+      `個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件`,
     );
-    return { myBookings, myHistory, availableSlots };
+    return { myBookings, myHistory };
   } catch (error) {
     Logger.log(`extractPersonalDataFromCacheエラー: ${error.message}`);
     return {
       myBookings: [],
       myHistory: [],
-      availableSlots: [],
     };
   }
 }
@@ -160,7 +154,6 @@ function authenticateUser(phoneNumber) {
         ...initialDataResult.data,
         myBookings: personalData.myBookings,
         myHistory: personalData.myHistory,
-        availableSlots: personalData.availableSlots,
       };
 
       Logger.log(

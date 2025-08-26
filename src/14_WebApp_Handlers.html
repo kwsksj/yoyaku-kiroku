@@ -990,42 +990,17 @@
         stateManager.getState().accountingReservation?.classroom ||
         stateManager.getState().editingReservationDetails?.classroom;
 
-      if (stateManager.getState().view === 'accounting') {
-        showConfirm({
-          title: '確認',
-          message: '会計入力を破棄しますか？<br>（入力内容はクリアされます）',
-          confirmText: 'はい',
-          cancelText: 'いいえ',
-          confirmColorClass: DesignConfig.colors.danger,
-          onConfirm: () => {
-            clearAccountingCache(stateManager.getState().accountingReservation.reservationId);
-            // スロット情報の鮮度をチェックして必要に応じて更新
-            if (!stateManager.getState().isDataFresh && !stateManager.getState()._dataUpdateInProgress) {
-              actionHandlers.updateSlotsAndGoToBooking(targetClassroom);
-            } else {
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  view: 'booking',
-                  selectedClassroom: targetClassroom,
-                },
-              });
-            }
+      // スロット情報の鮮度をチェックして必要に応じて更新
+      if (!stateManager.getState().isDataFresh && !stateManager.getState()._dataUpdateInProgress) {
+        actionHandlers.updateSlotsAndGoToBooking(targetClassroom);
+      } else {
+        window.stateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            view: 'booking',
+            selectedClassroom: targetClassroom,
           },
         });
-      } else {
-        // スロット情報の鮮度をチェックして必要に応じて更新
-        if (!stateManager.getState().isDataFresh && !stateManager.getState()._dataUpdateInProgress) {
-          actionHandlers.updateSlotsAndGoToBooking(targetClassroom);
-        } else {
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              view: 'booking',
-              selectedClassroom: targetClassroom,
-            },
-          });
-        }
       }
     },
 
@@ -1309,33 +1284,27 @@
   }
 
   /**
+   * 会計画面での入力変更を処理します。
+   * 合計金額の再計算と、入力内容のキャッシュ保存を行います。
+   */
+  function handleAccountingFormChange() {
+    // リアルタイムで合計金額を再計算
+    calculateAccountingDetails();
+
+    // フォーム内容が変更されたら、キャッシュに保存する
+    const reservationId = stateManager.getState().accountingReservation?.reservationId;
+    if (reservationId) {
+      const accountingData = getAccountingFormData();
+      saveAccountingCache(reservationId, accountingData);
+    }
+  }
+
+  /**
    * アプリケーションの起動点です。
    * ページ読み込み完了時に実行され、イベントリスナーを設定します。
    */
   window.onload = function () {
     const app = document.getElementById('app');
-
-    // 会計計画面での入力変更を検知し、リアルタイムで再計算
-    ['input', 'change'].forEach(eventName => {
-      app.addEventListener(eventName, e => {
-        const accountingForm = e.target.closest('#accounting-form');
-        if (stateManager.getState().view === 'accounting' && accountingForm) {
-          // リアルタイムで合計金額を再計算
-          calculateAccountingDetails();
-
-          // フォーム内容が変更されたら、キャッシュに保存する
-          const reservationId = stateManager.getState().accountingReservation?.reservationId;
-          if (reservationId) {
-            const accountingData = getAccountingFormData();
-            saveAccountingCache(reservationId, accountingData);
-          }
-        }
-        // changeイベントの場合のみ、支払い方法選択をチェック
-        if (eventName === 'change' && e.target.matches('#modal-accounting-form input[name="payment-method"]')) {
-          document.getElementById('confirm-payment-button')?.removeAttribute('disabled');
-        }
-      });
-    });
 
     // アプリ全体のクリックイベントを捕捉
     app.addEventListener('click', e => {
@@ -1350,8 +1319,20 @@
       }
     });
 
-    // NF-04: 木彫り経験ラジオボタンの変更を監視
+    // アプリ全体の入力・変更イベントを捕捉
     app.addEventListener('change', e => {
+      // 会計モーダルでの支払い方法選択
+      if (e.target.matches('#modal-accounting-form input[name="payment-method"]')) {
+        document.getElementById('confirm-payment-button')?.removeAttribute('disabled');
+      }
+
+      // 会計画面での変更（主に select や checkbox）
+      const accountingForm = e.target.closest('#accounting-form');
+      if (stateManager.getState().view === 'accounting' && accountingForm) {
+        handleAccountingFormChange();
+      }
+
+      // NF-04: 新規登録時の木彫り経験ラジオボタンの変更
       if (e.target.closest('#experience-radio-group')) {
         const container = document.getElementById('past-work-container');
         if (container) {
@@ -1361,6 +1342,14 @@
             container.classList.remove('hidden');
           }
         }
+      }
+    });
+
+    // 会計画面でのリアルタイム入力検知（主に input[type=text] など）
+    app.addEventListener('input', e => {
+      const accountingForm = e.target.closest('#accounting-form');
+      if (stateManager.getState().view === 'accounting' && accountingForm) {
+        handleAccountingFormChange();
       }
     });
   };
