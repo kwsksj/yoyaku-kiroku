@@ -80,7 +80,7 @@
 
       // 環境分岐: テスト環境の場合はモックデータを使用
       if (isTestEnvironment) {
-        console.log('🧪 Using mock login data');
+        // テスト環境ではモックデータを使用
         setTimeout(() => {
           hideLoading();
           setState({
@@ -101,9 +101,6 @@
       google.script.run
         .withSuccessHandler(response => {
           hideLoading();
-          console.log('初期データ取得レスポンス:', response);
-          console.log('response.data:', response.data);
-          console.log('response.data.slots:', response.data.slots);
 
           // デバッグ情報を画面に表示
           debugLog('初期データ取得完了');
@@ -123,7 +120,6 @@
               response.availableSlots,
               response.data.userReservations,
             );
-            console.log('processInitialData後のnewAppState:', newAppState);
             debugLog(
               'processInitialData完了 - slots: ' + (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
             );
@@ -156,7 +152,7 @@
         .getLoginData(n);
     },
 
-    /** 【削除済み】新しいログインフロー（メインのloginに統合済み） */
+    /** 新しいログインフロー（メインのloginに統合済み） */
 
     /** 新規ユーザー登録：Step1からStep2へ */
     goToStep2: () => {
@@ -239,9 +235,6 @@
             google.script.run
               .withSuccessHandler(batchResult => {
                 hideLoading();
-                console.log('バッチデータ取得レスポンス:', batchResult);
-                console.log('batchResult.data:', batchResult.data);
-                console.log('batchResult.data.slots:', batchResult.data.slots);
 
                 if (batchResult.success) {
                   const newAppState = processInitialData(
@@ -249,7 +242,6 @@
                     res.user.phone,
                     batchResult.data.slots,
                   );
-                  console.log('バッチ処理後のnewAppState:', newAppState);
                   setState({
                     ...newAppState,
                     currentUser: res.user,
@@ -752,23 +744,22 @@
 
     /** 新規予約のための教室選択画面に遷移します */
     goToClassroomSelection: () => {
-      // 教室選択画面に遷移する前に、最新のスロット情報（教室一覧の元データ）を効率的に取得
-      showLoading('教室情報を取得中...');
-      actionHandlers.refreshAndUpdateSlots(response => {
-        hideLoading();
-        if (response.success) {
-          setState({ view: 'classroomSelection' });
-        } else {
-          showInfo('教室情報の取得に失敗しました。ダッシュボードに戻ります。');
-          setState({ view: 'dashboard' });
-        }
-      });
+      if (appState.classrooms && appState.classrooms.length > 0) {
+        setState({ view: 'classroomSelection' });
+      } else {
+        showInfo('教室情報の取得に失敗しました。ダッシュボードに戻ります。');
+        setState({ view: 'dashboard' });
+      }
     },
 
     /** プロフィール編集画面に遷移します */
     goToEditProfile: () => setState({ view: 'editProfile' }),
 
-    /** スロット情報をキャッシュから取得して状態を更新する統合関数 */
+    /** 
+     * スロット情報をキャッシュから取得して状態を更新する統合関数
+     * 教室選択画面で利用する空き枠情報を最新化し、コールバック関数を実行
+     * @param {Function} [onComplete] - スロット更新完了時のコールバック関数
+     */
     refreshAndUpdateSlots: function (onComplete) {
       google.script.run
         .withSuccessHandler(response => {
@@ -795,35 +786,14 @@
         .getBatchData(['slots'], appState.currentUser.phone);
     },
 
-    /** 教室データを再取得します */
-    reloadClassroomData: () => {
-      showLoading();
-      debugLog('教室データ再取得開始');
-
-      actionHandlers.refreshAndUpdateSlots(response => {
-        hideLoading();
-
-        if (response.success) {
-          setState({ view: 'classroomSelection' });
-        } else {
-          showInfo('データの再取得に失敗しました。しばらく時間をおいてからお試しください。');
-        }
-      });
-    },
-
     /** 教室を選択し、予約枠一覧画面に遷移します */
     selectClassroom: d => {
-      // 教室選択時にスロット情報を更新してから画面遷移することで、常に最新の空き状況を表示
-      showLoading('予約枠を更新中...');
-      actionHandlers.refreshAndUpdateSlots(response => {
-        hideLoading();
-        if (response.success) {
-          // slotsはrefreshAndUpdateSlots内で更新済み。ここでは画面遷移と教室選択の状態をセット。
-          setState({ selectedClassroom: d.classroomName, view: 'booking' });
-        } else {
-          showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
-        }
-      });
+      if (!d || !d.classroomName) {
+        // slotsはrefreshAndUpdateSlots内で更新済み。ここでは画面遷移と教室選択の状態をセット。
+        setState({ selectedClassroom: d.classroomName, view: 'booking' });
+      } else {
+        showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
+      }
     },
 
     /** 予約枠を選択し、予約確認画面に遷移します */
@@ -904,26 +874,12 @@
 
     /** モーダルのキャンセルボタンを押したときの処理です */
     modalCancel: () => hideModal(),
-
-    /** 「次の予約をする」ボタンの処理（スロット更新 + 予約一覧画面へ遷移） */
-    goToBooking: d => {
-      const classroom = d.classroom || appState.accountingReservation?.classroom;
-      if (classroom) {
-        // 会計完了後はスロット情報を更新してから予約画面に遷移
-        actionHandlers.refreshAndUpdateSlots(response => {
-          setState({ selectedClassroom: classroom, view: 'booking' });
-        });
-      } else {
-        showInfo('教室名が取得できませんでした。');
-      }
-    },
   };
 
   /**
    * 会計の確認モーダルを表示
    */
   actionHandlers.showAccountingConfirmation = () => {
-    console.log(appState);
     const accountingDetails = calculateAccountingDetails();
     if (!accountingDetails || accountingDetails.grandTotal <= 0) {
       showInfo('合計金額が0円です。項目を選択してください。');
@@ -1006,7 +962,7 @@
     }
 
     // 物販項目（チェックボックス）
-    form.querySelectorAll(`input[type="checkbox"][data-item-type="${ITEM_TYPE_SALES}"]:checked`).forEach(cb => {
+    form.querySelectorAll(`input[type="checkbox"][data-item-type="${C.itemTypes.SALES}"]:checked`).forEach(cb => {
       userInput.salesItems.push({ name: cb.dataset.itemName });
     });
 
@@ -1058,10 +1014,7 @@
    * @param {object} newState - 更新する新しい状態オブジェクト
    */
   function setState(newState) {
-    console.log('setState() 実行 - newState:', newState);
-    console.log('setState() - 変更前のappState:', JSON.parse(JSON.stringify(appState)));
     Object.assign(appState, newState);
-    console.log('setState() - 変更後のappState:', appState);
 
     // 統一定数の短縮参照を初期化（constants が設定された場合）
     if (newState.constants) {
@@ -1107,6 +1060,9 @@
 
   /**
    * 指定されたビューで最新データが必要かどうかを判定
+   * データ要求ビュー、ユーザーログイン状態、更新中フラグを考慮して判定
+   * @param {string} view - 判定対象のビュー名
+   * @returns {boolean} 最新データ取得が必要な場合true
    */
   function shouldUpdateAppStateForView(view) {
     // 教室選択画面は専用の更新処理(refreshAndUpdateSlots)に任せるため、ここからは除外
@@ -1121,6 +1077,7 @@
 
   /**
    * バッチ処理でキャッシュから最新データを取得してappStateを更新
+   * ユーザーの予約・履歴・スロット情報を一括取得し、UIを再描画
    */
   function updateAppStateFromCache() {
     if (!appState.currentUser || !appState.currentUser.phone) {
@@ -1170,21 +1127,46 @@
   }
 
   /**
+   * 指定されたビューでどのようなデータ更新が必要かを判定します。
+   * @param {string} view - 現在のビュー名
+   * @returns {'full' | 'slotsOnly' | 'none'} 必要な更新タイプ
+   */
+  function getUpdateTypeForView(view) {
+    // 更新中、またはデータが新鮮な場合は更新不要
+    if (!appState.currentUser || appState._dataUpdateInProgress || appState.isDataFresh) {
+      return 'none';
+    }
 
-   * 現在のアプリケーションの状態に基づいて、適切なビューを描画します。
+    // フルデータ更新が必要なビュー
+    const fullDataRequiredViews = ['dashboard', 'editProfile', 'complete'];
+    if (fullDataRequiredViews.includes(view)) {
+      return 'full';
+    }
+
+    // スロットデータのみ更新が必要なビュー
+    const slotsOnlyRequiredViews = ['classroomSelection', 'booking'];
+    if (slotsOnlyRequiredViews.includes(view)) {
+      return 'slotsOnly';
+    }
+
+    return 'none'; // その他のビューでは更新不要
+  }
+
+  /**
+   * 現在のアプリケーションの状態に基づいて、適切なビューを描画する
+   * データ更新の必要性を判定し、必要に応じて最新データ取得後に再描画
+   * appState.viewの値に応じて対応するビュー関数を呼び出してUIを更新
    */
   function render() {
-    console.log('render() 実行開始 - view:', appState.view);
-    console.log('render() - appState:', appState);
 
     const updateType = getUpdateTypeForView(appState.view);
 
     if (updateType === 'full') {
-      console.log('render() - フルデータ更新が必要な画面のため updateAppStateFromCache() 実行');
+      // フルデータ更新が必要な画面
       updateAppStateFromCache();
       return; // updateAppStateFromCache内で再度render()が呼ばれるため、ここで終了
     } else if (updateType === 'slotsOnly') {
-      console.log('render() - スロットデータ更新が必要な画面のため refreshAndUpdateSlots() 実行');
+      // スロットデータ更新が必要な画面
       showLoading('最新データを取得中...'); // ローディング表示
       actionHandlers.refreshAndUpdateSlots(response => {
         hideLoading(); // ローディング非表示
@@ -1231,17 +1213,14 @@
       case 'accounting':
         v = getAccountingView();
         break;
-      // 【LEGACY REMOVED】 case 'history' - 統合ダッシュボードに移行済み
       case 'complete':
         v = getCompleteView(appState.completionMessage);
         break;
       case 'userSearch':
         v = getUserSearchView();
-        break; // NF-01: 新しいビューを追加
+        break;
     }
-    console.log('Rendered view HTML:', v);
     document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
-    console.log('view-container innerHTML after update:', document.getElementById('view-container').innerHTML);
 
     if (appState.view === 'accounting') {
       requestAnimationFrame(() => {
@@ -1258,9 +1237,7 @@
    * ページ読み込み完了時に実行され、イベントリスナーを設定します。
    */
   window.onload = function () {
-    console.log('アプリケーション初期化開始');
     const app = document.getElementById('app');
-    console.log('app要素取得:', app);
 
     // 会計計画面での入力変更を検知し、リアルタイムで再計算
     ['input', 'change'].forEach(eventName => {

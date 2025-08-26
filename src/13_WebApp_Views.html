@@ -148,7 +148,7 @@
    */
   const buildMaterialRow = (index, data = {}) => {
     const materialOptions = appState.accountingMaster
-      .filter(m => m['種別'] === ITEM_TYPE_MATERIAL)
+      .filter(m => m['種別'] === C.itemTypes.MATERIAL)
       .map(m => `<option value="${m['項目名']}" ${data.type === m['項目名'] ? 'selected' : ''}>${m['項目名']}</option>`)
       .join('');
     return `
@@ -482,12 +482,11 @@
   const getRegisterView = p => getUserFormView({ mode: 'register', phone: p });
 
   /**
-   * 新規登録フローのステップ2（プロフィール情報）のUIを生成します。
+   * 新規登録フローのステップ2（プロフィール情報）のUIを生成する
+   * 性別、利き手、年代、メールアドレス等の詳細プロフィール入力フォーム
+   * @returns {string} プロフィール入力フォームのHTML文字列
    */
   const getRegistrationStep2View = () => {
-    console.log('getRegistrationStep2View called');
-    console.log('DesignConfig:', typeof DesignConfig, DesignConfig);
-    console.log('Components:', typeof Components, Components); // Componentsのログを追加
     const data = appState.registrationData;
     const genderOptions = ['女性', '男性', 'その他']
       .map(
@@ -530,7 +529,9 @@
   };
 
   /**
-   * 新規登録フローのステップ3（木彫りについて）のUIを生成します。
+   * 新規登録フローのステップ3（木彫りについて）のUIを生成する
+   * 木彫り経験、きっかけ、制作したい物等の木彫り関連質問フォーム
+   * @returns {string} 木彫りアンケートフォームのHTML文字列
    */
   const getRegistrationStep3View = () => {
     const data = appState.registrationData;
@@ -688,6 +689,7 @@
                       isPastOrToday = resDate.getTime() <= today.getTime();
                     }
 
+
                     // ボタン配列を構築
                     const buttons = [];
 
@@ -800,12 +802,6 @@
    * @returns {string} HTML文字列
    */
   const getClassroomSelectionView = () => {
-    console.log('getClassroomSelectionView - appState.classrooms:', appState.classrooms);
-    console.log(
-      'getClassroomSelectionView - appState.classrooms length:',
-      appState.classrooms ? appState.classrooms.length : 'null/undefined',
-    );
-    console.log('getClassroomSelectionView - full appState:', appState);
 
     // デバッグ情報を画面表示用に準備
     const sampleSlots = appState.slots ? appState.slots.slice(0, 2) : [];
@@ -845,7 +841,6 @@
             ネットワーク接続またはサーバーに問題がある可能性があります。
           </div>
           <div class="space-y-3">
-            ${Components.createButton({ text: 'データを再取得', action: 'reloadClassroomData', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
             ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
           </div>
         </div>
@@ -968,11 +963,7 @@
     // バックエンドで計算済みの空き情報を直接使用
     const relevantSlots = appState.slots ? appState.slots.filter(slot => slot.classroom === classroom) : [];
 
-    // デバッグ用：データ構造を確認
-    if (detectEnvironment() === 'test' && relevantSlots.length > 0) {
-      console.log('getBookingView - relevantSlots sample:', relevantSlots[0]);
-      console.log('getBookingView - appState.slots sample:', appState.slots[0]);
-    }
+    // デバッグ用：データ構造を確認 - 削除済み
 
     // デバッグ情報を画面表示用に準備
     const debugInfo = `
@@ -1376,8 +1367,8 @@
           '',
         )}</div> <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base text-brand-subtle"></div> <div class="text-right font-bold mt-2 text-brand-text" id="tuition-subtotal">小計: 0円</div></div>`;
     }
-    const salesItems = master.filter(item => item['種別'] === ITEM_TYPE_SALES);
-    const salesHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${buildMaterialRow(0, { type: initial.materialType0, l: initial.materialL0, w: initial.materialW0, h: initial.materialH0 })}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" name="${item['項目名']}" data-item-type="${ITEM_TYPE_SALES}" data-item-name="${item['項目名']}" class="accounting-item accent-action-primary-bg" ${initial[item['項目名']] ? 'checked' : ''}><span>${item['項目名']}</span></label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">${getOtherSalesRowHtml(0, { name: initial.otherSalesName0, price: initial.otherSalesPrice0 })}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} </details> <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div></div>`;
+    const salesItems = master.filter(item => item['種別'] === C.itemTypes.SALES);
+    const salesHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${buildMaterialRow(0, { type: initial.materialType0, l: initial.materialL0, w: initial.materialW0, h: initial.materialH0 })}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" name="${item['項目名']}" data-item-type="${C.itemTypes.SALES}" data-item-name="${item['項目名']}" class="accounting-item accent-action-primary-bg" ${initial[item['項目名']] ? 'checked' : ''}><span>${item['項目名']}</span></label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">${getOtherSalesRowHtml(0, { name: initial.otherSalesName0, price: initial.otherSalesPrice0 })}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} </details> <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div></div>`;
     return `
         <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold text-brand-text">会計</h1>

@@ -50,16 +50,8 @@
     const myHistory = userReservations ? userReservations.myHistory : [];
 
     // 3. スロットデータから教室一覧を動的に取得
-    console.log('processInitialData - availableSlots:', availableSlots);
-    console.log(
-      'processInitialData - availableSlots length:',
-      availableSlots ? availableSlots.length : 'null/undefined',
-    );
-
     const classroomsFromSlots =
       availableSlots && availableSlots.length > 0 ? [...new Set(availableSlots.map(slot => slot.classroom))] : [];
-
-    console.log('processInitialData - classroomsFromSlots:', classroomsFromSlots);
 
     // 4. appStateを構築
     return {
@@ -129,10 +121,7 @@
 
   // 開発時のログ出力
   if (isTestEnvironment) {
-    console.log('🧪 Test Environment Detected');
-    console.log('MockData available:', typeof MockData !== 'undefined');
-  } else {
-    console.log('🚀 Production Environment Detected');
+    // テスト環境では特別な処理は不要
   }
 
   const appState = {
@@ -191,15 +180,37 @@
     _allStudents: {},
     _cacheVersions: {},
   };
-  // モーダル管理オブジェクト - カプセル化された方式でコールバックを管理
+
+  // グローバルスコープでアクセス可能にする
+  window.appState = appState;
+
+  /**
+   * モーダル管理オブジェクト
+   * カプセル化された方式でモーダルのコールバック処理を管理する
+   * グローバル変数の乱用を避けるための設計
+   */
   const ModalManager = {
     onConfirmCallback: null,
+    
+    /**
+     * モーダル確認時のコールバック関数を設定
+     * @param {Function} callback - 確認ボタン押下時に実行する関数
+     */
     setCallback: function (callback) {
       this.onConfirmCallback = callback;
     },
+    
+    /**
+     * 設定されたコールバック関数をクリア
+     */
     clearCallback: function () {
       this.onConfirmCallback = null;
     },
+    
+    /**
+     * 設定されたコールバック関数を実行し、自動でクリアする
+     * モーダル確認ボタンから呼び出される
+     */
     executeCallback: function () {
       if (this.onConfirmCallback) {
         this.onConfirmCallback();
@@ -240,26 +251,13 @@
         appState.recordsToShow = UI.HISTORY_INITIAL_RECORDS;
       }
 
-      console.log('統一定数の短縮参照を初期化しました');
     }
   }
 
-  // 初期appState確認ログ
-  console.log('appState初期化完了:', appState);
-  console.log('appState.view:', appState.view);
-  console.log('appState.slots:', appState.slots);
-  console.log('appState.classrooms:', appState.classrooms);
 
   // テスト環境の初期化ログ
   if (isTestEnvironment) {
-    console.log('[TEST] テスト環境で実行中です');
-    console.log('[TEST] appState初期化:', {
-      currentUser: appState.currentUser,
-      slotsCount: appState.slots.length,
-      bookingsCount: appState.myBookings.length,
-      historyCount: appState.history.length,
-      classrooms: appState.classrooms,
-    });
+    // テスト環境では特別な処理は不要
   }
 
   // =================================================================
@@ -730,12 +728,7 @@
         const isDateFuture = slotDate >= today;
         const isNotFirstLecture = s.session !== C.items.FIRST_LECTURE;
 
-        // デバッグ用ログ（開発環境のみ）
-        if (detectEnvironment() === 'test' && s.classroom && classroom === C.classrooms.TOKYO) {
-          console.log(
-            `フィルター詳細 - スロット教室: "${s.classroom}", 検索教室: "${classroom}", 一致: ${isClassroomMatch}, 日付: ${s.date}, 未来: ${isDateFuture}, セッション: "${s.session}", 初回除外: ${isNotFirstLecture}`,
-          );
-        }
+        // デバッグ用ログ（開発環境のみ）- 削除済み
 
         return isClassroomMatch && isDateFuture && isNotFirstLecture;
       });
@@ -970,7 +963,10 @@
   }
 
   /**
-   * 時間制授業料を計算します。
+   * 時間制授業料を計算する
+   * 開始時間・終了時間・休憩時間から実際の受講時間を算出し、30分単位で料金を計算
+   * @param {Object} tuitionItemRule - 会計マスタの授業料ルールオブジェクト（単価を含む）
+   * @returns {Object|null} 計算結果 { price: number, item: {name: string, price: number} } または null
    */
   function calculateTimeBasedTuition(tuitionItemRule) {
     const startTime = document.getElementById('start-time')?.value;
@@ -996,7 +992,9 @@
   }
 
   /**
-   * チェックボックス項目を計算します。
+   * フォーム内のチェックボックス項目の料金を計算する
+   * 授業料項目と物販項目を区別して集計し、両方の小計を算出
+   * @returns {Object} 計算結果 { tuitionSubtotal: number, salesSubtotal: number, tuitionItems: Array, salesItems: Array, allItems: Array }
    */
   function calculateCheckboxItems() {
     let tuitionSubtotal = 0;
@@ -1031,7 +1029,9 @@
   }
 
   /**
-   * 割引を計算します。
+   * 初回講習同時割引を計算する
+   * 選択された割引時間(30分/60分)に基づいて割引金額を算出
+   * @returns {Object|null} 割引計算結果 { discountAmount: number, discountItem: {name: string, price: number} } または null
    */
   function calculateDiscount() {
     const discountSelector = document.getElementById('discount-selector');
@@ -1055,7 +1055,10 @@
   }
 
   /**
-   * 材料費を計算します。
+   * 材料費を計算する
+   * 立体材料の場合はサイズ(長さ×幅×高さ)から体積を計算し、単価を掛けて算出
+   * その他の材料は固定単価で計算
+   * @returns {Object} 計算結果 { subtotal: number, items: Array<{name: string, price: number}> }
    */
   function calculateMaterials() {
     let subtotal = 0;
@@ -1078,7 +1081,7 @@
         let finalName = type;
         let price = 0;
 
-        if (masterItem['単位'] === UNIT_CM3) {
+        if (masterItem['単位'] === appState.constants.units.CM3) {
           const l = document.getElementById(`material-l-${index}`)?.value || 0;
           const w = document.getElementById(`material-w-${index}`)?.value || 0;
           const h = document.getElementById(`material-h-${index}`)?.value || 0;
@@ -1105,7 +1108,9 @@
   }
 
   /**
-   * その他販売品を計算します。
+   * その他販売品を計算する
+   * 動的に追加された販売品項目の名前と価格から小計を算出
+   * @returns {Object} 計算結果 { subtotal: number, items: Array<{name: string, price: number}> }
    */
   function calculateOtherSales() {
     let subtotal = 0;
@@ -1135,7 +1140,9 @@
   }
 
   /**
-   * 会計UIを更新します。
+   * 会計フォームのUI要素を計算結果に基づいて更新する
+   * 授業料・物販の小計、合計金額、内訳表示などを動的に更新
+   * @param {Object} details - calculateAccountingDetailsFromForm()の計算結果
    */
   function updateAccountingUI(details) {
     const tuitionBreakdownEl = document.getElementById('tuition-breakdown');
