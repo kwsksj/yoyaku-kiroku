@@ -802,9 +802,8 @@
    * @returns {string} HTML文字列
    */
   const getClassroomSelectionView = () => {
-    // 教室リストは、動的な空き状況(appState.classrooms)からではなく、
-    // ログイン時に取得した静的な統合定数(appState.constants.CLASSROOMS)から生成します。
-    const classroomButtonsHtml = Object.values(appState.constants.CLASSROOMS || {})
+    // 教室リストは、ログイン時に取得した静的な統合定数(appState.classrooms)から生成
+    const classroomButtonsHtml = Object.values(appState.classrooms || {})
       .map(classroomName =>
         Components.createButton({
           action: 'selectClassroom',

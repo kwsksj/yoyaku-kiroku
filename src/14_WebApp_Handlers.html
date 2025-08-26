@@ -746,13 +746,11 @@
 
     /** 新規予約のための教室選択画面に遷移します */
     goToClassroomSelection: () => {
-      // 教室リストはログイン時に取得した「統合定数」から表示するため、
-      // ここでデータ更新チェックは不要です。
-      if (appState.constants && appState.constants.CLASSROOMS) {
+      if (appState.classrooms && appState.classrooms.length > 0) {
         setState({ view: 'classroomSelection' });
       } else {
-        // 万が一、定数が読み込めていない場合はエラーを表示
-        showInfo('教室情報の読み込みに失敗しました。一度ダッシュボードに戻ります。');
+        // 教室情報がない場合はデータを更新
+        showInfo('教室情報の取得に失敗しました。ダッシュボードに戻ります。');
         actionHandlers.goBackToDashboard();
       }
     },
@@ -775,45 +773,91 @@
       }
     },
 
-    /**
-     * スロット情報をキャッシュから取得して状態を更新する統合関数
-     * 教室選択画面で利用する空き枠情報を最新化し、コールバック関数を実行
-     * @param {Function} [onComplete] - スロット更新完了時のコールバック関数
-     */
-    refreshAndUpdateSlots: function (onComplete) {
+
+    /** 教室を選択し、予約枠一覧画面に遷移します */
+    selectClassroom: d => {
+      if (d && d.classroomName) {
+        // スロット情報が古い場合は更新してから遷移
+        if (!appState.isDataFresh && !appState._dataUpdateInProgress) {
+          actionHandlers.updateSlotsAndGoToBooking(d.classroomName);
+        } else {
+          // データが新鮮な場合はそのまま遷移
+          setState({ selectedClassroom: d.classroomName, view: 'booking' });
+        }
+      } else {
+        showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
+      }
+    },
+
+    /** スロット情報を更新してから予約枠画面に遷移します（設計書準拠） */
+    updateSlotsAndGoToBooking: (classroomName) => {
+      showLoading('最新の予約枠を取得中...');
+      
       google.script.run
         .withSuccessHandler(response => {
-          debugLog('スロット取得完了 - success: ' + response.success);
-
+          hideLoading();
+          
           if (response.success && response.data && response.data.slots) {
             const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
-            debugLog('取得したスロット: ' + response.data.slots.length + '件');
-
             setState({
               slots: response.data.slots,
               classrooms: classroomsFromSlots,
+              selectedClassroom: classroomName,
+              view: 'booking',
+              isDataFresh: true,
             });
           } else {
-            debugLog('スロット取得に失敗');
+            showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
           }
-
-          if (onComplete) onComplete(response);
         })
         .withFailureHandler(error => {
-          debugLog('スロット取得エラー: ' + error.message);
-          if (onComplete) onComplete({ success: false, message: error.message });
+          hideLoading();
+          showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
+          console.error('スロット取得エラー:', error);
         })
         .getBatchData(['slots'], appState.currentUser.phone);
     },
 
-    /** 教室を選択し、予約枠一覧画面に遷移します */
-    selectClassroom: d => {
-      if (!d || !d.classroomName) {
-        // slotsはrefreshAndUpdateSlots内で更新済み。ここでは画面遷移と教室選択の状態をセット。
-        setState({ selectedClassroom: d.classroomName, view: 'booking' });
-      } else {
-        showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
-      }
+    /** スロット情報を更新してから完了画面に遷移します（設計書準拠） */
+    updateSlotsAndGoToComplete: (message) => {
+      showLoading('最新の予約枠を取得中...');
+      
+      google.script.run
+        .withSuccessHandler(response => {
+          hideLoading();
+          
+          if (response.success && response.data && response.data.slots) {
+            const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
+            setState({
+              slots: response.data.slots,
+              classrooms: classroomsFromSlots,
+              view: 'complete',
+              completionMessage: message,
+              accountingReservation: appState.accountingReservation,
+              isDataFresh: true,
+            });
+          } else {
+            // スロット取得に失敗してもメッセージは表示
+            setState({
+              view: 'complete',
+              completionMessage: message,
+              accountingReservation: appState.accountingReservation,
+              isDataFresh: false,
+            });
+          }
+        })
+        .withFailureHandler(error => {
+          hideLoading();
+          console.error('スロット取得エラー:', error);
+          // エラーでもメッセージは表示
+          setState({
+            view: 'complete',
+            completionMessage: message,
+            accountingReservation: appState.accountingReservation,
+            isDataFresh: false,
+          });
+        })
+        .getBatchData(['slots'], appState.currentUser.phone);
     },
 
     /** 予約枠を選択し、予約確認画面に遷移します */
@@ -860,6 +904,11 @@
 
     /** 予約枠一覧画面に戻ります */
     goBackToBooking: () => {
+      const targetClassroom = 
+        appState.selectedSlot?.classroom ||
+        appState.accountingReservation?.classroom ||
+        appState.editingReservationDetails?.classroom;
+
       if (appState.view === 'accounting') {
         showConfirm({
           title: '確認',
@@ -869,23 +918,27 @@
           confirmColorClass: DesignConfig.colors.danger,
           onConfirm: () => {
             clearAccountingCache(appState.accountingReservation.reservationId);
-            setState({
-              view: 'booking',
-              selectedClassroom:
-                appState.selectedSlot?.classroom ||
-                appState.accountingReservation?.classroom ||
-                appState.editingReservationDetails?.classroom,
-            });
+            // スロット情報の鮮度をチェックして必要に応じて更新
+            if (!appState.isDataFresh && !appState._dataUpdateInProgress) {
+              actionHandlers.updateSlotsAndGoToBooking(targetClassroom);
+            } else {
+              setState({
+                view: 'booking',
+                selectedClassroom: targetClassroom,
+              });
+            }
           },
         });
       } else {
-        setState({
-          view: 'booking',
-          selectedClassroom:
-            appState.selectedSlot?.classroom ||
-            appState.accountingReservation?.classroom ||
-            appState.editingReservationDetails?.classroom,
-        });
+        // スロット情報の鮮度をチェックして必要に応じて更新
+        if (!appState.isDataFresh && !appState._dataUpdateInProgress) {
+          actionHandlers.updateSlotsAndGoToBooking(targetClassroom);
+        } else {
+          setState({
+            view: 'booking',
+            selectedClassroom: targetClassroom,
+          });
+        }
       }
     },
 
@@ -1010,12 +1063,9 @@
           clearAccountingCache(reservationId); // <-- キャッシュ削除
           hideModal(); // モーダルを閉じる
           hideLoading();
-          setState({
-            view: 'complete',
-            completionMessage: '会計情報を記録しました。',
-            accountingReservation: appState.accountingReservation,
-            isDataFresh: false, // 最新スロット情報を取得するため
-          });
+          
+          // 会計完了後は最新スロット情報を取得してから完了画面に遷移
+          actionHandlers.updateSlotsAndGoToComplete('会計情報を記録しました。');
         } else {
           hideLoading();
           showInfo(r.message || '会計情報の記録に失敗しました。');
