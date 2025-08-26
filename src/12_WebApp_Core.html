@@ -50,23 +50,28 @@
     const myBookings = userReservations ? userReservations.myBookings : [];
     const myHistory = userReservations ? userReservations.myHistory : [];
 
-    // 3. スロットデータから教室一覧を動的に取得
-    const classroomsFromSlots =
-      availableSlots && availableSlots.length > 0 ? [...new Set(availableSlots.map(slot => slot.classroom))] : [];
+    // 3. 教室一覧は統合定数から取得（StateManagerで設定される）
+    // availableSlots から取得する必要はなくなった
+    const classroomsFromConstants = constants ? Object.values(constants.classrooms) : [];
 
-    // 4. appStateを構築
+    // 4. 空き枠バージョンを生成
+    const slotsVersion = cacheVersions ?
+      `${cacheVersions.allReservations || 0}-${cacheVersions.scheduleMaster || 0}` : null;
+
+    // 5. appStateを構築
     return {
       view: 'dashboard',
       currentUser: currentUser,
       myBookings: myBookings,
       history: myHistory,
       slots: availableSlots,
-      classrooms: classroomsFromSlots,
+      classrooms: classroomsFromConstants,
       accountingMaster: accountingMaster,
       today: today,
       constants: constants, // 統一定数を追加
       _allStudents: allStudents,
       _cacheVersions: cacheVersions,
+      _slotsVersion: slotsVersion, // 空き枠バージョンを設定
     };
   }
 
@@ -314,6 +319,10 @@
       'とうろく が あるか しらべています...',
       'でんわばんごう を かくにん しています...',
       'ひと と なり を そうぞう しています...',
+      'だれの こえ か かんがえています...',
+      'すき な たべもの を そうぞう しています...',
+      'にがお え を かいています...',
+      'しゅみ を あてて います...',
     ],
 
     // 申し込み時のメッセージ
@@ -323,16 +332,31 @@
       'はんこ を さがしています...',
       'ひづけ を かくにん しています...',
       'かれんだー に かきこんでいます...',
+      'せき を かくほ しています...',
+      'きぼう を かなえようとしています...',
+      'たのしい じかん を よやく しています...',
+      'わくわく を とうろく しています...',
+      'さくひん の こうそう を ねっています...',
     ],
 
     // 予約キャンセル時のメッセージ
-    cancel: ['よやく を とりけしています...', 'けしごむ を さがしています...', 'とりけしせん を ひいています...'],
+    cancel: [
+      'よやく を とりけしています...',
+      'けしごむ を さがしています...',
+      'とりけしせん を ひいています...',
+      'おだいじに と おもっています...',
+      'また こんど を たのしみにしています...',
+      'べつの ひ を かんがえています...',
+    ],
 
     // 予約編集時のメッセージ
     edit: [
       'へんこう を ほぞんしています...',
       'あたらしい ないよう に かきかえています...',
       'まちがい が ないか かくにんしています...',
+      'もう すこし よく しようとしています...',
+      'かんがえなおして みています...',
+      'こだわり を ちょうせい しています...',
     ],
 
     // 会計時のメッセージ
@@ -341,6 +365,10 @@
       'ちょうぼ を つけています...',
       'おかね を かぞえています...',
       'おつり を じゅんびしています...',
+      'そろばん を はじいています...',
+      'けいさんき を たたいています...',
+      'ぽけっと を さがしています...',
+      'けいりのひと に へんしんしています...',
     ],
 
     // データ取得時のメッセージ
@@ -348,6 +376,8 @@
       'データ を よみこんでいます...',
       'じょうほう を あつめています...',
       'ひつような もの を さがしています...',
+      'くも の うえ を のぞいています...',
+      'じょうほう を つかまえています...',
     ],
 
     // デフォルトのメッセージ
@@ -375,6 +405,13 @@
       'ぜんたい と ぶぶん を かんがえています...',
       'やらないといけないこと を ながめています...',
       'あたらしい こと を かんがえています...',
+      'さくひん が できあがる ゆめ を みています...',
+      'つくえ の うえ で しごとらしきこと を しています...',
+      'まるい もの を しかくく しようとしています...',
+      'しかくい もの を まるく  しようとしています...',
+      'せんせい が おちゃ を のんでいます...',
+      'おもしろい かたち を かんがえています...',
+      'じかん が ゆっくり すぎています...',
     ],
   };
 
@@ -397,7 +434,7 @@
     // 3秒ごとにメッセージを更新
     loadingMessageTimer = setInterval(() => {
       updateLoadingMessage(category);
-    }, UI?.LOADING_MESSAGE_INTERVAL || 3000);
+    }, UI?.LOADING_MESSAGE_INTERVAL || 2500);
   };
 
   const stopLoadingMessageRotation = () => {

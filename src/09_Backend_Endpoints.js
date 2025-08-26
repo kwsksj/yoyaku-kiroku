@@ -290,6 +290,37 @@ function getLoginData(phone) {
 }
 
 /**
+ * 軽量なキャッシュバージョンチェック用API
+ * 空き枠データの更新有無を高速で判定
+ * @returns {object} - { success: boolean, versions: object }
+ */
+function getCacheVersions() {
+  try {
+    Logger.log('getCacheVersions開始');
+
+    // 関連キャッシュのバージョンのみ取得
+    const allReservationsCache = JSON.parse(
+      CacheService.getScriptCache().get(CACHE_KEYS.ALL_RESERVATIONS) || '{"version": 0}'
+    );
+    const scheduleMaster = JSON.parse(
+      CacheService.getScriptCache().get(CACHE_KEYS.SCHEDULE_MASTER) || '{"version": 0}'
+    );
+
+    const versions = {
+      allReservations: allReservationsCache.version || 0,
+      scheduleMaster: scheduleMaster.version || 0,
+      // 空き枠関連バージョンの合成（変更検知用）
+      slotsComposite: `${allReservationsCache.version || 0}-${scheduleMaster.version || 0}`,
+    };
+
+    Logger.log(`getCacheVersions完了: ${JSON.stringify(versions)}`);
+    return createApiResponse(true, versions);
+  } catch (err) {
+    return BackendErrorHandler.handle(err, 'getCacheVersions');
+  }
+}
+
+/**
  * 複数のデータタイプを一度に取得するバッチ処理関数
  * @param {Array} dataTypes - 取得するデータタイプの配列 ['initial', 'slots', 'reservations', 'history', 'userdata']
  * @param {string|null} phone - 電話番号（ユーザー特定用、任意）

@@ -840,16 +840,8 @@
     /** 教室を選択し、予約枠一覧画面に遷移します */
     selectClassroom: d => {
       if (d && d.classroomName) {
-        // スロット情報が古い場合は更新してから遷移
-        if (!stateManager.getState().isDataFresh && !stateManager.getState()._dataUpdateInProgress) {
-          actionHandlers.updateSlotsAndGoToBooking(d.classroomName);
-        } else {
-          // データが新鮮な場合はそのまま遷移
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: { selectedClassroom: d.classroomName, view: 'booking' },
-          });
-        }
+        // 常にupdateSlotsAndGoToBookingを呼び出し（内部で鮮度チェックを実行）
+        actionHandlers.updateSlotsAndGoToBooking(d.classroomName);
       } else {
         showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
       }
@@ -857,22 +849,68 @@
 
     /** スロット情報を更新してから予約枠画面に遷移します（設計書準拠） */
     updateSlotsAndGoToBooking: classroomName => {
-      showLoading('最新の予約枠を取得中...');
+      // 更新中の場合は処理をスキップ
+      if (stateManager.getState()._dataUpdateInProgress) {
+        return;
+      }
+
+      // 一度だけローディングを表示
+      showLoading('dataFetch');
+
+      google.script.run
+        .withSuccessHandler(versionResponse => {
+          if (versionResponse.success && versionResponse.data) {
+            const currentSlotsVersion = stateManager.getState()._slotsVersion;
+            const serverSlotsVersion = versionResponse.data.slotsComposite;
+
+            // バージョンが同じ（データに変更なし）で、既にスロットデータがある場合は即座に遷移
+            if (currentSlotsVersion === serverSlotsVersion && 
+                stateManager.getState().slots && 
+                stateManager.getState().slots.length > 0) {
+              hideLoading();
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: { 
+                  selectedClassroom: classroomName, 
+                  view: 'booking',
+                  isDataFresh: true,
+                },
+              });
+              return;
+            }
+
+            // バージョンが異なる場合、または初回の場合は最新データを取得（ローディングは継続）
+            actionHandlers.fetchLatestSlotsData(classroomName, serverSlotsVersion);
+          } else {
+            // バージョンチェック失敗時はフォールバック（全データ取得、ローディングは継続）
+            actionHandlers.fetchLatestSlotsData(classroomName, null);
+          }
+        })
+        .withFailureHandler(error => {
+          // エラー時もフォールバック（全データ取得、ローディングは継続）
+          actionHandlers.fetchLatestSlotsData(classroomName, null);
+        })
+        .getCacheVersions();
+    },
+
+    /** 最新の空き枠データを取得する（内部処理） */
+    fetchLatestSlotsData: (classroomName, newSlotsVersion) => {
+      // ローディングは既に親関数で表示済み
 
       google.script.run
         .withSuccessHandler(response => {
           hideLoading();
 
           if (response.success && response.data && response.data.slots) {
-            const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
+            // 空き枠データとバージョン情報を更新
             window.stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 slots: response.data.slots,
-                classrooms: classroomsFromSlots,
                 selectedClassroom: classroomName,
                 view: 'booking',
                 isDataFresh: true,
+                _slotsVersion: newSlotsVersion, // バージョン情報を保存
               },
             });
           } else {
@@ -882,30 +920,72 @@
         .withFailureHandler(error => {
           hideLoading();
           showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
-          console.error('スロット取得エラー:', error);
+          Logger.log(`fetchLatestSlotsDataエラー: ${error}`);
         })
         .getBatchData(['slots'], stateManager.getState().currentUser.phone);
     },
 
     /** スロット情報を更新してから完了画面に遷移します（設計書準拠） */
     updateSlotsAndGoToComplete: message => {
-      showLoading('最新の予約枠を取得中...');
+      // 一度だけローディングを表示
+      showLoading('dataFetch');
+
+      google.script.run
+        .withSuccessHandler(versionResponse => {
+          if (versionResponse.success && versionResponse.data) {
+            const currentSlotsVersion = stateManager.getState()._slotsVersion;
+            const serverSlotsVersion = versionResponse.data.slotsComposite;
+
+            // バージョンが同じ（データに変更なし）で、既にスロットデータがある場合は即座に遷移
+            if (currentSlotsVersion === serverSlotsVersion && 
+                stateManager.getState().slots && 
+                stateManager.getState().slots.length > 0) {
+              hideLoading();
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'complete',
+                  completionMessage: message,
+                  accountingReservation: stateManager.getState().accountingReservation,
+                  isDataFresh: true,
+                },
+              });
+              return;
+            }
+
+            // バージョンが異なる場合、または初回の場合は最新データを取得してから遷移（ローディングは継続）
+            actionHandlers.fetchLatestSlotsDataForComplete(message, serverSlotsVersion);
+          } else {
+            // バージョンチェック失敗時はフォールバック（全データ取得、ローディングは継続）
+            actionHandlers.fetchLatestSlotsDataForComplete(message, null);
+          }
+        })
+        .withFailureHandler(error => {
+          // エラー時もフォールバック（全データ取得、ローディングは継続）
+          actionHandlers.fetchLatestSlotsDataForComplete(message, null);
+        })
+        .getCacheVersions();
+    },
+
+    /** 最新の空き枠データを取得してから完了画面に遷移する（内部処理） */
+    fetchLatestSlotsDataForComplete: (message, newSlotsVersion) => {
+      // ローディングは既に親関数で表示済み
 
       google.script.run
         .withSuccessHandler(response => {
           hideLoading();
 
           if (response.success && response.data && response.data.slots) {
-            const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
+            // 空き枠データとバージョン情報を更新してから完了画面に遷移
             window.stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 slots: response.data.slots,
-                classrooms: classroomsFromSlots,
                 view: 'complete',
                 completionMessage: message,
                 accountingReservation: stateManager.getState().accountingReservation,
                 isDataFresh: true,
+                _slotsVersion: newSlotsVersion, // バージョン情報を保存
               },
             });
           } else {
@@ -923,7 +1003,7 @@
         })
         .withFailureHandler(error => {
           hideLoading();
-          console.error('スロット取得エラー:', error);
+          Logger.log(`fetchLatestSlotsDataForCompleteエラー: ${error}`);
           // エラーでもメッセージは表示
           window.stateManager.dispatch({
             type: 'SET_STATE',

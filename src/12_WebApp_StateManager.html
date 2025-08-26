@@ -67,6 +67,8 @@
         isDataFresh: false,
         /** @type {boolean} */
         _dataUpdateInProgress: false,
+        /** @type {string | null} */
+        _slotsVersion: null,
 
         // --- Computed Data ---
         computed: {
@@ -164,6 +166,18 @@
       if (!this.state.constants) return;
 
       const constants = this.state.constants;
+
+      // 必要な配列データを状態に設定
+      if (constants.classrooms && !this.state.classrooms.length) {
+        this.state.classrooms = Object.values(constants.classrooms);
+        console.log('📋 教室一覧を状態に設定:', this.state.classrooms);
+      }
+
+      // UI設定の初期化
+      if (!this.state.recordsToShow && constants.ui?.HISTORY_INITIAL_RECORDS) {
+        this.state.recordsToShow = constants.ui.HISTORY_INITIAL_RECORDS;
+        console.log('📋 履歴表示件数を初期化:', this.state.recordsToShow);
+      }
 
       // グローバル短縮参照を設定
       window.C = constants;
