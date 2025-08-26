@@ -8,13 +8,13 @@ repository.
 Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving
 classroom business. Uses Google Sheets as database with web application interface.
 
-### ⚠️ Data Model Redesign in Progress
+### ✅ Data Model Redesign Complete
 
-Currently migrating from classroom-specific distributed data structure to an integrated, normalized
-data model. Detailed design: **[data_model_redesign.md](docs/data_model_redesign.md)**
+Successfully migrated from classroom-specific distributed data structure to an integrated, normalized
+data model with significant performance improvements. Detailed design: **[DATA_MODEL.md](docs/DATA_MODEL.md)**
 
 **Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ |
-Frontend Integration 🔧 | Record Cache 🗓️
+Frontend Integration ✓ | System Optimization ✓
 
 ## Key Development Commands
 
@@ -47,43 +47,42 @@ The project uses a numbered file naming convention in `src/`:
 
 **Core System Files:**
 
+- `00_Constants.js` - Global constants and configuration definitions
 - `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance
   optimization
 - `01_Code.js` - Entry point with global constants, UI definitions, and trigger functions
 - `02-1_BusinessLogic_Batch.js` - Batch processing and data import functions
-- `02-2_BusinessLogic_Handlers.js` - Event handlers and business logic
 - `02-3_BusinessLogic_SheetUtils.js` - Sheet utility functions and data manipulation
-- `02-4_BusinessLogic_ScheduleMaster.js` - Schedule master management **[新規]**
-- `03_BusinessLogic_Summary.js` - Summary sheet management
+- `02-4_BusinessLogic_ScheduleMaster.js` - Schedule master management
 - `04_Backend_User.js` - User authentication and management
 - `05-1_Backend_Read.js` - Data reading API endpoints
 - `05-2_Backend_Write.js` - Data writing API endpoints
-- `05-3_Backend_AvailableSlots.js` - Available slots calculation API **[新規]**
+- `05-3_Backend_AvailableSlots.js` - Available slots calculation API
 - `06_ExternalServices.js` - Google Forms/Calendar integration
 - `07_CacheManager.js` - Cache management for performance
+- `08_ErrorHandler.js` - Centralized error handling and logging
 - `08_Utilities.js` - Common utility functions
 - `09_Backend_Endpoints.js` - Unified API endpoints
 
 **Web Application Files:**
 
 - `10_WebApp.html` - Main HTML template
-- `11_WebApp_Config.html` - Frontend configuration
-- `12_WebApp_Core.html` - Core frontend logic and state management
-- `13_WebApp_Views.html` - UI view generation functions
-- `14_WebApp_Handlers.html` - Event handlers and app flow control
+- `11_WebApp_Config.html` - Frontend configuration and design constants
+- `12_WebApp_Core.html` - Core frontend utilities and component generation
+- `12_WebApp_StateManager.html` - Centralized state management with automatic UI updates
+- `13_WebApp_Views.html` - UI view generation functions (pure presentation layer)
+- `14_WebApp_Handlers.html` - Event handlers and business logic coordination
 
 ### Data Model & Caching
 
 Google Sheets-based integrated data model. Details:
-[data_model_redesign.md](docs/data_model_redesign.md)
+[DATA_MODEL.md](docs/DATA_MODEL.md)
 
-**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Record Cache, Pricing
-Master, Activity Log
+**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Pricing Master, Activity Log
 
 **Multi-layer Cache**:
 
 - **CacheService**: Schedule master, all reservations, student info, pricing (6-24 hours)
-- **PropertiesService**: Per-student participation history (persistent, 9KB limit)
 - **SpreadsheetManager**: Spreadsheet object cache (session-scoped)
 
 ### Build & Configuration
@@ -141,7 +140,7 @@ Detailed architecture: `docs/ARCHITECTURE.md`
   - The test environment has a head deployment ID configured in `.clasp.json`
 - **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to
   test
-- **Data Model Migration**: Frontend integration with unified model is currently in progress
+- **Frontend Architecture**: Implements unidirectional data flow with StateManager for automatic UI updates and separation of concerns
 
 ### Code Quality Standards
 
