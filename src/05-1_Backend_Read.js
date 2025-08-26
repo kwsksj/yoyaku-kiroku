@@ -28,20 +28,13 @@ function getReservationDetails(params) {
   try {
     const { reservationId, classroom } = params;
     const sheet = getSheetByName(classroom);
-    if (!sheet) throw new Error(`予約シート「${classroom}」が見つかりません。`);
-
-    const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const headerMap = createHeaderMap(header);
-
-    const targetRowIndex = findRowIndexByValue(
+    const { headerMap, foundRow: rowData } = getSheetDataWithSearch(
       sheet,
-      headerMap.get(HEADER_RESERVATION_ID) + 1,
+      HEADER_RESERVATION_ID,
       reservationId,
     );
-    if (targetRowIndex === -1)
-      throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
 
-    const rowData = sheet.getRange(targetRowIndex, 1, 1, header.length).getValues()[0];
+    if (!rowData) throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
     const timezone = getSpreadsheetTimezone();
 
     const details = {
@@ -77,20 +70,14 @@ function getReservationDetails(params) {
 function getReservationDetailsForEdit(reservationId, classroom) {
   try {
     const sheet = getSheetByName(classroom);
-    if (!sheet) throw new Error(`予約シート「${classroom}」が見つかりません。`);
+    const { headerMap, foundRow: row } = getSheetDataWithSearch(
+      sheet,
+      HEADER_RESERVATION_ID,
+      reservationId,
+    );
 
-    const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const headerMap = createHeaderMap(header);
+    if (!row) throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
     const timezone = getSpreadsheetTimezone();
-
-    const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
-    if (reservationIdColIdx === undefined) throw new Error('ヘッダー「予約ID」が見つかりません。');
-
-    const targetRowIndex = findRowIndexByValue(sheet, reservationIdColIdx + 1, reservationId);
-    if (targetRowIndex === -1)
-      throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
-
-    const row = sheet.getRange(targetRowIndex, 1, 1, header.length).getValues()[0];
 
     const timeToString = date =>
       date instanceof Date ? Utilities.formatDate(date, timezone, 'HH:mm') : '';

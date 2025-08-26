@@ -519,3 +519,56 @@ function withTransaction(callback) {
     lock.releaseLock();
   }
 }
+
+/**
+ * シートからヘッダーとデータを一度に取得する共通関数。
+ * @param {Sheet} sheet - 対象のシート
+ * @returns {object} - { header, headerMap, allData, dataRows }
+ */
+function getSheetData(sheet) {
+  if (!sheet) throw new Error('シートが見つかりません。');
+
+  // 全データを一度で取得（ヘッダー含む）
+  const allData = sheet.getDataRange().getValues();
+  if (allData.length === 0) throw new Error('シートにデータがありません。');
+
+  const header = allData[0];
+  const headerMap = createHeaderMap(header);
+  const dataRows = allData.slice(1);
+
+  return {
+    header,
+    headerMap,
+    allData,
+    dataRows,
+  };
+}
+
+/**
+ * シートからヘッダーとデータを一度に取得し、指定した条件でレコードを検索する共通関数。
+ * @param {Sheet} sheet - 対象のシート
+ * @param {string} searchColumn - 検索対象のヘッダー名
+ * @param {*} searchValue - 検索する値
+ * @returns {object} - { header, headerMap, allData, dataRows, foundRow, rowIndex, searchColIdx }
+ */
+function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
+  const { header, headerMap, allData, dataRows } = getSheetData(sheet);
+
+  // 検索列のインデックスを取得
+  const searchColIdx = headerMap.get(searchColumn);
+  if (searchColIdx === undefined) throw new Error(`ヘッダー「${searchColumn}」が見つかりません。`);
+
+  // データ行から対象レコードを検索
+  const foundRow = dataRows.find(row => row[searchColIdx] === searchValue);
+  const rowIndex = foundRow ? dataRows.indexOf(foundRow) + 2 : -1; // 1-based + header row
+
+  return {
+    header,
+    headerMap,
+    allData,
+    dataRows,
+    foundRow,
+    rowIndex,
+    searchColIdx,
+  };
+}

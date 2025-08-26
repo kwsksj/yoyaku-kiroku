@@ -28,18 +28,18 @@ function _validateTimeBasedReservation(startTime, endTime, classroomRule) {
   if (!startTime || !endTime) throw new Error('開始時刻と終了時刻の両方を指定してください。');
   if (startTime >= endTime) throw new Error('終了時刻は開始時刻より後に設定する必要があります。');
 
-  const start = new Date(`1970-01-01T${startTime}`);
-  const end = new Date(`1970-01-01T${endTime}`);
+  const start = new Date(`1900-01-01T${startTime}`);
+  const end = new Date(`1900-01-01T${endTime}`);
   const durationMinutes = (end.getTime() - start.getTime()) / 60000;
   if (durationMinutes < 120) {
     throw new Error('最低予約時間は2時間です。');
   }
 
   const breakStart = classroomRule[HEADER_BREAK_START]
-    ? new Date(`1970-01-01T${classroomRule[HEADER_BREAK_START]}`)
+    ? new Date(`1900-01-01T${classroomRule[HEADER_BREAK_START]}`)
     : null;
   const breakEnd = classroomRule[HEADER_BREAK_END]
-    ? new Date(`1970-01-01T${classroomRule[HEADER_BREAK_END]}`)
+    ? new Date(`1900-01-01T${classroomRule[HEADER_BREAK_END]}`)
     : null;
   if (breakStart && breakEnd) {
     if (start >= breakStart && start < breakEnd)
@@ -62,230 +62,214 @@ function makeReservation(reservationInfo) {
       const { startTime, endTime } = options;
 
       // 統合予約シートを取得
-    const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
-    if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
+      const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
+      if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
-    const masterData = getAccountingMasterData().data;
-    const classroomRule = masterData.find(
-      item =>
-        item['対象教室'] &&
-        item['対象教室'].includes(classroom) &&
-        item['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
-    );
-
-    if (classroomRule && classroomRule['単位'] === CONSTANTS.UNITS.THIRTY_MIN) {
-      _validateTimeBasedReservation(startTime, endTime, classroomRule);
-    }
-
-    // 統合予約シートから全データを取得
-    const allSheetData = integratedSheet.getDataRange().getValues();
-    if (allSheetData.length === 0) throw new Error('統合予約シートにデータがありません。');
-
-    const header = allSheetData[0];
-    const headerMap = createHeaderMap(header);
-    const timezone = getSpreadsheetTimezone();
-
-    // データ部分のみを抽出（ヘッダー行以降）
-    const data = allSheetData.slice(1);
-
-    // 統合予約シートの列インデックス（新しいデータモデル）
-    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
-    const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-    const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
-    const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
-    const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
-    const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
-    const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
-    const venueColIdx = headerMap.get(CONSTANTS.HEADERS.VENUE);
-    const chiselRentalColIdx = headerMap.get(CONSTANTS.HEADERS.CHISEL_RENTAL);
-    const firstLectureColIdx = headerMap.get(CONSTANTS.HEADERS.FIRST_LECTURE);
-    const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
-    const orderColIdx = headerMap.get(CONSTANTS.HEADERS.ORDER);
-    const messageColIdx = headerMap.get(CONSTANTS.HEADERS.MESSAGE_TO_TEACHER);
-
-    const capacity =
-      CONSTANTS.CLASSROOM_CAPACITIES[classroom] ||
-      CONSTANTS.CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
-    let isFull = false;
-
-    // 同日同教室の予約をフィルタリング
-    const dateFilter = row => {
-      const rowDate = row[dateColIdx];
-      const rowStatus = String(row[statusColIdx]).toLowerCase();
-      const rowClassroom = row[classroomColIdx];
-      return (
-        rowDate instanceof Date &&
-        Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === date &&
-        rowClassroom === classroom &&
-        rowStatus !== CONSTANTS.STATUS.CANCEL &&
-        !!row[studentIdColIdx] // 生徒IDが存在する行のみ
-      );
-    };
-
-    if (classroom === CONSTANTS.CLASSROOMS.TSUKUBA) {
-      const reqStartHour = startTime ? new Date(`1970-01-01T${startTime}`).getHours() : 0;
-      const reqEndHour = endTime ? new Date(`1970-01-01T${endTime}`).getHours() : 24;
-
-      let morningCount = 0;
-      let afternoonCount = 0;
-      data.filter(dateFilter).forEach(row => {
-        const rStart = row[startTimeColIdx];
-        const rEnd = row[endTimeColIdx];
-        const rStartHour = rStart instanceof Date ? rStart.getHours() : 0;
-        const rEndHour = rEnd instanceof Date ? rEnd.getHours() : 24;
-
-        if (rStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) morningCount++;
-        if (rEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) afternoonCount++;
-      });
-
-      const morningFull = morningCount >= capacity;
-      const afternoonFull = afternoonCount >= capacity;
-
-      if (reqStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && morningFull)
-        isFull = true;
-      if (reqEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && afternoonFull)
-        isFull = true;
-    } else {
-      const reservationsOnDate = data.filter(dateFilter).length;
-      isFull = reservationsOnDate >= capacity;
-    }
-
-    // 新しい予約IDを生成
-    const newReservationId = Utilities.getUuid();
-    // 日付文字列をDateオブジェクトに変換（東京タイムゾーン指定）
-    const targetDate = new Date(date + 'T00:00:00+09:00');
-
-    // 会場情報を取得（同日同教室の既存予約から）
-    let venue = '';
-    const sameDateRow = data.find(row => {
-      const rowDate = row[dateColIdx];
-      return (
-        rowDate instanceof Date &&
-        Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === date &&
-        row[classroomColIdx] === classroom &&
-        row[venueColIdx]
-      );
-    });
-    if (sameDateRow && sameDateRow[venueColIdx]) {
-      venue = sameDateRow[venueColIdx];
-    }
-
-    // 新しい予約行のデータを作成（統合予約シートの形式）
-    const newRowData = new Array(header.length).fill('');
-
-    // 基本予約情報
-    newRowData[reservationIdColIdx] = newReservationId;
-    newRowData[studentIdColIdx] = user.studentId;
-    newRowData[dateColIdx] = targetDate;
-    newRowData[classroomColIdx] = classroom;
-    newRowData[venueColIdx] = venue;
-    newRowData[statusColIdx] = isFull ? CONSTANTS.STATUS.WAITING : CONSTANTS.STATUS.COMPLETED;
-
-    // 時刻設定（教室別のロジック）
-    if (classroom === CONSTANTS.CLASSROOMS.TOKYO) {
-      const master = getAccountingMasterData().data;
-      const tokyoRule = master.find(
+      const masterData = getAccountingMasterData().data;
+      const classroomRule = masterData.find(
         item =>
-          item['項目名'] === CONSTANTS.ITEMS.MAIN_LECTURE &&
-          item['対象教室'] === CONSTANTS.CLASSROOMS.TOKYO,
+          item['対象教室'] &&
+          item['対象教室'].includes(classroom) &&
+          item['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
       );
-      if (tokyoRule) {
-        const finalStartTime = tokyoRule[CONSTANTS.HEADERS.CLASS_START];
-        const finalEndTime = tokyoRule[CONSTANTS.HEADERS.CLASS_END];
-        if (finalStartTime)
-          newRowData[startTimeColIdx] = new Date(`1970-01-01T${finalStartTime}:00`);
-        if (finalEndTime) newRowData[endTimeColIdx] = new Date(`1970-01-01T${finalEndTime}:00`);
+
+      if (classroomRule && classroomRule['単位'] === CONSTANTS.UNITS.THIRTY_MIN) {
+        _validateTimeBasedReservation(startTime, endTime, classroomRule);
       }
-    } else {
-      if (startTime) newRowData[startTimeColIdx] = new Date(`1970-01-01T${startTime}:00`);
-      if (endTime) newRowData[endTimeColIdx] = new Date(`1970-01-01T${endTime}:00`);
-    }
 
-    // オプション設定
-    if (chiselRentalColIdx !== undefined)
-      newRowData[chiselRentalColIdx] = options.chiselRental || false;
-    if (firstLectureColIdx !== undefined)
-      newRowData[firstLectureColIdx] = options.firstLecture || false;
+      // 統合予約シートから全データを取得
+      const { header, headerMap, dataRows: data } = getSheetData(integratedSheet);
+      const timezone = getSpreadsheetTimezone();
 
-    // 制作メモ（材料情報を含む）
-    let workInProgress = options.workInProgress || '';
-    if (options.materialInfo) {
-      workInProgress += CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + options.materialInfo;
-    }
-    if (wipColIdx !== undefined) newRowData[wipColIdx] = workInProgress;
+      // 統合予約シートの列インデックス（新しいデータモデル）
+      const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
+      const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
+      const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
+      const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
+      const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
+      const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
+      const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
+      const venueColIdx = headerMap.get(CONSTANTS.HEADERS.VENUE);
+      const chiselRentalColIdx = headerMap.get(CONSTANTS.HEADERS.CHISEL_RENTAL);
+      const firstLectureColIdx = headerMap.get(CONSTANTS.HEADERS.FIRST_LECTURE);
+      const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
+      const orderColIdx = headerMap.get(CONSTANTS.HEADERS.ORDER);
+      const messageColIdx = headerMap.get(CONSTANTS.HEADERS.MESSAGE_TO_TEACHER);
 
-    // その他の情報
-    if (orderColIdx !== undefined) newRowData[orderColIdx] = options.order || '';
-    if (messageColIdx !== undefined) newRowData[messageColIdx] = options.messageToTeacher || '';
+      const capacity =
+        CONSTANTS.CLASSROOM_CAPACITIES[classroom] ||
+        CONSTANTS.CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
+      let isFull = false;
 
-    // メモリ上のデータ配列に新しい行を追加
-    data.push(newRowData);
+      // 同日同教室の予約をフィルタリング
+      const dateFilter = row => {
+        const rowDate = row[dateColIdx];
+        const rowStatus = String(row[statusColIdx]).toLowerCase();
+        const rowClassroom = row[classroomColIdx];
+        return (
+          rowDate instanceof Date &&
+          Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === date &&
+          rowClassroom === classroom &&
+          rowStatus !== CONSTANTS.STATUS.CANCEL &&
+          !!row[studentIdColIdx] // 生徒IDが存在する行のみ
+        );
+      };
 
-    // 日付順でソート（メモリ上で実行）
-    if (dateColIdx !== undefined) {
-      data.sort((a, b) => {
-        const dateA = a[dateColIdx] instanceof Date ? a[dateColIdx] : new Date(a[dateColIdx]);
-        const dateB = b[dateColIdx] instanceof Date ? b[dateColIdx] : new Date(b[dateColIdx]);
-        return dateA - dateB;
+      if (classroom === CONSTANTS.CLASSROOMS.TSUKUBA) {
+        const reqStartHour = startTime ? new Date(`1900-01-01T${startTime}`).getHours() : 0;
+        const reqEndHour = endTime ? new Date(`1900-01-01T${endTime}`).getHours() : 24;
+
+        let morningCount = 0;
+        let afternoonCount = 0;
+        data.filter(dateFilter).forEach(row => {
+          const rStart = row[startTimeColIdx];
+          const rEnd = row[endTimeColIdx];
+          const rStartHour = rStart instanceof Date ? rStart.getHours() : 0;
+          const rEndHour = rEnd instanceof Date ? rEnd.getHours() : 24;
+
+          if (rStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) morningCount++;
+          if (rEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) afternoonCount++;
+        });
+
+        const morningFull = morningCount >= capacity;
+        const afternoonFull = afternoonCount >= capacity;
+
+        if (reqStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && morningFull)
+          isFull = true;
+        if (reqEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR && afternoonFull)
+          isFull = true;
+      } else {
+        const reservationsOnDate = data.filter(dateFilter).length;
+        isFull = reservationsOnDate >= capacity;
+      }
+
+      // 新しい予約IDを生成
+      const newReservationId = Utilities.getUuid();
+      // 日付文字列をDateオブジェクトに変換（東京タイムゾーン指定）
+      const targetDate = new Date(date + 'T00:00:00+09:00');
+
+      // 会場情報を取得（同日同教室の既存予約から）
+      let venue = '';
+      const sameDateRow = data.find(row => {
+        const rowDate = row[dateColIdx];
+        return (
+          rowDate instanceof Date &&
+          Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === date &&
+          row[classroomColIdx] === classroom &&
+          row[venueColIdx]
+        );
       });
+      if (sameDateRow && sameDateRow[venueColIdx]) {
+        venue = sameDateRow[venueColIdx];
+      }
+
+      // 新しい予約行のデータを作成（統合予約シートの形式）
+      const newRowData = new Array(header.length).fill('');
+
+      // 基本予約情報
+      newRowData[reservationIdColIdx] = newReservationId;
+      newRowData[studentIdColIdx] = user.studentId;
+      newRowData[dateColIdx] = targetDate;
+      newRowData[classroomColIdx] = classroom;
+      newRowData[venueColIdx] = venue;
+      newRowData[statusColIdx] = isFull ? CONSTANTS.STATUS.WAITING : CONSTANTS.STATUS.COMPLETED;
+
+      // 時刻設定（教室別のロジック）
+      if (classroom === CONSTANTS.CLASSROOMS.TOKYO) {
+        const master = getAccountingMasterData().data;
+        const tokyoRule = master.find(
+          item =>
+            item['項目名'] === CONSTANTS.ITEMS.MAIN_LECTURE &&
+            item['対象教室'] === CONSTANTS.CLASSROOMS.TOKYO,
+        );
+        if (tokyoRule) {
+          const finalStartTime = tokyoRule[CONSTANTS.HEADERS.CLASS_START];
+          const finalEndTime = tokyoRule[CONSTANTS.HEADERS.CLASS_END];
+          if (finalStartTime)
+            newRowData[startTimeColIdx] = new Date(`1900-01-01T${finalStartTime}:00`);
+          if (finalEndTime) newRowData[endTimeColIdx] = new Date(`1900-01-01T${finalEndTime}:00`);
+        }
+      } else {
+        if (startTime) newRowData[startTimeColIdx] = new Date(`1900-01-01T${startTime}:00`);
+        if (endTime) newRowData[endTimeColIdx] = new Date(`1900-01-01T${endTime}:00`);
+      }
+
+      // オプション設定
+      if (chiselRentalColIdx !== undefined)
+        newRowData[chiselRentalColIdx] = options.chiselRental || false;
+      if (firstLectureColIdx !== undefined)
+        newRowData[firstLectureColIdx] = options.firstLecture || false;
+
+      // 制作メモ（材料情報を含む）
+      let workInProgress = options.workInProgress || '';
+      if (options.materialInfo) {
+        workInProgress += CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + options.materialInfo;
+      }
+      if (wipColIdx !== undefined) newRowData[wipColIdx] = workInProgress;
+
+      // その他の情報
+      if (orderColIdx !== undefined) newRowData[orderColIdx] = options.order || '';
+      if (messageColIdx !== undefined) newRowData[messageColIdx] = options.messageToTeacher || '';
+
+      // メモリ上のデータ配列に新しい行を追加
+      data.push(newRowData);
+
+      // 日付順でソート（メモリ上で実行）
+      if (dateColIdx !== undefined) {
+        data.sort((a, b) => {
+          const dateA = a[dateColIdx] instanceof Date ? a[dateColIdx] : new Date(a[dateColIdx]);
+          const dateB = b[dateColIdx] instanceof Date ? b[dateColIdx] : new Date(b[dateColIdx]);
+          return dateA - dateB;
+        });
+      }
+
+      // ソート済みデータを一括でシートに書き戻し
+      const fullData = [header, ...data];
+      integratedSheet.clear();
+      integratedSheet.getRange(1, 1, fullData.length, header.length).setValues(fullData);
+
+      // シート側で日付・時刻列のフォーマットが事前設定済みのため、
+      // ここでの個別フォーマット処理は不要
+
+      SpreadsheetApp.flush(); // シート書き込み完了を保証
+
+      // 統合予約シートの更新後、キャッシュを再構築
+      rebuildAllReservationsCache();
+
+      // ログと通知
+      const message = !isFull
+        ? '予約が完了しました。'
+        : '満席のため、キャンセル待ちで登録しました。';
+      const messageToTeacher = options.messageToTeacher || '';
+      const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
+      const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}${messageLog}`;
+      logActivity(user.studentId, '予約作成', CONSTANTS.MESSAGES.SUCCESS, logDetails);
+
+      const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
+      const messageSection = messageToTeacher ? `\n先生へのメッセージ: ${messageToTeacher}\n` : '';
+      const body =
+        `新しい予約が入りました。\n\n` +
+        `本名: ${user.realName}\n` +
+        `ニックネーム: ${user.displayName}\n\n` +
+        `教室: ${classroom}\n` +
+        `日付: ${date}\n` +
+        `状態: ${isFull ? 'キャンセル待ち' : '確定'}${messageSection}\n` +
+        `詳細はスプレッドシートを確認してください。`;
+      sendAdminNotification(subject, body);
+
+      return createApiResponse(true, {
+        message: message,
+      });
+    } catch (err) {
+      logActivity(
+        reservationInfo.user.studentId,
+        '予約作成',
+        CONSTANTS.MESSAGES.ERROR,
+        `Error: ${err.message}`,
+      );
+      Logger.log(`makeReservation Error: ${err.message}\n${err.stack}`);
+      return BackendErrorHandler.handle(err, 'makeReservation');
     }
-
-    // ソート済みデータを一括でシートに書き戻し
-    const fullData = [header, ...data];
-    integratedSheet.clear();
-    integratedSheet.getRange(1, 1, fullData.length, header.length).setValues(fullData);
-
-    // セルのフォーマット設定（新しい行の位置を特定）
-    const newRowIndex = data.findIndex(row => row[reservationIdColIdx] === newReservationId) + 2; // ヘッダー行を考慮
-
-    // 日付列のフォーマット（yyyy-mm-dd形式）
-    if (dateColIdx !== undefined) {
-      integratedSheet.getRange(newRowIndex, dateColIdx + 1).setNumberFormat('yyyy-mm-dd');
-    }
-    // 時刻セルのフォーマット設定
-    if (startTimeColIdx !== undefined) {
-      integratedSheet.getRange(newRowIndex, startTimeColIdx + 1).setNumberFormat('HH:mm');
-    }
-    if (endTimeColIdx !== undefined) {
-      integratedSheet.getRange(newRowIndex, endTimeColIdx + 1).setNumberFormat('HH:mm');
-    }
-
-    SpreadsheetApp.flush(); // シート書き込み完了を保証
-
-    // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsCache();
-
-    // ログと通知
-    const message = !isFull ? '予約が完了しました。' : '満席のため、キャンセル待ちで登録しました。';
-    const messageToTeacher = options.messageToTeacher || '';
-    const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
-    const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}${messageLog}`;
-    logActivity(user.studentId, '予約作成', CONSTANTS.MESSAGES.SUCCESS, logDetails);
-
-    const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
-    const messageSection = messageToTeacher ? `\n先生へのメッセージ: ${messageToTeacher}\n` : '';
-    const body =
-      `新しい予約が入りました。\n\n` +
-      `本名: ${user.realName}\n` +
-      `ニックネーム: ${user.displayName}\n\n` +
-      `教室: ${classroom}\n` +
-      `日付: ${date}\n` +
-      `状態: ${isFull ? 'キャンセル待ち' : '確定'}${messageSection}\n` +
-      `詳細はスプレッドシートを確認してください。`;
-    sendAdminNotification(subject, body);
-
-    return createApiResponse(true, {
-      message: message,
-    });
-  } catch (err) {
-    logActivity(
-      reservationInfo.user.studentId,
-      '予約作成',
-      CONSTANTS.MESSAGES.ERROR,
-      `Error: ${err.message}`,
-    );
-    Logger.log(`makeReservation Error: ${err.message}\n${err.stack}`);
-    return BackendErrorHandler.handle(err, 'makeReservation');
   });
 }
 
@@ -296,125 +280,117 @@ function makeReservation(reservationInfo) {
  */
 function cancelReservation(cancelInfo) {
   return withTransaction(() => {
-    const { reservationId, classroom, studentId } = cancelInfo; // フロントエンドから渡される情報
+    try {
+      const { reservationId, classroom, studentId } = cancelInfo; // フロントエンドから渡される情報
 
-    // 統合予約シートを取得
-    const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
-    if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
+      // 統合予約シートを取得
+      const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
+      if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
-    // 1回のシート読み込みで全データを取得（効率化）
-    const allData = integratedSheet.getDataRange().getValues();
-    if (allData.length === 0) throw new Error('統合予約シートにデータがありません。');
+      // 統合予約シートから対象の予約を検索
+      const {
+        headerMap,
+        allData,
+        foundRow: targetRowData,
+        rowIndex: targetRowIndex,
+      } = getSheetDataWithSearch(integratedSheet, CONSTANTS.HEADERS.RESERVATION_ID, reservationId);
 
-    const header = allData[0];
-    const headerMap = createHeaderMap(header);
+      if (!targetRowData) throw new Error('キャンセル対象の予約が見つかりませんでした。');
 
-    // 統合予約シートの列インデックス（新しいデータモデル）
-    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
-    const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-    const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
-    const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
-    const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
+      // 統合予約シートの列インデックス（新しいデータモデル）
+      const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
+      const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
+      const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
+      const ownerId = targetRowData[studentIdColIdx];
+      if (ownerId !== studentId) {
+        throw new Error('この予約をキャンセルする権限がありません。');
+      }
 
-    if (reservationIdColIdx === undefined || studentIdColIdx === undefined) {
-      throw new Error('必要なヘッダー（予約ID, 生徒ID）が見つかりません。');
-    }
+      const originalValues = targetRowData;
+      const targetDate = originalValues[dateColIdx]; // キャンセルされた予約の日付を取得
 
-    // データ行から対象の予約を検索
-    const dataRows = allData.slice(1);
-    const targetRowData = dataRows.find(
-      row => row[reservationIdColIdx] === reservationId && row[classroomColIdx] === classroom,
-    );
-    if (!targetRowData) throw new Error('キャンセル対象の予約が見つかりませんでした。');
+      // ユーザー情報を取得して、ログと通知をより具体的にする
+      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+      const userInfo = { realName: '(不明)', displayName: '(不明)' };
+      if (rosterSheet) {
+        // 効率化：生徒名簿も1回の読み込みで取得
+        const rosterAllData = rosterSheet.getDataRange().getValues();
+        if (rosterAllData.length > 1) {
+          const rosterHeader = rosterAllData[0];
+          const rosterHeaderMap = createHeaderMap(rosterHeader);
+          const rosterStudentIdCol = rosterHeaderMap.get(CONSTANTS.HEADERS.STUDENT_ID);
 
-    const targetRowIndex = dataRows.indexOf(targetRowData) + 2; // 1-based + header row
-    const ownerId = targetRowData[studentIdColIdx];
-    if (ownerId !== studentId) {
-      throw new Error('この予約をキャンセルする権限がありません。');
-    }
-
-    const originalValues = targetRowData;
-    const targetDate = originalValues[dateColIdx]; // キャンセルされた予約の日付を取得
-
-    // ユーザー情報を取得して、ログと通知をより具体的にする
-    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
-    const userInfo = { realName: '(不明)', displayName: '(不明)' };
-    if (rosterSheet) {
-      // 効率化：生徒名簿も1回の読み込みで取得
-      const rosterAllData = rosterSheet.getDataRange().getValues();
-      if (rosterAllData.length > 1) {
-        const rosterHeader = rosterAllData[0];
-        const rosterHeaderMap = createHeaderMap(rosterHeader);
-        const rosterStudentIdCol = rosterHeaderMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-
-        if (rosterStudentIdCol !== undefined) {
-          const userRow = rosterAllData.slice(1).find(row => row[rosterStudentIdCol] === studentId);
-          if (userRow) {
-            userInfo.realName =
-              userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.REAL_NAME)] || '(不明)';
-            userInfo.displayName =
-              userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.NICKNAME)] || userInfo.realName;
+          if (rosterStudentIdCol !== undefined) {
+            const userRow = rosterAllData
+              .slice(1)
+              .find(row => row[rosterStudentIdCol] === studentId);
+            if (userRow) {
+              userInfo.realName =
+                userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.REAL_NAME)] || '(不明)';
+              userInfo.displayName =
+                userRow[rosterHeaderMap.get(CONSTANTS.HEADERS.NICKNAME)] || userInfo.realName;
+            }
           }
         }
       }
+
+      // メモリ上でステータスを「キャンセル」に更新
+      allData[targetRowIndex - 1][statusColIdx] = CONSTANTS.STATUS.CANCEL; // allDataの該当行を更新
+
+      // 更新されたデータを一括でシートに書き戻し
+      integratedSheet.clear();
+      integratedSheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
+
+      SpreadsheetApp.flush();
+
+      // 統合予約シートの更新後、キャッシュを再構築
+      rebuildAllReservationsCache();
+
+      // ログと通知
+      const cancelMessage = cancelInfo.cancelMessage || '';
+      const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
+      const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}${messageLog}`;
+      logActivity(
+        studentId,
+        CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
+        CONSTANTS.MESSAGES.SUCCESS,
+        logDetails,
+      );
+
+      const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
+      const messageSection = cancelMessage ? `\n先生へのメッセージ: ${cancelMessage}\n` : '';
+      const body =
+        `予約がキャンセルされました。
+
+` +
+        `本名: ${userInfo.realName}
+` +
+        `ニックネーム: ${userInfo.displayName}
+
+` +
+        `教室: ${classroom}
+` +
+        `日付: ${Utilities.formatDate(targetDate, getSpreadsheetTimezone(), 'yyyy/MM/dd')}
+` +
+        `予約ID: ${reservationId}${messageSection}
+` +
+        `詳細はスプレッドシートを確認してください。`;
+      sendAdminNotification(subject, body);
+
+      return {
+        success: true,
+        message: '予約をキャンセルしました。',
+      };
+    } catch (err) {
+      logActivity(
+        cancelInfo.studentId,
+        CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
+        CONSTANTS.MESSAGES.ERROR,
+        `Error: ${err.message}`,
+      );
+      Logger.log(`cancelReservation Error: ${err.message}\n${err.stack}`);
+      return BackendErrorHandler.handle(err, 'cancelReservation');
     }
-
-    // メモリ上でステータスを「キャンセル」に更新
-    allData[targetRowIndex - 1][statusColIdx] = CONSTANTS.STATUS.CANCEL; // allDataの該当行を更新
-
-    // 更新されたデータを一括でシートに書き戻し
-    integratedSheet.clear();
-    integratedSheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
-
-    SpreadsheetApp.flush();
-
-    // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsCache();
-
-    // ログと通知
-    const cancelMessage = cancelInfo.cancelMessage || '';
-    const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
-    const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}${messageLog}`;
-    logActivity(
-      studentId,
-      CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
-      CONSTANTS.MESSAGES.SUCCESS,
-      logDetails,
-    );
-
-    const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
-    const messageSection = cancelMessage ? `\n先生へのメッセージ: ${cancelMessage}\n` : '';
-    const body =
-      `予約がキャンセルされました。
-
-` +
-      `本名: ${userInfo.realName}
-` +
-      `ニックネーム: ${userInfo.displayName}
-
-` +
-      `教室: ${classroom}
-` +
-      `日付: ${Utilities.formatDate(targetDate, getSpreadsheetTimezone(), 'yyyy/MM/dd')}
-` +
-      `予約ID: ${reservationId}${messageSection}
-` +
-      `詳細はスプレッドシートを確認してください。`;
-    sendAdminNotification(subject, body);
-
-    return {
-      success: true,
-      message: '予約をキャンセルしました。',
-    };
-  } catch (err) {
-    logActivity(
-      cancelInfo.studentId,
-      CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
-      CONSTANTS.MESSAGES.ERROR,
-      `Error: ${err.message}`,
-    );
-    Logger.log(`cancelReservation Error: ${err.message}\n${err.stack}`);
-    return BackendErrorHandler.handle(err, 'cancelReservation');
   });
 }
 
@@ -425,127 +401,109 @@ function cancelReservation(cancelInfo) {
  */
 function updateReservationDetails(details) {
   return withTransaction(() => {
-    const { reservationId, classroom } = details;
-    const masterData = getAccountingMasterData().data;
-    const classroomRule = masterData.find(
-      item =>
-        item['対象教室'] &&
-        item['対象教室'].includes(classroom) &&
-        item['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
-    );
+    try {
+      const { reservationId, classroom } = details;
+      const masterData = getAccountingMasterData().data;
+      const classroomRule = masterData.find(
+        item =>
+          item['対象教室'] &&
+          item['対象教室'].includes(classroom) &&
+          item['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
+      );
 
-    if (classroomRule && classroomRule['単位'] === CONSTANTS.UNITS.THIRTY_MIN) {
-      _validateTimeBasedReservation(details.startTime, details.endTime, classroomRule);
-    }
-
-    // 統合予約シートを取得
-    const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
-    if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
-
-    // 1回のシート読み込みで全データを取得（効率化）
-    const allData = integratedSheet.getDataRange().getValues();
-    if (allData.length === 0) throw new Error('統合予約シートにデータがありません。');
-
-    const header = allData[0];
-    const headerMap = createHeaderMap(header);
-
-    // 統合予約シートの列インデックス（新しいデータモデル）
-    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
-    const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-    const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
-    const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
-    const chiselRentalColIdx = headerMap.get(CONSTANTS.HEADERS.CHISEL_RENTAL);
-    const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
-    const orderColIdx = headerMap.get(CONSTANTS.HEADERS.ORDER);
-    const messageColIdx = headerMap.get(CONSTANTS.HEADERS.MESSAGE_TO_TEACHER);
-    const firstLectureColIdx = headerMap.get(CONSTANTS.HEADERS.FIRST_LECTURE);
-
-    if (reservationIdColIdx === undefined) throw new Error('ヘッダー「予約ID」が見つかりません。');
-
-    // 予約IDで対象行を検索
-    const targetRowIndex = findRowIndexByValue(
-      integratedSheet,
-      reservationIdColIdx + 1,
-      reservationId,
-    );
-    if (targetRowIndex === -1)
-      throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
-
-    // メモリ上で各列を更新
-    const rowData = allData[targetRowIndex - 1]; // allDataの該当行
-
-    if (startTimeColIdx !== undefined && details.startTime) {
-      rowData[startTimeColIdx] = new Date(`1970-01-01T${details.startTime}:00`);
-    }
-
-    if (endTimeColIdx !== undefined && details.endTime) {
-      rowData[endTimeColIdx] = new Date(`1970-01-01T${details.endTime}:00`);
-    }
-
-    if (chiselRentalColIdx !== undefined) {
-      rowData[chiselRentalColIdx] = details.chiselRental || false;
-    }
-
-    if (firstLectureColIdx !== undefined) {
-      rowData[firstLectureColIdx] = details.firstLecture || false;
-    }
-
-    if (wipColIdx !== undefined) {
-      let workInProgress = details.workInProgress || '';
-      if (details.materialInfo) {
-        workInProgress += CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + details.materialInfo;
+      if (classroomRule && classroomRule['単位'] === CONSTANTS.UNITS.THIRTY_MIN) {
+        _validateTimeBasedReservation(details.startTime, details.endTime, classroomRule);
       }
-      rowData[wipColIdx] = workInProgress;
+
+      // 統合予約シートを取得
+      const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
+      const {
+        headerMap,
+        allData,
+        foundRow: rowData,
+      } = getSheetDataWithSearch(integratedSheet, CONSTANTS.HEADERS.RESERVATION_ID, reservationId);
+
+      if (!rowData) throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
+
+      const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
+      const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
+      const chiselRentalColIdx = headerMap.get(CONSTANTS.HEADERS.CHISEL_RENTAL);
+      const wipColIdx = headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS);
+      const orderColIdx = headerMap.get(CONSTANTS.HEADERS.ORDER);
+      const messageColIdx = headerMap.get(CONSTANTS.HEADERS.MESSAGE_TO_TEACHER);
+      const firstLectureColIdx = headerMap.get(CONSTANTS.HEADERS.FIRST_LECTURE);
+
+      // メモリ上で各列を更新（rowDataは既に取得済み）
+
+      if (startTimeColIdx !== undefined && details.startTime) {
+        rowData[startTimeColIdx] = new Date(`1900-01-01T${details.startTime}:00`);
+      }
+
+      if (endTimeColIdx !== undefined && details.endTime) {
+        rowData[endTimeColIdx] = new Date(`1900-01-01T${details.endTime}:00`);
+      }
+
+      if (chiselRentalColIdx !== undefined) {
+        rowData[chiselRentalColIdx] = details.chiselRental || false;
+      }
+
+      if (firstLectureColIdx !== undefined) {
+        rowData[firstLectureColIdx] = details.firstLecture || false;
+      }
+
+      if (wipColIdx !== undefined) {
+        let workInProgress = details.workInProgress || '';
+        if (details.materialInfo) {
+          workInProgress += CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + details.materialInfo;
+        }
+        rowData[wipColIdx] = workInProgress;
+      }
+
+      if (orderColIdx !== undefined) {
+        rowData[orderColIdx] = details.order || '';
+      }
+
+      if (messageColIdx !== undefined) {
+        rowData[messageColIdx] = details.messageToTeacher || '';
+      }
+
+      // 更新されたデータを一括でシートに書き戻し
+      integratedSheet.clear();
+      integratedSheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
+
+      // シート側で開始時刻・終了時刻列のフォーマットが事前設定済みのため、
+      // ここでの個別フォーマット処理は不要
+
+      SpreadsheetApp.flush();
+
+      // 統合予約シートの更新後、キャッシュを再構築
+      rebuildAllReservationsCache();
+
+      // 【NF-12】Update cache incrementally (統合予約シート対応)
+      const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
+      const studentId = rowData[studentIdColIdx]; // メモリ上のデータから取得（シートアクセス不要）
+      // 統合予約シートの更新はrebuildAllReservationsCache()で完了
+      // 予約データは現在CacheServiceで一元管理されているため、個別キャッシュ更新は不要
+
+      // ログ記録
+      const messageToTeacher = details.messageToTeacher || '';
+      const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
+      const logDetails = `ReservationID: ${details.reservationId}, Classroom: ${details.classroom}${messageLog}`;
+      logActivity(studentId, '予約詳細更新', CONSTANTS.MESSAGES.SUCCESS, logDetails);
+
+      return createApiResponse(true, {
+        message: '予約内容を更新しました。',
+      });
+    } catch (err) {
+      logActivity(
+        details.studentId || '(N/A)',
+        '予約詳細更新',
+        CONSTANTS.MESSAGES.ERROR,
+        `Error: ${err.message}`,
+      );
+      Logger.log(`updateReservationDetails Error: ${err.message}\n${err.stack}`);
+      return BackendErrorHandler.handle(err, 'updateReservationDetails');
     }
-
-    if (orderColIdx !== undefined) {
-      rowData[orderColIdx] = details.order || '';
-    }
-
-    if (messageColIdx !== undefined) {
-      rowData[messageColIdx] = details.messageToTeacher || '';
-    }
-
-    // 更新されたデータを一括でシートに書き戻し
-    integratedSheet.clear();
-    integratedSheet.getRange(1, 1, allData.length, allData[0].length).setValues(allData);
-
-    // フォーマット設定
-    if (startTimeColIdx !== undefined && details.startTime) {
-      integratedSheet.getRange(targetRowIndex, startTimeColIdx + 1).setNumberFormat('HH:mm');
-    }
-    if (endTimeColIdx !== undefined && details.endTime) {
-      integratedSheet.getRange(targetRowIndex, endTimeColIdx + 1).setNumberFormat('HH:mm');
-    }
-
-    SpreadsheetApp.flush();
-
-    // 統合予約シートの更新後、キャッシュを再構築
-    rebuildAllReservationsCache();
-
-    // 【NF-12】Update cache incrementally (統合予約シート対応)
-    const studentId = integratedSheet.getRange(targetRowIndex, studentIdColIdx + 1).getValue();
-    // 統合予約シートの更新はrebuildAllReservationsCache()で完了
-    // 予約データは現在CacheServiceで一元管理されているため、個別キャッシュ更新は不要
-
-    // ログ記録
-    const messageToTeacher = details.messageToTeacher || '';
-    const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
-    const logDetails = `ReservationID: ${details.reservationId}, Classroom: ${details.classroom}${messageLog}`;
-    logActivity(studentId, '予約詳細更新', CONSTANTS.MESSAGES.SUCCESS, logDetails);
-
-    return createApiResponse(true, {
-      message: '予約内容を更新しました。',
-    });
-  } catch (err) {
-    logActivity(
-      details.studentId || '(N/A)',
-      '予約詳細更新',
-      CONSTANTS.MESSAGES.ERROR,
-      `Error: ${err.message}`,
-    );
-    Logger.log(`updateReservationDetails Error: ${err.message}\n${err.stack}`);
-    return BackendErrorHandler.handle(err, 'updateReservationDetails');
   });
 }
 
@@ -562,188 +520,191 @@ function updateReservationDetails(details) {
  */
 function saveAccountingDetails(payload) {
   return withTransaction(() => {
-    const { reservationId, classroom, studentId, userInput } = payload;
-    if (!reservationId || !classroom || !studentId || !userInput) {
-      throw new Error('会計情報が不足しています。');
-    }
-
-    const sheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
-    if (!sheet) throw new Error(`統合予約シートが見つかりません。`);
-
-    const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const headerMap = createHeaderMap(header);
-    const reservationIdColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID);
-    const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-
-    const targetRowIndex = findRowIndexByValue(sheet, reservationIdColIdx + 1, reservationId);
-    if (targetRowIndex === -1)
-      throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
-
-    const actualStudentId = sheet.getRange(targetRowIndex, studentIdColIdx + 1).getValue();
-    if (actualStudentId !== studentId) {
-      throw new Error('この予約の会計処理を行う権限がありません。');
-    }
-
-    // --- バックエンドでの再計算・検証ロジック ---
-    const masterData = getAccountingMasterData().data;
-    const finalAccountingDetails = {
-      tuition: { items: [], subtotal: 0 },
-      sales: { items: [], subtotal: 0 },
-      grandTotal: 0,
-      paymentMethod: userInput.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH,
-    };
-
-    // 授業料の計算
-    (userInput.tuitionItems || []).forEach(itemName => {
-      const masterItem = masterData.find(
-        m => m['項目名'] === itemName && m['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
-      );
-      if (masterItem) {
-        const price = Number(masterItem['単価']);
-        finalAccountingDetails.tuition.items.push({ name: itemName, price: price });
-        finalAccountingDetails.tuition.subtotal += price;
+    try {
+      const { reservationId, classroom, studentId, userInput } = payload;
+      if (!reservationId || !classroom || !studentId || !userInput) {
+        throw new Error('会計情報が不足しています。');
       }
-    });
 
-    // 時間制授業料の計算
-    if (userInput.timeBased) {
-      const { startTime, endTime, breakMinutes, discountMinutes } = userInput.timeBased;
-      const classroomRule = masterData.find(
-        item =>
-          item['対象教室'] &&
-          item['対象教室'].includes(classroom) &&
-          item['種別'] === CONSTANTS.ITEM_TYPES.TUITION &&
-          item['単位'] === CONSTANTS.UNITS.THIRTY_MIN,
-      );
-      if (classroomRule && startTime && endTime && startTime < endTime) {
-        const start = new Date(`1970-01-01T${startTime}:00`);
-        const end = new Date(`1970-01-01T${endTime}:00`);
-        const diffMinutes = (end - start) / 60000 - (breakMinutes || 0);
-        if (diffMinutes > 0) {
-          const billableUnits = Math.ceil(diffMinutes / 30);
-          const price = billableUnits * Number(classroomRule['単価']);
-          finalAccountingDetails.tuition.items.push({
-            name: `授業料 (${startTime} - ${endTime})`,
-            price: price,
-          });
+      const sheet = getSheetByName(CONSTANTS.SHEET_NAMES.INTEGRATED_RESERVATIONS);
+      const {
+        headerMap,
+        foundRow: reservationDataRow,
+        rowIndex: targetRowIndex,
+      } = getSheetDataWithSearch(sheet, CONSTANTS.HEADERS.RESERVATION_ID, reservationId);
+
+      if (!reservationDataRow)
+        throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
+
+      const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
+      const actualStudentId = reservationDataRow[studentIdColIdx];
+      if (actualStudentId !== studentId) {
+        throw new Error('この予約の会計処理を行う権限がありません。');
+      }
+
+      // --- バックエンドでの再計算・検証ロジック ---
+      const masterData = getAccountingMasterData().data;
+      const finalAccountingDetails = {
+        tuition: { items: [], subtotal: 0 },
+        sales: { items: [], subtotal: 0 },
+        grandTotal: 0,
+        paymentMethod: userInput.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH,
+      };
+
+      // 授業料の計算
+      (userInput.tuitionItems || []).forEach(itemName => {
+        const masterItem = masterData.find(
+          m => m['項目名'] === itemName && m['種別'] === CONSTANTS.ITEM_TYPES.TUITION,
+        );
+        if (masterItem) {
+          const price = Number(masterItem['単価']);
+          finalAccountingDetails.tuition.items.push({ name: itemName, price: price });
           finalAccountingDetails.tuition.subtotal += price;
         }
-      }
-      // 割引の計算
-      if (discountMinutes > 0) {
-        const discountRule = masterData.find(item => item['項目名'] === CONSTANTS.ITEMS.DISCOUNT);
-        if (discountRule) {
-          const discountAmount = (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
-          finalAccountingDetails.tuition.items.push({
-            name: `${CONSTANTS.ITEMS.DISCOUNT} (${discountMinutes}分)`,
-            price: -discountAmount,
-          });
-          finalAccountingDetails.tuition.subtotal -= discountAmount;
+      });
+
+      // 時間制授業料の計算
+      if (userInput.timeBased) {
+        const { startTime, endTime, breakMinutes, discountMinutes } = userInput.timeBased;
+        const classroomRule = masterData.find(
+          item =>
+            item['対象教室'] &&
+            item['対象教室'].includes(classroom) &&
+            item['種別'] === CONSTANTS.ITEM_TYPES.TUITION &&
+            item['単位'] === CONSTANTS.UNITS.THIRTY_MIN,
+        );
+        if (classroomRule && startTime && endTime && startTime < endTime) {
+          const start = new Date(`1900-01-01T${startTime}:00`);
+          const end = new Date(`1900-01-01T${endTime}:00`);
+          const diffMinutes = (end - start) / 60000 - (breakMinutes || 0);
+          if (diffMinutes > 0) {
+            const billableUnits = Math.ceil(diffMinutes / 30);
+            const price = billableUnits * Number(classroomRule['単価']);
+            finalAccountingDetails.tuition.items.push({
+              name: `授業料 (${startTime} - ${endTime})`,
+              price: price,
+            });
+            finalAccountingDetails.tuition.subtotal += price;
+          }
+        }
+        // 割引の計算
+        if (discountMinutes > 0) {
+          const discountRule = masterData.find(item => item['項目名'] === CONSTANTS.ITEMS.DISCOUNT);
+          if (discountRule) {
+            const discountAmount = (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
+            finalAccountingDetails.tuition.items.push({
+              name: `${CONSTANTS.ITEMS.DISCOUNT} (${discountMinutes}分)`,
+              price: -discountAmount,
+            });
+            finalAccountingDetails.tuition.subtotal -= discountAmount;
+          }
         }
       }
-    }
 
-    // 物販・材料費の計算
-    (userInput.salesItems || []).forEach(item => {
-      const masterItem = masterData.find(
-        m =>
-          m['項目名'] === item.name &&
-          (m['種別'] === CONSTANTS.ITEM_TYPES.SALES || m['種別'] === CONSTANTS.ITEM_TYPES.MATERIAL),
-      );
-      if (masterItem) {
-        // マスタに存在する商品
-        const price = item.price || Number(masterItem['単価']); // 材料費のように価格が計算される場合を考慮
-        finalAccountingDetails.sales.items.push({ name: item.name, price: price });
-        finalAccountingDetails.sales.subtotal += price;
-      } else if (item.price) {
-        // 自由入力項目
-        const price = Number(item.price);
-        finalAccountingDetails.sales.items.push({ name: item.name, price: price });
-        finalAccountingDetails.sales.subtotal += price;
+      // 物販・材料費の計算
+      (userInput.salesItems || []).forEach(item => {
+        const masterItem = masterData.find(
+          m =>
+            m['項目名'] === item.name &&
+            (m['種別'] === CONSTANTS.ITEM_TYPES.SALES ||
+              m['種別'] === CONSTANTS.ITEM_TYPES.MATERIAL),
+        );
+        if (masterItem) {
+          // マスタに存在する商品
+          const price = item.price || Number(masterItem['単価']); // 材料費のように価格が計算される場合を考慮
+          finalAccountingDetails.sales.items.push({ name: item.name, price: price });
+          finalAccountingDetails.sales.subtotal += price;
+        } else if (item.price) {
+          // 自由入力項目
+          const price = Number(item.price);
+          finalAccountingDetails.sales.items.push({ name: item.name, price: price });
+          finalAccountingDetails.sales.subtotal += price;
+        }
+      });
+
+      finalAccountingDetails.grandTotal =
+        finalAccountingDetails.tuition.subtotal + finalAccountingDetails.sales.subtotal;
+      // --- ここまで ---
+
+      // 1. 時刻などをシートに書き戻す（シート側フォーマット設定済み）
+      if (userInput.timeBased) {
+        const { startTime, endTime } = userInput.timeBased;
+        if (headerMap.has(CONSTANTS.HEADERS.START_TIME))
+          sheet
+            .getRange(targetRowIndex, headerMap.get(CONSTANTS.HEADERS.START_TIME) + 1)
+            .setValue(startTime ? new Date(`1900-01-01T${startTime}`) : null);
+        if (headerMap.has(CONSTANTS.HEADERS.END_TIME))
+          sheet
+            .getRange(targetRowIndex, headerMap.get(CONSTANTS.HEADERS.END_TIME) + 1)
+            .setValue(endTime ? new Date(`1900-01-01T${endTime}`) : null);
       }
-    });
 
-    finalAccountingDetails.grandTotal =
-      finalAccountingDetails.tuition.subtotal + finalAccountingDetails.sales.subtotal;
-    // --- ここまで ---
+      // 2. 受講時間とガントチャートを再計算 (レガシー機能のためコメントアウト)
+      // updateBillableTime(sheet, targetRowIndex);
+      // updateGanttChart(sheet, targetRowIndex);
 
-    // 1. 時刻などをシートに書き戻す
-    if (userInput.timeBased) {
-      const { startTime, endTime } = userInput.timeBased;
-      if (headerMap.has(CONSTANTS.HEADERS.START_TIME))
-        sheet
-          .getRange(targetRowIndex, headerMap.get(CONSTANTS.HEADERS.START_TIME) + 1)
-          .setValue(startTime ? new Date(`1970-01-01T${startTime}`) : null)
-          .setNumberFormat('HH:mm');
-      if (headerMap.has(CONSTANTS.HEADERS.END_TIME))
-        sheet
-          .getRange(targetRowIndex, headerMap.get(CONSTANTS.HEADERS.END_TIME) + 1)
-          .setValue(endTime ? new Date(`1970-01-01T${endTime}`) : null)
-          .setNumberFormat('HH:mm');
+      // 3. 検証済みの会計詳細JSONを保存
+      const accountingDetailsColIdx = headerMap.get(CONSTANTS.HEADERS.ACCOUNTING_DETAILS);
+      if (accountingDetailsColIdx === undefined)
+        throw new Error('ヘッダー「会計詳細」が見つかりません。');
+      sheet
+        .getRange(targetRowIndex, accountingDetailsColIdx + 1)
+        .setValue(JSON.stringify(finalAccountingDetails));
+
+      SpreadsheetApp.flush();
+
+      // 4. 統合予約シートの更新後、全てのキャッシュを再構築
+      //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
+      //    全キャッシュを再構築してデータの整合性を保つ。
+
+      // --- ここからが追加の後続処理 ---
+      // reservationDataRowは既に上記で取得済み
+
+      // 5. 売上ログへの転記
+      _logSalesForSingleReservation(
+        reservationDataRow,
+        headerMap,
+        classroom,
+        finalAccountingDetails,
+      );
+
+      // ログと通知
+      const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}, Total: ${finalAccountingDetails.grandTotal}`;
+      logActivity(studentId, '会計記録保存', CONSTANTS.MESSAGES.SUCCESS, logDetails);
+
+      const subject = `会計記録 (${classroom})`;
+      const body =
+        `会計が記録されました。
+
+` +
+        `教室: ${classroom}
+` +
+        `予約ID: ${reservationId}
+` +
+        `生徒ID: ${studentId}
+` +
+        `合計金額: ${finalAccountingDetails.grandTotal.toLocaleString()} 円
+
+` +
+        `詳細はスプレッドシートを確認してください。`;
+      sendAdminNotification(subject, body);
+
+      rebuildAllReservationsCache();
+
+      // [変更] 戻り値に updatedSlots を追加
+      return createApiResponse(true, {
+        message: '会計処理と関連データの更新がすべて完了しました。',
+      });
+    } catch (err) {
+      logActivity(
+        payload.studentId,
+        '会計記録保存',
+        CONSTANTS.MESSAGES.ERROR,
+        `Error: ${err.message}`,
+      );
+      Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
+      return BackendErrorHandler.handle(err, 'saveAccountingDetails');
     }
-
-    // 2. 受講時間とガントチャートを再計算 (レガシー機能のためコメントアウト)
-    // updateBillableTime(sheet, targetRowIndex);
-    // updateGanttChart(sheet, targetRowIndex);
-
-    // 3. 検証済みの会計詳細JSONを保存
-    const accountingDetailsColIdx = headerMap.get(CONSTANTS.HEADERS.ACCOUNTING_DETAILS);
-    if (accountingDetailsColIdx === undefined)
-      throw new Error('ヘッダー「会計詳細」が見つかりません。');
-    sheet
-      .getRange(targetRowIndex, accountingDetailsColIdx + 1)
-      .setValue(JSON.stringify(finalAccountingDetails));
-
-    SpreadsheetApp.flush();
-
-    // 4. 統合予約シートの更新後、全てのキャッシュを再構築
-    //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
-    //    全キャッシュを再構築してデータの整合性を保つ。
-
-    // --- ここからが追加の後続処理 ---
-    const reservationDataRow = sheet
-      .getRange(targetRowIndex, 1, 1, sheet.getLastColumn())
-      .getValues()[0];
-
-    // 5. 売上ログへの転記
-    _logSalesForSingleReservation(reservationDataRow, headerMap, classroom, finalAccountingDetails);
-
-    // ログと通知
-    const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}, Total: ${finalAccountingDetails.grandTotal}`;
-    logActivity(studentId, '会計記録保存', CONSTANTS.MESSAGES.SUCCESS, logDetails);
-
-    const subject = `会計記録 (${classroom})`;
-    const body =
-      `会計が記録されました。
-
-` +
-      `教室: ${classroom}
-` +
-      `予約ID: ${reservationId}
-` +
-      `生徒ID: ${studentId}
-` +
-      `合計金額: ${finalAccountingDetails.grandTotal.toLocaleString()} 円
-
-` +
-      `詳細はスプレッドシートを確認してください。`;
-    sendAdminNotification(subject, body);
-
-    rebuildAllReservationsCache();
-
-    // [変更] 戻り値に updatedSlots を追加
-    return createApiResponse(true, {
-      message: '会計処理と関連データの更新がすべて完了しました。',
-    });
-  } catch (err) {
-    logActivity(
-      payload.studentId,
-      '会計記録保存',
-      CONSTANTS.MESSAGES.ERROR,
-      `Error: ${err.message}`,
-    );
-    Logger.log(`saveAccountingDetails Error: ${err.message}\n${err.stack}`);
-    return BackendErrorHandler.handle(err, 'saveAccountingDetails');
   });
 }
 
@@ -795,116 +756,5 @@ function _logSalesForSingleReservation(
     }
   } catch (err) {
     Logger.log(`_logSalesForSingleReservation Error: ${err.message}\n${err.stack}`);
-  }
-}
-
-/**
- * [設計思想] 後続処理でエラーが発生してもメインの会計処理は成功と見なすため、
- * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
- * @private
- * @param {Array} reservationDataRow - 年別きろく_YYYYキャッシュを更新する対象の予約データ行。
- * @param {Map<string, number>} headerMap - 予約シートのヘッダーマップ。
- * @param {string} classroomName - 教室名。
- * @param {object} accountingDetails - 追加する会計詳細オブジェクト。
- */
-function _updateRecordCacheForSingleReservation(
-  reservationDataRow,
-  headerMap,
-  classroomName,
-  accountingDetails,
-) {
-  try {
-    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
-    if (!rosterSheet) return;
-
-    const studentId = reservationDataRow[headerMap.get(CONSTANTS.HEADERS.STUDENT_ID)];
-    const date = reservationDataRow[headerMap.get(CONSTANTS.HEADERS.DATE)];
-    if (!studentId || !(date instanceof Date)) return;
-
-    const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
-    const rosterHeaderMap = createHeaderMap(rosterHeader);
-    const studentIdColRoster = rosterHeaderMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-    if (studentIdColRoster === undefined) return;
-
-    const rosterData = rosterSheet.getRange(2, 1, rosterSheet.getLastRow() - 1, 1).getValues();
-    const targetRosterRow_0based = rosterData.findIndex(row => row[0] === studentId);
-    if (targetRosterRow_0based === -1) return;
-    const targetRosterRow_1based = targetRosterRow_0based + 2;
-
-    const year = date.getFullYear();
-    const colName = `きろく_${year}`;
-    let recordColIdx = rosterHeaderMap.get(colName);
-
-    if (recordColIdx === undefined) {
-      const lastCol = rosterSheet.getLastColumn();
-      rosterSheet.insertColumnAfter(lastCol);
-      recordColIdx = lastCol;
-      rosterSheet.getRange(1, recordColIdx + 1).setValue(colName);
-    }
-
-    const archiveSheetName = CONSTANTS.SYSTEM.ARCHIVE_PREFIX + classroomName.slice(0, -2);
-    const newRecord = {
-      reservationId: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.RESERVATION_ID)] || '',
-      sheetName: archiveSheetName,
-      date: Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd'),
-      classroom: classroomName,
-      venue: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.VENUE)] || '',
-      workInProgress: reservationDataRow[headerMap.get(CONSTANTS.HEADERS.WORK_IN_PROGRESS)] || '',
-      accountingDetails: JSON.stringify(accountingDetails),
-    };
-
-    const cell = rosterSheet.getRange(targetRosterRow_1based, recordColIdx + 1);
-    const existingJson = cell.getValue();
-    let records = [];
-    if (existingJson) {
-      try {
-        records = JSON.parse(existingJson);
-      } catch {
-        /* 不正なJSONは上書き */
-      }
-    }
-
-    const recordExists = records.some(r => r.reservationId === newRecord.reservationId);
-    if (!recordExists) {
-      records.push(newRecord);
-      records.sort((a, b) => new Date(b.date) - new Date(a.date));
-      cell.setValue(JSON.stringify(records));
-    }
-  } catch (err) {
-    Logger.log(`_updateRecordCacheForSingleReservation Error: ${err.message}\n${err.stack}`);
-  }
-}
-
-/**
- * [設計思想] 後続処理でエラーが発生してもメインの会計処理は成功と見なすため、
- * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
- * @private
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sourceSheet - 予約シート
- * @param {number} rowIndex - アーカイブ対象の行番号
- * @param {Array} reservationDataRow - アーカイブ対象の行データ
- * @param {string} classroomName - アーカイブ先の教室名
- */
-function _archiveSingleReservation(sourceSheet, rowIndex, reservationDataRow, classroomName) {
-  try {
-    const archiveSheetName = CONSTANTS.SYSTEM.ARCHIVE_PREFIX + classroomName.slice(0, -2);
-    const archiveSheet = getSheetByName(archiveSheetName);
-
-    if (!archiveSheet) {
-      Logger.log(
-        `アーカイブシート「${archiveSheetName}」が見つかりません。アーカイブ処理をスキップします。`,
-      );
-      return;
-    }
-
-    // 1. アーカイブシートに転記
-    archiveSheet
-      .getRange(archiveSheet.getLastRow() + 1, 1, 1, reservationDataRow.length)
-      .setValues([reservationDataRow]);
-    formatSheetWithBordersSafely(archiveSheet);
-
-    // 2. 元の予約シートから行を削除
-    sourceSheet.deleteRow(rowIndex);
-  } catch (err) {
-    Logger.log(`_archiveSingleReservation Error: ${err.message}\n${err.stack}`);
   }
 }

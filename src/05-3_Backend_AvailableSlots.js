@@ -106,12 +106,12 @@ function getAvailableSlots() {
 
       // 時間解析結果をキャッシュ
       const timeCache = {
-        firstEndTime: schedule.firstEnd ? new Date(`1970-01-01T${schedule.firstEnd}`) : null,
+        firstEndTime: schedule.firstEnd ? new Date(`1900-01-01T${schedule.firstEnd}`) : null,
         secondStartTime: schedule.secondStart
-          ? new Date(`1970-01-01T${schedule.secondStart}`)
+          ? new Date(`1900-01-01T${schedule.secondStart}`)
           : null,
         beginnerStartTime: schedule.beginnerStart
-          ? new Date(`1970-01-01T${schedule.beginnerStart}`)
+          ? new Date(`1900-01-01T${schedule.beginnerStart}`)
           : null,
       };
 
@@ -123,10 +123,10 @@ function getAvailableSlots() {
         if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
           // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 2部制時間制
           const startTime = reservation.startTime
-            ? new Date(`1970-01-01T${reservation.startTime}`)
+            ? new Date(`1900-01-01T${reservation.startTime}`)
             : null;
           const endTime = reservation.endTime
-            ? new Date(`1970-01-01T${reservation.endTime}`)
+            ? new Date(`1900-01-01T${reservation.endTime}`)
             : null;
 
           if (startTime && endTime && timeCache.firstEndTime && timeCache.secondStartTime) {
@@ -154,10 +154,10 @@ function getAvailableSlots() {
         // 初回講習は独立して判定
         if (reservation.firstLecture && timeCache.beginnerStartTime) {
           const startTime = reservation.startTime
-            ? new Date(`1970-01-01T${reservation.startTime}`)
+            ? new Date(`1900-01-01T${reservation.startTime}`)
             : null;
           const endTime = reservation.endTime
-            ? new Date(`1970-01-01T${reservation.endTime}`)
+            ? new Date(`1900-01-01T${reservation.endTime}`)
             : null;
 
           // 予約時間が初心者開始時刻と重複するかチェック
