@@ -99,7 +99,8 @@
 
       // 本番環境: 統合エンドポイントで初期データと空席情報を一括取得
       google.script.run
-        .withSuccessHandler(response => { // ← この response には、サーバーサイドの getLoginData 関数の戻り値が格納されます。
+        .withSuccessHandler(response => {
+          // ← この response には、サーバーサイドの getLoginData 関数の戻り値が格納されます。
           hideLoading();
 
           // デバッグ情報を画面に表示
@@ -135,9 +136,6 @@
               recordsToShow: newAppState.constants?.ui?.HISTORY_INITIAL_RECORDS || 10,
               isDataFresh: true,
             });
-
-            // render関数を明示的に呼び出し
-            render();
           } else {
             // ユーザーが見つからない場合または特別コマンド認識時
             setState({
@@ -146,7 +144,6 @@
               selectedSearchedUser: null,
               searchAttempted: false,
             });
-            render();
           }
         })
         .withFailureHandler(err => {
@@ -749,39 +746,32 @@
 
     /** 新規予約のための教室選択画面に遷移します */
     goToClassroomSelection: () => {
-      if (appState.classrooms && appState.classrooms.length > 0) {
-        // 新しいdispatchパターンを使用
-        if (window.stateManager) {
-          window.stateManager.dispatch({
-            type: 'CHANGE_VIEW',
-            payload: { view: 'classroomSelection' },
-          });
-        } else {
-          setState({ view: 'classroomSelection' });
-        }
+      // 教室リストはログイン時に取得した「統合定数」から表示するため、
+      // ここでデータ更新チェックは不要です。
+      if (appState.constants && appState.constants.CLASSROOMS) {
+        setState({ view: 'classroomSelection' });
       } else {
-        showInfo('教室情報の取得に失敗しました。ダッシュボードに戻ります。');
-        if (window.stateManager) {
-          window.stateManager.dispatch({
-            type: 'CHANGE_VIEW',
-            payload: { view: 'dashboard' },
-          });
-        } else {
-          setState({ view: 'dashboard' });
-        }
+        // 万が一、定数が読み込めていない場合はエラーを表示
+        showInfo('教室情報の読み込みに失敗しました。一度ダッシュボードに戻ります。');
+        actionHandlers.goBackToDashboard();
       }
     },
 
     /** プロフィール編集画面に遷移します */
     goToEditProfile: () => {
-      // 新しいdispatchパターンを使用
-      if (window.stateManager) {
-        window.stateManager.dispatch({
-          type: 'CHANGE_VIEW',
-          payload: { view: 'editProfile' },
-        });
+      // データが古く、かつ更新中でなければデータを更新
+      if (!appState.isDataFresh && !appState._dataUpdateInProgress) {
+        updateAppStateFromCache('editProfile');
       } else {
-        setState({ view: 'editProfile' });
+        // 新しいdispatchパターンを使用
+        if (window.stateManager) {
+          window.stateManager.dispatch({
+            type: 'CHANGE_VIEW',
+            payload: { view: 'editProfile' },
+          });
+        } else {
+          setState({ view: 'editProfile' });
+        }
       }
     },
 
@@ -856,11 +846,17 @@
       setState({ view: 'login', loginPhone: loginPhone });
     },
 
-    /** ダッシュボード（メイン画面）に戻ります */
-    goBackToDashboard: () => setState({ view: 'dashboard' }),
+    /** ダッシュボード（メイン画面）に遷移（別名） */
+    goBackToDashboard: () => actionHandlers.goToDashboard(),
 
-    /** ダッシュボード（メイン画面）に戻ります（別名） */
-    goToDashboard: () => setState({ view: 'dashboard' }),
+    /** ダッシュボード（メイン画面）に遷移 */
+    goToDashboard: () => {
+      if (!appState.isDataFresh && !appState._dataUpdateInProgress) {
+        updateAppStateFromCache('dashboard');
+      } else {
+        setState({ view: 'dashboard' });
+      }
+    },
 
     /** 予約枠一覧画面に戻ります */
     goBackToBooking: () => {
@@ -892,9 +888,6 @@
         });
       }
     },
-
-    /** ダッシュボードに戻ります */
-    goToDashboard: () => setState({ view: 'dashboard' }),
 
     /** モーダルの確認ボタンを押したときの処理です */
     modalConfirm: () => {
@@ -1048,40 +1041,15 @@
    */
 
   /**
-   * データが変更されたかどうかを判定します（互換性維持用）
-   * @param {object} newState - 新しい状態
-   * @returns {boolean} データが変更された場合true
-   * @deprecated StateManagerが自動的に変更検知を行います
-   */
-  function hasDataChanged(newState) {
-    const dataKeys = ['myBookings', 'history', 'slots', 'accountingMaster', 'classrooms', 'recordsToShow'];
-    return dataKeys.some(key => newState.hasOwnProperty(key));
-  }
-
-  /**
-   * 指定されたビューで最新データが必要かどうかを判定
-   * データ要求ビュー、ユーザーログイン状態、更新中フラグを考慮して判定
-   * @param {string} view - 判定対象のビュー名
-   * @returns {boolean} 最新データ取得が必要な場合true
-   */
-  function shouldUpdateAppStateForView(view) {
-    // 教室選択画面は専用の更新処理(refreshAndUpdateSlots)に任せるため、ここからは除外
-    const dataRequiredViews = ['dashboard', 'editProfile', 'booking', 'complete'];
-    return (
-      dataRequiredViews.includes(view) &&
-      appState.currentUser &&
-      !appState._dataUpdateInProgress && // 更新中フラグでループ防止
-      !appState.isDataFresh
-    ); // 既に新鮮なデータが読み込まれている場合はスキップ
-  }
-
-  /**
    * バッチ処理でキャッシュから最新データを取得してappStateを更新
-   * ユーザーの予約・履歴・スロット情報を一括取得し、UIを再描画
+   * ユーザーの予約・履歴・スロット情報を一括取得し、指定されたビューに遷移
+   * @param {string} targetView - データ取得後に遷移したいビュー名
    */
-  function updateAppStateFromCache() {
+  function updateAppStateFromCache(targetView) {
     if (!appState.currentUser || !appState.currentUser.phone) {
-      render(); // ユーザー情報がない場合はそのまま描画
+      if (targetView) {
+        setState({ view: targetView });
+      }
       return;
     }
 
@@ -1101,9 +1069,9 @@
             appState.currentUser.phone,
             response.data.slots,
           );
-          // 現在のビューと重要な状態は保持
+          // 現在のビューと重要な状態は保持、ただしtargetViewが指定されていればそちらを優先
           const preservedState = {
-            view: appState.view,
+            view: targetView || appState.view,
             selectedClassroom: appState.selectedClassroom,
             selectedSlot: appState.selectedSlot,
             editingReservationDetails: appState.editingReservationDetails,
@@ -1113,43 +1081,23 @@
           setState({ ...newAppState, ...preservedState }); // setStateに統合し、状態更新と再描画を一元化
         } else {
           // 失敗時もsetStateを介して状態を更新し、再描画をトリガーする
-          setState({ _dataUpdateInProgress: false });
+          setState({
+            _dataUpdateInProgress: false,
+            view: targetView || appState.view,
+          });
           showInfo(response.message || 'データの取得に失敗しました。');
         }
       })
       .withFailureHandler(err => {
         hideLoading();
-        setState({ _dataUpdateInProgress: false }); // フラグをクリア
+        setState({
+          _dataUpdateInProgress: false,
+          view: targetView || appState.view,
+        }); // フラグをクリア
         handleServerError(err);
         // setStateがrenderを呼び出すので、ここでのrender()は不要
       })
       .getBatchData(['initial', 'slots'], appState.currentUser.phone);
-  }
-
-  /**
-   * 指定されたビューでどのようなデータ更新が必要かを判定します。
-   * @param {string} view - 現在のビュー名
-   * @returns {'full' | 'slotsOnly' | 'none'} 必要な更新タイプ
-   */
-  function getUpdateTypeForView(view) {
-    // 更新中、またはデータが新鮮な場合は更新不要
-    if (!appState.currentUser || appState._dataUpdateInProgress || appState.isDataFresh) {
-      return 'none';
-    }
-
-    // フルデータ更新が必要なビュー
-    const fullDataRequiredViews = ['dashboard', 'editProfile', 'complete'];
-    if (fullDataRequiredViews.includes(view)) {
-      return 'full';
-    }
-
-    // スロットデータのみ更新が必要なビュー
-    const slotsOnlyRequiredViews = ['classroomSelection', 'booking'];
-    if (slotsOnlyRequiredViews.includes(view)) {
-      return 'slotsOnly';
-    }
-
-    return 'none'; // その他のビューでは更新不要
   }
 
   /**
@@ -1269,8 +1217,5 @@
         }
       }
     });
-
-    // 初期画面を描画
-    render();
   };
 </script>

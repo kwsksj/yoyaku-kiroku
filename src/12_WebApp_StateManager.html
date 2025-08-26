@@ -16,39 +16,64 @@
   class SimpleStateManager {
     constructor() {
       this.state = {
-        // 基本データ
+        // --- User & Session Data ---
+        /** @type {{studentId: string, realName: string, displayName: string, phone: string} | null} */
         currentUser: null,
+        /** @type {string} */
+        loginPhone: '',
+        /** @type {boolean} */
+        isFirstTimeBooking: false,
+        /** @type {Object} */
+        registrationData: {},
+        /** @type {string | null} */
+        registrationPhone: null,
+
+        // --- Core Application Data ---
+        /** @type {Array<Object>} */
         slots: [],
+        /** @type {Array<Object>} */
         myBookings: [],
+        /** @type {Array<Object>} */
         history: [],
-        accountingMaster: null,
+        /** @type {Array<Object>} */
+        accountingMaster: [],
+        /** @type {Array<string>} */
         classrooms: [],
+        /** @type {Object | null} */
         constants: null,
 
-        // その他必要なプロパティ
-        today: null,
-        isFirstTimeBooking: false,
-        registrationPhone: null,
-        completionMessage: '',
-        recordsToShow: 10,
-        editingReservationDetails: null,
-        accountingReservation: null,
-
-        // UI状態
+        // --- UI State ---
+        /** @type {string} */
         view: 'login',
+        /** @type {string | null} */
         selectedClassroom: null,
+        /** @type {Object | null} */
         selectedSlot: null,
-        loading: false,
+        /** @type {Object | null} */
+        editingReservationDetails: null,
+        /** @type {Object | null} */
+        accountingReservation: null,
+        /** @type {Object} */
+        accountingInitialValues: {},
+        /** @type {string} */ completionMessage: '',
+        /** @type {number} */ recordsToShow: 10,
+        /** @type {Array<Object>} */
+        searchedUsers: [],
+        /** @type {boolean} */
+        searchAttempted: false,
 
-        // システム状態
+        // --- System State ---
+        /** @type {boolean} */
         isDataFresh: false,
+        /** @type {boolean} */
+        _dataUpdateInProgress: false,
 
-        // 計算済みデータ
+        // --- Computed Data ---
         computed: {
-          sortedBookings: [],
-          sortedHistory: [],
-          displayHistory: [],
-        }
+          /** @type {Array<Object>} */ sortedBookings: [],
+          /** @type {Array<Object>} */ sortedHistory: [],
+          /** @type {Array<Object>} */ displayHistory: [],
+        },
       };
 
       this.isUpdating = false; // 無限ループ防止フラグ
@@ -58,10 +83,43 @@
     }
 
     /**
-     * 状態を更新（シンプル版）
+     * アクションをディスパッチして状態を更新し、UIを自動再描画
+     * @param {Object} action - アクションオブジェクト { type: 'ACTION_NAME', payload: { ... } }
+     */
+    dispatch(action) {
+      if (this.isUpdating) {
+        console.warn('状態更新中のため処理をスキップ');
+        return;
+      }
+
+      console.log('🎯 Action dispatched:', action.type, action.payload ? Object.keys(action.payload) : 'no payload');
+
+      // アクションに基づいて状態更新
+      let newState = {};
+      switch (action.type) {
+        case 'SET_STATE':
+          newState = action.payload || {};
+          break;
+        case 'CHANGE_VIEW':
+          newState = { view: action.payload.view };
+          break;
+        default:
+          console.warn('未知のアクションタイプ:', action.type);
+          return;
+      }
+
+      // 内部の状態更新メソッドを呼び出し
+      this._updateState(newState);
+
+      // UI を自動で再描画
+      this._scheduleRender();
+    }
+
+    /**
+     * 状態を更新（内部メソッド）
      * @param {Object} newState - 新しい状態
      */
-    updateState(newState) {
+    _updateState(newState) {
       if (this.isUpdating) {
         console.warn('状態更新中のため処理をスキップ');
         return;
@@ -117,11 +175,11 @@
       if (!this.state.myBookings || !this.state.history) return;
 
       // 基本的なソート処理
-      this.state.computed.sortedBookings = [...this.state.myBookings]
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      this.state.computed.sortedBookings = [...this.state.myBookings].sort(
+        (a, b) => new Date(b.date) - new Date(a.date),
+      );
 
-      this.state.computed.sortedHistory = [...this.state.history]
-        .sort((a, b) => new Date(b.date) - new Date(a.date));
+      this.state.computed.sortedHistory = [...this.state.history].sort((a, b) => new Date(b.date) - new Date(a.date));
 
       // 表示する履歴の数を recordsToShow に基づいて動的に計算
       this.state.computed.displayHistory = this.state.computed.sortedHistory.slice(0, this.state.recordsToShow);
@@ -150,6 +208,26 @@
     }
 
     /**
+     * requestAnimationFrameを使ったレンダリングスケジューリング
+     */
+    _scheduleRender() {
+      if (this._renderScheduled) {
+        return; // 既にスケジュール済み
+      }
+
+      this._renderScheduled = true;
+      requestAnimationFrame(() => {
+        this._renderScheduled = false;
+        if (typeof window.render === 'function') {
+          console.log('🎨 Auto-rendering UI...');
+          window.render();
+        } else {
+          console.warn('render関数が見つかりません');
+        }
+      });
+    }
+
+    /**
      * 現在の状態を取得
      */
     getState() {
@@ -163,13 +241,9 @@
   // シンプルなappState（プロキシなし）
   window.appState = window.stateManager.state;
 
-  // シンプルなsetState（render呼び出しなし）
-  window.setState = function(newState) {
+  // setState関数をdispatch呼び出しのラッパーに変更
+  window.setState = function (newState) {
     console.log('🔄 setState:', Object.keys(newState));
-    window.stateManager.updateState(newState);
-
-    // render関数は呼び出し元が明示的に実行
-    console.log('💡 render()を手動で呼び出してください');
+    window.stateManager.dispatch({ type: 'SET_STATE', payload: newState });
   };
-
 </script>
