@@ -28,7 +28,9 @@
     <!-- デバッグ情報表示エリア -->
     <div id="debug" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-xs">
       <strong>デバッグ情報:</strong>
-      <div id="debug-content" class="mt-2 max-h-32 overflow-y-auto border border-red-300 bg-red-50 p-2 rounded text-xs">初期化中...</div>
+      <div id="debug-content" class="mt-2 max-h-32 overflow-y-auto border border-red-300 bg-red-50 p-2 rounded text-xs">
+        初期化中...
+      </div>
     </div>
 
     <!-- アプリケーションのメインコンテナ -->
@@ -63,8 +65,8 @@
     </div>
 
     <!-- GAS環境用のJavaScriptファイル読み込み（テンプレート評価対応） -->
-    <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_StateManager'); ?> <?!= include('12_WebApp_Core'); ?> <?!= include('13_WebApp_Views'); ?> <?!=
-    include('14_WebApp_Handlers'); ?>
+    <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_StateManager'); ?> <?!= include('12_WebApp_Core'); ?>
+    <?!= include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers'); ?>
 
     <script>
       // デバッグ情報を画面に表示する関数
@@ -91,26 +93,29 @@
         const checkReady = setInterval(() => {
           const status = {
             DesignConfig: typeof DesignConfig !== 'undefined',
-            appState: typeof appState !== 'undefined',
-            setState: typeof setState === 'function',
+            stateManager: typeof stateManager !== 'undefined',
+            stateManagerDispatch: typeof stateManager?.dispatch === 'function',
             hideLoading: typeof hideLoading === 'function',
           };
 
           debugLog('初期化条件チェック: ' + JSON.stringify(status));
 
-          // DesignConfig, appState, setState, hideLoadingが利用可能か確認
+          // DesignConfig, stateManager, hideLoadingが利用可能か確認
           if (
             typeof DesignConfig !== 'undefined' &&
-            typeof appState !== 'undefined' &&
-            typeof setState === 'function' &&
+            typeof stateManager !== 'undefined' &&
+            typeof stateManager?.dispatch === 'function' &&
             typeof hideLoading === 'function'
           ) {
             clearInterval(checkReady);
             debugLog('初期化条件を満たしました！');
-            debugLog('appState.slots: ' + (appState.slots ? appState.slots.length + '件' : 'null'));
-            debugLog('appState.classrooms: ' + JSON.stringify(appState.classrooms));
+            debugLog(
+              'stateManager.getState().slots: ' +
+                (stateManager.getState().slots ? stateManager.getState().slots.length + '件' : 'null'),
+            );
+            debugLog('stateManager.getState().classrooms: ' + JSON.stringify(stateManager.getState().classrooms));
 
-            setState({ view: 'login' });
+            window.stateManager.dispatch({ type: 'SET_STATE', payload: { view: 'login' } });
             hideLoading();
           }
         }, 100);

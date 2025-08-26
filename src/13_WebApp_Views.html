@@ -147,8 +147,9 @@
    * @returns {string} HTML文字列
    */
   const buildMaterialRow = (index, data = {}) => {
-    const materialOptions = appState.accountingMaster
-      .filter(m => m['種別'] === C.itemTypes.MATERIAL)
+    const materialOptions = stateManager
+      .getState()
+      .accountingMaster.filter(m => m['種別'] === C.itemTypes.MATERIAL)
       .map(m => `<option value="${m['項目名']}" ${data.type === m['項目名'] ? 'selected' : ''}>${m['項目名']}</option>`)
       .join('');
     return `
@@ -313,7 +314,7 @@
 
     const rentalChecked = initial.chiselRental || initial['彫刻刀レンタル'] === true ? 'checked' : '';
 
-    const discountRule = appState.accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
+    const discountRule = stateManager.getState().accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
     const discountHtml = discountRule
       ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule, initial.discountMinutes || '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
       : '';
@@ -350,7 +351,7 @@
    * @returns {string} HTML文字列
    */
   const getLoginView = () => {
-    const phoneValue = appState.loginPhone || '';
+    const phoneValue = stateManager.getState().loginPhone || '';
     return `
       <div class="text-center pt-8 pb-4">
           <h1 class="text-3xl font-bold text-brand-text tracking-tight">きぼりの<br>よやく・きろく</h1>
@@ -375,16 +376,18 @@
   const getUserFormView = config => {
     const { mode, phone } = config;
     const isEdit = mode === 'edit';
-    const u = appState.currentUser || {};
+    const u = stateManager.getState().currentUser || {};
 
-    // 入力値の保持: 新規登録Step1ではappState.registrationDataを参照
-    let regData = appState.registrationData || {};
+    // 入力値の保持: 新規登録Step1ではstateManager.getState().registrationDataを参照
+    let regData = stateManager.getState().registrationData || {};
     const realNameValue = isEdit ? u.realName || '' : regData.realName || '';
     const nicknameValue = isEdit ? u.displayName || '' : regData.nickname || '';
-    const phoneValue = isEdit ? appState.registrationPhone || u.phone || '' : regData.phone || phone || '';
+    const phoneValue = isEdit
+      ? stateManager.getState().registrationPhone || u.phone || ''
+      : regData.phone || phone || '';
 
     // 電話番号表示の判定
-    const isPhoneInputNeeded = isEdit && (appState.registrationPhone || !u.phone);
+    const isPhoneInputNeeded = isEdit && (stateManager.getState().registrationPhone || !u.phone);
 
     // タイトルと説明文
     const title = isEdit ? 'プロフィール編集' : '新規登録';
@@ -487,7 +490,7 @@
    * @returns {string} プロフィール入力フォームのHTML文字列
    */
   const getRegistrationStep2View = () => {
-    const data = appState.registrationData;
+    const data = stateManager.getState().registrationData;
     const genderOptions = ['女性', '男性', 'その他']
       .map(
         opt =>
@@ -534,7 +537,7 @@
    * @returns {string} 木彫りアンケートフォームのHTML文字列
    */
   const getRegistrationStep3View = () => {
-    const data = appState.registrationData;
+    const data = stateManager.getState().registrationData;
     const experienceOptions = ['はじめて！', 'ちょっと', 'そこそこ', 'かなり！']
       .map(
         opt =>
@@ -568,9 +571,9 @@
    * @returns {string} HTML文字列
    */
   const getUserSearchView = () => {
-    const users = appState.searchedUsers;
+    const users = stateManager.getState().searchedUsers;
     // NF-01: 検索が実行され、結果が0件の場合にメッセージを表示
-    const hasSearchedAndNoResults = appState.searchAttempted && users.length === 0;
+    const hasSearchedAndNoResults = stateManager.getState().searchAttempted && users.length === 0;
 
     return `
         <h1 class="text-xl font-bold text-brand-text mb-4">アカウントを探す</h1>
@@ -653,7 +656,7 @@
    */
   const getDashboardView = () => {
     // 計算済みデータを使用（setState()で自動更新済み）
-    const sortedBookings = appState.computed.sortedBookings;
+    const sortedBookings = stateManager.getState().computed.sortedBookings;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -688,7 +691,6 @@
                       resDate.setHours(0, 0, 0, 0);
                       isPastOrToday = resDate.getTime() <= today.getTime();
                     }
-
 
                     // ボタン配列を構築
                     const buttons = [];
@@ -732,9 +734,9 @@
         </div>`;
 
     let historyHtml = '';
-    if (appState.history && appState.history.length > 0) {
+    if (stateManager.getState().history && stateManager.getState().history.length > 0) {
       // 計算済みデータを使用
-      const recordsToShow = appState.computed.displayHistory;
+      const recordsToShow = stateManager.getState().computed.displayHistory;
       historyHtml = `
             <div class="mb-8 w-full">
             <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
@@ -781,7 +783,7 @@
                         });
                       })
                       .join('')}
-                    ${(appState.recordsToShow || 10) < appState.computed.sortedHistory.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">もっとみる</button></div>` : ''}
+                    ${(stateManager.getState().recordsToShow || 10) < stateManager.getState().computed.sortedHistory.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">もっとみる</button></div>` : ''}
                 </div>
             </div>
         `;
@@ -789,7 +791,7 @@
 
     return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-2">
-            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${appState.currentUser.displayName} <span class="text-base">さん</span></span></h1>
+            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${stateManager.getState().currentUser.displayName} <span class="text-base">さん</span></span></h1>
             <button data-action="goToEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
         </div>
         ${yourBookingsHtml}
@@ -802,8 +804,8 @@
    * @returns {string} HTML文字列
    */
   const getClassroomSelectionView = () => {
-    // 教室リストは、ログイン時に取得した静的な統合定数(appState.classrooms)から生成
-    const classroomButtonsHtml = Object.values(appState.classrooms || {})
+    // 教室リストは、ログイン時に取得した静的な統合定数(stateManager.getState().classrooms)から生成
+    const classroomButtonsHtml = Object.values(stateManager.getState().classrooms || {})
       .map(classroomName =>
         Components.createButton({
           action: 'selectClassroom',
@@ -868,7 +870,9 @@
 
         const slotsHtml = slotsByMonth[month]
           .map(sl => {
-            const iB = appState.computed.sortedBookings.some(b => b.date === sl.date && b.classroom === sl.classroom);
+            const iB = stateManager
+              .getState()
+              .computed.sortedBookings.some(b => b.date === sl.date && b.classroom === sl.classroom);
             let cC, sB, act;
             const tag = iB ? 'div' : 'button';
 
@@ -876,8 +880,8 @@
             let statusText;
             if (typeof sl.morningSlots !== 'undefined' && typeof sl.afternoonSlots !== 'undefined') {
               // つくば教室: 午前・午後制（統一定数を使用）
-              const morningLabel = appState.constants?.sessions?.MORNING || '午前';
-              const afternoonLabel = appState.constants?.sessions?.AFTERNOON || '午後';
+              const morningLabel = stateManager.getState().constants?.sessions?.MORNING || '午前';
+              const afternoonLabel = stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
               statusText = `${morningLabel}空き ${sl.morningSlots} | ${afternoonLabel}空き ${sl.afternoonSlots}`;
             } else if (typeof sl.availableSlots !== 'undefined') {
               // 東京教室・沼津教室: 単一セッション制
@@ -894,9 +898,9 @@
 
             if (iB) {
               // 予約済みの場合
-              const booking = appState.computed.sortedBookings.find(
-                b => b.date === sl.date && b.classroom === sl.classroom,
-              );
+              const booking = stateManager
+                .getState()
+                .computed.sortedBookings.find(b => b.date === sl.date && b.classroom === sl.classroom);
               if (booking && booking.status === STATUS.WAITING) {
                 cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
@@ -937,7 +941,9 @@
    */
   const getBookingView = classroom => {
     // バックエンドで計算済みの空き情報を直接使用
-    const relevantSlots = appState.slots ? appState.slots.filter(slot => slot.classroom === classroom) : [];
+    const relevantSlots = stateManager.getState().slots
+      ? stateManager.getState().slots.filter(slot => slot.classroom === classroom)
+      : [];
 
     const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
@@ -972,7 +978,9 @@
 
     // --- 1. データの準備 ---
     // 編集時は editingReservationDetails から、新規作成時は selectedSlot からデータを取得
-    const sourceData = isEdit ? appState.editingReservationDetails : appState.selectedSlot;
+    const sourceData = isEdit
+      ? stateManager.getState().editingReservationDetails
+      : stateManager.getState().selectedSlot;
     if (!sourceData) return 'エラー: 予約情報が見つかりません。';
 
     const {
@@ -989,12 +997,12 @@
       order,
       messageToTeacher,
     } = sourceData;
-    const { currentUser, accountingMaster: master } = appState;
+    const { currentUser, accountingMaster: master } = window.stateManager.getState();
     const tuitionItemRule = getTuitionItemRule(master, classroom, '本講座');
 
     // 新規作成時のみ利用するデータ
-    const { availableSlots, morningSlots, afternoonSlots, isFull } = appState.selectedSlot || {};
-    const isFirstTime = appState.isFirstTimeBooking && !isEdit;
+    const { availableSlots, morningSlots, afternoonSlots, isFull } = stateManager.getState().selectedSlot || {};
+    const isFirstTime = stateManager.getState().isFirstTimeBooking && !isEdit;
 
     // --- 2. モードに応じた設定 ---
     const title = isEdit ? '予約内容の編集' : isFull ? 'キャンセル待ち申込み' : '予約詳細の入力';
@@ -1011,8 +1019,8 @@
       }
       if (isFull) return '満席（キャンセル待ち申込み）';
       if (typeof morningSlots !== 'undefined') {
-        const morningLabel = appState.constants?.sessions?.MORNING || '午前';
-        const afternoonLabel = appState.constants?.sessions?.AFTERNOON || '午後';
+        const morningLabel = stateManager.getState().constants?.sessions?.MORNING || '午前';
+        const afternoonLabel = stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
         return `${morningLabel}空き ${morningSlots} | ${afternoonLabel}空き ${afternoonSlots}`;
       }
       return `空き ${availableSlots}`;
@@ -1098,7 +1106,7 @@
 
       // 物販チェックリスト（折り畳み）
       const salesChecklistHtml =
-        typeof buildSalesChecklist === 'function' ? buildSalesChecklist(appState.accountingMaster) : '';
+        typeof buildSalesChecklist === 'function' ? buildSalesChecklist(stateManager.getState().accountingMaster) : '';
 
       return `
         <div class="mt-4 pt-4 border-t space-y-4">
@@ -1215,13 +1223,14 @@
    */
   const getCompleteView = msg => {
     // 教室情報を取得（会計処理時は accountingReservation から、予約作成時は selectedSlot から）
-    const classroom = appState.accountingReservation?.classroom || appState.selectedSlot?.classroom;
+    const classroom =
+      stateManager.getState().accountingReservation?.classroom || stateManager.getState().selectedSlot?.classroom;
     let nextBookingHtml = '';
 
     // 該当教室の未来の予約枠が存在する場合
-    if (classroom && appState.slots) {
+    if (classroom && stateManager.getState().slots) {
       // バックエンドで計算済みの空き情報を直接使用
-      const relevantSlots = appState.slots.filter(slot => slot.classroom === classroom);
+      const relevantSlots = stateManager.getState().slots.filter(slot => slot.classroom === classroom);
       const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
       if (bookingSlotsHtml) {
@@ -1261,13 +1270,13 @@
    * @returns {string} HTML文字列
    */
   const getAccountingView = () => {
-    if (!appState.accountingMaster || !appState.accountingInitialValues)
+    if (!stateManager.getState().accountingMaster || !stateManager.getState().accountingInitialValues)
       return '<div class="flex justify-center items-center h-full"><div class="spinner"></div></div>';
-    const r = appState.accountingReservation;
+    const r = stateManager.getState().accountingReservation;
     // 計算済みデータを使用（setState()で自動更新済み）
-    const b = appState.computed.sortedBookings.find(b => b.reservationId === r.reservationId);
+    const b = stateManager.getState().computed.sortedBookings.find(b => b.reservationId === r.reservationId);
     const v = b.venue ? `（${b.venue}）` : '';
-    const initial = appState.accountingInitialValues;
+    const initial = stateManager.getState().accountingInitialValues;
     if (b.accountingDone && b.accountingDetails) {
       try {
         const details = JSON.parse(b.accountingDetails);
@@ -1301,7 +1310,7 @@
         return '会計詳細の表示に失敗しました。';
       }
     }
-    const master = appState.accountingMaster;
+    const master = stateManager.getState().accountingMaster;
     const tuitionItemRule = getTuitionItemRule(master, r.classroom, C.items.MAIN_LECTURE);
     const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
     let tuitionHtml;

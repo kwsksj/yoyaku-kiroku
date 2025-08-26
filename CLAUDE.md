@@ -10,8 +10,9 @@ classroom business. Uses Google Sheets as database with web application interfac
 
 ### ✅ Data Model Redesign Complete
 
-Successfully migrated from classroom-specific distributed data structure to an integrated, normalized
-data model with significant performance improvements. Detailed design: **[DATA_MODEL.md](docs/DATA_MODEL.md)**
+Successfully migrated from classroom-specific distributed data structure to an integrated,
+normalized data model with significant performance improvements. Detailed design:
+**[DATA_MODEL.md](docs/DATA_MODEL.md)**
 
 **Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ |
 Frontend Integration ✓ | System Optimization ✓
@@ -75,10 +76,10 @@ The project uses a numbered file naming convention in `src/`:
 
 ### Data Model & Caching
 
-Google Sheets-based integrated data model. Details:
-[DATA_MODEL.md](docs/DATA_MODEL.md)
+Google Sheets-based integrated data model. Details: [DATA_MODEL.md](docs/DATA_MODEL.md)
 
-**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Pricing Master, Activity Log
+**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Pricing Master, Activity
+Log
 
 **Multi-layer Cache**:
 
@@ -129,7 +130,10 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 - **Primary Language**: Respond in Japanese whenever possible
 - **Code Comments**: Write code comments in Japanese when adding new comments
 - **User Preference**: The user prefers Japanese communication for better understanding
-- **Status Display**: When Claude displays processing status with unfamiliar English words (e.g., "Clauding...", "Booping...", "Noodling..."), include Japanese translation or meaning in parentheses for clarity (e.g., "Noodling...（思案中）", "Spelunking...（探索中）") when the overhead is minimal
+- **Status Display**: When Claude displays processing status with unfamiliar English words (e.g.,
+  "Clauding...", "Booping...", "Noodling..."), include Japanese translation or meaning in
+  parentheses for clarity (e.g., "Noodling...（思案中）", "Spelunking...（探索中）") when the
+  overhead is minimal
 
 ### Claude Code Development Guidelines
 
@@ -140,7 +144,8 @@ Detailed architecture: `docs/ARCHITECTURE.md`
   - The test environment has a head deployment ID configured in `.clasp.json`
 - **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to
   test
-- **Frontend Architecture**: Implements unidirectional data flow with StateManager for automatic UI updates and separation of concerns
+- **Frontend Architecture**: Implements unidirectional data flow with StateManager for automatic UI
+  updates and separation of concerns
 
 ### Code Quality Standards
 

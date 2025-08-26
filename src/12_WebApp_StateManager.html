@@ -248,7 +248,7 @@
      */
     subscribe(callback) {
       this.subscribers.push(callback);
-      
+
       // unsubscribe関数を返す
       return () => {
         const index = this.subscribers.indexOf(callback);
@@ -276,13 +276,4 @@
 
   // グローバルインスタンスを作成
   window.stateManager = new SimpleStateManager();
-
-  // シンプルなappState（プロキシなし）
-  window.appState = window.stateManager.state;
-
-  // setState関数をdispatch呼び出しのラッパーに変更
-  window.setState = function (newState) {
-    console.log('🔄 setState:', Object.keys(newState));
-    window.stateManager.dispatch({ type: 'SET_STATE', payload: newState });
-  };
 </script>

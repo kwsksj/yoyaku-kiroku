@@ -481,7 +481,7 @@
         stack: error.stack || 'No stack trace available',
         context: context,
         timestamp: new Date().toISOString(),
-        userId: (window.appState && window.appState.currentUser?.studentId) || 'anonymous',
+        userId: (window.stateManager && window.stateManager.getState().currentUser?.studentId) || 'anonymous',
         userAgent: navigator.userAgent,
         url: window.location.href,
         additionalInfo: additionalInfo,
@@ -620,7 +620,7 @@
   // =================================================================
   // --- Computed Data Management ---
   // -----------------------------------------------------------------
-  // appState.computedの計算・更新処理を管理します。
+  // stateManager.getState().computedの計算・更新処理を管理します。
   // =================================================================
 
   /**
@@ -659,7 +659,7 @@
     }
     // フォールバック（StateManager未初期化時）
     updateComputedData();
-    return appState.computed.slotsByClassroom[classroom] || [];
+    return stateManager.getState().computed.slotsByClassroom[classroom] || [];
   };
 
   /**
@@ -676,7 +676,7 @@
     }
     // フォールバック（StateManager未初期化時）
     updateComputedData();
-    return appState.computed.slotsByMonth;
+    return stateManager.getState().computed.slotsByMonth;
   };
 
   // =================================================================
@@ -737,7 +737,7 @@
 
   /**
    * 料金マスタから、指定された教室と項目名に合致する授業料ルールを取得します。
-   * @param {Array} master - 料金マスタ (appState.accountingMaster)
+   * @param {Array} master - 料金マスタ (stateManager.getState().accountingMaster)
    * @param {string} classroom - 教室名
    * @param {string} itemName - 項目名
    * @returns {object|undefined} - 該当する授業料ルールオブジェクト
@@ -761,16 +761,16 @@
   // =================================================================
 
   /**
-   * 会計計算を実行し、appState.computed.accountingCalculationに結果を保存します。
+   * 会計計算を実行し、stateManager.getState().computed.accountingCalculationに結果を保存します。
    * @returns {object} 計算結果詳細
    */
   function calculateAccountingDetails() {
-    if (!appState.accountingMaster) return null;
+    if (!stateManager.getState().accountingMaster) return null;
 
     const details = calculateAccountingDetailsFromForm();
 
-    // appState.computedに結果を保存
-    appState.computed.accountingCalculation = details;
+    // stateManager.getState().computedに結果を保存
+    stateManager.getState().computed.accountingCalculation = details;
 
     // UI要素の更新
     updateAccountingUI(details);
@@ -795,8 +795,12 @@
     const form = document.getElementById('accounting-form');
     if (!form) return details;
 
-    const r = appState.accountingReservation;
-    const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, C.items.MAIN_LECTURE);
+    const r = stateManager.getState().accountingReservation;
+    const tuitionItemRule = getTuitionItemRule(
+      stateManager.getState().accountingMaster,
+      r.classroom,
+      C.items.MAIN_LECTURE,
+    );
     const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
 
     // 時間制授業料計算
@@ -888,7 +892,9 @@
       if (cb.checked || cb.disabled) {
         const itemName = cb.dataset.itemName;
         const itemType = cb.dataset.itemType;
-        const masterItem = appState.accountingMaster.find(m => m['項目名'] === itemName && m['種別'] === itemType);
+        const masterItem = stateManager
+          .getState()
+          .accountingMaster.find(m => m['項目名'] === itemName && m['種別'] === itemType);
         if (!masterItem) return;
 
         const price = Number(masterItem['単価']);
@@ -916,7 +922,7 @@
   function calculateDiscount() {
     const discountSelector = document.getElementById('discount-selector');
     if (discountSelector) {
-      const discountRule = appState.accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
+      const discountRule = stateManager.getState().accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
       if (discountRule) {
         const discountMinutes = parseInt(discountSelector.value, 10);
         if (discountMinutes > 0) {
@@ -949,7 +955,7 @@
       const materialRows = materialContainer.querySelectorAll('div[data-material-row-index]');
       materialRows.forEach((row, index) => {
         const type = document.getElementById(`material-type-${index}`)?.value;
-        const masterItem = appState.accountingMaster.find(m => m['項目名'] === type);
+        const masterItem = stateManager.getState().accountingMaster.find(m => m['項目名'] === type);
         const priceEl = document.getElementById(`material-price-${index}`);
 
         if (!masterItem) {
@@ -961,7 +967,7 @@
         let finalName = type;
         let price = 0;
 
-        if (masterItem['単位'] === appState.constants.units.CM3) {
+        if (masterItem['単位'] === stateManager.getState().constants.units.CM3) {
           const l = document.getElementById(`material-l-${index}`)?.value || 0;
           const w = document.getElementById(`material-w-${index}`)?.value || 0;
           const h = document.getElementById(`material-h-${index}`)?.value || 0;
@@ -1043,11 +1049,15 @@
     }
 
     // 受講時間表示の更新
-    if (calculatedHoursEl && appState.computed.accountingCalculation) {
+    if (calculatedHoursEl && stateManager.getState().computed.accountingCalculation) {
       const timeBasedItems = details.tuition.items.filter(item => item.name.includes('授業料 ('));
       if (timeBasedItems.length > 0) {
-        const r = appState.accountingReservation;
-        const tuitionItemRule = getTuitionItemRule(appState.accountingMaster, r.classroom, C.items.MAIN_LECTURE);
+        const r = stateManager.getState().accountingReservation;
+        const tuitionItemRule = getTuitionItemRule(
+          stateManager.getState().accountingMaster,
+          r.classroom,
+          C.items.MAIN_LECTURE,
+        );
         if (tuitionItemRule) {
           const billableUnits = Math.ceil(timeBasedItems[0].price / Number(tuitionItemRule['単価']));
           calculatedHoursEl.textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule['単価']}円`;

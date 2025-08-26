@@ -146,7 +146,7 @@ class FrontendErrorHandler {
       stack: error.stack || 'No stack trace available',
       context: context,
       timestamp: new Date().toISOString(),
-      userId: appState.currentUser?.studentId || 'anonymous',
+      userId: stateManager.getState().currentUser?.studentId || 'anonymous',
       userAgent: navigator.userAgent,
       url: window.location.href,
       additionalInfo: additionalInfo
