@@ -247,10 +247,9 @@ function getUsersWithoutPhoneNumber() {
  * @returns {object} - { success: boolean, studentId?: string, ... }
  */
 function registerNewUser(userInfo) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(LOCK_WAIT_TIME_MS);
-  try {
-    const validationResult = _normalizeAndValidatePhone(userInfo.phone || '', true);
+  return withTransaction(() => {
+    try {
+      const validationResult = _normalizeAndValidatePhone(userInfo.phone || '', true);
     const normalizedPhone = validationResult.normalized;
 
     if (!validationResult.isValid && userInfo.phone) {
@@ -323,9 +322,7 @@ function registerNewUser(userInfo) {
     logActivity('N/A', '新規ユーザー登録', 'エラー', `Error: ${err.message}`);
     Logger.log(`registerNewUser Error: ${err.message}`);
     return { success: false, message: `サーバーエラーが発生しました。` };
-  } finally {
-    lock.releaseLock();
-  }
+  });
 }
 
 /**
@@ -334,10 +331,9 @@ function registerNewUser(userInfo) {
  * @returns {object} - { success: boolean, message: string }
  */
 function updateUserProfile(userInfo) {
-  const lock = LockService.getScriptLock();
-  lock.waitLock(LOCK_WAIT_TIME_MS);
-  try {
-    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+  return withTransaction(() => {
+    try {
+      const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
     if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
     const data = rosterSheet.getDataRange().getValues();
@@ -420,7 +416,5 @@ function updateUserProfile(userInfo) {
       message: `サーバーエラーが発生しました。
 ${err.message}`,
     };
-  } finally {
-    lock.releaseLock();
-  }
+  });
 }

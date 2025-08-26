@@ -500,3 +500,22 @@ function filterUserReservations(allReservations, studentId, today) {
     myHistory: myHistory.sort((a, b) => b.date.localeCompare(a.date)),
   };
 }
+
+// ===================================================================
+// トランザクション管理ユーティリティ関数
+// ===================================================================
+
+/**
+ * スクリプトロックを利用して処理をアトミックに実行する
+ * @param {function} callback - 実行する処理
+ * @returns {*} callbackの戻り値
+ */
+function withTransaction(callback) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
+  try {
+    return callback();
+  } finally {
+    lock.releaseLock();
+  }
+}

@@ -23,8 +23,7 @@
    - `stateManager.subscribe`を利用して`state.view`の変更を監視します。
    - ビューの変更をトリガーとして、リスナーの登録・解除処理を実行します。
 3. **汎用的なヘルパー関数の導入**:
-   - 登録したリスナーを追跡し、一括で解除するためのヘルパー関数 (`addTrackedListener`,
-     `teardownAllListeners`) を作成します。これにより、将来他のビューで同様の問題が発生した場合にも容易に対応できます。
+   - 登録したリスナーを追跡し、一括で解除するためのヘルパー関数 (`addTrackedListener`, `teardownAllListeners`) を作成します。これにより、将来他のビューで同様の問題が発生した場合にも容易に対応できます。
 
 ## 4. 実装ステップ
 
@@ -37,10 +36,8 @@
 
 - `12_WebApp_Core.html`（または`14_WebApp_Handlers.html`の適切な場所）に、以下のヘルパー関数群を新設します。
   - `activeListeners`配列: 現在アクティブなリスナーの情報を保持します。
-  - `addTrackedListener(element, type, listener, options)`:
-    `addEventListener`をラップし、登録情報を`activeListeners`配列に追加します。
-  - `teardownAllListeners()`:
-    `activeListeners`配列をループ処理し、登録されているすべてのリスナーを`removeEventListener`で解除します。
+  - `addTrackedListener(element, type, listener, options)`: `addEventListener`をラップし、登録情報を`activeListeners`配列に追加します。
+  - `teardownAllListeners()`: `activeListeners`配列をループ処理し、登録されているすべてのリスナーを`removeEventListener`で解除します。
 
 ### Step 3: `setupAccountingFormListeners`の修正
 
@@ -50,8 +47,7 @@
 
 ### Step 4: `StateManager`にビュー変更の監視ロジックを追加
 
-- アプリケーションの初期化処理を行う箇所（例:
-  `12_WebApp_Core.html`の`initializeStateManager`の後）で、`stateManager.subscribe`を呼び出すロジックを追加します。
+- アプリケーションの初期化処理を行う箇所（例: `12_WebApp_Core.html`の`initializeStateManager`の後）で、`stateManager.subscribe`を呼び出すロジックを追加します。
 - `subscribe`のコールバック関数内で、`newState.view`と`oldState.view`を比較します。
 - ビューが変更された場合:
   1. `teardownAllListeners()`を呼び出し、古いビューのリスナーをすべてクリーンアップします。
@@ -145,8 +141,7 @@ function setupViewListener() {
 
 1. **開発者ツールでの確認**:
    - 会計画面とダッシュボード画面を何度も行き来します。
-   - Chrome開発者ツールの「Elements」パネルで、`#accounting-form`要素を選択し、「Event
-     Listeners」タブを確認します。
+   - Chrome開発者ツールの「Elements」パネルで、`#accounting-form`要素を選択し、「Event Listeners」タブを確認します。
    - 会計画面を表示した際にリスナーが1セットだけ登録され、他の画面に遷移した際にリスナーが消えることを確認します。
 2. **メモリ使用量の確認**:
    - Chrome開発者ツールの「Memory」タブでヒープスナップショットを撮ります。

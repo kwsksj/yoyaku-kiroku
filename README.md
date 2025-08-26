@@ -63,8 +63,7 @@ docs/                  # 詳細ドキュメント
 
 ### デプロイ (本番/テスト環境)
 
-**セットアップ:** 最初に `clasp.config.json` ファイルに、本番用(`prod`)とテスト用(`test`)の
-`deploymentId` を設定してください。
+**セットアップ:** 最初に `clasp.config.json` ファイルに、本番用(`prod`)とテスト用(`test`)の `deploymentId` を設定してください。
 
 - `npm run push:prod` / `npm run push:test`
   - 指定した環境（本番/テスト）にソースコードをプッシュ（アップロード）します。

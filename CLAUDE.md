@@ -1,21 +1,16 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this
-repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving
-classroom business. Uses Google Sheets as database with web application interface.
+Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving classroom business. Uses Google Sheets as database with web application interface.
 
 ### ✅ Data Model Redesign Complete
 
-Successfully migrated from classroom-specific distributed data structure to an integrated,
-normalized data model with significant performance improvements. Detailed design:
-**[DATA_MODEL.md](docs/DATA_MODEL.md)**
+Successfully migrated from classroom-specific distributed data structure to an integrated, normalized data model with significant performance improvements. Detailed design: **[DATA_MODEL.md](docs/DATA_MODEL.md)**
 
-**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ |
-Frontend Integration ✓ | System Optimization ✓
+**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ | Frontend Integration ✓ | System Optimization ✓
 
 ## Key Development Commands
 
@@ -32,8 +27,7 @@ Frontend Integration ✓ | System Optimization ✓
 - `npm run switch:env -- prod|test` - Switches between production and test environments
 - `npm run push:prod` / `npm run push:test` - Pushes code to respective GAS environments
 - `npm run deploy:prod` / `npm run deploy:test` - Deploys web app to respective environments
-- `npm run open:dev:prod` / `npm run open:dev:test` - Opens development URL after pushing latest
-  code
+- `npm run open:dev:prod` / `npm run open:dev:test` - Opens development URL after pushing latest code
 
 ### Testing
 
@@ -49,8 +43,7 @@ The project uses a numbered file naming convention in `src/`:
 **Core System Files:**
 
 - `00_Constants.js` - Global constants and configuration definitions
-- `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance
-  optimization
+- `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance optimization
 - `01_Code.js` - Entry point with global constants, UI definitions, and trigger functions
 - `02-1_BusinessLogic_Batch.js` - Batch processing and data import functions
 - `02-3_BusinessLogic_SheetUtils.js` - Sheet utility functions and data manipulation
@@ -78,8 +71,7 @@ The project uses a numbered file naming convention in `src/`:
 
 Google Sheets-based integrated data model. Details: [DATA_MODEL.md](docs/DATA_MODEL.md)
 
-**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Pricing Master, Activity
-Log
+**Core Sheets**: Schedule Master, Integrated Reservations, Student Roster, Pricing Master, Activity Log
 
 **Multi-layer Cache**:
 
@@ -130,10 +122,7 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 - **Primary Language**: Respond in Japanese whenever possible
 - **Code Comments**: Write code comments in Japanese when adding new comments
 - **User Preference**: The user prefers Japanese communication for better understanding
-- **Status Display**: When Claude displays processing status with unfamiliar English words (e.g.,
-  "Clauding...", "Booping...", "Noodling..."), include Japanese translation or meaning in
-  parentheses for clarity (e.g., "Noodling...（思案中）", "Spelunking...（探索中）") when the
-  overhead is minimal
+- **Status Display**: When Claude displays processing status with unfamiliar English words (e.g., "Clauding...", "Booping...", "Noodling..."), include Japanese translation or meaning in parentheses for clarity (e.g., "Noodling...（思案中）", "Spelunking...（探索中）") when the overhead is minimal
 
 ### Claude Code Development Guidelines
 
@@ -142,10 +131,8 @@ Detailed architecture: `docs/ARCHITECTURE.md`
   - **For Production**: Use `npm run push:prod` only after thorough testing
   - **DO NOT use** `npm run build` for deployment - it only creates local unified test HTML
   - The test environment has a head deployment ID configured in `.clasp.json`
-- **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to
-  test
-- **Frontend Architecture**: Implements unidirectional data flow with StateManager for automatic UI
-  updates and separation of concerns
+- **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to test
+- **Frontend Architecture**: Implements unidirectional data flow with StateManager for automatic UI updates and separation of concerns
 
 ### Code Quality Standards
 

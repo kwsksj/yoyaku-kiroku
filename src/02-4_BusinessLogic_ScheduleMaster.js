@@ -502,7 +502,6 @@ function isReservationSheet(sheetName) {
   const excludePatterns = [
     '生徒名簿',
     '会計マスタ',
-    '予約サマリー',
     'アクティビティログ',
     '日程マスタ',
     'Activity',
