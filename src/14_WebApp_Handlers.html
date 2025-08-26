@@ -47,20 +47,6 @@
     return data;
   }
 
-  /**
-   * 会計画面の入力イベントを監視するリスナーを設定します。
-   * @param {string} reservationId - 予約ID
-   */
-  function setupAccountingFormListeners(reservationId) {
-    const form = document.getElementById('accounting-form');
-    if (!form) return;
-
-    form.addEventListener('input', () => {
-      const accountingData = getAccountingFormData();
-      saveAccountingCache(reservationId, accountingData);
-    });
-  }
-
   // =================================================================
   // --- Action Handlers ---
   // -----------------------------------------------------------------
@@ -773,7 +759,6 @@
       }
     },
 
-
     /** 教室を選択し、予約枠一覧画面に遷移します */
     selectClassroom: d => {
       if (d && d.classroomName) {
@@ -790,13 +775,13 @@
     },
 
     /** スロット情報を更新してから予約枠画面に遷移します（設計書準拠） */
-    updateSlotsAndGoToBooking: (classroomName) => {
+    updateSlotsAndGoToBooking: classroomName => {
       showLoading('最新の予約枠を取得中...');
-      
+
       google.script.run
         .withSuccessHandler(response => {
           hideLoading();
-          
+
           if (response.success && response.data && response.data.slots) {
             const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
             setState({
@@ -819,13 +804,13 @@
     },
 
     /** スロット情報を更新してから完了画面に遷移します（設計書準拠） */
-    updateSlotsAndGoToComplete: (message) => {
+    updateSlotsAndGoToComplete: message => {
       showLoading('最新の予約枠を取得中...');
-      
+
       google.script.run
         .withSuccessHandler(response => {
           hideLoading();
-          
+
           if (response.success && response.data && response.data.slots) {
             const classroomsFromSlots = [...new Set(response.data.slots.map(slot => slot.classroom))];
             setState({
@@ -904,7 +889,7 @@
 
     /** 予約枠一覧画面に戻ります */
     goBackToBooking: () => {
-      const targetClassroom = 
+      const targetClassroom =
         appState.selectedSlot?.classroom ||
         appState.accountingReservation?.classroom ||
         appState.editingReservationDetails?.classroom;
@@ -1063,7 +1048,7 @@
           clearAccountingCache(reservationId); // <-- キャッシュ削除
           hideModal(); // モーダルを閉じる
           hideLoading();
-          
+
           // 会計完了後は最新スロット情報を取得してから完了画面に遷移
           actionHandlers.updateSlotsAndGoToComplete('会計情報を記録しました。');
         } else {
@@ -1211,13 +1196,6 @@
     }
     document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
 
-    if (window.appState.view === 'accounting') {
-      requestAnimationFrame(() => {
-        calculateAccountingDetails();
-        setupAccountingFormListeners(window.appState.accountingReservation.reservationId);
-      });
-    }
-
     window.scrollTo(0, 0);
   }
 
@@ -1231,8 +1209,17 @@
     // 会計計画面での入力変更を検知し、リアルタイムで再計算
     ['input', 'change'].forEach(eventName => {
       app.addEventListener(eventName, e => {
-        if (appState.view === 'accounting' && e.target.closest('#accounting-form')) {
+        const accountingForm = e.target.closest('#accounting-form');
+        if (appState.view === 'accounting' && accountingForm) {
+          // リアルタイムで合計金額を再計算
           calculateAccountingDetails();
+
+          // フォーム内容が変更されたら、キャッシュに保存する
+          const reservationId = appState.accountingReservation?.reservationId;
+          if (reservationId) {
+            const accountingData = getAccountingFormData();
+            saveAccountingCache(reservationId, accountingData);
+          }
         }
         // changeイベントの場合のみ、支払い方法選択をチェック
         if (eventName === 'change' && e.target.matches('#modal-accounting-form input[name="payment-method"]')) {

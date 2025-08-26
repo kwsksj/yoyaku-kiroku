@@ -77,6 +77,7 @@
       };
 
       this.isUpdating = false; // 無限ループ防止フラグ
+      this.subscribers = []; // 状態変更の購読者リスト
 
       // フォールバック統一定数を即座に設定（エラー回避）
       this.initializeFallbackConstants();
@@ -128,6 +129,9 @@
       this.isUpdating = true;
 
       try {
+        // 変更前の状態を保存（subscriber用）
+        const oldState = { ...this.state };
+
         // 状態を直接更新
         Object.assign(this.state, newState);
 
@@ -141,6 +145,9 @@
 
         // 基本的な計算済みデータ更新
         this.updateComputed();
+
+        // subscriberに変更を通知
+        this._notifySubscribers(this.state, oldState);
 
         console.log('✅ 状態更新完了:', Object.keys(newState));
       } catch (error) {
@@ -232,6 +239,38 @@
      */
     getState() {
       return this.state;
+    }
+
+    /**
+     * 状態変更を購読する
+     * @param {Function} callback - 状態変更時に呼び出される関数 (newState, oldState) => void
+     * @returns {Function} unsubscribe関数
+     */
+    subscribe(callback) {
+      this.subscribers.push(callback);
+      
+      // unsubscribe関数を返す
+      return () => {
+        const index = this.subscribers.indexOf(callback);
+        if (index > -1) {
+          this.subscribers.splice(index, 1);
+        }
+      };
+    }
+
+    /**
+     * subscriberに状態変更を通知する
+     * @param {Object} newState - 新しい状態
+     * @param {Object} oldState - 古い状態
+     */
+    _notifySubscribers(newState, oldState) {
+      this.subscribers.forEach(callback => {
+        try {
+          callback(newState, oldState);
+        } catch (error) {
+          console.error('subscriber callback error:', error);
+        }
+      });
     }
   }
 
