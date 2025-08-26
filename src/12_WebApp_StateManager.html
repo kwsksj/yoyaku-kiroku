@@ -1,0 +1,175 @@
+<script>
+  /**
+   * =================================================================
+   * 【ファイル名】: 12_WebApp_StateManager.html
+   * 【バージョン】: 2.0 (シンプル版)
+   * 【役割】: シンプルで確実な状態管理システム
+   * - 無限ループの完全回避
+   * - 既存互換性は無視、新しい設計
+   * - テスト環境特化
+   * =================================================================
+   */
+
+  /**
+   * シンプルな状態管理システム
+   */
+  class SimpleStateManager {
+    constructor() {
+      this.state = {
+        // 基本データ
+        currentUser: null,
+        slots: [],
+        myBookings: [],
+        history: [],
+        accountingMaster: null,
+        classrooms: [],
+        constants: null,
+
+        // その他必要なプロパティ
+        today: null,
+        isFirstTimeBooking: false,
+        registrationPhone: null,
+        completionMessage: '',
+        recordsToShow: 10,
+        editingReservationDetails: null,
+        accountingReservation: null,
+
+        // UI状態
+        view: 'login',
+        selectedClassroom: null,
+        selectedSlot: null,
+        loading: false,
+
+        // システム状態
+        isDataFresh: false,
+
+        // 計算済みデータ
+        computed: {
+          sortedBookings: [],
+          sortedHistory: [],
+          displayHistory: [],
+        }
+      };
+
+      this.isUpdating = false; // 無限ループ防止フラグ
+
+      // フォールバック統一定数を即座に設定（エラー回避）
+      this.initializeFallbackConstants();
+    }
+
+    /**
+     * 状態を更新（シンプル版）
+     * @param {Object} newState - 新しい状態
+     */
+    updateState(newState) {
+      if (this.isUpdating) {
+        console.warn('状態更新中のため処理をスキップ');
+        return;
+      }
+
+      this.isUpdating = true;
+
+      try {
+        // 状態を直接更新
+        Object.assign(this.state, newState);
+
+        // 統一定数が設定された場合、グローバル短縮参照を初期化
+        // window.Cがフォールバックで空オブジェクト{}で初期化されるため、
+        // !window.Cでは正しく判定できない。
+        // オブジェクトが空かどうかもチェックする。
+        if (newState.constants && (!window.C || Object.keys(window.C).length === 0)) {
+          this.initializeGlobalConstants();
+        }
+
+        // 基本的な計算済みデータ更新
+        this.updateComputed();
+
+        console.log('✅ 状態更新完了:', Object.keys(newState));
+      } catch (error) {
+        console.error('❌ 状態更新エラー:', error);
+      } finally {
+        this.isUpdating = false;
+      }
+    }
+
+    /**
+     * グローバル統一定数の短縮参照を初期化
+     */
+    initializeGlobalConstants() {
+      if (!this.state.constants) return;
+
+      const constants = this.state.constants;
+
+      // グローバル短縮参照を設定
+      window.C = constants;
+      window.STATUS = constants.status || {};
+      window.UI = constants.ui || {};
+      window.BANK = constants.bankInfo || {};
+      window.PAYMENT = constants.paymentDisplay || {};
+
+      console.log('📋 統一定数グローバル参照を初期化:', Object.keys(constants));
+    }
+
+    /**
+     * 計算済みデータの基本更新
+     */
+    updateComputed() {
+      if (!this.state.myBookings || !this.state.history) return;
+
+      // 基本的なソート処理
+      this.state.computed.sortedBookings = [...this.state.myBookings]
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      this.state.computed.sortedHistory = [...this.state.history]
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      // 表示する履歴の数を recordsToShow に基づいて動的に計算
+      this.state.computed.displayHistory = this.state.computed.sortedHistory.slice(0, this.state.recordsToShow);
+    }
+
+    /**
+     * フォールバック用のグローバル定数を初期化する
+     * サーバーから本物の定数が読み込まれるまでの間のエラーを回避する
+     */
+    initializeFallbackConstants() {
+      if (window.C && Object.keys(window.C).length > 0) return; // 既に設定済みなら何もしない
+
+      window.C = {};
+      window.STATUS = {
+        CANCEL: 'cancel',
+        WAITING: 'waiting',
+      };
+      window.UI = {
+        HISTORY_INITIAL_RECORDS: 10,
+        HISTORY_LOAD_MORE_RECORDS: 10,
+        LOADING_MESSAGE_INTERVAL: 3000,
+      };
+      window.BANK = {};
+      window.PAYMENT = { CASH: '現金' };
+      console.log('📋 フォールバック定数を初期化しました');
+    }
+
+    /**
+     * 現在の状態を取得
+     */
+    getState() {
+      return this.state;
+    }
+  }
+
+  // グローバルインスタンスを作成
+  window.stateManager = new SimpleStateManager();
+
+  // シンプルなappState（プロキシなし）
+  window.appState = window.stateManager.state;
+
+  // シンプルなsetState（render呼び出しなし）
+  window.setState = function(newState) {
+    console.log('🔄 setState:', Object.keys(newState));
+    window.stateManager.updateState(newState);
+
+    // render関数は呼び出し元が明示的に実行
+    console.log('💡 render()を手動で呼び出してください');
+  };
+
+</script>

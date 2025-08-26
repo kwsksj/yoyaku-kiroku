@@ -124,65 +124,17 @@
     // テスト環境では特別な処理は不要
   }
 
-  const appState = {
-    // 基本データ
-    currentUser: getEnvironmentData('currentUser'),
-    slots: getEnvironmentData('slots', []),
-    myBookings: getEnvironmentData('myBookings', []),
-    history: getEnvironmentData('history', []),
-    historyTotal: getEnvironmentData('history', []).length,
-    accountingMaster: getEnvironmentData('accountingMaster'),
-    classrooms: [], // スロットデータから動的に取得
+  // StateManagerの再初期化（依存関数が読み込まれた後）
+  if (typeof window.initializeStateManager === 'function' && !window.stateManager) {
+    console.log('🔄 StateManagerを再初期化中...');
+    window.initializeStateManager();
+  }
 
-    // 計算済みデータ（パフォーマンス最適化用）
-    computed: {
-      slotsByClassroom: {}, // 教室別スロット: { '${CONSTANTS.CLASSROOMS.TOKYO}': [...], ... }
-      slotsByMonth: {}, // 月別スロット: { 1: [...], 2: [...], ... }
-      filteredSlots: {}, // フィルタリング済みスロット（キャッシュ用）
-      sortedBookings: [], // ソート済み予約リスト
-      sortedHistory: [], // ソート済み履歴リスト
-      displayHistory: [], // 表示用履歴（recordsToShow分）
-      classroomBookingStatus: {}, // 教室別予約状況
-      accountingCalculation: null, // 会計計算結果
-    },
+  // 注意: appStateオブジェクトは新しいStateManagerシステム（12_WebApp_StateManager.html）に移行されました
+  // 下位互換性のため、appStateとsetStateは自動的にStateManagerにマッピングされます
 
-    // UI状態
-    view: isTestEnvironment ? 'login' : 'login',
-    selectedClassroom: null,
-    selectedSlot: null,
-    registrationPhone: null,
-    completionMessage: '',
-    recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
-
-    // 編集・操作状態
-    newlyBookedReservation: null,
-    editingReservationDetails: null,
-    accountingReservation: null,
-    accountingInitialValues: null,
-    editingHistoryItem: null,
-
-    // NF-01: 電話番号未登録ユーザー選択フロー用の状態
-    searchedUsers: [], // 検索結果のユーザーリスト
-    selectedSearchedUser: null, // 選択されたユーザー
-    searchAttempted: false, // NF-01: 検索が一度試行されたかを示すフラグ
-
-    // NF-04: 新規ユーザー登録フロー用の状態
-    registrationStep: 1, // 新規登録フローの現在のステップ (1, 2, 3)
-    registrationData: {}, // 各ステップで入力された情報を一時的に蓄積する
-    isFirstTimeBooking: false, // 初回予約かどうかを示すフラグ
-
-    // システム内部状態
-    today: null,
-    loginPhone: '',
-    isDataFresh: false,
-    _dataUpdateInProgress: false,
-    _allReservations: [],
-    _allStudents: {},
-    _cacheVersions: {},
-  };
-
-  // グローバルスコープでアクセス可能にする
-  window.appState = appState;
+  // 既存コード互換性のため、appStateは12_WebApp_StateManager.htmlで定義され、
+  // window.appStateとして公開されています
 
   /**
    * モーダル管理オブジェクト
@@ -191,7 +143,7 @@
    */
   const ModalManager = {
     onConfirmCallback: null,
-    
+
     /**
      * モーダル確認時のコールバック関数を設定
      * @param {Function} callback - 確認ボタン押下時に実行する関数
@@ -199,14 +151,14 @@
     setCallback: function (callback) {
       this.onConfirmCallback = callback;
     },
-    
+
     /**
      * 設定されたコールバック関数をクリア
      */
     clearCallback: function () {
       this.onConfirmCallback = null;
     },
-    
+
     /**
      * 設定されたコールバック関数を実行し、自動でクリアする
      * モーダル確認ボタンから呼び出される
@@ -218,42 +170,6 @@
       }
     },
   };
-
-  // =================================================================
-  // --- 統一定数システム短縮アクセス参照 ---
-  // -----------------------------------------------------------------
-  // フロントエンドでの定数アクセスを簡潔にするための短縮参照パターン
-  // グローバル変数の乱用を避けながら、appState.constantsからの参照を短縮
-  // =================================================================
-
-  /**
-   * 統一定数システムの短縮アクセス用参照
-   * appState.constants が利用可能になった後に初期化される
-   */
-  let C, STATUS, UI, BANK, PAYMENT; // 短縮参照用変数
-
-  /**
-   * 統一定数の短縮参照を初期化する関数
-   * appState.constants が利用可能になったタイミングで呼び出される
-   */
-  function initializeConstantShortcuts() {
-    if (appState.constants) {
-      C = appState.constants; // 短縮アクセス用の参照
-
-      // よく使用される定数グループのエイリアス
-      STATUS = C.status || {};
-      UI = C.ui || {};
-      BANK = C.bankInfo || {};
-      PAYMENT = C.paymentDisplay || {};
-
-      // 初期化後にハードコードした値をUI定数で更新
-      if (appState.recordsToShow === 10) {
-        appState.recordsToShow = UI.HISTORY_INITIAL_RECORDS;
-      }
-
-    }
-  }
-
 
   // テスト環境の初期化ログ
   if (isTestEnvironment) {
@@ -549,7 +465,7 @@
         stack: error.stack || 'No stack trace available',
         context: context,
         timestamp: new Date().toISOString(),
-        userId: appState.currentUser?.studentId || 'anonymous',
+        userId: (window.appState && window.appState.currentUser?.studentId) || 'anonymous',
         userAgent: navigator.userAgent,
         url: window.location.href,
         additionalInfo: additionalInfo,
@@ -692,84 +608,18 @@
   // =================================================================
 
   /**
-   * appState.computedの全データを再計算します。
-   * データが変更された際に呼び出されます。
+   * 注意: updateComputedData()関数はStateManagerシステムに統合されました
+   * 計算済みデータは状態変更時に自動的に更新されます
+   *
+   * 下位互換性のためのラッパー関数
+   * @deprecated 新しいコードではstateManager.dispatch()を使用してください
    */
   function updateComputedData() {
-    // 統一定数が未初期化の場合は処理をスキップ
-    if (!C || !C.items) {
-      console.warn('統一定数が未初期化のため、updateComputedData()をスキップします');
-      return;
+    if (window.stateManager) {
+      window.stateManager.updateComputedData();
+    } else {
+      console.warn('updateComputedData: StateManagerが初期化されていません');
     }
-
-    const state = appState;
-
-    // 基本チェック
-    if (!state.slots) state.slots = [];
-    if (!state.myBookings) state.myBookings = [];
-    if (!state.history) state.history = [];
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // 0. スロットデータから教室一覧を動的に取得
-    const classroomsFromSlots = [...new Set(state.slots.map(slot => slot.classroom))];
-    if (classroomsFromSlots.length > 0) {
-      state.classrooms = classroomsFromSlots;
-    }
-
-    // 1. 教室別スロット
-    state.computed.slotsByClassroom = {};
-    state.classrooms.forEach(classroom => {
-      state.computed.slotsByClassroom[classroom] = state.slots.filter(s => {
-        const slotDate = new Date(s.date);
-        slotDate.setMinutes(slotDate.getMinutes() + slotDate.getTimezoneOffset());
-        const isClassroomMatch = s.classroom === classroom;
-        const isDateFuture = slotDate >= today;
-        const isNotFirstLecture = s.session !== C.items.FIRST_LECTURE;
-
-        // デバッグ用ログ（開発環境のみ）- 削除済み
-
-        return isClassroomMatch && isDateFuture && isNotFirstLecture;
-      });
-    });
-
-    // 2. 月別スロット
-    state.computed.slotsByMonth = state.slots.reduce((acc, slot) => {
-      const month = new Date(slot.date).getMonth() + 1;
-      if (!acc[month]) acc[month] = [];
-      acc[month].push(slot);
-      return acc;
-    }, {});
-
-    // 3. ソート済み予約リスト
-    state.computed.sortedBookings = [...state.myBookings].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    // 4. ソート済み履歴リスト
-    state.computed.sortedHistory = [...state.history].sort((a, b) => new Date(b.date) - new Date(a.date));
-
-    // 5. 表示用履歴（recordsToShow分）
-    state.computed.displayHistory = state.computed.sortedHistory.slice(
-      0,
-      state.recordsToShow || UI?.HISTORY_INITIAL_RECORDS || 10,
-    );
-
-    // 6. 教室別予約状況
-    state.computed.classroomBookingStatus = {};
-    state.classrooms.forEach(classroom => {
-      const classroomSlots = state.computed.slotsByClassroom[classroom] || [];
-      state.computed.classroomBookingStatus[classroom] = {
-        totalSlots: classroomSlots.length,
-        availableSlots: classroomSlots.filter(s => !s.isFull).length,
-        myBookingsCount: state.myBookings.filter(b => b.classroom === classroom).length,
-        slotsByMonth: classroomSlots.reduce((acc, slot) => {
-          const month = new Date(slot.date).getMonth() + 1;
-          if (!acc[month]) acc[month] = [];
-          acc[month].push(slot);
-          return acc;
-        }, {}),
-      };
-    });
   }
 
   // =================================================================
@@ -783,9 +633,16 @@
    * @param {Array} slots - 全スロットの配列（未使用、互換性のため残存）
    * @param {string} classroom - 教室名
    * @returns {Array} フィルタリングされたスロット配列
+   * @deprecated StateManagerのcomputed dataを直接参照してください
    */
   const filterFutureSlots = (slots, classroom) => {
-    updateComputedData(); // 計算データを更新
+    // StateManagerの計算済みデータから取得
+    if (window.stateManager) {
+      const computed = window.stateManager.state.computed;
+      return computed.slotsByClassroom[classroom] || [];
+    }
+    // フォールバック（StateManager未初期化時）
+    updateComputedData();
     return appState.computed.slotsByClassroom[classroom] || [];
   };
 
@@ -793,9 +650,16 @@
    * スロットを月別にグループ化します。
    * @param {Array} slots - スロットの配列（未使用、互換性のため残存）
    * @returns {Object} 月をキーとしたスロットのオブジェクト
+   * @deprecated StateManagerのcomputed dataを直接参照してください
    */
   const groupSlotsByMonth = slots => {
-    updateComputedData(); // 計算データを更新
+    // StateManagerの計算済みデータから取得
+    if (window.stateManager) {
+      const computed = window.stateManager.state.computed;
+      return computed.slotsByMonth;
+    }
+    // フォールバック（StateManager未初期化時）
+    updateComputedData();
     return appState.computed.slotsByMonth;
   };
 

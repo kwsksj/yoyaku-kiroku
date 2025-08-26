@@ -99,7 +99,7 @@
 
       // 本番環境: 統合エンドポイントで初期データと空席情報を一括取得
       google.script.run
-        .withSuccessHandler(response => {
+        .withSuccessHandler(response => { // ← この response には、サーバーサイドの getLoginData 関数の戻り値が格納されます。
           hideLoading();
 
           // デバッグ情報を画面に表示
@@ -131,9 +131,13 @@
             setState({
               ...newAppState,
               isFirstTimeBooking: isFirstTime,
-              recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
-              isDataFresh: true, // ログイン時にデータを読み込んだことを記録
+              // サーバーから取得した定数を使って、表示する履歴の初期件数を設定
+              recordsToShow: newAppState.constants?.ui?.HISTORY_INITIAL_RECORDS || 10,
+              isDataFresh: true,
             });
+
+            // render関数を明示的に呼び出し
+            render();
           } else {
             // ユーザーが見つからない場合または特別コマンド認識時
             setState({
@@ -142,6 +146,7 @@
               selectedSearchedUser: null,
               searchAttempted: false,
             });
+            render();
           }
         })
         .withFailureHandler(err => {
@@ -745,17 +750,42 @@
     /** 新規予約のための教室選択画面に遷移します */
     goToClassroomSelection: () => {
       if (appState.classrooms && appState.classrooms.length > 0) {
-        setState({ view: 'classroomSelection' });
+        // 新しいdispatchパターンを使用
+        if (window.stateManager) {
+          window.stateManager.dispatch({
+            type: 'CHANGE_VIEW',
+            payload: { view: 'classroomSelection' },
+          });
+        } else {
+          setState({ view: 'classroomSelection' });
+        }
       } else {
         showInfo('教室情報の取得に失敗しました。ダッシュボードに戻ります。');
-        setState({ view: 'dashboard' });
+        if (window.stateManager) {
+          window.stateManager.dispatch({
+            type: 'CHANGE_VIEW',
+            payload: { view: 'dashboard' },
+          });
+        } else {
+          setState({ view: 'dashboard' });
+        }
       }
     },
 
     /** プロフィール編集画面に遷移します */
-    goToEditProfile: () => setState({ view: 'editProfile' }),
+    goToEditProfile: () => {
+      // 新しいdispatchパターンを使用
+      if (window.stateManager) {
+        window.stateManager.dispatch({
+          type: 'CHANGE_VIEW',
+          payload: { view: 'editProfile' },
+        });
+      } else {
+        setState({ view: 'editProfile' });
+      }
+    },
 
-    /** 
+    /**
      * スロット情報をキャッシュから取得して状態を更新する統合関数
      * 教室選択画面で利用する空き枠情報を最新化し、コールバック関数を実行
      * @param {Function} [onComplete] - スロット更新完了時のコールバック関数
@@ -1010,53 +1040,23 @@
   // =================================================================
 
   /**
-   * アプリケーションの状態を更新し、画面を再描画します。
-   * @param {object} newState - 更新する新しい状態オブジェクト
+   * 注意: setState関数はStateManagerシステムに統合されました
+   * 新しいコードでは stateManager.dispatch() を使用してください
+   *
+   * 下位互換性のためのsetState関数は12_WebApp_StateManager.htmlで定義され、
+   * 自動的にStateManagerのdispatch()にマッピングされます
    */
-  function setState(newState) {
-    Object.assign(appState, newState);
-
-    // 統一定数の短縮参照を初期化（constants が設定された場合）
-    if (newState.constants) {
-      initializeConstantShortcuts();
-    }
-
-    // データの整合性チェック
-    if (appState.myBookings && !Array.isArray(appState.myBookings)) {
-      appState.myBookings = [];
-    }
-    if (!appState.myBookings) {
-      appState.myBookings = [];
-    }
-    if (!appState.history) {
-      appState.history = [];
-    }
-    if (!appState.slots) {
-      appState.slots = [];
-    }
-
-    // データが変更された場合、計算済みデータを更新
-    // 統一定数が初期化されている場合のみ実行
-    const dataChanged = hasDataChanged(newState);
-    if (dataChanged && C) {
-      updateComputedData();
-    }
-
-    render();
-  }
 
   /**
-   * データが変更されたかどうかを判定します。
+   * データが変更されたかどうかを判定します（互換性維持用）
    * @param {object} newState - 新しい状態
    * @returns {boolean} データが変更された場合true
+   * @deprecated StateManagerが自動的に変更検知を行います
    */
   function hasDataChanged(newState) {
     const dataKeys = ['myBookings', 'history', 'slots', 'accountingMaster', 'classrooms', 'recordsToShow'];
     return dataKeys.some(key => newState.hasOwnProperty(key));
   }
-  window.setState = setState;
-  this.setState = setState;
-  self.setState = setState;
 
   /**
    * 指定されたビューで最新データが必要かどうかを判定
@@ -1158,33 +1158,24 @@
    * appState.viewの値に応じて対応するビュー関数を呼び出してUIを更新
    */
   function render() {
-
-    const updateType = getUpdateTypeForView(appState.view);
-
-    if (updateType === 'full') {
-      // フルデータ更新が必要な画面
-      updateAppStateFromCache();
-      return; // updateAppStateFromCache内で再度render()が呼ばれるため、ここで終了
-    } else if (updateType === 'slotsOnly') {
-      // スロットデータ更新が必要な画面
-      showLoading('最新データを取得中...'); // ローディング表示
-      actionHandlers.refreshAndUpdateSlots(response => {
-        hideLoading(); // ローディング非表示
-        if (!response.success) {
-          showInfo('データの取得に失敗しました。');
-        }
-        render(); // スロット更新後に再度renderを呼び出す
-      });
-      return; // refreshAndUpdateSlots内で再度render()が呼ばれるため、ここで終了
+    // appStateの安全な参照確認
+    if (!window.appState) {
+      console.warn('render(): appStateが未初期化のため処理をスキップします');
+      return;
     }
 
+    console.log('🎨 render実行:', window.appState.view);
+
+    // 無限ループを避けるため、データ更新処理は削除
+    // 単純にビューを描画するだけ
+
     let v = '';
-    switch (appState.view) {
+    switch (window.appState.view) {
       case 'login':
         v = getLoginView();
         break;
       case 'register':
-        v = getRegisterView(appState.registrationPhone);
+        v = getRegisterView(window.appState.registrationPhone);
         break;
       case 'registrationStep2':
         v = getRegistrationStep2View();
@@ -1202,7 +1193,7 @@
         v = getEditProfileView();
         break;
       case 'booking':
-        v = getBookingView(appState.selectedClassroom);
+        v = getBookingView(window.appState.selectedClassroom);
         break;
       case 'newReservation':
         v = getReservationFormView('new');
@@ -1214,7 +1205,7 @@
         v = getAccountingView();
         break;
       case 'complete':
-        v = getCompleteView(appState.completionMessage);
+        v = getCompleteView(window.appState.completionMessage);
         break;
       case 'userSearch':
         v = getUserSearchView();
@@ -1222,10 +1213,10 @@
     }
     document.getElementById('view-container').innerHTML = `<div class="fade-in">${v}</div>`;
 
-    if (appState.view === 'accounting') {
+    if (window.appState.view === 'accounting') {
       requestAnimationFrame(() => {
         calculateAccountingDetails();
-        setupAccountingFormListeners(appState.accountingReservation.reservationId);
+        setupAccountingFormListeners(window.appState.accountingReservation.reservationId);
       });
     }
 
