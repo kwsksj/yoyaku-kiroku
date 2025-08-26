@@ -802,53 +802,30 @@
    * @returns {string} HTML文字列
    */
   const getClassroomSelectionView = () => {
-
-    // デバッグ情報を画面表示用に準備
-    const sampleSlots = appState.slots ? appState.slots.slice(0, 2) : [];
-    const debugInfo = `
-      <div style="background: #fee; border: 1px solid #fcc; padding: 10px; margin: 10px 0; font-size: 12px;">
-        <strong>デバッグ情報:</strong><br>
-        appState.classrooms: ${JSON.stringify(appState.classrooms)}<br>
-        classrooms.length: ${appState.classrooms ? appState.classrooms.length : 'null/undefined'}<br>
-        appState.slots.length: ${appState.slots ? appState.slots.length : 'null/undefined'}<br>
-        appState.currentUser: ${appState.currentUser ? appState.currentUser.displayName : 'null'}<br>
-        appState.view: ${appState.view}<br>
-        <strong>サンプルスロットデータ（最初の2件）:</strong><br>
-        ${sampleSlots.map((slot, i) => `[${i}] ${JSON.stringify(slot)}<br>`).join('')}
-      </div>
-    `;
-
-    const classroomButtonsHtml = (appState.classrooms || [])
-      .map(n =>
+    // 教室リストは、動的な空き状況(appState.classrooms)からではなく、
+    // ログイン時に取得した静的な統合定数(appState.constants.CLASSROOMS)から生成します。
+    const classroomButtonsHtml = Object.values(appState.constants.CLASSROOMS || {})
+      .map(classroomName =>
         Components.createButton({
           action: 'selectClassroom',
-          classroomName: n,
-          text: n,
+          classroomName: classroomName,
+          text: classroomName,
           colorClass: `w-full h-16 text-left px-4 py-3 rounded-lg mobile-card touch-friendly transition-all duration-150 bg-state-available-bg border border-state-available-border active:bg-state-success-hover flex items-center text-xl font-bold text-brand-text`,
         }),
       )
       .join('');
 
     // データが取得できていない場合の表示
-    if (!appState.classrooms || appState.classrooms.length === 0) {
+    if (!classroomButtonsHtml) {
       return `
-        ${debugInfo}
         <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
         <div class="max-w-md mx-auto text-center">
-          <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-6">
-            <strong>データ取得エラー</strong><br>
-            教室情報を取得できませんでした。<br>
-            ネットワーク接続またはサーバーに問題がある可能性があります。
-          </div>
-          <div class="space-y-3">
-            ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-          </div>
-        </div>
-      `;
+          <p class="text-brand-subtle mb-6">現在、予約可能な教室がありません。</p>
+          ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+        </div>`;
     }
 
     return `
-        ${debugInfo}
         <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
         <p class="text-brand-subtle text-center mb-6">教室 を おえらびください</p>
         <div class="max-w-md mx-auto space-y-3">
@@ -963,23 +940,6 @@
     // バックエンドで計算済みの空き情報を直接使用
     const relevantSlots = appState.slots ? appState.slots.filter(slot => slot.classroom === classroom) : [];
 
-    // デバッグ用：データ構造を確認 - 削除済み
-
-    // デバッグ情報を画面表示用に準備
-    const debugInfo = `
-      <div style="background: #ffe; border: 1px solid #ffc; padding: 10px; margin: 10px 0; font-size: 12px;">
-        <strong>${classroom}のスロット詳細:</strong><br>
-        関連スロット数: ${relevantSlots.length}件<br>
-        ${relevantSlots
-          .slice(0, 3)
-          .map(
-            (slot, i) =>
-              `[${i}] 日付:${slot.date}, 午前:${slot.morningSlots}, 午後:${slot.afternoonSlots}, 空き:${slot.availableSlots}, 満席:${slot.isFull}<br>`,
-          )
-          .join('')}
-      </div>
-    `;
-
     const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
     if (!bookingSlotsHtml) {
@@ -994,7 +954,6 @@
     } else {
       return `
         <div class="max-w-md mx-auto">
-            ${debugInfo}
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${classroom}</h1>
             <div class="${DesignConfig.cards.container}">${bookingSlotsHtml}</div>
             <div class="mt-6">

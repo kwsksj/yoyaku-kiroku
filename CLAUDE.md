@@ -130,6 +130,7 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 - **Primary Language**: Respond in Japanese whenever possible
 - **Code Comments**: Write code comments in Japanese when adding new comments
 - **User Preference**: The user prefers Japanese communication for better understanding
+- **Status Display**: When Claude displays processing status with unfamiliar English words (e.g., "Clauding...", "Booping...", "Noodling..."), include Japanese translation or meaning in parentheses for clarity (e.g., "Noodling...（思案中）", "Spelunking...（探索中）") when the overhead is minimal
 
 ### Claude Code Development Guidelines
 

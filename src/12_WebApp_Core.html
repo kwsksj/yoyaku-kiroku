@@ -27,10 +27,11 @@
 
   /**
    * 新しい初期データを受け取り、クライアントサイドで処理してappStateを構築する
-   * @param {object} data - getAppInitialDataから返されたデータオブジェクト
+   * @param {object} data - getAppInitialDataから返されたデータオブジェクト (allStudents, accountingMaster, etc.)
    * @param {string} phone - ログイン試行された電話番号
    * @param {Array} availableSlots - バックエンドから取得済みの空席情報
-   * @returns {object} setStateに渡すための新しい状態オブジェクト
+   * @param {object | null} userReservations - ユーザーの予約と履歴データ {myBookings, myHistory}
+   * @returns {object} setStateに渡すための新しい状態オブジェクト。ユーザーが見つからない場合は { currentUser: null }
    */
   function processInitialData(data, phone, availableSlots, userReservations = null) {
     const { allStudents, accountingMaster, cacheVersions, today, constants } = data;
