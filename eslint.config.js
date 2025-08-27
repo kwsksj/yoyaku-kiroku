@@ -110,6 +110,9 @@ export default [
         updateReservationDetails: 'readonly',
         getUsersWithoutPhoneNumber: 'readonly',
         updateMemoAndGetLatestHistory: 'readonly',
+        withTransaction: 'readonly',
+        getSheetData: 'readonly',
+        getSheetDataWithSearch: 'readonly',
 
         // Constants from 00_Constants.js
         CONSTANTS: 'readonly',
@@ -123,7 +126,6 @@ export default [
         LOCK_WAIT_TIME_MS: 'readonly',
         ROSTER_SHEET_NAME: 'readonly',
         ACCOUNTING_MASTER_SHEET_NAME: 'readonly',
-        SUMMARY_SHEET_NAME: 'readonly',
         LOG_SHEET_NAME: 'readonly',
         HEADER_STUDENT_ID: 'readonly',
         HEADER_RESERVATION_ID: 'readonly',
