@@ -55,8 +55,9 @@
     const classroomsFromConstants = constants ? Object.values(constants.classrooms) : [];
 
     // 4. 空き枠バージョンを生成
-    const slotsVersion = cacheVersions ?
-      `${cacheVersions.allReservations || 0}-${cacheVersions.scheduleMaster || 0}` : null;
+    const slotsVersion = cacheVersions
+      ? `${cacheVersions.allReservations || 0}-${cacheVersions.scheduleMaster || 0}`
+      : null;
 
     // 5. appStateを構築
     return {
@@ -198,101 +199,16 @@
   }
 
   // =================================================================
-  // --- UI Component Generators ---
+  // --- UI Components (Moved to 13_WebApp_Components.html) ---
   // -----------------------------------------------------------------
-  // アプリ内で使用されるボタンや入力欄といった、再利用可能な
-  // UI部品を生成する関数群です。
+  // UIコンポーネント生成関数群は13_WebApp_Components.htmlに移動されました。
+  //
+  // 移行された内容:
+  // - window.escapeHTML 関数
+  // - Components オブジェクト（全コンポーネント）
+  // - 新設計のシンプル化されたコンポーネント
+  // - レガシー互換性サポート
   // =================================================================
-
-  /**
-   * HTML文字列をエスケープします。
-   * @param {string} str エスケープする文字列
-   * @returns {string} エスケープされた文字列
-   */
-  window.escapeHTML = str => {
-    if (typeof str !== 'string') {
-      return str;
-    }
-    return str.replace(/[&<>"']/g, function (match) {
-      return {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      }[match];
-    });
-  };
-
-  const Components = {
-    createButton: c =>
-      `<button type="button"
-        data-action="${escapeHTML(c.action || '')}"
-        data-classroom="${escapeHTML(c.classroom || '')}"
-        data-classroom-name="${escapeHTML(c.classroomName || '')}"
-        data-date="${escapeHTML(c.date || '')}"
-        data-reservation-id="${escapeHTML(c.reservationId || '')}"
-        data-sheet-name="${escapeHTML(c.sheetName || '')}"
-        data-copy-text="${escapeHTML(c.copyText || '')}"
-        data-details="${escapeHTML(c.details || '')}"
-        data-student-id="${escapeHTML(c.studentId || '')}"
-        data-real-name="${escapeHTML(c.realName || '')}"
-        data-nickname="${escapeHTML(c.nickname || '')}"
-        class="${DesignConfig.buttons.base} ${c.widthClass || ''} ${c.colorClass}"
-        ${c.disabled ? 'disabled' : ''}
-      >${escapeHTML(c.text)}</button>`,
-
-    createInput: c =>
-      `<div class="${c.containerClass || ''} mb-4">
-        <label
-          for="${c.id}"
-          class="${c.labelClass || DesignConfig.text.labelBlock} ${c.isSrOnly ? 'sr-only' : ''}"
-        >${escapeHTML(c.label)}</label>
-        ${c.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(c.caption)}</p>` : ''}
-        <input
-          type="${c.type}"
-          id="${c.id}"
-          value="${escapeHTML(c.value || '')}"
-          class="${DesignConfig.inputs.base} ${c.inputClass || ''}"
-          placeholder="${escapeHTML(c.placeholder || '')}"
-          ${c.required ? 'required' : ''}
-          autocomplete="${c.autocomplete || 'off'}"
-          ${c.step ? `step="${c.step}"` : ''}
-        >
-      </div>`,
-
-    createTextArea: c =>
-      `<div class="${c.containerClass || ''} mb-4">
-        <label for="${c.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(c.label)}</label>
-        ${c.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(c.caption)}</p>` : ''}
-        <textarea
-          id="${c.id}"
-          class="${DesignConfig.inputs.textarea}"
-          placeholder="${escapeHTML(c.placeholder || '')}"
-        >${escapeHTML(c.value || '')}</textarea>
-      </div>`,
-
-    createSelect: c =>
-      `<div class="${c.containerClass || ''}">
-        ${c.label ? `<label for="${c.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(c.label)}</label>` : ''}
-        ${c.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(c.caption)}</p>` : ''}
-        <select
-          id="${c.id}"
-          class="${DesignConfig.inputs.base} ${c.sizeClass || ''} accounting-item"
-        >${c.options}</select>
-      </div>`,
-
-    createCheckbox: c =>
-      `<label class="flex items-center space-x-2 ${DesignConfig.colors.text}">
-        <input
-          type="checkbox"
-          id="${c.id}"
-          ${c.checked ? 'checked' : ''}
-          class="accent-action-primary-bg"
-        >
-        <span>${escapeHTML(c.label)}</span>
-      </label>`,
-  };
 
   // =================================================================
   // --- Loading Message System ---
@@ -319,10 +235,7 @@
       'とうろく が あるか しらべています...',
       'でんわばんごう を かくにん しています...',
       'ひと と なり を そうぞう しています...',
-      'だれの こえ か かんがえています...',
-      'すき な たべもの を そうぞう しています...',
       'にがお え を かいています...',
-      'しゅみ を あてて います...',
     ],
 
     // 申し込み時のメッセージ
@@ -368,7 +281,7 @@
       'そろばん を はじいています...',
       'けいさんき を たたいています...',
       'ぽけっと を さがしています...',
-      'けいりのひと に へんしんしています...',
+      'けいりのひと を よんでいます...',
     ],
 
     // データ取得時のメッセージ
@@ -409,7 +322,6 @@
       'つくえ の うえ で しごとらしきこと を しています...',
       'まるい もの を しかくく しようとしています...',
       'しかくい もの を まるく  しようとしています...',
-      'せんせい が おちゃ を のんでいます...',
       'おもしろい かたち を かんがえています...',
       'じかん が ゆっくり すぎています...',
     ],
@@ -434,7 +346,7 @@
     // 3秒ごとにメッセージを更新
     loadingMessageTimer = setInterval(() => {
       updateLoadingMessage(category);
-    }, UI?.LOADING_MESSAGE_INTERVAL || 2500);
+    }, UI?.LOADING_MESSAGE_INTERVAL || 3000);
   };
 
   const stopLoadingMessageRotation = () => {
@@ -762,14 +674,30 @@
    */
   function loadAccountingCache(reservationId) {
     if (!reservationId) return null;
+    
     const cacheKey = `accounting_cache_${reservationId}`;
     try {
       const cachedData = localStorage.getItem(cacheKey);
-      return cachedData ? JSON.parse(cachedData) : null;
+      if (!cachedData) return null;
+      
+      const parsed = JSON.parse(cachedData);
+      
+      // 現在のマスターデータと照合して、存在しない項目を除外
+      return filterValidCacheData(parsed);
     } catch (e) {
       console.error('Failed to load accounting cache:', e);
       return null;
     }
+  }
+
+  /**
+   * キャッシュデータの基本的な検証
+   * @param {object} cachedData - キャッシュされたデータ
+   * @returns {object} - 検証済みデータ
+   */
+  function filterValidCacheData(cachedData) {
+    if (!cachedData || typeof cachedData !== 'object') return {};
+    return cachedData;
   }
 
   /**
@@ -822,6 +750,7 @@
   function calculateAccountingDetails() {
     if (!stateManager.getState().accountingMaster) return null;
 
+    
     const details = calculateAccountingDetailsFromForm();
 
     // stateManager.getState().computedに結果を保存

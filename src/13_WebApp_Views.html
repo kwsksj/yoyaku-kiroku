@@ -140,48 +140,6 @@
     );
   };
 
-  /**
-   * 会計画面の材料入力行を生成します。
-   * @param {number} index - 材料行のインデックス
-   * @param {object} [data={}] - 初期データ
-   * @returns {string} HTML文字列
-   */
-  const buildMaterialRow = (index, data = {}) => {
-    const materialOptions = stateManager
-      .getState()
-      .accountingMaster.filter(m => m['種別'] === C.itemTypes.MATERIAL)
-      .map(m => `<option value="${m['項目名']}" ${data.type === m['項目名'] ? 'selected' : ''}>${m['項目名']}</option>`)
-      .join('');
-    return `
-        <div data-material-row-index="${index}">
-            <div class="grid grid-cols-1 gap-y-2">
-                <select id="material-type-${index}" name="materialType${index}" class="${DesignConfig.inputs.base} accounting-item">
-                    <option value="">-- 樹種を選択 --</option>
-                    ${materialOptions}
-                </select>
-            </div>
-            <div class="grid grid-cols-4 gap-2 mt-2 items-center">
-                <input type="number" id="material-l-${index}" name="materialL${index}" value="${data.l || ''}" placeholder="縦(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
-                <input type="number" id="material-w-${index}" name="materialW${index}" value="${data.w || ''}" placeholder="横(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
-                <input type="number" id="material-h-${index}" name="materialH${index}" value="${data.h || ''}" placeholder="厚(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
-                <div id="material-price-${index}" class="text-right text-base text-brand-subtle">0円</div>
-            </div>
-        </div>`;
-  };
-
-  /**
-   * 会計画面の「その他販売品」入力行を生成します。
-   * @param {number} index - 入力行のインデックス
-   * @param {object} [data={}] - 初期データ
-   * @returns {string} HTML文字列
-   */
-  const getOtherSalesRowHtml = (index, data = {}) => {
-    return `
-        <div data-other-sales-row="${index}" class="mt-2 pt-2 border-t border-ui-border grid grid-cols-3 gap-2 items-center">
-            <input type="text" id="other-sales-name-${index}" name="otherSalesName${index}" value="${data.name || ''}" placeholder="商品名" class="col-span-2 ${DesignConfig.inputs.base} accounting-item">
-            <input type="text" inputmode="decimal" id="other-sales-price-${index}" name="otherSalesPrice${index}" value="${data.price || ''}" placeholder="金額" class="${DesignConfig.inputs.base} accounting-item">
-        </div>`;
-  };
 
   /**
    * 予約・履歴カード用の共通カード構造を生成します。
@@ -1270,93 +1228,56 @@
    * @returns {string} HTML文字列
    */
   const getAccountingView = () => {
-    if (!stateManager.getState().accountingMaster || !stateManager.getState().accountingInitialValues)
+    // データ読み込み中のローディング表示
+    if (!stateManager.getState().accountingMaster || !stateManager.getState().accountingInitialValues) {
       return '<div class="flex justify-center items-center h-full"><div class="spinner"></div></div>';
-    const r = stateManager.getState().accountingReservation;
-    // 計算済みデータを使用（setState()で自動更新済み）
-    const b = stateManager.getState().computed.sortedBookings.find(b => b.reservationId === r.reservationId);
-    const v = b.venue ? `（${b.venue}）` : '';
-    const initial = stateManager.getState().accountingInitialValues;
-    if (b.accountingDone && b.accountingDetails) {
+    }
+
+    const state = stateManager.getState();
+    const reservation = state.accountingReservation;
+    const master = state.accountingMaster;
+    const initial = state.accountingInitialValues;
+    const booking = state.computed.sortedBookings.find(b => b.reservationId === reservation.reservationId);
+
+    // 会計済みの場合 - 完全分離（編集モードでない場合のみ）
+    if (booking.accountingDone && booking.accountingDetails && !state.isEditingAccountingRecord) {
       try {
-        const details = JSON.parse(b.accountingDetails);
-        const tuitionItemsHtml = details.tuition.items
-          .map(
-            i =>
-              `<div class="flex justify-between"><span>${i.name}</span><span>${i.price.toLocaleString()}円</span></div>`,
-          )
-          .join('');
-        const salesItemsHtml = details.sales.items
-          .map(
-            i =>
-              `<div class="flex justify-between"><span>${i.name}</span><span>${i.price.toLocaleString()}円</span></div>`,
-          )
-          .join('');
+        const details = JSON.parse(booking.accountingDetails);
         return `
-                <div class="text-center py-4">
-                    <h1 class="text-2xl font-bold text-brand-text mt-4 mb-2">会計済み</h1>
-                    <p class="text-brand-subtle mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
-                </div>
-                <div class="p-4 bg-ui-surface border border-ui-border rounded-lg text-left space-y-4">
-                    <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">授業料</h3><div class="space-y-1 text-brand-text">${tuitionItemsHtml || 'なし'}</div></div>
-                    <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">販売</h3><div class="space-y-1 text-brand-text">${salesItemsHtml || 'なし'}</div></div>
-                    <div class="text-right font-bold text-xl pt-2 border-t border-ui-border text-brand-text">合計: ${details.grandTotal.toLocaleString()}円</div>
-                    <div class="text-right text-base pt-2 text-brand-subtle">支払方法: ${details.paymentMethod}</div>
-                </div>
-                <div class="mt-8 flex flex-col space-y-3">
-                    ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-                </div>`;
+          ${Components.accountingCompleted({ details, reservation })}
+          <div class="mt-8 flex flex-col space-y-3">
+            ${Components.createButton({ 
+              text: '戻る', 
+              action: 'goBackToDashboard', 
+              colorClass: DesignConfig.colors.secondary, 
+              widthClass: DesignConfig.buttons.full 
+            })}
+          </div>`;
       } catch (e) {
-        return '会計詳細の表示に失敗しました。';
+        return '<div class="text-center text-state-danger-text">会計詳細の表示に失敗しました。</div>';
       }
     }
-    const master = stateManager.getState().accountingMaster;
-    const tuitionItemRule = getTuitionItemRule(master, r.classroom, C.items.MAIN_LECTURE);
+
+    // 新規会計フォーム - 条件分岐の簡素化
+    const tuitionItemRule = getTuitionItemRule(master, reservation.classroom, C.items.MAIN_LECTURE);
     const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
-    let tuitionHtml;
-    if (isTimeBased) {
-      tuitionHtml = getTimeBasedTuitionHtml(tuitionItemRule, initial);
-    } else {
-      const tuitionItems = master.filter(
-        item =>
-          item['種別'] === C.itemTypes.TUITION &&
-          (item['対象教室'] === '共通' || (item['対象教室'] && item['対象教室'].includes(r.classroom))),
-      );
-      tuitionHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3> <div class="space-y-3">${tuitionItems
-        .map(item => {
-          const isMandatory = item['項目名'] === C.items.MAIN_LECTURE;
-          let isChecked = isMandatory || initial[item['項目名']] === true;
-          if (item['項目名'] === C.items.FIRST_LECTURE && initial.firstLecture) isChecked = true;
-          if (item['項目名'] === C.items.CHISEL_RENTAL && initial.chiselRental) isChecked = true;
-          return `<div class="flex items-center justify-between mb-2"> <label class="flex items-center space-x-2 text-brand-text"> <input type="checkbox" name="${item['項目名']}" data-item-type="${C.itemTypes.TUITION}" data-item-name="${item['項目名']}" class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg" ${isChecked ? 'checked' : ''} ${isMandatory ? 'disabled' : ''}> <span>${item['項目名']}</span> </label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`;
-        })
-        .join(
-          '',
-        )}</div> <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base text-brand-subtle"></div> <div class="text-right font-bold mt-2 text-brand-text" id="tuition-subtotal">小計: 0円</div></div>`;
-    }
-    const salesItems = master.filter(item => item['種別'] === C.itemTypes.SALES);
-    const salesHtml = `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg"> <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3> <div class="mb-3 space-y-4"><label class="block text-brand-text text-base font-bold">材料代</label><div id="materials-container">${buildMaterialRow(0, { type: initial.materialType0, l: initial.materialL0, w: initial.materialW0, h: initial.materialH0 })}</div></div> ${Components.createButton({ text: '+ 材料を追加', action: 'addMaterialRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} <details class="mt-4"> <summary class="font-bold text-brand-text flex items-center"> <span class="arrow mr-2">▶</span> その他の販売品 </summary> <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">${salesItems.map(item => `<div class="flex items-center justify-between"> <label class="flex items-center space-x-2 text-brand-text"><input type="checkbox" name="${item['項目名']}" data-item-type="${C.itemTypes.SALES}" data-item-name="${item['項目名']}" class="accounting-item accent-action-primary-bg" ${initial[item['項目名']] ? 'checked' : ''}><span>${item['項目名']}</span></label> <span class="text-brand-subtle">${item['単価'].toLocaleString()}円</span> </div>`).join('')}<div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">${getOtherSalesRowHtml(0, { name: initial.otherSalesName0, price: initial.otherSalesPrice0 })}</div></div> ${Components.createButton({ text: '+ 自由入力欄を追加', action: 'addOtherSalesRow', colorClass: 'bg-action-secondary-bg text-action-secondary-text w-full mt-3 text-base py-2 active:bg-action-secondary-hover' })} </details> <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div></div>`;
+    const formType = isTimeBased ? 'timeBased' : 'fixed';
+
     return `
-        <div class="flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-brand-text">会計</h1>
-            <button data-action="goBackToDashboard" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">戻る</button>
-        </div>
-        <div class="text-center py-4">
-            <p class="text-brand-subtle mb-6"><b>${formatDate(r.date)}</b><br>${r.classroom}${v}</p>
-        </div>
-        <form id="accounting-form" class="space-y-6">
-            ${tuitionHtml}
-            ${salesHtml}
-            <div class="text-right text-2xl font-bold py-4 border-t-2 border-ui-border flex flex-col items-end">
-                <span id="grand-total-amount" class="text-brand-text">合計: 0円</span>
-            </div>
-            <div class="mt-4 text-center">
-                <p class="text-base text-state-danger-text font-bold mb-2">金額を、先生に確認してもらってください</p>
-                <div class="space-y-3">
-                    ${Components.createButton({ text: '先生の確認が完了しました', action: 'showAccountingConfirmation', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
-                    ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-                </div>
-            </div>
-        </form>`;
+      ${Components.navigationHeader({ title: '会計', backAction: 'goBackToDashboard' })}
+      ${Components.accountingForm({ 
+        type: formType, 
+        master, 
+        reservation, 
+        initial 
+      })}
+      <div class="mt-8 flex flex-col space-y-3">
+        ${Components.createButton({ 
+          text: '戻る', 
+          action: 'goBackToDashboard', 
+          colorClass: DesignConfig.colors.secondary, 
+          widthClass: DesignConfig.buttons.full 
+        })}
+      </div>`;
   };
 </script>

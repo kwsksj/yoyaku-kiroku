@@ -1,0 +1,630 @@
+<script>
+  /**
+   * =================================================================
+   * 【ファイル名】: 13_WebApp_Components.html
+   * 【バージョン】: 2.0 (シンプル化設計版)
+   * 【役割】: WebAppのUIコンポーネント生成関数を集約します。
+   * - 再利用可能なUIコンポーネントの定義
+   * - シンプル化されたパラメータ設計
+   * - 3層構造: Atomic → Molecular → Organisms
+   * 【構成】: 14ファイル構成のうちの13番目（新規追加）
+   * 【設計原則】:
+   * - 単一責任原則: 1コンポーネント = 1つの明確な責任
+   * - 最小パラメータ: 本質的なデータのみ受け取る
+   * - 関心の分離: UIコンポーネントとビジネスデータを分離
+   * - 組み合わせ可能: 小さな部品の組み合わせで複雑な画面を構築
+   * =================================================================
+   */
+
+  // =================================================================
+  // --- HTML Escape Utility ---
+  // -----------------------------------------------------------------
+  // HTMLエスケープ機能（12_WebApp_Core.htmlから移動）
+  // =================================================================
+
+  /**
+   * HTML文字列をエスケープします。
+   * @param {string} str エスケープする文字列
+   * @returns {string} エスケープされた文字列
+   */
+  window.escapeHTML = str => {
+    if (typeof str !== 'string') {
+      return str;
+    }
+    return str.replace(/[&<>"']/g, function (match) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[match];
+    });
+  };
+
+  // =================================================================
+  // --- Level 1: 基本要素（Atomic Components） ---
+  // -----------------------------------------------------------------
+  // 最小単位のUIコンポーネント。単一責任でパラメータ最小化。
+  // =================================================================
+
+  const Components = {
+    /**
+     * シンプル化されたボタンコンポーネント
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.action - data-action属性の値
+     * @param {string} config.text - ボタンテキスト
+     * @param {string} [config.style='primary'] - ボタンスタイル ('primary'|'secondary'|'danger')
+     * @param {string} [config.size='normal'] - ボタンサイズ ('normal'|'full'|'small')
+     * @param {boolean} [config.disabled=false] - 無効状態
+     * @returns {string} HTML文字列
+     */
+    button: ({ action, text, style = 'primary', size = 'normal', disabled = false }) => {
+      // スタイルマッピング
+      const styleClasses = {
+        primary: DesignConfig.colors.primary,
+        secondary: DesignConfig.colors.secondary,
+        danger: DesignConfig.colors.danger,
+      };
+
+      const sizeClasses = {
+        normal: '',
+        full: DesignConfig.buttons.full,
+        small: 'text-sm px-3 py-1.5',
+      };
+
+      return `<button type="button"
+        data-action="${escapeHTML(action || '')}"
+        class="${DesignConfig.buttons.base} ${styleClasses[style] || styleClasses.primary} ${sizeClasses[size] || ''}"
+        ${disabled ? 'disabled' : ''}
+      >${escapeHTML(text)}</button>`;
+    },
+
+    /**
+     * シンプル化された入力フィールドコンポーネント
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.id - input要素のid
+     * @param {string} config.label - ラベルテキスト
+     * @param {string} [config.type='text'] - input要素のtype
+     * @param {string} [config.value=''] - 初期値
+     * @param {string} [config.placeholder=''] - プレースホルダー
+     * @param {boolean} [config.required=false] - 必須項目かどうか
+     * @returns {string} HTML文字列
+     */
+    input: ({ id, label, type = 'text', value = '', placeholder = '', required = false }) => {
+      return `<div class="mb-4">
+        <label
+          for="${id}"
+          class="${DesignConfig.text.labelBlock}"
+        >${escapeHTML(label)}</label>
+        <input
+          type="${type}"
+          id="${id}"
+          value="${escapeHTML(value)}"
+          class="${DesignConfig.inputs.base}"
+          placeholder="${escapeHTML(placeholder)}"
+          ${required ? 'required' : ''}
+          autocomplete="off"
+        >
+      </div>`;
+    },
+
+    /**
+     * シンプル化されたセレクトボックスコンポーネント
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.id - select要素のid
+     * @param {string} config.label - ラベルテキスト
+     * @param {string} config.options - option要素のHTML文字列
+     * @returns {string} HTML文字列
+     */
+    select: ({ id, label, options }) => {
+      return `<div class="mb-4">
+        <label for="${id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(label)}</label>
+        <select
+          id="${id}"
+          class="${DesignConfig.inputs.base}"
+        >${options}</select>
+      </div>`;
+    },
+
+    /**
+     * テキストエリアコンポーネント
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.id - textarea要素のid
+     * @param {string} config.label - ラベルテキスト
+     * @param {string} [config.value=''] - 初期値
+     * @param {string} [config.placeholder=''] - プレースホルダー
+     * @returns {string} HTML文字列
+     */
+    textarea: ({ id, label, value = '', placeholder = '' }) => {
+      return `<div class="mb-4">
+        <label for="${id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(label)}</label>
+        <textarea
+          id="${id}"
+          class="${DesignConfig.inputs.textarea}"
+          placeholder="${escapeHTML(placeholder)}"
+        >${escapeHTML(value)}</textarea>
+      </div>`;
+    },
+
+    /**
+     * チェックボックスコンポーネント
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.id - input要素のid
+     * @param {string} config.label - ラベルテキスト
+     * @param {boolean} [config.checked=false] - チェック状態
+     * @returns {string} HTML文字列
+     */
+    checkbox: ({ id, label, checked = false }) => {
+      return `<label class="flex items-center space-x-2 ${DesignConfig.colors.text}">
+        <input
+          type="checkbox"
+          id="${id}"
+          ${checked ? 'checked' : ''}
+          class="accent-action-primary-bg"
+        >
+        <span>${escapeHTML(label)}</span>
+      </label>`;
+    },
+
+    // =================================================================
+    // --- 新設計コンポーネント ---
+    // -----------------------------------------------------------------
+
+    /**
+     * 情報表示カード
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.title - カードタイトル
+     * @param {Array<string>} config.items - 表示項目の配列
+     * @returns {string} HTML文字列
+     */
+    infoCard: ({ title, items }) => {
+      const itemsHtml = items.map(item => `<p class="text-brand-text">${escapeHTML(item)}</p>`).join('');
+      return `<div class="bg-ui-surface border border-ui-border p-3 rounded-lg">
+        <h3 class="font-bold text-brand-text mb-2">${escapeHTML(title)}</h3>
+        ${itemsHtml}
+      </div>`;
+    },
+
+    /**
+     * ステータスバッジ
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.type - バッジタイプ ('success'|'warning'|'error'|'info')
+     * @param {string} config.text - バッジテキスト
+     * @returns {string} HTML文字列
+     */
+    statusBadge: ({ type, text }) => {
+      const typeClasses = {
+        success: 'bg-state-success-bg text-state-success-text',
+        warning: 'bg-ui-warning-bg text-ui-warning-text',
+        error: 'bg-ui-error-bg text-ui-error-text',
+        info: 'bg-action-secondary-bg text-action-secondary-text',
+      };
+
+      return `<span class="inline-block px-2 py-1 text-sm font-bold rounded ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
+    },
+
+    /**
+     * 料金表示コンポーネント
+     * @param {Object} config - 設定オブジェクト
+     * @param {number|string} config.amount - 金額
+     * @param {string} [config.label=''] - ラベル
+     * @returns {string} HTML文字列
+     */
+    priceDisplay: ({ amount, label = '' }) => {
+      const formattedAmount = typeof amount === 'number' ? amount.toLocaleString() : amount;
+      return `<div class="text-right">
+        ${label ? `<span class="text-brand-subtle text-sm">${escapeHTML(label)}: </span>` : ''}
+        <span class="font-bold text-brand-text">${formattedAmount}円</span>
+      </div>`;
+    },
+
+    // =================================================================
+    // --- 会計系専用コンポーネント ---
+    // -----------------------------------------------------------------
+
+    /**
+     * ナビゲーションヘッダー
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.title - ページタイトル
+     * @param {string} config.backAction - 戻るボタンのaction
+     * @returns {string} HTML文字列
+     */
+    navigationHeader: ({ title, backAction }) => {
+      return `<div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-brand-text">${escapeHTML(title)}</h1>
+        <button data-action="${backAction}" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">戻る</button>
+      </div>`;
+    },
+
+    /**
+     * 会計項目行（チェックボックス付き）
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.name - 項目名
+     * @param {string} config.itemType - アイテムタイプ
+     * @param {number} config.price - 単価
+     * @param {boolean} [config.checked=false] - チェック状態
+     * @param {boolean} [config.disabled=false] - 無効化状態
+     * @returns {string} HTML文字列
+     */
+    accountingRow: ({ name, itemType, price, checked = false, disabled = false }) => {
+      return `<div class="flex items-center justify-between mb-2">
+        <label class="flex items-center space-x-2 text-brand-text">
+          <input type="checkbox"
+                 name="${name}"
+                 data-item-type="${itemType}"
+                 data-item-name="${name}"
+                 class="accounting-item h-5 w-5 rounded border-ui-border text-brand-text focus:ring-brand-text accent-action-primary-bg"
+                 ${checked ? 'checked' : ''}
+                 ${disabled ? 'disabled' : ''}>
+          <span>${escapeHTML(name)}</span>
+        </label>
+        <span class="text-brand-subtle">${price.toLocaleString()}円</span>
+      </div>`;
+    },
+
+    /**
+     * 材料入力行
+     * @param {Object} config - 設定オブジェクト
+     * @param {number} config.index - 行のインデックス
+     * @param {Object} [config.values] - 初期値
+     * @returns {string} HTML文字列
+     */
+    materialRow: ({ index, values = {} }) => {
+      const { type = '', l = '', w = '', h = '' } = values;
+
+      // マスターデータから材料オプションを動的に生成
+      let materialOptions = '';
+      try {
+        const master = window.stateManager?.getState?.()?.accountingMaster;
+        if (master && Array.isArray(master)) {
+          materialOptions = master
+            .filter(m => m['種別'] === C.itemTypes.MATERIAL)
+            .map(m => `<option value="${escapeHTML(m['項目名'])}" ${type === m['項目名'] ? 'selected' : ''}>${escapeHTML(m['項目名'])}</option>`)
+            .join('');
+        }
+      } catch (e) {
+        // フォールバック: 静的オプション
+        const staticOptions = ['桂', 'シナ', '檜', '楠', '桜', '朴', 'その他'];
+        materialOptions = staticOptions
+          .map(option => `<option value="${option}" ${type === option ? 'selected' : ''}>${option}</option>`)
+          .join('');
+      }
+
+      return `<div data-material-row-index="${index}">
+        <div class="grid grid-cols-1 gap-y-2">
+          <select id="material-type-${index}" name="materialType${index}" class="${DesignConfig.inputs.base} accounting-item">
+            <option value="">-- 樹種を選択 --</option>
+            ${materialOptions}
+          </select>
+        </div>
+        <div class="grid grid-cols-4 gap-2 mt-2 items-center">
+          <input type="number" id="material-l-${index}" name="materialL${index}" value="${l || ''}" placeholder="縦(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
+          <input type="number" id="material-w-${index}" name="materialW${index}" value="${w || ''}" placeholder="横(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
+          <input type="number" id="material-h-${index}" name="materialH${index}" value="${h || ''}" placeholder="厚(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
+          <div id="material-price-${index}" class="text-right text-base text-brand-subtle">0円</div>
+        </div>
+      </div>`;
+    },
+
+    /**
+     * その他販売項目行
+     * @param {Object} config - 設定オブジェクト
+     * @param {number} config.index - 行のインデックス
+     * @param {Object} [config.values] - 初期値
+     * @returns {string} HTML文字列
+     */
+    otherSalesRow: ({ index, values = {} }) => {
+      const { name = '', price = '' } = values;
+      return `<div data-other-sales-row="${index}" class="mt-2 pt-2 border-t border-ui-border grid grid-cols-3 gap-2 items-center">
+        <input type="text" id="other-sales-name-${index}" name="otherSalesName${index}" value="${escapeHTML(name)}" placeholder="商品名" class="col-span-2 ${DesignConfig.inputs.base} accounting-item">
+        <input type="text" inputmode="decimal" id="other-sales-price-${index}" name="otherSalesPrice${index}" value="${price}" placeholder="金額" class="${DesignConfig.inputs.base} accounting-item">
+      </div>`;
+    },
+
+    /**
+     * 会計済み表示
+     * @param {Object} config - 設定オブジェクト
+     * @param {Object} config.details - 会計詳細データ
+     * @param {Object} config.reservation - 予約データ
+     * @returns {string} HTML文字列
+     */
+    accountingCompleted: ({ details, reservation }) => {
+      const tuitionItemsHtml = details.tuition.items
+        .map(i => `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>${i.price.toLocaleString()}円</span></div>`)
+        .join('');
+      const salesItemsHtml = details.sales.items
+        .map(i => `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>${i.price.toLocaleString()}円</span></div>`)
+        .join('');
+      const v = reservation.venue ? `（${reservation.venue}）` : '';
+
+      return `<div class="text-center py-4">
+        <h1 class="text-2xl font-bold text-brand-text mt-4 mb-2">会計済み</h1>
+        <p class="text-brand-subtle mb-6"><b>${formatDate(reservation.date)}</b><br>${reservation.classroom}${v}</p>
+      </div>
+      <div class="p-4 bg-ui-surface border border-ui-border rounded-lg text-left space-y-4">
+        <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">授業料</h3><div class="space-y-1 text-brand-text">${tuitionItemsHtml || 'なし'}</div></div>
+        <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">販売</h3><div class="space-y-1 text-brand-text">${salesItemsHtml || 'なし'}</div></div>
+        <div class="text-right font-bold text-xl pt-2 border-t border-ui-border text-brand-text">合計: ${details.grandTotal.toLocaleString()}円</div>
+        <div class="text-right text-base pt-2 text-brand-subtle">支払方法: ${escapeHTML(details.paymentMethod)}</div>
+      </div>
+      <div class="mt-4 flex flex-col space-y-3">
+        ${Components.button({ action: 'editAccountingRecord', text: '会計内容を修正する', style: 'secondary', size: 'full' })}
+      </div>`;
+    },
+
+    /**
+     * 会計フォーム全体
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.type - フォームタイプ ('timeBased' | 'fixed')
+     * @param {Object} config.master - 会計マスターデータ
+     * @param {Object} config.reservation - 予約データ
+     * @param {Object} config.initial - 初期値データ
+     * @returns {string} HTML文字列
+     */
+    accountingForm: ({ type, master, reservation, initial }) => {
+      // 授業料セクション
+      let tuitionHtml;
+      if (type === 'timeBased') {
+        const tuitionItemRule = getTuitionItemRule(master, reservation.classroom, C.items.MAIN_LECTURE);
+        tuitionHtml = Components.timeBasedTuition({ tuitionItemRule, initial });
+      } else {
+        tuitionHtml = Components.fixedTuitionSection({ master, reservation, initial });
+      }
+
+      // 販売セクション
+      const salesHtml = Components.salesSection({ master, initial });
+
+      return `<div class="text-center py-4">
+        <p class="text-brand-subtle mb-6"><b>${formatDate(reservation.date)}</b><br>${reservation.classroom}${reservation.venue ? `（${reservation.venue}）` : ''}</p>
+      </div>
+      <form id="accounting-form" class="space-y-6">
+        ${tuitionHtml}
+        ${salesHtml}
+        <div class="text-right text-2xl font-bold py-4 border-t-2 border-ui-border flex flex-col items-end">
+          <span id="grand-total-amount" class="text-brand-text">合計: 0円</span>
+        </div>
+        <div class="mt-4 text-center">
+          <p class="text-base text-state-danger-text font-bold mb-2">金額を、先生に確認してもらってください</p>
+          <div class="space-y-3">
+            ${Components.button({ action: 'showAccountingConfirmation', text: '先生の確認が完了しました', style: 'primary', size: 'full' })}
+          </div>
+        </div>
+      </form>`;
+    },
+
+    /**
+     * 時間制授業料セクション
+     * @param {Object} config - 設定オブジェクト
+     * @param {Object} config.tuitionItemRule - 授業料ルール
+     * @param {Object} config.initial - 初期値
+     * @returns {string} HTML文字列
+     */
+    timeBasedTuition: ({ tuitionItemRule, initial }) => {
+      return getTimeBasedTuitionHtml(tuitionItemRule, initial);
+    },
+
+    /**
+     * 固定制授業料セクション
+     * @param {Object} config - 設定オブジェクト
+     * @param {Object} config.master - 会計マスター
+     * @param {Object} config.reservation - 予約データ
+     * @param {Object} config.initial - 初期値
+     * @returns {string} HTML文字列
+     */
+    fixedTuitionSection: ({ master, reservation, initial }) => {
+      const tuitionItems = master.filter(
+        item =>
+          item['種別'] === C.itemTypes.TUITION &&
+          (item['対象教室'] === '共通' || (item['対象教室'] && item['対象教室'].includes(reservation.classroom))),
+      );
+
+      const tuitionRowsHtml = tuitionItems.map(item => {
+        const isMandatory = item['項目名'] === C.items.MAIN_LECTURE;
+        let isChecked = isMandatory;
+        
+        // 初期値でのチェック状態を決定（より柔軟な条件）
+        if (!isChecked) {
+          // 特別処理（予約データからの直接プロパティ）
+          if (item['項目名'] === C.items.FIRST_LECTURE && initial.firstLecture) {
+            isChecked = true;
+          } else if (item['項目名'] === C.items.CHISEL_RENTAL && initial.chiselRental) {
+            isChecked = true;
+          } 
+          // 通常の初期値チェック（truthy値を受け入れる）
+          else if (initial[item['項目名']]) {
+            isChecked = true;
+          }
+        }
+
+        return Components.accountingRow({
+          name: item['項目名'],
+          itemType: C.itemTypes.TUITION,
+          price: item['単価'],
+          checked: isChecked,
+          disabled: isMandatory
+        });
+      }).join('');
+
+      return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
+        <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3>
+        <div class="space-y-3">${tuitionRowsHtml}</div>
+        <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base text-brand-subtle"></div>
+        <div class="text-right font-bold mt-2 text-brand-text" id="tuition-subtotal">小計: 0円</div>
+      </div>`;
+    },
+
+    /**
+     * 販売セクション
+     * @param {Object} config - 設定オブジェクト
+     * @param {Object} config.master - 会計マスター
+     * @param {Object} config.initial - 初期値
+     * @returns {string} HTML文字列
+     */
+    salesSection: ({ master, initial }) => {
+      const salesItems = master.filter(item => item['種別'] === C.itemTypes.SALES);
+      const salesItemsHtml = salesItems.map(item => {
+        // truthy値でチェック状態を判定（より柔軟）
+        const isChecked = !!initial[item['項目名']];
+        
+        return Components.accountingRow({
+          name: item['項目名'],
+          itemType: C.itemTypes.SALES,
+          price: item['単価'],
+          checked: isChecked
+        });
+      }).join('');
+
+      return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
+        <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3>
+        <div class="mb-3 space-y-4">
+          <label class="block text-brand-text text-base font-bold">材料代</label>
+          <div id="materials-container">
+            ${Components.materialRow({ index: 0, values: {
+              type: initial.materialType0,
+              l: initial.materialL0,
+              w: initial.materialW0,
+              h: initial.materialH0
+            }})}
+          </div>
+        </div>
+        ${Components.button({ action: 'addMaterialRow', text: '+ 材料を追加', style: 'secondary', size: 'full' })}
+        <details class="mt-4">
+          <summary class="font-bold text-brand-text flex items-center">
+            <span class="arrow mr-2">▶</span> その他の販売品
+          </summary>
+          <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">
+            ${salesItemsHtml}
+            <div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">
+              ${Components.otherSalesRow({ index: 0, values: {
+                name: initial.otherSalesName0,
+                price: initial.otherSalesPrice0
+              }})}
+            </div>
+          </div>
+          ${Components.button({ action: 'addOtherSalesRow', text: '+ 自由入力欄を追加', style: 'secondary', size: 'full' })}
+        </details>
+        <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div>
+      </div>`;
+    },
+  };
+
+  // =================================================================
+  // --- レガシー互換性サポート ---
+  // -----------------------------------------------------------------
+  // 既存のコード互換性を維持するための旧式コンポーネント
+  // 段階的移行期間中のみ使用
+  // =================================================================
+
+  /**
+   * レガシー createButton (既存コード互換用)
+   * 新規コードではComponents.button()を使用してください
+   */
+  Components.createButton = config => {
+    // 旧形式を新形式にマッピング
+    let style = 'primary';
+    if (config.colorClass) {
+      if (config.colorClass.includes('secondary')) style = 'secondary';
+      if (config.colorClass.includes('danger')) style = 'danger';
+    }
+
+    let size = 'normal';
+    if (config.widthClass && config.widthClass.includes('full')) size = 'full';
+
+    // 旧式パラメータをHTMLに埋め込み（actionHandlers互換性のため）
+    let additionalAttrs = '';
+    if (config.classroom) additionalAttrs += ` data-classroom="${escapeHTML(config.classroom)}"`;
+    if (config.date) additionalAttrs += ` data-date="${escapeHTML(config.date)}"`;
+    if (config.reservationId) additionalAttrs += ` data-reservation-id="${escapeHTML(config.reservationId)}"`;
+    if (config.sheetName) additionalAttrs += ` data-sheet-name="${escapeHTML(config.sheetName)}"`;
+    if (config.copyText) additionalAttrs += ` data-copy-text="${escapeHTML(config.copyText)}"`;
+    if (config.details) additionalAttrs += ` data-details="${escapeHTML(config.details)}"`;
+    if (config.studentId) additionalAttrs += ` data-student-id="${escapeHTML(config.studentId)}"`;
+    if (config.realName) additionalAttrs += ` data-real-name="${escapeHTML(config.realName)}"`;
+    if (config.nickname) additionalAttrs += ` data-nickname="${escapeHTML(config.nickname)}"`;
+
+    const button = Components.button({
+      action: config.action,
+      text: config.text,
+      style: style,
+      size: size,
+      disabled: config.disabled,
+    });
+
+    // 追加属性を挿入
+    return button.replace('<button type="button"', `<button type="button"${additionalAttrs}`);
+  };
+
+  /**
+   * レガシー createInput (既存コード互換用)
+   */
+  Components.createInput = config => {
+    // 複雑な旧形式をサポート
+    let inputHtml = `<div class="${config.containerClass || ''} mb-4">
+      <label
+        for="${config.id}"
+        class="${config.labelClass || DesignConfig.text.labelBlock} ${config.isSrOnly ? 'sr-only' : ''}"
+      >${escapeHTML(config.label)}</label>
+      ${config.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(config.caption)}</p>` : ''}
+      <input
+        type="${config.type}"
+        id="${config.id}"
+        value="${escapeHTML(config.value || '')}"
+        class="${DesignConfig.inputs.base} ${config.inputClass || ''}"
+        placeholder="${escapeHTML(config.placeholder || '')}"
+        ${config.required ? 'required' : ''}
+        autocomplete="${config.autocomplete || 'off'}"
+        ${config.step ? `step="${config.step}"` : ''}
+        ${config.inputmode ? `inputmode="${config.inputmode}"` : ''}
+        ${config.pattern ? `pattern="${config.pattern}"` : ''}
+      >
+    </div>`;
+
+    return inputHtml;
+  };
+
+  /**
+   * レガシー createTextArea (既存コード互換用)
+   */
+  Components.createTextArea = config => {
+    return `<div class="${config.containerClass || ''} mb-4">
+      <label for="${config.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(config.label)}</label>
+      ${config.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(config.caption)}</p>` : ''}
+      <textarea
+        id="${config.id}"
+        class="${DesignConfig.inputs.textarea}"
+        placeholder="${escapeHTML(config.placeholder || '')}"
+      >${escapeHTML(config.value || '')}</textarea>
+    </div>`;
+  };
+
+  /**
+   * レガシー createSelect (既存コード互換用)
+   */
+  Components.createSelect = config => {
+    return `<div class="${config.containerClass || ''}">
+      ${config.label ? `<label for="${config.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(config.label)}</label>` : ''}
+      ${config.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(config.caption)}</p>` : ''}
+      <select
+        id="${config.id}"
+        class="${DesignConfig.inputs.base} ${config.sizeClass || ''} accounting-item"
+        ${config.name ? `name="${config.name}"` : ''}
+      >${config.options}</select>
+    </div>`;
+  };
+
+  /**
+   * レガシー createCheckbox (既存コード互換用)
+   */
+  Components.createCheckbox = config => {
+    return `<label class="flex items-center space-x-2 ${DesignConfig.colors.text}">
+      <input
+        type="checkbox"
+        id="${config.id}"
+        ${config.checked ? 'checked' : ''}
+        class="accent-action-primary-bg"
+      >
+      <span>${escapeHTML(config.label)}</span>
+    </label>`;
+  };
+</script>
