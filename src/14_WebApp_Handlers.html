@@ -697,7 +697,7 @@
     /** 会計画面に遷移します（予約データはキャッシュから取得済み） */
     goToAccounting: d => {
       const reservationId = d.reservationId;
-      
+
       // 基本的な予約情報を現在のユーザーの予約一覧から取得
       const reservation = stateManager.getState().myBookings.find(booking => booking.reservationId === reservationId);
 
@@ -773,8 +773,8 @@
               payload: {
                 view: 'accounting',
                 // 会計済みフラグを一時的にfalseにして編集可能にする
-                isEditingAccountingRecord: true
-              }
+                isEditingAccountingRecord: true,
+              },
             });
 
             // ビュー遷移後に初期計算を実行（DOM構築完了を確実に待つ）
@@ -790,7 +790,7 @@
                 }, 100);
               }
             }, 300);
-          }
+          },
         });
       }
     },

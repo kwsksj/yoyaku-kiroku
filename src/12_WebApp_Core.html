@@ -674,14 +674,14 @@
    */
   function loadAccountingCache(reservationId) {
     if (!reservationId) return null;
-    
+
     const cacheKey = `accounting_cache_${reservationId}`;
     try {
       const cachedData = localStorage.getItem(cacheKey);
       if (!cachedData) return null;
-      
+
       const parsed = JSON.parse(cachedData);
-      
+
       // 現在のマスターデータと照合して、存在しない項目を除外
       return filterValidCacheData(parsed);
     } catch (e) {
@@ -750,7 +750,6 @@
   function calculateAccountingDetails() {
     if (!stateManager.getState().accountingMaster) return null;
 
-    
     const details = calculateAccountingDetailsFromForm();
 
     // stateManager.getState().computedに結果を保存

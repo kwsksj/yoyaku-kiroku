@@ -1,0 +1,73 @@
+[
+  // Markdown All in One キーバインディング強化
+  {
+    "key": "cmd+shift+v",
+    "command": "markdown.showPreviewToSide",
+    "when": "editorLangId == markdown"
+  },
+  {
+    "key": "cmd+k v",
+    "command": "markdown.showPreview",
+    "when": "editorLangId == markdown"
+  },
+  {
+    "key": "cmd+shift+i",
+    "command": "markdown.extension.editing.toggleList",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "cmd+b",
+    "command": "markdown.extension.editing.toggleBold",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "cmd+i",
+    "command": "markdown.extension.editing.toggleItalic",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "cmd+shift+]",
+    "command": "markdown.extension.editing.toggleHeadingUp",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "cmd+shift+[",
+    "command": "markdown.extension.editing.toggleHeadingDown",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "cmd+m cmd+c",
+    "command": "markdown.extension.editing.toggleCodeSpan",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "cmd+m cmd+b",
+    "command": "markdown.extension.editing.toggleCodeBlock",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "cmd+shift+t",
+    "command": "markdown.extension.toc.create",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "cmd+k cmd+t",
+    "command": "markdown.extension.toc.update",
+    "when": "editorTextFocus && editorLangId == markdown"
+  },
+  {
+    "key": "shift+enter",
+    "command": "markdown.extension.onEnterKey",
+    "when": "editorTextFocus && editorLangId == markdown && !suggestWidgetVisible"
+  },
+  {
+    "key": "tab",
+    "command": "markdown.extension.onTabKey",
+    "when": "editorTextFocus && editorLangId == markdown && !suggestWidgetVisible && !inSnippetMode"
+  },
+  {
+    "key": "backspace",
+    "command": "markdown.extension.onBackspaceKey",
+    "when": "editorTextFocus && editorLangId == markdown && !suggestWidgetVisible"
+  }
+]

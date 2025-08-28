@@ -1,8 +1,6 @@
 # フロントエンド構造分析とTASK5実装計画
 
-**作成日**: 2025年8月27日
-**対象**: HTML生成ロジックのリファクタリングとコンポーネント化（TASK5）
-**目的**: 安全で効率的な実装のための事前調査と詳細計画
+**作成日**: 2025年8月27日 **対象**: HTML生成ロジックのリファクタリングとコンポーネント化（TASK5） **目的**: 安全で効率的な実装のための事前調査と詳細計画
 
 ## 1. 現状分析
 
@@ -22,17 +20,14 @@ src/
 
 ```html
 <?!= include('11_WebApp_Config'); ?>
-<?!= include('12_WebApp_StateManager'); ?> <?!= include('12_WebApp_Core'); ?> <?!=
-include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers'); ?>
+<?!= include('12_WebApp_StateManager'); ?> <?!= include('12_WebApp_Core'); ?> <?!= include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers'); ?>
 ```
 
 **計画されている変更後の順序**:
 
 ```html
 <?!= include('11_WebApp_Config'); ?>
-<?!= include('12_WebApp_StateManager'); ?> <?!= include('12_WebApp_Core'); ?> <?!=
-include('13_WebApp_Components'); ?> # 新規作成 <?!= include('13_WebApp_Views'); ?> <?!=
-include('14_WebApp_Handlers'); ?>
+<?!= include('12_WebApp_StateManager'); ?> <?!= include('12_WebApp_Core'); ?> <?!= include('13_WebApp_Components'); ?> # 新規作成 <?!= include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers'); ?>
 ```
 
 ### 1.3 現在のComponents構造
@@ -191,12 +186,12 @@ stateManager.dispatch({
 
 5つの基本コンポーネント（12_WebApp_Core.html:227-295）：
 
-| コンポーネント   | パラメータ数 | 使用頻度 | 複雑度 |
-| ---------------- | ------------ | -------- | ------ |
-| `createButton`   | 15個         | ⭐⭐⭐⭐⭐    | 高     |
-| `createInput`    | 12個         | ⭐⭐⭐⭐     | 中     |
-| `createTextArea` | 6個          | ⭐⭐⭐      | 低     |
-| `createSelect`   | 7個          | ⭐⭐⭐      | 低     |
+| コンポーネント   | パラメータ数 | 使用頻度   | 複雑度 |
+| ---------------- | ------------ | ---------- | ------ |
+| `createButton`   | 15個         | ⭐⭐⭐⭐⭐ | 高     |
+| `createInput`    | 12個         | ⭐⭐⭐⭐   | 中     |
+| `createTextArea` | 6個          | ⭐⭐⭐     | 低     |
+| `createSelect`   | 7個          | ⭐⭐⭐     | 低     |
 | `createCheckbox` | 4個          | ⭐⭐       | 低     |
 
 #### A5. イベントハンドラー連携分析 ✅

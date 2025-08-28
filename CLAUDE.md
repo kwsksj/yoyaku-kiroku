@@ -124,15 +124,37 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 - **User Preference**: The user prefers Japanese communication for better understanding
 - **Status Display**: When Claude displays processing status with unfamiliar English words (e.g., "Clauding...", "Booping...", "Noodling..."), include Japanese translation or meaning in parentheses for clarity (e.g., "Noodling...（思案中）", "Spelunking...（探索中）") when the overhead is minimal
 
+### Markdown Quality Guidelines
+
+- **Heading Usage**: Use proper heading levels (## heading) instead of emphasis (**bold**) for section titles
+- **Duplicate Headings**: Avoid duplicate heading content (e.g., multiple "## まとめ" sections)
+- **Heading Hierarchy**: Maintain proper heading sequence (# → ## → ### → ####)
+- **Document Structure**: Start documents with # main title
+- **Table Formatting**: Markdown tables will not be auto-wrapped by Prettier to preserve structure
+
+### Development Environment
+
+- **VSCode Configuration**: The project includes comprehensive VSCode settings optimized for GAS development
+- **Recommended Extensions**: Use `.vscode/extensions.json` recommendations for best development experience
+- **Task Integration**: Use `Cmd+Shift+P` → "Tasks: Run Task" for common operations (format, lint, build, deploy)
+- **Live Server**: HTML files can be opened with Live Server for immediate testing (port 5500)
+- **Auto-formatting**: Code is automatically formatted on save using Prettier
+
 ### Claude Code Development Guidelines
 
-- **Testing and Deployment**:
+- **Development Workflow**:
+  - **Quality First**: Always run `npm run check` before committing changes
   - **For Testing**: Use `npm run push:test` to push code to test environment
   - **For Production**: Use `npm run push:prod` only after thorough testing
   - **DO NOT use** `npm run build` for deployment - it only creates local unified test HTML
   - The test environment has a head deployment ID configured in `.clasp.json`
 - **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to test
 - **Frontend Architecture**: Implements unidirectional data flow with StateManager for automatic UI updates and separation of concerns
+- **VSCode Integration**: Utilize tasks (Cmd+Shift+P → Tasks) for efficient development workflow
+- **Code Quality**: Use ESLint and Prettier configurations consistently throughout development
+- **Markdown Standards**: Follow markdownlint rules and proper heading hierarchy in all documentation
+- **Code Block Language**: Always specify language for code blocks (javascript, text, json, bash, html, etc.)
+- **Table Formatting**: Ensure column byte width alignment when creating tables containing mixed character sets (Japanese/English). Multi-byte characters (CJK) should be counted as double-width for proper visual alignment.
 
 ### Code Quality Standards
 

@@ -1,0 +1,151 @@
+{
+  "Table Template": {
+    "prefix": "table3",
+    "body": [
+      "| ${1:列1} | ${2:列2} | ${3:列3} |",
+      "| -------- | -------- | -------- |",
+      "| ${4:値1}   | ${5:値2}   | ${6:値3}   |",
+      "| $7       | $8       | $9       |",
+      "$0"
+    ],
+    "description": "3列のマークダウンテーブルテンプレート"
+  },
+  "Table Template 4": {
+    "prefix": "table4",
+    "body": [
+      "| ${1:列1} | ${2:列2} | ${3:列3} | ${4:列4} |",
+      "| -------- | -------- | -------- | -------- |",
+      "| ${5:値1}   | ${6:値2}   | ${7:値3}   | ${8:値4}   |",
+      "| $9       | $10      | $11      | $12      |",
+      "$0"
+    ],
+    "description": "4列のマークダウンテーブルテンプレート"
+  },
+  "Code Block JavaScript": {
+    "prefix": "codejs",
+    "body": ["```javascript", "${1:// JavaScriptコードをここに記述}", "```", "$0"],
+    "description": "JavaScript言語指定コードブロック"
+  },
+  "Code Block Text": {
+    "prefix": "codetext",
+    "body": ["```text", "${1:テキストをここに記述}", "```", "$0"],
+    "description": "テキスト言語指定コードブロック"
+  },
+  "Code Block JSON": {
+    "prefix": "codejson",
+    "body": ["```json", "${1:{}}", "```", "$0"],
+    "description": "JSON言語指定コードブロック"
+  },
+  "Code Block Bash": {
+    "prefix": "codebash",
+    "body": ["```bash", "${1:# シェルコマンドをここに記述}", "```", "$0"],
+    "description": "Bash言語指定コードブロック"
+  },
+  "Tree Structure": {
+    "prefix": "tree",
+    "body": [
+      "```text",
+      "${1:root/}",
+      "├── ${2:folder1/}",
+      "│   ├── ${3:file1.js}",
+      "│   └── ${4:file2.js}",
+      "└── ${5:folder2/}",
+      "    └── ${6:file3.js}",
+      "```",
+      "$0"
+    ],
+    "description": "ツリー構造テンプレート"
+  },
+  "Collapsible Section": {
+    "prefix": "details",
+    "body": [
+      "<details>",
+      "<summary>${1:クリックして展開}</summary>",
+      "",
+      "${2:ここに内容を記述}",
+      "",
+      "</details>",
+      "$0"
+    ],
+    "description": "折りたたみ可能セクション"
+  },
+  "Task List": {
+    "prefix": "tasks",
+    "body": [
+      "- [x] ${1:完了したタスク}",
+      "- [ ] ${2:未完了のタスク}",
+      "- [ ] ${3:別のタスク}",
+      "$0"
+    ],
+    "description": "チェックボックス付きタスクリスト"
+  },
+  "Documentation Header": {
+    "prefix": "docheader",
+    "body": [
+      "# ${1:タイトル}",
+      "",
+      "**作成日**: ${CURRENT_YEAR}年${CURRENT_MONTH}月${CURRENT_DATE}日  ",
+      "**対象**: ${2:対象システム}  ",
+      "**目的**: ${3:ドキュメントの目的}",
+      "",
+      "<!-- TOC -->",
+      "",
+      "## 概要",
+      "",
+      "${4:概要を記述}",
+      "",
+      "$0"
+    ],
+    "description": "プロジェクト用ドキュメントヘッダー"
+  },
+  "Numbered List Continuation": {
+    "prefix": "listcont",
+    "body": [
+      "${1:1}. ${2:最初の項目}",
+      "",
+      "   ${3:地の文や説明をここに記述}",
+      "",
+      "${4:2}. ${5:次の項目}",
+      "",
+      "   ${6:さらなる説明}",
+      "",
+      "$0"
+    ],
+    "description": "番号付きリスト（地の文入り継続版）"
+  },
+  "Warning Box": {
+    "prefix": "warning",
+    "body": ["> ⚠️ **注意**  ", "> ${1:注意事項をここに記述}", "$0"],
+    "description": "注意喚起ボックス"
+  },
+  "Info Box": {
+    "prefix": "info",
+    "body": ["> ℹ️ **情報**  ", "> ${1:情報をここに記述}", "$0"],
+    "description": "情報ボックス"
+  },
+  "Success Box": {
+    "prefix": "success",
+    "body": ["> ✅ **完了**  ", "> ${1:完了情報をここに記述}", "$0"],
+    "description": "成功・完了ボックス"
+  },
+  "Phase Template": {
+    "prefix": "phase",
+    "body": [
+      "### ${1:Phase A}: ${2:フェーズ名}（${3:予想時間}）",
+      "",
+      "**目的**: ${4:このフェーズの目的}",
+      "",
+      "**作業内容**:",
+      "- [ ] ${5:作業項目1}",
+      "- [ ] ${6:作業項目2}",
+      "- [ ] ${7:作業項目3}",
+      "",
+      "**成果物**:",
+      "- ${8:成果物1}",
+      "- ${9:成果物2}",
+      "",
+      "$0"
+    ],
+    "description": "プロジェクトフェーズテンプレート"
+  }
+}

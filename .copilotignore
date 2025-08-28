@@ -44,13 +44,17 @@ logs/
 .cache/
 .temp/
 
-# ビルド出力
+# ビルド出力と生成ファイル
 dist/
 build/
 out/
+test/10_WebApp_Unified_Test.html
 
 # 完了済みタスクディレクトリ（設計書やドキュメントが含まれており、コード補完には不要）
 archive/
+docs/archive/
+docs/*_EXECUTION_PLAN.md
+docs/Frontend_Backend_Code_Analysis_Report*.md
 
 # 設定ファイル（プロジェクト固有の設定で補完不要）
 jsconfig.json
@@ -72,5 +76,3 @@ jsconfig.json
 *.tar.gz
 *.rar
 *.7z
-new-folder/
-new-folder/

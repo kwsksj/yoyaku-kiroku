@@ -1,28 +1,153 @@
 {
+  // Live Server Configuration
   "liveServer.settings.port": 5500,
-  "liveServer.settings.ignoreFiles": [".vscode/**", "**/*.scss", "**/*.sass", "**/*.ts"],
+  "liveServer.settings.ignoreFiles": [
+    ".vscode/**",
+    "**/*.scss",
+    "**/*.sass",
+    "**/*.ts",
+    "tools/**",
+    "node_modules/**"
+  ],
+
+  // File Associations
   "files.associations": {
-    "*.html": "html"
+    "*.html": "html",
+    "*.clasp.json": "jsonc",
+    "*.gas": "javascript"
   },
+
+  // Editor Configuration
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.wordWrap": "on",
+  "editor.wordWrapColumn": 120,
+  "editor.rulers": [80, 100, 120],
+  "editor.minimap.enabled": false,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+  "editor.inlineSuggest.enabled": true,
+
+  // JavaScript/TypeScript Configuration
   "javascript.preferences.includePackageJsonAutoImports": "auto",
   "javascript.suggest.autoImports": true,
+  "javascript.validate.enable": true,
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.suggest.autoImports": true,
+
+  // HTML Configuration
   "html.format.enable": true,
   "html.format.wrapLineLength": 120,
+  "html.format.indentInnerHtml": true,
+  "html.format.wrapAttributes": "force-aligned",
+
+  // Emmet Configuration
   "emmet.includeLanguages": {
-    "javascript": "javascriptreact"
+    "javascript": "javascriptreact",
+    "typescript": "typescriptreact"
   },
+  "emmet.triggerExpansionOnTab": true,
+
+  // File Management
   "files.eol": "\n",
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
-  "github.copilot.advanced": {
-    "instructions": "テスト作成・修正時の品質保証ルール: 1) grep_search で関数・定数の実在性を確認してから参照 2) semantic_search で実際の使用パターンを調査 3) read_file で戻り値・引数の実際の形式を確認 4) 実装確認せずに推測でテストコードを書かない 5) テストエラー時は実際のコード使用方法を調査してから修正方針を決定"
+  "files.trimFinalNewlines": true,
+  "files.autoSave": "onFocusChange",
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.DS_Store": true,
+    "**/test/10_WebApp_Unified_Test.html": true,
+    "**/*.log": true
   },
+
+  // Search Configuration
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/test/10_WebApp_Unified_Test.html": true,
+    "**/*.log": true,
+    "**/docs/archive": true
+  },
+
+  // Git Configuration
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "scm.defaultViewMode": "tree",
+
+  // Explorer Configuration
+  "explorer.compactFolders": false,
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  "explorer.sortOrder": "mixed",
+
+  // GitHub Copilot Configuration
+  "github.copilot.advanced": {
+    "instructions": "Google Apps Script開発環境での注意点:\n1) GAS特有のAPI（SpreadsheetApp, DriveApp等）を正しく使用\n2) HTML内のJavaScript（ClientScript）ではGAS APIは使用不可\n3) server.xxx()パターンでサーバー側関数を呼び出し\n4) 6分実行制限、1日実行回数制限に配慮\n5) プロジェクトの番号付きファイル構造を維持\n\nテスト作成時の品質保証ルール:\n1) 関数・定数の実在性を事前確認\n2) 実際の使用パターンを調査\n3) 戻り値・引数の形式を確認\n4) 推測ではなく実装確認を優先\n\nMarkdown作成時の品質ルール:\n1) **強調** の代わりに ## 見出し を使用\n2) 同じ内容の見出しは避ける（## まとめ を複数作らない）\n3) 見出しレベルを適切に管理（h1→h2→h3の順序）\n4) 最初の行は # メインタイトル で開始\n5) 番号付きリストは全て 1. で開始（地の文があっても継続）\n6) コードブロックには必ず言語を指定:\n   - JavaScript: ```javascript\n   - ツリー構造: ```text\n   - 設定ファイル: ```json\n   - シェルコマンド: ```bash\n   - プレーンテキスト: ```text\n   - HTML: ```html\n7) 表作成時の列幅調整:\n   - マルチバイト文字（日本語等）は表示幅2として計算\n   - 列のバイト数が揃うように出力して視覚的な整列を確保\n   - 例: 「設定」(4文字幅) = \"Config\" (6文字) で列幅を統一"
+  },
+
+  // Markdown All in One Configuration
+  "markdown.extension.toc.levels": "2..4",
+  "markdown.extension.toc.orderedList": false,
+  "markdown.extension.toc.plaintext": false,
+  "markdown.extension.toc.githubCompatibility": true,
+  "markdown.extension.toc.slugifyMode": "github",
+  "markdown.extension.toc.omitFromToc": {
+    "目次": true,
+    "Table of Contents": true,
+    "TOC": true
+  },
+  "markdown.extension.toc.updateOnSave": true,
+  "markdown.extension.list.indentationSize": "adaptive",
+  "markdown.extension.orderedList.marker": "one",
+  "markdown.extension.orderedList.autoRenumber": false,
+  "markdown.extension.tableFormatter.enabled": true,
+  "markdown.extension.tableFormatter.normalizeIndentation": true,
+  "markdown.extension.tableFormatter.delimitersAroundTable": true,
+  "markdown.extension.tableFormatter.forceAlign": true,
+  "markdown.extension.tableFormatter.delimiterRowLength": "auto",
+  "markdown.extension.print.theme": "light",
+  "markdown.extension.completion.respectVscodeSearchExclude": true,
+  "markdown.extension.print.absoluteImgPath": false,
+
+  // Language-specific formatters
   "[markdown]": {
-    "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+    "editor.defaultFormatter": "yzhang.markdown-all-in-one",
+    "editor.wordWrap": "on",
+    "editor.wordWrapColumn": 80,
+    "editor.rulers": [80],
+    "files.trimTrailingWhitespace": false,
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "on"
+    },
+    "editor.suggest.showSnippets": true,
+    "editor.acceptSuggestionOnEnter": "on",
+    "editor.formatOnSave": true,
+    "editor.formatOnType": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.markdownlint": "explicit"
+    },
+    "editor.snippetSuggestions": "top"
   },
   "[html]": {
-    "editor.defaultFormatter": "vscode.html-language-features"
+    "editor.defaultFormatter": "vscode.html-language-features",
+    "editor.tabSize": 2
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
   }
 }

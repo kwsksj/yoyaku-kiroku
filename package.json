@@ -12,7 +12,9 @@
     "format:check": "prettier --check \"**/*.{js,html,json,md}\"",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
-    "check": "npm run format:check && npm run lint",
+    "lint:md": "markdownlint \"**/*.md\"",
+    "lint:md:fix": "markdownlint \"**/*.md\" --fix",
+    "check": "npm run format:check && npm run lint && npm run lint:md",
     "build": "node tools/build-unified.js",
     "watch": "node tools/watch-unified.js",
     "switch:env": "node tools/switch-env.js",
@@ -41,6 +43,7 @@
     "eslint": "^9.33.0",
     "eslint-plugin-googleappsscript": "^1.0.5",
     "globals": "^16.3.0",
+    "markdownlint-cli": "^0.45.0",
     "prettier": "^3.6.2"
   }
 }

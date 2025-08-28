@@ -1,0 +1,44 @@
+{
+  "recommendations": [
+    // Essential Extensions
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "ritwickdey.liveserver",
+
+    // Google Apps Script Development
+    "googleworkspace.apps-script",
+
+    // Code Quality & Linting
+    "dbaeumer.vscode-eslint",
+    "editorconfig.editorconfig",
+
+    // Markdown Support
+    "yzhang.markdown-all-in-one",
+    "bierner.markdown-mermaid",
+    "davidanson.vscode-markdownlint",
+
+    // Git & GitHub
+    "github.vscode-pull-request-github",
+    "github.copilot",
+    "github.copilot-chat",
+
+    // HTML & CSS
+    "bradlc.vscode-tailwindcss",
+    "formulahendry.auto-rename-tag",
+    "pranaygp.vscode-css-peek",
+
+    // JSON Support
+    "zainchen.json",
+
+    // Utilities
+    "alefragnani.bookmarks",
+    "ms-vscode.wordcount",
+    "streetsidesoftware.code-spell-checker",
+    "aaron-bond.better-comments",
+
+    // Theme & UI (Optional)
+    "pkief.material-icon-theme",
+    "dracula-theme.theme-dracula"
+  ],
+  "unwantedRecommendations": ["ms-python.python", "ms-vscode.cpptools", "redhat.java", "golang.go"]
+}

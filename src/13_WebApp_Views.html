@@ -140,7 +140,6 @@
     );
   };
 
-
   /**
    * 予約・履歴カード用の共通カード構造を生成します。
    * @param {object} config - カード設定オブジェクト
@@ -1246,11 +1245,11 @@
         return `
           ${Components.accountingCompleted({ details, reservation })}
           <div class="mt-8 flex flex-col space-y-3">
-            ${Components.createButton({ 
-              text: '戻る', 
-              action: 'goBackToDashboard', 
-              colorClass: DesignConfig.colors.secondary, 
-              widthClass: DesignConfig.buttons.full 
+            ${Components.createButton({
+              text: '戻る',
+              action: 'goBackToDashboard',
+              colorClass: DesignConfig.colors.secondary,
+              widthClass: DesignConfig.buttons.full,
             })}
           </div>`;
       } catch (e) {
@@ -1265,18 +1264,18 @@
 
     return `
       ${Components.navigationHeader({ title: '会計', backAction: 'goBackToDashboard' })}
-      ${Components.accountingForm({ 
-        type: formType, 
-        master, 
-        reservation, 
-        initial 
+      ${Components.accountingForm({
+        type: formType,
+        master,
+        reservation,
+        initial,
       })}
       <div class="mt-8 flex flex-col space-y-3">
-        ${Components.createButton({ 
-          text: '戻る', 
-          action: 'goBackToDashboard', 
-          colorClass: DesignConfig.colors.secondary, 
-          widthClass: DesignConfig.buttons.full 
+        ${Components.createButton({
+          text: '戻る',
+          action: 'goBackToDashboard',
+          colorClass: DesignConfig.colors.secondary,
+          widthClass: DesignConfig.buttons.full,
         })}
       </div>`;
   };

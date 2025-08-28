@@ -280,7 +280,10 @@
         if (master && Array.isArray(master)) {
           materialOptions = master
             .filter(m => m['種別'] === C.itemTypes.MATERIAL)
-            .map(m => `<option value="${escapeHTML(m['項目名'])}" ${type === m['項目名'] ? 'selected' : ''}>${escapeHTML(m['項目名'])}</option>`)
+            .map(
+              m =>
+                `<option value="${escapeHTML(m['項目名'])}" ${type === m['項目名'] ? 'selected' : ''}>${escapeHTML(m['項目名'])}</option>`,
+            )
             .join('');
         }
       } catch (e) {
@@ -331,10 +334,16 @@
      */
     accountingCompleted: ({ details, reservation }) => {
       const tuitionItemsHtml = details.tuition.items
-        .map(i => `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>${i.price.toLocaleString()}円</span></div>`)
+        .map(
+          i =>
+            `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>${i.price.toLocaleString()}円</span></div>`,
+        )
         .join('');
       const salesItemsHtml = details.sales.items
-        .map(i => `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>${i.price.toLocaleString()}円</span></div>`)
+        .map(
+          i =>
+            `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>${i.price.toLocaleString()}円</span></div>`,
+        )
         .join('');
       const v = reservation.venue ? `（${reservation.venue}）` : '';
 
@@ -419,32 +428,34 @@
           (item['対象教室'] === '共通' || (item['対象教室'] && item['対象教室'].includes(reservation.classroom))),
       );
 
-      const tuitionRowsHtml = tuitionItems.map(item => {
-        const isMandatory = item['項目名'] === C.items.MAIN_LECTURE;
-        let isChecked = isMandatory;
-        
-        // 初期値でのチェック状態を決定（より柔軟な条件）
-        if (!isChecked) {
-          // 特別処理（予約データからの直接プロパティ）
-          if (item['項目名'] === C.items.FIRST_LECTURE && initial.firstLecture) {
-            isChecked = true;
-          } else if (item['項目名'] === C.items.CHISEL_RENTAL && initial.chiselRental) {
-            isChecked = true;
-          } 
-          // 通常の初期値チェック（truthy値を受け入れる）
-          else if (initial[item['項目名']]) {
-            isChecked = true;
-          }
-        }
+      const tuitionRowsHtml = tuitionItems
+        .map(item => {
+          const isMandatory = item['項目名'] === C.items.MAIN_LECTURE;
+          let isChecked = isMandatory;
 
-        return Components.accountingRow({
-          name: item['項目名'],
-          itemType: C.itemTypes.TUITION,
-          price: item['単価'],
-          checked: isChecked,
-          disabled: isMandatory
-        });
-      }).join('');
+          // 初期値でのチェック状態を決定（より柔軟な条件）
+          if (!isChecked) {
+            // 特別処理（予約データからの直接プロパティ）
+            if (item['項目名'] === C.items.FIRST_LECTURE && initial.firstLecture) {
+              isChecked = true;
+            } else if (item['項目名'] === C.items.CHISEL_RENTAL && initial.chiselRental) {
+              isChecked = true;
+            }
+            // 通常の初期値チェック（truthy値を受け入れる）
+            else if (initial[item['項目名']]) {
+              isChecked = true;
+            }
+          }
+
+          return Components.accountingRow({
+            name: item['項目名'],
+            itemType: C.itemTypes.TUITION,
+            price: item['単価'],
+            checked: isChecked,
+            disabled: isMandatory,
+          });
+        })
+        .join('');
 
       return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
         <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3>
@@ -463,29 +474,34 @@
      */
     salesSection: ({ master, initial }) => {
       const salesItems = master.filter(item => item['種別'] === C.itemTypes.SALES);
-      const salesItemsHtml = salesItems.map(item => {
-        // truthy値でチェック状態を判定（より柔軟）
-        const isChecked = !!initial[item['項目名']];
-        
-        return Components.accountingRow({
-          name: item['項目名'],
-          itemType: C.itemTypes.SALES,
-          price: item['単価'],
-          checked: isChecked
-        });
-      }).join('');
+      const salesItemsHtml = salesItems
+        .map(item => {
+          // truthy値でチェック状態を判定（より柔軟）
+          const isChecked = !!initial[item['項目名']];
+
+          return Components.accountingRow({
+            name: item['項目名'],
+            itemType: C.itemTypes.SALES,
+            price: item['単価'],
+            checked: isChecked,
+          });
+        })
+        .join('');
 
       return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
         <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3>
         <div class="mb-3 space-y-4">
           <label class="block text-brand-text text-base font-bold">材料代</label>
           <div id="materials-container">
-            ${Components.materialRow({ index: 0, values: {
-              type: initial.materialType0,
-              l: initial.materialL0,
-              w: initial.materialW0,
-              h: initial.materialH0
-            }})}
+            ${Components.materialRow({
+              index: 0,
+              values: {
+                type: initial.materialType0,
+                l: initial.materialL0,
+                w: initial.materialW0,
+                h: initial.materialH0,
+              },
+            })}
           </div>
         </div>
         ${Components.button({ action: 'addMaterialRow', text: '+ 材料を追加', style: 'secondary', size: 'full' })}
@@ -496,10 +512,13 @@
           <div class="mt-2 space-y-2 pt-2 border-t border-ui-border">
             ${salesItemsHtml}
             <div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">
-              ${Components.otherSalesRow({ index: 0, values: {
-                name: initial.otherSalesName0,
-                price: initial.otherSalesPrice0
-              }})}
+              ${Components.otherSalesRow({
+                index: 0,
+                values: {
+                  name: initial.otherSalesName0,
+                  price: initial.otherSalesPrice0,
+                },
+              })}
             </div>
           </div>
           ${Components.button({ action: 'addOtherSalesRow', text: '+ 自由入力欄を追加', style: 'secondary', size: 'full' })}
