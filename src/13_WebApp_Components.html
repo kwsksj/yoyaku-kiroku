@@ -506,6 +506,101 @@
       </div>`;
     },
 
+    // =================================================================
+    // --- Level 3: 画面セクション（Organisms） ---
+    // -----------------------------------------------------------------
+    // 複合的なUIセクション（ダッシュボード、予約一覧等）
+    // =================================================================
+
+    /**
+     * ダッシュボードセクション（予約または履歴）
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.title - セクションタイトル
+     * @param {Array} config.items - 表示項目の配列（HTMLカード文字列の配列）
+     * @param {boolean} [config.showNewButton=false] - 新規追加ボタンの表示制御
+     * @param {string} [config.newAction] - 新規追加ボタンのaction
+     * @param {boolean} [config.showMoreButton=false] - もっとみるボタンの表示制御
+     * @param {string} [config.moreAction] - もっとみるボタンのaction
+     * @returns {string} HTML文字列
+     */
+    dashboardSection: ({ title, items, showNewButton = false, newAction, showMoreButton = false, moreAction }) => {
+      let newButtonHtml = '';
+      if (showNewButton && newAction) {
+        newButtonHtml = Components.newReservationCard({ action: newAction });
+      }
+
+      const itemsHtml = items.join('');
+
+      let moreButtonHtml = '';
+      if (showMoreButton && moreAction) {
+        moreButtonHtml = `<div class="text-center mt-4">
+          ${Components.button({ action: moreAction, text: 'もっとみる', style: 'secondary', size: 'small' })}
+        </div>`;
+      }
+
+      return `
+        <div class="mb-8 w-full">
+          <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
+            <h2 class="text-xl font-medium text-brand-text text-center mb-2">${escapeHTML(title)}</h2>
+            ${newButtonHtml}
+            ${itemsHtml}
+            ${moreButtonHtml}
+          </div>
+        </div>
+      `;
+    },
+
+    /**
+     * 新規予約カード（ダッシュボード用）
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.action - data-action属性の値
+     * @returns {string} HTML文字列
+     */
+    newReservationCard: ({ action }) => {
+      return `
+        <div data-action="${action}" class="w-full p-4 rounded-lg border-2 border-dashed border-action-primary-border bg-action-primary-light cursor-pointer mobile-card touch-friendly">
+          <div class="text-center">
+            <span class="text-xl font-bold text-action-primary-bg">+ あたらしく よやく する</span>
+          </div>
+        </div>
+      `;
+    },
+
+    /**
+     * 統一カードレイアウト（予約・履歴共通）
+     * @param {Object} config - 設定オブジェクト
+     * @param {Object} config.item - 予約または履歴データ
+     * @param {Array} config.buttons - ボタン配列（{action, text, style, details?}の形式）
+     * @param {string} [config.type='booking'] - カードタイプ ('booking' | 'history')
+     * @param {Date} [config.today] - 今日の日付（予約用）
+     * @returns {string} HTML文字列
+     */
+    listCard: ({ item, buttons, type = 'booking', today }) => {
+      // ボタンスタイルのマッピング（Viewsからの抽象的なstyleを具体的なCSSクラスに変換）
+      const styleMapping = {
+        'paid': `${DesignConfig.colors.paid} text-base font-bold px-3 py-1.5 rounded`,
+        'accounting': `text-base ${DesignConfig.colors.accounting} font-bold px-3 py-1.5 rounded mobile-button`,
+        'edit': 'text-base bg-action-secondary-bg text-action-secondary-text font-medium px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
+        'record': 'text-sm bg-action-paid-bg text-action-paid-text font-bold px-3 py-1.5 rounded',
+        'edit-small': 'text-sm bg-action-secondary-bg text-action-secondary-text font-bold px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
+      };
+
+      // ボタン配列を旧形式に変換
+      const legacyButtons = buttons.map(btn => ({
+        action: btn.action,
+        text: btn.text,
+        colorClass: styleMapping[btn.style] || styleMapping['edit'],
+        details: btn.details, // 会計記録用
+      }));
+
+      return createReservationCard({
+        type: type,
+        item: item,
+        today: today,
+        buttons: legacyButtons,
+      });
+    },
+
     /**
      * 販売セクション
      * @param {Object} config - 設定オブジェクト
@@ -537,14 +632,14 @@
           <label class="block text-brand-text text-base font-bold">材料代</label>
           <div id="materials-container">
             ${Components.materialRow({
-              index: 0,
-              values: {
-                type: initial.materialType0,
-                l: initial.materialL0,
-                w: initial.materialW0,
-                h: initial.materialH0,
-              },
-            })}
+        index: 0,
+        values: {
+          type: initial.materialType0,
+          l: initial.materialL0,
+          w: initial.materialW0,
+          h: initial.materialH0,
+        },
+      })}
           </div>
         </div>
         ${Components.button({ action: 'addMaterialRow', text: '+ 材料を追加', style: 'secondary', size: 'full' })}
@@ -556,12 +651,12 @@
             ${salesItemsHtml}
             <div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">
               ${Components.otherSalesRow({
-                index: 0,
-                values: {
-                  name: initial.otherSalesName0,
-                  price: initial.otherSalesPrice0,
-                },
-              })}
+        index: 0,
+        values: {
+          name: initial.otherSalesName0,
+          price: initial.otherSalesPrice0,
+        },
+      })}
             </div>
           </div>
           ${Components.button({ action: 'addOtherSalesRow', text: '+ 自由入力欄を追加', style: 'secondary', size: 'full' })}

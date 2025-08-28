@@ -411,29 +411,29 @@
     // ボタン設定
     const buttons = isEdit
       ? [
-          {
-            text: 'この内容で更新',
-            action: 'saveProfile',
-            colorClass: DesignConfig.colors.primary,
-          },
-          {
-            text: '戻る',
-            action: 'goBackToDashboard',
-            colorClass: DesignConfig.colors.secondary,
-          },
-        ]
+        {
+          text: 'この内容で更新',
+          action: 'saveProfile',
+          colorClass: DesignConfig.colors.primary,
+        },
+        {
+          text: '戻る',
+          action: 'goBackToDashboard',
+          colorClass: DesignConfig.colors.secondary,
+        },
+      ]
       : [
-          {
-            text: '次へ進む',
-            action: 'goToStep2',
-            colorClass: DesignConfig.colors.primary,
-          },
-          {
-            text: '戻る',
-            action: 'goBackToLogin',
-            colorClass: DesignConfig.colors.secondary,
-          },
-        ];
+        {
+          text: '次へ進む',
+          action: 'goToStep2',
+          colorClass: DesignConfig.colors.primary,
+        },
+        {
+          text: '戻る',
+          action: 'goBackToLogin',
+          colorClass: DesignConfig.colors.secondary,
+        },
+      ];
 
     const nameIdPrefix = isEdit ? 'edit' : 'reg';
 
@@ -443,37 +443,37 @@
             ${description}
             <div class="space-y-4">
                 ${Components.createInput({
-                  id: `${nameIdPrefix}-realname`,
-                  label: 'お名前',
-                  type: 'text',
-                  required: true,
-                  value: realNameValue,
-                  containerClass: '',
-                  autocomplete: 'name',
-                })}
+      id: `${nameIdPrefix}-realname`,
+      label: 'お名前',
+      type: 'text',
+      required: true,
+      value: realNameValue,
+      containerClass: '',
+      autocomplete: 'name',
+    })}
                 ${Components.createInput({
-                  id: `${nameIdPrefix}-nickname`,
-                  label: 'ニックネーム（表示名）',
-                  caption: '他の生徒さんにも表示されます',
-                  type: 'text',
-                  value: nicknameValue,
-                  placeholder: '空欄の場合はお名前',
-                  containerClass: '',
-                })}
+      id: `${nameIdPrefix}-nickname`,
+      label: 'ニックネーム（表示名）',
+      caption: '他の生徒さんにも表示されます',
+      type: 'text',
+      value: nicknameValue,
+      placeholder: '空欄の場合はお名前',
+      containerClass: '',
+    })}
                 ${phoneSection}
             </div>
             <div class="mt-6">
                 <div class="space-y-3">
                     ${buttons
-                      .map(btn =>
-                        Components.createButton({
-                          text: btn.text,
-                          action: btn.action,
-                          colorClass: btn.colorClass,
-                          widthClass: DesignConfig.buttons.full,
-                        }),
-                      )
-                      .join('')}
+        .map(btn =>
+          Components.createButton({
+            text: btn.text,
+            action: btn.action,
+            colorClass: btn.colorClass,
+            widthClass: DesignConfig.buttons.full,
+          }),
+        )
+        .join('')}
                 </div>
             </div>
         </div>`;
@@ -598,69 +598,68 @@
 
         <div class="${DesignConfig.inputs.container} mb-4">
             ${Components.createInput({
-              id: 'nickname-search-input',
-              label: 'お名前（本名）またはニックネーム', // ラベルを変更
-              type: 'text',
-              placeholder: 'お名前またはニックネーム', // プレースホルダーを変更
-              inputClass: 'text-center',
-              autocomplete: 'off',
-            })}
+      id: 'nickname-search-input',
+      label: 'お名前（本名）またはニックネーム', // ラベルを変更
+      type: 'text',
+      placeholder: 'お名前またはニックネーム', // プレースホルダーを変更
+      inputClass: 'text-center',
+      autocomplete: 'off',
+    })}
             <div class="mt-4 flex justify-center">
                 ${Components.createButton({
-                  text: '検索',
-                  action: 'searchUserByName',
-                  colorClass: DesignConfig.colors.primary,
-                  widthClass: DesignConfig.buttons.full,
-                })}
+      text: '検索',
+      action: 'searchUserByName',
+      colorClass: DesignConfig.colors.primary,
+      widthClass: DesignConfig.buttons.full,
+    })}
             </div>
         </div>
 
         <div class="mt-8 space-y-3">
-            ${
-              users.length > 0
-                ? `
+            ${users.length > 0
+        ? `
                 <h2 class="text-lg font-bold ${DesignConfig.colors.text} text-center mb-2">見つかったアカウント</h2>
                 ${users
-                  .map(
-                    user => `
+          .map(
+            user => `
                     <div class="${DesignConfig.cards.background} p-3 rounded-lg flex justify-between items-center">
                         <p class="text-base font-semibold">${user.realName}（${user.nickname}）</p> // 本名とニックネームを両方表示
                         ${Components.createButton({
-                          text: 'これだ！',
-                          action: 'selectSearchedUser',
-                          studentId: user.studentId,
-                          realName: user.realName,
-                          nickname: user.nickname,
-                          colorClass:
-                            'bg-state-success-bg text-state-success-text text-sm py-1 px-3 rounded active:bg-state-success-hover focus:bg-state-success-hover mobile-button',
-                        })}
+              text: 'これだ！',
+              action: 'selectSearchedUser',
+              studentId: user.studentId,
+              realName: user.realName,
+              nickname: user.nickname,
+              colorClass:
+                'bg-state-success-bg text-state-success-text text-sm py-1 px-3 rounded active:bg-state-success-hover focus:bg-state-success-hover mobile-button',
+            })}
                     </div>
                 `,
-                  )
-                  .join('')}
+          )
+          .join('')}
             `
-                : hasSearchedAndNoResults
-                  ? `
+        : hasSearchedAndNoResults
+          ? `
                 <p class="text-center ${DesignConfig.colors.textSubtle}">一致するアカウントが見つかりませんでした。</p>
             `
-                  : ''
-            }
+          : ''
+      }
         </div>
 
         <div class="mt-8 pt-4 border-t border-gray-200 flex flex-col space-y-3">
             <h2 class="text-lg font-bold ${DesignConfig.colors.text} text-center mb-2">見つからない場合</h2>
             ${Components.createButton({
-              text: '自分のアカウントが見つからないので、新規登録する',
-              action: 'goToRegisterFromUserSearch',
-              colorClass: DesignConfig.colors.primary,
-              widthClass: DesignConfig.buttons.full,
-            })}
+        text: '自分のアカウントが見つからないので、新規登録する',
+        action: 'goToRegisterFromUserSearch',
+        colorClass: DesignConfig.colors.primary,
+        widthClass: DesignConfig.buttons.full,
+      })}
             ${Components.createButton({
-              text: 'ログイン画面に戻る',
-              action: 'goBackToLogin',
-              colorClass: DesignConfig.colors.secondary,
-              widthClass: DesignConfig.buttons.full,
-            })}
+        text: 'ログイン画面に戻る',
+        action: 'goBackToLogin',
+        colorClass: DesignConfig.colors.secondary,
+        widthClass: DesignConfig.buttons.full,
+      })}
         </div>
     `;
   };
@@ -676,82 +675,76 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 【改善】「あたらしく よやく する」ボタンを予約リストの先頭に配置し、デザインを分かりやすく変更
-    const newBookingCardHtml = `
-        <button data-action="goToClassroomSelection" class="w-full text-center p-4 rounded-lg border-2 border-dashed border-action-primary-border bg-action-primary-light active:bg-action-primary-subtle focus:bg-action-primary-subtle mobile-button touch-friendly">
-            <span class="text-xl font-bold text-action-primary-bg">+ あたらしく よやく する</span>
-        </button>
-    `;
+    // 予約セクション用のカード配列を構築（ビジネスロジック）
+    const bookingCards = sortedBookings
+      .filter(b => {
+        const isCancelled =
+          b.status === STATUS.CANCEL ||
+          b.status === 'キャンセル' ||
+          b.status === 'キャンセル済み';
+        return !isCancelled; // キャンセル済み予約を念のため除外
+      })
+      .map(b => {
+        // 予約日時を現在日時と比較（ビジネスロジック）
+        let isPastOrToday;
+        if (b.startTime) {
+          // 開始時刻がある場合は、その時刻と比較
+          const resDateTime = new Date(`${b.date}T${b.startTime}`);
+          isPastOrToday = resDateTime.getTime() <= new Date().getTime();
+        } else {
+          // 開始時刻がない場合は日付のみで比較
+          const resDate = new Date(b.date);
+          resDate.setHours(0, 0, 0, 0);
+          isPastOrToday = resDate.getTime() <= today.getTime();
+        }
 
-    const yourBookingsHtml = `
-        <div class="mb-8 w-full">
-            <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
-                <h2 class="text-xl font-medium text-brand-text text-center mb-2">よやく</h2>
-                ${newBookingCardHtml}
-                ${sortedBookings
-                  .filter(b => {
-                    const isCancelled =
-                      b.status === STATUS.CANCEL ||
-                      b.status === 'キャンセル' ||
-                      b.status === 'キャンセル済み';
-                    return !isCancelled; // キャンセル済み予約を念のため除外
-                  })
-                  .map(b => {
-                    // 予約日時を現在日時と比較
-                    let isPastOrToday;
-                    if (b.startTime) {
-                      // 開始時刻がある場合は、その時刻と比較
-                      const resDateTime = new Date(`${b.date}T${b.startTime}`);
-                      isPastOrToday =
-                        resDateTime.getTime() <= new Date().getTime();
-                    } else {
-                      // 開始時刻がない場合は日付のみで比較
-                      const resDate = new Date(b.date);
-                      resDate.setHours(0, 0, 0, 0);
-                      isPastOrToday = resDate.getTime() <= today.getTime();
-                    }
+        // ボタン配列を構築（ビジネスロジック）
+        const buttons = [];
 
-                    // ボタン配列を構築
-                    const buttons = [];
+        // 会計ボタン
+        if (isPastOrToday) {
+          if (b.accountingDone) {
+            buttons.push({
+              action: 'goToAccounting',
+              text: '会計済',
+              style: 'paid',
+            });
+          } else {
+            buttons.push({
+              action: 'goToAccounting',
+              text: '会計',
+              style: 'accounting',
+            });
+          }
+        }
 
-                    // 会計ボタン
-                    if (isPastOrToday) {
-                      if (b.accountingDone) {
-                        buttons.push({
-                          action: 'goToAccounting',
-                          text: '会計済',
-                          colorClass: `${DesignConfig.colors.paid} text-base font-bold px-3 py-1.5 rounded`,
-                        });
-                      } else {
-                        buttons.push({
-                          action: 'goToAccounting',
-                          text: '会計',
-                          colorClass: `text-base ${DesignConfig.colors.accounting} font-bold px-3 py-1.5 rounded mobile-button`,
-                        });
-                      }
-                    }
+        // 編集ボタン
+        if (!isPastOrToday && !b.accountingDone) {
+          buttons.push({
+            action: 'goToEditReservation',
+            text: '確認/編集',
+            style: 'edit',
+          });
+        }
 
-                    // 編集ボタン
-                    if (!isPastOrToday && !b.accountingDone) {
-                      buttons.push({
-                        action: 'goToEditReservation',
-                        text: '確認/編集',
-                        colorClass:
-                          'text-base bg-action-secondary-bg text-action-secondary-text font-medium px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
-                      });
-                    }
+        // Componentsに構造生成を委任
+        return Components.listCard({
+          type: 'booking',
+          item: b,
+          today: today,
+          buttons: buttons,
+        });
+      });
 
-                    return createReservationCard({
-                      type: 'booking',
-                      item: b,
-                      today: today,
-                      buttons: buttons,
-                    });
-                  })
-                  .join('')}
-            </div>
-        </div>`;
+    // 予約セクションを生成（Componentsに構造生成を委任）
+    const yourBookingsHtml = Components.dashboardSection({
+      title: 'よやく',
+      items: bookingCards,
+      showNewButton: true,
+      newAction: 'goToClassroomSelection',
+    });
 
+    // 履歴セクションを生成（ビジネスロジック）
     let historyHtml = '';
     if (
       stateManager.getState().history &&
@@ -759,58 +752,59 @@
     ) {
       // 計算済みデータを使用
       const recordsToShow = stateManager.getState().computed.displayHistory;
-      historyHtml = `
-            <div class="mb-8 w-full">
-            <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
-                    <h2 class="text-xl font-medium text-brand-text text-center mb-2">きろく</h2>
-                    ${recordsToShow
-                      .filter(h => {
-                        const isCancelled =
-                          h.status === STATUS.CANCEL ||
-                          h.status === 'キャンセル' ||
-                          h.status === 'キャンセル済み';
-                        return !isCancelled; // キャンセル済み予約を念のため除外
-                      })
-                      .map(h => {
-                        // ボタン配列を構築
-                        const buttons = [];
 
-                        // 会計記録ボタン
-                        if (h.accountingDetails) {
-                          try {
-                            const acc = JSON.parse(h.accountingDetails);
-                            buttons.push({
-                              action: 'showHistoryAccounting',
-                              details: h.accountingDetails,
-                              text: '会計記録',
-                              colorClass:
-                                'text-sm bg-action-paid-bg text-action-paid-text font-bold px-3 py-1.5 rounded',
-                            });
-                          } catch (e) {
-                            // エラーハンドリングは個別に行う
-                          }
-                        }
+      const historyCards = recordsToShow
+        .filter(h => {
+          const isCancelled =
+            h.status === STATUS.CANCEL ||
+            h.status === 'キャンセル' ||
+            h.status === 'キャンセル済み';
+          return !isCancelled; // キャンセル済み予約を念のため除外
+        })
+        .map(h => {
+          // ボタン配列を構築（ビジネスロジック）
+          const buttons = [];
 
-                        // 編集ボタン
-                        buttons.push({
-                          action: 'editHistoryMemo',
-                          text: '編集',
-                          colorClass:
-                            'text-sm bg-action-secondary-bg text-action-secondary-text font-bold px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
-                        });
+          // 会計記録ボタン
+          if (h.accountingDetails) {
+            try {
+              const acc = JSON.parse(h.accountingDetails);
+              buttons.push({
+                action: 'showHistoryAccounting',
+                details: h.accountingDetails,
+                text: '会計記録',
+                style: 'record',
+              });
+            } catch (e) {
+              // エラーハンドリングは個別に行う
+            }
+          }
 
-                        return createReservationCard({
-                          type: 'history',
-                          item: h,
-                          today: null, // 履歴では不要
-                          buttons: buttons,
-                        });
-                      })
-                      .join('')}
-                    ${(stateManager.getState().recordsToShow || 10) < stateManager.getState().computed.sortedHistory.length ? `<div class="text-center mt-4"><button data-action="loadMoreHistory" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">もっとみる</button></div>` : ''}
-                </div>
-            </div>
-        `;
+          // 編集ボタン
+          buttons.push({
+            action: 'editHistoryMemo',
+            text: '編集',
+            style: 'edit-small',
+          });
+
+          // Componentsに構造生成を委任
+          return Components.listCard({
+            type: 'history',
+            item: h,
+            today: null, // 履歴では不要
+            buttons: buttons,
+          });
+        });
+
+      const showMore = (stateManager.getState().recordsToShow || 10) < stateManager.getState().computed.sortedHistory.length;
+
+      // Componentsに構造生成を委任
+      historyHtml = Components.dashboardSection({
+        title: 'きろく',
+        items: historyCards,
+        showMoreButton: showMore,
+        moreAction: 'loadMoreHistory',
+      });
     }
 
     return `
@@ -979,8 +973,8 @@
     // バックエンドで計算済みの空き情報を直接使用
     const relevantSlots = stateManager.getState().slots
       ? stateManager
-          .getState()
-          .slots.filter(slot => slot.classroom === classroom)
+        .getState()
+        .slots.filter(slot => slot.classroom === classroom)
       : [];
 
     const bookingSlotsHtml = renderBookingSlots(relevantSlots);
@@ -1177,23 +1171,23 @@
       return `
         <div class="mt-4 pt-4 border-t space-y-4">
           ${Components.createTextArea({
-            id: 'wip-input',
-            label: isFirstTime ? '今回制作したいもの' : 'やりたいこと/作業予定',
-            caption: isFirstTime
-              ? '作りたいものがある方はご記入ください。仮でもOK! * ご自身の作り途中の作品や、材料の持ち込みも可'
-              : '',
-            placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！',
-            value: workInProgress || '',
-          })}
+        id: 'wip-input',
+        label: isFirstTime ? '今回制作したいもの' : 'やりたいこと/作業予定',
+        caption: isFirstTime
+          ? '作りたいものがある方はご記入ください。仮でもOK! * ご自身の作り途中の作品や、材料の持ち込みも可'
+          : '',
+        placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！',
+        value: workInProgress || '',
+      })}
           ${Components.createTextArea({
-            id: 'material-input',
-            label: '材料のサイズや樹種の希望',
-            caption:
-              'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
-            placeholder:
-              '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
-            value: materialInfo || '',
-          })}
+        id: 'material-input',
+        label: '材料のサイズや樹種の希望',
+        caption:
+          'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
+        placeholder:
+          '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
+        value: materialInfo || '',
+      })}
           ${isFirstTime ? firstTimeGuidance : ''}
         </div>
         <div class="mt-4 pt-4 border-t space-y-4">
@@ -1335,11 +1329,11 @@
 
         <div class="max-w-xs mx-auto mt-8">
              ${Components.createButton({
-               text: 'ダッシュボードへ戻る',
-               action: 'goToDashboard',
-               colorClass: DesignConfig.colors.secondary,
-               widthClass: DesignConfig.buttons.full,
-             })}
+      text: 'ダッシュボードへ戻る',
+      action: 'goToDashboard',
+      colorClass: DesignConfig.colors.secondary,
+      widthClass: DesignConfig.buttons.full,
+    })}
         </div>
     </div>`;
   };
@@ -1377,11 +1371,11 @@
           ${Components.accountingCompleted({ details, reservation })}
           <div class="mt-8 flex flex-col space-y-3">
             ${Components.createButton({
-              text: '戻る',
-              action: 'goBackToDashboard',
-              colorClass: DesignConfig.colors.secondary,
-              widthClass: DesignConfig.buttons.full,
-            })}
+          text: '戻る',
+          action: 'goBackToDashboard',
+          colorClass: DesignConfig.colors.secondary,
+          widthClass: DesignConfig.buttons.full,
+        })}
           </div>`;
       } catch (e) {
         return '<div class="text-center text-state-danger-text">会計詳細の表示に失敗しました。</div>';
@@ -1401,18 +1395,18 @@
     return `
       ${Components.navigationHeader({ title: '会計', backAction: 'goBackToDashboard' })}
       ${Components.accountingForm({
-        type: formType,
-        master,
-        reservation,
-        initial,
-      })}
+      type: formType,
+      master,
+      reservation,
+      initial,
+    })}
       <div class="mt-8 flex flex-col space-y-3">
         ${Components.createButton({
-          text: '戻る',
-          action: 'goBackToDashboard',
-          colorClass: DesignConfig.colors.secondary,
-          widthClass: DesignConfig.buttons.full,
-        })}
+      text: '戻る',
+      action: 'goBackToDashboard',
+      colorClass: DesignConfig.colors.secondary,
+      widthClass: DesignConfig.buttons.full,
+    })}
       </div>`;
   };
 </script>
