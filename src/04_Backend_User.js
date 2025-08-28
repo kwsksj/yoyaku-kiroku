@@ -59,9 +59,7 @@ function extractPersonalDataFromCache(studentId, _cacheData) {
       ? userReservationsResult.data
       : { myBookings: [], myHistory: [] };
 
-    Logger.log(
-      `個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件`,
-    );
+    Logger.log(`個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件`);
     return { myBookings, myHistory };
   } catch (error) {
     Logger.log(`extractPersonalDataFromCacheエラー: ${error.message}`);

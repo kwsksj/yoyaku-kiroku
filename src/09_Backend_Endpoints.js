@@ -300,10 +300,10 @@ function getCacheVersions() {
 
     // 関連キャッシュのバージョンのみ取得
     const allReservationsCache = JSON.parse(
-      CacheService.getScriptCache().get(CACHE_KEYS.ALL_RESERVATIONS) || '{"version": 0}'
+      CacheService.getScriptCache().get(CACHE_KEYS.ALL_RESERVATIONS) || '{"version": 0}',
     );
     const scheduleMaster = JSON.parse(
-      CacheService.getScriptCache().get(CACHE_KEYS.SCHEDULE_MASTER) || '{"version": 0}'
+      CacheService.getScriptCache().get(CACHE_KEYS.SCHEDULE_MASTER) || '{"version": 0}',
     );
 
     const versions = {

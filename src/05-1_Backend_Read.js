@@ -69,7 +69,9 @@ function getAccountingMasterData() {
         JSON.stringify(cacheData),
         CACHE_EXPIRY_SECONDS,
       );
-      Logger.log(`会計マスタデータをフォールバックで取得し、キャッシュに保存しました。件数: ${processedData.length}`);
+      Logger.log(
+        `会計マスタデータをフォールバックで取得し、キャッシュに保存しました。件数: ${processedData.length}`,
+      );
     } catch (cacheError) {
       Logger.log(`会計マスタキャッシュ保存エラー: ${cacheError.message}`);
     }
