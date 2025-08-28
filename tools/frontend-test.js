@@ -9,7 +9,8 @@
     if (!area) {
       area = document.createElement('div');
       area.id = 'test-results';
-      area.style = 'background:#fff;border:1px solid #ccc;padding:1em;margin:2em 0;font-size:14px;';
+      area.style =
+        'background:#fff;border:1px solid #ccc;padding:1em;margin:2em 0;font-size:14px;';
       area.innerHTML = '<h2>自動テスト結果</h2><ul id="test-result-list"></ul>';
       document.body.appendChild(area);
     }
@@ -33,7 +34,10 @@
       const input = '<script>alert(1)</script>';
       const expected = '&lt;script&gt;alert(1)&lt;/script&gt;';
       const result = escapeHTML(input);
-      addTestResult('escapeHTML: ' + (result === expected ? 'OK' : 'NG'), result === expected);
+      addTestResult(
+        'escapeHTML: ' + (result === expected ? 'OK' : 'NG'),
+        result === expected,
+      );
     } catch (e) {
       addTestResult('escapeHTML: エラー - ' + e.message, false);
     }
@@ -60,7 +64,9 @@
   // ボタン操作のテスト例
   function testButtonClick() {
     try {
-      const btn = document.querySelector('[data-action="showAccountingConfirmation"]');
+      const btn = document.querySelector(
+        '[data-action="showAccountingConfirmation"]',
+      );
       if (!btn) throw new Error('showAccountingConfirmationボタン未検出');
       btn.click();
       setTimeout(() => {
@@ -68,7 +74,10 @@
         addTestResult('showAccountingConfirmationボタン: クリックOK', true);
       }, 500);
     } catch (e) {
-      addTestResult('showAccountingConfirmationボタン: エラー - ' + e.message, false);
+      addTestResult(
+        'showAccountingConfirmationボタン: エラー - ' + e.message,
+        false,
+      );
     }
   }
 
@@ -82,7 +91,10 @@
   }
 
   // ページロード後に自動実行
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  if (
+    document.readyState === 'complete' ||
+    document.readyState === 'interactive'
+  ) {
     setTimeout(runFrontendTests, 1000);
   } else {
     window.addEventListener('DOMContentLoaded', function () {

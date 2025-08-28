@@ -34,9 +34,13 @@ function getAvailableSlots() {
 
     // 2. キャッシュから全予約データを取得
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    const allReservations = reservationsCache ? reservationsCache.reservations || [] : [];
+    const allReservations = reservationsCache
+      ? reservationsCache.reservations || []
+      : [];
     const headerMap = reservationsCache ? reservationsCache.headerMap : null;
-    Logger.log(`全予約キャッシュから取得した予約データ: ${allReservations.length} 件`);
+    Logger.log(
+      `全予約キャッシュから取得した予約データ: ${allReservations.length} 件`,
+    );
 
     if (allReservations.length === 0) {
       Logger.log(
@@ -51,7 +55,10 @@ function getAvailableSlots() {
       .map(reservation => {
         // ヘッダーマップを使用した変換関数を使用
         if (Array.isArray(reservation)) {
-          return transformReservationArrayToObjectWithHeaders(reservation, headerMap);
+          return transformReservationArrayToObjectWithHeaders(
+            reservation,
+            headerMap,
+          );
         }
         // 既にオブジェクト形式の場合はそのまま返す
         return reservation;
@@ -84,7 +91,11 @@ function getAvailableSlots() {
 
     validReservations.forEach(reservation => {
       const reservationDate = new Date(reservation.date);
-      const dateString = Utilities.formatDate(reservationDate, timezone, 'yyyy-MM-dd');
+      const dateString = Utilities.formatDate(
+        reservationDate,
+        timezone,
+        'yyyy-MM-dd',
+      );
       const key = `${dateString}|${reservation.classroom}`;
 
       if (!reservationsByDateClassroom.has(key)) {
@@ -106,7 +117,9 @@ function getAvailableSlots() {
 
       // 時間解析結果をキャッシュ
       const timeCache = {
-        firstEndTime: schedule.firstEnd ? new Date(`1900-01-01T${schedule.firstEnd}`) : null,
+        firstEndTime: schedule.firstEnd
+          ? new Date(`1900-01-01T${schedule.firstEnd}`)
+          : null,
         secondStartTime: schedule.secondStart
           ? new Date(`1900-01-01T${schedule.secondStart}`)
           : null,
@@ -129,15 +142,26 @@ function getAvailableSlots() {
             ? new Date(`1900-01-01T${reservation.endTime}`)
             : null;
 
-          if (startTime && endTime && timeCache.firstEndTime && timeCache.secondStartTime) {
+          if (
+            startTime &&
+            endTime &&
+            timeCache.firstEndTime &&
+            timeCache.secondStartTime
+          ) {
             // 1部（午前）：開始時刻が1部終了時刻以前
             if (startTime <= timeCache.firstEndTime) {
-              sessionCounts.set(SESSION_MORNING, (sessionCounts.get(SESSION_MORNING) || 0) + 1);
+              sessionCounts.set(
+                SESSION_MORNING,
+                (sessionCounts.get(SESSION_MORNING) || 0) + 1,
+              );
             }
 
             // 2部（午後）：終了時刻が2部開始時刻以降
             if (endTime >= timeCache.secondStartTime) {
-              sessionCounts.set(SESSION_AFTERNOON, (sessionCounts.get(SESSION_AFTERNOON) || 0) + 1);
+              sessionCounts.set(
+                SESSION_AFTERNOON,
+                (sessionCounts.get(SESSION_AFTERNOON) || 0) + 1,
+              );
             }
           }
         } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
@@ -148,7 +172,10 @@ function getAvailableSlots() {
           );
         } else {
           // ${CONSTANTS.CLASSROOMS.NUMAZU}など: 全日時間制
-          sessionCounts.set(SESSION_ALL_DAY, (sessionCounts.get(SESSION_ALL_DAY) || 0) + 1);
+          sessionCounts.set(
+            SESSION_ALL_DAY,
+            (sessionCounts.get(SESSION_ALL_DAY) || 0) + 1,
+          );
         }
 
         // 初回講習は独立して判定
@@ -176,8 +203,10 @@ function getAvailableSlots() {
       });
 
       // 6. この日程の予約枠データを生成
-      const totalCapacity = schedule.totalCapacity || CLASSROOM_CAPACITIES[schedule.classroom] || 8;
-      const beginnerCapacity = schedule.beginnerCapacity || INTRO_LECTURE_CAPACITY;
+      const totalCapacity =
+        schedule.totalCapacity || CLASSROOM_CAPACITIES[schedule.classroom] || 8;
+      const beginnerCapacity =
+        schedule.beginnerCapacity || INTRO_LECTURE_CAPACITY;
 
       if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
         // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 午前・午後セッション
@@ -295,7 +324,9 @@ function getAvailableSlotsForClassroom(classroom) {
 function getUserReservations(studentId) {
   try {
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    const allReservations = reservationsCache ? reservationsCache.reservations || [] : [];
+    const allReservations = reservationsCache
+      ? reservationsCache.reservations || []
+      : [];
     const headerMap = reservationsCache ? reservationsCache.headerMap : null;
 
     const today = new Date();
@@ -307,7 +338,10 @@ function getUserReservations(studentId) {
     const convertedReservations = allReservations
       .map(reservation => {
         if (Array.isArray(reservation)) {
-          return transformReservationArrayToObjectWithHeaders(reservation, headerMap);
+          return transformReservationArrayToObjectWithHeaders(
+            reservation,
+            headerMap,
+          );
         }
         return reservation;
       })

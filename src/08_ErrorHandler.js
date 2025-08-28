@@ -72,7 +72,8 @@ class BackendErrorHandler {
    */
   static isDevelopmentMode() {
     // PropertiesServiceでDEV_MODEフラグを確認
-    const devMode = PropertiesService.getScriptProperties().getProperty('DEV_MODE');
+    const devMode =
+      PropertiesService.getScriptProperties().getProperty('DEV_MODE');
     return devMode === 'true';
   }
 

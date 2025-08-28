@@ -58,7 +58,10 @@ for (const sourceFile of sourceFiles) {
 
       // 重要な変数を明示的にwindowオブジェクトに設定するように修正
       if (sourceFile === '12_WebApp_Core.html') {
-        scriptContent = scriptContent.replace(/const appState = {/, 'window.appState = {');
+        scriptContent = scriptContent.replace(
+          /const appState = {/,
+          'window.appState = {',
+        );
         console.log(`🔧 ${sourceFile} - appStateをwindow.appStateに変更`);
       }
 
@@ -67,14 +70,18 @@ for (const sourceFile of sourceFiles) {
           /const actionHandlers = {/,
           'window.actionHandlers = {',
         );
-        console.log(`🔧 ${sourceFile} - actionHandlersをwindow.actionHandlersに変更`);
+        console.log(
+          `🔧 ${sourceFile} - actionHandlersをwindow.actionHandlersに変更`,
+        );
       }
 
       integratedScripts += `\n    // ========== ${sourceFile} ==========\n`;
       integratedScripts += scriptContent;
       integratedScripts += `\n    // ========== /${sourceFile} ==========\n`;
 
-      console.log(`✅ ${sourceFile} を統合しました (${scriptContent.length} 文字)`);
+      console.log(
+        `✅ ${sourceFile} を統合しました (${scriptContent.length} 文字)`,
+      );
     } else {
       console.warn(`⚠️  ${sourceFile} に<script>タグが見つかりません`);
     }
@@ -142,7 +149,11 @@ unifiedContent = unifiedContent.replace(
 try {
   fs.writeFileSync(outputFile, unifiedContent, 'utf-8');
   console.log('🎉 統合ファイルを生成しました:', outputFile);
-  console.log('📁 ファイルサイズ:', Math.round(unifiedContent.length / 1024), 'KB');
+  console.log(
+    '📁 ファイルサイズ:',
+    Math.round(unifiedContent.length / 1024),
+    'KB',
+  );
 } catch (error) {
   console.error('❌ 統合ファイルの書き込みに失敗:', error.message);
   process.exit(1);

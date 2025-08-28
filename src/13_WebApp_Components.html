@@ -59,7 +59,13 @@
      * @param {boolean} [config.disabled=false] - 無効状態
      * @returns {string} HTML文字列
      */
-    button: ({ action, text, style = 'primary', size = 'normal', disabled = false }) => {
+    button: ({
+      action,
+      text,
+      style = 'primary',
+      size = 'normal',
+      disabled = false,
+    }) => {
       // スタイルマッピング
       const styleClasses = {
         primary: DesignConfig.colors.primary,
@@ -91,7 +97,14 @@
      * @param {boolean} [config.required=false] - 必須項目かどうか
      * @returns {string} HTML文字列
      */
-    input: ({ id, label, type = 'text', value = '', placeholder = '', required = false }) => {
+    input: ({
+      id,
+      label,
+      type = 'text',
+      value = '',
+      placeholder = '',
+      required = false,
+    }) => {
       return `<div class="mb-4">
         <label
           for="${id}"
@@ -179,7 +192,9 @@
      * @returns {string} HTML文字列
      */
     infoCard: ({ title, items }) => {
-      const itemsHtml = items.map(item => `<p class="text-brand-text">${escapeHTML(item)}</p>`).join('');
+      const itemsHtml = items
+        .map(item => `<p class="text-brand-text">${escapeHTML(item)}</p>`)
+        .join('');
       return `<div class="bg-ui-surface border border-ui-border p-3 rounded-lg">
         <h3 class="font-bold text-brand-text mb-2">${escapeHTML(title)}</h3>
         ${itemsHtml}
@@ -212,7 +227,8 @@
      * @returns {string} HTML文字列
      */
     priceDisplay: ({ amount, label = '' }) => {
-      const formattedAmount = typeof amount === 'number' ? amount.toLocaleString() : amount;
+      const formattedAmount =
+        typeof amount === 'number' ? amount.toLocaleString() : amount;
       return `<div class="text-right">
         ${label ? `<span class="text-brand-subtle text-sm">${escapeHTML(label)}: </span>` : ''}
         <span class="font-bold text-brand-text">${formattedAmount}円</span>
@@ -247,7 +263,13 @@
      * @param {boolean} [config.disabled=false] - 無効化状態
      * @returns {string} HTML文字列
      */
-    accountingRow: ({ name, itemType, price, checked = false, disabled = false }) => {
+    accountingRow: ({
+      name,
+      itemType,
+      price,
+      checked = false,
+      disabled = false,
+    }) => {
       return `<div class="flex items-center justify-between mb-2">
         <label class="flex items-center space-x-2 text-brand-text">
           <input type="checkbox"
@@ -290,7 +312,10 @@
         // フォールバック: 静的オプション
         const staticOptions = ['桂', 'シナ', '檜', '楠', '桜', '朴', 'その他'];
         materialOptions = staticOptions
-          .map(option => `<option value="${option}" ${type === option ? 'selected' : ''}>${option}</option>`)
+          .map(
+            option =>
+              `<option value="${option}" ${type === option ? 'selected' : ''}>${option}</option>`,
+          )
           .join('');
       }
 
@@ -375,10 +400,18 @@
       // 授業料セクション
       let tuitionHtml;
       if (type === 'timeBased') {
-        const tuitionItemRule = getTuitionItemRule(master, reservation.classroom, C.items.MAIN_LECTURE);
+        const tuitionItemRule = getTuitionItemRule(
+          master,
+          reservation.classroom,
+          C.items.MAIN_LECTURE,
+        );
         tuitionHtml = Components.timeBasedTuition({ tuitionItemRule, initial });
       } else {
-        tuitionHtml = Components.fixedTuitionSection({ master, reservation, initial });
+        tuitionHtml = Components.fixedTuitionSection({
+          master,
+          reservation,
+          initial,
+        });
       }
 
       // 販売セクション
@@ -425,7 +458,9 @@
       const tuitionItems = master.filter(
         item =>
           item['種別'] === C.itemTypes.TUITION &&
-          (item['対象教室'] === '共通' || (item['対象教室'] && item['対象教室'].includes(reservation.classroom))),
+          (item['対象教室'] === '共通' ||
+            (item['対象教室'] &&
+              item['対象教室'].includes(reservation.classroom))),
       );
 
       const tuitionRowsHtml = tuitionItems
@@ -436,9 +471,15 @@
           // 初期値でのチェック状態を決定（より柔軟な条件）
           if (!isChecked) {
             // 特別処理（予約データからの直接プロパティ）
-            if (item['項目名'] === C.items.FIRST_LECTURE && initial.firstLecture) {
+            if (
+              item['項目名'] === C.items.FIRST_LECTURE &&
+              initial.firstLecture
+            ) {
               isChecked = true;
-            } else if (item['項目名'] === C.items.CHISEL_RENTAL && initial.chiselRental) {
+            } else if (
+              item['項目名'] === C.items.CHISEL_RENTAL &&
+              initial.chiselRental
+            ) {
               isChecked = true;
             }
             // 通常の初期値チェック（truthy値を受け入れる）
@@ -473,7 +514,9 @@
      * @returns {string} HTML文字列
      */
     salesSection: ({ master, initial }) => {
-      const salesItems = master.filter(item => item['種別'] === C.itemTypes.SALES);
+      const salesItems = master.filter(
+        item => item['種別'] === C.itemTypes.SALES,
+      );
       const salesItemsHtml = salesItems
         .map(item => {
           // truthy値でチェック状態を判定（より柔軟）
@@ -552,15 +595,24 @@
 
     // 旧式パラメータをHTMLに埋め込み（actionHandlers互換性のため）
     let additionalAttrs = '';
-    if (config.classroom) additionalAttrs += ` data-classroom="${escapeHTML(config.classroom)}"`;
-    if (config.date) additionalAttrs += ` data-date="${escapeHTML(config.date)}"`;
-    if (config.reservationId) additionalAttrs += ` data-reservation-id="${escapeHTML(config.reservationId)}"`;
-    if (config.sheetName) additionalAttrs += ` data-sheet-name="${escapeHTML(config.sheetName)}"`;
-    if (config.copyText) additionalAttrs += ` data-copy-text="${escapeHTML(config.copyText)}"`;
-    if (config.details) additionalAttrs += ` data-details="${escapeHTML(config.details)}"`;
-    if (config.studentId) additionalAttrs += ` data-student-id="${escapeHTML(config.studentId)}"`;
-    if (config.realName) additionalAttrs += ` data-real-name="${escapeHTML(config.realName)}"`;
-    if (config.nickname) additionalAttrs += ` data-nickname="${escapeHTML(config.nickname)}"`;
+    if (config.classroom)
+      additionalAttrs += ` data-classroom="${escapeHTML(config.classroom)}"`;
+    if (config.date)
+      additionalAttrs += ` data-date="${escapeHTML(config.date)}"`;
+    if (config.reservationId)
+      additionalAttrs += ` data-reservation-id="${escapeHTML(config.reservationId)}"`;
+    if (config.sheetName)
+      additionalAttrs += ` data-sheet-name="${escapeHTML(config.sheetName)}"`;
+    if (config.copyText)
+      additionalAttrs += ` data-copy-text="${escapeHTML(config.copyText)}"`;
+    if (config.details)
+      additionalAttrs += ` data-details="${escapeHTML(config.details)}"`;
+    if (config.studentId)
+      additionalAttrs += ` data-student-id="${escapeHTML(config.studentId)}"`;
+    if (config.realName)
+      additionalAttrs += ` data-real-name="${escapeHTML(config.realName)}"`;
+    if (config.nickname)
+      additionalAttrs += ` data-nickname="${escapeHTML(config.nickname)}"`;
 
     const button = Components.button({
       action: config.action,
@@ -571,7 +623,10 @@
     });
 
     // 追加属性を挿入
-    return button.replace('<button type="button"', `<button type="button"${additionalAttrs}`);
+    return button.replace(
+      '<button type="button"',
+      `<button type="button"${additionalAttrs}`,
+    );
   };
 
   /**

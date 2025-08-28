@@ -50,12 +50,16 @@ function logSalesFromArchivedData(archivedData, headerMap, classroomName) {
 
         if (details.tuition && details.tuition.items) {
           details.tuition.items.forEach(item => {
-            rowsToTransfer.push(createSalesRow(baseInfo, '授業料', item.name, item.price));
+            rowsToTransfer.push(
+              createSalesRow(baseInfo, '授業料', item.name, item.price),
+            );
           });
         }
         if (details.sales && details.sales.items) {
           details.sales.items.forEach(item => {
-            rowsToTransfer.push(createSalesRow(baseInfo, '物販', item.name, item.price));
+            rowsToTransfer.push(
+              createSalesRow(baseInfo, '物販', item.name, item.price),
+            );
           });
         }
       } catch (e) {
@@ -66,7 +70,12 @@ function logSalesFromArchivedData(archivedData, headerMap, classroomName) {
 
   if (rowsToTransfer.length > 0) {
     salesSheet
-      .getRange(salesSheet.getLastRow() + 1, 1, rowsToTransfer.length, rowsToTransfer[0].length)
+      .getRange(
+        salesSheet.getLastRow() + 1,
+        1,
+        rowsToTransfer.length,
+        rowsToTransfer[0].length,
+      )
       .setValues(rowsToTransfer);
   }
 }
@@ -166,7 +175,10 @@ function setupTestEnvironment() {
 
     ui.showModalDialog(htmlOutput, 'セットアップ完了');
   } catch (err) {
-    handleError(`テスト環境の作成中にエラーが発生しました: ${err.message}`, true);
+    handleError(
+      `テスト環境の作成中にエラーが発生しました: ${err.message}`,
+      true,
+    );
   }
 }
 
@@ -219,7 +231,10 @@ function createIntegratedSheet() {
     ss.toast(`シート「${sheetName}」を正常に作成しました。`, '成功', 5);
     logActivity('system', '移行作業', '成功', '統合予約シートを作成しました。');
   } catch (e) {
-    handleError(`統合予約シートの作成中にエラーが発生しました: ${e.message}`, true);
+    handleError(
+      `統合予約シートの作成中にエラーが発生しました: ${e.message}`,
+      true,
+    );
   }
 }
 
@@ -257,7 +272,12 @@ function migrateDataToIntegratedSheet() {
     // 統合シートの既存データをクリア（ヘッダーは残す）
     if (integratedSheet.getLastRow() > 1) {
       integratedSheet
-        .getRange(2, 1, integratedSheet.getLastRow() - 1, integratedSheet.getLastColumn())
+        .getRange(
+          2,
+          1,
+          integratedSheet.getLastRow() - 1,
+          integratedSheet.getLastColumn(),
+        )
         .clearContent();
     }
 
@@ -266,7 +286,9 @@ function migrateDataToIntegratedSheet() {
     CLASSROOM_SHEET_NAMES.forEach(sheetName => {
       const sourceSheet = ss.getSheetByName(sheetName);
       if (!sourceSheet) {
-        Logger.log(`シート「${sheetName}」が見つからないため、スキップします。`);
+        Logger.log(
+          `シート「${sheetName}」が見つからないため、スキップします。`,
+        );
         return;
       }
 
@@ -274,10 +296,17 @@ function migrateDataToIntegratedSheet() {
       if (lastRow < RESERVATION_DATA_START_ROW) return; // データなし
 
       const sourceData = sourceSheet
-        .getRange(RESERVATION_DATA_START_ROW, 1, lastRow - 1, sourceSheet.getLastColumn())
+        .getRange(
+          RESERVATION_DATA_START_ROW,
+          1,
+          lastRow - 1,
+          sourceSheet.getLastColumn(),
+        )
         .getValues();
       const sourceHeaderMap = createHeaderMap(
-        sourceSheet.getRange(1, 1, 1, sourceSheet.getLastColumn()).getValues()[0],
+        sourceSheet
+          .getRange(1, 1, 1, sourceSheet.getLastColumn())
+          .getValues()[0],
       );
 
       sourceData.forEach(row => {
@@ -346,7 +375,10 @@ function verifyMigratedData() {
   const integratedSheet = ss.getSheetByName(integratedSheetName);
 
   if (!integratedSheet) {
-    handleError(`エラー: シート「${integratedSheetName}」が見つかりません。`, true);
+    handleError(
+      `エラー: シート「${integratedSheetName}」が見つかりません。`,
+      true,
+    );
     return;
   }
 
@@ -363,7 +395,9 @@ function verifyMigratedData() {
       if (lastRow < RESERVATION_DATA_START_ROW) return;
 
       const sourceHeaderMap = createHeaderMap(
-        sourceSheet.getRange(1, 1, 1, sourceSheet.getLastColumn()).getValues()[0],
+        sourceSheet
+          .getRange(1, 1, 1, sourceSheet.getLastColumn())
+          .getValues()[0],
       );
       const nameColIdx = sourceHeaderMap.get(HEADER_NAME);
       if (nameColIdx === undefined) return;
@@ -401,6 +435,9 @@ function verifyMigratedData() {
       );
     }
   } catch (e) {
-    handleError(`データ整合性チェック中にエラーが発生しました: ${e.message}`, true);
+    handleError(
+      `データ整合性チェック中にエラーが発生しました: ${e.message}`,
+      true,
+    );
   }
 }

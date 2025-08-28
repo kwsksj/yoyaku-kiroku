@@ -19,7 +19,11 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
     if (allowEmpty) {
       return { isValid: true, normalized: '', message: '' };
     }
-    return { isValid: false, normalized: '', message: '電話番号が入力されていません。' };
+    return {
+      isValid: false,
+      normalized: '',
+      message: '電話番号が入力されていません。',
+    };
   }
 
   const normalized = phoneNumber
@@ -59,7 +63,9 @@ function extractPersonalDataFromCache(studentId, _cacheData) {
       ? userReservationsResult.data
       : { myBookings: [], myHistory: [] };
 
-    Logger.log(`個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件`);
+    Logger.log(
+      `個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件`,
+    );
     return { myBookings, myHistory };
   } catch (error) {
     Logger.log(`extractPersonalDataFromCacheエラー: ${error.message}`);
@@ -78,9 +84,10 @@ function extractPersonalDataFromCache(studentId, _cacheData) {
 function authenticateUser(phoneNumber) {
   try {
     Logger.log(`authenticateUser開始: ${phoneNumber}`);
-    const noPhoneLoginCommand = PropertiesService.getScriptProperties().getProperty(
-      'SPECIAL_NO_PHONE_LOGIN_COMMAND',
-    );
+    const noPhoneLoginCommand =
+      PropertiesService.getScriptProperties().getProperty(
+        'SPECIAL_NO_PHONE_LOGIN_COMMAND',
+      );
 
     if (noPhoneLoginCommand && phoneNumber === noPhoneLoginCommand) {
       logActivity('N/A', '特殊ログイン試行', '成功', `Command: ${phoneNumber}`);
@@ -93,28 +100,37 @@ function authenticateUser(phoneNumber) {
 
     if (!initialDataResult.success) {
       Logger.log(`初期データ取得失敗: ${initialDataResult.message}`);
-      throw new Error(`初期データの取得(キャッシュ)に失敗しました: ${initialDataResult.message}`);
+      throw new Error(
+        `初期データの取得(キャッシュ)に失敗しました: ${initialDataResult.message}`,
+      );
     }
 
     const allStudents = initialDataResult.data.allStudents;
-    Logger.log(`allStudents取得: ${allStudents ? 'オブジェクト取得済み' : 'undefined'}`);
+    Logger.log(
+      `allStudents取得: ${allStudents ? 'オブジェクト取得済み' : 'undefined'}`,
+    );
     Logger.log(`allStudents type: ${typeof allStudents}`);
 
     if (!allStudents) {
-      throw new Error('生徒データが取得できませんでした。allStudentsがundefinedです。');
+      throw new Error(
+        '生徒データが取得できませんでした。allStudentsがundefinedです。',
+      );
     }
 
     const studentIds = Object.keys(allStudents);
     Logger.log(`生徒データ件数: ${studentIds.length}`);
 
-    const normalizedInputPhone = _normalizeAndValidatePhone(phoneNumber).normalized;
+    const normalizedInputPhone =
+      _normalizeAndValidatePhone(phoneNumber).normalized;
     Logger.log(`正規化された入力電話番号: ${normalizedInputPhone}`);
 
     let foundUser = null;
 
     for (const studentId of studentIds) {
       const student = allStudents[studentId];
-      Logger.log(`生徒チェック中: ${studentId}, student: ${student ? 'あり' : 'undefined'}`);
+      Logger.log(
+        `生徒チェック中: ${studentId}, student: ${student ? 'あり' : 'undefined'}`,
+      );
 
       if (!student) {
         Logger.log(`警告: 生徒ID ${studentId} のデータがundefinedです`);
@@ -158,7 +174,12 @@ function authenticateUser(phoneNumber) {
         `個人データ準備完了: 予約${personalData.myBookings.length}件, 履歴${personalData.myHistory.length}件`,
       );
 
-      logActivity(foundUser.studentId, 'ログイン試行', '成功', `電話番号: ${phoneNumber}`);
+      logActivity(
+        foundUser.studentId,
+        'ログイン試行',
+        '成功',
+        `電話番号: ${phoneNumber}`,
+      );
       return {
         success: true,
         user: foundUser,
@@ -203,17 +224,26 @@ function getUsersWithoutPhoneNumber() {
     const realNameColIdx = header.indexOf(HEADER_REAL_NAME);
     const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
 
-    if (idColIdx === -1 || phoneColIdx === -1 || realNameColIdx === -1 || nicknameColIdx === -1) {
+    if (
+      idColIdx === -1 ||
+      phoneColIdx === -1 ||
+      realNameColIdx === -1 ||
+      nicknameColIdx === -1
+    ) {
       throw new Error('生徒名簿のヘッダーが正しくありません。');
     }
 
     const usersWithoutPhone = [];
     for (const row of data) {
-      const storedPhone = _normalizeAndValidatePhone(row[phoneColIdx]).normalized;
+      const storedPhone = _normalizeAndValidatePhone(
+        row[phoneColIdx],
+      ).normalized;
       if (storedPhone === '') {
         const realName = String(row[realNameColIdx] || '').trim();
         const nickname = String(row[nicknameColIdx] || '').trim();
-        const searchName = (realName + nickname).replace(/\s+/g, '').toLowerCase();
+        const searchName = (realName + nickname)
+          .replace(/\s+/g, '')
+          .toLowerCase();
 
         usersWithoutPhone.push({
           studentId: row[idColIdx],
@@ -223,10 +253,20 @@ function getUsersWithoutPhoneNumber() {
         });
       }
     }
-    logActivity('N/A', '電話番号なしユーザー検索', '成功', `発見数: ${usersWithoutPhone.length}`);
+    logActivity(
+      'N/A',
+      '電話番号なしユーザー検索',
+      '成功',
+      `発見数: ${usersWithoutPhone.length}`,
+    );
     return usersWithoutPhone;
   } catch (err) {
-    logActivity('N/A', '電話番号なしユーザー検索', 'エラー', `Error: ${err.message}`);
+    logActivity(
+      'N/A',
+      '電話番号なしユーザー検索',
+      'エラー',
+      `Error: ${err.message}`,
+    );
     Logger.log(`getUsersWithoutPhoneNumber Error: ${err.message}`);
     return [];
   }
@@ -240,7 +280,10 @@ function getUsersWithoutPhoneNumber() {
 function registerNewUser(userInfo) {
   return withTransaction(() => {
     try {
-      const validationResult = _normalizeAndValidatePhone(userInfo.phone || '', true);
+      const validationResult = _normalizeAndValidatePhone(
+        userInfo.phone || '',
+        true,
+      );
       const normalizedPhone = validationResult.normalized;
 
       if (!validationResult.isValid && userInfo.phone) {
@@ -252,19 +295,29 @@ function registerNewUser(userInfo) {
 
       const existingUser = authenticateUser(normalizedPhone);
       if (existingUser.success) {
-        return { success: false, message: 'この電話番号は既に登録されています。' };
+        return {
+          success: false,
+          message: 'この電話番号は既に登録されています。',
+        };
       }
 
       const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
       if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
-      const header = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
+      const header = rosterSheet
+        .getRange(1, 1, 1, rosterSheet.getLastColumn())
+        .getValues()[0];
       const idColIdx = header.indexOf(HEADER_STUDENT_ID);
       const phoneColIdx = header.indexOf(HEADER_PHONE);
       const realNameColIdx = header.indexOf(HEADER_REAL_NAME);
       const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
 
-      if (idColIdx === -1 || phoneColIdx === -1 || realNameColIdx === -1 || nicknameColIdx === -1) {
+      if (
+        idColIdx === -1 ||
+        phoneColIdx === -1 ||
+        realNameColIdx === -1 ||
+        nicknameColIdx === -1
+      ) {
         throw new Error('生徒名簿のヘッダーが正しくありません。');
       }
 
@@ -277,10 +330,13 @@ function registerNewUser(userInfo) {
       newRow[nicknameColIdx] = userInfo.nickname || '';
 
       const registrationDateColIdx = header.indexOf('登録日時');
-      if (registrationDateColIdx !== -1) newRow[registrationDateColIdx] = new Date();
+      if (registrationDateColIdx !== -1)
+        newRow[registrationDateColIdx] = new Date();
 
       rosterSheet.appendRow(newRow);
-      rosterSheet.getRange(rosterSheet.getLastRow(), phoneColIdx + 1).setNumberFormat('@');
+      rosterSheet
+        .getRange(rosterSheet.getLastRow(), phoneColIdx + 1)
+        .setNumberFormat('@');
 
       rebuildAllStudentsBasicCache();
 
@@ -335,13 +391,20 @@ function updateUserProfile(userInfo) {
       const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
       const phoneColIdx = header.indexOf(HEADER_PHONE);
 
-      if (idColIdx === -1 || realNameColIdx === -1 || nicknameColIdx === -1 || phoneColIdx === -1) {
+      if (
+        idColIdx === -1 ||
+        realNameColIdx === -1 ||
+        nicknameColIdx === -1 ||
+        phoneColIdx === -1
+      ) {
         throw new Error(
           '生徒名簿のヘッダー（生徒ID, 本名, ニックネーム, 電話番号など）が正しくありません。',
         );
       }
 
-      const targetRowIndex = data.findIndex(row => row[idColIdx] === userInfo.studentId);
+      const targetRowIndex = data.findIndex(
+        row => row[idColIdx] === userInfo.studentId,
+      );
 
       if (targetRowIndex !== -1) {
         // メモリ上のデータを更新
@@ -349,7 +412,10 @@ function updateUserProfile(userInfo) {
         data[targetRowIndex][nicknameColIdx] = userInfo.displayName;
 
         if (userInfo.phone !== undefined && userInfo.phone !== null) {
-          const validationResult = _normalizeAndValidatePhone(userInfo.phone, true);
+          const validationResult = _normalizeAndValidatePhone(
+            userInfo.phone,
+            true,
+          );
 
           if (!validationResult.isValid && userInfo.phone !== '') {
             throw new Error(validationResult.message);
@@ -360,9 +426,13 @@ function updateUserProfile(userInfo) {
             for (let i = 0; i < data.length; i++) {
               if (i === targetRowIndex) continue;
 
-              const storedPhone = _normalizeAndValidatePhone(data[i][phoneColIdx]).normalized;
+              const storedPhone = _normalizeAndValidatePhone(
+                data[i][phoneColIdx],
+              ).normalized;
               if (storedPhone === normalizedNewPhone) {
-                throw new Error('この電話番号は既に他のユーザーに登録されています。');
+                throw new Error(
+                  'この電話番号は既に他のユーザーに登録されています。',
+                );
               }
             }
             data[targetRowIndex][phoneColIdx] = "'" + normalizedNewPhone;
@@ -374,11 +444,15 @@ function updateUserProfile(userInfo) {
         // ヘッダーを含む全データを一括書き戻し
         const allData = [header, ...data];
         rosterSheet.clear();
-        rosterSheet.getRange(1, 1, allData.length, header.length).setValues(allData);
+        rosterSheet
+          .getRange(1, 1, allData.length, header.length)
+          .setValues(allData);
 
         // 電話番号列の文字列フォーマットを設定
         if (phoneColIdx !== -1) {
-          rosterSheet.getRange(2, phoneColIdx + 1, data.length, 1).setNumberFormat('@');
+          rosterSheet
+            .getRange(2, phoneColIdx + 1, data.length, 1)
+            .setNumberFormat('@');
         }
 
         logActivity(
@@ -391,7 +465,9 @@ function updateUserProfile(userInfo) {
         // プロフィール更新後に生徒データキャッシュを再構築
         try {
           rebuildAllStudentsBasicCache();
-          Logger.log('プロフィール更新後に生徒データキャッシュを再構築しました');
+          Logger.log(
+            'プロフィール更新後に生徒データキャッシュを再構築しました',
+          );
         } catch (cacheError) {
           Logger.log(`キャッシュ再構築エラー: ${cacheError.message}`);
           // キャッシュエラーはプロフィール更新の成功を妨げない
@@ -403,11 +479,19 @@ function updateUserProfile(userInfo) {
           updatedUser: userInfo,
         };
       } else {
-        return { success: false, message: '更新対象のユーザーが見つかりませんでした。' };
+        return {
+          success: false,
+          message: '更新対象のユーザーが見つかりませんでした。',
+        };
       }
     } catch (err) {
       const details = `ID: ${userInfo.studentId}, Name: ${userInfo.displayName}, Error: ${err.message}`;
-      logActivity(userInfo.studentId, 'プロフィール更新エラー', '失敗', details);
+      logActivity(
+        userInfo.studentId,
+        'プロフィール更新エラー',
+        '失敗',
+        details,
+      );
       Logger.log(`updateUserProfile Error: ${err.message}`);
       return {
         success: false,

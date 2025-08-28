@@ -51,7 +51,12 @@ function createScheduleMasterSheet() {
       .setValues([SCHEDULE_MASTER_HEADERS]);
 
     // ヘッダー行の書式設定
-    const headerRange = scheduleSheet.getRange(HEADER_ROW, 1, 1, SCHEDULE_MASTER_HEADERS.length);
+    const headerRange = scheduleSheet.getRange(
+      HEADER_ROW,
+      1,
+      1,
+      SCHEDULE_MASTER_HEADERS.length,
+    );
     headerRange.setFontWeight('bold');
     headerRange.setBackground(COLOR_HEADER_BACKGROUND);
     headerRange.setHorizontalAlignment('center');
@@ -71,7 +76,12 @@ function createScheduleMasterSheet() {
     const sampleData = createSampleScheduleData();
     if (sampleData.length > 0) {
       scheduleSheet
-        .getRange(DATA_START_ROW, 1, sampleData.length, SCHEDULE_MASTER_HEADERS.length)
+        .getRange(
+          DATA_START_ROW,
+          1,
+          sampleData.length,
+          SCHEDULE_MASTER_HEADERS.length,
+        )
         .setValues(sampleData);
     }
 
@@ -95,7 +105,10 @@ function createScheduleMasterSheet() {
     );
   } catch (error) {
     Logger.log(`日程マスタシート作成エラー: ${error.message}`);
-    handleError(`日程マスタシートの作成中にエラーが発生しました: ${error.message}`, true);
+    handleError(
+      `日程マスタシートの作成中にエラーが発生しました: ${error.message}`,
+      true,
+    );
   }
 }
 
@@ -136,7 +149,8 @@ function createSampleScheduleData() {
         },
       ];
 
-      const classroomIndex = Math.floor(sampleData.length / 2) % classrooms.length;
+      const classroomIndex =
+        Math.floor(sampleData.length / 2) % classrooms.length;
       const classroom = classrooms[classroomIndex];
 
       // 教室形式に応じた時間設定
@@ -166,7 +180,11 @@ function createSampleScheduleData() {
       }
 
       sampleData.push([
-        Utilities.formatDate(targetDate, getSpreadsheetTimezone(), 'yyyy-MM-dd'),
+        Utilities.formatDate(
+          targetDate,
+          getSpreadsheetTimezone(),
+          'yyyy-MM-dd',
+        ),
         classroom.name,
         classroom.venue,
         classroom.type,
@@ -200,12 +218,16 @@ function getAllScheduledDates(fromDate, toDate) {
 
     if (scheduleCache) {
       const cachedSchedules = scheduleCache.schedule || [];
-      Logger.log(`キャッシュから日程マスタデータを取得: ${cachedSchedules.length} 件`);
+      Logger.log(
+        `キャッシュから日程マスタデータを取得: ${cachedSchedules.length} 件`,
+      );
       return filterSchedulesByDateRange(cachedSchedules, fromDate, toDate);
     }
 
     // 3. キャッシュ再構築も失敗した場合のフォールバック
-    Logger.log('キャッシュ再構築に失敗しました。スプレッドシートから直接取得します。');
+    Logger.log(
+      'キャッシュ再構築に失敗しました。スプレッドシートから直接取得します。',
+    );
     return getScheduleDataFromSheet(fromDate, toDate);
   } catch (error) {
     Logger.log(`getAllScheduledDates エラー: ${error.message}`);
@@ -226,7 +248,9 @@ function filterSchedulesByDateRange(schedules, fromDate, toDate) {
   }
 
   const fromDateTime = fromDate ? new Date(fromDate).getTime() : 0;
-  const toDateTime = toDate ? new Date(toDate).getTime() : Number.MAX_SAFE_INTEGER;
+  const toDateTime = toDate
+    ? new Date(toDate).getTime()
+    : Number.MAX_SAFE_INTEGER;
 
   return schedules.filter(schedule => {
     const scheduleDate = new Date(schedule.date);
@@ -263,7 +287,9 @@ function getScheduleDataFromSheet(fromDate, toDate) {
     const schedules = [];
 
     const fromDateTime = fromDate ? new Date(fromDate).getTime() : 0;
-    const toDateTime = toDate ? new Date(toDate).getTime() : Number.MAX_SAFE_INTEGER;
+    const toDateTime = toDate
+      ? new Date(toDate).getTime()
+      : Number.MAX_SAFE_INTEGER;
 
     data.forEach(row => {
       const [
@@ -289,7 +315,11 @@ function getScheduleDataFromSheet(fromDate, toDate) {
           // scheduled状態のみを返す（キャンセルや完了は除外）
           if (status === SCHEDULE_STATUS_SCHEDULED) {
             schedules.push({
-              date: Utilities.formatDate(date, getSpreadsheetTimezone(), 'yyyy-MM-dd'),
+              date: Utilities.formatDate(
+                date,
+                getSpreadsheetTimezone(),
+                'yyyy-MM-dd',
+              ),
               classroom: String(classroom),
               venue: String(venue || ''),
               classroomType: String(classroomType),
@@ -308,7 +338,9 @@ function getScheduleDataFromSheet(fromDate, toDate) {
       }
     });
 
-    Logger.log(`スプレッドシートから開催日程データを ${schedules.length} 件取得しました`);
+    Logger.log(
+      `スプレッドシートから開催日程データを ${schedules.length} 件取得しました`,
+    );
     return schedules;
   } catch (error) {
     Logger.log(`getScheduleDataFromSheet エラー: ${error.message}`);
@@ -326,11 +358,16 @@ function generateScheduleMasterFromExistingReservations() {
 
     // 1. 全ての予約データから日付・教室の組み合わせを抽出
     const uniqueDateClassrooms = extractUniqueDateClassroomCombinations();
-    Logger.log(`ユニークな日付・教室の組み合わせ: ${uniqueDateClassrooms.size} 件`);
+    Logger.log(
+      `ユニークな日付・教室の組み合わせ: ${uniqueDateClassrooms.size} 件`,
+    );
 
     if (uniqueDateClassrooms.size === 0) {
       Logger.log('生成エラー: 予約データから有効な日程が見つかりませんでした');
-      return { success: false, message: '予約データから有効な日程が見つかりませんでした' };
+      return {
+        success: false,
+        message: '予約データから有効な日程が見つかりませんでした',
+      };
     }
 
     // 2. 日程マスタシートの準備
@@ -354,7 +391,9 @@ function generateScheduleMasterFromExistingReservations() {
       `生成件数: ${scheduleData.length} 件`,
     );
 
-    Logger.log(`予約データから日程マスタ生成が完了しました。生成件数: ${scheduleData.length} 件`);
+    Logger.log(
+      `予約データから日程マスタ生成が完了しました。生成件数: ${scheduleData.length} 件`,
+    );
     return {
       success: true,
       count: scheduleData.length,
@@ -362,8 +401,14 @@ function generateScheduleMasterFromExistingReservations() {
     };
   } catch (error) {
     Logger.log(`日程マスタ生成エラー: ${error.message}`);
-    handleError(`日程マスタの生成中にエラーが発生しました: ${error.message}`, true);
-    return { success: false, message: `エラーが発生しました: ${error.message}` };
+    handleError(
+      `日程マスタの生成中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+    return {
+      success: false,
+      message: `エラーが発生しました: ${error.message}`,
+    };
   }
 }
 
@@ -397,7 +442,11 @@ function generateScheduleMasterFromExistingReservationsWithUI() {
   } catch (error) {
     Logger.log(`日程マスタ生成（UI付き）エラー: ${error.message}`);
     const ui = SpreadsheetApp.getUi();
-    ui.alert('エラー', `処理中にエラーが発生しました: ${error.message}`, ui.ButtonSet.OK);
+    ui.alert(
+      'エラー',
+      `処理中にエラーが発生しました: ${error.message}`,
+      ui.ButtonSet.OK,
+    );
   }
 }
 
@@ -426,15 +475,22 @@ function extractUniqueDateClassroomCombinations() {
 
       try {
         // ヘッダー行を取得してインデックスを確認
-        const headers = sheet.getRange(HEADER_ROW, 1, 1, sheet.getLastColumn()).getValues()[0];
+        const headers = sheet
+          .getRange(HEADER_ROW, 1, 1, sheet.getLastColumn())
+          .getValues()[0];
         const dateIndex = headers.findIndex(
-          header => header === '日付' || header === 'date' || header === '開催日',
+          header =>
+            header === '日付' || header === 'date' || header === '開催日',
         );
         const classroomIndex = headers.findIndex(
           header => header === '教室' || header === 'classroom',
         );
-        const venueIndex = headers.findIndex(header => header === '会場' || header === 'venue');
-        const statusIndex = headers.findIndex(header => header === '状態' || header === 'status');
+        const venueIndex = headers.findIndex(
+          header => header === '会場' || header === 'venue',
+        );
+        const statusIndex = headers.findIndex(
+          header => header === '状態' || header === 'status',
+        );
 
         if (dateIndex === -1 || classroomIndex === -1) {
           Logger.log(
@@ -444,7 +500,12 @@ function extractUniqueDateClassroomCombinations() {
         }
 
         // データ範囲を取得
-        const dataRange = sheet.getRange(DATA_START_ROW, 1, lastRow - 1, sheet.getLastColumn());
+        const dataRange = sheet.getRange(
+          DATA_START_ROW,
+          1,
+          lastRow - 1,
+          sheet.getLastColumn(),
+        );
         const data = dataRange.getValues();
 
         data.forEach((row, _index) => {
@@ -457,7 +518,11 @@ function extractUniqueDateClassroomCombinations() {
           if (date instanceof Date && classroom) {
             // キャンセルや待機中の予約は除外
             if (status !== STATUS_CANCEL && status !== STATUS_WAITING) {
-              const dateString = Utilities.formatDate(date, getSpreadsheetTimezone(), 'yyyy-MM-dd');
+              const dateString = Utilities.formatDate(
+                date,
+                getSpreadsheetTimezone(),
+                'yyyy-MM-dd',
+              );
               const key = `${dateString}|${classroom}`;
 
               if (!uniqueCombinations.has(key)) {
@@ -525,7 +590,12 @@ function prepareScheduleMasterSheet() {
       .setValues([SCHEDULE_MASTER_HEADERS]);
 
     // ヘッダー行の書式設定
-    const headerRange = scheduleSheet.getRange(HEADER_ROW, 1, 1, SCHEDULE_MASTER_HEADERS.length);
+    const headerRange = scheduleSheet.getRange(
+      HEADER_ROW,
+      1,
+      1,
+      SCHEDULE_MASTER_HEADERS.length,
+    );
     headerRange.setFontWeight('bold');
     headerRange.setBackground(COLOR_HEADER_BACKGROUND);
     headerRange.setHorizontalAlignment('center');
@@ -534,7 +604,12 @@ function prepareScheduleMasterSheet() {
     const lastRow = scheduleSheet.getLastRow();
     if (lastRow > HEADER_ROW) {
       scheduleSheet
-        .getRange(DATA_START_ROW, 1, lastRow - HEADER_ROW, SCHEDULE_MASTER_HEADERS.length)
+        .getRange(
+          DATA_START_ROW,
+          1,
+          lastRow - HEADER_ROW,
+          SCHEDULE_MASTER_HEADERS.length,
+        )
         .clear();
     }
   }
@@ -599,7 +674,10 @@ function getClassroomDefaults(classroom) {
       totalCapacity: 8,
       beginnerCapacity: 4,
     };
-  } else if (classroom.includes('つくば') || classroom === TSUKUBA_CLASSROOM_NAME) {
+  } else if (
+    classroom.includes('つくば') ||
+    classroom === TSUKUBA_CLASSROOM_NAME
+  ) {
     return {
       venue: '', // ${CONSTANTS.CLASSROOMS.TSUKUBA}は空欄
       classroomType: CLASSROOM_TYPE_TIME_DUAL,
@@ -611,7 +689,10 @@ function getClassroomDefaults(classroom) {
       totalCapacity: 8,
       beginnerCapacity: 4,
     };
-  } else if (classroom.includes('沼津') || classroom === NUMAZU_CLASSROOM_NAME) {
+  } else if (
+    classroom.includes('沼津') ||
+    classroom === NUMAZU_CLASSROOM_NAME
+  ) {
     return {
       venue: '', // ${CONSTANTS.CLASSROOMS.NUMAZU}は空欄
       classroomType: CLASSROOM_TYPE_TIME_FULL,

@@ -95,7 +95,11 @@
         return;
       }
 
-      console.log('🎯 Action dispatched:', action.type, action.payload ? Object.keys(action.payload) : 'no payload');
+      console.log(
+        '🎯 Action dispatched:',
+        action.type,
+        action.payload ? Object.keys(action.payload) : 'no payload',
+      );
 
       // アクションに基づいて状態更新
       let newState = {};
@@ -141,7 +145,10 @@
         // window.Cがフォールバックで空オブジェクト{}で初期化されるため、
         // !window.Cでは正しく判定できない。
         // オブジェクトが空かどうかもチェックする。
-        if (newState.constants && (!window.C || Object.keys(window.C).length === 0)) {
+        if (
+          newState.constants &&
+          (!window.C || Object.keys(window.C).length === 0)
+        ) {
           this.initializeGlobalConstants();
         }
 
@@ -200,10 +207,13 @@
         (a, b) => new Date(b.date) - new Date(a.date),
       );
 
-      this.state.computed.sortedHistory = [...this.state.history].sort((a, b) => new Date(b.date) - new Date(a.date));
+      this.state.computed.sortedHistory = [...this.state.history].sort(
+        (a, b) => new Date(b.date) - new Date(a.date),
+      );
 
       // 表示する履歴の数を recordsToShow に基づいて動的に計算
-      this.state.computed.displayHistory = this.state.computed.sortedHistory.slice(0, this.state.recordsToShow);
+      this.state.computed.displayHistory =
+        this.state.computed.sortedHistory.slice(0, this.state.recordsToShow);
     }
 
     /**

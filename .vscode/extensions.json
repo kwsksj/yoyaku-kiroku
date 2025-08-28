@@ -40,5 +40,10 @@
     "pkief.material-icon-theme",
     "dracula-theme.theme-dracula"
   ],
-  "unwantedRecommendations": ["ms-python.python", "ms-vscode.cpptools", "redhat.java", "golang.go"]
+  "unwantedRecommendations": [
+    "ms-python.python",
+    "ms-vscode.cpptools",
+    "redhat.java",
+    "golang.go"
+  ]
 }

@@ -20,7 +20,10 @@ function addCalendarEventsToSheetWithSpecifics() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(LOCK_WAIT_TIME_MS)) {
     try {
-      handleError('現在、他の処理が実行中です。しばらく経ってから再度お試しください。', true);
+      handleError(
+        '現在、他の処理が実行中です。しばらく経ってから再度お試しください。',
+        true,
+      );
     } catch {
       Logger.log('現在、他の処理が実行中です。');
     }
@@ -59,7 +62,9 @@ function addCalendarEventsToSheetWithSpecifics() {
 
     CLASSROOM_SETTINGS.forEach(setting => {
       const { sheetName, calendarId, includeEventTitle } = setting;
-      Logger.log(`\n--- 処理開始: シート "${sheetName}" / カレンダー "${calendarId}" ---`);
+      Logger.log(
+        `\n--- 処理開始: シート "${sheetName}" / カレンダー "${calendarId}" ---`,
+      );
 
       const sheet = ss.getSheetByName(sheetName);
       if (!sheet) {
@@ -69,7 +74,9 @@ function addCalendarEventsToSheetWithSpecifics() {
         return;
       }
 
-      const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const header = sheet
+        .getRange(1, 1, 1, sheet.getLastColumn())
+        .getValues()[0];
       const headerMap = createHeaderMap(header);
       const reservationIdColIdx = headerMap.get(HEADER_RESERVATION_ID);
       const dateColIdx = headerMap.get(HEADER_DATE);
@@ -91,11 +98,15 @@ function addCalendarEventsToSheetWithSpecifics() {
 
       const events = calendar.getEvents(tomorrow, oneYearLater);
       if (events.length === 0) {
-        Logger.log(`シート "${sheetName}" の指定期間内に予定が見つかりませんでした。`);
+        Logger.log(
+          `シート "${sheetName}" の指定期間内に予定が見つかりませんでした。`,
+        );
         return;
       }
 
-      events.sort((a, b) => a.getStartTime().getTime() - b.getStartTime().getTime());
+      events.sort(
+        (a, b) => a.getStartTime().getTime() - b.getStartTime().getTime(),
+      );
 
       const existingDates = new Set();
       if (sheet.getLastRow() > 1) {
@@ -105,7 +116,11 @@ function addCalendarEventsToSheetWithSpecifics() {
         datesInSheet.forEach(row => {
           if (row[0] instanceof Date) {
             existingDates.add(
-              Utilities.formatDate(row[0], Session.getScriptTimeZone(), 'yyyy-MM-dd'),
+              Utilities.formatDate(
+                row[0],
+                Session.getScriptTimeZone(),
+                'yyyy-MM-dd',
+              ),
             );
           }
         });
@@ -164,9 +179,16 @@ function addCalendarEventsToSheetWithSpecifics() {
 
       if (newRows.length > 0) {
         sheet
-          .getRange(sheet.getLastRow() + 1, 1, newRows.length, newRows[0].length)
+          .getRange(
+            sheet.getLastRow() + 1,
+            1,
+            newRows.length,
+            newRows[0].length,
+          )
           .setValues(newRows);
-        Logger.log(`シート "${sheetName}" に ${newRows.length} 行を追加しました。`);
+        Logger.log(
+          `シート "${sheetName}" に ${newRows.length} 行を追加しました。`,
+        );
         logActivity(
           'system',
           'カレンダー同期',
@@ -182,7 +204,10 @@ function addCalendarEventsToSheetWithSpecifics() {
       'カレンダー連携処理が完了しました。スプレッドシートを確認してください。',
     );
   } catch (err) {
-    handleError(`カレンダーからの予定追加中にエラーが発生しました。\n詳細: ${err.message}`, true);
+    handleError(
+      `カレンダーからの予定追加中にエラーが発生しました。\n詳細: ${err.message}`,
+      true,
+    );
   } finally {
     lock.releaseLock();
   }

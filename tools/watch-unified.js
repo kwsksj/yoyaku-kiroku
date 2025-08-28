@@ -48,7 +48,9 @@ watchFiles.forEach(filename => {
 
     fs.watchFile(filePath, { interval: 500 }, (curr, prev) => {
       if (curr.mtime !== prev.mtime) {
-        console.log(`\n📝 ${filename} が変更されました (${new Date().toLocaleTimeString()})`);
+        console.log(
+          `\n📝 ${filename} が変更されました (${new Date().toLocaleTimeString()})`,
+        );
 
         // デバウンス処理（複数ファイルの同時変更に対応）
         if (debounceTimer) {

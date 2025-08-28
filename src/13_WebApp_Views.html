@@ -32,7 +32,9 @@
     for (let h = startHour; h <= endHour; h++) {
       for (let m = 0; m < 60; m += step) {
         const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        options.push(`<option value="${time}" ${time === selectedValue ? 'selected' : ''}>${time}</option>`);
+        options.push(
+          `<option value="${time}" ${time === selectedValue ? 'selected' : ''}>${time}</option>`,
+        );
       }
     }
     return options.join('');
@@ -48,7 +50,10 @@
     if (!discountRule) return '';
     const options = [
       { value: C.frontendUi.DISCOUNT_OPTIONS.NONE, text: 'なし' },
-      { value: C.frontendUi.DISCOUNT_OPTIONS.THIRTY_MIN, text: `30分 (${Math.abs(Number(discountRule['単価']))}円引)` },
+      {
+        value: C.frontendUi.DISCOUNT_OPTIONS.THIRTY_MIN,
+        text: `30分 (${Math.abs(Number(discountRule['単価']))}円引)`,
+      },
       {
         value: C.frontendUi.DISCOUNT_OPTIONS.SIXTY_MIN,
         text: `60分 (${Math.abs(Number(discountRule['単価'])) * 2}円引)`,
@@ -155,7 +160,9 @@
 
     const isBooking = type === 'booking';
     const venueText = item.venue || '';
-    const isPastOrToday = isBooking ? new Date(item.date).getTime() <= today.getTime() : true;
+    const isPastOrToday = isBooking
+      ? new Date(item.date).getTime() <= today.getTime()
+      : true;
 
     // 時刻表示の生成
     let timeText = '';
@@ -165,7 +172,9 @@
 
     let cardColorClass = 'bg-ui-surface border border-ui-border';
     if (isBooking) {
-      const cardColor = item.isWaiting ? DesignConfig.cards.state.waitlist : DesignConfig.cards.state.booked;
+      const cardColor = item.isWaiting
+        ? DesignConfig.cards.state.waitlist
+        : DesignConfig.cards.state.booked;
       cardColorClass = cardColor.card;
     } else if (type === 'history') {
       cardColorClass = DesignConfig.cards.state.history.card;
@@ -185,7 +194,9 @@
       }
       // キャンセル済みstatus は予約・履歴どちらでも表示（英語・日本語両方に対応）
       const isCancelled =
-        item.status === STATUS.CANCEL || item.status === 'キャンセル' || item.status === 'キャンセル済み';
+        item.status === STATUS.CANCEL ||
+        item.status === 'キャンセル' ||
+        item.status === 'キャンセル済み';
       if (isCancelled) {
         statusBadges += `<p class="font-bold text-ui-error-text text-lg">キャンセル済</p>`;
       }
@@ -266,12 +277,27 @@
       )
       .join('');
 
-    const startTimeOptions = getTimeOptionsHtml(classStart, classEnd + endBuffer, 30, initial.startTime);
-    const endTimeOptions = getTimeOptionsHtml(classStart, classEnd + endBuffer, 30, initial.endTime);
+    const startTimeOptions = getTimeOptionsHtml(
+      classStart,
+      classEnd + endBuffer,
+      30,
+      initial.startTime,
+    );
+    const endTimeOptions = getTimeOptionsHtml(
+      classStart,
+      classEnd + endBuffer,
+      30,
+      initial.endTime,
+    );
 
-    const rentalChecked = initial.chiselRental || initial['彫刻刀レンタル'] === true ? 'checked' : '';
+    const rentalChecked =
+      initial.chiselRental || initial['彫刻刀レンタル'] === true
+        ? 'checked'
+        : '';
 
-    const discountRule = stateManager.getState().accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
+    const discountRule = stateManager
+      .getState()
+      .accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
     const discountHtml = discountRule
       ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule, initial.discountMinutes || '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
       : '';
@@ -344,11 +370,14 @@
       : regData.phone || phone || '';
 
     // 電話番号表示の判定
-    const isPhoneInputNeeded = isEdit && (stateManager.getState().registrationPhone || !u.phone);
+    const isPhoneInputNeeded =
+      isEdit && (stateManager.getState().registrationPhone || !u.phone);
 
     // タイトルと説明文
     const title = isEdit ? 'プロフィール編集' : '新規登録';
-    const description = isEdit ? '' : '<p class="text-brand-subtle mb-6">お名前を登録してください。</p>';
+    const description = isEdit
+      ? ''
+      : '<p class="text-brand-subtle mb-6">お名前を登録してください。</p>';
 
     // 電話番号セクション
     let phoneSection = '';
@@ -382,12 +411,28 @@
     // ボタン設定
     const buttons = isEdit
       ? [
-          { text: 'この内容で更新', action: 'saveProfile', colorClass: DesignConfig.colors.primary },
-          { text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary },
+          {
+            text: 'この内容で更新',
+            action: 'saveProfile',
+            colorClass: DesignConfig.colors.primary,
+          },
+          {
+            text: '戻る',
+            action: 'goBackToDashboard',
+            colorClass: DesignConfig.colors.secondary,
+          },
         ]
       : [
-          { text: '次へ進む', action: 'goToStep2', colorClass: DesignConfig.colors.primary },
-          { text: '戻る', action: 'goBackToLogin', colorClass: DesignConfig.colors.secondary },
+          {
+            text: '次へ進む',
+            action: 'goToStep2',
+            colorClass: DesignConfig.colors.primary,
+          },
+          {
+            text: '戻る',
+            action: 'goBackToLogin',
+            colorClass: DesignConfig.colors.secondary,
+          },
         ];
 
     const nameIdPrefix = isEdit ? 'edit' : 'reg';
@@ -460,8 +505,21 @@
           `<label class="flex items-center space-x-2"><input type="radio" name="dominantHand" value="${opt}" ${data.dominantHand === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
       )
       .join('');
-    const ageOptions = ['10代（16歳以上）', '20代', '30代', '40代', '50代', '60代', '70代', '80代以上', 'ひみつ']
-      .map(opt => `<option value="${opt}" ${data.ageGroup === opt ? 'selected' : ''}>${opt}</option>`)
+    const ageOptions = [
+      '10代（16歳以上）',
+      '20代',
+      '30代',
+      '40代',
+      '50代',
+      '60代',
+      '70代',
+      '80代以上',
+      'ひみつ',
+    ]
+      .map(
+        opt =>
+          `<option value="${opt}" ${data.ageGroup === opt ? 'selected' : ''}>${opt}</option>`,
+      )
       .join('');
 
     return `
@@ -530,7 +588,8 @@
   const getUserSearchView = () => {
     const users = stateManager.getState().searchedUsers;
     // NF-01: 検索が実行され、結果が0件の場合にメッセージを表示
-    const hasSearchedAndNoResults = stateManager.getState().searchAttempted && users.length === 0;
+    const hasSearchedAndNoResults =
+      stateManager.getState().searchAttempted && users.length === 0;
 
     return `
         <h1 class="text-xl font-bold text-brand-text mb-4">アカウントを探す</h1>
@@ -632,7 +691,9 @@
                 ${sortedBookings
                   .filter(b => {
                     const isCancelled =
-                      b.status === STATUS.CANCEL || b.status === 'キャンセル' || b.status === 'キャンセル済み';
+                      b.status === STATUS.CANCEL ||
+                      b.status === 'キャンセル' ||
+                      b.status === 'キャンセル済み';
                     return !isCancelled; // キャンセル済み予約を念のため除外
                   })
                   .map(b => {
@@ -641,7 +702,8 @@
                     if (b.startTime) {
                       // 開始時刻がある場合は、その時刻と比較
                       const resDateTime = new Date(`${b.date}T${b.startTime}`);
-                      isPastOrToday = resDateTime.getTime() <= new Date().getTime();
+                      isPastOrToday =
+                        resDateTime.getTime() <= new Date().getTime();
                     } else {
                       // 開始時刻がない場合は日付のみで比較
                       const resDate = new Date(b.date);
@@ -691,7 +753,10 @@
         </div>`;
 
     let historyHtml = '';
-    if (stateManager.getState().history && stateManager.getState().history.length > 0) {
+    if (
+      stateManager.getState().history &&
+      stateManager.getState().history.length > 0
+    ) {
       // 計算済みデータを使用
       const recordsToShow = stateManager.getState().computed.displayHistory;
       historyHtml = `
@@ -701,7 +766,9 @@
                     ${recordsToShow
                       .filter(h => {
                         const isCancelled =
-                          h.status === STATUS.CANCEL || h.status === 'キャンセル' || h.status === 'キャンセル済み';
+                          h.status === STATUS.CANCEL ||
+                          h.status === 'キャンセル' ||
+                          h.status === 'キャンセル済み';
                         return !isCancelled; // キャンセル済み予約を念のため除外
                       })
                       .map(h => {
@@ -762,7 +829,9 @@
    */
   const getClassroomSelectionView = () => {
     // 教室リストは、ログイン時に取得した静的な統合定数(stateManager.getState().classrooms)から生成
-    const classroomButtonsHtml = Object.values(stateManager.getState().classrooms || {})
+    const classroomButtonsHtml = Object.values(
+      stateManager.getState().classrooms || {},
+    )
       .map(classroomName =>
         Components.createButton({
           action: 'selectClassroom',
@@ -829,16 +898,24 @@
           .map(sl => {
             const iB = stateManager
               .getState()
-              .computed.sortedBookings.some(b => b.date === sl.date && b.classroom === sl.classroom);
+              .computed.sortedBookings.some(
+                b => b.date === sl.date && b.classroom === sl.classroom,
+              );
             let cC, sB, act;
             const tag = iB ? 'div' : 'button';
 
             // 新しいslot構造に対応したステータステキスト生成
             let statusText;
-            if (typeof sl.morningSlots !== 'undefined' && typeof sl.afternoonSlots !== 'undefined') {
+            if (
+              typeof sl.morningSlots !== 'undefined' &&
+              typeof sl.afternoonSlots !== 'undefined'
+            ) {
               // つくば教室: 午前・午後制（統一定数を使用）
-              const morningLabel = stateManager.getState().constants?.sessions?.MORNING || '午前';
-              const afternoonLabel = stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
+              const morningLabel =
+                stateManager.getState().constants?.sessions?.MORNING || '午前';
+              const afternoonLabel =
+                stateManager.getState().constants?.sessions?.AFTERNOON ||
+                '午後';
               statusText = `${morningLabel}空き ${sl.morningSlots} | ${afternoonLabel}空き ${sl.afternoonSlots}`;
             } else if (typeof sl.availableSlots !== 'undefined') {
               // 東京教室・沼津教室: 単一セッション制
@@ -857,7 +934,9 @@
               // 予約済みの場合
               const booking = stateManager
                 .getState()
-                .computed.sortedBookings.find(b => b.date === sl.date && b.classroom === sl.classroom);
+                .computed.sortedBookings.find(
+                  b => b.date === sl.date && b.classroom === sl.classroom,
+                );
               if (booking && booking.status === STATUS.WAITING) {
                 cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
@@ -899,7 +978,9 @@
   const getBookingView = classroom => {
     // バックエンドで計算済みの空き情報を直接使用
     const relevantSlots = stateManager.getState().slots
-      ? stateManager.getState().slots.filter(slot => slot.classroom === classroom)
+      ? stateManager
+          .getState()
+          .slots.filter(slot => slot.classroom === classroom)
       : [];
 
     const bookingSlotsHtml = renderBookingSlots(relevantSlots);
@@ -954,17 +1035,27 @@
       order,
       messageToTeacher,
     } = sourceData;
-    const { currentUser, accountingMaster: master } = window.stateManager.getState();
+    const { currentUser, accountingMaster: master } =
+      window.stateManager.getState();
     const tuitionItemRule = getTuitionItemRule(master, classroom, '本講座');
 
     // 新規作成時のみ利用するデータ
-    const { availableSlots, morningSlots, afternoonSlots, isFull } = stateManager.getState().selectedSlot || {};
+    const { availableSlots, morningSlots, afternoonSlots, isFull } =
+      stateManager.getState().selectedSlot || {};
     const isFirstTime = stateManager.getState().isFirstTimeBooking && !isEdit;
 
     // --- 2. モードに応じた設定 ---
-    const title = isEdit ? '予約内容の編集' : isFull ? 'キャンセル待ち申込み' : '予約詳細の入力';
+    const title = isEdit
+      ? '予約内容の編集'
+      : isFull
+        ? 'キャンセル待ち申込み'
+        : '予約詳細の入力';
     const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
-    const submitButtonText = isEdit ? 'この内容で更新する' : isFull ? 'キャンセル待ちで登録する' : 'この内容で予約する';
+    const submitButtonText = isEdit
+      ? 'この内容で更新する'
+      : isFull
+        ? 'キャンセル待ちで登録する'
+        : 'この内容で予約する';
 
     // --- 3. UI生成ヘルパー関数 ---
     /**
@@ -976,8 +1067,10 @@
       }
       if (isFull) return '満席（キャンセル待ち申込み）';
       if (typeof morningSlots !== 'undefined') {
-        const morningLabel = stateManager.getState().constants?.sessions?.MORNING || '午前';
-        const afternoonLabel = stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
+        const morningLabel =
+          stateManager.getState().constants?.sessions?.MORNING || '午前';
+        const afternoonLabel =
+          stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
         return `${morningLabel}空き ${morningSlots} | ${afternoonLabel}空き ${afternoonSlots}`;
       }
       return `空き ${availableSlots}`;
@@ -989,9 +1082,15 @@
     const _renderTimeOptionsSection = () => {
       // 30分単位の教室の場合
       if (tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN) {
-        const classStartHour = parseInt(tuitionItemRule['講座開始'].split(':')[0]);
-        const classEndHour = parseInt(tuitionItemRule['講座終了'].split(':')[0]);
-        const classEndMinutes = parseInt(tuitionItemRule['講座終了'].split(':')[1]);
+        const classStartHour = parseInt(
+          tuitionItemRule['講座開始'].split(':')[0],
+        );
+        const classEndHour = parseInt(
+          tuitionItemRule['講座終了'].split(':')[0],
+        );
+        const classEndMinutes = parseInt(
+          tuitionItemRule['講座終了'].split(':')[1],
+        );
 
         // Note: 外部で定義されている `getTimeOptionsHtml` を呼び出していると想定
         const startTimeOptions = getTimeOptionsHtml(
@@ -1011,9 +1110,17 @@
           endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
         }
 
-        const discountRule = getTuitionItemRule(master, classroom, C.items.DISCOUNT);
+        const discountRule = getTuitionItemRule(
+          master,
+          classroom,
+          C.items.DISCOUNT,
+        );
         let discountHtml = '';
-        if (discountRule && (classroom === C.classrooms.TSUKUBA || classroom === C.classrooms.NUMAZU)) {
+        if (
+          discountRule &&
+          (classroom === C.classrooms.TSUKUBA ||
+            classroom === C.classrooms.NUMAZU)
+        ) {
           const discountAmountText = `${Math.abs(Number(discountRule['単価']))}円`;
           const discountUnitText = discountRule['単位'];
           discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule['項目名']}: ${discountRule.説明 || `参加時間が初回講習と重なる場合、${discountUnitText}あたり${discountAmountText}割引`}</p>`;
@@ -1063,7 +1170,9 @@
 
       // 物販チェックリスト（折り畳み）
       const salesChecklistHtml =
-        typeof buildSalesChecklist === 'function' ? buildSalesChecklist(stateManager.getState().accountingMaster) : '';
+        typeof buildSalesChecklist === 'function'
+          ? buildSalesChecklist(stateManager.getState().accountingMaster)
+          : '';
 
       return `
         <div class="mt-4 pt-4 border-t space-y-4">
@@ -1079,8 +1188,10 @@
           ${Components.createTextArea({
             id: 'material-input',
             label: '材料のサイズや樹種の希望',
-            caption: 'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
-            placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
+            caption:
+              'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
+            placeholder:
+              '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
             value: materialInfo || '',
           })}
           ${isFirstTime ? firstTimeGuidance : ''}
@@ -1093,13 +1204,17 @@
     };
     // 予約送信時にチェックされた物販をorderに渡す処理を追加
     const _getSelectedSalesOrder = () => {
-      const checked = Array.from(document.querySelectorAll('input[name="orderSales"]:checked'));
+      const checked = Array.from(
+        document.querySelectorAll('input[name="orderSales"]:checked'),
+      );
       return checked.map(cb => cb.value).join(', ');
     };
 
     // 送信ボタンのクリック時にorder値をセット
     setTimeout(() => {
-      const submitBtn = document.querySelector('[data-action="confirmBooking"], [data-action="updateReservation"]');
+      const submitBtn = document.querySelector(
+        '[data-action="confirmBooking"], [data-action="updateReservation"]',
+      );
       if (submitBtn) {
         submitBtn.addEventListener('click', () => {
           const selectedOrder = _getSelectedSalesOrder();
@@ -1107,7 +1222,11 @@
           if (orderInput) {
             // 既存の自由記入とチェックリストを合成
             const freeText = orderInput.value.trim();
-            orderInput.value = selectedOrder ? (freeText ? selectedOrder + ', ' + freeText : selectedOrder) : freeText;
+            orderInput.value = selectedOrder
+              ? freeText
+                ? selectedOrder + ', ' + freeText
+                : selectedOrder
+              : freeText;
           }
         });
       }
@@ -1181,13 +1300,16 @@
   const getCompleteView = msg => {
     // 教室情報を取得（会計処理時は accountingReservation から、予約作成時は selectedSlot から）
     const classroom =
-      stateManager.getState().accountingReservation?.classroom || stateManager.getState().selectedSlot?.classroom;
+      stateManager.getState().accountingReservation?.classroom ||
+      stateManager.getState().selectedSlot?.classroom;
     let nextBookingHtml = '';
 
     // 該当教室の未来の予約枠が存在する場合
     if (classroom && stateManager.getState().slots) {
       // バックエンドで計算済みの空き情報を直接使用
-      const relevantSlots = stateManager.getState().slots.filter(slot => slot.classroom === classroom);
+      const relevantSlots = stateManager
+        .getState()
+        .slots.filter(slot => slot.classroom === classroom);
       const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
       if (bookingSlotsHtml) {
@@ -1228,7 +1350,10 @@
    */
   const getAccountingView = () => {
     // データ読み込み中のローディング表示
-    if (!stateManager.getState().accountingMaster || !stateManager.getState().accountingInitialValues) {
+    if (
+      !stateManager.getState().accountingMaster ||
+      !stateManager.getState().accountingInitialValues
+    ) {
       return '<div class="flex justify-center items-center h-full"><div class="spinner"></div></div>';
     }
 
@@ -1236,10 +1361,16 @@
     const reservation = state.accountingReservation;
     const master = state.accountingMaster;
     const initial = state.accountingInitialValues;
-    const booking = state.computed.sortedBookings.find(b => b.reservationId === reservation.reservationId);
+    const booking = state.computed.sortedBookings.find(
+      b => b.reservationId === reservation.reservationId,
+    );
 
     // 会計済みの場合 - 完全分離（編集モードでない場合のみ）
-    if (booking.accountingDone && booking.accountingDetails && !state.isEditingAccountingRecord) {
+    if (
+      booking.accountingDone &&
+      booking.accountingDetails &&
+      !state.isEditingAccountingRecord
+    ) {
       try {
         const details = JSON.parse(booking.accountingDetails);
         return `
@@ -1258,8 +1389,13 @@
     }
 
     // 新規会計フォーム - 条件分岐の簡素化
-    const tuitionItemRule = getTuitionItemRule(master, reservation.classroom, C.items.MAIN_LECTURE);
-    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
+    const tuitionItemRule = getTuitionItemRule(
+      master,
+      reservation.classroom,
+      C.items.MAIN_LECTURE,
+    );
+    const isTimeBased =
+      tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
     const formType = isTimeBased ? 'timeBased' : 'fixed';
 
     return `

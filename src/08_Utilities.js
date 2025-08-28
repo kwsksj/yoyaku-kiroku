@@ -36,7 +36,10 @@ function shouldProcessRowByDate(rowDate, timezone, options) {
   if (!(rowDate instanceof Date)) return false;
   const d = Utilities.formatDate(rowDate, timezone, 'yyyy/MM/dd');
   if (options.endDate) {
-    return new Date(d) <= new Date(Utilities.formatDate(options.endDate, timezone, 'yyyy/MM/dd'));
+    return (
+      new Date(d) <=
+      new Date(Utilities.formatDate(options.endDate, timezone, 'yyyy/MM/dd'))
+    );
   }
   if (options.targetDates) {
     return options.targetDates
@@ -56,9 +59,14 @@ function handleError(message, isError) {
   Logger.log(logMessage);
   if (isError) {
     // isErrorがtrueの場合、ログと通知を行う
-    const userEmail = Session.getActiveUser() ? Session.getActiveUser().getEmail() : 'system';
+    const userEmail = Session.getActiveUser()
+      ? Session.getActiveUser().getEmail()
+      : 'system';
     logActivity(userEmail, 'システムエラー', '失敗', message);
-    sendAdminNotification('予約システムでエラーが発生しました', `エラー詳細:\n\n${message}`);
+    sendAdminNotification(
+      '予約システムでエラーが発生しました',
+      `エラー詳細:\n\n${message}`,
+    );
   }
   try {
     SpreadsheetApp.getUi().alert(
@@ -118,7 +126,8 @@ function findLastRowOfDateBlock(sheet, date, dateColIdx) {
   for (let i = data.length - 1; i >= 0; i--) {
     if (
       data[i][0] instanceof Date &&
-      Utilities.formatDate(data[i][0], timezone, 'yyyy-MM-dd') === targetDateString
+      Utilities.formatDate(data[i][0], timezone, 'yyyy-MM-dd') ===
+        targetDateString
     ) {
       lastRow = i + RESERVATION_DATA_START_ROW;
       break;
@@ -190,7 +199,9 @@ function logActivity(userId, action, result, details) {
     logSheet.insertRowAfter(1); // 常にヘッダーの直下(2行目)に行を挿入
     const timestamp = new Date();
     // A, B, E, F, G列に値を設定。C,D列は数式が自動計算するため書き込まない。
-    logSheet.getRange('A2:G2').setValues([[timestamp, userId, '', '', action, result, details]]);
+    logSheet
+      .getRange('A2:G2')
+      .setValues([[timestamp, userId, '', '', action, result, details]]);
   } catch (e) {
     Logger.log(`ログの記録に失敗しました: ${e.message}`);
   }
@@ -205,12 +216,16 @@ function logActivity(userId, action, result, details) {
 function sendAdminNotification(subject, body) {
   try {
     if (!ADMIN_EMAIL || ADMIN_EMAIL === 'your-admin-email@example.com') {
-      Logger.log('管理者メールアドレスが設定されていないため、通知をスキップしました。');
+      Logger.log(
+        '管理者メールアドレスが設定されていないため、通知をスキップしました。',
+      );
       return;
     }
 
     // 現在のユーザーが管理者自身の場合は通知をスキップ
-    const currentUserEmail = Session.getActiveUser() ? Session.getActiveUser().getEmail() : null;
+    const currentUserEmail = Session.getActiveUser()
+      ? Session.getActiveUser().getEmail()
+      : null;
     if (currentUserEmail === ADMIN_EMAIL) {
       Logger.log('管理者自身の操作のため、通知をスキップしました。');
       return;
@@ -340,7 +355,9 @@ function setupConditionalFormattingForLogSheet() {
   sheet.clearConditionalFormatRules();
   sheet.setConditionalFormatRules(rules);
 
-  SpreadsheetApp.getUi().alert('アクティビティログの条件付き書式を更新しました。');
+  SpreadsheetApp.getUi().alert(
+    'アクティビティログの条件付き書式を更新しました。',
+  );
 }
 
 // ===================================================================
@@ -422,7 +439,11 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
   const dateIndex = getIndex(HEADER_DATE);
 
   // インデックスが取得できているか確認
-  if (reservationIdIndex === undefined || studentIdIndex === undefined || dateIndex === undefined) {
+  if (
+    reservationIdIndex === undefined ||
+    studentIdIndex === undefined ||
+    dateIndex === undefined
+  ) {
     Logger.log(
       `ヘッダーマップエラー: reservationId=${reservationIdIndex}, studentId=${studentIdIndex}, date=${dateIndex}`,
     );
@@ -440,7 +461,9 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
         Logger.log(`ヘッダーマップ内容: ${JSON.stringify(headerMap)}`);
       }
     } else {
-      Logger.log(`headerMapの型: ${typeof headerMap}, 値: ${JSON.stringify(headerMap)}`);
+      Logger.log(
+        `headerMapの型: ${typeof headerMap}, 値: ${JSON.stringify(headerMap)}`,
+      );
     }
 
     // フォールバックとして従来の変換関数を使用
@@ -451,7 +474,8 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
     reservationId: resArray[getIndex(HEADER_RESERVATION_ID)],
     studentId: resArray[getIndex(HEADER_STUDENT_ID)],
     date: resArray[getIndex(HEADER_DATE)],
-    classroom: resArray[getIndex(HEADER_CLASSROOM)] || resArray[getIndex(HEADER_VENUE)],
+    classroom:
+      resArray[getIndex(HEADER_CLASSROOM)] || resArray[getIndex(HEADER_VENUE)],
     venue: resArray[getIndex(HEADER_VENUE)],
     startTime: resArray[getIndex(HEADER_START_TIME)],
     endTime: resArray[getIndex(HEADER_END_TIME)],
@@ -485,7 +509,11 @@ function filterUserReservations(allReservations, studentId, today) {
   if (Array.isArray(allReservations)) {
     allReservations.forEach(resArray => {
       const resObj = transformReservationArrayToObject(resArray);
-      if (resObj && resObj.studentId === studentId && resObj.status !== STATUS_CANCEL) {
+      if (
+        resObj &&
+        resObj.studentId === studentId &&
+        resObj.status !== STATUS_CANCEL
+      ) {
         if (resObj.date >= today) {
           myBookings.push(resObj);
         } else {
@@ -556,7 +584,8 @@ function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
 
   // 検索列のインデックスを取得
   const searchColIdx = headerMap.get(searchColumn);
-  if (searchColIdx === undefined) throw new Error(`ヘッダー「${searchColumn}」が見つかりません。`);
+  if (searchColIdx === undefined)
+    throw new Error(`ヘッダー「${searchColumn}」が見つかりません。`);
 
   // データ行から対象レコードを検索
   const foundRow = dataRows.find(row => row[searchColIdx] === searchValue);

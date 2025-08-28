@@ -22,12 +22,14 @@ const RESERVATION_DATA_START_ROW = 2;
 // NF-01: 電話番号なしユーザーの特殊ログインコマンド (PropertiesServiceから取得)
 // PropertiesServiceに SPECIAL_NO_PHONE_LOGIN_COMMAND キーで文字列を登録してください。
 // 例: キー 'SPECIAL_NO_PHONE_LOGIN_COMMAND', 値 'NO_PHONE_LOGIN'
-const SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE = PropertiesService.getScriptProperties().getProperty(
-  'SPECIAL_NO_PHONE_LOGIN_COMMAND',
-);
+const SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE =
+  PropertiesService.getScriptProperties().getProperty(
+    'SPECIAL_NO_PHONE_LOGIN_COMMAND',
+  );
 
 //  管理者通知用のメールアドレス
-const ADMIN_EMAIL = PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
+const ADMIN_EMAIL =
+  PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
 
 // --- シート名関連の定数（継続使用） ---
 // 同期対象ヘッダー - すべて00_Constants.jsで定義済み
@@ -108,8 +110,11 @@ const CLASSROOM_TRANSFER_SETTINGS = [
 
 // --- 外部サービス連携用ID ---
 // SALES_SPREADSHEET_IDは00_Constants.jsで統一管理されています
-const GOOGLE_FORM_IDS_RAW = PropertiesService.getScriptProperties().getProperty('GOOGLE_FORM_IDS');
-const GOOGLE_FORM_IDS = GOOGLE_FORM_IDS_RAW ? JSON.parse(GOOGLE_FORM_IDS_RAW) : {};
+const GOOGLE_FORM_IDS_RAW =
+  PropertiesService.getScriptProperties().getProperty('GOOGLE_FORM_IDS');
+const GOOGLE_FORM_IDS = GOOGLE_FORM_IDS_RAW
+  ? JSON.parse(GOOGLE_FORM_IDS_RAW)
+  : {};
 // --- Googleフォームの質問タイトル ---
 const FORM_QUESTION_TITLES = {
   [TOKYO_CLASSROOM_NAME]: '参加希望日・会場',
@@ -117,7 +122,8 @@ const FORM_QUESTION_TITLES = {
   [NUMAZU_CLASSROOM_NAME]: '参加希望日',
 };
 // --- GoogleカレンダーのID ---
-const CALENDAR_IDS_RAW = PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
+const CALENDAR_IDS_RAW =
+  PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
 const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
 
 // 日程マスタのヘッダー定義
@@ -178,7 +184,10 @@ function onOpen() {
 
 function addAdminMenu(menu) {
   menu
-    .addItem('googleカレンダーから予定日を追加', 'addCalendarEventsToSheetWithSpecifics')
+    .addItem(
+      'googleカレンダーから予定日を追加',
+      'addCalendarEventsToSheetWithSpecifics',
+    )
     .addSeparator()
     .addItem('アクティブシートの罫線を再描画', 'manuallyFormatActiveSheet')
     .addSeparator()
@@ -191,7 +200,10 @@ function addAdminMenu(menu) {
     .addItem('【開発用】テスト環境をセットアップ', 'setupTestEnvironment')
     .addSeparator()
     .addItem('【本番移行】統合予約シート作成', 'createIntegratedSheet')
-    .addItem('【本番移行】データを統合シートへ移行', 'migrateDataToIntegratedSheet')
+    .addItem(
+      '【本番移行】データを統合シートへ移行',
+      'migrateDataToIntegratedSheet',
+    )
     .addItem('【本番移行】移行データ整合性チェック', 'verifyMigratedData');
 }
 
@@ -200,10 +212,16 @@ function addCacheMenu(menu) {
     .addSeparator()
     .addItem('キャッシュサービスを一括更新', 'rebuildAllCachesEntryPoint')
     .addSeparator()
-    .addItem('【管理者専用】PropertiesServiceクリーンアップ', 'cleanupPropertiesServiceCache')
+    .addItem(
+      '【管理者専用】PropertiesServiceクリーンアップ',
+      'cleanupPropertiesServiceCache',
+    )
     .addSeparator()
     .addItem('キャッシュサービス容量チェック', 'checkCacheCapacity')
-    .addItem('古いプロパティサービスデータをクリーンアップ', 'cleanupOldCaches');
+    .addItem(
+      '古いプロパティサービスデータをクリーンアップ',
+      'cleanupOldCaches',
+    );
 }
 
 /**
@@ -245,14 +263,18 @@ function handleEdit(_e) {
  */
 function doGetTest() {
   try {
-    const htmlOutput = HtmlService.createTemplateFromFile('test_performance_webapp')
+    const htmlOutput = HtmlService.createTemplateFromFile(
+      'test_performance_webapp',
+    )
       .evaluate()
       .setTitle('パフォーマンス改善テスト')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 
     // GASエディタから実行された場合のデバッグ情報
     Logger.log('テスト用WebAppが生成されました');
-    Logger.log('URLでアクセスするか、doGetテストをWebAppとしてデプロイしてください');
+    Logger.log(
+      'URLでアクセスするか、doGetテストをWebAppとしてデプロイしてください',
+    );
 
     return htmlOutput;
   } catch (error) {
@@ -372,11 +394,15 @@ function runRegressionTest() {
     if (basicResult.success) {
       // 基本機能が正常な場合、包括テストを実行
       const regressionResult = testRegressionSuite();
-      Logger.log('包括機能テスト結果: ' + JSON.stringify(regressionResult, null, 2));
+      Logger.log(
+        '包括機能テスト結果: ' + JSON.stringify(regressionResult, null, 2),
+      );
 
       // エラーハンドリングテストも実行
       const errorResult = testErrorHandling();
-      Logger.log('エラーハンドリングテスト結果: ' + JSON.stringify(errorResult, null, 2));
+      Logger.log(
+        'エラーハンドリングテスト結果: ' + JSON.stringify(errorResult, null, 2),
+      );
 
       return {
         success: true,

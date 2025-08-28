@@ -33,11 +33,19 @@
    * @param {object | null} userReservations - ユーザーの予約と履歴データ {myBookings, myHistory}
    * @returns {object} setStateに渡すための新しい状態オブジェクト。ユーザーが見つからない場合は { currentUser: null }
    */
-  function processInitialData(data, phone, availableSlots, userReservations = null) {
-    const { allStudents, accountingMaster, cacheVersions, today, constants } = data;
+  function processInitialData(
+    data,
+    phone,
+    availableSlots,
+    userReservations = null,
+  ) {
+    const { allStudents, accountingMaster, cacheVersions, today, constants } =
+      data;
 
     // 1. 電話番号でユーザーを検索
-    const currentUser = Object.values(allStudents).find(student => student.phone === phone);
+    const currentUser = Object.values(allStudents).find(
+      student => student.phone === phone,
+    );
 
     if (!currentUser) {
       return { currentUser: null }; // ユーザーが見つからない
@@ -52,7 +60,9 @@
 
     // 3. 教室一覧は統合定数から取得（StateManagerで設定される）
     // availableSlots から取得する必要はなくなった
-    const classroomsFromConstants = constants ? Object.values(constants.classrooms) : [];
+    const classroomsFromConstants = constants
+      ? Object.values(constants.classrooms)
+      : [];
 
     // 4. 空き枠バージョンを生成
     const slotsVersion = cacheVersions
@@ -132,7 +142,10 @@
   }
 
   // StateManagerの再初期化（依存関数が読み込まれた後）
-  if (typeof window.initializeStateManager === 'function' && !window.stateManager) {
+  if (
+    typeof window.initializeStateManager === 'function' &&
+    !window.stateManager
+  ) {
     console.log('🔄 StateManagerを再初期化中...');
     window.initializeStateManager();
   }
@@ -328,7 +341,10 @@
   };
 
   const getRandomMessage = (category = 'default') => {
-    const messages = [...(LoadingMessages[category] || []), ...LoadingMessages.default];
+    const messages = [
+      ...(LoadingMessages[category] || []),
+      ...LoadingMessages.default,
+    ];
     return messages[Math.floor(Math.random() * messages.length)];
   };
 
@@ -377,8 +393,14 @@
    * @param {string} [title='販売品リスト'] - 見出しタイトル
    * @returns {string} HTML文字列
    */
-  function buildSalesChecklist(accountingMaster, checkedValues = [], title = '販売品リスト') {
-    const salesList = (accountingMaster || []).filter(item => item['種別'] === '物販');
+  function buildSalesChecklist(
+    accountingMaster,
+    checkedValues = [],
+    title = '販売品リスト',
+  ) {
+    const salesList = (accountingMaster || []).filter(
+      item => item['種別'] === '物販',
+    );
     if (!salesList.length) return '';
     const checklistHtml = getSalesCheckboxListHtml(salesList, checkedValues);
     return `
@@ -448,7 +470,10 @@
         stack: error.stack || 'No stack trace available',
         context: context,
         timestamp: new Date().toISOString(),
-        userId: (window.stateManager && window.stateManager.getState().currentUser?.studentId) || 'anonymous',
+        userId:
+          (window.stateManager &&
+            window.stateManager.getState().currentUser?.studentId) ||
+          'anonymous',
         userAgent: navigator.userAgent,
         url: window.location.href,
         additionalInfo: additionalInfo,
@@ -476,15 +501,21 @@
     static getUserFriendlyMessage(error, context) {
       // コンテキストに基づいて適切なメッセージを返す
       const contextMessages = {
-        login: 'ログイン処理中にエラーが発生しました。電話番号を確認してもう一度お試しください。',
-        booking: '予約処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
-        cancel: 'キャンセル処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
-        accounting: '会計処理中にエラーが発生しました。入力内容を確認してもう一度お試しください。',
-        'data-load': 'データの読み込み中にエラーが発生しました。ページを更新してもう一度お試しください。',
+        login:
+          'ログイン処理中にエラーが発生しました。電話番号を確認してもう一度お試しください。',
+        booking:
+          '予約処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
+        cancel:
+          'キャンセル処理中にエラーが発生しました。時間をおいてもう一度お試しください。',
+        accounting:
+          '会計処理中にエラーが発生しました。入力内容を確認してもう一度お試しください。',
+        'data-load':
+          'データの読み込み中にエラーが発生しました。ページを更新してもう一度お試しください。',
       };
 
       return (
-        contextMessages[context] || `エラーが発生しました: ${error.message}\n\n時間をおいてもう一度お試しください。`
+        contextMessages[context] ||
+        `エラーが発生しました: ${error.message}\n\n時間をおいてもう一度お試しください。`
       );
     }
 
@@ -501,7 +532,9 @@
         'Timeout',
       ];
 
-      return criticalMessages.some(msg => error.message && error.message.includes(msg));
+      return criticalMessages.some(
+        msg => error.message && error.message.includes(msg),
+      );
     }
 
     /**
@@ -538,7 +571,10 @@
 
   // Promise拒否エラーのハンドリング
   window.addEventListener('unhandledrejection', event => {
-    FrontendErrorHandler.handle(new Error(event.reason), 'unhandled-promise-rejection');
+    FrontendErrorHandler.handle(
+      new Error(event.reason),
+      'unhandled-promise-rejection',
+    );
   });
 
   const formatDate = dStr => {
@@ -784,7 +820,8 @@
       r.classroom,
       C.items.MAIN_LECTURE,
     );
-    const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
+    const isTimeBased =
+      tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
 
     // 時間制授業料計算
     if (isTimeBased) {
@@ -824,7 +861,9 @@
     details.tuition.subtotal = tuitionSubtotal;
     details.sales.subtotal = salesSubtotal;
     details.grandTotal = tuitionSubtotal + salesSubtotal;
-    details.paymentMethod = form.querySelector('input[name="payment-method"]:checked')?.value || '現金';
+    details.paymentMethod =
+      form.querySelector('input[name="payment-method"]:checked')?.value ||
+      '現金';
 
     return details;
   }
@@ -838,7 +877,10 @@
   function calculateTimeBasedTuition(tuitionItemRule) {
     const startTime = document.getElementById('start-time')?.value;
     const endTime = document.getElementById('end-time')?.value;
-    const breakMinutes = parseInt(document.getElementById('break-time')?.value || 0, 10);
+    const breakMinutes = parseInt(
+      document.getElementById('break-time')?.value || 0,
+      10,
+    );
 
     if (startTime && endTime && startTime < endTime) {
       const start = new Date(`1900-01-01T${startTime}:00`);
@@ -871,30 +913,40 @@
     const allItems = [];
 
     const form = document.getElementById('accounting-form');
-    form.querySelectorAll('input[type="checkbox"].accounting-item').forEach(cb => {
-      if (cb.checked || cb.disabled) {
-        const itemName = cb.dataset.itemName;
-        const itemType = cb.dataset.itemType;
-        const masterItem = stateManager
-          .getState()
-          .accountingMaster.find(m => m['項目名'] === itemName && m['種別'] === itemType);
-        if (!masterItem) return;
+    form
+      .querySelectorAll('input[type="checkbox"].accounting-item')
+      .forEach(cb => {
+        if (cb.checked || cb.disabled) {
+          const itemName = cb.dataset.itemName;
+          const itemType = cb.dataset.itemType;
+          const masterItem = stateManager
+            .getState()
+            .accountingMaster.find(
+              m => m['項目名'] === itemName && m['種別'] === itemType,
+            );
+          if (!masterItem) return;
 
-        const price = Number(masterItem['単価']);
-        const itemDetail = { name: itemName, price: price };
-        allItems.push(itemDetail);
+          const price = Number(masterItem['単価']);
+          const itemDetail = { name: itemName, price: price };
+          allItems.push(itemDetail);
 
-        if (itemType === C.itemTypes.TUITION) {
-          tuitionSubtotal += price;
-          tuitionItems.push(itemDetail);
-        } else {
-          salesSubtotal += price;
-          salesItems.push(itemDetail);
+          if (itemType === C.itemTypes.TUITION) {
+            tuitionSubtotal += price;
+            tuitionItems.push(itemDetail);
+          } else {
+            salesSubtotal += price;
+            salesItems.push(itemDetail);
+          }
         }
-      }
-    });
+      });
 
-    return { tuitionSubtotal, salesSubtotal, tuitionItems, salesItems, allItems };
+    return {
+      tuitionSubtotal,
+      salesSubtotal,
+      tuitionItems,
+      salesItems,
+      allItems,
+    };
   }
 
   /**
@@ -905,11 +957,14 @@
   function calculateDiscount() {
     const discountSelector = document.getElementById('discount-selector');
     if (discountSelector) {
-      const discountRule = stateManager.getState().accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
+      const discountRule = stateManager
+        .getState()
+        .accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
       if (discountRule) {
         const discountMinutes = parseInt(discountSelector.value, 10);
         if (discountMinutes > 0) {
-          const discountAmount = (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
+          const discountAmount =
+            (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
           return {
             amount: discountAmount,
             item: {
@@ -935,10 +990,14 @@
 
     const materialContainer = document.getElementById('materials-container');
     if (materialContainer) {
-      const materialRows = materialContainer.querySelectorAll('div[data-material-row-index]');
+      const materialRows = materialContainer.querySelectorAll(
+        'div[data-material-row-index]',
+      );
       materialRows.forEach((row, index) => {
         const type = document.getElementById(`material-type-${index}`)?.value;
-        const masterItem = stateManager.getState().accountingMaster.find(m => m['項目名'] === type);
+        const masterItem = stateManager
+          .getState()
+          .accountingMaster.find(m => m['項目名'] === type);
         const priceEl = document.getElementById(`material-price-${index}`);
 
         if (!masterItem) {
@@ -950,13 +1009,16 @@
         let finalName = type;
         let price = 0;
 
-        if (masterItem['単位'] === stateManager.getState().constants.units.CM3) {
+        if (
+          masterItem['単位'] === stateManager.getState().constants.units.CM3
+        ) {
           const l = document.getElementById(`material-l-${index}`)?.value || 0;
           const w = document.getElementById(`material-w-${index}`)?.value || 0;
           const h = document.getElementById(`material-h-${index}`)?.value || 0;
           if (l > 0 && w > 0 && h > 0) {
             const volumeCm = (l / 10) * (w / 10) * (h / 10);
-            let calculatedPrice = Math.round((volumeCm * unitPrice) / 100) * 100;
+            let calculatedPrice =
+              Math.round((volumeCm * unitPrice) / 100) * 100;
             price = Math.max(100, calculatedPrice);
             finalName = `${type} (${l}x${w}x${h}mm)`;
           }
@@ -985,14 +1047,24 @@
     let subtotal = 0;
     const items = [];
 
-    const otherSalesContainer = document.getElementById('other-sales-container');
+    const otherSalesContainer = document.getElementById(
+      'other-sales-container',
+    );
     if (otherSalesContainer) {
-      const otherSalesRows = otherSalesContainer.querySelectorAll('div[data-other-sales-row]');
+      const otherSalesRows = otherSalesContainer.querySelectorAll(
+        'div[data-other-sales-row]',
+      );
       otherSalesRows.forEach((row, index) => {
-        const name = document.getElementById(`other-sales-name-${index}`)?.value.trim();
-        const priceInput = document.getElementById(`other-sales-price-${index}`);
+        const name = document
+          .getElementById(`other-sales-name-${index}`)
+          ?.value.trim();
+        const priceInput = document.getElementById(
+          `other-sales-price-${index}`,
+        );
         let priceValue = priceInput.value
-          .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+          .replace(/[０-９]/g, s =>
+            String.fromCharCode(s.charCodeAt(0) - 0xfee0),
+          )
           .replace(/[^0-9.-]/g, '');
         priceInput.value = priceValue;
         const price = Number(priceValue || 0);
@@ -1032,8 +1104,13 @@
     }
 
     // 受講時間表示の更新
-    if (calculatedHoursEl && stateManager.getState().computed.accountingCalculation) {
-      const timeBasedItems = details.tuition.items.filter(item => item.name.includes('授業料 ('));
+    if (
+      calculatedHoursEl &&
+      stateManager.getState().computed.accountingCalculation
+    ) {
+      const timeBasedItems = details.tuition.items.filter(item =>
+        item.name.includes('授業料 ('),
+      );
       if (timeBasedItems.length > 0) {
         const r = stateManager.getState().accountingReservation;
         const tuitionItemRule = getTuitionItemRule(
@@ -1042,7 +1119,9 @@
           C.items.MAIN_LECTURE,
         );
         if (tuitionItemRule) {
-          const billableUnits = Math.ceil(timeBasedItems[0].price / Number(tuitionItemRule['単価']));
+          const billableUnits = Math.ceil(
+            timeBasedItems[0].price / Number(tuitionItemRule['単価']),
+          );
           calculatedHoursEl.textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule['単価']}円`;
         }
       } else {
@@ -1051,9 +1130,12 @@
     }
 
     // 小計・合計の表示更新
-    if (tuitionSubtotalEl) tuitionSubtotalEl.textContent = `小計: ${details.tuition.subtotal.toLocaleString()}円`;
-    if (salesSubtotalEl) salesSubtotalEl.textContent = `小計: ${details.sales.subtotal.toLocaleString()}円`;
-    if (grandTotalEl) grandTotalEl.textContent = `合計: ${details.grandTotal.toLocaleString()}円`;
+    if (tuitionSubtotalEl)
+      tuitionSubtotalEl.textContent = `小計: ${details.tuition.subtotal.toLocaleString()}円`;
+    if (salesSubtotalEl)
+      salesSubtotalEl.textContent = `小計: ${details.sales.subtotal.toLocaleString()}円`;
+    if (grandTotalEl)
+      grandTotalEl.textContent = `合計: ${details.grandTotal.toLocaleString()}円`;
   }
 
   // =================================================================
@@ -1087,7 +1169,9 @@
    */
   function addTrackedListener(element, type, listener, options) {
     if (!element) {
-      console.warn(`Attempted to add listener to a null element for event: ${type}`);
+      console.warn(
+        `Attempted to add listener to a null element for event: ${type}`,
+      );
       return;
     }
     element.addEventListener(type, listener, options);
@@ -1100,7 +1184,9 @@
    */
   function setupViewListener() {
     if (!window.stateManager) {
-      console.error('StateManager not initialized. Cannot set up view listener.');
+      console.error(
+        'StateManager not initialized. Cannot set up view listener.',
+      );
       return;
     }
 
@@ -1128,6 +1214,7 @@
         });
       }
     });
-    if (isTestEnvironment) console.log('View listener subscribed to StateManager.');
+    if (isTestEnvironment)
+      console.log('View listener subscribed to StateManager.');
   }
 </script>

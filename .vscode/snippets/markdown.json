@@ -23,7 +23,12 @@
   },
   "Code Block JavaScript": {
     "prefix": "codejs",
-    "body": ["```javascript", "${1:// JavaScriptコードをここに記述}", "```", "$0"],
+    "body": [
+      "```javascript",
+      "${1:// JavaScriptコードをここに記述}",
+      "```",
+      "$0"
+    ],
     "description": "JavaScript言語指定コードブロック"
   },
   "Code Block Text": {

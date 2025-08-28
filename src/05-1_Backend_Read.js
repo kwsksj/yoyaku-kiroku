@@ -26,7 +26,9 @@ function getAccountingMasterData() {
     }
 
     // 2. キャッシュ再構築も失敗した場合のフォールバック
-    Logger.log('会計マスタキャッシュ再構築に失敗しました。スプレッドシートから直接取得します。');
+    Logger.log(
+      '会計マスタキャッシュ再構築に失敗しました。スプレッドシートから直接取得します。',
+    );
     const sheet = getSheetByName(ACCOUNTING_MASTER_SHEET_NAME);
     if (!sheet) throw new Error('シート「会計マスタ」が見つかりません。');
 

@@ -26,9 +26,15 @@
   </head>
   <body class="bg-brand-bg min-h-screen">
     <!-- デバッグ情報表示エリア -->
-    <div id="debug" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-xs">
+    <div
+      id="debug"
+      class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-xs"
+    >
       <strong>デバッグ情報:</strong>
-      <div id="debug-content" class="mt-2 max-h-32 overflow-y-auto border border-red-300 bg-red-50 p-2 rounded text-xs">
+      <div
+        id="debug-content"
+        class="mt-2 max-h-32 overflow-y-auto border border-red-300 bg-red-50 p-2 rounded text-xs"
+      >
         初期化中...
       </div>
     </div>
@@ -36,9 +42,14 @@
     <!-- アプリケーションのメインコンテナ -->
     <div id="app" class="container mx-auto px-4 max-w-lg">
       <!-- ローディング画面 -->
-      <div id="loading" class="fixed inset-0 bg-brand-bg flex flex-col items-center justify-center z-50">
+      <div
+        id="loading"
+        class="fixed inset-0 bg-brand-bg flex flex-col items-center justify-center z-50"
+      >
         <div class="spinner mb-4"></div>
-        <p id="loading-message" class="text-brand-text">アプリケーションを読み込み中...</p>
+        <p id="loading-message" class="text-brand-text">
+          アプリケーションを読み込み中...
+        </p>
       </div>
 
       <!-- メインコンテンツ -->
@@ -54,26 +65,34 @@
       </div>
 
       <!-- カスタムモーダル -->
-      <div id="custom-modal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+      <div
+        id="custom-modal"
+        class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+      >
         <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
           <h3 id="modal-title" class="text-lg font-bold mb-4"></h3>
           <div id="modal-message" class="mb-6"></div>
           <div id="modal-buttons" class="flex gap-3 justify-end"></div>
         </div>
       </div>
-      <footer class="text-center text-sm text-brand-muted mt-4">きぼりの よやく・きろく</footer>
+      <footer class="text-center text-sm text-brand-muted mt-4">
+        きぼりの よやく・きろく
+      </footer>
     </div>
 
     <!-- GAS環境用のJavaScriptファイル読み込み（テンプレート評価対応） -->
-    <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_StateManager'); ?> <?!= include('12_WebApp_Core'); ?>
-    <?!= include('13_WebApp_Components'); ?> <?!= include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers'); ?>
+    <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_StateManager');
+    ?> <?!= include('12_WebApp_Core'); ?> <?!= include('13_WebApp_Components');
+    ?> <?!= include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers');
+    ?>
 
     <script>
       // デバッグ情報を画面に表示する関数
       function debugLog(message) {
         const debugContent = document.getElementById('debug-content');
         if (debugContent) {
-          debugContent.innerHTML += '<br>' + new Date().toISOString() + ': ' + message;
+          debugContent.innerHTML +=
+            '<br>' + new Date().toISOString() + ': ' + message;
         }
       }
 
@@ -82,7 +101,8 @@
       debugLog('ページURL: ' + window.location.href);
 
       // GAS環境かどうかを判定
-      const isGAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
+      const isGAS =
+        typeof google !== 'undefined' && typeof google.script !== 'undefined';
       debugLog('GAS環境判定: ' + isGAS);
 
       function initializeApp() {
@@ -111,11 +131,19 @@
             debugLog('初期化条件を満たしました！');
             debugLog(
               'stateManager.getState().slots: ' +
-                (stateManager.getState().slots ? stateManager.getState().slots.length + '件' : 'null'),
+                (stateManager.getState().slots
+                  ? stateManager.getState().slots.length + '件'
+                  : 'null'),
             );
-            debugLog('stateManager.getState().classrooms: ' + JSON.stringify(stateManager.getState().classrooms));
+            debugLog(
+              'stateManager.getState().classrooms: ' +
+                JSON.stringify(stateManager.getState().classrooms),
+            );
 
-            window.stateManager.dispatch({ type: 'SET_STATE', payload: { view: 'login' } });
+            window.stateManager.dispatch({
+              type: 'SET_STATE',
+              payload: { view: 'login' },
+            });
             hideLoading();
           }
         }, 100);

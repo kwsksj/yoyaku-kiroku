@@ -3,7 +3,7 @@
   "useTabs": false,
   "singleQuote": true,
   "trailingComma": "all",
-  "printWidth": 100,
+  "printWidth": 80,
   "semi": true,
   "bracketSpacing": true,
   "arrowParens": "avoid",
@@ -14,7 +14,7 @@
       "files": "*.html",
       "options": {
         "parser": "html",
-        "printWidth": 120
+        "printWidth": 80
       }
     },
     {

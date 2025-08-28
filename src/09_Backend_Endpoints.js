@@ -59,7 +59,11 @@ function executeOperationAndGetLatestData(
     // キャッシュ更新は各操作関数内で実行済み
     if (result.success) {
       // ログイン時と同じ方法でデータを取得
-      const batchResult = getBatchData(['initial', 'reservations'], null, studentId);
+      const batchResult = getBatchData(
+        ['initial', 'reservations'],
+        null,
+        studentId,
+      );
       if (!batchResult.success) {
         return batchResult;
       }
@@ -166,7 +170,11 @@ function searchUsersWithoutPhone(filterText) {
  * @param {string} newMemo - 新しいメモ内容
  * @returns {Object} 処理結果と最新の初期化データ
  */
-function updateReservationMemoAndGetLatestData(reservationId, studentId, newMemo) {
+function updateReservationMemoAndGetLatestData(
+  reservationId,
+  studentId,
+  newMemo,
+) {
   return executeOperationAndGetLatestData(
     'updateMemo',
     updateReservationDetails,
@@ -251,7 +259,10 @@ function getAppInitialData() {
     return result;
   } catch (e) {
     Logger.log(`getAppInitialDataでエラー: ${e.message}\nStack: ${e.stack}`);
-    return createApiErrorResponse(`アプリ初期データ取得中にエラー: ${e.message}`, true);
+    return createApiErrorResponse(
+      `アプリ初期データ取得中にエラー: ${e.message}`,
+      true,
+    );
   }
 }
 
@@ -271,7 +282,8 @@ function getLoginData(phone) {
     }
 
     if (batchResult.data.userReservations) {
-      batchResult.data.initial.userReservations = batchResult.data.userReservations;
+      batchResult.data.initial.userReservations =
+        batchResult.data.userReservations;
     }
 
     const result = {
@@ -285,7 +297,10 @@ function getLoginData(phone) {
     return result;
   } catch (e) {
     Logger.log(`getLoginDataでエラー: ${e.message}\nStack: ${e.stack}`);
-    return createApiErrorResponse(`ログインデータ取得中にエラー: ${e.message}`, true);
+    return createApiErrorResponse(
+      `ログインデータ取得中にエラー: ${e.message}`,
+      true,
+    );
   }
 }
 
@@ -300,10 +315,12 @@ function getCacheVersions() {
 
     // 関連キャッシュのバージョンのみ取得
     const allReservationsCache = JSON.parse(
-      CacheService.getScriptCache().get(CACHE_KEYS.ALL_RESERVATIONS) || '{"version": 0}',
+      CacheService.getScriptCache().get(CACHE_KEYS.ALL_RESERVATIONS) ||
+        '{"version": 0}',
     );
     const scheduleMaster = JSON.parse(
-      CacheService.getScriptCache().get(CACHE_KEYS.SCHEDULE_MASTER) || '{"version": 0}',
+      CacheService.getScriptCache().get(CACHE_KEYS.SCHEDULE_MASTER) ||
+        '{"version": 0}',
     );
 
     const versions = {
@@ -350,9 +367,9 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
 
       // 電話番号でユーザーを検索
       if (phone) {
-        const currentUser = Object.values(initialDataResult.data.allStudents).find(
-          student => student.phone === phone,
-        );
+        const currentUser = Object.values(
+          initialDataResult.data.allStudents,
+        ).find(student => student.phone === phone);
         result.userFound = !!currentUser;
         result.user = currentUser || null;
       } else if (studentId) {
@@ -371,16 +388,21 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
         `getBatchData: getAvailableSlots結果 - success: ${availableSlotsResult.success}, data.length: ${availableSlotsResult.data ? availableSlotsResult.data.length : 'null'}`,
       );
       if (!availableSlotsResult.success) {
-        Logger.log(`getBatchData: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`);
+        Logger.log(
+          `getBatchData: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`,
+        );
         return availableSlotsResult;
       }
       result.data.slots = availableSlotsResult.data;
-      Logger.log(`getBatchData: result.data.slotsに${availableSlotsResult.data.length}件設定完了`);
+      Logger.log(
+        `getBatchData: result.data.slotsに${availableSlotsResult.data.length}件設定完了`,
+      );
     }
 
     // 3. 個人予約データが要求されている場合
     if (dataTypes.includes('reservations')) {
-      const targetStudentId = studentId || (result.user ? result.user.studentId : null);
+      const targetStudentId =
+        studentId || (result.user ? result.user.studentId : null);
       if (targetStudentId) {
         const userReservationsResult = getUserReservations(targetStudentId);
         if (userReservationsResult.success) {
@@ -410,7 +432,10 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
     return result;
   } catch (e) {
     Logger.log(`getBatchDataでエラー: ${e.message}\nStack: ${e.stack}`);
-    return createApiErrorResponse(`バッチデータ取得中にエラー: ${e.message}`, true);
+    return createApiErrorResponse(
+      `バッチデータ取得中にエラー: ${e.message}`,
+      true,
+    );
   }
 }
 
