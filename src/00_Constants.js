@@ -98,11 +98,15 @@ const CONSTANTS = {
     DISCOUNT: '初回講習同時間割引',
   },
 
-  // ステータス
+  // ステータス（4種類統合定数）
   STATUS: {
-    WAITING: 'waiting',
-    CANCEL: 'cancel',
-    COMPLETED: 'completed',
+    CANCELED: 'canceled', // キャンセル済み
+    WAITLISTED: 'waitlisted', // キャンセル待ち
+    CONFIRMED: 'confirmed', // 予約確定（会計前）
+    COMPLETED: 'completed', // 完了（会計済み）
+    // 後方互換性のため旧定数も保持
+    WAITING: 'waitlisted', // 旧WAITING → waitlisted
+    CANCEL: 'canceled', // 旧CANCEL → canceled
   },
 
   // 項目種別
@@ -325,6 +329,12 @@ const ITEM_NAME_MAIN_LECTURE = CONSTANTS.ITEMS.MAIN_LECTURE;
 const ITEM_NAME_FIRST_LECTURE = CONSTANTS.ITEMS.FIRST_LECTURE;
 const ITEM_NAME_CHISEL_RENTAL = CONSTANTS.ITEMS.CHISEL_RENTAL;
 const ITEM_NAME_DISCOUNT = CONSTANTS.ITEMS.DISCOUNT;
+
+// ステータス（新統合定数）
+const STATUS_CANCELED = CONSTANTS.STATUS.CANCELED;
+const STATUS_WAITLISTED = CONSTANTS.STATUS.WAITLISTED;
+const STATUS_CONFIRMED = CONSTANTS.STATUS.CONFIRMED;
+const STATUS_COMPLETED = CONSTANTS.STATUS.COMPLETED;
 
 // ステータスの後方互換性
 const STATUS_WAITING = CONSTANTS.STATUS.WAITING;

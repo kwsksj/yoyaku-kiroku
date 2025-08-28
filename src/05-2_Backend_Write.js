@@ -127,7 +127,7 @@ function makeReservation(reservationInfo) {
           rowDate instanceof Date &&
           Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === date &&
           rowClassroom === classroom &&
-          rowStatus !== CONSTANTS.STATUS.CANCEL &&
+          rowStatus !== CONSTANTS.STATUS.CANCELED &&
           !!row[studentIdColIdx] // 生徒IDが存在する行のみ
         );
       };
@@ -202,8 +202,8 @@ function makeReservation(reservationInfo) {
       newRowData[classroomColIdx] = classroom;
       newRowData[venueColIdx] = venue;
       newRowData[statusColIdx] = isFull
-        ? CONSTANTS.STATUS.WAITING
-        : CONSTANTS.STATUS.COMPLETED;
+        ? CONSTANTS.STATUS.WAITLISTED
+        : CONSTANTS.STATUS.CONFIRMED;
 
       // 時刻設定（教室別のロジック）
       if (classroom === CONSTANTS.CLASSROOMS.TOKYO) {
@@ -404,7 +404,7 @@ function cancelReservation(cancelInfo) {
       }
 
       // メモリ上でステータスを「キャンセル」に更新
-      allData[targetRowIndex - 1][statusColIdx] = CONSTANTS.STATUS.CANCEL; // allDataの該当行を更新
+      allData[targetRowIndex - 1][statusColIdx] = CONSTANTS.STATUS.CANCELED; // allDataの該当行を更新
 
       // 更新されたデータを一括でシートに書き戻し
       integratedSheet.clear();
@@ -783,16 +783,24 @@ function saveAccountingDetails(payload) {
         .getRange(targetRowIndex, accountingDetailsColIdx + 1)
         .setValue(JSON.stringify(finalAccountingDetails));
 
+      // 4. 会計完了時のステータス更新 (confirmed → completed)
+      const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
+      if (statusColIdx !== undefined) {
+        sheet
+          .getRange(targetRowIndex, statusColIdx + 1)
+          .setValue(CONSTANTS.STATUS.COMPLETED);
+      }
+
       SpreadsheetApp.flush();
 
-      // 4. 統合予約シートの更新後、全てのキャッシュを再構築
+      // 5. 統合予約シートの更新後、全てのキャッシュを再構築
       //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
       //    全キャッシュを再構築してデータの整合性を保つ。
 
       // --- ここからが追加の後続処理 ---
       // reservationDataRowは既に上記で取得済み
 
-      // 5. 売上ログへの転記
+      // 6. 売上ログへの転記
       _logSalesForSingleReservation(
         reservationDataRow,
         headerMap,

@@ -225,8 +225,13 @@
 
       window.C = {};
       window.STATUS = {
-        CANCEL: 'cancel',
-        WAITING: 'waiting',
+        CANCELED: 'canceled',
+        WAITLISTED: 'waitlisted',
+        CONFIRMED: 'confirmed',
+        COMPLETED: 'completed',
+        // 後方互換性
+        CANCEL: 'canceled',
+        WAITING: 'waitlisted',
       };
       window.UI = {
         HISTORY_INITIAL_RECORDS: 10,

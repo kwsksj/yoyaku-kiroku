@@ -523,7 +523,14 @@
      * @param {string} [config.moreAction] - もっとみるボタンのaction
      * @returns {string} HTML文字列
      */
-    dashboardSection: ({ title, items, showNewButton = false, newAction, showMoreButton = false, moreAction }) => {
+    dashboardSection: ({
+      title,
+      items,
+      showNewButton = false,
+      newAction,
+      showMoreButton = false,
+      moreAction,
+    }) => {
       let newButtonHtml = '';
       if (showNewButton && newAction) {
         newButtonHtml = Components.newReservationCard({ action: newAction });
@@ -578,11 +585,13 @@
     listCard: ({ item, buttons, type = 'booking', today }) => {
       // ボタンスタイルのマッピング（Viewsからの抽象的なstyleを具体的なCSSクラスに変換）
       const styleMapping = {
-        'paid': `${DesignConfig.colors.paid} text-base font-bold px-3 py-1.5 rounded`,
-        'accounting': `text-base ${DesignConfig.colors.accounting} font-bold px-3 py-1.5 rounded mobile-button`,
-        'edit': 'text-base bg-action-secondary-bg text-action-secondary-text font-medium px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
-        'record': 'text-sm bg-action-paid-bg text-action-paid-text font-bold px-3 py-1.5 rounded',
-        'edit-small': 'text-sm bg-action-secondary-bg text-action-secondary-text font-bold px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
+        paid: `${DesignConfig.colors.paid} text-base font-bold px-3 py-1.5 rounded`,
+        accounting: `text-base ${DesignConfig.colors.accounting} font-bold px-3 py-1.5 rounded mobile-button`,
+        edit: 'text-base bg-action-secondary-bg text-action-secondary-text font-medium px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
+        record:
+          'text-sm bg-action-paid-bg text-action-paid-text font-bold px-3 py-1.5 rounded',
+        'edit-small':
+          'text-sm bg-action-secondary-bg text-action-secondary-text font-bold px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
       };
 
       // ボタン配列を旧形式に変換
@@ -632,14 +641,14 @@
           <label class="block text-brand-text text-base font-bold">材料代</label>
           <div id="materials-container">
             ${Components.materialRow({
-        index: 0,
-        values: {
-          type: initial.materialType0,
-          l: initial.materialL0,
-          w: initial.materialW0,
-          h: initial.materialH0,
-        },
-      })}
+              index: 0,
+              values: {
+                type: initial.materialType0,
+                l: initial.materialL0,
+                w: initial.materialW0,
+                h: initial.materialH0,
+              },
+            })}
           </div>
         </div>
         ${Components.button({ action: 'addMaterialRow', text: '+ 材料を追加', style: 'secondary', size: 'full' })}
@@ -651,12 +660,12 @@
             ${salesItemsHtml}
             <div id="other-sales-container" class="mt-2 pt-2 border-t border-ui-border">
               ${Components.otherSalesRow({
-        index: 0,
-        values: {
-          name: initial.otherSalesName0,
-          price: initial.otherSalesPrice0,
-        },
-      })}
+                index: 0,
+                values: {
+                  name: initial.otherSalesName0,
+                  price: initial.otherSalesPrice0,
+                },
+              })}
             </div>
           </div>
           ${Components.button({ action: 'addOtherSalesRow', text: '+ 自由入力欄を追加', style: 'secondary', size: 'full' })}

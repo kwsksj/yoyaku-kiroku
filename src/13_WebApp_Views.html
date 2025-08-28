@@ -20,6 +20,17 @@
   // =================================================================
 
   /**
+   * 当日かどうかを判定します。
+   * @param {string} dateString - 日付文字列 (YYYY-MM-DD)
+   * @returns {boolean} 当日の場合true
+   */
+  const _isToday = dateString => {
+    const itemDate = new Date(dateString);
+    const today = new Date();
+    return itemDate.toDateString() === today.toDateString();
+  };
+
+  /**
    * 時刻選択用の<option>タグ群を生成します。
    * @param {number} startHour - 開始時刻（時）
    * @param {number} endHour - 終了時刻（時）
@@ -183,23 +194,17 @@
     // 制作メモ部分の背景色
     const memoBackgroundClass = isBooking ? 'bg-ui-surface' : 'bg-ui-surface';
 
-    // ステータス表示（予約のみ）
+    // ステータス表示（新仕様：シンプル化）
     let statusBadges = '';
     if (isBooking) {
       if (item.firstLecture) {
         statusBadges += `<p class="font-bold text-action-attention-bg text-lg">初回講習</p>`;
       }
-      if (item.isWaiting) {
+      // waitlisted ステータスの場合のみ「キャンセル待ち」バッジ表示
+      if (item.status === STATUS.WAITLISTED) {
         statusBadges += `<p class="font-bold ${DesignConfig.cards.state.waitlist.text} text-lg">キャンセル待ち</p>`;
       }
-      // キャンセル済みstatus は予約・履歴どちらでも表示（英語・日本語両方に対応）
-      const isCancelled =
-        item.status === STATUS.CANCEL ||
-        item.status === 'キャンセル' ||
-        item.status === 'キャンセル済み';
-      if (isCancelled) {
-        statusBadges += `<p class="font-bold text-ui-error-text text-lg">キャンセル済</p>`;
-      }
+      // キャンセル済みは表示の必要なし（myBookingsから除外済み）
     }
 
     // ボタン部分の生成
@@ -351,9 +356,10 @@
 
   /**
    * ユーザー情報入力フォーム（新規登録・プロフィール編集共通）
+   * 【統合設計】新規登録と編集を1つの関数で処理する効率的な実装
    * @param {Object} config - 設定オブジェクト
-   * @param {string} config.mode - 'register' または 'edit'
-   * @param {string} [config.phone] - 電話番号（新規登録時）
+   * @param {string} config.mode - 'register'（新規登録）または 'edit'（編集）
+   * @param {string} [config.phone] - 電話番号（新規登録時のみ）
    * @returns {string} HTML文字列
    */
   const getUserFormView = config => {
@@ -411,29 +417,29 @@
     // ボタン設定
     const buttons = isEdit
       ? [
-        {
-          text: 'この内容で更新',
-          action: 'saveProfile',
-          colorClass: DesignConfig.colors.primary,
-        },
-        {
-          text: '戻る',
-          action: 'goBackToDashboard',
-          colorClass: DesignConfig.colors.secondary,
-        },
-      ]
+          {
+            text: 'この内容で更新',
+            action: 'saveProfile',
+            colorClass: DesignConfig.colors.primary,
+          },
+          {
+            text: '戻る',
+            action: 'goBackToDashboard',
+            colorClass: DesignConfig.colors.secondary,
+          },
+        ]
       : [
-        {
-          text: '次へ進む',
-          action: 'goToStep2',
-          colorClass: DesignConfig.colors.primary,
-        },
-        {
-          text: '戻る',
-          action: 'goBackToLogin',
-          colorClass: DesignConfig.colors.secondary,
-        },
-      ];
+          {
+            text: '次へ進む',
+            action: 'goToStep2',
+            colorClass: DesignConfig.colors.primary,
+          },
+          {
+            text: '戻る',
+            action: 'goBackToLogin',
+            colorClass: DesignConfig.colors.secondary,
+          },
+        ];
 
     const nameIdPrefix = isEdit ? 'edit' : 'reg';
 
@@ -443,37 +449,37 @@
             ${description}
             <div class="space-y-4">
                 ${Components.createInput({
-      id: `${nameIdPrefix}-realname`,
-      label: 'お名前',
-      type: 'text',
-      required: true,
-      value: realNameValue,
-      containerClass: '',
-      autocomplete: 'name',
-    })}
+                  id: `${nameIdPrefix}-realname`,
+                  label: 'お名前',
+                  type: 'text',
+                  required: true,
+                  value: realNameValue,
+                  containerClass: '',
+                  autocomplete: 'name',
+                })}
                 ${Components.createInput({
-      id: `${nameIdPrefix}-nickname`,
-      label: 'ニックネーム（表示名）',
-      caption: '他の生徒さんにも表示されます',
-      type: 'text',
-      value: nicknameValue,
-      placeholder: '空欄の場合はお名前',
-      containerClass: '',
-    })}
+                  id: `${nameIdPrefix}-nickname`,
+                  label: 'ニックネーム（表示名）',
+                  caption: '他の生徒さんにも表示されます',
+                  type: 'text',
+                  value: nicknameValue,
+                  placeholder: '空欄の場合はお名前',
+                  containerClass: '',
+                })}
                 ${phoneSection}
             </div>
             <div class="mt-6">
                 <div class="space-y-3">
                     ${buttons
-        .map(btn =>
-          Components.createButton({
-            text: btn.text,
-            action: btn.action,
-            colorClass: btn.colorClass,
-            widthClass: DesignConfig.buttons.full,
-          }),
-        )
-        .join('')}
+                      .map(btn =>
+                        Components.createButton({
+                          text: btn.text,
+                          action: btn.action,
+                          colorClass: btn.colorClass,
+                          widthClass: DesignConfig.buttons.full,
+                        }),
+                      )
+                      .join('')}
                 </div>
             </div>
         </div>`;
@@ -487,9 +493,9 @@
   const getRegisterView = p => getUserFormView({ mode: 'register', phone: p });
 
   /**
-   * 新規登録フローのステップ2（プロフィール情報）のUIを生成する
-   * 性別、利き手、年代、メールアドレス等の詳細プロフィール入力フォーム
-   * @returns {string} プロフィール入力フォームのHTML文字列
+   * 新規登録フローのステップ2（プロフィール詳細）
+   * 【設計方針】ステップ式登録により、ユーザー負担を軽減
+   * @returns {string} プロフィール詳細フォームのHTML文字列
    */
   const getRegistrationStep2View = () => {
     const data = stateManager.getState().registrationData;
@@ -547,8 +553,8 @@
   };
 
   /**
-   * 新規登録フローのステップ3（木彫りについて）のUIを生成する
-   * 木彫り経験、きっかけ、制作したい物等の木彫り関連質問フォーム
+   * 新規登録フローのステップ3（木彫り関連情報）
+   * 【UX配慮】動的表示制御により、経験者には詳細質問を表示
    * @returns {string} 木彫りアンケートフォームのHTML文字列
    */
   const getRegistrationStep3View = () => {
@@ -582,7 +588,8 @@
   };
 
   /**
-   * NF-01: 電話番号未登録ユーザーの検索・選択画面のUIを生成します。
+   * 電話番号未登録ユーザーの検索・選択画面
+   * 【機能】NF-01 対応：名前検索によるアカウント発見機能
    * @returns {string} HTML文字列
    */
   const getUserSearchView = () => {
@@ -598,75 +605,150 @@
 
         <div class="${DesignConfig.inputs.container} mb-4">
             ${Components.createInput({
-      id: 'nickname-search-input',
-      label: 'お名前（本名）またはニックネーム', // ラベルを変更
-      type: 'text',
-      placeholder: 'お名前またはニックネーム', // プレースホルダーを変更
-      inputClass: 'text-center',
-      autocomplete: 'off',
-    })}
+              id: 'nickname-search-input',
+              label: 'お名前（本名）またはニックネーム', // ラベルを変更
+              type: 'text',
+              placeholder: 'お名前またはニックネーム', // プレースホルダーを変更
+              inputClass: 'text-center',
+              autocomplete: 'off',
+            })}
             <div class="mt-4 flex justify-center">
                 ${Components.createButton({
-      text: '検索',
-      action: 'searchUserByName',
-      colorClass: DesignConfig.colors.primary,
-      widthClass: DesignConfig.buttons.full,
-    })}
+                  text: '検索',
+                  action: 'searchUserByName',
+                  colorClass: DesignConfig.colors.primary,
+                  widthClass: DesignConfig.buttons.full,
+                })}
             </div>
         </div>
 
         <div class="mt-8 space-y-3">
-            ${users.length > 0
-        ? `
+            ${
+              users.length > 0
+                ? `
                 <h2 class="text-lg font-bold ${DesignConfig.colors.text} text-center mb-2">見つかったアカウント</h2>
                 ${users
-          .map(
-            user => `
+                  .map(
+                    user => `
                     <div class="${DesignConfig.cards.background} p-3 rounded-lg flex justify-between items-center">
                         <p class="text-base font-semibold">${user.realName}（${user.nickname}）</p> // 本名とニックネームを両方表示
                         ${Components.createButton({
-              text: 'これだ！',
-              action: 'selectSearchedUser',
-              studentId: user.studentId,
-              realName: user.realName,
-              nickname: user.nickname,
-              colorClass:
-                'bg-state-success-bg text-state-success-text text-sm py-1 px-3 rounded active:bg-state-success-hover focus:bg-state-success-hover mobile-button',
-            })}
+                          text: 'これだ！',
+                          action: 'selectSearchedUser',
+                          studentId: user.studentId,
+                          realName: user.realName,
+                          nickname: user.nickname,
+                          colorClass:
+                            'bg-state-success-bg text-state-success-text text-sm py-1 px-3 rounded active:bg-state-success-hover focus:bg-state-success-hover mobile-button',
+                        })}
                     </div>
                 `,
-          )
-          .join('')}
+                  )
+                  .join('')}
             `
-        : hasSearchedAndNoResults
-          ? `
+                : hasSearchedAndNoResults
+                  ? `
                 <p class="text-center ${DesignConfig.colors.textSubtle}">一致するアカウントが見つかりませんでした。</p>
             `
-          : ''
-      }
+                  : ''
+            }
         </div>
 
         <div class="mt-8 pt-4 border-t border-gray-200 flex flex-col space-y-3">
             <h2 class="text-lg font-bold ${DesignConfig.colors.text} text-center mb-2">見つからない場合</h2>
             ${Components.createButton({
-        text: '自分のアカウントが見つからないので、新規登録する',
-        action: 'goToRegisterFromUserSearch',
-        colorClass: DesignConfig.colors.primary,
-        widthClass: DesignConfig.buttons.full,
-      })}
+              text: '自分のアカウントが見つからないので、新規登録する',
+              action: 'goToRegisterFromUserSearch',
+              colorClass: DesignConfig.colors.primary,
+              widthClass: DesignConfig.buttons.full,
+            })}
             ${Components.createButton({
-        text: 'ログイン画面に戻る',
-        action: 'goBackToLogin',
-        colorClass: DesignConfig.colors.secondary,
-        widthClass: DesignConfig.buttons.full,
-      })}
+              text: 'ログイン画面に戻る',
+              action: 'goBackToLogin',
+              colorClass: DesignConfig.colors.secondary,
+              widthClass: DesignConfig.buttons.full,
+            })}
         </div>
     `;
   };
 
   /**
+   * ダッシュボード予約カードのボタン配列を生成します（新仕様）。
+   * @param {object} booking - 予約データ
+   * @returns {Array} ボタン設定配列
+   */
+  const _buildBookingButtons = booking => {
+    const buttons = [];
+    const isBookingToday = _isToday(booking.date);
+
+    // 会計関連ボタン（新仕様）
+    if (booking.status === STATUS.CONFIRMED && isBookingToday) {
+      // よやく かつ 当日 → 「会計」ボタン
+      buttons.push({
+        action: 'goToAccounting',
+        text: '会計',
+        style: 'accounting',
+      });
+    }
+
+    // 確認/編集ボタン
+    if (
+      booking.status === STATUS.CONFIRMED ||
+      booking.status === STATUS.WAITLISTED
+    ) {
+      // よやく → 「確認/編集」ボタン
+      buttons.push({
+        action: 'goToEditReservation',
+        text: '確認/編集',
+        style: 'edit',
+      });
+    }
+
+    return buttons;
+  };
+
+  /**
+   * ダッシュボード履歴カードのボタン配列を生成します（新仕様）。
+   * @param {object} historyItem - 履歴データ
+   * @returns {Array} ボタン設定配列
+   */
+  const _buildHistoryButtons = historyItem => {
+    const buttons = [];
+    const isHistoryToday = _isToday(historyItem.date);
+
+    // 会計関連ボタン（新仕様）
+    if (historyItem.status === STATUS.COMPLETED) {
+      if (isHistoryToday) {
+        // きろく かつ 当日 → 「会計を修正」ボタン
+        buttons.push({
+          action: 'editAccountingRecord',
+          text: '会計を修正',
+          style: 'accounting',
+        });
+      } else {
+        // きろく → 「会計詳細」ボタン
+        buttons.push({
+          action: 'showHistoryAccounting',
+          details: historyItem.accountingDetails,
+          text: '会計詳細',
+          style: 'record',
+        });
+      }
+    }
+
+    // メモ編集ボタン
+    buttons.push({
+      action: 'editHistoryMemo',
+      text: '編集',
+      style: 'edit-small',
+    });
+
+    return buttons;
+  };
+
+  /**
    * メインのダッシュボード画面のUIを生成します。
-   * ユーザーの予約一覧と履歴一覧を統合表示します。
+   * 【改善】ビジネスロジックをヘルパー関数に分離して可読性向上
    * @returns {string} HTML文字列
    */
   const getDashboardView = () => {
@@ -675,59 +757,11 @@
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 予約セクション用のカード配列を構築（ビジネスロジック）
+    // 予約セクション用のカード配列を構築（新仕様：「よやく」表示条件）
     const bookingCards = sortedBookings
-      .filter(b => {
-        const isCancelled =
-          b.status === STATUS.CANCEL ||
-          b.status === 'キャンセル' ||
-          b.status === 'キャンセル済み';
-        return !isCancelled; // キャンセル済み予約を念のため除外
-      })
+      .filter(b => [STATUS.WAITLISTED, STATUS.CONFIRMED].includes(b.status))
       .map(b => {
-        // 予約日時を現在日時と比較（ビジネスロジック）
-        let isPastOrToday;
-        if (b.startTime) {
-          // 開始時刻がある場合は、その時刻と比較
-          const resDateTime = new Date(`${b.date}T${b.startTime}`);
-          isPastOrToday = resDateTime.getTime() <= new Date().getTime();
-        } else {
-          // 開始時刻がない場合は日付のみで比較
-          const resDate = new Date(b.date);
-          resDate.setHours(0, 0, 0, 0);
-          isPastOrToday = resDate.getTime() <= today.getTime();
-        }
-
-        // ボタン配列を構築（ビジネスロジック）
-        const buttons = [];
-
-        // 会計ボタン
-        if (isPastOrToday) {
-          if (b.accountingDone) {
-            buttons.push({
-              action: 'goToAccounting',
-              text: '会計済',
-              style: 'paid',
-            });
-          } else {
-            buttons.push({
-              action: 'goToAccounting',
-              text: '会計',
-              style: 'accounting',
-            });
-          }
-        }
-
-        // 編集ボタン
-        if (!isPastOrToday && !b.accountingDone) {
-          buttons.push({
-            action: 'goToEditReservation',
-            text: '確認/編集',
-            style: 'edit',
-          });
-        }
-
-        // Componentsに構造生成を委任
+        const buttons = _buildBookingButtons(b);
         return Components.listCard({
           type: 'booking',
           item: b,
@@ -744,59 +778,27 @@
       newAction: 'goToClassroomSelection',
     });
 
-    // 履歴セクションを生成（ビジネスロジック）
+    // 履歴セクションを生成（新仕様：「きろく」表示条件）
     let historyHtml = '';
-    if (
-      stateManager.getState().history &&
-      stateManager.getState().history.length > 0
-    ) {
-      // 計算済みデータを使用
-      const recordsToShow = stateManager.getState().computed.displayHistory;
+    const completedBookings = sortedBookings.filter(
+      b => b.status === STATUS.COMPLETED,
+    );
 
-      const historyCards = recordsToShow
-        .filter(h => {
-          const isCancelled =
-            h.status === STATUS.CANCEL ||
-            h.status === 'キャンセル' ||
-            h.status === 'キャンセル済み';
-          return !isCancelled; // キャンセル済み予約を念のため除外
-        })
-        .map(h => {
-          // ボタン配列を構築（ビジネスロジック）
-          const buttons = [];
-
-          // 会計記録ボタン
-          if (h.accountingDetails) {
-            try {
-              const acc = JSON.parse(h.accountingDetails);
-              buttons.push({
-                action: 'showHistoryAccounting',
-                details: h.accountingDetails,
-                text: '会計記録',
-                style: 'record',
-              });
-            } catch (e) {
-              // エラーハンドリングは個別に行う
-            }
-          }
-
-          // 編集ボタン
-          buttons.push({
-            action: 'editHistoryMemo',
-            text: '編集',
-            style: 'edit-small',
-          });
-
-          // Componentsに構造生成を委任
-          return Components.listCard({
-            type: 'history',
-            item: h,
-            today: null, // 履歴では不要
-            buttons: buttons,
-          });
+    if (completedBookings.length > 0) {
+      // 「きろく」は completed ステータスのみ表示
+      const historyCards = completedBookings.map(h => {
+        const buttons = _buildHistoryButtons(h);
+        return Components.listCard({
+          type: 'history',
+          item: h,
+          today: null, // 履歴では不要
+          buttons: buttons,
         });
+      });
 
-      const showMore = (stateManager.getState().recordsToShow || 10) < stateManager.getState().computed.sortedHistory.length;
+      const showMore =
+        (stateManager.getState().recordsToShow || 10) <
+        stateManager.getState().computed.sortedHistory.length;
 
       // Componentsに構造生成を委任
       historyHtml = Components.dashboardSection({
@@ -931,7 +933,7 @@
                 .computed.sortedBookings.find(
                   b => b.date === sl.date && b.classroom === sl.classroom,
                 );
-              if (booking && booking.status === STATUS.WAITING) {
+              if (booking && booking.status === STATUS.WAITLISTED) {
                 cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
               } else {
@@ -973,8 +975,8 @@
     // バックエンドで計算済みの空き情報を直接使用
     const relevantSlots = stateManager.getState().slots
       ? stateManager
-        .getState()
-        .slots.filter(slot => slot.classroom === classroom)
+          .getState()
+          .slots.filter(slot => slot.classroom === classroom)
       : [];
 
     const bookingSlotsHtml = renderBookingSlots(relevantSlots);
@@ -1171,23 +1173,23 @@
       return `
         <div class="mt-4 pt-4 border-t space-y-4">
           ${Components.createTextArea({
-        id: 'wip-input',
-        label: isFirstTime ? '今回制作したいもの' : 'やりたいこと/作業予定',
-        caption: isFirstTime
-          ? '作りたいものがある方はご記入ください。仮でもOK! * ご自身の作り途中の作品や、材料の持ち込みも可'
-          : '',
-        placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！',
-        value: workInProgress || '',
-      })}
+            id: 'wip-input',
+            label: isFirstTime ? '今回制作したいもの' : 'やりたいこと/作業予定',
+            caption: isFirstTime
+              ? '作りたいものがある方はご記入ください。仮でもOK! * ご自身の作り途中の作品や、材料の持ち込みも可'
+              : '',
+            placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！',
+            value: workInProgress || '',
+          })}
           ${Components.createTextArea({
-        id: 'material-input',
-        label: '材料のサイズや樹種の希望',
-        caption:
-          'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
-        placeholder:
-          '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
-        value: materialInfo || '',
-      })}
+            id: 'material-input',
+            label: '材料のサイズや樹種の希望',
+            caption:
+              'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
+            placeholder:
+              '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
+            value: materialInfo || '',
+          })}
           ${isFirstTime ? firstTimeGuidance : ''}
         </div>
         <div class="mt-4 pt-4 border-t space-y-4">
@@ -1329,11 +1331,11 @@
 
         <div class="max-w-xs mx-auto mt-8">
              ${Components.createButton({
-      text: 'ダッシュボードへ戻る',
-      action: 'goToDashboard',
-      colorClass: DesignConfig.colors.secondary,
-      widthClass: DesignConfig.buttons.full,
-    })}
+               text: 'ダッシュボードへ戻る',
+               action: 'goToDashboard',
+               colorClass: DesignConfig.colors.secondary,
+               widthClass: DesignConfig.buttons.full,
+             })}
         </div>
     </div>`;
   };
@@ -1361,7 +1363,7 @@
 
     // 会計済みの場合 - 完全分離（編集モードでない場合のみ）
     if (
-      booking.accountingDone &&
+      booking.status === STATUS.COMPLETED &&
       booking.accountingDetails &&
       !state.isEditingAccountingRecord
     ) {
@@ -1371,11 +1373,11 @@
           ${Components.accountingCompleted({ details, reservation })}
           <div class="mt-8 flex flex-col space-y-3">
             ${Components.createButton({
-          text: '戻る',
-          action: 'goBackToDashboard',
-          colorClass: DesignConfig.colors.secondary,
-          widthClass: DesignConfig.buttons.full,
-        })}
+              text: '戻る',
+              action: 'goBackToDashboard',
+              colorClass: DesignConfig.colors.secondary,
+              widthClass: DesignConfig.buttons.full,
+            })}
           </div>`;
       } catch (e) {
         return '<div class="text-center text-state-danger-text">会計詳細の表示に失敗しました。</div>';
@@ -1395,18 +1397,18 @@
     return `
       ${Components.navigationHeader({ title: '会計', backAction: 'goBackToDashboard' })}
       ${Components.accountingForm({
-      type: formType,
-      master,
-      reservation,
-      initial,
-    })}
+        type: formType,
+        master,
+        reservation,
+        initial,
+      })}
       <div class="mt-8 flex flex-col space-y-3">
         ${Components.createButton({
-      text: '戻る',
-      action: 'goBackToDashboard',
-      colorClass: DesignConfig.colors.secondary,
-      widthClass: DesignConfig.buttons.full,
-    })}
+          text: '戻る',
+          action: 'goBackToDashboard',
+          colorClass: DesignConfig.colors.secondary,
+          widthClass: DesignConfig.buttons.full,
+        })}
       </div>`;
   };
 </script>
