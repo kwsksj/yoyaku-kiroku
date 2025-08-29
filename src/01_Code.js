@@ -16,7 +16,6 @@
 // =================================================================
 
 // --- グローバル定数定義 ---
-const RESERVATION_SPREADSHEET_ID = getActiveSpreadsheet().getId();
 const RESERVATION_DATA_START_ROW = 2;
 
 // NF-01: 電話番号なしユーザーの特殊ログインコマンド (PropertiesServiceから取得)
@@ -31,17 +30,6 @@ const SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE =
 const ADMIN_EMAIL =
   PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
 
-// --- シート名関連の定数（継続使用） ---
-// 同期対象ヘッダー - すべて00_Constants.jsで定義済み
-
-const SYNC_TARGET_HEADERS = [
-  HEADER_LINE,
-  HEADER_IN_THE_FUTURE,
-  HEADER_NOTES,
-  HEADER_FROM,
-  HEADER_CHISEL_RENTAL,
-];
-
 // --- UI・表示関連の定数 ---
 const COLUMN_WIDTH_DATE = 100; // 日付列の幅
 const COLUMN_WIDTH_CLASSROOM = 100; // 教室列の幅
@@ -55,72 +43,12 @@ const COLUMN_WIDTH_NOTES = 200; // 備考列の幅
 
 // --- システム処理関連の定数 ---
 const CACHE_EXPIRY_SECONDS = 86400; // キャッシュ有効期限（24時間）
-const SAMPLE_DATA_DAYS = 30; // サンプルデータ生成日数（1ヶ月）
 const WEEKEND_SUNDAY = 0; // 日曜日の曜日コード
 const WEEKEND_SATURDAY = 6; // 土曜日の曜日コード
 const HEADER_ROW = 1; // ヘッダー行番号
-// DATA_START_ROWは00_Constants.jsで統一管理されています
-
-// --- 材料情報関連の定数は00_Constants.jsで統一管理されています ---
-
-// --- 売上カテゴリ関連の定数（00_Constants.jsに未統合） ---
-const SALES_CATEGORY_TUITION = '授業料';
-const SALES_CATEGORY_SALES = '物販';
-
-// 注意: MSG_*, LOG_ACTION_*, COLOR_* 定数は00_Constants.jsで定義済みのため削除
-
-// 注意: 主要な定数（教室名、ヘッダー名、ステータスなど）は00_Constants.jsで統一管理されています
-
-const CLASSROOM_TRANSFER_SETTINGS = [
-  {
-    sourceSheetName: TOKYO_CLASSROOM_NAME,
-    transferColumns: [
-      HEADER_DATE,
-      HEADER_VENUE,
-      HEADER_PARTICIPANT_COUNT,
-      HEADER_CO,
-      HEADER_NAME,
-      HEADER_FIRST_LECTURE,
-      HEADER_CHISEL_RENTAL,
-    ],
-  },
-  {
-    sourceSheetName: NUMAZU_CLASSROOM_NAME,
-    transferColumns: [
-      HEADER_DATE,
-      HEADER_PARTICIPANT_COUNT,
-      HEADER_CO,
-      HEADER_NAME,
-      HEADER_TIME,
-      HEADER_CHISEL_RENTAL,
-    ],
-  },
-  {
-    sourceSheetName: TSUKUBA_CLASSROOM_NAME,
-    transferColumns: [
-      HEADER_DATE,
-      HEADER_PARTICIPANT_COUNT,
-      HEADER_CO,
-      HEADER_NAME,
-      HEADER_TIME,
-      HEADER_CHISEL_RENTAL,
-    ],
-  },
-];
 
 // --- 外部サービス連携用ID ---
-// SALES_SPREADSHEET_IDは00_Constants.jsで統一管理されています
-const GOOGLE_FORM_IDS_RAW =
-  PropertiesService.getScriptProperties().getProperty('GOOGLE_FORM_IDS');
-const GOOGLE_FORM_IDS = GOOGLE_FORM_IDS_RAW
-  ? JSON.parse(GOOGLE_FORM_IDS_RAW)
-  : {};
-// --- Googleフォームの質問タイトル ---
-const FORM_QUESTION_TITLES = {
-  [TOKYO_CLASSROOM_NAME]: '参加希望日・会場',
-  [TSUKUBA_CLASSROOM_NAME]: '参加希望日',
-  [NUMAZU_CLASSROOM_NAME]: '参加希望日',
-};
+
 // --- GoogleカレンダーのID ---
 const CALENDAR_IDS_RAW =
   PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');

@@ -395,17 +395,6 @@ function updateUserProfile(userInfo) {
         throw new Error('生徒名簿のヘッダーが正しくありません。');
       }
 
-      // 更新するデータを準備
-      const updatedValues = [
-        [
-          userInfo.realName,
-          userInfo.displayName,
-          userInfo.phone
-            ? `'${_normalizeAndValidatePhone(userInfo.phone).normalized}`
-            : '',
-        ],
-      ];
-
       // ★ ピンポイント更新
       // 注意：この例では3つの値が隣接していると仮定しています。もし列が離れている場合は、個別にgetRange/setValueが必要です。
       // ここでは簡潔さのため、隣接していると仮定して一度に書き込みます。

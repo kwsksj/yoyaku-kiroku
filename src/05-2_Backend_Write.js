@@ -797,10 +797,6 @@ function saveAccountingDetails(payload) {
         }
       }
 
-      // 2. 受講時間とガントチャートを再計算 (レガシー機能のためコメントアウト)
-      // updateBillableTime(sheet, targetRowIndex);
-      // updateGanttChart(sheet, targetRowIndex);
-
       // 3. 検証済みの会計詳細JSONを保存
       const accountingDetailsColIdx = headerMap.get(
         CONSTANTS.HEADERS.ACCOUNTING_DETAILS,
@@ -828,9 +824,6 @@ function saveAccountingDetails(payload) {
       // 5. 統合予約シートの更新後、全てのキャッシュを再構築
       //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
       //    全キャッシュを再構築してデータの整合性を保つ。
-
-      // --- ここからが追加の後続処理 ---
-      // reservationDataRowは既に上記で取得済み
 
       // 6. 売上ログへの転記
       _logSalesForSingleReservation(

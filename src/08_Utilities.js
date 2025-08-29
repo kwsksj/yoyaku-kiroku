@@ -105,23 +105,6 @@ function findRowIndexByValue(sheet, col, value) {
 }
 
 /**
- * 【復活】罫線描画ライブラリを安全に呼び出すためのラッパー関数。
- * ライブラリが存在する場合のみ、その中の描画関数を実行します。
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象シート
- */
-function formatSheetWithBordersSafely(sheet) {
-  if (typeof drawBorders !== 'undefined') {
-    try {
-      drawBorders.formatSheetWithBorders(sheet);
-    } catch (err) {
-      Logger.log(
-        `The 'drawBorders' library exists but failed to execute for sheet '${sheet.getName()}': ${err.message}`,
-      );
-    }
-  }
-}
-
-/**
  * 売上表に書き込むための単一の行データを作成する。
  * @param {object} baseInfo - 日付、名前などの基本情報。
  * @param {string} category - '授業料' or '物販'
