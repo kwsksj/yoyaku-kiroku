@@ -44,6 +44,9 @@ const CONSTANTS = {
     TSUKUBA: 'つくば教室',
   },
 
+  // タイムゾーン設定
+  TIMEZONE: 'Asia/Tokyo',
+
   // 教室定員
   CLASSROOM_CAPACITIES: {
     東京教室: 8,
