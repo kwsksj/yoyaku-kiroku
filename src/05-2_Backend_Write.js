@@ -1,108 +1,110 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-2_Backend_Write.gs
- * 【バージョン】: 2.1
+ * 【バージョン】: 2.6
  * 【役割】: WebAppからのデータ書き込み・更新要求（Write）と、
  * それに付随する検証ロジックに特化したバックエンド機能。
- * 【構成】: 18ファイル構成のうちの7番目（00_Constants.js、08_ErrorHandler.jsを含む）
- * 【v2.1での変更点】:
- * - saveAccountingDetailsがレガシーな教室別シートではなく、統合予約シートのみを参照するように修正。
- * - _archiveSingleReservationが教室名を引数で受け取るようにし、シート名への依存を排除。
- * - saveAccountingDetails内の不要なレガシー関数呼び出しをコメントアウト。
+ * 【v2.6での変更点】:
+ * - checkCapacityFullの定員情報を日程マスタに一本化。
  * =================================================================
  */
 
-// =================================================================
-// 統一定数ファイル（00_Constants.js）から定数を継承
-// 基本的な定数は00_Constants.jsで統一管理されています
-// =================================================================
-
 /**
  * 指定日・教室の定員チェックを行う共通関数。
- * @param {string} classroom - 教室名。
- * @param {string} date - 対象日付（yyyy-MM-dd形式）。
- * @param {Array} reservationsData - 統合予約シートの全データ。
- * @param {Map} headerMap - ヘッダーマップ。
- * @param {string} startTime - 開始時刻（筑波教室の午前午後判定用、オプション）。
- * @param {string} endTime - 終了時刻（筑波教室の午前午後判定用、オプション）。
- * @returns {boolean} - true: 満席, false: 空きあり。
  */
-function checkCapacityFull(
-  classroom,
-  date,
-  reservationsData,
-  headerMap,
-  startTime,
-  endTime,
-) {
-  const timezone = CONSTANTS.TIMEZONE;
-  const capacity =
-    CONSTANTS.CLASSROOM_CAPACITIES[classroom] ||
-    CONSTANTS.CLASSROOM_CAPACITIES[CONSTANTS.CLASSROOMS.TOKYO];
+function checkCapacityFull(classroom, date, startTime, endTime) {
+  const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  if (!reservationsCache || !reservationsCache.reservations) {
+    throw new Error('予約データのキャッシュが利用できません。');
+  }
 
-  // 列インデックス取得
+  const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+  if (!scheduleCache || !scheduleCache.schedule) {
+    throw new Error('日程マスタのキャッシュが利用できません。');
+  }
+
+  const schedule = scheduleCache.schedule.find(
+    s => s.date === date && s.classroom === classroom,
+  );
+
+  // 日程マスタから定員を取得。存在しない場合はデフォルト値8をフォールバックとして使用。
+  const capacity = schedule ? schedule.totalCapacity : 8;
+
+  const { reservations, headerMap: rawHeaderMap } = reservationsCache;
+  const headerMap = new Map(Object.entries(rawHeaderMap));
   const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
   const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
   const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
   const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-  const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
-  const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
 
-  // 同日同教室の予約をフィルタリング
-  const dateFilter = row => {
-    const rowDate = row[dateColIdx];
-    const rowStatus = String(row[statusColIdx]).toLowerCase();
-    const rowClassroom = row[classroomColIdx];
+  const reservationsOnDate = reservations.filter(r => {
+    const row = r.data;
     return (
-      rowDate instanceof Date &&
-      Utilities.formatDate(rowDate, timezone, 'yyyy-MM-dd') === date &&
-      rowClassroom === classroom &&
-      rowStatus !== CONSTANTS.STATUS.CANCELED &&
-      !!row[studentIdColIdx] // 生徒IDが存在する行のみ
+      row[dateColIdx] === date &&
+      row[classroomColIdx] === classroom &&
+      row[statusColIdx] === CONSTANTS.STATUS.CONFIRMED &&
+      !!row[studentIdColIdx]
     );
+  });
+
+  if (classroom !== CONSTANTS.CLASSROOMS.TSUKUBA || !schedule) {
+    return reservationsOnDate.length >= capacity;
+  }
+  // --- つくば教室の午前・午後判定ロジック ---
+  const timeCache = {
+    firstEndTime: schedule.firstEnd
+      ? new Date(`1900-01-01T${schedule.firstEnd}`)
+      : null,
+    secondStartTime: schedule.secondStart
+      ? new Date(`1900-01-01T${schedule.secondStart}`)
+      : null,
   };
 
-  if (classroom === CONSTANTS.CLASSROOMS.TSUKUBA) {
-    const reqStartHour = startTime
-      ? new Date(`1900-01-01T${startTime}`).getHours()
-      : 0;
-    const reqEndHour = endTime
-      ? new Date(`1900-01-01T${endTime}`).getHours()
-      : 24;
-
-    let morningCount = 0;
-    let afternoonCount = 0;
-    reservationsData.filter(dateFilter).forEach(row => {
-      const rStart = row[startTimeColIdx];
-      const rEnd = row[endTimeColIdx];
-      const rStartHour = rStart instanceof Date ? rStart.getHours() : 0;
-      const rEndHour = rEnd instanceof Date ? rEnd.getHours() : 24;
-
-      if (rStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR)
-        morningCount++;
-      if (rEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR)
-        afternoonCount++;
-    });
-
-    const morningFull = morningCount >= capacity;
-    const afternoonFull = afternoonCount >= capacity;
-
-    if (
-      reqStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR &&
-      morningFull
-    )
-      return true;
-    if (
-      reqEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR &&
-      afternoonFull
-    )
-      return true;
-
-    return false;
-  } else {
-    const reservationsOnDate = reservationsData.filter(dateFilter).length;
-    return reservationsOnDate >= capacity;
+  if (!timeCache.firstEndTime || !timeCache.secondStartTime) {
+    return reservationsOnDate.length >= capacity;
   }
+
+  const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
+  const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
+  let morningCount = 0;
+  let afternoonCount = 0;
+
+  reservationsOnDate.forEach(r => {
+    const row = r.data;
+    const rStart = row[startTimeColIdx]
+      ? new Date(`1900-01-01T${row[startTimeColIdx]}`)
+      : null;
+    const rEnd = row[endTimeColIdx]
+      ? new Date(`1900-01-01T${row[endTimeColIdx]}`)
+      : null;
+
+    if (rStart && rStart <= timeCache.firstEndTime) {
+      morningCount++;
+    }
+    if (rEnd && rEnd >= timeCache.secondStartTime) {
+      afternoonCount++;
+    }
+  });
+
+  const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
+  const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
+
+  if (
+    reqStart &&
+    reqStart <= timeCache.firstEndTime &&
+    morningCount >= capacity
+  ) {
+    return true; // 午前枠が満席
+  }
+  if (
+    reqEnd &&
+    reqEnd >= timeCache.secondStartTime &&
+    afternoonCount >= capacity
+  ) {
+    return true; // 午後枠が満席
+  }
+
+  return false;
 }
 
 /**
@@ -161,7 +163,8 @@ function makeReservation(reservationInfo) {
       );
       if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
-      const masterData = getAccountingMasterData().data;
+      const accountingCache = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
+      const masterData = accountingCache ? accountingCache.items : [];
       const classroomRule = masterData.find(
         item =>
           item['対象教室'] &&
@@ -246,8 +249,11 @@ function makeReservation(reservationInfo) {
 
       // 時刻設定（教室別のロジック）
       if (classroom === CONSTANTS.CLASSROOMS.TOKYO) {
-        const master = getAccountingMasterData().data;
-        const tokyoRule = master.find(
+        const accountingCache = getCachedData(
+          CACHE_KEYS.MASTER_ACCOUNTING_DATA,
+        );
+        const masterData = accountingCache ? accountingCache.items : [];
+        const tokyoRule = masterData.find(
           item =>
             item['項目名'] === CONSTANTS.ITEMS.MAIN_LECTURE &&
             item['対象教室'] === CONSTANTS.CLASSROOMS.TOKYO,
@@ -495,7 +501,8 @@ function updateReservationDetails(details) {
   return withTransaction(() => {
     try {
       const { reservationId, classroom } = details;
-      const masterData = getAccountingMasterData().data;
+      const accountingCache = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
+      const masterData = accountingCache ? accountingCache.items : [];
       const classroomRule = masterData.find(
         item =>
           item['対象教室'] &&
@@ -668,7 +675,8 @@ function saveAccountingDetails(payload) {
       }
 
       // --- バックエンドでの再計算・検証ロジック ---
-      const masterData = getAccountingMasterData().data;
+      const accountingCache = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
+      const masterData = accountingCache ? accountingCache.items : [];
       const finalAccountingDetails = {
         tuition: { items: [], subtotal: 0 },
         sales: { items: [], subtotal: 0 },

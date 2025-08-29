@@ -99,7 +99,7 @@ const studentInfo = studentsCache?.students?.[studentId];
 **シートアクセス方式 → 定数利用に変更**:
 
 1. `05-1_Backend_Read.js:41` - 会計マスタ取得時
-2. `05-3_Backend_AvailableSlots.js:24` - 予約枠計算時  
+2. `05-3_Backend_AvailableSlots.js:24` - 予約枠計算時
 3. `07_CacheManager.js:402` - キャッシュ構築時
 4. `02-4_BusinessLogic_ScheduleMaster.js` (3箇所) - 日程マスタ処理
 5. `08_Utilities.js:123` - ユーティリティ関数
@@ -116,8 +116,7 @@ const timezone = CONSTANTS.TIMEZONE;
 
 #### 3.1 売上ログ書き込みのバッチ化
 
-**課題**: 毎回別スプレッドシートにアクセス
-**解決策**:
+**課題**: 毎回別スプレッドシートにアクセス **解決策**:
 
 - キューイングシステムの導入
 - 定期的なバッチ処理での一括書き込み
@@ -125,8 +124,7 @@ const timezone = CONSTANTS.TIMEZONE;
 
 #### 3.2 統合予約シート書き込みの効率化
 
-**現状**: 各処理で個別に書き込み
-**改善案**:
+**現状**: 各処理で個別に書き込み **改善案**:
 
 - トランザクション内でのまとめ書き込み
 - 不要な`flush()`呼び出しの削減
@@ -139,14 +137,18 @@ const timezone = CONSTANTS.TIMEZONE;
 
 ```javascript
 // 1部判定: 開始時刻が1部終了時刻以前
-if (startTime <= timeCache.firstEndTime) { morningCount++; }
-// 2部判定: 終了時刻が2部開始時刻以降  
-if (endTime >= timeCache.secondStartTime) { afternoonCount++; }
+if (startTime <= timeCache.firstEndTime) {
+  morningCount++;
+}
+// 2部判定: 終了時刻が2部開始時刻以降
+if (endTime >= timeCache.secondStartTime) {
+  afternoonCount++;
+}
 ```
 
 **checkCapacityFull (05-2)**: 固定13時区切り（旧式）
 
-```javascript  
+```javascript
 // 固定13時で午前午後を判定
 if (rStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) morningCount++;
 if (rEndHour >= CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) afternoonCount++;
@@ -182,7 +184,7 @@ function getCachedReservationsForCapacityCheck(classroom, date) {
 #### 5.2 ユーザー情報取得の共通化
 
 ```javascript
-// 新規共通関数  
+// 新規共通関数
 function getCachedStudentInfo(studentId) {
   const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
   return studentsCache?.students?.[studentId];
@@ -215,8 +217,7 @@ const capacity = scheduleData?.totalCapacity || 8;
 
 // 【変更2】授業時間設定の統合
 // 変更前: 会計マスタから取得
-const tokyoRule = masterData.find(item => 
-  item['項目名'] === CONSTANTS.ITEMS.MAIN_LECTURE);
+const tokyoRule = masterData.find(item => item['項目名'] === CONSTANTS.ITEMS.MAIN_LECTURE);
 const startTime = tokyoRule[CONSTANTS.HEADERS.CLASS_START];
 
 // 変更後: 日程マスタから取得
@@ -274,7 +275,7 @@ const startTime = scheduleData?.firstStart;
 
 ### Week 3: Phase 4 - セッション判定ロジックの統一化
 
-- [ ] AvailableSlotsのセッション判定ロジックを分析・抽出  
+- [ ] AvailableSlotsのセッション判定ロジックを分析・抽出
 - [ ] checkCapacityFullのロジックをAvailableSlots方式に統一
 - [ ] 日程マスタから動的に1部・2部時間を取得する実装
 - [ ] 固定13時区切りからの完全移行とテスト
@@ -332,7 +333,7 @@ const startTime = scheduleData?.firstStart;
 - Phase 1のキャッシュ化（既存キャッシュシステム活用）
 - 共通関数の実装（段階的な置換可能）
 
-### 中リスク項目  
+### 中リスク項目
 
 - 売上ログのバッチ化（データ整合性の考慮必要）
 - 書き込みタイミングの変更（テスト検証重要）
@@ -346,7 +347,7 @@ const startTime = scheduleData?.firstStart;
 ## 次のアクション
 
 1. **Phase 1.1の実装開始** - 定員チェックキャッシュ化
-2. **テスト環境での検証** - 既存機能への影響確認  
+2. **テスト環境での検証** - 既存機能への影響確認
 3. **性能測定基準の設定** - Before/After比較準備
 4. **段階的なデプロイ計画** - 本番環境への安全な適用
 5. **教室情報統一化の準備** - 日程マスタキャッシュ活用方針の詳細検討

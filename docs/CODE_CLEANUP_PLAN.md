@@ -29,9 +29,9 @@
 **背景**: 上記で作成した新しいヘルパー関数を、実際のコードに適用していく。
 
 - **手順**:
-    1. プロジェクト全体で `getCachedData(CACHE_KEYS.ALL_RESERVATIONS)` を呼び出している箇所を検索する。
-    2. その後の処理が、日付や教室でフィルタリングするロジックであれば、新しい `getCachedReservationsFor()` ヘルパー関数に置き換える。
-    3. 同様に、`getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC)` を呼び出して特定の生徒情報を取得している箇所を、`getCachedStudentById()` に置き換える。
+  1. プロジェクト全体で `getCachedData(CACHE_KEYS.ALL_RESERVATIONS)` を呼び出している箇所を検索する。
+  2. その後の処理が、日付や教室でフィルタリングするロジックであれば、新しい `getCachedReservationsFor()` ヘルパー関数に置き換える。
+  3. 同様に、`getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC)` を呼び出して特定の生徒情報を取得している箇所を、`getCachedStudentById()` に置き換える。
 
 ## 3. 実施タイミング
 
@@ -40,4 +40,5 @@
 大規模な構造変更が完了した後にコードをクリーンアップすることで、手戻りを防ぎ、効率的に作業を進めることができる。
 
 ---
+
 **作成日**: 2025-08-29

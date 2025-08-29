@@ -1,7 +1,7 @@
 /**
  * =================================================================
  * 【ファイル名】: 09_Backend_Endpoints.js
- * 【バージョン】: 3.0
+ * 【バージョン】: 3.1
  * 【役割】: WebApp用統合APIエンドポイント関数
  *
  * 【主要機能】:
@@ -19,7 +19,6 @@
  * ✅ ユーザー管理・検索機能
  *   - searchUsersWithoutPhone(): 電話番号未登録ユーザー検索
  *   - updateReservationMemo(): 予約メモ更新+履歴取得
- *   - extractUserDataFromBatch(): バッチデータからユーザーデータ抽出
  *
  * ✅ ユーティリティ関数
  *   - createApiErrorResponse(): 統一APIレスポンス形式のエラーハンドラ
@@ -29,12 +28,6 @@
  * 2. getCachedData()でキャッシュからデータ取得
  * 3. 必要に応じて他のBackend関数を呼び出し
  * 4. 統一APIレスポンス形式で結果を返却
- *
- * 【v3.0での変更点】:
- * - 関数名の統一化と明確化（getAppInitialData, getLoginData, getBatchData）
- * - JSDocコメントの全面改善と型情報の統一
- * - キャッシュ管理システムとの連携最適化
- * - エラーハンドリングとログ出力の改善
  * =================================================================
  */
 
@@ -56,9 +49,7 @@ function executeOperationAndGetLatestData(
 ) {
   try {
     const result = operationFunction(operationParams);
-    // キャッシュ更新は各操作関数内で実行済み
     if (result.success) {
-      // ログイン時と同じ方法でデータを取得
       const batchResult = getBatchData(
         ['initial', 'reservations'],
         null,
@@ -196,25 +187,11 @@ function getAppInitialData() {
   try {
     Logger.log('getAppInitialData開始');
 
-    // 1. 予約データはフロントエンドに送信しない（個人用はgetUserReservationsで別途取得）
-    // 予約キャッシュのバージョン情報のみ取得
     const allReservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-
-    // 2. 生徒基本情報キャッシュを取得（なければ再構築）
     const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    Logger.log(
-      `生徒データ件数: ${studentsCache?.students ? Object.keys(studentsCache.students).length : 0}`,
-    );
-
-    // 3. 料金マスタデータを取得（CacheServiceから, なければ再構築）
     const accountingMaster = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
-    Logger.log(`会計マスタデータ件数: ${accountingMaster?.items?.length || 0}`);
-
-    // 4. 日程マスタはフロントエンドには送信しない（空席計算で内部使用）
-    // バージョン情報のみ取得
     const scheduleMaster = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
 
-    // 5. 今日の日付文字列を追加
     const today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
 
     const result = {
@@ -223,7 +200,6 @@ function getAppInitialData() {
         allStudents: studentsCache?.students || {},
         accountingMaster: accountingMaster?.items || [],
         today: today,
-        // 統一定数をフロントエンドに配信
         constants: {
           classrooms: CONSTANTS.CLASSROOMS,
           headers: CONSTANTS.HEADERS,
@@ -382,21 +358,11 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
 
     // 2. 空席情報が要求されている場合
     if (dataTypes.includes('slots')) {
-      Logger.log('getBatchData: slots要求 - getAvailableSlots呼び出し開始');
       const availableSlotsResult = getAvailableSlots();
-      Logger.log(
-        `getBatchData: getAvailableSlots結果 - success: ${availableSlotsResult.success}, data.length: ${availableSlotsResult.data ? availableSlotsResult.data.length : 'null'}`,
-      );
       if (!availableSlotsResult.success) {
-        Logger.log(
-          `getBatchData: slots取得エラーのため処理中断 - ${availableSlotsResult.message}`,
-        );
         return availableSlotsResult;
       }
       result.data.slots = availableSlotsResult.data;
-      Logger.log(
-        `getBatchData: result.data.slotsに${availableSlotsResult.data.length}件設定完了`,
-      );
     }
 
     // 3. 個人予約データが要求されている場合
@@ -420,14 +386,6 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       }
     }
 
-    // 5. ユーザー固有データが要求されている場合
-    if (dataTypes.includes('userdata') && (studentId || result.user)) {
-      const targetStudentId = studentId || result.user.studentId;
-      const userData = extractUserDataFromBatch(result.data, targetStudentId);
-      result.data.userBookings = userData.myBookings;
-      result.data.userHistory = userData.myHistory;
-    }
-
     Logger.log(`getBatchData完了: dataTypes=${dataTypes.length}件`);
     return result;
   } catch (e) {
@@ -437,38 +395,6 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       true,
     );
   }
-}
-
-/**
- * バッチ取得されたデータから特定ユーザーのデータを抽出
- * @param {Object} batchData - getBatchDataで取得したデータ
- * @param {string} studentId - 抽出対象の生徒ID
- * @returns {Object} ユーザーの予約・履歴データ
- */
-function extractUserDataFromBatch(batchData, studentId) {
-  const result = {
-    myBookings: [],
-    myHistory: [],
-  };
-
-  if (batchData.initial && batchData.initial.allReservations) {
-    const today = batchData.initial.today;
-    batchData.initial.allReservations.forEach(resArray => {
-      // 配列形式の予約データをオブジェクト形式に変換
-      const resObj = transformReservationArrayToObject(resArray);
-      if (!resObj) return; // 変換失敗の場合はスキップ
-
-      if (resObj.studentId === studentId && resObj.status !== STATUS_CANCEL) {
-        if (resObj.date >= today) {
-          result.myBookings.push(resObj);
-        } else {
-          result.myHistory.push(resObj);
-        }
-      }
-    });
-  }
-
-  return result;
 }
 
 /**

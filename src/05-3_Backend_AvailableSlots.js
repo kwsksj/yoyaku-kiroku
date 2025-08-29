@@ -1,78 +1,44 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-3_Backend_AvailableSlots.js
- * 【バージョン】: 1.0
+ * 【バージョン】: 1.3
  * 【役割】: キャッシュベース + 日程マスタを使用した予約枠計算機能
- * 【構成】: 14ファイル構成への追加ファイル
- * 【新機能】:
- * - サマリーシートを経由せず、キャッシュデータから直接計算
- * - 日程マスタとの統合で予約のない開催予定日も表示
- * - 日程マスタの教室形式と時間設定を使用した統一的な処理
- * - 予約枠計算の統一エンドポイント（旧getAvailableSlotsFromSummaryを置き換え）
+ * 【v1.3での変更点】:
+ * - 不要なソート処理を削除（キャッシュ構築時にソート済みの前提）
  * =================================================================
  */
 
 /**
  * 利用可能な予約枠を計算して返す
- * @returns {object} - { success: boolean, data: object[], message?: string }
  */
 function getAvailableSlots() {
   try {
     Logger.log('=== getAvailableSlots 開始 ===');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const timezone = getSpreadsheetTimezone();
+    const timezone = CONSTANTS.TIMEZONE;
     const todayString = Utilities.formatDate(today, timezone, 'yyyy-MM-dd');
-    Logger.log(`基準日: ${todayString}, タイムゾーン: ${timezone}`);
 
-    // 1. 日程マスタから今日以降の開催予定を取得（最初に1回だけ読み込み）
     const scheduledDates = getAllScheduledDates(todayString);
-    Logger.log(`日程マスタから取得した開催予定: ${scheduledDates.length} 件`);
-    if (scheduledDates.length === 0) {
-      Logger.log('警告: 開催予定が0件です');
-    }
-
-    // 2. キャッシュから全予約データを取得
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     const allReservations = reservationsCache
       ? reservationsCache.reservations || []
       : [];
     const headerMap = reservationsCache ? reservationsCache.headerMap : null;
-    Logger.log(
-      `全予約キャッシュから取得した予約データ: ${allReservations.length} 件`,
-    );
 
-    if (allReservations.length === 0) {
-      Logger.log(
-        '警告: 全予約データが0件です - キャッシュまたはデータに問題がある可能性があります',
-      );
-    } else {
-      Logger.log(`全予約データサンプル: ${JSON.stringify(allReservations[0])}`);
-    }
-
-    // 3. 配列形式の予約データをオブジェクト形式に変換
     const convertedReservations = allReservations
       .map(reservation => {
-        // ヘッダーマップを使用した変換関数を使用
         if (Array.isArray(reservation)) {
           return transformReservationArrayToObjectWithHeaders(
             reservation,
             headerMap,
           );
         }
-        // 既にオブジェクト形式の場合はそのまま返す
         return reservation;
       })
-      .filter(reservation => reservation !== null); // nullの場合は除外
+      .filter(reservation => reservation !== null);
 
-    Logger.log(`全予約データ変換完了: ${convertedReservations.length} 件`);
-    if (convertedReservations.length > 0) {
-      Logger.log(`変換後サンプル: ${JSON.stringify(convertedReservations[0])}`);
-    }
-
-    // 4. 有効な予約のみを事前にフィルタリング＆日付文字列でマップ化
     const reservationsByDateClassroom = new Map();
-
     const validReservations = convertedReservations.filter(reservation => {
       const reservationDate = new Date(reservation.date);
       return (
@@ -82,13 +48,6 @@ function getAvailableSlots() {
       );
     });
 
-    Logger.log(
-      `有効な予約データ（今日以降、キャンセル・キャンセル待ち除外）: ${validReservations.length} 件`,
-    );
-    if (validReservations.length === 0) {
-      Logger.log('警告: 有効な予約データが0件です');
-    }
-
     validReservations.forEach(reservation => {
       const reservationDate = new Date(reservation.date);
       const dateString = Utilities.formatDate(
@@ -97,14 +56,12 @@ function getAvailableSlots() {
         'yyyy-MM-dd',
       );
       const key = `${dateString}|${reservation.classroom}`;
-
       if (!reservationsByDateClassroom.has(key)) {
         reservationsByDateClassroom.set(key, []);
       }
       reservationsByDateClassroom.get(key).push(reservation);
     });
 
-    // 5. 日程マスタをベースにして各日程の予約枠を計算
     const availableSlots = [];
 
     scheduledDates.forEach(schedule => {
@@ -293,9 +250,7 @@ function getAvailableSlots() {
     Logger.log('=== getAvailableSlots 正常終了 ===');
     return createApiResponse(true, availableSlots);
   } catch (error) {
-    Logger.log('=== getAvailableSlots エラー ===');
-    Logger.log(`エラーメッセージ: ${error.message}`);
-    Logger.log(`スタックトレース: ${error.stack}`);
+    Logger.log(`getAvailableSlots エラー: ${error.message}\n${error.stack}`);
     return BackendErrorHandler.handle(error, 'getAvailableSlots', { data: [] });
   }
 }

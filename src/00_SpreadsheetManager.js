@@ -1,10 +1,12 @@
 /**
  * =================================================================
  * 【ファイル名】: 00_SpreadsheetManager.js
- * 【バージョン】: 1.0
+ * 【バージョン】: 1.1
  * 【役割】: スプレッドシートオブジェクトの共通管理とキャッシュ
  * パフォーマンス向上のため、SpreadsheetApp.getActiveSpreadsheet()の
  * 重複呼び出しを避ける。
+ * 【v1.1での変更点】:
+ * - タイムゾーン管理を削除し、CONSTANTS.TIMEZONEへの移行を促進。
  * =================================================================
  */
 
@@ -16,7 +18,6 @@ class SpreadsheetManager {
   constructor() {
     this._spreadsheet = null;
     this._sheets = new Map();
-    this._timezone = null;
   }
 
   /**
@@ -44,23 +45,11 @@ class SpreadsheetManager {
   }
 
   /**
-   * スプレッドシートのタイムゾーンを取得（キャッシュ付き）
-   * @returns {string}
-   */
-  getTimezone() {
-    if (!this._timezone) {
-      this._timezone = this.getSpreadsheet().getSpreadsheetTimeZone();
-    }
-    return this._timezone;
-  }
-
-  /**
    * キャッシュをクリア（テスト時や強制リフレッシュ時に使用）
    */
   clearCache() {
     this._spreadsheet = null;
     this._sheets.clear();
-    this._timezone = null;
   }
 
   /**
@@ -84,8 +73,4 @@ function getActiveSpreadsheet() {
 
 function getSheetByName(sheetName) {
   return SS_MANAGER.getSheet(sheetName);
-}
-
-function getSpreadsheetTimezone() {
-  return SS_MANAGER.getTimezone();
 }

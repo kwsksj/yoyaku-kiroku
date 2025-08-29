@@ -1,7 +1,7 @@
 /**
  * =================================================================
  * 【ファイル名】: 07_CacheManager.js
- * 【バージョン】: 5.0
+ * 【バージョン】: 5.5
  * 【役割】: CacheServiceベースの統合キャッシュ管理システム
  *
  * 【主要機能】:
@@ -339,6 +339,11 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
       );
 
     const scheduleDataList = getScheduleDataFromSheet(startDate, endDate);
+
+    // ★ 日付順でソート処理を追加
+    if (scheduleDataList && scheduleDataList.length > 0) {
+      scheduleDataList.sort((a, b) => new Date(a.date) - new Date(b.date));
+    }
 
     const cacheData = {
       version: new Date().getTime(),

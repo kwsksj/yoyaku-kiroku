@@ -1,10 +1,11 @@
 /**
  * =================================================================
  * 【ファイル名】: 04_Backend_User.gs
- * 【バージョン】: 3.3
+ * 【バージョン】: 3.5
  * 【役割】: Webアプリ連携のうち、ユーザー認証・管理を担当するバックエンド機能。
- * 【v3.3での変更点】
- * - updateUserProfile, getUsersWithoutPhoneNumber 内の電話番号正規化ロジックを`_normalizeAndValidatePhone`に統一。
+ * 【v3.5での変更点】
+ * - updateUserProfile がピンポイント更新（rowIndex利用）を行うように修正。
+ * - updateUserProfile 内の電話番号重複チェックをキャッシュベースに変更。
  * =================================================================
  */
 
@@ -57,7 +58,6 @@ function extractPersonalDataFromCache(studentId, _cacheData) {
   try {
     Logger.log(`個人データ抽出開始: ${studentId}`);
 
-    // 個人予約データを取得
     const userReservationsResult = getUserReservations(studentId);
     const { myBookings, myHistory } = userReservationsResult.success
       ? userReservationsResult.data
@@ -94,23 +94,14 @@ function authenticateUser(phoneNumber) {
       return { success: false, commandRecognized: 'all' };
     }
 
-    Logger.log('初期データの取得を開始...');
     const initialDataResult = getAppInitialData();
-    Logger.log(`初期データ取得結果: success=${initialDataResult.success}`);
-
     if (!initialDataResult.success) {
-      Logger.log(`初期データ取得失敗: ${initialDataResult.message}`);
       throw new Error(
         `初期データの取得(キャッシュ)に失敗しました: ${initialDataResult.message}`,
       );
     }
 
     const allStudents = initialDataResult.data.allStudents;
-    Logger.log(
-      `allStudents取得: ${allStudents ? 'オブジェクト取得済み' : 'undefined'}`,
-    );
-    Logger.log(`allStudents type: ${typeof allStudents}`);
-
     if (!allStudents) {
       throw new Error(
         '生徒データが取得できませんでした。allStudentsがundefinedです。',
@@ -118,31 +109,16 @@ function authenticateUser(phoneNumber) {
     }
 
     const studentIds = Object.keys(allStudents);
-    Logger.log(`生徒データ件数: ${studentIds.length}`);
-
     const normalizedInputPhone =
       _normalizeAndValidatePhone(phoneNumber).normalized;
-    Logger.log(`正規化された入力電話番号: ${normalizedInputPhone}`);
 
     let foundUser = null;
-
     for (const studentId of studentIds) {
       const student = allStudents[studentId];
-      Logger.log(
-        `生徒チェック中: ${studentId}, student: ${student ? 'あり' : 'undefined'}`,
-      );
-
-      if (!student) {
-        Logger.log(`警告: 生徒ID ${studentId} のデータがundefinedです`);
-        continue;
-      }
+      if (!student) continue;
 
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
-      Logger.log(`生徒 ${studentId} の電話番号: ${storedPhone}`);
-
       if (storedPhone && storedPhone === normalizedInputPhone) {
-        Logger.log(`マッチした生徒を発見: ${studentId}`);
-        Logger.log(`生徒データ詳細: ${JSON.stringify(student)}`);
         foundUser = {
           success: true,
           studentId: student.studentId,
@@ -155,24 +131,15 @@ function authenticateUser(phoneNumber) {
     }
 
     if (foundUser) {
-      Logger.log('個人用データを準備中...');
-
-      // 個人の予約・履歴データを取得
       const personalData = extractPersonalDataFromCache(
         foundUser.studentId,
         initialDataResult.data,
       );
-
-      // initialDataに個人データを追加
       const enrichedInitialData = {
         ...initialDataResult.data,
         myBookings: personalData.myBookings,
         myHistory: personalData.myHistory,
       };
-
-      Logger.log(
-        `個人データ準備完了: 予約${personalData.myBookings.length}件, 履歴${personalData.myHistory.length}件`,
-      );
 
       logActivity(
         foundUser.studentId,
@@ -210,43 +177,24 @@ function authenticateUser(phoneNumber) {
  */
 function getUsersWithoutPhoneNumber() {
   try {
-    const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
-    if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
-
-    if (rosterSheet.getLastRow() < RESERVATION_DATA_START_ROW) {
-      return [];
-    }
-
-    const data = rosterSheet.getDataRange().getValues();
-    const header = data.shift();
-    const idColIdx = header.indexOf(HEADER_STUDENT_ID);
-    const phoneColIdx = header.indexOf(HEADER_PHONE);
-    const realNameColIdx = header.indexOf(HEADER_REAL_NAME);
-    const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
-
-    if (
-      idColIdx === -1 ||
-      phoneColIdx === -1 ||
-      realNameColIdx === -1 ||
-      nicknameColIdx === -1
-    ) {
-      throw new Error('生徒名簿のヘッダーが正しくありません。');
+    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    if (!studentsCache || !studentsCache.students) {
+      throw new Error('生徒データのキャッシュが利用できません。');
     }
 
     const usersWithoutPhone = [];
-    for (const row of data) {
-      const storedPhone = _normalizeAndValidatePhone(
-        row[phoneColIdx],
-      ).normalized;
+    const allStudents = Object.values(studentsCache.students);
+    for (const student of allStudents) {
+      const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
       if (storedPhone === '') {
-        const realName = String(row[realNameColIdx] || '').trim();
-        const nickname = String(row[nicknameColIdx] || '').trim();
+        const realName = String(student.realName || '').trim();
+        const nickname = String(student.nickname || '').trim();
         const searchName = (realName + nickname)
           .replace(/\s+/g, '')
           .toLowerCase();
 
         usersWithoutPhone.push({
-          studentId: row[idColIdx],
+          studentId: student.studentId,
           realName: realName,
           nickname: nickname || realName,
           searchName: searchName,
@@ -376,114 +324,123 @@ function registerNewUser(userInfo) {
 /**
  * ユーザーのプロフィール（本名、ニックネーム、電話番号）を更新します。
  * @param {object} userInfo - { studentId: string, realName: string, displayName: string, phone?: string }
- * @returns {object} - { success: boolean, message: string }
+ * @returns {object} - { success: boolean, message: string, updatedUser?: object }
  */
 function updateUserProfile(userInfo) {
   return withTransaction(() => {
     try {
+      // キャッシュから生徒データと行インデックスを取得
+      const allStudentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+      if (!allStudentsCache || !allStudentsCache.students) {
+        throw new Error('生徒データのキャッシュが利用できません。');
+      }
+
+      const targetStudent = allStudentsCache.students[userInfo.studentId];
+      if (!targetStudent) {
+        throw new Error('更新対象のユーザーが見つかりませんでした。');
+      }
+
+      const targetRowIndex = targetStudent.rowIndex;
+      if (!targetRowIndex) {
+        // rowIndexがキャッシュにない場合のエラーハンドリング（フェーズ2以降は必須）
+        throw new Error(
+          '対象ユーザーの行番号情報がキャッシュに見つかりません。',
+        );
+      }
+
+      // 電話番号の重複チェック（キャッシュベース）
+      if (userInfo.phone !== undefined && userInfo.phone !== null) {
+        const validationResult = _normalizeAndValidatePhone(
+          userInfo.phone,
+          true,
+        );
+        if (!validationResult.isValid && userInfo.phone !== '') {
+          throw new Error(validationResult.message);
+        }
+        const normalizedNewPhone = validationResult.normalized;
+
+        if (normalizedNewPhone !== '') {
+          const otherStudents = Object.values(allStudentsCache.students).filter(
+            student => student.studentId !== userInfo.studentId,
+          );
+          for (const student of otherStudents) {
+            const storedPhone = _normalizeAndValidatePhone(
+              student.phone,
+            ).normalized;
+            if (storedPhone === normalizedNewPhone) {
+              throw new Error(
+                'この電話番号は既に他のユーザーに登録されています。',
+              );
+            }
+          }
+        }
+      }
+
       const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
       if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
-      const data = rosterSheet.getDataRange().getValues();
-      const header = data.shift();
-      const idColIdx = header.indexOf(HEADER_STUDENT_ID);
+      // ヘッダー情報を取得して更新対象の列インデックスを特定
+      const header = rosterSheet
+        .getRange(1, 1, 1, rosterSheet.getLastColumn())
+        .getValues()[0];
       const realNameColIdx = header.indexOf(HEADER_REAL_NAME);
       const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
       const phoneColIdx = header.indexOf(HEADER_PHONE);
 
       if (
-        idColIdx === -1 ||
         realNameColIdx === -1 ||
         nicknameColIdx === -1 ||
         phoneColIdx === -1
       ) {
-        throw new Error(
-          '生徒名簿のヘッダー（生徒ID, 本名, ニックネーム, 電話番号など）が正しくありません。',
-        );
+        throw new Error('生徒名簿のヘッダーが正しくありません。');
       }
 
-      const targetRowIndex = data.findIndex(
-        row => row[idColIdx] === userInfo.studentId,
+      // 更新するデータを準備
+      const updatedValues = [
+        [
+          userInfo.realName,
+          userInfo.displayName,
+          userInfo.phone
+            ? `'${_normalizeAndValidatePhone(userInfo.phone).normalized}`
+            : '',
+        ],
+      ];
+
+      // ★ ピンポイント更新
+      // 注意：この例では3つの値が隣接していると仮定しています。もし列が離れている場合は、個別にgetRange/setValueが必要です。
+      // ここでは簡潔さのため、隣接していると仮定して一度に書き込みます。
+      // 実際には、各列のインデックスを元に個別に書き込む方が安全です。
+      rosterSheet
+        .getRange(targetRowIndex, realNameColIdx + 1)
+        .setValue(userInfo.realName);
+      rosterSheet
+        .getRange(targetRowIndex, nicknameColIdx + 1)
+        .setValue(userInfo.displayName);
+      if (userInfo.phone !== undefined && userInfo.phone !== null) {
+        const normalizedPhone = _normalizeAndValidatePhone(
+          userInfo.phone,
+          true,
+        ).normalized;
+        rosterSheet
+          .getRange(targetRowIndex, phoneColIdx + 1)
+          .setValue(normalizedPhone ? `'${normalizedPhone}` : '');
+      }
+
+      logActivity(
+        userInfo.studentId,
+        'プロフィール更新',
+        '成功',
+        `本名: ${userInfo.realName}, 電話番号: ${userInfo.phone || 'N/A'}`,
       );
 
-      if (targetRowIndex !== -1) {
-        // メモリ上のデータを更新
-        data[targetRowIndex][realNameColIdx] = userInfo.realName;
-        data[targetRowIndex][nicknameColIdx] = userInfo.displayName;
+      // プロフィール更新後に生徒データキャッシュを再構築
+      rebuildAllStudentsBasicCache();
 
-        if (userInfo.phone !== undefined && userInfo.phone !== null) {
-          const validationResult = _normalizeAndValidatePhone(
-            userInfo.phone,
-            true,
-          );
-
-          if (!validationResult.isValid && userInfo.phone !== '') {
-            throw new Error(validationResult.message);
-          }
-          const normalizedNewPhone = validationResult.normalized;
-
-          if (normalizedNewPhone !== '') {
-            for (let i = 0; i < data.length; i++) {
-              if (i === targetRowIndex) continue;
-
-              const storedPhone = _normalizeAndValidatePhone(
-                data[i][phoneColIdx],
-              ).normalized;
-              if (storedPhone === normalizedNewPhone) {
-                throw new Error(
-                  'この電話番号は既に他のユーザーに登録されています。',
-                );
-              }
-            }
-            data[targetRowIndex][phoneColIdx] = "'" + normalizedNewPhone;
-          } else {
-            data[targetRowIndex][phoneColIdx] = '';
-          }
-        }
-
-        // ヘッダーを含む全データを一括書き戻し
-        const allData = [header, ...data];
-        rosterSheet.clear();
-        rosterSheet
-          .getRange(1, 1, allData.length, header.length)
-          .setValues(allData);
-
-        // 電話番号列の文字列フォーマットを設定
-        if (phoneColIdx !== -1) {
-          rosterSheet
-            .getRange(2, phoneColIdx + 1, data.length, 1)
-            .setNumberFormat('@');
-        }
-
-        logActivity(
-          userInfo.studentId,
-          'プロフィール更新',
-          '成功',
-          `本名: ${userInfo.realName}, 電話番号: ${userInfo.phone || 'N/A'}`,
-        );
-
-        // プロフィール更新後に生徒データキャッシュを再構築
-        try {
-          rebuildAllStudentsBasicCache();
-          Logger.log(
-            'プロフィール更新後に生徒データキャッシュを再構築しました',
-          );
-        } catch (cacheError) {
-          Logger.log(`キャッシュ再構築エラー: ${cacheError.message}`);
-          // キャッシュエラーはプロフィール更新の成功を妨げない
-        }
-
-        return {
-          success: true,
-          message: 'プロフィールを更新しました。',
-          updatedUser: userInfo,
-        };
-      } else {
-        return {
-          success: false,
-          message: '更新対象のユーザーが見つかりませんでした。',
-        };
-      }
+      return {
+        success: true,
+        message: 'プロフィールを更新しました。',
+        updatedUser: userInfo,
+      };
     } catch (err) {
       const details = `ID: ${userInfo.studentId}, Name: ${userInfo.displayName}, Error: ${err.message}`;
       logActivity(
@@ -495,8 +452,7 @@ function updateUserProfile(userInfo) {
       Logger.log(`updateUserProfile Error: ${err.message}`);
       return {
         success: false,
-        message: `サーバーエラーが発生しました。
-${err.message}`,
+        message: `サーバーエラーが発生しました。\n${err.message}`,
       };
     }
   });

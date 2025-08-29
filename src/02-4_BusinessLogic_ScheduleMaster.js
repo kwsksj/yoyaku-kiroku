@@ -1,17 +1,10 @@
 /**
  * =================================================================
  * 【ファイル名】: 02-4_BusinessLogic_ScheduleMaster.js
- * 【バージョン】: 2.0
+ * 【バージョン】: 2.2
  * 【役割】: 日程マスタシートの管理機能
- * 【構成】: 18ファイル構成のうちの追加ファイル（00_Constants.js、08_ErrorHandler.jsを含む）
- * 【v2.0での変更点】:
- * - フェーズ1リファクタリング: 統一定数ファイル（00_Constants.js）から定数を参照
- * - 旧定数（TOKYO_CLASSROOM_NAME等）を統一定数（CONSTANTS.CLASSROOMS.TOKYO等）に移行
- * - 定数の重複定義を削除し、保守性を向上
- * 【新機能】:
- * - 日程マスタシートの作成・初期化
- * - 開催日程データの取得・更新
- * - 教室形式別の統一的な処理
+ * 【v2.2での変更点】:
+ * - getSpreadsheetTimezone() の呼び出しを CONSTANTS.TIMEZONE に置換。
  * =================================================================
  */
 
@@ -113,99 +106,7 @@ function createScheduleMasterSheet() {
 }
 
 /**
- * サンプルデータを生成する
- * @returns {Array<Array>} サンプルデータの2次元配列
- */
-function createSampleScheduleData() {
-  const today = new Date();
-  const sampleData = [];
-
-  // 今日から指定日数分のサンプルデータを生成
-  for (let i = 0; i < SAMPLE_DATA_DAYS; i++) {
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + i);
-
-    // 土日のみ開催と仮定
-    const dayOfWeek = targetDate.getDay();
-    if (dayOfWeek === WEEKEND_SUNDAY || dayOfWeek === WEEKEND_SATURDAY) {
-      // 日曜日または土曜日
-
-      // 教室をローテーション
-      const classrooms = [
-        {
-          name: CONSTANTS.CLASSROOMS.TOKYO,
-          venue: '新宿区民会館',
-          type: CLASSROOM_TYPE_SESSION_BASED,
-        },
-        {
-          name: CONSTANTS.CLASSROOMS.TSUKUBA,
-          venue: 'つくば市民会館',
-          type: CLASSROOM_TYPE_TIME_DUAL,
-        },
-        {
-          name: CONSTANTS.CLASSROOMS.NUMAZU,
-          venue: '沼津市民会館',
-          type: CLASSROOM_TYPE_TIME_FULL,
-        },
-      ];
-
-      const classroomIndex =
-        Math.floor(sampleData.length / 2) % classrooms.length;
-      const classroom = classrooms[classroomIndex];
-
-      // 教室形式に応じた時間設定
-      let firstStart, firstEnd, secondStart, secondEnd, beginnerStart;
-
-      if (classroom.type === CLASSROOM_TYPE_SESSION_BASED) {
-        // ${CONSTANTS.CLASSROOMS.TOKYO}：セッション制（本講座と初心者講習が同時間帯）
-        firstStart = '10:00';
-        firstEnd = '16:00';
-        secondStart = ''; // 2部なし
-        secondEnd = '';
-        beginnerStart = '13:30'; // 初心者は午後から
-      } else if (classroom.type === CLASSROOM_TYPE_TIME_DUAL) {
-        // ${CONSTANTS.CLASSROOMS.TSUKUBA}：2部制
-        firstStart = '10:00'; // 1部（午前）
-        firstEnd = '12:30';
-        secondStart = '13:30'; // 2部（午後）
-        secondEnd = '16:00';
-        beginnerStart = '13:30'; // 初心者は午後から
-      } else {
-        // ${CONSTANTS.CLASSROOMS.NUMAZU}：全日制
-        firstStart = '10:00';
-        firstEnd = '16:00';
-        secondStart = ''; // 2部なし
-        secondEnd = '';
-        beginnerStart = '10:00'; // 初心者は最初から
-      }
-
-      sampleData.push([
-        Utilities.formatDate(
-          targetDate,
-          getSpreadsheetTimezone(),
-          'yyyy-MM-dd',
-        ),
-        classroom.name,
-        classroom.venue,
-        classroom.type,
-        firstStart, // 1部開始
-        firstEnd, // 1部終了
-        secondStart, // 2部開始
-        secondEnd, // 2部終了
-        beginnerStart, // 初心者開始
-        8, // 全体定員
-        4, // 初心者定員
-        SCHEDULE_STATUS_SCHEDULED, // 状態
-        classroom.name === CONSTANTS.CLASSROOMS.TOKYO ? '初心者歓迎日' : '', // 備考
-      ]);
-    }
-  }
-
-  return sampleData;
-}
-
-/**
- * 全ての開催予定日程を取得する（キャッシュ優先）
+ * 全ての開催予定日程を取得する（キャッシュのみ利用）
  * フロントエンドから呼び出されるAPI関数
  * @param {string} fromDate - 取得開始日（YYYY-MM-DD形式）
  * @param {string} toDate - 取得終了日（YYYY-MM-DD形式、オプション）
@@ -213,24 +114,16 @@ function createSampleScheduleData() {
  */
 function getAllScheduledDates(fromDate, toDate) {
   try {
-    // 1. キャッシュからデータを取得
     const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
 
-    if (scheduleCache) {
-      const cachedSchedules = scheduleCache.schedule || [];
-      Logger.log(
-        `キャッシュから日程マスタデータを取得: ${cachedSchedules.length} 件`,
-      );
-      return filterSchedulesByDateRange(cachedSchedules, fromDate, toDate);
-    }
-
-    // 3. キャッシュ再構築も失敗した場合のフォールバック
+    const cachedSchedules = scheduleCache.schedule || [];
     Logger.log(
-      'キャッシュ再構築に失敗しました。スプレッドシートから直接取得します。',
+      `キャッシュから日程マスタデータを取得: ${cachedSchedules.length} 件`,
     );
-    return getScheduleDataFromSheet(fromDate, toDate);
+    return filterSchedulesByDateRange(cachedSchedules, fromDate, toDate);
   } catch (error) {
     Logger.log(`getAllScheduledDates エラー: ${error.message}`);
+    // エラーが発生した場合は、フロントエンドに空の配列を返す
     return [];
   }
 }
@@ -257,95 +150,6 @@ function filterSchedulesByDateRange(schedules, fromDate, toDate) {
     const dateTime = scheduleDate.getTime();
     return dateTime >= fromDateTime && dateTime <= toDateTime;
   });
-}
-
-/**
- * スプレッドシートから直接日程データを取得する（キャッシュ未利用時のフォールバック）
- * @param {string} fromDate - 開始日（YYYY-MM-DD形式）
- * @param {string} toDate - 終了日（YYYY-MM-DD形式、オプション）
- * @returns {Array<Object>} 日程データ配列
- */
-function getScheduleDataFromSheet(fromDate, toDate) {
-  try {
-    const scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
-
-    if (!scheduleSheet) {
-      Logger.log('日程マスタシートが見つかりません');
-      return [];
-    }
-
-    const lastRow = scheduleSheet.getLastRow();
-    if (lastRow < 2) {
-      Logger.log('日程マスタシートにデータがありません');
-      return [];
-    }
-
-    // 全データを取得
-    const data = scheduleSheet
-      .getRange(2, 1, lastRow - 1, SCHEDULE_MASTER_HEADERS.length)
-      .getValues();
-    const schedules = [];
-
-    const fromDateTime = fromDate ? new Date(fromDate).getTime() : 0;
-    const toDateTime = toDate
-      ? new Date(toDate).getTime()
-      : Number.MAX_SAFE_INTEGER;
-
-    data.forEach(row => {
-      const [
-        date,
-        classroom,
-        venue,
-        classroomType,
-        firstStart,
-        firstEnd,
-        secondStart,
-        secondEnd,
-        beginnerStart,
-        totalCapacity,
-        beginnerCapacity,
-        status,
-        notes,
-      ] = row;
-
-      // 日付フィルタリング
-      if (date instanceof Date) {
-        const dateTime = date.getTime();
-        if (dateTime >= fromDateTime && dateTime <= toDateTime) {
-          // scheduled状態のみを返す（キャンセルや完了は除外）
-          if (status === SCHEDULE_STATUS_SCHEDULED) {
-            schedules.push({
-              date: Utilities.formatDate(
-                date,
-                getSpreadsheetTimezone(),
-                'yyyy-MM-dd',
-              ),
-              classroom: String(classroom),
-              venue: String(venue || ''),
-              classroomType: String(classroomType),
-              firstStart: String(firstStart),
-              firstEnd: String(firstEnd),
-              secondStart: String(secondStart || ''),
-              secondEnd: String(secondEnd || ''),
-              beginnerStart: String(beginnerStart),
-              totalCapacity: Number(totalCapacity) || 8,
-              beginnerCapacity: Number(beginnerCapacity) || 4,
-              status: String(status),
-              notes: String(notes || ''),
-            });
-          }
-        }
-      }
-    });
-
-    Logger.log(
-      `スプレッドシートから開催日程データを ${schedules.length} 件取得しました`,
-    );
-    return schedules;
-  } catch (error) {
-    Logger.log(`getScheduleDataFromSheet エラー: ${error.message}`);
-    return [];
-  }
 }
 
 /**
@@ -422,7 +226,7 @@ function generateScheduleMasterFromExistingReservationsWithUI() {
     // 確認ダイアログ
     const response = ui.alert(
       '予約データから日程マスタ生成',
-      '既存の予約データから日程マスタを自動生成します。\n既存の日程マスタは上書きされます。実行しますか？',
+      '既存の予約データから日程マスタを自動生成します。既存の日程マスタは上書きされます。実行しますか？',
       ui.ButtonSet.YES_NO,
     );
 
@@ -520,7 +324,7 @@ function extractUniqueDateClassroomCombinations() {
             if (status !== STATUS_CANCEL && status !== STATUS_WAITING) {
               const dateString = Utilities.formatDate(
                 date,
-                getSpreadsheetTimezone(),
+                CONSTANTS.TIMEZONE,
                 'yyyy-MM-dd',
               );
               const key = `${dateString}|${classroom}`;
@@ -746,5 +550,3 @@ function writeScheduleDataToSheet(scheduleData) {
 
   Logger.log(`日程マスタに ${scheduleData.length} 件のデータを書き込みました`);
 }
-
-// 使用されていない関数 getCapacityRulesByType と updateScheduleMaster は削除されました
