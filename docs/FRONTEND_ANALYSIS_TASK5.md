@@ -1,8 +1,6 @@
 # フロントエンド構造分析とTASK5実装計画
 
-**作成日**: 2025年8月27日
-**対象**: HTML生成ロジックのリファクタリングとコンポーネント化（TASK5）
-**目的**: 安全で効率的な実装のための事前調査と詳細計画
+**作成日**: 2025年8月27日 **対象**: HTML生成ロジックのリファクタリングとコンポーネント化（TASK5） **目的**: 安全で効率的な実装のための事前調査と詳細計画
 
 ## 1. 現状分析
 
@@ -87,7 +85,7 @@ graph TD
 
 ### 2.3 データフロー分析
 
-**StateManager → Computed → Views**
+StateManager → Computed → Views
 
 ```javascript
 // データの流れ
@@ -188,12 +186,12 @@ stateManager.dispatch({
 
 5つの基本コンポーネント（12_WebApp_Core.html:227-295）：
 
-| コンポーネント   | パラメータ数 | 使用頻度 | 複雑度 |
-| ---------------- | ------------ | -------- | ------ |
-| `createButton`   | 15個         | ⭐⭐⭐⭐⭐    | 高     |
-| `createInput`    | 12個         | ⭐⭐⭐⭐     | 中     |
-| `createTextArea` | 6個          | ⭐⭐⭐      | 低     |
-| `createSelect`   | 7個          | ⭐⭐⭐      | 低     |
+| コンポーネント   | パラメータ数 | 使用頻度   | 複雑度 |
+| ---------------- | ------------ | ---------- | ------ |
+| `createButton`   | 15個         | ⭐⭐⭐⭐⭐ | 高     |
+| `createInput`    | 12個         | ⭐⭐⭐⭐   | 中     |
+| `createTextArea` | 6個          | ⭐⭐⭐     | 低     |
+| `createSelect`   | 7個          | ⭐⭐⭐     | 低     |
 | `createCheckbox` | 4個          | ⭐⭐       | 低     |
 
 #### A5. イベントハンドラー連携分析 ✅
@@ -224,7 +222,7 @@ stateManager.dispatch({
 
 #### シンプル化されたコンポーネント設計
 
-**Level 1: 基本要素（Atomic）**
+##### **Level 1: 基本要素（Atomic）**
 
 ```javascript
 const Components = {
@@ -240,7 +238,7 @@ const Components = {
 };
 ```
 
-**Level 2: 複合要素（Molecular）**
+##### **Level 2: 複合要素（Molecular）**
 
 ```javascript
 const Components = {
@@ -252,7 +250,7 @@ const Components = {
 };
 ```
 
-**Level 3: 画面セクション（Organisms）**
+##### **Level 3: 画面セクション（Organisms）**
 
 ```javascript
 const Components = {
@@ -393,11 +391,11 @@ getListView(type, items) で統合:
 
 #### 🟠 中リスク
 
-3. **コンポーネント引数仕様の不整合**
+1. **コンポーネント引数仕様の不整合**
    - 既存コード呼び出し時の引数ミス
    - **対策**: TypeScript風JSDocの活用、入念なテスト
 
-4. **CSS/スタイリングの破損**
+1. **CSS/スタイリングの破損**
    - DesignConfigクラスの適用ミス
    - **対策**: スタイル適用の一貫性確認
 
