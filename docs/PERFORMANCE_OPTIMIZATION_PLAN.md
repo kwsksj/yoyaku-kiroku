@@ -81,6 +81,7 @@ const studentInfo = studentsCache?.students?.[studentId];
 #### 2.1 現状の問題点
 
 **不統一なタイムゾーン取得方式**:
+
 - **シートアクセス方式** (7箇所): `getSpreadsheetTimezone()` → APIコール発生
 - **定数利用方式** (3箇所): `CONSTANTS.TIMEZONE` → 'Asia/Tokyo'固定
 - **初期化コスト**: SpreadsheetManager経由でのタイムゾーン取得
@@ -88,6 +89,7 @@ const studentInfo = studentsCache?.students?.[studentId];
 #### 2.2 最適化方針
 
 **日本時間への統一**:
+
 - シートは日本時間設定済み
 - ユーザーも基本的に日本時間
 - `CONSTANTS.TIMEZONE: 'Asia/Tokyo'` への全面移行
@@ -95,6 +97,7 @@ const studentInfo = studentsCache?.students?.[studentId];
 #### 2.3 変更対象箇所
 
 **シートアクセス方式 → 定数利用に変更**:
+
 1. `05-1_Backend_Read.js:41` - 会計マスタ取得時
 2. `05-3_Backend_AvailableSlots.js:24` - 予約枠計算時  
 3. `07_CacheManager.js:402` - キャッシュ構築時
@@ -133,6 +136,7 @@ const timezone = CONSTANTS.TIMEZONE;
 #### 4.1 現在の不整合状態
 
 **AvailableSlots (05-3)**: 日程マスタベース（最新）
+
 ```javascript
 // 1部判定: 開始時刻が1部終了時刻以前
 if (startTime <= timeCache.firstEndTime) { morningCount++; }
@@ -141,6 +145,7 @@ if (endTime >= timeCache.secondStartTime) { afternoonCount++; }
 ```
 
 **checkCapacityFull (05-2)**: 固定13時区切り（旧式）
+
 ```javascript  
 // 固定13時で午前午後を判定
 if (rStartHour < CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR) morningCount++;

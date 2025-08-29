@@ -86,7 +86,7 @@
 
   // GitHub Copilot Configuration
   "github.copilot.advanced": {
-    "instructions": "Google Apps Script開発環境での注意点:\n1) GAS特有のAPI（SpreadsheetApp, DriveApp等）を正しく使用\n2) HTML内のJavaScript（ClientScript）ではGAS APIは使用不可\n3) server.xxx()パターンでサーバー側関数を呼び出し\n4) 6分実行制限、1日実行回数制限に配慮\n5) プロジェクトの番号付きファイル構造を維持\n\nテスト作成時の品質保証ルール:\n1) 関数・定数の実在性を事前確認\n2) 実際の使用パターンを調査\n3) 戻り値・引数の形式を確認\n4) 推測ではなく実装確認を優先\n\nMarkdown作成時の品質ルール:\n1) **強調** の代わりに ## 見出し を使用\n2) 同じ内容の見出しは避ける（## まとめ を複数作らない）\n3) 見出しレベルを適切に管理（h1→h2→h3の順序）\n4) 最初の行は # メインタイトル で開始\n5) 番号付きリストは全て 1. で開始（地の文があっても継続）\n6) コードブロックには必ず言語を指定:\n   - JavaScript: ```javascript\n   - ツリー構造: ```text\n   - 設定ファイル: ```json\n   - シェルコマンド: ```bash\n   - プレーンテキスト: ```text\n   - HTML: ```html\n7) 表作成時の列幅調整:\n   - マルチバイト文字（日本語等）は表示幅2として計算\n   - 列のバイト数が揃うように出力して視覚的な整列を確保\n   - 例: 「設定」(4文字幅) = \"Config\" (6文字) で列幅を統一"
+    "instructions": "Google Apps Script開発環境での注意点:\n1) GAS特有のAPI（SpreadsheetApp, DriveApp等）を正しく使用\n2) HTML内のJavaScript（ClientScript）ではGAS APIは使用不可\n3) server.xxx()パターンでサーバー側関数を呼び出し\n4) 6分実行制限、1日実行回数制限に配慮\n5) プロジェクトの番号付きファイル構造を維持\n\nテスト作成時の品質保証ルール:\n1) 関数・定数の実在性を事前確認\n2) 実際の使用パターンを調査\n3) 戻り値・引数の形式を確認\n4) 推測ではなく実装確認を優先\n\nMarkdown作成時の品質ルール:\n1) **強調** の代わりに ## 見出し を使用\n2) 同じ内容の見出しは避ける（## まとめ を複数作らない）\n3) 見出しレベルを適切に管理（h1→h2→h3の順序）\n4) 最初の行は # メインタイトル で開始\n5) 番号付きリストは全て 1. で開始（地の文があっても継続）\n6) コードブロックには必ず言語を指定:\n   - JavaScript: ```javascript\n   - ツリー構造: ```text\n   - 設定ファイル: ```json\n   - シェルコマンド: ```bash\n   - プレーンテキスト: ```text\n   - HTML: ```html"
   },
 
   // Markdown All in One Configuration

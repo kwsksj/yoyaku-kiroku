@@ -105,38 +105,6 @@ function findRowIndexByValue(sheet, col, value) {
 }
 
 /**
- * 特定の日付が含まれるデータブロックの最後の行を見つけます。
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象シート
- * @param {Date} date - 対象の日付
- * @param {number} dateColIdx - 日付列のインデックス (0-based)
- * @returns {number} - 見つかった最後の行番号。見つからない場合は-1。
- */
-function findLastRowOfDateBlock(sheet, date, dateColIdx) {
-  const data = sheet
-    .getRange(
-      RESERVATION_DATA_START_ROW,
-      dateColIdx + 1,
-      sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
-      1,
-    )
-    .getValues();
-  const timezone = getSpreadsheetTimezone();
-  const targetDateString = Utilities.formatDate(date, timezone, 'yyyy-MM-dd');
-  let lastRow = -1;
-  for (let i = data.length - 1; i >= 0; i--) {
-    if (
-      data[i][0] instanceof Date &&
-      Utilities.formatDate(data[i][0], timezone, 'yyyy-MM-dd') ===
-        targetDateString
-    ) {
-      lastRow = i + RESERVATION_DATA_START_ROW;
-      break;
-    }
-  }
-  return lastRow;
-}
-
-/**
  * 【復活】罫線描画ライブラリを安全に呼び出すためのラッパー関数。
  * ライブラリが存在する場合のみ、その中の描画関数を実行します。
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象シート
@@ -485,47 +453,6 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
     workInProgress: resArray[getIndex(HEADER_WORK_IN_PROGRESS)],
     order: resArray[getIndex(HEADER_ORDER)],
     messageToTeacher: resArray[getIndex(HEADER_MESSAGE_TO_TEACHER)],
-  };
-}
-
-/**
- * 統一されたAPIレスポンス形式を作成
- * 注: この関数は 08_ErrorHandler.js の createApiResponse に統合されました
- * より包括的なエラーハンドリングと統一性のため、そちらを使用してください
- */
-// createApiResponse 関数は 08_ErrorHandler.js に移動されました
-
-/**
- * 特定ユーザーの予約データをフィルタリング
- * @param {Array} allReservations - 全予約データ（配列形式）
- * @param {string} studentId - 生徒ID
- * @param {string} today - 今日の日付（YYYY-MM-DD）
- * @returns {Object} フィルタリングされたユーザーデータ
- */
-function filterUserReservations(allReservations, studentId, today) {
-  const myBookings = [];
-  const myHistory = [];
-
-  if (Array.isArray(allReservations)) {
-    allReservations.forEach(resArray => {
-      const resObj = transformReservationArrayToObject(resArray);
-      if (
-        resObj &&
-        resObj.studentId === studentId &&
-        resObj.status !== STATUS_CANCEL
-      ) {
-        if (resObj.date >= today) {
-          myBookings.push(resObj);
-        } else {
-          myHistory.push(resObj);
-        }
-      }
-    });
-  }
-
-  return {
-    myBookings: myBookings.sort((a, b) => a.date.localeCompare(b.date)),
-    myHistory: myHistory.sort((a, b) => b.date.localeCompare(a.date)),
   };
 }
 
