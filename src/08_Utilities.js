@@ -511,3 +511,82 @@ function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
     searchColIdx,
   };
 }
+
+// ===================================================================
+// キャッシュデータ処理のヘルパー関数群
+// ===================================================================
+
+/**
+ * 特定日・教室の予約データを取得する
+ * @param {string} date - 検索対象の日付（yyyy-MM-dd形式）
+ * @param {string} classroom - 教室名
+ * @param {string} status - ステータス（省略可、デフォルトは確定済み予約のみ）
+ * @returns {Array} 条件に合致する予約配列
+ */
+function getCachedReservationsFor(
+  date,
+  classroom,
+  status = CONSTANTS.STATUS.CONFIRMED,
+) {
+  const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  if (!reservationsCache?.reservations) return [];
+
+  const { reservations, headerMap } = reservationsCache;
+  const dateColIdx = headerMap[CONSTANTS.HEADERS.DATE];
+  const classroomColIdx = headerMap[CONSTANTS.HEADERS.CLASSROOM];
+  const statusColIdx = headerMap[CONSTANTS.HEADERS.STATUS];
+
+  return reservations.filter(r => {
+    const row = r.data;
+    return (
+      row[dateColIdx] === date &&
+      row[classroomColIdx] === classroom &&
+      (!status || row[statusColIdx] === status)
+    );
+  });
+}
+
+/**
+ * 生徒IDから生徒情報を取得する
+ * @param {string} studentId - 生徒ID
+ * @returns {Object|null} 生徒オブジェクト、見つからない場合はnull
+ */
+function getCachedStudentById(studentId) {
+  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  if (!studentsCache?.students) return null;
+
+  return studentsCache.students[studentId] || null;
+}
+
+/**
+ * 予約配列データを統一的にオブジェクト配列に変換する
+ * @param {Array} reservations - 予約配列データ
+ * @param {Object} headerMap - ヘッダーマップ
+ * @returns {Array} 変換済み予約オブジェクト配列
+ */
+function convertReservationsToObjects(reservations, headerMap) {
+  return reservations
+    .map(reservation => {
+      if (Array.isArray(reservation)) {
+        return transformReservationArrayToObjectWithHeaders(
+          reservation,
+          headerMap,
+        );
+      }
+      return reservation;
+    })
+    .filter(reservation => reservation !== null);
+}
+
+/**
+ * ヘッダーマップから安全にインデックスを取得する
+ * @param {Map|Object} headerMap - ヘッダーマップ
+ * @param {string} headerName - ヘッダー名
+ * @returns {number|undefined} 列インデックス
+ */
+function getHeaderIndex(headerMap, headerName) {
+  if (headerMap?.get && typeof headerMap.get === 'function') {
+    return headerMap.get(headerName);
+  }
+  return headerMap?.[headerName];
+}

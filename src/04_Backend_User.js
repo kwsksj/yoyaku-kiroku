@@ -54,14 +54,35 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
  * @param {object} cacheData - getAppInitialDataから取得したキャッシュデータ
  * @returns {object} - 個人の予約、履歴、利用可能枠データ
  */
-function extractPersonalDataFromCache(studentId, _cacheData) {
+function extractPersonalDataFromCache(studentId, cacheData) {
   try {
     Logger.log(`個人データ抽出開始: ${studentId}`);
 
-    const userReservationsResult = getUserReservations(studentId);
-    const { myBookings, myHistory } = userReservationsResult.success
-      ? userReservationsResult.data
-      : { myBookings: [], myHistory: [] };
+    // 引数のキャッシュデータを活用して効率化
+    const { allReservationsCache } = cacheData;
+    if (!allReservationsCache?.reservations) {
+      Logger.log('予約キャッシュデータが利用できません');
+      return { myBookings: [], myHistory: [] };
+    }
+
+    const convertedReservations = convertReservationsToObjects(
+      allReservationsCache.reservations,
+      allReservationsCache.headerMap,
+    );
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const studentReservations = convertedReservations.filter(
+      r => r.studentId === studentId,
+    );
+
+    const myBookings = studentReservations.filter(
+      r => new Date(r.date) >= today && r.status === CONSTANTS.STATUS.CONFIRMED,
+    );
+    const myHistory = studentReservations.filter(
+      r => new Date(r.date) < today || r.status !== CONSTANTS.STATUS.CONFIRMED,
+    );
 
     Logger.log(
       `個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件`,
@@ -329,13 +350,8 @@ function registerNewUser(userInfo) {
 function updateUserProfile(userInfo) {
   return withTransaction(() => {
     try {
-      // キャッシュから生徒データと行インデックスを取得
-      const allStudentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-      if (!allStudentsCache || !allStudentsCache.students) {
-        throw new Error('生徒データのキャッシュが利用できません。');
-      }
-
-      const targetStudent = allStudentsCache.students[userInfo.studentId];
+      // 新しいヘルパー関数を使用して生徒データを取得
+      const targetStudent = getCachedStudentById(userInfo.studentId);
       if (!targetStudent) {
         throw new Error('更新対象のユーザーが見つかりませんでした。');
       }
@@ -360,6 +376,7 @@ function updateUserProfile(userInfo) {
         const normalizedNewPhone = validationResult.normalized;
 
         if (normalizedNewPhone !== '') {
+          const allStudentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
           const otherStudents = Object.values(allStudentsCache.students).filter(
             student => student.studentId !== userInfo.studentId,
           );

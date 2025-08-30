@@ -6,7 +6,7 @@
     "allowJs": true,
     "strict": false,
     "noImplicitAny": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "baseUrl": ".",
     "typeRoots": ["node_modules/@types"]
   },

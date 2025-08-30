@@ -26,17 +26,11 @@ function getAvailableSlots() {
       : [];
     const headerMap = reservationsCache ? reservationsCache.headerMap : null;
 
-    const convertedReservations = allReservations
-      .map(reservation => {
-        if (Array.isArray(reservation)) {
-          return transformReservationArrayToObjectWithHeaders(
-            reservation,
-            headerMap,
-          );
-        }
-        return reservation;
-      })
-      .filter(reservation => reservation !== null);
+    // 新しいヘルパー関数を使用してデータ変換を統一
+    const convertedReservations = convertReservationsToObjects(
+      allReservations,
+      headerMap,
+    );
 
     const reservationsByDateClassroom = new Map();
     const validReservations = convertedReservations.filter(reservation => {
@@ -289,18 +283,11 @@ function getUserReservations(studentId) {
     const myBookings = [];
     const myHistory = [];
 
-    // 配列形式のデータをオブジェクト形式に変換（ヘッダーマップを使用）
-    const convertedReservations = allReservations
-      .map(reservation => {
-        if (Array.isArray(reservation)) {
-          return transformReservationArrayToObjectWithHeaders(
-            reservation,
-            headerMap,
-          );
-        }
-        return reservation;
-      })
-      .filter(reservation => reservation !== null); // nullの場合は除外
+    // 新しいヘルパー関数を使用してデータ変換を統一
+    const convertedReservations = convertReservationsToObjects(
+      allReservations,
+      headerMap,
+    );
 
     convertedReservations.forEach(reservation => {
       if (reservation.studentId !== studentId) return;

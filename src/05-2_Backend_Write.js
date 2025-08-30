@@ -30,22 +30,20 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
   // 日程マスタから定員を取得。存在しない場合はデフォルト値8をフォールバックとして使用。
   const capacity = schedule ? schedule.totalCapacity : 8;
 
-  const { reservations, headerMap: rawHeaderMap } = reservationsCache;
-  const headerMap = new Map(Object.entries(rawHeaderMap));
-  const dateColIdx = headerMap.get(CONSTANTS.HEADERS.DATE);
-  const classroomColIdx = headerMap.get(CONSTANTS.HEADERS.CLASSROOM);
-  const statusColIdx = headerMap.get(CONSTANTS.HEADERS.STATUS);
-  const studentIdColIdx = headerMap.get(CONSTANTS.HEADERS.STUDENT_ID);
-
-  const reservationsOnDate = reservations.filter(r => {
-    const row = r.data;
-    return (
-      row[dateColIdx] === date &&
-      row[classroomColIdx] === classroom &&
-      row[statusColIdx] === CONSTANTS.STATUS.CONFIRMED &&
-      !!row[studentIdColIdx]
-    );
-  });
+  // 新しいヘルパー関数を使用して特定日・教室の確定予約を取得
+  const reservationsOnDate = getCachedReservationsFor(
+    date,
+    classroom,
+    CONSTANTS.STATUS.CONFIRMED,
+  ).filter(
+    r =>
+      !!r.data[
+        getHeaderIndex(
+          reservationsCache.headerMap,
+          CONSTANTS.HEADERS.STUDENT_ID,
+        )
+      ],
+  );
 
   if (classroom !== CONSTANTS.CLASSROOMS.TSUKUBA || !schedule) {
     return reservationsOnDate.length >= capacity;
@@ -64,8 +62,14 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
     return reservationsOnDate.length >= capacity;
   }
 
-  const startTimeColIdx = headerMap.get(CONSTANTS.HEADERS.START_TIME);
-  const endTimeColIdx = headerMap.get(CONSTANTS.HEADERS.END_TIME);
+  const startTimeColIdx = getHeaderIndex(
+    reservationsCache.headerMap,
+    CONSTANTS.HEADERS.START_TIME,
+  );
+  const endTimeColIdx = getHeaderIndex(
+    reservationsCache.headerMap,
+    CONSTANTS.HEADERS.END_TIME,
+  );
   let morningCount = 0;
   let afternoonCount = 0;
 

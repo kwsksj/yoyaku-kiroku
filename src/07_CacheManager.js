@@ -220,7 +220,51 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
         'yyyy-MM-dd',
       );
 
-    const scheduleDataList = getScheduleDataFromSheet(startDate, endDate);
+    // 日程マスターシートから直接データを取得
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+    if (!sheet) {
+      Logger.log(
+        '日程マスターシートが見つかりません。空のキャッシュを保存します。',
+      );
+      const emptyCacheData = { schedule: [], version: Date.now() };
+      CacheService.getScriptCache().put(
+        CACHE_KEYS.MASTER_SCHEDULE_DATA,
+        JSON.stringify(emptyCacheData),
+        CACHE_EXPIRY_SECONDS,
+      );
+      return;
+    }
+
+    const allData = sheet.getDataRange().getValues();
+    const headers = allData.shift();
+    const timezone = CONSTANTS.TIMEZONE;
+
+    // 時間列のインデックスを特定
+    const timeColumnNames = [
+      CONSTANTS.HEADERS.SCHEDULE_FIRST_START,
+      CONSTANTS.HEADERS.SCHEDULE_FIRST_END,
+      CONSTANTS.HEADERS.SCHEDULE_SECOND_START,
+      CONSTANTS.HEADERS.SCHEDULE_SECOND_END,
+      CONSTANTS.HEADERS.SCHEDULE_BEGINNER_START,
+    ];
+
+    const scheduleDataList = allData
+      .filter(row => {
+        const dateStr = row[headers.indexOf(CONSTANTS.HEADERS.SCHEDULE_DATE)];
+        return dateStr && dateStr >= startDate && dateStr <= endDate;
+      })
+      .map(row => {
+        const scheduleObj = {};
+        headers.forEach((header, index) => {
+          let value = row[index];
+          // 時間列の処理
+          if (timeColumnNames.includes(header) && value instanceof Date) {
+            value = Utilities.formatDate(value, timezone, 'HH:mm');
+          }
+          scheduleObj[header] = value;
+        });
+        return scheduleObj;
+      });
 
     // ★ 日付順でソート処理を追加
     if (scheduleDataList && scheduleDataList.length > 0) {
@@ -286,7 +330,7 @@ function rebuildAccountingMasterCache() {
 
     const allData = sheet.getDataRange().getValues();
     const headers = allData.shift();
-    const timezone = getSpreadsheetTimezone();
+    const timezone = CONSTANTS.TIMEZONE;
 
     // 時間列のインデックスを特定
     const timeColumnNames = [
