@@ -16,8 +16,11 @@ function getAvailableSlots() {
     Logger.log('=== getAvailableSlots 開始 ===');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const timezone = CONSTANTS.TIMEZONE;
-    const todayString = Utilities.formatDate(today, timezone, 'yyyy-MM-dd');
+    const todayString = Utilities.formatDate(
+      today,
+      CONSTANTS.TIMEZONE,
+      'yyyy-MM-dd',
+    );
 
     const scheduledDates = getAllScheduledDates(todayString);
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
@@ -34,7 +37,10 @@ function getAvailableSlots() {
 
     const reservationsByDateClassroom = new Map();
     const validReservations = convertedReservations.filter(reservation => {
-      const reservationDate = new Date(reservation.date);
+      const reservationDate =
+        reservation.date instanceof Date
+          ? reservation.date
+          : new Date(reservation.date);
       return (
         reservationDate >= today &&
         reservation.status !== STATUS_CANCEL &&
@@ -43,10 +49,13 @@ function getAvailableSlots() {
     });
 
     validReservations.forEach(reservation => {
-      const reservationDate = new Date(reservation.date);
+      const reservationDate =
+        reservation.date instanceof Date
+          ? reservation.date
+          : new Date(reservation.date);
       const dateString = Utilities.formatDate(
         reservationDate,
-        timezone,
+        CONSTANTS.TIMEZONE,
         'yyyy-MM-dd',
       );
       const key = `${dateString}|${reservation.classroom}`;
@@ -174,11 +183,46 @@ function getAvailableSlots() {
           classroom: schedule.classroom,
           date: schedule.date,
           venue: schedule.venue,
-          firstStart: schedule.firstStart,
-          firstEnd: schedule.firstEnd,
-          secondStart: schedule.secondStart,
-          secondEnd: schedule.secondEnd,
-          beginnerStart: schedule.beginnerStart,
+          firstStart:
+            schedule.firstStart instanceof Date
+              ? Utilities.formatDate(
+                  schedule.firstStart,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.firstStart,
+          firstEnd:
+            schedule.firstEnd instanceof Date
+              ? Utilities.formatDate(
+                  schedule.firstEnd,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.firstEnd,
+          secondStart:
+            schedule.secondStart instanceof Date
+              ? Utilities.formatDate(
+                  schedule.secondStart,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.secondStart,
+          secondEnd:
+            schedule.secondEnd instanceof Date
+              ? Utilities.formatDate(
+                  schedule.secondEnd,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.secondEnd,
+          beginnerStart:
+            schedule.beginnerStart instanceof Date
+              ? Utilities.formatDate(
+                  schedule.beginnerStart,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.beginnerStart,
           totalCapacity: totalCapacity,
           beginnerCapacity: beginnerCapacity,
           morningSlots: morningSlots,
@@ -199,9 +243,30 @@ function getAvailableSlots() {
           classroom: schedule.classroom,
           date: schedule.date,
           venue: schedule.venue,
-          firstStart: schedule.firstStart,
-          firstEnd: schedule.firstEnd,
-          beginnerStart: schedule.beginnerStart,
+          firstStart:
+            schedule.firstStart instanceof Date
+              ? Utilities.formatDate(
+                  schedule.firstStart,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.firstStart,
+          firstEnd:
+            schedule.firstEnd instanceof Date
+              ? Utilities.formatDate(
+                  schedule.firstEnd,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.firstEnd,
+          beginnerStart:
+            schedule.beginnerStart instanceof Date
+              ? Utilities.formatDate(
+                  schedule.beginnerStart,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.beginnerStart,
           totalCapacity: totalCapacity,
           beginnerCapacity: beginnerCapacity,
           availableSlots: mainAvailable,
@@ -221,9 +286,30 @@ function getAvailableSlots() {
           classroom: schedule.classroom,
           date: schedule.date,
           venue: schedule.venue,
-          firstStart: schedule.firstStart,
-          firstEnd: schedule.firstEnd,
-          beginnerStart: schedule.beginnerStart,
+          firstStart:
+            schedule.firstStart instanceof Date
+              ? Utilities.formatDate(
+                  schedule.firstStart,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.firstStart,
+          firstEnd:
+            schedule.firstEnd instanceof Date
+              ? Utilities.formatDate(
+                  schedule.firstEnd,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.firstEnd,
+          beginnerStart:
+            schedule.beginnerStart instanceof Date
+              ? Utilities.formatDate(
+                  schedule.beginnerStart,
+                  CONSTANTS.TIMEZONE,
+                  'HH:mm',
+                )
+              : schedule.beginnerStart,
           totalCapacity: totalCapacity,
           beginnerCapacity: beginnerCapacity,
           availableSlots: available,

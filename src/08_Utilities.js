@@ -26,30 +26,6 @@ function createHeaderMap(headerRow) {
 }
 
 /**
- * 指定された日付が、指定されたオプション（期間や特定日）に合致するかを判定します。
- * @param {Date} rowDate - 判定対象のセルの日付
- * @param {string} timezone - スプレッドシートのタイムゾーン
- * @param {object} options - { endDate?: Date, targetDates?: Date[] }
- * @returns {boolean}
- */
-function shouldProcessRowByDate(rowDate, timezone, options) {
-  if (!(rowDate instanceof Date)) return false;
-  const d = Utilities.formatDate(rowDate, timezone, 'yyyy/MM/dd');
-  if (options.endDate) {
-    return (
-      new Date(d) <=
-      new Date(Utilities.formatDate(options.endDate, timezone, 'yyyy/MM/dd'))
-    );
-  }
-  if (options.targetDates) {
-    return options.targetDates
-      .map(dt => Utilities.formatDate(dt, timezone, 'yyyy/MM/dd'))
-      .includes(d);
-  }
-  return true; // オプションがなければ常にtrue
-}
-
-/**
  * エラーまたは情報メッセージをログとUIに表示します。
  * @param {string} message - 表示する
  * @param {boolean} isError - エラーかどうか
@@ -351,8 +327,14 @@ function transformReservationArrayToObject(resArray) {
     date,
     classroom,
     venue,
-    startTime,
-    endTime,
+    startTime:
+      startTime instanceof Date
+        ? Utilities.formatDate(startTime, CONSTANTS.TIMEZONE, 'HH:mm')
+        : startTime,
+    endTime:
+      endTime instanceof Date
+        ? Utilities.formatDate(endTime, CONSTANTS.TIMEZONE, 'HH:mm')
+        : endTime,
     status,
     chiselRental,
     firstLecture,
@@ -422,14 +404,25 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
   }
 
   return {
-    reservationId: resArray[getIndex(HEADER_RESERVATION_ID)],
-    studentId: resArray[getIndex(HEADER_STUDENT_ID)],
-    date: resArray[getIndex(HEADER_DATE)],
+    reservationId:
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID)],
+    studentId: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)],
+    date: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.DATE)],
     classroom:
       resArray[getIndex(HEADER_CLASSROOM)] || resArray[getIndex(HEADER_VENUE)],
     venue: resArray[getIndex(HEADER_VENUE)],
-    startTime: resArray[getIndex(HEADER_START_TIME)],
-    endTime: resArray[getIndex(HEADER_END_TIME)],
+    startTime: (() => {
+      const time = resArray[getIndex(HEADER_START_TIME)];
+      return time instanceof Date
+        ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
+        : time;
+    })(),
+    endTime: (() => {
+      const time = resArray[getIndex(HEADER_END_TIME)];
+      return time instanceof Date
+        ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
+        : time;
+    })(),
     status: resArray[getIndex(HEADER_STATUS)],
     chiselRental: resArray[getIndex(HEADER_CHISEL_RENTAL)],
     firstLecture: resArray[getIndex(HEADER_FIRST_LECTURE)],
@@ -532,9 +525,9 @@ function getCachedReservationsFor(
   if (!reservationsCache?.reservations) return [];
 
   const { reservations, headerMap } = reservationsCache;
-  const dateColIdx = headerMap[CONSTANTS.HEADERS.DATE];
-  const classroomColIdx = headerMap[CONSTANTS.HEADERS.CLASSROOM];
-  const statusColIdx = headerMap[CONSTANTS.HEADERS.STATUS];
+  const dateColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
+  const classroomColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM];
+  const statusColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS];
 
   return reservations.filter(r => {
     const row = r.data;

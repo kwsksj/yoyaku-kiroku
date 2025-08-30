@@ -3,8 +3,6 @@
  * 【ファイル名】: 02-4_BusinessLogic_ScheduleMaster.js
  * 【バージョン】: 2.2
  * 【役割】: 日程マスタシートの管理機能
- * 【v2.2での変更点】:
- * - getSpreadsheetTimezone() の呼び出しを CONSTANTS.TIMEZONE に置換。
  * =================================================================
  */
 
@@ -15,7 +13,7 @@
 function createScheduleMasterSheet() {
   try {
     const ss = getActiveSpreadsheet();
-    let scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+    let scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE);
 
     // シートが既に存在する場合は確認
     if (scheduleSheet) {
@@ -36,19 +34,19 @@ function createScheduleMasterSheet() {
     }
 
     // 新しいシートを作成
-    scheduleSheet = ss.insertSheet(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+    scheduleSheet = ss.insertSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
 
     // ヘッダーを設定
     scheduleSheet
-      .getRange(HEADER_ROW, 1, 1, SCHEDULE_MASTER_HEADERS.length)
-      .setValues([SCHEDULE_MASTER_HEADERS]);
+      .getRange(HEADER_ROW, 1, 1, CONSTANTS.HEADERS.SCHEDULE.length)
+      .setValues([CONSTANTS.HEADERS.SCHEDULE]);
 
     // ヘッダー行の書式設定
     const headerRange = scheduleSheet.getRange(
       HEADER_ROW,
       1,
       1,
-      SCHEDULE_MASTER_HEADERS.length,
+      CONSTANTS.HEADERS.SCHEDULE.length,
     );
     headerRange.setFontWeight('bold');
     headerRange.setBackground(COLOR_HEADER_BACKGROUND);
@@ -73,7 +71,7 @@ function createScheduleMasterSheet() {
           DATA_START_ROW,
           1,
           sampleData.length,
-          SCHEDULE_MASTER_HEADERS.length,
+          CONSTANTS.HEADERS.SCHEDULE.length,
         )
         .setValues(sampleData);
     }
@@ -82,12 +80,12 @@ function createScheduleMasterSheet() {
     const ui = SpreadsheetApp.getUi();
     ui.alert(
       '日程マスタシート作成完了',
-      `「${CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER}」シートを作成しました。\nサンプルデータ ${sampleData.length} 件を挿入しました。`,
+      `「${CONSTANTS.SHEET_NAMES.SCHEDULE}」シートを作成しました。\nサンプルデータ ${sampleData.length} 件を挿入しました。`,
       ui.ButtonSet.OK,
     );
 
     // 作成後、シートキャッシュをクリア
-    SS_MANAGER.clearSheetCache(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+    SS_MANAGER.clearSheetCache(CONSTANTS.SHEET_NAMES.SCHEDULE);
 
     // アクティビティログに記録
     logActivity(
@@ -115,8 +113,11 @@ function createScheduleMasterSheet() {
 function getAllScheduledDates(fromDate, toDate) {
   try {
     const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+    Logger.log(
+      `scheduleCache: ${JSON.stringify(scheduleCache ? { version: scheduleCache.version, hasSchedule: !!scheduleCache.schedule, scheduleLength: scheduleCache.schedule?.length } : null)}`,
+    );
 
-    const cachedSchedules = scheduleCache.schedule || [];
+    const cachedSchedules = scheduleCache?.schedule || [];
     Logger.log(
       `キャッシュから日程マスタデータを取得: ${cachedSchedules.length} 件`,
     );
@@ -146,7 +147,8 @@ function filterSchedulesByDateRange(schedules, fromDate, toDate) {
     : Number.MAX_SAFE_INTEGER;
 
   return schedules.filter(schedule => {
-    const scheduleDate = new Date(schedule.date);
+    const scheduleDate =
+      schedule.date instanceof Date ? schedule.date : new Date(schedule.date);
     const dateTime = scheduleDate.getTime();
     return dateTime >= fromDateTime && dateTime <= toDateTime;
   });
@@ -185,7 +187,7 @@ function generateScheduleMasterFromExistingReservations() {
     writeScheduleDataToSheet(scheduleData);
 
     // キャッシュをクリア
-    SS_MANAGER.clearSheetCache(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+    SS_MANAGER.clearSheetCache(CONSTANTS.SHEET_NAMES.SCHEDULE);
 
     // アクティビティログに記録
     logActivity(
@@ -284,16 +286,22 @@ function extractUniqueDateClassroomCombinations() {
           .getValues()[0];
         const dateIndex = headers.findIndex(
           header =>
-            header === '日付' || header === 'date' || header === '開催日',
+            header === CONSTANTS.HEADERS.SCHEDULE.DATE ||
+            header === 'date' ||
+            header === '開催日',
         );
         const classroomIndex = headers.findIndex(
-          header => header === '教室' || header === 'classroom',
+          header =>
+            header === CONSTANTS.HEADERS.SCHEDULE.CLASSROOM ||
+            header === 'classroom',
         );
         const venueIndex = headers.findIndex(
-          header => header === '会場' || header === 'venue',
+          header =>
+            header === CONSTANTS.HEADERS.SCHEDULE.VENUE || header === 'venue',
         );
         const statusIndex = headers.findIndex(
-          header => header === '状態' || header === 'status',
+          header =>
+            header === CONSTANTS.HEADERS.SCHEDULE.STATUS || header === 'status',
         );
 
         if (dateIndex === -1 || classroomIndex === -1) {
@@ -381,24 +389,24 @@ function isReservationSheet(sheetName) {
  * 日程マスタシートを準備する（既存データをクリア）
  */
 function prepareScheduleMasterSheet() {
-  let scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+  let scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE);
 
   if (!scheduleSheet) {
     // シートが存在しない場合は作成
     const ss = getActiveSpreadsheet();
-    scheduleSheet = ss.insertSheet(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+    scheduleSheet = ss.insertSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
 
     // ヘッダーを設定
     scheduleSheet
-      .getRange(HEADER_ROW, 1, 1, SCHEDULE_MASTER_HEADERS.length)
-      .setValues([SCHEDULE_MASTER_HEADERS]);
+      .getRange(HEADER_ROW, 1, 1, CONSTANTS.HEADERS.SCHEDULE.length)
+      .setValues([CONSTANTS.HEADERS.SCHEDULE.length]);
 
     // ヘッダー行の書式設定
     const headerRange = scheduleSheet.getRange(
       HEADER_ROW,
       1,
       1,
-      SCHEDULE_MASTER_HEADERS.length,
+      CONSTANTS.HEADERS.SCHEDULE.length,
     );
     headerRange.setFontWeight('bold');
     headerRange.setBackground(COLOR_HEADER_BACKGROUND);
@@ -412,7 +420,7 @@ function prepareScheduleMasterSheet() {
           DATA_START_ROW,
           1,
           lastRow - HEADER_ROW,
-          SCHEDULE_MASTER_HEADERS.length,
+          CONSTANTS.HEADERS.SCHEDULE.length,
         )
         .clear();
     }
@@ -454,7 +462,11 @@ function generateScheduleDataWithDefaults(uniqueCombinations) {
   });
 
   // 日付順にソート
-  scheduleData.sort((a, b) => new Date(a[0]) - new Date(b[0]));
+  scheduleData.sort((a, b) => {
+    const dateA = a[0] instanceof Date ? a[0] : new Date(a[0]);
+    const dateB = b[0] instanceof Date ? b[0] : new Date(b[0]);
+    return dateA.getTime() - dateB.getTime();
+  });
 
   return scheduleData;
 }
@@ -534,7 +546,7 @@ function writeScheduleDataToSheet(scheduleData) {
     return;
   }
 
-  const scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+  const scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE);
   if (!scheduleSheet) {
     throw new Error('日程マスタシートが見つかりません');
   }
@@ -544,7 +556,7 @@ function writeScheduleDataToSheet(scheduleData) {
     DATA_START_ROW,
     1,
     scheduleData.length,
-    SCHEDULE_MASTER_HEADERS.length,
+    CONSTANTS.HEADERS.SCHEDULE.length,
   );
   range.setValues(scheduleData);
 
