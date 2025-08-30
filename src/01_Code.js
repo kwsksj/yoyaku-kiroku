@@ -54,23 +54,6 @@ const CALENDAR_IDS_RAW =
   PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
 const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
 
-// 日程マスタのヘッダー定義
-const SCHEDULE_MASTER_HEADERS = [
-  '日付',
-  '教室',
-  '会場',
-  '教室形式',
-  '1部開始',
-  '1部終了',
-  '2部開始',
-  '2部終了',
-  '初心者開始',
-  '全体定員',
-  '初心者定員',
-  '状態',
-  '備考',
-];
-
 /**
  * HTMLテンプレートのサブファイルをテンプレート評価の文脈で読み込むためのinclude関数
  * @param {string} filename - 読み込むHTMLファイル名（拡張子不要）
@@ -117,8 +100,6 @@ function addAdminMenu(menu) {
       'addCalendarEventsToSheetWithSpecifics',
     )
     .addSeparator()
-    .addItem('アクティブシートの罫線を再描画', 'manuallyFormatActiveSheet')
-    .addSeparator()
     .addItem('日程マスタを作成', 'createScheduleMasterSheet')
     .addItem(
       '【移行用】予約データから日程マスタを生成',
@@ -139,16 +120,13 @@ function addCacheMenu(menu) {
   menu
     .addSeparator()
     .addItem('キャッシュサービスを一括更新', 'rebuildAllCachesEntryPoint')
-    .addSeparator()
     .addItem(
-      '【管理者専用】PropertiesServiceクリーンアップ',
-      'cleanupPropertiesServiceCache',
+      '【修復】Schedule Masterキャッシュ診断・修復',
+      'diagnoseAndFixScheduleMasterCache',
     )
-    .addSeparator()
-    .addItem('キャッシュサービス容量チェック', 'checkCacheCapacity')
     .addItem(
-      '古いプロパティサービスデータをクリーンアップ',
-      'cleanupOldCaches',
+      'PropertiesServiceクリーンアップ',
+      'cleanupPropertiesServiceCache',
     );
 }
 
@@ -212,145 +190,9 @@ function doGetTest() {
 }
 
 /**
- * デバッグ用：テスト関数が正常に動作するかチェック
- */
-function debugTestSetup() {
-  try {
-    Logger.log('=== テストセットアップ開始 ===');
-
-    // HTMLファイルの存在確認
-    try {
-      Logger.log('✓ HTMLテンプレートが見つかりました');
-    } catch (e) {
-      Logger.log('✗ HTMLテンプレートエラー: ' + e.message);
-      throw e;
-    }
-
-    // スプレッドシートマネージャーの動作確認
-    try {
-      const ss = getActiveSpreadsheet();
-      Logger.log('✓ SpreadsheetManagerが動作しています: ' + ss.getId());
-    } catch (e) {
-      Logger.log('✗ SpreadsheetManagerエラー: ' + e.message);
-      throw e;
-    }
-
-    // テスト関数の動作確認
-    try {
-      const testResult = testSpreadsheetManagerFunction();
-      Logger.log('✓ テスト関数が動作しています');
-      Logger.log('テスト結果: ' + JSON.stringify(testResult, null, 2));
-    } catch (e) {
-      Logger.log('✗ テスト関数エラー: ' + e.message);
-      throw e;
-    }
-
-    Logger.log('=== テストセットアップ完了 ===');
-    return {
-      success: true,
-      message: 'すべてのテストセットアップが正常です',
-    };
-  } catch (error) {
-    Logger.log('✗ セットアップエラー: ' + error.message);
-    Logger.log('エラーの詳細: ' + error.stack);
-    return {
-      success: false,
-      message: error.message,
-    };
-  }
-}
-
-/**
- * GASエディタで直接実行可能なテスト関数
- */
-function runDirectTest() {
-  Logger.log('=== 直接テスト実行開始 ===');
-
-  try {
-    // 1. SpreadsheetManager テスト
-    Logger.log('--- SpreadsheetManager テスト ---');
-    const managerResult = testSpreadsheetManagerFunction();
-    Logger.log('結果: ' + JSON.stringify(managerResult, null, 2));
-
-    // 2. 予約枠取得テスト
-    Logger.log('--- 予約枠取得テスト ---');
-    const slotsResult = testAvailableSlotsFunction();
-    Logger.log('結果: ' + JSON.stringify(slotsResult, null, 2));
-
-    // 3. パフォーマンス比較
-    Logger.log('--- パフォーマンス比較テスト ---');
-    const perfResult = performanceComparisonFunction();
-    Logger.log('結果: ' + JSON.stringify(perfResult, null, 2));
-
-    Logger.log('=== 直接テスト実行完了 ===');
-    return {
-      success: true,
-      managerTest: managerResult,
-      slotsTest: slotsResult,
-      performanceTest: perfResult,
-    };
-  } catch (error) {
-    Logger.log('✗ 直接テストエラー: ' + error.message);
-    Logger.log('エラーの詳細: ' + error.stack);
-    return {
-      success: false,
-      message: error.message,
-    };
-  }
-}
-
-/**
  * 別のデプロイメント用のエントリーポイント
  * テスト専用のデプロイメントを作成する場合に使用
  */
 function doGetPerformanceTest(_e) {
   return doGetTest();
-}
-
-/**
- * 機能回帰テストの実行
- * GASエディタから直接実行可能
- */
-function runRegressionTest() {
-  Logger.log('=== 機能回帰テスト実行開始 ===');
-
-  try {
-    // 基本機能テストを実行
-    const basicResult = testBasicFunctionality();
-    Logger.log('基本機能テスト結果: ' + JSON.stringify(basicResult, null, 2));
-
-    if (basicResult.success) {
-      // 基本機能が正常な場合、包括テストを実行
-      const regressionResult = testRegressionSuite();
-      Logger.log(
-        '包括機能テスト結果: ' + JSON.stringify(regressionResult, null, 2),
-      );
-
-      // エラーハンドリングテストも実行
-      const errorResult = testErrorHandling();
-      Logger.log(
-        'エラーハンドリングテスト結果: ' + JSON.stringify(errorResult, null, 2),
-      );
-
-      return {
-        success: true,
-        basicTest: basicResult,
-        regressionTest: regressionResult,
-        errorTest: errorResult,
-        message: '全テスト完了',
-      };
-    } else {
-      return {
-        success: false,
-        basicTest: basicResult,
-        message: '基本機能テストで問題が検出されました',
-      };
-    }
-  } catch (error) {
-    Logger.log('テスト実行エラー: ' + error.message);
-    return {
-      success: false,
-      message: error.message,
-    };
-  }
 }

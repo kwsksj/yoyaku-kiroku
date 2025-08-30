@@ -26,6 +26,101 @@
   // 予約データの処理は全てバックエンドで実行され、getAvailableSlots()とgetUserReservations()を使用します
 
   /**
+   * =================================================================
+   * --- 統一検索関数システム (2025-08-30) ---
+   * 「よやく」(myBookings) と「きろく」(history) を統一的に検索する関数群
+   * =================================================================
+   */
+
+  /**
+   * 予約IDで「よやく」と「きろく」を統一的に検索します
+   * @param {string} reservationId - 検索対象の予約ID
+   * @param {object} state - stateManager.getState()の戻り値
+   * @returns {object|null} 見つかった予約/記録データ、見つからない場合はnull
+   */
+  function findReservationById(reservationId, state = null) {
+    const currentState = state || window.stateManager?.getState();
+    if (!currentState) return null;
+
+    // 1. まず「よやく」(myBookings)から検索
+    const bookingResult = currentState.myBookings?.find(
+      item => item.reservationId === reservationId,
+    );
+    if (bookingResult) {
+      return { ...bookingResult, type: 'booking' };
+    }
+
+    // 2. 次に「きろく」(history)から検索
+    const historyResult = currentState.history?.find(
+      item => item.reservationId === reservationId,
+    );
+    if (historyResult) {
+      return { ...historyResult, type: 'record' };
+    }
+
+    return null;
+  }
+
+  /**
+   * 日付と教室で「よやく」と「きろく」を統一的に検索します
+   * @param {string} date - 検索対象の日付 (YYYY-MM-DD)
+   * @param {string} classroom - 検索対象の教室名
+   * @param {object} state - stateManager.getState()の戻り値
+   * @returns {object|null} 見つかった予約/記録データ、見つからない場合はnull
+   */
+  function findReservationByDateAndClassroom(date, classroom, state = null) {
+    const currentState = state || window.stateManager?.getState();
+    if (!currentState) return null;
+
+    // 1. まず「よやく」(myBookings)から検索
+    const bookingResult = currentState.myBookings?.find(
+      item => item.date === date && item.classroom === classroom,
+    );
+    if (bookingResult) {
+      return { ...bookingResult, type: 'booking' };
+    }
+
+    // 2. 次に「きろく」(history)から検索
+    const historyResult = currentState.history?.find(
+      item => item.date === date && item.classroom === classroom,
+    );
+    if (historyResult) {
+      return { ...historyResult, type: 'record' };
+    }
+
+    return null;
+  }
+
+  /**
+   * 指定されたステータスの予約/記録を検索します
+   * @param {string} status - 検索対象のステータス
+   * @param {object} state - stateManager.getState()の戻り値
+   * @returns {Array} 条件に合致する予約/記録の配列
+   */
+  function findReservationsByStatus(status, state = null) {
+    const currentState = state || window.stateManager?.getState();
+    if (!currentState) return [];
+
+    const results = [];
+
+    // 「よやく」(myBookings)から検索
+    if (currentState.myBookings) {
+      currentState.myBookings
+        .filter(item => item.status === status)
+        .forEach(item => results.push({ ...item, type: 'booking' }));
+    }
+
+    // 「きろく」(history)から検索
+    if (currentState.history) {
+      currentState.history
+        .filter(item => item.status === status)
+        .forEach(item => results.push({ ...item, type: 'record' }));
+    }
+
+    return results;
+  }
+
+  /**
    * 新しい初期データを受け取り、クライアントサイドで処理してappStateを構築する
    * @param {object} data - getAppInitialDataから返されたデータオブジェクト (allStudents, accountingMaster, etc.)
    * @param {string} phone - ログイン試行された電話番号

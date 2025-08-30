@@ -192,7 +192,36 @@ function getAppInitialData() {
     const accountingMaster = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
     const scheduleMaster = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
 
-    const today = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
+    // Schedule Master データが空の場合は診断・修復を試行
+    if (
+      !scheduleMaster ||
+      !scheduleMaster.schedule ||
+      scheduleMaster.schedule.length === 0
+    ) {
+      Logger.log(
+        '⚠️ Schedule Master キャッシュが空です - 診断・修復を実行します',
+      );
+      try {
+        diagnoseAndFixScheduleMasterCache();
+        // 修復後のデータを再取得
+        const repairedScheduleMaster = getCachedData(
+          CACHE_KEYS.MASTER_SCHEDULE_DATA,
+        );
+        if (repairedScheduleMaster && repairedScheduleMaster.schedule) {
+          Logger.log(
+            `✅ Schedule Master修復完了: ${repairedScheduleMaster.schedule.length}件`,
+          );
+        }
+      } catch (error) {
+        Logger.log(`Schedule Master 修復中にエラー: ${error.message}`);
+      }
+    }
+
+    const today = Utilities.formatDate(
+      new Date(),
+      CONSTANTS.TIMEZONE,
+      'yyyy-MM-dd',
+    );
 
     const result = {
       success: true,
@@ -220,7 +249,7 @@ function getAppInitialData() {
           colors: CONSTANTS.COLORS,
           classroomTypes: CONSTANTS.CLASSROOM_TYPES,
           scheduleStatus: CONSTANTS.SCHEDULE_STATUS,
-          scheduleHeaders: CONSTANTS.SCHEDULE_HEADERS,
+          scheduleHeaders: CONSTANTS.HEADERS.SCHEDULE,
         },
         cacheVersions: {
           allReservations: allReservationsCache?.version || 0,
@@ -295,7 +324,7 @@ function getCacheVersions() {
         '{"version": 0}',
     );
     const scheduleMaster = JSON.parse(
-      CacheService.getScriptCache().get(CACHE_KEYS.SCHEDULE_MASTER) ||
+      CacheService.getScriptCache().get(CACHE_KEYS.MASTER_SCHEDULE_DATA) ||
         '{"version": 0}',
     );
 
@@ -341,13 +370,22 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       }
       result.data.initial = initialDataResult.data;
 
-      // 電話番号でユーザーを検索
+      // 電話番号でユーザーを検索（authenticateUserを使用して正規化と特殊コマンドチェックを実行）
       if (phone) {
-        const currentUser = Object.values(
-          initialDataResult.data.allStudents,
-        ).find(student => student.phone === phone);
-        result.userFound = !!currentUser;
-        result.user = currentUser || null;
+        const authResult = authenticateUser(phone);
+        if (authResult.success) {
+          result.userFound = true;
+          result.user = authResult.user;
+        } else if (authResult.commandRecognized) {
+          // 特殊コマンドが認識された場合
+          result.userFound = false;
+          result.user = null;
+          result.commandRecognized = authResult.commandRecognized;
+        } else {
+          // 通常のユーザー未登録
+          result.userFound = false;
+          result.user = null;
+        }
       } else if (studentId) {
         // studentIdが指定されている場合もユーザー情報を設定する
         const currentUser = initialDataResult.data.allStudents[studentId];
@@ -410,4 +448,37 @@ function createApiErrorResponse(message, log = false) {
   return createApiResponse(false, {
     message: message,
   });
+}
+
+/**
+ * 指定した日付・教室の日程マスタ情報を取得するAPIエンドポイント
+ * フロントエンドから呼び出され、時間設定や定員情報を提供
+ * @param {Object} params - {date: string, classroom: string}
+ * @returns {Object} APIレスポンス（日程マスタ情報）
+ */
+function getScheduleInfo(params) {
+  try {
+    const { date, classroom } = params;
+
+    if (!date || !classroom) {
+      return createApiErrorResponse('日付と教室が必要です');
+    }
+
+    const scheduleInfo = getScheduleInfoForDate(date, classroom);
+
+    if (!scheduleInfo) {
+      return createApiErrorResponse('該当する日程情報が見つかりません');
+    }
+
+    return createApiResponse(true, {
+      scheduleInfo: scheduleInfo,
+      message: '日程情報を取得しました',
+    });
+  } catch (error) {
+    Logger.log(`getScheduleInfo API エラー: ${error.message}`);
+    return createApiErrorResponse(
+      `日程情報の取得中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
 }

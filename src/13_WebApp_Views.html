@@ -424,7 +424,7 @@
           },
           {
             text: '戻る',
-            action: 'goBackToDashboard',
+            action: 'smartGoBack',
             colorClass: DesignConfig.colors.secondary,
           },
         ]
@@ -673,7 +673,7 @@
   };
 
   /**
-   * ダッシュボード予約カードのボタン配列を生成します（新仕様）。
+   * ホーム予約カードのボタン配列を生成します（新仕様）。
    * @param {object} booking - 予約データ
    * @returns {Array} ボタン設定配列
    */
@@ -708,7 +708,7 @@
   };
 
   /**
-   * ダッシュボード履歴カードのボタン配列を生成します（新仕様）。
+   * ホーム履歴カードのボタン配列を生成します（新仕様）。
    * @param {object} historyItem - 履歴データ
    * @returns {Array} ボタン設定配列
    */
@@ -747,7 +747,7 @@
   };
 
   /**
-   * メインのダッシュボード画面のUIを生成します。
+   * メインのホーム画面のUIを生成します。
    * 【改善】ビジネスロジックをヘルパー関数に分離して可読性向上
    * @returns {string} HTML文字列
    */
@@ -780,13 +780,15 @@
 
     // 履歴セクションを生成（新仕様：「きろく」表示条件）
     let historyHtml = '';
-    const completedBookings = sortedBookings.filter(
-      b => b.status === STATUS.COMPLETED,
+    // 【修正】「きろく」はhistoryから取得するべき（COMPLETED記録はmyHistoryに分類される）
+    const sortedHistory = stateManager.getState().computed.sortedHistory;
+    const completedRecords = sortedHistory.filter(
+      r => r.status === STATUS.COMPLETED,
     );
 
-    if (completedBookings.length > 0) {
-      // 「きろく」は completed ステータスのみ表示
-      const historyCards = completedBookings.map(h => {
+    if (completedRecords.length > 0) {
+      // 「きろく」は COMPLETED ステータスのみ表示
+      const historyCards = completedRecords.map(h => {
         const buttons = _buildHistoryButtons(h);
         return Components.listCard({
           type: 'history',
@@ -797,8 +799,7 @@
       });
 
       const showMore =
-        (stateManager.getState().recordsToShow || 10) <
-        stateManager.getState().computed.sortedHistory.length;
+        (stateManager.getState().recordsToShow || 10) < completedRecords.length;
 
       // Componentsに構造生成を委任
       historyHtml = Components.dashboardSection({
@@ -844,7 +845,7 @@
         <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
         <div class="max-w-md mx-auto text-center">
           <p class="text-brand-subtle mb-6">現在、予約可能な教室がありません。</p>
-          ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+          ${Components.createButton({ text: '戻る', action: 'smartGoBack', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
         </div>`;
     }
 
@@ -855,7 +856,7 @@
             ${classroomButtonsHtml}
         </div>
         <div class="mt-6 max-w-md mx-auto">
-            ${Components.createButton({ text: '戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+            ${Components.createButton({ text: '戻る', action: 'smartGoBack', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
         </div>
     `;
   };
@@ -927,20 +928,34 @@
             }
 
             if (iB) {
-              // 予約済みの場合
-              const booking = stateManager
-                .getState()
-                .computed.sortedBookings.find(
-                  b => b.date === sl.date && b.classroom === sl.classroom,
-                );
-              if (booking && booking.status === STATUS.WAITLISTED) {
+              // 【修正】予約済み・記録済みの場合（統一検索関数を使用）
+              const reservationData = findReservationByDateAndClassroom(
+                sl.date,
+                sl.classroom,
+              );
+
+              if (
+                reservationData &&
+                reservationData.status === STATUS.COMPLETED
+              ) {
+                // 完了済みの記録の場合
+                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
+                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">受講済み</span>`;
+                act = '';
+              } else if (
+                reservationData &&
+                reservationData.status === STATUS.WAITLISTED
+              ) {
+                // キャンセル待ちの場合
                 cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
+                act = '';
               } else {
+                // 確定予約の場合
                 cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`;
+                act = '';
               }
-              act = '';
             } else if (sl.isFull) {
               // 満席（キャンセル待ち）の場合
               cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
@@ -987,7 +1002,7 @@
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${classroom}</h1>
             <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
             <div class="mt-6">
-                ${Components.createButton({ text: 'ダッシュボードに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                ${Components.createButton({ text: 'ホームに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
             </div>
         </div>`;
     } else {
@@ -996,7 +1011,7 @@
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${classroom}</h1>
             <div class="${DesignConfig.cards.container}">${bookingSlotsHtml}</div>
             <div class="mt-6">
-                ${Components.createButton({ text: 'ダッシュボードに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                ${Components.createButton({ text: 'ホームに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
             </div>
         </div>`;
     }
@@ -1245,7 +1260,7 @@
         sheetName: sourceData.sheetName,
       });
     }
-    // 戻るボタン：編集時はダッシュボードへ、新規作成時は予約一覧へ
+    // 戻るボタン：編集時はホームへ、新規作成時は予約一覧へ
     buttonsHtml += Components.createButton({
       text: '戻る',
       action: isEdit ? 'goBackToDashboard' : 'goBackToBooking',
@@ -1331,7 +1346,7 @@
 
         <div class="max-w-xs mx-auto mt-8">
              ${Components.createButton({
-               text: 'ダッシュボードへ戻る',
+               text: 'ホームへ戻る',
                action: 'goToDashboard',
                colorClass: DesignConfig.colors.secondary,
                widthClass: DesignConfig.buttons.full,
@@ -1357,18 +1372,31 @@
     const reservation = state.accountingReservation;
     const master = state.accountingMaster;
     const initial = state.accountingInitialValues;
-    const booking = state.computed.sortedBookings.find(
-      b => b.reservationId === reservation.reservationId,
+    // 【修正】統一検索関数を使用してよやく・きろく両方から検索
+    const bookingOrRecord = findReservationById(
+      reservation.reservationId,
+      state,
     );
+    if (!bookingOrRecord) {
+      return `
+        <div class="text-center py-8">
+          <p class="text-red-600">予約・記録情報が見つかりませんでした</p>
+          <button onclick="handleAction('goBackToDashboard')" 
+                  class="mt-4 px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+            戻る
+          </button>
+        </div>
+      `;
+    }
 
     // 会計済みの場合 - 完全分離（編集モードでない場合のみ）
     if (
-      booking.status === STATUS.COMPLETED &&
-      booking.accountingDetails &&
+      bookingOrRecord.status === STATUS.COMPLETED &&
+      bookingOrRecord.accountingDetails &&
       !state.isEditingAccountingRecord
     ) {
       try {
-        const details = JSON.parse(booking.accountingDetails);
+        const details = JSON.parse(bookingOrRecord.accountingDetails);
         return `
           ${Components.accountingCompleted({ details, reservation })}
           <div class="mt-8 flex flex-col space-y-3">

@@ -106,22 +106,22 @@ function createIntegratedSheet() {
   try {
     const newSheet = ss.insertSheet(sheetName);
     const headers = [
-      '予約ID',
-      '生徒ID',
-      '日付',
-      '教室',
-      '会場',
-      '開始時刻',
-      '終了時刻',
-      'ステータス',
-      '彫刻刀レンタル',
-      '初講',
-      '来場手段',
-      '送迎',
-      '制作メモ',
-      'order',
-      'メッセージ',
-      '会計詳細',
+      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+      CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+      CONSTANTS.HEADERS.RESERVATIONS.DATE,
+      CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM,
+      CONSTANTS.HEADERS.RESERVATIONS.VENUE,
+      CONSTANTS.HEADERS.RESERVATIONS.START_TIME,
+      CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
+      CONSTANTS.HEADERS.RESERVATIONS.STATUS,
+      CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL,
+      CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE,
+      CONSTANTS.HEADERS.RESERVATIONS.TRANSPORTATION,
+      CONSTANTS.HEADERS.RESERVATIONS.PICKUP,
+      CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS,
+      CONSTANTS.HEADERS.RESERVATIONS.ORDER,
+      CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER,
+      CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
     ];
 
     newSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
@@ -232,7 +232,9 @@ function migrateDataToIntegratedSheet() {
         }
 
         const migratedRow = [
-          row[sourceHeaderMap.get(HEADER_RESERVATION_ID)] || '',
+          row[
+            sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID)
+          ] || '',
           row[sourceHeaderMap.get(HEADER_STUDENT_ID)] || '',
           row[sourceHeaderMap.get(HEADER_DATE)] || null,
           sheetName, // 教室

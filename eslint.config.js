@@ -241,6 +241,7 @@ export default [
         getHeaderIndex: 'readonly',
         getCachedStudentById: 'readonly',
         getCachedReservationsFor: 'readonly',
+        diagnoseAndFixScheduleMasterCache: 'readonly',
       },
     },
     rules: {

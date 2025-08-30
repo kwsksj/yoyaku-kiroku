@@ -277,9 +277,9 @@ function registerNewUser(userInfo) {
         .getRange(1, 1, 1, rosterSheet.getLastColumn())
         .getValues()[0];
       const idColIdx = header.indexOf(HEADER_STUDENT_ID);
-      const phoneColIdx = header.indexOf(HEADER_PHONE);
-      const realNameColIdx = header.indexOf(HEADER_REAL_NAME);
-      const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
+      const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
+      const realNameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
+      const nicknameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
 
       if (
         idColIdx === -1 ||
@@ -400,9 +400,9 @@ function updateUserProfile(userInfo) {
       const header = rosterSheet
         .getRange(1, 1, 1, rosterSheet.getLastColumn())
         .getValues()[0];
-      const realNameColIdx = header.indexOf(HEADER_REAL_NAME);
-      const nicknameColIdx = header.indexOf(HEADER_NICKNAME);
-      const phoneColIdx = header.indexOf(HEADER_PHONE);
+      const realNameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
+      const nicknameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
+      const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
 
       if (
         realNameColIdx === -1 ||

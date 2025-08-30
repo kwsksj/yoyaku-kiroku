@@ -203,9 +203,15 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
   try {
     // デフォルトの日付範囲を設定（今日から1年後まで）
     const today = new Date();
+
+    const oldestDate = new Date(
+      today.getFullYear() - 10,
+      today.getMonth(),
+      today.getDate(),
+    );
     const startDate =
       fromDate ||
-      Utilities.formatDate(today, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      Utilities.formatDate(oldestDate, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
 
     const oneYearLater = new Date(
       today.getFullYear() + 1,
@@ -214,14 +220,10 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
     );
     const endDate =
       toDate ||
-      Utilities.formatDate(
-        oneYearLater,
-        Session.getScriptTimeZone(),
-        'yyyy-MM-dd',
-      );
+      Utilities.formatDate(oneYearLater, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
 
     // 日程マスターシートから直接データを取得
-    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE_MASTER);
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
     if (!sheet) {
       Logger.log(
         '日程マスターシートが見つかりません。空のキャッシュを保存します。',
@@ -237,21 +239,28 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
 
     const allData = sheet.getDataRange().getValues();
     const headers = allData.shift();
-    const timezone = CONSTANTS.TIMEZONE;
 
     // 時間列のインデックスを特定
     const timeColumnNames = [
-      CONSTANTS.HEADERS.SCHEDULE_FIRST_START,
-      CONSTANTS.HEADERS.SCHEDULE_FIRST_END,
-      CONSTANTS.HEADERS.SCHEDULE_SECOND_START,
-      CONSTANTS.HEADERS.SCHEDULE_SECOND_END,
-      CONSTANTS.HEADERS.SCHEDULE_BEGINNER_START,
+      CONSTANTS.HEADERS.SCHEDULE.FIRST_START,
+      CONSTANTS.HEADERS.SCHEDULE.FIRST_END,
+      CONSTANTS.HEADERS.SCHEDULE.SECOND_START,
+      CONSTANTS.HEADERS.SCHEDULE.SECOND_END,
+      CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START,
     ];
 
     const scheduleDataList = allData
       .filter(row => {
-        const dateStr = row[headers.indexOf(CONSTANTS.HEADERS.SCHEDULE_DATE)];
-        return dateStr && dateStr >= startDate && dateStr <= endDate;
+        const dateValue = row[headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE)];
+        if (!dateValue) return false;
+
+        // Date オブジェクトを文字列形式に変換して比較
+        const dateStr =
+          dateValue instanceof Date
+            ? Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd')
+            : String(dateValue);
+
+        return dateStr >= startDate && dateStr <= endDate;
       })
       .map(row => {
         const scheduleObj = {};
@@ -259,7 +268,7 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
           let value = row[index];
           // 時間列の処理
           if (timeColumnNames.includes(header) && value instanceof Date) {
-            value = Utilities.formatDate(value, timezone, 'HH:mm');
+            value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
           }
           scheduleObj[header] = value;
         });
@@ -309,7 +318,7 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
  */
 function rebuildAccountingMasterCache() {
   try {
-    const sheet = getSheetByName(ACCOUNTING_MASTER_SHEET_NAME);
+    const sheet = getSheetByName(CONSTANTS.SHEET_NAMES.ACCOUNTING);
     if (!sheet) {
       throw new Error('会計マスタシートが見つかりません');
     }
@@ -330,7 +339,6 @@ function rebuildAccountingMasterCache() {
 
     const allData = sheet.getDataRange().getValues();
     const headers = allData.shift();
-    const timezone = CONSTANTS.TIMEZONE;
 
     // 時間列のインデックスを特定
     const timeColumnNames = [
@@ -354,7 +362,11 @@ function rebuildAccountingMasterCache() {
           timeColumnIndices.includes(columnIndex) &&
           cellValue instanceof Date
         ) {
-          item[headerName] = Utilities.formatDate(cellValue, timezone, 'HH:mm');
+          item[headerName] = Utilities.formatDate(
+            cellValue,
+            CONSTANTS.TIMEZONE,
+            'HH:mm',
+          );
         } else {
           item[headerName] = cellValue;
         }
@@ -419,10 +431,10 @@ function rebuildAllStudentsBasicCache() {
 
     // 必須列のインデックスを取得
     const requiredColumns = {
-      studentId: headerColumnMap.get(HEADER_STUDENT_ID),
-      realName: headerColumnMap.get(HEADER_REAL_NAME),
-      nickname: headerColumnMap.get(HEADER_NICKNAME),
-      phone: headerColumnMap.get(HEADER_PHONE),
+      studentId: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.STUDENT_ID),
+      realName: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.REAL_NAME),
+      nickname: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.NICKNAME),
+      phone: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.PHONE),
     };
 
     // 必須列の存在確認
@@ -444,7 +456,7 @@ function rebuildAllStudentsBasicCache() {
 
     // 生徒データをオブジェクト形式に変換
     const studentsDataMap = {};
-    allStudentRows.forEach(studentRow => {
+    allStudentRows.forEach((studentRow, index) => {
       const studentId = studentRow[requiredColumns.studentId];
       if (studentId && String(studentId).trim()) {
         studentsDataMap[studentId] = {
@@ -452,6 +464,7 @@ function rebuildAllStudentsBasicCache() {
           realName: studentRow[requiredColumns.realName] || '',
           nickname: studentRow[requiredColumns.nickname] || '',
           phone: studentRow[requiredColumns.phone] || '',
+          rowIndex: index + 2, // 【修正】ヘッダー行を考慮した実際の行番号を追加 (1-based + header)
         };
       }
     });
@@ -679,5 +692,71 @@ function getDataCount(parsedData, cacheKey) {
           ? parsedData.data.length
           : 0
         : 0;
+  }
+}
+
+/**
+ * Schedule Master キャッシュの診断・修復機能
+ * シートの存在確認とキャッシュの整合性チェックを実行
+ * GASエディタから直接実行可能（メニューからトリガー登録推奨）
+ */
+function diagnoseAndFixScheduleMasterCache() {
+  Logger.log('=== Schedule Master キャッシュ診断・修復開始 ===');
+
+  try {
+    // 1. シートの存在確認
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    if (!sheet) {
+      Logger.log('⚠️ Schedule Masterシートが存在しません');
+      Logger.log('既存予約データから自動生成を試行します...');
+
+      // 既存予約データから自動生成を試行
+      try {
+        const result = generateScheduleMasterFromExistingReservations();
+        if (result && result.success !== false) {
+          Logger.log('✅ Schedule Masterシートの自動生成完了');
+        } else {
+          Logger.log('❌ Schedule Masterシートの自動生成失敗');
+          Logger.log('手動でSchedule Masterシートを作成してください');
+          return false;
+        }
+      } catch (error) {
+        Logger.log(`❌ 自動生成でエラー発生: ${error.message}`);
+        return false;
+      }
+    } else {
+      Logger.log('✅ Schedule Masterシートが存在します');
+
+      // シートのデータ数を確認
+      const dataRange = sheet.getDataRange();
+      const rowCount = dataRange.getNumRows();
+      Logger.log(`シートデータ行数: ${rowCount}行（ヘッダー含む）`);
+
+      if (rowCount <= 1) {
+        Logger.log(
+          '⚠️ Schedule Masterシートにデータがありません（ヘッダーのみ）',
+        );
+      }
+    }
+
+    // 2. キャッシュ再構築
+    Logger.log('キャッシュを再構築します...');
+    rebuildScheduleMasterCache();
+
+    // 3. キャッシュ検証
+    const cacheData = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+    if (!cacheData || !cacheData.schedule) {
+      Logger.log('❌ キャッシュ再構築後もデータが空です');
+      return false;
+    }
+
+    Logger.log(
+      `✅ キャッシュ診断・修復完了 - Schedule データ件数: ${cacheData.schedule.length}`,
+    );
+    return true;
+  } catch (error) {
+    Logger.log(`❌ 診断・修復中にエラー: ${error.message}`);
+    Logger.log(`スタックトレース: ${error.stack}`);
+    return false;
   }
 }

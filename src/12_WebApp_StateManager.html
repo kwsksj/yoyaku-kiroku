@@ -62,6 +62,10 @@
         /** @type {boolean} */
         searchAttempted: false,
 
+        // --- Navigation History ---
+        /** @type {Array<{view: string, context: Object}>} */
+        navigationHistory: [],
+
         // --- System State ---
         /** @type {boolean} */
         isDataFresh: false,
@@ -109,6 +113,9 @@
           break;
         case 'CHANGE_VIEW':
           newState = { view: action.payload.view };
+          break;
+        case 'NAVIGATE':
+          newState = this._handleNavigate(action.payload);
           break;
         default:
           console.warn('未知のアクションタイプ:', action.type);
@@ -227,11 +234,8 @@
       window.STATUS = {
         CANCELED: 'canceled',
         WAITLISTED: 'waitlisted',
-        CONFIRMED: 'confirmed',
-        COMPLETED: 'completed',
-        // 後方互換性
-        CANCEL: 'canceled',
-        WAITING: 'waitlisted',
+        CONFIRMED: '確定',
+        COMPLETED: '完了',
       };
       window.UI = {
         HISTORY_INITIAL_RECORDS: 10,
@@ -300,6 +304,104 @@
           console.error('subscriber callback error:', error);
         }
       });
+    }
+
+    /**
+     * ナビゲーションアクションを処理し、履歴を管理する
+     * @param {Object} payload - { to: string, context?: Object, saveHistory?: boolean }
+     * @returns {Object} 新しい状態
+     */
+    _handleNavigate(payload) {
+      const { to, context = {}, saveHistory = true } = payload;
+      const currentView = this.state.view;
+
+      // 現在のビューを履歴に保存（戻る履歴として）
+      if (saveHistory && currentView !== to) {
+        const currentContext = this._extractCurrentContext();
+        const historyEntry = { view: currentView, context: currentContext };
+
+        // 同じビューの連続エントリを避ける
+        const lastEntry =
+          this.state.navigationHistory[this.state.navigationHistory.length - 1];
+        if (!lastEntry || lastEntry.view !== currentView) {
+          const newHistory = [...this.state.navigationHistory, historyEntry];
+          // 履歴を最大10件に制限
+          if (newHistory.length > 10) {
+            newHistory.shift();
+          }
+          return {
+            view: to,
+            ...context,
+            navigationHistory: newHistory,
+          };
+        }
+      }
+
+      return {
+        view: to,
+        ...context,
+      };
+    }
+
+    /**
+     * 現在のビューのコンテキストを抽出する
+     * @returns {Object} コンテキストオブジェクト
+     */
+    _extractCurrentContext() {
+      const context = {};
+
+      // ビューに応じて重要な状態を保存
+      switch (this.state.view) {
+        case 'booking':
+          if (this.state.selectedClassroom) {
+            context.selectedClassroom = this.state.selectedClassroom;
+          }
+          break;
+        case 'classroomSelection':
+          // 教室選択画面では特別な状態保存不要
+          break;
+        case 'newReservation':
+        case 'editReservation':
+          if (this.state.selectedSlot) {
+            context.selectedSlot = this.state.selectedSlot;
+            context.selectedClassroom = this.state.selectedClassroom;
+          }
+          if (this.state.editingReservationDetails) {
+            context.editingReservationDetails =
+              this.state.editingReservationDetails;
+          }
+          break;
+        case 'accounting':
+          if (this.state.accountingReservation) {
+            context.accountingReservation = this.state.accountingReservation;
+          }
+          break;
+        default:
+          break;
+      }
+
+      return context;
+    }
+
+    /**
+     * 前のビューに戻る
+     * @returns {Object} 新しい状態、または戻れない場合はnull
+     */
+    goBack() {
+      const history = this.state.navigationHistory;
+      if (history.length === 0) {
+        console.log('ナビゲーション履歴が空です - ホームに戻ります');
+        return { view: 'dashboard' };
+      }
+
+      const previousEntry = history[history.length - 1];
+      const newHistory = history.slice(0, -1); // 最後のエントリを削除
+
+      return {
+        view: previousEntry.view,
+        ...previousEntry.context,
+        navigationHistory: newHistory,
+      };
     }
   }
 
