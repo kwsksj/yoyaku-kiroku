@@ -1,7 +1,10 @@
 # 予約管理システム「きぼりの よやく・きろく」
 
-- Google Apps Script(GAS) で構築された木彫り教室の予約管理・受付システム
-- 開発者は、木彫り教室の唯一の講師であり、経営者であり、このシステムの管理者
+木彫り教室「きぼり」のための Google Apps Script (GAS) 予約管理・受付システム
+
+- **統合予約管理**: 教室別分散データから統合予約シートへの移行完了
+- **モダンアーキテクチャ**: データアクセス層抽象化とサービス層設計
+- **開発者**: 木彫り教室の唯一の講師であり、経営者であり、このシステムの管理者
 
 ## 🚀 **開発環境セットアップ**
 
@@ -19,47 +22,55 @@ npm run gas:status
 ## 📁 **プロジェクト構造**
 
 ```bash
-src/                    # GAS同期ファイル（本番環境）
+src/                    # GAS同期ファイル
+├── 00_Constants.js    # 統一定数管理
 ├── 01_Code.js         # エントリーポイント
-├── 02-*_BusinessLogic_*.js  # ビジネスロジック
+├── 02-*_BusinessLogic_*.js  # ビジネスロジック層
+├── 02-5_BusinessLogic_ReservationService.js  # NEW: サービス層
+├── 03_DataAccess.js   # NEW: データアクセス抽象化層
 ├── 05-*_Backend_*.js  # バックエンドAPI
+├── 07_CacheManager.js # キャッシュ管理
+├── 09_Backend_Endpoints.js  # 統合エンドポイント
 └── 1*_WebApp.html     # Webアプリケーション
 
-test/           # ローカル環境テスト（Live Server使用）
-tools/
+~~test/~~              # ローカルテスト（現在非稼働）
+tools/                 # ビルド・環境管理ツール
 docs/                  # 詳細ドキュメント
+examples/              # リファクタリング例
 ```
 
 ## 🧪 **テスト実行**
 
-### ローカルテスト（フロントエンド）
+### GAS環境テスト（推奨）
 
-#### 手動テスト
+テスト環境は **head deployment ID** 設定により即座にWebAppに反映されます：
 
-1. `test/10_WebApp_Unified_Test.html` を右クリック
-2. "Open with Live Server" を選択
-3. ブラウザで画面遷移・主要機能を手動で確認
+```bash
+# 1. テスト環境にコードをプッシュ
+npm run push:test
 
-### GAS環境テスト
+# 2. テスト環境のWebAppを開く（変更が即座に反映）
+npm run open:dev:test
 
-実際の機能テストはGASのテスト環境で行います：
+# 3. 手動テストを実行
+# 4. 問題がなければ本番デプロイ
+npm run push:prod
+```
 
-1. `npm run push:test` - テスト環境にコードをプッシュ
-2. `npm run open:dev:test` - テスト環境の開発用URLを開く
-3. Webアプリで手動テストを実行
-4. 問題がなければ `npm run deploy:prod` で本番デプロイ
+### ~~ローカルテスト~~
+
+~~ローカルHTML生成機能は現在非稼働です。直接GAS環境でテストしてください。~~
 
 ## 🔧 開発コマンド
 
 プロジェクトのビルド、テスト、デプロイ、コード品質管理に使用するスクリプトです。
 
-### ローカル開発
+### ~~ローカル開発~~
 
-- `npm run build`
-  - `src`内のWebアプリ関連ファイルを`test/10_WebApp_Unified_Test.html`に統合し、ローカルでのテスト環境を構築します。
+- ~~`npm run build` - ローカルHTML生成（現在非稼働）~~
+- ~~`npm run watch` - ファイル監視・自動ビルド（現在非稼働）~~
 
-- `npm run watch`
-  - `src`内のファイルの変更を監視し、変更があるたびに自動で`npm run build`を実行します。ローカルでの開発時に便利です。
+**現在の推奨開発フロー**: 直接 `src/` ファイルを編集 → `npm run push:test` → GAS環境でテスト
 
 ### デプロイ (本番/テスト環境)
 
@@ -100,20 +111,37 @@ docs/                  # 詳細ドキュメント
 
 ## 📝 **開発メモ**
 
-- **環境切り替え:** `npm run switch:env -- prod|test` で本番/テスト環境を切り替え
-- **ローカル開発:** `npm run watch` で自動ビルド
-- **テスト:** `npm run push:test` でテスト環境でテスト
-- **デプロイ:** `npm run deploy:prod` で本番反映
-- **コード品質:** コミット前に `npm run check` を実行
-- **AI支援:** `CLAUDE.md` にAI向け指示を記載
+### 現在の開発フロー
+
+- **コード編集:** `src/` ファイルを直接編集
+- **テスト:** `npm run push:test` → GAS環境で即座にテスト
+- **品質管理:** コミット前に `npm run check` を実行
+- **本番反映:** `npm run push:prod` で本番環境更新
+
+### 新アーキテクチャ活用
+
+- **データアクセス:** `repositories.*` オブジェクト使用推奨
+- **ビジネスロジック:** `reservationService.*` 等のサービス層活用
+- **統合予約シート:** 本番環境移行準備完了
+
+### AI支援
+
+- **Claude Code指示:** `CLAUDE.md` に開発ガイド記載
+- **環境切り替え:** `npm run switch:env -- prod|test`
 
 ## ⚠️ **注意**
 
-- `test/10_WebApp_Unified_Test.html` は自動生成されるため、直接編集しないでください。
-- `npm run deploy:prod` を実行すると、ユーザーが利用するWebアプリが更新されます。
-- `.clasp.config.json` には機密情報（`scriptId`など）が含まれるため、Git管理から除外されています。
-- `npm run switch:env` は `.clasp.json` を上書きします。
+- **本番影響:** `npm run push:prod` でユーザーが利用するWebアプリが更新されます
+- **設定ファイル:** `.clasp.config.json` には機密情報が含まれGit管理対象外です
+- **環境切り替え:** `npm run switch:env` は `.clasp.json` を上書きします
+- **新機能開発:** データアクセス抽象化層(`03_DataAccess.js`)とサービス層(`02-5_*Service.js`)の活用を推奨
+
+### 段階的移行状況
+
+- ✅ **フェーズ1**: データアクセス抽象化基盤完成
+- ⏳ **フェーズ2**: 既存コードの段階的移行
+- 📋 **フェーズ3**: 統合予約シート完全移行
 
 ---
 
-**最終更新:** 2025年8月20日 **バージョン:** 1.2.0
+**最終更新:** 2025年8月31日 **バージョン:** 2.0.0 (Data Access Layer Abstraction)
