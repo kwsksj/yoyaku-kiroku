@@ -4,23 +4,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving classroom business. Uses Google Sheets as database with web application interface.
+Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving classroom business. Uses Google Sheets as database with web application interface. 開発者は、木彫り教室の唯一の講師であり、経営者であり、このシステムの管理者である。
 
 ### ✅ Data Model Redesign Complete
 
 Successfully migrated from classroom-specific distributed data structure to an integrated, normalized data model with significant performance improvements. Detailed design: **[DATA_MODEL.md](docs/DATA_MODEL.md)**
 
-**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ | Frontend Integration ✓ | System Optimization ✓
+**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ | Frontend Integration ✓ | System Optimization ✓ | **Data Access Layer Abstraction ✓**
+
+### ✅ Modern Architecture Foundation
+
+**Data Access Layer Abstraction**: Complete separation of business logic from data access through repository pattern and service layer architecture. Enables zero-risk migration to integrated reservation sheets in production environment.
 
 ## Key Development Commands
 
 ### Local Development & Testing
 
-- `npm run build` - Builds unified test HTML from source files in `src/` directory
-- `npm run watch` - Watches for file changes and auto-rebuilds test environment
 - `npm run format` - Auto-formats all code using Prettier
 - `npm run lint` / `npm run lint:fix` - ESLint static analysis and auto-fixing
 - `npm run check` - Runs both format check and lint together
+- ~~`npm run build` - Local test HTML generation (currently not functional)~~
+- ~~`npm run watch` - File watching for local development (currently not functional)~~
 
 ### Environment Management & Deployment
 
@@ -31,8 +35,9 @@ Successfully migrated from classroom-specific distributed data structure to an i
 
 ### Testing
 
-- Frontend testing: Open `test/10_WebApp_Unified_Test.html` with Live Server
-- The test file includes automated UI tests that display results at the bottom of the page
+- **GAS Test Environment**: Use `npm run push:test` to push code changes to test environment with head deployment ID for immediate testing
+- **Web App Testing**: Test environment WebApp reflects changes immediately after `npm run push:test`
+- ~~Local HTML testing (currently not functional)~~
 
 ## Architecture Overview
 
@@ -46,13 +51,13 @@ The project uses a numbered file naming convention in `src/`:
 - `00_SpreadsheetManager.js` - Spreadsheet object caching and management for performance optimization
 - `01_Code.js` - Entry point with global constants, UI definitions, and trigger functions
 - `02-1_BusinessLogic_Batch.js` - Batch processing and data import functions
-- `02-3_BusinessLogic_SheetUtils.js` - Sheet utility functions and data manipulation
 - `02-4_BusinessLogic_ScheduleMaster.js` - Schedule master management
+- `02-5_BusinessLogic_ReservationService.js` - **NEW**: Pure business logic service layer
+- `03_DataAccess.js` - **NEW**: Data access layer abstraction (Repository pattern)
 - `04_Backend_User.js` - User authentication and management
-- `05-1_Backend_Read.js` - Data reading API endpoints
 - `05-2_Backend_Write.js` - Data writing API endpoints
 - `05-3_Backend_AvailableSlots.js` - Available slots calculation API
-- `06_ExternalServices.js` - Google Forms/Calendar integration
+- `06_ExternalServices.js` - External service integration placeholders
 - `07_CacheManager.js` - Cache management for performance
 - `08_ErrorHandler.js` - Centralized error handling and logging
 - `08_Utilities.js` - Common utility functions
@@ -64,6 +69,7 @@ The project uses a numbered file naming convention in `src/`:
 - `11_WebApp_Config.html` - Frontend configuration and design constants
 - `12_WebApp_Core.html` - Core frontend utilities and component generation
 - `12_WebApp_StateManager.html` - Centralized state management with automatic UI updates
+- `13_WebApp_Components.html` - Reusable UI components (Atomic → Molecular → Organisms)
 - `13_WebApp_Views.html` - UI view generation functions (pure presentation layer)
 - `14_WebApp_Handlers.html` - Event handlers and business logic coordination
 
@@ -82,28 +88,30 @@ Google Sheets-based integrated data model. Details: [DATA_MODEL.md](docs/DATA_MO
 
 **Build Tools**:
 
-- `tools/build-unified.js` - Merges all HTML/JS files into single test file
 - `tools/switch-env.js` - Manages environment switching via `.clasp.json` updates
-- `tools/frontend-test.js` - Automated frontend testing framework
-- Test environment uses mock data to avoid affecting production sheets
+- ~~`tools/build-unified.js` - Local test HTML generation (currently not functional)~~
+- ~~`tools/frontend-test.js` - Frontend testing framework (currently not functional)~~
 
 **Config Files**: `.clasp.json`, `.clasp.config.json`, `jsconfig.json`, `.prettierrc.json`
+
+**Testing Strategy**: Direct GAS environment testing via head deployment ID, no local HTML generation required
 
 ## Development Guidelines
 
 ### Workflow
 
-1. **Development**: Edit `src/` files → `npm run watch` for auto-rebuild
+1. **Development**: Edit `src/` files directly
 2. **Quality**: Run `npm run check` before committing
-3. **Testing**: Open unified test file with Live Server
-4. **Deployment**: `npm run deploy:test` → `npm run deploy:prod`
+3. **Testing**: `npm run push:test` to push changes to test environment
+4. **Production**: `npm run push:prod` only after thorough testing in test environment
 
 ### Code Standards
 
-- Always edit source files in `src/`, never the unified test HTML directly
+- Always edit source files in `src/` directory
 - Use `SS_MANAGER` global instance for all spreadsheet operations
-- Follow numbered file naming convention
+- Follow numbered file naming convention for new files
 - Maintain integration with multi-layer caching system
+- **New Development**: Use data access abstraction layer (`repositories.*`) and service layer (`*Service`) for business logic
 
 ### Performance & Data
 
@@ -144,11 +152,12 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 
 - **Development Workflow**:
   - **Quality First**: Always run `npm run check` before committing changes
-  - **For Testing**: Use `npm run push:test` to push code to test environment
-  - **For Production**: Use `npm run push:prod` only after thorough testing
-  - **DO NOT use** `npm run build` for deployment - it only creates local unified test HTML
-  - The test environment has a head deployment ID configured in `.clasp.json`
+  - **For Testing**: Use `npm run push:test` to push code to test environment with head deployment ID
+  - **For Production**: Use `npm run push:prod` only after thorough testing in test environment
+  - **Testing Strategy**: Direct GAS environment testing - no local HTML build required
+  - Test environment WebApp reflects changes immediately after `npm run push:test`
 - **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to test
+- **Data Access Pattern**: Use new abstraction layers (`repositories.*`, `*Service`) for new features
 - **Frontend Architecture**: Implements unidirectional data flow with StateManager for automatic UI updates and separation of concerns
 - **VSCode Integration**: Utilize tasks (Cmd+Shift+P → Tasks) for efficient development workflow
 - **Code Quality**: Use ESLint and Prettier configurations consistently throughout development
