@@ -687,7 +687,10 @@
     b.innerHTML = '';
     if (c.showCancel) {
       b.innerHTML += Components.createButton({
-        text: c.cancelText || 'キャンセル',
+        text:
+          c.cancelText ||
+          window.stateManager.getState().constants?.messages?.CANCEL ||
+          'キャンセル',
         action: 'modalCancel',
         colorClass: DesignConfig.colors.secondary,
         widthClass: DesignConfig.buttons.auto,

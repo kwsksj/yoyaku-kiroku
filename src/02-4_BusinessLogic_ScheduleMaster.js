@@ -121,7 +121,16 @@ function getAllScheduledDates(fromDate, toDate) {
     Logger.log(
       `キャッシュから日程マスタデータを取得: ${cachedSchedules.length} 件`,
     );
-    return filterSchedulesByDateRange(cachedSchedules, fromDate, toDate);
+    Logger.log(
+      `=== 日付フィルタリング: fromDate=${fromDate}, toDate=${toDate} ===`,
+    );
+    const filtered = filterSchedulesByDateRange(
+      cachedSchedules,
+      fromDate,
+      toDate,
+    );
+    Logger.log(`=== フィルタリング結果: ${filtered.length} 件 ===`);
+    return filtered;
   } catch (error) {
     Logger.log(`getAllScheduledDates エラー: ${error.message}`);
     // エラーが発生した場合は、フロントエンドに空の配列を返す
@@ -146,12 +155,27 @@ function filterSchedulesByDateRange(schedules, fromDate, toDate) {
     ? new Date(toDate).getTime()
     : Number.MAX_SAFE_INTEGER;
 
-  return schedules.filter(schedule => {
+  const results = [];
+  for (let i = 0; i < schedules.length; i++) {
+    const schedule = schedules[i];
     const scheduleDate =
       schedule.date instanceof Date ? schedule.date : new Date(schedule.date);
     const dateTime = scheduleDate.getTime();
-    return dateTime >= fromDateTime && dateTime <= toDateTime;
-  });
+    const isInRange = dateTime >= fromDateTime && dateTime <= toDateTime;
+
+    if (i < 3) {
+      // 最初の3件のデバッグ情報
+      Logger.log(
+        `=== schedule[${i}]: date=${schedule.date}, scheduleDate=${scheduleDate}, dateTime=${dateTime}, fromDateTime=${fromDateTime}, toDateTime=${toDateTime}, inRange=${isInRange} ===`,
+      );
+    }
+
+    if (isInRange) {
+      results.push(schedule);
+    }
+  }
+
+  return results;
 }
 
 /**

@@ -349,8 +349,12 @@
       showConfirm({
         title: '制作メモの編集',
         message: buildMemoEditModal(item),
-        confirmText: '保存する',
-        cancelText: 'キャンセル',
+        confirmText:
+          window.stateManager.getState().constants?.messages?.SAVE ||
+          '保存する',
+        cancelText:
+          window.stateManager.getState().constants?.messages?.CANCEL ||
+          'キャンセル',
         confirmColorClass: DesignConfig.colors.primary,
         onConfirm: () => {
           const newMemo = document.getElementById('memo-edit-textarea').value;
@@ -883,7 +887,9 @@
           message:
             'この操作により、現在の会計記録は削除され、新しい内容で再登録されます。よろしいですか？',
           confirmText: '修正する',
-          cancelText: 'キャンセル',
+          cancelText:
+            window.stateManager.getState().constants?.messages?.CANCEL ||
+            'キャンセル',
           onConfirm: () => {
             // 会計状態をリセットして編集フォームを表示
             window.stateManager.dispatch({
@@ -1034,10 +1040,13 @@
 
     /** 教室を選択し、予約枠一覧画面に遷移します */
     selectClassroom: d => {
+      debugLog(`=== selectClassroom呼び出し: d=${JSON.stringify(d)} ===`);
       if (d && d.classroomName) {
+        debugLog(`=== 教室名取得成功: ${d.classroomName} ===`);
         // 常にupdateSlotsAndGoToBookingを呼び出し（内部で鮮度チェックを実行）
         actionHandlers.updateSlotsAndGoToBooking(d.classroomName);
       } else {
+        debugLog(`=== 教室名取得失敗: d=${JSON.stringify(d)} ===`);
         showInfo(
           '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
         );
@@ -1116,6 +1125,13 @@
             );
           }
 
+          debugLog(
+            `=== getBatchData レスポンス: ${JSON.stringify(response)} ===`,
+          );
+          debugLog(
+            `=== レスポンス詳細: success=${response?.success}, hasData=${!!response?.data}, hasSlots=${!!response?.data?.slots} ===`,
+          );
+
           if (response.success && response.data && response.data.slots) {
             debugLog(`空き枠データ更新: ${response.data.slots.length}件`);
             // 空き枠データとバージョン情報を更新
@@ -1131,6 +1147,9 @@
             });
           } else {
             debugLog('空き枠データ取得失敗');
+            debugLog(
+              `=== 失敗の詳細: response=${JSON.stringify(response)} ===`,
+            );
             if (response.message) {
               debugLog('エラーメッセージ: ' + response.message);
             }
@@ -1375,7 +1394,9 @@
       title: 'お会計',
       message: message,
       showCancel: true,
-      cancelText: 'キャンセル',
+      cancelText:
+        window.stateManager.getState().constants?.messages?.CANCEL ||
+        'キャンセル',
       onConfirm: null,
     });
   };

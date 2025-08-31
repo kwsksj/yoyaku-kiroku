@@ -270,7 +270,23 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
           if (timeColumnNames.includes(header) && value instanceof Date) {
             value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
           }
-          scheduleObj[header] = value;
+          // 日付列の処理
+          else if (
+            header === CONSTANTS.HEADERS.SCHEDULE.DATE &&
+            value instanceof Date
+          ) {
+            value = Utilities.formatDate(
+              value,
+              CONSTANTS.TIMEZONE,
+              'yyyy-MM-dd',
+            );
+          }
+
+          // 統合定数のHEADER_MAPPINGSを使用した英語プロパティ名へのマッピング
+          const propertyName =
+            CONSTANTS.HEADER_MAPPINGS.SCHEDULE[header] || header;
+
+          scheduleObj[propertyName] = value;
         });
         return scheduleObj;
       });

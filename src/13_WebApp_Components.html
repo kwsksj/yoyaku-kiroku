@@ -717,6 +717,8 @@
       additionalAttrs += ` data-real-name="${escapeHTML(config.realName)}"`;
     if (config.nickname)
       additionalAttrs += ` data-nickname="${escapeHTML(config.nickname)}"`;
+    if (config.classroomName)
+      additionalAttrs += ` data-classroom-name="${escapeHTML(config.classroomName)}"`;
 
     const button = Components.button({
       action: config.action,

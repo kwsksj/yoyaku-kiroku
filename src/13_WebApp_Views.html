@@ -739,7 +739,7 @@
     // メモ編集ボタン
     buttons.push({
       action: 'editHistoryMemo',
-      text: '編集',
+      text: window.stateManager.getState().constants?.messages?.EDIT || '編集',
       style: 'edit-small',
     });
 

@@ -250,6 +250,7 @@ function getAppInitialData() {
           classroomTypes: CONSTANTS.CLASSROOM_TYPES,
           scheduleStatus: CONSTANTS.SCHEDULE_STATUS,
           scheduleHeaders: CONSTANTS.HEADERS.SCHEDULE,
+          headerMappings: CONSTANTS.HEADER_MAPPINGS,
         },
         cacheVersions: {
           allReservations: allReservationsCache?.version || 0,
@@ -396,11 +397,17 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
 
     // 2. 空席情報が要求されている場合
     if (dataTypes.includes('slots')) {
+      Logger.log('=== getBatchData: slots要求を処理中 ===');
       const availableSlotsResult = getAvailableSlots();
+      Logger.log(
+        `=== getBatchData: getAvailableSlots結果 - success=${availableSlotsResult.success}, dataLength=${availableSlotsResult.data?.length} ===`,
+      );
       if (!availableSlotsResult.success) {
+        Logger.log(`=== getBatchData: slots取得失敗で早期リターン ===`);
         return availableSlotsResult;
       }
       result.data.slots = availableSlotsResult.data;
+      Logger.log(`=== getBatchData: slotsデータ設定完了 ===`);
     }
 
     // 3. 個人予約データが要求されている場合

@@ -21,19 +21,30 @@ function getAvailableSlots() {
       CONSTANTS.TIMEZONE,
       'yyyy-MM-dd',
     );
+    Logger.log(
+      `=== getAvailableSlots: today=${today}, todayString=${todayString} ===`,
+    );
 
     const scheduledDates = getAllScheduledDates(todayString);
+    Logger.log(
+      `=== scheduledDates取得完了: ${scheduledDates ? scheduledDates.length : 0} 件 ===`,
+    );
+
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     const allReservations = reservationsCache
       ? reservationsCache.reservations || []
       : [];
     const headerMap = reservationsCache ? reservationsCache.headerMap : null;
+    Logger.log(
+      `=== 予約キャッシュ取得: 予約数=${allReservations.length}件, ヘッダーマップ=${!!headerMap} ===`,
+    );
 
     // 新しいヘルパー関数を使用してデータ変換を統一
     const convertedReservations = convertReservationsToObjects(
       allReservations,
       headerMap,
     );
+    Logger.log(`=== 予約データ変換完了: ${convertedReservations.length}件 ===`);
 
     const reservationsByDateClassroom = new Map();
     const validReservations = convertedReservations.filter(reservation => {
@@ -326,7 +337,12 @@ function getAvailableSlots() {
       return a.classroom.localeCompare(b.classroom);
     });
 
-    Logger.log(`利用可能な予約枠を ${availableSlots.length} 件計算しました`);
+    Logger.log(
+      `=== 利用可能な予約枠を ${availableSlots.length} 件計算しました ===`,
+    );
+    Logger.log(
+      `=== availableSlots サンプル: ${JSON.stringify(availableSlots.slice(0, 2))} ===`,
+    );
     Logger.log('=== getAvailableSlots 正常終了 ===');
     return createApiResponse(true, availableSlots);
   } catch (error) {

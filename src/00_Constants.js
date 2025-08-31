@@ -163,6 +163,8 @@ const CONSTANTS = {
     SUCCESS: '成功',
     ERROR: 'エラー',
     CANCEL: 'キャンセル',
+    SAVE: '保存する',
+    EDIT: '編集',
   },
 
   // ログアクション定数
@@ -276,6 +278,42 @@ const CONSTANTS = {
       BEGINNER_CAPACITY: '初心者定員',
       STATUS: '状態',
       NOTES: '備考',
+    },
+  },
+
+  // ヘッダーマッピング（日本語ヘッダー名 → 英語プロパティ名）
+  HEADER_MAPPINGS: {
+    SCHEDULE: {
+      日付: 'date',
+      教室: 'classroom',
+      会場: 'venue',
+      教室形式: 'type',
+      '開始時刻（1部）': 'firstStart',
+      '終了時刻（1部）': 'firstEnd',
+      '開始時刻（2部）': 'secondStart',
+      '終了時刻（2部）': 'secondEnd',
+      初回開始時刻: 'beginnerStart',
+      定員: 'totalCapacity',
+      初回定員: 'beginnerCapacity',
+      ステータス: 'status',
+    },
+    RESERVATIONS: {
+      予約ID: 'reservationId',
+      生徒ID: 'studentId',
+      日付: 'date',
+      教室: 'classroom',
+      会場: 'venue',
+      開始時刻: 'startTime',
+      終了時刻: 'endTime',
+      ステータス: 'status',
+      彫刻刀レンタル: 'chiselRental',
+      初講: 'firstLecture',
+      来場手段: 'transportation',
+      送迎: 'pickup',
+      制作メモ: 'workInProgress',
+      order: 'order',
+      メッセージ: 'messageToTeacher',
+      会計詳細: 'accountingDetails',
     },
   },
 
