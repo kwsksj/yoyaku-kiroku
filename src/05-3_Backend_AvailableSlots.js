@@ -361,25 +361,37 @@ function getAvailableSlots() {
 
     // 7. 当日講座の終了2時間前フィルター
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const filteredSlots = availableSlots.filter(slot => {
       const slotDate = new Date(slot.date);
-      
+
       // 当日以外はそのまま表示
-      if (slotDate.getTime() !== today.getTime()) {
+      if (slotDate.getTime() !== todayMidnight.getTime()) {
         return true;
       }
-      
+
       // 当日の場合、終了時刻をチェック
       if (slot.endTime) {
         const [endHour, endMinute] = slot.endTime.split(':').map(Number);
-        const endDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute);
-        const twoHoursBefore = new Date(endDateTime.getTime() - 2 * 60 * 60 * 1000);
-        
+        const endDateTime = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          endHour,
+          endMinute,
+        );
+        const twoHoursBefore = new Date(
+          endDateTime.getTime() - 2 * 60 * 60 * 1000,
+        );
+
         // 現在時刻が終了2時間前を過ぎている場合は非表示
         return now < twoHoursBefore;
       }
-      
+
       return true; // 終了時刻が不明な場合は表示
     });
 

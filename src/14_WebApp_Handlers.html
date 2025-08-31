@@ -73,7 +73,7 @@
         payload: { loginPhone: p },
       });
       if (!p) return showInfo('電話番号を入力してください。');
-      
+
       // 新しい電話番号処理を使用
       showLoading('login');
       google.script.run
@@ -95,7 +95,7 @@
     },
 
     /** 検証済み電話番号でのログイン処理 */
-    processLoginWithValidatedPhone: (normalizedPhone) => {
+    processLoginWithValidatedPhone: normalizedPhone => {
       // 環境分岐: テスト環境の場合はモックデータを使用
       if (isTestEnvironment) {
         // テスト環境ではモックデータを使用
@@ -134,9 +134,9 @@
             debugLog('response.userFound: ' + response.userFound);
             debugLog(
               'response.availableSlots: ' +
-              (response.availableSlots
-                ? response.availableSlots.length + '件'
-                : 'null/undefined'),
+                (response.availableSlots
+                  ? response.availableSlots.length + '件'
+                  : 'null/undefined'),
             );
             debugLog(
               'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
@@ -153,11 +153,11 @@
             );
             debugLog(
               'processInitialData完了 - slots: ' +
-              (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
+                (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
             );
             debugLog(
               'processInitialData完了 - classrooms: ' +
-              JSON.stringify(newAppState.classrooms),
+                JSON.stringify(newAppState.classrooms),
             );
             // NF-04.2: 初回予約判定
             const isFirstTime =
@@ -568,10 +568,10 @@
               response.data.initial.allStudents[tempUser.studentId];
             const finalUser = userFromCache
               ? {
-                ...userFromCache,
-                displayName: tempUser.displayName,
-                phone: tempUser.phone,
-              }
+                  ...userFromCache,
+                  displayName: tempUser.displayName,
+                  phone: tempUser.phone,
+                }
               : tempUser;
 
             // 個人予約データはバックエンドから取得済み
@@ -689,14 +689,17 @@
     /** 予約を確定します */
     confirmBooking: () => {
       // 初回講習の自動判定
-      const isFirstTimeUser = stateManager.getState().currentUser.isFirstTime !== false && 
-                              (!stateManager.getState().history || stateManager.getState().history.length === 0);
+      const isFirstTimeUser =
+        stateManager.getState().currentUser.isFirstTime !== false &&
+        (!stateManager.getState().history ||
+          stateManager.getState().history.length === 0);
 
       const bookingOptions = {
         chiselRental:
           document.getElementById('option-rental')?.checked || false,
         firstLecture:
-          document.getElementById('option-first-lecture')?.checked || isFirstTimeUser, // 自動設定
+          document.getElementById('option-first-lecture')?.checked ||
+          isFirstTimeUser, // 自動設定
         startTime: document.getElementById('res-start-time')?.value || '',
         endTime: document.getElementById('res-end-time')?.value || '',
         workInProgress: document.getElementById('wip-input')?.value || '',
@@ -1153,9 +1156,9 @@
           if (response.data) {
             debugLog(
               'response.data.slots: ' +
-              (response.data.slots
-                ? `${response.data.slots.length}件`
-                : 'なし'),
+                (response.data.slots
+                  ? `${response.data.slots.length}件`
+                  : 'なし'),
             );
           }
 
@@ -1573,8 +1576,8 @@
     const cursorPosition = inputElement.selectionStart;
 
     // 全角数字を半角に変換
-    let formattedValue = originalValue.replace(/[０-９]/g, s => 
-      String.fromCharCode(s.charCodeAt(0) - 65248)
+    let formattedValue = originalValue.replace(/[０-９]/g, s =>
+      String.fromCharCode(s.charCodeAt(0) - 65248),
     );
 
     // 数字以外を削除（ハイフンは一時的に残す）
@@ -1607,7 +1610,10 @@
       inputElement.value = formatted;
 
       // カーソル位置を調整（ハイフンの追加を考慮）
-      const newCursorPosition = Math.min(cursorPosition + (formatted.length - originalValue.length), formatted.length);
+      const newCursorPosition = Math.min(
+        cursorPosition + (formatted.length - originalValue.length),
+        formatted.length,
+      );
       inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
     }
 

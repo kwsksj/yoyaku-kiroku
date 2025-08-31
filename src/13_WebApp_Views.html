@@ -1185,13 +1185,16 @@
      */
     const _renderBookingOptionsSection = () => {
       let optionsHtml = '';
-      
+
       // 初回講習の自動判定（新規予約の場合のみ）
-      const isAutoFirstLecture = !isEdit && 
-                                 currentUser.isFirstTime !== false && 
-                                 (!stateManager.getState().history || stateManager.getState().history.length === 0);
-      
-      const firstLectureChecked = (firstLecture || isAutoFirstLecture) ? 'checked' : '';
+      const isAutoFirstLecture =
+        !isEdit &&
+        currentUser.isFirstTime !== false &&
+        (!stateManager.getState().history ||
+          stateManager.getState().history.length === 0);
+
+      const firstLectureChecked =
+        firstLecture || isAutoFirstLecture ? 'checked' : '';
       const rentalChecked = chiselRental ? 'checked' : '';
 
       if (classroom === C.classrooms.TOKYO) {

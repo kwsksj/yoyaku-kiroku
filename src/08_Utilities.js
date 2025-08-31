@@ -595,12 +595,16 @@ function getHeaderIndex(headerMap, headerName) {
  */
 function normalizePhoneNumber(phoneInput) {
   if (!phoneInput || typeof phoneInput !== 'string') {
-    return { normalized: '', isValid: false, error: '電話番号を入力してください' };
+    return {
+      normalized: '',
+      isValid: false,
+      error: '電話番号を入力してください',
+    };
   }
 
   // 全角数字を半角に変換
-  let normalized = phoneInput.replace(/[０-９]/g, s => 
-    String.fromCharCode(s.charCodeAt(0) - 65248)
+  let normalized = phoneInput.replace(/[０-９]/g, s =>
+    String.fromCharCode(s.charCodeAt(0) - 65248),
   );
 
   // 各種ハイフンを削除
@@ -611,17 +615,29 @@ function normalizePhoneNumber(phoneInput) {
 
   // 数字以外の文字をチェック
   if (!/^\d+$/.test(normalized)) {
-    return { normalized: '', isValid: false, error: '電話番号は数字のみ入力してください' };
+    return {
+      normalized: '',
+      isValid: false,
+      error: '電話番号は数字のみ入力してください',
+    };
   }
 
   // 桁数チェック（日本の携帯・固定電話は11桁または10桁）
   if (normalized.length !== 11 && normalized.length !== 10) {
-    return { normalized: '', isValid: false, error: '電話番号は10桁または11桁で入力してください' };
+    return {
+      normalized: '',
+      isValid: false,
+      error: '電話番号は10桁または11桁で入力してください',
+    };
   }
 
   // 先頭番号チェック（日本の電話番号パターン）
   if (normalized.length === 11 && !normalized.startsWith('0')) {
-    return { normalized: '', isValid: false, error: '11桁の電話番号は0から始まる必要があります' };
+    return {
+      normalized: '',
+      isValid: false,
+      error: '11桁の電話番号は0から始まる必要があります',
+    };
   }
 
   return { normalized, isValid: true };

@@ -211,7 +211,10 @@
       window.HEADERS = constants.headers || {}; // 統合ヘッダー定数をフロントエンドで利用可能に
 
       if (!window.isProduction) {
-        console.log('📋 統一定数グローバル参照を初期化:', Object.keys(constants));
+        console.log(
+          '📋 統一定数グローバル参照を初期化:',
+          Object.keys(constants),
+        );
       }
     }
 
