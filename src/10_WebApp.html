@@ -24,6 +24,7 @@
       rel="stylesheet"
     />
   </head>
+
   <body class="bg-brand-bg min-h-screen">
     <!-- デバッグ情報表示エリア -->
     <div
@@ -81,10 +82,18 @@
     </div>
 
     <!-- GAS環境用のJavaScriptファイル読み込み（テンプレート評価対応） -->
-    <?!= include('11_WebApp_Config'); ?> <?!= include('12_WebApp_StateManager');
-    ?> <?!= include('12_WebApp_Core'); ?> <?!= include('13_WebApp_Components');
-    ?> <?!= include('13_WebApp_Views'); ?> <?!= include('14_WebApp_Handlers');
-    ?>
+    <?!= include('11_WebApp_Config'); ?>
+    <!-- 設定・定数 -->
+    <?!= include('12_WebApp_StateManager'); ?>
+    <!-- 状態管理システム -->
+    <?!= include('12_WebApp_Core'); ?>
+    <!-- 中核機能・ユーティリティ -->
+    <?!= include('13_WebApp_Components'); ?>
+    <!-- UIコンポーネント -->
+    <?!= include('13_WebApp_Views'); ?>
+    <!-- 画面生成関数 -->
+    <?!= include('14_WebApp_Handlers'); ?>
+    <!-- イベント処理・アクション -->
 
     <script>
       // デバッグ情報を画面に表示する関数

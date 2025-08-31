@@ -88,7 +88,7 @@ stateDiagram-v2
     Accounting --> Complete: 会計処理完了
 
     Complete --> Dashboard: 「ホームへ戻る」
-    
+
     state "戻る操作" as Back {
         ClassroomSelection --> Dashboard
         BookingView --> ClassroomSelection
@@ -211,14 +211,14 @@ graph TD
         H["コンポーネント関数<br>(13_WebApp_Components.html)"]
         I["生成されたHTML"]
     end
-    
+
     subgraph "バックエンド"
         J(Backend API<br>google.script.run)
     end
 
     A -- イベント発生 --> B
     B -- 対応する関数を呼び出し --> C
-    
+
     C -- "1a. 状態変更を指示" --> D
     C -- "1b. サーバー処理が<br>必要な場合" --> J
     J -- "2. 処理結果を返す" --> C
@@ -226,13 +226,13 @@ graph TD
 
     D -- "4. 状態(State)を更新" --> E
     E -- "5. 変更を通知" --> F
-    
+
     F -- "6. 最新の状態を読み取り" --> E
     F -- "7. 表示すべきビューを決定" --> G
     G -- "8. UI部品を要求" --> H
     H -- "9. HTML部品を生成" --> G
     G -- "10. 画面全体のHTMLを構築" --> I
-    
+
     I -- "11. DOMを更新し画面表示" --> A
 ```
 

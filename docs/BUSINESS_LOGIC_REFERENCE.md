@@ -104,7 +104,7 @@ class AvailableSlotsService {
 - 予約データの統一アクセスポイント
 - キャッシュとスプレッドシートへの透過的アクセス
 
-### ScheduleMasterRepository  
+### ScheduleMasterRepository
 
 - 日程マスタデータの統一アクセスポイント
 - 定員取得のフォールバック処理を含む
