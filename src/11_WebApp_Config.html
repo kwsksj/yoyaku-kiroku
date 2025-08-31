@@ -163,6 +163,18 @@
   const addCustomStyles = () => {
     const style = document.createElement('style');
     style.textContent = `
+      /* ========== Font Loading Optimization ========== */
+      @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+      
+      /* Prevent FOUT (Flash of Unstyled Text) */
+      .font-loading {
+        visibility: hidden;
+      }
+      
+      .fonts-loaded .font-loading {
+        visibility: visible;
+      }
+      
       /* ========== CSS Variables ========== */
       :root {
         /* Energetic and warm theme for a wood carving school */
@@ -197,6 +209,30 @@
         color: var(--brand-text);
         background-color: var(--brand-bg);
         line-height: 1.6;
+        /* モバイル環境でのGoogleサイト埋め込み対応 */
+        padding-top: env(safe-area-inset-top, 0);
+      }
+      
+      /* Googleサイト埋め込み時のモバイル対応 */
+      @media screen and (max-width: 768px) {
+        body.embedded-in-google-sites {
+          padding-top: 60px; /* Googleサイトのメニューバー分の余白 */
+        }
+        
+        .app-container {
+          min-height: calc(100vh - 60px);
+        }
+      }
+      
+      /* より大きなメニューバーの場合 */
+      @media screen and (max-width: 480px) {
+        body.embedded-in-google-sites {
+          padding-top: 80px;
+        }
+        
+        .app-container {
+          min-height: calc(100vh - 80px);
+        }
       }
 
       /* ========== Mobile-Friendly Components ========== */
@@ -260,12 +296,110 @@
       }
 
       /* ========== Responsive Design ========== */
+      /* ========== Skeleton Loading States ========== */
+      .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+      }
+      @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+      }
+
+      /* ========== Responsive Design ========== */
       @media (max-width: 640px) {
         .modal-content { width: 95%; padding: 1rem; }
         .mobile-button, .mobile-input { font-size: 16px; }
       }
     `;
     document.head.appendChild(style);
+  };
+
+  // =================================================================
+  // Font Loading Detection
+  // =================================================================
+  const setupFontLoadingDetection = () => {
+    if ('fonts' in document) {
+      document.fonts.ready.then(() => {
+        document.documentElement.classList.add('fonts-loaded');
+      });
+    } else {
+      // Fallback for older browsers
+      setTimeout(() => {
+        document.documentElement.classList.add('fonts-loaded');
+      }, 1000);
+    }
+  };
+
+  // =================================================================
+  // Mobile & Embedded Site Detection
+  // =================================================================
+  const setupMobileOptimizations = () => {
+    // Googleサイト埋め込み検知
+    const detectEmbeddedEnvironment = () => {
+      try {
+        // iframe内での実行かどうかを判定
+        const isInIframe = window.self !== window.top;
+        
+        // Googleサイトのreferrerを検知
+        const isFromGoogleSites = document.referrer.includes('sites.google.com');
+        
+        // URLのクエリパラメータでの判定（将来的な拡張用）
+        const urlParams = new URLSearchParams(window.location.search);
+        const embedParam = urlParams.get('embedded');
+        
+        return isInIframe || isFromGoogleSites || embedParam === 'true';
+      } catch (e) {
+        // Cross-origin制限でエラーが発生した場合、埋め込み環境と判定
+        return true;
+      }
+    };
+
+    // モバイル環境の検知
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                     window.innerWidth <= 768;
+
+    // viewport設定の最適化
+    const optimizeViewport = () => {
+      let viewport = document.querySelector('meta[name=viewport]');
+      if (!viewport) {
+        viewport = document.createElement('meta');
+        viewport.name = 'viewport';
+        document.head.appendChild(viewport);
+      }
+      
+      if (isMobile) {
+        viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+      } else {
+        viewport.content = 'width=device-width, initial-scale=1.0';
+      }
+    };
+
+    // 埋め込み環境での調整を適用
+    if (detectEmbeddedEnvironment()) {
+      document.body.classList.add('embedded-in-google-sites');
+      
+      // 必要に応じて追加の調整
+      if (isMobile) {
+        document.body.classList.add('mobile-embedded');
+      }
+    }
+
+    optimizeViewport();
+
+    // タッチ操作の最適化
+    if (isMobile) {
+      document.body.classList.add('touch-device');
+      
+      // iOS Safariでのバウンス効果を無効化
+      document.addEventListener('touchmove', (e) => {
+        if (e.target.closest('.scrollable')) {
+          return; // スクロール可能エリア内では許可
+        }
+        e.preventDefault();
+      }, { passive: false });
+    }
   };
 
   // =================================================================
@@ -368,4 +502,6 @@
   // =================================================================
   addCustomStyles();
   setupTailwindCSS();
+  setupFontLoadingDetection();
+  setupMobileOptimizations();
 </script>

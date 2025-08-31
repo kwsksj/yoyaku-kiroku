@@ -583,3 +583,75 @@ function getHeaderIndex(headerMap, headerName) {
   }
   return headerMap?.[headerName];
 }
+
+// ===================================================================
+// 電話番号処理ユーティリティ関数群
+// ===================================================================
+
+/**
+ * 電話番号を正規化します（全角→半角、ハイフン削除、バリデーション）
+ * @param {string} phoneInput - 入力された電話番号
+ * @returns {{normalized: string, isValid: boolean, error?: string}} 正規化結果
+ */
+function normalizePhoneNumber(phoneInput) {
+  if (!phoneInput || typeof phoneInput !== 'string') {
+    return { normalized: '', isValid: false, error: '電話番号を入力してください' };
+  }
+
+  // 全角数字を半角に変換
+  let normalized = phoneInput.replace(/[０-９]/g, s => 
+    String.fromCharCode(s.charCodeAt(0) - 65248)
+  );
+
+  // 各種ハイフンを削除
+  normalized = normalized.replace(/[‐－\-]/g, '');
+
+  // 空白文字を削除
+  normalized = normalized.replace(/\s/g, '');
+
+  // 数字以外の文字をチェック
+  if (!/^\d+$/.test(normalized)) {
+    return { normalized: '', isValid: false, error: '電話番号は数字のみ入力してください' };
+  }
+
+  // 桁数チェック（日本の携帯・固定電話は11桁または10桁）
+  if (normalized.length !== 11 && normalized.length !== 10) {
+    return { normalized: '', isValid: false, error: '電話番号は10桁または11桁で入力してください' };
+  }
+
+  // 先頭番号チェック（日本の電話番号パターン）
+  if (normalized.length === 11 && !normalized.startsWith('0')) {
+    return { normalized: '', isValid: false, error: '11桁の電話番号は0から始まる必要があります' };
+  }
+
+  return { normalized, isValid: true };
+}
+
+/**
+ * 電話番号を表示用にフォーマットします（3-4-4桁区切り）
+ * @param {string} phoneNumber - 正規化済み電話番号
+ * @returns {string} フォーマット済み電話番号
+ */
+function formatPhoneNumber(phoneNumber) {
+  if (!phoneNumber || typeof phoneNumber !== 'string') {
+    return '';
+  }
+
+  // 正規化処理
+  const result = normalizePhoneNumber(phoneNumber);
+  if (!result.isValid) {
+    return phoneNumber; // 無効な場合は元の値を返す
+  }
+
+  const normalized = result.normalized;
+
+  if (normalized.length === 11) {
+    // 11桁の場合: 090-1234-5678
+    return `${normalized.slice(0, 3)}-${normalized.slice(3, 7)}-${normalized.slice(7)}`;
+  } else if (normalized.length === 10) {
+    // 10桁の場合: 03-1234-5678
+    return `${normalized.slice(0, 2)}-${normalized.slice(2, 6)}-${normalized.slice(6)}`;
+  }
+
+  return normalized;
+}

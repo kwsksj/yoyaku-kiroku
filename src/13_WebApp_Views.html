@@ -268,8 +268,10 @@
 
     if (scheduleData.firstStart && scheduleData.firstEnd) {
       // 日程マスタから時間を取得
-      classStart = parseInt(scheduleData.firstStart.split(':')[0]);
-      classEnd = parseInt(scheduleData.firstEnd.split(':')[0]);
+      const startParts = scheduleData.firstStart.split(':');
+      const endParts = scheduleData.firstEnd.split(':');
+      classStart = parseInt(startParts[0] || '0');
+      classEnd = parseInt(endParts[0] || '0');
     } else if (
       rule &&
       typeof rule['講座開始'] === 'string' &&
@@ -278,8 +280,10 @@
       rule['講座終了'].includes(':')
     ) {
       // フォールバック: 会計マスタから取得
-      classStart = parseInt(rule['講座開始'].split(':')[0]);
-      classEnd = parseInt(rule['講座終了'].split(':')[0]);
+      const startParts = rule['講座開始'].split(':');
+      const endParts = rule['講座終了'].split(':');
+      classStart = parseInt(startParts[0] || '0');
+      classEnd = parseInt(endParts[0] || '0');
     } else {
       return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間が設定されていません。</div>`;
     }
@@ -1117,14 +1121,18 @@
 
         // 日程マスタの時間情報を優先使用
         if (sourceData.firstStart && sourceData.firstEnd) {
-          classStartHour = parseInt(sourceData.firstStart.split(':')[0]);
-          classEndHour = parseInt(sourceData.firstEnd.split(':')[0]);
-          classEndMinutes = parseInt(sourceData.firstEnd.split(':')[1]);
+          const startParts = sourceData.firstStart.split(':');
+          const endParts = sourceData.firstEnd.split(':');
+          classStartHour = parseInt(startParts[0] || '0');
+          classEndHour = parseInt(endParts[0] || '0');
+          classEndMinutes = parseInt(endParts[1] || '0');
         } else {
           // フォールバック: 会計マスタから取得
-          classStartHour = parseInt(tuitionItemRule['講座開始'].split(':')[0]);
-          classEndHour = parseInt(tuitionItemRule['講座終了'].split(':')[0]);
-          classEndMinutes = parseInt(tuitionItemRule['講座終了'].split(':')[1]);
+          const startParts = tuitionItemRule['講座開始'].split(':');
+          const endParts = tuitionItemRule['講座終了'].split(':');
+          classStartHour = parseInt(startParts[0] || '0');
+          classEndHour = parseInt(endParts[0] || '0');
+          classEndMinutes = parseInt(endParts[1] || '0');
         }
 
         // Note: 外部で定義されている `getTimeOptionsHtml` を呼び出していると想定

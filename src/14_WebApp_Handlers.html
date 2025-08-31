@@ -73,11 +73,29 @@
         payload: { loginPhone: p },
       });
       if (!p) return showInfo('電話番号を入力してください。');
-      const n = p
-        .replace(/[‐－-]/g, '')
-        .replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 65248));
+      
+      // 新しい電話番号処理を使用
       showLoading('login');
+      google.script.run
+        .withSuccessHandler(result => {
+          hideLoading();
+          if (result.isValid) {
+            const n = result.normalized;
+            // 後続処理で正規化済み電話番号を使用
+            actionHandlers.processLoginWithValidatedPhone(n);
+          } else {
+            showInfo(result.error || '電話番号の形式が正しくありません。');
+          }
+        })
+        .withFailureHandler(err => {
+          hideLoading();
+          handleServerError(err);
+        })
+        .normalizePhoneNumber(p);
+    },
 
+    /** 検証済み電話番号でのログイン処理 */
+    processLoginWithValidatedPhone: (normalizedPhone) => {
       // 環境分岐: テスト環境の場合はモックデータを使用
       if (isTestEnvironment) {
         // テスト環境ではモックデータを使用
@@ -88,7 +106,7 @@
             payload: {
               currentUser: getEnvironmentData('currentUser', {
                 displayName: 'テストユーザー',
-                phone: n,
+                phone: normalizedPhone,
               }),
               slots: getEnvironmentData('slots', []),
               myBookings: getEnvironmentData('myBookings', []),
@@ -109,35 +127,37 @@
           // ← この response には、サーバーサイドの getLoginData 関数の戻り値が格納されます。
           hideLoading();
 
-          // デバッグ情報を画面に表示
-          debugLog('初期データ取得完了');
-          debugLog('response.success: ' + response.success);
-          debugLog('response.userFound: ' + response.userFound);
-          debugLog(
-            'response.availableSlots: ' +
+          // デバッグ情報を画面に表示（本番環境では無効化）
+          if (!window.isProduction) {
+            debugLog('初期データ取得完了');
+            debugLog('response.success: ' + response.success);
+            debugLog('response.userFound: ' + response.userFound);
+            debugLog(
+              'response.availableSlots: ' +
               (response.availableSlots
                 ? response.availableSlots.length + '件'
                 : 'null/undefined'),
-          );
-          debugLog(
-            'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
-          );
+            );
+            debugLog(
+              'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
+            );
+          }
 
           if (response.success && response.userFound) {
             // ユーザーが見つかった場合：クライアントサイド処理で状態構築
             const newAppState = processInitialData(
               response.data,
-              n,
+              normalizedPhone,
               response.availableSlots,
               response.data.userReservations,
             );
             debugLog(
               'processInitialData完了 - slots: ' +
-                (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
+              (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
             );
             debugLog(
               'processInitialData完了 - classrooms: ' +
-                JSON.stringify(newAppState.classrooms),
+              JSON.stringify(newAppState.classrooms),
             );
             // NF-04.2: 初回予約判定
             const isFirstTime =
@@ -169,12 +189,12 @@
                 },
               });
             } else {
-              // 通常のユーザー未登録の場合はregistrationStep2に遷移
+              // 通常のユーザー未登録の場合はgetUserFormViewに遷移
               window.stateManager.dispatch({
                 type: 'SET_STATE',
                 payload: {
-                  view: 'registrationStep2',
-                  registrationPhone: n,
+                  view: 'getUserFormView',
+                  registrationPhone: normalizedPhone,
                 },
               });
             }
@@ -182,10 +202,12 @@
         })
         .withFailureHandler(err => {
           hideLoading();
-          debugLog('初期データ取得エラー: ' + err.message);
+          if (!window.isProduction) {
+            debugLog('初期データ取得エラー: ' + err.message);
+          }
           handleServerError(err);
         })
-        .getLoginData(n);
+        .getLoginData(normalizedPhone);
     },
 
     /** 新しいログインフロー（メインのloginに統合済み） */
@@ -546,10 +568,10 @@
               response.data.initial.allStudents[tempUser.studentId];
             const finalUser = userFromCache
               ? {
-                  ...userFromCache,
-                  displayName: tempUser.displayName,
-                  phone: tempUser.phone,
-                }
+                ...userFromCache,
+                displayName: tempUser.displayName,
+                phone: tempUser.phone,
+              }
               : tempUser;
 
             // 個人予約データはバックエンドから取得済み
@@ -1040,13 +1062,19 @@
 
     /** 教室を選択し、予約枠一覧画面に遷移します */
     selectClassroom: d => {
-      debugLog(`=== selectClassroom呼び出し: d=${JSON.stringify(d)} ===`);
+      if (!window.isProduction) {
+        debugLog(`=== selectClassroom呼び出し: d=${JSON.stringify(d)} ===`);
+      }
       if (d && d.classroomName) {
-        debugLog(`=== 教室名取得成功: ${d.classroomName} ===`);
+        if (!window.isProduction) {
+          debugLog(`=== 教室名取得成功: ${d.classroomName} ===`);
+        }
         // 常にupdateSlotsAndGoToBookingを呼び出し（内部で鮮度チェックを実行）
         actionHandlers.updateSlotsAndGoToBooking(d.classroomName);
       } else {
-        debugLog(`=== 教室名取得失敗: d=${JSON.stringify(d)} ===`);
+        if (!window.isProduction) {
+          debugLog(`=== 教室名取得失敗: d=${JSON.stringify(d)} ===`);
+        }
         showInfo(
           '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
         );
@@ -1112,16 +1140,18 @@
         .withSuccessHandler(response => {
           hideLoading();
 
-          // デバッグログ追加
-          debugLog('fetchLatestSlotsData レスポンス受信');
-          debugLog('response.success: ' + response.success);
-          debugLog('response.data: ' + (response.data ? 'あり' : 'なし'));
+          // デバッグログ追加（本番環境では無効化）
+          if (!window.isProduction) {
+            debugLog('fetchLatestSlotsData レスポンス受信');
+            debugLog('response.success: ' + response.success);
+            debugLog('response.data: ' + (response.data ? 'あり' : 'なし'));
+          }
           if (response.data) {
             debugLog(
               'response.data.slots: ' +
-                (response.data.slots
-                  ? `${response.data.slots.length}件`
-                  : 'なし'),
+              (response.data.slots
+                ? `${response.data.slots.length}件`
+                : 'なし'),
             );
           }
 
@@ -1523,6 +1553,69 @@
   };
 
   // =================================================================
+  // --- Phone Number Formatting Helper Functions ---
+  // -----------------------------------------------------------------
+  // 電話番号入力のリアルタイム整形処理
+  // =================================================================
+
+  /**
+   * 電話番号入力フィールドのリアルタイム整形処理
+   * @param {HTMLInputElement} inputElement - 電話番号入力フィールド
+   */
+  function handlePhoneInputFormatting(inputElement) {
+    if (!inputElement) return;
+
+    const originalValue = inputElement.value;
+    const cursorPosition = inputElement.selectionStart;
+
+    // 全角数字を半角に変換
+    let formattedValue = originalValue.replace(/[０-９]/g, s => 
+      String.fromCharCode(s.charCodeAt(0) - 65248)
+    );
+
+    // 数字以外を削除（ハイフンは一時的に残す）
+    const digitsOnly = formattedValue.replace(/[^\d]/g, '');
+
+    // フォーマット適用
+    let formatted = '';
+    if (digitsOnly.length > 0) {
+      if (digitsOnly.length <= 3) {
+        formatted = digitsOnly;
+      } else if (digitsOnly.length <= 7) {
+        formatted = `${digitsOnly.slice(0, 3)}-${digitsOnly.slice(3)}`;
+      } else if (digitsOnly.length <= 11) {
+        if (digitsOnly.length === 10) {
+          // 10桁の場合: 03-1234-5678
+          formatted = `${digitsOnly.slice(0, 2)}-${digitsOnly.slice(2, 6)}-${digitsOnly.slice(6)}`;
+        } else {
+          // 11桁の場合: 090-1234-5678
+          formatted = `${digitsOnly.slice(0, 3)}-${digitsOnly.slice(3, 7)}-${digitsOnly.slice(7)}`;
+        }
+      } else {
+        // 11桁を超える場合は11桁までに制限
+        const truncated = digitsOnly.slice(0, 11);
+        formatted = `${truncated.slice(0, 3)}-${truncated.slice(3, 7)}-${truncated.slice(7)}`;
+      }
+    }
+
+    // 値が変更された場合のみ更新
+    if (formatted !== originalValue) {
+      inputElement.value = formatted;
+
+      // カーソル位置を調整（ハイフンの追加を考慮）
+      const newCursorPosition = Math.min(cursorPosition + (formatted.length - originalValue.length), formatted.length);
+      inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
+    }
+
+    // 対応する表示エリアを更新
+    const displayId = inputElement.id + '-display';
+    const displayElement = document.getElementById(displayId);
+    if (displayElement) {
+      displayElement.textContent = formatted || '電話番号を入力してください';
+    }
+  }
+
+  // =================================================================
   // --- Main Application Logic ---
   // -----------------------------------------------------------------
   // アプリケーションの起動、サーバーとの通信、状態管理、画面描画など、
@@ -1761,6 +1854,11 @@
 
     // 会計画面でのリアルタイム入力検知（主に input[type=text] など）
     app.addEventListener('input', e => {
+      // 電話番号入力フィールドのリアルタイム整形
+      if (e.target.matches('#phone, #reg-phone, #edit-phone')) {
+        handlePhoneInputFormatting(e.target);
+      }
+
       const accountingForm = e.target.closest('#accounting-form');
       if (stateManager.getState().view === 'accounting' && accountingForm) {
         handleAccountingFormChange();

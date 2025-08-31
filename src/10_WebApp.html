@@ -96,8 +96,15 @@
     <!-- イベント処理・アクション -->
 
     <script>
-      // デバッグ情報を画面に表示する関数
+      // 環境判定：本番環境かテスト環境かを確認
+      const isProduction = window.location.href.includes('/exec?') || 
+                           window.location.href.includes('/macros/s/') && 
+                           !window.location.href.includes('/dev');
+
+      // デバッグ情報を画面に表示する関数（本番環境では無効化）
       function debugLog(message) {
+        if (isProduction) return; // 本番環境では何も表示しない
+        
         const debugContent = document.getElementById('debug-content');
         if (debugContent) {
           debugContent.innerHTML +=

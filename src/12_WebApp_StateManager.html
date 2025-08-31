@@ -99,11 +99,13 @@
         return;
       }
 
-      console.log(
-        '🎯 Action dispatched:',
-        action.type,
-        action.payload ? Object.keys(action.payload) : 'no payload',
-      );
+      if (!window.isProduction) {
+        console.log(
+          '🎯 Action dispatched:',
+          action.type,
+          action.payload ? Object.keys(action.payload) : 'no payload',
+        );
+      }
 
       // アクションに基づいて状態更新
       let newState = {};
@@ -165,7 +167,9 @@
         // subscriberに変更を通知
         this._notifySubscribers(this.state, oldState);
 
-        console.log('✅ 状態更新完了:', Object.keys(newState));
+        if (!window.isProduction) {
+          console.log('✅ 状態更新完了:', Object.keys(newState));
+        }
       } catch (error) {
         console.error('❌ 状態更新エラー:', error);
       } finally {
@@ -184,13 +188,17 @@
       // 必要な配列データを状態に設定
       if (constants.classrooms && !this.state.classrooms.length) {
         this.state.classrooms = Object.values(constants.classrooms);
-        console.log('📋 教室一覧を状態に設定:', this.state.classrooms);
+        if (!window.isProduction) {
+          console.log('📋 教室一覧を状態に設定:', this.state.classrooms);
+        }
       }
 
       // UI設定の初期化
       if (!this.state.recordsToShow && constants.ui?.HISTORY_INITIAL_RECORDS) {
         this.state.recordsToShow = constants.ui.HISTORY_INITIAL_RECORDS;
-        console.log('📋 履歴表示件数を初期化:', this.state.recordsToShow);
+        if (!window.isProduction) {
+          console.log('📋 履歴表示件数を初期化:', this.state.recordsToShow);
+        }
       }
 
       // グローバル短縮参照を設定
@@ -202,7 +210,9 @@
       window.PAYMENT = constants.paymentDisplay || {};
       window.HEADERS = constants.headers || {}; // 統合ヘッダー定数をフロントエンドで利用可能に
 
-      console.log('📋 統一定数グローバル参照を初期化:', Object.keys(constants));
+      if (!window.isProduction) {
+        console.log('📋 統一定数グローバル参照を初期化:', Object.keys(constants));
+      }
     }
 
     /**
