@@ -28,7 +28,18 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
   );
 
   // 日程マスタから定員を取得。存在しない場合はデフォルト値8をフォールバックとして使用。
-  const capacity = schedule ? schedule.totalCapacity : 8;
+  let capacity = schedule ? schedule.totalCapacity : null;
+  if (capacity && typeof capacity === 'string') {
+    capacity = parseInt(capacity, 10);
+    if (isNaN(capacity)) capacity = null;
+  }
+  capacity = capacity || CLASSROOM_CAPACITIES[classroom] || 8;
+
+  Logger.log(
+    `定員チェック - ${date} ${classroom}: 日程マスタ定員=${
+      schedule ? schedule.totalCapacity : 'なし'
+    }→最終定員=${capacity}`,
+  );
 
   // 新しいヘルパー関数を使用して特定日・教室の確定予約を取得
   const reservationsOnDate = getCachedReservationsFor(
@@ -1063,6 +1074,21 @@ function getScheduleInfoForDate(date, classroom) {
 
     if (!schedule) return null;
 
+    // 定員値の数値変換処理
+    let totalCapacity = schedule.totalCapacity;
+    if (totalCapacity && typeof totalCapacity === 'string') {
+      totalCapacity = parseInt(totalCapacity, 10);
+      if (isNaN(totalCapacity)) totalCapacity = null;
+    }
+    totalCapacity = totalCapacity || CLASSROOM_CAPACITIES[classroom] || 8;
+
+    let beginnerCapacity = schedule.beginnerCapacity;
+    if (beginnerCapacity && typeof beginnerCapacity === 'string') {
+      beginnerCapacity = parseInt(beginnerCapacity, 10);
+      if (isNaN(beginnerCapacity)) beginnerCapacity = null;
+    }
+    beginnerCapacity = beginnerCapacity || INTRO_LECTURE_CAPACITY;
+
     return {
       type: schedule.type,
       firstStart: schedule.firstStart,
@@ -1070,8 +1096,8 @@ function getScheduleInfoForDate(date, classroom) {
       secondStart: schedule.secondStart,
       secondEnd: schedule.secondEnd,
       beginnerStart: schedule.beginnerStart,
-      totalCapacity: schedule.totalCapacity,
-      beginnerCapacity: schedule.beginnerCapacity,
+      totalCapacity: totalCapacity,
+      beginnerCapacity: beginnerCapacity,
       status: schedule.status,
       notes: schedule.notes,
     };

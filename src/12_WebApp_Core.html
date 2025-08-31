@@ -72,17 +72,33 @@
     const currentState = state || window.stateManager?.getState();
     if (!currentState) return null;
 
-    // 1. まず「よやく」(myBookings)から検索
+    // キャンセル済みステータスの判定用関数
+    const isCancelledStatus = status => {
+      return (
+        status === (window.STATUS?.CANCELED || '取消') ||
+        status === 'キャンセル' ||
+        status === 'キャンセル済み' ||
+        status === '取消'
+      );
+    };
+
+    // 1. まず「よやく」(myBookings)から検索（キャンセル済みを除外）
     const bookingResult = currentState.myBookings?.find(
-      item => item.date === date && item.classroom === classroom,
+      item =>
+        item.date === date &&
+        item.classroom === classroom &&
+        !isCancelledStatus(item.status),
     );
     if (bookingResult) {
       return { ...bookingResult, type: 'booking' };
     }
 
-    // 2. 次に「きろく」(history)から検索
+    // 2. 次に「きろく」(history)から検索（キャンセル済みを除外）
     const historyResult = currentState.history?.find(
-      item => item.date === date && item.classroom === classroom,
+      item =>
+        item.date === date &&
+        item.classroom === classroom &&
+        !isCancelledStatus(item.status),
     );
     if (historyResult) {
       return { ...historyResult, type: 'record' };

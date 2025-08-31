@@ -249,8 +249,8 @@ function getAppInitialData() {
           colors: CONSTANTS.COLORS,
           classroomTypes: CONSTANTS.CLASSROOM_TYPES,
           scheduleStatus: CONSTANTS.SCHEDULE_STATUS,
-          scheduleHeaders: CONSTANTS.HEADERS.SCHEDULE,
-          headerMappings: CONSTANTS.HEADER_MAPPINGS,
+          // scheduleHeaders: CONSTANTS.HEADERS.SCHEDULE, // headers で包含済み
+          // headerMappings: CONSTANTS.HEADER_MAPPINGS, // 削除済み
         },
         cacheVersions: {
           allReservations: allReservationsCache?.version || 0,

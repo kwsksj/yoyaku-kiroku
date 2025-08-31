@@ -200,7 +200,7 @@
       window.MESSAGES = constants.messages || {};
       window.BANK = constants.bankInfo || {};
       window.PAYMENT = constants.paymentDisplay || {};
-      window.HEADER_MAPPINGS = constants.headerMappings || {};
+      window.HEADERS = constants.headers || {}; // 統合ヘッダー定数をフロントエンドで利用可能に
 
       console.log('📋 統一定数グローバル参照を初期化:', Object.keys(constants));
     }
@@ -415,45 +415,36 @@
     }
 
     /**
-     * ヘッダーマッピングを使用してデータオブジェクトのプロパティを正規化する
-     * @param {Object} dataObj - 変換対象のデータオブジェクト
-     * @param {string} mappingType - マッピングタイプ ('SCHEDULE', 'RESERVATIONS', etc.)
-     * @returns {Object} プロパティが正規化されたオブジェクト
+     * データの整合性チェック（デバッグ用）
+     * @param {Object} dataObj - チェック対象のオブジェクト
+     * @param {string} dataType - データタイプ ('reservations', 'schedule' など)
      */
-    mapDataProperties(dataObj, mappingType) {
-      if (!window.HEADER_MAPPINGS || !window.HEADER_MAPPINGS[mappingType]) {
-        console.warn(`ヘッダーマッピング '${mappingType}' が見つかりません`);
-        return dataObj;
+    validateDataStructure(dataObj, dataType = 'reservations') {
+      if (!window.HEADERS || !dataObj) return true;
+
+      const expectedHeaders =
+        dataType === 'schedule'
+          ? window.HEADERS.SCHEDULE
+          : window.HEADERS.RESERVATIONS;
+
+      if (!expectedHeaders) return true;
+
+      // 重要なプロパティの存在チェック
+      const requiredProperties = ['date', 'classroom'];
+      const missingProperties = requiredProperties.filter(
+        prop => !dataObj[prop],
+      );
+
+      if (missingProperties.length > 0) {
+        console.warn(`データ整合性チェック: 必須プロパティが不足`, {
+          dataType,
+          missing: missingProperties,
+          data: dataObj,
+        });
+        return false;
       }
 
-      const mapping = window.HEADER_MAPPINGS[mappingType];
-      const mappedObj = {};
-
-      // 既存のプロパティをそのままコピー
-      Object.assign(mappedObj, dataObj);
-
-      // マッピングに基づいて追加のプロパティを設定
-      Object.entries(mapping).forEach(([japaneseKey, englishKey]) => {
-        if (dataObj.hasOwnProperty(japaneseKey)) {
-          mappedObj[englishKey] = dataObj[japaneseKey];
-        }
-      });
-
-      return mappedObj;
-    }
-
-    /**
-     * 配列データに対してプロパティマッピングを適用する
-     * @param {Array<Object>} dataArray - 変換対象の配列
-     * @param {string} mappingType - マッピングタイプ
-     * @returns {Array<Object>} プロパティが正規化された配列
-     */
-    mapArrayProperties(dataArray, mappingType) {
-      if (!Array.isArray(dataArray)) {
-        return dataArray;
-      }
-
-      return dataArray.map(item => this.mapDataProperties(item, mappingType));
+      return true;
     }
   }
 

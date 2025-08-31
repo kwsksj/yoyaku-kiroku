@@ -502,7 +502,7 @@ function generateScheduleDataWithDefaults(uniqueCombinations) {
  */
 function getClassroomDefaults(classroom) {
   // 教室名に基づいて設定を決定
-  if (classroom.includes('東京') || classroom === TOKYO_CLASSROOM_NAME) {
+  if (classroom.includes('東京') || classroom === CONSTANTS.CLASSROOMS.TOKYO) {
     return {
       venue: '', // ${CONSTANTS.CLASSROOMS.TOKYO}は予約データから取得するため空欄
       classroomType: CLASSROOM_TYPE_SESSION_BASED,
@@ -516,7 +516,7 @@ function getClassroomDefaults(classroom) {
     };
   } else if (
     classroom.includes('つくば') ||
-    classroom === TSUKUBA_CLASSROOM_NAME
+    classroom === CONSTANTS.CLASSROOMS.TSUKUBA
   ) {
     return {
       venue: '', // ${CONSTANTS.CLASSROOMS.TSUKUBA}は空欄
@@ -531,7 +531,7 @@ function getClassroomDefaults(classroom) {
     };
   } else if (
     classroom.includes('沼津') ||
-    classroom === NUMAZU_CLASSROOM_NAME
+    classroom === CONSTANTS.CLASSROOMS.NUMAZU
   ) {
     return {
       venue: '', // ${CONSTANTS.CLASSROOMS.NUMAZU}は空欄

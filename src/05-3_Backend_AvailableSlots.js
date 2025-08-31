@@ -174,10 +174,39 @@ function getAvailableSlots() {
       });
 
       // 6. この日程の予約枠データを生成
-      const totalCapacity =
-        schedule.totalCapacity || CLASSROOM_CAPACITIES[schedule.classroom] || 8;
-      const beginnerCapacity =
-        schedule.beginnerCapacity || INTRO_LECTURE_CAPACITY;
+      // 日程マスタの定員値を数値として取得（文字列の場合は変換）
+      let totalCapacity = schedule.totalCapacity;
+      let totalCapacitySource = '日程マスタ';
+      if (totalCapacity && typeof totalCapacity === 'string') {
+        totalCapacity = parseInt(totalCapacity, 10);
+        if (isNaN(totalCapacity)) totalCapacity = null;
+      }
+
+      // 定員のフォールバック処理（明示的な優先順位）
+      if (!totalCapacity) {
+        totalCapacity = CLASSROOM_CAPACITIES[schedule.classroom];
+        totalCapacitySource = 'クラス固定定員';
+        if (!totalCapacity) {
+          totalCapacity = 8;
+          totalCapacitySource = 'システムデフォルト';
+        }
+      }
+
+      let beginnerCapacity = schedule.beginnerCapacity;
+      let beginnerCapacitySource = '日程マスタ';
+      if (beginnerCapacity && typeof beginnerCapacity === 'string') {
+        beginnerCapacity = parseInt(beginnerCapacity, 10);
+        if (isNaN(beginnerCapacity)) beginnerCapacity = null;
+      }
+
+      if (!beginnerCapacity) {
+        beginnerCapacity = INTRO_LECTURE_CAPACITY;
+        beginnerCapacitySource = 'システムデフォルト';
+      }
+
+      Logger.log(
+        `定員設定 - ${schedule.date} ${schedule.classroom}: 全体定員=${totalCapacity}(${totalCapacitySource}), 初心者定員=${beginnerCapacity}(${beginnerCapacitySource})`,
+      );
 
       if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
         // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 午前・午後セッション

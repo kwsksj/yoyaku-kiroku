@@ -281,41 +281,8 @@ const CONSTANTS = {
     },
   },
 
-  // ヘッダーマッピング（日本語ヘッダー名 → 英語プロパティ名）
-  HEADER_MAPPINGS: {
-    SCHEDULE: {
-      日付: 'date',
-      教室: 'classroom',
-      会場: 'venue',
-      教室形式: 'type',
-      '開始時刻（1部）': 'firstStart',
-      '終了時刻（1部）': 'firstEnd',
-      '開始時刻（2部）': 'secondStart',
-      '終了時刻（2部）': 'secondEnd',
-      初回開始時刻: 'beginnerStart',
-      定員: 'totalCapacity',
-      初回定員: 'beginnerCapacity',
-      ステータス: 'status',
-    },
-    RESERVATIONS: {
-      予約ID: 'reservationId',
-      生徒ID: 'studentId',
-      日付: 'date',
-      教室: 'classroom',
-      会場: 'venue',
-      開始時刻: 'startTime',
-      終了時刻: 'endTime',
-      ステータス: 'status',
-      彫刻刀レンタル: 'chiselRental',
-      初講: 'firstLecture',
-      来場手段: 'transportation',
-      送迎: 'pickup',
-      制作メモ: 'workInProgress',
-      order: 'order',
-      メッセージ: 'messageToTeacher',
-      会計詳細: 'accountingDetails',
-    },
-  },
+  // 注意: HEADER_MAPPINGS は過度に複雑だったため削除
+  // 必要な箇所では直接的なswitch文で対応
 
   // その他のシステム定数
   SYSTEM: {
@@ -334,10 +301,8 @@ const CONSTANTS = {
 // 【利点】: 一箇所変更で全体反映、段階的移行が可能
 // =================================================================
 
-// 教室名の後方互換性
-const TOKYO_CLASSROOM_NAME = CONSTANTS.CLASSROOMS.TOKYO;
-const NUMAZU_CLASSROOM_NAME = CONSTANTS.CLASSROOMS.NUMAZU;
-const TSUKUBA_CLASSROOM_NAME = CONSTANTS.CLASSROOMS.TSUKUBA;
+// 注意: これらの後方互換性定数は段階的に削除予定
+// 新規コードでは CONSTANTS.CLASSROOMS.* を直接使用してください
 const CLASSROOM_SHEET_NAMES = [
   CONSTANTS.CLASSROOMS.TOKYO,
   CONSTANTS.CLASSROOMS.NUMAZU,
@@ -351,11 +316,11 @@ const TSUKUBA_MORNING_SESSION_END_HOUR =
   CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR;
 const LOCK_WAIT_TIME_MS = CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS;
 
-// シート名の後方互換性
+// シート名の後方互換性（使用頻度が高いもののみ保持）
 const ROSTER_SHEET_NAME = CONSTANTS.SHEET_NAMES.ROSTER;
 const ACCOUNTING_SHEET_NAME = CONSTANTS.SHEET_NAMES.ACCOUNTING;
-const ACCOUNTING_MASTER_SHEET_NAME = CONSTANTS.SHEET_NAMES.ACCOUNTING; // 後方互換性
 const LOG_SHEET_NAME = CONSTANTS.SHEET_NAMES.LOG;
+// 注意: ACCOUNTING_MASTER_SHEET_NAME は重複のため削除
 
 // ヘッダー名の後方互換性（全ヘッダー対応）
 const HEADER_RESERVATION_ID = CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID;

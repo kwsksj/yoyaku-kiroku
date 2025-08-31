@@ -282,9 +282,50 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
             );
           }
 
-          // 統合定数のHEADER_MAPPINGSを使用した英語プロパティ名へのマッピング
-          const propertyName =
-            CONSTANTS.HEADER_MAPPINGS.SCHEDULE[header] || header;
+          // 日本語ヘッダーを英語プロパティ名に変換
+          let propertyName = header;
+          switch (header) {
+            case CONSTANTS.HEADERS.SCHEDULE.DATE:
+              propertyName = 'date';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.CLASSROOM:
+              propertyName = 'classroom';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.VENUE:
+              propertyName = 'venue';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.TYPE:
+              propertyName = 'classroomType';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.FIRST_START:
+              propertyName = 'firstStart';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.FIRST_END:
+              propertyName = 'firstEnd';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.SECOND_START:
+              propertyName = 'secondStart';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.SECOND_END:
+              propertyName = 'secondEnd';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START:
+              propertyName = 'beginnerStart';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY:
+              propertyName = 'totalCapacity';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY:
+              propertyName = 'beginnerCapacity';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.STATUS:
+              propertyName = 'status';
+              break;
+            case CONSTANTS.HEADERS.SCHEDULE.NOTES:
+              propertyName = 'notes';
+              break;
+            // その他はそのまま
+          }
 
           scheduleObj[propertyName] = value;
         });

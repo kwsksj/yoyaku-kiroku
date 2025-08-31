@@ -262,17 +262,27 @@
    * @returns {string} HTML文字列
    */
   const getTimeBasedTuitionHtml = (rule, initial) => {
-    if (
-      !rule ||
-      typeof rule['講座開始'] !== 'string' ||
-      typeof rule['講座終了'] !== 'string' ||
-      !rule['講座開始'].includes(':') ||
-      !rule['講座終了'].includes(':')
+    // 日程マスタの時間情報を使用（引数から取得）
+    const scheduleData = initial.scheduleData || {};
+    let classStart, classEnd;
+
+    if (scheduleData.firstStart && scheduleData.firstEnd) {
+      // 日程マスタから時間を取得
+      classStart = parseInt(scheduleData.firstStart.split(':')[0]);
+      classEnd = parseInt(scheduleData.firstEnd.split(':')[0]);
+    } else if (
+      rule &&
+      typeof rule['講座開始'] === 'string' &&
+      typeof rule['講座終了'] === 'string' &&
+      rule['講座開始'].includes(':') &&
+      rule['講座終了'].includes(':')
     ) {
-      return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間がマスタに正しく設定されていません。</div>`;
+      // フォールバック: 会計マスタから取得
+      classStart = parseInt(rule['講座開始'].split(':')[0]);
+      classEnd = parseInt(rule['講座終了'].split(':')[0]);
+    } else {
+      return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間が設定されていません。</div>`;
     }
-    const classStart = parseInt(rule['講座開始'].split(':')[0]);
-    const classEnd = parseInt(rule['講座終了'].split(':')[0]);
     const endBuffer = 3;
 
     const breakOptions = [...Array(5).keys()]
@@ -934,6 +944,16 @@
                 sl.classroom,
               );
 
+              console.log(
+                `🔍 Slot検索結果 - ${sl.date} ${sl.classroom}:`,
+                reservationData
+                  ? {
+                      status: reservationData.status,
+                      type: reservationData.type,
+                    }
+                  : 'なし',
+              );
+
               if (
                 reservationData &&
                 reservationData.status === STATUS.COMPLETED
@@ -1093,15 +1113,19 @@
     const _renderTimeOptionsSection = () => {
       // 30分単位の教室の場合
       if (tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN) {
-        const classStartHour = parseInt(
-          tuitionItemRule['講座開始'].split(':')[0],
-        );
-        const classEndHour = parseInt(
-          tuitionItemRule['講座終了'].split(':')[0],
-        );
-        const classEndMinutes = parseInt(
-          tuitionItemRule['講座終了'].split(':')[1],
-        );
+        let classStartHour, classEndHour, classEndMinutes;
+
+        // 日程マスタの時間情報を優先使用
+        if (sourceData.firstStart && sourceData.firstEnd) {
+          classStartHour = parseInt(sourceData.firstStart.split(':')[0]);
+          classEndHour = parseInt(sourceData.firstEnd.split(':')[0]);
+          classEndMinutes = parseInt(sourceData.firstEnd.split(':')[1]);
+        } else {
+          // フォールバック: 会計マスタから取得
+          classStartHour = parseInt(tuitionItemRule['講座開始'].split(':')[0]);
+          classEndHour = parseInt(tuitionItemRule['講座終了'].split(':')[0]);
+          classEndMinutes = parseInt(tuitionItemRule['講座終了'].split(':')[1]);
+        }
 
         // Note: 外部で定義されている `getTimeOptionsHtml` を呼び出していると想定
         const startTimeOptions = getTimeOptionsHtml(
@@ -1271,6 +1295,18 @@
     const venueDisplay = venue ? ` ${venue}` : '';
 
     const _renderOpeningHoursHtml = () => {
+      // 日程マスタの時間情報を優先使用
+      if (sourceData.firstStart && sourceData.firstEnd) {
+        if (sourceData.secondStart && sourceData.secondEnd) {
+          // 2部制の場合
+          return `${sourceData.firstStart} ~ ${sourceData.firstEnd} ,  ${sourceData.secondStart} ~ ${sourceData.secondEnd}`;
+        } else {
+          // 1部制の場合
+          return `${sourceData.firstStart} ~ ${sourceData.firstEnd}`;
+        }
+      }
+
+      // フォールバック: 従来の会計マスタから取得
       if (!tuitionItemRule) {
         return '<span class="text-ui-error-text">開講時間未設定</span>';
       }
