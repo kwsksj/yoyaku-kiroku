@@ -359,21 +359,45 @@ function getAvailableSlots() {
       }
     });
 
-    // 7. 日付・教室順でソート
-    availableSlots.sort((a, b) => {
+    // 7. 当日講座の終了2時間前フィルター
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const filteredSlots = availableSlots.filter(slot => {
+      const slotDate = new Date(slot.date);
+      
+      // 当日以外はそのまま表示
+      if (slotDate.getTime() !== today.getTime()) {
+        return true;
+      }
+      
+      // 当日の場合、終了時刻をチェック
+      if (slot.endTime) {
+        const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+        const endDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute);
+        const twoHoursBefore = new Date(endDateTime.getTime() - 2 * 60 * 60 * 1000);
+        
+        // 現在時刻が終了2時間前を過ぎている場合は非表示
+        return now < twoHoursBefore;
+      }
+      
+      return true; // 終了時刻が不明な場合は表示
+    });
+
+    // 8. 日付・教室順でソート
+    filteredSlots.sort((a, b) => {
       const dateComp = new Date(a.date) - new Date(b.date);
       if (dateComp !== 0) return dateComp;
       return a.classroom.localeCompare(b.classroom);
     });
 
     Logger.log(
-      `=== 利用可能な予約枠を ${availableSlots.length} 件計算しました ===`,
+      `=== 利用可能な予約枠を ${filteredSlots.length} 件計算しました（フィルター後） ===`,
     );
     Logger.log(
-      `=== availableSlots サンプル: ${JSON.stringify(availableSlots.slice(0, 2))} ===`,
+      `=== filteredSlots サンプル: ${JSON.stringify(filteredSlots.slice(0, 2))} ===`,
     );
     Logger.log('=== getAvailableSlots 正常終了 ===');
-    return createApiResponse(true, availableSlots);
+    return createApiResponse(true, filteredSlots);
   } catch (error) {
     Logger.log(`getAvailableSlots エラー: ${error.message}\n${error.stack}`);
     return BackendErrorHandler.handle(error, 'getAvailableSlots', { data: [] });

@@ -676,6 +676,30 @@
   };
 
   // =================================================================
+  // --- Specialized Components ---
+  // -----------------------------------------------------------------
+  // 特定用途に特化したコンポーネント
+  // =================================================================
+
+  /**
+   * 右上固定配置の戻るボタンを生成します
+   * @param {string} action - アクション名（デフォルト: 'smartGoBack'）
+   * @param {string} text - ボタンテキスト（デフォルト: '戻る'）
+   * @returns {string} HTML文字列
+   */
+  Components.createBackButton = (action = 'smartGoBack', text = '戻る') => {
+    return `
+      <div class="fixed top-4 right-4 z-30">
+        <button 
+          data-action="${escapeHTML(action)}" 
+          class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
+        >
+          ${escapeHTML(text)}
+        </button>
+      </div>`;
+  };
+
+  // =================================================================
   // --- レガシー互換性サポート ---
   // -----------------------------------------------------------------
   // 既存のコード互換性を維持するための旧式コンポーネント

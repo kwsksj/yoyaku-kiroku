@@ -688,11 +688,15 @@
 
     /** 予約を確定します */
     confirmBooking: () => {
+      // 初回講習の自動判定
+      const isFirstTimeUser = stateManager.getState().currentUser.isFirstTime !== false && 
+                              (!stateManager.getState().history || stateManager.getState().history.length === 0);
+
       const bookingOptions = {
         chiselRental:
           document.getElementById('option-rental')?.checked || false,
         firstLecture:
-          document.getElementById('option-first-lecture')?.checked || false,
+          document.getElementById('option-first-lecture')?.checked || isFirstTimeUser, // 自動設定
         startTime: document.getElementById('res-start-time')?.value || '',
         endTime: document.getElementById('res-end-time')?.value || '',
         workInProgress: document.getElementById('wip-input')?.value || '',

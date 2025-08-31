@@ -201,8 +201,8 @@
         statusBadges += `<p class="font-bold text-action-attention-bg text-lg">初回講習</p>`;
       }
       // waitlisted ステータスの場合のみ「キャンセル待ち」バッジ表示
-      if (item.status === STATUS.WAITLISTED) {
-        statusBadges += `<p class="font-bold ${DesignConfig.cards.state.waitlist.text} text-lg">キャンセル待ち</p>`;
+      if (item.status === STATUS.WAITLISTED || item.isWaiting) {
+        statusBadges += `<p class="font-bold ${DesignConfig.cards.state.waitlist.text} text-lg bg-state-waitlist-bg px-2 py-1 rounded-md border border-state-waitlist-border">⏳ キャンセル待ち</p>`;
       }
       // キャンセル済みは表示の必要なし（myBookingsから除外済み）
     }
@@ -238,7 +238,7 @@
             <p class="text-base text-brand-text whitespace-pre-wrap break-words w-full leading-relaxed">${item.workInProgress != null && item.workInProgress !== '' ? item.workInProgress : `<span class="text-brand-muted">制作メモ</span>`}</p>
           </div>
         </div>
-        ${buttonsHtml ? `<div class="flex justify-end items-center space-x-2 flex-shrink-0">${buttonsHtml}</div>` : ''}
+        ${buttonsHtml ? `<div class="flex flex-wrap justify-center sm:justify-end items-center gap-2 flex-shrink-0 mt-3">${buttonsHtml}</div>` : ''}
       </div>
     `;
   };
@@ -864,13 +864,11 @@
     }
 
     return `
+        ${Components.createBackButton('smartGoBack', '戻る')}
         <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
         <p class="text-brand-subtle text-center mb-6">教室 を おえらびください</p>
         <div class="max-w-md mx-auto space-y-3">
             ${classroomButtonsHtml}
-        </div>
-        <div class="mt-6 max-w-md mx-auto">
-            ${Components.createButton({ text: '戻る', action: 'smartGoBack', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
         </div>
     `;
   };
@@ -1187,7 +1185,13 @@
      */
     const _renderBookingOptionsSection = () => {
       let optionsHtml = '';
-      const firstLectureChecked = firstLecture ? 'checked' : '';
+      
+      // 初回講習の自動判定（新規予約の場合のみ）
+      const isAutoFirstLecture = !isEdit && 
+                                 currentUser.isFirstTime !== false && 
+                                 (!stateManager.getState().history || stateManager.getState().history.length === 0);
+      
+      const firstLectureChecked = (firstLecture || isAutoFirstLecture) ? 'checked' : '';
       const rentalChecked = chiselRental ? 'checked' : '';
 
       if (classroom === C.classrooms.TOKYO) {

@@ -219,6 +219,10 @@
           padding-top: 60px; /* Googleサイトのメニューバー分の余白 */
         }
         
+        body.embedded-in-google-sites .fixed.top-4 {
+          top: 70px; /* 戻るボタン位置を調整 */
+        }
+        
         .app-container {
           min-height: calc(100vh - 60px);
         }
@@ -228,6 +232,10 @@
       @media screen and (max-width: 480px) {
         body.embedded-in-google-sites {
           padding-top: 80px;
+        }
+        
+        body.embedded-in-google-sites .fixed.top-4 {
+          top: 90px; /* より小さなスクリーンでの戻るボタン調整 */
         }
         
         .app-container {
