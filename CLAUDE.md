@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving classroom business. Uses Google Sheets as database with web application interface. 開発者は、木彫り教室の唯一の講師であり、経営者であり、このシステムの管理者である。
+Google Apps Script (GAS) reservation management system "きぼりの よやく・きろく" for a wood carving classroom business. Uses Google Sheets as database with web application interface.
+
+開発者は、木彫り教室の唯一の講師であり、経営者であり、このシステムの管理者である。
 
 ### ✅ Data Model Redesign Complete
 
@@ -136,9 +138,6 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 
 - **Heading Usage**: Use proper heading levels (## heading) instead of emphasis (**bold**) for section titles
 - **Duplicate Headings**: Avoid duplicate heading content (e.g., multiple "## まとめ" sections)
-- **Heading Hierarchy**: Maintain proper heading sequence (# → ## → ### → ####)
-- **Document Structure**: Start documents with # main title
-- **Table Formatting**: Markdown tables will not be auto-wrapped by Prettier to preserve structure
 
 ### Development Environment
 
@@ -158,6 +157,10 @@ Detailed architecture: `docs/ARCHITECTURE.md`
   - Test environment WebApp reflects changes immediately after `npm run push:test`
 - **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to test
 - **Data Access Pattern**: Use new abstraction layers (`repositories.*`, `*Service`) for new features
+- **Commit Management**:
+  - **Proactive Commits**: Commit at appropriate milestones (feature completion, bug fixes, architectural changes, etc.)
+  - **User Confirmation**: Always ask user for confirmation before committing: "適切な節目でコミットしますか？" or similar
+  - **Commit Quality**: Write comprehensive Japanese commit messages with clear descriptions of changes and impact
 - **Frontend Architecture**: Implements unidirectional data flow with StateManager for automatic UI updates and separation of concerns
 - **VSCode Integration**: Utilize tasks (Cmd+Shift+P → Tasks) for efficient development workflow
 - **Code Quality**: Use ESLint and Prettier configurations consistently throughout development
