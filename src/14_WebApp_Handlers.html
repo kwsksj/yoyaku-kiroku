@@ -82,6 +82,7 @@
         return;
       }
 
+      showLoading('login');
       // 正規化に成功した場合は直接ログイン処理を実行（1回のAPI呼び出し）
       actionHandlers.processLoginWithValidatedPhone(normalizeResult.normalized);
     },
@@ -103,9 +104,9 @@
             debugLog('response.userFound: ' + response.userFound);
             debugLog(
               'response.availableSlots: ' +
-                (response.availableSlots
-                  ? response.availableSlots.length + '件'
-                  : 'null/undefined'),
+              (response.availableSlots
+                ? response.availableSlots.length + '件'
+                : 'null/undefined'),
             );
             debugLog(
               'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
@@ -122,26 +123,17 @@
             );
             debugLog(
               'processInitialData完了 - slots: ' +
-                (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
+              (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
             );
             debugLog(
               'processInitialData完了 - classrooms: ' +
-                JSON.stringify(newAppState.classrooms),
+              JSON.stringify(newAppState.classrooms),
             );
             // NF-04.2: 初回予約判定
             const isFirstTime =
               (!newAppState.myBookings ||
                 newAppState.myBookings.length === 0) &&
               (!newAppState.history || newAppState.history.length === 0);
-
-            // ダッシュボード表示完了後にローディングを非表示にする
-            const hideLoadingAfterRender = () => {
-              requestAnimationFrame(() => {
-                setTimeout(() => {
-                  hideLoading();
-                }, 100); // レンダリング完了を待つ
-              });
-            };
 
             window.stateManager.dispatch({
               type: 'SET_STATE',
@@ -154,8 +146,6 @@
                 isDataFresh: true,
               },
             });
-
-            hideLoadingAfterRender();
           } else {
             // ユーザーが見つからない場合または特別コマンド認識時の分岐処理
             if (response.commandRecognized) {
@@ -326,15 +316,6 @@
                     batchResult.data.slots,
                   );
 
-                  // レンダリング完了後にローディングを非表示にする
-                  const hideLoadingAfterRender = () => {
-                    requestAnimationFrame(() => {
-                      setTimeout(() => {
-                        hideLoading();
-                      }, 100);
-                    });
-                  };
-
                   window.stateManager.dispatch({
                     type: 'SET_STATE',
                     payload: {
@@ -343,8 +324,6 @@
                       view: 'dashboard',
                     },
                   });
-
-                  hideLoadingAfterRender();
                 } else {
                   hideLoading();
                   showInfo(
@@ -574,25 +553,16 @@
               response.data.initial.allStudents[tempUser.studentId];
             const finalUser = userFromCache
               ? {
-                  ...userFromCache,
-                  displayName: tempUser.displayName,
-                  phone: tempUser.phone,
-                }
+                ...userFromCache,
+                displayName: tempUser.displayName,
+                phone: tempUser.phone,
+              }
               : tempUser;
 
             // 個人予約データはバックエンドから取得済み
             const { myBookings, myHistory } = response.data
               .userReservations || { myBookings: [], myHistory: [] };
             const today = response.data.initial.today;
-
-            // レンダリング完了後にローディングを非表示にする
-            const hideLoadingAfterRender = () => {
-              requestAnimationFrame(() => {
-                setTimeout(() => {
-                  hideLoading();
-                }, 100);
-              });
-            };
 
             window.stateManager.dispatch({
               type: 'SET_STATE',
@@ -610,8 +580,6 @@
                 _cacheVersions: response.data.initial.cacheVersions,
               },
             });
-
-            hideLoadingAfterRender();
           } else {
             hideLoading();
             showInfo(response.message || 'データの読み込みに失敗しました。');
@@ -1244,9 +1212,9 @@
           if (response.data) {
             debugLog(
               'response.data.slots: ' +
-                (response.data.slots
-                  ? `${response.data.slots.length}件`
-                  : 'なし'),
+              (response.data.slots
+                ? `${response.data.slots.length}件`
+                : 'なし'),
             );
           }
 
