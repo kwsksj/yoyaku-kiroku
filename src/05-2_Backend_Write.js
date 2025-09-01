@@ -145,12 +145,18 @@ function _validateTimeBasedReservation(startTime, endTime, classroomRule) {
     throw new Error('最低予約時間は2時間です。');
   }
 
-  const breakStart = classroomRule[HEADER_BREAK_START]
-    ? new Date(`1900-01-01T${classroomRule[HEADER_BREAK_START]}`)
-    : null;
-  const breakEnd = classroomRule[HEADER_BREAK_END]
-    ? new Date(`1900-01-01T${classroomRule[HEADER_BREAK_END]}`)
-    : null;
+  const breakStart =
+    classroomRule[HEADER_BREAK_START] &&
+    typeof classroomRule[HEADER_BREAK_START] === 'string' &&
+    classroomRule[HEADER_BREAK_START].trim()
+      ? new Date(`1900-01-01T${classroomRule[HEADER_BREAK_START]}`)
+      : null;
+  const breakEnd =
+    classroomRule[HEADER_BREAK_END] &&
+    typeof classroomRule[HEADER_BREAK_END] === 'string' &&
+    classroomRule[HEADER_BREAK_END].trim()
+      ? new Date(`1900-01-01T${classroomRule[HEADER_BREAK_END]}`)
+      : null;
   if (breakStart && breakEnd) {
     if (start >= breakStart && start < breakEnd)
       throw new Error(

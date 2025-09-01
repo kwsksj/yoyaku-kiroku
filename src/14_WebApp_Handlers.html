@@ -164,6 +164,16 @@
               (!newAppState.myBookings ||
                 newAppState.myBookings.length === 0) &&
               (!newAppState.history || newAppState.history.length === 0);
+
+            // ダッシュボード表示完了後にローディングを非表示にする
+            const hideLoadingAfterRender = () => {
+              requestAnimationFrame(() => {
+                setTimeout(() => {
+                  hideLoading();
+                }, 100); // レンダリング完了を待つ
+              });
+            };
+
             window.stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
@@ -175,6 +185,8 @@
                 isDataFresh: true,
               },
             });
+
+            hideLoadingAfterRender();
           } else {
             // ユーザーが見つからない場合または特別コマンド認識時の分岐処理
             if (response.commandRecognized) {
@@ -325,14 +337,22 @@
             // 登録後、バッチ処理で初期データと空席情報を一括取得
             google.script.run
               .withSuccessHandler(batchResult => {
-                hideLoading();
-
                 if (batchResult.success) {
                   const newAppState = processInitialData(
                     batchResult.data.initial,
                     res.user.phone,
                     batchResult.data.slots,
                   );
+
+                  // レンダリング完了後にローディングを非表示にする
+                  const hideLoadingAfterRender = () => {
+                    requestAnimationFrame(() => {
+                      setTimeout(() => {
+                        hideLoading();
+                      }, 100);
+                    });
+                  };
+
                   window.stateManager.dispatch({
                     type: 'SET_STATE',
                     payload: {
@@ -341,7 +361,10 @@
                       view: 'classroomSelection',
                     },
                   });
+
+                  hideLoadingAfterRender();
                 } else {
+                  hideLoading();
                   showInfo(
                     batchResult.message || 'データの取得に失敗しました',
                     'エラー',
@@ -414,11 +437,13 @@
                       isDataFresh: true, // 最新データ受信済み
                     },
                   });
+                  // 明示的に画面を再描画
+                  if (typeof window.render === 'function') {
+                    setTimeout(() => window.render(), 100);
+                  }
                 } else {
-                  window.stateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: { view: 'dashboard' },
-                  });
+                  // データなしの場合は最新データを強制取得
+                  updateAppStateFromCache(window.stateManager.getState().view);
                 }
               } else {
                 // サーバーエラーの場合は元に戻す（イミュータブル更新）
@@ -561,7 +586,6 @@
       // バッチ処理で初期データ、空席情報、ユーザーデータを一括取得
       google.script.run
         .withSuccessHandler(response => {
-          hideLoading();
           if (response.success) {
             // tempUserの情報でcurrentUserを上書きしつつ、キャッシュデータを活用
             const userFromCache =
@@ -579,6 +603,15 @@
               .userReservations || { myBookings: [], myHistory: [] };
             const today = response.data.initial.today;
 
+            // レンダリング完了後にローディングを非表示にする
+            const hideLoadingAfterRender = () => {
+              requestAnimationFrame(() => {
+                setTimeout(() => {
+                  hideLoading();
+                }, 100);
+              });
+            };
+
             window.stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
@@ -595,7 +628,10 @@
                 _cacheVersions: response.data.initial.cacheVersions,
               },
             });
+
+            hideLoadingAfterRender();
           } else {
+            hideLoading();
             showInfo(response.message || 'データの読み込みに失敗しました。');
           }
         })
@@ -1617,10 +1653,11 @@
       inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
     }
 
-    // 対応する表示エリアを更新
+    // 対応する表示エリアを更新（明示的に存在し、表示されている場合のみ）
     const displayId = inputElement.id + '-display';
     const displayElement = document.getElementById(displayId);
-    if (displayElement) {
+    if (displayElement && displayElement.offsetParent !== null) {
+      // 要素が表示されている場合のみ
       displayElement.textContent = formatted || '電話番号を入力してください';
     }
   }

@@ -260,6 +260,10 @@ const CONSTANTS = {
       UNIT_PRICE: '単価',
       UNIT: '単位',
       TARGET_CLASSROOM: '対象教室',
+      CLASS_START: '講座開始',
+      CLASS_END: '講座終了',
+      BREAK_START: '休憩開始',
+      BREAK_END: '休憩終了',
       NOTES: '備考',
     },
 
