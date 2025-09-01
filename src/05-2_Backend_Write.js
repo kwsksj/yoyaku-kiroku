@@ -46,15 +46,17 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
     date,
     classroom,
     CONSTANTS.STATUS.CONFIRMED,
-  ).filter(
-    r =>
-      !!r.data[
-        getHeaderIndex(
-          reservationsCache.headerMap,
-          CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
-        )
-      ],
-  );
+  ).filter(r => {
+    // 防御的プログラミング: データの存在確認
+    if (!r.data || !Array.isArray(r.data)) {
+      return false;
+    }
+    const studentIdIdx = getHeaderIndex(
+      reservationsCache.headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+    );
+    return !!r.data[studentIdIdx];
+  });
 
   // 教室形式に基づく判定ロジック
   if (!schedule || schedule.type !== CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
@@ -88,6 +90,12 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
 
   reservationsOnDate.forEach(r => {
     const row = r.data;
+    // 防御的プログラミング: データの存在確認
+    if (!row || !Array.isArray(row)) {
+      Logger.log(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(r)}`);
+      return;
+    }
+
     const rStart = row[startTimeColIdx]
       ? new Date(`1900-01-01T${row[startTimeColIdx]}`)
       : null;
@@ -265,6 +273,11 @@ function makeReservation(reservationInfo) {
       // 会場情報を取得（同日同教室の既存予約から）
       let venue = '';
       const sameDateRow = data.find(row => {
+        // 防御的プログラミング: 行データの存在確認
+        if (!row || !Array.isArray(row)) {
+          return false;
+        }
+
         const rowDate = row[dateColIdx];
         return (
           rowDate instanceof Date &&

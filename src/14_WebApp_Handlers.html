@@ -97,29 +97,6 @@
     /** 検証済み電話番号でのログイン処理 */
     processLoginWithValidatedPhone: normalizedPhone => {
       // 環境分岐: テスト環境の場合はモックデータを使用
-      if (isTestEnvironment) {
-        // テスト環境ではモックデータを使用
-        setTimeout(() => {
-          hideLoading();
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              currentUser: getEnvironmentData('currentUser', {
-                displayName: 'テストユーザー',
-                phone: normalizedPhone,
-              }),
-              slots: getEnvironmentData('slots', []),
-              myBookings: getEnvironmentData('myBookings', []),
-              accountingMaster: getEnvironmentData('accountingMaster', {}),
-              history: getEnvironmentData('history', []),
-              historyTotal: getEnvironmentData('history', []).length,
-              recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
-              view: 'dashboard', // テスト環境ではホームに直接遷移
-            },
-          });
-        }, 300);
-        return;
-      }
 
       // 本番環境: 統合エンドポイントで初期データと空席情報を一括取得
       google.script.run
@@ -134,9 +111,9 @@
             debugLog('response.userFound: ' + response.userFound);
             debugLog(
               'response.availableSlots: ' +
-                (response.availableSlots
-                  ? response.availableSlots.length + '件'
-                  : 'null/undefined'),
+              (response.availableSlots
+                ? response.availableSlots.length + '件'
+                : 'null/undefined'),
             );
             debugLog(
               'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
@@ -153,11 +130,11 @@
             );
             debugLog(
               'processInitialData完了 - slots: ' +
-                (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
+              (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
             );
             debugLog(
               'processInitialData完了 - classrooms: ' +
-                JSON.stringify(newAppState.classrooms),
+              JSON.stringify(newAppState.classrooms),
             );
             // NF-04.2: 初回予約判定
             const isFirstTime =
@@ -592,10 +569,10 @@
               response.data.initial.allStudents[tempUser.studentId];
             const finalUser = userFromCache
               ? {
-                  ...userFromCache,
-                  displayName: tempUser.displayName,
-                  phone: tempUser.phone,
-                }
+                ...userFromCache,
+                displayName: tempUser.displayName,
+                phone: tempUser.phone,
+              }
               : tempUser;
 
             // 個人予約データはバックエンドから取得済み
@@ -1192,9 +1169,9 @@
           if (response.data) {
             debugLog(
               'response.data.slots: ' +
-                (response.data.slots
-                  ? `${response.data.slots.length}件`
-                  : 'なし'),
+              (response.data.slots
+                ? `${response.data.slots.length}件`
+                : 'なし'),
             );
           }
 

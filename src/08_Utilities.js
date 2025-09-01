@@ -490,8 +490,14 @@ function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
   if (searchColIdx === undefined)
     throw new Error(`ヘッダー「${searchColumn}」が見つかりません。`);
 
-  // データ行から対象レコードを検索
-  const foundRow = dataRows.find(row => row[searchColIdx] === searchValue);
+  // データ行から対象レコードを検索（防御的プログラミング）
+  const foundRow = dataRows.find(row => {
+    if (!row || !Array.isArray(row)) {
+      Logger.log(`⚠️ 無効なデータ行をスキップ: ${JSON.stringify(row)}`);
+      return false;
+    }
+    return row[searchColIdx] === searchValue;
+  });
   const rowIndex = foundRow ? dataRows.indexOf(foundRow) + 2 : -1; // 1-based + header row
 
   return {
@@ -525,18 +531,43 @@ function getCachedReservationsFor(
   if (!reservationsCache?.reservations) return [];
 
   const { reservations, headerMap } = reservationsCache;
+
+  // ヘッダーマップの有効性確認
+  if (!headerMap) {
+    Logger.log('⚠️ ヘッダーマップが存在しません');
+    return [];
+  }
+
   const dateColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
   const classroomColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM];
   const statusColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS];
 
-  return reservations.filter(r => {
-    const row = r.data;
-    return (
-      row[dateColIdx] === date &&
-      row[classroomColIdx] === classroom &&
-      (!status || row[statusColIdx] === status)
+  // 必要なインデックスが取得できているか確認
+  if (
+    dateColIdx === undefined ||
+    classroomColIdx === undefined ||
+    statusColIdx === undefined
+  ) {
+    Logger.log(
+      `⚠️ 必要なヘッダーインデックスが見つかりません - Date: ${dateColIdx}, Classroom: ${classroomColIdx}, Status: ${statusColIdx}`,
     );
-  });
+    return [];
+  }
+
+  return reservations
+    .filter(row => {
+      // データ構造修正: キャッシュは直接配列を格納しているため、r.dataではなくrを直接使用
+      if (!row || !Array.isArray(row)) {
+        Logger.log(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(row)}`);
+        return false;
+      }
+      return (
+        row[dateColIdx] === date &&
+        row[classroomColIdx] === classroom &&
+        (!status || row[statusColIdx] === status)
+      );
+    })
+    .map(row => ({ data: row })); // 戻り値を既存のAPIに合わせる
 }
 
 /**

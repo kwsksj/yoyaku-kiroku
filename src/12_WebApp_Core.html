@@ -244,14 +244,6 @@
     return fallback;
   };
 
-  // 環境情報
-  const isTestEnvironment = detectEnvironment() === 'test';
-
-  // 開発時のログ出力
-  if (isTestEnvironment) {
-    // テスト環境では特別な処理は不要
-  }
-
   // StateManagerの再初期化（依存関数が読み込まれた後）
   if (
     typeof window.initializeStateManager === 'function' &&
@@ -316,11 +308,6 @@
       }
     },
   };
-
-  // テスト環境の初期化ログ
-  if (isTestEnvironment) {
-    // テスト環境では特別な処理は不要
-  }
 
   // =================================================================
   // --- UI Components (Moved to 13_WebApp_Components.html) ---
@@ -1271,7 +1258,6 @@
       }
     });
     activeListeners = [];
-    if (isTestEnvironment) console.log('🎧 All event listeners torn down.');
   }
 
   /**
@@ -1328,7 +1314,5 @@
         });
       }
     });
-    if (isTestEnvironment)
-      console.log('View listener subscribed to StateManager.');
   }
 </script>

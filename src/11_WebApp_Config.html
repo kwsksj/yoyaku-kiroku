@@ -47,7 +47,17 @@
   // 例: const SESSION_MORNING = stateManager.getState().constants.sessions.MORNING;
 
   // 【純粋にフロントエンド専用】以下は本当にフロントエンドでしか使わない定数のみ
-  // 現在、純粋にフロントエンド専用の定数はありません
+
+  // デバッグ制御（フロントエンド専用）
+  const DEBUG_ENABLED = false; // 本番環境では false
+
+  // ステータス定数（フロントエンド専用 - バックエンド定数と同期）
+  const STATUS = {
+    CANCELED: '取消', // キャンセル済み
+    WAITLISTED: '待機', // キャンセル待ち
+    CONFIRMED: '確定', // 予約確定（会計前）
+    COMPLETED: '完了', // 完了（会計済み）
+  };
 
   // =================================================================
   // 2. DESIGN CONFIGURATION
@@ -165,16 +175,16 @@
     style.textContent = `
       /* ========== Font Loading Optimization ========== */
       @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
-      
+
       /* Prevent FOUT (Flash of Unstyled Text) */
       .font-loading {
         visibility: hidden;
       }
-      
+
       .fonts-loaded .font-loading {
         visibility: visible;
       }
-      
+
       /* ========== CSS Variables ========== */
       :root {
         /* Energetic and warm theme for a wood carving school */
@@ -212,32 +222,32 @@
         /* モバイル環境でのGoogleサイト埋め込み対応 */
         padding-top: env(safe-area-inset-top, 0);
       }
-      
+
       /* Googleサイト埋め込み時のモバイル対応 */
       @media screen and (max-width: 768px) {
         body.embedded-in-google-sites {
           padding-top: 60px; /* Googleサイトのメニューバー分の余白 */
         }
-        
+
         body.embedded-in-google-sites .fixed.top-4 {
           top: 70px; /* 戻るボタン位置を調整 */
         }
-        
+
         .app-container {
           min-height: calc(100vh - 60px);
         }
       }
-      
+
       /* より大きなメニューバーの場合 */
       @media screen and (max-width: 480px) {
         body.embedded-in-google-sites {
           padding-top: 80px;
         }
-        
+
         body.embedded-in-google-sites .fixed.top-4 {
           top: 90px; /* より小さなスクリーンでの戻るボタン調整 */
         }
-        
+
         .app-container {
           min-height: calc(100vh - 80px);
         }

@@ -80,9 +80,16 @@ function extractPersonalDataFromCache(studentId, cacheData) {
     const myBookings = studentReservations.filter(
       r => new Date(r.date) >= today && r.status === CONSTANTS.STATUS.CONFIRMED,
     );
-    const myHistory = studentReservations.filter(
-      r => new Date(r.date) < today || r.status !== CONSTANTS.STATUS.CONFIRMED,
-    );
+    const myHistory = studentReservations.filter(r => {
+      const reservationDate = new Date(r.date);
+      // 履歴条件：過去の日付 または 完了済み または 取消・キャンセル待ち
+      return (
+        reservationDate < today ||
+        r.status === CONSTANTS.STATUS.COMPLETED ||
+        r.status === CONSTANTS.STATUS.CANCELED ||
+        r.status === CONSTANTS.STATUS.WAITLISTED
+      );
+    });
 
     Logger.log(
       `個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件`,

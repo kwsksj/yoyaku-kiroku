@@ -18,6 +18,10 @@ Successfully migrated from classroom-specific distributed data structure to an i
 
 **Data Access Layer Abstraction**: Complete separation of business logic from data access through repository pattern and service layer architecture. Enables zero-risk migration to integrated reservation sheets in production environment.
 
+### ⚠️ Data Access Layer Status (2025年9月1日更新)
+
+**データアクセス層抽象化は一旦停止中** - 現在のシステムは既存アーキテクチャで安定稼働。IMPROVEMENT_PLAN.mdベースの改修を優先。詳細は `docs/BUSINESS_LOGIC_REFERENCE.md` を参照。
+
 ## Key Development Commands
 
 ### Local Development & Testing

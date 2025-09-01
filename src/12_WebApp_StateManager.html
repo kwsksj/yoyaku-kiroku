@@ -168,7 +168,8 @@
         this._notifySubscribers(this.state, oldState);
 
         if (!window.isProduction) {
-          console.log('✅ 状態更新完了:', Object.keys(newState));
+          if (DEBUG_ENABLED)
+            console.log('✅ 状態更新完了:', Object.keys(newState));
         }
       } catch (error) {
         console.error('❌ 状態更新エラー:', error);
