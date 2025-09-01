@@ -74,24 +74,16 @@
       });
       if (!p) return showInfo('電話番号を入力してください。');
 
-      // 新しい電話番号処理を使用
-      showLoading('login');
-      google.script.run
-        .withSuccessHandler(result => {
-          hideLoading();
-          if (result.isValid) {
-            const n = result.normalized;
-            // 後続処理で正規化済み電話番号を使用
-            actionHandlers.processLoginWithValidatedPhone(n);
-          } else {
-            showInfo(result.error || '電話番号の形式が正しくありません。');
-          }
-        })
-        .withFailureHandler(err => {
-          hideLoading();
-          handleServerError(err);
-        })
-        .normalizePhoneNumber(p);
+      // フロントエンドで電話番号を正規化（即時エラー表示）
+      const normalizeResult = window.normalizePhoneNumberFrontend(p);
+      
+      if (!normalizeResult.isValid) {
+        showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
+        return;
+      }
+
+      // 正規化に成功した場合は直接ログイン処理を実行（1回のAPI呼び出し）
+      actionHandlers.processLoginWithValidatedPhone(normalizeResult.normalized);
     },
 
     /** 検証済み電話番号でのログイン処理 */
@@ -178,11 +170,11 @@
                 },
               });
             } else {
-              // 通常のユーザー未登録の場合はgetUserFormViewに遷移
+              // 通常のユーザー未登録の場合は新規登録画面に遷移
               window.stateManager.dispatch({
                 type: 'SET_STATE',
                 payload: {
-                  view: 'getUserFormView',
+                  view: 'register',
                   registrationPhone: normalizedPhone,
                 },
               });
@@ -206,6 +198,18 @@
       const realName = document.getElementById('reg-realname').value;
       const nickname = document.getElementById('reg-nickname').value.trim();
       const phone = document.getElementById('reg-phone').value;
+      
+      if (!realName) return showInfo('お名前（本名）は必須です。');
+
+      // フロントエンドで電話番号を正規化・バリデーション
+      if (phone) {
+        const normalizeResult = window.normalizePhoneNumberFrontend(phone);
+        if (!normalizeResult.isValid) {
+          showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
+          return;
+        }
+      }
+
       // 入力値をsetState経由で保存
       const updatedRegistrationData = {
         ...stateManager.getState().registrationData,
@@ -213,7 +217,6 @@
         realName,
         nickname: nickname || realName,
       };
-      if (!realName) return showInfo('お名前（本名）は必須です。');
       window.stateManager.dispatch({
         type: 'SET_STATE',
         payload: {

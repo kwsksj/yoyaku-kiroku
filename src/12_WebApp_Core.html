@@ -310,6 +310,66 @@
   };
 
   // =================================================================
+  // --- Utility Functions ---
+  // -----------------------------------------------------------------
+
+  /**
+   * 電話番号を正規化します（全角→半角、ハイフン削除、バリデーション）
+   * サーバーサイドのnormalizePhoneNumber関数と同等の処理をフロントエンドで実行
+   * @param {string} phoneInput - 入力された電話番号
+   * @returns {{normalized: string, isValid: boolean, error?: string}} 正規化結果
+   */
+  window.normalizePhoneNumberFrontend = function(phoneInput) {
+    if (!phoneInput || typeof phoneInput !== 'string') {
+      return {
+        normalized: '',
+        isValid: false,
+        error: '電話番号を入力してください',
+      };
+    }
+
+    // 全角数字を半角に変換
+    let normalized = phoneInput.replace(/[０-９]/g, s =>
+      String.fromCharCode(s.charCodeAt(0) - 65248),
+    );
+
+    // 各種ハイフンを削除
+    normalized = normalized.replace(/[‐－\-]/g, '');
+
+    // 空白文字を削除
+    normalized = normalized.replace(/\s/g, '');
+
+    // 数字以外の文字をチェック
+    if (!/^\d+$/.test(normalized)) {
+      return {
+        normalized: '',
+        isValid: false,
+        error: '電話番号は数字のみ入力してください',
+      };
+    }
+
+    // 桁数チェック（日本の携帯・固定電話は11桁または10桁）
+    if (normalized.length !== 11 && normalized.length !== 10) {
+      return {
+        normalized: '',
+        isValid: false,
+        error: '電話番号は10桁または11桁で入力してください',
+      };
+    }
+
+    // 先頭番号チェック（日本の電話番号パターン）
+    if (normalized.length === 11 && !normalized.startsWith('0')) {
+      return {
+        normalized: '',
+        isValid: false,
+        error: '11桁の電話番号は0から始まる必要があります',
+      };
+    }
+
+    return { normalized, isValid: true };
+  };
+
+  // =================================================================
   // --- UI Components (Moved to 13_WebApp_Components.html) ---
   // -----------------------------------------------------------------
   // UIコンポーネント生成関数群は13_WebApp_Components.htmlに移動されました。
