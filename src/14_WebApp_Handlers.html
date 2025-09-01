@@ -76,7 +76,7 @@
 
       // フロントエンドで電話番号を正規化（即時エラー表示）
       const normalizeResult = window.normalizePhoneNumberFrontend(p);
-      
+
       if (!normalizeResult.isValid) {
         showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
         return;
@@ -103,9 +103,9 @@
             debugLog('response.userFound: ' + response.userFound);
             debugLog(
               'response.availableSlots: ' +
-              (response.availableSlots
-                ? response.availableSlots.length + '件'
-                : 'null/undefined'),
+                (response.availableSlots
+                  ? response.availableSlots.length + '件'
+                  : 'null/undefined'),
             );
             debugLog(
               'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
@@ -122,11 +122,11 @@
             );
             debugLog(
               'processInitialData完了 - slots: ' +
-              (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
+                (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
             );
             debugLog(
               'processInitialData完了 - classrooms: ' +
-              JSON.stringify(newAppState.classrooms),
+                JSON.stringify(newAppState.classrooms),
             );
             // NF-04.2: 初回予約判定
             const isFirstTime =
@@ -198,14 +198,16 @@
       const realName = document.getElementById('reg-realname').value;
       const nickname = document.getElementById('reg-nickname').value.trim();
       const phone = document.getElementById('reg-phone').value;
-      
+
       if (!realName) return showInfo('お名前（本名）は必須です。');
 
       // フロントエンドで電話番号を正規化・バリデーション
       if (phone) {
         const normalizeResult = window.normalizePhoneNumberFrontend(phone);
         if (!normalizeResult.isValid) {
-          showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
+          showInfo(
+            normalizeResult.error || '電話番号の形式が正しくありません。',
+          );
           return;
         }
       }
@@ -338,7 +340,7 @@
                     payload: {
                       ...newAppState,
                       currentUser: res.user,
-                      view: 'classroomSelection',
+                      view: 'dashboard',
                     },
                   });
 
@@ -572,10 +574,10 @@
               response.data.initial.allStudents[tempUser.studentId];
             const finalUser = userFromCache
               ? {
-                ...userFromCache,
-                displayName: tempUser.displayName,
-                phone: tempUser.phone,
-              }
+                  ...userFromCache,
+                  displayName: tempUser.displayName,
+                  phone: tempUser.phone,
+                }
               : tempUser;
 
             // 個人予約データはバックエンドから取得済み
@@ -922,46 +924,64 @@
       showInfo(message, '会計記録');
     },
 
-    /** 会計済みの内容を修正するために新規フォームに戻します */
-    editAccountingRecord: () => {
-      const reservation = stateManager.getState().accountingReservation;
-      if (reservation) {
-        // 現在の会計データを初期値として設定し、編集モードで新規フォーム表示
-        showConfirm({
-          title: '会計内容の修正',
-          message:
-            'この操作により、現在の会計記録は削除され、新しい内容で再登録されます。よろしいですか？',
-          confirmText: '修正する',
-          cancelText:
-            window.stateManager.getState().constants?.messages?.CANCEL ||
-            'キャンセル',
-          onConfirm: () => {
-            // 会計状態をリセットして編集フォームを表示
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                view: 'accounting',
-                // 会計済みフラグを一時的にfalseにして編集可能にする
-                isEditingAccountingRecord: true,
-              },
-            });
+    /** きろくカードから会計済み内容を修正します */
+    editAccountingRecord: d => {
+      const reservationId = d.reservationId;
 
-            // ビュー遷移後に初期計算を実行（DOM構築完了を確実に待つ）
-            setTimeout(() => {
-              // 会計フォームのDOM構築完了を確認してから計算実行
-              const form = document.getElementById('accounting-form');
-              if (form) {
-                calculateAccountingDetails(); // UI更新も含む統一関数を使用
-              } else {
-                // DOMがまだ構築されていない場合はもう少し待つ
-                setTimeout(() => {
-                  calculateAccountingDetails(); // UI更新も含む統一関数を使用
-                }, 100);
-              }
-            }, 300);
-          },
-        });
+      // きろくから対象の予約データを取得
+      const reservationData = findReservationById(reservationId);
+
+      if (!reservationData) {
+        showInfo('予約・記録情報が見つかりませんでした。');
+        return;
       }
+
+      // 既存の会計データを初期値として設定
+      const existingAccountingDetails = reservationData.accountingDetails || {};
+      const initialValues = {
+        firstLecture: reservationData.firstLecture || false,
+        chiselRental: reservationData.chiselRental || false,
+        startTime: reservationData.startTime || null,
+        endTime: reservationData.endTime || null,
+        // 既存の会計データをすべて反映
+        ...existingAccountingDetails,
+      };
+
+      showConfirm({
+        title: '会計内容の修正',
+        message:
+          'この操作により、現在の会計記録は削除され、新しい内容で再登録されます。よろしいですか？',
+        confirmText: '修正する',
+        cancelText:
+          window.stateManager.getState().constants?.messages?.CANCEL ||
+          'キャンセル',
+        onConfirm: () => {
+          // 会計編集モードで画面遷移
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              view: 'accounting',
+              accountingReservation: d,
+              accountingInitialValues: initialValues,
+              isEditingAccountingRecord: true,
+            },
+          });
+
+          // ビュー遷移後に初期計算を実行（DOM構築完了を確実に待つ）
+          setTimeout(() => {
+            // 会計フォームのDOM構築完了を確認してから計算実行
+            const form = document.getElementById('accounting-form');
+            if (form) {
+              calculateAccountingDetails(); // UI更新も含む統一関数を使用
+            } else {
+              // DOMがまだ構築されていない場合はもう少し待つ
+              setTimeout(() => {
+                calculateAccountingDetails(); // UI更新も含む統一関数を使用
+              }, 100);
+            }
+          }, 300);
+        },
+      });
     },
 
     /** 会計画面で材料入力行を追加します */
@@ -1042,21 +1062,54 @@
       });
     },
 
-    /** 新規予約のための教室選択画面に遷移します */
-    goToClassroomSelection: () => {
+    /** 新規予約のための教室選択モーダルを表示します */
+    showClassroomModal: () => {
       if (
         stateManager.getState().classrooms &&
         stateManager.getState().classrooms.length > 0
       ) {
-        window.stateManager.dispatch({
-          type: 'NAVIGATE',
-          payload: { to: 'classroomSelection' },
-        });
+        // 既存のモーダルがあれば削除（重複防止）
+        const existingModal = document.getElementById(
+          'classroom-selection-modal',
+        );
+        if (existingModal) {
+          existingModal.remove();
+        }
+
+        // 新しいモーダルを生成・追加
+        const modalHtml = getClassroomSelectionModal();
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        // モーダルを表示
+        Components.showModal('classroom-selection-modal');
+
+        // デバッグ用: モーダル内のボタンを確認
+        if (!window.isProduction) {
+          setTimeout(() => {
+            const modalButtons = document.querySelectorAll(
+              '#classroom-selection-modal [data-action="selectClassroom"]',
+            );
+            console.log('🔘 モーダル内ボタン数:', modalButtons.length);
+            modalButtons.forEach((btn, index) => {
+              console.log(`🔘 ボタン${index + 1}:`, {
+                action: btn.dataset.action,
+                classroomName: btn.dataset.classroomName,
+                classroom: btn.dataset.classroom,
+                text: btn.textContent,
+              });
+            });
+          }, 100);
+        }
       } else {
         // 教室情報がない場合はデータを更新
         showInfo('教室情報の取得に失敗しました。ホームに戻ります。');
         actionHandlers.goBackToDashboard();
       }
+    },
+
+    /** 教室選択モーダルを閉じます */
+    closeClassroomModal: () => {
+      Components.closeModal('classroom-selection-modal');
     },
 
     /** プロフィール編集画面に遷移します */
@@ -1088,12 +1141,31 @@
       if (!window.isProduction) {
         debugLog(`=== selectClassroom呼び出し: d=${JSON.stringify(d)} ===`);
       }
+
+      // データ取得の複数の方法を試行
+      let classroomName = null;
+
       if (d && d.classroomName) {
+        classroomName = d.classroomName;
+      } else if (d && d.classroom) {
+        classroomName = d.classroom;
+      } else if (d && d['classroom-name']) {
+        classroomName = d['classroom-name'];
+      }
+
+      if (!window.isProduction) {
+        debugLog(`=== 教室名: ${classroomName} ===`);
+        debugLog(`=== データキー: ${Object.keys(d || {})} ===`);
+      }
+
+      if (classroomName) {
         if (!window.isProduction) {
-          debugLog(`=== 教室名取得成功: ${d.classroomName} ===`);
+          debugLog(`=== 教室名取得成功: ${classroomName} ===`);
         }
+        // 教室選択モーダルを閉じる
+        actionHandlers.closeClassroomModal();
         // 常にupdateSlotsAndGoToBookingを呼び出し（内部で鮮度チェックを実行）
-        actionHandlers.updateSlotsAndGoToBooking(d.classroomName);
+        actionHandlers.updateSlotsAndGoToBooking(classroomName);
       } else {
         if (!window.isProduction) {
           debugLog(`=== 教室名取得失敗: d=${JSON.stringify(d)} ===`);
@@ -1172,9 +1244,9 @@
           if (response.data) {
             debugLog(
               'response.data.slots: ' +
-              (response.data.slots
-                ? `${response.data.slots.length}件`
-                : 'なし'),
+                (response.data.slots
+                  ? `${response.data.slots.length}件`
+                  : 'なし'),
             );
           }
 
@@ -1632,14 +1704,6 @@
       );
       inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
     }
-
-    // 対応する表示エリアを更新（明示的に存在し、表示されている場合のみ）
-    const displayId = inputElement.id + '-display';
-    const displayElement = document.getElementById(displayId);
-    if (displayElement && displayElement.offsetParent !== null) {
-      // 要素が表示されている場合のみ
-      displayElement.textContent = formatted || '電話番号を入力してください';
-    }
   }
 
   // =================================================================
@@ -1780,9 +1844,6 @@
       case 'dashboard':
         v = getDashboardView();
         break;
-      case 'classroomSelection':
-        v = getClassroomSelectionView();
-        break;
       case 'editProfile':
         v = getEditProfileView();
         break;
@@ -1835,19 +1896,52 @@
   window.onload = function () {
     const app = document.getElementById('app');
 
-    // アプリ全体のクリックイベントを捕捉
-    app.addEventListener('click', e => {
+    // イベントハンドラー関数を定義
+    const handleClick = e => {
       // 【修正】buttonまたはdata-action属性を持つ要素を対象にする
       const targetElement = e.target.closest('button, [data-action]');
       if (targetElement?.dataset.action) {
         const { action, ...data } = targetElement.dataset;
+
+        // デバッグ情報を追加
+        if (!window.isProduction) {
+          console.log('🔘 クリックイベント:', {
+            action,
+            data,
+            element: targetElement,
+            tagName: targetElement.tagName,
+            modalContext: e.target.closest('[data-modal-content]')
+              ? 'モーダル内'
+              : '通常',
+            timestamp: new Date().getTime(),
+            eventPhase: e.eventPhase,
+          });
+        }
+
+        // モーダル内の場合は、イベント伝播を継続する
+        if (
+          e.target.closest('[data-modal-content]') &&
+          targetElement.dataset.action
+        ) {
+          // イベント伝播を停止しない（モーダル内のボタンを有効にする）
+        }
+
         if (action === 'copyToClipboard' || action === 'copyGrandTotal') {
           actionHandlers[action](targetElement);
         } else if (actionHandlers[action]) {
           actionHandlers[action](data);
+        } else {
+          // ハンドラーが見つからない場合のデバッグ
+          if (!window.isProduction) {
+            console.warn('⚠️ アクションハンドラーが見つかりません:', action);
+          }
         }
       }
-    });
+    };
+
+    // アプリ要素とdocument両方でクリックイベントを捕捉（モーダル対応）
+    // 重複を避けるため、documentレベルのみでイベントを処理
+    document.addEventListener('click', handleClick);
 
     // アプリ全体の入力・変更イベントを捕捉
     app.addEventListener('change', e => {

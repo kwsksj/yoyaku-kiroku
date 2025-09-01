@@ -48,9 +48,6 @@
 
   // 【純粋にフロントエンド専用】以下は本当にフロントエンドでしか使わない定数のみ
 
-  // デバッグ制御（フロントエンド専用）
-  const DEBUG_ENABLED = false; // 本番環境では false
-
   // ステータス定数（フロントエンド専用 - バックエンド定数と同期）
   const STATUS = {
     CANCELED: '取消', // キャンセル済み
@@ -85,6 +82,31 @@
       warning:
         'bg-ui-warning-bg text-ui-warning-text border border-ui-warning-border',
       error: 'bg-ui-error-bg text-ui-error-text border border-ui-error-border',
+    },
+
+    // 教室別のボタン色設定
+    classroomColors: {
+      tokyo: {
+        button: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
+        colorClass: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
+      },
+      numazu: {
+        button: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
+        colorClass:
+          'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
+      },
+      tsukuba: {
+        button:
+          'bg-green-50 border-green-200 text-green-800 hover:bg-green-100',
+        colorClass:
+          'bg-green-50 border-green-200 text-green-800 hover:bg-green-100',
+      },
+      default: {
+        button:
+          'bg-state-available-bg border-state-available-border text-brand-text hover:bg-gray-50',
+        colorClass:
+          'bg-state-available-bg border-state-available-border text-brand-text hover:bg-gray-50',
+      },
     },
 
     // ボタンの基本スタイル
@@ -185,7 +207,7 @@
         visibility: visible;
       }
 
-      /* ========== CSS Variables ========== */
+      /* ========== CSS Variables - kibori-class.net完全調和デザイン ========== */
       :root {
         /* Energetic and warm theme for a wood carving school */
         --brand-text: #4E342E;       /* Dark Brown for high readability */
@@ -205,12 +227,21 @@
         --state-waitlist: #F59E0B;   /* Bright amber for waitlist */
         --state-booked: #785A4E;     /* Medium brown for booked slots */
 
-        --ui-border: #E4CDBA;        /* Soft, warm beige for borders */
-        --ui-input: #FAFAFA;         /* Neutral light gray for inputs */
-        --ui-surface: #FFFFFF;
+        /* UI要素 - より洗練された境界線と背景 */
+        --ui-border: #D4C4B8;        /* 温かみのあるベージュ境界線 */
+        --ui-border-light: #E8DDD6;  /* より薄い境界線 */
+        --ui-input: #FAFAFA;         /* 入力フィールド背景 */
+        --ui-input-focus: #FFFFFF;   /* フォーカス時背景 */
+        --ui-surface: #FFFFFF;       /* サーフェス背景 */
 
-        --modal-overlay: rgba(0, 0, 0, 0.5);
+        /* モーダルとオーバーレイ */
+        --modal-overlay: rgba(73, 59, 49, 0.6); /* ブランドカラーベースのオーバーレイ */
         --spinner-border: #f3f4f6;
+
+        /* 影とエフェクト */
+        --shadow-sm: 0 1px 2px 0 rgba(73, 59, 49, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(73, 59, 49, 0.1);
+        --shadow-lg: 0 10px 15px -3px rgba(73, 59, 49, 0.1);
       }
 
       /* ========== Base Styles ========== */
@@ -306,14 +337,198 @@
         background-color: var(--brand-surface);
         border: 1px solid var(--ui-border);
         transition: all 0.2s ease;
+        position: relative;
       }
       .accounting-item:hover, .reservation-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-        border-color: var(--brand-muted);
+        box-shadow: var(--shadow-md);
+        border-color: var(--brand-accent);
       }
 
-      /* ========== Responsive Design ========== */
+      /* ========== レイアウト改善 - memo.md問題対応 ========== */
+
+      /* 戻るボタンの位置を右上に固定（問題#3対応） */
+      .back-button-container {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 40;
+        transform: none !important; /* 位置ズレ防止（問題#36対応） */
+      }
+
+      /* Googleサイト埋め込み時の戻るボタン調整（問題#14対応） */
+      body.embedded-in-google-sites .back-button-container {
+        top: 70px;
+      }
+
+      @media screen and (max-width: 480px) {
+        body.embedded-in-google-sites .back-button-container {
+          top: 90px;
+        }
+      }
+
+      /* ========== 新カードレイアウト - よやく・きろくカード ========== */
+
+      .reservation-card, .record-card {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        position: relative;
+      }
+
+      /* カード上部: 教室情報 + 編集ボタン */
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .card-class-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .card-class-info .class-datetime {
+        font-weight: 600;
+        color: var(--brand-text);
+        font-size: 1rem;
+      }
+
+      .card-class-info .class-venue {
+        color: var(--brand-subtle);
+        font-size: 0.875rem;
+      }
+
+      .card-edit-button {
+        flex-shrink: 0;
+        align-self: flex-start;
+      }
+
+      .card-edit-button button {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+        white-space: nowrap;
+      }
+
+      /* カード中央: 制作メモエリア */
+      .card-memo-section {
+        background-color: var(--brand-light);
+        border: 1px solid var(--ui-border-light);
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+        min-height: 4rem;
+      }
+
+      .card-memo-section .memo-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--brand-subtle);
+        margin-bottom: 0.5rem;
+        display: block;
+      }
+
+      .card-memo-section .memo-content {
+        color: var(--brand-text);
+        font-size: 0.875rem;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .card-memo-section .memo-empty {
+        color: var(--brand-muted);
+        font-style: italic;
+      }
+
+      /* カード下部: 当日のみ表示される会計ボタン */
+      .card-accounting-section {
+        border-top: 1px solid var(--ui-border-light);
+        padding-top: 0.75rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .card-accounting-section button {
+        min-width: 150px;
+      }
+
+      /* 当日以外は会計セクションを非表示 */
+      .card-accounting-section.hidden {
+        display: none;
+      }
+
+      /* ボタン配置の統一（問題#27,33対応） */
+      .button-group {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 1rem 0;
+      }
+
+      /* 左寄せが適切なページでは左寄せを維持 */
+      .button-group.left-aligned {
+        justify-content: flex-start;
+      }
+
+      /* オレンジ色ボタンの配置修正（問題#27対応） */
+      .button-group button.accounting {
+        flex-shrink: 0;
+      }
+
+      /* モーダル長さ制限（問題#15対応） */
+      .modal-content {
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      @media screen and (max-height: 600px) {
+        .modal-content {
+          max-height: 70vh;
+        }
+      }
+
+      /* ========== ページ遷移とスクロール位置管理（問題#16対応） ========== */
+      .page-container {
+        min-height: 100vh;
+        scroll-behavior: smooth;
+      }
+
+      /* ページ遷移時のスクロール位置リセット */
+      .view-transition {
+        animation: pageSlideIn 0.3s ease-out;
+      }
+
+      @keyframes pageSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ========== 文字のちらつき防止（問題#6対応） ========== */
+      .content-container {
+        opacity: 0;
+        transition: opacity 0.2s ease-in;
+      }
+
+      .content-container.loaded {
+        opacity: 1;
+      }
+
+      /* フォント読み込み完了まで非表示 */
+      .font-loading .content-container {
+        visibility: hidden;
+      }
+
       /* ========== Skeleton Loading States ========== */
       .skeleton {
         background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
@@ -325,10 +540,103 @@
         100% { background-position: -200% 0; }
       }
 
-      /* ========== Responsive Design ========== */
+      /* ========== Enhanced Responsive Design ========== */
+
+      /* タブレット用調整 */
+      @media screen and (min-width: 641px) and (max-width: 1024px) {
+        .container {
+          max-width: 600px;
+          padding: 2rem;
+        }
+
+        .button-group {
+          gap: 1rem;
+        }
+
+        .reservation-card .card-actions button {
+          font-size: 0.875rem;
+          padding: 0.5rem 1rem;
+        }
+      }
+
+      /* スマートフォン用調整 */
       @media (max-width: 640px) {
-        .modal-content { width: 95%; padding: 1rem; }
+        .modal-content {
+          width: 95%;
+          padding: 1rem;
+          margin: 1rem;
+        }
         .mobile-button, .mobile-input { font-size: 16px; }
+
+        /* ボタングループの小画面対応 */
+        .button-group {
+          flex-direction: column;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .button-group button {
+          width: 100%;
+          max-width: 280px;
+        }
+
+        /* 戻るボタンのモバイル調整 */
+        .back-button-container {
+          top: 0.5rem;
+          right: 0.5rem;
+        }
+
+        .back-button-container button {
+          padding: 0.5rem;
+          font-size: 0.875rem;
+        }
+
+        /* カードのモバイル最適化 */
+        .reservation-card, .record-card {
+          padding: 0.75rem;
+          gap: 0.75rem;
+        }
+
+        .card-header {
+          flex-direction: column;
+          gap: 0.75rem;
+          align-items: stretch;
+        }
+
+        .card-edit-button {
+          align-self: center;
+        }
+
+        .card-edit-button button {
+          width: 100%;
+          max-width: 120px;
+        }
+
+        .card-memo-section {
+          padding: 0.5rem;
+        }
+
+        .card-accounting-section button {
+          width: 100%;
+          max-width: 200px;
+        }
+      }
+
+      /* 極小画面（320px以下）対応 */
+      @media (max-width: 320px) {
+        .container {
+          padding: 0.5rem;
+        }
+
+        .button-group button {
+          font-size: 0.875rem;
+          padding: 0.75rem;
+        }
+
+        .modal-content {
+          margin: 0.5rem;
+          padding: 0.75rem;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -349,6 +657,124 @@
       }, 1000);
     }
   };
+
+  // =================================================================
+  // Page Transition & Content Loading Management
+  // =================================================================
+  const setupPageTransitionManagement = () => {
+    let currentView = null;
+    let previousScrollPosition = 0;
+
+    // ページ遷移時のスクロール位置リセット（問題#16対応）
+    const resetScrollPosition = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    };
+
+    // スクロール位置を保存
+    const saveScrollPosition = () => {
+      previousScrollPosition = window.scrollY;
+    };
+
+    // スクロール位置を復元
+    const restoreScrollPosition = () => {
+      window.scrollTo({
+        top: previousScrollPosition,
+        left: 0,
+        behavior: 'auto',
+      });
+    };
+
+    // ページ遷移の判定とスクロール管理
+    const handleViewChange = (newView, isModal = false) => {
+      const hasViewChanged = currentView !== newView;
+
+      if (isModal) {
+        // モーダル開閉：スクロール位置を保持
+        if (newView) {
+          // モーダル開く時：現在位置を保存
+          saveScrollPosition();
+        } else {
+          // モーダル閉じる時：位置を復元
+          restoreScrollPosition();
+        }
+      } else if (hasViewChanged && newView) {
+        // 実際のページ遷移：スクロール位置をリセット
+        currentView = newView;
+        resetScrollPosition();
+      }
+    };
+
+    // コンテンツ読み込み完了時の表示制御（問題#6対応）
+    const initializeContentVisibility = () => {
+      // フォント読み込み完了を待機
+      document.fonts.ready.then(() => {
+        const contentContainers =
+          document.querySelectorAll('.content-container');
+        contentContainers.forEach(container => {
+          container.classList.add('loaded');
+        });
+      });
+
+      // ページ遷移アニメーション
+      const pageContainer = document.querySelector('.page-container');
+      if (pageContainer) {
+        pageContainer.classList.add('view-transition');
+      }
+    };
+
+    // 戻るボタンの位置調整（問題#36対応）
+    const stabilizeBackButtonPosition = () => {
+      const backButtonContainer = document.querySelector(
+        '.back-button-container',
+      );
+      if (backButtonContainer) {
+        // 位置の強制リセット
+        backButtonContainer.style.transform = 'none';
+        backButtonContainer.style.transition = 'none';
+
+        // 少し待ってからtransitionを復活（スムーズな動作のため）
+        setTimeout(() => {
+          backButtonContainer.style.transition = 'all 0.2s ease';
+        }, 100);
+      }
+    };
+
+    return {
+      resetScrollPosition,
+      saveScrollPosition,
+      restoreScrollPosition,
+      handleViewChange,
+      initializeContentVisibility,
+      stabilizeBackButtonPosition,
+
+      // 統合初期化関数
+      initializePage: () => {
+        // 初回読み込み時は現在のビューを記録するのみ、スクロールリセットしない
+        if (window.stateManager && window.stateManager.getState) {
+          currentView = window.stateManager.getState().view;
+        }
+        initializeContentVisibility();
+        stabilizeBackButtonPosition();
+      },
+
+      // ページ遷移時専用初期化（StateManagerから呼び出し）
+      onPageTransition: newView => {
+        handleViewChange(newView, false);
+      },
+
+      // モーダル操作時専用（showInfo, showConfirm等から呼び出し）
+      onModalOpen: () => {
+        handleViewChange('modal', true);
+      },
+
+      onModalClose: () => {
+        handleViewChange(null, true);
+      },
+    };
+  };
+
+  // グローバルに公開（StateManagerから使用可能）
+  window.pageTransitionManager = setupPageTransitionManagement();
 
   // =================================================================
   // Mobile & Embedded Site Detection
@@ -530,4 +956,11 @@
   setupTailwindCSS();
   setupFontLoadingDetection();
   setupMobileOptimizations();
+
+  // DOM読み込み完了後にページ遷移管理を初期化
+  document.addEventListener('DOMContentLoaded', () => {
+    if (window.pageTransitionManager) {
+      window.pageTransitionManager.initializePage();
+    }
+  });
 </script>

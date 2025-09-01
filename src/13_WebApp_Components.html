@@ -13,7 +13,6 @@
    * - 最小パラメータ: 本質的なデータのみ受け取る
    * - 関心の分離: UIコンポーネントとビジネスデータを分離
    * - 組み合わせ可能: 小さな部品の組み合わせで複雑な画面を構築
-   * =================================================================
    */
 
   // =================================================================
@@ -50,13 +49,15 @@
 
   const Components = {
     /**
-     * シンプル化されたボタンコンポーネント
+     * 進化版ボタンコンポーネント
      * @param {Object} config - 設定オブジェクト
      * @param {string} config.action - data-action属性の値
      * @param {string} config.text - ボタンテキスト
      * @param {string} [config.style='primary'] - ボタンスタイル ('primary'|'secondary'|'danger')
      * @param {string} [config.size='normal'] - ボタンサイズ ('normal'|'full'|'small')
      * @param {boolean} [config.disabled=false] - 無効状態
+     * @param {string} [config.customClass=''] - 追加のCSSクラス
+     * @param {Object} [config.dataAttributes={}] - 追加のdata-*属性 (例: { classroomName: '東京' })
      * @returns {string} HTML文字列
      */
     button: ({
@@ -65,6 +66,8 @@
       style = 'primary',
       size = 'normal',
       disabled = false,
+      customClass = '',
+      dataAttributes = {},
     }) => {
       // スタイルマッピング
       const styleClasses = {
@@ -79,9 +82,22 @@
         small: 'text-sm px-3 py-1.5',
       };
 
+      // データ属性をHTML文字列に変換
+      const dataAttrs = Object.entries(dataAttributes)
+        .map(
+          ([key, value]) =>
+            `data-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}="${escapeHTML(value)}"`,
+        )
+        .join(' ');
+
+      // スタイルが'none'の場合は基本クラスを最小限にする
+      const baseClass = style === 'none' ? '' : DesignConfig.buttons.base;
+      const styleClass = style === 'none' ? '' : styleClasses[style] || '';
+
       return `<button type="button"
         data-action="${escapeHTML(action || '')}"
-        class="${DesignConfig.buttons.base} ${styleClasses[style] || styleClasses.primary} ${sizeClasses[size] || ''}"
+        class="${[baseClass, styleClass, sizeClasses[size] || '', customClass || ''].filter(Boolean).join(' ')}"
+        ${dataAttrs}
         ${disabled ? 'disabled' : ''}
       >${escapeHTML(text)}</button>`;
     },
@@ -722,41 +738,29 @@
     if (config.widthClass && config.widthClass.includes('full')) size = 'full';
 
     // 旧式パラメータをHTMLに埋め込み（actionHandlers互換性のため）
-    let additionalAttrs = '';
-    if (config.classroom)
-      additionalAttrs += ` data-classroom="${escapeHTML(config.classroom)}"`;
-    if (config.date)
-      additionalAttrs += ` data-date="${escapeHTML(config.date)}"`;
+    const dataAttributes = {};
+    if (config.classroom) dataAttributes.classroom = config.classroom;
+    if (config.date) dataAttributes.date = config.date;
     if (config.reservationId)
-      additionalAttrs += ` data-reservation-id="${escapeHTML(config.reservationId)}"`;
-    if (config.sheetName)
-      additionalAttrs += ` data-sheet-name="${escapeHTML(config.sheetName)}"`;
-    if (config.copyText)
-      additionalAttrs += ` data-copy-text="${escapeHTML(config.copyText)}"`;
-    if (config.details)
-      additionalAttrs += ` data-details="${escapeHTML(config.details)}"`;
-    if (config.studentId)
-      additionalAttrs += ` data-student-id="${escapeHTML(config.studentId)}"`;
-    if (config.realName)
-      additionalAttrs += ` data-real-name="${escapeHTML(config.realName)}"`;
-    if (config.nickname)
-      additionalAttrs += ` data-nickname="${escapeHTML(config.nickname)}"`;
+      dataAttributes.reservationId = config.reservationId;
+    if (config.sheetName) dataAttributes.sheetName = config.sheetName;
+    if (config.copyText) dataAttributes.copyText = config.copyText;
+    if (config.details) dataAttributes.details = config.details;
+    if (config.studentId) dataAttributes.studentId = config.studentId;
+    if (config.realName) dataAttributes.realName = config.realName;
+    if (config.nickname) dataAttributes.nickname = config.nickname;
     if (config.classroomName)
-      additionalAttrs += ` data-classroom-name="${escapeHTML(config.classroomName)}"`;
+      dataAttributes.classroomName = config.classroomName;
 
-    const button = Components.button({
+    return Components.button({
       action: config.action,
       text: config.text,
       style: style,
       size: size,
       disabled: config.disabled,
+      customClass: config.colorClass, // カスタムクラスを渡す
+      dataAttributes: dataAttributes,
     });
-
-    // 追加属性を挿入
-    return button.replace(
-      '<button type="button"',
-      `<button type="button"${additionalAttrs}`,
-    );
   };
 
   /**
@@ -830,5 +834,95 @@
       >
       <span>${escapeHTML(config.label)}</span>
     </label>`;
+  };
+
+  // =================================================================
+  // --- モーダルコンポーネント ---
+  // -----------------------------------------------------------------
+  // 汎用モーダル機能
+  // =================================================================
+
+  /**
+   * 汎用モーダルコンポーネントを生成します
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.id - モーダルのID
+   * @param {string} config.title - モーダルのタイトル
+   * @param {string} config.content - モーダルの内容（HTML文字列）
+   * @param {string} [config.maxWidth] - 最大幅のCSSクラス（デフォルト: 'max-w-sm'）
+   * @param {boolean} [config.showCloseButton] - 右上の×ボタンを表示するか（デフォルト: true）
+   * @returns {string} HTML文字列
+   */
+  Components.modal = config => {
+    const maxWidth = config.maxWidth || 'max-w-sm';
+    const showCloseButton = config.showCloseButton !== false;
+
+    return `
+      <div id="${escapeHTML(config.id)}" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
+        <div class="bg-white rounded-lg ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
+          <div class="flex justify-between items-center p-4 border-b border-ui-border">
+            <h2 class="text-xl font-bold text-brand-text">${escapeHTML(config.title)}</h2>
+            ${showCloseButton ? `<button onclick="Components.closeModal('${escapeHTML(config.id)}')" class="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>` : ''}
+          </div>
+          <div class="p-4">
+            ${config.content}
+          </div>
+        </div>
+      </div>`;
+  };
+
+  /**
+   * モーダルを表示します
+   * @param {string} modalId - モーダルのID
+   */
+  Components.showModal = modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.remove('hidden');
+      // フォーカストラップの設定
+      const focusableElements = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusableElements.length > 0) {
+        focusableElements[0].focus();
+      }
+    }
+  };
+
+  /**
+   * モーダルを非表示にします
+   * @param {string} modalId - モーダルのID
+   */
+  Components.closeModal = modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.add('hidden');
+    }
+  };
+
+  /**
+   * 背景クリックでモーダルを閉じる処理
+   * @param {Event} event - クリックイベント
+   * @param {string} modalId - モーダルのID
+   */
+  Components.closeModalOnBackdrop = (event, modalId) => {
+    if (event.target === event.currentTarget) {
+      Components.closeModal(modalId);
+    }
+  };
+
+  /**
+   * モーダルコンテンツ内のクリック処理
+   * ボタンなどのインタラクティブ要素はイベントを継続し、その他では伝播を停止
+   * @param {Event} event - クリックイベント
+   */
+  Components.handleModalContentClick = event => {
+    // ボタンまたはdata-action要素の場合はイベントを継続
+    const actionElement = event.target.closest('button, [data-action]');
+    if (actionElement) {
+      // ボタンクリックの場合は伝播を継続（外側のハンドラーで処理）
+      return;
+    }
+    // それ以外の場合は伝播を停止
+    event.stopPropagation();
   };
 </script>

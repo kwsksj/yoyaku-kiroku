@@ -107,6 +107,9 @@
         );
       }
 
+      // 現在のビューを記録（ページ遷移判定用）
+      const previousView = this.state.view;
+
       // アクションに基づいて状態更新
       let newState = {};
       switch (action.type) {
@@ -126,6 +129,15 @@
 
       // 内部の状態更新メソッドを呼び出し
       this._updateState(newState);
+
+      // ページ遷移が発生した場合のスクロール管理
+      if (
+        newState.view &&
+        newState.view !== previousView &&
+        window.pageTransitionManager
+      ) {
+        window.pageTransitionManager.onPageTransition(newState.view);
+      }
 
       // UI を自動で再描画
       this._scheduleRender();
@@ -380,9 +392,6 @@
           if (this.state.selectedClassroom) {
             context.selectedClassroom = this.state.selectedClassroom;
           }
-          break;
-        case 'classroomSelection':
-          // 教室選択画面では特別な状態保存不要
           break;
         case 'newReservation':
         case 'editReservation':

@@ -44,17 +44,6 @@
  * @throws {Error} いずれかのキャッシュ再構築中にエラーが発生した場合
  */
 function rebuildAllCachesEntryPoint() {
-  const ui = SpreadsheetApp.getUi();
-  const response = ui.alert(
-    'キャッシュデータの一括再構築',
-    '全てのキャッシュデータ（予約、生徒、会計マスター、日程マスター）を再構築します。よろしいですか？',
-    ui.ButtonSet.OK_CANCEL,
-  );
-  if (response !== ui.Button.OK) {
-    ui.alert('処理を中断しました。');
-    return;
-  }
-
   try {
     getActiveSpreadsheet().toast(
       'キャッシュデータの一括再構築を開始しました...',

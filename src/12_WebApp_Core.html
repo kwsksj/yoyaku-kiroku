@@ -319,7 +319,7 @@
    * @param {string} phoneInput - 入力された電話番号
    * @returns {{normalized: string, isValid: boolean, error?: string}} 正規化結果
    */
-  window.normalizePhoneNumberFrontend = function(phoneInput) {
+  window.normalizePhoneNumberFrontend = function (phoneInput) {
     if (!phoneInput || typeof phoneInput !== 'string') {
       return {
         normalized: '',
@@ -598,14 +598,6 @@
   // アプリ全体で汎用的に使用されるヘルパー関数群です。
   // =================================================================
 
-  /**
-   * 電話番号を 090 1234 5678 のような形式で表示する
-   */
-  function formatPhoneDisplay(phone) {
-    const digits = String(phone).replace(/[^0-9]/g, '');
-    return `${digits.slice(0, 3)} ${digits.slice(3, 7)} ${digits.slice(7)}`;
-  }
-
   // =================================================================
   // 統一エラーハンドリングシステム（08_ErrorHandler.jsから統合）
   // =================================================================
@@ -745,6 +737,11 @@
     return `${d.getMonth() + 1}/${d.getDate()} <span class="font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day]}</span>`;
   };
   const showModal = c => {
+    // モーダル表示時にスクロール位置を保存
+    if (window.pageTransitionManager) {
+      window.pageTransitionManager.onModalOpen();
+    }
+
     const m = document.getElementById('custom-modal'),
       b = document.getElementById('modal-buttons');
     b.innerHTML = '';
@@ -770,6 +767,11 @@
   const hideModal = () => {
     document.getElementById('custom-modal').classList.remove('active');
     ModalManager.clearCallback();
+
+    // モーダル非表示時にスクロール位置を復元
+    if (window.pageTransitionManager) {
+      window.pageTransitionManager.onModalClose();
+    }
   };
   const showInfo = (msg, t = '情報', cb = null) =>
     showModal({

@@ -104,7 +104,6 @@ function extractPersonalDataFromCache(studentId, cacheData) {
   }
 }
 
-
 /**
  * 電話番号を元にユーザーを認証します。スプレッドシートは読まず、キャッシュから認証します。
  * @param {string} phoneNumber - 認証に使用する電話番号。

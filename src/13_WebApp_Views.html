@@ -157,7 +157,8 @@
   };
 
   /**
-   * 予約・履歴カード用の共通カード構造を生成します。
+   * 予約・履歴カード用の新レイアウトカード構造を生成します。
+   * 仕様: 上部に教室情報（左）+編集ボタン（右）、中央に制作メモエリア、下部に当日のみ会計ボタン
    * @param {object} config - カード設定オブジェクト
    * @returns {string} HTML文字列
    */
@@ -174,41 +175,46 @@
     const isPastOrToday = isBooking
       ? new Date(item.date).getTime() <= today.getTime()
       : true;
+    const isToday =
+      today && new Date(item.date).toDateString() === today.toDateString();
 
     // 時刻表示の生成
     let timeText = '';
     if (item.startTime && item.endTime) {
-      timeText = `<span>${item.startTime} - ${item.endTime}</span>`;
+      timeText = `${item.startTime} - ${item.endTime}`;
     }
 
-    let cardColorClass = 'bg-ui-surface border border-ui-border';
+    // 日時表示（教室情報部分）
+    const dateTimeDisplay = `${formatDate(item.date || '')}${timeText ? ` ${timeText}` : ''}`;
+    const venueDisplay = `${item.classroom || ''}${venueText ? ` ${venueText}` : ''}`;
+
+    let cardColorClass =
+      'reservation-card bg-ui-surface border border-ui-border';
     if (isBooking) {
       const cardColor = item.isWaiting
         ? DesignConfig.cards.state.waitlist
         : DesignConfig.cards.state.booked;
-      cardColorClass = cardColor.card;
+      cardColorClass = `reservation-card ${cardColor.card}`;
     } else if (type === 'history') {
-      cardColorClass = DesignConfig.cards.state.history.card;
+      cardColorClass = `record-card ${DesignConfig.cards.state.history.card}`;
     }
 
-    // 制作メモ部分の背景色
-    const memoBackgroundClass = isBooking ? 'bg-ui-surface' : 'bg-ui-surface';
-
-    // ステータス表示（新仕様：シンプル化）
+    // ステータスバッジ（初回講習、キャンセル待ち）
     let statusBadges = '';
     if (isBooking) {
       if (item.firstLecture) {
-        statusBadges += `<p class="font-bold text-action-attention-bg text-lg">初回講習</p>`;
+        statusBadges += `<span class="inline-block bg-action-attention-bg text-action-attention-text text-xs font-bold px-2 py-1 rounded-full ml-2">初回講習</span>`;
       }
-      // waitlisted ステータスの場合のみ「キャンセル待ち」バッジ表示
       if (item.status === STATUS.WAITLISTED || item.isWaiting) {
-        statusBadges += `<p class="font-bold ${DesignConfig.cards.state.waitlist.text} text-lg bg-state-waitlist-bg px-2 py-1 rounded-md border border-state-waitlist-border">⏳ キャンセル待ち</p>`;
+        statusBadges += `<span class="inline-block bg-state-waitlist-bg text-state-waitlist-text text-xs font-bold px-2 py-1 rounded-full ml-2">⏳ キャンセル待ち</span>`;
       }
-      // キャンセル済みは表示の必要なし（myBookingsから除外済み）
     }
 
-    // ボタン部分の生成
-    const buttonsHtml = buttons
+    // 編集/確認ボタンの抽出（会計ボタン以外）
+    const editButtons = buttons.filter(
+      btn => !btn.text.includes('会計') && !btn.text.includes('記録'),
+    );
+    const editButtonsHtml = editButtons
       .map(btn =>
         Components.createButton({
           action: btn.action,
@@ -223,22 +229,56 @@
       )
       .join('');
 
+    // 会計ボタンの抽出（当日のみ表示）
+    const accountingButtons = buttons.filter(
+      btn => btn.text.includes('会計') || btn.text.includes('記録'),
+    );
+    const showAccountingButtons = isToday && accountingButtons.length > 0;
+    const accountingButtonsHtml = showAccountingButtons
+      ? accountingButtons
+          .map(btn =>
+            Components.createButton({
+              action: btn.action,
+              classroom: btn.classroom || item.classroom,
+              reservationId: btn.reservationId || item.reservationId,
+              date: btn.date || item.date,
+              sheetName: btn.sheetName || item.sheetName,
+              details: btn.details,
+              text: btn.text,
+              colorClass: btn.colorClass,
+            }),
+          )
+          .join('')
+      : '';
+
+    // 制作メモの内容（元の表示方式に戻す）
+    const memoContent =
+      item.workInProgress != null && item.workInProgress !== ''
+        ? item.workInProgress
+        : `<span class="text-brand-muted">制作メモ</span>`;
+    const memoDisplay = `<p class="text-base text-brand-text whitespace-pre-wrap break-words w-full leading-relaxed">${memoContent}</p>`;
+
     return `
       <div class="${cardColorClass || 'bg-ui-surface border border-ui-border'} p-3 rounded-lg flex flex-col space-y-3">
+        <!-- 教室情報 -->
         <div class="flex-shrink-0">
-          <div >
+          <div>
             <span class="text-brand-text font-bold text-base sm:text-xl">${formatDate(item.date || '')} </span>
             <span class="text-brand-text text-base time-display">${timeText || ''}</span>
           </div>
           <p class="text-brand-text font-bold text-base break-words">${item.classroom || ''} ${venueText || ''}</p>
           ${statusBadges || ''}
         </div>
-        <div class="${memoBackgroundClass || 'bg-ui-surface'} p-3 rounded-md w-full border border-ui-border">
+
+        <!-- 制作メモ -->
+        <div class="bg-ui-surface p-3 rounded-md w-full border border-ui-border">
           <div class="w-full min-h-[3rem] flex items-start">
-            <p class="text-base text-brand-text whitespace-pre-wrap break-words w-full leading-relaxed">${item.workInProgress != null && item.workInProgress !== '' ? item.workInProgress : `<span class="text-brand-muted">制作メモ</span>`}</p>
+            ${memoDisplay}
           </div>
         </div>
-        ${buttonsHtml ? `<div class="flex flex-wrap justify-center sm:justify-end items-center gap-2 flex-shrink-0 mt-3">${buttonsHtml}</div>` : ''}
+
+        <!-- ボタン配置（元の配置に戻す：編集ボタン+当日のみ会計ボタン） -->
+        ${editButtonsHtml || accountingButtonsHtml ? `<div class="flex flex-wrap justify-center sm:justify-end items-center gap-2 flex-shrink-0 mt-3">${editButtonsHtml}${showAccountingButtons ? accountingButtonsHtml : ''}</div>` : ''}
       </div>
     `;
   };
@@ -360,7 +400,6 @@
           <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
       </div>
       ${Components.createInput({ id: 'phone', label: '電話番号', type: 'tel', placeholder: '090 1234 5678', containerClass: DesignConfig.inputs.container, autocomplete: 'tel', isSrOnly: false, labelClass: `block text-brand-subtle text-sm text-center mb-1`, inputClass: 'text-center', inputmode: 'numeric', pattern: '[0-9]*', value: phoneValue })}
-      <p id="phone-display" class="text-brand-subtle text-lg mt-2">${formatPhoneDisplay(phoneValue)}</p>
       <div class="mt-6 flex justify-center">
           <div class="${DesignConfig.inputs.container}">
               ${Components.createButton({ text: 'ログイン または 新規登録', action: 'login', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
@@ -407,7 +446,6 @@
         <div class="mb-4">
             <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
             <input type="tel" id="reg-phone" value="${phoneValue}" class="${DesignConfig.inputs.base}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
-            <p id="reg-phone-display" class="text-brand-subtle text-lg mt-2">${formatPhoneDisplay(phoneValue)}</p>
         </div>`;
     } else if (isPhoneInputNeeded) {
       // プロフィール編集時：電話番号入力が必要
@@ -789,7 +827,7 @@
       title: 'よやく',
       items: bookingCards,
       showNewButton: true,
-      newAction: 'goToClassroomSelection',
+      newAction: 'showClassroomModal',
     });
 
     // 履歴セクションを生成（新仕様：「きろく」表示条件）
@@ -856,7 +894,6 @@
     // データが取得できていない場合の表示
     if (!classroomButtonsHtml) {
       return `
-        <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
         <div class="max-w-md mx-auto text-center">
           <p class="text-brand-subtle mb-6">現在、予約可能な教室がありません。</p>
           ${Components.createButton({ text: '戻る', action: 'smartGoBack', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
@@ -865,12 +902,89 @@
 
     return `
         ${Components.createBackButton('smartGoBack', '戻る')}
-        <h1 class="text-xl font-bold text-brand-text mb-4">あたらしい よやく</h1>
         <p class="text-brand-subtle text-center mb-6">教室 を おえらびください</p>
         <div class="max-w-md mx-auto space-y-3">
             ${classroomButtonsHtml}
         </div>
     `;
+  };
+
+  /**
+   * 教室名に応じた色クラスを取得します
+   * @param {string} classroomName - 教室名
+   * @returns {string} 色クラス文字列
+   */
+  const getClassroomColorClass = classroomName => {
+    if (classroomName.includes('東京')) {
+      return DesignConfig.classroomColors.tokyo.colorClass;
+    } else if (classroomName.includes('沼津')) {
+      return DesignConfig.classroomColors.numazu.colorClass;
+    } else if (classroomName.includes('つくば')) {
+      return DesignConfig.classroomColors.tsukuba.colorClass;
+    } else {
+      return DesignConfig.classroomColors.default.colorClass;
+    }
+  };
+
+  /**
+   * 教室選択モーダル用のコンテンツを生成します。
+   * @returns {string} HTML文字列
+   */
+  const getClassroomSelectionModalContent = () => {
+    const classrooms = Object.values(stateManager.getState().classrooms || {});
+
+    if (!classrooms.length) {
+      return `<div class="text-center"><p class="text-brand-subtle mb-4">現在、予約可能な教室がありません。</p></div>`;
+    }
+
+    const classroomButtonsHtml = classrooms
+      .map(classroomName => {
+        const colorClass = getClassroomColorClass(classroomName);
+        const fullButtonClass = `w-full h-12 text-center px-4 py-3 rounded-lg mobile-card touch-friendly flex items-center justify-center text-lg font-bold border ${colorClass}`;
+
+        const buttonHtml = Components.button({
+          action: 'selectClassroom',
+          text: classroomName,
+          style: 'none', // デフォルトスタイルを無効化
+          customClass: fullButtonClass,
+          dataAttributes: {
+            classroomName: classroomName,
+            classroom: classroomName, // フォールバック用
+          },
+        });
+
+        // デバッグ用: 生成されたHTMLを確認
+        if (!window.isProduction && typeof console !== 'undefined') {
+          console.log(
+            `🔘 ${classroomName}ボタンHTML:`,
+            buttonHtml.substring(0, 300),
+          );
+          console.log(`🔘 ${classroomName}カラークラス:`, colorClass);
+        }
+
+        return buttonHtml;
+      })
+      .join('');
+
+    return `
+      <p class="text-brand-subtle text-center mb-4">教室 を おえらびください</p>
+      <div class="space-y-3">
+        ${classroomButtonsHtml}
+      </div>
+    `;
+  };
+
+  /**
+   * 教室選択モーダル全体のHTMLを生成します。
+   * @returns {string} HTML文字列
+   */
+  const getClassroomSelectionModal = () => {
+    return Components.modal({
+      id: 'classroom-selection-modal',
+      title: '教室 を おえらびください',
+      content: getClassroomSelectionModalContent(),
+      maxWidth: 'max-w-auto',
+    });
   };
 
   /**
@@ -1432,7 +1546,7 @@
       return `
         <div class="text-center py-8">
           <p class="text-red-600">予約・記録情報が見つかりませんでした</p>
-          <button onclick="handleAction('goBackToDashboard')" 
+          <button onclick="handleAction('goBackToDashboard')"
                   class="mt-4 px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
             戻る
           </button>
