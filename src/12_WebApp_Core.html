@@ -589,7 +589,7 @@
     return `
     <div class="mt-4 pt-4 border-t">
       <label class="font-bold mb-2 block">購入希望（チェック可）</label>
-      <div class="grid grid-cols-2 gap-2">
+      <div class="grid grid-cols-1 gap-2">
         ${salesList
           .map(
             item => `
@@ -1275,30 +1275,21 @@
   }
 
   /**
-   * 初回講習同時割引を計算する
-   * 選択された割引時間(30分/60分)に基づいて割引金額を算出
+   * 初回者同時割引を計算する
+   * 固定の¥500引きを適用
    * @returns {Object|null} 割引計算結果 { discountAmount: number, discountItem: {name: string, price: number} } または null
    */
   function calculateDiscount() {
-    const discountSelector = document.getElementById('discount-selector');
-    if (discountSelector) {
-      const discountRule = stateManager
-        .getState()
-        .accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
-      if (discountRule) {
-        const discountMinutes = parseInt(discountSelector.value, 10);
-        if (discountMinutes > 0) {
-          const discountAmount =
-            (discountMinutes / 30) * Math.abs(Number(discountRule['単価']));
-          return {
-            amount: discountAmount,
-            item: {
-              name: `${C.items.DISCOUNT} (${discountMinutes}分)`,
-              price: -discountAmount,
-            },
-          };
-        }
-      }
+    const discountCheckbox = document.getElementById('discount-checkbox');
+    if (discountCheckbox && discountCheckbox.checked) {
+      const discountAmount = 500; // 固定の¥500引き
+      return {
+        amount: discountAmount,
+        item: {
+          name: `${C.items.DISCOUNT}`,
+          price: -discountAmount,
+        },
+      };
     }
     return null;
   }

@@ -59,23 +59,13 @@
    */
   const getDiscountHtml = (discountRule, selectedValue) => {
     if (!discountRule) return '';
-    const options = [
-      { value: C.frontendUi.DISCOUNT_OPTIONS.NONE, text: 'なし' },
-      {
-        value: C.frontendUi.DISCOUNT_OPTIONS.THIRTY_MIN,
-        text: `30分 (${Math.abs(Number(discountRule['単価']))}円引)`,
-      },
-      {
-        value: C.frontendUi.DISCOUNT_OPTIONS.SIXTY_MIN,
-        text: `60分 (${Math.abs(Number(discountRule['単価'])) * 2}円引)`,
-      },
-    ];
+    const isChecked = selectedValue && parseInt(selectedValue, 10) > 0 ? 'checked' : '';
     return `
         <div class="mt-4 pt-4 border-t border-ui-border-light">
-            <label class="${DesignConfig.text.labelBlock}">${discountRule['項目名']}</label>
-            <select id="discount-selector" name="discountMinutes" class="${DesignConfig.inputs.base} p-2 text-base accounting-item">
-                ${options.map(o => `<option value="${o.value}" ${String(o.value) === selectedValue ? 'selected' : ''}>${o.text}</option>`).join('')}
-            </select>
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="discount-checkbox" name="discountApplied" ${isChecked} class="accounting-item accent-action-primary-bg">
+                <span class="${DesignConfig.text.labelBlock}">${discountRule['項目名']} (¥500引き)</span>
+            </label>
         </div>`;
   };
 
@@ -199,11 +189,11 @@
       cardColorClass = `record-card ${DesignConfig.cards.state.history.card}`;
     }
 
-    // ステータスバッジ（初回講習、キャンセル待ち）
+    // ステータスバッジ（初回、キャンセル待ち）
     let statusBadges = '';
     if (isBooking) {
       if (item.firstLecture) {
-        statusBadges += `<span class="inline-block bg-action-attention-bg text-action-attention-text text-xs font-bold px-2 py-1 rounded-full ml-2">初回講習</span>`;
+        statusBadges += `<span class="inline-block bg-action-attention-bg text-action-attention-text text-xs font-bold px-2 py-1 rounded-full ml-2">初回</span>`;
       }
       if (item.status === STATUS.WAITLISTED || item.isWaiting) {
         statusBadges += `<span class="inline-block bg-state-waitlist-bg text-state-waitlist-text text-xs font-bold px-2 py-1 rounded-full ml-2">⏳ キャンセル待ち</span>`;
@@ -346,9 +336,8 @@
     const discountRule = stateManager
       .getState()
       .accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
-    const discountHtml = discountRule
-      ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule, reservationDetails.discountMinutes || '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
-      : '';
+    // 割引ルールが見つからない場合でも、常に割引チェックボックスを表示
+    const discountHtml = `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml({ '項目名': C.items.DISCOUNT }, reservationDetails.discountApplied ? '1' : '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
 
     return `
         <div class="p-4 ${DesignConfig.cards.background} rounded-lg space-y-3">
@@ -1065,7 +1054,7 @@
               statusText = '空き状況不明';
             }
 
-            // 初回講習の空き枠も表示
+            // 初回の空き枠も表示
             if (sl.firstLectureSlots > 0) {
               statusText += ` | 初回 ${sl.firstLectureSlots}`;
             }
@@ -1303,14 +1292,8 @@
             item['対象教室'].includes(classroom),
         );
         let discountHtml = '';
-        if (
-          discountRule &&
-          (classroom === C.classrooms.TSUKUBA ||
-            classroom === C.classrooms.NUMAZU)
-        ) {
-          const discountAmountText = `${Math.abs(Number(discountRule['単価']))}円`;
-          const discountUnitText = discountRule['単位'];
-          discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule['項目名']}: ${discountRule.説明 || `参加時間が初回講習と重なる場合、${discountUnitText}あたり${discountAmountText}割引`}</p>`;
+        if (discountRule) {
+          discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule['項目名']}: 初回参加者と同時刻に参加の場合、¥500割引</p>`;
         }
 
         return `
@@ -1332,7 +1315,7 @@
     const _renderBookingOptionsSection = () => {
       let optionsHtml = '';
 
-      // 初回講習の自動判定（新規予約の場合のみ）
+      // 初回の自動判定（新規予約の場合のみ）
       const isAutoFirstLecture =
         !isEdit &&
         currentUser.isFirstTime !== false &&
@@ -1346,7 +1329,10 @@
       if (classroom === C.classrooms.TOKYO) {
         optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked}><span>${C.items.FIRST_LECTURE}</span></label>`;
       }
-      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>${C.items.CHISEL_RENTAL}</span></label></div>`;
+      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>${C.items.CHISEL_RENTAL} 1回 ¥500</span></label></div>`;
+
+      // 割引の説明を追加
+      optionsHtml += `<div class="mt-3 pt-2 border-t border-ui-border-light"><p class="${DesignConfig.text.caption}">${C.items.DISCOUNT}: 初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
 
       return `
         <div class="mt-4 pt-4 border-t">

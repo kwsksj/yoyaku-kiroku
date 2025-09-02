@@ -704,7 +704,7 @@
 
     /** 予約を確定します */
     confirmBooking: () => {
-      // 初回講習の自動判定
+      // 初回の自動判定
       const isFirstTimeUser =
         stateManager.getState().currentUser.isFirstTime !== false &&
         (!stateManager.getState().history ||
@@ -1608,10 +1608,7 @@
           document.getElementById('break-time')?.value || 0,
           10,
         ),
-        discountMinutes: parseInt(
-          document.getElementById('discount-selector')?.value || 0,
-          10,
-        ),
+        discountApplied: document.getElementById('discount-checkbox')?.checked || false,
       };
     }
 

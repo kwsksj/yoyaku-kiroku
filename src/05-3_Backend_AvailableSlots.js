@@ -149,7 +149,7 @@ function getAvailableSlots() {
           );
         }
 
-        // 初回講習は独立して判定
+        // 初回者は独立して判定
         if (reservation.firstLecture && timeCache.beginnerStartTime) {
           const startTime = reservation.startTime
             ? new Date(`1900-01-01T${reservation.startTime}`)
@@ -272,7 +272,7 @@ function getAvailableSlots() {
           isFull: morningSlots <= 0 && afternoonSlots <= 0,
         });
       } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
-        // 東京教室: 本講座と初回講習
+        // 東京教室: 本講座と初回者
         const mainCount = sessionCounts.get(ITEM_NAME_MAIN_LECTURE) || 0;
         const introCount = sessionCounts.get(ITEM_NAME_FIRST_LECTURE) || 0;
 
