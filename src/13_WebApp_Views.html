@@ -59,7 +59,8 @@
    */
   const getDiscountHtml = (discountRule, selectedValue) => {
     if (!discountRule) return '';
-    const isChecked = selectedValue && parseInt(selectedValue, 10) > 0 ? 'checked' : '';
+    const isChecked =
+      selectedValue && parseInt(selectedValue, 10) > 0 ? 'checked' : '';
     return `
         <div class="mt-4 pt-4 border-t border-ui-border-light">
             <label class="flex items-center space-x-2">
@@ -337,7 +338,7 @@
       .getState()
       .accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
     // 割引ルールが見つからない場合でも、常に割引チェックボックスを表示
-    const discountHtml = `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml({ '項目名': C.items.DISCOUNT }, reservationDetails.discountApplied ? '1' : '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
+    const discountHtml = `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml({ 項目名: C.items.DISCOUNT }, reservationDetails.discountApplied ? '1' : '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
 
     return `
         <div class="p-4 ${DesignConfig.cards.background} rounded-lg space-y-3">
@@ -1033,30 +1034,52 @@
             let cC, sB, act;
             const tag = iB ? 'div' : 'button';
 
-            // 新しいslot構造に対応したステータステキスト生成
+            // 初回者・経験者別の表示制御
+            const isFirstTimeBooking =
+              stateManager.getState().isFirstTimeBooking;
             let statusText;
-            if (
-              typeof sl.morningSlots !== 'undefined' &&
-              typeof sl.afternoonSlots !== 'undefined'
-            ) {
-              // つくば教室: 午前・午後制（統一定数を使用）
-              const morningLabel =
-                stateManager.getState().constants?.sessions?.MORNING || '午前';
-              const afternoonLabel =
-                stateManager.getState().constants?.sessions?.AFTERNOON ||
-                '午後';
-              statusText = `${morningLabel}空き ${sl.morningSlots} | ${afternoonLabel}空き ${sl.afternoonSlots}`;
-            } else if (typeof sl.availableSlots !== 'undefined') {
-              // 東京教室・沼津教室: 単一セッション制
-              statusText = `空き ${sl.availableSlots}`;
-            } else {
-              // フォールバック
-              statusText = '空き状況不明';
+
+            // デバッグ情報（開発時のみ）
+            if (!window.isProduction && isFirstTimeBooking) {
+              console.log('🔍 初回者スロット情報:', {
+                date: sl.date,
+                classroom: sl.classroom,
+                firstLectureSlots: sl.firstLectureSlots,
+                isFirstTimeBooking,
+              });
             }
 
-            // 初回の空き枠も表示
-            if (sl.firstLectureSlots > 0) {
-              statusText += ` | 初回 ${sl.firstLectureSlots}`;
+            if (isFirstTimeBooking) {
+              // 初回者（はじめての方）の場合
+              if (sl.beginnerCapacity > 0) {
+                // 初回者の定員が1以上の日程：初回者枠に基づく空席情報を提示
+                statusText = `初回者 空き ${sl.firstLectureSlots}`;
+              } else {
+                // 初回者の定員が0の日程：「経験者のみ」として表示
+                statusText = '経験者のみ';
+              }
+            } else {
+              // 経験者の場合：全体（本講座）の参加者数に基づく表示
+              if (
+                typeof sl.morningSlots !== 'undefined' &&
+                typeof sl.afternoonSlots !== 'undefined'
+              ) {
+                // ２部制の場合の例「空き 午前3 午後 4」
+                const morningLabel =
+                  stateManager.getState().constants?.sessions?.MORNING ||
+                  '午前';
+                const afternoonLabel =
+                  stateManager.getState().constants?.sessions?.AFTERNOON ||
+                  '午後';
+                statusText = `空き ${morningLabel}${sl.morningSlots} ${afternoonLabel}${sl.afternoonSlots}`;
+              } else if (typeof sl.availableSlots !== 'undefined') {
+                // セッション制、全日制の場合の例「空き 3」
+                statusText = `空き ${sl.availableSlots}`;
+              } else {
+                // フォールバック
+                statusText = '空き状況不明';
+              }
+              // 経験者には初回者の空き情報は提示しない（既存のコメントアウト）
             }
 
             if (iB) {
@@ -1098,16 +1121,40 @@
                 sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`;
                 act = '';
               }
-            } else if (sl.isFull) {
-              // 満席（キャンセル待ち）の場合
-              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
-              act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
             } else {
-              // 予約可能な場合
-              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
-              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
-              act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
+              // 初回者・経験者別の満席判定とUI状態決定
+              let isSlotFull = false;
+              let canBook = true;
+
+              if (isFirstTimeBooking) {
+                // 初回者の場合：初回者枠に基づく判定
+                if (sl.beginnerCapacity <= 0) {
+                  // 初回講習枠が0の場合は「経験者のみ」でクリック不可
+                  canBook = false;
+                }
+                // 初回講習枠が満席の場合はキャンセル待ち
+                isSlotFull = sl.firstLectureIsFull;
+              } else {
+                // 経験者の場合：全体枠に基づく判定
+                isSlotFull = sl.isFull;
+              }
+
+              if (!canBook) {
+                // 初回者で初回講習枠が0の場合（経験者のみ）：クリック不可
+                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card} opacity-50`;
+                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">${statusText}</span>`;
+                act = '';
+              } else if (isSlotFull) {
+                // 満席（キャンセル待ち）の場合
+                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
+                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
+                act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
+              } else {
+                // 予約可能な場合
+                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
+                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
+                act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
+              }
             }
 
             const venueDisplay = sl.venue ? ` ${sl.venue}` : '';
@@ -1188,8 +1235,11 @@
       order,
       messageToTeacher,
     } = sourceData;
-    const { currentUser, accountingMaster: master } =
-      window.stateManager.getState();
+    const {
+      currentUser,
+      accountingMaster: master,
+      isFirstTimeBooking,
+    } = window.stateManager.getState();
 
     // 日程マスタベースの教室形式判定に変更
     const isTimeBased = isTimeBasedClassroom(sourceData);
@@ -1214,14 +1264,19 @@
     }
 
     // 新規作成時のみ利用するデータ
-    const { availableSlots, morningSlots, afternoonSlots, isFull } =
-      stateManager.getState().selectedSlot || {};
-    const isFirstTime = stateManager.getState().isFirstTimeBooking && !isEdit;
+    const {
+      availableSlots,
+      morningSlots,
+      afternoonSlots,
+      firstLectureSlots,
+      isFull,
+      firstLectureIsFull,
+    } = stateManager.getState().selectedSlot || {};
 
     // --- 2. モードに応じた設定 ---
     const title = isEdit
       ? '予約内容の編集'
-      : isFull
+      : isFull || (isFirstTimeBooking && firstLectureIsFull)
         ? 'キャンセル待ち申込み'
         : '予約詳細の入力';
     const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
@@ -1239,7 +1294,16 @@
       if (isEdit) {
         return sourceData.isWaiting ? 'キャンセル待ち' : '予約済み';
       }
+
+      if (isFirstTimeBooking) {
+        if (firstLectureIsFull) {
+          return '初回者枠 満席（キャンセル待ち申込み）';
+        }
+        return `初回者枠 空き ${firstLectureSlots}`;
+      }
+
       if (isFull) return '満席（キャンセル待ち申込み）';
+
       if (typeof morningSlots !== 'undefined') {
         const morningLabel =
           stateManager.getState().constants?.sessions?.MORNING || '午前';
@@ -1247,6 +1311,7 @@
           stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
         return `${morningLabel}空き ${morningSlots} | ${afternoonLabel}空き ${afternoonSlots}`;
       }
+
       return `空き ${availableSlots}`;
     };
 
@@ -1267,13 +1332,44 @@
         const classEndHour = parseInt(endParts[0] || '0');
         const classEndMinutes = parseInt(endParts[1] || '0');
 
-        // Note: 外部で定義されている `getTimeOptionsHtml` を呼び出していると想定
-        const startTimeOptions = getTimeOptionsHtml(
-          classStartHour,
-          classEndHour,
-          C.frontendUi.TIME_SETTINGS.STEP_MINUTES,
-          startTime,
-        );
+        // 初回者の場合は開始時刻を固定（日程マスタのBEGINNER_START項目を使用）
+        let fixedStartTime = startTime;
+        let isTimeFixed = false;
+        if (isFirstTimeBooking && sourceData.beginnerStart) {
+          fixedStartTime = sourceData.beginnerStart;
+          isTimeFixed = true;
+        }
+
+        // デバッグ情報（開発時のみ）
+        if (!window.isProduction && isFirstTimeBooking) {
+          console.log('🔍 初回者用時刻設定:', {
+            isFirstTimeBooking,
+            isEdit,
+            firstStart: times.firstStart,
+            secondStart: times.secondStart,
+            beginnerStart: sourceData.beginnerStart,
+            fixedStartTime,
+            isTimeFixed,
+          });
+        }
+
+        // 初回者の場合は固定時刻のオプションのみ、経験者は通常の選択肢
+        let startTimeOptions;
+        if (isTimeFixed) {
+          // 初回者：固定時刻のオプションのみ
+          startTimeOptions = `
+            <option value="${fixedStartTime}"'selected'>
+              ${fixedStartTime}
+            </option>`;
+        } else {
+          // 経験者：通常の選択肢
+          startTimeOptions = getTimeOptionsHtml(
+            classStartHour,
+            classEndHour,
+            C.frontendUi.TIME_SETTINGS.STEP_MINUTES,
+            fixedStartTime,
+          );
+        }
         let endTimeOptions = getTimeOptionsHtml(
           classStartHour,
           classEndHour,
@@ -1292,16 +1388,30 @@
             item['対象教室'].includes(classroom),
         );
         let discountHtml = '';
-        if (discountRule) {
+        if (discountRule && !isFirstTimeBooking) {
           discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule['項目名']}: 初回参加者と同時刻に参加の場合、¥500割引</p>`;
         }
+
+        // 初回者の場合の開始時刻固定メッセージ
+        const timeFixedMessage = isTimeFixed
+          ? `<p class="${DesignConfig.text.caption} mb-2">初回の方は ${fixedStartTime} より開始です。昼をまたぐ場合は、1時間休憩を挟みます</p>`
+          : '';
 
         return `
           <div class="mt-4 pt-4 border-t">
             <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間</h4>
+            ${timeFixedMessage}
             <div class="grid grid-cols-2 gap-4 mb-2">
-              ${Components.createSelect({ id: 'res-start-time', caption: '開始予定', options: startTimeOptions })}
-              ${Components.createSelect({ id: 'res-end-time', caption: '終了予定', options: endTimeOptions })}
+              ${Components.select({
+                id: 'res-start-time',
+                label: '開始予定',
+                options: startTimeOptions,
+              })}
+              ${Components.select({
+                id: 'res-end-time',
+                label: '終了予定',
+                options: endTimeOptions,
+              })}
             </div>
             ${discountHtml}
           </div>`;
@@ -1315,19 +1425,16 @@
     const _renderBookingOptionsSection = () => {
       let optionsHtml = '';
 
-      // 初回の自動判定（新規予約の場合のみ）
-      const isAutoFirstLecture =
-        !isEdit &&
-        currentUser.isFirstTime !== false &&
-        (!stateManager.getState().history ||
-          stateManager.getState().history.length === 0);
-
       const firstLectureChecked =
-        firstLecture || isAutoFirstLecture ? 'checked' : '';
+        firstLecture || isFirstTimeBooking ? 'checked' : '';
+      const firstLectureDisabled = isFirstTimeBooking ? 'disabled' : '';
       const rentalChecked = chiselRental ? 'checked' : '';
 
       if (classroom === C.classrooms.TOKYO) {
-        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked}><span>${C.items.FIRST_LECTURE}</span></label>`;
+        const firstLectureLabel = isFirstTimeBooking
+          ? `<span>${C.items.FIRST_LECTURE}</span><span class="${DesignConfig.text.caption} ml-2"></span>`
+          : `<span>${C.items.FIRST_LECTURE}</span>`;
+        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked} ${firstLectureDisabled}>${firstLectureLabel}</label>`;
       }
       optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>${C.items.CHISEL_RENTAL} 1回 ¥500</span></label></div>`;
 
@@ -1346,10 +1453,6 @@
      * 購入希望欄を折り畳み物販チェックリスト＋自由記入欄に変更
      */
     const _renderDetailsInputSection = () => {
-      const firstTimeGuidance = `
-        <p class="${DesignConfig.text.caption}">- 教室サイトの作例などは作りやすいです（特に「だるま」など）</p>
-        <p class="${DesignConfig.text.caption}">- 作品のサイズや題材によりますが、**1回の参加では完成しない可能性があります**</p>`;
-
       // 物販チェックリスト（折り畳み）
       const salesChecklistHtml =
         typeof buildSalesChecklist === 'function'
@@ -1360,10 +1463,14 @@
         <div class="mt-4 pt-4 border-t space-y-4">
           ${Components.createTextArea({
             id: 'wip-input',
-            label: isFirstTime ? '今回制作したいもの' : 'やりたいこと/作業予定',
-            caption: isFirstTime
-              ? '作りたいものがある方はご記入ください。仮でもOK! * ご自身の作り途中の作品や、材料の持ち込みも可'
-              : '',
+            label:
+              isFirstTimeBooking && !isEdit
+                ? '今回つくりたいもの'
+                : 'つくりたいもの/やりたいこと/作業予定',
+            caption:
+              isFirstTimeBooking && !isEdit
+                ? '最初に作る「だるま」の木彫り以外に、作りたいものがある方はご記入ください（仮でもOK!）。教室サイトの作例などは作りやすいです。ただし１回の参加では完成しない可能性があります。ご自身の作り途中の作品や、材料の持ち込みも可です！'
+                : '',
             placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！',
             value: workInProgress || '',
           })}
@@ -1376,11 +1483,10 @@
               '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
             value: materialInfo || '',
           })}
-          ${isFirstTime ? firstTimeGuidance : ''}
         </div>
         <div class="mt-4 pt-4 border-t space-y-4">
           ${salesChecklistHtml}
-          ${Components.createInput({ id: 'order-input', label: 'その他・自由記入（購入希望）', type: 'text', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
+          ${Components.createTextArea({ id: 'order-input', label: '購入希望（自由記入）', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
           ${Components.createTextArea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
         </div>`;
     };

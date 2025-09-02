@@ -129,17 +129,11 @@
               'processInitialData完了 - classrooms: ' +
                 JSON.stringify(newAppState.classrooms),
             );
-            // NF-04.2: 初回予約判定
-            const isFirstTime =
-              (!newAppState.myBookings ||
-                newAppState.myBookings.length === 0) &&
-              (!newAppState.history || newAppState.history.length === 0);
 
             window.stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 ...newAppState,
-                isFirstTimeBooking: isFirstTime,
                 // サーバーから取得した定数を使って、表示する履歴の初期件数を設定
                 recordsToShow:
                   newAppState.constants?.ui?.HISTORY_INITIAL_RECORDS || 10,
@@ -705,17 +699,15 @@
     /** 予約を確定します */
     confirmBooking: () => {
       // 初回の自動判定
-      const isFirstTimeUser =
-        stateManager.getState().currentUser.isFirstTime !== false &&
-        (!stateManager.getState().history ||
-          stateManager.getState().history.length === 0);
+      // isFirstTimeBooking を stateManager から取得
+      const isFirstTimeBooking = stateManager.getState().isFirstTimeBooking;
 
       const bookingOptions = {
         chiselRental:
           document.getElementById('option-rental')?.checked || false,
         firstLecture:
           document.getElementById('option-first-lecture')?.checked ||
-          isFirstTimeUser, // 自動設定
+          isFirstTimeBooking, // 自動設定
         startTime: document.getElementById('res-start-time')?.value || '',
         endTime: document.getElementById('res-end-time')?.value || '',
         workInProgress: document.getElementById('wip-input')?.value || '',
@@ -1608,7 +1600,8 @@
           document.getElementById('break-time')?.value || 0,
           10,
         ),
-        discountApplied: document.getElementById('discount-checkbox')?.checked || false,
+        discountApplied:
+          document.getElementById('discount-checkbox')?.checked || false,
       };
     }
 
@@ -1997,32 +1990,46 @@
       const accountingForm = e.target.closest('#accounting-form');
       if (stateManager.getState().view === 'accounting' && accountingForm) {
         handleAccountingFormChange();
+
+        // デバッグログ
+        if (!window.isProduction) {
+          console.log('🔄 会計フォーム変更イベント:', {
+            element: e.target.name || e.target.id,
+            value: e.target.value,
+            checked: e.target.checked,
+          });
+        }
       }
 
-      // NF-04: 新規登録時の木彫り経験ラジオボタンの変更
-      if (e.target.closest('#experience-radio-group')) {
-        const container = document.getElementById('past-work-container');
-        if (container) {
-          if (e.target.value === 'はじめて！') {
-            container.classList.add('hidden');
-          } else {
-            container.classList.remove('hidden');
-          }
+      // 新規登録Step3での経験有無による表示切り替え
+      if (e.target.name === 'experience') {
+        const pastWorkContainer = document.getElementById(
+          'past-work-container',
+        );
+        if (pastWorkContainer) {
+          pastWorkContainer.classList.toggle(
+            'hidden',
+            e.target.value === 'はじめて！',
+          );
         }
       }
     });
 
-    // 会計画面でのリアルタイム入力検知（主に input[type=text] など）
+    // アプリ全体の入力イベントを捕捉（主に text や textarea）
     app.addEventListener('input', e => {
-      // 電話番号入力フィールドのリアルタイム整形
-      if (e.target.matches('#phone, #reg-phone, #edit-phone')) {
-        handlePhoneInputFormatting(e.target);
-      }
-
+      // 会計画面での変更
       const accountingForm = e.target.closest('#accounting-form');
       if (stateManager.getState().view === 'accounting' && accountingForm) {
         handleAccountingFormChange();
       }
+
+      // 電話番号入力のリアルタイム整形
+      if (e.target.id === 'phone' || e.target.id === 'edit-phone') {
+        handlePhoneInputFormatting(e.target);
+      }
     });
+
+    // 初期画面を描画
+    render();
   };
 </script>

@@ -1122,7 +1122,7 @@ function getScheduleInfoForDate(date, classroom) {
       firstEnd: schedule.firstEnd || schedule['1部終了'],
       secondStart: schedule.secondStart || schedule['2部開始'],
       secondEnd: schedule.secondEnd || schedule['2部終了'],
-      beginnerStart: schedule.beginnerStart || schedule['初心者開始'],
+      beginnerStart: schedule.beginnerStart || schedule['初回者開始'],
       totalCapacity: totalCapacity,
       beginnerCapacity: beginnerCapacity,
       status: schedule.status,

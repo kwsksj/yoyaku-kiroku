@@ -158,7 +158,7 @@ function getAvailableSlots() {
             ? new Date(`1900-01-01T${reservation.endTime}`)
             : null;
 
-          // 予約時間が初心者開始時刻と重複するかチェック
+          // 予約時間が初回者開始時刻と重複するかチェック
           if (
             startTime &&
             endTime &&
@@ -199,13 +199,13 @@ function getAvailableSlots() {
         if (isNaN(beginnerCapacity)) beginnerCapacity = null;
       }
 
-      if (!beginnerCapacity) {
+      if (beginnerCapacity == null) {
         beginnerCapacity = INTRO_LECTURE_CAPACITY;
         beginnerCapacitySource = 'システムデフォルト';
       }
 
       Logger.log(
-        `定員設定 - ${schedule.date} ${schedule.classroom}: 全体定員=${totalCapacity}(${totalCapacitySource}), 初心者定員=${beginnerCapacity}(${beginnerCapacitySource})`,
+        `定員設定 - ${schedule.date} ${schedule.classroom}: 全体定員=${totalCapacity}(${totalCapacitySource}), 初回者定員=${beginnerCapacity}(${beginnerCapacitySource})`,
       );
 
       if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
@@ -218,6 +218,9 @@ function getAvailableSlots() {
         const afternoonSlots = Math.max(0, totalCapacity - afternoonCount);
         const introSpecific = Math.max(0, beginnerCapacity - introCount);
         const introFinalAvailable = Math.min(afternoonSlots, introSpecific);
+
+        const firstLectureIsFull =
+          beginnerCapacity > 0 && introFinalAvailable === 0;
 
         availableSlots.push({
           classroom: schedule.classroom,
@@ -270,6 +273,7 @@ function getAvailableSlots() {
           afternoonSlots: afternoonSlots,
           firstLectureSlots: introFinalAvailable,
           isFull: morningSlots <= 0 && afternoonSlots <= 0,
+          firstLectureIsFull: firstLectureIsFull,
         });
       } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
         // 東京教室: 本講座と初回者
@@ -279,6 +283,9 @@ function getAvailableSlots() {
         const mainAvailable = Math.max(0, totalCapacity - mainCount);
         const introSpecific = Math.max(0, beginnerCapacity - introCount);
         const introFinalAvailable = Math.min(mainAvailable, introSpecific);
+
+        const firstLectureIsFull =
+          beginnerCapacity > 0 && introFinalAvailable === 0;
 
         availableSlots.push({
           classroom: schedule.classroom,
@@ -314,6 +321,7 @@ function getAvailableSlots() {
           availableSlots: mainAvailable,
           firstLectureSlots: introFinalAvailable,
           isFull: mainAvailable <= 0,
+          firstLectureIsFull: firstLectureIsFull,
         });
       } else {
         // 沼津教室など: 全日時間制
@@ -323,6 +331,9 @@ function getAvailableSlots() {
         const available = Math.max(0, totalCapacity - allDayCount);
         const introSpecific = Math.max(0, beginnerCapacity - introCount);
         const introFinalAvailable = Math.min(available, introSpecific);
+
+        const firstLectureIsFull =
+          beginnerCapacity > 0 && introFinalAvailable === 0;
 
         availableSlots.push({
           classroom: schedule.classroom,
@@ -358,6 +369,7 @@ function getAvailableSlots() {
           availableSlots: available,
           firstLectureSlots: introFinalAvailable,
           isFull: available <= 0,
+          firstLectureIsFull: firstLectureIsFull,
         });
       }
     });

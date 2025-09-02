@@ -58,7 +58,7 @@ function createScheduleMasterSheet() {
     scheduleSheet.setColumnWidth(3, COLUMN_WIDTH_VENUE); // 会場
     scheduleSheet.setColumnWidth(4, COLUMN_WIDTH_CLASSROOM_TYPE); // 教室形式
     scheduleSheet.setColumnWidths(5, 4, COLUMN_WIDTH_TIME); // 時刻関連（講座開始〜休憩終了）
-    scheduleSheet.setColumnWidth(9, COLUMN_WIDTH_BEGINNER_START); // 初心者開始
+    scheduleSheet.setColumnWidth(9, COLUMN_WIDTH_BEGINNER_START); // 初回者開始
     scheduleSheet.setColumnWidths(10, 2, COLUMN_WIDTH_CAPACITY); // 定員関連
     scheduleSheet.setColumnWidth(12, COLUMN_WIDTH_STATUS); // 状態
     scheduleSheet.setColumnWidth(13, COLUMN_WIDTH_NOTES); // 備考
@@ -477,9 +477,9 @@ function generateScheduleDataWithDefaults(uniqueCombinations) {
       classroomDefaults.firstEnd, // 1部終了
       classroomDefaults.secondStart, // 2部開始
       classroomDefaults.secondEnd, // 2部終了
-      classroomDefaults.beginnerStart, // 初心者開始
+      classroomDefaults.beginnerStart, // 初回者開始
       classroomDefaults.totalCapacity, // 全体定員
-      classroomDefaults.beginnerCapacity, // 初心者定員
+      classroomDefaults.beginnerCapacity, // 初回者定員
       SCHEDULE_STATUS_SCHEDULED, // 状態
       '既存予約から自動生成', // 備考
     ]);

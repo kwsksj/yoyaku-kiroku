@@ -242,6 +242,11 @@
     updateComputed() {
       if (!this.state.myBookings || !this.state.history) return;
 
+      // isFirstTimeBooking の計算を追加
+      this.state.isFirstTimeBooking =
+        (!this.state.myBookings || this.state.myBookings.length === 0) &&
+        (!this.state.history || this.state.history.length === 0);
+
       // 基本的なソート処理
       this.state.computed.sortedBookings = [...this.state.myBookings].sort(
         (a, b) => new Date(b.date) - new Date(a.date),
