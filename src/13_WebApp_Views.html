@@ -65,7 +65,7 @@
         <div class="mt-4 pt-4 border-t border-ui-border-light">
             <label class="flex items-center space-x-2">
                 <input type="checkbox" id="discount-checkbox" name="discountApplied" ${isChecked} class="accounting-item accent-action-primary-bg">
-                <span class="${DesignConfig.text.labelBlock}">${discountRule['項目名']} (¥500引き)</span>
+                <span class="${DesignConfig.text.labelBlock}">${discountRule[HEADERS.ACCOUNTING.ITEM_NAME]} (¥500引き)</span>
             </label>
         </div>`;
   };
@@ -336,13 +336,36 @@
 
     const discountRule = stateManager
       .getState()
-      .accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
+      .accountingMaster.find(
+        item => item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.DISCOUNT,
+      );
     // 割引ルールが見つからない場合でも、常に割引チェックボックスを表示
     const discountHtml = `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml({ 項目名: C.items.DISCOUNT }, reservationDetails.discountApplied ? '1' : '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
+
+    // 基本授業料の表示を追加
+    const basicTuitionRule = stateManager
+      .getState()
+      .accountingMaster.find(
+        item =>
+          item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.MAIN_LECTURE &&
+          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(
+            scheduleInfo.classroom || reservationDetails.classroom,
+          ),
+      );
+
+    const basicTuitionDisplay = basicTuitionRule
+      ? `<div class="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+           <div class="text-base text-blue-800">
+             <span class="font-semibold">${C.items.MAIN_LECTURE}:</span> ¥${basicTuitionRule[HEADERS.ACCOUNTING.UNIT_PRICE]?.toLocaleString() || 0} / 30分
+           </div>
+         </div>`
+      : '';
 
     return `
         <div class="p-4 ${DesignConfig.cards.background} rounded-lg space-y-3">
             <h3 class="${DesignConfig.text.heading} mb-2">授業料</h3>
+            ${basicTuitionDisplay}
             <div class="grid grid-cols-3 gap-2 items-end">
                 ${Components.createSelect({ id: 'start-time', name: 'startTime', label: '開始時刻', containerClass: 'col-span-1', options: startTimeOptions })}
                 ${Components.createSelect({ id: 'end-time', name: 'endTime', label: '終了時刻', containerClass: 'col-span-1', options: endTimeOptions })}
@@ -1316,6 +1339,69 @@
     };
 
     /**
+     * 授業料表示セクションを生成します。
+     */
+    const _renderTuitionDisplaySection = () => {
+      // 教室形式の判定
+      if (isTimeBased) {
+        // 時間制の場合：基本授業料を表示
+        const basicTuitionRule = master.find(
+          item =>
+            item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.MAIN_LECTURE &&
+            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
+        );
+
+        if (basicTuitionRule) {
+          const price = basicTuitionRule[HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
+          return `
+            <div class="mt-4 pt-4 border-t">
+              <h4 class="font-bold ${DesignConfig.colors.text} mb-2">授業料</h4>
+              <div class="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                <div class="text-base text-blue-800">
+                  <span class="font-semibold">${C.items.MAIN_LECTURE}:</span> ¥${price.toLocaleString()} / 30分
+                </div>
+              </div>
+            </div>`;
+        }
+      } else {
+        // 固定制の場合：初回授業料または基本授業料を表示
+        const targetItemName = isFirstTimeBooking
+          ? C.items.FIRST_LECTURE
+          : C.items.MAIN_LECTURE;
+        const tuitionItem = master.find(
+          item =>
+            item[HEADERS.ACCOUNTING.TYPE] === C.itemTypes.TUITION &&
+            item[HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
+            (item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
+              item[HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(classroom)),
+        );
+
+        if (tuitionItem) {
+          const price = tuitionItem[HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
+          const bgColor = isFirstTimeBooking
+            ? 'bg-green-50 border-green-400'
+            : 'bg-blue-50 border-blue-400';
+          const textColor = isFirstTimeBooking
+            ? 'text-green-800'
+            : 'text-blue-800';
+          const label = targetItemName;
+
+          return `
+            <div class="mt-4 pt-4 border-t">
+              <h4 class="font-bold ${DesignConfig.colors.text} mb-2">授業料</h4>
+              <div class="mb-3 p-3 ${bgColor} rounded border-l-4">
+                <div class="text-base ${textColor}">
+                  <span class="font-semibold">${label}:</span> ¥${price.toLocaleString()}
+                </div>
+              </div>
+            </div>`;
+        }
+      }
+      return '';
+    };
+
+    /**
      * 予約時間選択のUIを生成します。
      */
     const _renderTimeOptionsSection = () => {
@@ -1327,7 +1413,10 @@
         }
 
         const startParts = times.firstStart.split(':');
-        const endParts = times.firstEnd.split(':');
+        const endParts =
+          !times.secondStart || !times.secondEnd
+            ? times.firstEnd.split(':') // 1部制の場合
+            : times.secondEnd.split(':'); // 2部制の場合
         const classStartHour = parseInt(startParts[0] || '0');
         const classEndHour = parseInt(endParts[0] || '0');
         const classEndMinutes = parseInt(endParts[1] || '0');
@@ -1367,7 +1456,7 @@
             classStartHour,
             classEndHour,
             C.frontendUi.TIME_SETTINGS.STEP_MINUTES,
-            fixedStartTime,
+            startTime,
           );
         }
         let endTimeOptions = getTimeOptionsHtml(
@@ -1383,13 +1472,13 @@
 
         const discountRule = master.find(
           item =>
-            item['項目名'] === C.items.DISCOUNT &&
-            item['対象教室'] &&
-            item['対象教室'].includes(classroom),
+            item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.DISCOUNT &&
+            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
         );
         let discountHtml = '';
         if (discountRule && !isFirstTimeBooking) {
-          discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule['項目名']}: 初回参加者と同時刻に参加の場合、¥500割引</p>`;
+          discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule[HEADERS.ACCOUNTING.ITEM_NAME]}: 初回参加者と同時刻に参加の場合、¥500割引</p>`;
         }
 
         // 初回者の場合の開始時刻固定メッセージ
@@ -1428,15 +1517,26 @@
       const firstLectureChecked =
         firstLecture || isFirstTimeBooking ? 'checked' : '';
       const firstLectureDisabled = isFirstTimeBooking ? 'disabled' : '';
-      const rentalChecked = chiselRental ? 'checked' : '';
+      const chiselRentalChecked = chiselRental ? 'checked' : '';
 
-      if (classroom === C.classrooms.TOKYO) {
+      // デバッグ情報（開発時のみ）
+      if (!window.isProduction) {
+        console.log('🔍 オプションセクション - 教室タイプ判定:', {
+          classroomType: sourceData.classroomType,
+          expectedSessionBased: C.classroomTypes?.SESSION_BASED,
+          isMatch: sourceData.classroomType === C.classroomTypes?.SESSION_BASED,
+          constantsAvailable: !!C.classroomTypes,
+          allConstants: Object.keys(C),
+        });
+      }
+
+      if (sourceData.classroomType === C.classroomTypes.SESSION_BASED) {
         const firstLectureLabel = isFirstTimeBooking
           ? `<span>${C.items.FIRST_LECTURE}</span><span class="${DesignConfig.text.caption} ml-2"></span>`
           : `<span>${C.items.FIRST_LECTURE}</span>`;
         optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked} ${firstLectureDisabled}>${firstLectureLabel}</label>`;
       }
-      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${rentalChecked}><span>${C.items.CHISEL_RENTAL} 1回 ¥500</span></label></div>`;
+      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${chiselRentalChecked}><span>${C.items.CHISEL_RENTAL} 1回 ¥500</span></label></div>`;
 
       // 割引の説明を追加
       optionsHtml += `<div class="mt-3 pt-2 border-t border-ui-border-light"><p class="${DesignConfig.text.caption}">${C.items.DISCOUNT}: 初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
@@ -1465,7 +1565,7 @@
             id: 'wip-input',
             label:
               isFirstTimeBooking && !isEdit
-                ? '今回つくりたいもの'
+                ? '今回つくりたいもの/やりたいこと'
                 : 'つくりたいもの/やりたいこと/作業予定',
             caption:
               isFirstTimeBooking && !isEdit
@@ -1572,6 +1672,7 @@
         <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(date)}</p>
         <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
         <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
+        ${_renderTuitionDisplaySection()}
         ${_renderTimeOptionsSection()}
         ${_renderBookingOptionsSection()}
         ${_renderDetailsInputSection()}

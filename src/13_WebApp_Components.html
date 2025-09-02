@@ -320,7 +320,7 @@
             .filter(m => m['種別'] === C.itemTypes.MATERIAL)
             .map(
               m =>
-                `<option value="${escapeHTML(m['項目名'])}" ${type === m['項目名'] ? 'selected' : ''}>${escapeHTML(m['項目名'])}</option>`,
+                `<option value="${escapeHTML(m[HEADERS.ACCOUNTING.ITEM_NAME])}" ${type === m[HEADERS.ACCOUNTING.ITEM_NAME] ? 'selected' : ''}>${escapeHTML(m[HEADERS.ACCOUNTING.ITEM_NAME])}</option>`,
             )
             .join('');
         }
@@ -491,51 +491,97 @@
      * @returns {string} HTML文字列
      */
     fixedTuitionSection: ({ master, reservation, reservationDetails }) => {
+      // isFirstTimeBooking をstateManagerから取得
+      const isFirstTimeBooking = stateManager.getState().isFirstTimeBooking;
+
+      // 使用する授業料項目を決定（初回授業料 or 基本授業料）
+      const targetItemName = isFirstTimeBooking
+        ? C.items.FIRST_LECTURE
+        : C.items.MAIN_LECTURE;
+      const tuitionItem = master.find(
+        item =>
+          item[HEADERS.ACCOUNTING.TYPE] === C.itemTypes.TUITION &&
+          item[HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
+          (item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
+            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
+              reservation.classroom,
+            )),
+      );
+
+      // 授業料の表示内容を生成
+      let tuitionDisplayHtml = '';
+      if (tuitionItem) {
+        const price = tuitionItem[HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
+        const bgColor = isFirstTimeBooking
+          ? 'bg-green-50 border-green-400'
+          : 'bg-blue-50 border-blue-400';
+        const textColor = isFirstTimeBooking
+          ? 'text-green-800'
+          : 'text-blue-800';
+        const label = isFirstTimeBooking
+          ? C.items.FIRST_LECTURE
+          : C.items.MAIN_LECTURE;
+
+        tuitionDisplayHtml = `<div class="mb-4 p-3 ${bgColor} rounded border-l-4">
+          <div class="text-base ${textColor}">
+            <span class="font-semibold">${label}:</span> ¥${price.toLocaleString()}
+          </div>
+        </div>`;
+      }
+
       const tuitionItems = master.filter(
         item =>
-          item['種別'] === C.itemTypes.TUITION &&
-          (item['対象教室'] === '共通' ||
-            (item['対象教室'] &&
-              item['対象教室'].includes(reservation.classroom))),
+          item[HEADERS.ACCOUNTING.TYPE] === C.itemTypes.TUITION &&
+          (item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
+            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
+              reservation.classroom,
+            )),
       );
 
       const tuitionRowsHtml = tuitionItems
         .map(item => {
-          const isMandatory = item['項目名'] === C.items.MAIN_LECTURE;
-          let isChecked = isMandatory;
+          const itemName = item[HEADERS.ACCOUNTING.ITEM_NAME];
 
-          // 初期値でのチェック状態を決定（より柔軟な条件）
-          if (!isChecked) {
-            // 特別処理（予約データからの直接プロパティ）
-            if (
-              item['項目名'] === C.items.FIRST_LECTURE &&
-              reservationDetails.firstLecture
-            ) {
-              isChecked = true;
-            } else if (
-              item['項目名'] === C.items.CHISEL_RENTAL &&
-              reservationDetails.chiselRental
-            ) {
-              isChecked = true;
-            }
-            // 通常の初期値チェック（truthy値を受け入れる）
-            else if (reservationDetails[item['項目名']]) {
-              isChecked = true;
-            }
+          // メイン授業料項目の処理（初回参加時は差し替え）
+          if (itemName === targetItemName) {
+            return Components.accountingRow({
+              name: itemName,
+              itemType: C.itemTypes.TUITION,
+              price: item[HEADERS.ACCOUNTING.UNIT_PRICE],
+              checked: true,
+              disabled: true,
+            });
           }
 
+          // 使わない授業料項目をスキップ
+          if (
+            (itemName === C.items.FIRST_LECTURE && !isFirstTimeBooking) ||
+            (itemName === C.items.MAIN_LECTURE && isFirstTimeBooking)
+          ) {
+            return '';
+          }
+
+          // その他の項目（彫刻刀レンタルなど）
+          const isChecked = !!(
+            reservationDetails[itemName] ||
+            (itemName === C.items.CHISEL_RENTAL &&
+              reservationDetails.chiselRental)
+          );
+
           return Components.accountingRow({
-            name: item['項目名'],
+            name: itemName,
             itemType: C.itemTypes.TUITION,
-            price: item['単価'],
+            price: item[HEADERS.ACCOUNTING.UNIT_PRICE],
             checked: isChecked,
-            disabled: isMandatory,
+            disabled: false,
           });
         })
+        .filter(html => html !== '')
         .join('');
 
       return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
         <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3>
+        ${tuitionDisplayHtml}
         <div class="space-y-3">${tuitionRowsHtml}</div>
         <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base text-brand-subtle"></div>
         <div class="text-right font-bold mt-2 text-brand-text" id="tuition-subtotal">小計: 0円</div>
@@ -660,12 +706,13 @@
       const salesItemsHtml = salesItems
         .map(item => {
           // truthy値でチェック状態を判定（より柔軟）
-          const isChecked = !!reservationDetails[item['項目名']];
+          const isChecked =
+            !!reservationDetails[item[HEADERS.ACCOUNTING.ITEM_NAME]];
 
           return Components.accountingRow({
-            name: item['項目名'],
+            name: item[HEADERS.ACCOUNTING.ITEM_NAME],
             itemType: C.itemTypes.SALES,
-            price: item['単価'],
+            price: item[HEADERS.ACCOUNTING.UNIT_PRICE],
             checked: isChecked,
           });
         })
@@ -726,8 +773,8 @@
   Components.createBackButton = (action = 'smartGoBack', text = '戻る') => {
     return `
       <div class="fixed top-4 right-4 z-30">
-        <button 
-          data-action="${escapeHTML(action)}" 
+        <button
+          data-action="${escapeHTML(action)}"
           class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
         >
           ${escapeHTML(text)}
