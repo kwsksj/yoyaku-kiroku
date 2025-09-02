@@ -1108,13 +1108,20 @@ function getScheduleInfoForDate(date, classroom) {
     }
     beginnerCapacity = beginnerCapacity || INTRO_LECTURE_CAPACITY;
 
+    // 教室形式を取得（複数の可能性のあるフィールド名に対応）
+    const classroomType = schedule.type || 
+                         schedule['教室形式'] || 
+                         schedule.classroomType ||
+                         schedule.TYPE;
+
     return {
-      type: schedule.type,
-      firstStart: schedule.firstStart,
-      firstEnd: schedule.firstEnd,
-      secondStart: schedule.secondStart,
-      secondEnd: schedule.secondEnd,
-      beginnerStart: schedule.beginnerStart,
+      type: schedule.type, // 後方互換性のため残す
+      classroomType: classroomType, // フロントエンド用
+      firstStart: schedule.firstStart || schedule['1部開始'],
+      firstEnd: schedule.firstEnd || schedule['1部終了'],
+      secondStart: schedule.secondStart || schedule['2部開始'],
+      secondEnd: schedule.secondEnd || schedule['2部終了'],
+      beginnerStart: schedule.beginnerStart || schedule['初心者開始'],
       totalCapacity: totalCapacity,
       beginnerCapacity: beginnerCapacity,
       status: schedule.status,

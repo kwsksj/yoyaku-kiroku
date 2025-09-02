@@ -985,7 +985,8 @@
    */
   function isTimeBasedClassroom(scheduleData) {
     const classroomType = getClassroomTypeFromSchedule(scheduleData);
-    return classroomType === '時間制';
+    // 時間制の教室形式をすべてチェック（時間制・2部制、時間制・全日）
+    return classroomType && classroomType.includes('時間制');
   }
 
   /**

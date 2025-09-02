@@ -1176,6 +1176,23 @@
 
     // 日程マスタベースの教室形式判定に変更
     const isTimeBased = isTimeBasedClassroom(sourceData);
+    
+    // デバッグ情報（開発時のみ）
+    if (!window.isProduction) {
+      console.log('🔍 getReservationFormView デバッグ情報:', {
+        mode,
+        isEdit,
+        sourceData: sourceData ? {
+          classroom: sourceData.classroom,
+          date: sourceData.date,
+          classroomType: sourceData.classroomType,
+          firstStart: sourceData.firstStart,
+          firstEnd: sourceData.firstEnd,
+        } : null,
+        isTimeBased,
+        scheduleInfoExists: !!(sourceData?.firstStart && sourceData?.firstEnd),
+      });
+    }
 
     // 新規作成時のみ利用するデータ
     const { availableSlots, morningSlots, afternoonSlots, isFull } =
