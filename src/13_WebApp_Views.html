@@ -298,30 +298,18 @@
   /**
    * 時間制教室の授業料計算UIを生成します。
    * @param {object} rule - 料金マスタから取得した教室ルール
-   * @param {object} initial - 初期値（開始時刻など）
+   * @param {object} reservationDetails - 予約固有情報（開始時刻、レンタル等）
+   * @param {object} scheduleInfo - 講座固有情報（教室形式、開講時間等）
    * @returns {string} HTML文字列
    */
-  const getTimeBasedTuitionHtml = (rule, initial) => {
-    // 日程マスタの時間情報を使用（引数から取得）
-    const scheduleData = initial.scheduleData || {};
+  const getTimeBasedTuitionHtml = (rule, reservationDetails, scheduleInfo) => {
+    // 講座固有情報から時間設定を取得
     let classStart, classEnd;
 
-    if (scheduleData.firstStart && scheduleData.firstEnd) {
+    if (scheduleInfo && scheduleInfo.firstStart && scheduleInfo.firstEnd) {
       // 日程マスタから時間を取得
-      const startParts = scheduleData.firstStart.split(':');
-      const endParts = scheduleData.firstEnd.split(':');
-      classStart = parseInt(startParts[0] || '0');
-      classEnd = parseInt(endParts[0] || '0');
-    } else if (
-      rule &&
-      typeof rule['講座開始'] === 'string' &&
-      typeof rule['講座終了'] === 'string' &&
-      rule['講座開始'].includes(':') &&
-      rule['講座終了'].includes(':')
-    ) {
-      // フォールバック: 会計マスタから取得
-      const startParts = rule['講座開始'].split(':');
-      const endParts = rule['講座終了'].split(':');
+      const startParts = scheduleInfo.firstStart.split(':');
+      const endParts = scheduleInfo.firstEnd.split(':');
       classStart = parseInt(startParts[0] || '0');
       classEnd = parseInt(endParts[0] || '0');
     } else {
@@ -332,7 +320,7 @@
     const breakOptions = [...Array(5).keys()]
       .map(
         i =>
-          `<option value="${i * 30}" ${String(i * 30) === (initial.breakTime || '0') ? 'selected' : ''}>${i * 30}分</option>`,
+          `<option value="${i * 30}" ${String(i * 30) === (reservationDetails.breakTime || '0') ? 'selected' : ''}>${i * 30}分</option>`,
       )
       .join('');
 
@@ -340,17 +328,18 @@
       classStart,
       classEnd + endBuffer,
       30,
-      initial.startTime,
+      reservationDetails.startTime,
     );
     const endTimeOptions = getTimeOptionsHtml(
       classStart,
       classEnd + endBuffer,
       30,
-      initial.endTime,
+      reservationDetails.endTime,
     );
 
     const rentalChecked =
-      initial.chiselRental || initial['彫刻刀レンタル'] === true
+      reservationDetails.chiselRental ||
+      reservationDetails['彫刻刀レンタル'] === true
         ? 'checked'
         : '';
 
@@ -358,7 +347,7 @@
       .getState()
       .accountingMaster.find(item => item['項目名'] === C.items.DISCOUNT);
     const discountHtml = discountRule
-      ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule, initial.discountMinutes || '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
+      ? `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml(discountRule, reservationDetails.discountMinutes || '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">${discountRule.説明 || '初回講習と同時刻に参加の場合、30分あたり¥300割引。ただし、初回講習参加者がいる場合のみ'}</p></div>`
       : '';
 
     return `
@@ -1184,7 +1173,9 @@
     } = sourceData;
     const { currentUser, accountingMaster: master } =
       window.stateManager.getState();
-    const tuitionItemRule = getTuitionItemRule(master, classroom, '本講座');
+
+    // 日程マスタベースの教室形式判定に変更
+    const isTimeBased = isTimeBasedClassroom(sourceData);
 
     // 新規作成時のみ利用するデータ
     const { availableSlots, morningSlots, afternoonSlots, isFull } =
@@ -1227,25 +1218,18 @@
      * 予約時間選択のUIを生成します。
      */
     const _renderTimeOptionsSection = () => {
-      // 30分単位の教室の場合
-      if (tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN) {
-        let classStartHour, classEndHour, classEndMinutes;
-
-        // 日程マスタの時間情報を優先使用
-        if (sourceData.firstStart && sourceData.firstEnd) {
-          const startParts = sourceData.firstStart.split(':');
-          const endParts = sourceData.firstEnd.split(':');
-          classStartHour = parseInt(startParts[0] || '0');
-          classEndHour = parseInt(endParts[0] || '0');
-          classEndMinutes = parseInt(endParts[1] || '0');
-        } else {
-          // フォールバック: 会計マスタから取得
-          const startParts = tuitionItemRule['講座開始'].split(':');
-          const endParts = tuitionItemRule['講座終了'].split(':');
-          classStartHour = parseInt(startParts[0] || '0');
-          classEndHour = parseInt(endParts[0] || '0');
-          classEndMinutes = parseInt(endParts[1] || '0');
+      // 時間制の教室の場合
+      if (isTimeBased) {
+        const times = getClassroomTimesFromSchedule(sourceData);
+        if (!times || !times.firstStart || !times.firstEnd) {
+          return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
         }
+
+        const startParts = times.firstStart.split(':');
+        const endParts = times.firstEnd.split(':');
+        const classStartHour = parseInt(startParts[0] || '0');
+        const classEndHour = parseInt(endParts[0] || '0');
+        const classEndMinutes = parseInt(endParts[1] || '0');
 
         // Note: 外部で定義されている `getTimeOptionsHtml` を呼び出していると想定
         const startTimeOptions = getTimeOptionsHtml(
@@ -1265,10 +1249,11 @@
           endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
         }
 
-        const discountRule = getTuitionItemRule(
-          master,
-          classroom,
-          C.items.DISCOUNT,
+        const discountRule = master.find(
+          item =>
+            item['項目名'] === C.items.DISCOUNT &&
+            item['対象教室'] &&
+            item['対象教室'].includes(classroom),
         );
         let discountHtml = '';
         if (
@@ -1424,30 +1409,19 @@
     const venueDisplay = venue ? ` ${venue}` : '';
 
     const _renderOpeningHoursHtml = () => {
-      // 日程マスタの時間情報を優先使用
-      if (sourceData.firstStart && sourceData.firstEnd) {
-        if (sourceData.secondStart && sourceData.secondEnd) {
-          // 2部制の場合
-          return `${sourceData.firstStart} ~ ${sourceData.firstEnd} ,  ${sourceData.secondStart} ~ ${sourceData.secondEnd}`;
-        } else {
-          // 1部制の場合
-          return `${sourceData.firstStart} ~ ${sourceData.firstEnd}`;
-        }
-      }
+      const times = getClassroomTimesFromSchedule(sourceData);
 
-      // フォールバック: 従来の会計マスタから取得
-      if (!tuitionItemRule) {
+      if (!times || !times.firstStart || !times.firstEnd) {
         return '<span class="text-ui-error-text">開講時間未設定</span>';
       }
-      const startTime = tuitionItemRule['講座開始'] || '';
-      const endTime = tuitionItemRule['講座終了'] || '';
-      const breakStart = tuitionItemRule['休憩開始'] || '';
-      const breakEnd = tuitionItemRule['休憩終了'] || '';
 
-      if (breakStart && breakEnd) {
-        return `${startTime} ~ ${breakStart} ,  ${breakEnd} ~ ${endTime}`;
+      if (times.secondStart && times.secondEnd) {
+        // 2部制の場合
+        return `${times.firstStart} ~ ${times.firstEnd} , ${times.secondStart} ~ ${times.secondEnd}`;
+      } else {
+        // 1部制の場合
+        return `${times.firstStart} ~ ${times.firstEnd}`;
       }
-      return `${startTime} ~ ${endTime}`;
     };
 
     // --- Main View Assembly ---
@@ -1525,18 +1499,50 @@
    * @returns {string} HTML文字列
    */
   const getAccountingView = () => {
-    // データ読み込み中のローディング表示
-    if (
-      !stateManager.getState().accountingMaster ||
-      !stateManager.getState().accountingInitialValues
-    ) {
-      return '<div class="flex justify-center items-center h-full"><div class="spinner"></div></div>';
+    // 基本データの確認
+    const state = stateManager.getState();
+
+    // デバッグ情報を表示（開発環境のみ）
+    if (!window.isProduction) {
+      console.log('🔍 会計画面デバッグ情報:', {
+        accountingMaster: !!state.accountingMaster,
+        accountingReservation: !!state.accountingReservation,
+        accountingReservationDetails: !!state.accountingReservationDetails,
+        accountingScheduleInfo: !!state.accountingScheduleInfo,
+        // より詳細な情報
+        masterLength: state.accountingMaster
+          ? state.accountingMaster.length
+          : 0,
+        reservationId: state.accountingReservation
+          ? state.accountingReservation.reservationId
+          : 'なし',
+        reservationDetailsKeys: state.accountingReservationDetails
+          ? Object.keys(state.accountingReservationDetails)
+          : [],
+        scheduleInfoType: state.accountingScheduleInfo
+          ? state.accountingScheduleInfo.classroomType
+          : 'なし',
+      });
     }
 
-    const state = stateManager.getState();
+    // 最低限必要なデータの確認
+    if (!state.accountingMaster || !state.accountingReservation) {
+      return '<div class="flex justify-center items-center h-full"><div class="spinner"></div><p class="ml-3 text-brand-text">会計データを読み込んでいます...</p></div>';
+    }
+
     const reservation = state.accountingReservation;
     const master = state.accountingMaster;
-    const initial = state.accountingInitialValues;
+    const reservationDetails = state.accountingReservationDetails || {};
+    const scheduleInfo = state.accountingScheduleInfo || null;
+
+    // データが不完全な場合のエラー処理
+    if (!reservationDetails || Object.keys(reservationDetails).length === 0) {
+      console.warn('⚠️ reservationDetailsが空です');
+    }
+
+    if (!scheduleInfo) {
+      console.warn('⚠️ scheduleInfoがnullです');
+    }
     // 【修正】統一検索関数を使用してよやく・きろく両方から検索
     const bookingOrRecord = findReservationById(
       reservation.reservationId,
@@ -1593,7 +1599,8 @@
         type: formType,
         master,
         reservation,
-        initial,
+        reservationDetails,
+        scheduleInfo,
       })}
       <div class="mt-8 flex flex-col space-y-3">
         ${Components.createButton({

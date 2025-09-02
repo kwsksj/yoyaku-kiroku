@@ -51,10 +51,12 @@
         selectedSlot: null,
         /** @type {Object | null} */
         editingReservationDetails: null,
-        /** @type {Object | null} */
+        /** @type {Object | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
         accountingReservation: null,
-        /** @type {Object} */
-        accountingInitialValues: {},
+        /** @type {Object} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
+        accountingReservationDetails: {},
+        /** @type {Object | null} - 講座固有情報 (教室形式, 開講時間など) */
+        accountingScheduleInfo: null,
         /** @type {string} */ completionMessage: '',
         /** @type {number} */ recordsToShow: 10,
         /** @type {Array<Object>} */
@@ -114,6 +116,9 @@
       let newState = {};
       switch (action.type) {
         case 'SET_STATE':
+          newState = action.payload || {};
+          break;
+        case 'UPDATE_STATE':
           newState = action.payload || {};
           break;
         case 'CHANGE_VIEW':

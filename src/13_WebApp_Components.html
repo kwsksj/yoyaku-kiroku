@@ -409,10 +409,17 @@
      * @param {string} config.type - フォームタイプ ('timeBased' | 'fixed')
      * @param {Object} config.master - 会計マスターデータ
      * @param {Object} config.reservation - 予約データ
-     * @param {Object} config.initial - 初期値データ
+     * @param {Object} config.reservationDetails - 予約固有情報
+     * @param {Object} config.scheduleInfo - 講座固有情報
      * @returns {string} HTML文字列
      */
-    accountingForm: ({ type, master, reservation, initial }) => {
+    accountingForm: ({
+      type,
+      master,
+      reservation,
+      reservationDetails,
+      scheduleInfo,
+    }) => {
       // 授業料セクション
       let tuitionHtml;
       if (type === 'timeBased') {
@@ -421,17 +428,21 @@
           reservation.classroom,
           C.items.MAIN_LECTURE,
         );
-        tuitionHtml = Components.timeBasedTuition({ tuitionItemRule, initial });
+        tuitionHtml = Components.timeBasedTuition({
+          tuitionItemRule,
+          reservationDetails,
+          scheduleInfo,
+        });
       } else {
         tuitionHtml = Components.fixedTuitionSection({
           master,
           reservation,
-          initial,
+          reservationDetails,
         });
       }
 
       // 販売セクション
-      const salesHtml = Components.salesSection({ master, initial });
+      const salesHtml = Components.salesSection({ master, reservationDetails });
 
       return `<div class="text-center py-4">
         <p class="text-brand-subtle mb-6"><b>${formatDate(reservation.date)}</b><br>${reservation.classroom}${reservation.venue ? `（${reservation.venue}）` : ''}</p>
@@ -455,11 +466,20 @@
      * 時間制授業料セクション
      * @param {Object} config - 設定オブジェクト
      * @param {Object} config.tuitionItemRule - 授業料ルール
-     * @param {Object} config.initial - 初期値
+     * @param {Object} config.reservationDetails - 予約固有情報
+     * @param {Object} config.scheduleInfo - 講座固有情報
      * @returns {string} HTML文字列
      */
-    timeBasedTuition: ({ tuitionItemRule, initial }) => {
-      return getTimeBasedTuitionHtml(tuitionItemRule, initial);
+    timeBasedTuition: ({
+      tuitionItemRule,
+      reservationDetails,
+      scheduleInfo,
+    }) => {
+      return getTimeBasedTuitionHtml(
+        tuitionItemRule,
+        reservationDetails,
+        scheduleInfo,
+      );
     },
 
     /**
@@ -467,10 +487,10 @@
      * @param {Object} config - 設定オブジェクト
      * @param {Object} config.master - 会計マスター
      * @param {Object} config.reservation - 予約データ
-     * @param {Object} config.initial - 初期値
+     * @param {Object} config.reservationDetails - 予約固有情報
      * @returns {string} HTML文字列
      */
-    fixedTuitionSection: ({ master, reservation, initial }) => {
+    fixedTuitionSection: ({ master, reservation, reservationDetails }) => {
       const tuitionItems = master.filter(
         item =>
           item['種別'] === C.itemTypes.TUITION &&
@@ -489,17 +509,17 @@
             // 特別処理（予約データからの直接プロパティ）
             if (
               item['項目名'] === C.items.FIRST_LECTURE &&
-              initial.firstLecture
+              reservationDetails.firstLecture
             ) {
               isChecked = true;
             } else if (
               item['項目名'] === C.items.CHISEL_RENTAL &&
-              initial.chiselRental
+              reservationDetails.chiselRental
             ) {
               isChecked = true;
             }
             // 通常の初期値チェック（truthy値を受け入れる）
-            else if (initial[item['項目名']]) {
+            else if (reservationDetails[item['項目名']]) {
               isChecked = true;
             }
           }
@@ -630,17 +650,17 @@
      * 販売セクション
      * @param {Object} config - 設定オブジェクト
      * @param {Object} config.master - 会計マスター
-     * @param {Object} config.initial - 初期値
+     * @param {Object} config.reservationDetails - 予約固有情報
      * @returns {string} HTML文字列
      */
-    salesSection: ({ master, initial }) => {
+    salesSection: ({ master, reservationDetails }) => {
       const salesItems = master.filter(
         item => item['種別'] === C.itemTypes.SALES,
       );
       const salesItemsHtml = salesItems
         .map(item => {
           // truthy値でチェック状態を判定（より柔軟）
-          const isChecked = !!initial[item['項目名']];
+          const isChecked = !!reservationDetails[item['項目名']];
 
           return Components.accountingRow({
             name: item['項目名'],
@@ -659,10 +679,10 @@
             ${Components.materialRow({
               index: 0,
               values: {
-                type: initial.materialType0,
-                l: initial.materialL0,
-                w: initial.materialW0,
-                h: initial.materialH0,
+                type: reservationDetails.materialType0,
+                l: reservationDetails.materialL0,
+                w: reservationDetails.materialW0,
+                h: reservationDetails.materialH0,
               },
             })}
           </div>
@@ -678,8 +698,8 @@
               ${Components.otherSalesRow({
                 index: 0,
                 values: {
-                  name: initial.otherSalesName0,
-                  price: initial.otherSalesPrice0,
+                  name: reservationDetails.otherSalesName0,
+                  price: reservationDetails.otherSalesPrice0,
                 },
               })}
             </div>

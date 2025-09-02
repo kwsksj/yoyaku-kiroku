@@ -416,11 +416,12 @@
       'はんこ を さがしています...',
       'ひづけ を かくにん しています...',
       'かれんだー に かきこんでいます...',
-      'せき を かくほ しています...',
+      'せき を ようい しています...',
       'きぼう を かなえようとしています...',
-      'たのしい じかん を よやく しています...',
-      'わくわく を とうろく しています...',
-      'さくひん の こうそう を ねっています...',
+      'いろいろな ちょうせい を しています...',
+      'そうごうてきに ちょうせい を しています...',
+      'しょるい の けいしき を かくにんしています...',
+      'じゅんばん に ならべています...',
     ],
 
     // 予約キャンセル時のメッセージ
@@ -438,7 +439,6 @@
       'へんこう を ほぞんしています...',
       'あたらしい ないよう に かきかえています...',
       'まちがい が ないか かくにんしています...',
-      'もう すこし よく しようとしています...',
       'かんがえなおして みています...',
       'こだわり を ちょうせい しています...',
     ],
@@ -457,11 +457,12 @@
 
     // データ取得時のメッセージ
     dataFetch: [
-      'データ を よみこんでいます...',
-      'じょうほう を あつめています...',
-      'ひつような もの を さがしています...',
-      'くも の うえ を のぞいています...',
+      'いろいろなもの を ひっくりかえしています...',
+      'さがしもの を さがしています...',
+      'たいせつなこと を おもいだしています...',
+      'むこうのほう を のぞいています...',
       'じょうほう を つかまえています...',
+      'しょるい を ひっくりかえしています...',
     ],
 
     // デフォルトのメッセージ
@@ -469,7 +470,7 @@
       'せんせい を さがしています...',
       'しょるい を せいり しています...',
       'しょるい を ながめています...',
-      'しょるい の けいしき を かいりょう しています...',
+      'しょるい の けいしき を かくにん しています...',
       'しょるい を ぶんるい しています...',
       'きくず を かたずけています...',
       'ことば を えらんでいます...',
@@ -480,6 +481,9 @@
       'すこし きゅうけい しています...',
       'ねこ の て を かりようとしています...',
       'はむすたー の て を かりようとしています...',
+      'そう の はな を かりようとしています...',
+      'めだか を ながめています...',
+      'めだか を かぞえています...',
       'はもの を ととのえています...',
       'てん と てん を むすんでいます...',
       'あたま を かくにん しています...',
@@ -489,12 +493,18 @@
       'ぜんたい と ぶぶん を かんがえています...',
       'やらないといけないこと を ながめています...',
       'あたらしい こと を かんがえています...',
-      'さくひん が できあがる ゆめ を みています...',
+      'できあがり を おもいえがいています...',
       'つくえ の うえ で しごとらしきこと を しています...',
       'まるい もの を しかくく しようとしています...',
-      'しかくい もの を まるく  しようとしています...',
+      'しかくい もの を まるく しようとしています...',
+      'しかくい もの を よりしかくく しようとしています...',
       'おもしろい かたち を かんがえています...',
       'じかん が ゆっくり すぎています...',
+      'じかん が あっというまに すぎています...',
+      'いい かたち を さがしています...',
+      'それらしい ことば を さがしています...',
+      'なにをしようとしていたのか を おもいだしています...',
+      'かたち を ながめています...',
     ],
   };
 
@@ -934,6 +944,157 @@
         item['対象教室'].includes(classroom),
     );
   };
+
+  // =================================================================
+  // --- Schedule Master Helper Functions ---
+  // -----------------------------------------------------------------
+  // 日程マスタデータから情報を取得するヘルパー関数群
+  // フェーズ1: tuitionItemRule依存からの脱却のための新機能
+  // =================================================================
+
+  /**
+   * 日程マスタから教室形式を取得します
+   * @param {object} scheduleData - 日程マスタのデータオブジェクト
+   * @returns {string} 教室形式 ('時間制' | '回数制' | '材料制')
+   */
+  function getClassroomTypeFromSchedule(scheduleData) {
+    if (!scheduleData) return null;
+    return scheduleData.classroomType || scheduleData['教室形式'] || null;
+  }
+
+  /**
+   * 日程マスタから教室の開講時間情報を取得します
+   * @param {object} scheduleData - 日程マスタのデータオブジェクト
+   * @returns {object} 時間情報 {firstStart, firstEnd, secondStart?, secondEnd?}
+   */
+  function getClassroomTimesFromSchedule(scheduleData) {
+    if (!scheduleData) return null;
+
+    return {
+      firstStart: scheduleData.firstStart || scheduleData['1部開始'] || null,
+      firstEnd: scheduleData.firstEnd || scheduleData['1部終了'] || null,
+      secondStart: scheduleData.secondStart || scheduleData['2部開始'] || null,
+      secondEnd: scheduleData.secondEnd || scheduleData['2部終了'] || null,
+    };
+  }
+
+  /**
+   * 教室形式が時間制かどうかを判定します
+   * @param {object} scheduleData - 日程マスタのデータオブジェクト
+   * @returns {boolean} 時間制の場合true
+   */
+  function isTimeBasedClassroom(scheduleData) {
+    const classroomType = getClassroomTypeFromSchedule(scheduleData);
+    return classroomType === '時間制';
+  }
+
+  /**
+   * 教室が2部制かどうかを判定します（2部開始・2部終了の両方が設定されている場合）
+   * @param {object} scheduleData - 日程マスタのデータオブジェクト
+   * @returns {boolean} 2部制の場合true
+   */
+  function isTwoSessionClassroom(scheduleData) {
+    const times = getClassroomTimesFromSchedule(scheduleData);
+    if (!times) return false;
+    return !!(times.secondStart && times.secondEnd);
+  }
+
+  /**
+   * バックエンドから特定の日程マスタ情報を取得
+   * @param {string} date - 日付 (YYYY-MM-DD)
+   * @param {string} classroom - 教室名
+   * @returns {Promise<object|null>} 日程マスタ情報またはnull
+   */
+  function getScheduleInfoFromCache(date, classroom) {
+    return new Promise(resolve => {
+      google.script.run
+        .withSuccessHandler(response => {
+          if (response.success && response.data) {
+            console.log(
+              '✅ getScheduleInfoFromCache: 日程マスタ情報取得成功',
+              response.data.scheduleInfo,
+            );
+            resolve(response.data.scheduleInfo);
+          } else {
+            console.warn(
+              '⚠️ getScheduleInfoFromCache: 日程マスタ情報が見つかりません',
+              { date, classroom },
+            );
+            resolve(null);
+          }
+        })
+        .withFailureHandler(error => {
+          console.error(
+            '❌ getScheduleInfoFromCache: API呼び出しエラー',
+            error,
+          );
+          resolve(null);
+        })
+        .getScheduleInfo({ date, classroom });
+    });
+  }
+
+  /**
+   * 予約データから対応する日程マスタ情報を取得
+   * @param {object} reservation - 予約データ (date, classroom を含む)
+   * @returns {object|null} 日程マスタ情報またはnull (slots経由の場合)
+   */
+  function getScheduleDataFromSlots(reservation) {
+    if (!reservation || !reservation.date || !reservation.classroom) {
+      console.warn(
+        '⚠️ getScheduleDataFromSlots: 予約データが不正',
+        reservation,
+      );
+      return null;
+    }
+
+    const state = stateManager.getState();
+    const slots = state.slots;
+
+    if (!slots || !Array.isArray(slots)) {
+      console.warn('⚠️ getScheduleDataFromSlots: slotsが存在しません', slots);
+      return null;
+    }
+
+    console.log('🔍 getScheduleDataFromSlots: 検索対象', {
+      date: reservation.date,
+      classroom: reservation.classroom,
+      slotsLength: slots.length,
+    });
+
+    // 予約の日付と教室に対応するスロットを検索
+    const matchingSlot = slots.find(
+      slot =>
+        slot.date === reservation.date &&
+        slot.classroom === reservation.classroom,
+    );
+
+    if (!matchingSlot) {
+      console.warn(
+        '⚠️ getScheduleDataFromSlots: 一致するスロットが見つかりません',
+        {
+          date: reservation.date,
+          classroom: reservation.classroom,
+          availableSlots: slots.map(s => ({
+            date: s.date,
+            classroom: s.classroom,
+          })),
+        },
+      );
+      return null;
+    }
+
+    console.log('✅ getScheduleDataFromSlots: スロット発見', matchingSlot);
+
+    // 日程マスタ形式の情報を返す
+    return {
+      classroomType: matchingSlot.classroomType || matchingSlot['教室形式'],
+      firstStart: matchingSlot.firstStart || matchingSlot['1部開始'],
+      firstEnd: matchingSlot.firstEnd || matchingSlot['1部終了'],
+      secondStart: matchingSlot.secondStart || matchingSlot['2部開始'],
+      secondEnd: matchingSlot.secondEnd || matchingSlot['2部終了'],
+    };
+  }
 
   // =================================================================
   // --- Accounting Calculation Logic ---

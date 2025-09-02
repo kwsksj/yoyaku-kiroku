@@ -223,6 +223,7 @@ function getAvailableSlots() {
           classroom: schedule.classroom,
           date: schedule.date,
           venue: schedule.venue,
+          classroomType: schedule.classroomType, // 教室形式を追加
           firstStart:
             schedule.firstStart instanceof Date
               ? Utilities.formatDate(
@@ -283,6 +284,7 @@ function getAvailableSlots() {
           classroom: schedule.classroom,
           date: schedule.date,
           venue: schedule.venue,
+          classroomType: schedule.classroomType, // 教室形式を追加
           firstStart:
             schedule.firstStart instanceof Date
               ? Utilities.formatDate(
@@ -326,6 +328,7 @@ function getAvailableSlots() {
           classroom: schedule.classroom,
           date: schedule.date,
           venue: schedule.venue,
+          classroomType: schedule.classroomType, // 教室形式を追加
           firstStart:
             schedule.firstStart instanceof Date
               ? Utilities.formatDate(
