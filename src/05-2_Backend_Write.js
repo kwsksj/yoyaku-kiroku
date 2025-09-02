@@ -1109,10 +1109,11 @@ function getScheduleInfoForDate(date, classroom) {
     beginnerCapacity = beginnerCapacity || INTRO_LECTURE_CAPACITY;
 
     // 教室形式を取得（複数の可能性のあるフィールド名に対応）
-    const classroomType = schedule.type || 
-                         schedule['教室形式'] || 
-                         schedule.classroomType ||
-                         schedule.TYPE;
+    const classroomType =
+      schedule.type ||
+      schedule['教室形式'] ||
+      schedule.classroomType ||
+      schedule.TYPE;
 
     return {
       type: schedule.type, // 後方互換性のため残す

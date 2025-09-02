@@ -287,8 +287,8 @@
         payload: { view: 'registrationStep2', registrationStep: 2 },
       }),
 
-    /** 新規ユーザー登録：最終データをサーバーに送信（バッチ処理版） */
-    submitRegistration: () => {
+    /** 新規ユーザー登録：Step3からStep4へ進む */
+    proceedToStep4: () => {
       const step3Data = {
         experience:
           document.querySelector('input[name="experience"]:checked')?.value ||
@@ -296,10 +296,39 @@
         pastWork: document.getElementById('q-past-work').value,
         futureGoal: document.getElementById('q-future-goal').value,
       };
+      window.stateManager.dispatch({
+        type: 'SET_STATE',
+        payload: {
+          registrationData: {
+            ...stateManager.getState().registrationData,
+            ...step3Data,
+          },
+          registrationStep: 4,
+          view: 'registrationStep4',
+        },
+      });
+    },
+
+    /** 新規ユーザー登録：Step4からStep3へ戻る */
+    backToStep3: () =>
+      window.stateManager.dispatch({
+        type: 'SET_STATE',
+        payload: { view: 'registrationStep3', registrationStep: 3 },
+      }),
+
+    /** 新規ユーザー登録：最終データをサーバーに送信（バッチ処理版） */
+    submitRegistration: () => {
+      const step4Data = {
+        futureParticipation:
+          document.querySelector('input[name="futureParticipation"]:checked')
+            ?.value || '',
+        trigger: document.getElementById('q-trigger').value,
+        firstMessage: document.getElementById('q-first-message').value,
+      };
 
       const finalUserData = {
         ...stateManager.getState().registrationData,
-        ...step3Data,
+        ...step4Data,
       };
 
       showLoading('login');
@@ -324,6 +353,7 @@
                       view: 'dashboard',
                     },
                   });
+                  hideLoading();
                 } else {
                   hideLoading();
                   showInfo(
@@ -1849,6 +1879,9 @@
         break;
       case 'registrationStep3':
         v = getRegistrationStep3View();
+        break;
+      case 'registrationStep4':
+        v = getRegistrationStep4View();
         break;
       case 'dashboard':
         v = getDashboardView();

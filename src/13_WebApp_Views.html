@@ -459,26 +459,26 @@
     const buttons = isEdit
       ? [
           {
-            text: 'この内容で更新',
-            action: 'saveProfile',
-            colorClass: DesignConfig.colors.primary,
-          },
-          {
             text: '戻る',
             action: 'smartGoBack',
             colorClass: DesignConfig.colors.secondary,
           },
-        ]
-      : [
           {
-            text: '次へ進む',
-            action: 'goToStep2',
+            text: 'この内容で更新',
+            action: 'saveProfile',
             colorClass: DesignConfig.colors.primary,
           },
+        ]
+      : [
           {
             text: '戻る',
             action: 'goBackToLogin',
             colorClass: DesignConfig.colors.secondary,
+          },
+          {
+            text: '次へ進む',
+            action: 'goToStep2',
+            colorClass: DesignConfig.colors.primary,
           },
         ];
 
@@ -489,39 +489,38 @@
             <h1 class="text-xl font-bold text-brand-text mb-4">${title}</h1>
             ${description}
             <div class="space-y-4">
-                ${Components.createInput({
-                  id: `${nameIdPrefix}-realname`,
-                  label: 'お名前',
-                  type: 'text',
-                  required: true,
-                  value: realNameValue,
-                  containerClass: '',
-                  autocomplete: 'name',
-                })}
-                ${Components.createInput({
-                  id: `${nameIdPrefix}-nickname`,
-                  label: 'ニックネーム（表示名）',
-                  caption: '他の生徒さんにも表示されます',
-                  type: 'text',
-                  value: nicknameValue,
-                  placeholder: '空欄の場合はお名前',
-                  containerClass: '',
-                })}
-                ${phoneSection}
+              ${Components.createInput({
+                id: `${nameIdPrefix}-realname`,
+                label: 'お名前 *必須項目*',
+                type: 'text',
+                required: true,
+                value: realNameValue,
+                containerClass: '',
+                autocomplete: 'name',
+              })}
+              ${Components.createInput({
+                id: `${nameIdPrefix}-nickname`,
+                label: 'ニックネーム（表示名）',
+                caption: '他の生徒さんにも表示されます',
+                type: 'text',
+                value: nicknameValue,
+                placeholder: '空欄の場合はお名前',
+                containerClass: '',
+              })}
+              ${phoneSection}
             </div>
-            <div class="mt-6">
-                <div class="space-y-3">
-                    ${buttons
-                      .map(btn =>
-                        Components.createButton({
-                          text: btn.text,
-                          action: btn.action,
-                          colorClass: btn.colorClass,
-                          widthClass: DesignConfig.buttons.full,
-                        }),
-                      )
-                      .join('')}
-                </div>
+
+            <div class="mt-8 grid grid-cols-2 gap-3">
+            ${buttons
+              .map(btn =>
+                Components.createButton({
+                  text: btn.text,
+                  action: btn.action,
+                  colorClass: btn.colorClass,
+                  widthClass: DesignConfig.buttons.full,
+                }),
+              )
+              .join('')}
             </div>
         </div>`;
   };
@@ -573,7 +572,7 @@
     <div class="max-w-md mx-auto text-left">
       <h1 class="text-xl font-bold text-brand-text mb-4 text-center">プロフィール</h1>
       <form id="step2-form" class="space-y-6">
-        ${Components.createInput({ id: 'q-email', label: 'メールアドレス（必須）', type: 'email', value: data.email || '', required: true })}
+        ${Components.createInput({ id: 'q-email', label: 'メールアドレス *必須項目*', type: 'email', value: data.email || '', required: true })}
         <div class="p-3 bg-ui-surface rounded-md">
           <label class="flex items-center space-x-3">
             <input type="checkbox" id="q-wants-email" name="wantsEmail" class="h-5 w-5 accent-action-primary-bg" ${data.wantsEmail ? 'checked' : ''}>
@@ -616,13 +615,79 @@
           <div class="space-y-2" id="experience-radio-group">${experienceOptions}</div>
         </div>
         <div id="past-work-container" class="${data.experience === 'はじめて！' ? 'hidden' : ''}">
-            ${Components.createTextArea({ id: 'q-past-work', label: 'いつ頃、どこで、何を作りましたか？（だいたいでOK!）', value: data.pastWork || '' })}
+          ${Components.createTextArea({
+            id: 'q-past-work',
+            label: 'いつ頃、どこで、何を作りましたか？',
+            caption: 'だいたいでOK！',
+            value: data.pastWork || '',
+          })}
         </div>
-        ${Components.createTextArea({ id: 'q-future-goal', label: '将来的に制作したいもの（曖昧な内容でも大丈夫！）', value: data.futureGoal || '' })}
+        ${Components.createTextArea({
+          id: 'q-future-goal',
+          label: '将来的に制作したいものはありますか？',
+          caption: '曖昧な内容でも大丈夫！',
+          value: data.futureGoal || '',
+        })}
       </form>
-      <div class="mt-8 flex flex-col space-y-3">
-        ${Components.createButton({ text: '登録して予約へ進む', action: 'submitRegistration', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+      <div class="mt-8 grid grid-cols-2 gap-3">
         ${Components.createButton({ text: '前に戻る', action: 'backToStep2', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+        ${Components.createButton({ text: '次へ', action: 'proceedToStep4', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+      </div>
+    </div>
+  `;
+  };
+
+  /**
+   * 新規登録フローのステップ4（アンケート）
+   * 【設計方針】最終ステップでユーザーの参加意向とフィードバックを収集
+   * @returns {string} アンケートフォームのHTML文字列
+   */
+  const getRegistrationStep4View = () => {
+    const data = stateManager.getState().registrationData;
+    const participationOptions = [
+      '毎月通いたい！',
+      '2,3ヶ月ごとくらいで通いたい！',
+      'これるときにたまに通いたい！',
+      '1回やってみたい！',
+      '通いたいがむずかしい…',
+    ]
+      .map(
+        opt =>
+          `<label class="flex items-center space-x-2 p-2 rounded hover:bg-ui-surface cursor-pointer">
+            <input type="radio" name="futureParticipation" value="${opt}" ${data.futureParticipation === opt ? 'checked' : ''} class="text-action-primary-bg focus:ring-action-primary-bg">
+            <span class="text-brand-text">${opt}</span>
+          </label>`,
+      )
+      .join('');
+
+    return `
+    <div class="max-w-md mx-auto text-left">
+      <h1 class="text-xl font-bold text-brand-text mb-4 text-center">アンケート</h1>
+      <form id="step4-form" class="space-y-6">
+        <div>
+          <label class="block text-brand-text text-base font-bold mb-3">今後のご参加について</label>
+          <div class="space-y-2" id="participation-radio-group">${participationOptions}</div>
+        </div>
+
+        ${Components.createTextArea({
+          id: 'q-trigger',
+          label: 'この教室を知ったきっかけは？参加しようと思ったきっかけは？',
+          caption: '',
+          value: data.trigger || '',
+          rows: 4,
+        })}
+
+        ${Components.createTextArea({
+          id: 'q-first-message',
+          label: 'メッセージ',
+          caption: 'その他コメント・要望・意見など、あればどうぞ〜',
+          value: data.firstMessage || '',
+          rows: 4,
+        })}
+      </form>
+      <div class="mt-8 grid grid-cols-2 gap-3">
+        ${Components.createButton({ text: '前に戻る', action: 'backToStep3', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+        ${Components.createButton({ text: '登録して予約へ進む', action: 'submitRegistration', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
       </div>
     </div>
   `;
@@ -862,43 +927,6 @@
   };
 
   /**
-   * 新規予約のための教室選択画面のUIを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getClassroomSelectionView = () => {
-    // 教室リストは、ログイン時に取得した静的な統合定数(stateManager.getState().classrooms)から生成
-    const classroomButtonsHtml = Object.values(
-      stateManager.getState().classrooms || {},
-    )
-      .map(classroomName =>
-        Components.createButton({
-          action: 'selectClassroom',
-          classroomName: classroomName,
-          text: classroomName,
-          colorClass: `w-full h-16 text-left px-4 py-3 rounded-lg mobile-card touch-friendly transition-all duration-150 bg-state-available-bg border border-state-available-border active:bg-state-success-hover flex items-center text-xl font-bold text-brand-text`,
-        }),
-      )
-      .join('');
-
-    // データが取得できていない場合の表示
-    if (!classroomButtonsHtml) {
-      return `
-        <div class="max-w-md mx-auto text-center">
-          <p class="text-brand-subtle mb-6">現在、予約可能な教室がありません。</p>
-          ${Components.createButton({ text: '戻る', action: 'smartGoBack', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-        </div>`;
-    }
-
-    return `
-        ${Components.createBackButton('smartGoBack', '戻る')}
-        <p class="text-brand-subtle text-center mb-6">教室 を おえらびください</p>
-        <div class="max-w-md mx-auto space-y-3">
-            ${classroomButtonsHtml}
-        </div>
-    `;
-  };
-
-  /**
    * 教室名に応じた色クラスを取得します
    * @param {string} classroomName - 教室名
    * @returns {string} 色クラス文字列
@@ -970,7 +998,7 @@
   const getClassroomSelectionModal = () => {
     return Components.modal({
       id: 'classroom-selection-modal',
-      title: '教室 を おえらびください',
+      title: '',
       content: getClassroomSelectionModalContent(),
       maxWidth: 'max-w-auto',
     });
@@ -1176,19 +1204,21 @@
 
     // 日程マスタベースの教室形式判定に変更
     const isTimeBased = isTimeBasedClassroom(sourceData);
-    
+
     // デバッグ情報（開発時のみ）
     if (!window.isProduction) {
       console.log('🔍 getReservationFormView デバッグ情報:', {
         mode,
         isEdit,
-        sourceData: sourceData ? {
-          classroom: sourceData.classroom,
-          date: sourceData.date,
-          classroomType: sourceData.classroomType,
-          firstStart: sourceData.firstStart,
-          firstEnd: sourceData.firstEnd,
-        } : null,
+        sourceData: sourceData
+          ? {
+              classroom: sourceData.classroom,
+              date: sourceData.date,
+              classroomType: sourceData.classroomType,
+              firstStart: sourceData.firstStart,
+              firstEnd: sourceData.firstEnd,
+            }
+          : null,
         isTimeBased,
         scheduleInfoExists: !!(sourceData?.firstStart && sourceData?.firstEnd),
       });

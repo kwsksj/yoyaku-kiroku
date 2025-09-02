@@ -243,6 +243,8 @@ const CONSTANTS = {
       WOODCARVING_EXPERIENCE: '木彫り経験',
       PAST_CREATIONS: '過去の制作物',
       FUTURE_PARTICIPATION: '今後のご参加について',
+      TRIGGER: 'きっかけ',
+      FIRST_MESSAGE: '初回メッセージ',
       COMPANION: '同行者',
       TRANSPORTATION: '来場手段',
       PICKUP: '送迎',

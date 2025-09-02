@@ -40,7 +40,7 @@ getScheduleInfoFromCache(date, classroom).then(scheduleInfo => {
 const enhancedDetails = await createEnhancedEditingDetails(reservationId);
 stateManager.dispatch({
   type: 'SET_STATE',
-  payload: { view: 'editReservation', editingReservationDetails: enhancedDetails }
+  payload: { view: 'editReservation', editingReservationDetails: enhancedDetails },
 });
 ```
 
@@ -89,7 +89,7 @@ async function createEnhancedEditingDetails(reservationId) {
     classroom: reservation.classroom,
     date: reservation.date,
     venue: reservation.venue,
-    
+
     // オプション項目（デフォルト値付き）
     chiselRental: reservation.chiselRental || false,
     firstLecture: reservation.firstLecture || false,
@@ -102,22 +102,19 @@ async function createEnhancedEditingDetails(reservationId) {
   };
 
   // 3. 日程マスタ情報を自動取得・マージ
-  const scheduleInfo = await getScheduleInfoFromCache(
-    reservation.date, 
-    reservation.classroom
-  );
+  const scheduleInfo = await getScheduleInfoFromCache(reservation.date, reservation.classroom);
 
   // 4. 完全な拡張オブジェクトを生成
   return {
     ...baseDetails,
-    
+
     // 日程マスタ情報の自動マージ
     firstStart: scheduleInfo?.firstStart,
     firstEnd: scheduleInfo?.firstEnd,
     secondStart: scheduleInfo?.secondStart,
     secondEnd: scheduleInfo?.secondEnd,
     classroomType: scheduleInfo?.classroomType,
-    
+
     // メタデータ（デバッグ・トレース用）
     _sourceReservation: reservation,
     _scheduleInfo: scheduleInfo,
@@ -145,7 +142,7 @@ async function createEnhancedAccountingData(reservationId) {
 
   // 2. 既存キャッシュデータ読み込み
   const cachedData = loadAccountingCache(reservationId);
-  
+
   // 3. 基本会計データ構築
   const baseDetails = {
     firstLecture: reservation.firstLecture || false,
@@ -153,14 +150,11 @@ async function createEnhancedAccountingData(reservationId) {
     startTime: reservation.startTime || null,
     endTime: reservation.endTime || null,
   };
-  
+
   const reservationDetails = { ...baseDetails, ...cachedData };
 
   // 4. 日程マスタ情報を自動取得
-  const scheduleInfo = await getScheduleInfoFromCache(
-    reservation.date,
-    reservation.classroom
-  );
+  const scheduleInfo = await getScheduleInfoFromCache(reservation.date, reservation.classroom);
 
   // 5. 完全な会計オブジェクトを生成
   return {
@@ -175,7 +169,7 @@ async function createEnhancedAccountingData(reservationId) {
       studentId: reservation.studentId,
       status: reservation.status,
     },
-    
+
     // メタデータ
     _sourceReservation: reservation,
     _cachedData: cachedData,
@@ -202,10 +196,7 @@ async function createEnhancedNewReservationData(scheduleId) {
   }
 
   // 2. 空き状況を自動取得
-  const availabilityInfo = await getSlotAvailability(
-    scheduleInfo.date, 
-    scheduleInfo.classroom
-  );
+  const availabilityInfo = await getSlotAvailability(scheduleInfo.date, scheduleInfo.classroom);
 
   // 3. ユーザー情報を自動設定
   const currentUser = stateManager.getState().currentUser;
@@ -217,25 +208,25 @@ async function createEnhancedNewReservationData(scheduleId) {
     date: scheduleInfo.date,
     classroom: scheduleInfo.classroom,
     venue: scheduleInfo.venue,
-    
+
     // 日程マスタ詳細
     classroomType: scheduleInfo.classroomType,
     firstStart: scheduleInfo.firstStart,
     firstEnd: scheduleInfo.firstEnd,
     secondStart: scheduleInfo.secondStart,
     secondEnd: scheduleInfo.secondEnd,
-    
+
     // 空き状況
     availableSlots: availabilityInfo.availableSlots,
     morningSlots: availabilityInfo.morningSlots,
     afternoonSlots: availabilityInfo.afternoonSlots,
     isFull: availabilityInfo.isFull,
-    
+
     // ユーザー情報
     user: currentUser,
     studentId: currentUser?.studentId,
     isFirstTimeBooking: await checkFirstTimeBooking(currentUser?.studentId),
-    
+
     // メタデータ
     _scheduleInfo: scheduleInfo,
     _availabilityInfo: availabilityInfo,

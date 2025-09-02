@@ -1,5 +1,6 @@
 import globals from 'globals';
 import pluginGoogleAppsScript from 'eslint-plugin-googleappsscript';
+import prettierConfig from 'eslint-config-prettier';
 
 export default [
   // Google Apps Script server-side files
@@ -297,4 +298,5 @@ export default [
       'eslint.config.js', // Skip our own config file
     ],
   },
+  prettierConfig,
 ];

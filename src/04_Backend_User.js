@@ -305,6 +305,70 @@ function registerNewUser(userInfo) {
       newRow[realNameColIdx] = userInfo.realName;
       newRow[nicknameColIdx] = userInfo.nickname || '';
 
+      // 新規登録のStep4で追加された項目を処理
+      const futureParticipationColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.FUTURE_PARTICIPATION,
+      );
+      const triggerColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.TRIGGER);
+      const firstMessageColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.FIRST_MESSAGE,
+      );
+
+      if (futureParticipationColIdx !== -1 && userInfo.futureParticipation) {
+        newRow[futureParticipationColIdx] = userInfo.futureParticipation;
+      }
+      if (triggerColIdx !== -1 && userInfo.trigger) {
+        newRow[triggerColIdx] = userInfo.trigger;
+      }
+      if (firstMessageColIdx !== -1 && userInfo.firstMessage) {
+        newRow[firstMessageColIdx] = userInfo.firstMessage;
+      }
+
+      // その他の標準項目
+      const emailColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
+      const emailPreferenceColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+      );
+      const ageGroupColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.AGE_GROUP);
+      const genderColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.GENDER);
+      const dominantHandColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
+      );
+      const addressColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.ADDRESS);
+      const woodcarvingExperienceColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.WOODCARVING_EXPERIENCE,
+      );
+      const pastCreationsColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.PAST_CREATIONS,
+      );
+      const futureCreationsColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
+      );
+
+      if (emailColIdx !== -1 && userInfo.email)
+        newRow[emailColIdx] = userInfo.email;
+      if (
+        emailPreferenceColIdx !== -1 &&
+        typeof userInfo.wantsEmail === 'boolean'
+      )
+        newRow[emailPreferenceColIdx] = userInfo.wantsEmail
+          ? '希望する'
+          : '希望しない';
+      if (ageGroupColIdx !== -1 && userInfo.ageGroup)
+        newRow[ageGroupColIdx] = userInfo.ageGroup;
+      if (genderColIdx !== -1 && userInfo.gender)
+        newRow[genderColIdx] = userInfo.gender;
+      if (dominantHandColIdx !== -1 && userInfo.dominantHand)
+        newRow[dominantHandColIdx] = userInfo.dominantHand;
+      if (addressColIdx !== -1 && userInfo.address)
+        newRow[addressColIdx] = userInfo.address;
+      if (woodcarvingExperienceColIdx !== -1 && userInfo.experience)
+        newRow[woodcarvingExperienceColIdx] = userInfo.experience;
+      if (pastCreationsColIdx !== -1 && userInfo.pastWork)
+        newRow[pastCreationsColIdx] = userInfo.pastWork;
+      if (futureCreationsColIdx !== -1 && userInfo.futureGoal)
+        newRow[futureCreationsColIdx] = userInfo.futureGoal;
+
       const registrationDateColIdx = header.indexOf('登録日時');
       if (registrationDateColIdx !== -1)
         newRow[registrationDateColIdx] = new Date();
