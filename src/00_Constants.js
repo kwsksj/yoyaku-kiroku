@@ -56,8 +56,8 @@ const CONSTANTS = {
 
   // 項目名
   ITEMS: {
-    MAIN_LECTURE: '本講座',
-    FIRST_LECTURE: '初回講習',
+    MAIN_LECTURE: '基本授業料',
+    FIRST_LECTURE: '初回授業料',
     CHISEL_RENTAL: '彫刻刀レンタル',
     TOOL_SET: '道具セット',
     MATERIAL_FEE: '材料費',

@@ -594,8 +594,8 @@
           .map(
             item => `
           <label class="flex items-center space-x-2">
-            <input type="checkbox" name="orderSales" value="${item['項目名']}" class="accent-action-primary-bg" ${checkedValues.includes(item['項目名']) ? 'checked' : ''}>
-            <span>${item['項目名']}${item['単価'] ? `（${item['単価']}円）` : ''}</span>
+            <input type="checkbox" name="orderSales" value="${item[HEADERS.ACCOUNTING.ITEM_NAME]}" class="accent-action-primary-bg" ${checkedValues.includes(item[HEADERS.ACCOUNTING.ITEM_NAME]) ? 'checked' : ''}>
+            <span>${item[HEADERS.ACCOUNTING.ITEM_NAME]}${item[HEADERS.ACCOUNTING.UNIT_PRICE] ? `（${item[HEADERS.ACCOUNTING.UNIT_PRICE]}円）` : ''}</span>
           </label>
         `,
           )
@@ -939,9 +939,9 @@
     return master.find(
       item =>
         item['種別'] === C.itemTypes.TUITION &&
-        item['項目名'] === itemName &&
-        item['対象教室'] &&
-        item['対象教室'].includes(classroom),
+        item[HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
+        item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+        item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
     );
   };
 
@@ -1214,7 +1214,9 @@
 
       if (diffMinutes > 0) {
         const billableUnits = Math.ceil(diffMinutes / 30);
-        const price = billableUnits * Number(tuitionItemRule['単価']);
+        const price =
+          billableUnits *
+          Number(tuitionItemRule[HEADERS.ACCOUNTING.UNIT_PRICE]);
         return {
           price: price,
           item: { name: `授業料 (${startTime} - ${endTime})`, price: price },
@@ -1247,11 +1249,13 @@
           const masterItem = stateManager
             .getState()
             .accountingMaster.find(
-              m => m['項目名'] === itemName && m['種別'] === itemType,
+              m =>
+                m[HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
+                m['種別'] === itemType,
             );
           if (!masterItem) return;
 
-          const price = Number(masterItem['単価']);
+          const price = Number(masterItem[HEADERS.ACCOUNTING.UNIT_PRICE]);
           const itemDetail = { name: itemName, price: price };
           allItems.push(itemDetail);
 
@@ -1313,7 +1317,7 @@
         const type = document.getElementById(`material-type-${index}`)?.value;
         const masterItem = stateManager
           .getState()
-          .accountingMaster.find(m => m['項目名'] === type);
+          .accountingMaster.find(m => m[HEADERS.ACCOUNTING.ITEM_NAME] === type);
         const priceEl = document.getElementById(`material-price-${index}`);
 
         if (!masterItem) {
@@ -1321,7 +1325,7 @@
           return;
         }
 
-        const unitPrice = Number(masterItem['単価']);
+        const unitPrice = Number(masterItem[HEADERS.ACCOUNTING.UNIT_PRICE]);
         let finalName = type;
         let price = 0;
 
@@ -1436,9 +1440,10 @@
         );
         if (tuitionItemRule) {
           const billableUnits = Math.ceil(
-            timeBasedItems[0].price / Number(tuitionItemRule['単価']),
+            timeBasedItems[0].price /
+              Number(tuitionItemRule[HEADERS.ACCOUNTING.UNIT_PRICE]),
           );
-          calculatedHoursEl.textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule['単価']}円`;
+          calculatedHoursEl.textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule[HEADERS.ACCOUNTING.UNIT_PRICE]}円`;
         }
       } else {
         calculatedHoursEl.textContent = '';
