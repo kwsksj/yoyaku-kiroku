@@ -367,9 +367,27 @@
             <h3 class="${DesignConfig.text.heading} mb-2">授業料</h3>
             ${basicTuitionDisplay}
             <div class="grid grid-cols-3 gap-2 items-end">
-                ${Components.createSelect({ id: 'start-time', name: 'startTime', label: '開始時刻', containerClass: 'col-span-1', options: startTimeOptions })}
-                ${Components.createSelect({ id: 'end-time', name: 'endTime', label: '終了時刻', containerClass: 'col-span-1', options: endTimeOptions })}
-                ${Components.createSelect({ id: 'break-time', name: 'breakTime', label: '休憩時間', containerClass: 'col-span-1', options: breakOptions })}
+                ${Components.createSelect({
+                  id: 'res-start-time',
+                  name: 'startTime',
+                  label: '開始時刻',
+                  containerClass: 'col-span-1',
+                  options: startTimeOptions,
+                })}
+                ${Components.createSelect({
+                  id: 'res-end-time',
+                  name: 'endTime',
+                  label: '終了時刻',
+                  containerClass: 'col-span-1',
+                  options: endTimeOptions,
+                })}
+                ${Components.createSelect({
+                  id: 'break-time',
+                  name: 'breakTime',
+                  label: '休憩時間',
+                  containerClass: 'col-span-1',
+                  options: breakOptions,
+                })}
             </div>
             <div id="calculated-hours" class="text-left text-base ${DesignConfig.colors.textSubtle} mt-2"></div>
             <div class="pt-3 mt-3 border-t border-gray-200">
@@ -486,7 +504,7 @@
               <input type="checkbox" id="edit-wants-email"
                      class="h-5 w-5 accent-action-primary-bg"
                      ${u.wantsEmail ? 'checked' : ''}>
-              <span class="text-brand-text text-sm">今後の教室日程などの、メール連絡を希望します</span>
+              <span class="text-brand-text text-sm">「今後の日程」や「予約受付完了」などの、メール連絡を希望します（＊初回予約時は、すべての方へ連絡します）</span>
             </label>
           </div>
         </div>
@@ -591,6 +609,7 @@
       )
       .join('');
     const ageOptions = [
+      '----',
       '10代（16歳以上）',
       '20代',
       '30代',
@@ -615,7 +634,7 @@
         <div class="p-3 bg-ui-surface rounded-md">
           <label class="flex items-center space-x-3">
             <input type="checkbox" id="q-wants-email" name="wantsEmail" class="h-5 w-5 accent-action-primary-bg" ${data.wantsEmail ? 'checked' : ''}>
-            <span class="text-brand-text text-sm">今後の教室日程などの、メール連絡を希望します</span>
+            <span class="text-brand-text text-sm">今後の日程」や「予約受付完了」などの、メール連絡を希望します</span>
           </label>
         </div>
         ${Components.createSelect({ id: 'q-age-group', label: 'お年頃', options: ageOptions })}
@@ -1751,10 +1770,10 @@
       emailNoticeHtml = `
         <div class="bg-ui-surface rounded-lg p-3 mt-4">
           <p class="text-sm text-brand-subtle text-center">
-          ご登録のメールアドレスに shiawasenehito3000@gmail.com より、
-          初回予約確定メールをお送りしました！
-          <br>会場の住所や駐車場情報など記載してありますので、ご確認ください。
-          </p>
+          初回予約完了のメールをお送りしました！<br>
+          会場の住所や駐車場情報など記載してあります。ご確認ください。<br>
+          送信元アドレス: shiawasenehito3000@gmail.com
+        </p>
         </div>
       `;
     }

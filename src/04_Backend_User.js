@@ -345,15 +345,18 @@ function registerNewUser(userInfo) {
         CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
       );
 
-      if (emailColIdx !== -1 && userInfo.email)
-        newRow[emailColIdx] = userInfo.email;
+      if (emailColIdx !== -1 && userInfo.email) {
+        const email = userInfo.email.trim();
+        if (email && !_isValidEmail(email)) {
+          throw new Error('メールアドレスの形式が正しくありません。');
+        }
+        newRow[emailColIdx] = email;
+      }
       if (
         emailPreferenceColIdx !== -1 &&
         typeof userInfo.wantsEmail === 'boolean'
       )
-        newRow[emailPreferenceColIdx] = userInfo.wantsEmail
-          ? '希望する'
-          : '希望しない';
+        newRow[emailPreferenceColIdx] = userInfo.wantsEmail ? 'TRUE' : 'FALSE';
       if (ageGroupColIdx !== -1 && userInfo.ageGroup)
         newRow[ageGroupColIdx] = userInfo.ageGroup;
       if (genderColIdx !== -1 && userInfo.gender)
@@ -414,7 +417,18 @@ function registerNewUser(userInfo) {
 }
 
 /**
- * ユーザーのプロフィール（本名、ニックネーム、電話番号）を更新します。
+ * メールアドレスの形式をチェックします。
+ * @param {string} email - チェックするメールアドレス
+ * @returns {boolean} - 形式が正しければtrue
+ */
+function _isValidEmail(email) {
+  if (!email || typeof email !== 'string') return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+}
+
+/**
+ * ユーザーのプロフィール（本名、ニックネーム、電話番号、メールアドレス）を更新します。
  * @param {object} userInfo - { studentId: string, realName: string, displayName: string, phone?: string }
  * @returns {object} - { success: boolean, message: string, updatedUser?: object }
  */
@@ -474,6 +488,8 @@ function updateUserProfile(userInfo) {
       const realNameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
       const nicknameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
       const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
+      const emailColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
+      const emailPreferenceColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE);
 
       if (
         realNameColIdx === -1 ||
@@ -503,11 +519,30 @@ function updateUserProfile(userInfo) {
           .setValue(normalizedPhone ? `'${normalizedPhone}` : '');
       }
 
+      // メールアドレスのバリデーションと更新
+      if (userInfo.email !== undefined && emailColIdx !== -1) {
+        const email = userInfo.email ? userInfo.email.trim() : '';
+        if (email && !_isValidEmail(email)) {
+          throw new Error('メールアドレスの形式が正しくありません。');
+        }
+        rosterSheet
+          .getRange(targetRowIndex, emailColIdx + 1)
+          .setValue(email);
+      }
+
+      // メール連絡希望の更新
+      if (userInfo.wantsEmail !== undefined && emailPreferenceColIdx !== -1) {
+        const emailPrefValue = userInfo.wantsEmail ? 'TRUE' : 'FALSE';
+        rosterSheet
+          .getRange(targetRowIndex, emailPreferenceColIdx + 1)
+          .setValue(emailPrefValue);
+      }
+
       logActivity(
         userInfo.studentId,
         'プロフィール更新',
         '成功',
-        `本名: ${userInfo.realName}, 電話番号: ${userInfo.phone || 'N/A'}`,
+        `本名: ${userInfo.realName}, 電話番号: ${userInfo.phone || 'N/A'}, メールアドレス: ${userInfo.email || 'N/A'}, メール連絡希望: ${userInfo.wantsEmail !== undefined ? (userInfo.wantsEmail ? '希望する' : '希望しない') : 'N/A'}`,
       );
 
       // プロフィール更新後に生徒データキャッシュを再構築
