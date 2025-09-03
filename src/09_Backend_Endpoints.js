@@ -30,7 +30,12 @@
  * 3. 必要に応じて他のBackend関数を呼び出し
  * 4. 統一APIレスポンス形式で結果を返却
  * =================================================================
+ *
+ * @global getUserHistoryFromCache - Cache manager function from 07_CacheManager.js
+ * @global getScheduleInfoForDate - Business logic function from 02-4_BusinessLogic_ScheduleMaster.js
  */
+
+/* global getUserHistoryFromCache, getScheduleInfoForDate */
 
 /**
  * 予約操作後に最新データを取得して返す汎用関数
@@ -98,13 +103,22 @@ function executeOperationAndGetLatestData(
  * @returns {object} 処理結果と最新の初期化データ
  */
 function makeReservationAndGetLatestData(reservationInfo) {
-  return executeOperationAndGetLatestData(
+  const isFirstTime = reservationInfo.options?.firstLecture || false;
+
+  const result = executeOperationAndGetLatestData(
     'makeReservation',
     makeReservation,
     reservationInfo,
     reservationInfo.studentId,
     '予約を作成しました。',
   );
+
+  // 初回フラグ情報を追加
+  if (result.success && result.data) {
+    result.data.wasFirstTimeBooking = isFirstTime;
+  }
+
+  return result;
 }
 
 /**

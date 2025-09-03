@@ -484,12 +484,24 @@
         ? phoneInput.value
         : stateManager.getState().currentUser.phone; // 電話番号入力欄がなければ既存の電話番号を使用
 
+      // メール情報の取得
+      const emailInput = document.getElementById('edit-email');
+      const wantsEmailInput = document.getElementById('edit-wants-email');
+      const email = emailInput
+        ? emailInput.value
+        : stateManager.getState().currentUser.email;
+      const wantsEmail = wantsEmailInput
+        ? wantsEmailInput.checked
+        : stateManager.getState().currentUser.wantsEmail;
+
       const u = {
         ...stateManager.getState().currentUser,
         realName: r,
         displayName: n,
         phone: phone,
-      }; // 電話番号も追加
+        email: email || '',
+        wantsEmail: wantsEmail || false,
+      };
       showLoading();
       google.script.run
         .withSuccessHandler(res => {

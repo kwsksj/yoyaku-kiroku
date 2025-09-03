@@ -7,7 +7,11 @@
  * 【v2.6での変更点】:
  * - checkCapacityFullの定員情報を日程マスタに一本化。
  * =================================================================
+ *
+ * @global sendBookingConfirmationEmailAsync - External service function from 06_ExternalServices.js
  */
+
+/* global sendBookingConfirmationEmailAsync */
 
 /**
  * 指定日・教室の定員チェックを行う共通関数。
@@ -309,8 +313,7 @@ function makeReservation(reservationInfo) {
 
       if (scheduleInfo) {
         // 日程マスタから時間情報を取得
-        const { type, firstStart, firstEnd, secondStart, secondEnd } =
-          scheduleInfo;
+        const { type, firstStart, firstEnd } = scheduleInfo;
 
         if (type === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
           // セッション制（東京教室など）: FIRST_START/FIRST_ENDを使用
@@ -408,6 +411,15 @@ function makeReservation(reservationInfo) {
         `状態: ${isFull ? 'キャンセル待ち' : '確定'}${messageSection}\n` +
         `詳細はスプレッドシートを確認してください。`;
       sendAdminNotification(subject, body);
+
+      // 予約確定メール送信（非同期・エラー時は予約処理に影響しない）
+      Utilities.sleep(100); // 予約確定後の短い待機
+      try {
+        sendBookingConfirmationEmailAsync(reservationInfo);
+      } catch (emailError) {
+        // メール送信エラーは予約成功に影響させない
+        Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
+      }
 
       return createApiResponse(true, {
         message: message,

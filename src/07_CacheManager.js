@@ -483,6 +483,14 @@ function rebuildAllStudentsBasicCache() {
       phone: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.PHONE),
     };
 
+    // オプション列のインデックスを取得（メール関連）
+    const optionalColumns = {
+      email: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.EMAIL),
+      emailPreference: headerColumnMap.get(
+        CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+      ),
+    };
+
     // 必須列の存在確認
     const missingColumns = Object.entries(requiredColumns)
       .filter(([, index]) => index === undefined)
@@ -505,11 +513,23 @@ function rebuildAllStudentsBasicCache() {
     allStudentRows.forEach((studentRow, index) => {
       const studentId = studentRow[requiredColumns.studentId];
       if (studentId && String(studentId).trim()) {
+        // メール連絡希望フラグの処理
+        let wantsEmail = false;
+        if (optionalColumns.emailPreference !== undefined) {
+          const preference = studentRow[optionalColumns.emailPreference];
+          wantsEmail = preference === '希望する' || preference === true;
+        }
+
         studentsDataMap[studentId] = {
           studentId: studentId,
           realName: studentRow[requiredColumns.realName] || '',
           nickname: studentRow[requiredColumns.nickname] || '',
           phone: studentRow[requiredColumns.phone] || '',
+          email:
+            optionalColumns.email !== undefined
+              ? studentRow[optionalColumns.email] || ''
+              : '',
+          wantsEmail: wantsEmail,
           rowIndex: index + 2, // 【修正】ヘッダー行を考慮した実際の行番号を追加 (1-based + header)
         };
       }
@@ -804,5 +824,36 @@ function diagnoseAndFixScheduleMasterCache() {
     Logger.log(`❌ 診断・修復中にエラー: ${error.message}`);
     Logger.log(`スタックトレース: ${error.stack}`);
     return false;
+  }
+}
+
+/**
+ * 指定された生徒IDのメール情報を含む生徒情報を取得
+ * @param {string} studentId - 生徒ID
+ * @returns {Object|null} 生徒情報（メールアドレス・連絡希望フラグ含む）またはnull
+ */
+function getStudentWithEmail(studentId) {
+  try {
+    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    if (!studentsCache || !studentsCache.students) {
+      Logger.log('生徒基本情報キャッシュが利用できません');
+      return null;
+    }
+
+    const student = studentsCache.students[studentId];
+    if (!student) {
+      Logger.log(`生徒ID ${studentId} が見つかりません`);
+      return null;
+    }
+
+    return {
+      ...student,
+      // 明示的にメール情報を含める
+      email: student.email || '',
+      wantsEmail: student.wantsEmail || false,
+    };
+  } catch (error) {
+    Logger.log(`getStudentWithEmail(${studentId})でエラー: ${error.message}`);
+    return null;
   }
 }

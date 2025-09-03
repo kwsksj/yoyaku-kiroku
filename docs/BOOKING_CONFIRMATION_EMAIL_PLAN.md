@@ -113,7 +113,7 @@ function makeReservation(reservationInfo) {
   try {
     // 既存の予約作成処理
     const result = [既存処理];
-    
+
     // メール送信（非同期）
     if (result.success) {
       Utilities.sleep(100); // 予約確定後の短い待機
@@ -124,7 +124,7 @@ function makeReservation(reservationInfo) {
         Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
       }
     }
-    
+
     return result;
   } catch (e) {
     // 既存のエラーハンドリング
@@ -139,13 +139,13 @@ function makeReservation(reservationInfo) {
 ```javascript
 function sendBookingConfirmationEmailAsync(reservationInfo) {
   const { user, studentId } = reservationInfo;
-  
+
   // 初回フラグの取得（reservationInfoから）
   const isFirstTime = reservationInfo.options?.firstLecture || false;
-  
+
   // 生徒情報（メールアドレス含む）を取得
   const studentWithEmail = getStudentWithEmail(studentId);
-  
+
   if (!studentWithEmail || !studentWithEmail.email) {
     if (isFirstTime) {
       // 初回者でメールアドレス未設定の場合はエラーログ（本来は事前入力で防止）
@@ -156,13 +156,13 @@ function sendBookingConfirmationEmailAsync(reservationInfo) {
     }
     return;
   }
-  
+
   // 初回者は必須送信、経験者はメール連絡希望確認
   if (!isFirstTime && studentWithEmail.emailPreference !== '希望する') {
     Logger.log(`メール送信スキップ: メール連絡希望なし (${studentId})`);
     return;
   }
-  
+
   sendBookingConfirmationEmail(reservationInfo, studentWithEmail, isFirstTime);
 }
 ```
@@ -179,13 +179,14 @@ registrationStep2で既に実装されているメール設定項目を、プロ
 
 ```javascript
 // プロフィール編集時のメール設定セクション追加
-const emailSection = isEdit ? `
-  ${Components.createInput({ 
-    id: 'edit-email', 
-    label: 'メールアドレス', 
-    type: 'email', 
+const emailSection = isEdit
+  ? `
+  ${Components.createInput({
+    id: 'edit-email',
+    label: 'メールアドレス',
+    type: 'email',
     value: u.email || '',
-    required: false 
+    required: false,
   })}
   <div class="p-3 bg-ui-surface rounded-md">
     <label class="flex items-center space-x-3">
@@ -195,7 +196,8 @@ const emailSection = isEdit ? `
       <span class="text-brand-text text-sm">今後の教室日程などの、メール連絡を希望します</span>
     </label>
   </div>
-` : '';
+`
+  : '';
 ```
 
 #### 3.2 予約完了画面の案内メッセージ更新
@@ -261,14 +263,14 @@ const u = {
 // src/09_Backend_Endpoints.js の拡張
 function makeReservationAndGetLatestData(reservationInfo) {
   const isFirstTime = reservationInfo.options?.firstLecture || false;
-  
+
   const result = executeOperationAndGetLatestData(/* ... */);
-  
+
   if (result.success && result.data) {
     // 初回フラグ情報を追加
     result.data.wasFirstTimeBooking = isFirstTime;
   }
-  
+
   return result;
 }
 ```
