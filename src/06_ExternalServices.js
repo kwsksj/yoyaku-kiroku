@@ -163,35 +163,35 @@ function createFirstTimeEmailHtml(
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
           ${realName}さま<br><br>
-          
+
           ご予約の申込みをいただき、ありがとうございます！<br>
           木彫り作家の川崎誠二です。<br><br>
-          
+
           私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！<br><br>
-          
+
           ${bookingDetails}
-          
+
           <div style="background-color: #e8f4f8; padding: 15px; margin: 15px 0; border-radius: 5px;">
-            <h3 style="color: #2c3e50; margin-top: 0;">🌟 初回参加について</h3>
+            <h3 style="color: #2c3e50; margin-top: 0;">初回参加について</h3>
             <p>初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。</p>
             <p>単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！</p>
             <p>きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。</p>
             <p>残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。</p>
           </div>
-          
+
           <div style="background-color: #f0f8e8; padding: 15px; margin: 15px 0; border-radius: 5px;">
-            <h3 style="color: #2c3e50; margin-top: 0;">💻 予約管理について</h3>
+            <h3 style="color: #2c3e50; margin-top: 0;">予約管理について</h3>
             <p>予約の確認やキャンセルは、こちらのページで行えます！（私のお手製アプリです！）</p>
             <p><a href="https://www.kibori-class.net/booking" style="color: #3498db;">きぼりのよやく・きろく</a></p>
             <p>次回以降の予約や会計記録や参加の記録もこちらからできますよ。</p>
             <p>スマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！</p>
           </div>
-          
+
           <p>下に教室に関して連絡事項をまとめました。1度目を通しておいてください。<br>
           他にも質問あれば、このメールに直接ご返信ください。</p>
-          
+
           <p>それではどうぞよろしくお願いいたします！</p>
-          
+
           <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #ddd;">
             ${getContactAndVenueInfoHtml()}
           </div>
@@ -283,22 +283,22 @@ function createRegularEmailHtml(
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
           ${realName}さま<br><br>
-          
+
           いつもありがとうございます！<br>
           ご予約を承りました。<br><br>
-          
+
           ${bookingDetails}
-          
+
           <div style="background-color: #f0f8e8; padding: 15px; margin: 15px 0; border-radius: 5px;">
-            <h3 style="color: #2c3e50; margin-top: 0;">💻 予約管理について</h3>
+            <h3 style="color: #2c3e50; margin-top: 0;">予約管理について</h3>
             <p>予約の確認やキャンセルは、<a href="https://www.kibori-class.net/booking" style="color: #3498db;">こちらのページ</a>で行えます。</p>
             <p>メール連絡が不要な場合は、プロフィール編集から設定を変更できます。</p>
           </div>
-          
+
           <p>何かご不明点があれば、このメールに直接ご返信ください。</p>
-          
+
           <p>それでは当日お会いできることを楽しみにしています！</p>
-          
+
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
             <p style="color: #666; font-size: 14px;">
               川崎誠二<br>
@@ -306,6 +306,8 @@ function createRegularEmailHtml(
               Tel: 09013755977
             </p>
           </div>
+
+          ${getVenueDetailsHtml()}
         </div>
       </body>
     </html>
@@ -347,7 +349,10 @@ function createRegularEmailText(
 
 川崎誠二
 Email: shiawasenahito3000@gmail.com
-Tel: 09013755977`;
+Tel: 09013755977
+
+${getContactAndVenueInfoText()}
+`;
 }
 
 /**
@@ -392,25 +397,25 @@ function getVenueForClassroom(classroom) {
 function getContactAndVenueInfoHtml() {
   return `
     <div style="background-color: #fff8dc; padding: 20px; margin: 20px 0; border-radius: 5px; border-left: 5px solid #ffa500;">
-      <h3 style="color: #d2691e; margin-top: 0;">📍 教室に関して連絡事項</h3>
-      
+      <h3 style="color: #d2691e; margin-top: 0;">教室に関して連絡事項</h3>
+
       <h4 style="color: #333;">注意事項：</h4>
       <ul style="color: #555;">
         <li>体調不良の場合、連絡は後日でも構わないので無理をせずお休みください（キャンセル料なし）</li>
         <li>その他、キャンセルの場合はなるべくお早めにご連絡ください</li>
         <li>刃物を使うため怪我の可能性はあります。なにかあった場合は自己責任でお願いいたします</li>
       </ul>
-      
+
       <h4 style="color: #333;">その他の料金：</h4>
       <ul style="color: #555;">
         <li>彫刻刀レンタル１回 ¥500 （持ち込みや購入の場合は不要）</li>
         <li>材料代 ¥100 ~¥2,000 程度（材料の大きさ、樹種に応じて計算）</li>
         <li>道具類などを購入する場合は、その代金</li>
       </ul>
-      
+
       <p><strong>お支払い：</strong>現金、オンラインバンキング送金、ことら送金 （すべて当日）<br>
       <small>※ことら送金･･･電話番号やメールアドレス宛に、銀行のスマホアプリから、手数料なしで送金できるサービス。ゆうちょ銀行、三井住友銀行など。</small></p>
-      
+
       <h4 style="color: #333;">もちもの：</h4>
       <ul style="color: #555;">
         <li>わくわくした気持ち</li>
@@ -418,20 +423,20 @@ function getContactAndVenueInfoHtml() {
         <li>飲み物</li>
         <li>※セーターなど木屑が付きやすい服は避ける</li>
       </ul>
-      
+
       <p><strong>お持ちであれば：</strong><br>
       ・よく切れる彫刻刀<br>
       ・その他の木彫り道具類</p>
-      
+
       <p><strong>必要であれば：</strong><br>
       ・おやつ・昼食（外食も可）<br>
       ・エプロン<br>
       ・ブランケット（寒い時期）<br>
       ・椅子に敷くクッション</p>
-      
+
       ${getVenueDetailsHtml()}
     </div>
-    
+
     <div style="text-align: center; margin: 30px 0; padding-top: 20px; border-top: 2px solid #ddd;">
       <h4 style="color: #2c3e50; margin-bottom: 10px;">川崎 誠二 KAWASAKI Seiji</h4>
       <p style="color: #666; font-size: 14px; margin: 5px 0;">
@@ -459,7 +464,7 @@ function getVenueDetailsHtml() {
       〒111-0053 東京都台東区浅草橋１丁目７−７（陶芸スタジオ2Fのギャラリースペース）<br>
       <a href="#" style="color: #3498db;">Googleマップで表示</a><br>
       ・浅草橋駅より徒歩1,2分（浅草橋駅はJR中央・総武線、都営浅草線の駅。秋葉原から1駅）</p>
-      
+
       <p><strong>【東京教室 東池袋】</strong><br>
       総合不動産 店舗内（池袋サンシャインシティの近く）<br>
       〒170-0013 東京都豊島区東池袋３丁目２０－２０ 東池袋ハイツ壱番館 １Ｆ<br>
@@ -470,11 +475,11 @@ function getVenueDetailsHtml() {
       ・有楽町線 東池袋駅より 10分<br>
       ・都電荒川線 向原駅より 7分<br>
       （いずれも徒歩の場合）</p>
-      
+
       <p><strong>【つくば教室】</strong><br>
       〒305-0861 茨城県つくば市谷田部 1051-7<br>
       駐車場など詳しい情報は<a href="https://sites.google.com/view/kwskikbr/tukuba" style="color: #3498db;">こちらのリンク先</a></p>
-      
+
       <p><strong>【沼津教室】</strong><br>
       〒410-0844 静岡県沼津市春日町67-5<br>
       駐車場など詳しい情報は<a href="https://sites.google.com/view/kwskikbr/numazu" style="color: #3498db;">こちらのリンク先</a></p>
@@ -522,7 +527,7 @@ function getContactAndVenueInfoText() {
 Parts Studio Tokyo パーツスタジオ2F
 〒111-0053 東京都台東区浅草橋１丁目７−７（陶芸スタジオ2Fのギャラリースペース）
 Googleマップで表示
-・浅草橋駅より徒歩1,2分 
+・浅草橋駅より徒歩1,2分
 （浅草橋駅はJR中央・総武線、都営浅草線の駅。秋葉原から1駅）
 
 【東京教室 東池袋】
@@ -534,7 +539,7 @@ Googleマップで表示
 ・山手線 大塚駅より 15分
 ・有楽町線 東池袋駅より 10分
 ・都電荒川線 向原駅より 7分
-（いずれも徒歩の場合） 
+（いずれも徒歩の場合）
 
 【つくば教室】
 〒305-0861 茨城県つくば市谷田部 1051-7
