@@ -14,6 +14,43 @@
    */
 
   // =================================================================
+  // --- Booking Time Adjustment Helper Functions ---
+  // -----------------------------------------------------------------
+  // セッション制教室の時間調整のためのヘルパー関数群
+  // =================================================================
+
+  /**
+   * セッション制教室の場合に日程マスタから時間を取得して設定
+   * @param {Object} bookingOptions - 予約オプション
+   * @returns {Object} 調整済みの予約オプション
+   */
+  function adjustTimeForSessionBased(bookingOptions) {
+    try {
+      const selectedSlot = stateManager.getState().selectedSlot;
+      if (!selectedSlot || !selectedSlot.date || !selectedSlot.classroom) {
+        return bookingOptions;
+      }
+
+      // 日程マスタ情報を取得
+      const scheduleInfo = getScheduleInfoFromCache(selectedSlot.date, selectedSlot.classroom);
+      
+      if (scheduleInfo && scheduleInfo.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
+        // セッション制の場合、日程マスタの時間を使用
+        return {
+          ...bookingOptions,
+          startTime: scheduleInfo.firstStart || bookingOptions.startTime,
+          endTime: scheduleInfo.firstEnd || bookingOptions.endTime,
+        };
+      }
+
+      return bookingOptions;
+    } catch (error) {
+      console.error('時間調整エラー:', error);
+      return bookingOptions; // エラー時は元の値を返す
+    }
+  }
+
+  // =================================================================
   // --- Accounting Cache Helper Functions (FE-14) ---
   // -----------------------------------------------------------------
   // 会計フォームのデータを操作するためのヘルパー関数群
@@ -729,11 +766,15 @@
       };
 
       showLoading('booking');
+      
+      // セッション制教室の場合、日程マスタから時間を取得して設定
+      const adjustedBookingOptions = adjustTimeForSessionBased(bookingOptions);
+      
       const p = {
         ...stateManager.getState().selectedSlot,
         user: stateManager.getState().currentUser,
         studentId: stateManager.getState().currentUser.studentId,
-        options: bookingOptions,
+        options: adjustedBookingOptions,
       };
 
       google.script.run

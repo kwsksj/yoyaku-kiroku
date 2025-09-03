@@ -13,36 +13,6 @@
 
 /* global sendBookingConfirmationEmailAsync */
 
-/**
- * メール送信用の予約情報を作成（実際の予約時間を含む）
- */
-function createEmailReservationInfo(originalReservationInfo, scheduleInfo) {
-  const { startTime, endTime } = originalReservationInfo;
-  
-  // メール送信用の予約情報を作成
-  const emailInfo = { ...originalReservationInfo };
-  
-  if (scheduleInfo) {
-    const { type, firstStart, firstEnd } = scheduleInfo;
-    
-    if (type === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
-      // セッション制: 日程マスタの時間を使用
-      emailInfo.startTime = firstStart || startTime;
-      emailInfo.endTime = firstEnd || endTime;
-    } else {
-      // 時間制: 元の時間を使用（既に正しい値）
-      emailInfo.startTime = startTime;
-      emailInfo.endTime = endTime;
-    }
-    
-    // 会場情報も日程マスタから取得
-    if (scheduleInfo.venue) {
-      emailInfo.venue = scheduleInfo.venue;
-    }
-  }
-  
-  return emailInfo;
-}
 
 /**
  * 指定日・教室の定員チェックを行う共通関数。
@@ -339,45 +309,11 @@ function makeReservation(reservationInfo) {
         ? CONSTANTS.STATUS.WAITLISTED
         : CONSTANTS.STATUS.CONFIRMED;
 
-      // 時刻設定（日程マスタベース）
-      const scheduleInfo = getScheduleInfoForDate(date, classroom);
-
-      if (scheduleInfo) {
-        // 日程マスタから時間情報を取得
-        const { type, firstStart, firstEnd } = scheduleInfo;
-
-        if (type === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
-          // セッション制（東京教室など）: FIRST_START/FIRST_ENDを使用
-          if (firstStart)
-            newRowData[startTimeColIdx] = new Date(
-              `1900-01-01T${firstStart}:00`,
-            );
-          if (firstEnd)
-            newRowData[endTimeColIdx] = new Date(`1900-01-01T${firstEnd}:00`);
-        } else if (type === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
-          // 時間制・2部制（つくば教室など）: ユーザー指定の時間を使用
-          if (startTime)
-            newRowData[startTimeColIdx] = new Date(
-              `1900-01-01T${startTime}:00`,
-            );
-          if (endTime)
-            newRowData[endTimeColIdx] = new Date(`1900-01-01T${endTime}:00`);
-        } else {
-          // 時間制・全日（沼津教室など）: ユーザー指定の時間を使用
-          if (startTime)
-            newRowData[startTimeColIdx] = new Date(
-              `1900-01-01T${startTime}:00`,
-            );
-          if (endTime)
-            newRowData[endTimeColIdx] = new Date(`1900-01-01T${endTime}:00`);
-        }
-      } else {
-        // 日程マスタに情報がない場合のフォールバック
-        if (startTime)
-          newRowData[startTimeColIdx] = new Date(`1900-01-01T${startTime}:00`);
-        if (endTime)
-          newRowData[endTimeColIdx] = new Date(`1900-01-01T${endTime}:00`);
-      }
+      // 時刻設定（フロントエンドで調整済みの時間を使用）
+      if (startTime)
+        newRowData[startTimeColIdx] = new Date(`1900-01-01T${startTime}:00`);
+      if (endTime)
+        newRowData[endTimeColIdx] = new Date(`1900-01-01T${endTime}:00`);
 
       // オプション設定
       if (chiselRentalColIdx !== undefined)
@@ -446,9 +382,8 @@ function makeReservation(reservationInfo) {
       // 予約確定メール送信（非同期・エラー時は予約処理に影響しない）
       Utilities.sleep(100); // 予約確定後の短い待機
       try {
-        // メール送信用に実際の予約時間を含む情報を作成
-        const emailReservationInfo = createEmailReservationInfo(reservationInfo, scheduleInfo);
-        sendBookingConfirmationEmailAsync(emailReservationInfo);
+        // フロントエンドで調整済みの reservationInfo をそのまま使用
+        sendBookingConfirmationEmailAsync(reservationInfo);
       } catch (emailError) {
         // メール送信エラーは予約成功に影響させない
         Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);

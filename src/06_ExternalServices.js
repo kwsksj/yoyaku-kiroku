@@ -328,13 +328,15 @@ ${getContactAndVenueInfoText()}
  * 共通の申込み内容セクション生成（HTML版）
  */
 function createBookingDetailsHtml(reservation, formattedDate, statusText) {
-  const { classroom, venue, options = {} } = reservation;
+  const { classroom, venue, startTime, endTime, options = {} } = reservation;
   
   // 会場情報の表示
   const venueDisplay = venue || getVenueForClassroom(classroom);
   
-  // 時間表示の改善（セッション制対応）
-  const timeDisplay = getTimeDisplayForReservation(reservation);
+  // 時間表示（フロントエンドで調整済みの値を使用）
+  const timeDisplay = (startTime && endTime) 
+    ? `${startTime} - ${endTime}` 
+    : getDefaultTimeForClassroom(classroom);
   
   return `
     <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px;">
@@ -354,13 +356,15 @@ function createBookingDetailsHtml(reservation, formattedDate, statusText) {
  * 共通の申込み内容セクション生成（テキスト版）
  */
 function createBookingDetailsText(reservation, formattedDate, statusText) {
-  const { classroom, venue, options = {} } = reservation;
+  const { classroom, venue, startTime, endTime, options = {} } = reservation;
   
   // 会場情報の表示
   const venueDisplay = venue || getVenueForClassroom(classroom);
   
-  // 時間表示の改善（セッション制対応）
-  const timeDisplay = getTimeDisplayForReservation(reservation);
+  // 時間表示（フロントエンドで調整済みの値を使用）
+  const timeDisplay = (startTime && endTime) 
+    ? `${startTime} - ${endTime}` 
+    : getDefaultTimeForClassroom(classroom);
   
   return `・申込み内容
 教室: ${classroom}
@@ -373,36 +377,6 @@ function createBookingDetailsText(reservation, formattedDate, statusText) {
 以上の内容を ${statusText} で承りました。`;
 }
 
-/**
- * 予約時間の表示を取得（セッション制対応）
- */
-function getTimeDisplayForReservation(reservation) {
-  const { classroom, startTime, endTime } = reservation;
-  
-  // 具体的な時間が設定されている場合（時間制・2部制）
-  if (startTime && endTime && startTime !== '未定' && endTime !== '未定') {
-    return `${startTime} - ${endTime}`;
-  }
-  
-  // セッション制の場合、日程マスタから時間を取得
-  if (reservation.date && classroom) {
-    try {
-      // 外部の関数を使って日程マスタ情報を取得
-      const scheduleInfo = typeof getScheduleInfoForDate === 'function' 
-        ? getScheduleInfoForDate(reservation.date, classroom) 
-        : null;
-        
-      if (scheduleInfo && scheduleInfo.firstStart && scheduleInfo.firstEnd) {
-        return `${scheduleInfo.firstStart} - ${scheduleInfo.firstEnd}`;
-      }
-    } catch (error) {
-      Logger.log(`時間表示取得エラー: ${error.message}`);
-    }
-  }
-  
-  // フォールバック: デフォルトの時間表示
-  return getDefaultTimeForClassroom(classroom);
-}
 
 /**
  * 教室別のデフォルト時間を取得
