@@ -10,9 +10,10 @@
  * =================================================================
  *
  * @global getStudentWithEmail - Cache manager function from 07_CacheManager.js
+ * @global getScheduleInfoForDate - Business logic function from 02-4_BusinessLogic_ScheduleMaster.js
  */
 
-/* global getStudentWithEmail */
+/* global getStudentWithEmail, getScheduleInfoForDate */
 
 /**
  * =================================================================
@@ -327,14 +328,21 @@ ${getContactAndVenueInfoText()}
  * 共通の申込み内容セクション生成（HTML版）
  */
 function createBookingDetailsHtml(reservation, formattedDate, statusText) {
-  const { classroom, startTime, endTime, options = {} } = reservation;
+  const { classroom, venue, options = {} } = reservation;
+  
+  // 会場情報の表示
+  const venueDisplay = venue || getVenueForClassroom(classroom);
+  
+  // 時間表示の改善（セッション制対応）
+  const timeDisplay = getTimeDisplayForReservation(reservation);
   
   return `
     <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px;">
       <h3 style="color: #333; margin-top: 0;">申込み内容</h3>
       <p><strong>教室:</strong> ${classroom}</p>
+      <p><strong>会場:</strong> ${venueDisplay}</p>
       <p><strong>日付:</strong> ${formattedDate}</p>
-      <p><strong>時間:</strong> ${startTime || '未定'} - ${endTime || '未定'}</p>
+      <p><strong>時間:</strong> ${timeDisplay}</p>
       <p><strong>基本授業料:</strong> ${options.firstLecture ? '初回授業料' : '通常授業料'}</p>
       <p><strong>受付日時:</strong> ${new Date().toLocaleString('ja-JP')}</p>
       <p style="color: #d2691e; font-weight: bold;">以上の内容を ${statusText} で承りました。</p>
@@ -346,17 +354,67 @@ function createBookingDetailsHtml(reservation, formattedDate, statusText) {
  * 共通の申込み内容セクション生成（テキスト版）
  */
 function createBookingDetailsText(reservation, formattedDate, statusText) {
-  const { classroom, startTime, endTime, options = {} } = reservation;
+  const { classroom, venue, options = {} } = reservation;
+  
+  // 会場情報の表示
+  const venueDisplay = venue || getVenueForClassroom(classroom);
+  
+  // 時間表示の改善（セッション制対応）
+  const timeDisplay = getTimeDisplayForReservation(reservation);
   
   return `・申込み内容
 教室: ${classroom}
-会場: ${getVenueForClassroom(classroom)}
+会場: ${venueDisplay}
 日付: ${formattedDate}
-時間: ${startTime || '未定'} - ${endTime || '未定'}
+時間: ${timeDisplay}
 基本授業料: ${options.firstLecture ? '初回授業料' : '通常授業料'}
 受付日時: ${new Date().toLocaleString('ja-JP')}
 
 以上の内容を ${statusText} で承りました。`;
+}
+
+/**
+ * 予約時間の表示を取得（セッション制対応）
+ */
+function getTimeDisplayForReservation(reservation) {
+  const { classroom, startTime, endTime } = reservation;
+  
+  // 具体的な時間が設定されている場合（時間制・2部制）
+  if (startTime && endTime && startTime !== '未定' && endTime !== '未定') {
+    return `${startTime} - ${endTime}`;
+  }
+  
+  // セッション制の場合、日程マスタから時間を取得
+  if (reservation.date && classroom) {
+    try {
+      // 外部の関数を使って日程マスタ情報を取得
+      const scheduleInfo = typeof getScheduleInfoForDate === 'function' 
+        ? getScheduleInfoForDate(reservation.date, classroom) 
+        : null;
+        
+      if (scheduleInfo && scheduleInfo.firstStart && scheduleInfo.firstEnd) {
+        return `${scheduleInfo.firstStart} - ${scheduleInfo.firstEnd}`;
+      }
+    } catch (error) {
+      Logger.log(`時間表示取得エラー: ${error.message}`);
+    }
+  }
+  
+  // フォールバック: デフォルトの時間表示
+  return getDefaultTimeForClassroom(classroom);
+}
+
+/**
+ * 教室別のデフォルト時間を取得
+ */
+function getDefaultTimeForClassroom(classroom) {
+  const timeMap = {
+    '東京教室 浅草橋': '10:00 - 18:00',
+    '東京教室 東池袋': '10:00 - 18:00', 
+    'つくば教室': '10:00 - 17:00',
+    '沼津教室': '10:00 - 17:00',
+  };
+  return timeMap[classroom] || '時間については別途ご連絡します';
 }
 
 /**
@@ -609,6 +667,7 @@ function sendBookingConfirmationEmailAsync(reservationInfo) {
   const reservation = {
     date: reservationInfo.date,
     classroom: reservationInfo.classroom,
+    venue: reservationInfo.venue,
     startTime: reservationInfo.startTime,
     endTime: reservationInfo.endTime,
     options: options,
