@@ -142,21 +142,10 @@ function createFirstTimeEmailHtml(
   formattedDate,
   statusText,
 ) {
-  const { classroom, startTime, endTime, options = {} } = reservation;
   const { realName } = student;
 
-  // 申込み内容セクション
-  const bookingDetails = `
-    <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px;">
-      <h3 style="color: #333; margin-top: 0;">申込み内容</h3>
-      <p><strong>教室:</strong> ${classroom}</p>
-      <p><strong>日付:</strong> ${formattedDate}</p>
-      <p><strong>時間:</strong> ${startTime || '未定'} - ${endTime || '未定'}</p>
-      <p><strong>基本授業料:</strong> ${options.firstLecture ? '初回授業料' : '通常授業料'}</p>
-      <p><strong>受付日時:</strong> ${new Date().toLocaleString('ja-JP')}</p>
-      <p style="color: #d2691e; font-weight: bold;">以上の内容を ${statusText} で承りました。</p>
-    </div>
-  `;
+  // 申込み内容セクション（共通関数使用）
+  const bookingDetails = createBookingDetailsHtml(reservation, formattedDate, statusText);
 
   return `
     <html>
@@ -210,7 +199,6 @@ function createFirstTimeEmailText(
   formattedDate,
   statusText,
 ) {
-  const { classroom, startTime, endTime, options = {} } = reservation;
   const { realName } = student;
 
   return `${realName}さま
@@ -220,15 +208,7 @@ function createFirstTimeEmailText(
 
 私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！
 
-・申込み内容
-教室: ${classroom}
-会場: ${getVenueForClassroom(classroom)}
-日付: ${formattedDate}
-時間: ${startTime || '未定'} - ${endTime || '未定'}
-基本授業料: ${options.firstLecture ? '初回授業料' : '通常授業料'}
-受付日時: ${new Date().toLocaleString('ja-JP')}
-
-以上の内容を ${statusText} で承りました。
+${createBookingDetailsText(reservation, formattedDate, statusText)}
 
 初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。
 単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！
@@ -264,19 +244,10 @@ function createRegularEmailHtml(
   formattedDate,
   statusText,
 ) {
-  const { classroom, startTime, endTime } = reservation;
   const { realName } = student;
 
-  const bookingDetails = `
-    <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px;">
-      <h3 style="color: #333; margin-top: 0;">申込み内容</h3>
-      <p><strong>教室:</strong> ${classroom}</p>
-      <p><strong>日付:</strong> ${formattedDate}</p>
-      <p><strong>時間:</strong> ${startTime || '未定'} - ${endTime || '未定'}</p>
-      <p><strong>受付日時:</strong> ${new Date().toLocaleString('ja-JP')}</p>
-      <p style="color: #d2691e; font-weight: bold;">以上の内容を ${statusText} で承りました。</p>
-    </div>
-  `;
+  // 申込み内容セクション（共通関数使用）
+  const bookingDetails = createBookingDetailsHtml(reservation, formattedDate, statusText);
 
   return `
     <html>
@@ -323,7 +294,6 @@ function createRegularEmailText(
   formattedDate,
   statusText,
 ) {
-  const { classroom, startTime, endTime } = reservation;
   const { realName } = student;
 
   return `${realName}さま
@@ -331,13 +301,7 @@ function createRegularEmailText(
 いつもありがとうございます！
 ご予約を承りました。
 
-・申込み内容
-教室: ${classroom}
-日付: ${formattedDate}
-時間: ${startTime || '未定'} - ${endTime || '未定'}
-受付日時: ${new Date().toLocaleString('ja-JP')}
-
-以上の内容を ${statusText} で承りました。
+${createBookingDetailsText(reservation, formattedDate, statusText)}
 
 予約の確認やキャンセルは、こちらのページで行えます：
 【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)
@@ -358,6 +322,42 @@ ${getContactAndVenueInfoText()}
 /**
  * ヘルパー関数群
  */
+
+/**
+ * 共通の申込み内容セクション生成（HTML版）
+ */
+function createBookingDetailsHtml(reservation, formattedDate, statusText) {
+  const { classroom, startTime, endTime, options = {} } = reservation;
+  
+  return `
+    <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px;">
+      <h3 style="color: #333; margin-top: 0;">申込み内容</h3>
+      <p><strong>教室:</strong> ${classroom}</p>
+      <p><strong>日付:</strong> ${formattedDate}</p>
+      <p><strong>時間:</strong> ${startTime || '未定'} - ${endTime || '未定'}</p>
+      <p><strong>基本授業料:</strong> ${options.firstLecture ? '初回授業料' : '通常授業料'}</p>
+      <p><strong>受付日時:</strong> ${new Date().toLocaleString('ja-JP')}</p>
+      <p style="color: #d2691e; font-weight: bold;">以上の内容を ${statusText} で承りました。</p>
+    </div>
+  `;
+}
+
+/**
+ * 共通の申込み内容セクション生成（テキスト版）
+ */
+function createBookingDetailsText(reservation, formattedDate, statusText) {
+  const { classroom, startTime, endTime, options = {} } = reservation;
+  
+  return `・申込み内容
+教室: ${classroom}
+会場: ${getVenueForClassroom(classroom)}
+日付: ${formattedDate}
+時間: ${startTime || '未定'} - ${endTime || '未定'}
+基本授業料: ${options.firstLecture ? '初回授業料' : '通常授業料'}
+受付日時: ${new Date().toLocaleString('ja-JP')}
+
+以上の内容を ${statusText} で承りました。`;
+}
 
 /**
  * 日付をメール用にフォーマット
