@@ -483,8 +483,8 @@
           })}
           <div class="p-3 bg-ui-surface rounded-md">
             <label class="flex items-center space-x-3">
-              <input type="checkbox" id="edit-wants-email" 
-                     class="h-5 w-5 accent-action-primary-bg" 
+              <input type="checkbox" id="edit-wants-email"
+                     class="h-5 w-5 accent-action-primary-bg"
                      ${u.wantsEmail ? 'checked' : ''}>
               <span class="text-brand-text text-sm">今後の教室日程などの、メール連絡を希望します</span>
             </label>
@@ -1751,7 +1751,9 @@
       emailNoticeHtml = `
         <div class="bg-ui-surface rounded-lg p-3 mt-4">
           <p class="text-sm text-brand-subtle text-center">
-ご登録のメールアドレスに予約確定メールをお送りしました
+          ご登録のメールアドレスに shiawasenehito3000@gmail.com より、
+          初回予約確定メールをお送りしました！
+          <br>会場の住所や駐車場情報など記載してありますので、ご確認ください。
           </p>
         </div>
       `;
@@ -1785,7 +1787,7 @@
         </svg>
         <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-4 mb-2">ありがとうございました</h1>
         <p class="${DesignConfig.colors.textSubtle} mb-6">${msg}</p>
-        
+
         ${emailNoticeHtml}
 
         ${nextBookingHtml}

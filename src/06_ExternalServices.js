@@ -146,7 +146,11 @@ function createFirstTimeEmailHtml(
   const { realName } = student;
 
   // 申込み内容セクション（共通関数使用）
-  const bookingDetails = createBookingDetailsHtml(reservation, formattedDate, statusText);
+  const bookingDetails = createBookingDetailsHtml(
+    reservation,
+    formattedDate,
+    statusText,
+  );
 
   return `
     <html>
@@ -154,27 +158,25 @@ function createFirstTimeEmailHtml(
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
           ${realName}さま<br><br>
 
-          ご予約の申込みをいただき、ありがとうございます！<br>
-          木彫り作家の川崎誠二です。<br><br>
-
+          木彫り教室ご参加の申込みをいただき、ありがとうございます！<br>
+          木彫り作家の川崎誠二です。<br>
           私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！<br><br>
 
           ${bookingDetails}
 
           <div style="background-color: #e8f4f8; padding: 15px; margin: 15px 0; border-radius: 5px;">
             <h3 style="color: #2c3e50; margin-top: 0;">初回参加について</h3>
-            <p>初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。</p>
-            <p>単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！</p>
-            <p>きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。</p>
+            <p>初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。</p>
+
             <p>残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。</p>
           </div>
 
           <div style="background-color: #f0f8e8; padding: 15px; margin: 15px 0; border-radius: 5px;">
             <h3 style="color: #2c3e50; margin-top: 0;">予約管理について</h3>
-            <p>予約の確認やキャンセルは、こちらのページで行えます！（私のお手製アプリです！）</p>
+            <p>予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）</p>
             <p><a href="https://www.kibori-class.net/booking" style="color: #3498db;">きぼりのよやく・きろく</a></p>
-            <p>次回以降の予約や会計記録や参加の記録もこちらからできますよ。</p>
-            <p>スマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！</p>
+            <p>次回以降の予約や会計記録や参加の記録もこちらからできますよ。
+            <br>スマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！</p>
           </div>
 
           <p>下に教室に関して連絡事項をまとめました。1度目を通しておいてください。<br>
@@ -204,21 +206,18 @@ function createFirstTimeEmailText(
 
   return `${realName}さま
 
-ご予約の申込みをいただき、ありがとうございます！
+木彫り教室ご参加の申込みをいただき、ありがとうございます！
 木彫り作家の川崎誠二です。
-
 私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！
 
 ${createBookingDetailsText(reservation, formattedDate, statusText)}
 
-初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。
-単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！
-きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。
+初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。
 
 残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。
 
 
-予約の確認やキャンセルは、こちらのページで行えます！（私のお手製アプリです！）
+予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）
 【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)
 
 次回以降の予約や会計記録や参加の記録もこちらからできますよ。
@@ -248,7 +247,11 @@ function createRegularEmailHtml(
   const { realName } = student;
 
   // 申込み内容セクション（共通関数使用）
-  const bookingDetails = createBookingDetailsHtml(reservation, formattedDate, statusText);
+  const bookingDetails = createBookingDetailsHtml(
+    reservation,
+    formattedDate,
+    statusText,
+  );
 
   return `
     <html>
@@ -256,6 +259,7 @@ function createRegularEmailHtml(
         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
           ${realName}さま<br><br>
 
+          川崎です！<br>
           いつもありがとうございます！<br>
           ご予約を承りました。<br><br>
 
@@ -264,12 +268,14 @@ function createRegularEmailHtml(
           <div style="background-color: #f0f8e8; padding: 15px; margin: 15px 0; border-radius: 5px;">
             <h3 style="color: #2c3e50; margin-top: 0;">予約管理について</h3>
             <p>予約の確認やキャンセルは、<a href="https://www.kibori-class.net/booking" style="color: #3498db;">こちらのページ</a>で行えます。</p>
-            <p>メール連絡が不要な場合は、プロフィール編集から設定を変更できます。</p>
-          </div>
+            <p>メール連絡が不要な場合は、プロフィール編集から設定を変更できます。
+            <br>次回以降の予約や会計記録や参加の記録もこちらからできます。
+            <br>スマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！</p>
+            </div>
 
           <p>何かご不明点があれば、このメールに直接ご返信ください。</p>
 
-          <p>それでは当日お会いできることを楽しみにしています！</p>
+          <p>それではまたお会いできることを楽しみにしています！</p>
 
           <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd;">
             <p style="color: #666; font-size: 14px;">
@@ -300,6 +306,7 @@ function createRegularEmailText(
   return `${realName}さま
 
 いつもありがとうございます！
+川崎です！
 ご予約を承りました。
 
 ${createBookingDetailsText(reservation, formattedDate, statusText)}
@@ -308,6 +315,8 @@ ${createBookingDetailsText(reservation, formattedDate, statusText)}
 【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)
 
 メール連絡が不要な場合は、プロフィール編集から設定を変更できます。
+次回以降の予約や会計記録や参加の記録もこちらからできます。
+スマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！
 
 何かご不明点があれば、このメールに直接ご返信ください。
 それでは当日お会いできることを楽しみにしています！
@@ -329,15 +338,16 @@ ${getContactAndVenueInfoText()}
  */
 function createBookingDetailsHtml(reservation, formattedDate, statusText) {
   const { classroom, venue, startTime, endTime, options = {} } = reservation;
-  
+
   // 会場情報の表示
   const venueDisplay = venue || getVenueForClassroom(classroom);
-  
+
   // 時間表示（フロントエンドで調整済みの値を使用）
-  const timeDisplay = (startTime && endTime) 
-    ? `${startTime} - ${endTime}` 
-    : getDefaultTimeForClassroom(classroom);
-  
+  const timeDisplay =
+    startTime && endTime
+      ? `${startTime} - ${endTime}`
+      : '予約webアプリ上か、各教室のページなどをご確認ください'(classroom);
+
   return `
     <div style="background-color: #f5f5f5; padding: 15px; margin: 15px 0; border-radius: 5px;">
       <h3 style="color: #333; margin-top: 0;">申込み内容</h3>
@@ -357,15 +367,16 @@ function createBookingDetailsHtml(reservation, formattedDate, statusText) {
  */
 function createBookingDetailsText(reservation, formattedDate, statusText) {
   const { classroom, venue, startTime, endTime, options = {} } = reservation;
-  
+
   // 会場情報の表示
   const venueDisplay = venue || getVenueForClassroom(classroom);
-  
+
   // 時間表示（フロントエンドで調整済みの値を使用）
-  const timeDisplay = (startTime && endTime) 
-    ? `${startTime} - ${endTime}` 
-    : getDefaultTimeForClassroom(classroom);
-  
+  const timeDisplay =
+    startTime && endTime
+      ? `${startTime} - ${endTime}`
+      : '予約webアプリ上か、各教室のページなどをご確認ください';
+
   return `・申込み内容
 教室: ${classroom}
 会場: ${venueDisplay}
@@ -377,26 +388,19 @@ function createBookingDetailsText(reservation, formattedDate, statusText) {
 以上の内容を ${statusText} で承りました。`;
 }
 
-
-/**
- * 教室別のデフォルト時間を取得
- */
-function getDefaultTimeForClassroom(classroom) {
-  const timeMap = {
-    '東京教室 浅草橋': '10:00 - 18:00',
-    '東京教室 東池袋': '10:00 - 18:00', 
-    'つくば教室': '10:00 - 17:00',
-    '沼津教室': '10:00 - 17:00',
-  };
-  return timeMap[classroom] || '時間については別途ご連絡します';
-}
-
 /**
  * 日付をメール用にフォーマット
+ * @param {string|Date} dateInput - 日付（文字列またはDateオブジェクト）
  */
-function formatDateForEmail(dateString) {
+function formatDateForEmail(dateInput) {
   try {
-    const date = new Date(dateString);
+    // 文字列またはDateオブジェクトを適切に処理
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+
+    if (isNaN(date.getTime())) {
+      throw new Error(`無効な日付: ${dateInput}`);
+    }
+
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -406,7 +410,7 @@ function formatDateForEmail(dateString) {
     return `${year}年${month}月${day}日(${weekday})`;
   } catch (error) {
     Logger.log(`日付フォーマットエラー: ${error.message}`);
-    return dateString;
+    return String(dateInput);
   }
 }
 

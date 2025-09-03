@@ -13,7 +13,6 @@
 
 /* global sendBookingConfirmationEmailAsync */
 
-
 /**
  * 指定日・教室の定員チェックを行う共通関数。
  */
@@ -310,6 +309,10 @@ function makeReservation(reservationInfo) {
         : CONSTANTS.STATUS.CONFIRMED;
 
       // 時刻設定（フロントエンドで調整済みの時間を使用）
+      Logger.log(
+        `[makeReservation] 受信した時間情報: startTime=${startTime}, endTime=${endTime}, classroom=${classroom}`,
+      );
+
       if (startTime)
         newRowData[startTimeColIdx] = new Date(`1900-01-01T${startTime}:00`);
       if (endTime)
