@@ -196,3 +196,19 @@ function doGetTest() {
 function doGetPerformanceTest(_e) {
   return doGetTest();
 }
+
+/**
+ * 管理者メールアドレスを設定する関数
+ * GASエディタから一度だけ実行してください
+ * @param {string} email - 設定するメールアドレス
+ */
+function setAdminEmail(email = 'shiawasenahito3000@gmail.com') {
+  try {
+    PropertiesService.getScriptProperties().setProperty('ADMIN_EMAIL', email);
+    Logger.log(`ADMIN_EMAIL を設定しました: ${email}`);
+    console.log(`✅ ADMIN_EMAIL を設定しました: ${email}`);
+  } catch (error) {
+    Logger.log(`ADMIN_EMAIL 設定エラー: ${error.message}`);
+    console.error(`❌ ADMIN_EMAIL 設定エラー: ${error.message}`);
+  }
+}
