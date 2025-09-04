@@ -319,13 +319,13 @@
       classStart,
       classEnd + endBuffer,
       30,
-      reservationDetails.startTime,
+      reservationDetails[window.HEADERS?.RESERVATIONS?.START_TIME] || reservationDetails.startTime,
     );
     const endTimeOptions = getTimeOptionsHtml(
       classStart,
       classEnd + endBuffer,
       30,
-      reservationDetails.endTime,
+      reservationDetails[window.HEADERS?.RESERVATIONS?.END_TIME] || reservationDetails.endTime,
     );
 
     const rentalChecked =
@@ -1311,8 +1311,6 @@
       date,
       venue,
       isWaiting,
-      startTime,
-      endTime,
       firstLecture,
       chiselRental,
       workInProgress,
@@ -1320,6 +1318,10 @@
       order,
       messageToTeacher,
     } = sourceData;
+    
+    // 時間情報は統合定数を使用して取得
+    const startTime = sourceData[window.HEADERS?.RESERVATIONS?.START_TIME] || sourceData.startTime;
+    const endTime = sourceData[window.HEADERS?.RESERVATIONS?.END_TIME] || sourceData.endTime;
     const {
       currentUser,
       accountingMaster: master,
