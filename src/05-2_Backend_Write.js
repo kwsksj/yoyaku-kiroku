@@ -190,11 +190,16 @@ function _validateTimeBasedReservation(startTime, endTime, classroomRule) {
 function makeReservation(reservationInfo) {
   return withTransaction(() => {
     try {
-      const { classroom, date, user, options, startTime, endTime } = reservationInfo;
+      const { classroom, date, user, options, startTime, endTime } =
+        reservationInfo;
 
       // デバッグ情報: 受信したデータを確認
-      Logger.log(`[makeReservation] 受信データ: startTime=${startTime}, endTime=${endTime}, classroom=${classroom}`);
-      Logger.log(`[makeReservation] reservationInfo全体: ${JSON.stringify(reservationInfo)}`);
+      Logger.log(
+        `[makeReservation] 受信データ: startTime=${startTime}, endTime=${endTime}, classroom=${classroom}`,
+      );
+      Logger.log(
+        `[makeReservation] reservationInfo全体: ${JSON.stringify(reservationInfo)}`,
+      );
 
       // 統合予約シートを取得
       const integratedSheet = getSheetByName(

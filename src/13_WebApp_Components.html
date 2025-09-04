@@ -924,7 +924,7 @@
     const showCloseButton = config.showCloseButton !== false;
 
     return `
-      <div id="${escapeHTML(config.id)}" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
+      <div id="${escapeHTML(config.id)}" class="modal-fade fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
         <div class="bg-white rounded-lg ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
           <div class="flex justify-between items-center p-4 border-b border-ui-border">
             <h2 class="text-xl font-bold text-brand-text">${escapeHTML(config.title)}</h2>
@@ -938,13 +938,17 @@
   };
 
   /**
-   * モーダルを表示します
+   * モーダルを表示します（フェードインアニメーション付き）
    * @param {string} modalId - モーダルのID
    */
   Components.showModal = modalId => {
     const modal = document.getElementById(modalId);
     if (modal) {
       modal.classList.remove('hidden');
+      // フェードインアニメーションのための遅延
+      requestAnimationFrame(() => {
+        modal.classList.add('active');
+      });
       // フォーカストラップの設定
       const focusableElements = modal.querySelectorAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
@@ -956,13 +960,17 @@
   };
 
   /**
-   * モーダルを非表示にします
+   * モーダルを非表示にします（フェードアウトアニメーション付き）
    * @param {string} modalId - モーダルのID
    */
   Components.closeModal = modalId => {
     const modal = document.getElementById(modalId);
     if (modal) {
-      modal.classList.add('hidden');
+      modal.classList.remove('active');
+      // フェードアウトアニメーション完了後に完全に非表示にする
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300); // CSS transitionと同じ時間
     }
   };
 

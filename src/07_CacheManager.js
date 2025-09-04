@@ -517,7 +517,10 @@ function rebuildAllStudentsBasicCache() {
         let wantsEmail = false;
         if (optionalColumns.emailPreference !== undefined) {
           const preference = studentRow[optionalColumns.emailPreference];
-          wantsEmail = preference === 'TRUE' || preference === '希望する' || preference === true;
+          wantsEmail =
+            preference === 'TRUE' ||
+            preference === '希望する' ||
+            preference === true;
         }
 
         studentsDataMap[studentId] = {

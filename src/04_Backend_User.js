@@ -489,7 +489,9 @@ function updateUserProfile(userInfo) {
       const nicknameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
       const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
       const emailColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
-      const emailPreferenceColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE);
+      const emailPreferenceColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+      );
 
       if (
         realNameColIdx === -1 ||
@@ -525,9 +527,7 @@ function updateUserProfile(userInfo) {
         if (email && !_isValidEmail(email)) {
           throw new Error('メールアドレスの形式が正しくありません。');
         }
-        rosterSheet
-          .getRange(targetRowIndex, emailColIdx + 1)
-          .setValue(email);
+        rosterSheet.getRange(targetRowIndex, emailColIdx + 1).setValue(email);
       }
 
       // メール連絡希望の更新

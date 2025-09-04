@@ -321,6 +321,18 @@
         opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
       }
       #custom-modal.active { opacity: 1; pointer-events: auto; }
+      /* 汎用モーダルのフェードインアニメーション */
+      .modal-fade {
+        opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+      }
+      .modal-fade.active { opacity: 1; pointer-events: auto; }
+      /* ローディング画面のフェードアニメーション */
+      .loading-fade {
+        opacity: 0; transition: opacity 0.3s ease; pointer-events: none;
+      }
+      .loading-fade.active { opacity: 1; pointer-events: auto; }
+      /* ローディング画面の背景を少し透明にして滑らかな遷移を実現 */
+      #loading { background-color: rgba(255, 255, 255, 0.95); backdrop-filter: blur(2px); }
       .modal-content {
         background: white; padding: 1.5rem; border-radius: 0.75rem;
         width: 90%; max-width: 400px; text-align: center;

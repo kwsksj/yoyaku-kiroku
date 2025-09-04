@@ -69,7 +69,7 @@
       const p = document.getElementById('phone').value;
       // 入力値をsetState経由で保存
       window.stateManager.dispatch({
-        type: 'SET_STATE',
+        type: 'UPDATE_STATE',
         payload: { loginPhone: p },
       });
       if (!p) return showInfo('電話番号を入力してください。');
@@ -95,7 +95,6 @@
       google.script.run
         .withSuccessHandler(response => {
           // ← この response には、サーバーサイドの getLoginData 関数の戻り値が格納されます。
-          hideLoading();
 
           // デバッグ情報を画面に表示（本番環境では無効化）
           if (!window.isProduction) {
@@ -398,7 +397,7 @@
             return h;
           });
           window.stateManager.dispatch({
-            type: 'SET_STATE',
+            type: 'UPDATE_STATE',
             payload: { history: newHistory },
           });
 
@@ -678,6 +677,7 @@
                       myBookings: r.data.myBookings || [],
                       history: r.data.initialData.myHistory || [],
                       historyTotal: (r.data.initialData.myHistory || []).length,
+                      slots: r.data.slots || [],
                       view: 'dashboard',
                       isDataFresh: true, // 最新データ受信済み
                     },
@@ -775,6 +775,7 @@
                   myBookings: r.data.myBookings || [],
                   history: r.data.initialData.myHistory || [],
                   historyTotal: (r.data.initialData.myHistory || []).length,
+                  slots: r.data.slots || [],
                   view: 'complete',
                   completionMessage: r.message,
                   isDataFresh: true, // 最新データ受信済み
@@ -888,6 +889,7 @@
                   myBookings: r.data.myBookings || [],
                   history: r.data.initialData.myHistory || [],
                   historyTotal: (r.data.initialData.myHistory || []).length,
+                  slots: r.data.slots || [],
                   view: 'dashboard',
                   isDataFresh: true, // 最新データ受信済み
                 },
@@ -1500,8 +1502,8 @@
         ? phoneInput.value
         : stateManager.getState().loginPhone;
       window.stateManager.dispatch({
-        type: 'SET_STATE',
-        payload: { view: 'login', loginPhone: loginPhone },
+        type: 'NAVIGATE',
+        payload: { to: 'login', context: { loginPhone: loginPhone } },
       });
     },
 

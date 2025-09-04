@@ -57,7 +57,7 @@ function executeOperationAndGetLatestData(
     const result = operationFunction(operationParams);
     if (result.success) {
       const batchResult = getBatchData(
-        ['initial', 'reservations'],
+        ['initial', 'reservations', 'slots'],
         null,
         studentId,
       );
@@ -77,6 +77,7 @@ function executeOperationAndGetLatestData(
               ? batchResult.data.userReservations.myHistory
               : [],
           },
+          slots: batchResult.data.slots || [],
         },
       });
 

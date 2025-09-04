@@ -144,6 +144,16 @@
         window.pageTransitionManager.onPageTransition(newState.view);
       }
 
+      // 最終的な状態更新（画面遷移を伴う）でのみローディング非表示を実行
+      const isViewChange = newState.view && newState.view !== previousView;
+      const hasSubstantialData = newState.slots || newState.myBookings || newState.currentUser;
+      const isFinalUpdate = (action.type === 'SET_STATE') && 
+                           (isViewChange || hasSubstantialData);
+                           
+      if (isFinalUpdate) {
+        this._shouldHideLoadingAfterRender = true;
+      }
+
       // UI を自動で再描画
       this._scheduleRender();
     }
@@ -307,6 +317,11 @@
         if (typeof window.render === 'function') {
           console.log('🎨 Auto-rendering UI...');
           window.render();
+          // 特定のaction.typeでのみローディングを非表示（最終的な状態更新のみ）
+          if (this._shouldHideLoadingAfterRender) {
+            hideLoading();
+            this._shouldHideLoadingAfterRender = false;
+          }
         } else {
           console.warn('render関数が見つかりません');
         }

@@ -1012,10 +1012,24 @@
       return `<div class="text-center"><p class="text-brand-subtle mb-4">現在、予約可能な教室がありません。</p></div>`;
     }
 
-    const classroomButtonsHtml = classrooms
+    // 指定された順序で教室を並べ替え（東京、つくば、沼津）
+    const desiredOrder = ['東京教室', 'つくば教室', '沼津教室'];
+    const sortedClassrooms = classrooms.sort((a, b) => {
+      const indexA = desiredOrder.indexOf(a);
+      const indexB = desiredOrder.indexOf(b);
+
+      // 指定された順序にない教室は最後に配置
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+
+      return indexA - indexB;
+    });
+
+    const classroomButtonsHtml = sortedClassrooms
       .map(classroomName => {
         const colorClass = getClassroomColorClass(classroomName);
-        const fullButtonClass = `w-full h-12 text-center px-4 py-3 rounded-lg mobile-card touch-friendly flex items-center justify-center text-lg font-bold border ${colorClass}`;
+        const fullButtonClass = `w-full h-16 text-center px-6 py-4 rounded-xl mobile-card touch-friendly flex items-center justify-center text-xl font-bold border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 ${colorClass}`;
 
         const buttonHtml = Components.button({
           action: 'selectClassroom',
@@ -1042,8 +1056,11 @@
       .join('');
 
     return `
-      <p class="text-brand-subtle text-center mb-4">教室 を おえらびください</p>
-      <div class="space-y-3">
+      <div class="text-center mb-6">
+        <p class="text-brand-subtle text-lg mb-2">教室をお選びください</p>
+        <p class="text-brand-subtle text-sm opacity-75">ご希望の教室を選択してください</p>
+      </div>
+      <div class="space-y-4">
         ${classroomButtonsHtml}
       </div>
     `;
@@ -1058,7 +1075,7 @@
       id: 'classroom-selection-modal',
       title: '',
       content: getClassroomSelectionModalContent(),
-      maxWidth: 'max-w-auto',
+      maxWidth: 'max-w-md', // より大きなサイズに変更
     });
   };
 

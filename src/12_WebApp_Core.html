@@ -541,15 +541,28 @@
   };
 
   const showLoading = (category = 'default') => {
-    document.getElementById('loading').classList.remove('hidden');
-    document.getElementById('main-content').classList.add('hidden');
+    const loadingElement = document.getElementById('loading');
+
+    loadingElement.classList.remove('hidden');
+
+    // フェードインアニメーション
+    requestAnimationFrame(() => {
+      loadingElement.classList.add('active');
+    });
+
     startLoadingMessageRotation(category);
   };
 
   const hideLoading = () => {
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('main-content').classList.remove('hidden');
-    stopLoadingMessageRotation();
+    const loadingElement = document.getElementById('loading');
+
+    loadingElement.classList.remove('active');
+
+    // フェードアウト完了後に完全に非表示
+    setTimeout(() => {
+      loadingElement.classList.add('hidden');
+      stopLoadingMessageRotation();
+    }, 300); // CSS transitionと同じ時間
   };
 
   // =================================================================
