@@ -32,75 +32,110 @@
  * =================================================================
  */
 
+// =================================================================
+// 1段階目: 個別定数オブジェクト（型チェック対応）
+// =================================================================
+
+/**
+ * 教室名定数
+ */
+const CLASSROOMS = {
+  TOKYO: '東京教室',
+  NUMAZU: '沼津教室',
+  TSUKUBA: 'つくば教室',
+};
+
+/**
+ * ステータス定数（4種類統合）
+ */
+const STATUS = {
+  CANCELED: '取消', // キャンセル済み
+  WAITLISTED: '待機', // キャンセル待ち
+  CONFIRMED: '確定', // 予約確定（会計前）
+  COMPLETED: '完了', // 完了（会計済み）
+};
+
+/**
+ * 項目名定数
+ */
+const ITEMS = {
+  MAIN_LECTURE: '基本授業料',
+  FIRST_LECTURE: '初回授業料',
+  CHISEL_RENTAL: '彫刻刀レンタル',
+  TOOL_SET: '道具セット',
+  MATERIAL_FEE: '材料費',
+  DISCOUNT: '初回者同時参加割引',
+};
+
+/**
+ * 教室定員定数
+ */
+const CLASSROOM_CAPACITIES = {
+  東京教室: 8,
+  沼津教室: 8,
+  つくば教室: 8,
+};
+
+/**
+ * 項目種別定数
+ */
+const ITEM_TYPES = {
+  TUITION: '授業料',
+  SALES: '物販',
+  MATERIAL: '材料',
+};
+
+/**
+ * 単位定数
+ */
+const UNITS = {
+  THIRTY_MIN: '30分',
+  PIECE: '個',
+  SET: 'セット',
+  CM3: 'cm³',
+};
+
+/**
+ * 支払い方法定数
+ */
+const PAYMENT_METHODS = {
+  CASH: 'cash',
+  CARD: 'card',
+  TRANSFER: 'transfer',
+};
+
+/**
+ * UI関連定数
+ */
+const UI = {
+  HISTORY_INITIAL_RECORDS: 10,
+  HISTORY_LOAD_MORE_RECORDS: 10,
+  LOADING_MESSAGE_INTERVAL: 2000,
+  MODAL_FADE_DURATION: 300,
+};
+
+// =================================================================
+// 2段階目: CONSTANTS統合オブジェクト（AI理解性向上）
+// =================================================================
+
 /**
  * プロジェクト全体で使用する統一定数オブジェクト
  * 階層構造により論理的に分類された定数を管理
+ * @type {Constants}
  */
-const CONSTANTS = {
-  // 教室名
-  CLASSROOMS: {
-    TOKYO: '東京教室',
-    NUMAZU: '沼津教室',
-    TSUKUBA: 'つくば教室',
-  },
+const CONSTANTS = /** @type {const} */ ({
+  // 1段階目定数への参照（両参照対応）
+  CLASSROOMS: CLASSROOMS,
+  STATUS: STATUS,
+  ITEMS: ITEMS,
+  CLASSROOM_CAPACITIES: CLASSROOM_CAPACITIES,
+  ITEM_TYPES: ITEM_TYPES,
+  UNITS: UNITS,
+  PAYMENT_METHODS: PAYMENT_METHODS,
+  UI: UI,
 
   // タイムゾーン設定
   TIMEZONE: 'Asia/Tokyo',
-
-  // 教室定員
-  CLASSROOM_CAPACITIES: {
-    東京教室: 8,
-    沼津教室: 8,
-    つくば教室: 8,
-  },
-
-  // 項目名
-  ITEMS: {
-    MAIN_LECTURE: '基本授業料',
-    FIRST_LECTURE: '初回授業料',
-    CHISEL_RENTAL: '彫刻刀レンタル',
-    TOOL_SET: '道具セット',
-    MATERIAL_FEE: '材料費',
-    DISCOUNT: '初回者同時参加割引',
-  },
-
-  // ステータス（4種類統合定数）
-  STATUS: {
-    CANCELED: '取消', // キャンセル済み
-    WAITLISTED: '待機', // キャンセル待ち
-    CONFIRMED: '確定', // 予約確定（会計前）
-    COMPLETED: '完了', // 完了（会計済み）
-  },
-
-  // 項目種別
-  ITEM_TYPES: {
-    TUITION: '授業料',
-    SALES: '物販',
-    MATERIAL: '材料',
-  },
-
-  // 単位
-  UNITS: {
-    THIRTY_MIN: '30分',
-    PIECE: '個',
-    SET: 'セット',
-    CM3: 'cm³',
-  },
-
-  // 支払い方法
-  PAYMENT_METHODS: {
-    CASH: 'cash',
-    CARD: 'card',
-    TRANSFER: 'transfer',
-  },
-
-  // UI関連の定数
-  UI: {
-    HISTORY_INITIAL_RECORDS: 10,
-    HISTORY_LOAD_MORE_RECORDS: 10,
-    LOADING_MESSAGE_INTERVAL: 2000,
-    MODAL_FADE_DURATION: 300,
-  },
 
   // 容量・制限
   LIMITS: {
@@ -296,7 +331,7 @@ const CONSTANTS = {
     ARCHIVE_PREFIX: 'アーカイブ_',
     DATA_START_ROW: 2,
   },
-};
+});
 
 // =================================================================
 // 後方互換性定数システム
@@ -350,20 +385,22 @@ const HEADER_REAL_NAME = CONSTANTS.HEADERS.ROSTER.REAL_NAME;
 const HEADER_NICKNAME = CONSTANTS.HEADERS.ROSTER.NICKNAME;
 // Deprecated: Use CONSTANTS.HEADERS.ROSTER.PHONE instead
 const HEADER_PHONE = CONSTANTS.HEADERS.ROSTER.PHONE;
-const HEADER_CO = CONSTANTS.HEADERS.CO;
-const HEADER_PARTICIPANT_COUNT = CONSTANTS.HEADERS.PARTICIPANT_COUNT;
-const HEADER_NAME = CONSTANTS.HEADERS.NAME;
-const HEADER_CLASS_COUNT = CONSTANTS.HEADERS.CLASS_COUNT;
-const HEADER_UNIFIED_CLASS_COUNT = CONSTANTS.HEADERS.UNIFIED_CLASS_COUNT;
-const HEADER_TIME = CONSTANTS.HEADERS.TIME;
+// これらの定数は存在しないヘッダーを参照していたためコメントアウト
+// const HEADER_CO = CONSTANTS.HEADERS.CO;
+// const HEADER_PARTICIPANT_COUNT = CONSTANTS.HEADERS.PARTICIPANT_COUNT;
+// const HEADER_NAME = CONSTANTS.HEADERS.NAME;
+// const HEADER_CLASS_COUNT = CONSTANTS.HEADERS.CLASS_COUNT;
+// const HEADER_UNIFIED_CLASS_COUNT = CONSTANTS.HEADERS.UNIFIED_CLASS_COUNT;
+// const HEADER_TIME = CONSTANTS.HEADERS.TIME;
 const HEADER_WORK_IN_PROGRESS = CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS;
 const HEADER_ORDER = CONSTANTS.HEADERS.RESERVATIONS.ORDER;
 const HEADER_MESSAGE_TO_TEACHER =
   CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER;
-const HEADER_ACCOUNTING_DETAILS = CONSTANTS.HEADERS.ACCOUNTING_DETAILS;
+const HEADER_ACCOUNTING_DETAILS =
+  CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS;
 // Deprecated: Use CONSTANTS.HEADERS.ROSTER.LINE instead
 const HEADER_LINE = CONSTANTS.HEADERS.ROSTER.LINE;
-const HEADER_IN_THE_FUTURE = CONSTANTS.HEADERS.IN_THE_FUTURE;
+// const HEADER_IN_THE_FUTURE = CONSTANTS.HEADERS.IN_THE_FUTURE; // 存在しないプロパティ
 // Deprecated: Use CONSTANTS.HEADERS.ROSTER.NOTES instead
 const HEADER_NOTES = CONSTANTS.HEADERS.ROSTER.NOTES;
 // Deprecated: Use CONSTANTS.HEADERS.ROSTER.FROM instead
@@ -385,9 +422,9 @@ const STATUS_WAITLISTED = CONSTANTS.STATUS.WAITLISTED;
 const STATUS_CONFIRMED = CONSTANTS.STATUS.CONFIRMED;
 const STATUS_COMPLETED = CONSTANTS.STATUS.COMPLETED;
 
-// ステータスの後方互換性
-const STATUS_WAITING = CONSTANTS.STATUS.WAITING;
-const STATUS_CANCEL = CONSTANTS.STATUS.CANCEL;
+// ステータスの後方互換性（エイリアス）
+const STATUS_WAITING = CONSTANTS.STATUS.WAITLISTED; // 「待機」のエイリアス
+const STATUS_CANCEL = CONSTANTS.STATUS.CANCELED; // 「取消」のエイリアス
 
 // 項目種別の後方互換性
 const ITEM_TYPE_TUITION = CONSTANTS.ITEM_TYPES.TUITION;

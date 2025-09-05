@@ -1,0 +1,149 @@
+<!--
+=================================================================
+【ファイル名】: frontend-constants-template.html
+【目的】: フロントエンド用2段階定数構造テンプレート
+【使用方法】: HTML内 <script> タグにコピーして使用
+=================================================================
+-->
+
+<script>
+  // @ts-check
+  
+  // =================================================================
+  // フロントエンド用2段階定数構造（バックエンドと完全同期）
+  // =================================================================
+  
+  // 1段階目: 個別定数オブジェクト（型チェック対応）
+  
+  /**
+   * 教室名定数
+   * @type {{ TOKYO: string, NUMAZU: string, TSUKUBA: string }}
+   */
+  const CLASSROOMS = {
+    TOKYO: '東京教室',
+    NUMAZU: '沼津教室',
+    TSUKUBA: 'つくば教室',
+  };
+  
+  /**
+   * ステータス定数（4種類統合）
+   * @type {{ CANCELED: string, WAITLISTED: string, CONFIRMED: string, COMPLETED: string }}
+   */
+  const STATUS = {
+    CANCELED: '取消',
+    WAITLISTED: '待機',
+    CONFIRMED: '確定',
+    COMPLETED: '完了',
+  };
+  
+  /**
+   * 項目名定数
+   * @type {{ MAIN_LECTURE: string, FIRST_LECTURE: string, CHISEL_RENTAL: string, TOOL_SET: string, MATERIAL_FEE: string, DISCOUNT: string }}
+   */
+  const ITEMS = {
+    MAIN_LECTURE: '基本授業料',
+    FIRST_LECTURE: '初回授業料',
+    CHISEL_RENTAL: '彫刻刀レンタル',
+    TOOL_SET: '道具セット',
+    MATERIAL_FEE: '材料費',
+    DISCOUNT: '初回者同時参加割引',
+  };
+  
+  /**
+   * 教室定員定数
+   * @type {{ 東京教室: number, 沼津教室: number, つくば教室: number }}
+   */
+  const CLASSROOM_CAPACITIES = {
+    東京教室: 8,
+    沼津教室: 8,
+    つくば教室: 8,
+  };
+  
+  /**
+   * 項目種別定数
+   * @type {{ TUITION: string, SALES: string, MATERIAL: string }}
+   */
+  const ITEM_TYPES = {
+    TUITION: '授業料',
+    SALES: '物販',
+    MATERIAL: '材料',
+  };
+  
+  /**
+   * 単位定数
+   * @type {{ THIRTY_MIN: string, PIECE: string, SET: string, CM3: string }}
+   */
+  const UNITS = {
+    THIRTY_MIN: '30分',
+    PIECE: '個',
+    SET: 'セット',
+    CM3: 'cm³',
+  };
+  
+  /**
+   * 支払い方法定数
+   * @type {{ CASH: string, CARD: string, TRANSFER: string }}
+   */
+  const PAYMENT_METHODS = {
+    CASH: 'cash',
+    CARD: 'card',
+    TRANSFER: 'transfer',
+  };
+  
+  /**
+   * UI関連定数
+   * @type {{ HISTORY_INITIAL_RECORDS: number, HISTORY_LOAD_MORE_RECORDS: number, LOADING_MESSAGE_INTERVAL: number, MODAL_FADE_DURATION: number }}
+   */
+  const UI = {
+    HISTORY_INITIAL_RECORDS: 10,
+    HISTORY_LOAD_MORE_RECORDS: 10,
+    LOADING_MESSAGE_INTERVAL: 2000,
+    MODAL_FADE_DURATION: 300,
+  };
+  
+  // =================================================================
+  // 2段階目: CONSTANTS統合オブジェクト（AI理解性向上）
+  // =================================================================
+  
+  /**
+   * フロントエンド用統一定数オブジェクト
+   * バックエンドと完全同期した2段階構造
+   */
+  const CONSTANTS = {
+    // 1段階目定数への参照（両参照対応）
+    CLASSROOMS: CLASSROOMS,
+    STATUS: STATUS,
+    ITEMS: ITEMS,
+    CLASSROOM_CAPACITIES: CLASSROOM_CAPACITIES,
+    ITEM_TYPES: ITEM_TYPES,
+    UNITS: UNITS,
+    PAYMENT_METHODS: PAYMENT_METHODS,
+    UI: UI,
+    
+    // タイムゾーン設定
+    TIMEZONE: 'Asia/Tokyo',
+  };
+  
+  // =================================================================
+  // 使用例と型チェック確認
+  // =================================================================
+  
+  // ✅ 両方の参照方法が使用可能
+  console.log(STATUS.CONFIRMED);              // '確定' (短縮参照)
+  console.log(CONSTANTS.STATUS.CONFIRMED);    // '確定' (完全参照)
+  
+  // ✅ AIにも分かりやすい形式
+  function processReservation(status) {
+    if (status === CONSTANTS.STATUS.CONFIRMED) {
+      // AIが「これは定数を使った処理」と理解しやすい
+      return 'reservation_confirmed';
+    }
+    return 'unknown';
+  }
+  
+  // ❌ 以下はエラーになる（型チェックで検出される）
+  // console.log(STATUS.INVALID_STATUS);         // ← エラー
+  // console.log(STATUS.CONFIMED);               // ← タイポエラー  
+  // console.log(CONSTANTS.STATUS.INVALID);     // ← エラー
+  // console.log(CONSTANTS.NON_EXISTENT);       // ← エラー
+</script>

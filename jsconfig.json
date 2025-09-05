@@ -1,18 +1,33 @@
 {
   "compilerOptions": {
     "target": "es2020",
-    "lib": ["es2020"],
-    "checkJs": false,
+    "lib": ["es2020", "dom"],
+    "checkJs": true,
     "allowJs": true,
     "strict": false,
     "noImplicitAny": false,
+    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "strictNullChecks": false,
+    "noPropertyAccessFromIndexSignature": false,
     "moduleResolution": "bundler",
     "baseUrl": ".",
-    "typeRoots": ["node_modules/@types"]
+    "typeRoots": ["node_modules/@types", "types"],
+    "types": ["google-apps-script"],
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "paths": {
+      "types/*": ["types/*"]
+    }
   },
   "include": [
+    "*.js",
     "src/**/*.js",
     "src/**/*.html",
+    "types/**/*.js",
+    "types/**/*.d.ts",
     "test/**/*.js",
     "test/**/*.html",
     "tools/**/*.js"

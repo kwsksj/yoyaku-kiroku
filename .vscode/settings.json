@@ -35,8 +35,27 @@
   "javascript.preferences.includePackageJsonAutoImports": "auto",
   "javascript.suggest.autoImports": true,
   "javascript.validate.enable": true,
+  "javascript.implicitProjectConfig.checkJs": true,
   "typescript.preferences.includePackageJsonAutoImports": "auto",
   "typescript.suggest.autoImports": true,
+  "typescript.validate.enable": true,
+  "typescript.implicitProjectConfig.checkJs": true,
+
+  // HTML内JavaScript TypeScript支援
+  "typescript.suggest.jsdoc.generateReturns": true,
+  "typescript.suggest.jsdoc.generateParams": true,
+  "typescript.preferences.inlayHints.enumMemberValues.enabled": true,
+  "typescript.preferences.inlayHints.functionLikeReturnTypes.enabled": true,
+  "typescript.preferences.inlayHints.parameterNames.enabled": "all",
+  "typescript.preferences.inlayHints.parameterTypes.enabled": true,
+  "typescript.preferences.inlayHints.propertyDeclarationTypes.enabled": true,
+  "typescript.preferences.inlayHints.variableTypes.enabled": true,
+
+  // ESLint Configuration for HTML JavaScript
+  "eslint.validate": ["javascript", "html"],
+  "eslint.options": {
+    "extensions": [".js", ".html"]
+  },
 
   // HTML Configuration
   "html.format.enable": true,
