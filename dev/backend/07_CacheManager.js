@@ -112,9 +112,15 @@ function rebuildAllReservationsCache() {
     const headerColumnMap = createHeaderMap(headerRow);
 
     // 日付・時刻列のインデックスを取得
-    const dateColumnIndex = headerColumnMap.get(HEADER_DATE);
-    const startTimeColumnIndex = headerColumnMap.get(HEADER_START_TIME);
-    const endTimeColumnIndex = headerColumnMap.get(HEADER_END_TIME);
+    const dateColumnIndex = headerColumnMap.get(
+      CONSTANTS.HEADERS.RESERVATIONS.DATE,
+    );
+    const startTimeColumnIndex = headerColumnMap.get(
+      CONSTANTS.HEADERS.RESERVATIONS.START_TIME,
+    );
+    const endTimeColumnIndex = headerColumnMap.get(
+      CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
+    );
 
     // データ行を取得
     const dataRowCount = integratedReservationSheet.getLastRow() - 1;

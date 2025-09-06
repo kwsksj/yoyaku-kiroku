@@ -371,14 +371,14 @@ const getTimeBasedTuitionHtml = (rule, reservationDetails, scheduleInfo) => {
             ${basicTuitionDisplay}
             <div class="grid grid-cols-3 gap-2 items-end">
                 ${Components.createSelect({
-                  id: 'res-start-time',
+                  id: 'start-time',
                   name: 'startTime',
                   label: '開始時刻',
                   containerClass: 'col-span-1',
                   options: startTimeOptions,
                 })}
                 ${Components.createSelect({
-                  id: 'res-end-time',
+                  id: 'end-time',
                   name: 'endTime',
                   label: '終了時刻',
                   containerClass: 'col-span-1',
@@ -507,7 +507,7 @@ const getUserFormView = config => {
               <input type="checkbox" id="edit-wants-email"
                      class="h-5 w-5 accent-action-primary-bg"
                      ${u.wantsEmail ? 'checked' : ''}>
-              <span class="text-brand-text text-sm">「今後の日程」や「予約受付完了」などの、メール連絡を希望します（＊初回予約時は、すべての方へ連絡します）</span>
+              <span class="text-brand-text text-sm">メール連絡を希望します（教室日程、予約受付、など）**初回予約時は、すべての方へ連絡します**</span>
             </label>
           </div>
         </div>
@@ -637,7 +637,7 @@ const getRegistrationStep2View = () => {
         <div class="p-3 bg-ui-surface rounded-md">
           <label class="flex items-center space-x-3">
             <input type="checkbox" id="q-wants-email" name="wantsEmail" class="h-5 w-5 accent-action-primary-bg" ${data.wantsEmail ? 'checked' : ''}>
-            <span class="text-brand-text text-sm">今後の日程」や「予約受付完了」などの、メール連絡を希望します</span>
+            <span class="text-brand-text text-sm">メール連絡を希望します（教室日程、予約受付、など）</span>
           </label>
         </div>
         ${Components.createSelect({ id: 'q-age-group', label: 'お年頃', options: ageOptions })}
@@ -947,7 +947,7 @@ const getDashboardView = () => {
 
   // 履歴セクションを生成（新仕様：「きろく」表示条件）
   let historyHtml = '';
-  // 【修正】「きろく」はhistoryから取得するべき（COMPLETED記録はmyHistoryに分類される）
+  // すべての完了ステータス予約を「きろく」として表示（myBookings内のCOMPLETEDも含む）
   const sortedHistory = stateManager.getState().computed.sortedHistory;
   const completedRecords = sortedHistory.filter(
     r => r.status === STATUS.COMPLETED,
@@ -1060,8 +1060,7 @@ const getClassroomSelectionModalContent = () => {
 
   return `
       <div class="text-center mb-6">
-        <p class="text-brand-subtle text-lg mb-2">教室をお選びください</p>
-        <p class="text-brand-subtle text-sm opacity-75">ご希望の教室を選択してください</p>
+        <p class="text-brand-subtle text-lg mb-2">教室 を おえらびください</p>
       </div>
       <div class="space-y-4">
         ${classroomButtonsHtml}
@@ -1777,11 +1776,12 @@ const getCompleteView = msg => {
               <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
             </svg>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-ui-info-text">予約確定メールをお送りしました</h3>
+              <h3 class="text-sm font-medium text-ui-info-text">予約受付完了のメールをお送りしました！</h3>
               <p class="mt-1 text-sm text-ui-info-text">
-                メールには詳しい住所や当日のご案内が記載されています。<br>
-                メールが届かない場合は、迷惑メールフォルダもご確認ください。<br>
-                今後の予約の確認やキャンセルは、こちらのページで行えます。
+                会場の住所や駐車場情報なども記載しています。メールが届かない場合は、迷惑メールフォルダもご確認ください。<br>
+                予約の確認やキャンセルは、このページ（Webアプリ上）でおこなえます<br>
+                <br>
+                送信元アドレス: shiawasenehito3000@gmail.com
               </p>
             </div>
           </div>
@@ -1791,8 +1791,9 @@ const getCompleteView = msg => {
     emailNoticeHtml = `
         <div class="bg-ui-surface rounded-lg p-3 mt-4">
           <p class="text-sm text-brand-subtle text-center">
-          初回予約完了のメールをお送りしました！<br>
-          会場の住所や駐車場情報など記載してあります。ご確認ください。<br>
+          予約受付完了のメールをお送りしました！<br>
+          （会場の住所や駐車場情報なども記載）<br>
+          <br>
           送信元アドレス: shiawasenehito3000@gmail.com
         </p>
         </div>

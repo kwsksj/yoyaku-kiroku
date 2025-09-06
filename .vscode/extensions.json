@@ -2,7 +2,6 @@
   "recommendations": [
     // Essential Extensions
     "esbenp.prettier-vscode",
-    "ms-vscode.vscode-typescript-next",
     "ritwickdey.liveserver",
 
     // Google Apps Script Development

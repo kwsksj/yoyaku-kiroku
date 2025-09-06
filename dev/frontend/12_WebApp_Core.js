@@ -1208,8 +1208,14 @@ function calculateAccountingDetailsFromForm() {
  * @returns {Object|null} 計算結果 { price: number, item: {name: string, price: number} } または null
  */
 function calculateTimeBasedTuition(tuitionItemRule) {
-  const startTime = document.getElementById('start-time')?.value;
-  const endTime = document.getElementById('end-time')?.value;
+  // 時刻データを適切に取得（ヘルパー関数使用）
+  const accountingReservation = stateManager.getState().accountingReservation;
+  const startTime = getTimeValue(
+    'start-time',
+    accountingReservation,
+    'startTime',
+  );
+  const endTime = getTimeValue('end-time', accountingReservation, 'endTime');
   const breakMinutes = parseInt(
     document.getElementById('break-time')?.value || 0,
     10,
@@ -1232,6 +1238,58 @@ function calculateTimeBasedTuition(tuitionItemRule) {
     }
   }
   return null;
+}
+
+/**
+ * 会計画面で時刻変更時に計算を更新する
+ */
+function updateAccountingCalculation() {
+  // 会計合計を再計算
+  const accountingResult = calculateAccountingDetailsFromForm();
+
+  // 合計金額表示を更新
+  const totalElement = document.getElementById('total-amount');
+  if (totalElement && accountingResult) {
+    totalElement.textContent = `¥${accountingResult.grandTotal.toLocaleString()}`;
+  }
+
+  // 詳細表示も更新（存在する場合）
+  const detailsElement = document.getElementById('calculation-details');
+  if (detailsElement && accountingResult) {
+    // 詳細計算結果を表示
+    detailsElement.innerHTML = `
+      <div class="text-sm text-gray-600 space-y-1">
+        <div>授業料小計: ¥${accountingResult.tuition.subtotal.toLocaleString()}</div>
+        <div>物販小計: ¥${accountingResult.materials.subtotal.toLocaleString()}</div>
+        <div class="font-semibold border-t pt-1">合計: ¥${accountingResult.grandTotal.toLocaleString()}</div>
+      </div>`;
+  }
+}
+
+/**
+ * 会計画面の時刻選択にイベントリスナーを追加する
+ */
+function setupAccountingEventListeners() {
+  // 時刻選択要素にchangeイベントを追加
+  ['start-time', 'end-time', 'break-time'].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.addEventListener('change', updateAccountingCalculation);
+    }
+  });
+
+  // チェックボックス項目にもchangeイベントを追加
+  document
+    .querySelectorAll('input[type="checkbox"].accounting-item')
+    .forEach(checkbox => {
+      checkbox.addEventListener('change', updateAccountingCalculation);
+    });
+
+  // 割引チェックボックスにもchangeイベントを追加
+  const discountCheckbox = document.getElementById('discount-checkbox');
+  if (discountCheckbox) {
+    discountCheckbox.addEventListener('change', updateAccountingCalculation);
+  }
 }
 
 /**

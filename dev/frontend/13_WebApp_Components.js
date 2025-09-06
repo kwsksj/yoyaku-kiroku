@@ -768,7 +768,7 @@ const Components = {
  */
 Components.createBackButton = (action = 'smartGoBack', text = '戻る') => {
   return `
-      <div class="fixed top-4 right-4 z-30">
+      <div class="back-button-container fixed top-4 right-4 z-30">
         <button
           data-action="${escapeHTML(action)}"
           class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
@@ -776,6 +776,86 @@ Components.createBackButton = (action = 'smartGoBack', text = '戻る') => {
           ${escapeHTML(text)}
         </button>
       </div>`;
+};
+
+/**
+ * 現在のビューに応じて適切な戻るボタンを生成します
+ * @param {string} currentView - 現在のビュー名
+ * @param {object} appState - アプリケーション状態
+ * @returns {string} HTML文字列
+ */
+Components.createSmartBackButton = (currentView, appState = null) => {
+  const state =
+    appState || (window.stateManager ? window.stateManager.getState() : {});
+  let action = 'smartGoBack';
+  let text = '戻る';
+
+  // ビューに応じて適切なアクションとテキストを設定
+  switch (currentView) {
+    case 'login':
+      // ログイン画面では戻るボタンを表示しない
+      return '';
+
+    case 'register':
+      text = 'ログインへ';
+      action = 'goBackToLogin';
+      break;
+
+    case 'registrationStep2':
+      text = '前へ';
+      action = 'backToStep1';
+      break;
+
+    case 'registrationStep3':
+      text = '前へ';
+      action = 'backToStep2';
+      break;
+
+    case 'registrationStep4':
+      text = '前へ';
+      action = 'backToStep3';
+      break;
+
+    case 'userSearch':
+      text = 'ログインへ';
+      action = 'goBackToLogin';
+      break;
+
+    case 'dashboard':
+      // ダッシュボードでは戻るボタンを表示しない
+      return '';
+
+    case 'bookingSlots':
+      text = 'ホーム';
+      action = 'goBackToDashboard';
+      break;
+
+    case 'newReservation':
+      text = '予約一覧';
+      action = 'goBackToBooking';
+      break;
+
+    case 'editReservation':
+      text = 'ホーム';
+      action = 'goBackToDashboard';
+      break;
+
+    case 'accounting':
+      text = 'ホーム';
+      action = 'goBackToDashboard';
+      break;
+
+    case 'complete':
+      text = 'ホーム';
+      action = 'goBackToDashboard';
+      break;
+
+    default:
+      // デフォルトはスマート戻る
+      break;
+  }
+
+  return Components.createBackButton(action, text);
 };
 
 // =================================================================

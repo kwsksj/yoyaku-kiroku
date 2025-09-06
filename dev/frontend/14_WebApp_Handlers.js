@@ -16,6 +16,62 @@
  */
 
 // =================================================================
+// --- Time Data Helper Functions ---
+// -----------------------------------------------------------------
+// 時刻データの取得・処理を行うヘルパー関数群
+// =================================================================
+
+/**
+ * 時刻データを適切に取得するヘルパー関数
+ * @param {string} elementId - 時刻入力要素のID
+ * @param {object} reservationData - 予約データ（フォールバック用）
+ * @param {string} timeField - 時刻フィールド名（'startTime' or 'endTime'）
+ * @returns {string} 時刻文字列（HH:mm形式）
+ */
+function getTimeValue(elementId, reservationData, timeField) {
+  // 1. HTML要素から取得を試行
+  const elementValue = document.getElementById(elementId)?.value;
+  if (elementValue && elementValue !== '') {
+    return elementValue;
+  }
+
+  // 2. 予約データから取得を試行（編集時）
+  if (reservationData) {
+    const headerField =
+      window.HEADERS?.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
+    const timeValue =
+      reservationData[headerField] || reservationData[timeField];
+    if (timeValue && timeValue !== '') {
+      return timeValue;
+    }
+  }
+
+  // 3. selectedSlotから取得を試行（新規作成時）
+  const selectedSlot = stateManager.getState().selectedSlot;
+  if (selectedSlot) {
+    const headerField =
+      window.HEADERS?.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
+
+    // セッション制教室の場合、スケジュール情報から取得
+    if (selectedSlot.classroomType === C.classroomTypes.SESSION_BASED) {
+      if (timeField === 'startTime') {
+        return selectedSlot.firstStart || selectedSlot.secondStart || '';
+      } else if (timeField === 'endTime') {
+        return selectedSlot.firstEnd || selectedSlot.secondEnd || '';
+      }
+    }
+
+    // 時間制教室の場合、selectedSlotから取得
+    const slotValue = selectedSlot[headerField] || selectedSlot[timeField];
+    if (slotValue && slotValue !== '') {
+      return slotValue;
+    }
+  }
+
+  return '';
+}
+
+// =================================================================
 // --- Accounting Cache Helper Functions (FE-14) ---
 // -----------------------------------------------------------------
 // 会計フォームのデータを操作するためのヘルパー関数群
@@ -709,25 +765,14 @@ const actionHandlers = {
     // 現在見ている予約枠の時間情報を取得
     const selectedSlot = stateManager.getState().selectedSlot;
 
-    // 教室形式に応じて時間を設定
-    let startTime = '';
-    let endTime = '';
+    // 教室形式に応じて時間を設定（ヘルパー関数使用）
+    const startTime = getTimeValue('res-start-time', null, 'startTime');
+    const endTime = getTimeValue('res-end-time', null, 'endTime');
 
+    // デバッグ用ログ
     if (selectedSlot?.classroomType === C.classroomTypes.SESSION_BASED) {
-      // セッション制: 日程マスタの固定時間を使用
-      startTime = selectedSlot?.firstStart || '';
-      endTime = selectedSlot?.firstEnd || '';
       console.log(`[セッション制] 時間設定: ${startTime} - ${endTime}`);
     } else {
-      // 時間制: ユーザーが入力した時間またはデフォルト時間を使用
-      startTime =
-        document.getElementById('res-start-time')?.value ||
-        selectedSlot?.[window.HEADERS?.RESERVATIONS?.START_TIME] ||
-        '';
-      endTime =
-        document.getElementById('res-end-time')?.value ||
-        selectedSlot?.[window.HEADERS?.RESERVATIONS?.END_TIME] ||
-        '';
       console.log(`[時間制] 時間設定: ${startTime} - ${endTime}`);
     }
 
@@ -747,6 +792,9 @@ const actionHandlers = {
     const p = {
       ...selectedSlot,
       // 時間情報を上書き（教室形式に応じて調整済み）
+      startTime: startTime,
+      endTime: endTime,
+      // バックエンドとの互換性のため、ヘッダー形式も併記
       [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']: startTime,
       [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']: endTime,
       user: stateManager.getState().currentUser,
@@ -858,6 +906,9 @@ const actionHandlers = {
   /** 予約情報を更新します */
   updateReservation: () => {
     const d = stateManager.getState().editingReservationDetails;
+    const startTime = getTimeValue('res-start-time', d, 'startTime');
+    const endTime = getTimeValue('res-end-time', d, 'endTime');
+
     const p = {
       reservationId: d.reservationId,
       classroom: d.classroom,
@@ -865,10 +916,11 @@ const actionHandlers = {
       chiselRental: document.getElementById('option-rental')?.checked || false,
       firstLecture:
         document.getElementById('option-first-lecture')?.checked || false,
-      [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']:
-        document.getElementById('res-start-time')?.value || '',
-      [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']:
-        document.getElementById('res-end-time')?.value || '',
+      startTime: startTime,
+      endTime: endTime,
+      // バックエンドとの互換性のため、ヘッダー形式も併記
+      [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']: startTime,
+      [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']: endTime,
       workInProgress: document.getElementById('wip-input').value,
       order: document.getElementById('order-input').value,
       messageToTeacher: document.getElementById('message-input').value,
@@ -1640,11 +1692,20 @@ actionHandlers.confirmAndPay = () => {
 
   // 時間制授業料
   if (document.getElementById('start-time')) {
+    const accountingReservation = stateManager.getState().accountingReservation;
+    const startTime = getTimeValue(
+      'start-time',
+      accountingReservation,
+      'startTime',
+    );
+    const endTime = getTimeValue('end-time', accountingReservation, 'endTime');
+
     userInput.timeBased = {
-      [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']:
-        document.getElementById('start-time').value,
-      [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']:
-        document.getElementById('end-time').value,
+      startTime: startTime,
+      endTime: endTime,
+      // バックエンドとの互換性のため、ヘッダー形式も併記
+      [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']: startTime,
+      [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']: endTime,
       breakMinutes: parseInt(
         document.getElementById('break-time')?.value || 0,
         10,
@@ -1704,14 +1765,31 @@ actionHandlers.confirmAndPay = () => {
         hideModal(); // モーダルを閉じる
         hideLoading();
 
-        // 会計完了後はホームに戻って更新されたデータを表示
-        window.stateManager.dispatch({
-          type: 'SET_STATE',
-          payload: {
-            view: 'dashboard',
-            isDataFresh: false, // データ再読み込み必要
-          },
-        });
+        // 会計完了後は最新データを取得してホームに戻る
+        if (r.data) {
+          // バックエンドから最新データが返された場合
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              ...r.data.initialData,
+              myBookings: r.data.myBookings || [],
+              history: r.data.initialData.myHistory || [],
+              historyTotal: (r.data.initialData.myHistory || []).length,
+              slots: r.data.slots || [],
+              view: 'dashboard',
+              isDataFresh: true, // 最新データ受信済み
+            },
+          });
+        } else {
+          // 最新データが返されなかった場合は再読み込み要求
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              view: 'dashboard',
+              isDataFresh: false, // データ再読み込み必要
+            },
+          });
+        }
         showInfo('会計情報を記録しました。', '完了');
       } else {
         hideLoading();
@@ -1943,6 +2021,25 @@ function render() {
   }
   document.getElementById('view-container').innerHTML =
     `<div class="fade-in">${v}</div>`;
+
+  // 戻るボタンを動的に更新
+  const backButtonContainer = document.getElementById('back-button-container');
+  if (backButtonContainer) {
+    backButtonContainer.innerHTML = Components.createSmartBackButton(
+      appState.view,
+      appState,
+    );
+  }
+
+  // 会計画面の場合、イベントリスナーを設定
+  if (appState.view === 'accounting') {
+    // DOM更新後にイベントリスナーを設定するため、次のフレームで実行
+    requestAnimationFrame(() => {
+      setupAccountingEventListeners();
+      // 初期計算も実行
+      updateAccountingCalculation();
+    });
+  }
 
   window.scrollTo(0, 0);
 }

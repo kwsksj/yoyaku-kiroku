@@ -235,15 +235,22 @@ function migrateDataToIntegratedSheet() {
           row[
             sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID)
           ] || '',
-          row[sourceHeaderMap.get(HEADER_STUDENT_ID)] || '',
-          row[sourceHeaderMap.get(HEADER_DATE)] || null,
+          row[sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)] ||
+            '',
+          row[sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE)] || null,
           sheetName, // 教室
-          row[sourceHeaderMap.get(HEADER_VENUE)] || '',
-          row[sourceHeaderMap.get(HEADER_START_TIME)] || null,
-          row[sourceHeaderMap.get(HEADER_END_TIME)] || null,
+          row[sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.VENUE)] || '',
+          row[sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)] ||
+            null,
+          row[sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.END_TIME)] ||
+            null,
           status, // ステータス
-          row[sourceHeaderMap.get(HEADER_CHISEL_RENTAL)] || false,
-          row[sourceHeaderMap.get(HEADER_FIRST_LECTURE)] || false,
+          row[
+            sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)
+          ] || false,
+          row[
+            sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)
+          ] || false,
           '', // 来場手段 (旧シートにないため空)
           '', // 送迎 (旧シートにないため空)
           row[sourceHeaderMap.get(HEADER_WORK_IN_PROGRESS)] || '',

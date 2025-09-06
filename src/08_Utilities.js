@@ -367,9 +367,11 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
   };
 
   // デバッグ情報を追加
-  const reservationIdIndex = getIndex(HEADER_RESERVATION_ID);
-  const studentIdIndex = getIndex(HEADER_STUDENT_ID);
-  const dateIndex = getIndex(HEADER_DATE);
+  const reservationIdIndex = getIndex(
+    CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+  );
+  const studentIdIndex = getIndex(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID);
+  const dateIndex = getIndex(CONSTANTS.HEADERS.RESERVATIONS.DATE);
 
   // インデックスが取得できているか確認
   if (
@@ -409,23 +411,27 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
     studentId: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)],
     date: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.DATE)],
     classroom:
-      resArray[getIndex(HEADER_CLASSROOM)] || resArray[getIndex(HEADER_VENUE)],
-    venue: resArray[getIndex(HEADER_VENUE)],
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM)] ||
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)],
+    venue: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)],
     startTime: (() => {
-      const time = resArray[getIndex(HEADER_START_TIME)];
+      const time =
+        resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)];
       return time instanceof Date
         ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
         : time;
     })(),
     endTime: (() => {
-      const time = resArray[getIndex(HEADER_END_TIME)];
+      const time = resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.END_TIME)];
       return time instanceof Date
         ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
         : time;
     })(),
-    status: resArray[getIndex(HEADER_STATUS)],
-    chiselRental: resArray[getIndex(HEADER_CHISEL_RENTAL)],
-    firstLecture: resArray[getIndex(HEADER_FIRST_LECTURE)],
+    status: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)],
+    chiselRental:
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)],
+    firstLecture:
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)],
     workInProgress: resArray[getIndex(HEADER_WORK_IN_PROGRESS)],
     order: resArray[getIndex(HEADER_ORDER)],
     messageToTeacher: resArray[getIndex(HEADER_MESSAGE_TO_TEACHER)],

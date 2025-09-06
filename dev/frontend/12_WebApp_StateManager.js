@@ -262,7 +262,13 @@ class SimpleStateManager {
       (a, b) => new Date(b.date) - new Date(a.date),
     );
 
-    this.state.computed.sortedHistory = [...this.state.history].sort(
+    // すべての完了ステータス予約を含む統合履歴を作成
+    const completedBookings = this.state.myBookings.filter(
+      booking => booking.status === window.STATUS?.COMPLETED || booking.status === '完了'
+    );
+    const allHistoryRecords = [...this.state.history, ...completedBookings];
+
+    this.state.computed.sortedHistory = allHistoryRecords.sort(
       (a, b) => new Date(b.date) - new Date(a.date),
     );
 
