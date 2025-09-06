@@ -1,5 +1,6 @@
 import globals from 'globals';
 import pluginGoogleAppsScript from 'eslint-plugin-googleappsscript';
+import { commonRules, projectConstants, gasGlobals } from '../eslint.common.js';
 import prettierConfig from 'eslint-config-prettier';
 
 export default [
@@ -13,30 +14,11 @@ export default [
       ecmaVersion: 2022,
       sourceType: 'script',
       globals: {
-        ...globals.es2020,
-        // Google Apps Script globals
-        SpreadsheetApp: 'readonly',
-        DriveApp: 'readonly',
-        GmailApp: 'readonly',
-        CalendarApp: 'readonly',
-        PropertiesService: 'readonly',
-        CacheService: 'readonly',
-        LockService: 'readonly',
-        HtmlService: 'readonly',
-        Logger: 'readonly',
-        Session: 'readonly',
-        Utilities: 'readonly',
-        UrlFetchApp: 'readonly',
-        // Project-specific constants and globals
-        CONSTANTS: 'readonly',
+        ...gasGlobals,
+        ...projectConstants,
+        // Backend-specific globals
         CLASSROOMS: 'readonly',
         ITEMS: 'readonly',
-        HEADERS: 'readonly',
-        STATUS: 'readonly',
-        UI: 'readonly',
-        MESSAGES: 'readonly',
-        BANK: 'readonly',
-        PAYMENT: 'readonly',
         SCHEDULE_STATUS_CANCELLED: 'readonly',
         SCHEDULE_STATUS_COMPLETED: 'readonly',
         SCHEDULE_STATUS_SCHEDULED: 'readonly',
@@ -53,11 +35,7 @@ export default [
       },
     },
     rules: {
-      'no-undef': 'warn',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', vars: 'local' }],
-      'no-console': 'off',
-      'no-var': 'warn',
-      'prefer-const': 'warn',
+      ...commonRules,
       'googleappsscript/no-browser': 'warn',
     },
   },
@@ -71,19 +49,12 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.es2020,
+        ...projectConstants,
         // Google Apps Script frontend globals
         google: 'readonly',
-        // DOM globals (explicitly defined)
-        document: 'readonly',
-        window: 'readonly',
-        console: 'readonly',
-        requestAnimationFrame: 'readonly',
-        // Project constants (will be available after state initialization)
-        CONSTANTS: 'readonly',
-        STATUS: 'readonly',
+        // Frontend-specific globals
         CLASSROOMS: 'readonly',
         ITEMS: 'readonly',
-        HEADERS: 'readonly',
         CLASSROOM_CAPACITIES: 'readonly',
         ITEM_TYPES: 'readonly',
         UNITS: 'readonly',
@@ -142,11 +113,7 @@ export default [
       },
     },
     rules: {
-      'no-undef': 'warn',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_', vars: 'local' }],
-      'no-console': 'off',
-      'no-var': 'warn',
-      'prefer-const': 'warn',
+      ...commonRules,
     },
   },
 

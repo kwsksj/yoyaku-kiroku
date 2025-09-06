@@ -264,7 +264,9 @@ class SimpleStateManager {
 
     // すべての完了ステータス予約を含む統合履歴を作成
     const completedBookings = this.state.myBookings.filter(
-      booking => booking.status === window.STATUS?.COMPLETED || booking.status === '完了'
+      booking =>
+        booking.status === window.STATUS?.COMPLETED ||
+        booking.status === '完了',
     );
     const allHistoryRecords = [...this.state.history, ...completedBookings];
 

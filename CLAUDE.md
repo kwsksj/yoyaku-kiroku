@@ -12,11 +12,11 @@ Google Apps Script (GAS) reservation management system "きぼりの よやく�
 
 Successfully migrated from classroom-specific distributed data structure to an integrated, normalized data model with significant performance improvements. Detailed design: **[DATA_MODEL.md](docs/DATA_MODEL.md)**
 
-**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ | Frontend Integration ✓ | System Optimization ✓ | **Data Access Layer Abstraction ✓**
+**Implementation Status**: Schedule Master・Available Slots API・Integrated Reservations Backend ✓ | Frontend Integration ✓ | System Optimization ✓
 
 ### ✅ Modern Architecture Foundation
 
-**Data Access Layer Abstraction**: Complete separation of business logic from data access through repository pattern and service layer architecture. Enables zero-risk migration to integrated reservation sheets in production environment.
+**High-Performance Sheet Access Pattern**: Direct sheet access with comprehensive caching system (`SS_MANAGER`, `CacheService`) and unified utility functions (`getSheetData`, `getSheetDataWithSearch`). Optimized for Google Apps Script constraints with robust error handling.
 
 ### 🚀 JavaScript分離開発アーキテクチャ (2025年9月6日導入)
 
@@ -68,8 +68,6 @@ The project uses a numbered file naming convention in `src/`:
 - `01_Code.js` - Entry point with global constants, UI definitions, and trigger functions
 - `02-1_BusinessLogic_Batch.js` - Batch processing and data import functions
 - `02-4_BusinessLogic_ScheduleMaster.js` - Schedule master management
-- `02-5_BusinessLogic_ReservationService.js` - **NEW**: Pure business logic service layer
-- `03_DataAccess.js` - **NEW**: Data access layer abstraction (Repository pattern)
 - `04_Backend_User.js` - User authentication and management
 - `05-2_Backend_Write.js` - Data writing API endpoints
 - `05-3_Backend_AvailableSlots.js` - Available slots calculation API
@@ -127,7 +125,7 @@ Google Sheets-based integrated data model. Details: [DATA_MODEL.md](docs/DATA_MO
 - Use `SS_MANAGER` global instance for all spreadsheet operations
 - Follow numbered file naming convention for new files
 - Maintain integration with multi-layer caching system
-- **New Development**: Use data access abstraction layer (`repositories.*`) and service layer (`*Service`) for business logic
+- **Sheet Access Pattern**: Use `SS_MANAGER` instance and cache-first data access with unified utility functions
 
 ### Performance & Data
 
@@ -170,7 +168,7 @@ Detailed architecture: `docs/ARCHITECTURE.md`
   - **Testing Strategy**: Direct GAS environment testing - no local HTML build required
   - Test environment WebApp reflects changes immediately after `npm run push:test`
 - **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to test
-- **Data Access Pattern**: Use new abstraction layers (`repositories.*`, `*Service`) for new features
+- **Data Access Pattern**: Use `SS_MANAGER` instance and cache-first approach with unified error handling
 - **Commit Management**:
   - **Proactive Commits**: Commit at appropriate milestones (feature completion, bug fixes, architectural changes, etc.)
   - **User Confirmation**: Always ask user for confirmation before committing: "適切な節目でコミットしますか？" or similar
