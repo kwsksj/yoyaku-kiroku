@@ -1,0 +1,21 @@
+{
+  "typescript.preferences.includePackageJsonAutoImports": "off",
+  "typescript.suggest.autoImports": false,
+  "javascript.suggest.autoImports": false,
+  "typescript.validate.enable": true,
+  "javascript.validate.enable": true,
+  "eslint.validate": ["javascript"],
+  "eslint.workingDirectories": ["."],
+  "files.associations": {
+    "*.js": "javascript"
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": true,
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "typescript.preferences.quoteStyle": "single",
+  "javascript.preferences.quoteStyle": "single"
+}

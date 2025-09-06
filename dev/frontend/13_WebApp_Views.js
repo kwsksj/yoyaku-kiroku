@@ -1,80 +1,83 @@
-  /**
-   * =================================================================
-   * 【ファイル名】: 13_WebApp_Views.html
-   * 【バージョン】: 1.9
-   * 【役割】: WebAppの各画面（ビュー）のHTML構造を生成する関数群を集約します。
-   * - 各関数は特定の画面（ログイン、予約一覧など）のUI構築を担当します。
-   * - appStateの現在の状態に基づき、動的にHTMLを生成します。
-   * 【構成】: 14ファイル構成でのビュー管理
-   * 【v1.9での変更点】:
-   * - FE-14: 会計画面の入力保持機能を実装。
-   *   - getAccountingViewでキャッシュされたデータをフォームの初期値として設定するよう修正。
-   * =================================================================
-   */
+// @ts-check
+/// <reference path="../types.d.ts" />
 
-  // =================================================================
-  // --- View Helper Components ---
-  // -----------------------------------------------------------------
-  // 各ビューを構成するための、より小さな部品を生成するヘルパー関数群。
-  // =================================================================
+/**
+ * =================================================================
+ * 【ファイル名】: 13_WebApp_Views.js
+ * 【バージョン】: 1.9
+ * 【役割】: WebAppの各画面（ビュー）のHTML構造を生成する関数群を集約します。
+ * - 各関数は特定の画面（ログイン、予約一覧など）のUI構築を担当します。
+ * - appStateの現在の状態に基づき、動的にHTMLを生成します。
+ * 【構成】: 14ファイル構成でのビュー管理
+ * 【v1.9での変更点】:
+ * - FE-14: 会計画面の入力保持機能を実装。
+ *   - getAccountingViewでキャッシュされたデータをフォームの初期値として設定するよう修正。
+ * =================================================================
+ */
 
-  /**
-   * 当日かどうかを判定します。
-   * @param {string} dateString - 日付文字列 (YYYY-MM-DD)
-   * @returns {boolean} 当日の場合true
-   */
-  const _isToday = dateString => {
-    const itemDate = new Date(dateString);
-    const today = new Date();
-    return itemDate.toDateString() === today.toDateString();
-  };
+// =================================================================
+// --- View Helper Components ---
+// -----------------------------------------------------------------
+// 各ビューを構成するための、より小さな部品を生成するヘルパー関数群。
+// =================================================================
 
-  /**
-   * 時刻選択用の<option>タグ群を生成します。
-   * @param {number} startHour - 開始時刻（時）
-   * @param {number} endHour - 終了時刻（時）
-   * @param {number} step - 間隔（分）
-   * @param {string | null} selectedValue - 事前に選択する時刻 (HH:mm)
-   * @returns {string} HTMLの<option>タグ文字列
-   */
-  const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
-    let options = [];
-    for (let h = startHour; h <= endHour; h++) {
-      for (let m = 0; m < 60; m += step) {
-        const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-        options.push(
-          `<option value="${time}" ${time === selectedValue ? 'selected' : ''}>${time}</option>`,
-        );
-      }
+/**
+ * 当日かどうかを判定します。
+ * @param {string} dateString - 日付文字列 (YYYY-MM-DD)
+ * @returns {boolean} 当日の場合true
+ */
+const _isToday = dateString => {
+  const itemDate = new Date(dateString);
+  const today = new Date();
+  return itemDate.toDateString() === today.toDateString();
+};
+
+/**
+ * 時刻選択用の<option>タグ群を生成します。
+ * @param {number} startHour - 開始時刻（時）
+ * @param {number} endHour - 終了時刻（時）
+ * @param {number} step - 間隔（分）
+ * @param {string | null} selectedValue - 事前に選択する時刻 (HH:mm)
+ * @returns {string} HTMLの<option>タグ文字列
+ */
+const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
+  let options = [];
+  for (let h = startHour; h <= endHour; h++) {
+    for (let m = 0; m < 60; m += step) {
+      const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      options.push(
+        `<option value="${time}" ${time === selectedValue ? 'selected' : ''}>${time}</option>`,
+      );
     }
-    return options.join('');
-  };
+  }
+  return options.join('');
+};
 
-  /**
-   * 割引選択用のUIを生成します。
-   * @param {object} discountRule - 料金マスタから取得した割引ルールオブジェクト
-   * @param {string} selectedValue - 選択済みの値
-   * @returns {string} HTML文字列
-   */
-  const getDiscountHtml = (discountRule, selectedValue) => {
-    if (!discountRule) return '';
-    const isChecked =
-      selectedValue && parseInt(selectedValue, 10) > 0 ? 'checked' : '';
-    return `
+/**
+ * 割引選択用のUIを生成します。
+ * @param {object} discountRule - 料金マスタから取得した割引ルールオブジェクト
+ * @param {string} selectedValue - 選択済みの値
+ * @returns {string} HTML文字列
+ */
+const getDiscountHtml = (discountRule, selectedValue) => {
+  if (!discountRule) return '';
+  const isChecked =
+    selectedValue && parseInt(selectedValue, 10) > 0 ? 'checked' : '';
+  return `
         <div class="mt-4 pt-4 border-t border-ui-border-light">
             <label class="flex items-center space-x-2">
                 <input type="checkbox" id="discount-checkbox" name="discountApplied" ${isChecked} class="accounting-item accent-action-primary-bg">
                 <span class="${DesignConfig.text.labelBlock}">${discountRule[HEADERS.ACCOUNTING.ITEM_NAME]} (¥500引き)</span>
             </label>
         </div>`;
-  };
+};
 
-  /**
-   * 支払い情報（ことら送金、振込先）の表示UIを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getPaymentInfoHtml = () => {
-    return `
+/**
+ * 支払い情報（ことら送金、振込先）の表示UIを生成します。
+ * @returns {string} HTML文字列
+ */
+const getPaymentInfoHtml = () => {
+  return `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
                 <div class="${DesignConfig.text.body}"><span class="font-bold">${PAYMENT.COTRA}:</span><span class="ml-2">${BANK.COTRA_PHONE}</span></div>
@@ -92,15 +95,15 @@
                 <button data-action="copyToClipboard" data-copy-text="${BANK.ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>`;
-  };
+};
 
-  /**
-   * 支払い方法の選択肢（ラジオボタン）UIを生成します。
-   * @param {string} selectedValue - 選択済みの支払い方法
-   * @returns {string} HTML文字列
-   */
-  const getPaymentOptionsHtml = selectedValue => {
-    const cotraDetails = `
+/**
+ * 支払い方法の選択肢（ラジオボタン）UIを生成します。
+ * @param {string} selectedValue - 選択済みの支払い方法
+ * @returns {string} HTML文字列
+ */
+const getPaymentOptionsHtml = selectedValue => {
+  const cotraDetails = `
         <details class="mt-2 ml-6">
             <summary class="inline-block px-2 py-1 bg-ui-warning-light text-ui-warning-text text-sm font-semibold rounded-md active:bg-ui-warning-bg">
                 ことら送金とは？ <span class="arrow">▼</span>
@@ -111,27 +114,27 @@
                 <a href="https://www.cotra.ne.jp/member/" target="_blank" class="text-ui-link-text">対応アプリ一覧</a>
             </p>
         </details>`;
-    const options = [
-      {
-        value: PAYMENT.CASH,
-        text: PAYMENT.CASH,
-        details: '',
-      },
-      {
-        value: PAYMENT.COTRA,
-        text: PAYMENT.COTRA,
-        details: cotraDetails,
-      },
-      {
-        value: PAYMENT.BANK_TRANSFER,
-        text: PAYMENT.BANK_TRANSFER,
-        details: '',
-      },
-    ];
-    return (
-      options
-        .map(
-          (opt, i) => `
+  const options = [
+    {
+      value: PAYMENT.CASH,
+      text: PAYMENT.CASH,
+      details: '',
+    },
+    {
+      value: PAYMENT.COTRA,
+      text: PAYMENT.COTRA,
+      details: cotraDetails,
+    },
+    {
+      value: PAYMENT.BANK_TRANSFER,
+      text: PAYMENT.BANK_TRANSFER,
+      details: '',
+    },
+  ];
+  return (
+    options
+      .map(
+        (opt, i) => `
         <div>
             <label class="flex items-center space-x-2 text-brand-text">
                 <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item accent-action-primary-bg" ${opt.value === selectedValue ? 'checked' : ''}>
@@ -139,116 +142,115 @@
             </label>
             ${opt.details}
         </div>`,
-        )
-        .join('') +
-      `
-        <div class="mt-4 space-y-2 text-base">${getPaymentInfoHtml()}</div>`
-    );
-  };
-
-  /**
-   * 予約・履歴カード用の新レイアウトカード構造を生成します。
-   * 仕様: 上部に教室情報（左）+編集ボタン（右）、中央に制作メモエリア、下部に当日のみ会計ボタン
-   * @param {object} config - カード設定オブジェクト
-   * @returns {string} HTML文字列
-   */
-  const createReservationCard = config => {
-    const {
-      type, // 'booking' | 'history'
-      item,
-      today,
-      buttons = [],
-    } = config;
-
-    const isBooking = type === 'booking';
-    const venueText = item.venue || '';
-    const isPastOrToday = isBooking
-      ? new Date(item.date).getTime() <= today.getTime()
-      : true;
-    const isToday =
-      today && new Date(item.date).toDateString() === today.toDateString();
-
-    // 時刻表示の生成
-    let timeText = '';
-    if (item.startTime && item.endTime) {
-      timeText = `${item.startTime} - ${item.endTime}`;
-    }
-
-    // 日時表示（教室情報部分）
-    const dateTimeDisplay = `${formatDate(item.date || '')}${timeText ? ` ${timeText}` : ''}`;
-    const venueDisplay = `${item.classroom || ''}${venueText ? ` ${venueText}` : ''}`;
-
-    let cardColorClass =
-      'reservation-card bg-ui-surface border border-ui-border';
-    if (isBooking) {
-      const cardColor = item.isWaiting
-        ? DesignConfig.cards.state.waitlist
-        : DesignConfig.cards.state.booked;
-      cardColorClass = `reservation-card ${cardColor.card}`;
-    } else if (type === 'history') {
-      cardColorClass = `record-card ${DesignConfig.cards.state.history.card}`;
-    }
-
-    // ステータスバッジ（初回、キャンセル待ち）
-    let statusBadges = '';
-    if (isBooking) {
-      if (item.firstLecture) {
-        statusBadges += `<span class="inline-block bg-action-attention-bg text-action-attention-text text-xs font-bold px-2 py-1 rounded-full ml-2">初回</span>`;
-      }
-      if (item.status === STATUS.WAITLISTED || item.isWaiting) {
-        statusBadges += `<span class="inline-block bg-state-waitlist-bg text-state-waitlist-text text-xs font-bold px-2 py-1 rounded-full ml-2">⏳ キャンセル待ち</span>`;
-      }
-    }
-
-    // 編集/確認ボタンの抽出（会計ボタン以外）
-    const editButtons = buttons.filter(
-      btn => !btn.text.includes('会計') && !btn.text.includes('記録'),
-    );
-    const editButtonsHtml = editButtons
-      .map(btn =>
-        Components.createButton({
-          action: btn.action,
-          classroom: btn.classroom || item.classroom,
-          reservationId: btn.reservationId || item.reservationId,
-          date: btn.date || item.date,
-          sheetName: btn.sheetName || item.sheetName,
-          details: btn.details,
-          text: btn.text,
-          colorClass: btn.colorClass,
-        }),
       )
-      .join('');
+      .join('') +
+    `
+        <div class="mt-4 space-y-2 text-base">${getPaymentInfoHtml()}</div>`
+  );
+};
 
-    // 会計ボタンの抽出（当日のみ表示）
-    const accountingButtons = buttons.filter(
-      btn => btn.text.includes('会計') || btn.text.includes('記録'),
-    );
-    const showAccountingButtons = isToday && accountingButtons.length > 0;
-    const accountingButtonsHtml = showAccountingButtons
-      ? accountingButtons
-          .map(btn =>
-            Components.createButton({
-              action: btn.action,
-              classroom: btn.classroom || item.classroom,
-              reservationId: btn.reservationId || item.reservationId,
-              date: btn.date || item.date,
-              sheetName: btn.sheetName || item.sheetName,
-              details: btn.details,
-              text: btn.text,
-              colorClass: btn.colorClass,
-            }),
-          )
-          .join('')
-      : '';
+/**
+ * 予約・履歴カード用の新レイアウトカード構造を生成します。
+ * 仕様: 上部に教室情報（左）+編集ボタン（右）、中央に制作メモエリア、下部に当日のみ会計ボタン
+ * @param {object} config - カード設定オブジェクト
+ * @returns {string} HTML文字列
+ */
+const createReservationCard = config => {
+  const {
+    type, // 'booking' | 'history'
+    item,
+    today,
+    buttons = [],
+  } = config;
 
-    // 制作メモの内容（元の表示方式に戻す）
-    const memoContent =
-      item.workInProgress != null && item.workInProgress !== ''
-        ? item.workInProgress
-        : `<span class="text-brand-muted">制作メモ</span>`;
-    const memoDisplay = `<p class="text-base text-brand-text whitespace-pre-wrap break-words w-full leading-relaxed">${memoContent}</p>`;
+  const isBooking = type === 'booking';
+  const venueText = item.venue || '';
+  const isPastOrToday = isBooking
+    ? new Date(item.date).getTime() <= today.getTime()
+    : true;
+  const isToday =
+    today && new Date(item.date).toDateString() === today.toDateString();
 
-    return `
+  // 時刻表示の生成
+  let timeText = '';
+  if (item.startTime && item.endTime) {
+    timeText = `${item.startTime} - ${item.endTime}`;
+  }
+
+  // 日時表示（教室情報部分）
+  const dateTimeDisplay = `${formatDate(item.date || '')}${timeText ? ` ${timeText}` : ''}`;
+  const venueDisplay = `${item.classroom || ''}${venueText ? ` ${venueText}` : ''}`;
+
+  let cardColorClass = 'reservation-card bg-ui-surface border border-ui-border';
+  if (isBooking) {
+    const cardColor = item.isWaiting
+      ? DesignConfig.cards.state.waitlist
+      : DesignConfig.cards.state.booked;
+    cardColorClass = `reservation-card ${cardColor.card}`;
+  } else if (type === 'history') {
+    cardColorClass = `record-card ${DesignConfig.cards.state.history.card}`;
+  }
+
+  // ステータスバッジ（初回、キャンセル待ち）
+  let statusBadges = '';
+  if (isBooking) {
+    if (item.firstLecture) {
+      statusBadges += `<span class="inline-block bg-action-attention-bg text-action-attention-text text-xs font-bold px-2 py-1 rounded-full ml-2">初回</span>`;
+    }
+    if (item.status === STATUS.WAITLISTED || item.isWaiting) {
+      statusBadges += `<span class="inline-block bg-state-waitlist-bg text-state-waitlist-text text-xs font-bold px-2 py-1 rounded-full ml-2">⏳ キャンセル待ち</span>`;
+    }
+  }
+
+  // 編集/確認ボタンの抽出（会計ボタン以外）
+  const editButtons = buttons.filter(
+    btn => !btn.text.includes('会計') && !btn.text.includes('記録'),
+  );
+  const editButtonsHtml = editButtons
+    .map(btn =>
+      Components.createButton({
+        action: btn.action,
+        classroom: btn.classroom || item.classroom,
+        reservationId: btn.reservationId || item.reservationId,
+        date: btn.date || item.date,
+        sheetName: btn.sheetName || item.sheetName,
+        details: btn.details,
+        text: btn.text,
+        colorClass: btn.colorClass,
+      }),
+    )
+    .join('');
+
+  // 会計ボタンの抽出（当日のみ表示）
+  const accountingButtons = buttons.filter(
+    btn => btn.text.includes('会計') || btn.text.includes('記録'),
+  );
+  const showAccountingButtons = isToday && accountingButtons.length > 0;
+  const accountingButtonsHtml = showAccountingButtons
+    ? accountingButtons
+        .map(btn =>
+          Components.createButton({
+            action: btn.action,
+            classroom: btn.classroom || item.classroom,
+            reservationId: btn.reservationId || item.reservationId,
+            date: btn.date || item.date,
+            sheetName: btn.sheetName || item.sheetName,
+            details: btn.details,
+            text: btn.text,
+            colorClass: btn.colorClass,
+          }),
+        )
+        .join('')
+    : '';
+
+  // 制作メモの内容（元の表示方式に戻す）
+  const memoContent =
+    item.workInProgress != null && item.workInProgress !== ''
+      ? item.workInProgress
+      : `<span class="text-brand-muted">制作メモ</span>`;
+  const memoDisplay = `<p class="text-base text-brand-text whitespace-pre-wrap break-words w-full leading-relaxed">${memoContent}</p>`;
+
+  return `
       <div class="${cardColorClass || 'bg-ui-surface border border-ui-border'} p-3 rounded-lg flex flex-col space-y-3">
         <!-- 教室情報 -->
         <div class="flex-shrink-0">
@@ -271,97 +273,99 @@
         ${editButtonsHtml || accountingButtonsHtml ? `<div class="flex flex-wrap justify-center sm:justify-end items-center gap-2 flex-shrink-0 mt-3">${editButtonsHtml}${showAccountingButtons ? accountingButtonsHtml : ''}</div>` : ''}
       </div>
     `;
-  };
+};
 
-  /**
-   * 参加記録編集用のモーダルウィンドウの中身を生成します。
-   * @param {object} item - 編集対象の履歴オブジェクト
-   * @returns {string} HTML文字列
-   */
-  const buildMemoEditModal = item => {
-    return `
+/**
+ * 参加記録編集用のモーダルウィンドウの中身を生成します。
+ * @param {object} item - 編集対象の履歴オブジェクト
+ * @returns {string} HTML文字列
+ */
+const buildMemoEditModal = item => {
+  return `
         <p class="text-base ${DesignConfig.colors.textSubtle} mb-4">${formatDate(item.date)}  ${item.classroom}</p>
         <textarea id="memo-edit-textarea" class="${DesignConfig.inputs.textarea} h-32" placeholder="制作メモを入力…">${item.workInProgress || ''}</textarea>
     `;
-  };
+};
 
-  /**
-   * 時間制教室の授業料計算UIを生成します。
-   * @param {object} rule - 料金マスタから取得した教室ルール
-   * @param {object} reservationDetails - 予約固有情報（開始時刻、レンタル等）
-   * @param {object} scheduleInfo - 講座固有情報（教室形式、開講時間等）
-   * @returns {string} HTML文字列
-   */
-  const getTimeBasedTuitionHtml = (rule, reservationDetails, scheduleInfo) => {
-    // 講座固有情報から時間設定を取得
-    let classStart, classEnd;
+/**
+ * 時間制教室の授業料計算UIを生成します。
+ * @param {object} rule - 料金マスタから取得した教室ルール
+ * @param {object} reservationDetails - 予約固有情報（開始時刻、レンタル等）
+ * @param {object} scheduleInfo - 講座固有情報（教室形式、開講時間等）
+ * @returns {string} HTML文字列
+ */
+const getTimeBasedTuitionHtml = (rule, reservationDetails, scheduleInfo) => {
+  // 講座固有情報から時間設定を取得
+  let classStart, classEnd;
 
-    if (scheduleInfo && scheduleInfo.firstStart && scheduleInfo.firstEnd) {
-      // 日程マスタから時間を取得
-      const startParts = scheduleInfo.firstStart.split(':');
-      const endParts = scheduleInfo.firstEnd.split(':');
-      classStart = parseInt(startParts[0] || '0');
-      classEnd = parseInt(endParts[0] || '0');
-    } else {
-      return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間が設定されていません。</div>`;
-    }
-    const endBuffer = 3;
+  if (scheduleInfo && scheduleInfo.firstStart && scheduleInfo.firstEnd) {
+    // 日程マスタから時間を取得
+    const startParts = scheduleInfo.firstStart.split(':');
+    const endParts = scheduleInfo.firstEnd.split(':');
+    classStart = parseInt(startParts[0] || '0');
+    classEnd = parseInt(endParts[0] || '0');
+  } else {
+    return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間が設定されていません。</div>`;
+  }
+  const endBuffer = 3;
 
-    const breakOptions = [...Array(5).keys()]
-      .map(
-        i =>
-          `<option value="${i * 30}" ${String(i * 30) === (reservationDetails.breakTime || '0') ? 'selected' : ''}>${i * 30}分</option>`,
-      )
-      .join('');
+  const breakOptions = [...Array(5).keys()]
+    .map(
+      i =>
+        `<option value="${i * 30}" ${String(i * 30) === (reservationDetails.breakTime || '0') ? 'selected' : ''}>${i * 30}分</option>`,
+    )
+    .join('');
 
-    const startTimeOptions = getTimeOptionsHtml(
-      classStart,
-      classEnd + endBuffer,
-      30,
-      reservationDetails[window.HEADERS?.RESERVATIONS?.START_TIME] || reservationDetails.startTime,
+  const startTimeOptions = getTimeOptionsHtml(
+    classStart,
+    classEnd + endBuffer,
+    30,
+    reservationDetails[window.HEADERS?.RESERVATIONS?.START_TIME] ||
+      reservationDetails.startTime,
+  );
+  const endTimeOptions = getTimeOptionsHtml(
+    classStart,
+    classEnd + endBuffer,
+    30,
+    reservationDetails[window.HEADERS?.RESERVATIONS?.END_TIME] ||
+      reservationDetails.endTime,
+  );
+
+  const rentalChecked =
+    reservationDetails.chiselRental ||
+    reservationDetails['彫刻刀レンタル'] === true
+      ? 'checked'
+      : '';
+
+  const discountRule = stateManager
+    .getState()
+    .accountingMaster.find(
+      item => item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.DISCOUNT,
     );
-    const endTimeOptions = getTimeOptionsHtml(
-      classStart,
-      classEnd + endBuffer,
-      30,
-      reservationDetails[window.HEADERS?.RESERVATIONS?.END_TIME] || reservationDetails.endTime,
+  // 割引ルールが見つからない場合でも、常に割引チェックボックスを表示
+  const discountHtml = `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml({ 項目名: C.items.DISCOUNT }, reservationDetails.discountApplied ? '1' : '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
+
+  // 基本授業料の表示を追加
+  const basicTuitionRule = stateManager
+    .getState()
+    .accountingMaster.find(
+      item =>
+        item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.MAIN_LECTURE &&
+        item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+        item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(
+          scheduleInfo.classroom || reservationDetails.classroom,
+        ),
     );
 
-    const rentalChecked =
-      reservationDetails.chiselRental ||
-      reservationDetails['彫刻刀レンタル'] === true
-        ? 'checked'
-        : '';
-
-    const discountRule = stateManager
-      .getState()
-      .accountingMaster.find(
-        item => item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.DISCOUNT,
-      );
-    // 割引ルールが見つからない場合でも、常に割引チェックボックスを表示
-    const discountHtml = `<div class="mt-4 pt-4 border-t border-gray-200">${getDiscountHtml({ 項目名: C.items.DISCOUNT }, reservationDetails.discountApplied ? '1' : '0')}<p class="text-sm ${DesignConfig.colors.textSubtle} mt-2 text-left">初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
-
-    // 基本授業料の表示を追加
-    const basicTuitionRule = stateManager
-      .getState()
-      .accountingMaster.find(
-        item =>
-          item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.MAIN_LECTURE &&
-          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
-          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(
-            scheduleInfo.classroom || reservationDetails.classroom,
-          ),
-      );
-
-    const basicTuitionDisplay = basicTuitionRule
-      ? `<div class="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+  const basicTuitionDisplay = basicTuitionRule
+    ? `<div class="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
            <div class="text-base text-blue-800">
              <span class="font-semibold">${C.items.MAIN_LECTURE}:</span> ¥${basicTuitionRule[HEADERS.ACCOUNTING.UNIT_PRICE]?.toLocaleString() || 0} / 30分
            </div>
          </div>`
-      : '';
+    : '';
 
-    return `
+  return `
         <div class="p-4 ${DesignConfig.cards.background} rounded-lg space-y-3">
             <h3 class="${DesignConfig.text.heading} mb-2">授業料</h3>
             ${basicTuitionDisplay}
@@ -399,21 +403,21 @@
             <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base ${DesignConfig.colors.textSubtle}"></div>
             <div class="text-right font-bold mt-2" id="tuition-subtotal">小計: 0円</div>
         </div>`;
-  };
+};
 
-  // =================================================================
-  // --- Main Application Views ---
-  // -----------------------------------------------------------------
-  // アプリケーションの各画面の完全なHTML構造を生成する関数群。
-  // =================================================================
+// =================================================================
+// --- Main Application Views ---
+// -----------------------------------------------------------------
+// アプリケーションの各画面の完全なHTML構造を生成する関数群。
+// =================================================================
 
-  /**
-   * ログイン画面のUIを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getLoginView = () => {
-    const phoneValue = stateManager.getState().loginPhone || '';
-    return `
+/**
+ * ログイン画面のUIを生成します。
+ * @returns {string} HTML文字列
+ */
+const getLoginView = () => {
+  const phoneValue = stateManager.getState().loginPhone || '';
+  return `
       <div class="text-center pt-8 pb-4">
           <h1 class="text-3xl font-bold text-brand-text tracking-tight">きぼりの<br>よやく・きろく</h1>
           <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
@@ -424,51 +428,51 @@
               ${Components.createButton({ text: 'ログイン または 新規登録', action: 'login', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
           </div>
       </div>`;
-  };
+};
 
-  /**
-   * ユーザー情報入力フォーム（新規登録・プロフィール編集共通）
-   * 【統合設計】新規登録と編集を1つの関数で処理する効率的な実装
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.mode - 'register'（新規登録）または 'edit'（編集）
-   * @param {string} [config.phone] - 電話番号（新規登録時のみ）
-   * @returns {string} HTML文字列
-   */
-  const getUserFormView = config => {
-    const { mode, phone } = config;
-    const isEdit = mode === 'edit';
-    const u = stateManager.getState().currentUser || {};
+/**
+ * ユーザー情報入力フォーム（新規登録・プロフィール編集共通）
+ * 【統合設計】新規登録と編集を1つの関数で処理する効率的な実装
+ * @param {Object} config - 設定オブジェクト
+ * @param {string} config.mode - 'register'（新規登録）または 'edit'（編集）
+ * @param {string} [config.phone] - 電話番号（新規登録時のみ）
+ * @returns {string} HTML文字列
+ */
+const getUserFormView = config => {
+  const { mode, phone } = config;
+  const isEdit = mode === 'edit';
+  const u = stateManager.getState().currentUser || {};
 
-    // 入力値の保持: 新規登録Step1ではstateManager.getState().registrationDataを参照
-    let regData = stateManager.getState().registrationData || {};
-    const realNameValue = isEdit ? u.realName || '' : regData.realName || '';
-    const nicknameValue = isEdit ? u.displayName || '' : regData.nickname || '';
-    const phoneValue = isEdit
-      ? stateManager.getState().registrationPhone || u.phone || ''
-      : regData.phone || phone || '';
+  // 入力値の保持: 新規登録Step1ではstateManager.getState().registrationDataを参照
+  let regData = stateManager.getState().registrationData || {};
+  const realNameValue = isEdit ? u.realName || '' : regData.realName || '';
+  const nicknameValue = isEdit ? u.displayName || '' : regData.nickname || '';
+  const phoneValue = isEdit
+    ? stateManager.getState().registrationPhone || u.phone || ''
+    : regData.phone || phone || '';
 
-    // 電話番号表示の判定
-    const isPhoneInputNeeded =
-      isEdit && (stateManager.getState().registrationPhone || !u.phone);
+  // 電話番号表示の判定
+  const isPhoneInputNeeded =
+    isEdit && (stateManager.getState().registrationPhone || !u.phone);
 
-    // タイトルと説明文
-    const title = isEdit ? 'プロフィール編集' : '新規登録';
-    const description = isEdit
-      ? ''
-      : '<p class="text-brand-subtle mb-6">お名前を登録してください。</p>';
+  // タイトルと説明文
+  const title = isEdit ? 'プロフィール編集' : '新規登録';
+  const description = isEdit
+    ? ''
+    : '<p class="text-brand-subtle mb-6">お名前を登録してください。</p>';
 
-    // 電話番号セクション
-    let phoneSection = '';
-    if (!isEdit) {
-      // 新規登録時：電話番号を表示のみ
-      phoneSection = `
+  // 電話番号セクション
+  let phoneSection = '';
+  if (!isEdit) {
+    // 新規登録時：電話番号を表示のみ
+    phoneSection = `
         <div class="mb-4">
             <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
             <input type="tel" id="reg-phone" value="${phoneValue}" class="${DesignConfig.inputs.base}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
         </div>`;
-    } else if (isPhoneInputNeeded) {
-      // プロフィール編集時：電話番号入力が必要
-      phoneSection = `
+  } else if (isPhoneInputNeeded) {
+    // プロフィール編集時：電話番号入力が必要
+    phoneSection = `
         <div class="mb-4">
             <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">電話番号</label>
             <input type="tel" id="edit-phone" value="${phoneValue}"
@@ -476,18 +480,18 @@
                    autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
             <p class="text-sm text-brand-subtle mt-1">電話番号を登録すると次回からスムーズにログインできます。</p>
         </div>`;
-    } else {
-      // プロフィール編集時：電話番号表示のみ
-      phoneSection = `
+  } else {
+    // プロフィール編集時：電話番号表示のみ
+    phoneSection = `
         <div class="mb-4">
             <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
             <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block">${phoneValue}</p>
         </div>`;
-    }
+  }
 
-    // メール設定セクション（プロフィール編集時のみ）
-    const emailSection = isEdit
-      ? `
+  // メール設定セクション（プロフィール編集時のみ）
+  const emailSection = isEdit
+    ? `
         <div class="space-y-4">
           ${Components.createInput({
             id: 'edit-email',
@@ -508,38 +512,38 @@
           </div>
         </div>
       `
-      : '';
+    : '';
 
-    // ボタン設定
-    const buttons = isEdit
-      ? [
-          {
-            text: '戻る',
-            action: 'smartGoBack',
-            colorClass: DesignConfig.colors.secondary,
-          },
-          {
-            text: 'この内容で更新',
-            action: 'saveProfile',
-            colorClass: DesignConfig.colors.primary,
-          },
-        ]
-      : [
-          {
-            text: '戻る',
-            action: 'goBackToLogin',
-            colorClass: DesignConfig.colors.secondary,
-          },
-          {
-            text: '次へ進む',
-            action: 'goToStep2',
-            colorClass: DesignConfig.colors.primary,
-          },
-        ];
+  // ボタン設定
+  const buttons = isEdit
+    ? [
+        {
+          text: '戻る',
+          action: 'smartGoBack',
+          colorClass: DesignConfig.colors.secondary,
+        },
+        {
+          text: 'この内容で更新',
+          action: 'saveProfile',
+          colorClass: DesignConfig.colors.primary,
+        },
+      ]
+    : [
+        {
+          text: '戻る',
+          action: 'goBackToLogin',
+          colorClass: DesignConfig.colors.secondary,
+        },
+        {
+          text: '次へ進む',
+          action: 'goToStep2',
+          colorClass: DesignConfig.colors.primary,
+        },
+      ];
 
-    const nameIdPrefix = isEdit ? 'edit' : 'reg';
+  const nameIdPrefix = isEdit ? 'edit' : 'reg';
 
-    return `
+  return `
         <div class="max-w-md mx-auto">
             <h1 class="text-xl font-bold text-brand-text mb-4">${title}</h1>
             ${description}
@@ -579,53 +583,53 @@
               .join('')}
             </div>
         </div>`;
-  };
+};
 
-  /**
-   * 新規登録画面のUIを生成します。
-   * @param {string} p - ログイン試行時に入力された電話番号
-   * @returns {string} HTML文字列
-   */
-  const getRegisterView = p => getUserFormView({ mode: 'register', phone: p });
+/**
+ * 新規登録画面のUIを生成します。
+ * @param {string} p - ログイン試行時に入力された電話番号
+ * @returns {string} HTML文字列
+ */
+const getRegisterView = p => getUserFormView({ mode: 'register', phone: p });
 
-  /**
-   * 新規登録フローのステップ2（プロフィール詳細）
-   * 【設計方針】ステップ式登録により、ユーザー負担を軽減
-   * @returns {string} プロフィール詳細フォームのHTML文字列
-   */
-  const getRegistrationStep2View = () => {
-    const data = stateManager.getState().registrationData;
-    const genderOptions = ['女性', '男性', 'その他']
-      .map(
-        opt =>
-          `<label class="flex items-center space-x-2"><input type="radio" name="gender" value="${opt}" ${data.gender === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
-      )
-      .join('');
-    const handOptions = ['右利き', '左利き', '両利き']
-      .map(
-        opt =>
-          `<label class="flex items-center space-x-2"><input type="radio" name="dominantHand" value="${opt}" ${data.dominantHand === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
-      )
-      .join('');
-    const ageOptions = [
-      '----',
-      '10代（16歳以上）',
-      '20代',
-      '30代',
-      '40代',
-      '50代',
-      '60代',
-      '70代',
-      '80代以上',
-      'ひみつ',
-    ]
-      .map(
-        opt =>
-          `<option value="${opt}" ${data.ageGroup === opt ? 'selected' : ''}>${opt}</option>`,
-      )
-      .join('');
+/**
+ * 新規登録フローのステップ2（プロフィール詳細）
+ * 【設計方針】ステップ式登録により、ユーザー負担を軽減
+ * @returns {string} プロフィール詳細フォームのHTML文字列
+ */
+const getRegistrationStep2View = () => {
+  const data = stateManager.getState().registrationData;
+  const genderOptions = ['女性', '男性', 'その他']
+    .map(
+      opt =>
+        `<label class="flex items-center space-x-2"><input type="radio" name="gender" value="${opt}" ${data.gender === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
+    )
+    .join('');
+  const handOptions = ['右利き', '左利き', '両利き']
+    .map(
+      opt =>
+        `<label class="flex items-center space-x-2"><input type="radio" name="dominantHand" value="${opt}" ${data.dominantHand === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
+    )
+    .join('');
+  const ageOptions = [
+    '----',
+    '10代（16歳以上）',
+    '20代',
+    '30代',
+    '40代',
+    '50代',
+    '60代',
+    '70代',
+    '80代以上',
+    'ひみつ',
+  ]
+    .map(
+      opt =>
+        `<option value="${opt}" ${data.ageGroup === opt ? 'selected' : ''}>${opt}</option>`,
+    )
+    .join('');
 
-    return `
+  return `
     <div class="max-w-md mx-auto text-left">
       <h1 class="text-xl font-bold text-brand-text mb-4 text-center">プロフィール</h1>
       <form id="step2-form" class="space-y-6">
@@ -647,23 +651,23 @@
       </div>
     </div>
   `;
-  };
+};
 
-  /**
-   * 新規登録フローのステップ3（木彫り関連情報）
-   * 【UX配慮】動的表示制御により、経験者には詳細質問を表示
-   * @returns {string} 木彫りアンケートフォームのHTML文字列
-   */
-  const getRegistrationStep3View = () => {
-    const data = stateManager.getState().registrationData;
-    const experienceOptions = ['はじめて！', 'ちょっと', 'そこそこ', 'かなり！']
-      .map(
-        opt =>
-          `<label class="flex items-center space-x-2"><input type="radio" name="experience" value="${opt}" ${data.experience === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
-      )
-      .join('');
+/**
+ * 新規登録フローのステップ3（木彫り関連情報）
+ * 【UX配慮】動的表示制御により、経験者には詳細質問を表示
+ * @returns {string} 木彫りアンケートフォームのHTML文字列
+ */
+const getRegistrationStep3View = () => {
+  const data = stateManager.getState().registrationData;
+  const experienceOptions = ['はじめて！', 'ちょっと', 'そこそこ', 'かなり！']
+    .map(
+      opt =>
+        `<label class="flex items-center space-x-2"><input type="radio" name="experience" value="${opt}" ${data.experience === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
+    )
+    .join('');
 
-    return `
+  return `
     <div class="max-w-md mx-auto text-left">
       <h1 class="text-xl font-bold text-brand-text mb-4 text-center">木彫りについて</h1>
       <form id="step3-form" class="space-y-6">
@@ -692,32 +696,32 @@
       </div>
     </div>
   `;
-  };
+};
 
-  /**
-   * 新規登録フローのステップ4（アンケート）
-   * 【設計方針】最終ステップでユーザーの参加意向とフィードバックを収集
-   * @returns {string} アンケートフォームのHTML文字列
-   */
-  const getRegistrationStep4View = () => {
-    const data = stateManager.getState().registrationData;
-    const participationOptions = [
-      '毎月通いたい！',
-      '2,3ヶ月ごとくらいで通いたい！',
-      'これるときにたまに通いたい！',
-      '1回やってみたい！',
-      '通いたいがむずかしい…',
-    ]
-      .map(
-        opt =>
-          `<label class="flex items-center space-x-2 p-2 rounded hover:bg-ui-surface cursor-pointer">
+/**
+ * 新規登録フローのステップ4（アンケート）
+ * 【設計方針】最終ステップでユーザーの参加意向とフィードバックを収集
+ * @returns {string} アンケートフォームのHTML文字列
+ */
+const getRegistrationStep4View = () => {
+  const data = stateManager.getState().registrationData;
+  const participationOptions = [
+    '毎月通いたい！',
+    '2,3ヶ月ごとくらいで通いたい！',
+    'これるときにたまに通いたい！',
+    '1回やってみたい！',
+    '通いたいがむずかしい…',
+  ]
+    .map(
+      opt =>
+        `<label class="flex items-center space-x-2 p-2 rounded hover:bg-ui-surface cursor-pointer">
             <input type="radio" name="futureParticipation" value="${opt}" ${data.futureParticipation === opt ? 'checked' : ''} class="text-action-primary-bg focus:ring-action-primary-bg">
             <span class="text-brand-text">${opt}</span>
           </label>`,
-      )
-      .join('');
+    )
+    .join('');
 
-    return `
+  return `
     <div class="max-w-md mx-auto text-left">
       <h1 class="text-xl font-bold text-brand-text mb-4 text-center">アンケート</h1>
       <form id="step4-form" class="space-y-6">
@@ -748,20 +752,20 @@
       </div>
     </div>
   `;
-  };
+};
 
-  /**
-   * 電話番号未登録ユーザーの検索・選択画面
-   * 【機能】NF-01 対応：名前検索によるアカウント発見機能
-   * @returns {string} HTML文字列
-   */
-  const getUserSearchView = () => {
-    const users = stateManager.getState().searchedUsers;
-    // NF-01: 検索が実行され、結果が0件の場合にメッセージを表示
-    const hasSearchedAndNoResults =
-      stateManager.getState().searchAttempted && users.length === 0;
+/**
+ * 電話番号未登録ユーザーの検索・選択画面
+ * 【機能】NF-01 対応：名前検索によるアカウント発見機能
+ * @returns {string} HTML文字列
+ */
+const getUserSearchView = () => {
+  const users = stateManager.getState().searchedUsers;
+  // NF-01: 検索が実行され、結果が0件の場合にメッセージを表示
+  const hasSearchedAndNoResults =
+    stateManager.getState().searchAttempted && users.length === 0;
 
-    return `
+  return `
         <h1 class="text-xl font-bold text-brand-text mb-4">アカウントを探す</h1>
         <p class="text-brand-subtle mb-6">お名前（本名）またはニックネームを入力して、あなたのアカウントを見つけてください。<br>
         <span class="text-sm text-brand-muted">（漢字が異なる場合や、姓と名の間が開いている場合でも、スペースを入れずに、苗字だけでも試してみてください）</span></p>
@@ -833,147 +837,147 @@
             })}
         </div>
     `;
-  };
+};
 
-  /**
-   * ホーム予約カードのボタン配列を生成します（新仕様）。
-   * @param {object} booking - 予約データ
-   * @returns {Array} ボタン設定配列
-   */
-  const _buildBookingButtons = booking => {
-    const buttons = [];
-    const isBookingToday = _isToday(booking.date);
+/**
+ * ホーム予約カードのボタン配列を生成します（新仕様）。
+ * @param {object} booking - 予約データ
+ * @returns {Array} ボタン設定配列
+ */
+const _buildBookingButtons = booking => {
+  const buttons = [];
+  const isBookingToday = _isToday(booking.date);
 
-    // 会計関連ボタン（新仕様）
-    if (booking.status === STATUS.CONFIRMED && isBookingToday) {
-      // よやく かつ 当日 → 「会計」ボタン
+  // 会計関連ボタン（新仕様）
+  if (booking.status === STATUS.CONFIRMED && isBookingToday) {
+    // よやく かつ 当日 → 「会計」ボタン
+    buttons.push({
+      action: 'goToAccounting',
+      text: '会計',
+      style: 'accounting',
+    });
+  }
+
+  // 確認/編集ボタン
+  if (
+    booking.status === STATUS.CONFIRMED ||
+    booking.status === STATUS.WAITLISTED
+  ) {
+    // よやく → 「確認/編集」ボタン
+    buttons.push({
+      action: 'goToEditReservation',
+      text: '確認/編集',
+      style: 'edit',
+    });
+  }
+
+  return buttons;
+};
+
+/**
+ * ホーム履歴カードのボタン配列を生成します（新仕様）。
+ * @param {object} historyItem - 履歴データ
+ * @returns {Array} ボタン設定配列
+ */
+const _buildHistoryButtons = historyItem => {
+  const buttons = [];
+  const isHistoryToday = _isToday(historyItem.date);
+
+  // 会計関連ボタン（新仕様）
+  if (historyItem.status === STATUS.COMPLETED) {
+    if (isHistoryToday) {
+      // きろく かつ 当日 → 「会計を修正」ボタン
       buttons.push({
-        action: 'goToAccounting',
-        text: '会計',
+        action: 'editAccountingRecord',
+        text: '会計を修正',
         style: 'accounting',
       });
-    }
-
-    // 確認/編集ボタン
-    if (
-      booking.status === STATUS.CONFIRMED ||
-      booking.status === STATUS.WAITLISTED
-    ) {
-      // よやく → 「確認/編集」ボタン
+    } else {
+      // きろく → 「会計詳細」ボタン
       buttons.push({
-        action: 'goToEditReservation',
-        text: '確認/編集',
-        style: 'edit',
+        action: 'showHistoryAccounting',
+        details: historyItem.accountingDetails,
+        text: '会計詳細',
+        style: 'record',
       });
     }
+  }
 
-    return buttons;
-  };
+  // メモ編集ボタン
+  buttons.push({
+    action: 'editHistoryMemo',
+    text: window.stateManager.getState().constants?.messages?.EDIT || '編集',
+    style: 'edit-small',
+  });
 
-  /**
-   * ホーム履歴カードのボタン配列を生成します（新仕様）。
-   * @param {object} historyItem - 履歴データ
-   * @returns {Array} ボタン設定配列
-   */
-  const _buildHistoryButtons = historyItem => {
-    const buttons = [];
-    const isHistoryToday = _isToday(historyItem.date);
+  return buttons;
+};
 
-    // 会計関連ボタン（新仕様）
-    if (historyItem.status === STATUS.COMPLETED) {
-      if (isHistoryToday) {
-        // きろく かつ 当日 → 「会計を修正」ボタン
-        buttons.push({
-          action: 'editAccountingRecord',
-          text: '会計を修正',
-          style: 'accounting',
-        });
-      } else {
-        // きろく → 「会計詳細」ボタン
-        buttons.push({
-          action: 'showHistoryAccounting',
-          details: historyItem.accountingDetails,
-          text: '会計詳細',
-          style: 'record',
-        });
-      }
-    }
+/**
+ * メインのホーム画面のUIを生成します。
+ * 【改善】ビジネスロジックをヘルパー関数に分離して可読性向上
+ * @returns {string} HTML文字列
+ */
+const getDashboardView = () => {
+  // 計算済みデータを使用（setState()で自動更新済み）
+  const sortedBookings = stateManager.getState().computed.sortedBookings;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-    // メモ編集ボタン
-    buttons.push({
-      action: 'editHistoryMemo',
-      text: window.stateManager.getState().constants?.messages?.EDIT || '編集',
-      style: 'edit-small',
+  // 予約セクション用のカード配列を構築（新仕様：「よやく」表示条件）
+  const bookingCards = sortedBookings
+    .filter(b => [STATUS.WAITLISTED, STATUS.CONFIRMED].includes(b.status))
+    .map(b => {
+      const buttons = _buildBookingButtons(b);
+      return Components.listCard({
+        type: 'booking',
+        item: b,
+        today: today,
+        buttons: buttons,
+      });
     });
 
-    return buttons;
-  };
+  // 予約セクションを生成（Componentsに構造生成を委任）
+  const yourBookingsHtml = Components.dashboardSection({
+    title: 'よやく',
+    items: bookingCards,
+    showNewButton: true,
+    newAction: 'showClassroomModal',
+  });
 
-  /**
-   * メインのホーム画面のUIを生成します。
-   * 【改善】ビジネスロジックをヘルパー関数に分離して可読性向上
-   * @returns {string} HTML文字列
-   */
-  const getDashboardView = () => {
-    // 計算済みデータを使用（setState()で自動更新済み）
-    const sortedBookings = stateManager.getState().computed.sortedBookings;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  // 履歴セクションを生成（新仕様：「きろく」表示条件）
+  let historyHtml = '';
+  // 【修正】「きろく」はhistoryから取得するべき（COMPLETED記録はmyHistoryに分類される）
+  const sortedHistory = stateManager.getState().computed.sortedHistory;
+  const completedRecords = sortedHistory.filter(
+    r => r.status === STATUS.COMPLETED,
+  );
 
-    // 予約セクション用のカード配列を構築（新仕様：「よやく」表示条件）
-    const bookingCards = sortedBookings
-      .filter(b => [STATUS.WAITLISTED, STATUS.CONFIRMED].includes(b.status))
-      .map(b => {
-        const buttons = _buildBookingButtons(b);
-        return Components.listCard({
-          type: 'booking',
-          item: b,
-          today: today,
-          buttons: buttons,
-        });
+  if (completedRecords.length > 0) {
+    // 「きろく」は COMPLETED ステータスのみ表示
+    const historyCards = completedRecords.map(h => {
+      const buttons = _buildHistoryButtons(h);
+      return Components.listCard({
+        type: 'history',
+        item: h,
+        today: null, // 履歴では不要
+        buttons: buttons,
       });
-
-    // 予約セクションを生成（Componentsに構造生成を委任）
-    const yourBookingsHtml = Components.dashboardSection({
-      title: 'よやく',
-      items: bookingCards,
-      showNewButton: true,
-      newAction: 'showClassroomModal',
     });
 
-    // 履歴セクションを生成（新仕様：「きろく」表示条件）
-    let historyHtml = '';
-    // 【修正】「きろく」はhistoryから取得するべき（COMPLETED記録はmyHistoryに分類される）
-    const sortedHistory = stateManager.getState().computed.sortedHistory;
-    const completedRecords = sortedHistory.filter(
-      r => r.status === STATUS.COMPLETED,
-    );
+    const showMore =
+      (stateManager.getState().recordsToShow || 10) < completedRecords.length;
 
-    if (completedRecords.length > 0) {
-      // 「きろく」は COMPLETED ステータスのみ表示
-      const historyCards = completedRecords.map(h => {
-        const buttons = _buildHistoryButtons(h);
-        return Components.listCard({
-          type: 'history',
-          item: h,
-          today: null, // 履歴では不要
-          buttons: buttons,
-        });
-      });
+    // Componentsに構造生成を委任
+    historyHtml = Components.dashboardSection({
+      title: 'きろく',
+      items: historyCards,
+      showMoreButton: showMore,
+      moreAction: 'loadMoreHistory',
+    });
+  }
 
-      const showMore =
-        (stateManager.getState().recordsToShow || 10) < completedRecords.length;
-
-      // Componentsに構造生成を委任
-      historyHtml = Components.dashboardSection({
-        title: 'きろく',
-        items: historyCards,
-        showMoreButton: showMore,
-        moreAction: 'loadMoreHistory',
-      });
-    }
-
-    return `
+  return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-2">
             <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${stateManager.getState().currentUser.displayName} <span class="text-base">さん</span></span></h1>
             <button data-action="goToEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
@@ -981,80 +985,80 @@
         ${yourBookingsHtml}
         ${historyHtml}
     `;
-  };
+};
 
-  /**
-   * 教室名に応じた色クラスを取得します
-   * @param {string} classroomName - 教室名
-   * @returns {string} 色クラス文字列
-   */
-  const getClassroomColorClass = classroomName => {
-    if (classroomName.includes('東京')) {
-      return DesignConfig.classroomColors.tokyo.colorClass;
-    } else if (classroomName.includes('沼津')) {
-      return DesignConfig.classroomColors.numazu.colorClass;
-    } else if (classroomName.includes('つくば')) {
-      return DesignConfig.classroomColors.tsukuba.colorClass;
-    } else {
-      return DesignConfig.classroomColors.default.colorClass;
-    }
-  };
+/**
+ * 教室名に応じた色クラスを取得します
+ * @param {string} classroomName - 教室名
+ * @returns {string} 色クラス文字列
+ */
+const getClassroomColorClass = classroomName => {
+  if (classroomName.includes('東京')) {
+    return DesignConfig.classroomColors.tokyo.colorClass;
+  } else if (classroomName.includes('沼津')) {
+    return DesignConfig.classroomColors.numazu.colorClass;
+  } else if (classroomName.includes('つくば')) {
+    return DesignConfig.classroomColors.tsukuba.colorClass;
+  } else {
+    return DesignConfig.classroomColors.default.colorClass;
+  }
+};
 
-  /**
-   * 教室選択モーダル用のコンテンツを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getClassroomSelectionModalContent = () => {
-    const classrooms = Object.values(stateManager.getState().classrooms || {});
+/**
+ * 教室選択モーダル用のコンテンツを生成します。
+ * @returns {string} HTML文字列
+ */
+const getClassroomSelectionModalContent = () => {
+  const classrooms = Object.values(stateManager.getState().classrooms || {});
 
-    if (!classrooms.length) {
-      return `<div class="text-center"><p class="text-brand-subtle mb-4">現在、予約可能な教室がありません。</p></div>`;
-    }
+  if (!classrooms.length) {
+    return `<div class="text-center"><p class="text-brand-subtle mb-4">現在、予約可能な教室がありません。</p></div>`;
+  }
 
-    // 指定された順序で教室を並べ替え（東京、つくば、沼津）
-    const desiredOrder = ['東京教室', 'つくば教室', '沼津教室'];
-    const sortedClassrooms = classrooms.sort((a, b) => {
-      const indexA = desiredOrder.indexOf(a);
-      const indexB = desiredOrder.indexOf(b);
+  // 指定された順序で教室を並べ替え（東京、つくば、沼津）
+  const desiredOrder = ['東京教室', 'つくば教室', '沼津教室'];
+  const sortedClassrooms = classrooms.sort((a, b) => {
+    const indexA = desiredOrder.indexOf(a);
+    const indexB = desiredOrder.indexOf(b);
 
-      // 指定された順序にない教室は最後に配置
-      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
-      if (indexA === -1) return 1;
-      if (indexB === -1) return -1;
+    // 指定された順序にない教室は最後に配置
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
 
-      return indexA - indexB;
-    });
+    return indexA - indexB;
+  });
 
-    const classroomButtonsHtml = sortedClassrooms
-      .map(classroomName => {
-        const colorClass = getClassroomColorClass(classroomName);
-        const fullButtonClass = `w-full h-16 text-center px-6 py-4 rounded-xl mobile-card touch-friendly flex items-center justify-center text-xl font-bold border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 ${colorClass}`;
+  const classroomButtonsHtml = sortedClassrooms
+    .map(classroomName => {
+      const colorClass = getClassroomColorClass(classroomName);
+      const fullButtonClass = `w-full h-16 text-center px-6 py-4 rounded-xl mobile-card touch-friendly flex items-center justify-center text-xl font-bold border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 ${colorClass}`;
 
-        const buttonHtml = Components.button({
-          action: 'selectClassroom',
-          text: classroomName,
-          style: 'none', // デフォルトスタイルを無効化
-          customClass: fullButtonClass,
-          dataAttributes: {
-            classroomName: classroomName,
-            classroom: classroomName, // フォールバック用
-          },
-        });
+      const buttonHtml = Components.button({
+        action: 'selectClassroom',
+        text: classroomName,
+        style: 'none', // デフォルトスタイルを無効化
+        customClass: fullButtonClass,
+        dataAttributes: {
+          classroomName: classroomName,
+          classroom: classroomName, // フォールバック用
+        },
+      });
 
-        // デバッグ用: 生成されたHTMLを確認
-        if (!window.isProduction && typeof console !== 'undefined') {
-          console.log(
-            `🔘 ${classroomName}ボタンHTML:`,
-            buttonHtml.substring(0, 300),
-          );
-          console.log(`🔘 ${classroomName}カラークラス:`, colorClass);
-        }
+      // デバッグ用: 生成されたHTMLを確認
+      if (!window.isProduction && typeof console !== 'undefined') {
+        console.log(
+          `🔘 ${classroomName}ボタンHTML:`,
+          buttonHtml.substring(0, 300),
+        );
+        console.log(`🔘 ${classroomName}カラークラス:`, colorClass);
+      }
 
-        return buttonHtml;
-      })
-      .join('');
+      return buttonHtml;
+    })
+    .join('');
 
-    return `
+  return `
       <div class="text-center mb-6">
         <p class="text-brand-subtle text-lg mb-2">教室をお選びください</p>
         <p class="text-brand-subtle text-sm opacity-75">ご希望の教室を選択してください</p>
@@ -1063,214 +1067,210 @@
         ${classroomButtonsHtml}
       </div>
     `;
-  };
+};
 
-  /**
-   * 教室選択モーダル全体のHTMLを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getClassroomSelectionModal = () => {
-    return Components.modal({
-      id: 'classroom-selection-modal',
-      title: '',
-      content: getClassroomSelectionModalContent(),
-      maxWidth: 'max-w-md', // より大きなサイズに変更
-    });
-  };
+/**
+ * 教室選択モーダル全体のHTMLを生成します。
+ * @returns {string} HTML文字列
+ */
+const getClassroomSelectionModal = () => {
+  return Components.modal({
+    id: 'classroom-selection-modal',
+    title: '',
+    content: getClassroomSelectionModalContent(),
+    maxWidth: 'max-w-md', // より大きなサイズに変更
+  });
+};
 
-  /**
-   * プロフィール編集画面のUIを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getEditProfileView = () => getUserFormView({ mode: 'edit' });
+/**
+ * プロフィール編集画面のUIを生成します。
+ * @returns {string} HTML文字列
+ */
+const getEditProfileView = () => getUserFormView({ mode: 'edit' });
 
-  /**
-   * 予約スロットのリストからHTMLを生成します。
-   * この関数は getBookingView と getCompleteView で共有されます。
-   * @param {Array<object>} slots - 表示する予約スロットの配列
-   * @returns {string} HTML文字列
-   */
-  const renderBookingSlots = slots => {
-    if (!slots || slots.length === 0) {
-      return '';
-    }
+/**
+ * 予約スロットのリストからHTMLを生成します。
+ * この関数は getBookingView と getCompleteView で共有されます。
+ * @param {Array<object>} slots - 表示する予約スロットの配列
+ * @returns {string} HTML文字列
+ */
+const renderBookingSlots = slots => {
+  if (!slots || slots.length === 0) {
+    return '';
+  }
 
-    // 受け取ったslotsを月別にグループ化
-    const slotsByMonth = slots.reduce((acc, slot) => {
-      const month = new Date(slot.date).getMonth() + 1;
-      if (!acc[month]) acc[month] = [];
-      acc[month].push(slot);
-      return acc;
-    }, {});
+  // 受け取ったslotsを月別にグループ化
+  const slotsByMonth = slots.reduce((acc, slot) => {
+    const month = new Date(slot.date).getMonth() + 1;
+    if (!acc[month]) acc[month] = [];
+    acc[month].push(slot);
+    return acc;
+  }, {});
 
-    return Object.keys(slotsByMonth)
-      .sort((a, b) => a - b)
-      .map(month => {
-        const monthHeader = `<h4 class="text-lg font-medium ${DesignConfig.colors.textSubtle} mt-4 mb-2 text-center">${month}月</h4>`;
+  return Object.keys(slotsByMonth)
+    .sort((a, b) => a - b)
+    .map(month => {
+      const monthHeader = `<h4 class="text-lg font-medium ${DesignConfig.colors.textSubtle} mt-4 mb-2 text-center">${month}月</h4>`;
 
-        const slotsHtml = slotsByMonth[month]
-          .map(sl => {
-            const iB = stateManager
-              .getState()
-              .computed.sortedBookings.some(
-                b => b.date === sl.date && b.classroom === sl.classroom,
-              );
-            let cC, sB, act;
-            const tag = iB ? 'div' : 'button';
+      const slotsHtml = slotsByMonth[month]
+        .map(sl => {
+          const iB = stateManager
+            .getState()
+            .computed.sortedBookings.some(
+              b => b.date === sl.date && b.classroom === sl.classroom,
+            );
+          let cC, sB, act;
+          const tag = iB ? 'div' : 'button';
 
-            // 初回者・経験者別の表示制御
-            const isFirstTimeBooking =
-              stateManager.getState().isFirstTimeBooking;
-            let statusText;
+          // 初回者・経験者別の表示制御
+          const isFirstTimeBooking = stateManager.getState().isFirstTimeBooking;
+          let statusText;
 
-            // デバッグ情報（開発時のみ）
-            if (!window.isProduction && isFirstTimeBooking) {
-              console.log('🔍 初回者スロット情報:', {
-                date: sl.date,
-                classroom: sl.classroom,
-                firstLectureSlots: sl.firstLectureSlots,
-                isFirstTimeBooking,
-              });
+          // デバッグ情報（開発時のみ）
+          if (!window.isProduction && isFirstTimeBooking) {
+            console.log('🔍 初回者スロット情報:', {
+              date: sl.date,
+              classroom: sl.classroom,
+              firstLectureSlots: sl.firstLectureSlots,
+              isFirstTimeBooking,
+            });
+          }
+
+          if (isFirstTimeBooking) {
+            // 初回者（はじめての方）の場合
+            if (sl.beginnerCapacity > 0) {
+              // 初回者の定員が1以上の日程：初回者枠に基づく空席情報を提示
+              statusText = `初回者 空き ${sl.firstLectureSlots}`;
+            } else {
+              // 初回者の定員が0の日程：「経験者のみ」として表示
+              statusText = '経験者のみ';
             }
+          } else {
+            // 経験者の場合：全体（本講座）の参加者数に基づく表示
+            if (
+              typeof sl.morningSlots !== 'undefined' &&
+              typeof sl.afternoonSlots !== 'undefined'
+            ) {
+              // ２部制の場合の例「空き 午前3 午後 4」
+              const morningLabel =
+                stateManager.getState().constants?.sessions?.MORNING || '午前';
+              const afternoonLabel =
+                stateManager.getState().constants?.sessions?.AFTERNOON ||
+                '午後';
+              statusText = `空き ${morningLabel}${sl.morningSlots} ${afternoonLabel}${sl.afternoonSlots}`;
+            } else if (typeof sl.availableSlots !== 'undefined') {
+              // セッション制、全日制の場合の例「空き 3」
+              statusText = `空き ${sl.availableSlots}`;
+            } else {
+              // フォールバック
+              statusText = '空き状況不明';
+            }
+            // 経験者には初回者の空き情報は提示しない（既存のコメントアウト）
+          }
+
+          if (iB) {
+            // 【修正】予約済み・記録済みの場合（統一検索関数を使用）
+            const reservationData = findReservationByDateAndClassroom(
+              sl.date,
+              sl.classroom,
+            );
+
+            console.log(
+              `🔍 Slot検索結果 - ${sl.date} ${sl.classroom}:`,
+              reservationData
+                ? {
+                    status: reservationData.status,
+                    type: reservationData.type,
+                  }
+                : 'なし',
+            );
+
+            if (
+              reservationData &&
+              reservationData.status === STATUS.COMPLETED
+            ) {
+              // 完了済みの記録の場合
+              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
+              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">受講済み</span>`;
+              act = '';
+            } else if (
+              reservationData &&
+              reservationData.status === STATUS.WAITLISTED
+            ) {
+              // キャンセル待ちの場合
+              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
+              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
+              act = '';
+            } else {
+              // 確定予約の場合
+              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
+              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`;
+              act = '';
+            }
+          } else {
+            // 初回者・経験者別の満席判定とUI状態決定
+            let isSlotFull = false;
+            let canBook = true;
 
             if (isFirstTimeBooking) {
-              // 初回者（はじめての方）の場合
-              if (sl.beginnerCapacity > 0) {
-                // 初回者の定員が1以上の日程：初回者枠に基づく空席情報を提示
-                statusText = `初回者 空き ${sl.firstLectureSlots}`;
-              } else {
-                // 初回者の定員が0の日程：「経験者のみ」として表示
-                statusText = '経験者のみ';
+              // 初回者の場合：初回者枠に基づく判定
+              if (sl.beginnerCapacity <= 0) {
+                // 初回講習枠が0の場合は「経験者のみ」でクリック不可
+                canBook = false;
               }
+              // 初回講習枠が満席の場合はキャンセル待ち
+              isSlotFull = sl.firstLectureIsFull;
             } else {
-              // 経験者の場合：全体（本講座）の参加者数に基づく表示
-              if (
-                typeof sl.morningSlots !== 'undefined' &&
-                typeof sl.afternoonSlots !== 'undefined'
-              ) {
-                // ２部制の場合の例「空き 午前3 午後 4」
-                const morningLabel =
-                  stateManager.getState().constants?.sessions?.MORNING ||
-                  '午前';
-                const afternoonLabel =
-                  stateManager.getState().constants?.sessions?.AFTERNOON ||
-                  '午後';
-                statusText = `空き ${morningLabel}${sl.morningSlots} ${afternoonLabel}${sl.afternoonSlots}`;
-              } else if (typeof sl.availableSlots !== 'undefined') {
-                // セッション制、全日制の場合の例「空き 3」
-                statusText = `空き ${sl.availableSlots}`;
-              } else {
-                // フォールバック
-                statusText = '空き状況不明';
-              }
-              // 経験者には初回者の空き情報は提示しない（既存のコメントアウト）
+              // 経験者の場合：全体枠に基づく判定
+              isSlotFull = sl.isFull;
             }
 
-            if (iB) {
-              // 【修正】予約済み・記録済みの場合（統一検索関数を使用）
-              const reservationData = findReservationByDateAndClassroom(
-                sl.date,
-                sl.classroom,
-              );
-
-              console.log(
-                `🔍 Slot検索結果 - ${sl.date} ${sl.classroom}:`,
-                reservationData
-                  ? {
-                      status: reservationData.status,
-                      type: reservationData.type,
-                    }
-                  : 'なし',
-              );
-
-              if (
-                reservationData &&
-                reservationData.status === STATUS.COMPLETED
-              ) {
-                // 完了済みの記録の場合
-                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
-                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">受講済み</span>`;
-                act = '';
-              } else if (
-                reservationData &&
-                reservationData.status === STATUS.WAITLISTED
-              ) {
-                // キャンセル待ちの場合
-                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
-                act = '';
-              } else {
-                // 確定予約の場合
-                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
-                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`;
-                act = '';
-              }
+            if (!canBook) {
+              // 初回者で初回講習枠が0の場合（経験者のみ）：クリック不可
+              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card} opacity-50`;
+              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">${statusText}</span>`;
+              act = '';
+            } else if (isSlotFull) {
+              // 満席（キャンセル待ち）の場合
+              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
+              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
+              act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
             } else {
-              // 初回者・経験者別の満席判定とUI状態決定
-              let isSlotFull = false;
-              let canBook = true;
-
-              if (isFirstTimeBooking) {
-                // 初回者の場合：初回者枠に基づく判定
-                if (sl.beginnerCapacity <= 0) {
-                  // 初回講習枠が0の場合は「経験者のみ」でクリック不可
-                  canBook = false;
-                }
-                // 初回講習枠が満席の場合はキャンセル待ち
-                isSlotFull = sl.firstLectureIsFull;
-              } else {
-                // 経験者の場合：全体枠に基づく判定
-                isSlotFull = sl.isFull;
-              }
-
-              if (!canBook) {
-                // 初回者で初回講習枠が0の場合（経験者のみ）：クリック不可
-                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card} opacity-50`;
-                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">${statusText}</span>`;
-                act = '';
-              } else if (isSlotFull) {
-                // 満席（キャンセル待ち）の場合
-                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
-                act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
-              } else {
-                // 予約可能な場合
-                cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
-                sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
-                act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
-              }
+              // 予約可能な場合
+              cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
+              sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
+              act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
             }
+          }
 
-            const venueDisplay = sl.venue ? ` ${sl.venue}` : '';
-            const text = `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(sl.date)}${venueDisplay}</span>${sB}</div>`;
+          const venueDisplay = sl.venue ? ` ${sl.venue}` : '';
+          const text = `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(sl.date)}${venueDisplay}</span>${sB}</div>`;
 
-            // getBookingViewのロジックをベースに、buttonとdivを使い分ける
-            return `<${tag} ${act} class="${cC}">${text}</${tag}>`;
-          })
-          .join('');
+          // getBookingViewのロジックをベースに、buttonとdivを使い分ける
+          return `<${tag} ${act} class="${cC}">${text}</${tag}>`;
+        })
+        .join('');
 
-        return monthHeader + slotsHtml;
-      })
-      .join('');
-  };
+      return monthHeader + slotsHtml;
+    })
+    .join('');
+};
 
-  /**
-   * 特定の教室の予約枠一覧画面のUIを生成します。
-   * @param {string} classroom - 教室名
-   * @returns {string} HTML文字列
-   */
-  const getBookingView = classroom => {
-    // バックエンドで計算済みの空き情報を直接使用
-    const relevantSlots = stateManager.getState().slots
-      ? stateManager
-          .getState()
-          .slots.filter(slot => slot.classroom === classroom)
-      : [];
+/**
+ * 特定の教室の予約枠一覧画面のUIを生成します。
+ * @param {string} classroom - 教室名
+ * @returns {string} HTML文字列
+ */
+const getBookingView = classroom => {
+  // バックエンドで計算済みの空き情報を直接使用
+  const relevantSlots = stateManager.getState().slots
+    ? stateManager.getState().slots.filter(slot => slot.classroom === classroom)
+    : [];
 
-    const bookingSlotsHtml = renderBookingSlots(relevantSlots);
+  const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
-    if (!bookingSlotsHtml) {
-      return `
+  if (!bookingSlotsHtml) {
+    return `
         <div class="max-w-md mx-auto">
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${classroom}</h1>
             <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
@@ -1278,8 +1278,8 @@
                 ${Components.createButton({ text: 'ホームに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
             </div>
         </div>`;
-    } else {
-      return `
+  } else {
+    return `
         <div class="max-w-md mx-auto">
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${classroom}</h1>
             <div class="${DesignConfig.cards.container}">${bookingSlotsHtml}</div>
@@ -1287,137 +1287,140 @@
                 ${Components.createButton({ text: 'ホームに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
             </div>
         </div>`;
+  }
+};
+
+/**
+ * 予約の詳細入力・編集画面のUIを生成します。
+ * @param {string} mode - 'new' または 'edit'
+ * @returns {string} HTML文字列
+ */
+const getReservationFormView = (mode = 'new') => {
+  const isEdit = mode === 'edit';
+
+  // --- 1. データの準備 ---
+  // 編集時は editingReservationDetails から、新規作成時は selectedSlot からデータを取得
+  const sourceData = isEdit
+    ? stateManager.getState().editingReservationDetails
+    : stateManager.getState().selectedSlot;
+  if (!sourceData) return 'エラー: 予約情報が見つかりません。';
+
+  const {
+    classroom,
+    date,
+    venue,
+    isWaiting,
+    firstLecture,
+    chiselRental,
+    workInProgress,
+    materialInfo,
+    order,
+    messageToTeacher,
+  } = sourceData;
+
+  // 時間情報は統合定数を使用して取得
+  const startTime =
+    sourceData[window.HEADERS?.RESERVATIONS?.START_TIME] ||
+    sourceData.startTime;
+  const endTime =
+    sourceData[window.HEADERS?.RESERVATIONS?.END_TIME] || sourceData.endTime;
+  const {
+    currentUser,
+    accountingMaster: master,
+    isFirstTimeBooking,
+  } = window.stateManager.getState();
+
+  // 日程マスタベースの教室形式判定に変更
+  const isTimeBased = isTimeBasedClassroom(sourceData);
+
+  // デバッグ情報（開発時のみ）
+  if (!window.isProduction) {
+    console.log('🔍 getReservationFormView デバッグ情報:', {
+      mode,
+      isEdit,
+      sourceData: sourceData
+        ? {
+            classroom: sourceData.classroom,
+            date: sourceData.date,
+            classroomType: sourceData.classroomType,
+            firstStart: sourceData.firstStart,
+            firstEnd: sourceData.firstEnd,
+          }
+        : null,
+      isTimeBased,
+      scheduleInfoExists: !!(sourceData?.firstStart && sourceData?.firstEnd),
+    });
+  }
+
+  // 新規作成時のみ利用するデータ
+  const {
+    availableSlots,
+    morningSlots,
+    afternoonSlots,
+    firstLectureSlots,
+    isFull,
+    firstLectureIsFull,
+  } = stateManager.getState().selectedSlot || {};
+
+  // --- 2. モードに応じた設定 ---
+  const title = isEdit
+    ? '予約内容の編集'
+    : isFull || (isFirstTimeBooking && firstLectureIsFull)
+      ? 'キャンセル待ち申込み'
+      : '予約詳細の入力';
+  const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
+  const submitButtonText = isEdit
+    ? 'この内容で更新する'
+    : isFull
+      ? 'キャンセル待ちで登録する'
+      : 'この内容で予約する';
+
+  // --- 3. UI生成ヘルパー関数 ---
+  /**
+   * 予約状況の表示を生成します。
+   */
+  const _renderStatusHtml = () => {
+    if (isEdit) {
+      return sourceData.isWaiting ? 'キャンセル待ち' : '予約済み';
     }
+
+    if (isFirstTimeBooking) {
+      if (firstLectureIsFull) {
+        return '初回者枠 満席（キャンセル待ち申込み）';
+      }
+      return `初回者枠 空き ${firstLectureSlots}`;
+    }
+
+    if (isFull) return '満席（キャンセル待ち申込み）';
+
+    if (typeof morningSlots !== 'undefined') {
+      const morningLabel =
+        stateManager.getState().constants?.sessions?.MORNING || '午前';
+      const afternoonLabel =
+        stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
+      return `${morningLabel}空き ${morningSlots} | ${afternoonLabel}空き ${afternoonSlots}`;
+    }
+
+    return `空き ${availableSlots}`;
   };
 
   /**
-   * 予約の詳細入力・編集画面のUIを生成します。
-   * @param {string} mode - 'new' または 'edit'
-   * @returns {string} HTML文字列
+   * 授業料表示セクションを生成します。
    */
-  const getReservationFormView = (mode = 'new') => {
-    const isEdit = mode === 'edit';
+  const _renderTuitionDisplaySection = () => {
+    // 教室形式の判定
+    if (isTimeBased) {
+      // 時間制の場合：基本授業料を表示
+      const basicTuitionRule = master.find(
+        item =>
+          item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.MAIN_LECTURE &&
+          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
+      );
 
-    // --- 1. データの準備 ---
-    // 編集時は editingReservationDetails から、新規作成時は selectedSlot からデータを取得
-    const sourceData = isEdit
-      ? stateManager.getState().editingReservationDetails
-      : stateManager.getState().selectedSlot;
-    if (!sourceData) return 'エラー: 予約情報が見つかりません。';
-
-    const {
-      classroom,
-      date,
-      venue,
-      isWaiting,
-      firstLecture,
-      chiselRental,
-      workInProgress,
-      materialInfo,
-      order,
-      messageToTeacher,
-    } = sourceData;
-    
-    // 時間情報は統合定数を使用して取得
-    const startTime = sourceData[window.HEADERS?.RESERVATIONS?.START_TIME] || sourceData.startTime;
-    const endTime = sourceData[window.HEADERS?.RESERVATIONS?.END_TIME] || sourceData.endTime;
-    const {
-      currentUser,
-      accountingMaster: master,
-      isFirstTimeBooking,
-    } = window.stateManager.getState();
-
-    // 日程マスタベースの教室形式判定に変更
-    const isTimeBased = isTimeBasedClassroom(sourceData);
-
-    // デバッグ情報（開発時のみ）
-    if (!window.isProduction) {
-      console.log('🔍 getReservationFormView デバッグ情報:', {
-        mode,
-        isEdit,
-        sourceData: sourceData
-          ? {
-              classroom: sourceData.classroom,
-              date: sourceData.date,
-              classroomType: sourceData.classroomType,
-              firstStart: sourceData.firstStart,
-              firstEnd: sourceData.firstEnd,
-            }
-          : null,
-        isTimeBased,
-        scheduleInfoExists: !!(sourceData?.firstStart && sourceData?.firstEnd),
-      });
-    }
-
-    // 新規作成時のみ利用するデータ
-    const {
-      availableSlots,
-      morningSlots,
-      afternoonSlots,
-      firstLectureSlots,
-      isFull,
-      firstLectureIsFull,
-    } = stateManager.getState().selectedSlot || {};
-
-    // --- 2. モードに応じた設定 ---
-    const title = isEdit
-      ? '予約内容の編集'
-      : isFull || (isFirstTimeBooking && firstLectureIsFull)
-        ? 'キャンセル待ち申込み'
-        : '予約詳細の入力';
-    const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
-    const submitButtonText = isEdit
-      ? 'この内容で更新する'
-      : isFull
-        ? 'キャンセル待ちで登録する'
-        : 'この内容で予約する';
-
-    // --- 3. UI生成ヘルパー関数 ---
-    /**
-     * 予約状況の表示を生成します。
-     */
-    const _renderStatusHtml = () => {
-      if (isEdit) {
-        return sourceData.isWaiting ? 'キャンセル待ち' : '予約済み';
-      }
-
-      if (isFirstTimeBooking) {
-        if (firstLectureIsFull) {
-          return '初回者枠 満席（キャンセル待ち申込み）';
-        }
-        return `初回者枠 空き ${firstLectureSlots}`;
-      }
-
-      if (isFull) return '満席（キャンセル待ち申込み）';
-
-      if (typeof morningSlots !== 'undefined') {
-        const morningLabel =
-          stateManager.getState().constants?.sessions?.MORNING || '午前';
-        const afternoonLabel =
-          stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
-        return `${morningLabel}空き ${morningSlots} | ${afternoonLabel}空き ${afternoonSlots}`;
-      }
-
-      return `空き ${availableSlots}`;
-    };
-
-    /**
-     * 授業料表示セクションを生成します。
-     */
-    const _renderTuitionDisplaySection = () => {
-      // 教室形式の判定
-      if (isTimeBased) {
-        // 時間制の場合：基本授業料を表示
-        const basicTuitionRule = master.find(
-          item =>
-            item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.MAIN_LECTURE &&
-            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
-            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
-        );
-
-        if (basicTuitionRule) {
-          const price = basicTuitionRule[HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
-          return `
+      if (basicTuitionRule) {
+        const price = basicTuitionRule[HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
+        return `
             <div class="mt-4 pt-4 border-t">
               <h4 class="font-bold ${DesignConfig.colors.text} mb-2">授業料</h4>
               <div class="mb-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
@@ -1426,31 +1429,31 @@
                 </div>
               </div>
             </div>`;
-        }
-      } else {
-        // 固定制の場合：初回授業料または基本授業料を表示
-        const targetItemName = isFirstTimeBooking
-          ? C.items.FIRST_LECTURE
-          : C.items.MAIN_LECTURE;
-        const tuitionItem = master.find(
-          item =>
-            item[HEADERS.ACCOUNTING.TYPE] === C.itemTypes.TUITION &&
-            item[HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
-            (item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
-              item[HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(classroom)),
-        );
+      }
+    } else {
+      // 固定制の場合：初回授業料または基本授業料を表示
+      const targetItemName = isFirstTimeBooking
+        ? C.items.FIRST_LECTURE
+        : C.items.MAIN_LECTURE;
+      const tuitionItem = master.find(
+        item =>
+          item[HEADERS.ACCOUNTING.TYPE] === C.itemTypes.TUITION &&
+          item[HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
+          (item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
+            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(classroom)),
+      );
 
-        if (tuitionItem) {
-          const price = tuitionItem[HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
-          const bgColor = isFirstTimeBooking
-            ? 'bg-green-50 border-green-400'
-            : 'bg-blue-50 border-blue-400';
-          const textColor = isFirstTimeBooking
-            ? 'text-green-800'
-            : 'text-blue-800';
-          const label = targetItemName;
+      if (tuitionItem) {
+        const price = tuitionItem[HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
+        const bgColor = isFirstTimeBooking
+          ? 'bg-green-50 border-green-400'
+          : 'bg-blue-50 border-blue-400';
+        const textColor = isFirstTimeBooking
+          ? 'text-green-800'
+          : 'text-blue-800';
+        const label = targetItemName;
 
-          return `
+        return `
             <div class="mt-4 pt-4 border-t">
               <h4 class="font-bold ${DesignConfig.colors.text} mb-2">授業料</h4>
               <div class="mb-3 p-3 ${bgColor} rounded border-l-4">
@@ -1459,97 +1462,97 @@
                 </div>
               </div>
             </div>`;
-        }
       }
-      return '';
-    };
+    }
+    return '';
+  };
 
-    /**
-     * 予約時間選択のUIを生成します。
-     */
-    const _renderTimeOptionsSection = () => {
-      // 時間制の教室の場合
-      if (isTimeBased) {
-        const times = getClassroomTimesFromSchedule(sourceData);
-        if (!times || !times.firstStart || !times.firstEnd) {
-          return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
-        }
+  /**
+   * 予約時間選択のUIを生成します。
+   */
+  const _renderTimeOptionsSection = () => {
+    // 時間制の教室の場合
+    if (isTimeBased) {
+      const times = getClassroomTimesFromSchedule(sourceData);
+      if (!times || !times.firstStart || !times.firstEnd) {
+        return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
+      }
 
-        const startParts = times.firstStart.split(':');
-        const endParts =
-          !times.secondStart || !times.secondEnd
-            ? times.firstEnd.split(':') // 1部制の場合
-            : times.secondEnd.split(':'); // 2部制の場合
-        const classStartHour = parseInt(startParts[0] || '0');
-        const classEndHour = parseInt(endParts[0] || '0');
-        const classEndMinutes = parseInt(endParts[1] || '0');
+      const startParts = times.firstStart.split(':');
+      const endParts =
+        !times.secondStart || !times.secondEnd
+          ? times.firstEnd.split(':') // 1部制の場合
+          : times.secondEnd.split(':'); // 2部制の場合
+      const classStartHour = parseInt(startParts[0] || '0');
+      const classEndHour = parseInt(endParts[0] || '0');
+      const classEndMinutes = parseInt(endParts[1] || '0');
 
-        // 初回者の場合は開始時刻を固定（日程マスタのBEGINNER_START項目を使用）
-        let fixedStartTime = startTime;
-        let isTimeFixed = false;
-        if (isFirstTimeBooking && sourceData.beginnerStart) {
-          fixedStartTime = sourceData.beginnerStart;
-          isTimeFixed = true;
-        }
+      // 初回者の場合は開始時刻を固定（日程マスタのBEGINNER_START項目を使用）
+      let fixedStartTime = startTime;
+      let isTimeFixed = false;
+      if (isFirstTimeBooking && sourceData.beginnerStart) {
+        fixedStartTime = sourceData.beginnerStart;
+        isTimeFixed = true;
+      }
 
-        // デバッグ情報（開発時のみ）
-        if (!window.isProduction && isFirstTimeBooking) {
-          console.log('🔍 初回者用時刻設定:', {
-            isFirstTimeBooking,
-            isEdit,
-            firstStart: times.firstStart,
-            secondStart: times.secondStart,
-            beginnerStart: sourceData.beginnerStart,
-            fixedStartTime,
-            isTimeFixed,
-          });
-        }
+      // デバッグ情報（開発時のみ）
+      if (!window.isProduction && isFirstTimeBooking) {
+        console.log('🔍 初回者用時刻設定:', {
+          isFirstTimeBooking,
+          isEdit,
+          firstStart: times.firstStart,
+          secondStart: times.secondStart,
+          beginnerStart: sourceData.beginnerStart,
+          fixedStartTime,
+          isTimeFixed,
+        });
+      }
 
-        // 初回者の場合は固定時刻のオプションのみ、経験者は通常の選択肢
-        let startTimeOptions;
-        if (isTimeFixed) {
-          // 初回者：固定時刻のオプションのみ
-          startTimeOptions = `
+      // 初回者の場合は固定時刻のオプションのみ、経験者は通常の選択肢
+      let startTimeOptions;
+      if (isTimeFixed) {
+        // 初回者：固定時刻のオプションのみ
+        startTimeOptions = `
             <option value="${fixedStartTime}"'selected'>
               ${fixedStartTime}
             </option>`;
-        } else {
-          // 経験者：通常の選択肢
-          startTimeOptions = getTimeOptionsHtml(
-            classStartHour,
-            classEndHour,
-            C.frontendUi.TIME_SETTINGS.STEP_MINUTES,
-            startTime,
-          );
-        }
-        let endTimeOptions = getTimeOptionsHtml(
+      } else {
+        // 経験者：通常の選択肢
+        startTimeOptions = getTimeOptionsHtml(
           classStartHour,
           classEndHour,
           C.frontendUi.TIME_SETTINGS.STEP_MINUTES,
-          endTime,
+          startTime,
         );
-        if (classEndMinutes > 0) {
-          const finalEndTime = `${String(classEndHour).padStart(2, '0')}:${String(classEndMinutes).padStart(2, '0')}`;
-          endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
-        }
+      }
+      let endTimeOptions = getTimeOptionsHtml(
+        classStartHour,
+        classEndHour,
+        C.frontendUi.TIME_SETTINGS.STEP_MINUTES,
+        endTime,
+      );
+      if (classEndMinutes > 0) {
+        const finalEndTime = `${String(classEndHour).padStart(2, '0')}:${String(classEndMinutes).padStart(2, '0')}`;
+        endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
+      }
 
-        const discountRule = master.find(
-          item =>
-            item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.DISCOUNT &&
-            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
-            item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
-        );
-        let discountHtml = '';
-        if (discountRule && !isFirstTimeBooking) {
-          discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule[HEADERS.ACCOUNTING.ITEM_NAME]}: 初回参加者と同時刻に参加の場合、¥500割引</p>`;
-        }
+      const discountRule = master.find(
+        item =>
+          item[HEADERS.ACCOUNTING.ITEM_NAME] === C.items.DISCOUNT &&
+          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
+      );
+      let discountHtml = '';
+      if (discountRule && !isFirstTimeBooking) {
+        discountHtml = `<p class="${DesignConfig.text.caption}">${discountRule[HEADERS.ACCOUNTING.ITEM_NAME]}: 初回参加者と同時刻に参加の場合、¥500割引</p>`;
+      }
 
-        // 初回者の場合の開始時刻固定メッセージ
-        const timeFixedMessage = isTimeFixed
-          ? `<p class="${DesignConfig.text.caption} mb-2">初回の方は ${fixedStartTime} より開始です。昼をまたぐ場合は、1時間休憩を挟みます</p>`
-          : '';
+      // 初回者の場合の開始時刻固定メッセージ
+      const timeFixedMessage = isTimeFixed
+        ? `<p class="${DesignConfig.text.caption} mb-2">初回の方は ${fixedStartTime} より開始です。昼をまたぐ場合は、1時間休憩を挟みます</p>`
+        : '';
 
-        return `
+      return `
           <div class="mt-4 pt-4 border-t">
             <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間</h4>
             ${timeFixedMessage}
@@ -1567,62 +1570,62 @@
             </div>
             ${discountHtml}
           </div>`;
-      }
-      return ''; // 上記以外の場合は時間選択なし
-    };
+    }
+    return ''; // 上記以外の場合は時間選択なし
+  };
 
-    /**
-     * 予約オプションのUIを生成します。
-     */
-    const _renderBookingOptionsSection = () => {
-      let optionsHtml = '';
+  /**
+   * 予約オプションのUIを生成します。
+   */
+  const _renderBookingOptionsSection = () => {
+    let optionsHtml = '';
 
-      const firstLectureChecked =
-        firstLecture || isFirstTimeBooking ? 'checked' : '';
-      const firstLectureDisabled = isFirstTimeBooking ? 'disabled' : '';
-      const chiselRentalChecked = chiselRental ? 'checked' : '';
+    const firstLectureChecked =
+      firstLecture || isFirstTimeBooking ? 'checked' : '';
+    const firstLectureDisabled = isFirstTimeBooking ? 'disabled' : '';
+    const chiselRentalChecked = chiselRental ? 'checked' : '';
 
-      // デバッグ情報（開発時のみ）
-      if (!window.isProduction) {
-        console.log('🔍 オプションセクション - 教室タイプ判定:', {
-          classroomType: sourceData.classroomType,
-          expectedSessionBased: C.classroomTypes?.SESSION_BASED,
-          isMatch: sourceData.classroomType === C.classroomTypes?.SESSION_BASED,
-          constantsAvailable: !!C.classroomTypes,
-          allConstants: Object.keys(C),
-        });
-      }
+    // デバッグ情報（開発時のみ）
+    if (!window.isProduction) {
+      console.log('🔍 オプションセクション - 教室タイプ判定:', {
+        classroomType: sourceData.classroomType,
+        expectedSessionBased: C.classroomTypes?.SESSION_BASED,
+        isMatch: sourceData.classroomType === C.classroomTypes?.SESSION_BASED,
+        constantsAvailable: !!C.classroomTypes,
+        allConstants: Object.keys(C),
+      });
+    }
 
-      if (sourceData.classroomType === C.classroomTypes.SESSION_BASED) {
-        const firstLectureLabel = isFirstTimeBooking
-          ? `<span>${C.items.FIRST_LECTURE}</span><span class="${DesignConfig.text.caption} ml-2"></span>`
-          : `<span>${C.items.FIRST_LECTURE}</span>`;
-        optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked} ${firstLectureDisabled}>${firstLectureLabel}</label>`;
-      }
-      optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${chiselRentalChecked}><span>${C.items.CHISEL_RENTAL} 1回 ¥500</span></label></div>`;
+    if (sourceData.classroomType === C.classroomTypes.SESSION_BASED) {
+      const firstLectureLabel = isFirstTimeBooking
+        ? `<span>${C.items.FIRST_LECTURE}</span><span class="${DesignConfig.text.caption} ml-2"></span>`
+        : `<span>${C.items.FIRST_LECTURE}</span>`;
+      optionsHtml += `<label class="flex items-center space-x-2"><input type="checkbox" id="option-first-lecture" ${firstLectureChecked} ${firstLectureDisabled}>${firstLectureLabel}</label>`;
+    }
+    optionsHtml += `<div class="mt-2"><label class="flex items-center space-x-2"><input type="checkbox" id="option-rental" ${chiselRentalChecked}><span>${C.items.CHISEL_RENTAL} 1回 ¥500</span></label></div>`;
 
-      // 割引の説明を追加
-      optionsHtml += `<div class="mt-3 pt-2 border-t border-ui-border-light"><p class="${DesignConfig.text.caption}">${C.items.DISCOUNT}: 初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
+    // 割引の説明を追加
+    optionsHtml += `<div class="mt-3 pt-2 border-t border-ui-border-light"><p class="${DesignConfig.text.caption}">${C.items.DISCOUNT}: 初回参加者と同時刻に参加の場合、¥500割引</p></div>`;
 
-      return `
+    return `
         <div class="mt-4 pt-4 border-t">
           <h4 class="font-bold text-left mb-2">オプション</h4>
           ${optionsHtml}
         </div>`;
-    };
+  };
 
-    /**
-     * 詳細入力欄のUIを生成します。
-     * 購入希望欄を折り畳み物販チェックリスト＋自由記入欄に変更
-     */
-    const _renderDetailsInputSection = () => {
-      // 物販チェックリスト（折り畳み）
-      const salesChecklistHtml =
-        typeof buildSalesChecklist === 'function'
-          ? buildSalesChecklist(stateManager.getState().accountingMaster)
-          : '';
+  /**
+   * 詳細入力欄のUIを生成します。
+   * 購入希望欄を折り畳み物販チェックリスト＋自由記入欄に変更
+   */
+  const _renderDetailsInputSection = () => {
+    // 物販チェックリスト（折り畳み）
+    const salesChecklistHtml =
+      typeof buildSalesChecklist === 'function'
+        ? buildSalesChecklist(stateManager.getState().accountingMaster)
+        : '';
 
-      return `
+    return `
         <div class="mt-4 pt-4 border-t space-y-4">
           ${Components.createTextArea({
             id: 'wip-input',
@@ -1652,82 +1655,82 @@
           ${Components.createTextArea({ id: 'order-input', label: '購入希望（自由記入）', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
           ${Components.createTextArea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
         </div>`;
-    };
-    // 予約送信時にチェックされた物販をorderに渡す処理を追加
-    const _getSelectedSalesOrder = () => {
-      const checked = Array.from(
-        document.querySelectorAll('input[name="orderSales"]:checked'),
-      );
-      return checked.map(cb => cb.value).join(', ');
-    };
+  };
+  // 予約送信時にチェックされた物販をorderに渡す処理を追加
+  const _getSelectedSalesOrder = () => {
+    const checked = Array.from(
+      document.querySelectorAll('input[name="orderSales"]:checked'),
+    );
+    return checked.map(cb => cb.value).join(', ');
+  };
 
-    // 送信ボタンのクリック時にorder値をセット
-    setTimeout(() => {
-      const submitBtn = document.querySelector(
-        '[data-action="confirmBooking"], [data-action="updateReservation"]',
-      );
-      if (submitBtn) {
-        submitBtn.addEventListener('click', () => {
-          const selectedOrder = _getSelectedSalesOrder();
-          const orderInput = document.getElementById('order-input');
-          if (orderInput) {
-            // 既存の自由記入とチェックリストを合成
-            const freeText = orderInput.value.trim();
-            orderInput.value = selectedOrder
-              ? freeText
-                ? selectedOrder + ', ' + freeText
-                : selectedOrder
-              : freeText;
-          }
-        });
-      }
-    }, 300);
-
-    // --- 4. メインHTMLの組み立て ---
-    let buttonsHtml = `
-      ${Components.createButton({ text: submitButtonText, action: submitAction, colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
-    `;
-    // 編集時のみキャンセルボタンを追加
-    if (isEdit) {
-      buttonsHtml += Components.createButton({
-        text: 'この予約をキャンセルする',
-        action: 'cancel',
-        colorClass: DesignConfig.colors.danger,
-        widthClass: DesignConfig.buttons.full,
-        reservationId: sourceData.reservationId, // キャンセルに必要な情報を付与
-        classroom: sourceData.classroom,
-        date: sourceData.date,
-        sheetName: sourceData.sheetName,
+  // 送信ボタンのクリック時にorder値をセット
+  setTimeout(() => {
+    const submitBtn = document.querySelector(
+      '[data-action="confirmBooking"], [data-action="updateReservation"]',
+    );
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => {
+        const selectedOrder = _getSelectedSalesOrder();
+        const orderInput = document.getElementById('order-input');
+        if (orderInput) {
+          // 既存の自由記入とチェックリストを合成
+          const freeText = orderInput.value.trim();
+          orderInput.value = selectedOrder
+            ? freeText
+              ? selectedOrder + ', ' + freeText
+              : selectedOrder
+            : freeText;
+        }
       });
     }
-    // 戻るボタン：編集時はホームへ、新規作成時は予約一覧へ
+  }, 300);
+
+  // --- 4. メインHTMLの組み立て ---
+  let buttonsHtml = `
+      ${Components.createButton({ text: submitButtonText, action: submitAction, colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+    `;
+  // 編集時のみキャンセルボタンを追加
+  if (isEdit) {
     buttonsHtml += Components.createButton({
-      text: '戻る',
-      action: isEdit ? 'goBackToDashboard' : 'goBackToBooking',
-      colorClass: DesignConfig.colors.secondary,
+      text: 'この予約をキャンセルする',
+      action: 'cancel',
+      colorClass: DesignConfig.colors.danger,
       widthClass: DesignConfig.buttons.full,
+      reservationId: sourceData.reservationId, // キャンセルに必要な情報を付与
+      classroom: sourceData.classroom,
+      date: sourceData.date,
+      sheetName: sourceData.sheetName,
     });
+  }
+  // 戻るボタン：編集時はホームへ、新規作成時は予約一覧へ
+  buttonsHtml += Components.createButton({
+    text: '戻る',
+    action: isEdit ? 'goBackToDashboard' : 'goBackToBooking',
+    colorClass: DesignConfig.colors.secondary,
+    widthClass: DesignConfig.buttons.full,
+  });
 
-    const venueDisplay = venue ? ` ${venue}` : '';
+  const venueDisplay = venue ? ` ${venue}` : '';
 
-    const _renderOpeningHoursHtml = () => {
-      const times = getClassroomTimesFromSchedule(sourceData);
+  const _renderOpeningHoursHtml = () => {
+    const times = getClassroomTimesFromSchedule(sourceData);
 
-      if (!times || !times.firstStart || !times.firstEnd) {
-        return '<span class="text-ui-error-text">開講時間未設定</span>';
-      }
+    if (!times || !times.firstStart || !times.firstEnd) {
+      return '<span class="text-ui-error-text">開講時間未設定</span>';
+    }
 
-      if (times.secondStart && times.secondEnd) {
-        // 2部制の場合
-        return `${times.firstStart} ~ ${times.firstEnd} , ${times.secondStart} ~ ${times.secondEnd}`;
-      } else {
-        // 1部制の場合
-        return `${times.firstStart} ~ ${times.firstEnd}`;
-      }
-    };
+    if (times.secondStart && times.secondEnd) {
+      // 2部制の場合
+      return `${times.firstStart} ~ ${times.firstEnd} , ${times.secondStart} ~ ${times.secondEnd}`;
+    } else {
+      // 1部制の場合
+      return `${times.firstStart} ~ ${times.firstEnd}`;
+    }
+  };
 
-    // --- Main View Assembly ---
-    return `
+  // --- Main View Assembly ---
+  return `
       <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${title}</h1>
       <div class="space-y-4 text-left p-4 ${DesignConfig.cards.background} rounded-lg">
         <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser.displayName}さん</p>
@@ -1743,30 +1746,30 @@
       <div class="mt-8 flex flex-col space-y-3">
         ${buttonsHtml}
       </div>`;
-  };
+};
 
-  /**
-   * 完了画面のUIを生成します。
-   * @param {string} msg - 表示するメッセージ
-   * @returns {string} HTML文字列
-   */
-  const getCompleteView = msg => {
-    // 教室情報を取得（会計処理時は accountingReservation から、予約作成時は selectedSlot から）
-    const classroom =
-      stateManager.getState().accountingReservation?.classroom ||
-      stateManager.getState().selectedSlot?.classroom;
+/**
+ * 完了画面のUIを生成します。
+ * @param {string} msg - 表示するメッセージ
+ * @returns {string} HTML文字列
+ */
+const getCompleteView = msg => {
+  // 教室情報を取得（会計処理時は accountingReservation から、予約作成時は selectedSlot から）
+  const classroom =
+    stateManager.getState().accountingReservation?.classroom ||
+    stateManager.getState().selectedSlot?.classroom;
 
-    // 初回予約者かどうかを判定
-    const wasFirstTimeBooking =
-      stateManager.getState().wasFirstTimeBooking || false;
-    const currentUser = stateManager.getState().currentUser;
-    const studentHasEmail = currentUser && currentUser.email;
-    const emailPreference = currentUser && currentUser.wantsEmail;
+  // 初回予約者かどうかを判定
+  const wasFirstTimeBooking =
+    stateManager.getState().wasFirstTimeBooking || false;
+  const currentUser = stateManager.getState().currentUser;
+  const studentHasEmail = currentUser && currentUser.email;
+  const emailPreference = currentUser && currentUser.wantsEmail;
 
-    // メール送信に関する案内メッセージ
-    let emailNoticeHtml = '';
-    if (wasFirstTimeBooking) {
-      emailNoticeHtml = `
+  // メール送信に関する案内メッセージ
+  let emailNoticeHtml = '';
+  if (wasFirstTimeBooking) {
+    emailNoticeHtml = `
         <div class="bg-ui-info-bg border border-ui-info-border rounded-lg p-4 mt-4">
           <div class="flex items-start">
             <svg class="flex-shrink-0 h-5 w-5 text-ui-info-text mt-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -1784,8 +1787,8 @@
           </div>
         </div>
       `;
-    } else if (studentHasEmail && emailPreference) {
-      emailNoticeHtml = `
+  } else if (studentHasEmail && emailPreference) {
+    emailNoticeHtml = `
         <div class="bg-ui-surface rounded-lg p-3 mt-4">
           <p class="text-sm text-brand-subtle text-center">
           初回予約完了のメールをお送りしました！<br>
@@ -1794,30 +1797,30 @@
         </p>
         </div>
       `;
-    }
+  }
 
-    let nextBookingHtml = '';
+  let nextBookingHtml = '';
 
-    // 該当教室の未来の予約枠が存在する場合
-    if (classroom && stateManager.getState().slots) {
-      // バックエンドで計算済みの空き情報を直接使用
-      const relevantSlots = stateManager
-        .getState()
-        .slots.filter(slot => slot.classroom === classroom);
-      const bookingSlotsHtml = renderBookingSlots(relevantSlots);
+  // 該当教室の未来の予約枠が存在する場合
+  if (classroom && stateManager.getState().slots) {
+    // バックエンドで計算済みの空き情報を直接使用
+    const relevantSlots = stateManager
+      .getState()
+      .slots.filter(slot => slot.classroom === classroom);
+    const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
-      if (bookingSlotsHtml) {
-        nextBookingHtml = `
+    if (bookingSlotsHtml) {
+      nextBookingHtml = `
           <div class="mt-10 pt-6 border-t border-gray-200">
               <h3 class="text-xl font-bold text-brand-text text-center mb-4">次回の予約</h3>
               <div class="${DesignConfig.cards.container}">
               ${bookingSlotsHtml}
               </div>
           </div>`;
-      }
     }
+  }
 
-    return `
+  return `
     <div class="text-center py-8">
         <svg class="w-16 h-16 mx-auto text-state-available-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -1838,64 +1841,59 @@
              })}
         </div>
     </div>`;
-  };
+};
 
-  /**
-   * 会計画面のUIを生成します。
-   * @returns {string} HTML文字列
-   */
-  const getAccountingView = () => {
-    // 基本データの確認
-    const state = stateManager.getState();
+/**
+ * 会計画面のUIを生成します。
+ * @returns {string} HTML文字列
+ */
+const getAccountingView = () => {
+  // 基本データの確認
+  const state = stateManager.getState();
 
-    // デバッグ情報を表示（開発環境のみ）
-    if (!window.isProduction) {
-      console.log('🔍 会計画面デバッグ情報:', {
-        accountingMaster: !!state.accountingMaster,
-        accountingReservation: !!state.accountingReservation,
-        accountingReservationDetails: !!state.accountingReservationDetails,
-        accountingScheduleInfo: !!state.accountingScheduleInfo,
-        // より詳細な情報
-        masterLength: state.accountingMaster
-          ? state.accountingMaster.length
-          : 0,
-        reservationId: state.accountingReservation
-          ? state.accountingReservation.reservationId
-          : 'なし',
-        reservationDetailsKeys: state.accountingReservationDetails
-          ? Object.keys(state.accountingReservationDetails)
-          : [],
-        scheduleInfoType: state.accountingScheduleInfo
-          ? state.accountingScheduleInfo.classroomType
-          : 'なし',
-      });
-    }
+  // デバッグ情報を表示（開発環境のみ）
+  if (!window.isProduction) {
+    console.log('🔍 会計画面デバッグ情報:', {
+      accountingMaster: !!state.accountingMaster,
+      accountingReservation: !!state.accountingReservation,
+      accountingReservationDetails: !!state.accountingReservationDetails,
+      accountingScheduleInfo: !!state.accountingScheduleInfo,
+      // より詳細な情報
+      masterLength: state.accountingMaster ? state.accountingMaster.length : 0,
+      reservationId: state.accountingReservation
+        ? state.accountingReservation.reservationId
+        : 'なし',
+      reservationDetailsKeys: state.accountingReservationDetails
+        ? Object.keys(state.accountingReservationDetails)
+        : [],
+      scheduleInfoType: state.accountingScheduleInfo
+        ? state.accountingScheduleInfo.classroomType
+        : 'なし',
+    });
+  }
 
-    // 最低限必要なデータの確認
-    if (!state.accountingMaster || !state.accountingReservation) {
-      return '<div class="flex justify-center items-center h-full"><div class="spinner"></div><p class="ml-3 text-brand-text">会計データを読み込んでいます...</p></div>';
-    }
+  // 最低限必要なデータの確認
+  if (!state.accountingMaster || !state.accountingReservation) {
+    return '<div class="flex justify-center items-center h-full"><div class="spinner"></div><p class="ml-3 text-brand-text">会計データを読み込んでいます...</p></div>';
+  }
 
-    const reservation = state.accountingReservation;
-    const master = state.accountingMaster;
-    const reservationDetails = state.accountingReservationDetails || {};
-    const scheduleInfo = state.accountingScheduleInfo || null;
+  const reservation = state.accountingReservation;
+  const master = state.accountingMaster;
+  const reservationDetails = state.accountingReservationDetails || {};
+  const scheduleInfo = state.accountingScheduleInfo || null;
 
-    // データが不完全な場合のエラー処理
-    if (!reservationDetails || Object.keys(reservationDetails).length === 0) {
-      console.warn('⚠️ reservationDetailsが空です');
-    }
+  // データが不完全な場合のエラー処理
+  if (!reservationDetails || Object.keys(reservationDetails).length === 0) {
+    console.warn('⚠️ reservationDetailsが空です');
+  }
 
-    if (!scheduleInfo) {
-      console.warn('⚠️ scheduleInfoがnullです');
-    }
-    // 【修正】統一検索関数を使用してよやく・きろく両方から検索
-    const bookingOrRecord = findReservationById(
-      reservation.reservationId,
-      state,
-    );
-    if (!bookingOrRecord) {
-      return `
+  if (!scheduleInfo) {
+    console.warn('⚠️ scheduleInfoがnullです');
+  }
+  // 【修正】統一検索関数を使用してよやく・きろく両方から検索
+  const bookingOrRecord = findReservationById(reservation.reservationId, state);
+  if (!bookingOrRecord) {
+    return `
         <div class="text-center py-8">
           <p class="text-red-600">予約・記録情報が見つかりませんでした</p>
           <button onclick="handleAction('goBackToDashboard')"
@@ -1904,17 +1902,17 @@
           </button>
         </div>
       `;
-    }
+  }
 
-    // 会計済みの場合 - 完全分離（編集モードでない場合のみ）
-    if (
-      bookingOrRecord.status === STATUS.COMPLETED &&
-      bookingOrRecord.accountingDetails &&
-      !state.isEditingAccountingRecord
-    ) {
-      try {
-        const details = JSON.parse(bookingOrRecord.accountingDetails);
-        return `
+  // 会計済みの場合 - 完全分離（編集モードでない場合のみ）
+  if (
+    bookingOrRecord.status === STATUS.COMPLETED &&
+    bookingOrRecord.accountingDetails &&
+    !state.isEditingAccountingRecord
+  ) {
+    try {
+      const details = JSON.parse(bookingOrRecord.accountingDetails);
+      return `
           ${Components.accountingCompleted({ details, reservation })}
           <div class="mt-8 flex flex-col space-y-3">
             ${Components.createButton({
@@ -1924,22 +1922,22 @@
               widthClass: DesignConfig.buttons.full,
             })}
           </div>`;
-      } catch (e) {
-        return '<div class="text-center text-state-danger-text">会計詳細の表示に失敗しました。</div>';
-      }
+    } catch (e) {
+      return '<div class="text-center text-state-danger-text">会計詳細の表示に失敗しました。</div>';
     }
+  }
 
-    // 新規会計フォーム - 条件分岐の簡素化
-    const tuitionItemRule = getTuitionItemRule(
-      master,
-      reservation.classroom,
-      C.items.MAIN_LECTURE,
-    );
-    const isTimeBased =
-      tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
-    const formType = isTimeBased ? 'timeBased' : 'fixed';
+  // 新規会計フォーム - 条件分岐の簡素化
+  const tuitionItemRule = getTuitionItemRule(
+    master,
+    reservation.classroom,
+    C.items.MAIN_LECTURE,
+  );
+  const isTimeBased =
+    tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
+  const formType = isTimeBased ? 'timeBased' : 'fixed';
 
-    return `
+  return `
       ${Components.navigationHeader({ title: '会計', backAction: 'goBackToDashboard' })}
       ${Components.accountingForm({
         type: formType,
@@ -1956,4 +1954,4 @@
           widthClass: DesignConfig.buttons.full,
         })}
       </div>`;
-  };
+};

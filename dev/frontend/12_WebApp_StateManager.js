@@ -1,3 +1,6 @@
+// @ts-check
+/// <reference path="../types.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 12_WebApp_StateManager.js
@@ -145,10 +148,11 @@ class SimpleStateManager {
 
     // 最終的な状態更新（画面遷移を伴う）でのみローディング非表示を実行
     const isViewChange = newState.view && newState.view !== previousView;
-    const hasSubstantialData = newState.slots || newState.myBookings || newState.currentUser;
-    const isFinalUpdate = (action.type === 'SET_STATE') && 
-                         (isViewChange || hasSubstantialData);
-                         
+    const hasSubstantialData =
+      newState.slots || newState.myBookings || newState.currentUser;
+    const isFinalUpdate =
+      action.type === 'SET_STATE' && (isViewChange || hasSubstantialData);
+
     if (isFinalUpdate) {
       this._shouldHideLoadingAfterRender = true;
     }
@@ -238,10 +242,7 @@ class SimpleStateManager {
     window.HEADERS = constants.headers || {}; // 統合ヘッダー定数をフロントエンドで利用可能に
 
     if (!window.isProduction) {
-      console.log(
-        '📋 統一定数グローバル参照を初期化:',
-        Object.keys(constants),
-      );
+      console.log('📋 統一定数グローバル参照を初期化:', Object.keys(constants));
     }
   }
 
@@ -478,9 +479,7 @@ class SimpleStateManager {
 
     // 重要なプロパティの存在チェック
     const requiredProperties = ['date', 'classroom'];
-    const missingProperties = requiredProperties.filter(
-      prop => !dataObj[prop],
-    );
+    const missingProperties = requiredProperties.filter(prop => !dataObj[prop]);
 
     if (missingProperties.length > 0) {
       console.warn(`データ整合性チェック: 必須プロパティが不足`, {

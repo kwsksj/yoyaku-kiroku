@@ -66,7 +66,7 @@ const CLASSROOMS = {
   // ...
 };
 
-// 2段階目: CONSTANTS統合オブジェクト  
+// 2段階目: CONSTANTS統合オブジェクト
 const CONSTANTS = {
   STATUS: STATUS,
   CLASSROOMS: CLASSROOMS,
@@ -81,7 +81,7 @@ const CONSTANTS = {
 ```html
 <script>
   // @ts-check
-  
+
   // 1段階目: 個別定数オブジェクト（型注釈必須）
   /** @type {{ CONFIRMED: string, CANCELED: string, ... }} */
   const STATUS = {
@@ -89,7 +89,7 @@ const CONSTANTS = {
     CANCELED: '取消',
     // ...
   };
-  
+
   // 2段階目: CONSTANTS統合オブジェクト
   const CONSTANTS = {
     STATUS: STATUS,
@@ -118,14 +118,14 @@ const CONSTANTS = {
 
 ```javascript
 // ✅ 両参照方式で型エラー検出
-STATUS.CONFIRMED              // 短縮参照
-CONSTANTS.STATUS.CONFIRMED    // 完全参照
+STATUS.CONFIRMED; // 短縮参照
+CONSTANTS.STATUS.CONFIRMED; // 完全参照
 
 // ❌ 以下はすべてエラー検出される
-STATUS.INVALID_STATUS         // 存在しないプロパティ
-STATUS.CONFIMED               // タイポ（修正提案付き）
-CONSTANTS.STATUS.INVALID      // 深い階層でもエラー検出
-CONSTANTS.NON_EXISTENT        // カテゴリレベルのエラー
+STATUS.INVALID_STATUS; // 存在しないプロパティ
+STATUS.CONFIMED; // タイポ（修正提案付き）
+CONSTANTS.STATUS.INVALID; // 深い階層でもエラー検出
+CONSTANTS.NON_EXISTENT; // カテゴリレベルのエラー
 ```
 
 ### **AI理解性向上**
@@ -146,11 +146,11 @@ if (status === STATUS.CONFIRMED) {
 
 ### **環境別対応表**
 
-| 環境        | 短縮参照 | 深い階層 | 型注釈要否 | 推奨度           |
-| ----------- | -------- | -------- | ---------- | ---------------- |
-| `.js`       | ✅        | ✅        | 不要       | 🟢 バックエンド用 |
-| `.html内JS` | ✅        | ✅        | **必須**   | 🟢 フロント用     |
-| `.ts`       | ✅        | ✅        | 不要       | 🟢 テスト・検証用 |
+| 環境        | 短縮参照 | 深い階層 | 型注釈要否 | 推奨度            |
+| ----------- | -------- | -------- | ---------- | ----------------- |
+| `.js`       | ✅       | ✅       | 不要       | 🟢 バックエンド用 |
+| `.html内JS` | ✅       | ✅       | **必須**   | 🟢 フロント用     |
+| `.ts`       | ✅       | ✅       | 不要       | 🟢 テスト・検証用 |
 
 ### **推奨使用パターン**
 
@@ -158,11 +158,12 @@ if (status === STATUS.CONFIRMED) {
 
 ```javascript
 // ✅ 完全参照を優先推奨（AI理解性・一貫性）
-CONSTANTS.STATUS.CONFIRMED;    // 推奨：完全参照
-STATUS.CONFIRMED;              // 可能：短縮参照
+CONSTANTS.STATUS.CONFIRMED; // 推奨：完全参照
+STATUS.CONFIRMED; // 可能：短縮参照
 
 // 推奨パターン
-if (status === CONSTANTS.STATUS.CONFIRMED) {    // AI・人間共に理解しやすい
+if (status === CONSTANTS.STATUS.CONFIRMED) {
+  // AI・人間共に理解しやすい
   processConfirmedReservation();
 }
 ```
@@ -188,7 +189,7 @@ STATUS.CONFIMED;               // ❌ エラー + 修正提案
 
 ```javascript
 // ✅ AIに指示する時は完全参照を推奨
-"CONSTANTS.STATUS.CONFIRMEDを使って条件分岐を書いて"
+'CONSTANTS.STATUS.CONFIRMEDを使って条件分岐を書いて';
 
 // AIが生成するコード例
 if (reservationStatus === CONSTANTS.STATUS.CONFIRMED) {
@@ -270,8 +271,8 @@ const STATUS = createStatusObject();
 
 ```javascript
 // 正常系
-console.log(STATUS.CONFIRMED);              // '確定'
-console.log(CONSTANTS.STATUS.CONFIRMED);    // '確定'
+console.log(STATUS.CONFIRMED); // '確定'
+console.log(CONSTANTS.STATUS.CONFIRMED); // '確定'
 
 // エラー系はVSCodeで事前検出される
 ```

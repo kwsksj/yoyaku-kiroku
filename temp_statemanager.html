@@ -146,10 +146,11 @@
 
       // 最終的な状態更新（画面遷移を伴う）でのみローディング非表示を実行
       const isViewChange = newState.view && newState.view !== previousView;
-      const hasSubstantialData = newState.slots || newState.myBookings || newState.currentUser;
-      const isFinalUpdate = (action.type === 'SET_STATE') && 
-                           (isViewChange || hasSubstantialData);
-                           
+      const hasSubstantialData =
+        newState.slots || newState.myBookings || newState.currentUser;
+      const isFinalUpdate =
+        action.type === 'SET_STATE' && (isViewChange || hasSubstantialData);
+
       if (isFinalUpdate) {
         this._shouldHideLoadingAfterRender = true;
       }

@@ -81,6 +81,7 @@ cp src/12_WebApp_StateManager.html dev/frontend/12_WebApp_StateManager.js
 ```
 
 **手動編集例:**
+
 ```javascript
 // dev/frontend/12_WebApp_StateManager.js
 /**
@@ -115,7 +116,7 @@ window.stateManager = new SimpleStateManager();
 cp src/11_WebApp_Config.html dev/frontend/11_WebApp_Config.js
 # 手動編集...
 
-cp src/12_WebApp_Core.html dev/frontend/12_WebApp_Core.js  
+cp src/12_WebApp_Core.html dev/frontend/12_WebApp_Core.js
 # 手動編集...
 
 cp src/13_WebApp_Components.html dev/frontend/13_WebApp_Components.js
@@ -190,12 +191,14 @@ CONSTANTS.  // <- ドロップダウン表示されるか？
 ### 4-1. 新ワークフローへの完全移行
 
 **従来:**
+
 ```bash
 # 編集: src/ 直接
 # テスト: npm run push:test
 ```
 
 **新ワークフロー:**
+
 ```bash
 # 編集: dev/ ディレクトリ
 # テスト: npm run dev:test
@@ -208,19 +211,23 @@ CONSTANTS.  // <- ドロップダウン表示されるか？
 ## 新開発ワークフロー (JavaScript分離開発)
 
 ### 開発時
+
 - **編集対象**: `dev/backend/`, `dev/frontend/`, `dev/templates/`
 - **型チェック**: VSCode + TypeScript Language Server（フル機能）
 - **リアルタイム監視**: `npm run dev:watch`
 
-### テスト時  
+### テスト時
+
 - **ビルド→テスト**: `npm run dev:test`
 - **テスト環境確認**: テスト用WebAppで動作確認
 
 ### デプロイ時
+
 - **本番プッシュ**: `npm run dev:prod`
 - **本番デプロイ**: `npm run deploy:prod`
 
 ### 型安全性
+
 - 開発時: 完全なTypeScript型チェック + ESLint
 - デプロイ後: GAS環境でも型情報維持
 ```
@@ -233,7 +240,7 @@ CONSTANTS.  // <- ドロップダウン表示されるか？
 # ファイル権限問題
 chmod +x tools/js-to-html-builder.js
 
-# 依存関係問題  
+# 依存関係問題
 npm install
 ```
 
@@ -278,7 +285,7 @@ src_backup_*/
 
 2. **開発効率面**
    - [ ] VSCodeで完全な型チェック・IntelliSense動作
-   - [ ] ESLint/Prettierがfdev/ディレクトリで正常動作  
+   - [ ] ESLint/Prettierがfdev/ディレクトリで正常動作
    - [ ] リファクタリング・コードナビゲーション改善
 
 3. **コード品質面**
@@ -298,7 +305,7 @@ src_backup_*/
 
 - [ ] src_backupフォルダが安全に保存されている
 - [ ] 新ワークフローでの全機能テスト完了
-- [ ] package.jsonスクリプトの動作確認完了  
+- [ ] package.jsonスクリプトの動作確認完了
 - [ ] CLAUDE.md更新完了
 - [ ] チーム内（または自分）への新ワークフロー説明完了
 

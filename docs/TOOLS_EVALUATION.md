@@ -18,9 +18,9 @@
 ```javascript
 // 検出パターン
 const patterns = [
-  /\\.(\w+)/g,           // ドット記法
-  /\[['"](\w+)['"]\]/g,  // ブラケット記法
-  /(\w+)\s*:/g,          // オブジェクトプロパティ定義
+  /\\.(\w+)/g, // ドット記法
+  /\[['"](\w+)['"]\]/g, // ブラケット記法
+  /(\w+)\s*:/g, // オブジェクトプロパティ定義
 ];
 ```
 
@@ -32,8 +32,8 @@ const patterns = [
 
 ```javascript
 // 検出例
-STATUS.CONFIMED     // → STATUS.CONFIRMED の typo
-STATUS.WAITLISTTED  // → STATUS.WAITLISTED の typo
+STATUS.CONFIMED; // → STATUS.CONFIRMED の typo
+STATUS.WAITLISTTED; // → STATUS.WAITLISTED の typo
 ```
 
 **評価**: 2段階構造でも重要（型チェックでカバーできない部分を補完）
@@ -42,9 +42,7 @@ STATUS.WAITLISTTED  // → STATUS.WAITLISTED の typo
 
 ```javascript
 // 1回しか使用されていないプロパティ
-const singleUseProps = sortedProperties.filter(
-  prop => propertyCount[prop] === 1
-);
+const singleUseProps = sortedProperties.filter(prop => propertyCount[prop] === 1);
 ```
 
 **評価**: リファクタリング時の不要コード検出に有用
@@ -73,8 +71,7 @@ const singleUseProps = sortedProperties.filter(
 2. **型チェック連携**: VSCodeの診断結果との比較・補完機能
 3. **移行支援**: 旧形式 → 新形式の移行候補検出
 
-**メリット**: 継続的な品質保証、移行作業支援
-**デメリット**: 改修コスト、保守継続
+**メリット**: 継続的な品質保証、移行作業支援 **デメリット**: 改修コスト、保守継続
 
 ### **Option B: 移行期間限定利用**
 
@@ -83,15 +80,13 @@ const singleUseProps = sortedProperties.filter(
 - 既存コードの2段階構造移行が完了するまで利用
 - 移行完了後にアーカイブ化
 
-**メリット**: 移行作業の効率化、改修コスト最小
-**デメリット**: 長期的な品質保証機能の喪失
+**メリット**: 移行作業の効率化、改修コスト最小 **デメリット**: 長期的な品質保証機能の喪失
 
 ### **Option C: アーカイブ化**
 
 **方針**: `archive/legacy-tools/` に移動、必要時のみ利用
 
-**メリット**: メンテナンス負荷ゼロ
-**デメリット**: 品質保証機能の完全喪失
+**メリット**: メンテナンス負荷ゼロ **デメリット**: 品質保証機能の完全喪失
 
 ## 💡 推奨案: **Option B（移行期間限定利用）**
 

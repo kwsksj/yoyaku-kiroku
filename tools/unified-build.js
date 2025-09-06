@@ -26,7 +26,7 @@ class UnifiedBuilder {
    */
   async build() {
     console.log('🚀 Starting unified build process...');
-    
+
     // srcディレクトリを初期化
     if (!fs.existsSync(this.srcDir)) {
       fs.mkdirSync(this.srcDir, { recursive: true });
@@ -35,13 +35,12 @@ class UnifiedBuilder {
     try {
       // バックエンドファイルをコピー
       await this.buildBackendFiles();
-      
+
       // 統合WebAppファイルを生成
       await this.buildUnifiedWebApp();
-      
+
       console.log('✅ Unified build completed successfully!');
       console.log(`   📁 Output files in: ${this.srcDir}/`);
-      
     } catch (error) {
       console.error('❌ Build failed:', error);
       process.exit(1);
@@ -53,20 +52,21 @@ class UnifiedBuilder {
    */
   async buildBackendFiles() {
     console.log('🔨 Building backend files...');
-    
+
     if (!fs.existsSync(this.backendDir)) {
       console.log(`   ⚠️  Backend directory not found: ${this.backendDir}`);
       return;
     }
-    
-    const backendFiles = fs.readdirSync(this.backendDir)
+
+    const backendFiles = fs
+      .readdirSync(this.backendDir)
       .filter(file => file.endsWith('.js'))
       .sort();
 
     for (const jsFile of backendFiles) {
       const srcPath = path.join(this.backendDir, jsFile);
       const destPath = path.join(this.srcDir, jsFile);
-      
+
       fs.copyFileSync(srcPath, destPath);
       console.log(`  ✅ ${jsFile} copied`);
     }
@@ -77,11 +77,11 @@ class UnifiedBuilder {
    */
   async buildUnifiedWebApp() {
     console.log('🔨 Building unified WebApp HTML...');
-    
+
     // HTMLテンプレートを読み込み
     const templatePath = path.join(this.templateDir, '10_WebApp.html');
     let htmlContent = '';
-    
+
     if (fs.existsSync(templatePath)) {
       htmlContent = fs.readFileSync(templatePath, 'utf8');
       console.log('  📄 HTML template loaded');
@@ -93,14 +93,14 @@ class UnifiedBuilder {
 
     // フロントエンドJavaScriptファイルを統合
     const unifiedJs = await this.buildUnifiedJavaScript();
-    
+
     // HTMLテンプレート内のincludeディレクティブを置換
     const finalHtml = this.replaceIncludeDirectives(htmlContent, unifiedJs);
-    
+
     // 統合HTMLファイルを出力
     const outputPath = path.join(this.srcDir, '10_WebApp.html');
     fs.writeFileSync(outputPath, finalHtml);
-    
+
     console.log('  ✅ Unified WebApp HTML generated');
   }
 
@@ -109,42 +109,43 @@ class UnifiedBuilder {
    */
   async buildUnifiedJavaScript() {
     console.log('🔨 Unifying frontend JavaScript files...');
-    
+
     if (!fs.existsSync(this.frontendDir)) {
       console.log(`   ⚠️  Frontend directory not found: ${this.frontendDir}`);
       return this.generateFallbackJavaScript();
     }
-    
-    const frontendFiles = fs.readdirSync(this.frontendDir)
+
+    const frontendFiles = fs
+      .readdirSync(this.frontendDir)
       .filter(file => file.endsWith('.js'))
       .sort(); // ファイル名順で処理（GAS実行順序対応）
 
     let unifiedContent = '';
-    
+
     // 統合JavaScriptヘッダー
     unifiedContent += this.generateJavaScriptHeader();
-    
+
     // 各フロントエンドファイルを統合
     for (const jsFile of frontendFiles) {
       const filePath = path.join(this.frontendDir, jsFile);
       const fileContent = fs.readFileSync(filePath, 'utf8');
-      
+
       // ファイル情報コメントを追加
       unifiedContent += `\n  // =================================================================\n`;
       unifiedContent += `  // ${jsFile} (自動統合)\n`;
       unifiedContent += `  // =================================================================\n\n`;
-      
+
       // ファイル内容を追加（インデント調整）
       const indentedContent = fileContent
         .split('\n')
-        .map(line => line.length > 0 ? `  ${line}` : line)
+        .map(line => (line.length > 0 ? `  ${line}` : line))
         .join('\n');
-      
+
       unifiedContent += indentedContent + '\n';
-      
+
       console.log(`  ✅ ${jsFile} integrated`);
     }
-    
+
     return unifiedContent;
   }
 
@@ -154,18 +155,20 @@ class UnifiedBuilder {
   replaceIncludeDirectives(htmlContent, unifiedJs) {
     // <?!= include('...'); ?>パターンを統合JavaScriptで置換
     const includePattern = /<\?!=\s*include\(['"]([\w_-]+)['"]\);\s*\?>/g;
-    
-    return htmlContent.replace(includePattern, (match, filename) => {
-      // フロントエンド関連のincludeを統合JavaScriptに置換
-      if (filename.match(/^1[1-4]_WebApp_/)) {
-        return ''; // 後でまとめて挿入するため、個別includeは削除
-      }
-      return match; // その他のincludeはそのまま残す
-    }).replace(
-      // 最初のフロントエンドincludeの位置に統合JavaScriptを挿入
-      /<!--\s*設定・定数\s*-->/,
-      `<!-- 統合JavaScript (自動生成) -->\n<script>\n${unifiedJs}</script>`
-    );
+
+    return htmlContent
+      .replace(includePattern, (match, filename) => {
+        // フロントエンド関連のincludeを統合JavaScriptに置換
+        if (filename.match(/^1[1-4]_WebApp_/)) {
+          return ''; // 後でまとめて挿入するため、個別includeは削除
+        }
+        return match; // その他のincludeはそのまま残す
+      })
+      .replace(
+        // 最初のフロントエンドincludeの位置に統合JavaScriptを挿入
+        /<!--\s*設定・定数\s*-->/,
+        `<!-- 統合JavaScript (自動生成) -->\n<script>\n${unifiedJs}</script>`,
+      );
   }
 
   /**
@@ -313,34 +316,36 @@ class UnifiedBuilder {
    */
   async watch() {
     console.log('👀 Starting file watcher...');
-    
+
     const chokidar = await import('chokidar');
-    
+
     const watchPaths = [];
     if (fs.existsSync(this.backendDir)) watchPaths.push(this.backendDir);
     if (fs.existsSync(this.frontendDir)) watchPaths.push(this.frontendDir);
     if (fs.existsSync(this.templateDir)) watchPaths.push(this.templateDir);
-    
+
     if (watchPaths.length === 0) {
-      console.log('⚠️ 監視対象ディレクトリが見つかりません。まずdevディレクトリを作成してください。');
+      console.log(
+        '⚠️ 監視対象ディレクトリが見つかりません。まずdevディレクトリを作成してください。',
+      );
       return;
     }
 
     const watcher = chokidar.default.watch(watchPaths, {
       ignored: /(^|[\/\\])\../, // 隠しファイルを無視
-      persistent: true
+      persistent: true,
     });
 
     watcher
-      .on('change', (filePath) => {
+      .on('change', filePath => {
         console.log(`📝 File changed: ${filePath}`);
         this.build();
       })
-      .on('add', (filePath) => {
+      .on('add', filePath => {
         console.log(`➕ File added: ${filePath}`);
         this.build();
       })
-      .on('unlink', (filePath) => {
+      .on('unlink', filePath => {
         console.log(`🗑️ File removed: ${filePath}`);
         this.build();
       });
@@ -353,9 +358,9 @@ class UnifiedBuilder {
 // CLI実行
 if (import.meta.url === `file://${process.argv[1]}`) {
   const builder = new UnifiedBuilder();
-  
+
   const command = process.argv[2];
-  
+
   switch (command) {
     case 'build':
       await builder.build();

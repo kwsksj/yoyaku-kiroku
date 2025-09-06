@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2020", "dom"],
+    "allowJs": true,
+    "checkJs": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "types": ["google-apps-script"]
+  },
+  "include": ["**/*.js", "../html-globals.d.ts", "../types/*.d.ts"],
+  "exclude": ["node_modules", "**/*.min.js"],
+  "typeAcquisition": {
+    "enable": true,
+    "include": ["google-apps-script"]
+  }
+}

@@ -12,7 +12,8 @@ class JSToHTMLBuilder {
   constructor(config = {}) {
     this.srcDir = config.srcDir || 'src';
     this.devDir = config.devDir || 'dev';
-    this.templateDir = config.templateDir || path.join(this.devDir, 'templates');
+    this.templateDir =
+      config.templateDir || path.join(this.devDir, 'templates');
     this.backendDir = path.join(this.devDir, 'backend');
     this.frontendDir = path.join(this.devDir, 'frontend');
   }
@@ -22,8 +23,9 @@ class JSToHTMLBuilder {
    */
   async buildFrontendFiles() {
     console.log('🔨 Building frontend JS → HTML...');
-    
-    const frontendFiles = fs.readdirSync(this.frontendDir)
+
+    const frontendFiles = fs
+      .readdirSync(this.frontendDir)
       .filter(file => file.endsWith('.js'))
       .sort(); // ファイル名順で処理（GAS実行順序対応）
 
@@ -42,15 +44,16 @@ class JSToHTMLBuilder {
    */
   async buildBackendFiles() {
     console.log('🔨 Copying backend JS files...');
-    
-    const backendFiles = fs.readdirSync(this.backendDir)
+
+    const backendFiles = fs
+      .readdirSync(this.backendDir)
       .filter(file => file.endsWith('.js'))
       .sort();
 
     for (const jsFile of backendFiles) {
       const srcPath = path.join(this.backendDir, jsFile);
       const destPath = path.join(this.srcDir, jsFile);
-      
+
       fs.copyFileSync(srcPath, destPath);
       console.log(`  ✅ ${jsFile} copied`);
     }
@@ -61,10 +64,10 @@ class JSToHTMLBuilder {
    */
   async convertJSToHTML(jsPath, htmlPath) {
     const jsContent = fs.readFileSync(jsPath, 'utf8');
-    
+
     // JSコメントからメタ情報を抽出
     const metaInfo = this.extractMetaInfo(jsContent);
-    
+
     const htmlTemplate = `<script>
   // @ts-check
   /// <reference path="../html-globals.d.ts" />
@@ -110,16 +113,16 @@ ${jsContent}
   extractMetaInfo(jsContent) {
     const metaRegex = /\/\*\*[\s\S]*?\*\//;
     const match = jsContent.match(metaRegex);
-    
+
     if (!match) return {};
 
     const metaComment = match[0];
     const versionMatch = metaComment.match(/【バージョン】:\s*([^\n]*)/);
     const descriptionMatch = metaComment.match(/【役割】:\s*([^\n]*)/);
-    
+
     return {
       version: versionMatch ? versionMatch[1].trim() : null,
-      description: descriptionMatch ? descriptionMatch[1].trim() : null
+      description: descriptionMatch ? descriptionMatch[1].trim() : null,
     };
   }
 
@@ -128,7 +131,7 @@ ${jsContent}
    */
   async build() {
     console.log('🚀 Starting JS → HTML build process...');
-    
+
     // srcディレクトリを初期化
     if (!fs.existsSync(this.srcDir)) {
       fs.mkdirSync(this.srcDir, { recursive: true });
@@ -137,10 +140,9 @@ ${jsContent}
     try {
       await this.buildBackendFiles();
       await this.buildFrontendFiles();
-      
+
       console.log('✅ Build completed successfully!');
       console.log(`   📁 Source files generated in: ${this.srcDir}/`);
-      
     } catch (error) {
       console.error('❌ Build failed:', error);
       process.exit(1);
@@ -152,24 +154,24 @@ ${jsContent}
    */
   watch() {
     console.log('👀 Starting file watcher...');
-    
+
     const chokidar = require('chokidar');
-    
+
     const watcher = chokidar.watch([this.backendDir, this.frontendDir], {
       ignored: /(^|[\/\\])\../, // 隠しファイルを無視
-      persistent: true
+      persistent: true,
     });
 
     watcher
-      .on('change', (filePath) => {
+      .on('change', filePath => {
         console.log(`📝 File changed: ${filePath}`);
         this.build();
       })
-      .on('add', (filePath) => {
+      .on('add', filePath => {
         console.log(`➕ File added: ${filePath}`);
         this.build();
       })
-      .on('unlink', (filePath) => {
+      .on('unlink', filePath => {
         console.log(`🗑️  File removed: ${filePath}`);
         this.build();
       });
@@ -182,9 +184,9 @@ ${jsContent}
 // CLI実行
 if (require.main === module) {
   const builder = new JSToHTMLBuilder();
-  
+
   const command = process.argv[2];
-  
+
   switch (command) {
     case 'build':
       builder.build();

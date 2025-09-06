@@ -12,12 +12,12 @@
 const CONSTANTS = {
   STATUS: {
     CONFIRMED: '確定',
-    CANCELED: '取消'
+    CANCELED: '取消',
   },
   CLASSROOMS: {
     TOKYO: '東京教室',
-    NUMAZU: '沼津教室'
-  }
+    NUMAZU: '沼津教室',
+  },
 };
 
 // =================================================================
@@ -25,13 +25,13 @@ const CONSTANTS = {
 // =================================================================
 
 const STATUS = {
-  CONFIRMED: '確定', 
-  CANCELED: '取消'
+  CONFIRMED: '確定',
+  CANCELED: '取消',
 };
 
 const CLASSROOMS = {
   TOKYO: '東京教室',
-  NUMAZU: '沼津教室'
+  NUMAZU: '沼津教室',
 };
 
 // =================================================================
@@ -40,32 +40,34 @@ const CLASSROOMS = {
 
 function processReservation(reservationData) {
   // このコードを読むAIは何を理解する？
-  
+
   // ケース1: 変数名が似ている場合
-  const status = reservationData.status;        // ← 小文字の変数
-  const classroom = reservationData.classroom;  // ← 小文字の変数
-  
+  const status = reservationData.status; // ← 小文字の変数
+  const classroom = reservationData.classroom; // ← 小文字の変数
+
   // パターンA使用（明示的）
   if (status === CONSTANTS.STATUS.CONFIRMED) {
     // ← AIには「CONSTANTS.STATUS は定数の集合」と明確
     console.log('予約確定');
   }
-  
-  // パターンB使用（暗黙的）  
+
+  // パターンB使用（暗黙的）
   if (status === STATUS.CONFIRMED) {
     // ← AIは「STATUS とは何？定数？変数？」と推測が必要
     console.log('予約確定');
   }
-  
+
   // ケース2: 動的な値との比較
   const userSelectedStatus = getUserInput(); // 動的な値
-  
+
   // どちらが「定数との比較」だと明確？
-  if (userSelectedStatus === CONSTANTS.STATUS.CONFIRMED) { // 明示的
+  if (userSelectedStatus === CONSTANTS.STATUS.CONFIRMED) {
+    // 明示的
     // ...
   }
-  
-  if (userSelectedStatus === STATUS.CONFIRMED) { // 暗黙的
+
+  if (userSelectedStatus === STATUS.CONFIRMED) {
+    // 暗黙的
     // ...
   }
 }
