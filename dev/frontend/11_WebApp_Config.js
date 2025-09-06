@@ -1,4 +1,3 @@
-<script>
   /**
    * =================================================================
    * 【ファイル名】: 11_WebApp_Config.html
@@ -975,4 +974,3 @@
       window.pageTransitionManager.initializePage();
     }
   });
-</script>

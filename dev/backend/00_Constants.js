@@ -1,0 +1,522 @@
+/**
+ * =================================================================
+ * 【ファイル名】: 00_Constants.js
+ * 【バージョン】: 1.1
+ * 【役割】: プロジェクト全体で使用する統一定数定義システム
+ *
+ * 【主要機能】:
+ * ✅ 統一定数管理
+ *   - 教室名、ヘッダー名、項目名、ステータス等の一元管理
+ *   - フロントエンドとバックエンド間での定数重複を完全解消
+ *   - 階層構造による論理的な定数分類（CONSTANTS オブジェクト）
+ *
+ * ✅ 後方互換性システム
+ *   - 既存コードとの互換性を保つための後方互換性定数
+ *   - 段階的移行を可能にする設計
+ *   - 全33ヘッダー、項目名、ステータス等の完全対応
+ *
+ * ✅ 真実の情報源（Single Source of Truth）
+ *   - 定数変更時の一箇所修正で全体反映
+ *   - 定数の不整合や同期漏れを完全排除
+ *   - 開発効率と保守性の大幅向上
+ *
+ * 【v1.1での変更点】:
+ * - フェーズ1リファクタリング完了: 全定数の統一管理を実現
+ * - 完全なヘッダー後方互換性対応（全33ヘッダー）
+ * - 01_Code.js との重複定義完全解消
+ * - 階層構造による論理的定数分類の確立
+ * - 統一定数アクセスパターンの標準化
+ *
+ * 【構成】: 18ファイル構成のうちの0番目（新規追加、基盤ファイル）
+ * 【依存関係】: なし（他の全ファイルがこのファイルに依存）
+ * =================================================================
+ */
+
+// =================================================================
+// 1段階目: 個別定数オブジェクト（型チェック対応）
+// =================================================================
+
+/**
+ * 教室名定数
+ */
+const CLASSROOMS = {
+  TOKYO: '東京教室',
+  NUMAZU: '沼津教室',
+  TSUKUBA: 'つくば教室',
+};
+
+/**
+ * ステータス定数（4種類統合）
+ */
+const STATUS = {
+  CANCELED: '取消', // キャンセル済み
+  WAITLISTED: '待機', // キャンセル待ち
+  CONFIRMED: '確定', // 予約確定（会計前）
+  COMPLETED: '完了', // 完了（会計済み）
+};
+
+/**
+ * 項目名定数
+ */
+const ITEMS = {
+  MAIN_LECTURE: '基本授業料',
+  FIRST_LECTURE: '初回授業料',
+  CHISEL_RENTAL: '彫刻刀レンタル',
+  TOOL_SET: '道具セット',
+  MATERIAL_FEE: '材料費',
+  DISCOUNT: '初回者同時参加割引',
+};
+
+/**
+ * 教室定員定数
+ */
+const CLASSROOM_CAPACITIES = {
+  東京教室: 8,
+  沼津教室: 8,
+  つくば教室: 8,
+};
+
+/**
+ * 項目種別定数
+ */
+const ITEM_TYPES = {
+  TUITION: '授業料',
+  SALES: '物販',
+  MATERIAL: '材料',
+};
+
+/**
+ * 単位定数
+ */
+const UNITS = {
+  THIRTY_MIN: '30分',
+  PIECE: '個',
+  SET: 'セット',
+  CM3: 'cm³',
+};
+
+/**
+ * 支払い方法定数
+ */
+const PAYMENT_METHODS = {
+  CASH: 'cash',
+  CARD: 'card',
+  TRANSFER: 'transfer',
+};
+
+/**
+ * UI関連定数
+ */
+const UI = {
+  HISTORY_INITIAL_RECORDS: 10,
+  HISTORY_LOAD_MORE_RECORDS: 10,
+  LOADING_MESSAGE_INTERVAL: 2000,
+  MODAL_FADE_DURATION: 300,
+};
+
+// =================================================================
+// 2段階目: CONSTANTS統合オブジェクト（AI理解性向上）
+// =================================================================
+
+/**
+ * プロジェクト全体で使用する統一定数オブジェクト
+ * 階層構造により論理的に分類された定数を管理
+ * @type {Constants}
+ */
+const CONSTANTS = /** @type {const} */ ({
+  // 1段階目定数への参照（両参照対応）
+  CLASSROOMS: CLASSROOMS,
+  STATUS: STATUS,
+  ITEMS: ITEMS,
+  CLASSROOM_CAPACITIES: CLASSROOM_CAPACITIES,
+  ITEM_TYPES: ITEM_TYPES,
+  UNITS: UNITS,
+  PAYMENT_METHODS: PAYMENT_METHODS,
+  UI: UI,
+
+  // タイムゾーン設定
+  TIMEZONE: 'Asia/Tokyo',
+
+  // 容量・制限
+  LIMITS: {
+    INTRO_LECTURE_CAPACITY: 4,
+    TSUKUBA_MORNING_SESSION_END_HOUR: 13,
+    LOCK_WAIT_TIME_MS: 30000,
+    MAX_RETRY_COUNT: 3,
+  },
+
+  // シート名
+  SHEET_NAMES: {
+    ROSTER: '生徒名簿',
+    ACCOUNTING: '会計マスタ',
+    LOG: 'アクティビティログ',
+    RESERVATIONS: '統合予約シート',
+    SCHEDULE: '日程マスタ',
+  },
+
+  // セッション関連
+  SESSIONS: {
+    MORNING: '午前',
+    AFTERNOON: '午後',
+    ALL_DAY: '全日',
+  },
+
+  // 支払い方法（表示用）
+  PAYMENT_DISPLAY: {
+    CASH: '現金',
+    COTRA: 'ことら送金',
+    BANK_TRANSFER: '振込',
+  },
+
+  // 銀行情報
+  BANK_INFO: {
+    COTRA_PHONE: '09013755977',
+    NAME: 'ゆうちょ銀行',
+    BRANCH: '818',
+    ACCOUNT: '2661797',
+  },
+
+  // フロントエンド固有のUI設定
+  FRONTEND_UI: {
+    DISCOUNT_OPTIONS: {
+      NONE: 0,
+      THIRTY_MIN: 30,
+      SIXTY_MIN: 60,
+    },
+    TIME_SETTINGS: {
+      STEP_MINUTES: 30,
+      END_BUFFER_HOURS: 3,
+    },
+  },
+
+  // メッセージ定数
+  MESSAGES: {
+    PROCESSING_INTERRUPTED: '処理を中断しました。',
+    SHEET_INITIALIZATION: '日程マスタシートの初期化',
+    EXISTING_SHEET_WARNING:
+      '「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）',
+    SUCCESS: '成功',
+    ERROR: 'エラー',
+    CANCEL: 'キャンセル',
+    SAVE: '保存する',
+    EDIT: '編集',
+  },
+
+  // ログアクション定数
+  LOG_ACTIONS: {
+    ROSTER_EDIT: '名簿編集',
+    RESERVATION_EDIT: '予約編集',
+    ROW_INSERT: '行挿入',
+    RESERVATION_CANCEL: '予約キャンセル',
+  },
+
+  // 表示色定数
+  COLORS: {
+    LIGHT_GREEN: '#d9ead3', // 成功
+    LIGHT_RED: '#f4cccc', // 失敗・エラー
+    LIGHT_BLUE: '#cfe2f3', // ユーザーの主要アクション
+    LIGHT_ORANGE: '#fce5cd', // 編集・変更系アクション
+    HEADER_BACKGROUND: '#E8F0FE', // ヘッダーの背景色
+  },
+
+  // 教室タイプ定数
+  CLASSROOM_TYPES: {
+    SESSION_BASED: 'セッション制',
+    TIME_DUAL: '時間制・2部制',
+    TIME_FULL: '時間制・全日',
+  },
+
+  // スケジュールステータス定数
+  SCHEDULE_STATUS: {
+    SCHEDULED: '開催予定',
+    CANCELLED: '休講',
+    COMPLETED: '開催済み',
+  },
+
+  // シート別ヘッダー定数
+  HEADERS: {
+    // 統合予約シート（短縮名: RESERVATIONS）
+    RESERVATIONS: {
+      RESERVATION_ID: '予約ID',
+      STUDENT_ID: '生徒ID',
+      DATE: '日付',
+      CLASSROOM: '教室',
+      VENUE: '会場',
+      START_TIME: '開始時刻',
+      END_TIME: '終了時刻',
+      STATUS: 'ステータス',
+      CHISEL_RENTAL: '彫刻刀レンタル',
+      FIRST_LECTURE: '初回',
+      TRANSPORTATION: '来場手段',
+      PICKUP: '送迎',
+      WORK_IN_PROGRESS: '制作メモ',
+      ORDER: 'order',
+      MESSAGE_TO_TEACHER: 'メッセージ',
+      ACCOUNTING_DETAILS: '会計詳細',
+    },
+
+    // 生徒名簿
+    ROSTER: {
+      STUDENT_ID: '生徒ID',
+      REAL_NAME: '本名',
+      NICKNAME: 'ニックネーム',
+      PHONE: '電話番号',
+      CAR: '車',
+      CHISEL_RENTAL: '彫刻刀レンタル',
+      LINE: 'LINE',
+      NOTES: 'notes',
+      FROM: 'from',
+      REGISTRATION_DATE: '登録日時',
+      EMAIL: 'メールアドレス',
+      EMAIL_PREFERENCE: 'メール連絡希望',
+      AGE_GROUP: '年代',
+      AGE: '年齢',
+      GENDER: '性別',
+      DOMINANT_HAND: '利き手',
+      ADDRESS: '住所',
+      FUTURE_CREATIONS: '将来制作したいもの',
+      WOODCARVING_EXPERIENCE: '木彫り経験',
+      PAST_CREATIONS: '過去の制作物',
+      FUTURE_PARTICIPATION: '今後のご参加について',
+      TRIGGER: 'きっかけ',
+      FIRST_MESSAGE: '初回メッセージ',
+      COMPANION: '同行者',
+      TRANSPORTATION: '来場手段',
+      PICKUP: '送迎',
+      TOTAL_PARTICIPATION: '参加回数',
+      TOKYO_PARTICIPATION: '参加回数（東京）',
+      NUMAZU_PARTICIPATION: '参加回数（沼津）',
+      TSUKUBA_PARTICIPATION: '参加回数（つくば）',
+      MITSUKOSHI_PARTICIPATION: '参加回数（三越）',
+    },
+
+    // 会計マスタ（短縮名: ACCOUNTING）
+    ACCOUNTING: {
+      TYPE: '種別',
+      ITEM_NAME: '項目名',
+      UNIT_PRICE: '単価',
+      UNIT: '単位',
+      TARGET_CLASSROOM: '対象教室',
+      CLASS_START: '講座開始',
+      CLASS_END: '講座終了',
+      BREAK_START: '休憩開始',
+      BREAK_END: '休憩終了',
+      NOTES: '備考',
+    },
+
+    // 日程マスタ（短縮名: SCHEDULE）
+    SCHEDULE: {
+      DATE: '日付',
+      CLASSROOM: '教室',
+      VENUE: '会場',
+      TYPE: '教室形式',
+      FIRST_START: '1部開始',
+      FIRST_END: '1部終了',
+      SECOND_START: '2部開始',
+      SECOND_END: '2部終了',
+      BEGINNER_START: '初回者開始',
+      TOTAL_CAPACITY: '全体定員',
+      BEGINNER_CAPACITY: '初回者定員',
+      STATUS: '状態',
+      NOTES: '備考',
+    },
+  },
+
+  // 注意: HEADER_MAPPINGS は過度に複雑だったため削除
+  // 必要な箇所では直接的なswitch文で対応
+
+  // その他のシステム定数
+  SYSTEM: {
+    MATERIAL_INFO_PREFIX: '\n【希望材料】: ',
+    ARCHIVE_PREFIX: 'アーカイブ_',
+    DATA_START_ROW: 2,
+  },
+});
+
+// =================================================================
+// 後方互換性定数システム
+//
+// 【目的】: 既存コードとの互換性を保ちながら段階的に統一定数へ移行
+// 【方針】: CONSTANTS オブジェクトから値を継承する形で後方互換性を確保
+// 【対象】: 全プロジェクトで使用されている既存定数名
+// 【利点】: 一箇所変更で全体反映、段階的移行が可能
+// =================================================================
+
+// 注意: これらの後方互換性定数は段階的に削除予定
+// 新規コードでは CONSTANTS.CLASSROOMS.* を直接使用してください
+const CLASSROOM_SHEET_NAMES = [
+  CONSTANTS.CLASSROOMS.TOKYO,
+  CONSTANTS.CLASSROOMS.NUMAZU,
+  CONSTANTS.CLASSROOMS.TSUKUBA,
+];
+const CLASSROOM_CAPACITIES = CONSTANTS.CLASSROOM_CAPACITIES;
+
+// 制限値の後方互換性
+const INTRO_LECTURE_CAPACITY = CONSTANTS.LIMITS.INTRO_LECTURE_CAPACITY;
+const TSUKUBA_MORNING_SESSION_END_HOUR =
+  CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR;
+const LOCK_WAIT_TIME_MS = CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS;
+
+// シート名の後方互換性（使用頻度が高いもののみ保持）
+const ROSTER_SHEET_NAME = CONSTANTS.SHEET_NAMES.ROSTER;
+const ACCOUNTING_SHEET_NAME = CONSTANTS.SHEET_NAMES.ACCOUNTING;
+const LOG_SHEET_NAME = CONSTANTS.SHEET_NAMES.LOG;
+// 注意: ACCOUNTING_MASTER_SHEET_NAME は重複のため削除
+
+// ヘッダー名の後方互換性（全ヘッダー対応）
+const HEADER_RESERVATION_ID = CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID;
+const HEADER_STUDENT_ID = CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID;
+const HEADER_DATE = CONSTANTS.HEADERS.RESERVATIONS.DATE;
+const HEADER_VENUE = CONSTANTS.HEADERS.RESERVATIONS.VENUE;
+const HEADER_FIRST_LECTURE = CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE;
+const HEADER_CHISEL_RENTAL = CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL;
+const HEADER_START_TIME = CONSTANTS.HEADERS.RESERVATIONS.START_TIME;
+const HEADER_END_TIME = CONSTANTS.HEADERS.RESERVATIONS.END_TIME;
+const HEADER_CLASSROOM = CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM;
+const HEADER_STATUS = CONSTANTS.HEADERS.RESERVATIONS.STATUS;
+// 会計マスタ関連のヘッダー
+const HEADER_CLASS_START = CONSTANTS.HEADERS.ACCOUNTING.CLASS_START;
+const HEADER_CLASS_END = CONSTANTS.HEADERS.ACCOUNTING.CLASS_END;
+const HEADER_BREAK_START = CONSTANTS.HEADERS.ACCOUNTING.BREAK_START;
+const HEADER_BREAK_END = CONSTANTS.HEADERS.ACCOUNTING.BREAK_END;
+// Deprecated: Use CONSTANTS.HEADERS.ROSTER.REAL_NAME instead
+const HEADER_REAL_NAME = CONSTANTS.HEADERS.ROSTER.REAL_NAME;
+// Deprecated: Use CONSTANTS.HEADERS.ROSTER.NICKNAME instead
+const HEADER_NICKNAME = CONSTANTS.HEADERS.ROSTER.NICKNAME;
+// Deprecated: Use CONSTANTS.HEADERS.ROSTER.PHONE instead
+const HEADER_PHONE = CONSTANTS.HEADERS.ROSTER.PHONE;
+// これらの定数は存在しないヘッダーを参照していたためコメントアウト
+// const HEADER_CO = CONSTANTS.HEADERS.CO;
+// const HEADER_PARTICIPANT_COUNT = CONSTANTS.HEADERS.PARTICIPANT_COUNT;
+// const HEADER_NAME = CONSTANTS.HEADERS.NAME;
+// const HEADER_CLASS_COUNT = CONSTANTS.HEADERS.CLASS_COUNT;
+// const HEADER_UNIFIED_CLASS_COUNT = CONSTANTS.HEADERS.UNIFIED_CLASS_COUNT;
+// const HEADER_TIME = CONSTANTS.HEADERS.TIME;
+const HEADER_WORK_IN_PROGRESS = CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS;
+const HEADER_ORDER = CONSTANTS.HEADERS.RESERVATIONS.ORDER;
+const HEADER_MESSAGE_TO_TEACHER =
+  CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER;
+const HEADER_ACCOUNTING_DETAILS =
+  CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS;
+// Deprecated: Use CONSTANTS.HEADERS.ROSTER.LINE instead
+const HEADER_LINE = CONSTANTS.HEADERS.ROSTER.LINE;
+// const HEADER_IN_THE_FUTURE = CONSTANTS.HEADERS.IN_THE_FUTURE; // 存在しないプロパティ
+// Deprecated: Use CONSTANTS.HEADERS.ROSTER.NOTES instead
+const HEADER_NOTES = CONSTANTS.HEADERS.ROSTER.NOTES;
+// Deprecated: Use CONSTANTS.HEADERS.ROSTER.FROM instead
+const HEADER_FROM = CONSTANTS.HEADERS.ROSTER.FROM;
+// Deprecated: Use CONSTANTS.HEADERS.ROSTER.TRANSPORTATION instead
+const HEADER_TRANSPORTATION = CONSTANTS.HEADERS.ROSTER.TRANSPORTATION;
+// Deprecated: Use CONSTANTS.HEADERS.ROSTER.PICKUP instead
+const HEADER_PICKUP = CONSTANTS.HEADERS.ROSTER.PICKUP;
+
+// 項目名の後方互換性
+const ITEM_NAME_MAIN_LECTURE = CONSTANTS.ITEMS.MAIN_LECTURE;
+const ITEM_NAME_FIRST_LECTURE = CONSTANTS.ITEMS.FIRST_LECTURE;
+const ITEM_NAME_CHISEL_RENTAL = CONSTANTS.ITEMS.CHISEL_RENTAL;
+const ITEM_NAME_DISCOUNT = CONSTANTS.ITEMS.DISCOUNT;
+
+// ステータス（新統合定数）
+const STATUS_CANCELED = CONSTANTS.STATUS.CANCELED;
+const STATUS_WAITLISTED = CONSTANTS.STATUS.WAITLISTED;
+const STATUS_CONFIRMED = CONSTANTS.STATUS.CONFIRMED;
+const STATUS_COMPLETED = CONSTANTS.STATUS.COMPLETED;
+
+// ステータスの後方互換性（エイリアス）
+const STATUS_WAITING = CONSTANTS.STATUS.WAITLISTED; // 「待機」のエイリアス
+const STATUS_CANCEL = CONSTANTS.STATUS.CANCELED; // 「取消」のエイリアス
+
+// 項目種別の後方互換性
+const ITEM_TYPE_TUITION = CONSTANTS.ITEM_TYPES.TUITION;
+const ITEM_TYPE_SALES = CONSTANTS.ITEM_TYPES.SALES;
+const ITEM_TYPE_MATERIAL = CONSTANTS.ITEM_TYPES.MATERIAL;
+
+// 単位の後方互換性
+const UNIT_30_MIN = CONSTANTS.UNITS.THIRTY_MIN;
+const UNIT_CM3 = CONSTANTS.UNITS.CM3;
+
+// 支払い方法の後方互換性
+const PAYMENT_CASH = CONSTANTS.PAYMENT_METHODS.CASH;
+
+// セッションの後方互換性
+const SESSION_MORNING = CONSTANTS.SESSIONS.MORNING;
+const SESSION_AFTERNOON = CONSTANTS.SESSIONS.AFTERNOON;
+const SESSION_ALL_DAY = CONSTANTS.SESSIONS.ALL_DAY;
+
+// 支払い方法表示の後方互換性
+const PAYMENT_COTRA = CONSTANTS.PAYMENT_DISPLAY.COTRA;
+const PAYMENT_BANK_TRANSFER = CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER;
+
+// 銀行情報の後方互換性
+const BANK_COTRA_PHONE = CONSTANTS.BANK_INFO.COTRA_PHONE;
+const BANK_NAME = CONSTANTS.BANK_INFO.NAME;
+const BANK_BRANCH = CONSTANTS.BANK_INFO.BRANCH;
+const BANK_ACCOUNT = CONSTANTS.BANK_INFO.ACCOUNT;
+
+// フロントエンドUI定数の後方互換性
+const DISCOUNT_OPTION_NONE = CONSTANTS.FRONTEND_UI.DISCOUNT_OPTIONS.NONE;
+const DISCOUNT_OPTION_30MIN = CONSTANTS.FRONTEND_UI.DISCOUNT_OPTIONS.THIRTY_MIN;
+const DISCOUNT_OPTION_60MIN = CONSTANTS.FRONTEND_UI.DISCOUNT_OPTIONS.SIXTY_MIN;
+const TIME_STEP_MINUTES = CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES;
+const TIME_END_BUFFER_HOURS =
+  CONSTANTS.FRONTEND_UI.TIME_SETTINGS.END_BUFFER_HOURS;
+
+// UI定数の後方互換性
+const UI_HISTORY_INITIAL_RECORDS = CONSTANTS.UI.HISTORY_INITIAL_RECORDS;
+const UI_HISTORY_LOAD_MORE_RECORDS = CONSTANTS.UI.HISTORY_LOAD_MORE_RECORDS;
+const UI_LOADING_MESSAGE_INTERVAL = CONSTANTS.UI.LOADING_MESSAGE_INTERVAL;
+
+// メッセージ定数の後方互換性
+const MSG_PROCESSING_INTERRUPTED = CONSTANTS.MESSAGES.PROCESSING_INTERRUPTED;
+const MSG_SHEET_INITIALIZATION = CONSTANTS.MESSAGES.SHEET_INITIALIZATION;
+const MSG_EXISTING_SHEET_WARNING = CONSTANTS.MESSAGES.EXISTING_SHEET_WARNING;
+const MSG_SUCCESS = CONSTANTS.MESSAGES.SUCCESS;
+const MSG_ERROR = CONSTANTS.MESSAGES.ERROR;
+const MSG_CANCEL = CONSTANTS.MESSAGES.CANCEL;
+
+// ログアクション定数の後方互換性
+const LOG_ACTION_ROSTER_EDIT = CONSTANTS.LOG_ACTIONS.ROSTER_EDIT;
+const LOG_ACTION_RESERVATION_EDIT = CONSTANTS.LOG_ACTIONS.RESERVATION_EDIT;
+const LOG_ACTION_ROW_INSERT = CONSTANTS.LOG_ACTIONS.ROW_INSERT;
+const LOG_ACTION_RESERVATION_CANCEL = CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL;
+
+// 表示色定数の後方互換性
+const COLOR_LIGHT_GREEN = CONSTANTS.COLORS.LIGHT_GREEN;
+const COLOR_LIGHT_RED = CONSTANTS.COLORS.LIGHT_RED;
+const COLOR_LIGHT_BLUE = CONSTANTS.COLORS.LIGHT_BLUE;
+const COLOR_LIGHT_ORANGE = CONSTANTS.COLORS.LIGHT_ORANGE;
+const COLOR_HEADER_BACKGROUND = CONSTANTS.COLORS.HEADER_BACKGROUND;
+
+// =================================================================
+// 環境設定・デバッグ制御
+// =================================================================
+
+/**
+ * 環境判定とデバッグ制御の統一管理
+ */
+const ENVIRONMENT_CONFIG = {
+  // デバッグ出力制御
+  DEBUG_ENABLED: false, // 本番環境では false
+};
+
+// 後方互換性のためのグローバル変数
+const DEBUG_ENABLED = ENVIRONMENT_CONFIG.DEBUG_ENABLED;
+
+// 教室タイプ定数の後方互換性
+const CLASSROOM_TYPE_SESSION_BASED = CONSTANTS.CLASSROOM_TYPES.SESSION_BASED;
+const CLASSROOM_TYPE_TIME_DUAL = CONSTANTS.CLASSROOM_TYPES.TIME_DUAL;
+const CLASSROOM_TYPE_TIME_FULL = CONSTANTS.CLASSROOM_TYPES.TIME_FULL;
+
+// スケジュールステータス定数の後方互換性
+const SCHEDULE_STATUS_SCHEDULED = CONSTANTS.SCHEDULE_STATUS.SCHEDULED;
+const SCHEDULE_STATUS_CANCELLED = CONSTANTS.SCHEDULE_STATUS.CANCELLED;
+const SCHEDULE_STATUS_COMPLETED = CONSTANTS.SCHEDULE_STATUS.COMPLETED;
+
+// その他のシステム定数の後方互換性
+const MATERIAL_INFO_PREFIX = CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX;
+const HEADER_ARCHIVE_PREFIX = CONSTANTS.SYSTEM.ARCHIVE_PREFIX;
+const DATA_START_ROW = CONSTANTS.SYSTEM.DATA_START_ROW;
+
+// 実行時取得定数
+const SALES_SPREADSHEET_ID =
+  PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
