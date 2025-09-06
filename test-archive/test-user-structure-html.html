@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ユーザー提案構造：HTML内JavaScriptテスト</title>
+  </head>
+  <body>
+    <script>
+      // @ts-check
+
+      /**
+       * ユーザー提案の2段階定数構造 - HTML内での動作テスト
+       */
+
+      // =================================================================
+      // HTML内で静的に定義（バックと全く同じ構造）
+      // =================================================================
+
+      // 1段階目: 個別定数オブジェクト
+      /** @type {{ CONFIRMED: string, CANCELED: string, WAITLISTED: string, COMPLETED: string }} */
+      const STATUS = {
+        CONFIRMED: '確定',
+        CANCELED: '取消',
+        WAITLISTED: '待機',
+        COMPLETED: '完了',
+      };
+
+      /** @type {{ TOKYO: string, NUMAZU: string, TSUKUBA: string }} */
+      const CLASSROOMS = {
+        TOKYO: '東京教室',
+        NUMAZU: '沼津教室',
+        TSUKUBA: 'つくば教室',
+      };
+
+      /** @type {{ HISTORY_INITIAL_RECORDS: number, LOADING_MESSAGE_INTERVAL: number }} */
+      const UI = {
+        HISTORY_INITIAL_RECORDS: 10,
+        LOADING_MESSAGE_INTERVAL: 500,
+      };
+
+      // 2段階目: CONSTANTS統合オブジェクト
+      const CONSTANTS = {
+        STATUS: STATUS,
+        CLASSROOMS: CLASSROOMS,
+        UI: UI,
+      };
+
+      // =================================================================
+      // HTML内での型チェックテスト
+      // =================================================================
+
+      // ✅ 正常な使用例
+      const validExample1 = STATUS.CONFIRMED; // 1段階参照
+      const validExample2 = CONSTANTS.STATUS.CONFIRMED; // 2段階参照
+      const validExample3 = CLASSROOMS.TOKYO; // 1段階参照
+      const validExample4 = CONSTANTS.CLASSROOMS.TOKYO; // 2段階参照
+
+      // ❌ エラーになるべき例
+      const errorTest1 = STATUS.INVALID_STATUS; // ← エラー検出されるべき
+      const errorTest2 = STATUS.CONFIMED; // ← CONFIRMED の typo
+      const errorTest3 = CLASSROOMS.OSAKA; // ← 存在しない教室
+      const errorTest4 = CONSTANTS.STATUS.INVALID_STATUS; // ← 2段階でもエラー検出
+      const errorTest5 = CONSTANTS.STATUS.CONFIMED; // ← 2段階でのtypo検出
+      const errorTest6 = CONSTANTS.CLASSROOMS.OSAKA; // ← 2段階での存在しない値
+      const errorTest7 = CONSTANTS.NON_EXISTENT_CATEGORY; // ← カテゴリ自体が存在しない
+
+      // =================================================================
+      // 実際のHTML内使用パターン
+      // =================================================================
+
+      function updateUI() {
+        // DOM操作で定数を使用
+        document.getElementById('status').textContent = STATUS.CONFIRMED;
+
+        // 条件分岐での使用
+        const currentStatus = STATUS.WAITLISTED;
+        if (currentStatus === CONSTANTS.STATUS.WAITLISTED) {
+          console.log('キャンセル待ち状態です');
+        }
+
+        // AIがよく間違えるパターン
+        if (currentStatus === STATUS.CONFIMED) {
+          // ← このtypoが検出される
+          console.log('これはエラーになるはず');
+        }
+      }
+
+      function handleReservation() {
+        // 実際のWebAppでのパターン
+        const classroom = CLASSROOMS.TOKYO;
+        const status = CONSTANTS.STATUS.CONFIRMED;
+
+        console.log(`${classroom}での予約が${status}されました`);
+      }
+
+      // =================================================================
+      // HTMLでの利点確認
+      // =================================================================
+
+      // 1. 型安全性: VSCodeで赤い波線が表示される
+      // 2. 自動補完: STATUS. を入力すると選択肢が表示される
+      // 3. リファクタリング支援: 定数名変更時の一括置換
+      // 4. AIミス防止: 存在しない定数名やtypoを即座に検出
+
+      console.log('HTML embedded JavaScript test completed');
+    </script>
+  </body>
+</html>

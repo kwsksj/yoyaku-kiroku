@@ -18,9 +18,12 @@ Successfully migrated from classroom-specific distributed data structure to an i
 
 **Data Access Layer Abstraction**: Complete separation of business logic from data access through repository pattern and service layer architecture. Enables zero-risk migration to integrated reservation sheets in production environment.
 
-### ⚠️ Data Access Layer Status (2025年9月1日更新)
+### 🚀 JavaScript分離開発アーキテクチャ (2025年9月6日導入)
 
-**データアクセス層抽象化は一旦停止中** - 現在のシステムは既存アーキテクチャで安定稼働。IMPROVEMENT_PLAN.mdベースの改修を優先。詳細は `docs/BUSINESS_LOGIC_REFERENCE.md` を参照。
+**HTML內JavaScript問題の根本解決**: 開発時は純粋なJavaScriptファイルで作業し、デプロイ時に自動的にHTML形式に変換するハイブリッドアーキテクチャを導入。
+
+**詳細設計**: [JS_TO_HTML_ARCHITECTURE.md](docs/JS_TO_HTML_ARCHITECTURE.md)  
+**移行手順**: [MIGRATION_TO_JS_DEV.md](docs/MIGRATION_TO_JS_DEV.md)
 
 ## Key Development Commands
 
@@ -29,8 +32,15 @@ Successfully migrated from classroom-specific distributed data structure to an i
 - `npm run format` - Auto-formats all code using Prettier
 - `npm run lint` / `npm run lint:fix` - ESLint static analysis and auto-fixing
 - `npm run check` - Runs both format check and lint together
-- ~~`npm run build` - Local test HTML generation (currently not functional)~~
-- ~~`npm run watch` - File watching for local development (currently not functional)~~
+
+### JavaScript分離開発ワークフロー (新規導入)
+
+- `npm run dev:build` - JavaScript → HTML自動変換ビルド
+- `npm run dev:watch` - ファイル監視モード（開発中リアルタイム変換）
+- `npm run dev:test` - ビルド → テスト環境プッシュ
+- `npm run dev:prod` - ビルド → 本番環境プッシュ
+- `npm run dev:open:test` - ビルド → テスト → ブラウザ起動
+- `npm run dev:open:prod` - ビルド → 本番 → ブラウザ起動
 
 ### Environment Management & Deployment
 

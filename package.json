@@ -23,7 +23,13 @@
     "deploy:prod": "npm run switch:env -- prod && clasp push --force && clasp deploy",
     "deploy:test": "npm run switch:env -- test && clasp push --force && clasp deploy",
     "open:dev:prod": "npm run switch:env -- prod && clasp push --force && node tools/open-dev-url.js prod",
-    "open:dev:test": "npm run switch:env -- test && clasp push --force && node tools/open-dev-url.js test"
+    "open:dev:test": "npm run switch:env -- test && clasp push --force && node tools/open-dev-url.js test",
+    "dev:build": "node tools/unified-build.js build",
+    "dev:watch": "node tools/unified-build.js watch",
+    "dev:test": "npm run dev:build && npm run push:test",
+    "dev:prod": "npm run dev:build && npm run push:prod",
+    "dev:open:test": "npm run dev:build && npm run open:dev:test",
+    "dev:open:prod": "npm run dev:build && npm run open:dev:prod"
   },
   "repository": {
     "type": "git",
@@ -40,6 +46,7 @@
   "devDependencies": {
     "@google/clasp": "^3.0.6-alpha",
     "@types/google-apps-script": "^1.0.99",
+    "chokidar": "^4.0.0",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-googleappsscript": "^1.0.5",

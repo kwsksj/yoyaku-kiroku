@@ -1,118 +1,12 @@
-<!--
-=================================================================
-【ファイル名】: 10_WebApp.html
-【バージョン】: 26.0 (モジュール化対応版)
-【更新日時】: 2025-08-04
-【説明】:
-- 設定とモック機能を外部ファイルに分離
-- より保守性の高い構造に改善
-- テスト環境とプロダクション環境の分離
-=================================================================
--->
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <base target="_top" />
-    <title>きぼりの よやく・きろく 川崎誠二木彫り教室</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-
-  <body class="bg-brand-bg min-h-screen">
-    <!-- デバッグ情報表示エリア（本番環境では非表示） -->
-
-    <!-- アプリケーションのメインコンテナ -->
-    <div id="app" class="container mx-auto px-4 max-w-lg">
-      <!-- ローディング画面 -->
-      <div
-        id="loading"
-        class="loading-fade fixed inset-0 flex flex-col items-center justify-center z-50"
-      >
-        <div class="spinner mb-4"></div>
-        <p id="loading-message" class="text-brand-text">
-          アプリケーションを読み込み中...
-        </p>
-      </div>
-
-      <!-- メインコンテンツ -->
-      <main id="main-content" class="py-6">
-        <div id="view-container"></div>
-      </main>
-
-      <!-- モーダルオーバーレイ -->
-      <div id="modal-overlay" class="modal-overlay">
-        <div id="modal-content" class="modal-content">
-          <div id="modal-body"></div>
-        </div>
-      </div>
-
-      <!-- カスタムモーダル -->
-      <div
-        id="custom-modal"
-        class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
-      >
-        <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
-          <h3 id="modal-title" class="text-lg font-bold mb-4"></h3>
-          <div id="modal-message" class="mb-6"></div>
-          <div id="modal-buttons" class="flex gap-3 justify-end"></div>
-        </div>
-      </div>
-      <footer class="text-center text-sm text-brand-muted mt-4">
-        きぼりの よやく・きろく
-      </footer>
-    </div>
-
-    <!-- GAS環境用のJavaScriptファイル読み込み（テンプレート評価対応） -->
-    
-    <!-- 統合JavaScript (自動生成) -->
 <script>
-  // @ts-check
-  /// <reference path="../html-globals.d.ts" />
-
-  // グローバル変数宣言（VSCode TypeScript言語サーバー用）
-  /* global CONSTANTS:readonly, STATUS:readonly, CLASSROOMS:readonly, ITEMS:readonly, HEADERS:readonly */
-  /* global ITEM_TYPES:readonly, UNITS:readonly, PAYMENT_METHODS:readonly, UI:readonly, SESSIONS:readonly */
-  /* global PAYMENT:readonly, BANK_INFO:readonly, BANK:readonly, MESSAGES:readonly, LOG_ACTIONS:readonly */
-  /* global CLASSROOM_TYPES:readonly, SCHEDULE_STATUS:readonly, SHEET_NAMES:readonly, LIMITS:readonly */
-  /* global DISCOUNT_OPTIONS:readonly, TIME_SETTINGS:readonly, SYSTEM:readonly, HEADERS_RESERVATIONS:readonly */
-  /* global HEADERS_ROSTER:readonly, HEADERS_ACCOUNTING:readonly, HEADERS_SCHEDULE:readonly */
-  /* global DesignConfig:readonly, stateManager:readonly, Components:readonly, pageTransitionManager:readonly */
-  /* global escapeHTML:readonly, formatDate:readonly, showLoading:readonly, hideLoading:readonly */
-  /* global showInfo:readonly, showConfirm:readonly, debugLog:readonly, getTuitionItemRule:readonly */
-  /* global getTimeBasedTuitionHtml:readonly, createReservationCard:readonly, findReservationByDateAndClassroom:readonly */
-  /* global isTimeBasedClassroom:readonly, getClassroomTimesFromSchedule:readonly, buildSalesChecklist:readonly */
-  /* global findReservationById:readonly, google:readonly, server:readonly, MockData:readonly */
-  /* global isProduction:readonly, C:readonly */
-
-  // ESLintワンライン無効化
-  /* eslint-disable no-undef */
-
   /**
    * =================================================================
-   * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-06T11:35:10.549Z
-   * =================================================================
-   */
-
-  // =================================================================
-  // 12_WebApp_StateManager.js (自動統合)
-  // =================================================================
-
-  /**
-   * =================================================================
-   * 【ファイル名】: 12_WebApp_StateManager.js
-   * 【バージョン】: 2.1 (JavaScript分離開発版)
+   * 【ファイル名】: 12_WebApp_StateManager.html
+   * 【バージョン】: 2.0 (シンプル版)
    * 【役割】: シンプルで確実な状態管理システム
    * - 無限ループの完全回避
-   * - JavaScript分離開発環境対応
-   * - 完全なTypeScript型チェック対応
+   * - 既存互換性は無視、新しい設計
+   * - テスト環境特化
    * =================================================================
    */
 
@@ -301,7 +195,7 @@
         this._notifySubscribers(this.state, oldState);
 
         if (!window.isProduction) {
-          if (typeof DEBUG_ENABLED !== 'undefined' && DEBUG_ENABLED)
+          if (DEBUG_ENABLED)
             console.log('✅ 状態更新完了:', Object.keys(newState));
         }
       } catch (error) {
@@ -425,7 +319,7 @@
           window.render();
           // 特定のaction.typeでのみローディングを非表示（最終的な状態更新のみ）
           if (this._shouldHideLoadingAfterRender) {
-            if (typeof hideLoading === 'function') hideLoading();
+            hideLoading();
             this._shouldHideLoadingAfterRender = false;
           }
         } else {
@@ -605,96 +499,3 @@
   // グローバルインスタンスを作成
   window.stateManager = new SimpleStateManager();
 </script>
-    
-    <!-- 状態管理システム -->
-    
-    <!-- 中核機能・ユーティリティ -->
-    
-    <!-- UIコンポーネント -->
-    
-    <!-- 画面生成関数 -->
-    
-    <!-- イベント処理・アクション -->
-
-    <script>
-      // 環境判定：本番環境かテスト環境かを確認
-      const isProduction =
-        window.location.href.includes('/exec?') ||
-        (window.location.href.includes('/macros/s/') &&
-          !window.location.href.includes('/dev'));
-
-      // デバッグ制御（フロントエンド専用）
-      const DEBUG_ENABLED = false; // 本番環境では false
-
-      // デバッグ情報をコンソールに出力する関数（本番環境では無効化）
-      function debugLog(message) {
-        if (isProduction || !DEBUG_ENABLED) return; // 本番環境では何も表示しない
-        console.log(
-          '🔍 [DEBUG]',
-          new Date().toLocaleTimeString() + ':',
-          message,
-        );
-      }
-
-      // 最初のテスト - これが表示されなければHTMLファイル自体が読み込まれていない
-      debugLog('HTMLファイル読み込み確認テスト完了');
-      debugLog('ページURL: ' + window.location.href);
-
-      // GAS環境かどうかを判定
-      const isGAS =
-        typeof google !== 'undefined' && typeof google.script !== 'undefined';
-      debugLog('GAS環境判定: ' + isGAS);
-
-      function initializeApp() {
-        debugLog('initializeApp実行開始');
-        debugLog('isGAS: ' + isGAS);
-
-        // 必要な変数や関数が定義されるまで待機
-        const checkReady = setInterval(() => {
-          const status = {
-            DesignConfig: typeof DesignConfig !== 'undefined',
-            stateManager: typeof stateManager !== 'undefined',
-            stateManagerDispatch: typeof stateManager?.dispatch === 'function',
-            hideLoading: typeof hideLoading === 'function',
-          };
-
-          debugLog('初期化条件チェック: ' + JSON.stringify(status));
-
-          // DesignConfig, stateManager, hideLoadingが利用可能か確認
-          if (
-            typeof DesignConfig !== 'undefined' &&
-            typeof stateManager !== 'undefined' &&
-            typeof stateManager?.dispatch === 'function' &&
-            typeof hideLoading === 'function'
-          ) {
-            clearInterval(checkReady);
-            debugLog('初期化条件を満たしました！');
-            debugLog(
-              'stateManager.getState().slots: ' +
-                (stateManager.getState().slots
-                  ? stateManager.getState().slots.length + '件'
-                  : 'null'),
-            );
-            debugLog(
-              'stateManager.getState().classrooms: ' +
-                JSON.stringify(stateManager.getState().classrooms),
-            );
-
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: { view: 'login' },
-            });
-            hideLoading();
-          }
-        }, 300);
-      }
-
-      if (isGAS) {
-        // GAS本番環境のみ初期化
-        window.addEventListener('DOMContentLoaded', () => {
-          initializeApp();
-        });
-      }
-    </script>
-  </body>
-</html>
