@@ -205,10 +205,69 @@ ${getContactAndVenueInfoText()}
  */
 
 /**
+ * 授業料金額を取得
+ * @param {string} classroom - 教室名
+ * @param {boolean} isFirstTime - 初回受講フラグ
+ * @returns {string} 授業料テキスト（例："初回授業料 ¥6,000"）
+ */
+function getTuitionDisplayText(classroom, isFirstTime) {
+  try {
+    // 会計マスタから価格データを取得
+    const accountingData = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
+    if (!accountingData || !accountingData.items) {
+      // キャッシュが無い場合は文字列のみ返す
+      return isFirstTime ? '初回授業料' : '通常授業料';
+    }
+
+    const masterData = accountingData.items;
+    const itemName = isFirstTime ? ITEMS.FIRST_LECTURE : ITEMS.MAIN_LECTURE;
+
+    // 教室固有の料金ルールを検索
+    const tuitionRule = masterData.find(
+      item =>
+        item[HEADERS.ACCOUNTING.TYPE] === ITEM_TYPES.TUITION &&
+        item[HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
+        item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+        item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
+    );
+
+    if (tuitionRule) {
+      const price = Number(tuitionRule[HEADERS.ACCOUNTING.UNIT_PRICE]);
+      const unit = tuitionRule[HEADERS.ACCOUNTING.UNIT] || '';
+      const priceText = price > 0 ? ` ¥${price.toLocaleString()}` : '';
+      const unitText = unit ? ` / ${unit}` : '';
+      return `${itemName}${priceText}${unitText}`;
+    }
+
+    // 教室固有ルールが無い場合は基本料金を検索
+    const basicRule = masterData.find(
+      item =>
+        item[HEADERS.ACCOUNTING.TYPE] === ITEM_TYPES.TUITION &&
+        item[HEADERS.ACCOUNTING.ITEM_NAME] === itemName,
+    );
+
+    if (basicRule) {
+      const price = Number(basicRule[HEADERS.ACCOUNTING.UNIT_PRICE]);
+      const unit = basicRule[HEADERS.ACCOUNTING.UNIT] || '';
+      const priceText = price > 0 ? ` ¥${price.toLocaleString()}` : '';
+      const unitText = unit ? ` / ${unit}` : '';
+      return `${itemName}${priceText}${unitText}`;
+    }
+
+    // 料金ルールが見つからない場合
+    return itemName;
+  } catch (error) {
+    Logger.log(`授業料取得エラー: ${error.message}`);
+    return isFirstTime ? '初回授業料' : '通常授業料';
+  }
+}
+
+/**
  * 共通の申込み内容セクション生成（テキスト版）
  */
 function createBookingDetailsText(reservation, formattedDate, statusText) {
   const { classroom, venue, startTime, endTime, options = {} } = reservation;
+  const isFirstTime = options.firstLecture || false;
 
   //TODO: 時間の形式などを要確認 時間が表示されていません
   // 時間表示（フロントエンドで調整済みの値を使用）
@@ -217,12 +276,14 @@ function createBookingDetailsText(reservation, formattedDate, statusText) {
       ? `${startTime} - ${endTime}`
       : '予約webアプリ上か、各教室のページなどをご確認ください';
 
-  //授業料が適切に表示されていない
+  // 実際の授業料金額を取得して表示
+  const tuitionText = getTuitionDisplayText(classroom, isFirstTime);
+
   return `【申込み内容】
 教室: ${classroom} ${venue}
 日付: ${formattedDate}
 時間: ${timeDisplay}
-基本授業料: ${options.firstLecture ? '初回授業料' : '通常授業料'}
+基本授業料: ${tuitionText}
 受付日時: ${new Date().toLocaleString('ja-JP')}
 
 以上の内容を ${statusText} で承りました。`;

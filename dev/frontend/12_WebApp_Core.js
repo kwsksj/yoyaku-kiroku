@@ -341,6 +341,15 @@ window.normalizePhoneNumberFrontend = function (phoneInput) {
   // 空白文字を削除
   normalized = normalized.replace(/\s/g, '');
 
+  // 国番号の自動修正処理
+  // +81または81で始まる場合は日本の標準形式に変換
+  if (normalized.startsWith('+81')) {
+    normalized = '0' + normalized.substring(3);
+  } else if (normalized.startsWith('81') && normalized.length >= 12) {
+    // 81で始まり、12桁以上の場合（81 + 11桁の日本の番号）
+    normalized = '0' + normalized.substring(2);
+  }
+
   // 数字以外の文字をチェック
   if (!/^\d+$/.test(normalized)) {
     return {

@@ -73,17 +73,27 @@ const getDiscountHtml = (discountRule, selectedValue) => {
 };
 
 /**
- * 支払い情報（ことら送金、振込先）の表示UIを生成します。
+ * 選択された支払方法に応じた支払い情報を動的に表示するUIを生成します。
+ * @param {string} selectedPaymentMethod - 選択された支払方法
  * @returns {string} HTML文字列
  */
-const getPaymentInfoHtml = () => {
-  return `
+const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
+  let paymentInfoHtml = '';
+  
+  // ことら送金が選択された場合のみ電話番号を表示
+  if (selectedPaymentMethod === PAYMENT.COTRA) {
+    paymentInfoHtml += `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
                 <div class="${DesignConfig.text.body}"><span class="font-bold">${PAYMENT.COTRA}:</span><span class="ml-2">${BANK.COTRA_PHONE}</span></div>
                 <button data-action="copyToClipboard" data-copy-text="${BANK.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
-        </div>
+        </div>`;
+  }
+  
+  // 振込が選択された場合のみ口座情報を表示
+  if (selectedPaymentMethod === PAYMENT.BANK_TRANSFER) {
+    paymentInfoHtml += `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${BANK.NAME}</span></div>
             <div class="mt-1 flex justify-between items-center">
@@ -95,6 +105,10 @@ const getPaymentInfoHtml = () => {
                 <button data-action="copyToClipboard" data-copy-text="${BANK.ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>`;
+  }
+  
+  // 現金の場合は何も表示しない
+  return paymentInfoHtml;
 };
 
 /**
@@ -145,7 +159,9 @@ const getPaymentOptionsHtml = selectedValue => {
       )
       .join('') +
     `
-        <div class="mt-4 space-y-2 text-base">${getPaymentInfoHtml()}</div>`
+        <div class="mt-4 space-y-2 text-base" id="payment-info-container">
+            <!-- 支払方法別情報がここに動的に表示されます -->
+        </div>`
   );
 };
 
@@ -1579,9 +1595,13 @@ const getReservationFormView = (mode = 'new') => {
   const _renderBookingOptionsSection = () => {
     let optionsHtml = '';
 
-    const firstLectureChecked =
-      firstLecture || isFirstTimeBooking ? 'checked' : '';
-    const firstLectureDisabled = isFirstTimeBooking ? 'disabled' : '';
+    // 編集モード時は実際の予約データを反映、新規作成時は初回受講判定を使用
+    const firstLectureChecked = isEdit 
+      ? (firstLecture ? 'checked' : '') 
+      : (firstLecture || isFirstTimeBooking ? 'checked' : '');
+    const firstLectureDisabled = isEdit 
+      ? '' 
+      : (isFirstTimeBooking ? 'disabled' : '');
     const chiselRentalChecked = chiselRental ? 'checked' : '';
 
     // デバッグ情報（開発時のみ）

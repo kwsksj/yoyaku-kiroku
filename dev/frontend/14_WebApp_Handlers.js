@@ -1782,10 +1782,14 @@ actionHandlers.confirmAndPay = () => {
           });
         } else {
           // 最新データが返されなかった場合は再読み込み要求
+          // 現在の状態を保持してからダッシュボードに遷移
+          const currentState = window.stateManager.getState();
           window.stateManager.dispatch({
             type: 'SET_STATE',
             payload: {
               view: 'dashboard',
+              myBookings: currentState.myBookings || [],
+              history: currentState.history || [],
               isDataFresh: false, // データ再読み込み必要
             },
           });
@@ -2124,6 +2128,13 @@ window.onload = function () {
       document
         .getElementById('confirm-payment-button')
         ?.removeAttribute('disabled');
+      
+      // 選択された支払方法に応じて情報を動的に更新
+      const selectedPaymentMethod = e.target.value;
+      const paymentInfoContainer = document.getElementById('payment-info-container');
+      if (paymentInfoContainer) {
+        paymentInfoContainer.innerHTML = getPaymentInfoHtml(selectedPaymentMethod);
+      }
     }
 
     // 会計画面での変更（主に select や checkbox）
