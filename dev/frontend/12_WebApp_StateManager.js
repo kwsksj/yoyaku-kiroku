@@ -59,6 +59,7 @@ class SimpleStateManager {
       accountingScheduleInfo: null,
       /** @type {string} */ completionMessage: '',
       /** @type {number} */ recordsToShow: 10,
+      /** @type {number} */ registrationStep: 1,
       /** @type {Array<Object>} */
       searchedUsers: [],
       /** @type {boolean} */
@@ -143,7 +144,7 @@ class SimpleStateManager {
     // 最終的な状態更新（画面遷移を伴う）でのみローディング非表示を実行
     const isViewChange = newState.view && newState.view !== previousView;
     const hasSubstantialData =
-      newState.slots || newState.myBookings || newState.currentUser;
+      newState.slots || newState.myReservations || newState.currentUser;
     const isFinalUpdate =
       action.type === 'SET_STATE' && (isViewChange || hasSubstantialData);
 

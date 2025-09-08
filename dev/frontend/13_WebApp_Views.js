@@ -79,7 +79,7 @@ const getDiscountHtml = (discountRule, selectedValue) => {
  */
 const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
   let paymentInfoHtml = '';
-  
+
   // ことら送金が選択された場合のみ電話番号を表示
   if (selectedPaymentMethod === PAYMENT.COTRA) {
     paymentInfoHtml += `
@@ -90,7 +90,7 @@ const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
             </div>
         </div>`;
   }
-  
+
   // 振込が選択された場合のみ口座情報を表示
   if (selectedPaymentMethod === PAYMENT.BANK_TRANSFER) {
     paymentInfoHtml += `
@@ -106,7 +106,7 @@ const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
             </div>
         </div>`;
   }
-  
+
   // 現金の場合は何も表示しない
   return paymentInfoHtml;
 };
@@ -943,22 +943,21 @@ const getDashboardView = () => {
 
   // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
   const activeReservations = myReservations
-    .filter(res => 
-      res.status === STATUS.CONFIRMED || 
-      res.status === STATUS.WAITLISTED
+    .filter(
+      res =>
+        res.status === STATUS.CONFIRMED || res.status === STATUS.WAITLISTED,
     )
     .sort((a, b) => new Date(a.date) - new Date(b.date)); // 日付順ソート
-  
-  const bookingCards = activeReservations
-    .map(b => {
-      const buttons = _buildBookingButtons(b);
-      return Components.listCard({
-        type: 'booking',
-        item: b,
-        today: today,
-        buttons: buttons,
-      });
+
+  const bookingCards = activeReservations.map(b => {
+    const buttons = _buildBookingButtons(b);
+    return Components.listCard({
+      type: 'booking',
+      item: b,
+      today: today,
+      buttons: buttons,
     });
+  });
 
   // 予約セクションを生成（Componentsに構造生成を委任）
   const yourBookingsHtml = Components.dashboardSection({
@@ -973,7 +972,7 @@ const getDashboardView = () => {
   const completedReservations = myReservations
     .filter(res => res.status === STATUS.COMPLETED)
     .sort((a, b) => new Date(b.date) - new Date(a.date)); // 新しい順ソート
-  
+
   const recordsToShow = state.recordsToShow || 10;
   const completedRecords = completedReservations.slice(0, recordsToShow);
 
@@ -1602,12 +1601,18 @@ const getReservationFormView = (mode = 'new') => {
     let optionsHtml = '';
 
     // 編集モード時は実際の予約データを反映、新規作成時は初回受講判定を使用
-    const firstLectureChecked = isEdit 
-      ? (firstLecture ? 'checked' : '') 
-      : (firstLecture || isFirstTimeBooking ? 'checked' : '');
-    const firstLectureDisabled = isEdit 
-      ? '' 
-      : (isFirstTimeBooking ? 'disabled' : '');
+    const firstLectureChecked = isEdit
+      ? firstLecture
+        ? 'checked'
+        : ''
+      : firstLecture || isFirstTimeBooking
+        ? 'checked'
+        : '';
+    const firstLectureDisabled = isEdit
+      ? ''
+      : isFirstTimeBooking
+        ? 'disabled'
+        : '';
     const chiselRentalChecked = chiselRental ? 'checked' : '';
 
     // デバッグ情報（開発時のみ）
@@ -1791,9 +1796,12 @@ const getCompleteView = msg => {
   const studentHasEmail = currentUser && currentUser.email;
   const emailPreference = currentUser && currentUser.wantsEmail;
 
-  // メール送信に関する案内メッセージ
+  // 予約完了か会計完了かを判定
+  const isReservationComplete = msg !== '会計情報を記録しました。';
+
+  // メール送信に関する案内メッセージ（予約完了時のみ表示）
   let emailNoticeHtml = '';
-  if (wasFirstTimeBooking) {
+  if (wasFirstTimeBooking && isReservationComplete) {
     emailNoticeHtml = `
         <div class="bg-ui-info-bg border border-ui-info-border rounded-lg p-4 mt-4">
           <div class="flex items-start">
@@ -1813,7 +1821,7 @@ const getCompleteView = msg => {
           </div>
         </div>
       `;
-  } else if (studentHasEmail && emailPreference) {
+  } else if (studentHasEmail && emailPreference && isReservationComplete) {
     emailNoticeHtml = `
         <div class="bg-ui-surface rounded-lg p-3 mt-4">
           <p class="text-sm text-brand-subtle text-center">
@@ -1837,9 +1845,14 @@ const getCompleteView = msg => {
     const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
     if (bookingSlotsHtml) {
+      // 予約完了時と会計完了時で表記を変更
+      const sectionTitle = isReservationComplete
+        ? '+ さらに つぎの よやく'
+        : '+ つぎの よやく';
+
       nextBookingHtml = `
           <div class="mt-10 pt-6 border-t border-gray-200">
-              <h3 class="text-xl font-bold text-brand-text text-center mb-4">次回の予約</h3>
+              <h3 class="text-xl font-bold text-brand-text text-center mb-4">${sectionTitle}</h3>
               <div class="${DesignConfig.cards.container}">
               ${bookingSlotsHtml}
               </div>
@@ -1857,8 +1870,6 @@ const getCompleteView = msg => {
 
         ${emailNoticeHtml}
 
-        ${nextBookingHtml}
-
         <div class="max-w-xs mx-auto mt-8">
              ${Components.createButton({
                text: 'ホームへ戻る',
@@ -1867,6 +1878,9 @@ const getCompleteView = msg => {
                widthClass: DesignConfig.buttons.full,
              })}
         </div>
+
+        ${nextBookingHtml}
+
     </div>`;
 };
 

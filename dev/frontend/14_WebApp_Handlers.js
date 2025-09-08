@@ -421,7 +421,7 @@ const actionHandlers = {
   editHistoryMemo: d => {
     const item = stateManager
       .getState()
-      .history.find(h => h.reservationId === d.reservationId);
+      .myReservations.find(h => h.reservationId === d.reservationId);
     if (!item) return;
 
     const originalMemo = item.workInProgress;
@@ -440,7 +440,7 @@ const actionHandlers = {
 
         // 楽観的UI: まずフロントの表示を更新（イミュータブル更新）
         const state = window.stateManager.getState();
-        const newHistory = state.history.map(h => {
+        const newReservations = state.myReservations.map(h => {
           if (h.reservationId === d.reservationId) {
             return { ...h, workInProgress: newMemo };
           }
@@ -448,7 +448,7 @@ const actionHandlers = {
         });
         window.stateManager.dispatch({
           type: 'UPDATE_STATE',
-          payload: { history: newHistory },
+          payload: { myReservations: newReservations },
         });
 
         showLoading();
@@ -483,7 +483,7 @@ const actionHandlers = {
             } else {
               // サーバーエラーの場合は元に戻す（イミュータブル更新）
               const errorState = window.stateManager.getState();
-              const revertedHistory = errorState.history.map(h => {
+              const revertedReservations = errorState.myReservations.map(h => {
                 if (h.reservationId === d.reservationId) {
                   return { ...h, workInProgress: originalMemo };
                 }
@@ -491,7 +491,7 @@ const actionHandlers = {
               });
               window.stateManager.dispatch({
                 type: 'SET_STATE',
-                payload: { history: revertedHistory },
+                payload: { myReservations: revertedReservations },
               });
               showInfo(r.message || 'メモの保存に失敗しました。', 'エラー');
             }
@@ -500,15 +500,17 @@ const actionHandlers = {
             hideLoading();
             // 通信エラーの場合は元に戻す（イミュータブル更新）
             const failureState = window.stateManager.getState();
-            const failureRevertedHistory = failureState.history.map(h => {
-              if (h.reservationId === d.reservationId) {
-                return { ...h, workInProgress: originalMemo };
-              }
-              return h;
-            });
+            const failureRevertedReservations = failureState.myReservations.map(
+              h => {
+                if (h.reservationId === d.reservationId) {
+                  return { ...h, workInProgress: originalMemo };
+                }
+                return h;
+              },
+            );
             window.stateManager.dispatch({
               type: 'SET_STATE',
-              payload: { history: failureRevertedHistory },
+              payload: { myReservations: failureRevertedReservations },
             });
             handleServerError(err);
           })
@@ -838,7 +840,7 @@ const actionHandlers = {
     // 予約データは既にキャッシュから取得済みなので、直接編集画面に遷移
     const reservation = stateManager
       .getState()
-      .myBookings.find(
+      .myReservations.find(
         booking =>
           booking.reservationId === d.reservationId &&
           booking.classroom === d.classroom,
@@ -1415,108 +1417,6 @@ const actionHandlers = {
       .getBatchData(['slots'], stateManager.getState().currentUser.phone);
   },
 
-  /** スロット情報を更新してから完了画面に遷移します（設計書準拠） */
-  updateSlotsAndGoToComplete: message => {
-    // 一度だけローディングを表示
-    showLoading('dataFetch');
-
-    google.script.run
-      .withSuccessHandler(versionResponse => {
-        if (versionResponse.success && versionResponse.data) {
-          const currentSlotsVersion = stateManager.getState()._slotsVersion;
-          const serverSlotsVersion = versionResponse.data.slotsComposite;
-
-          // バージョンが同じ（データに変更なし）で、既にスロットデータがある場合は即座に遷移
-          if (
-            currentSlotsVersion === serverSlotsVersion &&
-            stateManager.getState().slots &&
-            stateManager.getState().slots.length > 0
-          ) {
-            hideLoading();
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                view: 'complete',
-                completionMessage: message,
-                accountingReservation:
-                  stateManager.getState().accountingReservation,
-                isDataFresh: true,
-              },
-            });
-            return;
-          }
-
-          // バージョンが異なる場合、または初回の場合は最新データを取得してから遷移（ローディングは継続）
-          actionHandlers.fetchLatestSlotsDataForComplete(
-            message,
-            serverSlotsVersion,
-          );
-        } else {
-          // バージョンチェック失敗時はフォールバック（全データ取得、ローディングは継続）
-          actionHandlers.fetchLatestSlotsDataForComplete(message, null);
-        }
-      })
-      .withFailureHandler(error => {
-        // エラー時もフォールバック（全データ取得、ローディングは継続）
-        actionHandlers.fetchLatestSlotsDataForComplete(message, null);
-      })
-      .getCacheVersions();
-  },
-
-  /** 最新の空き枠データを取得してから完了画面に遷移する（内部処理） */
-  fetchLatestSlotsDataForComplete: (message, newSlotsVersion) => {
-    // ローディングは既に親関数で表示済み
-
-    google.script.run
-      .withSuccessHandler(response => {
-        hideLoading();
-
-        if (response.success && response.data && response.data.slots) {
-          // 空き枠データとバージョン情報を更新してから完了画面に遷移
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              slots: response.data.slots,
-              view: 'complete',
-              completionMessage: message,
-              accountingReservation:
-                stateManager.getState().accountingReservation,
-              isDataFresh: true,
-              _slotsVersion: newSlotsVersion, // バージョン情報を保存
-            },
-          });
-        } else {
-          // スロット取得に失敗してもメッセージは表示
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              view: 'complete',
-              completionMessage: message,
-              accountingReservation:
-                stateManager.getState().accountingReservation,
-              isDataFresh: false,
-            },
-          });
-        }
-      })
-      .withFailureHandler(error => {
-        hideLoading();
-        Logger.log(`fetchLatestSlotsDataForCompleteエラー: ${error}`);
-        // エラーでもメッセージは表示
-        window.stateManager.dispatch({
-          type: 'SET_STATE',
-          payload: {
-            view: 'complete',
-            completionMessage: message,
-            accountingReservation:
-              stateManager.getState().accountingReservation,
-            isDataFresh: false,
-          },
-        });
-      })
-      .getBatchData(['slots'], stateManager.getState().currentUser.phone);
-  },
-
   /** 予約枠を選択し、予約確認画面に遷移します */
   bookSlot: d => {
     const foundSlot = stateManager
@@ -1757,7 +1657,7 @@ actionHandlers.confirmAndPay = () => {
         hideModal(); // モーダルを閉じる
         hideLoading();
 
-        // 会計完了後は最新データを取得してホームに戻る
+        // 会計完了後は完了画面に遷移
         if (r.data) {
           // バックエンドから最新データが返された場合
           window.stateManager.dispatch({
@@ -1766,25 +1666,24 @@ actionHandlers.confirmAndPay = () => {
               ...r.data.initialData,
               myReservations: r.data.myReservations || [],
               slots: r.data.slots || [],
-              view: 'dashboard',
+              view: 'complete',
+              completionMessage: '会計情報を記録しました。',
               isDataFresh: true, // 最新データ受信済み
             },
           });
         } else {
-          // 最新データが返されなかった場合は再読み込み要求
-          // 現在の状態を保持してからダッシュボードに遷移
+          // 最新データが返されなかった場合でも完了画面に遷移
           const currentState = window.stateManager.getState();
           window.stateManager.dispatch({
             type: 'SET_STATE',
             payload: {
-              view: 'dashboard',
-              myBookings: currentState.myBookings || [],
-              history: currentState.history || [],
+              view: 'complete',
+              completionMessage: '会計情報を記録しました。',
+              myReservations: currentState.myReservations || [],
               isDataFresh: false, // データ再読み込み必要
             },
           });
         }
-        showInfo('会計情報を記録しました。', '完了');
       } else {
         hideLoading();
         showInfo(r.message || '会計情報の記録に失敗しました。');
@@ -2118,12 +2017,16 @@ window.onload = function () {
       document
         .getElementById('confirm-payment-button')
         ?.removeAttribute('disabled');
-      
+
       // 選択された支払方法に応じて情報を動的に更新
       const selectedPaymentMethod = e.target.value;
-      const paymentInfoContainer = document.getElementById('payment-info-container');
+      const paymentInfoContainer = document.getElementById(
+        'payment-info-container',
+      );
       if (paymentInfoContainer) {
-        paymentInfoContainer.innerHTML = getPaymentInfoHtml(selectedPaymentMethod);
+        paymentInfoContainer.innerHTML = getPaymentInfoHtml(
+          selectedPaymentMethod,
+        );
       }
     }
 

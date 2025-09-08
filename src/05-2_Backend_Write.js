@@ -282,26 +282,27 @@ function makeReservation(reservationInfo) {
       // 日付文字列をDateオブジェクトに変換（東京タイムゾーン指定）
       const targetDate = new Date(date + 'T00:00:00+09:00');
 
-      //TODO 会場情報は日程マスタ、もしくreservationInfoから取得すべき
-      // 会場情報を取得（同日同教室の既存予約から）
-      let venue = '';
-      const sameDateRow = data.find(row => {
-        // 防御的プログラミング: 行データの存在確認
-        if (!row || !Array.isArray(row)) {
-          return false;
-        }
+      // 会場情報を取得（reservationInfoまたは同日同教室の既存予約から）
+      let venue = reservationInfo.venue || '';
+      if (!venue) {
+        const sameDateRow = data.find(row => {
+          // 防御的プログラミング: 行データの存在確認
+          if (!row || !Array.isArray(row)) {
+            return false;
+          }
 
-        const rowDate = row[dateColIdx];
-        return (
-          rowDate instanceof Date &&
-          Utilities.formatDate(rowDate, CONSTANTS.TIMEZONE, 'yyyy-MM-dd') ===
-            date &&
-          row[classroomColIdx] === classroom &&
-          row[venueColIdx]
-        );
-      });
-      if (sameDateRow && sameDateRow[venueColIdx]) {
-        venue = sameDateRow[venueColIdx];
+          const rowDate = row[dateColIdx];
+          return (
+            rowDate instanceof Date &&
+            Utilities.formatDate(rowDate, CONSTANTS.TIMEZONE, 'yyyy-MM-dd') ===
+              date &&
+            row[classroomColIdx] === classroom &&
+            row[venueColIdx]
+          );
+        });
+        if (sameDateRow && sameDateRow[venueColIdx]) {
+          venue = sameDateRow[venueColIdx];
+        }
       }
 
       // 新しい予約行のデータを作成（統合予約シートの形式）
@@ -358,8 +359,7 @@ function makeReservation(reservationInfo) {
 
       SpreadsheetApp.flush(); // シート書き込み完了を保証
 
-      //todo 予約のキャッシュのみの更新でよいのでは？
-      // 統合予約シートの更新後、キャッシュを再構築
+      // 統合予約シートの更新後、予約キャッシュのみを再構築
       rebuildAllReservationsCache();
 
       // ログと通知
@@ -1007,10 +1007,13 @@ function _logSalesForSingleReservation(
         reservationDataRow[
           headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)
         ],
-      // TODO: 予約シートには名前が存在しないので、仮に生徒IDを入力
-      name: reservationDataRow[
-        headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)
-      ],
+      // 生徒名を生徒IDから取得（キャッシュから）
+      name:
+        getCachedStudentById(
+          reservationDataRow[
+            headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)
+          ],
+        )?.name || '不明',
       classroom: classroomName,
       venue:
         reservationDataRow[

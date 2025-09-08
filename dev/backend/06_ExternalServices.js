@@ -269,12 +269,34 @@ function createBookingDetailsText(reservation, formattedDate, statusText) {
   const { classroom, venue, startTime, endTime, options = {} } = reservation;
   const isFirstTime = options.firstLecture || false;
 
-  //TODO: 時間の形式などを要確認 時間が表示されていません
-  // 時間表示（フロントエンドで調整済みの値を使用）
-  const timeDisplay =
-    startTime && endTime
-      ? `${startTime} - ${endTime}`
-      : '予約webアプリ上か、各教室のページなどをご確認ください';
+  // 時間表示（DateオブジェクトまたはHH:mm形式文字列に対応）
+  let timeDisplay = '予約webアプリ上か、各教室のページなどをご確認ください';
+  if (startTime && endTime) {
+    let formattedStartTime, formattedEndTime;
+
+    // Dateオブジェクトの場合は時分のみを抽出
+    if (startTime instanceof Date) {
+      formattedStartTime = Utilities.formatDate(
+        startTime,
+        CONSTANTS.TIMEZONE,
+        'HH:mm',
+      );
+    } else {
+      formattedStartTime = startTime.toString();
+    }
+
+    if (endTime instanceof Date) {
+      formattedEndTime = Utilities.formatDate(
+        endTime,
+        CONSTANTS.TIMEZONE,
+        'HH:mm',
+      );
+    } else {
+      formattedEndTime = endTime.toString();
+    }
+
+    timeDisplay = `${formattedStartTime} - ${formattedEndTime}`;
+  }
 
   // 実際の授業料金額を取得して表示
   const tuitionText = getTuitionDisplayText(classroom, isFirstTime);
@@ -467,4 +489,5 @@ function sendBookingConfirmationEmailAsync(reservationInfo) {
  */
 
 // 将来的な機能拡張のためのプレースホルダー
-// TODO: 必要に応じて外部サービス連携機能を実装
+// 外部サービス連携機能は docs/CALENDAR_SYNC_SPECIFICATION.md に仕様を記載済み
+// 現時点では実装不要
