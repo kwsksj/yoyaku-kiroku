@@ -9,9 +9,22 @@
     "strict": false,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
-    "types": ["google-apps-script"]
+    "types": ["google-apps-script"],
+    // GAS環境用設定
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "noImplicitReturns": false,
+    "noImplicitAny": false,
+    "noImplicitThis": false,
+    // GAS特有の重複定義を許可
+    "exactOptionalPropertyTypes": false
   },
-  "include": ["**/*.js", "../html-globals.d.ts", "../types/*.d.ts"],
+  "include": [
+    "**/*.js",
+    "../gas-globals.d.ts",
+    "../html-globals.d.ts",
+    "../types/*.d.ts"
+  ],
   "exclude": ["node_modules", "**/*.min.js"],
   "typeAcquisition": {
     "enable": true,

@@ -268,14 +268,7 @@ function makeReservation(reservationInfo) {
       );
 
       // 定員チェック（共通関数を使用）
-      const isFull = checkCapacityFull(
-        classroom,
-        date,
-        data,
-        headerMap,
-        startTime,
-        endTime,
-      );
+      const isFull = checkCapacityFull(classroom, date, startTime, endTime);
 
       // 新しい予約IDを生成
       const newReservationId = Utilities.getUuid();
@@ -806,7 +799,7 @@ function saveAccountingDetails(payload) {
         if (classroomRule && startTime && endTime && startTime < endTime) {
           const start = new Date(`1900-01-01T${startTime}:00`);
           const end = new Date(`1900-01-01T${endTime}:00`);
-          const diffMinutes = (end - start) / 60000 - (breakMinutes || 0);
+          const diffMinutes = (end.getTime() - start.getTime()) / 60000 - (breakMinutes || 0);
           if (diffMinutes > 0) {
             const billableUnits = Math.ceil(diffMinutes / 30);
             const price =

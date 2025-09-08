@@ -38,15 +38,15 @@ function createScheduleMasterSheet() {
 
     // ヘッダーを設定
     scheduleSheet
-      .getRange(HEADER_ROW, 1, 1, CONSTANTS.HEADERS.SCHEDULE.length)
-      .setValues([CONSTANTS.HEADERS.SCHEDULE]);
+      .getRange(HEADER_ROW, 1, 1, Object.keys(CONSTANTS.HEADERS.SCHEDULE).length)
+      .setValues([Object.values(CONSTANTS.HEADERS.SCHEDULE)]);
 
     // ヘッダー行の書式設定
     const headerRange = scheduleSheet.getRange(
       HEADER_ROW,
       1,
       1,
-      CONSTANTS.HEADERS.SCHEDULE.length,
+      Object.keys(CONSTANTS.HEADERS.SCHEDULE).length,
     );
     headerRange.setFontWeight('bold');
     headerRange.setBackground(COLOR_HEADER_BACKGROUND);
@@ -71,7 +71,7 @@ function createScheduleMasterSheet() {
           DATA_START_ROW,
           1,
           sampleData.length,
-          CONSTANTS.HEADERS.SCHEDULE.length,
+          Object.keys(CONSTANTS.HEADERS.SCHEDULE).length,
         )
         .setValues(sampleData);
     }
@@ -422,15 +422,15 @@ function prepareScheduleMasterSheet() {
 
     // ヘッダーを設定
     scheduleSheet
-      .getRange(HEADER_ROW, 1, 1, CONSTANTS.HEADERS.SCHEDULE.length)
-      .setValues([CONSTANTS.HEADERS.SCHEDULE.length]);
+      .getRange(HEADER_ROW, 1, 1, Object.keys(CONSTANTS.HEADERS.SCHEDULE).length)
+      .setValues([Object.values(CONSTANTS.HEADERS.SCHEDULE)]);
 
     // ヘッダー行の書式設定
     const headerRange = scheduleSheet.getRange(
       HEADER_ROW,
       1,
       1,
-      CONSTANTS.HEADERS.SCHEDULE.length,
+      Object.keys(CONSTANTS.HEADERS.SCHEDULE).length,
     );
     headerRange.setFontWeight('bold');
     headerRange.setBackground(COLOR_HEADER_BACKGROUND);
@@ -444,7 +444,7 @@ function prepareScheduleMasterSheet() {
           DATA_START_ROW,
           1,
           lastRow - HEADER_ROW,
-          CONSTANTS.HEADERS.SCHEDULE.length,
+          Object.keys(CONSTANTS.HEADERS.SCHEDULE).length,
         )
         .clear();
     }
@@ -580,7 +580,7 @@ function writeScheduleDataToSheet(scheduleData) {
     DATA_START_ROW,
     1,
     scheduleData.length,
-    CONSTANTS.HEADERS.SCHEDULE.length,
+    Object.keys(CONSTANTS.HEADERS.SCHEDULE).length,
   );
   range.setValues(scheduleData);
 

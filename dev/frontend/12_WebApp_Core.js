@@ -49,7 +49,7 @@ function findReservationById(reservationId, state = null) {
   );
   if (reservation) {
     // ステータスに基づいてtype分類を追加
-    if (reservation.status === STATUS.COMPLETED) {
+    if (reservation.status === window.STATUS.COMPLETED) {
       return { ...reservation, type: 'record' };
     } else {
       return { ...reservation, type: 'booking' };
@@ -74,10 +74,10 @@ function findReservationByDateAndClassroom(date, classroom, state = null) {
   const reservation = currentState.myReservations?.find(
     item => item.date === date && item.classroom === classroom,
   );
-  
+
   if (reservation) {
     // ステータスに基づいてtype分類を追加
-    if (reservation.status === STATUS.COMPLETED) {
+    if (reservation.status === window.STATUS.COMPLETED) {
       return { ...reservation, type: 'record' };
     } else {
       return { ...reservation, type: 'booking' };
@@ -98,11 +98,12 @@ function findReservationsByStatus(status, state = null) {
   if (!currentState) return [];
 
   // myReservationsから直接検索
-  const reservations = currentState.myReservations?.filter(item => item.status === status) || [];
-  
+  const reservations =
+    currentState.myReservations?.filter(item => item.status === status) || [];
+
   // ステータスに基づいてtype分類を追加
   return reservations.map(item => {
-    if (item.status === STATUS.COMPLETED) {
+    if (item.status === window.STATUS.COMPLETED) {
       return { ...item, type: 'record' };
     } else {
       return { ...item, type: 'booking' };
@@ -140,7 +141,9 @@ function processInitialData(
   currentUser.displayName = currentUser.nickname || currentUser.realName;
 
   // 2. 個人予約データを直接保存（フィルタリングは表示時に実行）
-  const myReservations = userReservations ? userReservations.myReservations : [];
+  const myReservations = userReservations
+    ? userReservations.myReservations
+    : [];
 
   // 3. 教室一覧は統合定数から取得（StateManagerで設定される）
   // availableSlots から取得する必要はなくなった
@@ -792,7 +795,6 @@ const showConfirm = c => showModal({ ...c, showCancel: true });
 // -----------------------------------------------------------------
 // stateManager.getState().computedの計算・更新処理を管理します。
 // =================================================================
-
 
 // =================================================================
 // --- Accounting Cache Utilities ---

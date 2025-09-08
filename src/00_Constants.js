@@ -322,6 +322,7 @@ const CONSTANTS = /** @type {const} */ ({
     },
   },
 
+
   // 注意: HEADER_MAPPINGS は過度に複雑だったため削除
   // 必要な箇所では直接的なswitch文で対応
 

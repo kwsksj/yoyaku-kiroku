@@ -50,8 +50,8 @@
 
 // 【純粋にフロントエンド専用】以下は本当にフロントエンドでしか使わない定数のみ
 
-// ステータス定数（フロントエンド専用 - バックエンド定数と同期）
-const STATUS = {
+// ステータス定数（フロントエンド用 - バックエンドCONSTANTSとの重複を避けるためwindowオブジェクトに設定）
+window.STATUS = window.STATUS || {
   CANCELED: '取消', // キャンセル済み
   WAITLISTED: '待機', // キャンセル待ち
   CONFIRMED: '確定', // 予約確定（会計前）
@@ -61,7 +61,7 @@ const STATUS = {
 // =================================================================
 // 2. DESIGN CONFIGURATION
 // =================================================================
-const DesignConfig = {
+window.DesignConfig = window.DesignConfig || {
   // テキストや背景の色設定（温かみと活気のある配色）
   colors: {
     text: 'text-brand-text', // メインテキスト

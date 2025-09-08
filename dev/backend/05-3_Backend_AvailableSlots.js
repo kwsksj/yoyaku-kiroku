@@ -412,7 +412,7 @@ function getAvailableSlots() {
 
     // 8. 日付・教室順でソート
     filteredSlots.sort((a, b) => {
-      const dateComp = new Date(a.date) - new Date(b.date);
+      const dateComp = new Date(a.date).getTime() - new Date(b.date).getTime();
       if (dateComp !== 0) return dateComp;
       return a.classroom.localeCompare(b.classroom);
     });
@@ -478,11 +478,9 @@ function getUserReservations(studentId) {
     });
 
     // 日付でソート（新しい順）
-    myReservations.sort((a, b) => new Date(b.date) - new Date(a.date));
+    myReservations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    Logger.log(
-      `生徒ID ${studentId} の予約を取得: ${myReservations.length} 件`,
-    );
+    Logger.log(`生徒ID ${studentId} の予約を取得: ${myReservations.length} 件`);
     return createApiResponse(true, {
       myReservations: myReservations,
     });

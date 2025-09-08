@@ -27,7 +27,7 @@
 class SpreadsheetManager {
   constructor() {
     this._spreadsheet = null;
-    this._sheets = new Map();  // Sheetオブジェクトのみキャッシュ
+    this._sheets = new Map(); // Sheetオブジェクトのみキャッシュ
   }
 }
 ```
@@ -50,24 +50,24 @@ class SpreadsheetManager {
     this._rangeCache = new Map(); // 新機能：範囲データキャッシュ
     this._cacheExpiry = new Map(); // キャッシュ有効期限管理
   }
-  
+
   // 新メソッド：範囲データのキャッシュ機能付き取得
   getRangeWithCache(sheetName, range, cacheDuration = 300000) {
     const cacheKey = `${sheetName}_${range}`;
-    
+
     if (this._rangeCache.has(cacheKey)) {
       const expiry = this._cacheExpiry.get(cacheKey);
       if (Date.now() < expiry) {
         return this._rangeCache.get(cacheKey);
       }
     }
-    
+
     const sheet = this.getSheet(sheetName);
     const data = sheet.getRange(range).getValues();
-    
+
     this._rangeCache.set(cacheKey, data);
     this._cacheExpiry.set(cacheKey, Date.now() + cacheDuration);
-    
+
     return data;
   }
 }
@@ -106,7 +106,7 @@ class SpreadsheetManager {
 
 ```javascript
 // 行255-417で日付フォーマット処理
-value = Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd')
+value = Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
 value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
 value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm');
 ```
@@ -129,20 +129,20 @@ const formatCache = new Map();
 
 function formatDateCached(dateValue, timezone, format) {
   const cacheKey = `${dateValue.getTime()}_${timezone}_${format}`;
-  
+
   if (formatCache.has(cacheKey)) {
     return formatCache.get(cacheKey);
   }
-  
+
   const formatted = Utilities.formatDate(dateValue, timezone, format);
   formatCache.set(cacheKey, formatted);
-  
+
   // キャッシュサイズ制限（1000エントリ）
   if (formatCache.size > 1000) {
     const firstKey = formatCache.keys().next().value;
     formatCache.delete(firstKey);
   }
-  
+
   return formatted;
 }
 ```
@@ -196,10 +196,10 @@ function createRequestHash(functionName, params) {
 }
 
 function withDuplicateRequestPrevention(functionName, originalFunction) {
-  return function(...args) {
+  return function (...args) {
     const requestHash = createRequestHash(functionName, args);
     const now = Date.now();
-    
+
     // 重複リクエストチェック
     if (requestCache.has(requestHash)) {
       const cachedData = requestCache.get(requestHash);
@@ -208,19 +208,19 @@ function withDuplicateRequestPrevention(functionName, originalFunction) {
         return cachedData.result;
       }
     }
-    
+
     // 新規実行
     const result = originalFunction.apply(this, args);
-    
+
     // 結果をキャッシュ
     requestCache.set(requestHash, {
       timestamp: now,
-      result: result
+      result: result,
     });
-    
+
     // 古いキャッシュの削除
     cleanupRequestCache();
-    
+
     return result;
   };
 }
@@ -239,15 +239,9 @@ function cleanupRequestCache() {
 
 ```javascript
 // src/09_Backend_Endpoints.js での適用例
-const getAvailableSlots = withDuplicateRequestPrevention(
-  'getAvailableSlots',
-  originalGetAvailableSlots
-);
+const getAvailableSlots = withDuplicateRequestPrevention('getAvailableSlots', originalGetAvailableSlots);
 
-const writeReservation = withDuplicateRequestPrevention(
-  'writeReservation', 
-  originalWriteReservation
-);
+const writeReservation = withDuplicateRequestPrevention('writeReservation', originalWriteReservation);
 ```
 
 **対象API**:

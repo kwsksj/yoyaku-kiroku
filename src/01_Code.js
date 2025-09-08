@@ -133,7 +133,7 @@ function addCacheMenu(menu) {
 /**
  * インストール型トリガー：シート変更時に実行。
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processChange` へ委譲します。
- * @param {Object} e - Google Sheets のイベントオブジェクト
+ * @param {Object} _e - Google Sheets のイベントオブジェクト
  */
 function handleOnChange(_e) {
   const lock = LockService.getScriptLock();
@@ -150,7 +150,7 @@ function handleOnChange(_e) {
 /**
  * インストール型トリガー：シート編集時に実行。
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processCellEdit` へ委譲します。
- * @param {Object} e - Google Sheets のイベントオブジェクト
+ * @param {Object} _e - Google Sheets のイベントオブジェクト
  */
 function handleEdit(_e) {
   const lock = LockService.getScriptLock();

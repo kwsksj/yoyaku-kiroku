@@ -31,7 +31,7 @@
   "editor.guides.bracketPairs": true,
   "editor.inlineSuggest.enabled": true,
 
-  // JavaScript/TypeScript Configuration
+  // JavaScript/TypeScript Configuration for GAS
   "javascript.preferences.includePackageJsonAutoImports": "auto",
   "javascript.suggest.autoImports": true,
   "javascript.validate.enable": true,
@@ -40,6 +40,10 @@
   "typescript.suggest.autoImports": true,
   "typescript.validate.enable": true,
   "typescript.implicitProjectConfig.checkJs": true,
+
+  // GAS特有設定：重複定義エラーの抑制
+  "typescript.reportStyleChecksAsWarnings": true,
+  "typescript.preferences.allowRenameOfImportPath": false,
 
   // HTML内JavaScript TypeScript支援
   "typescript.suggest.jsdoc.generateReturns": true,

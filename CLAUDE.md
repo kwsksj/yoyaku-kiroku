@@ -34,6 +34,7 @@ Successfully migrated from classroom-specific distributed data structure to an i
 - **修正後は必ず `npm run dev:build` でsrcに反映**
 
 **正しいワークフロー:**
+
 1. `dev/backend/` または `dev/frontend/` でコード編集
 2. `npm run dev:build` で変更を `src/` に反映
 3. `npm run dev:test` でテスト環境確認

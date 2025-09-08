@@ -329,7 +329,7 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
 
     // ★ 日付順でソート処理を追加
     if (scheduleDataList && scheduleDataList.length > 0) {
-      scheduleDataList.sort((a, b) => new Date(a.date) - new Date(b.date));
+      scheduleDataList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }
 
     const cacheData = {

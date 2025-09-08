@@ -213,7 +213,7 @@ const createReservationCard = config => {
     if (item.firstLecture) {
       statusBadges += `<span class="inline-block bg-action-attention-bg text-action-attention-text text-xs font-bold px-2 py-1 rounded-full ml-2">初回</span>`;
     }
-    if (item.status === STATUS.WAITLISTED || item.isWaiting) {
+    if (item.status === window.STATUS.WAITLISTED || item.isWaiting) {
       statusBadges += `<span class="inline-block bg-state-waitlist-bg text-state-waitlist-text text-xs font-bold px-2 py-1 rounded-full ml-2">⏳ キャンセル待ち</span>`;
     }
   }
@@ -865,7 +865,7 @@ const _buildBookingButtons = booking => {
   const isBookingToday = _isToday(booking.date);
 
   // 会計関連ボタン（新仕様）
-  if (booking.status === STATUS.CONFIRMED && isBookingToday) {
+  if (booking.status === window.STATUS.CONFIRMED && isBookingToday) {
     // よやく かつ 当日 → 「会計」ボタン
     buttons.push({
       action: 'goToAccounting',
@@ -876,8 +876,8 @@ const _buildBookingButtons = booking => {
 
   // 確認/編集ボタン
   if (
-    booking.status === STATUS.CONFIRMED ||
-    booking.status === STATUS.WAITLISTED
+    booking.status === window.STATUS.CONFIRMED ||
+    booking.status === window.STATUS.WAITLISTED
   ) {
     // よやく → 「確認/編集」ボタン
     buttons.push({
@@ -900,7 +900,7 @@ const _buildHistoryButtons = historyItem => {
   const isHistoryToday = _isToday(historyItem.date);
 
   // 会計関連ボタン（新仕様）
-  if (historyItem.status === STATUS.COMPLETED) {
+  if (historyItem.status === window.STATUS.COMPLETED) {
     if (isHistoryToday) {
       // きろく かつ 当日 → 「会計を修正」ボタン
       buttons.push({
@@ -945,7 +945,8 @@ const getDashboardView = () => {
   const activeReservations = myReservations
     .filter(
       res =>
-        res.status === STATUS.CONFIRMED || res.status === STATUS.WAITLISTED,
+        res.status === window.STATUS.CONFIRMED ||
+        res.status === window.STATUS.WAITLISTED,
     )
     .sort((a, b) => new Date(a.date) - new Date(b.date)); // 日付順ソート
 
@@ -970,7 +971,7 @@ const getDashboardView = () => {
   // 履歴セクション用のカード配列を構築：完了ステータスのみ表示
   let historyHtml = '';
   const completedReservations = myReservations
-    .filter(res => res.status === STATUS.COMPLETED)
+    .filter(res => res.status === window.STATUS.COMPLETED)
     .sort((a, b) => new Date(b.date) - new Date(a.date)); // 新しい順ソート
 
   const recordsToShow = state.recordsToShow || 10;
@@ -1207,7 +1208,7 @@ const renderBookingSlots = slots => {
 
             if (
               reservationData &&
-              reservationData.status === STATUS.COMPLETED
+              reservationData.status === window.STATUS.COMPLETED
             ) {
               // 完了済みの記録の場合
               cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
@@ -1215,7 +1216,7 @@ const renderBookingSlots = slots => {
               act = '';
             } else if (
               reservationData &&
-              reservationData.status === STATUS.WAITLISTED
+              reservationData.status === window.STATUS.WAITLISTED
             ) {
               // キャンセル待ちの場合
               cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
@@ -1947,7 +1948,7 @@ const getAccountingView = () => {
 
   // 会計済みの場合 - 完全分離（編集モードでない場合のみ）
   if (
-    bookingOrRecord.status === STATUS.COMPLETED &&
+    bookingOrRecord.status === window.STATUS.COMPLETED &&
     bookingOrRecord.accountingDetails &&
     !state.isEditingAccountingRecord
   ) {

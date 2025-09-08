@@ -60,6 +60,9 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
     // 送信成功ログ
     Logger.log(
       `メール送信成功: ${student.email} (${isFirstTime ? '初回者' : '経験者'})`,
+      'INFO',
+      'sendConfirmationEmail',
+      new Date()
     );
     logActivity(
       student.studentId,
@@ -69,7 +72,7 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
 
     return true;
   } catch (error) {
-    Logger.log(`メール送信エラー: ${error.message}`);
+    Logger.log(`メール送信エラー: ${error.message}`, 'ERROR', 'sendConfirmationEmail', new Date());
     logActivity(
       student.studentId,
       'メール送信エラー',
@@ -446,7 +449,7 @@ function sendBookingConfirmationEmailAsync(reservationInfo) {
   if (!studentWithEmail || !studentWithEmail.email) {
     if (isFirstTime) {
       // 初回者でメールアドレス未設定の場合はエラーログ（本来は事前入力で防止）
-      Logger.log(`初回者メール送信失敗: メールアドレス未設定 (${studentId})`);
+      Logger.log(`初回者メール送信失敗: メールアドレス未設定 (${studentId})`, 'WARN', 'sendConfirmationEmail', new Date());
       logActivity(
         studentId,
         'メール送信エラー',

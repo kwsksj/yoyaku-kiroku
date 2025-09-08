@@ -220,12 +220,12 @@ function migrateDataToIntegratedSheet() {
 
       sourceData.forEach(row => {
         // 名前列が空の行は、空の予約枠とみなしスキップする
-        const name = row[sourceHeaderMap.get(HEADER_NAME)];
+        const name = row[sourceHeaderMap.get('名前')];
         if (!name) {
           return;
         }
 
-        const statusValue = row[sourceHeaderMap.get(HEADER_PARTICIPANT_COUNT)];
+        const statusValue = row[sourceHeaderMap.get('人数')];
         let status = '確定';
         if (isNaN(parseInt(statusValue, 10))) {
           status = statusValue; // waiting, cancelなど
@@ -317,7 +317,7 @@ function verifyMigratedData() {
           .getRange(1, 1, 1, sourceSheet.getLastColumn())
           .getValues()[0],
       );
-      const nameColIdx = sourceHeaderMap.get(HEADER_NAME);
+      const nameColIdx = sourceHeaderMap.get('名前');
       if (nameColIdx === undefined) return;
 
       const names = sourceSheet

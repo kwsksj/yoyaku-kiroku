@@ -66,10 +66,15 @@ function executeOperationAndGetLatestData(
       }
 
       // デバッグログ: 返却するmyReservationsを確認
-      const myReservationsData = batchResult.data.userReservations?.myReservations || [];
-      Logger.log(`executeOperationAndGetLatestData: myReservations件数=${myReservationsData.length}`);
+      const myReservationsData =
+        batchResult.data.userReservations?.myReservations || [];
+      Logger.log(
+        `executeOperationAndGetLatestData: myReservations件数=${myReservationsData.length}`,
+      );
       if (myReservationsData.length > 0) {
-        Logger.log(`executeOperationAndGetLatestData: 最初の予約ステータス=${myReservationsData[0].status}`);
+        Logger.log(
+          `executeOperationAndGetLatestData: 最初の予約ステータス=${myReservationsData[0].status}`,
+        );
       }
 
       const response = createApiResponse(true, {
@@ -161,7 +166,7 @@ function updateReservationDetailsAndGetLatestData(details) {
  */
 function searchUsersWithoutPhone(filterText) {
   try {
-    const users = getUsersWithoutPhoneNumber(filterText);
+    const users = getUsersWithoutPhoneNumber();
     return createApiResponse(true, {
       data: users,
     });
@@ -455,14 +460,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       }
     }
 
-    // 4. 履歴データが要求されている場合
-    if (dataTypes.includes('history') && studentId) {
-      const historyResult = getUserHistoryFromCache(studentId);
-      if (historyResult.success) {
-        result.data.history = historyResult.data;
-        result.data.historyTotal = historyResult.total;
-      }
-    }
+    // 履歴データは reservations に統合済み（削除済み）
 
     Logger.log(`getBatchData完了: dataTypes=${dataTypes.length}件`);
     return result;
