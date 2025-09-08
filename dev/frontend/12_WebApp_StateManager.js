@@ -34,9 +34,7 @@ class SimpleStateManager {
       /** @type {Array<Object>} */
       slots: [],
       /** @type {Array<Object>} */
-      myBookings: [],
-      /** @type {Array<Object>} */
-      history: [],
+      myReservations: [],
       /** @type {Array<Object>} */
       accountingMaster: [],
       /** @type {Array<string>} */
@@ -79,11 +77,7 @@ class SimpleStateManager {
       _slotsVersion: null,
 
       // --- Computed Data ---
-      computed: {
-        /** @type {Array<Object>} */ sortedBookings: [],
-        /** @type {Array<Object>} */ sortedHistory: [],
-        /** @type {Array<Object>} */ displayHistory: [],
-      },
+      computed: {},
     };
 
     this.isUpdating = false; // 無限ループ防止フラグ
@@ -250,33 +244,10 @@ class SimpleStateManager {
    * 計算済みデータの基本更新
    */
   updateComputed() {
-    if (!this.state.myBookings || !this.state.history) return;
+    if (!this.state.myReservations) return;
 
-    // isFirstTimeBooking の計算を追加
-    this.state.isFirstTimeBooking =
-      (!this.state.myBookings || this.state.myBookings.length === 0) &&
-      (!this.state.history || this.state.history.length === 0);
-
-    // 基本的なソート処理
-    this.state.computed.sortedBookings = [...this.state.myBookings].sort(
-      (a, b) => new Date(b.date) - new Date(a.date),
-    );
-
-    // すべての完了ステータス予約を含む統合履歴を作成
-    const completedBookings = this.state.myBookings.filter(
-      booking =>
-        booking.status === window.STATUS?.COMPLETED ||
-        booking.status === '完了',
-    );
-    const allHistoryRecords = [...this.state.history, ...completedBookings];
-
-    this.state.computed.sortedHistory = allHistoryRecords.sort(
-      (a, b) => new Date(b.date) - new Date(a.date),
-    );
-
-    // 表示する履歴の数を recordsToShow に基づいて動的に計算
-    this.state.computed.displayHistory =
-      this.state.computed.sortedHistory.slice(0, this.state.recordsToShow);
+    // isFirstTimeBooking の計算：予約データが全くない場合
+    this.state.isFirstTimeBooking = this.state.myReservations.length === 0;
   }
 
   /**

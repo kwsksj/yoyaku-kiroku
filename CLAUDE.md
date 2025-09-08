@@ -25,6 +25,20 @@ Successfully migrated from classroom-specific distributed data structure to an i
 **詳細設計**: [JS_TO_HTML_ARCHITECTURE.md](docs/JS_TO_HTML_ARCHITECTURE.md)  
 **移行手順**: [MIGRATION_TO_JS_DEV.md](docs/MIGRATION_TO_JS_DEV.md)
 
+### ⚠️ 重要：JavaScript分離開発の絶対ルール
+
+**🚨 NEVER EDIT `src/` FILES DIRECTLY 🚨**
+
+- **開発作業は必ず `dev/` ディレクトリで実施**
+- **`src/` ディレクトリのファイルは絶対に直接編集禁止**（ビルド時に上書きされる）
+- **修正後は必ず `npm run dev:build` でsrcに反映**
+
+**正しいワークフロー:**
+1. `dev/backend/` または `dev/frontend/` でコード編集
+2. `npm run dev:build` で変更を `src/` に反映
+3. `npm run dev:test` でテスト環境確認
+4. `npm run dev:prod` で本番デプロイ
+
 ## Key Development Commands
 
 ### Local Development & Testing
@@ -161,13 +175,17 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 
 ### Claude Code Development Guidelines
 
+- **🚨 JavaScript分離開発絶対ルール**:
+  - **NEVER EDIT `src/` FILES**: All development work must be done in `dev/` directory
+  - **BUILD REQUIRED**: After editing `dev/` files, always run `npm run dev:build` to sync to `src/`
+  - **Workflow**: Edit in `dev/` → `npm run dev:build` → `npm run dev:test` → test
 - **Development Workflow**:
   - **Quality First**: Always run `npm run check` before committing changes
-  - **For Testing**: Use `npm run push:test` to push code to test environment with head deployment ID
-  - **For Production**: Use `npm run push:prod` only after thorough testing in test environment
+  - **For Testing**: Use `npm run dev:test` (includes build + push to test environment)
+  - **For Production**: Use `npm run dev:prod` (includes build + push to production)
   - **Testing Strategy**: Direct GAS environment testing - no local HTML build required
-  - Test environment WebApp reflects changes immediately after `npm run push:test`
-- **After Code Changes**: Always run `npm run push:test` when testing is needed and prompt user to test
+  - Test environment WebApp reflects changes immediately after `npm run dev:test`
+- **After Code Changes**: Always run `npm run dev:test` when testing is needed and prompt user to test
 - **Data Access Pattern**: Use `SS_MANAGER` instance and cache-first approach with unified error handling
 - **Commit Management**:
   - **Proactive Commits**: Commit at appropriate milestones (feature completion, bug fixes, architectural changes, etc.)
@@ -182,7 +200,9 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 
 ### Code Quality Standards
 
-- Follow the established numbered file naming convention in `src/`
+- **🚨 DEVELOPMENT LOCATION**: Work exclusively in `dev/` directory, never edit `src/` files directly
+- Follow the established numbered file naming convention in `dev/` (will be copied to `src/`)
 - Maintain consistency with existing code style and patterns
 - Ensure all changes integrate properly with the multi-layer caching system
 - Validate that modifications don't break the spreadsheet-based data model
+- **Always run `npm run dev:build` after making changes to sync `dev/` to `src/`**

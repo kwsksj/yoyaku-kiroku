@@ -12,8 +12,7 @@
  * - 会計計算ロジック (Calculation Logic)
  * 【構成】: 14ファイル構成のうちの12番目
  * 【v1.2での変更点】:
- * - リファクタリング: 日付・スロット処理の共通ユーティリティ関数を追加。
- * - filterFutureSlots, groupSlotsByMonth 関数を新規追加。
+ * - リファクタリング: フロントエンド単純化でmyReservations統一完了。
  * - コードの可読性とメンテナンス性を向上。
  * =================================================================
  */
@@ -44,20 +43,17 @@ function findReservationById(reservationId, state = null) {
   const currentState = state || window.stateManager?.getState();
   if (!currentState) return null;
 
-  // 1. まず「よやく」(myBookings)から検索
-  const bookingResult = currentState.myBookings?.find(
+  // myReservationsから直接検索
+  const reservation = currentState.myReservations?.find(
     item => item.reservationId === reservationId,
   );
-  if (bookingResult) {
-    return { ...bookingResult, type: 'booking' };
-  }
-
-  // 2. 次に「きろく」(history)から検索
-  const historyResult = currentState.history?.find(
-    item => item.reservationId === reservationId,
-  );
-  if (historyResult) {
-    return { ...historyResult, type: 'record' };
+  if (reservation) {
+    // ステータスに基づいてtype分類を追加
+    if (reservation.status === STATUS.COMPLETED) {
+      return { ...reservation, type: 'record' };
+    } else {
+      return { ...reservation, type: 'booking' };
+    }
   }
 
   return null;
@@ -74,36 +70,18 @@ function findReservationByDateAndClassroom(date, classroom, state = null) {
   const currentState = state || window.stateManager?.getState();
   if (!currentState) return null;
 
-  // キャンセル済みステータスの判定用関数
-  const isCancelledStatus = status => {
-    return (
-      status === (window.STATUS?.CANCELED || '取消') ||
-      status === 'キャンセル' ||
-      status === 'キャンセル済み' ||
-      status === '取消'
-    );
-  };
-
-  // 1. まず「よやく」(myBookings)から検索（キャンセル済みを除外）
-  const bookingResult = currentState.myBookings?.find(
-    item =>
-      item.date === date &&
-      item.classroom === classroom &&
-      !isCancelledStatus(item.status),
+  // myReservationsから直接検索（キャンセル済みは既にバックエンドで除外済み）
+  const reservation = currentState.myReservations?.find(
+    item => item.date === date && item.classroom === classroom,
   );
-  if (bookingResult) {
-    return { ...bookingResult, type: 'booking' };
-  }
-
-  // 2. 次に「きろく」(history)から検索（キャンセル済みを除外）
-  const historyResult = currentState.history?.find(
-    item =>
-      item.date === date &&
-      item.classroom === classroom &&
-      !isCancelledStatus(item.status),
-  );
-  if (historyResult) {
-    return { ...historyResult, type: 'record' };
+  
+  if (reservation) {
+    // ステータスに基づいてtype分類を追加
+    if (reservation.status === STATUS.COMPLETED) {
+      return { ...reservation, type: 'record' };
+    } else {
+      return { ...reservation, type: 'booking' };
+    }
   }
 
   return null;
@@ -119,23 +97,17 @@ function findReservationsByStatus(status, state = null) {
   const currentState = state || window.stateManager?.getState();
   if (!currentState) return [];
 
-  const results = [];
-
-  // 「よやく」(myBookings)から検索
-  if (currentState.myBookings) {
-    currentState.myBookings
-      .filter(item => item.status === status)
-      .forEach(item => results.push({ ...item, type: 'booking' }));
-  }
-
-  // 「きろく」(history)から検索
-  if (currentState.history) {
-    currentState.history
-      .filter(item => item.status === status)
-      .forEach(item => results.push({ ...item, type: 'record' }));
-  }
-
-  return results;
+  // myReservationsから直接検索
+  const reservations = currentState.myReservations?.filter(item => item.status === status) || [];
+  
+  // ステータスに基づいてtype分類を追加
+  return reservations.map(item => {
+    if (item.status === STATUS.COMPLETED) {
+      return { ...item, type: 'record' };
+    } else {
+      return { ...item, type: 'booking' };
+    }
+  });
 }
 
 /**
@@ -167,9 +139,8 @@ function processInitialData(
   // currentUserのdisplayNameをセット
   currentUser.displayName = currentUser.nickname || currentUser.realName;
 
-  // 2. 個人予約データはバックエンドから取得済み
-  const myBookings = userReservations ? userReservations.myBookings : [];
-  const myHistory = userReservations ? userReservations.myHistory : [];
+  // 2. 個人予約データを直接保存（フィルタリングは表示時に実行）
+  const myReservations = userReservations ? userReservations.myReservations : [];
 
   // 3. 教室一覧は統合定数から取得（StateManagerで設定される）
   // availableSlots から取得する必要はなくなった
@@ -182,12 +153,11 @@ function processInitialData(
     ? `${cacheVersions.allReservations || 0}-${cacheVersions.scheduleMaster || 0}`
     : null;
 
-  // 5. appStateを構築
+  // 5. appStateを構築（フィルタリングされていない生の予約データを保存）
   return {
     view: 'dashboard',
     currentUser: currentUser,
-    myBookings: myBookings,
-    history: myHistory,
+    myReservations: myReservations, // 生データを直接保存
     slots: availableSlots,
     classrooms: classroomsFromConstants,
     accountingMaster: accountingMaster,
@@ -823,61 +793,6 @@ const showConfirm = c => showModal({ ...c, showCancel: true });
 // stateManager.getState().computedの計算・更新処理を管理します。
 // =================================================================
 
-/**
- * 注意: updateComputedData()関数はStateManagerシステムに統合されました
- * 計算済みデータは状態変更時に自動的に更新されます
- *
- * 下位互換性のためのラッパー関数
- * @deprecated 新しいコードではstateManager.dispatch()を使用してください
- */
-function updateComputedData() {
-  if (window.stateManager) {
-    window.stateManager.updateComputedData();
-  } else {
-    console.warn('updateComputedData: StateManagerが初期化されていません');
-  }
-}
-
-// =================================================================
-// --- Legacy Utilities (Backward Compatibility) ---
-// -----------------------------------------------------------------
-// 既存コードとの互換性のための関数群です。
-// =================================================================
-
-/**
- * 指定された教室の、今日以降の空きスロットをフィルタリングします。
- * @param {Array} slots - 全スロットの配列（未使用、互換性のため残存）
- * @param {string} classroom - 教室名
- * @returns {Array} フィルタリングされたスロット配列
- * @deprecated StateManagerのcomputed dataを直接参照してください
- */
-const filterFutureSlots = (slots, classroom) => {
-  // StateManagerの計算済みデータから取得
-  if (window.stateManager) {
-    const computed = window.stateManager.state.computed;
-    return computed.slotsByClassroom[classroom] || [];
-  }
-  // フォールバック（StateManager未初期化時）
-  updateComputedData();
-  return stateManager.getState().computed.slotsByClassroom[classroom] || [];
-};
-
-/**
- * スロットを月別にグループ化します。
- * @param {Array} slots - スロットの配列（未使用、互換性のため残存）
- * @returns {Object} 月をキーとしたスロットのオブジェクト
- * @deprecated StateManagerのcomputed dataを直接参照してください
- */
-const groupSlotsByMonth = slots => {
-  // StateManagerの計算済みデータから取得
-  if (window.stateManager) {
-    const computed = window.stateManager.state.computed;
-    return computed.slotsByMonth;
-  }
-  // フォールバック（StateManager未初期化時）
-  updateComputedData();
-  return stateManager.getState().computed.slotsByMonth;
-};
 
 // =================================================================
 // --- Accounting Cache Utilities ---
@@ -1123,7 +1038,7 @@ function getScheduleDataFromSlots(reservation) {
 // =================================================================
 
 /**
- * 会計計算を実行し、stateManager.getState().computed.accountingCalculationに結果を保存します。
+ * 会計計算を実行し、結果を返します。
  * @returns {object} 計算結果詳細
  */
 function calculateAccountingDetails() {
@@ -1131,8 +1046,7 @@ function calculateAccountingDetails() {
 
   const details = calculateAccountingDetailsFromForm();
 
-  // stateManager.getState().computedに結果を保存
-  stateManager.getState().computed.accountingCalculation = details;
+  // 計算結果を直接使用（computed不要）
 
   // UI要素の更新
   updateAccountingUI(details);
@@ -1489,10 +1403,7 @@ function updateAccountingUI(details) {
   }
 
   // 受講時間表示の更新
-  if (
-    calculatedHoursEl &&
-    stateManager.getState().computed.accountingCalculation
-  ) {
+  if (calculatedHoursEl && details) {
     const timeBasedItems = details.tuition.items.filter(item =>
       item.name.includes('授業料 ('),
     );

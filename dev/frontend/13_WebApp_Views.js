@@ -935,14 +935,21 @@ const _buildHistoryButtons = historyItem => {
  * @returns {string} HTML文字列
  */
 const getDashboardView = () => {
-  // 計算済みデータを使用（setState()で自動更新済み）
-  const sortedBookings = stateManager.getState().computed.sortedBookings;
+  // myReservationsから直接フィルタリングして表示（シンプル化）
+  const state = stateManager.getState();
+  const myReservations = state.myReservations || [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 予約セクション用のカード配列を構築（新仕様：「よやく」表示条件）
-  const bookingCards = sortedBookings
-    .filter(b => [STATUS.WAITLISTED, STATUS.CONFIRMED].includes(b.status))
+  // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
+  const activeReservations = myReservations
+    .filter(res => 
+      res.status === STATUS.CONFIRMED || 
+      res.status === STATUS.WAITLISTED
+    )
+    .sort((a, b) => new Date(a.date) - new Date(b.date)); // 日付順ソート
+  
+  const bookingCards = activeReservations
     .map(b => {
       const buttons = _buildBookingButtons(b);
       return Components.listCard({
@@ -961,13 +968,14 @@ const getDashboardView = () => {
     newAction: 'showClassroomModal',
   });
 
-  // 履歴セクションを生成（新仕様：「きろく」表示条件）
+  // 履歴セクション用のカード配列を構築：完了ステータスのみ表示
   let historyHtml = '';
-  // すべての完了ステータス予約を「きろく」として表示（myBookings内のCOMPLETEDも含む）
-  const sortedHistory = stateManager.getState().computed.sortedHistory;
-  const completedRecords = sortedHistory.filter(
-    r => r.status === STATUS.COMPLETED,
-  );
+  const completedReservations = myReservations
+    .filter(res => res.status === STATUS.COMPLETED)
+    .sort((a, b) => new Date(b.date) - new Date(a.date)); // 新しい順ソート
+  
+  const recordsToShow = state.recordsToShow || 10;
+  const completedRecords = completedReservations.slice(0, recordsToShow);
 
   if (completedRecords.length > 0) {
     // 「きろく」は COMPLETED ステータスのみ表示
@@ -981,8 +989,7 @@ const getDashboardView = () => {
       });
     });
 
-    const showMore =
-      (stateManager.getState().recordsToShow || 10) < completedRecords.length;
+    const showMore = recordsToShow < completedReservations.length;
 
     // Componentsに構造生成を委任
     historyHtml = Components.dashboardSection({
@@ -1129,11 +1136,10 @@ const renderBookingSlots = slots => {
 
       const slotsHtml = slotsByMonth[month]
         .map(sl => {
-          const iB = stateManager
-            .getState()
-            .computed.sortedBookings.some(
-              b => b.date === sl.date && b.classroom === sl.classroom,
-            );
+          const state = stateManager.getState();
+          const iB = (state.myReservations || []).some(
+            b => b.date === sl.date && b.classroom === sl.classroom,
+          );
           let cC, sB, act;
           const tag = iB ? 'div' : 'button';
 

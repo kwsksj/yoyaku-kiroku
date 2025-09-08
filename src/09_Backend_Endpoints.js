@@ -65,17 +65,19 @@ function executeOperationAndGetLatestData(
         return batchResult;
       }
 
+      // デバッグログ: 返却するmyReservationsを確認
+      const myReservationsData = batchResult.data.userReservations?.myReservations || [];
+      Logger.log(`executeOperationAndGetLatestData: myReservations件数=${myReservationsData.length}`);
+      if (myReservationsData.length > 0) {
+        Logger.log(`executeOperationAndGetLatestData: 最初の予約ステータス=${myReservationsData[0].status}`);
+      }
+
       const response = createApiResponse(true, {
         message: result.message || successMessage,
         data: {
-          myBookings: batchResult.data.userReservations
-            ? batchResult.data.userReservations.myBookings
-            : [],
+          myReservations: myReservationsData,
           initialData: {
             ...batchResult.data.initial,
-            myHistory: batchResult.data.userReservations
-              ? batchResult.data.userReservations.myHistory
-              : [],
           },
           slots: batchResult.data.slots || [],
         },
@@ -192,6 +194,21 @@ function updateReservationMemoAndGetLatestData(
     },
     studentId,
     '制作メモを更新しました。',
+  );
+}
+
+/**
+ * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
+ * @param {object} payload - 会計処理情報（reservationId, classroom, studentId, userInput）
+ * @returns {object} 処理結果と最新の初期化データ
+ */
+function saveAccountingDetailsAndGetLatestData(payload) {
+  return executeOperationAndGetLatestData(
+    'saveAccounting',
+    saveAccountingDetails,
+    payload,
+    payload.studentId,
+    '会計処理が完了しました。',
   );
 }
 

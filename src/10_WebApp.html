@@ -97,7 +97,7 @@
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-07T04:48:18.733Z
+   * Generated: 2025-09-08T02:35:13.326Z
    * =================================================================
    */
 
@@ -1100,8 +1100,7 @@
    * - 会計計算ロジック (Calculation Logic)
    * 【構成】: 14ファイル構成のうちの12番目
    * 【v1.2での変更点】:
-   * - リファクタリング: 日付・スロット処理の共通ユーティリティ関数を追加。
-   * - filterFutureSlots, groupSlotsByMonth 関数を新規追加。
+   * - リファクタリング: フロントエンド単純化でmyReservations統一完了。
    * - コードの可読性とメンテナンス性を向上。
    * =================================================================
    */
@@ -1132,20 +1131,17 @@
     const currentState = state || window.stateManager?.getState();
     if (!currentState) return null;
 
-    // 1. まず「よやく」(myBookings)から検索
-    const bookingResult = currentState.myBookings?.find(
+    // myReservationsから直接検索
+    const reservation = currentState.myReservations?.find(
       item => item.reservationId === reservationId,
     );
-    if (bookingResult) {
-      return { ...bookingResult, type: 'booking' };
-    }
-
-    // 2. 次に「きろく」(history)から検索
-    const historyResult = currentState.history?.find(
-      item => item.reservationId === reservationId,
-    );
-    if (historyResult) {
-      return { ...historyResult, type: 'record' };
+    if (reservation) {
+      // ステータスに基づいてtype分類を追加
+      if (reservation.status === STATUS.COMPLETED) {
+        return { ...reservation, type: 'record' };
+      } else {
+        return { ...reservation, type: 'booking' };
+      }
     }
 
     return null;
@@ -1162,36 +1158,18 @@
     const currentState = state || window.stateManager?.getState();
     if (!currentState) return null;
 
-    // キャンセル済みステータスの判定用関数
-    const isCancelledStatus = status => {
-      return (
-        status === (window.STATUS?.CANCELED || '取消') ||
-        status === 'キャンセル' ||
-        status === 'キャンセル済み' ||
-        status === '取消'
-      );
-    };
-
-    // 1. まず「よやく」(myBookings)から検索（キャンセル済みを除外）
-    const bookingResult = currentState.myBookings?.find(
-      item =>
-        item.date === date &&
-        item.classroom === classroom &&
-        !isCancelledStatus(item.status),
+    // myReservationsから直接検索（キャンセル済みは既にバックエンドで除外済み）
+    const reservation = currentState.myReservations?.find(
+      item => item.date === date && item.classroom === classroom,
     );
-    if (bookingResult) {
-      return { ...bookingResult, type: 'booking' };
-    }
-
-    // 2. 次に「きろく」(history)から検索（キャンセル済みを除外）
-    const historyResult = currentState.history?.find(
-      item =>
-        item.date === date &&
-        item.classroom === classroom &&
-        !isCancelledStatus(item.status),
-    );
-    if (historyResult) {
-      return { ...historyResult, type: 'record' };
+    
+    if (reservation) {
+      // ステータスに基づいてtype分類を追加
+      if (reservation.status === STATUS.COMPLETED) {
+        return { ...reservation, type: 'record' };
+      } else {
+        return { ...reservation, type: 'booking' };
+      }
     }
 
     return null;
@@ -1207,23 +1185,17 @@
     const currentState = state || window.stateManager?.getState();
     if (!currentState) return [];
 
-    const results = [];
-
-    // 「よやく」(myBookings)から検索
-    if (currentState.myBookings) {
-      currentState.myBookings
-        .filter(item => item.status === status)
-        .forEach(item => results.push({ ...item, type: 'booking' }));
-    }
-
-    // 「きろく」(history)から検索
-    if (currentState.history) {
-      currentState.history
-        .filter(item => item.status === status)
-        .forEach(item => results.push({ ...item, type: 'record' }));
-    }
-
-    return results;
+    // myReservationsから直接検索
+    const reservations = currentState.myReservations?.filter(item => item.status === status) || [];
+    
+    // ステータスに基づいてtype分類を追加
+    return reservations.map(item => {
+      if (item.status === STATUS.COMPLETED) {
+        return { ...item, type: 'record' };
+      } else {
+        return { ...item, type: 'booking' };
+      }
+    });
   }
 
   /**
@@ -1255,9 +1227,8 @@
     // currentUserのdisplayNameをセット
     currentUser.displayName = currentUser.nickname || currentUser.realName;
 
-    // 2. 個人予約データはバックエンドから取得済み
-    const myBookings = userReservations ? userReservations.myBookings : [];
-    const myHistory = userReservations ? userReservations.myHistory : [];
+    // 2. 個人予約データを直接保存（フィルタリングは表示時に実行）
+    const myReservations = userReservations ? userReservations.myReservations : [];
 
     // 3. 教室一覧は統合定数から取得（StateManagerで設定される）
     // availableSlots から取得する必要はなくなった
@@ -1270,12 +1241,11 @@
       ? `${cacheVersions.allReservations || 0}-${cacheVersions.scheduleMaster || 0}`
       : null;
 
-    // 5. appStateを構築
+    // 5. appStateを構築（フィルタリングされていない生の予約データを保存）
     return {
       view: 'dashboard',
       currentUser: currentUser,
-      myBookings: myBookings,
-      history: myHistory,
+      myReservations: myReservations, // 生データを直接保存
       slots: availableSlots,
       classrooms: classroomsFromConstants,
       accountingMaster: accountingMaster,
@@ -1911,61 +1881,6 @@
   // stateManager.getState().computedの計算・更新処理を管理します。
   // =================================================================
 
-  /**
-   * 注意: updateComputedData()関数はStateManagerシステムに統合されました
-   * 計算済みデータは状態変更時に自動的に更新されます
-   *
-   * 下位互換性のためのラッパー関数
-   * @deprecated 新しいコードではstateManager.dispatch()を使用してください
-   */
-  function updateComputedData() {
-    if (window.stateManager) {
-      window.stateManager.updateComputedData();
-    } else {
-      console.warn('updateComputedData: StateManagerが初期化されていません');
-    }
-  }
-
-  // =================================================================
-  // --- Legacy Utilities (Backward Compatibility) ---
-  // -----------------------------------------------------------------
-  // 既存コードとの互換性のための関数群です。
-  // =================================================================
-
-  /**
-   * 指定された教室の、今日以降の空きスロットをフィルタリングします。
-   * @param {Array} slots - 全スロットの配列（未使用、互換性のため残存）
-   * @param {string} classroom - 教室名
-   * @returns {Array} フィルタリングされたスロット配列
-   * @deprecated StateManagerのcomputed dataを直接参照してください
-   */
-  const filterFutureSlots = (slots, classroom) => {
-    // StateManagerの計算済みデータから取得
-    if (window.stateManager) {
-      const computed = window.stateManager.state.computed;
-      return computed.slotsByClassroom[classroom] || [];
-    }
-    // フォールバック（StateManager未初期化時）
-    updateComputedData();
-    return stateManager.getState().computed.slotsByClassroom[classroom] || [];
-  };
-
-  /**
-   * スロットを月別にグループ化します。
-   * @param {Array} slots - スロットの配列（未使用、互換性のため残存）
-   * @returns {Object} 月をキーとしたスロットのオブジェクト
-   * @deprecated StateManagerのcomputed dataを直接参照してください
-   */
-  const groupSlotsByMonth = slots => {
-    // StateManagerの計算済みデータから取得
-    if (window.stateManager) {
-      const computed = window.stateManager.state.computed;
-      return computed.slotsByMonth;
-    }
-    // フォールバック（StateManager未初期化時）
-    updateComputedData();
-    return stateManager.getState().computed.slotsByMonth;
-  };
 
   // =================================================================
   // --- Accounting Cache Utilities ---
@@ -2211,7 +2126,7 @@
   // =================================================================
 
   /**
-   * 会計計算を実行し、stateManager.getState().computed.accountingCalculationに結果を保存します。
+   * 会計計算を実行し、結果を返します。
    * @returns {object} 計算結果詳細
    */
   function calculateAccountingDetails() {
@@ -2219,8 +2134,7 @@
 
     const details = calculateAccountingDetailsFromForm();
 
-    // stateManager.getState().computedに結果を保存
-    stateManager.getState().computed.accountingCalculation = details;
+    // 計算結果を直接使用（computed不要）
 
     // UI要素の更新
     updateAccountingUI(details);
@@ -2577,10 +2491,7 @@
     }
 
     // 受講時間表示の更新
-    if (
-      calculatedHoursEl &&
-      stateManager.getState().computed.accountingCalculation
-    ) {
+    if (calculatedHoursEl && details) {
       const timeBasedItems = details.tuition.items.filter(item =>
         item.name.includes('授業料 ('),
       );
@@ -2728,9 +2639,7 @@
         /** @type {Array<Object>} */
         slots: [],
         /** @type {Array<Object>} */
-        myBookings: [],
-        /** @type {Array<Object>} */
-        history: [],
+        myReservations: [],
         /** @type {Array<Object>} */
         accountingMaster: [],
         /** @type {Array<string>} */
@@ -2773,11 +2682,7 @@
         _slotsVersion: null,
 
         // --- Computed Data ---
-        computed: {
-          /** @type {Array<Object>} */ sortedBookings: [],
-          /** @type {Array<Object>} */ sortedHistory: [],
-          /** @type {Array<Object>} */ displayHistory: [],
-        },
+        computed: {},
       };
 
       this.isUpdating = false; // 無限ループ防止フラグ
@@ -2944,33 +2849,10 @@
      * 計算済みデータの基本更新
      */
     updateComputed() {
-      if (!this.state.myBookings || !this.state.history) return;
+      if (!this.state.myReservations) return;
 
-      // isFirstTimeBooking の計算を追加
-      this.state.isFirstTimeBooking =
-        (!this.state.myBookings || this.state.myBookings.length === 0) &&
-        (!this.state.history || this.state.history.length === 0);
-
-      // 基本的なソート処理
-      this.state.computed.sortedBookings = [...this.state.myBookings].sort(
-        (a, b) => new Date(b.date) - new Date(a.date),
-      );
-
-      // すべての完了ステータス予約を含む統合履歴を作成
-      const completedBookings = this.state.myBookings.filter(
-        booking =>
-          booking.status === window.STATUS?.COMPLETED ||
-          booking.status === '完了',
-      );
-      const allHistoryRecords = [...this.state.history, ...completedBookings];
-
-      this.state.computed.sortedHistory = allHistoryRecords.sort(
-        (a, b) => new Date(b.date) - new Date(a.date),
-      );
-
-      // 表示する履歴の数を recordsToShow に基づいて動的に計算
-      this.state.computed.displayHistory =
-        this.state.computed.sortedHistory.slice(0, this.state.recordsToShow);
+      // isFirstTimeBooking の計算：予約データが全くない場合
+      this.state.isFirstTimeBooking = this.state.myReservations.length === 0;
     }
 
     /**
@@ -5223,14 +5105,21 @@
    * @returns {string} HTML文字列
    */
   const getDashboardView = () => {
-    // 計算済みデータを使用（setState()で自動更新済み）
-    const sortedBookings = stateManager.getState().computed.sortedBookings;
+    // myReservationsから直接フィルタリングして表示（シンプル化）
+    const state = stateManager.getState();
+    const myReservations = state.myReservations || [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // 予約セクション用のカード配列を構築（新仕様：「よやく」表示条件）
-    const bookingCards = sortedBookings
-      .filter(b => [STATUS.WAITLISTED, STATUS.CONFIRMED].includes(b.status))
+    // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
+    const activeReservations = myReservations
+      .filter(res => 
+        res.status === STATUS.CONFIRMED || 
+        res.status === STATUS.WAITLISTED
+      )
+      .sort((a, b) => new Date(a.date) - new Date(b.date)); // 日付順ソート
+    
+    const bookingCards = activeReservations
       .map(b => {
         const buttons = _buildBookingButtons(b);
         return Components.listCard({
@@ -5249,13 +5138,14 @@
       newAction: 'showClassroomModal',
     });
 
-    // 履歴セクションを生成（新仕様：「きろく」表示条件）
+    // 履歴セクション用のカード配列を構築：完了ステータスのみ表示
     let historyHtml = '';
-    // すべての完了ステータス予約を「きろく」として表示（myBookings内のCOMPLETEDも含む）
-    const sortedHistory = stateManager.getState().computed.sortedHistory;
-    const completedRecords = sortedHistory.filter(
-      r => r.status === STATUS.COMPLETED,
-    );
+    const completedReservations = myReservations
+      .filter(res => res.status === STATUS.COMPLETED)
+      .sort((a, b) => new Date(b.date) - new Date(a.date)); // 新しい順ソート
+    
+    const recordsToShow = state.recordsToShow || 10;
+    const completedRecords = completedReservations.slice(0, recordsToShow);
 
     if (completedRecords.length > 0) {
       // 「きろく」は COMPLETED ステータスのみ表示
@@ -5269,8 +5159,7 @@
         });
       });
 
-      const showMore =
-        (stateManager.getState().recordsToShow || 10) < completedRecords.length;
+      const showMore = recordsToShow < completedReservations.length;
 
       // Componentsに構造生成を委任
       historyHtml = Components.dashboardSection({
@@ -5417,11 +5306,10 @@
 
         const slotsHtml = slotsByMonth[month]
           .map(sl => {
-            const iB = stateManager
-              .getState()
-              .computed.sortedBookings.some(
-                b => b.date === sl.date && b.classroom === sl.classroom,
-              );
+            const state = stateManager.getState();
+            const iB = (state.myReservations || []).some(
+              b => b.date === sl.date && b.classroom === sl.classroom,
+            );
             let cC, sB, act;
             const tag = iB ? 'div' : 'button';
 
@@ -6733,13 +6621,14 @@
                 showInfo('制作メモを更新しました。', '保存完了');
                 // 他の操作と同様に最新データで状態を更新
                 if (r.data) {
+                  // デバッグ: 受信データをログ出力
+                  console.log('[DEBUG] 制作メモ更新後のデータ:', r.data);
+                  console.log('[DEBUG] myReservations:', r.data.myReservations);
                   window.stateManager.dispatch({
                     type: 'SET_STATE',
                     payload: {
                       ...r.data.initialData,
-                      myBookings: r.data.myBookings || [],
-                      history: r.data.initialData.myHistory || [],
-                      historyTotal: (r.data.initialData.myHistory || []).length,
+                      myReservations: r.data.myReservations || [],
                       isDataFresh: true, // 最新データ受信済み
                     },
                   });
@@ -6915,10 +6804,9 @@
                 }
               : tempUser;
 
-            // 個人予約データはバックエンドから取得済み
-            const { myBookings, myHistory } = response.data.userReservations || {
-              myBookings: [],
-              myHistory: [],
+            // 個人予約データを直接取得（フィルタリングは表示時に実行）
+            const { myReservations } = response.data.userReservations || {
+              myReservations: [],
             };
             const today = response.data.initial.today;
 
@@ -6927,10 +6815,8 @@
               payload: {
                 currentUser: finalUser,
                 slots: response.data.slots,
-                myBookings: myBookings,
+                myReservations: myReservations,
                 accountingMaster: response.data.initial.accountingMaster,
-                history: myHistory,
-                historyTotal: myHistory.length,
                 recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
                 view: 'editProfile', // 電話番号登録を促すためプロフィール編集画面へ
                 today: today,
@@ -6997,9 +6883,7 @@
                     type: 'SET_STATE',
                     payload: {
                       ...r.data.initialData,
-                      myBookings: r.data.myBookings || [],
-                      history: r.data.initialData.myHistory || [],
-                      historyTotal: (r.data.initialData.myHistory || []).length,
+                      myReservations: r.data.myReservations || [],
                       slots: r.data.slots || [],
                       view: 'dashboard',
                       isDataFresh: true, // 最新データ受信済み
@@ -7083,9 +6967,7 @@
                 type: 'SET_STATE',
                 payload: {
                   ...r.data.initialData,
-                  myBookings: r.data.myBookings || [],
-                  history: r.data.initialData.myHistory || [],
-                  historyTotal: (r.data.initialData.myHistory || []).length,
+                  myReservations: r.data.myReservations || [],
                   slots: r.data.slots || [],
                   view: 'complete',
                   completionMessage: r.message,
@@ -7208,9 +7090,7 @@
                 type: 'SET_STATE',
                 payload: {
                   ...r.data.initialData,
-                  myBookings: r.data.myBookings || [],
-                  history: r.data.initialData.myHistory || [],
-                  historyTotal: (r.data.initialData.myHistory || []).length,
+                  myReservations: r.data.myReservations || [],
                   slots: r.data.slots || [],
                   view: 'dashboard',
                   isDataFresh: true, // 最新データ受信済み
@@ -8044,9 +7924,7 @@
               type: 'SET_STATE',
               payload: {
                 ...r.data.initialData,
-                myBookings: r.data.myBookings || [],
-                history: r.data.initialData.myHistory || [],
-                historyTotal: (r.data.initialData.myHistory || []).length,
+                myReservations: r.data.myReservations || [],
                 slots: r.data.slots || [],
                 view: 'dashboard',
                 isDataFresh: true, // 最新データ受信済み
@@ -8073,7 +7951,7 @@
         }
       })
       .withFailureHandler(handleServerError)
-      .saveAccountingDetails(payload);
+      .saveAccountingDetailsAndGetLatestData(payload);
   };
 
   // =================================================================

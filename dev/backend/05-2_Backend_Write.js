@@ -282,6 +282,7 @@ function makeReservation(reservationInfo) {
       // 日付文字列をDateオブジェクトに変換（東京タイムゾーン指定）
       const targetDate = new Date(date + 'T00:00:00+09:00');
 
+      //TODO 会場情報は日程マスタ、もしくreservationInfoから取得すべき
       // 会場情報を取得（同日同教室の既存予約から）
       let venue = '';
       const sameDateRow = data.find(row => {
@@ -357,6 +358,7 @@ function makeReservation(reservationInfo) {
 
       SpreadsheetApp.flush(); // シート書き込み完了を保証
 
+      //todo 予約のキャッシュのみの更新でよいのでは？
       // 統合予約シートの更新後、キャッシュを再構築
       rebuildAllReservationsCache();
 

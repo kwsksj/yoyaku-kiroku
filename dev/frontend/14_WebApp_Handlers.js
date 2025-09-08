@@ -461,13 +461,14 @@ const actionHandlers = {
               showInfo('制作メモを更新しました。', '保存完了');
               // 他の操作と同様に最新データで状態を更新
               if (r.data) {
+                // デバッグ: 受信データをログ出力
+                console.log('[DEBUG] 制作メモ更新後のデータ:', r.data);
+                console.log('[DEBUG] myReservations:', r.data.myReservations);
                 window.stateManager.dispatch({
                   type: 'SET_STATE',
                   payload: {
                     ...r.data.initialData,
-                    myBookings: r.data.myBookings || [],
-                    history: r.data.initialData.myHistory || [],
-                    historyTotal: (r.data.initialData.myHistory || []).length,
+                    myReservations: r.data.myReservations || [],
                     isDataFresh: true, // 最新データ受信済み
                   },
                 });
@@ -643,10 +644,9 @@ const actionHandlers = {
               }
             : tempUser;
 
-          // 個人予約データはバックエンドから取得済み
-          const { myBookings, myHistory } = response.data.userReservations || {
-            myBookings: [],
-            myHistory: [],
+          // 個人予約データを直接取得（フィルタリングは表示時に実行）
+          const { myReservations } = response.data.userReservations || {
+            myReservations: [],
           };
           const today = response.data.initial.today;
 
@@ -655,10 +655,8 @@ const actionHandlers = {
             payload: {
               currentUser: finalUser,
               slots: response.data.slots,
-              myBookings: myBookings,
+              myReservations: myReservations,
               accountingMaster: response.data.initial.accountingMaster,
-              history: myHistory,
-              historyTotal: myHistory.length,
               recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
               view: 'editProfile', // 電話番号登録を促すためプロフィール編集画面へ
               today: today,
@@ -725,9 +723,7 @@ const actionHandlers = {
                   type: 'SET_STATE',
                   payload: {
                     ...r.data.initialData,
-                    myBookings: r.data.myBookings || [],
-                    history: r.data.initialData.myHistory || [],
-                    historyTotal: (r.data.initialData.myHistory || []).length,
+                    myReservations: r.data.myReservations || [],
                     slots: r.data.slots || [],
                     view: 'dashboard',
                     isDataFresh: true, // 最新データ受信済み
@@ -811,9 +807,7 @@ const actionHandlers = {
               type: 'SET_STATE',
               payload: {
                 ...r.data.initialData,
-                myBookings: r.data.myBookings || [],
-                history: r.data.initialData.myHistory || [],
-                historyTotal: (r.data.initialData.myHistory || []).length,
+                myReservations: r.data.myReservations || [],
                 slots: r.data.slots || [],
                 view: 'complete',
                 completionMessage: r.message,
@@ -936,9 +930,7 @@ const actionHandlers = {
               type: 'SET_STATE',
               payload: {
                 ...r.data.initialData,
-                myBookings: r.data.myBookings || [],
-                history: r.data.initialData.myHistory || [],
-                historyTotal: (r.data.initialData.myHistory || []).length,
+                myReservations: r.data.myReservations || [],
                 slots: r.data.slots || [],
                 view: 'dashboard',
                 isDataFresh: true, // 最新データ受信済み
@@ -1772,9 +1764,7 @@ actionHandlers.confirmAndPay = () => {
             type: 'SET_STATE',
             payload: {
               ...r.data.initialData,
-              myBookings: r.data.myBookings || [],
-              history: r.data.initialData.myHistory || [],
-              historyTotal: (r.data.initialData.myHistory || []).length,
+              myReservations: r.data.myReservations || [],
               slots: r.data.slots || [],
               view: 'dashboard',
               isDataFresh: true, // 最新データ受信済み
@@ -1801,7 +1791,7 @@ actionHandlers.confirmAndPay = () => {
       }
     })
     .withFailureHandler(handleServerError)
-    .saveAccountingDetails(payload);
+    .saveAccountingDetailsAndGetLatestData(payload);
 };
 
 // =================================================================

@@ -450,7 +450,7 @@ function getAvailableSlotsForClassroom(classroom) {
 /**
  * 特定の生徒の予約データを取得する
  * @param {string} studentId - 生徒ID
- * @returns {object} - { success: boolean, data: { myBookings: object[], myHistory: object[] }, message?: string }
+ * @returns {object} - { success: boolean, data: { myReservations: object[] }, message?: string }
  */
 function getUserReservations(studentId) {
   try {
@@ -460,10 +460,7 @@ function getUserReservations(studentId) {
       : [];
     const headerMap = reservationsCache ? reservationsCache.headerMap : null;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const myBookings = [];
-    const myHistory = [];
+    const myReservations = [];
 
     // 新しいヘルパー関数を使用してデータ変換を統一
     const convertedReservations = convertReservationsToObjects(
@@ -474,36 +471,25 @@ function getUserReservations(studentId) {
     convertedReservations.forEach(reservation => {
       if (reservation.studentId !== studentId) return;
 
-      const reservationDate = new Date(reservation.date);
-      const isCancelled =
-        reservation.status === STATUS_CANCEL ||
-        reservation.status === 'キャンセル' ||
-        reservation.status === 'キャンセル済み';
-
-      if (!isCancelled) {
-        if (reservationDate >= today) {
-          myBookings.push(reservation);
-        } else {
-          myHistory.push(reservation);
-        }
+      // キャンセル以外の予約のみを含める
+      if (reservation.status !== CONSTANTS.STATUS.CANCELED) {
+        myReservations.push(reservation);
       }
     });
 
-    // ソート
-    myBookings.sort((a, b) => new Date(a.date) - new Date(b.date));
-    myHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+    // 日付でソート（新しい順）
+    myReservations.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     Logger.log(
-      `生徒ID ${studentId} の予約を取得: 今後の予約 ${myBookings.length} 件、履歴 ${myHistory.length} 件`,
+      `生徒ID ${studentId} の予約を取得: ${myReservations.length} 件`,
     );
     return createApiResponse(true, {
-      myBookings: myBookings,
-      myHistory: myHistory,
+      myReservations: myReservations,
     });
   } catch (error) {
     Logger.log(`getUserReservations エラー: ${error.message}`);
     return BackendErrorHandler.handle(error, 'getUserReservations', {
-      data: { myBookings: [], myHistory: [] },
+      data: { myReservations: [] },
     });
   }
 }

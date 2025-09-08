@@ -62,7 +62,7 @@ function extractPersonalDataFromCache(studentId, cacheData) {
     const { allReservationsCache } = cacheData;
     if (!allReservationsCache?.reservations) {
       Logger.log('予約キャッシュデータが利用できません');
-      return { myBookings: [], myHistory: [] };
+      return { myReservations: [] };
     }
 
     const convertedReservations = convertReservationsToObjects(
@@ -73,33 +73,19 @@ function extractPersonalDataFromCache(studentId, cacheData) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const studentReservations = convertedReservations.filter(
-      r => r.studentId === studentId,
+    // キャンセル以外のステータスの予約のみをフィルタリング
+    const myReservations = convertedReservations.filter(
+      r => r.studentId === studentId && r.status !== CONSTANTS.STATUS.CANCELED,
     );
-
-    const myBookings = studentReservations.filter(
-      r => new Date(r.date) >= today && r.status === CONSTANTS.STATUS.CONFIRMED,
-    );
-    const myHistory = studentReservations.filter(r => {
-      const reservationDate = new Date(r.date);
-      // 履歴条件：過去の日付 または 完了済み または 取消・キャンセル待ち
-      return (
-        reservationDate < today ||
-        r.status === CONSTANTS.STATUS.COMPLETED ||
-        r.status === CONSTANTS.STATUS.CANCELED ||
-        r.status === CONSTANTS.STATUS.WAITLISTED
-      );
-    });
 
     Logger.log(
-      `個人データ抽出完了: 予約${myBookings.length}件, 履歴${myHistory.length}件`,
+      `個人データ抽出完了: 予約件数${myReservations.length}件（キャンセル除く）`,
     );
-    return { myBookings, myHistory };
+    return { myReservations };
   } catch (error) {
     Logger.log(`extractPersonalDataFromCacheエラー: ${error.message}`);
     return {
-      myBookings: [],
-      myHistory: [],
+      myReservations: [],
     };
   }
 }
@@ -165,8 +151,7 @@ function authenticateUser(phoneNumber) {
       );
       const enrichedInitialData = {
         ...initialDataResult.data,
-        myBookings: personalData.myBookings,
-        myHistory: personalData.myHistory,
+        myReservations: personalData.myReservations,
       };
 
       logActivity(
