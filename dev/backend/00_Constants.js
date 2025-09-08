@@ -56,16 +56,8 @@ const STATUS = {
 };
 
 /**
- * 項目名定数
+ * 項目名定数（CONSTANTS.ITEMSから参照）
  */
-const ITEMS = {
-  MAIN_LECTURE: '基本授業料',
-  FIRST_LECTURE: '初回授業料',
-  CHISEL_RENTAL: '彫刻刀レンタル',
-  TOOL_SET: '道具セット',
-  MATERIAL_FEE: '材料費',
-  DISCOUNT: '初回者同時参加割引',
-};
 
 /**
  * 教室定員定数
@@ -77,13 +69,8 @@ const CLASSROOM_CAPACITIES = {
 };
 
 /**
- * 項目種別定数
+ * 項目種別定数（CONSTANTS.ITEM_TYPESから参照）
  */
-const ITEM_TYPES = {
-  TUITION: '授業料',
-  SALES: '物販',
-  MATERIAL: '材料',
-};
 
 /**
  * 単位定数
@@ -121,15 +108,12 @@ const UI = {
 /**
  * プロジェクト全体で使用する統一定数オブジェクト
  * 階層構造により論理的に分類された定数を管理
- * @type {Constants}
  */
 const CONSTANTS = /** @type {const} */ ({
   // 1段階目定数への参照（両参照対応）
   CLASSROOMS: CLASSROOMS,
   STATUS: STATUS,
-  ITEMS: ITEMS,
   CLASSROOM_CAPACITIES: CLASSROOM_CAPACITIES,
-  ITEM_TYPES: ITEM_TYPES,
   UNITS: UNITS,
   PAYMENT_METHODS: PAYMENT_METHODS,
   UI: UI,
@@ -322,6 +306,22 @@ const CONSTANTS = /** @type {const} */ ({
     },
   },
 
+  // 会計項目定数
+  ITEMS: {
+    MAIN_LECTURE: '基本授業料',
+    FIRST_LECTURE: '初回授業料',
+    CHISEL_RENTAL: '彫刻刀レンタル',
+    TOOL_SET: '道具セット',
+    MATERIAL_FEE: '材料費',
+    DISCOUNT: '初回者同時参加割引',
+  },
+
+  // 会計項目種別定数
+  ITEM_TYPES: {
+    TUITION: '授業料',
+    SALES: '物販',
+    MATERIAL: '材料',
+  },
 
   // 注意: HEADER_MAPPINGS は過度に複雑だったため削除
   // 必要な箇所では直接的なswitch文で対応
@@ -410,7 +410,11 @@ const HEADER_TRANSPORTATION = CONSTANTS.HEADERS.ROSTER.TRANSPORTATION;
 // Deprecated: Use CONSTANTS.HEADERS.ROSTER.PICKUP instead
 const HEADER_PICKUP = CONSTANTS.HEADERS.ROSTER.PICKUP;
 
-// 項目名の後方互換性
+// 項目名の後方互換性（統合定数から参照）
+const ITEMS = CONSTANTS.ITEMS;
+const ITEM_TYPES = CONSTANTS.ITEM_TYPES;
+
+// 個別項目名の後方互換性
 const ITEM_NAME_MAIN_LECTURE = CONSTANTS.ITEMS.MAIN_LECTURE;
 const ITEM_NAME_FIRST_LECTURE = CONSTANTS.ITEMS.FIRST_LECTURE;
 const ITEM_NAME_CHISEL_RENTAL = CONSTANTS.ITEMS.CHISEL_RENTAL;

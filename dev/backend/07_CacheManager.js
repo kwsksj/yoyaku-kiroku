@@ -200,7 +200,7 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
     const today = new Date();
 
     const oldestDate = new Date(
-      today.getFullYear() - 10,
+      today.getFullYear(),
       today.getMonth(),
       today.getDate(),
     );
@@ -329,7 +329,9 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
 
     // ★ 日付順でソート処理を追加
     if (scheduleDataList && scheduleDataList.length > 0) {
-      scheduleDataList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      scheduleDataList.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+      );
     }
 
     const cacheData = {

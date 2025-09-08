@@ -22,7 +22,7 @@ class SpreadsheetManager {
 
   /**
    * アクティブなスプレッドシートオブジェクトを取得（キャッシュ付き）
-   * @returns {Spreadsheet}
+   * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet}
    */
   getSpreadsheet() {
     if (!this._spreadsheet) {
@@ -34,7 +34,7 @@ class SpreadsheetManager {
   /**
    * 指定されたシートを取得（キャッシュ付き）
    * @param {string} sheetName - シート名
-   * @returns {Sheet|null}
+   * @returns {GoogleAppsScript.Spreadsheet.Sheet|null}
    */
   getSheet(sheetName) {
     if (!this._sheets.has(sheetName)) {
@@ -71,6 +71,9 @@ function getActiveSpreadsheet() {
   return SS_MANAGER.getSpreadsheet();
 }
 
+/**
+ * @param {string} sheetName
+ */
 function getSheetByName(sheetName) {
   return SS_MANAGER.getSheet(sheetName);
 }

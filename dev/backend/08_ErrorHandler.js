@@ -275,7 +275,5 @@ function createApiResponse(success, data = {}) {
 }
 
 // グローバル例外ハンドラーの設定（Google Apps Script環境用）
-if (typeof global !== 'undefined') {
-  global.BackendErrorHandler = BackendErrorHandler;
-  global.createApiResponse = createApiResponse;
-}
+// Google Apps Script環境では関数は自動的にグローバルスコープで利用可能となるため
+// 明示的なグローバル設定は不要

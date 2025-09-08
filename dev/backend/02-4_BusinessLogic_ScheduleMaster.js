@@ -7,97 +7,85 @@
  */
 
 /**
- * 日程マスタシートを作成または初期化する
+ * 統合予約シートから日程マスタシートを作成または再構築する
+ * 旧来のシステムから移行時に既存の予約データから日程マスタを自動生成するための関数
  * スプレッドシートのメニューから手動実行される管理者用関数
  */
 function createScheduleMasterSheet() {
   try {
-    const ss = getActiveSpreadsheet();
-    let scheduleSheet = getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    Logger.log('統合予約シートから日程マスタ生成を開始します');
 
-    // シートが既に存在する場合は確認
-    if (scheduleSheet) {
-      const ui = SpreadsheetApp.getUi();
-      const response = ui.alert(
-        MSG_SHEET_INITIALIZATION,
-        MSG_EXISTING_SHEET_WARNING,
-        ui.ButtonSet.YES_NO,
-      );
+    const ui = SpreadsheetApp.getUi();
 
-      if (response !== ui.Button.YES) {
-        ui.alert(MSG_PROCESSING_INTERRUPTED);
-        return;
-      }
-
-      // 既存シートを削除
-      ss.deleteSheet(scheduleSheet);
-    }
-
-    // 新しいシートを作成
-    scheduleSheet = ss.insertSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
-
-    // ヘッダーを設定
-    scheduleSheet
-      .getRange(HEADER_ROW, 1, 1, Object.keys(CONSTANTS.HEADERS.SCHEDULE).length)
-      .setValues([Object.values(CONSTANTS.HEADERS.SCHEDULE)]);
-
-    // ヘッダー行の書式設定
-    const headerRange = scheduleSheet.getRange(
-      HEADER_ROW,
-      1,
-      1,
-      Object.keys(CONSTANTS.HEADERS.SCHEDULE).length,
+    // 確認ダイアログ
+    const response = ui.alert(
+      '日程マスタ生成',
+      '統合予約シートから日程マスタを自動生成します。既存の日程マスタは上書きされます。実行しますか？',
+      ui.ButtonSet.YES_NO,
     );
-    headerRange.setFontWeight('bold');
-    headerRange.setBackground(COLOR_HEADER_BACKGROUND);
-    headerRange.setHorizontalAlignment('center');
 
-    // 列幅の調整
-    scheduleSheet.setColumnWidth(1, COLUMN_WIDTH_DATE); // 日付
-    scheduleSheet.setColumnWidth(2, COLUMN_WIDTH_CLASSROOM); // 教室
-    scheduleSheet.setColumnWidth(3, COLUMN_WIDTH_VENUE); // 会場
-    scheduleSheet.setColumnWidth(4, COLUMN_WIDTH_CLASSROOM_TYPE); // 教室形式
-    scheduleSheet.setColumnWidths(5, 4, COLUMN_WIDTH_TIME); // 時刻関連（講座開始〜休憩終了）
-    scheduleSheet.setColumnWidth(9, COLUMN_WIDTH_BEGINNER_START); // 初回者開始
-    scheduleSheet.setColumnWidths(10, 2, COLUMN_WIDTH_CAPACITY); // 定員関連
-    scheduleSheet.setColumnWidth(12, COLUMN_WIDTH_STATUS); // 状態
-    scheduleSheet.setColumnWidth(13, COLUMN_WIDTH_NOTES); // 備考
-
-    // サンプルデータを挿入
-    const sampleData = createSampleScheduleData();
-    if (sampleData.length > 0) {
-      scheduleSheet
-        .getRange(
-          DATA_START_ROW,
-          1,
-          sampleData.length,
-          Object.keys(CONSTANTS.HEADERS.SCHEDULE).length,
-        )
-        .setValues(sampleData);
+    if (response !== ui.Button.YES) {
+      ui.alert('処理を中断しました。');
+      return;
     }
+
+    // 1. 全ての予約データから日付・教室の組み合わせを抽出
+    const uniqueDateClassrooms = extractUniqueDateClassroomCombinations();
+    Logger.log(
+      `ユニークな日付・教室の組み合わせ: ${uniqueDateClassrooms.size} 件`,
+    );
+
+    if (uniqueDateClassrooms.size === 0) {
+      Logger.log('生成エラー: 予約データから有効な日程が見つかりませんでした');
+      ui.alert(
+        '生成エラー',
+        '予約データから有効な日程が見つかりませんでした',
+        ui.ButtonSet.OK,
+      );
+      return;
+    }
+
+    // 2. 日程マスタシートの準備
+    prepareScheduleMasterSheet();
+
+    // 3. デフォルト設定を適用して日程マスタデータを生成
+    const scheduleData = generateScheduleDataWithDefaults(uniqueDateClassrooms);
+    Logger.log(`生成される日程データ: ${scheduleData.length} 件`);
+
+    // 4. 日程マスタシートにデータを書き込み
+    writeScheduleDataToSheet(scheduleData);
+
+    // キャッシュをクリア
+    SS_MANAGER.clearSheetCache(CONSTANTS.SHEET_NAMES.SCHEDULE);
 
     // 成功メッセージ
-    const ui = SpreadsheetApp.getUi();
     ui.alert(
-      '日程マスタシート作成完了',
-      `「${CONSTANTS.SHEET_NAMES.SCHEDULE}」シートを作成しました。\nサンプルデータ ${sampleData.length} 件を挿入しました。`,
+      '日程マスタ生成完了',
+      `統合予約シートから日程マスタを生成しました。\n生成件数: ${scheduleData.length} 件`,
       ui.ButtonSet.OK,
     );
-
-    // 作成後、シートキャッシュをクリア
-    SS_MANAGER.clearSheetCache(CONSTANTS.SHEET_NAMES.SCHEDULE);
 
     // アクティビティログに記録
     logActivity(
       Session.getActiveUser().getEmail(),
-      '日程マスタ作成',
+      '統合予約データからの日程マスタ生成',
       '成功',
-      `シート作成、サンプルデータ${sampleData.length}件`,
+      `生成件数: ${scheduleData.length} 件`,
+    );
+
+    Logger.log(
+      `統合予約シートから日程マスタ生成が完了しました。生成件数: ${scheduleData.length} 件`,
     );
   } catch (error) {
-    Logger.log(`日程マスタシート作成エラー: ${error.message}`);
+    Logger.log(`日程マスタシート生成エラー: ${error.message}`);
+    const ui = SpreadsheetApp.getUi();
+    ui.alert(
+      '生成エラー',
+      `処理中にエラーが発生しました: ${error.message}`,
+      ui.ButtonSet.OK,
+    );
     handleError(
-      `日程マスタシートの作成中にエラーが発生しました: ${error.message}`,
+      `日程マスタシートの生成中にエラーが発生しました: ${error.message}`,
       true,
     );
   }
@@ -353,7 +341,10 @@ function extractUniqueDateClassroomCombinations() {
           // 有効な日付かチェック
           if (date instanceof Date && classroom) {
             // キャンセルや待機中の予約は除外
-            if (status !== STATUS_CANCEL && status !== STATUS_WAITING) {
+            if (
+              status !== CONSTANTS.STATUS.CANCELED &&
+              status !== CONSTANTS.STATUS.WAITLISTED
+            ) {
               const dateString = Utilities.formatDate(
                 date,
                 CONSTANTS.TIMEZONE,
@@ -422,7 +413,12 @@ function prepareScheduleMasterSheet() {
 
     // ヘッダーを設定
     scheduleSheet
-      .getRange(HEADER_ROW, 1, 1, Object.keys(CONSTANTS.HEADERS.SCHEDULE).length)
+      .getRange(
+        HEADER_ROW,
+        1,
+        1,
+        Object.keys(CONSTANTS.HEADERS.SCHEDULE).length,
+      )
       .setValues([Object.values(CONSTANTS.HEADERS.SCHEDULE)]);
 
     // ヘッダー行の書式設定
@@ -480,7 +476,7 @@ function generateScheduleDataWithDefaults(uniqueCombinations) {
       classroomDefaults.beginnerStart, // 初回者開始
       classroomDefaults.totalCapacity, // 全体定員
       classroomDefaults.beginnerCapacity, // 初回者定員
-      SCHEDULE_STATUS_SCHEDULED, // 状態
+      CONSTANTS.SCHEDULE_STATUS.SCHEDULED, // 状態
       '既存予約から自動生成', // 備考
     ]);
   });

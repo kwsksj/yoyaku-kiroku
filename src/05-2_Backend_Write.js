@@ -799,7 +799,8 @@ function saveAccountingDetails(payload) {
         if (classroomRule && startTime && endTime && startTime < endTime) {
           const start = new Date(`1900-01-01T${startTime}:00`);
           const end = new Date(`1900-01-01T${endTime}:00`);
-          const diffMinutes = (end.getTime() - start.getTime()) / 60000 - (breakMinutes || 0);
+          const diffMinutes =
+            (end.getTime() - start.getTime()) / 60000 - (breakMinutes || 0);
           if (diffMinutes > 0) {
             const billableUnits = Math.ceil(diffMinutes / 30);
             const price =

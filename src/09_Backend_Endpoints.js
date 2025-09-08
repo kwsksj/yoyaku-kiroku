@@ -161,10 +161,10 @@ function updateReservationDetailsAndGetLatestData(details) {
 
 /**
  * 電話番号未登録のユーザーをフィルタリング検索する
- * @param {string} filterText - 検索条件文字列
+ * @param {string} _filterText - 検索条件文字列（現在未使用）
  * @returns {Object} 検索結果とユーザーリスト
  */
-function searchUsersWithoutPhone(filterText) {
+function searchUsersWithoutPhone(_filterText) {
   try {
     const users = getUsersWithoutPhoneNumber();
     return createApiResponse(true, {

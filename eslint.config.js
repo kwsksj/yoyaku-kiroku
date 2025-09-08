@@ -3,9 +3,9 @@ import pluginGoogleAppsScript from 'eslint-plugin-googleappsscript';
 import prettierConfig from 'eslint-config-prettier';
 
 export default [
-  // Google Apps Script server-side files
+  // Google Apps Script server-side files (both src and dev/backend)
   {
-    files: ['src/**/*.js'],
+    files: ['src/**/*.js', 'dev/backend/**/*.js'],
     plugins: {
       googleappsscript: pluginGoogleAppsScript,
     },
@@ -50,7 +50,7 @@ export default [
         COLUMN_WIDTH_STATUS: 'readonly',
         COLUMN_WIDTH_TIME: 'readonly',
         COLUMN_WIDTH_VENUE: 'readonly',
-        // CONSTANTS: TypeScript定義に委譲
+        CONSTANTS: 'readonly', // Must be enabled for dev/backend/
         DATA_START_ROW: 'readonly',
         DISCOUNT_OPTION_30MIN: 'readonly',
         DISCOUNT_OPTION_60MIN: 'readonly',
@@ -119,13 +119,13 @@ export default [
         LOG_ACTION_ROW_INSERT: 'readonly',
         LOG_SHEET_NAME: 'readonly',
         MATERIAL_INFO_PREFIX: 'readonly',
-        // MSG_*: TypeScript定義に委譲 (window.MESSAGES)
-        // MSG_CANCEL: 'readonly',
-        // MSG_ERROR: 'readonly',
-        // MSG_EXISTING_SHEET_WARNING: 'readonly',
-        // MSG_PROCESSING_INTERRUPTED: 'readonly',
-        // MSG_SHEET_INITIALIZATION: 'readonly',
-        // MSG_SUCCESS: 'readonly',
+        // MSG_*: Used in dev/backend/
+        MSG_CANCEL: 'readonly',
+        MSG_ERROR: 'readonly',
+        MSG_EXISTING_SHEET_WARNING: 'readonly',
+        MSG_PROCESSING_INTERRUPTED: 'readonly',
+        MSG_SHEET_INITIALIZATION: 'readonly',
+        MSG_SUCCESS: 'readonly',
         NUMAZU_CLASSROOM_NAME: 'readonly',
         // PAYMENT_*: TypeScript定義に委譲 (window.PAYMENT)
         // PAYMENT_BANK_TRANSFER: 'readonly',
@@ -135,18 +135,19 @@ export default [
         ROSTER_SHEET_NAME: 'readonly',
         SALES_SPREADSHEET_ID: 'readonly',
         SCHEDULE_MASTER_HEADERS: 'readonly',
-        // SCHEDULE_STATUS_*: TypeScript定義に委譲 (CONSTANTS.SCHEDULE_STATUS)
-        // SCHEDULE_STATUS_CANCELLED: 'readonly',
-        // SCHEDULE_STATUS_COMPLETED: 'readonly',
-        // SCHEDULE_STATUS_SCHEDULED: 'readonly',
+        // SCHEDULE_STATUS_*: Used in dev/backend/
+        SCHEDULE_STATUS_CANCELLED: 'readonly',
+        SCHEDULE_STATUS_COMPLETED: 'readonly',
+        SCHEDULE_STATUS_SCHEDULED: 'readonly',
         SESSION_AFTERNOON: 'readonly',
         SESSION_ALL_DAY: 'readonly',
         SESSION_MORNING: 'readonly',
         SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE: 'readonly',
         SS_MANAGER: 'readonly',
-        // STATUS_*: TypeScript定義に委譲 (window.STATUS)
-        // STATUS_CANCEL: 'readonly',
-        // STATUS_WAITING: 'readonly',
+        global: 'readonly',
+        // STATUS_*: Used in dev/backend/
+        STATUS_CANCEL: 'readonly',
+        STATUS_WAITING: 'readonly',
         SpreadsheetManager: 'readonly',
         TIME_END_BUFFER_HOURS: 'readonly',
         TIME_STEP_MINUTES: 'readonly',

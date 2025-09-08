@@ -6,7 +6,7 @@
     "checkJs": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "strict": false,
+    //    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "types": ["google-apps-script"],
@@ -14,8 +14,9 @@
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
     "noImplicitReturns": false,
-    "noImplicitAny": false,
-    "noImplicitThis": false,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noPropertyAccessFromIndexSignature": true,
     // GAS特有の重複定義を許可
     "exactOptionalPropertyTypes": false
   },

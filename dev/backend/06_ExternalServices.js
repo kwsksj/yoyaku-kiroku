@@ -62,20 +62,27 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
       `メール送信成功: ${student.email} (${isFirstTime ? '初回者' : '経験者'})`,
       'INFO',
       'sendConfirmationEmail',
-      new Date()
+      new Date(),
     );
     logActivity(
       student.studentId,
       'メール送信',
+      '成功',
       `予約確定メール送信完了 (${isFirstTime ? '初回者' : '経験者'})`,
     );
 
     return true;
   } catch (error) {
-    Logger.log(`メール送信エラー: ${error.message}`, 'ERROR', 'sendConfirmationEmail', new Date());
+    Logger.log(
+      `メール送信エラー: ${error.message}`,
+      'ERROR',
+      'sendConfirmationEmail',
+      new Date(),
+    );
     logActivity(
       student.studentId,
       'メール送信エラー',
+      '失敗',
       `失敗理由: ${error.message}`,
     );
     return false;
@@ -223,20 +230,25 @@ function getTuitionDisplayText(classroom, isFirstTime) {
     }
 
     const masterData = accountingData.items;
-    const itemName = isFirstTime ? ITEMS.FIRST_LECTURE : ITEMS.MAIN_LECTURE;
+    const itemName = isFirstTime
+      ? CONSTANTS.ITEMS.FIRST_LECTURE
+      : CONSTANTS.ITEMS.MAIN_LECTURE;
 
     // 教室固有の料金ルールを検索
     const tuitionRule = masterData.find(
       item =>
-        item[HEADERS.ACCOUNTING.TYPE] === ITEM_TYPES.TUITION &&
-        item[HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
-        item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
-        item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
+        item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+          CONSTANTS.ITEM_TYPES.TUITION &&
+        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
+        item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+        item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
     );
 
     if (tuitionRule) {
-      const price = Number(tuitionRule[HEADERS.ACCOUNTING.UNIT_PRICE]);
-      const unit = tuitionRule[HEADERS.ACCOUNTING.UNIT] || '';
+      const price = Number(
+        tuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+      );
+      const unit = tuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] || '';
       const priceText = price > 0 ? ` ¥${price.toLocaleString()}` : '';
       const unitText = unit ? ` / ${unit}` : '';
       return `${itemName}${priceText}${unitText}`;
@@ -245,13 +257,14 @@ function getTuitionDisplayText(classroom, isFirstTime) {
     // 教室固有ルールが無い場合は基本料金を検索
     const basicRule = masterData.find(
       item =>
-        item[HEADERS.ACCOUNTING.TYPE] === ITEM_TYPES.TUITION &&
-        item[HEADERS.ACCOUNTING.ITEM_NAME] === itemName,
+        item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+          CONSTANTS.ITEM_TYPES.TUITION &&
+        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName,
     );
 
     if (basicRule) {
-      const price = Number(basicRule[HEADERS.ACCOUNTING.UNIT_PRICE]);
-      const unit = basicRule[HEADERS.ACCOUNTING.UNIT] || '';
+      const price = Number(basicRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
+      const unit = basicRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] || '';
       const priceText = price > 0 ? ` ¥${price.toLocaleString()}` : '';
       const unitText = unit ? ` / ${unit}` : '';
       return `${itemName}${priceText}${unitText}`;
@@ -449,10 +462,16 @@ function sendBookingConfirmationEmailAsync(reservationInfo) {
   if (!studentWithEmail || !studentWithEmail.email) {
     if (isFirstTime) {
       // 初回者でメールアドレス未設定の場合はエラーログ（本来は事前入力で防止）
-      Logger.log(`初回者メール送信失敗: メールアドレス未設定 (${studentId})`, 'WARN', 'sendConfirmationEmail', new Date());
+      Logger.log(
+        `初回者メール送信失敗: メールアドレス未設定 (${studentId})`,
+        'WARN',
+        'sendConfirmationEmail',
+        new Date(),
+      );
       logActivity(
         studentId,
         'メール送信エラー',
+        '失敗',
         '初回者: メールアドレス未設定',
       );
     } else {

@@ -25,7 +25,7 @@ function getAvailableSlots() {
       `=== getAvailableSlots: today=${today}, todayString=${todayString} ===`,
     );
 
-    const scheduledDates = getAllScheduledDates(todayString);
+    const scheduledDates = getAllScheduledDates(todayString, null);
     Logger.log(
       `=== scheduledDates取得完了: ${scheduledDates ? scheduledDates.length : 0} 件 ===`,
     );
@@ -54,8 +54,8 @@ function getAvailableSlots() {
           : new Date(reservation.date);
       return (
         reservationDate >= today &&
-        reservation.status !== STATUS_CANCEL &&
-        reservation.status !== STATUS_WAITING
+        reservation.status !== CONSTANTS.STATUS.CANCELED &&
+        reservation.status !== CONSTANTS.STATUS.WAITLISTED
       );
     });
 
@@ -478,7 +478,9 @@ function getUserReservations(studentId) {
     });
 
     // 日付でソート（新しい順）
-    myReservations.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    myReservations.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
 
     Logger.log(`生徒ID ${studentId} の予約を取得: ${myReservations.length} 件`);
     return createApiResponse(true, {

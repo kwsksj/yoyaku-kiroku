@@ -1,0 +1,46 @@
+{
+  "extends": ["../.eslintrc.json"],
+  "env": {
+    "browser": false,
+    "node": false,
+    "googleappsscript/googleappsscript": true
+  },
+  "plugins": ["googleappsscript"],
+  "rules": {
+    // GAS環境では全ファイルがグローバルスコープのため重複定義を許可
+    "no-redeclare": "off",
+    "no-undef": "warn",
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    // GAS特有のグローバル変数を許可
+    "googleappsscript/no-global-assignment": "off",
+    // Logger.log の引数数チェックを緩和
+    "@typescript-eslint/no-unused-expressions": "off"
+  },
+  "globals": {
+    // GAS特有のグローバル定数を許可
+    "CONSTANTS": "readonly",
+    "STATUS": "readonly",
+    "UI": "readonly",
+    "CLASSROOMS": "readonly",
+    "ITEMS": "readonly",
+    "ITEM_TYPES": "readonly",
+    "HEADERS": "readonly",
+    "SS_MANAGER": "readonly",
+    "SpreadsheetManager": "readonly",
+    // スケジュール関連定数
+    "SCHEDULE_STATUS_CANCELLED": "readonly",
+    "SCHEDULE_STATUS_COMPLETED": "readonly",
+    "SCHEDULE_STATUS_SCHEDULED": "readonly",
+    // 予約ステータス定数
+    "STATUS_CANCEL": "readonly",
+    "STATUS_WAITING": "readonly",
+    // メッセージ定数
+    "MSG_SHEET_INITIALIZATION": "readonly",
+    "MSG_EXISTING_SHEET_WARNING": "readonly",
+    "MSG_PROCESSING_INTERRUPTED": "readonly",
+    // システム定数
+    "DEBUG_ENABLED": "readonly",
+    "global": "readonly",
+    "__dirname": "readonly"
+  }
+}
