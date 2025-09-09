@@ -33,6 +33,20 @@ const _isToday = dateString => {
 };
 
 /**
+ * 指定日が「今日もしくは過去」かどうかを判定します。
+ * @param {string} dateString - 日付文字列 (YYYY-MM-DD)
+ * @returns {boolean} 「今日もしくは過去」の場合true
+ */
+const _isPastOrToday = dateString => {
+  const itemDate = new Date(dateString);
+  const today = new Date();
+  // 時間を00:00:00にリセットして日付のみで比較
+  itemDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return itemDate <= today;
+};
+
+/**
  * 時刻選択用の<option>タグ群を生成します。
  * @param {number} startHour - 開始時刻（時）
  * @param {number} endHour - 終了時刻（時）
@@ -165,131 +179,7 @@ const getPaymentOptionsHtml = selectedValue => {
   );
 };
 
-/**
- * 予約・履歴カード用の新レイアウトカード構造を生成します。
- * 仕様: 上部に教室情報（左）+編集ボタン（右）、中央に制作メモエリア、下部に当日のみ会計ボタン
- * @param {object} config - カード設定オブジェクト
- * @returns {string} HTML文字列
- */
-const createReservationCard = config => {
-  const {
-    type, // 'booking' | 'history'
-    item,
-    today,
-    buttons = [],
-  } = config;
-
-  const isBooking = type === 'booking';
-  const venueText = item.venue || '';
-  const isPastOrToday = isBooking
-    ? new Date(item.date).getTime() <= today.getTime()
-    : true;
-  const isToday =
-    today && new Date(item.date).toDateString() === today.toDateString();
-
-  // 時刻表示の生成
-  let timeText = '';
-  if (item.startTime && item.endTime) {
-    timeText = `${item.startTime} - ${item.endTime}`;
-  }
-
-  // 日時表示（教室情報部分）
-  const dateTimeDisplay = `${formatDate(item.date || '')}${timeText ? ` ${timeText}` : ''}`;
-  const venueDisplay = `${item.classroom || ''}${venueText ? ` ${venueText}` : ''}`;
-
-  let cardColorClass = 'reservation-card bg-ui-surface border border-ui-border';
-  if (isBooking) {
-    const cardColor = item.isWaiting
-      ? DesignConfig.cards.state.waitlist
-      : DesignConfig.cards.state.booked;
-    cardColorClass = `reservation-card ${cardColor.card}`;
-  } else if (type === 'history') {
-    cardColorClass = `record-card ${DesignConfig.cards.state.history.card}`;
-  }
-
-  // ステータスバッジ（初回、キャンセル待ち）
-  let statusBadges = '';
-  if (isBooking) {
-    if (item.firstLecture) {
-      statusBadges += `<span class="inline-block bg-action-attention-bg text-action-attention-text text-xs font-bold px-2 py-1 rounded-full ml-2">初回</span>`;
-    }
-    if (item.status === window.STATUS.WAITLISTED || item.isWaiting) {
-      statusBadges += `<span class="inline-block bg-state-waitlist-bg text-state-waitlist-text text-xs font-bold px-2 py-1 rounded-full ml-2">⏳ キャンセル待ち</span>`;
-    }
-  }
-
-  // 編集/確認ボタンの抽出（会計ボタン以外）
-  const editButtons = buttons.filter(
-    btn => !btn.text.includes('会計') && !btn.text.includes('記録'),
-  );
-  const editButtonsHtml = editButtons
-    .map(btn =>
-      Components.createButton({
-        action: btn.action,
-        classroom: btn.classroom || item.classroom,
-        reservationId: btn.reservationId || item.reservationId,
-        date: btn.date || item.date,
-        sheetName: btn.sheetName || item.sheetName,
-        details: btn.details,
-        text: btn.text,
-        colorClass: btn.colorClass,
-      }),
-    )
-    .join('');
-
-  // 会計ボタンの抽出（当日のみ表示）
-  const accountingButtons = buttons.filter(
-    btn => btn.text.includes('会計') || btn.text.includes('記録'),
-  );
-  const showAccountingButtons = isToday && accountingButtons.length > 0;
-  const accountingButtonsHtml = showAccountingButtons
-    ? accountingButtons
-        .map(btn =>
-          Components.createButton({
-            action: btn.action,
-            classroom: btn.classroom || item.classroom,
-            reservationId: btn.reservationId || item.reservationId,
-            date: btn.date || item.date,
-            sheetName: btn.sheetName || item.sheetName,
-            details: btn.details,
-            text: btn.text,
-            colorClass: btn.colorClass,
-          }),
-        )
-        .join('')
-    : '';
-
-  // 制作メモの内容（元の表示方式に戻す）
-  const memoContent =
-    item.workInProgress != null && item.workInProgress !== ''
-      ? item.workInProgress
-      : `<span class="text-brand-muted">制作メモ</span>`;
-  const memoDisplay = `<p class="text-base text-brand-text whitespace-pre-wrap break-words w-full leading-relaxed">${memoContent}</p>`;
-
-  return `
-      <div class="${cardColorClass || 'bg-ui-surface border border-ui-border'} p-3 rounded-lg flex flex-col space-y-3">
-        <!-- 教室情報 -->
-        <div class="flex-shrink-0">
-          <div>
-            <span class="text-brand-text font-bold text-base sm:text-xl">${formatDate(item.date || '')} </span>
-            <span class="text-brand-text text-base time-display">${timeText || ''}</span>
-          </div>
-          <p class="text-brand-text font-bold text-base break-words">${item.classroom || ''} ${venueText || ''}</p>
-          ${statusBadges || ''}
-        </div>
-
-        <!-- 制作メモ -->
-        <div class="bg-ui-surface p-3 rounded-md w-full border border-ui-border">
-          <div class="w-full min-h-[3rem] flex items-start">
-            ${memoDisplay}
-          </div>
-        </div>
-
-        <!-- ボタン配置（元の配置に戻す：編集ボタン+当日のみ会計ボタン） -->
-        ${editButtonsHtml || accountingButtonsHtml ? `<div class="flex flex-wrap justify-center sm:justify-end items-center gap-2 flex-shrink-0 mt-3">${editButtonsHtml}${showAccountingButtons ? accountingButtonsHtml : ''}</div>` : ''}
-      </div>
-    `;
-};
+// createReservationCard function removed - functionality moved to Components.listCard
 
 /**
  * 参加記録編集用のモーダルウィンドウの中身を生成します。
@@ -856,34 +746,22 @@ const getUserSearchView = () => {
 };
 
 /**
- * ホーム予約カードのボタン配列を生成します（新仕様）。
+ * 予約カードの編集ボタン配列を生成します。
  * @param {object} booking - 予約データ
- * @returns {Array} ボタン設定配列
+ * @returns {Array} 編集ボタン設定配列
  */
-const _buildBookingButtons = booking => {
+const _buildEditButtons = booking => {
   const buttons = [];
-  const isBookingToday = _isToday(booking.date);
-
-  // 会計関連ボタン（新仕様）
-  if (booking.status === window.STATUS.CONFIRMED && isBookingToday) {
-    // よやく かつ 当日 → 「会計」ボタン
-    buttons.push({
-      action: 'goToAccounting',
-      text: '会計',
-      style: 'accounting',
-    });
-  }
 
   // 確認/編集ボタン
   if (
     booking.status === window.STATUS.CONFIRMED ||
     booking.status === window.STATUS.WAITLISTED
   ) {
-    // よやく → 「確認/編集」ボタン
     buttons.push({
       action: 'goToEditReservation',
       text: '確認/編集',
-      style: 'edit',
+      style: 'secondary',
     });
   }
 
@@ -891,22 +769,62 @@ const _buildBookingButtons = booking => {
 };
 
 /**
- * ホーム履歴カードのボタン配列を生成します（新仕様）。
- * @param {object} historyItem - 履歴データ
- * @returns {Array} ボタン設定配列
+ * 予約カードの会計ボタン配列を生成します。
+ * @param {object} booking - 予約データ
+ * @returns {Array} 会計ボタン設定配列
  */
-const _buildHistoryButtons = historyItem => {
+const _buildAccountingButtons = booking => {
   const buttons = [];
-  const isHistoryToday = _isToday(historyItem.date);
 
-  // 会計関連ボタン（新仕様）
+  // 会計ボタン（予約日以降のみ）
+  const isBookingPastOrToday = _isPastOrToday(booking.date);
+  if (booking.status === window.STATUS.CONFIRMED && isBookingPastOrToday) {
+    buttons.push({
+      action: 'goToAccounting',
+      text: '会計',
+      style: 'primary',
+    });
+  }
+
+  return buttons;
+};
+
+/**
+ * 履歴カードの編集ボタン配列を生成します。
+ * @param {object} historyItem - 履歴データ
+ * @returns {Array} 編集ボタン設定配列
+ */
+const _buildHistoryEditButtons = historyItem => {
+  const buttons = [];
+
+  // メモ編集ボタン
+  buttons.push({
+    action: 'editHistoryMemo',
+    text: window.stateManager.getState().constants?.messages?.EDIT || '編集',
+    style: 'secondary',
+    size: 'small',
+  });
+
+  return buttons;
+};
+
+/**
+ * 履歴カードの会計ボタン配列を生成します。
+ * @param {object} historyItem - 履歴データ
+ * @returns {Array} 会計ボタン設定配列
+ */
+const _buildHistoryAccountingButtons = historyItem => {
+  const buttons = [];
+
   if (historyItem.status === window.STATUS.COMPLETED) {
+    const isHistoryToday = _isToday(historyItem.date);
+
     if (isHistoryToday) {
-      // きろく かつ 当日 → 「会計を修正」ボタン
+      // きろく かつ 教室の当日 → 「会計を修正」ボタン
       buttons.push({
         action: 'editAccountingRecord',
         text: '会計を修正',
-        style: 'accounting',
+        style: 'primary',
       });
     } else {
       // きろく → 「会計詳細」ボタン
@@ -914,19 +832,31 @@ const _buildHistoryButtons = historyItem => {
         action: 'showHistoryAccounting',
         details: historyItem.accountingDetails,
         text: '会計詳細',
-        style: 'record',
+        style: 'secondary',
       });
     }
   }
 
-  // メモ編集ボタン
-  buttons.push({
-    action: 'editHistoryMemo',
-    text: window.stateManager.getState().constants?.messages?.EDIT || '編集',
-    style: 'edit-small',
-  });
-
   return buttons;
+};
+
+/**
+ * 予約カードのバッジ配列を生成します。
+ * @param {object} booking - 予約データ
+ * @returns {Array} バッジ設定配列
+ */
+const _buildBookingBadges = booking => {
+  const badges = [];
+
+  if (booking.firstLecture) {
+    badges.push({ type: 'info', text: '初回' });
+  }
+
+  if (booking.status === window.STATUS.WAITLISTED || booking.isWaiting) {
+    badges.push({ type: 'warning', text: 'キャンセル待ち' });
+  }
+
+  return badges;
 };
 
 /**
@@ -938,8 +868,6 @@ const getDashboardView = () => {
   // myReservationsから直接フィルタリングして表示（シンプル化）
   const state = stateManager.getState();
   const myReservations = state.myReservations || [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
   const activeReservations = myReservations
@@ -948,15 +876,19 @@ const getDashboardView = () => {
         res.status === window.STATUS.CONFIRMED ||
         res.status === window.STATUS.WAITLISTED,
     )
-    .sort((a, b) => new Date(a.date) - new Date(b.date)); // 日付順ソート
+    .sort((a, b) => new Date(b.date) - new Date(a.date)); // 新しい順ソート
 
   const bookingCards = activeReservations.map(b => {
-    const buttons = _buildBookingButtons(b);
+    const badges = _buildBookingBadges(b);
+    const editButtons = _buildEditButtons(b);
+    const accountingButtons = _buildAccountingButtons(b);
+
     return Components.listCard({
       type: 'booking',
       item: b,
-      today: today,
-      buttons: buttons,
+      badges: badges,
+      editButtons: editButtons,
+      accountingButtons: accountingButtons,
     });
   });
 
@@ -980,12 +912,15 @@ const getDashboardView = () => {
   if (completedRecords.length > 0) {
     // 「きろく」は COMPLETED ステータスのみ表示
     const historyCards = completedRecords.map(h => {
-      const buttons = _buildHistoryButtons(h);
+      const editButtons = _buildHistoryEditButtons(h);
+      const accountingButtons = _buildHistoryAccountingButtons(h);
+
       return Components.listCard({
         type: 'history',
         item: h,
-        today: null, // 履歴では不要
-        buttons: buttons,
+        badges: [], // 履歴にはバッジなし
+        editButtons: editButtons,
+        accountingButtons: accountingButtons,
       });
     });
 

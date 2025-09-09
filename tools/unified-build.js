@@ -12,6 +12,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// 時刻フォーマット関数
+const formatTime = () => {
+  const now = new Date();
+  return now.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
 class UnifiedBuilder {
   constructor(config = {}) {
     this.srcDir = config.srcDir || 'src';
@@ -25,7 +38,7 @@ class UnifiedBuilder {
    * 統合ビルド実行
    */
   async build() {
-    console.log('🚀 Starting unified build process...');
+    console.log(`[${formatTime()}] 🚀 Starting unified build process...`);
 
     // srcディレクトリを初期化
     if (!fs.existsSync(this.srcDir)) {
@@ -39,10 +52,10 @@ class UnifiedBuilder {
       // 統合WebAppファイルを生成
       await this.buildUnifiedWebApp();
 
-      console.log('✅ Unified build completed successfully!');
-      console.log(`   📁 Output files in: ${this.srcDir}/`);
+      console.log(`[${formatTime()}] ✅ Unified build completed successfully!`);
+      console.log(`[${formatTime()}]    📁 Output files in: ${this.srcDir}/`);
     } catch (error) {
-      console.error('❌ Build failed:', error);
+      console.error(`[${formatTime()}] ❌ Build failed:`, error);
       process.exit(1);
     }
   }
@@ -51,10 +64,10 @@ class UnifiedBuilder {
    * バックエンドJSファイルをsrcにコピー
    */
   async buildBackendFiles() {
-    console.log('🔨 Building backend files...');
+    console.log(`[${formatTime()}] 🔨 Building backend files...`);
 
     if (!fs.existsSync(this.backendDir)) {
-      console.log(`   ⚠️  Backend directory not found: ${this.backendDir}`);
+      console.log(`[${formatTime()}]    ⚠️  Backend directory not found: ${this.backendDir}`);
       return;
     }
 
@@ -68,7 +81,7 @@ class UnifiedBuilder {
       const destPath = path.join(this.srcDir, jsFile);
 
       fs.copyFileSync(srcPath, destPath);
-      console.log(`  ✅ ${jsFile} copied`);
+      console.log(`[${formatTime()}]   ✅ ${jsFile} copied`);
     }
   }
 
@@ -76,7 +89,7 @@ class UnifiedBuilder {
    * 統合WebAppファイルを生成
    */
   async buildUnifiedWebApp() {
-    console.log('🔨 Building unified WebApp HTML...');
+    console.log(`[${formatTime()}] 🔨 Building unified WebApp HTML...`);
 
     // HTMLテンプレートを読み込み
     const templatePath = path.join(this.templateDir, '10_WebApp.html');
@@ -84,11 +97,11 @@ class UnifiedBuilder {
 
     if (fs.existsSync(templatePath)) {
       htmlContent = fs.readFileSync(templatePath, 'utf8');
-      console.log('  📄 HTML template loaded');
+      console.log(`[${formatTime()}]   📄 HTML template loaded`);
     } else {
       // デフォルトHTMLテンプレートを生成
       htmlContent = this.generateDefaultHtmlTemplate();
-      console.log('  📄 Default HTML template generated');
+      console.log(`[${formatTime()}]   📄 Default HTML template generated`);
     }
 
     // フロントエンドJavaScriptファイルを統合
@@ -101,17 +114,17 @@ class UnifiedBuilder {
     const outputPath = path.join(this.srcDir, '10_WebApp.html');
     fs.writeFileSync(outputPath, finalHtml);
 
-    console.log('  ✅ Unified WebApp HTML generated');
+    console.log(`[${formatTime()}]   ✅ Unified WebApp HTML generated`);
   }
 
   /**
    * フロントエンドJavaScriptファイルを統合
    */
   async buildUnifiedJavaScript() {
-    console.log('🔨 Unifying frontend JavaScript files...');
+    console.log(`[${formatTime()}] 🔨 Unifying frontend JavaScript files...`);
 
     if (!fs.existsSync(this.frontendDir)) {
-      console.log(`   ⚠️  Frontend directory not found: ${this.frontendDir}`);
+      console.log(`[${formatTime()}]    ⚠️  Frontend directory not found: ${this.frontendDir}`);
       return this.generateFallbackJavaScript();
     }
 
@@ -143,7 +156,7 @@ class UnifiedBuilder {
 
       unifiedContent += indentedContent + '\n';
 
-      console.log(`  ✅ ${jsFile} integrated`);
+      console.log(`[${formatTime()}]   ✅ ${jsFile} integrated`);
     }
 
     return unifiedContent;
@@ -224,19 +237,19 @@ class UnifiedBuilder {
             <div class="spinner mb-4"></div>
             <p id="loading-message" class="text-brand-text">アプリケーションを読み込み中...</p>
         </div>
-        
+
         <!-- メインコンテンツ -->
         <main id="main-content" class="py-6">
             <div id="view-container"></div>
         </main>
-        
+
         <!-- モーダル -->
         <div id="modal-overlay" class="modal-overlay">
             <div id="modal-content" class="modal-content">
                 <div id="modal-body"></div>
             </div>
         </div>
-        
+
         <footer class="text-center text-sm text-brand-muted mt-4">
             きぼりの よやく・きろく
         </footer>
@@ -247,28 +260,28 @@ class UnifiedBuilder {
 
     <script>
         // 環境判定・初期化処理
-        const isProduction = window.location.href.includes('/exec?') || 
-                            (window.location.href.includes('/macros/s/') && 
+        const isProduction = window.location.href.includes('/exec?') ||
+                            (window.location.href.includes('/macros/s/') &&
                              !window.location.href.includes('/dev'));
         const DEBUG_ENABLED = false;
-        
+
         function debugLog(message) {
             if (isProduction || !DEBUG_ENABLED) return;
             console.log('🔍 [DEBUG]', new Date().toLocaleTimeString() + ':', message);
         }
-        
+
         const isGAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
-        
+
         function initializeApp() {
             debugLog('initializeApp実行開始');
-            
+
             const checkReady = setInterval(() => {
-                if (typeof stateManager !== 'undefined' && 
+                if (typeof stateManager !== 'undefined' &&
                     typeof stateManager?.dispatch === 'function' &&
                     typeof hideLoading === 'function') {
                     clearInterval(checkReady);
                     debugLog('初期化条件を満たしました！');
-                    
+
                     window.stateManager.dispatch({
                         type: 'SET_STATE',
                         payload: { view: 'login' }
@@ -277,7 +290,7 @@ class UnifiedBuilder {
                 }
             }, 300);
         }
-        
+
         if (isGAS) {
             window.addEventListener('DOMContentLoaded', () => {
                 initializeApp();
@@ -294,7 +307,7 @@ class UnifiedBuilder {
   generateFallbackJavaScript() {
     return `  // フォールバック: フロントエンドディレクトリが見つからない場合
   console.log('⚠️ フロントエンドファイルが見つかりません。基本機能のみ利用可能です。');
-  
+
   // 最小限のstateManager
   window.stateManager = {
     state: { view: 'login' },
@@ -303,7 +316,7 @@ class UnifiedBuilder {
     },
     getState: function() { return this.state; }
   };
-  
+
   // 最小限のユーティリティ
   window.hideLoading = function() {
     const loading = document.getElementById('loading');
@@ -315,7 +328,7 @@ class UnifiedBuilder {
    * ファイル監視モード
    */
   async watch() {
-    console.log('👀 Starting file watcher...');
+    console.log(`[${formatTime()}] 👀 Starting file watcher...`);
 
     const chokidar = await import('chokidar');
 
@@ -326,7 +339,7 @@ class UnifiedBuilder {
 
     if (watchPaths.length === 0) {
       console.log(
-        '⚠️ 監視対象ディレクトリが見つかりません。まずdevディレクトリを作成してください。',
+        `[${formatTime()}] ⚠️ 監視対象ディレクトリが見つかりません。まずdevディレクトリを作成してください。`,
       );
       return;
     }
@@ -338,20 +351,20 @@ class UnifiedBuilder {
 
     watcher
       .on('change', filePath => {
-        console.log(`📝 File changed: ${filePath}`);
+        console.log(`[${formatTime()}] 📝 File changed: ${filePath}`);
         this.build();
       })
       .on('add', filePath => {
-        console.log(`➕ File added: ${filePath}`);
+        console.log(`[${formatTime()}] ➕ File added: ${filePath}`);
         this.build();
       })
       .on('unlink', filePath => {
-        console.log(`🗑️ File removed: ${filePath}`);
+        console.log(`[${formatTime()}] 🗑️ File removed: ${filePath}`);
         this.build();
       });
 
-    console.log(`   Watching: ${watchPaths.join(', ')}`);
-    console.log('   Press Ctrl+C to stop watching');
+    console.log(`[${formatTime()}]    Watching: ${watchPaths.join(', ')}`);
+    console.log(`[${formatTime()}]    Press Ctrl+C to stop watching`);
   }
 }
 
@@ -369,7 +382,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       await builder.watch();
       break;
     default:
-      console.log('Usage: node unified-build.js [build|watch]');
+      console.log(`[${formatTime()}] Usage: node unified-build.js [build|watch]`);
       break;
   }
 }

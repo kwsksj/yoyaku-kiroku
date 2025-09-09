@@ -56,7 +56,7 @@ const Components = {
    * @param {string} config.action - data-action属性の値
    * @param {string} config.text - ボタンテキスト
    * @param {string} [config.style='primary'] - ボタンスタイル ('primary'|'secondary'|'danger')
-   * @param {string} [config.size='normal'] - ボタンサイズ ('normal'|'full'|'small')
+   * @param {string} [config.size='normal'] - ボタンサイズ ('normal'|'full'|'small'|'xs')
    * @param {boolean} [config.disabled=false] - 無効状態
    * @param {string} [config.customClass=''] - 追加のCSSクラス
    * @param {Object} [config.dataAttributes={}] - 追加のdata-*属性 (例: { classroomName: '東京' })
@@ -82,6 +82,7 @@ const Components = {
       normal: '',
       full: DesignConfig.buttons.full,
       small: 'text-sm px-3 py-1.5',
+      xs: 'text-xs px-2 py-1',
     };
 
     // データ属性をHTML文字列に変換
@@ -234,7 +235,7 @@ const Components = {
       info: 'bg-action-secondary-bg text-action-secondary-text',
     };
 
-    return `<span class="inline-block px-2 py-1 text-sm font-bold rounded ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
+    return `<span class="inline-block px-1 py-0.5 text-sm font-bold rounded ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
   },
 
   /**
@@ -652,40 +653,122 @@ const Components = {
   },
 
   /**
-   * 統一カードレイアウト（予約・履歴共通）
+   * 統一カードレイアウト（予約・履歴共通）- 純粋描画層
    * @param {Object} config - 設定オブジェクト
    * @param {Object} config.item - 予約または履歴データ
-   * @param {Array} config.buttons - ボタン配列（{action, text, style, details?}の形式）
+   * @param {string} config.item.reservationId - 予約ID
+   * @param {string} config.item.classroom - 教室名
+   * @param {string} config.item.date - 日付
+   * @param {string} config.item.startTime - 開始時刻
+   * @param {string} config.item.endTime - 終了時刻
+   * @param {string} [config.item.workInProgress] - 制作メモ（履歴の場合）
+   * @param {Array} config.badges - バッジ配列（表示準備済み）
+   * @param {Array} config.editButtons - 編集ボタン配列（表示準備済み）
+   * @param {Array} config.accountingButtons - 会計ボタン配列（表示準備済み）
    * @param {string} [config.type='booking'] - カードタイプ ('booking' | 'history')
-   * @param {Date} [config.today] - 今日の日付（予約用）
    * @returns {string} HTML文字列
    */
-  listCard: ({ item, buttons, type = 'booking', today }) => {
-    // ボタンスタイルのマッピング（Viewsからの抽象的なstyleを具体的なCSSクラスに変換）
-    const styleMapping = {
-      paid: `${DesignConfig.colors.paid} text-base font-bold px-3 py-1.5 rounded`,
-      accounting: `text-base ${DesignConfig.colors.accounting} font-bold px-3 py-1.5 rounded mobile-button`,
-      edit: 'text-base bg-action-secondary-bg text-action-secondary-text font-medium px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
-      record:
-        'text-sm bg-action-paid-bg text-action-paid-text font-bold px-3 py-1.5 rounded',
-      'edit-small':
-        'text-sm bg-action-secondary-bg text-action-secondary-text font-bold px-3 py-1.5 rounded active:bg-action-secondary-hover focus:bg-action-secondary-hover mobile-button',
-    };
+  listCard: ({
+    item,
+    badges = [],
+    editButtons = [],
+    accountingButtons = [],
+    type = 'booking',
+  }) => {
+    const isHistory = type === 'history';
 
-    // ボタン配列を旧形式に変換
-    const legacyButtons = buttons.map(btn => ({
-      action: btn.action,
-      text: btn.text,
-      colorClass: styleMapping[btn.style] || styleMapping['edit'],
-      details: btn.details, // 会計記録用
-    }));
+    // カード基本スタイル
+    const cardColorClass =
+      type === 'booking'
+        ? `booking-card ${DesignConfig.cards.state.booked.card}`
+        : `record-card ${DesignConfig.cards.state.history.card}`;
 
-    return createReservationCard({
-      type: type,
-      item: item,
-      today: today,
-      buttons: legacyButtons,
-    });
+    // バッジHTML生成
+    const badgesHtml = badges
+      .map(badge =>
+        Components.statusBadge({ type: badge.type, text: badge.text }),
+      )
+      .join('');
+
+    // 編集ボタンHTML生成
+    const editButtonsHtml = editButtons
+      .map(btn =>
+        Components.button({
+          action: btn.action,
+          text: btn.text,
+          style: btn.style || 'secondary',
+          size: btn.size || 'xs',
+          //          customClass: 'mobile-button',
+          dataAttributes: {
+            classroom: item.classroom,
+            reservationId: item.reservationId,
+            date: item.date,
+            ...(btn.details && { details: JSON.stringify(btn.details) }),
+          },
+        }),
+      )
+      .join('');
+
+    // 会計ボタンHTML生成
+    const accountingButtonsHtml = accountingButtons
+      .map(btn =>
+        Components.button({
+          action: btn.action,
+          text: btn.text,
+          style: btn.style || 'primary',
+          size: 'small',
+          //          customClass: `mobile-button ${DesignConfig.colors.accounting}`,
+          dataAttributes: {
+            classroom: item.classroom,
+            reservationId: item.reservationId,
+            date: item.date,
+            ...(btn.details && { details: JSON.stringify(btn.details) }),
+          },
+        }),
+      )
+      .join('');
+
+    // 日時・会場表示
+    const dateTimeDisplay = item.startTime
+      ? ` ${item.startTime} ~ ${item.endTime}`.trim()
+      : '';
+    const venueDisplay = `${HEADERS?.[item.classroom] || item.classroom}`;
+
+    // 制作メモ表示（履歴の場合のみ）
+    const memoSection = `<div class=" p-0.5 bg-white/75">
+        <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
+          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(item.workInProgress)}</p>
+      </div>`;
+
+    return `
+      <div class="w-full mb-4 px-0">
+        <div class="${cardColorClass} p-2 rounded-lg shadow-sm">
+          <!-- 上部：教室情報+編集ボタン -->
+          <div class="flex justify-between items-start mb-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center flex-wrap">
+                <h3 class="font-bold text-brand-text">${formatDate(item.date)} <span class="font-normal text-brand-subtle">${dateTimeDisplay}</span></h3>
+              </div>
+              <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(venueDisplay)}  ${badgesHtml}</h4>
+            </div>
+            ${editButtonsHtml ? `<div class="flex-shrink-0 self-start">${editButtonsHtml}</div>` : ''}
+          </div>
+
+          ${memoSection}
+
+          <!-- 会計ボタンセクション -->
+          ${
+            accountingButtonsHtml
+              ? `
+            <div class="flex justify-end">
+              ${accountingButtonsHtml}
+            </div>
+          `
+              : ''
+          }
+        </div>
+      </div>
+    `;
   },
 
   /**

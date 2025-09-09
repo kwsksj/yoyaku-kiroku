@@ -17,6 +17,19 @@ const testDir = path.join(__dirname, '../test');
 const templateFile = path.join(srcDir, '10_WebApp.html');
 const outputFile = path.join(testDir, '10_WebApp_Unified_Test.html');
 
+// 時刻フォーマット関数
+const formatTime = () => {
+  const now = new Date();
+  return now.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+};
+
 // 統合対象ファイル
 const sourceFiles = [
   '10_WebApp_Mock.html', // テスト環境用モック機能
@@ -26,15 +39,21 @@ const sourceFiles = [
   '14_WebApp_Handlers.html',
 ];
 
-console.log('🔧 HTMLファイル統合を開始します...');
+console.log(`[${formatTime()}] 🔧 HTMLファイル統合を開始します...`);
 
 // テンプレートファイルを読み込み
 let templateContent;
 try {
   templateContent = fs.readFileSync(templateFile, 'utf-8');
-  console.log('✅ テンプレートファイルを読み込みました:', templateFile);
+  console.log(
+    `[${formatTime()}] ✅ テンプレートファイルを読み込みました:`,
+    templateFile,
+  );
 } catch (error) {
-  console.error('❌ テンプレートファイルの読み込みに失敗:', error.message);
+  console.error(
+    `[${formatTime()}] ❌ テンプレートファイルの読み込みに失敗:`,
+    error.message,
+  );
   process.exit(1);
 }
 
@@ -62,7 +81,9 @@ for (const sourceFile of sourceFiles) {
           /const appState = {/,
           'window.appState = {',
         );
-        console.log(`🔧 ${sourceFile} - appStateをwindow.appStateに変更`);
+        console.log(
+          `[${formatTime()}] 🔧 ${sourceFile} - appStateをwindow.appStateに変更`,
+        );
       }
 
       if (sourceFile === '14_WebApp_Handlers.html') {
@@ -71,7 +92,7 @@ for (const sourceFile of sourceFiles) {
           'window.actionHandlers = {',
         );
         console.log(
-          `🔧 ${sourceFile} - actionHandlersをwindow.actionHandlersに変更`,
+          `[${formatTime()}] 🔧 ${sourceFile} - actionHandlersをwindow.actionHandlersに変更`,
         );
       }
 
@@ -80,13 +101,18 @@ for (const sourceFile of sourceFiles) {
       integratedScripts += `\n    // ========== /${sourceFile} ==========\n`;
 
       console.log(
-        `✅ ${sourceFile} を統合しました (${scriptContent.length} 文字)`,
+        `[${formatTime()}] ✅ ${sourceFile} を統合しました (${scriptContent.length} 文字)`,
       );
     } else {
-      console.warn(`⚠️  ${sourceFile} に<script>タグが見つかりません`);
+      console.warn(
+        `[${formatTime()}] ⚠️  ${sourceFile} に<script>タグが見つかりません`,
+      );
     }
   } catch (error) {
-    console.error(`❌ ${sourceFile} の読み込みに失敗:`, error.message);
+    console.error(
+      `[${formatTime()}] ❌ ${sourceFile} の読み込みに失敗:`,
+      error.message,
+    );
     process.exit(1);
   }
 }
@@ -100,9 +126,15 @@ const frontendTestPath = path.join(__dirname, 'frontend-test.js');
 let frontendTestContent = '';
 try {
   frontendTestContent = fs.readFileSync(frontendTestPath, 'utf-8');
-  console.log('✅ frontend-test.js を読み込みました:', frontendTestPath);
+  console.log(
+    `[${formatTime()}] ✅ frontend-test.js を読み込みました:`,
+    frontendTestPath,
+  );
 } catch (error) {
-  console.error('❌ frontend-test.js の読み込みに失敗:', error.message);
+  console.error(
+    `[${formatTime()}] ❌ frontend-test.js の読み込みに失敗:`,
+    error.message,
+  );
   // テストスクリプトがなくても続行
 }
 
@@ -148,19 +180,22 @@ unifiedContent = unifiedContent.replace(
 // 統合ファイルを出力
 try {
   fs.writeFileSync(outputFile, unifiedContent, 'utf-8');
-  console.log('🎉 統合ファイルを生成しました:', outputFile);
+  console.log(`[${formatTime()}] 🎉 統合ファイルを生成しました:`, outputFile);
   console.log(
-    '📁 ファイルサイズ:',
+    `[${formatTime()}] 📁 ファイルサイズ:`,
     Math.round(unifiedContent.length / 1024),
     'KB',
   );
 } catch (error) {
-  console.error('❌ 統合ファイルの書き込みに失敗:', error.message);
+  console.error(
+    `[${formatTime()}] ❌ 統合ファイルの書き込みに失敗:`,
+    error.message,
+  );
   process.exit(1);
 }
 
 console.log(
-  '\n✨ 統合完了！Live Serverで',
+  `\n[${formatTime()}] ✨ 統合完了！Live Serverで`,
   path.basename(outputFile),
   'を開いてテストしてください。',
 );
