@@ -459,7 +459,7 @@ function withTransaction(callback) {
 
 /**
  * シートからヘッダーとデータを一度に取得する共通関数。
- * @param {Sheet} sheet - 対象のシート
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象のシート
  * @returns {object} - { header, headerMap, allData, dataRows }
  */
 function getSheetData(sheet) {
@@ -483,7 +483,7 @@ function getSheetData(sheet) {
 
 /**
  * シートからヘッダーとデータを一度に取得し、指定した条件でレコードを検索する共通関数。
- * @param {Sheet} sheet - 対象のシート
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象のシート
  * @param {string} searchColumn - 検索対象のヘッダー名
  * @param {*} searchValue - 検索する値
  * @returns {object} - { header, headerMap, allData, dataRows, foundRow, rowIndex, searchColIdx }

@@ -102,76 +102,78 @@ function getAvailableSlots() {
       // セッション別予約数をカウント
       const sessionCounts = new Map();
 
-      reservationsForDate.forEach(reservation => {
-        // 教室形式別のセッション集計ロジック
-        if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
-          // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 2部制時間制
-          const startTime = reservation.startTime
-            ? new Date(`1900-01-01T${reservation.startTime}`)
-            : null;
-          const endTime = reservation.endTime
-            ? new Date(`1900-01-01T${reservation.endTime}`)
-            : null;
+      reservationsForDate.forEach(
+        /** @param {any} reservation */ reservation => {
+          // 教室形式別のセッション集計ロジック
+          if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
+            // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 2部制時間制
+            const startTime = reservation.startTime
+              ? new Date(`1900-01-01T${reservation.startTime}`)
+              : null;
+            const endTime = reservation.endTime
+              ? new Date(`1900-01-01T${reservation.endTime}`)
+              : null;
 
-          if (
-            startTime &&
-            endTime &&
-            timeCache.firstEndTime &&
-            timeCache.secondStartTime
-          ) {
-            // 1部（午前）：開始時刻が1部終了時刻以前
-            if (startTime <= timeCache.firstEndTime) {
-              sessionCounts.set(
-                SESSION_MORNING,
-                (sessionCounts.get(SESSION_MORNING) || 0) + 1,
-              );
+            if (
+              startTime &&
+              endTime &&
+              timeCache.firstEndTime &&
+              timeCache.secondStartTime
+            ) {
+              // 1部（午前）：開始時刻が1部終了時刻以前
+              if (startTime <= timeCache.firstEndTime) {
+                sessionCounts.set(
+                  SESSION_MORNING,
+                  (sessionCounts.get(SESSION_MORNING) || 0) + 1,
+                );
+              }
+
+              // 2部（午後）：終了時刻が2部開始時刻以降
+              if (endTime >= timeCache.secondStartTime) {
+                sessionCounts.set(
+                  SESSION_AFTERNOON,
+                  (sessionCounts.get(SESSION_AFTERNOON) || 0) + 1,
+                );
+              }
             }
-
-            // 2部（午後）：終了時刻が2部開始時刻以降
-            if (endTime >= timeCache.secondStartTime) {
-              sessionCounts.set(
-                SESSION_AFTERNOON,
-                (sessionCounts.get(SESSION_AFTERNOON) || 0) + 1,
-              );
-            }
-          }
-        } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
-          // ${CONSTANTS.CLASSROOMS.TOKYO}: セッション制
-          sessionCounts.set(
-            ITEM_NAME_MAIN_LECTURE,
-            (sessionCounts.get(ITEM_NAME_MAIN_LECTURE) || 0) + 1,
-          );
-        } else {
-          // ${CONSTANTS.CLASSROOMS.NUMAZU}など: 全日時間制
-          sessionCounts.set(
-            SESSION_ALL_DAY,
-            (sessionCounts.get(SESSION_ALL_DAY) || 0) + 1,
-          );
-        }
-
-        // 初回者は独立して判定
-        if (reservation.firstLecture && timeCache.beginnerStartTime) {
-          const startTime = reservation.startTime
-            ? new Date(`1900-01-01T${reservation.startTime}`)
-            : null;
-          const endTime = reservation.endTime
-            ? new Date(`1900-01-01T${reservation.endTime}`)
-            : null;
-
-          // 予約時間が初回者開始時刻と重複するかチェック
-          if (
-            startTime &&
-            endTime &&
-            startTime <= timeCache.beginnerStartTime &&
-            endTime >= timeCache.beginnerStartTime
-          ) {
+          } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
+            // ${CONSTANTS.CLASSROOMS.TOKYO}: セッション制
             sessionCounts.set(
-              ITEM_NAME_FIRST_LECTURE,
-              (sessionCounts.get(ITEM_NAME_FIRST_LECTURE) || 0) + 1,
+              ITEM_NAME_MAIN_LECTURE,
+              (sessionCounts.get(ITEM_NAME_MAIN_LECTURE) || 0) + 1,
+            );
+          } else {
+            // ${CONSTANTS.CLASSROOMS.NUMAZU}など: 全日時間制
+            sessionCounts.set(
+              SESSION_ALL_DAY,
+              (sessionCounts.get(SESSION_ALL_DAY) || 0) + 1,
             );
           }
-        }
-      });
+
+          // 初回者は独立して判定
+          if (reservation.firstLecture && timeCache.beginnerStartTime) {
+            const startTime = reservation.startTime
+              ? new Date(`1900-01-01T${reservation.startTime}`)
+              : null;
+            const endTime = reservation.endTime
+              ? new Date(`1900-01-01T${reservation.endTime}`)
+              : null;
+
+            // 予約時間が初回者開始時刻と重複するかチェック
+            if (
+              startTime &&
+              endTime &&
+              startTime <= timeCache.beginnerStartTime &&
+              endTime >= timeCache.beginnerStartTime
+            ) {
+              sessionCounts.set(
+                ITEM_NAME_FIRST_LECTURE,
+                (sessionCounts.get(ITEM_NAME_FIRST_LECTURE) || 0) + 1,
+              );
+            }
+          }
+        },
+      );
 
       // 6. この日程の予約枠データを生成
       // 日程マスタの定員値を数値として取得（文字列の場合は変換）

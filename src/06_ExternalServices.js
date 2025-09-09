@@ -67,6 +67,7 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
     logActivity(
       student.studentId,
       'メール送信',
+      '成功',
       `予約確定メール送信完了 (${isFirstTime ? '初回者' : '経験者'})`,
     );
 
@@ -81,6 +82,7 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
     logActivity(
       student.studentId,
       'メール送信エラー',
+      '失敗',
       `失敗理由: ${error.message}`,
     );
     return false;
@@ -469,6 +471,7 @@ function sendBookingConfirmationEmailAsync(reservationInfo) {
       logActivity(
         studentId,
         'メール送信エラー',
+        '失敗',
         '初回者: メールアドレス未設定',
       );
     } else {

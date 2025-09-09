@@ -200,7 +200,7 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
     const today = new Date();
 
     const oldestDate = new Date(
-      today.getFullYear() - 10,
+      today.getFullYear(),
       today.getMonth(),
       today.getDate(),
     );

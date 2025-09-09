@@ -5,13 +5,25 @@
  * 11-14番のファイルが変更されたら自動的に統合します。
  */
 
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const formatTime = () => {
+  const now = new Date();
+  return now.toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+};
 
 const srcDir = path.join(__dirname, '../src');
 const watchFiles = [
@@ -58,12 +70,15 @@ watchFiles.forEach(filename => {
         }
 
         debounceTimer = setTimeout(() => {
-          console.log('🔄 自動統合を実行中...');
+          console.log(`[${formatTime()}] 🔄 自動統合を実行中...`);
           try {
             execSync('npm run build', { stdio: 'inherit' });
-            console.log('✅ 自動統合完了\n');
+            console.log(`[${formatTime()}] ✅ 自動統合完了\n`);
           } catch (error) {
-            console.error('❌ 自動統合に失敗:', error.message);
+            console.error(
+              `[${formatTime()}] ❌ 自動統合に失敗:`,
+              error.message,
+            );
           }
         }, debounceDelay);
       }

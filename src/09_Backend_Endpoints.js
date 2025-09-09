@@ -407,7 +407,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       if (!initialDataResult.success) {
         return initialDataResult;
       }
-      result.data.initial = initialDataResult.data;
+      result.data = { ...result.data, initial: initialDataResult.data };
 
       // 電話番号でユーザーを検索（authenticateUserを使用して正規化と特殊コマンドチェックを実行）
       if (phone) {
@@ -419,7 +419,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
           // 特殊コマンドが認識された場合
           result.userFound = false;
           result.user = null;
-          result.commandRecognized = authResult.commandRecognized;
+          result['commandRecognized'] = authResult.commandRecognized;
         } else {
           // 通常のユーザー未登録
           result.userFound = false;
@@ -444,7 +444,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
         Logger.log(`=== getBatchData: slots取得失敗で早期リターン ===`);
         return availableSlotsResult;
       }
-      result.data.slots = availableSlotsResult.data;
+      result.data = { ...result.data, slots: availableSlotsResult.data };
       Logger.log(`=== getBatchData: slotsデータ設定完了 ===`);
     }
 
@@ -455,7 +455,10 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       if (targetStudentId) {
         const userReservationsResult = getUserReservations(targetStudentId);
         if (userReservationsResult.success) {
-          result.data.userReservations = userReservationsResult.data;
+          result.data = {
+            ...result.data,
+            userReservations: userReservationsResult.data,
+          };
         }
       }
     }

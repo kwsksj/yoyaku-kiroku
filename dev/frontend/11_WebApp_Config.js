@@ -113,7 +113,6 @@ window.DesignConfig = window.DesignConfig || {
   buttons: {
     base: 'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
     full: 'w-[250px] mx-auto block',
-    auto: 'w-auto',
     primary:
       'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover',
     secondary:
@@ -381,11 +380,11 @@ const addCustomStyles = () => {
 
       /* ========== 新カードレイアウト - よやく・きろくカード ========== */
 
-      .reservation-card, .record-card {
+      .booking-card, .record-card {
         padding: 1rem;
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.5rem;
         position: relative;
       }
 
@@ -456,7 +455,7 @@ const addCustomStyles = () => {
         font-style: italic;
       }
 
-      /* カード下部: 当日のみ表示される会計ボタン */
+      /* カード下部: 予約日以降に表示される会計ボタン */
       .card-accounting-section {
         border-top: 1px solid var(--ui-border-light);
         padding-top: 0.75rem;
@@ -468,7 +467,7 @@ const addCustomStyles = () => {
         min-width: 150px;
       }
 
-      /* 当日以外は会計セクションを非表示 */
+      /* 予約日未満の場合は会計セクションを非表示 */
       .card-accounting-section.hidden {
         display: none;
       }
@@ -604,9 +603,9 @@ const addCustomStyles = () => {
         }
 
         /* カードのモバイル最適化 */
-        .reservation-card, .record-card {
-          padding: 0.75rem;
-          gap: 0.75rem;
+        .booking-card, .record-card {
+          padding: 0.5rem;
+          gap: 0.5rem;
         }
 
         .card-header {
