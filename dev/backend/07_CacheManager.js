@@ -63,11 +63,8 @@ function rebuildAllCachesEntryPoint() {
       5,
     );
 
-    logActivity(
-      'system',
-      'キャッシュ一括再構築',
-      '成功',
-      '全キャッシュ（予約、生徒、会計マスター、日程マスター）を再構築完了',
+    Logger.log(
+      'キャッシュ一括再構築: 全キャッシュ（予約、生徒、会計マスター、日程マスター）を再構築完了',
     );
   } catch (error) {
     handleError(
@@ -128,6 +125,11 @@ function rebuildAllReservationsCache() {
       .getRange(2, 1, dataRowCount, integratedReservationSheet.getLastColumn())
       .getValues();
 
+    // 会計詳細列のインデックスを取得（除外対象）
+    const accountingDetailsColumnIndex = headerColumnMap.get(
+      CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
+    );
+
     // 日付・時刻のフォーマット関数
     const formatDateString = dateValue => {
       if (!(dateValue instanceof Date)) return dateValue;
@@ -151,34 +153,100 @@ function rebuildAllReservationsCache() {
       { index: endTimeColumnIndex, formatter: formatTimeString },
     ].filter(column => column.index !== undefined);
 
-    // データを処理
+    // データを処理（会計詳細列を除外してサイズ削減）
     allReservationRows.forEach(reservationRow => {
+      // 日付・時刻列をフォーマット
       dateTimeColumns.forEach(({ index, formatter }) => {
         const originalValue = reservationRow[index];
         if (originalValue instanceof Date) {
           reservationRow[index] = formatter(originalValue);
         }
       });
+
+      // 会計詳細列を空文字に置換（JSONデータでサイズが大きいため）
+      if (accountingDetailsColumnIndex !== undefined) {
+        reservationRow[accountingDetailsColumnIndex] = '';
+      }
     });
 
-    const cacheData = {
+    // 全データを日付順にソート（新しい順）
+    const sortedReservations = allReservationRows.sort((a, b) => {
+      const dateA = new Date(a[dateColumnIndex]);
+      const dateB = new Date(b[dateColumnIndex]);
+      return dateB - dateA; // 新しい順
+    });
+
+    // データサイズをチェックして分割キャッシュまたは通常キャッシュを決定
+    const testCacheData = {
       version: new Date().getTime(),
-      reservations: allReservationRows,
-      headerMap: Object.fromEntries(headerColumnMap), // MapオブジェクトをPlainオブジェクトに変換
+      reservations: sortedReservations,
+      headerMap: Object.fromEntries(headerColumnMap),
       metadata: {
-        totalCount: allReservationRows.length,
+        totalCount: sortedReservations.length,
         lastUpdated: new Date().toISOString(),
       },
     };
 
-    CacheService.getScriptCache().put(
-      CACHE_KEYS.ALL_RESERVATIONS,
-      JSON.stringify(cacheData),
-      CACHE_EXPIRY_SECONDS,
-    );
+    const cacheDataJson = JSON.stringify(testCacheData);
+    const dataSizeKB = Math.round(cacheDataJson.length / 1024);
 
     Logger.log(
-      `全予約データキャッシュを更新しました。件数: ${allReservationRows.length}`,
+      `キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${sortedReservations.length}`,
+    );
+
+    if (dataSizeKB > CHUNK_SIZE_LIMIT_KB) {
+      // 分割キャッシュシステムを使用
+      Logger.log(
+        `データサイズが${CHUNK_SIZE_LIMIT_KB}KBを超えたため、分割キャッシュシステムを使用します。`,
+      );
+
+      const dataChunks = splitDataIntoChunks(
+        sortedReservations,
+        CHUNK_SIZE_LIMIT_KB,
+      );
+      const metadata = {
+        headerMap: Object.fromEntries(headerColumnMap),
+        totalCount: sortedReservations.length,
+        isChunked: true,
+      };
+
+      const success = saveChunkedDataToCache(
+        CACHE_KEYS.ALL_RESERVATIONS,
+        dataChunks,
+        metadata,
+      );
+
+      if (!success) {
+        throw new Error('分割キャッシュの保存に失敗しました');
+      }
+
+      Logger.log(
+        `分割キャッシュ保存完了: ${dataChunks.length}チャンク, 合計${sortedReservations.length}件`,
+      );
+    } else {
+      // 通常の単一キャッシュを使用
+      Logger.log('通常の単一キャッシュを使用します。');
+
+      try {
+        CacheService.getScriptCache().put(
+          CACHE_KEYS.ALL_RESERVATIONS,
+          cacheDataJson,
+          CACHE_EXPIRY_SECONDS,
+        );
+
+        Logger.log(
+          `単一キャッシュ保存完了: ${dataSizeKB}KB, ${sortedReservations.length}件`,
+        );
+      } catch (putError) {
+        Logger.log(`単一キャッシュ保存エラー: ${putError.message}`);
+        throw new Error(
+          `キャッシュ保存に失敗: ${putError.message}（データサイズ: ${dataSizeKB}KB）`,
+        );
+      }
+    }
+
+    Logger.log(
+      `全予約データキャッシュを更新しました。件数: ${sortedReservations.length}`,
     );
   } catch (e) {
     Logger.log(`rebuildAllReservationsCacheでエラー: ${e.message}`);
@@ -200,7 +268,7 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
     const today = new Date();
 
     const oldestDate = new Date(
-      today.getFullYear(),
+      today.getFullYear() - 1,
       today.getMonth(),
       today.getDate(),
     );
@@ -604,20 +672,11 @@ function triggerScheduledCacheRebuild() {
 
     Logger.log('定期キャッシュ再構築: 正常に完了しました。');
 
-    logActivity(
-      'system',
-      '定期キャッシュ再構築',
-      '成功',
-      '時間主導型トリガーによる全キャッシュ自動再構築完了',
+    Logger.log(
+      '定期キャッシュ再構築: 時間主導型トリガーによる全キャッシュ自動再構築完了',
     );
   } catch (error) {
     Logger.log(`定期キャッシュ再構築: エラーが発生しました - ${error.message}`);
-    logActivity(
-      'system',
-      '定期キャッシュ再構築',
-      '失敗',
-      `エラー: ${error.message}`,
-    );
   } finally {
     scriptLock.releaseLock();
   }
@@ -635,6 +694,32 @@ function triggerScheduledCacheRebuild() {
  */
 function getCachedData(cacheKey, autoRebuild = true) {
   try {
+    // まず分割キャッシュの確認を試行
+    let parsedData = null;
+
+    // 分割キャッシュが存在するかチェック
+    const metaCacheKey = `${cacheKey}_meta`;
+    const metaJson = CacheService.getScriptCache().get(metaCacheKey);
+
+    if (metaJson) {
+      // 分割キャッシュから読み込み
+      Logger.log(
+        `${cacheKey}の分割キャッシュを検出しました。統合読み込みを開始します...`,
+      );
+      parsedData = loadChunkedDataFromCache(cacheKey);
+
+      if (parsedData) {
+        const dataCount = getDataCount(parsedData, cacheKey);
+        Logger.log(`${cacheKey}分割キャッシュから取得完了。件数: ${dataCount}`);
+        return parsedData;
+      } else {
+        Logger.log(
+          `${cacheKey}分割キャッシュの読み込みに失敗しました。通常キャッシュを確認します。`,
+        );
+      }
+    }
+
+    // 通常の単一キャッシュを確認
     let cachedData = CacheService.getScriptCache().get(cacheKey);
 
     if (!cachedData && autoRebuild) {
@@ -660,7 +745,21 @@ function getCachedData(cacheKey, autoRebuild = true) {
             Logger.log(`${cacheKey}の自動再構築方法が不明です`);
             return null;
         }
-        cachedData = CacheService.getScriptCache().get(cacheKey);
+
+        // 再構築後、再度分割キャッシュか単一キャッシュかを確認
+        const newMetaJson = CacheService.getScriptCache().get(metaCacheKey);
+        if (newMetaJson) {
+          parsedData = loadChunkedDataFromCache(cacheKey);
+          if (parsedData) {
+            const dataCount = getDataCount(parsedData, cacheKey);
+            Logger.log(
+              `${cacheKey}再構築後の分割キャッシュから取得完了。件数: ${dataCount}`,
+            );
+            return parsedData;
+          }
+        } else {
+          cachedData = CacheService.getScriptCache().get(cacheKey);
+        }
       } catch (rebuildError) {
         Logger.log(
           `${cacheKey}キャッシュ再構築エラー: ${rebuildError.message}`,
@@ -674,9 +773,9 @@ function getCachedData(cacheKey, autoRebuild = true) {
       return null;
     }
 
-    const parsedData = JSON.parse(cachedData);
+    parsedData = JSON.parse(cachedData);
     const dataCount = getDataCount(parsedData, cacheKey);
-    Logger.log(`${cacheKey}キャッシュから取得完了。件数: ${dataCount}`);
+    Logger.log(`${cacheKey}単一キャッシュから取得完了。件数: ${dataCount}`);
     return parsedData;
   } catch (e) {
     Logger.log(`getCachedData(${cacheKey})でエラー: ${e.message}`);
@@ -691,6 +790,23 @@ function getCachedData(cacheKey, autoRebuild = true) {
  */
 function getCacheInfo(cacheKey) {
   try {
+    // まず分割キャッシュの確認
+    const metaCacheKey = `${cacheKey}_meta`;
+    const metaJson = CacheService.getScriptCache().get(metaCacheKey);
+
+    if (metaJson) {
+      // 分割キャッシュの場合
+      const metadata = JSON.parse(metaJson);
+      return {
+        exists: true,
+        version: metadata.version || null,
+        dataCount: metadata.totalCount || null,
+        isChunked: true,
+        totalChunks: metadata.totalChunks || null,
+      };
+    }
+
+    // 通常の単一キャッシュを確認
     const cachedData = CacheService.getScriptCache().get(cacheKey);
     if (!cachedData) {
       return { exists: false, version: null, dataCount: null };
@@ -717,6 +833,7 @@ function getCacheInfo(cacheKey) {
       exists: true,
       version: parsedData.version || null,
       dataCount: dataCount,
+      isChunked: false,
     };
   } catch (e) {
     Logger.log(`getCacheInfo(${cacheKey})でエラー: ${e.message}`);
@@ -746,6 +863,235 @@ const CACHE_KEYS = {
   MASTER_SCHEDULE_DATA: 'master_schedule_data',
   MASTER_ACCOUNTING_DATA: 'master_accounting_data',
 };
+
+/**
+ * 分割キャッシュ用の定数
+ */
+const CHUNK_SIZE_LIMIT_KB = 90; // 90KBでチャンク分割（余裕を持たせる）
+const MAX_CHUNKS = 20; // 最大チャンク数
+
+/**
+ * データを指定サイズで分割する関数
+ * @param {Array} data - 分割対象のデータ配列
+ * @param {number} maxSizeKB - 最大サイズ（KB）
+ * @returns {Array} 分割されたデータチャンクの配列
+ */
+function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
+  if (!data || data.length === 0) return [[]];
+
+  const chunks = [];
+  let currentChunk = [];
+
+  // アイテムあたりの平均サイズを推定（全データの10%をサンプル）
+  const sampleSize = Math.min(Math.ceil(data.length * 0.1), 50);
+  const sampleItems = data.slice(0, sampleSize);
+  const sampleTotalSize = JSON.stringify(sampleItems).length;
+  const avgItemSizeBytes = sampleTotalSize / sampleSize;
+  const estimatedItemsPerChunk = Math.floor(
+    ((maxSizeKB * 1024) / avgItemSizeBytes) * 0.8,
+  ); // 80%の余裕を持つ
+
+  Logger.log(
+    `データ分割: 平均アイテムサイズ=${Math.round(avgItemSizeBytes)}bytes, チャンクあたり推定=${estimatedItemsPerChunk}件`,
+  );
+
+  for (let i = 0; i < data.length; i += estimatedItemsPerChunk) {
+    const chunkData = data.slice(i, i + estimatedItemsPerChunk);
+
+    // 実際のチャンクサイズを確認
+    const chunkSizeKB = Math.round(JSON.stringify(chunkData).length / 1024);
+
+    if (chunkSizeKB <= maxSizeKB) {
+      chunks.push(chunkData);
+      Logger.log(
+        `チャンク${chunks.length - 1}: ${chunkData.length}件, ${chunkSizeKB}KB`,
+      );
+    } else {
+      // チャンクが大きすぎる場合は更に半分に分割
+      const halfSize = Math.floor(chunkData.length / 2);
+      const firstHalf = chunkData.slice(0, halfSize);
+      const secondHalf = chunkData.slice(halfSize);
+
+      chunks.push(firstHalf);
+      chunks.push(secondHalf);
+
+      Logger.log(
+        `チャンク${chunks.length - 2}: ${firstHalf.length}件 (分割1/2)`,
+      );
+      Logger.log(
+        `チャンク${chunks.length - 1}: ${secondHalf.length}件 (分割2/2)`,
+      );
+    }
+  }
+
+  Logger.log(`データ分割完了: 全${data.length}件 → ${chunks.length}チャンク`);
+  return chunks;
+}
+
+/**
+ * 分割されたデータをキャッシュに保存する関数
+ * @param {string} baseKey - ベースキャッシュキー
+ * @param {Array} dataChunks - 分割されたデータチャンク配列
+ * @param {Object} metadata - メタデータ
+ * @param {number} expiry - キャッシュ有効期限（秒）
+ * @returns {boolean} 保存成功の可否
+ */
+function saveChunkedDataToCache(
+  baseKey,
+  dataChunks,
+  metadata,
+  expiry = CACHE_EXPIRY_SECONDS,
+) {
+  const cache = CacheService.getScriptCache();
+
+  try {
+    // まず古い分割キャッシュを削除
+    clearChunkedCache(baseKey);
+
+    // メタデータを保存（チャンク数など）
+    const metaCacheKey = `${baseKey}_meta`;
+    const metaData = {
+      version: new Date().getTime(),
+      totalChunks: dataChunks.length,
+      ...metadata,
+      lastUpdated: new Date().toISOString(),
+    };
+    cache.put(metaCacheKey, JSON.stringify(metaData), expiry);
+
+    // 各チャンクを保存
+    for (let i = 0; i < dataChunks.length; i++) {
+      const chunkKey = `${baseKey}_chunk_${i}`;
+      const chunkData = {
+        chunkIndex: i,
+        data: dataChunks[i],
+        version: metaData.version,
+      };
+
+      const chunkJson = JSON.stringify(chunkData);
+      const chunkSizeKB = Math.round(chunkJson.length / 1024);
+
+      if (chunkSizeKB > 95) {
+        Logger.log(`⚠️ チャンク${i}が大きすぎます: ${chunkSizeKB}KB`);
+        return false;
+      }
+
+      cache.put(chunkKey, chunkJson, expiry);
+      Logger.log(
+        `チャンク${i}を保存しました: ${chunkSizeKB}KB, ${dataChunks[i].length}件`,
+      );
+    }
+
+    Logger.log(
+      `分割キャッシュ保存完了: ${dataChunks.length}チャンク, 合計${dataChunks.reduce((sum, chunk) => sum + chunk.length, 0)}件`,
+    );
+    return true;
+  } catch (error) {
+    Logger.log(`分割キャッシュ保存エラー: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * 分割キャッシュからデータを読み込んで統合する関数
+ * @param {string} baseKey - ベースキャッシュキー
+ * @returns {Object|null} 統合されたキャッシュデータまたはnull
+ */
+function loadChunkedDataFromCache(baseKey) {
+  const cache = CacheService.getScriptCache();
+
+  try {
+    // メタデータを取得
+    const metaCacheKey = `${baseKey}_meta`;
+    const metaJson = cache.get(metaCacheKey);
+    if (!metaJson) {
+      Logger.log(`${baseKey}のメタデータキャッシュが見つかりません`);
+      return null;
+    }
+
+    const metadata = JSON.parse(metaJson);
+    const totalChunks = metadata.totalChunks;
+
+    if (!totalChunks || totalChunks === 0) {
+      Logger.log(`${baseKey}にチャンクがありません`);
+      return null;
+    }
+
+    // 全チャンクを読み込んで統合
+    let allData = [];
+    for (let i = 0; i < totalChunks; i++) {
+      const chunkKey = `${baseKey}_chunk_${i}`;
+      const chunkJson = cache.get(chunkKey);
+
+      if (!chunkJson) {
+        Logger.log(`チャンク${i}が見つかりません: ${chunkKey}`);
+        return null;
+      }
+
+      const chunkData = JSON.parse(chunkJson);
+      if (chunkData.data && Array.isArray(chunkData.data)) {
+        allData = allData.concat(chunkData.data);
+      }
+    }
+
+    // 統合データを返す
+    const result = {
+      version: metadata.version,
+      reservations: allData,
+      headerMap: metadata.headerMap,
+      metadata: {
+        totalCount: allData.length,
+        isChunked: true,
+        totalChunks: totalChunks,
+        lastUpdated: metadata.lastUpdated,
+      },
+    };
+
+    Logger.log(
+      `分割キャッシュ読み込み完了: ${totalChunks}チャンク, ${allData.length}件`,
+    );
+    return result;
+  } catch (error) {
+    Logger.log(`分割キャッシュ読み込みエラー: ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * 指定されたベースキーの全分割キャッシュを削除する関数
+ * @param {string} baseKey - ベースキャッシュキー
+ */
+function clearChunkedCache(baseKey) {
+  const cache = CacheService.getScriptCache();
+
+  try {
+    // メタデータから総チャンク数を取得
+    const metaCacheKey = `${baseKey}_meta`;
+    const metaJson = cache.get(metaCacheKey);
+
+    if (metaJson) {
+      const metadata = JSON.parse(metaJson);
+      const totalChunks = metadata.totalChunks || MAX_CHUNKS;
+
+      // 全チャンクを削除
+      for (let i = 0; i < totalChunks; i++) {
+        const chunkKey = `${baseKey}_chunk_${i}`;
+        cache.remove(chunkKey);
+      }
+    } else {
+      // メタデータがない場合は最大チャンク数まで削除を試行
+      for (let i = 0; i < MAX_CHUNKS; i++) {
+        const chunkKey = `${baseKey}_chunk_${i}`;
+        cache.remove(chunkKey);
+      }
+    }
+
+    // メタデータも削除
+    cache.remove(metaCacheKey);
+    Logger.log(`${baseKey}の分割キャッシュをクリアしました`);
+  } catch (error) {
+    Logger.log(`分割キャッシュクリアエラー: ${error.message}`);
+  }
+}
 
 /**
  * 各キャッシュキーに対応するデータ件数取得関数

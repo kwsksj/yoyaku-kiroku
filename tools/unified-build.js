@@ -21,7 +21,7 @@ const formatTime = () => {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
+    second: '2-digit',
   });
 };
 
@@ -67,7 +67,9 @@ class UnifiedBuilder {
     console.log(`[${formatTime()}] 🔨 Building backend files...`);
 
     if (!fs.existsSync(this.backendDir)) {
-      console.log(`[${formatTime()}]    ⚠️  Backend directory not found: ${this.backendDir}`);
+      console.log(
+        `[${formatTime()}]    ⚠️  Backend directory not found: ${this.backendDir}`,
+      );
       return;
     }
 
@@ -124,7 +126,9 @@ class UnifiedBuilder {
     console.log(`[${formatTime()}] 🔨 Unifying frontend JavaScript files...`);
 
     if (!fs.existsSync(this.frontendDir)) {
-      console.log(`[${formatTime()}]    ⚠️  Frontend directory not found: ${this.frontendDir}`);
+      console.log(
+        `[${formatTime()}]    ⚠️  Frontend directory not found: ${this.frontendDir}`,
+      );
       return this.generateFallbackJavaScript();
     }
 
@@ -382,7 +386,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       await builder.watch();
       break;
     default:
-      console.log(`[${formatTime()}] Usage: node unified-build.js [build|watch]`);
+      console.log(
+        `[${formatTime()}] Usage: node unified-build.js [build|watch]`,
+      );
       break;
   }
 }

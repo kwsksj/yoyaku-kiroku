@@ -231,6 +231,16 @@ function migrateDataToIntegratedSheet() {
           status = statusValue; // waiting, cancelなど
         }
 
+        // "初講"列の特別処理（古いデータ用）
+        let firstLectureValue =
+          row[
+            sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)
+          ];
+        // 古いシートで"初講"列が存在する場合のフォールバック
+        if (!firstLectureValue && sourceHeaderMap.get('初講')) {
+          firstLectureValue = row[sourceHeaderMap.get('初講')];
+        }
+
         const migratedRow = [
           row[
             sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID)
@@ -248,14 +258,19 @@ function migrateDataToIntegratedSheet() {
           row[
             sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)
           ] || false,
-          row[
-            sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)
-          ] || false,
+          firstLectureValue || false, // 初回受講（"初講"からのマッピング含む）
           '', // 来場手段 (旧シートにないため空)
           '', // 送迎 (旧シートにないため空)
           row[sourceHeaderMap.get(HEADER_WORK_IN_PROGRESS)] || '',
           row[sourceHeaderMap.get(HEADER_ORDER)] || '',
           row[sourceHeaderMap.get(HEADER_MESSAGE_TO_TEACHER)] || '',
+          row[
+            sourceHeaderMap.get(
+              CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
+            )
+          ] ||
+            row[sourceHeaderMap.get('会計詳細')] ||
+            '', // 会計詳細（フォールバック含む）
         ];
         allMigratedRows.push(migratedRow);
       });

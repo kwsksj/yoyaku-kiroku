@@ -1959,6 +1959,9 @@ function handleAccountingFormChange() {
  * ページ読み込み完了時に実行され、イベントリスナーを設定します。
  */
 window.onload = function () {
+  // アプリケーションの初期化が完了するまでローディング画面を表示
+  showLoading('dataFetch');
+
   const app = document.getElementById('app');
 
   // イベントハンドラー関数を定義
@@ -2073,4 +2076,7 @@ window.onload = function () {
 
   // 初期画面を描画
   render();
+
+  // 初期画面の描画が完了したらローディング画面を非表示にする
+  hideLoading();
 };

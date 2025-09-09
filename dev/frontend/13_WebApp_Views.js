@@ -201,6 +201,13 @@ const buildMemoEditModal = item => {
  * @returns {string} HTML文字列
  */
 const getTimeBasedTuitionHtml = (rule, reservationDetails, scheduleInfo) => {
+  // デバッグ用ログ
+  console.log('🔍 getTimeBasedTuitionHtml: scheduleInfo =', scheduleInfo);
+  console.log(
+    '🔍 getTimeBasedTuitionHtml: reservationDetails =',
+    reservationDetails,
+  );
+
   // 講座固有情報から時間設定を取得
   let classStart, classEnd;
 
@@ -210,8 +217,21 @@ const getTimeBasedTuitionHtml = (rule, reservationDetails, scheduleInfo) => {
     const endParts = scheduleInfo.firstEnd.split(':');
     classStart = parseInt(startParts[0] || '0');
     classEnd = parseInt(endParts[0] || '0');
+
+    console.log('🔍 getTimeBasedTuitionHtml: 時間設定取得成功', {
+      firstStart: scheduleInfo.firstStart,
+      firstEnd: scheduleInfo.firstEnd,
+      classStart,
+      classEnd,
+    });
   } else {
-    return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間が設定されていません。</div>`;
+    console.error('❌ getTimeBasedTuitionHtml: scheduleInfo検証失敗', {
+      scheduleInfo,
+      hasScheduleInfo: !!scheduleInfo,
+      hasFirstStart: scheduleInfo ? !!scheduleInfo.firstStart : false,
+      hasFirstEnd: scheduleInfo ? !!scheduleInfo.firstEnd : false,
+    });
+    return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間が設定されていません。<br><small>デバッグ情報: scheduleInfo=${JSON.stringify(scheduleInfo)}</small></div>`;
   }
   const endBuffer = 3;
 
@@ -1354,7 +1374,7 @@ const getReservationFormView = (mode = 'new') => {
         stateManager.getState().constants?.sessions?.MORNING || '午前';
       const afternoonLabel =
         stateManager.getState().constants?.sessions?.AFTERNOON || '午後';
-      return `${morningLabel}空き ${morningSlots} | ${afternoonLabel}空き ${afternoonSlots}`;
+      return `空き ${morningLabel} ${morningSlots} | ${afternoonLabel} ${afternoonSlots}`;
     }
 
     return `空き ${availableSlots}`;
@@ -1783,8 +1803,8 @@ const getCompleteView = msg => {
     if (bookingSlotsHtml) {
       // 予約完了時と会計完了時で表記を変更
       const sectionTitle = isReservationComplete
-        ? '+ さらに つぎの よやく'
-        : '+ つぎの よやく';
+        ? '↓ さらに よやく をする！'
+        : '↓ つぎの よやく をする！';
 
       nextBookingHtml = `
           <div class="mt-10 pt-6 border-t border-gray-200">
@@ -1798,7 +1818,7 @@ const getCompleteView = msg => {
 
   return `
     <div class="text-center py-8">
-        <svg class="w-16 h-16 mx-auto text-state-available-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-12 h-12 mx-auto text-state-available-text" fill="none" viewBox= "2 2 20 20" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
         <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-4 mb-2">ありがとうございました</h1>

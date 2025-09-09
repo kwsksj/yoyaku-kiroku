@@ -97,7 +97,7 @@ const PAYMENT_METHODS = {
 const UI = {
   HISTORY_INITIAL_RECORDS: 10,
   HISTORY_LOAD_MORE_RECORDS: 10,
-  LOADING_MESSAGE_INTERVAL: 2000,
+  LOADING_MESSAGE_INTERVAL: 3000,
   MODAL_FADE_DURATION: 300,
 };
 
@@ -346,9 +346,12 @@ const CONSTANTS = /** @type {const} */ ({
 // 注意: これらの後方互換性定数は段階的に削除予定
 // 新規コードでは CONSTANTS.CLASSROOMS.* を直接使用してください
 const CLASSROOM_SHEET_NAMES = [
-  CONSTANTS.CLASSROOMS.TOKYO,
-  CONSTANTS.CLASSROOMS.NUMAZU,
-  CONSTANTS.CLASSROOMS.TSUKUBA,
+  CONSTANTS.CLASSROOMS.TOKYO, // '東京教室'
+  CONSTANTS.CLASSROOMS.NUMAZU, // '沼津教室'
+  CONSTANTS.CLASSROOMS.TSUKUBA, // 'つくば教室'
+  'old東京', // 旧データシート
+  'oldつくば', // 旧データシート
+  'old沼津', // 旧データシート
 ];
 
 // 制限値の後方互換性

@@ -527,12 +527,9 @@ const stopLoadingMessageRotation = () => {
 const showLoading = (category = 'default') => {
   const loadingElement = document.getElementById('loading');
 
+  // hiddenクラスを削除し、activeクラスを即座に追加して表示する
   loadingElement.classList.remove('hidden');
-
-  // フェードインアニメーション
-  requestAnimationFrame(() => {
-    loadingElement.classList.add('active');
-  });
+  loadingElement.classList.add('active');
 
   startLoadingMessageRotation(category);
 };

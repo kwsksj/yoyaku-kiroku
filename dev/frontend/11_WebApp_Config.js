@@ -194,6 +194,13 @@ window.DesignConfig = window.DesignConfig || {
 const addCustomStyles = () => {
   const style = document.createElement('style');
   style.textContent = `
+      /* ========== Viewport Height Fix for Mobile Keyboards ========== */
+      body {
+        /* min-h-screen の挙動を上書き */
+        min-height: 100vh; /* フォールバック */
+        min-height: calc(var(--vh, 1vh) * 100);
+      }
+
       /* ========== Font Loading Optimization ========== */
       @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
 
@@ -288,7 +295,13 @@ const addCustomStyles = () => {
         min-height: 48px;
       }
       .touch-friendly {
-        touch-action: manipulation;
+        touch-action: pan-y pinch-zoom;
+      }
+
+      .scroll-container {
+        touch-action: pan-y;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
       }
 
       /* ========== Animations ========== */
@@ -790,6 +803,18 @@ window.pageTransitionManager = setupPageTransitionManagement();
 // Mobile & Embedded Site Detection
 // =================================================================
 const setupMobileOptimizations = () => {
+  // ビューポートの高さをCSSカスタムプロパティとして設定
+  const setViewportHeight = () => {
+    // window.innerHeight はキーボード表示時に変動する
+    // この処理により、vh単位がキーボード表示に影響されなくなる
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  };
+
+  // 初期化時とウィンドウサイズ変更時に実行
+  setViewportHeight();
+  window.addEventListener('resize', setViewportHeight);
+
   // Googleサイト埋め込み検知
   const detectEmbeddedEnvironment = () => {
     try {
@@ -849,14 +874,22 @@ const setupMobileOptimizations = () => {
   if (isMobile) {
     document.body.classList.add('touch-device');
 
-    // iOS Safariでのバウンス効果を無効化
+    // iOS Safariでのバウンス効果を制御（より柔軟に）
     document.addEventListener(
       'touchmove',
       e => {
-        if (e.target.closest('.scrollable')) {
-          return; // スクロール可能エリア内では許可
+        // スクロール可能なエリア内では許可
+        if (
+          e.target.closest(
+            '.scrollable, .scroll-container, main, body, [data-view]',
+          )
+        ) {
+          return; // スクロール許可エリア
         }
-        e.preventDefault();
+        // 固定要素（ヘッダー、フッターなど）でのスクロールを防止
+        if (e.target.closest('header, footer, .fixed, .sticky')) {
+          e.preventDefault();
+        }
       },
       { passive: false },
     );
@@ -873,7 +906,9 @@ const setupTailwindCSS = () => {
   tailwindScript.src = 'https://cdn.tailwindcss.com';
 
   tailwindScript.onload = function () {
+    // @ts-ignore
     if (window.tailwind) {
+      // @ts-ignore
       window.tailwind.config = {
         theme: {
           extend: {

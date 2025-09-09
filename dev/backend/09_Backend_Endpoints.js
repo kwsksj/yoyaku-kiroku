@@ -499,18 +499,33 @@ function createApiErrorResponse(message, log = false) {
  */
 function getScheduleInfo(params) {
   try {
+    Logger.log(`🔍 getScheduleInfo API: 呼び出し開始`);
+    Logger.log(`🔍 getScheduleInfo API: params =`, params);
+
     const { date, classroom } = params;
 
     if (!date || !classroom) {
+      Logger.log(
+        `❌ getScheduleInfo API: パラメータ不足 date=${date}, classroom=${classroom}`,
+      );
       return createApiErrorResponse('日付と教室が必要です');
     }
 
+    Logger.log(
+      `🔍 getScheduleInfo API: getScheduleInfoForDate呼び出し date=${date}, classroom=${classroom}`,
+    );
     const scheduleInfo = getScheduleInfoForDate(date, classroom);
+    Logger.log(
+      `🔍 getScheduleInfo API: getScheduleInfoForDate結果 =`,
+      scheduleInfo,
+    );
 
     if (!scheduleInfo) {
+      Logger.log(`❌ getScheduleInfo API: 日程情報が見つかりません`);
       return createApiErrorResponse('該当する日程情報が見つかりません');
     }
 
+    Logger.log(`✅ getScheduleInfo API: 成功`);
     return createApiResponse(true, {
       scheduleInfo: scheduleInfo,
       message: '日程情報を取得しました',

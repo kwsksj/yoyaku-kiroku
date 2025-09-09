@@ -1069,19 +1069,46 @@ function _logSalesForSingleReservation(
  */
 function getScheduleInfoForDate(date, classroom) {
   try {
-    const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-    if (!scheduleCache?.schedule) return null;
+    Logger.log(
+      `🔍 getScheduleInfoForDate: 検索開始 date=${date}, classroom=${classroom}`,
+    );
 
-    // 該当する日程を検索
-    const schedule = scheduleCache.schedule.find(item => {
-      return (
-        item.date === date &&
-        item.classroom === classroom &&
-        item.status !== CONSTANTS.SCHEDULE_STATUS.CANCELLED
+    const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+    if (!scheduleCache?.schedule) {
+      Logger.log('❌ getScheduleInfoForDate: scheduleCache.scheduleが空です');
+      return null;
+    }
+
+    Logger.log(
+      `🔍 getScheduleInfoForDate: キャッシュ件数=${scheduleCache.schedule.length}`,
+    );
+
+    // デバッグ用：最初の数件を確認
+    scheduleCache.schedule.slice(0, 3).forEach((item, idx) => {
+      Logger.log(
+        `🔍 サンプル${idx}: date=${item.date}, classroom=${item.classroom}, status=${item.status}`,
       );
     });
 
-    if (!schedule) return null;
+    // 該当する日程を検索
+    const schedule = scheduleCache.schedule.find(item => {
+      const dateMatch = item.date === date;
+      const classroomMatch = item.classroom === classroom;
+      const statusOk = item.status !== CONSTANTS.SCHEDULE_STATUS.CANCELLED;
+
+      Logger.log(
+        `🔍 検索中: ${item.date}==${date}? ${dateMatch}, ${item.classroom}==${classroom}? ${classroomMatch}, status=${item.status} ok? ${statusOk}`,
+      );
+
+      return dateMatch && classroomMatch && statusOk;
+    });
+
+    if (!schedule) {
+      Logger.log('❌ getScheduleInfoForDate: 該当する日程が見つかりません');
+      return null;
+    }
+
+    Logger.log('✅ getScheduleInfoForDate: 該当日程を発見', schedule);
 
     // 定員値の数値変換処理
     let totalCapacity = schedule.totalCapacity;
