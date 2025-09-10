@@ -417,110 +417,75 @@ const actionHandlers = {
       .registerNewUser(finalUserData);
   },
 
-  /** きろくカードの編集ボタン（キャッシュ活用版） */
-  editHistoryMemo: d => {
+  /** きろくカードの確認/編集ボタン */
+  expandHistoryCard: d => {
+    // 履歴データを取得
     const item = stateManager
       .getState()
       .myReservations.find(h => h.reservationId === d.reservationId);
     if (!item) return;
 
-    const originalMemo = item.workInProgress;
+    // 編集モード状態をトグル
+    const isCurrentlyEditing = stateManager.isInEditMode(d.reservationId);
+    
+    if (isCurrentlyEditing) {
+      // 編集モード解除
+      stateManager.endEditMode(d.reservationId);
+    } else {
+      // 編集モード開始
+      stateManager.startEditMode(d.reservationId);
+    }
+    
+    // 該当カードのみを部分更新（ちらつき防止）
+    updateSingleHistoryCard(d.reservationId);
+  },
 
-    showConfirm({
-      title: '制作メモの編集',
-      message: buildMemoEditModal(item),
-      confirmText:
-        window.stateManager.getState().constants?.messages?.SAVE || '保存する',
-      cancelText:
-        window.stateManager.getState().constants?.messages?.CANCEL ||
-        'キャンセル',
-      confirmColorClass: DesignConfig.colors.primary,
-      onConfirm: () => {
-        const newMemo = document.getElementById('memo-edit-textarea').value;
+  /** インライン編集のメモを保存 */
+  saveInlineMemo: d => {
+    // textarea要素から直接値を取得
+    const textarea = document.querySelector(`[data-reservation-id="${d.reservationId}"] .memo-edit-textarea`);
+    if (!textarea) return;
 
-        // 楽観的UI: まずフロントの表示を更新（イミュータブル更新）
-        const state = window.stateManager.getState();
-        const newReservations = state.myReservations.map(h => {
-          if (h.reservationId === d.reservationId) {
-            return { ...h, workInProgress: newMemo };
-          }
-          return h;
-        });
-        window.stateManager.dispatch({
-          type: 'UPDATE_STATE',
-          payload: { myReservations: newReservations },
-        });
+    const newMemo = textarea.value;
 
-        showLoading();
-
-        // サーバーに保存（統合予約シート更新 + キャッシュ再構築 + 最新データ取得）
-        google.script.run
-          .withSuccessHandler(r => {
-            hideLoading();
-            if (r.success) {
-              showInfo('制作メモを更新しました。', '保存完了');
-              // 他の操作と同様に最新データで状態を更新
-              if (r.data) {
-                // デバッグ: 受信データをログ出力
-                console.log('[DEBUG] 制作メモ更新後のデータ:', r.data);
-                console.log('[DEBUG] myReservations:', r.data.myReservations);
-                window.stateManager.dispatch({
-                  type: 'SET_STATE',
-                  payload: {
-                    ...r.data.initialData,
-                    myReservations: r.data.myReservations || [],
-                    isDataFresh: true, // 最新データ受信済み
-                  },
-                });
-                // 明示的に画面を再描画
-                if (typeof window.render === 'function') {
-                  setTimeout(() => window.render(), 100);
-                }
-              } else {
-                // データなしの場合は最新データを強制取得
-                updateAppStateFromCache(window.stateManager.getState().view);
-              }
-            } else {
-              // サーバーエラーの場合は元に戻す（イミュータブル更新）
-              const errorState = window.stateManager.getState();
-              const revertedReservations = errorState.myReservations.map(h => {
-                if (h.reservationId === d.reservationId) {
-                  return { ...h, workInProgress: originalMemo };
-                }
-                return h;
-              });
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: { myReservations: revertedReservations },
-              });
-              showInfo(r.message || 'メモの保存に失敗しました。', 'エラー');
-            }
-          })
-          .withFailureHandler(err => {
-            hideLoading();
-            // 通信エラーの場合は元に戻す（イミュータブル更新）
-            const failureState = window.stateManager.getState();
-            const failureRevertedReservations = failureState.myReservations.map(
-              h => {
-                if (h.reservationId === d.reservationId) {
-                  return { ...h, workInProgress: originalMemo };
-                }
-                return h;
-              },
-            );
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: { myReservations: failureRevertedReservations },
-            });
-            handleServerError(err);
-          })
-          .updateReservationMemoAndGetLatestData(
-            d.reservationId,
-            stateManager.getState().currentUser.studentId,
-            newMemo,
-          );
-      },
+    // 楽観的UI: まずフロントの表示を更新
+    const state = window.stateManager.getState();
+    const newReservations = state.myReservations.map(h => {
+      if (h.reservationId === d.reservationId) {
+        return { ...h, workInProgress: newMemo };
+      }
+      return h;
     });
+    window.stateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: { myReservations: newReservations },
+    });
+    
+    // 編集モードを解除
+    stateManager.endEditMode(d.reservationId);
+    
+    showInfo('メモを保存しました');
+    
+    // 該当カードのみを部分更新（ちらつき防止）
+    updateSingleHistoryCard(d.reservationId);
+
+    // サーバーに送信
+    showLoading();
+    google.script.run
+      .withSuccessHandler(r => {
+        hideLoading();
+        if (!r.success) {
+          showInfo(r.message || 'メモの保存に失敗しました');
+          // フロント表示を元に戻す
+          updateSingleHistoryCard(d.reservationId);
+        }
+      })
+      .withFailureHandler(handleServerError)
+      .updateReservationMemoAndGetLatestData(
+        d.reservationId,
+        stateManager.getState().currentUser.studentId,
+        newMemo
+      );
   },
 
   /** プロフィール情報を保存します（キャッシュ活用版） */
@@ -1022,19 +987,53 @@ const actionHandlers = {
 
   /** 履歴から会計詳細をモーダルで表示します（データはキャッシュから取得済み） */
   showHistoryAccounting: d => {
-    const details = JSON.parse(d.details);
-    const tuitionItemsHtml = details.tuition.items
-      .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
-      .join('');
-    const salesItemsHtml = details.sales.items
-      .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
-      .join('');
-    const message = `
-            <div class="p-4 bg-brand-light rounded-lg text-left space-y-4 text-base">
-                ${tuitionItemsHtml ? `<b>授業料</b><ul class="list-disc list-inside">${tuitionItemsHtml}</ul>` : ''}
-                ${salesItemsHtml ? `<b class="mt-1 inline-block">販売</b><ul class="list-disc list-inside">${salesItemsHtml}</ul>` : ''}
-                <div class="font-bold mt-1 pt-1 border-t">合計: ${details.grandTotal.toLocaleString()}円</div><div class="text-right text-sm pt-1">支払方法: ${details.paymentMethod}</div></div>`;
-    showInfo(message, '会計記録');
+    const reservationId = d.reservationId;
+    
+    if (!reservationId) {
+      showInfo('予約IDが見つかりません');
+      return;
+    }
+    
+    showLoading();
+    
+    // バックエンドから会計詳細を取得
+    google.script.run
+      .withSuccessHandler(response => {
+        hideLoading();
+        
+        if (!response.success) {
+          showInfo(response.message || '会計データの取得に失敗しました');
+          return;
+        }
+        
+        const details = response.data;
+        
+        // 授業料項目のHTML生成
+        const tuitionItemsHtml = (details.tuition?.items || [])
+          .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
+          .join('');
+          
+        // 販売項目のHTML生成
+        const salesItemsHtml = (details.sales?.items || [])
+          .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
+          .join('');
+        
+        const message = `
+          <div class="p-4 bg-brand-light rounded-lg text-left space-y-4 text-base">
+            ${tuitionItemsHtml ? `<b>授業料</b><ul class="list-disc list-inside">${tuitionItemsHtml}</ul>` : ''}
+            ${salesItemsHtml ? `<b class="mt-1 inline-block">販売</b><ul class="list-disc list-inside">${salesItemsHtml}</ul>` : ''}
+            <div class="font-bold mt-1 pt-1 border-t">合計: ${details.grandTotal.toLocaleString()}円</div>
+            <div class="text-right text-sm pt-1">支払方法: ${details.paymentMethod}</div>
+          </div>`;
+          
+        showInfo(message, '会計記録');
+      })
+      .withFailureHandler(error => {
+        hideLoading();
+        console.error('会計詳細取得エラー:', error);
+        showInfo('会計データの取得中にエラーが発生しました');
+      })
+      .getAccountingDetailsFromSheet(reservationId);
   },
 
   /** きろくカードから会計済み内容を修正します */
@@ -2080,3 +2079,21 @@ window.onload = function () {
   // 初期画面の描画が完了したらローディング画面を非表示にする
   hideLoading();
 };
+
+// =================================================================
+// --- 今日かどうか判定するヘルパー関数（グローバル） ---
+// -----------------------------------------------------------------
+
+/**
+ * 今日かどうかを判定するヘルパー関数
+ * @param {string} dateString - 日付文字列（YYYY-MM-DD形式）
+ * @returns {boolean}
+ */
+function isDateToday(dateString) {
+  const today = new Date();
+  const targetDate = new Date(dateString);
+  
+  return today.getFullYear() === targetDate.getFullYear() &&
+         today.getMonth() === targetDate.getMonth() &&
+         today.getDate() === targetDate.getDate();
+}

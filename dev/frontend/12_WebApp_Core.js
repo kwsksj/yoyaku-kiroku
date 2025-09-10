@@ -1508,3 +1508,47 @@ function setupViewListener() {
     }
   });
 }
+
+/**
+ * 指定された履歴カードのみを部分更新する（ちらつき防止）
+ * @param {string} reservationId - 更新対象の予約ID
+ */
+function updateSingleHistoryCard(reservationId) {
+  const state = stateManager.getState();
+  
+  // 該当の履歴データを取得
+  const historyItem = state.myReservations.find(h => h.reservationId === reservationId);
+  if (!historyItem) return;
+  
+  // 編集モード状態を取得
+  const isInEditMode = stateManager.isInEditMode(reservationId);
+  
+  // カード要素を取得
+  const cardElement = document.querySelector(`[data-reservation-id="${reservationId}"]`);
+  if (!cardElement) return;
+  
+  // 1. 編集ボタンのテキストを更新
+  const editButton = cardElement.querySelector('[data-action="expandHistoryCard"]');
+  if (editButton) {
+    editButton.textContent = isInEditMode ? 'とじる' : '確認/編集';
+  }
+  
+  // 2. メモセクションの更新（Componentsレイヤーに委譲）
+  const memoSection = cardElement.querySelector('[class*="p-0.5"][class*="bg-white/75"]');
+  if (memoSection) {
+    const newMemoHTML = Components.memoSection({
+      reservationId: reservationId,
+      workInProgress: historyItem.workInProgress,
+      isEditMode: isInEditMode
+    });
+    memoSection.innerHTML = newMemoHTML;
+    
+    // 編集モードの場合はフォーカス設定
+    if (isInEditMode) {
+      const textarea = memoSection.querySelector('.memo-edit-textarea');
+      if (textarea && typeof textarea.focus === 'function') {
+        setTimeout(() => textarea.focus(), 100);
+      }
+    }
+  }
+}

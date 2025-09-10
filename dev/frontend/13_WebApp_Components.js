@@ -734,15 +734,16 @@ const Components = {
       : '';
     const venueDisplay = `${HEADERS?.[item.classroom] || item.classroom}`;
 
-    // 制作メモ表示（履歴の場合のみ）
-    const memoSection = `<div class=" p-0.5 bg-white/75">
-        <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
-          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(item.workInProgress)}</p>
-      </div>`;
+    // 制作メモ表示（予約・履歴共通） - 編集モード対応
+    const memoSection = Components.memoSection({
+      reservationId: item.reservationId,
+      workInProgress: item.workInProgress,
+      isEditMode: false, // 初期は通常モード、後でViews層で制御
+    });
 
     return `
       <div class="w-full mb-4 px-0">
-        <div class="${cardColorClass} p-2 rounded-lg shadow-sm">
+        <div class="${cardColorClass} p-2 rounded-lg shadow-sm" data-reservation-id="${item.reservationId}">
           <!-- 上部：教室情報+編集ボタン -->
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
@@ -770,6 +771,59 @@ const Components = {
       </div>
     `;
   },
+
+  /**
+   * 制作メモセクション（表示・編集両対応）
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.reservationId - 予約ID
+   * @param {string} config.workInProgress - 制作メモ内容
+   * @param {boolean} [config.isEditMode=false] - 編集モードかどうか
+   * @returns {string} HTML文字列
+   */
+  memoSection: ({ reservationId, workInProgress, isEditMode = false }) => {
+    if (isEditMode) {
+      // 編集モード：textareaと保存ボタン
+      return `
+        <div class="p-0.5 bg-white/75">
+          <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
+          <textarea
+            class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
+            rows="3"
+            placeholder="制作内容や進捗をメモしてください"
+          >${escapeHTML(workInProgress || '')}</textarea>
+          <div class="flex justify-end gap-2 mt-2">
+            ${Components.button({
+              action: 'showHistoryAccounting',
+              text: '会計詳細',
+              style: 'secondary',
+              size: 'xs',
+              dataAttributes: {
+                reservationId: reservationId,
+              },
+            })}
+            ${Components.button({
+              action: 'saveInlineMemo',
+              text: 'メモを保存',
+              style: 'primary',
+              size: 'xs',
+              dataAttributes: {
+                reservationId: reservationId,
+              },
+            })}
+          </div>
+        </div>
+      `;
+    } else {
+      // 通常モード：読み取り専用表示
+      return `
+        <div class="p-0.5 bg-white/75">
+          <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
+          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(workInProgress)}</p>
+        </div>
+      `;
+    }
+  },
+
 
   /**
    * 販売セクション

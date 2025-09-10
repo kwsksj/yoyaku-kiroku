@@ -218,6 +218,97 @@ function saveAccountingDetailsAndGetLatestData(payload) {
 }
 
 /**
+ * 指定された予約の会計詳細をシートから直接取得する
+ * @param {string} reservationId - 予約ID
+ * @returns {Object} 会計詳細データ
+ */
+function getAccountingDetailsFromSheet(reservationId) {
+  try {
+    Logger.log(`getAccountingDetailsFromSheet開始: ${reservationId}`);
+    Logger.log(`CONSTANTS確認: ${typeof CONSTANTS}`);
+    Logger.log(`CONSTANTS.SHEET_NAMES確認: ${typeof CONSTANTS.SHEET_NAMES}`);
+    Logger.log(`CONSTANTS.SHEET_NAMES.RESERVATIONS確認: ${CONSTANTS.SHEET_NAMES.RESERVATIONS}`);
+
+    // 統合予約シートから該当予約を検索
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);
+    const headers = sheet
+      .getRange(1, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+    const headerMap = createHeaderMap(headers);
+
+    // 必要なカラムインデックスを取得
+    const reservationIdColIdx = headerMap.get(
+      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+    );
+    const accountingDetailsColIdx = headerMap.get(
+      CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
+    );
+
+    if (
+      reservationIdColIdx === undefined ||
+      accountingDetailsColIdx === undefined
+    ) {
+      throw new Error('必要なヘッダーが見つかりません');
+    }
+
+    // データ範囲を取得
+    const lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return { success: false, message: '予約データが見つかりません' };
+    }
+
+    const dataRange = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn());
+    const data = dataRange.getValues();
+
+    // 該当予約を検索
+    const targetRow = data.find(
+      row => row[reservationIdColIdx] === reservationId,
+    );
+
+    if (!targetRow) {
+      return { success: false, message: '指定された予約が見つかりません' };
+    }
+
+    // 会計詳細を取得・パース
+    const accountingDetailsRaw = targetRow[accountingDetailsColIdx];
+    let accountingDetails = {};
+
+    if (accountingDetailsRaw) {
+      try {
+        accountingDetails = JSON.parse(accountingDetailsRaw);
+      } catch (parseError) {
+        Logger.log(`JSON parse error: ${parseError.message}`);
+        return { success: false, message: '会計データの解析に失敗しました' };
+      }
+    }
+
+    // データ構造を確認・修正
+    if (!accountingDetails.tuition) {
+      accountingDetails.tuition = { items: [], subtotal: 0 };
+    }
+    if (!accountingDetails.sales) {
+      accountingDetails.sales = { items: [], subtotal: 0 };
+    }
+    if (!accountingDetails.grandTotal) {
+      accountingDetails.grandTotal = 0;
+    }
+    if (!accountingDetails.paymentMethod) {
+      accountingDetails.paymentMethod = '不明';
+    }
+
+    Logger.log(`会計詳細取得成功: ${JSON.stringify(accountingDetails)}`);
+
+    return {
+      success: true,
+      data: accountingDetails,
+    };
+  } catch (error) {
+    Logger.log(`getAccountingDetailsFromSheet Error: ${error.message}`);
+    return BackendErrorHandler.handle(error, 'getAccountingDetailsFromSheet');
+  }
+}
+
+/**
  * アプリ初期化用の基本データをキャッシュから取得する
  * @returns {Object} 初期化データ（生徒情報、料金マスタ、バージョン情報等）
  */

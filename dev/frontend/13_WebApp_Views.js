@@ -182,18 +182,6 @@ const getPaymentOptionsHtml = selectedValue => {
 // createReservationCard function removed - functionality moved to Components.listCard
 
 /**
- * 参加記録編集用のモーダルウィンドウの中身を生成します。
- * @param {object} item - 編集対象の履歴オブジェクト
- * @returns {string} HTML文字列
- */
-const buildMemoEditModal = item => {
-  return `
-        <p class="text-base ${DesignConfig.colors.textSubtle} mb-4">${formatDate(item.date)}  ${item.classroom}</p>
-        <textarea id="memo-edit-textarea" class="${DesignConfig.inputs.textarea} h-32" placeholder="制作メモを入力…">${item.workInProgress || ''}</textarea>
-    `;
-};
-
-/**
  * 時間制教室の授業料計算UIを生成します。
  * @param {object} rule - 料金マスタから取得した教室ルール
  * @param {object} reservationDetails - 予約固有情報（開始時刻、レンタル等）
@@ -810,19 +798,136 @@ const _buildAccountingButtons = booking => {
 };
 
 /**
+ * 編集モード対応の履歴カードを生成します
+ * @param {object} historyItem - 履歴データ
+ * @param {Array} editButtons - 編集ボタン配列
+ * @param {Array} accountingButtons - 会計ボタン配列
+ * @param {boolean} isInEditMode - 編集モード状態
+ * @returns {string} HTML文字列
+ */
+const _buildHistoryCardWithEditMode = (
+  historyItem,
+  editButtons,
+  accountingButtons,
+  isInEditMode,
+) => {
+  const isHistory = true;
+  const badges = [];
+
+  // カード基本スタイル
+  const cardColorClass = `record-card ${DesignConfig.cards.state.history.card}`;
+
+  // 編集ボタンHTML生成
+  const editButtonsHtml = editButtons
+    .map(btn =>
+      Components.button({
+        action: btn.action,
+        text: btn.text,
+        style: btn.style || 'secondary',
+        size: btn.size || 'xs',
+        dataAttributes: {
+          classroom: historyItem.classroom,
+          reservationId: historyItem.reservationId,
+          date: historyItem.date,
+          ...(btn.details && { details: JSON.stringify(btn.details) }),
+        },
+      }),
+    )
+    .join('');
+
+  // 会計ボタンHTML生成（編集モード時に追加分を含む）
+  let allAccountingButtons = [...accountingButtons];
+
+  // 編集モード時は追加の会計詳細ボタンを含める（当日以外）
+  if (isInEditMode) {
+    const isToday = _isToday(historyItem.date);
+    if (historyItem.status === window.STATUS.COMPLETED && !isToday) {
+      allAccountingButtons.push({
+        action: 'showHistoryAccounting',
+        text: '会計詳細',
+        style: 'secondary',
+        size: 'xs',
+        details: historyItem.accountingDetails,
+      });
+    }
+  }
+
+  const accountingButtonsHtml = allAccountingButtons
+    .map(btn =>
+      Components.button({
+        action: btn.action,
+        text: btn.text,
+        style: btn.style || 'primary',
+        size: 'small',
+        dataAttributes: {
+          classroom: historyItem.classroom,
+          reservationId: historyItem.reservationId,
+          date: historyItem.date,
+          ...(btn.details && { details: JSON.stringify(btn.details) }),
+        },
+      }),
+    )
+    .join('');
+
+  // 日時・会場表示
+  const dateTimeDisplay = historyItem.startTime
+    ? ` ${historyItem.startTime} ~ ${historyItem.endTime}`.trim()
+    : '';
+  const venueDisplay = `${HEADERS?.[historyItem.classroom] || historyItem.classroom}`;
+
+  // 制作メモセクション（編集モード対応）
+  const memoSection = Components.memoSection({
+    reservationId: historyItem.reservationId,
+    workInProgress: historyItem.workInProgress,
+    isEditMode: isInEditMode,
+  });
+
+  return `
+    <div class="w-full mb-4 px-0">
+      <div class="${cardColorClass} p-2 rounded-lg shadow-sm" data-reservation-id="${historyItem.reservationId}">
+        <!-- 上部：教室情報+編集ボタン -->
+        <div class="flex justify-between items-start mb-0">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center flex-wrap">
+              <h3 class="font-bold text-brand-text">${formatDate(historyItem.date)} <span class="font-normal text-brand-subtle">${dateTimeDisplay}</span></h3>
+            </div>
+            <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(venueDisplay)}</h4>
+          </div>
+          ${editButtonsHtml ? `<div class="flex-shrink-0 self-start">${editButtonsHtml}</div>` : ''}
+        </div>
+
+        ${memoSection}
+
+        <!-- 会計ボタンセクション -->
+        ${
+          accountingButtonsHtml
+            ? `
+          <div class="flex justify-end">
+            ${accountingButtonsHtml}
+          </div>
+        `
+            : ''
+        }
+      </div>
+    </div>
+  `;
+};
+
+/**
  * 履歴カードの編集ボタン配列を生成します。
  * @param {object} historyItem - 履歴データ
  * @returns {Array} 編集ボタン設定配列
  */
-const _buildHistoryEditButtons = historyItem => {
+const _buildHistoryEditButtons = (historyItem, isInEditMode = false) => {
   const buttons = [];
 
-  // メモ編集ボタン
+  // 編集モード状態に応じてボタンテキストを変更
+  const buttonText = isInEditMode ? 'とじる' : '確認/編集';
   buttons.push({
-    action: 'editHistoryMemo',
-    text: window.stateManager.getState().constants?.messages?.EDIT || '編集',
+    action: 'expandHistoryCard',
+    text: buttonText,
     style: 'secondary',
-    size: 'small',
+    size: 'xs',
   });
 
   return buttons;
@@ -840,21 +945,14 @@ const _buildHistoryAccountingButtons = historyItem => {
     const isHistoryToday = _isToday(historyItem.date);
 
     if (isHistoryToday) {
-      // きろく かつ 教室の当日 → 「会計を修正」ボタン
+      // きろく かつ 教室の当日 → 「会計を修正」ボタンは維持
       buttons.push({
         action: 'editAccountingRecord',
         text: '会計を修正',
         style: 'primary',
       });
-    } else {
-      // きろく → 「会計詳細」ボタン
-      buttons.push({
-        action: 'showHistoryAccounting',
-        details: historyItem.accountingDetails,
-        text: '会計詳細',
-        style: 'secondary',
-      });
     }
+    // 「会計詳細」ボタンは展開部に移植するため、カードからは除去
   }
 
   return buttons;
@@ -932,16 +1030,18 @@ const getDashboardView = () => {
   if (completedRecords.length > 0) {
     // 「きろく」は COMPLETED ステータスのみ表示
     const historyCards = completedRecords.map(h => {
-      const editButtons = _buildHistoryEditButtons(h);
+      // 編集モード状態を取得
+      const isInEditMode = stateManager.isInEditMode(h.reservationId);
+
+      const editButtons = _buildHistoryEditButtons(h, isInEditMode);
       const accountingButtons = _buildHistoryAccountingButtons(h);
 
-      return Components.listCard({
-        type: 'history',
-        item: h,
-        badges: [], // 履歴にはバッジなし
-        editButtons: editButtons,
-        accountingButtons: accountingButtons,
-      });
+      return _buildHistoryCardWithEditMode(
+        h,
+        editButtons,
+        accountingButtons,
+        isInEditMode,
+      );
     });
 
     const showMore = recordsToShow < completedReservations.length;

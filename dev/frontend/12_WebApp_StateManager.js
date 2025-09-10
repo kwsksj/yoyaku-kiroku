@@ -47,6 +47,8 @@ class SimpleStateManager {
       view: 'login',
       /** @type {string | null} */
       selectedClassroom: null,
+      /** @type {Set<string>} 編集モード中の予約ID一覧 */
+      editingReservationIds: new Set(),
       /** @type {Object | null} */
       selectedSlot: null,
       /** @type {Object | null} */
@@ -471,6 +473,38 @@ class SimpleStateManager {
     }
 
     return true;
+  }
+
+  /**
+   * 編集モードを開始する
+   * @param {string} reservationId - 予約ID
+   */
+  startEditMode(reservationId) {
+    this.state.editingReservationIds.add(reservationId);
+  }
+
+  /**
+   * 編集モードを終了する
+   * @param {string} reservationId - 予約ID
+   */
+  endEditMode(reservationId) {
+    this.state.editingReservationIds.delete(reservationId);
+  }
+
+  /**
+   * 指定された予約が編集モードかチェック
+   * @param {string} reservationId - 予約ID
+   * @returns {boolean}
+   */
+  isInEditMode(reservationId) {
+    return this.state.editingReservationIds.has(reservationId);
+  }
+
+  /**
+   * すべての編集モードをクリア
+   */
+  clearAllEditModes() {
+    this.state.editingReservationIds.clear();
   }
 }
 
