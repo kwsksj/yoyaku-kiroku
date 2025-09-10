@@ -427,7 +427,7 @@ const actionHandlers = {
 
     // 編集モード状態をトグル
     const isCurrentlyEditing = stateManager.isInEditMode(d.reservationId);
-    
+
     if (isCurrentlyEditing) {
       // 編集モード解除
       stateManager.endEditMode(d.reservationId);
@@ -435,7 +435,7 @@ const actionHandlers = {
       // 編集モード開始
       stateManager.startEditMode(d.reservationId);
     }
-    
+
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
   },
@@ -443,7 +443,9 @@ const actionHandlers = {
   /** インライン編集のメモを保存 */
   saveInlineMemo: d => {
     // textarea要素から直接値を取得
-    const textarea = document.querySelector(`[data-reservation-id="${d.reservationId}"] .memo-edit-textarea`);
+    const textarea = document.querySelector(
+      `[data-reservation-id="${d.reservationId}"] .memo-edit-textarea`,
+    );
     if (!textarea) return;
 
     const newMemo = textarea.value;
@@ -460,12 +462,12 @@ const actionHandlers = {
       type: 'UPDATE_STATE',
       payload: { myReservations: newReservations },
     });
-    
+
     // 編集モードを解除
     stateManager.endEditMode(d.reservationId);
-    
+
     showInfo('メモを保存しました');
-    
+
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
 
@@ -484,7 +486,7 @@ const actionHandlers = {
       .updateReservationMemoAndGetLatestData(
         d.reservationId,
         stateManager.getState().currentUser.studentId,
-        newMemo
+        newMemo,
       );
   },
 
@@ -988,36 +990,36 @@ const actionHandlers = {
   /** 履歴から会計詳細をモーダルで表示します（データはキャッシュから取得済み） */
   showHistoryAccounting: d => {
     const reservationId = d.reservationId;
-    
+
     if (!reservationId) {
       showInfo('予約IDが見つかりません');
       return;
     }
-    
+
     showLoading();
-    
+
     // バックエンドから会計詳細を取得
     google.script.run
       .withSuccessHandler(response => {
         hideLoading();
-        
+
         if (!response.success) {
           showInfo(response.message || '会計データの取得に失敗しました');
           return;
         }
-        
+
         const details = response.data;
-        
+
         // 授業料項目のHTML生成
         const tuitionItemsHtml = (details.tuition?.items || [])
           .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
           .join('');
-          
+
         // 販売項目のHTML生成
         const salesItemsHtml = (details.sales?.items || [])
           .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
           .join('');
-        
+
         const message = `
           <div class="p-4 bg-brand-light rounded-lg text-left space-y-4 text-base">
             ${tuitionItemsHtml ? `<b>授業料</b><ul class="list-disc list-inside">${tuitionItemsHtml}</ul>` : ''}
@@ -1025,7 +1027,7 @@ const actionHandlers = {
             <div class="font-bold mt-1 pt-1 border-t">合計: ${details.grandTotal.toLocaleString()}円</div>
             <div class="text-right text-sm pt-1">支払方法: ${details.paymentMethod}</div>
           </div>`;
-          
+
         showInfo(message, '会計記録');
       })
       .withFailureHandler(error => {
@@ -2092,8 +2094,10 @@ window.onload = function () {
 function isDateToday(dateString) {
   const today = new Date();
   const targetDate = new Date(dateString);
-  
-  return today.getFullYear() === targetDate.getFullYear() &&
-         today.getMonth() === targetDate.getMonth() &&
-         today.getDate() === targetDate.getDate();
+
+  return (
+    today.getFullYear() === targetDate.getFullYear() &&
+    today.getMonth() === targetDate.getMonth() &&
+    today.getDate() === targetDate.getDate()
+  );
 }

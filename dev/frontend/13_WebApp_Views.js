@@ -284,27 +284,27 @@ const getTimeBasedTuitionHtml = (rule, reservationDetails, scheduleInfo) => {
             <h3 class="${DesignConfig.text.heading} mb-2">授業料</h3>
             ${basicTuitionDisplay}
             <div class="grid grid-cols-3 gap-2 items-end">
-                ${Components.createSelect({
-                  id: 'start-time',
-                  name: 'startTime',
-                  label: '開始時刻',
-                  containerClass: 'col-span-1',
-                  options: startTimeOptions,
-                })}
-                ${Components.createSelect({
-                  id: 'end-time',
-                  name: 'endTime',
-                  label: '終了時刻',
-                  containerClass: 'col-span-1',
-                  options: endTimeOptions,
-                })}
-                ${Components.createSelect({
-                  id: 'break-time',
-                  name: 'breakTime',
-                  label: '休憩時間',
-                  containerClass: 'col-span-1',
-                  options: breakOptions,
-                })}
+                <div class="col-span-1">
+                  ${Components.select({
+                    id: 'start-time',
+                    label: '開始時刻',
+                    options: startTimeOptions,
+                  })}
+                </div>
+                <div class="col-span-1">
+                  ${Components.select({
+                    id: 'end-time',
+                    label: '終了時刻',
+                    options: endTimeOptions,
+                  })}
+                </div>
+                <div class="col-span-1">
+                  ${Components.select({
+                    id: 'break-time',
+                    label: '休憩時間',
+                    options: breakOptions,
+                  })}
+                </div>
             </div>
             <div id="calculated-hours" class="text-left text-base ${DesignConfig.colors.textSubtle} mt-2"></div>
             <div class="pt-3 mt-3 border-t border-gray-200">
@@ -336,10 +336,22 @@ const getLoginView = () => {
           <h1 class="text-3xl font-bold text-brand-text tracking-tight">きぼりの<br>よやく・きろく</h1>
           <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
       </div>
-      ${Components.createInput({ id: 'phone', label: '電話番号', type: 'tel', placeholder: '090 1234 5678', containerClass: DesignConfig.inputs.container, autocomplete: 'tel', isSrOnly: false, labelClass: `block text-brand-subtle text-sm text-center mb-1`, inputClass: 'text-center', inputmode: 'numeric', pattern: '[0-9]*', value: phoneValue })}
+      <div class="${DesignConfig.inputs.container}">
+        <label for="phone" class="block text-brand-subtle text-sm text-center mb-1">電話番号</label>
+        <input
+          type="tel"
+          id="phone"
+          value="${phoneValue}"
+          class="${DesignConfig.inputs.base} text-center"
+          placeholder="090 1234 5678"
+          autocomplete="tel"
+          inputmode="numeric"
+          pattern="[0-9]*"
+        >
+      </div>
       <div class="mt-6 flex justify-center">
           <div class="${DesignConfig.inputs.container}">
-              ${Components.createButton({ text: 'ログイン または 新規登録', action: 'login', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+              ${Components.button({ action: 'login', text: 'ログイン または 新規登録', style: 'primary', size: 'full' })}
           </div>
       </div>`;
 };
@@ -407,14 +419,12 @@ const getUserFormView = config => {
   const emailSection = isEdit
     ? `
         <div class="space-y-4">
-          ${Components.createInput({
+          ${Components.input({
             id: 'edit-email',
             label: 'メールアドレス',
             type: 'email',
             value: u.email || '',
             placeholder: 'example@email.com',
-            containerClass: '',
-            autocomplete: 'email',
           })}
           <div class="p-3 bg-ui-surface rounded-md">
             <label class="flex items-center space-x-3">
@@ -487,11 +497,14 @@ const getUserFormView = config => {
             <div class="mt-8 grid grid-cols-2 gap-3">
             ${buttons
               .map(btn =>
-                Components.createButton({
+                Components.button({
                   text: btn.text,
                   action: btn.action,
-                  colorClass: btn.colorClass,
-                  widthClass: DesignConfig.buttons.full,
+                  style:
+                    btn.colorClass === DesignConfig.colors.primary
+                      ? 'primary'
+                      : 'secondary',
+                  size: 'full',
                 }),
               )
               .join('')}
@@ -547,21 +560,21 @@ const getRegistrationStep2View = () => {
     <div class="max-w-md mx-auto text-left">
       <h1 class="text-xl font-bold text-brand-text mb-4 text-center">プロフィール</h1>
       <form id="step2-form" class="space-y-6">
-        ${Components.createInput({ id: 'q-email', label: 'メールアドレス *必須項目*', type: 'email', value: data.email || '', required: true })}
+        ${Components.input({ id: 'q-email', label: 'メールアドレス *必須項目*', type: 'email', value: data.email || '', required: true })}
         <div class="p-3 bg-ui-surface rounded-md">
           <label class="flex items-center space-x-3">
             <input type="checkbox" id="q-wants-email" name="wantsEmail" class="h-5 w-5 accent-action-primary-bg" ${data.wantsEmail ? 'checked' : ''}>
             <span class="text-brand-text text-sm">メール連絡を希望します（教室日程、予約受付、など）</span>
           </label>
         </div>
-        ${Components.createSelect({ id: 'q-age-group', label: 'お年頃', options: ageOptions })}
+        ${Components.select({ id: 'q-age-group', label: 'お年頃', options: ageOptions })}
         <div><label class="block text-brand-text text-base font-bold mb-2">性別</label><div class="flex space-x-4">${genderOptions}</div></div>
         <div><label class="block text-brand-text text-base font-bold mb-2">利き手</label><div class="flex space-x-4">${handOptions}</div></div>
-        ${Components.createInput({ id: 'q-address', label: '住所（市区町村まででOK！）', type: 'text', value: data.address || '' })}
+        ${Components.input({ id: 'q-address', label: '住所（市区町村まででOK！）', type: 'text', value: data.address || '' })}
       </form>
       <div class="mt-8 grid grid-cols-2 gap-3">
-        ${Components.createButton({ text: '前に戻る', action: 'backToStep1', colorClass: DesignConfig.colors.secondary })}
-        ${Components.createButton({ text: '次へ進む', action: 'goToStep3', colorClass: DesignConfig.colors.primary })}
+        ${Components.button({ text: '前に戻る', action: 'backToStep1', style: 'secondary' })}
+        ${Components.button({ text: '次へ進む', action: 'goToStep3', style: 'primary' })}
       </div>
     </div>
   `;
@@ -590,23 +603,23 @@ const getRegistrationStep3View = () => {
           <div class="space-y-2" id="experience-radio-group">${experienceOptions}</div>
         </div>
         <div id="past-work-container" class="${data.experience === 'はじめて！' ? 'hidden' : ''}">
-          ${Components.createTextArea({
+          ${Components.textarea({
             id: 'q-past-work',
             label: 'いつ頃、どこで、何を作りましたか？',
-            caption: 'だいたいでOK！',
             value: data.pastWork || '',
+            placeholder: 'だいたいでOK！',
           })}
         </div>
-        ${Components.createTextArea({
+        ${Components.textarea({
           id: 'q-future-goal',
           label: '将来的に制作したいものはありますか？',
-          caption: '曖昧な内容でも大丈夫！',
           value: data.futureGoal || '',
+          placeholder: '曖昧な内容でも大丈夫！',
         })}
       </form>
       <div class="mt-8 grid grid-cols-2 gap-3">
-        ${Components.createButton({ text: '前に戻る', action: 'backToStep2', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-        ${Components.createButton({ text: '次へ', action: 'proceedToStep4', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+        ${Components.button({ text: '前に戻る', action: 'backToStep2', style: 'secondary', size: 'full' })}
+        ${Components.button({ text: '次へ', action: 'proceedToStep4', style: 'primary', size: 'full' })}
       </div>
     </div>
   `;
@@ -644,25 +657,22 @@ const getRegistrationStep4View = () => {
           <div class="space-y-2" id="participation-radio-group">${participationOptions}</div>
         </div>
 
-        ${Components.createTextArea({
+        ${Components.textarea({
           id: 'q-trigger',
           label: 'この教室を知ったきっかけは？参加しようと思ったきっかけは？',
-          caption: '',
           value: data.trigger || '',
-          rows: 4,
         })}
 
-        ${Components.createTextArea({
+        ${Components.textarea({
           id: 'q-first-message',
           label: 'メッセージ',
-          caption: 'その他コメント・要望・意見など、あればどうぞ〜',
           value: data.firstMessage || '',
-          rows: 4,
+          placeholder: 'その他コメント・要望・意見など、あればどうぞ〜',
         })}
       </form>
       <div class="mt-8 grid grid-cols-2 gap-3">
-        ${Components.createButton({ text: '前に戻る', action: 'backToStep3', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
-        ${Components.createButton({ text: '登録して予約へ進む', action: 'submitRegistration', colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+        ${Components.button({ text: '前に戻る', action: 'backToStep3', style: 'secondary', size: 'full' })}
+        ${Components.button({ text: '登録して予約へ進む', action: 'submitRegistration', style: 'primary', size: 'full' })}
       </div>
     </div>
   `;
@@ -694,11 +704,11 @@ const getUserSearchView = () => {
               autocomplete: 'off',
             })}
             <div class="mt-4 flex justify-center">
-                ${Components.createButton({
+                ${Components.button({
                   text: '検索',
                   action: 'searchUserByName',
-                  colorClass: DesignConfig.colors.primary,
-                  widthClass: DesignConfig.buttons.full,
+                  style: 'primary',
+                  size: 'full',
                 })}
             </div>
         </div>
@@ -713,14 +723,17 @@ const getUserSearchView = () => {
                     user => `
                     <div class="${DesignConfig.cards.background} p-3 rounded-lg flex justify-between items-center">
                         <p class="text-base font-semibold">${user.realName}（${user.nickname}）</p> // 本名とニックネームを両方表示
-                        ${Components.createButton({
+                        ${Components.button({
                           text: 'これだ！',
                           action: 'selectSearchedUser',
-                          studentId: user.studentId,
-                          realName: user.realName,
-                          nickname: user.nickname,
-                          colorClass:
-                            'bg-state-success-bg text-state-success-text text-sm py-1 px-3 rounded active:bg-state-success-hover focus:bg-state-success-hover mobile-button',
+                          customClass:
+                            'bg-state-success-bg text-state-success-text',
+                          size: 'small',
+                          dataAttributes: {
+                            studentId: user.studentId,
+                            realName: user.realName,
+                            nickname: user.nickname,
+                          },
                         })}
                     </div>
                 `,
@@ -737,17 +750,17 @@ const getUserSearchView = () => {
 
         <div class="mt-8 pt-4 border-t border-gray-200 flex flex-col space-y-3">
             <h2 class="text-lg font-bold ${DesignConfig.colors.text} text-center mb-2">見つからない場合</h2>
-            ${Components.createButton({
+            ${Components.button({
               text: '自分のアカウントが見つからないので、新規登録する',
               action: 'goToRegisterFromUserSearch',
-              colorClass: DesignConfig.colors.primary,
-              widthClass: DesignConfig.buttons.full,
+              style: 'primary',
+              size: 'full',
             })}
-            ${Components.createButton({
+            ${Components.button({
               text: 'ログイン画面に戻る',
               action: 'goBackToLogin',
-              colorClass: DesignConfig.colors.secondary,
-              widthClass: DesignConfig.buttons.full,
+              style: 'secondary',
+              size: 'full',
             })}
         </div>
     `;
@@ -1351,7 +1364,7 @@ const getBookingView = classroom => {
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${classroom}</h1>
             <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
             <div class="mt-6">
-                ${Components.createButton({ text: 'ホームに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                ${Components.button({ text: 'ホームに戻る', action: 'goBackToDashboard', style: 'secondary', size: 'full' })}
             </div>
         </div>`;
   } else {
@@ -1360,7 +1373,7 @@ const getBookingView = classroom => {
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${classroom}</h1>
             <div class="${DesignConfig.cards.container}">${bookingSlotsHtml}</div>
             <div class="mt-6">
-                ${Components.createButton({ text: 'ホームに戻る', action: 'goBackToDashboard', colorClass: DesignConfig.colors.secondary, widthClass: DesignConfig.buttons.full })}
+                ${Components.button({ text: 'ホームに戻る', action: 'goBackToDashboard', style: 'secondary', size: 'full' })}
             </div>
         </div>`;
   }
@@ -1713,24 +1726,18 @@ const getReservationFormView = (mode = 'new') => {
 
     return `
         <div class="mt-4 pt-4 border-t space-y-4">
-          ${Components.createTextArea({
+          ${Components.textarea({
             id: 'wip-input',
             label:
               isFirstTimeBooking && !isEdit
                 ? '今回つくりたいもの/やりたいこと'
                 : 'つくりたいもの/やりたいこと/作業予定',
-            caption:
-              isFirstTimeBooking && !isEdit
-                ? '最初に作る「だるま」の木彫り以外に、作りたいものがある方はご記入ください（仮でもOK!）。教室サイトの作例などは作りやすいです。ただし１回の参加では完成しない可能性があります。ご自身の作り途中の作品や、材料の持ち込みも可です！'
-                : '',
             placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！',
             value: workInProgress || '',
           })}
-          ${Components.createTextArea({
+          ${Components.textarea({
             id: 'material-input',
             label: '材料のサイズや樹種の希望',
-            caption:
-              'ご希望があればご記入ください。大体でも大丈夫！作れる大きさは 【豆粒】〜【手のひら】くらい',
             placeholder:
               '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など',
             value: materialInfo || '',
@@ -1738,8 +1745,8 @@ const getReservationFormView = (mode = 'new') => {
         </div>
         <div class="mt-4 pt-4 border-t space-y-4">
           ${salesChecklistHtml}
-          ${Components.createTextArea({ id: 'order-input', label: '購入希望（自由記入）', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
-          ${Components.createTextArea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
+          ${Components.textarea({ id: 'order-input', label: '購入希望（自由記入）', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
+          ${Components.textarea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
         </div>`;
   };
   // 予約送信時にチェックされた物販をorderに渡す処理を追加
@@ -1774,27 +1781,29 @@ const getReservationFormView = (mode = 'new') => {
 
   // --- 4. メインHTMLの組み立て ---
   let buttonsHtml = `
-      ${Components.createButton({ text: submitButtonText, action: submitAction, colorClass: DesignConfig.colors.primary, widthClass: DesignConfig.buttons.full })}
+      ${Components.button({ text: submitButtonText, action: submitAction, style: 'primary', size: 'full' })}
     `;
   // 編集時のみキャンセルボタンを追加
   if (isEdit) {
-    buttonsHtml += Components.createButton({
+    buttonsHtml += Components.button({
       text: 'この予約をキャンセルする',
       action: 'cancel',
-      colorClass: DesignConfig.colors.danger,
-      widthClass: DesignConfig.buttons.full,
-      reservationId: sourceData.reservationId, // キャンセルに必要な情報を付与
-      classroom: sourceData.classroom,
-      date: sourceData.date,
-      sheetName: sourceData.sheetName,
+      style: 'danger',
+      size: 'full',
+      dataAttributes: {
+        reservationId: sourceData.reservationId,
+        classroom: sourceData.classroom,
+        date: sourceData.date,
+        sheetName: sourceData.sheetName,
+      },
     });
   }
   // 戻るボタン：編集時はホームへ、新規作成時は予約一覧へ
-  buttonsHtml += Components.createButton({
+  buttonsHtml += Components.button({
     text: '戻る',
     action: isEdit ? 'goBackToDashboard' : 'goBackToBooking',
-    colorClass: DesignConfig.colors.secondary,
-    widthClass: DesignConfig.buttons.full,
+    style: 'secondary',
+    size: 'full',
   });
 
   const venueDisplay = venue ? ` ${venue}` : '';
@@ -1927,11 +1936,11 @@ const getCompleteView = msg => {
         ${emailNoticeHtml}
 
         <div class="max-w-xs mx-auto mt-8">
-             ${Components.createButton({
+             ${Components.button({
                text: 'ホームへ戻る',
                action: 'goToDashboard',
-               colorClass: DesignConfig.colors.secondary,
-               widthClass: DesignConfig.buttons.full,
+               style: 'secondary',
+               size: 'full',
              })}
         </div>
 
@@ -2012,11 +2021,11 @@ const getAccountingView = () => {
       return `
           ${Components.accountingCompleted({ details, reservation })}
           <div class="mt-8 flex flex-col space-y-3">
-            ${Components.createButton({
+            ${Components.button({
               text: '戻る',
               action: 'goBackToDashboard',
-              colorClass: DesignConfig.colors.secondary,
-              widthClass: DesignConfig.buttons.full,
+              style: 'secondary',
+              size: 'full',
             })}
           </div>`;
     } catch (e) {
@@ -2044,11 +2053,11 @@ const getAccountingView = () => {
         scheduleInfo,
       })}
       <div class="mt-8 flex flex-col space-y-3">
-        ${Components.createButton({
+        ${Components.button({
           text: '戻る',
           action: 'goBackToDashboard',
-          colorClass: DesignConfig.colors.secondary,
-          widthClass: DesignConfig.buttons.full,
+          style: 'secondary',
+          size: 'full',
         })}
       </div>`;
 };

@@ -227,7 +227,9 @@ function getAccountingDetailsFromSheet(reservationId) {
     Logger.log(`getAccountingDetailsFromSheet開始: ${reservationId}`);
     Logger.log(`CONSTANTS確認: ${typeof CONSTANTS}`);
     Logger.log(`CONSTANTS.SHEET_NAMES確認: ${typeof CONSTANTS.SHEET_NAMES}`);
-    Logger.log(`CONSTANTS.SHEET_NAMES.RESERVATIONS確認: ${CONSTANTS.SHEET_NAMES.RESERVATIONS}`);
+    Logger.log(
+      `CONSTANTS.SHEET_NAMES.RESERVATIONS確認: ${CONSTANTS.SHEET_NAMES.RESERVATIONS}`,
+    );
 
     // 統合予約シートから該当予約を検索
     const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);

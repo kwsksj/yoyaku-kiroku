@@ -750,18 +750,24 @@ const showModal = c => {
     b = document.getElementById('modal-buttons');
   b.innerHTML = '';
   if (c.showCancel) {
-    b.innerHTML += Components.createButton({
+    b.innerHTML += Components.button({
       text:
         c.cancelText ||
         window.stateManager.getState().constants?.messages?.CANCEL ||
         'キャンセル',
       action: 'modalCancel',
-      colorClass: DesignConfig.colors.secondary,
-      widthClass: DesignConfig.buttons.auto,
+      style: 'secondary',
+      size: 'normal',
     });
   }
   if (c.confirmText) {
-    b.innerHTML += `<div class="w-3"></div>${Components.createButton({ text: c.confirmText, action: 'modalConfirm', colorClass: c.confirmColorClass, widthClass: DesignConfig.buttons.auto, disabled: c.disableConfirm })}`;
+    b.innerHTML += `<div class="w-3"></div>${Components.button({
+      text: c.confirmText,
+      action: 'modalConfirm',
+      style: c.confirmColorClass?.includes('danger') ? 'danger' : 'primary',
+      size: 'normal',
+      disabled: c.disableConfirm,
+    })}`;
   }
   ModalManager.setCallback(c.onConfirm);
   document.getElementById('modal-title').textContent = c.title;
@@ -830,21 +836,12 @@ function loadAccountingCache(reservationId) {
     const parsed = JSON.parse(cachedData);
 
     // 現在のマスターデータと照合して、存在しない項目を除外
-    return filterValidCacheData(parsed);
+    if (!parsed || typeof parsed !== 'object') return {};
+    return parsed;
   } catch (e) {
     console.error('Failed to load accounting cache:', e);
     return null;
   }
-}
-
-/**
- * キャッシュデータの基本的な検証
- * @param {object} cachedData - キャッシュされたデータ
- * @returns {object} - 検証済みデータ
- */
-function filterValidCacheData(cachedData) {
-  if (!cachedData || typeof cachedData !== 'object') return {};
-  return cachedData;
 }
 
 /**
@@ -1515,34 +1512,42 @@ function setupViewListener() {
  */
 function updateSingleHistoryCard(reservationId) {
   const state = stateManager.getState();
-  
+
   // 該当の履歴データを取得
-  const historyItem = state.myReservations.find(h => h.reservationId === reservationId);
+  const historyItem = state.myReservations.find(
+    h => h.reservationId === reservationId,
+  );
   if (!historyItem) return;
-  
+
   // 編集モード状態を取得
   const isInEditMode = stateManager.isInEditMode(reservationId);
-  
+
   // カード要素を取得
-  const cardElement = document.querySelector(`[data-reservation-id="${reservationId}"]`);
+  const cardElement = document.querySelector(
+    `[data-reservation-id="${reservationId}"]`,
+  );
   if (!cardElement) return;
-  
+
   // 1. 編集ボタンのテキストを更新
-  const editButton = cardElement.querySelector('[data-action="expandHistoryCard"]');
+  const editButton = cardElement.querySelector(
+    '[data-action="expandHistoryCard"]',
+  );
   if (editButton) {
     editButton.textContent = isInEditMode ? 'とじる' : '確認/編集';
   }
-  
+
   // 2. メモセクションの更新（Componentsレイヤーに委譲）
-  const memoSection = cardElement.querySelector('[class*="p-0.5"][class*="bg-white/75"]');
+  const memoSection = cardElement.querySelector(
+    '[class*="p-0.5"][class*="bg-white/75"]',
+  );
   if (memoSection) {
     const newMemoHTML = Components.memoSection({
       reservationId: reservationId,
       workInProgress: historyItem.workInProgress,
-      isEditMode: isInEditMode
+      isEditMode: isInEditMode,
     });
     memoSection.innerHTML = newMemoHTML;
-    
+
     // 編集モードの場合はフォーカス設定
     if (isInEditMode) {
       const textarea = memoSection.querySelector('.memo-edit-textarea');

@@ -204,23 +204,6 @@ const Components = {
   // -----------------------------------------------------------------
 
   /**
-   * 情報表示カード
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.title - カードタイトル
-   * @param {Array<string>} config.items - 表示項目の配列
-   * @returns {string} HTML文字列
-   */
-  infoCard: ({ title, items }) => {
-    const itemsHtml = items
-      .map(item => `<p class="text-brand-text">${escapeHTML(item)}</p>`)
-      .join('');
-    return `<div class="bg-ui-surface border border-ui-border p-3 rounded-lg">
-        <h3 class="font-bold text-brand-text mb-2">${escapeHTML(title)}</h3>
-        ${itemsHtml}
-      </div>`;
-  },
-
-  /**
    * ステータスバッジ
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.type - バッジタイプ ('success'|'warning'|'error'|'info')
@@ -824,7 +807,6 @@ const Components = {
     }
   },
 
-
   /**
    * 販売セクション
    * @param {Object} config - 設定オブジェクト
@@ -1001,118 +983,6 @@ Components.createSmartBackButton = (currentView, appState = null) => {
 // 既存のコード互換性を維持するための旧式コンポーネント
 // 段階的移行期間中のみ使用
 // =================================================================
-
-/**
- * レガシー createButton (既存コード互換用)
- * 新規コードではComponents.button()を使用してください
- */
-Components.createButton = config => {
-  // 旧形式を新形式にマッピング
-  let style = 'primary';
-  if (config.colorClass) {
-    if (config.colorClass.includes('secondary')) style = 'secondary';
-    if (config.colorClass.includes('danger')) style = 'danger';
-  }
-
-  let size = 'normal';
-  if (config.widthClass && config.widthClass.includes('full')) size = 'full';
-
-  // 旧式パラメータをHTMLに埋め込み（actionHandlers互換性のため）
-  const dataAttributes = {};
-  if (config.classroom) dataAttributes.classroom = config.classroom;
-  if (config.date) dataAttributes.date = config.date;
-  if (config.reservationId) dataAttributes.reservationId = config.reservationId;
-  if (config.sheetName) dataAttributes.sheetName = config.sheetName;
-  if (config.copyText) dataAttributes.copyText = config.copyText;
-  if (config.details) dataAttributes.details = config.details;
-  if (config.studentId) dataAttributes.studentId = config.studentId;
-  if (config.realName) dataAttributes.realName = config.realName;
-  if (config.nickname) dataAttributes.nickname = config.nickname;
-  if (config.classroomName) dataAttributes.classroomName = config.classroomName;
-
-  return Components.button({
-    action: config.action,
-    text: config.text,
-    style: style,
-    size: size,
-    disabled: config.disabled,
-    customClass: config.colorClass, // カスタムクラスを渡す
-    dataAttributes: dataAttributes,
-  });
-};
-
-/**
- * レガシー createInput (既存コード互換用)
- */
-Components.createInput = config => {
-  // 複雑な旧形式をサポート
-  let inputHtml = `<div class="${config.containerClass || ''} mb-4">
-      <label
-        for="${config.id}"
-        class="${config.labelClass || DesignConfig.text.labelBlock} ${config.isSrOnly ? 'sr-only' : ''}"
-      >${escapeHTML(config.label)}</label>
-      ${config.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(config.caption)}</p>` : ''}
-      <input
-        type="${config.type}"
-        id="${config.id}"
-        value="${escapeHTML(config.value || '')}"
-        class="${DesignConfig.inputs.base} ${config.inputClass || ''}"
-        placeholder="${escapeHTML(config.placeholder || '')}"
-        ${config.required ? 'required' : ''}
-        autocomplete="${config.autocomplete || 'off'}"
-        ${config.step ? `step="${config.step}"` : ''}
-        ${config.inputmode ? `inputmode="${config.inputmode}"` : ''}
-        ${config.pattern ? `pattern="${config.pattern}"` : ''}
-      >
-    </div>`;
-
-  return inputHtml;
-};
-
-/**
- * レガシー createTextArea (既存コード互換用)
- */
-Components.createTextArea = config => {
-  return `<div class="${config.containerClass || ''} mb-4">
-      <label for="${config.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(config.label)}</label>
-      ${config.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(config.caption)}</p>` : ''}
-      <textarea
-        id="${config.id}"
-        class="${DesignConfig.inputs.textarea}"
-        placeholder="${escapeHTML(config.placeholder || '')}"
-      >${escapeHTML(config.value || '')}</textarea>
-    </div>`;
-};
-
-/**
- * レガシー createSelect (既存コード互換用)
- */
-Components.createSelect = config => {
-  return `<div class="${config.containerClass || ''}">
-      ${config.label ? `<label for="${config.id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(config.label)}</label>` : ''}
-      ${config.caption ? `<p class="${DesignConfig.text.caption} mb-2">${escapeHTML(config.caption)}</p>` : ''}
-      <select
-        id="${config.id}"
-        class="${DesignConfig.inputs.base} ${config.sizeClass || ''} accounting-item"
-        ${config.name ? `name="${config.name}"` : ''}
-      >${config.options}</select>
-    </div>`;
-};
-
-/**
- * レガシー createCheckbox (既存コード互換用)
- */
-Components.createCheckbox = config => {
-  return `<label class="flex items-center space-x-2 ${DesignConfig.colors.text}">
-      <input
-        type="checkbox"
-        id="${config.id}"
-        ${config.checked ? 'checked' : ''}
-        class="accent-action-primary-bg"
-      >
-      <span>${escapeHTML(config.label)}</span>
-    </label>`;
-};
 
 // =================================================================
 // --- モーダルコンポーネント ---
