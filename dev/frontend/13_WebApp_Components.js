@@ -200,6 +200,74 @@ const Components = {
   },
 
   // =================================================================
+  // --- UI統一化コンポーネント ---
+  // -----------------------------------------------------------------
+
+  /**
+   * 統一ページコンテナ
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.content - コンテンツHTML
+   * @param {string} [config.maxWidth='2xl'] - 最大幅 ('sm'|'md'|'lg'|'xl'|'2xl'|'3xl')
+   * @returns {string} HTML文字列
+   */
+  pageContainer: ({ content, maxWidth = '2xl' }) => {
+    return `<div class="max-w-${maxWidth} mx-auto px-4">${content}</div>`;
+  },
+
+  /**
+   * 統一カードコンテナ
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.content - カードの内容HTML
+   * @param {string} [config.variant='default'] - バリエーション ('default'|'highlight'|'success'|'warning')
+   * @param {string} [config.padding='normal'] - パディング ('compact'|'normal'|'spacious')
+   * @returns {string} HTML文字列
+   */
+  cardContainer: ({
+    content,
+    variant = 'default',
+    padding = 'normal',
+    touchFriendly = false,
+    customClass = '',
+    dataAttributes = '',
+  }) => {
+    const variants = {
+      default: DesignConfig.cards.background,
+      highlight: 'bg-blue-50 border-blue-200',
+      success: 'bg-green-50 border-green-200',
+      warning: 'bg-yellow-50 border-yellow-200',
+      available: `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`,
+      waitlist: `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`,
+      booked: `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`,
+      history: `record-card ${DesignConfig.cards.state.history.card}`,
+    };
+
+    const paddings = {
+      compact: 'p-2',
+      normal: 'p-3',
+      spacious: 'p-4',
+    };
+
+    // タッチフレンドリー対応
+    const touchClass = touchFriendly
+      ? 'touch-friendly transition-all duration-150'
+      : '';
+
+    // 状態バリエーションではDesignConfig.cards.baseが含まれている
+    const baseClasses = ['available', 'waitlist', 'booked', 'history'].includes(
+      variant,
+    )
+      ? ''
+      : 'rounded-lg border';
+
+    const finalClasses =
+      `${variants[variant]} ${paddings[padding]} ${baseClasses} ${touchClass} ${customClass}`.trim();
+
+    return `<div class="${finalClasses}" ${dataAttributes}>
+      ${content}
+    </div>`;
+  },
+
+  // =================================================================
   // --- 新設計コンポーネント ---
   // -----------------------------------------------------------------
 
@@ -222,19 +290,95 @@ const Components = {
   },
 
   /**
-   * 料金表示コンポーネント
+   * 拡張料金表示コンポーネント
    * @param {Object} config - 設定オブジェクト
    * @param {number|string} config.amount - 金額
    * @param {string} [config.label=''] - ラベル
+   * @param {string} [config.size='normal'] - サイズ ('small'|'normal'|'large')
+   * @param {string} [config.style='default'] - スタイル ('default'|'highlight'|'subtotal'|'total')
+   * @param {boolean} [config.showCurrency=true] - 通貨記号表示
+   * @param {string} [config.align='right'] - 配置 ('left'|'center'|'right')
    * @returns {string} HTML文字列
    */
-  priceDisplay: ({ amount, label = '' }) => {
+  priceDisplay: ({
+    amount,
+    label = '',
+    size = 'normal',
+    style = 'default',
+    showCurrency = true,
+    align = 'right',
+  }) => {
+    const sizes = {
+      small: 'text-sm',
+      normal: 'text-base',
+      large: 'text-xl',
+    };
+
+    const styles = {
+      default: 'text-brand-text',
+      highlight: 'text-brand-text font-semibold',
+      subtotal: 'text-brand-text font-semibold text-lg',
+      total: 'text-brand-text font-bold text-xl',
+    };
+
+    const aligns = {
+      left: 'text-left',
+      center: 'text-center',
+      right: 'text-right',
+    };
+
     const formattedAmount =
       typeof amount === 'number' ? amount.toLocaleString() : amount;
-    return `<div class="text-right">
+    const currency = showCurrency ? '円' : '';
+
+    return `<div class="${aligns[align] || aligns.right}">
         ${label ? `<span class="text-brand-subtle text-sm">${escapeHTML(label)}: </span>` : ''}
-        <span class="font-bold text-brand-text">${formattedAmount}円</span>
+        <span class="${sizes[size] || sizes.normal} ${styles[style] || styles.default}">${formattedAmount}${currency}</span>
       </div>`;
+  },
+
+  /**
+   * 統一ボタンセクション
+   * @param {Object} config - 設定オブジェクト
+   * @param {Object} [config.primaryButton] - プライマリボタン設定 { text, action, style, dataAttributes }
+   * @param {Object} [config.secondaryButton] - セカンダリボタン設定
+   * @param {Object} [config.dangerButton] - 危険なボタン設定（キャンセル等）
+   * @param {string} [config.layout='vertical'] - レイアウト ('vertical'|'horizontal')
+   * @param {string} [config.spacing='normal'] - スペーシング ('compact'|'normal'|'spacious')
+   * @returns {string} HTML文字列
+   */
+  actionButtonSection: ({
+    primaryButton,
+    secondaryButton,
+    dangerButton,
+    layout = 'vertical',
+    spacing = 'normal',
+  }) => {
+    const buttons = [secondaryButton, primaryButton, dangerButton]
+      .filter(btn => btn)
+      .map(btn =>
+        Components.button({
+          ...btn,
+          size: btn.size || (layout === 'horizontal' ? 'large' : 'full'),
+        }),
+      );
+
+    if (buttons.length === 0) return '';
+
+    const layoutClasses = {
+      vertical: 'flex flex-col',
+      horizontal: 'flex justify-between items-center gap-4',
+    };
+
+    const spacingClasses = {
+      compact: layout === 'vertical' ? 'space-y-2' : '',
+      normal: layout === 'vertical' ? 'space-y-3' : '',
+      spacious: layout === 'vertical' ? 'space-y-4' : '',
+    };
+
+    return `<div class="mt-8 ${layoutClasses[layout] || layoutClasses.vertical} ${spacingClasses[spacing] || spacingClasses.normal}">
+      ${buttons.join('')}
+    </div>`;
   },
 
   // =================================================================

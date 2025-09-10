@@ -97,7 +97,7 @@
       /**
        * =================================================================
        * 統合フロントエンドJavaScript (自動生成)
-       * Generated: 2025-09-10T06:35:52.219Z
+       * Generated: 2025-09-10T11:30:35.640Z
        * =================================================================
        */
 
@@ -3487,6 +3487,77 @@
         },
 
         // =================================================================
+        // --- UI統一化コンポーネント ---
+        // -----------------------------------------------------------------
+
+        /**
+         * 統一ページコンテナ
+         * @param {Object} config - 設定オブジェクト
+         * @param {string} config.content - コンテンツHTML
+         * @param {string} [config.maxWidth='2xl'] - 最大幅 ('sm'|'md'|'lg'|'xl'|'2xl'|'3xl')
+         * @returns {string} HTML文字列
+         */
+        pageContainer: ({ content, maxWidth = '2xl' }) => {
+          return `<div class="max-w-${maxWidth} mx-auto px-4">${content}</div>`;
+        },
+
+        /**
+         * 統一カードコンテナ
+         * @param {Object} config - 設定オブジェクト
+         * @param {string} config.content - カードの内容HTML
+         * @param {string} [config.variant='default'] - バリエーション ('default'|'highlight'|'success'|'warning')
+         * @param {string} [config.padding='normal'] - パディング ('compact'|'normal'|'spacious')
+         * @returns {string} HTML文字列
+         */
+        cardContainer: ({
+          content,
+          variant = 'default',
+          padding = 'normal',
+          touchFriendly = false,
+          customClass = '',
+          dataAttributes = '',
+        }) => {
+          const variants = {
+            default: DesignConfig.cards.background,
+            highlight: 'bg-blue-50 border-blue-200',
+            success: 'bg-green-50 border-green-200',
+            warning: 'bg-yellow-50 border-yellow-200',
+            available: `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`,
+            waitlist: `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`,
+            booked: `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`,
+            history: `record-card ${DesignConfig.cards.state.history.card}`,
+          };
+
+          const paddings = {
+            compact: 'p-2',
+            normal: 'p-3',
+            spacious: 'p-4',
+          };
+
+          // タッチフレンドリー対応
+          const touchClass = touchFriendly
+            ? 'touch-friendly transition-all duration-150'
+            : '';
+
+          // 状態バリエーションではDesignConfig.cards.baseが含まれている
+          const baseClasses = [
+            'available',
+            'waitlist',
+            'booked',
+            'history',
+          ].includes(variant)
+            ? ''
+            : 'rounded-lg border';
+
+          const finalClasses =
+            `${variants[variant]} ${paddings[padding]} ${baseClasses} ${touchClass} ${customClass}`.trim();
+
+          return `<div class="${finalClasses}" ${dataAttributes}>
+        ${content}
+      </div>`;
+        },
+
+        // =================================================================
         // --- 新設計コンポーネント ---
         // -----------------------------------------------------------------
 
@@ -3509,19 +3580,95 @@
         },
 
         /**
-         * 料金表示コンポーネント
+         * 拡張料金表示コンポーネント
          * @param {Object} config - 設定オブジェクト
          * @param {number|string} config.amount - 金額
          * @param {string} [config.label=''] - ラベル
+         * @param {string} [config.size='normal'] - サイズ ('small'|'normal'|'large')
+         * @param {string} [config.style='default'] - スタイル ('default'|'highlight'|'subtotal'|'total')
+         * @param {boolean} [config.showCurrency=true] - 通貨記号表示
+         * @param {string} [config.align='right'] - 配置 ('left'|'center'|'right')
          * @returns {string} HTML文字列
          */
-        priceDisplay: ({ amount, label = '' }) => {
+        priceDisplay: ({
+          amount,
+          label = '',
+          size = 'normal',
+          style = 'default',
+          showCurrency = true,
+          align = 'right',
+        }) => {
+          const sizes = {
+            small: 'text-sm',
+            normal: 'text-base',
+            large: 'text-xl',
+          };
+
+          const styles = {
+            default: 'text-brand-text',
+            highlight: 'text-brand-text font-semibold',
+            subtotal: 'text-brand-text font-semibold text-lg',
+            total: 'text-brand-text font-bold text-xl',
+          };
+
+          const aligns = {
+            left: 'text-left',
+            center: 'text-center',
+            right: 'text-right',
+          };
+
           const formattedAmount =
             typeof amount === 'number' ? amount.toLocaleString() : amount;
-          return `<div class="text-right">
+          const currency = showCurrency ? '円' : '';
+
+          return `<div class="${aligns[align] || aligns.right}">
           ${label ? `<span class="text-brand-subtle text-sm">${escapeHTML(label)}: </span>` : ''}
-          <span class="font-bold text-brand-text">${formattedAmount}円</span>
+          <span class="${sizes[size] || sizes.normal} ${styles[style] || styles.default}">${formattedAmount}${currency}</span>
         </div>`;
+        },
+
+        /**
+         * 統一ボタンセクション
+         * @param {Object} config - 設定オブジェクト
+         * @param {Object} [config.primaryButton] - プライマリボタン設定 { text, action, style, dataAttributes }
+         * @param {Object} [config.secondaryButton] - セカンダリボタン設定
+         * @param {Object} [config.dangerButton] - 危険なボタン設定（キャンセル等）
+         * @param {string} [config.layout='vertical'] - レイアウト ('vertical'|'horizontal')
+         * @param {string} [config.spacing='normal'] - スペーシング ('compact'|'normal'|'spacious')
+         * @returns {string} HTML文字列
+         */
+        actionButtonSection: ({
+          primaryButton,
+          secondaryButton,
+          dangerButton,
+          layout = 'vertical',
+          spacing = 'normal',
+        }) => {
+          const buttons = [secondaryButton, primaryButton, dangerButton]
+            .filter(btn => btn)
+            .map(btn =>
+              Components.button({
+                ...btn,
+                size: btn.size || (layout === 'horizontal' ? 'large' : 'full'),
+              }),
+            );
+
+          if (buttons.length === 0) return '';
+
+          const layoutClasses = {
+            vertical: 'flex flex-col',
+            horizontal: 'flex justify-between items-center gap-4',
+          };
+
+          const spacingClasses = {
+            compact: layout === 'vertical' ? 'space-y-2' : '',
+            normal: layout === 'vertical' ? 'space-y-3' : '',
+            spacious: layout === 'vertical' ? 'space-y-4' : '',
+          };
+
+          return `<div class="mt-8 ${layoutClasses[layout] || layoutClasses.vertical} ${spacingClasses[spacing] || spacingClasses.normal}">
+        ${buttons.join('')}
+      </div>`;
         },
 
         // =================================================================
@@ -4682,8 +4829,11 @@
            </div>`
           : '';
 
-        return `
-          <div class="p-4 ${DesignConfig.cards.background} rounded-lg space-y-3">
+        return Components.cardContainer({
+          variant: 'default',
+          padding: 'spacious',
+          content: `
+          <div class="space-y-3">
               <h3 class="${DesignConfig.text.heading} mb-2">授業料</h3>
               ${basicTuitionDisplay}
               <div class="grid grid-cols-3 gap-2 items-end">
@@ -4719,7 +4869,9 @@
               ${discountHtml}
               <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base ${DesignConfig.colors.textSubtle}"></div>
               <div class="text-right font-bold mt-2" id="tuition-subtotal">小計: 0円</div>
-          </div>`;
+          </div>
+      `,
+        });
       };
 
       // =================================================================
@@ -4734,7 +4886,9 @@
        */
       const getLoginView = () => {
         const phoneValue = stateManager.getState().loginPhone || '';
-        return `
+        return Components.pageContainer({
+          maxWidth: 'md',
+          content: `
         <div class="text-center pt-8 pb-4">
             <h1 class="text-3xl font-bold text-brand-text tracking-tight">きぼりの<br>よやく・きろく</h1>
             <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
@@ -4752,11 +4906,16 @@
             pattern="[0-9]*"
           >
         </div>
-        <div class="mt-6 flex justify-center">
-            <div class="${DesignConfig.inputs.container}">
-                ${Components.button({ action: 'login', text: 'ログイン または 新規登録', style: 'primary', size: 'full' })}
-            </div>
-        </div>`;
+        ${Components.actionButtonSection({
+          primaryButton: {
+            action: 'login',
+            text: 'ログイン または 新規登録',
+            style: 'primary',
+          },
+          spacing: 'normal',
+        })}
+      `,
+        });
       };
 
       /**
@@ -4846,31 +5005,32 @@
           : '';
 
         // ボタン設定
-        const buttons = isEdit
-          ? [
-              {
+        // ボタン設定を統一フォーマットで定義
+        const buttonConfig = isEdit
+          ? {
+              secondaryButton: {
                 text: '戻る',
                 action: 'smartGoBack',
-                colorClass: DesignConfig.colors.secondary,
+                style: 'secondary',
               },
-              {
+              primaryButton: {
                 text: 'この内容で更新',
                 action: 'saveProfile',
-                colorClass: DesignConfig.colors.primary,
+                style: 'primary',
               },
-            ]
-          : [
-              {
+            }
+          : {
+              secondaryButton: {
                 text: '戻る',
                 action: 'goBackToLogin',
-                colorClass: DesignConfig.colors.secondary,
+                style: 'secondary',
               },
-              {
+              primaryButton: {
                 text: '次へ進む',
                 action: 'goToStep2',
-                colorClass: DesignConfig.colors.primary,
+                style: 'primary',
               },
-            ];
+            };
 
         const nameIdPrefix = isEdit ? 'edit' : 'reg';
 
@@ -4879,7 +5039,7 @@
               <h1 class="text-xl font-bold text-brand-text mb-4">${title}</h1>
               ${description}
               <div class="space-y-4">
-                ${Components.createInput({
+                ${Components.input({
                   id: `${nameIdPrefix}-realname`,
                   label: 'お名前 *必須項目*',
                   type: 'text',
@@ -4888,7 +5048,7 @@
                   containerClass: '',
                   autocomplete: 'name',
                 })}
-                ${Components.createInput({
+                ${Components.input({
                   id: `${nameIdPrefix}-nickname`,
                   label: 'ニックネーム（表示名）',
                   caption: '他の生徒さんにも表示されます',
@@ -4901,21 +5061,10 @@
                 ${emailSection}
               </div>
 
-              <div class="mt-8 grid grid-cols-2 gap-3">
-              ${buttons
-                .map(btn =>
-                  Components.button({
-                    text: btn.text,
-                    action: btn.action,
-                    style:
-                      btn.colorClass === DesignConfig.colors.primary
-                        ? 'primary'
-                        : 'secondary',
-                    size: 'full',
-                  }),
-                )
-                .join('')}
-              </div>
+              ${Components.actionButtonSection({
+                ...buttonConfig,
+                layout: 'horizontal',
+              })}
           </div>`;
       };
 
@@ -4964,8 +5113,9 @@
           )
           .join('');
 
-        return `
-      <div class="max-w-md mx-auto text-left">
+        return Components.pageContainer({
+          maxWidth: 'md',
+          content: `
         <h1 class="text-xl font-bold text-brand-text mb-4 text-center">プロフィール</h1>
         <form id="step2-form" class="space-y-6">
           ${Components.input({ id: 'q-email', label: 'メールアドレス *必須項目*', type: 'email', value: data.email || '', required: true })}
@@ -4980,12 +5130,21 @@
           <div><label class="block text-brand-text text-base font-bold mb-2">利き手</label><div class="flex space-x-4">${handOptions}</div></div>
           ${Components.input({ id: 'q-address', label: '住所（市区町村まででOK！）', type: 'text', value: data.address || '' })}
         </form>
-        <div class="mt-8 grid grid-cols-2 gap-3">
-          ${Components.button({ text: '前に戻る', action: 'backToStep1', style: 'secondary' })}
-          ${Components.button({ text: '次へ進む', action: 'goToStep3', style: 'primary' })}
-        </div>
-      </div>
-    `;
+        ${Components.actionButtonSection({
+          secondaryButton: {
+            text: '前に戻る',
+            action: 'backToStep1',
+            style: 'secondary',
+          },
+          primaryButton: {
+            text: '次へ進む',
+            action: 'goToStep3',
+            style: 'primary',
+          },
+          layout: 'horizontal',
+        })}
+      `,
+        });
       };
 
       /**
@@ -5030,10 +5189,19 @@
             placeholder: '曖昧な内容でも大丈夫！',
           })}
         </form>
-        <div class="mt-8 grid grid-cols-2 gap-3">
-          ${Components.button({ text: '前に戻る', action: 'backToStep2', style: 'secondary', size: 'full' })}
-          ${Components.button({ text: '次へ', action: 'proceedToStep4', style: 'primary', size: 'full' })}
-        </div>
+        ${Components.actionButtonSection({
+          secondaryButton: {
+            text: '前に戻る',
+            action: 'backToStep2',
+            style: 'secondary',
+          },
+          primaryButton: {
+            text: '次へ',
+            action: 'proceedToStep4',
+            style: 'primary',
+          },
+          layout: 'horizontal',
+        })}
       </div>
     `;
       };
@@ -5083,10 +5251,19 @@
             placeholder: 'その他コメント・要望・意見など、あればどうぞ〜',
           })}
         </form>
-        <div class="mt-8 grid grid-cols-2 gap-3">
-          ${Components.button({ text: '前に戻る', action: 'backToStep3', style: 'secondary', size: 'full' })}
-          ${Components.button({ text: '登録して予約へ進む', action: 'submitRegistration', style: 'primary', size: 'full' })}
-        </div>
+        ${Components.actionButtonSection({
+          secondaryButton: {
+            text: '前に戻る',
+            action: 'backToStep3',
+            style: 'secondary',
+          },
+          primaryButton: {
+            text: '登録して予約へ進む',
+            action: 'submitRegistration',
+            style: 'primary',
+          },
+          layout: 'horizontal',
+        })}
       </div>
     `;
       };
@@ -5102,17 +5279,19 @@
         const hasSearchedAndNoResults =
           stateManager.getState().searchAttempted && users.length === 0;
 
-        return `
+        return Components.pageContainer({
+          maxWidth: 'md',
+          content: `
           <h1 class="text-xl font-bold text-brand-text mb-4">アカウントを探す</h1>
           <p class="text-brand-subtle mb-6">お名前（本名）またはニックネームを入力して、あなたのアカウントを見つけてください。<br>
           <span class="text-sm text-brand-muted">（漢字が異なる場合や、姓と名の間が開いている場合でも、スペースを入れずに、苗字だけでも試してみてください）</span></p>
 
           <div class="${DesignConfig.inputs.container} mb-4">
-              ${Components.createInput({
+              ${Components.input({
                 id: 'nickname-search-input',
-                label: 'お名前（本名）またはニックネーム', // ラベルを変更
+                label: 'お名前（本名）またはニックネーム',
                 type: 'text',
-                placeholder: 'お名前またはニックネーム', // プレースホルダーを変更
+                placeholder: 'お名前またはニックネーム',
                 inputClass: 'text-center',
                 autocomplete: 'off',
               })}
@@ -5132,24 +5311,28 @@
                   ? `
                   <h2 class="text-lg font-bold ${DesignConfig.colors.text} text-center mb-2">見つかったアカウント</h2>
                   ${users
-                    .map(
-                      user => `
-                      <div class="${DesignConfig.cards.background} p-3 rounded-lg flex justify-between items-center">
-                          <p class="text-base font-semibold">${user.realName}（${user.nickname}）</p> // 本名とニックネームを両方表示
-                          ${Components.button({
-                            text: 'これだ！',
-                            action: 'selectSearchedUser',
-                            customClass:
-                              'bg-state-success-bg text-state-success-text',
-                            size: 'small',
-                            dataAttributes: {
-                              studentId: user.studentId,
-                              realName: user.realName,
-                              nickname: user.nickname,
-                            },
-                          })}
-                      </div>
-                  `,
+                    .map(user =>
+                      Components.cardContainer({
+                        variant: 'default',
+                        padding: 'normal',
+                        content: `
+                          <div class="flex justify-between items-center">
+                            <p class="text-base font-semibold">${user.realName}（${user.nickname}）</p>
+                            ${Components.button({
+                              text: 'これだ！',
+                              action: 'selectSearchedUser',
+                              customClass:
+                                'bg-state-success-bg text-state-success-text',
+                              size: 'small',
+                              dataAttributes: {
+                                studentId: user.studentId,
+                                realName: user.realName,
+                                nickname: user.nickname,
+                              },
+                            })}
+                          </div>
+                        `,
+                      }),
                     )
                     .join('')}
               `
@@ -5176,7 +5359,8 @@
                 size: 'full',
               })}
           </div>
-      `;
+      `,
+        });
       };
 
       /**
@@ -5781,23 +5965,35 @@
         const bookingSlotsHtml = renderBookingSlots(relevantSlots);
 
         if (!bookingSlotsHtml) {
-          return `
-          <div class="max-w-md mx-auto">
+          return Components.pageContainer({
+            maxWidth: 'md',
+            content: `
               <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${classroom}</h1>
               <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
-              <div class="mt-6">
-                  ${Components.button({ text: 'ホームに戻る', action: 'goBackToDashboard', style: 'secondary', size: 'full' })}
-              </div>
-          </div>`;
+              ${Components.actionButtonSection({
+                primaryButton: {
+                  text: 'ホームに戻る',
+                  action: 'goBackToDashboard',
+                  style: 'secondary',
+                },
+              })}
+        `,
+          });
         } else {
-          return `
-          <div class="max-w-md mx-auto">
+          return Components.pageContainer({
+            maxWidth: 'md',
+            content: `
               <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${classroom}</h1>
               <div class="${DesignConfig.cards.container}">${bookingSlotsHtml}</div>
-              <div class="mt-6">
-                  ${Components.button({ text: 'ホームに戻る', action: 'goBackToDashboard', style: 'secondary', size: 'full' })}
-              </div>
-          </div>`;
+              ${Components.actionButtonSection({
+                primaryButton: {
+                  text: 'ホームに戻る',
+                  action: 'goBackToDashboard',
+                  style: 'secondary',
+                },
+              })}
+        `,
+          });
         }
       };
 
@@ -6256,17 +6452,23 @@
         // --- Main View Assembly ---
         return `
         <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${title}</h1>
-        <div class="space-y-4 text-left p-4 ${DesignConfig.cards.background} rounded-lg">
-          <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser.displayName}さん</p>
-          <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venueDisplay}</p>
-          <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(date)}</p>
-          <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
-          <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
-          ${_renderTuitionDisplaySection()}
-          ${_renderTimeOptionsSection()}
-          ${_renderBookingOptionsSection()}
-          ${_renderDetailsInputSection()}
-        </div>
+        ${Components.cardContainer({
+          variant: 'default',
+          padding: 'spacious',
+          content: `
+            <div class="space-y-4 text-left">
+              <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser.displayName}さん</p>
+              <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venueDisplay}</p>
+              <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(date)}</p>
+              <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
+              <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
+              ${_renderTuitionDisplaySection()}
+              ${_renderTimeOptionsSection()}
+              ${_renderBookingOptionsSection()}
+              ${_renderDetailsInputSection()}
+            </div>
+          `,
+        })}
         <div class="mt-8 flex flex-col space-y-3">
           ${buttonsHtml}
         </div>`;
