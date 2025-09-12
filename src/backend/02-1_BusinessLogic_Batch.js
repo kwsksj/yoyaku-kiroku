@@ -192,7 +192,14 @@ function migrateDataToIntegratedSheet() {
 
     const allMigratedRows = [];
 
-    CLASSROOM_SHEET_NAMES.forEach(sheetName => {
+    [
+      CONSTANTS.CLASSROOMS.TOKYO,
+      CONSTANTS.CLASSROOMS.NUMAZU,
+      CONSTANTS.CLASSROOMS.TSUKUBA,
+      'old東京',
+      'oldつくば',
+      'old沼津',
+    ].forEach(sheetName => {
       const sourceSheet = ss.getSheetByName(sheetName);
       if (!sourceSheet) {
         Logger.log(
@@ -261,9 +268,15 @@ function migrateDataToIntegratedSheet() {
           firstLectureValue || false, // 初回受講（"初講"からのマッピング含む）
           '', // 来場手段 (旧シートにないため空)
           '', // 送迎 (旧シートにないため空)
-          row[sourceHeaderMap.get(HEADER_WORK_IN_PROGRESS)] || '',
-          row[sourceHeaderMap.get(HEADER_ORDER)] || '',
-          row[sourceHeaderMap.get(HEADER_MESSAGE_TO_TEACHER)] || '',
+          row[
+            sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)
+          ] || '',
+          row[sourceHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.ORDER)] || '',
+          row[
+            sourceHeaderMap.get(
+              CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER,
+            )
+          ] || '',
           row[
             sourceHeaderMap.get(
               CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
@@ -320,7 +333,14 @@ function verifyMigratedData() {
 
     // 1. 元のシートの予約件数をカウント
     let originalCount = 0;
-    CLASSROOM_SHEET_NAMES.forEach(sheetName => {
+    [
+      CONSTANTS.CLASSROOMS.TOKYO,
+      CONSTANTS.CLASSROOMS.NUMAZU,
+      CONSTANTS.CLASSROOMS.TSUKUBA,
+      'old東京',
+      'oldつくば',
+      'old沼津',
+    ].forEach(sheetName => {
       const sourceSheet = ss.getSheetByName(sheetName);
       if (!sourceSheet) return;
 

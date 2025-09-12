@@ -462,36 +462,15 @@ function rebuildAccountingMasterCache() {
     const allData = sheet.getDataRange().getValues();
     const headers = allData.shift();
 
-    // 時間列のインデックスを特定
-    const timeColumnNames = [
-      HEADER_CLASS_START,
-      HEADER_CLASS_END,
-      HEADER_BREAK_START,
-      HEADER_BREAK_END,
-    ];
-    const timeColumnIndices = timeColumnNames.map(columnName =>
-      headers.indexOf(columnName),
-    );
+    // 削除済み: 会計マスタに時刻情報がなくなったため、時間列の処理は不要
+    // 時刻情報は日程マスタから取得
 
     // データを処理してオブジェクト形式に変換
     const processedItems = allData.map(rowData => {
       const item = {};
       headers.forEach((headerName, columnIndex) => {
         const cellValue = rowData[columnIndex];
-
-        // 時間列の場合は HH:mm 形式にフォーマット
-        if (
-          timeColumnIndices.includes(columnIndex) &&
-          cellValue instanceof Date
-        ) {
-          item[headerName] = Utilities.formatDate(
-            cellValue,
-            CONSTANTS.TIMEZONE,
-            'HH:mm',
-          );
-        } else {
-          item[headerName] = cellValue;
-        }
+        item[headerName] = cellValue;
       });
       return item;
     });
@@ -529,7 +508,7 @@ function rebuildAccountingMasterCache() {
  */
 function rebuildAllStudentsBasicCache() {
   try {
-    const studentRosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+    const studentRosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
     if (!studentRosterSheet || studentRosterSheet.getLastRow() < 2) {
       Logger.log('生徒名簿シートが見つからないか、データが空です。');
       // 空データの場合もキャッシュを作成
@@ -654,7 +633,7 @@ function triggerScheduledCacheRebuild() {
   const scriptLock = LockService.getScriptLock();
 
   // 他の処理が実行中の場合はスキップ
-  if (!scriptLock.tryLock(LOCK_WAIT_TIME_MS)) {
+  if (!scriptLock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) {
     Logger.log(
       '定期キャッシュ再構築: 他の処理が実行中のためスキップしました。',
     );

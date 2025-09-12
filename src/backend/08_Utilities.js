@@ -185,10 +185,10 @@ function setupConditionalFormattingForLogSheet() {
 
   // --- 書式ルールの定義 ---
   const colors = {
-    lightGreen: COLOR_LIGHT_GREEN, // 成功
-    lightRed: COLOR_LIGHT_RED, // 失敗・エラー
-    lightBlue: COLOR_LIGHT_BLUE, // ユーザーの主要アクション
-    lightOrange: COLOR_LIGHT_ORANGE, // 編集・変更系アクション
+    lightGreen: '#d9ead3', // 成功
+    lightRed: '#f4cccc', // 失敗・エラー
+    lightBlue: '#cfe2f3', // ユーザーの主要アクション
+    lightOrange: '#fce5cd', // 編集・変更系アクション
     lightPurple: '#d9d2e9', // システム・バッチ処理
   };
 
@@ -432,9 +432,11 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)],
     firstLecture:
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)],
-    workInProgress: resArray[getIndex(HEADER_WORK_IN_PROGRESS)],
-    order: resArray[getIndex(HEADER_ORDER)],
-    messageToTeacher: resArray[getIndex(HEADER_MESSAGE_TO_TEACHER)],
+    workInProgress:
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)],
+    order: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.ORDER)],
+    messageToTeacher:
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER)],
   };
 }
 

@@ -116,10 +116,10 @@ function findReservationsByStatus(status, state = null) {
  * @param {object} data - getAppInitialDataから返されたデータオブジェクト (allStudents, accountingMaster, etc.)
  * @param {string} phone - ログイン試行された電話番号
  * @param {Array} lessons - バックエンドから取得済みの講座情報
- * @param {object | null} userReservations - ユーザーの予約と履歴データ {myBookings, myHistory}
+ * @param {Array | null} myReservations - ユーザーの予約データ配列
  * @returns {object} setStateに渡すための新しい状態オブジェクト。ユーザーが見つからない場合は { currentUser: null }
  */
-function processInitialData(data, phone, lessons, userReservations = null) {
+function processInitialData(data, phone, lessons, myReservations = null) {
   const { allStudents, accountingMaster, cacheVersions, today } = data;
 
   // 1. 電話番号でユーザーを検索
@@ -135,9 +135,7 @@ function processInitialData(data, phone, lessons, userReservations = null) {
   currentUser.displayName = currentUser.nickname || currentUser.realName;
 
   // 2. 個人予約データを直接保存（フィルタリングは表示時に実行）
-  const myReservations = userReservations
-    ? userReservations.myReservations
-    : [];
+  const reservations = myReservations || [];
 
   // 4. 講座バージョンを生成
   const lessonsVersion = cacheVersions
@@ -148,7 +146,7 @@ function processInitialData(data, phone, lessons, userReservations = null) {
   return {
     view: 'dashboard',
     currentUser: currentUser,
-    myReservations: myReservations, // 生データを直接保存
+    myReservations: reservations, // 生データを直接保存
     lessons: lessons,
     classrooms: CONSTANTS.CLASSROOMS,
     accountingMaster: accountingMaster,
@@ -501,7 +499,7 @@ const startLoadingMessageRotation = (category = 'default') => {
   // 3秒ごとにメッセージを更新
   loadingMessageTimer = setInterval(() => {
     updateLoadingMessage(category);
-  }, UI?.LOADING_MESSAGE_INTERVAL || 3000);
+  }, CONSTANTS.UI?.LOADING_MESSAGE_INTERVAL || 3000);
 };
 
 const stopLoadingMessageRotation = () => {
@@ -755,7 +753,7 @@ const showModal = c => {
   }
   ModalManager.setCallback(c.onConfirm);
   document.getElementById('modal-title').textContent = c.title;
-  document.getElementById('modal-message').innerHTML = CONSTANTS.MESSAGES;
+  document.getElementById('modal-message').innerHTML = c.message;
   m.classList.add('active');
 };
 const hideModal = () => {

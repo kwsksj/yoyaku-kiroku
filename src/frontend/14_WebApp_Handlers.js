@@ -179,7 +179,7 @@ const actionHandlers = {
             response.data,
             normalizedPhone,
             response.data.lessons,
-            response.data.userReservations,
+            response.data.myReservations,
           );
           debugLog(
             'processInitialData完了 - lessons: ' +
@@ -618,9 +618,7 @@ const actionHandlers = {
             : tempUser;
 
           // 個人予約データを直接取得（フィルタリングは表示時に実行）
-          const { myReservations } = response.data.userReservations || {
-            myReservations: [],
-          };
+          const myReservations = response.data.myReservations || [];
           const today = response.data.initial.today;
 
           window.stateManager.dispatch({
@@ -739,6 +737,10 @@ const actionHandlers = {
     const endTime = getTimeValue('res-end-time', null, 'endTime');
 
     // デバッグ用ログ
+    console.log(`selectedLesson.classroomType: "${selectedLesson?.classroomType}"`);
+    console.log(`CONSTANTS.CLASSROOM_TYPES.SESSION_BASED: "${CONSTANTS.CLASSROOM_TYPES.SESSION_BASED}"`);
+    console.log(`比較結果: ${selectedLesson?.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED}`);
+    
     if (
       selectedLesson?.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
     ) {
@@ -1197,10 +1199,7 @@ const actionHandlers = {
 
   /** 新規予約のための教室選択モーダルを表示します */
   showClassroomModal: () => {
-    if (
-      stateManager.getState().classrooms &&
-      stateManager.getState().classrooms.length > 0
-    ) {
+    if (CONSTANTS.CLASSROOMS && Object.keys(CONSTANTS.CLASSROOMS).length > 0) {
       // 既存のモーダルがあれば削除（重複防止）
       const existingModal = document.getElementById(
         'classroom-selection-modal',
@@ -1563,7 +1562,7 @@ actionHandlers.confirmAndPay = () => {
     stateManager.getState().accountingReservation.reservationId;
   // モーダル内の支払い方法を取得
   const modalForm = document.getElementById('modal-accounting-form');
-  let paymentMethod = CONSTANTS.PAYMENT.CASH;
+  let paymentMethod = CONSTANTS.PAYMENT_DISPLAY.CASH;
   if (modalForm) {
     const selected = modalForm.querySelector(
       'input[name="payment-method"]:checked',
@@ -1814,6 +1813,7 @@ function updateAppStateFromCache(targetView) {
           response.data.initial,
           stateManager.getState().currentUser.phone,
           response.data.lessons,
+          response.data.myReservations,
         );
         // 現在のビューと重要な状態は保持、ただしtargetViewが指定されていればそちらを優先
         const preservedState = {

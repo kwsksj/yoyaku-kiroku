@@ -140,10 +140,10 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
  * 時間制予約の時刻に関する検証を行うプライベートヘルパー関数。
  * @param {string} startTime - 開始時刻 (HH:mm)。
  * @param {string} endTime - 終了時刻 (HH:mm)。
- * @param {object} classroomRule - 会計マスタから取得した教室ルール。
+ * @param {object} scheduleRule - 日程マスタから取得した日程情報。
  * @throws {Error} 検証に失敗した場合、理由を示すエラーをスローする。
  */
-function _validateTimeBasedReservation(startTime, endTime, classroomRule) {
+function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
   if (!startTime || !endTime)
     throw new Error('開始時刻と終了時刻の両方を指定してください。');
   const start = new Date(`1900-01-01T${startTime}`);
@@ -157,17 +157,22 @@ function _validateTimeBasedReservation(startTime, endTime, classroomRule) {
     throw new Error('最低予約時間は2時間です。');
   }
 
+  // 日程マスタの1部終了時刻と2部開始時刻を休憩時間として扱う
   const breakStart =
-    classroomRule[HEADER_BREAK_START] &&
-    typeof classroomRule[HEADER_BREAK_START] === 'string' &&
-    classroomRule[HEADER_BREAK_START].trim()
-      ? new Date(`1900-01-01T${classroomRule[HEADER_BREAK_START]}`)
+    scheduleRule[CONSTANTS.HEADERS.SCHEDULE.FIRST_END] &&
+    typeof scheduleRule[CONSTANTS.HEADERS.SCHEDULE.FIRST_END] === 'string' &&
+    scheduleRule[CONSTANTS.HEADERS.SCHEDULE.FIRST_END].trim()
+      ? new Date(
+          `1900-01-01T${scheduleRule[CONSTANTS.HEADERS.SCHEDULE.FIRST_END]}`,
+        )
       : null;
   const breakEnd =
-    classroomRule[HEADER_BREAK_END] &&
-    typeof classroomRule[HEADER_BREAK_END] === 'string' &&
-    classroomRule[HEADER_BREAK_END].trim()
-      ? new Date(`1900-01-01T${classroomRule[HEADER_BREAK_END]}`)
+    scheduleRule[CONSTANTS.HEADERS.SCHEDULE.SECOND_START] &&
+    typeof scheduleRule[CONSTANTS.HEADERS.SCHEDULE.SECOND_START] === 'string' &&
+    scheduleRule[CONSTANTS.HEADERS.SCHEDULE.SECOND_START].trim()
+      ? new Date(
+          `1900-01-01T${scheduleRule[CONSTANTS.HEADERS.SCHEDULE.SECOND_START]}`,
+        )
       : null;
   if (breakStart && breakEnd) {
     if (start >= breakStart && start < breakEnd)
@@ -207,24 +212,24 @@ function makeReservation(reservationInfo) {
       );
       if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
-      const accountingCache = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
-      const masterData = accountingCache ? accountingCache.items : [];
-      const classroomRule = masterData.find(
+      // 日程マスタから該当日・教室の情報を取得
+      const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+      const scheduleData = scheduleCache ? scheduleCache.items : [];
+      const scheduleRule = scheduleData.find(
         item =>
-          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
-          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(
-            classroom,
-          ) &&
-          item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-            CONSTANTS.ITEM_TYPES.TUITION,
+          item[CONSTANTS.HEADERS.SCHEDULE.DATE] &&
+          item[CONSTANTS.HEADERS.SCHEDULE.DATE].toDateString() ===
+            new Date(date).toDateString() &&
+          item[CONSTANTS.HEADERS.SCHEDULE.CLASSROOM] === classroom,
       );
 
+      // 時間制予約（30分単位）の場合の検証
       if (
-        classroomRule &&
-        classroomRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] ===
+        scheduleRule &&
+        scheduleRule[CONSTANTS.HEADERS.SCHEDULE.TYPE] ===
           CONSTANTS.UNITS.THIRTY_MIN
       ) {
-        _validateTimeBasedReservation(startTime, endTime, classroomRule);
+        _validateTimeBasedReservation(startTime, endTime, scheduleRule);
       }
 
       // 統合予約シートから全データを取得
@@ -559,27 +564,44 @@ function updateReservationDetails(details) {
   return withTransaction(() => {
     try {
       const { reservationId, classroom } = details;
-      const accountingCache = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
-      const masterData = accountingCache ? accountingCache.items : [];
-      const classroomRule = masterData.find(
-        item =>
-          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
-          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(
-            classroom,
-          ) &&
-          item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-            CONSTANTS.ITEM_TYPES.TUITION,
+
+      // 既存の予約から日付を取得して日程マスタ情報を取得
+      const existingReservation = getSheetDataWithSearch(
+        CONSTANTS.SHEET_NAMES.RESERVATIONS,
+        CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+        reservationId,
       );
 
+      let scheduleRule = null;
+      if (existingReservation && existingReservation.foundRow) {
+        const reservationDate =
+          existingReservation.foundRow[
+            existingReservation.headerMap.get(
+              CONSTANTS.HEADERS.RESERVATIONS.DATE,
+            )
+          ];
+
+        const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+        const scheduleData = scheduleCache ? scheduleCache.items : [];
+        scheduleRule = scheduleData.find(
+          item =>
+            item[CONSTANTS.HEADERS.SCHEDULE.DATE] &&
+            item[CONSTANTS.HEADERS.SCHEDULE.DATE].toDateString() ===
+              new Date(reservationDate).toDateString() &&
+            item[CONSTANTS.HEADERS.SCHEDULE.CLASSROOM] === classroom,
+        );
+      }
+
+      // 時間制予約（30分単位）の場合の検証
       if (
-        classroomRule &&
-        classroomRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] ===
+        scheduleRule &&
+        scheduleRule[CONSTANTS.HEADERS.SCHEDULE.TYPE] ===
           CONSTANTS.UNITS.THIRTY_MIN
       ) {
         _validateTimeBasedReservation(
           details.startTime,
           details.endTime,
-          classroomRule,
+          scheduleRule,
         );
       }
 
@@ -1123,7 +1145,8 @@ function getScheduleInfoForDate(date, classroom) {
       beginnerCapacity = parseInt(beginnerCapacity, 10);
       if (isNaN(beginnerCapacity)) beginnerCapacity = null;
     }
-    beginnerCapacity = beginnerCapacity || INTRO_LECTURE_CAPACITY;
+    beginnerCapacity =
+      beginnerCapacity || CONSTANTS.LIMITS.INTRO_LECTURE_CAPACITY;
 
     // 教室形式を取得（複数の可能性のあるフィールド名に対応）
     const classroomType =

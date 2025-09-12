@@ -95,18 +95,18 @@ const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
   let paymentInfoHtml = '';
 
   // ことら送金が選択された場合のみ電話番号を表示
-  if (selectedPaymentMethod === CONSTANTS.PAYMENT.COTRA) {
+  if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.COTRA) {
     paymentInfoHtml += `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
-                <div class="${DesignConfig.text.body}"><span class="font-bold">${CONSTANTS.PAYMENT.COTRA}:</span><span class="ml-2">${BANK.COTRA_PHONE}</span></div>
+                <div class="${DesignConfig.text.body}"><span class="font-bold">${CONSTANTS.PAYMENT_DISPLAY.COTRA}:</span><span class="ml-2">${BANK.COTRA_PHONE}</span></div>
                 <button data-action="copyToClipboard" data-copy-text="${BANK.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>`;
   }
 
   // 振込が選択された場合のみ口座情報を表示
-  if (selectedPaymentMethod === CONSTANTS.PAYMENT.BANK_TRANSFER) {
+  if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER) {
     paymentInfoHtml += `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${BANK.NAME}</span></div>
@@ -144,18 +144,18 @@ const getPaymentOptionsHtml = selectedValue => {
         </details>`;
   const options = [
     {
-      value: CONSTANTS.PAYMENT.CASH,
-      text: CONSTANTS.PAYMENT.CASH,
+      value: CONSTANTS.PAYMENT_DISPLAY.CASH,
+      text: CONSTANTS.PAYMENT_DISPLAY.CASH,
       details: '',
     },
     {
-      value: CONSTANTS.PAYMENT.COTRA,
-      text: CONSTANTS.PAYMENT.COTRA,
+      value: CONSTANTS.PAYMENT_DISPLAY.COTRA,
+      text: CONSTANTS.PAYMENT_DISPLAY.COTRA,
       details: cotraDetails,
     },
     {
-      value: CONSTANTS.PAYMENT.BANK_TRANSFER,
-      text: CONSTANTS.PAYMENT.BANK_TRANSFER,
+      value: CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER,
+      text: CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER,
       details: '',
     },
   ];
@@ -1140,7 +1140,7 @@ const getClassroomColorClass = classroomName => {
  * @returns {string} HTML文字列
  */
 const getClassroomSelectionModalContent = () => {
-  const classrooms = Object.values(stateManager.getState().classrooms || {});
+  const classrooms = Object.values(CONSTANTS.CLASSROOMS || {});
 
   if (!classrooms.length) {
     return `<div class="text-center"><p class="text-brand-subtle mb-4">現在、予約可能な教室がありません。</p></div>`;

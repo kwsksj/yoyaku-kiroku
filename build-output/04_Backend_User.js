@@ -262,7 +262,7 @@ function registerNewUser(userInfo) {
         };
       }
 
-      const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
       if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
       const header = rosterSheet
@@ -465,7 +465,7 @@ function updateUserProfile(userInfo) {
         }
       }
 
-      const rosterSheet = getSheetByName(ROSTER_SHEET_NAME);
+      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
       if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
       // ヘッダー情報を取得して更新対象の列インデックスを特定

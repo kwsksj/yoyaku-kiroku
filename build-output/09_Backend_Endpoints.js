@@ -66,8 +66,7 @@ function executeOperationAndGetLatestData(
       }
 
       // デバッグログ: 返却するmyReservationsを確認
-      const myReservationsData =
-        batchResult.data.userReservations?.myReservations || [];
+      const myReservationsData = batchResult.data.myReservations || [];
       Logger.log(
         `executeOperationAndGetLatestData: myReservations件数=${myReservationsData.length}`,
       );
@@ -395,9 +394,8 @@ function getLoginData(phone) {
       return batchResult;
     }
 
-    if (batchResult.data.userReservations) {
-      batchResult.data.initial.userReservations =
-        batchResult.data.userReservations;
+    if (batchResult.data.myReservations) {
+      batchResult.data.initial.myReservations = batchResult.data.myReservations;
     }
 
     const result = {
@@ -527,7 +525,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
         if (userReservationsResult.success) {
           result.data = {
             ...result.data,
-            userReservations: userReservationsResult.data,
+            myReservations: userReservationsResult.data.myReservations,
           };
         }
       }

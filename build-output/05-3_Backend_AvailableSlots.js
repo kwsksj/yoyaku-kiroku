@@ -105,7 +105,7 @@ function getLessons() {
       reservationsForDate.forEach(
         /** @param {any} reservation */ reservation => {
           // 教室形式別のセッション集計ロジック
-          if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
+          if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
             // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 2部制時間制
             const startTime = reservation.startTime
               ? new Date(`1900-01-01T${reservation.startTime}`)
@@ -123,30 +123,32 @@ function getLessons() {
               // 1部（午前）：開始時刻が1部終了時刻以前
               if (startTime <= timeCache.firstEndTime) {
                 sessionCounts.set(
-                  SESSION_MORNING,
-                  (sessionCounts.get(SESSION_MORNING) || 0) + 1,
+                  CONSTANTS.SESSIONS.MORNING,
+                  (sessionCounts.get(CONSTANTS.SESSIONS.MORNING) || 0) + 1,
                 );
               }
 
               // 2部（午後）：終了時刻が2部開始時刻以降
               if (endTime >= timeCache.secondStartTime) {
                 sessionCounts.set(
-                  SESSION_AFTERNOON,
-                  (sessionCounts.get(SESSION_AFTERNOON) || 0) + 1,
+                  CONSTANTS.SESSIONS.AFTERNOON,
+                  (sessionCounts.get(CONSTANTS.SESSIONS.AFTERNOON) || 0) + 1,
                 );
               }
             }
-          } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
+          } else if (
+            schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
+          ) {
             // ${CONSTANTS.CLASSROOMS.TOKYO}: セッション制
             sessionCounts.set(
-              ITEM_NAME_MAIN_LECTURE,
-              (sessionCounts.get(ITEM_NAME_MAIN_LECTURE) || 0) + 1,
+              CONSTANTS.ITEMS.MAIN_LECTURE,
+              (sessionCounts.get(CONSTANTS.ITEMS.MAIN_LECTURE) || 0) + 1,
             );
           } else {
             // ${CONSTANTS.CLASSROOMS.NUMAZU}など: 全日時間制
             sessionCounts.set(
-              SESSION_ALL_DAY,
-              (sessionCounts.get(SESSION_ALL_DAY) || 0) + 1,
+              CONSTANTS.SESSIONS.ALL_DAY,
+              (sessionCounts.get(CONSTANTS.SESSIONS.ALL_DAY) || 0) + 1,
             );
           }
 
@@ -167,8 +169,8 @@ function getLessons() {
               endTime >= timeCache.beginnerStartTime
             ) {
               sessionCounts.set(
-                ITEM_NAME_FIRST_LECTURE,
-                (sessionCounts.get(ITEM_NAME_FIRST_LECTURE) || 0) + 1,
+                CONSTANTS.ITEMS.FIRST_LECTURE,
+                (sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0) + 1,
               );
             }
           }
@@ -202,7 +204,7 @@ function getLessons() {
       }
 
       if (beginnerCapacity == null) {
-        beginnerCapacity = INTRO_LECTURE_CAPACITY;
+        beginnerCapacity = CONSTANTS.LIMITS.INTRO_LECTURE_CAPACITY;
         beginnerCapacitySource = 'システムデフォルト';
       }
 
@@ -210,11 +212,13 @@ function getLessons() {
         `定員設定 - ${schedule.date} ${schedule.classroom}: 全体定員=${totalCapacity}(${totalCapacitySource}), 初回者定員=${beginnerCapacity}(${beginnerCapacitySource})`,
       );
 
-      if (schedule.classroomType === CLASSROOM_TYPE_TIME_DUAL) {
+      if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
         // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 午前・午後セッション
-        const morningCount = sessionCounts.get(SESSION_MORNING) || 0;
-        const afternoonCount = sessionCounts.get(SESSION_AFTERNOON) || 0;
-        const introCount = sessionCounts.get(ITEM_NAME_FIRST_LECTURE) || 0;
+        const morningCount = sessionCounts.get(CONSTANTS.SESSIONS.MORNING) || 0;
+        const afternoonCount =
+          sessionCounts.get(CONSTANTS.SESSIONS.AFTERNOON) || 0;
+        const introCount =
+          sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
 
         const morningSlots = Math.max(0, totalCapacity - morningCount);
         const afternoonSlots = Math.max(0, totalCapacity - afternoonCount);
@@ -281,10 +285,13 @@ function getLessons() {
             firstLectureIsFull: firstLectureIsFull,
           },
         });
-      } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
+      } else if (
+        schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
+      ) {
         // 東京教室: 本講座と初回者
-        const mainCount = sessionCounts.get(ITEM_NAME_MAIN_LECTURE) || 0;
-        const introCount = sessionCounts.get(ITEM_NAME_FIRST_LECTURE) || 0;
+        const mainCount = sessionCounts.get(CONSTANTS.ITEMS.MAIN_LECTURE) || 0;
+        const introCount =
+          sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
 
         const mainAvailable = Math.max(0, totalCapacity - mainCount);
         const introSpecific = Math.max(0, beginnerCapacity - introCount);
@@ -335,8 +342,9 @@ function getLessons() {
         });
       } else {
         // 沼津教室など: 全日時間制
-        const allDayCount = sessionCounts.get(SESSION_ALL_DAY) || 0;
-        const introCount = sessionCounts.get(ITEM_NAME_FIRST_LECTURE) || 0;
+        const allDayCount = sessionCounts.get(CONSTANTS.SESSIONS.ALL_DAY) || 0;
+        const introCount =
+          sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
 
         const available = Math.max(0, totalCapacity - allDayCount);
         const introSpecific = Math.max(0, beginnerCapacity - introCount);

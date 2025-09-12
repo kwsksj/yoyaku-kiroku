@@ -37,8 +37,6 @@ class SimpleStateManager {
       myReservations: [],
       /** @type {Array<Object>} */
       accountingMaster: [],
-      /** @type {Array<string>} */
-      classrooms: [],
 
       // --- UI State ---
       /** @type {string} */

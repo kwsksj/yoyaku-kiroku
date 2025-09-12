@@ -136,7 +136,7 @@ function addCacheMenu(menu) {
  */
 function handleOnChange(_e) {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(LOCK_WAIT_TIME_MS)) return;
+  if (!lock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) return;
 
   try {
   } catch (err) {
@@ -153,7 +153,7 @@ function handleOnChange(_e) {
  */
 function handleEdit(_e) {
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(LOCK_WAIT_TIME_MS)) return;
+  if (!lock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) return;
   try {
   } catch (err) {
     handleError(`セル編集処理中にエラー: ${err.message}`, true);
