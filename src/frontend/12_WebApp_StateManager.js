@@ -39,8 +39,6 @@ class SimpleStateManager {
       accountingMaster: [],
       /** @type {Array<string>} */
       classrooms: [],
-      /** @type {Object | null} */
-      constants: null,
 
       // --- UI State ---
       /** @type {string} */
@@ -85,9 +83,6 @@ class SimpleStateManager {
 
     this.isUpdating = false; // 無限ループ防止フラグ
     this.subscribers = []; // 状態変更の購読者リスト
-
-    // フォールバック統一定数を即座に設定（エラー回避）
-    this.initializeFallbackConstants();
   }
 
   /**
@@ -177,17 +172,6 @@ class SimpleStateManager {
       // 状態を直接更新
       Object.assign(this.state, newState);
 
-      // 統一定数が設定された場合、グローバル短縮参照を初期化
-      // window.Cがフォールバックで空オブジェクト{}で初期化されるため、
-      // !window.Cでは正しく判定できない。
-      // オブジェクトが空かどうかもチェックする。
-      if (
-        newState.constants &&
-        (!window.C || Object.keys(window.C).length === 0)
-      ) {
-        this.initializeGlobalConstants();
-      }
-
       // 基本的な計算済みデータ更新
       this.updateComputed();
 
@@ -195,51 +179,16 @@ class SimpleStateManager {
       this._notifySubscribers(this.state, oldState);
 
       if (!window.isProduction) {
-        if (typeof DEBUG_ENABLED !== 'undefined' && DEBUG_ENABLED)
+        if (
+          typeof ENVIRONMENT_CONFIG.DEBUG_ENABLED !== 'undefined' &&
+          DEBUG_ENABLED
+        )
           console.log('✅ 状態更新完了:', Object.keys(newState));
       }
     } catch (error) {
       console.error('❌ 状態更新エラー:', error);
     } finally {
       this.isUpdating = false;
-    }
-  }
-
-  /**
-   * グローバル統一定数の短縮参照を初期化
-   */
-  initializeGlobalConstants() {
-    if (!this.state.constants) return;
-
-    const constants = this.state.constants;
-
-    // 必要な配列データを状態に設定
-    if (constants.classrooms && !this.state.classrooms.length) {
-      this.state.classrooms = Object.values(constants.classrooms);
-      if (!window.isProduction) {
-        console.log('📋 教室一覧を状態に設定:', this.state.classrooms);
-      }
-    }
-
-    // UI設定の初期化
-    if (!this.state.recordsToShow && constants.ui?.HISTORY_INITIAL_RECORDS) {
-      this.state.recordsToShow = constants.ui.HISTORY_INITIAL_RECORDS;
-      if (!window.isProduction) {
-        console.log('📋 履歴表示件数を初期化:', this.state.recordsToShow);
-      }
-    }
-
-    // グローバル短縮参照を設定
-    window.C = constants;
-    window.STATUS = constants.status || {};
-    window.UI = constants.ui || {};
-    window.MESSAGES = constants.messages || {};
-    window.BANK = constants.bankInfo || {};
-    window.PAYMENT = constants.paymentDisplay || {};
-    window.HEADERS = constants.headers || {}; // 統合ヘッダー定数をフロントエンドで利用可能に
-
-    if (!window.isProduction) {
-      console.log('📋 統一定数グローバル参照を初期化:', Object.keys(constants));
     }
   }
 
@@ -251,38 +200,6 @@ class SimpleStateManager {
 
     // isFirstTimeBooking の計算：予約データが全くない場合
     this.state.isFirstTimeBooking = this.state.myReservations.length === 0;
-  }
-
-  /**
-   * フォールバック用のグローバル定数を初期化する
-   * サーバーから本物の定数が読み込まれるまでの間のエラーを回避する
-   */
-  initializeFallbackConstants() {
-    if (window.C && Object.keys(window.C).length > 0) return; // 既に設定済みなら何もしない
-
-    window.C = {};
-    window.STATUS = {
-      CANCELED: '取消',
-      WAITLISTED: '待機',
-      CONFIRMED: '確定',
-      COMPLETED: '完了',
-    };
-    window.UI = {
-      HISTORY_INITIAL_RECORDS: 10,
-      HISTORY_LOAD_MORE_RECORDS: 10,
-      LOADING_MESSAGE_INTERVAL: 2000,
-      MODAL_FADE_DURATION: 300,
-    };
-    window.MESSAGES = {
-      CANCEL: 'キャンセル',
-      SAVE: '保存する',
-      EDIT: '編集',
-      SUCCESS: '成功',
-      ERROR: 'エラー',
-    };
-    window.BANK = {};
-    window.PAYMENT = { CASH: '現金' };
-    console.log('📋 フォールバック定数を初期化しました');
   }
 
   /**
@@ -442,37 +359,6 @@ class SimpleStateManager {
       ...previousEntry.context,
       navigationHistory: newHistory,
     };
-  }
-
-  /**
-   * データの整合性チェック（デバッグ用）
-   * @param {Object} dataObj - チェック対象のオブジェクト
-   * @param {string} dataType - データタイプ ('reservations', 'schedule' など)
-   */
-  validateDataStructure(dataObj, dataType = 'reservations') {
-    if (!window.HEADERS || !dataObj) return true;
-
-    const expectedHeaders =
-      dataType === 'schedule'
-        ? window.HEADERS.SCHEDULE
-        : window.HEADERS.RESERVATIONS;
-
-    if (!expectedHeaders) return true;
-
-    // 重要なプロパティの存在チェック
-    const requiredProperties = ['date', 'classroom'];
-    const missingProperties = requiredProperties.filter(prop => !dataObj[prop]);
-
-    if (missingProperties.length > 0) {
-      console.warn(`データ整合性チェック: 必須プロパティが不足`, {
-        dataType,
-        missing: missingProperties,
-        data: dataObj,
-      });
-      return false;
-    }
-
-    return true;
   }
 
   /**

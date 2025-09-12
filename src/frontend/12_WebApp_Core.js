@@ -49,7 +49,7 @@ function findReservationById(reservationId, state = null) {
   );
   if (reservation) {
     // ステータスに基づいてtype分類を追加
-    if (reservation.status === window.STATUS.COMPLETED) {
+    if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
       return { ...reservation, type: 'record' };
     } else {
       return { ...reservation, type: 'booking' };
@@ -77,7 +77,7 @@ function findReservationByDateAndClassroom(date, classroom, state = null) {
 
   if (reservation) {
     // ステータスに基づいてtype分類を追加
-    if (reservation.status === window.STATUS.COMPLETED) {
+    if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
       return { ...reservation, type: 'record' };
     } else {
       return { ...reservation, type: 'booking' };
@@ -103,7 +103,7 @@ function findReservationsByStatus(status, state = null) {
 
   // ステータスに基づいてtype分類を追加
   return reservations.map(item => {
-    if (item.status === window.STATUS.COMPLETED) {
+    if (item.status === CONSTANTS.STATUS.COMPLETED) {
       return { ...item, type: 'record' };
     } else {
       return { ...item, type: 'booking' };
@@ -120,8 +120,7 @@ function findReservationsByStatus(status, state = null) {
  * @returns {object} setStateに渡すための新しい状態オブジェクト。ユーザーが見つからない場合は { currentUser: null }
  */
 function processInitialData(data, phone, lessons, userReservations = null) {
-  const { allStudents, accountingMaster, cacheVersions, today, constants } =
-    data;
+  const { allStudents, accountingMaster, cacheVersions, today } = data;
 
   // 1. 電話番号でユーザーを検索
   const currentUser = Object.values(allStudents).find(
@@ -140,12 +139,6 @@ function processInitialData(data, phone, lessons, userReservations = null) {
     ? userReservations.myReservations
     : [];
 
-  // 3. 教室一覧は統合定数から取得（StateManagerで設定される）
-  // lessons から取得する必要はなくなった
-  const classroomsFromConstants = constants
-    ? Object.values(constants.classrooms)
-    : [];
-
   // 4. 講座バージョンを生成
   const lessonsVersion = cacheVersions
     ? `${cacheVersions.allReservations || 0}-${cacheVersions.scheduleMaster || 0}`
@@ -157,10 +150,9 @@ function processInitialData(data, phone, lessons, userReservations = null) {
     currentUser: currentUser,
     myReservations: myReservations, // 生データを直接保存
     lessons: lessons,
-    classrooms: classroomsFromConstants,
+    classrooms: CONSTANTS.CLASSROOMS,
     accountingMaster: accountingMaster,
     today: today,
-    constants: constants, // 統一定数を追加
     _allStudents: allStudents,
     _cacheVersions: cacheVersions,
     _lessonsVersion: lessonsVersion, // 講座バージョンを設定
@@ -583,8 +575,8 @@ function getSalesCheckboxListHtml(salesList, checkedValues = []) {
           .map(
             item => `
           <label class="flex items-center space-x-2">
-            <input type="checkbox" name="orderSales" value="${item[HEADERS.ACCOUNTING.ITEM_NAME]}" class="accent-action-primary-bg" ${checkedValues.includes(item[HEADERS.ACCOUNTING.ITEM_NAME]) ? 'checked' : ''}>
-            <span>${item[HEADERS.ACCOUNTING.ITEM_NAME]}${item[HEADERS.ACCOUNTING.UNIT_PRICE] ? `（${item[HEADERS.ACCOUNTING.UNIT_PRICE]}円）` : ''}</span>
+            <input type="checkbox" name="orderSales" value="${item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}" class="accent-action-primary-bg" ${checkedValues.includes(item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]) ? 'checked' : ''}>
+            <span>${item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}${item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE] ? `（${item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]}円）` : ''}</span>
           </label>
         `,
           )
@@ -746,10 +738,7 @@ const showModal = c => {
   b.innerHTML = '';
   if (c.showCancel) {
     b.innerHTML += Components.button({
-      text:
-        c.cancelText ||
-        window.stateManager.getState().constants?.messages?.CANCEL ||
-        'キャンセル',
+      text: c.cancelText || CONSTANTS.MESSAGES.CANCEL || 'キャンセル',
       action: 'modalCancel',
       style: 'secondary',
       size: 'normal',
@@ -766,7 +755,7 @@ const showModal = c => {
   }
   ModalManager.setCallback(c.onConfirm);
   document.getElementById('modal-title').textContent = c.title;
-  document.getElementById('modal-message').innerHTML = c.message;
+  document.getElementById('modal-message').innerHTML = CONSTANTS.MESSAGES;
   m.classList.add('active');
 };
 const hideModal = () => {
@@ -868,10 +857,10 @@ const getTuitionItemRule = (master, classroom, itemName) => {
   if (!master || !classroom || !itemName) return undefined;
   return master.find(
     item =>
-      item['種別'] === C.itemTypes.TUITION &&
-      item[HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
-      item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
-      item[HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
+      item['種別'] === CONSTANTS.ITEM_TYPES.TUITION &&
+      item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
+      item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
+      item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
   );
 };
 
@@ -1062,10 +1051,10 @@ function calculateAccountingDetailsFromForm() {
   const tuitionItemRule = getTuitionItemRule(
     stateManager.getState().accountingMaster,
     r.classroom,
-    C.items.MAIN_LECTURE,
+    CONSTANTS.ITEMS.MAIN_LECTURE,
   );
   const isTimeBased =
-    tuitionItemRule && tuitionItemRule['単位'] === C.units.THIRTY_MIN;
+    tuitionItemRule && tuitionItemRule['単位'] === CONSTANTS.UNITS.THIRTY_MIN;
 
   // 時間制授業料計算
   if (isTimeBased) {
@@ -1139,7 +1128,8 @@ function calculateTimeBasedTuition(tuitionItemRule) {
     if (diffMinutes > 0) {
       const billableUnits = Math.ceil(diffMinutes / 30);
       const price =
-        billableUnits * Number(tuitionItemRule[HEADERS.ACCOUNTING.UNIT_PRICE]);
+        billableUnits *
+        Number(tuitionItemRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
       return {
         price: price,
         item: { name: `授業料 (${startTime} - ${endTime})`, price: price },
@@ -1225,16 +1215,18 @@ function calculateCheckboxItems() {
           .getState()
           .accountingMaster.find(
             m =>
-              m[HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
+              m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
               m['種別'] === itemType,
           );
         if (!masterItem) return;
 
-        const price = Number(masterItem[HEADERS.ACCOUNTING.UNIT_PRICE]);
+        const price = Number(
+          masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+        );
         const itemDetail = { name: itemName, price: price };
         allItems.push(itemDetail);
 
-        if (itemType === C.itemTypes.TUITION) {
+        if (itemType === CONSTANTS.ITEM_TYPES.TUITION) {
           tuitionSubtotal += price;
           tuitionItems.push(itemDetail);
         } else {
@@ -1265,7 +1257,7 @@ function calculateDiscount() {
     return {
       amount: discountAmount,
       item: {
-        name: `${C.items.DISCOUNT}`,
+        name: `${CONSTANTS.ITEMS.DISCOUNT}`,
         price: -discountAmount,
       },
     };
@@ -1292,7 +1284,9 @@ function calculateMaterials() {
       const type = document.getElementById(`material-type-${index}`)?.value;
       const masterItem = stateManager
         .getState()
-        .accountingMaster.find(m => m[HEADERS.ACCOUNTING.ITEM_NAME] === type);
+        .accountingMaster.find(
+          m => m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === type,
+        );
       const priceEl = document.getElementById(`material-price-${index}`);
 
       if (!masterItem) {
@@ -1300,11 +1294,13 @@ function calculateMaterials() {
         return;
       }
 
-      const unitPrice = Number(masterItem[HEADERS.ACCOUNTING.UNIT_PRICE]);
+      const unitPrice = Number(
+        masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+      );
       let finalName = type;
       let price = 0;
 
-      if (masterItem['単位'] === stateManager.getState().constants.units.CM3) {
+      if (masterItem['単位'] === CONSTANTS.UNITS.CM3) {
         const l = document.getElementById(`material-l-${index}`)?.value || 0;
         const w = document.getElementById(`material-w-${index}`)?.value || 0;
         const h = document.getElementById(`material-h-${index}`)?.value || 0;
@@ -1399,14 +1395,14 @@ function updateAccountingUI(details) {
       const tuitionItemRule = getTuitionItemRule(
         stateManager.getState().accountingMaster,
         r.classroom,
-        C.items.MAIN_LECTURE,
+        CONSTANTS.ITEMS.MAIN_LECTURE,
       );
       if (tuitionItemRule) {
         const billableUnits = Math.ceil(
           timeBasedItems[0].price /
-            Number(tuitionItemRule[HEADERS.ACCOUNTING.UNIT_PRICE]),
+            Number(tuitionItemRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]),
         );
-        calculatedHoursEl.textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule[HEADERS.ACCOUNTING.UNIT_PRICE]}円`;
+        calculatedHoursEl.textContent = `受講時間: ${billableUnits * 0.5}時間 × ${2.0 * tuitionItemRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]}円`;
       }
     } else {
       calculatedHoursEl.textContent = '';

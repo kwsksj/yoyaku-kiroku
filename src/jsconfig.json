@@ -20,10 +20,7 @@
     // GAS特有の重複定義を許可
     "exactOptionalPropertyTypes": false
   },
-  "include": [
-    "**/*.js",
-    "../types/index.d.ts"
-  ],
+  "include": ["**/*.js", "../types/index.d.ts"],
   "exclude": ["node_modules", "**/*.min.js"],
   "typeAcquisition": {
     "enable": true,

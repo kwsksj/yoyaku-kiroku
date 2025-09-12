@@ -10,6 +10,10 @@
  * =================================================================
  */
 
+// 実行時取得定数
+const SALES_SPREADSHEET_ID =
+  PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
+
 /**
  * スプレッドシートマネージャー
  * アプリケーション全体でスプレッドシートオブジェクトを共有・管理

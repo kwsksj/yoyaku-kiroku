@@ -38,7 +38,7 @@ function getTimeValue(elementId, reservationData, timeField) {
   // 2. 予約データから取得を試行（編集時）
   if (reservationData) {
     const headerField =
-      window.HEADERS?.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
+      CONSTANTS.HEADERS.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
     const timeValue =
       reservationData[headerField] || reservationData[timeField];
     if (timeValue && timeValue !== '') {
@@ -50,10 +50,12 @@ function getTimeValue(elementId, reservationData, timeField) {
   const selectedLesson = stateManager.getState().selectedLesson;
   if (selectedLesson) {
     const headerField =
-      window.HEADERS?.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
+      CONSTANTS.HEADERS.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
 
     // セッション制教室の場合、スケジュール情報から取得
-    if (selectedLesson.classroomType === C.classroomTypes.SESSION_BASED) {
+    if (
+      selectedLesson.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
+    ) {
       if (timeField === 'startTime') {
         return selectedLesson.firstStart || selectedLesson.secondStart || '';
       } else if (timeField === 'endTime') {
@@ -195,8 +197,7 @@ const actionHandlers = {
             payload: {
               ...newAppState,
               // サーバーから取得した定数を使って、表示する履歴の初期件数を設定
-              recordsToShow:
-                newAppState.constants?.ui?.HISTORY_INITIAL_RECORDS || 10,
+              recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS || 10,
               isDataFresh: true,
             },
           });
@@ -738,7 +739,9 @@ const actionHandlers = {
     const endTime = getTimeValue('res-end-time', null, 'endTime');
 
     // デバッグ用ログ
-    if (selectedLesson?.classroomType === C.classroomTypes.SESSION_BASED) {
+    if (
+      selectedLesson?.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
+    ) {
       console.log(`[セッション制] 時間設定: ${startTime} - ${endTime}`);
     } else {
       console.log(`[時間制] 時間設定: ${startTime} - ${endTime}`);
@@ -763,8 +766,8 @@ const actionHandlers = {
       startTime: startTime,
       endTime: endTime,
       // バックエンドとの互換性のため、ヘッダー形式も併記
-      [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']: startTime,
-      [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']: endTime,
+      [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']: startTime,
+      [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']: endTime,
       user: stateManager.getState().currentUser,
       studentId: stateManager.getState().currentUser.studentId,
       options: bookingOptions,
@@ -824,12 +827,12 @@ const actionHandlers = {
         venue: reservation.venue,
         chiselRental: reservation.chiselRental || false,
         firstLecture: reservation.firstLecture || false,
-        [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']:
-          reservation[window.HEADERS?.RESERVATIONS?.START_TIME] ||
+        [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']:
+          reservation[CONSTANTS.HEADERS.RESERVATIONS?.START_TIME] ||
           reservation.startTime ||
           '',
-        [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']:
-          reservation[window.HEADERS?.RESERVATIONS?.END_TIME] ||
+        [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']:
+          reservation[CONSTANTS.HEADERS.RESERVATIONS?.END_TIME] ||
           reservation.endTime ||
           '',
         workInProgress: reservation.workInProgress || '',
@@ -885,8 +888,8 @@ const actionHandlers = {
       startTime: startTime,
       endTime: endTime,
       // バックエンドとの互換性のため、ヘッダー形式も併記
-      [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']: startTime,
-      [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']: endTime,
+      [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']: startTime,
+      [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']: endTime,
       workInProgress: document.getElementById('wip-input').value,
       order: document.getElementById('order-input').value,
       messageToTeacher: document.getElementById('message-input').value,
@@ -940,12 +943,12 @@ const actionHandlers = {
       const baseDetails = {
         firstLecture: reservationData.firstLecture || false,
         chiselRental: reservationData.chiselRental || false,
-        [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']:
-          reservationData[window.HEADERS?.RESERVATIONS?.START_TIME] ||
+        [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']:
+          reservationData[CONSTANTS.HEADERS.RESERVATIONS?.START_TIME] ||
           reservationData.startTime ||
           null,
-        [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']:
-          reservationData[window.HEADERS?.RESERVATIONS?.END_TIME] ||
+        [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']:
+          reservationData[CONSTANTS.HEADERS.RESERVATIONS?.END_TIME] ||
           reservationData.endTime ||
           null,
       };
@@ -1060,12 +1063,12 @@ const actionHandlers = {
     const reservationDetails = {
       firstLecture: reservationData.firstLecture || false,
       chiselRental: reservationData.chiselRental || false,
-      [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']:
-        reservationData[window.HEADERS?.RESERVATIONS?.START_TIME] ||
+      [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']:
+        reservationData[CONSTANTS.HEADERS.RESERVATIONS?.START_TIME] ||
         reservationData.startTime ||
         null,
-      [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']:
-        reservationData[window.HEADERS?.RESERVATIONS?.END_TIME] ||
+      [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']:
+        reservationData[CONSTANTS.HEADERS.RESERVATIONS?.END_TIME] ||
         reservationData.endTime ||
         null,
       // 既存の会計データをすべて反映
@@ -1077,9 +1080,7 @@ const actionHandlers = {
       message:
         'この操作により、現在の会計記録は削除され、新しい内容で再登録されます。よろしいですか？',
       confirmText: '修正する',
-      cancelText:
-        window.stateManager.getState().constants?.messages?.CANCEL ||
-        'キャンセル',
+      cancelText: CONSTANTS.MESSAGES.CANCEL || 'キャンセル',
       onConfirm: () => {
         // 講座固有情報を取得完了後に画面を表示
         getScheduleInfoFromCache(
@@ -1185,9 +1186,9 @@ const actionHandlers = {
   /** 参加記録を追加で読み込みます（統合ホーム用） */
   loadMoreHistory: () => {
     const newCount =
-      (stateManager.getState().recordsToShow ||
-        UI?.HISTORY_INITIAL_RECORDS ||
-        10) + (UI?.HISTORY_LOAD_MORE_RECORDS || 10);
+      stateManager.getState().recordsToShow +
+      (CONSTANTS.UI.HISTORY_LOAD_MORE_RECORDS || 10);
+
     window.stateManager.dispatch({
       type: 'SET_STATE',
       payload: { recordsToShow: newCount },
@@ -1549,9 +1550,7 @@ actionHandlers.showAccountingConfirmation = () => {
     title: 'お会計',
     message: message,
     showCancel: true,
-    cancelText:
-      window.stateManager.getState().constants?.messages?.CANCEL ||
-      'キャンセル',
+    cancelText: CONSTANTS.MESSAGES.CANCEL || 'キャンセル',
     onConfirm: null,
   });
 };
@@ -1564,7 +1563,7 @@ actionHandlers.confirmAndPay = () => {
     stateManager.getState().accountingReservation.reservationId;
   // モーダル内の支払い方法を取得
   const modalForm = document.getElementById('modal-accounting-form');
-  let paymentMethod = PAYMENT.CASH;
+  let paymentMethod = CONSTANTS.PAYMENT.CASH;
   if (modalForm) {
     const selected = modalForm.querySelector(
       'input[name="payment-method"]:checked',
@@ -1584,7 +1583,7 @@ actionHandlers.confirmAndPay = () => {
   // 授業料項目（チェックボックス）
   form
     .querySelectorAll(
-      `input[type="checkbox"][data-item-type="${C.itemTypes.TUITION}"]:checked`,
+      `input[type="checkbox"][data-item-type="${CONSTANTS.ITEM_TYPES.TUITION}"]:checked`,
     )
     .forEach(cb => {
       userInput.tuitionItems.push(cb.dataset.itemName);
@@ -1604,8 +1603,8 @@ actionHandlers.confirmAndPay = () => {
       startTime: startTime,
       endTime: endTime,
       // バックエンドとの互換性のため、ヘッダー形式も併記
-      [window.HEADERS?.RESERVATIONS?.START_TIME || 'startTime']: startTime,
-      [window.HEADERS?.RESERVATIONS?.END_TIME || 'endTime']: endTime,
+      [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']: startTime,
+      [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']: endTime,
       breakMinutes: parseInt(
         document.getElementById('break-time')?.value || 0,
         10,
@@ -1634,7 +1633,7 @@ actionHandlers.confirmAndPay = () => {
   // 物販項目（チェックボックス）
   form
     .querySelectorAll(
-      `input[type="checkbox"][data-item-type="${C.itemTypes.SALES}"]:checked`,
+      `input[type="checkbox"][data-item-type="${CONSTANTS.ITEM_TYPES.SALES}"]:checked`,
     )
     .forEach(cb => {
       userInput.salesItems.push({ name: cb.dataset.itemName });

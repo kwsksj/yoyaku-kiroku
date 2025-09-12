@@ -19,44 +19,14 @@
 // 1. APPLICATION CONSTANTS（統一定数システム）
 // =================================================================
 
-// 【重要】統一定数は getAppInitialData() で取得される constants オブジェクトを使用
-// バックエンドの 00_Constants.js で定義された統一定数がフロントエンドに配信される
-//
-// 使用例:
-// - stateManager.getState().constants.classrooms.TOKYO （'東京教室'）
-// - stateManager.getState().constants.headers.STUDENT_ID （'生徒ID'）
-// - STATUS.WAITLISTED （'waitlisted'）
-// - stateManager.getState().constants.sessions.MORNING （'午前'）
-// - BANK.NAME （'ゆうちょ銀行'）
-// - stateManager.getState().constants.frontendUi.DISCOUNT_OPTIONS.THIRTY_MIN （30）
+// 【重要】統一定数は 00_Constants.js から自動注入されます
+// ビルド時にバックエンドの定数ファイルがフロントエンドJavaScriptの先頭に自動挿入されるため、
+// CONSTANTSオブジェクトがグローバルに利用可能になります
 //
 // 注意: このファイルでは、バックエンド定数との重複を避けるため
-// フロントエンド固有の定数のみ定義する
+// フロントエンド専用の定数のみ定義します
 
-// --- フロントエンド専用定数（統一定数システムに移行済み） ---
-
-// 【移行完了】以下の定数は 00_Constants.js に移行し、constants オブジェクトでアクセス可能
-// - ITEM_NAME_DISCOUNT → stateManager.getState().constants.items.DISCOUNT
-// - SESSION_MORNING/AFTERNOON/ALL_DAY → stateManager.getState().constants.sessions.MORNING/AFTERNOON/ALL_DAY
-// - UNIT_CM3 → stateManager.getState().constants.units.CM3
-// - PAYMENT.* → stateManager.getState().constants.paymentDisplay.*
-// - BANK_* → BANK.*
-// - DISCOUNT_OPTION_* → stateManager.getState().constants.frontendUi.DISCOUNT_OPTIONS.*
-// - TIME_STEP_MINUTES → stateManager.getState().constants.frontendUi.TIME_SETTINGS.STEP_MINUTES
-// - TIME_END_BUFFER_HOURS → stateManager.getState().constants.frontendUi.TIME_SETTINGS.END_BUFFER_HOURS
-
-// 【互換性】既存コードとの互換性のため、必要に応じて個別定数も利用可能
-// 例: const SESSION_MORNING = stateManager.getState().constants.sessions.MORNING;
-
-// 【純粋にフロントエンド専用】以下は本当にフロントエンドでしか使わない定数のみ
-
-// ステータス定数（フロントエンド用 - バックエンドCONSTANTSとの重複を避けるためwindowオブジェクトに設定）
-window.STATUS = window.STATUS || {
-  CANCELED: '取消', // キャンセル済み
-  WAITLISTED: '待機', // キャンセル待ち
-  CONFIRMED: '確定', // 予約確定（会計前）
-  COMPLETED: '完了', // 完了（会計済み）
-};
+// --- フロントエンド専用定数（バックエンドとの重複なし） ---
 
 // =================================================================
 // 2. DESIGN CONFIGURATION

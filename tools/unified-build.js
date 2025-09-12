@@ -139,6 +139,21 @@ class UnifiedBuilder {
 
     let unifiedContent = '';
 
+    // --- ▼▼▼ 定数ファイル自動注入 ▼▼▼ ---
+    const constantsPath = path.join(this.backendDir, '00_Constants.js');
+    if (fs.existsSync(constantsPath)) {
+      const constantsContent = fs.readFileSync(constantsPath, 'utf8');
+      unifiedContent += `
+  // =================================================================
+  // 00_Constants.js (自動注入 from backend)
+  // =================================================================
+
+`;
+      unifiedContent += constantsContent + '\n';
+      console.log(`[${formatTime()}]   ✅ 00_Constants.js injected`);
+    }
+    // --- ▲▲▲ 定数ファイル自動注入 ▲▲▲ ---
+
     // 統合JavaScriptヘッダー
     unifiedContent += this.generateJavaScriptHeader();
 

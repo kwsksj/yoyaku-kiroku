@@ -447,10 +447,10 @@ const Components = {
       const master = window.stateManager?.getState?.()?.accountingMaster;
       if (master && Array.isArray(master)) {
         materialOptions = master
-          .filter(m => m['種別'] === C.itemTypes.MATERIAL)
+          .filter(m => m['種別'] === CONSTANTS.ITEM_TYPES.MATERIAL)
           .map(
             m =>
-              `<option value="${escapeHTML(m[HEADERS.ACCOUNTING.ITEM_NAME])}" ${type === m[HEADERS.ACCOUNTING.ITEM_NAME] ? 'selected' : ''}>${escapeHTML(m[HEADERS.ACCOUNTING.ITEM_NAME])}</option>`,
+              `<option value="${escapeHTML(m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME])}" ${type === m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] ? 'selected' : ''}>${escapeHTML(m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME])}</option>`,
           )
           .join('');
       }
@@ -556,7 +556,7 @@ const Components = {
       const tuitionItemRule = getTuitionItemRule(
         master,
         reservation.classroom,
-        C.items.MAIN_LECTURE,
+        CONSTANTS.ITEMS.MAIN_LECTURE,
       );
       tuitionHtml = Components.timeBasedTuition({
         tuitionItemRule,
@@ -622,14 +622,15 @@ const Components = {
 
     // 使用する授業料項目を決定（初回授業料 or 基本授業料）
     const targetItemName = isFirstTimeBooking
-      ? C.items.FIRST_LECTURE
-      : C.items.MAIN_LECTURE;
+      ? CONSTANTS.ITEMS.FIRST_LECTURE
+      : CONSTANTS.ITEMS.MAIN_LECTURE;
     const tuitionItem = master.find(
       item =>
-        item[HEADERS.ACCOUNTING.TYPE] === C.itemTypes.TUITION &&
-        item[HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
-        (item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
-          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
+        item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+          CONSTANTS.ITEM_TYPES.TUITION &&
+        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
+        (item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
+          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
             reservation.classroom,
           )),
     );
@@ -637,14 +638,14 @@ const Components = {
     // 授業料の表示内容を生成
     let tuitionDisplayHtml = '';
     if (tuitionItem) {
-      const price = tuitionItem[HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
+      const price = tuitionItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
       const bgColor = isFirstTimeBooking
         ? 'bg-green-50 border-green-400'
         : 'bg-blue-50 border-blue-400';
       const textColor = isFirstTimeBooking ? 'text-green-800' : 'text-blue-800';
       const label = isFirstTimeBooking
-        ? C.items.FIRST_LECTURE
-        : C.items.MAIN_LECTURE;
+        ? CONSTANTS.ITEMS.FIRST_LECTURE
+        : CONSTANTS.ITEMS.MAIN_LECTURE;
 
       tuitionDisplayHtml = `<div class="mb-4 p-3 ${bgColor} rounded border-l-4">
           <div class="text-base ${textColor}">
@@ -655,23 +656,24 @@ const Components = {
 
     const tuitionItems = master.filter(
       item =>
-        item[HEADERS.ACCOUNTING.TYPE] === C.itemTypes.TUITION &&
-        (item[HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
-          item[HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
+        item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+          CONSTANTS.ITEM_TYPES.TUITION &&
+        (item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
+          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
             reservation.classroom,
           )),
     );
 
     const tuitionRowsHtml = tuitionItems
       .map(item => {
-        const itemName = item[HEADERS.ACCOUNTING.ITEM_NAME];
+        const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
 
         // メイン授業料項目の処理（初回参加時は差し替え）
         if (itemName === targetItemName) {
           return Components.accountingRow({
             name: itemName,
-            itemType: C.itemTypes.TUITION,
-            price: item[HEADERS.ACCOUNTING.UNIT_PRICE],
+            itemType: CONSTANTS.ITEM_TYPES.TUITION,
+            price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
             checked: true,
             disabled: true,
           });
@@ -679,8 +681,8 @@ const Components = {
 
         // 使わない授業料項目をスキップ
         if (
-          (itemName === C.items.FIRST_LECTURE && !isFirstTimeBooking) ||
-          (itemName === C.items.MAIN_LECTURE && isFirstTimeBooking)
+          (itemName === CONSTANTS.ITEMS.FIRST_LECTURE && !isFirstTimeBooking) ||
+          (itemName === CONSTANTS.ITEMS.MAIN_LECTURE && isFirstTimeBooking)
         ) {
           return '';
         }
@@ -688,14 +690,14 @@ const Components = {
         // その他の項目（彫刻刀レンタルなど）
         const isChecked = !!(
           reservationDetails[itemName] ||
-          (itemName === C.items.CHISEL_RENTAL &&
+          (itemName === CONSTANTS.ITEMS.CHISEL_RENTAL &&
             reservationDetails.chiselRental)
         );
 
         return Components.accountingRow({
           name: itemName,
-          itemType: C.itemTypes.TUITION,
-          price: item[HEADERS.ACCOUNTING.UNIT_PRICE],
+          itemType: CONSTANTS.ITEM_TYPES.TUITION,
+          price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
           checked: isChecked,
           disabled: false,
         });
@@ -785,6 +787,7 @@ const Components = {
    * @param {Object} config.item - 予約または履歴データ
    * @param {string} config.item.reservationId - 予約ID
    * @param {string} config.item.classroom - 教室名
+   * @param {string} config.item.venue - 会場名
    * @param {string} config.item.date - 日付
    * @param {string} config.item.startTime - 開始時刻
    * @param {string} config.item.endTime - 終了時刻
@@ -802,8 +805,6 @@ const Components = {
     accountingButtons = [],
     type = 'booking',
   }) => {
-    const isHistory = type === 'history';
-
     // カード基本スタイル
     const cardColorClass =
       type === 'booking'
@@ -859,7 +860,8 @@ const Components = {
     const dateTimeDisplay = item.startTime
       ? ` ${item.startTime} ~ ${item.endTime}`.trim()
       : '';
-    const venueDisplay = `${HEADERS?.[item.classroom] || item.classroom}`;
+    const classroomDisplay = item.classroom ? ` ${item.classroom}` : '';
+    const venueDisplay = item.venue ? ` ${item.venue}` : '';
 
     // 制作メモ表示（予約・履歴共通） - 編集モード対応
     const memoSection = Components.memoSection({
@@ -877,7 +879,7 @@ const Components = {
               <div class="flex items-center flex-wrap">
                 <h3 class="font-bold text-brand-text">${formatDate(item.date)} <span class="font-normal text-brand-subtle">${dateTimeDisplay}</span></h3>
               </div>
-              <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(venueDisplay)}  ${badgesHtml}</h4>
+              <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
             </div>
             ${editButtonsHtml ? `<div class="flex-shrink-0 self-start">${editButtonsHtml}</div>` : ''}
           </div>
@@ -960,18 +962,18 @@ const Components = {
    */
   salesSection: ({ master, reservationDetails }) => {
     const salesItems = master.filter(
-      item => item['種別'] === C.itemTypes.SALES,
+      item => item['種別'] === CONSTANTS.ITEM_TYPES.SALES,
     );
     const salesItemsHtml = salesItems
       .map(item => {
         // truthy値でチェック状態を判定（より柔軟）
         const isChecked =
-          !!reservationDetails[item[HEADERS.ACCOUNTING.ITEM_NAME]];
+          !!reservationDetails[item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]];
 
         return Components.accountingRow({
-          name: item[HEADERS.ACCOUNTING.ITEM_NAME],
-          itemType: C.itemTypes.SALES,
-          price: item[HEADERS.ACCOUNTING.UNIT_PRICE],
+          name: item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+          itemType: CONSTANTS.ITEM_TYPES.SALES,
+          price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
           checked: isChecked,
         });
       })

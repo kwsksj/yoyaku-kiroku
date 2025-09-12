@@ -76,9 +76,8 @@ function doGet(e) {
       .setTitle('パフォーマンス改善テスト')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } else {
-    // 通常モード: メインアプリケーションを表示
-    return HtmlService.createTemplateFromFile('10_WebApp')
-      .evaluate()
+    // 通常モード: メインアプリケーションを表示（静的HTMLファイル）
+    return HtmlService.createHtmlOutputFromFile('10_WebApp')
       .setTitle('きぼりの よやく・きろく')
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
