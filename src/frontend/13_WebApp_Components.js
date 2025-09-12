@@ -1088,7 +1088,7 @@ Components.createSmartBackButton = (currentView, appState = null) => {
       // ダッシュボードでは戻るボタンを表示しない
       return '';
 
-    case 'bookingSlots':
+    case 'bookingLessons':
       text = 'ホーム';
       action = 'goBackToDashboard';
       break;

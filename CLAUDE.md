@@ -27,16 +27,16 @@ Successfully migrated from classroom-specific distributed data structure to an i
 
 ### ⚠️ 重要：JavaScript分離開発の絶対ルール
 
-**🚨 NEVER EDIT `src/` FILES DIRECTLY 🚨**
+**🚨 NEVER EDIT `build-output/` FILES DIRECTLY 🚨**
 
-- **開発作業は必ず `dev/` ディレクトリで実施**
-- **`src/` ディレクトリのファイルは絶対に直接編集禁止**（ビルド時に上書きされる）
-- **修正後は必ず `npm run dev:build` でsrcに反映**
+- **開発作業は必ず `src/` ディレクトリで実施**
+- **`build-output/` ディレクトリのファイルは絶対に直接編集禁止**（ビルド時に上書きされる）
+- **修正後は必ず `npm run dev:build` でbuild-outputに反映**
 
 **正しいワークフロー:**
 
-1. `dev/backend/` または `dev/frontend/` でコード編集
-2. `npm run dev:build` で変更を `src/` に反映
+1. `src/backend/` または `src/frontend/` でコード編集
+2. `npm run dev:build` で変更を `build-output/` に反映
 3. `npm run dev:test` でテスト環境確認
 4. `npm run dev:prod` で本番デプロイ
 
@@ -74,7 +74,7 @@ Successfully migrated from classroom-specific distributed data structure to an i
 
 ### File Organization
 
-The project uses a numbered file naming convention in `src/`:
+The project uses a numbered file naming convention in `build-output/`:
 
 **Core System Files:**
 
@@ -177,9 +177,9 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 ### Claude Code Development Guidelines
 
 - **🚨 JavaScript分離開発絶対ルール**:
-  - **NEVER EDIT `src/` FILES**: All development work must be done in `dev/` directory
-  - **BUILD REQUIRED**: After editing `dev/` files, always run `npm run dev:build` to sync to `src/`
-  - **Workflow**: Edit in `dev/` → `npm run dev:build` → `npm run dev:test` → test
+  - **NEVER EDIT `build-output/` FILES**: All development work must be done in `src/` directory
+  - **BUILD REQUIRED**: After editing `src/` files, always run `npm run dev:build` to sync to `build-output/`
+  - **Workflow**: Edit in `src/` → `npm run dev:build` → `npm run dev:test` → test
 - **Development Workflow**:
   - **Quality First**: Always run `npm run check` before committing changes
   - **For Testing**: Use `npm run dev:test` (includes build + push to test environment)
@@ -201,9 +201,9 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 
 ### Code Quality Standards
 
-- **🚨 DEVELOPMENT LOCATION**: Work exclusively in `dev/` directory, never edit `src/` files directly
-- Follow the established numbered file naming convention in `dev/` (will be copied to `src/`)
+- **🚨 DEVELOPMENT LOCATION**: Work exclusively in `src/` directory, never edit `build-output/` files directly
+- Follow the established numbered file naming convention in `src/` (will be copied to `build-output/`)
 - Maintain consistency with existing code style and patterns
 - Ensure all changes integrate properly with the multi-layer caching system
 - Validate that modifications don't break the spreadsheet-based data model
-- **Always run `npm run dev:build` after making changes to sync `dev/` to `src/`**
+- **Always run `npm run dev:build` after making changes to sync `src/` to `build-output/`**

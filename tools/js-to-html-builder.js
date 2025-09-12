@@ -10,8 +10,8 @@ const path = require('path');
 
 class JSToHTMLBuilder {
   constructor(config = {}) {
-    this.srcDir = config.srcDir || 'src';
-    this.devDir = config.devDir || 'dev';
+    this.srcDir = config.srcDir || 'build-output';
+    this.devDir = config.devDir || 'src';
     this.templateDir =
       config.templateDir || path.join(this.devDir, 'templates');
     this.backendDir = path.join(this.devDir, 'backend');

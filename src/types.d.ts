@@ -43,14 +43,7 @@ declare function include(filename: string): string;
 
 // Frontend-specific globals
 declare const DesignConfig: any;
-declare const stateManager: {
-  getState(): any;
-  dispatch(action: any): void;
-  subscribe(callback: Function): Function;
-  goBack?(): void;
-  updateComputedData?(): void;
-  state?: any;
-};
+declare const stateManager: StateManager;
 declare const Components: any;
 declare const pageTransitionManager: any;
 declare const C: any;
@@ -71,10 +64,13 @@ declare var createReservationCard: any;
 declare function findReservationByDateAndClassroom(
   date: string,
   classroom: string,
-  state?: any,
+  state?: AppState,
 ): any;
-declare function isTimeBasedClassroom(classroom: string): boolean;
-declare function getClassroomTimesFromSchedule(classroom: string): any;
+declare function getScheduleDataFromLessons(reservation: {
+  date: string;
+  classroom: string;
+}): any;
+declare function isTimeBasedClassroom(scheduleData: any): boolean;
 declare function buildSalesChecklist(data: any): any;
 declare function findReservationById(id: string): any;
 declare function normalizePhoneNumberFrontend(phone: string): {
@@ -93,10 +89,77 @@ declare const isProduction: boolean;
 declare function render(): void;
 declare function initializeApp(): void;
 
+// =================================================================
+// Core Data Types (lessons hierarchy structure)
+// =================================================================
+
+interface LessonSchedule {
+  classroom: string;
+  date: string;
+  venue?: string;
+  classroomType: string;
+  beginnerCapacity: number;
+  beginnerStart?: string;
+  firstStart: string;
+  firstEnd: string;
+  secondStart?: string;
+  secondEnd?: string;
+  [key: string]: any;
+}
+
+interface LessonStatus {
+  availableSlots?: number;
+  morningSlots?: number;
+  afternoonSlots?: number;
+  firstLectureSlots: number;
+  firstLectureIsFull?: boolean;
+  isFull: boolean;
+  [key: string]: any;
+}
+
+interface Lesson {
+  schedule: LessonSchedule;
+  status: LessonStatus;
+}
+
+interface AppState {
+  view: string;
+  currentUser: any;
+  lessons: Lesson[];
+  myReservations: any[];
+  selectedClassroom: string | null;
+  selectedLesson: Lesson | null;
+  editingReservationDetails: any | null;
+  accountingReservation: any | null;
+  accountingReservationDetails: any;
+  allStudents: any[];
+  accountingMaster: any;
+  cacheVersions: any;
+  today: string;
+  constants: any;
+  isDataFresh: boolean;
+  _dataUpdateInProgress: boolean;
+  _lessonsVersion: string | null;
+  [key: string]: any;
+}
+
+interface StateManager {
+  getState(): AppState;
+  dispatch(action: any): void;
+  subscribe(callback: Function): Function;
+  goBack?(): void;
+  updateComputedData?(): void;
+  state?: AppState;
+  isInEditMode?: boolean;
+}
+
 // Window extensions for frontend
 interface Window {
-  stateManager: typeof stateManager;
+  stateManager: StateManager;
   C: any;
+  STATUS: any;
+  HEADERS: any;
+  initializeStateManager?: () => void;
   // STATUS: any; // Commented out - defined in 00_Constants.js
   // UI: any; // Commented out - defined in 00_Constants.js
   MESSAGES: any;

@@ -24,7 +24,7 @@
  */
 
 // calculateSlotsFromReservations関数とtransformReservationArrayToObject関数は削除されました
-// 予約データの処理は全てバックエンドで実行され、getAvailableSlots()とgetUserReservations()を使用します
+// 予約データの処理は全てバックエンドで実行され、getLessons()とgetUserReservations()を使用します
 
 /**
  * =================================================================
@@ -115,16 +115,11 @@ function findReservationsByStatus(status, state = null) {
  * 新しい初期データを受け取り、クライアントサイドで処理してappStateを構築する
  * @param {object} data - getAppInitialDataから返されたデータオブジェクト (allStudents, accountingMaster, etc.)
  * @param {string} phone - ログイン試行された電話番号
- * @param {Array} availableSlots - バックエンドから取得済みの空席情報
+ * @param {Array} lessons - バックエンドから取得済みの講座情報
  * @param {object | null} userReservations - ユーザーの予約と履歴データ {myBookings, myHistory}
  * @returns {object} setStateに渡すための新しい状態オブジェクト。ユーザーが見つからない場合は { currentUser: null }
  */
-function processInitialData(
-  data,
-  phone,
-  availableSlots,
-  userReservations = null,
-) {
+function processInitialData(data, phone, lessons, userReservations = null) {
   const { allStudents, accountingMaster, cacheVersions, today, constants } =
     data;
 
@@ -146,13 +141,13 @@ function processInitialData(
     : [];
 
   // 3. 教室一覧は統合定数から取得（StateManagerで設定される）
-  // availableSlots から取得する必要はなくなった
+  // lessons から取得する必要はなくなった
   const classroomsFromConstants = constants
     ? Object.values(constants.classrooms)
     : [];
 
-  // 4. 空き枠バージョンを生成
-  const slotsVersion = cacheVersions
+  // 4. 講座バージョンを生成
+  const lessonsVersion = cacheVersions
     ? `${cacheVersions.allReservations || 0}-${cacheVersions.scheduleMaster || 0}`
     : null;
 
@@ -161,14 +156,14 @@ function processInitialData(
     view: 'dashboard',
     currentUser: currentUser,
     myReservations: myReservations, // 生データを直接保存
-    slots: availableSlots,
+    lessons: lessons,
     classrooms: classroomsFromConstants,
     accountingMaster: accountingMaster,
     today: today,
     constants: constants, // 統一定数を追加
     _allStudents: allStudents,
     _cacheVersions: cacheVersions,
-    _slotsVersion: slotsVersion, // 空き枠バージョンを設定
+    _lessonsVersion: lessonsVersion, // 講座バージョンを設定
   };
 }
 
@@ -898,22 +893,6 @@ function getClassroomTypeFromSchedule(scheduleData) {
 }
 
 /**
- * 日程マスタから教室の開講時間情報を取得します
- * @param {object} scheduleData - 日程マスタのデータオブジェクト
- * @returns {object} 時間情報 {firstStart, firstEnd, secondStart?, secondEnd?}
- */
-function getClassroomTimesFromSchedule(scheduleData) {
-  if (!scheduleData) return null;
-
-  return {
-    firstStart: scheduleData.firstStart || scheduleData['1部開始'] || null,
-    firstEnd: scheduleData.firstEnd || scheduleData['1部終了'] || null,
-    secondStart: scheduleData.secondStart || scheduleData['2部開始'] || null,
-    secondEnd: scheduleData.secondEnd || scheduleData['2部終了'] || null,
-  };
-}
-
-/**
  * 教室形式が時間制かどうかを判定します
  * @param {object} scheduleData - 日程マスタのデータオブジェクト
  * @returns {boolean} 時間制の場合true
@@ -924,16 +903,16 @@ function isTimeBasedClassroom(scheduleData) {
   return classroomType && classroomType.includes('時間制');
 }
 
-/**
- * 教室が2部制かどうかを判定します（2部開始・2部終了の両方が設定されている場合）
- * @param {object} scheduleData - 日程マスタのデータオブジェクト
- * @returns {boolean} 2部制の場合true
- */
-function isTwoSessionClassroom(scheduleData) {
-  const times = getClassroomTimesFromSchedule(scheduleData);
-  if (!times) return false;
-  return !!(times.secondStart && times.secondEnd);
-}
+// /**
+//  * 教室が2部制かどうかを判定します（2部開始・2部終了の両方が設定されている場合）
+//  * @param {object} scheduleData - 日程マスタのデータオブジェクト
+//  * @returns {boolean} 2部制の場合true
+//  */
+// function isTwoSessionClassroom(scheduleData) {
+//   const times = getClassroomTimesFromSchedule(scheduleData);
+//   if (!times) return false;
+//   return !!(times.secondStart && times.secondEnd);
+// }
 
 /**
  * バックエンドから特定の日程マスタ情報を取得
@@ -970,59 +949,71 @@ function getScheduleInfoFromCache(date, classroom) {
 /**
  * 予約データから対応する日程マスタ情報を取得
  * @param {object} reservation - 予約データ (date, classroom を含む)
- * @returns {object|null} 日程マスタ情報またはnull (slots経由の場合)
+ * @returns {object|null} 日程マスタ情報またはnull (lessons経由の場合)
  */
-function getScheduleDataFromSlots(reservation) {
+function getScheduleDataFromLessons(reservation) {
   if (!reservation || !reservation.date || !reservation.classroom) {
-    console.warn('⚠️ getScheduleDataFromSlots: 予約データが不正', reservation);
+    console.warn(
+      '⚠️ getScheduleDataFromLessons: 予約データが不正',
+      reservation,
+    );
     return null;
   }
 
   const state = stateManager.getState();
-  const slots = state.slots;
+  const lessons = state.lessons;
 
-  if (!slots || !Array.isArray(slots)) {
-    console.warn('⚠️ getScheduleDataFromSlots: slotsが存在しません', slots);
+  if (!lessons || !Array.isArray(lessons)) {
+    console.warn(
+      '⚠️ getScheduleDataFromLessons: lessonsが存在しません',
+      lessons,
+    );
     return null;
   }
 
-  console.log('🔍 getScheduleDataFromSlots: 検索対象', {
+  console.log('🔍 getScheduleDataFromLessons: 検索対象', {
     date: reservation.date,
     classroom: reservation.classroom,
-    slotsLength: slots.length,
+    lessonsLength: lessons.length,
   });
 
-  // 予約の日付と教室に対応するスロットを検索
-  const matchingSlot = slots.find(
-    slot =>
-      slot.date === reservation.date &&
-      slot.classroom === reservation.classroom,
+  // 予約の日付と教室に対応する講座を検索
+  const matchingLesson = lessons.find(
+    lesson =>
+      lesson.schedule.date === reservation.date &&
+      lesson.schedule.classroom === reservation.classroom,
   );
 
-  if (!matchingSlot) {
+  if (!matchingLesson) {
     console.warn(
-      '⚠️ getScheduleDataFromSlots: 一致するスロットが見つかりません',
+      '⚠️ getScheduleDataFromLessons: 一致する講座が見つかりません',
       {
         date: reservation.date,
         classroom: reservation.classroom,
-        availableSlots: slots.map(s => ({
-          date: s.date,
-          classroom: s.classroom,
+        availableLessons: lessons.map(l => ({
+          date: l.schedule.date,
+          classroom: l.schedule.classroom,
         })),
       },
     );
     return null;
   }
 
-  console.log('✅ getScheduleDataFromSlots: スロット発見', matchingSlot);
+  console.log('✅ getScheduleDataFromLessons: 講座発見', matchingLesson);
 
   // 日程マスタ形式の情報を返す
   return {
-    classroomType: matchingSlot.classroomType || matchingSlot['教室形式'],
-    firstStart: matchingSlot.firstStart || matchingSlot['1部開始'],
-    firstEnd: matchingSlot.firstEnd || matchingSlot['1部終了'],
-    secondStart: matchingSlot.secondStart || matchingSlot['2部開始'],
-    secondEnd: matchingSlot.secondEnd || matchingSlot['2部終了'],
+    classroomType:
+      matchingLesson.schedule.classroomType ||
+      matchingLesson.schedule['教室形式'],
+    firstStart:
+      matchingLesson.schedule.firstStart || matchingLesson.schedule['1部開始'],
+    firstEnd:
+      matchingLesson.schedule.firstEnd || matchingLesson.schedule['1部終了'],
+    secondStart:
+      matchingLesson.schedule.secondStart || matchingLesson.schedule['2部開始'],
+    secondEnd:
+      matchingLesson.schedule.secondEnd || matchingLesson.schedule['2部終了'],
   };
 }
 

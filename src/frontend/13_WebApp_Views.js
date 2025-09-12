@@ -1218,32 +1218,34 @@ const getEditProfileView = () => getUserFormView({ mode: 'edit' });
 /**
  * 予約スロットのリストからHTMLを生成します。
  * この関数は getBookingView と getCompleteView で共有されます。
- * @param {Array<object>} slots - 表示する予約スロットの配列
+ * @param {Array<object>} lessons - 表示する講座情報の配列
  * @returns {string} HTML文字列
  */
-const renderBookingSlots = slots => {
-  if (!slots || slots.length === 0) {
+const renderBookingLessons = lessons => {
+  if (!lessons || lessons.length === 0) {
     return '';
   }
 
-  // 受け取ったslotsを月別にグループ化
-  const slotsByMonth = slots.reduce((acc, slot) => {
-    const month = new Date(slot.date).getMonth() + 1;
+  // 受け取ったalessonsを月別にグループ化
+  const lessonsByMonth = lessons.reduce((acc, lesson) => {
+    const month = new Date(lesson.schedule.date).getMonth() + 1;
     if (!acc[month]) acc[month] = [];
-    acc[month].push(slot);
+    acc[month].push(lesson);
     return acc;
   }, {});
 
-  return Object.keys(slotsByMonth)
+  return Object.keys(lessonsByMonth)
     .sort((a, b) => a - b)
     .map(month => {
       const monthHeader = `<h4 class="text-lg font-medium ${DesignConfig.colors.textSubtle} mt-4 mb-2 text-center">${month}月</h4>`;
 
-      const slotsHtml = slotsByMonth[month]
-        .map(sl => {
+      const lessonsHtml = lessonsByMonth[month]
+        .map(lesson => {
           const state = stateManager.getState();
           const iB = (state.myReservations || []).some(
-            b => b.date === sl.date && b.classroom === sl.classroom,
+            b =>
+              b.date === lesson.schedule.date &&
+              b.classroom === lesson.schedule.classroom,
           );
           let cC, sB, act;
           const tag = iB ? 'div' : 'button';
@@ -1254,19 +1256,19 @@ const renderBookingSlots = slots => {
 
           // デバッグ情報（開発時のみ）
           if (!window.isProduction && isFirstTimeBooking) {
-            console.log('🔍 初回者スロット情報:', {
-              date: sl.date,
-              classroom: sl.classroom,
-              firstLectureSlots: sl.firstLectureSlots,
+            console.log('🔍 初回者講座情報:', {
+              date: lesson.schedule.date,
+              classroom: lesson.schedule.classroom,
+              firstLectureSlots: lesson.status.firstLectureSlots,
               isFirstTimeBooking,
             });
           }
 
           if (isFirstTimeBooking) {
             // 初回者（はじめての方）の場合
-            if (sl.beginnerCapacity > 0) {
+            if (lesson.schedule.beginnerCapacity > 0) {
               // 初回者の定員が1以上の日程：初回者枠に基づく空席情報を提示
-              statusText = `初回者 空き ${sl.firstLectureSlots}`;
+              statusText = `初回者 空き ${lesson.status.firstLectureSlots}`;
             } else {
               // 初回者の定員が0の日程：「経験者のみ」として表示
               statusText = '経験者のみ';
@@ -1274,8 +1276,8 @@ const renderBookingSlots = slots => {
           } else {
             // 経験者の場合：全体（本講座）の参加者数に基づく表示
             if (
-              typeof sl.morningSlots !== 'undefined' &&
-              typeof sl.afternoonSlots !== 'undefined'
+              typeof lesson.status.morningSlots !== 'undefined' &&
+              typeof lesson.status.afternoonSlots !== 'undefined'
             ) {
               // ２部制の場合の例「空き 午前3 午後 4」
               const morningLabel =
@@ -1283,10 +1285,10 @@ const renderBookingSlots = slots => {
               const afternoonLabel =
                 stateManager.getState().constants?.sessions?.AFTERNOON ||
                 '午後';
-              statusText = `空き ${morningLabel}${sl.morningSlots} ${afternoonLabel}${sl.afternoonSlots}`;
-            } else if (typeof sl.availableSlots !== 'undefined') {
+              statusText = `空き ${morningLabel}${lesson.status.morningSlots} ${afternoonLabel}${lesson.status.afternoonSlots}`;
+            } else if (typeof lesson.status.availableSlots !== 'undefined') {
               // セッション制、全日制の場合の例「空き 3」
-              statusText = `空き ${sl.availableSlots}`;
+              statusText = `空き ${lesson.status.availableSlots}`;
             } else {
               // フォールバック
               statusText = '空き状況不明';
@@ -1297,12 +1299,12 @@ const renderBookingSlots = slots => {
           if (iB) {
             // 【修正】予約済み・記録済みの場合（統一検索関数を使用）
             const reservationData = findReservationByDateAndClassroom(
-              sl.date,
-              sl.classroom,
+              lesson.schedule.date,
+              lesson.schedule.classroom,
             );
 
             console.log(
-              `🔍 Slot検索結果 - ${sl.date} ${sl.classroom}:`,
+              `🔍 Lesson検索結果 - ${lesson.schedule.date} ${lesson.schedule.classroom}:`,
               reservationData
                 ? {
                     status: reservationData.status,
@@ -1340,15 +1342,15 @@ const renderBookingSlots = slots => {
 
             if (isFirstTimeBooking) {
               // 初回者の場合：初回者枠に基づく判定
-              if (sl.beginnerCapacity <= 0) {
+              if (lesson.schedule.beginnerCapacity <= 0) {
                 // 初回講習枠が0の場合は「経験者のみ」でクリック不可
                 canBook = false;
               }
               // 初回講習枠が満席の場合はキャンセル待ち
-              isSlotFull = sl.firstLectureIsFull;
+              isSlotFull = lesson.status.firstLectureIsFull;
             } else {
               // 経験者の場合：全体枠に基づく判定
-              isSlotFull = sl.isFull;
+              isSlotFull = lesson.status.isFull;
             }
 
             if (!canBook) {
@@ -1360,24 +1362,26 @@ const renderBookingSlots = slots => {
               // 満席（キャンセル待ち）の場合
               cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
               sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
-              act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
+              act = `data-action="bookLesson" data-classroom="${lesson.schedule.classroom}" data-date="${lesson.schedule.date}"`;
             } else {
               // 予約可能な場合
               cC = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
               sB = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
-              act = `data-action="bookSlot" data-classroom="${sl.classroom}" data-date="${sl.date}"`;
+              act = `data-action="bookLesson" data-classroom="${lesson.schedule.classroom}" data-date="${lesson.schedule.date}"`;
             }
           }
 
-          const venueDisplay = sl.venue ? ` ${sl.venue}` : '';
-          const text = `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(sl.date)}${venueDisplay}</span>${sB}</div>`;
+          const venueDisplay = lesson.schedule.venue
+            ? ` ${lesson.schedule.venue}`
+            : '';
+          const text = `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(lesson.schedule.date)}${venueDisplay}</span>${sB}</div>`;
 
           // getBookingViewのロジックをベースに、buttonとdivを使い分ける
           return `<${tag} ${act} class="${cC}">${text}</${tag}>`;
         })
         .join('');
 
-      return monthHeader + slotsHtml;
+      return monthHeader + lessonsHtml;
     })
     .join('');
 };
@@ -1389,13 +1393,15 @@ const renderBookingSlots = slots => {
  */
 const getBookingView = classroom => {
   // バックエンドで計算済みの空き情報を直接使用
-  const relevantSlots = stateManager.getState().slots
-    ? stateManager.getState().slots.filter(slot => slot.classroom === classroom)
+  const relevantLessons = stateManager.getState().lessons
+    ? stateManager
+        .getState()
+        .lessons.filter(lesson => lesson.schedule.classroom === classroom)
     : [];
 
-  const bookingSlotsHtml = renderBookingSlots(relevantSlots);
+  const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
-  if (!bookingSlotsHtml) {
+  if (!bookingLessonsHtml) {
     return Components.pageContainer({
       maxWidth: 'md',
       content: `
@@ -1415,7 +1421,7 @@ const getBookingView = classroom => {
       maxWidth: 'md',
       content: `
             <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${classroom}</h1>
-            <div class="${DesignConfig.cards.container}">${bookingSlotsHtml}</div>
+            <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
             ${Components.actionButtonSection({
               primaryButton: {
                 text: 'ホームに戻る',
@@ -1437,16 +1443,19 @@ const getReservationFormView = (mode = 'new') => {
   const isEdit = mode === 'edit';
 
   // --- 1. データの準備 ---
-  // 編集時は editingReservationDetails から、新規作成時は selectedSlot からデータを取得
+  // 編集時は editingReservationDetails から、新規作成時は selectedLesson からデータを取得
   const sourceData = isEdit
     ? stateManager.getState().editingReservationDetails
-    : stateManager.getState().selectedSlot;
+    : stateManager.getState().selectedLesson;
   if (!sourceData) return 'エラー: 予約情報が見つかりません。';
 
+  // データ構造に応じた取得方法の分岐
+  const classroom = isEdit
+    ? sourceData.classroom
+    : sourceData.schedule?.classroom;
+  const date = isEdit ? sourceData.date : sourceData.schedule?.date;
+  const venue = isEdit ? sourceData.venue : sourceData.schedule?.venue;
   const {
-    classroom,
-    date,
-    venue,
     isWaiting,
     firstLecture,
     chiselRental,
@@ -1490,7 +1499,8 @@ const getReservationFormView = (mode = 'new') => {
     });
   }
 
-  // 新規作成時のみ利用するデータ
+  // 新規作成時のみ利用するデータ（階層構造から取得）
+  const selectedLesson = stateManager.getState().selectedLesson;
   const {
     availableSlots,
     morningSlots,
@@ -1498,7 +1508,7 @@ const getReservationFormView = (mode = 'new') => {
     firstLectureSlots,
     isFull,
     firstLectureIsFull,
-  } = stateManager.getState().selectedSlot || {};
+  } = selectedLesson?.status || {};
 
   // --- 2. モードに応じた設定 ---
   const title = isEdit
@@ -1611,16 +1621,16 @@ const getReservationFormView = (mode = 'new') => {
   const _renderTimeOptionsSection = () => {
     // 時間制の教室の場合
     if (isTimeBased) {
-      const times = getClassroomTimesFromSchedule(sourceData);
-      if (!times || !times.firstStart || !times.firstEnd) {
+      const scheduleData = isEdit ? sourceData : sourceData.schedule;
+      if (!scheduleData || !scheduleData.firstStart || !scheduleData.firstEnd) {
         return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
       }
 
-      const startParts = times.firstStart.split(':');
+      const startParts = scheduleData.firstStart.split(':');
       const endParts =
-        !times.secondStart || !times.secondEnd
-          ? times.firstEnd.split(':') // 1部制の場合
-          : times.secondEnd.split(':'); // 2部制の場合
+        !scheduleData.secondStart || !scheduleData.secondEnd
+          ? scheduleData.firstEnd.split(':') // 1部制の場合
+          : scheduleData.secondEnd.split(':'); // 2部制の場合
       const classStartHour = parseInt(startParts[0] || '0');
       const classEndHour = parseInt(endParts[0] || '0');
       const classEndMinutes = parseInt(endParts[1] || '0');
@@ -1628,8 +1638,11 @@ const getReservationFormView = (mode = 'new') => {
       // 初回者の場合は開始時刻を固定（日程マスタのBEGINNER_START項目を使用）
       let fixedStartTime = startTime;
       let isTimeFixed = false;
-      if (isFirstTimeBooking && sourceData.beginnerStart) {
-        fixedStartTime = sourceData.beginnerStart;
+      const beginnerStart = isEdit
+        ? sourceData.beginnerStart
+        : sourceData.schedule?.beginnerStart;
+      if (isFirstTimeBooking && beginnerStart) {
+        fixedStartTime = beginnerStart;
         isTimeFixed = true;
       }
 
@@ -1638,9 +1651,9 @@ const getReservationFormView = (mode = 'new') => {
         console.log('🔍 初回者用時刻設定:', {
           isFirstTimeBooking,
           isEdit,
-          firstStart: times.firstStart,
-          secondStart: times.secondStart,
-          beginnerStart: sourceData.beginnerStart,
+          firstStart: scheduleData.firstStart,
+          secondStart: scheduleData.secondStart,
+          beginnerStart: beginnerStart,
           fixedStartTime,
           isTimeFixed,
         });
@@ -1858,18 +1871,18 @@ const getReservationFormView = (mode = 'new') => {
   const venueDisplay = venue ? ` ${venue}` : '';
 
   const _renderOpeningHoursHtml = () => {
-    const times = getClassroomTimesFromSchedule(sourceData);
+    const scheduleData = isEdit ? sourceData : sourceData.schedule;
 
-    if (!times || !times.firstStart || !times.firstEnd) {
+    if (!scheduleData || !scheduleData.firstStart || !scheduleData.firstEnd) {
       return '<span class="text-ui-error-text">開講時間未設定</span>';
     }
 
-    if (times.secondStart && times.secondEnd) {
+    if (scheduleData.secondStart && scheduleData.secondEnd) {
       // 2部制の場合
-      return `${times.firstStart} ~ ${times.firstEnd} , ${times.secondStart} ~ ${times.secondEnd}`;
+      return `${scheduleData.firstStart} ~ ${scheduleData.firstEnd} , ${scheduleData.secondStart} ~ ${scheduleData.secondEnd}`;
     } else {
       // 1部制の場合
-      return `${times.firstStart} ~ ${times.firstEnd}`;
+      return `${scheduleData.firstStart} ~ ${scheduleData.firstEnd}`;
     }
   };
 
@@ -1904,10 +1917,10 @@ const getReservationFormView = (mode = 'new') => {
  * @returns {string} HTML文字列
  */
 const getCompleteView = msg => {
-  // 教室情報を取得（会計処理時は accountingReservation から、予約作成時は selectedSlot から）
+  // 教室情報を取得（会計処理時は accountingReservation から、予約作成時は selectedLesson から）
   const classroom =
     stateManager.getState().accountingReservation?.classroom ||
-    stateManager.getState().selectedSlot?.classroom;
+    stateManager.getState().selectedLesson?.classroom;
 
   // 初回予約者かどうかを判定
   const wasFirstTimeBooking =
@@ -1957,14 +1970,14 @@ const getCompleteView = msg => {
   let nextBookingHtml = '';
 
   // 該当教室の未来の予約枠が存在する場合
-  if (classroom && stateManager.getState().slots) {
+  if (classroom && stateManager.getState().lessons) {
     // バックエンドで計算済みの空き情報を直接使用
-    const relevantSlots = stateManager
+    const relevantLessons = stateManager
       .getState()
-      .slots.filter(slot => slot.classroom === classroom);
-    const bookingSlotsHtml = renderBookingSlots(relevantSlots);
+      .lessons.filter(lesson => lesson.schedule.classroom === classroom);
+    const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
-    if (bookingSlotsHtml) {
+    if (bookingLessonsHtml) {
       // 予約完了時と会計完了時で表記を変更
       const sectionTitle = isReservationComplete
         ? '↓ さらに よやく をする！'
@@ -1974,7 +1987,7 @@ const getCompleteView = msg => {
           <div class="mt-10 pt-6 border-t border-gray-200">
               <h3 class="text-xl font-bold text-brand-text text-center mb-4">${sectionTitle}</h3>
               <div class="${DesignConfig.cards.container}">
-              ${bookingSlotsHtml}
+              ${bookingLessonsHtml}
               </div>
           </div>`;
     }

@@ -3,9 +3,9 @@ import pluginGoogleAppsScript from 'eslint-plugin-googleappsscript';
 import prettierConfig from 'eslint-config-prettier';
 
 export default [
-  // Google Apps Script server-side files (both src and dev/backend)
+  // Google Apps Script server-side files (both build-output and src/backend)
   {
-    files: ['src/**/*.js', 'dev/backend/**/*.js'],
+    files: ['build-output/**/*.js', 'src/backend/**/*.js'],
     plugins: {
       googleappsscript: pluginGoogleAppsScript,
     },
@@ -50,7 +50,7 @@ export default [
         COLUMN_WIDTH_STATUS: 'readonly',
         COLUMN_WIDTH_TIME: 'readonly',
         COLUMN_WIDTH_VENUE: 'readonly',
-        CONSTANTS: 'readonly', // Must be enabled for dev/backend/
+        CONSTANTS: 'readonly', // Must be enabled for src/backend/
         DATA_START_ROW: 'readonly',
         DISCOUNT_OPTION_30MIN: 'readonly',
         DISCOUNT_OPTION_60MIN: 'readonly',
@@ -119,7 +119,7 @@ export default [
         LOG_ACTION_ROW_INSERT: 'readonly',
         LOG_SHEET_NAME: 'readonly',
         MATERIAL_INFO_PREFIX: 'readonly',
-        // MSG_*: Used in dev/backend/
+        // MSG_*: Used in src/backend/
         MSG_CANCEL: 'readonly',
         MSG_ERROR: 'readonly',
         MSG_EXISTING_SHEET_WARNING: 'readonly',
@@ -135,7 +135,7 @@ export default [
         ROSTER_SHEET_NAME: 'readonly',
         SALES_SPREADSHEET_ID: 'readonly',
         SCHEDULE_MASTER_HEADERS: 'readonly',
-        // SCHEDULE_STATUS_*: Used in dev/backend/
+        // SCHEDULE_STATUS_*: Used in src/backend/
         SCHEDULE_STATUS_CANCELLED: 'readonly',
         SCHEDULE_STATUS_COMPLETED: 'readonly',
         SCHEDULE_STATUS_SCHEDULED: 'readonly',
@@ -145,7 +145,7 @@ export default [
         SPECIAL_NO_PHONE_LOGIN_COMMAND_VALUE: 'readonly',
         SS_MANAGER: 'readonly',
         global: 'readonly',
-        // STATUS_*: Used in dev/backend/
+        // STATUS_*: Used in src/backend/
         STATUS_CANCEL: 'readonly',
         STATUS_WAITING: 'readonly',
         SpreadsheetManager: 'readonly',
@@ -324,7 +324,7 @@ export default [
       '.claude/**',
       '.vscode/**',
       '.github/**',
-      'src/**/*.html', // Skip HTML files as they need special parsing
+      'build-output/**/*.html', // Skip HTML files as they need special parsing
       'eslint.config.js', // Skip our own config file
     ],
   },

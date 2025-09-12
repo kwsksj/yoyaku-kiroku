@@ -35,7 +35,7 @@
  * @global getScheduleInfoForDate - Business logic function from 02-4_BusinessLogic_ScheduleMaster.js
  */
 
-/* global getUserHistoryFromCache, getScheduleInfoForDate */
+/* global getUserHistoryFromCache, getScheduleInfoForDate, getLessons, getUserReservations */
 
 /**
  * 予約操作後に最新データを取得して返す汎用関数
@@ -57,7 +57,7 @@ function executeOperationAndGetLatestData(
     const result = operationFunction(operationParams);
     if (result.success) {
       const batchResult = getBatchData(
-        ['initial', 'reservations', 'slots'],
+        ['initial', 'reservations', 'lessons'],
         null,
         studentId,
       );
@@ -84,7 +84,7 @@ function executeOperationAndGetLatestData(
           initialData: {
             ...batchResult.data.initial,
           },
-          slots: batchResult.data.slots || [],
+          lessons: batchResult.data.lessons || [],
         },
       });
 
@@ -464,7 +464,7 @@ function getCacheVersions() {
       allReservations: allReservationsCache.version || 0,
       scheduleMaster: scheduleMaster.version || 0,
       // 空き枠関連バージョンの合成（変更検知用）
-      slotsComposite: `${allReservationsCache.version || 0}-${scheduleMaster.version || 0}`,
+      lessonsComposite: `${allReservationsCache.version || 0}-${scheduleMaster.version || 0}`,
     };
 
     Logger.log(`getCacheVersions完了: ${JSON.stringify(versions)}`);
@@ -476,7 +476,7 @@ function getCacheVersions() {
 
 /**
  * 複数のデータタイプを一度に取得するバッチ処理関数
- * @param {Array} dataTypes - 取得するデータタイプの配列 ['initial', 'slots', 'reservations', 'history', 'userdata']
+ * @param {Array} dataTypes - 取得するデータタイプの配列 ['initial', 'lessons', 'reservations', 'history', 'userdata']
  * @param {string|null} phone - 電話番号（ユーザー特定用、任意）
  * @param {string|null} studentId - 生徒ID（個人データ取得用、任意）
  * @returns {Object} 要求されたすべてのデータを含む統合レスポンス
@@ -526,19 +526,19 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       }
     }
 
-    // 2. 空席情報が要求されている場合
-    if (dataTypes.includes('slots')) {
-      Logger.log('=== getBatchData: slots要求を処理中 ===');
-      const availableSlotsResult = getAvailableSlots();
+    // 2. 講座情報が要求されている場合
+    if (dataTypes.includes('lessons')) {
+      Logger.log('=== getBatchData: lessons要求を処理中 ===');
+      const lessonsResult = getLessons();
       Logger.log(
-        `=== getBatchData: getAvailableSlots結果 - success=${availableSlotsResult.success}, dataLength=${availableSlotsResult.data?.length} ===`,
+        `=== getBatchData: getLessons結果 - success=${lessonsResult.success}, dataLength=${lessonsResult.data?.length} ===`,
       );
-      if (!availableSlotsResult.success) {
-        Logger.log(`=== getBatchData: slots取得失敗で早期リターン ===`);
-        return availableSlotsResult;
+      if (!lessonsResult.success) {
+        Logger.log(`=== getBatchData: lessons取得失敗で早期リターン ===`);
+        return lessonsResult;
       }
-      result.data = { ...result.data, slots: availableSlotsResult.data };
-      Logger.log(`=== getBatchData: slotsデータ設定完了 ===`);
+      result.data = { ...result.data, lessons: lessonsResult.data };
+      Logger.log(`=== getBatchData: lessonsデータ設定完了 ===`);
     }
 
     // 3. 個人予約データが要求されている場合

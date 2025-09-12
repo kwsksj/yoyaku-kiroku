@@ -27,8 +27,8 @@ const formatTime = () => {
 
 class UnifiedBuilder {
   constructor(config = {}) {
-    this.srcDir = config.srcDir || 'src';
-    this.devDir = config.devDir || 'dev';
+    this.srcDir = config.srcDir || 'build-output';
+    this.devDir = config.devDir || 'src';
     this.backendDir = path.join(this.devDir, 'backend');
     this.frontendDir = path.join(this.devDir, 'frontend');
     this.templateDir = path.join(this.devDir, 'templates');
@@ -343,7 +343,7 @@ class UnifiedBuilder {
 
     if (watchPaths.length === 0) {
       console.log(
-        `[${formatTime()}] ⚠️ 監視対象ディレクトリが見つかりません。まずdevディレクトリを作成してください。`,
+        `[${formatTime()}] ⚠️ 監視対象ディレクトリが見つかりません。まずsrcディレクトリを作成してください。`,
       );
       return;
     }

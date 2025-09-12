@@ -32,7 +32,7 @@ class SimpleStateManager {
 
       // --- Core Application Data ---
       /** @type {Array<Object>} */
-      slots: [],
+      lessons: [],
       /** @type {Array<Object>} */
       myReservations: [],
       /** @type {Array<Object>} */
@@ -50,7 +50,7 @@ class SimpleStateManager {
       /** @type {Set<string>} 編集モード中の予約ID一覧 */
       editingReservationIds: new Set(),
       /** @type {Object | null} */
-      selectedSlot: null,
+      selectedLesson: null,
       /** @type {Object | null} */
       editingReservationDetails: null,
       /** @type {Object | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
@@ -77,7 +77,7 @@ class SimpleStateManager {
       /** @type {boolean} */
       _dataUpdateInProgress: false,
       /** @type {string | null} */
-      _slotsVersion: null,
+      _lessonsVersion: null,
 
       // --- Computed Data ---
       computed: {},
@@ -146,7 +146,7 @@ class SimpleStateManager {
     // 最終的な状態更新（画面遷移を伴う）でのみローディング非表示を実行
     const isViewChange = newState.view && newState.view !== previousView;
     const hasSubstantialData =
-      newState.slots || newState.myReservations || newState.currentUser;
+      newState.lessons || newState.myReservations || newState.currentUser;
     const isFinalUpdate =
       action.type === 'SET_STATE' && (isViewChange || hasSubstantialData);
 
@@ -395,15 +395,15 @@ class SimpleStateManager {
 
     // ビューに応じて重要な状態を保存
     switch (this.state.view) {
-      case 'booking':
+      case 'bookingLessons':
         if (this.state.selectedClassroom) {
           context.selectedClassroom = this.state.selectedClassroom;
         }
         break;
       case 'newReservation':
       case 'editReservation':
-        if (this.state.selectedSlot) {
-          context.selectedSlot = this.state.selectedSlot;
+        if (this.state.selectedLesson) {
+          context.selectedLesson = this.state.selectedLesson;
           context.selectedClassroom = this.state.selectedClassroom;
         }
         if (this.state.editingReservationDetails) {

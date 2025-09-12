@@ -46,25 +46,26 @@ function getTimeValue(elementId, reservationData, timeField) {
     }
   }
 
-  // 3. selectedSlotから取得を試行（新規作成時）
-  const selectedSlot = stateManager.getState().selectedSlot;
-  if (selectedSlot) {
+  // 3. selectedLessonから取得を試行（新規作成時）
+  const selectedLesson = stateManager.getState().selectedLesson;
+  if (selectedLesson) {
     const headerField =
       window.HEADERS?.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
 
     // セッション制教室の場合、スケジュール情報から取得
-    if (selectedSlot.classroomType === C.classroomTypes.SESSION_BASED) {
+    if (selectedLesson.classroomType === C.classroomTypes.SESSION_BASED) {
       if (timeField === 'startTime') {
-        return selectedSlot.firstStart || selectedSlot.secondStart || '';
+        return selectedLesson.firstStart || selectedLesson.secondStart || '';
       } else if (timeField === 'endTime') {
-        return selectedSlot.firstEnd || selectedSlot.secondEnd || '';
+        return selectedLesson.firstEnd || selectedLesson.secondEnd || '';
       }
     }
 
-    // 時間制教室の場合、selectedSlotから取得
-    const slotValue = selectedSlot[headerField] || selectedSlot[timeField];
-    if (slotValue && slotValue !== '') {
-      return slotValue;
+    // 時間制教室の場合、selectedLessonから取得
+    const lessonValue =
+      selectedLesson[headerField] || selectedLesson[timeField];
+    if (lessonValue && lessonValue !== '') {
+      return lessonValue;
     }
   }
 
@@ -160,9 +161,9 @@ const actionHandlers = {
           debugLog('response.success: ' + response.success);
           debugLog('response.userFound: ' + response.userFound);
           debugLog(
-            'response.availableSlots: ' +
-              (response.availableSlots
-                ? response.availableSlots.length + '件'
+            'response.data.lessons: ' +
+              (response.data.lessons
+                ? response.data.lessons.length + '件'
                 : 'null/undefined'),
           );
           debugLog(
@@ -175,12 +176,14 @@ const actionHandlers = {
           const newAppState = processInitialData(
             response.data,
             normalizedPhone,
-            response.availableSlots,
+            response.data.lessons,
             response.data.userReservations,
           );
           debugLog(
-            'processInitialData完了 - slots: ' +
-              (newAppState.slots ? newAppState.slots.length + '件' : 'null'),
+            'processInitialData完了 - lessons: ' +
+              (newAppState.lessons
+                ? newAppState.lessons.length + '件'
+                : 'null'),
           );
           debugLog(
             'processInitialData完了 - classrooms: ' +
@@ -386,7 +389,7 @@ const actionHandlers = {
                 const newAppState = processInitialData(
                   batchResult.data.initial,
                   res.user.phone,
-                  batchResult.data.slots,
+                  batchResult.data.lessons,
                 );
 
                 window.stateManager.dispatch({
@@ -407,7 +410,7 @@ const actionHandlers = {
               }
             })
             .withFailureHandler(handleServerError)
-            .getBatchData(['initial', 'slots'], res.user.phone);
+            .getBatchData(['initial', 'lessons'], res.user.phone);
         } else {
           hideLoading();
           showInfo(res.message || '登録に失敗しました');
@@ -623,7 +626,7 @@ const actionHandlers = {
             type: 'SET_STATE',
             payload: {
               currentUser: finalUser,
-              slots: response.data.slots,
+              lessons: response.data.lessons,
               myReservations: myReservations,
               accountingMaster: response.data.initial.accountingMaster,
               recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
@@ -640,7 +643,7 @@ const actionHandlers = {
       })
       .withFailureHandler(handleServerError)
       .getBatchData(
-        ['initial', 'slots', 'reservations'],
+        ['initial', 'lessons', 'reservations'],
         null,
         tempUser.studentId,
       );
@@ -693,7 +696,7 @@ const actionHandlers = {
                   payload: {
                     ...r.data.initialData,
                     myReservations: r.data.myReservations || [],
-                    slots: r.data.slots || [],
+                    lessons: r.data.lessons || [],
                     view: 'dashboard',
                     isDataFresh: true, // 最新データ受信済み
                   },
@@ -728,14 +731,14 @@ const actionHandlers = {
     const isFirstTimeBooking = stateManager.getState().isFirstTimeBooking;
 
     // 現在見ている予約枠の時間情報を取得
-    const selectedSlot = stateManager.getState().selectedSlot;
+    const selectedLesson = stateManager.getState().selectedLesson;
 
     // 教室形式に応じて時間を設定（ヘルパー関数使用）
     const startTime = getTimeValue('res-start-time', null, 'startTime');
     const endTime = getTimeValue('res-end-time', null, 'endTime');
 
     // デバッグ用ログ
-    if (selectedSlot?.classroomType === C.classroomTypes.SESSION_BASED) {
+    if (selectedLesson?.classroomType === C.classroomTypes.SESSION_BASED) {
       console.log(`[セッション制] 時間設定: ${startTime} - ${endTime}`);
     } else {
       console.log(`[時間制] 時間設定: ${startTime} - ${endTime}`);
@@ -755,7 +758,7 @@ const actionHandlers = {
     showLoading('booking');
 
     const p = {
-      ...selectedSlot,
+      ...selectedLesson,
       // 時間情報を上書き（教室形式に応じて調整済み）
       startTime: startTime,
       endTime: endTime,
@@ -777,7 +780,7 @@ const actionHandlers = {
               payload: {
                 ...r.data.initialData,
                 myReservations: r.data.myReservations || [],
-                slots: r.data.slots || [],
+                lessons: r.data.lessons || [],
                 view: 'complete',
                 completionMessage: r.message,
                 isDataFresh: true, // 最新データ受信済み
@@ -900,7 +903,7 @@ const actionHandlers = {
               payload: {
                 ...r.data.initialData,
                 myReservations: r.data.myReservations || [],
-                slots: r.data.slots || [],
+                lessons: r.data.lessons || [],
                 view: 'dashboard',
                 isDataFresh: true, // 最新データ受信済み
               },
@@ -1293,8 +1296,8 @@ const actionHandlers = {
       }
       // 教室選択モーダルを閉じる
       actionHandlers.closeClassroomModal();
-      // 常にupdateSlotsAndGoToBookingを呼び出し（内部で鮮度チェックを実行）
-      actionHandlers.updateSlotsAndGoToBooking(classroomName);
+      // 常にupdateLessonsAndGoToBookingを呼び出し（内部で鮮度チェックを実行）
+      actionHandlers.updateLessonsAndGoToBooking(classroomName);
     } else {
       if (!window.isProduction) {
         debugLog(`=== 教室名取得失敗: d=${JSON.stringify(d)} ===`);
@@ -1304,7 +1307,7 @@ const actionHandlers = {
   },
 
   /** スロット情報を更新してから予約枠画面に遷移します（設計書準拠） */
-  updateSlotsAndGoToBooking: classroomName => {
+  updateLessonsAndGoToBooking: classroomName => {
     // 更新中の場合は処理をスキップ
     if (stateManager.getState()._dataUpdateInProgress) {
       return;
@@ -1316,21 +1319,21 @@ const actionHandlers = {
     google.script.run
       .withSuccessHandler(versionResponse => {
         if (versionResponse.success && versionResponse.data) {
-          const currentSlotsVersion = stateManager.getState()._slotsVersion;
-          const serverSlotsVersion = versionResponse.data.slotsComposite;
+          const currentLessonsVersion = stateManager.getState()._lessonsVersion;
+          const serverLessonsVersion = versionResponse.data.lessonsComposite;
 
-          // バージョンが同じ（データに変更なし）で、既にスロットデータがある場合は即座に遷移
+          // バージョンが同じ（データに変更なし）で、既に講座データがある場合は即座に遷移
           if (
-            currentSlotsVersion === serverSlotsVersion &&
-            stateManager.getState().slots &&
-            stateManager.getState().slots.length > 0
+            currentLessonsVersion === serverLessonsVersion &&
+            stateManager.getState().lessons &&
+            stateManager.getState().lessons.length > 0
           ) {
             hideLoading();
             window.stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 selectedClassroom: classroomName,
-                view: 'booking',
+                view: 'bookingLessons',
                 isDataFresh: true,
               },
             });
@@ -1338,24 +1341,24 @@ const actionHandlers = {
           }
 
           // バージョンが異なる場合、または初回の場合は最新データを取得（ローディングは継続）
-          actionHandlers.fetchLatestSlotsData(
+          actionHandlers.fetchLatestLessonsData(
             classroomName,
-            serverSlotsVersion,
+            serverLessonsVersion,
           );
         } else {
           // バージョンチェック失敗時はフォールバック（全データ取得、ローディングは継続）
-          actionHandlers.fetchLatestSlotsData(classroomName, null);
+          actionHandlers.fetchLatestLessonsData(classroomName, null);
         }
       })
       .withFailureHandler(error => {
         // エラー時もフォールバック（全データ取得、ローディングは継続）
-        actionHandlers.fetchLatestSlotsData(classroomName, null);
+        actionHandlers.fetchLatestLessonsData(classroomName, null);
       })
       .getCacheVersions();
   },
 
-  /** 最新の空き枠データを取得する（内部処理） */
-  fetchLatestSlotsData: (classroomName, newSlotsVersion) => {
+  /** 最新の講座データを取得する（内部処理） */
+  fetchLatestLessonsData: (classroomName, newLessonsVersion) => {
     // ローディングは既に親関数で表示済み
 
     google.script.run
@@ -1364,15 +1367,15 @@ const actionHandlers = {
 
         // デバッグログ追加（本番環境では無効化）
         if (!window.isProduction) {
-          debugLog('fetchLatestSlotsData レスポンス受信');
+          debugLog('fetchLatestLessonsData レスポンス受信');
           debugLog('response.success: ' + response.success);
           debugLog('response.data: ' + (response.data ? 'あり' : 'なし'));
         }
         if (response.data) {
           debugLog(
-            'response.data.slots: ' +
-              (response.data.slots
-                ? `${response.data.slots.length}件`
+            'response.data.lessons: ' +
+              (response.data.lessons
+                ? `${response.data.lessons.length}件`
                 : 'なし'),
           );
         }
@@ -1381,20 +1384,20 @@ const actionHandlers = {
           `=== getBatchData レスポンス: ${JSON.stringify(response)} ===`,
         );
         debugLog(
-          `=== レスポンス詳細: success=${response?.success}, hasData=${!!response?.data}, hasSlots=${!!response?.data?.slots} ===`,
+          `=== レスポンス詳細: success=${response?.success}, hasData=${!!response?.data}, hasLessons=${!!response?.data?.lessons} ===`,
         );
 
-        if (response.success && response.data && response.data.slots) {
-          debugLog(`空き枠データ更新: ${response.data.slots.length}件`);
-          // 空き枠データとバージョン情報を更新
+        if (response.success && response.data && response.data.lessons) {
+          debugLog(`講座データ更新: ${response.data.lessons.length}件`);
+          // 講座データとバージョン情報を更新
           window.stateManager.dispatch({
             type: 'SET_STATE',
             payload: {
-              slots: response.data.slots,
+              lessons: response.data.lessons,
               selectedClassroom: classroomName,
-              view: 'booking',
+              view: 'bookingLessons',
               isDataFresh: true,
-              _slotsVersion: newSlotsVersion, // バージョン情報を保存
+              _lessonsVersion: newLessonsVersion, // バージョン情報を保存
             },
           });
         } else {
@@ -1413,30 +1416,34 @@ const actionHandlers = {
         showInfo(
           '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
         );
-        Logger.log(`fetchLatestSlotsDataエラー: ${error}`);
+        Logger.log(`fetchLatestLessonsDataエラー: ${error}`);
       })
-      .getBatchData(['slots'], stateManager.getState().currentUser.phone);
+      .getBatchData(['lessons'], stateManager.getState().currentUser.phone);
   },
 
   /** 予約枠を選択し、予約確認画面に遷移します */
-  bookSlot: d => {
-    const foundSlot = stateManager
+  bookLesson: d => {
+    const foundLesson = stateManager
       .getState()
-      .slots.find(s => s.classroom === d.classroom && s.date === d.date);
-    if (foundSlot) {
+      .lessons.find(
+        lesson =>
+          lesson.schedule.classroom === d.classroom &&
+          lesson.schedule.date === d.date,
+      );
+    if (foundLesson) {
       // 空席数に基づいてisFull状態を確実に設定
-      const isFullSlot =
-        foundSlot.isFull ||
-        foundSlot.availableSlots === 0 ||
-        (typeof foundSlot.morningSlots !== 'undefined' &&
-          foundSlot.morningSlots === 0 &&
-          foundSlot.afternoonSlots === 0);
+      const isFullLesson =
+        foundLesson.status.isFull ||
+        foundLesson.status.availableSlots === 0 ||
+        (typeof foundLesson.status.morningSlots !== 'undefined' &&
+          foundLesson.status.morningSlots === 0 &&
+          foundLesson.status.afternoonSlots === 0);
       window.stateManager.dispatch({
         type: 'SET_STATE',
         payload: {
-          selectedSlot: {
-            ...foundSlot,
-            isFull: isFullSlot,
+          selectedLesson: {
+            ...foundLesson,
+            isFull: isFullLesson,
           },
           view: 'newReservation',
         },
@@ -1479,7 +1486,7 @@ const actionHandlers = {
   /** 予約枠一覧画面に戻ります */
   goBackToBooking: () => {
     const targetClassroom =
-      stateManager.getState().selectedSlot?.classroom ||
+      stateManager.getState().selectedLesson?.schedule?.classroom ||
       stateManager.getState().accountingReservation?.classroom ||
       stateManager.getState().editingReservationDetails?.classroom;
 
@@ -1488,12 +1495,12 @@ const actionHandlers = {
       !stateManager.getState().isDataFresh &&
       !stateManager.getState()._dataUpdateInProgress
     ) {
-      actionHandlers.updateSlotsAndGoToBooking(targetClassroom);
+      actionHandlers.updateLessonsAndGoToBooking(targetClassroom);
     } else {
       window.stateManager.dispatch({
         type: 'SET_STATE',
         payload: {
-          view: 'booking',
+          view: 'bookingLessons',
           selectedClassroom: targetClassroom,
         },
       });
@@ -1666,7 +1673,7 @@ actionHandlers.confirmAndPay = () => {
             payload: {
               ...r.data.initialData,
               myReservations: r.data.myReservations || [],
-              slots: r.data.slots || [],
+              lessons: r.data.lessons || [],
               view: 'complete',
               completionMessage: '会計情報を記録しました。',
               isDataFresh: true, // 最新データ受信済み
@@ -1807,13 +1814,13 @@ function updateAppStateFromCache(targetView) {
         const newAppState = processInitialData(
           response.data.initial,
           stateManager.getState().currentUser.phone,
-          response.data.slots,
+          response.data.lessons,
         );
         // 現在のビューと重要な状態は保持、ただしtargetViewが指定されていればそちらを優先
         const preservedState = {
           view: targetView || stateManager.getState().view,
           selectedClassroom: stateManager.getState().selectedClassroom,
-          selectedSlot: stateManager.getState().selectedSlot,
+          selectedLesson: stateManager.getState().selectedLesson,
           editingReservationDetails:
             stateManager.getState().editingReservationDetails,
           accountingReservation: stateManager.getState().accountingReservation,
@@ -1848,7 +1855,7 @@ function updateAppStateFromCache(targetView) {
       // setStateがrenderを呼び出すので、ここでのrender()は不要
     })
     .getBatchData(
-      ['initial', 'slots'],
+      ['initial', 'lessons'],
       stateManager.getState().currentUser.phone,
     );
 }
@@ -1894,7 +1901,7 @@ function render() {
     case 'editProfile':
       v = getEditProfileView();
       break;
-    case 'booking':
+    case 'bookingLessons':
       v = getBookingView(appState.selectedClassroom);
       break;
     case 'newReservation':

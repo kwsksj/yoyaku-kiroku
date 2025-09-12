@@ -25,7 +25,7 @@ const formatTime = () => {
   });
 };
 
-const srcDir = path.join(__dirname, '../src');
+const srcDir = path.join(__dirname, '../build-output');
 const watchFiles = [
   '10_WebApp.html',
   '11_WebApp_Config.html',

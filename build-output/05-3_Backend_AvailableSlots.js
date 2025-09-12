@@ -9,11 +9,11 @@
  */
 
 /**
- * 利用可能な予約枠を計算して返す
+ * 開催予定の講座情報（空き枠情報を含む）を計算して返す
  */
-function getAvailableSlots() {
+function getLessons() {
   try {
-    Logger.log('=== getAvailableSlots 開始 ===');
+    Logger.log('=== getLessons 開始 ===');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayString = Utilities.formatDate(
@@ -22,7 +22,7 @@ function getAvailableSlots() {
       'yyyy-MM-dd',
     );
     Logger.log(
-      `=== getAvailableSlots: today=${today}, todayString=${todayString} ===`,
+      `=== getLessons: today=${today}, todayString=${todayString} ===`,
     );
 
     const scheduledDates = getAllScheduledDates(todayString, null);
@@ -76,7 +76,7 @@ function getAvailableSlots() {
       reservationsByDateClassroom.get(key).push(reservation);
     });
 
-    const availableSlots = [];
+    const lessons = [];
 
     scheduledDates.forEach(schedule => {
       const key = `${schedule.date}|${schedule.classroom}`;
@@ -224,58 +224,62 @@ function getAvailableSlots() {
         const firstLectureIsFull =
           beginnerCapacity > 0 && introFinalAvailable === 0;
 
-        availableSlots.push({
-          classroom: schedule.classroom,
-          date: schedule.date,
-          venue: schedule.venue,
-          classroomType: schedule.classroomType, // 教室形式を追加
-          firstStart:
-            schedule.firstStart instanceof Date
-              ? Utilities.formatDate(
-                  schedule.firstStart,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.firstStart,
-          firstEnd:
-            schedule.firstEnd instanceof Date
-              ? Utilities.formatDate(
-                  schedule.firstEnd,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.firstEnd,
-          secondStart:
-            schedule.secondStart instanceof Date
-              ? Utilities.formatDate(
-                  schedule.secondStart,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.secondStart,
-          secondEnd:
-            schedule.secondEnd instanceof Date
-              ? Utilities.formatDate(
-                  schedule.secondEnd,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.secondEnd,
-          beginnerStart:
-            schedule.beginnerStart instanceof Date
-              ? Utilities.formatDate(
-                  schedule.beginnerStart,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.beginnerStart,
-          totalCapacity: totalCapacity,
-          beginnerCapacity: beginnerCapacity,
-          morningSlots: morningSlots,
-          afternoonSlots: afternoonSlots,
-          firstLectureSlots: introFinalAvailable,
-          isFull: morningSlots <= 0 && afternoonSlots <= 0,
-          firstLectureIsFull: firstLectureIsFull,
+        lessons.push({
+          schedule: {
+            classroom: schedule.classroom,
+            date: schedule.date,
+            venue: schedule.venue,
+            classroomType: schedule.classroomType,
+            firstStart:
+              schedule.firstStart instanceof Date
+                ? Utilities.formatDate(
+                    schedule.firstStart,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.firstStart,
+            firstEnd:
+              schedule.firstEnd instanceof Date
+                ? Utilities.formatDate(
+                    schedule.firstEnd,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.firstEnd,
+            secondStart:
+              schedule.secondStart instanceof Date
+                ? Utilities.formatDate(
+                    schedule.secondStart,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.secondStart,
+            secondEnd:
+              schedule.secondEnd instanceof Date
+                ? Utilities.formatDate(
+                    schedule.secondEnd,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.secondEnd,
+            beginnerStart:
+              schedule.beginnerStart instanceof Date
+                ? Utilities.formatDate(
+                    schedule.beginnerStart,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.beginnerStart,
+            totalCapacity: totalCapacity,
+            beginnerCapacity: beginnerCapacity,
+          },
+          status: {
+            morningSlots: morningSlots,
+            afternoonSlots: afternoonSlots,
+            firstLectureSlots: introFinalAvailable,
+            isFull: morningSlots <= 0 && afternoonSlots <= 0,
+            firstLectureIsFull: firstLectureIsFull,
+          },
         });
       } else if (schedule.classroomType === CLASSROOM_TYPE_SESSION_BASED) {
         // 東京教室: 本講座と初回者
@@ -289,41 +293,45 @@ function getAvailableSlots() {
         const firstLectureIsFull =
           beginnerCapacity > 0 && introFinalAvailable === 0;
 
-        availableSlots.push({
-          classroom: schedule.classroom,
-          date: schedule.date,
-          venue: schedule.venue,
-          classroomType: schedule.classroomType, // 教室形式を追加
-          firstStart:
-            schedule.firstStart instanceof Date
-              ? Utilities.formatDate(
-                  schedule.firstStart,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.firstStart,
-          firstEnd:
-            schedule.firstEnd instanceof Date
-              ? Utilities.formatDate(
-                  schedule.firstEnd,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.firstEnd,
-          beginnerStart:
-            schedule.beginnerStart instanceof Date
-              ? Utilities.formatDate(
-                  schedule.beginnerStart,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.beginnerStart,
-          totalCapacity: totalCapacity,
-          beginnerCapacity: beginnerCapacity,
-          availableSlots: mainAvailable,
-          firstLectureSlots: introFinalAvailable,
-          isFull: mainAvailable <= 0,
-          firstLectureIsFull: firstLectureIsFull,
+        lessons.push({
+          schedule: {
+            classroom: schedule.classroom,
+            date: schedule.date,
+            venue: schedule.venue,
+            classroomType: schedule.classroomType,
+            firstStart:
+              schedule.firstStart instanceof Date
+                ? Utilities.formatDate(
+                    schedule.firstStart,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.firstStart,
+            firstEnd:
+              schedule.firstEnd instanceof Date
+                ? Utilities.formatDate(
+                    schedule.firstEnd,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.firstEnd,
+            beginnerStart:
+              schedule.beginnerStart instanceof Date
+                ? Utilities.formatDate(
+                    schedule.beginnerStart,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.beginnerStart,
+            totalCapacity: totalCapacity,
+            beginnerCapacity: beginnerCapacity,
+          },
+          status: {
+            availableSlots: mainAvailable,
+            firstLectureSlots: introFinalAvailable,
+            isFull: mainAvailable <= 0,
+            firstLectureIsFull: firstLectureIsFull,
+          },
         });
       } else {
         // 沼津教室など: 全日時間制
@@ -337,41 +345,45 @@ function getAvailableSlots() {
         const firstLectureIsFull =
           beginnerCapacity > 0 && introFinalAvailable === 0;
 
-        availableSlots.push({
-          classroom: schedule.classroom,
-          date: schedule.date,
-          venue: schedule.venue,
-          classroomType: schedule.classroomType, // 教室形式を追加
-          firstStart:
-            schedule.firstStart instanceof Date
-              ? Utilities.formatDate(
-                  schedule.firstStart,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.firstStart,
-          firstEnd:
-            schedule.firstEnd instanceof Date
-              ? Utilities.formatDate(
-                  schedule.firstEnd,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.firstEnd,
-          beginnerStart:
-            schedule.beginnerStart instanceof Date
-              ? Utilities.formatDate(
-                  schedule.beginnerStart,
-                  CONSTANTS.TIMEZONE,
-                  'HH:mm',
-                )
-              : schedule.beginnerStart,
-          totalCapacity: totalCapacity,
-          beginnerCapacity: beginnerCapacity,
-          availableSlots: available,
-          firstLectureSlots: introFinalAvailable,
-          isFull: available <= 0,
-          firstLectureIsFull: firstLectureIsFull,
+        lessons.push({
+          schedule: {
+            classroom: schedule.classroom,
+            date: schedule.date,
+            venue: schedule.venue,
+            classroomType: schedule.classroomType,
+            firstStart:
+              schedule.firstStart instanceof Date
+                ? Utilities.formatDate(
+                    schedule.firstStart,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.firstStart,
+            firstEnd:
+              schedule.firstEnd instanceof Date
+                ? Utilities.formatDate(
+                    schedule.firstEnd,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.firstEnd,
+            beginnerStart:
+              schedule.beginnerStart instanceof Date
+                ? Utilities.formatDate(
+                    schedule.beginnerStart,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  )
+                : schedule.beginnerStart,
+            totalCapacity: totalCapacity,
+            beginnerCapacity: beginnerCapacity,
+          },
+          status: {
+            availableSlots: available,
+            firstLectureSlots: introFinalAvailable,
+            isFull: available <= 0,
+            firstLectureIsFull: firstLectureIsFull,
+          },
         });
       }
     });
@@ -383,17 +395,19 @@ function getAvailableSlots() {
       now.getMonth(),
       now.getDate(),
     );
-    const filteredSlots = availableSlots.filter(slot => {
-      const slotDate = new Date(slot.date);
+    const filteredLessons = lessons.filter(lesson => {
+      const lessonDate = new Date(lesson.schedule.date);
 
       // 当日以外はそのまま表示
-      if (slotDate.getTime() !== todayMidnight.getTime()) {
+      if (lessonDate.getTime() !== todayMidnight.getTime()) {
         return true;
       }
 
       // 当日の場合、終了時刻をチェック
-      if (slot.endTime) {
-        const [endHour, endMinute] = slot.endTime.split(':').map(Number);
+      if (lesson.schedule.firstEnd) {
+        const [endHour, endMinute] = lesson.schedule.firstEnd
+          .split(':')
+          .map(Number);
         const endDateTime = new Date(
           now.getFullYear(),
           now.getMonth(),
@@ -413,39 +427,41 @@ function getAvailableSlots() {
     });
 
     // 8. 日付・教室順でソート
-    filteredSlots.sort((a, b) => {
-      const dateComp = new Date(a.date).getTime() - new Date(b.date).getTime();
+    filteredLessons.sort((a, b) => {
+      const dateComp =
+        new Date(a.schedule.date).getTime() -
+        new Date(b.schedule.date).getTime();
       if (dateComp !== 0) return dateComp;
-      return a.classroom.localeCompare(b.classroom);
+      return a.schedule.classroom.localeCompare(b.schedule.classroom);
     });
 
     Logger.log(
-      `=== 利用可能な予約枠を ${filteredSlots.length} 件計算しました（フィルター後） ===`,
+      `=== 開催予定の講座情報を ${filteredLessons.length} 件計算しました（フィルター後） ===`,
     );
     Logger.log(
-      `=== filteredSlots サンプル: ${JSON.stringify(filteredSlots.slice(0, 2))} ===`,
+      `=== lessons サンプル: ${JSON.stringify(filteredLessons.slice(0, 2))} ===`,
     );
-    Logger.log('=== getAvailableSlots 正常終了 ===');
-    return createApiResponse(true, filteredSlots);
+    Logger.log('=== getLessons 正常終了 ===');
+    return createApiResponse(true, filteredLessons);
   } catch (error) {
-    Logger.log(`getAvailableSlots エラー: ${error.message}\n${error.stack}`);
-    return BackendErrorHandler.handle(error, 'getAvailableSlots', { data: [] });
+    Logger.log(`getLessons エラー: ${error.message}\n${error.stack}`);
+    return BackendErrorHandler.handle(error, 'getLessons', { data: [] });
   }
 }
 
 /**
- * 特定の教室の利用可能枠のみを取得する
+ * 特定の教室の講座情報のみを取得する
  * @param {string} classroom - 教室名
  * @returns {object} - { success: boolean, data: object[], message?: string }
  */
-function getAvailableSlotsForClassroom(classroom) {
-  const result = getAvailableSlots();
+function getLessonsForClassroom(classroom) {
+  const result = getLessons();
   if (!result.success) {
     return createApiResponse(false, { message: result.message, data: [] });
   }
   return createApiResponse(
     true,
-    result.data.filter(slot => slot.classroom === classroom),
+    result.data.filter(lesson => lesson.schedule.classroom === classroom),
   );
 }
 

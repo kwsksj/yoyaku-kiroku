@@ -7,10 +7,12 @@
 
 /**
  * @typedef {Object} ReservationInfo
- * @property {string} classroom - 教室名
  * @property {string} date - 日付 (YYYY-MM-DD形式)
  * @property {string} startTime - 開始時刻 (HH:mm形式)
  * @property {string} endTime - 終了時刻 (HH:mm形式)
+ * @property {string} classroom - 教室名
+ * @property {string} venue - 会場名（予約時点のスナップショット）
+ * @property {string} classroomType - 教室形式（予約時点のスナップショット）
  * @property {UserInfo} user - ユーザー情報
  * @property {ReservationOptions} options - 予約オプション
  */
@@ -33,22 +35,37 @@
  */
 
 /**
- * @typedef {Object} AvailableSlot
+ * 日程マスタ由来の静的な日程情報を表すオブジェクト
+ * @typedef {Object} LessonSchedule
  * @property {string} classroom - 教室名
  * @property {string} date - 日付
  * @property {string} venue - 会場
  * @property {string} classroomType - 教室形式
  * @property {string} firstStart - 1部開始時刻
  * @property {string} firstEnd - 1部終了時刻
- * @property {string} secondStart - 2部開始時刻
- * @property {string} secondEnd - 2部終了時刻
- * @property {string} beginnerStart - 初回者開始時刻
+ * @property {string} [secondStart] - 2部開始時刻
+ * @property {string} [secondEnd] - 2部終了時刻
+ * @property {string} [beginnerStart] - 初回者開始時刻
  * @property {number} totalCapacity - 全体定員
  * @property {number} beginnerCapacity - 初回者定員
- * @property {number} availableSlots - 利用可能枠数
+ */
+
+/**
+ * 予約状況から計算される動的な空き枠情報を表すオブジェクト
+ * @typedef {Object} LessonStatus
+ * @property {number} [availableSlots] - 利用可能枠数 (セッション制/全日制用)
+ * @property {number} [morningSlots] - 午前枠の空き (2部制用)
+ * @property {number} [afternoonSlots] - 午後枠の空き (2部制用)
  * @property {number} firstLectureSlots - 初回講座枠数
  * @property {boolean} isFull - 満席かどうか
  * @property {boolean} firstLectureIsFull - 初回講座満席かどうか
+ */
+
+/**
+ * 講座情報とその予約状況をまとめたオブジェクト
+ * @typedef {Object} Lesson
+ * @property {LessonSchedule} schedule - 静的な日程情報
+ * @property {LessonStatus} status - 動的な空き状況
  */
 
 /**
@@ -85,6 +102,7 @@ const API_PROPERTY_NAMES = {
   MESSAGE_TO_TEACHER: 'messageToTeacher',
 
   // AvailableSlot
+  // ReservationInfo にも venue と classroomType を追加
   VENUE: 'venue',
   CLASSROOM_TYPE: 'classroomType',
   FIRST_START: 'firstStart',
