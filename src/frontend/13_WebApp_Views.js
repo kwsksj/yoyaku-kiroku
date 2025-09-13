@@ -926,7 +926,10 @@ const _buildHistoryCardWithEditMode = (
   const dateTimeDisplay = historyItem.startTime
     ? ` ${historyItem.startTime} ~ ${historyItem.endTime}`.trim()
     : '';
-  const venueDisplay = `${HEADERS[historyItem.classroom] || historyItem.classroom}`;
+  const classroomDisplay = historyItem.classroom
+    ? ` ${historyItem.classroom}`
+    : '';
+  const venueDisplay = historyItem.venue ? ` ${historyItem.venue}` : '';
 
   // 制作メモセクション（編集モード対応）
   const memoSection = Components.memoSection({
@@ -944,7 +947,7 @@ const _buildHistoryCardWithEditMode = (
             <div class="flex items-center flex-wrap">
               <h3 class="font-bold text-brand-text">${formatDate(historyItem.date)} <span class="font-normal text-brand-subtle">${dateTimeDisplay}</span></h3>
             </div>
-            <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(venueDisplay)}</h4>
+            <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)}</h4>
           </div>
           ${editButtonsHtml ? `<div class="flex-shrink-0 self-start">${editButtonsHtml}</div>` : ''}
         </div>
