@@ -214,7 +214,7 @@ function makeReservation(reservationInfo) {
 
       // 日程マスタから該当日・教室の情報を取得
       const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-      const scheduleData = scheduleCache ? scheduleCache.items : [];
+      const scheduleData = scheduleCache ? scheduleCache.schedule : [];
       const scheduleRule = scheduleData.find(
         item =>
           item[CONSTANTS.HEADERS.SCHEDULE.DATE] &&
@@ -582,7 +582,7 @@ function updateReservationDetails(details) {
           ];
 
         const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-        const scheduleData = scheduleCache ? scheduleCache.items : [];
+        const scheduleData = scheduleCache ? scheduleCache.schedule : [];
         scheduleRule = scheduleData.find(
           item =>
             item[CONSTANTS.HEADERS.SCHEDULE.DATE] &&

@@ -420,7 +420,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-12T21:21:20.441Z
+   * Generated: 2025-09-13T01:17:05.536Z
    * =================================================================
    */
 
@@ -6800,13 +6800,14 @@ const ENVIRONMENT_CONFIG = {
         CONSTANTS.HEADERS.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
 
       // セッション制教室の場合、スケジュール情報から取得
-      if (
-        selectedLesson.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
-      ) {
+      const classroomType = selectedLesson?.schedule?.classroomType || selectedLesson?.classroomType;
+      if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
         if (timeField === 'startTime') {
-          return selectedLesson.firstStart || selectedLesson.secondStart || '';
+          return selectedLesson.schedule?.firstStart || selectedLesson.schedule?.secondStart || 
+                 selectedLesson.firstStart || selectedLesson.secondStart || '';
         } else if (timeField === 'endTime') {
-          return selectedLesson.firstEnd || selectedLesson.secondEnd || '';
+          return selectedLesson.schedule?.firstEnd || selectedLesson.schedule?.secondEnd ||
+                 selectedLesson.firstEnd || selectedLesson.secondEnd || '';
         }
       }
 
@@ -7484,13 +7485,13 @@ const ENVIRONMENT_CONFIG = {
       const endTime = getTimeValue('res-end-time', null, 'endTime');
 
       // デバッグ用ログ
-      console.log(`selectedLesson.classroomType: "${selectedLesson?.classroomType}"`);
-      console.log(`CONSTANTS.CLASSROOM_TYPES.SESSION_BASED: "${CONSTANTS.CLASSROOM_TYPES.SESSION_BASED}"`);
-      console.log(`比較結果: ${selectedLesson?.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED}`);
+      const actualClassroomType = selectedLesson?.schedule?.classroomType || selectedLesson?.classroomType;
+      console.log(`実際のclassroomType: "${actualClassroomType}"`);
+      console.log(`classroom: "${selectedLesson?.schedule?.classroom || selectedLesson?.classroom}"`);
+      console.log(`date: "${selectedLesson?.schedule?.date || selectedLesson?.date}"`);
+      console.log(`比較結果: ${actualClassroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED}`);
       
-      if (
-        selectedLesson?.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
-      ) {
+      if (actualClassroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
         console.log(`[セッション制] 時間設定: ${startTime} - ${endTime}`);
       } else {
         console.log(`[時間制] 時間設定: ${startTime} - ${endTime}`);
@@ -7509,17 +7510,34 @@ const ENVIRONMENT_CONFIG = {
 
       showLoading('booking');
 
+      // バックエンドに送信する予約データを明示的に構築
       const p = {
-        ...selectedLesson,
-        // 時間情報を上書き（教室形式に応じて調整済み）
+        // 基本情報（selectedLessonから明示的に取得）
+        classroom: selectedLesson?.schedule?.classroom || selectedLesson?.classroom,
+        date: selectedLesson?.schedule?.date || selectedLesson?.date,
+        venue: selectedLesson?.schedule?.venue || selectedLesson?.venue,
+        
+        // 時間情報（教室形式に応じて調整済み）
         startTime: startTime,
         endTime: endTime,
+        
         // バックエンドとの互換性のため、ヘッダー形式も併記
         [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']: startTime,
         [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']: endTime,
+        
+        // ユーザー情報
         user: stateManager.getState().currentUser,
         studentId: stateManager.getState().currentUser.studentId,
+        
+        // 予約オプション
         options: bookingOptions,
+        
+        // スケジュール詳細（バックエンドでの処理に必要）
+        schedule: selectedLesson?.schedule,
+        
+        // ステータス情報（必要に応じて）
+        status: selectedLesson?.status,
+        isFull: selectedLesson?.isFull
       };
 
       google.script.run
