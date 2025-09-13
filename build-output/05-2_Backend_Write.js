@@ -200,7 +200,7 @@ function makeReservation(reservationInfo) {
 
       // デバッグ情報: 受信したデータを確認
       Logger.log(
-        `[makeReservation] 受信データ: startTime=${startTime}, endTime=${endTime}, classroom=${classroom}`,
+        `[makeReservation] 受信した時間情報: startTime=${startTime}, endTime=${endTime}, classroom=${classroom}`,
       );
       Logger.log(
         `[makeReservation] reservationInfo全体: ${JSON.stringify(reservationInfo)}`,

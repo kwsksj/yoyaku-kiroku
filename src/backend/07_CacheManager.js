@@ -84,10 +84,7 @@ function rebuildAllCachesEntryPoint() {
 function rebuildAllReservationsCache() {
   try {
     const integratedReservationSheet = getSheetByName('統合予約シート');
-    if (
-      !integratedReservationSheet ||
-      integratedReservationSheet.getLastRow() < 2
-    ) {
+    if (!integratedReservationSheet) {
       Logger.log('統合予約シートが見つからないか、データが空です。');
       // 空データの場合もキャッシュを作成
       const emptyCacheData = {
@@ -119,16 +116,70 @@ function rebuildAllReservationsCache() {
       CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
     );
 
-    // データ行を取得
-    const dataRowCount = integratedReservationSheet.getLastRow() - 1;
-    const allReservationRows = integratedReservationSheet
-      .getRange(2, 1, dataRowCount, integratedReservationSheet.getLastColumn())
-      .getValues();
-
     // 会計詳細列のインデックスを取得（除外対象）
     const accountingDetailsColumnIndex = headerColumnMap.get(
       CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
     );
+
+    // データ行を取得（パフォーマンス最適化：会計詳細列を除外して読み取り）
+    const dataRowCount = integratedReservationSheet.getLastRow() - 1;
+    const totalColumns = integratedReservationSheet.getLastColumn();
+    
+    // データが空の場合の処理
+    if (dataRowCount < 1) {
+      Logger.log('統合予約シートにデータがありません。');
+      const emptyCacheData = {
+        version: new Date().getTime(),
+        reservations: [],
+      };
+      CacheService.getScriptCache().put(
+        CACHE_KEYS.ALL_RESERVATIONS,
+        JSON.stringify(emptyCacheData),
+        CACHE_EXPIRY_SECONDS,
+      );
+      return;
+    }
+    
+    let allReservationRows;
+    
+    if (accountingDetailsColumnIndex !== undefined && totalColumns > 1) {
+      // 会計詳細列を除外して読み取り（大幅な高速化）
+      const leftColumns = accountingDetailsColumnIndex; // 会計詳細列より前の列
+      const rightColumns = totalColumns - accountingDetailsColumnIndex - 1; // 会計詳細列より後の列
+      
+      let leftData = [];
+      let rightData = [];
+      
+      // 左側の列データを取得
+      if (leftColumns > 0) {
+        leftData = integratedReservationSheet
+          .getRange(2, 1, dataRowCount, leftColumns)
+          .getValues();
+      }
+      
+      // 右側の列データを取得
+      if (rightColumns > 0) {
+        rightData = integratedReservationSheet
+          .getRange(2, accountingDetailsColumnIndex + 2, dataRowCount, rightColumns)
+          .getValues();
+      }
+      
+      // データを結合し、会計詳細列の位置に空文字を挿入
+      allReservationRows = [];
+      for (let i = 0; i < dataRowCount; i++) {
+        const leftRow = leftData[i] || [];
+        const rightRow = rightData[i] || [];
+        
+        // 行データを構築：左側 + 空文字（会計詳細列） + 右側
+        const fullRow = [...leftRow, '', ...rightRow];
+        allReservationRows.push(fullRow);
+      }
+    } else {
+      // 会計詳細列がない場合は従来通り
+      allReservationRows = integratedReservationSheet
+        .getRange(2, 1, dataRowCount, totalColumns)
+        .getValues();
+    }
 
     // 日付・時刻のフォーマット関数
     const formatDateString = dateValue => {
@@ -163,10 +214,7 @@ function rebuildAllReservationsCache() {
         }
       });
 
-      // 会計詳細列を空文字に置換（JSONデータでサイズが大きいため）
-      if (accountingDetailsColumnIndex !== undefined) {
-        reservationRow[accountingDetailsColumnIndex] = '';
-      }
+      // 会計詳細列は既にデータ読み取り時に空文字で処理済み
     });
 
     // 全データを日付順にソート（新しい順）
