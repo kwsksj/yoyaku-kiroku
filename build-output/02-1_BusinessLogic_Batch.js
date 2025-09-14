@@ -190,6 +190,7 @@ function migrateDataToIntegratedSheet() {
         .clearContent();
     }
 
+    /** @type {any[][]} */
     const allMigratedRows = [];
 
     [

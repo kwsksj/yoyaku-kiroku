@@ -65,9 +65,12 @@ function include(filename) {
 
 // --- エントリーポイント関数 ---
 
+/**
+ * @param {GoogleAppsScript.Events.DoGet} e
+ */
 function doGet(e) {
   // URLパラメータでテストモードかどうかを判定
-  const isTestMode = e && e.parameter && e.parameter.test === 'true';
+  const isTestMode = e && e.parameter && e.parameter['test'] === 'true';
 
   if (isTestMode) {
     // テストモード: パフォーマンステスト画面を表示
@@ -92,6 +95,9 @@ function onOpen() {
   menu.addToUi();
 }
 
+/**
+ * @param {GoogleAppsScript.Base.Menu} menu
+ */
 function addAdminMenu(menu) {
   menu
     .addItem(
@@ -115,6 +121,9 @@ function addAdminMenu(menu) {
     .addItem('【本番移行】移行データ整合性チェック', 'verifyMigratedData');
 }
 
+/**
+ * @param {GoogleAppsScript.Base.Menu} menu
+ */
 function addCacheMenu(menu) {
   menu
     .addSeparator()
@@ -132,7 +141,7 @@ function addCacheMenu(menu) {
 /**
  * インストール型トリガー：シート変更時に実行。
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processChange` へ委譲します。
- * @param {Object} _e - Google Sheets のイベントオブジェクト
+ * @param {any} _e - Google Sheets のイベントオブジェクト
  */
 function handleOnChange(_e) {
   const lock = LockService.getScriptLock();
@@ -149,7 +158,7 @@ function handleOnChange(_e) {
 /**
  * インストール型トリガー：シート編集時に実行。
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processCellEdit` へ委譲します。
- * @param {Object} _e - Google Sheets のイベントオブジェクト
+ * @param {any} _e - Google Sheets のイベントオブジェクト
  */
 function handleEdit(_e) {
   const lock = LockService.getScriptLock();
@@ -178,7 +187,7 @@ function doGetTest() {
     // GASエディタから実行された場合のデバッグ情報
     Logger.log('テスト用WebAppが生成されました');
     Logger.log(
-      'URLでアクセスするか、doGetテストをWebAppとしてデプロイしてください',
+      'URLでアクセスするか、doGetTestをWebAppとしてデプロイしてください',
     );
 
     return htmlOutput;
@@ -191,6 +200,7 @@ function doGetTest() {
 /**
  * 別のデプロイメント用のエントリーポイント
  * テスト専用のデプロイメントを作成する場合に使用
+ * @param {GoogleAppsScript.Events.DoGet} _e
  */
 function doGetPerformanceTest(_e) {
   return doGetTest();

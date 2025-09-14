@@ -151,6 +151,10 @@ interface StateManager {
   updateComputedData?(): void;
   state?: AppState;
   isInEditMode?: boolean;
+  endEditMode?(): void;
+  startEditMode?(): void;
+  showAccountingConfirmation?(grandTotal?: number): void;
+  confirmAndPay?(): void;
 }
 
 // Window extensions for frontend

@@ -30,20 +30,28 @@ class SpreadsheetManager {
    */
   getSpreadsheet() {
     if (!this._spreadsheet) {
-      Logger.log(`[SS_MANAGER] 初回SpreadsheetApp.getActiveSpreadsheet()呼び出し: ${new Date().toISOString()}`);
+      Logger.log(
+        `[SS_MANAGER] 初回SpreadsheetApp.getActiveSpreadsheet()呼び出し: ${new Date().toISOString()}`,
+      );
       const startTime = new Date();
       this._spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
       const endTime = new Date();
-      const duration = endTime - startTime;
-      
+      const duration = endTime.getTime() - startTime.getTime();
+
       // スプレッドシート情報を取得
       const sheetCount = this._spreadsheet.getSheets().length;
       const spreadsheetName = this._spreadsheet.getName();
-      
-      Logger.log(`[SS_MANAGER] Spreadsheet初期化完了: ${endTime.toISOString()}, 所要時間: ${duration}ms`);
-      Logger.log(`[SS_MANAGER] スプレッドシート名: ${spreadsheetName}, シート数: ${sheetCount}`);
+
+      Logger.log(
+        `[SS_MANAGER] Spreadsheet初期化完了: ${endTime.toISOString()}, 所要時間: ${duration}ms`,
+      );
+      Logger.log(
+        `[SS_MANAGER] スプレッドシート名: ${spreadsheetName}, シート数: ${sheetCount}`,
+      );
     } else {
-      Logger.log(`[SS_MANAGER] キャッシュからSpreadsheet取得: ${new Date().toISOString()}`);
+      Logger.log(
+        `[SS_MANAGER] キャッシュからSpreadsheet取得: ${new Date().toISOString()}`,
+      );
     }
     return this._spreadsheet;
   }
@@ -55,12 +63,18 @@ class SpreadsheetManager {
    */
   getSheet(sheetName) {
     if (!this._sheets.has(sheetName)) {
-      Logger.log(`[SS_MANAGER] 初回シート'${sheetName}'取得: ${new Date().toISOString()}`);
+      Logger.log(
+        `[SS_MANAGER] 初回シート'${sheetName}'取得: ${new Date().toISOString()}`,
+      );
       const sheet = this.getSpreadsheet().getSheetByName(sheetName);
       this._sheets.set(sheetName, sheet);
-      Logger.log(`[SS_MANAGER] シート'${sheetName}'初期化完了: ${new Date().toISOString()}`);
+      Logger.log(
+        `[SS_MANAGER] シート'${sheetName}'初期化完了: ${new Date().toISOString()}`,
+      );
     } else {
-      Logger.log(`[SS_MANAGER] キャッシュからシート'${sheetName}'取得: ${new Date().toISOString()}`);
+      Logger.log(
+        `[SS_MANAGER] キャッシュからシート'${sheetName}'取得: ${new Date().toISOString()}`,
+      );
     }
     return this._sheets.get(sheetName);
   }

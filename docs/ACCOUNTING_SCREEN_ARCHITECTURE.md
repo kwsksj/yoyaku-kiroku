@@ -24,29 +24,28 @@
 goToAccounting: d => {
   showLoading('accounting');
   const reservationId = d.reservationId;
-  
+
   // 統一検索関数で予約データを取得
   const reservationData = findReservationById(reservationId);
-  
+
   if (reservationData) {
     // キャッシュからデータを読み込み
     const cachedData = loadAccountingCache(reservationId);
-    
+
     // スケジュール情報を取得後にビューを表示
-    getScheduleInfoFromCache(reservationData.date, reservationData.classroom)
-      .then(scheduleInfo => {
-        window.stateManager.dispatch({
-          type: 'SET_STATE',
-          payload: {
-            view: 'accounting',
-            accountingReservation: d,
-            accountingReservationDetails: reservationDetails,
-            accountingScheduleInfo: scheduleInfo,
-          },
-        });
+    getScheduleInfoFromCache(reservationData.date, reservationData.classroom).then(scheduleInfo => {
+      window.stateManager.dispatch({
+        type: 'SET_STATE',
+        payload: {
+          view: 'accounting',
+          accountingReservation: d,
+          accountingReservationDetails: reservationDetails,
+          accountingScheduleInfo: scheduleInfo,
+        },
       });
+    });
   }
-}
+};
 ```
 
 ### 2. ビュー生成処理
@@ -55,25 +54,23 @@ goToAccounting: d => {
 // 13_WebApp_Views.js:2032
 const getAccountingView = () => {
   const state = stateManager.getState();
-  
+
   // 基本データの確認
   if (!state.accountingMaster || !state.accountingReservation) {
     return '<div>会計データを読み込んでいます...</div>';
   }
-  
+
   // 会計済みかどうかの判定
-  if (bookingOrRecord.status === CONSTANTS.STATUS.COMPLETED && 
-      bookingOrRecord.accountingDetails && 
-      !state.isEditingAccountingRecord) {
+  if (bookingOrRecord.status === CONSTANTS.STATUS.COMPLETED && bookingOrRecord.accountingDetails && !state.isEditingAccountingRecord) {
     // 会計完了済み表示
     return Components.accountingCompleted({ details, reservation });
   }
-  
+
   // 新規会計フォーム表示
   const tuitionItemRule = getTuitionItemRule(master, reservation.classroom, CONSTANTS.ITEMS.MAIN_LECTURE);
   const isTimeBased = tuitionItemRule && tuitionItemRule['単位'] === CONSTANTS.UNITS.THIRTY_MIN;
   const formType = isTimeBased ? 'timeBased' : 'fixed';
-  
+
   return Components.accountingForm({
     type: formType,
     master,
@@ -115,10 +112,10 @@ accountingForm: ({ type, master, reservation, reservationDetails, scheduleInfo }
   } else {
     tuitionHtml = Components.fixedTuitionSection({ master, reservation, reservationDetails });
   }
-  
+
   // 販売セクション生成
   const salesHtml = Components.salesSection({ master, reservationDetails });
-  
+
   // フォーム全体の構築
   return `
     <form id="accounting-form" class="space-y-6">
@@ -129,7 +126,7 @@ accountingForm: ({ type, master, reservation, reservationDetails, scheduleInfo }
       </div>
     </form>
   `;
-}
+};
 ```
 
 #### 2. 材料費入力 (`Components.materialRow`)
@@ -143,7 +140,7 @@ materialRow: ({ index, values = {} }) => {
     .filter(m => m['種別'] === CONSTANTS.ITEM_TYPES.MATERIAL)
     .map(m => `<option value="${m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}">${m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}</option>`)
     .join('');
-  
+
   return `
     <div data-material-row-index="${index}">
       <select id="material-type-${index}" class="accounting-item">
@@ -157,7 +154,7 @@ materialRow: ({ index, values = {} }) => {
       </div>
     </div>
   `;
-}
+};
 ```
 
 ## 料金計算システム
@@ -183,15 +180,15 @@ function calculateTimeBasedTuition(tuitionItemRule) {
   const startTime = getTimeValue('start-time', accountingReservation, 'startTime');
   const endTime = getTimeValue('end-time', accountingReservation, 'endTime');
   const breakMinutes = parseInt(document.getElementById('break-time')?.value || 0, 10);
-  
+
   // 実授業時間を30分単位で計算
   const actualMinutes = calculateActualLectureMinutes(startTime, endTime, breakMinutes);
   const units = Math.ceil(actualMinutes / 30);
   const unitPrice = tuitionItemRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE];
-  
+
   return {
     price: units * unitPrice,
-    item: { name: `${CONSTANTS.ITEMS.MAIN_LECTURE} (${units}コマ)`, price: units * unitPrice }
+    item: { name: `${CONSTANTS.ITEMS.MAIN_LECTURE} (${units}コマ)`, price: units * unitPrice },
   };
 }
 ```
@@ -204,23 +201,23 @@ function calculateMaterials() {
   const materialContainer = document.getElementById('materials-container');
   const items = [];
   let subtotal = 0;
-  
+
   materialContainer.querySelectorAll('div[data-material-row-index]').forEach((row, index) => {
     const type = document.getElementById(`material-type-${index}`)?.value;
     const l = parseFloat(document.getElementById(`material-l-${index}`)?.value || 0);
     const w = parseFloat(document.getElementById(`material-w-${index}`)?.value || 0);
     const h = parseFloat(document.getElementById(`material-h-${index}`)?.value || 0);
-    
+
     if (type && l > 0 && w > 0 && h > 0) {
-      const volume = l * w * h / 1000; // cm³に変換
+      const volume = (l * w * h) / 1000; // cm³に変換
       const unitPrice = getMaterialUnitPrice(type);
-      const price = Math.ceil(volume * unitPrice / 10) * 10; // 10円単位で切り上げ
-      
+      const price = Math.ceil((volume * unitPrice) / 10) * 10; // 10円単位で切り上げ
+
       items.push({ name: `${type} ${l}×${w}×${h}mm`, price });
       subtotal += price;
     }
   });
-  
+
   return { items, subtotal };
 }
 ```
@@ -249,7 +246,7 @@ function setupAccountingEventListeners() {
       element.addEventListener('change', updateAccountingCalculation);
     }
   });
-  
+
   // チェックボックス項目にchangeイベントを追加
   document.querySelectorAll('input[type="checkbox"].accounting-item').forEach(checkbox => {
     checkbox.addEventListener('change', updateAccountingCalculation);
@@ -264,7 +261,7 @@ function setupAccountingEventListeners() {
 function handleAccountingFormChange() {
   // リアルタイムで合計金額を再計算
   calculateAccountingDetails();
-  
+
   // フォーム内容をキャッシュに保存
   const reservationId = stateManager.getState().accountingReservation?.reservationId;
   if (reservationId) {

@@ -51,8 +51,8 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
 /**
  * キャッシュデータから個人用データを抽出する
  * @param {string} studentId - 生徒ID
- * @param {object} cacheData - getAppInitialDataから取得したキャッシュデータ
- * @returns {object} - 個人の予約、履歴、利用可能枠データ
+ * @param {import('../../types/index.d.ts').AppInitialData} cacheData - getAppInitialDataから取得したキャッシュデータ
+ * @returns {{myReservations: any[]}} - 個人の予約、履歴、利用可能枠データ
  */
 function extractPersonalDataFromCache(studentId, cacheData) {
   try {
@@ -93,7 +93,7 @@ function extractPersonalDataFromCache(studentId, cacheData) {
 /**
  * 電話番号を元にユーザーを認証します。スプレッドシートは読まず、キャッシュから認証します。
  * @param {string} phoneNumber - 認証に使用する電話番号。
- * @returns {object} - 認証結果と初期化データ
+ * @returns {import('../../types/api-types.d.ts').AuthenticationResponse} - 認証結果と初期化データ
  */
 function authenticateUser(phoneNumber) {
   try {
@@ -134,7 +134,6 @@ function authenticateUser(phoneNumber) {
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
       if (storedPhone && storedPhone === normalizedInputPhone) {
         foundUser = {
-          success: true,
           studentId: student.studentId,
           displayName: student.nickname,
           realName: student.realName,
@@ -186,17 +185,17 @@ function authenticateUser(phoneNumber) {
 
 /**
  * NF-01: 電話番号が未登録のユーザーリストを取得します。
- * @returns {Array<object>} - { studentId: string, realName: string, nickname: string, searchName: string } の配列。
+ * @returns {Array<{ studentId: string, realName: string, nickname: string, searchName: string }>} - { studentId: string, realName: string, nickname: string, searchName: string } の配列。
  */
 function getUsersWithoutPhoneNumber() {
   try {
     const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    if (!studentsCache || !studentsCache.students) {
+    if (!studentsCache || !studentsCache['students']) {
       throw new Error('生徒データのキャッシュが利用できません。');
     }
 
     const usersWithoutPhone = [];
-    const allStudents = Object.values(studentsCache.students);
+    const allStudents = Object.values(studentsCache['students']);
     for (const student of allStudents) {
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
       if (storedPhone === '') {
@@ -235,19 +234,19 @@ function getUsersWithoutPhoneNumber() {
 
 /**
  * 新規ユーザーを生徒名簿に登録します。
- * @param {object} userInfo - { phone?: string, realName: string, nickname?: string }
- * @returns {object} - { success: boolean, studentId?: string, ... }
+ * @param {import('../../types/index.d.ts').NewUserRegistration} userInfo - 新規ユーザー情報
+ * @returns {import('../../types/index.d.ts').ApiResponseGeneric<any>}
  */
 function registerNewUser(userInfo) {
   return withTransaction(() => {
     try {
       const validationResult = _normalizeAndValidatePhone(
-        userInfo.phone || '',
+        userInfo?.phone || '',
         true,
       );
       const normalizedPhone = validationResult.normalized;
 
-      if (!validationResult.isValid && userInfo.phone) {
+      if (!validationResult.isValid && userInfo?.phone) {
         return { success: false, message: validationResult.message };
       }
       if (normalizedPhone === '') {
@@ -289,8 +288,8 @@ function registerNewUser(userInfo) {
 
       newRow[idColIdx] = studentId;
       newRow[phoneColIdx] = `'${normalizedPhone}`;
-      newRow[realNameColIdx] = userInfo.realName;
-      newRow[nicknameColIdx] = userInfo.nickname || '';
+      newRow[realNameColIdx] = userInfo?.realName || '';
+      newRow[nicknameColIdx] = userInfo?.nickname || '';
 
       // 新規登録のStep4で追加された項目を処理
       const futureParticipationColIdx = header.indexOf(
@@ -301,13 +300,13 @@ function registerNewUser(userInfo) {
         CONSTANTS.HEADERS.ROSTER.FIRST_MESSAGE,
       );
 
-      if (futureParticipationColIdx !== -1 && userInfo.futureParticipation) {
+      if (futureParticipationColIdx !== -1 && userInfo?.futureParticipation) {
         newRow[futureParticipationColIdx] = userInfo.futureParticipation;
       }
-      if (triggerColIdx !== -1 && userInfo.trigger) {
+      if (triggerColIdx !== -1 && userInfo?.trigger) {
         newRow[triggerColIdx] = userInfo.trigger;
       }
-      if (firstMessageColIdx !== -1 && userInfo.firstMessage) {
+      if (firstMessageColIdx !== -1 && userInfo?.firstMessage) {
         newRow[firstMessageColIdx] = userInfo.firstMessage;
       }
 
@@ -332,7 +331,7 @@ function registerNewUser(userInfo) {
         CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
       );
 
-      if (emailColIdx !== -1 && userInfo.email) {
+      if (emailColIdx !== -1 && userInfo?.email) {
         const email = userInfo.email.trim();
         if (email && !_isValidEmail(email)) {
           throw new Error('メールアドレスの形式が正しくありません。');
@@ -341,22 +340,22 @@ function registerNewUser(userInfo) {
       }
       if (
         emailPreferenceColIdx !== -1 &&
-        typeof userInfo.wantsEmail === 'boolean'
+        typeof userInfo?.wantsEmail === 'boolean'
       )
         newRow[emailPreferenceColIdx] = userInfo.wantsEmail ? 'TRUE' : 'FALSE';
-      if (ageGroupColIdx !== -1 && userInfo.ageGroup)
+      if (ageGroupColIdx !== -1 && userInfo?.ageGroup)
         newRow[ageGroupColIdx] = userInfo.ageGroup;
-      if (genderColIdx !== -1 && userInfo.gender)
+      if (genderColIdx !== -1 && userInfo?.gender)
         newRow[genderColIdx] = userInfo.gender;
-      if (dominantHandColIdx !== -1 && userInfo.dominantHand)
+      if (dominantHandColIdx !== -1 && userInfo?.dominantHand)
         newRow[dominantHandColIdx] = userInfo.dominantHand;
-      if (addressColIdx !== -1 && userInfo.address)
+      if (addressColIdx !== -1 && userInfo?.address)
         newRow[addressColIdx] = userInfo.address;
-      if (woodcarvingExperienceColIdx !== -1 && userInfo.experience)
+      if (woodcarvingExperienceColIdx !== -1 && userInfo?.experience)
         newRow[woodcarvingExperienceColIdx] = userInfo.experience;
-      if (pastCreationsColIdx !== -1 && userInfo.pastWork)
+      if (pastCreationsColIdx !== -1 && userInfo?.pastWork)
         newRow[pastCreationsColIdx] = userInfo.pastWork;
-      if (futureCreationsColIdx !== -1 && userInfo.futureGoal)
+      if (futureCreationsColIdx !== -1 && userInfo?.futureGoal)
         newRow[futureCreationsColIdx] = userInfo.futureGoal;
 
       const registrationDateColIdx = header.indexOf('登録日時');
@@ -372,8 +371,8 @@ function registerNewUser(userInfo) {
 
       const newUserInfo = {
         studentId: studentId,
-        displayName: userInfo.nickname || userInfo.realName,
-        realName: userInfo.realName,
+        displayName: userInfo?.nickname || userInfo?.realName || '',
+        realName: userInfo?.realName || '',
         phone: normalizedPhone,
       };
 
@@ -416,14 +415,15 @@ function _isValidEmail(email) {
 
 /**
  * ユーザーのプロフィール（本名、ニックネーム、電話番号、メールアドレス）を更新します。
- * @param {object} userInfo - { studentId: string, realName: string, displayName: string, phone?: string }
- * @returns {object} - { success: boolean, message: string, updatedUser?: object }
+ * @param {import('../../types/index.d.ts').UserProfileUpdate} userInfo - プロフィール更新情報
+ * @returns {import('../../types/index.d.ts').ApiResponseGeneric<{updatedUser: object}>}
  */
 function updateUserProfile(userInfo) {
   return withTransaction(() => {
     try {
       // 新しいヘルパー関数を使用して生徒データを取得
-      const targetStudent = getCachedStudentById(userInfo.studentId);
+      /** @type {{rowIndex?: number, studentId: string, realName: string, nickname: string, phone: string} | null} */
+      const targetStudent = /** @type {{rowIndex?: number, studentId: string, realName: string, nickname: string, phone: string} | null} */ (getCachedStudentById(userInfo.studentId));
       if (!targetStudent) {
         throw new Error('更新対象のユーザーが見つかりませんでした。');
       }
@@ -449,9 +449,9 @@ function updateUserProfile(userInfo) {
 
         if (normalizedNewPhone !== '') {
           const allStudentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-          const otherStudents = Object.values(allStudentsCache.students).filter(
-            student => student.studentId !== userInfo.studentId,
-          );
+          const otherStudents = Object.values(
+            allStudentsCache['students'],
+          ).filter(student => student.studentId !== userInfo.studentId);
           for (const student of otherStudents) {
             const storedPhone = _normalizeAndValidatePhone(
               student.phone,
@@ -494,10 +494,10 @@ function updateUserProfile(userInfo) {
       // 実際には、各列のインデックスを元に個別に書き込む方が安全です。
       rosterSheet
         .getRange(targetRowIndex, realNameColIdx + 1)
-        .setValue(userInfo.realName);
+        .setValue(userInfo?.realName || '');
       rosterSheet
         .getRange(targetRowIndex, nicknameColIdx + 1)
-        .setValue(userInfo.displayName);
+        .setValue(userInfo?.displayName || '');
       if (userInfo.phone !== undefined && userInfo.phone !== null) {
         const normalizedPhone = _normalizeAndValidatePhone(
           userInfo.phone,
@@ -551,7 +551,8 @@ function updateUserProfile(userInfo) {
       Logger.log(`updateUserProfile Error: ${err.message}`);
       return {
         success: false,
-        message: `サーバーエラーが発生しました。\n${err.message}`,
+        message: `サーバーエラーが発生しました。
+${err.message}`,
       };
     }
   });

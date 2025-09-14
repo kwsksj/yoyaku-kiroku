@@ -107,6 +107,20 @@ export interface Lesson {
   schedule: LessonSchedule;
   /** 状態情報 */
   status: LessonStatus;
+  /** 教室名 */
+  classroom: string;
+  /** 日付 */
+  date: string;
+  /** 会場名 */
+  venue: string;
+  /** 教室形式 */
+  classroomType: string;
+  /** 満席フラグ */
+  isFull: boolean;
+  /** 開始時刻 */
+  startTime: string;
+  /** 終了時刻 */
+  endTime: string;
   /** 追加メタデータ */
   metadata?: {
     /** 作成日時 */
@@ -116,4 +130,84 @@ export interface Lesson {
     /** 講師情報 */
     instructor?: string;
   };
+}
+
+/**
+ * アプリ初期データ型定義
+ */
+export interface AppInitialData {
+  allStudents: { [key: string]: any };
+  accountingMaster: any[];
+  today: string;
+  cacheVersions: { [key: string]: number };
+  lessons?: any[];
+  classrooms?: string[];
+}
+
+/**
+ * 登録フォームデータ型定義
+ */
+export interface RegistrationFormData {
+  registrationData?: {
+    phone?: string;
+    realName?: string;
+    nickname?: string;
+    email?: string;
+    wantsEmail?: boolean;
+    ageGroup?: string;
+    gender?: string;
+    dominantHand?: string;
+    address?: string;
+    experience?: string;
+    pastWork?: string;
+    futureGoal?: string;
+    futureParticipation?: string;
+    trigger?: string;
+    firstMessage?: string;
+  };
+  loginPhone?: string;
+  isFirstTimeBooking?: boolean;
+  action?: string;
+  classroomName?: string;
+  classroom?: string;
+  recordsToShow?: number;
+  registrationPhone?: string;
+  completionMessage?: string;
+  materialRowIndex?: string | number;
+  itemName?: string;
+}
+
+/**
+ * ユーザー認証レスポンス型定義
+ */
+export interface AuthenticationResponse {
+  /** 処理成功フラグ */
+  success: boolean;
+  /** 認証されたユーザー情報（成功時） */
+  user?: {
+    studentId: string;
+    displayName: string;
+    realName: string;
+    phone: string;
+  };
+  /** 初期データ（成功時） */
+  initialData?: AppInitialData;
+  /** エラーメッセージ（失敗時） */
+  message?: string;
+  /** 登録用電話番号（失敗時） */
+  registrationPhone?: string;
+  /** 特殊コマンド認識フラグ（特殊ログイン時） */
+  commandRecognized?: string;
+}
+
+/**
+ * API レスポンス（汎用）
+ */
+export interface ApiResponseGeneric<T = any> {
+  /** 処理成功フラグ */
+  success: boolean;
+  /** データ（成功時） */
+  data?: T;
+  /** メッセージ */
+  message?: string;
 }

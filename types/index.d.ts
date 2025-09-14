@@ -118,6 +118,12 @@ export type {
   StateManager
 } from '../src/types.d.ts';
 
+// 拡張API型定義
+export type {
+  AppInitialData,
+  RegistrationFormData
+} from './api-types.d.ts';
+
 // 定数型定義（constants.d.tsより）
 export type {
   Constants,
@@ -199,6 +205,66 @@ export function isLesson(obj: any): obj is Lesson {
 // =================================================================
 // 開発支援用型定義
 // =================================================================
+
+/**
+ * 新規ユーザー登録情報型
+ */
+export interface NewUserRegistration {
+  phone?: string;
+  realName?: string;
+  nickname?: string;
+  futureParticipation?: string;
+  trigger?: string;
+  firstMessage?: string;
+  email?: string;
+  wantsEmail?: boolean;
+  ageGroup?: string;
+  gender?: string;
+  dominantHand?: string;
+  address?: string;
+  experience?: string;
+  pastWork?: string;
+  futureGoal?: string;
+}
+
+/**
+ * ユーザープロフィール更新情報型
+ */
+export interface UserProfileUpdate {
+  studentId: string;
+  realName?: string;
+  displayName?: string;
+  phone?: string;
+  email?: string;
+  wantsEmail?: boolean;
+}
+
+/**
+ * 予約リクエスト型
+ */
+export interface ReservationRequest {
+  classroom?: string;
+  date?: string;
+  venue?: string;
+  user?: any;
+  options?: any;
+  startTime?: string;
+  endTime?: string;
+  reservationId?: string;
+  studentId?: string;
+  cancelMessage?: string;
+}
+
+/**
+ * アプリ初期データ型
+ */
+export interface AppInitialData {
+  allReservationsCache?: any;
+  allStudents?: any;
+  lessons?: any[];
+  myReservations?: any[];
+  [key: string]: any;
+}
 
 /**
  * デバッグ情報型

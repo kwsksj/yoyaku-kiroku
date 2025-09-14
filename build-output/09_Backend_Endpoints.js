@@ -311,7 +311,12 @@ function getAccountingDetailsFromSheet(reservationId) {
 
 /**
  * アプリ初期化用の基本データをキャッシュから取得する
- * @returns {Object} 初期化データ（生徒情報、料金マスタ、バージョン情報等）
+ * @returns {import('../../types/index.d.ts').ApiResponseGeneric<{
+ *   allStudents: {[key: string]: any},
+ *   accountingMaster: any[],
+ *   today: string,
+ *   cacheVersions: {[key: string]: number}
+ * }>}
  */
 function getAppInitialData() {
   try {

@@ -38,9 +38,12 @@ function getTimeValue(elementId, reservationData, timeField) {
   // 2. 予約データから取得を試行（編集時）
   if (reservationData) {
     const headerField =
-      CONSTANTS.HEADERS.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
+      /** @type {any} */ (CONSTANTS.HEADERS.RESERVATIONS)?.[
+        timeField.toUpperCase()
+      ] || timeField;
     const timeValue =
-      reservationData[headerField] || reservationData[timeField];
+      /** @type {any} */ (reservationData)[headerField] ||
+      /** @type {any} */ (reservationData)[timeField];
     if (timeValue && timeValue !== '') {
       return timeValue;
     }
@@ -50,23 +53,38 @@ function getTimeValue(elementId, reservationData, timeField) {
   const selectedLesson = stateManager.getState().selectedLesson;
   if (selectedLesson) {
     const headerField =
-      CONSTANTS.HEADERS.RESERVATIONS?.[timeField.toUpperCase()] || timeField;
+      /** @type {any} */ (CONSTANTS.HEADERS.RESERVATIONS)?.[
+        timeField.toUpperCase()
+      ] || timeField;
 
     // セッション制教室の場合、スケジュール情報から取得
-    const classroomType = selectedLesson?.schedule?.classroomType || selectedLesson?.classroomType;
+    const classroomType =
+      /** @type {any} */ (selectedLesson)?.schedule?.classroomType ||
+      /** @type {any} */ (selectedLesson)?.classroomType;
     if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
       if (timeField === 'startTime') {
-        return selectedLesson.schedule?.firstStart || selectedLesson.schedule?.secondStart || 
-               selectedLesson.firstStart || selectedLesson.secondStart || '';
+        return (
+          /** @type {any} */ (selectedLesson).schedule?.firstStart ||
+          /** @type {any} */ (selectedLesson).schedule?.secondStart ||
+          /** @type {any} */ (selectedLesson).firstStart ||
+          /** @type {any} */ (selectedLesson).secondStart ||
+          ''
+        );
       } else if (timeField === 'endTime') {
-        return selectedLesson.schedule?.firstEnd || selectedLesson.schedule?.secondEnd ||
-               selectedLesson.firstEnd || selectedLesson.secondEnd || '';
+        return (
+          /** @type {any} */ (selectedLesson).schedule?.firstEnd ||
+          /** @type {any} */ (selectedLesson).schedule?.secondEnd ||
+          /** @type {any} */ (selectedLesson).firstEnd ||
+          /** @type {any} */ (selectedLesson).secondEnd ||
+          ''
+        );
       }
     }
 
     // 時間制教室の場合、selectedLessonから取得
     const lessonValue =
-      selectedLesson[headerField] || selectedLesson[timeField];
+      /** @type {any} */ (selectedLesson)[headerField] ||
+      /** @type {any} */ (selectedLesson)[timeField];
     if (lessonValue && lessonValue !== '') {
       return lessonValue;
     }
@@ -89,7 +107,7 @@ function getAccountingFormData() {
   const form = document.getElementById('accounting-form');
   if (!form) return {};
 
-  const data = {};
+  /** @type {any} */ const data = {};
   const elements = form.elements;
 
   for (let i = 0; i < elements.length; i++) {
@@ -144,18 +162,18 @@ const actionHandlers = {
       return;
     }
 
-    showLoading('login');
+    showLoading();
     // 正規化に成功した場合は直接ログイン処理を実行（1回のAPI呼び出し）
     actionHandlers.processLoginWithValidatedPhone(normalizeResult.normalized);
   },
 
   /** 検証済み電話番号でのログイン処理 */
-  processLoginWithValidatedPhone: normalizedPhone => {
+  processLoginWithValidatedPhone: (/** @type {string} */ normalizedPhone) => {
     // 環境分岐: テスト環境の場合はモックデータを使用
 
     // 本番環境: 統合エンドポイントで初期データと空席情報を一括取得
-    google.script.run
-      .withSuccessHandler(response => {
+    /** @type {any} */ (google.script.run)
+      ['withSuccessHandler']((/** @type {any} */ response) => {
         // ← この response には、サーバーサイドの getLoginData 関数の戻り値が格納されます。
 
         // デバッグ情報を画面に表示（本番環境では無効化）
@@ -165,9 +183,11 @@ const actionHandlers = {
           debugLog('response.userFound: ' + response.userFound);
           debugLog(
             'response.data.lessons: ' +
-              (response.data.lessons
-                ? response.data.lessons.length + '件'
-                : 'null/undefined'),
+              /** @type {any} */ (
+                response.data?.lessons
+                  ? /** @type {any} */ (response.data).lessons.length + '件'
+                  : 'null/undefined'
+              ),
           );
           debugLog(
             'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
@@ -179,18 +199,20 @@ const actionHandlers = {
           const newAppState = processInitialData(
             response.data,
             normalizedPhone,
-            response.data.lessons,
-            response.data.myReservations,
+            /** @type {any} */ (response.data)?.['lessons'],
+            /** @type {any} */ (response.data)?.myReservations,
           );
           debugLog(
             'processInitialData完了 - lessons: ' +
-              (newAppState.lessons
-                ? newAppState.lessons.length + '件'
-                : 'null'),
+              /** @type {any} */ (
+                newAppState?.['lessons']
+                  ? /** @type {any} */ (newAppState)['lessons'].length + '件'
+                  : 'null'
+              ),
           );
           debugLog(
             'processInitialData完了 - classrooms: ' +
-              JSON.stringify(newAppState.classrooms),
+              JSON.stringify(/** @type {any} */ (newAppState)?.['classrooms']),
           );
 
           window.stateManager.dispatch({
@@ -227,7 +249,7 @@ const actionHandlers = {
           }
         }
       })
-      .withFailureHandler(err => {
+      ['withFailureHandler']((/** @type {any} */ err) => {
         hideLoading();
         if (!window.isProduction) {
           debugLog('初期データ取得エラー: ' + err.message);
@@ -258,7 +280,7 @@ const actionHandlers = {
 
     // 入力値をsetState経由で保存
     const updatedRegistrationData = {
-      ...stateManager.getState().registrationData,
+      .../** @type {any} */ (stateManager.getState())?.['registrationData'],
       phone,
       realName,
       nickname: nickname || realName,
@@ -279,13 +301,14 @@ const actionHandlers = {
     const nickname = document.getElementById('reg-nickname')?.value;
     const phone = document.getElementById('reg-phone')?.value;
     if (realName || nickname || phone) {
+      const currentState = stateManager.getState();
       const updatedRegistrationData = {
-        ...stateManager.getState().registrationData,
+        ...currentState['registrationData'],
         realName:
-          realName || stateManager.getState().registrationData?.realName || '',
+          realName || currentState['registrationData']?.realName || '',
         nickname:
-          nickname || stateManager.getState().registrationData?.nickname || '',
-        phone: phone || stateManager.getState().registrationData?.phone || '',
+          nickname || currentState['registrationData']?.nickname || '',
+        phone: phone || currentState['registrationData']?.phone || '',
       };
       window.stateManager.dispatch({
         type: 'SET_STATE',
@@ -321,7 +344,7 @@ const actionHandlers = {
       type: 'SET_STATE',
       payload: {
         registrationData: {
-          ...stateManager.getState().registrationData,
+          .../** @type {any} */ (stateManager.getState())?.['registrationData'],
           ...step2Data,
         },
         registrationStep: 3,
@@ -349,7 +372,7 @@ const actionHandlers = {
       type: 'SET_STATE',
       payload: {
         registrationData: {
-          ...stateManager.getState().registrationData,
+          ...stateManager.getState()['registrationData'],
           ...step3Data,
         },
         registrationStep: 4,
@@ -376,17 +399,17 @@ const actionHandlers = {
     };
 
     const finalUserData = {
-      ...stateManager.getState().registrationData,
+      ...stateManager.getState()['registrationData'],
       ...step4Data,
     };
 
     showLoading('login');
     google.script.run
-      .withSuccessHandler(res => {
+      ['withSuccessHandler']((/** @type {any} */ res) => {
         if (res.success) {
           // 登録後、バッチ処理で初期データと空席情報を一括取得
           google.script.run
-            .withSuccessHandler(batchResult => {
+            ['withSuccessHandler']((/** @type {any} */ batchResult) => {
               if (batchResult.success) {
                 const newAppState = processInitialData(
                   batchResult.data.initial,
@@ -411,14 +434,14 @@ const actionHandlers = {
                 );
               }
             })
-            .withFailureHandler(handleServerError)
+            ['withFailureHandler'](handleServerError)
             .getBatchData(['initial', 'lessons'], res.user.phone);
         } else {
           hideLoading();
           showInfo(res.message || '登録に失敗しました');
         }
       })
-      .withFailureHandler(handleServerError)
+      ['withFailureHandler'](handleServerError)
       .registerNewUser(finalUserData);
   },
 
@@ -479,7 +502,7 @@ const actionHandlers = {
     // サーバーに送信
     showLoading();
     google.script.run
-      .withSuccessHandler(r => {
+      ['withSuccessHandler']((/** @type {any} */ r) => {
         hideLoading();
         if (!r.success) {
           showInfo(r.message || 'メモの保存に失敗しました');
@@ -487,7 +510,7 @@ const actionHandlers = {
           updateSingleHistoryCard(d.reservationId);
         }
       })
-      .withFailureHandler(handleServerError)
+      ['withFailureHandler'](handleServerError)
       .updateReservationMemoAndGetLatestData(
         d.reservationId,
         stateManager.getState().currentUser.studentId,
@@ -528,7 +551,7 @@ const actionHandlers = {
     };
     showLoading();
     google.script.run
-      .withSuccessHandler(res => {
+      ['withSuccessHandler']((/** @type {any} */ res) => {
         hideLoading();
         if (res.success) {
           // プロフィール更新後、キャッシュも更新されているのでそのまま状態更新
@@ -541,7 +564,7 @@ const actionHandlers = {
           showInfo(res.message || '更新に失敗しました');
         }
       })
-      .withFailureHandler(handleServerError)
+      ['withFailureHandler'](handleServerError)
       .updateUserProfile(u);
   },
 
@@ -562,7 +585,7 @@ const actionHandlers = {
     const normalizedSearchTerm = searchTerm.replace(/\s+/g, '').toLowerCase();
 
     google.script.run
-      .withSuccessHandler(response => {
+      ['withSuccessHandler']((/** @type {any} */ response) => {
         hideLoading();
         if (response.success) {
           // 【統一レスポンス形式】データ構造の修正
@@ -585,7 +608,7 @@ const actionHandlers = {
           showInfo(response.message || 'ユーザー検索に失敗しました。');
         }
       })
-      .withFailureHandler(handleServerError)
+      ['withFailureHandler'](handleServerError)
       .searchUsersWithoutPhone(searchTerm);
   },
 
@@ -605,7 +628,7 @@ const actionHandlers = {
 
     // バッチ処理で初期データ、空席情報、ユーザーデータを一括取得
     google.script.run
-      .withSuccessHandler(response => {
+      ['withSuccessHandler']((/** @type {any} */ response) => {
         if (response.success) {
           // tempUserの情報でcurrentUserを上書きしつつ、キャッシュデータを活用
           const userFromCache =
@@ -641,7 +664,7 @@ const actionHandlers = {
           showInfo(response.message || 'データの読み込みに失敗しました。');
         }
       })
-      .withFailureHandler(handleServerError)
+      ['withFailureHandler'](handleServerError)
       .getBatchData(
         ['initial', 'lessons', 'reservations'],
         null,
@@ -687,7 +710,7 @@ const actionHandlers = {
           cancelMessage: cancelMessage,
         };
         google.script.run
-          .withSuccessHandler(r => {
+          ['withSuccessHandler']((/** @type {any} */ r) => {
             hideLoading();
             if (r.success) {
               if (r.data) {
@@ -715,7 +738,7 @@ const actionHandlers = {
               showInfo(r.message || 'キャンセル処理に失敗しました。');
             }
           })
-          .withFailureHandler(err => {
+          ['withFailureHandler']((/** @type {any} */ err) => {
             // エラー時は画面を更新せず、元の状態を維持
             handleServerError(err);
           })
@@ -728,7 +751,7 @@ const actionHandlers = {
   confirmBooking: () => {
     // 初回の自動判定
     // isFirstTimeBooking を stateManager から取得
-    const isFirstTimeBooking = stateManager.getState().isFirstTimeBooking;
+    const isFirstTimeBooking = stateManager.getState()['isFirstTimeBooking'];
 
     // 現在見ている予約枠の時間情報を取得
     const selectedLesson = stateManager.getState().selectedLesson;
@@ -738,12 +761,19 @@ const actionHandlers = {
     const endTime = getTimeValue('res-end-time', null, 'endTime');
 
     // デバッグ用ログ
-    const actualClassroomType = selectedLesson?.schedule?.classroomType || selectedLesson?.classroomType;
+    const actualClassroomType =
+      selectedLesson?.schedule?.classroomType || selectedLesson?.classroomType;
     console.log(`実際のclassroomType: "${actualClassroomType}"`);
-    console.log(`classroom: "${selectedLesson?.schedule?.classroom || selectedLesson?.classroom}"`);
-    console.log(`date: "${selectedLesson?.schedule?.date || selectedLesson?.date}"`);
-    console.log(`比較結果: ${actualClassroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED}`);
-    
+    console.log(
+      `classroom: "${selectedLesson?.schedule?.classroom || selectedLesson?.classroom}"`,
+    );
+    console.log(
+      `date: "${selectedLesson?.schedule?.date || selectedLesson?.date}"`,
+    );
+    console.log(
+      `比較結果: ${actualClassroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED}`,
+    );
+
     if (actualClassroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
       console.log(`[セッション制] 時間設定: ${startTime} - ${endTime}`);
     } else {
@@ -766,35 +796,36 @@ const actionHandlers = {
     // バックエンドに送信する予約データを明示的に構築
     const p = {
       // 基本情報（selectedLessonから明示的に取得）
-      classroom: selectedLesson?.schedule?.classroom || selectedLesson?.classroom,
+      classroom:
+        selectedLesson?.schedule?.classroom || selectedLesson?.classroom,
       date: selectedLesson?.schedule?.date || selectedLesson?.date,
       venue: selectedLesson?.schedule?.venue || selectedLesson?.venue,
-      
+
       // 時間情報（教室形式に応じて調整済み）
       startTime: startTime,
       endTime: endTime,
-      
+
       // バックエンドとの互換性のため、ヘッダー形式も併記
       [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']: startTime,
       [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']: endTime,
-      
+
       // ユーザー情報
       user: stateManager.getState().currentUser,
       studentId: stateManager.getState().currentUser.studentId,
-      
+
       // 予約オプション
       options: bookingOptions,
-      
+
       // スケジュール詳細（バックエンドでの処理に必要）
       schedule: selectedLesson?.schedule,
-      
+
       // ステータス情報（必要に応じて）
       status: selectedLesson?.status,
-      isFull: selectedLesson?.isFull
+      isFull: selectedLesson?.isFull,
     };
 
     google.script.run
-      .withSuccessHandler(r => {
+      ['withSuccessHandler']((/** @type {any} */ r) => {
         hideLoading();
         if (r.success) {
           if (r.data) {
@@ -823,7 +854,7 @@ const actionHandlers = {
           showInfo(r.message || '予約に失敗しました。');
         }
       })
-      .withFailureHandler(handleServerError)
+      ['withFailureHandler'](handleServerError)
       .makeReservationAndGetLatestData(p);
   },
 
@@ -917,7 +948,7 @@ const actionHandlers = {
     };
     showLoading('booking');
     google.script.run
-      .withSuccessHandler(r => {
+      ['withSuccessHandler']((/** @type {any} */ r) => {
         hideLoading();
         if (r.success) {
           if (r.data) {
@@ -945,7 +976,7 @@ const actionHandlers = {
           showInfo(r.message || '更新に失敗しました。');
         }
       })
-      .withFailureHandler(handleServerError)
+      ['withFailureHandler'](handleServerError)
       .updateReservationDetailsAndGetLatestData(p);
   },
 
@@ -1026,7 +1057,7 @@ const actionHandlers = {
 
     // バックエンドから会計詳細を取得
     google.script.run
-      .withSuccessHandler(response => {
+      ['withSuccessHandler']((/** @type {any} */ response) => {
         hideLoading();
 
         if (!response.success) {
@@ -1145,7 +1176,7 @@ const actionHandlers = {
     ).length;
     const newRow = document.createElement('div');
     newRow.className = 'mt-4 pt-4 border-t border-ui-border-light';
-    newRow.dataset.materialRowIndex = newIndex;
+    newRow.dataset['materialRowIndex'] = newIndex;
     newRow.innerHTML = Components.materialRow({ index: newIndex });
     container.appendChild(newRow);
   },
@@ -1193,7 +1224,7 @@ const actionHandlers = {
       } else {
         showInfo('コピーに失敗しました。');
       }
-    } catch (err) {
+    } catch (/** @type {any} */ err) {
       showInfo('コピーに失敗しました。');
       // エラーログは開発環境でのみ出力
       if (typeof console !== 'undefined' && console.error) {
@@ -1206,7 +1237,7 @@ const actionHandlers = {
   /** 参加記録を追加で読み込みます（統合ホーム用） */
   loadMoreHistory: () => {
     const newCount =
-      stateManager.getState().recordsToShow +
+      stateManager.getState()['recordsToShow'] +
       (CONSTANTS.UI.HISTORY_LOAD_MORE_RECORDS || 10);
 
     window.stateManager.dispatch({
@@ -1242,9 +1273,9 @@ const actionHandlers = {
           console.log('🔘 モーダル内ボタン数:', modalButtons.length);
           modalButtons.forEach((btn, index) => {
             console.log(`🔘 ボタン${index + 1}:`, {
-              action: btn.dataset.action,
-              classroomName: btn.dataset.classroomName,
-              classroom: btn.dataset.classroom,
+              action: btn.dataset['action'],
+              classroomName: btn.dataset['classroomName'],
+              classroom: btn.dataset['classroom'],
               text: btn.textContent,
             });
           });
@@ -1380,7 +1411,7 @@ const actionHandlers = {
     // ローディングは既に親関数で表示済み
 
     google.script.run
-      .withSuccessHandler(response => {
+      ['withSuccessHandler']((/** @type {any} */ response) => {
         hideLoading();
 
         // デバッグログ追加（本番環境では無効化）

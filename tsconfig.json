@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "lib": ["es2020", "dom"],
+    "allowJs": true,
+    "checkJs": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "types": ["google-apps-script"],
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
+    "noImplicitReturns": false,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": false
+  },
+  "include": [
+    "src/**/*.js",
+    "types/**/*.js",
+    "types/**/*.d.ts",
+    "gas-globals.d.ts",
+    "html-globals.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "build-output",
+    "eslint.config.js",
+    "eslint.common.js",
+    "src/eslint.config.js"
+  ],
+  "typeAcquisition": {
+    "enable": true,
+    "include": ["google-apps-script"]
+  }
+}

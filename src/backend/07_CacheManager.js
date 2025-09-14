@@ -124,7 +124,7 @@ function rebuildAllReservationsCache() {
     // データ行を取得（パフォーマンス最適化：会計詳細列を除外して読み取り）
     const dataRowCount = integratedReservationSheet.getLastRow() - 1;
     const totalColumns = integratedReservationSheet.getLastColumn();
-    
+
     // データが空の場合の処理
     if (dataRowCount < 1) {
       Logger.log('統合予約シートにデータがありません。');
@@ -139,37 +139,42 @@ function rebuildAllReservationsCache() {
       );
       return;
     }
-    
+
     let allReservationRows;
-    
+
     if (accountingDetailsColumnIndex !== undefined && totalColumns > 1) {
       // 会計詳細列を除外して読み取り（大幅な高速化）
       const leftColumns = accountingDetailsColumnIndex; // 会計詳細列より前の列
       const rightColumns = totalColumns - accountingDetailsColumnIndex - 1; // 会計詳細列より後の列
-      
+
       let leftData = [];
       let rightData = [];
-      
+
       // 左側の列データを取得
       if (leftColumns > 0) {
         leftData = integratedReservationSheet
           .getRange(2, 1, dataRowCount, leftColumns)
           .getValues();
       }
-      
+
       // 右側の列データを取得
       if (rightColumns > 0) {
         rightData = integratedReservationSheet
-          .getRange(2, accountingDetailsColumnIndex + 2, dataRowCount, rightColumns)
+          .getRange(
+            2,
+            accountingDetailsColumnIndex + 2,
+            dataRowCount,
+            rightColumns,
+          )
           .getValues();
       }
-      
+
       // データを結合し、会計詳細列の位置に空文字を挿入
       allReservationRows = [];
       for (let i = 0; i < dataRowCount; i++) {
         const leftRow = leftData[i] || [];
         const rightRow = rightData[i] || [];
-        
+
         // 行データを構築：左側 + 空文字（会計詳細列） + 右側
         const fullRow = [...leftRow, '', ...rightRow];
         allReservationRows.push(fullRow);
@@ -221,7 +226,7 @@ function rebuildAllReservationsCache() {
     const sortedReservations = allReservationRows.sort((a, b) => {
       const dateA = new Date(a[dateColumnIndex]);
       const dateB = new Date(b[dateColumnIndex]);
-      return dateB - dateA; // 新しい順
+      return dateB.getTime() - dateA.getTime(); // 新しい順
     });
 
     // データサイズをチェックして分割キャッシュまたは通常キャッシュを決定
@@ -716,8 +721,8 @@ function triggerScheduledCacheRebuild() {
 /**
  * 指定されたキャッシュキーからデータを取得する汎用関数（キャッシュがない場合は自動再構築）
  * @param {string} cacheKey - キャッシュキー（CACHE_KEYS定数の使用推奨）
- * @param {boolean} autoRebuild - キャッシュがない場合に自動再構築するか（デフォルト: true）
- * @returns {object|null} キャッシュされたデータまたはnull
+ * @param {boolean} [autoRebuild=true] - キャッシュがない場合に自動再構築するか（デフォルト: true）
+ * @returns {{version: number, [key: string]: any} | null} キャッシュされたデータまたはnull
  */
 function getCachedData(cacheKey, autoRebuild = true) {
   try {
@@ -907,7 +912,6 @@ function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
   if (!data || data.length === 0) return [[]];
 
   const chunks = [];
-  let currentChunk = [];
 
   // アイテムあたりの平均サイズを推定（全データの10%をサンプル）
   const sampleSize = Math.min(Math.ceil(data.length * 0.1), 50);
