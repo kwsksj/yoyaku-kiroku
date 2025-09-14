@@ -10,17 +10,7 @@
 declare const CONSTANTS: Constants;
 declare const C: Constants;
 
-// フロントエンド（window オブジェクト）でのみ型定義
-declare interface Window {
-  CONSTANTS: Constants;
-  C: Constants;
-  STATUS: StatusConstants;
-  UI: UIConstants;
-  MESSAGES: MessagesConstants;
-  BANK: BankInfoConstants;
-  PAYMENT: PaymentDisplayConstants;
-  HEADERS: HeadersConstants;
-}
+// Window定義は types/index.d.ts で統合管理されています
 
 // バックエンド（GAS）環境では実際の const 宣言を使用
 

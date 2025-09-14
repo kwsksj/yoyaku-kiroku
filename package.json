@@ -8,13 +8,15 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "check-types": "tsc --noEmit",
     "format": "prettier --write \"**/*.{js,html,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,html,json,md}\"",
-    "lint": "eslint . --ext .js",
-    "lint:fix": "eslint . --ext .js --fix",
+    "lint": "eslint . --ext .js --ignore-pattern '*.d.ts'",
+    "lint:fix": "eslint . --ext .js --fix --ignore-pattern '*.d.ts'",
     "lint:md": "markdownlint \"**/*.md\"",
     "lint:md:fix": "markdownlint \"**/*.md\" --fix",
-    "check": "npm run format:check && npm run lint && npm run lint:md",
+    "check": "npm run format:check && npm run lint && npm run lint:md && npm run check-types",
+    "check:types-only": "npm run check-types",
     "build": "node tools/unified-build.js build",
     "watch": "node tools/unified-build.js watch",
     "switch:env": "node tools/switch-env.js",
@@ -52,6 +54,7 @@
     "eslint-plugin-googleappsscript": "^1.0.5",
     "globals": "^16.3.0",
     "markdownlint-cli": "^0.45.0",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2"
   }
 }

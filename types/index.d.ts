@@ -10,7 +10,7 @@
 
 // 既存型定義ファイルの参照
 /// <reference path="./constants.d.ts" />
-/// <reference path="./api-types.js" />
+/// <reference path="./api-types.d.ts" />
 /// <reference path="../gas-globals.d.ts" />
 /// <reference path="../html-globals.d.ts" />
 /// <reference path="../src/types.d.ts" />
@@ -101,7 +101,7 @@ declare class SpreadsheetManager {
 // 型定義の再エクスポート（型安全性確保）
 // =================================================================
 
-// API型定義（api-types.jsより）
+// API型定義（api-types.d.tsより）
 export type {
   ReservationInfo,
   UserInfo,
@@ -110,7 +110,7 @@ export type {
   LessonStatus,
   Lesson,
   ApiResponse
-} from './api-types.js';
+} from './api-types.d.ts';
 
 // アプリケーション型定義（src/types.d.tsより）
 export type {
