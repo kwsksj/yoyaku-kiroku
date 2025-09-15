@@ -1,3 +1,7 @@
+/// <reference path="../../types/gas-environment.d.ts" />
+/// <reference path="../../types/constants.d.ts" />
+/// <reference path="../../types/api-types.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 08_Utilities.gs
@@ -82,11 +86,11 @@ function findRowIndexByValue(sheet, col, value) {
 
 /**
  * 売上表に書き込むための単一の行データを作成する。
- * @param {object} baseInfo - 日付、名前などの基本情報。
+ * @param {SalesBaseInfo} baseInfo - 日付、名前などの基本情報。
  * @param {string} category - '授業料' or '物販'
  * @param {string} itemName - 商品名や授業内容。
  * @param {number} price - 金額。
- * @returns {Array} 売上表の1行分の配列。
+ * @returns {SalesRowArray} 売上表の1行分の配列。
  */
 function createSalesRow(baseInfo, category, itemName, price) {
   // 注意：この配列の順序は、実際の「売上ログ」シートの列の順序と一致させる必要があります。
@@ -294,8 +298,8 @@ function setupConditionalFormattingForLogSheet() {
 /**
  * 配列形式の予約データをオブジェクト形式に変換
  * フロントエンドの transformReservationArrayToObject と同じロジック
- * @param {Array} resArray - 配列形式の予約データ
- * @returns {Object|null} オブジェクト形式の予約データ
+ * @param {ReservationArrayData} resArray - 配列形式の予約データ
+ * @returns {RawReservationObject|null} オブジェクト形式の予約データ（生データ）
  */
 function transformReservationArrayToObject(resArray) {
   if (!Array.isArray(resArray) || resArray.length < 15) {
@@ -322,33 +326,33 @@ function transformReservationArrayToObject(resArray) {
   ] = resArray;
 
   return {
-    reservationId,
-    studentId,
-    date,
-    classroom,
-    venue,
+    reservationId: String(reservationId || ''),
+    studentId: String(studentId || ''),
+    date: date instanceof Date ? date : String(date || ''),
+    classroom: String(classroom || ''),
+    venue: String(venue || ''),
     startTime:
       startTime instanceof Date
         ? Utilities.formatDate(startTime, CONSTANTS.TIMEZONE, 'HH:mm')
-        : startTime,
+        : String(startTime || ''),
     endTime:
       endTime instanceof Date
         ? Utilities.formatDate(endTime, CONSTANTS.TIMEZONE, 'HH:mm')
-        : endTime,
-    status,
-    chiselRental,
-    firstLecture,
-    workInProgress,
-    order,
-    messageToTeacher: message,
+        : String(endTime || ''),
+    status: String(status || ''),
+    chiselRental: Boolean(chiselRental),
+    firstLecture: Boolean(firstLecture),
+    workInProgress: String(workInProgress || ''),
+    order: String(order || ''),
+    messageToTeacher: String(message || ''),
   };
 }
 
 /**
  * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
- * @param {Array} resArray - 予約データの配列
- * @param {Map} headerMap - ヘッダー名とインデックスのマッピング
- * @returns {Object|null} - 変換された予約オブジェクト、失敗時はnull
+ * @param {ReservationArrayData} resArray - 予約データの配列
+ * @param {HeaderMapType} headerMap - ヘッダー名とインデックスのマッピング
+ * @returns {RawReservationObject|null} - 変換された予約オブジェクト、失敗時はnull
  */
 function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
   if (!Array.isArray(resArray) || !headerMap) {
@@ -357,11 +361,17 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
 
   // ヘッダーマップから各フィールドのインデックスを取得
   // CacheServiceでシリアライゼーション後はMapオブジェクトが通常のオブジェクトになる可能性がある
+  /**
+   * @param {string} headerName
+   * @returns {number|undefined}
+   */
   const getIndex = headerName => {
-    if (headerMap.get && typeof headerMap.get === 'function') {
-      return headerMap.get(headerName); // Mapオブジェクトの場合
-    } else if (typeof headerMap === 'object') {
-      return headerMap[headerName]; // 通常のオブジェクトの場合
+    if (headerMap && typeof headerMap === 'object') {
+      if (headerMap.get && typeof headerMap.get === 'function') {
+        return /** @type {Map<string,number>} */ (headerMap).get(headerName);
+      } else {
+        return /** @type {Record<string,number>} */ (headerMap)[headerName];
+      }
     }
     return undefined;
   };
@@ -406,38 +416,98 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
   }
 
   return {
-    reservationId:
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID)],
-    studentId: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)],
-    date: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.DATE)],
-    classroom:
+    reservationId: String(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID)] || '',
+    ),
+    studentId: String(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)] || '',
+    ),
+    date: (() => {
+      const dateValue = resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.DATE)];
+      return dateValue instanceof Date ? dateValue : String(dateValue || '');
+    })(),
+    classroom: String(
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM)] ||
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)],
-    venue: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)],
+        resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)] ||
+        '',
+    ),
+    venue: String(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)] || '',
+    ),
     startTime: (() => {
       const time =
         resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)];
       return time instanceof Date
         ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
-        : time;
+        : String(time || '');
     })(),
     endTime: (() => {
       const time = resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.END_TIME)];
       return time instanceof Date
         ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
-        : time;
+        : String(time || '');
     })(),
-    status: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)],
-    chiselRental:
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)],
-    firstLecture:
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)],
-    workInProgress:
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)],
-    order: resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.ORDER)],
-    messageToTeacher:
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER)],
+    status: String(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)] || '',
+    ),
+    chiselRental: Boolean(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)]
+    ),
+    firstLecture: Boolean(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)]
+    ),
+    workInProgress: String(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)] || '',
+    ),
+    order: String(resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.ORDER)] || ''),
+    messageToTeacher: String(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER)] ||
+        '',
+    ),
   };
+}
+
+/**
+ * 生データの予約オブジェクトを正規化済みオブジェクトに変換
+ * @param {RawReservationObject} rawReservation - 生データの予約オブジェクト
+ * @returns {ReservationObject|null} 正規化済み予約オブジェクト
+ */
+function normalizeReservationObject(rawReservation) {
+  if (!rawReservation) return null;
+
+  try {
+    return {
+      reservationId: String(rawReservation.reservationId || ''),
+      studentId: String(rawReservation.studentId || ''),
+      date:
+        rawReservation.date instanceof Date
+          ? rawReservation.date
+          : String(rawReservation.date || ''),
+      classroom: String(rawReservation.classroom || ''),
+      venue: rawReservation.venue ? String(rawReservation.venue) : undefined,
+      startTime:
+        rawReservation.startTime instanceof Date
+          ? rawReservation.startTime
+          : String(rawReservation.startTime || ''),
+      endTime:
+        rawReservation.endTime instanceof Date
+          ? rawReservation.endTime
+          : String(rawReservation.endTime || ''),
+      status: String(rawReservation.status || ''),
+      chiselRental: Boolean(rawReservation.chiselRental),
+      firstLecture: Boolean(rawReservation.firstLecture),
+      workInProgress: rawReservation.workInProgress
+        ? String(rawReservation.workInProgress)
+        : undefined,
+      order: rawReservation.order ? String(rawReservation.order) : undefined,
+      messageToTeacher: rawReservation.messageToTeacher
+        ? String(rawReservation.messageToTeacher)
+        : undefined,
+    };
+  } catch (error) {
+    Logger.log(`予約データ正規化エラー: ${error.message}`);
+    return null;
+  }
 }
 
 // ===================================================================
@@ -446,7 +516,7 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
 
 /**
  * スクリプトロックを利用して処理をアトミックに実行する
- * @param {function} callback - 実行する処理
+ * @param {TransactionCallback} callback - 実行する処理
  * @returns {*} callbackの戻り値
  */
 function withTransaction(callback) {
@@ -462,7 +532,7 @@ function withTransaction(callback) {
 /**
  * シートからヘッダーとデータを一度に取得する共通関数。
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象のシート
- * @returns {object} - { header, headerMap, allData, dataRows }
+ * @returns {SheetDataResult} - { header, headerMap, allData, dataRows }
  */
 function getSheetData(sheet) {
   if (!sheet) throw new Error('シートが見つかりません。');
@@ -487,8 +557,8 @@ function getSheetData(sheet) {
  * シートからヘッダーとデータを一度に取得し、指定した条件でレコードを検索する共通関数。
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象のシート
  * @param {string} searchColumn - 検索対象のヘッダー名
- * @param {*} searchValue - 検索する値
- * @returns {object} - { header, headerMap, allData, dataRows, foundRow, rowIndex, searchColIdx }
+ * @param {string|number|Date|boolean|null} searchValue - 検索する値
+ * @returns {SheetSearchResult} - { header, headerMap, allData, dataRows, foundRow, rowIndex, searchColIdx }
  */
 function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
   const { header, headerMap, allData, dataRows } = getSheetData(sheet);
@@ -524,11 +594,11 @@ function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
 // ===================================================================
 
 /**
- * 特定日・教室の予約データを取得する
+ * 特定日・教室の予約データを取得する（生データ）
  * @param {string} date - 検索対象の日付（yyyy-MM-dd形式）
  * @param {string} classroom - 教室名
  * @param {string} status - ステータス（省略可、デフォルトは確定済み予約のみ）
- * @returns {Array} 条件に合致する予約配列
+ * @returns {CachedReservationResult[]} 条件に合致する予約配列
  */
 function getCachedReservationsFor(
   date,
@@ -536,9 +606,10 @@ function getCachedReservationsFor(
   status = CONSTANTS.STATUS.CONFIRMED,
 ) {
   const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-  if (!reservationsCache?.reservations) return [];
+  if (!reservationsCache?.['reservations']) return [];
 
-  const { reservations, headerMap } = reservationsCache;
+  const reservations = reservationsCache['reservations'];
+  const headerMap = reservationsCache['headerMap'];
 
   // ヘッダーマップの有効性確認
   if (!headerMap) {
@@ -546,9 +617,10 @@ function getCachedReservationsFor(
     return [];
   }
 
-  const dateColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
-  const classroomColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM];
-  const statusColIdx = headerMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS];
+  const typedHeaderMap = /** @type {{ [key: string]: number }} */ (headerMap);
+  const dateColIdx = typedHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
+  const classroomColIdx = typedHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM];
+  const statusColIdx = typedHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS];
 
   // 必要なインデックスが取得できているか確認
   if (
@@ -562,39 +634,68 @@ function getCachedReservationsFor(
     return [];
   }
 
-  return reservations
-    .filter(row => {
-      // データ構造修正: キャッシュは直接配列を格納しているため、r.dataではなくrを直接使用
-      if (!row || !Array.isArray(row)) {
-        Logger.log(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(row)}`);
-        return false;
-      }
-      return (
-        row[dateColIdx] === date &&
-        row[classroomColIdx] === classroom &&
-        (!status || row[statusColIdx] === status)
-      );
-    })
-    .map(row => ({ data: row })); // 戻り値を既存のAPIに合わせる
+  return /** @type {ReservationArrayData[]} */ (reservations)
+    .filter(
+      /** @param {ReservationArrayData} row */ row => {
+        // データ構造修正: キャッシュは直接配列を格納しているため、r.dataではなくrを直接使用
+        if (!row || !Array.isArray(row)) {
+          Logger.log(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(row)}`);
+          return false;
+        }
+        return (
+          row[dateColIdx] === date &&
+          row[classroomColIdx] === classroom &&
+          (!status || row[statusColIdx] === status)
+        );
+      },
+    )
+    .map(/** @param {ReservationArrayData} row */ row => ({ data: row })); // 戻り値を既存のAPIに合わせる
+}
+
+/**
+ * 特定日・教室の正規化済み予約データを取得する（推奨API）
+ * @param {string} date - 検索対象の日付（yyyy-MM-dd形式）
+ * @param {string} classroom - 教室名
+ * @param {string} status - ステータス（省略可、デフォルトは確定済み予約のみ）
+ * @returns {ReservationObject[]} 条件に合致する正規化済み予約配列
+ */
+function getNormalizedReservationsFor(
+  date,
+  classroom,
+  status = CONSTANTS.STATUS.CONFIRMED,
+) {
+  const rawReservations = getCachedReservationsFor(date, classroom, status);
+  const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  if (!reservationsCache?.['headerMap']) return [];
+
+  const headerMap = reservationsCache['headerMap'];
+
+  return rawReservations
+    .map(result =>
+      transformReservationArrayToObjectWithHeaders(result.data, /** @type {{ [key: string]: number }} */ (headerMap)),
+    )
+    .map(rawReservation => normalizeReservationObject(rawReservation))
+    .filter(reservation => reservation !== null);
 }
 
 /**
  * 生徒IDから生徒情報を取得する
  * @param {string} studentId - 生徒ID
- * @returns {Object|null} 生徒オブジェクト、見つからない場合はnull
+ * @returns {StudentData|null} 生徒オブジェクト、見つからない場合はnull
  */
 function getCachedStudentById(studentId) {
   const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-  if (!studentsCache?.students) return null;
+  if (!studentsCache?.['students']) return null;
 
-  return studentsCache.students[studentId] || null;
+  const students = /** @type {{ [key: string]: StudentData }} */ (studentsCache['students']);
+  return students[studentId] || null;
 }
 
 /**
  * 予約配列データを統一的にオブジェクト配列に変換する
- * @param {Array} reservations - 予約配列データ
- * @param {Object} headerMap - ヘッダーマップ
- * @returns {Array} 変換済み予約オブジェクト配列
+ * @param {ReservationArrayData[]} reservations - 予約配列データ
+ * @param {HeaderMapType} headerMap - ヘッダーマップ
+ * @returns {RawReservationObject[]} 変換済み予約オブジェクト配列（生データ）
  */
 function convertReservationsToObjects(reservations, headerMap) {
   return reservations
@@ -612,15 +713,19 @@ function convertReservationsToObjects(reservations, headerMap) {
 
 /**
  * ヘッダーマップから安全にインデックスを取得する
- * @param {Map|Object} headerMap - ヘッダーマップ
+ * @param {HeaderMapType} headerMap - ヘッダーマップ
  * @param {string} headerName - ヘッダー名
  * @returns {number|undefined} 列インデックス
  */
 function getHeaderIndex(headerMap, headerName) {
-  if (headerMap?.get && typeof headerMap.get === 'function') {
+  if (!headerMap) return undefined;
+  if (typeof headerMap.get === 'function') {
     return headerMap.get(headerName);
   }
-  return headerMap?.[headerName];
+  if (typeof headerMap === 'object' && headerName in headerMap) {
+    return /** @type {Record<string,number>} */ (headerMap)[headerName];
+  }
+  return undefined;
 }
 
 // ===================================================================
@@ -630,7 +735,7 @@ function getHeaderIndex(headerMap, headerName) {
 /**
  * 電話番号を正規化します（全角→半角、ハイフン削除、バリデーション）
  * @param {string} phoneInput - 入力された電話番号
- * @returns {{normalized: string, isValid: boolean, error?: string}} 正規化結果
+ * @returns {PhoneNormalizationResult} 正規化結果
  */
 function normalizePhoneNumber(phoneInput) {
   if (!phoneInput || typeof phoneInput !== 'string') {

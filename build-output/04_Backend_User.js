@@ -1,3 +1,6 @@
+/// <reference path="../../types/gas-environment.d.ts" />
+/// <reference path="../../types/api-types.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 04_Backend_User.gs
@@ -51,8 +54,8 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
 /**
  * キャッシュデータから個人用データを抽出する
  * @param {string} studentId - 生徒ID
- * @param {import('../../types/index.d.ts').AppInitialData} cacheData - getAppInitialDataから取得したキャッシュデータ
- * @returns {{myReservations: any[]}} - 個人の予約、履歴、利用可能枠データ
+ * @param {AppInitialData} cacheData - getAppInitialDataから取得したキャッシュデータ
+ * @returns {PersonalDataResult} - 個人の予約、履歴、利用可能枠データ
  */
 function extractPersonalDataFromCache(studentId, cacheData) {
   try {
@@ -81,7 +84,9 @@ function extractPersonalDataFromCache(studentId, cacheData) {
     Logger.log(
       `個人データ抽出完了: 予約件数${myReservations.length}件（キャンセル除く）`,
     );
-    return { myReservations };
+    return {
+      myReservations: /** @type {ReservationDataArray} */ (myReservations),
+    };
   } catch (error) {
     Logger.log(`extractPersonalDataFromCacheエラー: ${error.message}`);
     return {
@@ -93,7 +98,7 @@ function extractPersonalDataFromCache(studentId, cacheData) {
 /**
  * 電話番号を元にユーザーを認証します。スプレッドシートは読まず、キャッシュから認証します。
  * @param {string} phoneNumber - 認証に使用する電話番号。
- * @returns {import('../../types/api-types.d.ts').AuthenticationResponse} - 認証結果と初期化データ
+ * @returns {AuthenticationResponse} - 認証結果と初期化データ
  */
 function authenticateUser(phoneNumber) {
   try {
@@ -135,7 +140,7 @@ function authenticateUser(phoneNumber) {
       if (storedPhone && storedPhone === normalizedInputPhone) {
         foundUser = {
           studentId: student.studentId,
-          displayName: student.nickname,
+          displayName: String(student['nickname'] || student.realName),
           realName: student.realName,
           phone: student.phone,
         };
@@ -234,8 +239,8 @@ function getUsersWithoutPhoneNumber() {
 
 /**
  * 新規ユーザーを生徒名簿に登録します。
- * @param {import('../../types/index.d.ts').NewUserRegistration} userInfo - 新規ユーザー情報
- * @returns {import('../../types/index.d.ts').ApiResponseGeneric<any>}
+ * @param {NewUserRegistration} userInfo - 新規ユーザー情報
+ * @returns {ApiResponseGeneric<UserRegistrationResult>}
  */
 function registerNewUser(userInfo) {
   return withTransaction(() => {
@@ -415,15 +420,18 @@ function _isValidEmail(email) {
 
 /**
  * ユーザーのプロフィール（本名、ニックネーム、電話番号、メールアドレス）を更新します。
- * @param {import('../../types/index.d.ts').UserProfileUpdate} userInfo - プロフィール更新情報
- * @returns {import('../../types/index.d.ts').ApiResponseGeneric<{updatedUser: object}>}
+ * @param {UserProfileUpdate} userInfo - プロフィール更新情報
+ * @returns {ApiResponseGeneric<UserProfileUpdateResult>}
  */
 function updateUserProfile(userInfo) {
   return withTransaction(() => {
     try {
       // 新しいヘルパー関数を使用して生徒データを取得
       /** @type {{rowIndex?: number, studentId: string, realName: string, nickname: string, phone: string} | null} */
-      const targetStudent = /** @type {{rowIndex?: number, studentId: string, realName: string, nickname: string, phone: string} | null} */ (getCachedStudentById(userInfo.studentId));
+      const targetStudent =
+        /** @type {{rowIndex?: number, studentId: string, realName: string, nickname: string, phone: string} | null} */ (
+          /** @type {unknown} */ (getCachedStudentById(userInfo.studentId))
+        );
       if (!targetStudent) {
         throw new Error('更新対象のユーザーが見つかりませんでした。');
       }

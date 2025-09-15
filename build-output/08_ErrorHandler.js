@@ -1,3 +1,7 @@
+/// <reference path="../../types/gas-environment.d.ts" />
+/// <reference path="../../types/constants.d.ts" />
+/// <reference path="../../types/api-types.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 08_ErrorHandler.js
@@ -19,8 +23,8 @@ class BackendErrorHandler {
    * エラーを処理し、構造化ログを出力
    * @param {Error} error - 処理するエラーオブジェクト
    * @param {string} context - エラーが発生したコンテキスト
-   * @param {Object} additionalInfo - 追加情報（オプション）
-   * @returns {Object} 統一APIレスポンス形式のエラーオブジェクト
+   * @param {Record<string, unknown>} additionalInfo - 追加情報（オプション）
+   * @returns {ApiErrorResponse} 統一APIレスポンス形式のエラーオブジェクト
    */
   static handle(error, context = '', additionalInfo = {}) {
     const errorInfo = {
@@ -43,8 +47,8 @@ class BackendErrorHandler {
    * 統一APIレスポンス形式のエラーレスポンスを作成
    * @param {string} message - ユーザー向けエラーメッセージ
    * @param {string} context - エラーコンテキスト
-   * @param {Object} errorInfo - エラー詳細情報
-   * @returns {Object} 統一APIレスポンス
+   * @param {ErrorInfo} errorInfo - エラー詳細情報
+   * @returns {ApiErrorResponse} 統一APIレスポンス
    */
   static createErrorResponse(message, context, errorInfo) {
     return {
@@ -87,7 +91,7 @@ class BackendErrorHandler {
 
   /**
    * 重要なエラーについて管理者に通知
-   * @param {Object} errorInfo - エラー情報
+   * @param {ErrorInfo} errorInfo - エラー情報
    * @param {boolean} isCritical - 重要なエラーかどうか
    */
   static notifyAdmin(errorInfo, isCritical = false) {
@@ -239,6 +243,9 @@ window.addEventListener('unhandledrejection', (event) => {
 /**
  * 既存のhandleServerError関数との互換性を保つラッパー関数
  * 段階的移行のため既存コードとの互換性を維持
+ * @param {Error} error - エラーオブジェクト
+ * @param {string} context - エラーコンテキスト
+ * @returns {ApiErrorResponse} エラーレスポンス
  */
 function handleServerError(error, context = 'server-error') {
   return BackendErrorHandler.handle(error, context);
@@ -247,28 +254,31 @@ function handleServerError(error, context = 'server-error') {
 /**
  * 統一APIレスポンス作成関数
  * @param {boolean} success - 成功フラグ
- * @param {Object} data - レスポンスデータまたはエラー情報
- * @returns {Object} 統一APIレスポンス
+ * @param {ApiResponseData} data - レスポンスデータまたはエラー情報
+ * @returns {UnifiedApiResponse} 統一APIレスポンス
  */
 function createApiResponse(success, data = {}) {
-  const baseResponse = {
-    success: success,
-    meta: {
-      timestamp: new Date().toISOString(),
-      version: 1,
-    },
-  };
-
   if (success) {
+    /** @type {ApiSuccessResponse} */
     return {
-      ...baseResponse,
+      success: true,
       data: data.data || data,
       message: data.message || 'Success',
+      meta: {
+        timestamp: new Date().toISOString(),
+        version: 1,
+      },
     };
   } else {
+    /** @type {ApiErrorResponse} */
     return {
-      ...baseResponse,
+      success: false,
       message: data.message || 'Error occurred',
+      meta: {
+        timestamp: new Date().toISOString(),
+        context: data.context || 'unknown',
+        errorId: BackendErrorHandler.generateErrorId(),
+      },
       ...(data.debug && { debug: data.debug }),
     };
   }

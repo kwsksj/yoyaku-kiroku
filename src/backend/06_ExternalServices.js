@@ -1,3 +1,7 @@
+/// <reference path="../../types/gas-environment.d.ts" />
+/// <reference path="../../types/constants.d.ts" />
+/// <reference path="../../types/api-types.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 06_ExternalServices.js
@@ -23,8 +27,8 @@
 
 /**
  * 予約確定メール送信機能
- * @param {Object} reservation - 予約情報
- * @param {Object} student - 生徒情報（メールアドレス含む）
+ * @param {ReservationForEmail} reservation - 予約情報
+ * @param {StudentWithEmail} student - 生徒情報（メールアドレス含む）
  * @param {boolean} isFirstTime - 初回予約フラグ
  * @returns {boolean} 送信成功・失敗
  */
@@ -91,10 +95,10 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
 
 /**
  * メールテンプレート生成（初回者・経験者対応）
- * @param {Object} reservation - 予約情報
- * @param {Object} student - 生徒情報
+ * @param {ReservationForEmail} reservation - 予約情報
+ * @param {StudentWithEmail} student - 生徒情報
  * @param {boolean} isFirstTime - 初回予約フラグ
- * @returns {Object} subject, htmlBody, textBody を含むオブジェクト
+ * @returns {EmailTemplate} subject, htmlBody, textBody を含むオブジェクト
  */
 function createBookingConfirmationTemplate(reservation, student, isFirstTime) {
   // 基本情報の抽出
@@ -134,6 +138,11 @@ function createBookingConfirmationTemplate(reservation, student, isFirstTime) {
 
 /**
  * 初回者向けテキストメール生成
+ * @param {ReservationForEmail} reservation - 予約情報
+ * @param {StudentWithEmail} student - 生徒情報
+ * @param {string} formattedDate - フォーマット済み日付
+ * @param {string} statusText - ステータステキスト
+ * @returns {string} メール本文テキスト
  */
 function createFirstTimeEmailText(
   reservation,
@@ -176,6 +185,11 @@ ${getContactAndVenueInfoText()}`;
 
 /**
  * 経験者向けテキストメール生成
+ * @param {ReservationForEmail} reservation - 予約情報
+ * @param {StudentWithEmail} student - 生徒情報
+ * @param {string} formattedDate - フォーマット済み日付
+ * @param {string} statusText - ステータステキスト
+ * @returns {string} メール本文テキスト
  */
 function createRegularEmailText(
   reservation,
@@ -223,25 +237,32 @@ ${getContactAndVenueInfoText()}
 function getTuitionDisplayText(classroom, isFirstTime) {
   try {
     // 会計マスタから価格データを取得
-    const accountingData = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
-    if (!accountingData || !accountingData.items) {
+    /** @type {AccountingCacheData | null} */
+    const accountingData = /** @type {AccountingCacheData | null} */ (
+      getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA)
+    );
+    if (!accountingData || !accountingData['items']) {
       // キャッシュが無い場合は文字列のみ返す
       return isFirstTime ? '初回授業料' : '通常授業料';
     }
 
-    const masterData = accountingData.items;
+    const masterData = accountingData['items'];
     const itemName = isFirstTime
       ? CONSTANTS.ITEMS.FIRST_LECTURE
       : CONSTANTS.ITEMS.MAIN_LECTURE;
 
     // 教室固有の料金ルールを検索
     const tuitionRule = masterData.find(
+      /** @param {AccountingMasterItem} item */
       item =>
         item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
           CONSTANTS.ITEM_TYPES.TUITION &&
         item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
-        item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] &&
-        item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM].includes(classroom),
+        typeof item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] ===
+          'string' &&
+        /** @type {string} */ (
+          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]
+        ).includes(classroom),
     );
 
     if (tuitionRule) {
@@ -256,6 +277,7 @@ function getTuitionDisplayText(classroom, isFirstTime) {
 
     // 教室固有ルールが無い場合は基本料金を検索
     const basicRule = masterData.find(
+      /** @param {AccountingMasterItem} item */
       item =>
         item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
           CONSTANTS.ITEM_TYPES.TUITION &&
@@ -280,6 +302,10 @@ function getTuitionDisplayText(classroom, isFirstTime) {
 
 /**
  * 共通の申込み内容セクション生成（テキスト版）
+ * @param {ReservationForEmail} reservation - 予約情報
+ * @param {string} formattedDate - フォーマット済み日付
+ * @param {string} statusText - ステータステキスト
+ * @returns {string} 申込み内容テキスト
  */
 function createBookingDetailsText(reservation, formattedDate, statusText) {
   const { classroom, venue, startTime, endTime, options = {} } = reservation;
@@ -447,17 +473,21 @@ X (Twitter) @kibori_class
 
 /**
  * 非同期メール送信関数（予約処理統合用）
- * @param {Object} reservationInfo - 予約情報
+ * @param {ReservationInfo} reservationInfo - 予約情報
  * @global getStudentWithEmail
  */
 function sendBookingConfirmationEmailAsync(reservationInfo) {
   const { studentId, options = {} } = reservationInfo;
 
   // 初回フラグの取得（reservationInfoから）
-  const isFirstTime = options.firstLecture || false;
+  const isFirstTime =
+    /** @type {{ firstLecture?: boolean }} */ (options).firstLecture || false;
 
   // 生徒情報（メールアドレス含む）を取得
-  const studentWithEmail = getStudentWithEmail(studentId);
+  /** @type {StudentWithEmail | null} */
+  const studentWithEmail = /** @type {StudentWithEmail | null} */ (
+    getStudentWithEmail(studentId)
+  );
 
   if (!studentWithEmail || !studentWithEmail.email) {
     if (isFirstTime) {

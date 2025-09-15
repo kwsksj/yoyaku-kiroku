@@ -1,3 +1,5 @@
+/// <reference path="../../types/gas-environment.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 00_SpreadsheetManager.js

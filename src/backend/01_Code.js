@@ -1,3 +1,7 @@
+/// <reference path="../../types/gas-environment.d.ts" />
+/// <reference path="../../types/constants.d.ts" />
+/// <reference path="../../types/api-types.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 01_Code.gs
@@ -141,7 +145,7 @@ function addCacheMenu(menu) {
 /**
  * インストール型トリガー：シート変更時に実行。
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processChange` へ委譲します。
- * @param {any} _e - Google Sheets のイベントオブジェクト
+ * @param {GoogleAppsScript.Events.SheetsOnChange} _e - Google Sheets のイベントオブジェクト
  */
 function handleOnChange(_e) {
   const lock = LockService.getScriptLock();
@@ -158,7 +162,7 @@ function handleOnChange(_e) {
 /**
  * インストール型トリガー：シート編集時に実行。
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processCellEdit` へ委譲します。
- * @param {any} _e - Google Sheets のイベントオブジェクト
+ * @param {GoogleAppsScript.Events.SheetsOnEdit} _e - Google Sheets のイベントオブジェクト
  */
 function handleEdit(_e) {
   const lock = LockService.getScriptLock();

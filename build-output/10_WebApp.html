@@ -77,53 +77,24 @@
   // 00_Constants.js (自動注入 from backend)
   // =================================================================
 
+/// <reference path="../../types/gas-environment.d.ts" />
+/// <reference path="../../types/constants.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 00_Constants.js
- * 【バージョン】: 1.1
+ * 【バージョン】: 1.2
  * 【役割】: プロジェクト全体で使用する統一定数定義システム
- *
- * 【主要機能】:
- * ✅ 統一定数管理
- *   - 教室名、ヘッダー名、項目名、ステータス等の一元管理
- *   - フロントエンドとバックエンド間での定数重複を完全解消
- *   - 階層構造による論理的な定数分類（CONSTANTS オブジェクト）
- *
- * ✅ 後方互換性システム
- *   - 既存コードとの互換性を保つための後方互換性定数
- *   - 段階的移行を可能にする設計
- *   - 全33ヘッダー、項目名、ステータス等の完全対応
- *
- * ✅ 真実の情報源（Single Source of Truth）
- *   - 定数変更時の一箇所修正で全体反映
- *   - 定数の不整合や同期漏れを完全排除
- *   - 開発効率と保守性の大幅向上
- *
- * 【v1.1での変更点】:
- * - フェーズ1リファクタリング完了: 全定数の統一管理を実現
- * - 完全なヘッダー後方互換性対応（全33ヘッダー）
- * - 01_Code.js との重複定義完全解消
- * - 階層構造による論理的定数分類の確立
- * - 統一定数アクセスパターンの標準化
- *
- * 【構成】: 18ファイル構成のうちの0番目（新規追加、基盤ファイル）
- * 【依存関係】: なし（他の全ファイルがこのファイルに依存）
+ * 【v1.2での変更点】:
+ * - JSDocを修正し、グローバル型定義との競合を解消
  * =================================================================
  */
 
-// =================================================================
-// 1段階目: 個別定数オブジェクト（型チェック対応）
-// =================================================================
-
-// =================================================================
-// 2段階目: CONSTANTS統合オブジェクト（AI理解性向上）
-// =================================================================
-
 /**
  * プロジェクト全体で使用する統一定数オブジェクト
- * 階層構造により論理的に分類された定数を管理
+ * 型定義は types/constants.d.ts で定義されています
  */
-const CONSTANTS = /** @type {const} */ ({
+const CONSTANTS = {
   // タイムゾーン設定
   TIMEZONE: 'Asia/Tokyo',
 
@@ -240,8 +211,8 @@ const CONSTANTS = /** @type {const} */ ({
   MESSAGES: {
     PROCESSING_INTERRUPTED: '処理を中断しました。',
     SHEET_INITIALIZATION: '日程マスタシートの初期化',
-    EXISTING_SHEET_WARNING:
-      '「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）',
+    EXISTING_SHEET_WARNING: `「日程マスタ」シートは既に存在します。
+初期化しますか？（既存データは削除されます）`,
     SUCCESS: '成功',
     ERROR: 'エラー',
     CANCEL: 'キャンセル',
@@ -382,7 +353,7 @@ const CONSTANTS = /** @type {const} */ ({
     ARCHIVE_PREFIX: 'アーカイブ_',
     DATA_START_ROW: 2,
   },
-});
+};
 
 // =================================================================
 // 環境設定・デバッグ制御
@@ -420,7 +391,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-14T15:09:42.073Z
+   * Generated: 2025-09-15T22:45:35.105Z
    * =================================================================
    */
 
@@ -429,7 +400,7 @@ const ENVIRONMENT_CONFIG = {
   // =================================================================
 
   // @ts-check
-  /// <reference path="../types.d.ts" />
+  /// <reference path="../../types/dev-environment.d.ts" />
 
   /**
    * =================================================================
@@ -1414,7 +1385,7 @@ const ENVIRONMENT_CONFIG = {
   // =================================================================
 
   // @ts-check
-  /// <reference path="../types.d.ts" />
+  /// <reference path="../../types/dev-environment.d.ts" />
 
   /**
    * =================================================================
@@ -2964,7 +2935,7 @@ const ENVIRONMENT_CONFIG = {
   // =================================================================
 
   // @ts-check
-  /// <reference path="../types.d.ts" />
+  /// <reference path="../../types/dev-environment.d.ts" />
 
   /**
    * =================================================================
@@ -3366,7 +3337,7 @@ const ENVIRONMENT_CONFIG = {
   // =================================================================
 
   // @ts-check
-  /// <reference path="../types.d.ts" />
+  /// <reference path="../../types/dev-environment.d.ts" />
 
   /**
    * =================================================================
@@ -4601,7 +4572,7 @@ const ENVIRONMENT_CONFIG = {
   // =================================================================
 
   // @ts-check
-  /// <reference path="../types.d.ts" />
+  /// <reference path="../../types/dev-environment.d.ts" />
 
   /**
    * =================================================================
@@ -6749,7 +6720,7 @@ const ENVIRONMENT_CONFIG = {
   // =================================================================
 
   // @ts-check
-  /// <reference path="../types.d.ts" />
+  /// <reference path="../../types/dev-environment.d.ts" />
 
   /**
    * =================================================================
@@ -6774,7 +6745,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * 時刻データを適切に取得するヘルパー関数
    * @param {string} elementId - 時刻入力要素のID
-   * @param {object} reservationData - 予約データ（フォールバック用）
+   * @param {any} reservationData - 予約データ（フォールバック用）
    * @param {string} timeField - 時刻フィールド名（'startTime' or 'endTime'）
    * @returns {string} 時刻文字列（HH:mm形式）
    */
@@ -7054,10 +7025,8 @@ const ENVIRONMENT_CONFIG = {
         const currentState = stateManager.getState();
         const updatedRegistrationData = {
           ...currentState['registrationData'],
-          realName:
-            realName || currentState['registrationData']?.realName || '',
-          nickname:
-            nickname || currentState['registrationData']?.nickname || '',
+          realName: realName || currentState['registrationData']?.realName || '',
+          nickname: nickname || currentState['registrationData']?.nickname || '',
           phone: phone || currentState['registrationData']?.phone || '',
         };
         window.stateManager.dispatch({
@@ -7153,49 +7122,50 @@ const ENVIRONMENT_CONFIG = {
         ...step4Data,
       };
 
-      showLoading('login');
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ res) => {
-          if (res.success) {
-            // 登録後、バッチ処理で初期データと空席情報を一括取得
-            google.script.run
-              ['withSuccessHandler']((/** @type {any} */ batchResult) => {
-                if (batchResult.success) {
-                  const newAppState = processInitialData(
-                    batchResult.data.initial,
-                    res.user.phone,
-                    batchResult.data.lessons,
-                  );
+      showLoading();
+      google.script.run['withSuccessHandler']((/** @type {any} */ res) => {
+        if (res.success) {
+          // 登録後、バッチ処理で初期データと空席情報を一括取得
+          google.script.run['withSuccessHandler'](
+            (/** @type {any} */ batchResult) => {
+              if (batchResult.success) {
+                const newAppState = processInitialData(
+                  batchResult.data.initial,
+                  res.user.phone,
+                  batchResult.data.lessons,
+                );
 
-                  window.stateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: {
-                      ...newAppState,
-                      currentUser: res.user,
-                      view: 'dashboard',
-                    },
-                  });
-                  hideLoading();
-                } else {
-                  hideLoading();
-                  showInfo(
-                    batchResult.message || 'データの取得に失敗しました',
-                    'エラー',
-                  );
-                }
-              })
-              ['withFailureHandler'](handleServerError)
-              .getBatchData(['initial', 'lessons'], res.user.phone);
-          } else {
-            hideLoading();
-            showInfo(res.message || '登録に失敗しました');
-          }
-        })
+                window.stateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: {
+                    ...newAppState,
+                    currentUser: res.user,
+                    view: 'dashboard',
+                  },
+                });
+                hideLoading();
+              } else {
+                hideLoading();
+                showInfo(
+                  batchResult.message || 'データの取得に失敗しました',
+                  'エラー',
+                );
+              }
+            },
+          )
+            ['withFailureHandler'](handleServerError)
+            .getBatchData(['initial', 'lessons']);
+        } else {
+          hideLoading();
+          showInfo(res.message || '登録に失敗しました');
+        }
+      })
         ['withFailureHandler'](handleServerError)
         .registerNewUser(finalUserData);
     },
 
-    /** きろくカードの確認/編集ボタン */
+    /** きろくカードの確認/編集ボタン
+     * @param {any} d */
     expandHistoryCard: d => {
       // 履歴データを取得
       const item = stateManager
@@ -7204,21 +7174,22 @@ const ENVIRONMENT_CONFIG = {
       if (!item) return;
 
       // 編集モード状態をトグル
-      const isCurrentlyEditing = stateManager.isInEditMode(d.reservationId);
+      const isCurrentlyEditing = stateManager.isInEditMode();
 
       if (isCurrentlyEditing) {
         // 編集モード解除
-        stateManager.endEditMode(d.reservationId);
+        stateManager.endEditMode();
       } else {
         // 編集モード開始
-        stateManager.startEditMode(d.reservationId);
+        stateManager.startEditMode();
       }
 
       // 該当カードのみを部分更新（ちらつき防止）
       updateSingleHistoryCard(d.reservationId);
     },
 
-    /** インライン編集のメモを保存 */
+    /** インライン編集のメモを保存
+     * @param {any} d */
     saveInlineMemo: d => {
       // textarea要素から直接値を取得
       const textarea = document.querySelector(
@@ -7242,7 +7213,7 @@ const ENVIRONMENT_CONFIG = {
       });
 
       // 編集モードを解除
-      stateManager.endEditMode(d.reservationId);
+      stateManager.endEditMode();
 
       showInfo('メモを保存しました');
 
@@ -7251,15 +7222,14 @@ const ENVIRONMENT_CONFIG = {
 
       // サーバーに送信
       showLoading();
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ r) => {
-          hideLoading();
-          if (!r.success) {
-            showInfo(r.message || 'メモの保存に失敗しました');
-            // フロント表示を元に戻す
-            updateSingleHistoryCard(d.reservationId);
-          }
-        })
+      google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
+        hideLoading();
+        if (!r.success) {
+          showInfo(r.message || 'メモの保存に失敗しました');
+          // フロント表示を元に戻す
+          updateSingleHistoryCard(d.reservationId);
+        }
+      })
         ['withFailureHandler'](handleServerError)
         .updateReservationMemoAndGetLatestData(
           d.reservationId,
@@ -7300,20 +7270,19 @@ const ENVIRONMENT_CONFIG = {
         wantsEmail: wantsEmail || false,
       };
       showLoading();
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ res) => {
-          hideLoading();
-          if (res.success) {
-            // プロフィール更新後、キャッシュも更新されているのでそのまま状態更新
-            showInfo('プロフィールを更新しました', '更新完了');
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: { currentUser: res.updatedUser, view: 'dashboard' },
-            });
-          } else {
-            showInfo(res.message || '更新に失敗しました');
-          }
-        })
+      google.script.run['withSuccessHandler']((/** @type {any} */ res) => {
+        hideLoading();
+        if (res.success) {
+          // プロフィール更新後、キャッシュも更新されているのでそのまま状態更新
+          showInfo('プロフィールを更新しました');
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: { currentUser: res.updatedUser, view: 'dashboard' },
+          });
+        } else {
+          showInfo(res.message || '更新に失敗しました');
+        }
+      })
         ['withFailureHandler'](handleServerError)
         .updateUserProfile(u);
     },
@@ -7329,41 +7298,41 @@ const ENVIRONMENT_CONFIG = {
         return showInfo('お名前（本名）またはニックネームを入力してください。');
       }
 
-      showLoading('login');
+      showLoading();
 
       // 検索語からスペースを除去して小文字化して比較に使う
       const normalizedSearchTerm = searchTerm.replace(/\s+/g, '').toLowerCase();
 
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ response) => {
-          hideLoading();
-          if (response.success) {
-            // 【統一レスポンス形式】データ構造の修正
-            // searchName (スペース除去済み・小文字化された結合名) を使ってフィルタリング
-            const filteredUsers = response.data.filter(
-              user =>
-                user.searchName && user.searchName.includes(normalizedSearchTerm),
-            );
+      google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+        hideLoading();
+        if (response.success) {
+          // 【統一レスポンス形式】データ構造の修正
+          // searchName (スペース除去済み・小文字化された結合名) を使ってフィルタリング
+          const filteredUsers = response.data.filter(
+            /** @param {any} user */ user =>
+              user.searchName && user.searchName.includes(normalizedSearchTerm),
+          );
 
-            // NF-01: 検索が試行されたことを示すフラグをセット
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: { searchedUsers: filteredUsers, searchAttempted: true },
-            });
+          // NF-01: 検索が試行されたことを示すフラグをセット
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: { searchedUsers: filteredUsers, searchAttempted: true },
+          });
 
-            if (filteredUsers.length === 0) {
-              // アカウントが見つからなかった場合のメッセージはビュー側で表示
-            }
-          } else {
-            showInfo(response.message || 'ユーザー検索に失敗しました。');
+          if (filteredUsers.length === 0) {
+            // アカウントが見つからなかった場合のメッセージはビュー側で表示
           }
-        })
+        } else {
+          showInfo(response.message || 'ユーザー検索に失敗しました。');
+        }
+      })
         ['withFailureHandler'](handleServerError)
         .searchUsersWithoutPhone(searchTerm);
     },
 
     /**
      * NF-01: 検索結果から電話番号未登録ユーザーを選択します（バッチ処理版）。
+     * @param {any} d
      */
     selectSearchedUser: d => {
       // ボタンに埋め込まれたデータから、まず仮のユーザー情報を作成
@@ -7374,46 +7343,45 @@ const ENVIRONMENT_CONFIG = {
         phone: '', // 電話番号はまだないので空
       };
 
-      showLoading('login');
+      showLoading();
 
       // バッチ処理で初期データ、空席情報、ユーザーデータを一括取得
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ response) => {
-          if (response.success) {
-            // tempUserの情報でcurrentUserを上書きしつつ、キャッシュデータを活用
-            const userFromCache =
-              response.data.initial.allStudents[tempUser.studentId];
-            const finalUser = userFromCache
-              ? {
-                  ...userFromCache,
-                  displayName: tempUser.displayName,
-                  phone: tempUser.phone,
-                }
-              : tempUser;
+      google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+        if (response.success) {
+          // tempUserの情報でcurrentUserを上書きしつつ、キャッシュデータを活用
+          const userFromCache =
+            response.data.initial.allStudents[tempUser.studentId];
+          const finalUser = userFromCache
+            ? {
+                ...userFromCache,
+                displayName: tempUser.displayName,
+                phone: tempUser.phone,
+              }
+            : tempUser;
 
-            // 個人予約データを直接取得（フィルタリングは表示時に実行）
-            const myReservations = response.data.myReservations || [];
-            const today = response.data.initial.today;
+          // 個人予約データを直接取得（フィルタリングは表示時に実行）
+          const myReservations = response.data.myReservations || [];
+          const today = response.data.initial.today;
 
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                currentUser: finalUser,
-                lessons: response.data.lessons,
-                myReservations: myReservations,
-                accountingMaster: response.data.initial.accountingMaster,
-                recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
-                view: 'editProfile', // 電話番号登録を促すためプロフィール編集画面へ
-                today: today,
-                _allStudents: response.data.initial.allStudents,
-                _cacheVersions: response.data.initial.cacheVersions,
-              },
-            });
-          } else {
-            hideLoading();
-            showInfo(response.message || 'データの読み込みに失敗しました。');
-          }
-        })
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              currentUser: finalUser,
+              lessons: response.data.lessons,
+              myReservations: myReservations,
+              accountingMaster: response.data.initial.accountingMaster,
+              recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
+              view: 'editProfile', // 電話番号登録を促すためプロフィール編集画面へ
+              today: today,
+              _allStudents: response.data.initial.allStudents,
+              _cacheVersions: response.data.initial.cacheVersions,
+            },
+          });
+        } else {
+          hideLoading();
+          showInfo(response.message || 'データの読み込みに失敗しました。');
+        }
+      })
         ['withFailureHandler'](handleServerError)
         .getBatchData(
           ['initial', 'lessons', 'reservations'],
@@ -7433,7 +7401,8 @@ const ENVIRONMENT_CONFIG = {
       });
     },
 
-    /** 予約をキャンセルします */
+    /** 予約をキャンセルします
+     * @param {any} d */
     cancel: d => {
       const message = `
           <div class="text-left space-y-4">
@@ -7451,7 +7420,7 @@ const ENVIRONMENT_CONFIG = {
         cancelText: 'いいえ',
         confirmColorClass: DesignConfig.colors.danger,
         onConfirm: () => {
-          showLoading('cancel');
+          showLoading();
           const cancelMessage =
             document.getElementById('cancel-message')?.value || '';
           const p = {
@@ -7459,40 +7428,39 @@ const ENVIRONMENT_CONFIG = {
             studentId: stateManager.getState().currentUser.studentId,
             cancelMessage: cancelMessage,
           };
-          google.script.run
-            ['withSuccessHandler']((/** @type {any} */ r) => {
-              hideLoading();
-              if (r.success) {
-                if (r.data) {
-                  window.stateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: {
-                      ...r.data.initialData,
-                      myReservations: r.data.myReservations || [],
-                      lessons: r.data.lessons || [],
-                      view: 'dashboard',
-                      isDataFresh: true, // 最新データ受信済み
-                    },
-                  });
-                } else {
-                  window.stateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: {
-                      view: 'dashboard',
-                      isDataFresh: false, // 再読み込み必要
-                    },
-                  });
-                }
-                showInfo(r.message || '予約を取り消しました。', 'キャンセル完了');
+          google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
+            hideLoading();
+            if (r.success) {
+              if (r.data) {
+                window.stateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: {
+                    ...r.data.initialData,
+                    myReservations: r.data.myReservations || [],
+                    lessons: r.data.lessons || [],
+                    view: 'dashboard',
+                    isDataFresh: true, // 最新データ受信済み
+                  },
+                });
               } else {
-                showInfo(r.message || 'キャンセル処理に失敗しました。');
+                window.stateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: {
+                    view: 'dashboard',
+                    isDataFresh: false, // 再読み込み必要
+                  },
+                });
               }
-            })
+              showInfo(r.message || '予約を取り消しました。');
+            } else {
+              showInfo(r.message || 'キャンセル処理に失敗しました。');
+            }
+          })
             ['withFailureHandler']((/** @type {any} */ err) => {
               // エラー時は画面を更新せず、元の状態を維持
               handleServerError(err);
             })
-            .cancelReservationAndGetLatestData(p);
+            .cancelReservationAndGetLatestData();
         },
       });
     },
@@ -7512,13 +7480,14 @@ const ENVIRONMENT_CONFIG = {
 
       // デバッグ用ログ
       const actualClassroomType =
-        selectedLesson?.schedule?.classroomType || selectedLesson?.classroomType;
+        /** @type {any} */ (selectedLesson)?.schedule?.classroomType ||
+        /** @type {any} */ (selectedLesson)?.classroomType;
       console.log(`実際のclassroomType: "${actualClassroomType}"`);
       console.log(
-        `classroom: "${selectedLesson?.schedule?.classroom || selectedLesson?.classroom}"`,
+        `classroom: "${/** @type {any} */ (selectedLesson)?.schedule?.classroom || /** @type {any} */ (selectedLesson)?.classroom}"`,
       );
       console.log(
-        `date: "${selectedLesson?.schedule?.date || selectedLesson?.date}"`,
+        `date: "${/** @type {any} */ (selectedLesson)?.schedule?.date || /** @type {any} */ (selectedLesson)?.date}"`,
       );
       console.log(
         `比較結果: ${actualClassroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED}`,
@@ -7541,15 +7510,20 @@ const ENVIRONMENT_CONFIG = {
         materialInfo: document.getElementById('material-input')?.value || '',
       };
 
-      showLoading('booking');
+      showLoading();
 
       // バックエンドに送信する予約データを明示的に構築
       const p = {
         // 基本情報（selectedLessonから明示的に取得）
         classroom:
-          selectedLesson?.schedule?.classroom || selectedLesson?.classroom,
-        date: selectedLesson?.schedule?.date || selectedLesson?.date,
-        venue: selectedLesson?.schedule?.venue || selectedLesson?.venue,
+          /** @type {any} */ (selectedLesson)?.schedule?.classroom ||
+          /** @type {any} */ (selectedLesson)?.classroom,
+        date:
+          /** @type {any} */ (selectedLesson)?.schedule?.date ||
+          /** @type {any} */ (selectedLesson)?.date,
+        venue:
+          /** @type {any} */ (selectedLesson)?.schedule?.venue ||
+          /** @type {any} */ (selectedLesson)?.venue,
 
         // 時間情報（教室形式に応じて調整済み）
         startTime: startTime,
@@ -7570,40 +7544,39 @@ const ENVIRONMENT_CONFIG = {
         schedule: selectedLesson?.schedule,
 
         // ステータス情報（必要に応じて）
-        status: selectedLesson?.status,
-        isFull: selectedLesson?.isFull,
+        status: /** @type {any} */ (selectedLesson)?.status,
+        isFull: /** @type {any} */ (selectedLesson)?.isFull,
       };
 
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ r) => {
-          hideLoading();
-          if (r.success) {
-            if (r.data) {
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  ...r.data.initialData,
-                  myReservations: r.data.myReservations || [],
-                  lessons: r.data.lessons || [],
-                  view: 'complete',
-                  completionMessage: r.message,
-                  isDataFresh: true, // 最新データ受信済み
-                },
-              });
-            } else {
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  view: 'complete',
-                  completionMessage: r.message,
-                  isDataFresh: false, // 再読み込み必要
-                },
-              });
-            }
+      google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
+        hideLoading();
+        if (r.success) {
+          if (r.data) {
+            window.stateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                ...r.data.initialData,
+                myReservations: r.data.myReservations || [],
+                lessons: r.data.lessons || [],
+                view: 'complete',
+                completionMessage: r.message,
+                isDataFresh: true, // 最新データ受信済み
+              },
+            });
           } else {
-            showInfo(r.message || '予約に失敗しました。');
+            window.stateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                view: 'complete',
+                completionMessage: r.message,
+                isDataFresh: false, // 再読み込み必要
+              },
+            });
           }
-        })
+        } else {
+          showInfo(r.message || '予約に失敗しました。');
+        }
+      })
         ['withFailureHandler'](handleServerError)
         .makeReservationAndGetLatestData(p);
     },
@@ -7697,35 +7670,34 @@ const ENVIRONMENT_CONFIG = {
         materialInfo: document.getElementById('material-input')?.value || '',
       };
       showLoading('booking');
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ r) => {
-          hideLoading();
-          if (r.success) {
-            if (r.data) {
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  ...r.data.initialData,
-                  myReservations: r.data.myReservations || [],
-                  lessons: r.data.lessons || [],
-                  view: 'dashboard',
-                  isDataFresh: true, // 最新データ受信済み
-                },
-              });
-            } else {
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  view: 'dashboard',
-                  isDataFresh: false, // 再読み込み必要
-                },
-              });
-            }
-            showInfo(r.message || '予約内容を更新しました。', '更新完了');
+      google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
+        hideLoading();
+        if (r.success) {
+          if (r.data) {
+            window.stateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                ...r.data.initialData,
+                myReservations: r.data.myReservations || [],
+                lessons: r.data.lessons || [],
+                view: 'dashboard',
+                isDataFresh: true, // 最新データ受信済み
+              },
+            });
           } else {
-            showInfo(r.message || '更新に失敗しました。');
+            window.stateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                view: 'dashboard',
+                isDataFresh: false, // 再読み込み必要
+              },
+            });
           }
-        })
+          showInfo(r.message || '予約内容を更新しました。', '更新完了');
+        } else {
+          showInfo(r.message || '更新に失敗しました。');
+        }
+      })
         ['withFailureHandler'](handleServerError)
         .updateReservationDetailsAndGetLatestData(p);
     },
@@ -7806,28 +7778,27 @@ const ENVIRONMENT_CONFIG = {
       showLoading();
 
       // バックエンドから会計詳細を取得
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ response) => {
-          hideLoading();
+      google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+        hideLoading();
 
-          if (!response.success) {
-            showInfo(response.message || '会計データの取得に失敗しました');
-            return;
-          }
+        if (!response.success) {
+          showInfo(response.message || '会計データの取得に失敗しました');
+          return;
+        }
 
-          const details = response.data;
+        const details = response.data;
 
-          // 授業料項目のHTML生成
-          const tuitionItemsHtml = (details.tuition?.items || [])
-            .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
-            .join('');
+        // 授業料項目のHTML生成
+        const tuitionItemsHtml = (details.tuition?.items || [])
+          .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
+          .join('');
 
-          // 販売項目のHTML生成
-          const salesItemsHtml = (details.sales?.items || [])
-            .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
-            .join('');
+        // 販売項目のHTML生成
+        const salesItemsHtml = (details.sales?.items || [])
+          .map(i => `<li>${i.name}: ${i.price.toLocaleString()}円</li>`)
+          .join('');
 
-          const message = `
+        const message = `
             <div class="p-4 bg-brand-light rounded-lg text-left space-y-4 text-base">
               ${tuitionItemsHtml ? `<b>授業料</b><ul class="list-disc list-inside">${tuitionItemsHtml}</ul>` : ''}
               ${salesItemsHtml ? `<b class="mt-1 inline-block">販売</b><ul class="list-disc list-inside">${salesItemsHtml}</ul>` : ''}
@@ -7835,8 +7806,8 @@ const ENVIRONMENT_CONFIG = {
               <div class="text-right text-sm pt-1">支払方法: ${details.paymentMethod}</div>
             </div>`;
 
-          showInfo(message, '会計記録');
-        })
+        showInfo(message, '会計記録');
+      })
         .withFailureHandler(error => {
           hideLoading();
           console.error('会計詳細取得エラー:', error);
@@ -8160,56 +8131,53 @@ const ENVIRONMENT_CONFIG = {
     fetchLatestLessonsData: (classroomName, newLessonsVersion) => {
       // ローディングは既に親関数で表示済み
 
-      google.script.run
-        ['withSuccessHandler']((/** @type {any} */ response) => {
-          hideLoading();
+      google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+        hideLoading();
 
-          // デバッグログ追加（本番環境では無効化）
-          if (!window.isProduction) {
-            debugLog('fetchLatestLessonsData レスポンス受信');
-            debugLog('response.success: ' + response.success);
-            debugLog('response.data: ' + (response.data ? 'あり' : 'なし'));
-          }
-          if (response.data) {
-            debugLog(
-              'response.data.lessons: ' +
-                (response.data.lessons
-                  ? `${response.data.lessons.length}件`
-                  : 'なし'),
-            );
-          }
-
+        // デバッグログ追加（本番環境では無効化）
+        if (!window.isProduction) {
+          debugLog('fetchLatestLessonsData レスポンス受信');
+          debugLog('response.success: ' + response.success);
+          debugLog('response.data: ' + (response.data ? 'あり' : 'なし'));
+        }
+        if (response.data) {
           debugLog(
-            `=== getBatchData レスポンス: ${JSON.stringify(response)} ===`,
+            'response.data.lessons: ' +
+              (response.data.lessons
+                ? `${response.data.lessons.length}件`
+                : 'なし'),
           );
-          debugLog(
-            `=== レスポンス詳細: success=${response?.success}, hasData=${!!response?.data}, hasLessons=${!!response?.data?.lessons} ===`,
-          );
+        }
 
-          if (response.success && response.data && response.data.lessons) {
-            debugLog(`講座データ更新: ${response.data.lessons.length}件`);
-            // 講座データとバージョン情報を更新
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                lessons: response.data.lessons,
-                selectedClassroom: classroomName,
-                view: 'bookingLessons',
-                isDataFresh: true,
-                _lessonsVersion: newLessonsVersion, // バージョン情報を保存
-              },
-            });
-          } else {
-            debugLog('空き枠データ取得失敗');
-            debugLog(`=== 失敗の詳細: response=${JSON.stringify(response)} ===`);
-            if (response.message) {
-              debugLog('エラーメッセージ: ' + response.message);
-            }
-            showInfo(
-              '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
-            );
+        debugLog(`=== getBatchData レスポンス: ${JSON.stringify(response)} ===`);
+        debugLog(
+          `=== レスポンス詳細: success=${response?.success}, hasData=${!!response?.data}, hasLessons=${!!response?.data?.lessons} ===`,
+        );
+
+        if (response.success && response.data && response.data.lessons) {
+          debugLog(`講座データ更新: ${response.data.lessons.length}件`);
+          // 講座データとバージョン情報を更新
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              lessons: response.data.lessons,
+              selectedClassroom: classroomName,
+              view: 'bookingLessons',
+              isDataFresh: true,
+              _lessonsVersion: newLessonsVersion, // バージョン情報を保存
+            },
+          });
+        } else {
+          debugLog('空き枠データ取得失敗');
+          debugLog(`=== 失敗の詳細: response=${JSON.stringify(response)} ===`);
+          if (response.message) {
+            debugLog('エラーメッセージ: ' + response.message);
           }
-        })
+          showInfo(
+            '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
+          );
+        }
+      })
         .withFailureHandler(error => {
           hideLoading();
           showInfo(
@@ -8319,9 +8287,12 @@ const ENVIRONMENT_CONFIG = {
   /**
    * 会計の確認モーダルを表示
    */
-  actionHandlers.showAccountingConfirmation = () => {
+  /** @type {any} */ (actionHandlers).showAccountingConfirmation = () => {
     const accountingDetails = calculateAccountingDetails();
-    if (!accountingDetails || accountingDetails.grandTotal <= 0) {
+    if (
+      !accountingDetails ||
+      /** @type {any} */ (accountingDetails).grandTotal <= 0
+    ) {
       showInfo('合計金額が0円です。項目を選択してください。');
       return;
     }
@@ -8329,13 +8300,13 @@ const ENVIRONMENT_CONFIG = {
     const message = `
           <div class="p-4 bg-brand-light rounded-lg text-left space-y-4 text-base" id="modal-accounting-form">
               <div>
-                  <span class="font-bold">合計金額:</span> ${accountingDetails.grandTotal.toLocaleString()}円
+                  <span class="font-bold">合計金額:</span> ${/** @type {any} */ (accountingDetails).grandTotal.toLocaleString()}円
                   <button data-action="copyGrandTotal" class="ml-2 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded">コピー</button>
               </div>
               <div>
                   <span class="font-bold">支払い方法:</span>
                   <div class="mt-2 space-y-3">
-                      ${getPaymentOptionsHtml()}
+                      ${getPaymentOptionsHtml(undefined)}
                   </div>
               </div>
               <div class="mt-4">
@@ -8356,7 +8327,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * 「この内容で支払いました」ボタン押下時の処理
    */
-  actionHandlers.confirmAndPay = () => {
+  /** @type {any} */ (actionHandlers).confirmAndPay = () => {
     const reservationId =
       stateManager.getState().accountingReservation.reservationId;
     // モーダル内の支払い方法を取得
@@ -8366,16 +8337,17 @@ const ENVIRONMENT_CONFIG = {
       const selected = modalForm.querySelector(
         'input[name="payment-method"]:checked',
       );
-      if (selected) paymentMethod = selected.value;
+      if (selected) paymentMethod = /** @type {any} */ (selected).value;
     }
 
     // --- バックエンドに送信する「ユーザー入力」オブジェクトを構築 ---
     const form = document.getElementById('accounting-form');
+    /** @type {any} */
     const userInput = {
       paymentMethod: paymentMethod,
-      tuitionItems: [],
-      salesItems: [],
-      timeBased: null,
+      tuitionItems: /** @type {any[]} */ ([]),
+      salesItems: /** @type {any[]} */ ([]),
+      timeBased: /** @type {any} */ (null),
     };
 
     // 授業料項目（チェックボックス）
@@ -8383,9 +8355,13 @@ const ENVIRONMENT_CONFIG = {
       .querySelectorAll(
         `input[type="checkbox"][data-item-type="${CONSTANTS.ITEM_TYPES.TUITION}"]:checked`,
       )
-      .forEach(cb => {
-        userInput.tuitionItems.push(cb.dataset.itemName);
-      });
+      .forEach(
+        /** @param {any} cb */ cb => {
+          userInput.tuitionItems.push(
+            /** @type {any} */ (cb).dataset['itemName'],
+          );
+        },
+      );
 
     // 時間制授業料
     if (document.getElementById('start-time')) {
@@ -8404,7 +8380,7 @@ const ENVIRONMENT_CONFIG = {
         [CONSTANTS.HEADERS.RESERVATIONS?.START_TIME || 'startTime']: startTime,
         [CONSTANTS.HEADERS.RESERVATIONS?.END_TIME || 'endTime']: endTime,
         breakMinutes: parseInt(
-          document.getElementById('break-time')?.value || 0,
+          document.getElementById('break-time')?.value || '0',
           10,
         ),
         discountApplied:
@@ -8433,18 +8409,26 @@ const ENVIRONMENT_CONFIG = {
       .querySelectorAll(
         `input[type="checkbox"][data-item-type="${CONSTANTS.ITEM_TYPES.SALES}"]:checked`,
       )
-      .forEach(cb => {
-        userInput.salesItems.push({ name: cb.dataset.itemName });
-      });
+      .forEach(
+        /** @param {any} cb */ cb => {
+          userInput.salesItems.push({
+            name: /** @type {any} */ (cb).dataset['itemName'],
+          });
+        },
+      );
 
-    form.querySelectorAll('div[data-other-sales-row]').forEach((row, index) => {
-      const name = document
-        .getElementById(`other-sales-name-${index}`)
-        ?.value.trim();
-      const price = document.getElementById(`other-sales-price-${index}`)?.value;
-      if (name && price)
-        userInput.salesItems.push({ name: name, price: Number(price) });
-    });
+    form.querySelectorAll('div[data-other-sales-row]').forEach(
+      /** @param {any} row @param {any} index */ (row, index) => {
+        const name = document
+          .getElementById(`other-sales-name-${index}`)
+          ?.value.trim();
+        const price = document.getElementById(
+          `other-sales-price-${index}`,
+        )?.value;
+        if (name && price)
+          userInput.salesItems.push({ name: name, price: Number(price) });
+      },
+    );
     // --- ここまで ---
 
     const payload = {
@@ -8454,9 +8438,9 @@ const ENVIRONMENT_CONFIG = {
       userInput: userInput,
     };
 
-    showLoading('accounting');
-    google.script.run
-      .withSuccessHandler(r => {
+    showLoading();
+    google.script.run['withSuccessHandler'](
+      /** @param {any} r */ r => {
         if (r.success) {
           clearAccountingCache(reservationId); // <-- キャッシュ削除
           hideModal(); // モーダルを閉じる
@@ -8493,7 +8477,8 @@ const ENVIRONMENT_CONFIG = {
           hideLoading();
           showInfo(r.message || '会計情報の記録に失敗しました。');
         }
-      })
+      },
+    )
       .withFailureHandler(handleServerError)
       .saveAccountingDetailsAndGetLatestData(payload);
   };
@@ -8597,9 +8582,9 @@ const ENVIRONMENT_CONFIG = {
       payload: { _dataUpdateInProgress: true },
     });
 
-    showLoading('最新データを取得中...');
-    google.script.run
-      .withSuccessHandler(response => {
+    showLoading();
+    google.script.run['withSuccessHandler'](
+      /** @param {any} response */ response => {
         hideLoading();
         window.stateManager.dispatch({
           type: 'SET_STATE',
@@ -8639,19 +8624,22 @@ const ENVIRONMENT_CONFIG = {
           });
           showInfo(response.message || 'データの取得に失敗しました。');
         }
-      })
-      .withFailureHandler(err => {
-        hideLoading();
-        window.stateManager.dispatch({
-          type: 'SET_STATE',
-          payload: {
-            _dataUpdateInProgress: false,
-            view: targetView || stateManager.getState().view,
-          },
-        }); // フラグをクリア
-        handleServerError(err);
-        // setStateがrenderを呼び出すので、ここでのrender()は不要
-      })
+      },
+    )
+      ['withFailureHandler'](
+        /** @param {any} err */ err => {
+          hideLoading();
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              _dataUpdateInProgress: false,
+              view: targetView || stateManager.getState().view,
+            },
+          }); // フラグをクリア
+          handleServerError(err);
+          // setStateがrenderを呼び出すので、ここでのrender()は不要
+        },
+      )
       .getBatchData(
         ['initial', 'lessons'],
         stateManager.getState().currentUser.phone,
@@ -8682,7 +8670,7 @@ const ENVIRONMENT_CONFIG = {
         v = getLoginView();
         break;
       case 'register':
-        v = getRegisterView(appState.registrationPhone);
+        v = getRegisterView(/** @type {any} */ (appState)['registrationPhone']);
         break;
       case 'registrationStep2':
         v = getRegistrationStep2View();
@@ -8712,7 +8700,7 @@ const ENVIRONMENT_CONFIG = {
         v = getAccountingView();
         break;
       case 'complete':
-        v = getCompleteView(appState.completionMessage);
+        v = getCompleteView(/** @type {any} */ (appState)['completionMessage']);
         break;
       case 'userSearch':
         v = getUserSearchView();
@@ -8766,12 +8754,12 @@ const ENVIRONMENT_CONFIG = {
    */
   window.onload = function () {
     // アプリケーションの初期化が完了するまでローディング画面を表示
-    showLoading('dataFetch');
+    showLoading();
 
     const app = document.getElementById('app');
 
     // イベントハンドラー関数を定義
-    const handleClick = e => {
+    const handleClick = /** @param {any} e */ e => {
       // 【修正】buttonまたはdata-action属性を持つ要素を対象にする
       const targetElement = e.target.closest('button, [data-action]');
       if (targetElement?.dataset.action) {
@@ -8801,9 +8789,9 @@ const ENVIRONMENT_CONFIG = {
         }
 
         if (action === 'copyToClipboard' || action === 'copyGrandTotal') {
-          actionHandlers[action](targetElement);
-        } else if (actionHandlers[action]) {
-          actionHandlers[action](data);
+          /** @type {any} */ (actionHandlers)[action](targetElement);
+        } else if (/** @type {any} */ (actionHandlers)[action]) {
+          /** @type {any} */ (actionHandlers)[action](data);
         } else {
           // ハンドラーが見つからない場合のデバッグ
           if (!window.isProduction) {
@@ -8876,7 +8864,7 @@ const ENVIRONMENT_CONFIG = {
 
       // 電話番号入力のリアルタイム整形
       if (e.target.id === 'phone' || e.target.id === 'edit-phone') {
-        handlePhoneInputFormatting(e.target);
+        handlePhoneInputFormatting(/** @type {HTMLInputElement} */ (e.target));
       }
     });
 

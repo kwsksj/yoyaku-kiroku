@@ -1,3 +1,7 @@
+/// <reference path="../../types/gas-environment.d.ts" />
+/// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/index.d.ts" />
+
 /**
  * =================================================================
  * 【ファイル名】: 09_Backend_Endpoints.js
@@ -35,16 +39,16 @@
  * @global getScheduleInfoForDate - Business logic function from 02-4_BusinessLogic_ScheduleMaster.js
  */
 
-/* global getUserHistoryFromCache, getScheduleInfoForDate, getLessons, getUserReservations */
+/* global getUserHistoryFromCache, getScheduleInfoForDate, getLessons, getUserReservations, makeReservation, cancelReservation, updateReservationDetails, getUsersWithoutPhoneNumber, saveAccountingDetails, authenticateUser, createApiResponse, createHeaderMap, getCachedData, diagnoseAndFixScheduleMasterCache, BackendErrorHandler, SS_MANAGER, CONSTANTS, CACHE_KEYS, Utilities, Logger, CacheService */
 
 /**
  * 予約操作後に最新データを取得して返す汎用関数
- * @param {string} operationType - 操作タイプ ('makeReservation'|'cancelReservation'|'updateReservation')
+ * @param {keyof ErrorMessages} operationType - 操作タイプ ('makeReservation'|'cancelReservation'|'updateReservation')
  * @param {Function} operationFunction - 実行する操作関数
- * @param {Object} operationParams - 操作関数に渡すパラメータ
+ * @param {ReservationInfo|CancelInfo|ReservationDetails} operationParams - 操作関数に渡すパラメータ
  * @param {string} studentId - 対象生徒のID
  * @param {string} successMessage - 操作成功時のメッセージ
- * @returns {Object} 操作結果と最新データを含むAPIレスポンス
+ * @returns {ApiResponseGeneric} 操作結果と最新データを含むAPIレスポンス
  */
 function executeOperationAndGetLatestData(
   operationType,
@@ -72,7 +76,7 @@ function executeOperationAndGetLatestData(
       );
       if (myReservationsData.length > 0) {
         Logger.log(
-          `executeOperationAndGetLatestData: 最初の予約ステータス=${myReservationsData[0].status}`,
+          `executeOperationAndGetLatestData: 最初の予約データ=${typeof myReservationsData[0]}`,
         );
       }
 
@@ -80,9 +84,7 @@ function executeOperationAndGetLatestData(
         message: result.message || successMessage,
         data: {
           myReservations: myReservationsData,
-          initialData: {
-            ...batchResult.data.initial,
-          },
+          initialData: batchResult.data.initial || {},
           lessons: batchResult.data.lessons || [],
         },
       });
@@ -92,6 +94,7 @@ function executeOperationAndGetLatestData(
       return result;
     }
   } catch (e) {
+    /** @type {ErrorMessages} */
     const errorMessages = {
       makeReservation: '予約処理中にエラーが発生しました',
       cancelReservation: 'キャンセル処理中にエラーが発生しました',
@@ -106,8 +109,8 @@ function executeOperationAndGetLatestData(
 
 /**
  * 予約を実行し、成功した場合に最新の全初期化データを返す。
- * @param {object} reservationInfo - 予約情報
- * @returns {object} 処理結果と最新の初期化データ
+ * @param {ReservationInfo} reservationInfo - 予約情報
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function makeReservationAndGetLatestData(reservationInfo) {
   const isFirstTime = reservationInfo.options?.firstLecture || false;
@@ -130,8 +133,8 @@ function makeReservationAndGetLatestData(reservationInfo) {
 
 /**
  * 予約をキャンセルし、成功した場合に最新の全初期化データを返す。
- * @param {object} cancelInfo - キャンセル情報
- * @returns {object} 処理結果と最新の初期化データ
+ * @param {CancelInfo} cancelInfo - キャンセル情報
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function cancelReservationAndGetLatestData(cancelInfo) {
   return executeOperationAndGetLatestData(
@@ -145,8 +148,8 @@ function cancelReservationAndGetLatestData(cancelInfo) {
 
 /**
  * 予約詳細を更新し、成功した場合に最新の全初期化データを返す。
- * @param {object} details - 更新する予約詳細
- * @returns {object} 処理結果と最新の初期化データ
+ * @param {ReservationDetails} details - 更新する予約詳細
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function updateReservationDetailsAndGetLatestData(details) {
   return executeOperationAndGetLatestData(
@@ -161,7 +164,7 @@ function updateReservationDetailsAndGetLatestData(details) {
 /**
  * 電話番号未登録のユーザーをフィルタリング検索する
  * @param {string} _filterText - 検索条件文字列（現在未使用）
- * @returns {Object} 検索結果とユーザーリスト
+ * @returns {ApiResponseGeneric} 検索結果とユーザーリスト
  */
 function searchUsersWithoutPhone(_filterText) {
   try {
@@ -181,7 +184,7 @@ function searchUsersWithoutPhone(_filterText) {
  * @param {string} reservationId - 更新対象の予約ID
  * @param {string} studentId - 対象生徒のID
  * @param {string} newMemo - 新しいメモ内容
- * @returns {Object} 処理結果と最新の初期化データ
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function updateReservationMemoAndGetLatestData(
   reservationId,
@@ -189,7 +192,7 @@ function updateReservationMemoAndGetLatestData(
   newMemo,
 ) {
   return executeOperationAndGetLatestData(
-    'updateMemo',
+    'updateReservation',
     updateReservationDetails,
     {
       reservationId,
@@ -203,12 +206,12 @@ function updateReservationMemoAndGetLatestData(
 
 /**
  * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
- * @param {object} payload - 会計処理情報（reservationId, classroom, studentId, userInput）
- * @returns {object} 処理結果と最新の初期化データ
+ * @param {AccountingPayload} payload - 会計処理情報（reservationId, classroom, studentId, userInput）
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function saveAccountingDetailsAndGetLatestData(payload) {
   return executeOperationAndGetLatestData(
-    'saveAccounting',
+    'updateReservation',
     saveAccountingDetails,
     payload,
     payload.studentId,
@@ -219,7 +222,7 @@ function saveAccountingDetailsAndGetLatestData(payload) {
 /**
  * 指定された予約の会計詳細をシートから直接取得する
  * @param {string} reservationId - 予約ID
- * @returns {Object} 会計詳細データ
+ * @returns {ApiResponseGeneric<AccountingDetails>} 会計詳細データ
  */
 function getAccountingDetailsFromSheet(reservationId) {
   try {
@@ -272,48 +275,51 @@ function getAccountingDetailsFromSheet(reservationId) {
 
     // 会計詳細を取得・パース
     const accountingDetailsRaw = targetRow[accountingDetailsColIdx];
-    let accountingDetails = {};
+    /** @type {AccountingDetails} */
+    let accountingDetails = {
+      tuition: { items: [], subtotal: 0 },
+      sales: { items: [], subtotal: 0 },
+      grandTotal: 0,
+      paymentMethod: '不明',
+    };
 
     if (accountingDetailsRaw) {
       try {
-        accountingDetails = JSON.parse(accountingDetailsRaw);
+        const parsed = JSON.parse(accountingDetailsRaw);
+        accountingDetails = {
+          tuition: parsed.tuition || { items: [], subtotal: 0 },
+          sales: parsed.sales || { items: [], subtotal: 0 },
+          grandTotal: parsed.grandTotal || 0,
+          paymentMethod: parsed.paymentMethod || '不明',
+        };
       } catch (parseError) {
         Logger.log(`JSON parse error: ${parseError.message}`);
         return { success: false, message: '会計データの解析に失敗しました' };
       }
     }
 
-    // データ構造を確認・修正
-    if (!accountingDetails.tuition) {
-      accountingDetails.tuition = { items: [], subtotal: 0 };
-    }
-    if (!accountingDetails.sales) {
-      accountingDetails.sales = { items: [], subtotal: 0 };
-    }
-    if (!accountingDetails.grandTotal) {
-      accountingDetails.grandTotal = 0;
-    }
-    if (!accountingDetails.paymentMethod) {
-      accountingDetails.paymentMethod = '不明';
-    }
-
     Logger.log(`会計詳細取得成功: ${JSON.stringify(accountingDetails)}`);
 
+    /** @type {ApiResponseGeneric<AccountingDetails>} */
     return {
       success: true,
       data: accountingDetails,
     };
   } catch (error) {
     Logger.log(`getAccountingDetailsFromSheet Error: ${error.message}`);
-    return BackendErrorHandler.handle(error, 'getAccountingDetailsFromSheet');
+    const errorResult = BackendErrorHandler.handle(
+      error,
+      'getAccountingDetailsFromSheet',
+    );
+    return /** @type {ApiResponseGeneric<AccountingDetails>} */ (errorResult);
   }
 }
 
 /**
  * アプリ初期化用の基本データをキャッシュから取得する
- * @returns {import('../../types/index.d.ts').ApiResponseGeneric<{
- *   allStudents: {[key: string]: any},
- *   accountingMaster: any[],
+ * @returns {ApiResponseGeneric<{
+ *   allStudents: {[key: string]: StudentData},
+ *   accountingMaster: AccountingMasterItem[],
  *   today: string,
  *   cacheVersions: {[key: string]: number}
  * }>}
@@ -330,8 +336,9 @@ function getAppInitialData() {
     // Schedule Master データが空の場合は診断・修復を試行
     if (
       !scheduleMaster ||
-      !scheduleMaster.schedule ||
-      scheduleMaster.schedule.length === 0
+      !scheduleMaster['schedule'] ||
+      !Array.isArray(scheduleMaster['schedule']) ||
+      scheduleMaster['schedule'].length === 0
     ) {
       Logger.log(
         '⚠️ Schedule Master キャッシュが空です - 診断・修復を実行します',
@@ -342,9 +349,9 @@ function getAppInitialData() {
         const repairedScheduleMaster = getCachedData(
           CACHE_KEYS.MASTER_SCHEDULE_DATA,
         );
-        if (repairedScheduleMaster && repairedScheduleMaster.schedule) {
+        if (repairedScheduleMaster && Array.isArray(repairedScheduleMaster['schedule'])) {
           Logger.log(
-            `✅ Schedule Master修復完了: ${repairedScheduleMaster.schedule.length}件`,
+            `✅ Schedule Master修復完了: ${repairedScheduleMaster['schedule'].length}件`,
           );
         }
       } catch (error) {
@@ -358,11 +365,12 @@ function getAppInitialData() {
       'yyyy-MM-dd',
     );
 
+    /** @type {ApiResponseGeneric<{ allStudents: { [key: string]: StudentData }, accountingMaster: AccountingMasterItem[], today: string, cacheVersions: { [key: string]: number } }>} */
     const result = {
       success: true,
       data: {
-        allStudents: studentsCache?.students || {},
-        accountingMaster: accountingMaster?.items || [],
+        allStudents: /** @type {{ [key: string]: StudentData }} */ (studentsCache?.['students'] || {}),
+        accountingMaster: /** @type {AccountingMasterItem[]} */ (accountingMaster?.['items'] || []),
         today: today,
         cacheVersions: {
           allReservations: allReservationsCache?.version || 0,
@@ -387,7 +395,7 @@ function getAppInitialData() {
 /**
  * ユーザーログイン時に必要な全データを取得する
  * @param {string} phone - 電話番号（ユーザー認証用）
- * @returns {Object} 初期データ、空席情報、ユーザー情報を含む結果
+ * @returns {ApiResponseGeneric} 初期データ、空席情報、ユーザー情報を含む結果
  */
 function getLoginData(phone) {
   try {
@@ -400,7 +408,7 @@ function getLoginData(phone) {
     }
 
     if (batchResult.data.myReservations) {
-      batchResult.data.initial.myReservations = batchResult.data.myReservations;
+      /** @type {any} */ (batchResult.data.initial).myReservations = batchResult.data.myReservations;
     }
 
     const result = {
@@ -424,7 +432,7 @@ function getLoginData(phone) {
 /**
  * 軽量なキャッシュバージョンチェック用API
  * 空き枠データの更新有無を高速で判定
- * @returns {object} - { success: boolean, versions: object }
+ * @returns {ApiResponseGeneric} - { success: boolean, versions: object }
  */
 function getCacheVersions() {
   try {
@@ -448,18 +456,21 @@ function getCacheVersions() {
     };
 
     Logger.log(`getCacheVersions完了: ${JSON.stringify(versions)}`);
-    return createApiResponse(true, versions);
+    return /** @type {ApiResponseGeneric} */ (
+      createApiResponse(true, versions)
+    );
   } catch (err) {
-    return BackendErrorHandler.handle(err, 'getCacheVersions');
+    const errorResult = BackendErrorHandler.handle(err, 'getCacheVersions');
+    return /** @type {ApiResponseGeneric} */ (errorResult);
   }
 }
 
 /**
  * 複数のデータタイプを一度に取得するバッチ処理関数
- * @param {Array} dataTypes - 取得するデータタイプの配列 ['initial', 'lessons', 'reservations', 'history', 'userdata']
+ * @param {string[]} dataTypes - 取得するデータタイプの配列 ['initial', 'lessons', 'reservations', 'history', 'userdata']
  * @param {string|null} phone - 電話番号（ユーザー特定用、任意）
  * @param {string|null} studentId - 生徒ID（個人データ取得用、任意）
- * @returns {Object} 要求されたすべてのデータを含む統合レスポンス
+ * @returns {BatchDataResult} 要求されたすべてのデータを含む統合レスポンス
  */
 function getBatchData(dataTypes = [], phone = null, studentId = null) {
   try {
@@ -467,18 +478,19 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       `getBatchData開始: dataTypes=${JSON.stringify(dataTypes)}, phone=${phone}, studentId=${studentId}`,
     );
 
+    /** @type {BatchDataResult} */
     const result = {
       success: true,
       data: {},
       userFound: false,
-      user: null,
+      user: /** @type {StudentData | null} */ (null),
     };
 
     // 1. 初期データが要求されている場合
     if (dataTypes.includes('initial')) {
       const initialDataResult = getAppInitialData();
       if (!initialDataResult.success) {
-        return initialDataResult;
+        return /** @type {BatchDataResult} */ (initialDataResult);
       }
       result.data = { ...result.data, initial: initialDataResult.data };
 
@@ -492,7 +504,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
           // 特殊コマンドが認識された場合
           result.userFound = false;
           result.user = null;
-          result['commandRecognized'] = authResult.commandRecognized;
+          result.commandRecognized = authResult.commandRecognized;
         } else {
           // 通常のユーザー未登録
           result.userFound = false;
@@ -515,9 +527,9 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       );
       if (!lessonsResult.success) {
         Logger.log(`=== getBatchData: lessons取得失敗で早期リターン ===`);
-        return lessonsResult;
+        return /** @type {BatchDataResult} */ (/** @type {unknown} */ (lessonsResult));
       }
-      result.data = { ...result.data, lessons: lessonsResult.data };
+      result.data = { ...result.data, lessons: /** @type {ScheduleMasterData[]} */ (/** @type {unknown} */ (lessonsResult.data)) };
       Logger.log(`=== getBatchData: lessonsデータ設定完了 ===`);
     }
 
@@ -530,7 +542,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
         if (userReservationsResult.success) {
           result.data = {
             ...result.data,
-            myReservations: userReservationsResult.data.myReservations,
+            myReservations: /** @type {ReservationDataArray[]} */ (/** @type {unknown} */ (userReservationsResult.data.myReservations)),
           };
         }
       }
@@ -542,10 +554,11 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
     return result;
   } catch (e) {
     Logger.log(`getBatchDataでエラー: ${e.message}\nStack: ${e.stack}`);
-    return createApiErrorResponse(
+    const errorResult = createApiErrorResponse(
       `バッチデータ取得中にエラー: ${e.message}`,
       true,
     );
+    return /** @type {BatchDataResult} */ (errorResult);
   }
 }
 
@@ -553,7 +566,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
  * 統一APIレスポンス形式のエラーハンドラ
  * @param {string} message - エラーメッセージ
  * @param {boolean} [log=false] - Loggerにエラーを記録するか
- * @returns {Object} 統一されたエラーレスポンス
+ * @returns {ApiResponseGeneric} 統一されたエラーレスポンス
  */
 function createApiErrorResponse(message, log = false) {
   if (log) {
@@ -567,8 +580,8 @@ function createApiErrorResponse(message, log = false) {
 /**
  * 指定した日付・教室の日程マスタ情報を取得するAPIエンドポイント
  * フロントエンドから呼び出され、時間設定や定員情報を提供
- * @param {Object} params - {date: string, classroom: string}
- * @returns {Object} APIレスポンス（日程マスタ情報）
+ * @param {ScheduleInfoParams} params - {date: string, classroom: string}
+ * @returns {ApiResponseGeneric} APIレスポンス（日程マスタ情報）
  */
 function getScheduleInfo(params) {
   try {

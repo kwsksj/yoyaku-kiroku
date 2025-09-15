@@ -10,12 +10,17 @@
 // declare const CONSTANTS: any; // Commented out - defined in 00_Constants.js
 // declare const CLASSROOMS: any; // Commented out - defined in 00_Constants.js
 // declare const ITEMS: any; // Commented out - defined in 00_Constants.js
-declare const HEADERS: any;
+declare const HEADERS: {
+  RESERVATIONS: Record<string, string>;
+  STUDENTS: Record<string, string>;
+  SCHEDULE: Record<string, string>;
+  [key: string]: Record<string, string>;
+};
 // declare const STATUS: any; // Commented out - defined in 00_Constants.js
 // declare const UI: any; // Commented out - defined in 00_Constants.js
-declare const MESSAGES: any;
-declare const BANK: any;
-declare const PAYMENT: any;
+declare const MESSAGES: Record<string, string>;
+declare const BANK: Record<string, string>;
+declare const PAYMENT: Record<string, string>;
 
 // Schedule status constants (only for files that don't define them)
 // declare const SCHEDULE_STATUS_CANCELLED: string; // Commented out - defined in 00_Constants.js
@@ -35,44 +40,69 @@ declare function getActiveSpreadsheet(): GoogleAppsScript.Spreadsheet.Spreadshee
 declare function getSheetByName(
   name: string,
 ): GoogleAppsScript.Spreadsheet.Sheet;
-declare function handleServerError(error: any, context?: string): any;
-declare function createApiResponse(success: boolean, data?: any): any;
+declare function handleServerError(error: Error, context?: string): ApiErrorResponse;
+declare function createApiResponse(success: boolean, data?: unknown): UnifiedApiResponse;
 declare function debugLog(message: string): void;
-declare function formatDate(date: any): string;
+declare function formatDate(date: Date | string): string;
 declare function include(filename: string): string;
 
 // Frontend-specific globals
-declare const DesignConfig: any;
+declare const DesignConfig: {
+  colors: Record<string, string>;
+  buttons: Record<string, string>;
+  modal: Record<string, string>;
+  form: Record<string, string>;
+};
 declare const stateManager: StateManager;
-declare const Components: any;
-declare const pageTransitionManager: any;
-declare const C: any;
+declare const Components: {
+  [componentName: string]: (...args: unknown[]) => string;
+};
+declare const pageTransitionManager: {
+  showPage(pageName: string): void;
+  hidePage(pageName: string): void;
+  [key: string]: (...args: unknown[]) => unknown;
+};
+declare const C: Components;
 
 // Frontend utility functions
 declare function escapeHTML(str: string): string;
 declare function showLoading(): void;
 declare function hideLoading(): void;
 declare function showInfo(message: string): void;
-declare function showConfirm(config: any): void;
+declare function showConfirm(config: {
+  title?: string;
+  message: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}): void;
 declare function getTuitionItemRule(
-  master: any,
+  master: AccountingMasterItem[],
   classroom: string,
   itemName: string,
-): any;
-declare var getTimeBasedTuitionHtml: any;
-declare var createReservationCard: any;
+): AccountingMasterItem | null;
+declare function getTimeBasedTuitionHtml(
+  master: AccountingMasterItem[],
+  classroom: string
+): string;
+declare function createReservationCard(reservation: {
+  date: string;
+  classroom: string;
+  startTime: string;
+  endTime: string;
+  [key: string]: unknown;
+}): string;
 declare function findReservationByDateAndClassroom(
   date: string,
   classroom: string,
   state?: AppState,
-): any;
+): ReservationObject | null;
 declare function getScheduleDataFromLessons(reservation: {
   date: string;
   classroom: string;
-}): any;
-declare function isTimeBasedClassroom(scheduleData: any): boolean;
-declare function buildSalesChecklist(data: any): any;
-declare function findReservationById(id: string): any;
+}): ScheduleMasterData | null;
+declare function isTimeBasedClassroom(scheduleData: ScheduleMasterData): boolean;
+declare function buildSalesChecklist(data: AccountingDetails): string;
+declare function findReservationById(id: string): ReservationObject | null;
 declare function normalizePhoneNumberFrontend(phone: string): {
   normalized: string;
   isValid: boolean;
@@ -80,8 +110,15 @@ declare function normalizePhoneNumberFrontend(phone: string): {
 };
 
 // Environment variables
-declare const server: any;
-declare const MockData: any;
+declare const server: {
+  [functionName: string]: (...args: unknown[]) => unknown;
+};
+declare const MockData: {
+  lessons?: DevLesson[];
+  students?: StudentData[];
+  reservations?: ReservationObject[];
+  [key: string]: unknown;
+};
 declare const isProduction: boolean;
 // declare const DEBUG_ENABLED: boolean; // Defined in 00_Constants.js
 
@@ -91,61 +128,60 @@ declare function initializeApp(): void;
 
 // =================================================================
 // Core Data Types (lessons hierarchy structure)
+// NOTE: LessonSchedule, LessonStatus, Lessonはtypes/api-types.d.tsと統合予定
+// 現在は開発環境固有の拡張型として定義
 // =================================================================
 
-interface LessonSchedule {
-  classroom: string;
-  date: string;
-  venue?: string;
-  classroomType: string;
+// 開発環境用拡張Lesson型（api-types.d.tsのLessonを拡張）
+interface DevLessonSchedule extends LessonSchedule {
   beginnerCapacity: number;
   beginnerStart?: string;
   firstStart: string;
   firstEnd: string;
   secondStart?: string;
   secondEnd?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-interface LessonStatus {
+interface DevLessonStatus extends LessonStatus {
   availableSlots?: number;
   morningSlots?: number;
   afternoonSlots?: number;
   firstLectureSlots: number;
   firstLectureIsFull?: boolean;
-  isFull: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-interface Lesson {
-  schedule: LessonSchedule;
-  status: LessonStatus;
+interface DevLesson extends Lesson {
+  schedule: DevLessonSchedule;
+  status: DevLessonStatus;
 }
 
+// 開発環境用AppState（DevLessonを使用）
 interface AppState {
   view: string;
-  currentUser: any;
-  lessons: Lesson[];
-  myReservations: any[];
+  currentUser: StudentData | null;
+  lessons: DevLesson[];
+  myReservations: ReservationObject[];
   selectedClassroom: string | null;
-  selectedLesson: Lesson | null;
-  editingReservationDetails: any | null;
-  accountingReservation: any | null;
-  accountingReservationDetails: any;
-  allStudents: any[];
-  accountingMaster: any;
-  cacheVersions: any;
+  selectedLesson: DevLesson | null;
+  editingReservationDetails: ReservationObject | null;
+  accountingReservation: ReservationObject | null;
+  accountingReservationDetails: AccountingDetails | null;
+  allStudents: StudentData[];
+  accountingMaster: AccountingMasterItem[];
+  cacheVersions: Record<string, number>;
   today: string;
-  constants: any;
+  constants: Record<string, unknown>;
   isDataFresh: boolean;
   _dataUpdateInProgress: boolean;
   _lessonsVersion: string | null;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface StateManager {
   getState(): AppState;
-  dispatch(action: any): void;
+  dispatch(action: { type: string; payload?: unknown }): void;
   subscribe(callback: Function): Function;
   goBack?(): void;
   updateComputedData?(): void;
@@ -157,40 +193,8 @@ interface StateManager {
   confirmAndPay?(): void;
 }
 
-// Window extensions for frontend
-interface Window {
-  stateManager: StateManager;
-  C: any;
-  STATUS: any;
-  HEADERS: any;
-  initializeStateManager?: () => void;
-  // STATUS: any; // Commented out - defined in 00_Constants.js
-  // UI: any; // Commented out - defined in 00_Constants.js
-  MESSAGES: any;
-  BANK: any;
-  PAYMENT: any;
-  // HEADERS: any; // Commented out - conflicts with 00_Constants.js
-  render: () => void;
-  pageTransitionManager: any;
-  google: {
-    script: {
-      run: {
-        [key: string]: (...args: any[]) => any;
-      };
-      host: {
-        close(): void;
-        setWidth(width: number): void;
-        setHeight(height: number): void;
-      };
-    };
-  };
-  isProduction: boolean;
-  normalizePhoneNumberFrontend: (phone: string) => {
-    normalized: string;
-    isValid: boolean;
-    error?: string;
-  };
-}
+// Window拡張はtypes/index.d.tsで統一管理されています
+// 開発環境固有の型定義のみここで定義
 
 // Google Apps Script global
 declare const google: {
