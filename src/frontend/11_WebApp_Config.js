@@ -1,5 +1,5 @@
 // @ts-check
-/// <reference path="../types.d.ts" />
+/// <reference path="../../types/dev-environment.d.ts" />
 
 /**
  * =================================================================
@@ -31,132 +31,136 @@
 // =================================================================
 // 2. DESIGN CONFIGURATION
 // =================================================================
-window.DesignConfig = window.DesignConfig || {
-  // テキストや背景の色設定（温かみと活気のある配色）
-  colors: {
-    text: 'text-brand-text', // メインテキスト
-    textSubtle: 'text-brand-subtle', // サブテキスト
-    textMuted: 'text-brand-muted', // 薄いテキスト
-    primary:
-      'bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover', // プライマリ (テラコッタ)
-    secondary:
-      'bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover', // セカンダリ (明るいベージュ)
-    attention:
-      'bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover', // 注意 (若葉色)
-    accounting:
-      'bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover', // 会計 (アンバー)
-    danger:
-      'bg-state-danger-bg text-state-danger-text active:bg-state-danger-hover', // 危険 (落ち着いた赤)
-    success:
-      'bg-state-success-bg text-state-success-text active:bg-state-success-hover', // 成功 (若葉色)
-    paid: 'bg-action-paid-bg text-action-paid-text', // 支払い済み (薄い緑)
-    info: 'bg-ui-surface text-brand-text border border-ui-border',
-    warning:
-      'bg-ui-warning-bg text-ui-warning-text border border-ui-warning-border',
-    error: 'bg-ui-error-bg text-ui-error-text border border-ui-error-border',
-  },
-
-  // 教室別のボタン色設定
-  classroomColors: {
-    tokyo: {
-      button: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
-      colorClass: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
+window.DesignConfig = /** @type {DesignSystemConfig} */ (
+  window.DesignConfig || {
+    // テキストや背景の色設定（温かみと活気のある配色）
+    colors: {
+      text: 'text-brand-text', // メインテキスト
+      textSubtle: 'text-brand-subtle', // サブテキスト
+      textMuted: 'text-brand-muted', // 薄いテキスト
+      primary:
+        'bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover', // プライマリ (テラコッタ)
+      secondary:
+        'bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover', // セカンダリ (明るいベージュ)
+      attention:
+        'bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover', // 注意 (若葉色)
+      accounting:
+        'bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover', // 会計 (アンバー)
+      danger:
+        'bg-state-danger-bg text-state-danger-text active:bg-state-danger-hover', // 危険 (落ち着いた赤)
+      success:
+        'bg-state-success-bg text-state-success-text active:bg-state-success-hover', // 成功 (若葉色)
+      paid: 'bg-action-paid-bg text-action-paid-text', // 支払い済み (薄い緑)
+      info: 'bg-ui-surface text-brand-text border border-ui-border',
+      warning:
+        'bg-ui-warning-bg text-ui-warning-text border border-ui-warning-border',
+      error: 'bg-ui-error-bg text-ui-error-text border border-ui-error-border',
     },
-    numazu: {
-      button: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
-      colorClass: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
-    },
-    tsukuba: {
-      button: 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100',
-      colorClass:
-        'bg-green-50 border-green-200 text-green-800 hover:bg-green-100',
-    },
-    default: {
-      button:
-        'bg-state-available-bg border-state-available-border text-brand-text hover:bg-gray-50',
-      colorClass:
-        'bg-state-available-bg border-state-available-border text-brand-text hover:bg-gray-50',
-    },
-  },
 
-  // ボタンの基本スタイル
-  buttons: {
-    base: 'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
-    full: 'w-[250px] mx-auto block',
-    primary:
-      'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover',
-    secondary:
-      'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover',
-    attention:
-      'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover',
-    accounting:
-      'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover',
-  },
-
-  // テキストスタイル設定
-  text: {
-    heading: 'text-xl font-bold text-brand-text',
-    subheading: 'text-lg font-medium text-brand-text',
-    body: 'text-base text-brand-text',
-    bodySubtle: 'text-base text-brand-subtle',
-    caption: 'text-sm text-brand-subtle',
-    label: 'text-base font-bold text-brand-text',
-    labelBlock: 'block text-brand-text text-base font-bold mb-2',
-  },
-
-  // レイアウトユーティリティ
-  layout: {
-    container: 'max-w-screen-sm mx-auto p-4',
-    containerNoPadding: 'max-w-screen-sm mx-auto',
-    section: 'mb-8',
-    card: 'shadow-card rounded-lg border border-solid border-card-border',
-    centerContent: 'flex items-center justify-center',
-    spaceBetween: 'flex items-center justify-between',
-  },
-
-  // ユーティリティクラス
-  utils: {
-    hidden: 'hidden',
-    loading: 'opacity-50 pointer-events-none',
-    mobileFriendly: 'mobile-button touch-friendly',
-    flexCenter: 'flex items-center justify-center',
-    flexBetween: 'flex items-center justify-between',
-    fullWidth: 'w-full',
-    autoMargin: 'mx-auto',
-  },
-
-  // カードスタイル
-  cards: {
-    base: 'w-full text-left p-3 rounded-lg mobile-card touch-friendly transition-all duration-150',
-    container: 'max-w-md mx-auto space-y-3',
-    background: 'bg-ui-surface border border-ui-border',
-    state: {
-      available: {
-        card: 'bg-state-available-bg border border-state-available-border mobile-card active:bg-state-success-hover',
-        text: 'text-state-available-text',
+    // 教室別のボタン色設定
+    classroomColors: {
+      tokyo: {
+        button: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
+        colorClass: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
       },
-      waitlist: {
-        card: 'bg-state-waitlist-bg border border-state-waitlist-border mobile-card',
-        text: 'text-state-waitlist-text',
+      numazu: {
+        button: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
+        colorClass:
+          'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
       },
-      booked: {
-        card: 'bg-state-booked-bg border border-state-booked-border mobile-card',
-        text: 'text-state-booked-text',
+      tsukuba: {
+        button:
+          'bg-green-50 border-green-200 text-green-800 hover:bg-green-100',
+        colorClass:
+          'bg-green-50 border-green-200 text-green-800 hover:bg-green-100',
       },
-      history: {
-        card: 'bg-brand-light border border-ui-border mobile-card',
+      default: {
+        button:
+          'bg-state-available-bg border-state-available-border text-brand-text hover:bg-gray-50',
+        colorClass:
+          'bg-state-available-bg border-state-available-border text-brand-text hover:bg-gray-50',
       },
     },
-  },
 
-  // 入力フォームのスタイル
-  inputs: {
-    container: 'max-w-md mx-auto',
-    base: 'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
-    textarea:
-      'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
-  },
-};
+    // ボタンの基本スタイル
+    buttons: {
+      base: 'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
+      full: 'w-[250px] mx-auto block',
+      primary:
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover',
+      secondary:
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover',
+      attention:
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover',
+      accounting:
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover',
+    },
+
+    // テキストスタイル設定
+    text: {
+      heading: 'text-xl font-bold text-brand-text',
+      subheading: 'text-lg font-medium text-brand-text',
+      body: 'text-base text-brand-text',
+      bodySubtle: 'text-base text-brand-subtle',
+      caption: 'text-sm text-brand-subtle',
+      label: 'text-base font-bold text-brand-text',
+      labelBlock: 'block text-brand-text text-base font-bold mb-2',
+    },
+
+    // レイアウトユーティリティ
+    layout: {
+      container: 'max-w-screen-sm mx-auto p-4',
+      containerNoPadding: 'max-w-screen-sm mx-auto',
+      section: 'mb-8',
+      card: 'shadow-card rounded-lg border border-solid border-card-border',
+      centerContent: 'flex items-center justify-center',
+      spaceBetween: 'flex items-center justify-between',
+    },
+
+    // ユーティリティクラス
+    utils: {
+      hidden: 'hidden',
+      loading: 'opacity-50 pointer-events-none',
+      mobileFriendly: 'mobile-button touch-friendly',
+      flexCenter: 'flex items-center justify-center',
+      flexBetween: 'flex items-center justify-between',
+      fullWidth: 'w-full',
+      autoMargin: 'mx-auto',
+    },
+
+    // カードスタイル
+    cards: {
+      base: 'w-full text-left p-3 rounded-lg mobile-card touch-friendly transition-all duration-150',
+      container: 'max-w-md mx-auto space-y-3',
+      background: 'bg-ui-surface border border-ui-border',
+      state: {
+        available: {
+          card: 'bg-state-available-bg border border-state-available-border mobile-card active:bg-state-success-hover',
+          text: 'text-state-available-text',
+        },
+        waitlist: {
+          card: 'bg-state-waitlist-bg border border-state-waitlist-border mobile-card',
+          text: 'text-state-waitlist-text',
+        },
+        booked: {
+          card: 'bg-state-booked-bg border border-state-booked-border mobile-card',
+          text: 'text-state-booked-text',
+        },
+        history: {
+          card: 'bg-brand-light border border-ui-border mobile-card',
+        },
+      },
+    },
+
+    // 入力フォームのスタイル
+    inputs: {
+      container: 'max-w-md mx-auto',
+      base: 'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+      textarea:
+        'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+    },
+  }
+);
 
 // =================================================================
 // 3. CSS STYLES SETUP
@@ -655,116 +659,129 @@ const setupFontLoadingDetection = () => {
 // =================================================================
 // Page Transition & Content Loading Management
 // =================================================================
-const setupPageTransitionManagement = () => {
-  let currentView = null;
-  let previousScrollPosition = 0;
+const setupPageTransitionManagement =
+  /** @type {() => PageTransitionManager} */ (
+    () => {
+      let currentView = /** @type {ViewType | null} */ (null);
+      let previousScrollPosition = 0;
 
-  // ページ遷移時のスクロール位置リセット（問題#16対応）
-  const resetScrollPosition = () => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-  };
+      // ページ遷移時のスクロール位置リセット（問題#16対応）
+      const resetScrollPosition = () => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      };
 
-  // スクロール位置を保存
-  const saveScrollPosition = () => {
-    previousScrollPosition = window.scrollY;
-  };
+      // スクロール位置を保存
+      const saveScrollPosition = () => {
+        previousScrollPosition = window.scrollY;
+      };
 
-  // スクロール位置を復元
-  const restoreScrollPosition = () => {
-    window.scrollTo({
-      top: previousScrollPosition,
-      left: 0,
-      behavior: 'auto',
-    });
-  };
+      // スクロール位置を復元
+      const restoreScrollPosition = () => {
+        window.scrollTo({
+          top: previousScrollPosition,
+          left: 0,
+          behavior: 'auto',
+        });
+      };
 
-  // ページ遷移の判定とスクロール管理
-  const handleViewChange = (newView, isModal = false) => {
-    const hasViewChanged = currentView !== newView;
+      // ページ遷移の判定とスクロール管理
+      const handleViewChange = (
+        /** @type {ViewType | string | null} */ newView,
+        isModal = false,
+      ) => {
+        const hasViewChanged = currentView !== newView;
 
-    if (isModal) {
-      // モーダル開閉：スクロール位置を保持
-      if (newView) {
-        // モーダル開く時：現在位置を保存
-        saveScrollPosition();
-      } else {
-        // モーダル閉じる時：位置を復元
-        restoreScrollPosition();
-      }
-    } else if (hasViewChanged && newView) {
-      // 実際のページ遷移：スクロール位置をリセット
-      currentView = newView;
-      resetScrollPosition();
-    }
-  };
+        if (isModal) {
+          // モーダル開閉：スクロール位置を保持
+          if (newView) {
+            // モーダル開く時：現在位置を保存
+            saveScrollPosition();
+          } else {
+            // モーダル閉じる時：位置を復元
+            restoreScrollPosition();
+          }
+        } else if (hasViewChanged && newView) {
+          // 実際のページ遷移：スクロール位置をリセット
+          currentView = /** @type {ViewType | null} */ (newView);
+          resetScrollPosition();
+        }
+      };
 
-  // コンテンツ読み込み完了時の表示制御（問題#6対応）
-  const initializeContentVisibility = () => {
-    // フォント読み込み完了を待機
-    document.fonts.ready.then(() => {
-      const contentContainers = document.querySelectorAll('.content-container');
-      contentContainers.forEach(container => {
-        container.classList.add('loaded');
+      // コンテンツ読み込み完了時の表示制御（問題#6対応）
+      const initializeContentVisibility = () => {
+        // フォント読み込み完了を待機
+        document.fonts.ready.then(() => {
+          const contentContainers =
+            document.querySelectorAll('.content-container');
+          contentContainers.forEach(container => {
+            container.classList.add('loaded');
+          });
+        });
+
+        // ページ遷移アニメーション
+        const pageContainer = document.querySelector('.page-container');
+        if (pageContainer) {
+          pageContainer.classList.add('view-transition');
+        }
+      };
+
+      // 戻るボタンの位置調整（問題#36対応）
+      const stabilizeBackButtonPosition = () => {
+        const backButtonContainer = /** @type {HTMLElement | null} */ (
+          document.querySelector('.back-button-container')
+        );
+        if (backButtonContainer) {
+          // 位置の強制リセット
+          backButtonContainer.style.transform = 'none';
+          backButtonContainer.style.transition = 'none';
+
+          // 少し待ってからtransitionを復活（スムーズな動作のため）
+          setTimeout(() => {
+            backButtonContainer.style.transition = 'all 0.2s ease';
+          }, 100);
+        }
+      };
+
+      return /** @type {PageTransitionManager} */ ({
+        // PageTransitionManagerインターフェース準拠
+        onPageTransition: (/** @type {ViewType} */ newView) => {
+          handleViewChange(newView, false);
+        },
+        saveScrollPosition,
+        restoreScrollPosition,
+        getCurrentScrollPosition: () => previousScrollPosition,
+        setScrollPosition: (/** @type {number} */ position) => {
+          previousScrollPosition = position;
+          window.scrollTo({ top: position, left: 0, behavior: 'auto' });
+        },
+        resetScrollPosition,
+
+        // 追加機能（内部実装用）
+        handleViewChange,
+        initializeContentVisibility,
+        stabilizeBackButtonPosition,
+
+        // 統合初期化関数
+        initializePage: () => {
+          // 初回読み込み時は現在のビューを記録するのみ、スクロールリセットしない
+          if (window.stateManager && window.stateManager.getState) {
+            currentView = window.stateManager.getState().view;
+          }
+          initializeContentVisibility();
+          stabilizeBackButtonPosition();
+        },
+
+        // モーダル操作時専用（showInfo, showConfirm等から呼び出し）
+        onModalOpen: () => {
+          handleViewChange('modal', true);
+        },
+
+        onModalClose: () => {
+          handleViewChange(null, true);
+        },
       });
-    });
-
-    // ページ遷移アニメーション
-    const pageContainer = document.querySelector('.page-container');
-    if (pageContainer) {
-      pageContainer.classList.add('view-transition');
     }
-  };
-
-  // 戻るボタンの位置調整（問題#36対応）
-  const stabilizeBackButtonPosition = () => {
-    const backButtonContainer = document.querySelector(
-      '.back-button-container',
-    );
-    if (backButtonContainer) {
-      // 位置の強制リセット
-      backButtonContainer.style.transform = 'none';
-      backButtonContainer.style.transition = 'none';
-
-      // 少し待ってからtransitionを復活（スムーズな動作のため）
-      setTimeout(() => {
-        backButtonContainer.style.transition = 'all 0.2s ease';
-      }, 100);
-    }
-  };
-
-  return {
-    resetScrollPosition,
-    saveScrollPosition,
-    restoreScrollPosition,
-    handleViewChange,
-    initializeContentVisibility,
-    stabilizeBackButtonPosition,
-
-    // 統合初期化関数
-    initializePage: () => {
-      // 初回読み込み時は現在のビューを記録するのみ、スクロールリセットしない
-      if (window.stateManager && window.stateManager.getState) {
-        currentView = window.stateManager.getState().view;
-      }
-      initializeContentVisibility();
-      stabilizeBackButtonPosition();
-    },
-
-    // ページ遷移時専用初期化（StateManagerから呼び出し）
-    onPageTransition: newView => {
-      handleViewChange(newView, false);
-    },
-
-    // モーダル操作時専用（showInfo, showConfirm等から呼び出し）
-    onModalOpen: () => {
-      handleViewChange('modal', true);
-    },
-
-    onModalClose: () => {
-      handleViewChange(null, true);
-    },
-  };
-};
+  );
 
 // グローバルに公開（StateManagerから使用可能）
 window.pageTransitionManager = setupPageTransitionManagement();
@@ -813,9 +830,13 @@ const setupMobileOptimizations = () => {
 
   // viewport設定の最適化
   const optimizeViewport = () => {
-    let viewport = document.querySelector('meta[name=viewport]');
+    let viewport = /** @type {HTMLMetaElement | null} */ (
+      document.querySelector('meta[name=viewport]')
+    );
     if (!viewport) {
-      viewport = document.createElement('meta');
+      viewport = /** @type {HTMLMetaElement} */ (
+        document.createElement('meta')
+      );
       viewport.name = 'viewport';
       document.head.appendChild(viewport);
     }
@@ -973,7 +994,10 @@ setupMobileOptimizations();
 
 // DOM読み込み完了後にページ遷移管理を初期化
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.pageTransitionManager) {
-    window.pageTransitionManager.initializePage();
+  const manager = /** @type {PageTransitionManager} */ (
+    window.pageTransitionManager
+  );
+  if (manager && manager.initializePage) {
+    manager.initializePage();
   }
 });

@@ -18,7 +18,7 @@
   },
 
   // Editor Configuration
-  "editor.formatOnSave": true,
+  "editor.formatOnSave": false, // AI作業時の編集競合を避けるため無効化
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
@@ -192,5 +192,7 @@
     "TSUKUBA",
     "waitlist",
     "WAITLISTED"
-  ]
+  ],
+  "markdown.preview.fontFamily": "",
+  "markdown.preview.fontSize": 14
 }

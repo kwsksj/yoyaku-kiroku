@@ -1,5 +1,7 @@
 // @ts-check
-/// <reference path="../types.d.ts" />
+/// <reference path="../../types/dev-environment.d.ts" />
+/// <reference path="../../types/html-environment.d.ts" />
+/// <reference path="../../types/api-types.d.ts" />
 
 /**
  * =================================================================
@@ -25,23 +27,27 @@
 
 /**
  * HTML文字列をエスケープします。
- * @param {string} str エスケープする文字列
+ * @param {string | number | boolean} str - エスケープする文字列、数値、真偽値
  * @returns {string} エスケープされた文字列
  */
-window.escapeHTML = str => {
-  if (typeof str !== 'string') {
-    return str;
+window.escapeHTML = /** @type {HTMLEscapeFunction} */ (
+  str => {
+    if (typeof str !== 'string') {
+      return String(str);
+    }
+    return str.replace(/[&<>"']/g, function (match) {
+      /** @type {Record<string, string>} */
+      const escapeMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      };
+      return escapeMap[match] || match;
+    });
   }
-  return str.replace(/[&<>"']/g, function (match) {
-    return {
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    }[match];
-  });
-};
+);
 
 // =================================================================
 // --- Level 1: 基本要素（Atomic Components） ---
@@ -51,15 +57,98 @@ window.escapeHTML = str => {
 
 const Components = {
   /**
+   * 汎用モーダルコンポーネントを生成します
+   * @param {ModalConfig} config - 設定オブジェクト
+   * @returns {string} HTML文字列
+   */
+  modal: config => {
+    const maxWidth = config.maxWidth || 'max-w-sm';
+    const showCloseButton = config.showCloseButton !== false;
+
+    return `
+        <div id="${escapeHTML(config.id)}" class="modal-fade fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
+          <div class="bg-white rounded-lg ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
+            <div class="flex justify-between items-center p-4 border-b border-ui-border">
+              <h2 class="text-xl font-bold text-brand-text">${escapeHTML(config.title)}</h2>
+              ${showCloseButton ? `<button onclick="Components.closeModal('${escapeHTML(config.id)}')" class="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>` : ''}
+            </div>
+            <div class="p-4">
+              ${config.content}
+            </div>
+          </div>
+        </div>`;
+  },
+
+  /**
+   * モーダルを表示します（フェードインアニメーション付き）
+   * @param {string} modalId - モーダルのID
+   */
+  showModal: modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.remove('hidden');
+      // フェードインアニメーションのための遅延
+      requestAnimationFrame(() => {
+        modal.classList.add('active');
+      });
+      // フォーカストラップの設定
+      const focusableElements = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusableElements.length > 0) {
+        const firstElement = /** @type {HTMLElement} */ (focusableElements[0]);
+        if (firstElement && typeof firstElement.focus === 'function') {
+          firstElement.focus();
+        }
+      }
+    }
+  },
+
+  /**
+   * モーダルを非表示にします（フェードアウトアニメーション付き）
+   * @param {string} modalId - モーダルのID
+   */
+  closeModal: modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      modal.classList.remove('active');
+      // フェードアウトアニメーション完了後に完全に非表示にする
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300); // CSS transitionと同じ時間
+    }
+  },
+
+  /**
+   * 背景クリックでモーダルを閉じる処理
+   * @param {Event} event - クリックイベント
+   * @param {string} modalId - モーダルのID
+   */
+  closeModalOnBackdrop: (event, modalId) => {
+    if (event.target === event.currentTarget) {
+      Components.closeModal(modalId);
+    }
+  },
+
+  /**
+   * モーダルコンテンツ内のクリック処理
+   * ボタンなどのインタラクティブ要素はイベントを継続し、その他では伝播を停止
+   * @param {Event} event - クリックイベント
+   */
+  handleModalContentClick: event => {
+    // ボタンまたはdata-action要素の場合はイベントを継続
+    const actionElement = event.target.closest('button, [data-action]');
+    if (actionElement) {
+      // ボタンクリックの場合は伝播を継続（外側のハンドラーで処理）
+      return;
+    }
+    // それ以外の場合は伝播を停止
+    event.stopPropagation();
+  },
+
+  /**
    * 進化版ボタンコンポーネント
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.action - data-action属性の値
-   * @param {string} config.text - ボタンテキスト
-   * @param {string} [config.style='primary'] - ボタンスタイル ('primary'|'secondary'|'danger')
-   * @param {string} [config.size='normal'] - ボタンサイズ ('normal'|'full'|'small'|'xs')
-   * @param {boolean} [config.disabled=false] - 無効状態
-   * @param {string} [config.customClass=''] - 追加のCSSクラス
-   * @param {Object} [config.dataAttributes={}] - 追加のdata-*属性 (例: { classroomName: '東京' })
+   * @param {ButtonConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   button: ({
@@ -73,33 +162,37 @@ const Components = {
   }) => {
     // スタイルマッピング
     const styleClasses = {
-      primary: DesignConfig.colors.primary,
-      secondary: DesignConfig.colors.secondary,
-      danger: DesignConfig.colors.danger,
+      primary: DesignConfig.colors['primary'],
+      secondary: DesignConfig.colors['secondary'],
+      danger: DesignConfig.colors['danger'],
     };
 
+    /** @type {Record<ComponentSize, string>} */
     const sizeClasses = {
       normal: '',
-      full: DesignConfig.buttons.full,
+      full: DesignConfig.buttons['full'],
       small: 'text-sm px-3 py-1.5',
       xs: 'text-xs px-2 py-1',
+      large: 'text-lg px-4 py-2.5',
     };
 
     // データ属性をHTML文字列に変換
     const dataAttrs = Object.entries(dataAttributes)
       .map(
         ([key, value]) =>
-          `data-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}="${escapeHTML(value)}"`,
+          `data-${key.replace(/([A-Z])/g, '-$1').toLowerCase()}="${escapeHTML(String(value))}"`,
       )
       .join(' ');
 
     // スタイルが'none'の場合は基本クラスを最小限にする
-    const baseClass = style === 'none' ? '' : DesignConfig.buttons.base;
+    const baseClass = style === 'none' ? '' : DesignConfig.buttons['base'];
     const styleClass = style === 'none' ? '' : styleClasses[style] || '';
+
+    const sizeClass = size && sizeClasses[size] ? sizeClasses[size] : '';
 
     return `<button type="button"
         data-action="${escapeHTML(action || '')}"
-        class="${[baseClass, styleClass, sizeClasses[size] || '', customClass || ''].filter(Boolean).join(' ')}"
+        class="${[baseClass, styleClass, sizeClass, customClass || ''].filter(Boolean).join(' ')}"
         ${dataAttrs}
         ${disabled ? 'disabled' : ''}
       >${escapeHTML(text)}</button>`;
@@ -107,13 +200,7 @@ const Components = {
 
   /**
    * シンプル化された入力フィールドコンポーネント
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.id - input要素のid
-   * @param {string} config.label - ラベルテキスト
-   * @param {string} [config.type='text'] - input要素のtype
-   * @param {string} [config.value=''] - 初期値
-   * @param {string} [config.placeholder=''] - プレースホルダー
-   * @param {boolean} [config.required=false] - 必須項目かどうか
+   * @param {InputConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   input: ({
@@ -127,13 +214,13 @@ const Components = {
     return `<div class="mb-4">
         <label
           for="${id}"
-          class="${DesignConfig.text.labelBlock}"
+          class="${DesignConfig.text['labelBlock']}"
         >${escapeHTML(label)}</label>
         <input
           type="${type}"
           id="${id}"
           value="${escapeHTML(value)}"
-          class="${DesignConfig.inputs.base}"
+          class="${DesignConfig.inputs['base']}"
           placeholder="${escapeHTML(placeholder)}"
           ${required ? 'required' : ''}
           autocomplete="off"
@@ -143,37 +230,30 @@ const Components = {
 
   /**
    * シンプル化されたセレクトボックスコンポーネント
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.id - select要素のid
-   * @param {string} config.label - ラベルテキスト
-   * @param {string} config.options - option要素のHTML文字列
+   * @param {SelectConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   select: ({ id, label, options }) => {
     return `<div class="mb-4">
-        <label for="${id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(label)}</label>
+        <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
         <select
           id="${id}"
-          class="${DesignConfig.inputs.base}"
+          class="${DesignConfig.inputs['base']}"
         >${options}</select>
       </div>`;
   },
 
   /**
    * テキストエリアコンポーネント
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.id - textarea要素のid
-   * @param {string} config.label - ラベルテキスト
-   * @param {string} [config.value=''] - 初期値
-   * @param {string} [config.placeholder=''] - プレースホルダー
+   * @param {TextareaConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   textarea: ({ id, label, value = '', placeholder = '' }) => {
     return `<div class="mb-4">
-        <label for="${id}" class="${DesignConfig.text.labelBlock}">${escapeHTML(label)}</label>
+        <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
         <textarea
           id="${id}"
-          class="${DesignConfig.inputs.textarea}"
+          class="${DesignConfig.inputs['textarea']}"
           placeholder="${escapeHTML(placeholder)}"
         >${escapeHTML(value)}</textarea>
       </div>`;
@@ -181,14 +261,11 @@ const Components = {
 
   /**
    * チェックボックスコンポーネント
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.id - input要素のid
-   * @param {string} config.label - ラベルテキスト
-   * @param {boolean} [config.checked=false] - チェック状態
+   * @param {CheckboxConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   checkbox: ({ id, label, checked = false }) => {
-    return `<label class="flex items-center space-x-2 ${DesignConfig.colors.text}">
+    return `<label class="flex items-center space-x-2 ${DesignConfig.colors['text']}">
         <input
           type="checkbox"
           id="${id}"
@@ -205,9 +282,7 @@ const Components = {
 
   /**
    * 統一ページコンテナ
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.content - コンテンツHTML
-   * @param {string} [config.maxWidth='2xl'] - 最大幅 ('sm'|'md'|'lg'|'xl'|'2xl'|'3xl')
+   * @param {PageContainerConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   pageContainer: ({ content, maxWidth = '2xl' }) => {
@@ -216,10 +291,7 @@ const Components = {
 
   /**
    * 統一カードコンテナ
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.content - カードの内容HTML
-   * @param {string} [config.variant='default'] - バリエーション ('default'|'highlight'|'success'|'warning')
-   * @param {string} [config.padding='normal'] - パディング ('compact'|'normal'|'spacious')
+   * @param {CardContainerConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   cardContainer: ({
@@ -273,9 +345,7 @@ const Components = {
 
   /**
    * ステータスバッジ
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.type - バッジタイプ ('success'|'warning'|'error'|'info')
-   * @param {string} config.text - バッジテキスト
+   * @param {StatusBadgeConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   statusBadge: ({ type, text }) => {
@@ -291,13 +361,7 @@ const Components = {
 
   /**
    * 拡張料金表示コンポーネント
-   * @param {Object} config - 設定オブジェクト
-   * @param {number|string} config.amount - 金額
-   * @param {string} [config.label=''] - ラベル
-   * @param {string} [config.size='normal'] - サイズ ('small'|'normal'|'large')
-   * @param {string} [config.style='default'] - スタイル ('default'|'highlight'|'subtotal'|'total')
-   * @param {boolean} [config.showCurrency=true] - 通貨記号表示
-   * @param {string} [config.align='right'] - 配置 ('left'|'center'|'right')
+   * @param {PriceDisplayConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   priceDisplay: ({
@@ -339,12 +403,7 @@ const Components = {
 
   /**
    * 統一ボタンセクション
-   * @param {Object} config - 設定オブジェクト
-   * @param {Object} [config.primaryButton] - プライマリボタン設定 { text, action, style, dataAttributes }
-   * @param {Object} [config.secondaryButton] - セカンダリボタン設定
-   * @param {Object} [config.dangerButton] - 危険なボタン設定（キャンセル等）
-   * @param {string} [config.layout='vertical'] - レイアウト ('vertical'|'horizontal')
-   * @param {string} [config.spacing='normal'] - スペーシング ('compact'|'normal'|'spacious')
+   * @param {ActionButtonSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   actionButtonSection: ({
@@ -387,9 +446,7 @@ const Components = {
 
   /**
    * ナビゲーションヘッダー
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.title - ページタイトル
-   * @param {string} config.backAction - 戻るボタンのaction
+   * @param {ComponentConfig & {title: string, backAction: string}} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   navigationHeader: ({ title, backAction }) => {
@@ -401,12 +458,7 @@ const Components = {
 
   /**
    * 会計項目行（チェックボックス付き）
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.name - 項目名
-   * @param {string} config.itemType - アイテムタイプ
-   * @param {number} config.price - 単価
-   * @param {boolean} [config.checked=false] - チェック状態
-   * @param {boolean} [config.disabled=false] - 無効化状態
+   * @param {AccountingRowConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   accountingRow: ({
@@ -433,9 +485,7 @@ const Components = {
 
   /**
    * 材料入力行
-   * @param {Object} config - 設定オブジェクト
-   * @param {number} config.index - 行のインデックス
-   * @param {Object} [config.values] - 初期値
+   * @param {MaterialRowConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   materialRow: ({ index, values = {} }) => {
@@ -483,9 +533,7 @@ const Components = {
 
   /**
    * その他販売項目行
-   * @param {Object} config - 設定オブジェクト
-   * @param {number} config.index - 行のインデックス
-   * @param {Object} [config.values] - 初期値
+   * @param {OtherSalesRowConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   otherSalesRow: ({ index, values = {} }) => {
@@ -498,9 +546,7 @@ const Components = {
 
   /**
    * 会計済み表示
-   * @param {Object} config - 設定オブジェクト
-   * @param {Object} config.details - 会計詳細データ
-   * @param {Object} config.reservation - 予約データ
+   * @param {AccountingCompletedConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   accountingCompleted: ({ details, reservation }) => {
@@ -537,8 +583,8 @@ const Components = {
    * 会計フォーム全体
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.type - フォームタイプ ('timeBased' | 'fixed')
-   * @param {Object} config.master - 会計マスターデータ
-   * @param {Object} config.reservation - 予約データ
+   * @param {AccountingMasterData[]} config.master - 会計マスターデータ
+   * @param {ReservationData} config.reservation - 予約データ
    * @param {Object} config.reservationDetails - 予約固有情報
    * @param {Object} config.scheduleInfo - 講座固有情報
    * @returns {string} HTML文字列
@@ -595,13 +641,13 @@ const Components = {
   /**
    * 時間制授業料セクション
    * @param {Object} config - 設定オブジェクト
-   * @param {Object} config.tuitionItemRule - 授業料ルール
-   * @param {Object} config.reservationDetails - 予約固有情報
-   * @param {Object} config.scheduleInfo - 講座固有情報
+   * @param {AccountingMasterData} config.tuitionItemRule - 授業料ルール
+   * @param {ReservationData} config.reservationDetails - 予約固有情報
+   * @param {ScheduleInfo} config.scheduleInfo - 講座固有情報
    * @returns {string} HTML文字列
    */
   timeBasedTuition: ({ tuitionItemRule, reservationDetails, scheduleInfo }) => {
-    return getTimeBasedTuitionHtml(
+    return getTimeBasedTuitionHtmlLocal(
       tuitionItemRule,
       reservationDetails,
       scheduleInfo,
@@ -611,29 +657,33 @@ const Components = {
   /**
    * 固定制授業料セクション
    * @param {Object} config - 設定オブジェクト
-   * @param {Object} config.master - 会計マスター
-   * @param {Object} config.reservation - 予約データ
-   * @param {Object} config.reservationDetails - 予約固有情報
+   * @param {AccountingMasterData[]} config.master - 会計マスター
+   * @param {ReservationData} config.reservation - 予約データ
+   * @param {ReservationData} config.reservationDetails - 予約固有情報
    * @returns {string} HTML文字列
    */
   fixedTuitionSection: ({ master, reservation, reservationDetails }) => {
     // isFirstTimeBooking をstateManagerから取得
-    const isFirstTimeBooking = stateManager.getState().isFirstTimeBooking;
+    const state = stateManager.getState();
+    const isFirstTimeBooking = state['isFirstTimeBooking'];
 
     // 使用する授業料項目を決定（初回授業料 or 基本授業料）
     const targetItemName = isFirstTimeBooking
       ? CONSTANTS.ITEMS.FIRST_LECTURE
       : CONSTANTS.ITEMS.MAIN_LECTURE;
-    const tuitionItem = master.find(
-      item =>
-        item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-          CONSTANTS.ITEM_TYPES.TUITION &&
-        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
-        (item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
-          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
-            reservation.classroom,
-          )),
-    );
+    const tuitionItem = Array.isArray(master)
+      ? master.find(
+          /** @param {AccountingMasterData} item */
+          item =>
+            item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+              CONSTANTS.ITEM_TYPES.TUITION &&
+            item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
+            (item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
+              item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
+                reservation.classroom,
+              )),
+        )
+      : null;
 
     // 授業料の表示内容を生成
     let tuitionDisplayHtml = '';
@@ -654,54 +704,61 @@ const Components = {
         </div>`;
     }
 
-    const tuitionItems = master.filter(
-      item =>
-        item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-          CONSTANTS.ITEM_TYPES.TUITION &&
-        (item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
-          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
-            reservation.classroom,
-          )),
-    );
+    const tuitionItems = Array.isArray(master)
+      ? master.filter(
+          /** @param {AccountingMasterData} item */
+          item =>
+            item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+              CONSTANTS.ITEM_TYPES.TUITION &&
+            (item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
+              item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
+                reservation.classroom,
+              )),
+        )
+      : [];
 
     const tuitionRowsHtml = tuitionItems
-      .map(item => {
-        const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+      .map(
+        /** @param {AccountingMasterData} item */ item => {
+          const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
 
-        // メイン授業料項目の処理（初回参加時は差し替え）
-        if (itemName === targetItemName) {
+          // メイン授業料項目の処理（初回参加時は差し替え）
+          if (itemName === targetItemName) {
+            return Components.accountingRow({
+              name: itemName,
+              itemType: CONSTANTS.ITEM_TYPES.TUITION,
+              price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+              checked: true,
+              disabled: true,
+            });
+          }
+
+          // 使わない授業料項目をスキップ
+          if (
+            (itemName === CONSTANTS.ITEMS.FIRST_LECTURE &&
+              !isFirstTimeBooking) ||
+            (itemName === CONSTANTS.ITEMS.MAIN_LECTURE && isFirstTimeBooking)
+          ) {
+            return '';
+          }
+
+          // その他の項目（彫刻刀レンタルなど）
+          const isChecked = !!(
+            (reservationDetails && reservationDetails[itemName]) ||
+            (itemName === CONSTANTS.ITEMS.CHISEL_RENTAL &&
+              reservationDetails &&
+              reservationDetails.chiselRental)
+          );
+
           return Components.accountingRow({
             name: itemName,
             itemType: CONSTANTS.ITEM_TYPES.TUITION,
             price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
-            checked: true,
-            disabled: true,
+            checked: isChecked,
+            disabled: false,
           });
-        }
-
-        // 使わない授業料項目をスキップ
-        if (
-          (itemName === CONSTANTS.ITEMS.FIRST_LECTURE && !isFirstTimeBooking) ||
-          (itemName === CONSTANTS.ITEMS.MAIN_LECTURE && isFirstTimeBooking)
-        ) {
-          return '';
-        }
-
-        // その他の項目（彫刻刀レンタルなど）
-        const isChecked = !!(
-          reservationDetails[itemName] ||
-          (itemName === CONSTANTS.ITEMS.CHISEL_RENTAL &&
-            reservationDetails.chiselRental)
-        );
-
-        return Components.accountingRow({
-          name: itemName,
-          itemType: CONSTANTS.ITEM_TYPES.TUITION,
-          price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
-          checked: isChecked,
-          disabled: false,
-        });
-      })
+        },
+      )
       .filter(html => html !== '')
       .join('');
 
@@ -722,13 +779,7 @@ const Components = {
 
   /**
    * ホームセクション（予約または履歴）
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.title - セクションタイトル
-   * @param {Array} config.items - 表示項目の配列（HTMLカード文字列の配列）
-   * @param {boolean} [config.showNewButton=false] - 新規追加ボタンの表示制御
-   * @param {string} [config.newAction] - 新規追加ボタンのaction
-   * @param {boolean} [config.showMoreButton=false] - もっとみるボタンの表示制御
-   * @param {string} [config.moreAction] - もっとみるボタンのaction
+   * @param {DashboardSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   dashboardSection: ({
@@ -767,8 +818,7 @@ const Components = {
 
   /**
    * 新規予約カード（ホーム用）
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.action - data-action属性の値
+   * @param {ComponentConfig & {action: string}} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   newReservationCard: ({ action }) => {
@@ -783,19 +833,7 @@ const Components = {
 
   /**
    * 統一カードレイアウト（予約・履歴共通）- 純粋描画層
-   * @param {Object} config - 設定オブジェクト
-   * @param {Object} config.item - 予約または履歴データ
-   * @param {string} config.item.reservationId - 予約ID
-   * @param {string} config.item.classroom - 教室名
-   * @param {string} config.item.venue - 会場名
-   * @param {string} config.item.date - 日付
-   * @param {string} config.item.startTime - 開始時刻
-   * @param {string} config.item.endTime - 終了時刻
-   * @param {string} [config.item.workInProgress] - 制作メモ（履歴の場合）
-   * @param {Array} config.badges - バッジ配列（表示準備済み）
-   * @param {Array} config.editButtons - 編集ボタン配列（表示準備済み）
-   * @param {Array} config.accountingButtons - 会計ボタン配列（表示準備済み）
-   * @param {string} [config.type='booking'] - カードタイプ ('booking' | 'history')
+   * @param {ListCardConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   listCard: ({
@@ -814,7 +852,10 @@ const Components = {
     // バッジHTML生成
     const badgesHtml = badges
       .map(badge =>
-        Components.statusBadge({ type: badge.type, text: badge.text }),
+        Components.statusBadge({
+          type: /** @type {BadgeType} */ (badge.type),
+          text: badge.text
+        }),
       )
       .join('');
 
@@ -824,8 +865,8 @@ const Components = {
         Components.button({
           action: btn.action,
           text: btn.text,
-          style: btn.style || 'secondary',
-          size: btn.size || 'xs',
+          style: /** @type {ComponentStyle} */ (btn.style || 'secondary'),
+          size: /** @type {ComponentSize} */ (btn.size || 'xs'),
           //          customClass: 'mobile-button',
           dataAttributes: {
             classroom: item.classroom,
@@ -843,8 +884,8 @@ const Components = {
         Components.button({
           action: btn.action,
           text: btn.text,
-          style: btn.style || 'primary',
-          size: 'small',
+          style: /** @type {ComponentStyle} */ (btn.style || 'primary'),
+          size: /** @type {ComponentSize} */ ('small'),
           //          customClass: `mobile-button ${DesignConfig.colors.accounting}`,
           dataAttributes: {
             classroom: item.classroom,
@@ -903,10 +944,7 @@ const Components = {
 
   /**
    * 制作メモセクション（表示・編集両対応）
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.reservationId - 予約ID
-   * @param {string} config.workInProgress - 制作メモ内容
-   * @param {boolean} [config.isEditMode=false] - 編集モードかどうか
+   * @param {MemoSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   memoSection: ({ reservationId, workInProgress, isEditMode = false }) => {
@@ -956,27 +994,34 @@ const Components = {
   /**
    * 販売セクション
    * @param {Object} config - 設定オブジェクト
-   * @param {Object} config.master - 会計マスター
-   * @param {Object} config.reservationDetails - 予約固有情報
+   * @param {AccountingMasterData[]} config.master - 会計マスター
+   * @param {ReservationData} config.reservationDetails - 予約固有情報
    * @returns {string} HTML文字列
    */
   salesSection: ({ master, reservationDetails }) => {
-    const salesItems = master.filter(
-      item => item['種別'] === CONSTANTS.ITEM_TYPES.SALES,
-    );
+    const salesItems = Array.isArray(master)
+      ? master.filter(
+          /** @param {AccountingMasterData} item */
+          item => item['種別'] === CONSTANTS.ITEM_TYPES.SALES,
+        )
+      : [];
     const salesItemsHtml = salesItems
-      .map(item => {
-        // truthy値でチェック状態を判定（より柔軟）
-        const isChecked =
-          !!reservationDetails[item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]];
+      .map(
+        item => {
+          // truthy値でチェック状態を判定（より柔軟）
+          const isChecked = !!(
+            reservationDetails &&
+            reservationDetails[item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]]
+          );
 
-        return Components.accountingRow({
-          name: item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
-          itemType: CONSTANTS.ITEM_TYPES.SALES,
-          price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
-          checked: isChecked,
-        });
-      })
+          return Components.accountingRow({
+            name: item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+            itemType: CONSTANTS.ITEM_TYPES.SALES,
+            price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+            checked: isChecked,
+          });
+        },
+      )
       .join('');
 
     return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
@@ -987,10 +1032,10 @@ const Components = {
             ${Components.materialRow({
               index: 0,
               values: {
-                type: reservationDetails.materialType0,
-                l: reservationDetails.materialL0,
-                w: reservationDetails.materialW0,
-                h: reservationDetails.materialH0,
+                type: reservationDetails?.materialType0,
+                l: reservationDetails?.materialL0,
+                w: reservationDetails?.materialW0,
+                h: reservationDetails?.materialH0,
               },
             })}
           </div>
@@ -1006,8 +1051,8 @@ const Components = {
               ${Components.otherSalesRow({
                 index: 0,
                 values: {
-                  name: reservationDetails.otherSalesName0,
-                  price: reservationDetails.otherSalesPrice0,
+                  name: reservationDetails?.otherSalesName0,
+                  price: reservationDetails?.otherSalesPrice0,
                 },
               })}
             </div>
@@ -1136,94 +1181,5 @@ Components.createSmartBackButton = (currentView, appState = null) => {
 // 汎用モーダル機能
 // =================================================================
 
-/**
- * 汎用モーダルコンポーネントを生成します
- * @param {Object} config - 設定オブジェクト
- * @param {string} config.id - モーダルのID
- * @param {string} config.title - モーダルのタイトル
- * @param {string} config.content - モーダルの内容（HTML文字列）
- * @param {string} [config.maxWidth] - 最大幅のCSSクラス（デフォルト: 'max-w-sm'）
- * @param {boolean} [config.showCloseButton] - 右上の×ボタンを表示するか（デフォルト: true）
- * @returns {string} HTML文字列
- */
-Components.modal = config => {
-  const maxWidth = config.maxWidth || 'max-w-sm';
-  const showCloseButton = config.showCloseButton !== false;
-
-  return `
-      <div id="${escapeHTML(config.id)}" class="modal-fade fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
-        <div class="bg-white rounded-lg ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
-          <div class="flex justify-between items-center p-4 border-b border-ui-border">
-            <h2 class="text-xl font-bold text-brand-text">${escapeHTML(config.title)}</h2>
-            ${showCloseButton ? `<button onclick="Components.closeModal('${escapeHTML(config.id)}')" class="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>` : ''}
-          </div>
-          <div class="p-4">
-            ${config.content}
-          </div>
-        </div>
-      </div>`;
-};
-
-/**
- * モーダルを表示します（フェードインアニメーション付き）
- * @param {string} modalId - モーダルのID
- */
-Components.showModal = modalId => {
-  const modal = document.getElementById(modalId);
-  if (modal) {
-    modal.classList.remove('hidden');
-    // フェードインアニメーションのための遅延
-    requestAnimationFrame(() => {
-      modal.classList.add('active');
-    });
-    // フォーカストラップの設定
-    const focusableElements = modal.querySelectorAll(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    );
-    if (focusableElements.length > 0) {
-      focusableElements[0].focus();
-    }
-  }
-};
-
-/**
- * モーダルを非表示にします（フェードアウトアニメーション付き）
- * @param {string} modalId - モーダルのID
- */
-Components.closeModal = modalId => {
-  const modal = document.getElementById(modalId);
-  if (modal) {
-    modal.classList.remove('active');
-    // フェードアウトアニメーション完了後に完全に非表示にする
-    setTimeout(() => {
-      modal.classList.add('hidden');
-    }, 300); // CSS transitionと同じ時間
-  }
-};
-
-/**
- * 背景クリックでモーダルを閉じる処理
- * @param {Event} event - クリックイベント
- * @param {string} modalId - モーダルのID
- */
-Components.closeModalOnBackdrop = (event, modalId) => {
-  if (event.target === event.currentTarget) {
-    Components.closeModal(modalId);
-  }
-};
-
-/**
- * モーダルコンテンツ内のクリック処理
- * ボタンなどのインタラクティブ要素はイベントを継続し、その他では伝播を停止
- * @param {Event} event - クリックイベント
- */
-Components.handleModalContentClick = event => {
-  // ボタンまたはdata-action要素の場合はイベントを継続
-  const actionElement = event.target.closest('button, [data-action]');
-  if (actionElement) {
-    // ボタンクリックの場合は伝播を継続（外側のハンドラーで処理）
-    return;
-  }
-  // それ以外の場合は伝播を停止
-  event.stopPropagation();
-};
+// グローバルに公開
+window.Components = Components;

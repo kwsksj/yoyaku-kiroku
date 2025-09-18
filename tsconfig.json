@@ -17,13 +17,7 @@
     "noPropertyAccessFromIndexSignature": true,
     "exactOptionalPropertyTypes": false
   },
-  "include": [
-    "src/**/*.js",
-    "types/**/*.js",
-    "types/**/*.d.ts",
-    "gas-globals.d.ts",
-    "html-globals.d.ts"
-  ],
+  "include": ["src/**/*.js", "types/**/*.js", "types/**/*.d.ts"],
   "exclude": [
     "node_modules",
     "build-output",

@@ -1,0 +1,12 @@
+# Archive directories
+archive/
+archive/**
+**/archive/
+**/archive/**
+
+# Node modules and build outputs
+node_modules/
+build-output/
+
+# Git directory
+.git/

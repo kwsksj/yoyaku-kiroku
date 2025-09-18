@@ -1,5 +1,6 @@
 // @ts-check
-/// <reference path="../types.d.ts" />
+/// <reference path="../../types/html-environment.d.ts" />
+/// <reference path="../../types/api-types.d.ts" />
 
 /**
  * =================================================================
@@ -17,54 +18,55 @@
  */
 class SimpleStateManager {
   constructor() {
+    /** @type {UIState} */
     this.state = {
       // --- User & Session Data ---
-      /** @type {{studentId: string, realName: string, displayName: string, phone: string} | null} */
+      /** @type {UserData | null} */
       currentUser: null,
       /** @type {string} */
       loginPhone: '',
       /** @type {boolean} */
       isFirstTimeBooking: false,
-      /** @type {Object} */
+      /** @type {RegistrationFormData} */
       registrationData: {},
       /** @type {string | null} */
       registrationPhone: null,
 
       // --- Core Application Data ---
-      /** @type {Array<Object>} */
+      /** @type {LessonData[]} */
       lessons: [],
-      /** @type {Array<Object>} */
+      /** @type {ReservationData[]} */
       myReservations: [],
-      /** @type {Array<Object>} */
+      /** @type {AccountingMasterData[]} */
       accountingMaster: [],
 
       // --- UI State ---
-      /** @type {string} */
+      /** @type {ViewType} */
       view: 'login',
       /** @type {string | null} */
       selectedClassroom: null,
       /** @type {Set<string>} 編集モード中の予約ID一覧 */
       editingReservationIds: new Set(),
-      /** @type {Object | null} */
+      /** @type {LessonData | null} */
       selectedLesson: null,
-      /** @type {Object | null} */
+      /** @type {ReservationDetails | null} */
       editingReservationDetails: null,
-      /** @type {Object | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
+      /** @type {ReservationData | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
       accountingReservation: null,
-      /** @type {Object} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
+      /** @type {AccountingReservationDetails} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
       accountingReservationDetails: {},
-      /** @type {Object | null} - 講座固有情報 (教室形式, 開講時間など) */
+      /** @type {ScheduleInfo | null} - 講座固有情報 (教室形式, 開講時間など) */
       accountingScheduleInfo: null,
       /** @type {string} */ completionMessage: '',
       /** @type {number} */ recordsToShow: 10,
       /** @type {number} */ registrationStep: 1,
-      /** @type {Array<Object>} */
+      /** @type {UserData[]} */
       searchedUsers: [],
       /** @type {boolean} */
       searchAttempted: false,
 
       // --- Navigation History ---
-      /** @type {Array<{view: string, context: Object}>} */
+      /** @type {StateNavigationHistoryEntry[]} */
       navigationHistory: [],
 
       // --- System State ---
@@ -76,16 +78,19 @@ class SimpleStateManager {
       _lessonsVersion: null,
 
       // --- Computed Data ---
+      /** @type {ComputedStateData} */
       computed: {},
     };
 
-    this.isUpdating = false; // 無限ループ防止フラグ
-    this.subscribers = []; // 状態変更の購読者リスト
+    /** @type {boolean} 無限ループ防止フラグ */
+    this.isUpdating = false;
+    /** @type {StateSubscriber[]} 状態変更の購読者リスト */
+    this.subscribers = [];
   }
 
   /**
    * アクションをディスパッチして状態を更新し、UIを自動再描画
-   * @param {Object} action - アクションオブジェクト { type: 'ACTION_NAME', payload: { ... } }
+   * @param {StateAction} action - アクションオブジェクト { type: ActionType, payload?: StateActionPayload }
    */
   dispatch(action) {
     if (this.isUpdating) {
@@ -129,17 +134,22 @@ class SimpleStateManager {
 
     // ページ遷移が発生した場合のスクロール管理
     if (
+      'view' in newState &&
       newState.view &&
       newState.view !== previousView &&
       window.pageTransitionManager
     ) {
-      window.pageTransitionManager.onPageTransition(newState.view);
+      const viewValue = /** @type {ViewType} */ (newState.view);
+      window.pageTransitionManager.onPageTransition(viewValue);
     }
 
     // 最終的な状態更新（画面遷移を伴う）でのみローディング非表示を実行
-    const isViewChange = newState.view && newState.view !== previousView;
+    const isViewChange =
+      'view' in newState && newState.view && newState.view !== previousView;
     const hasSubstantialData =
-      newState.lessons || newState.myReservations || newState.currentUser;
+      ('lessons' in newState && newState.lessons) ||
+      ('myReservations' in newState && newState.myReservations) ||
+      ('currentUser' in newState && newState.currentUser);
     const isFinalUpdate =
       action.type === 'SET_STATE' && (isViewChange || hasSubstantialData);
 
@@ -153,7 +163,7 @@ class SimpleStateManager {
 
   /**
    * 状態を更新（内部メソッド）
-   * @param {Object} newState - 新しい状態
+   * @param {Partial<UIState>} newState - 新しい状態
    */
   _updateState(newState) {
     if (this.isUpdating) {
@@ -178,8 +188,9 @@ class SimpleStateManager {
 
       if (!window.isProduction) {
         if (
+          typeof ENVIRONMENT_CONFIG !== 'undefined' &&
           typeof ENVIRONMENT_CONFIG.DEBUG_ENABLED !== 'undefined' &&
-          DEBUG_ENABLED
+          ENVIRONMENT_CONFIG.DEBUG_ENABLED
         )
           console.log('✅ 状態更新完了:', Object.keys(newState));
       }
@@ -234,8 +245,8 @@ class SimpleStateManager {
 
   /**
    * 状態変更を購読する
-   * @param {Function} callback - 状態変更時に呼び出される関数 (newState, oldState) => void
-   * @returns {Function} unsubscribe関数
+   * @param {StateSubscriber} callback - 状態変更時に呼び出される関数 (newState, oldState) => void
+   * @returns {() => void} unsubscribe関数
    */
   subscribe(callback) {
     this.subscribers.push(callback);
@@ -251,8 +262,8 @@ class SimpleStateManager {
 
   /**
    * subscriberに状態変更を通知する
-   * @param {Object} newState - 新しい状態
-   * @param {Object} oldState - 古い状態
+   * @param {UIState} newState - 新しい状態
+   * @param {UIState} oldState - 古い状態
    */
   _notifySubscribers(newState, oldState) {
     this.subscribers.forEach(callback => {
@@ -266,8 +277,8 @@ class SimpleStateManager {
 
   /**
    * ナビゲーションアクションを処理し、履歴を管理する
-   * @param {Object} payload - { to: string, context?: Object, saveHistory?: boolean }
-   * @returns {Object} 新しい状態
+   * @param {StateActionPayload} payload - { to: ViewType, context?: NavigationContext, saveHistory?: boolean }
+   * @returns {Partial<UIState>} 新しい状態
    */
   _handleNavigate(payload) {
     const { to, context = {}, saveHistory = true } = payload;
@@ -303,7 +314,7 @@ class SimpleStateManager {
 
   /**
    * 現在のビューのコンテキストを抽出する
-   * @returns {Object} コンテキストオブジェクト
+   * @returns {NavigationContext} コンテキストオブジェクト
    */
   _extractCurrentContext() {
     const context = {};
@@ -340,7 +351,7 @@ class SimpleStateManager {
 
   /**
    * 前のビューに戻る
-   * @returns {Object} 新しい状態、または戻れない場合はnull
+   * @returns {Partial<UIState>} 新しい状態、または戻れない場合はnull
    */
   goBack() {
     const history = this.state.navigationHistory;

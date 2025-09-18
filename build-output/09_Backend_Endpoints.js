@@ -349,7 +349,10 @@ function getAppInitialData() {
         const repairedScheduleMaster = getCachedData(
           CACHE_KEYS.MASTER_SCHEDULE_DATA,
         );
-        if (repairedScheduleMaster && Array.isArray(repairedScheduleMaster['schedule'])) {
+        if (
+          repairedScheduleMaster &&
+          Array.isArray(repairedScheduleMaster['schedule'])
+        ) {
           Logger.log(
             `✅ Schedule Master修復完了: ${repairedScheduleMaster['schedule'].length}件`,
           );
@@ -369,8 +372,12 @@ function getAppInitialData() {
     const result = {
       success: true,
       data: {
-        allStudents: /** @type {{ [key: string]: StudentData }} */ (studentsCache?.['students'] || {}),
-        accountingMaster: /** @type {AccountingMasterItem[]} */ (accountingMaster?.['items'] || []),
+        allStudents: /** @type {{ [key: string]: StudentData }} */ (
+          studentsCache?.['students'] || {}
+        ),
+        accountingMaster: /** @type {AccountingMasterItem[]} */ (
+          accountingMaster?.['items'] || []
+        ),
         today: today,
         cacheVersions: {
           allReservations: allReservationsCache?.version || 0,
@@ -408,7 +415,8 @@ function getLoginData(phone) {
     }
 
     if (batchResult.data.myReservations) {
-      /** @type {any} */ (batchResult.data.initial).myReservations = batchResult.data.myReservations;
+      /** @type {any} */ (batchResult.data.initial).myReservations =
+        batchResult.data.myReservations;
     }
 
     const result = {
@@ -527,9 +535,16 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       );
       if (!lessonsResult.success) {
         Logger.log(`=== getBatchData: lessons取得失敗で早期リターン ===`);
-        return /** @type {BatchDataResult} */ (/** @type {unknown} */ (lessonsResult));
+        return /** @type {BatchDataResult} */ (
+          /** @type {unknown} */ (lessonsResult)
+        );
       }
-      result.data = { ...result.data, lessons: /** @type {ScheduleMasterData[]} */ (/** @type {unknown} */ (lessonsResult.data)) };
+      result.data = {
+        ...result.data,
+        lessons: /** @type {ScheduleMasterData[]} */ (
+          /** @type {unknown} */ (lessonsResult.data)
+        ),
+      };
       Logger.log(`=== getBatchData: lessonsデータ設定完了 ===`);
     }
 
@@ -542,7 +557,11 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
         if (userReservationsResult.success) {
           result.data = {
             ...result.data,
-            myReservations: /** @type {ReservationDataArray[]} */ (/** @type {unknown} */ (userReservationsResult.data.myReservations)),
+            myReservations: /** @type {ReservationDataArray[]} */ (
+              /** @type {unknown} */ (
+                userReservationsResult.data.myReservations
+              )
+            ),
           };
         }
       }

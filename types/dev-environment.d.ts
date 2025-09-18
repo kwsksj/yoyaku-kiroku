@@ -47,16 +47,9 @@ declare function formatDate(date: Date | string): string;
 declare function include(filename: string): string;
 
 // Frontend-specific globals
-declare const DesignConfig: {
-  colors: Record<string, string>;
-  buttons: Record<string, string>;
-  modal: Record<string, string>;
-  form: Record<string, string>;
-};
+// DesignConfig型は html-environment.d.ts の DesignSystemConfig を参照
 declare const stateManager: StateManager;
-declare const Components: {
-  [componentName: string]: (...args: unknown[]) => string;
-};
+// Components型は html-environment.d.ts の ComponentsObject を参照
 declare const pageTransitionManager: {
   showPage(pageName: string): void;
   hidePage(pageName: string): void;
@@ -66,7 +59,7 @@ declare const C: Components;
 
 // Frontend utility functions
 declare function escapeHTML(str: string): string;
-declare function showLoading(): void;
+declare function showLoading(category?: string): void;
 declare function hideLoading(): void;
 declare function showInfo(message: string): void;
 declare function showConfirm(config: {

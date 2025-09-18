@@ -18,11 +18,11 @@
   高優先:
 
   1. RawReservationObject型の適正化
-    - 現状: 全フィールドが string | number | boolean | Date | null
-    - 目標: Google Sheetsの実データ構造に基づく適切な型
+  - 現状: 全フィールドが string | number | boolean | Date | null
+  - 目標: Google Sheetsの実データ構造に基づく適切な型
   2. バックエンドファイルのany[]修正
-    - 05-2_Backend_Write.js: baseInfo型変換の完了
-    - 08_ErrorHandler.js: Record<string, any> の具体化
+  - 05-2_Backend_Write.js: baseInfo型変換の完了
+  - 08_ErrorHandler.js: Record<string, any> の具体化
 
   中優先:
   3. api-types.d.ts修正 (15+箇所のany型)

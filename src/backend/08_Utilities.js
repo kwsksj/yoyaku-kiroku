@@ -451,15 +451,17 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)] || '',
     ),
     chiselRental: Boolean(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)]
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)],
     ),
     firstLecture: Boolean(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)]
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)],
     ),
     workInProgress: String(
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)] || '',
     ),
-    order: String(resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.ORDER)] || ''),
+    order: String(
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.ORDER)] || '',
+    ),
     messageToTeacher: String(
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER)] ||
         '',
@@ -619,7 +621,8 @@ function getCachedReservationsFor(
 
   const typedHeaderMap = /** @type {{ [key: string]: number }} */ (headerMap);
   const dateColIdx = typedHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
-  const classroomColIdx = typedHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM];
+  const classroomColIdx =
+    typedHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM];
   const statusColIdx = typedHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS];
 
   // 必要なインデックスが取得できているか確認
@@ -672,7 +675,10 @@ function getNormalizedReservationsFor(
 
   return rawReservations
     .map(result =>
-      transformReservationArrayToObjectWithHeaders(result.data, /** @type {{ [key: string]: number }} */ (headerMap)),
+      transformReservationArrayToObjectWithHeaders(
+        result.data,
+        /** @type {{ [key: string]: number }} */ (headerMap),
+      ),
     )
     .map(rawReservation => normalizeReservationObject(rawReservation))
     .filter(reservation => reservation !== null);
@@ -687,7 +693,9 @@ function getCachedStudentById(studentId) {
   const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
   if (!studentsCache?.['students']) return null;
 
-  const students = /** @type {{ [key: string]: StudentData }} */ (studentsCache['students']);
+  const students = /** @type {{ [key: string]: StudentData }} */ (
+    studentsCache['students']
+  );
   return students[studentId] || null;
 }
 
