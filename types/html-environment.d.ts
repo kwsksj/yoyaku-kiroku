@@ -3,20 +3,6 @@
  * ブラウザ環境でのDOM API拡張と独自プロパティの定義
  */
 
-// DOM要素の型拡張（重複定義を避けるためコメントアウト）
-// declare interface Element {
-//   style: CSSStyleDeclaration;
-//   content?: string;
-// }
-
-// HTMLElement の追加プロパティ（重複定義を避けるためコメントアウト）
-// declare interface HTMLElement {
-//   content?: string;
-// }
-
-// Window拡張はtypes/index.d.tsで統一管理されています
-// HTML環境固有の拡張のみここで定義
-
 // meta要素の content プロパティ
 declare interface HTMLMetaElement {
   content: string;
@@ -27,6 +13,27 @@ declare var tailwind: any;
 
 // GAS WebApp 環境での server オブジェクト
 declare var server: any;
+
+// 会計システム関連のグローバル関数
+declare function collectFormData(): any;
+declare function saveAccountingCache(data: any): void;
+declare function loadAccountingCache(): any;
+declare function calculateAccountingTotal(formData: any, masterData: any, classroom: string): any;
+declare function updateAccountingCalculation(): void;
+declare function setupAccountingEventListeners(): void;
+declare function generateAccountingView(classifiedItems: any, classroom: string, formData?: any): string;
+declare function getPaymentInfoHtml(selectedPaymentMethod?: string): string;
+declare function getPaymentOptionsHtml(selectedValue?: string): string;
+
+// Window 拡張
+declare global {
+  interface Window {
+    currentClassifiedItems?: ClassifiedAccountingItems;
+    currentClassroom?: string;
+    collectFormData?: () => AccountingFormData;
+    accountingSystemCache?: Record<string, ClassifiedAccountingItems>;
+  }
+}
 
 // ==================================================
 // StateManager関連型定義 (フロントエンド状態管理)
@@ -57,14 +64,18 @@ declare global {
     accountingReservation: ReservationData | null;
     accountingReservationDetails: AccountingReservationDetails;
     accountingScheduleInfo: ScheduleInfo | null;
-    accountingDetails?: AccountingCalculation;
+    accountingDetails: AccountingCalculation | null;
     accountingCompleted?: boolean;
     isEditingAccountingRecord?: boolean;
+    wasFirstTimeBooking?: boolean;
     completionMessage: string;
     recordsToShow: number;
     registrationStep: number;
     searchedUsers: UserData[];
     searchAttempted: boolean;
+
+    // --- New Context for Forms ---
+    currentReservationFormContext: ReservationFormContext | null;
 
     // --- Navigation History ---
     navigationHistory: StateNavigationHistoryEntry[];
@@ -79,7 +90,15 @@ declare global {
 
     // --- Computed Data ---
     computed: ComputedStateData;
+
+    // --- 実際のコードで使用される追加プロパティ ---
+    targetElement?: HTMLElement | null;
+    caption?: string;
+    breakTime?: number;
   }
+
+  // 🔄 後方互換性のための型エイリアス
+  type AppState = UIState;
 
   // 🎭 アクション型定義
   interface StateAction {
@@ -104,6 +123,7 @@ declare global {
     | 'bookingLessons'
     | 'newReservation'
     | 'editReservation'
+    | 'reservationForm'  // 予約フォーム画面
     | 'accounting'
     | 'registration'
     | 'myReservations'
@@ -164,46 +184,45 @@ declare global {
     [key: string]: any;
   }
 
-  // 📅 レッスンデータ型
+  // 📅 レッスンデータ型 (フロントエンド用、api-types.d.tsのLesson型と構造を統一)
   interface LessonData {
+    // 不変な定義情報
     schedule: {
       classroom: string;
-      date: string;
+      date: string; // YYYY-MM-DD
       venue?: string;
-      firstStart?: string;
-      firstEnd?: string;
-      secondStart?: string;
-      secondEnd?: string;
       classroomType?: string;
+      // 時間制またはセッション制の時間
+      startTime?: string; // HH:mm
+      endTime?: string; // HH:mm
+      // 2部制の場合
+      firstStart?: string; // HH:mm
+      firstEnd?: string; // HH:mm
+      secondStart?: string; // HH:mm
+      secondEnd?: string; // HH:mm
+      beginnerStart?: string; // HH:mm
     };
+    // 可変な状態情報
     status: {
       isFull: boolean;
       availableSlots?: number;
       morningSlots?: number;
       afternoonSlots?: number;
+      firstLectureSlots?: number;
+      firstLectureIsFull?: boolean;
+      currentReservations?: number;
+      maxCapacity?: number;
     };
-    isFull?: boolean;
-    classroom?: string;
-    classroomType?: string;
-    date?: string;
-    venue?: string;
-    firstStart?: string;
-    firstEnd?: string;
-    secondStart?: string;
-    secondEnd?: string;
-    startTime?: string;
-    endTime?: string;
-    [key: string]: any;
   }
 
-  // 📋 予約データ型（統合形式）
+  // 📋 予約データ型（統合・厳密化）
   interface ReservationData {
     reservationId: string;
     classroom: string;
-    date: string | Date;
+    date: string;
     venue?: string;
-    startTime?: string | Date;
-    endTime?: string | Date;
+    startTime?: string;
+    endTime?: string;
     status?: string;
     studentId?: string;
     workInProgress?: string;
@@ -213,85 +232,88 @@ declare global {
     materialInfo?: string;
     chiselRental?: boolean;
     firstLecture?: boolean;
-    accountingDetails?: any;
-    // 動的な材料・販売項目プロパティ
+    accountingDetails?: AccountingDetails | null;
+
+    // TODO: 以下の動的プロパティは将来的に配列（materials: MaterialItem[]）にリファクタリングする
     materialType0?: string;
     materialL0?: string;
     materialW0?: string;
     materialH0?: string;
     otherSalesName0?: string;
     otherSalesPrice0?: string;
+
+    // 実際に使用される動的プロパティ（会計関連）
+    discountApplied?: boolean | string;
+    計算時間?: number;
+    breakTime?: number;
+    彫刻刀レンタル?: boolean;
+
+    // 限定的な動的プロパティ（material/otherSales系のみ）
+    [key: `material${string}`]: string | number | undefined;
+    [key: `otherSales${string}`]: string | number | undefined;
+  }
+
+  // 📋 予約フォーム専用コンテキスト
+  interface ReservationFormContext {
+    lessonInfo: LessonData;
+    reservationInfo: Partial<ReservationData>; // 新規の場合は初期値、編集の場合は既存データ
+  }
+
+  // 📊 会計マスターデータ型（実際のスプレッドシート構造に対応）
+  interface AccountingMasterData {
+    // 英語プロパティ（将来的に移行予定）
+    item?: string;
+    price?: number;
+    unit?: string;
+    type?: string;
+    classroom?: string;
+
+    // 日本語プロパティ（現在実際に使用されている - CONSTANTS.HEADERS.ACCOUNTINGに対応）
+    '種別': string;        // CONSTANTS.HEADERS.ACCOUNTING.TYPE
+    '項目名': string;      // CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME
+    '対象教室': string;    // CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM
+    '単価': number;       // CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE
+    '単位': string;       // CONSTANTS.HEADERS.ACCOUNTING.UNIT
+    '備考'?: string;      // CONSTANTS.HEADERS.ACCOUNTING.NOTES
+
+    // インデックス シグネチャでCONSTANTS.HEADERS.ACCOUNTINGアクセスに対応
     [key: string]: any;
   }
 
-  // 🔄 型安全な予約データ変換関数
-  interface ReservationDataConverter {
-    fromReservationObject(obj: ReservationObject): ReservationData;
-    toDateString(date: string | Date): string;
-    normalizeReservationData(data: any): ReservationData;
-  }
+  // 📋 予約詳細型 (編集時)
+  type ReservationDetails = Partial<ReservationData>;
 
-  // 🎯 型安全なヘルパー関数
-  interface TypeSafeHelpers {
-    ensureDateString(date: string | Date): string;
-    ensureReservationData(data: ReservationObject | ReservationData): ReservationData;
-    castToReservationData(obj: any): ReservationData;
-  }
+  // 💰 会計予約詳細型 (会計画面用) - 空オブジェクトも許可
+  type AccountingReservationDetails = Partial<ReservationData>;
 
-  // 📋 従来のReservationObject型との互換性型
-  interface ReservationObject {
-    reservationId: string;
+  // ⏰ スケジュール情報型（実際のスプレッドシート構造に対応）
+  interface ScheduleInfo {
+    // LessonData['schedule']からの継承
     classroom: string;
-    date: string | Date;
+    date: string;
     venue?: string;
+    classroomType?: string;
     startTime?: string;
     endTime?: string;
-    status?: string;
-    studentId?: string;
-    workInProgress?: string;
-    order?: string;
-    message?: string;
-    messageToTeacher?: string;
-    materialInfo?: string;
-    chiselRental?: boolean;
-    firstLecture?: boolean;
-    accountingDetails?: any;
-    [key: string]: any;
-  }
-
-  // 📊 会計マスターデータ型
-  interface AccountingMasterData {
-    [key: string]: any;
-  }
-
-  // 📋 予約詳細型
-  interface ReservationDetails {
-    [key: string]: any;
-  }
-
-  // 💰 会計予約詳細型
-  interface AccountingReservationDetails {
-    [key: string]: any;
-  }
-
-  // ⏰ スケジュール情報型
-  interface ScheduleInfo {
-    [key: string]: any;
-    // 実際のコードで使用される具体的プロパティ
-    classroom?: string;
-    date?: string;
-    venue?: string;
     firstStart?: string;
     firstEnd?: string;
     secondStart?: string;
     secondEnd?: string;
-    classroomType?: string;
+    beginnerStart?: string;
+
+    // 実際のスプレッドシートで使用される日本語プロパティ
+    '教室形式'?: string;
+    '1部開始'?: string;
+    '1部終了'?: string;
+    '2部開始'?: string;
+    '2部終了'?: string;
+
+    // インデックス シグネチャで動的アクセスに対応
+    [key: string]: any;
   }
 
   // 🧮 計算済み状態データ型
-  interface ComputedStateData {
-    [key: string]: any;
-  }
+  interface ComputedStateData {}
 
   // 🔄 状態更新パターン型
   interface StateUpdatePattern {
@@ -422,55 +444,20 @@ declare global {
   }
 
   interface ActionHandlers {
-    // 特殊なケース：文字列引数を取る関数
-    processLoginWithValidatedPhone: (normalizedPhone: string) => void;
-    updateLessonsAndGoToBooking: (classroomName: string) => void;
-    fetchLatestLessonsData: (classroomName: string, newLessonsVersion: string | null) => void;
-
-    // 実際のactionHandlersに対応した型定義
+    // 確実に実装されている必須関数のみ
     smartGoBack: ActionHandler;
-    login: ActionHandler;
-    goToStep2: ActionHandler;
-    backToStep1: ActionHandler;
-    goToStep3: ActionHandler;
-    backToStep2: ActionHandler;
-    proceedToStep4: ActionHandler;
-    backToStep3: ActionHandler;
-    submitRegistration: ActionHandler;
-    expandHistoryCard: ActionHandler;
-    saveInlineMemo: ActionHandler;
-    saveProfile: ActionHandler;
-    searchUserByName: ActionHandler;
-    selectSearchedUser: ActionHandler;
-    goToRegisterFromUserSearch: ActionHandler;
-    cancel: ActionHandler;
-    confirmBooking: ActionHandler;
-    goToEditReservation: ActionHandler;
-    updateReservation: ActionHandler;
-    goToAccounting: ActionHandler;
-    showHistoryAccounting: ActionHandler;
-    editAccountingRecord: ActionHandler;
-    addMaterialRow: ActionHandler;
-    addOtherSalesRow: ActionHandler;
-    copyGrandTotal: ActionHandler;
-    copyToClipboard: (button: HTMLElement, text?: string) => void;
-    loadMoreHistory: ActionHandler;
-    showClassroomModal: ActionHandler;
-    closeClassroomModal: ActionHandler;
-    goToEditProfile: ActionHandler;
-    selectClassroom: ActionHandler;
-    bookLesson: ActionHandler;
-    goBackToLogin: ActionHandler;
-    goBackToDashboard: ActionHandler;
-    goToDashboard: ActionHandler;
-    goBackToBooking: ActionHandler;
     modalConfirm: ActionHandler;
     modalCancel: ActionHandler;
-    showAccountingConfirmation: ActionHandler;
-    confirmAndPay: ActionHandler;
 
-    // 汎用フォールバック（上記にない場合）
-    [actionName: string]: ActionHandler | ((normalizedPhone: string) => void) | ((classroomName: string) => void) | ((classroomName: string, newLessonsVersion: string | null) => void);
+    // 会計関連アクションハンドラー
+    goToAccounting: (data: { reservationId: string }) => void;
+    goToAccountingHistory: (data: { reservationId: string }) => void;
+    confirmPayment: () => void;
+    confirmAndPay: () => void;
+    showAccountingConfirmation: (result?: AccountingCalculationResult, formData?: AccountingFormData) => void;
+
+    // 動的に取り込まれる関数（レガシー対応）
+    [actionName: string]: ActionHandler | ((param: any) => void) | ((param1: any, param2: any) => void) | undefined;
   }
 
   // 📡 google.script.run 型安全性
@@ -1407,8 +1394,30 @@ declare global {
 
   // 📐 デザインシステム型（11_WebApp_Config.js実際の構造に完全対応）
   interface DesignSystemConfig {
-    colors: Record<string, string>;
-    buttons: Record<string, string>;
+    colors: {
+      text: string;
+      textSubtle: string;
+      caption: string;
+      background: string;
+      primary: string;
+      secondary: string;
+      accent: string;
+      border: string;
+      error: string;
+      success: string;
+      warning: string;
+      info: string;
+      [key: string]: string; // 後方互換性のため最小限のインデックスシグネチャ
+    };
+    buttons: {
+      primary: string;
+      secondary: string;
+      action: string;
+      disabled: string;
+      small: string;
+      large: string;
+      [key: string]: string; // 後方互換性
+    };
     inputs: {
       container: string;
       base: string;
@@ -1515,8 +1524,6 @@ declare global {
     otherSalesRow: (config: OtherSalesRowConfig) => string;
     accountingCompleted: (config: AccountingCompletedConfig) => string;
     accountingForm: (config: any) => string;
-    timeBasedTuition: (config: any) => string;
-    fixedTuitionSection: (config: any) => string;
     salesSection: (config: any) => string;
     navigationHeader: (config: ComponentConfig & {title: string, backAction: string}) => string;
 
@@ -1811,6 +1818,10 @@ declare global {
     getUserFriendlyMessage: (error: Error, context: string) => string;
     isCriticalError: (error: Error) => boolean;
     reportError: (errorInfo: FrontendErrorInfo) => void;
+    handleServerError: (serverError: any) => void;
+    createAsyncHandler: (context: string) => (error: Error) => void;
+    handleMultiple: (errors: Error[], context: string) => void;
+    getUserMessage: (error: Error, context: string) => string;
   }
 
   interface ModalManagerObject {
@@ -1873,7 +1884,7 @@ declare global {
     DynamicStyleManager {
 
     // エラーハンドリング
-    FrontendErrorHandler?: TypedErrorHandler;
+    FrontendErrorHandler?: FrontendErrorHandlerClass;
     ModalManager?: ModalManagerObject;
 
     // UI基盤コンポーネント
@@ -1909,7 +1920,6 @@ declare global {
   declare var escapeHTML: HTMLEscapeFunction;
   declare var DesignConfig: DesignSystemConfig;
   declare var formatDate: (dateString: string) => string;
-  declare var FrontendErrorHandler: TypedErrorHandler;
   declare var ModalManager: ModalManagerObject;
 
   // 🔧 UI基盤ヘルパー関数グローバル露出
@@ -1945,3 +1955,43 @@ declare global {
 }
 
 export {};
+
+// 開発環境用モックデータ型
+declare interface DevLesson {
+  isFull: boolean;
+  classroom: string;
+  classroomType: string;
+  date: string;
+  venue: string;
+  firstStart: string;
+  firstEnd: string;
+  secondStart: string;
+  secondEnd: string;
+  availableSlots: number;
+  morningSlots: number;
+  afternoonSlots: number;
+}
+
+declare interface DevReservation {
+  reservationId: string;
+  classroom: string;
+  date: string;
+  venue: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  studentId: string;
+  workInProgress: string;
+  order: string;
+  message: string;
+  materialInfo: string;
+  chiselRental: boolean;
+  firstLecture: boolean;
+}
+
+declare interface DevStudent {
+  studentId: string;
+  realName: string;
+  displayName: string;
+  phone: string;
+}

@@ -432,8 +432,14 @@ function setupViewListener() {
             // 会計画面が表示された際の初期化処理
             // イベントリスナーは14_WebApp_Handlers.htmlのイベント委譲で処理されます。
             // ここでは、DOM描画後に初回計算を実行します。
-            if (typeof calculateAccountingDetails === 'function') {
-              calculateAccountingDetails();
+            if (typeof updateAccountingCalculation === 'function') {
+              // 会計画面用のデータを取得
+              const classifiedItems = window.currentClassifiedItems || /** @type {ClassifiedAccountingItems} */ ({
+                tuition: { baseItems: [], additionalItems: [], discountItems: [] },
+                sales: { materialItems: [], productItems: [] }
+              });
+              const classroom = window.currentClassroom || '';
+              updateAccountingCalculation(classifiedItems, classroom);
             }
           }
           // 他のビューでリスナーが必要な場合はここに追加

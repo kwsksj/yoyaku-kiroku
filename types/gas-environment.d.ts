@@ -79,7 +79,14 @@ declare global {
     startTime: string;
     endTime: string;
     status: string;
-    [key: string]: unknown;
+
+    // 実際に使用される動的プロパティ
+    discountApplied?: boolean | string;
+    計算時間?: number;
+
+    // 限定的なインデックスシグネチャ（materialTypeN等用）
+    [key: `material${string}`]: unknown;
+    [key: `otherSales${string}`]: unknown;
   }
 
   type ReservationDataArray = Array<ReservationData>;
@@ -206,9 +213,25 @@ declare global {
     paymentMethod: string;
   }
 
-  // 会計マスタデータ型定義
+  // 会計マスタデータ型定義（実際のスプレッドシート構造に対応）
   interface AccountingMasterItem {
-    [key: string]: unknown;
+    // 英語プロパティ（将来的に移行予定）
+    item?: string;
+    price?: number;
+    unit?: string;
+    type?: string;
+    classroom?: string;
+
+    // 日本語プロパティ（現在実際に使用されている - CONSTANTS.HEADERS.ACCOUNTINGに対応）
+    '種別': string;        // CONSTANTS.HEADERS.ACCOUNTING.TYPE
+    '項目名': string;      // CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME
+    '対象教室': string;    // CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM
+    '単価': number;       // CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE
+    '単位': string;       // CONSTANTS.HEADERS.ACCOUNTING.UNIT
+    '備考'?: string;      // CONSTANTS.HEADERS.ACCOUNTING.NOTES
+
+    // インデックス シグネチャでCONSTANTS.HEADERS.ACCOUNTINGアクセスに対応
+    [key: string]: any;
   }
 
   // 生徒データ型定義
@@ -551,17 +574,25 @@ declare global {
   interface ReservationObject {
     reservationId: string;
     studentId: string;
-    date: string | Date;
+    date: string;
     classroom: string;
     venue?: string;
-    startTime: string | Date;
-    endTime: string | Date;
+    startTime: string;
+    endTime: string;
     status: string;
     chiselRental: boolean;
     firstLecture: boolean;
     workInProgress?: string;
     order?: string;
     messageToTeacher?: string;
+
+    // 実際に使用される動的プロパティ
+    discountApplied?: boolean | string;
+    計算時間?: number;
+
+    // 限定的なインデックスシグネチャ（materialTypeN等用）
+    [key: `material${string}`]: unknown;
+    [key: `otherSales${string}`]: unknown;
   }
 
   // 予約キャッシュ検索結果型定義

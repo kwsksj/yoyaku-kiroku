@@ -150,38 +150,20 @@ interface DevLesson extends Lesson {
   status: DevLessonStatus;
 }
 
-// 開発環境用AppState（DevLessonを使用）
-interface AppState {
-  view: string;
-  currentUser: StudentData | null;
-  lessons: DevLesson[];
-  myReservations: ReservationObject[];
-  selectedClassroom: string | null;
-  selectedLesson: DevLesson | null;
-  editingReservationDetails: ReservationObject | null;
-  accountingReservation: ReservationObject | null;
-  accountingReservationDetails: AccountingDetails | null;
-  allStudents: StudentData[];
-  accountingMaster: AccountingMasterItem[];
-  cacheVersions: Record<string, number>;
-  today: string;
-  constants: Record<string, unknown>;
-  isDataFresh: boolean;
-  _dataUpdateInProgress: boolean;
-  _lessonsVersion: string | null;
-  [key: string]: unknown;
-}
+// 開発環境では html-environment.d.ts の UIState と AppState を使用
+// 重複定義を避けるため、ここでは型エイリアスのみ定義
 
 interface StateManager {
-  getState(): AppState;
+  getState(): UIState;
   dispatch(action: { type: string; payload?: unknown }): void;
   subscribe(callback: Function): Function;
   goBack?(): void;
   updateComputedData?(): void;
   state?: AppState;
-  isInEditMode?: boolean;
-  endEditMode?(): void;
-  startEditMode?(): void;
+  isInEditMode?(reservationId: string): boolean;
+  endEditMode?(reservationId: string): void;
+  startEditMode?(reservationId: string): void;
+  clearAllEditModes?(): void;
   showAccountingConfirmation?(grandTotal?: number): void;
   confirmAndPay?(): void;
 }

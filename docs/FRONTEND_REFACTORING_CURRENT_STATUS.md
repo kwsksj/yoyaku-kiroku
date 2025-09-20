@@ -23,20 +23,20 @@
 ### 推奨する具体的なステップ
 
 1. **`13_WebApp_Views.js` の分割を継続・完了させる**
-    - **分割単位**: 現在の `_Auth` のように、関連するビュー（機能）ごとにファイルを分割します。例えば、以下のような分割が考えられます。
-        - `13_WebApp_Views_Dashboard.js`: `getDashboardView` とそのヘルパー関数 (`_build...`など)
-        - `13_WebApp_Views_Booking.js`: `getBookingView`, `getReservationFormView`, `getClassroomSelectionModal` など予約フロー関連
-        - `13_WebApp_Views_Accounting.js`: `getAccountingView` とその関連ヘルパー
-        - `13_WebApp_Views_Shared.js`: `getTimeOptionsHtml` のような複数のビューで共有される汎用ヘルパー関数
-    - **ゴール**: `13_WebApp_Views.js` を空にするか、各ビューファイルをインポートしてエクスポートするだけの目次（インデックス）のような役割にします。
+   - **分割単位**: 現在の `_Auth` のように、関連するビュー（機能）ごとにファイルを分割します。例えば、以下のような分割が考えられます。
+     - `13_WebApp_Views_Dashboard.js`: `getDashboardView` とそのヘルパー関数 (`_build...`など)
+     - `13_WebApp_Views_Booking.js`: `getBookingView`, `getReservationFormView`, `getClassroomSelectionModal` など予約フロー関連
+     - `13_WebApp_Views_Accounting.js`: `getAccountingView` とその関連ヘルパー
+     - `13_WebApp_Views_Shared.js`: `getTimeOptionsHtml` のような複数のビューで共有される汎用ヘルパー関数
+   - **ゴール**: `13_WebApp_Views.js` を空にするか、各ビューファイルをインポートしてエクスポートするだけの目次（インデックス）のような役割にします。
 
 2. **ビルドプロセスを更新する**
-    - 新しく作成したファイルを `tools/unified-build.js` などのビルドスクリプトに追加し、最終的な `10_WebApp.html` に含まれるように構成を修正します。
+   - 新しく作成したファイルを `tools/unified-build.js` などのビルドスクリプトに追加し、最終的な `10_WebApp.html` に含まれるように構成を修正します。
 
 3. **分割したファイルごとに型修正を実施する**
-    - ファイルが小さくなれば、AIへの指示もより正確かつ的確になります。
-    - `AI_INSTRUCTION_TEMPLATES.md` の `High-2: DOM操作・UI表示型安全性` の指示を、分割後の各ファイルに対して個別に実行します。
-    - 一度に一つのファイルに集中することで、エラー修正が容易になり、進捗も管理しやすくなります。
+   - ファイルが小さくなれば、AIへの指示もより正確かつ的確になります。
+   - `AI_INSTRUCTION_TEMPLATES.md` の `High-2: DOM操作・UI表示型安全性` の指示を、分割後の各ファイルに対して個別に実行します。
+   - 一度に一つのファイルに集中することで、エラー修正が容易になり、進捗も管理しやすくなります。
 
 ### 分割作業の進め方（AIへの指示例の例）
 

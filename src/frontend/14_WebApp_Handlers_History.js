@@ -35,14 +35,14 @@ const historyActionHandlers = {
     if (!item) return;
 
     // 編集モード状態をトグル
-    const isCurrentlyEditing = stateManager.isInEditMode();
+    const isCurrentlyEditing = stateManager.isInEditMode(d.reservationId);
 
     if (isCurrentlyEditing) {
       // 編集モード解除
-      stateManager.endEditMode();
+      stateManager.endEditMode(d.reservationId);
     } else {
       // 編集モード開始
-      stateManager.startEditMode();
+      stateManager.startEditMode(d.reservationId);
     }
 
     // 該当カードのみを部分更新（ちらつき防止）
@@ -75,7 +75,7 @@ const historyActionHandlers = {
     });
 
     // 編集モードを解除
-    stateManager.endEditMode();
+    stateManager.endEditMode(d.reservationId);
 
     showInfo('メモを保存しました');
 

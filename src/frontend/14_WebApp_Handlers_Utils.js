@@ -496,7 +496,8 @@ function buildSalesChecklist(
   title = '販売品リスト',
 ) {
   const salesList = (accountingMaster || []).filter(
-    item => item['種別'] === '物販',
+    item =>
+      item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] === CONSTANTS.ITEM_TYPES.SALES,
   );
   if (!salesList.length) return '';
   const checklistHtml = getSalesCheckboxListHtml(salesList, checkedValues);

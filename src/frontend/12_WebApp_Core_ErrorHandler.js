@@ -127,10 +127,10 @@ class FrontendErrorHandler {
    * 非同期処理用のエラーハンドリング
    * Promise チェーンでの使用に最適化
    * @param {string} context - エラーコンテキスト
-   * @returns {function} エラーハンドリング関数
+   * @returns {(error: Error) => void} エラーハンドリング関数
    */
   static createAsyncHandler(context) {
-    return (error) => {
+    return (/** @type {Error} */ error) => {
       this.handle(error, context);
     };
   }
@@ -159,6 +159,43 @@ class FrontendErrorHandler {
         type: e.constructor.name,
       })),
     });
+  }
+
+  /**
+   * ユーザーフレンドリーなエラーメッセージを取得
+   * TypedErrorHandler インターフェース実装
+   * @param {Error} error - エラーオブジェクト
+   * @param {string} context - エラーコンテキスト
+   * @returns {string} ユーザー向けメッセージ
+   */
+  static getUserFriendlyMessage(error, context) {
+    return this.getUserMessage(error, context);
+  }
+
+  /**
+   * 重要なエラーかどうかを判定
+   * TypedErrorHandler インターフェース実装
+   * @param {Error} error - エラーオブジェクト
+   * @returns {boolean} 重要なエラーの場合true
+   */
+  static isCriticalError(error) {
+    const criticalErrors = ['TypeError', 'ReferenceError', 'SyntaxError'];
+    return criticalErrors.includes(error.constructor.name);
+  }
+
+  /**
+   * エラー情報をレポート
+   * TypedErrorHandler インターフェース実装
+   * @param {FrontendErrorInfo} errorInfo - エラー情報
+   */
+  static reportError(errorInfo) {
+    // 既存のhandle メソッドと同様の処理
+    const error = new Error(errorInfo.message);
+    this.handle(
+      error,
+      errorInfo.context || 'unknown',
+      errorInfo.additionalInfo || {},
+    );
   }
 }
 

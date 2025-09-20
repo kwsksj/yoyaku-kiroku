@@ -264,15 +264,35 @@ const Components = {
    * @param {CheckboxConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  checkbox: ({ id, label, checked = false }) => {
-    return `<label class="flex items-center space-x-2 ${DesignConfig.colors['text']}">
+  checkbox: ({
+    id,
+    label,
+    checked = false,
+    disabled = false,
+    dynamicStyle = false,
+  }) => {
+    // 動的スタイル用のクラス設定
+    const labelClass = dynamicStyle
+      ? checked
+        ? 'font-bold text-brand-text'
+        : 'text-brand-muted'
+      : DesignConfig.colors['text'];
+
+    // disabledの場合のスタイル調整
+    const finalLabelClass = disabled
+      ? `${labelClass} opacity-50 cursor-not-allowed`
+      : labelClass;
+
+    return `<label class="flex items-center space-x-2 ${finalLabelClass}">
         <input
           type="checkbox"
           id="${id}"
           ${checked ? 'checked' : ''}
+          ${disabled ? 'disabled' : ''}
           class="accent-action-primary-bg"
+          ${dynamicStyle ? 'data-dynamic-style="true"' : ''}
         >
-        <span>${escapeHTML(label)}</span>
+        <span>${label}</span>
       </label>`;
   },
 
@@ -497,7 +517,11 @@ const Components = {
       const master = window.stateManager?.getState?.()?.accountingMaster;
       if (master && Array.isArray(master)) {
         materialOptions = master
-          .filter(m => m['種別'] === CONSTANTS.ITEM_TYPES.MATERIAL)
+          .filter(
+            m =>
+              m[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+              CONSTANTS.ITEM_TYPES.MATERIAL,
+          )
           .map(
             m =>
               `<option value="${escapeHTML(m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME])}" ${type === m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] ? 'selected' : ''}>${escapeHTML(m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME])}</option>`,
@@ -540,7 +564,7 @@ const Components = {
     const { name = '', price = '' } = values;
     return `<div data-other-sales-row="${index}" class="mt-2 pt-2 border-t border-ui-border grid grid-cols-3 gap-2 items-center">
         <input type="text" id="other-sales-name-${index}" name="otherSalesName${index}" value="${escapeHTML(name)}" placeholder="商品名" class="col-span-2 ${DesignConfig.inputs.base} accounting-item">
-        <input type="text" inputmode="decimal" id="other-sales-price-${index}" name="otherSalesPrice${index}" value="${price}" placeholder="金額" class="${DesignConfig.inputs.base} accounting-item">
+        <input type="text" inputted="decimal" id="other-sales-price-${index}" name="otherSalesPrice${index}" value="${price}" placeholder="金額" class="${DesignConfig.inputs.base} accounting-item">
       </div>`;
   },
 
@@ -585,8 +609,8 @@ const Components = {
    * @param {string} config.type - フォームタイプ ('timeBased' | 'fixed')
    * @param {AccountingMasterData[]} config.master - 会計マスターデータ
    * @param {ReservationData} config.reservation - 予約データ
-   * @param {Object} config.reservationDetails - 予約固有情報
-   * @param {Object} config.scheduleInfo - 講座固有情報
+   * @param {ReservationData} config.reservationDetails - 予約固有情報
+   * @param {ScheduleInfo} config.scheduleInfo - 講座固有情報
    * @returns {string} HTML文字列
    */
   accountingForm: ({
@@ -596,26 +620,14 @@ const Components = {
     reservationDetails,
     scheduleInfo,
   }) => {
-    // 授業料セクション
-    let tuitionHtml;
-    if (type === 'timeBased') {
-      const tuitionItemRule = getTuitionItemRule(
-        master,
-        reservation.classroom,
-        CONSTANTS.ITEMS.MAIN_LECTURE,
-      );
-      tuitionHtml = Components.timeBasedTuition({
-        tuitionItemRule,
-        reservationDetails,
-        scheduleInfo,
-      });
-    } else {
-      tuitionHtml = Components.fixedTuitionSection({
-        master,
-        reservation,
-        reservationDetails,
-      });
-    }
+    // 統一された授業料セクション
+    const tuitionHtml = Components.unifiedTuitionSection({
+      type,
+      master,
+      reservation,
+      reservationDetails,
+      scheduleInfo,
+    });
 
     // 販売セクション
     const salesHtml = Components.salesSection({ master, reservationDetails });
@@ -639,30 +651,22 @@ const Components = {
   },
 
   /**
-   * 時間制授業料セクション
+   * 統一された授業料セクション（セッション制ベース、時間制対応）
    * @param {Object} config - 設定オブジェクト
-   * @param {AccountingMasterData} config.tuitionItemRule - 授業料ルール
+   * @param {string} config.type - 授業料タイプ（'timeBased' | 'fixed'）
+   * @param {AccountingMasterData[]} config.master - 会計マスター
+   * @param {ReservationData} config.reservation - 予約データ
    * @param {ReservationData} config.reservationDetails - 予約固有情報
    * @param {ScheduleInfo} config.scheduleInfo - 講座固有情報
    * @returns {string} HTML文字列
    */
-  timeBasedTuition: ({ tuitionItemRule, reservationDetails, scheduleInfo }) => {
-    return getTimeBasedTuitionHtmlLocal(
-      tuitionItemRule,
-      reservationDetails,
-      scheduleInfo,
-    );
-  },
-
-  /**
-   * 固定制授業料セクション
-   * @param {Object} config - 設定オブジェクト
-   * @param {AccountingMasterData[]} config.master - 会計マスター
-   * @param {ReservationData} config.reservation - 予約データ
-   * @param {ReservationData} config.reservationDetails - 予約固有情報
-   * @returns {string} HTML文字列
-   */
-  fixedTuitionSection: ({ master, reservation, reservationDetails }) => {
+  unifiedTuitionSection: ({
+    type,
+    master,
+    reservation,
+    reservationDetails,
+    scheduleInfo,
+  }) => {
     // isFirstTimeBooking をstateManagerから取得
     const state = stateManager.getState();
     const isFirstTimeBooking = state['isFirstTimeBooking'];
@@ -685,22 +689,67 @@ const Components = {
         )
       : null;
 
-    // 授業料の表示内容を生成
-    let tuitionDisplayHtml = '';
-    if (tuitionItem) {
-      const price = tuitionItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE] || 0;
-      const bgColor = isFirstTimeBooking
-        ? 'bg-green-50 border-green-400'
-        : 'bg-blue-50 border-blue-400';
-      const textColor = isFirstTimeBooking ? 'text-green-800' : 'text-blue-800';
-      const label = isFirstTimeBooking
-        ? CONSTANTS.ITEMS.FIRST_LECTURE
-        : CONSTANTS.ITEMS.MAIN_LECTURE;
+    // 時間制の場合のみ時間選択UIを追加
+    let timeSelectionHtml = '';
+    if (type === 'timeBased' && scheduleInfo) {
+      if (!scheduleInfo.firstStart || !scheduleInfo.firstEnd) {
+        return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間が設定されていません。</div>`;
+      }
 
-      tuitionDisplayHtml = `<div class="mb-4 p-3 ${bgColor} rounded border-l-4">
-          <div class="text-base ${textColor}">
-            <span class="font-semibold">${label}:</span> ¥${price.toLocaleString()}
+      // 講座時間の設定
+      const startParts = scheduleInfo.firstStart.split(':');
+      const endParts = scheduleInfo.firstEnd.split(':');
+      const classStart = parseInt(startParts[0] || '0');
+      const classEnd = parseInt(endParts[0] || '0');
+      const endBuffer = 3;
+
+      // 時間プルダウンのオプション生成
+      const startTimeOptions = getTimeOptionsHtml(
+        classStart,
+        classEnd + endBuffer,
+        30,
+        reservationDetails.startTime || '',
+      );
+      const endTimeOptions = getTimeOptionsHtml(
+        classStart,
+        classEnd + endBuffer,
+        30,
+        reservationDetails.endTime || '',
+      );
+      const breakOptions = [...Array(5).keys()]
+        .map(
+          i =>
+            `<option value="${i * 30}" ${String(i * 30) === (reservationDetails['breakTime'] || '0') ? 'selected' : ''}>${i * 30}分</option>`,
+        )
+        .join('');
+
+      timeSelectionHtml = `
+        <div class="mb-4 p-4 bg-gray-50 rounded-lg border">
+          <h4 class="text-sm font-medium text-gray-700 mb-3">参加時間を選択してください</h4>
+          <div class="grid grid-cols-3 gap-2 items-end">
+            <div class="col-span-1">
+              ${Components.select({
+                id: 'start-time',
+                label: '開始時刻',
+                options: startTimeOptions,
+              })}
+            </div>
+            <div class="col-span-1">
+              ${Components.select({
+                id: 'end-time',
+                label: '終了時刻',
+                options: endTimeOptions,
+              })}
+            </div>
+            <div class="col-span-1">
+              ${Components.select({
+                id: 'break-time',
+                label: '休憩時間',
+                options: breakOptions,
+              })}
+            </div>
           </div>
+          <div id="calculated-hours" class="text-left text-base ${DesignConfig.colors['textSubtle']} mt-2"></div>
         </div>`;
     }
 
@@ -744,10 +793,7 @@ const Components = {
 
           // その他の項目（彫刻刀レンタルなど）
           const isChecked = !!(
-            (reservationDetails && reservationDetails[itemName]) ||
-            (itemName === CONSTANTS.ITEMS.CHISEL_RENTAL &&
-              reservationDetails &&
-              reservationDetails.chiselRental)
+            reservationDetails && reservationDetails[itemName]
           );
 
           return Components.accountingRow({
@@ -762,13 +808,87 @@ const Components = {
       .filter(html => html !== '')
       .join('');
 
-    return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
-        <h3 class="text-xl font-bold mb-3 text-brand-text">授業料</h3>
-        ${tuitionDisplayHtml}
-        <div class="space-y-3">${tuitionRowsHtml}</div>
-        <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base text-brand-subtle"></div>
-        <div class="text-right font-bold mt-2 text-brand-text" id="tuition-subtotal">小計: 0円</div>
-      </div>`;
+    return Components.cardContainer({
+      variant: 'default',
+      padding: 'spacious',
+      content: `
+        <div class="space-y-3">
+          <h3 class="${DesignConfig.text['heading']} mb-2">授業料</h3>
+          
+          ${timeSelectionHtml}
+          <div class="space-y-3">${tuitionRowsHtml}</div>
+          
+          <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base ${DesignConfig.colors['textSubtle']}"></div>
+          <div class="text-right font-bold mt-2" id="tuition-subtotal">小計: 0円</div>
+        </div>
+      `,
+    });
+  },
+
+  /**
+   * セクションヘッダーコンポーネント
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.title - ヘッダータイトル
+   * @param {string} [config.symbol='■'] - 先頭記号
+   * @returns {string} HTML文字列
+   */
+  sectionHeader: ({ title, symbol = '■' }) => {
+    return `<h3 class="text-lg font-bold text-brand-text mb-3">${escapeHTML(symbol)} ${escapeHTML(title)}</h3>`;
+  },
+
+
+  /**
+   * 小計表示セクションコンポーネント
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.title - 小計タイトル
+   * @param {number} config.amount - 小計金額
+   * @param {string} [config.id=''] - 金額表示要素のID
+   * @returns {string} HTML文字列
+   */
+  subtotalSection: ({ title, amount, id = '' }) => {
+    return `<div class="subtotal mt-4 pt-3 border-t border-ui-border text-right">
+      <span class="text-lg font-bold text-brand-text">${escapeHTML(title)}: </span>
+      <span ${id ? `id="${escapeHTML(id)}"` : ''} class="text-lg font-bold text-brand-text">${Components.priceDisplay({ amount, size: 'large' })}</span>
+    </div>`;
+  },
+
+  /**
+   * 時刻選択用のselect options生成
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} [config.startTime='09:00'] - 開始時刻
+   * @param {string} [config.endTime='17:00'] - 終了時刻
+   * @param {number} [config.interval=30] - 間隔（分）
+   * @param {string} [config.selectedValue=''] - 選択済みの値
+   * @returns {string} HTML文字列
+   */
+  timeOptions: ({
+    startTime = '09:00',
+    endTime = '17:00',
+    interval = 30,
+    selectedValue = '',
+  }) => {
+    const options = [];
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [endHour, endMin] = endTime.split(':').map(Number);
+
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+
+    for (
+      let minutes = startMinutes;
+      minutes <= endMinutes;
+      minutes += interval
+    ) {
+      const hour = Math.floor(minutes / 60);
+      const min = minutes % 60;
+      const timeString = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+      const selected = timeString === selectedValue ? 'selected' : '';
+      options.push(
+        `<option value="${timeString}" ${selected}>${timeString}</option>`,
+      );
+    }
+
+    return options.join('');
   },
 
   // =================================================================
@@ -854,7 +974,7 @@ const Components = {
       .map(badge =>
         Components.statusBadge({
           type: /** @type {BadgeType} */ (badge.type),
-          text: badge.text
+          text: badge.text,
         }),
       )
       .join('');
@@ -1002,26 +1122,26 @@ const Components = {
     const salesItems = Array.isArray(master)
       ? master.filter(
           /** @param {AccountingMasterData} item */
-          item => item['種別'] === CONSTANTS.ITEM_TYPES.SALES,
+          item =>
+            item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+            CONSTANTS.ITEM_TYPES.SALES,
         )
       : [];
     const salesItemsHtml = salesItems
-      .map(
-        item => {
-          // truthy値でチェック状態を判定（より柔軟）
-          const isChecked = !!(
-            reservationDetails &&
-            reservationDetails[item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]]
-          );
+      .map(item => {
+        // truthy値でチェック状態を判定（より柔軟）
+        const isChecked = !!(
+          reservationDetails &&
+          reservationDetails[item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]]
+        );
 
-          return Components.accountingRow({
-            name: item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
-            itemType: CONSTANTS.ITEM_TYPES.SALES,
-            price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
-            checked: isChecked,
-          });
-        },
-      )
+        return Components.accountingRow({
+          name: item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+          itemType: CONSTANTS.ITEM_TYPES.SALES,
+          price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+          checked: isChecked,
+        });
+      })
       .join('');
 
     return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
@@ -1061,6 +1181,69 @@ const Components = {
         </details>
         <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div>
       </div>`;
+  },
+
+  /**
+   * 右上固定配置の戻るボタンを生成します
+   * @param {string} action - アクション名（デフォルト: 'smartGoBack'）
+   * @param {string} text - ボタンテキスト（デフォルト: '戻る'）
+   * @returns {string} HTML文字列
+   */
+  createBackButton: (action = 'smartGoBack', text = '戻る') => {
+    return `
+        <div class="back-button-container fixed top-4 right-4 z-30">
+          <button
+            data-action="${escapeHTML(action)}"
+            class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
+          >
+            ${escapeHTML(text)}
+          </button>
+        </div>`;
+  },
+
+  /**
+   * 現在のビューに応じて適切な戻るボタンを生成します
+   * @param {string} currentView - 現在のビュー名
+   * @param {UIState|null} appState - アプリケーション状態
+   * @returns {string} HTML文字列
+   */
+  createSmartBackButton: (currentView, appState = null) => {
+    /** @type {UIState} */
+    const state =
+      appState ||
+      (window.stateManager
+        ? window.stateManager.getState()
+        : /** @type {UIState} */ ({}));
+
+    // 現在のビューに応じてアクションとテキストを決定
+    let action = 'smartGoBack';
+    let text = '戻る';
+
+    // 特定のビューでの動作をカスタマイズ
+    switch (currentView) {
+      case 'bookingSuccess':
+        action = 'goToMainMenu';
+        text = 'メインメニュー';
+        break;
+      case 'history':
+        action = 'goToMainMenu';
+        text = 'メインメニュー';
+        break;
+      case 'accountingForm':
+        if (state.isEditingAccountingRecord) {
+          action = 'goToAccountingHistory';
+          text = '会計一覧';
+        } else {
+          action = 'goToMainMenu';
+          text = 'メインメニュー';
+        }
+        break;
+      default:
+        action = 'smartGoBack';
+        text = '戻る';
+    }
+
+    return Components.createBackButton(action, text);
   },
 };
 
@@ -1180,6 +1363,8 @@ Components.createSmartBackButton = (currentView, appState = null) => {
 // -----------------------------------------------------------------
 // 汎用モーダル機能
 // =================================================================
+
+// 注意: createBackButton と createSmartBackButton は Components オブジェクト内で定義済み
 
 // グローバルに公開
 window.Components = Components;

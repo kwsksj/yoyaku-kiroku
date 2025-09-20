@@ -29,7 +29,7 @@ const getDashboardView = () => {
         res.status === CONSTANTS.STATUS.CONFIRMED ||
         res.status === CONSTANTS.STATUS.WAITLISTED,
     )
-    .sort((a, b) => new Date(b.date) - new Date(a.date)); // 新しい順ソート
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
 
   const bookingCards = activeReservations.map(b => {
     const badges = _buildBookingBadges(b);
@@ -57,7 +57,7 @@ const getDashboardView = () => {
   let historyHtml = '';
   const completedReservations = myReservations
     .filter(res => res.status === CONSTANTS.STATUS.COMPLETED)
-    .sort((a, b) => new Date(b.date) - new Date(a.date)); // 新しい順ソート
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
 
   const recordsToShow = state.recordsToShow;
   const completedRecords = completedReservations.slice(0, recordsToShow);
@@ -100,10 +100,9 @@ const getDashboardView = () => {
     `;
 };
 
-
 /**
  * 予約カードの編集ボタン配列を生成します。
- * @param {object} booking - 予約データ
+ * @param {ReservationData} booking - 予約データ
  * @returns {Array<any>} 編集ボタン設定配列
  */
 const _buildEditButtons = booking => {
@@ -111,8 +110,8 @@ const _buildEditButtons = booking => {
 
   // 確認/編集ボタン
   if (
-    booking['status'] === CONSTANTS.STATUS.CONFIRMED ||
-    booking['status'] === CONSTANTS.STATUS.WAITLISTED
+    booking.status === CONSTANTS.STATUS.CONFIRMED ||
+    booking.status === CONSTANTS.STATUS.WAITLISTED
   ) {
     buttons.push({
       action: 'goToEditReservation',
@@ -126,18 +125,15 @@ const _buildEditButtons = booking => {
 
 /**
  * 予約カードの会計ボタン配列を生成します。
- * @param {object} booking - 予約データ
+ * @param {ReservationData} booking - 予約データ
  * @returns {Array<any>} 会計ボタン設定配列
  */
 const _buildAccountingButtons = booking => {
   const buttons = [];
 
   // 会計ボタン（予約日以降のみ）
-  const isBookingPastOrToday = _isPastOrToday(booking['date']);
-  if (
-    booking['status'] === CONSTANTS.STATUS.CONFIRMED &&
-    isBookingPastOrToday
-  ) {
+  const isBookingPastOrToday = _isPastOrToday(booking.date);
+  if (booking.status === CONSTANTS.STATUS.CONFIRMED && isBookingPastOrToday) {
     buttons.push({
       action: 'goToAccounting',
       text: '会計',
@@ -150,7 +146,7 @@ const _buildAccountingButtons = booking => {
 
 /**
  * 履歴カードの編集ボタン配列を生成します。
- * @param {object} historyItem - 履歴データ
+ * @param {ReservationData} historyItem - 履歴データ
  * @returns {Array<any>} 編集ボタン設定配列
  */
 const _buildHistoryEditButtons = (historyItem, isInEditMode = false) => {
@@ -170,14 +166,14 @@ const _buildHistoryEditButtons = (historyItem, isInEditMode = false) => {
 
 /**
  * 履歴カードの会計ボタン配列を生成します。
- * @param {object} historyItem - 履歴データ
+ * @param {ReservationData} historyItem - 履歴データ
  * @returns {Array<any>} 会計ボタン設定配列
  */
 const _buildHistoryAccountingButtons = historyItem => {
   const buttons = [];
 
-  if (historyItem['status'] === CONSTANTS.STATUS.COMPLETED) {
-    const isHistoryToday = _isToday(historyItem['date']);
+  if (historyItem.status === CONSTANTS.STATUS.COMPLETED) {
+    const isHistoryToday = _isToday(historyItem.date);
 
     if (isHistoryToday) {
       // きろく かつ 教室の当日 → 「会計を修正」ボタンは維持
@@ -195,19 +191,20 @@ const _buildHistoryAccountingButtons = historyItem => {
 
 /**
  * 予約カードのバッジ配列を生成します。
- * @param {object} booking - 予約データ
- * @returns {Array} バッジ設定配列
+ * @param {ReservationData} booking - 予約データ
+ * @returns {Array<{type: string, text: string}>} バッジ設定配列
  */
 const _buildBookingBadges = booking => {
+  /** @type {Array<{type: string, text: string}>} */
   const badges = [];
 
-  if (booking['firstLecture']) {
+  if (booking.firstLecture) {
     badges.push({ type: 'info', text: '初回' });
   }
 
   if (
-    booking['status'] === CONSTANTS.STATUS.WAITLISTED ||
-    booking['isWaiting']
+    booking.status === CONSTANTS.STATUS.WAITLISTED ||
+    /** @type {any} */ (booking).isWaiting
   ) {
     badges.push({ type: 'warning', text: 'キャンセル待ち' });
   }

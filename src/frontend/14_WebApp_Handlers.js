@@ -30,49 +30,11 @@
 // 各分割ファイルで定義されたアクションハンドラーを統合
 // =================================================================
 
+// actionHandlersの定義は他のハンドラーが全て定義された後に行う
+// （このファイルを最後に処理するため、その時点で他のハンドラーは利用可能）
+
 /** @type {ActionHandlers} */
-const actionHandlers = {
-  // =================================================================
-  // --- Core Navigation Handlers ---
-  // -----------------------------------------------------------------
-  /** スマートナビゲーション: 前の画面に戻る */
-  smartGoBack: () => {
-    const backState = stateManager.goBack();
-    stateManager.dispatch({
-      type: 'SET_STATE',
-      payload: backState,
-    });
-  },
-
-  /** モーダルの確認ボタンを押したときの処理です */
-  modalConfirm: () => {
-    ModalManager.executeCallback();
-    hideModal();
-  },
-
-  /** モーダルのキャンセルボタンを押したときの処理です */
-  modalCancel: () => hideModal(),
-
-  // =================================================================
-  // --- Authentication Handlers (from 14_WebApp_Handlers_Auth.js) ---
-  // -----------------------------------------------------------------
-  ...authActionHandlers,
-
-  // =================================================================
-  // --- History Management Handlers (from 14_WebApp_Handlers_History.js) ---
-  // -----------------------------------------------------------------
-  ...historyActionHandlers,
-
-  // =================================================================
-  // --- Reservation Handlers (from 14_WebApp_Handlers_Reservation.js) ---
-  // -----------------------------------------------------------------
-  ...reservationActionHandlers,
-
-  // =================================================================
-  // --- Accounting Handlers (from 14_WebApp_Handlers_Accounting.js) ---
-  // -----------------------------------------------------------------
-  ...accountingActionHandlers,
-};
+let actionHandlers;
 
 // =================================================================
 // --- Application Core Functions ---
@@ -80,6 +42,12 @@ const actionHandlers = {
 // アプリケーションの起動、状態管理、画面描画など、
 // 全体を制御するコアとなる関数群です。
 // =================================================================
+
+/** @type {ClassifiedAccountingItems} */
+const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ ({
+  tuition: { baseItems: [], additionalItems: [], discountItems: [] },
+  sales: { materialItems: [], productItems: [] }
+});
 
 /**
  * 現在のアプリケーションの状態に基づいて、適切なビューを描画する
@@ -105,7 +73,7 @@ function render() {
       v = getLoginView();
       break;
     case 'register':
-      v = getRegisterView(/** @type {any} */ (appState)['registrationPhone']);
+      v = getRegisterView(/** @type {string | undefined} */ (/** @type {any} */ (appState).registrationPhone));
       break;
     case 'registrationStep2':
       v = getRegistrationStep2View();
@@ -125,17 +93,48 @@ function render() {
     case 'bookingLessons':
       v = getBookingView(appState.selectedClassroom);
       break;
-    case 'newReservation':
-      v = getReservationFormView('new');
-      break;
-    case 'editReservation':
-      v = getReservationFormView('edit');
+    case 'reservationForm':
+      v = getReservationFormView();
       break;
     case 'accounting':
-      v = getAccountingView();
+      // 会計画面用のデータを取得
+      const reservationData = appState.accountingReservation;
+      const classroom = reservationData?.classroom || '';
+
+      // 事前初期化されたキャッシュを優先使用
+      const accountingCache = /** @type {any} */ (window).accountingSystemCache;
+      let classifiedItems = null;
+
+      if (accountingCache && classroom && accountingCache[classroom]) {
+        // キャッシュから高速取得
+        classifiedItems = accountingCache[classroom];
+        if (!window.isProduction) {
+          console.log('✅ 会計システムキャッシュ使用:', classroom);
+        }
+      } else {
+        // フォールバック: リアルタイム初期化
+        const masterData = appState.accountingMaster || [];
+        if (typeof initializeAccountingSystem === 'function' && masterData.length > 0 && classroom) {
+          v = initializeAccountingSystem(masterData, classroom, {});
+          break;
+        } else {
+          classifiedItems = EMPTY_CLASSIFIED_ITEMS;
+        }
+      }
+
+      // キャッシュされたデータでHTML生成
+      if (classifiedItems) {
+        // グローバル変数に設定（イベント処理で使用）
+        window.currentClassifiedItems = classifiedItems;
+        window.currentClassroom = classroom;
+
+        // 会計画面HTML生成
+        const formData = {};
+        v = generateAccountingView(classifiedItems, classroom, formData);
+      }
       break;
     case 'complete':
-      v = getCompleteView(/** @type {any} */ (appState)['completionMessage']);
+      v = getCompleteView(/** @type {string | undefined} */ (/** @type {any} */ (appState).completionMessage));
       break;
     case 'userSearch':
       v = getUserSearchView();
@@ -157,9 +156,17 @@ function render() {
   if (appState.view === 'accounting') {
     // DOM更新後にイベントリスナーを設定するため、次のフレームで実行
     requestAnimationFrame(() => {
-      setupAccountingEventListeners();
+      // 事前設定されたグローバル変数から取得（キャッシュ活用）
+      const classifiedItems = window.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
+      const classroom = window.currentClassroom || '';
+
+      if (typeof setupAccountingEventListeners === 'function') {
+        setupAccountingEventListeners(classifiedItems, classroom);
+      }
       // 初期計算も実行
-      updateAccountingCalculation();
+      if (typeof updateAccountingCalculation === 'function') {
+        updateAccountingCalculation(classifiedItems, classroom);
+      }
     });
   }
 
@@ -172,14 +179,19 @@ function render() {
  */
 function handleAccountingFormChange() {
   // リアルタイムで合計金額を再計算
-  calculateAccountingDetails();
+  if (typeof updateAccountingCalculation === 'function') {
+    // 会計画面用のデータを取得
+    const classifiedItems = window.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
+    const classroom = window.currentClassroom || '';
+    updateAccountingCalculation(classifiedItems, classroom);
+  }
 
   // フォーム内容が変更されたら、キャッシュに保存する
   const reservationId =
     stateManager.getState().accountingReservation?.reservationId;
   if (reservationId) {
-    const accountingData = getAccountingFormData();
-    saveAccountingCache(reservationId, accountingData);
+    const accountingData = typeof collectAccountingFormData === 'function' ? collectAccountingFormData() : {};
+    saveAccountingCache(accountingData);
   }
 }
 
@@ -188,6 +200,287 @@ function handleAccountingFormChange() {
  * ページ読み込み完了時に実行され、イベントリスナーを設定します。
  */
 window.onload = function () {
+  // 全てのハンドラーが定義された後でactionHandlersを構築
+  actionHandlers = {
+    // =================================================================
+    // --- Core Navigation Handlers ---
+    // -----------------------------------------------------------------
+    /** スマートナビゲーション: 前の画面に戻る */
+    smartGoBack: () => {
+      const backState = stateManager.goBack();
+      stateManager.dispatch({
+        type: 'SET_STATE',
+        payload: backState,
+      });
+    },
+
+    /** モーダルの確認ボタンを押したときの処理です */
+    modalConfirm: () => {
+      ModalManager.executeCallback();
+      hideModal();
+    },
+
+    /** モーダルのキャンセルボタンを押したときの処理です */
+    modalCancel: () => hideModal(),
+
+    // =================================================================
+    // --- Authentication Handlers (from 14_WebApp_Handlers_Auth.js) ---
+    // -----------------------------------------------------------------
+    ...(typeof authActionHandlers !== 'undefined' ? authActionHandlers : {}),
+
+    // =================================================================
+    // --- History Management Handlers (from 14_WebApp_Handlers_History.js) ---
+    // -----------------------------------------------------------------
+    ...(typeof historyActionHandlers !== 'undefined'
+      ? historyActionHandlers
+      : {}),
+
+    // =================================================================
+    // --- Reservation Handlers (from 14_WebApp_Handlers_Reservation.js) ---
+    // -----------------------------------------------------------------
+    ...(typeof reservationActionHandlers !== 'undefined'
+      ? reservationActionHandlers
+      : {}),
+
+    // =================================================================
+    // --- Accounting Handlers (整理済み) ---
+    // -----------------------------------------------------------------
+
+    /** 会計確認モーダルを表示（整理版） */
+    showAccountingConfirmation: (result, formData) => {
+      // 統合会計ファイルから計算結果を取得（引数で渡されない場合）
+      if (!result && typeof calculateAccountingTotal === 'function') {
+        const state = stateManager.getState();
+        const classroom = state.accountingReservation?.classroom;
+        const masterData = state.accountingMaster || [];
+
+        // フォームデータを収集
+        const currentFormData =
+          typeof collectAccountingFormData === 'function'
+            ? collectAccountingFormData()
+            : {};
+        result = calculateAccountingTotal(
+          currentFormData,
+          masterData,
+          classroom,
+        );
+        formData = currentFormData;
+      }
+
+      if (!result || result.grandTotal <= 0) {
+        showInfo('合計金額が0円です。項目を選択してください。');
+        return;
+      }
+
+      // 支払先情報を動的取得
+      const paymentMethod =
+        formData?.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH;
+      const paymentInfoHtml =
+        typeof getPaymentInfoHtml === 'function'
+          ? getPaymentInfoHtml(paymentMethod)
+          : '';
+
+      const message = `
+        <div class="p-4 bg-brand-light rounded-lg text-left space-y-4 text-base" id="modal-accounting-form">
+          <!-- 合計金額 -->
+          <div class="text-center">
+            <div class="text-2xl font-bold text-brand-text">
+              ${Components.priceDisplay({ amount: result.grandTotal, size: 'large' })}
+            </div>
+          </div>
+
+          <!-- 支払い方法選択 -->
+          <div>
+            <span class="font-bold mb-2 block">支払い方法:</span>
+            <div class="space-y-2">
+              ${typeof getPaymentOptionsHtml === 'function' ? getPaymentOptionsHtml(paymentMethod) : ''}
+            </div>
+          </div>
+
+          <!-- 支払先情報 -->
+          <div id="payment-info-container">
+            ${paymentInfoHtml}
+          </div>
+
+          <!-- 支払い完了ボタン -->
+          <div class="mt-6 pt-4 border-t">
+            ${Components.button({
+              id: 'confirm-payment-button',
+              action: 'confirmAndPay',
+              text: '支払いました',
+              style: 'primary',
+              size: 'full',
+            })}
+          </div>
+        </div>
+      `;
+
+      if (window.showModal) {
+        window.showModal({
+          title: 'お会計',
+          message: message,
+          onConfirm: () => {}, // ボタン経由で処理
+        });
+
+        // モーダル内の支払い方法変更をリッスン
+        const modalForm = document.getElementById('modal-accounting-form');
+        if (modalForm) {
+          modalForm.addEventListener('change', e => {
+            if (e.target && e.target.name === 'payment-method') {
+              const selectedMethod = e.target.value;
+              const paymentInfoContainer = document.getElementById(
+                'payment-info-container',
+              );
+              if (
+                paymentInfoContainer &&
+                typeof getPaymentInfoHtml === 'function'
+              ) {
+                paymentInfoContainer.innerHTML =
+                  getPaymentInfoHtml(selectedMethod);
+              }
+            }
+          });
+        }
+      }
+    },
+
+    /** 支払い確認モーダル表示 */
+    confirmPayment: () => {
+      // 会計確認モーダルを表示
+      if (typeof actionHandlers.showAccountingConfirmation === 'function') {
+        actionHandlers.showAccountingConfirmation();
+      } else {
+        // フォールバック: 直接支払い完了処理を実行
+        actionHandlers.confirmAndPay();
+      }
+    },
+
+    /** 会計画面に遷移（新システム対応版） */
+    goToAccounting: (/** @type {{ reservationId: string }} */ d) => {
+      showLoading('accounting');
+      const reservationId = d.reservationId;
+
+      // 統一検索関数を使用して予約データを取得
+      const reservationResult = findReservationById(reservationId);
+      const reservationData = reservationResult
+        ? {
+            ...reservationResult,
+            date: reservationResult.date
+              ? String(reservationResult.date).split('T')[0]
+              : '',
+          }
+        : null;
+
+      if (reservationData) {
+        // 会計マスタデータを取得
+        const state = stateManager.getState();
+        const accountingMaster = state.accountingMaster || [];
+
+        // 予約データを状態に設定して会計画面に遷移
+        stateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            view: 'accounting',
+            accountingReservation: reservationData,
+            accountingMaster: accountingMaster,
+          },
+        });
+
+        hideLoading();
+      } else {
+        hideLoading();
+        showInfo('予約・記録情報が見つかりませんでした。');
+      }
+    },
+
+    /** 履歴から会計処理（簡素版） */
+    goToAccountingHistory: (/** @type {{ reservationId: string }} */ d) => {
+      // 通常の会計画面遷移と同じ処理
+      actionHandlers.goToAccounting(d);
+    },
+
+    /** 支払い完了処理（ローディング→完了画面の流れ） */
+    confirmAndPay: () => {
+      const state = stateManager.getState();
+      const reservationId = state.accountingReservation?.reservationId;
+      const classroom = state.accountingReservation?.classroom;
+      const studentId = state.currentUser?.studentId;
+
+      if (!reservationId || !classroom || !studentId) {
+        showInfo('必要な情報が不足しています。');
+        return;
+      }
+
+      // モーダル内の支払い方法を取得
+      const modalForm = document.getElementById('modal-accounting-form');
+      let paymentMethod = CONSTANTS.PAYMENT_DISPLAY.CASH;
+      if (modalForm) {
+        const selected = modalForm.querySelector(
+          'input[name="payment-method"]:checked',
+        );
+        if (selected) paymentMethod = selected.value;
+      }
+
+      // フォームデータを収集（統合会計ファイルの関数を使用）
+      const formData =
+        typeof collectAccountingFormData === 'function'
+          ? collectAccountingFormData()
+          : {};
+      formData.paymentMethod = paymentMethod;
+
+      // ペイロード準備
+      const payload = {
+        reservationId,
+        classroom,
+        studentId,
+        userInput: formData,
+      };
+
+      // モーダルを閉じてローディング開始
+      hideModal();
+      showLoading('accounting');
+
+      // バックエンド送信
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run['withSuccessHandler'](
+          (/** @type {ServerResponse<any>} */ response) => {
+            hideLoading();
+            if (response.success) {
+              // データを最新に更新
+              if (response.data) {
+                stateManager.dispatch({
+                  type: 'UPDATE_INITIAL_DATA',
+                  payload: response.data,
+                });
+              }
+
+              // 成功時：完了画面を表示
+              const completionMessage = `会計情報を記録しました。`;
+              stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'complete',
+                  completionMessage: completionMessage,
+                },
+              });
+            } else {
+              showInfo('会計処理に失敗しました: ' + (response.message || ''));
+            }
+          },
+        )
+          ['withFailureHandler']((/** @type {Error} */ error) => {
+            hideLoading();
+            console.error('会計処理エラー:', error);
+            showInfo('会計処理でエラーが発生しました。');
+          })
+          .saveAccountingDetailsAndGetLatestData(payload);
+      } else {
+        hideLoading();
+        showInfo('システムエラー：Google Apps Scriptとの通信ができません。');
+      }
+    },
+  };
+
   // アプリケーションの初期化が完了するまでローディング画面を表示
   showLoading('default');
 
@@ -236,12 +529,15 @@ window.onload = function () {
         // イベント伝播を停止しない（モーダル内のボタンを有効にする）
       }
 
-      if (/** @type {any} */ (actionHandlers)[action]) {
+      if (typeof actionHandlers[action] === 'function') {
         // 特殊なハンドラー（copyToClipboard, copyGrandTotal）はtargetElementを渡す
         if (action === 'copyToClipboard' || action === 'copyGrandTotal') {
-          /** @type {any} */ (actionHandlers)[action]({ ...data, targetElement });
+          /** @type {(data: any) => void} */ (actionHandlers[action])({
+            ...data,
+            targetElement,
+          });
         } else {
-          /** @type {any} */ (actionHandlers)[action](data);
+          /** @type {(data: any) => void} */ (actionHandlers[action])(data);
         }
       } else {
         // ハンドラーが見つからない場合のデバッグ

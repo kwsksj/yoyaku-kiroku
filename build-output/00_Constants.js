@@ -253,9 +253,7 @@ const CONSTANTS = {
     MAIN_LECTURE: '基本授業料',
     FIRST_LECTURE: '初回授業料',
     CHISEL_RENTAL: '彫刻刀レンタル',
-    TOOL_SET: '道具セット',
-    MATERIAL_FEE: '材料費',
-    DISCOUNT: '初回者同時参加割引',
+    DISCOUNT: '初回者同時割引',
   },
 
   // 会計項目種別定数

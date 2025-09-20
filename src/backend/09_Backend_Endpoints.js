@@ -5,7 +5,7 @@
 /**
  * =================================================================
  * 【ファイル名】: 09_Backend_Endpoints.js
- * 【バージョン】: 3.2
+ * 【バージョン】: 3.3
  * 【役割】: WebApp用統合APIエンドポイント関数
  *
  * 【主要機能】:
@@ -368,7 +368,7 @@ function getAppInitialData() {
       'yyyy-MM-dd',
     );
 
-    /** @type {ApiResponseGeneric<{ allStudents: { [key: string]: StudentData }, accountingMaster: AccountingMasterItem[], today: string, cacheVersions: { [key: string]: number } }>} */
+    /** @type {ApiResponseGeneric<{ allStudents: { [key: string]: StudentData }, accountingMaster: AccountingMasterItem[], today: string, cacheVersions: { [key: string]: number } }>}*/
     const result = {
       success: true,
       data: {

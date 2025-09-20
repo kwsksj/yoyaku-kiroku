@@ -67,7 +67,10 @@ function processInitialData(data, phone, lessons, myReservations = null) {
     ? `${cacheVersions['allReservations'] || 0}-${cacheVersions['scheduleMaster'] || 0}`
     : null;
 
-  // 5. appStateを構築（フィルタリングされていない生の予約データを保存）
+  // 5. 会計システムの事前初期化（全教室分）
+  preInitializeAccountingSystem(accountingMaster);
+
+  // 6. appStateを構築（フィルタリングされていない生の予約データを保存）
   return {
     view: 'dashboard',
     currentUser: currentUser,
@@ -80,6 +83,46 @@ function processInitialData(data, phone, lessons, myReservations = null) {
     _cacheVersions: cacheVersions,
     _lessonsVersion: lessonsVersion, // 講座バージョンを設定（UIStateで定義済み）
   };
+}
+
+/**
+ * 会計システムの事前初期化（アプリ起動時）
+ * 全教室分の会計データを分類してキャッシュし、会計画面への高速遷移を実現
+ * @param {Array<any>} accountingMaster - 会計マスタデータ
+ */
+function preInitializeAccountingSystem(accountingMaster) {
+  if (!accountingMaster || accountingMaster.length === 0) {
+    console.warn('⚠️ 会計マスタデータが存在しないため、事前初期化をスキップします');
+    return;
+  }
+
+  try {
+    // 全教室の分類済みデータを事前生成
+    const classrooms = CONSTANTS.CLASSROOMS ? Object.values(CONSTANTS.CLASSROOMS) : [];
+    /** @type {Record<string, ClassifiedAccountingItems>} */
+    const preInitializedData = {};
+
+    classrooms.forEach(classroom => {
+      if (typeof classifyAccountingItems === 'function') {
+        const classifiedItems = classifyAccountingItems(accountingMaster, classroom);
+        preInitializedData[classroom] = classifiedItems;
+      }
+    });
+
+    // グローバルキャッシュに保存
+    /** @type {any} */ (window).accountingSystemCache = preInitializedData;
+
+    if (!window.isProduction) {
+      console.log('✅ 会計システム事前初期化完了:', {
+        classrooms: classrooms.length,
+        masterItems: accountingMaster.length
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ 会計システム事前初期化エラー:', error);
+    // エラーが発生してもアプリ全体の動作は継続
+  }
 }
 
 // =================================================================
@@ -317,6 +360,8 @@ function getScheduleDataFromLessons(reservation) {
   // 日程マスタ形式の情報を返す
   const schedule = /** @type {ScheduleInfo} */ (matchingLesson.schedule);
   return {
+    classroom: reservation.classroom,
+    date: reservation.date,
     classroomType: /** @type {string} */ (
       schedule.classroomType || schedule['教室形式']
     ),

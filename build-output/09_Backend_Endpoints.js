@@ -5,7 +5,7 @@
 /**
  * =================================================================
  * 【ファイル名】: 09_Backend_Endpoints.js
- * 【バージョン】: 3.2
+ * 【バージョン】: 3.3
  * 【役割】: WebApp用統合APIエンドポイント関数
  *
  * 【主要機能】:
@@ -368,7 +368,7 @@ function getAppInitialData() {
       'yyyy-MM-dd',
     );
 
-    /** @type {ApiResponseGeneric<{ allStudents: { [key: string]: StudentData }, accountingMaster: AccountingMasterItem[], today: string, cacheVersions: { [key: string]: number } }>} */
+    /** @type {ApiResponseGeneric<{ allStudents: { [key: string]: StudentData }, accountingMaster: AccountingMasterItem[], today: string, cacheVersions: { [key: string]: number } }>}*/
     const result = {
       success: true,
       data: {
@@ -394,6 +394,105 @@ function getAppInitialData() {
     Logger.log(`getAppInitialDataでエラー: ${e.message}\nStack: ${e.stack}`);
     return createApiErrorResponse(
       `アプリ初期データ取得中にエラー: ${e.message}`,
+      true,
+    );
+  }
+}
+
+/**
+ * フロントエンド用に構造化された会計マスタデータを生成して返す
+ * @returns {ApiResponseGeneric<StructuredAccountingData>}
+ */
+function getStructuredAccountingData() {
+  try {
+    Logger.log('getStructuredAccountingData開始');
+
+    const accountingMasterCache = getCachedData(
+      CACHE_KEYS.MASTER_ACCOUNTING_DATA,
+    );
+    const rawData = accountingMasterCache?.['items'] || [];
+
+    if (rawData.length === 0) {
+      return createApiErrorResponse('会計マスタデータが見つかりません。', true);
+    }
+
+    /** @type {StructuredAccountingData} */
+    const structuredData = {};
+
+    // 教室ごとに初期化
+    Object.values(CONSTANTS.CLASSROOMS).forEach(classroomName => {
+      structuredData[classroomName] = {
+        [CONSTANTS.ITEM_TYPES.TUITION]: [],
+        [CONSTANTS.ITEM_TYPES.SALES]: [],
+        [CONSTANTS.ITEM_TYPES.MATERIAL]: [],
+      };
+    });
+
+    rawData.forEach(row => {
+      const unit = row[CONSTANTS.HEADERS.ACCOUNTING.UNIT];
+      const notes = row[CONSTANTS.HEADERS.ACCOUNTING.NOTES];
+
+      /** @type {ProcessedAccountingItem} */
+      const processedItem = {
+        name: row[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+        price: Number(row[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]),
+        unit_display: unit,
+        remarks: notes,
+        calc_type: 'count', // default
+      };
+
+      switch (unit) {
+        case CONSTANTS.UNITS.THIRTY_MIN:
+          processedItem.calc_type = 'time_block';
+          processedItem.block_minutes = 30;
+          break;
+        case CONSTANTS.UNITS.CM3:
+          processedItem.calc_type = 'volume';
+          break;
+        case CONSTANTS.UNITS.PIECE:
+        case CONSTANTS.UNITS.SET:
+          if (notes === '計算不要の材料') {
+            processedItem.calc_type = 'fixed';
+          } else {
+            processedItem.calc_type = 'quantity';
+          }
+          break;
+        default: // '回' など
+          processedItem.calc_type = 'count';
+          break;
+      }
+
+      const targetClassroom =
+        row[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
+      const itemType = row[CONSTANTS.HEADERS.ACCOUNTING.TYPE];
+
+      if (targetClassroom === '共通') {
+        Object.values(CONSTANTS.CLASSROOMS).forEach(classroomName => {
+          if (
+            structuredData[classroomName] &&
+            structuredData[classroomName][itemType]
+          ) {
+            structuredData[classroomName][itemType].push(processedItem);
+          }
+        });
+      } else {
+        if (
+          structuredData[targetClassroom] &&
+          structuredData[targetClassroom][itemType]
+        ) {
+          structuredData[targetClassroom][itemType].push(processedItem);
+        }
+      }
+    });
+
+    Logger.log('getStructuredAccountingData完了');
+    return createApiResponse(true, structuredData);
+  } catch (e) {
+    Logger.log(
+      `getStructuredAccountingDataでエラー: ${e.message}\nStack: ${e.stack}`,
+    );
+    return createApiErrorResponse(
+      `構造化会計データ生成中にエラー: ${e.message}`,
       true,
     );
   }

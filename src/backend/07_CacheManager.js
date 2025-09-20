@@ -543,7 +543,7 @@ function rebuildAccountingMasterCache() {
 
     // データを処理してオブジェクト形式に変換
     const processedItems = allData.map(rowData => {
-      /** @type {AccountingMasterItem} */
+      /** @type {Partial<AccountingMasterItem>} */
       const item = {};
       headers.forEach((headerName, columnIndex) => {
         const cellValue = rowData[columnIndex];

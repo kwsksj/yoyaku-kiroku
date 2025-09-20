@@ -57,6 +57,8 @@ class SimpleStateManager {
       accountingReservationDetails: {},
       /** @type {ScheduleInfo | null} - 講座固有情報 (教室形式, 開講時間など) */
       accountingScheduleInfo: null,
+      /** @type {AccountingCalculation | null} - 会計計算結果 */
+      accountingDetails: null,
       /** @type {string} */ completionMessage: '',
       /** @type {number} */ recordsToShow: 10,
       /** @type {number} */ registrationStep: 1,
@@ -64,6 +66,10 @@ class SimpleStateManager {
       searchedUsers: [],
       /** @type {boolean} */
       searchAttempted: false,
+
+      // --- New Context for Forms ---
+      /** @type {ReservationFormContext | null} - 予約フォーム専用コンテキスト */
+      currentReservationFormContext: null,
 
       // --- Navigation History ---
       /** @type {StateNavigationHistoryEntry[]} */
@@ -238,6 +244,7 @@ class SimpleStateManager {
 
   /**
    * 現在の状態を取得
+   * @returns {UIState} 現在の状態
    */
   getState() {
     return this.state;

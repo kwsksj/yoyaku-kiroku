@@ -47,7 +47,9 @@ const authActionHandlers = {
 
     showLoading('booking');
     // 正規化に成功した場合は直接ログイン処理を実行（1回のAPI呼び出し）
-    authActionHandlers.processLoginWithValidatedPhone(normalizeResult.normalized);
+    authActionHandlers.processLoginWithValidatedPhone(
+      normalizeResult.normalized,
+    );
   },
 
   /** 検証済み電話番号でのログイン処理
@@ -418,10 +420,12 @@ const authActionHandlers = {
 
   /** プロフィール情報を保存します（キャッシュ活用版） */
   saveProfile: () => {
-    /** @type {HTMLInputElement | null} */
-    const realNameInput = document.getElementById('edit-realname');
-    /** @type {HTMLInputElement | null} */
-    const nicknameInput = document.getElementById('edit-nickname');
+    const realNameInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('edit-realname')
+    );
+    const nicknameInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('edit-nickname')
+    );
 
     const r = realNameInput?.value;
     let n = nicknameInput?.value.trim();
@@ -429,16 +433,19 @@ const authActionHandlers = {
     if (!n) n = r;
 
     // NF-01: 電話番号入力欄があればその値も取得
-    /** @type {HTMLInputElement | null} */
-    const phoneInput = document.getElementById('edit-phone');
+    const phoneInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('edit-phone')
+    );
     const phone =
       phoneInput?.value || stateManager.getState().currentUser.phone; // 電話番号入力欄がなければ既存の電話番号を使用
 
     // メール情報の取得
-    /** @type {HTMLInputElement | null} */
-    const emailInput = document.getElementById('edit-email');
-    /** @type {HTMLInputElement | null} */
-    const wantsEmailInput = document.getElementById('edit-wants-email');
+    const emailInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('edit-email')
+    );
+    const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('edit-wants-email')
+    );
     const email =
       emailInput?.value || stateManager.getState().currentUser.email;
     const wantsEmail =
@@ -475,8 +482,9 @@ const authActionHandlers = {
    * NF-01: 電話番号未登録ユーザーの検索を実行します（キャッシュ活用版）。
    */
   searchUserByName: () => {
-    /** @type {HTMLInputElement | null} */
-    const searchInput = document.getElementById('nickname-search-input');
+    const searchInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('nickname-search-input')
+    );
     const searchTerm = searchInput ? searchInput.value.trim() : ''; // 検索語をsearchTermに変更
 
     if (!searchTerm) {
