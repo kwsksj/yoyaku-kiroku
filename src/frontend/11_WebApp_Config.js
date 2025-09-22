@@ -627,6 +627,13 @@ const addCustomStyles = () => {
         font-variant-numeric: tabular-nums;
       }
 
+      /* 電話番号・メールアドレス入力フィールド専用クラス */
+      input[type="tel"], input[type="email"] {
+        font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
+        font-feature-settings: 'tnum' 1;
+        font-variant-numeric: tabular-nums;
+      }
+
       /* ========== カスタムプルダウンスタイル ========== */
       .custom-select {
         -webkit-appearance: none;
@@ -700,7 +707,7 @@ const addCustomStyles = () => {
       }
 
       .card-class-info .class-datetime {
-        font-weight: 600;
+        font-weight: 500;
         color: var(--brand-text);
         font-size: 1rem;
       }
@@ -732,7 +739,7 @@ const addCustomStyles = () => {
 
       .card-memo-section .memo-label {
         font-size: 0.75rem;
-        font-weight: 600;
+        font-weight: 500;
         color: var(--brand-subtle);
         margin-bottom: 0.5rem;
         display: block;

@@ -148,6 +148,7 @@ const reservationActionHandlers = {
               lessons: r.data.lessons || [],
               view: 'complete',
               completionMessage: r.message,
+              selectedClassroom: lessonInfo.schedule.classroom,
               isDataFresh: true,
             },
           });
@@ -157,6 +158,7 @@ const reservationActionHandlers = {
             payload: {
               view: 'complete',
               completionMessage: r.message,
+              selectedClassroom: lessonInfo.schedule.classroom,
               isDataFresh: false,
             },
           });

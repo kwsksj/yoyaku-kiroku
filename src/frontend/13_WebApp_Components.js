@@ -1001,7 +1001,7 @@ const Components = {
 
     // 日時・会場表示
     const dateTimeDisplay = item.startTime
-      ? ` ${item.startTime} ~ ${item.endTime}`.trim()
+      ? ` <span class="time-display">${item.startTime}~${item.endTime}</span>`.trim()
       : '';
     const classroomDisplay = item.classroom ? ` ${item.classroom}` : '';
     const venueDisplay = item.venue ? ` ${item.venue}` : '';
@@ -1020,9 +1020,9 @@ const Components = {
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center flex-wrap">
-                <h3 class="font-bold text-brand-text">${formatDate(item.date)} <span class="font-normal text-brand-subtle">${dateTimeDisplay}</span></h3>
+                <h3 class="font-bold text-brand-text">${formatDate(item.date)} <span class="font-normal text-brand-subtle text-sm">${dateTimeDisplay}</span></h3>
               </div>
-              <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
+              <h4 class="text-sm text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
             </div>
             ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
           </div>

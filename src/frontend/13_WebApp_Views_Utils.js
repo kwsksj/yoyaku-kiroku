@@ -91,10 +91,13 @@ const getClassroomColorClass = classroomName => {
  * @returns {string} HTML文字列
  */
 const getCompleteView = msg => {
-  // 教室情報を取得（会計処理時は accountingReservation から、予約作成時は selectedLesson から）
+  // 教室情報を取得（複数のソースから取得を試行）
+  const state = stateManager.getState();
   const classroom =
-    stateManager.getState().accountingReservation?.classroom ||
-    stateManager.getState().selectedLesson?.schedule?.classroom;
+    state.accountingReservation?.classroom ||
+    state.selectedLesson?.schedule?.classroom ||
+    state.currentReservationFormContext?.lessonInfo?.schedule?.classroom ||
+    state.selectedClassroom;
 
   // 初回予約者かどうかを判定
   const wasFirstTimeBooking =
@@ -158,7 +161,7 @@ const getCompleteView = msg => {
         : '↓ つぎの よやく をする ↓';
 
       nextBookingHtml = `
-          <div class="mt-10 pt-6 border-t border-gray-200">
+          <div class="mt-0 pt-0">
               <h3 class="text-xl font-bold text-brand-text text-center mb-4">${sectionTitle}</h3>
               <div class="${DesignConfig.cards.container}">
               ${bookingLessonsHtml}
@@ -168,7 +171,7 @@ const getCompleteView = msg => {
   }
 
   return `
-    <div class="text-center py-8">
+    <div class="text-center pt-4">
         <svg class="w-8 h-8 mx-auto text-state-available-text" fill="none" viewBox= "2 2 20 20" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
@@ -177,12 +180,12 @@ const getCompleteView = msg => {
 
         ${emailNoticeHtml}
 
-        <div class="max-w-xs mx-auto mt-8">
+        <div class="max-w-xs mx-auto mt-4">
              ${Components.button({
                text: 'ホームへもどる',
                action: 'goToDashboard',
                style: 'secondary',
-               size: 'full',
+               size: 'normal',
              })}
         </div>
 

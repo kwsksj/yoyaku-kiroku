@@ -105,15 +105,15 @@ const getReservationFormView = () => {
     if (isFirstTimeBooking) {
       return status.firstLectureIsFull
         ? '初回者枠 満席（キャンセル待ち申込み）'
-        : `初回者枠 空き ${status.firstLectureSlots}`;
+        : `初回者枠 空き <span class="font-mono-numbers">${status.firstLectureSlots}</span>`;
     }
     if (status.isFull) return '満席（キャンセル待ち申込み）';
     if (typeof status.morningSlots !== 'undefined') {
       const morningLabel = CONSTANTS.SESSIONS.MORNING || '午前';
       const afternoonLabel = CONSTANTS.SESSIONS.AFTERNOON || '午後';
-      return `空き ${morningLabel} ${status.morningSlots} | ${afternoonLabel} ${status.afternoonSlots}`;
+      return `空き ${morningLabel} <span class="font-mono-numbers">${status.morningSlots}</span> | ${afternoonLabel} <span class="font-mono-numbers">${status.afternoonSlots}</span>`;
     }
-    return `空き ${status.availableSlots}`;
+    return `空き <span class="font-mono-numbers">${status.availableSlots}</span>`;
   };
 
   const _renderTuitionDisplaySection = () => {
@@ -202,7 +202,7 @@ const getReservationFormView = () => {
     }
 
     const timeFixedMessage = isTimeFixed
-      ? `<p class="${/** @type {any} */ (DesignConfig.text).caption} mb-2">初回の方は ${fixedStartTime} より開始です。昼をまたぐ場合は、1時間休憩を挟みます</p>`
+      ? `<p class="${/** @type {any} */ (DesignConfig.text).caption} mb-2">初回の方は <span class="time-display">${fixedStartTime}</span> より開始です。昼をまたぐ場合は、1時間休憩を挟みます</p>`
       : '';
 
     return `
@@ -301,8 +301,8 @@ const getReservationFormView = () => {
     if (!schedule.firstStart || !schedule.firstEnd)
       return '<span class="text-ui-error-text">開講時間未設定</span>';
     if (schedule.secondStart && schedule.secondEnd)
-      return `${schedule.firstStart} ~ ${schedule.firstEnd} , ${schedule.secondStart} ~ ${schedule.secondEnd}`;
-    return `${schedule.firstStart} ~ ${schedule.firstEnd}`;
+      return `<span class="time-display">${schedule.firstStart}~${schedule.firstEnd}</span> , <span class="time-display">${schedule.secondStart}~${schedule.secondEnd}</span>`;
+    return `<span class="time-display">${schedule.firstStart}~${schedule.firstEnd}</span>`;
   };
 
   return `
@@ -372,7 +372,7 @@ const renderBookingLessons = lessons => {
 
             if (isFirstTimeBooking) {
               if (lesson.schedule.beginnerStart) {
-                statusText = `初回者 空き ${lesson.status.firstLectureSlots}`;
+                statusText = `初回者 空き <span class="font-mono-numbers">${lesson.status.firstLectureSlots}</span>`;
               } else {
                 statusText = '経験者のみ';
               }
@@ -380,9 +380,9 @@ const renderBookingLessons = lessons => {
               if (typeof lesson.status.morningSlots !== 'undefined') {
                 const morningLabel = CONSTANTS.SESSIONS.MORNING || '午前';
                 const afternoonLabel = CONSTANTS.SESSIONS.AFTERNOON || '午後';
-                statusText = `空き ${morningLabel}${lesson.status.morningSlots} ${afternoonLabel}${lesson.status.afternoonSlots}`;
+                statusText = `空き ${morningLabel}<span class="font-mono-numbers">${lesson.status.morningSlots}</span> ${afternoonLabel}<span class="font-mono-numbers">${lesson.status.afternoonSlots}</span>`;
               } else {
-                statusText = `空き ${lesson.status.availableSlots}`;
+                statusText = `空き <span class="font-mono-numbers">${lesson.status.availableSlots}</span>`;
               }
             }
 
@@ -521,12 +521,12 @@ const getClassroomSelectionModal = () => {
  * @param {boolean} isInEditMode - 編集モード状態
  * @returns {string} HTML文字列
  */
-const _buildHistoryCardWithEditMode = (
+function _buildHistoryCardWithEditMode(
   historyItem,
   editButtons,
   accountingButtons,
   isInEditMode,
-) => {
+) {
   const cardColorClass = `record-card ${DesignConfig.cards.state.history.card}`;
 
   const editButtonsHtml = editButtons
@@ -586,7 +586,7 @@ const _buildHistoryCardWithEditMode = (
     .join('');
 
   const dateTimeDisplay = historyItem.startTime
-    ? ` ${historyItem.startTime} ~ ${historyItem.endTime}`.trim()
+    ? ` <span class="time-display">${historyItem.startTime}~${historyItem.endTime}</span>`.trim()
     : '';
   const classroomDisplay = historyItem.classroom
     ? ` ${historyItem.classroom}`

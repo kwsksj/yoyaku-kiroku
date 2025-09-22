@@ -219,19 +219,19 @@ function handlePhoneInputFormatting(inputElement) {
     if (digitsOnly.length <= 3) {
       formatted = digitsOnly;
     } else if (digitsOnly.length <= 7) {
-      formatted = `${digitsOnly.slice(0, 3)}-${digitsOnly.slice(3)}`;
+      formatted = `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3)}`;
     } else if (digitsOnly.length <= 11) {
       if (digitsOnly.length === 10) {
         // 10桁の場合: 03-1234-5678
-        formatted = `${digitsOnly.slice(0, 2)}-${digitsOnly.slice(2, 6)}-${digitsOnly.slice(6)}`;
+        formatted = `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 6)} ${digitsOnly.slice(6)}`;
       } else {
         // 11桁の場合: 090-1234-5678
-        formatted = `${digitsOnly.slice(0, 3)}-${digitsOnly.slice(3, 7)}-${digitsOnly.slice(7)}`;
+        formatted = `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3, 7)} ${digitsOnly.slice(7)}`;
       }
     } else {
       // 11桁を超える場合は11桁までに制限
       const truncated = digitsOnly.slice(0, 11);
-      formatted = `${truncated.slice(0, 3)}-${truncated.slice(3, 7)}-${truncated.slice(7)}`;
+      formatted = `${truncated.slice(0, 3)} ${truncated.slice(3, 7)} ${truncated.slice(7)}`;
     }
   }
 
@@ -401,7 +401,7 @@ window.normalizePhoneNumberFrontend = function (phoneInput) {
   normalized = normalized.replace(/[‐－\\-]/g, '');
 
   // 空白文字を削除
-  normalized = normalized.replace(/\\s/g, '');
+  normalized = normalized.replace(/\s/g, '');
 
   // 国番号の自動修正処理
   // +81または81で始まる場合は日本の標準形式に変換
@@ -412,7 +412,7 @@ window.normalizePhoneNumberFrontend = function (phoneInput) {
     normalized = '0' + normalized.substring(2);
   }
 
-  // 数字以外の文字をチェック
+  // 数字以外の文字をチェック（空白文字は既に削除済み）
   if (!/^\d+$/.test(normalized)) {
     return {
       normalized: '',
@@ -521,6 +521,6 @@ window.formatDate =
       d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
       const day = d.getDay();
       const wd = ['日', '月', '火', '水', '木', '金', '土'];
-      return `${d.getMonth() + 1}/${d.getDate()} <span class="font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day] || ''}</span>`;
+      return `<span class="font-mono-numbers">${d.getMonth() + 1}/${d.getDate()}</span><span class="font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day] || ''}</span>`;
     }
   );

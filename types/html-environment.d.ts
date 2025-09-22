@@ -1929,7 +1929,7 @@ declare global {
   // findReservationById: 実装ファイルで直接宣言（重複回避）
   // calculateAccountingDetails: 実装ファイルで直接宣言（重複回避）
   declare var normalizePhoneNumberFrontend: (phoneInput: string) => PhoneNumberNormalizationResult;
-  declare var updateSingleHistoryCard: (reservationId: string) => void;
+  // updateSingleHistoryCard: 実装ファイルで直接宣言（重複回避）
 
   // 📡 型安全なAPI通信ヘルパー関数
   interface APICallHelper {

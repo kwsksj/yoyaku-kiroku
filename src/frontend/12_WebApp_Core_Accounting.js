@@ -326,24 +326,25 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
           label: '授業料',
           checked: true,
         })}
-        <div class="time-controls mt-3 ml-6">
+        <div class="time-controls mt-3 ml-2">
           <div class="flex items-center space-x-2 mb-3">
             <select id="start-time" class="time-select time-display flex-1 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               ${generateTimeOptions(formData.startTime)}
             </select>
-            <span class="text-sm text-brand-text">〜</span>
+            <span class="text-sm text-brand-text">-</span>
             <select id="end-time" class="time-select time-display flex-1 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               ${generateTimeOptions(formData.endTime)}
             </select>
-            <span class="text-sm text-brand-text">休憩</span>
-            <select id="break-time" class="time-select time-display w-20 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <span class="text-sm text-brand-text ml-2">休憩</span>
+            <select id="break-time" class="time-select time-display w-14 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               <option value="0" ${formData.breakTime === 0 ? 'selected' : ''}>0分</option>
               <option value="30" ${formData.breakTime === 30 ? 'selected' : ''}>30分</option>
               <option value="60" ${formData.breakTime === 60 ? 'selected' : ''}>60分</option>
+              <option value="90" ${formData.breakTime === 90 ? 'selected' : ''}>90分</option>
             </select>
           </div>
           <div class="calculated-amount text-sm text-gray-600">
-            <span id="time-calculation" class="font-mono-numbers">計算結果: 0時間 × ${Components.priceDisplay({ amount: unitPrice })} = ${Components.priceDisplay({ amount: 0 })}</span>
+            <span id="time-calculation" class="font-mono-numbers">0時間 ×${Components.priceDisplay({ amount: unitPrice * 2 })} = <span class="font-bold text-brand-text text-right">${Components.priceDisplay({ amount: 0 })}</span></span>
           </div>
         </div>
       </div>`;
@@ -1389,7 +1390,7 @@ function updateTimeCalculationDisplay(result, classroom) {
     const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
     const tuitionAmount = timeUnits * unitPrice;
 
-    timeCalculation.innerHTML = `計算結果: ${hours}時間 × ${Components.priceDisplay({ amount: unitPrice })} = ${Components.priceDisplay({ amount: tuitionAmount })}`;
+    timeCalculation.innerHTML = `${hours}時間 ×${Components.priceDisplay({ amount: unitPrice*2 })} =${Components.priceDisplay({ amount: tuitionAmount })}`;
   }
 }
 

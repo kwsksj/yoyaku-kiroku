@@ -428,11 +428,13 @@ window.onload = function () {
 
               // 成功時：完了画面を表示
               const completionMessage = `会計情報を記録しました。`;
+              const currentState = stateManager.getState();
               stateManager.dispatch({
                 type: 'SET_STATE',
                 payload: {
                   view: 'complete',
                   completionMessage: completionMessage,
+                  selectedClassroom: currentState.accountingReservation?.classroom,
                 },
               });
             } else {
@@ -651,9 +653,9 @@ window.onload = function () {
       handleAccountingFormChange();
     }
 
-    // 電話番号入力のリアルタイム整形
+    // 電話番号入力のリアルタイム整形（type="tel"のすべての入力フィールド）
     const target = /** @type {HTMLInputElement} */ (e.target);
-    if (target.id === 'phone' || target.id === 'edit-phone') {
+    if (target.type === 'tel') {
       handlePhoneInputFormatting(target);
     }
   };

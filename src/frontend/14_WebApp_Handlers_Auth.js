@@ -439,6 +439,15 @@ const authActionHandlers = {
     const phone =
       phoneInput?.value || stateManager.getState().currentUser.phone; // 電話番号入力欄がなければ既存の電話番号を使用
 
+    // 電話番号が入力されている場合のみバリデーション
+    if (phoneInput?.value) {
+      const normalizeResult = window.normalizePhoneNumberFrontend(phoneInput.value);
+      if (!normalizeResult.isValid) {
+        showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
+        return;
+      }
+    }
+
     // メール情報の取得
     const emailInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('edit-email')
@@ -476,6 +485,36 @@ const authActionHandlers = {
     })
       ['withFailureHandler'](handleServerError)
       .updateUserProfile(u);
+  },
+
+  /**
+   * 電話番号による既存ユーザー検索を実行します。
+   */
+  searchUser: () => {
+    const phoneInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('search-phone')
+    );
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+
+    if (!phone) {
+      return showInfo('電話番号を入力してください。');
+    }
+
+    // 電話番号の正規化・バリデーション
+    const normalizeResult = window.normalizePhoneNumberFrontend(phone);
+    if (!normalizeResult.isValid) {
+      showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
+      return;
+    }
+
+    showLoading('booking');
+
+    // 電話番号で検索（TODO: 実際のサーバー側実装が必要）
+    // 現在は仮実装としてエラーメッセージを表示
+    setTimeout(() => {
+      hideLoading();
+      showInfo('電話番号検索機能は実装予定です。');
+    }, 1000);
   },
 
   /**

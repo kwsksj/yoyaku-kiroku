@@ -215,7 +215,7 @@ const _buildBookingBadges = booking => {
  * 特定の履歴カードのみを部分更新します（ちらつき防止）
  * @param {string} reservationId - 更新対象の予約ID
  */
-const updateSingleHistoryCard = reservationId => {
+function updateSingleHistoryCard(reservationId) {
   // 該当するカードのDOM要素を取得
   const cardElement = document.querySelector(
     `[data-reservation-id="${reservationId}"]`,
@@ -247,7 +247,6 @@ const updateSingleHistoryCard = reservationId => {
   const tempDiv = document.createElement('div');
   tempDiv.innerHTML = newCardHtml;
   const newCardElement = tempDiv.firstElementChild;
-
   if (newCardElement) {
     cardElement.parentNode?.replaceChild(newCardElement, cardElement);
   }
