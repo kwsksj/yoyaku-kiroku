@@ -188,12 +188,29 @@ if (
 // DOMContentLoadedまたはページ読み込み完了後に実行
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
+    // Googleサイト埋め込み環境の調整を適用
+    if (
+      window.EmbedConfig &&
+      typeof window.EmbedConfig.applyEmbedStyles === 'function'
+    ) {
+      window.EmbedConfig.applyEmbedStyles();
+    }
+
     if (window.stateManager && typeof setupViewListener === 'function') {
       setupViewListener();
     }
   });
 } else {
   // 既にDOMが読み込み済みの場合は即座に実行
+
+  // Googleサイト埋め込み環境の調整を適用
+  if (
+    window.EmbedConfig &&
+    typeof window.EmbedConfig.applyEmbedStyles === 'function'
+  ) {
+    window.EmbedConfig.applyEmbedStyles();
+  }
+
   if (window.stateManager && typeof setupViewListener === 'function') {
     setupViewListener();
   }

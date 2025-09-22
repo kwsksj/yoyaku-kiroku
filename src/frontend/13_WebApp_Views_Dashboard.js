@@ -115,7 +115,7 @@ const _buildEditButtons = booking => {
   ) {
     buttons.push({
       action: 'goToEditReservation',
-      text: '確認/編集',
+      text: '確認<br>編集',
       style: 'secondary',
     });
   }
@@ -153,7 +153,7 @@ const _buildHistoryEditButtons = (isInEditMode = false) => {
   const buttons = [];
 
   // 編集モード状態に応じてボタンテキストを変更
-  const buttonText = isInEditMode ? 'とじる' : '確認/編集';
+  const buttonText = isInEditMode ? 'とじる' : '確認<br>編集';
   buttons.push({
     action: 'expandHistoryCard',
     text: buttonText,
@@ -179,11 +179,10 @@ const _buildHistoryAccountingButtons = historyItem => {
       // きろく かつ 教室の当日 → 「会計を修正」ボタンは維持
       buttons.push({
         action: 'editAccountingRecord',
-        text: '会計を修正',
+        text: '会計を<br>修正',
         style: 'primary',
       });
     }
-    // 「会計詳細」ボタンは展開部に移植するため、カードからは除去
   }
 
   return buttons;
@@ -210,4 +209,46 @@ const _buildBookingBadges = booking => {
   }
 
   return badges;
+};
+
+/**
+ * 特定の履歴カードのみを部分更新します（ちらつき防止）
+ * @param {string} reservationId - 更新対象の予約ID
+ */
+const updateSingleHistoryCard = reservationId => {
+  // 該当するカードのDOM要素を取得
+  const cardElement = document.querySelector(
+    `[data-reservation-id="${reservationId}"]`,
+  );
+  if (!cardElement) return;
+
+  // 現在の状態から該当する履歴アイテムを取得
+  const state = stateManager.getState();
+  const historyItem = state.myReservations.find(
+    h => h.reservationId === reservationId,
+  );
+  if (!historyItem || historyItem.status !== CONSTANTS.STATUS.COMPLETED) return;
+
+  // 編集モード状態を取得
+  const isInEditMode = stateManager.isInEditMode(reservationId);
+
+  // 新しいカードHTMLを生成
+  const editButtons = _buildHistoryEditButtons(isInEditMode);
+  const accountingButtons = _buildHistoryAccountingButtons(historyItem);
+
+  const newCardHtml = _buildHistoryCardWithEditMode(
+    historyItem,
+    editButtons,
+    accountingButtons,
+    isInEditMode,
+  );
+
+  // 既存カードを新しいHTMLで置換
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = newCardHtml;
+  const newCardElement = tempDiv.firstElementChild;
+
+  if (newCardElement) {
+    cardElement.parentNode?.replaceChild(newCardElement, cardElement);
+  }
 };

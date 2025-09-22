@@ -291,7 +291,7 @@ class SimpleStateManager {
     const { to, context = {}, saveHistory = true } = payload;
     const currentView = this.state.view;
 
-    // 現在のビューを履歴に保存（戻る履歴として）
+    // 現在のビューを履歴に保存（もどる履歴として）
     if (saveHistory && currentView !== to) {
       const currentContext = this._extractCurrentContext();
       const historyEntry = { view: currentView, context: currentContext };
@@ -357,7 +357,7 @@ class SimpleStateManager {
   }
 
   /**
-   * 前のビューに戻る
+   * 前のビューにもどる
    * @returns {Partial<UIState>} 新しい状態、または戻れない場合はnull
    */
   goBack() {

@@ -178,7 +178,7 @@ function render() {
   document.getElementById('view-container').innerHTML =
     `<div class="fade-in">${v}</div>`;
 
-  // 戻るボタンを動的に更新
+  // もどるボタンを動的に更新
   const backButtonContainer = document.getElementById('back-button-container');
   if (backButtonContainer) {
     backButtonContainer.innerHTML = Components.createSmartBackButton(
@@ -245,7 +245,7 @@ window.onload = function () {
     // =================================================================
     // --- Core Navigation Handlers ---
     // -----------------------------------------------------------------
-    /** スマートナビゲーション: 前の画面に戻る */
+    /** スマートナビゲーション: 前の画面にもどる */
     smartGoBack: () => {
       const backState = stateManager.goBack();
       stateManager.dispatch({

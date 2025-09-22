@@ -193,7 +193,7 @@ const authActionHandlers = {
     });
   },
 
-  /** 新規ユーザー登録：Step2からStep1へ戻る */
+  /** 新規ユーザー登録：Step2からStep1へもどる */
   backToStep1: () => {
     const realNameInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('reg-realname')
@@ -284,7 +284,7 @@ const authActionHandlers = {
     });
   },
 
-  /** 新規ユーザー登録：Step3からStep2へ戻る */
+  /** 新規ユーザー登録：Step3からStep2へもどる */
   backToStep2: () =>
     window.stateManager.dispatch({
       type: 'SET_STATE',
@@ -324,7 +324,7 @@ const authActionHandlers = {
     });
   },
 
-  /** 新規ユーザー登録：Step4からStep3へ戻る */
+  /** 新規ユーザー登録：Step4からStep3へもどる */
   backToStep3: () =>
     window.stateManager.dispatch({
       type: 'SET_STATE',

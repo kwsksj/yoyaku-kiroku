@@ -28,35 +28,25 @@ const getBookingView = classroom => {
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
   if (!bookingLessonsHtml) {
-    return Components.pageContainer({
-      maxWidth: 'md',
-      content: `
-            <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-2">${classroom}</h1>
-            <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
-            ${Components.actionButtonSection({
-              primaryButton: {
-                text: 'ホームに戻る',
-                action: 'goBackToDashboard',
-                style: 'secondary',
-              },
-            })}
-      `,
-    });
+    return `
+      ${Components.pageHeader({ title: classroom })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+              <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
+        `,
+      })}
+    `;
   } else {
-    return Components.pageContainer({
-      maxWidth: 'md',
-      content: `
-            <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${classroom}</h1>
-            <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
-            ${Components.actionButtonSection({
-              primaryButton: {
-                text: 'ホームに戻る',
-                action: 'goBackToDashboard',
-                style: 'secondary',
-              },
-            })}
-      `,
-    });
+    return `
+      ${Components.pageHeader({ title: classroom })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+              <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
+        `,
+      })}
+    `;
   }
 };
 
@@ -162,7 +152,16 @@ const getReservationFormView = () => {
   };
 
   const _renderTimeOptionsSection = () => {
-    if (!isTimeBased) return '';
+    // セッション制教室の場合、隠し入力として時刻を設定
+    if (!isTimeBased) {
+      if (!schedule.firstStart || !schedule.firstEnd) {
+        return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
+      }
+      return `
+        <input type="hidden" id="res-start-time" value="${schedule.firstStart}" />
+        <input type="hidden" id="res-end-time" value="${schedule.firstEnd}" />
+      `;
+    }
 
     if (!schedule.firstStart || !schedule.firstEnd) {
       return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
@@ -292,8 +291,8 @@ const getReservationFormView = () => {
     });
   }
   buttonsHtml += Components.button({
-    text: '戻る',
-    action: 'goBackToBooking',
+    text: 'もどる',
+    action: 'smartGoBack',
     style: 'secondary',
     size: 'full',
   });
@@ -307,7 +306,7 @@ const getReservationFormView = () => {
   };
 
   return `
-      <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">${title}</h1>
+      ${Components.pageHeader({ title: title })}
       ${Components.cardContainer({
         variant: 'default',
         padding: 'spacious',
@@ -349,7 +348,7 @@ const renderBookingLessons = lessons => {
     return acc;
   }, /** @type {Record<number, LessonData[]>} */ ({}));
 
-  return Object.keys(lessonsByMonth)
+  const result = Object.keys(lessonsByMonth)
     .sort((a, b) => Number(a) - Number(b))
     .map(monthStr => {
       const month = Number(monthStr);
@@ -448,6 +447,8 @@ const renderBookingLessons = lessons => {
       return monthHeader + lessonsHtml;
     })
     .join('');
+
+  return result;
 };
 
 /**
@@ -550,13 +551,20 @@ const _buildHistoryCardWithEditMode = (
   if (isInEditMode) {
     const isToday = _isToday(String(historyItem.date));
     if (historyItem.status === CONSTANTS.STATUS.COMPLETED && !isToday) {
-      allAccountingButtons.push({
-        action: 'showHistoryAccounting',
-        text: '会計詳細',
-        style: 'secondary',
-        size: 'xs',
-        details: historyItem.accountingDetails,
-      });
+      // 重複チェック：既に「会計詳細」ボタンが存在しない場合のみ追加
+      const hasAccountingDetailsButton = allAccountingButtons.some(
+        btn => btn.action === 'showHistoryAccounting',
+      );
+
+      if (!hasAccountingDetailsButton) {
+        allAccountingButtons.push({
+          action: 'showHistoryAccounting',
+          text: '会計<br>記録',
+          style: 'secondary',
+          size: 'xs',
+          details: historyItem.accountingDetails,
+        });
+      }
     }
   }
 
@@ -566,7 +574,7 @@ const _buildHistoryCardWithEditMode = (
         action: btn.action,
         text: btn.text,
         style: btn.style || 'primary',
-        size: 'small',
+        size: 'xs',
         dataAttributes: {
           classroom: historyItem.classroom,
           reservationId: historyItem.reservationId,
@@ -601,12 +609,10 @@ const _buildHistoryCardWithEditMode = (
             </div>
             <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)}</h4>
           </div>
-          ${editButtonsHtml ? `<div class="flex-shrink-0 self-start">${editButtonsHtml}</div>` : ''}
+          ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
         </div>
 
         ${memoSection}
-
-        ${accountingButtonsHtml ? `<div class="flex justify-end">${accountingButtonsHtml}</div>` : ''}
       </div>
     </div>
   `;

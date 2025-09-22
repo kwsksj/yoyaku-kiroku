@@ -169,17 +169,17 @@ const getCompleteView = msg => {
 
   return `
     <div class="text-center py-8">
-        <svg class="w-12 h-12 mx-auto text-state-available-text" fill="none" viewBox= "2 2 20 20" stroke="currentColor">
+        <svg class="w-8 h-8 mx-auto text-state-available-text" fill="none" viewBox= "2 2 20 20" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
         </svg>
-        <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-4 mb-2">ありがとうございました</h1>
-        <p class="${DesignConfig.colors.textSubtle} mb-6">${msg}</p>
+        <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-2 mb-2">ありがとうございました</h1>
+        <p class="${DesignConfig.colors.textSubtle} mb-2">${msg}</p>
 
         ${emailNoticeHtml}
 
         <div class="max-w-xs mx-auto mt-8">
              ${Components.button({
-               text: 'ホームへ戻る',
+               text: 'ホームへもどる',
                action: 'goToDashboard',
                style: 'secondary',
                size: 'full',

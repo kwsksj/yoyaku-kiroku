@@ -652,6 +652,7 @@ function generateCustomSalesRow(index = 0, itemData = {}) {
  */
 function generateAccountingView(classifiedItems, classroom, formData = {}) {
   return `
+    ${Components.pageHeader({ title: '会計' })}
     <div class="accounting-container max-w-4xl mx-auto p-2 space-y-6">
       <!-- 授業料セクション -->
       ${generateTuitionSection(classifiedItems, classroom, formData)}
@@ -1547,7 +1548,7 @@ function updateConfirmButtonState() {
 
   if (confirmButton) {
     if (selectedPaymentMethod) {
-      // 有効状態：disabled属性を削除（自動でスタイルが元に戻る）
+      // 有効状態：disabled属性を削除（自動でスタイルが元にもどる）
       confirmButton.removeAttribute('disabled');
       confirmButton.removeAttribute('style');
       confirmButton.style.pointerEvents = '';
@@ -1603,7 +1604,7 @@ function convertToLegacyFormat(formData, result, classifiedItems) {
 }
 
 /**
- * ダッシュボード画面に戻る処理
+ * ダッシュボード画面にもどる処理
  */
 function handleBackToDashboard() {
   try {
@@ -1611,7 +1612,7 @@ function handleBackToDashboard() {
     const currentFormData = collectAccountingFormData();
     saveAccountingCache(currentFormData);
 
-    // スマートナビゲーションで前の画面に戻る
+    // スマートナビゲーションで前の画面にもどる
     if (typeof actionHandlers !== 'undefined' && actionHandlers.smartGoBack) {
       actionHandlers.smartGoBack();
     } else {
@@ -2018,7 +2019,7 @@ function processAccountingPayment(
               alert('会計情報を記録しました。');
             }
 
-            // ダッシュボードに戻る
+            // ダッシュボードにもどる
             handleBackToDashboard();
           } else {
             if (typeof showError === 'function') {

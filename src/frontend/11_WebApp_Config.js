@@ -28,6 +28,215 @@
 
 // --- フロントエンド専用定数（バックエンドとの重複なし） ---
 
+// Googleサイト埋め込み環境の検出と調整
+window.EmbedConfig = {
+  // Googleサイトのヘッダー高さ検出
+  detectGoogleSiteOffset: () => {
+    try {
+      // 1. Googleサイト環境かどうかを検出
+      const isInFrame = window.parent !== window;
+      let isInGoogleSites = false;
+
+      try {
+        isInGoogleSites =
+          isInFrame &&
+          (window.parent.location.hostname.includes('sites.google.com') ||
+            document.referrer.includes('sites.google.com') ||
+            window.location.ancestorOrigins?.[0]?.includes('sites.google.com'));
+      } catch (e) {
+        // Cross-origin制限でアクセスできない場合は他の方法で判定
+        isInGoogleSites =
+          isInFrame &&
+          (document.referrer.includes('sites.google.com') ||
+            window.location.search.includes('embedded=true'));
+      }
+
+      if (!isInGoogleSites) {
+        return 0; // 直接アクセスの場合はオフセットなし
+      }
+
+      // 2. URLパラメータでの手動指定をチェック
+      const urlParams = new URLSearchParams(window.location.search);
+      const manualOffset = urlParams.get('headerOffset');
+      if (manualOffset && !isNaN(parseInt(manualOffset))) {
+        const offset = parseInt(manualOffset);
+        console.log(`手動指定のヘッダーオフセット: ${offset}px`);
+        return offset;
+      }
+
+      // 3. ローカルストレージでの記憶設定をチェック
+      const savedOffset = localStorage.getItem('googleSitesHeaderOffset');
+      if (savedOffset && !isNaN(parseInt(savedOffset))) {
+        const offset = parseInt(savedOffset);
+        console.log(`記憶されたヘッダーオフセット: ${offset}px`);
+        return offset;
+      }
+
+      // 4. 動的にヘッダーサイズを検出
+      const viewportHeight = window.innerHeight;
+      const bodyRect = document.body.getBoundingClientRect();
+      const documentHeight = document.documentElement.clientHeight;
+
+      // ビューポートと実際のコンテンツ領域の差からヘッダー高さを推定
+      const estimatedHeaderHeight = Math.max(
+        0,
+        Math.abs(bodyRect.top), // body要素のオフセット
+        documentHeight - viewportHeight, // 文書とビューポートの差
+      );
+
+      // 5. デバイス・ブラウザ別のデフォルト値
+      const isMobile = window.innerWidth <= 768;
+      let defaultOffset = 60; // デスクトップデフォルト
+
+      if (isMobile) {
+        defaultOffset = 50; // モバイルデフォルト
+      }
+
+      // 6. 推定値に基づく調整
+      if (estimatedHeaderHeight > 100) {
+        return 120; // 大きなヘッダー（新しいGoogleサイト）
+      } else if (estimatedHeaderHeight > 50) {
+        return 80; // 中程度のヘッダー
+      } else if (estimatedHeaderHeight > 0) {
+        return Math.max(defaultOffset, estimatedHeaderHeight + 10); // 余裕を持たせる
+      }
+
+      return defaultOffset;
+    } catch (error) {
+      console.log('ヘッダーオフセット検出エラー:', error);
+      return 60; // フォールバックオフセット
+    }
+  },
+
+  // オフセット値をローカルストレージに保存
+  saveOffset: offset => {
+    try {
+      localStorage.setItem('googleSitesHeaderOffset', offset.toString());
+      console.log(`ヘッダーオフセット保存: ${offset}px`);
+    } catch (error) {
+      console.log('オフセット保存エラー:', error);
+    }
+  },
+
+  // 動的スタイル調整の適用
+  applyEmbedStyles: () => {
+    const offset = window.EmbedConfig.detectGoogleSiteOffset();
+
+    if (offset > 0) {
+      // オフセット値をローカルストレージに保存
+      window.EmbedConfig.saveOffset(offset);
+
+      // ページ全体のトップマージンを調整
+      const style = document.createElement('style');
+      style.id = 'google-sites-embed-styles';
+      style.textContent = `
+        body {
+          margin-top: ${offset}px !important;
+          min-height: calc(100vh - ${offset}px) !important;
+        }
+
+        /* スティッキーヘッダーの位置調整 */
+        .sticky {
+          top: ${offset}px !important;
+        }
+
+        /* フィックス要素の位置調整 */
+        .fixed {
+          top: ${offset}px !important;
+        }
+
+        /* Googleサイト埋め込み用のスムーズスクロール */
+        html {
+          scroll-behavior: smooth;
+          scroll-padding-top: ${offset + 20}px;
+        }
+
+        /* オフセット設定ボタン（デバッグ用） */
+        .embed-offset-control {
+          position: fixed;
+          top: ${offset + 10}px;
+          right: 10px;
+          z-index: 9999;
+          background: rgba(0,0,0,0.7);
+          color: white;
+          padding: 5px 10px;
+          border-radius: 5px;
+          font-size: 12px;
+          cursor: pointer;
+          display: none;
+        }
+
+        /* デバッグモードでのみ表示 */
+        body.debug-mode .embed-offset-control {
+          display: block;
+        }
+      `;
+      document.head.appendChild(style);
+
+      // デバッグ用のオフセット調整ボタンを追加
+      window.EmbedConfig.addOffsetControl(offset);
+
+      console.log(
+        `Googleサイト環境を検出: ヘッダーオフセット ${offset}px を適用`,
+      );
+    }
+  },
+
+  // デバッグ用オフセット調整コントロールの追加
+  addOffsetControl: currentOffset => {
+    // 既存のコントロールを削除
+    const existingControl = document.getElementById('embed-offset-control');
+    if (existingControl) {
+      existingControl.remove();
+    }
+
+    // 新しいコントロールを追加
+    const control = document.createElement('div');
+    control.id = 'embed-offset-control';
+    control.className = 'embed-offset-control';
+    control.innerHTML = `オフセット: ${currentOffset}px`;
+    control.onclick = () => {
+      window.EmbedConfig.showOffsetAdjustment();
+    };
+    document.body.appendChild(control);
+
+    // URLにdebug=trueがある場合はデバッグモードを有効化
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('debug') === 'true') {
+      document.body.classList.add('debug-mode');
+    }
+  },
+
+  // オフセット調整のモーダル表示
+  showOffsetAdjustment: () => {
+    const currentOffset = window.EmbedConfig.detectGoogleSiteOffset();
+    const newOffset = prompt(
+      `現在のヘッダーオフセット: ${currentOffset}px\n\n` +
+        '新しいオフセット値を入力してください（0-200）:',
+      currentOffset.toString(),
+    );
+
+    if (newOffset !== null && !isNaN(parseInt(newOffset))) {
+      const offset = Math.max(0, Math.min(200, parseInt(newOffset)));
+      window.EmbedConfig.saveOffset(offset);
+      window.EmbedConfig.reapplyStyles(offset);
+      alert(`ヘッダーオフセットを ${offset}px に設定しました。`);
+    }
+  },
+
+  // スタイルの再適用
+  reapplyStyles: offset => {
+    // 既存のスタイルを削除
+    const existingStyle = document.getElementById('google-sites-embed-styles');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+
+    // 新しいオフセットで再適用
+    window.EmbedConfig.applyEmbedStyles();
+  },
+};
+
 // =================================================================
 // 2. DESIGN CONFIGURATION
 // =================================================================
@@ -241,7 +450,7 @@ const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites .fixed.top-4 {
-          top: 70px; /* 戻るボタン位置を調整 */
+          top: 70px; /* もどるボタン位置を調整 */
         }
 
         .app-container {
@@ -256,7 +465,7 @@ const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites .fixed.top-4 {
-          top: 90px; /* より小さなスクリーンでの戻るボタン調整 */
+          top: 90px; /* より小さなスクリーンでのもどるボタン調整 */
         }
 
         .app-container {
@@ -363,7 +572,7 @@ const addCustomStyles = () => {
 
       /* ========== レイアウト改善 - memo.md問題対応 ========== */
 
-      /* 戻るボタンの位置を右上に固定（問題#3対応） */
+      /* もどるボタンの位置を右上に固定（問題#3対応） */
       .back-button-container {
         position: fixed;
         top: 1rem;
@@ -372,7 +581,7 @@ const addCustomStyles = () => {
         transform: none !important; /* 位置ズレ防止（問題#36対応） */
       }
 
-      /* Googleサイト埋め込み時の戻るボタン調整（問題#14対応） */
+      /* Googleサイト埋め込み時のもどるボタン調整（問題#14対応） */
       body.embedded-in-google-sites .back-button-container {
         top: 70px;
       }
@@ -678,7 +887,7 @@ const addCustomStyles = () => {
           max-width: 280px;
         }
 
-        /* 戻るボタンのモバイル調整 */
+        /* もどるボタンのモバイル調整 */
         .back-button-container {
           top: 0.5rem;
           right: 0.5rem;
@@ -825,7 +1034,7 @@ const setupPageTransitionManagement =
         }
       };
 
-      // 戻るボタンの位置調整（問題#36対応）
+      // もどるボタンの位置調整（問題#36対応）
       const stabilizeBackButtonPosition = () => {
         const backButtonContainer = /** @type {HTMLElement | null} */ (
           document.querySelector('.back-button-container')

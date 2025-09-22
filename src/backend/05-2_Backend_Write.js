@@ -292,6 +292,9 @@ function makeReservation(reservationInfo) {
       const endTimeColIdx = headerMap.get(
         CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
       );
+      Logger.log(
+        `[makeReservation] 列インデックス: startTime=${startTimeColIdx}, endTime=${endTimeColIdx}`,
+      );
       const statusColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
       const venueColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.VENUE);
       const chiselRentalColIdx = headerMap.get(
@@ -313,7 +316,7 @@ function makeReservation(reservationInfo) {
 
       // 新しい予約IDを生成
       const newReservationId = Utilities.getUuid();
-      // 日付文字列をDateオブジェクトに変換（東京タイムゾーン指定）
+      // 日付文字列をDateオブジェクトに変換（統合予約シートに適した形式）
       const targetDate = new Date(date + 'T00:00:00+09:00');
 
       // 会場情報を取得（reservationInfoまたは同日同教室の既存予約から）
@@ -357,15 +360,35 @@ function makeReservation(reservationInfo) {
         ? CONSTANTS.STATUS.WAITLISTED
         : CONSTANTS.STATUS.CONFIRMED;
 
-      // 時刻設定（フロントエンドで調整済みの時間を使用）
+      // 時刻設定（時間のみのDateオブジェクトとして保存）
       Logger.log(
         `[makeReservation] 受信した時間情報: startTime=${startTime}, endTime=${endTime}, classroom=${classroom}`,
       );
 
-      if (startTime)
-        newRowData[startTimeColIdx] = new Date(`1900-01-01T${startTime}:00`);
-      if (endTime)
-        newRowData[endTimeColIdx] = new Date(`1900-01-01T${endTime}:00`);
+      // 開始・終了時刻の設定（フロントエンドで正規化済み）
+      const finalStartTime = startTime;
+      const finalEndTime = endTime;
+
+      if (finalStartTime) {
+        // 時間文字列を時間のみのDateオブジェクトに変換
+        const startTimeDate = new Date(`1900-01-01T${finalStartTime}:00+09:00`);
+        newRowData[startTimeColIdx] = startTimeDate;
+        Logger.log(
+          `[makeReservation] 開始時刻設定: ${finalStartTime} -> ${startTimeDate} (列${startTimeColIdx})`,
+        );
+      } else {
+        Logger.log(`[makeReservation] 開始時刻が空: ${finalStartTime}`);
+      }
+      if (finalEndTime) {
+        // 時間文字列を時間のみのDateオブジェクトに変換
+        const endTimeDate = new Date(`1900-01-01T${finalEndTime}:00+09:00`);
+        newRowData[endTimeColIdx] = endTimeDate;
+        Logger.log(
+          `[makeReservation] 終了時刻設定: ${finalEndTime} -> ${endTimeDate} (列${endTimeColIdx})`,
+        );
+      } else {
+        Logger.log(`[makeReservation] 終了時刻が空: ${finalEndTime}`);
+      }
 
       // オプション設定
       if (chiselRentalColIdx !== undefined)
@@ -721,13 +744,13 @@ function updateReservationDetails(details) {
 
       if (startTimeColIdx !== undefined && detailsTyped.startTime) {
         rowData[startTimeColIdx] = new Date(
-          `1900-01-01T${detailsTyped.startTime}:00`,
+          `1900-01-01T${detailsTyped.startTime}:00+09:00`,
         );
       }
 
       if (endTimeColIdx !== undefined && detailsTyped.endTime) {
         rowData[endTimeColIdx] = new Date(
-          `1900-01-01T${detailsTyped.endTime}:00`,
+          `1900-01-01T${detailsTyped.endTime}:00+09:00`,
         );
       }
 
@@ -1021,12 +1044,12 @@ function saveAccountingDetails(payload) {
 
         if (startTimeColIdx !== undefined) {
           updatedRowData[startTimeColIdx] = startTime
-            ? new Date(`1900-01-01T${startTime}`)
+            ? new Date(`1900-01-01T${startTime}:00+09:00`)
             : null;
         }
         if (endTimeColIdx !== undefined) {
           updatedRowData[endTimeColIdx] = endTime
-            ? new Date(`1900-01-01T${endTime}`)
+            ? new Date(`1900-01-01T${endTime}:00+09:00`)
             : null;
         }
       }

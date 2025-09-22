@@ -25,6 +25,16 @@ declare function generateAccountingView(classifiedItems: any, classroom: string,
 declare function getPaymentInfoHtml(selectedPaymentMethod?: string): string;
 declare function getPaymentOptionsHtml(selectedValue?: string): string;
 
+// Googleサイト埋め込み環境の設定
+interface EmbedConfig {
+  detectGoogleSiteOffset(): number;
+  applyEmbedStyles(): void;
+  saveOffset(offset: number): void;
+  addOffsetControl(currentOffset: number): void;
+  showOffsetAdjustment(): void;
+  reapplyStyles(offset: number): void;
+}
+
 // Window 拡張
 declare global {
   interface Window {
@@ -32,6 +42,7 @@ declare global {
     currentClassroom?: string;
     collectFormData?: () => AccountingFormData;
     accountingSystemCache?: Record<string, ClassifiedAccountingItems>;
+    EmbedConfig?: EmbedConfig;
   }
 }
 
@@ -967,10 +978,6 @@ declare global {
     };
   }
 
-  interface AccountingCompletedConfig {
-    details: AccountingCalculation;
-    reservation: ReservationData;
-  }
 
   interface DashboardSectionConfig {
     title: string;
@@ -1316,10 +1323,6 @@ declare global {
     price?: string | number;
   }
 
-  interface AccountingCompletedConfig extends ComponentConfig {
-    details: AccountingDetails;
-    reservation: ReservationData;
-  }
 
   interface AccountingDetails {
     tuition: {
@@ -1518,14 +1521,14 @@ declare global {
     priceDisplay: (config: PriceDisplayConfig) => string;
     actionButtonSection: (config: ActionButtonSectionConfig) => string;
 
+    // ページヘッダー
+    pageHeader: (config: {title: string, backAction?: string, showBackButton?: boolean}) => string;
+
     // 会計系
     accountingRow: (config: AccountingRowConfig) => string;
     materialRow: (config: MaterialRowConfig) => string;
     otherSalesRow: (config: OtherSalesRowConfig) => string;
-    accountingCompleted: (config: AccountingCompletedConfig) => string;
-    accountingForm: (config: any) => string;
     salesSection: (config: any) => string;
-    navigationHeader: (config: ComponentConfig & {title: string, backAction: string}) => string;
 
     // リスト・カード
     listCard: (config: ListCardConfig) => string;

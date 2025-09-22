@@ -213,7 +213,7 @@ const Components = {
         ${dataAttrs}
         ${disabled ? 'disabled' : ''}
         ${inlineStyle ? `style="${inlineStyle}"` : ''}
-      >${escapeHTML(text)}</button>`;
+      >${text}</button>`;
   },
 
   /**
@@ -498,20 +498,44 @@ const Components = {
   },
 
   // =================================================================
-  // --- 会計系専用コンポーネント ---
+  // --- ページヘッダー ---
   // -----------------------------------------------------------------
 
   /**
-   * ナビゲーションヘッダー
-   * @param {ComponentConfig & {title: string, backAction: string}} config - 設定オブジェクト
+   * ページヘッダー（タイトル + もどるボタン）
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.title - ページタイトル
+   * @param {string} [config.backAction='smartGoBack'] - もどるボタンのアクション
+   * @param {boolean} [config.showBackButton=true] - もどるボタンを表示するか
    * @returns {string} HTML文字列
    */
-  navigationHeader: ({ title, backAction }) => {
-    return `<div class="flex justify-between items-center">
-        <h1 class="text-2xl font-bold text-brand-text">${escapeHTML(title)}</h1>
-        <button data-action="${backAction}" class="text-sm bg-action-secondary-bg text-action-secondary-text px-3 py-1.5 rounded-md active:bg-action-secondary-hover mobile-button">戻る</button>
+  pageHeader: ({
+    title,
+    backAction = 'smartGoBack',
+    showBackButton = true,
+  }) => {
+    const backButtonHtml = showBackButton
+      ? Components.button({
+          action: backAction,
+          text: 'もどる',
+          style: 'secondary',
+          size: 'xs',
+          customClass: 'mobile-button',
+        })
+      : '';
+
+    return `
+      <div class="sticky top-0 bg-white border-b border-ui-border z-10 py-2 mb-2 -mx-4">
+        <div class="flex justify-between items-center px-4">
+          <h1 class="text-lg font-bold text-brand-text">${escapeHTML(title)}</h1>
+          ${backButtonHtml}
+        </div>
       </div>`;
   },
+
+  // =================================================================
+  // --- 会計系専用コンポーネント ---
+  // -----------------------------------------------------------------
 
   /**
    * 会計項目行（チェックボックス付き）
@@ -603,88 +627,6 @@ const Components = {
         <input type="text" id="other-sales-name-${index}" name="otherSalesName${index}" value="${escapeHTML(name)}" placeholder="商品名" class="col-span-2 ${DesignConfig.inputs.base} accounting-item">
         <input type="text" inputted="decimal" id="other-sales-price-${index}" name="otherSalesPrice${index}" value="${price}" placeholder="金額" class="${DesignConfig.inputs.base} accounting-item">
       </div>`;
-  },
-
-  /**
-   * 会計済み表示
-   * @param {AccountingCompletedConfig} config - 設定オブジェクト
-   * @returns {string} HTML文字列
-   */
-  accountingCompleted: ({ details, reservation }) => {
-    const tuitionItemsHtml = details.tuition.items
-      .map(
-        i =>
-          `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>¥${i.price.toLocaleString()}</span></div>`,
-      )
-      .join('');
-    const salesItemsHtml = details.sales.items
-      .map(
-        i =>
-          `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>¥${i.price.toLocaleString()}</span></div>`,
-      )
-      .join('');
-    const v = reservation.venue ? `（${reservation.venue}）` : '';
-
-    return `<div class="text-center py-4">
-        <h1 class="text-2xl font-bold text-brand-text mt-4 mb-2">会計済み</h1>
-        <p class="text-brand-subtle mb-6"><b>${formatDate(reservation.date)}</b><br>${reservation.classroom}${v}</p>
-      </div>
-      <div class="p-4 bg-ui-surface border border-ui-border rounded-lg text-left space-y-4">
-        <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">授業料</h3><div class="space-y-1 text-brand-text">${tuitionItemsHtml || 'なし'}</div></div>
-        <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">販売</h3><div class="space-y-1 text-brand-text">${salesItemsHtml || 'なし'}</div></div>
-        <div class="text-right font-bold text-xl pt-2 border-t border-ui-border text-brand-text">合計: ¥${details.grandTotal.toLocaleString()}</div>
-        <div class="text-right text-base pt-2 text-brand-subtle">支払方法: ${escapeHTML(details.paymentMethod)}</div>
-      </div>
-      <div class="mt-4 flex flex-col space-y-3">
-        ${Components.button({ action: 'editAccountingRecord', text: '会計内容を修正する', style: 'secondary', size: 'full' })}
-      </div>`;
-  },
-
-  /**
-   * 会計フォーム全体
-   * @param {Object} config - 設定オブジェクト
-   * @param {string} config.type - フォームタイプ ('timeBased' | 'fixed')
-   * @param {AccountingMasterData[]} config.master - 会計マスターデータ
-   * @param {ReservationData} config.reservation - 予約データ
-   * @param {ReservationData} config.reservationDetails - 予約固有情報
-   * @param {ScheduleInfo} config.scheduleInfo - 講座固有情報
-   * @returns {string} HTML文字列
-   */
-  accountingForm: ({
-    type,
-    master,
-    reservation,
-    reservationDetails,
-    scheduleInfo,
-  }) => {
-    // 統一された授業料セクション
-    const tuitionHtml = Components.unifiedTuitionSection({
-      type,
-      master,
-      reservation,
-      reservationDetails,
-      scheduleInfo,
-    });
-
-    // 販売セクション
-    const salesHtml = Components.salesSection({ master, reservationDetails });
-
-    return `<div class="text-center py-4">
-        <p class="text-brand-subtle mb-6"><b>${formatDate(reservation.date)}</b><br>${reservation.classroom}${reservation.venue ? `（${reservation.venue}）` : ''}</p>
-      </div>
-      <form id="accounting-form" class="space-y-6">
-        ${tuitionHtml}
-        ${salesHtml}
-        <div class="text-right text-2xl font-bold py-4 border-t-2 border-ui-border flex flex-col items-end">
-          <span id="grand-total-amount" class="text-brand-text">合計: ¥0</span>
-        </div>
-        <div class="mt-4 text-center">
-          <p class="text-base text-state-danger-text font-bold mb-2">金額を、先生に確認してもらってください</p>
-          <div class="space-y-3">
-            ${Components.button({ action: 'showAccountingConfirmation', text: '先生の確認が完了しました', style: 'primary', size: 'full' })}
-          </div>
-        </div>
-      </form>`;
   },
 
   /**
@@ -1045,7 +987,7 @@ const Components = {
           action: btn.action,
           text: btn.text,
           style: /** @type {ComponentStyle} */ (btn.style || 'primary'),
-          size: /** @type {ComponentSize} */ ('small'),
+          size: /** @type {ComponentSize} */ ('xs'),
           //          customClass: `mobile-button ${DesignConfig.colors.accounting}`,
           dataAttributes: {
             classroom: item.classroom,
@@ -1074,7 +1016,7 @@ const Components = {
     return `
       <div class="w-full mb-4 px-0">
         <div class="${cardColorClass} p-2 rounded-lg shadow-sm" data-reservation-id="${item.reservationId}">
-          <!-- 上部：教室情報+編集ボタン -->
+          <!-- 上部：教室情報+会計・編集ボタン -->
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center flex-wrap">
@@ -1082,21 +1024,10 @@ const Components = {
               </div>
               <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
             </div>
-            ${editButtonsHtml ? `<div class="flex-shrink-0 self-start">${editButtonsHtml}</div>` : ''}
+            ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
           </div>
 
           ${memoSection}
-
-          <!-- 会計ボタンセクション -->
-          ${
-            accountingButtonsHtml
-              ? `
-            <div class="flex justify-end">
-              ${accountingButtonsHtml}
-            </div>
-          `
-              : ''
-          }
         </div>
       </div>
     `;
@@ -1120,17 +1051,8 @@ const Components = {
           >${escapeHTML(workInProgress || '')}</textarea>
           <div class="flex justify-end gap-2 mt-2">
             ${Components.button({
-              action: 'showHistoryAccounting',
-              text: '会計詳細',
-              style: 'secondary',
-              size: 'xs',
-              dataAttributes: {
-                reservationId: reservationId,
-              },
-            })}
-            ${Components.button({
               action: 'saveInlineMemo',
-              text: 'メモを保存',
+              text: 'メモを<br>保存',
               style: 'primary',
               size: 'xs',
               dataAttributes: {
@@ -1224,12 +1146,12 @@ const Components = {
   },
 
   /**
-   * 右上固定配置の戻るボタンを生成します
+   * 右上固定配置のもどるボタンを生成します
    * @param {string} action - アクション名（デフォルト: 'smartGoBack'）
-   * @param {string} text - ボタンテキスト（デフォルト: '戻る'）
+   * @param {string} text - ボタンテキスト（デフォルト: 'もどる'）
    * @returns {string} HTML文字列
    */
-  createBackButton: (action = 'smartGoBack', text = '戻る') => {
+  createBackButton: (action = 'smartGoBack', text = 'もどる') => {
     return `
         <div class="back-button-container fixed top-4 right-4 z-30">
           <button
@@ -1242,22 +1164,15 @@ const Components = {
   },
 
   /**
-   * 現在のビューに応じて適切な戻るボタンを生成します
+   * 現在のビューに応じて適切なもどるボタンを生成します
    * @param {string} currentView - 現在のビュー名
    * @param {UIState|null} appState - アプリケーション状態
    * @returns {string} HTML文字列
    */
   createSmartBackButton: (currentView, appState = null) => {
-    /** @type {UIState} */
-    const state =
-      appState ||
-      (window.stateManager
-        ? window.stateManager.getState()
-        : /** @type {UIState} */ ({}));
-
     // 現在のビューに応じてアクションとテキストを決定
     let action = 'smartGoBack';
-    let text = '戻る';
+    let text = 'もどる';
 
     // 特定のビューでの動作をカスタマイズ
     switch (currentView) {
@@ -1269,18 +1184,9 @@ const Components = {
         action = 'goToMainMenu';
         text = 'メインメニュー';
         break;
-      case 'accountingForm':
-        if (state.isEditingAccountingRecord) {
-          action = 'goToAccountingHistory';
-          text = '会計一覧';
-        } else {
-          action = 'goToMainMenu';
-          text = 'メインメニュー';
-        }
-        break;
       default:
         action = 'smartGoBack';
-        text = '戻る';
+        text = 'もどる';
     }
 
     return Components.createBackButton(action, text);
@@ -1294,12 +1200,12 @@ const Components = {
 // =================================================================
 
 /**
- * 右上固定配置の戻るボタンを生成します
+ * 右上固定配置のもどるボタンを生成します
  * @param {string} action - アクション名（デフォルト: 'smartGoBack'）
- * @param {string} text - ボタンテキスト（デフォルト: '戻る'）
+ * @param {string} text - ボタンテキスト（デフォルト: 'もどる'）
  * @returns {string} HTML文字列
  */
-Components.createBackButton = (action = 'smartGoBack', text = '戻る') => {
+Components.createBackButton = (action = 'smartGoBack', text = 'もどる') => {
   return `
       <div class="back-button-container fixed top-4 right-4 z-30">
         <button
@@ -1312,18 +1218,18 @@ Components.createBackButton = (action = 'smartGoBack', text = '戻る') => {
 };
 
 /**
- * 現在のビューに応じて適切な戻るボタンを生成します
+ * 現在のビューに応じて適切なもどるボタンを生成します
  * @param {string} currentView - 現在のビュー名
  * @returns {string} HTML文字列
  */
-Components.createSmartBackButton = (currentView) => {
+Components.createSmartBackButton = currentView => {
   let action = 'smartGoBack';
-  let text = '戻る';
+  let text = 'もどる';
 
   // ビューに応じて適切なアクションとテキストを設定
   switch (currentView) {
     case 'login':
-      // ログイン画面では戻るボタンを表示しない
+      // ログイン画面ではもどるボタンを表示しない
       return '';
 
     case 'register':
@@ -1352,7 +1258,7 @@ Components.createSmartBackButton = (currentView) => {
       break;
 
     case 'dashboard':
-      // ダッシュボードでは戻るボタンを表示しない
+      // ダッシュボードではもどるボタンを表示しない
       return '';
 
     case 'bookingLessons':
@@ -1381,7 +1287,7 @@ Components.createSmartBackButton = (currentView) => {
       break;
 
     default:
-      // デフォルトはスマート戻る
+      // デフォルトはスマートもどる
       break;
   }
 
