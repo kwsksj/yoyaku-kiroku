@@ -104,7 +104,7 @@ const CONSTANTS = {
   PAYMENT_DISPLAY: {
     CASH: '現金',
     COTRA: 'ことら送金',
-    BANK_TRANSFER: '振込',
+    BANK_TRANSFER: 'オンライン振込',
   },
 
   // 銀行情報
