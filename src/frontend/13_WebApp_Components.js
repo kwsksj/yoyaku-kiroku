@@ -159,6 +159,8 @@ const Components = {
     disabled = false,
     customClass = '',
     dataAttributes = {},
+    id = '',
+    disabledStyle = 'auto', // 'auto', 'none', 'custom'
   }) => {
     // スタイルマッピング
     const styleClasses = {
@@ -190,11 +192,27 @@ const Components = {
 
     const sizeClass = size && sizeClasses[size] ? sizeClasses[size] : '';
 
+    // 無効状態の自動スタイル適用
+    let disabledClass = '';
+    let inlineStyle = '';
+
+    if (disabled && disabledStyle === 'auto') {
+      // 自動無効状態スタイル：視覚的に押せないことを明確にする
+      disabledClass = 'opacity-60 cursor-not-allowed';
+      inlineStyle =
+        'pointer-events: none; background-color: #d1d5db !important; color: #6b7280 !important; border-color: #d1d5db !important;';
+    }
+
+    // ID属性の生成
+    const idAttr = id ? `id="${escapeHTML(id)}"` : '';
+
     return `<button type="button"
+        ${idAttr}
         data-action="${escapeHTML(action || '')}"
-        class="${[baseClass, styleClass, sizeClass, customClass || ''].filter(Boolean).join(' ')}"
+        class="${[baseClass, styleClass, sizeClass, disabledClass, customClass || ''].filter(Boolean).join(' ')}"
         ${dataAttrs}
         ${disabled ? 'disabled' : ''}
+        ${inlineStyle ? `style="${inlineStyle}"` : ''}
       >${escapeHTML(text)}</button>`;
   },
 
@@ -270,6 +288,7 @@ const Components = {
     checked = false,
     disabled = false,
     dynamicStyle = false,
+    dataAttributes = {},
   }) => {
     // 動的スタイル用のクラス設定
     const labelClass = dynamicStyle
@@ -283,6 +302,11 @@ const Components = {
       ? `${labelClass} opacity-50 cursor-not-allowed`
       : labelClass;
 
+    // data属性を文字列として生成
+    const dataAttributesString = Object.entries(dataAttributes)
+      .map(([key, value]) => `data-${key}="${escapeHTML(String(value))}"`)
+      .join(' ');
+
     return `<label class="flex items-center space-x-2 ${finalLabelClass}">
         <input
           type="checkbox"
@@ -291,6 +315,7 @@ const Components = {
           ${disabled ? 'disabled' : ''}
           class="accent-action-primary-bg"
           ${dynamicStyle ? 'data-dynamic-style="true"' : ''}
+          ${dataAttributesString}
         >
         <span>${label}</span>
       </label>`;
@@ -405,6 +430,10 @@ const Components = {
       total: 'text-brand-text font-bold text-xl',
     };
 
+    // 負の値の場合は赤い文字色を適用
+    const isNegative = typeof amount === 'number' && amount < 0;
+    const negativeClass = isNegative ? 'text-red-600' : '';
+
     const aligns = {
       left: 'text-left',
       center: 'text-center',
@@ -413,12 +442,20 @@ const Components = {
 
     const formattedAmount =
       typeof amount === 'number' ? amount.toLocaleString() : amount;
-    const currency = showCurrency ? '円' : '';
+    const currency = showCurrency ? '¥' : '';
 
-    return `<div class="${aligns[align] || aligns.right}">
+    // サイズに応じて価格表示の幅クラスを決定
+    let priceWidthClass = '';
+    if (size === 'large') {
+      priceWidthClass = 'large';
+    } else if (size === 'small') {
+      priceWidthClass = 'small';
+    }
+
+    return `<span class="${aligns[align] || aligns.right}">
         ${label ? `<span class="text-brand-subtle text-sm">${escapeHTML(label)}: </span>` : ''}
-        <span class="${sizes[size] || sizes.normal} ${styles[style] || styles.default}">${formattedAmount}${currency}</span>
-      </div>`;
+        <span class="${sizes[size] || sizes.normal} ${negativeClass || styles[style] || styles.default} price-amount ${priceWidthClass}">${currency}${formattedAmount}</span>
+      </span>`;
   },
 
   /**
@@ -499,7 +536,7 @@ const Components = {
                  ${disabled ? 'disabled' : ''}>
           <span>${escapeHTML(name)}</span>
         </label>
-        <span class="text-brand-subtle">${price.toLocaleString()}円</span>
+        <span class="text-brand-subtle">¥${price.toLocaleString()}</span>
       </div>`;
   },
 
@@ -550,7 +587,7 @@ const Components = {
           <input type="number" id="material-l-${index}" name="materialL${index}" value="${l || ''}" placeholder="縦(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
           <input type="number" id="material-w-${index}" name="materialW${index}" value="${w || ''}" placeholder="横(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
           <input type="number" id="material-h-${index}" name="materialH${index}" value="${h || ''}" placeholder="厚(mm)" step="5" class="${DesignConfig.inputs.base} accounting-item custom-placeholder">
-          <div id="material-price-${index}" class="text-right text-base text-brand-subtle">0円</div>
+          <div id="material-price-${index}" class="text-right text-base text-brand-subtle">¥0</div>
         </div>
       </div>`;
   },
@@ -577,13 +614,13 @@ const Components = {
     const tuitionItemsHtml = details.tuition.items
       .map(
         i =>
-          `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>${i.price.toLocaleString()}円</span></div>`,
+          `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>¥${i.price.toLocaleString()}</span></div>`,
       )
       .join('');
     const salesItemsHtml = details.sales.items
       .map(
         i =>
-          `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>${i.price.toLocaleString()}円</span></div>`,
+          `<div class="flex justify-between"><span>${escapeHTML(i.name)}</span><span>¥${i.price.toLocaleString()}</span></div>`,
       )
       .join('');
     const v = reservation.venue ? `（${reservation.venue}）` : '';
@@ -595,7 +632,7 @@ const Components = {
       <div class="p-4 bg-ui-surface border border-ui-border rounded-lg text-left space-y-4">
         <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">授業料</h3><div class="space-y-1 text-brand-text">${tuitionItemsHtml || 'なし'}</div></div>
         <div><h3 class="font-bold text-brand-text border-b border-ui-border mb-1 pb-1">販売</h3><div class="space-y-1 text-brand-text">${salesItemsHtml || 'なし'}</div></div>
-        <div class="text-right font-bold text-xl pt-2 border-t border-ui-border text-brand-text">合計: ${details.grandTotal.toLocaleString()}円</div>
+        <div class="text-right font-bold text-xl pt-2 border-t border-ui-border text-brand-text">合計: ¥${details.grandTotal.toLocaleString()}</div>
         <div class="text-right text-base pt-2 text-brand-subtle">支払方法: ${escapeHTML(details.paymentMethod)}</div>
       </div>
       <div class="mt-4 flex flex-col space-y-3">
@@ -639,7 +676,7 @@ const Components = {
         ${tuitionHtml}
         ${salesHtml}
         <div class="text-right text-2xl font-bold py-4 border-t-2 border-ui-border flex flex-col items-end">
-          <span id="grand-total-amount" class="text-brand-text">合計: 0円</span>
+          <span id="grand-total-amount" class="text-brand-text">合計: ¥0</span>
         </div>
         <div class="mt-4 text-center">
           <p class="text-base text-state-danger-text font-bold mb-2">金額を、先生に確認してもらってください</p>
@@ -814,12 +851,12 @@ const Components = {
       content: `
         <div class="space-y-3">
           <h3 class="${DesignConfig.text['heading']} mb-2">授業料</h3>
-          
+
           ${timeSelectionHtml}
           <div class="space-y-3">${tuitionRowsHtml}</div>
-          
+
           <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base ${DesignConfig.colors['textSubtle']}"></div>
-          <div class="text-right font-bold mt-2" id="tuition-subtotal">小計: 0円</div>
+          <div class="text-right font-bold mt-2" id="tuition-subtotal">小計: ¥0</div>
         </div>
       `,
     });
@@ -832,10 +869,25 @@ const Components = {
    * @param {string} [config.symbol='■'] - 先頭記号
    * @returns {string} HTML文字列
    */
-  sectionHeader: ({ title, symbol = '■' }) => {
-    return `<h3 class="text-lg font-bold text-brand-text mb-3">${escapeHTML(symbol)} ${escapeHTML(title)}</h3>`;
-  },
+  sectionHeader: ({ title, symbol = '■', asSummary = false }) => {
+    const baseClasses = 'text-lg font-bold text-brand-text';
 
+    if (asSummary) {
+      // summaryの場合は▶記号のみ使用（二重記号を避ける）
+      // スマホユーザー向けに押しやすく、分かりやすいデザイン
+      return `<summary class="${baseClasses} flex items-center justify-between hover:bg-ui-hover active:bg-ui-pressed transition-colors">
+        <div class="flex items-center">
+          <span class="mr-3 text-brand-accent transition-transform">▶</span>
+          ${escapeHTML(title)}
+        </div>
+        <span class="text-xs text-brand-subtle rounded-md bg-ui-surface border border-ui-border p-1">タップで展開</span>
+      </summary>`;
+    }
+
+    // 通常のh3の場合は指定されたsymbolを使用
+    const content = `${escapeHTML(symbol)} ${escapeHTML(title)}`;
+    return `<h3 class="${baseClasses} mb-3">${content}</h3>`;
+  },
 
   /**
    * 小計表示セクションコンポーネント
@@ -1179,7 +1231,7 @@ const Components = {
           </div>
           ${Components.button({ action: 'addOtherSalesRow', text: '+ 自由入力欄を追加', style: 'secondary', size: 'full' })}
         </details>
-        <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: 0円</div>
+        <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: ¥0</div>
       </div>`;
   },
 

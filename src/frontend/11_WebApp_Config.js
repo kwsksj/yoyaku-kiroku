@@ -176,7 +176,7 @@ const addCustomStyles = () => {
       }
 
       /* ========== Font Loading Optimization ========== */
-      @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+      /* フォントはHTMLのheadセクションで読み込み済み */
 
       /* Prevent FOUT (Flash of Unstyled Text) */
       .font-loading {
@@ -328,8 +328,26 @@ const addCustomStyles = () => {
       .modal-content .modal-buttons { justify-content: center; }
 
       /* ========== Custom Components ========== */
-      details > summary { list-style: none; cursor: pointer; }
+      details > summary {
+        list-style: none;
+        cursor: pointer;
+        /* スマホ向けタッチフィードバック */
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        user-select: none;
+      }
       details > summary::-webkit-details-marker { display: none; }
+
+      /* スマホでのタップ時の視覚的フィードバック */
+      details > summary:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+      }
+
+      /* 矢印の回転アニメーション */
+      details[open] > summary .transition-transform {
+        transform: rotate(90deg);
+      }
 
       .accounting-item, .reservation-card {
         background-color: var(--brand-surface);
@@ -363,6 +381,88 @@ const addCustomStyles = () => {
         body.embedded-in-google-sites .back-button-container {
           top: 90px;
         }
+      }
+
+      /* ========== 数字専用等幅フォント ========== */
+      .font-mono-numbers {
+        font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
+        font-feature-settings: 'tnum' 1; /* Tabular numbers */
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* 価格表示専用クラス */
+      .price-amount {
+        font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
+        font-feature-settings: 'tnum' 1;
+        font-variant-numeric: tabular-nums;
+        font-weight: 500;
+        display: inline-block;
+        min-width: 4.5em;
+        text-align: right;
+      }
+
+      /* 大きなサイズの価格表示用 */
+      .price-amount.large {
+        min-width: 5.5em; /* より大きな金額用 */
+      }
+
+      /* 小さなサイズの価格表示用 */
+      .price-amount.small {
+        min-width: 3.5em; /* より小さな金額用 */
+      }
+
+      /* 時間表示専用クラス */
+      .time-display {
+        font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
+        font-feature-settings: 'tnum' 1;
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ========== カスタムプルダウンスタイル ========== */
+      .custom-select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: none;
+        background-color: white;
+      }
+
+      /* 時間選択プルダウン（中央揃え・矢印なし） */
+      .time-select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: none;
+        background-color: white;
+        text-align: center;
+        padding-right: 0.75rem;
+      }
+
+      /* 材料・販売品プルダウン（左揃え・矢印なし） */
+      .material-select, .product-select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: none;
+        background-color: white;
+        text-align: left;
+        padding-right: 0.75rem;
+      }
+
+      /* Firefox specific */
+      .custom-select::-moz-focus-inner,
+      .time-select::-moz-focus-inner,
+      .material-select::-moz-focus-inner,
+      .product-select::-moz-focus-inner {
+        border: 0;
+      }
+
+      /* IE specific */
+      .custom-select::-ms-expand,
+      .time-select::-ms-expand,
+      .material-select::-ms-expand,
+      .product-select::-ms-expand {
+        display: none;
       }
 
       /* ========== 新カードレイアウト - よやく・きろくカード ========== */

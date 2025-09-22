@@ -12,8 +12,7 @@ interface AccountingMasterItem {
 interface ClassifiedAccountingItems {
   tuition: {
     baseItems: AccountingMasterItem[];      // 基本授業料
-    additionalItems: AccountingMasterItem[]; // 追加料金
-    discountItems: AccountingMasterItem[];   // 割引項目
+    additionalItems: AccountingMasterItem[]; // 追加料金（割引項目を含む）
   };
   sales: {
     materialItems: AccountingMasterItem[];   // 材料代

@@ -189,41 +189,6 @@ function getTimeValue(elementId, reservationData, timeField) {
 // 会計フォームのデータを操作するためのヘルパー関数群
 // =================================================================
 
-/**
- * 会計フォームから現在の入力内容をオブジェクトとして取得します。
- * @returns {AccountingFormData} フォームデータ
- */
-function getAccountingFormData() {
-  const form = getFormElementSafely('accounting-form');
-  if (!form) return {};
-
-  /** @type {AccountingFormData} */ const data = {};
-  const elements = form.elements;
-
-  for (let i = 0; i < elements.length; i++) {
-    const element = elements[i];
-    if (
-      element instanceof HTMLInputElement ||
-      element instanceof HTMLSelectElement ||
-      element instanceof HTMLTextAreaElement
-    ) {
-      const item = element;
-      if (item.name) {
-        if (item.type === 'checkbox') {
-          data[item.name] = item.checked;
-        } else if (item.type === 'radio') {
-          if (item.checked) {
-            data[item.name] = item.value;
-          }
-        } else {
-          data[item.name] = item.value;
-        }
-      }
-    }
-  }
-  return data;
-}
-
 // =================================================================
 // --- Phone Number Formatting Helper Functions ---
 // -----------------------------------------------------------------
@@ -448,7 +413,7 @@ window.normalizePhoneNumberFrontend = function (phoneInput) {
   }
 
   // 数字以外の文字をチェック
-  if (!/^\\d+$/.test(normalized)) {
+  if (!/^\d+$/.test(normalized)) {
     return {
       normalized: '',
       isValid: false,
@@ -526,7 +491,7 @@ function getSalesCheckboxListHtml(salesList, checkedValues = []) {
             item => `
           <label class="flex items-center space-x-2">
             <input type="checkbox" name="orderSales" value="${item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}" class="accent-action-primary-bg" ${checkedValues.includes(item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]) ? 'checked' : ''}>
-            <span>${item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}${item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE] ? `（${item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]}円）` : ''}</span>
+            <span>${item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}${item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE] ? `（¥${item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]}）` : ''}</span>
           </label>
         `,
           )

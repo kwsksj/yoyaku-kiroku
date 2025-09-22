@@ -434,10 +434,12 @@ function setupViewListener() {
             // ここでは、DOM描画後に初回計算を実行します。
             if (typeof updateAccountingCalculation === 'function') {
               // 会計画面用のデータを取得
-              const classifiedItems = window.currentClassifiedItems || /** @type {ClassifiedAccountingItems} */ ({
-                tuition: { baseItems: [], additionalItems: [], discountItems: [] },
-                sales: { materialItems: [], productItems: [] }
-              });
+              const classifiedItems =
+                window.currentClassifiedItems ||
+                /** @type {ClassifiedAccountingItems} */ ({
+                  tuition: { baseItems: [], additionalItems: [] },
+                  sales: { materialItems: [], productItems: [] },
+                });
               const classroom = window.currentClassroom || '';
               updateAccountingCalculation(classifiedItems, classroom);
             }

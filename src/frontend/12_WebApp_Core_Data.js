@@ -92,19 +92,26 @@ function processInitialData(data, phone, lessons, myReservations = null) {
  */
 function preInitializeAccountingSystem(accountingMaster) {
   if (!accountingMaster || accountingMaster.length === 0) {
-    console.warn('⚠️ 会計マスタデータが存在しないため、事前初期化をスキップします');
+    console.warn(
+      '⚠️ 会計マスタデータが存在しないため、事前初期化をスキップします',
+    );
     return;
   }
 
   try {
     // 全教室の分類済みデータを事前生成
-    const classrooms = CONSTANTS.CLASSROOMS ? Object.values(CONSTANTS.CLASSROOMS) : [];
+    const classrooms = CONSTANTS.CLASSROOMS
+      ? Object.values(CONSTANTS.CLASSROOMS)
+      : [];
     /** @type {Record<string, ClassifiedAccountingItems>} */
     const preInitializedData = {};
 
     classrooms.forEach(classroom => {
       if (typeof classifyAccountingItems === 'function') {
-        const classifiedItems = classifyAccountingItems(accountingMaster, classroom);
+        const classifiedItems = classifyAccountingItems(
+          accountingMaster,
+          classroom,
+        );
         preInitializedData[classroom] = classifiedItems;
       }
     });
@@ -115,10 +122,9 @@ function preInitializeAccountingSystem(accountingMaster) {
     if (!window.isProduction) {
       console.log('✅ 会計システム事前初期化完了:', {
         classrooms: classrooms.length,
-        masterItems: accountingMaster.length
+        masterItems: accountingMaster.length,
       });
     }
-
   } catch (error) {
     console.error('❌ 会計システム事前初期化エラー:', error);
     // エラーが発生してもアプリ全体の動作は継続

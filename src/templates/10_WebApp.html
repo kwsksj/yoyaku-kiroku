@@ -20,7 +20,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&family=Inconsolata:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -109,8 +109,9 @@
         const checkReady = setInterval(() => {
           const status = {
             DesignConfig: typeof DesignConfig !== 'undefined',
-            stateManager: typeof stateManager !== 'undefined',
-            stateManagerDispatch: typeof stateManager?.dispatch === 'function',
+            stateManager: typeof window.stateManager !== 'undefined',
+            stateManagerDispatch:
+              typeof window.stateManager?.dispatch === 'function',
             hideLoading: typeof hideLoading === 'function',
           };
 
@@ -119,16 +120,16 @@
           // DesignConfig, stateManager, hideLoadingが利用可能か確認
           if (
             typeof DesignConfig !== 'undefined' &&
-            typeof stateManager !== 'undefined' &&
-            typeof stateManager?.dispatch === 'function' &&
+            typeof window.stateManager !== 'undefined' &&
+            typeof window.stateManager?.dispatch === 'function' &&
             typeof hideLoading === 'function'
           ) {
             clearInterval(checkReady);
             debugLog('初期化条件を満たしました！');
             debugLog(
               'stateManager.getState().lessons: ' +
-                (stateManager.getState().lessons
-                  ? stateManager.getState().lessons.length + '件'
+                (window.stateManager.getState().lessons
+                  ? window.stateManager.getState().lessons.length + '件'
                   : 'null'),
             );
             debugLog(

@@ -65,93 +65,6 @@ const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
 };
 
 /**
- * 選択された支払方法に応じた支払い情報を動的に表示するUIを生成します。
- * @param {string} selectedPaymentMethod - 選択された支払方法
- * @returns {string} HTML文字列
- */
-const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
-  let paymentInfoHtml = '';
-
-  // ことら送金が選択された場合のみ電話番号を表示
-  if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.COTRA) {
-    paymentInfoHtml += `
-        <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
-            <div class="flex justify-between items-center">
-                <div class="${DesignConfig.text['body']}"><span class="font-bold">${CONSTANTS.PAYMENT_DISPLAY.COTRA}:</span><span class="ml-2">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
-                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
-            </div>
-        </div>`;
-  }
-
-  // 振込が選択された場合のみ口座情報を表示
-  if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER) {
-    paymentInfoHtml += `
-        <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
-            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${CONSTANTS.BANK_INFO.NAME}</span></div>
-            <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">店番: ${CONSTANTS.BANK_INFO.BRANCH}</div>
-                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
-            </div>
-            <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">普通: ${CONSTANTS.BANK_INFO.ACCOUNT}</div>
-                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
-            </div>
-        </div>`;
-  }
-
-  // 現金の場合は何も表示しない
-  return paymentInfoHtml;
-};
-
-/**
- * 支払い方法の選択肢（ラジオボタン）UIを生成します。
- * @param {string} selectedValue - 選択済みの支払い方法
- * @returns {string} HTML文字列
- */
-const getPaymentOptionsHtml = selectedValue => {
-  const cotraDetails = `
-        <details class="mt-2 ml-6">
-            <summary class="inline-block px-2 py-1 bg-ui-warning-light text-ui-warning-text text-sm font-semibold rounded-md active:bg-ui-warning-bg">
-                ことら送金とは？ <span class="arrow">▼</span>
-            </summary>
-            <p class="mt-2 p-2 bg-ui-warning-bg rounded-md text-sm text-left text-brand-subtle">
-                電話番号だけで銀行口座間で送金できるサービスです。手数料無料。対応の銀行アプリから利用できます。<br>
-                (例：ゆうちょ通帳アプリ、三井住友銀行アプリ、住信SBIネット銀行アプリなど)
-                <a href="https://www.cotra.ne.jp/member/" target="_blank" class="text-ui-link-text">対応アプリ一覧</a>
-            </p>
-        </details>`;
-  const options = [
-    {
-      value: CONSTANTS.PAYMENT_DISPLAY.CASH,
-      text: CONSTANTS.PAYMENT_DISPLAY.CASH,
-      details: '',
-    },
-    {
-      value: CONSTANTS.PAYMENT_DISPLAY.COTRA,
-      text: CONSTANTS.PAYMENT_DISPLAY.COTRA,
-      details: cotraDetails,
-    },
-    {
-      value: CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER,
-      text: CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER,
-      details: '',
-    },
-  ];
-  return options
-    .map(
-      opt => `
-        <div>
-            <label class="flex items-center space-x-2 text-brand-text">
-                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item accent-action-primary-bg" ${opt.value === selectedValue ? 'checked' : ''}>
-                <span>${opt.text}</span>
-            </label>
-            ${opt.details}
-        </div>`,
-    )
-    .join('');
-};
-
-/**
  * 教室名に基づいてTailwindCSSのカラークラスを返します。
  * @param {ClassroomName} classroomName - 教室名
  * @returns {string} Tailwindカラークラス
@@ -241,8 +154,8 @@ const getCompleteView = msg => {
     if (bookingLessonsHtml) {
       // 予約完了時と会計完了時で表記を変更
       const sectionTitle = isReservationComplete
-        ? '↓ さらに よやく をする！'
-        : '↓ つぎの よやく をする！';
+        ? '↓ さらに よやく をする ↓'
+        : '↓ つぎの よやく をする ↓';
 
       nextBookingHtml = `
           <div class="mt-10 pt-6 border-t border-gray-200">
