@@ -872,22 +872,39 @@ function saveAccountingDetails(payload) {
 
       // 授業料の計算
       (userInput.tuitionItems || []).forEach(
-        /** @param {string} itemName */ itemName => {
-          const masterItem = masterData.find(
-            /** @param {AccountingMasterItem} m */ m =>
-              m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
-              m[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-                CONSTANTS.ITEM_TYPES.TUITION,
-          );
-          if (masterItem) {
-            const price = Number(
-              masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
-            );
+        /** @param {{name: string, price: number}} item */ item => {
+          // フロントエンドから送られるデータ形式に合わせて修正
+          const itemName = typeof item === 'string' ? item : item.name;
+          const itemPrice =
+            typeof item === 'object' && item.price !== undefined
+              ? item.price
+              : null;
+
+          if (itemPrice !== null) {
+            // フロントエンドで計算済みの価格をそのまま使用
             finalAccountingDetails.tuition.items.push({
               name: itemName,
-              price: price,
+              price: itemPrice,
             });
-            finalAccountingDetails.tuition.subtotal += price;
+            finalAccountingDetails.tuition.subtotal += itemPrice;
+          } else {
+            // 後方互換性：文字列の場合はマスタから価格を取得
+            const masterItem = masterData.find(
+              /** @param {AccountingMasterItem} m */ m =>
+                m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
+                m[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+                  CONSTANTS.ITEM_TYPES.TUITION,
+            );
+            if (masterItem) {
+              const price = Number(
+                masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+              );
+              finalAccountingDetails.tuition.items.push({
+                name: itemName,
+                price: price,
+              });
+              finalAccountingDetails.tuition.subtotal += price;
+            }
           }
         },
       );
@@ -953,32 +970,33 @@ function saveAccountingDetails(payload) {
       // 物販・材料費の計算
       (userInput.salesItems || []).forEach(
         /** @param {{name: string, price?: number}} item */ item => {
-          const masterItem = masterData.find(
-            /** @param {AccountingMasterItem} m */ m =>
-              m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === item.name &&
-              (m[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-                CONSTANTS.ITEM_TYPES.SALES ||
-                m[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-                  CONSTANTS.ITEM_TYPES.MATERIAL),
-          );
-          if (masterItem) {
-            // マスタに存在する商品
-            const price =
-              item.price ||
-              Number(masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]); // 材料費のように価格が計算される場合を考慮
+          // フロントエンドから送られるデータが既に計算済みの場合はそのまま使用
+          if (item.price !== undefined && item.price !== null) {
             finalAccountingDetails.sales.items.push({
               name: item.name,
-              price: price,
+              price: Number(item.price),
             });
-            finalAccountingDetails.sales.subtotal += price;
-          } else if (item.price) {
-            // 自由入力項目
-            const price = Number(item.price);
-            finalAccountingDetails.sales.items.push({
-              name: item.name,
-              price: price,
-            });
-            finalAccountingDetails.sales.subtotal += price;
+            finalAccountingDetails.sales.subtotal += Number(item.price);
+          } else {
+            // 価格が設定されていない場合はマスタから取得（後方互換性）
+            const masterItem = masterData.find(
+              /** @param {AccountingMasterItem} m */ m =>
+                m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === item.name &&
+                (m[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+                  CONSTANTS.ITEM_TYPES.SALES ||
+                  m[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
+                    CONSTANTS.ITEM_TYPES.MATERIAL),
+            );
+            if (masterItem) {
+              const price = Number(
+                masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+              );
+              finalAccountingDetails.sales.items.push({
+                name: item.name,
+                price: price,
+              });
+              finalAccountingDetails.sales.subtotal += price;
+            }
           }
         },
       );
@@ -1069,7 +1087,7 @@ function saveAccountingDetails(payload) {
 ` +
         `生徒ID: ${studentId}
 ` +
-        `合計金額: ${finalAccountingDetails.grandTotal.toLocaleString()} 円
+        `合計金額: ¥${finalAccountingDetails.grandTotal.toLocaleString()}
 
 ` +
         `詳細はスプレッドシートを確認してください。`;

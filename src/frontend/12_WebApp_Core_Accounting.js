@@ -52,6 +52,9 @@ function classifyAccountingItems(masterData, classroom) {
       } else {
         result.tuition.additionalItems.push(item);
       }
+    } else if (type === '割引') {
+      // 割引項目はadditionalItemsに統合
+      result.tuition.additionalItems.push(item);
     } else if (type === '材料') {
       result.sales.materialItems.push(item);
     } else if (type === '物販') {
@@ -104,25 +107,35 @@ function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
     const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
 
     if (unit === '30分') {
-      // 時間制計算
-      const timeUnits = calculateTimeUnits(
-        formData.startTime,
-        formData.endTime,
-        formData.breakTime,
-      );
-      const price = timeUnits * unitPrice;
-      items.push({
-        name: `授業料 (${formData.startTime} - ${formData.endTime})`,
-        price: price,
-      });
-      subtotal += price;
+      // 時間制計算 - 時刻が入力されている場合のみ
+      if (formData.startTime && formData.endTime) {
+        const timeUnits = calculateTimeUnits(
+          formData.startTime,
+          formData.endTime,
+          formData.breakTime,
+        );
+        if (timeUnits > 0) {
+          const price = timeUnits * unitPrice;
+          items.push({
+            name: `授業料 (${formData.startTime} - ${formData.endTime})`,
+            price: price,
+          });
+          subtotal += price;
+        }
+      }
     } else if (unit === '回') {
-      // 回数制計算
-      items.push({
-        name: baseItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
-        price: unitPrice,
-      });
-      subtotal += unitPrice;
+      // 回数制計算 - 基本授業料がチェックされている場合のみ
+      const baseItemName = baseItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+      if (
+        formData.checkedItems?.[baseItemName] ||
+        formData.checkedItems?.['基本授業料']
+      ) {
+        items.push({
+          name: baseItemName,
+          price: unitPrice,
+        });
+        subtotal += unitPrice;
+      }
     }
   }
 
@@ -183,15 +196,13 @@ function calculateSalesSubtotal(formData, classifiedItems) {
     });
   }
 
-  // 物販（チェックボックス選択）
-  classifiedItems.sales.productItems.forEach(item => {
-    const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-    if (formData.checkedItems?.[itemName]) {
-      const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
-      items.push({ name: itemName, price: price });
-      subtotal += price;
-    }
-  });
+  // 物販（プルダウン選択式）
+  if (formData.selectedProducts) {
+    formData.selectedProducts.forEach(product => {
+      items.push({ name: product.name, price: product.price });
+      subtotal += product.price;
+    });
+  }
 
   // 自由入力物販
   if (formData.customSales) {
@@ -215,20 +226,50 @@ function calculateSalesSubtotal(formData, classifiedItems) {
  * @returns {Object} 統合計算結果
  */
 function calculateAccountingTotal(formData, masterData, classroom) {
-  const classifiedItems = classifyAccountingItems(masterData, classroom);
-  const tuition = calculateTuitionSubtotal(
-    formData,
-    classifiedItems,
-    classroom,
-  );
-  const sales = calculateSalesSubtotal(formData, classifiedItems);
+  // デバッグ: 計算開始
+  if (!window.isProduction) {
+    console.log('🔍 calculateAccountingTotal開始:', {
+      formData,
+      masterDataLength: masterData.length,
+      classroom,
+    });
+  }
 
-  return {
-    tuition,
-    sales,
-    grandTotal: tuition.subtotal + sales.subtotal,
-    paymentMethod: formData.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH,
-  };
+  try {
+    const classifiedItems = classifyAccountingItems(masterData, classroom);
+    const tuition = calculateTuitionSubtotal(
+      formData,
+      classifiedItems,
+      classroom,
+    );
+    const sales = calculateSalesSubtotal(formData, classifiedItems);
+
+    const result = {
+      tuition,
+      sales,
+      grandTotal: tuition.subtotal + sales.subtotal,
+      paymentMethod: formData.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH,
+    };
+
+    // デバッグ: 計算結果
+    if (!window.isProduction) {
+      console.log('🔍 calculateAccountingTotal結果:', result);
+      console.log('🔍 授業料小計:', tuition.subtotal);
+      console.log('🔍 販売小計:', sales.subtotal);
+      console.log('🔍 総合計:', result.grandTotal);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('🔍 calculateAccountingTotal エラー:', error);
+    // エラー時は空の結果を返す
+    return {
+      tuition: { items: [], subtotal: 0 },
+      sales: { items: [], subtotal: 0 },
+      grandTotal: 0,
+      paymentMethod: formData.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH,
+    };
+  }
 }
 
 // ================================================================================
@@ -243,7 +284,7 @@ function calculateAccountingTotal(formData, masterData, classroom) {
 function generateTimeOptions(selectedValue = '') {
   return Components.timeOptions({
     startTime: '09:00',
-    endTime: '17:00',
+    endTime: '19:00',
     interval: 30,
     selectedValue: selectedValue,
   });
@@ -285,77 +326,100 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
           label: '授業料',
           checked: true,
         })}
-        <div class="time-controls mt-3 ml-6 space-y-3">
-          ${Components.select({
-            id: 'start-time',
-            label: '開始時刻',
-            options: generateTimeOptions(formData.startTime),
-          })}
-          ${Components.select({
-            id: 'end-time',
-            label: '終了時刻',
-            options: generateTimeOptions(formData.endTime),
-          })}
-          ${Components.select({
-            id: 'break-time',
-            label: '休憩時間',
-            options: `
+        <div class="time-controls mt-3 ml-6">
+          <div class="flex items-center space-x-2 mb-3">
+            <select id="start-time" class="time-select time-display flex-1 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+              ${generateTimeOptions(formData.startTime)}
+            </select>
+            <span class="text-sm text-brand-text">〜</span>
+            <select id="end-time" class="time-select time-display flex-1 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+              ${generateTimeOptions(formData.endTime)}
+            </select>
+            <span class="text-sm text-brand-text">休憩</span>
+            <select id="break-time" class="time-select time-display w-20 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               <option value="0" ${formData.breakTime === 0 ? 'selected' : ''}>0分</option>
               <option value="30" ${formData.breakTime === 30 ? 'selected' : ''}>30分</option>
               <option value="60" ${formData.breakTime === 60 ? 'selected' : ''}>60分</option>
-            `,
-          })}
-          <div class="calculated-amount text-sm text-gray-600 mt-2">
-            <span id="time-calculation">計算結果: 0時間 × ${Components.priceDisplay({ amount: unitPrice })} = ${Components.priceDisplay({ amount: 0 })}</span>
+            </select>
+          </div>
+          <div class="calculated-amount text-sm text-gray-600">
+            <span id="time-calculation" class="font-mono-numbers">計算結果: 0時間 × ${Components.priceDisplay({ amount: unitPrice })} = ${Components.priceDisplay({ amount: 0 })}</span>
           </div>
         </div>
       </div>`;
   } else {
     // 回数制の場合
     baseTuitionHtml = `
-      <div class="base-tuition mb-4">
-        ${Components.checkbox({
-          id: 'base-tuition',
-          label: `授業料 (${Components.priceDisplay({ amount: unitPrice })})`,
-          checked: true,
-        })}
+      <div class="base-tuition border-tb border-ui-border p-0 mb-2" data-checkbox-row>
+        <div class="flex items-center space-x-3">
+          <div class="flex-1">
+            ${Components.checkbox({
+              id: 'base-tuition',
+              label: '授業料',
+              checked: true,
+              dynamicStyle: true,
+            })}
+          </div>
+          <div class="price-display">
+            <span class="text-right">
+              <span class="price-amount font-bold text-brand-text">¥${unitPrice.toLocaleString()}</span>
+            </span>
+          </div>
+        </div>
       </div>`;
   }
 
   // 追加項目UI生成（正負の値段両方含む）
   let additionalItemsHtml = '';
   if (classifiedItems.tuition.additionalItems.length > 0) {
-    additionalItemsHtml = '<div class="additional-tuition mb-4 space-y-2">';
+    additionalItemsHtml = '<div class="additional-tuition mb-4 space-y-1">';
     classifiedItems.tuition.additionalItems.forEach(item => {
       const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
       const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
       const isChecked = formData.checkedItems?.[itemName] || false;
 
-      // 価格表示のスタイル設定
-      const priceColor = price < 0 ? 'text-red-600' : '';
-      const pricePrefix = price >= 0 ? '+' : '';
-
-      additionalItemsHtml += Components.checkbox({
-        id: `additional-${itemName.replace(/\s+/g, '-')}`,
-        label: `${itemName} (<span class="${priceColor}">${pricePrefix}${Components.priceDisplay({ amount: price })}</span>)`,
-        checked: isChecked,
-        dynamicStyle: true,
-      });
+      additionalItemsHtml += `
+        <div class="border-tb border-ui-border p-0" data-checkbox-row>
+          <div class="flex items-center space-x-3">
+            <div class="flex-1">
+              ${Components.checkbox({
+                id: `additional-${itemName.replace(/\s+/g, '-')}`,
+                label: itemName,
+                checked: isChecked,
+                dynamicStyle: true,
+                dataAttributes: {
+                  'item-name': itemName,
+                },
+              })}
+            </div>
+            <div class="price-display">
+              <span class="text-right">
+                <span class="price-amount ${isChecked ? 'font-bold text-brand-text' : 'text-brand-muted'} ${price < 0 ? 'text-red-600' : ''}">¥${price.toLocaleString()}</span>
+              </span>
+            </div>
+          </div>
+        </div>`;
     });
     additionalItemsHtml += '</div>';
   }
 
-  return `
-    <section class="tuition-section mb-6">
-      ${Components.sectionHeader({ title: '授業料' })}
-      ${baseTuitionHtml}
-      ${additionalItemsHtml}
-      ${Components.subtotalSection({
-        title: '授業料小計',
-        amount: 0,
-        id: 'tuition-subtotal-amount',
-      })}
-    </section>`;
+  return Components.cardContainer({
+    variant: 'default',
+    padding: 'spacious',
+
+    content: `
+      <section class="tuition-section">
+        ${Components.sectionHeader({ title: '授業料' })}
+        ${baseTuitionHtml}
+        ${additionalItemsHtml}
+        ${Components.subtotalSection({
+          title: '授業料小計',
+          amount: 0,
+          id: 'tuition-subtotal-amount',
+        })}
+      </section>
+    `,
+  });
 }
 
 /**
@@ -367,7 +431,7 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
  */
 function generateMaterialRow(materialItems, index = 0, materialData = {}) {
   // 材料選択肢を生成
-  let materialOptions = '<option value="">材料を選択してください</option>';
+  let materialOptions = '<option value="">おえらびください</option>';
   materialItems.forEach(item => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
     const selected = materialData.type === itemName ? 'selected' : '';
@@ -385,60 +449,48 @@ function generateMaterialRow(materialItems, index = 0, materialData = {}) {
 
   const sizeInputsHtml = showSizeInputs
     ? `
-    <div class="size-inputs flex items-center space-x-2 mt-2">
-      <span>サイズ:</span>
-      ${Components.input({
-        id: `material-length-${index}`,
-        label: '',
-        type: 'number',
-        value: materialData.l || '',
-        placeholder: '長さ(mm)',
-      })}
-      <span>×</span>
-      ${Components.input({
-        id: `material-width-${index}`,
-        label: '',
-        type: 'number',
-        value: materialData.w || '',
-        placeholder: '幅(mm)',
-      })}
-      <span>×</span>
-      ${Components.input({
-        id: `material-height-${index}`,
-        label: '',
-        type: 'number',
-        value: materialData.h || '',
-        placeholder: '高さ(mm)',
-      })}
-      <span>mm</span>
+    <div class="size-inputs flex items-center space-x-0 mb-2 pl-7">
+      <input
+        type="number"
+        id="material-length-${index}"
+        value="${materialData.l || ''}"
+        placeholder="x"
+        class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+      >
+      <span class="text-sm">×</span>
+      <input
+        type="number"
+        id="material-width-${index}"
+        value="${materialData.w || ''}"
+        placeholder="y"
+        class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+      >
+      <span class="text-sm">×</span>
+      <input
+        type="number"
+        id="material-height-${index}"
+        value="${materialData.h || ''}"
+        placeholder="z"
+        class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+      >
+      <span class="text-sm text-gray-600">mm</span>
     </div>`
     : '';
 
-  const deleteButton =
-    index > 0
-      ? Components.button({
-          action: 'removeMaterialRow',
-          text: '削除',
-          style: 'danger',
-          size: 'small',
-          dataAttributes: { index: index },
-        })
-      : '';
-
   return `
-    <div class="material-row border border-ui-border p-3 rounded-md ${index > 0 ? 'mt-3' : ''}" data-material-row="${index}">
+    <div class="material-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-material-row="${index}">
       <div class="flex items-center space-x-3">
+        <div class="flex-shrink-0 w-2 text-center">
+          <span class="text-brand-text">•</span>
+        </div>
         <div class="flex-1">
-          ${Components.select({
-            id: `material-type-${index}`,
-            label: '材料',
-            options: materialOptions,
-          })}
+          <select id="material-type-${index}" class="material-select w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            ${materialOptions}
+          </select>
         </div>
         <div class="price-display">
-          価格: <span id="material-price-${index}" class="font-bold">${Components.priceDisplay({ amount: 0 })}</span>
+          <span id="material-price-${index}" class="font-bold">${Components.priceDisplay({ amount: 0 })}</span>
         </div>
-        ${deleteButton}
       </div>
       ${sizeInputsHtml}
     </div>`;
@@ -456,122 +508,137 @@ function generateSalesSection(classifiedItems, formData = {}) {
   if (classifiedItems.sales.materialItems.length > 0) {
     materialsHtml = `
       <div class="materials mb-6">
-        <h4 class="font-medium text-brand-text mb-3">材料代</h4>
+        <h4 class="font-medium text-brand-text mb-3">材料</h4>
         <div id="materials-container">
           ${generateMaterialRow(classifiedItems.sales.materialItems, 0, formData.materials?.[0] || {})}
         </div>
-        ${Components.button({
-          action: 'addMaterialRow',
-          text: '+ 材料追加',
-          style: 'secondary',
-          size: 'small',
-          customClass: 'mt-3',
-        })}
       </div>`;
   }
 
-  // 物販セクション
+  // 物販セクション（プルダウン選択式 + 自由入力）
   let productsHtml = '';
   if (classifiedItems.sales.productItems.length > 0) {
-    productsHtml = '<div class="products mb-6">';
-    productsHtml += '<h4 class="font-medium text-brand-text mb-3">物販</h4>';
-    productsHtml += '<div class="space-y-2">';
+    // 自由入力物販の初期行を生成
+    const customSalesRows = generateCustomSalesRows(
+      formData.customSales || [{}],
+    );
 
-    classifiedItems.sales.productItems.forEach(item => {
-      const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-      const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
-      const isChecked = formData.checkedItems?.[itemName] || false;
-
-      productsHtml += Components.checkbox({
-        id: `product-${itemName.replace(/\s+/g, '-')}`,
-        label: `${itemName} (+${Components.priceDisplay({ amount: price })})`,
-        checked: isChecked,
-        dynamicStyle: true,
-      });
-    });
-
-    productsHtml += '</div></div>';
+    productsHtml = `
+      <div class="products mb-6">
+        <h4 class="font-medium text-brand-text mb-3">物販</h4>
+        <div id="products-container">
+          ${generateProductRow(classifiedItems.sales.productItems, 0, formData.selectedProducts?.[0] || {})}
+        </div>
+        <div class="custom-sales-divider mb-2">
+        </div>
+        <div id="custom-sales-container">
+          ${customSalesRows}
+        </div>
+      </div>`;
   }
 
-  return `
-    <section class="sales-section mb-6">
-      ${Components.sectionHeader({ title: '販売' })}
-      ${materialsHtml}
-      ${productsHtml}
-      ${Components.subtotalSection({
-        title: '販売小計',
-        amount: 0,
-        id: 'sales-subtotal-amount',
-      })}
-    </section>`;
+  return Components.cardContainer({
+    variant: 'default',
+    padding: 'spacious',
+    content: `
+      <section class="sales-section">
+        <details>
+          ${Components.sectionHeader({ title: '販売', asSummary: true })}
+          <div class="mt-3">
+            ${materialsHtml}
+            ${productsHtml}
+          </div>
+        </details>
+        ${Components.subtotalSection({
+          title: '販売小計',
+          amount: 0,
+          id: 'sales-subtotal-amount',
+        })}
+      </section>
+    `,
+  });
 }
 
 /**
- * 自由入力物販セクション生成（Components.js活用）
- * @param {AccountingFormData} formData - フォームデータ
+ * 物販行生成（Components.js活用）
+ * @param {Array} productItems - 物販項目配列
+ * @param {number} index - 行インデックス
+ * @param {Object} productData - 既存の物販データ
  * @returns {string} HTML文字列
  */
-function generateCustomSalesSection(formData = {}) {
+function generateProductRow(productItems, index = 0, productData = {}) {
+  // 物販選択肢を生成
+  let productOptions = '<option value="">おえらびください</option>';
+  productItems.forEach(item => {
+    const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+    const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
+    const selected = productData.name === itemName ? 'selected' : '';
+    productOptions += `<option value="${escapeHTML(itemName)}" data-price="${price}" ${selected}>${escapeHTML(itemName)} ${Components.priceDisplay({ amount: price })}</option>`;
+  });
+
   return `
-    <section class="custom-sales-section mb-6">
-      <h4 class="font-medium text-brand-text mb-3">その他物販</h4>
-      <div id="custom-sales-container">
-        ${generateCustomSalesRow(0, formData.customSales?.[0] || {})}
+    <div class="product-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-product-row="${index}">
+      <div class="flex items-center space-x-3">
+        <div class="flex-shrink-0 w-2 text-center">
+          <span class="text-brand-text">•</span>
+        </div>
+        <div class="flex-1">
+          <select id="product-type-${index}" class="product-select w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            ${productOptions}
+          </select>
+        </div>
+        <div class="price-display">
+          <span id="product-price-${index}" class="font-bold">${Components.priceDisplay({ amount: productData.price || 0 })}</span>
+        </div>
       </div>
-      ${Components.button({
-        action: 'addCustomSalesRow',
-        text: '+ 項目追加',
-        style: 'secondary',
-        size: 'small',
-        customClass: 'mt-3',
-      })}
-    </section>`;
+    </div>`;
 }
 
 /**
- * 自由入力物販行生成（Components.js活用）
+ * 自由入力物販行群生成
+ * @param {Array} customSalesData - 自由入力物販データ配列
+ * @returns {string} HTML文字列
+ */
+function generateCustomSalesRows(customSalesData = [{}]) {
+  return customSalesData
+    .map((itemData, index) => generateCustomSalesRow(index, itemData))
+    .join('');
+}
+
+/**
+ * 自由入力物販行生成（物販行と同じデザイン）
  * @param {number} index - 行インデックス
  * @param {Object} itemData - 既存のアイテムデータ
  * @returns {string} HTML文字列
  */
 function generateCustomSalesRow(index = 0, itemData = {}) {
-  const deleteButton =
-    index > 0
-      ? Components.button({
-          action: 'removeCustomSalesRow',
-          text: '削除',
-          style: 'danger',
-          size: 'small',
-          dataAttributes: { index: index },
-        })
-      : '';
-
   return `
-    <div class="custom-sales-row border border-ui-border p-3 rounded-md ${index > 0 ? 'mt-3' : ''}" data-custom-sales-row="${index}">
+    <div class="custom-sales-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-1' : ''}" data-custom-sales-row="${index}">
       <div class="flex items-center space-x-3">
+        <div class="flex-shrink-0 w-2 text-center">
+          <span class="text-brand-text">•</span>
+        </div>
         <div class="flex-1">
-          ${Components.input({
-            id: `custom-sales-name-${index}`,
-            label: '項目名',
-            type: 'text',
-            value: itemData.name || '',
-            placeholder: '商品名を入力',
-          })}
+          <input
+            type="text"
+            id="custom-sales-name-${index}"
+            value="${itemData.name || ''}"
+            placeholder="自由入力"
+            class="w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text"
+          >
         </div>
-        <div class="w-32">
-          <label class="block text-sm font-medium text-brand-text mb-1">金額</label>
-          <div class="flex items-center">
-            <span class="mr-1">¥</span>
-            <input
-              type="number"
-              id="custom-sales-price-${index}"
-              value="${itemData.price || ''}"
-              placeholder="金額"
-              class="${DesignConfig.inputs['base']}"
-            >
-          </div>
+        <div class="w-20">
+          <input
+            type="number"
+            id="custom-sales-price-${index}"
+            value="${itemData.price || ''}"
+            placeholder="金額"
+            class="w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+          >
         </div>
-        ${deleteButton}
+        <div class="price-display">
+          <span id="custom-sales-display-${index}" class="font-bold">${Components.priceDisplay({ amount: itemData.price || 0 })}</span>
+        </div>
       </div>
     </div>`;
 }
@@ -585,58 +652,156 @@ function generateCustomSalesRow(index = 0, itemData = {}) {
  */
 function generateAccountingView(classifiedItems, classroom, formData = {}) {
   return `
-    <div class="accounting-container max-w-4xl mx-auto p-4">
+    <div class="accounting-container max-w-4xl mx-auto p-2 space-y-6">
       <!-- 授業料セクション -->
       ${generateTuitionSection(classifiedItems, classroom, formData)}
 
-      <!-- 販売セクション -->
+      <!-- 販売セクション（物販+自由入力物販統合） -->
       ${generateSalesSection(classifiedItems, formData)}
 
-      <!-- 自由入力物販セクション -->
-      ${generateCustomSalesSection(formData)}
-
       <!-- 合計セクション -->
-      <section class="total-section mb-6">
-        <div class="grand-total bg-ui-surface border border-ui-border p-4 rounded-lg">
-          <div class="text-center">
-            <span class="text-2xl font-bold text-brand-text">総合計: </span>
-            <span id="grand-total-amount" class="text-2xl font-bold text-brand-text">${Components.priceDisplay({ amount: 0, size: 'large' })}</span>
-          </div>
-        </div>
-      </section>
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'spacious',
+        content: `
+          <section class="total-section">
+            <div class="grand-total text-center">
+              <span class="text-2xl font-bold text-brand-text">総合計: </span>
+              <span id="grand-total-amount" class="text-2xl font-bold text-brand-text">${Components.priceDisplay({ amount: 0, size: 'large' })}</span>
+            </div>
+          </section>
+        `,
+      })}
 
       <!-- 支払い方法セクション -->
-      <section class="payment-section mb-6">
-        <h4 class="font-medium text-brand-text mb-3">支払方法</h4>
-        <div id="payment-options-container">
-          <!-- getPaymentOptionsHtml()で生成される -->
-        </div>
-        <div id="payment-info-container" class="mt-3">
-          <!-- getPaymentInfoHtml()で生成される -->
-        </div>
-      </section>
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'spacious',
+        content: `
+          <section class="payment-section">
+            ${Components.sectionHeader({ title: '支払方法' })}
+            <div id="payment-options-container">
+              <!-- getPaymentOptionsHtml()で生成される -->
+            </div>
+          </section>
+        `,
+      })}
 
       <!-- 確認ボタン -->
-      <div class="text-center">
-        ${Components.button({
-          action: 'confirmPayment',
-          text: '支払い確認',
-          style: 'primary',
-          size: 'large',
-          customClass: 'w-full',
-        })}
-      </div>
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'spacious',
+        content: `
+          <div class="space-y-3">
+            ${Components.button({
+              action: 'showPaymentModal',
+              text: '先生が確認しました',
+              style: 'primary',
+              size: 'large',
+              customClass: 'w-full',
+              disabled: true,
+              id: 'confirm-payment-button',
+              disabledStyle: 'auto', // 自動無効状態スタイル適用
+            })}
+            ${Components.button({
+              action: 'smartGoBack',
+              text: 'もどる',
+              style: 'secondary',
+              size: 'large',
+              customClass: 'w-full',
+            })}
+          </div>
+        `,
+      })}
     </div>`;
 }
 
 /**
- * 支払い方法の選択肢（ラジオボタン）UIを生成（13_WebApp_Views_Utils.jsから移設）
+ * 支払い方法の選択肢（ラジオボタン）UIを生成します。
  * @param {string} selectedValue - 選択済みの支払い方法
  * @returns {string} HTML文字列
  */
-// getPaymentOptionsHtmlは13_WebApp_Views_Utils.jsで定義済み
+const getPaymentOptionsHtml = selectedValue => {
+  const cotraDetails = `
+        <details class="mt-0 ml-4">
+            <summary class="inline-block px-0 py-0 bg-ui-warning-light text-ui-warning-text text-sm font-semibold rounded-md active:bg-ui-warning-bg">
+            <span class="arrow">▶</span> ことら送金とは？
+            </summary>
+            <p class="mt-2 p-2 bg-ui-warning-bg rounded-md text-sm text-left text-brand-subtle">
+                電話番号だけで銀行口座間で送金できるサービスです。手数料無料。対応の銀行アプリから利用できます。<br>
+                (例：ゆうちょ通帳アプリ、三井住友銀行アプリ、住信SBIネット銀行アプリなど)
+                <a href="https://www.cotra.ne.jp/member/" target="_blank" class="text-ui-link-text">対応アプリ一覧</a>
+            </p>
+        </details>`;
+  const options = [
+    {
+      value: CONSTANTS.PAYMENT_DISPLAY.CASH,
+      text: CONSTANTS.PAYMENT_DISPLAY.CASH,
+      details: '',
+    },
+    {
+      value: CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER,
+      text: CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER,
+      details: '',
+    },
+    {
+      value: CONSTANTS.PAYMENT_DISPLAY.COTRA,
+      text: CONSTANTS.PAYMENT_DISPLAY.COTRA,
+      details: cotraDetails,
+    },
+  ];
+  return options
+    .map(
+      opt => `
+        <div mb-2>
+            <label class="flex items-center space-x-2 text-brand-text">
+                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item accent-action-primary-bg" ${selectedValue === opt.value ? 'checked' : ''}>
+                <span>${opt.text}</span>
+            </label>
+            ${opt.details}
+        </div>`,
+    )
+    .join('');
+};
 
-// getPaymentInfoHtmlは13_WebApp_Views_Utils.jsで定義済み
+/**
+ * 選択された支払方法に応じた支払い情報を動的に表示するUIを生成します。
+ * @param {string} selectedPaymentMethod - 選択された支払方法
+ * @returns {string} HTML文字列
+ */
+const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
+  let paymentInfoHtml = '';
+
+  // ことら送金が選択された場合のみ電話番号を表示
+  if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.COTRA) {
+    paymentInfoHtml += `
+        <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
+            <div class="flex justify-between items-center">
+                <div class="${DesignConfig.text['body']}"><span class="font-bold">送金先 電話番号:</span><span class="ml-2">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
+                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+            </div>
+        </div>`;
+  }
+
+  // 振込が選択された場合のみ口座情報を表示
+  if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER) {
+    paymentInfoHtml += `
+        <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
+            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${CONSTANTS.BANK_INFO.NAME}</span></div>
+            <div class="mt-1 flex justify-between items-center">
+                <div class="text-base text-brand-text">店番: ${CONSTANTS.BANK_INFO.BRANCH}</div>
+                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+            </div>
+            <div class="mt-1 flex justify-between items-center">
+                <div class="text-base text-brand-text">普通: ${CONSTANTS.BANK_INFO.ACCOUNT}</div>
+                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+            </div>
+        </div>`;
+  }
+
+  // 現金の場合は何も表示しない
+  return paymentInfoHtml;
+};
 
 // ================================================================================
 // 【イベント処理層】
@@ -671,20 +836,43 @@ function setupAccountingEventListeners(classifiedItems, classroom) {
     if (!action) return;
 
     switch (action) {
-      case 'addMaterialRow':
-        addMaterialRow(classifiedItems.sales.materialItems);
-        break;
       case 'removeMaterialRow':
         removeMaterialRow(target.getAttribute('data-index'));
         break;
-      case 'addCustomSalesRow':
-        addCustomSalesRow();
+      case 'removeProductRow':
+        removeProductRow(target.getAttribute('data-index'));
         break;
-      case 'removeCustomSalesRow':
-        removeCustomSalesRow(target.getAttribute('data-index'));
+      case 'showPaymentModal':
+        // デバッグ: ボタンクリックを記録
+        if (!window.isProduction) {
+          console.log('🔴 showPaymentModalボタンがクリックされました');
+        }
+
+        // イベントの伝播を停止
+        event.preventDefault();
+        event.stopPropagation();
+
+        // ボタンが無効状態でないかチェック
+        if (
+          target.hasAttribute('disabled') ||
+          target.style.pointerEvents === 'none'
+        ) {
+          if (!window.isProduction) {
+            console.log('⚠️ ボタンが無効状態のためクリックを無視');
+          }
+          return;
+        }
+
+        showPaymentConfirmModal(classifiedItems, classroom);
         break;
-      case 'confirmPayment':
-        confirmAndPay(classifiedItems, classroom);
+      case 'smartGoBack':
+        handleBackToDashboard();
+        break;
+      case 'cancelPaymentConfirm':
+        closePaymentConfirmModal();
+        break;
+      case 'processPayment':
+        handleProcessPayment();
         break;
     }
   });
@@ -693,6 +881,20 @@ function setupAccountingEventListeners(classifiedItems, classroom) {
   document.addEventListener('change', function (event) {
     if (event.target.id && event.target.id.startsWith('material-type-')) {
       handleMaterialTypeChange(event, classifiedItems.sales.materialItems);
+    }
+  });
+
+  // 物販タイプ変更時の特別処理
+  document.addEventListener('change', function (event) {
+    if (event.target.id && event.target.id.startsWith('product-type-')) {
+      handleProductTypeChange(event, classifiedItems.sales.productItems);
+    }
+  });
+
+  // 自由入力物販の入力変更時の特別処理
+  document.addEventListener('input', function (event) {
+    if (event.target.id && event.target.id.startsWith('custom-sales-')) {
+      handleCustomSalesInputChange(event);
     }
   });
 }
@@ -719,13 +921,14 @@ function handleAccountingInputChange(event, classifiedItems, classroom) {
 }
 
 /**
- * チェックボックスのスタイルを更新
+ * チェックボックスのスタイルを更新（項目名と金額の両方）
  * @param {HTMLInputElement} checkbox - チェックボックス要素
  */
 function updateCheckboxStyle(checkbox) {
   const label = checkbox.parentElement;
   if (!label) return;
 
+  // ラベル（項目名）のスタイル更新
   if (checkbox.checked) {
     label.className = label.className.replace(
       'text-brand-muted',
@@ -736,6 +939,46 @@ function updateCheckboxStyle(checkbox) {
       'font-bold text-brand-text',
       'text-brand-muted',
     );
+  }
+
+  // 対応する金額表示のスタイル更新
+  const checkboxRow = checkbox.closest('[data-checkbox-row]');
+  if (checkboxRow) {
+    const priceAmountElement = checkboxRow.querySelector('.price-amount');
+    if (priceAmountElement) {
+      // 赤字クラスは保持する
+      const hasRedText = priceAmountElement.className.includes('text-red-600');
+      const redClass = hasRedText ? ' text-red-600' : '';
+
+      if (checkbox.checked) {
+        // チェック済み: 濃い色、太字（赤字の場合は赤を優先）
+        if (hasRedText) {
+          priceAmountElement.className =
+            priceAmountElement.className
+              .replace(/text-brand-muted/g, '')
+              .replace(/text-brand-text/g, '') + ' font-bold text-red-600';
+        } else {
+          priceAmountElement.className =
+            priceAmountElement.className
+              .replace(/text-brand-muted/g, '')
+              .replace(/text-brand-text/g, '') + ' font-bold text-brand-text';
+        }
+      } else {
+        // 未チェック: 薄い色（赤字の場合は薄い赤）
+        if (hasRedText) {
+          priceAmountElement.className =
+            priceAmountElement.className
+              .replace(/font-bold/g, '')
+              .replace(/text-brand-text/g, '')
+              .replace(/text-red-600/g, '') + ' text-red-400';
+        } else {
+          priceAmountElement.className =
+            priceAmountElement.className
+              .replace(/font-bold/g, '')
+              .replace(/text-brand-text/g, '') + ' text-brand-muted';
+        }
+      }
+    }
   }
 }
 
@@ -768,29 +1011,28 @@ function handleMaterialTypeChange(event, materialItems) {
     selectedMaterial[CONSTANTS.HEADERS.ACCOUNTING.UNIT] === 'cm³'
   ) {
     const sizeInputsHtml = `
-      <div class="size-inputs flex items-center space-x-2 mt-2">
-        <span>サイズ:</span>
-        ${Components.input({
-          id: `material-length-${index}`,
-          label: '',
-          type: 'number',
-          placeholder: '長さ(mm)',
-        })}
-        <span>×</span>
-        ${Components.input({
-          id: `material-width-${index}`,
-          label: '',
-          type: 'number',
-          placeholder: '幅(mm)',
-        })}
-        <span>×</span>
-        ${Components.input({
-          id: `material-height-${index}`,
-          label: '',
-          type: 'number',
-          placeholder: '高さ(mm)',
-        })}
-        <span>mm</span>
+      <div class="size-inputs flex items-center space-x-2 mt-2 pl-7">
+        <input
+          type="number"
+          id="material-length-${index}"
+          placeholder="x"
+          class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+        >
+        <span class="text-sm">×</span>
+        <input
+          type="number"
+          id="material-width-${index}"
+          placeholder="y"
+          class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+        >
+        <span class="text-sm">×</span>
+        <input
+          type="number"
+          id="material-height-${index}"
+          placeholder="z"
+          class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+        >
+        <span class="text-sm text-gray-600">mm</span>
       </div>`;
 
     materialRow.insertAdjacentHTML('beforeend', sizeInputsHtml);
@@ -801,6 +1043,32 @@ function handleMaterialTypeChange(event, materialItems) {
   if (priceDisplay) {
     priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
   }
+
+  // 選択された場合、新しい行を自動追加
+  if (selectedType) {
+    const container = document.getElementById('materials-container');
+    if (container) {
+      const existingRows = container.querySelectorAll('.material-row');
+      const lastRow = existingRows[existingRows.length - 1];
+      const lastIndex = parseInt(lastRow.getAttribute('data-material-row'));
+
+      // 最後の行が選択されている場合のみ新しい行を追加
+      if (lastIndex === parseInt(index)) {
+        const newIndex = existingRows.length;
+        const newRowHtml = generateMaterialRow(materialItems, newIndex);
+        container.insertAdjacentHTML('beforeend', newRowHtml);
+      }
+    }
+  }
+
+  // 計算を更新
+  setTimeout(() => {
+    const classifiedItems = window.currentClassifiedItems;
+    const classroom = window.currentClassroom;
+    if (classifiedItems && classroom) {
+      updateAccountingCalculation(classifiedItems, classroom);
+    }
+  }, 100);
 }
 
 /**
@@ -835,6 +1103,146 @@ function removeMaterialRow(index) {
       }
     }, 100);
   }
+}
+
+/**
+ * 物販タイプ変更時の処理
+ * @param {Event} event - 変更イベント
+ * @param {Array} productItems - 物販項目配列
+ */
+function handleProductTypeChange(event, productItems) {
+  const index = event.target.id.split('-')[2]; // product-type-0 -> 0
+  const selectedType = event.target.value;
+  const productRow = document.querySelector(`[data-product-row="${index}"]`);
+
+  if (!productRow) return;
+
+  // 選択された物販のマスタ情報を取得
+  const selectedProduct = productItems.find(
+    item => item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === selectedType,
+  );
+
+  // 価格を更新
+  const priceDisplay = productRow.querySelector(`#product-price-${index}`);
+  if (priceDisplay && selectedProduct) {
+    const price = Number(
+      selectedProduct[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+    );
+    priceDisplay.innerHTML = Components.priceDisplay({ amount: price });
+
+    // 選択後は商品名のみを表示（価格の2重表示を避ける）
+    const selectElement = event.target;
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+      selectedOption.textContent = selectedType; // 商品名のみ
+    }
+  } else if (priceDisplay) {
+    priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
+
+    // 未選択の場合、プルダウンの表示をリセット
+    const selectElement = event.target;
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    if (selectedOption && selectedOption.value === '') {
+      // 空の選択肢は元の表示のまま
+      selectedOption.textContent = 'おえらびください';
+    }
+  }
+
+  // 選択された場合、新しい行を自動追加
+  if (selectedType) {
+    const container = document.getElementById('products-container');
+    if (container) {
+      const existingRows = container.querySelectorAll('.product-row');
+      const lastRow = existingRows[existingRows.length - 1];
+      const lastIndex = parseInt(lastRow.getAttribute('data-product-row'));
+
+      // 最後の行が選択されている場合のみ新しい行を追加
+      if (lastIndex === parseInt(index)) {
+        const newIndex = existingRows.length;
+        const newRowHtml = generateProductRow(productItems, newIndex);
+        container.insertAdjacentHTML('beforeend', newRowHtml);
+      }
+    }
+  }
+
+  // 計算を更新
+  setTimeout(() => {
+    const classifiedItems = window.currentClassifiedItems;
+    const classroom = window.currentClassroom;
+    if (classifiedItems && classroom) {
+      updateAccountingCalculation(classifiedItems, classroom);
+    }
+  }, 100);
+}
+
+/**
+ * 物販行削除
+ * @param {string} index - 削除する行のインデックス
+ */
+function removeProductRow(index) {
+  const row = document.querySelector(`[data-product-row="${index}"]`);
+  if (row) {
+    row.remove();
+    // 計算を更新
+    setTimeout(() => {
+      const classifiedItems = window.currentClassifiedItems;
+      const classroom = window.currentClassroom;
+      if (classifiedItems && classroom) {
+        updateAccountingCalculation(classifiedItems, classroom);
+      }
+    }, 100);
+  }
+}
+
+/**
+ * 自由入力物販の入力変更処理
+ * @param {Event} event - 入力変更イベント
+ */
+function handleCustomSalesInputChange(event) {
+  const target = event.target;
+  const index = parseInt(target.id.split('-')[3]); // custom-sales-name-0 -> 0
+  const container = document.getElementById('custom-sales-container');
+
+  if (!container) return;
+
+  // 価格フィールドの場合、価格表示を更新
+  if (target.id.startsWith('custom-sales-price-')) {
+    const priceDisplayElement = document.getElementById(
+      `custom-sales-display-${index}`,
+    );
+    if (priceDisplayElement) {
+      const price = Number(target.value) || 0;
+      priceDisplayElement.innerHTML = Components.priceDisplay({
+        amount: price,
+      });
+    }
+  }
+
+  // 最後の行で項目名または価格が入力されたら新しい行を追加
+  const existingRows = container.querySelectorAll('.custom-sales-row');
+  const isLastRow = index === existingRows.length - 1;
+
+  if (isLastRow && target.value.trim()) {
+    const nameInput = document.getElementById(`custom-sales-name-${index}`);
+    const priceInput = document.getElementById(`custom-sales-price-${index}`);
+
+    // 項目名または価格のどちらかが入力されている場合、新しい行を追加
+    if (
+      (nameInput && nameInput.value.trim()) ||
+      (priceInput && priceInput.value.trim())
+    ) {
+      addCustomSalesRow();
+    }
+  }
+
+  // 計算を更新
+  setTimeout(() => {
+    const classifiedItems = window.currentClassifiedItems;
+    const classroom = window.currentClassroom;
+    if (classifiedItems && classroom) {
+      updateAccountingCalculation(classifiedItems, classroom);
+    }
+  }, 100);
 }
 
 /**
@@ -886,7 +1294,6 @@ function updateAccountingCalculation(classifiedItems, classroom) {
       [
         ...classifiedItems.tuition.baseItems,
         ...classifiedItems.tuition.additionalItems,
-        ...classifiedItems.tuition.discountItems,
         ...classifiedItems.sales.materialItems,
         ...classifiedItems.sales.productItems,
       ],
@@ -945,8 +1352,10 @@ function updateAccountingUI(result, classroom) {
   // 時間制の場合の時間計算表示更新
   updateTimeCalculationDisplay(result, classroom);
 
-  // 材料価格個別更新
+  // 個別価格表示更新
   updateMaterialPricesDisplay(result);
+  updateProductPricesDisplay(result);
+  updateCustomSalesPricesDisplay(result);
 }
 
 /**
@@ -989,22 +1398,94 @@ function updateTimeCalculationDisplay(result, classroom) {
  */
 function updateMaterialPricesDisplay(result) {
   const materials = document.querySelectorAll('.material-row');
+  const salesItems = result.sales?.items || [];
 
   materials.forEach((row, index) => {
     const priceDisplay = row.querySelector(`#material-price-${index}`);
-    if (priceDisplay) {
-      // result.sales.itemsから該当する材料の価格を取得
-      const materialItem = result.sales.items.find(
-        item =>
-          item.name.includes('(') &&
-          item.name.includes('×') &&
-          item.name.includes('mm)'),
-      );
+    const typeSelect = row.querySelector(`#material-type-${index}`);
 
-      if (materialItem) {
-        priceDisplay.innerHTML = Components.priceDisplay({
-          amount: materialItem.price,
+    if (priceDisplay && typeSelect) {
+      const selectedType = typeSelect.value;
+      if (selectedType) {
+        // 選択された材料タイプに一致するアイテムを検索
+        const materialItem = salesItems.find(item => {
+          return (
+            item.name === selectedType ||
+            item.name.startsWith(selectedType + ' (')
+          );
         });
+
+        if (materialItem) {
+          priceDisplay.innerHTML = Components.priceDisplay({
+            amount: materialItem.price,
+          });
+        } else {
+          priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
+        }
+      } else {
+        priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
+      }
+    }
+  });
+}
+
+/**
+ * 物販価格個別表示更新
+ * @param {Object} result - 計算結果
+ */
+function updateProductPricesDisplay(result) {
+  const products = document.querySelectorAll('.product-row');
+  const salesItems = result.sales?.items || [];
+
+  products.forEach((row, index) => {
+    const priceDisplay = row.querySelector(`#product-price-${index}`);
+    const typeSelect = row.querySelector(`#product-type-${index}`);
+
+    if (priceDisplay && typeSelect) {
+      const selectedType = typeSelect.value;
+      if (selectedType) {
+        // 選択された物販タイプに一致するアイテムを検索
+        const productItem = salesItems.find(item => item.name === selectedType);
+
+        if (productItem) {
+          priceDisplay.innerHTML = Components.priceDisplay({
+            amount: productItem.price,
+          });
+        } else {
+          priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
+        }
+      } else {
+        priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
+      }
+    }
+  });
+}
+
+/**
+ * 自由入力物販価格個別表示更新
+ * @param {Object} result - 計算結果
+ */
+function updateCustomSalesPricesDisplay(result) {
+  const customSales = document.querySelectorAll('.custom-sales-row');
+  const salesItems = result.sales?.items || [];
+
+  customSales.forEach((row, index) => {
+    const priceDisplay = row.querySelector(`#custom-sales-display-${index}`);
+    const nameInput = row.querySelector(`#custom-sales-name-${index}`);
+
+    if (priceDisplay && nameInput) {
+      const itemName = nameInput.value.trim();
+      if (itemName) {
+        // 入力された名前に一致するアイテムを検索
+        const customItem = salesItems.find(item => item.name === itemName);
+
+        if (customItem) {
+          priceDisplay.innerHTML = Components.priceDisplay({
+            amount: customItem.price,
+          });
+        } else {
+          priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
+        }
       } else {
         priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
       }
@@ -1016,9 +1497,7 @@ function updateMaterialPricesDisplay(result) {
  * 支払い方法UI初期化（既存関数を活用）
  * @param {string} selectedPaymentMethod - 選択済みの支払い方法
  */
-function initializePaymentMethodUI(
-  selectedPaymentMethod = CONSTANTS.PAYMENT_DISPLAY.CASH,
-) {
+function initializePaymentMethodUI(selectedPaymentMethod = '') {
   const paymentOptionsContainer = document.getElementById(
     'payment-options-container',
   );
@@ -1035,6 +1514,9 @@ function initializePaymentMethodUI(
   if (paymentInfoContainer) {
     paymentInfoContainer.innerHTML = getPaymentInfoHtml(selectedPaymentMethod);
   }
+
+  // 確認ボタンの初期状態設定
+  updateConfirmButtonState();
 }
 
 /**
@@ -1049,6 +1531,34 @@ function handlePaymentMethodChange(selectedMethod) {
   if (paymentInfoContainer) {
     paymentInfoContainer.innerHTML = getPaymentInfoHtml(selectedMethod);
   }
+
+  // 確認ボタンの状態を更新
+  updateConfirmButtonState();
+}
+
+/**
+ * 確認ボタンの有効/無効状態を更新
+ */
+function updateConfirmButtonState() {
+  const confirmButton = document.getElementById('confirm-payment-button');
+  const selectedPaymentMethod = document.querySelector(
+    'input[name="payment-method"]:checked',
+  );
+
+  if (confirmButton) {
+    if (selectedPaymentMethod) {
+      // 有効状態：disabled属性を削除（自動でスタイルが元に戻る）
+      confirmButton.removeAttribute('disabled');
+      confirmButton.removeAttribute('style');
+      confirmButton.style.pointerEvents = '';
+    } else {
+      // 無効状態：disabled属性を追加（Componentsの自動スタイルが適用される）
+      confirmButton.setAttribute('disabled', 'true');
+      // Components.buttonのdisabledStyle='auto'により自動でスタイルが適用されているはず
+      // 追加で確実にするため、pointer-eventsを設定
+      confirmButton.style.pointerEvents = 'none';
+    }
+  }
 }
 
 /**
@@ -1059,6 +1569,16 @@ function handlePaymentMethodChange(selectedMethod) {
  * @returns {Object} 既存バックエンド形式のuserInput
  */
 function convertToLegacyFormat(formData, result, classifiedItems) {
+  // デバッグログ追加
+  if (!window.isProduction) {
+    console.log('🔍 convertToLegacyFormat入力データ:', {
+      formData,
+      result,
+      'result.tuition.items': result.tuition.items,
+      'result.sales.items': result.sales.items,
+    });
+  }
+
   const userInput = {
     paymentMethod: formData.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH,
     tuitionItems: result.tuition.items || [],
@@ -1074,28 +1594,377 @@ function convertToLegacyFormat(formData, result, classifiedItems) {
         : null,
   };
 
+  // デバッグログ追加
+  if (!window.isProduction) {
+    console.log('🔍 convertToLegacyFormat出力データ:', userInput);
+  }
+
   return userInput;
 }
 
 /**
- * 支払い確認処理
+ * ダッシュボード画面に戻る処理
+ */
+function handleBackToDashboard() {
+  try {
+    // 現在のフォームデータをキャッシュに保存
+    const currentFormData = collectAccountingFormData();
+    saveAccountingCache(currentFormData);
+
+    // スマートナビゲーションで前の画面に戻る
+    if (typeof actionHandlers !== 'undefined' && actionHandlers.smartGoBack) {
+      actionHandlers.smartGoBack();
+    } else {
+      // フォールバック: StateManagerを使用
+      if (
+        window.stateManager &&
+        typeof window.stateManager.dispatch === 'function'
+      ) {
+        window.stateManager.dispatch({
+          type: 'CHANGE_VIEW',
+          payload: { view: 'dashboard' },
+        });
+      } else if (typeof updateView === 'function') {
+        // 直接ビュー更新を試行
+        updateView('dashboard');
+      } else {
+        // 最終フォールバック: ページリロード
+        window.location.reload();
+      }
+    }
+  } catch (error) {
+    console.error('ダッシュボード画面への遷移エラー:', error);
+    if (typeof showError === 'function') {
+      showError('画面遷移でエラーが発生しました。もう一度お試しください。');
+    } else {
+      alert('画面遷移でエラーが発生しました。もう一度お試しください。');
+    }
+  }
+}
+
+/**
+ * 支払い確認モーダルHTML生成
+ * @param {Object} result - 計算結果
+ * @param {string} paymentMethod - 支払い方法
+ * @returns {string} モーダルHTML
+ */
+function generatePaymentConfirmModal(result, paymentMethod) {
+  // 支払い方法に応じた支払先情報
+  const paymentInfoHtml =
+    typeof getPaymentInfoHtml === 'function'
+      ? getPaymentInfoHtml(paymentMethod)
+      : '';
+
+  // 金額表示のヘルパー
+  const formatPrice = amount => {
+    if (typeof Components !== 'undefined' && Components.priceDisplay) {
+      return Components.priceDisplay({ amount });
+    }
+    return `¥${amount.toLocaleString()}`;
+  };
+
+  const formatPriceLarge = amount => {
+    if (typeof Components !== 'undefined' && Components.priceDisplay) {
+      return Components.priceDisplay({ amount, size: 'large' });
+    }
+    return `¥${amount.toLocaleString()}`;
+  };
+
+  // ボタン生成のヘルパー
+  const generateButton = (action, text, style, customClass = '') => {
+    if (typeof Components !== 'undefined' && Components.button) {
+      return Components.button({
+        action,
+        text,
+        style,
+        size: 'large',
+        customClass: `flex-1 ${customClass}`,
+        disabledStyle: 'auto', // 自動無効状態スタイル対応
+      });
+    }
+    const styleClass =
+      style === 'primary'
+        ? 'bg-action-primary-bg text-action-primary-text hover:bg-action-primary-hover'
+        : 'bg-action-secondary-bg text-action-secondary-text hover:bg-action-secondary-hover';
+    return `<button data-action="${action}" class="${styleClass} px-4 py-2 rounded font-bold flex-1 ${customClass}">${text}</button>`;
+  };
+
+  return `
+    <div id="payment-confirm-modal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg mx-4 max-w-md w-full max-h-screen overflow-y-auto">
+
+        <!-- モーダルヘッダー -->
+        <div class="p-6 border-b border-gray-200">
+          <h3 class="text-xl font-bold text-brand-text">支払い確認</h3>
+        </div>
+
+        <!-- モーダルボディ -->
+        <div class="p-4 space-y-4">
+
+          <!-- 合計金額セクション -->
+          <div class="bg-ui-surface rounded-lg p-4">
+            <h4 class="font-medium text-brand-text mb-3">金額</h4>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-brand-subtle">授業料小計:</span>
+                <span class="font-mono-numbers">${formatPrice(result.tuition.subtotal)}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-brand-subtle">販売小計:</span>
+                <span class="font-mono-numbers">${formatPrice(result.sales.subtotal)}</span>
+              </div>
+              <div class="border-t border-ui-border pt-2 mt-2">
+                <div class="flex justify-between">
+                  <span class="font-bold text-brand-text">総合計:</span>
+                  <span class="font-bold text-xl text-brand-text font-mono-numbers">${formatPriceLarge(result.grandTotal)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 支払い方法セクション -->
+          <div class="bg-ui-surface rounded-lg p-4">
+            <h4 class="font-medium text-brand-text mb-3">支払い方法</h4>
+            <div class="text-lg font-bold text-brand-text mb-3">${paymentMethod}</div>
+            ${paymentInfoHtml ? `<div class="mt-3">${paymentInfoHtml}</div>` : ''}
+          </div>
+        </div>
+        <!-- モーダルフッター -->
+        <div class="p-6 border-t border-gray-200 flex gap-3">
+          ${generateButton('cancelPaymentConfirm', '修正する', 'secondary')}
+          ${generateButton('processPayment', '支払いました', 'primary')}
+        </div>
+
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 支払い確認モーダルを表示する処理
  * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
-function confirmAndPay(classifiedItems, classroom) {
+function showPaymentConfirmModal(classifiedItems, classroom) {
+  // デバッグ: 関数呼び出しを記録
+  if (!window.isProduction) {
+    console.log('🔵 showPaymentConfirmModal関数が呼び出されました');
+  }
+
   try {
     const formData = collectAccountingFormData();
+
+    // 支払い方法の選択チェック
+    if (!formData.paymentMethod) {
+      if (typeof showError === 'function') {
+        showError('支払い方法を選択してください。');
+      } else {
+        alert('支払い方法を選択してください。');
+      }
+      return;
+    }
+
+    // デバッグ：計算前の情報
+    if (!window.isProduction) {
+      console.log('🔍 支払い確認モーダル: 計算前データ確認', {
+        classifiedItems存在: !!classifiedItems,
+        baseItemsLength: classifiedItems?.tuition?.baseItems?.length || 0,
+        additionalItemsLength:
+          classifiedItems?.tuition?.additionalItems?.length || 0,
+        materialItemsLength: classifiedItems?.sales?.materialItems?.length || 0,
+        productItemsLength: classifiedItems?.sales?.productItems?.length || 0,
+        classroom,
+      });
+    }
+
     const result = calculateAccountingTotal(
       formData,
       [
         ...classifiedItems.tuition.baseItems,
         ...classifiedItems.tuition.additionalItems,
-        ...classifiedItems.tuition.discountItems,
         ...classifiedItems.sales.materialItems,
         ...classifiedItems.sales.productItems,
       ],
       classroom,
     );
+
+    // デバッグログ
+    if (!window.isProduction) {
+      console.log('🔍 支払い確認モーダル生成開始', { formData, result });
+    }
+
+    // モーダルHTML生成
+    const modalHtml = generatePaymentConfirmModal(
+      result,
+      formData.paymentMethod,
+    );
+
+    if (!window.isProduction) {
+      console.log('モーダルHTML生成完了:', modalHtml.substring(0, 200) + '...');
+    }
+
+    // 既存のモーダルがあれば削除
+    const existingModal = document.getElementById('payment-confirm-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // モーダルを表示
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    if (!window.isProduction) {
+      console.log('モーダル挿入完了');
+    }
+
+    // データを一時保存（後で処理時に使用）
+    window.tempPaymentData = {
+      formData,
+      result,
+      classifiedItems,
+      classroom,
+    };
+  } catch (error) {
+    console.error('支払い確認エラー:', error);
+    console.error('エラースタック:', error.stack);
+
+    // デバッグ情報
+    if (!window.isProduction) {
+      console.log('エラー発生時の状態:', {
+        formData: formData || 'undefined',
+        classifiedItems: classifiedItems || 'undefined',
+        classroom: classroom || 'undefined',
+      });
+    }
+
+    if (typeof showError === 'function') {
+      showError(`エラーが発生しました: ${error.message}`);
+    } else {
+      alert(`エラーが発生しました: ${error.message}`);
+    }
+  }
+}
+
+/**
+ * 支払い確認モーダルを閉じる
+ */
+function closePaymentConfirmModal() {
+  const modal = document.getElementById('payment-confirm-modal');
+  if (modal) {
+    modal.remove();
+  }
+
+  // 支払い処理が完了していない場合のみデータをクリア
+  // 「修正する」ボタンでキャンセルされた場合
+  if (window.tempPaymentData) {
+    window.tempPaymentData = null;
+  }
+}
+
+/**
+ * 支払い処理を実行（モーダルから呼び出し）
+ */
+function handleProcessPayment() {
+  // 重複実行防止チェック
+  if (window.paymentProcessing) {
+    if (!window.isProduction) {
+      console.log('⚠️ 支払い処理は既に実行中です');
+    }
+    return;
+  }
+
+  if (!window.tempPaymentData) {
+    console.error('支払いデータが見つかりません');
+    if (!window.isProduction) {
+      console.log('デバッグ: window.tempPaymentData =', window.tempPaymentData);
+    }
+
+    if (typeof showError === 'function') {
+      showError(
+        '支払いデータが見つかりません。会計画面から再度お試しください。',
+      );
+    } else {
+      alert('支払いデータが見つかりません。会計画面から再度お試しください。');
+    }
+
+    // モーダルを閉じる
+    const modal = document.getElementById('payment-confirm-modal');
+    if (modal) {
+      modal.remove();
+    }
+    return;
+  }
+
+  // 処理中フラグを設定
+  window.paymentProcessing = true;
+
+  const { formData, result, classifiedItems, classroom } =
+    window.tempPaymentData;
+
+  // デバッグログ
+  if (!window.isProduction) {
+    console.log('🟢 支払い処理開始:', {
+      formData,
+      result,
+      classifiedItems,
+      classroom,
+    });
+  }
+
+  // モーダルを閉じる（データクリアなし）
+  const modal = document.getElementById('payment-confirm-modal');
+  if (modal) {
+    modal.remove();
+  }
+
+  // 実際の会計処理を実行（14_WebApp_Handlers.jsのconfirmAndPay関数を呼び出し）
+  try {
+    if (!window.isProduction) {
+      console.log('🔍 handleProcessPayment: 処理方法を判定中', {
+        actionHandlers存在: typeof actionHandlers !== 'undefined',
+        confirmAndPay存在:
+          typeof actionHandlers !== 'undefined' && actionHandlers.confirmAndPay,
+      });
+    }
+
+    if (typeof actionHandlers !== 'undefined' && actionHandlers.confirmAndPay) {
+      if (!window.isProduction) {
+        console.log(
+          '🔍 handleProcessPayment: actionHandlers.confirmAndPay()を実行',
+        );
+      }
+      actionHandlers.confirmAndPay();
+    } else {
+      if (!window.isProduction) {
+        console.log('🔍 handleProcessPayment: フォールバック処理を実行');
+      }
+      // フォールバック: 直接処理
+      processAccountingPayment(formData, result, classifiedItems, classroom);
+    }
+  } finally {
+    // 支払い処理完了後にデータとフラグをクリア
+    window.tempPaymentData = null;
+    window.paymentProcessing = false;
+  }
+}
+
+/**
+ * 実際の会計処理を実行
+ * @param {AccountingFormData} formData - フォームデータ
+ * @param {Object} result - 計算結果
+ * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {string} classroom - 教室名
+ */
+function processAccountingPayment(
+  formData,
+  result,
+  classifiedItems,
+  classroom,
+) {
+  try {
+    // ローディング表示
+    if (typeof showLoading === 'function') {
+      showLoading('accounting');
+    }
 
     // 既存バックエンド形式に変換
     const legacyUserInput = convertToLegacyFormat(
@@ -1104,7 +1973,7 @@ function confirmAndPay(classifiedItems, classroom) {
       classifiedItems,
     );
 
-    // 既存形式のpayload作成
+    // ペイロード準備
     const payload = {
       reservationId:
         window.stateManager?.getState()?.accountingReservation?.reservationId,
@@ -1114,17 +1983,75 @@ function confirmAndPay(classifiedItems, classroom) {
       userInput: legacyUserInput,
     };
 
-    // 支払い確認モーダルを表示
-    if (typeof showAccountingConfirmation === 'function') {
-      showAccountingConfirmation(result, formData);
+    // デバッグログ：最終ペイロード
+    if (!window.isProduction) {
+      console.log('🔍 最終送信ペイロード:', payload);
+      console.log('🔍 userInput詳細:', {
+        tuitionItems: payload.userInput.tuitionItems,
+        salesItems: payload.userInput.salesItems,
+        paymentMethod: payload.userInput.paymentMethod,
+        timeBased: payload.userInput.timeBased,
+      });
+    }
+
+    // バックエンドAPIコール
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(response => {
+          if (typeof hideLoading === 'function') {
+            hideLoading();
+          }
+
+          if (response.success) {
+            // データを最新に更新
+            if (response.data && window.stateManager) {
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: response.data,
+              });
+            }
+
+            // 成功メッセージ表示
+            if (typeof showSuccess === 'function') {
+              showSuccess('会計情報を記録しました。');
+            } else {
+              alert('会計情報を記録しました。');
+            }
+
+            // ダッシュボードに戻る
+            handleBackToDashboard();
+          } else {
+            if (typeof showError === 'function') {
+              showError('会計処理に失敗しました: ' + (response.message || ''));
+            } else {
+              alert('会計処理に失敗しました: ' + (response.message || ''));
+            }
+          }
+        })
+        .withFailureHandler(error => {
+          if (typeof hideLoading === 'function') {
+            hideLoading();
+          }
+          console.error('会計処理エラー:', error);
+          if (typeof showError === 'function') {
+            showError('会計処理でエラーが発生しました。');
+          } else {
+            alert('会計処理でエラーが発生しました。');
+          }
+        })
+        .saveAccountingDetailsAndGetLatestData(payload);
     } else {
-      console.error('showAccountingConfirmation関数が見つかりません');
-      showInfo(
-        '支払い確認機能の初期化に失敗しました。ページを再読み込みしてください。',
-      );
+      // Google Apps Script環境でない場合のフォールバック
+      if (typeof hideLoading === 'function') {
+        hideLoading();
+      }
+      alert('システムエラー：Google Apps Scriptとの通信ができません。');
     }
   } catch (error) {
-    console.error('支払い確認エラー:', error);
+    if (typeof hideLoading === 'function') {
+      hideLoading();
+    }
+    console.error('支払い処理エラー:', error);
     alert('エラーが発生しました。もう一度お試しください。');
   }
 }
@@ -1140,10 +2067,27 @@ function confirmAndPay(classifiedItems, classroom) {
 function collectAccountingFormData() {
   const formData = {};
 
+  // デバッグ: フォームデータ収集開始
+  if (!window.isProduction) {
+    console.log('🔍 collectAccountingFormData開始');
+  }
+
   // 時刻データ収集
   const startTimeEl = document.getElementById('start-time');
   const endTimeEl = document.getElementById('end-time');
   const breakTimeEl = document.getElementById('break-time');
+
+  // デバッグ: 時刻要素の存在確認
+  if (!window.isProduction) {
+    console.log('🔍 時刻要素チェック:', {
+      startTimeEl: !!startTimeEl,
+      endTimeEl: !!endTimeEl,
+      breakTimeEl: !!breakTimeEl,
+      startTimeValue: startTimeEl?.value,
+      endTimeValue: endTimeEl?.value,
+      breakTimeValue: breakTimeEl?.value,
+    });
+  }
 
   if (startTimeEl) formData.startTime = startTimeEl.value;
   if (endTimeEl) formData.endTime = endTimeEl.value;
@@ -1151,19 +2095,31 @@ function collectAccountingFormData() {
 
   // チェックボックス項目収集
   const checkedItems = {};
+
+  // 基本授業料のチェック状態を確認
+  const baseTuitionCheckbox = document.getElementById('base-tuition');
+  if (baseTuitionCheckbox && baseTuitionCheckbox.checked) {
+    checkedItems['基本授業料'] = true;
+  }
+
+  // 追加項目のチェックボックス
   const checkboxes = document.querySelectorAll(
     '.accounting-container input[type="checkbox"]:not(#base-tuition)',
   );
 
   checkboxes.forEach(checkbox => {
     if (checkbox.checked) {
-      // ラベルテキストから項目名を抽出
-      const label = checkbox.parentElement.querySelector('span');
-      if (label) {
-        const labelText = label.textContent.trim();
-        // (+¥1,000) のような価格表示を除いて項目名のみ抽出
-        const itemName = labelText.replace(/\s*\([+\-]¥[\d,]+\).*$/, '').trim();
+      // data属性から項目名を取得（優先）
+      const itemName = checkbox.getAttribute('data-item-name');
+      if (itemName) {
         checkedItems[itemName] = true;
+      } else {
+        // フォールバック: ラベルテキストから項目名を抽出
+        const labelElement = checkbox.parentElement.querySelector('span');
+        if (labelElement) {
+          const fallbackItemName = labelElement.textContent.trim();
+          checkedItems[fallbackItemName] = true;
+        }
       }
     }
   });
@@ -1200,6 +2156,26 @@ function collectAccountingFormData() {
     formData.materials = materials;
   }
 
+  // 物販データ収集（プルダウン選択式）
+  const selectedProducts = [];
+  const productRows = document.querySelectorAll('.product-row');
+
+  productRows.forEach((row, index) => {
+    const typeSelect = row.querySelector(`#product-type-${index}`);
+    if (typeSelect && typeSelect.value) {
+      const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+      const price = selectedOption.getAttribute('data-price');
+      selectedProducts.push({
+        name: typeSelect.value,
+        price: Number(price) || 0,
+      });
+    }
+  });
+
+  if (selectedProducts.length > 0) {
+    formData.selectedProducts = selectedProducts;
+  }
+
   // 自由入力物販データ収集
   const customSales = [];
   const customSalesRows = document.querySelectorAll('.custom-sales-row');
@@ -1226,8 +2202,18 @@ function collectAccountingFormData() {
   );
   if (paymentMethodRadio) {
     formData.paymentMethod = paymentMethodRadio.value;
-  } else {
-    formData.paymentMethod = CONSTANTS.PAYMENT_DISPLAY.CASH;
+  }
+  // 支払い方法が選択されていない場合は undefined のまま（必須チェックで弾く）
+
+  // デバッグ: 収集されたフォームデータを出力
+  if (!window.isProduction) {
+    console.log('🔍 collectAccountingFormData結果:', formData);
+    console.log(
+      '🔍 基本授業料チェック状態:',
+      document.getElementById('base-tuition')?.checked,
+    );
+    console.log('🔍 支払い方法:', formData.paymentMethod);
+    console.log('🔍 チェック済み項目:', formData.checkedItems);
   }
 
   return formData;
@@ -1309,8 +2295,8 @@ function initializeAccountingSystem(
 
   // DOMに挿入後の初期化処理を予約
   setTimeout(() => {
-    // 支払い方法UI初期化
-    initializePaymentMethodUI(formData.paymentMethod);
+    // 支払い方法UI初期化（初期状態では何も選択しない）
+    initializePaymentMethodUI('');
 
     // イベントリスナー設定
     setupAccountingEventListeners(classifiedItems, classroom);

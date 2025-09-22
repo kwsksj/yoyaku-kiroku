@@ -45,8 +45,8 @@ let actionHandlers;
 
 /** @type {ClassifiedAccountingItems} */
 const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ ({
-  tuition: { baseItems: [], additionalItems: [], discountItems: [] },
-  sales: { materialItems: [], productItems: [] }
+  tuition: { baseItems: [], additionalItems: [] },
+  sales: { materialItems: [], productItems: [] },
 });
 
 /**
@@ -73,7 +73,11 @@ function render() {
       v = getLoginView();
       break;
     case 'register':
-      v = getRegisterView(/** @type {string | undefined} */ (/** @type {any} */ (appState).registrationPhone));
+      v = getRegisterView(
+        /** @type {string | undefined} */ (
+          /** @type {any} */ (appState).registrationPhone
+        ),
+      );
       break;
     case 'registrationStep2':
       v = getRegistrationStep2View();
@@ -114,7 +118,11 @@ function render() {
       } else {
         // フォールバック: リアルタイム初期化
         const masterData = appState.accountingMaster || [];
-        if (typeof initializeAccountingSystem === 'function' && masterData.length > 0 && classroom) {
+        if (
+          typeof initializeAccountingSystem === 'function' &&
+          masterData.length > 0 &&
+          classroom
+        ) {
           v = initializeAccountingSystem(masterData, classroom, {});
           break;
         } else {
@@ -131,10 +139,32 @@ function render() {
         // 会計画面HTML生成
         const formData = {};
         v = generateAccountingView(classifiedItems, classroom, formData);
+
+        // キャッシュ使用時の初期化処理を予約
+        setTimeout(() => {
+          // 支払い方法UI初期化
+          if (typeof initializePaymentMethodUI === 'function') {
+            initializePaymentMethodUI('');
+          }
+
+          // イベントリスナー設定
+          if (typeof setupAccountingEventListeners === 'function') {
+            setupAccountingEventListeners(classifiedItems, classroom);
+          }
+
+          // 初期計算実行
+          if (typeof updateAccountingCalculation === 'function') {
+            updateAccountingCalculation(classifiedItems, classroom);
+          }
+        }, 100);
       }
       break;
     case 'complete':
-      v = getCompleteView(/** @type {string | undefined} */ (/** @type {any} */ (appState).completionMessage));
+      v = getCompleteView(
+        /** @type {string | undefined} */ (
+          /** @type {any} */ (appState).completionMessage
+        ),
+      );
       break;
     case 'userSearch':
       v = getUserSearchView();
@@ -157,7 +187,8 @@ function render() {
     // DOM更新後にイベントリスナーを設定するため、次のフレームで実行
     requestAnimationFrame(() => {
       // 事前設定されたグローバル変数から取得（キャッシュ活用）
-      const classifiedItems = window.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
+      const classifiedItems =
+        window.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
       const classroom = window.currentClassroom || '';
 
       if (typeof setupAccountingEventListeners === 'function') {
@@ -181,7 +212,8 @@ function handleAccountingFormChange() {
   // リアルタイムで合計金額を再計算
   if (typeof updateAccountingCalculation === 'function') {
     // 会計画面用のデータを取得
-    const classifiedItems = window.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
+    const classifiedItems =
+      window.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
     const classroom = window.currentClassroom || '';
     updateAccountingCalculation(classifiedItems, classroom);
   }
@@ -190,7 +222,10 @@ function handleAccountingFormChange() {
   const reservationId =
     stateManager.getState().accountingReservation?.reservationId;
   if (reservationId) {
-    const accountingData = typeof collectAccountingFormData === 'function' ? collectAccountingFormData() : {};
+    const accountingData =
+      typeof collectAccountingFormData === 'function'
+        ? collectAccountingFormData()
+        : {};
     saveAccountingCache(accountingData);
   }
 }
@@ -246,115 +281,6 @@ window.onload = function () {
     // --- Accounting Handlers (整理済み) ---
     // -----------------------------------------------------------------
 
-    /** 会計確認モーダルを表示（整理版） */
-    showAccountingConfirmation: (result, formData) => {
-      // 統合会計ファイルから計算結果を取得（引数で渡されない場合）
-      if (!result && typeof calculateAccountingTotal === 'function') {
-        const state = stateManager.getState();
-        const classroom = state.accountingReservation?.classroom;
-        const masterData = state.accountingMaster || [];
-
-        // フォームデータを収集
-        const currentFormData =
-          typeof collectAccountingFormData === 'function'
-            ? collectAccountingFormData()
-            : {};
-        result = calculateAccountingTotal(
-          currentFormData,
-          masterData,
-          classroom,
-        );
-        formData = currentFormData;
-      }
-
-      if (!result || result.grandTotal <= 0) {
-        showInfo('合計金額が0円です。項目を選択してください。');
-        return;
-      }
-
-      // 支払先情報を動的取得
-      const paymentMethod =
-        formData?.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH;
-      const paymentInfoHtml =
-        typeof getPaymentInfoHtml === 'function'
-          ? getPaymentInfoHtml(paymentMethod)
-          : '';
-
-      const message = `
-        <div class="p-4 bg-brand-light rounded-lg text-left space-y-4 text-base" id="modal-accounting-form">
-          <!-- 合計金額 -->
-          <div class="text-center">
-            <div class="text-2xl font-bold text-brand-text">
-              ${Components.priceDisplay({ amount: result.grandTotal, size: 'large' })}
-            </div>
-          </div>
-
-          <!-- 支払い方法選択 -->
-          <div>
-            <span class="font-bold mb-2 block">支払い方法:</span>
-            <div class="space-y-2">
-              ${typeof getPaymentOptionsHtml === 'function' ? getPaymentOptionsHtml(paymentMethod) : ''}
-            </div>
-          </div>
-
-          <!-- 支払先情報 -->
-          <div id="payment-info-container">
-            ${paymentInfoHtml}
-          </div>
-
-          <!-- 支払い完了ボタン -->
-          <div class="mt-6 pt-4 border-t">
-            ${Components.button({
-              id: 'confirm-payment-button',
-              action: 'confirmAndPay',
-              text: '支払いました',
-              style: 'primary',
-              size: 'full',
-            })}
-          </div>
-        </div>
-      `;
-
-      if (window.showModal) {
-        window.showModal({
-          title: 'お会計',
-          message: message,
-          onConfirm: () => {}, // ボタン経由で処理
-        });
-
-        // モーダル内の支払い方法変更をリッスン
-        const modalForm = document.getElementById('modal-accounting-form');
-        if (modalForm) {
-          modalForm.addEventListener('change', e => {
-            if (e.target && e.target.name === 'payment-method') {
-              const selectedMethod = e.target.value;
-              const paymentInfoContainer = document.getElementById(
-                'payment-info-container',
-              );
-              if (
-                paymentInfoContainer &&
-                typeof getPaymentInfoHtml === 'function'
-              ) {
-                paymentInfoContainer.innerHTML =
-                  getPaymentInfoHtml(selectedMethod);
-              }
-            }
-          });
-        }
-      }
-    },
-
-    /** 支払い確認モーダル表示 */
-    confirmPayment: () => {
-      // 会計確認モーダルを表示
-      if (typeof actionHandlers.showAccountingConfirmation === 'function') {
-        actionHandlers.showAccountingConfirmation();
-      } else {
-        // フォールバック: 直接支払い完了処理を実行
-        actionHandlers.confirmAndPay();
-      }
-    },
-
     /** 会計画面に遷移（新システム対応版） */
     goToAccounting: (/** @type {{ reservationId: string }} */ d) => {
       showLoading('accounting');
@@ -399,8 +325,54 @@ window.onload = function () {
       actionHandlers.goToAccounting(d);
     },
 
+    /** 支払い確認モーダルを表示 */
+    showPaymentModal: () => {
+      // 会計画面から支払い確認モーダルを表示する
+      const state = stateManager.getState();
+      const classroom = state.accountingReservation?.classroom;
+      const classifiedItems = window.currentClassifiedItems;
+
+      if (classifiedItems && classroom) {
+        // 12_WebApp_Core_Accounting.jsの関数を呼び出し
+        if (typeof showPaymentConfirmModal === 'function') {
+          showPaymentConfirmModal(classifiedItems, classroom);
+        } else {
+          console.error('showPaymentConfirmModal関数が見つかりません');
+          showInfo('支払い確認モーダルの表示でエラーが発生しました。');
+        }
+      } else {
+        showInfo('会計データが不足しています。');
+      }
+    },
+
     /** 支払い完了処理（ローディング→完了画面の流れ） */
     confirmAndPay: () => {
+      // window.tempPaymentDataが存在する場合はそれを使用（支払い確認モーダルから呼び出された場合）
+      if (window.tempPaymentData) {
+        if (!window.isProduction) {
+          console.log(
+            '🔍 confirmAndPay: tempPaymentDataを使用',
+            window.tempPaymentData,
+          );
+        }
+        const { formData, result, classifiedItems, classroom } =
+          window.tempPaymentData;
+
+        // processAccountingPayment関数を直接呼び出し
+        if (typeof processAccountingPayment === 'function') {
+          processAccountingPayment(
+            formData,
+            result,
+            classifiedItems,
+            classroom,
+          );
+        } else {
+          console.error('processAccountingPayment関数が見つかりません');
+        }
+        return;
+      }
+
+      // 従来の処理（tempPaymentDataがない場合のフォールバック）
       const state = stateManager.getState();
       const reservationId = state.accountingReservation?.reservationId;
       const classroom = state.accountingReservation?.classroom;
@@ -411,22 +383,17 @@ window.onload = function () {
         return;
       }
 
-      // モーダル内の支払い方法を取得
-      const modalForm = document.getElementById('modal-accounting-form');
-      let paymentMethod = CONSTANTS.PAYMENT_DISPLAY.CASH;
-      if (modalForm) {
-        const selected = modalForm.querySelector(
-          'input[name="payment-method"]:checked',
-        );
-        if (selected) paymentMethod = selected.value;
-      }
-
       // フォームデータを収集（統合会計ファイルの関数を使用）
       const formData =
         typeof collectAccountingFormData === 'function'
           ? collectAccountingFormData()
           : {};
-      formData.paymentMethod = paymentMethod;
+
+      // 支払い方法が選択されていない場合はエラー
+      if (!formData.paymentMethod) {
+        showInfo('支払い方法を選択してください。');
+        return;
+      }
 
       // ペイロード準備
       const payload = {
@@ -449,7 +416,7 @@ window.onload = function () {
               // データを最新に更新
               if (response.data) {
                 stateManager.dispatch({
-                  type: 'UPDATE_INITIAL_DATA',
+                  type: 'SET_STATE',
                   payload: response.data,
                 });
               }
@@ -477,6 +444,34 @@ window.onload = function () {
       } else {
         hideLoading();
         showInfo('システムエラー：Google Apps Scriptとの通信ができません。');
+      }
+    },
+
+    // --- モーダル関連アクション ---
+
+    /** 支払い確認モーダルをキャンセル */
+    cancelPaymentConfirm: () => {
+      if (!window.isProduction) {
+        console.log('🔵 cancelPaymentConfirm実行');
+      }
+
+      if (typeof closePaymentConfirmModal === 'function') {
+        closePaymentConfirmModal();
+      } else {
+        console.warn('closePaymentConfirmModal関数が見つかりません');
+      }
+    },
+
+    /** 支払い処理を実行 */
+    processPayment: () => {
+      if (!window.isProduction) {
+        console.log('🔵 processPayment実行（グローバルハンドラー）');
+      }
+
+      if (typeof handleProcessPayment === 'function') {
+        handleProcessPayment();
+      } else {
+        console.warn('handleProcessPayment関数が見つかりません');
       }
     },
   };
@@ -530,6 +525,13 @@ window.onload = function () {
       }
 
       if (typeof actionHandlers[action] === 'function') {
+        // モーダル関連のアクションは重複実行を防ぐためイベント伝播を停止
+        if (action === 'processPayment' || action === 'cancelPaymentConfirm') {
+          e.preventDefault();
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+        }
+
         // 特殊なハンドラー（copyToClipboard, copyGrandTotal）はtargetElementを渡す
         if (action === 'copyToClipboard' || action === 'copyGrandTotal') {
           /** @type {(data: any) => void} */ (actionHandlers[action])({
