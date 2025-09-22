@@ -64,3 +64,25 @@ interface AccountingPayload {
   userInput: any;
   updateStatus?: boolean;
 }
+
+// ActionHandlers型定義（柔軟性を重視した簡略版）
+interface ActionHandlers {
+  [key: string]: (...args: any[]) => void;
+}
+
+// 一時的な支払いデータ用の型定義
+interface TempPaymentData {
+  formData: AccountingFormData;
+  result: AccountingCalculationResult;
+  classifiedItems: ClassifiedAccountingItems;
+  classroom: string;
+}
+
+// Window型拡張
+declare global {
+  interface Window {
+    tempPaymentData?: TempPaymentData;
+    isProduction?: boolean;
+    stateManager?: any;
+  }
+}

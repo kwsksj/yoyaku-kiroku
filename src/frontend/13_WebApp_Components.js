@@ -712,19 +712,6 @@ const Components = {
     const targetItemName = isFirstTimeBooking
       ? CONSTANTS.ITEMS.FIRST_LECTURE
       : CONSTANTS.ITEMS.MAIN_LECTURE;
-    const tuitionItem = Array.isArray(master)
-      ? master.find(
-          /** @param {AccountingMasterData} item */
-          item =>
-            item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-              CONSTANTS.ITEM_TYPES.TUITION &&
-            item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === targetItemName &&
-            (item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] === '共通' ||
-              item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]?.includes(
-                reservation.classroom,
-              )),
-        )
-      : null;
 
     // 時間制の場合のみ時間選択UIを追加
     let timeSelectionHtml = '';
@@ -867,6 +854,7 @@ const Components = {
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.title - ヘッダータイトル
    * @param {string} [config.symbol='■'] - 先頭記号
+   * @param {boolean} [config.asSummary=false] - サマリー表示スタイル
    * @returns {string} HTML文字列
    */
   sectionHeader: ({ title, symbol = '■', asSummary = false }) => {
@@ -1326,12 +1314,9 @@ Components.createBackButton = (action = 'smartGoBack', text = '戻る') => {
 /**
  * 現在のビューに応じて適切な戻るボタンを生成します
  * @param {string} currentView - 現在のビュー名
- * @param {object} appState - アプリケーション状態
  * @returns {string} HTML文字列
  */
-Components.createSmartBackButton = (currentView, appState = null) => {
-  const state =
-    appState || (window.stateManager ? window.stateManager.getState() : {});
+Components.createSmartBackButton = (currentView) => {
   let action = 'smartGoBack';
   let text = '戻る';
 

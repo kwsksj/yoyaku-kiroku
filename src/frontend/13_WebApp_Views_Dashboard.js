@@ -68,7 +68,7 @@ const getDashboardView = () => {
       // 編集モード状態を取得
       const isInEditMode = stateManager.isInEditMode(h.reservationId);
 
-      const editButtons = _buildHistoryEditButtons(h, isInEditMode);
+      const editButtons = _buildHistoryEditButtons(isInEditMode);
       const accountingButtons = _buildHistoryAccountingButtons(h);
 
       return _buildHistoryCardWithEditMode(
@@ -146,10 +146,10 @@ const _buildAccountingButtons = booking => {
 
 /**
  * 履歴カードの編集ボタン配列を生成します。
- * @param {ReservationData} historyItem - 履歴データ
+ * @param {boolean} isInEditMode - 編集モードフラグ
  * @returns {Array<any>} 編集ボタン設定配列
  */
-const _buildHistoryEditButtons = (historyItem, isInEditMode = false) => {
+const _buildHistoryEditButtons = (isInEditMode = false) => {
   const buttons = [];
 
   // 編集モード状態に応じてボタンテキストを変更

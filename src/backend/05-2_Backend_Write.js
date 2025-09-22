@@ -872,7 +872,7 @@ function saveAccountingDetails(payload) {
 
       // 授業料の計算
       (userInput.tuitionItems || []).forEach(
-        /** @param {{name: string, price: number}} item */ item => {
+        /** @param {string | {name: string, price: number}} item */ item => {
           // フロントエンドから送られるデータ形式に合わせて修正
           const itemName = typeof item === 'string' ? item : item.name;
           const itemPrice =

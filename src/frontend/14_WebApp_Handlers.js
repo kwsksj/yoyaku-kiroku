@@ -2,6 +2,7 @@
 /// <reference path="../../types/dev-environment.d.ts" />
 /// <reference path="../../types/html-environment.d.ts" />
 /// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/accounting.d.ts" />
 
 /**
  * =================================================================
@@ -48,6 +49,10 @@ const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ ({
   tuition: { baseItems: [], additionalItems: [] },
   sales: { materialItems: [], productItems: [] },
 });
+
+// Window型の拡張（型エラー回避のため）
+/** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */
+const windowTyped = window;
 
 /**
  * 現在のアプリケーションの状態に基づいて、適切なビューを描画する
@@ -348,15 +353,15 @@ window.onload = function () {
     /** 支払い完了処理（ローディング→完了画面の流れ） */
     confirmAndPay: () => {
       // window.tempPaymentDataが存在する場合はそれを使用（支払い確認モーダルから呼び出された場合）
-      if (window.tempPaymentData) {
-        if (!window.isProduction) {
+      if (windowTyped.tempPaymentData) {
+        if (!windowTyped.isProduction) {
           console.log(
             '🔍 confirmAndPay: tempPaymentDataを使用',
-            window.tempPaymentData,
+            windowTyped.tempPaymentData,
           );
         }
         const { formData, result, classifiedItems, classroom } =
-          window.tempPaymentData;
+          windowTyped.tempPaymentData;
 
         // processAccountingPayment関数を直接呼び出し
         if (typeof processAccountingPayment === 'function') {
@@ -460,6 +465,20 @@ window.onload = function () {
       } else {
         console.warn('closePaymentConfirmModal関数が見つかりません');
       }
+    },
+
+    /** 支払い確定処理（confirmAndPayのエイリアス） */
+    confirmPayment: () => {
+      actionHandlers.confirmAndPay();
+    },
+
+    /** 会計確認画面表示 */
+    showAccountingConfirmation: () => {
+      if (!window.isProduction) {
+        console.log('🔵 showAccountingConfirmation実行');
+      }
+      // 現在のconfirmAndPayと同じ動作
+      actionHandlers.confirmAndPay();
     },
 
     /** 支払い処理を実行 */
