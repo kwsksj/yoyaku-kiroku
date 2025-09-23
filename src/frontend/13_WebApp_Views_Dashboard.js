@@ -68,7 +68,7 @@ const getDashboardView = () => {
       // 編集モード状態を取得
       const isInEditMode = stateManager.isInEditMode(h.reservationId);
 
-      const editButtons = _buildHistoryEditButtons(isInEditMode);
+      const editButtons = _buildHistoryEditButtons(isInEditMode, h.reservationId);
       const accountingButtons = _buildHistoryAccountingButtons(h);
 
       return _buildHistoryCardWithEditMode(
@@ -149,17 +149,30 @@ const _buildAccountingButtons = booking => {
  * @param {boolean} isInEditMode - 編集モードフラグ
  * @returns {Array<any>} 編集ボタン設定配列
  */
-const _buildHistoryEditButtons = (isInEditMode = false) => {
+const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
   const buttons = [];
 
-  // 編集モード状態に応じてボタンテキストを変更
-  const buttonText = isInEditMode ? 'とじる' : '確認<br>編集';
-  buttons.push({
-    action: 'expandHistoryCard',
-    text: buttonText,
-    style: 'secondary',
-    size: 'xs',
-  });
+  // 編集モード状態に応じてボタンテキストとアクションを変更
+  if (isInEditMode) {
+    // 編集モード時：保存して閉じる
+    buttons.push({
+      action: 'saveAndCloseMemo',
+      text: 'メモを<br>保存',
+      style: 'primary',
+      size: 'xs',
+      dataAttributes: {
+        reservationId: reservationId,
+      },
+    });
+  } else {
+    // 通常時：編集モードに入る
+    buttons.push({
+      action: 'expandHistoryCard',
+      text: '確認<br>編集',
+      style: 'secondary',
+      size: 'xs',
+    });
+  }
 
   return buttons;
 };
@@ -233,7 +246,7 @@ function updateSingleHistoryCard(reservationId) {
   const isInEditMode = stateManager.isInEditMode(reservationId);
 
   // 新しいカードHTMLを生成
-  const editButtons = _buildHistoryEditButtons(isInEditMode);
+  const editButtons = _buildHistoryEditButtons(isInEditMode, historyItem.reservationId);
   const accountingButtons = _buildHistoryAccountingButtons(historyItem);
 
   const newCardHtml = _buildHistoryCardWithEditMode(

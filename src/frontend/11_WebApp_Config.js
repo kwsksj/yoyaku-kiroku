@@ -364,9 +364,10 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
     // 入力フォームのスタイル
     inputs: {
       container: 'max-w-md mx-auto',
-      base: 'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+      base: 'text-base w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
       textarea:
-        'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+        'text-base w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+      phone: 'text-base w-48 max-w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
     },
   }
 );
@@ -632,6 +633,13 @@ const addCustomStyles = () => {
         font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
         font-feature-settings: 'tnum' 1;
         font-variant-numeric: tabular-nums;
+        font-size: 1rem; /* プレースホルダと入力時のフォントサイズを統一 */
+      }
+
+      /* プレースホルダのフォントサイズを明示的に設定 */
+      input[type="tel"]::placeholder, input[type="email"]::placeholder {
+        font-size: 1rem;
+        opacity: 0.6;
       }
 
       /* ========== カスタムプルダウンスタイル ========== */

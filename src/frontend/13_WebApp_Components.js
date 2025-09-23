@@ -229,6 +229,11 @@ const Components = {
     placeholder = '',
     required = false,
   }) => {
+    // 電話番号・メールの場合は専用クラスを使用
+    const inputClass = type === 'tel' || type === 'email'
+      ? DesignConfig.inputs['phone']
+      : DesignConfig.inputs['base'];
+
     return `<div class="mb-4">
         <label
           for="${id}"
@@ -238,7 +243,7 @@ const Components = {
           type="${type}"
           id="${id}"
           value="${escapeHTML(value)}"
-          class="${DesignConfig.inputs['base']}"
+          class="${inputClass}"
           placeholder="${escapeHTML(placeholder)}"
           ${required ? 'required' : ''}
           autocomplete="off"
@@ -944,6 +949,8 @@ const Components = {
     editButtons = [],
     accountingButtons = [],
     type = 'booking',
+    isEditMode = false,
+    showMemoSaveButton = true,
   }) => {
     // カード基本スタイル
     const cardColorClass =
@@ -1010,7 +1017,8 @@ const Components = {
     const memoSection = Components.memoSection({
       reservationId: item.reservationId,
       workInProgress: item.workInProgress,
-      isEditMode: false, // 初期は通常モード、後でViews層で制御
+      isEditMode: isEditMode, // パラメータで制御
+      showSaveButton: showMemoSaveButton, // 保存ボタン表示制御
     });
 
     return `
@@ -1038,7 +1046,7 @@ const Components = {
    * @param {MemoSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  memoSection: ({ reservationId, workInProgress, isEditMode = false }) => {
+  memoSection: ({ reservationId, workInProgress, isEditMode = false, showSaveButton = true }) => {
     if (isEditMode) {
       // 編集モード：textareaと保存ボタン
       return `
@@ -1046,20 +1054,9 @@ const Components = {
           <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
           <textarea
             class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
-            rows="3"
+            rows="4"
             placeholder="制作内容や進捗をメモしてください"
           >${escapeHTML(workInProgress || '')}</textarea>
-          <div class="flex justify-end gap-2 mt-2">
-            ${Components.button({
-              action: 'saveInlineMemo',
-              text: 'メモを<br>保存',
-              style: 'primary',
-              size: 'xs',
-              dataAttributes: {
-                reservationId: reservationId,
-              },
-            })}
-          </div>
         </div>
       `;
     } else {

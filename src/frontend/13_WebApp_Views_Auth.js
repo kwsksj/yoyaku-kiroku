@@ -33,17 +33,19 @@ const getLoginView = () => {
           <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
       </div>
       <div class="${DesignConfig.inputs.container}">
-        <label for="phone" class="block text-brand-subtle text-sm text-center mb-1">電話番号</label>
-        <input
-          type="tel"
-          id="phone"
-          value="${phoneValue}"
-          class="${DesignConfig.inputs.base} text-center"
-          placeholder="090 1234 5678"
-          autocomplete="tel"
-          inputmode="numeric"
-          pattern="[0-9]*"
-        >
+        <label for="phone" class="block text-brand-subtle text-base text-center mb-4">電話番号をご入力ください</label>
+        <div class="flex justify-center">
+          <input
+            type="tel"
+            id="phone"
+            value="${phoneValue}"
+            class="${DesignConfig.inputs.phone} text-center"
+            placeholder="090 1234 5678"
+            autocomplete="tel"
+            inputmode="numeric"
+            pattern="[0-9]*"
+          >
+        </div>
       </div>
       ${Components.actionButtonSection({
         primaryButton: {
@@ -100,7 +102,7 @@ const getUserFormView = config => {
     phoneSection = `
         <div class="mb-4">
             <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
-            <input type="tel" id="reg-phone" value="${phoneValue}" class="${DesignConfig.inputs.base}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
+            <input type="tel" id="reg-phone" value="${phoneValue}" class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
         </div>`;
   } else if (isPhoneInputNeeded) {
     // プロフィール編集時：電話番号入力が必要
@@ -108,7 +110,7 @@ const getUserFormView = config => {
         <div class="mb-4">
             <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">電話番号</label>
             <input type="tel" id="edit-phone" value="${phoneValue}"
-                   class="${DesignConfig.inputs.base}" placeholder="090 1234 5678"
+                   class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678"
                    autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
             <p class="text-sm text-brand-subtle mt-1">電話番号を登録すると次回からスムーズにログインできます。</p>
         </div>`;

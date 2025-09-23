@@ -128,7 +128,7 @@ function render() {
           masterData.length > 0 &&
           classroom
         ) {
-          v = initializeAccountingSystem(masterData, classroom, {});
+          v = initializeAccountingSystem(masterData, classroom, {}, reservationData);
           break;
         } else {
           classifiedItems = EMPTY_CLASSIFIED_ITEMS;
@@ -143,7 +143,7 @@ function render() {
 
         // 会計画面HTML生成
         const formData = {};
-        v = generateAccountingView(classifiedItems, classroom, formData);
+        v = generateAccountingView(classifiedItems, classroom, formData, reservationData);
 
         // キャッシュ使用時の初期化処理を予約
         setTimeout(() => {

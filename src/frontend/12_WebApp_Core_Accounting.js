@@ -645,16 +645,50 @@ function generateCustomSalesRow(index = 0, itemData = {}) {
 }
 
 /**
+ * 会計画面用よやくカード生成（ボタン非表示、制作メモ編集モード）
+ * @param {Object} reservationData - 予約データ
+ * @returns {string} HTML文字列
+ */
+function generateAccountingReservationCard(reservationData) {
+  if (!reservationData) {
+    return '';
+  }
+
+  // 予約カードを生成（ボタンなし、制作メモ編集モード、メモ保存ボタン非表示）
+  return Components.listCard({
+    item: {
+      reservationId: reservationData.reservationId || '',
+      date: reservationData.date || '',
+      startTime: reservationData.startTime || '',
+      endTime: reservationData.endTime || '',
+      classroom: reservationData.classroom || '',
+      venue: reservationData.venue || '',
+      workInProgress: reservationData.workInProgress || '',
+    },
+    badges: [], // ステータスバッジは表示しない
+    editButtons: [], // 編集ボタンは表示しない
+    accountingButtons: [], // 会計ボタンは表示しない
+    type: 'booking', // 予約カードタイプ
+    isEditMode: true, // 制作メモを編集モードに設定
+    showMemoSaveButton: false, // 制作メモ保存ボタンは非表示
+  });
+}
+
+/**
  * メイン会計画面生成（Components.js活用）
  * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  * @param {AccountingFormData} formData - フォームデータ
+ * @param {Object} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} HTML文字列
  */
-function generateAccountingView(classifiedItems, classroom, formData = {}) {
+function generateAccountingView(classifiedItems, classroom, formData = {}, reservationData = null) {
   return `
     ${Components.pageHeader({ title: '会計' })}
     <div class="accounting-container max-w-4xl mx-auto p-2 space-y-6">
+      <!-- よやくカード（ボタン非表示、制作メモ編集モード） -->
+      ${generateAccountingReservationCard(reservationData)}
+
       <!-- 授業料セクション -->
       ${generateTuitionSection(classifiedItems, classroom, formData)}
 
@@ -700,10 +734,10 @@ function generateAccountingView(classifiedItems, classroom, formData = {}) {
               text: '先生が確認しました',
               style: 'primary',
               size: 'large',
-              customClass: 'w-full',
+              customClass: 'w-full transition-all duration-200 hover:shadow-md opacity-60 cursor-not-allowed',
               disabled: true,
               id: 'confirm-payment-button',
-              disabledStyle: 'auto', // 自動無効状態スタイル適用
+              disabledStyle: 'none', // カスタムスタイルで制御
             })}
             ${Components.button({
               action: 'smartGoBack',
@@ -755,9 +789,9 @@ const getPaymentOptionsHtml = selectedValue => {
   return options
     .map(
       opt => `
-        <div mb-2>
-            <label class="flex items-center space-x-2 text-brand-text">
-                <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item accent-action-primary-bg" ${selectedValue === opt.value ? 'checked' : ''}>
+        <div class="mb-2">
+            <label class="flex items-center space-x-2 ${selectedValue === opt.value ? 'font-bold text-brand-text' : 'text-brand-muted'} cursor-pointer transition-all duration-150">
+                <input type="radio" name="payment-method" value="${opt.value}" class="accent-action-primary-bg" ${selectedValue === opt.value ? 'checked' : ''}>
                 <span>${opt.text}</span>
             </label>
             ${opt.details}
@@ -779,7 +813,7 @@ const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
     paymentInfoHtml += `
         <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
-                <div class="${DesignConfig.text['body']}"><span class="font-bold">送金先 電話番号:</span><span class="ml-2">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
+                <div class="${DesignConfig.text['body']}"><span class="font-bold">送金先 電話番号:</span><span class="ml-2 font-mono">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
                 <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
             </div>
         </div>`;
@@ -875,6 +909,9 @@ function setupAccountingEventListeners(classifiedItems, classroom) {
         break;
       case 'processPayment':
         handleProcessPayment();
+        break;
+      case 'saveMemo':
+        handleSaveMemo(target);
         break;
     }
   });
@@ -1534,8 +1571,34 @@ function handlePaymentMethodChange(selectedMethod) {
     paymentInfoContainer.innerHTML = getPaymentInfoHtml(selectedMethod);
   }
 
+  // 支払い方法のスタイルを更新
+  updatePaymentMethodStyles(selectedMethod);
+
   // 確認ボタンの状態を更新
   updateConfirmButtonState();
+}
+
+/**
+ * 支払い方法のラベルスタイルを動的に更新
+ * @param {string} selectedMethod - 選択された支払い方法
+ */
+function updatePaymentMethodStyles(selectedMethod) {
+  const paymentMethodRadios = document.querySelectorAll('input[name="payment-method"]');
+
+  paymentMethodRadios.forEach(radio => {
+    const label = radio.closest('label');
+    if (label) {
+      const span = label.querySelector('span');
+      if (span) {
+        // 選択されている場合は太字・濃い色、未選択は薄い色
+        if (radio.value === selectedMethod) {
+          label.className = label.className.replace(/text-brand-muted/, 'font-bold text-brand-text');
+        } else {
+          label.className = label.className.replace(/font-bold text-brand-text/, 'text-brand-muted');
+        }
+      }
+    }
+  });
 }
 
 /**
@@ -1549,16 +1612,19 @@ function updateConfirmButtonState() {
 
   if (confirmButton) {
     if (selectedPaymentMethod) {
-      // 有効状態：disabled属性を削除（自動でスタイルが元にもどる）
+      // 有効状態：明示的にaccountingスタイルを復元
       confirmButton.removeAttribute('disabled');
       confirmButton.removeAttribute('style');
       confirmButton.style.pointerEvents = '';
+      confirmButton.className = confirmButton.className.replace(/\sopacity-\d+|\scursor-not-allowed/g, '');
     } else {
-      // 無効状態：disabled属性を追加（Componentsの自動スタイルが適用される）
+      // 無効状態：明示的に無効スタイルを適用
       confirmButton.setAttribute('disabled', 'true');
-      // Components.buttonのdisabledStyle='auto'により自動でスタイルが適用されているはず
-      // 追加で確実にするため、pointer-eventsを設定
       confirmButton.style.pointerEvents = 'none';
+      // 既存のクラスに無効状態のクラスを追加
+      if (!confirmButton.className.includes('opacity-60')) {
+        confirmButton.className += ' opacity-60 cursor-not-allowed';
+      }
     }
   }
 }
@@ -1950,6 +2016,81 @@ function handleProcessPayment() {
 }
 
 /**
+ * 制作メモ保存処理
+ * @param {HTMLElement} target - ボタン要素
+ */
+function handleSaveMemo(target) {
+  const reservationId = target.getAttribute('data-reservation-id');
+  if (!reservationId) {
+    console.error('予約IDが見つかりません');
+    return;
+  }
+
+  const textareaId = `memo-edit-textarea-${reservationId}`;
+  const textarea = document.getElementById(textareaId);
+  if (!textarea) {
+    console.error('制作メモのテキストエリアが見つかりません');
+    return;
+  }
+
+  const newMemoText = textarea.value;
+
+  // ローディング表示
+  if (typeof showLoading === 'function') {
+    showLoading('memo');
+  }
+
+  // バックエンドAPIコール
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    google.script.run
+      .withSuccessHandler(response => {
+        if (typeof hideLoading === 'function') {
+          hideLoading();
+        }
+
+        if (response.success) {
+          // 成功メッセージ表示
+          if (typeof showSuccess === 'function') {
+            showSuccess('制作メモを更新しました。');
+          } else {
+            alert('制作メモを更新しました。');
+          }
+
+          // テキストエリアの値を更新
+          textarea.value = newMemoText;
+        } else {
+          if (typeof showError === 'function') {
+            showError('制作メモの更新に失敗しました: ' + (response.message || ''));
+          } else {
+            alert('制作メモの更新に失敗しました: ' + (response.message || ''));
+          }
+        }
+      })
+      .withFailureHandler(error => {
+        if (typeof hideLoading === 'function') {
+          hideLoading();
+        }
+        console.error('制作メモ更新エラー:', error);
+        if (typeof showError === 'function') {
+          showError('制作メモの更新でエラーが発生しました。');
+        } else {
+          alert('制作メモの更新でエラーが発生しました。');
+        }
+      })
+      .updateWorkInProgress({
+        reservationId: reservationId,
+        workInProgress: newMemoText
+      });
+  } else {
+    // Google Apps Script環境でない場合のフォールバック
+    if (typeof hideLoading === 'function') {
+      hideLoading();
+    }
+    alert('システムエラー：Google Apps Scriptとの通信ができません。');
+  }
+}
+
+/**
  * 実際の会計処理を実行
  * @param {AccountingFormData} formData - フォームデータ
  * @param {Object} result - 計算結果
@@ -1975,6 +2116,9 @@ function processAccountingPayment(
       classifiedItems,
     );
 
+    // 制作メモデータを収集
+    const memoData = collectMemoData();
+
     // ペイロード準備
     const payload = {
       reservationId:
@@ -1983,6 +2127,8 @@ function processAccountingPayment(
         window.stateManager?.getState()?.accountingReservation?.classroom,
       studentId: window.stateManager?.getState()?.currentUser?.studentId,
       userInput: legacyUserInput,
+      // 制作メモデータを追加
+      workInProgress: memoData.workInProgress || '',
     };
 
     // デバッグログ：最終ペイロード
@@ -1993,6 +2139,10 @@ function processAccountingPayment(
         salesItems: payload.userInput.salesItems,
         paymentMethod: payload.userInput.paymentMethod,
         timeBased: payload.userInput.timeBased,
+      });
+      console.log('🔍 制作メモデータ:', {
+        reservationId: memoData.reservationId,
+        workInProgress: memoData.workInProgress,
       });
     }
 
@@ -2015,9 +2165,9 @@ function processAccountingPayment(
 
             // 成功メッセージ表示
             if (typeof showSuccess === 'function') {
-              showSuccess('会計情報を記録しました。');
+              showSuccess('会計情報と制作メモを記録しました。');
             } else {
-              alert('会計情報を記録しました。');
+              alert('会計情報と制作メモを記録しました。');
             }
 
             // ダッシュボードにもどる
@@ -2061,6 +2211,36 @@ function processAccountingPayment(
 // ================================================================================
 // 【ユーティリティ層】
 // ================================================================================
+
+/**
+ * 制作メモのデータを収集
+ * @returns {Object} 制作メモデータ
+ */
+function collectMemoData() {
+  const memoData = {};
+
+  // 会計画面の制作メモテキストエリアを探す
+  const textareas = document.querySelectorAll('.memo-edit-textarea');
+  textareas.forEach(textarea => {
+    // テキストエリアのIDからreservationIdを推測
+    const id = textarea.id;
+    if (id && id.includes('memo-edit-textarea-')) {
+      const reservationId = id.replace('memo-edit-textarea-', '');
+      memoData.reservationId = reservationId;
+      memoData.workInProgress = textarea.value;
+    } else {
+      // IDパターンが違う場合、親要素から予約IDを取得
+      const card = textarea.closest('[data-reservation-id]');
+      if (card) {
+        const reservationId = card.getAttribute('data-reservation-id');
+        memoData.reservationId = reservationId;
+        memoData.workInProgress = textarea.value;
+      }
+    }
+  });
+
+  return memoData;
+}
 
 /**
  * フォームデータ収集
@@ -2272,12 +2452,14 @@ function loadAccountingCache() {
  * @param {Array} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
  * @param {AccountingFormData} initialFormData - 初期フォームデータ
+ * @param {Object} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} 生成された会計画面HTML
  */
 function initializeAccountingSystem(
   masterData,
   classroom,
   initialFormData = {},
+  reservationData = null,
 ) {
   // グローバル変数に保存（イベント処理で使用）
   const classifiedItems = classifyAccountingItems(masterData, classroom);
@@ -2293,6 +2475,7 @@ function initializeAccountingSystem(
     classifiedItems,
     classroom,
     formData,
+    reservationData,
   );
 
   // DOMに挿入後の初期化処理を予約

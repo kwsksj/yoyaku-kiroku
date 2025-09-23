@@ -100,6 +100,17 @@ const historyActionHandlers = {
       );
   },
 
+  // 新しいアクション：保存と同時に編集モードを終了
+  saveAndCloseMemo: function(d) {
+    // ボタンからreservationIdが渡された場合
+    if (d && d.reservationId) {
+      // thisを使って同じオブジェクト内のsaveInlineMemoを呼び出し
+      this.saveInlineMemo(d);
+    } else {
+      console.warn('保存対象のreservationIdが見つかりません');
+    }
+  },
+
   /** 参加記録を追加で読み込みます（統合ホーム用） */
   loadMoreHistory: () => {
     const currentCount = stateManager.getState()['recordsToShow'] || 10;

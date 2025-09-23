@@ -389,7 +389,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-22T23:33:29.619Z
+   * Generated: 2025-09-23T06:11:24.632Z
    * =================================================================
    */
 
@@ -763,9 +763,10 @@ const ENVIRONMENT_CONFIG = {
       // 入力フォームのスタイル
       inputs: {
         container: 'max-w-md mx-auto',
-        base: 'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+        base: 'text-base w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
         textarea:
-          'text-lg w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+          'text-base w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+        phone: 'text-base w-48 max-w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
       },
     }
   );
@@ -1031,6 +1032,13 @@ const ENVIRONMENT_CONFIG = {
           font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
           font-feature-settings: 'tnum' 1;
           font-variant-numeric: tabular-nums;
+          font-size: 1rem; /* プレースホルダと入力時のフォントサイズを統一 */
+        }
+
+        /* プレースホルダのフォントサイズを明示的に設定 */
+        input[type="tel"]::placeholder, input[type="email"]::placeholder {
+          font-size: 1rem;
+          opacity: 0.6;
         }
 
         /* ========== カスタムプルダウンスタイル ========== */
@@ -2830,16 +2838,50 @@ const ENVIRONMENT_CONFIG = {
   }
 
   /**
+   * 会計画面用よやくカード生成（ボタン非表示、制作メモ編集モード）
+   * @param {Object} reservationData - 予約データ
+   * @returns {string} HTML文字列
+   */
+  function generateAccountingReservationCard(reservationData) {
+    if (!reservationData) {
+      return '';
+    }
+
+    // 予約カードを生成（ボタンなし、制作メモ編集モード、メモ保存ボタン非表示）
+    return Components.listCard({
+      item: {
+        reservationId: reservationData.reservationId || '',
+        date: reservationData.date || '',
+        startTime: reservationData.startTime || '',
+        endTime: reservationData.endTime || '',
+        classroom: reservationData.classroom || '',
+        venue: reservationData.venue || '',
+        workInProgress: reservationData.workInProgress || '',
+      },
+      badges: [], // ステータスバッジは表示しない
+      editButtons: [], // 編集ボタンは表示しない
+      accountingButtons: [], // 会計ボタンは表示しない
+      type: 'booking', // 予約カードタイプ
+      isEditMode: true, // 制作メモを編集モードに設定
+      showMemoSaveButton: false, // 制作メモ保存ボタンは非表示
+    });
+  }
+
+  /**
    * メイン会計画面生成（Components.js活用）
    * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
    * @param {string} classroom - 教室名
    * @param {AccountingFormData} formData - フォームデータ
+   * @param {Object} reservationData - 予約データ（講座基本情報表示用）
    * @returns {string} HTML文字列
    */
-  function generateAccountingView(classifiedItems, classroom, formData = {}) {
+  function generateAccountingView(classifiedItems, classroom, formData = {}, reservationData = null) {
     return `
       ${Components.pageHeader({ title: '会計' })}
       <div class="accounting-container max-w-4xl mx-auto p-2 space-y-6">
+        <!-- よやくカード（ボタン非表示、制作メモ編集モード） -->
+        ${generateAccountingReservationCard(reservationData)}
+
         <!-- 授業料セクション -->
         ${generateTuitionSection(classifiedItems, classroom, formData)}
 
@@ -2885,10 +2927,10 @@ const ENVIRONMENT_CONFIG = {
                 text: '先生が確認しました',
                 style: 'primary',
                 size: 'large',
-                customClass: 'w-full',
+                customClass: 'w-full transition-all duration-200 hover:shadow-md opacity-60 cursor-not-allowed',
                 disabled: true,
                 id: 'confirm-payment-button',
-                disabledStyle: 'auto', // 自動無効状態スタイル適用
+                disabledStyle: 'none', // カスタムスタイルで制御
               })}
               ${Components.button({
                 action: 'smartGoBack',
@@ -2940,9 +2982,9 @@ const ENVIRONMENT_CONFIG = {
     return options
       .map(
         opt => `
-          <div mb-2>
-              <label class="flex items-center space-x-2 text-brand-text">
-                  <input type="radio" name="payment-method" value="${opt.value}" class="accounting-item accent-action-primary-bg" ${selectedValue === opt.value ? 'checked' : ''}>
+          <div class="mb-2">
+              <label class="flex items-center space-x-2 ${selectedValue === opt.value ? 'font-bold text-brand-text' : 'text-brand-muted'} cursor-pointer transition-all duration-150">
+                  <input type="radio" name="payment-method" value="${opt.value}" class="accent-action-primary-bg" ${selectedValue === opt.value ? 'checked' : ''}>
                   <span>${opt.text}</span>
               </label>
               ${opt.details}
@@ -2964,7 +3006,7 @@ const ENVIRONMENT_CONFIG = {
       paymentInfoHtml += `
           <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
               <div class="flex justify-between items-center">
-                  <div class="${DesignConfig.text['body']}"><span class="font-bold">送金先 電話番号:</span><span class="ml-2">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
+                  <div class="${DesignConfig.text['body']}"><span class="font-bold">送金先 電話番号:</span><span class="ml-2 font-mono">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
                   <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
               </div>
           </div>`;
@@ -3060,6 +3102,9 @@ const ENVIRONMENT_CONFIG = {
           break;
         case 'processPayment':
           handleProcessPayment();
+          break;
+        case 'saveMemo':
+          handleSaveMemo(target);
           break;
       }
     });
@@ -3719,8 +3764,34 @@ const ENVIRONMENT_CONFIG = {
       paymentInfoContainer.innerHTML = getPaymentInfoHtml(selectedMethod);
     }
 
+    // 支払い方法のスタイルを更新
+    updatePaymentMethodStyles(selectedMethod);
+
     // 確認ボタンの状態を更新
     updateConfirmButtonState();
+  }
+
+  /**
+   * 支払い方法のラベルスタイルを動的に更新
+   * @param {string} selectedMethod - 選択された支払い方法
+   */
+  function updatePaymentMethodStyles(selectedMethod) {
+    const paymentMethodRadios = document.querySelectorAll('input[name="payment-method"]');
+
+    paymentMethodRadios.forEach(radio => {
+      const label = radio.closest('label');
+      if (label) {
+        const span = label.querySelector('span');
+        if (span) {
+          // 選択されている場合は太字・濃い色、未選択は薄い色
+          if (radio.value === selectedMethod) {
+            label.className = label.className.replace(/text-brand-muted/, 'font-bold text-brand-text');
+          } else {
+            label.className = label.className.replace(/font-bold text-brand-text/, 'text-brand-muted');
+          }
+        }
+      }
+    });
   }
 
   /**
@@ -3734,16 +3805,19 @@ const ENVIRONMENT_CONFIG = {
 
     if (confirmButton) {
       if (selectedPaymentMethod) {
-        // 有効状態：disabled属性を削除（自動でスタイルが元にもどる）
+        // 有効状態：明示的にaccountingスタイルを復元
         confirmButton.removeAttribute('disabled');
         confirmButton.removeAttribute('style');
         confirmButton.style.pointerEvents = '';
+        confirmButton.className = confirmButton.className.replace(/\sopacity-\d+|\scursor-not-allowed/g, '');
       } else {
-        // 無効状態：disabled属性を追加（Componentsの自動スタイルが適用される）
+        // 無効状態：明示的に無効スタイルを適用
         confirmButton.setAttribute('disabled', 'true');
-        // Components.buttonのdisabledStyle='auto'により自動でスタイルが適用されているはず
-        // 追加で確実にするため、pointer-eventsを設定
         confirmButton.style.pointerEvents = 'none';
+        // 既存のクラスに無効状態のクラスを追加
+        if (!confirmButton.className.includes('opacity-60')) {
+          confirmButton.className += ' opacity-60 cursor-not-allowed';
+        }
       }
     }
   }
@@ -4135,6 +4209,81 @@ const ENVIRONMENT_CONFIG = {
   }
 
   /**
+   * 制作メモ保存処理
+   * @param {HTMLElement} target - ボタン要素
+   */
+  function handleSaveMemo(target) {
+    const reservationId = target.getAttribute('data-reservation-id');
+    if (!reservationId) {
+      console.error('予約IDが見つかりません');
+      return;
+    }
+
+    const textareaId = `memo-edit-textarea-${reservationId}`;
+    const textarea = document.getElementById(textareaId);
+    if (!textarea) {
+      console.error('制作メモのテキストエリアが見つかりません');
+      return;
+    }
+
+    const newMemoText = textarea.value;
+
+    // ローディング表示
+    if (typeof showLoading === 'function') {
+      showLoading('memo');
+    }
+
+    // バックエンドAPIコール
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(response => {
+          if (typeof hideLoading === 'function') {
+            hideLoading();
+          }
+
+          if (response.success) {
+            // 成功メッセージ表示
+            if (typeof showSuccess === 'function') {
+              showSuccess('制作メモを更新しました。');
+            } else {
+              alert('制作メモを更新しました。');
+            }
+
+            // テキストエリアの値を更新
+            textarea.value = newMemoText;
+          } else {
+            if (typeof showError === 'function') {
+              showError('制作メモの更新に失敗しました: ' + (response.message || ''));
+            } else {
+              alert('制作メモの更新に失敗しました: ' + (response.message || ''));
+            }
+          }
+        })
+        .withFailureHandler(error => {
+          if (typeof hideLoading === 'function') {
+            hideLoading();
+          }
+          console.error('制作メモ更新エラー:', error);
+          if (typeof showError === 'function') {
+            showError('制作メモの更新でエラーが発生しました。');
+          } else {
+            alert('制作メモの更新でエラーが発生しました。');
+          }
+        })
+        .updateWorkInProgress({
+          reservationId: reservationId,
+          workInProgress: newMemoText
+        });
+    } else {
+      // Google Apps Script環境でない場合のフォールバック
+      if (typeof hideLoading === 'function') {
+        hideLoading();
+      }
+      alert('システムエラー：Google Apps Scriptとの通信ができません。');
+    }
+  }
+
+  /**
    * 実際の会計処理を実行
    * @param {AccountingFormData} formData - フォームデータ
    * @param {Object} result - 計算結果
@@ -4160,6 +4309,9 @@ const ENVIRONMENT_CONFIG = {
         classifiedItems,
       );
 
+      // 制作メモデータを収集
+      const memoData = collectMemoData();
+
       // ペイロード準備
       const payload = {
         reservationId:
@@ -4168,6 +4320,8 @@ const ENVIRONMENT_CONFIG = {
           window.stateManager?.getState()?.accountingReservation?.classroom,
         studentId: window.stateManager?.getState()?.currentUser?.studentId,
         userInput: legacyUserInput,
+        // 制作メモデータを追加
+        workInProgress: memoData.workInProgress || '',
       };
 
       // デバッグログ：最終ペイロード
@@ -4178,6 +4332,10 @@ const ENVIRONMENT_CONFIG = {
           salesItems: payload.userInput.salesItems,
           paymentMethod: payload.userInput.paymentMethod,
           timeBased: payload.userInput.timeBased,
+        });
+        console.log('🔍 制作メモデータ:', {
+          reservationId: memoData.reservationId,
+          workInProgress: memoData.workInProgress,
         });
       }
 
@@ -4200,9 +4358,9 @@ const ENVIRONMENT_CONFIG = {
 
               // 成功メッセージ表示
               if (typeof showSuccess === 'function') {
-                showSuccess('会計情報を記録しました。');
+                showSuccess('会計情報と制作メモを記録しました。');
               } else {
-                alert('会計情報を記録しました。');
+                alert('会計情報と制作メモを記録しました。');
               }
 
               // ダッシュボードにもどる
@@ -4246,6 +4404,36 @@ const ENVIRONMENT_CONFIG = {
   // ================================================================================
   // 【ユーティリティ層】
   // ================================================================================
+
+  /**
+   * 制作メモのデータを収集
+   * @returns {Object} 制作メモデータ
+   */
+  function collectMemoData() {
+    const memoData = {};
+
+    // 会計画面の制作メモテキストエリアを探す
+    const textareas = document.querySelectorAll('.memo-edit-textarea');
+    textareas.forEach(textarea => {
+      // テキストエリアのIDからreservationIdを推測
+      const id = textarea.id;
+      if (id && id.includes('memo-edit-textarea-')) {
+        const reservationId = id.replace('memo-edit-textarea-', '');
+        memoData.reservationId = reservationId;
+        memoData.workInProgress = textarea.value;
+      } else {
+        // IDパターンが違う場合、親要素から予約IDを取得
+        const card = textarea.closest('[data-reservation-id]');
+        if (card) {
+          const reservationId = card.getAttribute('data-reservation-id');
+          memoData.reservationId = reservationId;
+          memoData.workInProgress = textarea.value;
+        }
+      }
+    });
+
+    return memoData;
+  }
 
   /**
    * フォームデータ収集
@@ -4457,12 +4645,14 @@ const ENVIRONMENT_CONFIG = {
    * @param {Array} masterData - 会計マスタデータ
    * @param {string} classroom - 教室名
    * @param {AccountingFormData} initialFormData - 初期フォームデータ
+   * @param {Object} reservationData - 予約データ（講座基本情報表示用）
    * @returns {string} 生成された会計画面HTML
    */
   function initializeAccountingSystem(
     masterData,
     classroom,
     initialFormData = {},
+    reservationData = null,
   ) {
     // グローバル変数に保存（イベント処理で使用）
     const classifiedItems = classifyAccountingItems(masterData, classroom);
@@ -4478,6 +4668,7 @@ const ENVIRONMENT_CONFIG = {
       classifiedItems,
       classroom,
       formData,
+      reservationData,
     );
 
     // DOMに挿入後の初期化処理を予約
@@ -5937,6 +6128,11 @@ const ENVIRONMENT_CONFIG = {
       placeholder = '',
       required = false,
     }) => {
+      // 電話番号・メールの場合は専用クラスを使用
+      const inputClass = type === 'tel' || type === 'email'
+        ? DesignConfig.inputs['phone']
+        : DesignConfig.inputs['base'];
+
       return `<div class="mb-4">
           <label
             for="${id}"
@@ -5946,7 +6142,7 @@ const ENVIRONMENT_CONFIG = {
             type="${type}"
             id="${id}"
             value="${escapeHTML(value)}"
-            class="${DesignConfig.inputs['base']}"
+            class="${inputClass}"
             placeholder="${escapeHTML(placeholder)}"
             ${required ? 'required' : ''}
             autocomplete="off"
@@ -6652,6 +6848,8 @@ const ENVIRONMENT_CONFIG = {
       editButtons = [],
       accountingButtons = [],
       type = 'booking',
+      isEditMode = false,
+      showMemoSaveButton = true,
     }) => {
       // カード基本スタイル
       const cardColorClass =
@@ -6718,7 +6916,8 @@ const ENVIRONMENT_CONFIG = {
       const memoSection = Components.memoSection({
         reservationId: item.reservationId,
         workInProgress: item.workInProgress,
-        isEditMode: false, // 初期は通常モード、後でViews層で制御
+        isEditMode: isEditMode, // パラメータで制御
+        showSaveButton: showMemoSaveButton, // 保存ボタン表示制御
       });
 
       return `
@@ -6746,7 +6945,7 @@ const ENVIRONMENT_CONFIG = {
      * @param {MemoSectionConfig} config - 設定オブジェクト
      * @returns {string} HTML文字列
      */
-    memoSection: ({ reservationId, workInProgress, isEditMode = false }) => {
+    memoSection: ({ reservationId, workInProgress, isEditMode = false, showSaveButton = true }) => {
       if (isEditMode) {
         // 編集モード：textareaと保存ボタン
         return `
@@ -6754,20 +6953,9 @@ const ENVIRONMENT_CONFIG = {
             <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
             <textarea
               class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
-              rows="3"
+              rows="4"
               placeholder="制作内容や進捗をメモしてください"
             >${escapeHTML(workInProgress || '')}</textarea>
-            <div class="flex justify-end gap-2 mt-2">
-              ${Components.button({
-                action: 'saveInlineMemo',
-                text: 'メモを<br>保存',
-                style: 'primary',
-                size: 'xs',
-                dataAttributes: {
-                  reservationId: reservationId,
-                },
-              })}
-            </div>
           </div>
         `;
       } else {
@@ -7060,17 +7248,19 @@ const ENVIRONMENT_CONFIG = {
             <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
         </div>
         <div class="${DesignConfig.inputs.container}">
-          <label for="phone" class="block text-brand-subtle text-sm text-center mb-1">電話番号</label>
-          <input
-            type="tel"
-            id="phone"
-            value="${phoneValue}"
-            class="${DesignConfig.inputs.base} text-center"
-            placeholder="090 1234 5678"
-            autocomplete="tel"
-            inputmode="numeric"
-            pattern="[0-9]*"
-          >
+          <label for="phone" class="block text-brand-subtle text-base text-center mb-4">電話番号をご入力ください</label>
+          <div class="flex justify-center">
+            <input
+              type="tel"
+              id="phone"
+              value="${phoneValue}"
+              class="${DesignConfig.inputs.phone} text-center"
+              placeholder="090 1234 5678"
+              autocomplete="tel"
+              inputmode="numeric"
+              pattern="[0-9]*"
+            >
+          </div>
         </div>
         ${Components.actionButtonSection({
           primaryButton: {
@@ -7127,7 +7317,7 @@ const ENVIRONMENT_CONFIG = {
       phoneSection = `
           <div class="mb-4">
               <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
-              <input type="tel" id="reg-phone" value="${phoneValue}" class="${DesignConfig.inputs.base}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
+              <input type="tel" id="reg-phone" value="${phoneValue}" class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
           </div>`;
     } else if (isPhoneInputNeeded) {
       // プロフィール編集時：電話番号入力が必要
@@ -7135,7 +7325,7 @@ const ENVIRONMENT_CONFIG = {
           <div class="mb-4">
               <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">電話番号</label>
               <input type="tel" id="edit-phone" value="${phoneValue}"
-                     class="${DesignConfig.inputs.base}" placeholder="090 1234 5678"
+                     class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678"
                      autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
               <p class="text-sm text-brand-subtle mt-1">電話番号を登録すると次回からスムーズにログインできます。</p>
           </div>`;
@@ -8195,7 +8385,7 @@ const ENVIRONMENT_CONFIG = {
         // 編集モード状態を取得
         const isInEditMode = stateManager.isInEditMode(h.reservationId);
 
-        const editButtons = _buildHistoryEditButtons(isInEditMode);
+        const editButtons = _buildHistoryEditButtons(isInEditMode, h.reservationId);
         const accountingButtons = _buildHistoryAccountingButtons(h);
 
         return _buildHistoryCardWithEditMode(
@@ -8276,17 +8466,30 @@ const ENVIRONMENT_CONFIG = {
    * @param {boolean} isInEditMode - 編集モードフラグ
    * @returns {Array<any>} 編集ボタン設定配列
    */
-  const _buildHistoryEditButtons = (isInEditMode = false) => {
+  const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
     const buttons = [];
 
-    // 編集モード状態に応じてボタンテキストを変更
-    const buttonText = isInEditMode ? 'とじる' : '確認<br>編集';
-    buttons.push({
-      action: 'expandHistoryCard',
-      text: buttonText,
-      style: 'secondary',
-      size: 'xs',
-    });
+    // 編集モード状態に応じてボタンテキストとアクションを変更
+    if (isInEditMode) {
+      // 編集モード時：保存して閉じる
+      buttons.push({
+        action: 'saveAndCloseMemo',
+        text: 'メモを<br>保存',
+        style: 'primary',
+        size: 'xs',
+        dataAttributes: {
+          reservationId: reservationId,
+        },
+      });
+    } else {
+      // 通常時：編集モードに入る
+      buttons.push({
+        action: 'expandHistoryCard',
+        text: '確認<br>編集',
+        style: 'secondary',
+        size: 'xs',
+      });
+    }
 
     return buttons;
   };
@@ -8360,7 +8563,7 @@ const ENVIRONMENT_CONFIG = {
     const isInEditMode = stateManager.isInEditMode(reservationId);
 
     // 新しいカードHTMLを生成
-    const editButtons = _buildHistoryEditButtons(isInEditMode);
+    const editButtons = _buildHistoryEditButtons(isInEditMode, historyItem.reservationId);
     const accountingButtons = _buildHistoryAccountingButtons(historyItem);
 
     const newCardHtml = _buildHistoryCardWithEditMode(
@@ -8715,7 +8918,7 @@ const ENVIRONMENT_CONFIG = {
             masterData.length > 0 &&
             classroom
           ) {
-            v = initializeAccountingSystem(masterData, classroom, {});
+            v = initializeAccountingSystem(masterData, classroom, {}, reservationData);
             break;
           } else {
             classifiedItems = EMPTY_CLASSIFIED_ITEMS;
@@ -8730,7 +8933,7 @@ const ENVIRONMENT_CONFIG = {
 
           // 会計画面HTML生成
           const formData = {};
-          v = generateAccountingView(classifiedItems, classroom, formData);
+          v = generateAccountingView(classifiedItems, classroom, formData, reservationData);
 
           // キャッシュ使用時の初期化処理を予約
           setTimeout(() => {
@@ -10038,6 +10241,17 @@ const ENVIRONMENT_CONFIG = {
           stateManager.getState().currentUser.studentId,
           newMemo,
         );
+    },
+
+    // 新しいアクション：保存と同時に編集モードを終了
+    saveAndCloseMemo: function(d) {
+      // ボタンからreservationIdが渡された場合
+      if (d && d.reservationId) {
+        // thisを使って同じオブジェクト内のsaveInlineMemoを呼び出し
+        this.saveInlineMemo(d);
+      } else {
+        console.warn('保存対象のreservationIdが見つかりません');
+      }
     },
 
     /** 参加記録を追加で読み込みます（統合ホーム用） */
