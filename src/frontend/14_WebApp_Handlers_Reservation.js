@@ -26,7 +26,7 @@ const reservationActionHandlers = {
           <p class="text-center"><b>${formatDate(d.date)}</b><br>${d.classroom}<br>この予約を取り消しますか？</p>
           <div class="pt-4 border-t">
             <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
-            <textarea id="cancel-message" class="w-full p-2 border border-ui-border rounded" rows="3" placeholder=""></textarea>
+            <textarea id="cancel-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
           </div>
         </div>
       `;

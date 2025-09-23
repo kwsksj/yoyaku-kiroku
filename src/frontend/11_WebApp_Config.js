@@ -260,10 +260,10 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
       success:
         'bg-state-success-bg text-state-success-text active:bg-state-success-hover', // 成功 (若葉色)
       paid: 'bg-action-paid-bg text-action-paid-text', // 支払い済み (薄い緑)
-      info: 'bg-ui-surface text-brand-text border border-ui-border',
+      info: 'bg-ui-surface text-brand-text border-2 border-ui-border',
       warning:
-        'bg-ui-warning-bg text-ui-warning-text border border-ui-warning-border',
-      error: 'bg-ui-error-bg text-ui-error-text border border-ui-error-border',
+        'bg-ui-warning-bg text-ui-warning-text border-2 border-ui-warning-border',
+      error: 'bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border',
     },
 
     // 教室別のボタン色設定
@@ -321,7 +321,7 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
       container: 'max-w-screen-sm mx-auto p-4',
       containerNoPadding: 'max-w-screen-sm mx-auto',
       section: 'mb-8',
-      card: 'shadow-card rounded-lg border border-solid border-card-border',
+      card: 'shadow-card rounded-lg border-2 border-solid border-card-border',
       centerContent: 'flex items-center justify-center',
       spaceBetween: 'flex items-center justify-between',
     },
@@ -341,22 +341,22 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
     cards: {
       base: 'w-full text-left p-3 rounded-lg mobile-card touch-friendly transition-all duration-150',
       container: 'max-w-md mx-auto space-y-3',
-      background: 'bg-ui-surface border border-ui-border',
+      background: 'bg-ui-surface border-2 border-ui-border',
       state: {
         available: {
-          card: 'bg-state-available-bg border border-state-available-border mobile-card active:bg-state-success-hover',
+          card: 'bg-state-available-bg border-2 border-state-available-border mobile-card active:bg-state-success-hover',
           text: 'text-state-available-text',
         },
         waitlist: {
-          card: 'bg-state-waitlist-bg border border-state-waitlist-border mobile-card',
+          card: 'bg-state-waitlist-bg border-2 border-state-waitlist-border mobile-card',
           text: 'text-state-waitlist-text',
         },
         booked: {
-          card: 'bg-state-booked-bg border border-state-booked-border mobile-card',
+          card: 'bg-state-booked-bg border-2 border-state-booked-border mobile-card',
           text: 'text-state-booked-text',
         },
         history: {
-          card: 'bg-brand-light border border-ui-border mobile-card',
+          card: 'bg-brand-light border-2 border-ui-border mobile-card',
         },
       },
     },
@@ -364,10 +364,10 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
     // 入力フォームのスタイル
     inputs: {
       container: 'max-w-md mx-auto',
-      base: 'text-base w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+      base: 'text-base w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
       textarea:
-        'text-base w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
-      phone: 'text-base w-48 max-w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
+        'text-base w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+      phone: 'text-base w-48 max-w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
     },
   }
 );
@@ -561,7 +561,7 @@ const addCustomStyles = () => {
 
       .accounting-item, .reservation-card {
         background-color: var(--brand-surface);
-        border: 1px solid var(--ui-border);
+        border: 2px solid var(--ui-border);
         transition: all 0.2s ease;
         position: relative;
       }
@@ -569,6 +569,17 @@ const addCustomStyles = () => {
         transform: translateY(-2px);
         box-shadow: var(--shadow-md);
         border-color: var(--brand-accent);
+      }
+
+      /* よやくカード専用の温かみのある薄いピーチベージュ色 */
+      .bg-state-booked-bg {
+        background-color: #fef7f0 !important; /* 温かみのある薄いピーチベージュ */
+      }
+      .border-state-booked-border {
+        border-color: #fed7aa !important; /* 優しいオレンジベージュの境界線 */
+      }
+      .text-state-booked-text {
+        color: #9a3412 !important; /* 落ち着いたオレンジブラウンでコントラスト確保 */
       }
 
       /* ========== レイアウト改善 - memo.md問題対応 ========== */
@@ -739,7 +750,7 @@ const addCustomStyles = () => {
       /* カード中央: 制作メモエリア */
       .card-memo-section {
         background-color: var(--brand-light);
-        border: 1px solid var(--ui-border-light);
+        border: 2px solid var(--ui-border-light);
         border-radius: 0.5rem;
         padding: 0.75rem;
         min-height: 4rem;
@@ -768,7 +779,7 @@ const addCustomStyles = () => {
 
       /* カード下部: 予約日以降に表示される会計ボタン */
       .card-accounting-section {
-        border-top: 1px solid var(--ui-border-light);
+        border-top: 2px solid var(--ui-border-light);
         padding-top: 0.75rem;
         display: flex;
         justify-content: center;
@@ -860,6 +871,12 @@ const addCustomStyles = () => {
       @keyframes loading {
         0% { background-position: 200% 0; }
         100% { background-position: -200% 0; }
+      }
+
+      /* ========== 会計画面の境界線スタイル ========== */
+      . {
+        border-top: 2px solid var(--ui-border);
+        border-bottom: 2px solid var(--ui-border);
       }
 
       /* ========== Enhanced Responsive Design ========== */

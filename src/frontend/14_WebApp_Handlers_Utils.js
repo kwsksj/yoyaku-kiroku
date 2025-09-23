@@ -468,7 +468,7 @@ function buildSalesChecklist(
   const checklistHtml = getSalesCheckboxListHtml(salesList, checkedValues);
   return `
     <details class="mt-4">
-      <summary class="cursor-pointer font-bold text-base py-2 px-3 bg-ui-surface border border-ui-border rounded hover:bg-ui-hover">${title} <span class="ml-2 text-sm text-brand-subtle">（クリックで展開）</span></summary>
+      <summary class="cursor-pointer font-bold text-base py-2 px-3 bg-ui-surface border-2 border-ui-border rounded hover:bg-ui-hover">${title} <span class="ml-2 text-sm text-brand-subtle">（クリックで展開）</span></summary>
       <div class="pt-2">${checklistHtml}</div>
     </details>
   `;

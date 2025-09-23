@@ -328,15 +328,15 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
         })}
         <div class="time-controls mt-3 ml-2">
           <div class="flex items-center space-x-2 mb-3">
-            <select id="start-time" class="time-select time-display flex-1 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <select id="start-time" class="time-select time-display flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               ${generateTimeOptions(formData.startTime)}
             </select>
             <span class="text-sm text-brand-text">-</span>
-            <select id="end-time" class="time-select time-display flex-1 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <select id="end-time" class="time-select time-display flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               ${generateTimeOptions(formData.endTime)}
             </select>
             <span class="text-sm text-brand-text ml-2">休憩</span>
-            <select id="break-time" class="time-select time-display w-14 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <select id="break-time" class="time-select time-display w-14 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               <option value="0" ${formData.breakTime === 0 ? 'selected' : ''}>0分</option>
               <option value="30" ${formData.breakTime === 30 ? 'selected' : ''}>30分</option>
               <option value="60" ${formData.breakTime === 60 ? 'selected' : ''}>60分</option>
@@ -351,7 +351,7 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
   } else {
     // 回数制の場合
     baseTuitionHtml = `
-      <div class="base-tuition border-tb border-ui-border p-0 mb-2" data-checkbox-row>
+      <div class="base-tuition  border-ui-border p-0 mb-2" data-checkbox-row>
         <div class="flex items-center space-x-3">
           <div class="flex-1">
             ${Components.checkbox({
@@ -380,7 +380,7 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
       const isChecked = formData.checkedItems?.[itemName] || false;
 
       additionalItemsHtml += `
-        <div class="border-tb border-ui-border p-0" data-checkbox-row>
+        <div class=" border-ui-border p-0" data-checkbox-row>
           <div class="flex items-center space-x-3">
             <div class="flex-1">
               ${Components.checkbox({
@@ -456,7 +456,7 @@ function generateMaterialRow(materialItems, index = 0, materialData = {}) {
         id="material-length-${index}"
         value="${materialData.l || ''}"
         placeholder="x"
-        class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+        class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
       <span class="text-sm">×</span>
       <input
@@ -464,7 +464,7 @@ function generateMaterialRow(materialItems, index = 0, materialData = {}) {
         id="material-width-${index}"
         value="${materialData.w || ''}"
         placeholder="y"
-        class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+        class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
       <span class="text-sm">×</span>
       <input
@@ -472,20 +472,20 @@ function generateMaterialRow(materialItems, index = 0, materialData = {}) {
         id="material-height-${index}"
         value="${materialData.h || ''}"
         placeholder="z"
-        class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+        class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
       <span class="text-sm text-gray-600">mm</span>
     </div>`
     : '';
 
   return `
-    <div class="material-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-material-row="${index}">
+    <div class="material-row  border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-material-row="${index}">
       <div class="flex items-center space-x-3">
         <div class="flex-shrink-0 w-2 text-center">
           <span class="text-brand-text">•</span>
         </div>
         <div class="flex-1">
-          <select id="material-type-${index}" class="material-select w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+          <select id="material-type-${index}" class="material-select w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
             ${materialOptions}
           </select>
         </div>
@@ -578,13 +578,13 @@ function generateProductRow(productItems, index = 0, productData = {}) {
   });
 
   return `
-    <div class="product-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-product-row="${index}">
+    <div class="product-row  border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-product-row="${index}">
       <div class="flex items-center space-x-3">
         <div class="flex-shrink-0 w-2 text-center">
           <span class="text-brand-text">•</span>
         </div>
         <div class="flex-1">
-          <select id="product-type-${index}" class="product-select w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+          <select id="product-type-${index}" class="product-select w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
             ${productOptions}
           </select>
         </div>
@@ -614,7 +614,7 @@ function generateCustomSalesRows(customSalesData = [{}]) {
  */
 function generateCustomSalesRow(index = 0, itemData = {}) {
   return `
-    <div class="custom-sales-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-1' : ''}" data-custom-sales-row="${index}">
+    <div class="custom-sales-row  border-ui-border p-0 ${index > 0 ? 'mt-1' : ''}" data-custom-sales-row="${index}">
       <div class="flex items-center space-x-3">
         <div class="flex-shrink-0 w-2 text-center">
           <span class="text-brand-text">•</span>
@@ -625,7 +625,7 @@ function generateCustomSalesRow(index = 0, itemData = {}) {
             id="custom-sales-name-${index}"
             value="${itemData.name || ''}"
             placeholder="自由入力"
-            class="w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text"
+            class="w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text"
           >
         </div>
         <div class="w-20">
@@ -634,7 +634,7 @@ function generateCustomSalesRow(index = 0, itemData = {}) {
             id="custom-sales-price-${index}"
             value="${itemData.price || ''}"
             placeholder="金額"
-            class="w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+            class="w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
           >
         </div>
         <div class="price-display">
@@ -811,7 +811,7 @@ const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
   // ことら送金が選択された場合のみ電話番号を表示
   if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.COTRA) {
     paymentInfoHtml += `
-        <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
+        <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-md">
             <div class="flex justify-between items-center">
                 <div class="${DesignConfig.text['body']}"><span class="font-bold">送金先 電話番号:</span><span class="ml-2 font-mono">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
                 <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
@@ -822,7 +822,7 @@ const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
   // 振込が選択された場合のみ口座情報を表示
   if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER) {
     paymentInfoHtml += `
-        <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
+        <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-md">
             <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${CONSTANTS.BANK_INFO.NAME}</span></div>
             <div class="mt-1 flex justify-between items-center">
                 <div class="text-base text-brand-text">店番: ${CONSTANTS.BANK_INFO.BRANCH}</div>
@@ -1055,21 +1055,21 @@ function handleMaterialTypeChange(event, materialItems) {
           type="number"
           id="material-length-${index}"
           placeholder="x"
-          class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+          class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
         >
         <span class="text-sm">×</span>
         <input
           type="number"
           id="material-width-${index}"
           placeholder="y"
-          class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+          class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
         >
         <span class="text-sm">×</span>
         <input
           type="number"
           id="material-height-${index}"
           placeholder="z"
-          class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+          class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
         >
         <span class="text-sm text-gray-600">mm</span>
       </div>`;
@@ -1762,7 +1762,7 @@ function generatePaymentConfirmModal(result, paymentMethod) {
       <div class="bg-white rounded-lg mx-4 max-w-md w-full max-h-screen overflow-y-auto">
 
         <!-- モーダルヘッダー -->
-        <div class="p-6 border-b border-gray-200">
+        <div class="p-6 border-b-2 border-gray-200">
           <h3 class="text-xl font-bold text-brand-text">支払い確認</h3>
         </div>
 
@@ -1781,7 +1781,7 @@ function generatePaymentConfirmModal(result, paymentMethod) {
                 <span class="text-brand-subtle">販売小計:</span>
                 <span class="font-mono-numbers">${formatPrice(result.sales.subtotal)}</span>
               </div>
-              <div class="border-t border-ui-border pt-2 mt-2">
+              <div class="border-t-2 border-ui-border pt-2 mt-2">
                 <div class="flex justify-between">
                   <span class="font-bold text-brand-text">総合計:</span>
                   <span class="font-bold text-xl text-brand-text font-mono-numbers">${formatPriceLarge(result.grandTotal)}</span>
@@ -1798,7 +1798,7 @@ function generatePaymentConfirmModal(result, paymentMethod) {
           </div>
         </div>
         <!-- モーダルフッター -->
-        <div class="p-6 border-t border-gray-200 flex gap-3">
+        <div class="p-6 border-t-2 border-gray-200 flex gap-3">
           ${generateButton('cancelPaymentConfirm', '修正する', 'secondary')}
           ${generateButton('processPayment', '支払いました', 'primary')}
         </div>

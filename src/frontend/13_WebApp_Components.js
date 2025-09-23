@@ -68,7 +68,7 @@ const Components = {
     return `
         <div id="${escapeHTML(config.id)}" class="modal-fade fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
           <div class="bg-white rounded-lg ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
-            <div class="flex justify-between items-center p-4 border-b border-ui-border">
+            <div class="flex justify-between items-center p-4 border-b-2 border-ui-border">
               <h2 class="text-xl font-bold text-brand-text">${escapeHTML(config.title)}</h2>
               ${showCloseButton ? `<button onclick="Components.closeModal('${escapeHTML(config.id)}')" class="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>` : ''}
             </div>
@@ -379,7 +379,7 @@ const Components = {
       variant,
     )
       ? ''
-      : 'rounded-lg border';
+      : 'rounded-lg border-2';
 
     const finalClasses =
       `${variants[variant]} ${paddings[padding]} ${baseClasses} ${touchClass} ${customClass}`.trim();
@@ -530,7 +530,7 @@ const Components = {
       : '';
 
     return `
-      <div class="sticky top-0 bg-white border-b border-ui-border z-10 py-2 mb-2 -mx-4">
+      <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-2 mb-2 -mx-4">
         <div class="flex justify-between items-center px-4">
           <h1 class="text-lg font-bold text-brand-text">${escapeHTML(title)}</h1>
           ${backButtonHtml}
@@ -815,7 +815,7 @@ const Components = {
           <span class="mr-3 text-brand-accent transition-transform">▶</span>
           ${escapeHTML(title)}
         </div>
-        <span class="text-xs text-brand-subtle rounded-md bg-ui-surface border border-ui-border p-1">タップで展開</span>
+        <span class="text-xs text-brand-subtle rounded-md bg-ui-surface border-2 border-ui-border p-1">タップで展開</span>
       </summary>`;
     }
 
@@ -913,7 +913,7 @@ const Components = {
 
     return `
         <div class="mb-8 w-full">
-          <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
+          <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg space-y-3">
             <h2 class="text-xl font-medium text-brand-text text-center mb-2">${escapeHTML(title)}</h2>
             ${newButtonHtml}
             ${itemsHtml}
@@ -1055,7 +1055,7 @@ const Components = {
           <textarea
             class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
             rows="4"
-            placeholder="制作内容や進捗をメモしてください"
+            placeholder="制作内容や進捗をメモしてね"
           >${escapeHTML(workInProgress || '')}</textarea>
         </div>
       `;
@@ -1103,7 +1103,7 @@ const Components = {
       })
       .join('');
 
-    return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
+    return `<div class="p-4 bg-ui-surface border-2 border-ui-border rounded-lg">
         <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3>
         <div class="mb-3 space-y-4">
           <label class="block text-brand-text text-base font-bold">材料代</label>

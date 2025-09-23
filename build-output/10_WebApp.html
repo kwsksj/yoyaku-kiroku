@@ -389,7 +389,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-23T06:11:24.632Z
+   * Generated: 2025-09-23T06:57:55.456Z
    * =================================================================
    */
 
@@ -659,10 +659,10 @@ const ENVIRONMENT_CONFIG = {
         success:
           'bg-state-success-bg text-state-success-text active:bg-state-success-hover', // 成功 (若葉色)
         paid: 'bg-action-paid-bg text-action-paid-text', // 支払い済み (薄い緑)
-        info: 'bg-ui-surface text-brand-text border border-ui-border',
+        info: 'bg-ui-surface text-brand-text border-2 border-ui-border',
         warning:
-          'bg-ui-warning-bg text-ui-warning-text border border-ui-warning-border',
-        error: 'bg-ui-error-bg text-ui-error-text border border-ui-error-border',
+          'bg-ui-warning-bg text-ui-warning-text border-2 border-ui-warning-border',
+        error: 'bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border',
       },
 
       // 教室別のボタン色設定
@@ -720,7 +720,7 @@ const ENVIRONMENT_CONFIG = {
         container: 'max-w-screen-sm mx-auto p-4',
         containerNoPadding: 'max-w-screen-sm mx-auto',
         section: 'mb-8',
-        card: 'shadow-card rounded-lg border border-solid border-card-border',
+        card: 'shadow-card rounded-lg border-2 border-solid border-card-border',
         centerContent: 'flex items-center justify-center',
         spaceBetween: 'flex items-center justify-between',
       },
@@ -740,22 +740,22 @@ const ENVIRONMENT_CONFIG = {
       cards: {
         base: 'w-full text-left p-3 rounded-lg mobile-card touch-friendly transition-all duration-150',
         container: 'max-w-md mx-auto space-y-3',
-        background: 'bg-ui-surface border border-ui-border',
+        background: 'bg-ui-surface border-2 border-ui-border',
         state: {
           available: {
-            card: 'bg-state-available-bg border border-state-available-border mobile-card active:bg-state-success-hover',
+            card: 'bg-state-available-bg border-2 border-state-available-border mobile-card active:bg-state-success-hover',
             text: 'text-state-available-text',
           },
           waitlist: {
-            card: 'bg-state-waitlist-bg border border-state-waitlist-border mobile-card',
+            card: 'bg-state-waitlist-bg border-2 border-state-waitlist-border mobile-card',
             text: 'text-state-waitlist-text',
           },
           booked: {
-            card: 'bg-state-booked-bg border border-state-booked-border mobile-card',
+            card: 'bg-state-booked-bg border-2 border-state-booked-border mobile-card',
             text: 'text-state-booked-text',
           },
           history: {
-            card: 'bg-brand-light border border-ui-border mobile-card',
+            card: 'bg-brand-light border-2 border-ui-border mobile-card',
           },
         },
       },
@@ -763,10 +763,10 @@ const ENVIRONMENT_CONFIG = {
       // 入力フォームのスタイル
       inputs: {
         container: 'max-w-md mx-auto',
-        base: 'text-base w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+        base: 'text-base w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
         textarea:
-          'text-base w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
-        phone: 'text-base w-48 max-w-full p-3 border border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
+          'text-base w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
+        phone: 'text-base w-48 max-w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
       },
     }
   );
@@ -960,7 +960,7 @@ const ENVIRONMENT_CONFIG = {
 
         .accounting-item, .reservation-card {
           background-color: var(--brand-surface);
-          border: 1px solid var(--ui-border);
+          border: 2px solid var(--ui-border);
           transition: all 0.2s ease;
           position: relative;
         }
@@ -968,6 +968,17 @@ const ENVIRONMENT_CONFIG = {
           transform: translateY(-2px);
           box-shadow: var(--shadow-md);
           border-color: var(--brand-accent);
+        }
+
+        /* よやくカード専用の温かみのある薄いピーチベージュ色 */
+        .bg-state-booked-bg {
+          background-color: #fef7f0 !important; /* 温かみのある薄いピーチベージュ */
+        }
+        .border-state-booked-border {
+          border-color: #fed7aa !important; /* 優しいオレンジベージュの境界線 */
+        }
+        .text-state-booked-text {
+          color: #9a3412 !important; /* 落ち着いたオレンジブラウンでコントラスト確保 */
         }
 
         /* ========== レイアウト改善 - memo.md問題対応 ========== */
@@ -1138,7 +1149,7 @@ const ENVIRONMENT_CONFIG = {
         /* カード中央: 制作メモエリア */
         .card-memo-section {
           background-color: var(--brand-light);
-          border: 1px solid var(--ui-border-light);
+          border: 2px solid var(--ui-border-light);
           border-radius: 0.5rem;
           padding: 0.75rem;
           min-height: 4rem;
@@ -1167,7 +1178,7 @@ const ENVIRONMENT_CONFIG = {
 
         /* カード下部: 予約日以降に表示される会計ボタン */
         .card-accounting-section {
-          border-top: 1px solid var(--ui-border-light);
+          border-top: 2px solid var(--ui-border-light);
           padding-top: 0.75rem;
           display: flex;
           justify-content: center;
@@ -1259,6 +1270,12 @@ const ENVIRONMENT_CONFIG = {
         @keyframes loading {
           0% { background-position: 200% 0; }
           100% { background-position: -200% 0; }
+        }
+
+        /* ========== 会計画面の境界線スタイル ========== */
+        . {
+          border-top: 2px solid var(--ui-border);
+          border-bottom: 2px solid var(--ui-border);
         }
 
         /* ========== Enhanced Responsive Design ========== */
@@ -2521,15 +2538,15 @@ const ENVIRONMENT_CONFIG = {
           })}
           <div class="time-controls mt-3 ml-2">
             <div class="flex items-center space-x-2 mb-3">
-              <select id="start-time" class="time-select time-display flex-1 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+              <select id="start-time" class="time-select time-display flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
                 ${generateTimeOptions(formData.startTime)}
               </select>
               <span class="text-sm text-brand-text">-</span>
-              <select id="end-time" class="time-select time-display flex-1 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+              <select id="end-time" class="time-select time-display flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
                 ${generateTimeOptions(formData.endTime)}
               </select>
               <span class="text-sm text-brand-text ml-2">休憩</span>
-              <select id="break-time" class="time-select time-display w-14 p-2 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+              <select id="break-time" class="time-select time-display w-14 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
                 <option value="0" ${formData.breakTime === 0 ? 'selected' : ''}>0分</option>
                 <option value="30" ${formData.breakTime === 30 ? 'selected' : ''}>30分</option>
                 <option value="60" ${formData.breakTime === 60 ? 'selected' : ''}>60分</option>
@@ -2544,7 +2561,7 @@ const ENVIRONMENT_CONFIG = {
     } else {
       // 回数制の場合
       baseTuitionHtml = `
-        <div class="base-tuition border-tb border-ui-border p-0 mb-2" data-checkbox-row>
+        <div class="base-tuition  border-ui-border p-0 mb-2" data-checkbox-row>
           <div class="flex items-center space-x-3">
             <div class="flex-1">
               ${Components.checkbox({
@@ -2573,7 +2590,7 @@ const ENVIRONMENT_CONFIG = {
         const isChecked = formData.checkedItems?.[itemName] || false;
 
         additionalItemsHtml += `
-          <div class="border-tb border-ui-border p-0" data-checkbox-row>
+          <div class=" border-ui-border p-0" data-checkbox-row>
             <div class="flex items-center space-x-3">
               <div class="flex-1">
                 ${Components.checkbox({
@@ -2649,7 +2666,7 @@ const ENVIRONMENT_CONFIG = {
           id="material-length-${index}"
           value="${materialData.l || ''}"
           placeholder="x"
-          class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+          class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
         >
         <span class="text-sm">×</span>
         <input
@@ -2657,7 +2674,7 @@ const ENVIRONMENT_CONFIG = {
           id="material-width-${index}"
           value="${materialData.w || ''}"
           placeholder="y"
-          class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+          class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
         >
         <span class="text-sm">×</span>
         <input
@@ -2665,20 +2682,20 @@ const ENVIRONMENT_CONFIG = {
           id="material-height-${index}"
           value="${materialData.h || ''}"
           placeholder="z"
-          class="w-12 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+          class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
         >
         <span class="text-sm text-gray-600">mm</span>
       </div>`
       : '';
 
     return `
-      <div class="material-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-material-row="${index}">
+      <div class="material-row  border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-material-row="${index}">
         <div class="flex items-center space-x-3">
           <div class="flex-shrink-0 w-2 text-center">
             <span class="text-brand-text">•</span>
           </div>
           <div class="flex-1">
-            <select id="material-type-${index}" class="material-select w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <select id="material-type-${index}" class="material-select w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               ${materialOptions}
             </select>
           </div>
@@ -2771,13 +2788,13 @@ const ENVIRONMENT_CONFIG = {
     });
 
     return `
-      <div class="product-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-product-row="${index}">
+      <div class="product-row  border-ui-border p-0 ${index > 0 ? 'mt-2' : ''}" data-product-row="${index}">
         <div class="flex items-center space-x-3">
           <div class="flex-shrink-0 w-2 text-center">
             <span class="text-brand-text">•</span>
           </div>
           <div class="flex-1">
-            <select id="product-type-${index}" class="product-select w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <select id="product-type-${index}" class="product-select w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               ${productOptions}
             </select>
           </div>
@@ -2807,7 +2824,7 @@ const ENVIRONMENT_CONFIG = {
    */
   function generateCustomSalesRow(index = 0, itemData = {}) {
     return `
-      <div class="custom-sales-row border-tb border-ui-border p-0 ${index > 0 ? 'mt-1' : ''}" data-custom-sales-row="${index}">
+      <div class="custom-sales-row  border-ui-border p-0 ${index > 0 ? 'mt-1' : ''}" data-custom-sales-row="${index}">
         <div class="flex items-center space-x-3">
           <div class="flex-shrink-0 w-2 text-center">
             <span class="text-brand-text">•</span>
@@ -2818,7 +2835,7 @@ const ENVIRONMENT_CONFIG = {
               id="custom-sales-name-${index}"
               value="${itemData.name || ''}"
               placeholder="自由入力"
-              class="w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text"
+              class="w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text"
             >
           </div>
           <div class="w-20">
@@ -2827,7 +2844,7 @@ const ENVIRONMENT_CONFIG = {
               id="custom-sales-price-${index}"
               value="${itemData.price || ''}"
               placeholder="金額"
-              class="w-full p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+              class="w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
             >
           </div>
           <div class="price-display">
@@ -3004,7 +3021,7 @@ const ENVIRONMENT_CONFIG = {
     // ことら送金が選択された場合のみ電話番号を表示
     if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.COTRA) {
       paymentInfoHtml += `
-          <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
+          <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-md">
               <div class="flex justify-between items-center">
                   <div class="${DesignConfig.text['body']}"><span class="font-bold">送金先 電話番号:</span><span class="ml-2 font-mono">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
                   <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
@@ -3015,7 +3032,7 @@ const ENVIRONMENT_CONFIG = {
     // 振込が選択された場合のみ口座情報を表示
     if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER) {
       paymentInfoHtml += `
-          <div class="bg-ui-surface border border-ui-border p-3 rounded-md">
+          <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-md">
               <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${CONSTANTS.BANK_INFO.NAME}</span></div>
               <div class="mt-1 flex justify-between items-center">
                   <div class="text-base text-brand-text">店番: ${CONSTANTS.BANK_INFO.BRANCH}</div>
@@ -3248,21 +3265,21 @@ const ENVIRONMENT_CONFIG = {
             type="number"
             id="material-length-${index}"
             placeholder="x"
-            class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+            class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
           >
           <span class="text-sm">×</span>
           <input
             type="number"
             id="material-width-${index}"
             placeholder="y"
-            class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+            class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
           >
           <span class="text-sm">×</span>
           <input
             type="number"
             id="material-height-${index}"
             placeholder="z"
-            class="w-10 p-0.5 border border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+            class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
           >
           <span class="text-sm text-gray-600">mm</span>
         </div>`;
@@ -3955,7 +3972,7 @@ const ENVIRONMENT_CONFIG = {
         <div class="bg-white rounded-lg mx-4 max-w-md w-full max-h-screen overflow-y-auto">
 
           <!-- モーダルヘッダー -->
-          <div class="p-6 border-b border-gray-200">
+          <div class="p-6 border-b-2 border-gray-200">
             <h3 class="text-xl font-bold text-brand-text">支払い確認</h3>
           </div>
 
@@ -3974,7 +3991,7 @@ const ENVIRONMENT_CONFIG = {
                   <span class="text-brand-subtle">販売小計:</span>
                   <span class="font-mono-numbers">${formatPrice(result.sales.subtotal)}</span>
                 </div>
-                <div class="border-t border-ui-border pt-2 mt-2">
+                <div class="border-t-2 border-ui-border pt-2 mt-2">
                   <div class="flex justify-between">
                     <span class="font-bold text-brand-text">総合計:</span>
                     <span class="font-bold text-xl text-brand-text font-mono-numbers">${formatPriceLarge(result.grandTotal)}</span>
@@ -3991,7 +4008,7 @@ const ENVIRONMENT_CONFIG = {
             </div>
           </div>
           <!-- モーダルフッター -->
-          <div class="p-6 border-t border-gray-200 flex gap-3">
+          <div class="p-6 border-t-2 border-gray-200 flex gap-3">
             ${generateButton('cancelPaymentConfirm', '修正する', 'secondary')}
             ${generateButton('processPayment', '支払いました', 'primary')}
           </div>
@@ -5967,7 +5984,7 @@ const ENVIRONMENT_CONFIG = {
       return `
           <div id="${escapeHTML(config.id)}" class="modal-fade fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
             <div class="bg-white rounded-lg ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
-              <div class="flex justify-between items-center p-4 border-b border-ui-border">
+              <div class="flex justify-between items-center p-4 border-b-2 border-ui-border">
                 <h2 class="text-xl font-bold text-brand-text">${escapeHTML(config.title)}</h2>
                 ${showCloseButton ? `<button onclick="Components.closeModal('${escapeHTML(config.id)}')" class="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>` : ''}
               </div>
@@ -6278,7 +6295,7 @@ const ENVIRONMENT_CONFIG = {
         variant,
       )
         ? ''
-        : 'rounded-lg border';
+        : 'rounded-lg border-2';
 
       const finalClasses =
         `${variants[variant]} ${paddings[padding]} ${baseClasses} ${touchClass} ${customClass}`.trim();
@@ -6429,7 +6446,7 @@ const ENVIRONMENT_CONFIG = {
         : '';
 
       return `
-        <div class="sticky top-0 bg-white border-b border-ui-border z-10 py-2 mb-2 -mx-4">
+        <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-2 mb-2 -mx-4">
           <div class="flex justify-between items-center px-4">
             <h1 class="text-lg font-bold text-brand-text">${escapeHTML(title)}</h1>
             ${backButtonHtml}
@@ -6714,7 +6731,7 @@ const ENVIRONMENT_CONFIG = {
             <span class="mr-3 text-brand-accent transition-transform">▶</span>
             ${escapeHTML(title)}
           </div>
-          <span class="text-xs text-brand-subtle rounded-md bg-ui-surface border border-ui-border p-1">タップで展開</span>
+          <span class="text-xs text-brand-subtle rounded-md bg-ui-surface border-2 border-ui-border p-1">タップで展開</span>
         </summary>`;
       }
 
@@ -6812,7 +6829,7 @@ const ENVIRONMENT_CONFIG = {
 
       return `
           <div class="mb-8 w-full">
-            <div class="bg-ui-surface border border-ui-border p-3 rounded-lg space-y-3">
+            <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg space-y-3">
               <h2 class="text-xl font-medium text-brand-text text-center mb-2">${escapeHTML(title)}</h2>
               ${newButtonHtml}
               ${itemsHtml}
@@ -7002,7 +7019,7 @@ const ENVIRONMENT_CONFIG = {
         })
         .join('');
 
-      return `<div class="p-4 bg-ui-surface border border-ui-border rounded-lg">
+      return `<div class="p-4 bg-ui-surface border-2 border-ui-border rounded-lg">
           <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3>
           <div class="mb-3 space-y-4">
             <label class="block text-brand-text text-base font-bold">材料代</label>
@@ -7898,7 +7915,7 @@ const ENVIRONMENT_CONFIG = {
         : '';
 
       return `
-          <div class="mt-4 pt-4 border-t">
+          <div class="mt-4 pt-4 border-t-2">
             <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間</h4>
             ${timeFixedMessage}
             <div class="grid grid-cols-2 gap-4 mb-2">
@@ -7914,7 +7931,7 @@ const ENVIRONMENT_CONFIG = {
 
       if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
         return `
-          <div class="mt-4 pt-4 border-t">
+          <div class="mt-4 pt-4 border-t-2">
             <h4 class="font-bold text-left mb-2">オプション</h4>
             ${Components.checkbox({ id: 'option-first-lecture', label: CONSTANTS.ITEMS.FIRST_LECTURE, checked: firstLectureChecked, disabled: firstLectureDisabled })}
             <div class="mt-2">${Components.checkbox({ id: 'option-rental', label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`, checked: chiselRental })}</div>
@@ -7929,11 +7946,11 @@ const ENVIRONMENT_CONFIG = {
           ? buildSalesChecklist(accountingMaster)
           : '';
       return `
-          <div class="mt-4 pt-4 border-t space-y-4">
+          <div class="mt-4 pt-4 border-t-2 space-y-4">
             ${Components.textarea({ id: 'wip-input', label: isFirstTimeBooking && !isEdit ? '今回つくりたいもの/やりたいこと' : 'つくりたいもの/やりたいこと/作業予定', placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！', value: workInProgress || '' })}
             ${Components.textarea({ id: 'material-input', label: '材料のサイズや樹種の希望', placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
           </div>
-          <div class="mt-4 pt-4 border-t space-y-4">
+          <div class="mt-4 pt-4 border-t-2 space-y-4">
             ${salesChecklistHtml}
             ${Components.textarea({ id: 'order-input', label: '購入希望（自由記入）', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
             ${Components.textarea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
@@ -8702,7 +8719,7 @@ const ENVIRONMENT_CONFIG = {
     let emailNoticeHtml = '';
     if (wasFirstTimeBooking && isReservationComplete) {
       emailNoticeHtml = `
-          <div class="bg-ui-info-bg border border-ui-info-border rounded-lg p-4 mt-4">
+          <div class="bg-ui-info-bg border-2 border-ui-info-border rounded-lg p-4 mt-4">
             <div class="flex items-start">
               <svg class="flex-shrink-0 h-5 w-5 text-ui-info-text mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
@@ -10300,7 +10317,7 @@ const ENVIRONMENT_CONFIG = {
             <p class="text-center"><b>${formatDate(d.date)}</b><br>${d.classroom}<br>この予約を取り消しますか？</p>
             <div class="pt-4 border-t">
               <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
-              <textarea id="cancel-message" class="w-full p-2 border border-ui-border rounded" rows="3" placeholder=""></textarea>
+              <textarea id="cancel-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
             </div>
           </div>
         `;
@@ -11263,7 +11280,7 @@ const ENVIRONMENT_CONFIG = {
     const checklistHtml = getSalesCheckboxListHtml(salesList, checkedValues);
     return `
       <details class="mt-4">
-        <summary class="cursor-pointer font-bold text-base py-2 px-3 bg-ui-surface border border-ui-border rounded hover:bg-ui-hover">${title} <span class="ml-2 text-sm text-brand-subtle">（クリックで展開）</span></summary>
+        <summary class="cursor-pointer font-bold text-base py-2 px-3 bg-ui-surface border-2 border-ui-border rounded hover:bg-ui-hover">${title} <span class="ml-2 text-sm text-brand-subtle">（クリックで展開）</span></summary>
         <div class="pt-2">${checklistHtml}</div>
       </details>
     `;

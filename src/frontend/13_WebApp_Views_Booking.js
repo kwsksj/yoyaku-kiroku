@@ -206,7 +206,7 @@ const getReservationFormView = () => {
       : '';
 
     return `
-        <div class="mt-4 pt-4 border-t">
+        <div class="mt-4 pt-4 border-t-2">
           <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間</h4>
           ${timeFixedMessage}
           <div class="grid grid-cols-2 gap-4 mb-2">
@@ -222,7 +222,7 @@ const getReservationFormView = () => {
 
     if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
       return `
-        <div class="mt-4 pt-4 border-t">
+        <div class="mt-4 pt-4 border-t-2">
           <h4 class="font-bold text-left mb-2">オプション</h4>
           ${Components.checkbox({ id: 'option-first-lecture', label: CONSTANTS.ITEMS.FIRST_LECTURE, checked: firstLectureChecked, disabled: firstLectureDisabled })}
           <div class="mt-2">${Components.checkbox({ id: 'option-rental', label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`, checked: chiselRental })}</div>
@@ -237,11 +237,11 @@ const getReservationFormView = () => {
         ? buildSalesChecklist(accountingMaster)
         : '';
     return `
-        <div class="mt-4 pt-4 border-t space-y-4">
+        <div class="mt-4 pt-4 border-t-2 space-y-4">
           ${Components.textarea({ id: 'wip-input', label: isFirstTimeBooking && !isEdit ? '今回つくりたいもの/やりたいこと' : 'つくりたいもの/やりたいこと/作業予定', placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！', value: workInProgress || '' })}
           ${Components.textarea({ id: 'material-input', label: '材料のサイズや樹種の希望', placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
         </div>
-        <div class="mt-4 pt-4 border-t space-y-4">
+        <div class="mt-4 pt-4 border-t-2 space-y-4">
           ${salesChecklistHtml}
           ${Components.textarea({ id: 'order-input', label: '購入希望（自由記入）', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
           ${Components.textarea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
