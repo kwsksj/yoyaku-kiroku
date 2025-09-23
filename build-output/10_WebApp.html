@@ -389,7 +389,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-23T08:25:10.860Z
+   * Generated: 2025-09-23T10:56:05.058Z
    * =================================================================
    */
 
@@ -1057,6 +1057,12 @@ const ENVIRONMENT_CONFIG = {
           font-feature-settings: 'tnum' 1;
           font-variant-numeric: tabular-nums;
           font-size: 1rem; /* プレースホルダと入力時のフォントサイズを統一 */
+        }
+
+        /* メールアドレス入力フィールドを広く */
+        input[type="email"] {
+          min-width: 280px;
+          width: 100%;
         }
 
         /* プレースホルダのフォントサイズを明示的に設定 */
@@ -6203,13 +6209,14 @@ const ENVIRONMENT_CONFIG = {
      * @param {TextareaConfig} config - 設定オブジェクト
      * @returns {string} HTML文字列
      */
-    textarea: ({ id, label, value = '', placeholder = '' }) => {
+    textarea: ({ id, label, value = '', placeholder = '', rows = 5 }) => {
       return `<div class="mb-4">
           <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
           <textarea
             id="${id}"
             class="${DesignConfig.inputs['textarea']}"
             placeholder="${escapeHTML(placeholder)}"
+            rows="${rows}"
           >${escapeHTML(value)}</textarea>
         </div>`;
     },
@@ -7281,7 +7288,7 @@ const ENVIRONMENT_CONFIG = {
             <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
         </div>
         <div class="${DesignConfig.inputs.container}">
-          <label for="phone" class="block text-brand-subtle text-base text-center mb-4">電話番号をご入力ください</label>
+          <label for="phone" class="block text-brand-subtle text-base text-center mb-4">携帯電話番号をご入力ください</label>
           <div class="flex justify-center">
             <input
               type="tel"
@@ -7347,27 +7354,30 @@ const ENVIRONMENT_CONFIG = {
     let phoneSection = '';
     if (!isEdit) {
       // 新規登録時：電話番号を表示のみ
+      const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
       phoneSection = `
           <div class="mb-4">
-              <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
-              <input type="tel" id="reg-phone" value="${phoneValue}" class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
+              <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
+              <input type="tel" id="reg-phone" value="${formattedPhoneValue}" class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
           </div>`;
     } else if (isPhoneInputNeeded) {
       // プロフィール編集時：電話番号入力が必要
+      const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
       phoneSection = `
           <div class="mb-4">
-              <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">電話番号</label>
-              <input type="tel" id="edit-phone" value="${phoneValue}"
+              <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
+              <input type="tel" id="edit-phone" value="${formattedPhoneValue}"
                      class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678"
                      autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
-              <p class="text-sm text-brand-subtle mt-1">電話番号を登録すると次回からスムーズにログインできます。</p>
+              <p class="text-sm text-brand-subtle mt-1">携帯電話番号を登録すると次回からスムーズにログインできます。</p>
           </div>`;
     } else {
       // プロフィール編集時：電話番号表示のみ
+      const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
       phoneSection = `
           <div class="mb-4">
-              <label class="block text-brand-text text-base font-bold mb-2">電話番号</label>
-              <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block"><span class="font-mono-numbers">${phoneValue}</span></p>
+              <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
+              <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block"><span class="font-mono-numbers">${formattedPhoneValue}</span></p>
           </div>`;
     }
 
@@ -7424,38 +7434,40 @@ const ENVIRONMENT_CONFIG = {
 
     const nameIdPrefix = isEdit ? 'edit' : 'reg';
 
-    return `
-          <div class="max-w-md mx-auto">
-              <h1 class="text-xl font-bold text-brand-text mb-4">${title}</h1>
-              ${description}
-              <div class="space-y-4">
-                ${Components.input({
-                  id: `${nameIdPrefix}-realname`,
-                  label: 'お名前 *必須項目*',
-                  type: 'text',
-                  required: true,
-                  value: realNameValue,
-                  containerClass: '',
-                  autocomplete: 'name',
-                })}
-                ${Components.input({
-                  id: `${nameIdPrefix}-nickname`,
-                  label: 'ニックネーム（表示名）',
-                  caption: '他の生徒さんにも表示されます',
-                  type: 'text',
-                  value: nicknameValue,
-                  placeholder: '空欄の場合はお名前',
-                  containerClass: '',
-                })}
-                ${phoneSection}
-                ${emailSection}
-              </div>
+    return Components.pageContainer({
+      maxWidth: 'md',
+      content: `
+        <h1 class="text-xl font-bold text-brand-text text-center mb-4">${title}</h1>
+        ${description}
+        <form id="${isEdit ? 'edit-profile-form' : 'register-step1-form'}" class="space-y-4">
+          ${Components.input({
+            id: `${nameIdPrefix}-realname`,
+            label: 'お名前 *必須項目*',
+            type: 'text',
+            required: true,
+            value: realNameValue,
+            containerClass: '',
+            autocomplete: 'name',
+          })}
+          ${Components.input({
+            id: `${nameIdPrefix}-nickname`,
+            label: 'ニックネーム（表示名）',
+            caption: '他の生徒さんにも表示されます',
+            type: 'text',
+            value: nicknameValue,
+            placeholder: '空欄の場合はお名前',
+            containerClass: '',
+          })}
+          ${phoneSection}
+          ${emailSection}
+        </form>
 
-              ${Components.actionButtonSection({
-                ...buttonConfig,
-                layout: 'horizontal',
-              })}
-          </div>`;
+        ${Components.actionButtonSection({
+          ...buttonConfig,
+          layout: 'horizontal',
+        })}
+      `,
+    });
   };
 
   /**
@@ -7517,153 +7529,142 @@ const ENVIRONMENT_CONFIG = {
               <span class="text-brand-text text-sm">メール連絡を希望します（教室日程、予約受付、など）</span>
             </label>
           </div>
-          ${Components.input({ id: 'q-address', label: '住所（市区町村のみ）', type: 'text', value: data?.address || '', required: false })}
-          <div>
-            <label class="block text-brand-text text-sm font-medium mb-2">年代</label>
-            <select id="q-age" name="ageGroup" class="${DesignConfig.inputs.base}">${ageOptions}</select>
-          </div>
-          <div>
-            <label class="block text-brand-text text-sm font-medium mb-2">性別</label>
-            <div class="space-y-2">${genderOptions}</div>
-          </div>
-          <div>
-            <label class="block text-brand-text text-sm font-medium mb-2">利き手</label>
-            <div class="space-y-2">${handOptions}</div>
-          </div>
-          ${Components.actionButtonSection({
-            secondaryButton: {
-              text: 'もどる',
-              action: 'goBackToStep1',
-              style: 'secondary',
-            },
-            primaryButton: {
-              text: 'すすむ',
-              action: 'goToStep3',
-              style: 'primary',
-            },
-            layout: 'horizontal',
-          })}
+          ${Components.select({ id: 'q-age-group', label: '年代', options: ageOptions })}
+          <div><label class="block text-brand-text text-base font-bold mb-2">性別</label><div class="flex space-x-4">${genderOptions}</div></div>
+          <div><label class="block text-brand-text text-base font-bold mb-2">利き手</label><div class="flex space-x-4">${handOptions}</div></div>
+          ${Components.input({ id: 'q-address', label: '住所（市区町村まででOK！）', type: 'text', value: (data && data.address) || '' })}
         </form>
+        ${Components.actionButtonSection({
+          secondaryButton: {
+            text: 'もどる',
+            action: 'backToStep1',
+            style: 'secondary',
+          },
+          primaryButton: {
+            text: 'すすむ',
+            action: 'goToStep3',
+            style: 'primary',
+          },
+          layout: 'horizontal',
+        })}
       `,
     });
   };
 
   /**
-   * 新規登録フローのステップ3（参加動機・経験）
-   * 【設計方針】ユーザーの背景を理解し、適切な指導を行うためのアンケート
-   * @returns {string} 参加動機フォームのHTML文字列
+   * 新規登録フローのステップ3（木彫り関連情報）
+   * 【UX配慮】動的表示制御により、経験者には詳細質問を表示
+   * @returns {string} 木彫りアンケートフォームのHTML文字列
    */
   const getRegistrationStep3View = () => {
-    const data = /** @type {RegistrationFormData} */ (
-      stateManager.getState()['registrationData'] || {}
-    );
-
-    return Components.pageContainer({
-      maxWidth: 'md',
-      content: `
-        <h1 class="text-xl font-bold text-brand-text mb-4 text-center">ご経験・ご希望について</h1>
-        <form id="step3-form" class="space-y-6">
-          ${Components.textarea({
-            id: 'q-experience',
-            label: '木彫りや手工芸のご経験',
-            value: data['experience'] || '',
-            placeholder:
-              '例：全くの初心者です、数年前に一度体験したことがあります、彫刻刀は使ったことがあります、など',
-            rows: 3,
-          })}
-          ${Components.textarea({
-            id: 'q-past-work',
-            label: '過去に作った作品や手工芸（なければ空欄で）',
-            value: data['pastWork'] || '',
-            placeholder:
-              '例：学校の図工で木彫りをしました、趣味で粘土を触ったことがあります、など',
-            rows: 2,
-          })}
-          ${Components.textarea({
-            id: 'q-future-goal',
-            label: '将来的に作ってみたいもの',
-            value: data['futureGoal'] || '',
-            placeholder: '例：小さな動物の置物、実用的な器、など',
-            rows: 2,
-          })}
-          ${Components.actionButtonSection({
-            secondaryButton: {
-              text: 'もどる',
-              action: 'goBackToStep2',
-              style: 'secondary',
-            },
-            primaryButton: {
-              text: 'すすむ',
-              action: 'goToStep4',
-              style: 'primary',
-            },
-            layout: 'horizontal',
-          })}
-        </form>
-      `,
-    });
-  };
-
-  /**
-   * 新規登録フローのステップ4（参加頻度・きっかけ）
-   * 【設計方針】教室運営の参考データ収集
-   * @returns {string} 最終アンケートフォームのHTML文字列
-   */
-  const getRegistrationStep4View = () => {
-    const data = /** @type {RegistrationFormData} */ (
-      stateManager.getState()['registrationData'] || {}
-    );
-
-    const participationOptions = [
-      '月1回程度',
-      '月2-3回程度',
-      '週1回程度',
-      '不定期（時間があるとき）',
-      'まだ分からない',
-    ]
+    const data = stateManager.getState()['registrationData'];
+    const experienceOptions = ['はじめて！', 'ちょっと', 'そこそこ', 'かなり！']
       .map(
         opt =>
-          `<label class="flex items-center space-x-2"><input type="radio" name="futureParticipation" value="${opt}" ${data['futureParticipation'] === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
+          `<label class="flex items-center space-x-2"><input type="radio" name="experience" value="${opt}" ${data['experience'] === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
       )
       .join('');
 
     return Components.pageContainer({
       maxWidth: 'md',
       content: `
-        <h1 class="text-xl font-bold text-brand-text mb-4 text-center">参加について</h1>
-        <form id="step4-form" class="space-y-6">
+        <h1 class="text-xl font-bold text-brand-text mb-4 text-center">木彫りについて</h1>
+        <form id="step3-form" class="space-y-6">
           <div>
-            <label class="block text-brand-text text-sm font-medium mb-3">今後の参加頻度の希望</label>
-            <div class="space-y-2">${participationOptions}</div>
+            <label class="block text-brand-text text-base font-bold mb-2">木彫りの経験はありますか？</label>
+            <div class="space-y-2" id="experience-radio-group">${experienceOptions}</div>
+          </div>
+          <div id="past-work-container" class="${data['experience'] && data['experience'] !== 'はじめて！' ? '' : 'hidden'}">
+            ${Components.textarea({
+              id: 'q-past-work',
+              label: 'いつ頃、どこで、何を作りましたか？',
+              value: data['pastWork'] || '',
+              placeholder: 'だいたいでOK！',
+            })}
           </div>
           ${Components.textarea({
-            id: 'q-trigger',
-            label: '木彫り教室を知ったきっかけ',
-            value: data['trigger'] || '',
-            placeholder: '例：友人の紹介、ウェブ検索、SNS、など',
-            rows: 2,
-          })}
-          ${Components.textarea({
-            id: 'q-first-message',
-            label: '講師へのメッセージ（任意）',
-            value: data['firstMessage'] || '',
-            placeholder: '何かございましたら、お気軽にお書きください',
-            rows: 3,
-          })}
-          ${Components.actionButtonSection({
-            secondaryButton: {
-              text: 'もどる',
-              action: 'goBackToStep3',
-              style: 'secondary',
-            },
-            primaryButton: {
-              text: '登録完了',
-              action: 'completeRegistration',
-              style: 'primary',
-            },
-            layout: 'horizontal',
+            id: 'q-future-goal',
+            label: '将来的に制作したいものはありますか？',
+            value: data['futureGoal'] || '',
+            placeholder: '曖昧な内容でも大丈夫！',
           })}
         </form>
+        ${Components.actionButtonSection({
+          secondaryButton: {
+            text: 'もどる',
+            action: 'backToStep2',
+            style: 'secondary',
+          },
+          primaryButton: {
+            text: 'すすむ',
+            action: 'proceedToStep4',
+            style: 'primary',
+          },
+          layout: 'horizontal',
+        })}
+      `,
+    });
+  };
+
+  /**
+   * 新規登録フローのステップ4（アンケート）
+   * 【設計方針】最終ステップでユーザーの参加意向とフィードバックを収集
+   * @returns {string} アンケートフォームのHTML文字列
+   */
+  const getRegistrationStep4View = () => {
+    const data = stateManager.getState()['registrationData'];
+    const participationOptions = [
+      '毎月通いたい！',
+      '2,3ヶ月ごとくらいで通いたい！',
+      'これるときにたまに通いたい！',
+      '1回やってみたい！',
+      '通いたいがむずかしい…',
+    ]
+      .map(
+        opt =>
+          `<label class="flex items-center space-x-2 p-2 rounded hover:bg-ui-surface cursor-pointer">
+              <input type="radio" name="futureParticipation" value="${opt}" ${data['futureParticipation'] === opt ? 'checked' : ''} class="text-action-primary-bg focus:ring-action-primary-bg">
+              <span class="text-brand-text">${opt}</span>
+            </label>`,
+      )
+      .join('');
+
+    return Components.pageContainer({
+      maxWidth: 'md',
+      content: `
+        <h1 class="text-xl font-bold text-brand-text mb-4 text-center">アンケート</h1>
+        <form id="step4-form" class="space-y-6">
+          <div>
+            <label class="block text-brand-text text-base font-bold mb-3">今後のご参加について</label>
+            <div class="space-y-2" id="participation-radio-group">${participationOptions}</div>
+          </div>
+
+          ${Components.textarea({
+            id: 'q-trigger',
+            label: 'この教室を知ったきっかけは？参加しようと思ったきっかけは？',
+            value: data['trigger'] || '',
+          })}
+
+          ${Components.textarea({
+            id: 'q-first-message',
+            label: 'メッセージ',
+            value: data['firstMessage'] || '',
+            placeholder: 'その他コメント・要望・意見など、あればどうぞ〜',
+          })}
+        </form>
+        ${Components.actionButtonSection({
+          secondaryButton: {
+            text: 'もどる',
+            action: 'backToStep3',
+            style: 'secondary',
+          },
+          primaryButton: {
+            text: 'とうろく する！',
+            action: 'submitRegistration',
+            style: 'primary',
+          },
+          layout: 'horizontal',
+        })}
       `,
     });
   };
@@ -7679,13 +7680,13 @@ const ENVIRONMENT_CONFIG = {
       content: `
         <div class="text-center mb-6">
           <h1 class="text-2xl font-bold text-brand-text mb-2">ユーザー検索</h1>
-          <p class="text-brand-subtle">電話番号でユーザー情報を検索できます</p>
+          <p class="text-brand-subtle">携帯電話番号でユーザー情報を検索できます</p>
         </div>
 
         <div class="space-y-4">
           ${Components.input({
             id: 'search-phone',
-            label: '電話番号',
+            label: '携帯電話番号',
             type: 'tel',
             placeholder: '090 1234 5678',
             autocomplete: 'tel',
@@ -9638,44 +9639,44 @@ const ENVIRONMENT_CONFIG = {
 
     /** 新規ユーザー登録：Step2からStep1へもどる */
     backToStep1: () => {
-      const realNameInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('reg-realname')
+      const emailInput = /** @type {HTMLInputElement | null} */ (
+        document.getElementById('q-email')
       );
-      const nicknameInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('reg-nickname')
+      const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
+        document.getElementById('q-wants-email')
       );
-      const phoneInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('reg-phone')
+      const ageGroupInput = /** @type {HTMLSelectElement | null} */ (
+        document.getElementById('q-age-group')
+      );
+      const genderInput = /** @type {HTMLInputElement | null} */ (
+        document.querySelector('input[name="gender"]:checked')
+      );
+      const dominantHandInput = /** @type {HTMLInputElement | null} */ (
+        document.querySelector('input[name="dominantHand"]:checked')
+      );
+      const addressInput = /** @type {HTMLInputElement | null} */ (
+        document.getElementById('q-address')
       );
 
-      const realName = realNameInput?.value;
-      const nickname = nicknameInput?.value;
-      const phone = phoneInput?.value;
-      if (realName || nickname || phone) {
-        const currentState = stateManager.getState();
-        const updatedRegistrationData = {
-          .../** @type {any} */ (currentState['registrationData'] || {}),
-          realName:
-            realName ||
-            /** @type {any} */ (currentState['registrationData'])?.realName ||
-            '',
-          nickname:
-            nickname ||
-            /** @type {any} */ (currentState['registrationData'])?.nickname ||
-            '',
-          phone:
-            phone ||
-            /** @type {any} */ (currentState['registrationData'])?.phone ||
-            '',
-        };
-        window.stateManager.dispatch({
-          type: 'SET_STATE',
-          payload: { registrationData: updatedRegistrationData },
-        });
-      }
+      const step2Data = {
+        email: emailInput?.value || '',
+        wantsEmail: wantsEmailInput?.checked || false,
+        ageGroup: ageGroupInput?.value || '',
+        gender: genderInput?.value || '',
+        dominantHand: dominantHandInput?.value || '',
+        address: addressInput?.value || '',
+      };
+
       window.stateManager.dispatch({
         type: 'SET_STATE',
-        payload: { view: 'register', registrationStep: 1 },
+        payload: {
+          registrationData: {
+            .../** @type {any} */ (stateManager.getState())?.['registrationData'],
+            ...step2Data,
+          },
+          registrationStep: 1,
+          view: 'register',
+        },
       });
     },
 
@@ -9803,10 +9804,19 @@ const ENVIRONMENT_CONFIG = {
         (
           /** @type {ServerResponse<{ user: UserData; message: string }>} */ res,
         ) => {
+          if (!window.isProduction) {
+            console.log('🔍 registerNewUser レスポンス:', res);
+          }
+          hideLoading();
           if (res.success && res.data) {
-            // 登録後、バッチ処理で初期データと空席情報を一括取得
+            // 登録成功時は、バッチ処理結果に関わらずダッシュボードに遷移
+            showLoading('booking');
             google.script.run['withSuccessHandler'](
               (/** @type {BatchDataResponse} */ batchResult) => {
+                if (!window.isProduction) {
+                  console.log('🔍 getBatchData レスポンス:', batchResult);
+                }
+                hideLoading();
                 if (batchResult.success && batchResult.data) {
                   const newAppState = processInitialData(
                     batchResult.data.initial,
@@ -9822,15 +9832,28 @@ const ENVIRONMENT_CONFIG = {
                       view: 'dashboard',
                     },
                   });
-                  hideLoading();
                 } else {
-                  hideLoading();
-                  showInfo(batchResult.message || 'データの取得に失敗しました');
+                  // バッチデータ取得に失敗してもダッシュボードに遷移
+                  window.stateManager.dispatch({
+                    type: 'SET_STATE',
+                    payload: {
+                      currentUser: res.data.user,
+                      view: 'dashboard',
+                    },
+                  });
                 }
               },
             )
               ['withFailureHandler']((/** @type {Error} */ error) => {
                 hideLoading();
+                // バッチデータ取得に失敗してもダッシュボードに遷移
+                window.stateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: {
+                    currentUser: res.data.user,
+                    view: 'dashboard',
+                  },
+                });
                 if (window.FrontendErrorHandler) {
                   window.FrontendErrorHandler.handle(
                     error,
@@ -9838,11 +9861,9 @@ const ENVIRONMENT_CONFIG = {
                     { finalUserData },
                   );
                 }
-                handleServerError(error);
               })
               .getBatchData(['initial', 'lessons']);
           } else {
-            hideLoading();
             showInfo(res.message || '登録に失敗しました');
           }
         },
@@ -10993,13 +11014,8 @@ const ENVIRONMENT_CONFIG = {
       } else if (digitsOnly.length <= 7) {
         formatted = `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3)}`;
       } else if (digitsOnly.length <= 11) {
-        if (digitsOnly.length === 10) {
-          // 10桁の場合: 03-1234-5678
-          formatted = `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 6)} ${digitsOnly.slice(6)}`;
-        } else {
-          // 11桁の場合: 090-1234-5678
-          formatted = `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3, 7)} ${digitsOnly.slice(7)}`;
-        }
+        // 11桁の場合: 090-1234-5678
+        formatted = `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3, 7)} ${digitsOnly.slice(7)}`;
       } else {
         // 11桁を超える場合は11桁までに制限
         const truncated = digitsOnly.slice(0, 11);
@@ -11018,6 +11034,29 @@ const ENVIRONMENT_CONFIG = {
       );
       inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
     }
+  }
+
+  /**
+   * 電話番号を表示用にフォーマットする（090 1234 5678 形式）
+   * @param {string} phoneNumber - フォーマットする電話番号
+   * @returns {string} フォーマットされた電話番号
+   */
+  function formatPhoneNumberForDisplay(phoneNumber) {
+    if (!phoneNumber) return '';
+
+    // アポストロフィや記号を除去して数字のみにする
+    const digitsOnly = phoneNumber.replace(/[^\d]/g, '');
+
+    if (digitsOnly.length === 11) {
+      // 11桁の場合: 090 1234 5678
+      return `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3, 7)} ${digitsOnly.slice(7)}`;
+    } else if (digitsOnly.length === 10) {
+      // 10桁の場合: 03 1234 5678
+      return `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 6)} ${digitsOnly.slice(6)}`;
+    }
+
+    // その他の場合はそのまま返す
+    return phoneNumber;
   }
 
   // =================================================================
@@ -11169,18 +11208,12 @@ const ENVIRONMENT_CONFIG = {
       String.fromCharCode(s.charCodeAt(0) - 65248),
     );
 
-    // 各種ハイフンを削除
-    normalized = normalized.replace(/[‐－\\-]/g, '');
+    // 各種区切り文字と+記号を削除（ハイフン、スペース、括弧、ピリオド、+など）
+    normalized = normalized.replace(/[-‐－—–\s\(\)\[\]\.\+]/g, '');
 
-    // 空白文字を削除
-    normalized = normalized.replace(/\s/g, '');
-
-    // 国番号の自動修正処理
-    // +81または81で始まる場合は日本の標準形式に変換
-    if (normalized.startsWith('+81')) {
-      normalized = '0' + normalized.substring(3);
-    } else if (normalized.startsWith('81') && normalized.length >= 12) {
-      // 81で始まり、12桁以上の場合（81 + 11桁の日本の番号）
+    // 国番号の自動修正処理（桁数チェック前に実行）
+    // 行頭の81を0に置き換え（日本の国番号81 → 0）
+    if (normalized.startsWith('81') && normalized.length >= 12) {
       normalized = '0' + normalized.substring(2);
     }
 
@@ -11193,21 +11226,21 @@ const ENVIRONMENT_CONFIG = {
       };
     }
 
-    // 桁数チェック（日本の携帯・固定電話は11桁または10桁）
-    if (normalized.length !== 11 && normalized.length !== 10) {
+    // 桁数チェック（携帯電話番号は11桁のみ）
+    if (normalized.length !== 11) {
       return {
         normalized: '',
         isValid: false,
-        error: '電話番号は10桁または11桁で入力してください',
+        error: '携帯電話番号は11桁で入力してください',
       };
     }
 
-    // 先頭番号チェック（日本の電話番号パターン）
-    if (normalized.length === 11 && !normalized.startsWith('0')) {
+    // 先頭番号チェック（携帯電話番号は0から始まる）
+    if (!normalized.startsWith('0')) {
       return {
         normalized: '',
         isValid: false,
-        error: '11桁の電話番号は0から始まる必要があります',
+        error: '携帯電話番号は0から始まる必要があります',
       };
     }
 

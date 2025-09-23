@@ -660,6 +660,12 @@ const addCustomStyles = () => {
         font-size: 1rem; /* プレースホルダと入力時のフォントサイズを統一 */
       }
 
+      /* メールアドレス入力フィールドを広く */
+      input[type="email"] {
+        min-width: 280px;
+        width: 100%;
+      }
+
       /* プレースホルダのフォントサイズを明示的に設定 */
       input[type="tel"]::placeholder, input[type="email"]::placeholder {
         font-size: 1rem;

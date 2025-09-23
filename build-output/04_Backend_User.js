@@ -391,8 +391,10 @@ function registerNewUser(userInfo) {
         );
         return {
           success: true,
-          user: newUserInfo,
-          initialData: initialData.data,
+          data: {
+            user: newUserInfo,
+            message: '新規ユーザー登録が完了しました',
+          },
         };
       } else {
         throw new Error(

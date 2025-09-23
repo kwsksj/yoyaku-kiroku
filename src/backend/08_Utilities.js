@@ -759,11 +759,14 @@ function normalizePhoneNumber(phoneInput) {
     String.fromCharCode(s.charCodeAt(0) - 65248),
   );
 
-  // 各種ハイフンを削除
-  normalized = normalized.replace(/[‐－\-]/g, '');
+  // 各種区切り文字と+記号を削除（ハイフン、スペース、括弧、ピリオド、+など）
+  normalized = normalized.replace(/[-‐－—–\s\(\)\[\]\.\+]/g, '');
 
-  // 空白文字を削除
-  normalized = normalized.replace(/\s/g, '');
+  // 国番号の自動修正処理（桁数チェック前に実行）
+  // 行頭の81を0に置き換え（日本の国番号81 → 0）
+  if (normalized.startsWith('81') && normalized.length >= 12) {
+    normalized = '0' + normalized.substring(2);
+  }
 
   // 数字以外の文字をチェック
   if (!/^\d+$/.test(normalized)) {
@@ -774,21 +777,21 @@ function normalizePhoneNumber(phoneInput) {
     };
   }
 
-  // 桁数チェック（日本の携帯・固定電話は11桁または10桁）
-  if (normalized.length !== 11 && normalized.length !== 10) {
+  // 桁数チェック（携帯電話番号は11桁のみ）
+  if (normalized.length !== 11) {
     return {
       normalized: '',
       isValid: false,
-      error: '電話番号は10桁または11桁で入力してください',
+      error: '携帯電話番号は11桁で入力してください',
     };
   }
 
-  // 先頭番号チェック（日本の電話番号パターン）
-  if (normalized.length === 11 && !normalized.startsWith('0')) {
+  // 先頭番号チェック（携帯電話番号は0から始まる）
+  if (!normalized.startsWith('0')) {
     return {
       normalized: '',
       isValid: false,
-      error: '11桁の電話番号は0から始まる必要があります',
+      error: '携帯電話番号は0から始まる必要があります',
     };
   }
 

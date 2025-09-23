@@ -221,13 +221,8 @@ function handlePhoneInputFormatting(inputElement) {
     } else if (digitsOnly.length <= 7) {
       formatted = `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3)}`;
     } else if (digitsOnly.length <= 11) {
-      if (digitsOnly.length === 10) {
-        // 10桁の場合: 03-1234-5678
-        formatted = `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 6)} ${digitsOnly.slice(6)}`;
-      } else {
-        // 11桁の場合: 090-1234-5678
-        formatted = `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3, 7)} ${digitsOnly.slice(7)}`;
-      }
+      // 11桁の場合: 090-1234-5678
+      formatted = `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3, 7)} ${digitsOnly.slice(7)}`;
     } else {
       // 11桁を超える場合は11桁までに制限
       const truncated = digitsOnly.slice(0, 11);
@@ -246,6 +241,29 @@ function handlePhoneInputFormatting(inputElement) {
     );
     inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
   }
+}
+
+/**
+ * 電話番号を表示用にフォーマットする（090 1234 5678 形式）
+ * @param {string} phoneNumber - フォーマットする電話番号
+ * @returns {string} フォーマットされた電話番号
+ */
+function formatPhoneNumberForDisplay(phoneNumber) {
+  if (!phoneNumber) return '';
+
+  // アポストロフィや記号を除去して数字のみにする
+  const digitsOnly = phoneNumber.replace(/[^\d]/g, '');
+
+  if (digitsOnly.length === 11) {
+    // 11桁の場合: 090 1234 5678
+    return `${digitsOnly.slice(0, 3)} ${digitsOnly.slice(3, 7)} ${digitsOnly.slice(7)}`;
+  } else if (digitsOnly.length === 10) {
+    // 10桁の場合: 03 1234 5678
+    return `${digitsOnly.slice(0, 2)} ${digitsOnly.slice(2, 6)} ${digitsOnly.slice(6)}`;
+  }
+
+  // その他の場合はそのまま返す
+  return phoneNumber;
 }
 
 // =================================================================
@@ -397,18 +415,12 @@ window.normalizePhoneNumberFrontend = function (phoneInput) {
     String.fromCharCode(s.charCodeAt(0) - 65248),
   );
 
-  // 各種ハイフンを削除
-  normalized = normalized.replace(/[‐－\\-]/g, '');
+  // 各種区切り文字と+記号を削除（ハイフン、スペース、括弧、ピリオド、+など）
+  normalized = normalized.replace(/[-‐－—–\s\(\)\[\]\.\+]/g, '');
 
-  // 空白文字を削除
-  normalized = normalized.replace(/\s/g, '');
-
-  // 国番号の自動修正処理
-  // +81または81で始まる場合は日本の標準形式に変換
-  if (normalized.startsWith('+81')) {
-    normalized = '0' + normalized.substring(3);
-  } else if (normalized.startsWith('81') && normalized.length >= 12) {
-    // 81で始まり、12桁以上の場合（81 + 11桁の日本の番号）
+  // 国番号の自動修正処理（桁数チェック前に実行）
+  // 行頭の81を0に置き換え（日本の国番号81 → 0）
+  if (normalized.startsWith('81') && normalized.length >= 12) {
     normalized = '0' + normalized.substring(2);
   }
 
@@ -421,21 +433,21 @@ window.normalizePhoneNumberFrontend = function (phoneInput) {
     };
   }
 
-  // 桁数チェック（日本の携帯・固定電話は11桁または10桁）
-  if (normalized.length !== 11 && normalized.length !== 10) {
+  // 桁数チェック（携帯電話番号は11桁のみ）
+  if (normalized.length !== 11) {
     return {
       normalized: '',
       isValid: false,
-      error: '電話番号は10桁または11桁で入力してください',
+      error: '携帯電話番号は11桁で入力してください',
     };
   }
 
-  // 先頭番号チェック（日本の電話番号パターン）
-  if (normalized.length === 11 && !normalized.startsWith('0')) {
+  // 先頭番号チェック（携帯電話番号は0から始まる）
+  if (!normalized.startsWith('0')) {
     return {
       normalized: '',
       isValid: false,
-      error: '11桁の電話番号は0から始まる必要があります',
+      error: '携帯電話番号は0から始まる必要があります',
     };
   }
 

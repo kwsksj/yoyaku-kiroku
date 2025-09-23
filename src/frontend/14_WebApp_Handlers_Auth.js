@@ -195,44 +195,44 @@ const authActionHandlers = {
 
   /** 新規ユーザー登録：Step2からStep1へもどる */
   backToStep1: () => {
-    const realNameInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('reg-realname')
+    const emailInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('q-email')
     );
-    const nicknameInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('reg-nickname')
+    const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('q-wants-email')
     );
-    const phoneInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('reg-phone')
+    const ageGroupInput = /** @type {HTMLSelectElement | null} */ (
+      document.getElementById('q-age-group')
+    );
+    const genderInput = /** @type {HTMLInputElement | null} */ (
+      document.querySelector('input[name="gender"]:checked')
+    );
+    const dominantHandInput = /** @type {HTMLInputElement | null} */ (
+      document.querySelector('input[name="dominantHand"]:checked')
+    );
+    const addressInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('q-address')
     );
 
-    const realName = realNameInput?.value;
-    const nickname = nicknameInput?.value;
-    const phone = phoneInput?.value;
-    if (realName || nickname || phone) {
-      const currentState = stateManager.getState();
-      const updatedRegistrationData = {
-        .../** @type {any} */ (currentState['registrationData'] || {}),
-        realName:
-          realName ||
-          /** @type {any} */ (currentState['registrationData'])?.realName ||
-          '',
-        nickname:
-          nickname ||
-          /** @type {any} */ (currentState['registrationData'])?.nickname ||
-          '',
-        phone:
-          phone ||
-          /** @type {any} */ (currentState['registrationData'])?.phone ||
-          '',
-      };
-      window.stateManager.dispatch({
-        type: 'SET_STATE',
-        payload: { registrationData: updatedRegistrationData },
-      });
-    }
+    const step2Data = {
+      email: emailInput?.value || '',
+      wantsEmail: wantsEmailInput?.checked || false,
+      ageGroup: ageGroupInput?.value || '',
+      gender: genderInput?.value || '',
+      dominantHand: dominantHandInput?.value || '',
+      address: addressInput?.value || '',
+    };
+
     window.stateManager.dispatch({
       type: 'SET_STATE',
-      payload: { view: 'register', registrationStep: 1 },
+      payload: {
+        registrationData: {
+          .../** @type {any} */ (stateManager.getState())?.['registrationData'],
+          ...step2Data,
+        },
+        registrationStep: 1,
+        view: 'register',
+      },
     });
   },
 
@@ -360,10 +360,19 @@ const authActionHandlers = {
       (
         /** @type {ServerResponse<{ user: UserData; message: string }>} */ res,
       ) => {
+        if (!window.isProduction) {
+          console.log('🔍 registerNewUser レスポンス:', res);
+        }
+        hideLoading();
         if (res.success && res.data) {
-          // 登録後、バッチ処理で初期データと空席情報を一括取得
+          // 登録成功時は、バッチ処理結果に関わらずダッシュボードに遷移
+          showLoading('booking');
           google.script.run['withSuccessHandler'](
             (/** @type {BatchDataResponse} */ batchResult) => {
+              if (!window.isProduction) {
+                console.log('🔍 getBatchData レスポンス:', batchResult);
+              }
+              hideLoading();
               if (batchResult.success && batchResult.data) {
                 const newAppState = processInitialData(
                   batchResult.data.initial,
@@ -379,15 +388,28 @@ const authActionHandlers = {
                     view: 'dashboard',
                   },
                 });
-                hideLoading();
               } else {
-                hideLoading();
-                showInfo(batchResult.message || 'データの取得に失敗しました');
+                // バッチデータ取得に失敗してもダッシュボードに遷移
+                window.stateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: {
+                    currentUser: res.data.user,
+                    view: 'dashboard',
+                  },
+                });
               }
             },
           )
             ['withFailureHandler']((/** @type {Error} */ error) => {
               hideLoading();
+              // バッチデータ取得に失敗してもダッシュボードに遷移
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  currentUser: res.data.user,
+                  view: 'dashboard',
+                },
+              });
               if (window.FrontendErrorHandler) {
                 window.FrontendErrorHandler.handle(
                   error,
@@ -395,11 +417,9 @@ const authActionHandlers = {
                   { finalUserData },
                 );
               }
-              handleServerError(error);
             })
             .getBatchData(['initial', 'lessons']);
         } else {
-          hideLoading();
           showInfo(res.message || '登録に失敗しました');
         }
       },

@@ -274,13 +274,14 @@ const Components = {
    * @param {TextareaConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  textarea: ({ id, label, value = '', placeholder = '' }) => {
+  textarea: ({ id, label, value = '', placeholder = '', rows = 5 }) => {
     return `<div class="mb-4">
         <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
         <textarea
           id="${id}"
           class="${DesignConfig.inputs['textarea']}"
           placeholder="${escapeHTML(placeholder)}"
+          rows="${rows}"
         >${escapeHTML(value)}</textarea>
       </div>`;
   },

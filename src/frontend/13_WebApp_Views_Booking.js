@@ -527,25 +527,7 @@ function _buildHistoryCardWithEditMode(
   accountingButtons,
   isInEditMode,
 ) {
-  const cardColorClass = `record-card ${DesignConfig.cards.state.history.card}`;
-
-  const editButtonsHtml = editButtons
-    .map(btn =>
-      Components.button({
-        action: btn.action,
-        text: btn.text,
-        style: btn.style || 'secondary',
-        size: btn.size || 'xs',
-        dataAttributes: {
-          classroom: historyItem.classroom,
-          reservationId: historyItem.reservationId,
-          date: String(historyItem.date),
-          ...(btn.details && { details: JSON.stringify(btn.details) }),
-        },
-      }),
-    )
-    .join('');
-
+  // 履歴カード特有の会計ボタン追加ロジック
   let allAccountingButtons = [...accountingButtons];
 
   if (isInEditMode) {
@@ -568,52 +550,14 @@ function _buildHistoryCardWithEditMode(
     }
   }
 
-  const accountingButtonsHtml = allAccountingButtons
-    .map(btn =>
-      Components.button({
-        action: btn.action,
-        text: btn.text,
-        style: btn.style || 'primary',
-        size: 'xs',
-        dataAttributes: {
-          classroom: historyItem.classroom,
-          reservationId: historyItem.reservationId,
-          date: String(historyItem.date),
-          ...(btn.details && { details: JSON.stringify(btn.details) }),
-        },
-      }),
-    )
-    .join('');
-
-  const dateTimeDisplay = historyItem.startTime
-    ? ` <span class="time-display">${historyItem.startTime}~${historyItem.endTime}</span>`.trim()
-    : '';
-  const classroomDisplay = historyItem.classroom
-    ? ` ${historyItem.classroom}`
-    : '';
-  const venueDisplay = historyItem.venue ? ` ${historyItem.venue}` : '';
-
-  const memoSection = Components.memoSection({
-    reservationId: historyItem.reservationId,
-    workInProgress: historyItem.workInProgress,
+  // listCard を使用してカードを生成
+  return Components.listCard({
+    item: historyItem,
+    badges: [], // 履歴カードはバッジなし
+    editButtons: editButtons,
+    accountingButtons: allAccountingButtons,
+    type: 'record',
     isEditMode: isInEditMode,
+    showMemoSaveButton: true,
   });
-
-  return `
-    <div class="w-full mb-4 px-0">
-      <div class="${cardColorClass} p-2 rounded-lg shadow-sm" data-reservation-id="${historyItem.reservationId}">
-        <div class="flex justify-between items-start mb-0">
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center flex-wrap">
-              <h3 class="font-bold text-brand-text">${formatDate(String(historyItem.date))} <span class="font-normal text-brand-subtle">${dateTimeDisplay}</span></h3>
-            </div>
-            <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)}</h4>
-          </div>
-          ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
-        </div>
-
-        ${memoSection}
-      </div>
-    </div>
-  `;
 };
