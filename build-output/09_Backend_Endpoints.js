@@ -43,7 +43,7 @@
 
 /**
  * 予約操作後に最新データを取得して返す汎用関数
- * @param {keyof ErrorMessages} operationType - 操作タイプ ('makeReservation'|'cancelReservation'|'updateReservation')
+ * @param {keyof ErrorMessages} operationType - 操作タイプ ('makeReservation'|'cancelReservation'|'updateReservation'|'accounting'|'login')
  * @param {Function} operationFunction - 実行する操作関数
  * @param {ReservationInfo|CancelInfo|ReservationDetails} operationParams - 操作関数に渡すパラメータ
  * @param {string} studentId - 対象生徒のID
@@ -60,8 +60,14 @@ function executeOperationAndGetLatestData(
   try {
     const result = operationFunction(operationParams);
     if (result.success) {
+      // 軽量化：ログイン時以外はinitialデータ（Schedule Master診断）を除外
+      const needsInitialData = operationType === 'login';
+      const dataTypesToFetch = needsInitialData
+        ? ['initial', 'reservations', 'lessons']
+        : ['reservations', 'lessons'];
+
       const batchResult = getBatchData(
-        ['initial', 'reservations', 'lessons'],
+        dataTypesToFetch,
         null,
         studentId,
       );
@@ -99,6 +105,8 @@ function executeOperationAndGetLatestData(
       makeReservation: '予約処理中にエラーが発生しました',
       cancelReservation: 'キャンセル処理中にエラーが発生しました',
       updateReservation: '更新処理中にエラーが発生しました',
+      accounting: '会計処理中にエラーが発生しました',
+      login: 'ログイン処理中にエラーが発生しました',
     };
 
     return createApiResponse(false, {
@@ -211,7 +219,7 @@ function updateReservationMemoAndGetLatestData(
  */
 function saveAccountingDetailsAndGetLatestData(payload) {
   return executeOperationAndGetLatestData(
-    'updateReservation',
+    'accounting',
     saveAccountingDetails,
     payload,
     payload.studentId,

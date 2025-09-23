@@ -22,6 +22,23 @@
  */
 
 // ================================================================================
+// 【ユーティリティ層】
+// ================================================================================
+
+/**
+ * 会計処理関連のローカルキャッシュをクリア
+ */
+function clearAccountingCache() {
+  // 一時的な支払いデータをクリア
+  if (typeof window !== 'undefined' && window.tempPaymentData) {
+    window.tempPaymentData = null;
+  }
+
+  // その他の会計関連の一時データがあればここでクリア
+  console.log('会計キャッシュクリア完了');
+}
+
+// ================================================================================
 // 【計算ロジック層】
 // ================================================================================
 
@@ -2174,23 +2191,31 @@ function processAccountingPayment(
           }
 
           if (response.success) {
+            // 会計キャッシュをクリア（ローカルの一時データをクリア）
+            if (typeof clearAccountingCache === 'function') {
+              clearAccountingCache();
+            }
+
             // データを最新に更新
             if (response.data && window.stateManager) {
               window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: response.data,
+                type: 'UPDATE_STATE',
+                payload: {
+                  myReservations: response.data.myReservations || [],
+                  lessons: response.data.lessons || [],
+                  initialData: response.data.initialData || {},
+                },
               });
             }
 
-            // 成功メッセージ表示
-            if (typeof showSuccess === 'function') {
-              showSuccess('会計情報と制作メモを記録しました。');
-            } else {
-              alert('会計情報と制作メモを記録しました。');
-            }
-
-            // ダッシュボードにもどる
-            handleBackToDashboard();
+            // 完了画面に遷移（会計完了として認識されるメッセージを使用）
+            window.stateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                view: 'complete',
+                completionMessage: '会計情報を記録しました。',
+              },
+            });
           } else {
             if (typeof showError === 'function') {
               showError('会計処理に失敗しました: ' + (response.message || ''));

@@ -307,13 +307,13 @@ function updateAppStateFromCache(targetView) {
       }); // フラグをクリア
 
       if (response.success && response.userFound) {
-        // バッチ処理結果からappStateを更新
-        const newAppState = processInitialData(
-          response.data.initial,
-          stateManager.getState().currentUser.phone,
-          response.data.lessons,
-          response.data.myReservations,
-        );
+        // バッチ処理結果からappStateを更新（initialDataなしでlessons、myReservationsのみ）
+        const existingState = stateManager.getState();
+        const newAppState = {
+          ...existingState,
+          lessons: response.data.lessons || [],
+          myReservations: response.data.myReservations || [],
+        };
         // 現在のビューと重要な状態は保持、ただしtargetViewが指定されていればそちらを優先
         const preservedState = {
           view: /** @type {ViewType} */ (
@@ -362,7 +362,7 @@ function updateAppStateFromCache(targetView) {
       },
     )
     .getBatchData(
-      ['initial', 'lessons'],
+      ['lessons'],
       stateManager.getState().currentUser.phone,
     );
 }

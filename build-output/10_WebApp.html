@@ -387,7 +387,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-23T17:28:52.963Z
+   * Generated: 2025-09-23T23:10:44.805Z
    * =================================================================
    */
 
@@ -2272,6 +2272,23 @@ const ENVIRONMENT_CONFIG = {
    * @property {Array} sales.materialItems
    * @property {Array} sales.productItems
    */
+
+  // ================================================================================
+  // 【ユーティリティ層】
+  // ================================================================================
+
+  /**
+   * 会計処理関連のローカルキャッシュをクリア
+   */
+  function clearAccountingCache() {
+    // 一時的な支払いデータをクリア
+    if (typeof window !== 'undefined' && window.tempPaymentData) {
+      window.tempPaymentData = null;
+    }
+
+    // その他の会計関連の一時データがあればここでクリア
+    console.log('会計キャッシュクリア完了');
+  }
 
   // ================================================================================
   // 【計算ロジック層】
@@ -4426,23 +4443,31 @@ const ENVIRONMENT_CONFIG = {
             }
 
             if (response.success) {
+              // 会計キャッシュをクリア（ローカルの一時データをクリア）
+              if (typeof clearAccountingCache === 'function') {
+                clearAccountingCache();
+              }
+
               // データを最新に更新
               if (response.data && window.stateManager) {
                 window.stateManager.dispatch({
-                  type: 'SET_STATE',
-                  payload: response.data,
+                  type: 'UPDATE_STATE',
+                  payload: {
+                    myReservations: response.data.myReservations || [],
+                    lessons: response.data.lessons || [],
+                    initialData: response.data.initialData || {},
+                  },
                 });
               }
 
-              // 成功メッセージ表示
-              if (typeof showSuccess === 'function') {
-                showSuccess('会計情報と制作メモを記録しました。');
-              } else {
-                alert('会計情報と制作メモを記録しました。');
-              }
-
-              // ダッシュボードにもどる
-              handleBackToDashboard();
+              // 完了画面に遷移（会計完了として認識されるメッセージを使用）
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'complete',
+                  completionMessage: '会計情報を記録しました。',
+                },
+              });
             } else {
               if (typeof showError === 'function') {
                 showError('会計処理に失敗しました: ' + (response.message || ''));
@@ -8796,8 +8821,8 @@ const ENVIRONMENT_CONFIG = {
       if (bookingLessonsHtml) {
         // 予約完了時と会計完了時で表記を変更
         const sectionTitle = isReservationComplete
-          ? '↓ さらに よやく をする ↓'
-          : '↓ つぎの よやく をする ↓';
+          ? '▼ さらに よやく ▼'
+          : '▼ つぎの よやく ▼';
 
         nextBookingHtml = `
             <div class="mt-0 pt-0">
@@ -8809,17 +8834,25 @@ const ENVIRONMENT_CONFIG = {
       }
     }
 
+    // チェックマークの色を状況に応じて変更
+    const checkmarkColorClass = isReservationComplete
+      ? 'text-state-available-text' // 予約完了時: 緑系
+      : 'text-yellow-500'; // 会計完了時: 黄色系
+
     return `
-      <div class="text-center pt-4">
-          <svg class="w-8 h-8 mx-auto text-state-available-text" fill="none" viewBox= "2 2 20 20" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-2 mb-2">ありがとうございました</h1>
-          <p class="${DesignConfig.colors.textSubtle} mb-2">${msg}</p>
+      <div class="text-center pt-6 pb-4">
+          <div class="mb-6">
+              <svg class="w-12 h-12 mx-auto ${checkmarkColorClass}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+          </div>
+
+          <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mb-3">ありがとうございました</h1>
+          <p class="${DesignConfig.colors.textSubtle} mb-6 text-lg">${msg}</p>
 
           ${emailNoticeHtml}
 
-          <div class="max-w-xs mx-auto mt-4">
+          <div class="max-w-xs mx-auto mt-6 mb-6">
                ${Components.button({
                  text: 'ホームへもどる',
                  action: 'goToDashboard',
@@ -11148,13 +11181,13 @@ const ENVIRONMENT_CONFIG = {
         }); // フラグをクリア
 
         if (response.success && response.userFound) {
-          // バッチ処理結果からappStateを更新
-          const newAppState = processInitialData(
-            response.data.initial,
-            stateManager.getState().currentUser.phone,
-            response.data.lessons,
-            response.data.myReservations,
-          );
+          // バッチ処理結果からappStateを更新（initialDataなしでlessons、myReservationsのみ）
+          const existingState = stateManager.getState();
+          const newAppState = {
+            ...existingState,
+            lessons: response.data.lessons || [],
+            myReservations: response.data.myReservations || [],
+          };
           // 現在のビューと重要な状態は保持、ただしtargetViewが指定されていればそちらを優先
           const preservedState = {
             view: /** @type {ViewType} */ (
@@ -11203,7 +11236,7 @@ const ENVIRONMENT_CONFIG = {
         },
       )
       .getBatchData(
-        ['initial', 'lessons'],
+        ['lessons'],
         stateManager.getState().currentUser.phone,
       );
   }

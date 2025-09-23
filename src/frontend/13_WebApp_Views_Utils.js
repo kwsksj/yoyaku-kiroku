@@ -157,8 +157,8 @@ const getCompleteView = msg => {
     if (bookingLessonsHtml) {
       // 予約完了時と会計完了時で表記を変更
       const sectionTitle = isReservationComplete
-        ? '↓ さらに よやく をする ↓'
-        : '↓ つぎの よやく をする ↓';
+        ? '▼ さらに よやく ▼'
+        : '▼ つぎの よやく ▼';
 
       nextBookingHtml = `
           <div class="mt-0 pt-0">
@@ -170,17 +170,25 @@ const getCompleteView = msg => {
     }
   }
 
+  // チェックマークの色を状況に応じて変更
+  const checkmarkColorClass = isReservationComplete
+    ? 'text-state-available-text' // 予約完了時: 緑系
+    : 'text-yellow-500'; // 会計完了時: 黄色系
+
   return `
-    <div class="text-center pt-4">
-        <svg class="w-8 h-8 mx-auto text-state-available-text" fill="none" viewBox= "2 2 20 20" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-        <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mt-2 mb-2">ありがとうございました</h1>
-        <p class="${DesignConfig.colors.textSubtle} mb-2">${msg}</p>
+    <div class="text-center pt-6 pb-4">
+        <div class="mb-6">
+            <svg class="w-12 h-12 mx-auto ${checkmarkColorClass}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+        </div>
+
+        <h1 class="text-2xl font-bold ${DesignConfig.colors.text} mb-3">ありがとうございました</h1>
+        <p class="${DesignConfig.colors.textSubtle} mb-6 text-lg">${msg}</p>
 
         ${emailNoticeHtml}
 
-        <div class="max-w-xs mx-auto mt-4">
+        <div class="max-w-xs mx-auto mt-6 mb-6">
              ${Components.button({
                text: 'ホームへもどる',
                action: 'goToDashboard',
