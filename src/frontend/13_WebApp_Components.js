@@ -167,6 +167,9 @@ const Components = {
       primary: DesignConfig.colors['primary'],
       secondary: DesignConfig.colors['secondary'],
       danger: DesignConfig.colors['danger'],
+      accounting: DesignConfig.colors['accounting'],
+      bookingCard: DesignConfig.buttons['bookingCard'],
+      recordCard: DesignConfig.buttons['recordCard'],
     };
 
     /** @type {Record<ComponentSize, string>} */
@@ -974,7 +977,7 @@ const Components = {
         Components.button({
           action: btn.action,
           text: btn.text,
-          style: /** @type {ComponentStyle} */ (btn.style || 'secondary'),
+          style: /** @type {ComponentStyle} */ (btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')),
           size: /** @type {ComponentSize} */ (btn.size || 'xs'),
           //          customClass: 'mobile-button',
           dataAttributes: {
@@ -993,7 +996,7 @@ const Components = {
         Components.button({
           action: btn.action,
           text: btn.text,
-          style: /** @type {ComponentStyle} */ (btn.style || 'primary'),
+          style: /** @type {ComponentStyle} */ (btn.style || 'accounting'),
           size: /** @type {ComponentSize} */ ('xs'),
           //          customClass: `mobile-button ${DesignConfig.colors.accounting}`,
           dataAttributes: {

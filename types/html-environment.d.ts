@@ -881,7 +881,7 @@ declare global {
   interface ButtonConfig {
     action?: string;
     text: string;
-    style?: 'primary' | 'secondary' | 'danger' | 'none';
+    style?: 'primary' | 'secondary' | 'danger' | 'none' | 'bookingCard' | 'recordCard' | 'accounting';
     size?: 'normal' | 'full' | 'small' | 'xs' | 'large';
     disabled?: boolean;
     customClass?: string;
@@ -1026,7 +1026,7 @@ declare global {
 
   // Component関数の一般化された型
   type ComponentSize = 'normal' | 'full' | 'small' | 'xs' | 'large';
-  type ComponentStyle = 'primary' | 'secondary' | 'danger' | 'none';
+  type ComponentStyle = 'primary' | 'secondary' | 'danger' | 'none' | 'bookingCard' | 'recordCard' | 'accounting';
 
   interface ComponentFunction<T = ComponentProps> {
     (config: T): HTMLString;
@@ -1192,7 +1192,7 @@ declare global {
     dataAttributes?: ComponentDataAttributes;
   }
 
-  type ComponentStyle = 'primary' | 'secondary' | 'danger' | 'none';
+  type ComponentStyle = 'primary' | 'secondary' | 'danger' | 'none' | 'bookingCard' | 'recordCard' | 'accounting';
   type ComponentSize = 'xs' | 'small' | 'normal' | 'large' | 'full';
 
   interface ComponentDataAttributes {

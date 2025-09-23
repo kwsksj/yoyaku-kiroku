@@ -116,7 +116,7 @@ const _buildEditButtons = booking => {
     buttons.push({
       action: 'goToEditReservation',
       text: '確認<br>編集',
-      style: 'secondary',
+      // style: カードタイプに応じて自動選択
     });
   }
 
@@ -137,7 +137,7 @@ const _buildAccountingButtons = booking => {
     buttons.push({
       action: 'goToAccounting',
       text: '会計',
-      style: 'primary',
+      style: 'accounting',
     });
   }
 
@@ -158,7 +158,7 @@ const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
     buttons.push({
       action: 'saveAndCloseMemo',
       text: 'メモを<br>保存',
-      style: 'primary',
+      // style: カードタイプに応じて自動選択
       size: 'xs',
       dataAttributes: {
         reservationId: reservationId,
@@ -169,7 +169,7 @@ const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
     buttons.push({
       action: 'expandHistoryCard',
       text: '確認<br>編集',
-      style: 'secondary',
+      // style: カードタイプに応じて自動選択
       size: 'xs',
     });
   }
@@ -193,7 +193,7 @@ const _buildHistoryAccountingButtons = historyItem => {
       buttons.push({
         action: 'editAccountingRecord',
         text: '会計を<br>修正',
-        style: 'primary',
+        style: 'accounting',
       });
     }
   }

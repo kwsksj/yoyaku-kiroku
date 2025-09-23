@@ -254,7 +254,7 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
       attention:
         'bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover', // 注意 (若葉色)
       accounting:
-        'bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover', // 会計 (アンバー)
+        'bg-orange-100 text-orange-800 active:bg-orange-200 border-2 border-orange-200', // 会計 (調和したオレンジ)
       danger:
         'bg-state-danger-bg text-state-danger-text active:bg-state-danger-hover', // 危険 (落ち着いた赤)
       success:
@@ -302,7 +302,12 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
       attention:
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover',
       accounting:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover',
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-orange-100 text-orange-800 active:bg-orange-200 border-2 border-orange-200',
+      // カード内ボタン専用スタイル（カードと調和する色）
+      bookingCard:
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-green-100 text-green-800 active:bg-green-200 border-2 border-green-200',
+      recordCard:
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-amber-100 text-amber-800 active:bg-amber-200 border-2 border-amber-200',
     },
 
     // テキストスタイル設定
@@ -356,7 +361,7 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
           text: 'text-state-booked-text',
         },
         history: {
-          card: 'bg-brand-light border-2 border-ui-border mobile-card',
+          card: 'bg-amber-50 border-2 border-amber-200 mobile-card',
         },
       },
     },
@@ -571,15 +576,23 @@ const addCustomStyles = () => {
         border-color: var(--brand-accent);
       }
 
-      /* よやくカード専用の温かみのある薄いピーチベージュ色 */
+      /* よやくカード専用のほんのり緑系色 */
       .bg-state-booked-bg {
-        background-color: #fef7f0 !important; /* 温かみのある薄いピーチベージュ */
+        background-color: #f0fdf4 !important; /* ほんのり緑系の薄い背景 */
       }
       .border-state-booked-border {
-        border-color: #fed7aa !important; /* 優しいオレンジベージュの境界線 */
+        border-color: #bbf7d0 !important; /* 優しい緑系の境界線 */
       }
       .text-state-booked-text {
-        color: #9a3412 !important; /* 落ち着いたオレンジブラウンでコントラスト確保 */
+        color: #15803d !important; /* 落ち着いた緑でコントラスト確保 */
+      }
+
+      /* きろくカード専用の茶色・ベージュ系色 */
+      .bg-amber-50 {
+        background-color: #fffbeb !important; /* 温かみのあるベージュ背景 */
+      }
+      .border-amber-200 {
+        border-color: #fde68a !important; /* 茶色系の境界線 */
       }
 
       /* ========== レイアウト改善 - memo.md問題対応 ========== */
@@ -1283,9 +1296,9 @@ const setupTailwindCSS = () => {
                 'waitlist-text': '#B45309',
                 'waitlist-bg': '#FFFBEB',
                 'waitlist-border': '#FDE68A',
-                'booked-text': '#44403C',
-                'booked-bg': '#F5F5F4',
-                'booked-border': '#E7E5E4',
+                'booked-text': '#15803D',
+                'booked-bg': '#F0FDF4',
+                'booked-border': '#BBF7D0',
                 'success-bg': '#F0FDF4',
                 'success-text': '#166534',
                 'success-border': '#A7F3D0',
