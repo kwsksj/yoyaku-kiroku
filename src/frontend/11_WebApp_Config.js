@@ -263,7 +263,8 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
       info: 'bg-ui-surface text-brand-text border-2 border-ui-border',
       warning:
         'bg-ui-warning-bg text-ui-warning-text border-2 border-ui-warning-border',
-      error: 'bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border',
+      error:
+        'bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border',
     },
 
     // 教室別のボタン色設定
@@ -349,7 +350,7 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
       background: 'bg-ui-surface border-2 border-ui-border',
       state: {
         available: {
-          card: 'bg-state-available-bg border-2 border-state-available-border mobile-card active:bg-state-success-hover',
+          card: 'bg-state-available-bg border-2 border-state-available-border mobile-card active:bg-state-available-hover',
           text: 'text-state-available-text',
         },
         waitlist: {
@@ -372,7 +373,8 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
       base: 'text-base w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
       textarea:
         'text-base w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
-      phone: 'text-base w-48 max-w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
+      phone:
+        'text-base w-48 max-w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
     },
   }
 );
@@ -418,7 +420,7 @@ const addCustomStyles = () => {
         --action-accounting: #F59E0B;/* Bright amber for accounting actions */
         --action-danger: #B91C1C;    /* A clear, strong red for danger */
 
-        --state-available: #5A8C36;  /* Lively green for available slots */
+        --state-available: #1E40AF;  /* Clear blue for available slots */
         --state-waitlist: #F59E0B;   /* Bright amber for waitlist */
         --state-booked: #785A4E;     /* Medium brown for booked slots */
 
@@ -452,30 +454,32 @@ const addCustomStyles = () => {
       /* Googleサイト埋め込み時のモバイル対応 */
       @media screen and (max-width: 768px) {
         body.embedded-in-google-sites {
-          padding-top: 60px; /* Googleサイトのメニューバー分の余白 */
+          padding-top: 0;
+          min-height: 100%;
         }
 
         body.embedded-in-google-sites .fixed.top-4 {
-          top: 70px; /* もどるボタン位置を調整 */
+          top: 1rem;
         }
 
-        .app-container {
-          min-height: calc(100vh - 60px);
+        body.embedded-in-google-sites #app {
+          min-height: 100vh;
         }
       }
 
       /* より大きなメニューバーの場合 */
       @media screen and (max-width: 480px) {
         body.embedded-in-google-sites {
-          padding-top: 80px;
+          padding-top: 0;
+          min-height: 100%;
         }
 
         body.embedded-in-google-sites .fixed.top-4 {
-          top: 90px; /* より小さなスクリーンでのもどるボタン調整 */
+          top: 1rem;
         }
 
-        .app-container {
-          min-height: calc(100vh - 80px);
+        body.embedded-in-google-sites #app {
+          min-height: 100vh;
         }
       }
 
@@ -608,12 +612,12 @@ const addCustomStyles = () => {
 
       /* Googleサイト埋め込み時のもどるボタン調整（問題#14対応） */
       body.embedded-in-google-sites .back-button-container {
-        top: 70px;
+        top: 1rem;
       }
 
       @media screen and (max-width: 480px) {
         body.embedded-in-google-sites .back-button-container {
-          top: 90px;
+          top: 1rem;
         }
       }
 
@@ -1156,6 +1160,11 @@ const setupMobileOptimizations = () => {
     // この処理により、vh単位がキーボード表示に影響されなくなる
     const vh = window.innerHeight * 0.01;
     document.documentElement.style.setProperty('--vh', `${vh}px`);
+
+    // 埋め込み環境での基本調整のみ
+    if (document.body.classList.contains('embedded-in-google-sites')) {
+      console.log('Googleサイト埋め込み環境を検出しました');
+    }
   };
 
   // 初期化時とウィンドウサイズ変更時に実行
@@ -1295,10 +1304,10 @@ const setupTailwindCSS = () => {
                 'paid-text': '#166534',
               },
               state: {
-                'available-text': '#166534',
-                'available-bg': '#F0FDF4',
-                'available-border': '#A7F3D0',
-                'available-hover': '#D1FAE5',
+                'available-text': '#1E40AF',
+                'available-bg': '#EFF6FF',
+                'available-border': '#93C5FD',
+                'available-hover': '#DBEAFE',
                 'waitlist-text': '#B45309',
                 'waitlist-bg': '#FFFBEB',
                 'waitlist-border': '#FDE68A',

@@ -177,7 +177,11 @@ const getReservationFormView = () => {
 
     let fixedStartTime = startTime;
     let isTimeFixed = false;
-    if (isFirstTimeBooking && beginnerStart) {
+    if (
+      isFirstTimeBooking &&
+      beginnerStart &&
+      /** @type {any} */ (schedule).beginnerCapacity > 0
+    ) {
       fixedStartTime = beginnerStart;
       isTimeFixed = true;
     }
@@ -371,7 +375,10 @@ const renderBookingLessons = lessons => {
             let statusText;
 
             if (isFirstTimeBooking) {
-              if (lesson.schedule.beginnerStart) {
+              if (
+                lesson.schedule.beginnerStart &&
+                /** @type {any} */ (lesson.schedule).beginnerCapacity > 0
+              ) {
                 statusText = `初回者 空き <span class="font-mono-numbers">${lesson.status.firstLectureSlots}</span>`;
               } else {
                 statusText = '経験者のみ';
@@ -411,7 +418,10 @@ const renderBookingLessons = lessons => {
               let canBook = true;
 
               if (isFirstTimeBooking) {
-                if (!lesson.schedule.beginnerStart) {
+                if (
+                  !lesson.schedule.beginnerStart ||
+                  /** @type {any} */ (lesson.schedule).beginnerCapacity <= 0
+                ) {
                   canBook = false;
                 }
                 isSlotFull = lesson.status.firstLectureIsFull;
@@ -560,4 +570,4 @@ function _buildHistoryCardWithEditMode(
     isEditMode: isInEditMode,
     showMemoSaveButton: true,
   });
-};
+}

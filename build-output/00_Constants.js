@@ -39,15 +39,6 @@ const CONSTANTS = {
   },
 
   /**
-   * 教室定員定数
-   */
-  CLASSROOM_CAPACITIES: {
-    東京教室: 8,
-    沼津教室: 8,
-    つくば教室: 8,
-  },
-
-  /**
    * 単位定数
    */
   UNITS: {
@@ -78,7 +69,6 @@ const CONSTANTS = {
 
   // 容量・制限
   LIMITS: {
-    INTRO_LECTURE_CAPACITY: 4,
     TSUKUBA_MORNING_SESSION_END_HOUR: 13,
     LOCK_WAIT_TIME_MS: 30000,
     MAX_RETRY_COUNT: 3,

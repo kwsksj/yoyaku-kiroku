@@ -208,35 +208,30 @@ function getLessons() {
         }
       }
 
-      // 定員のフォールバック処理（明示的な優先順位）
+      // 日程マスタで全体定員が未設定の場合は0とする（システムデフォルト使用を廃止）
       if (!totalCapacity) {
-        totalCapacity =
-          /** @type {Record<string, number>} */ (
-            CONSTANTS.CLASSROOM_CAPACITIES
-          )[schedule.classroom] || 0;
-        totalCapacitySource = 'クラス固定定員';
-        if (!totalCapacity) {
-          totalCapacity = 8;
-          totalCapacitySource = 'システムデフォルト';
-        }
+        totalCapacity = 0;
+        totalCapacitySource = '日程マスタ未設定により0';
       }
 
       /** @type {number} */
       let beginnerCapacity = 0;
       let beginnerCapacitySource = '日程マスタ';
 
-      if (schedule.beginnerCapacity) {
+      if (
+        schedule.beginnerCapacity !== undefined &&
+        schedule.beginnerCapacity !== null
+      ) {
         if (typeof schedule.beginnerCapacity === 'string') {
           beginnerCapacity = parseInt(schedule.beginnerCapacity, 10);
           if (isNaN(beginnerCapacity)) beginnerCapacity = 0;
         } else {
           beginnerCapacity = schedule.beginnerCapacity;
         }
-      }
-
-      if (!beginnerCapacity) {
-        beginnerCapacity = CONSTANTS.LIMITS.INTRO_LECTURE_CAPACITY;
-        beginnerCapacitySource = 'システムデフォルト';
+      } else {
+        // 日程マスタで初回者定員が未設定の場合は0とする（システムデフォルト使用を廃止）
+        beginnerCapacity = 0;
+        beginnerCapacitySource = '日程マスタ未設定により0';
       }
 
       Logger.log(

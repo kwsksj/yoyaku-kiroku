@@ -33,7 +33,7 @@ const getLoginView = () => {
           <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
       </div>
       <div class="${DesignConfig.inputs.container}">
-        <label for="phone" class="block text-brand-subtle text-base text-center mb-4">携帯電話番号をご入力ください</label>
+        <label for="phone" class="block text-brand-subtle text-base text-center mb-2">携帯電話番号</label>
         <div class="flex justify-center">
           <input
             type="tel"
@@ -99,7 +99,10 @@ const getUserFormView = config => {
   let phoneSection = '';
   if (!isEdit) {
     // 新規登録時：電話番号を表示のみ
-    const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
+    const formattedPhoneValue =
+      typeof formatPhoneNumberForDisplay === 'function'
+        ? formatPhoneNumberForDisplay(phoneValue)
+        : phoneValue;
     phoneSection = `
         <div class="mb-4">
             <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
@@ -107,7 +110,10 @@ const getUserFormView = config => {
         </div>`;
   } else if (isPhoneInputNeeded) {
     // プロフィール編集時：電話番号入力が必要
-    const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
+    const formattedPhoneValue =
+      typeof formatPhoneNumberForDisplay === 'function'
+        ? formatPhoneNumberForDisplay(phoneValue)
+        : phoneValue;
     phoneSection = `
         <div class="mb-4">
             <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
@@ -118,7 +124,10 @@ const getUserFormView = config => {
         </div>`;
   } else {
     // プロフィール編集時：電話番号表示のみ
-    const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
+    const formattedPhoneValue =
+      typeof formatPhoneNumberForDisplay === 'function'
+        ? formatPhoneNumberForDisplay(phoneValue)
+        : phoneValue;
     phoneSection = `
         <div class="mb-4">
             <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>

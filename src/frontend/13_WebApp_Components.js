@@ -233,9 +233,10 @@ const Components = {
     required = false,
   }) => {
     // 電話番号・メールの場合は専用クラスを使用
-    const inputClass = type === 'tel' || type === 'email'
-      ? DesignConfig.inputs['phone']
-      : DesignConfig.inputs['base'];
+    const inputClass =
+      type === 'tel' || type === 'email'
+        ? DesignConfig.inputs['phone']
+        : DesignConfig.inputs['base'];
 
     return `<div class="mb-4">
         <label
@@ -978,7 +979,9 @@ const Components = {
         Components.button({
           action: btn.action,
           text: btn.text,
-          style: /** @type {ComponentStyle} */ (btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')),
+          style: /** @type {ComponentStyle} */ (
+            btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')
+          ),
           size: /** @type {ComponentSize} */ (btn.size || 'xs'),
           //          customClass: 'mobile-button',
           dataAttributes: {
@@ -1050,7 +1053,12 @@ const Components = {
    * @param {MemoSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  memoSection: ({ reservationId, workInProgress, isEditMode = false, showSaveButton = true }) => {
+  memoSection: ({
+    reservationId,
+    workInProgress,
+    isEditMode = false,
+    showSaveButton = true,
+  }) => {
     if (isEditMode) {
       // 編集モード：textareaと保存ボタン
       return `

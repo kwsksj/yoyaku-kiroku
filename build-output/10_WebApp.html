@@ -42,7 +42,7 @@
       </div>
 
       <!-- メインコンテンツ -->
-      <main id="main-content" class="py-6">
+      <main id="main-content" class="py-6 embedded-no-padding">
         <div id="view-container"></div>
       </main>
 
@@ -118,15 +118,6 @@ const CONSTANTS = {
   },
 
   /**
-   * 教室定員定数
-   */
-  CLASSROOM_CAPACITIES: {
-    東京教室: 8,
-    沼津教室: 8,
-    つくば教室: 8,
-  },
-
-  /**
    * 単位定数
    */
   UNITS: {
@@ -157,7 +148,6 @@ const CONSTANTS = {
 
   // 容量・制限
   LIMITS: {
-    INTRO_LECTURE_CAPACITY: 4,
     TSUKUBA_MORNING_SESSION_END_HOUR: 13,
     LOCK_WAIT_TIME_MS: 30000,
     MAX_RETRY_COUNT: 3,
@@ -389,7 +379,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-23T10:56:05.058Z
+   * Generated: 2025-09-23T15:44:12.286Z
    * =================================================================
    */
 
@@ -662,7 +652,8 @@ const ENVIRONMENT_CONFIG = {
         info: 'bg-ui-surface text-brand-text border-2 border-ui-border',
         warning:
           'bg-ui-warning-bg text-ui-warning-text border-2 border-ui-warning-border',
-        error: 'bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border',
+        error:
+          'bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border',
       },
 
       // 教室別のボタン色設定
@@ -748,7 +739,7 @@ const ENVIRONMENT_CONFIG = {
         background: 'bg-ui-surface border-2 border-ui-border',
         state: {
           available: {
-            card: 'bg-state-available-bg border-2 border-state-available-border mobile-card active:bg-state-success-hover',
+            card: 'bg-state-available-bg border-2 border-state-available-border mobile-card active:bg-state-available-hover',
             text: 'text-state-available-text',
           },
           waitlist: {
@@ -771,7 +762,8 @@ const ENVIRONMENT_CONFIG = {
         base: 'text-base w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
         textarea:
           'text-base w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text h-24 mobile-input bg-ui-input focus:bg-ui-input-focus transition-all duration-150',
-        phone: 'text-base w-48 max-w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
+        phone:
+          'text-base w-48 max-w-full p-3 border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text mobile-input touch-friendly bg-ui-input focus:bg-ui-input-focus transition-all duration-150 font-mono',
       },
     }
   );
@@ -817,7 +809,7 @@ const ENVIRONMENT_CONFIG = {
           --action-accounting: #F59E0B;/* Bright amber for accounting actions */
           --action-danger: #B91C1C;    /* A clear, strong red for danger */
 
-          --state-available: #5A8C36;  /* Lively green for available slots */
+          --state-available: #1E40AF;  /* Clear blue for available slots */
           --state-waitlist: #F59E0B;   /* Bright amber for waitlist */
           --state-booked: #785A4E;     /* Medium brown for booked slots */
 
@@ -851,30 +843,32 @@ const ENVIRONMENT_CONFIG = {
         /* Googleサイト埋め込み時のモバイル対応 */
         @media screen and (max-width: 768px) {
           body.embedded-in-google-sites {
-            padding-top: 60px; /* Googleサイトのメニューバー分の余白 */
+            padding-top: 0;
+            min-height: 100%;
           }
 
           body.embedded-in-google-sites .fixed.top-4 {
-            top: 70px; /* もどるボタン位置を調整 */
+            top: 1rem;
           }
 
-          .app-container {
-            min-height: calc(100vh - 60px);
+          body.embedded-in-google-sites #app {
+            min-height: 100vh;
           }
         }
 
         /* より大きなメニューバーの場合 */
         @media screen and (max-width: 480px) {
           body.embedded-in-google-sites {
-            padding-top: 80px;
+            padding-top: 0;
+            min-height: 100%;
           }
 
           body.embedded-in-google-sites .fixed.top-4 {
-            top: 90px; /* より小さなスクリーンでのもどるボタン調整 */
+            top: 1rem;
           }
 
-          .app-container {
-            min-height: calc(100vh - 80px);
+          body.embedded-in-google-sites #app {
+            min-height: 100vh;
           }
         }
 
@@ -1007,12 +1001,12 @@ const ENVIRONMENT_CONFIG = {
 
         /* Googleサイト埋め込み時のもどるボタン調整（問題#14対応） */
         body.embedded-in-google-sites .back-button-container {
-          top: 70px;
+          top: 1rem;
         }
 
         @media screen and (max-width: 480px) {
           body.embedded-in-google-sites .back-button-container {
-            top: 90px;
+            top: 1rem;
           }
         }
 
@@ -1555,6 +1549,11 @@ const ENVIRONMENT_CONFIG = {
       // この処理により、vh単位がキーボード表示に影響されなくなる
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty('--vh', `${vh}px`);
+
+      // 埋め込み環境での基本調整のみ
+      if (document.body.classList.contains('embedded-in-google-sites')) {
+        console.log('Googleサイト埋め込み環境を検出しました');
+      }
     };
 
     // 初期化時とウィンドウサイズ変更時に実行
@@ -1694,10 +1693,10 @@ const ENVIRONMENT_CONFIG = {
                   'paid-text': '#166534',
                 },
                 state: {
-                  'available-text': '#166534',
-                  'available-bg': '#F0FDF4',
-                  'available-border': '#A7F3D0',
-                  'available-hover': '#D1FAE5',
+                  'available-text': '#1E40AF',
+                  'available-bg': '#EFF6FF',
+                  'available-border': '#93C5FD',
+                  'available-hover': '#DBEAFE',
                   'waitlist-text': '#B45309',
                   'waitlist-bg': '#FFFBEB',
                   'waitlist-border': '#FDE68A',
@@ -2911,7 +2910,12 @@ const ENVIRONMENT_CONFIG = {
    * @param {Object} reservationData - 予約データ（講座基本情報表示用）
    * @returns {string} HTML文字列
    */
-  function generateAccountingView(classifiedItems, classroom, formData = {}, reservationData = null) {
+  function generateAccountingView(
+    classifiedItems,
+    classroom,
+    formData = {},
+    reservationData = null,
+  ) {
     return `
       ${Components.pageHeader({ title: '会計' })}
       <div class="accounting-container max-w-4xl mx-auto p-2 space-y-6">
@@ -2963,7 +2967,8 @@ const ENVIRONMENT_CONFIG = {
                 text: '先生が確認しました',
                 style: 'primary',
                 size: 'large',
-                customClass: 'w-full transition-all duration-200 hover:shadow-md opacity-60 cursor-not-allowed',
+                customClass:
+                  'w-full transition-all duration-200 hover:shadow-md opacity-60 cursor-not-allowed',
                 disabled: true,
                 id: 'confirm-payment-button',
                 disabledStyle: 'none', // カスタムスタイルで制御
@@ -3656,7 +3661,7 @@ const ENVIRONMENT_CONFIG = {
       const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
       const tuitionAmount = timeUnits * unitPrice;
 
-      timeCalculation.innerHTML = `${hours}時間 ×${Components.priceDisplay({ amount: unitPrice*2 })} =${Components.priceDisplay({ amount: tuitionAmount })}`;
+      timeCalculation.innerHTML = `${hours}時間 ×${Components.priceDisplay({ amount: unitPrice * 2 })} =${Components.priceDisplay({ amount: tuitionAmount })}`;
     }
   }
 
@@ -3812,7 +3817,9 @@ const ENVIRONMENT_CONFIG = {
    * @param {string} selectedMethod - 選択された支払い方法
    */
   function updatePaymentMethodStyles(selectedMethod) {
-    const paymentMethodRadios = document.querySelectorAll('input[name="payment-method"]');
+    const paymentMethodRadios = document.querySelectorAll(
+      'input[name="payment-method"]',
+    );
 
     paymentMethodRadios.forEach(radio => {
       const label = radio.closest('label');
@@ -3821,9 +3828,15 @@ const ENVIRONMENT_CONFIG = {
         if (span) {
           // 選択されている場合は太字・濃い色、未選択は薄い色
           if (radio.value === selectedMethod) {
-            label.className = label.className.replace(/text-brand-muted/, 'font-bold text-brand-text');
+            label.className = label.className.replace(
+              /text-brand-muted/,
+              'font-bold text-brand-text',
+            );
           } else {
-            label.className = label.className.replace(/font-bold text-brand-text/, 'text-brand-muted');
+            label.className = label.className.replace(
+              /font-bold text-brand-text/,
+              'text-brand-muted',
+            );
           }
         }
       }
@@ -3845,7 +3858,10 @@ const ENVIRONMENT_CONFIG = {
         confirmButton.removeAttribute('disabled');
         confirmButton.removeAttribute('style');
         confirmButton.style.pointerEvents = '';
-        confirmButton.className = confirmButton.className.replace(/\sopacity-\d+|\scursor-not-allowed/g, '');
+        confirmButton.className = confirmButton.className.replace(
+          /\sopacity-\d+|\scursor-not-allowed/g,
+          '',
+        );
       } else {
         // 無効状態：明示的に無効スタイルを適用
         confirmButton.setAttribute('disabled', 'true');
@@ -4289,7 +4305,9 @@ const ENVIRONMENT_CONFIG = {
             textarea.value = newMemoText;
           } else {
             if (typeof showError === 'function') {
-              showError('制作メモの更新に失敗しました: ' + (response.message || ''));
+              showError(
+                '制作メモの更新に失敗しました: ' + (response.message || ''),
+              );
             } else {
               alert('制作メモの更新に失敗しました: ' + (response.message || ''));
             }
@@ -4308,7 +4326,7 @@ const ENVIRONMENT_CONFIG = {
         })
         .updateWorkInProgress({
           reservationId: reservationId,
-          workInProgress: newMemoText
+          workInProgress: newMemoText,
         });
     } else {
       // Google Apps Script環境でない場合のフォールバック
@@ -6168,9 +6186,10 @@ const ENVIRONMENT_CONFIG = {
       required = false,
     }) => {
       // 電話番号・メールの場合は専用クラスを使用
-      const inputClass = type === 'tel' || type === 'email'
-        ? DesignConfig.inputs['phone']
-        : DesignConfig.inputs['base'];
+      const inputClass =
+        type === 'tel' || type === 'email'
+          ? DesignConfig.inputs['phone']
+          : DesignConfig.inputs['base'];
 
       return `<div class="mb-4">
           <label
@@ -6913,7 +6932,9 @@ const ENVIRONMENT_CONFIG = {
           Components.button({
             action: btn.action,
             text: btn.text,
-            style: /** @type {ComponentStyle} */ (btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')),
+            style: /** @type {ComponentStyle} */ (
+              btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')
+            ),
             size: /** @type {ComponentSize} */ (btn.size || 'xs'),
             //          customClass: 'mobile-button',
             dataAttributes: {
@@ -6985,7 +7006,12 @@ const ENVIRONMENT_CONFIG = {
      * @param {MemoSectionConfig} config - 設定オブジェクト
      * @returns {string} HTML文字列
      */
-    memoSection: ({ reservationId, workInProgress, isEditMode = false, showSaveButton = true }) => {
+    memoSection: ({
+      reservationId,
+      workInProgress,
+      isEditMode = false,
+      showSaveButton = true,
+    }) => {
       if (isEditMode) {
         // 編集モード：textareaと保存ボタン
         return `
@@ -7354,7 +7380,10 @@ const ENVIRONMENT_CONFIG = {
     let phoneSection = '';
     if (!isEdit) {
       // 新規登録時：電話番号を表示のみ
-      const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
+      const formattedPhoneValue =
+        typeof formatPhoneNumberForDisplay === 'function'
+          ? formatPhoneNumberForDisplay(phoneValue)
+          : phoneValue;
       phoneSection = `
           <div class="mb-4">
               <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
@@ -7362,7 +7391,10 @@ const ENVIRONMENT_CONFIG = {
           </div>`;
     } else if (isPhoneInputNeeded) {
       // プロフィール編集時：電話番号入力が必要
-      const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
+      const formattedPhoneValue =
+        typeof formatPhoneNumberForDisplay === 'function'
+          ? formatPhoneNumberForDisplay(phoneValue)
+          : phoneValue;
       phoneSection = `
           <div class="mb-4">
               <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
@@ -7373,7 +7405,10 @@ const ENVIRONMENT_CONFIG = {
           </div>`;
     } else {
       // プロフィール編集時：電話番号表示のみ
-      const formattedPhoneValue = typeof formatPhoneNumberForDisplay === 'function' ? formatPhoneNumberForDisplay(phoneValue) : phoneValue;
+      const formattedPhoneValue =
+        typeof formatPhoneNumberForDisplay === 'function'
+          ? formatPhoneNumberForDisplay(phoneValue)
+          : phoneValue;
       phoneSection = `
           <div class="mb-4">
               <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
@@ -7903,7 +7938,11 @@ const ENVIRONMENT_CONFIG = {
 
       let fixedStartTime = startTime;
       let isTimeFixed = false;
-      if (isFirstTimeBooking && beginnerStart) {
+      if (
+        isFirstTimeBooking &&
+        beginnerStart &&
+        /** @type {any} */ (schedule).beginnerCapacity > 0
+      ) {
         fixedStartTime = beginnerStart;
         isTimeFixed = true;
       }
@@ -8097,7 +8136,10 @@ const ENVIRONMENT_CONFIG = {
               let statusText;
 
               if (isFirstTimeBooking) {
-                if (lesson.schedule.beginnerStart) {
+                if (
+                  lesson.schedule.beginnerStart &&
+                  /** @type {any} */ (lesson.schedule).beginnerCapacity > 0
+                ) {
                   statusText = `初回者 空き <span class="font-mono-numbers">${lesson.status.firstLectureSlots}</span>`;
                 } else {
                   statusText = '経験者のみ';
@@ -8137,7 +8179,10 @@ const ENVIRONMENT_CONFIG = {
                 let canBook = true;
 
                 if (isFirstTimeBooking) {
-                  if (!lesson.schedule.beginnerStart) {
+                  if (
+                    !lesson.schedule.beginnerStart ||
+                    /** @type {any} */ (lesson.schedule).beginnerCapacity <= 0
+                  ) {
                     canBook = false;
                   }
                   isSlotFull = lesson.status.firstLectureIsFull;
@@ -8286,7 +8331,7 @@ const ENVIRONMENT_CONFIG = {
       isEditMode: isInEditMode,
       showMemoSaveButton: true,
     });
-  };
+  }
 
 
   // =================================================================
@@ -8363,7 +8408,10 @@ const ENVIRONMENT_CONFIG = {
         // 編集モード状態を取得
         const isInEditMode = stateManager.isInEditMode(h.reservationId);
 
-        const editButtons = _buildHistoryEditButtons(isInEditMode, h.reservationId);
+        const editButtons = _buildHistoryEditButtons(
+          isInEditMode,
+          h.reservationId,
+        );
         const accountingButtons = _buildHistoryAccountingButtons(h);
 
         return _buildHistoryCardWithEditMode(
@@ -8386,7 +8434,7 @@ const ENVIRONMENT_CONFIG = {
     }
 
     return `
-          <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-2">
+          <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
               <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${stateManager.getState().currentUser.displayName} <span class="text-base">さん</span></span></h1>
               <button data-action="goToEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
           </div>
@@ -8541,7 +8589,10 @@ const ENVIRONMENT_CONFIG = {
     const isInEditMode = stateManager.isInEditMode(reservationId);
 
     // 新しいカードHTMLを生成
-    const editButtons = _buildHistoryEditButtons(isInEditMode, historyItem.reservationId);
+    const editButtons = _buildHistoryEditButtons(
+      isInEditMode,
+      historyItem.reservationId,
+    );
     const accountingButtons = _buildHistoryAccountingButtons(historyItem);
 
     const newCardHtml = _buildHistoryCardWithEditMode(
@@ -8558,7 +8609,7 @@ const ENVIRONMENT_CONFIG = {
     if (newCardElement) {
       cardElement.parentNode?.replaceChild(newCardElement, cardElement);
     }
-  };
+  }
 
 
   // =================================================================
@@ -8896,7 +8947,12 @@ const ENVIRONMENT_CONFIG = {
             masterData.length > 0 &&
             classroom
           ) {
-            v = initializeAccountingSystem(masterData, classroom, {}, reservationData);
+            v = initializeAccountingSystem(
+              masterData,
+              classroom,
+              {},
+              reservationData,
+            );
             break;
           } else {
             classifiedItems = EMPTY_CLASSIFIED_ITEMS;
@@ -8911,7 +8967,12 @@ const ENVIRONMENT_CONFIG = {
 
           // 会計画面HTML生成
           const formData = {};
-          v = generateAccountingView(classifiedItems, classroom, formData, reservationData);
+          v = generateAccountingView(
+            classifiedItems,
+            classroom,
+            formData,
+            reservationData,
+          );
 
           // キャッシュ使用時の初期化処理を予約
           setTimeout(() => {
@@ -9202,7 +9263,8 @@ const ENVIRONMENT_CONFIG = {
                   payload: {
                     view: 'complete',
                     completionMessage: completionMessage,
-                    selectedClassroom: currentState.accountingReservation?.classroom,
+                    selectedClassroom:
+                      currentState.accountingReservation?.classroom,
                   },
                 });
               } else {
@@ -9775,7 +9837,7 @@ const ENVIRONMENT_CONFIG = {
         payload: { view: 'registrationStep3', registrationStep: 3 },
       }),
 
-    /** 新規ユーザー登録：最終データをサーバーに送信（バッチ処理版） */
+    /** 新規ユーザー登録：最終データをサーバーに送信（簡素化版） */
     submitRegistration: () => {
       /** @type {HTMLInputElement | null} */
       const futureParticipationInput = document.querySelector(
@@ -9809,60 +9871,19 @@ const ENVIRONMENT_CONFIG = {
           }
           hideLoading();
           if (res.success && res.data) {
-            // 登録成功時は、バッチ処理結果に関わらずダッシュボードに遷移
-            showLoading('booking');
-            google.script.run['withSuccessHandler'](
-              (/** @type {BatchDataResponse} */ batchResult) => {
-                if (!window.isProduction) {
-                  console.log('🔍 getBatchData レスポンス:', batchResult);
-                }
-                hideLoading();
-                if (batchResult.success && batchResult.data) {
-                  const newAppState = processInitialData(
-                    batchResult.data.initial,
-                    res.data.user.phone,
-                    batchResult.data.lessons || [],
-                  );
+            // 登録成功時は直接ダッシュボードに遷移（データは後からロード）
+            showInfo('新規ユーザー登録が完了しました');
 
-                  window.stateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: {
-                      ...newAppState,
-                      currentUser: res.data.user,
-                      view: 'dashboard',
-                    },
-                  });
-                } else {
-                  // バッチデータ取得に失敗してもダッシュボードに遷移
-                  window.stateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: {
-                      currentUser: res.data.user,
-                      view: 'dashboard',
-                    },
-                  });
-                }
+            window.stateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                currentUser: res.data.user,
+                view: 'dashboard',
+                myReservations: [], // 新規ユーザーは予約がない
+                lessons: [], // データは必要に応じて後からロード
+                isDataFresh: false, // データを後でリフレッシュする必要があることを示す
               },
-            )
-              ['withFailureHandler']((/** @type {Error} */ error) => {
-                hideLoading();
-                // バッチデータ取得に失敗してもダッシュボードに遷移
-                window.stateManager.dispatch({
-                  type: 'SET_STATE',
-                  payload: {
-                    currentUser: res.data.user,
-                    view: 'dashboard',
-                  },
-                });
-                if (window.FrontendErrorHandler) {
-                  window.FrontendErrorHandler.handle(
-                    error,
-                    'submitRegistration:getBatchData',
-                    { finalUserData },
-                  );
-                }
-              })
-              .getBatchData(['initial', 'lessons']);
+            });
           } else {
             showInfo(res.message || '登録に失敗しました');
           }
@@ -9905,25 +9926,31 @@ const ENVIRONMENT_CONFIG = {
 
       // 電話番号が入力されている場合のみバリデーション
       if (phoneInput?.value) {
-        const normalizeResult = window.normalizePhoneNumberFrontend(phoneInput.value);
+        const normalizeResult = window.normalizePhoneNumberFrontend(
+          phoneInput.value,
+        );
         if (!normalizeResult.isValid) {
           showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
           return;
         }
       }
 
-      // メール情報の取得
+      // メール情報の取得とバリデーション
       const emailInput = /** @type {HTMLInputElement | null} */ (
         document.getElementById('edit-email')
       );
       const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
         document.getElementById('edit-wants-email')
       );
-      const email =
-        emailInput?.value || stateManager.getState().currentUser.email;
+      const email = emailInput?.value?.trim() || '';
       const wantsEmail =
         wantsEmailInput?.checked ||
         stateManager.getState().currentUser.wantsEmail;
+
+      // メールアドレスの必須バリデーション
+      if (!email || !email.includes('@')) {
+        return showInfo('有効なメールアドレスを入力してください。');
+      }
 
       const u = {
         ...stateManager.getState().currentUser,
@@ -10242,7 +10269,7 @@ const ENVIRONMENT_CONFIG = {
     },
 
     // 新しいアクション：保存と同時に編集モードを終了
-    saveAndCloseMemo: function(d) {
+    saveAndCloseMemo: function (d) {
       // ボタンからreservationIdが渡された場合
       if (d && d.reservationId) {
         // thisを使って同じオブジェクト内のsaveInlineMemoを呼び出し

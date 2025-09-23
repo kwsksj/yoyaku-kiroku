@@ -1304,24 +1304,26 @@ function getScheduleInfoForDate(date, classroom) {
 
     // 定員値の数値変換処理
     let totalCapacity = schedule.totalCapacity;
-    if (totalCapacity && typeof totalCapacity === 'string') {
-      totalCapacity = parseInt(totalCapacity, 10);
-      if (isNaN(totalCapacity)) totalCapacity = null;
+    if (totalCapacity !== undefined && totalCapacity !== null) {
+      if (typeof totalCapacity === 'string') {
+        totalCapacity = parseInt(totalCapacity, 10);
+        if (isNaN(totalCapacity)) totalCapacity = 0;
+      }
+    } else {
+      // 日程マスタで全体定員が未設定の場合は0とする（システムデフォルト使用を廃止）
+      totalCapacity = 0;
     }
-    totalCapacity =
-      totalCapacity ||
-      /** @type {{[key: string]: number}} */ (CONSTANTS.CLASSROOM_CAPACITIES)[
-        classroom
-      ] ||
-      8;
 
     let beginnerCapacity = schedule.beginnerCapacity;
-    if (beginnerCapacity && typeof beginnerCapacity === 'string') {
-      beginnerCapacity = parseInt(beginnerCapacity, 10);
-      if (isNaN(beginnerCapacity)) beginnerCapacity = null;
+    if (beginnerCapacity !== undefined && beginnerCapacity !== null) {
+      if (typeof beginnerCapacity === 'string') {
+        beginnerCapacity = parseInt(beginnerCapacity, 10);
+        if (isNaN(beginnerCapacity)) beginnerCapacity = 0;
+      }
+    } else {
+      // 日程マスタで初回者定員が未設定の場合は0とする（システムデフォルト使用を廃止）
+      beginnerCapacity = 0;
     }
-    beginnerCapacity =
-      beginnerCapacity || CONSTANTS.LIMITS.INTRO_LECTURE_CAPACITY;
 
     // 教室形式を取得（複数の可能性のあるフィールド名に対応）
     const classroomType =

@@ -379,6 +379,8 @@ function registerNewUser(userInfo) {
         displayName: userInfo?.nickname || userInfo?.realName || '',
         realName: userInfo?.realName || '',
         phone: normalizedPhone,
+        email: userInfo?.email || '',
+        wantsEmail: userInfo?.wantsEmail || false,
       };
 
       const initialData = getAppInitialData();

@@ -409,7 +409,10 @@ function getLoginData(phone) {
     Logger.log(`getLoginData開始: phone=${phone}`);
 
     // 統合バッチ処理で一度にすべてのデータを取得
-    const batchResult = getBatchData(['initial', 'reservations'], phone);
+    const batchResult = getBatchData(
+      ['initial', 'lessons', 'reservations'],
+      phone,
+    );
     if (!batchResult.success) {
       return batchResult;
     }
@@ -417,6 +420,11 @@ function getLoginData(phone) {
     if (batchResult.data.myReservations) {
       /** @type {any} */ (batchResult.data.initial).myReservations =
         batchResult.data.myReservations;
+    }
+
+    if (batchResult.data.lessons) {
+      /** @type {any} */ (batchResult.data.initial).lessons =
+        batchResult.data.lessons;
     }
 
     const result = {

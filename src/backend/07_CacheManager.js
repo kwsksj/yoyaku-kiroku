@@ -1022,9 +1022,9 @@ function saveChunkedDataToCache(
     // メタデータを保存（チャンク数など）
     const metaCacheKey = `${baseKey}_meta`;
     const metaData = {
+      ...metadata,
       version: new Date().getTime(),
       totalChunks: dataChunks.length,
-      ...metadata,
       lastUpdated: new Date().toISOString(),
     };
     cache.put(metaCacheKey, JSON.stringify(metaData), expiry);

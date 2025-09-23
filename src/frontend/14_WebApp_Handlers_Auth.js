@@ -331,7 +331,7 @@ const authActionHandlers = {
       payload: { view: 'registrationStep3', registrationStep: 3 },
     }),
 
-  /** 新規ユーザー登録：最終データをサーバーに送信（バッチ処理版） */
+  /** 新規ユーザー登録：最終データをサーバーに送信（簡素化版） */
   submitRegistration: () => {
     /** @type {HTMLInputElement | null} */
     const futureParticipationInput = document.querySelector(
@@ -365,60 +365,19 @@ const authActionHandlers = {
         }
         hideLoading();
         if (res.success && res.data) {
-          // 登録成功時は、バッチ処理結果に関わらずダッシュボードに遷移
-          showLoading('booking');
-          google.script.run['withSuccessHandler'](
-            (/** @type {BatchDataResponse} */ batchResult) => {
-              if (!window.isProduction) {
-                console.log('🔍 getBatchData レスポンス:', batchResult);
-              }
-              hideLoading();
-              if (batchResult.success && batchResult.data) {
-                const newAppState = processInitialData(
-                  batchResult.data.initial,
-                  res.data.user.phone,
-                  batchResult.data.lessons || [],
-                );
+          // 登録成功時は直接ダッシュボードに遷移（データは後からロード）
+          showInfo('新規ユーザー登録が完了しました');
 
-                window.stateManager.dispatch({
-                  type: 'SET_STATE',
-                  payload: {
-                    ...newAppState,
-                    currentUser: res.data.user,
-                    view: 'dashboard',
-                  },
-                });
-              } else {
-                // バッチデータ取得に失敗してもダッシュボードに遷移
-                window.stateManager.dispatch({
-                  type: 'SET_STATE',
-                  payload: {
-                    currentUser: res.data.user,
-                    view: 'dashboard',
-                  },
-                });
-              }
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              currentUser: res.data.user,
+              view: 'dashboard',
+              myReservations: [], // 新規ユーザーは予約がない
+              lessons: [], // データは必要に応じて後からロード
+              isDataFresh: false, // データを後でリフレッシュする必要があることを示す
             },
-          )
-            ['withFailureHandler']((/** @type {Error} */ error) => {
-              hideLoading();
-              // バッチデータ取得に失敗してもダッシュボードに遷移
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  currentUser: res.data.user,
-                  view: 'dashboard',
-                },
-              });
-              if (window.FrontendErrorHandler) {
-                window.FrontendErrorHandler.handle(
-                  error,
-                  'submitRegistration:getBatchData',
-                  { finalUserData },
-                );
-              }
-            })
-            .getBatchData(['initial', 'lessons']);
+          });
         } else {
           showInfo(res.message || '登録に失敗しました');
         }
@@ -461,25 +420,31 @@ const authActionHandlers = {
 
     // 電話番号が入力されている場合のみバリデーション
     if (phoneInput?.value) {
-      const normalizeResult = window.normalizePhoneNumberFrontend(phoneInput.value);
+      const normalizeResult = window.normalizePhoneNumberFrontend(
+        phoneInput.value,
+      );
       if (!normalizeResult.isValid) {
         showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
         return;
       }
     }
 
-    // メール情報の取得
+    // メール情報の取得とバリデーション
     const emailInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('edit-email')
     );
     const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('edit-wants-email')
     );
-    const email =
-      emailInput?.value || stateManager.getState().currentUser.email;
+    const email = emailInput?.value?.trim() || '';
     const wantsEmail =
       wantsEmailInput?.checked ||
       stateManager.getState().currentUser.wantsEmail;
+
+    // メールアドレスの必須バリデーション
+    if (!email || !email.includes('@')) {
+      return showInfo('有効なメールアドレスを入力してください。');
+    }
 
     const u = {
       ...stateManager.getState().currentUser,

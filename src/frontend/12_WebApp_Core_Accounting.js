@@ -682,7 +682,12 @@ function generateAccountingReservationCard(reservationData) {
  * @param {Object} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} HTML文字列
  */
-function generateAccountingView(classifiedItems, classroom, formData = {}, reservationData = null) {
+function generateAccountingView(
+  classifiedItems,
+  classroom,
+  formData = {},
+  reservationData = null,
+) {
   return `
     ${Components.pageHeader({ title: '会計' })}
     <div class="accounting-container max-w-4xl mx-auto p-2 space-y-6">
@@ -734,7 +739,8 @@ function generateAccountingView(classifiedItems, classroom, formData = {}, reser
               text: '先生が確認しました',
               style: 'primary',
               size: 'large',
-              customClass: 'w-full transition-all duration-200 hover:shadow-md opacity-60 cursor-not-allowed',
+              customClass:
+                'w-full transition-all duration-200 hover:shadow-md opacity-60 cursor-not-allowed',
               disabled: true,
               id: 'confirm-payment-button',
               disabledStyle: 'none', // カスタムスタイルで制御
@@ -1427,7 +1433,7 @@ function updateTimeCalculationDisplay(result, classroom) {
     const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
     const tuitionAmount = timeUnits * unitPrice;
 
-    timeCalculation.innerHTML = `${hours}時間 ×${Components.priceDisplay({ amount: unitPrice*2 })} =${Components.priceDisplay({ amount: tuitionAmount })}`;
+    timeCalculation.innerHTML = `${hours}時間 ×${Components.priceDisplay({ amount: unitPrice * 2 })} =${Components.priceDisplay({ amount: tuitionAmount })}`;
   }
 }
 
@@ -1583,7 +1589,9 @@ function handlePaymentMethodChange(selectedMethod) {
  * @param {string} selectedMethod - 選択された支払い方法
  */
 function updatePaymentMethodStyles(selectedMethod) {
-  const paymentMethodRadios = document.querySelectorAll('input[name="payment-method"]');
+  const paymentMethodRadios = document.querySelectorAll(
+    'input[name="payment-method"]',
+  );
 
   paymentMethodRadios.forEach(radio => {
     const label = radio.closest('label');
@@ -1592,9 +1600,15 @@ function updatePaymentMethodStyles(selectedMethod) {
       if (span) {
         // 選択されている場合は太字・濃い色、未選択は薄い色
         if (radio.value === selectedMethod) {
-          label.className = label.className.replace(/text-brand-muted/, 'font-bold text-brand-text');
+          label.className = label.className.replace(
+            /text-brand-muted/,
+            'font-bold text-brand-text',
+          );
         } else {
-          label.className = label.className.replace(/font-bold text-brand-text/, 'text-brand-muted');
+          label.className = label.className.replace(
+            /font-bold text-brand-text/,
+            'text-brand-muted',
+          );
         }
       }
     }
@@ -1616,7 +1630,10 @@ function updateConfirmButtonState() {
       confirmButton.removeAttribute('disabled');
       confirmButton.removeAttribute('style');
       confirmButton.style.pointerEvents = '';
-      confirmButton.className = confirmButton.className.replace(/\sopacity-\d+|\scursor-not-allowed/g, '');
+      confirmButton.className = confirmButton.className.replace(
+        /\sopacity-\d+|\scursor-not-allowed/g,
+        '',
+      );
     } else {
       // 無効状態：明示的に無効スタイルを適用
       confirmButton.setAttribute('disabled', 'true');
@@ -2060,7 +2077,9 @@ function handleSaveMemo(target) {
           textarea.value = newMemoText;
         } else {
           if (typeof showError === 'function') {
-            showError('制作メモの更新に失敗しました: ' + (response.message || ''));
+            showError(
+              '制作メモの更新に失敗しました: ' + (response.message || ''),
+            );
           } else {
             alert('制作メモの更新に失敗しました: ' + (response.message || ''));
           }
@@ -2079,7 +2098,7 @@ function handleSaveMemo(target) {
       })
       .updateWorkInProgress({
         reservationId: reservationId,
-        workInProgress: newMemoText
+        workInProgress: newMemoText,
       });
   } else {
     // Google Apps Script環境でない場合のフォールバック
