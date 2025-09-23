@@ -501,9 +501,6 @@ const getClassroomSelectionModalContent = () => {
     .join('');
 
   return `
-      <div class="text-center mb-6">
-        <p class="text-brand-subtle text-lg mb-2">教室 を おえらびください</p>
-      </div>
       <div class="space-y-4">
         ${classroomButtonsHtml}
       </div>
@@ -517,7 +514,7 @@ const getClassroomSelectionModalContent = () => {
 const getClassroomSelectionModal = () => {
   return Components.modal({
     id: 'classroom-selection-modal',
-    title: '',
+    title: 'おえらびください',
     content: getClassroomSelectionModalContent(),
     maxWidth: 'max-w-md',
   });

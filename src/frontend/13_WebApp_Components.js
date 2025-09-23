@@ -535,7 +535,7 @@ const Components = {
       : '';
 
     return `
-      <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-2 mb-2 -mx-4">
+      <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4 -mx-4">
         <div class="flex justify-between items-center px-4">
           <h1 class="text-lg font-bold text-brand-text">${escapeHTML(title)}</h1>
           ${backButtonHtml}

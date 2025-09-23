@@ -10,7 +10,7 @@
 =================================================================
 -->
 <!doctype html>
-<html lang="ja">
+<html lang="ja" class="h-full">
   <head>
     <meta charset="UTF-8" />
     <base target="_top" />
@@ -20,12 +20,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&family=Inconsolata:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
   </head>
 
-  <body class="bg-brand-bg min-h-screen">
+  <body class="bg-brand-bg h-full">
     <!-- デバッグ情報表示エリア（本番環境では非表示） -->
 
     <!-- アプリケーションのメインコンテナ -->
@@ -379,7 +387,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-23T15:44:12.286Z
+   * Generated: 2025-09-23T17:28:52.963Z
    * =================================================================
    */
 
@@ -520,24 +528,19 @@ const ENVIRONMENT_CONFIG = {
         style.id = 'google-sites-embed-styles';
         style.textContent = `
           body {
-            margin-top: ${offset}px !important;
-            min-height: calc(100vh - ${offset}px) !important;
-          }
-
-          /* スティッキーヘッダーの位置調整 */
-          .sticky {
-            top: ${offset}px !important;
+            margin-top: 0px !important;
+            min-height: 100% !important;
           }
 
           /* フィックス要素の位置調整 */
           .fixed {
-            top: ${offset}px !important;
+            top: 0px !important;
           }
 
           /* Googleサイト埋め込み用のスムーズスクロール */
           html {
             scroll-behavior: smooth;
-            scroll-padding-top: ${offset + 20}px;
+            scroll-padding-top: 20px;
           }
 
           /* オフセット設定ボタン（デバッグ用） */
@@ -852,7 +855,7 @@ const ENVIRONMENT_CONFIG = {
           }
 
           body.embedded-in-google-sites #app {
-            min-height: 100vh;
+            min-height: 100%;
           }
         }
 
@@ -868,7 +871,7 @@ const ENVIRONMENT_CONFIG = {
           }
 
           body.embedded-in-google-sites #app {
-            min-height: 100vh;
+            min-height: 100%;
           }
         }
 
@@ -1257,6 +1260,27 @@ const ENVIRONMENT_CONFIG = {
             opacity: 1;
             transform: translateY(0);
           }
+        }
+
+        /* ========== 埋め込み環境での表示調整 ========== */
+        /* 埋め込み時はパディングを無効化してズレを防ぐ */
+        .embedded-no-padding {
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+        }
+
+        /* 埋め込み環境での固定ヘッダー調整 */
+        body.embedded-in-google-sites .sticky {
+          top: 0 !important;
+          padding-top: 0.75rem;
+          padding-bottom: 0.75rem;
+        }
+
+        /* 埋め込み環境でのページヘッダー最適化 */
+        body.embedded-in-google-sites .sticky .back-button-container {
+          position: relative;
+          top: auto;
+          right: auto;
         }
 
         /* ========== 文字のちらつき防止（問題#6対応） ========== */
@@ -6488,7 +6512,7 @@ const ENVIRONMENT_CONFIG = {
         : '';
 
       return `
-        <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-2 mb-2 -mx-4">
+        <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4 -mx-4">
           <div class="flex justify-between items-center px-4">
             <h1 class="text-lg font-bold text-brand-text">${escapeHTML(title)}</h1>
             ${backButtonHtml}
@@ -7314,7 +7338,7 @@ const ENVIRONMENT_CONFIG = {
             <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
         </div>
         <div class="${DesignConfig.inputs.container}">
-          <label for="phone" class="block text-brand-subtle text-base text-center mb-4">携帯電話番号をご入力ください</label>
+          <label for="phone" class="block text-brand-subtle text-base text-center mb-2">携帯電話番号</label>
           <div class="flex justify-center">
             <input
               type="tel"
@@ -8262,9 +8286,6 @@ const ENVIRONMENT_CONFIG = {
       .join('');
 
     return `
-        <div class="text-center mb-6">
-          <p class="text-brand-subtle text-lg mb-2">教室 を おえらびください</p>
-        </div>
         <div class="space-y-4">
           ${classroomButtonsHtml}
         </div>
@@ -8278,7 +8299,7 @@ const ENVIRONMENT_CONFIG = {
   const getClassroomSelectionModal = () => {
     return Components.modal({
       id: 'classroom-selection-modal',
-      title: '',
+      title: 'おえらびください',
       content: getClassroomSelectionModalContent(),
       maxWidth: 'max-w-md',
     });

@@ -131,24 +131,19 @@ window.EmbedConfig = {
       style.id = 'google-sites-embed-styles';
       style.textContent = `
         body {
-          margin-top: ${offset}px !important;
-          min-height: calc(100vh - ${offset}px) !important;
-        }
-
-        /* スティッキーヘッダーの位置調整 */
-        .sticky {
-          top: ${offset}px !important;
+          margin-top: 0px !important;
+          min-height: 100% !important;
         }
 
         /* フィックス要素の位置調整 */
         .fixed {
-          top: ${offset}px !important;
+          top: 0px !important;
         }
 
         /* Googleサイト埋め込み用のスムーズスクロール */
         html {
           scroll-behavior: smooth;
-          scroll-padding-top: ${offset + 20}px;
+          scroll-padding-top: 20px;
         }
 
         /* オフセット設定ボタン（デバッグ用） */
@@ -463,7 +458,7 @@ const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites #app {
-          min-height: 100vh;
+          min-height: 100%;
         }
       }
 
@@ -479,7 +474,7 @@ const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites #app {
-          min-height: 100vh;
+          min-height: 100%;
         }
       }
 
@@ -868,6 +863,27 @@ const addCustomStyles = () => {
           opacity: 1;
           transform: translateY(0);
         }
+      }
+
+      /* ========== 埋め込み環境での表示調整 ========== */
+      /* 埋め込み時はパディングを無効化してズレを防ぐ */
+      .embedded-no-padding {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+      }
+
+      /* 埋め込み環境での固定ヘッダー調整 */
+      body.embedded-in-google-sites .sticky {
+        top: 0 !important;
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+      }
+
+      /* 埋め込み環境でのページヘッダー最適化 */
+      body.embedded-in-google-sites .sticky .back-button-container {
+        position: relative;
+        top: auto;
+        right: auto;
       }
 
       /* ========== 文字のちらつき防止（問題#6対応） ========== */
