@@ -5,14 +5,105 @@
 /**
  * =================================================================
  * 【ファイル名】: 08_Utilities.gs
- * 【バージョン】: 2.0
+ * 【バージョン】: 2.1
  * 【役割】: プロジェクト全体で利用される、業務ドメインに依存しない
  * 汎用的なヘルパー関数を格納します。
  * 【構成】: 10ファイル構成のうちの8番目
- * 【v2.0での変更点】:
+ * 【v2.1での変更点】:
+ * - パフォーマンス最適化: 環境別ログ制御システムを追加
  * - ARC-11: WebAppのファイルをインクルードするための include() ヘルパー関数を追加。
  * =================================================================
  */
+
+// 環境変数（開発時にのみtrueに設定）
+const DEBUG = false;
+
+/**
+ * 環境別ログ制御システム - パフォーマンス最適化
+ */
+const PerformanceLog = {
+  /**
+   * デバッグログ（開発環境でのみ出力）
+   */
+  debug(message, ...args) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE && DEBUG) {
+      Logger.log(`[DEBUG] ${message}`, ...args);
+    }
+  },
+
+  /**
+   * 情報ログ（重要な処理完了時のみ出力）
+   */
+  info(message, ...args) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      Logger.log(`[INFO] ${message}`, ...args);
+    }
+  },
+
+  /**
+   * エラーログ（常に出力）
+   */
+  error(message, ...args) {
+    Logger.log(`[ERROR] ${message}`, ...args);
+  },
+
+  /**
+   * パフォーマンス測定
+   */
+  performance(operation, startTime) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE && DEBUG) {
+      const duration = Date.now() - startTime;
+      Logger.log(`[PERF] ${operation}: ${duration}ms`);
+    }
+  }
+};
+
+/**
+ * キャッシュから生徒情報を取得する軽量関数（パフォーマンス最適化）
+ * 重複シートアクセスを回避してキャッシュファーストアプローチを実装
+ * @param {string} studentId - 生徒ID
+ * @returns {Object} 生徒情報 {realName, displayName}
+ */
+function getCachedStudentInfo(studentId) {
+  try {
+    // キャッシュから生徒名簿データを取得
+    const rosterCache = getCachedData(CACHE_KEYS.STUDENT_ROSTER);
+    if (rosterCache && rosterCache.students) {
+      const student = rosterCache.students.find(s => s.studentId === studentId);
+      if (student) {
+        return {
+          realName: student.realName || '(不明)',
+          displayName: student.nickname || student.realName || '(不明)'
+        };
+      }
+    }
+  } catch (error) {
+    PerformanceLog.error(`生徒情報キャッシュ取得エラー: ${error.message}`);
+  }
+
+  // フォールバック（キャッシュが利用できない場合）
+  return { realName: '(不明)', displayName: '(不明)' };
+}
+
+/**
+ * 予約データの事前バリデーション（パフォーマンス最適化）
+ * 冗長なデータ検証を削減するため、一度だけ全体構造を検証
+ * @param {Array} reservations - 予約データ配列
+ * @returns {Array} 有効な予約データのみを含む配列
+ */
+function validateReservationsStructure(reservations) {
+  if (!Array.isArray(reservations)) {
+    PerformanceLog.error('予約データは配列である必要があります');
+    return [];
+  }
+
+  // 一度だけ全体構造を検証し、有効なデータのみを返す
+  return reservations.filter(r => {
+    if (!r || typeof r !== 'object') return false;
+    if (!r.data || !Array.isArray(r.data)) return false;
+    return true;
+  });
+}
 
 /**
  * ヘッダー行の配列から、ヘッダー名をキー、列インデックス(0-based)を値とするマップを作成します。
@@ -573,7 +664,7 @@ function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
   // データ行から対象レコードを検索（防御的プログラミング）
   const foundRow = dataRows.find(row => {
     if (!row || !Array.isArray(row)) {
-      Logger.log(`⚠️ 無効なデータ行をスキップ: ${JSON.stringify(row)}`);
+      PerformanceLog.debug(`⚠️ 無効なデータ行をスキップ: ${JSON.stringify(row)}`);
       return false;
     }
     return row[searchColIdx] === searchValue;
@@ -642,7 +733,7 @@ function getCachedReservationsFor(
       /** @param {ReservationArrayData} row */ row => {
         // データ構造修正: キャッシュは直接配列を格納しているため、r.dataではなくrを直接使用
         if (!row || !Array.isArray(row)) {
-          Logger.log(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(row)}`);
+          PerformanceLog.debug(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(row)}`);
           return false;
         }
         return (

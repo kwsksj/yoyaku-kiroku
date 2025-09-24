@@ -195,43 +195,36 @@ function rebuildAllReservationsCache() {
     }
 
     // 日付・時刻のフォーマット関数
-    /**
-     * @param {Date|string|number} dateValue
-     * @returns {string}
-     */
-    const formatDateString = dateValue => {
-      if (!(dateValue instanceof Date)) return String(dateValue);
-      const year = dateValue.getFullYear();
-      const month = String(dateValue.getMonth() + 1).padStart(2, '0');
-      const day = String(dateValue.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+    // 【パフォーマンス最適化】 事前定義されたフォーマッター（関数重複定義を排除）
+    const DateTimeFormatters = {
+      date: (dateValue) => {
+        if (!(dateValue instanceof Date)) return String(dateValue);
+        const year = dateValue.getFullYear();
+        const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+        const day = String(dateValue.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      },
+      time: (dateValue) => {
+        if (!(dateValue instanceof Date)) return String(dateValue);
+        const hours = String(dateValue.getHours()).padStart(2, '0');
+        const minutes = String(dateValue.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+      }
     };
 
-    /**
-     * @param {Date|string|number} dateValue
-     * @returns {string}
-     */
-    const formatTimeString = dateValue => {
-      if (!(dateValue instanceof Date)) return String(dateValue);
-      const hours = String(dateValue.getHours()).padStart(2, '0');
-      const minutes = String(dateValue.getMinutes()).padStart(2, '0');
-      return `${hours}:${minutes}`;
-    };
-
-    // 日付・時刻列をフォーマット
-    const dateTimeColumns = [
-      { index: dateColumnIndex, formatter: formatDateString },
-      { index: startTimeColumnIndex, formatter: formatTimeString },
-      { index: endTimeColumnIndex, formatter: formatTimeString },
+    // 【最適化】 バッチ処理で効率的にフォーマット
+    const formatColumns = [
+      { index: dateColumnIndex, type: 'date' },
+      { index: startTimeColumnIndex, type: 'time' },
+      { index: endTimeColumnIndex, type: 'time' },
     ].filter(column => column.index !== undefined);
 
-    // データを処理（会計詳細列を除外してサイズ削減）
+    // データを一括処理（ループ内の関数定義を排除）
     allReservationRows.forEach(reservationRow => {
-      // 日付・時刻列をフォーマット
-      dateTimeColumns.forEach(({ index, formatter }) => {
+      formatColumns.forEach(({ index, type }) => {
         const originalValue = reservationRow[index];
         if (originalValue instanceof Date) {
-          reservationRow[index] = formatter(originalValue);
+          reservationRow[index] = DateTimeFormatters[type](originalValue);
         }
       });
 
@@ -259,13 +252,13 @@ function rebuildAllReservationsCache() {
     const cacheDataJson = JSON.stringify(testCacheData);
     const dataSizeKB = Math.round(cacheDataJson.length / 1024);
 
-    Logger.log(
+    PerformanceLog.debug(
       `キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${sortedReservations.length}`,
     );
 
     if (dataSizeKB > CHUNK_SIZE_LIMIT_KB) {
       // 分割キャッシュシステムを使用
-      Logger.log(
+      PerformanceLog.info(
         `データサイズが${CHUNK_SIZE_LIMIT_KB}KBを超えたため、分割キャッシュシステムを使用します。`,
       );
 
@@ -298,7 +291,7 @@ function rebuildAllReservationsCache() {
       );
     } else {
       // 通常の単一キャッシュを使用
-      Logger.log('通常の単一キャッシュを使用します。');
+      PerformanceLog.debug('通常の単一キャッシュを使用します。');
 
       try {
         CacheService.getScriptCache().put(
@@ -311,7 +304,7 @@ function rebuildAllReservationsCache() {
           `単一キャッシュ保存完了: ${dataSizeKB}KB, ${sortedReservations.length}件`,
         );
       } catch (putError) {
-        Logger.log(`単一キャッシュ保存エラー: ${putError.message}`);
+        PerformanceLog.error(`単一キャッシュ保存エラー: ${putError.message}`);
         throw new Error(
           `キャッシュ保存に失敗: ${putError.message}（データサイズ: ${dataSizeKB}KB）`,
         );
@@ -723,7 +716,7 @@ function triggerScheduledCacheRebuild() {
   }
 
   try {
-    Logger.log('定期キャッシュ再構築: 開始します。');
+    PerformanceLog.info('定期キャッシュ再構築: 開始します。');
 
     // 全てのキャッシュを順次再構築
     rebuildAllReservationsCache();
@@ -731,13 +724,13 @@ function triggerScheduledCacheRebuild() {
     rebuildScheduleMasterCache();
     rebuildAccountingMasterCache();
 
-    Logger.log('定期キャッシュ再構築: 正常に完了しました。');
+    PerformanceLog.info('定期キャッシュ再構築: 正常に完了しました。');
 
     Logger.log(
       '定期キャッシュ再構築: 時間主導型トリガーによる全キャッシュ自動再構築完了',
     );
   } catch (error) {
-    Logger.log(`定期キャッシュ再構築: エラーが発生しました - ${error.message}`);
+    PerformanceLog.error(`定期キャッシュ再構築: エラーが発生しました - ${error.message}`);
   } finally {
     scriptLock.releaseLock();
   }
@@ -773,7 +766,7 @@ function getCachedData(cacheKey, autoRebuild = true) {
 
       if (parsedData) {
         const dataCount = getDataCount(parsedData, cacheKey);
-        Logger.log(`${cacheKey}分割キャッシュから取得完了。件数: ${dataCount}`);
+        PerformanceLog.debug(`${cacheKey}分割キャッシュから取得完了。件数: ${dataCount}`);
         return parsedData;
       } else {
         Logger.log(
@@ -833,13 +826,13 @@ function getCachedData(cacheKey, autoRebuild = true) {
     }
 
     if (!cachedData) {
-      Logger.log(`${cacheKey}キャッシュが見つかりません`);
+      PerformanceLog.debug(`${cacheKey}キャッシュが見つかりません`);
       return null;
     }
 
     parsedData = JSON.parse(cachedData);
     const dataCount = getDataCount(parsedData, cacheKey);
-    Logger.log(`${cacheKey}単一キャッシュから取得完了。件数: ${dataCount}`);
+    PerformanceLog.debug(`${cacheKey}単一キャッシュから取得完了。件数: ${dataCount}`);
     return parsedData;
   } catch (e) {
     Logger.log(`getCachedData(${cacheKey})でエラー: ${e.message}`);

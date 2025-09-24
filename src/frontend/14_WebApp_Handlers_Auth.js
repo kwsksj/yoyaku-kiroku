@@ -37,7 +37,8 @@ const authActionHandlers = {
     });
     if (!p) return showInfo('電話番号を入力してください。');
 
-    // フロントエンドで電話番号を正規化（即時エラー表示）
+    // 【最適化済み】 フロントエンドでリアルタイム検証（UX向上）
+    // バックエンドでは軽量チェックのみ実行（重複処理削減）
     const normalizeResult = window.normalizePhoneNumberFrontend(p);
 
     if (!normalizeResult.isValid) {

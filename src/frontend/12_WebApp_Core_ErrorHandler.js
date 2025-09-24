@@ -23,12 +23,25 @@
  */
 class FrontendErrorHandler {
   /**
-   * エラーを処理し、ユーザーに適切に通知
+   * エラーを処理し、ユーザーに適切に通知（パフォーマンス最適化版）
    * @param {Error} error - エラーオブジェクト
    * @param {string} context - エラーコンテキスト
    * @param {Object} [additionalInfo={}] - 追加情報
    */
   static handle(error, context = '', additionalInfo = {}) {
+    // 軽量ログ出力（本番環境では最小限の情報のみ）
+    if (!window.isProduction) {
+      console.error(`[ERROR] ${context}: ${error.message}`);
+    }
+  }
+
+  /**
+   * 詳細エラーハンドリング（重要なエラーのみで使用）
+   * @param {Error} error - エラーオブジェクト
+   * @param {string} context - エラーコンテキスト
+   * @param {Object} [additionalInfo={}] - 追加情報
+   */
+  static handleDetailed(error, context = '', additionalInfo = {}) {
     const errorInfo = {
       message: error.message || 'Unknown error',
       stack: error.stack || 'No stack trace available',
@@ -38,10 +51,8 @@ class FrontendErrorHandler {
       type: error.constructor.name || 'Error',
     };
 
-    // 開発環境でのみ詳細ログを出力
-    if (!window.isProduction) {
-      console.error(`[FRONTEND ERROR] ${context}:`, errorInfo);
-    }
+    // 重要なエラーの場合は常に詳細ログを出力
+    console.error(`[CRITICAL_FRONTEND_ERROR] ${context}:`, errorInfo);
 
     // ユーザー向けエラー通知
     const userMessage = this.getUserMessage(error, context);

@@ -20,13 +20,39 @@
  */
 class BackendErrorHandler {
   /**
-   * エラーを処理し、構造化ログを出力
+   * エラーを処理し、軽量ログを出力（パフォーマンス最適化版）
    * @param {Error} error - 処理するエラーオブジェクト
    * @param {string} context - エラーが発生したコンテキスト
    * @param {Record<string, unknown>} additionalInfo - 追加情報（オプション）
    * @returns {ApiErrorResponse} 統一APIレスポンス形式のエラーオブジェクト
    */
   static handle(error, context = '', additionalInfo = {}) {
+    // 軽量ログ出力（本番環境では最小限の情報のみ）
+    PerformanceLog.error(`${context}: ${error.message}`);
+
+    // デバッグ環境でのみ詳細情報を出力
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      const errorInfo = {
+        message: error.message || 'Unknown error',
+        context: context,
+        type: error.constructor.name || 'Error',
+        additionalInfo: additionalInfo,
+      };
+      PerformanceLog.debug(`詳細エラー情報: ${JSON.stringify(errorInfo)}`);
+    }
+
+    // 統一APIレスポンス形式で返却
+    return this.createErrorResponse(error.message, context, { type: error.constructor.name });
+  }
+
+  /**
+   * 従来の詳細エラーハンドリング（重要なエラーのみで使用）
+   * @param {Error} error - 処理するエラーオブジェクト
+   * @param {string} context - エラーが発生したコンテキスト
+   * @param {Record<string, unknown>} additionalInfo - 追加情報（オプション）
+   * @returns {ApiErrorResponse} 統一APIレスポンス形式のエラーオブジェクト
+   */
+  static handleDetailed(error, context = '', additionalInfo = {}) {
     const errorInfo = {
       message: error.message || 'Unknown error',
       stack: error.stack || 'No stack trace available',
@@ -36,8 +62,8 @@ class BackendErrorHandler {
       type: error.constructor.name || 'Error',
     };
 
-    // 構造化ログ出力
-    Logger.log(`[ERROR] ${context}: ${JSON.stringify(errorInfo)}`);
+    // 重要なエラーの場合は常に詳細ログを出力
+    Logger.log(`[CRITICAL_ERROR] ${context}: ${JSON.stringify(errorInfo)}`);
 
     // 統一APIレスポンス形式で返却
     return this.createErrorResponse(error.message, context, errorInfo);

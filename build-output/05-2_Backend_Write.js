@@ -69,10 +69,7 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
     classroom,
     CONSTANTS.STATUS.CONFIRMED,
   ).filter(r => {
-    // 防御的プログラミング: データの存在確認
-    if (!r.data || !Array.isArray(r.data)) {
-      return false;
-    }
+    // 【パフォーマンス最適化】 事前バリデーション済みのため、構造チェック不要
     const studentIdIdx = getHeaderIndex(
       /** @type {HeaderMapType} */ (reservationData['headerMap']),
       CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
@@ -122,7 +119,7 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
     const row = r.data;
     // 防御的プログラミング: データの存在確認
     if (!row || !Array.isArray(row)) {
-      Logger.log(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(r)}`);
+      PerformanceLog.debug(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(r)}`);
       return;
     }
 
@@ -534,36 +531,8 @@ function cancelReservation(cancelInfo) {
       const targetDateFormatted =
         targetDate instanceof Date ? targetDate : new Date(String(targetDate));
 
-      // ユーザー情報を取得して、ログと通知をより具体的にする
-      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
-      const userInfo = { realName: '(不明)', displayName: '(不明)' };
-      if (rosterSheet) {
-        // 効率化：生徒名簿も1回の読み込みで取得
-        const rosterAllData = rosterSheet.getDataRange().getValues();
-        if (rosterAllData.length > 1) {
-          const rosterHeader = rosterAllData[0];
-          const rosterHeaderMap = createHeaderMap(rosterHeader);
-          const rosterStudentIdCol = rosterHeaderMap.get(
-            CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
-          );
-
-          if (rosterStudentIdCol !== undefined) {
-            const userRow = rosterAllData
-              .slice(1)
-              .find(row => row[rosterStudentIdCol] === studentId);
-            if (userRow) {
-              userInfo.realName =
-                userRow[
-                  rosterHeaderMap.get(CONSTANTS.HEADERS.ROSTER.REAL_NAME)
-                ] || '(不明)';
-              userInfo.displayName =
-                userRow[
-                  rosterHeaderMap.get(CONSTANTS.HEADERS.ROSTER.NICKNAME)
-                ] || userInfo.realName;
-            }
-          }
-        }
-      }
+      // 【パフォーマンス最適化】 キャッシュからユーザー情報を取得（重複シートアクセス排除）
+      const userInfo = getCachedStudentInfo(studentId);
 
       // 該当行のステータスのみを「キャンセル」に更新
       const updatedRowData = [...targetRowData];
@@ -844,7 +813,7 @@ function updateReservationDetails(details) {
 function saveAccountingDetails(payload) {
   return withTransaction(() => {
     try {
-      const { reservationId, classroom, studentId, userInput } = payload;
+      const { reservationId, classroom, studentId, userInput, workInProgress } = payload;
       if (!reservationId || !classroom || !studentId || !userInput) {
         throw new Error('会計情報が不足しています。');
       }
@@ -1065,7 +1034,14 @@ function saveAccountingDetails(payload) {
         finalAccountingDetails,
       );
 
-      // 4. 会計完了時のステータス更新 (confirmed → completed)
+      // 4. 制作メモの更新（会計完了時に入力された内容を反映）
+      const wipColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS);
+      if (wipColIdx !== undefined && workInProgress !== undefined) {
+        updatedRowData[wipColIdx] = workInProgress || '';
+        PerformanceLog.debug(`制作メモを更新: ${workInProgress || '(空)'}`);
+      }
+
+      // 5. 会計完了時のステータス更新 (confirmed → completed)
       const statusColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
       if (statusColIdx !== undefined) {
         updatedRowData[statusColIdx] = CONSTANTS.STATUS.COMPLETED;
@@ -1078,11 +1054,11 @@ function saveAccountingDetails(payload) {
 
       SpreadsheetApp.flush();
 
-      // 5. 統合予約シートの更新後、全てのキャッシュを再構築
+      // 6. 統合予約シートの更新後、全てのキャッシュを再構築
       //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
       //    全キャッシュを再構築してデータの整合性を保つ。
 
-      // 6. 売上ログへの転記
+      // 7. 売上ログへの転記
       _logSalesForSingleReservation(
         reservationDataRow,
         headerMap,

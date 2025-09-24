@@ -52,6 +52,17 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
 }
 
 /**
+ * 軽量電話番号バリデーション（パフォーマンス最適化版）
+ * フロントエンドで事前検証済みのデータに対する最小限チェック
+ * @param {string} phoneNumber - 正規化済み電話番号（フロントエンドで処理済み想定）
+ * @returns {boolean} 有効性
+ */
+function _validatePhoneLight(phoneNumber) {
+  if (!phoneNumber || typeof phoneNumber !== 'string') return false;
+  return /^(070|080|090)\d{8}$/.test(phoneNumber.replace(/\D/g, ''));
+}
+
+/**
  * キャッシュデータから個人用データを抽出する
  * @param {string} studentId - 生徒ID
  * @param {AppInitialData} cacheData - getAppInitialDataから取得したキャッシュデータ

@@ -14,10 +14,41 @@
  */
 
 /**
- * シンプルな状態管理システム
+ * フロントエンド用PerformanceLogフォールバック
+ * バックエンドで定義されたPerformanceLogがフロントエンドで未定義の場合の安全策
+ */
+if (typeof PerformanceLog === 'undefined') {
+  window.PerformanceLog = {
+    debug(message, ...args) {
+      if (typeof debugLog === 'function') {
+        debugLog(`[DEBUG] ${message}`);
+      } else if (typeof console !== 'undefined') {
+        console.log(`[DEBUG] ${message}`, ...args);
+      }
+    },
+    info(message, ...args) {
+      if (typeof debugLog === 'function') {
+        debugLog(`[INFO] ${message}`);
+      } else if (typeof console !== 'undefined') {
+        console.info(`[INFO] ${message}`, ...args);
+      }
+    },
+    error(message, ...args) {
+      if (typeof console !== 'undefined') {
+        console.error(`[ERROR] ${message}`, ...args);
+      }
+    }
+  };
+}
+
+/**
+ * シンプルな状態管理システム（リロード時状態保持対応）
  */
 class SimpleStateManager {
   constructor() {
+    /** @type {string} */
+    this.STORAGE_KEY = 'yoyaku_kiroku_state';
+
     /** @type {UIState} */
     this.state = {
       // --- User & Session Data ---
@@ -92,6 +123,11 @@ class SimpleStateManager {
     this.isUpdating = false;
     /** @type {StateSubscriber[]} 状態変更の購読者リスト */
     this.subscribers = [];
+    /** @type {number | null} 自動保存タイマーID */
+    this._saveTimeout = null;
+
+    // 【リロード対応】ページロード時に保存状態を復元
+    this.restoreStateFromStorage();
   }
 
   /**
@@ -191,6 +227,9 @@ class SimpleStateManager {
 
       // subscriberに変更を通知
       this._notifySubscribers(this.state, oldState);
+
+      // 【リロード対応】重要な状態変更時は自動保存
+      this._autoSaveIfNeeded(oldState, newState);
 
       if (!window.isProduction) {
         if (
@@ -407,6 +446,125 @@ class SimpleStateManager {
    */
   clearAllEditModes() {
     this.state.editingReservationIds.clear();
+  }
+
+  /**
+   * 自動保存判定 - 重要な状態が変更された時のみ保存
+   * @param {UIState} oldState - 変更前の状態
+   * @param {Partial<UIState>} newState - 変更された部分
+   * @private
+   */
+  _autoSaveIfNeeded(oldState, newState) {
+    // ログイン画面に戻る場合は保存状態をクリア（ログアウト扱い）
+    if ('view' in newState && newState.view === 'login' && oldState.view !== 'login') {
+      PerformanceLog.info('ログイン画面に戻るため保存状態をクリア');
+      this.clearStoredState();
+      return;
+    }
+
+    // 保存対象となる重要な状態変更
+    const importantChanges = [
+      'currentUser', 'loginPhone', 'view', 'selectedClassroom',
+      'isFirstTimeBooking', 'registrationData', 'registrationPhone'
+    ];
+
+    const hasImportantChange = importantChanges.some(key =>
+      key in newState && oldState[key] !== newState[key]
+    );
+
+    if (hasImportantChange) {
+      // 500ms後に保存（連続変更をまとめるため）
+      clearTimeout(this._saveTimeout);
+      this._saveTimeout = setTimeout(() => {
+        this.saveStateToStorage();
+      }, 500);
+    }
+  }
+
+  /**
+   * リロード時状態保持機能 - 状態をSessionStorageに保存
+   * ブラウザタブが開いている間のみ保持（タブ閉じで自動クリア）
+   */
+  saveStateToStorage() {
+    try {
+      // Setオブジェクトは直接JSON化できないため、Arrayに変換
+      const stateToSave = {
+        ...this.state,
+        editingReservationIds: Array.from(this.state.editingReservationIds)
+      };
+
+      // 保存対象の状態のみを選択（大量データは除外）
+      const essentialState = {
+        currentUser: stateToSave.currentUser,
+        loginPhone: stateToSave.loginPhone,
+        view: stateToSave.view,
+        selectedClassroom: stateToSave.selectedClassroom,
+        isFirstTimeBooking: stateToSave.isFirstTimeBooking,
+        registrationData: stateToSave.registrationData,
+        registrationPhone: stateToSave.registrationPhone,
+        editingReservationIds: stateToSave.editingReservationIds,
+        // タイムスタンプを追加（有効期限チェック用）
+        savedAt: Date.now()
+      };
+
+      sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(essentialState));
+      PerformanceLog.debug('状態をSessionStorageに保存しました');
+    } catch (error) {
+      PerformanceLog.error(`状態保存エラー: ${error.message}`);
+    }
+  }
+
+  /**
+   * リロード時状態保持機能 - SessionStorageから状態を復元
+   * @returns {boolean} 復元が成功したかどうか
+   */
+  restoreStateFromStorage() {
+    try {
+      const savedState = sessionStorage.getItem(this.STORAGE_KEY);
+      if (!savedState) {
+        PerformanceLog.debug('保存された状態がありません');
+        return false;
+      }
+
+      const parsedState = JSON.parse(savedState);
+
+      // 有効期限チェック（6時間以内）
+      const sixHoursInMs = 6 * 60 * 60 * 1000;
+      if (Date.now() - parsedState.savedAt > sixHoursInMs) {
+        PerformanceLog.debug('保存された状態が期限切れです');
+        sessionStorage.removeItem(this.STORAGE_KEY);
+        return false;
+      }
+
+      // 状態を復元（マージ）
+      this.state = {
+        ...this.state,
+        ...parsedState,
+        editingReservationIds: new Set(parsedState.editingReservationIds || [])
+      };
+
+      // savedAtは内部データなので削除
+      delete this.state.savedAt;
+
+      PerformanceLog.info('状態をSessionStorageから復元しました');
+      return true;
+    } catch (error) {
+      PerformanceLog.error(`状態復元エラー: ${error.message}`);
+      sessionStorage.removeItem(this.STORAGE_KEY);
+      return false;
+    }
+  }
+
+  /**
+   * 状態保存を無効にする（ログアウト時など）
+   */
+  clearStoredState() {
+    try {
+      sessionStorage.removeItem(this.STORAGE_KEY);
+      PerformanceLog.debug('保存された状態をクリアしました');
+    } catch (error) {
+      PerformanceLog.error(`状態クリアエラー: ${error.message}`);
+    }
   }
 }
 
