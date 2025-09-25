@@ -37,7 +37,7 @@ if (typeof PerformanceLog === 'undefined') {
       if (typeof console !== 'undefined') {
         console.error(`[ERROR] ${message}`, ...args);
       }
-    }
+    },
   };
 }
 
@@ -456,7 +456,11 @@ class SimpleStateManager {
    */
   _autoSaveIfNeeded(oldState, newState) {
     // ログイン画面に戻る場合は保存状態をクリア（ログアウト扱い）
-    if ('view' in newState && newState.view === 'login' && oldState.view !== 'login') {
+    if (
+      'view' in newState &&
+      newState.view === 'login' &&
+      oldState.view !== 'login'
+    ) {
       PerformanceLog.info('ログイン画面に戻るため保存状態をクリア');
       this.clearStoredState();
       return;
@@ -464,12 +468,17 @@ class SimpleStateManager {
 
     // 保存対象となる重要な状態変更
     const importantChanges = [
-      'currentUser', 'loginPhone', 'view', 'selectedClassroom',
-      'isFirstTimeBooking', 'registrationData', 'registrationPhone'
+      'currentUser',
+      'loginPhone',
+      'view',
+      'selectedClassroom',
+      'isFirstTimeBooking',
+      'registrationData',
+      'registrationPhone',
     ];
 
-    const hasImportantChange = importantChanges.some(key =>
-      key in newState && oldState[key] !== newState[key]
+    const hasImportantChange = importantChanges.some(
+      key => key in newState && oldState[key] !== newState[key],
     );
 
     if (hasImportantChange) {
@@ -490,7 +499,7 @@ class SimpleStateManager {
       // Setオブジェクトは直接JSON化できないため、Arrayに変換
       const stateToSave = {
         ...this.state,
-        editingReservationIds: Array.from(this.state.editingReservationIds)
+        editingReservationIds: Array.from(this.state.editingReservationIds),
       };
 
       // 保存対象の状態のみを選択（大量データは除外）
@@ -504,7 +513,7 @@ class SimpleStateManager {
         registrationPhone: stateToSave.registrationPhone,
         editingReservationIds: stateToSave.editingReservationIds,
         // タイムスタンプを追加（有効期限チェック用）
-        savedAt: Date.now()
+        savedAt: Date.now(),
       };
 
       sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(essentialState));
@@ -540,7 +549,7 @@ class SimpleStateManager {
       this.state = {
         ...this.state,
         ...parsedState,
-        editingReservationIds: new Set(parsedState.editingReservationIds || [])
+        editingReservationIds: new Set(parsedState.editingReservationIds || []),
       };
 
       // savedAtは内部データなので削除

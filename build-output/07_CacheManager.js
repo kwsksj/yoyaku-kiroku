@@ -197,19 +197,19 @@ function rebuildAllReservationsCache() {
     // 日付・時刻のフォーマット関数
     // 【パフォーマンス最適化】 事前定義されたフォーマッター（関数重複定義を排除）
     const DateTimeFormatters = {
-      date: (dateValue) => {
+      date: dateValue => {
         if (!(dateValue instanceof Date)) return String(dateValue);
         const year = dateValue.getFullYear();
         const month = String(dateValue.getMonth() + 1).padStart(2, '0');
         const day = String(dateValue.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       },
-      time: (dateValue) => {
+      time: dateValue => {
         if (!(dateValue instanceof Date)) return String(dateValue);
         const hours = String(dateValue.getHours()).padStart(2, '0');
         const minutes = String(dateValue.getMinutes()).padStart(2, '0');
         return `${hours}:${minutes}`;
-      }
+      },
     };
 
     // 【最適化】 バッチ処理で効率的にフォーマット
@@ -730,7 +730,9 @@ function triggerScheduledCacheRebuild() {
       '定期キャッシュ再構築: 時間主導型トリガーによる全キャッシュ自動再構築完了',
     );
   } catch (error) {
-    PerformanceLog.error(`定期キャッシュ再構築: エラーが発生しました - ${error.message}`);
+    PerformanceLog.error(
+      `定期キャッシュ再構築: エラーが発生しました - ${error.message}`,
+    );
   } finally {
     scriptLock.releaseLock();
   }
@@ -766,7 +768,9 @@ function getCachedData(cacheKey, autoRebuild = true) {
 
       if (parsedData) {
         const dataCount = getDataCount(parsedData, cacheKey);
-        PerformanceLog.debug(`${cacheKey}分割キャッシュから取得完了。件数: ${dataCount}`);
+        PerformanceLog.debug(
+          `${cacheKey}分割キャッシュから取得完了。件数: ${dataCount}`,
+        );
         return parsedData;
       } else {
         Logger.log(
@@ -832,7 +836,9 @@ function getCachedData(cacheKey, autoRebuild = true) {
 
     parsedData = JSON.parse(cachedData);
     const dataCount = getDataCount(parsedData, cacheKey);
-    PerformanceLog.debug(`${cacheKey}単一キャッシュから取得完了。件数: ${dataCount}`);
+    PerformanceLog.debug(
+      `${cacheKey}単一キャッシュから取得完了。件数: ${dataCount}`,
+    );
     return parsedData;
   } catch (e) {
     Logger.log(`getCachedData(${cacheKey})でエラー: ${e.message}`);

@@ -1,8 +1,6 @@
 # パフォーマンス最適化計画書
 
-**プロジェクト**: きぼりの よやく・きろく
-**作成日**: 2025年9月24日
-**対象**: Google Apps Script Web Application
+**プロジェクト**: きぼりの よやく・きろく **作成日**: 2025年9月24日 **対象**: Google Apps Script Web Application
 
 ## 📋 エグゼクティブサマリー
 
@@ -12,8 +10,8 @@
 
 ### パフォーマンス問題の詳細
 
-| 処理段階                | 現在の処理時間 | 主要原因                          | 影響度     |
-| ----------------------- | -------------- | --------------------------------- | ---------- |
+| 処理段階                | 現在の処理時間 | 主要原因                          | 影響度      |
+| ----------------------- | -------------- | --------------------------------- | ----------- |
 | **ログイン画面表示**    | **5秒**        | 初期化待機ポーリング（300ms間隔） | 🔴 High     |
 | **認証→ダッシュボード** | **8秒**        | Schedule Master診断処理の毎回実行 | 🔴 High     |
 | **合計初回アクセス**    | **13秒**       | -                                 | 🔴 Critical |
@@ -69,8 +67,7 @@
 
 ### フェーズ1：即効性の高い基本最適化
 
-**実装期間**: 1-2時間
-**リスクレベル**: 🟢 Low
+**実装期間**: 1-2時間 **リスクレベル**: 🟢 Low
 
 #### 1.1 初期化待機処理の改善
 
@@ -121,21 +118,19 @@ if (!scheduleMaster || scheduleMaster.length === 0) {
 
 ```javascript
 function shouldRunScheduleMasterDiagnosis() {
-  const lastDiagnosis = PropertiesService.getScriptProperties()
-    .getProperty('LAST_SCHEDULE_DIAGNOSIS');
+  const lastDiagnosis = PropertiesService.getScriptProperties().getProperty('LAST_SCHEDULE_DIAGNOSIS');
   const now = Date.now();
   const interval = 30 * 60 * 1000; // 30分間隔
 
   if (!lastDiagnosis) return true;
-  return (now - parseInt(lastDiagnosis)) > interval;
+  return now - parseInt(lastDiagnosis) > interval;
 }
 
 // 条件分岐で診断頻度を制御
 if (!scheduleMaster || scheduleMaster.length === 0) {
   if (shouldRunScheduleMasterDiagnosis()) {
     diagnoseAndFixScheduleMasterCache();
-    PropertiesService.getScriptProperties()
-      .setProperty('LAST_SCHEDULE_DIAGNOSIS', Date.now().toString());
+    PropertiesService.getScriptProperties().setProperty('LAST_SCHEDULE_DIAGNOSIS', Date.now().toString());
   }
 }
 ```
@@ -144,8 +139,7 @@ if (!scheduleMaster || scheduleMaster.length === 0) {
 
 ### フェーズ2：バックグラウンド事前取得実装
 
-**実装期間**: 2-3時間
-**リスクレベル**: 🟡 Medium
+**実装期間**: 2-3時間 **リスクレベル**: 🟡 Medium
 
 #### 2.1 フロントエンドでの事前取得ロジック
 
@@ -159,7 +153,7 @@ window.appCache = {
   initialData: null,
   loading: false,
   timestamp: null,
-  maxAge: 5 * 60 * 1000 // 5分間有効
+  maxAge: 5 * 60 * 1000, // 5分間有効
 };
 
 // ログイン画面表示と同時に開始
@@ -178,17 +172,14 @@ function startPreloadInitialData() {
   console.log('🚀 バックグラウンドで初期データ取得開始');
   window.appCache.loading = true;
 
-  google.script.run
-    .withSuccessHandler(handlePreloadSuccess)
-    .withFailureHandler(handlePreloadFailure)
-    .getAppInitialData();
+  google.script.run.withSuccessHandler(handlePreloadSuccess).withFailureHandler(handlePreloadFailure).getAppInitialData();
 }
 
 function handlePreloadSuccess(data) {
   window.appCache = {
     initialData: data,
     loading: false,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   };
   console.log('✅ 初期データの事前取得完了:', data.success);
   updatePreloadStatus('完了');
@@ -236,8 +227,7 @@ function authenticateUserLightweight(phoneNumber) {
     Logger.log(`軽量認証開始: ${phoneNumber}`);
 
     // 特殊ログインコマンドチェック
-    const noPhoneLoginCommand = PropertiesService.getScriptProperties()
-      .getProperty('SPECIAL_NO_PHONE_LOGIN_COMMAND');
+    const noPhoneLoginCommand = PropertiesService.getScriptProperties().getProperty('SPECIAL_NO_PHONE_LOGIN_COMMAND');
 
     if (noPhoneLoginCommand && phoneNumber === noPhoneLoginCommand) {
       logActivity('N/A', '特殊ログイン試行', '成功', `Command: ${phoneNumber}`);
@@ -274,8 +264,7 @@ function authenticateUserLightweight(phoneNumber) {
     }
 
     if (foundUser) {
-      logActivity(foundUser.studentId, '軽量ログイン試行', '成功',
-                 `電話番号: ${phoneNumber}`);
+      logActivity(foundUser.studentId, '軽量ログイン試行', '成功', `電話番号: ${phoneNumber}`);
       return {
         success: true,
         user: foundUser,
@@ -332,24 +321,18 @@ async function performOptimizedLogin(phoneNumber) {
 
       // 軽量認証実行
       const authResult = await new Promise((resolve, reject) => {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .authenticateUser(phoneNumber, true); // skipInitialData = true
+        google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).authenticateUser(phoneNumber, true); // skipInitialData = true
       });
 
       if (authResult.success) {
         // 事前取得データと認証情報を統合
-        const enrichedData = await enrichWithPersonalData(
-          window.appCache.initialData.data,
-          authResult.user
-        );
+        const enrichedData = await enrichWithPersonalData(window.appCache.initialData.data, authResult.user);
 
         console.log('⚡ 高速ログイン成功 - ダッシュボード表示');
         showDashboard({
           success: true,
           user: authResult.user,
-          initialData: enrichedData
+          initialData: enrichedData,
         });
         return;
       }
@@ -358,10 +341,7 @@ async function performOptimizedLogin(phoneNumber) {
     // フォールバック：従来の完全認証処理
     console.log('🔄 フォールバック: 完全認証処理実行');
     const fullResult = await new Promise((resolve, reject) => {
-      google.script.run
-        .withSuccessHandler(resolve)
-        .withFailureHandler(reject)
-        .authenticateUser(phoneNumber, false); // 従来の処理
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(reject).authenticateUser(phoneNumber, false); // 従来の処理
     });
 
     if (fullResult.success) {
@@ -370,12 +350,11 @@ async function performOptimizedLogin(phoneNumber) {
     } else {
       handleAuthenticationError(fullResult);
     }
-
   } catch (error) {
     console.error('❌ ログイン処理エラー:', error);
     handleAuthenticationError({
       success: false,
-      message: 'ログイン処理中にエラーが発生しました。'
+      message: 'ログイン処理中にエラーが発生しました。',
     });
   }
 }
@@ -386,10 +365,10 @@ async function performOptimizedLogin(phoneNumber) {
 async function enrichWithPersonalData(initialData, user) {
   return new Promise((resolve, reject) => {
     google.script.run
-      .withSuccessHandler((personalData) => {
+      .withSuccessHandler(personalData => {
         resolve({
           ...initialData,
-          myReservations: personalData.myReservations
+          myReservations: personalData.myReservations,
         });
       })
       .withFailureHandler(reject)
@@ -400,8 +379,7 @@ async function enrichWithPersonalData(initialData, user) {
 
 ### フェーズ3：アーキテクチャ改善（中長期）
 
-**実装期間**: 3-4時間
-**リスクレベル**: 🟡 Medium-High
+**実装期間**: 3-4時間 **リスクレベル**: 🟡 Medium-High
 
 #### 3.1 段階的データ読み込み
 
@@ -442,8 +420,8 @@ async function loadDashboardProgressively(user) {
 
 ### パフォーマンス改善目標
 
-| フェーズ      | ログイン画面 | ダッシュボード | 合計時間  | 改善率     | ユーザー体感 |
-| ------------- | ------------ | -------------- | --------- | ---------- | ------------ |
+| フェーズ      | ログイン画面 | ダッシュボード | 合計時間  | 改善率     | ユーザー体感  |
+| ------------- | ------------ | -------------- | --------- | ---------- | ------------- |
 | **現状**      | 5秒          | 8秒            | **13秒**  | -          | 🔴 非常に遅い |
 | **フェーズ1** | 1-2秒        | 3-4秒          | **4-6秒** | 60-70%短縮 | 🟡 改善       |
 | **フェーズ2** | 1秒          | 1-2秒          | **2-3秒** | 80-85%短縮 | 🟢 高速       |

@@ -2203,7 +2203,6 @@ function processAccountingPayment(
                 payload: {
                   myReservations: response.data.myReservations || [],
                   lessons: response.data.lessons || [],
-                  initialData: response.data.initialData || {},
                 },
               });
             }

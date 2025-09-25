@@ -109,31 +109,59 @@
         typeof google !== 'undefined' && typeof google.script !== 'undefined';
       debugLog('GAS環境判定: ' + isGAS);
 
+      // 事前取得システムを削除しました
+      // シンプルなログインフローに変更したため不要
+
+      // startPreloadInitialData関数を削除しました
+
+      // updatePreloadStatus関数を削除しました
+
+      function isPreloadedDataValid() {
+        if (!window.appCache.initialData || !window.appCache.timestamp) {
+          return false;
+        }
+
+        var age = Date.now() - window.appCache.timestamp;
+        return age < window.appCache.maxAge;
+      }
+
       function initializeApp() {
         debugLog('initializeApp実行開始');
         debugLog('isGAS: ' + isGAS);
 
-        // 必要な変数や関数が定義されるまで待機
-        const checkReady = setInterval(() => {
-          const status = {
-            DesignConfig: typeof DesignConfig !== 'undefined',
-            stateManager: typeof window.stateManager !== 'undefined',
-            stateManagerDispatch:
-              typeof window.stateManager?.dispatch === 'function',
-            hideLoading: typeof hideLoading === 'function',
-          };
+        // 最適化された初期化チェック（アプローチ2改良版）
+        function safeInitializeApp() {
+          // 必要なコンポーネントの確認
+          var allReady = true;
+          var missingComponents = [];
 
-          debugLog('初期化条件チェック: ' + JSON.stringify(status));
-
-          // DesignConfig, stateManager, hideLoadingが利用可能か確認
+          if (typeof DesignConfig === 'undefined') {
+            allReady = false;
+            missingComponents.push('DesignConfig');
+          }
+          if (typeof window.stateManager === 'undefined') {
+            allReady = false;
+            missingComponents.push('stateManager');
+          }
           if (
-            typeof DesignConfig !== 'undefined' &&
             typeof window.stateManager !== 'undefined' &&
-            typeof window.stateManager?.dispatch === 'function' &&
-            typeof hideLoading === 'function'
+            typeof window.stateManager.dispatch !== 'function'
           ) {
-            clearInterval(checkReady);
-            debugLog('初期化条件を満たしました！');
+            allReady = false;
+            missingComponents.push('stateManager.dispatch');
+          }
+          if (typeof hideLoading !== 'function') {
+            allReady = false;
+            missingComponents.push('hideLoading');
+          }
+
+          debugLog(
+            '初期化条件チェック - 不足: ' + missingComponents.join(', '),
+          );
+
+          if (allReady) {
+            // 全て準備完了 - 即座に初期化実行
+            debugLog('⚡ 高速初期化実行 - 全コンポーネント準備完了！');
             debugLog(
               'stateManager.getState().lessons: ' +
                 (window.stateManager.getState().lessons
@@ -149,8 +177,17 @@
               payload: { view: 'login' },
             });
             hideLoading();
+
+            // 事前取得システムを削除しました
+            // シンプルなログインフローに変更
+          } else {
+            // 一部未準備 - 100ms間隔でリトライ（300ms → 100ms に短縮）
+            setTimeout(safeInitializeApp, 100);
           }
-        }, 300);
+        }
+
+        // 最適化された初期化開始
+        safeInitializeApp();
       }
 
       if (isGAS) {

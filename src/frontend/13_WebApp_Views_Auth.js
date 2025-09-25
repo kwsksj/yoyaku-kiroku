@@ -424,49 +424,6 @@ const getRegistrationStep4View = () => {
 };
 
 /**
- * ユーザー検索画面
- * 【用途】管理者向け機能：電話番号検索による既存ユーザー情報閲覧
- * @returns {HTMLString} ユーザー検索画面のHTML文字列
- */
-const getUserSearchView = () => {
-  return Components.pageContainer({
-    maxWidth: 'md',
-    content: `
-      <div class="text-center mb-6">
-        <h1 class="text-2xl font-bold text-brand-text mb-2">ユーザー検索</h1>
-        <p class="text-brand-subtle">携帯電話番号でユーザー情報を検索できます</p>
-      </div>
-
-      <div class="space-y-4">
-        ${Components.input({
-          id: 'search-phone',
-          label: '携帯電話番号',
-          type: 'tel',
-          placeholder: '090 1234 5678',
-          autocomplete: 'tel',
-        })}
-
-        ${Components.actionButtonSection({
-          primaryButton: {
-            action: 'searchUser',
-            text: '検索',
-            style: 'primary',
-          },
-          secondaryButton: {
-            action: 'goBackToDashboard',
-            text: 'もどる',
-            style: 'secondary',
-          },
-          layout: 'horizontal',
-        })}
-      </div>
-
-      <div id="search-results" class="mt-6"></div>
-    `,
-  });
-};
-
-/**
  * プロフィール編集画面
  * 【設計方針】getUserFormViewへの簡潔なラッパー
  * @returns {HTMLString} HTML文字列

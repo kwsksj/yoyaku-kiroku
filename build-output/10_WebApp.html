@@ -109,8 +109,10 @@ const CONSTANTS = {
   // 環境設定
   ENVIRONMENT: {
     DEBUG_MODE: typeof DEBUG !== 'undefined' ? DEBUG : false,
-    PRODUCTION_MODE: typeof ScriptApp !== 'undefined' &&
-                     ScriptApp.getScriptId() === '1BYOLy7kHfVEf96eJgPd9B-5ZQ5bNNOMwBiHtMt-6HZYrN2w9YhzG_Whi', // 本番ID
+    PRODUCTION_MODE:
+      typeof ScriptApp !== 'undefined' &&
+      ScriptApp.getScriptId() ===
+        '1BYOLy7kHfVEf96eJgPd9B-5ZQ5bNNOMwBiHtMt-6HZYrN2w9YhzG_Whi', // 本番ID
   },
 
   /**
@@ -394,7 +396,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-09-24T14:02:39.381Z
+   * Generated: 2025-09-25T05:55:15.538Z
    * =================================================================
    */
 
@@ -4462,7 +4464,6 @@ const ENVIRONMENT_CONFIG = {
                   payload: {
                     myReservations: response.data.myReservations || [],
                     lessons: response.data.lessons || [],
-                    initialData: response.data.initialData || {},
                   },
                 });
               }
@@ -4854,66 +4855,20 @@ const ENVIRONMENT_CONFIG = {
   // -----------------------------------------------------------------
 
   /**
-   * 新しい初期データを受け取り、クライアントサイドで処理してappStateを構築する
-   * @param {LoginDataResponse['data']} data - getAppInitialDataから返されたデータオブジェクト
-   * @param {string} phone - ログイン試行された電話番号
-   * @param {LessonData[]} lessons - バックエンドから取得済みの講座情報
-   * @param {ReservationData[] | null} [myReservations=null] - ユーザーの予約データ配列
-   * @returns {Partial<UIState>} setStateに渡すための新しい状態オブジェクト。ユーザーが見つからない場合は { currentUser: null }
+   * シンプルなダッシュボード状態を構築する（簡素化版）
+   * @param {any} currentUser - 軽量認証から取得したユーザー情報
+   * @param {ReservationData[]} myReservations - 個人の予約データ
+   * @returns {Partial<UIState>} シンプルなダッシュボード状態
    */
-  function processInitialData(data, phone, lessons, myReservations = null) {
-    // データの安全性確認
-    if (!data) {
-      console.error('❌ processInitialData: 初期データが存在しません', data);
-      return { currentUser: null };
-    }
-
-    // 実際のデータ構造に合わせて修正（data.initialではなくdata直下）
-    const { allStudents, accountingMaster, cacheVersions, today } = data;
-
-    // 1. 電話番号でユーザーを検索
-    if (!allStudents) {
-      console.warn('⚠️ processInitialData: allStudentsが存在しません', {
-        data,
-        allStudents,
-      });
-      return { currentUser: null };
-    }
-
-    const currentUser = Object.values(allStudents).find(
-      student => student.phone === phone,
-    );
-
-    if (!currentUser) {
-      return { currentUser: null }; // ユーザーが見つからない
-    }
-
-    // currentUserのdisplayNameをセット
-    currentUser.displayName = currentUser.nickname || currentUser.realName;
-
-    // 2. 個人予約データを直接保存（フィルタリングは表示時に実行）
-    const reservations = myReservations || [];
-
-    // 4. 講座バージョンを生成
-    const lessonsVersion = cacheVersions
-      ? `${cacheVersions['allReservations'] || 0}-${cacheVersions['scheduleMaster'] || 0}`
-      : null;
-
-    // 5. 会計システムの事前初期化（全教室分）
-    preInitializeAccountingSystem(accountingMaster);
-
-    // 6. appStateを構築（フィルタリングされていない生の予約データを保存）
+  function createSimpleDashboardState(currentUser, myReservations) {
     return {
       view: 'dashboard',
       currentUser: currentUser,
-      myReservations: reservations, // 生データを直接保存
-      lessons: lessons,
+      myReservations: myReservations || [],
+      // 他のデータは必要時に取得
+      lessons: [],
       classrooms: CONSTANTS.CLASSROOMS ? Object.values(CONSTANTS.CLASSROOMS) : [],
-      accountingMaster: accountingMaster,
-      today: today,
-      _allStudents: allStudents,
-      _cacheVersions: cacheVersions,
-      _lessonsVersion: lessonsVersion, // 講座バージョンを設定（UIStateで定義済み）
+      today: new Date().toISOString().split('T')[0], // フロントで生成
     };
   }
 
@@ -5637,7 +5592,7 @@ const ENVIRONMENT_CONFIG = {
         if (typeof console !== 'undefined') {
           console.error(`[ERROR] ${message}`, ...args);
         }
-      }
+      },
     };
   }
 
@@ -6056,7 +6011,11 @@ const ENVIRONMENT_CONFIG = {
      */
     _autoSaveIfNeeded(oldState, newState) {
       // ログイン画面に戻る場合は保存状態をクリア（ログアウト扱い）
-      if ('view' in newState && newState.view === 'login' && oldState.view !== 'login') {
+      if (
+        'view' in newState &&
+        newState.view === 'login' &&
+        oldState.view !== 'login'
+      ) {
         PerformanceLog.info('ログイン画面に戻るため保存状態をクリア');
         this.clearStoredState();
         return;
@@ -6064,12 +6023,17 @@ const ENVIRONMENT_CONFIG = {
 
       // 保存対象となる重要な状態変更
       const importantChanges = [
-        'currentUser', 'loginPhone', 'view', 'selectedClassroom',
-        'isFirstTimeBooking', 'registrationData', 'registrationPhone'
+        'currentUser',
+        'loginPhone',
+        'view',
+        'selectedClassroom',
+        'isFirstTimeBooking',
+        'registrationData',
+        'registrationPhone',
       ];
 
-      const hasImportantChange = importantChanges.some(key =>
-        key in newState && oldState[key] !== newState[key]
+      const hasImportantChange = importantChanges.some(
+        key => key in newState && oldState[key] !== newState[key],
       );
 
       if (hasImportantChange) {
@@ -6090,7 +6054,7 @@ const ENVIRONMENT_CONFIG = {
         // Setオブジェクトは直接JSON化できないため、Arrayに変換
         const stateToSave = {
           ...this.state,
-          editingReservationIds: Array.from(this.state.editingReservationIds)
+          editingReservationIds: Array.from(this.state.editingReservationIds),
         };
 
         // 保存対象の状態のみを選択（大量データは除外）
@@ -6104,7 +6068,7 @@ const ENVIRONMENT_CONFIG = {
           registrationPhone: stateToSave.registrationPhone,
           editingReservationIds: stateToSave.editingReservationIds,
           // タイムスタンプを追加（有効期限チェック用）
-          savedAt: Date.now()
+          savedAt: Date.now(),
         };
 
         sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(essentialState));
@@ -6140,7 +6104,7 @@ const ENVIRONMENT_CONFIG = {
         this.state = {
           ...this.state,
           ...parsedState,
-          editingReservationIds: new Set(parsedState.editingReservationIds || [])
+          editingReservationIds: new Set(parsedState.editingReservationIds || []),
         };
 
         // savedAtは内部データなので削除
@@ -7439,11 +7403,6 @@ const ENVIRONMENT_CONFIG = {
         action = 'backToStep3';
         break;
 
-      case 'userSearch':
-        text = 'ログインへ';
-        action = 'goBackToLogin';
-        break;
-
       case 'dashboard':
         // ダッシュボードではもどるボタンを表示しない
         return '';
@@ -7925,49 +7884,6 @@ const ENVIRONMENT_CONFIG = {
           },
           layout: 'horizontal',
         })}
-      `,
-    });
-  };
-
-  /**
-   * ユーザー検索画面
-   * 【用途】管理者向け機能：電話番号検索による既存ユーザー情報閲覧
-   * @returns {HTMLString} ユーザー検索画面のHTML文字列
-   */
-  const getUserSearchView = () => {
-    return Components.pageContainer({
-      maxWidth: 'md',
-      content: `
-        <div class="text-center mb-6">
-          <h1 class="text-2xl font-bold text-brand-text mb-2">ユーザー検索</h1>
-          <p class="text-brand-subtle">携帯電話番号でユーザー情報を検索できます</p>
-        </div>
-
-        <div class="space-y-4">
-          ${Components.input({
-            id: 'search-phone',
-            label: '携帯電話番号',
-            type: 'tel',
-            placeholder: '090 1234 5678',
-            autocomplete: 'tel',
-          })}
-
-          ${Components.actionButtonSection({
-            primaryButton: {
-              action: 'searchUser',
-              text: '検索',
-              style: 'primary',
-            },
-            secondaryButton: {
-              action: 'goBackToDashboard',
-              text: 'もどる',
-              style: 'secondary',
-            },
-            layout: 'horizontal',
-          })}
-        </div>
-
-        <div id="search-results" class="mt-6"></div>
       `,
     });
   };
@@ -9230,9 +9146,6 @@ const ENVIRONMENT_CONFIG = {
           ),
         );
         break;
-      case 'userSearch':
-        v = getUserSearchView();
-        break;
     }
     document.getElementById('view-container').innerHTML =
       `<div class="fade-in">${v}</div>`;
@@ -9742,7 +9655,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 【ファイル名】: 14_WebApp_Handlers_Auth.js
-   * 【バージョン】: 1.0
+   * 【バージョン】: 1.1
    * 【役割】: WebAppのフロントエンドにおける、認証・ユーザー管理関連の
    * アクションハンドラーを集約します。
    * 【構成】: 14ファイル構成から分割された認証管理ファイル
@@ -9750,7 +9663,6 @@ const ENVIRONMENT_CONFIG = {
    * - ログイン・ログアウト処理
    * - 新規ユーザー登録（4ステップ）
    * - プロフィール管理（表示・編集・保存）
-   * - ユーザー検索（電話番号未登録ユーザー対応）
    * =================================================================
    */
 
@@ -9782,103 +9694,72 @@ const ENVIRONMENT_CONFIG = {
         return;
       }
 
-      showLoading('booking');
+      showLoading('login');
       // 正規化に成功した場合は直接ログイン処理を実行（1回のAPI呼び出し）
       authActionHandlers.processLoginWithValidatedPhone(
         normalizeResult.normalized,
       );
     },
 
-    /** 検証済み電話番号でのログイン処理
+    /** 統合ログイン処理：1回のAPI呼び出しで認証とデータ取得を完了
      * @param {string} normalizedPhone */
     processLoginWithValidatedPhone: normalizedPhone => {
-      // 環境分岐: テスト環境の場合はモックデータを使用
+      debugLog('🚀 統合ログイン開始 - 認証+データ一括取得');
 
-      // 本番環境: 統合エンドポイントで初期データと空席情報を一括取得
-      google.script.run['withSuccessHandler'](
-        (/** @type {LoginDataResponse} */ response) => {
-          // ← この response には、サーバーサイドの getLoginData 関数の戻り値が格納されます。
+      // 統合エンドポイントで認証とすべてのデータを一括取得
+      google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+        if (response.success && response.userFound) {
+          debugLog(
+            '✅ 統合ログイン成功 - ユーザー: ' + response.user.displayName,
+          );
+          debugLog(
+            `📦 データ一括取得完了: 予約${response.data.myReservations?.length || 0}件, レッスン${response.data.lessons?.length || 0}件`,
+          );
 
-          // デバッグ情報を画面に表示（本番環境では無効化）
-          if (!window.isProduction) {
-            debugLog('初期データ取得完了');
-            debugLog('response.success: ' + response.success);
-            debugLog('response.userFound: ' + response.userFound);
-            debugLog(
-              'response.data.lessons: ' +
-                (response.data?.lessons
-                  ? response.data.lessons.length + '件'
-                  : 'null/undefined'),
-            );
-            debugLog(
-              'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
-            );
-          }
+          // 完全なアプリ状態を一度に構築
+          const newAppState = {
+            view: 'dashboard',
+            currentUser: response.user,
+            myReservations: response.data.myReservations || [],
+  //          lessons: response.data.lessons || [],
+            classrooms: CONSTANTS.CLASSROOMS
+              ? Object.values(CONSTANTS.CLASSROOMS)
+              : [],
+            accountingMaster: response.data.accountingMaster || [],
+            today: new Date().toISOString().split('T')[0],
+          };
 
-          if (response.success && response.userFound) {
-            // ユーザーが見つかった場合：クライアントサイド処理で状態構築
-            const newAppState = processInitialData(
-              response.data,
-              normalizedPhone,
-              response.data?.lessons || [],
-              response.data?.myReservations || [],
-            );
-            debugLog(
-              'processInitialData完了 - lessons: ' +
-                (newAppState?.lessons
-                  ? newAppState.lessons.length + '件'
-                  : 'null'),
-            );
-            debugLog(
-              'processInitialData完了 - classrooms: ' +
-                JSON.stringify(newAppState?.classrooms),
-            );
-
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                ...newAppState,
-                // サーバーから取得した定数を使って、表示する履歴の初期件数を設定
-                recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS || 10,
-                isDataFresh: true,
-              },
-            });
-          } else {
-            // ユーザーが見つからない場合または特別コマンド認識時の分岐処理
-            if (response.commandRecognized) {
-              // 特殊コマンドが認識された場合はuserSearch画面に遷移
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  view: 'userSearch',
-                  searchedUsers: [],
-                  selectedSearchedUser: null,
-                  searchAttempted: false,
-                },
-              });
-            } else {
-              // 通常のユーザー未登録の場合は新規登録画面に遷移
-              window.stateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  view: 'register',
-                  registrationPhone: normalizedPhone,
-                },
-              });
-            }
-          }
-        },
-      )
-        .withFailureHandler((/** @type {Error} */ err) => {
           hideLoading();
-          if (!window.isProduction) {
-            debugLog('初期データ取得エラー: ' + err.message);
-          }
+          debugLog('✅ 統合ログイン完了 - 完全なダッシュボード表示');
+
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              ...newAppState,
+              recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+              isDataFresh: true,
+            },
+          });
+        } else {
+          // 認証失敗 - 新規登録に誘導
+          hideLoading();
+          debugLog('❌ ユーザー未登録 - 新規登録画面へ');
+          window.stateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              view: 'register',
+              registrationPhone: normalizedPhone,
+            },
+          });
+        }
+      })
+        .withFailureHandler((/** @type {Error} */ err) => {
+          debugLog('❌ 統合ログインエラー: ' + err.message);
+          hideLoading();
           if (window.FrontendErrorHandler) {
             window.FrontendErrorHandler.handle(
               err,
-              'processLoginWithValidatedPhone',
-              { phone: normalizedPhone },
+              'processLoginWithValidatedPhone_integrated',
             );
           }
           handleServerError(err);
@@ -10209,152 +10090,6 @@ const ENVIRONMENT_CONFIG = {
         .updateUserProfile(u);
     },
 
-    /**
-     * 電話番号による既存ユーザー検索を実行します。
-     */
-    searchUser: () => {
-      const phoneInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('search-phone')
-      );
-      const phone = phoneInput ? phoneInput.value.trim() : '';
-
-      if (!phone) {
-        return showInfo('電話番号を入力してください。');
-      }
-
-      // 電話番号の正規化・バリデーション
-      const normalizeResult = window.normalizePhoneNumberFrontend(phone);
-      if (!normalizeResult.isValid) {
-        showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
-        return;
-      }
-
-      showLoading('booking');
-
-      // 電話番号で検索（TODO: 実際のサーバー側実装が必要）
-      // 現在は仮実装としてエラーメッセージを表示
-      setTimeout(() => {
-        hideLoading();
-        showInfo('電話番号検索機能は実装予定です。');
-      }, 1000);
-    },
-
-    /**
-     * NF-01: 電話番号未登録ユーザーの検索を実行します（キャッシュ活用版）。
-     */
-    searchUserByName: () => {
-      const searchInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('nickname-search-input')
-      );
-      const searchTerm = searchInput ? searchInput.value.trim() : ''; // 検索語をsearchTermに変更
-
-      if (!searchTerm) {
-        return showInfo('お名前（本名）またはニックネームを入力してください。');
-      }
-
-      showLoading('booking');
-
-      // 検索語からスペースを除去して小文字化して比較に使う
-      const normalizedSearchTerm = searchTerm.replace(/\s+/g, '').toLowerCase();
-
-      google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
-        hideLoading();
-        if (response.success) {
-          // 【統一レスポンス形式】データ構造の修正
-          // searchName (スペース除去済み・小文字化された結合名) を使ってフィルタリング
-          const filteredUsers = response.data.filter(
-            /** @param {any} user */ user =>
-              user.searchName && user.searchName.includes(normalizedSearchTerm),
-          );
-
-          // NF-01: 検索が試行されたことを示すフラグをセット
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: { searchedUsers: filteredUsers, searchAttempted: true },
-          });
-
-          if (filteredUsers.length === 0) {
-            // アカウントが見つからなかった場合のメッセージはビュー側で表示
-          }
-        } else {
-          showInfo(response.message || 'ユーザー検索に失敗しました。');
-        }
-      })
-        ['withFailureHandler'](handleServerError)
-        .searchUsersWithoutPhone(searchTerm);
-    },
-
-    /**
-     * NF-01: 検索結果から電話番号未登録ユーザーを選択します（バッチ処理版）。
-     * @param {ActionHandlerData} d
-     */
-    selectSearchedUser: d => {
-      // ボタンに埋め込まれたデータから、まず仮のユーザー情報を作成
-      const tempUser = {
-        studentId: d.studentId,
-        realName: d.realName, // ボタンのdata属性から取得
-        displayName: d.nickname, // ボタンのdata属性から取得
-        phone: '', // 電話番号はまだないので空
-      };
-
-      showLoading('booking');
-
-      // バッチ処理で初期データ、空席情報、ユーザーデータを一括取得
-      google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
-        if (response.success) {
-          // tempUserの情報でcurrentUserを上書きしつつ、キャッシュデータを活用
-          const userFromCache =
-            response.data.initial.allStudents[tempUser.studentId];
-          const finalUser = userFromCache
-            ? {
-                ...userFromCache,
-                displayName: tempUser.displayName,
-                phone: tempUser.phone,
-              }
-            : tempUser;
-
-          // 個人予約データを直接取得（フィルタリングは表示時に実行）
-          const myReservations = response.data.myReservations || [];
-          const today = response.data.initial.today;
-
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              currentUser: finalUser,
-              lessons: response.data.lessons,
-              myReservations: myReservations,
-              accountingMaster: response.data.initial.accountingMaster,
-              recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
-              view: 'editProfile', // 電話番号登録を促すためプロフィール編集画面へ
-              today: today,
-              _allStudents: response.data.initial.allStudents,
-              _cacheVersions: response.data.initial.cacheVersions,
-            },
-          });
-        } else {
-          hideLoading();
-          showInfo(response.message || 'データの読み込みに失敗しました。');
-        }
-      })
-        ['withFailureHandler'](handleServerError)
-        .getBatchData(
-          ['initial', 'lessons', 'reservations'],
-          null,
-          tempUser.studentId,
-        );
-    },
-
-    /**
-     * NF-01: 自分のアカウントが見つからなかった場合に新規登録画面へ遷移します。
-     */
-    goToRegisterFromUserSearch: () => {
-      // 新規登録画面へ遷移。電話番号は未入力のまま。
-      window.stateManager.dispatch({
-        type: 'SET_STATE',
-        payload: { view: 'register', registrationPhone: '' },
-      });
-    },
-
     /** プロフィール編集画面に遷移します */
     goToEditProfile: () => {
       // データが古く、かつ更新中でなければデータを更新
@@ -10581,7 +10316,6 @@ const ENVIRONMENT_CONFIG = {
                 window.stateManager.dispatch({
                   type: 'SET_STATE',
                   payload: {
-                    ...r.data.initialData,
                     myReservations: r.data.myReservations || [],
                     lessons: r.data.lessons || [],
                     view: 'dashboard',
@@ -10673,7 +10407,6 @@ const ENVIRONMENT_CONFIG = {
             window.stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
-                ...r.data.initialData,
                 myReservations: r.data.myReservations || [],
                 lessons: r.data.lessons || [],
                 view: 'complete',
@@ -11412,10 +11145,7 @@ const ENVIRONMENT_CONFIG = {
           // setStateがrenderを呼び出すので、ここでのrender()は不要
         },
       )
-      .getBatchData(
-        ['lessons'],
-        stateManager.getState().currentUser.phone,
-      );
+      .getBatchData(['lessons'], stateManager.getState().currentUser.phone);
   }
 
   // =================================================================
@@ -11619,31 +11349,59 @@ const ENVIRONMENT_CONFIG = {
         typeof google !== 'undefined' && typeof google.script !== 'undefined';
       debugLog('GAS環境判定: ' + isGAS);
 
+      // 事前取得システムを削除しました
+      // シンプルなログインフローに変更したため不要
+
+      // startPreloadInitialData関数を削除しました
+
+      // updatePreloadStatus関数を削除しました
+
+      function isPreloadedDataValid() {
+        if (!window.appCache.initialData || !window.appCache.timestamp) {
+          return false;
+        }
+
+        var age = Date.now() - window.appCache.timestamp;
+        return age < window.appCache.maxAge;
+      }
+
       function initializeApp() {
         debugLog('initializeApp実行開始');
         debugLog('isGAS: ' + isGAS);
 
-        // 必要な変数や関数が定義されるまで待機
-        const checkReady = setInterval(() => {
-          const status = {
-            DesignConfig: typeof DesignConfig !== 'undefined',
-            stateManager: typeof window.stateManager !== 'undefined',
-            stateManagerDispatch:
-              typeof window.stateManager?.dispatch === 'function',
-            hideLoading: typeof hideLoading === 'function',
-          };
+        // 最適化された初期化チェック（アプローチ2改良版）
+        function safeInitializeApp() {
+          // 必要なコンポーネントの確認
+          var allReady = true;
+          var missingComponents = [];
 
-          debugLog('初期化条件チェック: ' + JSON.stringify(status));
-
-          // DesignConfig, stateManager, hideLoadingが利用可能か確認
+          if (typeof DesignConfig === 'undefined') {
+            allReady = false;
+            missingComponents.push('DesignConfig');
+          }
+          if (typeof window.stateManager === 'undefined') {
+            allReady = false;
+            missingComponents.push('stateManager');
+          }
           if (
-            typeof DesignConfig !== 'undefined' &&
             typeof window.stateManager !== 'undefined' &&
-            typeof window.stateManager?.dispatch === 'function' &&
-            typeof hideLoading === 'function'
+            typeof window.stateManager.dispatch !== 'function'
           ) {
-            clearInterval(checkReady);
-            debugLog('初期化条件を満たしました！');
+            allReady = false;
+            missingComponents.push('stateManager.dispatch');
+          }
+          if (typeof hideLoading !== 'function') {
+            allReady = false;
+            missingComponents.push('hideLoading');
+          }
+
+          debugLog(
+            '初期化条件チェック - 不足: ' + missingComponents.join(', '),
+          );
+
+          if (allReady) {
+            // 全て準備完了 - 即座に初期化実行
+            debugLog('⚡ 高速初期化実行 - 全コンポーネント準備完了！');
             debugLog(
               'stateManager.getState().lessons: ' +
                 (window.stateManager.getState().lessons
@@ -11659,8 +11417,17 @@ const ENVIRONMENT_CONFIG = {
               payload: { view: 'login' },
             });
             hideLoading();
+
+            // 事前取得システムを削除しました
+            // シンプルなログインフローに変更
+          } else {
+            // 一部未準備 - 100ms間隔でリトライ（300ms → 100ms に短縮）
+            setTimeout(safeInitializeApp, 100);
           }
-        }, 300);
+        }
+
+        // 最適化された初期化開始
+        safeInitializeApp();
       }
 
       if (isGAS) {

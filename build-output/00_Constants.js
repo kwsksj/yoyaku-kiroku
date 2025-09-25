@@ -22,8 +22,10 @@ const CONSTANTS = {
   // 環境設定
   ENVIRONMENT: {
     DEBUG_MODE: typeof DEBUG !== 'undefined' ? DEBUG : false,
-    PRODUCTION_MODE: typeof ScriptApp !== 'undefined' &&
-                     ScriptApp.getScriptId() === '1BYOLy7kHfVEf96eJgPd9B-5ZQ5bNNOMwBiHtMt-6HZYrN2w9YhzG_Whi', // 本番ID
+    PRODUCTION_MODE:
+      typeof ScriptApp !== 'undefined' &&
+      ScriptApp.getScriptId() ===
+        '1BYOLy7kHfVEf96eJgPd9B-5ZQ5bNNOMwBiHtMt-6HZYrN2w9YhzG_Whi', // 本番ID
   },
 
   /**

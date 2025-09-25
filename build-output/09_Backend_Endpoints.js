@@ -10,7 +10,6 @@
  *
  * 【主要機能】:
  * ✅ アプリ初期化データ管理
- *   - getAppInitialData(): アプリ起動時の基本データ取得
  *   - getLoginData(): ユーザーログイン時の全データ取得
  *   - getScheduleInfo(): 特定の日程マスタ情報取得
  *   - getBatchData(): 複数データタイプの一括取得
@@ -43,7 +42,6 @@
 
 /**
  * 予約操作後に最新データを取得して返す汎用関数
- * @param {keyof ErrorMessages} operationType - 操作タイプ ('makeReservation'|'cancelReservation'|'updateReservation'|'accounting'|'login')
  * @param {Function} operationFunction - 実行する操作関数
  * @param {ReservationInfo|CancelInfo|ReservationDetails} operationParams - 操作関数に渡すパラメータ
  * @param {string} studentId - 対象生徒のID
@@ -51,7 +49,6 @@
  * @returns {ApiResponseGeneric} 操作結果と最新データを含むAPIレスポンス
  */
 function executeOperationAndGetLatestData(
-  operationType,
   operationFunction,
   operationParams,
   studentId,
@@ -59,59 +56,25 @@ function executeOperationAndGetLatestData(
 ) {
   try {
     const result = operationFunction(operationParams);
-    if (result.success) {
-      // 軽量化：ログイン時以外はinitialデータ（Schedule Master診断）を除外
-      const needsInitialData = operationType === 'login';
-      const dataTypesToFetch = needsInitialData
-        ? ['initial', 'reservations', 'lessons']
-        : ['reservations', 'lessons'];
-
-      const batchResult = getBatchData(
-        dataTypesToFetch,
-        null,
-        studentId,
-      );
-      if (!batchResult.success) {
-        return batchResult;
-      }
-
-      // デバッグログ: 返却するmyReservationsを確認
-      const myReservationsData = batchResult.data.myReservations || [];
-      Logger.log(
-        `executeOperationAndGetLatestData: myReservations件数=${myReservationsData.length}`,
-      );
-      if (myReservationsData.length > 0) {
-        Logger.log(
-          `executeOperationAndGetLatestData: 最初の予約データ=${typeof myReservationsData[0]}`,
-        );
-      }
-
-      const response = createApiResponse(true, {
-        message: result.message || successMessage,
-        data: {
-          myReservations: myReservationsData,
-          initialData: batchResult.data.initial || {},
-          lessons: batchResult.data.lessons || [],
-        },
-      });
-
-      return response;
-    } else {
+    if (!result.success) {
       return result;
     }
-  } catch (e) {
-    /** @type {ErrorMessages} */
-    const errorMessages = {
-      makeReservation: '予約処理中にエラーが発生しました',
-      cancelReservation: 'キャンセル処理中にエラーが発生しました',
-      updateReservation: '更新処理中にエラーが発生しました',
-      accounting: '会計処理中にエラーが発生しました',
-      login: 'ログイン処理中にエラーが発生しました',
-    };
 
-    return createApiResponse(false, {
-      message: `${errorMessages[operationType] || '処理中にエラーが発生しました'}: ${e.message}`,
+    // 予約操作後の更新されたデータを取得
+    const batchResult = getBatchData(['reservations'], null, studentId);
+    if (!batchResult.success) {
+      return batchResult;
+    }
+
+    return createApiResponse(true, {
+      message: result.message || successMessage,
+      data: {
+        myReservations: batchResult.data.myReservations || [],
+      },
     });
+  } catch (e) {
+    Logger.log(`executeOperationAndGetLatestData でエラー: ${e.message}`);
+    return createApiErrorResponse('操作処理でエラーが発生しました。', true);
   }
 }
 
@@ -124,7 +87,6 @@ function makeReservationAndGetLatestData(reservationInfo) {
   const isFirstTime = reservationInfo.options?.firstLecture || false;
 
   const result = executeOperationAndGetLatestData(
-    'makeReservation',
     makeReservation,
     reservationInfo,
     reservationInfo.studentId,
@@ -146,7 +108,6 @@ function makeReservationAndGetLatestData(reservationInfo) {
  */
 function cancelReservationAndGetLatestData(cancelInfo) {
   return executeOperationAndGetLatestData(
-    'cancelReservation',
     cancelReservation,
     cancelInfo,
     cancelInfo.studentId,
@@ -161,30 +122,11 @@ function cancelReservationAndGetLatestData(cancelInfo) {
  */
 function updateReservationDetailsAndGetLatestData(details) {
   return executeOperationAndGetLatestData(
-    'updateReservation',
     updateReservationDetails,
     details,
     details.studentId,
     '予約内容を更新しました。',
   );
-}
-
-/**
- * 電話番号未登録のユーザーをフィルタリング検索する
- * @param {string} _filterText - 検索条件文字列（現在未使用）
- * @returns {ApiResponseGeneric} 検索結果とユーザーリスト
- */
-function searchUsersWithoutPhone(_filterText) {
-  try {
-    const users = getUsersWithoutPhoneNumber();
-    return createApiResponse(true, {
-      data: users,
-    });
-  } catch (e) {
-    return createApiResponse(false, {
-      message: `電話番号未登録ユーザーの検索中にエラーが発生しました: ${e.message}`,
-    });
-  }
 }
 
 /**
@@ -200,7 +142,6 @@ function updateReservationMemoAndGetLatestData(
   newMemo,
 ) {
   return executeOperationAndGetLatestData(
-    'updateReservation',
     updateReservationDetails,
     {
       reservationId,
@@ -219,7 +160,6 @@ function updateReservationMemoAndGetLatestData(
  */
 function saveAccountingDetailsAndGetLatestData(payload) {
   return executeOperationAndGetLatestData(
-    'accounting',
     saveAccountingDetails,
     payload,
     payload.studentId,
@@ -323,131 +263,65 @@ function getAccountingDetailsFromSheet(reservationId) {
   }
 }
 
-/**
- * アプリ初期化用の基本データをキャッシュから取得する
- * @returns {ApiResponseGeneric<{
- *   allStudents: {[key: string]: StudentData},
- *   accountingMaster: AccountingMasterItem[],
- *   today: string,
- *   cacheVersions: {[key: string]: number}
- * }>}
- */
-function getAppInitialData() {
-  try {
-    Logger.log('getAppInitialData開始');
-
-    const allReservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    const accountingMaster = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
-    const scheduleMaster = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-
-    // Schedule Master データが空の場合は診断・修復を試行
-    if (
-      !scheduleMaster ||
-      !scheduleMaster['schedule'] ||
-      !Array.isArray(scheduleMaster['schedule']) ||
-      scheduleMaster['schedule'].length === 0
-    ) {
-      Logger.log(
-        '⚠️ Schedule Master キャッシュが空です - 診断・修復を実行します',
-      );
-      try {
-        diagnoseAndFixScheduleMasterCache();
-        // 修復後のデータを再取得
-        const repairedScheduleMaster = getCachedData(
-          CACHE_KEYS.MASTER_SCHEDULE_DATA,
-        );
-        if (
-          repairedScheduleMaster &&
-          Array.isArray(repairedScheduleMaster['schedule'])
-        ) {
-          Logger.log(
-            `✅ Schedule Master修復完了: ${repairedScheduleMaster['schedule'].length}件`,
-          );
-        }
-      } catch (error) {
-        Logger.log(`Schedule Master 修復中にエラー: ${error.message}`);
-      }
-    }
-
-    const today = Utilities.formatDate(
-      new Date(),
-      CONSTANTS.TIMEZONE,
-      'yyyy-MM-dd',
-    );
-
-    /** @type {ApiResponseGeneric<{ allStudents: { [key: string]: StudentData }, accountingMaster: AccountingMasterItem[], today: string, cacheVersions: { [key: string]: number } }>}*/
-    const result = {
-      success: true,
-      data: {
-        allStudents: /** @type {{ [key: string]: StudentData }} */ (
-          studentsCache?.['students'] || {}
-        ),
-        accountingMaster: /** @type {AccountingMasterItem[]} */ (
-          accountingMaster?.['items'] || []
-        ),
-        today: today,
-        cacheVersions: {
-          allReservations: allReservationsCache?.version || 0,
-          students: studentsCache?.version || 0,
-          accountingMaster: accountingMaster?.version || 0,
-          scheduleMaster: scheduleMaster?.version || 0,
-        },
-      },
-    };
-
-    Logger.log('getAppInitialData完了');
-    return result;
-  } catch (e) {
-    Logger.log(`getAppInitialDataでエラー: ${e.message}\nStack: ${e.stack}`);
-    return createApiErrorResponse(
-      `アプリ初期データ取得中にエラー: ${e.message}`,
-      true,
-    );
-  }
-}
 
 /**
- * ユーザーログイン時に必要な全データを取得する
+ * 統合ログインエンドポイント：認証 + 初期データ + 個人データを一括取得
  * @param {string} phone - 電話番号（ユーザー認証用）
- * @returns {ApiResponseGeneric} 初期データ、空席情報、ユーザー情報を含む結果
+ * @returns {ApiResponseGeneric} 認証結果、初期データ、個人データを含む結果
  */
 function getLoginData(phone) {
   try {
-    Logger.log(`getLoginData開始: phone=${phone}`);
+    Logger.log(`getLoginData統合処理開始: phone=${phone}`);
 
-    // 統合バッチ処理で一度にすべてのデータを取得
-    const batchResult = getBatchData(
-      ['initial', 'lessons', 'reservations'],
-      phone,
-    );
-    if (!batchResult.success) {
-      return batchResult;
+    // 1. 軽量認証実行
+    const authResult = authenticateUser(phone);
+
+    if (authResult.success) {
+      Logger.log(`認証成功: userId=${authResult.user.studentId}`);
+
+      // 2. 認証成功時：一括データ取得
+      const batchResult = getBatchData(
+        //        ['accounting', 'cache-versions', 'lessons', 'reservations'],
+        ['accounting', 'reservations'],
+        null,
+        authResult.user.studentId,
+      );
+
+      if (!batchResult.success) {
+        Logger.log('バッチデータ取得失敗');
+        return batchResult;
+      }
+
+      // 3. レスポンス統合
+      const result = {
+        success: true,
+        userFound: true,
+        user: authResult.user,
+        data: {
+          accountingMaster: batchResult.data['accounting'] || [],
+          cacheVersions: batchResult.data['cache-versions'] || {},
+//          today: new Date().toISOString().split('T')[0],
+//          lessons: batchResult.data['lessons'] || [],
+          myReservations: batchResult.data['myReservations'] || [],
+        },
+      };
+
+      Logger.log(`getLoginData統合処理完了: データ一括取得成功`);
+      return result;
+    } else {
+      // 4. 認証失敗時：ユーザー未登録
+      Logger.log(`認証失敗: ${authResult.message}`);
+      return {
+        success: true,
+        userFound: false,
+        message: authResult.message,
+        registrationPhone: phone,
+      };
     }
-
-    if (batchResult.data.myReservations) {
-      /** @type {any} */ (batchResult.data.initial).myReservations =
-        batchResult.data.myReservations;
-    }
-
-    if (batchResult.data.lessons) {
-      /** @type {any} */ (batchResult.data.initial).lessons =
-        batchResult.data.lessons;
-    }
-
-    const result = {
-      success: true,
-      data: batchResult.data.initial,
-      userFound: batchResult.userFound,
-      user: batchResult.user,
-    };
-
-    Logger.log(`getLoginData完了: userFound=${result.userFound}`);
-    return result;
   } catch (e) {
-    Logger.log(`getLoginDataでエラー: ${e.message}\nStack: ${e.stack}`);
+    Logger.log(`getLoginData統合処理エラー: ${e.message}\nStack: ${e.stack}`);
     return createApiErrorResponse(
-      `ログインデータ取得中にエラー: ${e.message}`,
+      `統合ログイン処理中にエラー: ${e.message}`,
       true,
     );
   }
@@ -491,7 +365,7 @@ function getCacheVersions() {
 
 /**
  * 複数のデータタイプを一度に取得するバッチ処理関数
- * @param {string[]} dataTypes - 取得するデータタイプの配列 ['initial', 'lessons', 'reservations', 'history', 'userdata']
+ * @param {string[]} dataTypes - 取得するデータタイプの配列 ['accounting', 'lessons', 'reservations']
  * @param {string|null} phone - 電話番号（ユーザー特定用、任意）
  * @param {string|null} studentId - 生徒ID（個人データ取得用、任意）
  * @returns {BatchDataResult} 要求されたすべてのデータを含む統合レスポンス
@@ -510,37 +384,18 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       user: /** @type {StudentData | null} */ (null),
     };
 
-    // 1. 初期データが要求されている場合
-    if (dataTypes.includes('initial')) {
-      const initialDataResult = getAppInitialData();
-      if (!initialDataResult.success) {
-        return /** @type {BatchDataResult} */ (initialDataResult);
-      }
-      result.data = { ...result.data, initial: initialDataResult.data };
 
-      // 電話番号でユーザーを検索（authenticateUserを使用して正規化と特殊コマンドチェックを実行）
-      if (phone) {
-        const authResult = authenticateUser(phone);
-        if (authResult.success) {
-          result.userFound = true;
-          result.user = authResult.user;
-        } else if (authResult.commandRecognized) {
-          // 特殊コマンドが認識された場合
-          result.userFound = false;
-          result.user = null;
-          result.commandRecognized = authResult.commandRecognized;
-        } else {
-          // 通常のユーザー未登録
-          result.userFound = false;
-          result.user = null;
-        }
-      } else if (studentId) {
-        // studentIdが指定されている場合もユーザー情報を設定する
-        const currentUser = initialDataResult.data.allStudents[studentId];
-        result.userFound = !!currentUser;
-        result.user = currentUser || null;
+    // 1. 会計マスターデータが要求されている場合
+    if (dataTypes.includes('accounting')) {
+      const accountingMaster = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
+      if (accountingMaster && accountingMaster['items']) {
+        result.data = {
+          ...result.data,
+          accounting: accountingMaster['items'],
+        };
       }
     }
+
 
     // 2. 講座情報が要求されている場合
     if (dataTypes.includes('lessons')) {
@@ -659,3 +514,6 @@ function getScheduleInfo(params) {
     );
   }
 }
+
+// getPersonalReservationsData関数は削除しました
+// 代わりに、既存のgetBatchData(['lessons', 'reservations'], null, studentId)を使用してください

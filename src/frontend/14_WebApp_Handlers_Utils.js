@@ -361,10 +361,7 @@ function updateAppStateFromCache(targetView) {
         // setStateがrenderを呼び出すので、ここでのrender()は不要
       },
     )
-    .getBatchData(
-      ['lessons'],
-      stateManager.getState().currentUser.phone,
-    );
+    .getBatchData(['lessons'], stateManager.getState().currentUser.phone);
 }
 
 // =================================================================

@@ -181,9 +181,6 @@ function render() {
         ),
       );
       break;
-    case 'userSearch':
-      v = getUserSearchView();
-      break;
   }
   document.getElementById('view-container').innerHTML =
     `<div class="fade-in">${v}</div>`;

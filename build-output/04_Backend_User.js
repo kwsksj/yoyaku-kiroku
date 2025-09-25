@@ -63,6 +63,81 @@ function _validatePhoneLight(phoneNumber) {
 }
 
 /**
+ * 軽量認証：電話番号検証のみ実行（初期データ取得を除外）
+ * フロントエンドで事前取得されたデータと組み合わせて使用
+ * @param {string} phoneNumber - 認証する電話番号
+ * @returns {Object} 認証結果（初期データなし）
+ */
+function authenticateUserLightweight(phoneNumber) {
+  try {
+    Logger.log('軽量認証開始: ' + phoneNumber);
+
+    // キャッシュから生徒データのみ取得（getAppInitialDataは呼ばない）
+    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    if (!studentsCache || !studentsCache.students) {
+      throw new Error('生徒データのキャッシュが取得できません');
+    }
+
+    const allStudents = studentsCache.students;
+    const normalizedInputPhone =
+      _normalizeAndValidatePhone(phoneNumber).normalized;
+
+    // 電話番号検証
+    let foundUser = null;
+    const studentIds = Object.keys(allStudents);
+
+    for (let i = 0; i < studentIds.length; i++) {
+      const studentId = studentIds[i];
+      const student = allStudents[studentId];
+      if (!student) continue;
+
+      const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
+      if (storedPhone && storedPhone === normalizedInputPhone) {
+        foundUser = {
+          studentId: student.studentId,
+          displayName: String(student.nickname || student.realName),
+          realName: student.realName,
+          phone: student.phone,
+        };
+        break;
+      }
+    }
+
+    if (foundUser) {
+      logActivity(
+        foundUser.studentId,
+        '軽量ログイン試行',
+        '成功',
+        '電話番号: ' + phoneNumber,
+      );
+      return {
+        success: true,
+        user: foundUser,
+        // 初期データは含めない（事前取得データを使用）
+      };
+    } else {
+      logActivity(
+        'N/A',
+        '軽量ログイン試行',
+        '失敗',
+        '電話番号: ' + phoneNumber,
+      );
+      return {
+        success: false,
+        message: '登録されている電話番号と一致しません。',
+        registrationPhone: phoneNumber,
+      };
+    }
+  } catch (err) {
+    Logger.log('軽量認証エラー: ' + err.message);
+    return {
+      success: false,
+      message: '認証処理中にエラーが発生しました。',
+    };
+  }
+}
+
+/**
  * キャッシュデータから個人用データを抽出する
  * @param {string} studentId - 生徒ID
  * @param {AppInitialData} cacheData - getAppInitialDataから取得したキャッシュデータ
@@ -107,43 +182,31 @@ function extractPersonalDataFromCache(studentId, cacheData) {
 }
 
 /**
- * 電話番号を元にユーザーを認証します。スプレッドシートは読まず、キャッシュから認証します。
+ * 電話番号を元にユーザーを認証します（軽量版）。
+ * 初期データは含まず、ユーザー認証のみに特化。
  * @param {string} phoneNumber - 認証に使用する電話番号。
- * @returns {AuthenticationResponse} - 認証結果と初期化データ
+ * @returns {Object} - 認証結果のみ（初期データなし）
  */
 function authenticateUser(phoneNumber) {
   try {
     Logger.log(`authenticateUser開始: ${phoneNumber}`);
-    const noPhoneLoginCommand =
-      PropertiesService.getScriptProperties().getProperty(
-        'SPECIAL_NO_PHONE_LOGIN_COMMAND',
-      );
 
-    if (noPhoneLoginCommand && phoneNumber === noPhoneLoginCommand) {
-      logActivity('N/A', '特殊ログイン試行', '成功', `Command: ${phoneNumber}`);
-      return { success: false, commandRecognized: 'all' };
+    // キャッシュから生徒データのみ取得
+    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    if (!studentsCache || !studentsCache.students) {
+      throw new Error('生徒データのキャッシュが取得できません');
     }
 
-    const initialDataResult = getAppInitialData();
-    if (!initialDataResult.success) {
-      throw new Error(
-        `初期データの取得(キャッシュ)に失敗しました: ${initialDataResult.message}`,
-      );
-    }
-
-    const allStudents = initialDataResult.data.allStudents;
-    if (!allStudents) {
-      throw new Error(
-        '生徒データが取得できませんでした。allStudentsがundefinedです。',
-      );
-    }
-
-    const studentIds = Object.keys(allStudents);
+    const allStudents = studentsCache.students;
     const normalizedInputPhone =
       _normalizeAndValidatePhone(phoneNumber).normalized;
 
+    // 電話番号検証
     let foundUser = null;
-    for (const studentId of studentIds) {
+    const studentIds = Object.keys(allStudents);
+
+    for (let i = 0; i < studentIds.length; i++) {
+      const studentId = studentIds[i];
       const student = allStudents[studentId];
       if (!student) continue;
 
@@ -151,7 +214,7 @@ function authenticateUser(phoneNumber) {
       if (storedPhone && storedPhone === normalizedInputPhone) {
         foundUser = {
           studentId: student.studentId,
-          displayName: String(student['nickname'] || student.realName),
+          displayName: String(student.nickname || student.realName),
           realName: student.realName,
           phone: student.phone,
         };
@@ -160,15 +223,6 @@ function authenticateUser(phoneNumber) {
     }
 
     if (foundUser) {
-      const personalData = extractPersonalDataFromCache(
-        foundUser.studentId,
-        initialDataResult.data,
-      );
-      const enrichedInitialData = {
-        ...initialDataResult.data,
-        myReservations: personalData.myReservations,
-      };
-
       logActivity(
         foundUser.studentId,
         'ログイン試行',
@@ -178,14 +232,12 @@ function authenticateUser(phoneNumber) {
       return {
         success: true,
         user: foundUser,
-        initialData: enrichedInitialData,
       };
     } else {
       logActivity('N/A', 'ログイン試行', '失敗', `電話番号: ${phoneNumber}`);
       return {
         success: false,
         message: '登録されている電話番号と一致しません。',
-        registrationPhone: phoneNumber,
       };
     }
   } catch (err) {
@@ -194,57 +246,7 @@ function authenticateUser(phoneNumber) {
     return {
       success: false,
       message: `サーバーエラーが発生しました。`,
-      registrationPhone: phoneNumber,
     };
-  }
-}
-
-/**
- * NF-01: 電話番号が未登録のユーザーリストを取得します。
- * @returns {Array<{ studentId: string, realName: string, nickname: string, searchName: string }>} - { studentId: string, realName: string, nickname: string, searchName: string } の配列。
- */
-function getUsersWithoutPhoneNumber() {
-  try {
-    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    if (!studentsCache || !studentsCache['students']) {
-      throw new Error('生徒データのキャッシュが利用できません。');
-    }
-
-    const usersWithoutPhone = [];
-    const allStudents = Object.values(studentsCache['students']);
-    for (const student of allStudents) {
-      const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
-      if (storedPhone === '') {
-        const realName = String(student.realName || '').trim();
-        const nickname = String(student.nickname || '').trim();
-        const searchName = (realName + nickname)
-          .replace(/\s+/g, '')
-          .toLowerCase();
-
-        usersWithoutPhone.push({
-          studentId: student.studentId,
-          realName: realName,
-          nickname: nickname || realName,
-          searchName: searchName,
-        });
-      }
-    }
-    logActivity(
-      'N/A',
-      '電話番号なしユーザー検索',
-      '成功',
-      `発見数: ${usersWithoutPhone.length}`,
-    );
-    return usersWithoutPhone;
-  } catch (err) {
-    logActivity(
-      'N/A',
-      '電話番号なしユーザー検索',
-      'エラー',
-      `Error: ${err.message}`,
-    );
-    Logger.log(`getUsersWithoutPhoneNumber Error: ${err.message}`);
-    return [];
   }
 }
 
@@ -394,26 +396,20 @@ function registerNewUser(userInfo) {
         wantsEmail: userInfo?.wantsEmail || false,
       };
 
-      const initialData = getAppInitialData();
-      if (initialData.success) {
-        logActivity(
-          studentId,
-          '新規ユーザー登録',
-          '成功',
-          `電話番号: ${normalizedPhone}, キャッシュ再構築完了`,
-        );
-        return {
-          success: true,
-          data: {
-            user: newUserInfo,
-            message: '新規ユーザー登録が完了しました',
-          },
-        };
-      } else {
-        throw new Error(
-          `新規登録には成功しましたが、初期データの取得に失敗しました: ${initialData.message}`,
-        );
-      }
+      // 登録完了
+      logActivity(
+        studentId,
+        '新規ユーザー登録',
+        '成功',
+        `電話番号: ${normalizedPhone}`,
+      );
+      return {
+        success: true,
+        data: {
+          user: newUserInfo,
+          message: '新規ユーザー登録が完了しました',
+        },
+      };
     } catch (err) {
       logActivity('N/A', '新規ユーザー登録', 'エラー', `Error: ${err.message}`);
       Logger.log(`registerNewUser Error: ${err.message}`);

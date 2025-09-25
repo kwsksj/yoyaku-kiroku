@@ -1261,11 +1261,6 @@ Components.createSmartBackButton = currentView => {
       action = 'backToStep3';
       break;
 
-    case 'userSearch':
-      text = 'ログインへ';
-      action = 'goBackToLogin';
-      break;
-
     case 'dashboard':
       // ダッシュボードではもどるボタンを表示しない
       return '';

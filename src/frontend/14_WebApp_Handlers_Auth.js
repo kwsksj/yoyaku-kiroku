@@ -6,7 +6,7 @@
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers_Auth.js
- * 【バージョン】: 1.0
+ * 【バージョン】: 1.1
  * 【役割】: WebAppのフロントエンドにおける、認証・ユーザー管理関連の
  * アクションハンドラーを集約します。
  * 【構成】: 14ファイル構成から分割された認証管理ファイル
@@ -14,7 +14,6 @@
  * - ログイン・ログアウト処理
  * - 新規ユーザー登録（4ステップ）
  * - プロフィール管理（表示・編集・保存）
- * - ユーザー検索（電話番号未登録ユーザー対応）
  * =================================================================
  */
 
@@ -46,103 +45,72 @@ const authActionHandlers = {
       return;
     }
 
-    showLoading('booking');
+    showLoading('login');
     // 正規化に成功した場合は直接ログイン処理を実行（1回のAPI呼び出し）
     authActionHandlers.processLoginWithValidatedPhone(
       normalizeResult.normalized,
     );
   },
 
-  /** 検証済み電話番号でのログイン処理
+  /** 統合ログイン処理：1回のAPI呼び出しで認証とデータ取得を完了
    * @param {string} normalizedPhone */
   processLoginWithValidatedPhone: normalizedPhone => {
-    // 環境分岐: テスト環境の場合はモックデータを使用
+    debugLog('🚀 統合ログイン開始 - 認証+データ一括取得');
 
-    // 本番環境: 統合エンドポイントで初期データと空席情報を一括取得
-    google.script.run['withSuccessHandler'](
-      (/** @type {LoginDataResponse} */ response) => {
-        // ← この response には、サーバーサイドの getLoginData 関数の戻り値が格納されます。
+    // 統合エンドポイントで認証とすべてのデータを一括取得
+    google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+      if (response.success && response.userFound) {
+        debugLog(
+          '✅ 統合ログイン成功 - ユーザー: ' + response.user.displayName,
+        );
+        debugLog(
+          `📦 データ一括取得完了: 予約${response.data.myReservations?.length || 0}件, レッスン${response.data.lessons?.length || 0}件`,
+        );
 
-        // デバッグ情報を画面に表示（本番環境では無効化）
-        if (!window.isProduction) {
-          debugLog('初期データ取得完了');
-          debugLog('response.success: ' + response.success);
-          debugLog('response.userFound: ' + response.userFound);
-          debugLog(
-            'response.data.lessons: ' +
-              (response.data?.lessons
-                ? response.data.lessons.length + '件'
-                : 'null/undefined'),
-          );
-          debugLog(
-            'response.data: ' + (response.data ? 'あり' : 'null/undefined'),
-          );
-        }
+        // 完全なアプリ状態を一度に構築
+        const newAppState = {
+          view: 'dashboard',
+          currentUser: response.user,
+          myReservations: response.data.myReservations || [],
+//          lessons: response.data.lessons || [],
+          classrooms: CONSTANTS.CLASSROOMS
+            ? Object.values(CONSTANTS.CLASSROOMS)
+            : [],
+          accountingMaster: response.data.accountingMaster || [],
+          today: new Date().toISOString().split('T')[0],
+        };
 
-        if (response.success && response.userFound) {
-          // ユーザーが見つかった場合：クライアントサイド処理で状態構築
-          const newAppState = processInitialData(
-            response.data,
-            normalizedPhone,
-            response.data?.lessons || [],
-            response.data?.myReservations || [],
-          );
-          debugLog(
-            'processInitialData完了 - lessons: ' +
-              (newAppState?.lessons
-                ? newAppState.lessons.length + '件'
-                : 'null'),
-          );
-          debugLog(
-            'processInitialData完了 - classrooms: ' +
-              JSON.stringify(newAppState?.classrooms),
-          );
-
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              ...newAppState,
-              // サーバーから取得した定数を使って、表示する履歴の初期件数を設定
-              recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS || 10,
-              isDataFresh: true,
-            },
-          });
-        } else {
-          // ユーザーが見つからない場合または特別コマンド認識時の分岐処理
-          if (response.commandRecognized) {
-            // 特殊コマンドが認識された場合はuserSearch画面に遷移
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                view: 'userSearch',
-                searchedUsers: [],
-                selectedSearchedUser: null,
-                searchAttempted: false,
-              },
-            });
-          } else {
-            // 通常のユーザー未登録の場合は新規登録画面に遷移
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                view: 'register',
-                registrationPhone: normalizedPhone,
-              },
-            });
-          }
-        }
-      },
-    )
-      .withFailureHandler((/** @type {Error} */ err) => {
         hideLoading();
-        if (!window.isProduction) {
-          debugLog('初期データ取得エラー: ' + err.message);
-        }
+        debugLog('✅ 統合ログイン完了 - 完全なダッシュボード表示');
+
+        window.stateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            ...newAppState,
+            recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+            isDataFresh: true,
+          },
+        });
+      } else {
+        // 認証失敗 - 新規登録に誘導
+        hideLoading();
+        debugLog('❌ ユーザー未登録 - 新規登録画面へ');
+        window.stateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            view: 'register',
+            registrationPhone: normalizedPhone,
+          },
+        });
+      }
+    })
+      .withFailureHandler((/** @type {Error} */ err) => {
+        debugLog('❌ 統合ログインエラー: ' + err.message);
+        hideLoading();
         if (window.FrontendErrorHandler) {
           window.FrontendErrorHandler.handle(
             err,
-            'processLoginWithValidatedPhone',
-            { phone: normalizedPhone },
+            'processLoginWithValidatedPhone_integrated',
           );
         }
         handleServerError(err);
@@ -471,152 +439,6 @@ const authActionHandlers = {
     })
       ['withFailureHandler'](handleServerError)
       .updateUserProfile(u);
-  },
-
-  /**
-   * 電話番号による既存ユーザー検索を実行します。
-   */
-  searchUser: () => {
-    const phoneInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('search-phone')
-    );
-    const phone = phoneInput ? phoneInput.value.trim() : '';
-
-    if (!phone) {
-      return showInfo('電話番号を入力してください。');
-    }
-
-    // 電話番号の正規化・バリデーション
-    const normalizeResult = window.normalizePhoneNumberFrontend(phone);
-    if (!normalizeResult.isValid) {
-      showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
-      return;
-    }
-
-    showLoading('booking');
-
-    // 電話番号で検索（TODO: 実際のサーバー側実装が必要）
-    // 現在は仮実装としてエラーメッセージを表示
-    setTimeout(() => {
-      hideLoading();
-      showInfo('電話番号検索機能は実装予定です。');
-    }, 1000);
-  },
-
-  /**
-   * NF-01: 電話番号未登録ユーザーの検索を実行します（キャッシュ活用版）。
-   */
-  searchUserByName: () => {
-    const searchInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('nickname-search-input')
-    );
-    const searchTerm = searchInput ? searchInput.value.trim() : ''; // 検索語をsearchTermに変更
-
-    if (!searchTerm) {
-      return showInfo('お名前（本名）またはニックネームを入力してください。');
-    }
-
-    showLoading('booking');
-
-    // 検索語からスペースを除去して小文字化して比較に使う
-    const normalizedSearchTerm = searchTerm.replace(/\s+/g, '').toLowerCase();
-
-    google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
-      hideLoading();
-      if (response.success) {
-        // 【統一レスポンス形式】データ構造の修正
-        // searchName (スペース除去済み・小文字化された結合名) を使ってフィルタリング
-        const filteredUsers = response.data.filter(
-          /** @param {any} user */ user =>
-            user.searchName && user.searchName.includes(normalizedSearchTerm),
-        );
-
-        // NF-01: 検索が試行されたことを示すフラグをセット
-        window.stateManager.dispatch({
-          type: 'SET_STATE',
-          payload: { searchedUsers: filteredUsers, searchAttempted: true },
-        });
-
-        if (filteredUsers.length === 0) {
-          // アカウントが見つからなかった場合のメッセージはビュー側で表示
-        }
-      } else {
-        showInfo(response.message || 'ユーザー検索に失敗しました。');
-      }
-    })
-      ['withFailureHandler'](handleServerError)
-      .searchUsersWithoutPhone(searchTerm);
-  },
-
-  /**
-   * NF-01: 検索結果から電話番号未登録ユーザーを選択します（バッチ処理版）。
-   * @param {ActionHandlerData} d
-   */
-  selectSearchedUser: d => {
-    // ボタンに埋め込まれたデータから、まず仮のユーザー情報を作成
-    const tempUser = {
-      studentId: d.studentId,
-      realName: d.realName, // ボタンのdata属性から取得
-      displayName: d.nickname, // ボタンのdata属性から取得
-      phone: '', // 電話番号はまだないので空
-    };
-
-    showLoading('booking');
-
-    // バッチ処理で初期データ、空席情報、ユーザーデータを一括取得
-    google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
-      if (response.success) {
-        // tempUserの情報でcurrentUserを上書きしつつ、キャッシュデータを活用
-        const userFromCache =
-          response.data.initial.allStudents[tempUser.studentId];
-        const finalUser = userFromCache
-          ? {
-              ...userFromCache,
-              displayName: tempUser.displayName,
-              phone: tempUser.phone,
-            }
-          : tempUser;
-
-        // 個人予約データを直接取得（フィルタリングは表示時に実行）
-        const myReservations = response.data.myReservations || [];
-        const today = response.data.initial.today;
-
-        window.stateManager.dispatch({
-          type: 'SET_STATE',
-          payload: {
-            currentUser: finalUser,
-            lessons: response.data.lessons,
-            myReservations: myReservations,
-            accountingMaster: response.data.initial.accountingMaster,
-            recordsToShow: 10, // UI.HISTORY_INITIAL_RECORDSで後で更新
-            view: 'editProfile', // 電話番号登録を促すためプロフィール編集画面へ
-            today: today,
-            _allStudents: response.data.initial.allStudents,
-            _cacheVersions: response.data.initial.cacheVersions,
-          },
-        });
-      } else {
-        hideLoading();
-        showInfo(response.message || 'データの読み込みに失敗しました。');
-      }
-    })
-      ['withFailureHandler'](handleServerError)
-      .getBatchData(
-        ['initial', 'lessons', 'reservations'],
-        null,
-        tempUser.studentId,
-      );
-  },
-
-  /**
-   * NF-01: 自分のアカウントが見つからなかった場合に新規登録画面へ遷移します。
-   */
-  goToRegisterFromUserSearch: () => {
-    // 新規登録画面へ遷移。電話番号は未入力のまま。
-    window.stateManager.dispatch({
-      type: 'SET_STATE',
-      payload: { view: 'register', registrationPhone: '' },
-    });
   },
 
   /** プロフィール編集画面に遷移します */

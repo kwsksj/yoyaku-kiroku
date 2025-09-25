@@ -51,7 +51,6 @@ const reservationActionHandlers = {
               window.stateManager.dispatch({
                 type: 'SET_STATE',
                 payload: {
-                  ...r.data.initialData,
                   myReservations: r.data.myReservations || [],
                   lessons: r.data.lessons || [],
                   view: 'dashboard',
@@ -143,7 +142,6 @@ const reservationActionHandlers = {
           window.stateManager.dispatch({
             type: 'SET_STATE',
             payload: {
-              ...r.data.initialData,
               myReservations: r.data.myReservations || [],
               lessons: r.data.lessons || [],
               view: 'complete',

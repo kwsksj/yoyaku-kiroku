@@ -22,66 +22,20 @@
 // -----------------------------------------------------------------
 
 /**
- * 新しい初期データを受け取り、クライアントサイドで処理してappStateを構築する
- * @param {LoginDataResponse['data']} data - getAppInitialDataから返されたデータオブジェクト
- * @param {string} phone - ログイン試行された電話番号
- * @param {LessonData[]} lessons - バックエンドから取得済みの講座情報
- * @param {ReservationData[] | null} [myReservations=null] - ユーザーの予約データ配列
- * @returns {Partial<UIState>} setStateに渡すための新しい状態オブジェクト。ユーザーが見つからない場合は { currentUser: null }
+ * シンプルなダッシュボード状態を構築する（簡素化版）
+ * @param {any} currentUser - 軽量認証から取得したユーザー情報
+ * @param {ReservationData[]} myReservations - 個人の予約データ
+ * @returns {Partial<UIState>} シンプルなダッシュボード状態
  */
-function processInitialData(data, phone, lessons, myReservations = null) {
-  // データの安全性確認
-  if (!data) {
-    console.error('❌ processInitialData: 初期データが存在しません', data);
-    return { currentUser: null };
-  }
-
-  // 実際のデータ構造に合わせて修正（data.initialではなくdata直下）
-  const { allStudents, accountingMaster, cacheVersions, today } = data;
-
-  // 1. 電話番号でユーザーを検索
-  if (!allStudents) {
-    console.warn('⚠️ processInitialData: allStudentsが存在しません', {
-      data,
-      allStudents,
-    });
-    return { currentUser: null };
-  }
-
-  const currentUser = Object.values(allStudents).find(
-    student => student.phone === phone,
-  );
-
-  if (!currentUser) {
-    return { currentUser: null }; // ユーザーが見つからない
-  }
-
-  // currentUserのdisplayNameをセット
-  currentUser.displayName = currentUser.nickname || currentUser.realName;
-
-  // 2. 個人予約データを直接保存（フィルタリングは表示時に実行）
-  const reservations = myReservations || [];
-
-  // 4. 講座バージョンを生成
-  const lessonsVersion = cacheVersions
-    ? `${cacheVersions['allReservations'] || 0}-${cacheVersions['scheduleMaster'] || 0}`
-    : null;
-
-  // 5. 会計システムの事前初期化（全教室分）
-  preInitializeAccountingSystem(accountingMaster);
-
-  // 6. appStateを構築（フィルタリングされていない生の予約データを保存）
+function createSimpleDashboardState(currentUser, myReservations) {
   return {
     view: 'dashboard',
     currentUser: currentUser,
-    myReservations: reservations, // 生データを直接保存
-    lessons: lessons,
+    myReservations: myReservations || [],
+    // 他のデータは必要時に取得
+    lessons: [],
     classrooms: CONSTANTS.CLASSROOMS ? Object.values(CONSTANTS.CLASSROOMS) : [],
-    accountingMaster: accountingMaster,
-    today: today,
-    _allStudents: allStudents,
-    _cacheVersions: cacheVersions,
-    _lessonsVersion: lessonsVersion, // 講座バージョンを設定（UIStateで定義済み）
+    today: new Date().toISOString().split('T')[0], // フロントで生成
   };
 }
 

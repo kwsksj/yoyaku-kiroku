@@ -119,7 +119,9 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
     const row = r.data;
     // 防御的プログラミング: データの存在確認
     if (!row || !Array.isArray(row)) {
-      PerformanceLog.debug(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(r)}`);
+      PerformanceLog.debug(
+        `⚠️ 無効な予約データをスキップ: ${JSON.stringify(r)}`,
+      );
       return;
     }
 
@@ -813,7 +815,8 @@ function updateReservationDetails(details) {
 function saveAccountingDetails(payload) {
   return withTransaction(() => {
     try {
-      const { reservationId, classroom, studentId, userInput, workInProgress } = payload;
+      const { reservationId, classroom, studentId, userInput, workInProgress } =
+        payload;
       if (!reservationId || !classroom || !studentId || !userInput) {
         throw new Error('会計情報が不足しています。');
       }
@@ -1035,7 +1038,9 @@ function saveAccountingDetails(payload) {
       );
 
       // 4. 制作メモの更新（会計完了時に入力された内容を反映）
-      const wipColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS);
+      const wipColIdx = headerMap.get(
+        CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS,
+      );
       if (wipColIdx !== undefined && workInProgress !== undefined) {
         updatedRowData[wipColIdx] = workInProgress || '';
         PerformanceLog.debug(`制作メモを更新: ${workInProgress || '(空)'}`);

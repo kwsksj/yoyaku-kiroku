@@ -55,7 +55,7 @@ const PerformanceLog = {
       const duration = Date.now() - startTime;
       Logger.log(`[PERF] ${operation}: ${duration}ms`);
     }
-  }
+  },
 };
 
 /**
@@ -73,7 +73,7 @@ function getCachedStudentInfo(studentId) {
       if (student) {
         return {
           realName: student.realName || '(不明)',
-          displayName: student.nickname || student.realName || '(不明)'
+          displayName: student.nickname || student.realName || '(不明)',
         };
       }
     }
@@ -664,7 +664,9 @@ function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
   // データ行から対象レコードを検索（防御的プログラミング）
   const foundRow = dataRows.find(row => {
     if (!row || !Array.isArray(row)) {
-      PerformanceLog.debug(`⚠️ 無効なデータ行をスキップ: ${JSON.stringify(row)}`);
+      PerformanceLog.debug(
+        `⚠️ 無効なデータ行をスキップ: ${JSON.stringify(row)}`,
+      );
       return false;
     }
     return row[searchColIdx] === searchValue;
@@ -733,7 +735,9 @@ function getCachedReservationsFor(
       /** @param {ReservationArrayData} row */ row => {
         // データ構造修正: キャッシュは直接配列を格納しているため、r.dataではなくrを直接使用
         if (!row || !Array.isArray(row)) {
-          PerformanceLog.debug(`⚠️ 無効な予約データをスキップ: ${JSON.stringify(row)}`);
+          PerformanceLog.debug(
+            `⚠️ 無効な予約データをスキップ: ${JSON.stringify(row)}`,
+          );
           return false;
         }
         return (
