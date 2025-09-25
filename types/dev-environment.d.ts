@@ -162,7 +162,8 @@ interface StateManager {
   state?: AppState;
   isInEditMode?(reservationId: string): boolean;
   endEditMode?(reservationId: string): void;
-  startEditMode?(reservationId: string): void;
+  startEditMode?(reservationId: string, originalMemo?: string): void;
+  updateMemoInputChanged?(reservationId: string, currentValue: string): boolean;
   clearAllEditModes?(): void;
   showAccountingConfirmation?(grandTotal?: number): void;
   confirmAndPay?(): void;

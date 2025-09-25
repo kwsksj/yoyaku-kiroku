@@ -28,25 +28,44 @@ const historyActionHandlers = {
   /** きろくカードの確認/編集ボタン
    * @param {ActionHandlerData} d */
   expandHistoryCard: d => {
+    // スクロール位置を保存
+    const scrollY = window.scrollY;
+
     // 履歴データを取得
     const item = stateManager
       .getState()
       .myReservations.find(h => h.reservationId === d.reservationId);
     if (!item) return;
 
-    // 編集モード状態をトグル
-    const isCurrentlyEditing = stateManager.isInEditMode(d.reservationId);
-
-    if (isCurrentlyEditing) {
-      // 編集モード解除
-      stateManager.endEditMode(d.reservationId);
-    } else {
-      // 編集モード開始
-      stateManager.startEditMode(d.reservationId);
-    }
+    // 編集モード開始（メモの初期値を設定）
+    const currentMemo = item.workInProgress || '';
+    stateManager.startEditMode(d.reservationId, currentMemo);
 
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
+
+    // スクロール位置を復元
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
+  },
+
+  /** 編集モードを編集せずに閉じる
+   * @param {ActionHandlerData} d */
+  closeEditMode: d => {
+    // スクロール位置を保存
+    const scrollY = window.scrollY;
+
+    // 編集モードを解除（変更を破棄）
+    stateManager.endEditMode(d.reservationId);
+
+    // 該当カードのみを部分更新（ちらつき防止）
+    updateSingleHistoryCard(d.reservationId);
+
+    // スクロール位置を復元
+    requestAnimationFrame(() => {
+      window.scrollTo(0, scrollY);
+    });
   },
 
   /** インライン編集のメモを保存

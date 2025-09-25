@@ -78,6 +78,8 @@ class SimpleStateManager {
       selectedClassroom: null,
       /** @type {Set<string>} 編集モード中の予約ID一覧 */
       editingReservationIds: new Set(),
+      editingMemo: null, // { reservationId: string, originalValue: string } | null
+      memoInputChanged: false,
       /** @type {LessonData | null} */
       selectedLesson: null,
       /** @type {ReservationDetails | null} */
@@ -419,9 +421,32 @@ class SimpleStateManager {
   /**
    * 編集モードを開始する
    * @param {string} reservationId - 予約ID
+   * @param {string} [originalMemo=''] - 編集前のメモ内容
    */
-  startEditMode(reservationId) {
+  startEditMode(reservationId, originalMemo = '') {
     this.state.editingReservationIds.add(reservationId);
+    // 同期的状態更新のみ実行（dispatch不要でチラツキ防止）
+    this.state.editingMemo = { reservationId, originalValue: originalMemo };
+    this.state.memoInputChanged = false;
+  }
+
+  /**
+   * メモの変更状態を更新する（同期的に実行）
+   * @param {string} reservationId - 予約ID
+   * @param {string} currentValue - 現在のメモ内容
+   */
+  updateMemoInputChanged(reservationId, currentValue) {
+    const editingMemo = this.state.editingMemo;
+    if (editingMemo && editingMemo.reservationId === reservationId) {
+      const hasChanged = currentValue !== editingMemo.originalValue;
+      if (this.state.memoInputChanged !== hasChanged) {
+        // 同期的に状態を更新（UI全体再描画を避けるため、dispatchを使わない）
+        this.state.memoInputChanged = hasChanged;
+
+        return hasChanged; // 変更状態を返す
+      }
+    }
+    return this.state.memoInputChanged; // 現在の状態を返す
   }
 
   /**
@@ -430,6 +455,14 @@ class SimpleStateManager {
    */
   endEditMode(reservationId) {
     this.state.editingReservationIds.delete(reservationId);
+    if (
+      this.state.editingMemo &&
+      this.state.editingMemo.reservationId === reservationId
+    ) {
+      // 同期的状態更新のみ実行（dispatch不要でチラツキ防止）
+      this.state.editingMemo = null;
+      this.state.memoInputChanged = false;
+    }
   }
 
   /**
@@ -446,8 +479,14 @@ class SimpleStateManager {
    */
   clearAllEditModes() {
     this.state.editingReservationIds.clear();
+    this.dispatch({
+      type: 'UPDATE_STATE',
+      payload: {
+        editingMemo: null,
+        memoInputChanged: false,
+      },
+    });
   }
-
   /**
    * 自動保存判定 - 重要な状態が変更された時のみ保存
    * @param {UIState} oldState - 変更前の状態

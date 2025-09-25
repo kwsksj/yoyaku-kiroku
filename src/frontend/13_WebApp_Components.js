@@ -1061,13 +1061,16 @@ const Components = {
   }) => {
     if (isEditMode) {
       // 編集モード：textareaと保存ボタン
+      const textareaId = `memo-edit-textarea-${reservationId}`;
       return `
         <div class="p-0.5 bg-white/75">
           <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
           <textarea
+            id="${textareaId}"
             class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
             rows="4"
             placeholder="制作内容や進捗をメモしてね"
+            data-reservation-id="${reservationId}"
           >${escapeHTML(workInProgress || '')}</textarea>
         </div>
       `;

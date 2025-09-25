@@ -70,6 +70,8 @@ declare global {
     view: ViewType;
     selectedClassroom: string | null;
     editingReservationIds: Set<string>;
+    editingMemo: { reservationId: string; originalValue: string } | null;
+    memoInputChanged: boolean;
     selectedLesson: LessonData | null;
     editingReservationDetails: ReservationDetails | null;
     accountingReservation: ReservationData | null;

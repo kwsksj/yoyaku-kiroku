@@ -554,8 +554,15 @@ window.onload = function () {
       }
 
       if (typeof actionHandlers[action] === 'function') {
-        // モーダル関連のアクションは重複実行を防ぐためイベント伝播を停止
-        if (action === 'processPayment' || action === 'cancelPaymentConfirm') {
+        // モーダル関連のアクションとスクロール防止が必要なアクションは重複実行を防ぐためイベント伝播を停止
+        if (
+          action === 'processPayment' ||
+          action === 'cancelPaymentConfirm' ||
+          action === 'expandHistoryCard' ||
+          action === 'closeEditMode' ||
+          action === 'saveAndCloseMemo' ||
+          action === 'saveInlineMemo'
+        ) {
           e.preventDefault();
           e.stopPropagation();
           e.stopImmediatePropagation();
