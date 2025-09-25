@@ -517,3 +517,84 @@ function getScheduleInfo(params) {
 
 // getPersonalReservationsData関数は削除しました
 // 代わりに、既存のgetBatchData(['lessons', 'reservations'], null, studentId)を使用してください
+
+/**
+ * 指定した予約の会計詳細データを予約シートから取得する
+ * @param {ReservationId} reservationId - 予約ID
+ * @returns {ApiResponse} 会計詳細データを含むレスポンス
+ */
+function getAccountingDetailsFromSheet(reservationId) {
+  try {
+    Logger.log(`🔍 getAccountingDetailsFromSheet API: 開始 reservationId=${reservationId}`);
+
+    if (!reservationId) {
+      return createApiErrorResponse('必要なパラメータが不足しています');
+    }
+
+    // 予約シートを取得
+    const sheetName = CONSTANTS.SHEET_NAMES.RESERVATIONS;
+    const sheet = SS_MANAGER.getSheet(sheetName);
+
+    if (!sheet) {
+      Logger.log(`❌ シートが見つかりません: ${sheetName}`);
+      return createApiErrorResponse(`シート「${sheetName}」が見つかりません`);
+    }
+
+    // ヘッダー行を取得して"会計詳細"列のインデックスを特定
+    const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const accountingDetailsColumnIndex = headerRow.findIndex(header =>
+      header === CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS
+    );
+
+    if (accountingDetailsColumnIndex === -1) {
+      Logger.log(`❌ 会計詳細列が見つかりません`);
+      return createApiErrorResponse('会計詳細列が見つかりません');
+    }
+
+    // 予約IDで該当行を検索
+    const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
+    const data = dataRange.getValues();
+
+    // 予約ID列のインデックスを取得
+    const reservationIdColumnIndex = headerRow.findIndex(header =>
+      header === CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID
+    );
+
+    if (reservationIdColumnIndex === -1) {
+      Logger.log(`❌ 予約ID列が見つかりません`);
+      return createApiErrorResponse('予約ID列が見つかりません');
+    }
+
+    // 該当する予約を検索
+    const targetRow = data.find(row => row[reservationIdColumnIndex] === reservationId);
+
+    if (!targetRow) {
+      Logger.log(`❌ 予約が見つかりません: ${reservationId}`);
+      return createApiErrorResponse('指定された予約が見つかりません');
+    }
+
+    // 会計詳細データを取得
+    let accountingDetails = targetRow[accountingDetailsColumnIndex] || '';
+
+    // JSON文字列の場合はパース
+    if (typeof accountingDetails === 'string' && accountingDetails.trim().startsWith('{')) {
+      try {
+        accountingDetails = JSON.parse(accountingDetails);
+      } catch (e) {
+        // パースに失敗した場合は文字列のまま
+      }
+    }
+
+    Logger.log(`📋 会計詳細取得成功:`, accountingDetails);
+
+    Logger.log(`✅ getAccountingDetailsFromSheet API: 成功`);
+    return createApiResponse(true, {
+      accountingDetails: accountingDetails,
+      message: '会計記録を取得しました',
+    });
+
+  } catch (error) {
+    Logger.log(`getAccountingDetailsFromSheet API エラー: ${error.message}`);
+    return BackendErrorHandler.handle(error, 'getAccountingDetailsFromSheet');
+  }
+}

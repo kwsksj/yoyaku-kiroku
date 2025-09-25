@@ -540,7 +540,7 @@ function _buildHistoryCardWithEditMode(
   if (isInEditMode) {
     const isToday = _isToday(String(historyItem.date));
     if (historyItem.status === CONSTANTS.STATUS.COMPLETED && !isToday) {
-      // 重複チェック：既に「会計詳細」ボタンが存在しない場合のみ追加
+      // 重複チェック：既に「会計記録」ボタンが存在しない場合のみ追加
       const hasAccountingDetailsButton = allAccountingButtons.some(
         btn => btn.action === 'showHistoryAccounting',
       );
@@ -549,7 +549,7 @@ function _buildHistoryCardWithEditMode(
         allAccountingButtons.push({
           action: 'showHistoryAccounting',
           text: '会計<br>記録',
-          style: 'secondary',
+          style: 'accounting',
           size: 'xs',
           details: historyItem.accountingDetails,
         });
