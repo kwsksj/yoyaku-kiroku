@@ -19,11 +19,13 @@
  * @returns {string} HTML文字列
  */
 const getBookingView = classroom => {
-  const relevantLessons = stateManager.getState().lessons
-    ? stateManager
-        .getState()
-        .lessons.filter(lesson => lesson.schedule.classroom === classroom)
-    : [];
+  const currentState = stateManager.getState();
+  const relevantLessons =
+    currentState.lessons && Array.isArray(currentState.lessons)
+      ? currentState.lessons.filter(
+          lesson => lesson.schedule.classroom === classroom,
+        )
+      : [];
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 

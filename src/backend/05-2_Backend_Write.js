@@ -265,6 +265,10 @@ function makeReservation(reservationInfo) {
         _validateTimeBasedReservation(startTime, endTime, scheduleRule);
       }
 
+      // 【パフォーマンス対策】シートアクセス前に事前ウォームアップ
+      Logger.log('[RESERVATION] 事前ウォームアップ実行');
+      SS_MANAGER.warmupAsync();
+
       // 統合予約シートから全データを取得
       /** @type {SheetDataResult} */
       const sheetData = /** @type {SheetDataResult} */ (
@@ -415,57 +419,72 @@ function makeReservation(reservationInfo) {
         .getRange(lastRow + 1, 1, 1, newRowData.length)
         .setValues([newRowData]);
 
-      // シート側で日付・時刻列のフォーマットが事前設定済みのため、
-      // ここでの個別フォーマット処理は不要
-
       SpreadsheetApp.flush(); // シート書き込み完了を保証
 
-      // 統合予約シートの更新後、予約キャッシュのみを再構築
-      rebuildAllReservationsCache();
+      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      try {
+        Logger.log('[RESERVATION] インクリメンタルキャッシュ更新実行');
+        addReservationToCache(newRowData, headerMap);
+      } catch (e) {
+        Logger.log(
+          `インクリメンタル更新エラー: ${e.message} - フォールバック実行`,
+        );
+        // インクリメンタル更新エラー時は通常の再構築にフォールバック
+        try {
+          rebuildAllReservationsCache();
+        } catch (rebuildError) {
+          Logger.log(
+            `キャッシュ再構築もエラー: ${rebuildError.message} - 処理続行`,
+          );
+          // キャッシュエラーがあっても予約作成は成功とする
+        }
+      }
 
       // ログと通知
       const message = !isFull
         ? '予約が完了しました。'
         : '満席のため、キャンセル待ちで登録しました。';
-      const messageToTeacher = options.messageToTeacher || '';
-      const messageLog = messageToTeacher
-        ? `, Message: ${messageToTeacher}`
-        : '';
-      const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}${messageLog}`;
-      logActivity(
-        user.studentId,
-        '予約作成',
-        CONSTANTS.MESSAGES.SUCCESS,
-        logDetails,
-      );
+      // 【一時的に無効化】パフォーマンス調査のため
+      // const messageToTeacher = options.messageToTeacher || '';
+      // const messageLog = messageToTeacher
+      //   ? `, Message: ${messageToTeacher}`
+      //   : '';
+      // const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}${messageLog}`;
+      // logActivity(
+      //   user.studentId,
+      //   '予約作成',
+      //   CONSTANTS.MESSAGES.SUCCESS,
+      //   logDetails,
+      // );
 
-      const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
-      const messageSection = messageToTeacher
-        ? `\n先生へのメッセージ: ${messageToTeacher}\n`
-        : '';
-      const body =
-        `新しい予約が入りました。\n\n` +
-        `本名: ${user.realName}\n` +
-        `ニックネーム: ${user.displayName}\n\n` +
-        `教室: ${classroom}\n` +
-        `日付: ${date}\n` +
-        `状態: ${isFull ? 'キャンセル待ち' : '確定'}${messageSection}\n` +
-        `詳細はスプレッドシートを確認してください。`;
-      sendAdminNotification(subject, body);
+      // const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
+      // const messageSection = messageToTeacher
+      //   ? `\n先生へのメッセージ: ${messageToTeacher}\n`
+      //   : '';
+      // const body =
+      //   `新しい予約が入りました。\n\n` +
+      //   `本名: ${user.realName}\n` +
+      //   `ニックネーム: ${user.displayName}\n\n` +
+      //   `教室: ${classroom}\n` +
+      //   `日付: ${date}\n` +
+      //   `状態: ${isFull ? 'キャンセル待ち' : '確定'}${messageSection}\n` +
+      //   `詳細はスプレッドシートを確認してください。`;
+      // sendAdminNotification(subject, body);
 
-      // 予約確定メール送信（非同期・エラー時は予約処理に影響しない）
-      Utilities.sleep(100); // 予約確定後の短い待機
-      try {
-        // フロントエンドで調整済みの reservationInfo をそのまま使用
-        /** @type {ReservationInfo} */
-        const reservationInfoForEmail = /** @type {ReservationInfo} */ (
-          reservationInfo
-        );
-        sendBookingConfirmationEmailAsync(reservationInfoForEmail);
-      } catch (emailError) {
-        // メール送信エラーは予約成功に影響させない
-        Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
-      }
+      // // 【メール送信処理】パフォーマンス調査のため一時的に無効化
+      // // 予約確定メール送信（非同期・エラー時は予約処理に影響しない）
+      // Utilities.sleep(100); // 予約確定後の短い待機
+      // try {
+      //   // フロントエンドで調整済みの reservationInfo をそのまま使用
+      //   /** @type {ReservationInfo} */
+      //   const reservationInfoForEmail = /** @type {ReservationInfo} */ (
+      //     reservationInfo
+      //   );
+      //   sendBookingConfirmationEmailAsync(reservationInfoForEmail);
+      // } catch (emailError) {
+      //   // メール送信エラーは予約成功に影響させない
+      //   Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
+      // }
 
       return createApiResponse(true, {
         message: message,
@@ -547,8 +566,26 @@ function cancelReservation(cancelInfo) {
 
       SpreadsheetApp.flush();
 
-      // 統合予約シートの更新後、キャッシュを再構築
-      rebuildAllReservationsCache();
+      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      try {
+        Logger.log('[CANCEL] インクリメンタルキャッシュ更新実行');
+        updateReservationStatusInCache(
+          reservationId,
+          CONSTANTS.STATUS.CANCELED,
+        );
+      } catch (e) {
+        Logger.log(
+          `インクリメンタル更新エラー: ${e.message} - フォールバック実行`,
+        );
+        // インクリメンタル更新エラー時は通常の再構築にフォールバック
+        try {
+          rebuildAllReservationsCache();
+        } catch (rebuildError) {
+          Logger.log(
+            `キャッシュ再構築もエラー: ${rebuildError.message} - 処理続行`,
+          );
+        }
+      }
 
       // ログと通知
       const cancelMessage = cancelInfoTyped.cancelMessage || '';
@@ -760,8 +797,23 @@ function updateReservationDetails(details) {
 
       SpreadsheetApp.flush();
 
-      // 統合予約シートの更新後、キャッシュを再構築
-      rebuildAllReservationsCache();
+      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      try {
+        Logger.log('[UPDATE] インクリメンタルキャッシュ更新実行');
+        updateReservationInCache(reservationId, rowData, headerMapUpdate);
+      } catch (e) {
+        Logger.log(
+          `インクリメンタル更新エラー: ${e.message} - フォールバック実行`,
+        );
+        // インクリメンタル更新エラー時は通常の再構築にフォールバック
+        try {
+          rebuildAllReservationsCache();
+        } catch (rebuildError) {
+          Logger.log(
+            `キャッシュ再構築もエラー: ${rebuildError.message} - 処理続行`,
+          );
+        }
+      }
 
       // 【NF-12】Update cache incrementally (統合予約シート対応)
       const studentIdColIdx = headerMapUpdate.get(
@@ -1097,7 +1149,28 @@ function saveAccountingDetails(payload) {
         `詳細はスプレッドシートを確認してください。`;
       sendAdminNotification(subject, body);
 
-      rebuildAllReservationsCache();
+      // 会計データ操作時のインクリメンタルキャッシュ更新（高速化）
+      try {
+        Logger.log('[ACCOUNTING] インクリメンタルキャッシュ更新実行');
+        // ステータスをCOMPLETEDに更新（会計詳細はキャッシュに含まれないため更新不要）
+        updateReservationColumnInCache(
+          reservationId,
+          CONSTANTS.HEADERS.RESERVATIONS.STATUS,
+          CONSTANTS.STATUS.COMPLETED,
+        );
+      } catch (e) {
+        Logger.log(
+          `インクリメンタル更新エラー: ${e.message} - フォールバック実行`,
+        );
+        // インクリメンタル更新エラー時は通常の再構築にフォールバック
+        try {
+          rebuildAllReservationsCache();
+        } catch (rebuildError) {
+          Logger.log(
+            `キャッシュ再構築もエラー: ${rebuildError.message} - 処理続行`,
+          );
+        }
+      }
 
       // [変更] 戻り値に updatedSlots を追加
       return createApiResponse(true, {
@@ -1203,6 +1276,14 @@ function _logSalesForSingleReservation(
     );
 
     if (rowsToTransfer.length > 0) {
+      if (!SALES_SPREADSHEET_ID) {
+        console.error(
+          '_logSalesForSingleReservation Error: SALES_SPREADSHEET_IDが設定されていません',
+        );
+        throw new Error(
+          '売上スプレッドシートIDが設定されていません。スクリプトプロパティでSALES_SPREADSHEET_IDを設定してください。',
+        );
+      }
       const salesSpreadsheet = SpreadsheetApp.openById(SALES_SPREADSHEET_ID);
       const salesSheet = salesSpreadsheet.getSheetByName('売上ログ');
       if (!salesSheet)

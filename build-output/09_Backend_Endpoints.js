@@ -60,8 +60,12 @@ function executeOperationAndGetLatestData(
       return result;
     }
 
-    // 予約操作後の更新されたデータを取得
-    const batchResult = getBatchData(['reservations'], null, studentId);
+    // 予約操作後の更新されたデータを取得（lessonsも含める）
+    const batchResult = getBatchData(
+      ['reservations', 'lessons'],
+      null,
+      studentId,
+    );
     if (!batchResult.success) {
       return batchResult;
     }
@@ -70,6 +74,7 @@ function executeOperationAndGetLatestData(
       message: result.message || successMessage,
       data: {
         myReservations: batchResult.data.myReservations || [],
+        lessons: batchResult.data.lessons || [],
       },
     });
   } catch (e) {
@@ -263,7 +268,6 @@ function getAccountingDetailsFromSheet(reservationId) {
   }
 }
 
-
 /**
  * 統合ログインエンドポイント：認証 + 初期データ + 個人データを一括取得
  * @param {string} phone - 電話番号（ユーザー認証用）
@@ -300,8 +304,8 @@ function getLoginData(phone) {
         data: {
           accountingMaster: batchResult.data['accounting'] || [],
           cacheVersions: batchResult.data['cache-versions'] || {},
-//          today: new Date().toISOString().split('T')[0],
-//          lessons: batchResult.data['lessons'] || [],
+          //          today: new Date().toISOString().split('T')[0],
+          //          lessons: batchResult.data['lessons'] || [],
           myReservations: batchResult.data['myReservations'] || [],
         },
       };
@@ -384,7 +388,6 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
       user: /** @type {StudentData | null} */ (null),
     };
 
-
     // 1. 会計マスターデータが要求されている場合
     if (dataTypes.includes('accounting')) {
       const accountingMaster = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
@@ -395,7 +398,6 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
         };
       }
     }
-
 
     // 2. 講座情報が要求されている場合
     if (dataTypes.includes('lessons')) {
@@ -525,7 +527,9 @@ function getScheduleInfo(params) {
  */
 function getAccountingDetailsFromSheet(reservationId) {
   try {
-    Logger.log(`🔍 getAccountingDetailsFromSheet API: 開始 reservationId=${reservationId}`);
+    Logger.log(
+      `🔍 getAccountingDetailsFromSheet API: 開始 reservationId=${reservationId}`,
+    );
 
     if (!reservationId) {
       return createApiErrorResponse('必要なパラメータが不足しています');
@@ -541,9 +545,11 @@ function getAccountingDetailsFromSheet(reservationId) {
     }
 
     // ヘッダー行を取得して"会計詳細"列のインデックスを特定
-    const headerRow = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const accountingDetailsColumnIndex = headerRow.findIndex(header =>
-      header === CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS
+    const headerRow = sheet
+      .getRange(1, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+    const accountingDetailsColumnIndex = headerRow.findIndex(
+      header => header === CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
     );
 
     if (accountingDetailsColumnIndex === -1) {
@@ -552,12 +558,17 @@ function getAccountingDetailsFromSheet(reservationId) {
     }
 
     // 予約IDで該当行を検索
-    const dataRange = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn());
+    const dataRange = sheet.getRange(
+      2,
+      1,
+      sheet.getLastRow() - 1,
+      sheet.getLastColumn(),
+    );
     const data = dataRange.getValues();
 
     // 予約ID列のインデックスを取得
-    const reservationIdColumnIndex = headerRow.findIndex(header =>
-      header === CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID
+    const reservationIdColumnIndex = headerRow.findIndex(
+      header => header === CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
     );
 
     if (reservationIdColumnIndex === -1) {
@@ -566,7 +577,9 @@ function getAccountingDetailsFromSheet(reservationId) {
     }
 
     // 該当する予約を検索
-    const targetRow = data.find(row => row[reservationIdColumnIndex] === reservationId);
+    const targetRow = data.find(
+      row => row[reservationIdColumnIndex] === reservationId,
+    );
 
     if (!targetRow) {
       Logger.log(`❌ 予約が見つかりません: ${reservationId}`);
@@ -577,7 +590,10 @@ function getAccountingDetailsFromSheet(reservationId) {
     let accountingDetails = targetRow[accountingDetailsColumnIndex] || '';
 
     // JSON文字列の場合はパース
-    if (typeof accountingDetails === 'string' && accountingDetails.trim().startsWith('{')) {
+    if (
+      typeof accountingDetails === 'string' &&
+      accountingDetails.trim().startsWith('{')
+    ) {
       try {
         accountingDetails = JSON.parse(accountingDetails);
       } catch (e) {
@@ -592,7 +608,6 @@ function getAccountingDetailsFromSheet(reservationId) {
       accountingDetails: accountingDetails,
       message: '会計記録を取得しました',
     });
-
   } catch (error) {
     Logger.log(`getAccountingDetailsFromSheet API エラー: ${error.message}`);
     return BackendErrorHandler.handle(error, 'getAccountingDetailsFromSheet');

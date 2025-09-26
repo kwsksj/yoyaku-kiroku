@@ -115,6 +115,10 @@ class SimpleStateManager {
       _dataUpdateInProgress: false,
       /** @type {string | null} */
       _lessonsVersion: null,
+      /** @type {Object<string, boolean>} データタイプ別取得中フラグ */
+      _dataFetchInProgress: {},
+      /** @type {Object<string, number>} データタイプ別最終更新時刻 */
+      _dataLastUpdated: {},
 
       // --- Computed Data ---
       /** @type {ComputedStateData} */
@@ -612,6 +616,109 @@ class SimpleStateManager {
       PerformanceLog.debug('保存された状態をクリアしました');
     } catch (error) {
       PerformanceLog.error(`状態クリアエラー: ${error.message}`);
+    }
+  }
+
+  /**
+   * 講座データの更新が必要かチェック
+   * @param {number} [cacheExpirationMinutes=10] - キャッシュ有効期限（分）
+   * @returns {boolean} 更新が必要な場合true
+   */
+  needsLessonsUpdate(cacheExpirationMinutes = 10) {
+    // 安全な初期化
+    if (!this._dataFetchInProgress) {
+      this._dataFetchInProgress = {};
+    }
+    if (!this._dataLastUpdated) {
+      this._dataLastUpdated = {};
+    }
+
+    // 現在講座データ取得中の場合はfalse
+    if (this._dataFetchInProgress.lessons) {
+      PerformanceLog.debug('講座データ取得中のため更新スキップ');
+      return false;
+    }
+
+    // 講座データが存在しない場合は更新必要
+    if (
+      !this.state.lessons ||
+      !Array.isArray(this.state.lessons) ||
+      this.state.lessons.length === 0
+    ) {
+      PerformanceLog.debug('講座データが存在しないため更新必要');
+      return true;
+    }
+
+    // 最終更新時刻チェック
+    const lastUpdated = this._dataLastUpdated.lessons;
+    if (!lastUpdated) {
+      PerformanceLog.debug('講座データの更新時刻が未設定のため更新必要');
+      return true;
+    }
+
+    const expirationTime = cacheExpirationMinutes * 60 * 1000; // ミリ秒に変換
+    const isExpired = Date.now() - lastUpdated > expirationTime;
+
+    if (isExpired) {
+      PerformanceLog.debug(
+        `講座データキャッシュが期限切れ（${cacheExpirationMinutes}分経過）`,
+      );
+      return true;
+    }
+
+    PerformanceLog.debug('講座データキャッシュは有効');
+    return false;
+  }
+
+  /**
+   * データタイプの取得状態を管理
+   * @param {string} dataType - データタイプ（'lessons', 'reservations'など）
+   * @param {boolean} isInProgress - 取得中かどうか
+   */
+  setDataFetchProgress(dataType, isInProgress) {
+    // 安全な初期化
+    if (!this._dataFetchInProgress) {
+      this._dataFetchInProgress = {};
+    }
+    if (!this._dataLastUpdated) {
+      this._dataLastUpdated = {};
+    }
+
+    this._dataFetchInProgress[dataType] = isInProgress;
+
+    if (!isInProgress) {
+      // 取得完了時に更新時刻を記録
+      this._dataLastUpdated[dataType] = Date.now();
+      PerformanceLog.debug(
+        `${dataType}データ取得完了：${new Date().toLocaleTimeString()}`,
+      );
+    } else {
+      PerformanceLog.debug(`${dataType}データ取得開始`);
+    }
+  }
+
+  /**
+   * 特定のデータタイプが取得中かチェック
+   * @param {string} dataType - データタイプ
+   * @returns {boolean} 取得中の場合true
+   */
+  isDataFetchInProgress(dataType) {
+    // 安全な初期化
+    if (!this._dataFetchInProgress) {
+      this._dataFetchInProgress = {};
+    }
+    return !!this._dataFetchInProgress[dataType];
+  }
+
+  /**
+   * 講座データのキャッシュバージョンを更新
+   * @param {string} newVersion - 新しいバージョン
+   */
+  updateLessonsVersion(newVersion) {
+    if (this.state._lessonsVersion !== newVersion) {
+      this.state._lessonsVersion = newVersion;
+      this.setDataFetchProgress('lessons', false);
+      PerformanceLog.debug(`講座データバージョンを更新: ${newVersion}`);
     }
   }
 }

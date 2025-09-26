@@ -68,6 +68,10 @@ function doGet(e) {
   // URLパラメータでテストモードかどうかを判定
   const isTestMode = e && e.parameter && e.parameter['test'] === 'true';
 
+  // 【パフォーマンス対策】doGetでのウォームアップを削除
+  // ページ読み込みの遅延を回避し、必要時のみ初期化
+  Logger.log('[WEBAPP] doGet実行 - ウォームアップは遅延実行');
+
   if (isTestMode) {
     // テストモード: パフォーマンステスト画面を表示
     return HtmlService.createTemplateFromFile('test_performance_webapp')

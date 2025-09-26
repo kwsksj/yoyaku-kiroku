@@ -248,6 +248,19 @@ function handleAccountingFormChange() {
  */
 window.onload = function () {
   // 全てのハンドラーが定義された後でactionHandlersを構築
+
+  // デバッグ：reservationActionHandlersの状態確認
+  if (!window.isProduction) {
+    console.log('🔧 reservationActionHandlers確認:', {
+      defined: typeof reservationActionHandlers !== 'undefined',
+      hasCancel: typeof reservationActionHandlers?.cancel === 'function',
+      keys:
+        typeof reservationActionHandlers !== 'undefined'
+          ? Object.keys(reservationActionHandlers)
+          : [],
+    });
+  }
+
   actionHandlers = {
     // =================================================================
     // --- Core Navigation Handlers ---
@@ -334,6 +347,12 @@ window.onload = function () {
     /** 履歴から会計処理（簡素版） */
     goToAccountingHistory: (/** @type {{ reservationId: string }} */ d) => {
       // 通常の会計画面遷移と同じ処理
+      actionHandlers.goToAccounting(d);
+    },
+
+    /** 会計を修正（きろくカードの会計修正ボタン） */
+    editAccountingRecord: (/** @type {{ reservationId: string }} */ d) => {
+      // 会計画面遷移と同じ処理
       actionHandlers.goToAccounting(d);
     },
 
@@ -585,6 +604,17 @@ window.onload = function () {
       }
     }
   };
+
+  // デバッグ：actionHandlers構築後の確認
+  if (!window.isProduction) {
+    console.log('🔧 actionHandlers構築完了:', {
+      hasCancel: typeof actionHandlers.cancel === 'function',
+      totalHandlers: Object.keys(actionHandlers).length,
+      reservationHandlers: Object.keys(actionHandlers).filter(key =>
+        ['cancel', 'confirmBooking', 'goToEditReservation'].includes(key),
+      ),
+    });
+  }
 
   // アプリ要素とdocument両方でクリックイベントを捕捉（モーダル対応）
   // 重複を避けるため、documentレベルのみでイベントを処理

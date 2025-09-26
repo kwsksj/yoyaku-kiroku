@@ -72,7 +72,7 @@ const authActionHandlers = {
           view: 'dashboard',
           currentUser: response.user,
           myReservations: response.data.myReservations || [],
-//          lessons: response.data.lessons || [],
+          //          lessons: response.data.lessons || [],
           classrooms: CONSTANTS.CLASSROOMS
             ? Object.values(CONSTANTS.CLASSROOMS)
             : [],

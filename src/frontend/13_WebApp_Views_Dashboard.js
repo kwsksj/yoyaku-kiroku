@@ -68,7 +68,6 @@ const getDashboardView = () => {
       // 編集モード状態を取得
       const isInEditMode = stateManager.isInEditMode(h.reservationId);
 
-
       const editButtons = _buildHistoryEditButtons(
         isInEditMode,
         h.reservationId,
@@ -161,10 +160,10 @@ const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
   // 編集モード状態に応じてボタンテキストとアクションを変更
   if (isInEditMode) {
     // 編集モード時：入力変更があるかチェック
-    const hasInputChanged = state.memoInputChanged &&
+    const hasInputChanged =
+      state.memoInputChanged &&
       state.editingMemo &&
       state.editingMemo.reservationId === reservationId;
-
 
     if (hasInputChanged) {
       // 入力変更あり：保存ボタンを表示
@@ -310,11 +309,12 @@ function _updateMemoSection(reservationId, historyItem, isInEditMode) {
     const textarea = cardElement.querySelector('.memo-edit-textarea');
     if (textarea) {
       // テキストエリアの適切な親コンテナを探す
-      existingMemoSection = textarea.closest('div.p-0\\.5.bg-white\\/75') ||
-                           textarea.closest('div.p-0\\.5') ||
-                           textarea.closest('.memo-section') ||
-                           textarea.closest('div[style*="padding"]') ||
-                           textarea.closest('div');
+      existingMemoSection =
+        textarea.closest('div.p-0\\.5.bg-white\\/75') ||
+        textarea.closest('div.p-0\\.5') ||
+        textarea.closest('.memo-section') ||
+        textarea.closest('div[style*="padding"]') ||
+        textarea.closest('div');
     }
 
     // フォールバック：メモセクション全体を再検索
@@ -348,7 +348,10 @@ function _updateMemoSection(reservationId, historyItem, isInEditMode) {
 
   if (newMemoElement && existingMemoSection.parentNode) {
     // 置換を実行
-    existingMemoSection.parentNode.replaceChild(newMemoElement, existingMemoSection);
+    existingMemoSection.parentNode.replaceChild(
+      newMemoElement,
+      existingMemoSection,
+    );
 
     // 編集モードの場合、置換直後にイベントリスナーを設定
     if (isInEditMode) {
@@ -376,14 +379,22 @@ function _attachMemoEventListeners(reservationId) {
   const textareaId = _getMemoTextareaId(reservationId);
 
   // テキストエリアを検索（複数の方法で確実に取得）
-  let textarea = /** @type {HTMLTextAreaElement | null} */ (document.getElementById(textareaId));
+  let textarea = /** @type {HTMLTextAreaElement | null} */ (
+    document.getElementById(textareaId)
+  );
 
   if (!textarea) {
-    const cardElement = document.querySelector(`[data-reservation-id="${reservationId}"]`);
+    const cardElement = document.querySelector(
+      `[data-reservation-id="${reservationId}"]`,
+    );
     if (cardElement) {
-      textarea = /** @type {HTMLTextAreaElement | null} */ (cardElement.querySelector('.memo-edit-textarea'));
+      textarea = /** @type {HTMLTextAreaElement | null} */ (
+        cardElement.querySelector('.memo-edit-textarea')
+      );
       if (!textarea) {
-        textarea = /** @type {HTMLTextAreaElement | null} */ (cardElement.querySelector(`[data-reservation-id="${reservationId}"]`));
+        textarea = /** @type {HTMLTextAreaElement | null} */ (
+          cardElement.querySelector(`[data-reservation-id="${reservationId}"]`)
+        );
       }
     }
   }
@@ -391,7 +402,10 @@ function _attachMemoEventListeners(reservationId) {
   if (!textarea) {
     const allTextAreas = Array.from(document.querySelectorAll('textarea'));
     textarea = /** @type {HTMLTextAreaElement | null} */ (
-      allTextAreas.find(ta => ta.id === textareaId || ta.dataset['reservationId'] === reservationId)
+      allTextAreas.find(
+        ta =>
+          ta.id === textareaId || ta.dataset['reservationId'] === reservationId,
+      )
     );
   }
 
@@ -416,7 +430,10 @@ function _attachMemoEventListeners(reservationId) {
 
     anyTextarea._memoInputHandler = (/** @type {Event} */ event) => {
       const currentValue = event.target.value;
-      const hasChanged = stateManager.updateMemoInputChanged(reservationId, currentValue);
+      const hasChanged = stateManager.updateMemoInputChanged(
+        reservationId,
+        currentValue,
+      );
 
       // 状態が実際に変更された場合のみボタンを即座更新
       if (hasChanged !== undefined) {
@@ -450,11 +467,18 @@ function _updateHistoryCardButton(reservationId) {
 
   // フォールバック：別のセレクターでも探す
   if (!buttonArea) {
-    buttonArea = cardElement.querySelector('.flex-shrink-0.self-start.flex.gap-1');
+    buttonArea = cardElement.querySelector(
+      '.flex-shrink-0.self-start.flex.gap-1',
+    );
   }
 
   if (!buttonArea) {
-    console.warn('ボタンエリアが見つかりません:', reservationId, 'カード内要素:', cardElement.innerHTML);
+    console.warn(
+      'ボタンエリアが見つかりません:',
+      reservationId,
+      'カード内要素:',
+      cardElement.innerHTML,
+    );
     return;
   }
 
@@ -478,13 +502,16 @@ function _updateHistoryCardButton(reservationId) {
       );
 
       if (!hasAccountingDetailsButton) {
-        accountingButtons = [...accountingButtons, {
-          action: 'showHistoryAccounting',
-          text: '会計<br>記録',
-          style: 'accounting',
-          size: 'xs',
-          details: historyItem.accountingDetails,
-        }];
+        accountingButtons = [
+          ...accountingButtons,
+          {
+            action: 'showHistoryAccounting',
+            text: '会計<br>記録',
+            style: 'accounting',
+            size: 'xs',
+            details: historyItem.accountingDetails,
+          },
+        ];
       }
     }
   }

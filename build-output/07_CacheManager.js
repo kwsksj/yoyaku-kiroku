@@ -35,6 +35,433 @@
  */
 
 /**
+ * 予約キャッシュに新しい予約データを追加（インクリメンタル更新）
+ * シート全体の再読み込みを避けて、パフォーマンスを大幅に向上
+ * @param {(string|number|Date)[]} newReservationRow - 新しい予約行データ
+ * @param {HeaderMapType} headerMap - ヘッダーマッピング
+ */
+function addReservationToCache(newReservationRow, headerMap) {
+  try {
+    Logger.log('[CACHE] インクリメンタル予約追加開始');
+    const startTime = new Date();
+
+    // 現在のキャッシュを取得
+    const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    if (!currentCache || !currentCache['reservations']) {
+      // キャッシュが存在しない場合は通常の再構築
+      Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    // 日付・時刻フォーマット処理
+    const dateColumnIndex = headerMap.get
+      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE)
+      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
+    const startTimeColumnIndex = headerMap.get
+      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)
+      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.START_TIME];
+    const endTimeColumnIndex = headerMap.get
+      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.END_TIME)
+      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.END_TIME];
+
+    // フォーマット済みの行データを作成
+    const formattedRow = [...newReservationRow];
+    if (
+      dateColumnIndex !== undefined &&
+      formattedRow[dateColumnIndex] instanceof Date
+    ) {
+      const dateValue = formattedRow[dateColumnIndex];
+      const year = dateValue.getFullYear();
+      const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+      const day = String(dateValue.getDate()).padStart(2, '0');
+      formattedRow[dateColumnIndex] = `${year}-${month}-${day}`;
+    }
+    if (
+      startTimeColumnIndex !== undefined &&
+      formattedRow[startTimeColumnIndex] instanceof Date
+    ) {
+      const timeValue = formattedRow[startTimeColumnIndex];
+      const hours = String(timeValue.getHours()).padStart(2, '0');
+      const minutes = String(timeValue.getMinutes()).padStart(2, '0');
+      formattedRow[startTimeColumnIndex] = `${hours}:${minutes}`;
+    }
+    if (
+      endTimeColumnIndex !== undefined &&
+      formattedRow[endTimeColumnIndex] instanceof Date
+    ) {
+      const timeValue = formattedRow[endTimeColumnIndex];
+      const hours = String(timeValue.getHours()).padStart(2, '0');
+      const minutes = String(timeValue.getMinutes()).padStart(2, '0');
+      formattedRow[endTimeColumnIndex] = `${hours}:${minutes}`;
+    }
+
+    // キャッシュに新しい予約を追加
+    const currentReservations = /** @type {(string|number|Date)[][]} */ (
+      currentCache['reservations']
+    );
+    const updatedReservations = [formattedRow, ...currentReservations]; // 新しい予約を先頭に追加
+
+    // 更新されたキャッシュデータを構築
+    /** @type {ReservationCacheData} */
+    const updatedCacheData = {
+      version: new Date().getTime(),
+      reservations: updatedReservations,
+      headerMap:
+        currentCache['headerMap'] ||
+        (headerMap.get ? Object.fromEntries(headerMap) : headerMap),
+      metadata: {
+        totalCount: updatedReservations.length,
+        lastUpdated: new Date().toISOString(),
+      },
+    };
+
+    // キャッシュを更新
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      JSON.stringify(updatedCacheData),
+      CACHE_EXPIRY_SECONDS,
+    );
+
+    const endTime = new Date();
+    const duration = endTime.getTime() - startTime.getTime();
+    Logger.log(
+      `[CACHE] インクリメンタル予約追加完了: ${duration}ms, 総件数: ${updatedReservations.length}`,
+    );
+  } catch (error) {
+    Logger.log(
+      `[CACHE] インクリメンタル更新エラー: ${error.message}, 通常の再構築実行`,
+    );
+    // エラー時は従来の再構築にフォールバック
+    rebuildAllReservationsCache();
+  }
+}
+
+/**
+ * キャッシュ内の予約ステータスを更新（インクリメンタル更新）
+ * キャンセル処理などで使用し、シート全体の再読み込みを回避
+ * @param {string} reservationId - 更新対象の予約ID
+ * @param {string} newStatus - 新しいステータス
+ */
+function updateReservationStatusInCache(reservationId, newStatus) {
+  try {
+    Logger.log('[CACHE] インクリメンタルステータス更新開始');
+    const startTime = new Date();
+
+    // 現在のキャッシュを取得
+    const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    if (!currentCache || !currentCache['reservations']) {
+      // キャッシュが存在しない場合は通常の再構築
+      Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    // 予約IDに該当する行を検索してステータス更新
+    const headerMap = currentCache['headerMap'] || {};
+    const reservationIdColumnIndex =
+      headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
+    const statusColumnIndex = headerMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS];
+
+    if (
+      reservationIdColumnIndex === undefined ||
+      statusColumnIndex === undefined
+    ) {
+      Logger.log('[CACHE] ヘッダーマップが不正、通常の再構築実行');
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    /** @type {(string|number|Date)[][]} */
+    const currentReservations = /** @type {(string|number|Date)[][]} */ (
+      currentCache['reservations']
+    );
+    let updated = false;
+
+    for (let i = 0; i < currentReservations.length; i++) {
+      const reservation = currentReservations[i];
+      if (reservation[reservationIdColumnIndex] === reservationId) {
+        reservation[statusColumnIndex] = newStatus;
+        updated = true;
+        Logger.log(
+          `[CACHE] 予約ID ${reservationId} のステータスを ${newStatus} に更新`,
+        );
+        break;
+      }
+    }
+
+    if (!updated) {
+      Logger.log(
+        `[CACHE] 予約ID ${reservationId} が見つかりません、通常の再構築実行`,
+      );
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    // 更新されたキャッシュデータを構築
+    /** @type {ReservationCacheData} */
+    const updatedCacheData = {
+      version: new Date().getTime(),
+      reservations: currentReservations,
+      headerMap: currentCache['headerMap'],
+      metadata: {
+        totalCount: currentReservations.length,
+        lastUpdated: new Date().toISOString(),
+      },
+    };
+
+    // キャッシュを更新
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      JSON.stringify(updatedCacheData),
+      CACHE_EXPIRY_SECONDS,
+    );
+
+    const endTime = new Date();
+    const duration = endTime.getTime() - startTime.getTime();
+    Logger.log(
+      `[CACHE] インクリメンタルステータス更新完了: ${duration}ms, 総件数: ${currentReservations.length}`,
+    );
+  } catch (error) {
+    Logger.log(
+      `[CACHE] インクリメンタルステータス更新エラー: ${error.message}, 通常の再構築実行`,
+    );
+    // エラー時は従来の再構築にフォールバック
+    rebuildAllReservationsCache();
+  }
+}
+
+/**
+ * キャッシュ内の予約データを完全に更新（インクリメンタル更新）
+ * 予約詳細更新処理などで使用し、シート全体の再読み込みを回避
+ * @param {string} reservationId - 更新対象の予約ID
+ * @param {(string|number|Date)[]} updatedRowData - 更新された行データ
+ * @param {HeaderMapType} headerMap - ヘッダーマッピング
+ */
+function updateReservationInCache(reservationId, updatedRowData, headerMap) {
+  try {
+    Logger.log('[CACHE] インクリメンタル予約更新開始');
+    const startTime = new Date();
+
+    // 現在のキャッシュを取得
+    const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    if (!currentCache || !currentCache['reservations']) {
+      // キャッシュが存在しない場合は通常の再構築
+      Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    // 予約IDに該当する行を検索して完全更新
+    const cacheHeaderMap = currentCache['headerMap'] || {};
+    const reservationIdColumnIndex =
+      cacheHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
+
+    if (reservationIdColumnIndex === undefined) {
+      Logger.log('[CACHE] 予約IDヘッダーが見つかりません、通常の再構築実行');
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    /** @type {(string|number|Date)[][]} */
+    const currentReservations = /** @type {(string|number|Date)[][]} */ (
+      currentCache['reservations']
+    );
+    let updated = false;
+
+    // 日付・時刻フォーマット処理
+    const dateColumnIndex = headerMap.get
+      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE)
+      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
+    const startTimeColumnIndex = headerMap.get
+      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)
+      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.START_TIME];
+    const endTimeColumnIndex = headerMap.get
+      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.END_TIME)
+      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.END_TIME];
+
+    // フォーマット済みの行データを作成
+    const formattedRow = [...updatedRowData];
+    if (
+      dateColumnIndex !== undefined &&
+      formattedRow[dateColumnIndex] instanceof Date
+    ) {
+      const dateValue = formattedRow[dateColumnIndex];
+      const year = dateValue.getFullYear();
+      const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+      const day = String(dateValue.getDate()).padStart(2, '0');
+      formattedRow[dateColumnIndex] = `${year}-${month}-${day}`;
+    }
+    if (
+      startTimeColumnIndex !== undefined &&
+      formattedRow[startTimeColumnIndex] instanceof Date
+    ) {
+      const timeValue = formattedRow[startTimeColumnIndex];
+      const hours = String(timeValue.getHours()).padStart(2, '0');
+      const minutes = String(timeValue.getMinutes()).padStart(2, '0');
+      formattedRow[startTimeColumnIndex] = `${hours}:${minutes}`;
+    }
+    if (
+      endTimeColumnIndex !== undefined &&
+      formattedRow[endTimeColumnIndex] instanceof Date
+    ) {
+      const timeValue = formattedRow[endTimeColumnIndex];
+      const hours = String(timeValue.getHours()).padStart(2, '0');
+      const minutes = String(timeValue.getMinutes()).padStart(2, '0');
+      formattedRow[endTimeColumnIndex] = `${hours}:${minutes}`;
+    }
+
+    for (let i = 0; i < currentReservations.length; i++) {
+      const reservation = currentReservations[i];
+      if (reservation[reservationIdColumnIndex] === reservationId) {
+        currentReservations[i] = formattedRow;
+        updated = true;
+        Logger.log(`[CACHE] 予約ID ${reservationId} のデータを完全更新`);
+        break;
+      }
+    }
+
+    if (!updated) {
+      Logger.log(
+        `[CACHE] 予約ID ${reservationId} が見つかりません、通常の再構築実行`,
+      );
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    // 更新されたキャッシュデータを構築
+    /** @type {ReservationCacheData} */
+    const updatedCacheData = {
+      version: new Date().getTime(),
+      reservations: currentReservations,
+      headerMap: currentCache['headerMap'],
+      metadata: {
+        totalCount: currentReservations.length,
+        lastUpdated: new Date().toISOString(),
+      },
+    };
+
+    // キャッシュを更新
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      JSON.stringify(updatedCacheData),
+      CACHE_EXPIRY_SECONDS,
+    );
+
+    const endTime = new Date();
+    const duration = endTime.getTime() - startTime.getTime();
+    Logger.log(
+      `[CACHE] インクリメンタル予約更新完了: ${duration}ms, 総件数: ${currentReservations.length}`,
+    );
+  } catch (error) {
+    Logger.log(
+      `[CACHE] インクリメンタル予約更新エラー: ${error.message}, 通常の再構築実行`,
+    );
+    // エラー時は従来の再構築にフォールバック
+    rebuildAllReservationsCache();
+  }
+}
+
+/**
+ * キャッシュ内の特定列を更新（インクリメンタル更新）
+ * 会計詳細保存などで使用し、シート全体の再読み込みを回避
+ * @param {string} reservationId - 更新対象の予約ID
+ * @param {string} columnHeaderName - 更新する列のヘッダー名
+ * @param {string|number|Date} newValue - 新しい値
+ */
+function updateReservationColumnInCache(
+  reservationId,
+  columnHeaderName,
+  newValue,
+) {
+  try {
+    Logger.log('[CACHE] インクリメンタル列更新開始');
+    const startTime = new Date();
+
+    // 現在のキャッシュを取得
+    const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    if (!currentCache || !currentCache['reservations']) {
+      // キャッシュが存在しない場合は通常の再構築
+      Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    // 列インデックスを取得
+    const cacheHeaderMap = currentCache['headerMap'] || {};
+    const reservationIdColumnIndex =
+      cacheHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
+    const targetColumnIndex = cacheHeaderMap[columnHeaderName];
+
+    if (
+      reservationIdColumnIndex === undefined ||
+      targetColumnIndex === undefined
+    ) {
+      Logger.log('[CACHE] ヘッダーマップが不正、通常の再構築実行');
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    /** @type {(string|number|Date)[][]} */
+    const currentReservations = /** @type {(string|number|Date)[][]} */ (
+      currentCache['reservations']
+    );
+    let updated = false;
+
+    for (let i = 0; i < currentReservations.length; i++) {
+      const reservation = currentReservations[i];
+      if (reservation[reservationIdColumnIndex] === reservationId) {
+        reservation[targetColumnIndex] = newValue;
+        updated = true;
+        Logger.log(
+          `[CACHE] 予約ID ${reservationId} の${columnHeaderName}列を更新`,
+        );
+        break;
+      }
+    }
+
+    if (!updated) {
+      Logger.log(
+        `[CACHE] 予約ID ${reservationId} が見つかりません、通常の再構築実行`,
+      );
+      rebuildAllReservationsCache();
+      return;
+    }
+
+    // 更新されたキャッシュデータを構築
+    /** @type {ReservationCacheData} */
+    const updatedCacheData = {
+      version: new Date().getTime(),
+      reservations: currentReservations,
+      headerMap: currentCache['headerMap'],
+      metadata: {
+        totalCount: currentReservations.length,
+        lastUpdated: new Date().toISOString(),
+      },
+    };
+
+    // キャッシュを更新
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      JSON.stringify(updatedCacheData),
+      CACHE_EXPIRY_SECONDS,
+    );
+
+    const endTime = new Date();
+    const duration = endTime.getTime() - startTime.getTime();
+    Logger.log(
+      `[CACHE] インクリメンタル列更新完了: ${duration}ms, 総件数: ${currentReservations.length}`,
+    );
+  } catch (error) {
+    Logger.log(
+      `[CACHE] インクリメンタル列更新エラー: ${error.message}, 通常の再構築実行`,
+    );
+    // エラー時は従来の再構築にフォールバック
+    rebuildAllReservationsCache();
+  }
+}
+
+/**
  * 全てのキャッシュデータを一括で再構築するエントリーポイント関数
  * UI確認ダイアログを表示してから、全種類のキャッシュを順次再構築します。
  * スプレッドシートのメニューから手動実行される場合に使用されます。
@@ -75,6 +502,40 @@ function rebuildAllCachesEntryPoint() {
       `キャッシュデータの一括再構築中にエラーが発生しました: ${error.message}`,
       true,
     );
+  }
+}
+
+/**
+ * キャッシュの再構築が必要かどうかを判定します。
+ * 短時間での重複実行を防止するため。
+ * @returns {boolean} 再構築が必要な場合true
+ */
+function shouldRebuildReservationCache() {
+  try {
+    // 最後のキャッシュ更新時刻をチェック
+    const lastRebuildTime = PropertiesService.getScriptProperties().getProperty(
+      'LAST_CACHE_REBUILD_TIME',
+    );
+    if (!lastRebuildTime) {
+      return true; // 初回実行
+    }
+
+    const now = Date.now();
+    const lastTime = parseInt(lastRebuildTime, 10);
+    const timeDiffMinutes = (now - lastTime) / (1000 * 60);
+
+    // 5分以内の再構築はスキップ
+    if (timeDiffMinutes < 5) {
+      Logger.log(
+        `キャッシュ再構築スキップ: 前回から${timeDiffMinutes.toFixed(1)}分経過`,
+      );
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    Logger.log(`shouldRebuildReservationCacheでエラー: ${e.message}`);
+    return true; // エラー時は安全のため再構築を実行
   }
 }
 
@@ -313,6 +774,12 @@ function rebuildAllReservationsCache() {
 
     Logger.log(
       `全予約データキャッシュを更新しました。件数: ${sortedReservations.length}`,
+    );
+
+    // キャッシュ再構築完了時刻を記録
+    PropertiesService.getScriptProperties().setProperty(
+      'LAST_CACHE_REBUILD_TIME',
+      Date.now().toString(),
     );
   } catch (e) {
     Logger.log(`rebuildAllReservationsCacheでエラー: ${e.message}`);

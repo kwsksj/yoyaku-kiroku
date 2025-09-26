@@ -217,6 +217,8 @@ function authenticateUser(phoneNumber) {
           displayName: String(student.nickname || student.realName),
           realName: student.realName,
           phone: student.phone,
+          email: student.email || '',
+          wantsEmail: student.wantsEmail || false,
         };
         break;
       }
@@ -229,6 +231,20 @@ function authenticateUser(phoneNumber) {
         '成功',
         `電話番号: ${phoneNumber}`,
       );
+
+      // ログイン成功時にスプレッドシートのウォームアップを実行（次回のスプレッドシートアクセスを高速化）
+      try {
+        SS_MANAGER.warmupAsync();
+        Logger.log(
+          `[AUTH] ログイン成功後にウォームアップ開始: ${foundUser.studentId}`,
+        );
+      } catch (warmupError) {
+        // ウォームアップエラーは認証成功には影響させない
+        Logger.log(
+          `[AUTH] ウォームアップエラー（認証は成功）: ${warmupError.message}`,
+        );
+      }
+
       return {
         success: true,
         user: foundUser,
