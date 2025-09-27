@@ -235,7 +235,8 @@ const Components = {
     // 電話番号・メールの場合は専用クラスを使用
     const inputClass =
       type === 'tel' || type === 'email'
-        ? DesignConfig.inputs['phone']
+        ? /** @type {any} */ (DesignConfig.inputs)['phone'] ||
+          DesignConfig.inputs['base']
         : DesignConfig.inputs['base'];
 
     return `<div class="mb-4">
@@ -1057,7 +1058,7 @@ const Components = {
     reservationId,
     workInProgress,
     isEditMode = false,
-    showSaveButton = true,
+    showSaveButton = true, // eslint-disable-line no-unused-vars
   }) => {
     if (isEditMode) {
       // 編集モード：textareaと保存ボタン
@@ -1181,7 +1182,7 @@ const Components = {
    * @param {UIState|null} appState - アプリケーション状態
    * @returns {string} HTML文字列
    */
-  createSmartBackButton: (currentView, appState = null) => {
+  createSmartBackButton: (currentView, appState = null) => { // eslint-disable-line no-unused-vars
     // 現在のビューに応じてアクションとテキストを決定
     let action = 'smartGoBack';
     let text = 'もどる';

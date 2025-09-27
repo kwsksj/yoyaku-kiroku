@@ -96,10 +96,12 @@ declare global {
     // --- System State ---
     isDataFresh: boolean;
     _dataUpdateInProgress: boolean;
+    _dataFetchInProgress: boolean;
     _lessonsVersion: string | null;
     _allStudents?: Record<string, UserData>;
     _cacheVersions?: Record<string, string>;
     today?: string;
+    savedAt?: string;
 
     // --- Computed Data ---
     computed: ComputedStateData;
@@ -108,6 +110,12 @@ declare global {
     targetElement?: HTMLElement | null;
     caption?: string;
     breakTime?: number;
+
+    // --- 動的プロパティ（データ管理用） ---
+    _dataLastUpdated?: Record<string, number>;
+
+    // --- インデックスシグネチャ（動的アクセス用） ---
+    [key: string]: any;
   }
 
   // 🔄 後方互換性のための型エイリアス

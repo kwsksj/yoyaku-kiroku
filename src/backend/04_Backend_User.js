@@ -74,11 +74,11 @@ function authenticateUserLightweight(phoneNumber) {
 
     // キャッシュから生徒データのみ取得（getAppInitialDataは呼ばない）
     const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    if (!studentsCache || !studentsCache.students) {
+    if (!studentsCache || !studentsCache['students']) {
       throw new Error('生徒データのキャッシュが取得できません');
     }
 
-    const allStudents = studentsCache.students;
+    const allStudents = studentsCache['students'];
     const normalizedInputPhone =
       _normalizeAndValidatePhone(phoneNumber).normalized;
 
@@ -88,7 +88,7 @@ function authenticateUserLightweight(phoneNumber) {
 
     for (let i = 0; i < studentIds.length; i++) {
       const studentId = studentIds[i];
-      const student = allStudents[studentId];
+      const student = /** @type {any} */ (allStudents)[studentId];
       if (!student) continue;
 
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
@@ -193,11 +193,11 @@ function authenticateUser(phoneNumber) {
 
     // キャッシュから生徒データのみ取得
     const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    if (!studentsCache || !studentsCache.students) {
+    if (!studentsCache || !studentsCache['students']) {
       throw new Error('生徒データのキャッシュが取得できません');
     }
 
-    const allStudents = studentsCache.students;
+    const allStudents = studentsCache['students'];
     const normalizedInputPhone =
       _normalizeAndValidatePhone(phoneNumber).normalized;
 
@@ -207,7 +207,7 @@ function authenticateUser(phoneNumber) {
 
     for (let i = 0; i < studentIds.length; i++) {
       const studentId = studentIds[i];
-      const student = allStudents[studentId];
+      const student = /** @type {any} */ (allStudents)[studentId];
       if (!student) continue;
 
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
@@ -288,7 +288,7 @@ function registerNewUser(userInfo) {
       }
 
       const existingUser = authenticateUser(normalizedPhone);
-      if (existingUser.success) {
+      if (/** @type {any} */ (existingUser).success) {
         return {
           success: false,
           message: 'この電話番号は既に登録されています。',

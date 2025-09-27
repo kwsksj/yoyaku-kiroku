@@ -55,7 +55,7 @@ function setAdvancedConditionalFormatting() {
       sheet.getMaxColumns(),
     );
     sheet.clearConditionalFormatRules();
-    const newRules = [];
+    /** @type {any[]} */ const newRules = [];
 
     // --- 数式で使う共通定義 ---
     const commonLetParts = `
@@ -177,6 +177,6 @@ function setAdvancedConditionalFormatting() {
       newRules.push(rule);
     });
 
-    sheet.setConditionalFormatRules(newRules);
+    sheet.setConditionalFormatRules(/** @type {any[]} */ (newRules));
   });
 }

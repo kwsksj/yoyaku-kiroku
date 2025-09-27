@@ -220,7 +220,7 @@ window.EmbedConfig = {
   },
 
   // スタイルの再適用
-  reapplyStyles: offset => {
+  reapplyStyles: offset => { // eslint-disable-line no-unused-vars
     // 既存のスタイルを削除
     const existingStyle = document.getElementById('google-sites-embed-styles');
     if (existingStyle) {

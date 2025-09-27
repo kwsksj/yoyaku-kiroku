@@ -42,9 +42,18 @@ class BackendErrorHandler {
     }
 
     // 統一APIレスポンス形式で返却
-    return this.createErrorResponse(error.message, context, {
-      type: error.constructor.name,
-    });
+    return this.createErrorResponse(
+      error.message,
+      context,
+      /** @type {ErrorInfo} */ ({
+        type: error.constructor.name,
+        message: error.message,
+        stack: error.stack || '',
+        context: context || '',
+        timestamp: new Date().toISOString(),
+        additionalInfo: {},
+      }),
+    );
   }
 
   /**

@@ -3,6 +3,67 @@
 /// <reference path="../../types/api-types.d.ts" />
 
 /**
+ * ヘッダーマップから型安全にインデックスを取得するヘルパー関数
+ * @param {HeaderMapType} headerMap - ヘッダーマップ（MapまたはRecord）
+ * @param {string} headerName - ヘッダー名
+ * @returns {number | undefined} インデックス値
+ */
+function getHeaderIndex(headerMap, headerName) {
+  if (headerMap instanceof Map) {
+    return headerMap.get(headerName);
+  }
+  return headerMap[headerName];
+}
+
+/**
+ * ヘッダーマップをRecord型に正規化するヘルパー関数
+ * @param {HeaderMapType} headerMap - ヘッダーマップ（MapまたはRecord）
+ * @returns {Record<string, number>} Record型のヘッダーマップ
+ */
+function normalizeHeaderMap(headerMap) {
+  if (headerMap instanceof Map) {
+    return Object.fromEntries(headerMap);
+  }
+  return headerMap;
+}
+
+/**
+ * キャッシュデータの型安全な取得ヘルパー関数
+ * @param {any} cacheData - キャッシュデータ
+ * @param {string} property - プロパティ名
+ * @returns {any} プロパティ値
+ */
+function getCacheProperty(cacheData, property) {
+  return cacheData && typeof cacheData === 'object'
+    ? cacheData[property]
+    : undefined;
+}
+
+/**
+ * 日付・時刻値をフォーマットするヘルパー関数
+ * @param {any} dateValue - 日付値
+ * @param {'date' | 'time'} type - フォーマット種別
+ * @returns {string} フォーマット済み文字列
+ */
+function formatDateTimeValue(dateValue, type) {
+  const formatters = {
+    date: (/** @type {any} */ dateValue) => {
+      if (dateValue instanceof Date) {
+        return Utilities.formatDate(dateValue, 'Asia/Tokyo', 'yyyy-MM-dd');
+      }
+      return String(dateValue);
+    },
+    time: (/** @type {any} */ dateValue) => {
+      if (dateValue instanceof Date) {
+        return Utilities.formatDate(dateValue, 'Asia/Tokyo', 'HH:mm');
+      }
+      return String(dateValue);
+    },
+  };
+  return formatters[type](dateValue);
+}
+
+/**
  * =================================================================
  * 【ファイル名】: 07_CacheManager.js
  * 【バージョン】: 5.5
@@ -47,7 +108,7 @@ function addReservationToCache(newReservationRow, headerMap) {
 
     // 現在のキャッシュを取得
     const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    if (!currentCache || !currentCache['reservations']) {
+    if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
       // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
       rebuildAllReservationsCache();
@@ -55,15 +116,18 @@ function addReservationToCache(newReservationRow, headerMap) {
     }
 
     // 日付・時刻フォーマット処理
-    const dateColumnIndex = headerMap.get
-      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE)
-      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
-    const startTimeColumnIndex = headerMap.get
-      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)
-      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.START_TIME];
-    const endTimeColumnIndex = headerMap.get
-      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.END_TIME)
-      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.END_TIME];
+    const dateColumnIndex = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.DATE,
+    );
+    const startTimeColumnIndex = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.START_TIME,
+    );
+    const endTimeColumnIndex = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
+    );
 
     // フォーマット済みの行データを作成
     const formattedRow = [...newReservationRow];
@@ -97,8 +161,8 @@ function addReservationToCache(newReservationRow, headerMap) {
     }
 
     // キャッシュに新しい予約を追加
-    const currentReservations = /** @type {(string|number|Date)[][]} */ (
-      currentCache['reservations']
+    const currentReservations = /** @type {ReservationRawDataArray} */ (
+      getCacheProperty(currentCache, 'reservations')
     );
     const updatedReservations = [formattedRow, ...currentReservations]; // 新しい予約を先頭に追加
 
@@ -108,8 +172,8 @@ function addReservationToCache(newReservationRow, headerMap) {
       version: new Date().getTime(),
       reservations: updatedReservations,
       headerMap:
-        currentCache['headerMap'] ||
-        (headerMap.get ? Object.fromEntries(headerMap) : headerMap),
+        getCacheProperty(currentCache, 'headerMap') ||
+        normalizeHeaderMap(headerMap),
       metadata: {
         totalCount: updatedReservations.length,
         lastUpdated: new Date().toISOString(),
@@ -150,7 +214,7 @@ function updateReservationStatusInCache(reservationId, newStatus) {
 
     // 現在のキャッシュを取得
     const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    if (!currentCache || !currentCache['reservations']) {
+    if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
       // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
       rebuildAllReservationsCache();
@@ -158,7 +222,7 @@ function updateReservationStatusInCache(reservationId, newStatus) {
     }
 
     // 予約IDに該当する行を検索してステータス更新
-    const headerMap = currentCache['headerMap'] || {};
+    const headerMap = getCacheProperty(currentCache, 'headerMap') || {};
     const reservationIdColumnIndex =
       headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
     const statusColumnIndex = headerMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS];
@@ -172,9 +236,8 @@ function updateReservationStatusInCache(reservationId, newStatus) {
       return;
     }
 
-    /** @type {(string|number|Date)[][]} */
-    const currentReservations = /** @type {(string|number|Date)[][]} */ (
-      currentCache['reservations']
+    const currentReservations = /** @type {ReservationRawDataArray} */ (
+      getCacheProperty(currentCache, 'reservations')
     );
     let updated = false;
 
@@ -203,7 +266,7 @@ function updateReservationStatusInCache(reservationId, newStatus) {
     const updatedCacheData = {
       version: new Date().getTime(),
       reservations: currentReservations,
-      headerMap: currentCache['headerMap'],
+      headerMap: getCacheProperty(currentCache, 'headerMap'),
       metadata: {
         totalCount: currentReservations.length,
         lastUpdated: new Date().toISOString(),
@@ -245,7 +308,7 @@ function updateReservationInCache(reservationId, updatedRowData, headerMap) {
 
     // 現在のキャッシュを取得
     const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    if (!currentCache || !currentCache['reservations']) {
+    if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
       // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
       rebuildAllReservationsCache();
@@ -253,7 +316,7 @@ function updateReservationInCache(reservationId, updatedRowData, headerMap) {
     }
 
     // 予約IDに該当する行を検索して完全更新
-    const cacheHeaderMap = currentCache['headerMap'] || {};
+    const cacheHeaderMap = getCacheProperty(currentCache, 'headerMap') || {};
     const reservationIdColumnIndex =
       cacheHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
 
@@ -263,22 +326,24 @@ function updateReservationInCache(reservationId, updatedRowData, headerMap) {
       return;
     }
 
-    /** @type {(string|number|Date)[][]} */
-    const currentReservations = /** @type {(string|number|Date)[][]} */ (
-      currentCache['reservations']
+    const currentReservations = /** @type {ReservationRawDataArray} */ (
+      getCacheProperty(currentCache, 'reservations')
     );
     let updated = false;
 
     // 日付・時刻フォーマット処理
-    const dateColumnIndex = headerMap.get
-      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE)
-      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE];
-    const startTimeColumnIndex = headerMap.get
-      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)
-      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.START_TIME];
-    const endTimeColumnIndex = headerMap.get
-      ? headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.END_TIME)
-      : headerMap[CONSTANTS.HEADERS.RESERVATIONS.END_TIME];
+    const dateColumnIndex = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.DATE,
+    );
+    const startTimeColumnIndex = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.START_TIME,
+    );
+    const endTimeColumnIndex = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
+    );
 
     // フォーマット済みの行データを作成
     const formattedRow = [...updatedRowData];
@@ -334,7 +399,7 @@ function updateReservationInCache(reservationId, updatedRowData, headerMap) {
     const updatedCacheData = {
       version: new Date().getTime(),
       reservations: currentReservations,
-      headerMap: currentCache['headerMap'],
+      headerMap: getCacheProperty(currentCache, 'headerMap'),
       metadata: {
         totalCount: currentReservations.length,
         lastUpdated: new Date().toISOString(),
@@ -380,7 +445,7 @@ function updateReservationColumnInCache(
 
     // 現在のキャッシュを取得
     const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    if (!currentCache || !currentCache['reservations']) {
+    if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
       // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
       rebuildAllReservationsCache();
@@ -388,7 +453,7 @@ function updateReservationColumnInCache(
     }
 
     // 列インデックスを取得
-    const cacheHeaderMap = currentCache['headerMap'] || {};
+    const cacheHeaderMap = getCacheProperty(currentCache, 'headerMap') || {};
     const reservationIdColumnIndex =
       cacheHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
     const targetColumnIndex = cacheHeaderMap[columnHeaderName];
@@ -402,9 +467,8 @@ function updateReservationColumnInCache(
       return;
     }
 
-    /** @type {(string|number|Date)[][]} */
-    const currentReservations = /** @type {(string|number|Date)[][]} */ (
-      currentCache['reservations']
+    const currentReservations = /** @type {ReservationRawDataArray} */ (
+      getCacheProperty(currentCache, 'reservations')
     );
     let updated = false;
 
@@ -433,7 +497,7 @@ function updateReservationColumnInCache(
     const updatedCacheData = {
       version: new Date().getTime(),
       reservations: currentReservations,
-      headerMap: currentCache['headerMap'],
+      headerMap: getCacheProperty(currentCache, 'headerMap'),
       metadata: {
         totalCount: currentReservations.length,
         lastUpdated: new Date().toISOString(),
@@ -658,14 +722,14 @@ function rebuildAllReservationsCache() {
     // 日付・時刻のフォーマット関数
     // 【パフォーマンス最適化】 事前定義されたフォーマッター（関数重複定義を排除）
     const DateTimeFormatters = {
-      date: dateValue => {
+      date: (/** @type {any} */ dateValue) => {
         if (!(dateValue instanceof Date)) return String(dateValue);
         const year = dateValue.getFullYear();
         const month = String(dateValue.getMonth() + 1).padStart(2, '0');
         const day = String(dateValue.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
       },
-      time: dateValue => {
+      time: (/** @type {any} */ dateValue) => {
         if (!(dateValue instanceof Date)) return String(dateValue);
         const hours = String(dateValue.getHours()).padStart(2, '0');
         const minutes = String(dateValue.getMinutes()).padStart(2, '0');
@@ -685,7 +749,9 @@ function rebuildAllReservationsCache() {
       formatColumns.forEach(({ index, type }) => {
         const originalValue = reservationRow[index];
         if (originalValue instanceof Date) {
-          reservationRow[index] = DateTimeFormatters[type](originalValue);
+          const formatter =
+            type === 'date' ? DateTimeFormatters.date : DateTimeFormatters.time;
+          reservationRow[index] = formatter(originalValue);
         }
       });
 

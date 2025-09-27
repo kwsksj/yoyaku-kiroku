@@ -91,6 +91,9 @@ declare global {
 
   type ReservationDataArray = Array<ReservationData>;
 
+  // Google Sheets由来の生データ型（2次元配列）
+  type ReservationRawDataArray = Array<Array<string | number | Date | boolean | null>>;
+
   // キャッシュ関連型定義
   interface CacheDataStructure {
     version: number;
@@ -98,7 +101,7 @@ declare global {
   }
 
   interface ReservationCacheData extends CacheDataStructure {
-    reservations: ReservationDataArray;
+    reservations: ReservationRawDataArray;
     headerMap?: { [key: string]: number };
     metadata?: {
       totalCount: number;
@@ -340,6 +343,7 @@ declare function getCachedData(key: string): CacheDataStructure | null;
 declare var CACHE_KEYS: {
   MASTER_SCHEDULE_DATA: string;
   ALL_RESERVATIONS: string;
+  ALL_STUDENTS_BASIC: string;
   MASTER_ACCOUNTING_DATA: string;
   [key: string]: string;
 };
@@ -546,8 +550,8 @@ declare global {
     error?: string;
   }
 
-  // ヘッダーマップ型定義（Union型でMapとObjectに対応）
-  type HeaderMapType = Map<string, number> | Record<string, number>;
+  // ヘッダーマップ型定義（主にRecord型として使用、Mapも許可）
+  type HeaderMapType = Record<string, number> | Map<string, number>;
 
   // 予約配列データ型定義
   type ReservationArrayData = Array<string | Date | boolean | number | null>;

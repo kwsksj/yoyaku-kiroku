@@ -608,7 +608,7 @@ window.onload = function () {
   // デバッグ：actionHandlers構築後の確認
   if (!window.isProduction) {
     console.log('🔧 actionHandlers構築完了:', {
-      hasCancel: typeof actionHandlers.cancel === 'function',
+      hasCancel: typeof actionHandlers['cancel'] === 'function',
       totalHandlers: Object.keys(actionHandlers).length,
       reservationHandlers: Object.keys(actionHandlers).filter(key =>
         ['cancel', 'confirmBooking', 'goToEditReservation'].includes(key),

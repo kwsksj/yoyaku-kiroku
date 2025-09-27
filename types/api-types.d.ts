@@ -375,6 +375,8 @@ declare interface AccountingUserInput {
     name: string;
     price?: number;
   }>;
+  /** 制作進行状況 */
+  workInProgress?: string;
 }
 
 /**

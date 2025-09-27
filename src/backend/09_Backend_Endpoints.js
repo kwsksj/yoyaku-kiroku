@@ -280,15 +280,17 @@ function getLoginData(phone) {
     // 1. 軽量認証実行
     const authResult = authenticateUser(phone);
 
-    if (authResult.success) {
-      Logger.log(`認証成功: userId=${authResult.user.studentId}`);
+    if (/** @type {any} */ (authResult).success) {
+      Logger.log(
+        `認証成功: userId=${/** @type {any} */ (authResult).user.studentId}`,
+      );
 
       // 2. 認証成功時：一括データ取得
       const batchResult = getBatchData(
         //        ['accounting', 'cache-versions', 'lessons', 'reservations'],
         ['accounting', 'reservations'],
         null,
-        authResult.user.studentId,
+        /** @type {any} */ (authResult).user.studentId,
       );
 
       if (!batchResult.success) {
@@ -300,7 +302,7 @@ function getLoginData(phone) {
       const result = {
         success: true,
         userFound: true,
-        user: authResult.user,
+        user: /** @type {any} */ (authResult).user,
         data: {
           accountingMaster: batchResult.data['accounting'] || [],
           cacheVersions: batchResult.data['cache-versions'] || {},
@@ -314,13 +316,13 @@ function getLoginData(phone) {
       return result;
     } else {
       // 4. 認証失敗時：ユーザー未登録
-      Logger.log(`認証失敗: ${authResult.message}`);
-      return {
+      Logger.log(`認証失敗: ${/** @type {any} */ (authResult).message}`);
+      return /** @type {any} */ ({
         success: true,
         userFound: false,
-        message: authResult.message,
+        message: /** @type {any} */ (authResult).message,
         registrationPhone: phone,
-      };
+      });
     }
   } catch (e) {
     Logger.log(`getLoginData統合処理エラー: ${e.message}\nStack: ${e.stack}`);

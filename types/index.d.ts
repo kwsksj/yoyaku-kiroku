@@ -35,6 +35,11 @@ declare global {
     tailwind?: any;
     stateManager?: StateManager;
     server?: any;
+    PerformanceLog?: {
+      debug(message: string, ...args: any[]): void;
+      info(message: string, ...args: any[]): void;
+      error(message: string, ...args: any[]): void;
+    };
 
     // 設計定数
     DesignConfig?: {

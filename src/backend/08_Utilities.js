@@ -25,7 +25,7 @@ const PerformanceLog = {
   /**
    * デバッグログ（開発環境でのみ出力）
    */
-  debug(message, ...args) {
+  debug(/** @type {string} */ message, /** @type {...any} */ ...args) {
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE && DEBUG) {
       Logger.log(`[DEBUG] ${message}`, ...args);
     }
@@ -34,7 +34,7 @@ const PerformanceLog = {
   /**
    * 情報ログ（重要な処理完了時のみ出力）
    */
-  info(message, ...args) {
+  info(/** @type {string} */ message, /** @type {...any} */ ...args) {
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       Logger.log(`[INFO] ${message}`, ...args);
     }
@@ -43,14 +43,17 @@ const PerformanceLog = {
   /**
    * エラーログ（常に出力）
    */
-  error(message, ...args) {
+  error(/** @type {string} */ message, /** @type {...any} */ ...args) {
     Logger.log(`[ERROR] ${message}`, ...args);
   },
 
   /**
    * パフォーマンス測定
    */
-  performance(operation, startTime) {
+  performance(
+    /** @type {string} */ operation,
+    /** @type {number} */ startTime,
+  ) {
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE && DEBUG) {
       const duration = Date.now() - startTime;
       Logger.log(`[PERF] ${operation}: ${duration}ms`);
@@ -67,9 +70,11 @@ const PerformanceLog = {
 function getCachedStudentInfo(studentId) {
   try {
     // キャッシュから生徒名簿データを取得
-    const rosterCache = getCachedData(CACHE_KEYS.STUDENT_ROSTER);
-    if (rosterCache && rosterCache.students) {
-      const student = rosterCache.students.find(s => s.studentId === studentId);
+    const rosterCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    if (rosterCache && rosterCache['students']) {
+      const student = /** @type {any[]} */ (rosterCache['students']).find(
+        (/** @type {any} */ s) => s.studentId === studentId,
+      );
       if (student) {
         return {
           realName: student.realName || '(不明)',
@@ -88,8 +93,8 @@ function getCachedStudentInfo(studentId) {
 /**
  * 予約データの事前バリデーション（パフォーマンス最適化）
  * 冗長なデータ検証を削減するため、一度だけ全体構造を検証
- * @param {Array} reservations - 予約データ配列
- * @returns {Array} 有効な予約データのみを含む配列
+ * @param {any[]} reservations - 予約データ配列
+ * @returns {any[]} 有効な予約データのみを含む配列
  */
 function validateReservationsStructure(reservations) {
   if (!Array.isArray(reservations)) {
@@ -574,17 +579,17 @@ function normalizeReservationObject(rawReservation) {
       studentId: String(rawReservation.studentId || ''),
       date:
         rawReservation.date instanceof Date
-          ? rawReservation.date
+          ? rawReservation.date.toISOString()
           : String(rawReservation.date || ''),
       classroom: String(rawReservation.classroom || ''),
       venue: rawReservation.venue ? String(rawReservation.venue) : undefined,
       startTime:
         rawReservation.startTime instanceof Date
-          ? rawReservation.startTime
+          ? rawReservation.startTime.toISOString()
           : String(rawReservation.startTime || ''),
       endTime:
         rawReservation.endTime instanceof Date
-          ? rawReservation.endTime
+          ? rawReservation.endTime.toISOString()
           : String(rawReservation.endTime || ''),
       status: String(rawReservation.status || ''),
       chiselRental: Boolean(rawReservation.chiselRental),

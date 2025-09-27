@@ -17,23 +17,23 @@
  * フロントエンド用PerformanceLogフォールバック
  * バックエンドで定義されたPerformanceLogがフロントエンドで未定義の場合の安全策
  */
-if (typeof PerformanceLog === 'undefined') {
+if (!window.PerformanceLog) {
   window.PerformanceLog = {
-    debug(message, ...args) {
+    debug(/** @type {string} */ message, /** @type {...any} */ ...args) {
       if (typeof debugLog === 'function') {
         debugLog(`[DEBUG] ${message}`);
       } else if (typeof console !== 'undefined') {
         console.log(`[DEBUG] ${message}`, ...args);
       }
     },
-    info(message, ...args) {
+    info(/** @type {string} */ message, /** @type {...any} */ ...args) {
       if (typeof debugLog === 'function') {
         debugLog(`[INFO] ${message}`);
       } else if (typeof console !== 'undefined') {
         console.info(`[INFO] ${message}`, ...args);
       }
     },
-    error(message, ...args) {
+    error(/** @type {string} */ message, /** @type {...any} */ ...args) {
       if (typeof console !== 'undefined') {
         console.error(`[ERROR] ${message}`, ...args);
       }
@@ -115,10 +115,10 @@ class SimpleStateManager {
       _dataUpdateInProgress: false,
       /** @type {string | null} */
       _lessonsVersion: null,
-      /** @type {Object<string, boolean>} データタイプ別取得中フラグ */
-      _dataFetchInProgress: {},
-      /** @type {Object<string, number>} データタイプ別最終更新時刻 */
-      _dataLastUpdated: {},
+      /** @type {Record<string, boolean>} データタイプ別取得中フラグ */
+      _dataFetchInProgress: /** @type {Record<string, boolean>} */ ({}),
+      /** @type {Record<string, number>} データタイプ別最終更新時刻 */
+      _dataLastUpdated: /** @type {Record<string, number>} */ ({}),
 
       // --- Computed Data ---
       /** @type {ComputedStateData} */
@@ -504,7 +504,7 @@ class SimpleStateManager {
       newState.view === 'login' &&
       oldState.view !== 'login'
     ) {
-      PerformanceLog.info('ログイン画面に戻るため保存状態をクリア');
+      window.PerformanceLog?.info('ログイン画面に戻るため保存状態をクリア');
       this.clearStoredState();
       return;
     }
@@ -560,9 +560,9 @@ class SimpleStateManager {
       };
 
       sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(essentialState));
-      PerformanceLog.debug('状態をSessionStorageに保存しました');
+      window.PerformanceLog?.debug('状態をSessionStorageに保存しました');
     } catch (error) {
-      PerformanceLog.error(`状態保存エラー: ${error.message}`);
+      window.PerformanceLog?.error(`状態保存エラー: ${error.message}`);
     }
   }
 
@@ -574,7 +574,7 @@ class SimpleStateManager {
     try {
       const savedState = sessionStorage.getItem(this.STORAGE_KEY);
       if (!savedState) {
-        PerformanceLog.debug('保存された状態がありません');
+        window.PerformanceLog?.debug('保存された状態がありません');
         return false;
       }
 
@@ -583,7 +583,7 @@ class SimpleStateManager {
       // 有効期限チェック（6時間以内）
       const sixHoursInMs = 6 * 60 * 60 * 1000;
       if (Date.now() - parsedState.savedAt > sixHoursInMs) {
-        PerformanceLog.debug('保存された状態が期限切れです');
+        window.PerformanceLog?.debug('保存された状態が期限切れです');
         sessionStorage.removeItem(this.STORAGE_KEY);
         return false;
       }
@@ -598,10 +598,10 @@ class SimpleStateManager {
       // savedAtは内部データなので削除
       delete this.state.savedAt;
 
-      PerformanceLog.info('状態をSessionStorageから復元しました');
+      window.PerformanceLog?.info('状態をSessionStorageから復元しました');
       return true;
     } catch (error) {
-      PerformanceLog.error(`状態復元エラー: ${error.message}`);
+      window.PerformanceLog?.error(`状態復元エラー: ${error.message}`);
       sessionStorage.removeItem(this.STORAGE_KEY);
       return false;
     }
@@ -613,9 +613,9 @@ class SimpleStateManager {
   clearStoredState() {
     try {
       sessionStorage.removeItem(this.STORAGE_KEY);
-      PerformanceLog.debug('保存された状態をクリアしました');
+      window.PerformanceLog?.debug('保存された状態をクリアしました');
     } catch (error) {
-      PerformanceLog.error(`状態クリアエラー: ${error.message}`);
+      window.PerformanceLog?.error(`状態クリアエラー: ${error.message}`);
     }
   }
 
@@ -634,8 +634,8 @@ class SimpleStateManager {
     }
 
     // 現在講座データ取得中の場合はfalse
-    if (this._dataFetchInProgress.lessons) {
-      PerformanceLog.debug('講座データ取得中のため更新スキップ');
+    if (/** @type {Record<string, boolean>} */ (this._dataFetchInProgress)['lessons']) {
+      window.PerformanceLog?.debug('講座データ取得中のため更新スキップ');
       return false;
     }
 
@@ -645,14 +645,16 @@ class SimpleStateManager {
       !Array.isArray(this.state.lessons) ||
       this.state.lessons.length === 0
     ) {
-      PerformanceLog.debug('講座データが存在しないため更新必要');
+      window.PerformanceLog?.debug('講座データが存在しないため更新必要');
       return true;
     }
 
     // 最終更新時刻チェック
-    const lastUpdated = this._dataLastUpdated.lessons;
+    const lastUpdated = /** @type {Record<string, number>} */ (this._dataLastUpdated)['lessons'];
     if (!lastUpdated) {
-      PerformanceLog.debug('講座データの更新時刻が未設定のため更新必要');
+      window.PerformanceLog?.debug(
+        '講座データの更新時刻が未設定のため更新必要',
+      );
       return true;
     }
 
@@ -660,13 +662,13 @@ class SimpleStateManager {
     const isExpired = Date.now() - lastUpdated > expirationTime;
 
     if (isExpired) {
-      PerformanceLog.debug(
+      window.PerformanceLog?.debug(
         `講座データキャッシュが期限切れ（${cacheExpirationMinutes}分経過）`,
       );
       return true;
     }
 
-    PerformanceLog.debug('講座データキャッシュは有効');
+    window.PerformanceLog?.debug('講座データキャッシュは有効');
     return false;
   }
 
@@ -684,16 +686,16 @@ class SimpleStateManager {
       this._dataLastUpdated = {};
     }
 
-    this._dataFetchInProgress[dataType] = isInProgress;
+    /** @type {Record<string, boolean>} */ (this._dataFetchInProgress)[dataType] = isInProgress;
 
     if (!isInProgress) {
       // 取得完了時に更新時刻を記録
-      this._dataLastUpdated[dataType] = Date.now();
-      PerformanceLog.debug(
+      /** @type {Record<string, number>} */ (this._dataLastUpdated)[dataType] = Date.now();
+      window.PerformanceLog?.debug(
         `${dataType}データ取得完了：${new Date().toLocaleTimeString()}`,
       );
     } else {
-      PerformanceLog.debug(`${dataType}データ取得開始`);
+      window.PerformanceLog?.debug(`${dataType}データ取得開始`);
     }
   }
 
@@ -707,7 +709,7 @@ class SimpleStateManager {
     if (!this._dataFetchInProgress) {
       this._dataFetchInProgress = {};
     }
-    return !!this._dataFetchInProgress[dataType];
+    return !!/** @type {Record<string, boolean>} */ (this._dataFetchInProgress)[dataType];
   }
 
   /**
@@ -718,7 +720,7 @@ class SimpleStateManager {
     if (this.state._lessonsVersion !== newVersion) {
       this.state._lessonsVersion = newVersion;
       this.setDataFetchProgress('lessons', false);
-      PerformanceLog.debug(`講座データバージョンを更新: ${newVersion}`);
+      window.PerformanceLog?.debug(`講座データバージョンを更新: ${newVersion}`);
     }
   }
 }

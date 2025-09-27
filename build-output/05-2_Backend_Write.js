@@ -598,7 +598,7 @@ function cancelReservation(cancelInfo) {
         logDetails,
       );
 
-      const subject = `予約キャンセル (${classroom}) - ${userInfo.displayName}様`;
+      const subject = `予約キャンセル (${classroom}) - ${/** @type {any} */ (userInfo).displayName}様`;
       const messageSection = cancelMessage
         ? `\n先生へのメッセージ: ${cancelMessage}\n`
         : '';
@@ -606,9 +606,9 @@ function cancelReservation(cancelInfo) {
         `予約がキャンセルされました。
 
 ` +
-        `本名: ${userInfo.realName}
+        `本名: ${/** @type {any} */ (userInfo).realName}
 ` +
-        `ニックネーム: ${userInfo.displayName}
+        `ニックネーム: ${/** @type {any} */ (userInfo).displayName}
 
 ` +
         `教室: ${classroom}
@@ -800,7 +800,11 @@ function updateReservationDetails(details) {
       // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
       try {
         Logger.log('[UPDATE] インクリメンタルキャッシュ更新実行');
-        updateReservationInCache(reservationId, rowData, headerMapUpdate);
+        updateReservationInCache(
+          reservationId,
+          /** @type {(string | number | Date)[]} */ (rowData),
+          headerMapUpdate,
+        );
       } catch (e) {
         Logger.log(
           `インクリメンタル更新エラー: ${e.message} - フォールバック実行`,
@@ -868,7 +872,7 @@ function saveAccountingDetails(payload) {
   return withTransaction(() => {
     try {
       const { reservationId, classroom, studentId, userInput, workInProgress } =
-        payload;
+        /** @type {any} */ (payload);
       if (!reservationId || !classroom || !studentId || !userInput) {
         throw new Error('会計情報が不足しています。');
       }
