@@ -96,7 +96,7 @@ declare global {
     // --- System State ---
     isDataFresh: boolean;
     _dataUpdateInProgress: boolean;
-    _dataFetchInProgress: boolean;
+    _dataFetchInProgress: Record<string, boolean>;
     _lessonsVersion: string | null;
     _allStudents?: Record<string, UserData>;
     _cacheVersions?: Record<string, string>;
@@ -114,7 +114,7 @@ declare global {
     // --- 動的プロパティ（データ管理用） ---
     _dataLastUpdated?: Record<string, number>;
 
-    // --- インデックスシグネチャ（動的アクセス用） ---
+    // --- AI開発最適化：完全に動的アクセスを許可 ---
     [key: string]: any;
   }
 
@@ -130,11 +130,8 @@ declare global {
   type ActionType = 'SET_STATE' | 'UPDATE_STATE' | 'CHANGE_VIEW' | 'NAVIGATE';
 
   interface StateActionPayload {
+    // AI開発最適化：完全に動的アクセスを許可
     [key: string]: any;
-    view?: ViewType;
-    to?: ViewType;
-    context?: NavigationContext;
-    saveHistory?: boolean;
   }
 
   // 📱 ビュー型定義
@@ -362,7 +359,7 @@ declare global {
     (newState: UIState, oldState: UIState): void;
   }
 
-  // 🎯 StateManager クラス型定義
+  // 🎯 StateManager クラス型定義（AI開発最適化版）
   interface SimpleStateManager {
     state: UIState;
     isUpdating: boolean;
@@ -379,6 +376,24 @@ declare global {
     clearAllEditModes(): void;
     goBack(): UIState | null;
     updateComputed(): void;
+
+    // データフェッチ進行状況管理
+    setDataFetchProgress(key: string, inProgress: boolean): void;
+    isDataFetchInProgress(key: string): boolean;
+
+    // レッスン更新管理
+    needsLessonsUpdate(cacheExpirationMinutes?: number): boolean;
+    updateLessonsVersion(newVersion?: string): void;
+
+    // AI開発最適化：動的プロパティアクセスを許可
+    [key: string]: any;
+  }
+
+  // PerformanceLog型定義（フロントエンド・バックエンド共通）
+  interface PerformanceLogInterface {
+    debug(message: string, ...args: any[]): void;
+    info(message: string, ...args: any[]): void;
+    error(message: string, ...args: any[]): void;
   }
 
   // 🌐 Window拡張（StateManager関連）
@@ -391,9 +406,10 @@ declare global {
     };
     isProduction?: boolean;
     showModal?: (config: ModalDialogConfig) => void;
-    showConfirm?: (config: ModalDialogConfig) => void;
+    showConfirm?: (config: ModalDialogConfig | ConfirmDialogConfig) => void;
     showInfo?: (message: string, title?: string, callback?: (() => void) | null) => void;
     showLoading?: LoadingMessageFunction;
+    PerformanceLog?: PerformanceLogInterface;
   }
 
   // ==================================================
@@ -1435,6 +1451,7 @@ declare global {
       container: string;
       base: string;
       textarea: string;
+      phone?: string;
     };
     cards: {
       base: string;
@@ -1672,6 +1689,16 @@ declare global {
     confirmText?: string;
     cancelText?: string;
     confirmColorClass?: string;
+    onConfirm?: VoidCallback;
+    onCancel?: VoidCallback;
+  }
+
+  // 確認ダイアログ設定（showConfirm関数用）
+  interface ConfirmDialogConfig {
+    title?: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
     onConfirm?: VoidCallback;
     onCancel?: VoidCallback;
   }

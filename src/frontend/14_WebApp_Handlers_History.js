@@ -120,7 +120,7 @@ const historyActionHandlers = {
   },
 
   // 新しいアクション：保存と同時に編集モードを終了
-  saveAndCloseMemo: function (d) {
+  saveAndCloseMemo: function (/** @type {any} */ d) {
     // ボタンからreservationIdが渡された場合
     if (d && d.reservationId) {
       // thisを使って同じオブジェクト内のsaveInlineMemoを呼び出し

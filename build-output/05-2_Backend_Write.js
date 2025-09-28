@@ -444,47 +444,46 @@ function makeReservation(reservationInfo) {
       const message = !isFull
         ? '予約が完了しました。'
         : '満席のため、キャンセル待ちで登録しました。';
-      // 【一時的に無効化】パフォーマンス調査のため
-      // const messageToTeacher = options.messageToTeacher || '';
-      // const messageLog = messageToTeacher
-      //   ? `, Message: ${messageToTeacher}`
-      //   : '';
-      // const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}${messageLog}`;
-      // logActivity(
-      //   user.studentId,
-      //   '予約作成',
-      //   CONSTANTS.MESSAGES.SUCCESS,
-      //   logDetails,
-      // );
 
-      // const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
-      // const messageSection = messageToTeacher
-      //   ? `\n先生へのメッセージ: ${messageToTeacher}\n`
-      //   : '';
-      // const body =
-      //   `新しい予約が入りました。\n\n` +
-      //   `本名: ${user.realName}\n` +
-      //   `ニックネーム: ${user.displayName}\n\n` +
-      //   `教室: ${classroom}\n` +
-      //   `日付: ${date}\n` +
-      //   `状態: ${isFull ? 'キャンセル待ち' : '確定'}${messageSection}\n` +
-      //   `詳細はスプレッドシートを確認してください。`;
-      // sendAdminNotification(subject, body);
+      const messageToTeacher = options.messageToTeacher || '';
+      const messageLog = messageToTeacher
+        ? `, Message: ${messageToTeacher}`
+        : '';
+      const logDetails = `Classroom: ${classroom}, Date: ${date}, Status: ${isFull ? 'Waiting' : 'Confirmed'}, ReservationID: ${newReservationId}${messageLog}`;
+      logActivity(
+        user.studentId,
+        '予約作成',
+        CONSTANTS.MESSAGES.SUCCESS,
+        logDetails,
+      );
 
-      // // 【メール送信処理】パフォーマンス調査のため一時的に無効化
-      // // 予約確定メール送信（非同期・エラー時は予約処理に影響しない）
-      // Utilities.sleep(100); // 予約確定後の短い待機
-      // try {
-      //   // フロントエンドで調整済みの reservationInfo をそのまま使用
-      //   /** @type {ReservationInfo} */
-      //   const reservationInfoForEmail = /** @type {ReservationInfo} */ (
-      //     reservationInfo
-      //   );
-      //   sendBookingConfirmationEmailAsync(reservationInfoForEmail);
-      // } catch (emailError) {
-      //   // メール送信エラーは予約成功に影響させない
-      //   Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
-      // }
+      const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
+      const messageSection = messageToTeacher
+        ? `\n先生へのメッセージ: ${messageToTeacher}\n`
+        : '';
+      const body =
+        `新しい予約が入りました。\n\n` +
+        `本名: ${user.realName}\n` +
+        `ニックネーム: ${user.displayName}\n\n` +
+        `教室: ${classroom}\n` +
+        `日付: ${date}\n` +
+        `状態: ${isFull ? 'キャンセル待ち' : '確定'}${messageSection}\n` +
+        `詳細はスプレッドシートを確認してください。`;
+      sendAdminNotification(subject, body);
+
+      // 予約確定メール送信（非同期・エラー時は予約処理に影響しない）
+      Utilities.sleep(100); // 予約確定後の短い待機
+      try {
+        // フロントエンドで調整済みの reservationInfo をそのまま使用
+        /** @type {ReservationInfo} */
+        const reservationInfoForEmail = /** @type {ReservationInfo} */ (
+          reservationInfo
+        );
+        sendBookingConfirmationEmailAsync(reservationInfoForEmail);
+      } catch (emailError) {
+        // メール送信エラーは予約成功に影響させない
+        Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
+      }
 
       return createApiResponse(true, {
         message: message,

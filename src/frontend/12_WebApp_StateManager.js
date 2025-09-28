@@ -634,7 +634,11 @@ class SimpleStateManager {
     }
 
     // 現在講座データ取得中の場合はfalse
-    if (/** @type {Record<string, boolean>} */ (this._dataFetchInProgress)['lessons']) {
+    if (
+      /** @type {Record<string, boolean>} */ (this._dataFetchInProgress)[
+        'lessons'
+      ]
+    ) {
       window.PerformanceLog?.debug('講座データ取得中のため更新スキップ');
       return false;
     }
@@ -650,7 +654,9 @@ class SimpleStateManager {
     }
 
     // 最終更新時刻チェック
-    const lastUpdated = /** @type {Record<string, number>} */ (this._dataLastUpdated)['lessons'];
+    const lastUpdated = /** @type {Record<string, number>} */ (
+      this._dataLastUpdated
+    )['lessons'];
     if (!lastUpdated) {
       window.PerformanceLog?.debug(
         '講座データの更新時刻が未設定のため更新必要',
@@ -686,11 +692,14 @@ class SimpleStateManager {
       this._dataLastUpdated = {};
     }
 
-    /** @type {Record<string, boolean>} */ (this._dataFetchInProgress)[dataType] = isInProgress;
+    /** @type {Record<string, boolean>} */ (this._dataFetchInProgress)[
+      dataType
+    ] = isInProgress;
 
     if (!isInProgress) {
       // 取得完了時に更新時刻を記録
-      /** @type {Record<string, number>} */ (this._dataLastUpdated)[dataType] = Date.now();
+      /** @type {Record<string, number>} */ (this._dataLastUpdated)[dataType] =
+        Date.now();
       window.PerformanceLog?.debug(
         `${dataType}データ取得完了：${new Date().toLocaleTimeString()}`,
       );
@@ -709,7 +718,11 @@ class SimpleStateManager {
     if (!this._dataFetchInProgress) {
       this._dataFetchInProgress = {};
     }
-    return !!/** @type {Record<string, boolean>} */ (this._dataFetchInProgress)[dataType];
+    return !!(
+      /** @type {Record<string, boolean>} */ (this._dataFetchInProgress)[
+        dataType
+      ]
+    );
   }
 
   /**

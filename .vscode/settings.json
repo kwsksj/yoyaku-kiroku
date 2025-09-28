@@ -176,6 +176,7 @@
   "cSpell.words": [
     "ALLOWALL",
     "Booping",
+    "checkmark",
     "Clauding",
     "Consolas",
     "COTRA",
@@ -187,19 +188,22 @@
     "inputmode",
     "Kaku",
     "kibori",
+    "kiroku",
     "kodomo",
     "Meiryo",
     "minnano",
     "MITSUKOSHI",
-    "nums",
     "NUMAZU",
+    "nums",
     "realname",
     "sawsnht",
     "Seiji",
+    "textareas",
     "tnum",
     "TSUKUBA",
     "waitlist",
-    "WAITLISTED"
+    "WAITLISTED",
+    "yoyaku"
   ],
   "markdown.preview.fontFamily": "",
   "markdown.preview.fontSize": 14

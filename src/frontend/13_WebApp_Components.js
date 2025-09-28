@@ -1182,7 +1182,8 @@ const Components = {
    * @param {UIState|null} appState - アプリケーション状態
    * @returns {string} HTML文字列
    */
-  createSmartBackButton: (currentView, appState = null) => { // eslint-disable-line no-unused-vars
+  createSmartBackButton: (currentView, appState = null) => {
+    // eslint-disable-line no-unused-vars
     // 現在のビューに応じてアクションとテキストを決定
     let action = 'smartGoBack';
     let text = 'もどる';

@@ -257,7 +257,10 @@ const authActionHandlers = {
   backToStep2: () =>
     window.stateManager.dispatch({
       type: 'SET_STATE',
-      payload: { view: 'registrationStep2', registrationStep: 2 },
+      payload: {
+        view: 'registrationStep2',
+        registrationStep: 2,
+      },
     }),
 
   /** 新規ユーザー登録：Step3からStep4へ進む */
@@ -297,7 +300,10 @@ const authActionHandlers = {
   backToStep3: () =>
     window.stateManager.dispatch({
       type: 'SET_STATE',
-      payload: { view: 'registrationStep3', registrationStep: 3 },
+      payload: {
+        view: 'registrationStep3',
+        registrationStep: 3,
+      },
     }),
 
   /** 新規ユーザー登録：最終データをサーバーに送信（簡素化版） */
@@ -431,7 +437,10 @@ const authActionHandlers = {
         showInfo('プロフィールを更新しました');
         window.stateManager.dispatch({
           type: 'SET_STATE',
-          payload: { currentUser: res.updatedUser, view: 'dashboard' },
+          payload: {
+            currentUser: res.updatedUser,
+            view: 'dashboard',
+          },
         });
       } else {
         showInfo(res.message || '更新に失敗しました');
@@ -454,12 +463,12 @@ const authActionHandlers = {
       if (window.stateManager) {
         window.stateManager.dispatch({
           type: 'CHANGE_VIEW',
-          payload: { view: /** @type {ViewType} */ ('editProfile') },
+          payload: { view: 'editProfile' },
         });
       } else {
         window.stateManager.dispatch({
           type: 'SET_STATE',
-          payload: { view: /** @type {ViewType} */ ('editProfile') },
+          payload: { view: 'editProfile' },
         });
       }
     }

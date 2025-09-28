@@ -28,7 +28,8 @@ class FrontendErrorHandler {
    * @param {string} context - エラーコンテキスト
    * @param {Object} [additionalInfo={}] - 追加情報
    */
-  static handle(error, context = '', additionalInfo = {}) { // eslint-disable-line no-unused-vars
+  static handle(error, context = '', additionalInfo = {}) {
+    // eslint-disable-line no-unused-vars
     // 軽量ログ出力（本番環境では最小限の情報のみ）
     if (!window.isProduction) {
       console.error(`[ERROR] ${context}: ${error.message}`);
