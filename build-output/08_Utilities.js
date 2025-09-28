@@ -72,9 +72,9 @@ function getCachedStudentInfo(studentId) {
     // キャッシュから生徒名簿データを取得
     const rosterCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
     if (rosterCache && rosterCache['students']) {
-      const student = /** @type {any[]} */ (rosterCache['students']).find(
-        (/** @type {any} */ s) => s.studentId === studentId,
-      );
+      // studentsはオブジェクト形式で保存されている
+      const studentsMap = /** @type {Object} */ (rosterCache['students']);
+      const student = studentsMap[studentId];
       if (student) {
         return {
           realName: student.realName || '(不明)',
@@ -249,14 +249,14 @@ function sendAdminNotification(subject, body) {
       return;
     }
 
-    // 現在のユーザーが管理者自身の場合は通知をスキップ
-    const currentUserEmail = Session.getActiveUser()
-      ? Session.getActiveUser().getEmail()
-      : null;
-    if (currentUserEmail === ADMIN_EMAIL) {
-      Logger.log('管理者自身の操作のため、通知をスキップしました。');
-      return;
-    }
+    // // 現在のユーザーが管理者自身の場合は通知をスキップ
+    // const currentUserEmail = Session.getActiveUser()
+    //   ? Session.getActiveUser().getEmail()
+    //   : null;
+    // if (currentUserEmail === ADMIN_EMAIL) {
+    //   Logger.log('管理者自身の操作のため、通知をスキップしました。');
+    //   return;
+    // }
 
     MailApp.sendEmail({
       to: ADMIN_EMAIL,

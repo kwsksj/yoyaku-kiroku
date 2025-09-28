@@ -457,7 +457,7 @@ function makeReservation(reservationInfo) {
         logDetails,
       );
 
-      const subject = `新規予約 (${classroom}) - ${user.displayName}様`;
+      const subject = `新規予約 (${classroom}) ${user.realName}:${user.displayName}様`;
       const messageSection = messageToTeacher
         ? `\n先生へのメッセージ: ${messageToTeacher}\n`
         : '';
@@ -597,7 +597,7 @@ function cancelReservation(cancelInfo) {
         logDetails,
       );
 
-      const subject = `予約キャンセル (${classroom}) - ${/** @type {any} */ (userInfo).displayName}様`;
+      const subject = `予約キャンセル (${classroom}) ${/** @type {any} */ (userInfo).realName}: ${/** @type {any} */ (userInfo).displayName}様`;
       const messageSection = cancelMessage
         ? `\n先生へのメッセージ: ${cancelMessage}\n`
         : '';
@@ -1135,9 +1135,17 @@ function saveAccountingDetails(payload) {
         logDetails,
       );
 
-      const subject = `会計記録 (${classroom})`;
+      // 【パフォーマンス最適化】 キャッシュからユーザー情報を取得
+      const userInfo = getCachedStudentInfo(studentId);
+
+      const subject = `会計記録 (${classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
       const body =
         `会計が記録されました。
+
+` +
+        `本名: ${userInfo.realName}
+` +
+        `ニックネーム: ${userInfo.displayName}
 
 ` +
         `教室: ${classroom}
