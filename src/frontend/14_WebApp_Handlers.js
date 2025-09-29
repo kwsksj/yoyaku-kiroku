@@ -340,7 +340,7 @@ window.onload = function () {
         hideLoading();
       } else {
         hideLoading();
-        showInfo('予約・記録情報が見つかりませんでした。');
+        showInfo('予約・記録情報が見つかりませんでした。', 'エラー');
       }
     },
 
@@ -369,10 +369,10 @@ window.onload = function () {
           showPaymentConfirmModal(classifiedItems, classroom);
         } else {
           console.error('showPaymentConfirmModal関数が見つかりません');
-          showInfo('支払い確認モーダルの表示でエラーが発生しました。');
+          showInfo('支払い確認モーダルの表示に失敗しました。', 'エラー');
         }
       } else {
-        showInfo('会計データが不足しています。');
+        showInfo('会計データが不足しています。', 'エラー');
       }
     },
 
@@ -410,7 +410,7 @@ window.onload = function () {
       const studentId = state.currentUser?.studentId;
 
       if (!reservationId || !classroom || !studentId) {
-        showInfo('必要な情報が不足しています。');
+        showInfo('必要な情報が不足しています。', 'エラー');
         return;
       }
 
@@ -422,7 +422,7 @@ window.onload = function () {
 
       // 支払い方法が選択されていない場合はエラー
       if (!formData.paymentMethod) {
-        showInfo('支払い方法を選択してください。');
+        showInfo('支払い方法を選択してください。', '入力エラー');
         return;
       }
 
@@ -472,12 +472,15 @@ window.onload = function () {
           ['withFailureHandler']((/** @type {Error} */ error) => {
             hideLoading();
             console.error('会計処理エラー:', error);
-            showInfo('会計処理でエラーが発生しました。');
+            showInfo('会計処理に失敗しました。', 'エラー');
           })
           .saveAccountingDetailsAndGetLatestData(payload);
       } else {
         hideLoading();
-        showInfo('システムエラー：Google Apps Scriptとの通信ができません。');
+        showInfo(
+          'システムエラー：Google Apps Scriptとの通信ができません。',
+          'システムエラー',
+        );
       }
     },
 

@@ -61,10 +61,12 @@ declare const C: Components;
 declare function escapeHTML(str: string): string;
 declare function showLoading(category?: string): void;
 declare function hideLoading(): void;
-declare function showInfo(message: string): void;
+declare function showInfo(message: string, title?: string, callback?: (() => void) | null): void;
 declare function showConfirm(config: {
   title?: string;
   message: string;
+  confirmText?: string;
+  cancelText?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
 }): void;
@@ -167,6 +169,11 @@ interface StateManager {
   clearAllEditModes?(): void;
   showAccountingConfirmation?(grandTotal?: number): void;
   confirmAndPay?(): void;
+  // データ取得進捗管理メソッド
+  isDataFetchInProgress?(dataType: string): boolean;
+  setDataFetchProgress?(dataType: string, isInProgress: boolean): void;
+  needsLessonsUpdate?(cacheExpirationMinutes?: number): boolean;
+  updateLessonsVersion?(newVersion: string): void;
 }
 
 // Window拡張はtypes/index.d.tsで統一管理されています

@@ -31,80 +31,80 @@ const reservationActionHandlers = {
         </div>
       `;
     showConfirm({
-        title: '予約の取り消し',
-        message: message,
-        confirmText: '取り消す',
-        cancelText: 'やめる',
-        onConfirm: () => {
-          // 重複キャンセル防止
-          if (stateManager.isDataFetchInProgress('reservation-cancel')) {
-            console.log('予約取り消し処理中のためキャンセルをスキップ');
-            return;
-          }
+      title: '予約の取り消し',
+      message: message,
+      confirmText: '取り消す',
+      cancelText: 'やめる',
+      onConfirm: () => {
+        // 重複キャンセル防止
+        if (stateManager.isDataFetchInProgress('reservation-cancel')) {
+          console.log('予約取り消し処理中のためキャンセルをスキップ');
+          return;
+        }
 
-          showLoading('cancel');
-          // 予約取り消し処理中フラグを設定
-          stateManager.setDataFetchProgress('reservation-cancel', true);
+        showLoading('cancel');
+        // 予約取り消し処理中フラグを設定
+        stateManager.setDataFetchProgress('reservation-cancel', true);
 
-          const cancelMessageInput = /** @type {HTMLTextAreaElement | null} */ (
-            document.getElementById('cancel-message')
-          );
-          const cancelMessage = cancelMessageInput?.value || '';
-          const p = {
-            ...d,
-            studentId: stateManager.getState().currentUser.studentId,
-            cancelMessage: cancelMessage,
-          };
-          google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
-            hideLoading();
-            // 予約取り消し処理中フラグをクリア
-            stateManager.setDataFetchProgress('reservation-cancel', false);
+        const cancelMessageInput = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('cancel-message')
+        );
+        const cancelMessage = cancelMessageInput?.value || '';
+        const p = {
+          ...d,
+          studentId: stateManager.getState().currentUser.studentId,
+          cancelMessage: cancelMessage,
+        };
+        google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
+          hideLoading();
+          // 予約取り消し処理中フラグをクリア
+          stateManager.setDataFetchProgress('reservation-cancel', false);
 
-            if (r.success) {
-              if (r.data) {
-                // 予約取り消し後は個人予約データのみ更新（講座データは既存のキャッシュを利用）
-                const currentState = stateManager.getState();
-                const updatedPayload = {
-                  myReservations: r.data.myReservations || [],
-                  view: 'dashboard',
-                  isDataFresh: true,
-                };
+          if (r.success) {
+            if (r.data) {
+              // 予約取り消し後は個人予約データのみ更新（講座データは既存のキャッシュを利用）
+              const currentState = stateManager.getState();
+              const updatedPayload = {
+                myReservations: r.data.myReservations || [],
+                view: 'dashboard',
+                isDataFresh: true,
+              };
 
-                // 講座データが提供された場合のみ更新
-                if (r.data.lessons && r.data.lessons.length > 0) {
-                  updatedPayload.lessons = r.data.lessons;
-                  stateManager.setDataFetchProgress('lessons', false);
-                } else {
-                  // 講座データが不要な場合は既存データを保持
-                  updatedPayload.lessons = currentState.lessons;
-                }
-
-                window.stateManager.dispatch({
-                  type: 'SET_STATE',
-                  payload: updatedPayload,
-                });
+              // 講座データが提供された場合のみ更新
+              if (r.data.lessons && r.data.lessons.length > 0) {
+                updatedPayload.lessons = r.data.lessons;
+                stateManager.setDataFetchProgress('lessons', false);
               } else {
-                window.stateManager.dispatch({
-                  type: 'SET_STATE',
-                  payload: {
-                    view: 'dashboard',
-                    isDataFresh: false,
-                  },
-                });
+                // 講座データが不要な場合は既存データを保持
+                updatedPayload.lessons = currentState.lessons;
               }
-              showInfo(r.message || '予約を取り消しました。');
+
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: updatedPayload,
+              });
             } else {
-              showInfo(r.message || 'キャンセル処理に失敗しました。');
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'dashboard',
+                  isDataFresh: false,
+                },
+              });
             }
+            showInfo(r.message || '予約を取り消しました。', 'キャンセル完了');
+          } else {
+            showInfo(r.message || 'キャンセル処理に失敗しました。', 'エラー');
+          }
+        })
+          .withFailureHandler((/** @type {Error} */ err) => {
+            hideLoading();
+            // エラー時も予約取り消し処理中フラグをクリア
+            stateManager.setDataFetchProgress('reservation-cancel', false);
+            handleServerError(err);
           })
-            .withFailureHandler((/** @type {Error} */ err) => {
-              hideLoading();
-              // エラー時も予約取り消し処理中フラグをクリア
-              stateManager.setDataFetchProgress('reservation-cancel', false);
-              handleServerError(err);
-            })
-            .cancelReservationAndGetLatestData(p);
-        },
+          .cancelReservationAndGetLatestData(p);
+      },
     });
   },
 
@@ -122,7 +122,7 @@ const reservationActionHandlers = {
     const { currentUser, currentReservationFormContext } =
       stateManager.getState();
     if (!currentReservationFormContext) {
-      showInfo('エラー: 予約コンテキストが見つかりません。');
+      showInfo('予約コンテキストが見つかりません。', 'エラー');
       return;
     }
 
@@ -184,7 +184,7 @@ const reservationActionHandlers = {
         if (r.data) {
           // 新規予約後は個人予約データと必要に応じて講座データを更新
           const currentState = stateManager.getState();
-                    const updatedPayload = {
+          const updatedPayload = {
             myReservations: r.data.myReservations || [],
             view: 'complete',
             completionMessage: r.message,
@@ -217,7 +217,7 @@ const reservationActionHandlers = {
           });
         }
       } else {
-        showInfo(r.message || '予約に失敗しました。');
+        showInfo(r.message || '予約に失敗しました。', 'エラー');
       }
     })
       .withFailureHandler((/** @type {Error} */ error) => {
@@ -244,18 +244,19 @@ const reservationActionHandlers = {
     );
 
     if (!reservation) {
-      showInfo('予約情報が見つかりませんでした。');
+      showInfo('予約情報が見つかりませんでした。', 'エラー');
       return;
     }
 
     // 2. 講座データを取得（キャッシュ済み）
-    const lesson = state.lessons && Array.isArray(state.lessons)
-      ? state.lessons.find(
-          l =>
-            l.schedule.date === String(reservation.date) &&
-            l.schedule.classroom === reservation.classroom,
-        )
-      : null;
+    const lesson =
+      state.lessons && Array.isArray(state.lessons)
+        ? state.lessons.find(
+            l =>
+              l.schedule.date === String(reservation.date) &&
+              l.schedule.classroom === reservation.classroom,
+          )
+        : null;
 
     if (lesson) {
       // 3. lessonsデータがある場合：即座に画面遷移（ロード不要）
@@ -315,14 +316,14 @@ const reservationActionHandlers = {
     const { currentReservationFormContext, currentUser } =
       stateManager.getState();
     if (!currentReservationFormContext) {
-      showInfo('エラー: 予約コンテキストが見つかりません。');
+      showInfo('予約コンテキストが見つかりません。', 'エラー');
       return;
     }
 
     const { reservationInfo } = currentReservationFormContext;
     // 予約編集ではreservationIdは必須
     if (!reservationInfo.reservationId) {
-      showInfo('エラー: 予約IDが見つかりません。');
+      showInfo('予約IDが見つかりません。', 'エラー');
       return;
     }
     const validReservationInfo = /** @type {ReservationData} */ (
@@ -381,7 +382,7 @@ const reservationActionHandlers = {
           if (r.data) {
             // 予約更新後は個人予約データを優先的に更新
             const currentState = stateManager.getState();
-                        const updatedPayload = {
+            const updatedPayload = {
               myReservations: r.data.myReservations || [],
               view: 'dashboard',
               isDataFresh: true,
@@ -421,7 +422,7 @@ const reservationActionHandlers = {
             `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'}`,
           );
         } else {
-          showInfo(r.message || '更新に失敗しました。');
+          showInfo(r.message || '更新に失敗しました。', 'エラー');
         }
       },
     )
@@ -452,7 +453,7 @@ const reservationActionHandlers = {
       document.body.insertAdjacentHTML('beforeend', modalHtml);
       Components.showModal('classroom-selection-modal');
     } else {
-      showInfo('教室情報の取得に失敗しました。ホームに戻ります。');
+      showInfo('教室情報の取得に失敗しました。ホームに戻ります。', 'エラー');
       reservationActionHandlers.goBackToDashboard();
     }
   },
@@ -479,7 +480,10 @@ const reservationActionHandlers = {
       reservationActionHandlers.closeClassroomModal();
       reservationActionHandlers.updateLessonsAndGoToBooking(classroomName);
     } else {
-      showInfo('予約枠の取得に失敗しました。時間をおいて再度お試しください。');
+      showInfo(
+        '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
+        'エラー',
+      );
     }
   },
 
@@ -641,7 +645,7 @@ const reservationActionHandlers = {
         },
       });
     } else {
-      showInfo('エラーが発生しました。選択した予約枠が見つかりません。');
+      showInfo('選択した予約枠が見つかりません。', 'エラー');
     }
   },
 
@@ -742,6 +746,12 @@ const reservationActionHandlers = {
           // 予約確定処理中フラグをクリア
           stateManager.setDataFetchProgress('reservation-confirm', false);
           if (r.success) {
+            // 予約確定成功のモーダル表示
+            showInfo(
+              '空席連絡希望から予約への変更が完了しました。',
+              '予約確定',
+            );
+
             if (r.data) {
               // 予約確定後は個人予約データと講座データを更新
               const currentState = stateManager.getState();
@@ -775,7 +785,7 @@ const reservationActionHandlers = {
               });
             }
           } else {
-            showInfo(r.message || '予約確定に失敗しました。');
+            showInfo(r.message || '予約確定に失敗しました。', 'エラー');
           }
         })
           .withFailureHandler((/** @type {Error} */ error) => {

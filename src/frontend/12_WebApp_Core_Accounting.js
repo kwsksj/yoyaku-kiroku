@@ -1736,11 +1736,7 @@ function handleBackToDashboard() {
     }
   } catch (error) {
     console.error('ダッシュボード画面への遷移エラー:', error);
-    if (typeof showError === 'function') {
-      showError('画面遷移でエラーが発生しました。もう一度お試しください。');
-    } else {
-      alert('画面遷移でエラーが発生しました。もう一度お試しください。');
-    }
+    showInfo('画面遷移に失敗しました。もう一度お試しください。', 'エラー');
   }
 }
 
@@ -1858,11 +1854,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
 
     // 支払い方法の選択チェック
     if (!formData.paymentMethod) {
-      if (typeof showError === 'function') {
-        showError('支払い方法を選択してください。');
-      } else {
-        alert('支払い方法を選択してください。');
-      }
+      showInfo('支払い方法を選択してください。', '入力エラー');
       return;
     }
 
@@ -1938,11 +1930,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
       });
     }
 
-    if (typeof showError === 'function') {
-      showError(`エラーが発生しました: ${error.message}`);
-    } else {
-      alert(`エラーが発生しました: ${error.message}`);
-    }
+    showInfo(error.message, 'エラー');
   }
 }
 
@@ -1980,13 +1968,10 @@ function handleProcessPayment() {
       console.log('デバッグ: window.tempPaymentData =', window.tempPaymentData);
     }
 
-    if (typeof showError === 'function') {
-      showError(
-        '支払いデータが見つかりません。会計画面から再度お試しください。',
-      );
-    } else {
-      alert('支払いデータが見つかりません。会計画面から再度お試しください。');
-    }
+    showInfo(
+      '支払いデータが見つかりません。会計画面から再度お試しください。',
+      'エラー',
+    );
 
     // モーダルを閉じる
     const modal = document.getElementById('payment-confirm-modal');
@@ -2084,22 +2069,15 @@ function handleSaveMemo(target) {
 
         if (response.success) {
           // 成功メッセージ表示
-          if (typeof showSuccess === 'function') {
-            showSuccess('制作メモを更新しました。');
-          } else {
-            alert('制作メモを更新しました。');
-          }
+          showInfo('制作メモを更新しました。', '成功');
 
           // テキストエリアの値を更新
           textarea.value = newMemoText;
         } else {
-          if (typeof showError === 'function') {
-            showError(
-              '制作メモの更新に失敗しました: ' + (response.message || ''),
-            );
-          } else {
-            alert('制作メモの更新に失敗しました: ' + (response.message || ''));
-          }
+          showInfo(
+            '制作メモの更新に失敗しました: ' + (response.message || ''),
+            'エラー',
+          );
         }
       })
       .withFailureHandler(error => {
@@ -2107,11 +2085,7 @@ function handleSaveMemo(target) {
           hideLoading();
         }
         console.error('制作メモ更新エラー:', error);
-        if (typeof showError === 'function') {
-          showError('制作メモの更新でエラーが発生しました。');
-        } else {
-          alert('制作メモの更新でエラーが発生しました。');
-        }
+        showInfo('制作メモの更新に失敗しました。', 'エラー');
       })
       .updateWorkInProgress({
         reservationId: reservationId,
@@ -2216,11 +2190,10 @@ function processAccountingPayment(
               },
             });
           } else {
-            if (typeof showError === 'function') {
-              showError('会計処理に失敗しました: ' + (response.message || ''));
-            } else {
-              alert('会計処理に失敗しました: ' + (response.message || ''));
-            }
+            showInfo(
+              '会計処理に失敗しました: ' + (response.message || ''),
+              'エラー',
+            );
           }
         })
         .withFailureHandler(error => {
@@ -2228,11 +2201,7 @@ function processAccountingPayment(
             hideLoading();
           }
           console.error('会計処理エラー:', error);
-          if (typeof showError === 'function') {
-            showError('会計処理でエラーが発生しました。');
-          } else {
-            alert('会計処理でエラーが発生しました。');
-          }
+          showInfo('会計処理に失敗しました。', 'エラー');
         })
         .saveAccountingDetailsAndGetLatestData(payload);
     } else {
