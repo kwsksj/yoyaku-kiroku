@@ -42,7 +42,7 @@ const CONSTANTS = {
    */
   STATUS: {
     CANCELED: '取消', // キャンセル済み
-    WAITLISTED: '待機', // キャンセル待ち
+    WAITLISTED: '待機', // 空き連絡希望
     CONFIRMED: '確定', // 予約確定（会計前）
     COMPLETED: '完了', // 完了（会計済み）
   },

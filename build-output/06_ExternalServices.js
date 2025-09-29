@@ -39,12 +39,15 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
       return false;
     }
 
-    // PropertiesServiceから送信元メールアドレスを取得
-    const fromEmail =
+    // PropertiesServiceから送信元メールアドレスを取得（環境別自動切り替え）
+    const baseEmail =
       PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL');
-    if (!fromEmail) {
+    if (!baseEmail) {
       throw new Error('ADMIN_EMAIL が設定されていません');
     }
+
+    // テスト環境の場合は送信元メールアドレスに+testを追加
+    const fromEmail = getEnvironmentAwareEmailAddress(baseEmail);
 
     // メール内容を生成
     const { subject, htmlBody, textBody } = createBookingConfirmationTemplate(
@@ -106,7 +109,7 @@ function createBookingConfirmationTemplate(reservation, student, isFirstTime) {
 
   // 日付フォーマット
   const formattedDate = formatDateForEmail(date);
-  const statusText = reservation.isWaiting ? 'キャンセル待ち' : 'ご予約';
+  const statusText = reservation.isWaiting ? '空き連絡希望' : 'ご予約';
 
   // 件名
   const subject = `【川崎誠二 木彫り教室】受付完了のお知らせ - ${formattedDate} ${classroom}`;
@@ -227,6 +230,25 @@ ${getContactAndVenueInfoText()}
 /**
  * ヘルパー関数群
  */
+
+/**
+ * 環境に応じたメールアドレスを取得
+ * @param {string} baseEmail - 基本メールアドレス
+ * @returns {string} 環境に応じたメールアドレス
+ */
+function getEnvironmentAwareEmailAddress(baseEmail) {
+  // 本番環境判定（CONSTANTS.ENVIRONMENT.PRODUCTION_MODEを使用）
+  const isProduction = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE;
+
+  if (isProduction) {
+    // 本番環境はそのまま
+    return baseEmail;
+  } else {
+    // テスト環境は+testを追加
+    const [localPart, domain] = baseEmail.split('@');
+    return `${localPart}+test@${domain}`;
+  }
+}
 
 /**
  * 授業料金額を取得

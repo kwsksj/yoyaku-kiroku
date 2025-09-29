@@ -91,25 +91,25 @@ const getReservationFormView = () => {
   const title = isEdit
     ? '予約内容の編集'
     : status.isFull || (isFirstTimeBooking && status.firstLectureIsFull)
-      ? 'キャンセル待ち申込み'
+      ? '空き連絡希望'
       : '予約詳細の入力';
   const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
   const submitButtonText = isEdit
     ? 'この内容で更新する'
     : status.isFull
-      ? 'キャンセル待ちで登録する'
+      ? '空き連絡希望で登録する'
       : 'この内容で予約する';
 
   const _renderStatusHtml = () => {
     if (isEdit) {
-      return isWaiting ? 'キャンセル待ち' : '予約済み';
+      return isWaiting ? '空き連絡希望' : '予約済み';
     }
     if (isFirstTimeBooking) {
       return status.firstLectureIsFull
-        ? '初回者枠 満席（キャンセル待ち申込み）'
+        ? '初回者枠 満席（空き連絡希望）'
         : `初回者枠 空き <span class="font-mono-numbers">${status.firstLectureSlots}</span>`;
     }
-    if (status.isFull) return '満席（キャンセル待ち申込み）';
+    if (status.isFull) return '満席（空き連絡希望）';
     if (typeof status.morningSlots !== 'undefined') {
       const morningLabel = CONSTANTS.SESSIONS.MORNING || '午前';
       const afternoonLabel = CONSTANTS.SESSIONS.AFTERNOON || '午後';
@@ -408,7 +408,7 @@ const renderBookingLessons = lessons => {
                 reservationData?.status === CONSTANTS.STATUS.WAITLISTED
               ) {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">キャンセル待ち 登録済</span>`;
+                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">空き連絡希望 登録済</span>`;
                 actionAttribute = '';
               } else {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
@@ -437,7 +437,7 @@ const renderBookingLessons = lessons => {
                 actionAttribute = '';
               } else if (isSlotFull) {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（キャンセル待ち申込み）</span>`;
+                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（空き連絡希望）</span>`;
                 actionAttribute = `data-action="bookLesson" data-classroom="${lesson.schedule.classroom}" data-date="${lesson.schedule.date}"`;
               } else {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;

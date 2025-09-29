@@ -419,6 +419,26 @@ function registerNewUser(userInfo) {
         '成功',
         `電話番号: ${normalizedPhone}`,
       );
+
+      // 管理者通知メール送信
+      try {
+        const subject = `新規登録 ${userInfo?.realName || ''}:${userInfo?.nickname || ''}様`;
+        const body =
+          `新しいユーザーが登録されました。\n\n` +
+          `本名: ${userInfo?.realName || ''}\n` +
+          `ニックネーム: ${userInfo?.nickname || ''}\n` +
+          `電話番号: ${normalizedPhone}\n` +
+          `メールアドレス: ${userInfo?.email || '未設定'}\n` +
+          `メール配信希望: ${userInfo?.wantsEmail ? '希望する' : '希望しない'}\n` +
+          (userInfo?.futureParticipation ? `今後の参加予定: ${userInfo.futureParticipation}\n` : '') +
+          (userInfo?.trigger ? `きっかけ: ${userInfo.trigger}\n` : '') +
+          (userInfo?.firstMessage ? `初回メッセージ: ${userInfo.firstMessage}\n` : '') +
+          `\n詳細はスプレッドシートを確認してください。`;
+        sendAdminNotification(subject, body);
+      } catch (notificationError) {
+        Logger.log(`新規登録通知メール送信エラー: ${notificationError.message}`);
+      }
+
       return {
         success: true,
         data: {

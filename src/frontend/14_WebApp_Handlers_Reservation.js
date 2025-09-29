@@ -234,31 +234,51 @@ const reservationActionHandlers = {
    * @param {ActionHandlerData} d - 編集対象の予約情報を含むデータ
    */
   goToEditReservation: d => {
-    showLoading('booking');
-    const reservation = stateManager
-      .getState()
-      .myReservations.find(
-        booking =>
-          booking.reservationId === d.reservationId &&
-          booking.classroom === d.classroom,
-      );
+    const state = stateManager.getState();
 
-    if (reservation) {
+    // 1. 予約データを取得（キャッシュ済み）
+    const reservation = state.myReservations.find(
+      booking =>
+        booking.reservationId === d.reservationId &&
+        booking.classroom === d.classroom,
+    );
+
+    if (!reservation) {
+      showInfo('予約情報が見つかりませんでした。');
+      return;
+    }
+
+    // 2. 講座データを取得（キャッシュ済み）
+    const lesson = state.lessons && Array.isArray(state.lessons)
+      ? state.lessons.find(
+          l =>
+            l.schedule.date === String(reservation.date) &&
+            l.schedule.classroom === reservation.classroom,
+        )
+      : null;
+
+    if (lesson) {
+      // 3. lessonsデータがある場合：即座に画面遷移（ロード不要）
+      const formContext = {
+        lessonInfo: lesson,
+        reservationInfo: reservation,
+      };
+
+      window.stateManager.dispatch({
+        type: 'SET_STATE',
+        payload: {
+          view: 'reservationForm',
+          currentReservationFormContext: formContext,
+        },
+      });
+    } else {
+      // 4. フォールバック：lessonsデータがない場合のみ従来処理
+      showLoading('booking');
       getScheduleInfoFromCache(
         String(reservation.date),
         reservation.classroom,
       ).then(scheduleInfo => {
-        const currentState = stateManager.getState();
-        const lesson =
-          currentState.lessons && Array.isArray(currentState.lessons)
-            ? currentState.lessons.find(
-                l =>
-                  l.schedule.date === String(reservation.date) &&
-                  l.schedule.classroom === reservation.classroom,
-              )
-            : null;
-
-        const lessonInfo = lesson || {
+        const lessonInfo = {
           schedule: scheduleInfo || {},
           status: {},
         };
@@ -278,9 +298,6 @@ const reservationActionHandlers = {
 
         hideLoading();
       });
-    } else {
-      showInfo('予約情報が見つかりませんでした。');
-      hideLoading();
     }
   },
 
@@ -678,5 +695,97 @@ const reservationActionHandlers = {
         payload: { view: 'bookingLessons', selectedClassroom: targetClassroom },
       });
     }
+  },
+
+  /**
+   * 空席連絡希望の予約を確定予約に変更します。
+   * @param {ActionHandlerData} d - 確定対象の予約情報を含むデータ
+   */
+  confirmWaitlistedReservation: d => {
+    const message = `
+        <div class="text-left space-y-4">
+          <p class="text-center"><b>${formatDate(d.date)}</b><br>${d.classroom}<br>空席連絡希望を確定予約に変更しますか？</p>
+          <div class="pt-4 border-t">
+            <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
+            <textarea id="confirm-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
+          </div>
+        </div>
+      `;
+    showConfirm({
+      title: '予約確定',
+      message: message,
+      confirmText: '確定する',
+      cancelText: 'キャンセル',
+      onConfirm: () => {
+        // 重複確定防止
+        if (stateManager.isDataFetchInProgress('reservation-confirm')) {
+          console.log('予約確定処理中のため確定をスキップ');
+          return;
+        }
+
+        showLoading('booking');
+        // 予約確定処理中フラグを設定
+        stateManager.setDataFetchProgress('reservation-confirm', true);
+
+        const confirmMessageInput = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('confirm-message')
+        );
+        const confirmMessage = confirmMessageInput?.value || '';
+        const p = {
+          ...d,
+          studentId: stateManager.getState().currentUser.studentId,
+          messageToTeacher: confirmMessage,
+        };
+
+        google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
+          hideLoading();
+          // 予約確定処理中フラグをクリア
+          stateManager.setDataFetchProgress('reservation-confirm', false);
+          if (r.success) {
+            if (r.data) {
+              // 予約確定後は個人予約データと講座データを更新
+              const currentState = stateManager.getState();
+              const updatedPayload = {
+                myReservations: r.data.myReservations || [],
+                view: 'dashboard',
+                isDataFresh: true,
+              };
+              // 講座データが提供された場合のみ更新
+              if (r.data.lessons && r.data.lessons.length > 0) {
+                updatedPayload.lessons = r.data.lessons;
+                // TODO: setDataFreshness機能の実装が必要
+                // stateManager.setDataFreshness('lessons', true);
+              } else {
+                // サーバーが講座データを返さない場合は既存データを保持
+                updatedPayload.lessons = currentState.lessons;
+              }
+
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: updatedPayload,
+              });
+            } else {
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'complete',
+                  completionMessage: r.message,
+                  isDataFresh: false,
+                },
+              });
+            }
+          } else {
+            showInfo(r.message || '予約確定に失敗しました。');
+          }
+        })
+          .withFailureHandler((/** @type {Error} */ error) => {
+            hideLoading();
+            // エラー時も予約確定処理中フラグをクリア
+            stateManager.setDataFetchProgress('reservation-confirm', false);
+            handleServerError(error);
+          })
+          .confirmWaitlistedReservationAndGetLatestData(p);
+      },
+    });
   },
 };

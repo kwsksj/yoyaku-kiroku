@@ -94,6 +94,13 @@
     "**/*.log": true,
     "**/docs/archive": true
   },
+  "search.useIgnoreFiles": true,
+  "search.useGlobalIgnoreFiles": true,
+  "search.useParentIgnoreFiles": true,
+  "search.followSymlinks": true,
+  "search.smartCase": false,
+  "search.maintainFileSearchCache": true,
+  "search.collapseResults": "auto",
 
   // Git Configuration
   "git.autofetch": true,

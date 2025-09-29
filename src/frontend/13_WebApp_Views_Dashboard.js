@@ -111,15 +111,29 @@ const getDashboardView = () => {
 const _buildEditButtons = booking => {
   const buttons = [];
 
-  // 確認/編集ボタン
-  if (
-    booking.status === CONSTANTS.STATUS.CONFIRMED ||
-    booking.status === CONSTANTS.STATUS.WAITLISTED
-  ) {
+  if (booking.status === CONSTANTS.STATUS.CONFIRMED) {
+    // 確定済み予約：確認/編集ボタンのみ
     buttons.push({
       action: 'goToEditReservation',
       text: '確認<br>編集',
-      // style: カードタイプに応じて自動選択
+    });
+  } else if (booking.status === CONSTANTS.STATUS.WAITLISTED) {
+    // 空席連絡希望：現在の空席状況に応じてボタンを変更
+    const isCurrentlyAvailable = _checkIfLessonAvailable(booking);
+
+    if (isCurrentlyAvailable) {
+      // 現在空席：予約するボタンを追加
+      buttons.push({
+        action: 'confirmWaitlistedReservation',
+        text: '予約する',
+        style: 'primary',
+      });
+    }
+
+    // 空席連絡希望は常に確認/編集ボタンも表示
+    buttons.push({
+      action: 'goToEditReservation',
+      text: '確認<br>編集',
     });
   }
 
@@ -239,10 +253,94 @@ const _buildBookingBadges = booking => {
     booking.status === CONSTANTS.STATUS.WAITLISTED ||
     /** @type {any} */ (booking).isWaiting
   ) {
-    badges.push({ type: 'warning', text: 'キャンセル待ち' });
+    // 空席連絡希望の場合、現在の空席状況に応じてバッジを変更
+    const isCurrentlyAvailable = _checkIfLessonAvailable(booking);
+    if (isCurrentlyAvailable) {
+      badges.push({ type: 'success', text: '予約可能！' });
+    } else {
+      badges.push({ type: 'warning', text: '空き連絡希望' });
+    }
   }
 
   return badges;
+};
+
+/**
+ * 指定した予約に対応する講座が現在予約可能かチェック
+ * @param {ReservationData} booking - 予約データ
+ * @returns {boolean} 予約可能な場合true
+ */
+const _checkIfLessonAvailable = booking => {
+  const state = stateManager.getState();
+  const lessons = state.lessons || [];
+
+  if (!window.isProduction) {
+    console.log('🔍 空席判定開始:', {
+      bookingDate: booking.date,
+      bookingClassroom: booking.classroom,
+      lessonsCount: lessons.length,
+      lessonsAvailable: lessons.length > 0
+    });
+  }
+
+  // 該当する講座を検索
+  const targetLesson = lessons.find(lesson =>
+    lesson.schedule.date === String(booking.date) &&
+    lesson.schedule.classroom === booking.classroom
+  );
+
+  if (!targetLesson) {
+    if (!window.isProduction) {
+      console.log('❌ 該当講座が見つかりません:', {
+        searchDate: String(booking.date),
+        searchClassroom: booking.classroom,
+        availableLessons: lessons.map(l => ({ date: l.schedule.date, classroom: l.schedule.classroom }))
+      });
+    }
+    return false;
+  }
+
+  // 2部制の場合はセッション別に判定
+  if (targetLesson.schedule.type === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
+    const sessionStatus = targetLesson.status.sessionStatus;
+    if (!sessionStatus) return false;
+
+    // 予約の時間帯から対応するセッションを判定
+    const reservationHour = parseInt(booking.startTime.split(':')[0]);
+    const morningEndHour = CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR;
+    const isAfternoonReservation = reservationHour >= morningEndHour;
+
+    const targetSession = isAfternoonReservation ?
+      sessionStatus[CONSTANTS.SESSIONS.AFTERNOON] :
+      sessionStatus[CONSTANTS.SESSIONS.MORNING];
+
+    const isAvailable = targetSession && !targetSession.isFull && targetSession.availableSlots > 0;
+
+    if (!window.isProduction) {
+      console.log('📊 2部制判定結果:', {
+        isAfternoonReservation,
+        targetSession,
+        isAvailable,
+        sessionStatus
+      });
+    }
+
+    return isAvailable;
+  } else {
+    // 通常の講座（セッション制・全日時間制）
+    const isAvailable = !targetLesson.status.isFull && (targetLesson.status.availableSlots || 0) > 0;
+
+    if (!window.isProduction) {
+      console.log('📊 通常講座判定結果:', {
+        isFull: targetLesson.status.isFull,
+        availableSlots: targetLesson.status.availableSlots,
+        isAvailable,
+        status: targetLesson.status
+      });
+    }
+
+    return isAvailable;
+  }
 };
 
 /**

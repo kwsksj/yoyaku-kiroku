@@ -287,8 +287,7 @@ function getLoginData(phone) {
 
       // 2. 認証成功時：一括データ取得
       const batchResult = getBatchData(
-        //        ['accounting', 'cache-versions', 'lessons', 'reservations'],
-        ['accounting', 'reservations'],
+        ['accounting', 'lessons', 'reservations'],
         null,
         /** @type {any} */ (authResult).user.studentId,
       );
@@ -306,8 +305,7 @@ function getLoginData(phone) {
         data: {
           accountingMaster: batchResult.data['accounting'] || [],
           cacheVersions: batchResult.data['cache-versions'] || {},
-          //          today: new Date().toISOString().split('T')[0],
-          //          lessons: batchResult.data['lessons'] || [],
+          lessons: batchResult.data['lessons'] || [],
           myReservations: batchResult.data['myReservations'] || [],
         },
       };
@@ -614,4 +612,18 @@ function getAccountingDetailsFromSheet(reservationId) {
     Logger.log(`getAccountingDetailsFromSheet API エラー: ${error.message}`);
     return BackendErrorHandler.handle(error, 'getAccountingDetailsFromSheet');
   }
+}
+
+/**
+ * 空席連絡希望の予約を確定予約に変更し、最新データを返却します。
+ * @param {Object} confirmInfo - 確定情報
+ * @returns {ApiResponseGeneric} 処理結果と最新データ
+ */
+function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
+  return executeOperationAndGetLatestData(
+    confirmWaitlistedReservation,
+    confirmInfo,
+    confirmInfo.studentId,
+    '予約が確定しました。',
+  );
 }
