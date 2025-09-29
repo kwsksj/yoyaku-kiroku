@@ -25,144 +25,72 @@
  * @returns {boolean} - 定員超過の場合true
  */
 function checkCapacityFull(classroom, date, startTime, endTime) {
-  const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-  if (!reservationsCache || !reservationsCache['reservations']) {
-    throw new Error('予約データのキャッシュが利用できません。');
-  }
+  try {
+    // Available Slots APIを使用して定員状況を取得
+    const availableSlotsResponse = getLessons();
 
-  /** @type {CachedReservationData} */
-  const reservationData = /** @type {CachedReservationData} */ (
-    /** @type {unknown} */ (reservationsCache)
-  );
+    if (!availableSlotsResponse.success || !availableSlotsResponse.data) {
+      Logger.log('Available Slots APIからデータを取得できませんでした');
+      return false; // エラー時は予約を通す（保守的な動作）
+    }
 
-  const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-  if (!scheduleCache || !scheduleCache['schedule']) {
-    throw new Error('日程マスタのキャッシュが利用できません。');
-  }
-
-  /** @type {ScheduleMasterData[]} */
-  const scheduleData = /** @type {ScheduleMasterData[]} */ (
-    scheduleCache['schedule']
-  );
-  const schedule = scheduleData.find(
-    (/** @type {ScheduleMasterData} */ s) =>
-      s.date === date && s.classroom === classroom,
-  );
-
-  // 日程マスタから定員を取得。存在しない場合はデフォルト値8をフォールバックとして使用。
-  let capacity = schedule ? schedule.totalCapacity : null;
-  if (capacity && typeof capacity === 'string') {
-    capacity = parseInt(capacity, 10);
-    if (isNaN(capacity)) capacity = null;
-  }
-  capacity = capacity || 8; // デフォルト定員
-
-  Logger.log(
-    `定員チェック - ${date} ${classroom}: 日程マスタ定員=${
-      schedule ? schedule.totalCapacity : 'なし'
-    }→最終定員=${capacity}`,
-  );
-
-  // 新しいヘルパー関数を使用して特定日・教室の確定予約を取得
-  const reservationsOnDate = getCachedReservationsFor(
-    date,
-    classroom,
-    CONSTANTS.STATUS.CONFIRMED,
-  ).filter(r => {
-    // 【パフォーマンス最適化】 事前バリデーション済みのため、構造チェック不要
-    const studentIdIdx = getHeaderIndex(
-      /** @type {HeaderMapType} */ (reservationData['headerMap']),
-      CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+    const slotsData = availableSlotsResponse.data;
+    const targetSlot = slotsData.find(
+      /** @type {function(*): boolean} */ slot =>
+        slot.schedule.classroom === classroom && slot.schedule.date === date
     );
-    return !!r.data[studentIdIdx];
-  });
 
-  // 教室形式に基づく判定ロジック
-  if (!schedule || schedule['type'] !== CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
-    const numCapacity =
-      typeof capacity === 'number'
-        ? capacity
-        : parseInt(String(capacity), 10) || 8;
-    return reservationsOnDate.length >= numCapacity;
-  }
-
-  // --- 時間制・2部制の午前・午後判定ロジック ---
-  const timeCache = {
-    firstEndTime: schedule.firstEnd
-      ? new Date(`1900-01-01T${schedule.firstEnd}`)
-      : null,
-    secondStartTime: schedule.secondStart
-      ? new Date(`1900-01-01T${schedule.secondStart}`)
-      : null,
-  };
-
-  if (!timeCache.firstEndTime || !timeCache.secondStartTime) {
-    const numCapacity =
-      typeof capacity === 'number'
-        ? capacity
-        : parseInt(String(capacity), 10) || 8;
-    return reservationsOnDate.length >= numCapacity;
-  }
-
-  const startTimeColIdx = getHeaderIndex(
-    /** @type {HeaderMapType} */ (reservationData['headerMap']),
-    CONSTANTS.HEADERS.RESERVATIONS.START_TIME,
-  );
-  const endTimeColIdx = getHeaderIndex(
-    /** @type {HeaderMapType} */ (reservationData['headerMap']),
-    CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
-  );
-  let morningCount = 0;
-  let afternoonCount = 0;
-
-  reservationsOnDate.forEach(r => {
-    const row = r.data;
-    // 防御的プログラミング: データの存在確認
-    if (!row || !Array.isArray(row)) {
-      PerformanceLog.debug(
-        `⚠️ 無効な予約データをスキップ: ${JSON.stringify(r)}`,
-      );
-      return;
+    if (!targetSlot) {
+      Logger.log(`対象日程が見つかりません: ${date} ${classroom}`);
+      return false; // 対象日程が見つからない場合は予約を通す
     }
 
-    const rStart = row[startTimeColIdx]
-      ? new Date(`1900-01-01T${row[startTimeColIdx]}`)
-      : null;
-    const rEnd = row[endTimeColIdx]
-      ? new Date(`1900-01-01T${row[endTimeColIdx]}`)
-      : null;
+    const status = targetSlot.status;
+    let isFull = false;
 
-    if (rStart && rStart <= timeCache.firstEndTime) {
-      morningCount++;
+    // 教室タイプに応じた満席判定
+    if (status.morningSlots !== undefined && status.afternoonSlots !== undefined) {
+      // 時間制・2部制の場合
+      const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
+      const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
+
+      const schedule = targetSlot.schedule;
+      const firstEndTime = schedule.firstEnd ? new Date(`1900-01-01T${schedule.firstEnd}`) : null;
+      const secondStartTime = schedule.secondStart ? new Date(`1900-01-01T${schedule.secondStart}`) : null;
+
+      let isMorningRequest = false;
+      let isAfternoonRequest = false;
+
+      if (reqStart && firstEndTime && reqStart <= firstEndTime) {
+        isMorningRequest = true;
+      }
+      if (reqEnd && secondStartTime && reqEnd >= secondStartTime) {
+        isAfternoonRequest = true;
+      }
+
+      if (isMorningRequest && !isAfternoonRequest) {
+        isFull = status.morningSlots <= 0;
+      } else if (!isMorningRequest && isAfternoonRequest) {
+        isFull = status.afternoonSlots <= 0;
+      } else {
+        // 全日の場合は両方の時間帯が満席かチェック
+        isFull = status.morningSlots <= 0 && status.afternoonSlots <= 0;
+      }
+    } else {
+      // 通常教室（セッション制・全日時間制）の場合
+      isFull = status.isFull || (status.availableSlots !== undefined && status.availableSlots <= 0);
     }
-    if (rEnd && rEnd >= timeCache.secondStartTime) {
-      afternoonCount++;
-    }
-  });
 
-  const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
-  const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
+    Logger.log(
+      `[checkCapacityFull] ${date} ${classroom}: 満席=${isFull}, status=${JSON.stringify(status)}`,
+    );
 
-  const numCapacity =
-    typeof capacity === 'number'
-      ? capacity
-      : parseInt(String(capacity), 10) || 8;
-  if (
-    reqStart &&
-    reqStart <= timeCache.firstEndTime &&
-    morningCount >= numCapacity
-  ) {
-    return true; // 午前枠が満席
+    return isFull;
+
+  } catch (error) {
+    Logger.log(`checkCapacityFull エラー: ${error.message}`);
+    return false; // エラー時は予約を通す（保守的な動作）
   }
-  if (
-    reqEnd &&
-    reqEnd >= timeCache.secondStartTime &&
-    afternoonCount >= numCapacity
-  ) {
-    return true; // 午後枠が満席
-  }
-
-  return false;
 }
 
 /**
@@ -316,6 +244,9 @@ function makeReservation(reservationInfo) {
 
       // 定員チェック（共通関数を使用）
       const isFull = checkCapacityFull(classroom, date, startTime, endTime);
+      Logger.log(
+        `[makeReservation] 定員チェック結果: ${classroom} ${date} - 満席=${isFull}`,
+      );
 
       // 新しい予約IDを生成
       const newReservationId = Utilities.getUuid();
@@ -359,9 +290,13 @@ function makeReservation(reservationInfo) {
       newRowData[dateColIdx] = targetDate;
       newRowData[classroomColIdx] = classroom;
       newRowData[venueColIdx] = venue;
-      newRowData[statusColIdx] = isFull
+      const finalStatus = isFull
         ? CONSTANTS.STATUS.WAITLISTED
         : CONSTANTS.STATUS.CONFIRMED;
+      newRowData[statusColIdx] = finalStatus;
+      Logger.log(
+        `[makeReservation] 最終ステータス設定: ${finalStatus} (満席=${isFull})`,
+      );
 
       // 時刻設定（時間のみのDateオブジェクトとして保存）
       Logger.log(
