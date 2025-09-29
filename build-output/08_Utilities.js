@@ -89,7 +89,12 @@ function getCachedStudentInfo(studentId) {
   }
 
   // フォールバック（キャッシュが利用できない場合）
-  return { realName: '(不明)', displayName: '(不明)', email: '', wantsEmail: false };
+  return {
+    realName: '(不明)',
+    displayName: '(不明)',
+    email: '',
+    wantsEmail: false,
+  };
 }
 
 /**
@@ -261,14 +266,14 @@ function sendAdminNotification(subject, body) {
     // }
 
     // テスト環境の場合は送信先・送信元・件名をテスト用に変更
-    const finalSubject = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ?
-      `[予約システム通知] ${subject}` :
-      `[テスト][予約システム通知] ${subject}`;
+    const finalSubject = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
+      ? `[予約システム通知] ${subject}`
+      : `[テスト][予約システム通知] ${subject}`;
 
     // テスト環境では送信先もテスト用アドレスに変更
-    const recipientEmail = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ?
-      ADMIN_EMAIL :
-      getEnvironmentAwareEmailAddress(ADMIN_EMAIL);
+    const recipientEmail = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
+      ? ADMIN_EMAIL
+      : getEnvironmentAwareEmailAddress(ADMIN_EMAIL);
 
     MailApp.sendEmail({
       to: recipientEmail,
@@ -747,7 +752,9 @@ function getCachedReservationsFor(
     return [];
   }
 
-  const filteredReservations = /** @type {ReservationArrayData[]} */ (reservations)
+  const filteredReservations = /** @type {ReservationArrayData[]} */ (
+    reservations
+  )
     .filter(
       /** @param {ReservationArrayData} row */ row => {
         // データ構造修正: キャッシュは直接配列を格納しているため、r.dataではなくrを直接使用
@@ -757,13 +764,14 @@ function getCachedReservationsFor(
           );
           return false;
         }
-        const matches = (
+        const matches =
           row[dateColIdx] === date &&
           row[classroomColIdx] === classroom &&
-          (!status || row[statusColIdx] === status)
-        );
+          (!status || row[statusColIdx] === status);
         if (status === CONSTANTS.STATUS.WAITLISTED) {
-          Logger.log(`[getCachedReservationsFor] 待機予約フィルタ確認 - 日付: ${row[dateColIdx]} vs ${date}, 教室: ${row[classroomColIdx]} vs ${classroom}, ステータス: ${row[statusColIdx]} vs ${status}, 一致: ${matches}`);
+          Logger.log(
+            `[getCachedReservationsFor] 待機予約フィルタ確認 - 日付: ${row[dateColIdx]} vs ${date}, 教室: ${row[classroomColIdx]} vs ${classroom}, ステータス: ${row[statusColIdx]} vs ${status}, 一致: ${matches}`,
+          );
         }
         return matches;
       },
@@ -771,7 +779,9 @@ function getCachedReservationsFor(
     .map(/** @param {ReservationArrayData} row */ row => ({ data: row })); // 戻り値を既存のAPIに合わせる
 
   if (status === CONSTANTS.STATUS.WAITLISTED) {
-    Logger.log(`[getCachedReservationsFor] 待機予約検索結果: ${filteredReservations.length}件 (全予約: ${Array.isArray(reservations) ? reservations.length : 0}件)`);
+    Logger.log(
+      `[getCachedReservationsFor] 待機予約検索結果: ${filteredReservations.length}件 (全予約: ${Array.isArray(reservations) ? reservations.length : 0}件)`,
+    );
   }
 
   return filteredReservations;

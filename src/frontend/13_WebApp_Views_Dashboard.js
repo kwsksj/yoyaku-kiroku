@@ -279,14 +279,15 @@ const _checkIfLessonAvailable = booking => {
       bookingDate: booking.date,
       bookingClassroom: booking.classroom,
       lessonsCount: lessons.length,
-      lessonsAvailable: lessons.length > 0
+      lessonsAvailable: lessons.length > 0,
     });
   }
 
   // 該当する講座を検索
-  const targetLesson = lessons.find(lesson =>
-    lesson.schedule.date === String(booking.date) &&
-    lesson.schedule.classroom === booking.classroom
+  const targetLesson = lessons.find(
+    lesson =>
+      lesson.schedule.date === String(booking.date) &&
+      lesson.schedule.classroom === booking.classroom,
   );
 
   if (!targetLesson) {
@@ -294,7 +295,10 @@ const _checkIfLessonAvailable = booking => {
       console.log('❌ 該当講座が見つかりません:', {
         searchDate: String(booking.date),
         searchClassroom: booking.classroom,
-        availableLessons: lessons.map(l => ({ date: l.schedule.date, classroom: l.schedule.classroom }))
+        availableLessons: lessons.map(l => ({
+          date: l.schedule.date,
+          classroom: l.schedule.classroom,
+        })),
       });
     }
     return false;
@@ -310,32 +314,37 @@ const _checkIfLessonAvailable = booking => {
     const morningEndHour = CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR;
     const isAfternoonReservation = reservationHour >= morningEndHour;
 
-    const targetSession = isAfternoonReservation ?
-      sessionStatus[CONSTANTS.SESSIONS.AFTERNOON] :
-      sessionStatus[CONSTANTS.SESSIONS.MORNING];
+    const targetSession = isAfternoonReservation
+      ? sessionStatus[CONSTANTS.SESSIONS.AFTERNOON]
+      : sessionStatus[CONSTANTS.SESSIONS.MORNING];
 
-    const isAvailable = targetSession && !targetSession.isFull && targetSession.availableSlots > 0;
+    const isAvailable =
+      targetSession &&
+      !targetSession.isFull &&
+      targetSession.availableSlots > 0;
 
     if (!window.isProduction) {
       console.log('📊 2部制判定結果:', {
         isAfternoonReservation,
         targetSession,
         isAvailable,
-        sessionStatus
+        sessionStatus,
       });
     }
 
     return isAvailable;
   } else {
     // 通常の講座（セッション制・全日時間制）
-    const isAvailable = !targetLesson.status.isFull && (targetLesson.status.availableSlots || 0) > 0;
+    const isAvailable =
+      !targetLesson.status.isFull &&
+      (targetLesson.status.availableSlots || 0) > 0;
 
     if (!window.isProduction) {
       console.log('📊 通常講座判定結果:', {
         isFull: targetLesson.status.isFull,
         availableSlots: targetLesson.status.availableSlots,
         isAvailable,
-        status: targetLesson.status
+        status: targetLesson.status,
       });
     }
 

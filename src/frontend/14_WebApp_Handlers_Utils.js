@@ -341,7 +341,7 @@ function updateAppStateFromCache(targetView) {
             ),
           },
         });
-        showInfo(response.message || 'データの取得に失敗しました。');
+        showInfo(response.message || 'データの取得に失敗しました。', 'エラー');
       }
     },
   )

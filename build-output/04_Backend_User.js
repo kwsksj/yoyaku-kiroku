@@ -430,13 +430,19 @@ function registerNewUser(userInfo) {
           `電話番号: ${normalizedPhone}\n` +
           `メールアドレス: ${userInfo?.email || '未設定'}\n` +
           `メール配信希望: ${userInfo?.wantsEmail ? '希望する' : '希望しない'}\n` +
-          (userInfo?.futureParticipation ? `今後の参加予定: ${userInfo.futureParticipation}\n` : '') +
+          (userInfo?.futureParticipation
+            ? `今後の参加予定: ${userInfo.futureParticipation}\n`
+            : '') +
           (userInfo?.trigger ? `きっかけ: ${userInfo.trigger}\n` : '') +
-          (userInfo?.firstMessage ? `初回メッセージ: ${userInfo.firstMessage}\n` : '') +
+          (userInfo?.firstMessage
+            ? `初回メッセージ: ${userInfo.firstMessage}\n`
+            : '') +
           `\n詳細はスプレッドシートを確認してください。`;
         sendAdminNotification(subject, body);
       } catch (notificationError) {
-        Logger.log(`新規登録通知メール送信エラー: ${notificationError.message}`);
+        Logger.log(
+          `新規登録通知メール送信エラー: ${notificationError.message}`,
+        );
       }
 
       return {

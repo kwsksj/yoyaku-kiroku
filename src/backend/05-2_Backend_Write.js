@@ -37,7 +37,7 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
     const slotsData = availableSlotsResponse.data;
     const targetSlot = slotsData.find(
       /** @type {function(*): boolean} */ slot =>
-        slot.schedule.classroom === classroom && slot.schedule.date === date
+        slot.schedule.classroom === classroom && slot.schedule.date === date,
     );
 
     if (!targetSlot) {
@@ -49,14 +49,21 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
     let isFull = false;
 
     // 教室タイプに応じた満席判定
-    if (status.morningSlots !== undefined && status.afternoonSlots !== undefined) {
+    if (
+      status.morningSlots !== undefined &&
+      status.afternoonSlots !== undefined
+    ) {
       // 時間制・2部制の場合
       const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
       const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
 
       const schedule = targetSlot.schedule;
-      const firstEndTime = schedule.firstEnd ? new Date(`1900-01-01T${schedule.firstEnd}`) : null;
-      const secondStartTime = schedule.secondStart ? new Date(`1900-01-01T${schedule.secondStart}`) : null;
+      const firstEndTime = schedule.firstEnd
+        ? new Date(`1900-01-01T${schedule.firstEnd}`)
+        : null;
+      const secondStartTime = schedule.secondStart
+        ? new Date(`1900-01-01T${schedule.secondStart}`)
+        : null;
 
       let isMorningRequest = false;
       let isAfternoonRequest = false;
@@ -78,7 +85,9 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
       }
     } else {
       // 通常教室（セッション制・全日時間制）の場合
-      isFull = status.isFull || (status.availableSlots !== undefined && status.availableSlots <= 0);
+      isFull =
+        status.isFull ||
+        (status.availableSlots !== undefined && status.availableSlots <= 0);
     }
 
     Logger.log(
@@ -86,7 +95,6 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
     );
 
     return isFull;
-
   } catch (error) {
     Logger.log(`checkCapacityFull エラー: ${error.message}`);
     return false; // エラー時は予約を通す（保守的な動作）
@@ -393,7 +401,8 @@ function makeReservation(reservationInfo) {
       );
 
       // 管理者通知メールの内容を状態と初回参加に応じて調整
-      const isFirstTime = reservationInfo.options && reservationInfo.options.firstLecture;
+      const isFirstTime =
+        reservationInfo.options && reservationInfo.options.firstLecture;
       const statusText = isFull ? '空き連絡希望' : '新規予約';
       const firstTimeText = isFirstTime ? '【初回参加】' : '';
 
@@ -542,8 +551,16 @@ function cancelReservation(cancelInfo) {
 
       // キャンセル後の空き通知処理
       try {
-        const dateString = Utilities.formatDate(targetDateFormatted, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
-        notifyAvailabilityToWaitlistedUsers(classroom, dateString, originalValues);
+        const dateString = Utilities.formatDate(
+          targetDateFormatted,
+          CONSTANTS.TIMEZONE,
+          'yyyy-MM-dd',
+        );
+        notifyAvailabilityToWaitlistedUsers(
+          classroom,
+          dateString,
+          originalValues,
+        );
       } catch (notificationError) {
         Logger.log(`空き通知エラー: ${notificationError.message}`);
         // 通知エラーはキャンセル処理の成功に影響しない
@@ -594,7 +611,11 @@ function cancelReservation(cancelInfo) {
  * @param {string} date - 日付（yyyy-MM-dd形式）
  * @param {any[]} _cancelledReservation - キャンセルされた予約データ（将来の拡張用）
  */
-function notifyAvailabilityToWaitlistedUsers(classroom, date, _cancelledReservation) {
+function notifyAvailabilityToWaitlistedUsers(
+  classroom,
+  date,
+  _cancelledReservation,
+) {
   try {
     Logger.log(`[空き通知] ${classroom} ${date} の空き通知処理を開始`);
 
@@ -606,7 +627,9 @@ function notifyAvailabilityToWaitlistedUsers(classroom, date, _cancelledReservat
     }
 
     const targetLesson = lessonsResponse.data.find(
-      lesson => lesson.schedule.classroom === classroom && lesson.schedule.date === date
+      lesson =>
+        lesson.schedule.classroom === classroom &&
+        lesson.schedule.date === date,
     );
 
     if (!targetLesson) {
@@ -621,20 +644,29 @@ function notifyAvailabilityToWaitlistedUsers(classroom, date, _cancelledReservat
     let availabilityType = ''; // 'general' or 'firstTime'
 
     // 通常参加者用の空きチェック
-    if (status.morningSlots !== undefined && status.afternoonSlots !== undefined) {
+    if (
+      status.morningSlots !== undefined &&
+      status.afternoonSlots !== undefined
+    ) {
       // 時間制・2部制の場合
       if (status.morningSlots > 0 || status.afternoonSlots > 0) {
         hasAvailability = true;
         availabilityType = 'general';
       }
-    } else if (status.availableSlots !== undefined && status.availableSlots > 0) {
+    } else if (
+      status.availableSlots !== undefined &&
+      status.availableSlots > 0
+    ) {
       // 通常教室の場合
       hasAvailability = true;
       availabilityType = 'general';
     }
 
     // 初回者専用枠の空きチェック
-    if (status.firstLectureSlots !== undefined && status.firstLectureSlots > 0) {
+    if (
+      status.firstLectureSlots !== undefined &&
+      status.firstLectureSlots > 0
+    ) {
       hasAvailability = true;
       if (availabilityType === '') {
         availabilityType = 'firstTime';
@@ -651,7 +683,11 @@ function notifyAvailabilityToWaitlistedUsers(classroom, date, _cancelledReservat
     Logger.log(`${classroom} ${date} に空きあり (タイプ: ${availabilityType})`);
 
     // 空き連絡希望者を取得（初回・通常を区別）
-    const waitlistedUsers = getWaitlistedUsersForNotification(classroom, date, availabilityType);
+    const waitlistedUsers = getWaitlistedUsersForNotification(
+      classroom,
+      date,
+      availabilityType,
+    );
 
     if (waitlistedUsers.length === 0) {
       Logger.log('空き連絡希望者がいません');
@@ -661,8 +697,12 @@ function notifyAvailabilityToWaitlistedUsers(classroom, date, _cancelledReservat
     Logger.log(`${waitlistedUsers.length}名に空き通知を送信します`);
 
     // 空き通知メールを送信
-    sendAvailabilityNotificationEmails(classroom, date, waitlistedUsers, targetLesson);
-
+    sendAvailabilityNotificationEmails(
+      classroom,
+      date,
+      waitlistedUsers,
+      targetLesson,
+    );
   } catch (error) {
     Logger.log(`notifyAvailabilityToWaitlistedUsers エラー: ${error.message}`);
     throw error;
@@ -680,7 +720,7 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
   const waitlistedReservations = getCachedReservationsFor(
     date,
     classroom,
-    CONSTANTS.STATUS.WAITLISTED
+    CONSTANTS.STATUS.WAITLISTED,
   );
 
   if (waitlistedReservations.length === 0) {
@@ -689,10 +729,18 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
   }
 
   const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-  const headerMap = /** @type {HeaderMapType} */ (reservationsCache['headerMap']);
+  const headerMap = /** @type {HeaderMapType} */ (
+    reservationsCache['headerMap']
+  );
 
-  const studentIdIdx = getHeaderIndex(headerMap, CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID);
-  const firstLectureIdx = getHeaderIndex(headerMap, CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE);
+  const studentIdIdx = getHeaderIndex(
+    headerMap,
+    CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+  );
+  const firstLectureIdx = getHeaderIndex(
+    headerMap,
+    CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE,
+  );
 
   const result = [];
 
@@ -737,14 +785,16 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
           studentId: String(studentId),
           email: studentInfo.email,
           realName: studentInfo.realName || studentInfo.displayName,
-          isFirstTime: isFirstTime
+          isFirstTime: isFirstTime,
         };
         result.push(user);
       }
     }
   });
 
-  Logger.log(`通知対象者: ${result.length}名 (availabilityType: ${availabilityType})`);
+  Logger.log(
+    `通知対象者: ${result.length}名 (availabilityType: ${availabilityType})`,
+  );
   return result;
 }
 
@@ -767,26 +817,35 @@ function sendAvailabilityNotificationEmails(classroom, date, users, lesson) {
   users.forEach(user => {
     try {
       const subject = `【川崎誠二 木彫り教室】空席情報のご案内 - ${classroom} ${formattedDate}`;
-      const venue = lesson.schedule && lesson.schedule.venue ? lesson.schedule.venue : '';
-      const body = createAvailabilityNotificationEmailBody(user, classroom, formattedDate, venue);
+      const venue =
+        lesson.schedule && lesson.schedule.venue ? lesson.schedule.venue : '';
+      const body = createAvailabilityNotificationEmailBody(
+        user,
+        classroom,
+        formattedDate,
+        venue,
+      );
 
       // テスト環境の場合は送信者を区別するため、件名にプレフィックスを追加
-      const finalSubject = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ?
-        subject :
-        `[テスト] ${subject}`;
+      const finalSubject = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
+        ? subject
+        : `[テスト] ${subject}`;
 
       GmailApp.sendEmail(user.email, finalSubject, body, {
-        name: '川崎誠二 木彫り教室'
+        name: '川崎誠二 木彫り教室',
       });
       successCount++;
-
     } catch (emailError) {
       errorCount++;
-      Logger.log(`空き通知メール送信エラー (${user.email}): ${emailError.message}`);
+      Logger.log(
+        `空き通知メール送信エラー (${user.email}): ${emailError.message}`,
+      );
     }
   });
 
-  Logger.log(`空き通知メール送信完了: 成功=${successCount}件, エラー=${errorCount}件`);
+  Logger.log(
+    `空き通知メール送信完了: 成功=${successCount}件, エラー=${errorCount}件`,
+  );
 }
 
 /**
@@ -797,7 +856,12 @@ function sendAvailabilityNotificationEmails(classroom, date, users, lesson) {
  * @param {string} venue - 会場情報
  * @returns {string} メール本文
  */
-function createAvailabilityNotificationEmailBody(user, classroom, formattedDate, venue) {
+function createAvailabilityNotificationEmailBody(
+  user,
+  classroom,
+  formattedDate,
+  venue,
+) {
   return `${user.realName}さま
 
 木彫り教室の空き連絡に関してのご連絡です。
@@ -1625,16 +1689,23 @@ function getScheduleInfoForDate(date, classroom) {
 function confirmWaitlistedReservation(confirmInfo) {
   return withTransaction(() => {
     try {
-      const { reservationId, classroom, date, studentId, messageToTeacher } = confirmInfo;
+      const { reservationId, classroom, date, studentId, messageToTeacher } =
+        confirmInfo;
 
       // キャッシュから予約データを取得
       const userReservationsResponse = getUserReservations(studentId);
-      if (!userReservationsResponse?.data?.myReservations || userReservationsResponse.data.myReservations.length === 0) {
+      if (
+        !userReservationsResponse?.data?.myReservations ||
+        userReservationsResponse.data.myReservations.length === 0
+      ) {
         throw new Error('キャッシュされた予約データが見つかりません。');
       }
 
       // 対象の予約を検索（キャッシュから）
-      const targetReservation = userReservationsResponse.data.myReservations.find(res => res.reservationId === reservationId);
+      const targetReservation =
+        userReservationsResponse.data.myReservations.find(
+          res => res.reservationId === reservationId,
+        );
       if (!targetReservation) {
         throw new Error('対象の予約が見つかりません。');
       }
@@ -1645,7 +1716,9 @@ function confirmWaitlistedReservation(confirmInfo) {
       }
 
       // シート更新のための情報を取得
-      const integratedSheet = getSheetByName(CONSTANTS.SHEET_NAMES.RESERVATIONS);
+      const integratedSheet = getSheetByName(
+        CONSTANTS.SHEET_NAMES.RESERVATIONS,
+      );
       if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
       // シートから対象行を検索（更新用）
@@ -1674,16 +1747,19 @@ function confirmWaitlistedReservation(confirmInfo) {
 
       // ステータスを確定に変更
       const updateData = {
-        [CONSTANTS.HEADERS.RESERVATIONS.STATUS]: CONSTANTS.STATUS.CONFIRMED
+        [CONSTANTS.HEADERS.RESERVATIONS.STATUS]: CONSTANTS.STATUS.CONFIRMED,
       };
 
       // 先生へのメッセージが提供された場合は更新
       if (messageToTeacher) {
-        updateData[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER] = messageToTeacher;
+        updateData[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER] =
+          messageToTeacher;
       }
 
       // シートから対象行のデータを取得し、一括更新方式に変更
-      const currentRowData = integratedSheet.getRange(row, 1, 1, integratedSheet.getLastColumn()).getValues()[0];
+      const currentRowData = integratedSheet
+        .getRange(row, 1, 1, integratedSheet.getLastColumn())
+        .getValues()[0];
       const updatedRowData = [...currentRowData]; // 既存データのコピー
 
       // 各カラムを順次更新
@@ -1695,20 +1771,30 @@ function confirmWaitlistedReservation(confirmInfo) {
       });
 
       // 行全体を一括更新（より確実な方法）
-      integratedSheet.getRange(row, 1, 1, updatedRowData.length).setValues([updatedRowData]);
+      integratedSheet
+        .getRange(row, 1, 1, updatedRowData.length)
+        .setValues([updatedRowData]);
       SpreadsheetApp.flush(); // 確実に書き込み完了を待機
 
       // キャッシュ更新 - インクリメンタル更新（より安全な方式）
       try {
         const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
         if (reservationsCache?.['headerMap']) {
-          const cacheHeaderMap = /** @type {HeaderMapType} */ (reservationsCache['headerMap']);
-          updateReservationInCache(reservationId, updatedRowData, cacheHeaderMap);
+          const cacheHeaderMap = /** @type {HeaderMapType} */ (
+            reservationsCache['headerMap']
+          );
+          updateReservationInCache(
+            reservationId,
+            updatedRowData,
+            cacheHeaderMap,
+          );
         } else {
           rebuildAllReservationsCache();
         }
       } catch (cacheError) {
-        Logger.log(`キャッシュ更新エラー: ${cacheError.message} - フォールバック再構築`);
+        Logger.log(
+          `キャッシュ更新エラー: ${cacheError.message} - フォールバック再構築`,
+        );
         try {
           rebuildAllReservationsCache();
         } catch (rebuildError) {
@@ -1719,7 +1805,9 @@ function confirmWaitlistedReservation(confirmInfo) {
       // ログ記録
       const user = getCachedStudentInfo(studentId);
       if (user) {
-        const messageLog = messageToTeacher ? `, Message: ${messageToTeacher}` : '';
+        const messageLog = messageToTeacher
+          ? `, Message: ${messageToTeacher}`
+          : '';
         const logDetails = `Classroom: ${classroom}, Date: ${date}, ReservationID: ${reservationId}${messageLog}`;
         logActivity(
           studentId,
@@ -1730,7 +1818,9 @@ function confirmWaitlistedReservation(confirmInfo) {
 
         // 管理者通知
         const subject = `空席連絡希望確定 (${classroom}) ${user.realName}:${user.displayName}様`;
-        const messageSection = messageToTeacher ? `\n先生へのメッセージ: ${messageToTeacher}\n` : '';
+        const messageSection = messageToTeacher
+          ? `\n先生へのメッセージ: ${messageToTeacher}\n`
+          : '';
         const body =
           `空席連絡希望が確定予約に変更されました。\n\n` +
           `本名: ${user.realName}\n` +
@@ -1743,8 +1833,9 @@ function confirmWaitlistedReservation(confirmInfo) {
 
       // 最新の予約データを取得して返却
       const userReservationsResult = getUserReservations(studentId);
-      const latestMyReservations = userReservationsResult.success ?
-        userReservationsResult.data.myReservations : [];
+      const latestMyReservations = userReservationsResult.success
+        ? userReservationsResult.data.myReservations
+        : [];
 
       const latestLessons = getLessons().data || [];
 
@@ -1753,9 +1844,10 @@ function confirmWaitlistedReservation(confirmInfo) {
         myReservations: latestMyReservations,
         lessons: latestLessons,
       });
-
     } catch (err) {
-      Logger.log(`confirmWaitlistedReservation Error: ${err.message}\n${err.stack}`);
+      Logger.log(
+        `confirmWaitlistedReservation Error: ${err.message}\n${err.stack}`,
+      );
       return BackendErrorHandler.handle(err, 'confirmWaitlistedReservation');
     }
   });

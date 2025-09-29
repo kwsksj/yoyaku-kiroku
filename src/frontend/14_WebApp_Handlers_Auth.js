@@ -34,14 +34,17 @@ const authActionHandlers = {
       type: 'UPDATE_STATE',
       payload: { loginPhone: p },
     });
-    if (!p) return showInfo('電話番号を入力してください。');
+    if (!p) return showInfo('電話番号を入力してください。', '入力エラー');
 
     // 【最適化済み】 フロントエンドでリアルタイム検証（UX向上）
     // バックエンドでは軽量チェックのみ実行（重複処理削減）
     const normalizeResult = window.normalizePhoneNumberFrontend(p);
 
     if (!normalizeResult.isValid) {
-      showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
+      showInfo(
+        normalizeResult.error || '電話番号の形式が正しくありません。',
+        '入力エラー',
+      );
       return;
     }
 
@@ -134,13 +137,16 @@ const authActionHandlers = {
     const nickname = nicknameInput?.value.trim();
     const phone = phoneInput?.value;
 
-    if (!realName) return showInfo('お名前（本名）は必須です。');
+    if (!realName) return showInfo('お名前（本名）は必須です。', '入力エラー');
 
     // フロントエンドで電話番号を正規化・バリデーション
     if (phone) {
       const normalizeResult = window.normalizePhoneNumberFrontend(phone);
       if (!normalizeResult.isValid) {
-        showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
+        showInfo(
+          normalizeResult.error || '電話番号の形式が正しくありません。',
+          '入力エラー',
+        );
         return;
       }
     }
@@ -212,7 +218,7 @@ const authActionHandlers = {
     );
     const email = emailInput?.value;
     if (!email || !email.includes('@')) {
-      return showInfo('有効なメールアドレスを入力してください。');
+      return showInfo('有効なメールアドレスを入力してください。', '入力エラー');
     }
 
     const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
@@ -341,7 +347,7 @@ const authActionHandlers = {
         hideLoading();
         if (res.success && res.data) {
           // 登録成功時は直接ダッシュボードに遷移（データは後からロード）
-          showInfo('新規ユーザー登録が完了しました');
+          showInfo('新規ユーザー登録が完了しました', '登録完了');
 
           window.stateManager.dispatch({
             type: 'SET_STATE',
@@ -354,7 +360,7 @@ const authActionHandlers = {
             },
           });
         } else {
-          showInfo(res.message || '登録に失敗しました');
+          showInfo(res.message || '登録に失敗しました', 'エラー');
         }
       },
     )
@@ -399,7 +405,10 @@ const authActionHandlers = {
         phoneInput.value,
       );
       if (!normalizeResult.isValid) {
-        showInfo(normalizeResult.error || '電話番号の形式が正しくありません。');
+        showInfo(
+          normalizeResult.error || '電話番号の形式が正しくありません。',
+          '入力エラー',
+        );
         return;
       }
     }
@@ -418,7 +427,7 @@ const authActionHandlers = {
 
     // メールアドレスの必須バリデーション
     if (!email || !email.includes('@')) {
-      return showInfo('有効なメールアドレスを入力してください。');
+      return showInfo('有効なメールアドレスを入力してください。', '入力エラー');
     }
 
     const u = {
@@ -434,7 +443,7 @@ const authActionHandlers = {
       hideLoading();
       if (res.success) {
         // プロフィール更新後、キャッシュも更新されているのでそのまま状態更新
-        showInfo('プロフィールを更新しました');
+        showInfo('プロフィールを更新しました', '更新完了');
         window.stateManager.dispatch({
           type: 'SET_STATE',
           payload: {
@@ -443,7 +452,7 @@ const authActionHandlers = {
           },
         });
       } else {
-        showInfo(res.message || '更新に失敗しました');
+        showInfo(res.message || '更新に失敗しました', 'エラー');
       }
     })
       ['withFailureHandler'](handleServerError)

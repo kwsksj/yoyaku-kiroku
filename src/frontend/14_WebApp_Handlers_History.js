@@ -96,7 +96,7 @@ const historyActionHandlers = {
     // 編集モードを解除
     stateManager.endEditMode(d.reservationId);
 
-    showInfo('メモを保存しました');
+    showInfo('メモを保存しました', '保存完了');
 
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
@@ -106,7 +106,7 @@ const historyActionHandlers = {
     google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
       hideLoading();
       if (!r.success) {
-        showInfo(r.message || 'メモの保存に失敗しました');
+        showInfo(r.message || 'メモの保存に失敗しました', 'エラー');
         // フロント表示を元に戻す
         updateSingleHistoryCard(d.reservationId);
       }
@@ -152,7 +152,7 @@ const historyActionHandlers = {
     );
 
     if (!reservation) {
-      showInfo('予約データが見つかりません');
+      showInfo('予約データが見つかりません', 'エラー');
       return;
     }
 
@@ -245,7 +245,7 @@ const historyActionHandlers = {
         // モーダルを表示
         Components.showModal(modalId);
       } else {
-        showInfo(response.message || '会計記録の取得に失敗しました');
+        showInfo(response.message || '会計記録の取得に失敗しました', 'エラー');
       }
     })
       ['withFailureHandler']((/** @type {Error} */ error) => {

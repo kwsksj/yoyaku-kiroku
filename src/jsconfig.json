@@ -14,12 +14,12 @@
     "allowUnreachableCode": true,
     "allowUnusedLabels": true,
     "noImplicitReturns": false,
-    "noImplicitAny": false,        // AI開発効率のため暗黙的any型を許可
-    "noImplicitThis": false,       // this型制約を緩和
-    "noPropertyAccessFromIndexSignature": false,  // 動的プロパティアクセスを許可
-    "strictNullChecks": false,     // null/undefined制約を緩和
-    "noUnusedLocals": false,       // 未使用変数警告を無効化
-    "noUnusedParameters": false,   // 未使用パラメータ警告を無効化
+    "noImplicitAny": false, // AI開発効率のため暗黙的any型を許可
+    "noImplicitThis": false, // this型制約を緩和
+    "noPropertyAccessFromIndexSignature": false, // 動的プロパティアクセスを許可
+    "strictNullChecks": false, // null/undefined制約を緩和
+    "noUnusedLocals": false, // 未使用変数警告を無効化
+    "noUnusedParameters": false, // 未使用パラメータ警告を無効化
     // GAS特有の重複定義を許可
     "exactOptionalPropertyTypes": false
   },
