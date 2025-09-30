@@ -31,11 +31,23 @@ function getAllScheduledDates(fromDate, toDate) {
     Logger.log(
       `キャッシュから日程マスタデータを取得: ${cachedSchedules.length} 件`,
     );
+
+    // キャッシュから取得したデータの日付をDate型に復元
+    const schedulesWithDateObjects = cachedSchedules.map(schedule => {
+      return {
+        ...schedule,
+        date:
+          schedule.date instanceof Date
+            ? schedule.date
+            : new Date(schedule.date),
+      };
+    });
+
     Logger.log(
       `=== 日付フィルタリング: fromDate=${fromDate}, toDate=${toDate} ===`,
     );
     const filtered = filterSchedulesByDateRange(
-      cachedSchedules,
+      schedulesWithDateObjects,
       fromDate,
       toDate,
     );

@@ -934,19 +934,28 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
           if (timeColumnNames.includes(header) && value instanceof Date) {
             value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
           }
-          // 日付列の処理（Date型として保持）
+          // 日付列の処理（文字列形式でキャッシュに保存）
           else if (header === CONSTANTS.HEADERS.SCHEDULE.DATE) {
             if (value instanceof Date) {
-              // Date型はそのまま保持
-              value = value;
+              // Date型を文字列形式に変換してキャッシュ保存
+              value = Utilities.formatDate(
+                value,
+                CONSTANTS.TIMEZONE,
+                'yyyy-MM-dd',
+              );
             } else if (value && typeof value === 'string') {
-              // 文字列の場合はDate型に変換
+              // 文字列の場合は一度Date型に変換して検証後、文字列に戻す
               try {
-                value = new Date(value);
-                if (isNaN(value.getTime())) {
+                const dateObj = new Date(value);
+                if (isNaN(dateObj.getTime())) {
                   Logger.log(`無効な日付文字列: ${value}, 行をスキップ`);
                   return null; // 無効な行をスキップ
                 }
+                value = Utilities.formatDate(
+                  dateObj,
+                  CONSTANTS.TIMEZONE,
+                  'yyyy-MM-dd',
+                );
               } catch (error) {
                 Logger.log(`日付変換エラー: ${value}, 行をスキップ`);
                 return null; // 無効な行をスキップ
@@ -1008,13 +1017,13 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
       })
       .filter(scheduleObj => scheduleObj !== null); // 無効な行を除外
 
-    // ★ 日付順でソート処理を追加（Date型前提）
+    // ★ 日付順でソート処理を追加（文字列形式前提）
     if (scheduleDataList && scheduleDataList.length > 0) {
       scheduleDataList.sort((a, b) => {
-        // Date型として保存されているため直接比較
-        const dateA = a.date instanceof Date ? a.date : new Date(a.date);
-        const dateB = b.date instanceof Date ? b.date : new Date(b.date);
-        return dateA.getTime() - dateB.getTime();
+        // 文字列形式（yyyy-MM-dd）で保存されているため文字列比較
+        const dateA = String(a.date);
+        const dateB = String(b.date);
+        return dateA.localeCompare(dateB);
       });
     }
 
