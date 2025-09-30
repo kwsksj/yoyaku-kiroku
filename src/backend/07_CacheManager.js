@@ -1165,11 +1165,17 @@ function rebuildAllStudentsBasicCache() {
       phone: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.PHONE),
     };
 
-    // オプション列のインデックスを取得（メール関連）
+    // オプション列のインデックスを取得（メール関連・通知設定）
     const optionalColumns = {
       email: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.EMAIL),
       emailPreference: headerColumnMap.get(
         CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+      ),
+      notificationDay: headerColumnMap.get(
+        CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
+      ),
+      notificationHour: headerColumnMap.get(
+        CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
       ),
     };
 
@@ -1206,6 +1212,16 @@ function rebuildAllStudentsBasicCache() {
             preference === true;
         }
 
+        // 通知設定の取得
+        const notificationDay =
+          optionalColumns.notificationDay !== undefined
+            ? studentRow[optionalColumns.notificationDay]
+            : null;
+        const notificationHour =
+          optionalColumns.notificationHour !== undefined
+            ? studentRow[optionalColumns.notificationHour]
+            : null;
+
         studentsDataMap[studentId] = {
           studentId: studentId,
           displayName:
@@ -1220,6 +1236,8 @@ function rebuildAllStudentsBasicCache() {
               ? studentRow[optionalColumns.email] || ''
               : '',
           wantsEmail: wantsEmail,
+          notificationDay: notificationDay,
+          notificationHour: notificationHour,
           rowIndex: index + 2, // 【修正】ヘッダー行を考慮した実際の行番号を追加 (1-based + header)
         };
       }

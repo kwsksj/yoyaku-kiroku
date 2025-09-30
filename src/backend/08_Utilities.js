@@ -265,18 +265,12 @@ function sendAdminNotification(subject, body) {
     //   return;
     // }
 
-    // テスト環境の場合は送信先・送信元・件名をテスト用に変更
-    const finalSubject = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
-      ? `[予約システム通知] ${subject}`
-      : `[テスト][予約システム通知] ${subject}`;
-
-    // テスト環境では送信先もテスト用アドレスに変更
-    const recipientEmail = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
-      ? ADMIN_EMAIL
-      : getEnvironmentAwareEmailAddress(ADMIN_EMAIL);
+    // テスト環境の場合は件名に[テスト]プレフィックス追加
+    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
+    const finalSubject = `${subjectPrefix}[予約システム通知] ${subject}`;
 
     MailApp.sendEmail({
-      to: recipientEmail,
+      to: ADMIN_EMAIL,
       subject: finalSubject,
       body: body,
     });
