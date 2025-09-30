@@ -94,6 +94,20 @@ const authActionHandlers = {
             isDataFresh: true,
           },
         });
+
+        // 通知設定チェック：メール連絡希望ONで通知設定が未設定の場合に喚起
+        if (
+          response.user.wantsEmail &&
+          (response.user.notificationDay == null ||
+            response.user.notificationDay === '')
+        ) {
+          setTimeout(() => {
+            showInfo(
+              '月次メール通知の設定が未完了です。\n\nプロフィール編集から「通知を受け取る日」と「通知時刻」を設定してください。',
+              '通知設定のお願い',
+            );
+          }, 500);
+        }
       } else {
         // 認証失敗 - 新規登録に誘導
         hideLoading();
