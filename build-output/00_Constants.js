@@ -19,13 +19,10 @@ const CONSTANTS = {
   // タイムゾーン設定
   TIMEZONE: 'Asia/Tokyo',
 
-  // 環境設定
+  // 環境設定（PRODUCTION_MODEはビルド時に自動設定される）
   ENVIRONMENT: {
     DEBUG_MODE: typeof DEBUG !== 'undefined' ? DEBUG : false,
-    PRODUCTION_MODE:
-      typeof ScriptApp !== 'undefined' &&
-      ScriptApp.getScriptId() ===
-        '1BYOLy7kHfVEf96eJgPd9B-5ZQ5bNNOMwBiHtMt-6HZYrN2w9YhzG_Whi', // 本番ID
+    PRODUCTION_MODE: false,
   },
 
   /**
@@ -198,6 +195,8 @@ const CONSTANTS = {
       REGISTRATION_DATE: '登録日時',
       EMAIL: 'メールアドレス',
       EMAIL_PREFERENCE: 'メール連絡希望',
+      NOTIFICATION_DAY: '通知日',
+      NOTIFICATION_HOUR: '通知時刻',
       AGE_GROUP: '年代',
       AGE: '年齢',
       GENDER: '性別',
@@ -270,6 +269,15 @@ const CONSTANTS = {
     MATERIAL_INFO_PREFIX: '\n【希望材料】: ',
     ARCHIVE_PREFIX: 'アーカイブ_',
     DATA_START_ROW: 2,
+  },
+
+  // メール通知設定
+  NOTIFICATION: {
+    DAYS: [5, 15, 25], // 選択可能な通知日
+    HOURS: [9, 12, 18, 21], // 選択可能な通知時刻
+    DEFAULT_DAY: 25, // デフォルト通知日
+    DEFAULT_HOUR: 9, // デフォルト通知時刻
+    SCHEDULE_MONTHS_AHEAD: 3, // 通知対象となる日程の先行月数
   },
 };
 

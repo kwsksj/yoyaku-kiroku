@@ -80,8 +80,12 @@ function doGet(e) {
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } else {
     // 通常モード: メインアプリケーションを表示（静的HTMLファイル）
+    // 環境に応じてタイトルを設定
+    const titlePrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
+    const title = `${titlePrefix}きぼりの よやく・きろく`;
+
     return HtmlService.createHtmlOutputFromFile('10_WebApp')
-      .setTitle('きぼりの よやく・きろく')
+      .setTitle(title)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   }
@@ -100,26 +104,7 @@ function onOpen() {
  */
 function addAdminMenu(menu) {
   menu
-    .addItem(
-      'googleカレンダーから予定日を追加',
-      'addCalendarEventsToSheetWithSpecifics',
-    )
-    .addSeparator()
-    .addItem('日程マスタを作成', 'createScheduleMasterSheet')
-    .addItem(
-      '【移行用】予約データから日程マスタを生成',
-      'generateScheduleMasterFromExistingReservationsWithUI',
-    )
-    .addSeparator()
-    .addItem('【開発用】テスト環境をセットアップ', 'setupTestEnvironment')
-    .addSeparator()
-    .addItem('【本番移行】統合予約シート作成', 'createIntegratedSheet')
-    .addItem(
-      '【本番移行】データを統合シートへ移行',
-      'migrateDataToIntegratedSheet',
-    )
-    .addItem('【本番移行】移行データ整合性チェック', 'verifyMigratedData');
-}
+ }
 
 /**
  * @param {GoogleAppsScript.Base.Menu} menu
@@ -128,10 +113,6 @@ function addCacheMenu(menu) {
   menu
     .addSeparator()
     .addItem('キャッシュサービスを一括更新', 'rebuildAllCachesEntryPoint')
-    .addItem(
-      '【修復】Schedule Masterキャッシュ診断・修復',
-      'diagnoseAndFixScheduleMasterCache',
-    )
     .addItem(
       'PropertiesServiceクリーンアップ',
       'cleanupPropertiesServiceCache',
@@ -220,4 +201,119 @@ function setAdminEmail(email = 'shiawasenahito3000@gmail.com') {
     Logger.log(`ADMIN_EMAIL 設定エラー: ${error.message}`);
     console.error(`❌ ADMIN_EMAIL 設定エラー: ${error.message}`);
   }
+}
+
+// =================================================================
+// 月次通知メールトリガー管理
+// =================================================================
+
+/**
+ * 月次通知メールトリガーを設定
+ * すべての通知日・時刻の組み合わせに対してトリガーを作成
+ */
+function setupMonthlyNotificationTriggers() {
+  try {
+    // 既存のトリガーを削除
+    deleteMonthlyNotificationTriggers();
+
+    const days = CONSTANTS.NOTIFICATION.DAYS; // [5, 15, 25]
+    const hours = CONSTANTS.NOTIFICATION.HOURS; // [9, 12, 18, 21]
+
+    let triggerCount = 0;
+
+    // すべての日時の組み合わせに対してトリガーを作成
+    for (const day of days) {
+      for (const hour of hours) {
+        ScriptApp.newTrigger(`trigger_sendNotification_day${day}_hour${hour}`)
+          .timeBased()
+          .onMonthDay(day)
+          .atHour(hour)
+          .create();
+
+        triggerCount++;
+        Logger.log(`トリガー作成: ${day}日 ${hour}時`);
+      }
+    }
+
+    Logger.log(
+      `月次通知メールトリガーを設定しました（${triggerCount}個のトリガー）`,
+    );
+    return { success: true, count: triggerCount };
+  } catch (error) {
+    Logger.log(`トリガー設定エラー: ${error.message || error}`);
+    throw error;
+  }
+}
+
+/**
+ * 月次通知メールトリガーを削除
+ */
+function deleteMonthlyNotificationTriggers() {
+  try {
+    const triggers = ScriptApp.getProjectTriggers();
+    let deleteCount = 0;
+
+    for (const trigger of triggers) {
+      const handlerFunction = trigger.getHandlerFunction();
+      if (handlerFunction.startsWith('trigger_sendNotification_')) {
+        ScriptApp.deleteTrigger(trigger);
+        deleteCount++;
+        Logger.log(`トリガー削除: ${handlerFunction}`);
+      }
+    }
+
+    Logger.log(
+      `月次通知メールトリガーを削除しました（${deleteCount}個のトリガー）`,
+    );
+    return { success: true, count: deleteCount };
+  } catch (error) {
+    Logger.log(`トリガー削除エラー: ${error.message || error}`);
+    throw error;
+  }
+}
+
+// =================================================================
+// トリガー実行関数（各日時の組み合わせごとに定義）
+// =================================================================
+
+// 5日
+function trigger_sendNotification_day5_hour9() {
+  sendMonthlyNotificationEmails(5, 9);
+}
+function trigger_sendNotification_day5_hour12() {
+  sendMonthlyNotificationEmails(5, 12);
+}
+function trigger_sendNotification_day5_hour18() {
+  sendMonthlyNotificationEmails(5, 18);
+}
+function trigger_sendNotification_day5_hour21() {
+  sendMonthlyNotificationEmails(5, 21);
+}
+
+// 15日
+function trigger_sendNotification_day15_hour9() {
+  sendMonthlyNotificationEmails(15, 9);
+}
+function trigger_sendNotification_day15_hour12() {
+  sendMonthlyNotificationEmails(15, 12);
+}
+function trigger_sendNotification_day15_hour18() {
+  sendMonthlyNotificationEmails(15, 18);
+}
+function trigger_sendNotification_day15_hour21() {
+  sendMonthlyNotificationEmails(15, 21);
+}
+
+// 25日
+function trigger_sendNotification_day25_hour9() {
+  sendMonthlyNotificationEmails(25, 9);
+}
+function trigger_sendNotification_day25_hour12() {
+  sendMonthlyNotificationEmails(25, 12);
+}
+function trigger_sendNotification_day25_hour18() {
+  sendMonthlyNotificationEmails(25, 18);
+}
+function trigger_sendNotification_day25_hour21() {
+  sendMonthlyNotificationEmails(25, 21);
 }
