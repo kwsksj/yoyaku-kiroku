@@ -95,7 +95,16 @@ function getLessons() {
     const lessons = [];
 
     scheduledDates.forEach(schedule => {
-      const key = `${schedule.date}|${schedule.classroom}`;
+      // 日程マスタの日付はDate型で正規化済み、キー生成時に文字列化
+      const dateKey =
+        schedule.date instanceof Date
+          ? Utilities.formatDate(
+              schedule.date,
+              CONSTANTS.TIMEZONE,
+              'yyyy-MM-dd',
+            )
+          : String(schedule.date);
+      const key = `${dateKey}|${schedule.classroom}`;
       const reservationsForDate = reservationsByDateClassroom.get(key) || [];
 
       Logger.log(
@@ -257,7 +266,14 @@ function getLessons() {
         lessons.push({
           schedule: {
             classroom: schedule.classroom,
-            date: String(schedule.date),
+            date:
+              schedule.date instanceof Date
+                ? Utilities.formatDate(
+                    schedule.date,
+                    CONSTANTS.TIMEZONE,
+                    'yyyy-MM-dd',
+                  )
+                : String(schedule.date),
             venue: String(schedule.venue || ''),
             classroomType: schedule.classroomType,
             firstStart:
@@ -334,7 +350,14 @@ function getLessons() {
         lessons.push({
           schedule: {
             classroom: schedule.classroom,
-            date: String(schedule.date),
+            date:
+              schedule.date instanceof Date
+                ? Utilities.formatDate(
+                    schedule.date,
+                    CONSTANTS.TIMEZONE,
+                    'yyyy-MM-dd',
+                  )
+                : String(schedule.date),
             venue: String(schedule.venue || ''),
             classroomType: schedule.classroomType,
             firstStart:
@@ -387,7 +410,14 @@ function getLessons() {
         lessons.push({
           schedule: {
             classroom: schedule.classroom,
-            date: String(schedule.date),
+            date:
+              schedule.date instanceof Date
+                ? Utilities.formatDate(
+                    schedule.date,
+                    CONSTANTS.TIMEZONE,
+                    'yyyy-MM-dd',
+                  )
+                : String(schedule.date),
             venue: String(schedule.venue || ''),
             classroomType: schedule.classroomType,
             firstStart:
@@ -468,9 +498,10 @@ function getLessons() {
 
     // 8. 日付・教室順でソート
     filteredLessons.sort((a, b) => {
-      const dateComp =
-        new Date(a.schedule.date).getTime() -
-        new Date(b.schedule.date).getTime();
+      // レッスンオブジェクトの日付は既に文字列化済み
+      const dateA = new Date(a.schedule.date);
+      const dateB = new Date(b.schedule.date);
+      const dateComp = dateA.getTime() - dateB.getTime();
       if (dateComp !== 0) return dateComp;
       return a.schedule.classroom.localeCompare(b.schedule.classroom);
     });

@@ -62,7 +62,13 @@ function checkDuplicateReservationOnSameDay(studentId, date) {
       return false;
     }
 
+    // 日付文字列をDateオブジェクトに変換（YYYY-MM-DD形式を想定）
     const targetDate = new Date(date + 'T00:00:00+09:00');
+    const targetDateString = targetDate.toDateString(); // 比較用の標準文字列形式
+
+    Logger.log(
+      `[checkDuplicateReservationOnSameDay] ターゲット日付: ${date} -> ${targetDate} -> ${targetDateString}`,
+    );
 
     // 同一ユーザーの同一日の有効な予約を検索
     const duplicateReservation = allReservations.find(
@@ -76,14 +82,16 @@ function checkDuplicateReservationOnSameDay(studentId, date) {
         // 同一ユーザーかチェック
         if (reservationStudentId !== studentId) return false;
 
-        // 同一日かチェック
+        // 同一日かチェック（予約データのDate型は確実なため直接比較）
+        let isSameDay = false;
         if (reservationDate instanceof Date) {
-          const isSameDay =
-            reservationDate.toDateString() === targetDate.toDateString();
-          if (!isSameDay) return false;
+          isSameDay = reservationDate.toDateString() === targetDateString;
         } else {
+          // 予約データは通常Date型なので、異常データとしてスキップ
           return false;
         }
+
+        if (!isSameDay) return false;
 
         // 有効な予約ステータスかチェック（confirmed または waitlisted）
         const isValidStatus =
@@ -102,9 +110,7 @@ function checkDuplicateReservationOnSameDay(studentId, date) {
 
     return hasDuplicate;
   } catch (error) {
-    Logger.log(
-      `checkDuplicateReservationOnSameDay エラー: ${error.message}`,
-    );
+    Logger.log(`checkDuplicateReservationOnSameDay エラー: ${error.message}`);
     return false; // エラー時は重複なしと判断（保守的な動作）
   }
 }
@@ -274,18 +280,22 @@ function makeReservation(reservationInfo) {
       const scheduleData = scheduleCache
         ? /** @type {ScheduleMasterData[]} */ (scheduleCache['schedule'])
         : [];
+      // 検索対象日付の標準化
+      const targetDateForSearch = new Date(date + 'T00:00:00+09:00');
+      const targetDateStringForSearch = targetDateForSearch.toDateString();
+
       const scheduleRule = scheduleData.find(
         /** @param {ScheduleMasterData} item */
         item => {
           const itemDate = item.date;
-          return (
-            itemDate &&
-            (itemDate instanceof Date
-              ? itemDate
-              : new Date(itemDate)
-            ).toDateString() === new Date(date).toDateString() &&
-            item.classroom === classroom
-          );
+          if (!itemDate || !item.classroom) return false;
+
+          // 日程マスタの日付はキャッシュ構築時にDate型で正規化済み
+          const dateMatches =
+            itemDate instanceof Date &&
+            itemDate.toDateString() === targetDateStringForSearch;
+
+          return dateMatches && item.classroom === classroom;
         },
       );
 
@@ -1033,20 +1043,24 @@ function updateReservationDetails(details) {
         const scheduleData = scheduleCache
           ? /** @type {ScheduleMasterData[]} */ (scheduleCache['schedule'])
           : [];
+        // 予約日付の標準化
+        const reservationDateForSearch = new Date(String(reservationDate));
+        const reservationDateStringForSearch =
+          reservationDateForSearch.toDateString();
+
         /** @type {ScheduleMasterData | undefined} */
         const foundSchedule = scheduleData.find(
           /** @param {ScheduleMasterData} item */
           item => {
             const itemDate = item.date;
-            return (
-              itemDate &&
-              (itemDate instanceof Date
-                ? itemDate
-                : new Date(itemDate)
-              ).toDateString() ===
-                new Date(String(reservationDate)).toDateString() &&
-              item.classroom === classroom
-            );
+            if (!itemDate || !item.classroom) return false;
+
+            // 日程マスタの日付はキャッシュ構築時にDate型で正規化済み
+            const dateMatches =
+              itemDate instanceof Date &&
+              itemDate.toDateString() === reservationDateStringForSearch;
+
+            return dateMatches && item.classroom === classroom;
           },
         );
         scheduleRule = /** @type {ScheduleRule | null} */ (
@@ -1710,15 +1724,23 @@ function getScheduleInfoForDate(date, classroom) {
       );
     });
 
+    // 検索対象日付の標準化
+    const targetDateForInfo = new Date(date + 'T00:00:00+09:00');
+    const targetDateStringForInfo = targetDateForInfo.toDateString();
+
     // 該当する日程を検索
     const schedule = scheduleDataArray.find(
       /** @param {ScheduleMasterData} item */ item => {
-        const dateMatch = item.date === date;
+        // 日程マスタの日付はキャッシュ構築時にDate型で正規化済み
+        const dateMatch =
+          item.date instanceof Date &&
+          item.date.toDateString() === targetDateStringForInfo;
+
         const classroomMatch = item.classroom === classroom;
         const statusOk = item.status !== CONSTANTS.SCHEDULE_STATUS.CANCELLED;
 
         Logger.log(
-          `🔍 検索中: ${item.date}==${date}? ${dateMatch}, ${item.classroom}==${classroom}? ${classroomMatch}, status=${item.status} ok? ${statusOk}`,
+          `🔍 検索中: ${item.date} -> ${dateMatch}, ${item.classroom}==${classroom}? ${classroomMatch}, status=${item.status} ok? ${statusOk}`,
         );
 
         return dateMatch && classroomMatch && statusOk;

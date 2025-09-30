@@ -934,16 +934,27 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
           if (timeColumnNames.includes(header) && value instanceof Date) {
             value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
           }
-          // 日付列の処理
-          else if (
-            header === CONSTANTS.HEADERS.SCHEDULE.DATE &&
-            value instanceof Date
-          ) {
-            value = Utilities.formatDate(
-              value,
-              CONSTANTS.TIMEZONE,
-              'yyyy-MM-dd',
-            );
+          // 日付列の処理（Date型として保持）
+          else if (header === CONSTANTS.HEADERS.SCHEDULE.DATE) {
+            if (value instanceof Date) {
+              // Date型はそのまま保持
+              value = value;
+            } else if (value && typeof value === 'string') {
+              // 文字列の場合はDate型に変換
+              try {
+                value = new Date(value);
+                if (isNaN(value.getTime())) {
+                  Logger.log(`無効な日付文字列: ${value}, 行をスキップ`);
+                  return null; // 無効な行をスキップ
+                }
+              } catch (error) {
+                Logger.log(`日付変換エラー: ${value}, 行をスキップ`);
+                return null; // 無効な行をスキップ
+              }
+            } else {
+              Logger.log(`無効な日付値: ${value}, 行をスキップ`);
+              return null; // 無効な行をスキップ
+            }
           }
 
           // 日本語ヘッダーを英語プロパティ名に変換
@@ -994,13 +1005,17 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
           scheduleObj[propertyName] = value;
         });
         return scheduleObj;
-      });
+      })
+      .filter(scheduleObj => scheduleObj !== null); // 無効な行を除外
 
-    // ★ 日付順でソート処理を追加
+    // ★ 日付順でソート処理を追加（Date型前提）
     if (scheduleDataList && scheduleDataList.length > 0) {
-      scheduleDataList.sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-      );
+      scheduleDataList.sort((a, b) => {
+        // Date型として保存されているため直接比較
+        const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+        const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+        return dateA.getTime() - dateB.getTime();
+      });
     }
 
     const cacheData = {
@@ -1226,11 +1241,108 @@ function rebuildAllStudentsBasicCache() {
 }
 
 /**
+ * 日程マスタのステータスを自動更新（開催予定 → 開催済み）
+ * 現在日時を基準に、過去の開催予定講座を開催済みに変更します。
+ *
+ * 判定基準:
+ * - 日付が今日より前
+ * - ステータスが「開催予定」
+ *
+ * @returns {number} 更新した件数
+ */
+function updateScheduleStatusToCompleted() {
+  try {
+    Logger.log('[ScheduleStatus] 開催済みステータス自動更新を開始');
+
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    if (!sheet) {
+      Logger.log('[ScheduleStatus] 日程マスターシートが見つかりません');
+      return 0;
+    }
+
+    // 現在の日時を取得（JST）
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    Logger.log(`[ScheduleStatus] 基準日時: ${today.toDateString()}`);
+
+    // シートからデータを取得
+    const dataRange = sheet.getDataRange();
+    const allData = dataRange.getValues();
+
+    if (allData.length <= 1) {
+      Logger.log('[ScheduleStatus] データが存在しません');
+      return 0;
+    }
+
+    const headers = allData[0];
+    const dateColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
+    const statusColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
+
+    if (dateColIndex === -1 || statusColIndex === -1) {
+      Logger.log('[ScheduleStatus] 必要な列が見つかりません');
+      return 0;
+    }
+
+    let updatedCount = 0;
+
+    // データ行をチェック（2行目から）
+    for (let i = 1; i < allData.length; i++) {
+      const row = allData[i];
+      const scheduleDate = row[dateColIndex];
+      const currentStatus = row[statusColIndex];
+
+      // 開催予定のみを対象とする
+      if (currentStatus !== CONSTANTS.SCHEDULE_STATUS.SCHEDULED) {
+        continue;
+      }
+
+      // 日付チェック
+      let isDatePast = false;
+      if (scheduleDate instanceof Date) {
+        isDatePast = scheduleDate < today;
+      } else if (scheduleDate && typeof scheduleDate === 'string') {
+        try {
+          const parsedDate = new Date(scheduleDate);
+          isDatePast = parsedDate < today;
+        } catch (error) {
+          Logger.log(`[ScheduleStatus] 日付解析エラー: ${scheduleDate}`);
+          continue;
+        }
+      } else {
+        continue;
+      }
+
+      // 過去の日付の場合、開催済みに更新
+      if (isDatePast) {
+        sheet
+          .getRange(i + 1, statusColIndex + 1)
+          .setValue(CONSTANTS.SCHEDULE_STATUS.COMPLETED);
+        updatedCount++;
+
+        Logger.log(
+          `[ScheduleStatus] 更新: ${scheduleDate} → ${CONSTANTS.SCHEDULE_STATUS.COMPLETED}`,
+        );
+      }
+    }
+
+    Logger.log(
+      `[ScheduleStatus] 開催済みステータス更新完了: ${updatedCount}件`,
+    );
+    return updatedCount;
+  } catch (error) {
+    Logger.log(`[ScheduleStatus] エラー: ${error.message}`);
+    return 0;
+  }
+}
+
+/**
  * 時間主導型トリガーから自動実行されるキャッシュ再構築関数
  * 定期的にスケジュールされたトリガーが呼び出す関数です。
  * スクリプトロックを使用して同時実行を防止します。
  *
  * 処理内容:
+ * - 日程マスタのステータス自動更新（開催予定 → 開催済み）
  * - 全キャッシュデータの定期再構築
  * - エラー発生時のログ記録
  * - アクティビティログの記録
@@ -1249,18 +1361,24 @@ function triggerScheduledCacheRebuild() {
   }
 
   try {
-    PerformanceLog.info('定期キャッシュ再構築: 開始します。');
+    PerformanceLog.info('定期メンテナンス: 開始します。');
 
-    // 全てのキャッシュを順次再構築
+    // 1. 日程マスタのステータス自動更新
+    const updatedStatusCount = updateScheduleStatusToCompleted();
+    if (updatedStatusCount > 0) {
+      Logger.log(`日程ステータス更新: ${updatedStatusCount}件を開催済みに更新`);
+    }
+
+    // 2. 全てのキャッシュを順次再構築
     rebuildAllReservationsCache();
     rebuildAllStudentsBasicCache();
-    rebuildScheduleMasterCache();
+    rebuildScheduleMasterCache(); // ステータス更新後にキャッシュも再構築
     rebuildAccountingMasterCache();
 
-    PerformanceLog.info('定期キャッシュ再構築: 正常に完了しました。');
+    PerformanceLog.info('定期メンテナンス: 正常に完了しました。');
 
     Logger.log(
-      '定期キャッシュ再構築: 時間主導型トリガーによる全キャッシュ自動再構築完了',
+      `定期メンテナンス完了: ステータス更新${updatedStatusCount}件 + 全キャッシュ再構築`,
     );
   } catch (error) {
     PerformanceLog.error(
@@ -1797,6 +1915,45 @@ function diagnoseAndFixScheduleMasterCache() {
     Logger.log(`❌ 診断・修復中にエラー: ${error.message}`);
     Logger.log(`スタックトレース: ${error.stack}`);
     return false;
+  }
+}
+
+/**
+ * 日程マスタのステータス自動更新を手動実行する関数
+ * GASエディタから直接実行可能、またはメニューから実行
+ *
+ * 実行内容:
+ * - 開催予定 → 開催済み の自動更新
+ * - 更新後のキャッシュ再構築
+ * - スプレッドシートでの結果表示
+ */
+function updateScheduleStatusManual() {
+  try {
+    const ss = getActiveSpreadsheet();
+    ss.toast('日程マスタのステータス更新を開始しています...', '処理中', -1);
+
+    const updatedCount = updateScheduleStatusToCompleted();
+
+    if (updatedCount > 0) {
+      // ステータス更新後はキャッシュも再構築
+      rebuildScheduleMasterCache();
+
+      ss.toast(
+        `${updatedCount}件の日程を「開催済み」に更新しました。`,
+        '更新完了',
+        5,
+      );
+
+      Logger.log(`手動ステータス更新完了: ${updatedCount}件`);
+    } else {
+      ss.toast('更新対象の日程はありませんでした。', '確認完了', 3);
+
+      Logger.log('手動ステータス更新: 更新対象なし');
+    }
+  } catch (error) {
+    const ss = getActiveSpreadsheet();
+    ss.toast(`エラーが発生しました: ${error.message}`, 'エラー', 5);
+    Logger.log(`手動ステータス更新エラー: ${error.message}`);
   }
 }
 
