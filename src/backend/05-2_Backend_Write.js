@@ -17,6 +17,99 @@
 /* global sendBookingConfirmationEmailAsync */
 
 /**
+ * 指定したユーザーが同一日に予約を持っているかチェックする共通関数。
+ * @param {string} studentId - 学生ID
+ * @param {string} date - 日付（YYYY-MM-DD形式）
+ * @returns {boolean} - 同一日に有効な予約がある場合true
+ */
+function checkDuplicateReservationOnSameDay(studentId, date) {
+  try {
+    // キャッシュから全予約データを取得
+    const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    if (!reservationsCache?.['data']) {
+      Logger.log('予約キャッシュデータが見つかりません');
+      return false; // エラー時は重複なしと判断（保守的な動作）
+    }
+
+    /** @type {ReservationArrayData[]} */
+    const allReservations = /** @type {ReservationArrayData[]} */ (
+      reservationsCache['data']
+    );
+    const headerMap = /** @type {HeaderMapType} */ (
+      reservationsCache['headerMap']
+    );
+
+    // 必要な列インデックスを取得
+    const studentIdColIdx = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+    );
+    const dateColIdx = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.DATE,
+    );
+    const statusColIdx = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.RESERVATIONS.STATUS,
+    );
+
+    if (
+      studentIdColIdx === undefined ||
+      dateColIdx === undefined ||
+      statusColIdx === undefined
+    ) {
+      Logger.log('必要な列インデックスが見つかりません');
+      return false;
+    }
+
+    const targetDate = new Date(date + 'T00:00:00+09:00');
+
+    // 同一ユーザーの同一日の有効な予約を検索
+    const duplicateReservation = allReservations.find(
+      /** @type {function(ReservationArrayData): boolean} */ reservation => {
+        if (!reservation || !Array.isArray(reservation)) return false;
+
+        const reservationStudentId = String(reservation[studentIdColIdx] || '');
+        const reservationDate = reservation[dateColIdx];
+        const reservationStatus = String(reservation[statusColIdx] || '');
+
+        // 同一ユーザーかチェック
+        if (reservationStudentId !== studentId) return false;
+
+        // 同一日かチェック
+        if (reservationDate instanceof Date) {
+          const isSameDay =
+            reservationDate.toDateString() === targetDate.toDateString();
+          if (!isSameDay) return false;
+        } else {
+          return false;
+        }
+
+        // 有効な予約ステータスかチェック（confirmed または waitlisted）
+        const isValidStatus =
+          reservationStatus === CONSTANTS.STATUS.CONFIRMED ||
+          reservationStatus === CONSTANTS.STATUS.WAITLISTED;
+
+        return isValidStatus;
+      },
+    );
+
+    const hasDuplicate = !!duplicateReservation;
+
+    Logger.log(
+      `[checkDuplicateReservationOnSameDay] ${studentId} の ${date} 重複チェック結果: ${hasDuplicate}`,
+    );
+
+    return hasDuplicate;
+  } catch (error) {
+    Logger.log(
+      `checkDuplicateReservationOnSameDay エラー: ${error.message}`,
+    );
+    return false; // エラー時は重複なしと判断（保守的な動作）
+  }
+}
+
+/**
  * 指定日・教室の定員チェックを行う共通関数。
  * @param {string} classroom - 教室
  * @param {string} date - 日付
@@ -200,6 +293,20 @@ function makeReservation(reservationInfo) {
       if (scheduleRule && scheduleRule['type'] === CONSTANTS.UNITS.THIRTY_MIN) {
         _validateTimeBasedReservation(startTime, endTime, scheduleRule);
       }
+
+      // 同一日重複予約チェック
+      const hasDuplicateReservation = checkDuplicateReservationOnSameDay(
+        user.studentId,
+        date,
+      );
+      if (hasDuplicateReservation) {
+        throw new Error(
+          '同一日に既に予約が存在します。1日につき1つの予約のみ可能です。',
+        );
+      }
+      Logger.log(
+        `[makeReservation] 重複予約チェック完了: ${user.studentId} ${date} - 重複なし`,
+      );
 
       // 【パフォーマンス対策】シートアクセス前に事前ウォームアップ
       Logger.log('[RESERVATION] 事前ウォームアップ実行');
