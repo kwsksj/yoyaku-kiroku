@@ -134,9 +134,12 @@ class BackendErrorHandler {
   static notifyAdmin(errorInfo, isCritical = false) {
     if (!ADMIN_EMAIL) return;
 
-    const subject = isCritical
+    // 件名（テスト環境では[テスト]プレフィックス追加）
+    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
+    const baseSubject = isCritical
       ? `🚨 [重要] システムエラー: ${errorInfo.context}`
       : `⚠️ システムエラー: ${errorInfo.context}`;
+    const subject = `${subjectPrefix}${baseSubject}`;
 
     const body = `
 システムエラーが発生しました。

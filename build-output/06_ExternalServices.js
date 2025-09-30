@@ -39,15 +39,12 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
       return false;
     }
 
-    // PropertiesServiceから送信元メールアドレスを取得（環境別自動切り替え）
-    const baseEmail =
+    // PropertiesServiceから送信元メールアドレスを取得
+    const fromEmail =
       PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL');
-    if (!baseEmail) {
+    if (!fromEmail) {
       throw new Error('ADMIN_EMAIL が設定されていません');
     }
-
-    // テスト環境の場合は送信元メールアドレスに+testを追加
-    const fromEmail = getEnvironmentAwareEmailAddress(baseEmail);
 
     // メール内容を生成
     const { subject, htmlBody, textBody } = createBookingConfirmationTemplate(
@@ -111,8 +108,9 @@ function createBookingConfirmationTemplate(reservation, student, isFirstTime) {
   const formattedDate = formatDateForEmail(date);
   const statusText = reservation.isWaiting ? '空き連絡希望' : 'ご予約';
 
-  // 件名
-  const subject = `【川崎誠二 木彫り教室】受付完了のお知らせ - ${formattedDate} ${classroom}`;
+  // 件名（テスト環境では[テスト]プレフィックス追加）
+  const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
+  const subject = `${subjectPrefix}【川崎誠二 木彫り教室】受付完了のお知らせ - ${formattedDate} ${classroom}`;
 
   if (isFirstTime) {
     // 初回者向け詳細メール
@@ -233,21 +231,14 @@ ${getContactAndVenueInfoText()}
 
 /**
  * 環境に応じたメールアドレスを取得
+ * @deprecated 使用中止：テスト環境識別は件名の[テスト]プレフィックスで行う
  * @param {string} baseEmail - 基本メールアドレス
  * @returns {string} 環境に応じたメールアドレス
  */
 function getEnvironmentAwareEmailAddress(baseEmail) {
-  // 本番環境判定（CONSTANTS.ENVIRONMENT.PRODUCTION_MODEを使用）
-  const isProduction = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE;
-
-  if (isProduction) {
-    // 本番環境はそのまま
-    return baseEmail;
-  } else {
-    // テスト環境は+testを追加
-    const [localPart, domain] = baseEmail.split('@');
-    return `${localPart}+test@${domain}`;
-  }
+  // この関数は廃止予定：メールアドレス変換ではなく件名に[テスト]を追加する方式に変更
+  // 互換性維持のため残しているが、新規コードでは使用しないこと
+  return baseEmail;
 }
 
 /**
