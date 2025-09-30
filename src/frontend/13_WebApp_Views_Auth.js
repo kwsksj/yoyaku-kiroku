@@ -154,6 +154,29 @@ const getUserFormView = config => {
               <span class="text-brand-text text-sm">メール連絡を希望します（教室日程、予約受付、など）**初回予約時は、すべての方へ連絡します**</span>
             </label>
           </div>
+          <div class="p-3 bg-ui-surface rounded-md space-y-3">
+            <label class="block text-brand-text text-sm font-bold">月次メール通知設定</label>
+            <div class="space-y-2">
+              <label class="block text-brand-text text-xs">通知を受け取る日</label>
+              <select id="edit-notification-day" name="notificationDay" class="w-full p-2 border-2 border-ui-border rounded-md bg-ui-bg text-brand-text">
+                <option value="">未設定</option>
+                <option value="5" ${/** @type {UserData} */ (u).notificationDay === 5 ? 'selected' : ''}>毎月5日</option>
+                <option value="15" ${/** @type {UserData} */ (u).notificationDay === 15 ? 'selected' : ''}>毎月15日</option>
+                <option value="25" ${/** @type {UserData} */ (u).notificationDay === 25 ? 'selected' : ''}>毎月25日</option>
+              </select>
+            </div>
+            <div class="space-y-2">
+              <label class="block text-brand-text text-xs">通知時刻</label>
+              <select id="edit-notification-hour" name="notificationHour" class="w-full p-2 border-2 border-ui-border rounded-md bg-ui-bg text-brand-text">
+                <option value="">未設定</option>
+                <option value="9" ${/** @type {UserData} */ (u).notificationHour === 9 ? 'selected' : ''}>9時</option>
+                <option value="12" ${/** @type {UserData} */ (u).notificationHour === 12 ? 'selected' : ''}>12時</option>
+                <option value="18" ${/** @type {UserData} */ (u).notificationHour === 18 ? 'selected' : ''}>18時</option>
+                <option value="21" ${/** @type {UserData} */ (u).notificationHour === 21 ? 'selected' : ''}>21時</option>
+              </select>
+            </div>
+            <p class="text-xs text-gray-600">※メール連絡希望がONの場合に有効です</p>
+          </div>
         </div>
       `
     : '';
@@ -282,6 +305,29 @@ const getRegistrationStep2View = () => {
             <input type="checkbox" id="q-wants-email" name="wantsEmail" class="h-5 w-5 accent-action-primary-bg" ${data?.wantsEmail ? 'checked' : ''}>
             <span class="text-brand-text text-sm">メール連絡を希望します（教室日程、予約受付、など）</span>
           </label>
+        </div>
+        <div class="p-3 bg-ui-surface rounded-md space-y-3" id="notification-settings">
+          <label class="block text-brand-text text-sm font-bold">月次メール通知設定</label>
+          <div class="space-y-2">
+            <label class="block text-brand-text text-xs">通知を受け取る日</label>
+            <select id="q-notification-day" name="notificationDay" class="w-full p-2 border-2 border-ui-border rounded-md bg-ui-bg text-brand-text">
+              <option value="">未設定</option>
+              <option value="5" ${data?.notificationDay === 5 ? 'selected' : ''}>毎月5日</option>
+              <option value="15" ${data?.notificationDay === 15 ? 'selected' : ''}>毎月15日</option>
+              <option value="25" ${data?.notificationDay === 25 ? 'selected' : ''}>毎月25日</option>
+            </select>
+          </div>
+          <div class="space-y-2">
+            <label class="block text-brand-text text-xs">通知時刻</label>
+            <select id="q-notification-hour" name="notificationHour" class="w-full p-2 border-2 border-ui-border rounded-md bg-ui-bg text-brand-text">
+              <option value="">未設定</option>
+              <option value="9" ${data?.notificationHour === 9 ? 'selected' : ''}>9時</option>
+              <option value="12" ${data?.notificationHour === 12 ? 'selected' : ''}>12時</option>
+              <option value="18" ${data?.notificationHour === 18 ? 'selected' : ''}>18時</option>
+              <option value="21" ${data?.notificationHour === 21 ? 'selected' : ''}>21時</option>
+            </select>
+          </div>
+          <p class="text-xs text-gray-600">※メール連絡希望がONの場合に有効です</p>
         </div>
         ${Components.select({ id: 'q-age-group', label: '年代', options: ageOptions })}
         <div><label class="block text-brand-text text-base font-bold mb-2">性別</label><div class="flex space-x-4">${genderOptions}</div></div>

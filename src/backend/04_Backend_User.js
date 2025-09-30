@@ -377,6 +377,22 @@ function registerNewUser(userInfo) {
         typeof userInfo?.wantsEmail === 'boolean'
       )
         newRow[emailPreferenceColIdx] = userInfo.wantsEmail ? 'TRUE' : 'FALSE';
+
+      // 通知設定の登録
+      const notificationDayColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
+      );
+      const notificationHourColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
+      );
+
+      if (notificationDayColIdx !== -1 && userInfo?.notificationDay) {
+        newRow[notificationDayColIdx] = userInfo.notificationDay;
+      }
+      if (notificationHourColIdx !== -1 && userInfo?.notificationHour) {
+        newRow[notificationHourColIdx] = userInfo.notificationHour;
+      }
+
       if (ageGroupColIdx !== -1 && userInfo?.ageGroup)
         newRow[ageGroupColIdx] = userInfo.ageGroup;
       if (genderColIdx !== -1 && userInfo?.gender)
@@ -584,6 +600,50 @@ function updateUserProfile(userInfo) {
         rosterSheet
           .getRange(targetRowIndex, emailPreferenceColIdx + 1)
           .setValue(emailPrefValue);
+      }
+
+      // 通知設定の更新
+      const notificationDayColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
+      );
+      const notificationHourColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
+      );
+
+      if (
+        userInfo.notificationDay !== undefined &&
+        notificationDayColIdx !== -1
+      ) {
+        // バリデーション: 選択可能な日付のみ許可
+        if (
+          userInfo.notificationDay !== null &&
+          !CONSTANTS.NOTIFICATION.DAYS.includes(userInfo.notificationDay)
+        ) {
+          throw new Error(
+            `通知日は ${CONSTANTS.NOTIFICATION.DAYS.join(', ')} のいずれかを選択してください。`,
+          );
+        }
+        rosterSheet
+          .getRange(targetRowIndex, notificationDayColIdx + 1)
+          .setValue(userInfo.notificationDay);
+      }
+
+      if (
+        userInfo.notificationHour !== undefined &&
+        notificationHourColIdx !== -1
+      ) {
+        // バリデーション: 選択可能な時刻のみ許可
+        if (
+          userInfo.notificationHour !== null &&
+          !CONSTANTS.NOTIFICATION.HOURS.includes(userInfo.notificationHour)
+        ) {
+          throw new Error(
+            `通知時刻は ${CONSTANTS.NOTIFICATION.HOURS.join(', ')} のいずれかを選択してください。`,
+          );
+        }
+        rosterSheet
+          .getRange(targetRowIndex, notificationHourColIdx + 1)
+          .setValue(userInfo.notificationHour);
       }
 
       logActivity(

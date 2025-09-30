@@ -224,6 +224,12 @@ const authActionHandlers = {
     const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('q-wants-email')
     );
+    const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
+      document.getElementById('q-notification-day')
+    );
+    const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
+      document.getElementById('q-notification-hour')
+    );
     const ageGroupInput = /** @type {HTMLSelectElement | null} */ (
       document.getElementById('q-age-group')
     );
@@ -240,6 +246,12 @@ const authActionHandlers = {
     const step2Data = {
       email: email,
       wantsEmail: wantsEmailInput?.checked || false,
+      notificationDay: notificationDayInput?.value
+        ? parseInt(notificationDayInput.value)
+        : null,
+      notificationHour: notificationHourInput?.value
+        ? parseInt(notificationHourInput.value)
+        : null,
       ageGroup: ageGroupInput?.value || '',
       gender: genderInput?.value || '',
       dominantHand: dominantHandInput?.value || '',
@@ -430,6 +442,20 @@ const authActionHandlers = {
       return showInfo('有効なメールアドレスを入力してください。', '入力エラー');
     }
 
+    // 通知設定の取得
+    const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
+      document.getElementById('edit-notification-day')
+    );
+    const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
+      document.getElementById('edit-notification-hour')
+    );
+    const notificationDay = notificationDayInput?.value
+      ? parseInt(notificationDayInput.value)
+      : null;
+    const notificationHour = notificationHourInput?.value
+      ? parseInt(notificationHourInput.value)
+      : null;
+
     const u = {
       ...stateManager.getState().currentUser,
       realName: r,
@@ -437,6 +463,8 @@ const authActionHandlers = {
       phone: phone,
       email: email || '',
       wantsEmail: wantsEmail || false,
+      notificationDay: notificationDay,
+      notificationHour: notificationHour,
     };
     showLoading('booking');
     google.script.run['withSuccessHandler']((/** @type {any} */ res) => {
