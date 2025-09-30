@@ -61,7 +61,34 @@ class UnifiedBuilder {
   }
 
   /**
-   * バックエンドJSファイルをsrcにコピー
+   * 現在の環境を判定（.clasp.jsonから）
+   */
+  detectEnvironment() {
+    const claspJsonPath = path.join(process.cwd(), '.clasp.json');
+    const claspConfigPath = path.join(process.cwd(), '.clasp.config.json');
+
+    if (!fs.existsSync(claspJsonPath) || !fs.existsSync(claspConfigPath)) {
+      console.log(
+        `[${formatTime()}]    ⚠️  Environment detection failed, defaulting to test`,
+      );
+      return false; // デフォルトはテスト環境
+    }
+
+    const claspJson = JSON.parse(fs.readFileSync(claspJsonPath, 'utf8'));
+    const claspConfig = JSON.parse(fs.readFileSync(claspConfigPath, 'utf8'));
+
+    // 現在のscriptIdが本番環境のものと一致するか確認
+    const isProduction = claspJson.scriptId === claspConfig.prod.scriptId;
+
+    console.log(
+      `[${formatTime()}]    🔍 Environment detected: ${isProduction ? 'PRODUCTION' : 'TEST'}`,
+    );
+
+    return isProduction;
+  }
+
+  /**
+   * バックエンドJSファイルをsrcにコピー（環境判定値を注入）
    */
   async buildBackendFiles() {
     console.log(`[${formatTime()}] 🔨 Building backend files...`);
@@ -73,6 +100,9 @@ class UnifiedBuilder {
       return;
     }
 
+    // 環境判定
+    const isProduction = this.detectEnvironment();
+
     const backendFiles = fs
       .readdirSync(this.backendDir)
       .filter(file => file.endsWith('.js'))
@@ -82,8 +112,24 @@ class UnifiedBuilder {
       const srcPath = path.join(this.backendDir, jsFile);
       const destPath = path.join(this.srcDir, jsFile);
 
-      fs.copyFileSync(srcPath, destPath);
-      console.log(`[${formatTime()}]   ✅ ${jsFile} copied`);
+      // 00_Constants.jsの場合は環境判定値を書き換え
+      if (jsFile === '00_Constants.js') {
+        let content = fs.readFileSync(srcPath, 'utf8');
+
+        // PRODUCTION_MODE の値をビルド時の環境に応じて設定
+        content = content.replace(
+          /PRODUCTION_MODE:\s*typeof ScriptApp[^,]+,/,
+          `PRODUCTION_MODE: ${isProduction},`,
+        );
+
+        fs.writeFileSync(destPath, content);
+        console.log(
+          `[${formatTime()}]   ✅ ${jsFile} copied (PRODUCTION_MODE=${isProduction})`,
+        );
+      } else {
+        fs.copyFileSync(srcPath, destPath);
+        console.log(`[${formatTime()}]   ✅ ${jsFile} copied`);
+      }
     }
   }
 
@@ -132,6 +178,9 @@ class UnifiedBuilder {
       return this.generateFallbackJavaScript();
     }
 
+    // 環境判定
+    const isProduction = this.detectEnvironment();
+
     const frontendFiles = fs
       .readdirSync(this.frontendDir)
       .filter(file => file.endsWith('.js'))
@@ -142,7 +191,14 @@ class UnifiedBuilder {
     // --- ▼▼▼ 定数ファイル自動注入 ▼▼▼ ---
     const constantsPath = path.join(this.backendDir, '00_Constants.js');
     if (fs.existsSync(constantsPath)) {
-      const constantsContent = fs.readFileSync(constantsPath, 'utf8');
+      let constantsContent = fs.readFileSync(constantsPath, 'utf8');
+
+      // PRODUCTION_MODE の値をビルド時の環境に応じて設定
+      constantsContent = constantsContent.replace(
+        /PRODUCTION_MODE:\s*typeof ScriptApp[^,]+,/,
+        `PRODUCTION_MODE: ${isProduction},`,
+      );
+
       unifiedContent += `
   // =================================================================
   // 00_Constants.js (自動注入 from backend)
