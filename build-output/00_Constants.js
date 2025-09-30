@@ -22,7 +22,7 @@ const CONSTANTS = {
   // 環境設定（PRODUCTION_MODEはビルド時に自動設定される）
   ENVIRONMENT: {
     DEBUG_MODE: typeof DEBUG !== 'undefined' ? DEBUG : false,
-    PRODUCTION_MODE: false,
+    PRODUCTION_MODE: true,
   },
 
   /**

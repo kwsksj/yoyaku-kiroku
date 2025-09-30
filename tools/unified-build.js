@@ -118,7 +118,7 @@ class UnifiedBuilder {
 
         // PRODUCTION_MODE の値をビルド時の環境に応じて設定
         content = content.replace(
-          /PRODUCTION_MODE:\s*typeof ScriptApp[^,]+,/,
+          /PRODUCTION_MODE:\s*[^,]+,/,
           `PRODUCTION_MODE: ${isProduction},`,
         );
 
@@ -195,7 +195,7 @@ class UnifiedBuilder {
 
       // PRODUCTION_MODE の値をビルド時の環境に応じて設定
       constantsContent = constantsContent.replace(
-        /PRODUCTION_MODE:\s*typeof ScriptApp[^,]+,/,
+        /PRODUCTION_MODE:\s*[^,]+,/,
         `PRODUCTION_MODE: ${isProduction},`,
       );
 
