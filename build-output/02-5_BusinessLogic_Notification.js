@@ -51,7 +51,9 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
     }
 
     // 件名（テスト環境では[テスト]プレフィックス追加）
-    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
+    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
+      ? ''
+      : '[テスト]';
     const emailSubject = `${subjectPrefix}【川崎誠二 木彫り教室】予約・日程のお知らせ！`;
 
     let successCount = 0;
@@ -334,7 +336,6 @@ function _generateEmailBody(student, reservations, lessons) {
   return body;
 }
 
-
 /**
  * 時刻範囲をフォーマット（例: 13:00-15:30）
  * @param {string|Date} startTime - 開始時刻
@@ -386,7 +387,9 @@ function _notifyAdminAboutFailures(successCount, failCount) {
     if (!adminEmail) return;
 
     // 件名（テスト環境では[テスト]プレフィックス追加）
-    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
+    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
+      ? ''
+      : '[テスト]';
     const subject = `${subjectPrefix}【システム通知】月次通知メール送信結果`;
 
     MailApp.sendEmail({

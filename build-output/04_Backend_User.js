@@ -93,6 +93,20 @@ function authenticateUserLightweight(phoneNumber) {
 
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
       if (storedPhone && storedPhone === normalizedInputPhone) {
+        // タスク2: 退会済みチェック
+        if (student.status === '退会済み') {
+          logActivity(
+            student.studentId,
+            '軽量ログイン試行（退会済み）',
+            '拒否',
+            '電話番号: ' + phoneNumber,
+          );
+          return {
+            success: false,
+            message: 'このアカウントは退会済みです。',
+          };
+        }
+
         foundUser = {
           studentId: student.studentId,
           displayName: String(student.nickname || student.realName),
@@ -212,6 +226,20 @@ function authenticateUser(phoneNumber) {
 
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
       if (storedPhone && storedPhone === normalizedInputPhone) {
+        // タスク2: 退会済みチェック
+        if (student.status === '退会済み') {
+          logActivity(
+            student.studentId,
+            'ログイン試行（退会済み）',
+            '拒否',
+            `電話番号: ${phoneNumber}`,
+          );
+          return {
+            success: false,
+            message: 'このアカウントは退会済みです。',
+          };
+        }
+
         foundUser = {
           studentId: student.studentId,
           displayName: String(student.nickname || student.realName),
@@ -488,6 +516,251 @@ function _isValidEmail(email) {
 }
 
 /**
+ * ユーザーアカウントを退会（論理削除）します（タスク2実装）
+ * @param {string} studentId - 生徒ID
+ * @returns {ApiResponseGeneric<{message: string}>}
+ */
+function requestAccountDeletion(studentId) {
+  return withTransaction(() => {
+    try {
+      if (!studentId) {
+        return { success: false, message: '生徒IDが指定されていません。' };
+      }
+
+      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+      if (!rosterSheet) {
+        throw new Error('シート「生徒名簿」が見つかりません。');
+      }
+
+      // ヘッダー行を取得
+      const header = rosterSheet
+        .getRange(1, 1, 1, rosterSheet.getLastColumn())
+        .getValues()[0];
+
+      const studentIdColIdx = header.indexOf(
+        CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+      );
+      const statusColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.STATUS);
+
+      if (studentIdColIdx === -1) {
+        throw new Error('生徒名簿のヘッダーに「生徒ID」列が見つかりません。');
+      }
+
+      if (statusColIdx === -1) {
+        throw new Error(
+          '生徒名簿のヘッダーに「ステータス」列が見つかりません。手動で列を追加してください。',
+        );
+      }
+
+      // 全データを取得
+      const lastRow = rosterSheet.getLastRow();
+      if (lastRow < 2) {
+        throw new Error('生徒名簿にデータがありません。');
+      }
+
+      const allData = rosterSheet
+        .getRange(2, 1, lastRow - 1, header.length)
+        .getValues();
+
+      // 該当ユーザーを検索
+      let targetRowIndex = -1;
+      let currentStatus = '';
+
+      for (let i = 0; i < allData.length; i++) {
+        if (allData[i][studentIdColIdx] === studentId) {
+          targetRowIndex = i + 2; // ヘッダーを考慮して+2
+          currentStatus = String(allData[i][statusColIdx] || '');
+          break;
+        }
+      }
+
+      if (targetRowIndex === -1) {
+        return {
+          success: false,
+          message: '指定されたユーザーが見つかりません。',
+        };
+      }
+
+      // セキュリティチェック: 既に退会済みの場合はエラー
+      if (currentStatus === '退会済み') {
+        return {
+          success: false,
+          message: 'このアカウントは既に退会済みです。',
+        };
+      }
+
+      // ステータス列に「退会済み」を書き込み
+      rosterSheet
+        .getRange(targetRowIndex, statusColIdx + 1)
+        .setValue('退会済み');
+
+      // ログ記録
+      logActivity(
+        studentId,
+        'アカウント退会',
+        '成功',
+        `退会処理完了: studentId=${studentId}`,
+      );
+
+      // キャッシュ更新
+      rebuildAllStudentsBasicCache();
+
+      Logger.log(`requestAccountDeletion成功: studentId=${studentId}`);
+
+      return {
+        success: true,
+        data: {
+          message: '退会処理が完了しました。',
+        },
+      };
+    } catch (err) {
+      Logger.log(`requestAccountDeletion Error: ${err.message}`);
+      logActivity(
+        studentId || 'N/A',
+        'アカウント退会エラー',
+        '失敗',
+        `Error: ${err.message}`,
+      );
+      return {
+        success: false,
+        message: `サーバーエラーが発生しました。`,
+      };
+    }
+  });
+}
+
+/**
+ * プロフィール編集用にユーザーの詳細情報をシートから取得します。
+ * @param {string} studentId - 生徒ID
+ * @returns {ApiResponseGeneric<UserDetailForEdit>}
+ */
+function getUserDetailForEdit(studentId) {
+  try {
+    if (!studentId) {
+      return { success: false, message: '生徒IDが指定されていません。' };
+    }
+
+    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+    if (!rosterSheet) {
+      throw new Error('シート「生徒名簿」が見つかりません。');
+    }
+
+    // ヘッダー行を取得
+    const header = rosterSheet
+      .getRange(1, 1, 1, rosterSheet.getLastColumn())
+      .getValues()[0];
+
+    // 列インデックスを取得
+    const studentIdColIdx = header.indexOf(
+      CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+    );
+    const realNameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
+    const nicknameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
+    const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
+    const emailColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
+    const emailPreferenceColIdx = header.indexOf(
+      CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+    );
+    const addressColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.ADDRESS);
+    const ageGroupColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.AGE_GROUP);
+    const genderColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.GENDER);
+    const dominantHandColIdx = header.indexOf(
+      CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
+    );
+    const futureCreationsColIdx = header.indexOf(
+      CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
+    );
+    const notificationDayColIdx = header.indexOf(
+      CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
+    );
+    const notificationHourColIdx = header.indexOf(
+      CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
+    );
+
+    if (studentIdColIdx === -1) {
+      throw new Error('生徒名簿のヘッダーに「生徒ID」列が見つかりません。');
+    }
+
+    // 全データを取得
+    const lastRow = rosterSheet.getLastRow();
+    if (lastRow < 2) {
+      throw new Error('生徒名簿にデータがありません。');
+    }
+
+    const allData = rosterSheet
+      .getRange(2, 1, lastRow - 1, header.length)
+      .getValues();
+
+    // 該当ユーザーを検索
+    let userRow = null;
+    for (let i = 0; i < allData.length; i++) {
+      if (allData[i][studentIdColIdx] === studentId) {
+        userRow = allData[i];
+        break;
+      }
+    }
+
+    if (!userRow) {
+      return {
+        success: false,
+        message: '指定されたユーザーが見つかりません。',
+      };
+    }
+
+    // ユーザー詳細情報を構築
+    const userDetail = {
+      studentId: studentId,
+      realName: realNameColIdx !== -1 ? String(userRow[realNameColIdx]) : '',
+      nickname: nicknameColIdx !== -1 ? String(userRow[nicknameColIdx]) : '',
+      phone: phoneColIdx !== -1 ? String(userRow[phoneColIdx]) : '',
+      email: emailColIdx !== -1 ? String(userRow[emailColIdx]) : '',
+      wantsEmail:
+        emailPreferenceColIdx !== -1
+          ? String(userRow[emailPreferenceColIdx]).toUpperCase() === 'TRUE'
+          : false,
+      address: addressColIdx !== -1 ? String(userRow[addressColIdx]) : '',
+      ageGroup: ageGroupColIdx !== -1 ? String(userRow[ageGroupColIdx]) : '',
+      gender: genderColIdx !== -1 ? String(userRow[genderColIdx]) : '',
+      dominantHand:
+        dominantHandColIdx !== -1 ? String(userRow[dominantHandColIdx]) : '',
+      futureCreations:
+        futureCreationsColIdx !== -1
+          ? String(userRow[futureCreationsColIdx])
+          : '',
+      notificationDay:
+        notificationDayColIdx !== -1
+          ? String(userRow[notificationDayColIdx])
+          : '',
+      notificationHour:
+        notificationHourColIdx !== -1
+          ? String(userRow[notificationHourColIdx])
+          : '',
+    };
+
+    Logger.log(
+      `getUserDetailForEdit成功: studentId=${studentId}, realName=${userDetail.realName}`,
+    );
+
+    return {
+      success: true,
+      data: userDetail,
+    };
+  } catch (err) {
+    Logger.log(`getUserDetailForEdit Error: ${err.message}`);
+    logActivity(
+      studentId || 'N/A',
+      'プロフィール詳細取得エラー',
+      '失敗',
+      `Error: ${err.message}`,
+    );
+    return {
+      success: false,
+      message: `サーバーエラーが発生しました。`,
+    };
+  }
+}
+
+/**
  * ユーザーのプロフィール（本名、ニックネーム、電話番号、メールアドレス）を更新します。
  * @param {UserProfileUpdate} userInfo - プロフィール更新情報
  * @returns {ApiResponseGeneric<UserProfileUpdateResult>}
@@ -644,6 +917,50 @@ function updateUserProfile(userInfo) {
         rosterSheet
           .getRange(targetRowIndex, notificationHourColIdx + 1)
           .setValue(userInfo.notificationHour);
+      }
+
+      // 追加情報の更新（タスク3で追加）
+      const addressColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.ADDRESS);
+      const ageGroupColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.AGE_GROUP);
+      const genderColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.GENDER);
+      const dominantHandColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
+      );
+      const futureCreationsColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
+      );
+
+      if (userInfo.address !== undefined && addressColIdx !== -1) {
+        rosterSheet
+          .getRange(targetRowIndex, addressColIdx + 1)
+          .setValue(userInfo.address || '');
+      }
+
+      if (userInfo.ageGroup !== undefined && ageGroupColIdx !== -1) {
+        rosterSheet
+          .getRange(targetRowIndex, ageGroupColIdx + 1)
+          .setValue(userInfo.ageGroup || '');
+      }
+
+      if (userInfo.gender !== undefined && genderColIdx !== -1) {
+        rosterSheet
+          .getRange(targetRowIndex, genderColIdx + 1)
+          .setValue(userInfo.gender || '');
+      }
+
+      if (userInfo.dominantHand !== undefined && dominantHandColIdx !== -1) {
+        rosterSheet
+          .getRange(targetRowIndex, dominantHandColIdx + 1)
+          .setValue(userInfo.dominantHand || '');
+      }
+
+      if (
+        userInfo.futureCreations !== undefined &&
+        futureCreationsColIdx !== -1
+      ) {
+        rosterSheet
+          .getRange(targetRowIndex, futureCreationsColIdx + 1)
+          .setValue(userInfo.futureCreations || '');
       }
 
       logActivity(

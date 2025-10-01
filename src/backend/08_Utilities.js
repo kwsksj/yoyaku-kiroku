@@ -266,7 +266,9 @@ function sendAdminNotification(subject, body) {
     // }
 
     // テスト環境の場合は件名に[テスト]プレフィックス追加
-    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
+    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
+      ? ''
+      : '[テスト]';
     const finalSubject = `${subjectPrefix}[予約システム通知] ${subject}`;
 
     MailApp.sendEmail({

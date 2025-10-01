@@ -103,7 +103,7 @@ const authActionHandlers = {
         ) {
           setTimeout(() => {
             showInfo(
-              '月次メール通知の設定が未完了です。\n\nプロフィール編集から「通知を受け取る日」と「通知時刻」を設定してください。',
+              '日程連絡のメール送信の日時が設定できるようになりました！\n\nプロフィール編集から「通知を受け取る日」と「通知時刻」を設定してください。',
               '通知設定のお願い',
             );
           }, 500);
@@ -340,6 +340,19 @@ const authActionHandlers = {
 
   /** 新規ユーザー登録：最終データをサーバーに送信（簡素化版） */
   submitRegistration: () => {
+    // タスク1: プライバシーポリシー同意チェック
+    const privacyAgreeCheckbox = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('privacy-policy-agree')
+    );
+
+    if (!privacyAgreeCheckbox?.checked) {
+      showInfo(
+        'プライバシーポリシーに同意していただく必要があります。',
+        '確認',
+      );
+      return;
+    }
+
     /** @type {HTMLInputElement | null} */
     const futureParticipationInput = document.querySelector(
       'input[name="futureParticipation"]:checked',
@@ -501,29 +514,29 @@ const authActionHandlers = {
       .updateUserProfile(u);
   },
 
-  /** プロフィール編集画面に遷移します */
-  goToEditProfile: () => {
-    // データが古く、かつ更新中でなければデータを更新
-    if (
-      !stateManager.getState().isDataFresh &&
-      !stateManager.getState()._dataUpdateInProgress
-    ) {
-      updateAppStateFromCache('editProfile');
-    } else {
-      // 新しいdispatchパターンを使用
-      if (window.stateManager) {
-        window.stateManager.dispatch({
-          type: 'CHANGE_VIEW',
-          payload: { view: 'editProfile' },
-        });
-      } else {
-        window.stateManager.dispatch({
-          type: 'SET_STATE',
-          payload: { view: 'editProfile' },
-        });
-      }
-    }
-  },
+  // /** プロフィール編集画面に遷移します */
+  // goToEditProfile: () => {
+  //   // データが古く、かつ更新中でなければデータを更新
+  //   if (
+  //     !stateManager.getState().isDataFresh &&
+  //     !stateManager.getState()._dataUpdateInProgress
+  //   ) {
+  //     updateAppStateFromCache('editProfile');
+  //   } else {
+  //     // 新しいdispatchパターンを使用
+  //     if (window.stateManager) {
+  //       window.stateManager.dispatch({
+  //         type: 'CHANGE_VIEW',
+  //         payload: { view: 'editProfile' },
+  //       });
+  //     } else {
+  //       window.stateManager.dispatch({
+  //         type: 'SET_STATE',
+  //         payload: { view: 'editProfile' },
+  //       });
+  //     }
+  //   }
+  // },
 
   /** ログイン画面に戻ります（電話番号入力値を保存） */
   goBackToLogin: () => {
@@ -535,5 +548,232 @@ const authActionHandlers = {
       type: 'NAVIGATE',
       payload: { to: 'login', context: { loginPhone: loginPhone } },
     });
+  },
+
+  /** プロフィール編集画面に遷移します（タスク3実装） */
+  goToEditProfile: () => {
+    const state = stateManager.getState();
+    const studentId = state.currentUser?.studentId;
+
+    if (!studentId) {
+      showInfo('ユーザー情報が見つかりません。', 'エラー');
+      return;
+    }
+
+    showLoading();
+
+    // バックエンドから最新のユーザー詳細情報を取得
+    google.script.run
+      .withSuccessHandler(response => {
+        hideLoading();
+        if (response.success) {
+          // ユーザー詳細情報をstateに保存
+          stateManager.dispatch({
+            type: 'UPDATE_STATE',
+            payload: { userDetailForEdit: response.data },
+          });
+          // プロフィール編集画面に遷移
+          stateManager.dispatch({
+            type: 'NAVIGATE',
+            payload: { to: 'editProfile' },
+          });
+        } else {
+          showInfo(
+            response.message || 'ユーザー情報の取得に失敗しました。',
+            'エラー',
+          );
+        }
+      })
+      .withFailureHandler(error => {
+        hideLoading();
+        showInfo('ユーザー情報の取得中にエラーが発生しました。', 'エラー');
+        console.error('getUserDetailForEdit error:', error);
+      })
+      .getUserDetailForEdit(studentId);
+  },
+
+  /** プロフィール情報を更新します（タスク3実装） */
+  updateProfile: () => {
+    const state = stateManager.getState();
+    const studentId = state.currentUser?.studentId;
+
+    if (!studentId) {
+      showInfo('ユーザー情報が見つかりません。', 'エラー');
+      return;
+    }
+
+    // フォームから値を取得
+    const realName = getInputElementSafely('profile-realName')?.value?.trim();
+    const nickname = getInputElementSafely('profile-nickname')?.value?.trim();
+    const phone = getInputElementSafely('profile-phone')?.value?.trim();
+    const email = getInputElementSafely('profile-email')?.value?.trim();
+    const wantsEmail = document.getElementById('profile-wantsEmail')?.checked;
+    const address = getInputElementSafely('profile-address')?.value?.trim();
+    const ageGroup = document.getElementById('profile-ageGroup')?.value;
+    const gender = document.getElementById('profile-gender')?.value;
+    const dominantHand = document.getElementById('profile-dominantHand')?.value;
+    const futureCreations = document
+      .getElementById('profile-futureCreations')
+      ?.value?.trim();
+    const notificationDay = document.getElementById(
+      'profile-notificationDay',
+    )?.value;
+    const notificationHour = document.getElementById(
+      'profile-notificationHour',
+    )?.value;
+
+    // 必須項目のバリデーション
+    if (!realName || !nickname || !phone) {
+      showInfo('本名、ニックネーム、電話番号は必須項目です。', '入力エラー');
+      return;
+    }
+
+    // 電話番号のフロントエンド検証
+    const normalizeResult = window.normalizePhoneNumberFrontend(phone);
+    if (!normalizeResult.isValid) {
+      showInfo(
+        normalizeResult.error || '電話番号の形式が正しくありません。',
+        '入力エラー',
+      );
+      return;
+    }
+
+    // 更新データを構築
+    const updateData = {
+      studentId: studentId,
+      realName: realName,
+      displayName: nickname, // nicknameをdisplayNameとして送信
+      phone: normalizeResult.normalized,
+      email: email || '',
+      wantsEmail: wantsEmail || false,
+      address: address || '',
+      ageGroup: ageGroup || '',
+      gender: gender || '',
+      dominantHand: dominantHand || '',
+      futureCreations: futureCreations || '',
+      notificationDay: notificationDay || '',
+      notificationHour: notificationHour || '',
+    };
+
+    showLoading();
+
+    // バックエンドに更新リクエストを送信
+    google.script.run
+      .withSuccessHandler(response => {
+        hideLoading();
+        if (response.success) {
+          // currentUserを更新
+          stateManager.dispatch({
+            type: 'UPDATE_STATE',
+            payload: {
+              currentUser: {
+                ...state.currentUser,
+                displayName: nickname,
+                realName: realName,
+                phone: normalizeResult.normalized,
+                email: email || '',
+                wantsEmail: wantsEmail || false,
+              },
+            },
+          });
+
+          showInfo('プロフィールを更新しました。', '成功');
+
+          // ダッシュボードに戻る
+          setTimeout(() => {
+            stateManager.dispatch({
+              type: 'NAVIGATE',
+              payload: { to: 'dashboard' },
+            });
+          }, 1500);
+        } else {
+          showInfo(
+            response.message || 'プロフィールの更新に失敗しました。',
+            'エラー',
+          );
+        }
+      })
+      .withFailureHandler(error => {
+        hideLoading();
+        showInfo('プロフィール更新中にエラーが発生しました。', 'エラー');
+        console.error('updateUserProfile error:', error);
+      })
+      .updateUserProfile(updateData);
+  },
+
+  /** アカウント退会処理を実行します（タスク2実装） */
+  requestAccountDeletion: () => {
+    const state = stateManager.getState();
+    const studentId = state.currentUser?.studentId;
+
+    if (!studentId) {
+      showInfo('ユーザー情報が見つかりません。', 'エラー');
+      return;
+    }
+
+    // 確認ダイアログを表示
+    const confirmed = window.confirm(
+      '本当に退会しますか？\n\nこの操作は取り消せません。アカウント情報が無効化され、再度ログインできなくなります。',
+    );
+
+    if (!confirmed) {
+      return; // キャンセルされた場合は何もしない
+    }
+
+    showLoading();
+
+    // バックエンドに退会リクエストを送信
+    google.script.run
+      .withSuccessHandler(response => {
+        hideLoading();
+        if (response.success) {
+          // 成功メッセージを表示
+          showInfo(
+            '退会処理が完了しました。ご利用ありがとうございました。',
+            '退会完了',
+          );
+
+          // ログアウト処理（stateをクリア）
+          setTimeout(() => {
+            stateManager.dispatch({ type: 'LOGOUT' });
+            // ログイン画面に遷移
+            stateManager.dispatch({
+              type: 'NAVIGATE',
+              payload: { to: 'login' },
+            });
+          }, 2000);
+        } else {
+          showInfo(response.message || '退会処理に失敗しました。', 'エラー');
+        }
+      })
+      .withFailureHandler(error => {
+        hideLoading();
+        showInfo('退会処理中にエラーが発生しました。', 'エラー');
+        console.error('requestAccountDeletion error:', error);
+      })
+      .requestAccountDeletion(studentId);
+  },
+
+  /** プライバシーポリシーを表示します（タスク1実装） */
+  showPrivacyPolicy: () => {
+    // 既存のモーダルを削除
+    const existingModal = document.getElementById('privacy-policy-modal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // モーダルHTMLを生成してDOMに追加
+    const modalHtml = getPrivacyPolicyModal();
+    const appContainer = document.getElementById('app');
+    if (appContainer) {
+      appContainer.insertAdjacentHTML('beforeend', modalHtml);
+      // モーダルを表示
+      Components.showModal('privacy-policy-modal');
+    }
+  },
+
+  /** プライバシーポリシーモーダルを閉じます（タスク1実装） */
+  closePrivacyPolicy: () => {
+    Components.closeModal('privacy-policy-modal');
   },
 };

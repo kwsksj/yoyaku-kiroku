@@ -103,8 +103,8 @@ function onOpen() {
  * @param {GoogleAppsScript.Base.Menu} menu
  */
 function addAdminMenu(menu) {
-  menu
- }
+  menu;
+}
 
 /**
  * @param {GoogleAppsScript.Base.Menu} menu

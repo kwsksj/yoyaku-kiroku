@@ -13,6 +13,83 @@
  */
 
 // =================================================================
+// --- Privacy Policy Content (タスク1で追加) ---
+// -----------------------------------------------------------------
+// プライバシーポリシーの内容を定数として定義
+// =================================================================
+
+/**
+ * プライバシーポリシーの内容（Markdown形式）
+ */
+const PRIVACY_POLICY_CONTENT = `# プライバシーポリシー
+
+川崎誠二木彫り教室 予約システム「きぼりの よやく・きろく」（以下「本サービス」といいます）は、利用者の皆様（以下「ユーザー」といいます）の個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
+
+## 1. 事業者の名称および連絡先
+
+* **名称:** 川崎誠二
+* **連絡先:** [お問い合わせフォーム](https:\/\/www.kibori-class.net/contact)
+
+## 2. 個人情報の取得方法
+
+本サービスは、ユーザーが利用登録または予約を行う際に、以下の情報をフォームへの入力によって取得します。
+
+**【登録に必須の情報】**
+
+* 氏名（本名）
+* 電話番号
+* メールアドレス
+
+**【任意でご提供いただく情報】**
+
+* ニックネーム
+* お住まいの地域（市区町村など）
+* 年代
+* その他、ユーザーが任意で入力する情報
+
+## 3. 個人情報の利用目的
+
+取得した個人情報は、以下の目的で利用いたします。
+
+* ユーザーのアカウント認証および本人確認のため
+* 予約の受付、管理、および変更・キャンセル等の連絡のため
+* 教室の利用に関する緊急の連絡のため
+* ユーザーからのお問い合わせに対応するため
+* 教室からの重要なお知らせ（日程変更など）を連絡のため
+* （メール配信を希望した場合）空席情報などのご案内を送付するため
+* より良い教室運営や指導を行うための参考情報として（任意でご提供いただいた情報に限る）
+
+## 4. 個人データの第三者提供について
+
+本サービスは、次の場合を除き、あらかじめユーザーの同意を得ることなく、第三者に個人データを提供することはありません。
+
+* 法令に基づく場合
+* 人の生命、身体または財産の保護のために必要がある場合であって、本人の同意を得ることが困難であるとき
+
+## 5. 個人データの安全管理措置
+
+本サービスは、ユーザーの個人情報を正確かつ最新の内容に保つよう努め、不正なアクセス・改ざん・漏えい・滅失及び毀損から保護するため、適切な安全管理措置を講じます。
+
+なお、本サービスのデータは、セキュリティに優れたGoogle社の提供するGoogleスプレッドシート上に保管・管理されています。
+
+## 6. 個人データの開示、訂正、削除
+
+ユーザーは、本サービスが保有している自己の個人情報について、開示、訂正、追加、削除、または利用の停止を求めることができます。
+
+登録情報の訂正・追加は、ログイン後のプロフィール編集ページにてご自身で操作いただけます。アカウントの削除（退会）やその他のご要望については、上記の連絡先までお問い合わせください。本人確認を行った上で、法令に従い速やかに対応いたします。
+
+## 7. 免責事項
+
+本サービスの利用によって生じたいかなるトラブル・損失・損害についても、当方は一切責任を負わないものとします。
+
+## 8. プライバシーポリシーの変更
+
+本ポリシーの内容は、法令その他本ポリシーに別段の定めのある事項を除いて、ユーザーに通知することなく、変更することができるものとします。変更後のプライバシーポリシーは、本ページに掲載したときから効力を生じるものとします。
+
+【2025年9月30日 策定】
+`;
+
+// =================================================================
 // --- View Helper Components ---
 // -----------------------------------------------------------------
 // 各ビューを構成するための、より小さな部品を生成するヘルパー関数群。
@@ -200,4 +277,233 @@ const getCompleteView = msg => {
         ${nextBookingHtml}
 
     </div>`;
+};
+
+/**
+ * プロフィール編集画面のUIを生成します（タスク3実装）
+ * @returns {string} HTML文字列
+ */
+const getProfileEditView = () => {
+  const state = stateManager.getState();
+  const userDetail = state.userDetailForEdit || {};
+
+  return `
+    <div class="container py-2">
+        <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">プロフィール編集</h1>
+
+        <form id="profile-edit-form" class="space-y-4">
+            <!-- 基本情報セクション -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold ${DesignConfig.colors.text} mb-3 border-b pb-2">基本情報</h2>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">本名 <span class="text-red-500">*</span></label>
+                        <input type="text"
+                               id="profile-realName"
+                               value="${escapeHTML(userDetail.realName || '')}"
+                               class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}"
+                               required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">ニックネーム <span class="text-red-500">*</span></label>
+                        <input type="text"
+                               id="profile-nickname"
+                               value="${escapeHTML(userDetail.nickname || '')}"
+                               class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}"
+                               required>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">電話番号 <span class="text-red-500">*</span></label>
+                        <input type="tel"
+                               id="profile-phone"
+                               value="${escapeHTML(userDetail.phone || '')}"
+                               class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}"
+                               required>
+                        <p class="text-xs text-gray-600 mt-1">070, 080, 090で始まる11桁の番号</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">メールアドレス</label>
+                        <input type="email"
+                               id="profile-email"
+                               value="${escapeHTML(userDetail.email || '')}"
+                               class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
+                    </div>
+
+                    <div class="flex items-center">
+                        <input type="checkbox"
+                               id="profile-wantsEmail"
+                               ${userDetail.wantsEmail ? 'checked' : ''}
+                               class="mr-2">
+                        <label for="profile-wantsEmail" class="text-sm ${DesignConfig.colors.text}">メール配信を希望する</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 追加情報セクション -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold ${DesignConfig.colors.text} mb-3 border-b pb-2">追加情報</h2>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">お住まいの地域</label>
+                        <input type="text"
+                               id="profile-address"
+                               value="${escapeHTML(userDetail.address || '')}"
+                               placeholder="例: 東京都渋谷区"
+                               class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">年代</label>
+                        <select id="profile-ageGroup" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
+                            <option value="">選択してください</option>
+                            <option value="10代" ${userDetail.ageGroup === '10代' ? 'selected' : ''}>10代</option>
+                            <option value="20代" ${userDetail.ageGroup === '20代' ? 'selected' : ''}>20代</option>
+                            <option value="30代" ${userDetail.ageGroup === '30代' ? 'selected' : ''}>30代</option>
+                            <option value="40代" ${userDetail.ageGroup === '40代' ? 'selected' : ''}>40代</option>
+                            <option value="50代" ${userDetail.ageGroup === '50代' ? 'selected' : ''}>50代</option>
+                            <option value="60代" ${userDetail.ageGroup === '60代' ? 'selected' : ''}>60代</option>
+                            <option value="70代以上" ${userDetail.ageGroup === '70代以上' ? 'selected' : ''}>70代以上</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">性別</label>
+                        <select id="profile-gender" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
+                            <option value="">選択してください</option>
+                            <option value="男性" ${userDetail.gender === '男性' ? 'selected' : ''}>男性</option>
+                            <option value="女性" ${userDetail.gender === '女性' ? 'selected' : ''}>女性</option>
+                            <option value="その他" ${userDetail.gender === 'その他' ? 'selected' : ''}>その他</option>
+                            <option value="回答しない" ${userDetail.gender === '回答しない' ? 'selected' : ''}>回答しない</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">利き手</label>
+                        <select id="profile-dominantHand" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
+                            <option value="">選択してください</option>
+                            <option value="右" ${userDetail.dominantHand === '右' ? 'selected' : ''}>右</option>
+                            <option value="左" ${userDetail.dominantHand === '左' ? 'selected' : ''}>左</option>
+                            <option value="両方" ${userDetail.dominantHand === '両方' ? 'selected' : ''}>両方</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 目標セクション -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold ${DesignConfig.colors.text} mb-3 border-b pb-2">目標</h2>
+
+                <div>
+                    <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">将来的に作りたいもの</label>
+                    <textarea id="profile-futureCreations"
+                              rows="3"
+                              placeholder="例: 木彫りのお面、動物の置物など"
+                              class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">${escapeHTML(userDetail.futureCreations || '')}</textarea>
+                </div>
+            </div>
+
+            <!-- 通知設定セクション -->
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold ${DesignConfig.colors.text} mb-3 border-b pb-2">通知設定</h2>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">通知日</label>
+                        <select id="profile-notificationDay" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
+                            <option value="">通知しない</option>
+                            ${CONSTANTS.NOTIFICATION.DAYS.map(
+                              day =>
+                                `<option value="${day}" ${String(userDetail.notificationDay) === String(day) ? 'selected' : ''}>${day}日</option>`,
+                            ).join('')}
+                        </select>
+                        <p class="text-xs text-gray-600 mt-1">毎月指定日に予定をお知らせします</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">通知時刻</label>
+                        <select id="profile-notificationHour" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
+                            <option value="">選択してください</option>
+                            ${CONSTANTS.NOTIFICATION.HOURS.map(
+                              hour =>
+                                `<option value="${hour}" ${String(userDetail.notificationHour) === String(hour) ? 'selected' : ''}>${hour}時</option>`,
+                            ).join('')}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作ボタン -->
+            <div class="space-y-3 mt-6">
+                ${Components.button({
+                  text: '保存',
+                  action: 'updateProfile',
+                  style: 'primary',
+                  size: 'normal',
+                })}
+
+                ${Components.button({
+                  text: 'キャンセル',
+                  action: 'goToDashboard',
+                  style: 'secondary',
+                  size: 'normal',
+                })}
+            </div>
+
+            <!-- 退会ボタン（タスク2で必要） -->
+            <div class="mt-8 pt-6 border-t border-gray-300">
+                <button type="button"
+                        data-action="requestAccountDeletion"
+                        class="w-full bg-red-600 text-white px-4 py-3 rounded-md font-medium hover:bg-red-700 active:bg-red-800">
+                    退会する
+                </button>
+                <p class="text-xs text-gray-600 mt-2 text-center">※ 退会すると、アカウント情報が無効化されます。この操作は取り消せません。</p>
+            </div>
+        </form>
+    </div>`;
+};
+
+/**
+ * プライバシーポリシーのモーダルを生成します（タスク1実装）
+ * @returns {string} HTML文字列
+ */
+const getPrivacyPolicyModal = () => {
+  // marked.jsライブラリが読み込まれていることを確認
+  if (typeof marked === 'undefined') {
+    console.error('marked.js is not loaded!');
+    return Components.modal({
+      id: 'privacy-policy-modal',
+      title: 'エラー',
+      content: '<p>コンテンツを読み込めませんでした。</p>',
+      maxWidth: 'max-w-3xl',
+      showCloseButton: true,
+    });
+  }
+
+  const policyHtml = marked.parse(PRIVACY_POLICY_CONTENT);
+
+  const content = `
+    <div class="markdown-content">
+        ${policyHtml}
+    </div>
+    <div class="mt-6 text-center">
+        ${Components.button({
+          text: '閉じる',
+          action: 'closePrivacyPolicy',
+          style: 'secondary',
+          size: 'normal',
+        })}
+    </div>`;
+
+  return Components.modal({
+    id: 'privacy-policy-modal',
+    title: 'プライバシーポリシー',
+    content: content,
+    maxWidth: 'max-w-3xl',
+    showCloseButton: true,
+  });
 };

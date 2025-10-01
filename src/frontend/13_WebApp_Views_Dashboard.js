@@ -305,30 +305,85 @@ const _checkIfLessonAvailable = booking => {
   }
 
   // 2部制の場合はセッション別に判定
-  if (targetLesson.schedule.type === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
-    const sessionStatus = targetLesson.status.sessionStatus;
-    if (!sessionStatus) return false;
+  if (
+    targetLesson.schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL
+  ) {
+    const status = targetLesson.status;
+    const schedule = targetLesson.schedule;
+    const bookingStartTime = booking.startTime;
+    const bookingEndTime = booking.endTime;
 
-    // 予約の時間帯から対応するセッションを判定
-    const reservationHour = parseInt(booking.startTime.split(':')[0]);
-    const morningEndHour = CONSTANTS.LIMITS.TSUKUBA_MORNING_SESSION_END_HOUR;
-    const isAfternoonReservation = reservationHour >= morningEndHour;
+    // --- 必須データの存在チェック ---
+    if (!status || !schedule || !bookingStartTime || !bookingEndTime) {
+      if (!window.isProduction) {
+        console.error(
+          '❌ 2部制判定エラー: 必須データ(status, schedule, booking times)が不足しています。',
+          { booking, targetLesson },
+        );
+      }
+      return false;
+    }
 
-    const targetSession = isAfternoonReservation
-      ? sessionStatus[CONSTANTS.SESSIONS.AFTERNOON]
-      : sessionStatus[CONSTANTS.SESSIONS.MORNING];
+    const morningEndTime = schedule.firstEnd;
+    const afternoonStartTime = schedule.secondStart;
 
-    const isAvailable =
-      targetSession &&
-      !targetSession.isFull &&
-      targetSession.availableSlots > 0;
+    // --- セッション境界時刻の存在チェック ---
+    if (!morningEndTime || !afternoonStartTime) {
+      if (!window.isProduction) {
+        console.error(
+          '❌ 2部制判定エラー: セッション境界時刻(firstEnd, secondStart)がscheduleに定義されていません。',
+          { schedule },
+        );
+      }
+      return false;
+    }
+
+    // --- 予約時間に基づいて、チェックが必要なセッションを判断 ---
+    const morningCheckRequired = bookingStartTime < morningEndTime;
+    const afternoonCheckRequired = bookingEndTime > afternoonStartTime;
+
+    // 予約がどちらのセッションにもかからない場合、不正な予約時間とみなしfalseを返す
+    if (!morningCheckRequired && !afternoonCheckRequired) {
+      if (!window.isProduction) {
+        console.warn('⚠️ 2部制判定警告: 予約時間がセッションの範囲外です。', {
+          booking,
+          schedule,
+        });
+      }
+      return false;
+    }
+
+    // --- 各セッションの空き状況をチェック ---
+    let morningHasSlots = true; // チェック不要な場合はtrueとして扱う
+    if (morningCheckRequired) {
+      morningHasSlots = (status.morningSlots || 0) > 0;
+    }
+
+    let afternoonHasSlots = true; // チェック不要な場合はtrueとして扱う
+    if (afternoonCheckRequired) {
+      afternoonHasSlots = (status.afternoonSlots || 0) > 0;
+    }
+
+    // 必要なセッション全てに空きがあるか最終判定
+    const isAvailable = morningHasSlots && afternoonHasSlots;
 
     if (!window.isProduction) {
-      console.log('📊 2部制判定結果:', {
-        isAfternoonReservation,
-        targetSession,
+      console.log('📊 2部制判定結果 (詳細ロジック):', {
+        bookingTime: `${bookingStartTime}-${bookingEndTime}`,
+        sessionBoundaries: {
+          morningEnd: morningEndTime,
+          afternoonStart: afternoonStartTime,
+        },
+        checks: {
+          morning: morningCheckRequired,
+          afternoon: afternoonCheckRequired,
+        },
+        slots: {
+          morning: status.morningSlots,
+          afternoon: status.afternoonSlots,
+        },
+        result: { morningHasSlots, afternoonHasSlots },
         isAvailable,
-        sessionStatus,
       });
     }
 

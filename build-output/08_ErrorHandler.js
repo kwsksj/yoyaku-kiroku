@@ -135,7 +135,9 @@ class BackendErrorHandler {
     if (!ADMIN_EMAIL) return;
 
     // 件名（テスト環境では[テスト]プレフィックス追加）
-    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
+    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
+      ? ''
+      : '[テスト]';
     const baseSubject = isCritical
       ? `🚨 [重要] システムエラー: ${errorInfo.context}`
       : `⚠️ システムエラー: ${errorInfo.context}`;

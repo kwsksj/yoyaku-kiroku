@@ -4,11 +4,12 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-2_Backend_Write.gs
- * 【バージョン】: 2.6
+ * 【バージョン】: 2.7
  * 【役割】: WebAppからのデータ書き込み・更新要求（Write）と、
  * それに付随する検証ロジックに特化したバックエンド機能。
- * 【v2.6での変更点】:
- * - checkCapacityFullの定員情報を日程マスタに一本化。
+ * 【v2.7での変更点】:
+ * - updateReservationDetailsに定員チェック機能を追加。
+ * - checkCapacityFullの2部制クラス判定ロジックを修正。
  * =================================================================
  *
  * @global sendBookingConfirmationEmailAsync - External service function from 06_ExternalServices.js
@@ -102,13 +103,7 @@ function checkDuplicateReservationOnSameDay(studentId, date) {
       },
     );
 
-    const hasDuplicate = !!duplicateReservation;
-
-    Logger.log(
-      `[checkDuplicateReservationOnSameDay] ${studentId} の ${date} 重複チェック結果: ${hasDuplicate}`,
-    );
-
-    return hasDuplicate;
+    return !!duplicateReservation;
   } catch (error) {
     Logger.log(`checkDuplicateReservationOnSameDay エラー: ${error.message}`);
     return false; // エラー時は重複なしと判断（保守的な動作）
@@ -125,7 +120,7 @@ function checkDuplicateReservationOnSameDay(studentId, date) {
  */
 function checkCapacityFull(classroom, date, startTime, endTime) {
   try {
-    // Available Slots APIを使用して定員状況を取得
+    // 定員状況を取得
     const availableSlotsResponse = getLessons();
 
     if (!availableSlotsResponse.success || !availableSlotsResponse.data) {
@@ -167,20 +162,26 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
       let isMorningRequest = false;
       let isAfternoonRequest = false;
 
-      if (reqStart && firstEndTime && reqStart <= firstEndTime) {
+      if (reqStart && firstEndTime && reqStart < firstEndTime) {
         isMorningRequest = true;
       }
-      if (reqEnd && secondStartTime && reqEnd >= secondStartTime) {
+      if (reqEnd && secondStartTime && reqEnd > secondStartTime) {
         isAfternoonRequest = true;
       }
 
-      if (isMorningRequest && !isAfternoonRequest) {
+      if (isMorningRequest && isAfternoonRequest) {
+        // 【修正点】両方のセッションにまたがる予約の場合、どちらか一方が満席ならNG
+        isFull = status.morningSlots <= 0 || status.afternoonSlots <= 0;
+      } else if (isMorningRequest) {
+        // 午前のみの予約
         isFull = status.morningSlots <= 0;
-      } else if (!isMorningRequest && isAfternoonRequest) {
+      } else if (isAfternoonRequest) {
+        // 午後のみの予約
         isFull = status.afternoonSlots <= 0;
       } else {
-        // 全日の場合は両方の時間帯が満席かチェック
-        isFull = status.morningSlots <= 0 && status.afternoonSlots <= 0;
+        // 予約がセッション時間外の場合 (例: 休憩時間内)
+        // この予約は不正だが、ここでは満席とは扱わず、後続のバリデーションに任せる
+        isFull = false;
       }
     } else {
       // 通常教室（セッション制・全日時間制）の場合
@@ -221,9 +222,7 @@ function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
     throw new Error('最低予約時間は2時間です。');
   }
 
-  // 日程マスタの1部終了時刻と2部開始時刻を休憩時間として扱う
-  /** @type {ScheduleMasterData} */ const scheduleData =
-    /** @type {ScheduleMasterData} */ (scheduleRule);
+  const scheduleData = scheduleRule;
   const breakStart =
     scheduleData.firstEnd &&
     typeof scheduleData.firstEnd === 'string' &&
@@ -250,7 +249,6 @@ function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
 
 /**
  * 予約を実行します。
- * 新しい定員管理ロジック（予約シートの直接スキャン）で予約可否を判断します。
  * @param {ReservationRequest} reservationInfo - 予約情報
  * @returns {ApiResponseGeneric<MakeReservationResult>} - 処理結果
  */
@@ -260,15 +258,6 @@ function makeReservation(reservationInfo) {
       const { classroom, date, user, options, startTime, endTime } =
         reservationInfo || {};
 
-      // デバッグ情報: 受信したデータを確認
-      Logger.log(
-        `[makeReservation] 受信した時間情報: startTime=${startTime}, endTime=${endTime}, classroom=${classroom}`,
-      );
-      Logger.log(
-        `[makeReservation] reservationInfo全体: ${JSON.stringify(reservationInfo)}`,
-      );
-
-      // 統合予約シートを取得
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
@@ -285,16 +274,12 @@ function makeReservation(reservationInfo) {
       const targetDateStringForSearch = targetDateForSearch.toDateString();
 
       const scheduleRule = scheduleData.find(
-        /** @param {ScheduleMasterData} item */
-        item => {
+        /** @param {ScheduleMasterData} item */ item => {
           const itemDate = item.date;
           if (!itemDate || !item.classroom) return false;
-
-          // 日程マスタの日付はキャッシュ構築時にDate型で正規化済み
           const dateMatches =
             itemDate instanceof Date &&
             itemDate.toDateString() === targetDateStringForSearch;
-
           return dateMatches && item.classroom === classroom;
         },
       );
@@ -322,16 +307,11 @@ function makeReservation(reservationInfo) {
       Logger.log('[RESERVATION] 事前ウォームアップ実行');
       SS_MANAGER.warmupAsync();
 
-      // 統合予約シートから全データを取得
-      /** @type {SheetDataResult} */
-      const sheetData = /** @type {SheetDataResult} */ (
-        getSheetData(integratedSheet)
-      );
+      const sheetData = getSheetData(integratedSheet);
       const header = sheetData.header;
       const headerMap = sheetData.headerMap;
       const data = sheetData.dataRows;
 
-      // 統合予約シートの列インデックス（新しいデータモデル）
       const reservationIdColIdx = headerMap.get(
         CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
       );
@@ -347,9 +327,6 @@ function makeReservation(reservationInfo) {
       );
       const endTimeColIdx = headerMap.get(
         CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
-      );
-      Logger.log(
-        `[makeReservation] 列インデックス: startTime=${startTimeColIdx}, endTime=${endTimeColIdx}`,
       );
       const statusColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
       const venueColIdx = headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.VENUE);
@@ -381,26 +358,19 @@ function makeReservation(reservationInfo) {
       // 会場情報を取得（reservationInfoまたは同日同教室の既存予約から）
       let venue = reservationInfo.venue || '';
       if (!venue) {
-        const sameDateRow = data.find(
-          (/** @type {ReservationArrayData} */ row) => {
-            // 防御的プログラミング: 行データの存在確認
-            if (!row || !Array.isArray(row)) {
-              return false;
-            }
-
-            const rowDate = row[dateColIdx];
-            return (
-              rowDate instanceof Date &&
-              Utilities.formatDate(
-                rowDate,
-                CONSTANTS.TIMEZONE,
-                'yyyy-MM-dd',
-              ) === date &&
-              row[classroomColIdx] === classroom &&
-              row[venueColIdx]
-            );
-          },
-        );
+        const sameDateRow = data.find(row => {
+          if (!row || !Array.isArray(row)) {
+            return false;
+          }
+          const rowDate = row[dateColIdx];
+          return (
+            rowDate instanceof Date &&
+            Utilities.formatDate(rowDate, CONSTANTS.TIMEZONE, 'yyyy-MM-dd') ===
+              date &&
+            row[classroomColIdx] === classroom &&
+            row[venueColIdx]
+          );
+        });
         if (sameDateRow && sameDateRow[venueColIdx]) {
           venue = String(sameDateRow[venueColIdx]);
         }
@@ -433,24 +403,14 @@ function makeReservation(reservationInfo) {
       const finalEndTime = endTime;
 
       if (finalStartTime) {
-        // 時間文字列を時間のみのDateオブジェクトに変換
-        const startTimeDate = new Date(`1900-01-01T${finalStartTime}:00+09:00`);
-        newRowData[startTimeColIdx] = startTimeDate;
-        Logger.log(
-          `[makeReservation] 開始時刻設定: ${finalStartTime} -> ${startTimeDate} (列${startTimeColIdx})`,
+        newRowData[startTimeColIdx] = new Date(
+          `1900-01-01T${finalStartTime}:00+09:00`,
         );
-      } else {
-        Logger.log(`[makeReservation] 開始時刻が空: ${finalStartTime}`);
       }
       if (finalEndTime) {
-        // 時間文字列を時間のみのDateオブジェクトに変換
-        const endTimeDate = new Date(`1900-01-01T${finalEndTime}:00+09:00`);
-        newRowData[endTimeColIdx] = endTimeDate;
-        Logger.log(
-          `[makeReservation] 終了時刻設定: ${finalEndTime} -> ${endTimeDate} (列${endTimeColIdx})`,
+        newRowData[endTimeColIdx] = new Date(
+          `1900-01-01T${finalEndTime}:00+09:00`,
         );
-      } else {
-        Logger.log(`[makeReservation] 終了時刻が空: ${finalEndTime}`);
       }
 
       // オプション設定
@@ -473,13 +433,11 @@ function makeReservation(reservationInfo) {
       if (messageColIdx !== undefined)
         newRowData[messageColIdx] = options.messageToTeacher || '';
 
-      // 新しい予約行を最下行に追加
-      const lastRow = integratedSheet.getLastRow();
       integratedSheet
-        .getRange(lastRow + 1, 1, 1, newRowData.length)
+        .getRange(integratedSheet.getLastRow() + 1, 1, 1, newRowData.length)
         .setValues([newRowData]);
 
-      SpreadsheetApp.flush(); // シート書き込み完了を保証
+      SpreadsheetApp.flush();
 
       // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
       try {
@@ -543,14 +501,13 @@ function makeReservation(reservationInfo) {
       // 予約確定メール送信（非同期・エラー時は予約処理に影響しない）
       Utilities.sleep(100); // 予約確定後の短い待機
       try {
-        // フロントエンドで調整済みの reservationInfo をそのまま使用
-        /** @type {ReservationInfo} */
-        const reservationInfoForEmail = /** @type {ReservationInfo} */ (
-          reservationInfo
-        );
-        sendBookingConfirmationEmailAsync(reservationInfoForEmail);
+        // TODO: reservationInfoの型を統一するリファクタリングを行う。
+        // 現在はReservationRequest型をReservationInfo型として扱っているが、
+        // classroomTypeプロパティが不足している。現状のメール送信ロジックでは
+        // classroomTypeは使われていないため動作するが、将来的には修正が必要。
+        sendBookingConfirmationEmailAsync(/** @type {any} */ (reservationInfo));
       } catch (emailError) {
-        // メール送信エラーは予約成功に影響させない
+        // メール送信エラーは予約成功に影響しない
         Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
       }
 
@@ -578,24 +535,17 @@ function makeReservation(reservationInfo) {
 function cancelReservation(cancelInfo) {
   return withTransaction(() => {
     try {
-      /** @type {CancelReservationInfo} */
-      const cancelInfoTyped = cancelInfo;
-      const { reservationId, classroom, studentId } = cancelInfoTyped; // フロントエンドから渡される情報
+      const { reservationId, classroom, studentId } = cancelInfo;
 
-      // 統合予約シートを取得
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
       if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
 
-      // 統合予約シートから対象の予約を検索
-      /** @type {SheetSearchResult} */
-      const searchResult = /** @type {SheetSearchResult} */ (
-        getSheetDataWithSearch(
-          integratedSheet,
-          CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
-          reservationId,
-        )
+      const searchResult = getSheetDataWithSearch(
+        integratedSheet,
+        CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+        reservationId,
       );
       const headerMap = searchResult.headerMap;
       const targetRowData = searchResult.foundRow;
@@ -604,7 +554,6 @@ function cancelReservation(cancelInfo) {
       if (!targetRowData)
         throw new Error('キャンセル対象の予約が見つかりませんでした。');
 
-      // 統合予約シートの列インデックス（新しいデータモデル）
       const studentIdColIdx = headerMap.get(
         CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
       );
@@ -655,8 +604,7 @@ function cancelReservation(cancelInfo) {
         }
       }
 
-      // ログと通知
-      const cancelMessage = cancelInfoTyped.cancelMessage || '';
+      const cancelMessage = cancelInfo.cancelMessage || '';
       const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
       const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}${messageLog}`;
       logActivity(
@@ -666,7 +614,7 @@ function cancelReservation(cancelInfo) {
         logDetails,
       );
 
-      // キャンセル後の空き通知処理
+      //キャンセル後の空き通知処理
       try {
         const dateString = Utilities.formatDate(
           targetDateFormatted,
@@ -683,7 +631,7 @@ function cancelReservation(cancelInfo) {
         // 通知エラーはキャンセル処理の成功に影響しない
       }
 
-      const subject = `予約キャンセル (${classroom}) ${/** @type {any} */ (userInfo).realName}: ${/** @type {any} */ (userInfo).displayName}様`;
+      const subject = `予約キャンセル (${classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
       const messageSection = cancelMessage
         ? `\n先生へのメッセージ: ${cancelMessage}\n`
         : '';
@@ -691,9 +639,9 @@ function cancelReservation(cancelInfo) {
         `予約がキャンセルされました。
 
 ` +
-        `本名: ${/** @type {any} */ (userInfo).realName}
+        `本名: ${userInfo.realName}
 ` +
-        `ニックネーム: ${/** @type {any} */ (userInfo).displayName}
+        `ニックネーム: ${userInfo.displayName}
 
 ` +
         `教室: ${classroom}
@@ -925,7 +873,6 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
 function sendAvailabilityNotificationEmails(classroom, date, users, lesson) {
   if (users.length === 0) return;
 
-  // ExternalServices.jsの統一フォーマット関数を使用
   const formattedDate = formatDateForEmail(date);
 
   let successCount = 0;
@@ -1027,46 +974,45 @@ function updateReservationDetails(details) {
         )
       );
 
+      if (!existingReservation || !existingReservation.foundRow) {
+        throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
+      }
+
       /** @type {ScheduleRule | null} */
       let scheduleRule = null;
-      if (existingReservation && existingReservation.foundRow) {
-        const dateColIdx = existingReservation.headerMap.get(
-          CONSTANTS.HEADERS.RESERVATIONS.DATE,
-        );
-        const reservationDate =
-          dateColIdx !== undefined
-            ? existingReservation.foundRow[dateColIdx]
-            : null;
+      const dateColIdx = existingReservation.headerMap.get(
+        CONSTANTS.HEADERS.RESERVATIONS.DATE,
+      );
+      const reservationDate =
+        dateColIdx !== undefined
+          ? existingReservation.foundRow[dateColIdx]
+          : null;
 
-        const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-        /** @type {ScheduleMasterData[]} */
-        const scheduleData = scheduleCache
-          ? /** @type {ScheduleMasterData[]} */ (scheduleCache['schedule'])
-          : [];
-        // 予約日付の標準化
-        const reservationDateForSearch = new Date(String(reservationDate));
-        const reservationDateStringForSearch =
-          reservationDateForSearch.toDateString();
+      const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+      /** @type {ScheduleMasterData[]} */
+      const scheduleData = scheduleCache
+        ? /** @type {ScheduleMasterData[]} */
+          (scheduleCache['schedule'])
+        : [];
+      const reservationDateForSearch = new Date(String(reservationDate));
+      const reservationDateStringForSearch =
+        reservationDateForSearch.toDateString();
 
-        /** @type {ScheduleMasterData | undefined} */
-        const foundSchedule = scheduleData.find(
-          /** @param {ScheduleMasterData} item */
-          item => {
-            const itemDate = item.date;
-            if (!itemDate || !item.classroom) return false;
+      /** @type {ScheduleMasterData | undefined} */
+      const foundSchedule = scheduleData.find(
+        /** @param {ScheduleMasterData} item */
+        item => {
+          const itemDate = item.date;
+          if (!itemDate || !item.classroom) return false;
 
-            // 日程マスタの日付はキャッシュ構築時にDate型で正規化済み
-            const dateMatches =
-              itemDate instanceof Date &&
-              itemDate.toDateString() === reservationDateStringForSearch;
+          const dateMatches =
+            itemDate instanceof Date &&
+            itemDate.toDateString() === reservationDateStringForSearch;
 
-            return dateMatches && item.classroom === classroom;
-          },
-        );
-        scheduleRule = /** @type {ScheduleRule | null} */ (
-          foundSchedule || null
-        );
-      }
+          return dateMatches && item.classroom === classroom;
+        },
+      );
+      scheduleRule = /** @type {ScheduleRule | null} */ (foundSchedule || null);
 
       // 時間制予約（30分単位）の場合の検証
       if (scheduleRule && scheduleRule['type'] === CONSTANTS.UNITS.THIRTY_MIN) {
@@ -1076,6 +1022,120 @@ function updateReservationDetails(details) {
           /** @type {ScheduleMasterData} */ (scheduleRule),
         );
       }
+
+      // --- 定員チェック（予約更新時） ---
+      // ご指摘の通り、自分自身の予約を除外して空き状況を計算します
+      const startTimeColIdx_check = existingReservation.headerMap.get(
+        CONSTANTS.HEADERS.RESERVATIONS.START_TIME,
+      );
+      const endTimeColIdx_check = existingReservation.headerMap.get(
+        CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
+      );
+
+      // 1. 現在の全体の空き状況を取得
+      const lessonsResponse = getLessons();
+      if (!lessonsResponse.success) {
+        throw new Error('空き状況の取得に失敗し、予約を更新できません。');
+      }
+      const targetLesson = lessonsResponse.data.find(
+        l =>
+          l.schedule.date ===
+            Utilities.formatDate(
+              new Date(String(existingReservation.foundRow[dateColIdx])),
+              CONSTANTS.TIMEZONE,
+              'yyyy-MM-dd',
+            ) && l.schedule.classroom === classroom,
+      );
+
+      // 2. 2部制クラスの場合のみ、詳細なチェックを実行
+      if (
+        targetLesson &&
+        targetLesson.schedule.classroomType ===
+          CONSTANTS.CLASSROOM_TYPES.TIME_DUAL
+      ) {
+        const status = targetLesson.status;
+        const schedule = targetLesson.schedule;
+
+        // 3. 更新「前」の予約が占有していたセッションを特定
+        const oldStartTimeValue =
+          existingReservation.foundRow[startTimeColIdx_check];
+        const oldStartTime =
+          oldStartTimeValue && typeof oldStartTimeValue !== 'boolean'
+            ? Utilities.formatDate(
+                new Date(oldStartTimeValue),
+                CONSTANTS.TIMEZONE,
+                'HH:mm',
+              )
+            : null;
+
+        const oldEndTimeValue =
+          existingReservation.foundRow[endTimeColIdx_check];
+        const oldEndTime =
+          oldEndTimeValue && typeof oldEndTimeValue !== 'boolean'
+            ? Utilities.formatDate(
+                new Date(oldEndTimeValue),
+                CONSTANTS.TIMEZONE,
+                'HH:mm',
+              )
+            : null;
+
+        let oldMorningOccupied = false;
+        let oldAfternoonOccupied = false;
+        if (
+          oldStartTime &&
+          oldEndTime &&
+          schedule.firstEnd &&
+          schedule.secondStart
+        ) {
+          if (oldStartTime < schedule.firstEnd) oldMorningOccupied = true;
+          if (oldEndTime > schedule.secondStart) oldAfternoonOccupied = true;
+        }
+
+        // 4. 更新「後」の予約が必要とするセッションを特定
+        const newStartTime = detailsTyped.startTime;
+        const newEndTime = detailsTyped.endTime;
+
+        let newMorningRequired = false;
+        let newAfternoonRequired = false;
+        if (
+          newStartTime &&
+          newEndTime &&
+          schedule.firstEnd &&
+          schedule.secondStart
+        ) {
+          if (newStartTime < schedule.firstEnd) newMorningRequired = true;
+          if (newEndTime > schedule.secondStart) newAfternoonRequired = true;
+        }
+
+        // 5. 自分を除いた「真の空きスロット」を計算
+        let adjustedMorningSlots = status.morningSlots;
+        if (oldMorningOccupied) {
+          adjustedMorningSlots += 1;
+        }
+        let adjustedAfternoonSlots = status.afternoonSlots;
+        if (oldAfternoonOccupied) {
+          adjustedAfternoonSlots += 1;
+        }
+
+        // 6. 新しい予約時間で入れるか最終チェック
+        let canFit = true;
+        if (newMorningRequired && adjustedMorningSlots <= 0) {
+          canFit = false;
+        }
+        if (newAfternoonRequired && adjustedAfternoonSlots <= 0) {
+          canFit = false;
+        }
+
+        if (!canFit) {
+          throw new Error(
+            '満席のため、ご希望の時間帯に予約を変更することはできません。',
+          );
+        }
+        Logger.log(
+          `[updateReservationDetails] 定員チェックOK: newTime=${newStartTime}-${newEndTime}, adjustedSlots(M:${adjustedMorningSlots}, A:${adjustedAfternoonSlots})`,
+        );
+      }
+      // --- 定員チェックここまで ---
 
       // 統合予約シートを取得
       const integratedSheet = getSheetByName(
@@ -1162,9 +1222,6 @@ function updateReservationDetails(details) {
         .getRange(targetRowIndex, 1, 1, rowData.length)
         .setValues([rowData]);
 
-      // シート側で開始時刻・終了時刻列のフォーマットが事前設定済みのため、
-      // ここでの個別フォーマット処理は不要
-
       SpreadsheetApp.flush();
 
       // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
@@ -1172,7 +1229,8 @@ function updateReservationDetails(details) {
         Logger.log('[UPDATE] インクリメンタルキャッシュ更新実行');
         updateReservationInCache(
           reservationId,
-          /** @type {(string | number | Date)[]} */ (rowData),
+          /** @type {(string | number | Date)[]} */
+          (rowData),
           headerMapUpdate,
         );
       } catch (e) {
@@ -1189,18 +1247,13 @@ function updateReservationDetails(details) {
         }
       }
 
-      // 【NF-12】Update cache incrementally (統合予約シート対応)
       const studentIdColIdx = headerMapUpdate.get(
         CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
       );
       studentId =
         rowData && studentIdColIdx !== undefined
           ? String(rowData[studentIdColIdx] || '')
-          : null; // メモリ上のデータから取得（シートアクセス不要）
-      // 統合予約シートの更新はrebuildAllReservationsCache()で完了
-      // 予約データは現在CacheServiceで一元管理されているため、個別キャッシュ更新は不要
-
-      // ログ記録
+          : null;
       const messageToTeacher = detailsTyped.messageToTeacher || '';
       const messageLog = messageToTeacher
         ? `, Message: ${messageToTeacher}`
@@ -1275,7 +1328,8 @@ function saveAccountingDetails(payload) {
       const accountingCache = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
       /** @type {AccountingMasterItem[]} */
       const masterData = accountingCache
-        ? /** @type {AccountingMasterItem[]} */ (accountingCache['items'])
+        ? /** @type {AccountingMasterItem[]} */
+          (accountingCache['items'])
         : [];
       const finalAccountingDetails = {
         tuition: {
@@ -1425,7 +1479,6 @@ function saveAccountingDetails(payload) {
       finalAccountingDetails.grandTotal =
         finalAccountingDetails.tuition.subtotal +
         finalAccountingDetails.sales.subtotal;
-      // --- ここまで ---
 
       // 更新する行のデータを準備
       const updatedRowData = [...reservationDataRow]; // 元データのコピー
@@ -1485,11 +1538,6 @@ function saveAccountingDetails(payload) {
 
       SpreadsheetApp.flush();
 
-      // 6. 統合予約シートの更新後、全てのキャッシュを再構築
-      //    会計が完了した予約は「未来の予約」ではなく「過去の記録」となるため、
-      //    全キャッシュを再構築してデータの整合性を保つ。
-
-      // 7. 売上ログへの転記
       _logSalesForSingleReservation(
         reservationDataRow,
         headerMap,
@@ -1506,7 +1554,6 @@ function saveAccountingDetails(payload) {
         logDetails,
       );
 
-      // 【パフォーマンス最適化】 キャッシュからユーザー情報を取得
       const userInfo = getCachedStudentInfo(studentId);
 
       const subject = `会計記録 (${classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
@@ -1554,7 +1601,6 @@ function saveAccountingDetails(payload) {
         }
       }
 
-      // [変更] 戻り値に updatedSlots を追加
       return createApiResponse(true, {
         message: '会計処理と関連データの更新がすべて完了しました。',
       });
@@ -1593,7 +1639,8 @@ function _logSalesForSingleReservation(
         reservationDataRow[
           headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE)
         ] instanceof Date
-          ? /** @type {Date} */ (
+          ? /** @type {Date} */
+            (
               reservationDataRow[
                 headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE)
               ]
@@ -1659,9 +1706,6 @@ function _logSalesForSingleReservation(
 
     if (rowsToTransfer.length > 0) {
       if (!SALES_SPREADSHEET_ID) {
-        console.error(
-          '_logSalesForSingleReservation Error: SALES_SPREADSHEET_IDが設定されていません',
-        );
         throw new Error(
           '売上スプレッドシートIDが設定されていません。スクリプトプロパティでSALES_SPREADSHEET_IDを設定してください。',
         );
@@ -1698,13 +1742,8 @@ function _logSalesForSingleReservation(
  */
 function getScheduleInfoForDate(date, classroom) {
   try {
-    Logger.log(
-      `🔍 getScheduleInfoForDate: 検索開始 date=${date}, classroom=${classroom}`,
-    );
-
     const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
     if (!scheduleCache?.['schedule']) {
-      Logger.log('❌ getScheduleInfoForDate: scheduleCache.scheduleが空です');
       return null;
     }
 
@@ -1739,22 +1778,14 @@ function getScheduleInfoForDate(date, classroom) {
         const classroomMatch = item.classroom === classroom;
         const statusOk = item.status !== CONSTANTS.SCHEDULE_STATUS.CANCELLED;
 
-        Logger.log(
-          `🔍 検索中: ${item.date} -> ${dateMatch}, ${item.classroom}==${classroom}? ${classroomMatch}, status=${item.status} ok? ${statusOk}`,
-        );
-
         return dateMatch && classroomMatch && statusOk;
       },
     );
 
     if (!schedule) {
-      Logger.log('❌ getScheduleInfoForDate: 該当する日程が見つかりません');
       return null;
     }
 
-    Logger.log('✅ getScheduleInfoForDate: 該当日程を発見', schedule);
-
-    // 定員値の数値変換処理
     let totalCapacity = schedule.totalCapacity;
     if (totalCapacity !== undefined && totalCapacity !== null) {
       if (typeof totalCapacity === 'string') {
@@ -1951,11 +1982,19 @@ function confirmWaitlistedReservation(confirmInfo) {
           ? `\n先生へのメッセージ: ${messageToTeacher}\n`
           : '';
         const body =
-          `空席連絡希望が確定予約に変更されました。\n\n` +
-          `本名: ${user.realName}\n` +
-          `ニックネーム: ${user.displayName}\n\n` +
-          `教室: ${classroom}\n` +
-          `日付: ${date}\n${messageSection}\n` +
+          `空席連絡希望が確定予約に変更されました。
+
+` +
+          `本名: ${user.realName}
+` +
+          `ニックネーム: ${user.displayName}
+
+` +
+          `教室: ${classroom}
+` +
+          `日付: ${date}
+${messageSection}
+` +
           `詳細はスプレッドシートを確認してください。`;
         sendAdminNotification(subject, body);
       }

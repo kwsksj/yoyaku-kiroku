@@ -271,6 +271,28 @@ declare interface UserProfileUpdate {
   pastWork?: string;
   futureGoal?: string;
   futureParticipation?: string;
+  futureCreations?: string;
+  notificationDay?: string;
+  notificationHour?: string;
+}
+
+/**
+ * プロフィール編集用ユーザー詳細情報型定義
+ */
+declare interface UserDetailForEdit {
+  studentId: string;
+  realName: string;
+  nickname: string;
+  phone: string;
+  email: string;
+  wantsEmail: boolean;
+  address: string;
+  ageGroup: string;
+  gender: string;
+  dominantHand: string;
+  futureCreations: string;
+  notificationDay: string;
+  notificationHour: string;
 }
 
 /**
@@ -431,6 +453,8 @@ declare interface Schedule {
  * 予約データ型定義（05-3_Backend_AvailableSlots.js用）
  */
 declare interface Reservation {
+  /** 予約ID */
+  reservationId: string;
   /** 生徒ID */
   studentId: string;
   /** 日付 */

@@ -451,6 +451,15 @@ const getRegistrationStep4View = () => {
           value: data['firstMessage'] || '',
           placeholder: 'その他コメント・要望・意見など、あればどうぞ〜',
         })}
+
+        <div class="mt-6 border-t pt-6">
+          <label class="flex items-start space-x-2 cursor-pointer">
+            <input type="checkbox" id="privacy-policy-agree" class="mt-1 text-action-primary-bg focus:ring-action-primary-bg" required>
+            <span class="text-sm text-brand-text">
+              <span data-action="showPrivacyPolicy" class="text-brand-muted underline hover:text-brand-text cursor-pointer">プライバシーポリシー</span>に同意します
+            </span>
+          </label>
+        </div>
       </form>
       ${Components.actionButtonSection({
         secondaryButton: {

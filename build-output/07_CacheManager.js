@@ -1165,7 +1165,7 @@ function rebuildAllStudentsBasicCache() {
       phone: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.PHONE),
     };
 
-    // オプション列のインデックスを取得（メール関連・通知設定）
+    // オプション列のインデックスを取得（メール関連・通知設定・ステータス）
     const optionalColumns = {
       email: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.EMAIL),
       emailPreference: headerColumnMap.get(
@@ -1177,6 +1177,7 @@ function rebuildAllStudentsBasicCache() {
       notificationHour: headerColumnMap.get(
         CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
       ),
+      status: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.STATUS),
     };
 
     // 必須列の存在確認
@@ -1222,6 +1223,12 @@ function rebuildAllStudentsBasicCache() {
             ? studentRow[optionalColumns.notificationHour]
             : null;
 
+        // ステータスの取得（タスク2で追加）
+        const status =
+          optionalColumns.status !== undefined
+            ? String(studentRow[optionalColumns.status] || '')
+            : '';
+
         studentsDataMap[studentId] = {
           studentId: studentId,
           displayName:
@@ -1238,6 +1245,7 @@ function rebuildAllStudentsBasicCache() {
           wantsEmail: wantsEmail,
           notificationDay: notificationDay,
           notificationHour: notificationHour,
+          status: status, // タスク2で追加：退会済みチェック用
           rowIndex: index + 2, // 【修正】ヘッダー行を考慮した実際の行番号を追加 (1-based + header)
         };
       }

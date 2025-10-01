@@ -97,7 +97,7 @@ function render() {
       v = getDashboardView();
       break;
     case 'editProfile':
-      v = getEditProfileView();
+      v = getProfileEditView();
       break;
     case 'bookingLessons':
       v = getBookingView(appState.selectedClassroom);

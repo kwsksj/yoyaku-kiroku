@@ -31,6 +31,46 @@
         rel="stylesheet"
       />
     </noscript>
+    <style>
+      body {
+        font-family: 'Zen Kaku Gothic New', sans-serif;
+      }
+      .markdown-content h1,
+      .markdown-content h2,
+      .markdown-content h3 {
+        margin-top: 1.2em;
+        margin-bottom: 0.6em;
+        font-weight: bold;
+      }
+      .markdown-content h1 {
+        font-size: 1.5em;
+      }
+      .markdown-content h2 {
+        font-size: 1.25em;
+      }
+      .markdown-content h3 {
+        font-size: 1.1em;
+      }
+      .markdown-content p {
+        margin-bottom: 1em;
+      }
+      .markdown-content ul {
+        list-style-type: disc;
+        margin-left: 1.5em;
+        margin-bottom: 1em;
+      }
+      .markdown-content li {
+        margin-bottom: 0.25em;
+      }
+      .markdown-content a {
+        color: #2563eb; /* blue-600 */
+        text-decoration: underline;
+      }
+      .markdown-content strong {
+        font-weight: bold;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   </head>
 
   <body class="bg-brand-bg h-full">
@@ -73,7 +113,15 @@
         </div>
       </div>
       <footer class="text-center text-sm text-brand-muted mt-4">
-        きぼりの よやく・きろく
+        <p>きぼりの よやく・きろく</p>
+        <p class="mt-2">
+          <span
+            id="privacy-policy-link"
+            data-action="showPrivacyPolicy"
+            class="text-brand-muted underline hover:text-brand-text cursor-pointer"
+            >プライバシーポリシー</span
+          >
+        </p>
       </footer>
     </div>
 

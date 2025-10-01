@@ -22,7 +22,9 @@ const CONSTANTS = {
   // 環境設定（PRODUCTION_MODEはビルド時に自動設定される）
   ENVIRONMENT: {
     DEBUG_MODE: typeof DEBUG !== 'undefined' ? DEBUG : false,
-    PRODUCTION_MODE: typeof ScriptApp !== 'undefined' && ScriptApp.getScriptId() === 'BUILD_TIME_REPLACEMENT',
+    PRODUCTION_MODE:
+      typeof ScriptApp !== 'undefined' &&
+      ScriptApp.getScriptId() === 'BUILD_TIME_REPLACEMENT',
   },
 
   /**
