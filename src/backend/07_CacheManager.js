@@ -783,10 +783,10 @@ function rebuildAllReservationsCache() {
       `キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${sortedReservations.length}`,
     );
 
-    if (dataSizeKB > CHUNK_SIZE_LIMIT_KB) {
+    if (dataSizeKB >= CHUNK_SIZE_LIMIT_KB) {
       // 分割キャッシュシステムを使用
       PerformanceLog.info(
-        `データサイズが${CHUNK_SIZE_LIMIT_KB}KBを超えたため、分割キャッシュシステムを使用します。`,
+        `データサイズが${CHUNK_SIZE_LIMIT_KB}KB以上のため、分割キャッシュシステムを使用します。`,
       );
 
       const dataChunks = splitDataIntoChunks(
@@ -1278,10 +1278,10 @@ function rebuildAllStudentsBasicCache() {
       `生徒名簿キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${studentsArray.length}`,
     );
 
-    if (dataSizeKB > CHUNK_SIZE_LIMIT_KB) {
+    if (dataSizeKB >= CHUNK_SIZE_LIMIT_KB) {
       // 分割キャッシュシステムを使用
       Logger.log(
-        `データサイズが${CHUNK_SIZE_LIMIT_KB}KBを超えたため、分割キャッシュシステムを使用します。`,
+        `データサイズが${CHUNK_SIZE_LIMIT_KB}KB以上のため、分割キャッシュシステムを使用します。`,
       );
 
       const dataChunks = splitDataIntoChunks(
