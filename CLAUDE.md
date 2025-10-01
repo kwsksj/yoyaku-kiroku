@@ -37,8 +37,13 @@ Successfully migrated from classroom-specific distributed data structure to an i
 
 1. `src/backend/` または `src/frontend/` でコード編集
 2. `npm run dev:build` で変更を `build-output/` に反映
-3. `npm run dev:test` でテスト環境確認
-4. `npm run dev:prod` で本番デプロイ
+3. `npm run dev:test` でテスト環境に自動プッシュ＆確認
+4. テストOKなら `npm run dev:prod` で本番デプロイ
+
+**環境判定機能:**
+
+- ビルド時に `PRODUCTION_MODE` が自動設定される（prod環境=true, test環境=false）
+- テスト環境では管理者通知メールに `[テスト]` プレフィックスが追加される
 
 ## Key Development Commands
 
@@ -46,14 +51,16 @@ Successfully migrated from classroom-specific distributed data structure to an i
 
 - `npm run format` - Auto-formats all code using Prettier
 - `npm run lint` / `npm run lint:fix` - ESLint static analysis and auto-fixing
-- `npm run check` - Runs both format check and lint together
+- `npm run lint:md` / `npm run lint:md:fix` - Markdown linting
+- `npm run check-types` - TypeScript type checking
+- `npm run check` - Runs format check, ESLint, Markdown lint, and type check together
 
-### JavaScript分離開発ワークフロー (新規導入)
+### JavaScript分離開発ワークフロー（推奨）
 
-- `npm run dev:build` - JavaScript → HTML自動変換ビルド
+- `npm run dev:build` - JavaScript → HTML統合ビルド（環境自動判定）
 - `npm run dev:watch` - ファイル監視モード（開発中リアルタイム変換）
-- `npm run dev:test` - ビルド → テスト環境プッシュ
-- `npm run dev:prod` - ビルド → 本番環境プッシュ
+- `npm run dev:test` - ビルド → テスト環境プッシュ（`PRODUCTION_MODE=false`）
+- `npm run dev:prod` - ビルド → 本番環境プッシュ（`PRODUCTION_MODE=true`）
 - `npm run dev:open:test` - ビルド → テスト → ブラウザ起動
 - `npm run dev:open:prod` - ビルド → 本番 → ブラウザ起動
 
@@ -92,15 +99,16 @@ The project uses a numbered file naming convention in `build-output/`:
 - `08_Utilities.js` - Common utility functions
 - `09_Backend_Endpoints.js` - Unified API endpoints
 
-**Web Application Files:**
+**Web Application Files (HTML統合ビルド前のソース):**
 
-- `10_WebApp.html` - Main HTML template
-- `11_WebApp_Config.html` - Frontend configuration and design constants
-- `12_WebApp_Core.html` - Core frontend utilities and component generation
-- `12_WebApp_StateManager.html` - Centralized state management with automatic UI updates
-- `13_WebApp_Components.html` - Reusable UI components (Atomic → Molecular → Organisms)
-- `13_WebApp_Views.html` - UI view generation functions (pure presentation layer)
-- `14_WebApp_Handlers.html` - Event handlers and business logic coordination
+- `11_WebApp_Config.js` - Frontend configuration and design constants
+- `12_WebApp_Core.js` - Core frontend utilities and component generation
+- `12_WebApp_Core_*.js` - Core utility modules (Data, Search, Accounting, ErrorHandler)
+- `12_WebApp_StateManager.js` - Centralized state management with automatic UI updates
+- `13_WebApp_Components.js` - Reusable UI components (Atomic → Molecular → Organisms)
+- `13_WebApp_Views_*.js` - UI view generation modules (Auth, Dashboard, Booking, Utils)
+- `14_WebApp_Handlers*.js` - Event handlers and business logic coordination (Auth, Reservation, History, Utils)
+- `10_WebApp.html` - Main HTML template (統合ビルド時にJavaScriptを統合)
 
 ### Data Model & Caching
 
@@ -111,28 +119,41 @@ Google Sheets-based integrated data model. Details: [DATA_MODEL.md](docs/DATA_MO
 **Multi-layer Cache**:
 
 - **CacheService**: Schedule master, all reservations, student info, pricing (6-24 hours)
+  - **Incremental Update System (v5.0)**: Reservation cache updates use differential updates instead of full sheet reload
+    - `addReservationToCache()` - Add new reservation without full reload
+    - `updateReservationInCache()` - Update existing reservation in-place
+    - `deleteReservationFromCache()` - Remove reservation from cache
+    - Performance: 2-3 seconds → 50-200ms (95%+ improvement)
+    - Auto-fallback to full rebuild on error
 - **SpreadsheetManager**: Spreadsheet object cache (session-scoped)
 
 ### Build & Configuration
 
 **Build Tools**:
 
+- `tools/unified-build.js` - JavaScript → HTML統合ビルドシステム（開発環境判定機能付き）
 - `tools/switch-env.js` - Manages environment switching via `.clasp.json` updates
-- ~~`tools/build-unified.js` - Local test HTML generation (currently not functional)~~
-- ~~`tools/frontend-test.js` - Frontend testing framework (currently not functional)~~
+- `tools/open-dev-url.js` - Opens development URL in browser
 
-**Config Files**: `.clasp.json`, `.clasp.config.json`, `jsconfig.json`, `.prettierrc.json`
+**Config Files**:
 
-**Testing Strategy**: Direct GAS environment testing via head deployment ID, no local HTML generation required
+- `.clasp.json`, `.clasp.config.json` - GAS deployment configuration
+- `jsconfig.json` - Root JavaScript/TypeScript configuration
+- `src/jsconfig.json` - Source directory TypeScript configuration
+- `.prettierrc.json` - Code formatting rules
+- `eslint.config.js`, `eslint.common.js` - ESLint configuration
+
+**Testing Strategy**: Direct GAS environment testing via head deployment ID with automatic build
 
 ## Development Guidelines
 
 ### Workflow
 
-1. **Development**: Edit `src/` files directly
-2. **Quality**: Run `npm run check` before committing
-3. **Testing**: `npm run push:test` to push changes to test environment
-4. **Production**: `npm run push:prod` only after thorough testing in test environment
+1. **Development**: Edit `src/backend/` or `src/frontend/` files directly
+2. **Build**: Run `npm run dev:build` to compile changes to `build-output/`
+3. **Quality**: Run `npm run check` before committing
+4. **Testing**: `npm run dev:test` to build and push changes to test environment
+5. **Production**: `npm run dev:prod` only after thorough testing in test environment
 
 ### Code Standards
 
@@ -147,10 +168,15 @@ Google Sheets-based integrated data model. Details: [DATA_MODEL.md](docs/DATA_MO
 - Google Sheets = database → validate data operations carefully
 - Prioritize batch processing, avoid single-cell operations in loops
 - Monitor 6-minute execution limits and API quotas
-- Cache strategy: version-managed updates + time-driven rebuilds + real-time polling
+- **Cache strategy**:
+  - **Incremental updates**: Reservation operations use differential cache updates (95%+ faster)
+  - **Version management**: Numeric increment for efficient change detection
+  - **Time-driven rebuilds**: Automatic full cache rebuild every 6 hours
+  - **Real-time polling**: Frontend version checking for instant updates
+  - **Unified API**: `getCachedData()` with CACHE_KEYS constants for type-safe access
 - Emergency procedures: `rebuildNewCaches_entryPoint()`, `trigger_rebuildAllCaches()`
 
-Detailed architecture: `docs/ARCHITECTURE.md`
+Detailed architecture: `docs/DATA_MODEL.md`
 
 ## Instructions for Claude Code
 
@@ -188,6 +214,11 @@ Detailed architecture: `docs/ARCHITECTURE.md`
   - Test environment WebApp reflects changes immediately after `npm run dev:test`
 - **After Code Changes**: Always run `npm run dev:test` when testing is needed and prompt user to test
 - **Data Access Pattern**: Use `SS_MANAGER` instance and cache-first approach with unified error handling
+- **Frontend UI Development**:
+  - **ALWAYS use existing Components**: Check `Components` object in `13_WebApp_Components.js` before creating new UI
+  - **Use DesignConfig**: Reference `DesignConfig` in `11_WebApp_Config.js` for colors, spacing, and styles
+  - **Follow Atomic Design**: Build complex UI from existing atomic components
+  - **Never duplicate UI code**: Reuse `Components.modal()`, `Components.button()`, `Components.cardContainer()`, etc.
 - **Commit Management**:
   - **Proactive Commits**: Commit at appropriate milestones (feature completion, bug fixes, architectural changes, etc.)
   - **User Confirmation**: Always ask user for confirmation before committing: "適切な節目でコミットしますか？" or similar
@@ -207,3 +238,109 @@ Detailed architecture: `docs/ARCHITECTURE.md`
 - Ensure all changes integrate properly with the multi-layer caching system
 - Validate that modifications don't break the spreadsheet-based data model
 - **Always run `npm run dev:build` after making changes to sync `src/` to `build-output/`**
+
+## Frontend Architecture
+
+### UI Component System (Atomic Design)
+
+**Location**: `src/frontend/13_WebApp_Components.js`
+
+**Design Principles**:
+
+- **3-Layer Structure**: Atomic → Molecular → Organisms
+- **Single Responsibility**: One component, one clear purpose
+- **Minimal Parameters**: Accept only essential data
+- **Composability**: Build complex UI from small components
+
+**Available Components** (Always use these before creating new UI):
+
+**Atomic Components** (Basic Elements):
+
+- `Components.button({ text, onClick, type, size, disabled })` - Styled buttons with consistent design
+  - Types: `primary`, `secondary`, `danger`, `accounting`, `bookingCard`, `recordCard`
+  - Sizes: `normal`, `full`, `small`, `xs`, `large`
+- `Components.input({ id, label, type, value, placeholder })` - Form inputs
+- `Components.select({ id, label, options })` - Dropdown selects
+- `Components.textarea({ id, label, value, placeholder, rows })` - Text areas
+- `Components.checkbox({ id, label, checked })` - Checkboxes
+
+**Molecular Components** (Combined Elements):
+
+- `Components.modal({ id, title, content, maxWidth, showCloseButton })` - Modal dialogs
+  - `Components.showModal(modalId)` - Show modal with fade-in
+  - `Components.closeModal(modalId)` - Close modal with fade-out
+- `Components.cardContainer({ content, className, variant })` - Styled card containers
+  - Variants: `default`, `highlight`, `success`, `warning`, `available`, `waitlist`, `booked`
+- `Components.pageContainer({ content, maxWidth })` - Page layout wrapper
+
+**Usage Example**:
+
+```javascript
+// ❌ BAD: Creating new button HTML from scratch
+const html = `<button class="bg-blue-500 text-white px-4 py-2 rounded" onclick="doSomething()">Click</button>`;
+
+// ✅ GOOD: Using existing Components
+const html = Components.button({
+  text: 'Click',
+  onClick: 'doSomething()',
+  type: 'primary',
+  size: 'normal'
+});
+```
+
+### Design System (DesignConfig)
+
+**Location**: `src/frontend/11_WebApp_Config.js`
+
+**Unified Design Constants** - Use these instead of hardcoded values:
+
+**Colors** (`DesignConfig.colors`):
+
+- `primary`: Primary brand color (blue)
+- `secondary`: Secondary color (gray)
+- `danger`: Error/delete actions (red)
+- `accounting`: Accounting-related actions (yellow)
+- `success`: Success states (green)
+- `warning`: Warning states (orange)
+
+**Buttons** (`DesignConfig.buttons`):
+
+- `base`: Base button styles
+- `primary`, `secondary`, `danger`, `accounting`: Button variants
+- `bookingCard`, `recordCard`: Specialized card buttons
+- `full`: Full-width button class
+
+**Cards** (`DesignConfig.cards`):
+
+- `base`: Base card styles
+- `background`: Standard background
+- `state.available`, `state.waitlist`, `state.booked`: State-specific styles
+
+**Typography** (`DesignConfig.typography`):
+
+- `heading`, `subheading`, `body`, `small`, `label`: Text styles
+
+**Spacing** (`DesignConfig.spacing`):
+
+- `section`, `card`, `cardInner`, `formGroup`: Consistent spacing
+
+**Usage Example**:
+
+```javascript
+// ❌ BAD: Hardcoded colors and styles
+const html = `<div class="bg-blue-500 text-white px-4 py-3 rounded">...</div>`;
+
+// ✅ GOOD: Using DesignConfig
+const html = `<div class="${DesignConfig.colors.primary} px-4 py-3 rounded">...</div>`;
+```
+
+### Frontend Development Guidelines
+
+1. **Check Components First**: Before creating any UI, check if `Components` has what you need
+2. **Use DesignConfig**: Never hardcode colors, spacing, or styles - use `DesignConfig` constants
+3. **Compose, Don't Duplicate**: Combine existing components rather than creating new ones
+4. **StateManager Integration**: Use `stateManager` for reactive UI updates
+5. **Separation of Concerns**:
+   - `Views`: Pure presentation functions (return HTML)
+   - `Handlers`: Business logic and event handling
+   - `Components`: Reusable UI building blocks
