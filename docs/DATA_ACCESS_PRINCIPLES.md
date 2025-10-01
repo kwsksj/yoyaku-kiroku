@@ -54,12 +54,14 @@ const data = sheet.getDataRange().getValues(); // 直接シート読み込みは
 ```
 
 **対象キャッシュキー** (`CACHE_KEYS`):
+
 - `ALL_RESERVATIONS` - 全予約データ
 - `ALL_STUDENTS_BASIC` - 生徒基本情報（8項目）
 - `MASTER_SCHEDULE_DATA` - 日程マスタ
 - `MASTER_ACCOUNTING_DATA` - 会計マスタ
 
 **メリット**:
+
 - SpreadsheetAPI呼び出しの最小化（95%削減）
 - 応答速度の劇的向上（2-3秒 → 50-200ms）
 - 分割キャッシュによる大容量データ対応（最大1.8MB）
@@ -88,6 +90,7 @@ rebuildAllReservationsCache(); // 2-3秒かかる（使わない）
 ```
 
 **インクリメンタル更新関数**:
+
 - `addReservationToCache(reservation)` - 新規追加（50-200ms）
 - `updateReservationInCache(reservationId, updates)` - 更新（50-200ms）
 - `deleteReservationFromCache(reservationId)` - 削除（50-200ms）
@@ -110,6 +113,7 @@ trigger_rebuildAllCaches();
 ```
 
 **全体再構築が必要なケース**:
+
 - 初回起動時
 - キャッシュ消失時（自動検出）
 - 大量データ一括更新時（バッチ処理）
@@ -212,6 +216,7 @@ const reservations = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
 ```
 
 **技術詳細**:
+
 - チャンクキー: `all_reservations_chunk_0`, `all_reservations_chunk_1`, ...
 - メタデータ: `all_reservations_meta` (チャンク数・バージョン情報)
 - 読み込み: 全チャンクを統合して返却（透過的）
@@ -219,12 +224,12 @@ const reservations = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
 
 ## パフォーマンス指標
 
-| 操作 | 従来方式 | 現行方式（v5.5） | 改善率 |
-|------|----------|------------------|--------|
-| データ取得 | 2-3秒 | 50-200ms | 95%+ |
-| 新規作成 | 3-4秒 | 50-200ms | 95%+ |
-| 更新 | 3-4秒 | 50-200ms | 95%+ |
-| 削除 | 3-4秒 | 50-200ms | 95%+ |
+| 操作       | 従来方式 | 現行方式（v5.5） | 改善率 |
+| ---------- | -------- | ---------------- | ------ |
+| データ取得 | 2-3秒    | 50-200ms         | 95%+   |
+| 新規作成   | 3-4秒    | 50-200ms         | 95%+   |
+| 更新       | 3-4秒    | 50-200ms         | 95%+   |
+| 削除       | 3-4秒    | 50-200ms         | 95%+   |
 
 ## トラブルシューティング
 
@@ -249,16 +254,17 @@ if (meta) {
 
 ## まとめ
 
-| 操作種別 | 実行方法 | 担当モジュール |
-|---------|---------|--------------|
-| **読み取り** | `getCachedData()` | 全アプリケーション |
-| **書き込み** | `writeToSheet()` + `add/update/deleteInCache()` | Backend (`05-2`) |
-| **全体再構築** | `rebuild***Cache()` | CacheManager (`07`) |
-| **バージョン管理** | `incrementCacheVersion()` | CacheManager (`07`) |
+| 操作種別           | 実行方法                                        | 担当モジュール      |
+| ------------------ | ----------------------------------------------- | ------------------- |
+| **読み取り**       | `getCachedData()`                               | 全アプリケーション  |
+| **書き込み**       | `writeToSheet()` + `add/update/deleteInCache()` | Backend (`05-2`)    |
+| **全体再構築**     | `rebuild***Cache()`                             | CacheManager (`07`) |
+| **バージョン管理** | `incrementCacheVersion()`                       | CacheManager (`07`) |
 
 ---
 
 **関連ドキュメント**:
+
 - [DATA_MODEL.md](DATA_MODEL.md) - キャッシュシステムの詳細設計
 - [JS_TO_HTML_ARCHITECTURE.md](JS_TO_HTML_ARCHITECTURE.md) - 開発環境
 - [FRONTEND_ARCHITECTURE_GUIDE.md](FRONTEND_ARCHITECTURE_GUIDE.md) - フロントエンド構造

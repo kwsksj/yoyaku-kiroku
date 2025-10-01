@@ -8,8 +8,10 @@
 
 | ファイル名                                                           | 内容                               | 対象                 |
 | -------------------------------------------------------------------- | ---------------------------------- | -------------------- |
+| **[SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)**                 | システムアーキテクチャ図（v3.2対応） | 全開発者             |
 | **[DATA_MODEL.md](DATA_MODEL.md)**                                   | データモデル設計仕様書（v3.2対応） | 全開発者             |
 | **[DATA_ACCESS_PRINCIPLES.md](DATA_ACCESS_PRINCIPLES.md)**           | データアクセス原則（v3.2対応）     | 全開発者             |
+| **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)**           | State管理ガイド（v3.2対応）       | フロントエンド開発者 |
 | **[JS_TO_HTML_ARCHITECTURE.md](JS_TO_HTML_ARCHITECTURE.md)**         | JavaScript分離開発アーキテクチャ   | 全開発者             |
 | **[FRONTEND_ARCHITECTURE_GUIDE.md](FRONTEND_ARCHITECTURE_GUIDE.md)** | フロントエンドアーキテクチャガイド | フロントエンド開発者 |
 
@@ -17,19 +19,19 @@
 
 実装の詳細や開発ガイドライン：
 
-| ファイル名                                                               | 内容                       | 備考             |
-| ------------------------------------------------------------------------ | -------------------------- | ---------------- |
-| **[CONSTANTS_GUIDE.md](CONSTANTS_GUIDE.md)**                             | 定数システムの使い方       | 定数管理の基本   |
-| **[CONSTANTS_DOCUMENTATION_INDEX.md](CONSTANTS_DOCUMENTATION_INDEX.md)** | 定数ドキュメント索引       | 定数一覧         |
-| **[BUSINESS_LOGIC_REFERENCE.md](BUSINESS_LOGIC_REFERENCE.md)**           | ビジネスロジックリファレンス | 主要処理フロー   |
-| **[MIGRATION_TO_JS_DEV.md](MIGRATION_TO_JS_DEV.md)**                     | JavaScript分離開発移行手順 | 参考資料（移行済み） |
+| ファイル名                                                               | 内容                         | 備考                 |
+| ------------------------------------------------------------------------ | ---------------------------- | -------------------- |
+| **[CONSTANTS_GUIDE.md](CONSTANTS_GUIDE.md)**                             | 定数システムの使い方         | 定数管理の基本       |
+| **[CONSTANTS_DOCUMENTATION_INDEX.md](CONSTANTS_DOCUMENTATION_INDEX.md)** | 定数ドキュメント索引         | 定数一覧             |
+| **[BUSINESS_LOGIC_REFERENCE.md](BUSINESS_LOGIC_REFERENCE.md)**           | ビジネスロジックリファレンス | 主要処理フロー       |
+| **[MIGRATION_TO_JS_DEV.md](MIGRATION_TO_JS_DEV.md)**                     | JavaScript分離開発移行手順   | 参考資料（移行済み） |
 
 ## 🔮 将来機能計画
 
 未実装の機能計画書：
 
-| ファイル名                                                       | 内容               | ステータス |
-| ---------------------------------------------------------------- | ------------------ | ---------- |
+| ファイル名                                                           | 内容               | ステータス |
+| -------------------------------------------------------------------- | ------------------ | ---------- |
 | **[CALENDAR_SYNC_SPECIFICATION.md](CALENDAR_SYNC_SPECIFICATION.md)** | カレンダー同期機能 | 計画段階   |
 
 ## 📦 アーカイブ
@@ -51,10 +53,11 @@
 
 1. **プロジェクト概要**: `../README.md`（ルートディレクトリ）
 2. **開発環境セットアップ**: `../CLAUDE.md`
-3. **データモデル理解**: `DATA_MODEL.md` ⭐ 最重要
-4. **データアクセス原則**: `DATA_ACCESS_PRINCIPLES.md` ⭐ 最重要
-5. **開発ワークフロー**: `JS_TO_HTML_ARCHITECTURE.md`
-6. **フロントエンド構造**: `FRONTEND_ARCHITECTURE_GUIDE.md`
+3. **システム全体像**: `SYSTEM_ARCHITECTURE.md` ⭐ 最初に読むべき
+4. **データモデル理解**: `DATA_MODEL.md` ⭐ 最重要
+5. **データアクセス原則**: `DATA_ACCESS_PRINCIPLES.md` ⭐ 最重要
+6. **開発ワークフロー**: `JS_TO_HTML_ARCHITECTURE.md`
+7. **フロントエンド構造**: `FRONTEND_ARCHITECTURE_GUIDE.md` + `STATE_MANAGEMENT_GUIDE.md`
 
 ### 機能追加・改修時
 
@@ -131,4 +134,4 @@ npm run dev:prod
 
 ---
 
-**最終更新**: 2025年10月2日 | **システムバージョン**: 3.2.0 | **ドキュメント数**: 9個（コア4 + リファレンス4 + 計画1）
+**最終更新**: 2025年10月2日 | **システムバージョン**: 3.2.0 | **ドキュメント数**: 12個（コア6 + リファレンス5 + 計画1）
