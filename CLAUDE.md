@@ -125,6 +125,10 @@ Google Sheets-based integrated data model. Details: [DATA_MODEL.md](docs/DATA_MO
     - `deleteReservationFromCache()` - Remove reservation from cache
     - Performance: 2-3 seconds → 50-200ms (95%+ improvement)
     - Auto-fallback to full rebuild on error
+  - **Split Cache System (v5.5)**: Large cache data automatically splits into chunks when exceeding 90KB
+    - Automatic chunking for reservations and student roster data
+    - Transparent read/write operations (up to 20 chunks supported)
+    - Prevents CacheService 100KB limit issues
 - **SpreadsheetManager**: Spreadsheet object cache (session-scoped)
 
 ### Build & Configuration
@@ -174,6 +178,7 @@ Google Sheets-based integrated data model. Details: [DATA_MODEL.md](docs/DATA_MO
   - **Time-driven rebuilds**: Automatic full cache rebuild every 6 hours
   - **Real-time polling**: Frontend version checking for instant updates
   - **Unified API**: `getCachedData()` with CACHE_KEYS constants for type-safe access
+  - **Split cache support (v5.5)**: Automatic chunking when data exceeds 90KB (prevents 100KB limit)
 - Emergency procedures: `rebuildNewCaches_entryPoint()`, `trigger_rebuildAllCaches()`
 
 Detailed architecture: `docs/DATA_MODEL.md`
