@@ -215,7 +215,7 @@ const getRegistrationStep2View = () => {
             options: [
               { value: '女性', label: '女性' },
               { value: '男性', label: '男性' },
-              { value: 'その他', label: 'その他' }
+              { value: 'その他', label: 'その他' },
             ],
             selectedValue: data?.gender || '',
             layout: 'horizontal',
@@ -226,7 +226,7 @@ const getRegistrationStep2View = () => {
             options: [
               { value: '右利き', label: '右利き' },
               { value: '左利き', label: '左利き' },
-              { value: '両利き', label: '両利き' }
+              { value: '両利き', label: '両利き' },
             ],
             selectedValue: data?.dominantHand || '',
             layout: 'horizontal',
@@ -245,7 +245,7 @@ const getRegistrationStep2View = () => {
               { value: '60代', label: '60代' },
               { value: '70代', label: '70代' },
               { value: '80代以上', label: '80代以上' },
-              { value: 'ひみつ', label: 'ひみつ' }
+              { value: 'ひみつ', label: 'ひみつ' },
             ],
             selectedValue: data?.ageGroup || '',
           })}
@@ -299,7 +299,7 @@ const getRegistrationStep3View = () => {
               { value: 'はじめて！', label: 'はじめて！' },
               { value: 'ちょっと', label: 'ちょっと' },
               { value: 'そこそこ', label: 'そこそこ' },
-              { value: 'かなり！', label: 'かなり！' }
+              { value: 'かなり！', label: 'かなり！' },
             ],
             selectedValue: data['experience'] || '',
             layout: 'vertical',
@@ -359,10 +359,19 @@ const getRegistrationStep4View = () => {
             label: '今後のご参加について',
             options: [
               { value: '毎月通いたい！', label: '毎月通いたい！' },
-              { value: '2,3ヶ月ごとくらいで通いたい！', label: '2,3ヶ月ごとくらいで通いたい！' },
-              { value: 'これるときにたまに通いたい！', label: 'これるときにたまに通いたい！' },
+              {
+                value: '2,3ヶ月ごとくらいで通いたい！',
+                label: '2,3ヶ月ごとくらいで通いたい！',
+              },
+              {
+                value: 'これるときにたまに通いたい！',
+                label: 'これるときにたまに通いたい！',
+              },
               { value: '1回やってみたい！', label: '1回やってみたい！' },
-              { value: '通いたいがむずかしい…', label: '通いたいがむずかしい…' }
+              {
+                value: '通いたいがむずかしい…',
+                label: '通いたいがむずかしい…',
+              },
             ],
             selectedValue: data['futureParticipation'] || '',
             layout: 'vertical',
@@ -430,8 +439,8 @@ const getEditProfileView = () => {
   // 「将来的に制作したいもの」の値を取得（生徒名簿シートから取得される想定）
   const futureGoalValue = userData.futureCreations || '';
 
-  // 教室日程の連絡チェック状態を判定（送信日が設定されていればON）
-  const wantsScheduleNotification = userData.notificationDay != null && userData.notificationDay !== '';
+  // 教室日程の連絡チェック状態を取得（シートの「日程連絡希望」列から）
+  const wantsScheduleNotification = userData.wantsScheduleNotification || false;
 
   return `
     ${Components.pageHeader({
@@ -497,7 +506,8 @@ const getEditProfileView = () => {
               id: 'edit-wants-schedule-notification',
               label: '教室日程 のメール連絡（毎月）を希望する',
               checked: wantsScheduleNotification,
-              onChange: "document.getElementById('edit-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
+              onChange:
+                "document.getElementById('edit-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
             })}
             <div id="edit-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${wantsScheduleNotification ? '' : 'hidden'}">
               ${Components.select({
@@ -507,7 +517,7 @@ const getEditProfileView = () => {
                   { value: '', label: '--' },
                   { value: '5', label: '毎月5日' },
                   { value: '15', label: '毎月15日' },
-                  { value: '25', label: '毎月25日' }
+                  { value: '25', label: '毎月25日' },
                 ],
                 selectedValue: String(userData.notificationDay || ''),
               })}
@@ -519,7 +529,7 @@ const getEditProfileView = () => {
                   { value: '9', label: '9時' },
                   { value: '12', label: '12時' },
                   { value: '18', label: '18時' },
-                  { value: '21', label: '21時' }
+                  { value: '21', label: '21時' },
                 ],
                 selectedValue: String(userData.notificationHour || ''),
               })}

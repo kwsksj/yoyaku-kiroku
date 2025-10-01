@@ -219,6 +219,9 @@ function authenticateUser(phoneNumber) {
           phone: student.phone,
           email: student.email || '',
           wantsEmail: student.wantsEmail || false,
+          wantsScheduleNotification: student.wantsScheduleNotification || false,
+          notificationDay: student.notificationDay || null,
+          notificationHour: student.notificationHour || null,
         };
         break;
       }
@@ -405,8 +408,12 @@ function registerNewUser(userInfo) {
       }
 
       // 日程連絡希望の設定
-      if (scheduleNotificationPreferenceColIdx !== -1 && userInfo?.wantsScheduleNotification !== undefined) {
-        newRow[scheduleNotificationPreferenceColIdx] = userInfo.wantsScheduleNotification ? 'TRUE' : 'FALSE';
+      if (
+        scheduleNotificationPreferenceColIdx !== -1 &&
+        userInfo?.wantsScheduleNotification !== undefined
+      ) {
+        newRow[scheduleNotificationPreferenceColIdx] =
+          userInfo.wantsScheduleNotification ? 'TRUE' : 'FALSE';
       }
 
       if (ageGroupColIdx !== -1 && userInfo?.ageGroup)
@@ -655,6 +662,9 @@ function getUserDetailForEdit(studentId) {
     const emailPreferenceColIdx = header.indexOf(
       CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
     );
+    const scheduleNotificationPreferenceColIdx = header.indexOf(
+      CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
+    );
     const addressColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.ADDRESS);
     const ageGroupColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.AGE_GROUP);
     const genderColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.GENDER);
@@ -702,15 +712,31 @@ function getUserDetailForEdit(studentId) {
     }
 
     // ユーザー詳細情報を構築
+    const realName =
+      realNameColIdx !== -1 ? String(userRow[realNameColIdx]) : '';
+    const nickname =
+      nicknameColIdx !== -1 ? String(userRow[nicknameColIdx]) : '';
+    const notificationDayValue =
+      notificationDayColIdx !== -1 ? userRow[notificationDayColIdx] : '';
+    const notificationHourValue =
+      notificationHourColIdx !== -1 ? userRow[notificationHourColIdx] : '';
+
     const userDetail = {
       studentId: studentId,
-      realName: realNameColIdx !== -1 ? String(userRow[realNameColIdx]) : '',
-      nickname: nicknameColIdx !== -1 ? String(userRow[nicknameColIdx]) : '',
+      realName: realName,
+      displayName: nickname || realName, // displayNameとしてnicknameを返す（フロントエンドとの整合性）
+      nickname: nickname, // 互換性のため残す
       phone: phoneColIdx !== -1 ? String(userRow[phoneColIdx]) : '',
       email: emailColIdx !== -1 ? String(userRow[emailColIdx]) : '',
       wantsEmail:
         emailPreferenceColIdx !== -1
           ? String(userRow[emailPreferenceColIdx]).toUpperCase() === 'TRUE'
+          : false,
+      wantsScheduleNotification:
+        scheduleNotificationPreferenceColIdx !== -1
+          ? String(
+              userRow[scheduleNotificationPreferenceColIdx],
+            ).toUpperCase() === 'TRUE'
           : false,
       address: addressColIdx !== -1 ? String(userRow[addressColIdx]) : '',
       ageGroup: ageGroupColIdx !== -1 ? String(userRow[ageGroupColIdx]) : '',
@@ -722,13 +748,13 @@ function getUserDetailForEdit(studentId) {
           ? String(userRow[futureCreationsColIdx])
           : '',
       notificationDay:
-        notificationDayColIdx !== -1
-          ? String(userRow[notificationDayColIdx])
-          : '',
+        notificationDayValue !== '' && notificationDayValue != null
+          ? Number(notificationDayValue)
+          : null,
       notificationHour:
-        notificationHourColIdx !== -1
-          ? String(userRow[notificationHourColIdx])
-          : '',
+        notificationHourValue !== '' && notificationHourValue != null
+          ? Number(notificationHourValue)
+          : null,
     };
 
     Logger.log(
@@ -830,6 +856,9 @@ function updateUserProfile(userInfo) {
       const emailPreferenceColIdx = header.indexOf(
         CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
       );
+      const scheduleNotificationPreferenceColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
+      );
 
       if (
         realNameColIdx === -1 ||
@@ -876,6 +905,19 @@ function updateUserProfile(userInfo) {
           .setValue(emailPrefValue);
       }
 
+      // 日程連絡希望の更新
+      if (
+        userInfo.wantsScheduleNotification !== undefined &&
+        scheduleNotificationPreferenceColIdx !== -1
+      ) {
+        const scheduleNotificationPrefValue = userInfo.wantsScheduleNotification
+          ? 'TRUE'
+          : 'FALSE';
+        rosterSheet
+          .getRange(targetRowIndex, scheduleNotificationPreferenceColIdx + 1)
+          .setValue(scheduleNotificationPrefValue);
+      }
+
       // 通知設定の更新
       const notificationDayColIdx = header.indexOf(
         CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
@@ -891,7 +933,9 @@ function updateUserProfile(userInfo) {
         // バリデーション: 選択可能な日付のみ許可
         if (
           userInfo.notificationDay !== null &&
-          !CONSTANTS.NOTIFICATION.DAYS.includes(Number(userInfo.notificationDay))
+          !CONSTANTS.NOTIFICATION.DAYS.includes(
+            Number(userInfo.notificationDay),
+          )
         ) {
           throw new Error(
             `通知日は ${CONSTANTS.NOTIFICATION.DAYS.join(', ')} のいずれかを選択してください。`,
@@ -909,7 +953,9 @@ function updateUserProfile(userInfo) {
         // バリデーション: 選択可能な時刻のみ許可
         if (
           userInfo.notificationHour !== null &&
-          !CONSTANTS.NOTIFICATION.HOURS.includes(Number(userInfo.notificationHour))
+          !CONSTANTS.NOTIFICATION.HOURS.includes(
+            Number(userInfo.notificationHour),
+          )
         ) {
           throw new Error(
             `通知時刻は ${CONSTANTS.NOTIFICATION.HOURS.join(', ')} のいずれかを選択してください。`,

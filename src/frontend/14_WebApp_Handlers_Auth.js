@@ -95,9 +95,9 @@ const authActionHandlers = {
           },
         });
 
-        // 通知設定チェック：メール連絡希望ONで通知設定が未設定の場合に喚起
+        // 通知設定チェック：日程連絡希望ONで通知設定が未設定の場合に喚起
         if (
-          response.user.wantsEmail &&
+          response.user.wantsScheduleNotification &&
           (response.user.notificationDay == null ||
             response.user.notificationDay === '')
         ) {
@@ -149,9 +149,10 @@ const authActionHandlers = {
     const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('reg-wants-email')
     );
-    const wantsScheduleNotificationInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('reg-wants-schedule-notification')
-    );
+    const wantsScheduleNotificationInput =
+      /** @type {HTMLInputElement | null} */ (
+        document.getElementById('reg-wants-schedule-notification')
+      );
     const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
       document.getElementById('reg-notification-day')
     );
@@ -163,13 +164,16 @@ const authActionHandlers = {
     const nickname = nicknameInput?.value.trim();
     const email = emailInput?.value;
     const wantsEmail = wantsEmailInput?.checked || false;
-    const wantsScheduleNotification = wantsScheduleNotificationInput?.checked || false;
-    const notificationDay = wantsScheduleNotification && notificationDayInput?.value
-      ? parseInt(notificationDayInput.value)
-      : null;
-    const notificationHour = wantsScheduleNotification && notificationHourInput?.value
-      ? parseInt(notificationHourInput.value)
-      : null;
+    const wantsScheduleNotification =
+      wantsScheduleNotificationInput?.checked || false;
+    const notificationDay =
+      wantsScheduleNotification && notificationDayInput?.value
+        ? parseInt(notificationDayInput.value)
+        : null;
+    const notificationHour =
+      wantsScheduleNotification && notificationHourInput?.value
+        ? parseInt(notificationHourInput.value)
+        : null;
 
     // バリデーション
     if (!realName) return showInfo('お名前（本名）は必須です。', '入力エラー');
@@ -400,6 +404,51 @@ const authActionHandlers = {
       .registerNewUser(finalUserData);
   },
 
+  /** プロフィール編集画面を表示します（シートからデータ取得） */
+  showEditProfile: () => {
+    const state = stateManager.getState();
+    const studentId = state.currentUser?.studentId;
+
+    if (!studentId) {
+      showInfo('ユーザー情報が見つかりません。', 'エラー');
+      return;
+    }
+
+    showLoading();
+
+    // バックエンドからユーザーの詳細情報を取得
+    google.script.run
+      .withSuccessHandler(response => {
+        hideLoading();
+        if (response.success && response.data) {
+          // 取得した詳細情報で currentUser を更新してプロフィール編集画面に遷移
+          window.stateManager.dispatch({
+            type: 'NAVIGATE',
+            payload: {
+              to: 'editProfile',
+              context: {
+                currentUser: {
+                  ...state.currentUser,
+                  ...response.data,
+                },
+              },
+            },
+          });
+        } else {
+          showInfo(
+            response.message || 'プロフィール情報の取得に失敗しました。',
+            'エラー',
+          );
+        }
+      })
+      .withFailureHandler(error => {
+        hideLoading();
+        showInfo('プロフィール情報の取得中にエラーが発生しました。', 'エラー');
+        console.error('showEditProfile error:', error);
+      })
+      .getUserDetailForEdit(studentId);
+  },
+
   /** プロフィール情報を保存します（キャッシュ活用版） */
   saveProfile: () => {
     const futureGoalInput = /** @type {HTMLTextAreaElement | null} */ (
@@ -442,22 +491,26 @@ const authActionHandlers = {
     }
 
     // 通知設定の取得
-    const wantsScheduleNotificationInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('edit-wants-schedule-notification')
-    );
+    const wantsScheduleNotificationInput =
+      /** @type {HTMLInputElement | null} */ (
+        document.getElementById('edit-wants-schedule-notification')
+      );
     const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
       document.getElementById('edit-notification-day')
     );
     const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
       document.getElementById('edit-notification-hour')
     );
-    const wantsScheduleNotification = wantsScheduleNotificationInput?.checked || false;
-    const notificationDay = wantsScheduleNotification && notificationDayInput?.value
-      ? parseInt(notificationDayInput.value)
-      : null;
-    const notificationHour = wantsScheduleNotification && notificationHourInput?.value
-      ? parseInt(notificationHourInput.value)
-      : null;
+    const wantsScheduleNotification =
+      wantsScheduleNotificationInput?.checked || false;
+    const notificationDay =
+      wantsScheduleNotification && notificationDayInput?.value
+        ? parseInt(notificationDayInput.value)
+        : null;
+    const notificationHour =
+      wantsScheduleNotification && notificationHourInput?.value
+        ? parseInt(notificationHourInput.value)
+        : null;
 
     const u = {
       ...stateManager.getState().currentUser,
@@ -467,6 +520,7 @@ const authActionHandlers = {
       phone: phone,
       email: email || '',
       wantsEmail: wantsEmail || false,
+      wantsScheduleNotification: wantsScheduleNotification,
       notificationDay: notificationDay,
       notificationHour: notificationHour,
       address: address,
@@ -547,7 +601,10 @@ const authActionHandlers = {
                 });
               }, 2000);
             } else {
-              showInfo(response.message || '退会処理に失敗しました。', 'エラー');
+              showInfo(
+                response.message || '退会処理に失敗しました。',
+                'エラー',
+              );
             }
           })
           .withFailureHandler(error => {

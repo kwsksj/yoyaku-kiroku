@@ -1165,11 +1165,14 @@ function rebuildAllStudentsBasicCache() {
       phone: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.PHONE),
     };
 
-    // オプション列のインデックスを取得（メール関連・通知設定・ステータス）
+    // オプション列のインデックスを取得（メール関連・通知設定）
     const optionalColumns = {
       email: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.EMAIL),
       emailPreference: headerColumnMap.get(
         CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+      ),
+      scheduleNotificationPreference: headerColumnMap.get(
+        CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
       ),
       notificationDay: headerColumnMap.get(
         CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
@@ -1177,7 +1180,6 @@ function rebuildAllStudentsBasicCache() {
       notificationHour: headerColumnMap.get(
         CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
       ),
-      status: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.STATUS),
     };
 
     // 必須列の存在確認
@@ -1213,6 +1215,17 @@ function rebuildAllStudentsBasicCache() {
             preference === true;
         }
 
+        // 日程連絡希望フラグの処理
+        let wantsScheduleNotification = false;
+        if (optionalColumns.scheduleNotificationPreference !== undefined) {
+          const preference =
+            studentRow[optionalColumns.scheduleNotificationPreference];
+          wantsScheduleNotification =
+            preference === 'TRUE' ||
+            preference === '希望する' ||
+            preference === true;
+        }
+
         // 通知設定の取得
         const notificationDay =
           optionalColumns.notificationDay !== undefined
@@ -1222,12 +1235,6 @@ function rebuildAllStudentsBasicCache() {
           optionalColumns.notificationHour !== undefined
             ? studentRow[optionalColumns.notificationHour]
             : null;
-
-        // ステータスの取得（タスク2で追加）
-        const status =
-          optionalColumns.status !== undefined
-            ? String(studentRow[optionalColumns.status] || '')
-            : '';
 
         studentsDataMap[studentId] = {
           studentId: studentId,
@@ -1243,10 +1250,10 @@ function rebuildAllStudentsBasicCache() {
               ? studentRow[optionalColumns.email] || ''
               : '',
           wantsEmail: wantsEmail,
+          wantsScheduleNotification: wantsScheduleNotification,
           notificationDay: notificationDay,
           notificationHour: notificationHour,
-          status: status, // タスク2で追加：退会済みチェック用
-          rowIndex: index + 2, // 【修正】ヘッダー行を考慮した実際の行番号を追加 (1-based + header)
+          rowIndex: index + 2, // ヘッダー行を考慮した実際の行番号 (1-based + header)
         };
       }
     });

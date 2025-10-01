@@ -322,7 +322,6 @@ const CONSTANTS = {
       REAL_NAME: '本名',
       NICKNAME: 'ニックネーム',
       PHONE: '電話番号',
-      STATUS: 'ステータス',
       CAR: '車',
       CHISEL_RENTAL: '彫刻刀レンタル',
       LINE: 'LINE',
@@ -449,7 +448,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-10-01T16:52:34.111Z
+   * Generated: 2025-10-01T18:44:41.949Z
    * =================================================================
    */
 
@@ -6600,7 +6599,14 @@ const ENVIRONMENT_CONFIG = {
      * @param {SelectConfig} config - 設定オブジェクト
      * @returns {string} HTML文字列
      */
-    select: ({ id, label, options, selectedValue = '', description = '', caption = '' }) => {
+    select: ({
+      id,
+      label,
+      options,
+      selectedValue = '',
+      description = '',
+      caption = '',
+    }) => {
       // options が文字列の場合はそのまま使用（後方互換性）
       // options が配列の場合は option タグを生成
       const optionsHtml =
@@ -6637,7 +6643,15 @@ const ENVIRONMENT_CONFIG = {
      * @param {TextareaConfig} config - 設定オブジェクト
      * @returns {string} HTML文字列
      */
-    textarea: ({ id, label, value = '', placeholder = '', rows = 5, description = '', caption = '' }) => {
+    textarea: ({
+      id,
+      label,
+      value = '',
+      placeholder = '',
+      rows = 5,
+      description = '',
+      caption = '',
+    }) => {
       const descriptionHtml = description
         ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
         : '';
@@ -6737,8 +6751,17 @@ const ENVIRONMENT_CONFIG = {
      * @param {string} [config.caption=''] - 要素下の補足説明
      * @returns {string} HTML文字列
      */
-    radioGroup: ({ name, label, options, selectedValue = '', layout = 'vertical', description = '', caption = '' }) => {
-      const layoutClass = layout === 'horizontal' ? 'flex space-x-4' : 'space-y-2';
+    radioGroup: ({
+      name,
+      label,
+      options,
+      selectedValue = '',
+      layout = 'vertical',
+      description = '',
+      caption = '',
+    }) => {
+      const layoutClass =
+        layout === 'horizontal' ? 'flex space-x-4' : 'space-y-2';
       const radioButtons = options
         .map(
           opt => `
@@ -7979,7 +8002,7 @@ const ENVIRONMENT_CONFIG = {
               options: [
                 { value: '女性', label: '女性' },
                 { value: '男性', label: '男性' },
-                { value: 'その他', label: 'その他' }
+                { value: 'その他', label: 'その他' },
               ],
               selectedValue: data?.gender || '',
               layout: 'horizontal',
@@ -7990,7 +8013,7 @@ const ENVIRONMENT_CONFIG = {
               options: [
                 { value: '右利き', label: '右利き' },
                 { value: '左利き', label: '左利き' },
-                { value: '両利き', label: '両利き' }
+                { value: '両利き', label: '両利き' },
               ],
               selectedValue: data?.dominantHand || '',
               layout: 'horizontal',
@@ -8009,7 +8032,7 @@ const ENVIRONMENT_CONFIG = {
                 { value: '60代', label: '60代' },
                 { value: '70代', label: '70代' },
                 { value: '80代以上', label: '80代以上' },
-                { value: 'ひみつ', label: 'ひみつ' }
+                { value: 'ひみつ', label: 'ひみつ' },
               ],
               selectedValue: data?.ageGroup || '',
             })}
@@ -8063,7 +8086,7 @@ const ENVIRONMENT_CONFIG = {
                 { value: 'はじめて！', label: 'はじめて！' },
                 { value: 'ちょっと', label: 'ちょっと' },
                 { value: 'そこそこ', label: 'そこそこ' },
-                { value: 'かなり！', label: 'かなり！' }
+                { value: 'かなり！', label: 'かなり！' },
               ],
               selectedValue: data['experience'] || '',
               layout: 'vertical',
@@ -8123,10 +8146,19 @@ const ENVIRONMENT_CONFIG = {
               label: '今後のご参加について',
               options: [
                 { value: '毎月通いたい！', label: '毎月通いたい！' },
-                { value: '2,3ヶ月ごとくらいで通いたい！', label: '2,3ヶ月ごとくらいで通いたい！' },
-                { value: 'これるときにたまに通いたい！', label: 'これるときにたまに通いたい！' },
+                {
+                  value: '2,3ヶ月ごとくらいで通いたい！',
+                  label: '2,3ヶ月ごとくらいで通いたい！',
+                },
+                {
+                  value: 'これるときにたまに通いたい！',
+                  label: 'これるときにたまに通いたい！',
+                },
                 { value: '1回やってみたい！', label: '1回やってみたい！' },
-                { value: '通いたいがむずかしい…', label: '通いたいがむずかしい…' }
+                {
+                  value: '通いたいがむずかしい…',
+                  label: '通いたいがむずかしい…',
+                },
               ],
               selectedValue: data['futureParticipation'] || '',
               layout: 'vertical',
@@ -8194,8 +8226,8 @@ const ENVIRONMENT_CONFIG = {
     // 「将来的に制作したいもの」の値を取得（生徒名簿シートから取得される想定）
     const futureGoalValue = userData.futureCreations || '';
 
-    // 教室日程の連絡チェック状態を判定（送信日が設定されていればON）
-    const wantsScheduleNotification = userData.notificationDay != null && userData.notificationDay !== '';
+    // 教室日程の連絡チェック状態を取得（シートの「日程連絡希望」列から）
+    const wantsScheduleNotification = userData.wantsScheduleNotification || false;
 
     return `
       ${Components.pageHeader({
@@ -8261,7 +8293,8 @@ const ENVIRONMENT_CONFIG = {
                 id: 'edit-wants-schedule-notification',
                 label: '教室日程 のメール連絡（毎月）を希望する',
                 checked: wantsScheduleNotification,
-                onChange: "document.getElementById('edit-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
+                onChange:
+                  "document.getElementById('edit-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
               })}
               <div id="edit-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${wantsScheduleNotification ? '' : 'hidden'}">
                 ${Components.select({
@@ -8271,7 +8304,7 @@ const ENVIRONMENT_CONFIG = {
                     { value: '', label: '--' },
                     { value: '5', label: '毎月5日' },
                     { value: '15', label: '毎月15日' },
-                    { value: '25', label: '毎月25日' }
+                    { value: '25', label: '毎月25日' },
                   ],
                   selectedValue: String(userData.notificationDay || ''),
                 })}
@@ -8283,7 +8316,7 @@ const ENVIRONMENT_CONFIG = {
                     { value: '9', label: '9時' },
                     { value: '12', label: '12時' },
                     { value: '18', label: '18時' },
-                    { value: '21', label: '21時' }
+                    { value: '21', label: '21時' },
                   ],
                   selectedValue: String(userData.notificationHour || ''),
                 })}
@@ -9008,7 +9041,7 @@ const ENVIRONMENT_CONFIG = {
     return `
           <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
               <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${stateManager.getState().currentUser.displayName} <span class="text-base">さん</span></span></h1>
-              <button onclick="stateManager.dispatch({ type: 'NAVIGATE', payload: { to: 'editProfile' } })" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
+              <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
           </div>
           ${yourBookingsHtml}
           ${historyHtml}
@@ -10784,9 +10817,9 @@ const ENVIRONMENT_CONFIG = {
             },
           });
 
-          // 通知設定チェック：メール連絡希望ONで通知設定が未設定の場合に喚起
+          // 通知設定チェック：日程連絡希望ONで通知設定が未設定の場合に喚起
           if (
-            response.user.wantsEmail &&
+            response.user.wantsScheduleNotification &&
             (response.user.notificationDay == null ||
               response.user.notificationDay === '')
           ) {
@@ -10838,9 +10871,10 @@ const ENVIRONMENT_CONFIG = {
       const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
         document.getElementById('reg-wants-email')
       );
-      const wantsScheduleNotificationInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('reg-wants-schedule-notification')
-      );
+      const wantsScheduleNotificationInput =
+        /** @type {HTMLInputElement | null} */ (
+          document.getElementById('reg-wants-schedule-notification')
+        );
       const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('reg-notification-day')
       );
@@ -10852,13 +10886,16 @@ const ENVIRONMENT_CONFIG = {
       const nickname = nicknameInput?.value.trim();
       const email = emailInput?.value;
       const wantsEmail = wantsEmailInput?.checked || false;
-      const wantsScheduleNotification = wantsScheduleNotificationInput?.checked || false;
-      const notificationDay = wantsScheduleNotification && notificationDayInput?.value
-        ? parseInt(notificationDayInput.value)
-        : null;
-      const notificationHour = wantsScheduleNotification && notificationHourInput?.value
-        ? parseInt(notificationHourInput.value)
-        : null;
+      const wantsScheduleNotification =
+        wantsScheduleNotificationInput?.checked || false;
+      const notificationDay =
+        wantsScheduleNotification && notificationDayInput?.value
+          ? parseInt(notificationDayInput.value)
+          : null;
+      const notificationHour =
+        wantsScheduleNotification && notificationHourInput?.value
+          ? parseInt(notificationHourInput.value)
+          : null;
 
       // バリデーション
       if (!realName) return showInfo('お名前（本名）は必須です。', '入力エラー');
@@ -11089,6 +11126,51 @@ const ENVIRONMENT_CONFIG = {
         .registerNewUser(finalUserData);
     },
 
+    /** プロフィール編集画面を表示します（シートからデータ取得） */
+    showEditProfile: () => {
+      const state = stateManager.getState();
+      const studentId = state.currentUser?.studentId;
+
+      if (!studentId) {
+        showInfo('ユーザー情報が見つかりません。', 'エラー');
+        return;
+      }
+
+      showLoading();
+
+      // バックエンドからユーザーの詳細情報を取得
+      google.script.run
+        .withSuccessHandler(response => {
+          hideLoading();
+          if (response.success && response.data) {
+            // 取得した詳細情報で currentUser を更新してプロフィール編集画面に遷移
+            window.stateManager.dispatch({
+              type: 'NAVIGATE',
+              payload: {
+                to: 'editProfile',
+                context: {
+                  currentUser: {
+                    ...state.currentUser,
+                    ...response.data,
+                  },
+                },
+              },
+            });
+          } else {
+            showInfo(
+              response.message || 'プロフィール情報の取得に失敗しました。',
+              'エラー',
+            );
+          }
+        })
+        .withFailureHandler(error => {
+          hideLoading();
+          showInfo('プロフィール情報の取得中にエラーが発生しました。', 'エラー');
+          console.error('showEditProfile error:', error);
+        })
+        .getUserDetailForEdit(studentId);
+    },
+
     /** プロフィール情報を保存します（キャッシュ活用版） */
     saveProfile: () => {
       const futureGoalInput = /** @type {HTMLTextAreaElement | null} */ (
@@ -11131,22 +11213,26 @@ const ENVIRONMENT_CONFIG = {
       }
 
       // 通知設定の取得
-      const wantsScheduleNotificationInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('edit-wants-schedule-notification')
-      );
+      const wantsScheduleNotificationInput =
+        /** @type {HTMLInputElement | null} */ (
+          document.getElementById('edit-wants-schedule-notification')
+        );
       const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('edit-notification-day')
       );
       const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('edit-notification-hour')
       );
-      const wantsScheduleNotification = wantsScheduleNotificationInput?.checked || false;
-      const notificationDay = wantsScheduleNotification && notificationDayInput?.value
-        ? parseInt(notificationDayInput.value)
-        : null;
-      const notificationHour = wantsScheduleNotification && notificationHourInput?.value
-        ? parseInt(notificationHourInput.value)
-        : null;
+      const wantsScheduleNotification =
+        wantsScheduleNotificationInput?.checked || false;
+      const notificationDay =
+        wantsScheduleNotification && notificationDayInput?.value
+          ? parseInt(notificationDayInput.value)
+          : null;
+      const notificationHour =
+        wantsScheduleNotification && notificationHourInput?.value
+          ? parseInt(notificationHourInput.value)
+          : null;
 
       const u = {
         ...stateManager.getState().currentUser,
@@ -11156,6 +11242,7 @@ const ENVIRONMENT_CONFIG = {
         phone: phone,
         email: email || '',
         wantsEmail: wantsEmail || false,
+        wantsScheduleNotification: wantsScheduleNotification,
         notificationDay: notificationDay,
         notificationHour: notificationHour,
         address: address,
@@ -11236,7 +11323,10 @@ const ENVIRONMENT_CONFIG = {
                   });
                 }, 2000);
               } else {
-                showInfo(response.message || '退会処理に失敗しました。', 'エラー');
+                showInfo(
+                  response.message || '退会処理に失敗しました。',
+                  'エラー',
+                );
               }
             })
             .withFailureHandler(error => {

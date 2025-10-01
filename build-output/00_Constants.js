@@ -187,7 +187,6 @@ const CONSTANTS = {
       REAL_NAME: '本名',
       NICKNAME: 'ニックネーム',
       PHONE: '電話番号',
-      STATUS: 'ステータス',
       CAR: '車',
       CHISEL_RENTAL: '彫刻刀レンタル',
       LINE: 'LINE',

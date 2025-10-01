@@ -148,8 +148,8 @@ function _getNotificationRecipients(targetDay, targetHour) {
   const realNameIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
   const nicknameIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
   const emailIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
-  const emailPreferenceIdx = header.indexOf(
-    CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+  const scheduleNotificationPreferenceIdx = header.indexOf(
+    CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
   );
   const notificationDayIdx = header.indexOf(
     CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
@@ -163,9 +163,11 @@ function _getNotificationRecipients(targetDay, targetHour) {
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
 
-    // メール連絡希望フラグチェック
-    const emailPreference = String(row[emailPreferenceIdx]).toUpperCase();
-    if (emailPreference !== 'TRUE') {
+    // 日程連絡希望フラグチェック
+    const scheduleNotificationPreference = String(
+      row[scheduleNotificationPreferenceIdx],
+    ).toUpperCase();
+    if (scheduleNotificationPreference !== 'TRUE') {
       continue;
     }
 
