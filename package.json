@@ -28,10 +28,10 @@
     "open:dev:test": "npm run switch:env -- test && clasp push --force && node tools/open-dev-url.js test",
     "dev:build": "node tools/unified-build.js build",
     "dev:watch": "node tools/unified-build.js watch",
-    "dev:test": "npm run dev:build && npm run push:test",
-    "dev:prod": "npm run dev:build && npm run push:prod",
-    "dev:open:test": "npm run dev:build && npm run open:dev:test",
-    "dev:open:prod": "npm run dev:build && npm run open:dev:prod"
+    "dev:test": "npm run switch:env -- test && npm run dev:build && clasp push --force",
+    "dev:prod": "npm run switch:env -- prod && npm run dev:build && clasp push --force",
+    "dev:open:test": "npm run switch:env -- test && npm run dev:build && clasp push --force && node tools/open-dev-url.js test",
+    "dev:open:prod": "npm run switch:env -- prod && npm run dev:build && clasp push --force && node tools/open-dev-url.js prod"
   },
   "repository": {
     "type": "git",
