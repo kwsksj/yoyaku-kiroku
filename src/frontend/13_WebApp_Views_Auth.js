@@ -458,7 +458,6 @@ const getEditProfileView = () => {
           label: '将来的に制作したいもの',
           value: futureGoalValue,
           placeholder: '曖昧な内容でも大丈夫！',
-          rows: 5,
         })}
         ${Components.input({
           id: 'edit-realname',

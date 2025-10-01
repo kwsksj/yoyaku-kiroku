@@ -448,7 +448,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-10-01T19:10:33.173Z
+   * Generated: 2025-10-01T19:51:18.179Z
    * =================================================================
    */
 
@@ -6648,7 +6648,7 @@ const ENVIRONMENT_CONFIG = {
       label,
       value = '',
       placeholder = '',
-      rows = 5,
+      rows = 4,
       description = '',
       caption = '',
     }) => {
@@ -8175,6 +8175,7 @@ const ENVIRONMENT_CONFIG = {
               label: 'メッセージ',
               value: data['firstMessage'] || '',
               placeholder: 'その他コメント・要望・意見など、あればどうぞ〜',
+              rows: 6,
             })}
 
             ${Components.cardContainer({
@@ -8244,7 +8245,6 @@ const ENVIRONMENT_CONFIG = {
             label: '将来的に制作したいもの',
             value: futureGoalValue,
             placeholder: '曖昧な内容でも大丈夫！',
-            rows: 5,
           })}
           ${Components.input({
             id: 'edit-realname',
