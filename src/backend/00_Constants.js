@@ -22,9 +22,7 @@ const CONSTANTS = {
   // 環境設定（PRODUCTION_MODEはビルド時に自動設定される）
   ENVIRONMENT: {
     DEBUG_MODE: typeof DEBUG !== 'undefined' ? DEBUG : false,
-    PRODUCTION_MODE:
-      typeof ScriptApp !== 'undefined' &&
-      ScriptApp.getScriptId() === 'BUILD_TIME_REPLACEMENT',
+    PRODUCTION_MODE: false, // ビルド時に自動置換される
   },
 
   /**
@@ -189,7 +187,6 @@ const CONSTANTS = {
       REAL_NAME: '本名',
       NICKNAME: 'ニックネーム',
       PHONE: '電話番号',
-      STATUS: 'ステータス',
       CAR: '車',
       CHISEL_RENTAL: '彫刻刀レンタル',
       LINE: 'LINE',
