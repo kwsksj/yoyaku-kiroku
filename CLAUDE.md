@@ -284,7 +284,7 @@ const html = Components.button({
   text: 'Click',
   onClick: 'doSomething()',
   type: 'primary',
-  size: 'normal'
+  size: 'normal',
 });
 ```
 
