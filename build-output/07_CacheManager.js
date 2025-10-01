@@ -1258,6 +1258,9 @@ function rebuildAllStudentsBasicCache() {
       }
     });
 
+    // 生徒データを配列形式に変換（分割キャッシュ用）
+    const studentsArray = Object.values(studentsDataMap);
+
     const cacheData = {
       version: new Date().getTime(),
       students: studentsDataMap,
@@ -1267,15 +1270,59 @@ function rebuildAllStudentsBasicCache() {
       },
     };
 
-    CacheService.getScriptCache().put(
-      CACHE_KEYS.ALL_STUDENTS_BASIC,
-      JSON.stringify(cacheData),
-      CACHE_EXPIRY_SECONDS,
-    );
+    // データサイズをチェックして分割キャッシュまたは通常キャッシュを決定
+    const cacheDataJson = JSON.stringify(cacheData);
+    const dataSizeKB = Math.round(cacheDataJson.length / 1024);
 
     Logger.log(
-      `生徒基本情報キャッシュを更新しました。件数: ${Object.keys(studentsDataMap).length}`,
+      `生徒名簿キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${studentsArray.length}`,
     );
+
+    if (dataSizeKB > CHUNK_SIZE_LIMIT_KB) {
+      // 分割キャッシュシステムを使用
+      Logger.log(
+        `データサイズが${CHUNK_SIZE_LIMIT_KB}KBを超えたため、分割キャッシュシステムを使用します。`,
+      );
+
+      const dataChunks = splitDataIntoChunks(
+        studentsArray,
+        CHUNK_SIZE_LIMIT_KB,
+      );
+      /** @type {ChunkedCacheMetadata} */
+      const metadata = /** @type {ChunkedCacheMetadata} */ ({
+        version: new Date().getTime(),
+        totalCount: studentsArray.length,
+        lastUpdated: new Date().toISOString(),
+        isChunked: true,
+      });
+
+      const success = saveChunkedDataToCache(
+        CACHE_KEYS.ALL_STUDENTS_BASIC,
+        dataChunks,
+        metadata,
+        CACHE_EXPIRY_SECONDS,
+      );
+
+      if (success) {
+        Logger.log(
+          `生徒基本情報キャッシュを分割保存しました。件数: ${studentsArray.length}, チャンク数: ${dataChunks.length}`,
+        );
+      } else {
+        Logger.log('⚠️ 分割キャッシュの保存に失敗しました。');
+        throw new Error('分割キャッシュの保存に失敗しました。');
+      }
+    } else {
+      // 通常のキャッシュシステムを使用
+      CacheService.getScriptCache().put(
+        CACHE_KEYS.ALL_STUDENTS_BASIC,
+        cacheDataJson,
+        CACHE_EXPIRY_SECONDS,
+      );
+
+      Logger.log(
+        `生徒基本情報キャッシュを更新しました。件数: ${Object.keys(studentsDataMap).length}`,
+      );
+    }
   } catch (e) {
     Logger.log(`rebuildAllStudentsBasicCacheでエラー: ${e.message}`);
     throw e;
@@ -1797,18 +1844,45 @@ function loadChunkedDataFromCache(baseKey) {
       }
     }
 
-    // 統合データを返す
-    const result = {
-      version: metadata.version,
-      reservations: allData,
-      headerMap: metadata.headerMap,
-      metadata: {
-        totalCount: allData.length,
-        isChunked: true,
-        totalChunks: totalChunks,
-        lastUpdated: metadata.lastUpdated,
-      },
-    };
+    // 統合データを返す（キャッシュキーによって適切な構造を返す）
+    /** @type {CacheDataStructure} */
+    let result;
+
+    if (baseKey === CACHE_KEYS.ALL_STUDENTS_BASIC) {
+      // 生徒名簿の場合：配列をオブジェクトに変換
+      /** @type {{ [studentId: string]: StudentData }} */
+      const studentsMap = {};
+      allData.forEach(student => {
+        const studentData = /** @type {StudentData} */ (student);
+        if (studentData.studentId) {
+          studentsMap[studentData.studentId] = studentData;
+        }
+      });
+
+      result = {
+        version: metadata.version,
+        students: studentsMap,
+        metadata: {
+          totalCount: allData.length,
+          isChunked: true,
+          totalChunks: totalChunks,
+          lastUpdated: metadata.lastUpdated,
+        },
+      };
+    } else {
+      // 予約データなど他のキャッシュの場合
+      result = {
+        version: metadata.version,
+        reservations: allData,
+        headerMap: metadata.headerMap,
+        metadata: {
+          totalCount: allData.length,
+          isChunked: true,
+          totalChunks: totalChunks,
+          lastUpdated: metadata.lastUpdated,
+        },
+      };
+    }
 
     Logger.log(
       `分割キャッシュ読み込み完了: ${totalChunks}チャンク, ${allData.length}件`,
