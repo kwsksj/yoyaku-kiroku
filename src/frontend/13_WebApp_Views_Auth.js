@@ -388,6 +388,7 @@ const getRegistrationStep4View = () => {
             label: 'メッセージ',
             value: data['firstMessage'] || '',
             placeholder: 'その他コメント・要望・意見など、あればどうぞ〜',
+            rows: 6,
           })}
 
           ${Components.cardContainer({

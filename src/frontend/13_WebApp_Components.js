@@ -273,7 +273,14 @@ const Components = {
    * @param {SelectConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  select: ({ id, label, options, selectedValue = '', description = '', caption = '' }) => {
+  select: ({
+    id,
+    label,
+    options,
+    selectedValue = '',
+    description = '',
+    caption = '',
+  }) => {
     // options が文字列の場合はそのまま使用（後方互換性）
     // options が配列の場合は option タグを生成
     const optionsHtml =
@@ -310,7 +317,15 @@ const Components = {
    * @param {TextareaConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  textarea: ({ id, label, value = '', placeholder = '', rows = 5, description = '', caption = '' }) => {
+  textarea: ({
+    id,
+    label,
+    value = '',
+    placeholder = '',
+    rows = 4,
+    description = '',
+    caption = '',
+  }) => {
     const descriptionHtml = description
       ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
       : '';
@@ -410,8 +425,17 @@ const Components = {
    * @param {string} [config.caption=''] - 要素下の補足説明
    * @returns {string} HTML文字列
    */
-  radioGroup: ({ name, label, options, selectedValue = '', layout = 'vertical', description = '', caption = '' }) => {
-    const layoutClass = layout === 'horizontal' ? 'flex space-x-4' : 'space-y-2';
+  radioGroup: ({
+    name,
+    label,
+    options,
+    selectedValue = '',
+    layout = 'vertical',
+    description = '',
+    caption = '',
+  }) => {
+    const layoutClass =
+      layout === 'horizontal' ? 'flex space-x-4' : 'space-y-2';
     const radioButtons = options
       .map(
         opt => `
