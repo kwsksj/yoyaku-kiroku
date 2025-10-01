@@ -93,20 +93,6 @@ function authenticateUserLightweight(phoneNumber) {
 
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
       if (storedPhone && storedPhone === normalizedInputPhone) {
-        // タスク2: 退会済みチェック
-        if (student.status === '退会済み') {
-          logActivity(
-            student.studentId,
-            '軽量ログイン試行（退会済み）',
-            '拒否',
-            '電話番号: ' + phoneNumber,
-          );
-          return {
-            success: false,
-            message: 'このアカウントは退会済みです。',
-          };
-        }
-
         foundUser = {
           studentId: student.studentId,
           displayName: String(student.nickname || student.realName),
@@ -226,20 +212,6 @@ function authenticateUser(phoneNumber) {
 
       const storedPhone = _normalizeAndValidatePhone(student.phone).normalized;
       if (storedPhone && storedPhone === normalizedInputPhone) {
-        // タスク2: 退会済みチェック
-        if (student.status === '退会済み') {
-          logActivity(
-            student.studentId,
-            'ログイン試行（退会済み）',
-            '拒否',
-            `電話番号: ${phoneNumber}`,
-          );
-          return {
-            success: false,
-            message: 'このアカウントは退会済みです。',
-          };
-        }
-
         foundUser = {
           studentId: student.studentId,
           displayName: String(student.nickname || student.realName),
@@ -315,6 +287,7 @@ function registerNewUser(userInfo) {
         return { success: false, message: '電話番号は必須です。' };
       }
 
+      // 既存ユーザーの重複チェック
       const existingUser = authenticateUser(normalizedPhone);
       if (/** @type {any} */ (existingUser).success) {
         return {
@@ -516,7 +489,8 @@ function _isValidEmail(email) {
 }
 
 /**
- * ユーザーアカウントを退会（論理削除）します（タスク2実装）
+ * ユーザーアカウントを退会（電話番号無効化）します
+ * 電話番号にプレフィックスを追加してログイン不可にします
  * @param {string} studentId - 生徒ID
  * @returns {ApiResponseGeneric<{message: string}>}
  */
@@ -540,16 +514,14 @@ function requestAccountDeletion(studentId) {
       const studentIdColIdx = header.indexOf(
         CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
       );
-      const statusColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.STATUS);
+      const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
 
       if (studentIdColIdx === -1) {
         throw new Error('生徒名簿のヘッダーに「生徒ID」列が見つかりません。');
       }
 
-      if (statusColIdx === -1) {
-        throw new Error(
-          '生徒名簿のヘッダーに「ステータス」列が見つかりません。手動で列を追加してください。',
-        );
+      if (phoneColIdx === -1) {
+        throw new Error('生徒名簿のヘッダーに「電話番号」列が見つかりません。');
       }
 
       // 全データを取得
@@ -564,12 +536,12 @@ function requestAccountDeletion(studentId) {
 
       // 該当ユーザーを検索
       let targetRowIndex = -1;
-      let currentStatus = '';
+      let currentPhone = '';
 
       for (let i = 0; i < allData.length; i++) {
         if (allData[i][studentIdColIdx] === studentId) {
           targetRowIndex = i + 2; // ヘッダーを考慮して+2
-          currentStatus = String(allData[i][statusColIdx] || '');
+          currentPhone = String(allData[i][phoneColIdx] || '');
           break;
         }
       }
@@ -582,30 +554,37 @@ function requestAccountDeletion(studentId) {
       }
 
       // セキュリティチェック: 既に退会済みの場合はエラー
-      if (currentStatus === '退会済み') {
+      if (currentPhone.startsWith('_WITHDRAWN_')) {
         return {
           success: false,
           message: 'このアカウントは既に退会済みです。',
         };
       }
 
-      // ステータス列に「退会済み」を書き込み
-      rosterSheet
-        .getRange(targetRowIndex, statusColIdx + 1)
-        .setValue('退会済み');
+      // 電話番号を無効化（プレフィックス追加）
+      const withdrawnDate = Utilities.formatDate(
+        new Date(),
+        CONSTANTS.TIMEZONE,
+        'yyyyMMdd',
+      );
+      const newPhone = `_WITHDRAWN_${withdrawnDate}_${currentPhone}`;
+
+      rosterSheet.getRange(targetRowIndex, phoneColIdx + 1).setValue(newPhone);
 
       // ログ記録
       logActivity(
         studentId,
         'アカウント退会',
         '成功',
-        `退会処理完了: studentId=${studentId}`,
+        `退会処理完了: studentId=${studentId}, 元電話番号=${currentPhone}`,
       );
 
       // キャッシュ更新
       rebuildAllStudentsBasicCache();
 
-      Logger.log(`requestAccountDeletion成功: studentId=${studentId}`);
+      Logger.log(
+        `requestAccountDeletion成功: studentId=${studentId}, 新電話番号=${newPhone}`,
+      );
 
       return {
         success: true,
@@ -803,6 +782,13 @@ function updateUserProfile(userInfo) {
             allStudentsCache['students'],
           ).filter(student => student.studentId !== userInfo.studentId);
           for (const student of otherStudents) {
+            // 退会済みユーザー（_WITHDRAWN_プレフィックス付き）は無視
+            if (
+              student.phone &&
+              String(student.phone).startsWith('_WITHDRAWN_')
+            ) {
+              continue;
+            }
             const storedPhone = _normalizeAndValidatePhone(
               student.phone,
             ).normalized;

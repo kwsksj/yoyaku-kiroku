@@ -712,46 +712,49 @@ const authActionHandlers = {
     }
 
     // 確認ダイアログを表示
-    const confirmed = window.confirm(
-      '本当に退会しますか？\n\nこの操作は取り消せません。アカウント情報が無効化され、再度ログインできなくなります。',
-    );
+    showConfirm({
+      title: '退会確認',
+      message:
+        '本当に退会しますか？\n\nこの操作は取り消せません。アカウント情報が無効化され、再度ログインできなくなります。',
+      confirmText: '退会する',
+      cancelText: 'キャンセル',
+      confirmColorClass: DesignConfig.colors['danger'],
+      onConfirm: () => {
+        // 確認された場合のみ実行
+        showLoading();
 
-    if (!confirmed) {
-      return; // キャンセルされた場合は何もしない
-    }
+        // バックエンドに退会リクエストを送信
+        google.script.run
+          .withSuccessHandler(response => {
+            hideLoading();
+            if (response.success) {
+              // 成功メッセージを表示
+              showInfo(
+                '退会処理が完了しました。ご利用ありがとうございました。',
+                '退会完了',
+              );
 
-    showLoading();
-
-    // バックエンドに退会リクエストを送信
-    google.script.run
-      .withSuccessHandler(response => {
-        hideLoading();
-        if (response.success) {
-          // 成功メッセージを表示
-          showInfo(
-            '退会処理が完了しました。ご利用ありがとうございました。',
-            '退会完了',
-          );
-
-          // ログアウト処理（stateをクリア）
-          setTimeout(() => {
-            stateManager.dispatch({ type: 'LOGOUT' });
-            // ログイン画面に遷移
-            stateManager.dispatch({
-              type: 'NAVIGATE',
-              payload: { to: 'login' },
-            });
-          }, 2000);
-        } else {
-          showInfo(response.message || '退会処理に失敗しました。', 'エラー');
-        }
-      })
-      .withFailureHandler(error => {
-        hideLoading();
-        showInfo('退会処理中にエラーが発生しました。', 'エラー');
-        console.error('requestAccountDeletion error:', error);
-      })
-      .requestAccountDeletion(studentId);
+              // ログアウト処理（stateをクリア）
+              setTimeout(() => {
+                stateManager.dispatch({ type: 'LOGOUT' });
+                // ログイン画面に遷移
+                stateManager.dispatch({
+                  type: 'NAVIGATE',
+                  payload: { to: 'login' },
+                });
+              }, 2000);
+            } else {
+              showInfo(response.message || '退会処理に失敗しました。', 'エラー');
+            }
+          })
+          .withFailureHandler(error => {
+            hideLoading();
+            showInfo('退会処理中にエラーが発生しました。', 'エラー');
+            console.error('requestAccountDeletion error:', error);
+          })
+          .requestAccountDeletion(studentId);
+      },
+    });
   },
 
   /** プライバシーポリシーを表示します（タスク1実装） */

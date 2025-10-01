@@ -187,6 +187,7 @@ const CONSTANTS = {
       REAL_NAME: '本名',
       NICKNAME: 'ニックネーム',
       PHONE: '電話番号',
+      STATUS: 'ステータス',
       CAR: '車',
       CHISEL_RENTAL: '彫刻刀レンタル',
       LINE: 'LINE',
@@ -198,7 +199,6 @@ const CONSTANTS = {
       NOTIFICATION_DAY: '通知日',
       NOTIFICATION_HOUR: '通知時刻',
       AGE_GROUP: '年代',
-      AGE: '年齢',
       GENDER: '性別',
       DOMINANT_HAND: '利き手',
       ADDRESS: '住所',
@@ -212,10 +212,6 @@ const CONSTANTS = {
       TRANSPORTATION: '来場手段',
       PICKUP: '送迎',
       TOTAL_PARTICIPATION: '参加回数',
-      TOKYO_PARTICIPATION: '参加回数（東京）',
-      NUMAZU_PARTICIPATION: '参加回数（沼津）',
-      TSUKUBA_PARTICIPATION: '参加回数（つくば）',
-      MITSUKOSHI_PARTICIPATION: '参加回数（三越）',
     },
 
     // 会計マスタ（短縮名: ACCOUNTING）
