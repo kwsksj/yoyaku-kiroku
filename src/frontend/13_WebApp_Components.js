@@ -231,6 +231,8 @@ const Components = {
     value = '',
     placeholder = '',
     required = false,
+    description = '',
+    caption = '',
   }) => {
     // 電話番号・メールの場合は専用クラスを使用
     const inputClass =
@@ -239,11 +241,20 @@ const Components = {
           DesignConfig.inputs['base']
         : DesignConfig.inputs['base'];
 
+    const descriptionHtml = description
+      ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+      : '';
+
+    const captionHtml = caption
+      ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
+      : '';
+
     return `<div class="mb-4">
         <label
           for="${id}"
           class="${DesignConfig.text['labelBlock']}"
         >${escapeHTML(label)}</label>
+        ${descriptionHtml}
         <input
           type="${type}"
           id="${id}"
@@ -253,6 +264,7 @@ const Components = {
           ${required ? 'required' : ''}
           autocomplete="off"
         >
+        ${captionHtml}
       </div>`;
   },
 
@@ -261,13 +273,35 @@ const Components = {
    * @param {SelectConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  select: ({ id, label, options }) => {
+  select: ({ id, label, options, selectedValue = '', description = '', caption = '' }) => {
+    // options が文字列の場合はそのまま使用（後方互換性）
+    // options が配列の場合は option タグを生成
+    const optionsHtml =
+      typeof options === 'string'
+        ? options
+        : options
+            .map(
+              opt =>
+                `<option value="${escapeHTML(opt.value || opt)}" ${selectedValue === (opt.value || opt) ? 'selected' : ''}>${escapeHTML(opt.label || opt)}</option>`,
+            )
+            .join('');
+
+    const descriptionHtml = description
+      ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+      : '';
+
+    const captionHtml = caption
+      ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
+      : '';
+
     return `<div class="mb-4">
         <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
+        ${descriptionHtml}
         <select
           id="${id}"
           class="${DesignConfig.inputs['base']}"
-        >${options}</select>
+        >${optionsHtml}</select>
+        ${captionHtml}
       </div>`;
   },
 
@@ -276,15 +310,25 @@ const Components = {
    * @param {TextareaConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  textarea: ({ id, label, value = '', placeholder = '', rows = 5 }) => {
+  textarea: ({ id, label, value = '', placeholder = '', rows = 5, description = '', caption = '' }) => {
+    const descriptionHtml = description
+      ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+      : '';
+
+    const captionHtml = caption
+      ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
+      : '';
+
     return `<div class="mb-4">
         <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
+        ${descriptionHtml}
         <textarea
           id="${id}"
           class="${DesignConfig.inputs['textarea']}"
           placeholder="${escapeHTML(placeholder)}"
           rows="${rows}"
         >${escapeHTML(value)}</textarea>
+        ${captionHtml}
       </div>`;
   },
 
@@ -300,6 +344,11 @@ const Components = {
     disabled = false,
     dynamicStyle = false,
     dataAttributes = {},
+    description = '',
+    caption = '',
+    onChange = '',
+    customLabelClass = '',
+    required = false,
   }) => {
     // 動的スタイル用のクラス設定
     const labelClass = dynamicStyle
@@ -311,25 +360,85 @@ const Components = {
     // disabledの場合のスタイル調整
     const finalLabelClass = disabled
       ? `${labelClass} opacity-50 cursor-not-allowed`
-      : labelClass;
+      : customLabelClass || labelClass;
 
     // data属性を文字列として生成
     const dataAttributesString = Object.entries(dataAttributes)
       .map(([key, value]) => `data-${key}="${escapeHTML(String(value))}"`)
       .join(' ');
 
-    return `<label class="flex items-center space-x-2 ${finalLabelClass}">
-        <input
-          type="checkbox"
-          id="${id}"
-          ${checked ? 'checked' : ''}
-          ${disabled ? 'disabled' : ''}
-          class="accent-action-primary-bg"
-          ${dynamicStyle ? 'data-dynamic-style="true"' : ''}
-          ${dataAttributesString}
-        >
-        <span>${label}</span>
-      </label>`;
+    const descriptionHtml = description
+      ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+      : '';
+
+    const captionHtml = caption
+      ? `<p class="text-xs text-brand-subtle mt-1 ml-7">${escapeHTML(caption)}</p>`
+      : '';
+
+    const onChangeAttr = onChange ? `onchange="${onChange}"` : '';
+    const requiredAttr = required ? 'required' : '';
+
+    return `<div>
+        ${descriptionHtml}
+        <label class="flex items-center space-x-2 ${finalLabelClass}">
+          <input
+            type="checkbox"
+            id="${id}"
+            ${checked ? 'checked' : ''}
+            ${disabled ? 'disabled' : ''}
+            ${requiredAttr}
+            class="h-5 w-5 accent-action-primary-bg"
+            ${onChangeAttr}
+            ${dynamicStyle ? 'data-dynamic-style="true"' : ''}
+            ${dataAttributesString}
+          >
+          <span>${label}</span>
+        </label>
+        ${captionHtml}
+      </div>`;
+  },
+
+  /**
+   * ラジオボタングループコンポーネント
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.name - ラジオボタングループの名前
+   * @param {string} config.label - グループのラベル
+   * @param {Array<{value: string, label: string}>} config.options - 選択肢の配列
+   * @param {string} [config.selectedValue] - 選択されている値
+   * @param {string} [config.layout='vertical'] - レイアウト（vertical/horizontal）
+   * @param {string} [config.description=''] - ラベル下の説明文
+   * @param {string} [config.caption=''] - 要素下の補足説明
+   * @returns {string} HTML文字列
+   */
+  radioGroup: ({ name, label, options, selectedValue = '', layout = 'vertical', description = '', caption = '' }) => {
+    const layoutClass = layout === 'horizontal' ? 'flex space-x-4' : 'space-y-2';
+    const radioButtons = options
+      .map(
+        opt => `
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input type="radio" name="${escapeHTML(name)}" value="${escapeHTML(opt.value)}"
+                 ${selectedValue === opt.value ? 'checked' : ''}
+                 class="text-action-primary-bg focus:ring-action-primary-bg">
+          <span class="text-brand-text">${escapeHTML(opt.label)}</span>
+        </label>
+      `,
+      )
+      .join('');
+
+    const descriptionHtml = description
+      ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+      : '';
+
+    const captionHtml = caption
+      ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
+      : '';
+
+    return `<div class="mb-4">
+        <label class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
+        ${descriptionHtml}
+        <div class="${layoutClass}">${radioButtons}</div>
+        ${captionHtml}
+      </div>`;
   },
 
   // =================================================================

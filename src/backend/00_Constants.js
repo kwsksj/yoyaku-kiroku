@@ -198,6 +198,7 @@ const CONSTANTS = {
       REGISTRATION_DATE: '登録日時',
       EMAIL: 'メールアドレス',
       EMAIL_PREFERENCE: 'メール連絡希望',
+      SCHEDULE_NOTIFICATION_PREFERENCE: '日程連絡希望',
       NOTIFICATION_DAY: '通知日',
       NOTIFICATION_HOUR: '通知時刻',
       AGE_GROUP: '年代',

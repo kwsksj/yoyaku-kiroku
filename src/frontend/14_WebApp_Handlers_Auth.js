@@ -143,34 +143,49 @@ const authActionHandlers = {
     const nicknameInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('reg-nickname')
     );
-    const phoneInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('reg-phone')
+    const emailInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('reg-email')
+    );
+    const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('reg-wants-email')
+    );
+    const wantsScheduleNotificationInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('reg-wants-schedule-notification')
+    );
+    const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
+      document.getElementById('reg-notification-day')
+    );
+    const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
+      document.getElementById('reg-notification-hour')
     );
 
     const realName = realNameInput?.value;
     const nickname = nicknameInput?.value.trim();
-    const phone = phoneInput?.value;
+    const email = emailInput?.value;
+    const wantsEmail = wantsEmailInput?.checked || false;
+    const wantsScheduleNotification = wantsScheduleNotificationInput?.checked || false;
+    const notificationDay = wantsScheduleNotification && notificationDayInput?.value
+      ? parseInt(notificationDayInput.value)
+      : null;
+    const notificationHour = wantsScheduleNotification && notificationHourInput?.value
+      ? parseInt(notificationHourInput.value)
+      : null;
 
+    // バリデーション
     if (!realName) return showInfo('お名前（本名）は必須です。', '入力エラー');
-
-    // フロントエンドで電話番号を正規化・バリデーション
-    if (phone) {
-      const normalizeResult = window.normalizePhoneNumberFrontend(phone);
-      if (!normalizeResult.isValid) {
-        showInfo(
-          normalizeResult.error || '電話番号の形式が正しくありません。',
-          '入力エラー',
-        );
-        return;
-      }
-    }
+    if (!email || !email.includes('@'))
+      return showInfo('有効なメールアドレスを入力してください。', '入力エラー');
 
     // 入力値をsetState経由で保存
     const updatedRegistrationData = {
       .../** @type {any} */ (stateManager.getState())?.['registrationData'],
-      phone,
       realName,
       nickname: nickname || realName,
+      email,
+      wantsEmail,
+      wantsScheduleNotification,
+      notificationDay,
+      notificationHour,
     };
     window.stateManager.dispatch({
       type: 'SET_STATE',
@@ -184,12 +199,6 @@ const authActionHandlers = {
 
   /** 新規ユーザー登録：Step2からStep1へもどる */
   backToStep1: () => {
-    const emailInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('q-email')
-    );
-    const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('q-wants-email')
-    );
     const ageGroupInput = /** @type {HTMLSelectElement | null} */ (
       document.getElementById('q-age-group')
     );
@@ -204,8 +213,6 @@ const authActionHandlers = {
     );
 
     const step2Data = {
-      email: emailInput?.value || '',
-      wantsEmail: wantsEmailInput?.checked || false,
       ageGroup: ageGroupInput?.value || '',
       gender: genderInput?.value || '',
       dominantHand: dominantHandInput?.value || '',
@@ -227,23 +234,6 @@ const authActionHandlers = {
 
   /** 新規ユーザー登録：Step2からStep3へ進む */
   goToStep3: () => {
-    const emailInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('q-email')
-    );
-    const email = emailInput?.value;
-    if (!email || !email.includes('@')) {
-      return showInfo('有効なメールアドレスを入力してください。', '入力エラー');
-    }
-
-    const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('q-wants-email')
-    );
-    const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
-      document.getElementById('q-notification-day')
-    );
-    const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
-      document.getElementById('q-notification-hour')
-    );
     const ageGroupInput = /** @type {HTMLSelectElement | null} */ (
       document.getElementById('q-age-group')
     );
@@ -258,14 +248,6 @@ const authActionHandlers = {
     );
 
     const step2Data = {
-      email: email,
-      wantsEmail: wantsEmailInput?.checked || false,
-      notificationDay: notificationDayInput?.value
-        ? parseInt(notificationDayInput.value)
-        : null,
-      notificationHour: notificationHourInput?.value
-        ? parseInt(notificationHourInput.value)
-        : null,
       ageGroup: ageGroupInput?.value || '',
       gender: genderInput?.value || '',
       dominantHand: dominantHandInput?.value || '',
@@ -373,9 +355,10 @@ const authActionHandlers = {
     const finalUserData = {
       .../** @type {any} */ (stateManager.getState()['registrationData'] || {}),
       ...step4Data,
+      phone: stateManager.getState().registrationPhone || '',
     };
 
-    showLoading('booking');
+    showLoading('login');
     google.script.run['withSuccessHandler'](
       (
         /** @type {ServerResponse<{ user: UserData; message: string }>} */ res,
@@ -419,38 +402,29 @@ const authActionHandlers = {
 
   /** プロフィール情報を保存します（キャッシュ活用版） */
   saveProfile: () => {
+    const futureGoalInput = /** @type {HTMLTextAreaElement | null} */ (
+      document.getElementById('edit-future-goal')
+    );
     const realNameInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('edit-realname')
     );
     const nicknameInput = /** @type {HTMLInputElement | null} */ (
       document.getElementById('edit-nickname')
     );
+    const addressInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('edit-address')
+    );
 
+    const futureGoal = futureGoalInput?.value?.trim() || '';
     const r = realNameInput?.value;
     let n = nicknameInput?.value.trim();
+    const address = addressInput?.value?.trim() || '';
+
     if (!r) return showInfo('お名前（本名）は必須です。');
     if (!n) n = r;
 
-    // NF-01: 電話番号入力欄があればその値も取得
-    const phoneInput = /** @type {HTMLInputElement | null} */ (
-      document.getElementById('edit-phone')
-    );
-    const phone =
-      phoneInput?.value || stateManager.getState().currentUser.phone; // 電話番号入力欄がなければ既存の電話番号を使用
-
-    // 電話番号が入力されている場合のみバリデーション
-    if (phoneInput?.value) {
-      const normalizeResult = window.normalizePhoneNumberFrontend(
-        phoneInput.value,
-      );
-      if (!normalizeResult.isValid) {
-        showInfo(
-          normalizeResult.error || '電話番号の形式が正しくありません。',
-          '入力エラー',
-        );
-        return;
-      }
-    }
+    // 電話番号は表示のみなので、現在の値を使用
+    const phone = stateManager.getState().currentUser.phone;
 
     // メール情報の取得とバリデーション
     const emailInput = /** @type {HTMLInputElement | null} */ (
@@ -460,9 +434,7 @@ const authActionHandlers = {
       document.getElementById('edit-wants-email')
     );
     const email = emailInput?.value?.trim() || '';
-    const wantsEmail =
-      wantsEmailInput?.checked ||
-      stateManager.getState().currentUser.wantsEmail;
+    const wantsEmail = wantsEmailInput?.checked || false;
 
     // メールアドレスの必須バリデーション
     if (!email || !email.includes('@')) {
@@ -470,21 +442,26 @@ const authActionHandlers = {
     }
 
     // 通知設定の取得
+    const wantsScheduleNotificationInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('edit-wants-schedule-notification')
+    );
     const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
       document.getElementById('edit-notification-day')
     );
     const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
       document.getElementById('edit-notification-hour')
     );
-    const notificationDay = notificationDayInput?.value
+    const wantsScheduleNotification = wantsScheduleNotificationInput?.checked || false;
+    const notificationDay = wantsScheduleNotification && notificationDayInput?.value
       ? parseInt(notificationDayInput.value)
       : null;
-    const notificationHour = notificationHourInput?.value
+    const notificationHour = wantsScheduleNotification && notificationHourInput?.value
       ? parseInt(notificationHourInput.value)
       : null;
 
     const u = {
       ...stateManager.getState().currentUser,
+      futureCreations: futureGoal,
       realName: r,
       displayName: n,
       phone: phone,
@@ -492,6 +469,7 @@ const authActionHandlers = {
       wantsEmail: wantsEmail || false,
       notificationDay: notificationDay,
       notificationHour: notificationHour,
+      address: address,
     };
     showLoading('booking');
     google.script.run['withSuccessHandler']((/** @type {any} */ res) => {
@@ -514,30 +492,6 @@ const authActionHandlers = {
       .updateUserProfile(u);
   },
 
-  // /** プロフィール編集画面に遷移します */
-  // goToEditProfile: () => {
-  //   // データが古く、かつ更新中でなければデータを更新
-  //   if (
-  //     !stateManager.getState().isDataFresh &&
-  //     !stateManager.getState()._dataUpdateInProgress
-  //   ) {
-  //     updateAppStateFromCache('editProfile');
-  //   } else {
-  //     // 新しいdispatchパターンを使用
-  //     if (window.stateManager) {
-  //       window.stateManager.dispatch({
-  //         type: 'CHANGE_VIEW',
-  //         payload: { view: 'editProfile' },
-  //       });
-  //     } else {
-  //       window.stateManager.dispatch({
-  //         type: 'SET_STATE',
-  //         payload: { view: 'editProfile' },
-  //       });
-  //     }
-  //   }
-  // },
-
   /** ログイン画面に戻ります（電話番号入力値を保存） */
   goBackToLogin: () => {
     const phoneInput = document.getElementById('phone');
@@ -548,157 +502,6 @@ const authActionHandlers = {
       type: 'NAVIGATE',
       payload: { to: 'login', context: { loginPhone: loginPhone } },
     });
-  },
-
-  /** プロフィール編集画面に遷移します（タスク3実装） */
-  goToEditProfile: () => {
-    const state = stateManager.getState();
-    const studentId = state.currentUser?.studentId;
-
-    if (!studentId) {
-      showInfo('ユーザー情報が見つかりません。', 'エラー');
-      return;
-    }
-
-    showLoading();
-
-    // バックエンドから最新のユーザー詳細情報を取得
-    google.script.run
-      .withSuccessHandler(response => {
-        hideLoading();
-        if (response.success) {
-          // ユーザー詳細情報をstateに保存
-          stateManager.dispatch({
-            type: 'UPDATE_STATE',
-            payload: { userDetailForEdit: response.data },
-          });
-          // プロフィール編集画面に遷移
-          stateManager.dispatch({
-            type: 'NAVIGATE',
-            payload: { to: 'editProfile' },
-          });
-        } else {
-          showInfo(
-            response.message || 'ユーザー情報の取得に失敗しました。',
-            'エラー',
-          );
-        }
-      })
-      .withFailureHandler(error => {
-        hideLoading();
-        showInfo('ユーザー情報の取得中にエラーが発生しました。', 'エラー');
-        console.error('getUserDetailForEdit error:', error);
-      })
-      .getUserDetailForEdit(studentId);
-  },
-
-  /** プロフィール情報を更新します（タスク3実装） */
-  updateProfile: () => {
-    const state = stateManager.getState();
-    const studentId = state.currentUser?.studentId;
-
-    if (!studentId) {
-      showInfo('ユーザー情報が見つかりません。', 'エラー');
-      return;
-    }
-
-    // フォームから値を取得
-    const realName = getInputElementSafely('profile-realName')?.value?.trim();
-    const nickname = getInputElementSafely('profile-nickname')?.value?.trim();
-    const phone = getInputElementSafely('profile-phone')?.value?.trim();
-    const email = getInputElementSafely('profile-email')?.value?.trim();
-    const wantsEmail = document.getElementById('profile-wantsEmail')?.checked;
-    const address = getInputElementSafely('profile-address')?.value?.trim();
-    const ageGroup = document.getElementById('profile-ageGroup')?.value;
-    const gender = document.getElementById('profile-gender')?.value;
-    const dominantHand = document.getElementById('profile-dominantHand')?.value;
-    const futureCreations = document
-      .getElementById('profile-futureCreations')
-      ?.value?.trim();
-    const notificationDay = document.getElementById(
-      'profile-notificationDay',
-    )?.value;
-    const notificationHour = document.getElementById(
-      'profile-notificationHour',
-    )?.value;
-
-    // 必須項目のバリデーション
-    if (!realName || !nickname || !phone) {
-      showInfo('本名、ニックネーム、電話番号は必須項目です。', '入力エラー');
-      return;
-    }
-
-    // 電話番号のフロントエンド検証
-    const normalizeResult = window.normalizePhoneNumberFrontend(phone);
-    if (!normalizeResult.isValid) {
-      showInfo(
-        normalizeResult.error || '電話番号の形式が正しくありません。',
-        '入力エラー',
-      );
-      return;
-    }
-
-    // 更新データを構築
-    const updateData = {
-      studentId: studentId,
-      realName: realName,
-      displayName: nickname, // nicknameをdisplayNameとして送信
-      phone: normalizeResult.normalized,
-      email: email || '',
-      wantsEmail: wantsEmail || false,
-      address: address || '',
-      ageGroup: ageGroup || '',
-      gender: gender || '',
-      dominantHand: dominantHand || '',
-      futureCreations: futureCreations || '',
-      notificationDay: notificationDay || '',
-      notificationHour: notificationHour || '',
-    };
-
-    showLoading();
-
-    // バックエンドに更新リクエストを送信
-    google.script.run
-      .withSuccessHandler(response => {
-        hideLoading();
-        if (response.success) {
-          // currentUserを更新
-          stateManager.dispatch({
-            type: 'UPDATE_STATE',
-            payload: {
-              currentUser: {
-                ...state.currentUser,
-                displayName: nickname,
-                realName: realName,
-                phone: normalizeResult.normalized,
-                email: email || '',
-                wantsEmail: wantsEmail || false,
-              },
-            },
-          });
-
-          showInfo('プロフィールを更新しました。', '成功');
-
-          // ダッシュボードに戻る
-          setTimeout(() => {
-            stateManager.dispatch({
-              type: 'NAVIGATE',
-              payload: { to: 'dashboard' },
-            });
-          }, 1500);
-        } else {
-          showInfo(
-            response.message || 'プロフィールの更新に失敗しました。',
-            'エラー',
-          );
-        }
-      })
-      .withFailureHandler(error => {
-        hideLoading();
-        showInfo('プロフィール更新中にエラーが発生しました。', 'エラー');
-        console.error('updateUserProfile error:', error);
-      })
-      .updateUserProfile(updateData);
   },
 
   /** アカウント退会処理を実行します（タスク2実装） */

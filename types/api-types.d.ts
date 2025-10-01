@@ -173,6 +173,9 @@ declare interface RegistrationFormData {
     nickname?: string;
     email?: string;
     wantsEmail?: boolean;
+    wantsScheduleNotification?: boolean;
+    notificationDay?: number;
+    notificationHour?: number;
     ageGroup?: string;
     gender?: string;
     dominantHand?: string;
@@ -240,6 +243,9 @@ declare interface NewUserRegistration {
   nickname?: string;
   email?: string;
   wantsEmail?: boolean;
+  wantsScheduleNotification?: boolean;
+  notificationDay?: number;
+  notificationHour?: number;
   ageGroup?: string;
   gender?: string;
   dominantHand?: string;
@@ -263,6 +269,7 @@ declare interface UserProfileUpdate {
   nickname?: string;
   email?: string;
   wantsEmail?: boolean;
+  wantsScheduleNotification?: boolean;
   ageGroup?: string;
   gender?: string;
   dominantHand?: string;
@@ -272,8 +279,8 @@ declare interface UserProfileUpdate {
   futureGoal?: string;
   futureParticipation?: string;
   futureCreations?: string;
-  notificationDay?: string;
-  notificationHour?: string;
+  notificationDay?: number;
+  notificationHour?: number;
 }
 
 /**

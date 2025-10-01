@@ -331,6 +331,7 @@ const CONSTANTS = {
       REGISTRATION_DATE: '登録日時',
       EMAIL: 'メールアドレス',
       EMAIL_PREFERENCE: 'メール連絡希望',
+      SCHEDULE_NOTIFICATION_PREFERENCE: '日程連絡希望',
       NOTIFICATION_DAY: '通知日',
       NOTIFICATION_HOUR: '通知時刻',
       AGE_GROUP: '年代',
@@ -448,7 +449,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-10-01T06:51:16.739Z
+   * Generated: 2025-10-01T16:52:34.111Z
    * =================================================================
    */
 
@@ -6557,6 +6558,8 @@ const ENVIRONMENT_CONFIG = {
       value = '',
       placeholder = '',
       required = false,
+      description = '',
+      caption = '',
     }) => {
       // 電話番号・メールの場合は専用クラスを使用
       const inputClass =
@@ -6565,11 +6568,20 @@ const ENVIRONMENT_CONFIG = {
             DesignConfig.inputs['base']
           : DesignConfig.inputs['base'];
 
+      const descriptionHtml = description
+        ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+        : '';
+
+      const captionHtml = caption
+        ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
+        : '';
+
       return `<div class="mb-4">
           <label
             for="${id}"
             class="${DesignConfig.text['labelBlock']}"
           >${escapeHTML(label)}</label>
+          ${descriptionHtml}
           <input
             type="${type}"
             id="${id}"
@@ -6579,6 +6591,7 @@ const ENVIRONMENT_CONFIG = {
             ${required ? 'required' : ''}
             autocomplete="off"
           >
+          ${captionHtml}
         </div>`;
     },
 
@@ -6587,13 +6600,35 @@ const ENVIRONMENT_CONFIG = {
      * @param {SelectConfig} config - 設定オブジェクト
      * @returns {string} HTML文字列
      */
-    select: ({ id, label, options }) => {
+    select: ({ id, label, options, selectedValue = '', description = '', caption = '' }) => {
+      // options が文字列の場合はそのまま使用（後方互換性）
+      // options が配列の場合は option タグを生成
+      const optionsHtml =
+        typeof options === 'string'
+          ? options
+          : options
+              .map(
+                opt =>
+                  `<option value="${escapeHTML(opt.value || opt)}" ${selectedValue === (opt.value || opt) ? 'selected' : ''}>${escapeHTML(opt.label || opt)}</option>`,
+              )
+              .join('');
+
+      const descriptionHtml = description
+        ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+        : '';
+
+      const captionHtml = caption
+        ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
+        : '';
+
       return `<div class="mb-4">
           <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
+          ${descriptionHtml}
           <select
             id="${id}"
             class="${DesignConfig.inputs['base']}"
-          >${options}</select>
+          >${optionsHtml}</select>
+          ${captionHtml}
         </div>`;
     },
 
@@ -6602,15 +6637,25 @@ const ENVIRONMENT_CONFIG = {
      * @param {TextareaConfig} config - 設定オブジェクト
      * @returns {string} HTML文字列
      */
-    textarea: ({ id, label, value = '', placeholder = '', rows = 5 }) => {
+    textarea: ({ id, label, value = '', placeholder = '', rows = 5, description = '', caption = '' }) => {
+      const descriptionHtml = description
+        ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+        : '';
+
+      const captionHtml = caption
+        ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
+        : '';
+
       return `<div class="mb-4">
           <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
+          ${descriptionHtml}
           <textarea
             id="${id}"
             class="${DesignConfig.inputs['textarea']}"
             placeholder="${escapeHTML(placeholder)}"
             rows="${rows}"
           >${escapeHTML(value)}</textarea>
+          ${captionHtml}
         </div>`;
     },
 
@@ -6626,6 +6671,11 @@ const ENVIRONMENT_CONFIG = {
       disabled = false,
       dynamicStyle = false,
       dataAttributes = {},
+      description = '',
+      caption = '',
+      onChange = '',
+      customLabelClass = '',
+      required = false,
     }) => {
       // 動的スタイル用のクラス設定
       const labelClass = dynamicStyle
@@ -6637,25 +6687,85 @@ const ENVIRONMENT_CONFIG = {
       // disabledの場合のスタイル調整
       const finalLabelClass = disabled
         ? `${labelClass} opacity-50 cursor-not-allowed`
-        : labelClass;
+        : customLabelClass || labelClass;
 
       // data属性を文字列として生成
       const dataAttributesString = Object.entries(dataAttributes)
         .map(([key, value]) => `data-${key}="${escapeHTML(String(value))}"`)
         .join(' ');
 
-      return `<label class="flex items-center space-x-2 ${finalLabelClass}">
-          <input
-            type="checkbox"
-            id="${id}"
-            ${checked ? 'checked' : ''}
-            ${disabled ? 'disabled' : ''}
-            class="accent-action-primary-bg"
-            ${dynamicStyle ? 'data-dynamic-style="true"' : ''}
-            ${dataAttributesString}
-          >
-          <span>${label}</span>
-        </label>`;
+      const descriptionHtml = description
+        ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+        : '';
+
+      const captionHtml = caption
+        ? `<p class="text-xs text-brand-subtle mt-1 ml-7">${escapeHTML(caption)}</p>`
+        : '';
+
+      const onChangeAttr = onChange ? `onchange="${onChange}"` : '';
+      const requiredAttr = required ? 'required' : '';
+
+      return `<div>
+          ${descriptionHtml}
+          <label class="flex items-center space-x-2 ${finalLabelClass}">
+            <input
+              type="checkbox"
+              id="${id}"
+              ${checked ? 'checked' : ''}
+              ${disabled ? 'disabled' : ''}
+              ${requiredAttr}
+              class="h-5 w-5 accent-action-primary-bg"
+              ${onChangeAttr}
+              ${dynamicStyle ? 'data-dynamic-style="true"' : ''}
+              ${dataAttributesString}
+            >
+            <span>${label}</span>
+          </label>
+          ${captionHtml}
+        </div>`;
+    },
+
+    /**
+     * ラジオボタングループコンポーネント
+     * @param {Object} config - 設定オブジェクト
+     * @param {string} config.name - ラジオボタングループの名前
+     * @param {string} config.label - グループのラベル
+     * @param {Array<{value: string, label: string}>} config.options - 選択肢の配列
+     * @param {string} [config.selectedValue] - 選択されている値
+     * @param {string} [config.layout='vertical'] - レイアウト（vertical/horizontal）
+     * @param {string} [config.description=''] - ラベル下の説明文
+     * @param {string} [config.caption=''] - 要素下の補足説明
+     * @returns {string} HTML文字列
+     */
+    radioGroup: ({ name, label, options, selectedValue = '', layout = 'vertical', description = '', caption = '' }) => {
+      const layoutClass = layout === 'horizontal' ? 'flex space-x-4' : 'space-y-2';
+      const radioButtons = options
+        .map(
+          opt => `
+          <label class="flex items-center space-x-2 cursor-pointer">
+            <input type="radio" name="${escapeHTML(name)}" value="${escapeHTML(opt.value)}"
+                   ${selectedValue === opt.value ? 'checked' : ''}
+                   class="text-action-primary-bg focus:ring-action-primary-bg">
+            <span class="text-brand-text">${escapeHTML(opt.label)}</span>
+          </label>
+        `,
+        )
+        .join('');
+
+      const descriptionHtml = description
+        ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
+        : '';
+
+      const captionHtml = caption
+        ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
+        : '';
+
+      return `<div class="mb-4">
+          <label class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
+          ${descriptionHtml}
+          <div class="${layoutClass}">${radioButtons}</div>
+          ${captionHtml}
+        </div>`;
     },
 
     // =================================================================
@@ -7714,200 +7824,135 @@ const ENVIRONMENT_CONFIG = {
   };
 
   /**
-   * ユーザー情報入力フォーム（新規登録・プロフィール編集共通）
-   * 【統合設計】新規登録と編集を1つの関数で処理する効率的な実装
-   * @param {UserFormConfig} config - 設定オブジェクト
+   * 新規登録画面（ステップ1）
+   * 【設計方針】step2〜4と統一的な構造
+   * @param {PhoneNumber} phone - 電話番号
    * @returns {HTMLString} HTML文字列
    */
-  const getUserFormView = config => {
-    const { mode, phone } = config;
-    const isEdit = mode === 'edit';
-    const u = stateManager.getState().currentUser || {};
-
-    // 入力値の保持: 新規登録Step1ではstateManager.getState().registrationDataを参照
-    let regData = /** @type {RegistrationFormData} */ (
+  const getRegistrationStep1View = phone => {
+    const data = /** @type {RegistrationFormData} */ (
       stateManager.getState()['registrationData'] || {}
     );
-    const userData = /** @type {UserData} */ (u);
-    const realNameValue = isEdit
-      ? userData.realName || ''
-      : regData.realName || '';
-    const nicknameValue = isEdit
-      ? userData.displayName || ''
-      : regData.nickname || '';
-    const phoneValue = isEdit
-      ? stateManager.getState().registrationPhone || userData.phone || ''
-      : regData.phone || phone || '';
+    const phoneValue = data.phone || phone || '';
 
-    // 電話番号表示の判定
-    const isPhoneInputNeeded =
-      isEdit && (stateManager.getState().registrationPhone || !userData.phone);
+    // 電話番号セクション（常に表示のみ・編集不可）
+    const formattedPhoneValue =
+      typeof formatPhoneNumberForDisplay === 'function'
+        ? formatPhoneNumberForDisplay(phoneValue)
+        : phoneValue;
 
-    // タイトルと説明文
-    const title = isEdit ? 'プロフィール編集' : '新規登録';
-    const description = isEdit
-      ? ''
-      : '<p class="text-brand-subtle mb-6">お名前を登録してください。</p>';
-
-    // 電話番号セクション
-    let phoneSection = '';
-    if (!isEdit) {
-      // 新規登録時：電話番号を表示のみ
-      const formattedPhoneValue =
-        typeof formatPhoneNumberForDisplay === 'function'
-          ? formatPhoneNumberForDisplay(phoneValue)
-          : phoneValue;
-      phoneSection = `
-          <div class="mb-4">
-              <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
-              <input type="tel" id="reg-phone" value="${formattedPhoneValue}" class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678" autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
-          </div>`;
-    } else if (isPhoneInputNeeded) {
-      // プロフィール編集時：電話番号入力が必要
-      const formattedPhoneValue =
-        typeof formatPhoneNumberForDisplay === 'function'
-          ? formatPhoneNumberForDisplay(phoneValue)
-          : phoneValue;
-      phoneSection = `
-          <div class="mb-4">
-              <label for="edit-phone" class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
-              <input type="tel" id="edit-phone" value="${formattedPhoneValue}"
-                     class="${DesignConfig.inputs.phone}" placeholder="090 1234 5678"
-                     autocomplete="tel" inputmode="numeric" pattern="[0-9]*">
-              <p class="text-sm text-brand-subtle mt-1">携帯電話番号を登録すると次回からスムーズにログインできます。</p>
-          </div>`;
-    } else {
-      // プロフィール編集時：電話番号表示のみ
-      const formattedPhoneValue =
-        typeof formatPhoneNumberForDisplay === 'function'
-          ? formatPhoneNumberForDisplay(phoneValue)
-          : phoneValue;
-      phoneSection = `
-          <div class="mb-4">
-              <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
-              <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block"><span class="font-mono-numbers">${formattedPhoneValue}</span></p>
-          </div>`;
-    }
-
-    // メール設定セクション（プロフィール編集時のみ）
-    const emailSection = isEdit
-      ? `
-          <div class="space-y-4">
-            ${Components.input({
-              id: 'edit-email',
-              label: 'メールアドレス',
-              type: 'email',
-              value: /** @type {UserData} */ (u).email || '',
-              placeholder: 'example@email.com',
-            })}
-            <div class="p-3 bg-ui-surface rounded-md">
-              <label class="flex items-center space-x-3">
-                <input type="checkbox" id="edit-wants-email"
-                       class="h-5 w-5 accent-action-primary-bg"
-                       ${/** @type {UserData} */ (u).wantsEmail ? 'checked' : ''}>
-                <span class="text-brand-text text-sm">メール連絡を希望します（教室日程、予約受付、など）**初回予約時は、すべての方へ連絡します**</span>
-              </label>
-            </div>
-            <div class="p-3 bg-ui-surface rounded-md space-y-3">
-              <label class="block text-brand-text text-sm font-bold">月次メール通知設定</label>
-              <div class="space-y-2">
-                <label class="block text-brand-text text-xs">通知を受け取る日</label>
-                <select id="edit-notification-day" name="notificationDay" class="w-full p-2 border-2 border-ui-border rounded-md bg-ui-bg text-brand-text">
-                  <option value="">未設定</option>
-                  <option value="5" ${/** @type {UserData} */ (u).notificationDay === 5 ? 'selected' : ''}>毎月5日</option>
-                  <option value="15" ${/** @type {UserData} */ (u).notificationDay === 15 ? 'selected' : ''}>毎月15日</option>
-                  <option value="25" ${/** @type {UserData} */ (u).notificationDay === 25 ? 'selected' : ''}>毎月25日</option>
-                </select>
-              </div>
-              <div class="space-y-2">
-                <label class="block text-brand-text text-xs">通知時刻</label>
-                <select id="edit-notification-hour" name="notificationHour" class="w-full p-2 border-2 border-ui-border rounded-md bg-ui-bg text-brand-text">
-                  <option value="">未設定</option>
-                  <option value="9" ${/** @type {UserData} */ (u).notificationHour === 9 ? 'selected' : ''}>9時</option>
-                  <option value="12" ${/** @type {UserData} */ (u).notificationHour === 12 ? 'selected' : ''}>12時</option>
-                  <option value="18" ${/** @type {UserData} */ (u).notificationHour === 18 ? 'selected' : ''}>18時</option>
-                  <option value="21" ${/** @type {UserData} */ (u).notificationHour === 21 ? 'selected' : ''}>21時</option>
-                </select>
-              </div>
-              <p class="text-xs text-gray-600">※メール連絡希望がONの場合に有効です</p>
-            </div>
-          </div>
-        `
-      : '';
-
-    // ボタン設定
-    // ボタン設定を統一フォーマットで定義
-    const buttonConfig = isEdit
-      ? {
-          secondaryButton: {
-            text: 'もどる',
-            action: 'smartGoBack',
-            style: /** @type {ComponentStyle} */ ('secondary'),
-          },
-          primaryButton: {
-            text: 'この内容で更新',
-            action: 'saveProfile',
-            style: /** @type {ComponentStyle} */ ('primary'),
-          },
-        }
-      : {
-          secondaryButton: {
-            text: 'もどる',
-            action: 'goBackToLogin',
-            style: /** @type {ComponentStyle} */ ('secondary'),
-          },
-          primaryButton: {
-            text: 'すすむ',
-            action: 'goToStep2',
-            style: /** @type {ComponentStyle} */ ('primary'),
-          },
-        };
-
-    const nameIdPrefix = isEdit ? 'edit' : 'reg';
-
-    return Components.pageContainer({
-      maxWidth: 'md',
-      content: `
-        <h1 class="text-xl font-bold text-brand-text text-center mb-4">${title}</h1>
-        ${description}
-        <form id="${isEdit ? 'edit-profile-form' : 'register-step1-form'}" class="space-y-4">
+    return `
+      ${Components.pageHeader({
+        title: '新規登録',
+        showBackButton: false,
+      })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+          <form id="register-step1-form" class="space-y-4">
           ${Components.input({
-            id: `${nameIdPrefix}-realname`,
+            id: 'reg-realname',
             label: 'お名前 *必須項目*',
             type: 'text',
             required: true,
-            value: realNameValue,
+            value: data.realName || '',
             containerClass: '',
             autocomplete: 'name',
           })}
           ${Components.input({
-            id: `${nameIdPrefix}-nickname`,
+            id: 'reg-nickname',
             label: 'ニックネーム（表示名）',
             caption: '他の生徒さんにも表示されます',
             type: 'text',
-            value: nicknameValue,
+            value: data.nickname || '',
             placeholder: '空欄の場合はお名前',
             containerClass: '',
           })}
-          ${phoneSection}
-          ${emailSection}
+          <div class="mb-4">
+            <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
+            <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block"><span class="font-mono-numbers">${formattedPhoneValue}</span></p>
+          </div>
+          ${Components.input({
+            id: 'reg-email',
+            label: 'メールアドレス *必須項目*',
+            type: 'email',
+            value: data.email || '',
+            placeholder: 'example@email.com',
+            required: true,
+            autocomplete: 'email',
+          })}
+          ${Components.cardContainer({
+            variant: 'default',
+            content: Components.checkbox({
+              id: 'reg-wants-email',
+              label: '予約受付 のメール連絡を希望する',
+              checked: data.wantsEmail || false,
+              caption: '* 初回予約時は、すべての方へ送信します',
+            }),
+          })}
+          ${Components.cardContainer({
+            variant: 'default',
+            content: `
+              ${Components.checkbox({
+                id: 'reg-wants-schedule-notification',
+                label: '教室日程 のメール連絡（毎月）を希望する',
+                checked: data.wantsScheduleNotification || false,
+                onChange:
+                  "document.getElementById('reg-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
+              })}
+              <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data.wantsScheduleNotification ? '' : 'hidden'}">
+                ${Components.select({
+                  id: 'reg-notification-day',
+                  label: '送信日',
+                  options: [
+                    { value: '', label: '--' },
+                    { value: '5', label: '毎月5日' },
+                    { value: '15', label: '毎月15日' },
+                    { value: '25', label: '毎月25日' },
+                  ],
+                  selectedValue: String(data.notificationDay || ''),
+                })}
+                ${Components.select({
+                  id: 'reg-notification-hour',
+                  label: '送信時刻',
+                  options: [
+                    { value: '', label: '--' },
+                    { value: '9', label: '9時' },
+                    { value: '12', label: '12時' },
+                    { value: '18', label: '18時' },
+                    { value: '21', label: '21時' },
+                  ],
+                  selectedValue: String(data.notificationHour || ''),
+                })}
+              </div>
+            `,
+          })}
         </form>
 
-        ${Components.actionButtonSection({
-          ...buttonConfig,
-          layout: 'horizontal',
-        })}
-      `,
-    });
+          ${Components.actionButtonSection({
+            secondaryButton: {
+              text: 'もどる',
+              action: 'goBackToLogin',
+              style: 'secondary',
+            },
+            primaryButton: {
+              text: 'すすむ',
+              action: 'goToStep2',
+              style: 'primary',
+            },
+            layout: 'horizontal',
+          })}
+        `,
+      })}
+    `;
   };
 
   /**
-   * 新規登録画面（ステップ1）
-   * 【設計方針】userFormViewへの簡潔なラッパー
+   * 新規登録画面（ステップ1）へのラッパー（後方互換性のため）
    * @param {PhoneNumber} p - 電話番号
    * @returns {HTMLString} HTML文字列
    */
-  const getRegisterView = p => getUserFormView({ mode: 'register', phone: p });
+  const getRegisterView = p => getRegistrationStep1View(p);
 
   /**
    * 新規登録フローのステップ2（プロフィール詳細）
@@ -7918,91 +7963,80 @@ const ENVIRONMENT_CONFIG = {
     const data = /** @type {RegistrationFormData} */ (
       stateManager.getState()['registrationData']
     );
-    const genderOptions = ['女性', '男性', 'その他']
-      .map(
-        opt =>
-          `<label class="flex items-center space-x-2"><input type="radio" name="gender" value="${opt}" ${data?.gender === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
-      )
-      .join('');
-    const handOptions = ['右利き', '左利き', '両利き']
-      .map(
-        opt =>
-          `<label class="flex items-center space-x-2"><input type="radio" name="dominantHand" value="${opt}" ${data?.dominantHand === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
-      )
-      .join('');
-    const ageOptions = [
-      '----',
-      '10代（16歳以上）',
-      '20代',
-      '30代',
-      '40代',
-      '50代',
-      '60代',
-      '70代',
-      '80代以上',
-      'ひみつ',
-    ]
-      .map(
-        opt =>
-          `<option value="${opt}" ${data?.ageGroup === opt ? 'selected' : ''}>${opt}</option>`,
-      )
-      .join('');
 
-    return Components.pageContainer({
-      maxWidth: 'md',
-      content: `
-        <h1 class="text-xl font-bold text-brand-text mb-4 text-center">プロフィール</h1>
-        <form id="step2-form" class="space-y-6">
-          ${Components.input({ id: 'q-email', label: 'メールアドレス *必須項目*', type: 'email', value: data?.email || '', required: true })}
-          <div class="p-3 bg-ui-surface rounded-md">
-            <label class="flex items-center space-x-3">
-              <input type="checkbox" id="q-wants-email" name="wantsEmail" class="h-5 w-5 accent-action-primary-bg" ${data?.wantsEmail ? 'checked' : ''}>
-              <span class="text-brand-text text-sm">メール連絡を希望します（教室日程、予約受付、など）</span>
-            </label>
-          </div>
-          <div class="p-3 bg-ui-surface rounded-md space-y-3" id="notification-settings">
-            <label class="block text-brand-text text-sm font-bold">月次メール通知設定</label>
-            <div class="space-y-2">
-              <label class="block text-brand-text text-xs">通知を受け取る日</label>
-              <select id="q-notification-day" name="notificationDay" class="w-full p-2 border-2 border-ui-border rounded-md bg-ui-bg text-brand-text">
-                <option value="">未設定</option>
-                <option value="5" ${data?.notificationDay === 5 ? 'selected' : ''}>毎月5日</option>
-                <option value="15" ${data?.notificationDay === 15 ? 'selected' : ''}>毎月15日</option>
-                <option value="25" ${data?.notificationDay === 25 ? 'selected' : ''}>毎月25日</option>
-              </select>
-            </div>
-            <div class="space-y-2">
-              <label class="block text-brand-text text-xs">通知時刻</label>
-              <select id="q-notification-hour" name="notificationHour" class="w-full p-2 border-2 border-ui-border rounded-md bg-ui-bg text-brand-text">
-                <option value="">未設定</option>
-                <option value="9" ${data?.notificationHour === 9 ? 'selected' : ''}>9時</option>
-                <option value="12" ${data?.notificationHour === 12 ? 'selected' : ''}>12時</option>
-                <option value="18" ${data?.notificationHour === 18 ? 'selected' : ''}>18時</option>
-                <option value="21" ${data?.notificationHour === 21 ? 'selected' : ''}>21時</option>
-              </select>
-            </div>
-            <p class="text-xs text-gray-600">※メール連絡希望がONの場合に有効です</p>
-          </div>
-          ${Components.select({ id: 'q-age-group', label: '年代', options: ageOptions })}
-          <div><label class="block text-brand-text text-base font-bold mb-2">性別</label><div class="flex space-x-4">${genderOptions}</div></div>
-          <div><label class="block text-brand-text text-base font-bold mb-2">利き手</label><div class="flex space-x-4">${handOptions}</div></div>
-          ${Components.input({ id: 'q-address', label: '住所（市区町村まででOK！）', type: 'text', value: (data && data.address) || '' })}
-        </form>
-        ${Components.actionButtonSection({
-          secondaryButton: {
-            text: 'もどる',
-            action: 'backToStep1',
-            style: 'secondary',
-          },
-          primaryButton: {
-            text: 'すすむ',
-            action: 'goToStep3',
-            style: 'primary',
-          },
-          layout: 'horizontal',
-        })}
-      `,
-    });
+    return `
+      ${Components.pageHeader({
+        title: '新規登録 - プロフィール',
+        showBackButton: false,
+      })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+          <form id="step2-form" class="space-y-6">
+            ${Components.radioGroup({
+              name: 'gender',
+              label: '性別',
+              options: [
+                { value: '女性', label: '女性' },
+                { value: '男性', label: '男性' },
+                { value: 'その他', label: 'その他' }
+              ],
+              selectedValue: data?.gender || '',
+              layout: 'horizontal',
+            })}
+            ${Components.radioGroup({
+              name: 'dominantHand',
+              label: '利き手',
+              options: [
+                { value: '右利き', label: '右利き' },
+                { value: '左利き', label: '左利き' },
+                { value: '両利き', label: '両利き' }
+              ],
+              selectedValue: data?.dominantHand || '',
+              layout: 'horizontal',
+            })}
+            ${Components.select({
+              id: 'q-age-group',
+              label: '年代',
+              options: [
+                { value: '----', label: '----' },
+                { value: '10代（13-15歳）', label: '10代（13-15歳）' },
+                { value: '10代（16-19歳）', label: '10代（16-19歳）' },
+                { value: '20代', label: '20代' },
+                { value: '30代', label: '30代' },
+                { value: '40代', label: '40代' },
+                { value: '50代', label: '50代' },
+                { value: '60代', label: '60代' },
+                { value: '70代', label: '70代' },
+                { value: '80代以上', label: '80代以上' },
+                { value: 'ひみつ', label: 'ひみつ' }
+              ],
+              selectedValue: data?.ageGroup || '',
+            })}
+            ${Components.input({
+              id: 'q-address',
+              label: 'お住まいの地域',
+              caption: '市区町村まででOK!',
+              type: 'text',
+              value: (data && data.address) || '',
+            })}
+          </form>
+          ${Components.actionButtonSection({
+            secondaryButton: {
+              text: 'もどる',
+              action: 'backToStep1',
+              style: 'secondary',
+            },
+            primaryButton: {
+              text: 'すすむ',
+              action: 'goToStep3',
+              style: 'primary',
+            },
+            layout: 'horizontal',
+          })}
+        `,
+      })}
+    `;
   };
 
   /**
@@ -8012,52 +8046,59 @@ const ENVIRONMENT_CONFIG = {
    */
   const getRegistrationStep3View = () => {
     const data = stateManager.getState()['registrationData'];
-    const experienceOptions = ['はじめて！', 'ちょっと', 'そこそこ', 'かなり！']
-      .map(
-        opt =>
-          `<label class="flex items-center space-x-2"><input type="radio" name="experience" value="${opt}" ${data['experience'] === opt ? 'checked' : ''}><span class="text-brand-text">${opt}</span></label>`,
-      )
-      .join('');
 
-    return Components.pageContainer({
-      maxWidth: 'md',
-      content: `
-        <h1 class="text-xl font-bold text-brand-text mb-4 text-center">木彫りについて</h1>
-        <form id="step3-form" class="space-y-6">
-          <div>
-            <label class="block text-brand-text text-base font-bold mb-2">木彫りの経験はありますか？</label>
-            <div class="space-y-2" id="experience-radio-group">${experienceOptions}</div>
-          </div>
-          <div id="past-work-container" class="${data['experience'] && data['experience'] !== 'はじめて！' ? '' : 'hidden'}">
-            ${Components.textarea({
-              id: 'q-past-work',
-              label: 'いつ頃、どこで、何を作りましたか？',
-              value: data['pastWork'] || '',
-              placeholder: 'だいたいでOK！',
+    return `
+      ${Components.pageHeader({
+        title: '新規登録 - 木彫りについて',
+        showBackButton: false,
+      })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+          <form id="step3-form" class="space-y-6">
+            ${Components.radioGroup({
+              name: 'experience',
+              label: '木彫りの経験はありますか？',
+              options: [
+                { value: 'はじめて！', label: 'はじめて！' },
+                { value: 'ちょっと', label: 'ちょっと' },
+                { value: 'そこそこ', label: 'そこそこ' },
+                { value: 'かなり！', label: 'かなり！' }
+              ],
+              selectedValue: data['experience'] || '',
+              layout: 'vertical',
             })}
-          </div>
-          ${Components.textarea({
-            id: 'q-future-goal',
-            label: '将来的に制作したいものはありますか？',
-            value: data['futureGoal'] || '',
-            placeholder: '曖昧な内容でも大丈夫！',
+            <div id="past-work-container" class="${data['experience'] && data['experience'] !== 'はじめて！' ? '' : 'hidden'}">
+              ${Components.textarea({
+                id: 'q-past-work',
+                label: 'いつ頃、どこで、何を作りましたか？',
+                value: data['pastWork'] || '',
+                placeholder: 'だいたいでOK！',
+              })}
+            </div>
+            ${Components.textarea({
+              id: 'q-future-goal',
+              label: '将来的に制作したいものはありますか？',
+              value: data['futureGoal'] || '',
+              placeholder: '曖昧な内容でも大丈夫！',
+            })}
+          </form>
+          ${Components.actionButtonSection({
+            secondaryButton: {
+              text: 'もどる',
+              action: 'backToStep2',
+              style: 'secondary',
+            },
+            primaryButton: {
+              text: 'すすむ',
+              action: 'proceedToStep4',
+              style: 'primary',
+            },
+            layout: 'horizontal',
           })}
-        </form>
-        ${Components.actionButtonSection({
-          secondaryButton: {
-            text: 'もどる',
-            action: 'backToStep2',
-            style: 'secondary',
-          },
-          primaryButton: {
-            text: 'すすむ',
-            action: 'proceedToStep4',
-            style: 'primary',
-          },
-          layout: 'horizontal',
-        })}
-      `,
-    });
+        `,
+      })}
+    `;
   };
 
   /**
@@ -8067,77 +8108,224 @@ const ENVIRONMENT_CONFIG = {
    */
   const getRegistrationStep4View = () => {
     const data = stateManager.getState()['registrationData'];
-    const participationOptions = [
-      '毎月通いたい！',
-      '2,3ヶ月ごとくらいで通いたい！',
-      'これるときにたまに通いたい！',
-      '1回やってみたい！',
-      '通いたいがむずかしい…',
-    ]
-      .map(
-        opt =>
-          `<label class="flex items-center space-x-2 p-2 rounded hover:bg-ui-surface cursor-pointer">
-              <input type="radio" name="futureParticipation" value="${opt}" ${data['futureParticipation'] === opt ? 'checked' : ''} class="text-action-primary-bg focus:ring-action-primary-bg">
-              <span class="text-brand-text">${opt}</span>
-            </label>`,
-      )
-      .join('');
 
-    return Components.pageContainer({
-      maxWidth: 'md',
-      content: `
-        <h1 class="text-xl font-bold text-brand-text mb-4 text-center">アンケート</h1>
-        <form id="step4-form" class="space-y-6">
-          <div>
-            <label class="block text-brand-text text-base font-bold mb-3">今後のご参加について</label>
-            <div class="space-y-2" id="participation-radio-group">${participationOptions}</div>
-          </div>
+    return `
+      ${Components.pageHeader({
+        title: '新規登録 - アンケート',
+        showBackButton: false,
+      })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+          <form id="step4-form" class="space-y-6">
+            ${Components.radioGroup({
+              name: 'futureParticipation',
+              label: '今後のご参加について',
+              options: [
+                { value: '毎月通いたい！', label: '毎月通いたい！' },
+                { value: '2,3ヶ月ごとくらいで通いたい！', label: '2,3ヶ月ごとくらいで通いたい！' },
+                { value: 'これるときにたまに通いたい！', label: 'これるときにたまに通いたい！' },
+                { value: '1回やってみたい！', label: '1回やってみたい！' },
+                { value: '通いたいがむずかしい…', label: '通いたいがむずかしい…' }
+              ],
+              selectedValue: data['futureParticipation'] || '',
+              layout: 'vertical',
+            })}
 
-          ${Components.textarea({
-            id: 'q-trigger',
-            label: 'この教室を知ったきっかけは？参加しようと思ったきっかけは？',
-            value: data['trigger'] || '',
+            ${Components.textarea({
+              id: 'q-trigger',
+              label: 'この教室を知ったきっかけは？参加しようと思ったきっかけは？',
+              value: data['trigger'] || '',
+            })}
+
+            ${Components.textarea({
+              id: 'q-first-message',
+              label: 'メッセージ',
+              value: data['firstMessage'] || '',
+              placeholder: 'その他コメント・要望・意見など、あればどうぞ〜',
+            })}
+
+            ${Components.cardContainer({
+              variant: 'default',
+              customClass: 'mt-6',
+              content: `
+                <label class="flex items-start space-x-2 cursor-pointer">
+                  <input type="checkbox" id="privacy-policy-agree" class="h-5 w-5 mt-1 text-action-primary-bg focus:ring-action-primary-bg accent-action-primary-bg" required>
+                  <span class="text-sm text-brand-text">
+                    <span data-action="showPrivacyPolicy" class="text-brand-muted underline hover:text-brand-text cursor-pointer">プライバシーポリシー</span>に同意します
+                  </span>
+                </label>
+              `,
+            })}
+          </form>
+          ${Components.actionButtonSection({
+            secondaryButton: {
+              text: 'もどる',
+              action: 'backToStep3',
+              style: 'secondary',
+            },
+            primaryButton: {
+              text: 'とうろく する！',
+              action: 'submitRegistration',
+              style: 'primary',
+            },
+            layout: 'horizontal',
           })}
-
-          ${Components.textarea({
-            id: 'q-first-message',
-            label: 'メッセージ',
-            value: data['firstMessage'] || '',
-            placeholder: 'その他コメント・要望・意見など、あればどうぞ〜',
-          })}
-
-          <div class="mt-6 border-t pt-6">
-            <label class="flex items-start space-x-2 cursor-pointer">
-              <input type="checkbox" id="privacy-policy-agree" class="mt-1 text-action-primary-bg focus:ring-action-primary-bg" required>
-              <span class="text-sm text-brand-text">
-                <span data-action="showPrivacyPolicy" class="text-brand-muted underline hover:text-brand-text cursor-pointer">プライバシーポリシー</span>に同意します
-              </span>
-            </label>
-          </div>
-        </form>
-        ${Components.actionButtonSection({
-          secondaryButton: {
-            text: 'もどる',
-            action: 'backToStep3',
-            style: 'secondary',
-          },
-          primaryButton: {
-            text: 'とうろく する！',
-            action: 'submitRegistration',
-            style: 'primary',
-          },
-          layout: 'horizontal',
-        })}
-      `,
-    });
+        `,
+      })}
+    `;
   };
 
   /**
    * プロフィール編集画面
-   * 【設計方針】getUserFormViewへの簡潔なラッパー
+   * 【設計方針】step1と統一的な構造
    * @returns {HTMLString} HTML文字列
    */
-  const getEditProfileView = () => getUserFormView({ mode: 'edit' });
+  const getEditProfileView = () => {
+    const userData = /** @type {UserData} */ (
+      stateManager.getState().currentUser || {}
+    );
+    const phoneValue = userData.phone || '';
+    const formattedPhoneValue =
+      typeof formatPhoneNumberForDisplay === 'function'
+        ? formatPhoneNumberForDisplay(phoneValue)
+        : phoneValue;
+
+    // 「将来的に制作したいもの」の値を取得（生徒名簿シートから取得される想定）
+    const futureGoalValue = userData.futureCreations || '';
+
+    // 教室日程の連絡チェック状態を判定（送信日が設定されていればON）
+    const wantsScheduleNotification = userData.notificationDay != null && userData.notificationDay !== '';
+
+    return `
+      ${Components.pageHeader({
+        title: 'プロフィール編集',
+        backAction: 'smartGoBack',
+        showBackButton: true,
+      })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+          <form id="edit-profile-form" class="space-y-4">
+          ${Components.textarea({
+            id: 'edit-future-goal',
+            label: '将来的に制作したいもの',
+            value: futureGoalValue,
+            placeholder: '曖昧な内容でも大丈夫！',
+            rows: 5,
+          })}
+          ${Components.input({
+            id: 'edit-realname',
+            label: 'お名前 *必須項目*',
+            type: 'text',
+            required: true,
+            value: userData.realName || '',
+            containerClass: '',
+            autocomplete: 'name',
+          })}
+          ${Components.input({
+            id: 'edit-nickname',
+            label: 'ニックネーム（表示名）',
+            caption: '他の生徒さんにも表示されます',
+            type: 'text',
+            value: userData.displayName || '',
+            placeholder: '空欄の場合はお名前',
+            containerClass: '',
+          })}
+          <div class="mb-4">
+            <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
+            <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block"><span class="font-mono-numbers">${formattedPhoneValue}</span></p>
+          </div>
+          ${Components.input({
+            id: 'edit-email',
+            label: 'メールアドレス *必須項目*',
+            type: 'email',
+            value: userData.email || '',
+            placeholder: 'example@email.com',
+            required: true,
+            autocomplete: 'email',
+          })}
+          ${Components.cardContainer({
+            variant: 'default',
+            content: Components.checkbox({
+              id: 'edit-wants-email',
+              label: '予約受付 のメール連絡を希望する',
+              checked: userData.wantsEmail || false,
+              caption: '初回予約時は、すべての方へ送信します',
+            }),
+          })}
+          ${Components.cardContainer({
+            variant: 'default',
+            content: `
+              ${Components.checkbox({
+                id: 'edit-wants-schedule-notification',
+                label: '教室日程 のメール連絡（毎月）を希望する',
+                checked: wantsScheduleNotification,
+                onChange: "document.getElementById('edit-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
+              })}
+              <div id="edit-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${wantsScheduleNotification ? '' : 'hidden'}">
+                ${Components.select({
+                  id: 'edit-notification-day',
+                  label: '送信日',
+                  options: [
+                    { value: '', label: '--' },
+                    { value: '5', label: '毎月5日' },
+                    { value: '15', label: '毎月15日' },
+                    { value: '25', label: '毎月25日' }
+                  ],
+                  selectedValue: String(userData.notificationDay || ''),
+                })}
+                ${Components.select({
+                  id: 'edit-notification-hour',
+                  label: '送信時刻',
+                  options: [
+                    { value: '', label: '--' },
+                    { value: '9', label: '9時' },
+                    { value: '12', label: '12時' },
+                    { value: '18', label: '18時' },
+                    { value: '21', label: '21時' }
+                  ],
+                  selectedValue: String(userData.notificationHour || ''),
+                })}
+              </div>
+            `,
+          })}
+          ${Components.input({
+            id: 'edit-address',
+            label: 'お住まいの地域',
+            caption: '市区町村まででOK!',
+            type: 'text',
+            value: userData.address || '',
+          })}
+          </form>
+
+          ${Components.actionButtonSection({
+            secondaryButton: {
+              text: 'もどる',
+              action: 'smartGoBack',
+              style: 'secondary',
+            },
+            primaryButton: {
+              text: 'この内容で更新',
+              action: 'saveProfile',
+              style: 'primary',
+            },
+            layout: 'horizontal',
+          })}
+
+          <div class="mt-8 pt-8 border-t border-ui-border">
+            ${Components.button({
+              text: 'アカウント退会',
+              action: 'requestAccountDeletion',
+              style: 'danger',
+              size: 'full',
+            })}
+            <p class="text-xs text-brand-subtle text-center mt-2">退会するとログインできなくなります</p>
+          </div>
+        `,
+      })}
+    `;
+  };
 
 
   // =================================================================
@@ -8820,7 +9008,7 @@ const ENVIRONMENT_CONFIG = {
     return `
           <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
               <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${stateManager.getState().currentUser.displayName} <span class="text-base">さん</span></span></h1>
-              <button data-action="goToEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
+              <button onclick="stateManager.dispatch({ type: 'NAVIGATE', payload: { to: 'editProfile' } })" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
           </div>
           ${yourBookingsHtml}
           ${historyHtml}
@@ -9730,194 +9918,6 @@ const ENVIRONMENT_CONFIG = {
   };
 
   /**
-   * プロフィール編集画面のUIを生成します（タスク3実装）
-   * @returns {string} HTML文字列
-   */
-  const getProfileEditView = () => {
-    const state = stateManager.getState();
-    const userDetail = state.userDetailForEdit || {};
-
-    return `
-      <div class="container py-2">
-          <h1 class="text-xl font-bold ${DesignConfig.colors.text} mb-4">プロフィール編集</h1>
-
-          <form id="profile-edit-form" class="space-y-4">
-              <!-- 基本情報セクション -->
-              <div class="mb-6">
-                  <h2 class="text-lg font-semibold ${DesignConfig.colors.text} mb-3 border-b pb-2">基本情報</h2>
-
-                  <div class="space-y-3">
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">本名 <span class="text-red-500">*</span></label>
-                          <input type="text"
-                                 id="profile-realName"
-                                 value="${escapeHTML(userDetail.realName || '')}"
-                                 class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}"
-                                 required>
-                      </div>
-
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">ニックネーム <span class="text-red-500">*</span></label>
-                          <input type="text"
-                                 id="profile-nickname"
-                                 value="${escapeHTML(userDetail.nickname || '')}"
-                                 class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}"
-                                 required>
-                      </div>
-
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">電話番号 <span class="text-red-500">*</span></label>
-                          <input type="tel"
-                                 id="profile-phone"
-                                 value="${escapeHTML(userDetail.phone || '')}"
-                                 class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}"
-                                 required>
-                          <p class="text-xs text-gray-600 mt-1">070, 080, 090で始まる11桁の番号</p>
-                      </div>
-
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">メールアドレス</label>
-                          <input type="email"
-                                 id="profile-email"
-                                 value="${escapeHTML(userDetail.email || '')}"
-                                 class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
-                      </div>
-
-                      <div class="flex items-center">
-                          <input type="checkbox"
-                                 id="profile-wantsEmail"
-                                 ${userDetail.wantsEmail ? 'checked' : ''}
-                                 class="mr-2">
-                          <label for="profile-wantsEmail" class="text-sm ${DesignConfig.colors.text}">メール配信を希望する</label>
-                      </div>
-                  </div>
-              </div>
-
-              <!-- 追加情報セクション -->
-              <div class="mb-6">
-                  <h2 class="text-lg font-semibold ${DesignConfig.colors.text} mb-3 border-b pb-2">追加情報</h2>
-
-                  <div class="space-y-3">
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">お住まいの地域</label>
-                          <input type="text"
-                                 id="profile-address"
-                                 value="${escapeHTML(userDetail.address || '')}"
-                                 placeholder="例: 東京都渋谷区"
-                                 class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
-                      </div>
-
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">年代</label>
-                          <select id="profile-ageGroup" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
-                              <option value="">選択してください</option>
-                              <option value="10代" ${userDetail.ageGroup === '10代' ? 'selected' : ''}>10代</option>
-                              <option value="20代" ${userDetail.ageGroup === '20代' ? 'selected' : ''}>20代</option>
-                              <option value="30代" ${userDetail.ageGroup === '30代' ? 'selected' : ''}>30代</option>
-                              <option value="40代" ${userDetail.ageGroup === '40代' ? 'selected' : ''}>40代</option>
-                              <option value="50代" ${userDetail.ageGroup === '50代' ? 'selected' : ''}>50代</option>
-                              <option value="60代" ${userDetail.ageGroup === '60代' ? 'selected' : ''}>60代</option>
-                              <option value="70代以上" ${userDetail.ageGroup === '70代以上' ? 'selected' : ''}>70代以上</option>
-                          </select>
-                      </div>
-
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">性別</label>
-                          <select id="profile-gender" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
-                              <option value="">選択してください</option>
-                              <option value="男性" ${userDetail.gender === '男性' ? 'selected' : ''}>男性</option>
-                              <option value="女性" ${userDetail.gender === '女性' ? 'selected' : ''}>女性</option>
-                              <option value="その他" ${userDetail.gender === 'その他' ? 'selected' : ''}>その他</option>
-                              <option value="回答しない" ${userDetail.gender === '回答しない' ? 'selected' : ''}>回答しない</option>
-                          </select>
-                      </div>
-
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">利き手</label>
-                          <select id="profile-dominantHand" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
-                              <option value="">選択してください</option>
-                              <option value="右" ${userDetail.dominantHand === '右' ? 'selected' : ''}>右</option>
-                              <option value="左" ${userDetail.dominantHand === '左' ? 'selected' : ''}>左</option>
-                              <option value="両方" ${userDetail.dominantHand === '両方' ? 'selected' : ''}>両方</option>
-                          </select>
-                      </div>
-                  </div>
-              </div>
-
-              <!-- 目標セクション -->
-              <div class="mb-6">
-                  <h2 class="text-lg font-semibold ${DesignConfig.colors.text} mb-3 border-b pb-2">目標</h2>
-
-                  <div>
-                      <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">将来的に作りたいもの</label>
-                      <textarea id="profile-futureCreations"
-                                rows="3"
-                                placeholder="例: 木彫りのお面、動物の置物など"
-                                class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">${escapeHTML(userDetail.futureCreations || '')}</textarea>
-                  </div>
-              </div>
-
-              <!-- 通知設定セクション -->
-              <div class="mb-6">
-                  <h2 class="text-lg font-semibold ${DesignConfig.colors.text} mb-3 border-b pb-2">通知設定</h2>
-
-                  <div class="space-y-3">
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">通知日</label>
-                          <select id="profile-notificationDay" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
-                              <option value="">通知しない</option>
-                              ${CONSTANTS.NOTIFICATION.DAYS.map(
-                                day =>
-                                  `<option value="${day}" ${String(userDetail.notificationDay) === String(day) ? 'selected' : ''}>${day}日</option>`,
-                              ).join('')}
-                          </select>
-                          <p class="text-xs text-gray-600 mt-1">毎月指定日に予定をお知らせします</p>
-                      </div>
-
-                      <div>
-                          <label class="block text-sm font-medium ${DesignConfig.colors.text} mb-1">通知時刻</label>
-                          <select id="profile-notificationHour" class="w-full px-3 py-2 border rounded-md ${DesignConfig.colors.input}">
-                              <option value="">選択してください</option>
-                              ${CONSTANTS.NOTIFICATION.HOURS.map(
-                                hour =>
-                                  `<option value="${hour}" ${String(userDetail.notificationHour) === String(hour) ? 'selected' : ''}>${hour}時</option>`,
-                              ).join('')}
-                          </select>
-                      </div>
-                  </div>
-              </div>
-
-              <!-- 操作ボタン -->
-              <div class="space-y-3 mt-6">
-                  ${Components.button({
-                    text: '保存',
-                    action: 'updateProfile',
-                    style: 'primary',
-                    size: 'normal',
-                  })}
-
-                  ${Components.button({
-                    text: 'キャンセル',
-                    action: 'goToDashboard',
-                    style: 'secondary',
-                    size: 'normal',
-                  })}
-              </div>
-
-              <!-- 退会ボタン（タスク2で必要） -->
-              <div class="mt-8 pt-6 border-t border-gray-300">
-                  <button type="button"
-                          data-action="requestAccountDeletion"
-                          class="w-full bg-red-600 text-white px-4 py-3 rounded-md font-medium hover:bg-red-700 active:bg-red-800">
-                      退会する
-                  </button>
-                  <p class="text-xs text-gray-600 mt-2 text-center">※ 退会すると、アカウント情報が無効化されます。この操作は取り消せません。</p>
-              </div>
-          </form>
-      </div>`;
-  };
-
-  /**
    * プライバシーポリシーのモーダルを生成します（タスク1実装）
    * @returns {string} HTML文字列
    */
@@ -10062,7 +10062,7 @@ const ENVIRONMENT_CONFIG = {
         v = getDashboardView();
         break;
       case 'editProfile':
-        v = getProfileEditView();
+        v = getEditProfileView();
         break;
       case 'bookingLessons':
         v = getBookingView(appState.selectedClassroom);
@@ -10832,34 +10832,49 @@ const ENVIRONMENT_CONFIG = {
       const nicknameInput = /** @type {HTMLInputElement | null} */ (
         document.getElementById('reg-nickname')
       );
-      const phoneInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('reg-phone')
+      const emailInput = /** @type {HTMLInputElement | null} */ (
+        document.getElementById('reg-email')
+      );
+      const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
+        document.getElementById('reg-wants-email')
+      );
+      const wantsScheduleNotificationInput = /** @type {HTMLInputElement | null} */ (
+        document.getElementById('reg-wants-schedule-notification')
+      );
+      const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
+        document.getElementById('reg-notification-day')
+      );
+      const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
+        document.getElementById('reg-notification-hour')
       );
 
       const realName = realNameInput?.value;
       const nickname = nicknameInput?.value.trim();
-      const phone = phoneInput?.value;
+      const email = emailInput?.value;
+      const wantsEmail = wantsEmailInput?.checked || false;
+      const wantsScheduleNotification = wantsScheduleNotificationInput?.checked || false;
+      const notificationDay = wantsScheduleNotification && notificationDayInput?.value
+        ? parseInt(notificationDayInput.value)
+        : null;
+      const notificationHour = wantsScheduleNotification && notificationHourInput?.value
+        ? parseInt(notificationHourInput.value)
+        : null;
 
+      // バリデーション
       if (!realName) return showInfo('お名前（本名）は必須です。', '入力エラー');
-
-      // フロントエンドで電話番号を正規化・バリデーション
-      if (phone) {
-        const normalizeResult = window.normalizePhoneNumberFrontend(phone);
-        if (!normalizeResult.isValid) {
-          showInfo(
-            normalizeResult.error || '電話番号の形式が正しくありません。',
-            '入力エラー',
-          );
-          return;
-        }
-      }
+      if (!email || !email.includes('@'))
+        return showInfo('有効なメールアドレスを入力してください。', '入力エラー');
 
       // 入力値をsetState経由で保存
       const updatedRegistrationData = {
         .../** @type {any} */ (stateManager.getState())?.['registrationData'],
-        phone,
         realName,
         nickname: nickname || realName,
+        email,
+        wantsEmail,
+        wantsScheduleNotification,
+        notificationDay,
+        notificationHour,
       };
       window.stateManager.dispatch({
         type: 'SET_STATE',
@@ -10873,12 +10888,6 @@ const ENVIRONMENT_CONFIG = {
 
     /** 新規ユーザー登録：Step2からStep1へもどる */
     backToStep1: () => {
-      const emailInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('q-email')
-      );
-      const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('q-wants-email')
-      );
       const ageGroupInput = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('q-age-group')
       );
@@ -10893,8 +10902,6 @@ const ENVIRONMENT_CONFIG = {
       );
 
       const step2Data = {
-        email: emailInput?.value || '',
-        wantsEmail: wantsEmailInput?.checked || false,
         ageGroup: ageGroupInput?.value || '',
         gender: genderInput?.value || '',
         dominantHand: dominantHandInput?.value || '',
@@ -10916,23 +10923,6 @@ const ENVIRONMENT_CONFIG = {
 
     /** 新規ユーザー登録：Step2からStep3へ進む */
     goToStep3: () => {
-      const emailInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('q-email')
-      );
-      const email = emailInput?.value;
-      if (!email || !email.includes('@')) {
-        return showInfo('有効なメールアドレスを入力してください。', '入力エラー');
-      }
-
-      const wantsEmailInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('q-wants-email')
-      );
-      const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
-        document.getElementById('q-notification-day')
-      );
-      const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
-        document.getElementById('q-notification-hour')
-      );
       const ageGroupInput = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('q-age-group')
       );
@@ -10947,14 +10937,6 @@ const ENVIRONMENT_CONFIG = {
       );
 
       const step2Data = {
-        email: email,
-        wantsEmail: wantsEmailInput?.checked || false,
-        notificationDay: notificationDayInput?.value
-          ? parseInt(notificationDayInput.value)
-          : null,
-        notificationHour: notificationHourInput?.value
-          ? parseInt(notificationHourInput.value)
-          : null,
         ageGroup: ageGroupInput?.value || '',
         gender: genderInput?.value || '',
         dominantHand: dominantHandInput?.value || '',
@@ -11062,9 +11044,10 @@ const ENVIRONMENT_CONFIG = {
       const finalUserData = {
         .../** @type {any} */ (stateManager.getState()['registrationData'] || {}),
         ...step4Data,
+        phone: stateManager.getState().registrationPhone || '',
       };
 
-      showLoading('booking');
+      showLoading('login');
       google.script.run['withSuccessHandler'](
         (
           /** @type {ServerResponse<{ user: UserData; message: string }>} */ res,
@@ -11108,38 +11091,29 @@ const ENVIRONMENT_CONFIG = {
 
     /** プロフィール情報を保存します（キャッシュ活用版） */
     saveProfile: () => {
+      const futureGoalInput = /** @type {HTMLTextAreaElement | null} */ (
+        document.getElementById('edit-future-goal')
+      );
       const realNameInput = /** @type {HTMLInputElement | null} */ (
         document.getElementById('edit-realname')
       );
       const nicknameInput = /** @type {HTMLInputElement | null} */ (
         document.getElementById('edit-nickname')
       );
+      const addressInput = /** @type {HTMLInputElement | null} */ (
+        document.getElementById('edit-address')
+      );
 
+      const futureGoal = futureGoalInput?.value?.trim() || '';
       const r = realNameInput?.value;
       let n = nicknameInput?.value.trim();
+      const address = addressInput?.value?.trim() || '';
+
       if (!r) return showInfo('お名前（本名）は必須です。');
       if (!n) n = r;
 
-      // NF-01: 電話番号入力欄があればその値も取得
-      const phoneInput = /** @type {HTMLInputElement | null} */ (
-        document.getElementById('edit-phone')
-      );
-      const phone =
-        phoneInput?.value || stateManager.getState().currentUser.phone; // 電話番号入力欄がなければ既存の電話番号を使用
-
-      // 電話番号が入力されている場合のみバリデーション
-      if (phoneInput?.value) {
-        const normalizeResult = window.normalizePhoneNumberFrontend(
-          phoneInput.value,
-        );
-        if (!normalizeResult.isValid) {
-          showInfo(
-            normalizeResult.error || '電話番号の形式が正しくありません。',
-            '入力エラー',
-          );
-          return;
-        }
-      }
+      // 電話番号は表示のみなので、現在の値を使用
+      const phone = stateManager.getState().currentUser.phone;
 
       // メール情報の取得とバリデーション
       const emailInput = /** @type {HTMLInputElement | null} */ (
@@ -11149,9 +11123,7 @@ const ENVIRONMENT_CONFIG = {
         document.getElementById('edit-wants-email')
       );
       const email = emailInput?.value?.trim() || '';
-      const wantsEmail =
-        wantsEmailInput?.checked ||
-        stateManager.getState().currentUser.wantsEmail;
+      const wantsEmail = wantsEmailInput?.checked || false;
 
       // メールアドレスの必須バリデーション
       if (!email || !email.includes('@')) {
@@ -11159,21 +11131,26 @@ const ENVIRONMENT_CONFIG = {
       }
 
       // 通知設定の取得
+      const wantsScheduleNotificationInput = /** @type {HTMLInputElement | null} */ (
+        document.getElementById('edit-wants-schedule-notification')
+      );
       const notificationDayInput = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('edit-notification-day')
       );
       const notificationHourInput = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('edit-notification-hour')
       );
-      const notificationDay = notificationDayInput?.value
+      const wantsScheduleNotification = wantsScheduleNotificationInput?.checked || false;
+      const notificationDay = wantsScheduleNotification && notificationDayInput?.value
         ? parseInt(notificationDayInput.value)
         : null;
-      const notificationHour = notificationHourInput?.value
+      const notificationHour = wantsScheduleNotification && notificationHourInput?.value
         ? parseInt(notificationHourInput.value)
         : null;
 
       const u = {
         ...stateManager.getState().currentUser,
+        futureCreations: futureGoal,
         realName: r,
         displayName: n,
         phone: phone,
@@ -11181,6 +11158,7 @@ const ENVIRONMENT_CONFIG = {
         wantsEmail: wantsEmail || false,
         notificationDay: notificationDay,
         notificationHour: notificationHour,
+        address: address,
       };
       showLoading('booking');
       google.script.run['withSuccessHandler']((/** @type {any} */ res) => {
@@ -11203,30 +11181,6 @@ const ENVIRONMENT_CONFIG = {
         .updateUserProfile(u);
     },
 
-    // /** プロフィール編集画面に遷移します */
-    // goToEditProfile: () => {
-    //   // データが古く、かつ更新中でなければデータを更新
-    //   if (
-    //     !stateManager.getState().isDataFresh &&
-    //     !stateManager.getState()._dataUpdateInProgress
-    //   ) {
-    //     updateAppStateFromCache('editProfile');
-    //   } else {
-    //     // 新しいdispatchパターンを使用
-    //     if (window.stateManager) {
-    //       window.stateManager.dispatch({
-    //         type: 'CHANGE_VIEW',
-    //         payload: { view: 'editProfile' },
-    //       });
-    //     } else {
-    //       window.stateManager.dispatch({
-    //         type: 'SET_STATE',
-    //         payload: { view: 'editProfile' },
-    //       });
-    //     }
-    //   }
-    // },
-
     /** ログイン画面に戻ります（電話番号入力値を保存） */
     goBackToLogin: () => {
       const phoneInput = document.getElementById('phone');
@@ -11237,157 +11191,6 @@ const ENVIRONMENT_CONFIG = {
         type: 'NAVIGATE',
         payload: { to: 'login', context: { loginPhone: loginPhone } },
       });
-    },
-
-    /** プロフィール編集画面に遷移します（タスク3実装） */
-    goToEditProfile: () => {
-      const state = stateManager.getState();
-      const studentId = state.currentUser?.studentId;
-
-      if (!studentId) {
-        showInfo('ユーザー情報が見つかりません。', 'エラー');
-        return;
-      }
-
-      showLoading();
-
-      // バックエンドから最新のユーザー詳細情報を取得
-      google.script.run
-        .withSuccessHandler(response => {
-          hideLoading();
-          if (response.success) {
-            // ユーザー詳細情報をstateに保存
-            stateManager.dispatch({
-              type: 'UPDATE_STATE',
-              payload: { userDetailForEdit: response.data },
-            });
-            // プロフィール編集画面に遷移
-            stateManager.dispatch({
-              type: 'NAVIGATE',
-              payload: { to: 'editProfile' },
-            });
-          } else {
-            showInfo(
-              response.message || 'ユーザー情報の取得に失敗しました。',
-              'エラー',
-            );
-          }
-        })
-        .withFailureHandler(error => {
-          hideLoading();
-          showInfo('ユーザー情報の取得中にエラーが発生しました。', 'エラー');
-          console.error('getUserDetailForEdit error:', error);
-        })
-        .getUserDetailForEdit(studentId);
-    },
-
-    /** プロフィール情報を更新します（タスク3実装） */
-    updateProfile: () => {
-      const state = stateManager.getState();
-      const studentId = state.currentUser?.studentId;
-
-      if (!studentId) {
-        showInfo('ユーザー情報が見つかりません。', 'エラー');
-        return;
-      }
-
-      // フォームから値を取得
-      const realName = getInputElementSafely('profile-realName')?.value?.trim();
-      const nickname = getInputElementSafely('profile-nickname')?.value?.trim();
-      const phone = getInputElementSafely('profile-phone')?.value?.trim();
-      const email = getInputElementSafely('profile-email')?.value?.trim();
-      const wantsEmail = document.getElementById('profile-wantsEmail')?.checked;
-      const address = getInputElementSafely('profile-address')?.value?.trim();
-      const ageGroup = document.getElementById('profile-ageGroup')?.value;
-      const gender = document.getElementById('profile-gender')?.value;
-      const dominantHand = document.getElementById('profile-dominantHand')?.value;
-      const futureCreations = document
-        .getElementById('profile-futureCreations')
-        ?.value?.trim();
-      const notificationDay = document.getElementById(
-        'profile-notificationDay',
-      )?.value;
-      const notificationHour = document.getElementById(
-        'profile-notificationHour',
-      )?.value;
-
-      // 必須項目のバリデーション
-      if (!realName || !nickname || !phone) {
-        showInfo('本名、ニックネーム、電話番号は必須項目です。', '入力エラー');
-        return;
-      }
-
-      // 電話番号のフロントエンド検証
-      const normalizeResult = window.normalizePhoneNumberFrontend(phone);
-      if (!normalizeResult.isValid) {
-        showInfo(
-          normalizeResult.error || '電話番号の形式が正しくありません。',
-          '入力エラー',
-        );
-        return;
-      }
-
-      // 更新データを構築
-      const updateData = {
-        studentId: studentId,
-        realName: realName,
-        displayName: nickname, // nicknameをdisplayNameとして送信
-        phone: normalizeResult.normalized,
-        email: email || '',
-        wantsEmail: wantsEmail || false,
-        address: address || '',
-        ageGroup: ageGroup || '',
-        gender: gender || '',
-        dominantHand: dominantHand || '',
-        futureCreations: futureCreations || '',
-        notificationDay: notificationDay || '',
-        notificationHour: notificationHour || '',
-      };
-
-      showLoading();
-
-      // バックエンドに更新リクエストを送信
-      google.script.run
-        .withSuccessHandler(response => {
-          hideLoading();
-          if (response.success) {
-            // currentUserを更新
-            stateManager.dispatch({
-              type: 'UPDATE_STATE',
-              payload: {
-                currentUser: {
-                  ...state.currentUser,
-                  displayName: nickname,
-                  realName: realName,
-                  phone: normalizeResult.normalized,
-                  email: email || '',
-                  wantsEmail: wantsEmail || false,
-                },
-              },
-            });
-
-            showInfo('プロフィールを更新しました。', '成功');
-
-            // ダッシュボードに戻る
-            setTimeout(() => {
-              stateManager.dispatch({
-                type: 'NAVIGATE',
-                payload: { to: 'dashboard' },
-              });
-            }, 1500);
-          } else {
-            showInfo(
-              response.message || 'プロフィールの更新に失敗しました。',
-              'エラー',
-            );
-          }
-        })
-        .withFailureHandler(error => {
-          hideLoading();
-          showInfo('プロフィール更新中にエラーが発生しました。', 'エラー');
-          console.error('updateUserProfile error:', error);
-        })
-        .updateUserProfile(updateData);
     },
 
     /** アカウント退会処理を実行します（タスク2実装） */

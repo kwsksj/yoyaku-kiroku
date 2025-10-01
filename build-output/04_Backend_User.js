@@ -280,6 +280,13 @@ function registerNewUser(userInfo) {
       );
       const normalizedPhone = validationResult.normalized;
 
+      // デバッグログを追加
+      console.log('registerNewUser - 電話番号バリデーション:', {
+        入力電話番号: userInfo?.phone,
+        正規化結果: normalizedPhone,
+        バリデーション結果: validationResult,
+      });
+
       if (!validationResult.isValid && userInfo?.phone) {
         return { success: false, message: validationResult.message };
       }
@@ -386,12 +393,20 @@ function registerNewUser(userInfo) {
       const notificationHourColIdx = header.indexOf(
         CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
       );
+      const scheduleNotificationPreferenceColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
+      );
 
       if (notificationDayColIdx !== -1 && userInfo?.notificationDay) {
         newRow[notificationDayColIdx] = userInfo.notificationDay;
       }
       if (notificationHourColIdx !== -1 && userInfo?.notificationHour) {
         newRow[notificationHourColIdx] = userInfo.notificationHour;
+      }
+
+      // 日程連絡希望の設定
+      if (scheduleNotificationPreferenceColIdx !== -1 && userInfo?.wantsScheduleNotification !== undefined) {
+        newRow[scheduleNotificationPreferenceColIdx] = userInfo.wantsScheduleNotification ? 'TRUE' : 'FALSE';
       }
 
       if (ageGroupColIdx !== -1 && userInfo?.ageGroup)
@@ -876,7 +891,7 @@ function updateUserProfile(userInfo) {
         // バリデーション: 選択可能な日付のみ許可
         if (
           userInfo.notificationDay !== null &&
-          !CONSTANTS.NOTIFICATION.DAYS.includes(userInfo.notificationDay)
+          !CONSTANTS.NOTIFICATION.DAYS.includes(Number(userInfo.notificationDay))
         ) {
           throw new Error(
             `通知日は ${CONSTANTS.NOTIFICATION.DAYS.join(', ')} のいずれかを選択してください。`,
@@ -894,7 +909,7 @@ function updateUserProfile(userInfo) {
         // バリデーション: 選択可能な時刻のみ許可
         if (
           userInfo.notificationHour !== null &&
-          !CONSTANTS.NOTIFICATION.HOURS.includes(userInfo.notificationHour)
+          !CONSTANTS.NOTIFICATION.HOURS.includes(Number(userInfo.notificationHour))
         ) {
           throw new Error(
             `通知時刻は ${CONSTANTS.NOTIFICATION.HOURS.join(', ')} のいずれかを選択してください。`,
