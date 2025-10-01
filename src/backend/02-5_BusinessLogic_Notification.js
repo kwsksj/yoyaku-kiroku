@@ -54,7 +54,7 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
     const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
       ? ''
       : '[テスト]';
-    const emailSubject = `${subjectPrefix}【川崎誠二 木彫り教室】予約・日程のお知らせ！`;
+    const emailSubject = `${subjectPrefix}【川崎誠二 木彫り教室】開催日程・予約状況のお知らせ`;
 
     let successCount = 0;
     let failCount = 0;
