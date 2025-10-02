@@ -1,12 +1,20 @@
 /// <reference path="../../types/gas-environment.d.ts" />
 /// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/core/index.d.ts" />
+/// <reference path="../../types/dto/index.d.ts" />
 
 /**
  * =================================================================
  * 【ファイル名】: 05-2_Backend_Write.gs
- * 【バージョン】: 2.7
+ * 【バージョン】: 3.0
  * 【役割】: WebAppからのデータ書き込み・更新要求（Write）と、
  * それに付随する検証ロジックに特化したバックエンド機能。
+ * 【v3.0での変更点】:
+ * - Phase 3: 型システム統一 - Core型・DTO型の導入
+ * - makeReservation: ReservationCreateDto対応
+ * - updateReservationDetails: ReservationUpdateDto対応
+ * - cancelReservation: ReservationCancelDto対応
+ * - 変換関数の活用（convertRowToReservation/convertReservationToRow）
  * 【v2.7での変更点】:
  * - updateReservationDetailsに定員チェック機能を追加。
  * - checkCapacityFullの2部制クラス判定ロジックを修正。
@@ -248,15 +256,53 @@ function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
 }
 
 /**
- * 予約を実行します。
- * @param {ReservationRequest} reservationInfo - 予約情報
+ * 予約を実行します（Phase 3: 型システム統一対応）
+ *
+ * @param {ReservationCreateDto} reservationInfo - 予約作成リクエストDTO
  * @returns {ApiResponseGeneric<MakeReservationResult>} - 処理結果
+ *
+ * @example
+ * const result = makeReservation({
+ *   studentId: 'S-001',
+ *   classroom: '東京教室',
+ *   date: '2025-10-15',
+ *   startTime: '13:00',
+ *   endTime: '16:00',
+ *   user: { studentId: 'S-001', displayName: '太郎', realName: '山田太郎' },
+ *   chiselRental: true,
+ *   firstLecture: false,
+ * });
  */
 function makeReservation(reservationInfo) {
   return withTransaction(() => {
     try {
-      const { classroom, date, user, options, startTime, endTime } =
-        reservationInfo || {};
+      // Phase 3: ReservationCreateDto として処理
+      // options はReservationCreateDto の直接プロパティとして展開
+      const {
+        classroom,
+        date,
+        user,
+        startTime,
+        endTime,
+        studentId,
+        chiselRental,
+        firstLecture,
+        workInProgress,
+        materialInfo,
+        order,
+        messageToTeacher,
+        venue,
+      } = reservationInfo || {};
+
+      // 後方互換性のため、options オブジェクトも許容
+      const options = reservationInfo.options || {
+        chiselRental: chiselRental || false,
+        firstLecture: firstLecture || false,
+        workInProgress: workInProgress || '',
+        materialInfo: materialInfo || '',
+        order: order || '',
+        messageToTeacher: messageToTeacher || '',
+      };
 
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
@@ -528,14 +574,27 @@ function makeReservation(reservationInfo) {
 }
 
 /**
- * 予約をキャンセルします。
- * @param {CancelReservationInfo} cancelInfo - キャンセル情報
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果。
+ * 予約をキャンセルします（Phase 3: 型システム統一対応）
+ *
+ * @param {ReservationCancelDto} cancelInfo - 予約キャンセルリクエストDTO
+ * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
+ *
+ * @example
+ * const result = cancelReservation({
+ *   reservationId: 'R-001',
+ *   classroom: '東京教室',
+ *   studentId: 'S-001',
+ *   date: '2025-10-15',
+ *   cancelMessage: '体調不良のため',
+ * });
  */
 function cancelReservation(cancelInfo) {
   return withTransaction(() => {
     try {
-      const { reservationId, classroom, studentId } = cancelInfo;
+      /** @type {ReservationCancelDto} */
+      const cancelDto = /** @type {ReservationCancelDto} */ (cancelInfo);
+      const { reservationId, classroom, studentId, date, cancelMessage } =
+        cancelDto;
 
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
@@ -951,14 +1010,26 @@ Tel: 09013755977
 }
 
 /**
- * 予約の詳細情報を一括で更新します。
- * @param {ReservationDetailsUpdate} details - 予約詳細情報。
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果。
+ * 予約の詳細情報を一括で更新します（Phase 3: 型システム統一対応）
+ *
+ * @param {ReservationUpdateDto} details - 予約更新リクエストDTO
+ * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
+ *
+ * @example
+ * const result = updateReservationDetails({
+ *   reservationId: 'R-001',
+ *   classroom: '東京教室',
+ *   studentId: 'S-001',
+ *   startTime: '14:00',
+ *   endTime: '17:00',
+ *   chiselRental: false,
+ *   workInProgress: '仏像完成間近',
+ * });
  */
 function updateReservationDetails(details) {
   return withTransaction(() => {
-    /** @type {ReservationDetailsUpdate} */
-    const detailsTyped = /** @type {ReservationDetailsUpdate} */ (details);
+    /** @type {ReservationUpdateDto} */
+    const detailsTyped = /** @type {ReservationUpdateDto} */ (details);
     const { reservationId, classroom } = detailsTyped;
     /** @type {string | null} */
     let studentId = null;
