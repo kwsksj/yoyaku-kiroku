@@ -2,11 +2,17 @@
  * =================================================================
  * 【ファイル名】: types/api-types.d.ts
  * 【役割】: フロントエンド・バックエンド間の型定義とインターフェース
+ *
+ * 【Phase 3: 型システム統一】
+ * 多くの型定義が types/core/ および types/dto/ に移行されました。
+ * このファイルの型は段階的に廃止予定です。
  * =================================================================
  */
 
 /**
  * 予約情報型定義
+ *
+ * @deprecated Phase 3: types/core/reservation-core.d.ts の ReservationCore を使用してください
  */
 declare interface ReservationInfo {
   /** 日付 (YYYY-MM-DD形式) */
@@ -236,6 +242,8 @@ declare interface ApiResponseGeneric<T = unknown> {
 
 /**
  * 新規ユーザー登録データ型定義
+ *
+ * @deprecated Phase 3: types/dto/user-dto.d.ts の UserRegistrationDto を使用してください
  */
 declare interface NewUserRegistration {
   phone: string;
@@ -260,6 +268,8 @@ declare interface NewUserRegistration {
 
 /**
  * ユーザープロフィール更新データ型定義
+ *
+ * @deprecated Phase 3: types/dto/user-dto.d.ts の UserUpdateDto を使用してください
  */
 declare interface UserProfileUpdate {
   studentId?: string;
@@ -324,6 +334,8 @@ declare interface ReservationRequest {
 
 /**
  * 予約作成結果型定義
+ *
+ * @deprecated Phase 3: 引き続き使用可能ですが、将来的には ApiResponse<{message: string}> に統一予定
  */
 declare interface MakeReservationResult {
   /** 処理結果メッセージ */
@@ -332,6 +344,8 @@ declare interface MakeReservationResult {
 
 /**
  * キャンセル情報型定義
+ *
+ * @deprecated Phase 3: types/dto/reservation-dto.d.ts の ReservationCancelDto を使用してください
  */
 declare interface CancelReservationInfo {
   /** 予約ID */
