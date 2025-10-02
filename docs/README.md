@@ -6,14 +6,14 @@
 
 現在のシステムを理解するために必須のドキュメント：
 
-| ファイル名                                                           | 内容                               | 対象                 |
-| -------------------------------------------------------------------- | ---------------------------------- | -------------------- |
+| ファイル名                                                           | 内容                                 | 対象                 |
+| -------------------------------------------------------------------- | ------------------------------------ | -------------------- |
 | **[SYSTEM_ARCHITECTURE.md](SYSTEM_ARCHITECTURE.md)**                 | システムアーキテクチャ図（v3.2対応） | 全開発者             |
-| **[DATA_MODEL.md](DATA_MODEL.md)**                                   | データモデル設計仕様書（v3.2対応） | 全開発者             |
-| **[DATA_ACCESS_PRINCIPLES.md](DATA_ACCESS_PRINCIPLES.md)**           | データアクセス原則（v3.2対応）     | 全開発者             |
-| **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)**           | State管理ガイド（v3.2対応）       | フロントエンド開発者 |
-| **[JS_TO_HTML_ARCHITECTURE.md](JS_TO_HTML_ARCHITECTURE.md)**         | JavaScript分離開発アーキテクチャ   | 全開発者             |
-| **[FRONTEND_ARCHITECTURE_GUIDE.md](FRONTEND_ARCHITECTURE_GUIDE.md)** | フロントエンドアーキテクチャガイド | フロントエンド開発者 |
+| **[DATA_MODEL.md](DATA_MODEL.md)**                                   | データモデル設計仕様書（v3.2対応）   | 全開発者             |
+| **[DATA_ACCESS_PRINCIPLES.md](DATA_ACCESS_PRINCIPLES.md)**           | データアクセス原則（v3.2対応）       | 全開発者             |
+| **[STATE_MANAGEMENT_GUIDE.md](STATE_MANAGEMENT_GUIDE.md)**           | State管理ガイド（v3.2対応）          | フロントエンド開発者 |
+| **[JS_TO_HTML_ARCHITECTURE.md](JS_TO_HTML_ARCHITECTURE.md)**         | JavaScript分離開発アーキテクチャ     | 全開発者             |
+| **[FRONTEND_ARCHITECTURE_GUIDE.md](FRONTEND_ARCHITECTURE_GUIDE.md)** | フロントエンドアーキテクチャガイド   | フロントエンド開発者 |
 
 ## 📖 リファレンスドキュメント
 

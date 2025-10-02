@@ -1384,63 +1384,9 @@ function saveAccountingDetails(payload) {
         },
       );
 
-      // 時間制授業料の計算
-      if (userInput.timeBased) {
-        const { startTime, endTime, breakMinutes, discountMinutes } =
-          userInput.timeBased;
-        const classroomRule = masterData.find(
-          /** @param {AccountingMasterItem} item */ item => {
-            const targetClassroom =
-              item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
-            return (
-              targetClassroom &&
-              typeof targetClassroom === 'string' &&
-              targetClassroom.includes(classroom) &&
-              item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
-                CONSTANTS.ITEM_TYPES.TUITION &&
-              item[CONSTANTS.HEADERS.ACCOUNTING.UNIT] ===
-                CONSTANTS.UNITS.THIRTY_MIN
-            );
-          },
-        );
-        if (classroomRule && startTime && endTime && startTime < endTime) {
-          const start = new Date(`1900-01-01T${startTime}:00`);
-          const end = new Date(`1900-01-01T${endTime}:00`);
-          const diffMinutes =
-            (end.getTime() - start.getTime()) / 60000 - (breakMinutes || 0);
-          if (diffMinutes > 0) {
-            const billableUnits = Math.ceil(diffMinutes / 30);
-            const price =
-              billableUnits *
-              Number(classroomRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
-            finalAccountingDetails.tuition.items.push({
-              name: `授業料 (${startTime} - ${endTime})`,
-              price: price,
-            });
-            finalAccountingDetails.tuition.subtotal += price;
-          }
-        }
-        // 割引の計算
-        if (discountMinutes > 0) {
-          const discountRule = masterData.find(
-            /** @param {AccountingMasterItem} item */ item =>
-              item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] ===
-              CONSTANTS.ITEMS.DISCOUNT,
-          );
-          if (discountRule) {
-            const discountAmount =
-              (discountMinutes / 30) *
-              Math.abs(
-                Number(discountRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]),
-              );
-            finalAccountingDetails.tuition.items.push({
-              name: `${CONSTANTS.ITEMS.DISCOUNT} (${discountMinutes}分)`,
-              price: -discountAmount,
-            });
-            finalAccountingDetails.tuition.subtotal -= discountAmount;
-          }
-        }
-      }
+      // 時間制授業料の計算は不要（フロントエンドで計算済み）
+      // userInput.tuitionItems に「授業料（時間制） X時間」として含まれている
+      // userInput.timeBased は時刻情報の保存のみに使用
 
       // 物販・材料費の計算
       (userInput.salesItems || []).forEach(
@@ -1633,6 +1579,29 @@ function _logSalesForSingleReservation(
   accountingDetails,
 ) {
   try {
+    // 生徒情報を取得
+    const studentId = String(
+      reservationDataRow[
+        headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)
+      ] || '',
+    );
+    const studentData = getCachedStudentById(studentId);
+
+    // 名前を「本名（ニックネーム）」形式で構築
+    let displayNameForSales = '不明';
+    if (studentData) {
+      const realName = studentData.realName || '';
+      const nickName = studentData.displayName || '';
+
+      if (realName && nickName) {
+        displayNameForSales = `${realName}（${nickName}）`;
+      } else if (realName) {
+        displayNameForSales = realName;
+      } else if (nickName) {
+        displayNameForSales = nickName;
+      }
+    }
+
     /** @type {SalesBaseInfo} */
     const baseInfo = {
       date:
@@ -1652,22 +1621,9 @@ function _logSalesForSingleReservation(
                 ],
               ),
             ),
-      studentId: String(
-        reservationDataRow[
-          headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)
-        ] || '',
-      ),
-      // 生徒名を生徒IDから取得（キャッシュから）
-      name:
-        /** @type {{name?: string} | null} */ (
-          getCachedStudentById(
-            String(
-              reservationDataRow[
-                headerMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)
-              ] || '',
-            ),
-          )
-        )?.name || '不明',
+      studentId: studentId,
+      // 生徒名を「本名（ニックネーム）」形式で表示
+      name: displayNameForSales,
       classroom: classroomName,
       venue: String(
         reservationDataRow[

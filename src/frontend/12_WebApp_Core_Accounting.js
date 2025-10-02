@@ -14,8 +14,7 @@
 /**
  * @typedef {Object} ClassifiedAccountingItems
  * @property {Object} tuition
- * @property {Array} tuition.baseItems
- * @property {Array} tuition.additionalItems
+ * @property {Array} tuition.items - 全ての授業料・割引項目
  * @property {Object} sales
  * @property {Array} sales.materialItems
  * @property {Array} sales.productItems
@@ -50,28 +49,21 @@ function clearAccountingCache() {
  */
 function classifyAccountingItems(masterData, classroom) {
   const result = {
-    tuition: { baseItems: [], additionalItems: [] },
+    tuition: { items: [] }, // 全ての授業料・割引を統一
     sales: { materialItems: [], productItems: [] },
   };
 
   masterData.forEach(item => {
     const type = item[CONSTANTS.HEADERS.ACCOUNTING.TYPE];
-    const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
     const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
 
     // 教室対象チェック
     if (targetClassroom !== '共通' && !targetClassroom.includes(classroom))
       return;
 
-    if (type === '授業料') {
-      if (item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME].includes('授業料')) {
-        result.tuition.baseItems.push(item);
-      } else {
-        result.tuition.additionalItems.push(item);
-      }
-    } else if (type === '割引') {
-      // 割引項目はadditionalItemsに統合
-      result.tuition.additionalItems.push(item);
+    if (type === '授業料' || type === '割引') {
+      // 全ての授業料・割引項目を統一して扱う
+      result.tuition.items.push(item);
     } else if (type === '材料') {
       result.sales.materialItems.push(item);
     } else if (type === '物販') {
@@ -113,58 +105,48 @@ function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
   let subtotal = 0;
   const items = [];
 
-  // 基本授業料計算（時間制 vs 回数制）
-  const baseItem = classifiedItems.tuition.baseItems.find(item => {
-    const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
-    return targetClassroom === classroom || targetClassroom.includes(classroom);
-  });
-
-  if (baseItem) {
-    const unit = baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT];
-    const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
-
-    if (unit === '30分') {
-      // 時間制計算 - 時刻が入力されている場合のみ
-      if (formData.startTime && formData.endTime) {
-        const timeUnits = calculateTimeUnits(
-          formData.startTime,
-          formData.endTime,
-          formData.breakTime,
-        );
-        if (timeUnits > 0) {
-          const price = timeUnits * unitPrice;
-          items.push({
-            name: `授業料 (${formData.startTime} - ${formData.endTime})`,
-            price: price,
-          });
-          subtotal += price;
-        }
-      }
-    } else if (unit === '回') {
-      // 回数制計算 - 基本授業料がチェックされている場合のみ
-      const baseItemName = baseItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-      if (
-        formData.checkedItems?.[baseItemName] ||
-        formData.checkedItems?.['基本授業料']
-      ) {
-        items.push({
-          name: baseItemName,
-          price: unitPrice,
-        });
-        subtotal += unitPrice;
-      }
-    }
+  // デバッグ: 計算開始
+  if (!window.isProduction) {
+    console.log('🔍 calculateTuitionSubtotal開始:', {
+      classroom,
+      checkedItems: formData.checkedItems,
+      tuitionItemsCount: classifiedItems.tuition.items.length,
+    });
   }
 
-  // 追加項目（チェックボックス選択）- 正負の値段両方含む
-  classifiedItems.tuition.additionalItems.forEach(item => {
+  // 全ての授業料・割引項目をチェック（チェックボックス選択）
+  // 時刻パターンを含む項目（古いデータ）は除外
+  const timePattern = /\(\d{2}:\d{2}\s*-\s*\d{2}:\d{2}\)/;
+  classifiedItems.tuition.items.forEach(item => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+
+    if (!window.isProduction) {
+      console.log('🔍 tuitionItem処理中:', {
+        itemName,
+        price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+        isChecked: !!formData.checkedItems?.[itemName],
+        hasTimePattern: timePattern.test(itemName),
+      });
+    }
+
+    // 時刻パターンを含む項目は除外（レガシーデータ対応）
+    if (timePattern.test(itemName)) {
+      return; // スキップ
+    }
     if (formData.checkedItems?.[itemName]) {
       const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
       items.push({ name: itemName, price: price });
       subtotal += price;
+
+      if (!window.isProduction) {
+        console.log('✅ 項目追加:', { name: itemName, price });
+      }
     }
   });
+
+  if (!window.isProduction) {
+    console.log('🔍 calculateTuitionSubtotal結果:', { items, subtotal });
+  }
 
   return { items, subtotal };
 }
@@ -253,7 +235,108 @@ function calculateAccountingTotal(formData, masterData, classroom) {
   }
 
   try {
-    const classifiedItems = classifyAccountingItems(masterData, classroom);
+    // マスターデータを拡張（基本授業料を動的に追加）
+    const extendedMasterData = [...masterData];
+
+    // 基本授業料の定数リスト
+    const BASE_TUITION_ITEMS = [
+      CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
+      CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
+      CONSTANTS.ITEMS.MAIN_LECTURE, // 後方互換性のため残す
+    ];
+
+    // 基本授業料項目を取得（定数リストから判定）
+    const baseItem = masterData.find(item => {
+      const type = item[CONSTANTS.HEADERS.ACCOUNTING.TYPE];
+      const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+      const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
+
+      return (
+        type === '授業料' &&
+        BASE_TUITION_ITEMS.includes(itemName) &&
+        (targetClassroom === classroom || targetClassroom.includes(classroom))
+      );
+    });
+
+    if (baseItem) {
+      const baseItemName = baseItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+      const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
+      const unit = baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT];
+
+      // 基本授業料がチェックされている場合のみ追加
+      if (formData.checkedItems?.[baseItemName]) {
+        let dynamicItem = null;
+
+        if (unit === '30分') {
+          // 時間制の場合：時間計算して動的項目を作成
+          if (formData.startTime && formData.endTime) {
+            const timeUnits = calculateTimeUnits(
+              formData.startTime,
+              formData.endTime,
+              formData.breakTime || 0,
+            );
+
+            if (timeUnits > 0) {
+              const hours = timeUnits / 2;
+              const price = timeUnits * unitPrice;
+
+              dynamicItem = {
+                [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
+                [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]: `${baseItemName} ${hours}時間`,
+                [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
+                [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: price,
+                [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]: baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
+                _isDynamic: true, // 動的項目フラグ
+              };
+            }
+          }
+        } else if (unit === '回') {
+          // 回数制の場合：基本授業料を動的項目として追加
+          dynamicItem = {
+            [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
+            [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]: baseItemName,
+            [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
+            [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: unitPrice,
+            [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]: baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
+            _isDynamic: true, // 動的項目フラグ
+          };
+
+          if (!window.isProduction) {
+            console.log('🔍 回数制動的項目作成:', dynamicItem);
+          }
+        }
+
+        // 動的項目が作成された場合、マスターデータに追加
+        if (dynamicItem) {
+          extendedMasterData.push(dynamicItem);
+
+          if (!window.isProduction) {
+            console.log('🔍 動的項目をextendedMasterDataに追加:', {
+              itemName: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+              price: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+            });
+          }
+
+          // フォームデータにも追加（自動的にチェック済みとして扱う）
+          if (!formData.checkedItems) {
+            formData.checkedItems = {};
+          }
+          formData.checkedItems[dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]] = true;
+
+          if (!window.isProduction) {
+            console.log('🔍 checkedItemsに追加:', {
+              itemName: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+              allCheckedItems: formData.checkedItems,
+            });
+          }
+
+          // 元の基本授業料のチェックを外す（重複防止）
+          delete formData.checkedItems[baseItemName];
+        }
+      }
+    }
+
+    const classifiedItems = classifyAccountingItems(extendedMasterData, classroom);
     const tuition = calculateTuitionSubtotal(
       formData,
       classifiedItems,
@@ -315,10 +398,21 @@ function generateTimeOptions(selectedValue = '') {
  * @returns {string} HTML文字列
  */
 function generateTuitionSection(classifiedItems, classroom, formData = {}) {
+  // 基本授業料の定数リスト
+  const BASE_TUITION_ITEMS = [
+    CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
+    CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
+    CONSTANTS.ITEMS.MAIN_LECTURE, // 後方互換性のため残す
+  ];
+
   // 基本授業料項目を取得
-  const baseItem = classifiedItems.tuition.baseItems.find(item => {
+  const baseItem = classifiedItems.tuition.items.find(item => {
+    const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
     const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
-    return targetClassroom === classroom || targetClassroom.includes(classroom);
+    return (
+      BASE_TUITION_ITEMS.includes(itemName) &&
+      (targetClassroom === classroom || targetClassroom.includes(classroom))
+    );
   });
 
   if (!baseItem) {
@@ -330,6 +424,7 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
 
   const unit = baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT];
   const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
+  const baseItemName = baseItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
   const isTimeBased = unit === '30分';
 
   // 基本授業料UI
@@ -340,8 +435,9 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
       <div class="base-tuition mb-4">
         ${Components.checkbox({
           id: 'base-tuition',
-          label: '授業料',
+          label: baseItemName,
           checked: true,
+          dataAttributes: { 'item-name': baseItemName },
         })}
         <div class="time-controls mt-3 ml-2">
           <div class="flex items-center space-x-2 mb-3">
@@ -373,9 +469,10 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
           <div class="flex-1">
             ${Components.checkbox({
               id: 'base-tuition',
-              label: '授業料',
+              label: baseItemName,
               checked: true,
               dynamicStyle: true,
+              dataAttributes: { 'item-name': baseItemName },
             })}
           </div>
           <div class="price-display">
@@ -387,21 +484,25 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
       </div>`;
   }
 
-  // 追加項目UI生成（正負の値段両方含む）
-  let additionalItemsHtml = '';
-  if (classifiedItems.tuition.additionalItems.length > 0) {
-    additionalItemsHtml = '<div class="additional-tuition mb-4 space-y-1">';
-    classifiedItems.tuition.additionalItems.forEach(item => {
+  // その他の授業料・割引項目UI生成
+  let otherItemsHtml = '';
+  const otherItems = classifiedItems.tuition.items.filter(
+    item => !BASE_TUITION_ITEMS.includes(item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]),
+  );
+
+  if (otherItems.length > 0) {
+    otherItemsHtml = '<div class="other-tuition mb-4 space-y-1">';
+    otherItems.forEach(item => {
       const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
       const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
       const isChecked = formData.checkedItems?.[itemName] || false;
 
-      additionalItemsHtml += `
+      otherItemsHtml += `
         <div class=" border-ui-border p-0" data-checkbox-row>
           <div class="flex items-center space-x-3">
             <div class="flex-1">
               ${Components.checkbox({
-                id: `additional-${itemName.replace(/\s+/g, '-')}`,
+                id: `other-${itemName.replace(/\s+/g, '-')}`,
                 label: itemName,
                 checked: isChecked,
                 dynamicStyle: true,
@@ -418,7 +519,7 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
           </div>
         </div>`;
     });
-    additionalItemsHtml += '</div>';
+    otherItemsHtml += '</div>';
   }
 
   return Components.cardContainer({
@@ -429,7 +530,7 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
       <section class="tuition-section">
         ${Components.sectionHeader({ title: '授業料' })}
         ${baseTuitionHtml}
-        ${additionalItemsHtml}
+        ${otherItemsHtml}
         ${Components.subtotalSection({
           title: '授業料小計',
           amount: 0,
@@ -1354,8 +1455,7 @@ function updateAccountingCalculation(classifiedItems, classroom) {
     const result = calculateAccountingTotal(
       formData,
       [
-        ...classifiedItems.tuition.baseItems,
-        ...classifiedItems.tuition.additionalItems,
+        ...classifiedItems.tuition.items,
         ...classifiedItems.sales.materialItems,
         ...classifiedItems.sales.productItems,
       ],
@@ -1441,9 +1541,18 @@ function updateTimeCalculationDisplay(result, classroom) {
 
   // 基本授業料の単価を取得
   const classifiedItems = window.currentClassifiedItems;
-  const baseItem = classifiedItems?.tuition.baseItems.find(item => {
+  const BASE_TUITION_ITEMS = [
+    CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
+    CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
+    CONSTANTS.ITEMS.MAIN_LECTURE,
+  ];
+  const baseItem = classifiedItems?.tuition.items.find(item => {
+    const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
     const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
-    return targetClassroom === classroom || targetClassroom.includes(classroom);
+    return (
+      BASE_TUITION_ITEMS.includes(itemName) &&
+      (targetClassroom === classroom || targetClassroom.includes(classroom))
+    );
   });
 
   if (baseItem && baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT] === '30分') {
@@ -1787,6 +1896,54 @@ function generatePaymentConfirmModal(result, paymentMethod) {
     return `<button data-action="${action}" class="${styleClass} px-4 py-2 rounded font-bold flex-1 ${customClass}">${text}</button>`;
   };
 
+  // 授業料セクションHTML生成
+  let tuitionSectionHtml = '';
+  if (result.tuition.items && result.tuition.items.length > 0) {
+    const itemsHtml = result.tuition.items
+      .map(
+        item => `
+      <div class="flex justify-between text-sm">
+        <span class="text-brand-subtle">${escapeHTML(item.name)}</span>
+        <span class="font-mono-numbers">${formatPrice(item.price)}</span>
+      </div>
+    `,
+      )
+      .join('');
+    tuitionSectionHtml = `
+      <div class="space-y-1">
+        ${itemsHtml}
+        <div class="flex justify-between text-sm border-t border-ui-border pt-1 mt-1">
+          <span class="text-brand-text font-medium">授業料小計:</span>
+          <span class="font-mono-numbers font-medium">${formatPrice(result.tuition.subtotal)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // 販売セクションHTML生成
+  let salesSectionHtml = '';
+  if (result.sales.items && result.sales.items.length > 0) {
+    const itemsHtml = result.sales.items
+      .map(
+        item => `
+      <div class="flex justify-between text-sm">
+        <span class="text-brand-subtle">${escapeHTML(item.name)}</span>
+        <span class="font-mono-numbers">${formatPrice(item.price)}</span>
+      </div>
+    `,
+      )
+      .join('');
+    salesSectionHtml = `
+      <div class="space-y-1 ${tuitionSectionHtml ? 'mt-3' : ''}">
+        ${itemsHtml}
+        <div class="flex justify-between text-sm border-t border-ui-border pt-1 mt-1">
+          <span class="text-brand-text font-medium">販売小計:</span>
+          <span class="font-mono-numbers font-medium">${formatPrice(result.sales.subtotal)}</span>
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div id="payment-confirm-modal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg mx-4 max-w-md w-full max-h-screen overflow-y-auto">
@@ -1802,15 +1959,9 @@ function generatePaymentConfirmModal(result, paymentMethod) {
           <!-- 合計金額セクション -->
           <div class="bg-ui-surface rounded-lg p-4">
             <h4 class="font-medium text-brand-text mb-3">金額</h4>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-brand-subtle">授業料小計:</span>
-                <span class="font-mono-numbers">${formatPrice(result.tuition.subtotal)}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-brand-subtle">販売小計:</span>
-                <span class="font-mono-numbers">${formatPrice(result.sales.subtotal)}</span>
-              </div>
+            <div class="space-y-2">
+              ${tuitionSectionHtml}
+              ${salesSectionHtml}
               <div class="border-t-2 border-ui-border pt-2 mt-2">
                 <div class="flex justify-between">
                   <span class="font-bold text-brand-text">総合計:</span>
@@ -1862,9 +2013,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
     if (!window.isProduction) {
       console.log('🔍 支払い確認モーダル: 計算前データ確認', {
         classifiedItems存在: !!classifiedItems,
-        baseItemsLength: classifiedItems?.tuition?.baseItems?.length || 0,
-        additionalItemsLength:
-          classifiedItems?.tuition?.additionalItems?.length || 0,
+        tuitionItemsLength: classifiedItems?.tuition?.items?.length || 0,
         materialItemsLength: classifiedItems?.sales?.materialItems?.length || 0,
         productItemsLength: classifiedItems?.sales?.productItems?.length || 0,
         classroom,
@@ -1874,8 +2023,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
     const result = calculateAccountingTotal(
       formData,
       [
-        ...classifiedItems.tuition.baseItems,
-        ...classifiedItems.tuition.additionalItems,
+        ...classifiedItems.tuition.items,
         ...classifiedItems.sales.materialItems,
         ...classifiedItems.sales.productItems,
       ],
@@ -2290,15 +2438,9 @@ function collectAccountingFormData() {
   // チェックボックス項目収集
   const checkedItems = {};
 
-  // 基本授業料のチェック状態を確認
-  const baseTuitionCheckbox = document.getElementById('base-tuition');
-  if (baseTuitionCheckbox && baseTuitionCheckbox.checked) {
-    checkedItems['基本授業料'] = true;
-  }
-
-  // 追加項目のチェックボックス
+  // 全チェックボックスを収集（base-tuitionも含む）
   const checkboxes = document.querySelectorAll(
-    '.accounting-container input[type="checkbox"]:not(#base-tuition)',
+    '.accounting-container input[type="checkbox"]',
   );
 
   checkboxes.forEach(checkbox => {

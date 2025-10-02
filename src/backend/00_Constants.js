@@ -245,6 +245,8 @@ const CONSTANTS = {
   // 会計項目定数
   ITEMS: {
     MAIN_LECTURE: '基本授業料',
+    MAIN_LECTURE_COUNT: '授業料（回数制）',
+    MAIN_LECTURE_TIME: '授業料（時間制）',
     FIRST_LECTURE: '初回参加費',
     CHISEL_RENTAL: '彫刻刀レンタル',
     DISCOUNT: '初回者同時割引',

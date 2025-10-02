@@ -244,10 +244,9 @@ function getEnvironmentAwareEmailAddress(baseEmail) {
 /**
  * 授業料金額を取得
  * @param {string} classroom - 教室名
- * @param {boolean} isFirstTime - 初回受講フラグ
- * @returns {string} 授業料テキスト（例："初回授業料 ¥6,000"）
+ * @returns {string} 授業料テキスト（複数行、例："授業料（時間制）: ¥600 （30分あたり）\n初回参加費: ¥800"）
  */
-function getTuitionDisplayText(classroom, isFirstTime) {
+function getTuitionDisplayText(classroom) {
   try {
     // 会計マスタから価格データを取得
     /** @type {AccountingCacheData | null} */
@@ -255,22 +254,28 @@ function getTuitionDisplayText(classroom, isFirstTime) {
       getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA)
     );
     if (!accountingData || !accountingData['items']) {
-      // キャッシュが無い場合は文字列のみ返す
-      return isFirstTime ? '初回授業料' : '通常授業料';
+      return '授業料情報が取得できませんでした';
     }
 
     const masterData = accountingData['items'];
-    const itemName = isFirstTime
-      ? CONSTANTS.ITEMS.FIRST_LECTURE
-      : CONSTANTS.ITEMS.MAIN_LECTURE;
+    const lines = [];
 
-    // 教室固有の料金ルールを検索
-    const tuitionRule = masterData.find(
+    // 基本授業料項目リスト
+    const BASE_TUITION_ITEMS = [
+      CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
+      CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
+      CONSTANTS.ITEMS.MAIN_LECTURE, // 後方互換性
+    ];
+
+    // 基本授業料を検索
+    const baseTuitionRule = masterData.find(
       /** @param {AccountingMasterItem} item */
       item =>
         item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
           CONSTANTS.ITEM_TYPES.TUITION &&
-        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName &&
+        BASE_TUITION_ITEMS.includes(
+          item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+        ) &&
         typeof item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] ===
           'string' &&
         /** @type {string} */ (
@@ -278,38 +283,45 @@ function getTuitionDisplayText(classroom, isFirstTime) {
         ).includes(classroom),
     );
 
-    if (tuitionRule) {
+    if (baseTuitionRule) {
+      const itemName = baseTuitionRule[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
       const price = Number(
-        tuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+        baseTuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
       );
-      const unit = tuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] || '';
-      const priceText = price > 0 ? ` ¥${price.toLocaleString()}` : '';
-      const unitText = unit ? ` / ${unit}` : '';
-      return `${itemName}${priceText}${unitText}`;
+      const unit = baseTuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] || '';
+      lines.push(`${itemName}: ¥${price.toLocaleString()} （${unit}あたり）`);
     }
 
-    // 教室固有ルールが無い場合は基本料金を検索
-    const basicRule = masterData.find(
+    // 初回参加費を検索（該当教室に設定がある場合のみ）
+    const firstLectureRule = masterData.find(
       /** @param {AccountingMasterItem} item */
       item =>
         item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
           CONSTANTS.ITEM_TYPES.TUITION &&
-        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === itemName,
+        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] ===
+          CONSTANTS.ITEMS.FIRST_LECTURE &&
+        typeof item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] ===
+          'string' &&
+        /** @type {string} */ (
+          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]
+        ).includes(classroom),
     );
 
-    if (basicRule) {
-      const price = Number(basicRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
-      const unit = basicRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] || '';
-      const priceText = price > 0 ? ` ¥${price.toLocaleString()}` : '';
-      const unitText = unit ? ` / ${unit}` : '';
-      return `${itemName}${priceText}${unitText}`;
+    if (firstLectureRule) {
+      const price = Number(
+        firstLectureRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+      );
+      lines.push(
+        `${CONSTANTS.ITEMS.FIRST_LECTURE}: ¥${price.toLocaleString()}`,
+      );
     }
 
-    // 料金ルールが見つからない場合
-    return itemName;
+    return lines.length > 0
+      ? lines.join('\n')
+      : '授業料情報が見つかりませんでした';
   } catch (error) {
     Logger.log(`授業料取得エラー: ${error.message}`);
-    return isFirstTime ? '初回授業料' : '通常授業料';
+    return '授業料情報が取得できませんでした';
   }
 }
 
@@ -354,13 +366,16 @@ function createBookingDetailsText(reservation, formattedDate, statusText) {
   }
 
   // 実際の授業料金額を取得して表示
-  const tuitionText = getTuitionDisplayText(classroom, isFirstTime);
+  const tuitionText = getTuitionDisplayText(classroom);
 
   return `【申込み内容】
 教室: ${classroom} ${venue}
 日付: ${formattedDate}
 時間: ${timeDisplay}
-基本授業料: ${tuitionText}
+
+【授業料】
+${tuitionText}
+
 受付日時: ${new Date().toLocaleString('ja-JP')}
 
 以上の内容を ${statusText} で承りました。`;

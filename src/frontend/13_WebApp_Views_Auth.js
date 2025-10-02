@@ -398,7 +398,7 @@ const getRegistrationStep4View = () => {
               <label class="flex items-start space-x-2 cursor-pointer">
                 <input type="checkbox" id="privacy-policy-agree" class="h-5 w-5 mt-1 text-action-primary-bg focus:ring-action-primary-bg accent-action-primary-bg" required>
                 <span class="text-sm text-brand-text">
-                  <span data-action="showPrivacyPolicy" class="text-brand-muted underline hover:text-brand-text cursor-pointer">プライバシーポリシー</span>に同意します
+                  <span data-action="showPrivacyPolicy" class="text-brand-muted underline hover:text-brand-text cursor-pointer">プライバシーポリシー</span>に同意します *必須項目
                 </span>
               </label>
             `,
