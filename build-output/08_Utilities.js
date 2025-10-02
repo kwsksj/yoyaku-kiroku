@@ -954,3 +954,317 @@ function formatPhoneNumber(phoneNumber) {
 
   return normalized;
 }
+
+// ===================================================================
+// 型変換関数群（Phase 3: 型システム統一）
+// ===================================================================
+
+/// <reference path="../../types/core/index.d.ts" />
+/// <reference path="../../types/dto/index.d.ts" />
+
+/**
+ * Sheets生データ（配列）→ ReservationCore に変換
+ *
+ * Google Sheetsから取得した配列データを統一Core型に変換
+ * Phase 3: 型システム統一の一環として実装
+ *
+ * @param {RawSheetRow} row - Sheets生データ（配列）
+ * @param {HeaderMapType} headerMap - ヘッダーマップ
+ * @returns {ReservationCore} 統一Core型の予約データ
+ *
+ * @example
+ * const reservation = convertRowToReservation(sheetRow, headerMap);
+ * // { reservationId: 'R-001', studentId: 'S-001', ... }
+ */
+function convertRowToReservation(row, headerMap) {
+  // ヘッダーマップを適切な型にキャスト
+  const hm = /** @type {Record<string, number>} */ (
+    headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap
+  );
+
+  // 日付をYYYY-MM-DD形式に変換
+  const formatDate = val => {
+    if (!val) return '';
+    if (val instanceof Date) {
+      return Utilities.formatDate(val, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+    }
+    return String(val);
+  };
+
+  // 時刻をHH:mm形式に変換
+  const formatTime = val => {
+    if (!val) return undefined;
+    if (val instanceof Date) {
+      return Utilities.formatDate(val, CONSTANTS.TIMEZONE, 'HH:mm');
+    }
+    return String(val);
+  };
+
+  // 予約IDヘッダー（複数パターンに対応）
+  const reservationIdIdx =
+    hm[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID] ?? hm['予約ID'];
+
+  /** @type {ReservationCore} */
+  const reservation = {
+    reservationId: String(row[reservationIdIdx] || ''),
+    studentId: String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID]] || ''),
+    classroom: String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM]] || ''),
+    date: formatDate(row[hm[CONSTANTS.HEADERS.RESERVATIONS.DATE]]),
+    status: String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.STATUS]] || ''),
+    venue: row[hm[CONSTANTS.HEADERS.RESERVATIONS.VENUE]]
+      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.VENUE]])
+      : undefined,
+    startTime: formatTime(row[hm[CONSTANTS.HEADERS.RESERVATIONS.START_TIME]]),
+    endTime: formatTime(row[hm[CONSTANTS.HEADERS.RESERVATIONS.END_TIME]]),
+    chiselRental: Boolean(
+      row[hm[CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL]],
+    ),
+    firstLecture: Boolean(
+      row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]],
+    ),
+    workInProgress: row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]]
+      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]])
+      : undefined,
+    materialInfo: row[hm[CONSTANTS.HEADERS.RESERVATIONS.MATERIAL_INFO]]
+      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.MATERIAL_INFO]])
+      : undefined,
+    order: row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]]
+      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]])
+      : undefined,
+    messageToTeacher: row[
+      hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]
+    ]
+      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]])
+      : undefined,
+  };
+
+  // 会計詳細が存在する場合は追加（将来的に実装）
+  // reservation.accountingDetails = ...
+
+  return reservation;
+}
+
+/**
+ * ReservationCore → Sheets行データ（配列）に変換
+ *
+ * 統一Core型からSheets書き込み用の配列データに変換
+ * Phase 3: 型システム統一の一環として実装
+ *
+ * @param {ReservationCore} reservation - 統一Core型の予約データ
+ * @param {HeaderMapType} headerMap - ヘッダーマップ
+ * @returns {RawSheetRow} Sheets書き込み用配列データ
+ *
+ * @example
+ * const row = convertReservationToRow(reservation, headerMap);
+ * sheet.appendRow(row);
+ */
+function convertReservationToRow(reservation, headerMap) {
+  // ヘッダーマップを適切な型にキャスト
+  const hm = /** @type {Record<string, number>} */ (
+    headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap
+  );
+
+  // 配列を初期化（全カラム分の長さ）
+  const columnCount = Object.keys(hm).length;
+  /** @type {RawSheetRow} */
+  const row = new Array(columnCount).fill('');
+
+  // 予約IDヘッダー（複数パターンに対応）
+  const reservationIdIdx =
+    hm[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID] ?? hm['予約ID'];
+
+  // 必須フィールド
+  row[reservationIdIdx] = reservation.reservationId;
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID]] = reservation.studentId;
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM]] = reservation.classroom;
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.DATE]] = reservation.date;
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.STATUS]] = reservation.status;
+
+  // オプションフィールド
+  if (reservation.venue !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.VENUE]] = reservation.venue;
+  }
+  if (reservation.startTime !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.START_TIME]] = reservation.startTime;
+  }
+  if (reservation.endTime !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.END_TIME]] = reservation.endTime;
+  }
+  if (reservation.chiselRental !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL]] =
+      reservation.chiselRental;
+  }
+  if (reservation.firstLecture !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]] =
+      reservation.firstLecture;
+  }
+  if (reservation.workInProgress !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]] =
+      reservation.workInProgress;
+  }
+  if (reservation.materialInfo !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.MATERIAL_INFO]] =
+      reservation.materialInfo;
+  }
+  if (reservation.order !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]] = reservation.order;
+  }
+  if (reservation.messageToTeacher !== undefined) {
+    row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]] =
+      reservation.messageToTeacher;
+  }
+
+  return row;
+}
+
+/**
+ * Sheets生データ（配列）→ UserCore に変換
+ *
+ * Google Sheetsから取得した配列データを統一Core型に変換
+ * Phase 3: 型システム統一の一環として実装
+ *
+ * @param {RawSheetRow} row - Sheets生データ（配列）
+ * @param {HeaderMapType} headerMap - ヘッダーマップ
+ * @returns {UserCore} 統一Core型のユーザーデータ
+ */
+function convertRowToUser(row, headerMap) {
+  // ヘッダーマップを適切な型にキャスト
+  const hm = /** @type {Record<string, number>} */ (
+    headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap
+  );
+
+  /** @type {UserCore} */
+  const user = {
+    studentId: String(row[hm[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] || ''),
+    phone: String(row[hm[CONSTANTS.HEADERS.ROSTER.PHONE]] || ''),
+    realName: String(row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]] || ''),
+    displayName:
+      String(row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]]) ||
+      String(row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]]) ||
+      '',
+    nickname: row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]])
+      : undefined,
+    email: row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]])
+      : undefined,
+    wantsEmail: Boolean(row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_EMAIL]]),
+    wantsScheduleNotification: Boolean(
+      row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_NOTIFICATION]],
+    ),
+    notificationDay: row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY]]
+      ? Number(row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY]])
+      : undefined,
+    notificationHour: row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR]]
+      ? Number(row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR]])
+      : undefined,
+    ageGroup: row[hm[CONSTANTS.HEADERS.ROSTER.AGE_GROUP]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.AGE_GROUP]])
+      : undefined,
+    gender: row[hm[CONSTANTS.HEADERS.ROSTER.GENDER]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.GENDER]])
+      : undefined,
+    dominantHand: row[hm[CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND]])
+      : undefined,
+    address: row[hm[CONSTANTS.HEADERS.ROSTER.ADDRESS]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.ADDRESS]])
+      : undefined,
+    experience: row[hm[CONSTANTS.HEADERS.ROSTER.EXPERIENCE]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.EXPERIENCE]])
+      : undefined,
+    pastWork: row[hm[CONSTANTS.HEADERS.ROSTER.PAST_WORK]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.PAST_WORK]])
+      : undefined,
+    futureGoal: row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_GOAL]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_GOAL]])
+      : undefined,
+    futureParticipation: row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_PARTICIPATION]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_PARTICIPATION]])
+      : undefined,
+    futureCreations: row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]])
+      : undefined,
+  };
+
+  return user;
+}
+
+/**
+ * UserCore → Sheets行データ（配列）に変換
+ *
+ * 統一Core型からSheets書き込み用の配列データに変換
+ * Phase 3: 型システム統一の一環として実装
+ *
+ * @param {UserCore} user - 統一Core型のユーザーデータ
+ * @param {HeaderMapType} headerMap - ヘッダーマップ
+ * @returns {RawSheetRow} Sheets書き込み用配列データ
+ */
+function convertUserToRow(user, headerMap) {
+  // ヘッダーマップを適切な型にキャスト
+  const hm = /** @type {Record<string, number>} */ (
+    headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap
+  );
+
+  // 配列を初期化（全カラム分の長さ）
+  const columnCount = Object.keys(hm).length;
+  /** @type {RawSheetRow} */
+  const row = new Array(columnCount).fill('');
+
+  // 必須フィールド
+  row[hm[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] = user.studentId;
+  row[hm[CONSTANTS.HEADERS.ROSTER.PHONE]] = user.phone;
+  row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]] = user.realName;
+
+  // オプションフィールド
+  if (user.nickname !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]] = user.nickname;
+  }
+  if (user.email !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]] = user.email;
+  }
+  if (user.wantsEmail !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_EMAIL]] = user.wantsEmail;
+  }
+  if (user.wantsScheduleNotification !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_NOTIFICATION]] =
+      user.wantsScheduleNotification;
+  }
+  if (user.notificationDay !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY]] = user.notificationDay;
+  }
+  if (user.notificationHour !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR]] =
+      user.notificationHour;
+  }
+  if (user.ageGroup !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.AGE_GROUP]] = user.ageGroup;
+  }
+  if (user.gender !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.GENDER]] = user.gender;
+  }
+  if (user.dominantHand !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND]] = user.dominantHand;
+  }
+  if (user.address !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.ADDRESS]] = user.address;
+  }
+  if (user.experience !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.EXPERIENCE]] = user.experience;
+  }
+  if (user.pastWork !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.PAST_WORK]] = user.pastWork;
+  }
+  if (user.futureGoal !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_GOAL]] = user.futureGoal;
+  }
+  if (user.futureParticipation !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_PARTICIPATION]] =
+      user.futureParticipation;
+  }
+  if (user.futureCreations !== undefined) {
+    row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]] = user.futureCreations;
+  }
+
+  return row;
+}
