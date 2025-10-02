@@ -1,11 +1,18 @@
 /// <reference path="../../types/gas-environment.d.ts" />
 /// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/core/index.d.ts" />
+/// <reference path="../../types/dto/index.d.ts" />
 
 /**
  * =================================================================
  * 【ファイル名】: 04_Backend_User.gs
- * 【バージョン】: 3.5
+ * 【バージョン】: 4.0
  * 【役割】: Webアプリ連携のうち、ユーザー認証・管理を担当するバックエンド機能。
+ * 【v4.0での変更点】
+ * - Phase 3: 型システム統一 - Core型・DTO型の導入
+ * - registerNewUser: UserRegistrationDto対応
+ * - updateUserProfile: UserUpdateDto対応
+ * - 変換関数の活用（convertRowToUser/convertUserToRow）
  * 【v3.5での変更点】
  * - updateUserProfile がピンポイント更新（rowIndex利用）を行うように修正。
  * - updateUserProfile 内の電話番号重複チェックをキャッシュベースに変更。
@@ -270,15 +277,30 @@ function authenticateUser(phoneNumber) {
 }
 
 /**
- * 新規ユーザーを生徒名簿に登録します。
- * @param {NewUserRegistration} userInfo - 新規ユーザー情報
+ * 新規ユーザーを生徒名簿に登録します（Phase 3: 型システム統一対応）
+ *
+ * @param {UserRegistrationDto} userInfo - 新規ユーザー登録リクエストDTO
  * @returns {ApiResponseGeneric<UserRegistrationResult>}
+ *
+ * @example
+ * const result = registerNewUser({
+ *   phone: '09012345678',
+ *   realName: '山田太郎',
+ *   nickname: '太郎',
+ *   email: 'taro@example.com',
+ *   wantsEmail: true,
+ *   trigger: 'Web検索',
+ *   firstMessage: 'よろしくお願いします',
+ * });
  */
 function registerNewUser(userInfo) {
   return withTransaction(() => {
     try {
+      /** @type {UserRegistrationDto} */
+      const registrationDto = /** @type {UserRegistrationDto} */ (userInfo);
+
       const validationResult = _normalizeAndValidatePhone(
-        userInfo?.phone || '',
+        registrationDto?.phone || '',
         true,
       );
       const normalizedPhone = validationResult.normalized;
@@ -781,13 +803,26 @@ function getUserDetailForEdit(studentId) {
 }
 
 /**
- * ユーザーのプロフィール（本名、ニックネーム、電話番号、メールアドレス）を更新します。
- * @param {UserProfileUpdate} userInfo - プロフィール更新情報
+ * ユーザーのプロフィール（本名、ニックネーム、電話番号、メールアドレス）を更新します
+ * （Phase 3: 型システム統一対応）
+ *
+ * @param {UserUpdateDto} userInfo - ユーザー情報更新リクエストDTO
  * @returns {ApiResponseGeneric<UserProfileUpdateResult>}
+ *
+ * @example
+ * const result = updateUserProfile({
+ *   studentId: 'S-001',
+ *   email: 'newemail@example.com',
+ *   wantsEmail: true,
+ *   address: '東京都渋谷区',
+ * });
  */
 function updateUserProfile(userInfo) {
   return withTransaction(() => {
     try {
+      /** @type {UserUpdateDto} */
+      const updateDto = /** @type {UserUpdateDto} */ (userInfo);
+
       // 新しいヘルパー関数を使用して生徒データを取得
       /** @type {{rowIndex?: number, studentId: string, realName: string, nickname: string, phone: string} | null} */
       const targetStudent =
