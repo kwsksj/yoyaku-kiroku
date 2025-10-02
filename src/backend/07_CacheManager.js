@@ -1,6 +1,20 @@
 /// <reference path="../../types/gas-environment.d.ts" />
 /// <reference path="../../types/constants.d.ts" />
 /// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/core/index.d.ts" />
+/// <reference path="../../types/dto/index.d.ts" />
+
+/**
+ * =================================================================
+ * 【ファイル名】: 07_CacheManager.js
+ * 【バージョン】: 6.0
+ * 【役割】: キャッシュ管理システム
+ * 【v6.0での変更点】:
+ * - Phase 3: 型システム統一 - Core型・DTO型参照の追加
+ * - 将来的な ReservationCore[] への移行準備
+ * - 差分更新関数の型定義明確化
+ * =================================================================
+ */
 
 /**
  * ヘッダーマップから型安全にインデックスを取得するヘルパー関数
