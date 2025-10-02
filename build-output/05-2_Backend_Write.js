@@ -277,31 +277,18 @@ function makeReservation(reservationInfo) {
   return withTransaction(() => {
     try {
       // Phase 3: ReservationCreateDto として処理
-      // options はReservationCreateDto の直接プロパティとして展開
-      const {
-        classroom,
-        date,
-        user,
-        startTime,
-        endTime,
-        studentId,
-        chiselRental,
-        firstLecture,
-        workInProgress,
-        materialInfo,
-        order,
-        messageToTeacher,
-        venue,
-      } = reservationInfo || {};
+      const { classroom, date, user, startTime, endTime } =
+        reservationInfo || {};
 
-      // 後方互換性のため、options オブジェクトも許容
-      const options = reservationInfo.options || {
-        chiselRental: chiselRental || false,
-        firstLecture: firstLecture || false,
-        workInProgress: workInProgress || '',
-        materialInfo: materialInfo || '',
-        order: order || '',
-        messageToTeacher: messageToTeacher || '',
+      // 後方互換性のため、旧形式（options）も新形式（直接プロパティ）も許容
+      // @ts-ignore - 後方互換性のため旧形式も許容
+      const options = (reservationInfo && reservationInfo.options) || {
+        chiselRental: reservationInfo?.chiselRental || false,
+        firstLecture: reservationInfo?.firstLecture || false,
+        workInProgress: reservationInfo?.workInProgress || '',
+        materialInfo: reservationInfo?.['materialInfo'] || '',
+        order: reservationInfo?.order || '',
+        messageToTeacher: reservationInfo?.messageToTeacher || '',
       };
 
       const integratedSheet = getSheetByName(
