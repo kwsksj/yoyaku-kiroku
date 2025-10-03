@@ -1,8 +1,6 @@
 # 型システム統一計画
 
-**バージョン**: 1.0
-**作成日**: 2025-10-03
-**ステータス**: 計画中
+**バージョン**: 1.0 **作成日**: 2025-10-03 **ステータス**: 計画中
 
 ---
 
@@ -185,11 +183,11 @@ interface UserProfileUpdateResult {
 // api-types.d.ts
 interface AccountingDetails {
   tuition: {
-    items: Array<{name: string, price: number}>;
+    items: Array<{ name: string; price: number }>;
     subtotal: number;
   };
   sales: {
-    items: Array<{name: string, price: number}>;
+    items: Array<{ name: string; price: number }>;
     subtotal: number;
   };
   grandTotal: number;
@@ -199,11 +197,11 @@ interface AccountingDetails {
 // accounting.d.ts - 完全に重複
 interface AccountingCalculationResult {
   tuition: {
-    items: Array<{name: string, price: number}>;
+    items: Array<{ name: string; price: number }>;
     subtotal: number;
   };
   sales: {
-    items: Array<{name: string, price: number}>;
+    items: Array<{ name: string; price: number }>;
     subtotal: number;
   };
   grandTotal: number;
@@ -378,12 +376,7 @@ interface ReservationCreateDto extends Omit<ReservationCore, 'reservationId' | '
 }
 
 /** 予約更新リクエスト */
-interface ReservationUpdateDto extends Pick<
-  ReservationCore,
-  'reservationId' | 'classroom' | 'studentId' | 'startTime' | 'endTime' |
-  'chiselRental' | 'firstLecture' | 'workInProgress' | 'materialInfo' |
-  'order' | 'messageToTeacher'
-> {}
+interface ReservationUpdateDto extends Pick<ReservationCore, 'reservationId' | 'classroom' | 'studentId' | 'startTime' | 'endTime' | 'chiselRental' | 'firstLecture' | 'workInProgress' | 'materialInfo' | 'order' | 'messageToTeacher'> {}
 
 /** 予約キャンセルリクエスト */
 interface ReservationCancelDto {
@@ -395,11 +388,7 @@ interface ReservationCancelDto {
 }
 
 /** API応答用（軽量版） */
-type ReservationApiDto = Pick<
-  ReservationCore,
-  'reservationId' | 'studentId' | 'classroom' | 'date' | 'status' |
-  'venue' | 'startTime' | 'endTime' | 'chiselRental' | 'firstLecture'
->;
+type ReservationApiDto = Pick<ReservationCore, 'reservationId' | 'studentId' | 'classroom' | 'date' | 'status' | 'venue' | 'startTime' | 'endTime' | 'chiselRental' | 'firstLecture'>;
 ```
 
 #### 変換関数
@@ -408,10 +397,7 @@ type ReservationApiDto = Pick<
 /**
  * Sheets生データ → ReservationCore に変換（1箇所のみ）
  */
-function convertRowToReservation(
-  row: RawSheetRow,
-  headerMap: HeaderMapType
-): ReservationCore {
+function convertRowToReservation(row: RawSheetRow, headerMap: HeaderMapType): ReservationCore {
   return {
     reservationId: row[headerMap['予約ID']] || '',
     studentId: row[headerMap['生徒ID']] || '',
@@ -434,10 +420,7 @@ function convertRowToReservation(
 /**
  * ReservationCore → Sheets行データに変換（書き込み時）
  */
-function convertReservationToRow(
-  reservation: ReservationCore,
-  headerMap: HeaderMapType
-): RawSheetRow {
+function convertReservationToRow(reservation: ReservationCore, headerMap: HeaderMapType): RawSheetRow {
   const row: RawSheetRow = new Array(Object.keys(headerMap).length);
   row[headerMap['予約ID']] = reservation.reservationId;
   row[headerMap['生徒ID']] = reservation.studentId;
@@ -476,7 +459,6 @@ interface UserCore {
   address?: string;
   experience?: string;
   pastWork?: string;
-  futureGoal?: string;
   futureParticipation?: string;
   futureCreations?: string;
 }
@@ -917,16 +899,19 @@ grep -r "\[key: string\]: unknown" types/
 ## 命名規則
 
 ### Core型
+
 - 形式: `XXXCore`
 - 例: `ReservationCore`, `UserCore`, `AccountingDetailsCore`
 - 用途: アプリケーション全体で共通使用
 
 ### DTO型
+
 - 形式: `XXXDto` または `XXXXXXDto`
 - 例: `ReservationCreateDto`, `UserUpdateDto`
 - 用途: 特定の操作に特化
 
 ### 禁止事項
+
 - `any` の使用（例外: サードパーティAPI連携時のみ）
 - `[key: string]: unknown` の使用（特定の動的プロパティ以外）
 - 同じ概念に対する複数の型定義
@@ -958,7 +943,7 @@ grep -r "\[key: string\]: unknown" types/
 
 **プロジェクト指示（`CLAUDE.md`）に追加**:
 
-```markdown
+````markdown
 ## 型定義の絶対ルール
 
 🚨 **新しい型を作る前に必ず確認**:
@@ -968,6 +953,7 @@ grep -r "\[key: string\]: unknown" types/
    grep -r "interface XXX" types/
    grep -r "type XXX" types/
    ```
+````
 
 2. **再利用の検討**
    - 既存の型で表現できる場合は再利用
@@ -998,7 +984,7 @@ grep -r "\[key: string\]: unknown" types/
          index.d.ts にエクスポート追加
 ```
 
-```
+````
 
 ---
 
@@ -1015,7 +1001,7 @@ grep -r "\[key: string\]: unknown" types/
    ```bash
    # 重複検出
    grep -r "interface Reservation" types/ | sort
-   ```
+````
 
 2. **`any` / `unknown` の排除**
 
@@ -1314,10 +1300,75 @@ grep -rn "\[key: string\]: unknown" src/ > unknown-usage.txt
   - NewUserRegistration → UserRegistrationDto
   - UserProfileUpdate → UserUpdateDto
 
+### Phase 6: 定数名とシート名の統一 ✅ (2025-10-03 完了)
+
+#### 背景：AI駆動開発での「あるある」問題の発生
+
+型システム統一の実装中に、**AIが既存の定数を確認せずに新しい定数名を使用**する問題が発生。
+変換関数実装時に既存の `CONSTANTS.HEADERS.ROSTER` 定数名を見ずに、新しい名前で実装してしまった。
+
+**これはまさに「AI駆動開発あるある」の実例**:
+- 既存コードの確認不足
+- 局所的な実装による命名の揺れ
+- 結果として定数名が増殖
+
+#### 実施した修正
+
+**1. CONSTANTS.HEADERS.ROSTER の定数名統一**
+
+IDEの一括置換機能を使用して、使用箇所を統一：
+
+| ❌ 旧名称（削除） | ✅ 新名称（統一後） | シート列名 | 意味 |
+|:---|:---|:---|:---|
+| `EMAIL_PREFERENCE` | `WANTS_RESERVATION_EMAIL` | `'予約メール希望'` | 予約時のメール送信希望 |
+| `SCHEDULE_NOTIFICATION_PREFERENCE` | `WANTS_SCHEDULE_INFO` | `'日程連絡希望'` | 日程通知の受信希望 |
+| `WOODCARVING_EXPERIENCE` | `EXPERIENCE` | `'木彫り経験'` | 木彫り経験レベル |
+| `PAST_CREATIONS` | `PAST_WORK` | `'過去の制作物'` | 過去の作品 |
+| `FUTURE_PARTICIPATION` | `ATTENDANCE_INTENTION` | `'想定参加頻度'` | 今後の参加頻度 |
+
+**2. UserCore型のプロパティ整理**
+
+重複・不要なプロパティを削除：
+
+- ❌ 削除: `futureGoal` (対応するシート列がない重複プロパティ)
+- ✅ 保持: `futureParticipation` (ATTENDANCE_INTENTIONに対応)
+- ✅ 保持: `futureCreations` (FUTURE_CREATIONSに対応)
+
+**3. シート名の簡潔化**
+
+実際のGoogleスプレッドシートのシート名も同時に変更：
+
+| 変更前 | 変更後 | 理由 |
+|:---|:---|:---|
+| `'統合予約シート'` | `'予約記録'` | システム名「よやく・きろく」と整合、簡潔 |
+| `'アクティビティログ'` | `'ログ'` | 簡潔に |
+| `'日程マスタ'` | `'日程'` | 日程は追加されるので「マスタ」は不適切 |
+
+**4. CONSTANTS.HEADERS.RESERVATIONS の拡張**
+
+不足していたフィールドを追加：
+
+- ✅ 追加: `MATERIAL_INFO: '材料情報'`
+
+#### 教訓：AI開発での定数管理ベストプラクティス
+
+**問題**: AIが変換関数実装時に既存の定数名を確認せず、新しい名前を使用
+**誤った解決**: 定数側に別名追加（例: `WANTS_EMAIL` と `EMAIL_PREFERENCE` 両方定義）
+**正しい解決**: 使用箇所を**IDEの一括置換**で統一
+
+**重要な原則**:
+1. **定数の「別名」を増やすことは根本解決にならない**
+2. **使用箇所を正しい名前に統一**することで、将来の混乱を防ぐ
+3. **人間がIDEで一括置換**した方が、AIが個別修正するより効率的で確実
+
+**命名の方針**:
+- `WANTS_*` パターンでboolean的な意味を明確化
+- 文脈（ROSTER/RESERVATIONS）で意味が通じるなら短く
+- コード内で使いやすい名前 ≠ シート列名（ユーザー向け）
+
 ## 🎉 型システム統一プロジェクト完了
 
-**実装期間**: 2025-10-03（1日）
-**最終コミット**: feature/type-system-unification ブランチ
+**実装期間**: 2025-10-03（1日） **最終コミット**: feature/type-system-unification ブランチ
 
 ### 達成された成果
 
@@ -1326,9 +1377,11 @@ grep -rn "\[key: string\]: unknown" src/ > unknown-usage.txt
 3. **バックエンド型統一**: 主要関数すべて統一型対応
 4. **後方互換性維持**: 旧形式も引き続き動作
 5. **明確な移行パス**: @deprecated による段階的移行サポート
+6. **定数名の統一**: CONSTANTS.HEADERS の命名規則統一、シート名の簡潔化
 
 ---
 
 **次のステップ（任意）**:
+
 - フロントエンドの段階的な型移行
 - 旧型定義の完全削除（十分な移行期間後）

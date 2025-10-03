@@ -88,12 +88,9 @@ interface UserCore {
   /** 過去の作品 */
   pastWork?: string;
 
-  /** 今後の目標 */
-  futureGoal?: string;
-
-  /** 今後の参加予定 */
+  /** 想定参加頻度（今後の参加予定） */
   futureParticipation?: string;
 
-  /** 今後作りたいもの */
+  /** 将来制作したいもの */
   futureCreations?: string;
 }
