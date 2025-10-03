@@ -87,6 +87,7 @@ const CONSTANTS = {
     LOG: 'ログ',
     RESERVATIONS: '予約記録',
     SCHEDULE: '日程',
+    SALES_LOG: '売上ログ', // 別スプレッドシート
   },
 
   // セッション関連
@@ -176,7 +177,6 @@ const CONSTANTS = {
       TRANSPORTATION: '来場手段',
       PICKUP: '送迎',
       WORK_IN_PROGRESS: '制作メモ',
-      MATERIAL_INFO: '材料情報',
       ORDER: 'order',
       MESSAGE_TO_TEACHER: 'メッセージ',
       ACCOUNTING_DETAILS: '会計詳細',

@@ -62,6 +62,7 @@ const authActionHandlers = {
 
     // 統合エンドポイントで認証とすべてのデータを一括取得
     google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+      console.log('🔍 ログインレスポンス受信:', response);
       if (response.success && response.userFound) {
         debugLog(
           '✅ 統合ログイン成功 - ユーザー: ' + response.user.displayName,
@@ -69,6 +70,7 @@ const authActionHandlers = {
         debugLog(
           `📦 データ一括取得完了: 予約${response.data.myReservations?.length || 0}件, レッスン${response.data.lessons?.length || 0}件`,
         );
+        console.log('📦 myReservations詳細:', response.data.myReservations);
 
         // 完全なアプリ状態を一度に構築
         const newAppState = {
@@ -83,6 +85,11 @@ const authActionHandlers = {
           today: new Date().toISOString().split('T')[0],
         };
 
+        console.log('🎯 新しいアプリ状態を構築:', {
+          myReservationsCount: newAppState.myReservations.length,
+          lessonsCount: newAppState.lessons.length,
+        });
+
         hideLoading();
         debugLog('✅ 統合ログイン完了 - 完全なダッシュボード表示');
 
@@ -94,6 +101,8 @@ const authActionHandlers = {
             isDataFresh: true,
           },
         });
+
+        console.log('✅ dispatch完了 - 現在のstate:', window.stateManager.getState().myReservations?.length, '件の予約');
 
         // 通知設定チェック：日程連絡希望ONで通知設定が未設定の場合に喚起
         if (

@@ -228,7 +228,7 @@ function createSalesRow(baseInfo, category, itemName, price) {
 function logActivity(userId, action, result, details) {
   try {
     const ss = getActiveSpreadsheet();
-    const logSheet = ss.getSheetByName('アクティビティログ');
+    const logSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.LOG);
     // シートや数式が未設定の場合は、エラーを出さずに処理を中断する
     if (!logSheet) {
       console.log('ログシートが見つかりません。処理をスキップしました。');
@@ -1032,9 +1032,6 @@ function convertRowToReservation(row, headerMap) {
     workInProgress: row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]]
       ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]])
       : undefined,
-    materialInfo: row[hm[CONSTANTS.HEADERS.RESERVATIONS.MATERIAL_INFO]]
-      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.MATERIAL_INFO]])
-      : undefined,
     order: row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]]
       ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]])
       : undefined,
@@ -1106,10 +1103,6 @@ function convertReservationToRow(reservation, headerMap) {
   if (reservation.workInProgress !== undefined) {
     row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]] =
       reservation.workInProgress;
-  }
-  if (reservation.materialInfo !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.MATERIAL_INFO]] =
-      reservation.materialInfo;
   }
   if (reservation.order !== undefined) {
     row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]] = reservation.order;

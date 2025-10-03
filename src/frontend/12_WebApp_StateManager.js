@@ -739,4 +739,7 @@ class SimpleStateManager {
 }
 
 // グローバルインスタンスを作成
+console.log('🔧 SimpleStateManager class defined:', typeof SimpleStateManager);
 window.stateManager = new SimpleStateManager();
+console.log('✅ window.stateManager initialized:', !!window.stateManager);
+console.log('   stateManager type:', typeof window.stateManager);

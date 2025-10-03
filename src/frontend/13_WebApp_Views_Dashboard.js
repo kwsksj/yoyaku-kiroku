@@ -22,6 +22,10 @@ const getDashboardView = () => {
   const state = stateManager.getState();
   const myReservations = state.myReservations || [];
 
+  console.log('📊 ダッシュボード表示開始');
+  console.log('   myReservations:', myReservations);
+  console.log('   予約数:', myReservations.length);
+
   // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
   const activeReservations = myReservations
     .filter(
@@ -30,6 +34,8 @@ const getDashboardView = () => {
         res.status === CONSTANTS.STATUS.WAITLISTED,
     )
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
+
+  console.log('   アクティブな予約:', activeReservations.length, '件');
 
   const bookingCards = activeReservations.map(b => {
     const badges = _buildBookingBadges(b);

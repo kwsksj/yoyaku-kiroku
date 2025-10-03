@@ -222,6 +222,7 @@ const CONSTANTS = {
     LOG: 'ログ',
     RESERVATIONS: '予約記録',
     SCHEDULE: '日程',
+    SALES_LOG: '売上ログ', // 別スプレッドシート
   },
 
   // セッション関連
@@ -311,7 +312,6 @@ const CONSTANTS = {
       TRANSPORTATION: '来場手段',
       PICKUP: '送迎',
       WORK_IN_PROGRESS: '制作メモ',
-      MATERIAL_INFO: '材料情報',
       ORDER: 'order',
       MESSAGE_TO_TEACHER: 'メッセージ',
       ACCOUNTING_DETAILS: '会計詳細',
@@ -451,7 +451,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-10-03T08:42:07.235Z
+   * Generated: 2025-10-03T16:13:15.395Z
    * =================================================================
    */
 
@@ -1929,7 +1929,7 @@ const ENVIRONMENT_CONFIG = {
       'めいぼ じたい を さがしています...',
       'めいぼ の うらの めも を かくにん しています...',
       'きろく を かくにん しています...',
-      'しょるい を ひもといて しています...',
+      'しょるい を ひもといています...',
       'なまえ を かくにん しています...',
       'なまえ の よみかた を かくにん しています...',
       'かお を おもいだしています...',
@@ -6478,7 +6478,10 @@ const ENVIRONMENT_CONFIG = {
   }
 
   // グローバルインスタンスを作成
+  console.log('🔧 SimpleStateManager class defined:', typeof SimpleStateManager);
   window.stateManager = new SimpleStateManager();
+  console.log('✅ window.stateManager initialized:', !!window.stateManager);
+  console.log('   stateManager type:', typeof window.stateManager);
 
 
   // =================================================================
@@ -9164,6 +9167,10 @@ const ENVIRONMENT_CONFIG = {
     const state = stateManager.getState();
     const myReservations = state.myReservations || [];
 
+    console.log('📊 ダッシュボード表示開始');
+    console.log('   myReservations:', myReservations);
+    console.log('   予約数:', myReservations.length);
+
     // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
     const activeReservations = myReservations
       .filter(
@@ -9172,6 +9179,8 @@ const ENVIRONMENT_CONFIG = {
           res.status === CONSTANTS.STATUS.WAITLISTED,
       )
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
+
+    console.log('   アクティブな予約:', activeReservations.length, '件');
 
     const bookingCards = activeReservations.map(b => {
       const badges = _buildBookingBadges(b);
@@ -10991,6 +11000,7 @@ const ENVIRONMENT_CONFIG = {
 
       // 統合エンドポイントで認証とすべてのデータを一括取得
       google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+        console.log('🔍 ログインレスポンス受信:', response);
         if (response.success && response.userFound) {
           debugLog(
             '✅ 統合ログイン成功 - ユーザー: ' + response.user.displayName,
@@ -10998,6 +11008,7 @@ const ENVIRONMENT_CONFIG = {
           debugLog(
             `📦 データ一括取得完了: 予約${response.data.myReservations?.length || 0}件, レッスン${response.data.lessons?.length || 0}件`,
           );
+          console.log('📦 myReservations詳細:', response.data.myReservations);
 
           // 完全なアプリ状態を一度に構築
           const newAppState = {
@@ -11012,6 +11023,11 @@ const ENVIRONMENT_CONFIG = {
             today: new Date().toISOString().split('T')[0],
           };
 
+          console.log('🎯 新しいアプリ状態を構築:', {
+            myReservationsCount: newAppState.myReservations.length,
+            lessonsCount: newAppState.lessons.length,
+          });
+
           hideLoading();
           debugLog('✅ 統合ログイン完了 - 完全なダッシュボード表示');
 
@@ -11023,6 +11039,8 @@ const ENVIRONMENT_CONFIG = {
               isDataFresh: true,
             },
           });
+
+          console.log('✅ dispatch完了 - 現在のstate:', window.stateManager.getState().myReservations?.length, '件の予約');
 
           // 通知設定チェック：日程連絡希望ONで通知設定が未設定の場合に喚起
           if (
@@ -11972,6 +11990,18 @@ const ENVIRONMENT_CONFIG = {
       const startTime = getTimeValue('res-start-time', null, 'startTime');
       const endTime = getTimeValue('res-end-time', null, 'endTime');
 
+      // 制作メモと材料情報を統合
+      const wipValue =
+        /** @type {HTMLInputElement} */ (document.getElementById('wip-input'))
+          ?.value || '';
+      const materialInfoValue =
+        /** @type {HTMLInputElement} */ (
+          document.getElementById('material-input')
+        )?.value || '';
+      const combinedWip = materialInfoValue
+        ? wipValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
+        : wipValue;
+
       showLoading('booking');
       // 予約処理中フラグを設定
       stateManager.setDataFetchProgress('reservation-booking', true);
@@ -11993,19 +12023,13 @@ const ENVIRONMENT_CONFIG = {
           /** @type {HTMLInputElement} */ (
             document.getElementById('option-first-lecture')
           )?.checked || isFirstTimeBooking,
-        workInProgress:
-          /** @type {HTMLInputElement} */ (document.getElementById('wip-input'))
-            ?.value || '',
+        workInProgress: combinedWip,
         order:
           /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
             ?.value || '',
         messageToTeacher:
           /** @type {HTMLInputElement} */ (
             document.getElementById('message-input')
-          )?.value || '',
-        materialInfo:
-          /** @type {HTMLInputElement} */ (
-            document.getElementById('material-input')
           )?.value || '',
         schedule: lessonInfo.schedule,
         status: lessonInfo.status,

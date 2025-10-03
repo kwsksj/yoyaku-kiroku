@@ -552,12 +552,20 @@ function getLessonsForClassroom(classroom) {
 function getUserReservations(studentId) {
   try {
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    Logger.log(`🔍 getUserReservations - studentId: ${studentId}`);
+    Logger.log(`🔍 キャッシュ取得結果: ${reservationsCache ? 'あり' : 'なし'}`);
+    if (reservationsCache) {
+      Logger.log(`🔍 キャッシュのキー: ${Object.keys(reservationsCache).join(', ')}`);
+    }
+
     /** @type {ReservationArrayData[]} */
     const allReservations = reservationsCache
       ? /** @type {ReservationArrayData[]} */ (
           reservationsCache['reservations'] || []
         )
       : [];
+    Logger.log(`🔍 allReservations件数: ${allReservations.length}`);
+
     /** @type {HeaderMapType | null} */
     const headerMap = reservationsCache
       ? /** @type {HeaderMapType} */ (reservationsCache['headerMap'])
@@ -572,6 +580,7 @@ function getUserReservations(studentId) {
       allReservations,
       headerMap,
     );
+    Logger.log(`🔍 変換後の予約件数: ${convertedReservations.length}`);
 
     convertedReservations.forEach(reservation => {
       if (reservation.studentId !== studentId) return;

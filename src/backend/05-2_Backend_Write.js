@@ -288,7 +288,6 @@ function makeReservation(reservationInfo) {
         chiselRental,
         firstLecture,
         workInProgress,
-        materialInfo,
         order,
         messageToTeacher,
       } = info;
@@ -454,12 +453,9 @@ function makeReservation(reservationInfo) {
       if (firstLectureColIdx !== undefined)
         newRowData[firstLectureColIdx] = firstLecture || false;
 
-      // 制作メモ（材料情報を含む）
-      let wipValue = workInProgress || '';
-      if (materialInfo) {
-        wipValue += CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfo;
-      }
-      if (wipColIdx !== undefined) newRowData[wipColIdx] = wipValue;
+      // 制作メモ
+      if (wipColIdx !== undefined)
+        newRowData[wipColIdx] = workInProgress || '';
 
       // その他の情報
       if (orderColIdx !== undefined) newRowData[orderColIdx] = String(order || '');
@@ -1725,10 +1721,12 @@ function _logSalesForSingleReservation(
         );
       }
       const salesSpreadsheet = SpreadsheetApp.openById(SALES_SPREADSHEET_ID);
-      const salesSheet = salesSpreadsheet.getSheetByName('売上ログ');
+      const salesSheet = salesSpreadsheet.getSheetByName(
+        CONSTANTS.SHEET_NAMES.SALES_LOG,
+      );
       if (!salesSheet)
         throw new Error(
-          '売上スプレッドシートに「売上ログ」シートが見つかりません。',
+          `売上スプレッドシートに「${CONSTANTS.SHEET_NAMES.SALES_LOG}」シートが見つかりません。`,
         );
       if (rowsToTransfer.length > 0) {
         salesSheet

@@ -133,6 +133,18 @@ const reservationActionHandlers = {
     const startTime = getTimeValue('res-start-time', null, 'startTime');
     const endTime = getTimeValue('res-end-time', null, 'endTime');
 
+    // 制作メモと材料情報を統合
+    const wipValue =
+      /** @type {HTMLInputElement} */ (document.getElementById('wip-input'))
+        ?.value || '';
+    const materialInfoValue =
+      /** @type {HTMLInputElement} */ (
+        document.getElementById('material-input')
+      )?.value || '';
+    const combinedWip = materialInfoValue
+      ? wipValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
+      : wipValue;
+
     showLoading('booking');
     // 予約処理中フラグを設定
     stateManager.setDataFetchProgress('reservation-booking', true);
@@ -154,19 +166,13 @@ const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('option-first-lecture')
         )?.checked || isFirstTimeBooking,
-      workInProgress:
-        /** @type {HTMLInputElement} */ (document.getElementById('wip-input'))
-          ?.value || '',
+      workInProgress: combinedWip,
       order:
         /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
           ?.value || '',
       messageToTeacher:
         /** @type {HTMLInputElement} */ (
           document.getElementById('message-input')
-        )?.value || '',
-      materialInfo:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('material-input')
         )?.value || '',
       schedule: lessonInfo.schedule,
       status: lessonInfo.status,

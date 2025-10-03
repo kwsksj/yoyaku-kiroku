@@ -626,9 +626,13 @@ function shouldRebuildReservationCache() {
  */
 function rebuildAllReservationsCache() {
   try {
-    const integratedReservationSheet = getSheetByName('統合予約シート');
+    const integratedReservationSheet = getSheetByName(
+      CONSTANTS.SHEET_NAMES.RESERVATIONS,
+    );
     if (!integratedReservationSheet) {
-      Logger.log('統合予約シートが見つからないか、データが空です。');
+      Logger.log(
+        `${CONSTANTS.SHEET_NAMES.RESERVATIONS}シートが見つからないか、データが空です。`,
+      );
       // 空データの場合もキャッシュを作成
       /** @type {ReservationCacheData} */
       const emptyCacheData = {
@@ -671,7 +675,9 @@ function rebuildAllReservationsCache() {
 
     // データが空の場合の処理
     if (dataRowCount < 1) {
-      Logger.log('統合予約シートにデータがありません。');
+      Logger.log(
+        `${CONSTANTS.SHEET_NAMES.RESERVATIONS}シートにデータがありません。`,
+      );
       /** @type {ReservationCacheData} */
       const emptyCacheData = {
         version: new Date().getTime(),
