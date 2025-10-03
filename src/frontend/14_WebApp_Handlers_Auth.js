@@ -61,7 +61,8 @@ const authActionHandlers = {
     debugLog('🚀 統合ログイン開始 - 認証+データ一括取得');
 
     // 統合エンドポイントで認証とすべてのデータを一括取得
-    google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+    google.script.run['withSuccessHandler'](
+      (/** @type {any} */ response) => {
       if (response.success && response.userFound) {
         debugLog(
           '✅ 統合ログイン成功 - ユーザー: ' + response.user.displayName,
@@ -120,8 +121,9 @@ const authActionHandlers = {
           },
         });
       }
-    })
-      .withFailureHandler((/** @type {Error} */ err) => {
+      },
+    )
+      ['withFailureHandler']((/** @type {Error} */ err) => {
         debugLog('❌ 統合ログインエラー: ' + err.message);
         hideLoading();
         if (window.FrontendErrorHandler) {
@@ -417,8 +419,8 @@ const authActionHandlers = {
     showLoading();
 
     // バックエンドからユーザーの詳細情報を取得
-    google.script.run
-      .withSuccessHandler(response => {
+    google.script.run['withSuccessHandler'](
+      (/** @type {any} */ response) => {
         hideLoading();
         if (response.success && response.data) {
           // 取得した詳細情報で currentUser を更新してプロフィール編集画面に遷移
@@ -440,8 +442,9 @@ const authActionHandlers = {
             'エラー',
           );
         }
-      })
-      .withFailureHandler(error => {
+      },
+    )
+      ['withFailureHandler']((/** @type {any} */ error) => {
         hideLoading();
         showInfo('プロフィール情報の取得中にエラーが発生しました。', 'エラー');
         console.error('showEditProfile error:', error);
@@ -575,14 +578,13 @@ const authActionHandlers = {
         '本当に退会しますか？\n\nこの操作は取り消せません。アカウント情報が無効化され、再度ログインできなくなります。',
       confirmText: '退会する',
       cancelText: 'キャンセル',
-      confirmColorClass: DesignConfig.colors['danger'],
       onConfirm: () => {
         // 確認された場合のみ実行
         showLoading();
 
         // バックエンドに退会リクエストを送信
-        google.script.run
-          .withSuccessHandler(response => {
+        google.script.run['withSuccessHandler'](
+          (/** @type {any} */ response) => {
             hideLoading();
             if (response.success) {
               // 成功メッセージを表示
@@ -606,8 +608,9 @@ const authActionHandlers = {
                 'エラー',
               );
             }
-          })
-          .withFailureHandler(error => {
+          },
+        )
+          ['withFailureHandler']((/** @type {any} */ error) => {
             hideLoading();
             showInfo('退会処理中にエラーが発生しました。', 'エラー');
             console.error('requestAccountDeletion error:', error);

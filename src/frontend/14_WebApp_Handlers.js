@@ -45,10 +45,12 @@ let actionHandlers;
 // =================================================================
 
 /** @type {ClassifiedAccountingItems} */
-const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ ({
-  tuition: { baseItems: [], additionalItems: [] },
-  sales: { materialItems: [], productItems: [] },
-});
+const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ (
+  /** @type {unknown} */ ({
+    tuition: { baseItems: [], additionalItems: [] },
+    sales: { materialItems: [], productItems: [] },
+  })
+);
 
 // Window型の拡張（型エラー回避のため）
 /** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */

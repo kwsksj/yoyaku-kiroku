@@ -273,23 +273,31 @@ const Components = {
    * @param {SelectConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  select: ({
-    id,
-    label,
-    options,
-    selectedValue = '',
-    description = '',
-    caption = '',
-  }) => {
+  select: (
+    /** @type {SelectConfig} */ {
+      id,
+      label,
+      options,
+      selectedValue = '',
+      description = '',
+      caption = '',
+    },
+  ) => {
     // options が文字列の場合はそのまま使用（後方互換性）
     // options が配列の場合は option タグを生成
     const optionsHtml =
       typeof options === 'string'
         ? options
-        : options
+        : /** @type {Array<{value?: string; label?: string} | string>} */ (
+            options
+          )
             .map(
-              opt =>
-                `<option value="${escapeHTML(opt.value || opt)}" ${selectedValue === (opt.value || opt) ? 'selected' : ''}>${escapeHTML(opt.label || opt)}</option>`,
+              (/** @type {{value?: string; label?: string} | string} */ opt) => {
+                const value = typeof opt === 'string' ? opt : opt.value || '';
+                const label =
+                  typeof opt === 'string' ? opt : opt.label || opt.value || '';
+                return `<option value="${escapeHTML(value)}" ${selectedValue === value ? 'selected' : ''}>${escapeHTML(label)}</option>`;
+              },
             )
             .join('');
 

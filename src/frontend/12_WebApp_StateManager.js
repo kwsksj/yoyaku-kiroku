@@ -167,7 +167,7 @@ class SimpleStateManager {
         newState = action.payload || {};
         break;
       case 'CHANGE_VIEW':
-        newState = { view: action.payload.view };
+        newState = { view: action.payload['view'] };
         break;
       case 'NAVIGATE':
         newState = this._handleNavigate(action.payload);

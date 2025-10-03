@@ -157,7 +157,7 @@ const CONSTANTS = {
   // 環境設定（PRODUCTION_MODEはビルド時に自動設定される）
   ENVIRONMENT: {
     DEBUG_MODE: typeof DEBUG !== 'undefined' ? DEBUG : false,
-    PRODUCTION_MODE: true, // ビルド時に自動置換される
+    PRODUCTION_MODE: false, // ビルド時に自動置換される
   },
 
   /**
@@ -451,7 +451,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-10-03T04:56:23.119Z
+   * Generated: 2025-10-03T05:18:47.045Z
    * =================================================================
    */
 
@@ -2292,10 +2292,12 @@ const ENVIRONMENT_CONFIG = {
                 // 会計画面用のデータを取得
                 const classifiedItems =
                   window.currentClassifiedItems ||
-                  /** @type {ClassifiedAccountingItems} */ ({
-                    tuition: { baseItems: [], additionalItems: [] },
-                    sales: { materialItems: [], productItems: [] },
-                  });
+                  /** @type {ClassifiedAccountingItems} */ (
+                    /** @type {unknown} */ ({
+                      tuition: { baseItems: [], additionalItems: [] },
+                      sales: { materialItems: [], productItems: [] },
+                    })
+                  );
                 const classroom = window.currentClassroom || '';
                 updateAccountingCalculation(classifiedItems, classroom);
               }
@@ -5904,7 +5906,7 @@ const ENVIRONMENT_CONFIG = {
           newState = action.payload || {};
           break;
         case 'CHANGE_VIEW':
-          newState = { view: action.payload.view };
+          newState = { view: action.payload['view'] };
           break;
         case 'NAVIGATE':
           newState = this._handleNavigate(action.payload);
@@ -6758,23 +6760,31 @@ const ENVIRONMENT_CONFIG = {
      * @param {SelectConfig} config - 設定オブジェクト
      * @returns {string} HTML文字列
      */
-    select: ({
-      id,
-      label,
-      options,
-      selectedValue = '',
-      description = '',
-      caption = '',
-    }) => {
+    select: (
+      /** @type {SelectConfig} */ {
+        id,
+        label,
+        options,
+        selectedValue = '',
+        description = '',
+        caption = '',
+      },
+    ) => {
       // options が文字列の場合はそのまま使用（後方互換性）
       // options が配列の場合は option タグを生成
       const optionsHtml =
         typeof options === 'string'
           ? options
-          : options
+          : /** @type {Array<{value?: string; label?: string} | string>} */ (
+              options
+            )
               .map(
-                opt =>
-                  `<option value="${escapeHTML(opt.value || opt)}" ${selectedValue === (opt.value || opt) ? 'selected' : ''}>${escapeHTML(opt.label || opt)}</option>`,
+                (/** @type {{value?: string; label?: string} | string} */ opt) => {
+                  const value = typeof opt === 'string' ? opt : opt.value || '';
+                  const label =
+                    typeof opt === 'string' ? opt : opt.label || opt.value || '';
+                  return `<option value="${escapeHTML(value)}" ${selectedValue === value ? 'selected' : ''}>${escapeHTML(label)}</option>`;
+                },
               )
               .join('');
 
@@ -8078,34 +8088,38 @@ const ENVIRONMENT_CONFIG = {
               ${Components.checkbox({
                 id: 'reg-wants-schedule-notification',
                 label: '教室日程 のメール連絡（毎月）を希望する',
-                checked: data.wantsScheduleNotification || false,
+                checked: data['wantsScheduleNotification'] || false,
                 onChange:
                   "document.getElementById('reg-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
               })}
-              <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data.wantsScheduleNotification ? '' : 'hidden'}">
-                ${Components.select({
-                  id: 'reg-notification-day',
-                  label: '送信日',
-                  options: [
-                    { value: '', label: '--' },
-                    { value: '5', label: '毎月5日' },
-                    { value: '15', label: '毎月15日' },
-                    { value: '25', label: '毎月25日' },
-                  ],
-                  selectedValue: String(data.notificationDay || ''),
-                })}
-                ${Components.select({
-                  id: 'reg-notification-hour',
-                  label: '送信時刻',
-                  options: [
-                    { value: '', label: '--' },
-                    { value: '9', label: '9時' },
-                    { value: '12', label: '12時' },
-                    { value: '18', label: '18時' },
-                    { value: '21', label: '21時' },
-                  ],
-                  selectedValue: String(data.notificationHour || ''),
-                })}
+              <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data['wantsScheduleNotification'] ? '' : 'hidden'}">
+                ${Components.select(
+                  /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                    id: 'reg-notification-day',
+                    label: '送信日',
+                    options: [
+                      { value: '', label: '--' },
+                      { value: '5', label: '毎月5日' },
+                      { value: '15', label: '毎月15日' },
+                      { value: '25', label: '毎月25日' },
+                    ],
+                    selectedValue: String(data['notificationDay'] || ''),
+                  })),
+                )}
+                ${Components.select(
+                  /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                    id: 'reg-notification-hour',
+                    label: '送信時刻',
+                    options: [
+                      { value: '', label: '--' },
+                      { value: '9', label: '9時' },
+                      { value: '12', label: '12時' },
+                      { value: '18', label: '18時' },
+                      { value: '21', label: '21時' },
+                    ],
+                    selectedValue: String(data['notificationHour'] || ''),
+                  })),
+                )}
               </div>
             `,
           })}
@@ -8177,24 +8191,26 @@ const ENVIRONMENT_CONFIG = {
               selectedValue: data?.dominantHand || '',
               layout: 'horizontal',
             })}
-            ${Components.select({
-              id: 'q-age-group',
-              label: '年代',
-              options: [
-                { value: '----', label: '----' },
-                { value: '10代（13-15歳）', label: '10代（13-15歳）' },
-                { value: '10代（16-19歳）', label: '10代（16-19歳）' },
-                { value: '20代', label: '20代' },
-                { value: '30代', label: '30代' },
-                { value: '40代', label: '40代' },
-                { value: '50代', label: '50代' },
-                { value: '60代', label: '60代' },
-                { value: '70代', label: '70代' },
-                { value: '80代以上', label: '80代以上' },
-                { value: 'ひみつ', label: 'ひみつ' },
-              ],
-              selectedValue: data?.ageGroup || '',
-            })}
+            ${Components.select(
+              /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                id: 'q-age-group',
+                label: '年代',
+                options: [
+                  { value: '----', label: '----' },
+                  { value: '10代（13-15歳）', label: '10代（13-15歳）' },
+                  { value: '10代（16-19歳）', label: '10代（16-19歳）' },
+                  { value: '20代', label: '20代' },
+                  { value: '30代', label: '30代' },
+                  { value: '40代', label: '40代' },
+                  { value: '50代', label: '50代' },
+                  { value: '60代', label: '60代' },
+                  { value: '70代', label: '70代' },
+                  { value: '80代以上', label: '80代以上' },
+                  { value: 'ひみつ', label: 'ひみつ' },
+                ],
+                selectedValue: data?.ageGroup || '',
+              })),
+            )}
             ${Components.input({
               id: 'q-address',
               label: 'お住まいの地域',
@@ -8384,10 +8400,11 @@ const ENVIRONMENT_CONFIG = {
         : phoneValue;
 
     // 「将来的に制作したいもの」の値を取得（生徒名簿シートから取得される想定）
-    const futureGoalValue = userData.futureCreations || '';
+    const futureGoalValue = /** @type {any} */ (userData)['futureCreations'] || '';
 
     // 教室日程の連絡チェック状態を取得（シートの「日程連絡希望」列から）
-    const wantsScheduleNotification = userData.wantsScheduleNotification || false;
+    const wantsScheduleNotification =
+      /** @type {any} */ (userData)['wantsScheduleNotification'] || false;
 
     return `
       ${Components.pageHeader({
@@ -8456,29 +8473,33 @@ const ENVIRONMENT_CONFIG = {
                   "document.getElementById('edit-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
               })}
               <div id="edit-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${wantsScheduleNotification ? '' : 'hidden'}">
-                ${Components.select({
-                  id: 'edit-notification-day',
-                  label: '送信日',
-                  options: [
-                    { value: '', label: '--' },
-                    { value: '5', label: '毎月5日' },
-                    { value: '15', label: '毎月15日' },
-                    { value: '25', label: '毎月25日' },
-                  ],
-                  selectedValue: String(userData.notificationDay || ''),
-                })}
-                ${Components.select({
-                  id: 'edit-notification-hour',
-                  label: '送信時刻',
-                  options: [
-                    { value: '', label: '--' },
-                    { value: '9', label: '9時' },
-                    { value: '12', label: '12時' },
-                    { value: '18', label: '18時' },
-                    { value: '21', label: '21時' },
-                  ],
-                  selectedValue: String(userData.notificationHour || ''),
-                })}
+                ${Components.select(
+                  /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                    id: 'edit-notification-day',
+                    label: '送信日',
+                    options: [
+                      { value: '', label: '--' },
+                      { value: '5', label: '毎月5日' },
+                      { value: '15', label: '毎月15日' },
+                      { value: '25', label: '毎月25日' },
+                    ],
+                    selectedValue: String(/** @type {any} */ (userData)['notificationDay'] || ''),
+                  })),
+                )}
+                ${Components.select(
+                  /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                    id: 'edit-notification-hour',
+                    label: '送信時刻',
+                    options: [
+                      { value: '', label: '--' },
+                      { value: '9', label: '9時' },
+                      { value: '12', label: '12時' },
+                      { value: '18', label: '18時' },
+                      { value: '21', label: '21時' },
+                    ],
+                    selectedValue: String(/** @type {any} */ (userData)['notificationHour'] || ''),
+                  })),
+                )}
               </div>
             `,
           })}
@@ -10115,7 +10136,12 @@ const ENVIRONMENT_CONFIG = {
    */
   const getPrivacyPolicyModal = () => {
     // marked.jsライブラリが読み込まれていることを確認
-    if (typeof marked === 'undefined') {
+    /** @type {any} */
+    const markedGlobal = typeof window !== 'undefined' ? /** @type {any} */ (window)['marked'] : undefined;
+    /** @type {any} */
+    const markedLib = typeof markedGlobal !== 'undefined' ? markedGlobal : null;
+
+    if (!markedLib) {
       console.error('marked.js is not loaded!');
       return Components.modal({
         id: 'privacy-policy-modal',
@@ -10126,7 +10152,7 @@ const ENVIRONMENT_CONFIG = {
       });
     }
 
-    const policyHtml = marked.parse(PRIVACY_POLICY_CONTENT);
+    const policyHtml = markedLib.parse(PRIVACY_POLICY_CONTENT);
 
     const content = `
       <div class="markdown-content">
@@ -10202,10 +10228,12 @@ const ENVIRONMENT_CONFIG = {
   // =================================================================
 
   /** @type {ClassifiedAccountingItems} */
-  const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ ({
-    tuition: { baseItems: [], additionalItems: [] },
-    sales: { materialItems: [], productItems: [] },
-  });
+  const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ (
+    /** @type {unknown} */ ({
+      tuition: { baseItems: [], additionalItems: [] },
+      sales: { materialItems: [], productItems: [] },
+    })
+  );
 
   // Window型の拡張（型エラー回避のため）
   /** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */
@@ -10942,7 +10970,8 @@ const ENVIRONMENT_CONFIG = {
       debugLog('🚀 統合ログイン開始 - 認証+データ一括取得');
 
       // 統合エンドポイントで認証とすべてのデータを一括取得
-      google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+      google.script.run['withSuccessHandler'](
+        (/** @type {any} */ response) => {
         if (response.success && response.userFound) {
           debugLog(
             '✅ 統合ログイン成功 - ユーザー: ' + response.user.displayName,
@@ -11001,8 +11030,9 @@ const ENVIRONMENT_CONFIG = {
             },
           });
         }
-      })
-        .withFailureHandler((/** @type {Error} */ err) => {
+        },
+      )
+        ['withFailureHandler']((/** @type {Error} */ err) => {
           debugLog('❌ 統合ログインエラー: ' + err.message);
           hideLoading();
           if (window.FrontendErrorHandler) {
@@ -11298,8 +11328,8 @@ const ENVIRONMENT_CONFIG = {
       showLoading();
 
       // バックエンドからユーザーの詳細情報を取得
-      google.script.run
-        .withSuccessHandler(response => {
+      google.script.run['withSuccessHandler'](
+        (/** @type {any} */ response) => {
           hideLoading();
           if (response.success && response.data) {
             // 取得した詳細情報で currentUser を更新してプロフィール編集画面に遷移
@@ -11321,8 +11351,9 @@ const ENVIRONMENT_CONFIG = {
               'エラー',
             );
           }
-        })
-        .withFailureHandler(error => {
+        },
+      )
+        ['withFailureHandler']((/** @type {any} */ error) => {
           hideLoading();
           showInfo('プロフィール情報の取得中にエラーが発生しました。', 'エラー');
           console.error('showEditProfile error:', error);
@@ -11456,14 +11487,13 @@ const ENVIRONMENT_CONFIG = {
           '本当に退会しますか？\n\nこの操作は取り消せません。アカウント情報が無効化され、再度ログインできなくなります。',
         confirmText: '退会する',
         cancelText: 'キャンセル',
-        confirmColorClass: DesignConfig.colors['danger'],
         onConfirm: () => {
           // 確認された場合のみ実行
           showLoading();
 
           // バックエンドに退会リクエストを送信
-          google.script.run
-            .withSuccessHandler(response => {
+          google.script.run['withSuccessHandler'](
+            (/** @type {any} */ response) => {
               hideLoading();
               if (response.success) {
                 // 成功メッセージを表示
@@ -11487,8 +11517,9 @@ const ENVIRONMENT_CONFIG = {
                   'エラー',
                 );
               }
-            })
-            .withFailureHandler(error => {
+            },
+          )
+            ['withFailureHandler']((/** @type {any} */ error) => {
               hideLoading();
               showInfo('退会処理中にエラーが発生しました。', 'エラー');
               console.error('requestAccountDeletion error:', error);
@@ -11864,11 +11895,11 @@ const ENVIRONMENT_CONFIG = {
 
                 // 講座データが提供された場合のみ更新
                 if (r.data.lessons && r.data.lessons.length > 0) {
-                  updatedPayload.lessons = r.data.lessons;
+                  /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
                   stateManager.setDataFetchProgress('lessons', false);
                 } else {
                   // 講座データが不要な場合は既存データを保持
-                  updatedPayload.lessons = currentState.lessons;
+                  /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
                 }
 
                 window.stateManager.dispatch({
@@ -11986,11 +12017,11 @@ const ENVIRONMENT_CONFIG = {
 
             // 講座データの選択的更新
             if (r.data.lessons && r.data.lessons.length > 0) {
-              updatedPayload.lessons = r.data.lessons;
+              /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
               stateManager.setDataFetchProgress('lessons', false);
             } else if (currentState.lessons && currentState.lessons.length > 0) {
               // サーバーが講座データを返さない場合は既存データを保持
-              updatedPayload.lessons = currentState.lessons;
+              /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
             }
 
             window.stateManager.dispatch({
@@ -12187,14 +12218,14 @@ const ENVIRONMENT_CONFIG = {
 
               // 講座データの選択的更新
               if (r.data.lessons && r.data.lessons.length > 0) {
-                updatedPayload.lessons = r.data.lessons;
+                /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
                 stateManager.setDataFetchProgress('lessons', false);
               } else if (
                 currentState.lessons &&
                 currentState.lessons.length > 0
               ) {
                 // 既存の講座データを保持
-                updatedPayload.lessons = currentState.lessons;
+                /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
               }
 
               window.stateManager.dispatch({
@@ -12554,12 +12585,12 @@ const ENVIRONMENT_CONFIG = {
                 };
                 // 講座データが提供された場合のみ更新
                 if (r.data.lessons && r.data.lessons.length > 0) {
-                  updatedPayload.lessons = r.data.lessons;
+                  /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
                   // TODO: setDataFreshness機能の実装が必要
                   // stateManager.setDataFreshness('lessons', true);
                 } else {
                   // サーバーが講座データを返さない場合は既存データを保持
-                  updatedPayload.lessons = currentState.lessons;
+                  /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
                 }
 
                 window.stateManager.dispatch({

@@ -14,6 +14,17 @@ declare var tailwind: any;
 // GAS WebApp 環境での server オブジェクト
 declare var server: any;
 
+// =================================================================
+// --- 外部ライブラリ ---
+// =================================================================
+
+/**
+ * marked.js ライブラリのグローバル宣言
+ */
+declare const marked: {
+  parse(markdown: string): string;
+};
+
 // 会計システム関連のグローバル関数
 declare function collectFormData(): any;
 declare function saveAccountingCache(data: any): void;
@@ -1251,7 +1262,8 @@ declare global {
   interface SelectConfig extends ComponentConfig {
     id: string;
     label: string;
-    options: string; // HTML文字列
+    options: string | Array<{ value?: string; label?: string } | string>; // HTML文字列 or オプション配列
+    selectedValue?: string;
   }
 
   interface TextareaConfig extends ComponentConfig {

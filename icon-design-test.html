@@ -1,557 +1,579 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>アイコンデザインテスト</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 40px;
-      background: #f5f5f5;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>アイコンデザインテスト</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 40px;
+        background: #f5f5f5;
+      }
 
-    .test-section {
-      background: white;
-      padding: 30px;
-      margin-bottom: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+      .test-section {
+        background: white;
+        padding: 30px;
+        margin-bottom: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
 
-    h2 {
-      margin-top: 0;
-      border-bottom: 2px solid #333;
-      padding-bottom: 10px;
-    }
+      h2 {
+        margin-top: 0;
+        border-bottom: 2px solid #333;
+        padding-bottom: 10px;
+      }
 
-    .button-group {
-      display: flex;
-      gap: 20px;
-      flex-wrap: wrap;
-      margin: 20px 0;
-    }
+      .button-group {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin: 20px 0;
+      }
 
-    /* ベースボタンスタイル */
-    .btn {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
+      /* ベースボタンスタイル */
+      .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s;
+      }
 
-    .btn-accounting {
-      background: #fbbf24;
-      color: #78350f;
-    }
+      .btn-accounting {
+        background: #fbbf24;
+        color: #78350f;
+      }
 
-    .btn-accounting:hover {
-      background: #f59e0b;
-    }
+      .btn-accounting:hover {
+        background: #f59e0b;
+      }
 
-    .btn-edit {
-      background: #e5e7eb;
-      color: #374151;
-    }
+      .btn-edit {
+        background: #e5e7eb;
+        color: #374151;
+      }
 
-    .btn-edit:hover {
-      background: #d1d5db;
-    }
+      .btn-edit:hover {
+        background: #d1d5db;
+      }
 
-    /* 会計アイコン - ￥マーク */
-    .icon-yen {
-      position: relative;
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      font-weight: bold;
-      font-size: 16px;
-      line-height: 1;
-    }
+      /* 会計アイコン - ￥マーク */
+      .icon-yen {
+        position: relative;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        font-weight: bold;
+        font-size: 16px;
+        line-height: 1;
+      }
 
-    .icon-yen::before {
-      content: "¥";
-      font-weight: 900;
-    }
+      .icon-yen::before {
+        content: '¥';
+        font-weight: 900;
+      }
 
-    /* 会計アイコン - 円（コイン）デザイン */
-    .icon-coin {
-      position: relative;
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2.5px solid currentColor;
-      border-radius: 50%;
-      font-weight: bold;
-      font-size: 11px;
-      line-height: 14px;
-      text-align: center;
-    }
+      /* 会計アイコン - 円（コイン）デザイン */
+      .icon-coin {
+        position: relative;
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2.5px solid currentColor;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 11px;
+        line-height: 14px;
+        text-align: center;
+      }
 
-    .icon-coin::before {
-      content: "¥";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
+      .icon-coin::before {
+        content: '¥';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
 
-    /* 会計アイコン - レシート風デザイン */
-    .icon-receipt {
-      position: relative;
-      display: inline-block;
-      width: 14px;
-      height: 18px;
-      border: 2px solid currentColor;
-      border-radius: 2px;
-      border-bottom-left-radius: 0;
-      border-bottom-right-radius: 0;
-    }
+      /* 会計アイコン - レシート風デザイン */
+      .icon-receipt {
+        position: relative;
+        display: inline-block;
+        width: 14px;
+        height: 18px;
+        border: 2px solid currentColor;
+        border-radius: 2px;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+      }
 
-    .icon-receipt::before {
-      content: "";
-      position: absolute;
-      bottom: -2px;
-      left: -2px;
-      right: -2px;
-      height: 4px;
-      background:
-        linear-gradient(45deg, transparent 30%, currentColor 30%, currentColor 50%, transparent 50%),
-        linear-gradient(-45deg, transparent 30%, currentColor 30%, currentColor 50%, transparent 50%);
-      background-size: 4px 4px;
-      background-position: 0 0, 2px 0;
-    }
+      .icon-receipt::before {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: -2px;
+        right: -2px;
+        height: 4px;
+        background:
+          linear-gradient(
+            45deg,
+            transparent 30%,
+            currentColor 30%,
+            currentColor 50%,
+            transparent 50%
+          ),
+          linear-gradient(
+            -45deg,
+            transparent 30%,
+            currentColor 30%,
+            currentColor 50%,
+            transparent 50%
+          );
+        background-size: 4px 4px;
+        background-position:
+          0 0,
+          2px 0;
+      }
 
-    .icon-receipt::after {
-      content: "¥";
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 10px;
-      font-weight: bold;
-    }
+      .icon-receipt::after {
+        content: '¥';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 10px;
+        font-weight: bold;
+      }
 
-    /* 編集アイコン - 四角に鉛筆 */
-    .icon-edit {
-      position: relative;
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-    }
+      /* 編集アイコン - 四角に鉛筆 */
+      .icon-edit {
+        position: relative;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+      }
 
-    /* 四角（ノート/書類） */
-    .icon-edit::before {
-      content: "";
-      position: absolute;
-      top: 3px;
-      left: 1px;
-      width: 10px;
-      height: 12px;
-      border: 2px solid currentColor;
-      border-radius: 2px;
-      background: transparent;
-    }
+      /* 四角（ノート/書類） */
+      .icon-edit::before {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 1px;
+        width: 10px;
+        height: 12px;
+        border: 2px solid currentColor;
+        border-radius: 2px;
+        background: transparent;
+      }
 
-    /* 鉛筆（右上） */
-    .icon-edit::after {
-      content: "";
-      position: absolute;
-      top: -1px;
-      right: -1px;
-      width: 6px;
-      height: 10px;
-      background: currentColor;
-      clip-path: polygon(50% 0%, 100% 40%, 80% 100%, 20% 100%, 0% 40%);
-    }
+      /* 鉛筆（右上） */
+      .icon-edit::after {
+        content: '';
+        position: absolute;
+        top: -1px;
+        right: -1px;
+        width: 6px;
+        height: 10px;
+        background: currentColor;
+        clip-path: polygon(50% 0%, 100% 40%, 80% 100%, 20% 100%, 0% 40%);
+      }
 
-    /* 編集アイコン - シンプルな鉛筆 */
-    .icon-pencil {
-      position: relative;
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-    }
+      /* 編集アイコン - シンプルな鉛筆 */
+      .icon-pencil {
+        position: relative;
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+      }
 
-    /* 鉛筆の先端 */
-    .icon-pencil::before {
-      content: "";
-      position: absolute;
-      top: 1px;
-      left: 50%;
-      width: 0;
-      height: 0;
-      border-left: 4px solid transparent;
-      border-right: 4px solid transparent;
-      border-bottom: 5px solid currentColor;
-      transform: translateX(-50%);
-    }
+      /* 鉛筆の先端 */
+      .icon-pencil::before {
+        content: '';
+        position: absolute;
+        top: 1px;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-left: 4px solid transparent;
+        border-right: 4px solid transparent;
+        border-bottom: 5px solid currentColor;
+        transform: translateX(-50%);
+      }
 
-    /* 鉛筆の軸 */
-    .icon-pencil::after {
-      content: "";
-      position: absolute;
-      top: 6px;
-      left: 50%;
-      width: 6px;
-      height: 9px;
-      background: currentColor;
-      transform: translateX(-50%);
-      border-radius: 0 0 1px 1px;
-    }
+      /* 鉛筆の軸 */
+      .icon-pencil::after {
+        content: '';
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        width: 6px;
+        height: 9px;
+        background: currentColor;
+        transform: translateX(-50%);
+        border-radius: 0 0 1px 1px;
+      }
 
-    /* サイズバリエーション */
-    .btn-large {
-      padding: 10px 20px;
-      font-size: 16px;
-    }
+      /* サイズバリエーション */
+      .btn-large {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
 
-    .btn-large .icon-yen,
-    .btn-large .icon-coin,
-    .btn-large .icon-receipt,
-    .btn-large .icon-edit,
-    .btn-large .icon-pencil {
-      width: 20px;
-      height: 20px;
-    }
+      .btn-large .icon-yen,
+      .btn-large .icon-coin,
+      .btn-large .icon-receipt,
+      .btn-large .icon-edit,
+      .btn-large .icon-pencil {
+        width: 20px;
+        height: 20px;
+      }
 
-    .btn-large .icon-coin {
-      font-size: 13px;
-      line-height: 16px;
-    }
+      .btn-large .icon-coin {
+        font-size: 13px;
+        line-height: 16px;
+      }
 
-    .btn-large .icon-receipt {
-      width: 16px;
-      height: 22px;
-    }
+      .btn-large .icon-receipt {
+        width: 16px;
+        height: 22px;
+      }
 
-    .btn-large .icon-receipt::after {
-      font-size: 12px;
-    }
+      .btn-large .icon-receipt::after {
+        font-size: 12px;
+      }
 
-    .demo-card {
-      background: white;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      padding: 16px;
-      margin: 10px 0;
-    }
+      .demo-card {
+        background: white;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        margin: 10px 0;
+      }
 
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: start;
-    }
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+      }
 
-    .card-title {
-      font-weight: bold;
-      font-size: 16px;
-    }
+      .card-title {
+        font-weight: bold;
+        font-size: 16px;
+      }
 
-    .card-buttons {
-      display: flex;
-      gap: 8px;
-    }
+      .card-buttons {
+        display: flex;
+        gap: 8px;
+      }
 
-    .btn-xs {
-      padding: 6px 12px;
-      font-size: 12px;
-    }
+      .btn-xs {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
 
-    .btn-xs .icon-yen,
-    .btn-xs .icon-coin,
-    .btn-xs .icon-edit,
-    .btn-xs .icon-pencil {
-      width: 14px;
-      height: 14px;
-    }
+      .btn-xs .icon-yen,
+      .btn-xs .icon-coin,
+      .btn-xs .icon-edit,
+      .btn-xs .icon-pencil {
+        width: 14px;
+        height: 14px;
+      }
 
-    .btn-xs .icon-coin {
-      font-size: 10px;
-      line-height: 10px;
-    }
+      .btn-xs .icon-coin {
+        font-size: 10px;
+        line-height: 10px;
+      }
 
-    .btn-xs .icon-receipt {
-      width: 12px;
-      height: 16px;
-    }
+      .btn-xs .icon-receipt {
+        width: 12px;
+        height: 16px;
+      }
 
-    .btn-xs .icon-receipt::after {
-      font-size: 9px;
-    }
+      .btn-xs .icon-receipt::after {
+        font-size: 9px;
+      }
 
-    /* 編集アイコン - 高品質版（提供されたCSS） */
-    .dli-edit {
-      display: inline-block;
-      vertical-align: middle;
-      color: currentColor;
-      line-height: 1;
-      width: 0.9em;
-      height: 0.9em;
-      border: 0.1em solid currentColor;
-      border-radius: 0.1em;
-      background: #fff;
-      box-sizing: content-box;
-      position: relative;
-    }
+      /* 編集アイコン - 高品質版（提供されたCSS） */
+      .dli-edit {
+        display: inline-block;
+        vertical-align: middle;
+        color: currentColor;
+        line-height: 1;
+        width: 0.9em;
+        height: 0.9em;
+        border: 0.1em solid currentColor;
+        border-radius: 0.1em;
+        background: #fff;
+        box-sizing: content-box;
+        position: relative;
+      }
 
-    .dli-edit > span {
-      font-size: 0.8em;
-      position: relative;
-      width: 1.05em;
-      height: 0.2em;
-      background: currentColor;
-      border-radius: 0 0.075em 0.075em 0;
-      transform: rotate(-45deg);
-      transform-origin: left center;
-      box-shadow: 0 0 0 0.125em #fff;
-      position: absolute;
-      top: 0;
-      left: 50%;
-      bottom: 0;
-      margin: auto;
-    }
+      .dli-edit > span {
+        font-size: 0.8em;
+        position: relative;
+        width: 1.05em;
+        height: 0.2em;
+        background: currentColor;
+        border-radius: 0 0.075em 0.075em 0;
+        transform: rotate(-45deg);
+        transform-origin: left center;
+        box-shadow: 0 0 0 0.125em #fff;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        bottom: 0;
+        margin: auto;
+      }
 
-    .dli-edit > span::before {
-      content: '';
-      width: 0;
-      height: 0;
-      border-style: solid;
-      border-color: transparent;
-      border-width: 0.1em 0.15em;
-      border-right-color: currentColor;
-      border-left: 0;
-      position: absolute;
-      top: 0;
-      right: 100%;
-      bottom: 0;
-      margin: auto;
-    }
+      .dli-edit > span::before {
+        content: '';
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-color: transparent;
+        border-width: 0.1em 0.15em;
+        border-right-color: currentColor;
+        border-left: 0;
+        position: absolute;
+        top: 0;
+        right: 100%;
+        bottom: 0;
+        margin: auto;
+      }
 
-    .dli-edit > span::after {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 0.15em;
-      border-left: 0.05em solid #fff;
-      box-sizing: content-box;
-    }
+      .dli-edit > span::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 0.15em;
+        border-left: 0.05em solid #fff;
+        box-sizing: content-box;
+      }
 
-    /* 背景色対応版 */
-    .btn-accounting .dli-edit,
-    .btn-edit .dli-edit {
-      background: transparent;
-    }
+      /* 背景色対応版 */
+      .btn-accounting .dli-edit,
+      .btn-edit .dli-edit {
+        background: transparent;
+      }
 
-    .btn-accounting .dli-edit > span {
-      box-shadow: 0 0 0 0.125em #fbbf24;
-    }
+      .btn-accounting .dli-edit > span {
+        box-shadow: 0 0 0 0.125em #fbbf24;
+      }
 
-    .btn-edit .dli-edit > span {
-      box-shadow: 0 0 0 0.125em #e5e7eb;
-    }
+      .btn-edit .dli-edit > span {
+        box-shadow: 0 0 0 0.125em #e5e7eb;
+      }
 
-    .btn-edit .dli-edit > span::after {
-      border-left-color: #e5e7eb;
-    }
-  </style>
-</head>
-<body>
-  <h1>📐 アイコンデザインテスト</h1>
+      .btn-edit .dli-edit > span::after {
+        border-left-color: #e5e7eb;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>📐 アイコンデザインテスト</h1>
 
-  <div class="test-section">
-    <h2>💴 会計ボタンアイコン候補</h2>
+    <div class="test-section">
+      <h2>💴 会計ボタンアイコン候補</h2>
 
-    <h3>デザイン1: シンプル￥マーク</h3>
-    <div class="button-group">
-      <button class="btn btn-accounting btn-xs">
-        <span class="icon-yen"></span>
-        会計
-      </button>
-      <button class="btn btn-accounting">
-        <span class="icon-yen"></span>
-        会計
-      </button>
-      <button class="btn btn-accounting btn-large">
-        <span class="icon-yen"></span>
-        会計
-      </button>
+      <h3>デザイン1: シンプル￥マーク</h3>
+      <div class="button-group">
+        <button class="btn btn-accounting btn-xs">
+          <span class="icon-yen"></span>
+          会計
+        </button>
+        <button class="btn btn-accounting">
+          <span class="icon-yen"></span>
+          会計
+        </button>
+        <button class="btn btn-accounting btn-large">
+          <span class="icon-yen"></span>
+          会計
+        </button>
+      </div>
+
+      <h3>デザイン2: コイン（円）に￥</h3>
+      <div class="button-group">
+        <button class="btn btn-accounting btn-xs">
+          <span class="icon-coin"></span>
+          会計
+        </button>
+        <button class="btn btn-accounting">
+          <span class="icon-coin"></span>
+          会計
+        </button>
+        <button class="btn btn-accounting btn-large">
+          <span class="icon-coin"></span>
+          会計
+        </button>
+      </div>
+
+      <h3>デザイン3: レシート風</h3>
+      <div class="button-group">
+        <button class="btn btn-accounting btn-xs">
+          <span class="icon-receipt"></span>
+          会計
+        </button>
+        <button class="btn btn-accounting">
+          <span class="icon-receipt"></span>
+          会計
+        </button>
+        <button class="btn btn-accounting btn-large">
+          <span class="icon-receipt"></span>
+          会計
+        </button>
+      </div>
     </div>
 
-    <h3>デザイン2: コイン（円）に￥</h3>
-    <div class="button-group">
-      <button class="btn btn-accounting btn-xs">
-        <span class="icon-coin"></span>
-        会計
-      </button>
-      <button class="btn btn-accounting">
-        <span class="icon-coin"></span>
-        会計
-      </button>
-      <button class="btn btn-accounting btn-large">
-        <span class="icon-coin"></span>
-        会計
-      </button>
+    <div class="test-section">
+      <h2>✏️ 編集確認ボタンアイコン候補</h2>
+
+      <h3>デザイン1: 四角に鉛筆（シンプル版）</h3>
+      <div class="button-group">
+        <button class="btn btn-edit btn-xs">
+          <span class="icon-edit"></span>
+          確認/編集
+        </button>
+        <button class="btn btn-edit">
+          <span class="icon-edit"></span>
+          確認/編集
+        </button>
+        <button class="btn btn-edit btn-large">
+          <span class="icon-edit"></span>
+          確認/編集
+        </button>
+      </div>
+
+      <h3>デザイン2: シンプル鉛筆</h3>
+      <div class="button-group">
+        <button class="btn btn-edit btn-xs">
+          <span class="icon-pencil"></span>
+          確認/編集
+        </button>
+        <button class="btn btn-edit">
+          <span class="icon-pencil"></span>
+          確認/編集
+        </button>
+        <button class="btn btn-edit btn-large">
+          <span class="icon-pencil"></span>
+          確認/編集
+        </button>
+      </div>
+
+      <h3>デザイン3: 高品質版（提供されたCSS）⭐ おすすめ</h3>
+      <div class="button-group">
+        <button class="btn btn-edit btn-xs">
+          <i class="dli-edit"><span></span></i>
+          確認/編集
+        </button>
+        <button class="btn btn-edit">
+          <i class="dli-edit"><span></span></i>
+          確認/編集
+        </button>
+        <button class="btn btn-edit btn-large">
+          <i class="dli-edit"><span></span></i>
+          確認/編集
+        </button>
+      </div>
     </div>
 
-    <h3>デザイン3: レシート風</h3>
-    <div class="button-group">
-      <button class="btn btn-accounting btn-xs">
-        <span class="icon-receipt"></span>
-        会計
-      </button>
-      <button class="btn btn-accounting">
-        <span class="icon-receipt"></span>
-        会計
-      </button>
-      <button class="btn btn-accounting btn-large">
-        <span class="icon-receipt"></span>
-        会計
-      </button>
-    </div>
-  </div>
+    <div class="test-section">
+      <h2>🎴 実際のカード表示イメージ</h2>
 
-  <div class="test-section">
-    <h2>✏️ 編集確認ボタンアイコン候補</h2>
-
-    <h3>デザイン1: 四角に鉛筆（シンプル版）</h3>
-    <div class="button-group">
-      <button class="btn btn-edit btn-xs">
-        <span class="icon-edit"></span>
-        確認/編集
-      </button>
-      <button class="btn btn-edit">
-        <span class="icon-edit"></span>
-        確認/編集
-      </button>
-      <button class="btn btn-edit btn-large">
-        <span class="icon-edit"></span>
-        確認/編集
-      </button>
-    </div>
-
-    <h3>デザイン2: シンプル鉛筆</h3>
-    <div class="button-group">
-      <button class="btn btn-edit btn-xs">
-        <span class="icon-pencil"></span>
-        確認/編集
-      </button>
-      <button class="btn btn-edit">
-        <span class="icon-pencil"></span>
-        確認/編集
-      </button>
-      <button class="btn btn-edit btn-large">
-        <span class="icon-pencil"></span>
-        確認/編集
-      </button>
-    </div>
-
-    <h3>デザイン3: 高品質版（提供されたCSS）⭐ おすすめ</h3>
-    <div class="button-group">
-      <button class="btn btn-edit btn-xs">
-        <i class="dli-edit"><span></span></i>
-        確認/編集
-      </button>
-      <button class="btn btn-edit">
-        <i class="dli-edit"><span></span></i>
-        確認/編集
-      </button>
-      <button class="btn btn-edit btn-large">
-        <i class="dli-edit"><span></span></i>
-        確認/編集
-      </button>
-    </div>
-  </div>
-
-  <div class="test-section">
-    <h2>🎴 実際のカード表示イメージ</h2>
-
-    <h3>パターン1: コイン + 高品質鉛筆</h3>
-    <div class="demo-card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">2025年10月15日（水）14:00~17:00</div>
-          <div style="font-size: 14px; color: #6b7280; margin-top: 4px;">金曜午後教室 きぼり</div>
+      <h3>パターン1: コイン + 高品質鉛筆</h3>
+      <div class="demo-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">2025年10月15日（水）14:00~17:00</div>
+            <div style="font-size: 14px; color: #6b7280; margin-top: 4px">
+              金曜午後教室 きぼり
+            </div>
+          </div>
+          <div class="card-buttons">
+            <button class="btn btn-accounting btn-xs">
+              <span class="icon-coin"></span>
+              会計
+            </button>
+            <button class="btn btn-edit btn-xs">
+              <i class="dli-edit"><span></span></i>
+              確認/編集
+            </button>
+          </div>
         </div>
-        <div class="card-buttons">
-          <button class="btn btn-accounting btn-xs">
-            <span class="icon-coin"></span>
-            会計
-          </button>
-          <button class="btn btn-edit btn-xs">
-            <i class="dli-edit"><span></span></i>
-            確認/編集
-          </button>
+      </div>
+
+      <h3>パターン2: レシート + 高品質鉛筆</h3>
+      <div class="demo-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">2025年10月20日（月）10:00~12:00</div>
+            <div style="font-size: 14px; color: #6b7280; margin-top: 4px">
+              月曜午前教室 よみうりカルチャー川口
+            </div>
+          </div>
+          <div class="card-buttons">
+            <button class="btn btn-accounting btn-xs">
+              <span class="icon-receipt"></span>
+              会計
+            </button>
+            <button class="btn btn-edit btn-xs">
+              <i class="dli-edit"><span></span></i>
+              確認/編集
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <h3>パターン3: シンプル￥ + 高品質鉛筆</h3>
+      <div class="demo-card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">2025年10月25日（土）13:00~16:00</div>
+            <div style="font-size: 14px; color: #6b7280; margin-top: 4px">
+              土曜午後教室 きぼり
+            </div>
+          </div>
+          <div class="card-buttons">
+            <button class="btn btn-accounting btn-xs">
+              <span class="icon-yen"></span>
+              会計
+            </button>
+            <button class="btn btn-edit btn-xs">
+              <i class="dli-edit"><span></span></i>
+              確認/編集
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <h3>パターン2: レシート + 高品質鉛筆</h3>
-    <div class="demo-card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">2025年10月20日（月）10:00~12:00</div>
-          <div style="font-size: 14px; color: #6b7280; margin-top: 4px;">月曜午前教室 よみうりカルチャー川口</div>
-        </div>
-        <div class="card-buttons">
-          <button class="btn btn-accounting btn-xs">
-            <span class="icon-receipt"></span>
-            会計
-          </button>
-          <button class="btn btn-edit btn-xs">
-            <i class="dli-edit"><span></span></i>
-            確認/編集
-          </button>
-        </div>
-      </div>
+    <div class="test-section">
+      <h2>📝 選択のヒント</h2>
+      <ul>
+        <li>
+          <strong>会計アイコン:</strong>
+          <ul>
+            <li>シンプル￥: 最もシンプル、視認性高い</li>
+            <li>コイン（円）: 「お金」のイメージが明確</li>
+            <li>レシート: 「会計記録」のイメージが明確</li>
+          </ul>
+        </li>
+        <li>
+          <strong>編集アイコン:</strong>
+          <ul>
+            <li>四角に鉛筆: 一般的なデザイン、「文書編集」のイメージ</li>
+            <li>シンプル鉛筆: よりシンプル、小さいサイズでも視認しやすい</li>
+          </ul>
+        </li>
+      </ul>
     </div>
-
-    <h3>パターン3: シンプル￥ + 高品質鉛筆</h3>
-    <div class="demo-card">
-      <div class="card-header">
-        <div>
-          <div class="card-title">2025年10月25日（土）13:00~16:00</div>
-          <div style="font-size: 14px; color: #6b7280; margin-top: 4px;">土曜午後教室 きぼり</div>
-        </div>
-        <div class="card-buttons">
-          <button class="btn btn-accounting btn-xs">
-            <span class="icon-yen"></span>
-            会計
-          </button>
-          <button class="btn btn-edit btn-xs">
-            <i class="dli-edit"><span></span></i>
-            確認/編集
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="test-section">
-    <h2>📝 選択のヒント</h2>
-    <ul>
-      <li><strong>会計アイコン:</strong>
-        <ul>
-          <li>シンプル￥: 最もシンプル、視認性高い</li>
-          <li>コイン（円）: 「お金」のイメージが明確</li>
-          <li>レシート: 「会計記録」のイメージが明確</li>
-        </ul>
-      </li>
-      <li><strong>編集アイコン:</strong>
-        <ul>
-          <li>四角に鉛筆: 一般的なデザイン、「文書編集」のイメージ</li>
-          <li>シンプル鉛筆: よりシンプル、小さいサイズでも視認しやすい</li>
-        </ul>
-      </li>
-    </ul>
-  </div>
-</body>
+  </body>
 </html>

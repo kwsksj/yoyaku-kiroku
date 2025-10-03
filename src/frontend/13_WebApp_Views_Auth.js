@@ -132,34 +132,38 @@ const getRegistrationStep1View = phone => {
             ${Components.checkbox({
               id: 'reg-wants-schedule-notification',
               label: '教室日程 のメール連絡（毎月）を希望する',
-              checked: data.wantsScheduleNotification || false,
+              checked: data['wantsScheduleNotification'] || false,
               onChange:
                 "document.getElementById('reg-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
             })}
-            <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data.wantsScheduleNotification ? '' : 'hidden'}">
-              ${Components.select({
-                id: 'reg-notification-day',
-                label: '送信日',
-                options: [
-                  { value: '', label: '--' },
-                  { value: '5', label: '毎月5日' },
-                  { value: '15', label: '毎月15日' },
-                  { value: '25', label: '毎月25日' },
-                ],
-                selectedValue: String(data.notificationDay || ''),
-              })}
-              ${Components.select({
-                id: 'reg-notification-hour',
-                label: '送信時刻',
-                options: [
-                  { value: '', label: '--' },
-                  { value: '9', label: '9時' },
-                  { value: '12', label: '12時' },
-                  { value: '18', label: '18時' },
-                  { value: '21', label: '21時' },
-                ],
-                selectedValue: String(data.notificationHour || ''),
-              })}
+            <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data['wantsScheduleNotification'] ? '' : 'hidden'}">
+              ${Components.select(
+                /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                  id: 'reg-notification-day',
+                  label: '送信日',
+                  options: [
+                    { value: '', label: '--' },
+                    { value: '5', label: '毎月5日' },
+                    { value: '15', label: '毎月15日' },
+                    { value: '25', label: '毎月25日' },
+                  ],
+                  selectedValue: String(data['notificationDay'] || ''),
+                })),
+              )}
+              ${Components.select(
+                /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                  id: 'reg-notification-hour',
+                  label: '送信時刻',
+                  options: [
+                    { value: '', label: '--' },
+                    { value: '9', label: '9時' },
+                    { value: '12', label: '12時' },
+                    { value: '18', label: '18時' },
+                    { value: '21', label: '21時' },
+                  ],
+                  selectedValue: String(data['notificationHour'] || ''),
+                })),
+              )}
             </div>
           `,
         })}
@@ -231,24 +235,26 @@ const getRegistrationStep2View = () => {
             selectedValue: data?.dominantHand || '',
             layout: 'horizontal',
           })}
-          ${Components.select({
-            id: 'q-age-group',
-            label: '年代',
-            options: [
-              { value: '----', label: '----' },
-              { value: '10代（13-15歳）', label: '10代（13-15歳）' },
-              { value: '10代（16-19歳）', label: '10代（16-19歳）' },
-              { value: '20代', label: '20代' },
-              { value: '30代', label: '30代' },
-              { value: '40代', label: '40代' },
-              { value: '50代', label: '50代' },
-              { value: '60代', label: '60代' },
-              { value: '70代', label: '70代' },
-              { value: '80代以上', label: '80代以上' },
-              { value: 'ひみつ', label: 'ひみつ' },
-            ],
-            selectedValue: data?.ageGroup || '',
-          })}
+          ${Components.select(
+            /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+              id: 'q-age-group',
+              label: '年代',
+              options: [
+                { value: '----', label: '----' },
+                { value: '10代（13-15歳）', label: '10代（13-15歳）' },
+                { value: '10代（16-19歳）', label: '10代（16-19歳）' },
+                { value: '20代', label: '20代' },
+                { value: '30代', label: '30代' },
+                { value: '40代', label: '40代' },
+                { value: '50代', label: '50代' },
+                { value: '60代', label: '60代' },
+                { value: '70代', label: '70代' },
+                { value: '80代以上', label: '80代以上' },
+                { value: 'ひみつ', label: 'ひみつ' },
+              ],
+              selectedValue: data?.ageGroup || '',
+            })),
+          )}
           ${Components.input({
             id: 'q-address',
             label: 'お住まいの地域',
@@ -438,10 +444,11 @@ const getEditProfileView = () => {
       : phoneValue;
 
   // 「将来的に制作したいもの」の値を取得（生徒名簿シートから取得される想定）
-  const futureGoalValue = userData.futureCreations || '';
+  const futureGoalValue = /** @type {any} */ (userData)['futureCreations'] || '';
 
   // 教室日程の連絡チェック状態を取得（シートの「日程連絡希望」列から）
-  const wantsScheduleNotification = userData.wantsScheduleNotification || false;
+  const wantsScheduleNotification =
+    /** @type {any} */ (userData)['wantsScheduleNotification'] || false;
 
   return `
     ${Components.pageHeader({
@@ -510,29 +517,33 @@ const getEditProfileView = () => {
                 "document.getElementById('edit-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
             })}
             <div id="edit-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${wantsScheduleNotification ? '' : 'hidden'}">
-              ${Components.select({
-                id: 'edit-notification-day',
-                label: '送信日',
-                options: [
-                  { value: '', label: '--' },
-                  { value: '5', label: '毎月5日' },
-                  { value: '15', label: '毎月15日' },
-                  { value: '25', label: '毎月25日' },
-                ],
-                selectedValue: String(userData.notificationDay || ''),
-              })}
-              ${Components.select({
-                id: 'edit-notification-hour',
-                label: '送信時刻',
-                options: [
-                  { value: '', label: '--' },
-                  { value: '9', label: '9時' },
-                  { value: '12', label: '12時' },
-                  { value: '18', label: '18時' },
-                  { value: '21', label: '21時' },
-                ],
-                selectedValue: String(userData.notificationHour || ''),
-              })}
+              ${Components.select(
+                /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                  id: 'edit-notification-day',
+                  label: '送信日',
+                  options: [
+                    { value: '', label: '--' },
+                    { value: '5', label: '毎月5日' },
+                    { value: '15', label: '毎月15日' },
+                    { value: '25', label: '毎月25日' },
+                  ],
+                  selectedValue: String(/** @type {any} */ (userData)['notificationDay'] || ''),
+                })),
+              )}
+              ${Components.select(
+                /** @type {SelectConfig} */ (/** @type {unknown} */ ({
+                  id: 'edit-notification-hour',
+                  label: '送信時刻',
+                  options: [
+                    { value: '', label: '--' },
+                    { value: '9', label: '9時' },
+                    { value: '12', label: '12時' },
+                    { value: '18', label: '18時' },
+                    { value: '21', label: '21時' },
+                  ],
+                  selectedValue: String(/** @type {any} */ (userData)['notificationHour'] || ''),
+                })),
+              )}
             </div>
           `,
         })}

@@ -72,11 +72,11 @@ const reservationActionHandlers = {
 
               // 講座データが提供された場合のみ更新
               if (r.data.lessons && r.data.lessons.length > 0) {
-                updatedPayload.lessons = r.data.lessons;
+                /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
                 stateManager.setDataFetchProgress('lessons', false);
               } else {
                 // 講座データが不要な場合は既存データを保持
-                updatedPayload.lessons = currentState.lessons;
+                /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
               }
 
               window.stateManager.dispatch({
@@ -194,11 +194,11 @@ const reservationActionHandlers = {
 
           // 講座データの選択的更新
           if (r.data.lessons && r.data.lessons.length > 0) {
-            updatedPayload.lessons = r.data.lessons;
+            /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
             stateManager.setDataFetchProgress('lessons', false);
           } else if (currentState.lessons && currentState.lessons.length > 0) {
             // サーバーが講座データを返さない場合は既存データを保持
-            updatedPayload.lessons = currentState.lessons;
+            /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
           }
 
           window.stateManager.dispatch({
@@ -395,14 +395,14 @@ const reservationActionHandlers = {
 
             // 講座データの選択的更新
             if (r.data.lessons && r.data.lessons.length > 0) {
-              updatedPayload.lessons = r.data.lessons;
+              /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
               stateManager.setDataFetchProgress('lessons', false);
             } else if (
               currentState.lessons &&
               currentState.lessons.length > 0
             ) {
               // 既存の講座データを保持
-              updatedPayload.lessons = currentState.lessons;
+              /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
             }
 
             window.stateManager.dispatch({
@@ -762,12 +762,12 @@ const reservationActionHandlers = {
               };
               // 講座データが提供された場合のみ更新
               if (r.data.lessons && r.data.lessons.length > 0) {
-                updatedPayload.lessons = r.data.lessons;
+                /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
                 // TODO: setDataFreshness機能の実装が必要
                 // stateManager.setDataFreshness('lessons', true);
               } else {
                 // サーバーが講座データを返さない場合は既存データを保持
-                updatedPayload.lessons = currentState.lessons;
+                /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
               }
 
               window.stateManager.dispatch({

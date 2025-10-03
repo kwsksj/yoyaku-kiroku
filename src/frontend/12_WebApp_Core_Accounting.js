@@ -249,7 +249,8 @@ function calculateAccountingTotal(formData, masterData, classroom) {
     const baseItem = masterData.find(item => {
       const type = item[CONSTANTS.HEADERS.ACCOUNTING.TYPE];
       const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-      const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
+      const targetClassroom =
+        item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
 
       return (
         type === '授業料' &&
@@ -260,7 +261,9 @@ function calculateAccountingTotal(formData, masterData, classroom) {
 
     if (baseItem) {
       const baseItemName = baseItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-      const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
+      const unitPrice = Number(
+        baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+      );
       const unit = baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT];
 
       // 基本授業料がチェックされている場合のみ追加
@@ -282,10 +285,12 @@ function calculateAccountingTotal(formData, masterData, classroom) {
 
               dynamicItem = {
                 [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
-                [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]: `${baseItemName} ${hours}時間`,
+                [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]:
+                  `${baseItemName} ${hours}時間`,
                 [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
                 [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: price,
-                [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]: baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
+                [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
+                  baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
                 _isDynamic: true, // 動的項目フラグ
               };
             }
@@ -297,7 +302,8 @@ function calculateAccountingTotal(formData, masterData, classroom) {
             [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]: baseItemName,
             [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
             [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: unitPrice,
-            [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]: baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
+            [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
+              baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
             _isDynamic: true, // 動的項目フラグ
           };
 
@@ -321,7 +327,9 @@ function calculateAccountingTotal(formData, masterData, classroom) {
           if (!formData.checkedItems) {
             formData.checkedItems = {};
           }
-          formData.checkedItems[dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]] = true;
+          formData.checkedItems[
+            dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]
+          ] = true;
 
           if (!window.isProduction) {
             console.log('🔍 checkedItemsに追加:', {
@@ -336,7 +344,10 @@ function calculateAccountingTotal(formData, masterData, classroom) {
       }
     }
 
-    const classifiedItems = classifyAccountingItems(extendedMasterData, classroom);
+    const classifiedItems = classifyAccountingItems(
+      extendedMasterData,
+      classroom,
+    );
     const tuition = calculateTuitionSubtotal(
       formData,
       classifiedItems,
@@ -487,7 +498,10 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
   // その他の授業料・割引項目UI生成
   let otherItemsHtml = '';
   const otherItems = classifiedItems.tuition.items.filter(
-    item => !BASE_TUITION_ITEMS.includes(item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]),
+    item =>
+      !BASE_TUITION_ITEMS.includes(
+        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+      ),
   );
 
   if (otherItems.length > 0) {

@@ -436,10 +436,12 @@ function setupViewListener() {
               // 会計画面用のデータを取得
               const classifiedItems =
                 window.currentClassifiedItems ||
-                /** @type {ClassifiedAccountingItems} */ ({
-                  tuition: { baseItems: [], additionalItems: [] },
-                  sales: { materialItems: [], productItems: [] },
-                });
+                /** @type {ClassifiedAccountingItems} */ (
+                  /** @type {unknown} */ ({
+                    tuition: { baseItems: [], additionalItems: [] },
+                    sales: { materialItems: [], productItems: [] },
+                  })
+                );
               const classroom = window.currentClassroom || '';
               updateAccountingCalculation(classifiedItems, classroom);
             }

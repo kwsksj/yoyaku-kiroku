@@ -285,7 +285,12 @@ const getCompleteView = msg => {
  */
 const getPrivacyPolicyModal = () => {
   // marked.jsライブラリが読み込まれていることを確認
-  if (typeof marked === 'undefined') {
+  /** @type {any} */
+  const markedGlobal = typeof window !== 'undefined' ? /** @type {any} */ (window)['marked'] : undefined;
+  /** @type {any} */
+  const markedLib = typeof markedGlobal !== 'undefined' ? markedGlobal : null;
+
+  if (!markedLib) {
     console.error('marked.js is not loaded!');
     return Components.modal({
       id: 'privacy-policy-modal',
@@ -296,7 +301,7 @@ const getPrivacyPolicyModal = () => {
     });
   }
 
-  const policyHtml = marked.parse(PRIVACY_POLICY_CONTENT);
+  const policyHtml = markedLib.parse(PRIVACY_POLICY_CONTENT);
 
   const content = `
     <div class="markdown-content">
