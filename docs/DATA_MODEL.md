@@ -459,4 +459,74 @@ CacheServiceのキャッシュが常に利用可能な状態を維持するた�
 
 ---
 
-**最終更新日**: 2025-10-02 **バージョン**: 3.2 **ステータス**: 実装完了・運用中
+## 型システム統一（2025年10月実装）
+
+### 概要
+
+予約・ユーザー・会計データの型定義が複数存在していた問題を解決するため、統一的な型システムを導入しました。
+
+### 型アーキテクチャ
+
+**3層構造**:
+
+```
+生のシートデータ（RawSheetRow）
+    ↓ 変換関数
+Core型（ドメインモデル）
+    ↓ 必要な部分のみ抽出
+DTO型（操作別に最適化）
+```
+
+### Core型（types/core/）
+
+全てのフィールドを持つ統一型定義：
+
+- **ReservationCore**: 予約データの統一型
+- **UserCore**: ユーザーデータの統一型
+- **AccountingDetailsCore**: 会計詳細の統一型
+
+### DTO型（types/dto/）
+
+操作ごとに最適化されたデータ転送型：
+
+**予約関連**:
+
+- `ReservationCreateDto`: 新規予約（reservationId不要）
+- `ReservationUpdateDto`: 予約更新（必要フィールドのみ）
+- `ReservationCancelDto`: キャンセル（最小限の情報）
+
+**ユーザー関連**:
+
+- `UserRegistrationDto`: 新規登録
+- `UserUpdateDto`: プロフィール更新
+- `UserInfoDto`: 表示用最小情報
+
+**会計関連**:
+
+- `AccountingFormDto`: 入力フォーム用
+- `AccountingSaveDto`: 保存用
+- `AccountingCalculationResultDto`: 計算結果
+
+### 変換関数（08_Utilities.js）
+
+**シートデータ ⇔ Core型**:
+
+- `convertRowToReservation()`: Row → ReservationCore
+- `convertReservationToRow()`: ReservationCore → Row
+- `convertRowToUser()`: Row → UserCore
+- `convertUserToRow()`: UserCore → Row
+
+### メリット
+
+1. **型安全性**: TypeScript型チェックが正常動作（90+エラー→0エラー）
+2. **保守性**: 型定義が集約され、変更が容易
+3. **開発効率**: IDE補完が正確に動作
+4. **自己文書化**: 型定義がAPIドキュメントとして機能
+
+### 関連ドキュメント
+
+詳細は [TYPE_SYSTEM_UNIFICATION.md](TYPE_SYSTEM_UNIFICATION.md) および [TYPES_GUIDE.md](TYPES_GUIDE.md) を参照してください。
+
+---
+
+**最終更新日**: 2025-10-03 **バージョン**: 4.0 **ステータス**: 型システム統一完了・運用中
