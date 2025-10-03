@@ -295,21 +295,24 @@ declare interface UserProfileUpdate {
 
 /**
  * プロフィール編集用ユーザー詳細情報型定義
+ * @deprecated Phase 6: types/core/user-core.d.ts の UserCore を使用してください
  */
 declare interface UserDetailForEdit {
   studentId: string;
   realName: string;
+  displayName: string;
   nickname: string;
   phone: string;
   email: string;
   wantsEmail: boolean;
+  wantsScheduleNotification: boolean;
   address: string;
   ageGroup: string;
   gender: string;
   dominantHand: string;
   futureCreations: string;
-  notificationDay: string;
-  notificationHour: string;
+  notificationDay: number | null;
+  notificationHour: number | null;
 }
 
 /**
