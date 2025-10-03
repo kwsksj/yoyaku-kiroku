@@ -219,9 +219,9 @@ const CONSTANTS = {
   SHEET_NAMES: {
     ROSTER: '生徒名簿',
     ACCOUNTING: '会計マスタ',
-    LOG: 'アクティビティログ',
-    RESERVATIONS: '統合予約シート',
-    SCHEDULE: '日程マスタ',
+    LOG: 'ログ',
+    RESERVATIONS: '予約記録',
+    SCHEDULE: '日程',
   },
 
   // セッション関連
@@ -311,6 +311,7 @@ const CONSTANTS = {
       TRANSPORTATION: '来場手段',
       PICKUP: '送迎',
       WORK_IN_PROGRESS: '制作メモ',
+      MATERIAL_INFO: '材料情報',
       ORDER: 'order',
       MESSAGE_TO_TEACHER: 'メッセージ',
       ACCOUNTING_DETAILS: '会計詳細',
@@ -329,8 +330,8 @@ const CONSTANTS = {
       FROM: 'from',
       REGISTRATION_DATE: '登録日時',
       EMAIL: 'メールアドレス',
-      EMAIL_PREFERENCE: 'メール連絡希望',
-      SCHEDULE_NOTIFICATION_PREFERENCE: '日程連絡希望',
+      WANTS_RESERVATION_EMAIL: '予約メール希望',
+      WANTS_SCHEDULE_INFO: '日程連絡希望',
       NOTIFICATION_DAY: '通知日',
       NOTIFICATION_HOUR: '通知時刻',
       AGE_GROUP: '年代',
@@ -338,9 +339,9 @@ const CONSTANTS = {
       DOMINANT_HAND: '利き手',
       ADDRESS: '住所',
       FUTURE_CREATIONS: '将来制作したいもの',
-      WOODCARVING_EXPERIENCE: '木彫り経験',
-      PAST_CREATIONS: '過去の制作物',
-      FUTURE_PARTICIPATION: '今後のご参加について',
+      EXPERIENCE: '木彫り経験',
+      PAST_WORK: '過去の制作物',
+      ATTENDANCE_INTENTION: '想定参加頻度',
       TRIGGER: 'きっかけ',
       FIRST_MESSAGE: '初回メッセージ',
       COMPANION: '同行者',
@@ -450,7 +451,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-10-02T15:44:53.468Z
+   * Generated: 2025-10-03T04:56:23.119Z
    * =================================================================
    */
 
@@ -2565,7 +2566,8 @@ const ENVIRONMENT_CONFIG = {
       const baseItem = masterData.find(item => {
         const type = item[CONSTANTS.HEADERS.ACCOUNTING.TYPE];
         const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-        const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
+        const targetClassroom =
+          item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
 
         return (
           type === '授業料' &&
@@ -2576,7 +2578,9 @@ const ENVIRONMENT_CONFIG = {
 
       if (baseItem) {
         const baseItemName = baseItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-        const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
+        const unitPrice = Number(
+          baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
+        );
         const unit = baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT];
 
         // 基本授業料がチェックされている場合のみ追加
@@ -2598,10 +2602,12 @@ const ENVIRONMENT_CONFIG = {
 
                 dynamicItem = {
                   [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
-                  [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]: `${baseItemName} ${hours}時間`,
+                  [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]:
+                    `${baseItemName} ${hours}時間`,
                   [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
                   [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: price,
-                  [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]: baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
+                  [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
+                    baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
                   _isDynamic: true, // 動的項目フラグ
                 };
               }
@@ -2613,7 +2619,8 @@ const ENVIRONMENT_CONFIG = {
               [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]: baseItemName,
               [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
               [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: unitPrice,
-              [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]: baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
+              [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
+                baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
               _isDynamic: true, // 動的項目フラグ
             };
 
@@ -2637,7 +2644,9 @@ const ENVIRONMENT_CONFIG = {
             if (!formData.checkedItems) {
               formData.checkedItems = {};
             }
-            formData.checkedItems[dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]] = true;
+            formData.checkedItems[
+              dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]
+            ] = true;
 
             if (!window.isProduction) {
               console.log('🔍 checkedItemsに追加:', {
@@ -2652,7 +2661,10 @@ const ENVIRONMENT_CONFIG = {
         }
       }
 
-      const classifiedItems = classifyAccountingItems(extendedMasterData, classroom);
+      const classifiedItems = classifyAccountingItems(
+        extendedMasterData,
+        classroom,
+      );
       const tuition = calculateTuitionSubtotal(
         formData,
         classifiedItems,
@@ -2803,7 +2815,10 @@ const ENVIRONMENT_CONFIG = {
     // その他の授業料・割引項目UI生成
     let otherItemsHtml = '';
     const otherItems = classifiedItems.tuition.items.filter(
-      item => !BASE_TUITION_ITEMS.includes(item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]),
+      item =>
+        !BASE_TUITION_ITEMS.includes(
+          item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+        ),
     );
 
     if (otherItems.length > 0) {

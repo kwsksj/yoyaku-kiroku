@@ -1183,10 +1183,10 @@ function rebuildAllStudentsBasicCache() {
     const optionalColumns = {
       email: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.EMAIL),
       emailPreference: headerColumnMap.get(
-        CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+        CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL,
       ),
       scheduleNotificationPreference: headerColumnMap.get(
-        CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
+        CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
       ),
       notificationDay: headerColumnMap.get(
         CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
@@ -1273,6 +1273,7 @@ function rebuildAllStudentsBasicCache() {
     });
 
     // 生徒データを配列形式に変換（分割キャッシュ用）
+    /** @type {StudentData[]} */
     const studentsArray = Object.values(studentsDataMap);
 
     const cacheData = {
@@ -1696,14 +1697,14 @@ const MAX_CHUNKS = 20; // 最大チャンク数
 
 /**
  * データを指定サイズで分割する関数
- * @param {(string|number|Date)[][]} data - 分割対象のデータ配列
+ * @param {(string|number|Date)[][]|StudentData[]} data - 分割対象のデータ配列
  * @param {number} maxSizeKB - 最大サイズ（KB）
- * @returns {(string|number|Date)[][][]} 分割されたデータチャンクの配列
+ * @returns {((string|number|Date)[][]|StudentData[])[]} 分割されたデータチャンクの配列
  */
 function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
   if (!data || data.length === 0) return [[]];
 
-  /** @type {(string|number|Date)[][][]} */
+  /** @type {((string|number|Date)[][]|StudentData[])[]} */
   const chunks = [];
 
   // アイテムあたりの平均サイズを推定（全データの10%をサンプル）
@@ -1755,7 +1756,7 @@ function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
 /**
  * 分割されたデータをキャッシュに保存する関数
  * @param {string} baseKey - ベースキャッシュキー
- * @param {(string|number|Date)[][][]} dataChunks - 分割されたデータチャンク配列
+ * @param {((string|number|Date)[][]|StudentData[])[]} dataChunks - 分割されたデータチャンク配列
  * @param {ChunkedCacheMetadata} metadata - メタデータ
  * @param {number} expiry - キャッシュ有効期限（秒）
  * @returns {boolean} 保存成功の可否
@@ -1867,7 +1868,8 @@ function loadChunkedDataFromCache(baseKey) {
       /** @type {{ [studentId: string]: StudentData }} */
       const studentsMap = {};
       allData.forEach(student => {
-        const studentData = /** @type {StudentData} */ (student);
+        // StudentDataは元々配列形式で保存されているため、型アサーションで変換
+        const studentData = /** @type {any} */ (student);
         if (studentData.studentId) {
           studentsMap[studentData.studentId] = studentData;
         }

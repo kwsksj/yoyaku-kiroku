@@ -82,7 +82,8 @@ function filterSchedulesByDateRange(schedules, fromDate, toDate) {
     const schedule = schedules[i];
     // 日程マスタの日付はキャッシュ構築時にDate型で正規化済み
     const scheduleDate = schedule.date;
-    const dateTime = scheduleDate.getTime();
+    const dateTime =
+      scheduleDate instanceof Date ? scheduleDate.getTime() : new Date(scheduleDate).getTime();
     const isInRange = dateTime >= fromDateTime && dateTime <= toDateTime;
 
     if (i < 3) {

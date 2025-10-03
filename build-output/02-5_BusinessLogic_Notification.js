@@ -74,10 +74,20 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
         // 未来の予約のみに絞り込み
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const futureReservations = reservationData.filter(res => {
-          const resDate = new Date(res.date);
-          return resDate >= today;
-        });
+        /** @type {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} */
+        const futureReservations = reservationData
+          .filter(res => {
+            const resDate = new Date(res.date);
+            return resDate >= today;
+          })
+          .map(res => ({
+            date: typeof res.date === 'string' ? res.date : res.date.toISOString(),
+            startTime: res.startTime,
+            endTime: res.endTime,
+            status: res.status,
+            classroom: res.classroom,
+            venue: /** @type {any} */ (res).venue || '',
+          }));
 
         const emailBody = _generateEmailBody(
           student,
@@ -131,7 +141,7 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
  * 通知メール送信対象者を抽出
  * @param {number} targetDay - 通知対象日
  * @param {number} targetHour - 通知対象時刻
- * @returns {Array<Object>} 送信対象生徒の配列
+ * @returns {Array<{studentId: string, realName: string, nickname: string, email: string}>} 送信対象生徒の配列
  * @private
  */
 function _getNotificationRecipients(targetDay, targetHour) {
@@ -149,7 +159,7 @@ function _getNotificationRecipients(targetDay, targetHour) {
   const nicknameIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
   const emailIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
   const scheduleNotificationPreferenceIdx = header.indexOf(
-    CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
+    CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
   );
   const notificationDayIdx = header.indexOf(
     CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
@@ -206,8 +216,8 @@ function _getNotificationRecipients(targetDay, targetHour) {
 
 /**
  * メール本文を生成
- * @param {Object} student - 生徒情報
- * @param {Array<Object>} reservations - 生徒の予約一覧
+ * @param {{studentId: string, realName: string, nickname: string, email: string}} student - 生徒情報
+ * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒の予約一覧
  * @param {Array<Lesson>} lessons - 今後の日程一覧（getLessons()の結果）
  * @returns {string} メール本文
  * @private
@@ -260,6 +270,7 @@ function _generateEmailBody(student, reservations, lessons) {
     body += `現在、予定されている日程はありません。\n\n`;
   } else {
     // 教室ごとにグループ化
+    /** @type {{ [key: string]: Lesson[] }} */
     const lessonsByClassroom = {};
     lessons.forEach(lesson => {
       const classroom = lesson.schedule.classroom;

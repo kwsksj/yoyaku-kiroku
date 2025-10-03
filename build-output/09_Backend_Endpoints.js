@@ -43,7 +43,7 @@
 /**
  * 予約操作後に最新データを取得して返す汎用関数
  * @param {Function} operationFunction - 実行する操作関数
- * @param {ReservationInfo|CancelInfo|ReservationDetails} operationParams - 操作関数に渡すパラメータ
+ * @param {ReservationInfo|CancelInfo|ReservationDetails|any} operationParams - 操作関数に渡すパラメータ
  * @param {string} studentId - 対象生徒のID
  * @param {string} successMessage - 操作成功時のメッセージ
  * @returns {ApiResponseGeneric} 操作結果と最新データを含むAPIレスポンス
@@ -616,7 +616,7 @@ function getAccountingDetailsFromSheet(reservationId) {
 
 /**
  * 空席連絡希望の予約を確定予約に変更し、最新データを返却します。
- * @param {Object} confirmInfo - 確定情報
+ * @param {{reservationId: string, studentId: string}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric} 処理結果と最新データ
  */
 function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {

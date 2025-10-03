@@ -65,7 +65,7 @@ const PerformanceLog = {
  * キャッシュから生徒情報を取得する軽量関数（パフォーマンス最適化）
  * 重複シートアクセスを回避してキャッシュファーストアプローチを実装
  * @param {string} studentId - 生徒ID
- * @returns {Object} 生徒情報 {realName, displayName, email, wantsEmail}
+ * @returns {{realName: string, displayName: string, email: string, wantsEmail: boolean}} 生徒情報
  */
 function getCachedStudentInfo(studentId) {
   try {
@@ -73,12 +73,17 @@ function getCachedStudentInfo(studentId) {
     const rosterCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
     if (rosterCache && rosterCache['students']) {
       // studentsはオブジェクト形式で保存されている
-      const studentsMap = /** @type {Object} */ (rosterCache['students']);
+      const studentsMap = /** @type {{ [key: string]: StudentData }} */ (
+        rosterCache['students']
+      );
       const student = studentsMap[studentId];
       if (student) {
         return {
           realName: student.realName || '(不明)',
-          displayName: student.nickname || student.realName || '(不明)',
+          displayName:
+            (student['nickname'] ? String(student['nickname']) : '') ||
+            student.realName ||
+            '(不明)',
           email: student.email || '',
           wantsEmail: student.wantsEmail || false,
         };
@@ -983,6 +988,7 @@ function convertRowToReservation(row, headerMap) {
   );
 
   // 日付をYYYY-MM-DD形式に変換
+  /** @param {any} val */
   const formatDate = val => {
     if (!val) return '';
     if (val instanceof Date) {
@@ -992,6 +998,7 @@ function convertRowToReservation(row, headerMap) {
   };
 
   // 時刻をHH:mm形式に変換
+  /** @param {any} val */
   const formatTime = val => {
     if (!val) return undefined;
     if (val instanceof Date) {
@@ -1031,9 +1038,7 @@ function convertRowToReservation(row, headerMap) {
     order: row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]]
       ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]])
       : undefined,
-    messageToTeacher: row[
-      hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]
-    ]
+    messageToTeacher: row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]]
       ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]])
       : undefined,
   };
@@ -1148,9 +1153,9 @@ function convertRowToUser(row, headerMap) {
     email: row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]]
       ? String(row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]])
       : undefined,
-    wantsEmail: Boolean(row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_EMAIL]]),
+    wantsEmail: Boolean(row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL]]),
     wantsScheduleNotification: Boolean(
-      row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_NOTIFICATION]],
+      row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO]],
     ),
     notificationDay: row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY]]
       ? Number(row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY]])
@@ -1176,11 +1181,8 @@ function convertRowToUser(row, headerMap) {
     pastWork: row[hm[CONSTANTS.HEADERS.ROSTER.PAST_WORK]]
       ? String(row[hm[CONSTANTS.HEADERS.ROSTER.PAST_WORK]])
       : undefined,
-    futureGoal: row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_GOAL]]
-      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_GOAL]])
-      : undefined,
-    futureParticipation: row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_PARTICIPATION]]
-      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_PARTICIPATION]])
+    futureParticipation: row[hm[CONSTANTS.HEADERS.ROSTER.ATTENDANCE_INTENTION]]
+      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.ATTENDANCE_INTENTION]])
       : undefined,
     futureCreations: row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]]
       ? String(row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]])
@@ -1224,18 +1226,17 @@ function convertUserToRow(user, headerMap) {
     row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]] = user.email;
   }
   if (user.wantsEmail !== undefined) {
-    row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_EMAIL]] = user.wantsEmail;
+    row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL]] = user.wantsEmail;
   }
   if (user.wantsScheduleNotification !== undefined) {
-    row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_NOTIFICATION]] =
+    row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO]] =
       user.wantsScheduleNotification;
   }
   if (user.notificationDay !== undefined) {
     row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY]] = user.notificationDay;
   }
   if (user.notificationHour !== undefined) {
-    row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR]] =
-      user.notificationHour;
+    row[hm[CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR]] = user.notificationHour;
   }
   if (user.ageGroup !== undefined) {
     row[hm[CONSTANTS.HEADERS.ROSTER.AGE_GROUP]] = user.ageGroup;
@@ -1255,11 +1256,8 @@ function convertUserToRow(user, headerMap) {
   if (user.pastWork !== undefined) {
     row[hm[CONSTANTS.HEADERS.ROSTER.PAST_WORK]] = user.pastWork;
   }
-  if (user.futureGoal !== undefined) {
-    row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_GOAL]] = user.futureGoal;
-  }
   if (user.futureParticipation !== undefined) {
-    row[hm[CONSTANTS.HEADERS.ROSTER.FUTURE_PARTICIPATION]] =
+    row[hm[CONSTANTS.HEADERS.ROSTER.ATTENDANCE_INTENTION]] =
       user.futureParticipation;
   }
   if (user.futureCreations !== undefined) {

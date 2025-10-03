@@ -509,8 +509,7 @@ function makeReservation(reservationInfo) {
       );
 
       // 管理者通知メールの内容を状態と初回参加に応じて調整
-      const isFirstTime =
-        reservationInfo.options && reservationInfo.options.firstLecture;
+      const isFirstTime = reservationInfo.firstLecture;
       const statusText = isFull ? '空き連絡希望' : '新規予約';
       const firstTimeText = isFirstTime ? '【初回参加】' : '';
 
@@ -616,7 +615,7 @@ function cancelReservation(cancelInfo) {
         targetDate instanceof Date ? targetDate : new Date(String(targetDate));
 
       // 【パフォーマンス最適化】 キャッシュからユーザー情報を取得（重複シートアクセス排除）
-      const userInfo = getCachedStudentInfo(studentId);
+      const userInfo = /** @type {UserCore} */ (getCachedStudentInfo(studentId));
 
       // 該当行のステータスのみを「キャンセル」に更新
       const updatedRowData = [...targetRowData];
@@ -650,7 +649,6 @@ function cancelReservation(cancelInfo) {
         }
       }
 
-      const cancelMessage = cancelInfo.cancelMessage || '';
       const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
       const logDetails = `Classroom: ${classroom}, ReservationID: ${reservationId}${messageLog}`;
       logActivity(
@@ -853,6 +851,7 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
     CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE,
   );
 
+  /** @type {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>} */
   const result = [];
 
   waitlistedReservations.forEach(reservation => {
@@ -888,7 +887,7 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
 
     if (shouldNotify) {
       // 生徒情報を取得
-      const studentInfo = getCachedStudentInfo(String(studentId));
+      const studentInfo = /** @type {UserCore} */ (getCachedStudentInfo(String(studentId)));
 
       if (studentInfo && studentInfo.email && studentInfo.email.trim() !== '') {
         // 空席連絡はメール配信希望設定に関わらず送信
@@ -913,7 +912,7 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
  * 空き通知メールの送信
  * @param {string} classroom - 教室名
  * @param {string} date - 日付
- * @param {Array} users - 通知対象ユーザー
+ * @param {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>} users - 通知対象ユーザー
  * @param {any} lesson - レッスン情報
  */
 function sendAvailabilityNotificationEmails(classroom, date, users, lesson) {
@@ -960,7 +959,7 @@ function sendAvailabilityNotificationEmails(classroom, date, users, lesson) {
 
 /**
  * 空席連絡メールの本文を生成
- * @param {Object} user - ユーザー情報
+ * @param {{studentId: string, email: string, realName: string, isFirstTime: boolean}} user - ユーザー情報
  * @param {string} classroom - 教室名
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} venue - 会場情報
@@ -1558,7 +1557,7 @@ function saveAccountingDetails(payload) {
         logDetails,
       );
 
-      const userInfo = getCachedStudentInfo(studentId);
+      const userInfo = /** @type {UserCore} */ (getCachedStudentInfo(studentId));
 
       const subject = `会計記録 (${classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
       const body =
@@ -1977,7 +1976,7 @@ function confirmWaitlistedReservation(confirmInfo) {
       }
 
       // ログ記録
-      const user = getCachedStudentInfo(studentId);
+      const user = /** @type {UserCore} */ (getCachedStudentInfo(studentId));
       if (user) {
         const messageLog = messageToTeacher
           ? `, Message: ${messageToTeacher}`

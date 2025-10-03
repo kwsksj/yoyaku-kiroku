@@ -274,7 +274,7 @@ function getTuitionDisplayText(classroom) {
         item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
           CONSTANTS.ITEM_TYPES.TUITION &&
         BASE_TUITION_ITEMS.includes(
-          item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+          String(item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]),
         ) &&
         typeof item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM] ===
           'string' &&
@@ -284,12 +284,18 @@ function getTuitionDisplayText(classroom) {
     );
 
     if (baseTuitionRule) {
-      const itemName = baseTuitionRule[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+      const itemName = String(
+        baseTuitionRule[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
+      );
       const price = Number(
         baseTuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
       );
-      const unit = baseTuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] || '';
-      lines.push(`${itemName}: ¥${price.toLocaleString()} （${unit}あたり）`);
+      const unit = String(
+        baseTuitionRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT] || '',
+      );
+      lines.push(
+        `${itemName}: ¥${String(price.toLocaleString())} （${unit}あたり）`,
+      );
     }
 
     // 初回参加費を検索（該当教室に設定がある場合のみ）
@@ -312,7 +318,7 @@ function getTuitionDisplayText(classroom) {
         firstLectureRule[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
       );
       lines.push(
-        `${CONSTANTS.ITEMS.FIRST_LECTURE}: ¥${price.toLocaleString()}`,
+        `${CONSTANTS.ITEMS.FIRST_LECTURE}: ¥${String(price.toLocaleString())}`,
       );
     }
 

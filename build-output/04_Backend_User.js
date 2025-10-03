@@ -360,7 +360,7 @@ function registerNewUser(userInfo) {
 
       // 新規登録のStep4で追加された項目を処理
       const futureParticipationColIdx = header.indexOf(
-        CONSTANTS.HEADERS.ROSTER.FUTURE_PARTICIPATION,
+        CONSTANTS.HEADERS.ROSTER.ATTENDANCE_INTENTION,
       );
       const triggerColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.TRIGGER);
       const firstMessageColIdx = header.indexOf(
@@ -380,7 +380,7 @@ function registerNewUser(userInfo) {
       // その他の標準項目
       const emailColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
       const emailPreferenceColIdx = header.indexOf(
-        CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+        CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL,
       );
       const ageGroupColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.AGE_GROUP);
       const genderColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.GENDER);
@@ -389,10 +389,10 @@ function registerNewUser(userInfo) {
       );
       const addressColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.ADDRESS);
       const woodcarvingExperienceColIdx = header.indexOf(
-        CONSTANTS.HEADERS.ROSTER.WOODCARVING_EXPERIENCE,
+        CONSTANTS.HEADERS.ROSTER.EXPERIENCE,
       );
       const pastCreationsColIdx = header.indexOf(
-        CONSTANTS.HEADERS.ROSTER.PAST_CREATIONS,
+        CONSTANTS.HEADERS.ROSTER.PAST_WORK,
       );
       const futureCreationsColIdx = header.indexOf(
         CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
@@ -419,7 +419,7 @@ function registerNewUser(userInfo) {
         CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
       );
       const scheduleNotificationPreferenceColIdx = header.indexOf(
-        CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
+        CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
       );
 
       if (notificationDayColIdx !== -1 && userInfo?.notificationDay) {
@@ -450,8 +450,8 @@ function registerNewUser(userInfo) {
         newRow[woodcarvingExperienceColIdx] = userInfo.experience;
       if (pastCreationsColIdx !== -1 && userInfo?.pastWork)
         newRow[pastCreationsColIdx] = userInfo.pastWork;
-      if (futureCreationsColIdx !== -1 && userInfo?.futureGoal)
-        newRow[futureCreationsColIdx] = userInfo.futureGoal;
+      if (futureCreationsColIdx !== -1 && userInfo?.futureCreations)
+        newRow[futureCreationsColIdx] = userInfo.futureCreations;
 
       const registrationDateColIdx = header.indexOf('登録日時');
       if (registrationDateColIdx !== -1)
@@ -682,10 +682,10 @@ function getUserDetailForEdit(studentId) {
     const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
     const emailColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
     const emailPreferenceColIdx = header.indexOf(
-      CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+      CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL,
     );
     const scheduleNotificationPreferenceColIdx = header.indexOf(
-      CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
+      CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
     );
     const addressColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.ADDRESS);
     const ageGroupColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.AGE_GROUP);
@@ -889,10 +889,10 @@ function updateUserProfile(userInfo) {
       const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
       const emailColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
       const emailPreferenceColIdx = header.indexOf(
-        CONSTANTS.HEADERS.ROSTER.EMAIL_PREFERENCE,
+        CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL,
       );
       const scheduleNotificationPreferenceColIdx = header.indexOf(
-        CONSTANTS.HEADERS.ROSTER.SCHEDULE_NOTIFICATION_PREFERENCE,
+        CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
       );
 
       if (

@@ -65,7 +65,7 @@ const PerformanceLog = {
  * キャッシュから生徒情報を取得する軽量関数（パフォーマンス最適化）
  * 重複シートアクセスを回避してキャッシュファーストアプローチを実装
  * @param {string} studentId - 生徒ID
- * @returns {Object} 生徒情報 {realName, displayName, email, wantsEmail}
+ * @returns {{realName: string, displayName: string, email: string, wantsEmail: boolean}} 生徒情報
  */
 function getCachedStudentInfo(studentId) {
   try {
@@ -73,12 +73,17 @@ function getCachedStudentInfo(studentId) {
     const rosterCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
     if (rosterCache && rosterCache['students']) {
       // studentsはオブジェクト形式で保存されている
-      const studentsMap = /** @type {Object} */ (rosterCache['students']);
+      const studentsMap = /** @type {{ [key: string]: StudentData }} */ (
+        rosterCache['students']
+      );
       const student = studentsMap[studentId];
       if (student) {
         return {
           realName: student.realName || '(不明)',
-          displayName: student.nickname || student.realName || '(不明)',
+          displayName:
+            (student['nickname'] ? String(student['nickname']) : '') ||
+            student.realName ||
+            '(不明)',
           email: student.email || '',
           wantsEmail: student.wantsEmail || false,
         };
