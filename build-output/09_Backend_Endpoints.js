@@ -89,7 +89,7 @@ function executeOperationAndGetLatestData(
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function makeReservationAndGetLatestData(reservationInfo) {
-  const isFirstTime = reservationInfo.options?.firstLecture || false;
+  const isFirstTime = reservationInfo['firstLecture'] || false;
 
   const result = executeOperationAndGetLatestData(
     makeReservation,

@@ -133,7 +133,19 @@ const reservationActionHandlers = {
     const startTime = getTimeValue('res-start-time', null, 'startTime');
     const endTime = getTimeValue('res-end-time', null, 'endTime');
 
-    const bookingOptions = {
+    showLoading('booking');
+    // 予約処理中フラグを設定
+    stateManager.setDataFetchProgress('reservation-booking', true);
+
+    // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
+    const p = {
+      classroom: lessonInfo.schedule.classroom,
+      date: lessonInfo.schedule.date,
+      venue: lessonInfo.schedule.venue,
+      startTime: startTime,
+      endTime: endTime,
+      user: currentUser,
+      studentId: currentUser.studentId,
       chiselRental:
         /** @type {HTMLInputElement} */ (
           document.getElementById('option-rental')
@@ -156,21 +168,6 @@ const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('material-input')
         )?.value || '',
-    };
-
-    showLoading('booking');
-    // 予約処理中フラグを設定
-    stateManager.setDataFetchProgress('reservation-booking', true);
-
-    const p = {
-      classroom: lessonInfo.schedule.classroom,
-      date: lessonInfo.schedule.date,
-      venue: lessonInfo.schedule.venue,
-      startTime: startTime,
-      endTime: endTime,
-      user: currentUser,
-      studentId: currentUser.studentId,
-      options: bookingOptions,
       schedule: lessonInfo.schedule,
       status: lessonInfo.status,
       isFull: lessonInfo.status.isFull,

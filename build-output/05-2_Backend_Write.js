@@ -276,20 +276,22 @@ function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
 function makeReservation(reservationInfo) {
   return withTransaction(() => {
     try {
-      // Phase 3: ReservationCreateDto として処理
-      const { classroom, date, user, startTime, endTime } =
-        reservationInfo || {};
-
-      // 後方互換性のため、旧形式（options）も新形式（直接プロパティ）も許容
-      // @ts-ignore - 後方互換性のため旧形式も許容
-      const options = (reservationInfo && reservationInfo.options) || {
-        chiselRental: reservationInfo?.chiselRental || false,
-        firstLecture: reservationInfo?.firstLecture || false,
-        workInProgress: reservationInfo?.workInProgress || '',
-        materialInfo: reservationInfo?.['materialInfo'] || '',
-        order: reservationInfo?.order || '',
-        messageToTeacher: reservationInfo?.messageToTeacher || '',
-      };
+      // Phase 3: ReservationCreateDto として処理（新形式のみ）
+      /** @type {ReservationCreateDto} */
+      const info = /** @type {ReservationCreateDto} */ (reservationInfo);
+      const {
+        classroom,
+        date,
+        user,
+        startTime,
+        endTime,
+        chiselRental,
+        firstLecture,
+        workInProgress,
+        materialInfo,
+        order,
+        messageToTeacher,
+      } = info;
 
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
@@ -448,23 +450,21 @@ function makeReservation(reservationInfo) {
 
       // オプション設定
       if (chiselRentalColIdx !== undefined)
-        newRowData[chiselRentalColIdx] = options.chiselRental || false;
+        newRowData[chiselRentalColIdx] = chiselRental || false;
       if (firstLectureColIdx !== undefined)
-        newRowData[firstLectureColIdx] = options.firstLecture || false;
+        newRowData[firstLectureColIdx] = firstLecture || false;
 
       // 制作メモ（材料情報を含む）
-      let workInProgress = options.workInProgress || '';
-      if (options.materialInfo) {
-        workInProgress +=
-          CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + options.materialInfo;
+      let wipValue = workInProgress || '';
+      if (materialInfo) {
+        wipValue += CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfo;
       }
-      if (wipColIdx !== undefined) newRowData[wipColIdx] = workInProgress;
+      if (wipColIdx !== undefined) newRowData[wipColIdx] = wipValue;
 
       // その他の情報
-      if (orderColIdx !== undefined)
-        newRowData[orderColIdx] = String(options.order || '');
+      if (orderColIdx !== undefined) newRowData[orderColIdx] = String(order || '');
       if (messageColIdx !== undefined)
-        newRowData[messageColIdx] = options.messageToTeacher || '';
+        newRowData[messageColIdx] = messageToTeacher || '';
 
       integratedSheet
         .getRange(integratedSheet.getLastRow() + 1, 1, 1, newRowData.length)
@@ -496,7 +496,6 @@ function makeReservation(reservationInfo) {
         ? '予約が完了しました。'
         : '満席のため、空き連絡希望で登録しました。';
 
-      const messageToTeacher = options.messageToTeacher || '';
       const messageLog = messageToTeacher
         ? `, Message: ${messageToTeacher}`
         : '';
@@ -533,10 +532,6 @@ function makeReservation(reservationInfo) {
       // 予約確定メール送信（非同期・エラー時は予約処理に影響しない）
       Utilities.sleep(100); // 予約確定後の短い待機
       try {
-        // TODO: reservationInfoの型を統一するリファクタリングを行う。
-        // 現在はReservationRequest型をReservationInfo型として扱っているが、
-        // classroomTypeプロパティが不足している。現状のメール送信ロジックでは
-        // classroomTypeは使われていないため動作するが、将来的には修正が必要。
         sendBookingConfirmationEmailAsync(/** @type {any} */ (reservationInfo));
       } catch (emailError) {
         // メール送信エラーは予約成功に影響しない

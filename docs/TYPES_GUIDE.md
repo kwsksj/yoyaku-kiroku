@@ -149,12 +149,12 @@ makeReservation({
   user: {
     studentId: 'S-001',
     displayName: '太郎',
-    realName: '山田太郎'
+    realName: '山田太郎',
   },
   startTime: '10:00',
   endTime: '12:00',
   chiselRental: true,
-  firstLecture: false
+  firstLecture: false,
 });
 ```
 
@@ -208,9 +208,7 @@ const headerMap = getHeaderMap(sheet);
 const rows = sheet.getDataRange().getValues();
 
 /** @type {ReservationCore[]} */
-const reservations = rows.slice(1).map(row =>
-  convertRowToReservation(row, headerMap)
-);
+const reservations = rows.slice(1).map(row => convertRowToReservation(row, headerMap));
 ```
 
 ### Core型 → シートデータ
@@ -323,13 +321,13 @@ function makeReservation(reservationInfo) {
 /**
  * @param {ReservationInfo} info  // deprecated
  */
-function oldFunction(info) { }
+function oldFunction(info) {}
 
 // ✅ 正しい：新しい型を使う
 /**
  * @param {ReservationCore} reservation
  */
-function newFunction(reservation) { }
+function newFunction(reservation) {}
 ```
 
 ### 間違い3: Object型の使用
@@ -358,26 +356,26 @@ function processData(user) {
 
 ### よく使う型
 
-| 操作 | 使用する型 | ファイル |
-|:---|:---|:---|
-| 予約新規作成 | `ReservationCreateDto` | types/dto/reservation-dto.d.ts |
-| 予約更新 | `ReservationUpdateDto` | types/dto/reservation-dto.d.ts |
-| 予約キャンセル | `ReservationCancelDto` | types/dto/reservation-dto.d.ts |
-| 予約データ処理 | `ReservationCore` | types/core/reservation-core.d.ts |
-| ユーザー登録 | `UserRegistrationDto` | types/dto/user-dto.d.ts |
-| プロフィール更新 | `UserUpdateDto` | types/dto/user-dto.d.ts |
-| ユーザー情報処理 | `UserCore` | types/core/user-core.d.ts |
-| 会計入力 | `AccountingFormDto` | types/dto/accounting-dto.d.ts |
-| 会計保存 | `AccountingSaveDto` | types/dto/accounting-dto.d.ts |
+| 操作             | 使用する型             | ファイル                         |
+| :--------------- | :--------------------- | :------------------------------- |
+| 予約新規作成     | `ReservationCreateDto` | types/dto/reservation-dto.d.ts   |
+| 予約更新         | `ReservationUpdateDto` | types/dto/reservation-dto.d.ts   |
+| 予約キャンセル   | `ReservationCancelDto` | types/dto/reservation-dto.d.ts   |
+| 予約データ処理   | `ReservationCore`      | types/core/reservation-core.d.ts |
+| ユーザー登録     | `UserRegistrationDto`  | types/dto/user-dto.d.ts          |
+| プロフィール更新 | `UserUpdateDto`        | types/dto/user-dto.d.ts          |
+| ユーザー情報処理 | `UserCore`             | types/core/user-core.d.ts        |
+| 会計入力         | `AccountingFormDto`    | types/dto/accounting-dto.d.ts    |
+| 会計保存         | `AccountingSaveDto`    | types/dto/accounting-dto.d.ts    |
 
 ### よく使う変換関数
 
-| 関数名 | 変換 | 定義場所 |
-|:---|:---|:---|
+| 関数名                      | 変換                  | 定義場所        |
+| :-------------------------- | :-------------------- | :-------------- |
 | `convertRowToReservation()` | Row → ReservationCore | 08_Utilities.js |
 | `convertReservationToRow()` | ReservationCore → Row | 08_Utilities.js |
-| `convertRowToUser()` | Row → UserCore | 08_Utilities.js |
-| `convertUserToRow()` | UserCore → Row | 08_Utilities.js |
+| `convertRowToUser()`        | Row → UserCore        | 08_Utilities.js |
+| `convertUserToRow()`        | UserCore → Row        | 08_Utilities.js |
 
 ---
 
