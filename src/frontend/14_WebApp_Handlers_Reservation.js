@@ -76,7 +76,8 @@ const reservationActionHandlers = {
                 stateManager.setDataFetchProgress('lessons', false);
               } else {
                 // 講座データが不要な場合は既存データを保持
-                /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
+                /** @type {any} */ (updatedPayload).lessons =
+                  currentState.lessons;
               }
 
               window.stateManager.dispatch({
@@ -402,7 +403,8 @@ const reservationActionHandlers = {
               currentState.lessons.length > 0
             ) {
               // 既存の講座データを保持
-              /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
+              /** @type {any} */ (updatedPayload).lessons =
+                currentState.lessons;
             }
 
             window.stateManager.dispatch({
@@ -767,7 +769,8 @@ const reservationActionHandlers = {
                 // stateManager.setDataFreshness('lessons', true);
               } else {
                 // サーバーが講座データを返さない場合は既存データを保持
-                /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
+                /** @type {any} */ (updatedPayload).lessons =
+                  currentState.lessons;
               }
 
               window.stateManager.dispatch({

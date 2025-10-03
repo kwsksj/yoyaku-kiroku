@@ -1153,7 +1153,9 @@ function convertRowToUser(row, headerMap) {
     email: row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]]
       ? String(row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]])
       : undefined,
-    wantsEmail: Boolean(row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL]]),
+    wantsEmail: Boolean(
+      row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL]],
+    ),
     wantsScheduleNotification: Boolean(
       row[hm[CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO]],
     ),

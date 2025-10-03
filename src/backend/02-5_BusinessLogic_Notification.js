@@ -81,7 +81,8 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
             return resDate >= today;
           })
           .map(res => ({
-            date: typeof res.date === 'string' ? res.date : res.date.toISOString(),
+            date:
+              typeof res.date === 'string' ? res.date : res.date.toISOString(),
             startTime: res.startTime,
             endTime: res.endTime,
             status: res.status,

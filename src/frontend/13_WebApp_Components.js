@@ -292,7 +292,9 @@ const Components = {
             options
           )
             .map(
-              (/** @type {{value?: string; label?: string} | string} */ opt) => {
+              (
+                /** @type {{value?: string; label?: string} | string} */ opt,
+              ) => {
                 const value = typeof opt === 'string' ? opt : opt.value || '';
                 const label =
                   typeof opt === 'string' ? opt : opt.label || opt.value || '';

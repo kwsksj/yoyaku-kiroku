@@ -61,8 +61,7 @@ const authActionHandlers = {
     debugLog('🚀 統合ログイン開始 - 認証+データ一括取得');
 
     // 統合エンドポイントで認証とすべてのデータを一括取得
-    google.script.run['withSuccessHandler'](
-      (/** @type {any} */ response) => {
+    google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
       if (response.success && response.userFound) {
         debugLog(
           '✅ 統合ログイン成功 - ユーザー: ' + response.user.displayName,
@@ -121,8 +120,7 @@ const authActionHandlers = {
           },
         });
       }
-      },
-    )
+    })
       ['withFailureHandler']((/** @type {Error} */ err) => {
         debugLog('❌ 統合ログインエラー: ' + err.message);
         hideLoading();
@@ -419,31 +417,29 @@ const authActionHandlers = {
     showLoading();
 
     // バックエンドからユーザーの詳細情報を取得
-    google.script.run['withSuccessHandler'](
-      (/** @type {any} */ response) => {
-        hideLoading();
-        if (response.success && response.data) {
-          // 取得した詳細情報で currentUser を更新してプロフィール編集画面に遷移
-          window.stateManager.dispatch({
-            type: 'NAVIGATE',
-            payload: {
-              to: 'editProfile',
-              context: {
-                currentUser: {
-                  ...state.currentUser,
-                  ...response.data,
-                },
+    google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+      hideLoading();
+      if (response.success && response.data) {
+        // 取得した詳細情報で currentUser を更新してプロフィール編集画面に遷移
+        window.stateManager.dispatch({
+          type: 'NAVIGATE',
+          payload: {
+            to: 'editProfile',
+            context: {
+              currentUser: {
+                ...state.currentUser,
+                ...response.data,
               },
             },
-          });
-        } else {
-          showInfo(
-            response.message || 'プロフィール情報の取得に失敗しました。',
-            'エラー',
-          );
-        }
-      },
-    )
+          },
+        });
+      } else {
+        showInfo(
+          response.message || 'プロフィール情報の取得に失敗しました。',
+          'エラー',
+        );
+      }
+    })
       ['withFailureHandler']((/** @type {any} */ error) => {
         hideLoading();
         showInfo('プロフィール情報の取得中にエラーが発生しました。', 'エラー');

@@ -286,7 +286,10 @@ const getCompleteView = msg => {
 const getPrivacyPolicyModal = () => {
   // marked.jsライブラリが読み込まれていることを確認
   /** @type {any} */
-  const markedGlobal = typeof window !== 'undefined' ? /** @type {any} */ (window)['marked'] : undefined;
+  const markedGlobal =
+    typeof window !== 'undefined'
+      ? /** @type {any} */ (window)['marked']
+      : undefined;
   /** @type {any} */
   const markedLib = typeof markedGlobal !== 'undefined' ? markedGlobal : null;
 

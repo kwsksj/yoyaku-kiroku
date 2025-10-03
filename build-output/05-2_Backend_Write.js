@@ -615,7 +615,9 @@ function cancelReservation(cancelInfo) {
         targetDate instanceof Date ? targetDate : new Date(String(targetDate));
 
       // 【パフォーマンス最適化】 キャッシュからユーザー情報を取得（重複シートアクセス排除）
-      const userInfo = /** @type {UserCore} */ (getCachedStudentInfo(studentId));
+      const userInfo = /** @type {UserCore} */ (
+        getCachedStudentInfo(studentId)
+      );
 
       // 該当行のステータスのみを「キャンセル」に更新
       const updatedRowData = [...targetRowData];
@@ -887,7 +889,9 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
 
     if (shouldNotify) {
       // 生徒情報を取得
-      const studentInfo = /** @type {UserCore} */ (getCachedStudentInfo(String(studentId)));
+      const studentInfo = /** @type {UserCore} */ (
+        getCachedStudentInfo(String(studentId))
+      );
 
       if (studentInfo && studentInfo.email && studentInfo.email.trim() !== '') {
         // 空席連絡はメール配信希望設定に関わらず送信
@@ -1557,7 +1561,9 @@ function saveAccountingDetails(payload) {
         logDetails,
       );
 
-      const userInfo = /** @type {UserCore} */ (getCachedStudentInfo(studentId));
+      const userInfo = /** @type {UserCore} */ (
+        getCachedStudentInfo(studentId)
+      );
 
       const subject = `会計記録 (${classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
       const body =
