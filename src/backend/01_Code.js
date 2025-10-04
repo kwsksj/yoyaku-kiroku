@@ -1,6 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/constants.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================

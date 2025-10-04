@@ -106,17 +106,4 @@ interface ReservationCore {
   [key: `otherSales${string}`]: string | number | undefined;
 }
 
-/**
- * Sheets生データ（配列形式）
- *
- * Google Sheetsから直接取得した生データ
- * convertRowToReservation()でReservationCoreに変換する
- */
-type RawSheetRow = Array<string | Date | boolean | number | null>;
-
-/**
- * ヘッダーマップ型
- *
- * カラム名とインデックスの対応
- */
-type HeaderMapType = Record<string, number> | Map<string, number>;
+/// <reference path="./common.d.ts" />

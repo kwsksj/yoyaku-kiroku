@@ -1,5 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/constants.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -271,7 +270,7 @@ function _generateEmailBody(student, reservations, lessons) {
     body += `現在、予定されている日程はありません。\n\n`;
   } else {
     // 教室ごとにグループ化
-    /** @type {{ [key: string]: Lesson[] }} */
+    /** @type {{ [key: string]: SessionCore[] }} */
     const lessonsByClassroom = {};
     lessons.forEach(lesson => {
       const classroom = lesson.schedule.classroom;
@@ -413,7 +412,7 @@ function _notifyAdminAboutFailures(successCount, failCount) {
         `月次通知メールの送信が完了しました。\n\n` +
         `成功: ${successCount}件\n` +
         `失敗: ${failCount}件\n\n` +
-        `失敗の詳細はアクティビティログをご確認ください。`,
+        `失敗の詳細はログシートをご確認ください。`,
     });
   } catch (error) {
     Logger.log(`管理者通知送信エラー: ${error.message || error}`);

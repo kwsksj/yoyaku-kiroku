@@ -1,5 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -13,7 +12,7 @@
 
 /**
  * 開催予定の講座情報（空き枠情報を含む）を計算して返す
- * @returns {ApiResponse<Lesson[]>}
+ * @returns {ApiResponse<any[]>}
  */
 function getLessons() {
   try {
@@ -58,7 +57,7 @@ function getLessons() {
     );
     Logger.log(`=== 予約データ変換完了: ${convertedReservations.length}件 ===`);
 
-    /** @type {Map<string, Reservation[]>} */
+    /** @type {Map<string, ReservationCore[]>} */
     const reservationsByDateClassroom = new Map();
     const validReservations = convertedReservations.filter(reservation => {
       const reservationDate =
@@ -88,10 +87,10 @@ function getLessons() {
       }
       reservationsByDateClassroom
         .get(key)
-        ?.push(/** @type {Reservation} */ (reservation));
+        ?.push(/** @type {ReservationCore} */ (reservation));
     });
 
-    /** @type {Lesson[]} */
+    /** @type {any[]} */
     const lessons = [];
 
     scheduledDates.forEach(schedule => {
@@ -128,7 +127,7 @@ function getLessons() {
       const sessionCounts = new Map();
 
       reservationsForDate.forEach(
-        /** @param {Reservation} reservation */ reservation => {
+        /** @param {ReservationCore} reservation */ reservation => {
           // 教室形式別のセッション集計ロジック
           if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
             // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 2部制時間制
@@ -148,16 +147,16 @@ function getLessons() {
               // 1部（午前）：開始時刻が1部終了時刻以前
               if (startTime <= timeCache.firstEndTime) {
                 sessionCounts.set(
-                  CONSTANTS.SESSIONS.MORNING,
-                  (sessionCounts.get(CONSTANTS.SESSIONS.MORNING) || 0) + 1,
+                  CONSTANTS.TIME_SLOTS.MORNING,
+                  (sessionCounts.get(CONSTANTS.TIME_SLOTS.MORNING) || 0) + 1,
                 );
               }
 
               // 2部（午後）：終了時刻が2部開始時刻以降
               if (endTime >= timeCache.secondStartTime) {
                 sessionCounts.set(
-                  CONSTANTS.SESSIONS.AFTERNOON,
-                  (sessionCounts.get(CONSTANTS.SESSIONS.AFTERNOON) || 0) + 1,
+                  CONSTANTS.TIME_SLOTS.AFTERNOON,
+                  (sessionCounts.get(CONSTANTS.TIME_SLOTS.AFTERNOON) || 0) + 1,
                 );
               }
             }
@@ -172,8 +171,8 @@ function getLessons() {
           } else {
             // ${CONSTANTS.CLASSROOMS.NUMAZU}など: 全日時間制
             sessionCounts.set(
-              CONSTANTS.SESSIONS.ALL_DAY,
-              (sessionCounts.get(CONSTANTS.SESSIONS.ALL_DAY) || 0) + 1,
+              CONSTANTS.TIME_SLOTS.ALL_DAY,
+              (sessionCounts.get(CONSTANTS.TIME_SLOTS.ALL_DAY) || 0) + 1,
             );
           }
 
@@ -249,9 +248,10 @@ function getLessons() {
 
       if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
         // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 午前・午後セッション
-        const morningCount = sessionCounts.get(CONSTANTS.SESSIONS.MORNING) || 0;
+        const morningCount =
+          sessionCounts.get(CONSTANTS.TIME_SLOTS.MORNING) || 0;
         const afternoonCount =
-          sessionCounts.get(CONSTANTS.SESSIONS.AFTERNOON) || 0;
+          sessionCounts.get(CONSTANTS.TIME_SLOTS.AFTERNOON) || 0;
         const introCount =
           sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
 
@@ -396,7 +396,8 @@ function getLessons() {
         });
       } else {
         // 沼津教室など: 全日時間制
-        const allDayCount = sessionCounts.get(CONSTANTS.SESSIONS.ALL_DAY) || 0;
+        const allDayCount =
+          sessionCounts.get(CONSTANTS.TIME_SLOTS.ALL_DAY) || 0;
         const introCount =
           sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
 
@@ -464,7 +465,7 @@ function getLessons() {
       now.getMonth(),
       now.getDate(),
     );
-    /** @type {Lesson[]} */
+    /** @type {SessionCore[]} */
     const filteredLessons = lessons.filter(lesson => {
       const lessonDate = new Date(lesson.schedule.date);
 
@@ -499,11 +500,15 @@ function getLessons() {
     // 8. 日付・教室順でソート
     filteredLessons.sort((a, b) => {
       // レッスンオブジェクトの日付は既に文字列化済み
-      const dateA = new Date(a.schedule.date);
-      const dateB = new Date(b.schedule.date);
+      const aData = /** @type {any} */ (a);
+      const bData = /** @type {any} */ (b);
+      const dateA = new Date(aData.schedule?.date || aData.date);
+      const dateB = new Date(bData.schedule?.date || bData.date);
       const dateComp = dateA.getTime() - dateB.getTime();
       if (dateComp !== 0) return dateComp;
-      return a.schedule.classroom.localeCompare(b.schedule.classroom);
+      return (aData.schedule?.classroom || aData.classroom).localeCompare(
+        bData.schedule?.classroom || bData.classroom,
+      );
     });
 
     Logger.log(
@@ -513,12 +518,12 @@ function getLessons() {
       `=== lessons サンプル: ${JSON.stringify(filteredLessons.slice(0, 2))} ===`,
     );
     Logger.log('=== getLessons 正常終了 ===');
-    return /** @type {ApiResponse<Lesson[]>} */ (
-      createApiResponse(true, filteredLessons)
+    return /** @type {ApiResponse<any[]>} */ (
+      createApiResponse(true, { data: filteredLessons })
     );
   } catch (error) {
     Logger.log(`getLessons エラー: ${error.message}\n${error.stack}`);
-    return /** @type {ApiResponse<Lesson[]>} */ (
+    return /** @type {ApiResponse<any[]>} */ (
       BackendErrorHandler.handle(error, 'getLessons', { data: [] })
     );
   }
@@ -527,7 +532,7 @@ function getLessons() {
 /**
  * 特定の教室の講座情報のみを取得する
  * @param {string} classroom - 教室名
- * @returns {ApiResponse<Lesson[]>}
+ * @returns {ApiResponse<SessionCore[]>}
  */
 function getLessonsForClassroom(classroom) {
   const result = getLessons();
@@ -535,7 +540,7 @@ function getLessonsForClassroom(classroom) {
     // @ts-ignore
     return createApiResponse(false, { message: result.message, data: [] });
   }
-  return /** @type {ApiResponse<Lesson[]>} */ (
+  return /** @type {ApiResponse<SessionCore[]>} */ (
     createApiResponse(
       true,
       // @ts-ignore
@@ -547,7 +552,7 @@ function getLessonsForClassroom(classroom) {
 /**
  * 特定の生徒の予約データを取得する
  * @param {string} studentId - 生徒ID
- * @returns {ApiResponse<{ myReservations: Reservation[] }>}
+ * @returns {ApiResponse<{ myReservations: ReservationCore[] }>}
  */
 function getUserReservations(studentId) {
   try {
@@ -555,7 +560,9 @@ function getUserReservations(studentId) {
     Logger.log(`🔍 getUserReservations - studentId: ${studentId}`);
     Logger.log(`🔍 キャッシュ取得結果: ${reservationsCache ? 'あり' : 'なし'}`);
     if (reservationsCache) {
-      Logger.log(`🔍 キャッシュのキー: ${Object.keys(reservationsCache).join(', ')}`);
+      Logger.log(
+        `🔍 キャッシュのキー: ${Object.keys(reservationsCache).join(', ')}`,
+      );
     }
 
     /** @type {ReservationArrayData[]} */
@@ -571,7 +578,7 @@ function getUserReservations(studentId) {
       ? /** @type {HeaderMapType} */ (reservationsCache['headerMap'])
       : null;
 
-    /** @type {Reservation[]} */
+    /** @type {ReservationCore[]} */
     const myReservations = [];
 
     // 新しいヘルパー関数を使用してデータ変換を統一
@@ -587,7 +594,7 @@ function getUserReservations(studentId) {
 
       // キャンセル以外の予約のみを含める
       if (reservation.status !== CONSTANTS.STATUS.CANCELED) {
-        myReservations.push(/** @type {Reservation} */ (reservation));
+        myReservations.push(/** @type {ReservationCore} */ (reservation));
       }
     });
 
@@ -597,14 +604,14 @@ function getUserReservations(studentId) {
     );
 
     Logger.log(`生徒ID ${studentId} の予約を取得: ${myReservations.length} 件`);
-    return /** @type {ApiResponse<{ myReservations: Reservation[]; }>} */ (
+    return /** @type {ApiResponse<{ myReservations: ReservationCore[]; }>} */ (
       createApiResponse(true, {
         myReservations: myReservations,
       })
     );
   } catch (error) {
     Logger.log(`getUserReservations エラー: ${error.message}`);
-    return /** @type {ApiResponse<{ myReservations: Reservation[] }>} */ (
+    return /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */ (
       BackendErrorHandler.handle(error, 'getUserReservations', {
         data: { myReservations: [] },
       })

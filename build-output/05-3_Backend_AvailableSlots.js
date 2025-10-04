@@ -1,5 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -13,7 +12,7 @@
 
 /**
  * 開催予定の講座情報（空き枠情報を含む）を計算して返す
- * @returns {ApiResponse<Lesson[]>}
+ * @returns {ApiResponse<SessionCore[]>}
  */
 function getLessons() {
   try {
@@ -91,7 +90,7 @@ function getLessons() {
         ?.push(/** @type {Reservation} */ (reservation));
     });
 
-    /** @type {Lesson[]} */
+    /** @type {SessionCore[]} */
     const lessons = [];
 
     scheduledDates.forEach(schedule => {
@@ -148,16 +147,16 @@ function getLessons() {
               // 1部（午前）：開始時刻が1部終了時刻以前
               if (startTime <= timeCache.firstEndTime) {
                 sessionCounts.set(
-                  CONSTANTS.SESSIONS.MORNING,
-                  (sessionCounts.get(CONSTANTS.SESSIONS.MORNING) || 0) + 1,
+                  CONSTANTS.TIME_SLOTS.MORNING,
+                  (sessionCounts.get(CONSTANTS.TIME_SLOTS.MORNING) || 0) + 1,
                 );
               }
 
               // 2部（午後）：終了時刻が2部開始時刻以降
               if (endTime >= timeCache.secondStartTime) {
                 sessionCounts.set(
-                  CONSTANTS.SESSIONS.AFTERNOON,
-                  (sessionCounts.get(CONSTANTS.SESSIONS.AFTERNOON) || 0) + 1,
+                  CONSTANTS.TIME_SLOTS.AFTERNOON,
+                  (sessionCounts.get(CONSTANTS.TIME_SLOTS.AFTERNOON) || 0) + 1,
                 );
               }
             }
@@ -172,8 +171,8 @@ function getLessons() {
           } else {
             // ${CONSTANTS.CLASSROOMS.NUMAZU}など: 全日時間制
             sessionCounts.set(
-              CONSTANTS.SESSIONS.ALL_DAY,
-              (sessionCounts.get(CONSTANTS.SESSIONS.ALL_DAY) || 0) + 1,
+              CONSTANTS.TIME_SLOTS.ALL_DAY,
+              (sessionCounts.get(CONSTANTS.TIME_SLOTS.ALL_DAY) || 0) + 1,
             );
           }
 
@@ -249,9 +248,10 @@ function getLessons() {
 
       if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
         // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 午前・午後セッション
-        const morningCount = sessionCounts.get(CONSTANTS.SESSIONS.MORNING) || 0;
+        const morningCount =
+          sessionCounts.get(CONSTANTS.TIME_SLOTS.MORNING) || 0;
         const afternoonCount =
-          sessionCounts.get(CONSTANTS.SESSIONS.AFTERNOON) || 0;
+          sessionCounts.get(CONSTANTS.TIME_SLOTS.AFTERNOON) || 0;
         const introCount =
           sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
 
@@ -396,7 +396,8 @@ function getLessons() {
         });
       } else {
         // 沼津教室など: 全日時間制
-        const allDayCount = sessionCounts.get(CONSTANTS.SESSIONS.ALL_DAY) || 0;
+        const allDayCount =
+          sessionCounts.get(CONSTANTS.TIME_SLOTS.ALL_DAY) || 0;
         const introCount =
           sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
 
@@ -464,7 +465,7 @@ function getLessons() {
       now.getMonth(),
       now.getDate(),
     );
-    /** @type {Lesson[]} */
+    /** @type {SessionCore[]} */
     const filteredLessons = lessons.filter(lesson => {
       const lessonDate = new Date(lesson.schedule.date);
 
@@ -513,12 +514,12 @@ function getLessons() {
       `=== lessons サンプル: ${JSON.stringify(filteredLessons.slice(0, 2))} ===`,
     );
     Logger.log('=== getLessons 正常終了 ===');
-    return /** @type {ApiResponse<Lesson[]>} */ (
+    return /** @type {ApiResponse<SessionCore[]>} */ (
       createApiResponse(true, filteredLessons)
     );
   } catch (error) {
     Logger.log(`getLessons エラー: ${error.message}\n${error.stack}`);
-    return /** @type {ApiResponse<Lesson[]>} */ (
+    return /** @type {ApiResponse<SessionCore[]>} */ (
       BackendErrorHandler.handle(error, 'getLessons', { data: [] })
     );
   }
@@ -527,7 +528,7 @@ function getLessons() {
 /**
  * 特定の教室の講座情報のみを取得する
  * @param {string} classroom - 教室名
- * @returns {ApiResponse<Lesson[]>}
+ * @returns {ApiResponse<SessionCore[]>}
  */
 function getLessonsForClassroom(classroom) {
   const result = getLessons();
@@ -535,7 +536,7 @@ function getLessonsForClassroom(classroom) {
     // @ts-ignore
     return createApiResponse(false, { message: result.message, data: [] });
   }
-  return /** @type {ApiResponse<Lesson[]>} */ (
+  return /** @type {ApiResponse<SessionCore[]>} */ (
     createApiResponse(
       true,
       // @ts-ignore
@@ -555,7 +556,9 @@ function getUserReservations(studentId) {
     Logger.log(`🔍 getUserReservations - studentId: ${studentId}`);
     Logger.log(`🔍 キャッシュ取得結果: ${reservationsCache ? 'あり' : 'なし'}`);
     if (reservationsCache) {
-      Logger.log(`🔍 キャッシュのキー: ${Object.keys(reservationsCache).join(', ')}`);
+      Logger.log(
+        `🔍 キャッシュのキー: ${Object.keys(reservationsCache).join(', ')}`,
+      );
     }
 
     /** @type {ReservationArrayData[]} */

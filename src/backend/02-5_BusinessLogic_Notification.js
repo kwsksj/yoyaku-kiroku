@@ -1,5 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/constants.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -39,6 +38,7 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
       Logger.log('日程データの取得に失敗しました');
       return;
     }
+    /** @type {any[]} */
     const scheduleData = lessonsResponse.data;
     Logger.log(`取得した日程データ: ${scheduleData.length}件`);
 
@@ -219,7 +219,7 @@ function _getNotificationRecipients(targetDay, targetHour) {
  * メール本文を生成
  * @param {{studentId: string, realName: string, nickname: string, email: string}} student - 生徒情報
  * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒の予約一覧
- * @param {Array<Lesson>} lessons - 今後の日程一覧（getLessons()の結果）
+ * @param {Array<any>} lessons - 今後の日程一覧（getLessons()の結果）
  * @returns {string} メール本文
  * @private
  */
@@ -271,7 +271,7 @@ function _generateEmailBody(student, reservations, lessons) {
     body += `現在、予定されている日程はありません。\n\n`;
   } else {
     // 教室ごとにグループ化
-    /** @type {{ [key: string]: Lesson[] }} */
+    /** @type {{ [key: string]: SessionCore[] }} */
     const lessonsByClassroom = {};
     lessons.forEach(lesson => {
       const classroom = lesson.schedule.classroom;
@@ -295,8 +295,8 @@ function _generateEmailBody(student, reservations, lessons) {
       body += `${classroomInfo.label}\n`;
 
       for (const lesson of lessonsByClassroom[classroom]) {
-        const schedule = lesson.schedule;
-        const status = lesson.status;
+        const schedule = /** @type {any} */ (lesson).schedule || lesson;
+        const status = /** @type {any} */ (lesson).status || {};
         const lessonDate = new Date(schedule.date);
         const monthDay = `${lessonDate.getMonth() + 1}/${String(lessonDate.getDate()).padStart(2, ' ')}`;
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
@@ -413,7 +413,7 @@ function _notifyAdminAboutFailures(successCount, failCount) {
         `月次通知メールの送信が完了しました。\n\n` +
         `成功: ${successCount}件\n` +
         `失敗: ${failCount}件\n\n` +
-        `失敗の詳細はアクティビティログをご確認ください。`,
+        `失敗の詳細はログシートをご確認ください。`,
     });
   } catch (error) {
     Logger.log(`管理者通知送信エラー: ${error.message || error}`);

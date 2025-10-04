@@ -1,5 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/constants.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -90,8 +89,8 @@ const CONSTANTS = {
     SALES_LOG: '売上ログ', // 別スプレッドシート
   },
 
-  // セッション関連
-  SESSIONS: {
+  // 時間帯区分（2部制教室用）
+  TIME_SLOTS: {
     MORNING: '午前',
     AFTERNOON: '午後',
     ALL_DAY: '全日',
@@ -162,7 +161,7 @@ const CONSTANTS = {
 
   // シート別ヘッダー定数
   HEADERS: {
-    // 統合予約シート（短縮名: RESERVATIONS）
+    // 予約記録シート（短縮名: RESERVATIONS）
     RESERVATIONS: {
       RESERVATION_ID: '予約ID',
       STUDENT_ID: '生徒ID',

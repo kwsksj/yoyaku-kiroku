@@ -1,7 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
-/// <reference path="../../types/core/index.d.ts" />
-/// <reference path="../../types/dto/index.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -136,10 +133,10 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
       return false; // エラー時は予約を通す（保守的な動作）
     }
 
-    const slotsData = availableSlotsResponse.data;
+    const slotsData = /** @type {any[]} */ (availableSlotsResponse.data);
     const targetSlot = slotsData.find(
-      /** @type {function(*): boolean} */ slot =>
-        slot.schedule.classroom === classroom && slot.schedule.date === date,
+      slot =>
+        slot.schedule?.classroom === classroom && slot.schedule?.date === date,
     );
 
     if (!targetSlot) {
@@ -147,7 +144,7 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
       return false; // 対象日程が見つからない場合は予約を通す
     }
 
-    const status = targetSlot.status;
+    const status = targetSlot.status || {};
     let isFull = false;
 
     // 教室タイプに応じた満席判定
@@ -159,7 +156,7 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
       const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
       const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
 
-      const schedule = targetSlot.schedule;
+      const schedule = targetSlot.schedule || {};
       const firstEndTime = schedule.firstEnd
         ? new Date(`1900-01-01T${schedule.firstEnd}`)
         : null;
@@ -259,7 +256,7 @@ function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
  * 予約を実行します（Phase 3: 型システム統一対応）
  *
  * @param {ReservationCreateDto} reservationInfo - 予約作成リクエストDTO
- * @returns {ApiResponseGeneric<MakeReservationResult>} - 処理結果
+ * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
  *
  * @example
  * const result = makeReservation({
@@ -295,7 +292,7 @@ function makeReservation(reservationInfo) {
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
-      if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
+      if (!integratedSheet) throw new Error('予約記録シートが見つかりません。');
 
       // 日程マスタから該当日・教室の情報を取得
       const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
@@ -386,7 +383,7 @@ function makeReservation(reservationInfo) {
 
       // 新しい予約IDを生成
       const newReservationId = Utilities.getUuid();
-      // 日付文字列をDateオブジェクトに変換（統合予約シートに適した形式）
+      // 日付文字列をDateオブジェクトに変換（予約記録シートに適した形式）
       const targetDate = new Date(date + 'T00:00:00+09:00');
 
       // 会場情報を取得（reservationInfoまたは同日同教室の既存予約から）
@@ -410,7 +407,7 @@ function makeReservation(reservationInfo) {
         }
       }
 
-      // 新しい予約行のデータを作成（統合予約シートの形式）
+      // 新しい予約行のデータを作成（予約記録シートの形式）
       const newRowData = new Array(header.length).fill('');
 
       // 基本予約情報
@@ -454,11 +451,11 @@ function makeReservation(reservationInfo) {
         newRowData[firstLectureColIdx] = firstLecture || false;
 
       // 制作メモ
-      if (wipColIdx !== undefined)
-        newRowData[wipColIdx] = workInProgress || '';
+      if (wipColIdx !== undefined) newRowData[wipColIdx] = workInProgress || '';
 
       // その他の情報
-      if (orderColIdx !== undefined) newRowData[orderColIdx] = String(order || '');
+      if (orderColIdx !== undefined)
+        newRowData[orderColIdx] = String(order || '');
       if (messageColIdx !== undefined)
         newRowData[messageColIdx] = messageToTeacher || '';
 
@@ -468,7 +465,7 @@ function makeReservation(reservationInfo) {
 
       SpreadsheetApp.flush();
 
-      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      // 予約記録シートの更新後、インクリメンタルキャッシュ更新（高速化）
       try {
         Logger.log('[RESERVATION] インクリメンタルキャッシュ更新実行');
         addReservationToCache(newRowData, headerMap);
@@ -576,7 +573,7 @@ function cancelReservation(cancelInfo) {
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
-      if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
+      if (!integratedSheet) throw new Error('予約記録シートが見つかりません。');
 
       const searchResult = getSheetDataWithSearch(
         integratedSheet,
@@ -621,7 +618,7 @@ function cancelReservation(cancelInfo) {
 
       SpreadsheetApp.flush();
 
-      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      // 予約記録シートの更新後、インクリメンタルキャッシュ更新（高速化）
       try {
         Logger.log('[CANCEL] インクリメンタルキャッシュ更新実行');
         updateReservationStatusInCache(
@@ -1189,7 +1186,7 @@ function updateReservationDetails(details) {
       }
       // --- 定員チェックここまで ---
 
-      // 統合予約シートを取得
+      // 予約記録シートを取得
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
@@ -1276,7 +1273,7 @@ function updateReservationDetails(details) {
 
       SpreadsheetApp.flush();
 
-      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      // 予約記録シートの更新後、インクリメンタルキャッシュ更新（高速化）
       try {
         Logger.log('[UPDATE] インクリメンタルキャッシュ更新実行');
         updateReservationInCache(
@@ -1340,7 +1337,7 @@ function updateReservationDetails(details) {
  * [設計思想] フロントエンドは「ユーザーが何を選択したか」という入力情報のみを渡し、
  * バックエンドが料金マスタと照合して金額を再計算・検証する責務を持つ。
  * これにより、フロントエンドのバグが誤った会計データを生成することを防ぎ、システムの堅牢性を高める。
- * @param {AccountingDetailsPayload} payload - フロントエンドから渡される会計情報ペイロード。
+ * @param {AccountingPayload} payload - フロントエンドから渡される会計情報ペイロード。
  * @returns {ApiResponseGeneric<{message: string}>} - 処理結果。
  */
 function saveAccountingDetails(payload) {
@@ -1891,7 +1888,7 @@ function confirmWaitlistedReservation(confirmInfo) {
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
-      if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
+      if (!integratedSheet) throw new Error('予約記録シートが見つかりません。');
 
       // シートから対象行を検索（更新用）
       const searchResult = getSheetDataWithSearch(

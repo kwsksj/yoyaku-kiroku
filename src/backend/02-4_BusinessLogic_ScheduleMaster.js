@@ -1,4 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================

@@ -1,8 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/constants.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
-/// <reference path="../../types/core/index.d.ts" />
-/// <reference path="../../types/dto/index.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -85,7 +81,7 @@ function formatDateTimeValue(dateValue, type) {
  *
  * 【主要機能】:
  * ✅ 統合データキャッシュ管理
- *   - 全予約データ（統合予約シート）
+ *   - 全予約データ（予約記録シート）
  *   - 生徒基本情報（生徒名簿）
  *   - 日程マスターデータ
  *   - 会計マスターデータ
@@ -618,10 +614,10 @@ function shouldRebuildReservationCache() {
 }
 
 /**
- * 統合予約シートから全予約データを読み込み、CacheServiceに保存する
+ * 予約記録シートから全予約データを読み込み、CacheServiceに保存する
  * 日付・時刻列を適切にフォーマットして配列形式でキャッシュに保存します。
  *
- * @throws {Error} 統合予約シートが見つからない場合
+ * @throws {Error} 予約記録シートが見つからない場合
  * @throws {Error} データ処理中にエラーが発生した場合
  */
 function rebuildAllReservationsCache() {
@@ -1455,7 +1451,7 @@ function updateScheduleStatusToCompleted() {
  * - 日程マスタのステータス自動更新（開催予定 → 開催済み）
  * - 全キャッシュデータの定期再構築
  * - エラー発生時のログ記録
- * - アクティビティログの記録
+ * - ログシートの記録
  *
  * @throws {Error} ロック取得失敗やキャッシュ再構築中のエラーは内部でキャッチされログに記録
  */

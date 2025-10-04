@@ -1,6 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/constants.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -287,12 +285,12 @@ function sendAdminNotification(subject, body) {
 }
 
 /**
- * アクティビティログシートに、定義済みの条件付き書式を一括で設定します。
+ * ログシートシートに、定義済みの条件付き書式を一括で設定します。
  * F列は自身の値、G列はE列の値に基づいて背景色が設定されます。
  * 実行前に既存のルールはすべてクリアされるため、常に新しい状態でルールが適用されます。
  */
 function setupConditionalFormattingForLogSheet() {
-  const sheetName = 'アクティビティログ';
+  const sheetName = 'ログシート';
   const ss = getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
 
@@ -400,9 +398,7 @@ function setupConditionalFormattingForLogSheet() {
   sheet.clearConditionalFormatRules();
   sheet.setConditionalFormatRules(rules);
 
-  SpreadsheetApp.getUi().alert(
-    'アクティビティログの条件付き書式を更新しました。',
-  );
+  SpreadsheetApp.getUi().alert('ログシートの条件付き書式を更新しました。');
 }
 
 // ===================================================================
@@ -963,9 +959,6 @@ function formatPhoneNumber(phoneNumber) {
 // ===================================================================
 // 型変換関数群（Phase 3: 型システム統一）
 // ===================================================================
-
-/// <reference path="../../types/core/index.d.ts" />
-/// <reference path="../../types/dto/index.d.ts" />
 
 /**
  * Sheets生データ（配列）→ ReservationCore に変換

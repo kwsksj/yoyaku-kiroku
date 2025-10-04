@@ -9,16 +9,8 @@
  * - ユーティリティ層：共通処理
  */
 
-// @ts-nocheck
-
-/**
- * @typedef {Object} ClassifiedAccountingItems
- * @property {Object} tuition
- * @property {Array} tuition.items - 全ての授業料・割引項目
- * @property {Object} sales
- * @property {Array} sales.materialItems
- * @property {Array} sales.productItems
- */
+// @ts-check
+/// <reference path="../../types/index.d.ts" />
 
 // ================================================================================
 // 【ユーティリティ層】
@@ -45,7 +37,7 @@ function clearAccountingCache() {
  * 会計マスタデータを項目種別に分類
  * @param {Array} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
- * @returns {ClassifiedAccountingItems} 分類済み会計項目
+ * @returns {ClassifiedAccountingItemsCore} 分類済み会計項目
  */
 function classifyAccountingItems(masterData, classroom) {
   const result = {
@@ -96,8 +88,8 @@ function calculateTimeUnits(startTime, endTime, breakTime = 0) {
 
 /**
  * 授業料小計計算
- * @param {AccountingFormData} formData - フォームデータ
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {AccountingFormDto} formData - フォームデータ
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  * @returns {Object} 授業料計算結果
  */
@@ -153,8 +145,8 @@ function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
 
 /**
  * 販売小計計算
- * @param {AccountingFormData} formData - フォームデータ
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {AccountingFormDto} formData - フォームデータ
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @returns {Object} 販売計算結果
  */
 function calculateSalesSubtotal(formData, classifiedItems) {
@@ -219,7 +211,7 @@ function calculateSalesSubtotal(formData, classifiedItems) {
 
 /**
  * 統合計算
- * @param {AccountingFormData} formData - フォームデータ
+ * @param {AccountingFormDto} formData - フォームデータ
  * @param {Array} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
  * @returns {Object} 統合計算結果
@@ -403,9 +395,9 @@ function generateTimeOptions(selectedValue = '') {
 
 /**
  * 授業料セクション生成（Components.js活用）
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
- * @param {AccountingFormData} formData - フォームデータ
+ * @param {AccountingFormDto} formData - フォームデータ
  * @returns {string} HTML文字列
  */
 function generateTuitionSection(classifiedItems, classroom, formData = {}) {
@@ -631,8 +623,8 @@ function generateMaterialRow(materialItems, index = 0, materialData = {}) {
 
 /**
  * 販売セクション生成（Components.js活用）
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
- * @param {AccountingFormData} formData - フォームデータ
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
+ * @param {AccountingFormDto} formData - フォームデータ
  * @returns {string} HTML文字列
  */
 function generateSalesSection(classifiedItems, formData = {}) {
@@ -808,9 +800,9 @@ function generateAccountingReservationCard(reservationData) {
 
 /**
  * メイン会計画面生成（Components.js活用）
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
- * @param {AccountingFormData} formData - フォームデータ
+ * @param {AccountingFormDto} formData - フォームデータ
  * @param {Object} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} HTML文字列
  */
@@ -983,7 +975,7 @@ const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
 
 /**
  * 会計システムのイベントリスナー設定
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
 function setupAccountingEventListeners(classifiedItems, classroom) {
@@ -1079,7 +1071,7 @@ function setupAccountingEventListeners(classifiedItems, classroom) {
 /**
  * 会計入力変更時の処理
  * @param {Event} event - 変更イベント
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
 function handleAccountingInputChange(event, classifiedItems, classroom) {
@@ -1457,7 +1449,7 @@ function removeCustomSalesRow(index) {
 
 /**
  * 会計計算更新
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
 function updateAccountingCalculation(classifiedItems, classroom) {
@@ -1788,9 +1780,9 @@ function updateConfirmButtonState() {
 
 /**
  * 新フォームデータを既存バックエンド形式に変換
- * @param {AccountingFormData} formData - 新フォームデータ
+ * @param {AccountingFormDto} formData - 新フォームデータ
  * @param {Object} result - 計算結果
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @returns {Object} 既存バックエンド形式のuserInput
  */
 function convertToLegacyFormat(formData, result, classifiedItems) {
@@ -2005,7 +1997,7 @@ function generatePaymentConfirmModal(result, paymentMethod) {
 
 /**
  * 支払い確認モーダルを表示する処理
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
 function showPaymentConfirmModal(classifiedItems, classroom) {
@@ -2264,9 +2256,9 @@ function handleSaveMemo(target) {
 
 /**
  * 実際の会計処理を実行
- * @param {AccountingFormData} formData - フォームデータ
+ * @param {AccountingFormDto} formData - フォームデータ
  * @param {Object} result - 計算結果
- * @param {ClassifiedAccountingItems} classifiedItems - 分類済み会計項目
+ * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
 function processAccountingPayment(
@@ -2418,7 +2410,7 @@ function collectMemoData() {
 
 /**
  * フォームデータ収集
- * @returns {AccountingFormData} 収集されたフォームデータ
+ * @returns {AccountingFormDto} 収集されたフォームデータ
  */
 function collectAccountingFormData() {
   const formData = {};
@@ -2571,7 +2563,7 @@ function collectAccountingFormData() {
 
 /**
  * 会計キャッシュ保存
- * @param {AccountingFormData} formData - 保存するフォームデータ
+ * @param {AccountingFormDto} formData - 保存するフォームデータ
  */
 function saveAccountingCache(formData) {
   try {
@@ -2590,7 +2582,7 @@ function saveAccountingCache(formData) {
 
 /**
  * 会計キャッシュ読込
- * @returns {AccountingFormData} 読み込まれたフォームデータ
+ * @returns {AccountingFormDto} 読み込まれたフォームデータ
  */
 function loadAccountingCache() {
   try {
@@ -2619,7 +2611,7 @@ function loadAccountingCache() {
  * 会計システム初期化関数
  * @param {Array} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
- * @param {AccountingFormData} initialFormData - 初期フォームデータ
+ * @param {AccountingFormDto} initialFormData - 初期フォームデータ
  * @param {Object} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} 生成された会計画面HTML
  */

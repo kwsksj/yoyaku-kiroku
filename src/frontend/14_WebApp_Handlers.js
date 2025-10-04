@@ -1,8 +1,5 @@
 // @ts-check
-/// <reference path="../../types/dev-environment.d.ts" />
-/// <reference path="../../types/html-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
-/// <reference path="../../types/accounting.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================

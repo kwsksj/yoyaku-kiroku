@@ -141,10 +141,3 @@ type ReservationApiDto = Pick<
   | 'firstLecture'
 >;
 
-/**
- * 予約詳細取得応答DTO
- *
- * 予約詳細を取得する際のAPI応答
- * ReservationCoreの完全な情報を返す
- */
-type ReservationDetailDto = ReservationCore;

@@ -1,7 +1,5 @@
 // @ts-check
-/// <reference path="../../types/dev-environment.d.ts" />
-/// <reference path="../../types/html-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -102,7 +100,11 @@ const authActionHandlers = {
           },
         });
 
-        console.log('✅ dispatch完了 - 現在のstate:', window.stateManager.getState().myReservations?.length, '件の予約');
+        console.log(
+          '✅ dispatch完了 - 現在のstate:',
+          window.stateManager.getState().myReservations?.length,
+          '件の予約',
+        );
 
         // 通知設定チェック：日程連絡希望ONで通知設定が未設定の場合に喚起
         if (

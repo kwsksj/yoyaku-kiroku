@@ -1,6 +1,5 @@
 // @ts-check
-/// <reference path="../../types/html-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -64,7 +63,7 @@ class SimpleStateManager {
       registrationPhone: null,
 
       // --- Core Application Data ---
-      /** @type {LessonData[]} */
+      /** @type {SessionCore[]} */
       lessons: [],
       /** @type {ReservationData[]} */
       myReservations: [],
@@ -80,7 +79,7 @@ class SimpleStateManager {
       editingReservationIds: new Set(),
       editingMemo: null, // { reservationId: string, originalValue: string } | null
       memoInputChanged: false,
-      /** @type {LessonData | null} */
+      /** @type {SessionCore | null} */
       selectedLesson: null,
       /** @type {ReservationDetails | null} */
       editingReservationDetails: null,

@@ -317,11 +317,11 @@ declare global {
   // 会計詳細型定義
   interface AccountingDetails {
     tuition: {
-      items: AccountingMasterItem[];
+      items: Array<AccountingMasterItem | { name: string; price: number }>;
       subtotal: number;
     };
     sales: {
-      items: AccountingMasterItem[];
+      items: Array<AccountingMasterItem | { name: string; price: number }>;
       subtotal: number;
     };
     grandTotal: number;
@@ -462,6 +462,7 @@ declare global {
     message?: string;
     context?: string;
     debug?: Record<string, unknown>;
+    [key: string]: unknown; // 動的プロパティを許可
   }
 }
 

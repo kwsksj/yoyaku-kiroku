@@ -1,7 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
-/// <reference path="../../types/core/index.d.ts" />
-/// <reference path="../../types/dto/index.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -147,7 +144,7 @@ function authenticateUserLightweight(phoneNumber) {
 /**
  * キャッシュデータから個人用データを抽出する
  * @param {string} studentId - 生徒ID
- * @param {AppInitialData} cacheData - getAppInitialDataから取得したキャッシュデータ
+ * @param {{allReservationsCache: ReservationCacheData}} cacheData - getAppInitialDataから取得したキャッシュデータ
  * @returns {PersonalDataResult} - 個人の予約、履歴、利用可能枠データ
  */
 function extractPersonalDataFromCache(studentId, cacheData) {
@@ -655,7 +652,7 @@ function requestAccountDeletion(studentId) {
 /**
  * プロフィール編集用にユーザーの詳細情報をシートから取得します。
  * @param {string} studentId - 生徒ID
- * @returns {ApiResponseGeneric<UserDetailForEdit>}
+ * @returns {ApiResponseGeneric<UserCore>}
  */
 function getUserDetailForEdit(studentId) {
   try {

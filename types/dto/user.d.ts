@@ -59,10 +59,10 @@ interface UserRegistrationDto
  * };
  * ```
  */
-type UserUpdateDto = Partial<UserCore> & {
+interface UserUpdateDto extends Partial<UserCore> {
   /** 生徒ID（必須） */
   studentId: string;
-};
+}
 
 /**
  * ユーザー情報API応答DTO（最小限）
@@ -90,26 +90,6 @@ interface UserInfoDto {
   realName: string;
 }
 
-/**
- * プロフィール編集画面用DTO
- *
- * プロフィール編集画面で表示・編集するための完全なユーザー情報
- * UserCoreのエイリアス
- *
- * @example
- * ```typescript
- * const profileDto: UserProfileDto = {
- *   studentId: 'S-001',
- *   phone: '09012345678',
- *   realName: '山田太郎',
- *   displayName: '太郎',
- *   nickname: '太郎',
- *   email: 'taro@example.com',
- *   // ... その他全フィールド
- * };
- * ```
- */
-type UserProfileDto = UserCore;
 
 /**
  * ユーザー認証応答DTO

@@ -1,7 +1,4 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
-/// <reference path="../../types/core/index.d.ts" />
-/// <reference path="../../types/dto/index.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -259,7 +256,7 @@ function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
  * 予約を実行します（Phase 3: 型システム統一対応）
  *
  * @param {ReservationCreateDto} reservationInfo - 予約作成リクエストDTO
- * @returns {ApiResponseGeneric<MakeReservationResult>} - 処理結果
+ * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
  *
  * @example
  * const result = makeReservation({
@@ -295,7 +292,7 @@ function makeReservation(reservationInfo) {
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
-      if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
+      if (!integratedSheet) throw new Error('予約記録シートが見つかりません。');
 
       // 日程マスタから該当日・教室の情報を取得
       const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
@@ -386,7 +383,7 @@ function makeReservation(reservationInfo) {
 
       // 新しい予約IDを生成
       const newReservationId = Utilities.getUuid();
-      // 日付文字列をDateオブジェクトに変換（統合予約シートに適した形式）
+      // 日付文字列をDateオブジェクトに変換（予約記録シートに適した形式）
       const targetDate = new Date(date + 'T00:00:00+09:00');
 
       // 会場情報を取得（reservationInfoまたは同日同教室の既存予約から）
@@ -410,7 +407,7 @@ function makeReservation(reservationInfo) {
         }
       }
 
-      // 新しい予約行のデータを作成（統合予約シートの形式）
+      // 新しい予約行のデータを作成（予約記録シートの形式）
       const newRowData = new Array(header.length).fill('');
 
       // 基本予約情報
@@ -454,11 +451,11 @@ function makeReservation(reservationInfo) {
         newRowData[firstLectureColIdx] = firstLecture || false;
 
       // 制作メモ
-      if (wipColIdx !== undefined)
-        newRowData[wipColIdx] = workInProgress || '';
+      if (wipColIdx !== undefined) newRowData[wipColIdx] = workInProgress || '';
 
       // その他の情報
-      if (orderColIdx !== undefined) newRowData[orderColIdx] = String(order || '');
+      if (orderColIdx !== undefined)
+        newRowData[orderColIdx] = String(order || '');
       if (messageColIdx !== undefined)
         newRowData[messageColIdx] = messageToTeacher || '';
 
@@ -468,7 +465,7 @@ function makeReservation(reservationInfo) {
 
       SpreadsheetApp.flush();
 
-      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      // 予約記録シートの更新後、インクリメンタルキャッシュ更新（高速化）
       try {
         Logger.log('[RESERVATION] インクリメンタルキャッシュ更新実行');
         addReservationToCache(newRowData, headerMap);
@@ -576,7 +573,7 @@ function cancelReservation(cancelInfo) {
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
-      if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
+      if (!integratedSheet) throw new Error('予約記録シートが見つかりません。');
 
       const searchResult = getSheetDataWithSearch(
         integratedSheet,
@@ -621,7 +618,7 @@ function cancelReservation(cancelInfo) {
 
       SpreadsheetApp.flush();
 
-      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      // 予約記録シートの更新後、インクリメンタルキャッシュ更新（高速化）
       try {
         Logger.log('[CANCEL] インクリメンタルキャッシュ更新実行');
         updateReservationStatusInCache(
@@ -1189,7 +1186,7 @@ function updateReservationDetails(details) {
       }
       // --- 定員チェックここまで ---
 
-      // 統合予約シートを取得
+      // 予約記録シートを取得
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
@@ -1276,7 +1273,7 @@ function updateReservationDetails(details) {
 
       SpreadsheetApp.flush();
 
-      // 統合予約シートの更新後、インクリメンタルキャッシュ更新（高速化）
+      // 予約記録シートの更新後、インクリメンタルキャッシュ更新（高速化）
       try {
         Logger.log('[UPDATE] インクリメンタルキャッシュ更新実行');
         updateReservationInCache(
@@ -1891,7 +1888,7 @@ function confirmWaitlistedReservation(confirmInfo) {
       const integratedSheet = getSheetByName(
         CONSTANTS.SHEET_NAMES.RESERVATIONS,
       );
-      if (!integratedSheet) throw new Error('統合予約シートが見つかりません。');
+      if (!integratedSheet) throw new Error('予約記録シートが見つかりません。');
 
       // シートから対象行を検索（更新用）
       const searchResult = getSheetDataWithSearch(

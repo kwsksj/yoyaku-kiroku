@@ -1,5 +1,5 @@
 // @ts-check
-/// <reference path="../../types/dev-environment.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================

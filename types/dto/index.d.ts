@@ -6,9 +6,10 @@
  * =================================================================
  */
 
-/// <reference path="./reservation-dto.d.ts" />
-/// <reference path="./user-dto.d.ts" />
-/// <reference path="./accounting-dto.d.ts" />
+/// <reference path="./common.d.ts" />
+/// <reference path="./reservation.d.ts" />
+/// <reference path="./user.d.ts" />
+/// <reference path="./accounting.d.ts" />
 
 /**
  * DTO型定義の統合エクスポート
@@ -18,21 +19,28 @@
  *
  * これにより以下の型が利用可能:
  *
- * 【予約関連DTO】
+ * 【共通DTO】(common.d.ts)
+ * - ApiResponse<T> - 汎用APIレスポンス
+ * - ApiError - エラーレスポンス
+ * - AppInitialDataDto - アプリ初期化データ
+ * - BatchDataRequest/Response - バッチデータ取得
+ * - PaginatedResponse<T> - ページネーション付きレスポンス
+ *
+ * 【予約関連DTO】(reservation.d.ts)
  * - ReservationCreateDto - 予約作成リクエスト
  * - ReservationUpdateDto - 予約更新リクエスト
  * - ReservationCancelDto - 予約キャンセルリクエスト
  * - ReservationApiDto - 予約API応答（軽量版）
  * - ReservationDetailDto - 予約詳細応答
  *
- * 【ユーザー関連DTO】
+ * 【ユーザー関連DTO】(user.d.ts)
  * - UserRegistrationDto - 新規ユーザー登録リクエスト
  * - UserUpdateDto - ユーザー情報更新リクエスト
  * - UserInfoDto - ユーザー情報API応答（最小限）
  * - UserProfileDto - プロフィール編集用
  * - UserAuthResponseDto - 認証応答
  *
- * 【会計関連DTO】
+ * 【会計関連DTO】(accounting.d.ts)
  * - AccountingFormDto - 会計フォーム入力
  * - AccountingSaveDto - 会計詳細保存リクエスト
  * - AccountingCalculationResultDto - 会計計算結果応答

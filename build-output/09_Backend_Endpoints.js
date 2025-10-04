@@ -1,5 +1,3 @@
-/// <reference path="../../types/gas-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
 /// <reference path="../../types/index.d.ts" />
 
 /**
@@ -43,7 +41,7 @@
 /**
  * 予約操作後に最新データを取得して返す汎用関数
  * @param {Function} operationFunction - 実行する操作関数
- * @param {ReservationInfo|CancelInfo|ReservationDetails|any} operationParams - 操作関数に渡すパラメータ
+ * @param {ReservationCreateDto|ReservationCancelDto|ReservationUpdateDto|any} operationParams - 操作関数に渡すパラメータ
  * @param {string} studentId - 対象生徒のID
  * @param {string} successMessage - 操作成功時のメッセージ
  * @returns {ApiResponseGeneric} 操作結果と最新データを含むAPIレスポンス
@@ -85,7 +83,7 @@ function executeOperationAndGetLatestData(
 
 /**
  * 予約を実行し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationInfo} reservationInfo - 予約情報
+ * @param {ReservationCreateDto} reservationInfo - 予約情報
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function makeReservationAndGetLatestData(reservationInfo) {
@@ -108,7 +106,7 @@ function makeReservationAndGetLatestData(reservationInfo) {
 
 /**
  * 予約をキャンセルし、成功した場合に最新の全初期化データを返す。
- * @param {CancelInfo} cancelInfo - キャンセル情報
+ * @param {ReservationCancelDto} cancelInfo - キャンセル情報
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function cancelReservationAndGetLatestData(cancelInfo) {
@@ -122,7 +120,7 @@ function cancelReservationAndGetLatestData(cancelInfo) {
 
 /**
  * 予約詳細を更新し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationDetails} details - 更新する予約詳細
+ * @param {ReservationUpdateDto} details - 更新する予約詳細
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 function updateReservationDetailsAndGetLatestData(details) {
@@ -186,7 +184,7 @@ function getAccountingDetailsFromSheet(reservationId) {
       `CONSTANTS.SHEET_NAMES.RESERVATIONS確認: ${CONSTANTS.SHEET_NAMES.RESERVATIONS}`,
     );
 
-    // 統合予約シートから該当予約を検索
+    // 予約記録シートから該当予約を検索
     const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);
     const headers = sheet
       .getRange(1, 1, 1, sheet.getLastColumn())

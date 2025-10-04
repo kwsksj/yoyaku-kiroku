@@ -1,7 +1,5 @@
 // @ts-check
-/// <reference path="../../types/dev-environment.d.ts" />
-/// <reference path="../../types/html-environment.d.ts" />
-/// <reference path="../../types/api-types.d.ts" />
+/// <reference path="../../types/index.d.ts" />
 
 /**
  * =================================================================
@@ -111,8 +109,8 @@ const getReservationFormView = () => {
     }
     if (status.isFull) return '満席（空き連絡希望）';
     if (typeof status.morningSlots !== 'undefined') {
-      const morningLabel = CONSTANTS.SESSIONS.MORNING || '午前';
-      const afternoonLabel = CONSTANTS.SESSIONS.AFTERNOON || '午後';
+      const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
+      const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
       return `空き ${morningLabel} <span class="font-mono-numbers">${status.morningSlots}</span> | ${afternoonLabel} <span class="font-mono-numbers">${status.afternoonSlots}</span>`;
     }
     return `空き <span class="font-mono-numbers">${status.availableSlots}</span>`;
@@ -338,7 +336,7 @@ const getReservationFormView = () => {
 /**
  * 予約スロットのリストからHTMLを生成します。
  * この関数は getBookingView と getCompleteView で共有されます。
- * @param {LessonData[]} lessons - 表示する講座情報の配列
+ * @param {SessionCore[]} lessons - 表示する講座情報の配列
  * @returns {string} HTML文字列
  */
 const renderBookingLessons = lessons => {
@@ -346,13 +344,13 @@ const renderBookingLessons = lessons => {
     return '';
   }
 
-  /** @type {Record<number, LessonData[]>} */
+  /** @type {Record<number, SessionCore[]>} */
   const lessonsByMonth = lessons.reduce((acc, lesson) => {
     const month = new Date(lesson.schedule.date).getMonth() + 1;
     if (!acc[month]) acc[month] = [];
     acc[month].push(lesson);
     return acc;
-  }, /** @type {Record<number, LessonData[]>} */ ({}));
+  }, /** @type {Record<number, SessionCore[]>} */ ({}));
 
   const result = Object.keys(lessonsByMonth)
     .sort((a, b) => Number(a) - Number(b))
@@ -362,7 +360,7 @@ const renderBookingLessons = lessons => {
 
       const lessonsHtml = lessonsByMonth[month]
         .map(
-          /** @param {LessonData} lesson */ lesson => {
+          /** @param {SessionCore} lesson */ lesson => {
             const state = stateManager.getState();
             const isBooked = (state.myReservations || []).some(
               b =>
@@ -387,8 +385,8 @@ const renderBookingLessons = lessons => {
               }
             } else {
               if (typeof lesson.status.morningSlots !== 'undefined') {
-                const morningLabel = CONSTANTS.SESSIONS.MORNING || '午前';
-                const afternoonLabel = CONSTANTS.SESSIONS.AFTERNOON || '午後';
+                const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
+                const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
                 statusText = `空き ${morningLabel}<span class="font-mono-numbers">${lesson.status.morningSlots}</span> ${afternoonLabel}<span class="font-mono-numbers">${lesson.status.afternoonSlots}</span>`;
               } else {
                 statusText = `空き <span class="font-mono-numbers">${lesson.status.availableSlots}</span>`;
