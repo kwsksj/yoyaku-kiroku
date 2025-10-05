@@ -144,7 +144,7 @@ function authenticateUserLightweight(phoneNumber) {
 /**
  * キャッシュデータから個人用データを抽出する
  * @param {string} studentId - 生徒ID
- * @param {AppInitialData} cacheData - getAppInitialDataから取得したキャッシュデータ
+ * @param {{allReservationsCache: ReservationCacheData}} cacheData - getAppInitialDataから取得したキャッシュデータ
  * @returns {PersonalDataResult} - 個人の予約、履歴、利用可能枠データ
  */
 function extractPersonalDataFromCache(studentId, cacheData) {

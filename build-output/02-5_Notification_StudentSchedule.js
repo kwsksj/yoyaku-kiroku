@@ -2,9 +2,9 @@
 
 /**
  * =================================================================
- * 【ファイル名】: 02-5_BusinessLogic_Notification.js
+ * 【ファイル名】: 02-5_Notification_StudentSchedule.js
  * 【バージョン】: 1.0
- * 【役割】: 月次予約通知メールの送信処理
+ * 【役割】: 生徒への月次日程通知メール
  * - 生徒への定期通知メール送信
  * - 通知対象者の抽出（連絡希望 & 通知設定あり）
  * - メール本文生成（個人予約 + 教室日程）
@@ -271,10 +271,10 @@ function _generateEmailBody(student, reservations, lessons) {
     body += `現在、予定されている日程はありません。\n\n`;
   } else {
     // 教室ごとにグループ化
-    /** @type {{ [key: string]: SessionCore[] }} */
+    /** @type {{ [key: string]: LessonCore[] }} */
     const lessonsByClassroom = {};
     lessons.forEach(lesson => {
-      const classroom = lesson.schedule.classroom;
+      const classroom = lesson.classroom;
       if (!lessonsByClassroom[classroom]) {
         lessonsByClassroom[classroom] = [];
       }
@@ -295,35 +295,35 @@ function _generateEmailBody(student, reservations, lessons) {
       body += `${classroomInfo.label}\n`;
 
       for (const lesson of lessonsByClassroom[classroom]) {
-        const schedule = /** @type {any} */ (lesson).schedule || lesson;
-        const status = /** @type {any} */ (lesson).status || {};
-        const lessonDate = new Date(schedule.date);
+        /** @type {LessonCore} */
+        const lessonCore = /** @type {any} */ (lesson);
+        const lessonDate = new Date(lessonCore.date);
         const monthDay = `${lessonDate.getMonth() + 1}/${String(lessonDate.getDate()).padStart(2, ' ')}`;
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
         const weekday = weekdays[lessonDate.getDay()];
 
         // 日付と会場
         let line = `・${monthDay}${weekday}`;
-        if (schedule.venue) {
-          line += ` ${schedule.venue}`;
+        if (lessonCore.venue) {
+          line += ` ${lessonCore.venue}`;
         }
         line += ` | `;
 
         // 空席情報（教室タイプによって構造が異なる）
-        if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
+        if (lessonCore.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
           // つくば教室: 午前・午後で分かれている
-          line += `空き 午前 ${status.morningSlots}, 午後 ${status.afternoonSlots}`;
-          if (status.firstLectureSlots > 0) {
-            line += `, 初回 ${status.firstLectureSlots}`;
+          line += `空き 午前 ${lessonCore.firstSlots || 0}, 午後 ${lessonCore.secondSlots || 0}`;
+          if ((lessonCore.beginnerSlots || 0) > 0) {
+            line += `, 初回 ${lessonCore.beginnerSlots}`;
           } else {
             line += `, 経験者のみ`;
           }
         } else {
-          // 東京教室・沼津教室など: availableSlots を使用
-          const totalSlots = status.availableSlots || 0;
+          // 東京教室・沼津教室など: firstSlots を使用
+          const totalSlots = lessonCore.firstSlots || 0;
           line += `空き ${totalSlots}`;
-          if (status.firstLectureSlots > 0) {
-            line += `, 初回 ${status.firstLectureSlots}`;
+          if ((lessonCore.beginnerSlots || 0) > 0) {
+            line += `, 初回 ${lessonCore.beginnerSlots}`;
           } else {
             line += `, 経験者のみ`;
           }

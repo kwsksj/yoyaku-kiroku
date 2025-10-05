@@ -301,14 +301,14 @@ const authActionHandlers = {
     const pastWorkInput = /** @type {HTMLTextAreaElement | null} */ (
       document.getElementById('q-past-work')
     );
-    const futureGoalInput = /** @type {HTMLTextAreaElement | null} */ (
+    const futureCreationsInput = /** @type {HTMLTextAreaElement | null} */ (
       document.getElementById('q-future-goal')
     );
 
     const step3Data = {
       experience: experienceInput?.value || '',
       pastWork: pastWorkInput?.value || '',
-      futureGoal: futureGoalInput?.value || '',
+      futureCreations: futureCreationsInput?.value || '',
     };
     window.stateManager.dispatch({
       type: 'SET_STATE',
@@ -461,7 +461,7 @@ const authActionHandlers = {
 
   /** プロフィール情報を保存します（キャッシュ活用版） */
   saveProfile: () => {
-    const futureGoalInput = /** @type {HTMLTextAreaElement | null} */ (
+    const futureCreationsInput = /** @type {HTMLTextAreaElement | null} */ (
       document.getElementById('edit-future-goal')
     );
     const realNameInput = /** @type {HTMLInputElement | null} */ (
@@ -474,7 +474,7 @@ const authActionHandlers = {
       document.getElementById('edit-address')
     );
 
-    const futureGoal = futureGoalInput?.value?.trim() || '';
+    const futureCreations = futureCreationsInput?.value?.trim() || '';
     const r = realNameInput?.value;
     let n = nicknameInput?.value.trim();
     const address = addressInput?.value?.trim() || '';
@@ -524,7 +524,7 @@ const authActionHandlers = {
 
     const u = {
       ...stateManager.getState().currentUser,
-      futureCreations: futureGoal,
+      futureCreations: futureCreations,
       realName: r,
       displayName: n,
       phone: phone,

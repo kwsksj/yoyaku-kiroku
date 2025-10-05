@@ -372,7 +372,7 @@ const CONSTANTS = {
       BEGINNER_START: '初回者開始',
       TOTAL_CAPACITY: '全体定員',
       BEGINNER_CAPACITY: '初回者定員',
-      STATUS: '状態',
+      STATUS: 'ステータス',
       NOTES: '備考',
     },
   },
@@ -450,7 +450,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-10-04T08:46:41.153Z
+   * Generated: 2025-10-05T13:07:14.708Z
    * =================================================================
    */
 
@@ -5316,8 +5316,8 @@ const ENVIRONMENT_CONFIG = {
     // 予約の日付と教室に対応する講座を検索
     const matchingLesson = lessons.find(
       lesson =>
-        lesson.schedule.date === reservation.date &&
-        lesson.schedule.classroom === reservation.classroom,
+        lesson.date === reservation.date &&
+        lesson.classroom === reservation.classroom,
     );
 
     if (!matchingLesson) {
@@ -5327,8 +5327,8 @@ const ENVIRONMENT_CONFIG = {
           date: reservation.date,
           classroom: reservation.classroom,
           availableLessons: lessons.map(l => ({
-            date: l.schedule.date,
-            classroom: l.schedule.classroom,
+            date: l.date,
+            classroom: l.classroom,
           })),
         },
       );
@@ -5337,24 +5337,15 @@ const ENVIRONMENT_CONFIG = {
 
     console.log('✅ getScheduleDataFromLessons: 講座発見', matchingLesson);
 
-    // 日程マスタ形式の情報を返す
-    const schedule = /** @type {ScheduleInfo} */ (matchingLesson.schedule);
+    // LessonCoreから日程マスタ形式の情報を返す
     return {
       classroom: reservation.classroom,
       date: reservation.date,
-      classroomType: /** @type {string} */ (
-        schedule.classroomType || schedule['教室形式']
-      ),
-      firstStart: /** @type {string} */ (
-        schedule.firstStart || schedule['1部開始']
-      ),
-      firstEnd: /** @type {string} */ (schedule.firstEnd || schedule['1部終了']),
-      secondStart: /** @type {string} */ (
-        schedule.secondStart || schedule['2部開始']
-      ),
-      secondEnd: /** @type {string} */ (
-        schedule.secondEnd || schedule['2部終了']
-      ),
+      classroomType: matchingLesson.classroomType || '',
+      firstStart: matchingLesson.firstStart || '',
+      firstEnd: matchingLesson.firstEnd || '',
+      secondStart: matchingLesson.secondStart || '',
+      secondEnd: matchingLesson.secondEnd || '',
     };
   }
 
@@ -5785,7 +5776,7 @@ const ENVIRONMENT_CONFIG = {
         registrationPhone: null,
 
         // --- Core Application Data ---
-        /** @type {SessionCore[]} */
+        /** @type {LessonCore[]} */
         lessons: [],
         /** @type {ReservationData[]} */
         myReservations: [],
@@ -5801,7 +5792,7 @@ const ENVIRONMENT_CONFIG = {
         editingReservationIds: new Set(),
         editingMemo: null, // { reservationId: string, originalValue: string } | null
         memoInputChanged: false,
-        /** @type {SessionCore | null} */
+        /** @type {LessonCore | null} */
         selectedLesson: null,
         /** @type {ReservationDetails | null} */
         editingReservationDetails: null,
@@ -8266,7 +8257,7 @@ const ENVIRONMENT_CONFIG = {
             ${Components.textarea({
               id: 'q-future-goal',
               label: '将来的に制作したいものはありますか？',
-              value: data['futureGoal'] || '',
+              value: data['futureCreations'] || '',
               placeholder: '曖昧な内容でも大丈夫！',
             })}
           </form>
@@ -8389,7 +8380,7 @@ const ENVIRONMENT_CONFIG = {
         : phoneValue;
 
     // 「将来的に制作したいもの」の値を取得（生徒名簿シートから取得される想定）
-    const futureGoalValue =
+    const futureCreationsValue =
       /** @type {any} */ (userData)['futureCreations'] || '';
 
     // 教室日程の連絡チェック状態を取得（シートの「日程連絡希望」列から）
@@ -8409,7 +8400,7 @@ const ENVIRONMENT_CONFIG = {
           ${Components.textarea({
             id: 'edit-future-goal',
             label: '将来的に制作したいもの',
-            value: futureGoalValue,
+            value: futureCreationsValue,
             placeholder: '曖昧な内容でも大丈夫！',
           })}
           ${Components.input({
@@ -8565,9 +8556,7 @@ const ENVIRONMENT_CONFIG = {
     const currentState = stateManager.getState();
     const relevantLessons =
       currentState.lessons && Array.isArray(currentState.lessons)
-        ? currentState.lessons.filter(
-            lesson => lesson.schedule.classroom === classroom,
-          )
+        ? currentState.lessons.filter(lesson => lesson.classroom === classroom)
         : [];
 
     const bookingLessonsHtml = renderBookingLessons(relevantLessons);
@@ -8615,8 +8604,8 @@ const ENVIRONMENT_CONFIG = {
     const { lessonInfo, reservationInfo } = currentReservationFormContext;
     const isEdit = !!reservationInfo.reservationId;
 
-    const { schedule, status } = lessonInfo;
-    const { classroom, date, venue, classroomType, beginnerStart } = schedule;
+    // lessonInfoは既にLessonCore型（統一済み）
+    const { classroom, date, venue, classroomType, beginnerStart } = lessonInfo;
     const {
       firstLecture,
       chiselRental,
@@ -8629,17 +8618,25 @@ const ENVIRONMENT_CONFIG = {
     } = reservationInfo;
     const isWaiting = reservationInfo.status === CONSTANTS.STATUS.WAITLISTED;
 
-    const isTimeBased = isTimeBasedClassroom(schedule);
+    const isTimeBased = isTimeBasedClassroom(lessonInfo);
+
+    // 満席判定
+    const isFull =
+      typeof lessonInfo.secondSlots !== 'undefined'
+        ? (lessonInfo.firstSlots || 0) === 0 &&
+          (lessonInfo.secondSlots || 0) === 0
+        : (lessonInfo.firstSlots || 0) === 0;
+    const isBeginnerSlotFull = (lessonInfo.beginnerSlots || 0) === 0;
 
     const title = isEdit
       ? '予約内容の編集'
-      : status.isFull || (isFirstTimeBooking && status.firstLectureIsFull)
+      : isFull || (isFirstTimeBooking && isBeginnerSlotFull)
         ? '空き連絡希望'
         : '予約詳細の入力';
     const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
     const submitButtonText = isEdit
       ? 'この内容で更新する'
-      : status.isFull
+      : isFull
         ? '空き連絡希望で登録する'
         : 'この内容で予約する';
 
@@ -8648,17 +8645,17 @@ const ENVIRONMENT_CONFIG = {
         return isWaiting ? '空き連絡希望' : '予約済み';
       }
       if (isFirstTimeBooking) {
-        return status.firstLectureIsFull
+        return isBeginnerSlotFull
           ? '初回者枠 満席（空き連絡希望）'
-          : `初回者枠 空き <span class="font-mono-numbers">${status.firstLectureSlots}</span>`;
+          : `初回者枠 空き <span class="font-mono-numbers">${lessonInfo.beginnerSlots}</span>`;
       }
-      if (status.isFull) return '満席（空き連絡希望）';
-      if (typeof status.morningSlots !== 'undefined') {
+      if (isFull) return '満席（空き連絡希望）';
+      if (typeof lessonInfo.secondSlots !== 'undefined') {
         const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
         const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
-        return `空き ${morningLabel} <span class="font-mono-numbers">${status.morningSlots}</span> | ${afternoonLabel} <span class="font-mono-numbers">${status.afternoonSlots}</span>`;
+        return `空き ${morningLabel} <span class="font-mono-numbers">${lessonInfo.firstSlots}</span> | ${afternoonLabel} <span class="font-mono-numbers">${lessonInfo.secondSlots}</span>`;
       }
-      return `空き <span class="font-mono-numbers">${status.availableSlots}</span>`;
+      return `空き <span class="font-mono-numbers">${lessonInfo.firstSlots}</span>`;
     };
 
     const _renderTuitionDisplaySection = () => {
@@ -8699,25 +8696,25 @@ const ENVIRONMENT_CONFIG = {
     const _renderTimeOptionsSection = () => {
       // セッション制教室の場合、隠し入力として時刻を設定
       if (!isTimeBased) {
-        if (!schedule.firstStart || !schedule.firstEnd) {
+        if (!lessonInfo.firstStart || !lessonInfo.firstEnd) {
           return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
         }
         return `
-          <input type="hidden" id="res-start-time" value="${schedule.firstStart}" />
-          <input type="hidden" id="res-end-time" value="${schedule.firstEnd}" />
+          <input type="hidden" id="res-start-time" value="${lessonInfo.firstStart}" />
+          <input type="hidden" id="res-end-time" value="${lessonInfo.firstEnd}" />
         `;
       }
 
-      if (!schedule.firstStart || !schedule.firstEnd) {
+      if (!lessonInfo.firstStart || !lessonInfo.firstEnd) {
         return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
       }
 
-      const startHour = parseInt(schedule.firstStart.split(':')[0]);
+      const startHour = parseInt(lessonInfo.firstStart.split(':')[0]);
       const endHour = parseInt(
-        (schedule.secondEnd || schedule.firstEnd).split(':')[0],
+        (lessonInfo.secondEnd || lessonInfo.firstEnd).split(':')[0],
       );
       const endMinutes = parseInt(
-        (schedule.secondEnd || schedule.firstEnd).split(':')[1],
+        (lessonInfo.secondEnd || lessonInfo.firstEnd).split(':')[1],
       );
 
       let fixedStartTime = startTime;
@@ -8725,7 +8722,7 @@ const ENVIRONMENT_CONFIG = {
       if (
         isFirstTimeBooking &&
         beginnerStart &&
-        /** @type {any} */ (schedule).beginnerCapacity > 0
+        (lessonInfo.beginnerCapacity || 0) > 0
       ) {
         fixedStartTime = beginnerStart;
         isTimeFixed = true;
@@ -8847,11 +8844,11 @@ const ENVIRONMENT_CONFIG = {
     });
 
     const _renderOpeningHoursHtml = () => {
-      if (!schedule.firstStart || !schedule.firstEnd)
+      if (!lessonInfo.firstStart || !lessonInfo.firstEnd)
         return '<span class="text-ui-error-text">開講時間未設定</span>';
-      if (schedule.secondStart && schedule.secondEnd)
-        return `<span class="time-display">${schedule.firstStart}~${schedule.firstEnd}</span> , <span class="time-display">${schedule.secondStart}~${schedule.secondEnd}</span>`;
-      return `<span class="time-display">${schedule.firstStart}~${schedule.firstEnd}</span>`;
+      if (lessonInfo.secondStart && lessonInfo.secondEnd)
+        return `<span class="time-display">${lessonInfo.firstStart}~${lessonInfo.firstEnd}</span> , <span class="time-display">${lessonInfo.secondStart}~${lessonInfo.secondEnd}</span>`;
+      return `<span class="time-display">${lessonInfo.firstStart}~${lessonInfo.firstEnd}</span>`;
     };
 
     return `
@@ -8881,7 +8878,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * 予約スロットのリストからHTMLを生成します。
    * この関数は getBookingView と getCompleteView で共有されます。
-   * @param {SessionCore[]} lessons - 表示する講座情報の配列
+   * @param {LessonCore[]} lessons - 表示する講座情報の配列
    * @returns {string} HTML文字列
    */
   const renderBookingLessons = lessons => {
@@ -8889,13 +8886,18 @@ const ENVIRONMENT_CONFIG = {
       return '';
     }
 
-    /** @type {Record<number, SessionCore[]>} */
+    /** @type {Record<number, LessonCore[]>} */
     const lessonsByMonth = lessons.reduce((acc, lesson) => {
-      const month = new Date(lesson.schedule.date).getMonth() + 1;
+      // ガード節: lessonまたはlesson.dateがundefinedの場合はスキップ
+      if (!lesson || !lesson.date) {
+        console.warn('Invalid lesson data:', lesson);
+        return acc;
+      }
+      const month = new Date(lesson.date).getMonth() + 1;
       if (!acc[month]) acc[month] = [];
       acc[month].push(lesson);
       return acc;
-    }, /** @type {Record<number, SessionCore[]>} */ ({}));
+    }, /** @type {Record<number, LessonCore[]>} */ ({}));
 
     const result = Object.keys(lessonsByMonth)
       .sort((a, b) => Number(a) - Number(b))
@@ -8905,12 +8907,12 @@ const ENVIRONMENT_CONFIG = {
 
         const lessonsHtml = lessonsByMonth[month]
           .map(
-            /** @param {SessionCore} lesson */ lesson => {
+            /** @param {LessonCore} lesson */ lesson => {
               const state = stateManager.getState();
               const isBooked = (state.myReservations || []).some(
                 b =>
-                  String(b.date) === lesson.schedule.date &&
-                  b.classroom === lesson.schedule.classroom,
+                  String(b.date) === lesson.date &&
+                  b.classroom === lesson.classroom,
               );
               let cardClass, statusBadge, actionAttribute;
               const tag = isBooked ? 'div' : 'button';
@@ -8920,28 +8922,25 @@ const ENVIRONMENT_CONFIG = {
               let statusText;
 
               if (isFirstTimeBooking) {
-                if (
-                  lesson.schedule.beginnerStart &&
-                  /** @type {any} */ (lesson.schedule).beginnerCapacity > 0
-                ) {
-                  statusText = `初回者 空き <span class="font-mono-numbers">${lesson.status.firstLectureSlots}</span>`;
+                if (lesson.beginnerStart && (lesson.beginnerCapacity || 0) > 0) {
+                  statusText = `初回者 空き <span class="font-mono-numbers">${lesson.beginnerSlots}</span>`;
                 } else {
                   statusText = '経験者のみ';
                 }
               } else {
-                if (typeof lesson.status.morningSlots !== 'undefined') {
+                if (typeof lesson.secondSlots !== 'undefined') {
                   const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
                   const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
-                  statusText = `空き ${morningLabel}<span class="font-mono-numbers">${lesson.status.morningSlots}</span> ${afternoonLabel}<span class="font-mono-numbers">${lesson.status.afternoonSlots}</span>`;
+                  statusText = `空き ${morningLabel}<span class="font-mono-numbers">${lesson.firstSlots}</span> ${afternoonLabel}<span class="font-mono-numbers">${lesson.secondSlots}</span>`;
                 } else {
-                  statusText = `空き <span class="font-mono-numbers">${lesson.status.availableSlots}</span>`;
+                  statusText = `空き <span class="font-mono-numbers">${lesson.firstSlots}</span>`;
                 }
               }
 
               if (isBooked) {
                 const reservationData = findReservationByDateAndClassroom(
-                  lesson.schedule.date,
-                  lesson.schedule.classroom,
+                  lesson.date,
+                  lesson.classroom,
                 );
                 if (reservationData?.status === CONSTANTS.STATUS.COMPLETED) {
                   cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
@@ -8964,14 +8963,21 @@ const ENVIRONMENT_CONFIG = {
 
                 if (isFirstTimeBooking) {
                   if (
-                    !lesson.schedule.beginnerStart ||
-                    /** @type {any} */ (lesson.schedule).beginnerCapacity <= 0
+                    !lesson.beginnerStart ||
+                    (lesson.beginnerCapacity || 0) <= 0
                   ) {
                     canBook = false;
                   }
-                  isSlotFull = lesson.status.firstLectureIsFull;
+                  isSlotFull = (lesson.beginnerSlots || 0) === 0;
                 } else {
-                  isSlotFull = lesson.status.isFull;
+                  // 満席判定：2部制の場合は両方満席、それ以外は1部満席
+                  if (typeof lesson.secondSlots !== 'undefined') {
+                    isSlotFull =
+                      (lesson.firstSlots || 0) === 0 &&
+                      (lesson.secondSlots || 0) === 0;
+                  } else {
+                    isSlotFull = (lesson.firstSlots || 0) === 0;
+                  }
                 }
 
                 if (!canBook) {
@@ -8981,18 +8987,16 @@ const ENVIRONMENT_CONFIG = {
                 } else if (isSlotFull) {
                   cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                   statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（空き連絡希望）</span>`;
-                  actionAttribute = `data-action="bookLesson" data-classroom="${lesson.schedule.classroom}" data-date="${lesson.schedule.date}"`;
+                  actionAttribute = `data-action="bookLesson" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
                 } else {
                   cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
                   statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
-                  actionAttribute = `data-action="bookLesson" data-classroom="${lesson.schedule.classroom}" data-date="${lesson.schedule.date}"`;
+                  actionAttribute = `data-action="bookLesson" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
                 }
               }
 
-              const venueDisplay = lesson.schedule.venue
-                ? ` ${lesson.schedule.venue}`
-                : '';
-              const text = `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(lesson.schedule.date)}${venueDisplay}</span>${statusBadge}</div>`;
+              const venueDisplay = lesson.venue ? ` ${lesson.venue}` : '';
+              const text = `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(lesson.date)}${venueDisplay}</span>${statusBadge}</div>`;
 
               return `<${tag} ${actionAttribute} class="${cardClass}">${text}</${tag}>`;
             },
@@ -9411,8 +9415,8 @@ const ENVIRONMENT_CONFIG = {
     // 該当する講座を検索
     const targetLesson = lessons.find(
       lesson =>
-        lesson.schedule.date === String(booking.date) &&
-        lesson.schedule.classroom === booking.classroom,
+        lesson.date === String(booking.date) &&
+        lesson.classroom === booking.classroom,
     );
 
     if (!targetLesson) {
@@ -9421,8 +9425,8 @@ const ENVIRONMENT_CONFIG = {
           searchDate: String(booking.date),
           searchClassroom: booking.classroom,
           availableLessons: lessons.map(l => ({
-            date: l.schedule.date,
-            classroom: l.schedule.classroom,
+            date: l.date,
+            classroom: l.classroom,
           })),
         });
       }
@@ -9430,34 +9434,30 @@ const ENVIRONMENT_CONFIG = {
     }
 
     // 2部制の場合はセッション別に判定
-    if (
-      targetLesson.schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL
-    ) {
-      const status = targetLesson.status;
-      const schedule = targetLesson.schedule;
+    if (targetLesson.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
       const bookingStartTime = booking.startTime;
       const bookingEndTime = booking.endTime;
 
       // --- 必須データの存在チェック ---
-      if (!status || !schedule || !bookingStartTime || !bookingEndTime) {
+      if (!bookingStartTime || !bookingEndTime) {
         if (!window.isProduction) {
           console.error(
-            '❌ 2部制判定エラー: 必須データ(status, schedule, booking times)が不足しています。',
+            '❌ 2部制判定エラー: 必須データ(booking times)が不足しています。',
             { booking, targetLesson },
           );
         }
         return false;
       }
 
-      const morningEndTime = schedule.firstEnd;
-      const afternoonStartTime = schedule.secondStart;
+      const morningEndTime = targetLesson.firstEnd;
+      const afternoonStartTime = targetLesson.secondStart;
 
       // --- セッション境界時刻の存在チェック ---
       if (!morningEndTime || !afternoonStartTime) {
         if (!window.isProduction) {
           console.error(
-            '❌ 2部制判定エラー: セッション境界時刻(firstEnd, secondStart)がscheduleに定義されていません。',
-            { schedule },
+            '❌ 2部制判定エラー: セッション境界時刻(firstEnd, secondStart)が定義されていません。',
+            { targetLesson },
           );
         }
         return false;
@@ -9472,7 +9472,7 @@ const ENVIRONMENT_CONFIG = {
         if (!window.isProduction) {
           console.warn('⚠️ 2部制判定警告: 予約時間がセッションの範囲外です。', {
             booking,
-            schedule,
+            targetLesson,
           });
         }
         return false;
@@ -9481,12 +9481,12 @@ const ENVIRONMENT_CONFIG = {
       // --- 各セッションの空き状況をチェック ---
       let morningHasSlots = true; // チェック不要な場合はtrueとして扱う
       if (morningCheckRequired) {
-        morningHasSlots = (status.morningSlots || 0) > 0;
+        morningHasSlots = (targetLesson.firstSlots || 0) > 0;
       }
 
       let afternoonHasSlots = true; // チェック不要な場合はtrueとして扱う
       if (afternoonCheckRequired) {
-        afternoonHasSlots = (status.afternoonSlots || 0) > 0;
+        afternoonHasSlots = (targetLesson.secondSlots || 0) > 0;
       }
 
       // 必要なセッション全てに空きがあるか最終判定
@@ -9504,8 +9504,8 @@ const ENVIRONMENT_CONFIG = {
             afternoon: afternoonCheckRequired,
           },
           slots: {
-            morning: status.morningSlots,
-            afternoon: status.afternoonSlots,
+            morning: targetLesson.firstSlots,
+            afternoon: targetLesson.secondSlots,
           },
           result: { morningHasSlots, afternoonHasSlots },
           isAvailable,
@@ -9515,16 +9515,12 @@ const ENVIRONMENT_CONFIG = {
       return isAvailable;
     } else {
       // 通常の講座（セッション制・全日時間制）
-      const isAvailable =
-        !targetLesson.status.isFull &&
-        (targetLesson.status.availableSlots || 0) > 0;
+      const isAvailable = (targetLesson.firstSlots || 0) > 0;
 
       if (!window.isProduction) {
         console.log('📊 通常講座判定結果:', {
-          isFull: targetLesson.status.isFull,
-          availableSlots: targetLesson.status.availableSlots,
+          firstSlots: targetLesson.firstSlots,
           isAvailable,
-          status: targetLesson.status,
         });
       }
 
@@ -10077,7 +10073,7 @@ const ENVIRONMENT_CONFIG = {
       // バックエンドで計算済みの空き情報を直接使用
       const relevantLessons = stateManager
         .getState()
-        .lessons.filter(lesson => lesson.schedule.classroom === classroom);
+        .lessons.filter(lesson => lesson.classroom === classroom);
       const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
       if (bookingLessonsHtml) {
@@ -11208,14 +11204,14 @@ const ENVIRONMENT_CONFIG = {
       const pastWorkInput = /** @type {HTMLTextAreaElement | null} */ (
         document.getElementById('q-past-work')
       );
-      const futureGoalInput = /** @type {HTMLTextAreaElement | null} */ (
+      const futureCreationsInput = /** @type {HTMLTextAreaElement | null} */ (
         document.getElementById('q-future-goal')
       );
 
       const step3Data = {
         experience: experienceInput?.value || '',
         pastWork: pastWorkInput?.value || '',
-        futureGoal: futureGoalInput?.value || '',
+        futureCreations: futureCreationsInput?.value || '',
       };
       window.stateManager.dispatch({
         type: 'SET_STATE',
@@ -11368,7 +11364,7 @@ const ENVIRONMENT_CONFIG = {
 
     /** プロフィール情報を保存します（キャッシュ活用版） */
     saveProfile: () => {
-      const futureGoalInput = /** @type {HTMLTextAreaElement | null} */ (
+      const futureCreationsInput = /** @type {HTMLTextAreaElement | null} */ (
         document.getElementById('edit-future-goal')
       );
       const realNameInput = /** @type {HTMLInputElement | null} */ (
@@ -11381,7 +11377,7 @@ const ENVIRONMENT_CONFIG = {
         document.getElementById('edit-address')
       );
 
-      const futureGoal = futureGoalInput?.value?.trim() || '';
+      const futureCreations = futureCreationsInput?.value?.trim() || '';
       const r = realNameInput?.value;
       let n = nicknameInput?.value.trim();
       const address = addressInput?.value?.trim() || '';
@@ -11431,7 +11427,7 @@ const ENVIRONMENT_CONFIG = {
 
       const u = {
         ...stateManager.getState().currentUser,
-        futureCreations: futureGoal,
+        futureCreations: futureCreations,
         realName: r,
         displayName: n,
         phone: phone,
@@ -11975,9 +11971,9 @@ const ENVIRONMENT_CONFIG = {
 
       // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
       const p = {
-        classroom: lessonInfo.schedule.classroom,
-        date: lessonInfo.schedule.date,
-        venue: lessonInfo.schedule.venue,
+        classroom: lessonInfo.classroom,
+        date: lessonInfo.date,
+        venue: lessonInfo.venue,
         startTime: startTime,
         endTime: endTime,
         user: currentUser,
@@ -11998,9 +11994,12 @@ const ENVIRONMENT_CONFIG = {
           /** @type {HTMLInputElement} */ (
             document.getElementById('message-input')
           )?.value || '',
-        schedule: lessonInfo.schedule,
-        status: lessonInfo.status,
-        isFull: lessonInfo.status.isFull,
+        // 満席判定（LessonCoreから計算）
+        isFull:
+          typeof lessonInfo.secondSlots !== 'undefined'
+            ? (lessonInfo.firstSlots || 0) === 0 &&
+              (lessonInfo.secondSlots || 0) === 0
+            : (lessonInfo.firstSlots || 0) === 0,
       };
 
       google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
@@ -12016,7 +12015,7 @@ const ENVIRONMENT_CONFIG = {
               myReservations: r.data.myReservations || [],
               view: 'complete',
               completionMessage: r.message,
-              selectedClassroom: lessonInfo.schedule.classroom,
+              selectedClassroom: lessonInfo.classroom,
               isDataFresh: true,
             };
 
@@ -12039,7 +12038,7 @@ const ENVIRONMENT_CONFIG = {
               payload: {
                 view: 'complete',
                 completionMessage: r.message,
-                selectedClassroom: lessonInfo.schedule.classroom,
+                selectedClassroom: lessonInfo.classroom,
                 isDataFresh: false,
               },
             });
@@ -12081,8 +12080,8 @@ const ENVIRONMENT_CONFIG = {
         state.lessons && Array.isArray(state.lessons)
           ? state.lessons.find(
               l =>
-                l.schedule.date === String(reservation.date) &&
-                l.schedule.classroom === reservation.classroom,
+                l.date === String(reservation.date) &&
+                l.classroom === reservation.classroom,
             )
           : null;
 
@@ -12452,8 +12451,7 @@ const ENVIRONMENT_CONFIG = {
         currentState.lessons && Array.isArray(currentState.lessons)
           ? currentState.lessons.find(
               lesson =>
-                lesson.schedule.classroom === d.classroom &&
-                lesson.schedule.date === d.date,
+                lesson.classroom === d.classroom && lesson.date === d.date,
             )
           : null;
       if (foundLesson) {

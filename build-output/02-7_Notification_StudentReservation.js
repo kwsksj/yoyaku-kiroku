@@ -2,35 +2,26 @@
 
 /**
  * =================================================================
- * 【ファイル名】: 06_ExternalServices.js
- * 【バージョン】: 4.0
- * 【役割】: GoogleフォームやGoogleカレンダーといった、スプレッドシートの
- * 「外」にあるGoogleサービスとの連携に特化した機能。
- * 【v4.0での変更点】:
- * - 廃止済み関数を削除し、ファイルをクリーンアップ
- * - 将来的な外部サービス連携のためのプレースホルダーとして保持
+ * 【ファイル名】: 02-7_Notification_StudentReservation.js
+ * 【バージョン】: 1.0
+ * 【役割】: 生徒への予約関連メール通知
+ * - 予約確定メール送信
+ * - 予約キャンセルメール送信
+ * - 統一メール送信インターフェース
  * =================================================================
  *
  * @global getStudentWithEmail - Cache manager function from 07_CacheManager.js
- * @global getScheduleInfoForDate - Business logic function from 02-4_BusinessLogic_ScheduleMaster.js
  */
 
-/* global getStudentWithEmail, getScheduleInfoForDate */
+/* global getStudentWithEmail */
 
 /**
- * =================================================================
- * メール送信機能
- * =================================================================
- */
-
-/**
- * 予約確定メール送信機能
- * @param {ReservationForEmail} reservation - 予約情報
+ * 予約確定メール送信機能（ReservationCore対応）
+ * @param {ReservationCore} reservation - 予約情報
  * @param {StudentWithEmail} student - 生徒情報（メールアドレス含む）
- * @param {boolean} isFirstTime - 初回予約フラグ
  * @returns {boolean} 送信成功・失敗
  */
-function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
+function sendBookingConfirmationEmail(reservation, student) {
   try {
     if (!student.email) {
       Logger.log('メール送信スキップ: メールアドレスが空です');
@@ -45,42 +36,36 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
     }
 
     // メール内容を生成
-    const { subject, htmlBody, textBody } = createBookingConfirmationTemplate(
+    const { subject, textBody } = createBookingConfirmationTemplate(
       reservation,
       student,
-      isFirstTime,
     );
 
     // GmailAppでメール送信
     GmailApp.sendEmail(student.email, subject, textBody, {
-      htmlBody: htmlBody,
       from: fromEmail,
       name: '川崎誠二 木彫り教室',
       replyTo: fromEmail,
     });
 
     // 送信成功ログ
-    Logger.log(
-      `メール送信成功: ${student.email} (${isFirstTime ? '初回者' : '経験者'})`,
-      'INFO',
-      'sendConfirmationEmail',
-      new Date(),
-    );
+    const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+    const isFirstTime = reservation.firstLecture || false;
+    const emailTypeText = isWaitlisted
+      ? '空き連絡希望登録メール'
+      : '予約確定メール';
+    const userTypeText = isFirstTime ? '初回者' : '経験者';
+    Logger.log(`メール送信成功: ${student.email} (${userTypeText})`);
     logActivity(
       student.studentId,
       'メール送信',
       '成功',
-      `予約確定メール送信完了 (${isFirstTime ? '初回者' : '経験者'})`,
+      `${emailTypeText}送信完了 (${userTypeText})`,
     );
 
     return true;
   } catch (error) {
-    Logger.log(
-      `メール送信エラー: ${error.message}`,
-      'ERROR',
-      'sendConfirmationEmail',
-      new Date(),
-    );
+    Logger.log(`メール送信エラー: ${error.message}`);
     logActivity(
       student.studentId,
       'メール送信エラー',
@@ -93,22 +78,24 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
 
 /**
  * メールテンプレート生成（初回者・経験者対応）
- * @param {ReservationForEmail} reservation - 予約情報
+ * @param {ReservationCore} reservation - 予約情報
  * @param {StudentWithEmail} student - 生徒情報
  * @param {boolean} isFirstTime - 初回予約フラグ
- * @returns {EmailTemplate} subject, htmlBody, textBody を含むオブジェクト
+ * @returns {{subject: string, textBody: string}} subject, textBody を含むオブジェクト
  */
 function createBookingConfirmationTemplate(reservation, student, isFirstTime) {
   // 基本情報の抽出
-  const { date, classroom } = reservation;
+  const { date, classroom, status } = reservation;
 
   // 日付フォーマット
   const formattedDate = formatDateForEmail(date);
-  const statusText = reservation.isWaiting ? '空き連絡希望' : 'ご予約';
+  const isWaitlisted = status === CONSTANTS.STATUS.WAITLISTED;
+  const statusText = isWaitlisted ? '空き連絡希望' : 'ご予約';
 
   // 件名（テスト環境では[テスト]プレフィックス追加）
   const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
-  const subject = `${subjectPrefix}【川崎誠二 木彫り教室】受付完了のお知らせ - ${formattedDate} ${classroom}`;
+  const subjectType = isWaitlisted ? '空き連絡希望登録完了' : '予約受付完了';
+  const subject = `${subjectPrefix}【川崎誠二 木彫り教室】${subjectType}のお知らせ - ${formattedDate} ${classroom}`;
 
   if (isFirstTime) {
     // 初回者向け詳細メール
@@ -137,7 +124,7 @@ function createBookingConfirmationTemplate(reservation, student, isFirstTime) {
 
 /**
  * 初回者向けテキストメール生成
- * @param {ReservationForEmail} reservation - 予約情報
+ * @param {ReservationCore} reservation - 予約情報
  * @param {StudentWithEmail} student - 生徒情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
@@ -150,12 +137,22 @@ function createFirstTimeEmailText(
   statusText,
 ) {
   const { realName } = student;
+  const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+
+  const greeting = isWaitlisted
+    ? `木彫り教室へのご参加希望をいただき、ありがとうございます！
+木彫り作家の川崎誠二です。
+私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！
+
+現在、満席のため空き連絡希望として登録させていただきました。
+空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
+    : `木彫り教室ご参加の申込みをいただき、ありがとうございます！
+木彫り作家の川崎誠二です。
+私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！`;
 
   return `${realName}さま
 
-木彫り教室ご参加の申込みをいただき、ありがとうございます！
-木彫り作家の川崎誠二です。
-私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！
+${greeting}
 
 ${createBookingDetailsText(reservation, formattedDate, statusText)}
 
@@ -184,7 +181,7 @@ ${getContactAndVenueInfoText()}`;
 
 /**
  * 経験者向けテキストメール生成
- * @param {ReservationForEmail} reservation - 予約情報
+ * @param {ReservationCore} reservation - 予約情報
  * @param {StudentWithEmail} student - 生徒情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
@@ -197,11 +194,18 @@ function createRegularEmailText(
   statusText,
 ) {
   const { realName } = student;
+  const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+
+  const greeting = isWaitlisted
+    ? `お申し込みありがとうございます！
+現在、満席のため空き連絡希望として登録させていただきました。
+空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
+    : `お申し込みありがとうございます！
+ご予約を承りました。`;
 
   return `${realName}さま
 
-お申し込みありがとうございます！
-ご予約を承りました。
+${greeting}
 
 ${createBookingDetailsText(reservation, formattedDate, statusText)}
 
@@ -226,18 +230,6 @@ ${getContactAndVenueInfoText()}
 /**
  * ヘルパー関数群
  */
-
-/**
- * 環境に応じたメールアドレスを取得
- * @deprecated 使用中止：テスト環境識別は件名の[テスト]プレフィックスで行う
- * @param {string} baseEmail - 基本メールアドレス
- * @returns {string} 環境に応じたメールアドレス
- */
-function getEnvironmentAwareEmailAddress(baseEmail) {
-  // この関数は廃止予定：メールアドレス変換ではなく件名に[テスト]を追加する方式に変更
-  // 互換性維持のため残しているが、新規コードでは使用しないこと
-  return baseEmail;
-}
 
 /**
  * 授業料金額を取得
@@ -331,49 +323,25 @@ function getTuitionDisplayText(classroom) {
 
 /**
  * 共通の申込み内容セクション生成（テキスト版）
- * @param {ReservationForEmail} reservation - 予約情報
+ * @param {ReservationCore} reservation - 予約情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
  * @returns {string} 申込み内容テキスト
  */
 function createBookingDetailsText(reservation, formattedDate, statusText) {
-  const { classroom, venue, startTime, endTime, options = {} } = reservation;
-  const isFirstTime = options.firstLecture || false;
+  const { classroom, venue, startTime, endTime } = reservation;
 
-  // 時間表示（DateオブジェクトまたはHH:mm形式文字列に対応）
+  // 時間表示
   let timeDisplay = '予約webアプリ上か、各教室のページなどをご確認ください';
   if (startTime && endTime) {
-    let formattedStartTime, formattedEndTime;
-
-    // Dateオブジェクトの場合は時分のみを抽出
-    if (startTime instanceof Date) {
-      formattedStartTime = Utilities.formatDate(
-        startTime,
-        CONSTANTS.TIMEZONE,
-        'HH:mm',
-      );
-    } else {
-      formattedStartTime = startTime.toString();
-    }
-
-    if (endTime instanceof Date) {
-      formattedEndTime = Utilities.formatDate(
-        endTime,
-        CONSTANTS.TIMEZONE,
-        'HH:mm',
-      );
-    } else {
-      formattedEndTime = endTime.toString();
-    }
-
-    timeDisplay = `${formattedStartTime} - ${formattedEndTime}`;
+    timeDisplay = `${startTime} - ${endTime}`;
   }
 
   // 実際の授業料金額を取得して表示
   const tuitionText = getTuitionDisplayText(classroom);
 
   return `【申込み内容】
-教室: ${classroom} ${venue}
+教室: ${classroom} ${venue || ''}
 日付: ${formattedDate}
 時間: ${timeDisplay}
 
@@ -504,62 +472,187 @@ X (Twitter) @kibori_class
 }
 
 /**
- * 非同期メール送信関数（予約処理統合用）
- * @param {ReservationInfo} reservationInfo - 予約情報
- * @global getStudentWithEmail
+ * 予約関連メール送信（統一インターフェース）
+ * @param {ReservationCore} reservation - 予約データ
+ * @param {'confirmation'|'cancellation'} emailType - メール種別
+ * @param {string} [cancelMessage] - キャンセル理由（cancellationの場合のみ）
  */
-function sendBookingConfirmationEmailAsync(reservationInfo) {
-  const { studentId, options = {} } = reservationInfo;
+function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
+  try {
+    const studentId = reservation.studentId;
+    const isFirstTime = reservation.firstLecture || false;
 
-  // 初回フラグの取得（reservationInfoから）
-  const isFirstTime =
-    /** @type {{ firstLecture?: boolean }} */ (options).firstLecture || false;
+    // 生徒情報（メールアドレス含む）を取得
+    /** @type {StudentWithEmail | null} */
+    const studentWithEmail = /** @type {StudentWithEmail | null} */ (
+      getStudentWithEmail(studentId)
+    );
 
-  // 生徒情報（メールアドレス含む）を取得
-  /** @type {StudentWithEmail | null} */
-  const studentWithEmail = /** @type {StudentWithEmail | null} */ (
-    getStudentWithEmail(studentId)
-  );
-
-  if (!studentWithEmail || !studentWithEmail.email) {
-    if (isFirstTime) {
-      // 初回者でメールアドレス未設定の場合はエラーログ（本来は事前入力で防止）
-      Logger.log(
-        `初回者メール送信失敗: メールアドレス未設定 (${studentId})`,
-        'WARN',
-        'sendConfirmationEmail',
-        new Date(),
-      );
-      logActivity(
-        studentId,
-        'メール送信エラー',
-        '失敗',
-        '初回者: メールアドレス未設定',
-      );
-    } else {
-      Logger.log(`メール送信スキップ: メールアドレス未設定 (${studentId})`);
+    if (!studentWithEmail || !studentWithEmail.email) {
+      if (isFirstTime && emailType === 'confirmation') {
+        // 初回者でメールアドレス未設定の場合はエラーログ
+        Logger.log(
+          `初回者メール送信失敗: メールアドレス未設定 (${studentId})`,
+        );
+        logActivity(
+          studentId,
+          'メール送信エラー',
+          '失敗',
+          '初回者: メールアドレス未設定',
+        );
+      } else {
+        Logger.log(`メール送信スキップ: メールアドレス未設定 (${studentId})`);
+      }
+      return;
     }
-    return;
+
+    // 初回者は必須送信、経験者はメール連絡希望確認
+    if (!isFirstTime && !studentWithEmail.wantsEmail) {
+      Logger.log(`メール送信スキップ: メール連絡希望なし (${studentId})`);
+      return;
+    }
+
+    // メール種別に応じて送信
+    if (emailType === 'confirmation') {
+      sendBookingConfirmationEmail(reservation, studentWithEmail, isFirstTime);
+      const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+      const emailTypeText = isWaitlisted
+        ? '空き連絡希望登録メール'
+        : '予約確定メール';
+      const userTypeText = isFirstTime ? '初回者' : '経験者';
+      Logger.log(
+        `${emailTypeText}送信完了: ${studentId} (${userTypeText}, 予約ID: ${reservation.reservationId})`,
+      );
+    } else if (emailType === 'cancellation') {
+      sendCancellationEmail(reservation, studentWithEmail, cancelMessage);
+      Logger.log(
+        `キャンセルメール送信完了: ${studentId} (予約ID: ${reservation.reservationId})`,
+      );
+    }
+  } catch (error) {
+    Logger.log(
+      `メール送信エラー: ${error.message} (予約ID: ${reservation.reservationId})`,
+    );
+  }
+}
+
+/**
+ * キャンセル確認メール送信（実装）
+ * @param {ReservationCore} reservation - 予約情報
+ * @param {StudentWithEmail} student - 生徒情報（メールアドレス含む）
+ * @param {string} [cancelMessage] - キャンセル理由
+ * @returns {boolean} 送信成功・失敗
+ */
+function sendCancellationEmail(reservation, student, cancelMessage) {
+  try {
+    if (!student.email) {
+      Logger.log('メール送信スキップ: メールアドレスが空です');
+      return false;
+    }
+
+    // PropertiesServiceから送信元メールアドレスを取得
+    const fromEmail =
+      PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL');
+    if (!fromEmail) {
+      throw new Error('ADMIN_EMAIL が設定されていません');
+    }
+
+    // 日付フォーマット
+    const formattedDate = formatDateForEmail(reservation.date);
+
+    // 件名（テスト環境では[テスト]プレフィックス追加）
+    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
+      ? ''
+      : '[テスト]';
+    const subject = `${subjectPrefix}【川崎誠二 木彫り教室】キャンセル受付のお知らせ - ${formattedDate} ${reservation.classroom}`;
+
+    // 本文生成
+    const textBody = _createCancellationEmailText(
+      reservation,
+      student,
+      formattedDate,
+      cancelMessage,
+    );
+
+    // GmailAppでメール送信
+    GmailApp.sendEmail(student.email, subject, textBody, {
+      from: fromEmail,
+      name: '川崎誠二 木彫り教室',
+      replyTo: fromEmail,
+    });
+
+    // 送信成功ログ
+    Logger.log(`キャンセルメール送信成功: ${student.email}`);
+    logActivity(
+      student.studentId,
+      'メール送信',
+      '成功',
+      'キャンセル確認メール送信完了',
+    );
+
+    return true;
+  } catch (error) {
+    Logger.log(`キャンセルメール送信エラー: ${error.message}`);
+    logActivity(
+      student.studentId,
+      'メール送信エラー',
+      '失敗',
+      `失敗理由: ${error.message}`,
+    );
+    return false;
+  }
+}
+
+/**
+ * キャンセル確認メール本文生成
+ * @param {ReservationCore} reservation - 予約情報
+ * @param {StudentWithEmail} student - 生徒情報
+ * @param {string} formattedDate - フォーマット済み日付
+ * @param {string} [cancelMessage] - キャンセル理由
+ * @returns {string} メール本文テキスト
+ * @private
+ */
+function _createCancellationEmailText(
+  reservation,
+  student,
+  formattedDate,
+  cancelMessage,
+) {
+  const { realName } = student;
+  const { classroom, venue, startTime, endTime } = reservation;
+
+  // 時間表示
+  let timeDisplay = '予約webアプリ上をご確認ください';
+  if (startTime && endTime) {
+    timeDisplay = `${startTime} - ${endTime}`;
   }
 
-  // 初回者は必須送信、経験者はメール連絡希望確認
-  if (!isFirstTime && !studentWithEmail.wantsEmail) {
-    Logger.log(`メール送信スキップ: メール連絡希望なし (${studentId})`);
-    return;
-  }
+  // キャンセル理由セクション
+  const reasonSection = cancelMessage
+    ? `\nキャンセル理由: ${cancelMessage}\n`
+    : '';
 
-  // 予約情報を適切な形式に変換
-  const reservation = {
-    date: reservationInfo.date,
-    classroom: reservationInfo.classroom,
-    venue: reservationInfo.venue,
-    startTime: reservationInfo.startTime,
-    endTime: reservationInfo.endTime,
-    options: options,
-    isWaiting: reservationInfo.isWaiting || false,
-  };
+  return `${realName}さま
 
-  sendBookingConfirmationEmail(reservation, studentWithEmail, isFirstTime);
+予約のキャンセルを承りました。
+
+【キャンセルされた予約】
+教室: ${classroom} ${venue}
+日付: ${formattedDate}
+時間: ${timeDisplay}${reasonSection}
+
+キャンセル受付日時: ${new Date().toLocaleString('ja-JP')}
+
+予約の確認や新しい予約は、こちらのページで行えます：
+【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)
+
+またのご参加をお待ちしております。
+何かご不明点があれば、このメールに直接ご返信ください。
+
+川崎誠二
+Email: shiawasenahito3000@gmail.com
+Tel: 09013755977
+`;
 }
 
 /**

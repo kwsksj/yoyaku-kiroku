@@ -2,35 +2,26 @@
 
 /**
  * =================================================================
- * 【ファイル名】: 06_ExternalServices.js
- * 【バージョン】: 4.0
- * 【役割】: GoogleフォームやGoogleカレンダーといった、スプレッドシートの
- * 「外」にあるGoogleサービスとの連携に特化した機能。
- * 【v4.0での変更点】:
- * - 廃止済み関数を削除し、ファイルをクリーンアップ
- * - 将来的な外部サービス連携のためのプレースホルダーとして保持
+ * 【ファイル名】: 02-7_Notification_StudentReservation.js
+ * 【バージョン】: 1.0
+ * 【役割】: 生徒への予約関連メール通知
+ * - 予約確定メール送信
+ * - 予約キャンセルメール送信
+ * - 統一メール送信インターフェース
  * =================================================================
  *
  * @global getStudentWithEmail - Cache manager function from 07_CacheManager.js
- * @global getScheduleInfoForDate - Business logic function from 02-4_BusinessLogic_ScheduleMaster.js
  */
 
-/* global getStudentWithEmail, getScheduleInfoForDate */
-
-/**
- * =================================================================
- * メール送信機能
- * =================================================================
- */
+/* global getStudentWithEmail */
 
 /**
  * 予約確定メール送信機能（ReservationCore対応）
  * @param {ReservationCore} reservation - 予約情報
  * @param {StudentWithEmail} student - 生徒情報（メールアドレス含む）
- * @param {boolean} isFirstTime - 初回予約フラグ
  * @returns {boolean} 送信成功・失敗
  */
-function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
+function sendBookingConfirmationEmail(reservation, student) {
   try {
     if (!student.email) {
       Logger.log('メール送信スキップ: メールアドレスが空です');
@@ -48,7 +39,6 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
     const { subject, textBody } = createBookingConfirmationTemplate(
       reservation,
       student,
-      isFirstTime,
     );
 
     // GmailAppでメール送信
@@ -59,14 +49,18 @@ function sendBookingConfirmationEmail(reservation, student, isFirstTime) {
     });
 
     // 送信成功ログ
-    Logger.log(
-      `メール送信成功: ${student.email} (${isFirstTime ? '初回者' : '経験者'})`,
-    );
+    const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+    const isFirstTime = reservation.firstLecture || false;
+    const emailTypeText = isWaitlisted
+      ? '空き連絡希望登録メール'
+      : '予約確定メール';
+    const userTypeText = isFirstTime ? '初回者' : '経験者';
+    Logger.log(`メール送信成功: ${student.email} (${userTypeText})`);
     logActivity(
       student.studentId,
       'メール送信',
       '成功',
-      `予約確定メール送信完了 (${isFirstTime ? '初回者' : '経験者'})`,
+      `${emailTypeText}送信完了 (${userTypeText})`,
     );
 
     return true;
@@ -95,12 +89,13 @@ function createBookingConfirmationTemplate(reservation, student, isFirstTime) {
 
   // 日付フォーマット
   const formattedDate = formatDateForEmail(date);
-  const statusText =
-    status === CONSTANTS.STATUS.WAITLISTED ? '空き連絡希望' : 'ご予約';
+  const isWaitlisted = status === CONSTANTS.STATUS.WAITLISTED;
+  const statusText = isWaitlisted ? '空き連絡希望' : 'ご予約';
 
   // 件名（テスト環境では[テスト]プレフィックス追加）
   const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
-  const subject = `${subjectPrefix}【川崎誠二 木彫り教室】受付完了のお知らせ - ${formattedDate} ${classroom}`;
+  const subjectType = isWaitlisted ? '空き連絡希望登録完了' : '予約受付完了';
+  const subject = `${subjectPrefix}【川崎誠二 木彫り教室】${subjectType}のお知らせ - ${formattedDate} ${classroom}`;
 
   if (isFirstTime) {
     // 初回者向け詳細メール
@@ -142,12 +137,22 @@ function createFirstTimeEmailText(
   statusText,
 ) {
   const { realName } = student;
+  const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+
+  const greeting = isWaitlisted
+    ? `木彫り教室へのご参加希望をいただき、ありがとうございます！
+木彫り作家の川崎誠二です。
+私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！
+
+現在、満席のため空き連絡希望として登録させていただきました。
+空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
+    : `木彫り教室ご参加の申込みをいただき、ありがとうございます！
+木彫り作家の川崎誠二です。
+私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！`;
 
   return `${realName}さま
 
-木彫り教室ご参加の申込みをいただき、ありがとうございます！
-木彫り作家の川崎誠二です。
-私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！
+${greeting}
 
 ${createBookingDetailsText(reservation, formattedDate, statusText)}
 
@@ -189,11 +194,18 @@ function createRegularEmailText(
   statusText,
 ) {
   const { realName } = student;
+  const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+
+  const greeting = isWaitlisted
+    ? `お申し込みありがとうございます！
+現在、満席のため空き連絡希望として登録させていただきました。
+空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
+    : `お申し込みありがとうございます！
+ご予約を承りました。`;
 
   return `${realName}さま
 
-お申し込みありがとうございます！
-ご予約を承りました。
+${greeting}
 
 ${createBookingDetailsText(reservation, formattedDate, statusText)}
 
@@ -218,18 +230,6 @@ ${getContactAndVenueInfoText()}
 /**
  * ヘルパー関数群
  */
-
-/**
- * 環境に応じたメールアドレスを取得
- * @deprecated 使用中止：テスト環境識別は件名の[テスト]プレフィックスで行う
- * @param {string} baseEmail - 基本メールアドレス
- * @returns {string} 環境に応じたメールアドレス
- */
-function getEnvironmentAwareEmailAddress(baseEmail) {
-  // この関数は廃止予定：メールアドレス変換ではなく件名に[テスト]を追加する方式に変更
-  // 互換性維持のため残しているが、新規コードでは使用しないこと
-  return baseEmail;
-}
 
 /**
  * 授業料金額を取得
@@ -515,8 +515,13 @@ function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
     // メール種別に応じて送信
     if (emailType === 'confirmation') {
       sendBookingConfirmationEmail(reservation, studentWithEmail, isFirstTime);
+      const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+      const emailTypeText = isWaitlisted
+        ? '空き連絡希望登録メール'
+        : '予約確定メール';
+      const userTypeText = isFirstTime ? '初回者' : '経験者';
       Logger.log(
-        `予約確定メール送信完了: ${studentId} (予約ID: ${reservation.reservationId})`,
+        `${emailTypeText}送信完了: ${studentId} (${userTypeText}, 予約ID: ${reservation.reservationId})`,
       );
     } else if (emailType === 'cancellation') {
       sendCancellationEmail(reservation, studentWithEmail, cancelMessage);
@@ -529,25 +534,6 @@ function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
       `メール送信エラー: ${error.message} (予約ID: ${reservation.reservationId})`,
     );
   }
-}
-
-/**
- * 予約確定メール送信（後方互換性のため維持）
- * @param {ReservationCore} reservation - 予約データ
- * @deprecated sendReservationEmailAsync(reservation, 'confirmation') を使用してください
- */
-function sendBookingConfirmationEmailAsync(reservation) {
-  sendReservationEmailAsync(reservation, 'confirmation');
-}
-
-/**
- * 予約キャンセルメール送信（後方互換性のため維持）
- * @param {ReservationCore} reservation - 予約データ
- * @param {string} [cancelMessage] - キャンセル理由
- * @deprecated sendReservationEmailAsync(reservation, 'cancellation', cancelMessage) を使用してください
- */
-function sendCancellationEmailAsync(reservation, cancelMessage) {
-  sendReservationEmailAsync(reservation, 'cancellation', cancelMessage);
 }
 
 /**

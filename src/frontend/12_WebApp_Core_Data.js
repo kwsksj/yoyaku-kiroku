@@ -311,8 +311,8 @@ function getScheduleDataFromLessons(reservation) {
   // 予約の日付と教室に対応する講座を検索
   const matchingLesson = lessons.find(
     lesson =>
-      lesson.schedule.date === reservation.date &&
-      lesson.schedule.classroom === reservation.classroom,
+      lesson.date === reservation.date &&
+      lesson.classroom === reservation.classroom,
   );
 
   if (!matchingLesson) {
@@ -322,8 +322,8 @@ function getScheduleDataFromLessons(reservation) {
         date: reservation.date,
         classroom: reservation.classroom,
         availableLessons: lessons.map(l => ({
-          date: l.schedule.date,
-          classroom: l.schedule.classroom,
+          date: l.date,
+          classroom: l.classroom,
         })),
       },
     );
@@ -332,23 +332,14 @@ function getScheduleDataFromLessons(reservation) {
 
   console.log('✅ getScheduleDataFromLessons: 講座発見', matchingLesson);
 
-  // 日程マスタ形式の情報を返す
-  const schedule = /** @type {ScheduleInfo} */ (matchingLesson.schedule);
+  // LessonCoreから日程マスタ形式の情報を返す
   return {
     classroom: reservation.classroom,
     date: reservation.date,
-    classroomType: /** @type {string} */ (
-      schedule.classroomType || schedule['教室形式']
-    ),
-    firstStart: /** @type {string} */ (
-      schedule.firstStart || schedule['1部開始']
-    ),
-    firstEnd: /** @type {string} */ (schedule.firstEnd || schedule['1部終了']),
-    secondStart: /** @type {string} */ (
-      schedule.secondStart || schedule['2部開始']
-    ),
-    secondEnd: /** @type {string} */ (
-      schedule.secondEnd || schedule['2部終了']
-    ),
+    classroomType: matchingLesson.classroomType || '',
+    firstStart: matchingLesson.firstStart || '',
+    firstEnd: matchingLesson.firstEnd || '',
+    secondStart: matchingLesson.secondStart || '',
+    secondEnd: matchingLesson.secondEnd || '',
   };
 }

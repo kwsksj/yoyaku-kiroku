@@ -3,16 +3,19 @@
 /**
  * =================================================================
  * 【ファイル名】: 05-3_Backend_AvailableSlots.js
- * 【バージョン】: 1.5
- * 【役割】: キャッシュベース + 日程マスタを使用した予約枠計算機能
- * 【v1.5での変更点】:
- * - JSDocを修正し、グローバル関数呼び出しを修正
+ * 【バージョン】: 2.0
+ * 【役割】: レッスン空き枠計算API（LessonCore統一版）
+ * 【v2.0での変更点】:
+ * - SessionCore → LessonCore に統一
+ * - 拡張構造 {schedule, status} を廃止
+ * - 空き枠情報を直接プロパティとして追加
+ * - ステータス列を追加（休講判定対応）
  * =================================================================
  */
 
 /**
- * 開催予定の講座情報（空き枠情報を含む）を計算して返す
- * @returns {ApiResponse<any[]>}
+ * 開催予定のレッスン情報（空き枠情報を含む）を計算して返す
+ * @returns {ApiResponse<LessonCore[]>}
  */
 function getLessons() {
   try {
@@ -24,41 +27,31 @@ function getLessons() {
       CONSTANTS.TIMEZONE,
       'yyyy-MM-dd',
     );
-    Logger.log(
-      `=== getLessons: today=${today}, todayString=${todayString} ===`,
-    );
 
+    // スケジュールマスタデータ取得
     /** @type {ScheduleMasterData[]} */
     const scheduledDates = getAllScheduledDates(todayString, null);
-    Logger.log(
-      `=== scheduledDates取得完了: ${scheduledDates ? scheduledDates.length : 0} 件 ===`,
-    );
+    Logger.log(`日程マスタ取得: ${scheduledDates.length}件`);
 
+    // 予約データ取得
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     /** @type {ReservationArrayData[]} */
-    const allReservations = reservationsCache
-      ? /** @type {ReservationArrayData[]} */ (
-          reservationsCache['reservations'] || []
-        )
-      : [];
+    const allReservations = reservationsCache?.reservations || [];
     /** @type {HeaderMapType | null} */
-    const headerMap = reservationsCache
-      ? /** @type {HeaderMapType} */ (reservationsCache['headerMap'])
-      : null;
-    Logger.log(
-      `=== 予約キャッシュ取得: 予約数=${allReservations.length}件, ヘッダーマップ=${!!headerMap} ===`,
-    );
+    const headerMap = reservationsCache?.headerMap || null;
+    Logger.log(`予約キャッシュ取得: ${allReservations.length}件`);
 
-    // 新しいヘルパー関数を使用してデータ変換を統一
-    /** @type {RawReservationObject[]} */
+    // 予約データ変換
     const convertedReservations = convertReservationsToObjects(
       allReservations,
       headerMap,
     );
-    Logger.log(`=== 予約データ変換完了: ${convertedReservations.length}件 ===`);
 
+    // 日付・教室ごとに予約を分類
     /** @type {Map<string, ReservationCore[]>} */
     const reservationsByDateClassroom = new Map();
+
+    // 未来の有効な予約のみフィルタリング
     const validReservations = convertedReservations.filter(reservation => {
       const reservationDate =
         reservation.date instanceof Date
@@ -85,16 +78,20 @@ function getLessons() {
       if (!reservationsByDateClassroom.has(key)) {
         reservationsByDateClassroom.set(key, []);
       }
-      reservationsByDateClassroom
-        .get(key)
-        ?.push(/** @type {ReservationCore} */ (reservation));
+      reservationsByDateClassroom.get(key)?.push(reservation);
     });
 
-    /** @type {any[]} */
+    /** @type {LessonCore[]} */
     const lessons = [];
 
-    scheduledDates.forEach(schedule => {
-      // 日程マスタの日付はDate型で正規化済み、キー生成時に文字列化
+    // 未来の日程のみに絞り込み
+    const futureSchedules = scheduledDates.filter(schedule => {
+      const scheduleDate =
+        schedule.date instanceof Date ? schedule.date : new Date(schedule.date);
+      return scheduleDate >= today;
+    });
+
+    futureSchedules.forEach(schedule => {
       const dateKey =
         schedule.date instanceof Date
           ? Utilities.formatDate(
@@ -106,368 +103,42 @@ function getLessons() {
       const key = `${dateKey}|${schedule.classroom}`;
       const reservationsForDate = reservationsByDateClassroom.get(key) || [];
 
-      Logger.log(
-        `計算開始: ${schedule.date} ${schedule.classroom} - 予約数: ${reservationsForDate.length}件`,
-      );
+      // 空き枠計算
+      const slots = calculateAvailableSlots(schedule, reservationsForDate);
 
-      // 時間解析結果をキャッシュ
-      const timeCache = {
-        firstEndTime: schedule.firstEnd
-          ? new Date(`1900-01-01T${schedule.firstEnd}`)
-          : null,
-        secondStartTime: schedule.secondStart
-          ? new Date(`1900-01-01T${schedule.secondStart}`)
-          : null,
-        beginnerStartTime: schedule.beginnerStart
-          ? new Date(`1900-01-01T${schedule.beginnerStart}`)
-          : null,
-      };
-
-      // セッション別予約数をカウント
-      const sessionCounts = new Map();
-
-      reservationsForDate.forEach(
-        /** @param {ReservationCore} reservation */ reservation => {
-          // 教室形式別のセッション集計ロジック
-          if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
-            // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 2部制時間制
-            const startTime = reservation.startTime
-              ? new Date(`1900-01-01T${reservation.startTime}`)
-              : null;
-            const endTime = reservation.endTime
-              ? new Date(`1900-01-01T${reservation.endTime}`)
-              : null;
-
-            if (
-              startTime &&
-              endTime &&
-              timeCache.firstEndTime &&
-              timeCache.secondStartTime
-            ) {
-              // 1部（午前）：開始時刻が1部終了時刻以前
-              if (startTime <= timeCache.firstEndTime) {
-                sessionCounts.set(
-                  CONSTANTS.TIME_SLOTS.MORNING,
-                  (sessionCounts.get(CONSTANTS.TIME_SLOTS.MORNING) || 0) + 1,
-                );
-              }
-
-              // 2部（午後）：終了時刻が2部開始時刻以降
-              if (endTime >= timeCache.secondStartTime) {
-                sessionCounts.set(
-                  CONSTANTS.TIME_SLOTS.AFTERNOON,
-                  (sessionCounts.get(CONSTANTS.TIME_SLOTS.AFTERNOON) || 0) + 1,
-                );
-              }
-            }
-          } else if (
-            schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
-          ) {
-            // ${CONSTANTS.CLASSROOMS.TOKYO}: セッション制
-            sessionCounts.set(
-              CONSTANTS.ITEMS.MAIN_LECTURE,
-              (sessionCounts.get(CONSTANTS.ITEMS.MAIN_LECTURE) || 0) + 1,
-            );
-          } else {
-            // ${CONSTANTS.CLASSROOMS.NUMAZU}など: 全日時間制
-            sessionCounts.set(
-              CONSTANTS.TIME_SLOTS.ALL_DAY,
-              (sessionCounts.get(CONSTANTS.TIME_SLOTS.ALL_DAY) || 0) + 1,
-            );
-          }
-
-          // 初回者は独立して判定
-          if (reservation.firstLecture && timeCache.beginnerStartTime) {
-            const startTime = reservation.startTime
-              ? new Date(`1900-01-01T${reservation.startTime}`)
-              : null;
-            const endTime = reservation.endTime
-              ? new Date(`1900-01-01T${reservation.endTime}`)
-              : null;
-
-            // 予約時間が初回者開始時刻と重複するかチェック
-            if (
-              startTime &&
-              endTime &&
-              startTime <= timeCache.beginnerStartTime &&
-              endTime >= timeCache.beginnerStartTime
-            ) {
-              sessionCounts.set(
-                CONSTANTS.ITEMS.FIRST_LECTURE,
-                (sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0) + 1,
-              );
-            }
-          }
-        },
-      );
-
-      // 6. この日程の予約枠データを生成
-      // 日程マスタの定員値を数値として取得（文字列の場合は変換）
-      /** @type {number} */
-      let totalCapacity = 0;
-      let totalCapacitySource = '日程マスタ';
-
-      if (schedule.totalCapacity) {
-        if (typeof schedule.totalCapacity === 'string') {
-          totalCapacity = parseInt(schedule.totalCapacity, 10);
-          if (isNaN(totalCapacity)) totalCapacity = 0;
-        } else {
-          totalCapacity = schedule.totalCapacity;
-        }
-      }
-
-      // 日程マスタで全体定員が未設定の場合は0とする（システムデフォルト使用を廃止）
-      if (!totalCapacity) {
-        totalCapacity = 0;
-        totalCapacitySource = '日程マスタ未設定により0';
-      }
-
-      /** @type {number} */
-      let beginnerCapacity = 0;
-      let beginnerCapacitySource = '日程マスタ';
-
-      if (
-        schedule.beginnerCapacity !== undefined &&
-        schedule.beginnerCapacity !== null
-      ) {
-        if (typeof schedule.beginnerCapacity === 'string') {
-          beginnerCapacity = parseInt(schedule.beginnerCapacity, 10);
-          if (isNaN(beginnerCapacity)) beginnerCapacity = 0;
-        } else {
-          beginnerCapacity = schedule.beginnerCapacity;
-        }
-      } else {
-        // 日程マスタで初回者定員が未設定の場合は0とする（システムデフォルト使用を廃止）
-        beginnerCapacity = 0;
-        beginnerCapacitySource = '日程マスタ未設定により0';
-      }
-
-      Logger.log(
-        `定員設定 - ${schedule.date} ${schedule.classroom}: 全体定員=${totalCapacity}(${totalCapacitySource}), 初回者定員=${beginnerCapacity}(${beginnerCapacitySource})`,
-      );
-
-      if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
-        // ${CONSTANTS.CLASSROOMS.TSUKUBA}: 午前・午後セッション
-        const morningCount =
-          sessionCounts.get(CONSTANTS.TIME_SLOTS.MORNING) || 0;
-        const afternoonCount =
-          sessionCounts.get(CONSTANTS.TIME_SLOTS.AFTERNOON) || 0;
-        const introCount =
-          sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
-
-        const morningSlots = Math.max(0, totalCapacity - morningCount);
-        const afternoonSlots = Math.max(0, totalCapacity - afternoonCount);
-        const introSpecific = Math.max(0, beginnerCapacity - introCount);
-        const introFinalAvailable = Math.min(afternoonSlots, introSpecific);
-
-        const firstLectureIsFull =
-          beginnerCapacity > 0 && introFinalAvailable === 0;
-
-        lessons.push({
-          schedule: {
-            classroom: schedule.classroom,
-            date:
-              schedule.date instanceof Date
-                ? Utilities.formatDate(
-                    schedule.date,
-                    CONSTANTS.TIMEZONE,
-                    'yyyy-MM-dd',
-                  )
-                : String(schedule.date),
-            venue: String(schedule.venue || ''),
-            classroomType: schedule.classroomType,
-            firstStart:
-              typeof schedule.firstStart === 'object' &&
-              schedule.firstStart instanceof Date
-                ? Utilities.formatDate(
-                    schedule.firstStart,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.firstStart,
-            firstEnd:
-              typeof schedule.firstEnd === 'object' &&
-              schedule.firstEnd instanceof Date
-                ? Utilities.formatDate(
-                    schedule.firstEnd,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.firstEnd,
-            secondStart:
-              typeof schedule.secondStart === 'object' &&
-              schedule.secondStart instanceof Date
-                ? Utilities.formatDate(
-                    schedule.secondStart,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.secondStart,
-            secondEnd:
-              typeof schedule.secondEnd === 'object' &&
-              schedule.secondEnd instanceof Date
-                ? Utilities.formatDate(
-                    schedule.secondEnd,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.secondEnd,
-            beginnerStart:
-              typeof schedule.beginnerStart === 'object' &&
-              schedule.beginnerStart instanceof Date
-                ? Utilities.formatDate(
-                    schedule.beginnerStart,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.beginnerStart,
-            totalCapacity: totalCapacity,
-            beginnerCapacity: beginnerCapacity,
-          },
-          status: {
-            morningSlots: morningSlots,
-            afternoonSlots: afternoonSlots,
-            firstLectureSlots: introFinalAvailable,
-            isFull: morningSlots <= 0 && afternoonSlots <= 0,
-            firstLectureIsFull: firstLectureIsFull,
-          },
-        });
-      } else if (
-        schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED
-      ) {
-        // 東京教室: 本講座と初回者
-        const mainCount = sessionCounts.get(CONSTANTS.ITEMS.MAIN_LECTURE) || 0;
-        const introCount =
-          sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
-
-        const mainAvailable = Math.max(0, totalCapacity - mainCount);
-        const introSpecific = Math.max(0, beginnerCapacity - introCount);
-        const introFinalAvailable = Math.min(mainAvailable, introSpecific);
-
-        const firstLectureIsFull =
-          beginnerCapacity > 0 && introFinalAvailable === 0;
-
-        lessons.push({
-          schedule: {
-            classroom: schedule.classroom,
-            date:
-              schedule.date instanceof Date
-                ? Utilities.formatDate(
-                    schedule.date,
-                    CONSTANTS.TIMEZONE,
-                    'yyyy-MM-dd',
-                  )
-                : String(schedule.date),
-            venue: String(schedule.venue || ''),
-            classroomType: schedule.classroomType,
-            firstStart:
-              schedule.firstStart instanceof Date
-                ? Utilities.formatDate(
-                    schedule.firstStart,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.firstStart,
-            firstEnd:
-              schedule.firstEnd instanceof Date
-                ? Utilities.formatDate(
-                    schedule.firstEnd,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.firstEnd,
-            beginnerStart:
-              schedule.beginnerStart instanceof Date
-                ? Utilities.formatDate(
-                    schedule.beginnerStart,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.beginnerStart,
-            totalCapacity: totalCapacity,
-            beginnerCapacity: beginnerCapacity,
-          },
-          status: {
-            availableSlots: mainAvailable,
-            firstLectureSlots: introFinalAvailable,
-            isFull: mainAvailable <= 0,
-            firstLectureIsFull: firstLectureIsFull,
-          },
-        });
-      } else {
-        // 沼津教室など: 全日時間制
-        const allDayCount =
-          sessionCounts.get(CONSTANTS.TIME_SLOTS.ALL_DAY) || 0;
-        const introCount =
-          sessionCounts.get(CONSTANTS.ITEMS.FIRST_LECTURE) || 0;
-
-        const available = Math.max(0, totalCapacity - allDayCount);
-        const introSpecific = Math.max(0, beginnerCapacity - introCount);
-        const introFinalAvailable = Math.min(available, introSpecific);
-
-        const firstLectureIsFull =
-          beginnerCapacity > 0 && introFinalAvailable === 0;
-
-        lessons.push({
-          schedule: {
-            classroom: schedule.classroom,
-            date:
-              schedule.date instanceof Date
-                ? Utilities.formatDate(
-                    schedule.date,
-                    CONSTANTS.TIMEZONE,
-                    'yyyy-MM-dd',
-                  )
-                : String(schedule.date),
-            venue: String(schedule.venue || ''),
-            classroomType: schedule.classroomType,
-            firstStart:
-              schedule.firstStart instanceof Date
-                ? Utilities.formatDate(
-                    schedule.firstStart,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.firstStart,
-            firstEnd:
-              schedule.firstEnd instanceof Date
-                ? Utilities.formatDate(
-                    schedule.firstEnd,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.firstEnd,
-            beginnerStart:
-              schedule.beginnerStart instanceof Date
-                ? Utilities.formatDate(
-                    schedule.beginnerStart,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  )
-                : schedule.beginnerStart,
-            totalCapacity: totalCapacity,
-            beginnerCapacity: beginnerCapacity,
-          },
-          status: {
-            availableSlots: available,
-            firstLectureSlots: introFinalAvailable,
-            isFull: available <= 0,
-            firstLectureIsFull: firstLectureIsFull,
-          },
-        });
-      }
+      // LessonCore形式で追加
+      lessons.push({
+        classroom: schedule.classroom,
+        date: dateKey,
+        venue: schedule.venue,
+        classroomType: schedule.classroomType,
+        notes: schedule.notes,
+        status: schedule.status,
+        firstStart: formatTime(schedule.firstStart),
+        firstEnd: formatTime(schedule.firstEnd),
+        secondStart: formatTime(schedule.secondStart),
+        secondEnd: formatTime(schedule.secondEnd),
+        beginnerStart: formatTime(schedule.beginnerStart),
+        startTime: formatTime(schedule.startTime),
+        endTime: formatTime(schedule.endTime),
+        totalCapacity: parseCapacity(schedule.totalCapacity),
+        beginnerCapacity: parseCapacity(schedule.beginnerCapacity),
+        // 空き枠情報
+        firstSlots: slots.first,
+        secondSlots: slots.second,
+        beginnerSlots: slots.beginner,
+      });
     });
 
-    // 7. 当日講座の終了2時間前フィルター
+    // 当日講座の終了2時間前フィルター
     const now = new Date();
     const todayMidnight = new Date(
       now.getFullYear(),
       now.getMonth(),
       now.getDate(),
     );
-    /** @type {SessionCore[]} */
     const filteredLessons = lessons.filter(lesson => {
-      const lessonDate = new Date(lesson.schedule.date);
+      const lessonDate = new Date(lesson.date);
 
       // 当日以外はそのまま表示
       if (lessonDate.getTime() !== todayMidnight.getTime()) {
@@ -475,10 +146,8 @@ function getLessons() {
       }
 
       // 当日の場合、終了時刻をチェック
-      if (lesson.schedule.firstEnd) {
-        const [endHour, endMinute] = lesson.schedule.firstEnd
-          .split(':')
-          .map(Number);
+      if (lesson.firstEnd) {
+        const [endHour, endMinute] = lesson.firstEnd.split(':').map(Number);
         const endDateTime = new Date(
           now.getFullYear(),
           now.getMonth(),
@@ -490,63 +159,150 @@ function getLessons() {
           endDateTime.getTime() - 2 * 60 * 60 * 1000,
         );
 
-        // 現在時刻が終了2時間前を過ぎている場合は非表示
         return now < twoHoursBefore;
       }
 
-      return true; // 終了時刻が不明な場合は表示
+      return true;
     });
 
-    // 8. 日付・教室順でソート
+    // 日付・教室順でソート
     filteredLessons.sort((a, b) => {
-      // レッスンオブジェクトの日付は既に文字列化済み
-      const aData = /** @type {any} */ (a);
-      const bData = /** @type {any} */ (b);
-      const dateA = new Date(aData.schedule?.date || aData.date);
-      const dateB = new Date(bData.schedule?.date || bData.date);
-      const dateComp = dateA.getTime() - dateB.getTime();
+      const dateComp = new Date(a.date).getTime() - new Date(b.date).getTime();
       if (dateComp !== 0) return dateComp;
-      return (aData.schedule?.classroom || aData.classroom).localeCompare(
-        bData.schedule?.classroom || bData.classroom,
-      );
+      return a.classroom.localeCompare(b.classroom);
     });
 
-    Logger.log(
-      `=== 開催予定の講座情報を ${filteredLessons.length} 件計算しました（フィルター後） ===`,
-    );
-    Logger.log(
-      `=== lessons サンプル: ${JSON.stringify(filteredLessons.slice(0, 2))} ===`,
-    );
-    Logger.log('=== getLessons 正常終了 ===');
-    return /** @type {ApiResponse<any[]>} */ (
-      createApiResponse(true, { data: filteredLessons })
-    );
+    Logger.log(`レッスン情報計算完了: ${filteredLessons.length}件`);
+    return createApiResponse(true, { data: filteredLessons });
   } catch (error) {
     Logger.log(`getLessons エラー: ${error.message}\n${error.stack}`);
-    return /** @type {ApiResponse<any[]>} */ (
-      BackendErrorHandler.handle(error, 'getLessons', { data: [] })
-    );
+    return BackendErrorHandler.handle(error, 'getLessons', { data: [] });
   }
 }
 
 /**
- * 特定の教室の講座情報のみを取得する
+ * 空き枠を計算
+ * @param {ScheduleMasterData} schedule
+ * @param {ReservationCore[]} reservations
+ * @returns {{first: number, second: number|undefined, beginner: number|null}}
+ */
+function calculateAvailableSlots(schedule, reservations) {
+  const result = {
+    first: 0,
+    second: undefined,
+    beginner: null,
+  };
+
+  const totalCapacity = parseCapacity(schedule.totalCapacity);
+  const beginnerCapacity = parseCapacity(schedule.beginnerCapacity);
+
+  // 教室タイプ別の計算ロジック
+  if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
+    // 2部制の場合
+    const firstReservations = reservations.filter(r =>
+      isInTimeSlot(r, schedule.firstStart, schedule.firstEnd),
+    );
+    const secondReservations = reservations.filter(r =>
+      isInTimeSlot(r, schedule.secondStart, schedule.secondEnd),
+    );
+
+    result.first = Math.max(0, totalCapacity - firstReservations.length);
+    result.second = Math.max(0, totalCapacity - secondReservations.length);
+
+    // 初回枠計算（2部に重なる初回者のみカウント）
+    if (beginnerCapacity > 0 && schedule.beginnerStart) {
+      const beginnerCount = secondReservations.filter(
+        r => r.firstLecture,
+      ).length;
+      result.beginner = Math.min(
+        result.second,
+        beginnerCapacity - beginnerCount,
+      );
+    }
+  } else {
+    // 全日制・セッション制
+    result.first = Math.max(0, totalCapacity - reservations.length);
+
+    // 初回枠計算
+    if (beginnerCapacity > 0) {
+      const beginnerCount = reservations.filter(r => r.firstLecture).length;
+      result.beginner = Math.min(
+        result.first,
+        beginnerCapacity - beginnerCount,
+      );
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 予約が指定時間枠内にあるか判定
+ * @param {ReservationCore} reservation
+ * @param {string} slotStart
+ * @param {string} slotEnd
+ * @returns {boolean}
+ */
+function isInTimeSlot(reservation, slotStart, slotEnd) {
+  if (
+    !reservation.startTime ||
+    !reservation.endTime ||
+    !slotStart ||
+    !slotEnd
+  ) {
+    return false;
+  }
+
+  const resStart = new Date(`1900-01-01T${reservation.startTime}`);
+  const resEnd = new Date(`1900-01-01T${reservation.endTime}`);
+  const slotStartTime = new Date(`1900-01-01T${slotStart}`);
+  const slotEndTime = new Date(`1900-01-01T${slotEnd}`);
+
+  // 予約開始時刻が枠終了時刻以前 AND 予約終了時刻が枠開始時刻以降
+  return resStart <= slotEndTime && resEnd >= slotStartTime;
+}
+
+/**
+ * 時刻フォーマット統一
+ * @param {string|Date|undefined} time
+ * @returns {string|undefined}
+ */
+function formatTime(time) {
+  if (!time) return undefined;
+  if (time instanceof Date) {
+    return Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm');
+  }
+  return String(time);
+}
+
+/**
+ * 定員パース
+ * @param {number|string|undefined} capacity
+ * @returns {number}
+ */
+function parseCapacity(capacity) {
+  if (!capacity) return 0;
+  if (typeof capacity === 'string') {
+    const parsed = parseInt(capacity, 10);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return capacity;
+}
+
+/**
+ * 特定の教室のレッスン情報のみを取得する
  * @param {string} classroom - 教室名
- * @returns {ApiResponse<SessionCore[]>}
+ * @returns {ApiResponse<LessonCore[]>}
  */
 function getLessonsForClassroom(classroom) {
   const result = getLessons();
   if (!result.success) {
-    // @ts-ignore
     return createApiResponse(false, { message: result.message, data: [] });
   }
-  return /** @type {ApiResponse<SessionCore[]>} */ (
-    createApiResponse(
-      true,
-      // @ts-ignore
-      result.data.filter(lesson => lesson.schedule.classroom === classroom),
-    )
+  const filteredData = result.data.filter(
+    lesson => lesson.classroom === classroom,
   );
+  return createApiResponse(true, { data: filteredData });
 }
 
 /**
@@ -557,64 +313,35 @@ function getLessonsForClassroom(classroom) {
 function getUserReservations(studentId) {
   try {
     const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    Logger.log(`🔍 getUserReservations - studentId: ${studentId}`);
-    Logger.log(`🔍 キャッシュ取得結果: ${reservationsCache ? 'あり' : 'なし'}`);
-    if (reservationsCache) {
-      Logger.log(
-        `🔍 キャッシュのキー: ${Object.keys(reservationsCache).join(', ')}`,
-      );
-    }
+    Logger.log(`getUserReservations - studentId: ${studentId}`);
 
     /** @type {ReservationArrayData[]} */
-    const allReservations = reservationsCache
-      ? /** @type {ReservationArrayData[]} */ (
-          reservationsCache['reservations'] || []
-        )
-      : [];
-    Logger.log(`🔍 allReservations件数: ${allReservations.length}`);
-
+    const allReservations = reservationsCache?.reservations || [];
     /** @type {HeaderMapType | null} */
-    const headerMap = reservationsCache
-      ? /** @type {HeaderMapType} */ (reservationsCache['headerMap'])
-      : null;
+    const headerMap = reservationsCache?.headerMap || null;
 
-    /** @type {ReservationCore[]} */
-    const myReservations = [];
-
-    // 新しいヘルパー関数を使用してデータ変換を統一
-    /** @type {RawReservationObject[]} */
     const convertedReservations = convertReservationsToObjects(
       allReservations,
       headerMap,
     );
-    Logger.log(`🔍 変換後の予約件数: ${convertedReservations.length}`);
 
-    convertedReservations.forEach(reservation => {
-      if (reservation.studentId !== studentId) return;
+    /** @type {ReservationCore[]} */
+    const myReservations = convertedReservations
+      .filter(
+        reservation =>
+          reservation.studentId === studentId &&
+          reservation.status !== CONSTANTS.STATUS.CANCELED,
+      )
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-      // キャンセル以外の予約のみを含める
-      if (reservation.status !== CONSTANTS.STATUS.CANCELED) {
-        myReservations.push(/** @type {ReservationCore} */ (reservation));
-      }
-    });
+    // ユーザー情報はtransformReservationArrayToObjectWithHeaders()で自動付与される
 
-    // 日付でソート（新しい順）
-    myReservations.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-
-    Logger.log(`生徒ID ${studentId} の予約を取得: ${myReservations.length} 件`);
-    return /** @type {ApiResponse<{ myReservations: ReservationCore[]; }>} */ (
-      createApiResponse(true, {
-        myReservations: myReservations,
-      })
-    );
+    Logger.log(`生徒ID ${studentId} の予約: ${myReservations.length}件`);
+    return createApiResponse(true, { myReservations });
   } catch (error) {
     Logger.log(`getUserReservations エラー: ${error.message}`);
-    return /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */ (
-      BackendErrorHandler.handle(error, 'getUserReservations', {
-        data: { myReservations: [] },
-      })
-    );
+    return BackendErrorHandler.handle(error, 'getUserReservations', {
+      data: { myReservations: [] },
+    });
   }
 }

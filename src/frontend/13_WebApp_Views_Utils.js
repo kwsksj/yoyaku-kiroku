@@ -226,7 +226,7 @@ const getCompleteView = msg => {
     // バックエンドで計算済みの空き情報を直接使用
     const relevantLessons = stateManager
       .getState()
-      .lessons.filter(lesson => lesson.schedule.classroom === classroom);
+      .lessons.filter(lesson => lesson.classroom === classroom);
     const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
     if (bookingLessonsHtml) {

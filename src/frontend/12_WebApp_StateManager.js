@@ -63,7 +63,7 @@ class SimpleStateManager {
       registrationPhone: null,
 
       // --- Core Application Data ---
-      /** @type {SessionCore[]} */
+      /** @type {LessonCore[]} */
       lessons: [],
       /** @type {ReservationData[]} */
       myReservations: [],
@@ -79,7 +79,7 @@ class SimpleStateManager {
       editingReservationIds: new Set(),
       editingMemo: null, // { reservationId: string, originalValue: string } | null
       memoInputChanged: false,
-      /** @type {SessionCore | null} */
+      /** @type {LessonCore | null} */
       selectedLesson: null,
       /** @type {ReservationDetails | null} */
       editingReservationDetails: null,

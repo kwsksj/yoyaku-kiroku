@@ -325,7 +325,7 @@ const getRegistrationStep3View = () => {
           ${Components.textarea({
             id: 'q-future-goal',
             label: '将来的に制作したいものはありますか？',
-            value: data['futureGoal'] || '',
+            value: data['futureCreations'] || '',
             placeholder: '曖昧な内容でも大丈夫！',
           })}
         </form>
@@ -448,7 +448,7 @@ const getEditProfileView = () => {
       : phoneValue;
 
   // 「将来的に制作したいもの」の値を取得（生徒名簿シートから取得される想定）
-  const futureGoalValue =
+  const futureCreationsValue =
     /** @type {any} */ (userData)['futureCreations'] || '';
 
   // 教室日程の連絡チェック状態を取得（シートの「日程連絡希望」列から）
@@ -468,7 +468,7 @@ const getEditProfileView = () => {
         ${Components.textarea({
           id: 'edit-future-goal',
           label: '将来的に制作したいもの',
-          value: futureGoalValue,
+          value: futureCreationsValue,
           placeholder: '曖昧な内容でも大丈夫！',
         })}
         ${Components.input({

@@ -9,36 +9,6 @@
 /// <reference path="../core/index.d.ts" />
 
 // =================================================================
-// View専用拡張型定義
-// =================================================================
-
-/**
- * 予約可能枠API用拡張セッション型
- *
- * Available Slots APIが返すフロントエンド専用の拡張構造
- * SessionCoreに空席状態情報を追加
- */
-interface SessionWithStatus {
-  /** スケジュール基本情報 */
-  schedule: SessionCore;
-  /** 空席状態情報 */
-  status: {
-    /** 午前の空席数 */
-    morningSlots?: number;
-    /** 午後の空席数 */
-    afternoonSlots?: number;
-    /** 初回枠の空席数 */
-    firstLectureSlots?: number;
-    /** 全体の空席数（セッション制用） */
-    availableSlots?: number;
-    /** 満席フラグ */
-    isFull?: boolean;
-    /** 総定員数 */
-    totalCapacity?: number;
-  };
-}
-
-// =================================================================
 // View Type定義
 // =================================================================
 
@@ -80,7 +50,7 @@ interface StateNavigationHistoryEntry {
  */
 interface NavigationContext {
   selectedClassroom?: string;
-  selectedLesson?: SessionCore;
+  selectedLesson?: LessonCore;
   editingReservationDetails?: ReservationDetails;
   accountingReservation?: ReservationData;
   [key: string]: any;
@@ -105,7 +75,7 @@ interface RegistrationFormData {
   address?: string;
   experience?: string;
   pastWork?: string;
-  futureGoal?: string;
+  futureCreations?: string;
   futureParticipation?: string;
   trigger?: string;
   firstMessage?: string;
@@ -116,7 +86,7 @@ interface RegistrationFormData {
  * 予約フォーム専用コンテキスト
  */
 interface ReservationFormContext {
-  lessonInfo: SessionCore;
+  lessonInfo: LessonCore;
   reservationInfo: Partial<ReservationData>; // 新規の場合は初期値、編集の場合は既存データ
 }
 
@@ -137,7 +107,7 @@ declare global {
     registrationPhone: string | null;
 
     // --- Core Application Data ---
-    lessons: SessionCore[];
+    lessons: LessonCore[];
     myReservations: ReservationData[];
     accountingMaster: AccountingMasterData[];
     classrooms?: string[];
@@ -148,7 +118,7 @@ declare global {
     editingReservationIds: Set<string>;
     editingMemo: { reservationId: string; originalValue: string } | null;
     memoInputChanged: boolean;
-    selectedLesson: SessionCore | null;
+    selectedLesson: LessonCore | null;
     editingReservationDetails: ReservationDetails | null;
     accountingReservation: ReservationData | null;
     accountingReservationDetails: AccountingReservationDetails;

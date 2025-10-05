@@ -149,9 +149,9 @@ const reservationActionHandlers = {
 
     // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
     const p = {
-      classroom: lessonInfo.schedule.classroom,
-      date: lessonInfo.schedule.date,
-      venue: lessonInfo.schedule.venue,
+      classroom: lessonInfo.classroom,
+      date: lessonInfo.date,
+      venue: lessonInfo.venue,
       startTime: startTime,
       endTime: endTime,
       user: currentUser,
@@ -172,9 +172,12 @@ const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('message-input')
         )?.value || '',
-      schedule: lessonInfo.schedule,
-      status: lessonInfo.status,
-      isFull: lessonInfo.status.isFull,
+      // 満席判定（LessonCoreから計算）
+      isFull:
+        typeof lessonInfo.secondSlots !== 'undefined'
+          ? (lessonInfo.firstSlots || 0) === 0 &&
+            (lessonInfo.secondSlots || 0) === 0
+          : (lessonInfo.firstSlots || 0) === 0,
     };
 
     google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
@@ -190,7 +193,7 @@ const reservationActionHandlers = {
             myReservations: r.data.myReservations || [],
             view: 'complete',
             completionMessage: r.message,
-            selectedClassroom: lessonInfo.schedule.classroom,
+            selectedClassroom: lessonInfo.classroom,
             isDataFresh: true,
           };
 
@@ -213,7 +216,7 @@ const reservationActionHandlers = {
             payload: {
               view: 'complete',
               completionMessage: r.message,
-              selectedClassroom: lessonInfo.schedule.classroom,
+              selectedClassroom: lessonInfo.classroom,
               isDataFresh: false,
             },
           });
@@ -255,8 +258,8 @@ const reservationActionHandlers = {
       state.lessons && Array.isArray(state.lessons)
         ? state.lessons.find(
             l =>
-              l.schedule.date === String(reservation.date) &&
-              l.schedule.classroom === reservation.classroom,
+              l.date === String(reservation.date) &&
+              l.classroom === reservation.classroom,
           )
         : null;
 
@@ -626,8 +629,7 @@ const reservationActionHandlers = {
       currentState.lessons && Array.isArray(currentState.lessons)
         ? currentState.lessons.find(
             lesson =>
-              lesson.schedule.classroom === d.classroom &&
-              lesson.schedule.date === d.date,
+              lesson.classroom === d.classroom && lesson.date === d.date,
           )
         : null;
     if (foundLesson) {

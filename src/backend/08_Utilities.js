@@ -59,46 +59,6 @@ const PerformanceLog = {
   },
 };
 
-/**
- * キャッシュから生徒情報を取得する軽量関数（パフォーマンス最適化）
- * 重複シートアクセスを回避してキャッシュファーストアプローチを実装
- * @param {string} studentId - 生徒ID
- * @returns {{realName: string, displayName: string, email: string, wantsEmail: boolean}} 生徒情報
- */
-function getCachedStudentInfo(studentId) {
-  try {
-    // キャッシュから生徒名簿データを取得
-    const rosterCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    if (rosterCache && rosterCache['students']) {
-      // studentsはオブジェクト形式で保存されている
-      const studentsMap = /** @type {{ [key: string]: StudentData }} */ (
-        rosterCache['students']
-      );
-      const student = studentsMap[studentId];
-      if (student) {
-        return {
-          realName: student.realName || '(不明)',
-          displayName:
-            (student['nickname'] ? String(student['nickname']) : '') ||
-            student.realName ||
-            '(不明)',
-          email: student.email || '',
-          wantsEmail: student.wantsEmail || false,
-        };
-      }
-    }
-  } catch (error) {
-    PerformanceLog.error(`生徒情報キャッシュ取得エラー: ${error.message}`);
-  }
-
-  // フォールバック（キャッシュが利用できない場合）
-  return {
-    realName: '(不明)',
-    displayName: '(不明)',
-    email: '',
-    wantsEmail: false,
-  };
-}
 
 /**
  * 予約データの事前バリデーション（パフォーマンス最適化）
@@ -244,45 +204,6 @@ function logActivity(userId, action, result, details) {
   }
 }
 
-/**
- * 管理者にメールで通知を送信します。
- * 現在のユーザーが管理者自身の場合は通知を送信しません。
- * @param {string} subject - メールの件名。
- * @param {string} body - メールの本文。
- */
-function sendAdminNotification(subject, body) {
-  try {
-    if (!ADMIN_EMAIL || ADMIN_EMAIL === 'your-admin-email@example.com') {
-      Logger.log(
-        '管理者メールアドレスが設定されていないため、通知をスキップしました。',
-      );
-      return;
-    }
-
-    // // 現在のユーザーが管理者自身の場合は通知をスキップ
-    // const currentUserEmail = Session.getActiveUser()
-    //   ? Session.getActiveUser().getEmail()
-    //   : null;
-    // if (currentUserEmail === ADMIN_EMAIL) {
-    //   Logger.log('管理者自身の操作のため、通知をスキップしました。');
-    //   return;
-    // }
-
-    // テスト環境の場合は件名に[テスト]プレフィックス追加
-    const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
-      ? ''
-      : '[テスト]';
-    const finalSubject = `${subjectPrefix}[予約システム通知] ${subject}`;
-
-    MailApp.sendEmail({
-      to: ADMIN_EMAIL,
-      subject: finalSubject,
-      body: body,
-    });
-  } catch (e) {
-    Logger.log(`管理者への通知メール送信に失敗しました: ${e.message}`);
-  }
-}
 
 /**
  * ログシートシートに、定義済みの条件付き書式を一括で設定します。
@@ -525,13 +446,16 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
     return transformReservationArrayToObject(resArray);
   }
 
-  return {
+  const studentId = String(
+    resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)] || '',
+  );
+
+  /** @type {ReservationCore} */
+  const reservation = {
     reservationId: String(
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID)] || '',
     ),
-    studentId: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)] || '',
-    ),
+    studentId: studentId,
     date: (() => {
       const dateValue = resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.DATE)];
       return dateValue instanceof Date ? dateValue : String(dateValue || '');
@@ -577,6 +501,36 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
         '',
     ),
   };
+
+  // ユーザー情報を付与（キャッシュから取得）
+  if (studentId) {
+    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    if (studentsCache?.students?.[studentId]) {
+      const user = studentsCache.students[studentId];
+      reservation.user = {
+        studentId: user.studentId || studentId,
+        phone: user.phone || '',
+        realName: user.realName || '',
+        displayName: user.nickname || user.realName || '',
+        nickname: user.nickname,
+        email: user.email,
+        wantsEmail: user.wantsEmail,
+        wantsScheduleNotification: user.wantsScheduleNotification,
+        notificationDay: user.notificationDay,
+        notificationHour: user.notificationHour,
+        ageGroup: user.ageGroup,
+        gender: user.gender,
+        dominantHand: user.dominantHand,
+        address: user.address,
+        experience: user.experience,
+        pastWork: user.pastWork,
+        futureParticipation: user.futureParticipation,
+        futureCreations: user.futureCreations,
+      };
+    }
+  }
+
+  return reservation;
 }
 
 /**
@@ -960,153 +914,6 @@ function formatPhoneNumber(phoneNumber) {
 // 型変換関数群（Phase 3: 型システム統一）
 // ===================================================================
 
-/**
- * Sheets生データ（配列）→ ReservationCore に変換
- *
- * Google Sheetsから取得した配列データを統一Core型に変換
- * Phase 3: 型システム統一の一環として実装
- *
- * @param {RawSheetRow} row - Sheets生データ（配列）
- * @param {HeaderMapType} headerMap - ヘッダーマップ
- * @returns {ReservationCore} 統一Core型の予約データ
- *
- * @example
- * const reservation = convertRowToReservation(sheetRow, headerMap);
- * // { reservationId: 'R-001', studentId: 'S-001', ... }
- */
-function convertRowToReservation(row, headerMap) {
-  // ヘッダーマップを適切な型にキャスト
-  const hm = /** @type {Record<string, number>} */ (
-    headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap
-  );
-
-  // 日付をYYYY-MM-DD形式に変換
-  /** @param {any} val */
-  const formatDate = val => {
-    if (!val) return '';
-    if (val instanceof Date) {
-      return Utilities.formatDate(val, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
-    }
-    return String(val);
-  };
-
-  // 時刻をHH:mm形式に変換
-  /** @param {any} val */
-  const formatTime = val => {
-    if (!val) return undefined;
-    if (val instanceof Date) {
-      return Utilities.formatDate(val, CONSTANTS.TIMEZONE, 'HH:mm');
-    }
-    return String(val);
-  };
-
-  // 予約IDヘッダー（複数パターンに対応）
-  const reservationIdIdx =
-    hm[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID] ?? hm['予約ID'];
-
-  /** @type {ReservationCore} */
-  const reservation = {
-    reservationId: String(row[reservationIdIdx] || ''),
-    studentId: String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID]] || ''),
-    classroom: String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM]] || ''),
-    date: formatDate(row[hm[CONSTANTS.HEADERS.RESERVATIONS.DATE]]),
-    status: String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.STATUS]] || ''),
-    venue: row[hm[CONSTANTS.HEADERS.RESERVATIONS.VENUE]]
-      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.VENUE]])
-      : undefined,
-    startTime: formatTime(row[hm[CONSTANTS.HEADERS.RESERVATIONS.START_TIME]]),
-    endTime: formatTime(row[hm[CONSTANTS.HEADERS.RESERVATIONS.END_TIME]]),
-    chiselRental: Boolean(
-      row[hm[CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL]],
-    ),
-    firstLecture: Boolean(
-      row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]],
-    ),
-    workInProgress: row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]]
-      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]])
-      : undefined,
-    order: row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]]
-      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]])
-      : undefined,
-    messageToTeacher: row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]]
-      ? String(row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]])
-      : undefined,
-  };
-
-  // 会計詳細が存在する場合は追加（将来的に実装）
-  // reservation.accountingDetails = ...
-
-  return reservation;
-}
-
-/**
- * ReservationCore → Sheets行データ（配列）に変換
- *
- * 統一Core型からSheets書き込み用の配列データに変換
- * Phase 3: 型システム統一の一環として実装
- *
- * @param {ReservationCore} reservation - 統一Core型の予約データ
- * @param {HeaderMapType} headerMap - ヘッダーマップ
- * @returns {RawSheetRow} Sheets書き込み用配列データ
- *
- * @example
- * const row = convertReservationToRow(reservation, headerMap);
- * sheet.appendRow(row);
- */
-function convertReservationToRow(reservation, headerMap) {
-  // ヘッダーマップを適切な型にキャスト
-  const hm = /** @type {Record<string, number>} */ (
-    headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap
-  );
-
-  // 配列を初期化（全カラム分の長さ）
-  const columnCount = Object.keys(hm).length;
-  /** @type {RawSheetRow} */
-  const row = new Array(columnCount).fill('');
-
-  // 予約IDヘッダー（複数パターンに対応）
-  const reservationIdIdx =
-    hm[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID] ?? hm['予約ID'];
-
-  // 必須フィールド
-  row[reservationIdIdx] = reservation.reservationId;
-  row[hm[CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID]] = reservation.studentId;
-  row[hm[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM]] = reservation.classroom;
-  row[hm[CONSTANTS.HEADERS.RESERVATIONS.DATE]] = reservation.date;
-  row[hm[CONSTANTS.HEADERS.RESERVATIONS.STATUS]] = reservation.status;
-
-  // オプションフィールド
-  if (reservation.venue !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.VENUE]] = reservation.venue;
-  }
-  if (reservation.startTime !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.START_TIME]] = reservation.startTime;
-  }
-  if (reservation.endTime !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.END_TIME]] = reservation.endTime;
-  }
-  if (reservation.chiselRental !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL]] =
-      reservation.chiselRental;
-  }
-  if (reservation.firstLecture !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]] =
-      reservation.firstLecture;
-  }
-  if (reservation.workInProgress !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]] =
-      reservation.workInProgress;
-  }
-  if (reservation.order !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]] = reservation.order;
-  }
-  if (reservation.messageToTeacher !== undefined) {
-    row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]] =
-      reservation.messageToTeacher;
-  }
-
-  return row;
-}
 
 /**
  * Sheets生データ（配列）→ UserCore に変換

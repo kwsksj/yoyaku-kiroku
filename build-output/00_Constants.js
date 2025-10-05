@@ -237,7 +237,7 @@ const CONSTANTS = {
       BEGINNER_START: '初回者開始',
       TOTAL_CAPACITY: '全体定員',
       BEGINNER_CAPACITY: '初回者定員',
-      STATUS: '状態',
+      STATUS: 'ステータス',
       NOTES: '備考',
     },
   },

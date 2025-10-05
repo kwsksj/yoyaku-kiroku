@@ -7,7 +7,7 @@
  */
 
 /// <reference path="./common.d.ts" />
-/// <reference path="./session.d.ts" />
+/// <reference path="./lesson.d.ts" />
 /// <reference path="./reservation.d.ts" />
 /// <reference path="./user.d.ts" />
 /// <reference path="./accounting.d.ts" />
@@ -26,8 +26,8 @@
  * - AppInitialData
  * - ApiResponse<T>
  *
- * 【セッション】(session.d.ts)
- * - SessionCore
+ * 【レッスン】(lesson.d.ts)
+ * - LessonCore
  *
  * 【予約】(reservation.d.ts)
  * - ReservationCore

@@ -96,6 +96,18 @@ interface ReservationCore {
   breakTime?: number;
 
   // ========================================
+  // 関連データ
+  // ========================================
+
+  /**
+   * ユーザー情報（生徒情報）
+   * - getUserReservations()で自動付与
+   * - フロントエンドで reservation.user.displayName としてアクセス可能
+   * - JavaScriptの参照なのでメモリ効率的
+   */
+  user?: UserCore;
+
+  // ========================================
   // 動的プロパティ（material/otherSales系）
   // ========================================
 

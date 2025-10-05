@@ -2092,6 +2092,186 @@ function updateScheduleStatusManual() {
 }
 
 /**
+ * キャッシュから予約IDで予約を検索
+ * @param {string} reservationId - 予約ID
+ * @returns {(string|number|boolean|Date)[]|null} 予約データ（配列形式）、見つからない場合はnull
+ */
+function getReservationFromCacheById(reservationId) {
+  try {
+    const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    if (!reservationsCache || !reservationsCache['reservations']) {
+      Logger.log('予約キャッシュが利用できません');
+      return null;
+    }
+
+    const headerMap = reservationsCache['headerMap'];
+    if (!headerMap) {
+      Logger.log('予約ヘッダーマップが見つかりません');
+      return null;
+    }
+
+    const reservationIdIndex =
+      headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
+    if (reservationIdIndex === undefined) {
+      Logger.log('予約IDヘッダーが見つかりません');
+      return null;
+    }
+
+    const allReservations = /** @type {ReservationRawDataArray} */ (
+      reservationsCache['reservations']
+    );
+    const foundReservation = allReservations.find(
+      r => r[reservationIdIndex] === reservationId,
+    );
+
+    if (!foundReservation) {
+      Logger.log(`予約ID ${reservationId} が見つかりません`);
+      return null;
+    }
+
+    return foundReservation;
+  } catch (error) {
+    Logger.log(
+      `getReservationFromCacheById(${reservationId})でエラー: ${error.message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * 配列形式の予約データをReservationCoreオブジェクトに変換
+ * @param {(string|number|boolean|Date)[]} rawReservation - 配列形式の予約データ
+ * @param {Record<string, number>} headerMap - ヘッダーマップ
+ * @returns {ReservationCore} ReservationCoreオブジェクト
+ */
+function convertRawToReservationCore(rawReservation, headerMap) {
+  // options列のJSONパース
+  const optionsIndex = headerMap[CONSTANTS.HEADERS.RESERVATIONS.OPTIONS];
+  let options = {};
+  if (optionsIndex !== undefined && rawReservation[optionsIndex]) {
+    try {
+      options = JSON.parse(String(rawReservation[optionsIndex]));
+    } catch (e) {
+      Logger.log(`options JSONパースエラー: ${e.message}`);
+      options = {};
+    }
+  }
+
+  /** @type {ReservationCore} */
+  const reservationCore = {
+    reservationId: String(
+      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID]],
+    ),
+    studentId: String(
+      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID]],
+    ),
+    classroom: String(
+      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM]],
+    ),
+    date: String(
+      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE]],
+    ),
+    status: String(
+      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS]],
+    ),
+    venue: String(
+      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.VENUE]] || '',
+    ),
+    startTime: String(
+      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.START_TIME]] ||
+        '',
+    ),
+    endTime: String(
+      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.END_TIME]] || '',
+    ),
+    messageToTeacher: String(
+      rawReservation[
+        headerMap[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]
+      ] || '',
+    ),
+    // options列から個別プロパティを展開
+    chiselRental: options.chiselRental || false,
+    firstLecture: options.firstLecture || false,
+    workInProgress: options.workInProgress || '',
+    materialInfo: options.materialInfo || '',
+    order: options.order || '',
+  };
+
+  return reservationCore;
+}
+
+/**
+ * キャッシュから予約データをReservationCore形式で取得
+ * @param {string} reservationId - 予約ID
+ * @returns {ReservationCore|null} 予約データ、見つからない場合はnull
+ */
+function getReservationCoreById(reservationId) {
+  try {
+    const rawReservation = getReservationFromCacheById(reservationId);
+    if (!rawReservation) {
+      return null;
+    }
+
+    const cache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    if (!cache || !cache['headerMap']) {
+      Logger.log('キャッシュまたはヘッダーマップが見つかりません');
+      return null;
+    }
+
+    const headerMap = /** @type {Record<string, number>} */ (
+      cache['headerMap']
+    );
+    return convertRawToReservationCore(rawReservation, headerMap);
+  } catch (error) {
+    Logger.log(
+      `getReservationCoreById(${reservationId})でエラー: ${error.message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * キャッシュから生徒情報を取得する軽量関数（パフォーマンス最適化）
+ * 重複シートアクセスを回避してキャッシュファーストアプローチを実装
+ * @param {string} studentId - 生徒ID
+ * @returns {{realName: string, displayName: string, email: string, wantsEmail: boolean}} 生徒情報
+ */
+function getCachedStudentInfo(studentId) {
+  try {
+    // キャッシュから生徒名簿データを取得
+    const rosterCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    if (rosterCache && rosterCache['students']) {
+      // studentsはオブジェクト形式で保存されている
+      const studentsMap = /** @type {{ [key: string]: StudentData }} */ (
+        rosterCache['students']
+      );
+      const student = studentsMap[studentId];
+      if (student) {
+        return {
+          realName: student.realName || '(不明)',
+          displayName:
+            (student['nickname'] ? String(student['nickname']) : '') ||
+            student.realName ||
+            '(不明)',
+          email: student.email || '',
+          wantsEmail: student.wantsEmail || false,
+        };
+      }
+    }
+  } catch (error) {
+    Logger.log(`生徒情報キャッシュ取得エラー: ${error.message}`);
+  }
+
+  // フォールバック（キャッシュが利用できない場合）
+  return {
+    realName: '(不明)',
+    displayName: '(不明)',
+    email: '',
+    wantsEmail: false,
+  };
+}
+
+/**
  * 指定された生徒IDのメール情報を含む生徒情報を取得
  * @param {string} studentId - 生徒ID
  * @returns {Object|null} 生徒情報（メールアドレス・連絡希望フラグ含む）またはnull

@@ -290,8 +290,8 @@ const _checkIfLessonAvailable = booking => {
   // 該当する講座を検索
   const targetLesson = lessons.find(
     lesson =>
-      lesson.schedule.date === String(booking.date) &&
-      lesson.schedule.classroom === booking.classroom,
+      lesson.date === String(booking.date) &&
+      lesson.classroom === booking.classroom,
   );
 
   if (!targetLesson) {
@@ -300,8 +300,8 @@ const _checkIfLessonAvailable = booking => {
         searchDate: String(booking.date),
         searchClassroom: booking.classroom,
         availableLessons: lessons.map(l => ({
-          date: l.schedule.date,
-          classroom: l.schedule.classroom,
+          date: l.date,
+          classroom: l.classroom,
         })),
       });
     }
@@ -309,34 +309,30 @@ const _checkIfLessonAvailable = booking => {
   }
 
   // 2部制の場合はセッション別に判定
-  if (
-    targetLesson.schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL
-  ) {
-    const status = targetLesson.status;
-    const schedule = targetLesson.schedule;
+  if (targetLesson.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
     const bookingStartTime = booking.startTime;
     const bookingEndTime = booking.endTime;
 
     // --- 必須データの存在チェック ---
-    if (!status || !schedule || !bookingStartTime || !bookingEndTime) {
+    if (!bookingStartTime || !bookingEndTime) {
       if (!window.isProduction) {
         console.error(
-          '❌ 2部制判定エラー: 必須データ(status, schedule, booking times)が不足しています。',
+          '❌ 2部制判定エラー: 必須データ(booking times)が不足しています。',
           { booking, targetLesson },
         );
       }
       return false;
     }
 
-    const morningEndTime = schedule.firstEnd;
-    const afternoonStartTime = schedule.secondStart;
+    const morningEndTime = targetLesson.firstEnd;
+    const afternoonStartTime = targetLesson.secondStart;
 
     // --- セッション境界時刻の存在チェック ---
     if (!morningEndTime || !afternoonStartTime) {
       if (!window.isProduction) {
         console.error(
-          '❌ 2部制判定エラー: セッション境界時刻(firstEnd, secondStart)がscheduleに定義されていません。',
-          { schedule },
+          '❌ 2部制判定エラー: セッション境界時刻(firstEnd, secondStart)が定義されていません。',
+          { targetLesson },
         );
       }
       return false;
@@ -351,7 +347,7 @@ const _checkIfLessonAvailable = booking => {
       if (!window.isProduction) {
         console.warn('⚠️ 2部制判定警告: 予約時間がセッションの範囲外です。', {
           booking,
-          schedule,
+          targetLesson,
         });
       }
       return false;
@@ -360,12 +356,12 @@ const _checkIfLessonAvailable = booking => {
     // --- 各セッションの空き状況をチェック ---
     let morningHasSlots = true; // チェック不要な場合はtrueとして扱う
     if (morningCheckRequired) {
-      morningHasSlots = (status.morningSlots || 0) > 0;
+      morningHasSlots = (targetLesson.firstSlots || 0) > 0;
     }
 
     let afternoonHasSlots = true; // チェック不要な場合はtrueとして扱う
     if (afternoonCheckRequired) {
-      afternoonHasSlots = (status.afternoonSlots || 0) > 0;
+      afternoonHasSlots = (targetLesson.secondSlots || 0) > 0;
     }
 
     // 必要なセッション全てに空きがあるか最終判定
@@ -383,8 +379,8 @@ const _checkIfLessonAvailable = booking => {
           afternoon: afternoonCheckRequired,
         },
         slots: {
-          morning: status.morningSlots,
-          afternoon: status.afternoonSlots,
+          morning: targetLesson.firstSlots,
+          afternoon: targetLesson.secondSlots,
         },
         result: { morningHasSlots, afternoonHasSlots },
         isAvailable,
@@ -394,16 +390,12 @@ const _checkIfLessonAvailable = booking => {
     return isAvailable;
   } else {
     // 通常の講座（セッション制・全日時間制）
-    const isAvailable =
-      !targetLesson.status.isFull &&
-      (targetLesson.status.availableSlots || 0) > 0;
+    const isAvailable = (targetLesson.firstSlots || 0) > 0;
 
     if (!window.isProduction) {
       console.log('📊 通常講座判定結果:', {
-        isFull: targetLesson.status.isFull,
-        availableSlots: targetLesson.status.availableSlots,
+        firstSlots: targetLesson.firstSlots,
         isAvailable,
-        status: targetLesson.status,
       });
     }
 
