@@ -492,16 +492,20 @@ function transformReservationArrayToObjectWithHeaders(
         : String(time || '');
     })(),
     status: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)] || '',
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)] || ''
     ),
-    chiselRental: Boolean(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)],
-    ),
-    firstLecture: Boolean(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)],
-    ),
+    chiselRental: (() => {
+      const value =
+        resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)];
+      return value === true || String(value).toUpperCase() === 'TRUE';
+    })(),
+    firstLecture: (() => {
+      const value =
+        resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)];
+      return value === true || String(value).toUpperCase() === 'TRUE';
+    })(),
     workInProgress: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)] || '',
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)] || ''
     ),
     order: String(
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.ORDER)] || '',
@@ -1079,9 +1083,9 @@ function convertReservationToRow(reservation, headerMap, header) {
 
   // オプショナルフィールド
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL]] =
-    reservation.chiselRental || false;
+    reservation.chiselRental ? 'TRUE' : '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]] =
-    reservation.firstLecture || false;
+    reservation.firstLecture ? 'TRUE' : '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]] =
     reservation.workInProgress || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]] = reservation.order || '';

@@ -40,10 +40,12 @@ class UnifiedBuilder {
   async build() {
     console.log(`[${formatTime()}] 🚀 Starting unified build process...`);
 
-    // srcディレクトリを初期化
-    if (!fs.existsSync(this.srcDir)) {
-      fs.mkdirSync(this.srcDir, { recursive: true });
+    // build-outputディレクトリをクリーンアップして再作成
+    if (fs.existsSync(this.srcDir)) {
+      fs.rmSync(this.srcDir, { recursive: true, force: true });
+      console.log(`[${formatTime()}] 🧹 Cleaned ${this.srcDir} directory.`);
     }
+    fs.mkdirSync(this.srcDir, { recursive: true });
 
     try {
       // バックエンドファイルをコピー
@@ -105,7 +107,7 @@ class UnifiedBuilder {
 
     const backendFiles = fs
       .readdirSync(this.backendDir)
-      .filter(file => file.endsWith('.js'))
+      .filter(file => file.endsWith('.js') || file === 'appsscript.json')
       .sort();
 
     for (const jsFile of backendFiles) {

@@ -9,11 +9,7 @@
  * - 予約キャンセルメール送信
  * - 統一メール送信インターフェース
  * =================================================================
- *
- * @global getStudentWithEmail - Cache manager function from 07_CacheManager.js
  */
-
-/* global getStudentWithEmail */
 
 /**
  * 予約確定メール送信機能（ReservationCore対応）
@@ -36,9 +32,7 @@ function sendBookingConfirmationEmail(reservation) {
     }
 
     // メール内容を生成
-    const { subject, textBody } = createBookingConfirmationTemplate(
-      reservation,
-    );
+    const { subject, textBody } = createBookingConfirmationTemplate(reservation);
 
     // GmailAppでメール送信
     GmailApp.sendEmail(student.email, subject, textBody, {
