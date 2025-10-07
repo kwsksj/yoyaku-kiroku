@@ -240,6 +240,9 @@ const reservationActionHandlers = {
    */
   goToEditReservation: d => {
     const state = stateManager.getState();
+    // ★追加: ダッシュボードから遷移する場合はスクロール位置を保存
+    const scrollYPayload =
+      state.view === 'dashboard' ? { dashboardScrollY: window.scrollY } : {};
 
     // 1. 予約データを取得（キャッシュ済み）
     const reservation = state.myReservations.find(
@@ -275,6 +278,7 @@ const reservationActionHandlers = {
         payload: {
           view: 'reservationForm',
           currentReservationFormContext: formContext,
+          ...scrollYPayload, // ★追加
         },
       });
     } else {
@@ -299,6 +303,7 @@ const reservationActionHandlers = {
           payload: {
             view: 'reservationForm',
             currentReservationFormContext: formContext,
+            ...scrollYPayload, // ★追加
           },
         });
 
@@ -474,11 +479,13 @@ const reservationActionHandlers = {
    * @param {ActionHandlerData} d - 選択した教室情報を含むデータ
    */
   selectClassroom: d => {
-    // 教室選択は初回データ取得のため、重複チェックを一時的に無効化
-    // if (stateManager.isDataFetchInProgress('lessons')) {
-    //   console.log('講座データ取得中のため教室選択をスキップ');
-    //   return;
-    // }
+    // ★追加: ダッシュボードから遷移する場合はスクロール位置を保存
+    if (stateManager.getState().view === 'dashboard') {
+      stateManager.dispatch({
+        type: 'UPDATE_STATE',
+        payload: { dashboardScrollY: window.scrollY },
+      });
+    }
 
     let classroomName =
       d?.classroomName || d?.classroom || d?.['classroom-name'];

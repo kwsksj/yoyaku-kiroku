@@ -98,6 +98,8 @@ class SimpleStateManager {
       searchedUsers: [],
       /** @type {boolean} */
       searchAttempted: false,
+      /** @type {number} */
+      dashboardScrollY: 0,
 
       // --- New Context for Forms ---
       /** @type {ReservationFormContext | null} - 予約フォーム専用コンテキスト */

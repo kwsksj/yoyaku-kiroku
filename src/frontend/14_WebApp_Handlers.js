@@ -53,6 +53,9 @@ const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ (
 /** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */
 const windowTyped = window;
 
+// ★追加: 最後に描画されたビューを追跡するための変数
+let lastRenderedView = null;
+
 /**
  * 現在のアプリケーションの状態に基づいて、適切なビューを描画する
  * データ更新の必要性を判定し、必要に応じて最新データ取得後に再描画
@@ -65,6 +68,11 @@ function render() {
     console.warn('render(): stateManagerが未初期化のため処理をスキップします');
     return;
   }
+
+  // ★追加: ビューの変更を検知
+  const currentView = appState.view;
+  const isViewChange = lastRenderedView !== currentView;
+  lastRenderedView = currentView;
 
   console.log('🎨 render実行:', appState.view);
 
@@ -212,7 +220,20 @@ function render() {
     });
   }
 
-  window.scrollTo(0, 0);
+  // --- ★修正: 一元化されたスクロール管理 --- 
+  requestAnimationFrame(() => {
+    if (isViewChange) {
+      if (currentView === 'dashboard') {
+        const savedScrollY = appState.dashboardScrollY;
+        if (savedScrollY > 0) {
+          window.scrollTo(0, savedScrollY);
+        }
+      } else {
+        // 他ページへの遷移時は常にトップへ
+        window.scrollTo(0, 0);
+      }
+    }
+  });
 }
 
 /**
@@ -307,6 +328,14 @@ window.onload = function () {
 
     /** 会計画面に遷移（新システム対応版） */
     goToAccounting: (/** @type {{ reservationId: string }} */ d) => {
+      // ★追加: ダッシュボードから遷移する場合はスクロール位置を保存
+      if (stateManager.getState().view === 'dashboard') {
+        stateManager.dispatch({
+          type: 'UPDATE_STATE',
+          payload: { dashboardScrollY: window.scrollY },
+        });
+      }
+
       showLoading('accounting');
       const reservationId = d.reservationId;
 

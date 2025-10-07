@@ -425,6 +425,10 @@ const authActionHandlers = {
       return;
     }
 
+    // ★追加: ダッシュボードから遷移する場合はスクロール位置を保存
+    const scrollYPayload =
+      state.view === 'dashboard' ? { dashboardScrollY: window.scrollY } : {};
+
     showLoading();
 
     // バックエンドからユーザーの詳細情報を取得
@@ -441,6 +445,7 @@ const authActionHandlers = {
                 ...state.currentUser,
                 ...response.data,
               },
+              ...scrollYPayload, // ★追加
             },
           },
         });

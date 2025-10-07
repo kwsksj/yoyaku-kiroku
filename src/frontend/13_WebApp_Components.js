@@ -96,7 +96,8 @@ const Components = {
       if (focusableElements.length > 0) {
         const firstElement = /** @type {HTMLElement} */ (focusableElements[0]);
         if (firstElement && typeof firstElement.focus === 'function') {
-          firstElement.focus();
+          // ★修正: スクロールせずにフォーカスを当てる
+          firstElement.focus({ preventScroll: true });
         }
       }
     }

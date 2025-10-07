@@ -26,8 +26,11 @@ const historyActionHandlers = {
   /** きろくカードの確認/編集ボタン
    * @param {ActionHandlerData} d */
   expandHistoryCard: d => {
-    // スクロール位置を保存
-    const scrollY = window.scrollY;
+    // ★修正: スクロール位置をstateに保存
+    stateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: { dashboardScrollY: window.scrollY },
+    });
 
     // 履歴データを取得
     const item = stateManager
@@ -42,17 +45,17 @@ const historyActionHandlers = {
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
 
-    // スクロール位置を復元
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollY);
-    });
+    // ★削除: ローカルのスクロール復元処理は不要に
   },
 
   /** 編集モードを編集せずに閉じる
    * @param {ActionHandlerData} d */
   closeEditMode: d => {
-    // スクロール位置を保存
-    const scrollY = window.scrollY;
+    // ★修正: スクロール位置をstateに保存
+    stateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: { dashboardScrollY: window.scrollY },
+    });
 
     // 編集モードを解除（変更を破棄）
     stateManager.endEditMode(d.reservationId);
@@ -60,10 +63,7 @@ const historyActionHandlers = {
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
 
-    // スクロール位置を復元
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollY);
-    });
+    // ★削除: ローカルのスクロール復元処理は不要に
   },
 
   /** インライン編集のメモを保存
@@ -119,6 +119,12 @@ const historyActionHandlers = {
 
   // 新しいアクション：保存と同時に編集モードを終了
   saveAndCloseMemo: function (/** @type {any} */ d) {
+    // ★追加: スクロール位置をstateに保存
+    stateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: { dashboardScrollY: window.scrollY },
+    });
+
     // ボタンからreservationIdが渡された場合
     if (d && d.reservationId) {
       // thisを使って同じオブジェクト内のsaveInlineMemoを呼び出し

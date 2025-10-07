@@ -468,8 +468,8 @@ function _updateMemoSection(reservationId, historyItem, isInEditMode) {
     if (textarea) {
       // テキストエリアの適切な親コンテナを探す
       existingMemoSection =
-        textarea.closest('div.p-0\\.5.bg-white\\/75') ||
-        textarea.closest('div.p-0\\.5') ||
+        textarea.closest('div.p-0\.5.bg-white\/75') ||
+        textarea.closest('div.p-0\.5') ||
         textarea.closest('.memo-section') ||
         textarea.closest('div[style*="padding"]') ||
         textarea.closest('div');
@@ -574,17 +574,10 @@ function _attachMemoEventListeners(reservationId) {
     if (anyTextarea._memoInputHandler) {
       textarea.removeEventListener('input', anyTextarea._memoInputHandler);
     }
+    // ★削除: フォーカスハンドラは不要
     if (anyTextarea._memoFocusHandler) {
       textarea.removeEventListener('focus', anyTextarea._memoFocusHandler);
     }
-
-    let savedScrollY = window.scrollY;
-
-    anyTextarea._memoFocusHandler = () => {
-      requestAnimationFrame(() => {
-        window.scrollTo(0, savedScrollY);
-      });
-    };
 
     anyTextarea._memoInputHandler = (/** @type {Event} */ event) => {
       const currentValue = event.target.value;
@@ -600,13 +593,7 @@ function _attachMemoEventListeners(reservationId) {
     };
 
     // イベントリスナーを設定
-    textarea.addEventListener('focus', anyTextarea._memoFocusHandler);
     textarea.addEventListener('input', anyTextarea._memoInputHandler);
-
-    // マウスダウン時にもスクロール位置を保存（クリック時対応）
-    textarea.addEventListener('mousedown', () => {
-      savedScrollY = window.scrollY;
-    });
   }
 }
 
