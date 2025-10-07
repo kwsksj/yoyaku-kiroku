@@ -175,7 +175,7 @@ function extractPersonalDataFromCache(studentId, cacheData) {
       `個人データ抽出完了: 予約件数${myReservations.length}件（キャンセル除く）`,
     );
     return {
-      myReservations: /** @type {ReservationDataArray} */ (myReservations),
+      myReservations: myReservations,
     };
   } catch (error) {
     Logger.log(`extractPersonalDataFromCacheエラー: ${error.message}`);
@@ -276,7 +276,7 @@ function authenticateUser(phoneNumber) {
 /**
  * 新規ユーザーを生徒名簿に登録します（Phase 3: 型システム統一対応）
  *
- * @param {UserRegistrationDto} userInfo - 新規ユーザー登録リクエストDTO
+ * @param {UserCore} userInfo - 新規ユーザー登録リクエストDTO
  * @returns {ApiResponseGeneric<UserRegistrationResult>}
  *
  * @example
@@ -293,8 +293,8 @@ function authenticateUser(phoneNumber) {
 function registerNewUser(userInfo) {
   return withTransaction(() => {
     try {
-      /** @type {UserRegistrationDto} */
-      const registrationDto = /** @type {UserRegistrationDto} */ (userInfo);
+      /** @type {UserCore} */
+      const registrationDto = /** @type {UserCore} */ (userInfo);
 
       const validationResult = _normalizeAndValidatePhone(
         registrationDto?.phone || '',
@@ -482,20 +482,31 @@ function registerNewUser(userInfo) {
       try {
         const subject = `新規登録 ${userInfo?.realName || ''}:${userInfo?.nickname || ''}様`;
         const body =
-          `新しいユーザーが登録されました。\n\n` +
-          `本名: ${userInfo?.realName || ''}\n` +
-          `ニックネーム: ${userInfo?.nickname || ''}\n` +
-          `電話番号: ${normalizedPhone}\n` +
-          `メールアドレス: ${userInfo?.email || '未設定'}\n` +
-          `メール配信希望: ${userInfo?.wantsEmail ? '希望する' : '希望しない'}\n` +
+          `新しいユーザーが登録されました。
+
+` +
+          `本名: ${userInfo?.realName || ''}
+` +
+          `ニックネーム: ${userInfo?.nickname || ''}
+` +
+          `電話番号: ${normalizedPhone}
+` +
+          `メールアドレス: ${userInfo?.email || '未設定'}
+` +
+          `メール配信希望: ${userInfo?.wantsEmail ? '希望する' : '希望しない'}
+` +
           (userInfo?.futureParticipation
-            ? `今後の参加予定: ${userInfo.futureParticipation}\n`
+            ? `今後の参加予定: ${userInfo.futureParticipation}
+`
             : '') +
-          (userInfo?.trigger ? `きっかけ: ${userInfo.trigger}\n` : '') +
+          (userInfo?.trigger ? `きっかけ: ${userInfo.trigger}
+` : '') +
           (userInfo?.firstMessage
-            ? `初回メッセージ: ${userInfo.firstMessage}\n`
+            ? `初回メッセージ: ${userInfo.firstMessage}
+`
             : '') +
-          `\n詳細はスプレッドシートを確認してください。`;
+          `
+詳細はスプレッドシートを確認してください。`;
         sendAdminNotification(subject, body);
       } catch (notificationError) {
         Logger.log(
@@ -803,7 +814,7 @@ function getUserDetailForEdit(studentId) {
  * ユーザーのプロフィール（本名、ニックネーム、電話番号、メールアドレス）を更新します
  * （Phase 3: 型システム統一対応）
  *
- * @param {UserUpdateDto} userInfo - ユーザー情報更新リクエストDTO
+ * @param {UserCore} userInfo - ユーザー情報更新リクエストDTO
  * @returns {ApiResponseGeneric<UserProfileUpdateResult>}
  *
  * @example
@@ -817,8 +828,8 @@ function getUserDetailForEdit(studentId) {
 function updateUserProfile(userInfo) {
   return withTransaction(() => {
     try {
-      /** @type {UserUpdateDto} */
-      const updateDto = /** @type {UserUpdateDto} */ (userInfo);
+      /** @type {UserCore} */
+      const updateDto = /** @type {UserCore} */ (userInfo);
 
       // 新しいヘルパー関数を使用して生徒データを取得
       /** @type {{rowIndex?: number, studentId: string, realName: string, nickname: string, phone: string} | null} */

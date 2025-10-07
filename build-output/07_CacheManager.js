@@ -3,12 +3,10 @@
 /**
  * =================================================================
  * 【ファイル名】: 07_CacheManager.js
- * 【バージョン】: 6.0
+ * 【バージョン】: 6.6
  * 【役割】: キャッシュ管理システム
- * 【v6.0での変更点】:
- * - Phase 3: 型システム統一 - Core型・DTO型参照の追加
- * - 将来的な ReservationCore[] への移行準備
- * - 差分更新関数の型定義明確化
+ * 【v6.6での変更点】:
+ * - 内部関数の `cacheKey` の型を `string` に統一し、型エラーを解消
  * =================================================================
  */
 
@@ -117,7 +115,9 @@ function addReservationToCache(newReservationRow, headerMap) {
     const startTime = new Date();
 
     // 現在のキャッシュを取得
-    const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    const currentCache = getTypedCachedData(
+      CACHE_KEYS.ALL_RESERVATIONS,
+    );
     if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
       // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
@@ -176,14 +176,27 @@ function addReservationToCache(newReservationRow, headerMap) {
     );
     const updatedReservations = [formattedRow, ...currentReservations]; // 新しい予約を先頭に追加
 
+    // reservationIdIndexMap を再構築
+    const cacheHeaderMap =
+      getCacheProperty(currentCache, 'headerMap') ||
+      normalizeHeaderMap(headerMap);
+    const reservationIdColIndex =
+      cacheHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
+    const newReservationIdIndexMap = /** @type {{[key: string]: number}} */ ({});
+    updatedReservations.forEach((row, index) => {
+      const reservationId = row[reservationIdColIndex];
+      if (reservationId) {
+        newReservationIdIndexMap[String(reservationId)] = index;
+      }
+    });
+
     // 更新されたキャッシュデータを構築
     /** @type {ReservationCacheData} */
     const updatedCacheData = {
       version: new Date().getTime(),
       reservations: updatedReservations,
-      headerMap:
-        getCacheProperty(currentCache, 'headerMap') ||
-        normalizeHeaderMap(headerMap),
+      headerMap: cacheHeaderMap,
+      reservationIdIndexMap: newReservationIdIndexMap,
       metadata: {
         totalCount: updatedReservations.length,
         lastUpdated: new Date().toISOString(),
@@ -223,25 +236,21 @@ function updateReservationStatusInCache(reservationId, newStatus) {
     const startTime = new Date();
 
     // 現在のキャッシュを取得
-    const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    const currentCache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
-      // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
       rebuildAllReservationsCache();
       return;
     }
 
-    // 予約IDに該当する行を検索してステータス更新
     const headerMap = getCacheProperty(currentCache, 'headerMap') || {};
-    const reservationIdColumnIndex =
-      headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
     const statusColumnIndex = headerMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS];
+    const reservationIdIndexMap =
+      getCacheProperty(currentCache, 'reservationIdIndexMap') || {};
+    const targetIndex = reservationIdIndexMap[reservationId];
 
-    if (
-      reservationIdColumnIndex === undefined ||
-      statusColumnIndex === undefined
-    ) {
-      Logger.log('[CACHE] ヘッダーマップが不正、通常の再構築実行');
+    if (statusColumnIndex === undefined) {
+      Logger.log('[CACHE] ステータスヘッダーが不正、通常の再構築実行');
       rebuildAllReservationsCache();
       return;
     }
@@ -249,21 +258,13 @@ function updateReservationStatusInCache(reservationId, newStatus) {
     const currentReservations = /** @type {ReservationRawDataArray} */ (
       getCacheProperty(currentCache, 'reservations')
     );
-    let updated = false;
 
-    for (let i = 0; i < currentReservations.length; i++) {
-      const reservation = currentReservations[i];
-      if (reservation[reservationIdColumnIndex] === reservationId) {
-        reservation[statusColumnIndex] = newStatus;
-        updated = true;
-        Logger.log(
-          `[CACHE] 予約ID ${reservationId} のステータスを ${newStatus} に更新`,
-        );
-        break;
-      }
-    }
-
-    if (!updated) {
+    if (targetIndex !== undefined && currentReservations[targetIndex]) {
+      currentReservations[targetIndex][statusColumnIndex] = newStatus;
+      Logger.log(
+        `[CACHE] 予約ID ${reservationId} のステータスを ${newStatus} に更新`,
+      );
+    } else {
       Logger.log(
         `[CACHE] 予約ID ${reservationId} が見つかりません、通常の再構築実行`,
       );
@@ -271,14 +272,18 @@ function updateReservationStatusInCache(reservationId, newStatus) {
       return;
     }
 
-    // 更新されたキャッシュデータを構築
+    // 更新されたキャッシュデータを構築 (ts(2698)エラー回避)
     /** @type {ReservationCacheData} */
     const updatedCacheData = {
       version: new Date().getTime(),
       reservations: currentReservations,
       headerMap: getCacheProperty(currentCache, 'headerMap'),
+      reservationIdIndexMap: getCacheProperty(
+        currentCache,
+        'reservationIdIndexMap',
+      ),
       metadata: {
-        totalCount: currentReservations.length,
+        ...(getCacheProperty(currentCache, 'metadata') || {}),
         lastUpdated: new Date().toISOString(),
       },
     };
@@ -293,13 +298,12 @@ function updateReservationStatusInCache(reservationId, newStatus) {
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
     Logger.log(
-      `[CACHE] インクリメンタルステータス更新完了: ${duration}ms, 総件数: ${currentReservations.length}`,
+      `[CACHE] インクリメンタルステータス更新完了: ${duration}ms`,
     );
   } catch (error) {
     Logger.log(
       `[CACHE] インクリメンタルステータス更新エラー: ${error.message}, 通常の再構築実行`,
     );
-    // エラー時は従来の再構築にフォールバック
     rebuildAllReservationsCache();
   }
 }
@@ -316,30 +320,28 @@ function updateReservationInCache(reservationId, updatedRowData, headerMap) {
     Logger.log('[CACHE] インクリメンタル予約更新開始');
     const startTime = new Date();
 
-    // 現在のキャッシュを取得
-    const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    const currentCache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
-      // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
       rebuildAllReservationsCache();
       return;
     }
 
-    // 予約IDに該当する行を検索して完全更新
-    const cacheHeaderMap = getCacheProperty(currentCache, 'headerMap') || {};
-    const reservationIdColumnIndex =
-      cacheHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
-
-    if (reservationIdColumnIndex === undefined) {
-      Logger.log('[CACHE] 予約IDヘッダーが見つかりません、通常の再構築実行');
-      rebuildAllReservationsCache();
-      return;
-    }
+    const reservationIdIndexMap =
+      getCacheProperty(currentCache, 'reservationIdIndexMap') || {};
+    const targetIndex = reservationIdIndexMap[reservationId];
 
     const currentReservations = /** @type {ReservationRawDataArray} */ (
       getCacheProperty(currentCache, 'reservations')
     );
-    let updated = false;
+
+    if (targetIndex === undefined) {
+      Logger.log(
+        `[CACHE] 予約ID ${reservationId} が見つかりません、通常の再構築実行`,
+      );
+      rebuildAllReservationsCache();
+      return;
+    }
 
     // 日付・時刻フォーマット処理
     const dateColumnIndex = getHeaderIndex(
@@ -355,68 +357,54 @@ function updateReservationInCache(reservationId, updatedRowData, headerMap) {
       CONSTANTS.HEADERS.RESERVATIONS.END_TIME,
     );
 
-    // フォーマット済みの行データを作成
     const formattedRow = [...updatedRowData];
     if (
       dateColumnIndex !== undefined &&
       formattedRow[dateColumnIndex] instanceof Date
     ) {
-      const dateValue = formattedRow[dateColumnIndex];
-      const year = dateValue.getFullYear();
-      const month = String(dateValue.getMonth() + 1).padStart(2, '0');
-      const day = String(dateValue.getDate()).padStart(2, '0');
-      formattedRow[dateColumnIndex] = `${year}-${month}-${day}`;
+      formattedRow[dateColumnIndex] = formatDateTimeValue(
+        formattedRow[dateColumnIndex],
+        'date',
+      );
     }
     if (
       startTimeColumnIndex !== undefined &&
       formattedRow[startTimeColumnIndex] instanceof Date
     ) {
-      const timeValue = formattedRow[startTimeColumnIndex];
-      const hours = String(timeValue.getHours()).padStart(2, '0');
-      const minutes = String(timeValue.getMinutes()).padStart(2, '0');
-      formattedRow[startTimeColumnIndex] = `${hours}:${minutes}`;
+      formattedRow[startTimeColumnIndex] = formatDateTimeValue(
+        formattedRow[startTimeColumnIndex],
+        'time',
+      );
     }
     if (
       endTimeColumnIndex !== undefined &&
       formattedRow[endTimeColumnIndex] instanceof Date
     ) {
-      const timeValue = formattedRow[endTimeColumnIndex];
-      const hours = String(timeValue.getHours()).padStart(2, '0');
-      const minutes = String(timeValue.getMinutes()).padStart(2, '0');
-      formattedRow[endTimeColumnIndex] = `${hours}:${minutes}`;
-    }
-
-    for (let i = 0; i < currentReservations.length; i++) {
-      const reservation = currentReservations[i];
-      if (reservation[reservationIdColumnIndex] === reservationId) {
-        currentReservations[i] = formattedRow;
-        updated = true;
-        Logger.log(`[CACHE] 予約ID ${reservationId} のデータを完全更新`);
-        break;
-      }
-    }
-
-    if (!updated) {
-      Logger.log(
-        `[CACHE] 予約ID ${reservationId} が見つかりません、通常の再構築実行`,
+      formattedRow[endTimeColumnIndex] = formatDateTimeValue(
+        formattedRow[endTimeColumnIndex],
+        'time',
       );
-      rebuildAllReservationsCache();
-      return;
     }
 
-    // 更新されたキャッシュデータを構築
+    currentReservations[targetIndex] = formattedRow;
+    Logger.log(`[CACHE] 予約ID ${reservationId} のデータを完全更新`);
+
+    // 更新されたキャッシュデータを構築 (ts(2698)エラー回避)
     /** @type {ReservationCacheData} */
     const updatedCacheData = {
       version: new Date().getTime(),
       reservations: currentReservations,
       headerMap: getCacheProperty(currentCache, 'headerMap'),
+      reservationIdIndexMap: getCacheProperty(
+        currentCache,
+        'reservationIdIndexMap',
+      ),
       metadata: {
-        totalCount: currentReservations.length,
+        ...(getCacheProperty(currentCache, 'metadata') || {}),
         lastUpdated: new Date().toISOString(),
       },
     };
 
-    // キャッシュを更新
     CacheService.getScriptCache().put(
       CACHE_KEYS.ALL_RESERVATIONS,
       JSON.stringify(updatedCacheData),
@@ -425,14 +413,11 @@ function updateReservationInCache(reservationId, updatedRowData, headerMap) {
 
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
-    Logger.log(
-      `[CACHE] インクリメンタル予約更新完了: ${duration}ms, 総件数: ${currentReservations.length}`,
-    );
+    Logger.log(`[CACHE] インクリメンタル予約更新完了: ${duration}ms`);
   } catch (error) {
     Logger.log(
       `[CACHE] インクリメンタル予約更新エラー: ${error.message}, 通常の再構築実行`,
     );
-    // エラー時は従来の再構築にフォールバック
     rebuildAllReservationsCache();
   }
 }
@@ -453,26 +438,21 @@ function updateReservationColumnInCache(
     Logger.log('[CACHE] インクリメンタル列更新開始');
     const startTime = new Date();
 
-    // 現在のキャッシュを取得
-    const currentCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    const currentCache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
-      // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
       rebuildAllReservationsCache();
       return;
     }
 
-    // 列インデックスを取得
     const cacheHeaderMap = getCacheProperty(currentCache, 'headerMap') || {};
-    const reservationIdColumnIndex =
-      cacheHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
     const targetColumnIndex = cacheHeaderMap[columnHeaderName];
+    const reservationIdIndexMap =
+      getCacheProperty(currentCache, 'reservationIdIndexMap') || {};
+    const targetIndex = reservationIdIndexMap[reservationId];
 
-    if (
-      reservationIdColumnIndex === undefined ||
-      targetColumnIndex === undefined
-    ) {
-      Logger.log('[CACHE] ヘッダーマップが不正、通常の再構築実行');
+    if (targetColumnIndex === undefined) {
+      Logger.log('[CACHE] 列ヘッダーが不正、通常の再構築実行');
       rebuildAllReservationsCache();
       return;
     }
@@ -480,21 +460,13 @@ function updateReservationColumnInCache(
     const currentReservations = /** @type {ReservationRawDataArray} */ (
       getCacheProperty(currentCache, 'reservations')
     );
-    let updated = false;
 
-    for (let i = 0; i < currentReservations.length; i++) {
-      const reservation = currentReservations[i];
-      if (reservation[reservationIdColumnIndex] === reservationId) {
-        reservation[targetColumnIndex] = newValue;
-        updated = true;
-        Logger.log(
-          `[CACHE] 予約ID ${reservationId} の${columnHeaderName}列を更新`,
-        );
-        break;
-      }
-    }
-
-    if (!updated) {
+    if (targetIndex !== undefined && currentReservations[targetIndex]) {
+      currentReservations[targetIndex][targetColumnIndex] = newValue;
+      Logger.log(
+        `[CACHE] 予約ID ${reservationId} の${columnHeaderName}列を更新`,
+      );
+    } else {
       Logger.log(
         `[CACHE] 予約ID ${reservationId} が見つかりません、通常の再構築実行`,
       );
@@ -502,19 +474,22 @@ function updateReservationColumnInCache(
       return;
     }
 
-    // 更新されたキャッシュデータを構築
+    // 更新されたキャッシュデータを構築 (ts(2698)エラー回避)
     /** @type {ReservationCacheData} */
     const updatedCacheData = {
       version: new Date().getTime(),
       reservations: currentReservations,
       headerMap: getCacheProperty(currentCache, 'headerMap'),
+      reservationIdIndexMap: getCacheProperty(
+        currentCache,
+        'reservationIdIndexMap',
+      ),
       metadata: {
-        totalCount: currentReservations.length,
+        ...(getCacheProperty(currentCache, 'metadata') || {}),
         lastUpdated: new Date().toISOString(),
       },
     };
 
-    // キャッシュを更新
     CacheService.getScriptCache().put(
       CACHE_KEYS.ALL_RESERVATIONS,
       JSON.stringify(updatedCacheData),
@@ -523,14 +498,11 @@ function updateReservationColumnInCache(
 
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
-    Logger.log(
-      `[CACHE] インクリメンタル列更新完了: ${duration}ms, 総件数: ${currentReservations.length}`,
-    );
+    Logger.log(`[CACHE] インクリメンタル列更新完了: ${duration}ms`);
   } catch (error) {
     Logger.log(
       `[CACHE] インクリメンタル列更新エラー: ${error.message}, 通常の再構築実行`,
     );
-    // エラー時は従来の再構築にフォールバック
     rebuildAllReservationsCache();
   }
 }
@@ -634,6 +606,12 @@ function rebuildAllReservationsCache() {
       const emptyCacheData = {
         version: new Date().getTime(),
         reservations: [],
+        headerMap: {},
+        reservationIdIndexMap: {},
+        metadata: {
+          totalCount: 0,
+          lastUpdated: new Date().toISOString(),
+        },
       };
       CacheService.getScriptCache().put(
         CACHE_KEYS.ALL_RESERVATIONS,
@@ -678,6 +656,12 @@ function rebuildAllReservationsCache() {
       const emptyCacheData = {
         version: new Date().getTime(),
         reservations: [],
+        headerMap: Object.fromEntries(headerColumnMap),
+        reservationIdIndexMap: {},
+        metadata: {
+          totalCount: 0,
+          lastUpdated: new Date().toISOString(),
+        },
       };
       CacheService.getScriptCache().put(
         CACHE_KEYS.ALL_RESERVATIONS,
@@ -736,7 +720,6 @@ function rebuildAllReservationsCache() {
     }
 
     // 日付・時刻のフォーマット関数
-    // 【パフォーマンス最適化】 事前定義されたフォーマッター（関数重複定義を排除）
     const DateTimeFormatters = {
       date: (/** @type {any} */ dateValue) => {
         if (!(dateValue instanceof Date)) return String(dateValue);
@@ -753,14 +736,12 @@ function rebuildAllReservationsCache() {
       },
     };
 
-    // 【最適化】 バッチ処理で効率的にフォーマット
     const formatColumns = [
       { index: dateColumnIndex, type: 'date' },
       { index: startTimeColumnIndex, type: 'time' },
       { index: endTimeColumnIndex, type: 'time' },
     ].filter(column => column.index !== undefined);
 
-    // データを一括処理（ループ内の関数定義を排除）
     allReservationRows.forEach(reservationRow => {
       formatColumns.forEach(({ index, type }) => {
         const originalValue = reservationRow[index];
@@ -770,8 +751,6 @@ function rebuildAllReservationsCache() {
           reservationRow[index] = formatter(originalValue);
         }
       });
-
-      // 会計詳細列は既にデータ読み取り時に空文字で処理済み
     });
 
     // 全データを日付順にソート（新しい順）
@@ -781,11 +760,26 @@ function rebuildAllReservationsCache() {
       return dateB.getTime() - dateA.getTime(); // 新しい順
     });
 
+    // reservationIdIndexMap を作成
+    const reservationIdColIndex = headerColumnMap.get(
+      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+    );
+    const reservationIdIndexMap = {};
+    if (reservationIdColIndex !== undefined) {
+      sortedReservations.forEach((reservation, index) => {
+        const reservationId = reservation[reservationIdColIndex];
+        if (reservationId) {
+          reservationIdIndexMap[String(reservationId)] = index;
+        }
+      });
+    }
+
     // データサイズをチェックして分割キャッシュまたは通常キャッシュを決定
     const testCacheData = {
       version: new Date().getTime(),
       reservations: sortedReservations,
       headerMap: Object.fromEntries(headerColumnMap),
+      reservationIdIndexMap: reservationIdIndexMap,
       metadata: {
         totalCount: sortedReservations.length,
         lastUpdated: new Date().toISOString(),
@@ -813,6 +807,7 @@ function rebuildAllReservationsCache() {
       const metadata = /** @type {ChunkedCacheMetadata} */ ({
         version: new Date().getTime(),
         headerMap: Object.fromEntries(headerColumnMap),
+        reservationIdIndexMap: reservationIdIndexMap,
         totalCount: sortedReservations.length,
         totalChunks: 0, // saveChunkedDataToCache内で設定される
         isChunked: true,
@@ -1281,6 +1276,7 @@ function rebuildAllStudentsBasicCache() {
     const cacheData = {
       version: new Date().getTime(),
       students: studentsDataMap,
+      headerMap: Object.fromEntries(headerColumnMap), // ヘッダーマップを追加
       metadata: {
         totalCount: Object.keys(studentsDataMap).length,
         lastUpdated: new Date().toISOString(),
@@ -1309,6 +1305,7 @@ function rebuildAllStudentsBasicCache() {
       const metadata = /** @type {ChunkedCacheMetadata} */ ({
         version: new Date().getTime(),
         totalCount: studentsArray.length,
+        headerMap: Object.fromEntries(headerColumnMap), // ヘッダーマップを追加
         lastUpdated: new Date().toISOString(),
         isChunked: true,
       });
@@ -1500,6 +1497,50 @@ function triggerScheduledCacheRebuild() {
 // =================================================================
 
 /**
+ * 使いやすさのための定数定義
+ */
+const CACHE_KEYS = /** @type {const} */ ({
+  ALL_RESERVATIONS: 'all_reservations',
+  ALL_STUDENTS_BASIC: 'all_students_basic',
+  MASTER_SCHEDULE_DATA: 'master_schedule_data',
+  MASTER_ACCOUNTING_DATA: 'master_accounting_data',
+});
+
+/**
+ * @typedef {typeof CACHE_KEYS[keyof typeof CACHE_KEYS]} CacheKey
+ */
+
+/**
+ * @template {CacheKey} K
+ * @typedef {K extends 'all_reservations' ? ReservationCacheData :
+ *           K extends 'all_students_basic' ? StudentCacheData :
+ *           K extends 'master_schedule_data' ? ScheduleCacheData :
+ *           K extends 'master_accounting_data' ? AccountingCacheData :
+ *           never} CacheDataType
+ */
+
+/**
+ * 型定義に基づいたキャッシュ取得のオーバーロード定義
+ * @template {CacheKey} K
+ * @overload
+ * @param {K} cacheKey
+ * @param {boolean} [autoRebuild]
+ * @returns {CacheDataType<K> | null}
+ */
+
+/**
+ * 指定されたキャッシュキーから型付けされたデータを取得する汎用関数
+ * @template {CacheKey} K
+ * @param {K} cacheKey - キャッシュキー（CACHE_KEYS定数の使用推奨）
+ * @param {boolean} [autoRebuild=true] - キャッシュがない場合に自動再構築するか
+ * @returns {CacheDataType<K> | null} 型付けされたキャッシュデータまたはnull
+ */
+function getTypedCachedData(cacheKey, autoRebuild = true) {
+  // @ts-ignore
+  return getCachedData(cacheKey, autoRebuild);
+}
+
+/**
  * 指定されたキャッシュキーからデータを取得する汎用関数（キャッシュがない場合は自動再構築）
  * @param {string} cacheKey - キャッシュキー（CACHE_KEYS定数の使用推奨）
  * @param {boolean} [autoRebuild=true] - キャッシュがない場合に自動再構築するか（デフォルト: true）
@@ -1671,25 +1712,12 @@ function getAllCacheInfo() {
 
   // 各キャッシュキーに対してgetCacheInfoを呼び出し
   for (const key of Object.values(CACHE_KEYS)) {
-    /** @type {string} */
-    const keyStr = /** @type {string} */ (key);
-    // @ts-ignore - Object.create(null)との整合性のため意図的なキャスト
-    result[keyStr] = getCacheInfo(keyStr);
+    result[key] = getCacheInfo(key);
   }
 
   // @ts-ignore - TypeScriptの空オブジェクトリテラル制約を回避
   return result;
 }
-
-/**
- * 使いやすさのための定数定義
- */
-const CACHE_KEYS = {
-  ALL_RESERVATIONS: 'all_reservations',
-  ALL_STUDENTS_BASIC: 'all_students_basic',
-  MASTER_SCHEDULE_DATA: 'master_schedule_data',
-  MASTER_ACCOUNTING_DATA: 'master_accounting_data',
-};
 
 /**
  * 分割キャッシュ用の定数
@@ -1880,6 +1908,7 @@ function loadChunkedDataFromCache(baseKey) {
       result = {
         version: metadata.version,
         students: studentsMap,
+        headerMap: metadata.headerMap,
         metadata: {
           totalCount: allData.length,
           isChunked: true,
@@ -1893,6 +1922,7 @@ function loadChunkedDataFromCache(baseKey) {
         version: metadata.version,
         reservations: allData,
         headerMap: metadata.headerMap,
+        reservationIdIndexMap: metadata.reservationIdIndexMap, // ★ 追加
         metadata: {
           totalCount: allData.length,
           isChunked: true,
@@ -1964,7 +1994,7 @@ function getDataCount(parsedData, cacheKey) {
   switch (cacheKey) {
     case CACHE_KEYS.ALL_RESERVATIONS:
       return Array.isArray(data['reservations'])
-        ? data['reservations'].length
+        ? (/** @type {any[]} */ (data['reservations'])).length
         : 0;
     case CACHE_KEYS.ALL_STUDENTS_BASIC:
       return Object.keys(data['students'] || {}).length;
@@ -1975,10 +2005,31 @@ function getDataCount(parsedData, cacheKey) {
     default:
       return data['data']
         ? Array.isArray(data['data'])
-          ? data['data'].length
+          ? (/** @type {any[]} */ (data['data'])).length
           : 0
         : 0;
   }
+}
+
+/**
+ * 予約IDを指定して、キャッシュから単一の予約データを取得する
+ * @param {string} reservationId - 取得する予約のID
+ * @returns {ReservationArrayData | null} 予約データ配列、見つからない場合はnull
+ */
+function getReservationByIdFromCache(reservationId) {
+  if (!reservationId) return null;
+
+  const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false); // autoRebuildはfalseで良い
+  if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
+    return null;
+  }
+
+  const index = cache.reservationIdIndexMap[reservationId];
+  if (index === undefined) {
+    return null;
+  }
+
+  return cache.reservations[index] || null;
 }
 
 /**
@@ -1994,312 +2045,50 @@ function diagnoseAndFixScheduleMasterCache() {
     const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
     if (!sheet) {
       Logger.log('⚠️ Schedule Masterシートが存在しません');
-      Logger.log('既存予約データから自動生成を試行します...');
-
-      // 既存予約データから自動生成を試行（関数が未定義のため無効化）
-      try {
-        // const result = generateScheduleMasterFromExistingReservations();
-        /** @type {OperationResult | null} */
-        const result = null; // 関数が未定義のため一時的に無効化
-        if (result && result.success !== false) {
-          Logger.log('✅ Schedule Masterシートの自動生成完了');
-        } else {
-          Logger.log('❌ Schedule Masterシートの自動生成失敗');
-          Logger.log('手動でSchedule Masterシートを作成してください');
-          return false;
-        }
-      } catch (error) {
-        Logger.log(`❌ 自動生成でエラー発生: ${error.message}`);
-        return false;
-      }
-    } else {
-      Logger.log('✅ Schedule Masterシートが存在します');
-
-      // シートのデータ数を確認
-      const dataRange = sheet.getDataRange();
-      const rowCount = dataRange.getNumRows();
-      Logger.log(`シートデータ行数: ${rowCount}行（ヘッダー含む）`);
-
-      if (rowCount <= 1) {
-        Logger.log(
-          '⚠️ Schedule Masterシートにデータがありません（ヘッダーのみ）',
-        );
-      }
+      return; // ここで処理を中断
     }
 
-    // 2. キャッシュ再構築
-    Logger.log('キャッシュを再構築します...');
-    rebuildScheduleMasterCache();
+    Logger.log('✅ Schedule Masterシートは存在します。');
 
-    // 3. キャッシュ検証
-    const cacheData = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-    if (
-      !cacheData ||
-      !(/** @type {ScheduleCacheData} */ (cacheData)['schedule'])
-    ) {
-      Logger.log('❌ キャッシュ再構築後もデータが空です');
-      return false;
-    }
-
-    Logger.log(
-      `✅ キャッシュ診断・修復完了 - Schedule データ件数: ${/** @type {ScheduleCacheData} */ (cacheData)['schedule'].length}`,
-    );
-    return true;
-  } catch (error) {
-    Logger.log(`❌ 診断・修復中にエラー: ${error.message}`);
-    Logger.log(`スタックトレース: ${error.stack}`);
-    return false;
-  }
-}
-
-/**
- * 日程マスタのステータス自動更新を手動実行する関数
- * GASエディタから直接実行可能、またはメニューから実行
- *
- * 実行内容:
- * - 開催予定 → 開催済み の自動更新
- * - 更新後のキャッシュ再構築
- * - スプレッドシートでの結果表示
- */
-function updateScheduleStatusManual() {
-  try {
-    const ss = getActiveSpreadsheet();
-    ss.toast('日程マスタのステータス更新を開始しています...', '処理中', -1);
-
-    const updatedCount = updateScheduleStatusToCompleted();
-
-    if (updatedCount > 0) {
-      // ステータス更新後はキャッシュも再構築
+    // 2. キャッシュの存在と状態を確認
+    const cacheInfo = getCacheInfo(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+    if (!cacheInfo.exists) {
+      Logger.log(
+        'ℹ️ キャッシュが存在しません。再構築を試みます...',
+      );
       rebuildScheduleMasterCache();
+      Logger.log('✅ キャッシュを再構築しました。');
+      return;
+    }
 
-      ss.toast(
-        `${updatedCount}件の日程を「開催済み」に更新しました。`,
-        '更新完了',
-        5,
+    Logger.log(
+      `✅ キャッシュは存在します (Version: ${cacheInfo.version}, 件数: ${cacheInfo.dataCount})`,
+    );
+
+    // 3. キャッシュデータの整合性チェック（簡単な件数比較）
+    const cachedData = getTypedCachedData(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      false,
+    );
+    const sheetDataCount = sheet.getLastRow() - 1; // ヘッダー除く
+
+    if (
+      cachedData &&
+      cachedData.schedule &&
+      Array.isArray(cachedData.schedule) &&
+      cachedData.schedule.length !== sheetDataCount
+    ) {
+      Logger.log(
+        `⚠️ キャッシュとシートのデータ件数が不一致です (キャッシュ: ${cachedData.schedule.length}, シート: ${sheetDataCount})`,
       );
-
-      Logger.log(`手動ステータス更新完了: ${updatedCount}件`);
+      Logger.log('ℹ️ キャッシュの再構築を推奨します。');
     } else {
-      ss.toast('更新対象の日程はありませんでした。', '確認完了', 3);
-
-      Logger.log('手動ステータス更新: 更新対象なし');
+      Logger.log('✅ キャッシュとシートのデータ件数は一致しています。');
     }
+
+    Logger.log('=== 診断・修復完了 ===');
   } catch (error) {
-    const ss = getActiveSpreadsheet();
-    ss.toast(`エラーが発生しました: ${error.message}`, 'エラー', 5);
-    Logger.log(`手動ステータス更新エラー: ${error.message}`);
-  }
-}
-
-/**
- * キャッシュから予約IDで予約を検索
- * @param {string} reservationId - 予約ID
- * @returns {(string|number|boolean|Date)[]|null} 予約データ（配列形式）、見つからない場合はnull
- */
-function getReservationFromCacheById(reservationId) {
-  try {
-    const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    if (!reservationsCache || !reservationsCache['reservations']) {
-      Logger.log('予約キャッシュが利用できません');
-      return null;
-    }
-
-    const headerMap = reservationsCache['headerMap'];
-    if (!headerMap) {
-      Logger.log('予約ヘッダーマップが見つかりません');
-      return null;
-    }
-
-    const reservationIdIndex =
-      headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
-    if (reservationIdIndex === undefined) {
-      Logger.log('予約IDヘッダーが見つかりません');
-      return null;
-    }
-
-    const allReservations = /** @type {ReservationRawDataArray} */ (
-      reservationsCache['reservations']
-    );
-    const foundReservation = allReservations.find(
-      r => r[reservationIdIndex] === reservationId,
-    );
-
-    if (!foundReservation) {
-      Logger.log(`予約ID ${reservationId} が見つかりません`);
-      return null;
-    }
-
-    return foundReservation;
-  } catch (error) {
-    Logger.log(
-      `getReservationFromCacheById(${reservationId})でエラー: ${error.message}`,
-    );
-    return null;
-  }
-}
-
-/**
- * 配列形式の予約データをReservationCoreオブジェクトに変換
- * @param {(string|number|boolean|Date)[]} rawReservation - 配列形式の予約データ
- * @param {Record<string, number>} headerMap - ヘッダーマップ
- * @returns {ReservationCore} ReservationCoreオブジェクト
- */
-function convertRawToReservationCore(rawReservation, headerMap) {
-  // options列のJSONパース
-  const optionsIndex = headerMap[CONSTANTS.HEADERS.RESERVATIONS.OPTIONS];
-  let options = {};
-  if (optionsIndex !== undefined && rawReservation[optionsIndex]) {
-    try {
-      options = JSON.parse(String(rawReservation[optionsIndex]));
-    } catch (e) {
-      Logger.log(`options JSONパースエラー: ${e.message}`);
-      options = {};
-    }
-  }
-
-  /** @type {ReservationCore} */
-  const reservationCore = {
-    reservationId: String(
-      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID]],
-    ),
-    studentId: String(
-      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID]],
-    ),
-    classroom: String(
-      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM]],
-    ),
-    date: String(
-      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.DATE]],
-    ),
-    status: String(
-      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.STATUS]],
-    ),
-    venue: String(
-      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.VENUE]] || '',
-    ),
-    startTime: String(
-      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.START_TIME]] ||
-        '',
-    ),
-    endTime: String(
-      rawReservation[headerMap[CONSTANTS.HEADERS.RESERVATIONS.END_TIME]] || '',
-    ),
-    messageToTeacher: String(
-      rawReservation[
-        headerMap[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]
-      ] || '',
-    ),
-    // options列から個別プロパティを展開
-    chiselRental: options.chiselRental || false,
-    firstLecture: options.firstLecture || false,
-    workInProgress: options.workInProgress || '',
-    materialInfo: options.materialInfo || '',
-    order: options.order || '',
-  };
-
-  return reservationCore;
-}
-
-/**
- * キャッシュから予約データをReservationCore形式で取得
- * @param {string} reservationId - 予約ID
- * @returns {ReservationCore|null} 予約データ、見つからない場合はnull
- */
-function getReservationCoreById(reservationId) {
-  try {
-    const rawReservation = getReservationFromCacheById(reservationId);
-    if (!rawReservation) {
-      return null;
-    }
-
-    const cache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    if (!cache || !cache['headerMap']) {
-      Logger.log('キャッシュまたはヘッダーマップが見つかりません');
-      return null;
-    }
-
-    const headerMap = /** @type {Record<string, number>} */ (
-      cache['headerMap']
-    );
-    return convertRawToReservationCore(rawReservation, headerMap);
-  } catch (error) {
-    Logger.log(
-      `getReservationCoreById(${reservationId})でエラー: ${error.message}`,
-    );
-    return null;
-  }
-}
-
-/**
- * キャッシュから生徒情報を取得する軽量関数（パフォーマンス最適化）
- * 重複シートアクセスを回避してキャッシュファーストアプローチを実装
- * @param {string} studentId - 生徒ID
- * @returns {{realName: string, displayName: string, email: string, wantsEmail: boolean}} 生徒情報
- */
-function getCachedStudentInfo(studentId) {
-  try {
-    // キャッシュから生徒名簿データを取得
-    const rosterCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    if (rosterCache && rosterCache['students']) {
-      // studentsはオブジェクト形式で保存されている
-      const studentsMap = /** @type {{ [key: string]: StudentData }} */ (
-        rosterCache['students']
-      );
-      const student = studentsMap[studentId];
-      if (student) {
-        return {
-          realName: student.realName || '(不明)',
-          displayName:
-            (student['nickname'] ? String(student['nickname']) : '') ||
-            student.realName ||
-            '(不明)',
-          email: student.email || '',
-          wantsEmail: student.wantsEmail || false,
-        };
-      }
-    }
-  } catch (error) {
-    Logger.log(`生徒情報キャッシュ取得エラー: ${error.message}`);
-  }
-
-  // フォールバック（キャッシュが利用できない場合）
-  return {
-    realName: '(不明)',
-    displayName: '(不明)',
-    email: '',
-    wantsEmail: false,
-  };
-}
-
-/**
- * 指定された生徒IDのメール情報を含む生徒情報を取得
- * @param {string} studentId - 生徒ID
- * @returns {Object|null} 生徒情報（メールアドレス・連絡希望フラグ含む）またはnull
- */
-function getStudentWithEmail(studentId) {
-  try {
-    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    if (!studentsCache || !studentsCache['students']) {
-      Logger.log('生徒基本情報キャッシュが利用できません');
-      return null;
-    }
-
-    const student = /** @type {StudentCacheData} */ (studentsCache)['students'][
-      studentId
-    ];
-    if (!student) {
-      Logger.log(`生徒ID ${studentId} が見つかりません`);
-      return null;
-    }
-
-    return {
-      ...student,
-      // 明示的にメール情報を含める
-      email: student.email || '',
-      wantsEmail: student.wantsEmail || false,
-    };
-  } catch (error) {
-    Logger.log(`getStudentWithEmail(${studentId})でエラー: ${error.message}`);
-    return null;
+    Logger.log(`❌ 診断中にエラーが発生しました: ${error.message}`);
+    handleError(error, false);
   }
 }

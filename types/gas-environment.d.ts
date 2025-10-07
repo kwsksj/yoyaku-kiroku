@@ -3,6 +3,8 @@
  * GASの特殊な実行環境（全ファイルがグローバルスコープ）に対応
  */
 
+/// <reference path="./core/index.d.ts" />
+
 // GAS環境では全てのファイルがグローバルスコープで実行される
 // 同名の定数・関数・クラスは意図的にグローバル共有される
 
@@ -103,6 +105,7 @@ declare global {
   interface ReservationCacheData extends CacheDataStructure {
     reservations: ReservationRawDataArray;
     headerMap?: { [key: string]: number };
+    reservationIdIndexMap?: { [key: string]: number };
     metadata?: {
       totalCount: number;
       lastUpdated: string;
@@ -138,6 +141,7 @@ declare global {
     totalChunks: number;
     totalCount: number;
     headerMap?: { [key: string]: number };
+    reservationIdIndexMap?: { [key: string]: number };
     isChunked: true;
     lastUpdated: string;
   }
@@ -159,7 +163,7 @@ declare global {
   }
 
   interface PersonalDataResult {
-    myReservations: ReservationDataArray;
+    myReservations: ReservationCore[];
   }
 
   interface UserRegistrationResult {
@@ -269,7 +273,7 @@ declare global {
     data: {
       initial?: unknown;
       lessons?: ScheduleMasterData[];
-      myReservations?: ReservationDataArray[];
+      myReservations?: ReservationCore[];
       [key: string]: unknown;
     };
     userFound?: boolean;

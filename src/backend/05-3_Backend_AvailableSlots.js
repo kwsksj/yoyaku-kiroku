@@ -33,18 +33,10 @@ function getLessons() {
     const scheduledDates = getAllScheduledDates(todayString, null);
     Logger.log(`日程マスタ取得: ${scheduledDates.length}件`);
 
-    // 予約データ取得
-    const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-    /** @type {ReservationArrayData[]} */
-    const allReservations = reservationsCache?.reservations || [];
-    /** @type {HeaderMapType | null} */
-    const headerMap = reservationsCache?.headerMap || null;
-    Logger.log(`予約キャッシュ取得: ${allReservations.length}件`);
-
-    // 予約データ変換
-    const convertedReservations = convertReservationsToObjects(
-      allReservations,
-      headerMap,
+    // ★改善: 新しいヘルパー関数で予約データをオブジェクトとして直接取得
+    const convertedReservations = getCachedReservationsAsObjects();
+    Logger.log(
+      `予約キャッシュからオブジェクト取得: ${convertedReservations.length}件`,
     );
 
     // 日付・教室ごとに予約を分類
@@ -53,10 +45,7 @@ function getLessons() {
 
     // 未来の有効な予約のみフィルタリング
     const validReservations = convertedReservations.filter(reservation => {
-      const reservationDate =
-        reservation.date instanceof Date
-          ? reservation.date
-          : new Date(reservation.date);
+      const reservationDate = new Date(reservation.date);
       return (
         reservationDate >= today &&
         reservation.status !== CONSTANTS.STATUS.CANCELED &&
@@ -65,10 +54,7 @@ function getLessons() {
     });
 
     validReservations.forEach(reservation => {
-      const reservationDate =
-        reservation.date instanceof Date
-          ? reservation.date
-          : new Date(reservation.date);
+      const reservationDate = new Date(reservation.date);
       const dateString = Utilities.formatDate(
         reservationDate,
         CONSTANTS.TIMEZONE,
@@ -112,15 +98,15 @@ function getLessons() {
         date: dateKey,
         venue: schedule.venue,
         classroomType: schedule.classroomType,
-        notes: schedule.notes,
+        notes: String(schedule.notes || ''),
         status: schedule.status,
-        firstStart: formatTime(schedule.firstStart),
-        firstEnd: formatTime(schedule.firstEnd),
-        secondStart: formatTime(schedule.secondStart),
-        secondEnd: formatTime(schedule.secondEnd),
-        beginnerStart: formatTime(schedule.beginnerStart),
-        startTime: formatTime(schedule.startTime),
-        endTime: formatTime(schedule.endTime),
+        firstStart: formatTime(/** @type {any} */ (schedule.firstStart)),
+        firstEnd: formatTime(/** @type {any} */ (schedule.firstEnd)),
+        secondStart: formatTime(/** @type {any} */ (schedule.secondStart)),
+        secondEnd: formatTime(/** @type {any} */ (schedule.secondEnd)),
+        beginnerStart: formatTime(/** @type {any} */ (schedule.beginnerStart)),
+        startTime: formatTime(/** @type {any} */ (schedule.startTime)),
+        endTime: formatTime(/** @type {any} */ (schedule.endTime)),
         totalCapacity: parseCapacity(schedule.totalCapacity),
         beginnerCapacity: parseCapacity(schedule.beginnerCapacity),
         // 空き枠情報
@@ -173,10 +159,14 @@ function getLessons() {
     });
 
     Logger.log(`レッスン情報計算完了: ${filteredLessons.length}件`);
-    return createApiResponse(true, { data: filteredLessons });
+    return /** @type {ApiResponse<LessonCore[]>} */ (
+      createApiResponse(true, { data: filteredLessons })
+    );
   } catch (error) {
     Logger.log(`getLessons エラー: ${error.message}\n${error.stack}`);
-    return BackendErrorHandler.handle(error, 'getLessons', { data: [] });
+    return /** @type {ApiResponse<LessonCore[]>} */ (
+      BackendErrorHandler.handle(error, 'getLessons', { data: [] })
+    );
   }
 }
 
@@ -200,10 +190,10 @@ function calculateAvailableSlots(schedule, reservations) {
   if (schedule.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
     // 2部制の場合
     const firstReservations = reservations.filter(r =>
-      isInTimeSlot(r, schedule.firstStart, schedule.firstEnd),
+      isInTimeSlot(r, String(schedule.firstStart), String(schedule.firstEnd)),
     );
     const secondReservations = reservations.filter(r =>
-      isInTimeSlot(r, schedule.secondStart, schedule.secondEnd),
+      isInTimeSlot(r, String(schedule.secondStart), String(schedule.secondEnd)),
     );
 
     result.first = Math.max(0, totalCapacity - firstReservations.length);
@@ -297,12 +287,16 @@ function parseCapacity(capacity) {
 function getLessonsForClassroom(classroom) {
   const result = getLessons();
   if (!result.success) {
-    return createApiResponse(false, { message: result.message, data: [] });
+    return /** @type {ApiResponse<LessonCore[]>} */ (
+      createApiResponse(false, { message: result.message, data: [] })
+    );
   }
   const filteredData = result.data.filter(
     lesson => lesson.classroom === classroom,
   );
-  return createApiResponse(true, { data: filteredData });
+  return /** @type {ApiResponse<LessonCore[]>} */ (
+    createApiResponse(true, { data: filteredData })
+  );
 }
 
 /**
@@ -312,18 +306,10 @@ function getLessonsForClassroom(classroom) {
  */
 function getUserReservations(studentId) {
   try {
-    const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     Logger.log(`getUserReservations - studentId: ${studentId}`);
 
-    /** @type {ReservationArrayData[]} */
-    const allReservations = reservationsCache?.reservations || [];
-    /** @type {HeaderMapType | null} */
-    const headerMap = reservationsCache?.headerMap || null;
-
-    const convertedReservations = convertReservationsToObjects(
-      allReservations,
-      headerMap,
-    );
+    // ★改善: 新しいヘルパー関数で予約データをオブジェクトとして直接取得
+    const convertedReservations = getCachedReservationsAsObjects();
 
     /** @type {ReservationCore[]} */
     const myReservations = convertedReservations
@@ -337,11 +323,15 @@ function getUserReservations(studentId) {
     // ユーザー情報はtransformReservationArrayToObjectWithHeaders()で自動付与される
 
     Logger.log(`生徒ID ${studentId} の予約: ${myReservations.length}件`);
-    return createApiResponse(true, { myReservations });
+    return /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */ (
+      createApiResponse(true, { myReservations })
+    );
   } catch (error) {
     Logger.log(`getUserReservations エラー: ${error.message}`);
-    return BackendErrorHandler.handle(error, 'getUserReservations', {
-      data: { myReservations: [] },
-    });
+    return /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */ (
+      BackendErrorHandler.handle(error, 'getUserReservations', {
+        data: { myReservations: [] },
+      })
+    );
   }
 }

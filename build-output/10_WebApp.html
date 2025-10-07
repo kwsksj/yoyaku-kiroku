@@ -450,7 +450,7 @@ const ENVIRONMENT_CONFIG = {
   /**
    * =================================================================
    * 統合フロントエンドJavaScript (自動生成)
-   * Generated: 2025-10-05T13:07:14.708Z
+   * Generated: 2025-10-07T05:44:27.528Z
    * =================================================================
    */
 
@@ -4574,14 +4574,10 @@ const ENVIRONMENT_CONFIG = {
    * 実際の会計処理を実行
    * @param {AccountingFormDto} formData - フォームデータ
    * @param {Object} result - 計算結果
-   * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
-   * @param {string} classroom - 教室名
    */
   function processAccountingPayment(
     formData,
     result,
-    classifiedItems,
-    classroom,
   ) {
     try {
       // ローディング表示
@@ -4589,41 +4585,36 @@ const ENVIRONMENT_CONFIG = {
         showLoading('accounting');
       }
 
-      // 既存バックエンド形式に変換
-      const legacyUserInput = convertToLegacyFormat(
-        formData,
-        result,
-        classifiedItems,
-      );
+      const state = window.stateManager.getState();
+      const selectedReservation = state.accountingReservation;
 
-      // 制作メモデータを収集
-      const memoData = collectMemoData();
+      if (!selectedReservation) {
+        showInfo('会計対象の予約が見つかりません。', 'エラー');
+        hideLoading();
+        return;
+      }
 
-      // ペイロード準備
-      const payload = {
-        reservationId:
-          window.stateManager?.getState()?.accountingReservation?.reservationId,
-        classroom:
-          window.stateManager?.getState()?.accountingReservation?.classroom,
-        studentId: window.stateManager?.getState()?.currentUser?.studentId,
-        userInput: legacyUserInput,
-        // 制作メモデータを追加
-        workInProgress: memoData.workInProgress || '',
+      // 1. フロントエンドで計算された会計詳細(result)を取得
+      const calculatedAccountingDetails = {
+        tuition: result.tuition,
+        sales: result.sales,
+        grandTotal: result.grandTotal,
+        paymentMethod: result.paymentMethod,
+      };
+
+      // 2. 現在の予約情報と会計詳細、フォームの更新内容をマージして、新しいReservationCoreを構築
+      /** @type {ReservationCore} */
+      const reservationWithAccounting = {
+        ...selectedReservation, // 既存の予約情報
+        accountingDetails: calculatedAccountingDetails, // 計算した会計詳細
+        workInProgress: formData.workInProgress, // フォームから更新された制作メモ
+        startTime: formData.startTime, // フォームから更新された時間
+        endTime: formData.endTime,
       };
 
       // デバッグログ：最終ペイロード
       if (!window.isProduction) {
-        console.log('🔍 最終送信ペイロード:', payload);
-        console.log('🔍 userInput詳細:', {
-          tuitionItems: payload.userInput.tuitionItems,
-          salesItems: payload.userInput.salesItems,
-          paymentMethod: payload.userInput.paymentMethod,
-          timeBased: payload.userInput.timeBased,
-        });
-        console.log('🔍 制作メモデータ:', {
-          reservationId: memoData.reservationId,
-          workInProgress: memoData.workInProgress,
-        });
+        console.log('🔍 最終送信ペイロード (ReservationCore):', reservationWithAccounting);
       }
 
       // バックエンドAPIコール
@@ -4635,7 +4626,6 @@ const ENVIRONMENT_CONFIG = {
             }
 
             if (response.success) {
-              // 会計キャッシュをクリア（ローカルの一時データをクリア）
               if (typeof clearAccountingCache === 'function') {
                 clearAccountingCache();
               }
@@ -4673,7 +4663,7 @@ const ENVIRONMENT_CONFIG = {
             console.error('会計処理エラー:', error);
             showInfo('会計処理に失敗しました。', 'エラー');
           })
-          .saveAccountingDetailsAndGetLatestData(payload);
+          .saveAccountingDetailsAndGetLatestData(reservationWithAccounting);
       } else {
         // Google Apps Script環境でない場合のフォールバック
         if (typeof hideLoading === 'function') {

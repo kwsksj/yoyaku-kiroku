@@ -79,6 +79,9 @@ interface ReservationCore {
   /** 先生へのメッセージ */
   messageToTeacher?: string;
 
+  /** キャンセル理由 */
+  cancelMessage?: string;
+
   // ========================================
   // 会計関連
   // ========================================

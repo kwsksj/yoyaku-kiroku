@@ -29,7 +29,7 @@ interface UserCore {
   // ========================================
 
   /** 生徒ID（例: S-001） */
-  studentId: string;
+  studentId?: string;
 
   /** 電話番号（ハイフンなし、例: 09012345678） */
   phone: string;
@@ -38,7 +38,7 @@ interface UserCore {
   realName: string;
 
   /** 表示名（ニックネームまたは本名から生成） */
-  displayName: string;
+  displayName?: string;
 
   // ========================================
   // 基本情報（オプション）
@@ -93,4 +93,10 @@ interface UserCore {
 
   /** 将来制作したいもの */
   futureCreations?: string;
+
+  /** 登録のきっかけ */
+  trigger?: string;
+
+  /** 初回メッセージ */
+  firstMessage?: string;
 }

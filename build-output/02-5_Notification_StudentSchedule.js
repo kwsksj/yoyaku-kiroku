@@ -32,6 +32,9 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
       return;
     }
 
+    // ★改善: 新しいヘルパー関数で予約データをオブジェクトとして直接取得
+    const allReservations = getCachedReservationsAsObjects();
+
     // 共通データの取得（全生徒で共通）- 既存のgetLessons()を活用
     const lessonsResponse = getLessons();
     if (!lessonsResponse.success || !lessonsResponse.data) {
@@ -62,32 +65,25 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
     // 各生徒にメール送信
     for (const student of recipients) {
       try {
-        // 既存のgetUserReservations()を活用
-        const reservationsResponse = getUserReservations(student.studentId);
-        if (!reservationsResponse.success || !reservationsResponse.data) {
-          Logger.log(`予約データ取得失敗: ${student.studentId}`);
-          failCount++;
-          continue;
-        }
-        const reservationData = reservationsResponse.data.myReservations || [];
+        // ★修正: allReservationsはReservationCore[]なので、filterで正しい型の配列を取得
+        const studentReservations = allReservations.filter(r => r.studentId === student.studentId);
 
         // 未来の予約のみに絞り込み
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        /** @type {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} */
-        const futureReservations = reservationData
+
+        const futureReservations = studentReservations
           .filter(res => {
             const resDate = new Date(res.date);
-            return resDate >= today;
+            return resDate >= today && res.status !== CONSTANTS.STATUS.CANCELED; // キャンセル済みは除外
           })
           .map(res => ({
-            date:
-              typeof res.date === 'string' ? res.date : res.date.toISOString(),
-            startTime: res.startTime,
-            endTime: res.endTime,
+            date: typeof res.date === 'string' ? res.date : Utilities.formatDate(new Date(res.date), CONSTANTS.TIMEZONE, 'yyyy-MM-dd'),
+            startTime: typeof res.startTime === 'string' ? res.startTime : Utilities.formatDate(res.startTime, CONSTANTS.TIMEZONE, 'HH:mm'),
+            endTime: typeof res.endTime === 'string' ? res.endTime : Utilities.formatDate(res.endTime, CONSTANTS.TIMEZONE, 'HH:mm'),
             status: res.status,
             classroom: res.classroom,
-            venue: /** @type {any} */ (res).venue || '',
+            venue: res.venue || '',
           }));
 
         const emailBody = _generateEmailBody(
@@ -142,55 +138,31 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
  * 通知メール送信対象者を抽出
  * @param {number} targetDay - 通知対象日
  * @param {number} targetHour - 通知対象時刻
- * @returns {Array<{studentId: string, realName: string, nickname: string, email: string}>} 送信対象生徒の配列
+ * @returns {UserCore[]} 送信対象生徒の配列
  * @private
  */
 function _getNotificationRecipients(targetDay, targetHour) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const rosterSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
-  if (!rosterSheet) {
-    throw new Error('生徒名簿シートが見つかりません');
-  }
-  const data = rosterSheet.getDataRange().getValues();
-  const header = data[0];
-
-  // 必要な列インデックスを取得
-  const studentIdIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.STUDENT_ID);
-  const realNameIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
-  const nicknameIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
-  const emailIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
-  const scheduleNotificationPreferenceIdx = header.indexOf(
-    CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
-  );
-  const notificationDayIdx = header.indexOf(
-    CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
-  );
-  const notificationHourIdx = header.indexOf(
-    CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
-  );
+  // 生徒キャッシュから全生徒データを取得
+  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  const allStudents = studentsCache?.students ? Object.values(studentsCache.students) : [];
 
   const recipients = [];
 
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-
+  for (const student of allStudents) {
     // 日程連絡希望フラグチェック
-    const scheduleNotificationPreference = String(
-      row[scheduleNotificationPreferenceIdx],
-    ).toUpperCase();
-    if (scheduleNotificationPreference !== 'TRUE') {
+    if (!student.wantsScheduleNotification) {
       continue;
     }
 
     // メールアドレス存在チェック
-    const email = row[emailIdx];
+    const email = student.email;
     if (!email || String(email).trim() === '') {
       continue;
     }
 
     // 通知日時チェック
-    const notificationDay = row[notificationDayIdx];
-    const notificationHour = row[notificationHourIdx];
+    const notificationDay = student.notificationDay;
+    const notificationHour = student.notificationHour;
 
     // 通知日時が未設定の場合はデフォルト値を使用
     const day =
@@ -203,12 +175,7 @@ function _getNotificationRecipients(targetDay, targetHour) {
         : CONSTANTS.NOTIFICATION.DEFAULT_HOUR;
 
     if (day === targetDay && hour === targetHour) {
-      recipients.push({
-        studentId: row[studentIdIdx],
-        realName: row[realNameIdx] || '',
-        nickname: row[nicknameIdx] || '',
-        email: String(email).trim(),
-      });
+      recipients.push(student);
     }
   }
 
@@ -217,7 +184,7 @@ function _getNotificationRecipients(targetDay, targetHour) {
 
 /**
  * メール本文を生成
- * @param {{studentId: string, realName: string, nickname: string, email: string}} student - 生徒情報
+ * @param {UserCore} student - 生徒情報
  * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒の予約一覧
  * @param {Array<any>} lessons - 今後の日程一覧（getLessons()の結果）
  * @returns {string} メール本文

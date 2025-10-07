@@ -12,153 +12,70 @@
 ```bash
 # 依存関係のインストール
 npm install
-
-# JavaScript分離開発環境のビルド
-npm run dev:build
-
-# 開発環境での監視・自動ビルド
-npm run dev:watch
-
-# コードフォーマット（自動）
-npm run format
 ```
 
 ## 📁 **プロジェクト構造**
 
-### JavaScript分離開発アーキテクチャ
+`src/` ディレクトリで開発を行い、`npm run dev:build` などのコマンドで `build-output/` に成果物が生成されるアーキテクチャです。
 
 ```bash
 src/                           # JavaScript分離開発環境
-├── backend/                   # バックエンドファイル（開発用）
-│   ├── 00_Constants.js       # 統一定数管理
-│   ├── 00_SpreadsheetManager.js  # Spreadsheetキャッシュ管理
-│   ├── 01_Code.js            # エントリーポイント
-│   ├── 02-1_BusinessLogic_Batch.js  # バッチ処理
-│   ├── 02-4_BusinessLogic_ScheduleMaster.js  # 日程マスタ管理
-│   ├── 02-5_BusinessLogic_Notification.js  # 通知機能
-│   ├── 04_Backend_User.js    # ユーザー認証・プロフィール管理
-│   ├── 05-2_Backend_Write.js # データ書き込みAPI
-│   ├── 05-3_Backend_AvailableSlots.js  # 空き枠計算API
-│   ├── 06_ExternalServices.js  # 外部サービス統合
-│   ├── 07_CacheManager.js    # キャッシュ管理
-│   ├── 08_ErrorHandler.js    # エラーハンドリング
-│   ├── 08_Utilities.js       # 共通ユーティリティ
-│   └── 09_Backend_Endpoints.js  # 統合APIエンドポイント
-├── frontend/                  # フロントエンドファイル（開発用）
-│   ├── 11_WebApp_Config.js   # フロントエンド設定
-│   ├── 12_WebApp_Core.js     # コア機能
-│   ├── 12_WebApp_Core_*.js   # コアモジュール（Data, Search, Accounting, ErrorHandler）
-│   ├── 12_WebApp_StateManager.js  # 状態管理
-│   ├── 13_WebApp_Components.js    # UIコンポーネント
-│   ├── 13_WebApp_Views_*.js       # ビュー生成（Auth, Dashboard, Booking, Utils）
-│   └── 14_WebApp_Handlers*.js     # イベントハンドラー（Auth, Reservation, History, Utils）
-├── templates/                 # HTMLテンプレート
-│   └── 10_WebApp.html        # メインHTMLテンプレート
-└── jsconfig.json             # TypeScript設定
+├── backend/                   # バックエンドファイル（.gs）
+├── frontend/                  # フロントエンドファイル（.js）
+└── templates/                 # HTMLテンプレート
 
 build-output/                 # GAS同期ファイル（自動生成）
-├── 00_*.js, 01_*.js, ...    # src/backend/ からコピー
-└── 10_WebApp.html           # src/frontend/ から統合生成
 
-tools/                        # ビルド・環境管理ツール
-├── unified-build.js         # 統合ビルドシステム
-├── switch-env.js           # 環境切り替え
-└── open-dev-url.js         # 開発URL起動
+# ... その他の設定ファイル
 ```
 
-## 🧪 **開発・テスト実行**
+詳細は `GEMINI.md` のアーキテクチャ概要を参照してください。
 
-### 推奨開発フロー
+## 🧪 **開発ワークフローと主要コマンド**
 
-JavaScript分離開発環境により、モダンな開発体験を実現：
+開発からデプロイまでの基本的な流れは以下の通りです。原則として、ここに記載されたコマンドを使用してください。
 
-```bash
-# 1. 開発用ファイル編集（TypeScript支援・ESLint完全対応）
-# → src/frontend/ または src/backend/ を編集
+**1. 開発**
 
-# 2. コード品質チェック（コミット前推奨）
-npm run check
+- `src/` ディレクトリ内のファイルを編集します。
 
-# 3. ビルド → テスト環境プッシュ → ブラウザ起動（一括実行）
-npm run dev:open:test
-
-# 4. 手動テストを実行
-# 5. 問題がなければ本番デプロイ
-npm run dev:prod
-```
-
-**環境自動判定機能:**
-
-- `npm run dev:test` で `PRODUCTION_MODE=false` に自動設定
-- `npm run dev:prod` で `PRODUCTION_MODE=true` に自動設定
-- テスト環境では管理者通知メールに `[テスト]` プレフィックスが追加
-
-## 🔧 開発コマンド
-
-プロジェクトのビルド、テスト、デプロイ、コード品質管理に使用するスクリプトです。
-
-### JavaScript分離開発ワークフロー（推奨）
-
-- `npm run dev:build` - JavaScript → HTML統合ビルド（環境自動判定）
-- `npm run dev:watch` - ファイル監視・自動ビルド
-- `npm run dev:test` - ビルド → テスト環境プッシュ（`PRODUCTION_MODE=false`）
-- `npm run dev:prod` - ビルド → 本番環境プッシュ（`PRODUCTION_MODE=true`）
-- `npm run dev:open:test` - ビルド → テスト → ブラウザ起動
-- `npm run dev:open:prod` - ビルド → 本番 → ブラウザ起動
-
-### デプロイ (本番/テスト環境)
-
-**セットアップ:** 最初に `clasp.config.json` ファイルに、本番用(`prod`)とテスト用(`test`)の `deploymentId` を設定してください。
-
-- `npm run push:prod` / `npm run push:test`
-  - 指定した環境（本番/テスト）にソースコードをプッシュ（アップロード）します。
-
-- `npm run deploy:prod` / `npm run deploy:test`
-  - 指定した環境にソースコードをプッシュし、Webアプリとしてデプロイを更新します。ユーザーに影響があるのはこのコマンドです。
-
-- `npm run open:dev:prod` / `npm run open:dev:test`
-  - 指定した環境に最新コードを**プッシュ**し、開発用URL（`clasp open-web-app`で開かれるURL）をブラウザで開きます。`deploy`コマンドを実行せずに最新コードを素早く確認したい場合に使用します。GASエディタの「デプロイをテスト」に相当します。
-
-### コード品質
+**2. 品質チェック（コミット前）**
 
 - `npm run check`
-  - `prettier`によるフォーマットチェック、`eslint`による静的解析、Markdownリント、TypeScript型チェックをまとめて実行します。
+  - Prettier, ESLint, Markdownlint, 型チェックをまとめて実行します。
 
-- `npm run format`
-  - `prettier`を使い、プロジェクト全体のコードを自動でフォーマットします。
+**3. テスト環境への反映と確認**
 
-- `npm run lint` / `npm run lint:fix`
-  - `eslint`を使い、コードの静的解析と自動修正を実行します。
+- `npm run dev:test`
+  - 変更をビルドし、テスト環境へプッシュします。
+  - ブラウザで動作確認が必要な場合は `npm run dev:open:test` を使用します。
 
-- `npm run lint:md` / `npm run lint:md:fix`
-  - Markdownファイルのリントと自動修正を実行します。
+**4. 本番環境へのデプロイ**
 
-- `npm run check-types`
-  - TypeScript型チェックを実行します（コンパイルは行いません）。
+- `npm run dev:prod`
+  - テスト環境で問題がないことを確認した後、このコマンドでビルドと本番環境へのプッシュを行います。
+  - ブラウザでの確認も同時に行う場合は `npm run dev:open:prod` を使用します。
 
-## ⚙️ **設定ファイル**
+**環境判定機能:**
 
-### 開発環境設定
+- ビルド時に `PRODUCTION_MODE` が自動で設定されます（本番環境: `true`, テスト環境: `false`）。
+- テスト環境では、管理者への通知メールの件名に `[テスト]` というプレフィックスが自動で追加されます。
 
-- `types/` - TypeScript型定義ディレクトリ
-  - `api-types.d.ts` - API型定義
-  - `constants.d.ts` - 定数型定義
-  - `gas-environment.d.ts` - GAS環境型定義
-- `eslint.config.js` - ルートESLint設定
-- `eslint.common.js` - 共通ESLint設定
-- `src/jsconfig.json` - JavaScript/TypeScript設定（開発用）
+---
 
-### プロジェクト設定
+## コマンドリファレンス
 
-- `.prettierrc.json` - コードフォーマット設定
-- `jsconfig.json` - JavaScript/TypeScript設定（ルート）
-- `.vscode/settings.json` - VS Code最適化設定
-- `.clasp.json` - GAS同期設定
-- `.clasp.config.json` - 環境別デプロイ設定
+**補助コマンド**
+
+- `npm run format`: Prettierによるコードフォーマット。
+- `npm run lint:fix`: ESLintによる自動修正。
+- `npm run dev:build`: ビルドのみを実行します（通常は`dev:test`や`dev:prod`に含まれます）。
+- `npm run dev:watch`: ファイル変更を監視し、自動でビルドを実行します。
+- `npm run switch:env -- prod|test`: `.clasp.json`を切り替えて、作業環境を変更します。
 
 ## 📚 **詳細ドキュメント**
 
-- **[CLAUDE.md](CLAUDE.md)** - Claude Code向け開発ガイド（開発コマンド、アーキテクチャ概要）
+- **[GEMINI.md](GEMINI.md)** - AI (Gemini) 向け開発ガイド。プロジェクトの最も詳細かつ正確なルールブックです。
 - **[docs/JS_TO_HTML_ARCHITECTURE.md](docs/JS_TO_HTML_ARCHITECTURE.md)** - JavaScript分離開発アーキテクチャの詳細設計
 - **[docs/DATA_MODEL.md](docs/DATA_MODEL.md)** - 統合データモデルの設計仕様
 
@@ -176,27 +93,7 @@ npm run dev:prod
 
 - **マルチレイヤー**: CacheService + SpreadsheetManager二重キャッシュ
 - **インクリメンタル更新（v5.0）**: 予約データの差分更新により95%以上高速化
-  - シート全体再読み込み（2-3秒）→ 差分更新（50-200ms）
-  - 新規追加・更新・削除の各操作で差分のみ反映
-  - エラー時の自動フォールバック機構
 - **分割キャッシュシステム（v5.5）**: 大容量データの自動分割保存
-  - 90KB超過時に自動チャンク分割（最大20チャンク対応）
-  - 予約データ・生徒名簿の透過的な読み書き
-  - CacheServiceの100KB制限問題を根本解決
-- **バージョン管理**: 数値インクリメントによる効率的な差分検出
-- **統一API**: `getCachedData()`による一元管理と自動再構築
-- **フォールバック**: キャッシュ失敗時の自動復旧機能
-
-### 予約管理機能
-
-- **同一日重複予約防止**: 1ユーザー1日1予約の制限でデータ整合性を保証
-- **空席連絡希望（キャンセル待ち）**: 定員超過時の待機リスト管理と管理者通知
-- **日程連絡希望機能**: 日程公開時の通知リクエスト機能
-  - ユーザーによる連絡希望登録
-  - 管理者への自動通知メール送信
-  - ユーザー情報（名前・連絡先）の包括的通知
-- **きろくカード編集**: 予約記録の詳細編集と会計情報の包括的管理
-- **日程マスタ自動ステータス更新**: 過去日程の自動「開催済み」化で運用負荷削減
 
 ### 企業レベル品質保証
 
@@ -204,28 +101,11 @@ npm run dev:prod
 - **状態管理**: StateManagerによる統一状態管理
 - **API整合性**: フロントエンド・バックエンド完全統合
 - **UI一貫性**: Atomic Designによるコンポーネントシステムと統一デザインシステム（DesignConfig）
-- **プライバシー保護**: 退会機能とプライバシーポリシー実装
-- **データ整合性**: ビジネスロジックレベルでの検証と制約
 
 ## ⚠️ **注意**
 
-- **本番影響:** `npm run push:prod` または `npm run dev:prod` でユーザーが利用するWebアプリが更新されます
+- **本番影響:** `npm run dev:prod` でユーザーが利用するWebアプリが更新されます
 - **設定ファイル:** `.clasp.config.json` には機密情報が含まれGit管理対象外です
-- **開発推奨:** `src/` ディレクトリでの編集を推奨（TypeScript支援・自動ビルド）
 
-## 🏆 **システム品質評価**
 
-### 包括的診断結果（2025年10月更新）
-
-- **アーキテクチャ設計**: ⭐⭐⭐⭐⭐ 企業レベルの品質
-- **エラーハンドリング**: ⭐⭐⭐⭐⭐ 多重フォールバック機構
-- **状態管理**: ⭐⭐⭐⭐⭐ 統一状態管理による高信頼性
-- **パフォーマンス**: ⭐⭐⭐⭐⭐ インクリメンタル更新で95%高速化
-- **開発体験**: ⭐⭐⭐⭐⭐ JavaScript分離による大幅向上
-- **ビジネスロジック**: ⭐⭐⭐⭐⭐ データ整合性保証と自動化
-
-**総合評価**: 🏆 **本格的な商用運用に十分な品質を達成**
-
----
-
-**最終更新:** 2025年10月2日 **バージョン:** 3.2.0 (日程連絡希望機能・分割キャッシュシステム追加)
+**最終更新:** 2025年10月7日 (ドキュメント整理)

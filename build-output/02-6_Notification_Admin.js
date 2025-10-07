@@ -55,7 +55,14 @@ function sendAdminNotificationForReservation(
   additionalInfo = {},
 ) {
   try {
-    const student = getCachedStudentInfo(reservation.studentId);
+    const studentInfo = reservation.user
+      ? reservation.user
+      : getCachedStudentById(reservation.studentId);
+
+    const student = {
+      realName: studentInfo?.realName || studentInfo?.displayName || '',
+      displayName: studentInfo?.displayName || '',
+    };
 
     const { subject, body } = _buildAdminNotificationContent(
       reservation,
