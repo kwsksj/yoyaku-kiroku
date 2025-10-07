@@ -3,11 +3,11 @@
 /**
  * =================================================================
  * 【ファイル名】: 08_Utilities.gs
- * 【バージョン】: 2.2
+ * 【バージョン】: 2.3
  * 【役割】: プロジェクト全体で利用される、業務ドメインに依存しない
  * 汎用的なヘルパー関数を格納します。
- * 【v2.2での変更点】:
- * - getReservationCoreById関数を追加
+ * 【v2.3での変更点】:
+ * - 予約オブジェクト変換時の生徒情報取得を最適化（N+1問題の解消）
  * =================================================================
  */
 
@@ -386,9 +386,14 @@ function transformReservationArrayToObject(resArray) {
  * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
  * @param {ReservationArrayData} resArray - 予約データの配列
  * @param {HeaderMapType} headerMap - ヘッダー名とインデックスのマッピング
+ * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore|null} - 変換された予約オブジェクト、失敗時はnull
  */
-function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
+function transformReservationArrayToObjectWithHeaders(
+  resArray,
+  headerMap,
+  studentsMap,
+) {
   if (!Array.isArray(resArray) || !headerMap) {
     return transformReservationArrayToObject(resArray); // フォールバック
   }
@@ -474,7 +479,7 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)] || '',
     ),
     startTime: (() => {
-      const time = 
+      const time =
         resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)];
       return time instanceof Date
         ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
@@ -507,32 +512,9 @@ function transformReservationArrayToObjectWithHeaders(resArray, headerMap) {
     ),
   };
 
-  // ユーザー情報を付与（キャッシュから取得）
-  if (studentId) {
-    const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-    if (studentsCache?.students?.[studentId]) {
-      const user = studentsCache.students[studentId];
-      reservation.user = {
-        studentId: user.studentId || studentId,
-        phone: user.phone || '',
-        realName: user.realName || '',
-        displayName: user.nickname || user.realName || '',
-        nickname: user.nickname,
-        email: user.email,
-        wantsEmail: user.wantsEmail,
-        wantsScheduleNotification: user.wantsScheduleNotification,
-        notificationDay: user.notificationDay,
-        notificationHour: user.notificationHour,
-        ageGroup: user.ageGroup,
-        gender: user.gender,
-        dominantHand: user.dominantHand,
-        address: user.address,
-        experience: user.experience,
-        pastWork: user.pastWork,
-        futureParticipation: user.futureParticipation,
-        futureCreations: user.futureCreations,
-      };
-    }
+  // ユーザー情報を付与（引数で渡されたマップから取得）
+  if (studentId && studentsMap && studentsMap[studentId]) {
+    reservation.user = studentsMap[studentId];
   }
 
   return reservation;
@@ -708,15 +690,17 @@ function getCachedStudentById(studentId) {
  * 予約配列データを統一的にオブジェクト配列に変換する
  * @param {ReservationArrayData[]} reservations - 予約配列データ
  * @param {HeaderMapType} headerMap - ヘッダーマップ
+ * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
  */
-function convertReservationsToObjects(reservations, headerMap) {
+function convertReservationsToObjects(reservations, headerMap, studentsMap) {
   return reservations
     .map(reservation => {
       if (Array.isArray(reservation)) {
         return transformReservationArrayToObjectWithHeaders(
           reservation,
           headerMap,
+          studentsMap,
         );
       }
       return reservation;
@@ -730,6 +714,8 @@ function convertReservationsToObjects(reservations, headerMap) {
  */
 function getCachedReservationsAsObjects() {
   const reservationCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+
   if (!reservationCache) {
     return [];
   }
@@ -740,12 +726,19 @@ function getCachedReservationsAsObjects() {
   const headerMapData = /** @type {HeaderMapType | null} */ (
     reservationCache.headerMap || null
   );
+  const studentsMap = /** @type {Record<string, UserCore> | undefined} */ (
+    studentsCache?.students
+  );
 
   if (!headerMapData) {
     return [];
   }
 
-  return convertReservationsToObjects(reservationsData, headerMapData);
+  return convertReservationsToObjects(
+    reservationsData,
+    headerMapData,
+    studentsMap,
+  );
 }
 
 /**
@@ -769,9 +762,16 @@ function getReservationCoreById(reservationId) {
     return null;
   }
 
+  // ★修正: 生徒マップも渡して変換処理を最適化
+  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC, false);
+  const studentsMap = /** @type {Record<string, UserCore> | undefined} */ (
+    studentsCache?.students
+  );
+
   const reservationCore = transformReservationArrayToObjectWithHeaders(
     reservationRow,
-    /** @type {HeaderMapType} */ (cache.headerMap)
+    /** @type {HeaderMapType} */ (cache.headerMap),
+    studentsMap,
   );
 
   return reservationCore;
