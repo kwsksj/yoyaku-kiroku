@@ -32,7 +32,8 @@ function sendBookingConfirmationEmail(reservation) {
     }
 
     // メール内容を生成
-    const { subject, textBody } = createBookingConfirmationTemplate(reservation);
+    const { subject, textBody } =
+      createBookingConfirmationTemplate(reservation);
 
     // GmailAppでメール送信
     GmailApp.sendEmail(student.email, subject, textBody, {
@@ -489,14 +490,18 @@ function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
           '初回者: メールアドレス未設定',
         );
       } else {
-        Logger.log(`メール送信スキップ: メールアドレス未設定 (${studentWithEmail.studentId})`);
+        Logger.log(
+          `メール送信スキップ: メールアドレス未設定 (${studentWithEmail.studentId})`,
+        );
       }
       return;
     }
 
     // 初回者は必須送信、経験者はメール連絡希望確認
     if (!isFirstTime && !studentWithEmail.wantsEmail) {
-      Logger.log(`メール送信スキップ: メール連絡希望なし (${studentWithEmail.studentId})`);
+      Logger.log(
+        `メール送信スキップ: メール連絡希望なし (${studentWithEmail.studentId})`,
+      );
       return;
     }
 

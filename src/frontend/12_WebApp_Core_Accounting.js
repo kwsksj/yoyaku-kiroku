@@ -2259,10 +2259,7 @@ function handleSaveMemo(target) {
  * @param {AccountingFormDto} formData - フォームデータ
  * @param {Object} result - 計算結果
  */
-function processAccountingPayment(
-  formData,
-  result,
-) {
+function processAccountingPayment(formData, result) {
   try {
     // ローディング表示
     if (typeof showLoading === 'function') {
@@ -2298,7 +2295,10 @@ function processAccountingPayment(
 
     // デバッグログ：最終ペイロード
     if (!window.isProduction) {
-      console.log('🔍 最終送信ペイロード (ReservationCore):', reservationWithAccounting);
+      console.log(
+        '🔍 最終送信ペイロード (ReservationCore):',
+        reservationWithAccounting,
+      );
     }
 
     // バックエンドAPIコール

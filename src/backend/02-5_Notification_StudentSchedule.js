@@ -66,7 +66,9 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
     for (const student of recipients) {
       try {
         // ★修正: allReservationsはReservationCore[]なので、filterで正しい型の配列を取得
-        const studentReservations = allReservations.filter(r => r.studentId === student.studentId);
+        const studentReservations = allReservations.filter(
+          r => r.studentId === student.studentId,
+        );
 
         // 未来の予約のみに絞り込み
         const today = new Date();
@@ -78,9 +80,30 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
             return resDate >= today && res.status !== CONSTANTS.STATUS.CANCELED; // キャンセル済みは除外
           })
           .map(res => ({
-            date: typeof res.date === 'string' ? res.date : Utilities.formatDate(new Date(res.date), CONSTANTS.TIMEZONE, 'yyyy-MM-dd'),
-            startTime: typeof res.startTime === 'string' ? res.startTime : Utilities.formatDate(res.startTime, CONSTANTS.TIMEZONE, 'HH:mm'),
-            endTime: typeof res.endTime === 'string' ? res.endTime : Utilities.formatDate(res.endTime, CONSTANTS.TIMEZONE, 'HH:mm'),
+            date:
+              typeof res.date === 'string'
+                ? res.date
+                : Utilities.formatDate(
+                    new Date(res.date),
+                    CONSTANTS.TIMEZONE,
+                    'yyyy-MM-dd',
+                  ),
+            startTime:
+              typeof res.startTime === 'string'
+                ? res.startTime
+                : Utilities.formatDate(
+                    res.startTime,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  ),
+            endTime:
+              typeof res.endTime === 'string'
+                ? res.endTime
+                : Utilities.formatDate(
+                    res.endTime,
+                    CONSTANTS.TIMEZONE,
+                    'HH:mm',
+                  ),
             status: res.status,
             classroom: res.classroom,
             venue: res.venue || '',
@@ -144,7 +167,9 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
 function _getNotificationRecipients(targetDay, targetHour) {
   // 生徒キャッシュから全生徒データを取得
   const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
-  const allStudents = studentsCache?.students ? Object.values(studentsCache.students) : [];
+  const allStudents = studentsCache?.students
+    ? Object.values(studentsCache.students)
+    : [];
 
   const recipients = [];
 

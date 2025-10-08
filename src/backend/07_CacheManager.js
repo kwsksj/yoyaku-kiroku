@@ -115,9 +115,7 @@ function addReservationToCache(newReservationRow, headerMap) {
     const startTime = new Date();
 
     // 現在のキャッシュを取得
-    const currentCache = getTypedCachedData(
-      CACHE_KEYS.ALL_RESERVATIONS,
-    );
+    const currentCache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
     if (!currentCache || !getCacheProperty(currentCache, 'reservations')) {
       // キャッシュが存在しない場合は通常の再構築
       Logger.log('[CACHE] 既存キャッシュなし、通常の再構築実行');
@@ -182,7 +180,8 @@ function addReservationToCache(newReservationRow, headerMap) {
       normalizeHeaderMap(headerMap);
     const reservationIdColIndex =
       cacheHeaderMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
-    const newReservationIdIndexMap = /** @type {{[key: string]: number}} */ ({});
+    const newReservationIdIndexMap =
+      /** @type {{[key: string]: number}} */ ({});
     updatedReservations.forEach((row, index) => {
       const reservationId = row[reservationIdColIndex];
       if (reservationId) {
@@ -297,9 +296,7 @@ function updateReservationStatusInCache(reservationId, newStatus) {
 
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
-    Logger.log(
-      `[CACHE] インクリメンタルステータス更新完了: ${duration}ms`,
-    );
+    Logger.log(`[CACHE] インクリメンタルステータス更新完了: ${duration}ms`);
   } catch (error) {
     Logger.log(
       `[CACHE] インクリメンタルステータス更新エラー: ${error.message}, 通常の再構築実行`,
@@ -1994,7 +1991,7 @@ function getDataCount(parsedData, cacheKey) {
   switch (cacheKey) {
     case CACHE_KEYS.ALL_RESERVATIONS:
       return Array.isArray(data['reservations'])
-        ? (/** @type {any[]} */ (data['reservations'])).length
+        ? /** @type {any[]} */ (data['reservations']).length
         : 0;
     case CACHE_KEYS.ALL_STUDENTS_BASIC:
       return Object.keys(data['students'] || {}).length;
@@ -2005,7 +2002,7 @@ function getDataCount(parsedData, cacheKey) {
     default:
       return data['data']
         ? Array.isArray(data['data'])
-          ? (/** @type {any[]} */ (data['data'])).length
+          ? /** @type {any[]} */ (data['data']).length
           : 0
         : 0;
   }
@@ -2053,9 +2050,7 @@ function diagnoseAndFixScheduleMasterCache() {
     // 2. キャッシュの存在と状態を確認
     const cacheInfo = getCacheInfo(CACHE_KEYS.MASTER_SCHEDULE_DATA);
     if (!cacheInfo.exists) {
-      Logger.log(
-        'ℹ️ キャッシュが存在しません。再構築を試みます...',
-      );
+      Logger.log('ℹ️ キャッシュが存在しません。再構築を試みます...');
       rebuildScheduleMasterCache();
       Logger.log('✅ キャッシュを再構築しました。');
       return;

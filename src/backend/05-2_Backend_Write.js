@@ -287,7 +287,11 @@ function _saveReservationCoreToSheet(reservation, mode) {
       //todo: 要確認
       addReservationToCache(rowForCache, headerMap);
     } else {
-      updateReservationInCache(reservation.reservationId, rowForCache, headerMap);
+      updateReservationInCache(
+        reservation.reservationId,
+        rowForCache,
+        headerMap,
+      );
     }
   } catch (e) {
     Logger.log(`インクリメンタル更新エラー: ${e.message} - フォールバック実行`);
@@ -326,7 +330,9 @@ function makeReservation(reservationInfo) {
           (scheduleCache['schedule'])
         : [];
       // 検索対象日付の標準化
-      const targetDateForSearch = new Date(reservationInfo.date + 'T00:00:00+09:00');
+      const targetDateForSearch = new Date(
+        reservationInfo.date + 'T00:00:00+09:00',
+      );
       const targetDateStringForSearch = targetDateForSearch.toDateString();
 
       const scheduleRule = scheduleData.find(
@@ -344,7 +350,11 @@ function makeReservation(reservationInfo) {
 
       // 時間制予約（30分単位）の場合の検証
       if (scheduleRule && scheduleRule['type'] === CONSTANTS.UNITS.THIRTY_MIN) {
-        _validateTimeBasedReservation(reservationInfo.startTime, reservationInfo.endTime, scheduleRule);
+        _validateTimeBasedReservation(
+          reservationInfo.startTime,
+          reservationInfo.endTime,
+          scheduleRule,
+        );
       }
 
       // 同一日重複予約チェック
@@ -366,17 +376,21 @@ function makeReservation(reservationInfo) {
       SS_MANAGER.warmupAsync();
 
       // 定員チェック（共通関数を使用）
-      const isFull = checkCapacityFull(reservationInfo.classroom, reservationInfo.date, reservationInfo.startTime, reservationInfo.endTime);
+      const isFull = checkCapacityFull(
+        reservationInfo.classroom,
+        reservationInfo.date,
+        reservationInfo.startTime,
+        reservationInfo.endTime,
+      );
       Logger.log(
         `[makeReservation] 定員チェック結果: ${reservationInfo.classroom} ${reservationInfo.date} - 満席=${isFull}`,
       );
 
       // 完全なReservationCoreオブジェクトを構築
       const createdReservationId = Utilities.getUuid();
-      const status =
-        isFull
-          ? CONSTANTS.STATUS.WAITLISTED
-          : CONSTANTS.STATUS.CONFIRMED;
+      const status = isFull
+        ? CONSTANTS.STATUS.WAITLISTED
+        : CONSTANTS.STATUS.CONFIRMED;
 
       // 日付文字列をDateオブジェクトに変換（予約記録シートに適した形式）
       const targetDate = new Date(reservationInfo.date + 'T00:00:00+09:00');
@@ -423,10 +437,9 @@ function makeReservation(reservationInfo) {
       // 取得した最新データに基づいてメッセージとログを生成
       const isNowWaiting =
         reservationWithUser.status === CONSTANTS.STATUS.WAITLISTED;
-      const message =
-        isNowWaiting
-          ? '満席のため、空き連絡希望で登録しました。'
-          : '予約が完了しました。';
+      const message = isNowWaiting
+        ? '満席のため、空き連絡希望で登録しました。'
+        : '予約が完了しました。';
 
       const messageLog = reservationWithUser.messageToTeacher
         ? `, Message: ${reservationWithUser.messageToTeacher}`
@@ -741,7 +754,9 @@ function updateReservationDetails(details) {
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(details.reservationId);
       if (!existingReservation) {
-        throw new Error(`予約ID「${details.reservationId}」が見つかりませんでした。`);
+        throw new Error(
+          `予約ID「${details.reservationId}」が見つかりませんでした。`,
+        );
       }
 
       // 2. 更新内容をマージして、新しい予約オブジェクトを構築
@@ -783,7 +798,9 @@ function updateReservationDetails(details) {
         throw new Error('空き状況の取得に失敗し、予約を更新できません。');
       }
       const targetLesson = lessonsResponse.data.find(
-        l => l.date === updatedReservation.date && l.classroom === updatedReservation.classroom,
+        l =>
+          l.date === updatedReservation.date &&
+          l.classroom === updatedReservation.classroom,
       );
 
       if (
@@ -799,8 +816,10 @@ function updateReservationDetails(details) {
           targetLesson.firstEnd &&
           targetLesson.secondStart
         ) {
-          if (existingReservation.startTime < targetLesson.firstEnd) oldMorningOccupied = true;
-          if (existingReservation.endTime > targetLesson.secondStart) oldAfternoonOccupied = true;
+          if (existingReservation.startTime < targetLesson.firstEnd)
+            oldMorningOccupied = true;
+          if (existingReservation.endTime > targetLesson.secondStart)
+            oldAfternoonOccupied = true;
         }
 
         let newMorningRequired = false;
@@ -811,8 +830,10 @@ function updateReservationDetails(details) {
           targetLesson.firstEnd &&
           targetLesson.secondStart
         ) {
-          if (updatedReservation.startTime < targetLesson.firstEnd) newMorningRequired = true;
-          if (updatedReservation.endTime > targetLesson.secondStart) newAfternoonRequired = true;
+          if (updatedReservation.startTime < targetLesson.firstEnd)
+            newMorningRequired = true;
+          if (updatedReservation.endTime > targetLesson.secondStart)
+            newAfternoonRequired = true;
         }
 
         let adjustedMorningSlots = targetLesson.firstSlots || 0;
@@ -873,7 +894,12 @@ ${err.stack}`,
       );
       // studentIdが取得できない場合もあるため、detailsから取得を試みる
       const studentIdForLog = details.studentId || '(不明)';
-      logActivity(studentIdForLog, '予約詳細更新', CONSTANTS.MESSAGES.ERROR, `Error: ${err.message}`);
+      logActivity(
+        studentIdForLog,
+        '予約詳細更新',
+        CONSTANTS.MESSAGES.ERROR,
+        `Error: ${err.message}`,
+      );
       return BackendErrorHandler.handle(err, 'updateReservationDetails');
     }
   });
@@ -889,7 +915,8 @@ ${err.stack}`,
 function saveAccountingDetails(reservationWithAccounting) {
   return withTransaction(() => {
     try {
-      const { reservationId, studentId, accountingDetails } = reservationWithAccounting;
+      const { reservationId, studentId, accountingDetails } =
+        reservationWithAccounting;
       if (!reservationId || !studentId || !accountingDetails) {
         throw new Error('会計情報が不足しています。');
       }
@@ -922,7 +949,10 @@ function saveAccountingDetails(reservationWithAccounting) {
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
       // 5. 売上ログの記録
-      _logSalesForSingleReservation(updatedReservation, updatedReservation.accountingDetails);
+      _logSalesForSingleReservation(
+        updatedReservation,
+        updatedReservation.accountingDetails,
+      );
 
       // ログと通知
       const logDetails = `Classroom: ${updatedReservation.classroom}, ReservationID: ${reservationId}, Total: ${accountingDetails.grandTotal}`;
@@ -933,9 +963,8 @@ function saveAccountingDetails(reservationWithAccounting) {
         logDetails,
       );
 
-      const userInfo = updatedReservation.user || (
-        getCachedStudentById(studentId)
-      );
+      const userInfo =
+        updatedReservation.user || getCachedStudentById(studentId);
 
       const subject = `会計記録 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
       const body =

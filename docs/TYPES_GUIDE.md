@@ -1,8 +1,6 @@
 # 型定義使用ガイド
 
-**作成日**: 2025-10-03
-**最終更新**: 2025-10-06
-**バージョン**: 2.0
+**作成日**: 2025-10-03 **最終更新**: 2025-10-06 **バージョン**: 2.0
 
 ---
 
@@ -247,9 +245,7 @@ function loadReservations() {
   const data = getSheetData(sheet);
 
   /** @type {ReservationCore[]} */
-  const reservations = data.rows.map(row =>
-    convertRawToReservationCore(row, data.headerMap)
-  );
+  const reservations = data.rows.map(row => convertRawToReservationCore(row, data.headerMap));
 
   return reservations;
 }
@@ -292,10 +288,7 @@ function getCachedReservations() {
   }
 
   /** @type {ReservationCore[]} */
-  const reservations = convertReservationsToObjects(
-    cache.reservations,
-    cache.headerMap
-  );
+  const reservations = convertReservationsToObjects(cache.reservations, cache.headerMap);
 
   return reservations;
 }
@@ -504,21 +497,21 @@ function processLesson(lesson) {
 
 ### Core型一覧
 
-| 型名                     | 用途                     | ファイル                   |
-| :----------------------- | :----------------------- | :------------------------- |
-| `ReservationCore`        | 予約データの統一表現     | types/core/reservation.d.ts |
-| `UserCore`               | ユーザーデータの統一表現 | types/core/user.d.ts       |
-| `LessonCore`             | レッスンデータの統一表現 | types/core/lesson.d.ts     |
-| `AccountingDetailsCore`  | 会計データの統一表現     | types/core/accounting.d.ts |
+| 型名                    | 用途                     | ファイル                    |
+| :---------------------- | :----------------------- | :-------------------------- |
+| `ReservationCore`       | 予約データの統一表現     | types/core/reservation.d.ts |
+| `UserCore`              | ユーザーデータの統一表現 | types/core/user.d.ts        |
+| `LessonCore`            | レッスンデータの統一表現 | types/core/lesson.d.ts      |
+| `AccountingDetailsCore` | 会計データの統一表現     | types/core/accounting.d.ts  |
 
 ### よく使う変換関数
 
-| 関数名                           | 変換                      | 定義場所        |
-| :------------------------------- | :------------------------ | :-------------- |
-| `convertRawToReservationCore()`  | Row → ReservationCore     | 08_Utilities.js |
-| `convertReservationCoreToRow()`  | ReservationCore → Row     | 08_Utilities.js |
-| `convertRawToUserCore()`         | Row → UserCore            | 08_Utilities.js |
-| `convertUserCoreToRow()`         | UserCore → Row            | 08_Utilities.js |
+| 関数名                           | 変換                           | 定義場所        |
+| :------------------------------- | :----------------------------- | :-------------- |
+| `convertRawToReservationCore()`  | Row → ReservationCore          | 08_Utilities.js |
+| `convertReservationCoreToRow()`  | ReservationCore → Row          | 08_Utilities.js |
+| `convertRawToUserCore()`         | Row → UserCore                 | 08_Utilities.js |
+| `convertUserCoreToRow()`         | UserCore → Row                 | 08_Utilities.js |
 | `convertReservationsToObjects()` | キャッシュ → ReservationCore[] | 08_Utilities.js |
 
 ### オプショナルフィールドの安全な扱い方
@@ -545,5 +538,4 @@ const email = user.email?.toLowerCase();
 
 ---
 
-**最終更新**: 2025-10-06
-**バージョン**: 2.0 - DTO型を廃止し、Core型のみに統一
+**最終更新**: 2025-10-06 **バージョン**: 2.0 - DTO型を廃止し、Core型のみに統一

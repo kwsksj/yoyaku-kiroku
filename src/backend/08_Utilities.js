@@ -57,7 +57,6 @@ const PerformanceLog = {
   },
 };
 
-
 /**
  * 予約データの事前バリデーション（パフォーマンス最適化）
  * 冗長なデータ検証を削減するため、一度だけ全体構造を検証
@@ -201,7 +200,6 @@ function logActivity(userId, action, result, details) {
     Logger.log(`ログの記録に失敗しました: ${e.message}`);
   }
 }
-
 
 /**
  * ログシートシートに、定義済みの条件付き書式を一括で設定します。
@@ -492,7 +490,7 @@ function transformReservationArrayToObjectWithHeaders(
         : String(time || '');
     })(),
     status: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)] || ''
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)] || '',
     ),
     chiselRental: (() => {
       const value =
@@ -505,7 +503,7 @@ function transformReservationArrayToObjectWithHeaders(
       return value === true || String(value).toUpperCase() === 'TRUE';
     })(),
     workInProgress: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)] || ''
+      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)] || '',
     ),
     order: String(
       resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.ORDER)] || '',
@@ -755,7 +753,9 @@ function getReservationCoreById(reservationId) {
 
   const reservationRow = getReservationByIdFromCache(reservationId);
   if (!reservationRow) {
-    Logger.log(`[CORE] 予約ID ${reservationId} はキャッシュに見つかりませんでした。`);
+    Logger.log(
+      `[CORE] 予約ID ${reservationId} はキャッシュに見つかりませんでした。`,
+    );
     return null;
   }
 
@@ -893,13 +893,12 @@ function formatPhoneNumber(phoneNumber) {
 // 型変換関数群（Phase 3: 型システム統一）
 // ===================================================================
 
-
 /**
  * Sheets生データ（配列）→ UserCore に変換
- * 
+ *
  * Google Sheetsから取得した配列データを統一Core型に変換
  * Phase 3: 型システム統一の一環として実装
- * 
+ *
  * @param {RawSheetRow} row - Sheets生データ（配列）
  * @param {HeaderMapType} headerMap - ヘッダーマップ
  * @returns {UserCore} 統一Core型のユーザーデータ
@@ -968,10 +967,10 @@ function convertRowToUser(row, headerMap) {
 
 /**
  * UserCore → Sheets行データ（配列）に変換
- * 
+ *
  * 統一Core型からSheets書き込み用の配列データに変換
  * Phase 3: 型システム統一の一環として実装
- * 
+ *
  * @param {UserCore} user - 統一Core型のユーザーデータ
  * @param {HeaderMapType} headerMap - ヘッダーマップ
  * @returns {RawSheetRow} Sheets書き込み用配列データ
@@ -1043,9 +1042,9 @@ function convertUserToRow(user, headerMap) {
 
 /**
  * ReservationCore → Sheets行データ（配列）に変換
- * 
+ *
  * 統一Core型からSheets書き込み用の配列データに変換
- * 
+ *
  * @param {ReservationCore} reservation - 統一Core型の予約データ
  * @param {HeaderMapType} headerMap - ヘッダーマップ
  * @param {string[]} header - ヘッダー配列（列数決定用）
@@ -1095,11 +1094,10 @@ function convertReservationToRow(reservation, headerMap, header) {
   // 会計詳細（JSON文字列として保存）
   const accountingDetailsColIdx =
     hm[CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS];
-  if (
-    accountingDetailsColIdx !== undefined &&
-    reservation.accountingDetails
-  ) {
-    row[accountingDetailsColIdx] = JSON.stringify(reservation.accountingDetails);
+  if (accountingDetailsColIdx !== undefined && reservation.accountingDetails) {
+    row[accountingDetailsColIdx] = JSON.stringify(
+      reservation.accountingDetails,
+    );
   }
 
   // 動的プロパティ（material/otherSales系）

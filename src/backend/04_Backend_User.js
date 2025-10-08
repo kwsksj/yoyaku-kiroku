@@ -499,8 +499,10 @@ function registerNewUser(userInfo) {
             ? `今後の参加予定: ${userInfo.futureParticipation}
 `
             : '') +
-          (userInfo?.trigger ? `きっかけ: ${userInfo.trigger}
-` : '') +
+          (userInfo?.trigger
+            ? `きっかけ: ${userInfo.trigger}
+`
+            : '') +
           (userInfo?.firstMessage
             ? `初回メッセージ: ${userInfo.firstMessage}
 `
