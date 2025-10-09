@@ -194,6 +194,28 @@ declare function showInfo(message: string, title?: string, callback?: (() => voi
 declare function showLoading(category?: string): void;
 declare function hideLoading(): void;
 declare function showConfirm(config: any): void;
+
+// グローバル変数
+declare var stateManager: SimpleStateManager;
+declare var DesignConfig: DesignSystemConfig;
+
+
+// Google Apps Script WebApp API (グローバルスコープ)
+declare var google: {
+  script: {
+    run: {
+      withSuccessHandler(callback: (result: any) => void): any;
+      withFailureHandler(callback: (error: Error) => void): any;
+      withUserObject(userObject: any): any;
+      [key: string]: any;
+    };
+    host: {
+      close(): void;
+      setWidth(width: number): void;
+      setHeight(height: number): void;
+    };
+  };
+};
 declare function updateAccountingCalculation(): void;
 declare function setupAccountingEventListeners(): void;
 declare function generateAccountingView(
