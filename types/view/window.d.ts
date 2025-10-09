@@ -35,6 +35,38 @@ interface EmbedConfig {
   reapplyStyles(offset: number): void;
 }
 
+/**
+ * デザインシステム設定
+ */
+interface DesignSystemConfig {
+  colors?: any;
+  buttons?: any;
+  modal?: any;
+  form?: any;
+  [key: string]: any;
+}
+
+/**
+ * ページ遷移マネージャー
+ */
+interface PageTransitionManager {
+  goTo(viewName: string, context?: any): void;
+  back(): void;
+  getCurrentView(): string;
+  [key: string]: any;
+}
+
+/**
+ * モーダルマネージャー
+ */
+interface ModalManager {
+  show(config: any): void;
+  hide(): void;
+  showConfirm(config: any): void;
+  showInfo(message: string, title?: string): void;
+  [key: string]: any;
+}
+
 // =================================================================
 // Window拡張
 // =================================================================
@@ -70,6 +102,10 @@ declare global {
     showConfirm?: (config: ModalDialogConfig | ConfirmDialogConfig) => void;
     showModal?: (config: ModalDialogConfig) => void;
     hideModal?: () => void;
+    escapeHTML?: (text: string) => string;
+    debugLog?: (message: string, ...args: any[]) => void;
+    updateView?: (viewName: string) => void;
+    formatDate?: (date: string | Date, format?: string) => string;
 
     // --- ページ遷移 ---
     pageTransitionManager?: any;
@@ -148,6 +184,16 @@ declare function calculateAccountingTotal(
   masterData: any,
   classroom: string,
 ): any;
+
+// グローバルヘルパー関数
+declare function escapeHTML(text: string): string;
+declare function debugLog(message: string, ...args: any[]): void;
+declare function updateView(viewName: string): void;
+declare function formatDate(date: string | Date, format?: string): string;
+declare function showInfo(message: string, title?: string, callback?: (() => void) | null): void;
+declare function showLoading(category?: string): void;
+declare function hideLoading(): void;
+declare function showConfirm(config: any): void;
 declare function updateAccountingCalculation(): void;
 declare function setupAccountingEventListeners(): void;
 declare function generateAccountingView(

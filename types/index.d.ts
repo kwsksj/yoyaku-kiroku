@@ -8,11 +8,12 @@
 
 /// <reference types="google-apps-script" />
 
-// 基盤型定義
+// --- 自動生成されるグローバル関数の型定義 ---
+/// <reference path="./generated-backend-globals/index.d.ts" />
+/// <reference path="./generated-frontend-globals/index.d.ts" />
+
+// --- 手動で管理するプロジェクトの型定義 ---
 /// <reference path="./constants.d.ts" />
 /// <reference path="./gas-environment.d.ts" />
-
-// 統一型システム（型システム再設計完了）
 /// <reference path="./core/index.d.ts" />
-/// <reference path="./dto/index.d.ts" />
 /// <reference path="./view/index.d.ts" />

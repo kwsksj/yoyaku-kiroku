@@ -31,6 +31,8 @@ interface ClassroomCapacitiesConstants {
 // 項目名定数
 interface ItemsConstants {
   readonly MAIN_LECTURE: string;
+  readonly MAIN_LECTURE_COUNT: string;
+  readonly MAIN_LECTURE_TIME: string;
   readonly FIRST_LECTURE: string;
   readonly CHISEL_RENTAL: string;
   readonly TOOL_SET: string;
@@ -91,14 +93,18 @@ interface SheetNamesConstants {
   readonly LOG: string;
   readonly RESERVATIONS: string;
   readonly SCHEDULE: string;
+  readonly SALES_LOG: string;
 }
 
-// セッション定数
-interface SessionsConstants {
+// 時間帯区分定数（2部制教室用）
+interface TimeSlotsConstants {
   readonly MORNING: string;
   readonly AFTERNOON: string;
   readonly ALL_DAY: string;
 }
+
+// セッション定数（後方互換性のためのエイリアス）
+type SessionsConstants = TimeSlotsConstants;
 
 // 支払い方法表示定数
 interface PaymentDisplayConstants {
@@ -203,20 +209,41 @@ interface HeadersConstants {
   // 他のシートのヘッダーも必要に応じて追加可能
 }
 
+// システム定数
+interface SystemConstants {
+  readonly MATERIAL_INFO_PREFIX: string;
+  readonly ARCHIVE_PREFIX: string;
+  readonly DATA_START_ROW: number;
+}
+
+// 通知設定定数
+interface NotificationConstants {
+  readonly DAYS: readonly number[];
+  readonly HOURS: readonly number[];
+  readonly DEFAULT_DAY: number;
+  readonly DEFAULT_HOUR: number;
+  readonly SCHEDULE_MONTHS_AHEAD: number;
+}
+
+// 環境設定定数
+interface EnvironmentConstants {
+  readonly DEBUG_MODE: boolean;
+  readonly PRODUCTION_MODE: boolean;
+}
+
 // プロジェクト全体で使用する統一定数オブジェクト
 interface Constants {
-  readonly CLASSROOMS: ClassroomsConstants;
   readonly TIMEZONE: string;
-  readonly CLASSROOM_CAPACITIES: ClassroomCapacitiesConstants;
-  readonly ITEMS: ItemsConstants;
+  readonly ENVIRONMENT: EnvironmentConstants;
+  readonly CLASSROOMS: ClassroomsConstants;
   readonly STATUS: StatusConstants;
-  readonly ITEM_TYPES: ItemTypesConstants;
   readonly UNITS: UnitsConstants;
   readonly PAYMENT_METHODS: PaymentMethodsConstants;
   readonly UI: UIConstants;
   readonly LIMITS: LimitsConstants;
   readonly SHEET_NAMES: SheetNamesConstants;
-  readonly SESSIONS: SessionsConstants;
+  readonly TIME_SLOTS: TimeSlotsConstants;
+  readonly SESSIONS: SessionsConstants; // 後方互換性のためのエイリアス
   readonly PAYMENT_DISPLAY: PaymentDisplayConstants;
   readonly BANK_INFO: BankInfoConstants;
   readonly FRONTEND_UI: FrontendUIConstants;
@@ -226,6 +253,13 @@ interface Constants {
   readonly CLASSROOM_TYPES: ClassroomTypesConstants;
   readonly SCHEDULE_STATUS: ScheduleStatusConstants;
   readonly HEADERS: HeadersConstants;
+  readonly SYSTEM: SystemConstants;
+  readonly NOTIFICATION: NotificationConstants;
+
+  // 以下は後方互換性のために残す
+  readonly CLASSROOM_CAPACITIES: ClassroomCapacitiesConstants;
+  readonly ITEMS: ItemsConstants;
+  readonly ITEM_TYPES: ItemTypesConstants;
 }
 
 export {};
