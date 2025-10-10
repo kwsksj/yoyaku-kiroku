@@ -53,7 +53,7 @@ export function preInitializeAccountingSystem(accountingMaster) {
     const classrooms = CONSTANTS.CLASSROOMS
       ? Object.values(CONSTANTS.CLASSROOMS)
       : [];
-    /** @type {Record<string, ClassifiedAccountingItems>} */
+    /** @type {Record<string, ClassifiedAccountingItemsCore>} */
     const preInitializedData = {};
 
     classrooms.forEach(classroom => {

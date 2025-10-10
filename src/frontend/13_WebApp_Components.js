@@ -783,7 +783,7 @@ export const Components = {
    * 統一された授業料セクション（セッション制ベース、時間制対応）
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.type - 授業料タイプ（'timeBased' | 'fixed'）
-   * @param {AccountingMasterData[]} config.master - 会計マスター
+   * @param {AccountingMasterItemCore[]} config.master - 会計マスター
    * @param {ReservationData} config.reservation - 予約データ
    * @param {ReservationData} config.reservationDetails - 予約固有情報
    * @param {ScheduleInfo} config.scheduleInfo - 講座固有情報
@@ -871,7 +871,7 @@ export const Components = {
 
     const tuitionItems = Array.isArray(master)
       ? master.filter(
-          /** @param {AccountingMasterData} item */
+          /** @param {AccountingMasterItemCore} item */
           item =>
             item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
               CONSTANTS.ITEM_TYPES.TUITION &&
@@ -884,7 +884,7 @@ export const Components = {
 
     const tuitionRowsHtml = tuitionItems
       .map(
-        /** @param {AccountingMasterData} item */ item => {
+        /** @param {AccountingMasterItemCore} item */ item => {
           const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
 
           // メイン授業料項目の処理（初回参加時は差し替え）
@@ -1228,14 +1228,14 @@ export const Components = {
   /**
    * 販売セクション
    * @param {Object} config - 設定オブジェクト
-   * @param {AccountingMasterData[]} config.master - 会計マスター
+   * @param {AccountingMasterItemCore[]} config.master - 会計マスター
    * @param {ReservationData} config.reservationDetails - 予約固有情報
    * @returns {string} HTML文字列
    */
   salesSection: ({ master, reservationDetails }) => {
     const salesItems = Array.isArray(master)
       ? master.filter(
-          /** @param {AccountingMasterData} item */
+          /** @param {AccountingMasterItemCore} item */
           item =>
             item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
             CONSTANTS.ITEM_TYPES.SALES,

@@ -432,7 +432,7 @@ export function setupViewListener() {
               // 会計画面用のデータを取得
               const classifiedItems =
                 window.currentClassifiedItems ||
-                /** @type {ClassifiedAccountingItems} */ (
+                /** @type {ClassifiedAccountingItemsCore} */ (
                   /** @type {unknown} */ ({
                     tuition: { baseItems: [], additionalItems: [] },
                     sales: { materialItems: [], productItems: [] },

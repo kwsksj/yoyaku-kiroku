@@ -39,8 +39,8 @@ export let actionHandlers;
 // 全体を制御するコアとなる関数群です。
 // =================================================================
 
-/** @type {ClassifiedAccountingItems} */
-export const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ (
+/** @type {ClassifiedAccountingItemsCore} */
+export const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItemsCore} */ (
   /** @type {unknown} */ ({
     tuition: { baseItems: [], additionalItems: [] },
     sales: { materialItems: [], productItems: [] },
