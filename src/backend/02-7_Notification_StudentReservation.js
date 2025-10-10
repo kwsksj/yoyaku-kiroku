@@ -19,8 +19,8 @@
 export function sendBookingConfirmationEmail(reservation) {
   try {
     const student = reservation.user;
-    if (!student.email) {
-      Logger.log('メール送信スキップ: メールアドレスが空です');
+    if (!student || !student.email) {
+      Logger.log('メール送信スキップ: ユーザー情報またはメールアドレスが空です');
       return false;
     }
 
@@ -60,12 +60,14 @@ export function sendBookingConfirmationEmail(reservation) {
     return true;
   } catch (error) {
     Logger.log(`メール送信エラー: ${error.message}`);
-    logActivity(
-      reservation.user.studentId,
-      'メール送信エラー',
-      '失敗',
-      `失敗理由: ${error.message}`,
-    );
+    if (reservation.user) {
+      logActivity(
+        reservation.user.studentId,
+        'メール送信エラー',
+        '失敗',
+        `失敗理由: ${error.message}`,
+      );
+    }
     return false;
   }
 }
@@ -478,7 +480,7 @@ export function sendReservationEmailAsync(reservation, emailType, cancelMessage)
     const studentWithEmail = reservation.user;
 
     if (!studentWithEmail || !studentWithEmail.email) {
-      if (isFirstTime && emailType === 'confirmation') {
+      if (isFirstTime && emailType === 'confirmation' && studentWithEmail) {
         // 初回者でメールアドレス未設定の場合はエラーログ
         Logger.log(
           `初回者メール送信失敗: メールアドレス未設定 (${studentWithEmail.studentId})`,
@@ -489,10 +491,12 @@ export function sendReservationEmailAsync(reservation, emailType, cancelMessage)
           '失敗',
           '初回者: メールアドレス未設定',
         );
-      } else {
+      } else if (studentWithEmail) {
         Logger.log(
           `メール送信スキップ: メールアドレス未設定 (${studentWithEmail.studentId})`,
         );
+      } else {
+        Logger.log('メール送信スキップ: ユーザー情報がありません');
       }
       return;
     }
@@ -538,8 +542,8 @@ export function sendReservationEmailAsync(reservation, emailType, cancelMessage)
 export function sendCancellationEmail(reservation, cancelMessage) {
   try {
     const student = reservation.user;
-    if (!student.email) {
-      Logger.log('メール送信スキップ: メールアドレスが空です');
+    if (!student || !student.email) {
+      Logger.log('メール送信スキップ: ユーザー情報またはメールアドレスが空です');
       return false;
     }
 
@@ -585,12 +589,14 @@ export function sendCancellationEmail(reservation, cancelMessage) {
     return true;
   } catch (error) {
     Logger.log(`キャンセルメール送信エラー: ${error.message}`);
-    logActivity(
-      reservation.user.studentId,
-      'メール送信エラー',
-      '失敗',
-      `失敗理由: ${error.message}`,
-    );
+    if (reservation.user) {
+      logActivity(
+        reservation.user.studentId,
+        'メール送信エラー',
+        '失敗',
+        `失敗理由: ${error.message}`,
+      );
+    }
     return false;
   }
 }
@@ -609,6 +615,9 @@ export function _createCancellationEmailText(
   cancelMessage,
 ) {
   const student = reservation.user;
+  if (!student) {
+    return 'ユーザー情報が見つかりません';
+  }
   const { realName } = student;
   const { classroom, venue, startTime, endTime } = reservation;
 
