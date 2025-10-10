@@ -166,9 +166,12 @@ export function extractPersonalDataFromCache(studentId, cacheData) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // キャンセル以外のステータスの予約のみをフィルタリング
+    // キャンセルと待機ステータス以外の予約のみをフィルタリング
     const myReservations = convertedReservations.filter(
-      r => r.studentId === studentId && r.status !== CONSTANTS.STATUS.CANCELED,
+      r =>
+        r.studentId === studentId &&
+        r.status !== CONSTANTS.STATUS.CANCELED &&
+        r.status !== CONSTANTS.STATUS.WAITLISTED,
     );
 
     Logger.log(
