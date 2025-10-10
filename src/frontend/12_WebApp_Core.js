@@ -415,7 +415,7 @@ export function setupViewListener() {
   }
 
   window.stateManager.subscribe(
-    (/** @type {UIState} */ newState, /** @type {UIState} */ oldState) => {
+    (/** @type {any} */ newState, /** @type {any} */ oldState) => {
       // ビューが変更された場合のみ処理
       if (newState.view !== oldState.view) {
         // 古いビューのリスナーを全て解除
