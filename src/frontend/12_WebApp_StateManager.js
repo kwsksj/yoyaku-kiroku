@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 12_WebApp_StateManager.js
@@ -43,7 +41,7 @@ if (!window.PerformanceLog) {
 /**
  * シンプルな状態管理システム（リロード時状態保持対応）
  */
-class SimpleStateManager {
+export class SimpleStateManager {
   constructor() {
     /** @type {string} */
     this.STORAGE_KEY = 'yoyaku_kiroku_state';
@@ -145,7 +143,7 @@ class SimpleStateManager {
       return;
     }
 
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log(
         '🎯 Action dispatched:',
         action.type,
@@ -236,13 +234,8 @@ class SimpleStateManager {
       // 【リロード対応】重要な状態変更時は自動保存
       this._autoSaveIfNeeded(oldState, newState);
 
-      if (!window.isProduction) {
-        if (
-          typeof ENVIRONMENT_CONFIG !== 'undefined' &&
-          typeof ENVIRONMENT_CONFIG.DEBUG_ENABLED !== 'undefined' &&
-          ENVIRONMENT_CONFIG.DEBUG_ENABLED
-        )
-          console.log('✅ 状態更新完了:', Object.keys(newState));
+      if (CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+        console.log('✅ 状態更新完了:', Object.keys(newState));
       }
     } catch (error) {
       console.error('❌ 状態更新エラー:', error);

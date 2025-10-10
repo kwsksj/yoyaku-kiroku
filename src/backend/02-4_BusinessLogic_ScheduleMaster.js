@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -15,7 +15,7 @@
  * @param {string} toDate - 取得終了日（YYYY-MM-DD形式、オプション）
  * @returns {ScheduleDataArray} 開催日程データの配列
  */
-function getAllScheduledDates(fromDate, toDate) {
+export function getAllScheduledDates(fromDate, toDate) {
   try {
     const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
     /** @type {ScheduleMasterData[] | null} */
@@ -67,7 +67,7 @@ function getAllScheduledDates(fromDate, toDate) {
  * @param {string} toDate - 終了日（YYYY-MM-DD形式、オプション）
  * @returns {ScheduleDataArray} フィルタリングされた日程データ配列
  */
-function filterSchedulesByDateRange(schedules, fromDate, toDate) {
+export function filterSchedulesByDateRange(schedules, fromDate, toDate) {
   if (!schedules || schedules.length === 0) {
     return [];
   }

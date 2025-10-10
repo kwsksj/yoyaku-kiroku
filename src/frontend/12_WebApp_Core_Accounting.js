@@ -1,3 +1,4 @@
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * 会計システム統合ファイル
  * 3ファイル（Core_Accounting, Views_Accounting, Handlers_Accounting）を1ファイルに統合
@@ -9,9 +10,6 @@
  * - ユーティリティ層：共通処理
  */
 
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
 // ================================================================================
 // 【ユーティリティ層】
 // ================================================================================
@@ -19,7 +17,7 @@
 /**
  * 会計処理関連のローカルキャッシュをクリア
  */
-function clearAccountingCache() {
+export function clearAccountingCache() {
   // 一時的な支払いデータをクリア
   if (typeof window !== 'undefined' && window.tempPaymentData) {
     window.tempPaymentData = null;
@@ -39,7 +37,7 @@ function clearAccountingCache() {
  * @param {string} classroom - 教室名
  * @returns {ClassifiedAccountingItemsCore} 分類済み会計項目
  */
-function classifyAccountingItems(masterData, classroom) {
+export function classifyAccountingItems(masterData, classroom) {
   const result = {
     tuition: { items: [] }, // 全ての授業料・割引を統一
     sales: { materialItems: [], productItems: [] },
@@ -73,7 +71,7 @@ function classifyAccountingItems(masterData, classroom) {
  * @param {number} breakTime - 休憩時間（分）
  * @returns {number} 30分単位の数
  */
-function calculateTimeUnits(startTime, endTime, breakTime = 0) {
+export function calculateTimeUnits(startTime, endTime, breakTime = 0) {
   if (!startTime || !endTime) return 0;
 
   const [startHour, startMin] = startTime.split(':').map(Number);
@@ -93,12 +91,12 @@ function calculateTimeUnits(startTime, endTime, breakTime = 0) {
  * @param {string} classroom - 教室名
  * @returns {Object} 授業料計算結果
  */
-function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
+export function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
   let subtotal = 0;
   const items = [];
 
   // デバッグ: 計算開始
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 calculateTuitionSubtotal開始:', {
       classroom,
       checkedItems: formData.checkedItems,
@@ -112,7 +110,7 @@ function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
   classifiedItems.tuition.items.forEach(item => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
 
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 tuitionItem処理中:', {
         itemName,
         price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
@@ -130,13 +128,13 @@ function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
       items.push({ name: itemName, price: price });
       subtotal += price;
 
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log('✅ 項目追加:', { name: itemName, price });
       }
     }
   });
 
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 calculateTuitionSubtotal結果:', { items, subtotal });
   }
 
@@ -149,7 +147,7 @@ function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @returns {Object} 販売計算結果
  */
-function calculateSalesSubtotal(formData, classifiedItems) {
+export function calculateSalesSubtotal(formData, classifiedItems) {
   let subtotal = 0;
   const items = [];
 
@@ -216,9 +214,9 @@ function calculateSalesSubtotal(formData, classifiedItems) {
  * @param {string} classroom - 教室名
  * @returns {Object} 統合計算結果
  */
-function calculateAccountingTotal(formData, masterData, classroom) {
+export function calculateAccountingTotal(formData, masterData, classroom) {
   // デバッグ: 計算開始
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 calculateAccountingTotal開始:', {
       formData,
       masterDataLength: masterData.length,
@@ -299,7 +297,7 @@ function calculateAccountingTotal(formData, masterData, classroom) {
             _isDynamic: true, // 動的項目フラグ
           };
 
-          if (!window.isProduction) {
+          if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
             console.log('🔍 回数制動的項目作成:', dynamicItem);
           }
         }
@@ -308,7 +306,7 @@ function calculateAccountingTotal(formData, masterData, classroom) {
         if (dynamicItem) {
           extendedMasterData.push(dynamicItem);
 
-          if (!window.isProduction) {
+          if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
             console.log('🔍 動的項目をextendedMasterDataに追加:', {
               itemName: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
               price: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
@@ -323,7 +321,7 @@ function calculateAccountingTotal(formData, masterData, classroom) {
             dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]
           ] = true;
 
-          if (!window.isProduction) {
+          if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
             console.log('🔍 checkedItemsに追加:', {
               itemName: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
               allCheckedItems: formData.checkedItems,
@@ -355,7 +353,7 @@ function calculateAccountingTotal(formData, masterData, classroom) {
     };
 
     // デバッグ: 計算結果
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 calculateAccountingTotal結果:', result);
       console.log('🔍 授業料小計:', tuition.subtotal);
       console.log('🔍 販売小計:', sales.subtotal);
@@ -384,7 +382,7 @@ function calculateAccountingTotal(formData, masterData, classroom) {
  * @param {string} selectedValue - 選択済みの値
  * @returns {string} HTML文字列
  */
-function generateTimeOptions(selectedValue = '') {
+export function generateTimeOptions(selectedValue = '') {
   return Components.timeOptions({
     startTime: '09:00',
     endTime: '19:00',
@@ -400,7 +398,7 @@ function generateTimeOptions(selectedValue = '') {
  * @param {AccountingFormDto} formData - フォームデータ
  * @returns {string} HTML文字列
  */
-function generateTuitionSection(classifiedItems, classroom, formData = {}) {
+export function generateTuitionSection(classifiedItems, classroom, formData = {}) {
   // 基本授業料の定数リスト
   const BASE_TUITION_ITEMS = [
     CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
@@ -554,7 +552,7 @@ function generateTuitionSection(classifiedItems, classroom, formData = {}) {
  * @param {Object} materialData - 既存の材料データ
  * @returns {string} HTML文字列
  */
-function generateMaterialRow(materialItems, index = 0, materialData = {}) {
+export function generateMaterialRow(materialItems, index = 0, materialData = {}) {
   // 材料選択肢を生成
   let materialOptions = '<option value="">おえらびください</option>';
   materialItems.forEach(item => {
@@ -627,7 +625,7 @@ function generateMaterialRow(materialItems, index = 0, materialData = {}) {
  * @param {AccountingFormDto} formData - フォームデータ
  * @returns {string} HTML文字列
  */
-function generateSalesSection(classifiedItems, formData = {}) {
+export function generateSalesSection(classifiedItems, formData = {}) {
   // 材料代セクション
   let materialsHtml = '';
   if (classifiedItems.sales.materialItems.length > 0) {
@@ -691,7 +689,7 @@ function generateSalesSection(classifiedItems, formData = {}) {
  * @param {Object} productData - 既存の物販データ
  * @returns {string} HTML文字列
  */
-function generateProductRow(productItems, index = 0, productData = {}) {
+export function generateProductRow(productItems, index = 0, productData = {}) {
   // 物販選択肢を生成
   let productOptions = '<option value="">おえらびください</option>';
   productItems.forEach(item => {
@@ -724,7 +722,7 @@ function generateProductRow(productItems, index = 0, productData = {}) {
  * @param {Array} customSalesData - 自由入力物販データ配列
  * @returns {string} HTML文字列
  */
-function generateCustomSalesRows(customSalesData = [{}]) {
+export function generateCustomSalesRows(customSalesData = [{}]) {
   return customSalesData
     .map((itemData, index) => generateCustomSalesRow(index, itemData))
     .join('');
@@ -736,7 +734,7 @@ function generateCustomSalesRows(customSalesData = [{}]) {
  * @param {Object} itemData - 既存のアイテムデータ
  * @returns {string} HTML文字列
  */
-function generateCustomSalesRow(index = 0, itemData = {}) {
+export function generateCustomSalesRow(index = 0, itemData = {}) {
   return `
     <div class="custom-sales-row  border-ui-border p-0 ${index > 0 ? 'mt-1' : ''}" data-custom-sales-row="${index}">
       <div class="flex items-center space-x-3">
@@ -773,7 +771,7 @@ function generateCustomSalesRow(index = 0, itemData = {}) {
  * @param {Object} reservationData - 予約データ
  * @returns {string} HTML文字列
  */
-function generateAccountingReservationCard(reservationData) {
+export function generateAccountingReservationCard(reservationData) {
   if (!reservationData) {
     return '';
   }
@@ -806,7 +804,7 @@ function generateAccountingReservationCard(reservationData) {
  * @param {Object} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} HTML文字列
  */
-function generateAccountingView(
+export function generateAccountingView(
   classifiedItems,
   classroom,
   formData = {},
@@ -887,7 +885,7 @@ function generateAccountingView(
  * @param {string} selectedValue - 選択済みの支払い方法
  * @returns {string} HTML文字列
  */
-const getPaymentOptionsHtml = selectedValue => {
+export const getPaymentOptionsHtml = selectedValue => {
   const cotraDetails = `
         <details class="mt-0 ml-4">
             <summary class="inline-block px-0 py-0 bg-ui-warning-light text-ui-warning-text text-sm font-semibold rounded-md active:bg-ui-warning-bg">
@@ -935,7 +933,7 @@ const getPaymentOptionsHtml = selectedValue => {
  * @param {string} selectedPaymentMethod - 選択された支払方法
  * @returns {string} HTML文字列
  */
-const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
+export const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
   let paymentInfoHtml = '';
 
   // ことら送金が選択された場合のみ電話番号を表示
@@ -978,7 +976,7 @@ const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
-function setupAccountingEventListeners(classifiedItems, classroom) {
+export function setupAccountingEventListeners(classifiedItems, classroom) {
   // 入力変更イベント（チェックボックス、セレクト、インプット）
   document.addEventListener('change', function (event) {
     const target = event.target;
@@ -1010,7 +1008,7 @@ function setupAccountingEventListeners(classifiedItems, classroom) {
         break;
       case 'showPaymentModal':
         // デバッグ: ボタンクリックを記録
-        if (!window.isProduction) {
+        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
           console.log('🔴 showPaymentModalボタンがクリックされました');
         }
 
@@ -1023,7 +1021,7 @@ function setupAccountingEventListeners(classifiedItems, classroom) {
           target.hasAttribute('disabled') ||
           target.style.pointerEvents === 'none'
         ) {
-          if (!window.isProduction) {
+          if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
             console.log('⚠️ ボタンが無効状態のためクリックを無視');
           }
           return;
@@ -1074,7 +1072,7 @@ function setupAccountingEventListeners(classifiedItems, classroom) {
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
-function handleAccountingInputChange(event, classifiedItems, classroom) {
+export function handleAccountingInputChange(event, classifiedItems, classroom) {
   const target = event.target;
 
   // 動的スタイルのチェックボックスの更新
@@ -1093,7 +1091,7 @@ function handleAccountingInputChange(event, classifiedItems, classroom) {
  * チェックボックスのスタイルを更新（項目名と金額の両方）
  * @param {HTMLInputElement} checkbox - チェックボックス要素
  */
-function updateCheckboxStyle(checkbox) {
+export function updateCheckboxStyle(checkbox) {
   const label = checkbox.parentElement;
   if (!label) return;
 
@@ -1156,7 +1154,7 @@ function updateCheckboxStyle(checkbox) {
  * @param {Event} event - 変更イベント
  * @param {Array} materialItems - 材料項目配列
  */
-function handleMaterialTypeChange(event, materialItems) {
+export function handleMaterialTypeChange(event, materialItems) {
   const index = event.target.id.split('-')[2]; // material-type-0 -> 0
   const selectedType = event.target.value;
   const materialRow = document.querySelector(`[data-material-row="${index}"]`);
@@ -1244,7 +1242,7 @@ function handleMaterialTypeChange(event, materialItems) {
  * 材料行追加
  * @param {Array} materialItems - 材料項目配列
  */
-function addMaterialRow(materialItems) {
+export function addMaterialRow(materialItems) {
   const container = document.getElementById('materials-container');
   if (!container) return;
 
@@ -1259,7 +1257,7 @@ function addMaterialRow(materialItems) {
  * 材料行削除
  * @param {string} index - 削除する行のインデックス
  */
-function removeMaterialRow(index) {
+export function removeMaterialRow(index) {
   const row = document.querySelector(`[data-material-row="${index}"]`);
   if (row) {
     row.remove();
@@ -1279,7 +1277,7 @@ function removeMaterialRow(index) {
  * @param {Event} event - 変更イベント
  * @param {Array} productItems - 物販項目配列
  */
-function handleProductTypeChange(event, productItems) {
+export function handleProductTypeChange(event, productItems) {
   const index = event.target.id.split('-')[2]; // product-type-0 -> 0
   const selectedType = event.target.value;
   const productRow = document.querySelector(`[data-product-row="${index}"]`);
@@ -1348,7 +1346,7 @@ function handleProductTypeChange(event, productItems) {
  * 物販行削除
  * @param {string} index - 削除する行のインデックス
  */
-function removeProductRow(index) {
+export function removeProductRow(index) {
   const row = document.querySelector(`[data-product-row="${index}"]`);
   if (row) {
     row.remove();
@@ -1367,7 +1365,7 @@ function removeProductRow(index) {
  * 自由入力物販の入力変更処理
  * @param {Event} event - 入力変更イベント
  */
-function handleCustomSalesInputChange(event) {
+export function handleCustomSalesInputChange(event) {
   const target = event.target;
   const index = parseInt(target.id.split('-')[3]); // custom-sales-name-0 -> 0
   const container = document.getElementById('custom-sales-container');
@@ -1417,7 +1415,7 @@ function handleCustomSalesInputChange(event) {
 /**
  * 自由入力物販行追加
  */
-function addCustomSalesRow() {
+export function addCustomSalesRow() {
   const container = document.getElementById('custom-sales-container');
   if (!container) return;
 
@@ -1432,7 +1430,7 @@ function addCustomSalesRow() {
  * 自由入力物販行削除
  * @param {string} index - 削除する行のインデックス
  */
-function removeCustomSalesRow(index) {
+export function removeCustomSalesRow(index) {
   const row = document.querySelector(`[data-custom-sales-row="${index}"]`);
   if (row) {
     row.remove();
@@ -1452,7 +1450,7 @@ function removeCustomSalesRow(index) {
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
-function updateAccountingCalculation(classifiedItems, classroom) {
+export function updateAccountingCalculation(classifiedItems, classroom) {
   try {
     // フォームデータ収集
     const formData = collectAccountingFormData();
@@ -1489,7 +1487,7 @@ function updateAccountingCalculation(classifiedItems, classroom) {
  * @param {Object} result - 計算結果
  * @param {string} classroom - 教室名
  */
-function updateAccountingUI(result, classroom) {
+export function updateAccountingUI(result, classroom) {
   // 授業料小計更新
   const tuitionSubtotal = document.getElementById('tuition-subtotal-amount');
   if (tuitionSubtotal) {
@@ -1531,7 +1529,7 @@ function updateAccountingUI(result, classroom) {
  * @param {Object} result - 計算結果
  * @param {string} classroom - 教室名
  */
-function updateTimeCalculationDisplay(result, classroom) {
+export function updateTimeCalculationDisplay(result, classroom) {
   const timeCalculation = document.getElementById('time-calculation');
   if (!timeCalculation) return;
 
@@ -1573,7 +1571,7 @@ function updateTimeCalculationDisplay(result, classroom) {
  * 材料価格個別表示更新
  * @param {Object} result - 計算結果
  */
-function updateMaterialPricesDisplay(result) {
+export function updateMaterialPricesDisplay(result) {
   const materials = document.querySelectorAll('.material-row');
   const salesItems = result.sales?.items || [];
 
@@ -1610,7 +1608,7 @@ function updateMaterialPricesDisplay(result) {
  * 物販価格個別表示更新
  * @param {Object} result - 計算結果
  */
-function updateProductPricesDisplay(result) {
+export function updateProductPricesDisplay(result) {
   const products = document.querySelectorAll('.product-row');
   const salesItems = result.sales?.items || [];
 
@@ -1642,7 +1640,7 @@ function updateProductPricesDisplay(result) {
  * 自由入力物販価格個別表示更新
  * @param {Object} result - 計算結果
  */
-function updateCustomSalesPricesDisplay(result) {
+export function updateCustomSalesPricesDisplay(result) {
   const customSales = document.querySelectorAll('.custom-sales-row');
   const salesItems = result.sales?.items || [];
 
@@ -1674,7 +1672,7 @@ function updateCustomSalesPricesDisplay(result) {
  * 支払い方法UI初期化（既存関数を活用）
  * @param {string} selectedPaymentMethod - 選択済みの支払い方法
  */
-function initializePaymentMethodUI(selectedPaymentMethod = '') {
+export function initializePaymentMethodUI(selectedPaymentMethod = '') {
   const paymentOptionsContainer = document.getElementById(
     'payment-options-container',
   );
@@ -1700,7 +1698,7 @@ function initializePaymentMethodUI(selectedPaymentMethod = '') {
  * 支払い方法変更時の処理（既存関数を活用）
  * @param {string} selectedMethod - 選択された支払い方法
  */
-function handlePaymentMethodChange(selectedMethod) {
+export function handlePaymentMethodChange(selectedMethod) {
   const paymentInfoContainer = document.getElementById(
     'payment-info-container',
   );
@@ -1720,7 +1718,7 @@ function handlePaymentMethodChange(selectedMethod) {
  * 支払い方法のラベルスタイルを動的に更新
  * @param {string} selectedMethod - 選択された支払い方法
  */
-function updatePaymentMethodStyles(selectedMethod) {
+export function updatePaymentMethodStyles(selectedMethod) {
   const paymentMethodRadios = document.querySelectorAll(
     'input[name="payment-method"]',
   );
@@ -1750,7 +1748,7 @@ function updatePaymentMethodStyles(selectedMethod) {
 /**
  * 確認ボタンの有効/無効状態を更新
  */
-function updateConfirmButtonState() {
+export function updateConfirmButtonState() {
   const confirmButton = document.getElementById('confirm-payment-button');
   const selectedPaymentMethod = document.querySelector(
     'input[name="payment-method"]:checked',
@@ -1785,9 +1783,9 @@ function updateConfirmButtonState() {
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @returns {Object} 既存バックエンド形式のuserInput
  */
-function convertToLegacyFormat(formData, result, classifiedItems) {
+export function convertToLegacyFormat(formData, result, classifiedItems) {
   // デバッグログ追加
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 convertToLegacyFormat入力データ:', {
       formData,
       result,
@@ -1812,7 +1810,7 @@ function convertToLegacyFormat(formData, result, classifiedItems) {
   };
 
   // デバッグログ追加
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 convertToLegacyFormat出力データ:', userInput);
   }
 
@@ -1822,7 +1820,7 @@ function convertToLegacyFormat(formData, result, classifiedItems) {
 /**
  * ダッシュボード画面にもどる処理
  */
-function handleBackToDashboard() {
+export function handleBackToDashboard() {
   try {
     // 現在のフォームデータをキャッシュに保存
     const currentFormData = collectAccountingFormData();
@@ -1861,7 +1859,7 @@ function handleBackToDashboard() {
  * @param {string} paymentMethod - 支払い方法
  * @returns {string} モーダルHTML
  */
-function generatePaymentConfirmModal(result, paymentMethod) {
+export function generatePaymentConfirmModal(result, paymentMethod) {
   // 支払い方法に応じた支払先情報
   const paymentInfoHtml =
     typeof getPaymentInfoHtml === 'function'
@@ -2000,9 +1998,9 @@ function generatePaymentConfirmModal(result, paymentMethod) {
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  */
-function showPaymentConfirmModal(classifiedItems, classroom) {
+export function showPaymentConfirmModal(classifiedItems, classroom) {
   // デバッグ: 関数呼び出しを記録
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔵 showPaymentConfirmModal関数が呼び出されました');
   }
 
@@ -2016,7 +2014,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
     }
 
     // デバッグ：計算前の情報
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 支払い確認モーダル: 計算前データ確認', {
         classifiedItems存在: !!classifiedItems,
         tuitionItemsLength: classifiedItems?.tuition?.items?.length || 0,
@@ -2037,7 +2035,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
     );
 
     // デバッグログ
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 支払い確認モーダル生成開始', { formData, result });
     }
 
@@ -2047,7 +2045,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
       formData.paymentMethod,
     );
 
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('モーダルHTML生成完了:', modalHtml.substring(0, 200) + '...');
     }
 
@@ -2060,7 +2058,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
     // モーダルを表示
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('モーダル挿入完了');
     }
 
@@ -2076,7 +2074,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
     console.error('エラースタック:', error.stack);
 
     // デバッグ情報
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('エラー発生時の状態:', {
         formData: formData || 'undefined',
         classifiedItems: classifiedItems || 'undefined',
@@ -2091,7 +2089,7 @@ function showPaymentConfirmModal(classifiedItems, classroom) {
 /**
  * 支払い確認モーダルを閉じる
  */
-function closePaymentConfirmModal() {
+export function closePaymentConfirmModal() {
   const modal = document.getElementById('payment-confirm-modal');
   if (modal) {
     modal.remove();
@@ -2107,10 +2105,10 @@ function closePaymentConfirmModal() {
 /**
  * 支払い処理を実行（モーダルから呼び出し）
  */
-function handleProcessPayment() {
+export function handleProcessPayment() {
   // 重複実行防止チェック
   if (window.paymentProcessing) {
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('⚠️ 支払い処理は既に実行中です');
     }
     return;
@@ -2118,7 +2116,7 @@ function handleProcessPayment() {
 
   if (!window.tempPaymentData) {
     console.error('支払いデータが見つかりません');
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('デバッグ: window.tempPaymentData =', window.tempPaymentData);
     }
 
@@ -2142,7 +2140,7 @@ function handleProcessPayment() {
     window.tempPaymentData;
 
   // デバッグログ
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🟢 支払い処理開始:', {
       formData,
       result,
@@ -2159,7 +2157,7 @@ function handleProcessPayment() {
 
   // 実際の会計処理を実行（14_WebApp_Handlers.jsのconfirmAndPay関数を呼び出し）
   try {
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 handleProcessPayment: 処理方法を判定中', {
         actionHandlers存在: typeof actionHandlers !== 'undefined',
         confirmAndPay存在:
@@ -2168,14 +2166,14 @@ function handleProcessPayment() {
     }
 
     if (typeof actionHandlers !== 'undefined' && actionHandlers.confirmAndPay) {
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log(
           '🔍 handleProcessPayment: actionHandlers.confirmAndPay()を実行',
         );
       }
       actionHandlers.confirmAndPay();
     } else {
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log('🔍 handleProcessPayment: フォールバック処理を実行');
       }
       // フォールバック: 直接処理
@@ -2192,7 +2190,7 @@ function handleProcessPayment() {
  * 制作メモ保存処理
  * @param {HTMLElement} target - ボタン要素
  */
-function handleSaveMemo(target) {
+export function handleSaveMemo(target) {
   const reservationId = target.getAttribute('data-reservation-id');
   if (!reservationId) {
     console.error('予約IDが見つかりません');
@@ -2259,7 +2257,7 @@ function handleSaveMemo(target) {
  * @param {AccountingFormDto} formData - フォームデータ
  * @param {Object} result - 計算結果
  */
-function processAccountingPayment(formData, result) {
+export function processAccountingPayment(formData, result) {
   try {
     // ローディング表示
     if (typeof showLoading === 'function') {
@@ -2294,7 +2292,7 @@ function processAccountingPayment(formData, result) {
     };
 
     // デバッグログ：最終ペイロード
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log(
         '🔍 最終送信ペイロード (ReservationCore):',
         reservationWithAccounting,
@@ -2372,7 +2370,7 @@ function processAccountingPayment(formData, result) {
  * 制作メモのデータを収集
  * @returns {Object} 制作メモデータ
  */
-function collectMemoData() {
+export function collectMemoData() {
   const memoData = {};
 
   // 会計画面の制作メモテキストエリアを探す
@@ -2402,11 +2400,11 @@ function collectMemoData() {
  * フォームデータ収集
  * @returns {AccountingFormDto} 収集されたフォームデータ
  */
-function collectAccountingFormData() {
+export function collectAccountingFormData() {
   const formData = {};
 
   // デバッグ: フォームデータ収集開始
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 collectAccountingFormData開始');
   }
 
@@ -2416,7 +2414,7 @@ function collectAccountingFormData() {
   const breakTimeEl = document.getElementById('break-time');
 
   // デバッグ: 時刻要素の存在確認
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 時刻要素チェック:', {
       startTimeEl: !!startTimeEl,
       endTimeEl: !!endTimeEl,
@@ -2538,7 +2536,7 @@ function collectAccountingFormData() {
   // 支払い方法が選択されていない場合は undefined のまま（必須チェックで弾く）
 
   // デバッグ: 収集されたフォームデータを出力
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 collectAccountingFormData結果:', formData);
     console.log(
       '🔍 基本授業料チェック状態:',
@@ -2555,7 +2553,7 @@ function collectAccountingFormData() {
  * 会計キャッシュ保存
  * @param {AccountingFormDto} formData - 保存するフォームデータ
  */
-function saveAccountingCache(formData) {
+export function saveAccountingCache(formData) {
   try {
     const cacheKey = 'accounting_form_data';
     const cacheData = {
@@ -2574,7 +2572,7 @@ function saveAccountingCache(formData) {
  * 会計キャッシュ読込
  * @returns {AccountingFormDto} 読み込まれたフォームデータ
  */
-function loadAccountingCache() {
+export function loadAccountingCache() {
   try {
     const cacheKey = 'accounting_form_data';
     const cached = localStorage.getItem(cacheKey);
@@ -2605,7 +2603,7 @@ function loadAccountingCache() {
  * @param {Object} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} 生成された会計画面HTML
  */
-function initializeAccountingSystem(
+export function initializeAccountingSystem(
   masterData,
   classroom,
   initialFormData = {},
@@ -2652,7 +2650,7 @@ function initializeAccountingSystem(
 /**
  * 会計システムクリーンアップ
  */
-function cleanupAccountingSystem() {
+export function cleanupAccountingSystem() {
   // タイマーをクリア
   if (window.accountingCalculationTimeout) {
     clearTimeout(window.accountingCalculationTimeout);

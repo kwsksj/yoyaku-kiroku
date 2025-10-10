@@ -1,3 +1,4 @@
+/// <reference path="../../types/index.d.ts" />
 <!--
 =================================================================
 【ファイル名】: 10_WebApp.html
@@ -125,29 +126,19 @@
       </footer>
     </div>
 
-    <!-- 統合JavaScriptはビルド時にここに挿入されます -->
-    <!-- 設定・定数 -->
+    <!-- __UNIFIED_JAVASCRIPT_INJECTION_POINT__ -->
 
     <script>
-      // 環境判定：本番環境かテスト環境かを確認
-      const isProduction =
-        window.location.href.includes('/exec?') ||
-        (window.location.href.includes('/macros/s/') &&
-          !window.location.href.includes('/dev'));
-
-      // デバッグ制御（フロントエンド専用）
-      const DEBUG_ENABLED = false; // 本番環境では false
 
       // デバッグ情報をコンソールに出力する関数（本番環境では無効化）
       function debugLog(message) {
-        if (isProduction || !DEBUG_ENABLED) return; // 本番環境では何も表示しない
+        if (CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) return; // 本番環境では何も表示しない
         console.log(
           '🔍 [DEBUG]',
           new Date().toLocaleTimeString() + ':',
           message,
         );
       }
-
       // 最初のテスト - これが表示されなければHTMLファイル自体が読み込まれていない
       debugLog('HTMLファイル読み込み確認テスト完了');
       debugLog('ページURL: ' + window.location.href);
@@ -157,12 +148,6 @@
         typeof google !== 'undefined' && typeof google.script !== 'undefined';
       debugLog('GAS環境判定: ' + isGAS);
 
-      // 事前取得システムを削除しました
-      // シンプルなログインフローに変更したため不要
-
-      // startPreloadInitialData関数を削除しました
-
-      // updatePreloadStatus関数を削除しました
 
       function isPreloadedDataValid() {
         if (!window.appCache.initialData || !window.appCache.timestamp) {
@@ -216,9 +201,6 @@
                   ? window.stateManager.getState().lessons.length + '件'
                   : 'null'),
             );
-            debugLog(
-              'CONSTANTS.CLASSROOMS: ' + JSON.stringify(CONSTANTS.CLASSROOMS),
-            );
 
             window.stateManager.dispatch({
               type: 'SET_STATE',
@@ -226,8 +208,6 @@
             });
             hideLoading();
 
-            // 事前取得システムを削除しました
-            // シンプルなログインフローに変更
           } else {
             // 一部未準備 - 100ms間隔でリトライ（300ms → 100ms に短縮）
             setTimeout(safeInitializeApp, 100);

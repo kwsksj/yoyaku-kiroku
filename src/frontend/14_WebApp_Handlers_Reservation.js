@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers_Reservation.js
@@ -13,7 +11,7 @@
  */
 
 /** 予約管理関連のアクションハンドラー群 */
-const reservationActionHandlers = {
+export const reservationActionHandlers = {
   /**
    * 予約をキャンセルします。
    * @param {ActionHandlerData} d - キャンセル対象の予約情報を含むデータ

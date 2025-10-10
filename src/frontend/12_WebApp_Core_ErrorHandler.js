@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 12_WebApp_Core_ErrorHandler.js
@@ -19,7 +17,7 @@
  * フロントエンド統一エラーハンドラー
  * ユーザーへの適切な通知とデバッグ情報の管理を行います
  */
-class FrontendErrorHandler {
+export class FrontendErrorHandler {
   /**
    * エラーを処理し、ユーザーに適切に通知（パフォーマンス最適化版）
    * @param {Error} error - エラーオブジェクト
@@ -27,9 +25,8 @@ class FrontendErrorHandler {
    * @param {Object} [additionalInfo={}] - 追加情報
    */
   static handle(error, context = '', additionalInfo = {}) {
-    // eslint-disable-line no-unused-vars
     // 軽量ログ出力（本番環境では最小限の情報のみ）
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.error(`[ERROR] ${context}: ${error.message}`);
     }
   }
@@ -64,7 +61,7 @@ class FrontendErrorHandler {
     }
 
     // 本番環境では簡略化されたログのみ
-    if (window.isProduction) {
+    if (CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.error(`[ERROR] ${context}: ${error.message}`);
     }
   }
@@ -214,7 +211,7 @@ class FrontendErrorHandler {
  * レガシーコードサポート用
  * @param {any} err - サーバーから返されたエラーオブジェクト
  */
-function handleServerError(err) {
+export function handleServerError(err) {
   FrontendErrorHandler.handleServerError(err);
 }
 
@@ -239,6 +236,6 @@ window.addEventListener(
 );
 
 // デバッグ用: エラーハンドラーをグローバルに公開（開発環境のみ）
-if (!window.isProduction) {
+if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
   window.FrontendErrorHandler = FrontendErrorHandler;
 }

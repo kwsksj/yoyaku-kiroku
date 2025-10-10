@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers_History.js
@@ -22,7 +20,7 @@
 // =================================================================
 
 /** 履歴管理関連のアクションハンドラー群 */
-const historyActionHandlers = {
+export const historyActionHandlers = {
   /** きろくカードの確認/編集ボタン
    * @param {ActionHandlerData} d */
   expandHistoryCard: d => {

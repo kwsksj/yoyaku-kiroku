@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -16,7 +16,7 @@
  * 統一エラーハンドラークラス（バックエンド用）
  * Google Apps Script環境でのエラー処理を統一
  */
-class BackendErrorHandler {
+export class BackendErrorHandler {
   /**
    * エラーを処理し、軽量ログを出力（パフォーマンス最適化版）
    * @param {Error} error - 処理するエラーオブジェクト
@@ -177,7 +177,7 @@ ${JSON.stringify(errorInfo.additionalInfo, null, 2)}
  * @param {string} context - エラーコンテキスト
  * @returns {ApiErrorResponse} エラーレスポンス
  */
-function handleServerError(error, context = 'server-error') {
+export function handleServerError(error, context = 'server-error') {
   return BackendErrorHandler.handle(error, context);
 }
 
@@ -187,7 +187,7 @@ function handleServerError(error, context = 'server-error') {
  * @param {ApiResponseData} data - レスポンスデータまたはエラー情報
  * @returns {UnifiedApiResponse} 統一APIレスポンス
  */
-function createApiResponse(success, data = {}) {
+export function createApiResponse(success, data = {}) {
   if (success) {
     /** @type {ApiSuccessResponse} */
     return {

@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 12_WebApp_Core_Search.js
@@ -28,7 +26,7 @@
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
  * @returns {ReservationSearchResult | null} 見つかった予約/記録データ、見つからない場合はnull
  */
-function findReservationById(reservationId, state = null) {
+export function findReservationById(reservationId, state = null) {
   const currentState = state || window.stateManager?.getState();
   if (!currentState) return null;
 
@@ -55,7 +53,7 @@ function findReservationById(reservationId, state = null) {
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
  * @returns {ReservationSearchResult | null} 見つかった予約/記録データ、見つからない場合はnull
  */
-function findReservationByDateAndClassroom(date, classroom, state = null) {
+export function findReservationByDateAndClassroom(date, classroom, state = null) {
   const currentState = state || window.stateManager?.getState();
   if (!currentState) return null;
 
@@ -82,7 +80,7 @@ function findReservationByDateAndClassroom(date, classroom, state = null) {
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
  * @returns {ReservationSearchResult[]} 条件に合致する予約/記録の配列
  */
-function findReservationsByStatus(status, state = null) {
+export function findReservationsByStatus(status, state = null) {
   const currentState = state || window.stateManager?.getState();
   if (!currentState) return [];
 

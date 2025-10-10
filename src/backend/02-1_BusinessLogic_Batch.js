@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -18,7 +18,7 @@
  * 【開発用】テスト環境をセットアップします。
  * 現在のスプレッドシートをコピーし、テスト用の新しい環境を作成します。
  */
-function setupTestEnvironment() {
+export function setupTestEnvironment() {
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
     'テスト環境の作成',

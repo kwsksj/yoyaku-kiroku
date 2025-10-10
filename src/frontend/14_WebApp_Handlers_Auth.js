@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers_Auth.js
@@ -22,7 +20,7 @@
 // =================================================================
 
 /** 認証関連のアクションハンドラー群 */
-const authActionHandlers = {
+export const authActionHandlers = {
   /** ログインまたは新規登録を開始します（キャッシュ活用版） */
   login: () => {
     const phoneInput = getInputElementSafely('phone');
@@ -378,7 +376,7 @@ const authActionHandlers = {
       (
         /** @type {ServerResponse<{ user: UserData; message: string }>} */ res,
       ) => {
-        if (!window.isProduction) {
+        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
           console.log('🔍 registerNewUser レスポンス:', res);
         }
         hideLoading();

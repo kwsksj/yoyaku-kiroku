@@ -1,4 +1,15 @@
-/// <reference path="../../types/index.d.ts" />
+/**
+ * @file 00_Constants.js
+ * @description
+ * このファイルは、フロントエンドとバックエンドの両方で共有されるグローバル定数を定義します。
+ *
+ * !!! AIへの重要指示 !!!
+ * このファイルはビルドプロセスによって、サーバーサイドコードとクライアントサイドの<script>の両方に
+ * 組み込まれる【唯一の例外ファイル】です。
+ *
+ * ここに定義された定数は、両方の環境からグローバルな `CONSTANTS` オブジェクトとしてアクセスできます。
+ * 他のファイルにはこの仕組みは適用されません。
+ */
 
 /**
  * =================================================================
@@ -12,15 +23,14 @@
 
 /**
  * プロジェクト全体で使用する統一定数オブジェクト
- * 型定義は types/constants.d.ts で定義されています
+ * 型定義は自動生成されます
  */
-const CONSTANTS = {
+export const CONSTANTS = {
   // タイムゾーン設定
   TIMEZONE: 'Asia/Tokyo',
 
   // 環境設定（PRODUCTION_MODEはビルド時に自動設定される）
   ENVIRONMENT: {
-    DEBUG_MODE: typeof DEBUG !== 'undefined' ? DEBUG : false,
     PRODUCTION_MODE: false, // ビルド時に自動置換される
   },
 
@@ -128,8 +138,7 @@ const CONSTANTS = {
   MESSAGES: {
     PROCESSING_INTERRUPTED: '処理を中断しました。',
     SHEET_INITIALIZATION: '日程マスタシートの初期化',
-    EXISTING_SHEET_WARNING: `「日程マスタ」シートは既に存在します。
-初期化しますか？（既存データは削除されます）`,
+    EXISTING_SHEET_WARNING: "「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）",
     SUCCESS: '成功',
     ERROR: 'エラー',
     CANCEL: 'キャンセル',
@@ -259,13 +268,10 @@ const CONSTANTS = {
     MATERIAL: '材料',
   },
 
-  // 注意: HEADER_MAPPINGS は過度に複雑だったため削除
-  // 必要な箇所では直接的なswitch文で対応
-
   // その他のシステム定数
   SYSTEM: {
-    MATERIAL_INFO_PREFIX: '\n【希望材料】: ',
-    ARCHIVE_PREFIX: 'アーカイブ_',
+    MATERIAL_INFO_PREFIX: "\n【希望材料】: ",
+    ARCHIVE_PREFIX: "アーカイブ_",
     DATA_START_ROW: 2,
   },
 
@@ -277,16 +283,4 @@ const CONSTANTS = {
     DEFAULT_HOUR: 9, // デフォルト通知時刻
     SCHEDULE_MONTHS_AHEAD: 3, // 通知対象となる日程の先行月数
   },
-};
-
-// =================================================================
-// 環境設定・デバッグ制御
-// =================================================================
-
-/**
- * 環境判定とデバッグ制御の統一管理
- */
-const ENVIRONMENT_CONFIG = {
-  // デバッグ出力制御
-  DEBUG_ENABLED: false, // 本番環境では false
 };

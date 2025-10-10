@@ -11,7 +11,6 @@
     "declaration": true,
     "emitDeclarationOnly": true,
     "declarationDir": "./types/generated-frontend-globals", // 生成先ディレクトリを指定
-    "moduleResolution": "node",
 
     // --- JSDoc解析のための設定 ---
     "allowJs": true,
@@ -26,8 +25,5 @@
   "exclude": [
     "node_modules",
     "build-output",
-    // 重複宣言を避けるため、グローバル設定/状態管理ファイルは一部除外
-    "src/frontend/12_WebApp_StateManager.js",
-    "src/frontend/12_WebApp_Core_ErrorHandler.js"
   ]
 }

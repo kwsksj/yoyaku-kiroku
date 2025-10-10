@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Components.js
@@ -53,7 +51,7 @@ window.escapeHTML = /** @type {HTMLEscapeFunction} */ (
 // 最小単位のUIコンポーネント。単一責任でパラメータ最小化。
 // =================================================================
 
-const Components = {
+export const Components = {
   /**
    * 汎用モーダルコンポーネントを生成します
    * @param {ModalConfig} config - 設定オブジェクト
@@ -1199,7 +1197,7 @@ const Components = {
     reservationId,
     workInProgress,
     isEditMode = false,
-    showSaveButton = true, // eslint-disable-line no-unused-vars
+    showSaveButton = true,
   }) => {
     if (isEditMode) {
       // 編集モード：textareaと保存ボタン
@@ -1324,7 +1322,6 @@ const Components = {
    * @returns {string} HTML文字列
    */
   createSmartBackButton: (currentView, appState = null) => {
-    // eslint-disable-line no-unused-vars
     // 現在のビューに応じてアクションとテキストを決定
     let action = 'smartGoBack';
     let text = 'もどる';

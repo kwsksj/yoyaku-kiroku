@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -17,7 +17,7 @@
  * 開催予定のレッスン情報（空き枠情報を含む）を計算して返す
  * @returns {ApiResponse<LessonCore[]>}
  */
-function getLessons() {
+export function getLessons() {
   try {
     Logger.log('=== getLessons 開始 ===');
     const today = new Date();
@@ -176,7 +176,7 @@ function getLessons() {
  * @param {ReservationCore[]} reservations
  * @returns {{first: number, second: number|undefined, beginner: number|null}}
  */
-function calculateAvailableSlots(schedule, reservations) {
+export function calculateAvailableSlots(schedule, reservations) {
   const result = {
     first: 0,
     second: undefined,
@@ -233,7 +233,7 @@ function calculateAvailableSlots(schedule, reservations) {
  * @param {string} slotEnd
  * @returns {boolean}
  */
-function isInTimeSlot(reservation, slotStart, slotEnd) {
+export function isInTimeSlot(reservation, slotStart, slotEnd) {
   if (
     !reservation.startTime ||
     !reservation.endTime ||
@@ -257,7 +257,7 @@ function isInTimeSlot(reservation, slotStart, slotEnd) {
  * @param {string|Date|undefined} time
  * @returns {string|undefined}
  */
-function formatTime(time) {
+export function formatTime(time) {
   if (!time) return undefined;
   if (time instanceof Date) {
     return Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm');
@@ -270,7 +270,7 @@ function formatTime(time) {
  * @param {number|string|undefined} capacity
  * @returns {number}
  */
-function parseCapacity(capacity) {
+export function parseCapacity(capacity) {
   if (!capacity) return 0;
   if (typeof capacity === 'string') {
     const parsed = parseInt(capacity, 10);
@@ -284,7 +284,7 @@ function parseCapacity(capacity) {
  * @param {string} classroom - 教室名
  * @returns {ApiResponse<LessonCore[]>}
  */
-function getLessonsForClassroom(classroom) {
+export function getLessonsForClassroom(classroom) {
   const result = getLessons();
   if (!result.success) {
     return /** @type {ApiResponse<LessonCore[]>} */ (
@@ -304,7 +304,7 @@ function getLessonsForClassroom(classroom) {
  * @param {string} studentId - 生徒ID
  * @returns {ApiResponse<{ myReservations: ReservationCore[] }>}
  */
-function getUserReservations(studentId) {
+export function getUserReservations(studentId) {
   try {
     Logger.log(`getUserReservations - studentId: ${studentId}`);
 

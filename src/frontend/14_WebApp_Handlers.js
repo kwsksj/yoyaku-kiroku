@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers.js
@@ -32,7 +30,7 @@
 // （このファイルを最後に処理するため、その時点で他のハンドラーは利用可能）
 
 /** @type {ActionHandlers} */
-let actionHandlers;
+export let actionHandlers;
 
 // =================================================================
 // --- Application Core Functions ---
@@ -42,7 +40,7 @@ let actionHandlers;
 // =================================================================
 
 /** @type {ClassifiedAccountingItems} */
-const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ (
+export const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ (
   /** @type {unknown} */ ({
     tuition: { baseItems: [], additionalItems: [] },
     sales: { materialItems: [], productItems: [] },
@@ -51,14 +49,14 @@ const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItems} */ (
 
 // Window型の拡張（型エラー回避のため）
 /** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */
-const windowTyped = window;
+export const windowTyped = window;
 
 /**
  * 現在のアプリケーションの状態に基づいて、適切なビューを描画する
  * データ更新の必要性を判定し、必要に応じて最新データ取得後に再描画
  * stateManager.getState().viewの値に応じて対応するビュー関数を呼び出してUIを更新
  */
-function render() {
+export function render() {
   // appStateの安全な参照確認
   const appState = window.stateManager?.getState();
   if (!appState) {
@@ -116,7 +114,7 @@ function render() {
       if (accountingCache && classroom && accountingCache[classroom]) {
         // キャッシュから高速取得
         classifiedItems = accountingCache[classroom];
-        if (!window.isProduction) {
+        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
           console.log('✅ 会計システムキャッシュ使用:', classroom);
         }
       } else {
@@ -219,7 +217,7 @@ function render() {
  * 会計画面での入力変更を処理します。
  * 合計金額の再計算と、入力内容のキャッシュ保存を行います。
  */
-function handleAccountingFormChange() {
+export function handleAccountingFormChange() {
   // リアルタイムで合計金額を再計算
   if (typeof updateAccountingCalculation === 'function') {
     // 会計画面用のデータを取得
@@ -249,7 +247,7 @@ window.onload = function () {
   // 全てのハンドラーが定義された後でactionHandlersを構築
 
   // デバッグ：reservationActionHandlersの状態確認
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔧 reservationActionHandlers確認:', {
       defined: typeof reservationActionHandlers !== 'undefined',
       hasCancel: typeof reservationActionHandlers?.cancel === 'function',
@@ -487,7 +485,7 @@ window.onload = function () {
 
     /** 支払い確認モーダルをキャンセル */
     cancelPaymentConfirm: () => {
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log('🔵 cancelPaymentConfirm実行');
       }
 
@@ -505,7 +503,7 @@ window.onload = function () {
 
     /** 会計確認画面表示 */
     showAccountingConfirmation: () => {
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log('🔵 showAccountingConfirmation実行');
       }
       // 現在のconfirmAndPayと同じ動作
@@ -514,7 +512,7 @@ window.onload = function () {
 
     /** 支払い処理を実行 */
     processPayment: () => {
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log('🔵 processPayment実行（グローバルハンドラー）');
       }
 
@@ -552,7 +550,7 @@ window.onload = function () {
       const { action: _, ...data } = targetElement.dataset;
 
       // デバッグ情報を追加
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log('🔘 クリックイベント:', {
           action,
           data,
@@ -600,7 +598,7 @@ window.onload = function () {
         }
       } else {
         // ハンドラーが見つからない場合のデバッグ
-        if (!window.isProduction) {
+        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
           console.warn('⚠️ アクションハンドラーが見つかりません:', action);
         }
       }
@@ -608,7 +606,7 @@ window.onload = function () {
   };
 
   // デバッグ：actionHandlers構築後の確認
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔧 actionHandlers構築完了:', {
       hasCancel: typeof actionHandlers['cancel'] === 'function',
       totalHandlers: Object.keys(actionHandlers).length,
@@ -660,7 +658,7 @@ window.onload = function () {
       handleAccountingFormChange();
 
       // デバッグログ
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         const target = /** @type {HTMLInputElement} */ (e.target);
         console.log('🔄 会計フォーム変更イベント:', {
           element: target.name || target.id,

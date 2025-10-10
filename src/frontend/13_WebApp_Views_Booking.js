@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Views_Booking.js
@@ -16,7 +14,7 @@
  * @param {string} classroom - 教室名
  * @returns {string} HTML文字列
  */
-const getBookingView = classroom => {
+export const getBookingView = classroom => {
   const currentState = stateManager.getState();
   const relevantLessons =
     currentState.lessons && Array.isArray(currentState.lessons)
@@ -53,7 +51,7 @@ const getBookingView = classroom => {
  * state.currentReservationFormContext からデータを取得して描画します。
  * @returns {string} HTML文字列
  */
-const getReservationFormView = () => {
+export const getReservationFormView = () => {
   const {
     currentUser,
     accountingMaster,
@@ -345,7 +343,7 @@ const getReservationFormView = () => {
  * @param {LessonCore[]} lessons - 表示する講座情報の配列
  * @returns {string} HTML文字列
  */
-const renderBookingLessons = lessons => {
+export const renderBookingLessons = lessons => {
   if (!lessons || lessons.length === 0) {
     return '';
   }
@@ -478,7 +476,7 @@ const renderBookingLessons = lessons => {
  * 教室選択モーダル用のコンテンツを生成します。
  * @returns {string} HTML文字列
  */
-const getClassroomSelectionModalContent = () => {
+export const getClassroomSelectionModalContent = () => {
   const classrooms = Object.values(CONSTANTS.CLASSROOMS || {});
 
   if (!classrooms.length) {
@@ -524,7 +522,7 @@ const getClassroomSelectionModalContent = () => {
  * 教室選択モーダル全体のHTMLを生成します。
  * @returns {string} HTML文字列
  */
-const getClassroomSelectionModal = () => {
+export const getClassroomSelectionModal = () => {
   return Components.modal({
     id: 'classroom-selection-modal',
     title: 'おえらびください',
@@ -541,7 +539,7 @@ const getClassroomSelectionModal = () => {
  * @param {boolean} isInEditMode - 編集モード状態
  * @returns {string} HTML文字列
  */
-function _buildHistoryCardWithEditMode(
+export function _buildHistoryCardWithEditMode(
   historyItem,
   editButtons,
   accountingButtons,

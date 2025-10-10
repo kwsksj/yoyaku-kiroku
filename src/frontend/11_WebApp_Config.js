@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 11_WebApp_Config.html
@@ -221,7 +219,6 @@ window.EmbedConfig = {
 
   // スタイルの再適用
   reapplyStyles: offset => {
-    // eslint-disable-line no-unused-vars
     // 既存のスタイルを削除
     const existingStyle = document.getElementById('google-sites-embed-styles');
     if (existingStyle) {
@@ -378,7 +375,7 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
 // =================================================================
 // 3. CSS STYLES SETUP
 // =================================================================
-const addCustomStyles = () => {
+export const addCustomStyles = () => {
   const style = document.createElement('style');
   style.textContent = `
       /* ========== Viewport Height Fix for Mobile Keyboards ========== */
@@ -1024,7 +1021,7 @@ const addCustomStyles = () => {
 // =================================================================
 // Font Loading Detection
 // =================================================================
-const setupFontLoadingDetection = () => {
+export const setupFontLoadingDetection = () => {
   if ('fonts' in document) {
     document.fonts.ready.then(() => {
       document.documentElement.classList.add('fonts-loaded');
@@ -1040,7 +1037,7 @@ const setupFontLoadingDetection = () => {
 // =================================================================
 // Page Transition & Content Loading Management
 // =================================================================
-const setupPageTransitionManagement =
+export const setupPageTransitionManagement =
   /** @type {() => PageTransitionManager} */ (
     () => {
       let currentView = /** @type {ViewType | null} */ (null);
@@ -1170,7 +1167,7 @@ window.pageTransitionManager = setupPageTransitionManagement();
 // =================================================================
 // Mobile & Embedded Site Detection
 // =================================================================
-const setupMobileOptimizations = () => {
+export const setupMobileOptimizations = () => {
   // ビューポートの高さをCSSカスタムプロパティとして設定
   const setViewportHeight = () => {
     // window.innerHeight はキーボード表示時に変動する
@@ -1278,7 +1275,7 @@ const setupMobileOptimizations = () => {
 // =================================================================
 // 注意: CDN版Tailwindは本番環境では推奨されませんが、Google Apps Script環境では
 // PostCSS pluginやTailwind CLIの利用が困難なため、CDN版を使用しています。
-const setupTailwindCSS = () => {
+export const setupTailwindCSS = () => {
   const tailwindScript = document.createElement('script');
   tailwindScript.src = 'https://cdn.tailwindcss.com';
 

@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -16,7 +16,7 @@
  * @param {string} headerName - ヘッダー名
  * @returns {number | undefined} インデックス値
  */
-function getHeaderIndex(headerMap, headerName) {
+export function getHeaderIndex(headerMap, headerName) {
   if (headerMap instanceof Map) {
     return headerMap.get(headerName);
   }
@@ -28,7 +28,7 @@ function getHeaderIndex(headerMap, headerName) {
  * @param {HeaderMapType} headerMap - ヘッダーマップ（MapまたはRecord）
  * @returns {Record<string, number>} Record型のヘッダーマップ
  */
-function normalizeHeaderMap(headerMap) {
+export function normalizeHeaderMap(headerMap) {
   if (headerMap instanceof Map) {
     return Object.fromEntries(headerMap);
   }
@@ -41,7 +41,7 @@ function normalizeHeaderMap(headerMap) {
  * @param {string} property - プロパティ名
  * @returns {any} プロパティ値
  */
-function getCacheProperty(cacheData, property) {
+export function getCacheProperty(cacheData, property) {
   return cacheData && typeof cacheData === 'object'
     ? cacheData[property]
     : undefined;
@@ -53,7 +53,7 @@ function getCacheProperty(cacheData, property) {
  * @param {'date' | 'time'} type - フォーマット種別
  * @returns {string} フォーマット済み文字列
  */
-function formatDateTimeValue(dateValue, type) {
+export function formatDateTimeValue(dateValue, type) {
   const formatters = {
     date: (/** @type {any} */ dateValue) => {
       if (dateValue instanceof Date) {
@@ -109,7 +109,7 @@ function formatDateTimeValue(dateValue, type) {
  * @param {(string|number|Date)[]} newReservationRow - 新しい予約行データ
  * @param {HeaderMapType} headerMap - ヘッダーマッピング
  */
-function addReservationToCache(newReservationRow, headerMap) {
+export function addReservationToCache(newReservationRow, headerMap) {
   try {
     Logger.log('[CACHE] インクリメンタル予約追加開始');
     const startTime = new Date();
@@ -229,7 +229,7 @@ function addReservationToCache(newReservationRow, headerMap) {
  * @param {string} reservationId - 更新対象の予約ID
  * @param {string} newStatus - 新しいステータス
  */
-function updateReservationStatusInCache(reservationId, newStatus) {
+export function updateReservationStatusInCache(reservationId, newStatus) {
   try {
     Logger.log('[CACHE] インクリメンタルステータス更新開始');
     const startTime = new Date();
@@ -312,7 +312,7 @@ function updateReservationStatusInCache(reservationId, newStatus) {
  * @param {(string|number|Date)[]} updatedRowData - 更新された行データ
  * @param {HeaderMapType} headerMap - ヘッダーマッピング
  */
-function updateReservationInCache(reservationId, updatedRowData, headerMap) {
+export function updateReservationInCache(reservationId, updatedRowData, headerMap) {
   try {
     Logger.log('[CACHE] インクリメンタル予約更新開始');
     const startTime = new Date();
@@ -426,7 +426,7 @@ function updateReservationInCache(reservationId, updatedRowData, headerMap) {
  * @param {string} columnHeaderName - 更新する列のヘッダー名
  * @param {string|number|Date} newValue - 新しい値
  */
-function updateReservationColumnInCache(
+export function updateReservationColumnInCache(
   reservationId,
   columnHeaderName,
   newValue,
@@ -517,7 +517,7 @@ function updateReservationColumnInCache(
  *
  * @throws {Error} いずれかのキャッシュ再構築中にエラーが発生した場合
  */
-function rebuildAllCachesEntryPoint() {
+export function rebuildAllCachesEntryPoint() {
   try {
     getActiveSpreadsheet().toast(
       'キャッシュデータの一括再構築を開始しました...',
@@ -553,7 +553,7 @@ function rebuildAllCachesEntryPoint() {
  * 短時間での重複実行を防止するため。
  * @returns {boolean} 再構築が必要な場合true
  */
-function shouldRebuildReservationCache() {
+export function shouldRebuildReservationCache() {
   try {
     // 最後のキャッシュ更新時刻をチェック
     const lastRebuildTime = PropertiesService.getScriptProperties().getProperty(
@@ -589,7 +589,7 @@ function shouldRebuildReservationCache() {
  * @throws {Error} 予約記録シートが見つからない場合
  * @throws {Error} データ処理中にエラーが発生した場合
  */
-function rebuildAllReservationsCache() {
+export function rebuildAllReservationsCache() {
   try {
     const integratedReservationSheet = getSheetByName(
       CONSTANTS.SHEET_NAMES.RESERVATIONS,
@@ -856,7 +856,7 @@ function rebuildAllReservationsCache() {
       Date.now().toString(),
     );
   } catch (e) {
-    Logger.log(`rebuildAllReservationsCacheでエラー: ${e.message}`);
+    BackendErrorHandler.handle(e, 'rebuildAllReservationsCache');
     throw e;
   }
 }
@@ -869,7 +869,7 @@ function rebuildAllReservationsCache() {
  * @param {string} [toDate] - 取得終了日（YYYY-MM-DD形式、省略時は1年後）
  * @throws {Error} 日程データの取得や処理中にエラーが発生した場合
  */
-function rebuildScheduleMasterCache(fromDate, toDate) {
+export function rebuildScheduleMasterCache(fromDate, toDate) {
   try {
     // デフォルトの日付範囲を設定（今日から1年後まで）
     const today = new Date();
@@ -1052,7 +1052,9 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
     );
 
     Logger.log(
-      `日程マスターデータキャッシュを更新しました。件数: ${scheduleDataList?.length || 0}、期間: ${startDate} ～ ${endDate}`,
+      `日程マスターデータキャッシュを更新しました。件数: ${
+        scheduleDataList?.length || 0
+      }、期間: ${startDate} ～ ${endDate}`,
     );
     return cacheData;
   } catch (error) {
@@ -1071,7 +1073,7 @@ function rebuildScheduleMasterCache(fromDate, toDate) {
  * @throws {Error} 会計マスタシートが見つからない場合
  * @throws {Error} データ処理中にエラーが発生した場合
  */
-function rebuildAccountingMasterCache() {
+export function rebuildAccountingMasterCache() {
   try {
     const sheet = getSheetByName(CONSTANTS.SHEET_NAMES.ACCOUNTING);
     if (!sheet) {
@@ -1141,7 +1143,7 @@ function rebuildAccountingMasterCache() {
  * @throws {Error} 必須ヘッダーが見つからない場合
  * @throws {Error} データ処理中にエラーが発生した場合
  */
-function rebuildAllStudentsBasicCache() {
+export function rebuildAllStudentsBasicCache() {
   try {
     const studentRosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
     if (!studentRosterSheet || studentRosterSheet.getLastRow() < 2) {
@@ -1335,7 +1337,7 @@ function rebuildAllStudentsBasicCache() {
       );
     }
   } catch (e) {
-    Logger.log(`rebuildAllStudentsBasicCacheでエラー: ${e.message}`);
+    BackendErrorHandler.handle(e, 'rebuildAllStudentsBasicCache');
     throw e;
   }
 }
@@ -1350,7 +1352,7 @@ function rebuildAllStudentsBasicCache() {
  *
  * @returns {number} 更新した件数
  */
-function updateScheduleStatusToCompleted() {
+export function updateScheduleStatusToCompleted() {
   try {
     Logger.log('[ScheduleStatus] 開催済みステータス自動更新を開始');
 
@@ -1449,7 +1451,7 @@ function updateScheduleStatusToCompleted() {
  *
  * @throws {Error} ロック取得失敗やキャッシュ再構築中のエラーは内部でキャッチされログに記録
  */
-function triggerScheduledCacheRebuild() {
+export function triggerScheduledCacheRebuild() {
   const scriptLock = LockService.getScriptLock();
 
   // 他の処理が実行中の場合はスキップ
@@ -1496,7 +1498,7 @@ function triggerScheduledCacheRebuild() {
 /**
  * 使いやすさのための定数定義
  */
-const CACHE_KEYS = /** @type {const} */ ({
+export const CACHE_KEYS = /** @type {const} */ ({
   ALL_RESERVATIONS: 'all_reservations',
   ALL_STUDENTS_BASIC: 'all_students_basic',
   MASTER_SCHEDULE_DATA: 'master_schedule_data',
@@ -1532,7 +1534,7 @@ const CACHE_KEYS = /** @type {const} */ ({
  * @param {boolean} [autoRebuild=true] - キャッシュがない場合に自動再構築するか
  * @returns {CacheDataType<K> | null} 型付けされたキャッシュデータまたはnull
  */
-function getTypedCachedData(cacheKey, autoRebuild = true) {
+export function getTypedCachedData(cacheKey, autoRebuild = true) {
   // @ts-ignore
   return getCachedData(cacheKey, autoRebuild);
 }
@@ -1543,7 +1545,7 @@ function getTypedCachedData(cacheKey, autoRebuild = true) {
  * @param {boolean} [autoRebuild=true] - キャッシュがない場合に自動再構築するか（デフォルト: true）
  * @returns {CacheDataStructure | null} キャッシュされたデータまたはnull
  */
-function getCachedData(cacheKey, autoRebuild = true) {
+export function getCachedData(cacheKey, autoRebuild = true) {
   try {
     // まず分割キャッシュの確認を試行
     /** @type {CacheDataStructure | null} */
@@ -1646,7 +1648,7 @@ function getCachedData(cacheKey, autoRebuild = true) {
  * @param {string} cacheKey - キャッシュキー
  * @returns {object} { exists: boolean, version: number|null, dataCount: number|null }
  */
-function getCacheInfo(cacheKey) {
+export function getCacheInfo(cacheKey) {
   try {
     // まず分割キャッシュの確認
     const metaCacheKey = `${cacheKey}_meta`;
@@ -1703,7 +1705,7 @@ function getCacheInfo(cacheKey) {
  * すべてのキャッシュの状態を取得する
  * @returns {{ [key: string]: CacheInfo }} 各キャッシュの状態情報
  */
-function getAllCacheInfo() {
+export function getAllCacheInfo() {
   /** @type {{ [key: string]: CacheInfo }} */
   const result = {};
 
@@ -1719,8 +1721,8 @@ function getAllCacheInfo() {
 /**
  * 分割キャッシュ用の定数
  */
-const CHUNK_SIZE_LIMIT_KB = 90; // 90KBでチャンク分割（余裕を持たせる）
-const MAX_CHUNKS = 20; // 最大チャンク数
+export const CHUNK_SIZE_LIMIT_KB = 90; // 90KBでチャンク分割（余裕を持たせる）
+export const MAX_CHUNKS = 20; // 最大チャンク数
 
 /**
  * データを指定サイズで分割する関数
@@ -1728,7 +1730,7 @@ const MAX_CHUNKS = 20; // 最大チャンク数
  * @param {number} maxSizeKB - 最大サイズ（KB）
  * @returns {((string|number|Date)[][]|StudentData[])[]} 分割されたデータチャンクの配列
  */
-function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
+export function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
   if (!data || data.length === 0) return [[]];
 
   /** @type {((string|number|Date)[][]|StudentData[])[]} */
@@ -1744,7 +1746,9 @@ function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
   ); // 80%の余裕を持つ
 
   Logger.log(
-    `データ分割: 平均アイテムサイズ=${Math.round(avgItemSizeBytes)}bytes, チャンクあたり推定=${estimatedItemsPerChunk}件`,
+    `データ分割: 平均アイテムサイズ=${Math.round(
+      avgItemSizeBytes,
+    )}bytes, チャンクあたり推定=${estimatedItemsPerChunk}件`,
   );
 
   for (let i = 0; i < data.length; i += estimatedItemsPerChunk) {
@@ -1788,7 +1792,7 @@ function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
  * @param {number} expiry - キャッシュ有効期限（秒）
  * @returns {boolean} 保存成功の可否
  */
-function saveChunkedDataToCache(
+export function saveChunkedDataToCache(
   baseKey,
   dataChunks,
   metadata,
@@ -1834,7 +1838,10 @@ function saveChunkedDataToCache(
     }
 
     Logger.log(
-      `分割キャッシュ保存完了: ${dataChunks.length}チャンク, 合計${dataChunks.reduce((sum, chunk) => sum + chunk.length, 0)}件`,
+      `分割キャッシュ保存完了: ${dataChunks.length}チャンク, 合計${dataChunks.reduce(
+        (sum, chunk) => sum + chunk.length,
+        0,
+      )}件`,
     );
     return true;
   } catch (error) {
@@ -1848,7 +1855,7 @@ function saveChunkedDataToCache(
  * @param {string} baseKey - ベースキャッシュキー
  * @returns {CacheDataStructure|null} 統合されたキャッシュデータまたはnull
  */
-function loadChunkedDataFromCache(baseKey) {
+export function loadChunkedDataFromCache(baseKey) {
   const cache = CacheService.getScriptCache();
 
   try {
@@ -1943,7 +1950,7 @@ function loadChunkedDataFromCache(baseKey) {
  * 指定されたベースキーの全分割キャッシュを削除する関数
  * @param {string} baseKey - ベースキャッシュキー
  */
-function clearChunkedCache(baseKey) {
+export function clearChunkedCache(baseKey) {
   const cache = CacheService.getScriptCache();
 
   try {
@@ -1982,7 +1989,7 @@ function clearChunkedCache(baseKey) {
  * @param {string} cacheKey - キャッシュキー
  * @returns {number} データ件数
  */
-function getDataCount(parsedData, cacheKey) {
+export function getDataCount(parsedData, cacheKey) {
   if (!parsedData || typeof parsedData !== 'object') return 0;
 
   /** @type {CacheDataStructure} */
@@ -2013,7 +2020,7 @@ function getDataCount(parsedData, cacheKey) {
  * @param {string} reservationId - 取得する予約のID
  * @returns {ReservationArrayData | null} 予約データ配列、見つからない場合はnull
  */
-function getReservationByIdFromCache(reservationId) {
+export function getReservationByIdFromCache(reservationId) {
   if (!reservationId) return null;
 
   const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false); // autoRebuildはfalseで良い
@@ -2034,7 +2041,7 @@ function getReservationByIdFromCache(reservationId) {
  * シートの存在確認とキャッシュの整合性チェックを実行
  * GASエディタから直接実行可能（メニューからトリガー登録推奨）
  */
-function diagnoseAndFixScheduleMasterCache() {
+export function diagnoseAndFixScheduleMasterCache() {
   Logger.log('=== Schedule Master キャッシュ診断・修復開始 ===');
 
   try {

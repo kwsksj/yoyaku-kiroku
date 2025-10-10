@@ -6,12 +6,12 @@
     "target": "es2020",
     "lib": ["es2020", "dom"],
     "types": ["google-apps-script"],
+    "module": "None", // モジュールなし = グローバルスコープの型定義を生成
 
     // --- 型定義生成用の設定 ---
     "declaration": true, // .d.ts ファイルの生成を有効化
     "emitDeclarationOnly": true, // .d.ts ファイルのみを生成
     "declarationDir": "./types/generated-backend-globals", // 生成先ディレクトリを指定
-    "moduleResolution": "node", // モジュール解決方法を指定
 
     // --- JSDoc解析のための設定 ---
     "allowJs": true,
@@ -25,13 +25,6 @@
   ],
   "exclude": [
     "node_modules",
-    "build-output",
-    // 重複宣言を避けるため、グローバル変数/定数ファイルは除外
-    // (これらは手動で types/*.d.ts で管理)
-    "src/backend/00_Constants.js",
-    "src/backend/00_SpreadsheetManager.js",
-    "src/backend/07_CacheManager.js",
-    "src/backend/08_ErrorHandler.js",
-    "src/backend/08_Utilities.js"
+    "build-output"
   ]
 }

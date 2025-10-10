@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers_Utils.js
@@ -26,7 +24,7 @@
  * @param {string} id - 要素のID
  * @returns {HTMLElement | null}
  */
-function getElementSafely(id) {
+export function getElementSafely(id) {
   return document.getElementById(id);
 }
 
@@ -35,7 +33,7 @@ function getElementSafely(id) {
  * @param {string} id - 要素のID
  * @returns {HTMLInputElement | null}
  */
-function getInputElementSafely(id) {
+export function getInputElementSafely(id) {
   const element = document.getElementById(id);
   return element instanceof HTMLInputElement ? element : null;
 }
@@ -45,7 +43,7 @@ function getInputElementSafely(id) {
  * @param {string} id - 要素のID
  * @returns {HTMLSelectElement | null}
  */
-function getSelectElementSafely(id) {
+export function getSelectElementSafely(id) {
   const element = document.getElementById(id);
   return element instanceof HTMLSelectElement ? element : null;
 }
@@ -55,7 +53,7 @@ function getSelectElementSafely(id) {
  * @param {string} id - 要素のID
  * @returns {HTMLFormElement | null}
  */
-function getFormElementSafely(id) {
+export function getFormElementSafely(id) {
   const element = document.getElementById(id);
   return element instanceof HTMLFormElement ? element : null;
 }
@@ -71,7 +69,7 @@ function getFormElementSafely(id) {
  * @param {string | Date} date - 日付データ
  * @returns {string} 文字列形式の日付
  */
-function ensureDateString(date) {
+export function ensureDateString(date) {
   if (typeof date === 'string') {
     return date;
   }
@@ -86,7 +84,7 @@ function ensureDateString(date) {
  * @param {ReservationObject} reservationObj - 予約オブジェクト
  * @returns {ReservationData} 変換された予約データ
  */
-function convertToReservationData(reservationObj) {
+export function convertToReservationData(reservationObj) {
   return {
     ...reservationObj,
     date: ensureDateString(reservationObj.date),
@@ -112,7 +110,7 @@ function convertToReservationData(reservationObj) {
  * @param {string} timeField - 時刻フィールド名（'startTime' or 'endTime'）
  * @returns {string} 時刻文字列（HH:mm形式）
  */
-function getTimeValue(elementId, reservationData, timeField) {
+export function getTimeValue(elementId, reservationData, timeField) {
   // 1. HTML要素から取得を試行
   const inputElement = getInputElementSafely(elementId);
   const selectElement = getSelectElementSafely(elementId);
@@ -197,7 +195,7 @@ function getTimeValue(elementId, reservationData, timeField) {
  * 電話番号入力フィールドのリアルタイム整形処理
  * @param {HTMLInputElement} inputElement - 電話番号入力フィールド
  */
-function handlePhoneInputFormatting(inputElement) {
+export function handlePhoneInputFormatting(inputElement) {
   if (!inputElement) return;
 
   const originalValue = inputElement.value;
@@ -246,7 +244,7 @@ function handlePhoneInputFormatting(inputElement) {
  * @param {string} phoneNumber - フォーマットする電話番号
  * @returns {string} フォーマットされた電話番号
  */
-function formatPhoneNumberForDisplay(phoneNumber) {
+export function formatPhoneNumberForDisplay(phoneNumber) {
   if (!phoneNumber) return '';
 
   // アポストロフィや記号を除去して数字のみにする
@@ -275,7 +273,7 @@ function formatPhoneNumberForDisplay(phoneNumber) {
  * ユーザーの予約・履歴・スロット情報を一括取得し、指定されたビューに遷移
  * @param {string} targetView - データ取得後に遷移したいビュー名
  */
-function updateAppStateFromCache(targetView) {
+export function updateAppStateFromCache(targetView) {
   if (
     !stateManager.getState().currentUser ||
     !stateManager.getState().currentUser.phone
@@ -373,7 +371,7 @@ function updateAppStateFromCache(targetView) {
  * @param {string} dateString - 日付文字列（YYYY-MM-DD形式）
  * @returns {boolean}
  */
-function isDateToday(dateString) {
+export function isDateToday(dateString) {
   const today = new Date();
   const targetDate = new Date(dateString);
 
@@ -462,7 +460,7 @@ window.normalizePhoneNumberFrontend = function (phoneInput) {
  * @param {string} [title='販売品リスト'] - 見出しタイトル
  * @returns {string} HTML文字列
  */
-function buildSalesChecklist(
+export function buildSalesChecklist(
   accountingMaster,
   checkedValues = [],
   title = '販売品リスト',
@@ -487,7 +485,7 @@ function buildSalesChecklist(
  * @param {string[]} checkedValues - チェック済み項目名配列（任意）
  * @returns {string} HTML文字列
  */
-function getSalesCheckboxListHtml(salesList, checkedValues = []) {
+export function getSalesCheckboxListHtml(salesList, checkedValues = []) {
   if (!salesList || salesList.length === 0) return '';
   return `
     <div class="mt-4 pt-4 border-t">
