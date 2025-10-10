@@ -80,16 +80,16 @@ export function updateAppStateFromCache(targetView: string): void;
 export function isDateToday(dateString: string): boolean;
 /**
  * 販売品マスタから物販チェックリスト（折り畳み可能）を生成する関数
- * @param {AccountingMasterData[]} accountingMaster - 販売品マスタ
+ * @param {AccountingMasterItemCore[]} accountingMaster - 販売品マスタ
  * @param {string[]} checkedValues - チェック済み項目名配列（任意）
  * @param {string} [title='販売品リスト'] - 見出しタイトル
  * @returns {string} HTML文字列
  */
-export function buildSalesChecklist(accountingMaster: AccountingMasterData[], checkedValues?: string[], title?: string): string;
+export function buildSalesChecklist(accountingMaster: AccountingMasterItemCore[], checkedValues?: string[], title?: string): string;
 /**
  * 物販リストをチェックボックスで表示するHTMLを返す（再利用可能）
- * @param {AccountingMasterData[]} salesList - 物販アイテム配列
+ * @param {AccountingMasterItemCore[]} salesList - 物販アイテム配列
  * @param {string[]} checkedValues - チェック済み項目名配列（任意）
  * @returns {string} HTML文字列
  */
-export function getSalesCheckboxListHtml(salesList: AccountingMasterData[], checkedValues?: string[]): string;
+export function getSalesCheckboxListHtml(salesList: AccountingMasterItemCore[], checkedValues?: string[]): string;

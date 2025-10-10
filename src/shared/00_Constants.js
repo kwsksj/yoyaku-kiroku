@@ -14,10 +14,10 @@
 /**
  * =================================================================
  * 【ファイル名】: 00_Constants.js
- * 【バージョン】: 1.2
+ * 【バージョン】: 1.3
  * 【役割】: プロジェクト全体で使用する統一定数定義システム
- * 【v1.2での変更点】:
- * - JSDocを修正し、グローバル型定義との競合を解消
+ * 【v1.3での変更点】:
+ * - 01_Code.jsからグローバル定数を移行
  * =================================================================
  */
 
@@ -80,6 +80,17 @@ export const CONSTANTS = {
     HISTORY_LOAD_MORE_RECORDS: 10,
     LOADING_MESSAGE_INTERVAL: 3000,
     MODAL_FADE_DURATION: 300,
+    COLUMN_WIDTHS: {
+      DATE: 100,
+      CLASSROOM: 100,
+      VENUE: 150,
+      CLASSROOM_TYPE: 120,
+      TIME: 80,
+      BEGINNER_START: 100,
+      CAPACITY: 80,
+      STATUS: 80,
+      NOTES: 200,
+    },
   },
 
   // 容量・制限
@@ -273,6 +284,8 @@ export const CONSTANTS = {
     MATERIAL_INFO_PREFIX: "\n【希望材料】: ",
     ARCHIVE_PREFIX: "アーカイブ_",
     DATA_START_ROW: 2,
+    CACHE_EXPIRY_SECONDS: 86400, // 24時間
+    HEADER_ROW: 1,
   },
 
   // メール通知設定
@@ -282,5 +295,11 @@ export const CONSTANTS = {
     DEFAULT_DAY: 25, // デフォルト通知日
     DEFAULT_HOUR: 9, // デフォルト通知時刻
     SCHEDULE_MONTHS_AHEAD: 3, // 通知対象となる日程の先行月数
+  },
+
+  // 曜日コード
+  WEEKEND: {
+    SUNDAY: 0,
+    SATURDAY: 6,
   },
 };

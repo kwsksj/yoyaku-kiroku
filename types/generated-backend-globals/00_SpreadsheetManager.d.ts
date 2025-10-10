@@ -15,10 +15,13 @@ export const SALES_SPREADSHEET_ID: string;
  * アプリケーション全体でスプレッドシートオブジェクトを共有・管理
  */
 export class SpreadsheetManager {
-    _spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet;
-    _sheets: Map<any, any>;
+    /** @type {GoogleAppsScript.Spreadsheet.Spreadsheet | null} */
+    _spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet | null;
+    /** @type {Map<string, GoogleAppsScript.Spreadsheet.Sheet | null>} */
+    _sheets: Map<string, GoogleAppsScript.Spreadsheet.Sheet | null>;
     _isWarming: boolean;
-    _warmupPromise: any;
+    /** @type {Promise<void> | null} */
+    _warmupPromise: Promise<void> | null;
     /**
      * アクティブなスプレッドシートオブジェクトを取得（キャッシュ付き）
      * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet}
@@ -27,9 +30,9 @@ export class SpreadsheetManager {
     /**
      * 指定されたシートを取得（キャッシュ付き）
      * @param {string} sheetName - シート名
-     * @returns {GoogleAppsScript.Spreadsheet.Sheet|null}
+     * @returns {GoogleAppsScript.Spreadsheet.Sheet | null | undefined}
      */
-    getSheet(sheetName: string): GoogleAppsScript.Spreadsheet.Sheet | null;
+    getSheet(sheetName: string): GoogleAppsScript.Spreadsheet.Sheet | null | undefined;
     /**
      * スプレッドシートの事前ウォームアップ（非同期）
      * GAS実行環境の初期化遅延を回避するため、バックグラウンドで事前に初期化

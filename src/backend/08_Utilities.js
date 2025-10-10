@@ -128,18 +128,18 @@ export function handleError(message, isError) {
  * @returns {number} - 見つかった行のインデックス (1-based)。見つからない場合は-1。
  */
 export function findRowIndexByValue(sheet, col, value) {
-  if (sheet.getLastRow() < RESERVATION_DATA_START_ROW) return -1;
+  if (sheet.getLastRow() < CONSTANTS.SYSTEM.DATA_START_ROW) return -1;
   const allValues = sheet
     .getRange(
-      RESERVATION_DATA_START_ROW,
+      CONSTANTS.SYSTEM.DATA_START_ROW,
       col,
-      sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
+      sheet.getLastRow() - CONSTANTS.SYSTEM.DATA_START_ROW + 1,
       1,
     )
     .getValues();
   for (let i = 0; i < allValues.length; i++) {
     if (allValues[i][0] == value) {
-      return i + RESERVATION_DATA_START_ROW;
+      return i + CONSTANTS.SYSTEM.DATA_START_ROW;
     }
   }
   return -1;
@@ -180,7 +180,7 @@ export function createSalesRow(baseInfo, category, itemName, price) {
  */
 export function logActivity(userId, action, result, details) {
   try {
-    const ss = getActiveSpreadsheet();
+    const ss = SS_MANAGER.getSpreadsheet();
     const logSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.LOG);
     // シートや数式が未設定の場合は、エラーを出さずに処理を中断する
     if (!logSheet) {
@@ -206,7 +206,7 @@ export function logActivity(userId, action, result, details) {
  */
 export function setupConditionalFormattingForLogSheet() {
   const sheetName = 'ログシート';
-  const ss = getActiveSpreadsheet();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {

@@ -22,9 +22,12 @@ export const SALES_SPREADSHEET_ID =
  */
 export class SpreadsheetManager {
   constructor() {
+    /** @type {GoogleAppsScript.Spreadsheet.Spreadsheet | null} */
     this._spreadsheet = null;
+    /** @type {Map<string, GoogleAppsScript.Spreadsheet.Sheet | null>} */
     this._sheets = new Map();
     this._isWarming = false;
+    /** @type {Promise<void> | null} */
     this._warmupPromise = null;
   }
 
@@ -93,7 +96,7 @@ export class SpreadsheetManager {
   /**
    * 指定されたシートを取得（キャッシュ付き）
    * @param {string} sheetName - シート名
-   * @returns {GoogleAppsScript.Spreadsheet.Sheet|null}
+   * @returns {GoogleAppsScript.Spreadsheet.Sheet | null | undefined}
    */
   getSheet(sheetName) {
     if (!this._sheets.has(sheetName)) {

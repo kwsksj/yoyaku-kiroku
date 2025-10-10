@@ -118,42 +118,6 @@ interface AccountingFormDto {
   [key: string]: any;
 }
 
-/**
- * 電話番号正規化結果型
- */
-interface PhoneNumberNormalizationResult {
-  /** 正規化された電話番号 */
-  normalized: string;
-  /** バリデーション結果 */
-  isValid: boolean;
-  /** エラーメッセージ（isValidがfalseの場合） */
-  error?: string;
-}
-
-/**
- * バッチデータ取得レスポンス型
- */
-interface BatchDataResponse {
-  /** 成功フラグ */
-  success: boolean;
-  /** ユーザーが見つかったか */
-  userFound: boolean;
-  /** データ */
-  data?: {
-    /** 講座データ */
-    lessons?: LessonCore[];
-    /** 予約データ */
-    myReservations?: ReservationData[];
-  };
-  /** メッセージ */
-  message?: string;
-}
-
-/**
- * バッジタイプ（ステータス表示用）
- */
-type BadgeType = 'success' | 'warning' | 'error' | 'info';
-
 // =================================================================
 // UI State（状態管理の中核）
 // =================================================================

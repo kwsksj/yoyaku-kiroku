@@ -32,9 +32,13 @@ export function setupTestEnvironment() {
   }
 
   try {
-    getActiveSpreadsheet().toast('テスト環境を作成中です...', '処理中', -1);
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'テスト環境を作成中です...',
+      '処理中',
+      -1,
+    );
 
-    const sourceSpreadsheet = getActiveSpreadsheet();
+    const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const sourceFile = DriveApp.getFileById(sourceSpreadsheet.getId());
 
     // 1. スプレッドシートをコピー
@@ -46,7 +50,11 @@ export function setupTestEnvironment() {
     const newUrl = copiedSpreadsheet.getUrl();
     const newId = copiedSpreadsheet.getId();
 
-    getActiveSpreadsheet().toast('テスト環境の作成が完了しました。', '完了', 5);
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'テスト環境の作成が完了しました。',
+      '完了',
+      5,
+    );
 
     // 3. ユーザーに情報を提示
     const htmlOutput = HtmlService.createHtmlOutput(

@@ -24,8 +24,8 @@ export function handleAccountingFormChange(): void;
  */
 /** @type {ActionHandlers} */
 export let actionHandlers: ActionHandlers;
-/** @type {ClassifiedAccountingItems} */
-export const EMPTY_CLASSIFIED_ITEMS: ClassifiedAccountingItems;
+/** @type {ClassifiedAccountingItemsCore} */
+export const EMPTY_CLASSIFIED_ITEMS: ClassifiedAccountingItemsCore;
 /** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */
 export const windowTyped: Window & {
     tempPaymentData?: TempPaymentData;

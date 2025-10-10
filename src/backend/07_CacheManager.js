@@ -206,7 +206,7 @@ export function addReservationToCache(newReservationRow, headerMap) {
     CacheService.getScriptCache().put(
       CACHE_KEYS.ALL_RESERVATIONS,
       JSON.stringify(updatedCacheData),
-      CACHE_EXPIRY_SECONDS,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
 
     const endTime = new Date();
@@ -291,7 +291,7 @@ export function updateReservationStatusInCache(reservationId, newStatus) {
     CacheService.getScriptCache().put(
       CACHE_KEYS.ALL_RESERVATIONS,
       JSON.stringify(updatedCacheData),
-      CACHE_EXPIRY_SECONDS,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
 
     const endTime = new Date();
@@ -405,7 +405,7 @@ export function updateReservationInCache(reservationId, updatedRowData, headerMa
     CacheService.getScriptCache().put(
       CACHE_KEYS.ALL_RESERVATIONS,
       JSON.stringify(updatedCacheData),
-      CACHE_EXPIRY_SECONDS,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
 
     const endTime = new Date();
@@ -490,7 +490,7 @@ export function updateReservationColumnInCache(
     CacheService.getScriptCache().put(
       CACHE_KEYS.ALL_RESERVATIONS,
       JSON.stringify(updatedCacheData),
-      CACHE_EXPIRY_SECONDS,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
 
     const endTime = new Date();
@@ -519,7 +519,7 @@ export function updateReservationColumnInCache(
  */
 export function rebuildAllCachesEntryPoint() {
   try {
-    getActiveSpreadsheet().toast(
+    SS_MANAGER.getSpreadsheet().toast(
       'キャッシュデータの一括再構築を開始しました...',
       '処理中',
       -1,
@@ -531,7 +531,7 @@ export function rebuildAllCachesEntryPoint() {
     rebuildAccountingMasterCache();
     rebuildScheduleMasterCache();
 
-    getActiveSpreadsheet().toast(
+    SS_MANAGER.getSpreadsheet().toast(
       'キャッシュデータの一括再構築が完了しました。',
       '成功',
       5,
@@ -591,7 +591,7 @@ export function shouldRebuildReservationCache() {
  */
 export function rebuildAllReservationsCache() {
   try {
-    const integratedReservationSheet = getSheetByName(
+    const integratedReservationSheet = SS_MANAGER.getSheet(
       CONSTANTS.SHEET_NAMES.RESERVATIONS,
     );
     if (!integratedReservationSheet) {
@@ -613,7 +613,7 @@ export function rebuildAllReservationsCache() {
       CacheService.getScriptCache().put(
         CACHE_KEYS.ALL_RESERVATIONS,
         JSON.stringify(emptyCacheData),
-        CACHE_EXPIRY_SECONDS,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
       return;
     }
@@ -663,7 +663,7 @@ export function rebuildAllReservationsCache() {
       CacheService.getScriptCache().put(
         CACHE_KEYS.ALL_RESERVATIONS,
         JSON.stringify(emptyCacheData),
-        CACHE_EXPIRY_SECONDS,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
       return;
     }
@@ -832,7 +832,7 @@ export function rebuildAllReservationsCache() {
         CacheService.getScriptCache().put(
           CACHE_KEYS.ALL_RESERVATIONS,
           cacheDataJson,
-          CACHE_EXPIRY_SECONDS,
+          CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
         );
 
         Logger.log(
@@ -903,7 +903,7 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
       CacheService.getScriptCache().put(
         CACHE_KEYS.MASTER_SCHEDULE_DATA,
         JSON.stringify(emptyCacheData),
-        CACHE_EXPIRY_SECONDS,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
       return;
     }
@@ -1048,7 +1048,7 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     CacheService.getScriptCache().put(
       CACHE_KEYS.MASTER_SCHEDULE_DATA,
       JSON.stringify(cacheData),
-      CACHE_EXPIRY_SECONDS,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
 
     Logger.log(
@@ -1075,7 +1075,7 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
  */
 export function rebuildAccountingMasterCache() {
   try {
-    const sheet = getSheetByName(CONSTANTS.SHEET_NAMES.ACCOUNTING);
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ACCOUNTING);
     if (!sheet) {
       throw new Error('会計マスタシートが見つかりません');
     }
@@ -1090,7 +1090,7 @@ export function rebuildAccountingMasterCache() {
       CacheService.getScriptCache().put(
         CACHE_KEYS.MASTER_ACCOUNTING_DATA,
         JSON.stringify(emptyCacheData),
-        CACHE_EXPIRY_SECONDS,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
       return;
     }
@@ -1120,7 +1120,7 @@ export function rebuildAccountingMasterCache() {
     CacheService.getScriptCache().put(
       CACHE_KEYS.MASTER_ACCOUNTING_DATA,
       JSON.stringify(cacheData),
-      CACHE_EXPIRY_SECONDS,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
 
     Logger.log(
@@ -1145,7 +1145,7 @@ export function rebuildAccountingMasterCache() {
  */
 export function rebuildAllStudentsBasicCache() {
   try {
-    const studentRosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+    const studentRosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
     if (!studentRosterSheet || studentRosterSheet.getLastRow() < 2) {
       Logger.log('生徒名簿シートが見つからないか、データが空です。');
       // 空データの場合もキャッシュを作成
@@ -1156,7 +1156,7 @@ export function rebuildAllStudentsBasicCache() {
       CacheService.getScriptCache().put(
         CACHE_KEYS.ALL_STUDENTS_BASIC,
         JSON.stringify(emptyCacheData),
-        CACHE_EXPIRY_SECONDS,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
       return;
     }
@@ -1313,7 +1313,7 @@ export function rebuildAllStudentsBasicCache() {
         CACHE_KEYS.ALL_STUDENTS_BASIC,
         dataChunks,
         metadata,
-        CACHE_EXPIRY_SECONDS,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
 
       if (success) {
@@ -1329,7 +1329,7 @@ export function rebuildAllStudentsBasicCache() {
       CacheService.getScriptCache().put(
         CACHE_KEYS.ALL_STUDENTS_BASIC,
         cacheDataJson,
-        CACHE_EXPIRY_SECONDS,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
 
       Logger.log(
@@ -1796,7 +1796,7 @@ export function saveChunkedDataToCache(
   baseKey,
   dataChunks,
   metadata,
-  expiry = CACHE_EXPIRY_SECONDS,
+  expiry = CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
 ) {
   const cache = CacheService.getScriptCache();
 

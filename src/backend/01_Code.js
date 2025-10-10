@@ -3,45 +3,16 @@
 /**
  * =================================================================
  * 【ファイル名】: 01_Code.gs
- * 【バージョン】: 2.3
+ * 【バージョン】: 2.4
  * 【役割】: グローバル定数、UI定義、トリガー関数を集約するプロジェクトのエントリーポイント。
- * 【構成】: 18ファイル構成のうちの1番目（新規00_Constants.jsを含む）
- * 【v2.3での変更点】:
- * - フェーズ1リファクタリング: 定数の統一管理のため、00_Constants.jsで定義された統一定数を使用
- * - 重複定義されていた教室名、ヘッダー名などを削除し、統一ファイルから継承
+ * 【v2.4での変更点】:
+ * - グローバル定数を00_Constants.jsに移行
  * =================================================================
  */
-
-// =================================================================
-// 統一定数ファイル（00_Constants.js）から継承
-// 基本的な定数は00_Constants.jsで統一管理されています
-// =================================================================
-
-// --- グローバル定数定義 ---
-export const RESERVATION_DATA_START_ROW = 2;
 
 //  管理者通知用のメールアドレス
 export const ADMIN_EMAIL =
   PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
-
-// --- UI・表示関連の定数 ---
-export const COLUMN_WIDTH_DATE = 100; // 日付列の幅
-export const COLUMN_WIDTH_CLASSROOM = 100; // 教室列の幅
-export const COLUMN_WIDTH_VENUE = 150; // 会場列の幅
-export const COLUMN_WIDTH_CLASSROOM_TYPE = 120; // 教室形式列の幅
-export const COLUMN_WIDTH_TIME = 80; // 時間関連列の幅
-export const COLUMN_WIDTH_BEGINNER_START = 100; // 初回者開始列の幅
-export const COLUMN_WIDTH_CAPACITY = 80; // 定員関連列の幅
-export const COLUMN_WIDTH_STATUS = 80; // 状態列の幅
-export const COLUMN_WIDTH_NOTES = 200; // 備考列の幅
-
-// --- システム処理関連の定数 ---
-export const CACHE_EXPIRY_SECONDS = 86400; // キャッシュ有効期限（24時間）
-export const WEEKEND_SUNDAY = 0; // 日曜日の曜日コード
-export const WEEKEND_SATURDAY = 6; // 土曜日の曜日コード
-export const HEADER_ROW = 1; // ヘッダー行番号
-
-// --- 外部サービス連携用ID ---
 
 // --- GoogleカレンダーのID ---
 export const CALENDAR_IDS_RAW =

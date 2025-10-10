@@ -30,6 +30,18 @@ export namespace CONSTANTS {
         let HISTORY_LOAD_MORE_RECORDS: number;
         let LOADING_MESSAGE_INTERVAL: number;
         let MODAL_FADE_DURATION: number;
+        namespace COLUMN_WIDTHS {
+            export let DATE: number;
+            export let CLASSROOM: number;
+            export let VENUE: number;
+            export let CLASSROOM_TYPE: number;
+            export let TIME: number;
+            export let BEGINNER_START: number;
+            export let CAPACITY: number;
+            let STATUS_1: number;
+            export { STATUS_1 as STATUS };
+            export let NOTES: number;
+        }
     }
     namespace LIMITS {
         let TSUKUBA_MORNING_SESSION_END_HOUR: number;
@@ -104,13 +116,16 @@ export namespace CONSTANTS {
         export namespace RESERVATIONS_1 {
             export let RESERVATION_ID: string;
             export let STUDENT_ID: string;
-            export let DATE: string;
-            export let CLASSROOM: string;
-            export let VENUE: string;
+            let DATE_1: string;
+            export { DATE_1 as DATE };
+            let CLASSROOM_1: string;
+            export { CLASSROOM_1 as CLASSROOM };
+            let VENUE_1: string;
+            export { VENUE_1 as VENUE };
             export let START_TIME: string;
             export let END_TIME: string;
-            let STATUS_1: string;
-            export { STATUS_1 as STATUS };
+            let STATUS_2: string;
+            export { STATUS_2 as STATUS };
             export let CHISEL_RENTAL: string;
             export let FIRST_LECTURE: string;
             export let TRANSPORTATION: string;
@@ -131,7 +146,8 @@ export namespace CONSTANTS {
             let CHISEL_RENTAL_1: string;
             export { CHISEL_RENTAL_1 as CHISEL_RENTAL };
             export let LINE: string;
-            export let NOTES: string;
+            let NOTES_1: string;
+            export { NOTES_1 as NOTES };
             export let FROM: string;
             export let REGISTRATION_DATE: string;
             export let EMAIL: string;
@@ -163,30 +179,31 @@ export namespace CONSTANTS {
             export let UNIT_PRICE: string;
             export let UNIT: string;
             export let TARGET_CLASSROOM: string;
-            let NOTES_1: string;
-            export { NOTES_1 as NOTES };
+            let NOTES_2: string;
+            export { NOTES_2 as NOTES };
         }
         export { ACCOUNTING_1 as ACCOUNTING };
         export namespace SCHEDULE_1 {
-            let DATE_1: string;
-            export { DATE_1 as DATE };
-            let CLASSROOM_1: string;
-            export { CLASSROOM_1 as CLASSROOM };
-            let VENUE_1: string;
-            export { VENUE_1 as VENUE };
+            let DATE_2: string;
+            export { DATE_2 as DATE };
+            let CLASSROOM_2: string;
+            export { CLASSROOM_2 as CLASSROOM };
+            let VENUE_2: string;
+            export { VENUE_2 as VENUE };
             let TYPE_1: string;
             export { TYPE_1 as TYPE };
             export let FIRST_START: string;
             export let FIRST_END: string;
             export let SECOND_START: string;
             export let SECOND_END: string;
-            export let BEGINNER_START: string;
+            let BEGINNER_START_1: string;
+            export { BEGINNER_START_1 as BEGINNER_START };
             export let TOTAL_CAPACITY: string;
             export let BEGINNER_CAPACITY: string;
-            let STATUS_2: string;
-            export { STATUS_2 as STATUS };
-            let NOTES_2: string;
-            export { NOTES_2 as NOTES };
+            let STATUS_3: string;
+            export { STATUS_3 as STATUS };
+            let NOTES_3: string;
+            export { NOTES_3 as NOTES };
         }
         export { SCHEDULE_1 as SCHEDULE };
     }
@@ -209,6 +226,8 @@ export namespace CONSTANTS {
         let MATERIAL_INFO_PREFIX: string;
         let ARCHIVE_PREFIX: string;
         let DATA_START_ROW: number;
+        let CACHE_EXPIRY_SECONDS: number;
+        let HEADER_ROW: number;
     }
     namespace NOTIFICATION {
         let DAYS: number[];
@@ -216,5 +235,9 @@ export namespace CONSTANTS {
         let DEFAULT_DAY: number;
         let DEFAULT_HOUR: number;
         let SCHEDULE_MONTHS_AHEAD: number;
+    }
+    namespace WEEKEND {
+        let SUNDAY: number;
+        let SATURDAY: number;
     }
 }

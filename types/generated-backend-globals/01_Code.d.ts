@@ -76,28 +76,12 @@ export function trigger_sendNotification_day25_hour21(): void;
 /**
  * =================================================================
  * 【ファイル名】: 01_Code.gs
- * 【バージョン】: 2.3
+ * 【バージョン】: 2.4
  * 【役割】: グローバル定数、UI定義、トリガー関数を集約するプロジェクトのエントリーポイント。
- * 【構成】: 18ファイル構成のうちの1番目（新規00_Constants.jsを含む）
- * 【v2.3での変更点】:
- * - フェーズ1リファクタリング: 定数の統一管理のため、00_Constants.jsで定義された統一定数を使用
- * - 重複定義されていた教室名、ヘッダー名などを削除し、統一ファイルから継承
+ * 【v2.4での変更点】:
+ * - グローバル定数を00_Constants.jsに移行
  * =================================================================
  */
-export const RESERVATION_DATA_START_ROW: 2;
 export const ADMIN_EMAIL: string;
-export const COLUMN_WIDTH_DATE: 100;
-export const COLUMN_WIDTH_CLASSROOM: 100;
-export const COLUMN_WIDTH_VENUE: 150;
-export const COLUMN_WIDTH_CLASSROOM_TYPE: 120;
-export const COLUMN_WIDTH_TIME: 80;
-export const COLUMN_WIDTH_BEGINNER_START: 100;
-export const COLUMN_WIDTH_CAPACITY: 80;
-export const COLUMN_WIDTH_STATUS: 80;
-export const COLUMN_WIDTH_NOTES: 200;
-export const CACHE_EXPIRY_SECONDS: 86400;
-export const WEEKEND_SUNDAY: 0;
-export const WEEKEND_SATURDAY: 6;
-export const HEADER_ROW: 1;
 export const CALENDAR_IDS_RAW: string;
 export const CALENDAR_IDS: any;

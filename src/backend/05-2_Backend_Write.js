@@ -241,7 +241,7 @@ export function _validateTimeBasedReservation(startTime, endTime, scheduleRule) 
  * @returns {{newRowData: RawSheetRow, headerMap: HeaderMapType}} 保存された行データとヘッダーマップ
  */
 export function _saveReservationCoreToSheet(reservation, mode) {
-  const sheet = getSheetByName(CONSTANTS.SHEET_NAMES.RESERVATIONS);
+  const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);
   if (!sheet) throw new Error('予約記録シートが見つかりません。');
 
   const { header, headerMap, dataRows } = getSheetData(sheet);

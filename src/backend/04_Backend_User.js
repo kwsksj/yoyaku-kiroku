@@ -328,7 +328,7 @@ export function registerNewUser(userInfo) {
         };
       }
 
-      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+      const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
       if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
       const header = rosterSheet
@@ -558,7 +558,7 @@ export function requestAccountDeletion(studentId) {
         return { success: false, message: '生徒IDが指定されていません。' };
       }
 
-      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+      const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
       if (!rosterSheet) {
         throw new Error('シート「生徒名簿」が見つかりません。');
       }
@@ -676,7 +676,7 @@ export function getUserDetailForEdit(studentId) {
       return { success: false, message: '生徒IDが指定されていません。' };
     }
 
-    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+    const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
     if (!rosterSheet) {
       throw new Error('シート「生徒名簿」が見つかりません。');
     }
@@ -887,7 +887,7 @@ export function updateUserProfile(userInfo) {
         }
       }
 
-      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+      const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
       if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
       // ヘッダー情報を取得して更新対象の列インデックスを特定
