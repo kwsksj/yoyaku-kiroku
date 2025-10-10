@@ -65,7 +65,7 @@ export class SimpleStateManager {
       lessons: [],
       /** @type {ReservationData[]} */
       myReservations: [],
-      /** @type {AccountingMasterData[]} */
+      /** @type {AccountingMasterItemCore[]} */
       accountingMaster: [],
 
       // --- UI State ---
@@ -83,11 +83,11 @@ export class SimpleStateManager {
       editingReservationDetails: null,
       /** @type {ReservationData | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
       accountingReservation: null,
-      /** @type {AccountingReservationDetails} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
+      /** @type {AccountingDetailsCore} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
       accountingReservationDetails: {},
       /** @type {ScheduleInfo | null} - 講座固有情報 (教室形式, 開講時間など) */
       accountingScheduleInfo: null,
-      /** @type {AccountingCalculation | null} - 会計計算結果 */
+      /** @type {AccountingDetailsCore | null} - 会計計算結果 */
       accountingDetails: null,
       /** @type {string} */ completionMessage: '',
       /** @type {number} */ recordsToShow: 10,
