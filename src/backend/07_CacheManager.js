@@ -312,7 +312,11 @@ export function updateReservationStatusInCache(reservationId, newStatus) {
  * @param {(string|number|Date)[]} updatedRowData - 更新された行データ
  * @param {HeaderMapType} headerMap - ヘッダーマッピング
  */
-export function updateReservationInCache(reservationId, updatedRowData, headerMap) {
+export function updateReservationInCache(
+  reservationId,
+  updatedRowData,
+  headerMap,
+) {
   try {
     Logger.log('[CACHE] インクリメンタル予約更新開始');
     const startTime = new Date();
@@ -1145,7 +1149,9 @@ export function rebuildAccountingMasterCache() {
  */
 export function rebuildAllStudentsBasicCache() {
   try {
-    const studentRosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
+    const studentRosterSheet = SS_MANAGER.getSheet(
+      CONSTANTS.SHEET_NAMES.ROSTER,
+    );
     if (!studentRosterSheet || studentRosterSheet.getLastRow() < 2) {
       Logger.log('生徒名簿シートが見つからないか、データが空です。');
       // 空データの場合もキャッシュを作成
@@ -1922,11 +1928,31 @@ export function loadChunkedDataFromCache(baseKey) {
       };
     } else {
       // 予約データなど他のキャッシュの場合
+      // ★ reservationIdIndexMapをメタデータから取得、なければ再構築
+      let reservationIdIndexMap = metadata.reservationIdIndexMap || {};
+
+      // メタデータにreservationIdIndexMapがない場合は再構築
+      if (!metadata.reservationIdIndexMap || Object.keys(reservationIdIndexMap).length === 0) {
+        Logger.log(`${baseKey}: reservationIdIndexMapが見つからないため再構築します`);
+        const headerMap = metadata.headerMap || {};
+        const reservationIdColIndex = headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
+
+        if (reservationIdColIndex !== undefined) {
+          allData.forEach((row, index) => {
+            const reservationId = row[reservationIdColIndex];
+            if (reservationId) {
+              reservationIdIndexMap[String(reservationId)] = index;
+            }
+          });
+          Logger.log(`${baseKey}: reservationIdIndexMapを再構築しました（${Object.keys(reservationIdIndexMap).length}件）`);
+        }
+      }
+
       result = {
         version: metadata.version,
         reservations: allData,
         headerMap: metadata.headerMap,
-        reservationIdIndexMap: metadata.reservationIdIndexMap, // ★ 追加
+        reservationIdIndexMap: reservationIdIndexMap,
         metadata: {
           totalCount: allData.length,
           isChunked: true,
