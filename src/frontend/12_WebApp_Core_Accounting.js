@@ -269,36 +269,26 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
               formData.breakTime || 0,
             );
 
-            if (timeUnits > 0) {
-              const hours = timeUnits / 2;
-              const price = timeUnits * unitPrice;
+            // 0時間の場合でも動的項目を作成（元の基本授業料のチェックを削除するため）
+            const hours = timeUnits / 2;
+            const price = timeUnits * unitPrice;
 
-              dynamicItem = {
-                [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
-                [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]:
-                  `${baseItemName} ${hours}時間`,
-                [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
-                [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: price,
-                [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
-                  baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
-                _isDynamic: true, // 動的項目フラグ
-              };
-            }
+            dynamicItem = {
+              [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
+              [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]:
+                `${baseItemName} ${hours}時間`,
+              [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
+              [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: price,
+              [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
+                baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
+              _isDynamic: true, // 動的項目フラグ
+            };
           }
         } else if (unit === '回') {
-          // 回数制の場合：基本授業料を動的項目として追加
-          dynamicItem = {
-            [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
-            [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]: baseItemName,
-            [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
-            [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: unitPrice,
-            [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
-              baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
-            _isDynamic: true, // 動的項目フラグ
-          };
-
+          // 回数制の場合：マスターデータに既に項目があるのでdynamicItemは作成不要
+          // checkedItemsの状態を維持するのみ
           if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-            console.log('🔍 回数制動的項目作成:', dynamicItem);
+            console.log('🔍 回数制基本授業料: dynamicItem作成スキップ（マスターデータに既存）');
           }
         }
 
@@ -398,7 +388,11 @@ export function generateTimeOptions(selectedValue = '') {
  * @param {AccountingFormDto} formData - フォームデータ
  * @returns {string} HTML文字列
  */
-export function generateTuitionSection(classifiedItems, classroom, formData = {}) {
+export function generateTuitionSection(
+  classifiedItems,
+  classroom,
+  formData = {},
+) {
   // 基本授業料の定数リスト
   const BASE_TUITION_ITEMS = [
     CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
@@ -458,7 +452,7 @@ export function generateTuitionSection(classifiedItems, classroom, formData = {}
             </select>
           </div>
           <div class="calculated-amount text-sm text-gray-600">
-            <span id="time-calculation" class="font-mono-numbers">0時間 ×${Components.priceDisplay({ amount: unitPrice * 2 })} = <span class="font-bold text-brand-text text-right">${Components.priceDisplay({ amount: 0 })}</span></span>
+            <span id="time-calculation" class="font-mono-numbers">-- ×${Components.priceDisplay({ amount: unitPrice * 2 })} = <span class="font-bold text-brand-text text-right">--</span></span>
           </div>
         </div>
       </div>`;
@@ -552,7 +546,11 @@ export function generateTuitionSection(classifiedItems, classroom, formData = {}
  * @param {Object} materialData - 既存の材料データ
  * @returns {string} HTML文字列
  */
-export function generateMaterialRow(materialItems, index = 0, materialData = {}) {
+export function generateMaterialRow(
+  materialItems,
+  index = 0,
+  materialData = {},
+) {
   // 材料選択肢を生成
   let materialOptions = '<option value="">おえらびください</option>';
   materialItems.forEach(item => {
@@ -768,7 +766,7 @@ export function generateCustomSalesRow(index = 0, itemData = {}) {
 
 /**
  * 会計画面用よやくカード生成（ボタン非表示、制作メモ編集モード）
- * @param {Object} reservationData - 予約データ
+ * @param {ReservationCore} reservationData - 予約データ
  * @returns {string} HTML文字列
  */
 export function generateAccountingReservationCard(reservationData) {
@@ -1455,16 +1453,17 @@ export function updateAccountingCalculation(classifiedItems, classroom) {
     // フォームデータ収集
     const formData = collectAccountingFormData();
 
+    // 元のマスターデータを取得（回数制の基本授業料を含む）
+    const masterData = stateManager.getState().accountingMaster || [];
+
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      console.log('🔍 updateAccountingCalculation: マスターデータ使用', {
+        masterDataLength: masterData.length,
+      });
+    }
+
     // 計算実行
-    const result = calculateAccountingTotal(
-      formData,
-      [
-        ...classifiedItems.tuition.items,
-        ...classifiedItems.sales.materialItems,
-        ...classifiedItems.sales.productItems,
-      ],
-      classroom,
-    );
+    const result = calculateAccountingTotal(formData, masterData, classroom);
 
     // UI更新
     updateAccountingUI(result, classroom);
@@ -2013,26 +2012,18 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
       return;
     }
 
+    // 元のマスターデータを取得（回数制の基本授業料を含む）
+    const masterData = stateManager.getState().accountingMaster || [];
+
     // デバッグ：計算前の情報
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 支払い確認モーダル: 計算前データ確認', {
-        classifiedItems存在: !!classifiedItems,
-        tuitionItemsLength: classifiedItems?.tuition?.items?.length || 0,
-        materialItemsLength: classifiedItems?.sales?.materialItems?.length || 0,
-        productItemsLength: classifiedItems?.sales?.productItems?.length || 0,
+        masterDataLength: masterData.length,
         classroom,
       });
     }
 
-    const result = calculateAccountingTotal(
-      formData,
-      [
-        ...classifiedItems.tuition.items,
-        ...classifiedItems.sales.materialItems,
-        ...classifiedItems.sales.productItems,
-      ],
-      classroom,
-    );
+    const result = calculateAccountingTotal(formData, masterData, classroom);
 
     // デバッグログ
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
