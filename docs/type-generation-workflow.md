@@ -7,11 +7,13 @@
 ## 基本方針
 
 ### 開発環境（src/）
+
 - **標準JavaScript記法**: `export const`, `export class` などを使用
 - **JSDocコメント**: 型情報をJSDocで記述
 - **型チェック**: TypeScriptの型チェックが有効
 
 ### ビルド出力（build-output/）
+
 - **GAS互換コード**: `export` キーワードが自動削除
 - **グローバルスコープ**: すべての変数・関数がグローバルに配置
 - **型定義除外**: `.d.ts` ファイルはビルド出力に含まれない
@@ -79,6 +81,7 @@ export {};
 ```
 
 **仕組み:**
+
 - `tools/create-global-bridge.js` が `types/generated-backend-globals/*.d.ts` をスキャン
 - すべての `export const`, `export class`, `export namespace` を検出
 - 自動的に `import` 文と `declare global` ブロックを生成
@@ -116,6 +119,7 @@ npm run generate-types
 ```
 
 これだけで以下が自動的に行われます:
+
 1. `types/generated-backend-globals/新しいファイル.d.ts` が生成される
 2. `types/generated-backend-globals/index.d.ts` に参照が追加される
 3. `types/constants.d.ts` に `import` と `declare global` が追加される ✨
@@ -208,15 +212,15 @@ grep "^export" build-output/*.js
 
 ## 関連スクリプト
 
-| スクリプト | 説明 |
-|-----------|------|
-| `npm run generate-types` | 型定義の完全再生成（推奨） |
-| `npm run generate-types:backend` | バックエンド型定義のみ生成 |
+| スクリプト                        | 説明                         |
+| --------------------------------- | ---------------------------- |
+| `npm run generate-types`          | 型定義の完全再生成（推奨）   |
+| `npm run generate-types:backend`  | バックエンド型定義のみ生成   |
 | `npm run generate-types:frontend` | フロントエンド型定義のみ生成 |
-| `npm run generate-types:index` | index.d.ts のみ生成 |
-| `npm run generate-types:bridge` | ブリッジファイルのみ生成 ✨ |
-| `npm run build` | GAS互換コードをビルド |
-| `npm run check-types` | 型チェックのみ実行 |
+| `npm run generate-types:index`    | index.d.ts のみ生成          |
+| `npm run generate-types:bridge`   | ブリッジファイルのみ生成 ✨  |
+| `npm run build`                   | GAS互換コードをビルド        |
+| `npm run check-types`             | 型チェックのみ実行           |
 
 ## 参考
 
