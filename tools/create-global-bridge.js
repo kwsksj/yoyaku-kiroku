@@ -30,7 +30,8 @@ const TARGET_DIRS = [
 function extractExports(filePath) {
   const content = fs.readFileSync(filePath, 'utf8');
   const exports = [];
-  const exportRegex = /^export (?:const|class|namespace|interface|type|function) (\w+)/gm;
+  const exportRegex =
+    /^export (?:const|class|namespace|interface|type|function) (\w+)/gm;
   let match;
 
   while ((match = exportRegex.exec(content)) !== null) {
@@ -43,7 +44,9 @@ function extractExports(filePath) {
  * ブリッジ型定義ファイルを生成
  */
 function generateBridgeFiles() {
-  console.log('🔍 Scanning generated type definitions to create global bridges...');
+  console.log(
+    '🔍 Scanning generated type definitions to create global bridges...',
+  );
 
   for (const dir of TARGET_DIRS) {
     if (!fs.existsSync(dir)) {
@@ -51,7 +54,11 @@ function generateBridgeFiles() {
       continue;
     }
 
-    const files = fs.readdirSync(dir).filter(f => f.endsWith('.d.ts') && f !== 'index.d.ts' && f !== '_globals.d.ts');
+    const files = fs
+      .readdirSync(dir)
+      .filter(
+        f => f.endsWith('.d.ts') && f !== 'index.d.ts' && f !== '_globals.d.ts',
+      );
 
     if (files.length === 0) {
       console.log(`- No .d.ts files to process in: ${path.basename(dir)}`);
@@ -90,7 +97,9 @@ export {};
 
     const outputFile = path.join(dir, '_globals.d.ts');
     fs.writeFileSync(outputFile, content, 'utf8');
-    console.log(`✅ Created _globals.d.ts for '${path.basename(dir)}' with ${allExports.length} declarations.`);
+    console.log(
+      `✅ Created _globals.d.ts for '${path.basename(dir)}' with ${allExports.length} declarations.`,
+    );
   }
 
   console.log('\n✨ Global bridge file generation complete.');

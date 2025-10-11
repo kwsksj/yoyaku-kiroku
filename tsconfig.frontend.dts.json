@@ -22,8 +22,5 @@
     "src/frontend/**/*.js",
     "src/frontend/*.js"
   ],
-  "exclude": [
-    "node_modules",
-    "build-output",
-  ]
+  "exclude": ["node_modules", "build-output"]
 }

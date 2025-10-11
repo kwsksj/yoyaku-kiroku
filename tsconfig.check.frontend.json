@@ -3,8 +3,5 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": [
-    "src/frontend/**/*.js",
-    "src/shared/**/*.js"
-  ]
+  "include": ["src/frontend/**/*.js", "src/shared/**/*.js"]
 }

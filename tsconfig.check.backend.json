@@ -3,10 +3,6 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": [
-    "src/backend/**/*.js",
-    "src/shared/**/*.js"
-  ],
-  "exclude": [
-  ]
+  "include": ["src/backend/**/*.js", "src/shared/**/*.js"],
+  "exclude": []
 }

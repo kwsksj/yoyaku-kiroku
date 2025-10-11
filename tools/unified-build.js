@@ -111,7 +111,7 @@ class UnifiedBuilder {
 
       // 環境判定値を書き換え
       content = content.replace(
-        /PRODUCTION_MODE:\s*[^,]+,/, 
+        /PRODUCTION_MODE:\s*[^,]+,/,
         `PRODUCTION_MODE: ${isProduction},`,
       );
 
@@ -149,9 +149,7 @@ class UnifiedBuilder {
         content = content.replace(/^export var /gm, 'var ');
 
         fs.writeFileSync(destPath, content);
-        console.log(
-          `[${formatTime()}]   ✅ ${jsFile} processed`,
-        );
+        console.log(`[${formatTime()}]   ✅ ${jsFile} processed`);
       } else {
         // JSONファイルなどはそのままコピー
         fs.copyFileSync(srcPath, destPath);
@@ -170,7 +168,9 @@ class UnifiedBuilder {
     const templatePath = path.join(this.templateDir, '10_WebApp.html');
 
     if (!fs.existsSync(templatePath)) {
-      throw new Error(`❌ HTMLテンプレートが見つかりません: ${templatePath}\n   src/templates/10_WebApp.html を作成してください。`);
+      throw new Error(
+        `❌ HTMLテンプレートが見つかりません: ${templatePath}\n   src/templates/10_WebApp.html を作成してください。`,
+      );
     }
 
     const htmlContent = fs.readFileSync(templatePath, 'utf8');
@@ -219,7 +219,10 @@ class UnifiedBuilder {
 
       // export文を削除（GAS環境では不要）
       constantsContent = constantsContent.replace(/^export const /gm, 'const ');
-      constantsContent = constantsContent.replace(/^export function /gm, 'function ');
+      constantsContent = constantsContent.replace(
+        /^export function /gm,
+        'function ',
+      );
       constantsContent = constantsContent.replace(/^export class /gm, 'class ');
       constantsContent = constantsContent.replace(/^export let /gm, 'let ');
       constantsContent = constantsContent.replace(/^export var /gm, 'var ');
@@ -338,7 +341,6 @@ class UnifiedBuilder {
     if (fs.existsSync(this.templateDir)) watchPaths.push(this.templateDir);
     if (fs.existsSync(this.sharedDir)) watchPaths.push(this.sharedDir);
 
-
     if (watchPaths.length === 0) {
       console.log(
         `[${formatTime()}] ⚠️ 監視対象ディレクトリが見つかりません。まずsrcディレクトリを作成してください。`,
@@ -385,7 +387,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       break;
     default:
       console.log(
-        `[${formatTime()}] Usage: node unified-build.js [build|watch]`, 
+        `[${formatTime()}] Usage: node unified-build.js [build|watch]`,
       );
       break;
   }

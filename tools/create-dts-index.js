@@ -20,7 +20,11 @@ function findDtsFiles(dir) {
     const stat = fs.statSync(filePath);
     if (stat && stat.isDirectory()) {
       results = results.concat(findDtsFiles(filePath));
-    } else if (filePath.endsWith('.d.ts') && !filePath.endsWith('index.d.ts') && !filePath.endsWith('_globals.d.ts')) {
+    } else if (
+      filePath.endsWith('.d.ts') &&
+      !filePath.endsWith('index.d.ts') &&
+      !filePath.endsWith('_globals.d.ts')
+    ) {
       results.push(filePath);
     }
   });
@@ -45,7 +49,9 @@ targetDirs.forEach(dir => {
   }
 
   if (references.length === 0) {
-    console.log(`- No .d.ts files found to create an index for: ${path.basename(dir)}`);
+    console.log(
+      `- No .d.ts files found to create an index for: ${path.basename(dir)}`,
+    );
     // 空でもindex.d.tsは作成する（後続の処理でエラーにならないように）
     fs.writeFileSync(path.join(dir, 'index.d.ts'), '', 'utf8');
     return;
@@ -53,7 +59,9 @@ targetDirs.forEach(dir => {
 
   const indexContent = references.join('\n');
   fs.writeFileSync(path.join(dir, 'index.d.ts'), indexContent, 'utf8');
-  console.log(`✅ Created index.d.ts for '${path.basename(dir)}' with ${references.length} references.`);
+  console.log(
+    `✅ Created index.d.ts for '${path.basename(dir)}' with ${references.length} references.`,
+  );
 });
 
 console.log('\n✨ Index file generation complete.');
