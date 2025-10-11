@@ -194,6 +194,12 @@ export function collectAccountingFormData() {
   }
   // 支払い方法が選択されていない場合は undefined のまま（必須チェックで弾く）
 
+  // 制作メモ収集（会計処理時の保存に利用）
+  const memoData = collectMemoData();
+  if (memoData && 'workInProgress' in memoData) {
+    formData.workInProgress = memoData.workInProgress;
+  }
+
   // デバッグ: 収集されたフォームデータを出力
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 collectAccountingFormData結果:', formData);
