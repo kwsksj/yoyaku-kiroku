@@ -20,7 +20,9 @@ export function sendBookingConfirmationEmail(reservation) {
   try {
     const student = reservation.user;
     if (!student || !student.email) {
-      Logger.log('メール送信スキップ: ユーザー情報またはメールアドレスが空です');
+      Logger.log(
+        'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
+      );
       return false;
     }
 
@@ -323,7 +325,11 @@ export function getTuitionDisplayText(classroom) {
  * @param {string} statusText - ステータステキスト
  * @returns {string} 申込み内容テキスト
  */
-export function createBookingDetailsText(reservation, formattedDate, statusText) {
+export function createBookingDetailsText(
+  reservation,
+  formattedDate,
+  statusText,
+) {
   const { classroom, venue, startTime, endTime } = reservation;
 
   // 時間表示
@@ -472,7 +478,11 @@ X (Twitter) @kibori_class
  * @param {'confirmation'|'cancellation'} emailType - メール種別
  * @param {string} [cancelMessage] - キャンセル理由（cancellationの場合のみ）
  */
-export function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
+export function sendReservationEmailAsync(
+  reservation,
+  emailType,
+  cancelMessage,
+) {
   try {
     const isFirstTime = reservation.firstLecture || false;
 
@@ -543,7 +553,9 @@ export function sendCancellationEmail(reservation, cancelMessage) {
   try {
     const student = reservation.user;
     if (!student || !student.email) {
-      Logger.log('メール送信スキップ: ユーザー情報またはメールアドレスが空です');
+      Logger.log(
+        'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
+      );
       return false;
     }
 

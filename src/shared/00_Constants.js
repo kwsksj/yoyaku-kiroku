@@ -149,7 +149,8 @@ export const CONSTANTS = {
   MESSAGES: {
     PROCESSING_INTERRUPTED: '処理を中断しました。',
     SHEET_INITIALIZATION: '日程マスタシートの初期化',
-    EXISTING_SHEET_WARNING: "「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）",
+    EXISTING_SHEET_WARNING:
+      '「日程マスタ」シートは既に存在します。\n初期化しますか？（既存データは削除されます）',
     SUCCESS: '成功',
     ERROR: 'エラー',
     CANCEL: 'キャンセル',
@@ -281,8 +282,8 @@ export const CONSTANTS = {
 
   // その他のシステム定数
   SYSTEM: {
-    MATERIAL_INFO_PREFIX: "\n【希望材料】: ",
-    ARCHIVE_PREFIX: "アーカイブ_",
+    MATERIAL_INFO_PREFIX: '\n【希望材料】: ',
+    ARCHIVE_PREFIX: 'アーカイブ_',
     DATA_START_ROW: 2,
     CACHE_EXPIRY_SECONDS: 86400, // 24時間
     HEADER_ROW: 1,

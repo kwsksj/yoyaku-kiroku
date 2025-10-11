@@ -195,7 +195,11 @@ export function checkCapacityFull(classroom, date, startTime, endTime) {
  * @param {ScheduleMasterData} scheduleRule - 日程マスタから取得した日程情報。
  * @throws {Error} 検証に失敗した場合、理由を示すエラーをスローする。
  */
-export function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
+export function _validateTimeBasedReservation(
+  startTime,
+  endTime,
+  scheduleRule,
+) {
   if (!startTime || !endTime)
     throw new Error('開始時刻と終了時刻の両方を指定してください。');
   const start = new Date(`1900-01-01T${startTime}`);
@@ -650,7 +654,11 @@ export function notifyAvailabilityToWaitlistedUsers(
  * @param {string} availabilityType - 空きタイプ ('first', 'second', 'all')
  * @returns {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>}
  */
-export function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
+export function getWaitlistedUsersForNotification(
+  classroom,
+  date,
+  availabilityType,
+) {
   // ★改善: getCachedReservationsAsObjects を使い、オブジェクトとして直接取得する
   const allReservations = getCachedReservationsAsObjects();
   const waitlistedReservations = allReservations.filter(

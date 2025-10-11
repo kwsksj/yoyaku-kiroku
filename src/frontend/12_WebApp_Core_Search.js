@@ -53,7 +53,11 @@ export function findReservationById(reservationId, state = null) {
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
  * @returns {ReservationSearchResult | null} 見つかった予約/記録データ、見つからない場合はnull
  */
-export function findReservationByDateAndClassroom(date, classroom, state = null) {
+export function findReservationByDateAndClassroom(
+  date,
+  classroom,
+  state = null,
+) {
   const currentState = state || window.stateManager?.getState();
   if (!currentState) return null;
 

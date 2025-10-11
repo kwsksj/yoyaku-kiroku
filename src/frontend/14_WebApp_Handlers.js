@@ -40,12 +40,13 @@ export let actionHandlers;
 // =================================================================
 
 /** @type {ClassifiedAccountingItemsCore} */
-export const EMPTY_CLASSIFIED_ITEMS = /** @type {ClassifiedAccountingItemsCore} */ (
-  /** @type {unknown} */ ({
-    tuition: { baseItems: [], additionalItems: [] },
-    sales: { materialItems: [], productItems: [] },
-  })
-);
+export const EMPTY_CLASSIFIED_ITEMS =
+  /** @type {ClassifiedAccountingItemsCore} */ (
+    /** @type {unknown} */ ({
+      tuition: { baseItems: [], additionalItems: [] },
+      sales: { materialItems: [], productItems: [] },
+    })
+  );
 
 // Window型の拡張（型エラー回避のため）
 /** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */

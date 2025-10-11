@@ -54,7 +54,6 @@ export const PerformanceLog = {
   },
 };
 
-
 /**
  * 予約データの事前バリデーション（パフォーマンス最適化）
  * 冗長なデータ検証を削減するため、一度だけ全体構造を検証
@@ -693,7 +692,11 @@ export function getCachedStudentById(studentId) {
  * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
  */
-export function convertReservationsToObjects(reservations, headerMap, studentsMap) {
+export function convertReservationsToObjects(
+  reservations,
+  headerMap,
+  studentsMap,
+) {
   return reservations
     .map(reservation => {
       if (Array.isArray(reservation)) {

@@ -138,7 +138,9 @@ export function updateReservationMemoAndGetLatestData(
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
-export function saveAccountingDetailsAndGetLatestData(reservationWithAccounting) {
+export function saveAccountingDetailsAndGetLatestData(
+  reservationWithAccounting,
+) {
   return executeOperationAndGetLatestData(
     saveAccountingDetails,
     reservationWithAccounting,

@@ -17,7 +17,9 @@ export const ADMIN_EMAIL =
 // --- GoogleカレンダーのID ---
 export const CALENDAR_IDS_RAW =
   PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
-export const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
+export const CALENDAR_IDS = CALENDAR_IDS_RAW
+  ? JSON.parse(CALENDAR_IDS_RAW)
+  : {};
 
 /**
  * HTMLテンプレートのサブファイルをテンプレート評価の文脈で読み込むためのinclude関数

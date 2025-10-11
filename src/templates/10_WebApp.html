@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+ <reference path="../../types/index.d.ts" />
 <!--
 =================================================================
 【ファイル名】: 10_WebApp.html
@@ -129,7 +129,6 @@
     <!-- __UNIFIED_JAVASCRIPT_INJECTION_POINT__ -->
 
     <script>
-
       // デバッグ情報をコンソールに出力する関数（本番環境では無効化）
       function debugLog(message) {
         if (CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) return; // 本番環境では何も表示しない
@@ -147,7 +146,6 @@
       const isGAS =
         typeof google !== 'undefined' && typeof google.script !== 'undefined';
       debugLog('GAS環境判定: ' + isGAS);
-
 
       function isPreloadedDataValid() {
         if (!window.appCache.initialData || !window.appCache.timestamp) {
@@ -207,7 +205,6 @@
               payload: { view: 'login' },
             });
             hideLoading();
-
           } else {
             // 一部未準備 - 100ms間隔でリトライ（300ms → 100ms に短縮）
             setTimeout(safeInitializeApp, 100);

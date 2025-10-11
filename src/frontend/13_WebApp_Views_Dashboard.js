@@ -169,7 +169,10 @@ export const _buildAccountingButtons = booking => {
  * @param {string} reservationId - 予約ID
  * @returns {Array<any>} 編集ボタン設定配列
  */
-export const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
+export const _buildHistoryEditButtons = (
+  isInEditMode = false,
+  reservationId = '',
+) => {
   const buttons = [];
   const state = stateManager.getState();
 
