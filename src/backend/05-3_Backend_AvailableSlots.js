@@ -44,16 +44,21 @@ export function getLessons() {
     const reservationsByDateClassroom = new Map();
 
     // 未来の有効な予約のみフィルタリング
-    const validReservations = convertedReservations.filter(reservation => {
-      const reservationDate = new Date(reservation.date);
-      return (
-        reservationDate >= today &&
-        reservation.status !== CONSTANTS.STATUS.CANCELED &&
-        reservation.status !== CONSTANTS.STATUS.WAITLISTED
-      );
-    });
+    const validReservations = convertedReservations.filter(
+      /** @param {ReservationCore} reservation */
+      reservation => {
+        const reservationDate = new Date(reservation.date);
+        return (
+          reservationDate >= today &&
+          reservation.status !== CONSTANTS.STATUS.CANCELED &&
+          reservation.status !== CONSTANTS.STATUS.WAITLISTED
+        );
+      },
+    );
 
-    validReservations.forEach(reservation => {
+    validReservations.forEach(
+      /** @param {ReservationCore} reservation */
+      reservation => {
       const reservationDate = new Date(reservation.date);
       const dateString = Utilities.formatDate(
         reservationDate,
@@ -314,11 +319,18 @@ export function getUserReservations(studentId) {
     /** @type {ReservationCore[]} */
     const myReservations = convertedReservations
       .filter(
+        /** @param {ReservationCore} reservation */
         reservation =>
           reservation.studentId === studentId &&
           reservation.status !== CONSTANTS.STATUS.CANCELED,
       )
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort(
+        /**
+         * @param {ReservationCore} a
+         * @param {ReservationCore} b
+         */
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      );
 
     // ユーザー情報はtransformReservationArrayToObjectWithHeaders()で自動付与される
 

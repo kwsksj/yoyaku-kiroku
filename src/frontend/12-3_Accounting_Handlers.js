@@ -197,7 +197,7 @@ export function updateCheckboxStyle(checkbox) {
 /**
  * 材料タイプ変更時の処理
  * @param {Event} event - 変更イベント
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  */
 export function handleMaterialTypeChange(event, materialItems) {
   const index = event.target.id.split('-')[2]; // material-type-0 -> 0
@@ -285,7 +285,7 @@ export function handleMaterialTypeChange(event, materialItems) {
 
 /**
  * 材料行追加
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  */
 export function addMaterialRow(materialItems) {
   const container = document.getElementById('materials-container');
@@ -320,7 +320,7 @@ export function removeMaterialRow(index) {
 /**
  * 物販タイプ変更時の処理
  * @param {Event} event - 変更イベント
- * @param {Array} productItems - 物販項目配列
+ * @param {AccountingMasterItemCore[]} productItems - 物販項目配列
  */
 export function handleProductTypeChange(event, productItems) {
   const index = event.target.id.split('-')[2]; // product-type-0 -> 0
@@ -596,7 +596,7 @@ export function updateTimeCalculationDisplay(result, classroom) {
     CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
     CONSTANTS.ITEMS.MAIN_LECTURE,
   ];
-  const baseItem = classifiedItems?.tuition.items.find(item => {
+  const baseItem = classifiedItems?.tuition.items.find((/** @type {AccountingMasterItemCore} */ item) => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
     const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
     return (
@@ -660,13 +660,13 @@ export function updateProductPricesDisplay(result) {
 
   products.forEach((row, index) => {
     const priceDisplay = row.querySelector(`#product-price-${index}`);
-    const typeSelect = row.querySelector(`#product-type-${index}`);
+    const typeSelect = /** @type {HTMLSelectElement | null} */ (row.querySelector(`#product-type-${index}`));
 
     if (priceDisplay && typeSelect) {
       const selectedType = typeSelect.value;
       if (selectedType) {
         // 選択された物販タイプに一致するアイテムを検索
-        const productItem = salesItems.find(item => item.name === selectedType);
+        const productItem = salesItems.find((/** @type {any} */ item) => item.name === selectedType);
 
         if (productItem) {
           priceDisplay.innerHTML = Components.priceDisplay({
@@ -692,13 +692,13 @@ export function updateCustomSalesPricesDisplay(result) {
 
   customSales.forEach((row, index) => {
     const priceDisplay = row.querySelector(`#custom-sales-display-${index}`);
-    const nameInput = row.querySelector(`#custom-sales-name-${index}`);
+    const nameInput = /** @type {HTMLInputElement | null} */ (row.querySelector(`#custom-sales-name-${index}`));
 
     if (priceDisplay && nameInput) {
       const itemName = nameInput.value.trim();
       if (itemName) {
         // 入力された名前に一致するアイテムを検索
-        const customItem = salesItems.find(item => item.name === itemName);
+        const customItem = salesItems.find((/** @type {any} */ item) => item.name === itemName);
 
         if (customItem) {
           priceDisplay.innerHTML = Components.priceDisplay({
@@ -913,14 +913,14 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
       : '';
 
   // 金額表示のヘルパー
-  const formatPrice = amount => {
+  const formatPrice = (/** @type {number} */ amount) => {
     if (typeof Components !== 'undefined' && Components.priceDisplay) {
       return Components.priceDisplay({ amount });
     }
     return `¥${amount.toLocaleString()}`;
   };
 
-  const formatPriceLarge = amount => {
+  const formatPriceLarge = (/** @type {number} */ amount) => {
     if (typeof Components !== 'undefined' && Components.priceDisplay) {
       return Components.priceDisplay({ amount, size: 'large' });
     }
@@ -928,7 +928,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
   };
 
   // ボタン生成のヘルパー
-  const generateButton = (action, text, style, customClass = '') => {
+  const generateButton = (/** @type {string} */ action, /** @type {string} */ text, /** @type {string} */ style, customClass = '') => {
     if (typeof Components !== 'undefined' && Components.button) {
       return Components.button({
         action,
@@ -951,7 +951,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
   if (result.tuition.items && result.tuition.items.length > 0) {
     const itemsHtml = result.tuition.items
       .map(
-        item => `
+        (/** @type {any} */ item) => `
       <div class="flex justify-between text-sm">
         <span class="text-brand-subtle">${escapeHTML(item.name)}</span>
         <span class="font-mono-numbers">${formatPrice(item.price)}</span>
@@ -975,7 +975,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
   if (result.sales.items && result.sales.items.length > 0) {
     const itemsHtml = result.sales.items
       .map(
-        item => `
+        (/** @type {any} */ item) => `
       <div class="flex justify-between text-sm">
         <span class="text-brand-subtle">${escapeHTML(item.name)}</span>
         <span class="font-mono-numbers">${formatPrice(item.price)}</span>
@@ -1270,7 +1270,7 @@ export function handleSaveMemo(target) {
           );
         }
       })
-      .withFailureHandler(error => {
+      .withFailureHandler((/** @type {Error} */ error) => {
         if (typeof hideLoading === 'function') {
           hideLoading();
         }

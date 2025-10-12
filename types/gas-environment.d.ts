@@ -649,19 +649,19 @@ declare global {
     studentId: string;
     date: string;
     classroom: string;
-    venue?: string;
+    venue?: string | undefined;
     startTime: string;
     endTime: string;
     status: string;
     chiselRental: boolean;
     firstLecture: boolean;
-    workInProgress?: string;
-    order?: string;
-    messageToTeacher?: string;
+    workInProgress?: string | undefined;
+    order?: string | undefined;
+    messageToTeacher?: string | undefined;
 
     // 実際に使用される動的プロパティ
-    discountApplied?: boolean | string;
-    計算時間?: number;
+    discountApplied?: boolean | string | undefined;
+    計算時間?: number | undefined;
 
     // 限定的なインデックスシグネチャ（materialTypeN等用）
     [key: `material${string}`]: unknown;

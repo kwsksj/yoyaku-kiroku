@@ -62,14 +62,14 @@ interface ComponentProps {
  */
 interface ButtonConfig {
   text: string;
-  onClick?: string;
-  action?: string;
-  type?: ComponentStyle;
-  style?: ComponentStyle;
-  size?: ComponentSize;
-  disabled?: boolean;
-  customClass?: string;
-  dataAttributes?: Record<string, string | number | boolean>;
+  onClick?: string | undefined;
+  action?: string | undefined;
+  type?: ComponentStyle | undefined;
+  style?: ComponentStyle | undefined;
+  size?: ComponentSize | undefined;
+  disabled?: boolean | undefined;
+  customClass?: string | undefined;
+  dataAttributes?: Record<string, string | number | boolean> | undefined;
 }
 
 /**

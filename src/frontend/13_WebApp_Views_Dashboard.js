@@ -25,11 +25,11 @@ export const getDashboardView = () => {
   // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
   const activeReservations = myReservations
     .filter(
-      res =>
+      (/** @type {ReservationData} */ res) =>
         res.status === CONSTANTS.STATUS.CONFIRMED ||
         res.status === CONSTANTS.STATUS.WAITLISTED,
     )
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
+    .sort((/** @type {ReservationData} */ a, /** @type {ReservationData} */ b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
 
   console.log('   アクティブな予約:', activeReservations.length, '件');
 
@@ -58,15 +58,15 @@ export const getDashboardView = () => {
   // 履歴セクション用のカード配列を構築：完了ステータスのみ表示
   let historyHtml = '';
   const completedReservations = myReservations
-    .filter(res => res.status === CONSTANTS.STATUS.COMPLETED)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
+    .filter((/** @type {ReservationData} */ res) => res.status === CONSTANTS.STATUS.COMPLETED)
+    .sort((/** @type {ReservationData} */ a, /** @type {ReservationData} */ b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
 
   const recordsToShow = state.recordsToShow;
   const completedRecords = completedReservations.slice(0, recordsToShow);
 
   if (completedRecords.length > 0) {
     // 「きろく」は COMPLETED ステータスのみ表示
-    const historyCards = completedRecords.map(h => {
+    const historyCards = completedRecords.map((/** @type {ReservationData} */ h) => {
       // 編集モード状態を取得
       const isInEditMode = stateManager.isInEditMode(h.reservationId);
 
@@ -287,7 +287,7 @@ export const _checkIfLessonAvailable = booking => {
 
   // 該当する講座を検索
   const targetLesson = lessons.find(
-    lesson =>
+    (/** @type {LessonCore} */ lesson) =>
       lesson.date === String(booking.date) &&
       lesson.classroom === booking.classroom,
   );
@@ -297,7 +297,7 @@ export const _checkIfLessonAvailable = booking => {
       console.log('❌ 該当講座が見つかりません:', {
         searchDate: String(booking.date),
         searchClassroom: booking.classroom,
-        availableLessons: lessons.map(l => ({
+        availableLessons: lessons.map((/** @type {LessonCore} */ l) => ({
           date: l.date,
           classroom: l.classroom,
         })),
@@ -418,7 +418,7 @@ export function updateSingleHistoryCard(reservationId) {
   // 現在の状態から該当する履歴アイテムを取得
   const state = stateManager.getState();
   const historyItem = state.myReservations.find(
-    h => h.reservationId === reservationId,
+    (/** @type {ReservationData} */ h) => h.reservationId === reservationId,
   );
   if (!historyItem || historyItem.status !== CONSTANTS.STATUS.COMPLETED) return;
 
@@ -585,7 +585,7 @@ export function _attachMemoEventListeners(reservationId) {
     };
 
     anyTextarea._memoInputHandler = (/** @type {Event} */ event) => {
-      const currentValue = event.target.value;
+      const currentValue = (/** @type {HTMLTextAreaElement} */ (event.target)).value;
       const hasChanged = stateManager.updateMemoInputChanged(
         reservationId,
         currentValue,
@@ -640,7 +640,7 @@ export function _updateHistoryCardButton(reservationId) {
 
   const state = stateManager.getState();
   const historyItem = state.myReservations.find(
-    h => h.reservationId === reservationId,
+    (/** @type {ReservationData} */ h) => h.reservationId === reservationId,
   );
   if (!historyItem) return;
 

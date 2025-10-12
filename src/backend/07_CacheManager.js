@@ -743,7 +743,7 @@ export function rebuildAllReservationsCache() {
       { index: endTimeColumnIndex, type: 'time' },
     ].filter(column => column.index !== undefined);
 
-    allReservationRows.forEach(reservationRow => {
+    allReservationRows.forEach(/** @param {(string|number|Date)[]} reservationRow */ (reservationRow) => {
       formatColumns.forEach(({ index, type }) => {
         const originalValue = reservationRow[index];
         if (originalValue instanceof Date) {
@@ -755,7 +755,7 @@ export function rebuildAllReservationsCache() {
     });
 
     // 全データを日付順にソート（新しい順）
-    const sortedReservations = allReservationRows.sort((a, b) => {
+    const sortedReservations = allReservationRows.sort((/** @type {(string|number|Date)[]} */ a, /** @type {(string|number|Date)[]} */ b) => {
       const dateA = new Date(a[dateColumnIndex]);
       const dateB = new Date(b[dateColumnIndex]);
       return dateB.getTime() - dateA.getTime(); // 新しい順
@@ -767,7 +767,7 @@ export function rebuildAllReservationsCache() {
     );
     const reservationIdIndexMap = {};
     if (reservationIdColIndex !== undefined) {
-      sortedReservations.forEach((reservation, index) => {
+      sortedReservations.forEach((/** @type {(string|number|Date)[]} */ reservation, /** @type {number} */ index) => {
         const reservationId = reservation[reservationIdColIndex];
         if (reservationId) {
           reservationIdIndexMap[String(reservationId)] = index;
@@ -925,7 +925,7 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     ];
 
     const scheduleDataList = allData
-      .filter(row => {
+      .filter(/** @param {(string|number|Date)[]} row */ (row) => {
         const dateValue = row[headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE)];
         if (!dateValue) return false;
 
@@ -937,10 +937,10 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
 
         return dateStr >= startDate && dateStr <= endDate;
       })
-      .map(row => {
+      .map(/** @param {(string|number|Date)[]} row */ (row) => {
         /** @type {ScheduleMasterData} */
         const scheduleObj = /** @type {ScheduleMasterData} */ ({});
-        headers.forEach((header, index) => {
+        headers.forEach((/** @type {string} */ header, /** @type {number} */ index) => {
           let value = row[index];
           // 時間列の処理
           if (timeColumnNames.includes(header) && value instanceof Date) {
@@ -1027,11 +1027,11 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
         });
         return scheduleObj;
       })
-      .filter(scheduleObj => scheduleObj !== null); // 無効な行を除外
+      .filter(/** @param {ScheduleMasterData | null} scheduleObj */ (scheduleObj) => scheduleObj !== null); // 無効な行を除外
 
     // ★ 日付順でソート処理を追加（文字列形式前提）
     if (scheduleDataList && scheduleDataList.length > 0) {
-      scheduleDataList.sort((a, b) => {
+      scheduleDataList.sort((/** @type {ScheduleMasterData} */ a, /** @type {ScheduleMasterData} */ b) => {
         // 文字列形式（yyyy-MM-dd）で保存されているため文字列比較
         const dateA = String(a.date);
         const dateB = String(b.date);
@@ -1106,10 +1106,10 @@ export function rebuildAccountingMasterCache() {
     // 時刻情報は日程マスタから取得
 
     // データを処理してオブジェクト形式に変換
-    const processedItems = allData.map(rowData => {
+    const processedItems = allData.map(/** @param {(string|number|Date)[]} rowData */ (rowData) => {
       /** @type {Partial<AccountingMasterItem>} */
       const item = {};
-      headers.forEach((headerName, columnIndex) => {
+      headers.forEach((/** @type {string} */ headerName, /** @type {number} */ columnIndex) => {
         const cellValue = rowData[columnIndex];
         item[headerName] = cellValue;
       });
@@ -1218,7 +1218,7 @@ export function rebuildAllStudentsBasicCache() {
     // 生徒データをオブジェクト形式に変換
     /** @type {{ [studentId: string]: StudentData }} */
     const studentsDataMap = {};
-    allStudentRows.forEach((studentRow, index) => {
+    allStudentRows.forEach((/** @type {(string|number|Date)[]} */ studentRow, /** @type {number} */ index) => {
       const studentId = studentRow[requiredColumns.studentId];
       if (studentId && String(studentId).trim()) {
         // メール連絡希望フラグの処理
@@ -1907,7 +1907,7 @@ export function loadChunkedDataFromCache(baseKey) {
       // 生徒名簿の場合：配列をオブジェクトに変換
       /** @type {{ [studentId: string]: StudentData }} */
       const studentsMap = {};
-      allData.forEach(student => {
+      allData.forEach(/** @param {any} student */ (student) => {
         // StudentDataは元々配列形式で保存されているため、型アサーションで変換
         const studentData = /** @type {any} */ (student);
         if (studentData.studentId) {
@@ -1929,7 +1929,7 @@ export function loadChunkedDataFromCache(baseKey) {
     } else {
       // 予約データなど他のキャッシュの場合
       // ★ reservationIdIndexMapをメタデータから取得、なければ再構築
-      let reservationIdIndexMap = metadata.reservationIdIndexMap || {};
+      const reservationIdIndexMap = metadata.reservationIdIndexMap || {};
 
       // メタデータにreservationIdIndexMapがない場合は再構築
       if (!metadata.reservationIdIndexMap || Object.keys(reservationIdIndexMap).length === 0) {
@@ -1938,7 +1938,7 @@ export function loadChunkedDataFromCache(baseKey) {
         const reservationIdColIndex = headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
 
         if (reservationIdColIndex !== undefined) {
-          allData.forEach((row, index) => {
+          allData.forEach((/** @type {(string|number|Date)[]} */ row, /** @type {number} */ index) => {
             const reservationId = row[reservationIdColIndex];
             if (reservationId) {
               reservationIdIndexMap[String(reservationId)] = index;

@@ -478,7 +478,7 @@ export const reservationActionHandlers = {
     //   return;
     // }
 
-    let classroomName =
+    const classroomName =
       d?.classroomName || d?.classroom || d?.['classroom-name'];
     if (classroomName) {
       reservationActionHandlers.closeClassroomModal();

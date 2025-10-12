@@ -202,7 +202,7 @@ export function handlePhoneInputFormatting(inputElement) {
   const cursorPosition = inputElement.selectionStart;
 
   // 全角数字を半角に変換
-  let formattedValue = originalValue.replace(/[０-９]/g, s =>
+  const formattedValue = originalValue.replace(/[０-９]/g, s =>
     String.fromCharCode(s.charCodeAt(0) - 65248),
   );
 

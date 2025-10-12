@@ -169,9 +169,9 @@ export function extractPersonalDataFromCache(studentId, cacheData) {
     // キャンセル以外の予約をフィルタリング（初回判定用）
     // 空き連絡希望も含めることで、正確な初回判定が可能
     const myReservations = convertedReservations.filter(
+      /** @param {ReservationCore} r */
       r =>
-        r.studentId === studentId &&
-        r.status !== CONSTANTS.STATUS.CANCELED,
+        r.studentId === studentId && r.status !== CONSTANTS.STATUS.CANCELED,
     );
 
     Logger.log(

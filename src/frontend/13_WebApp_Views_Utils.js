@@ -125,7 +125,7 @@ export const _isPastOrToday = dateString => {
  * @returns {HTMLString} HTMLの<option>タグ文字列
  */
 export const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
-  let options = [];
+  const options = [];
   for (let h = startHour; h <= endHour; h++) {
     for (let m = 0; m < 60; m += step) {
       const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;

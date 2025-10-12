@@ -49,7 +49,7 @@ export function generateTuitionSection(
   ];
 
   // 基本授業料項目を取得
-  const baseItem = classifiedItems.tuition.items.find(item => {
+  const baseItem = classifiedItems.tuition.items.find((/** @type {AccountingMasterItemCore} */ item) => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
     const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
     return (
@@ -130,7 +130,7 @@ export function generateTuitionSection(
   // その他の授業料・割引項目UI生成
   let otherItemsHtml = '';
   const otherItems = classifiedItems.tuition.items.filter(
-    item =>
+    (/** @type {AccountingMasterItemCore} */ item) =>
       !BASE_TUITION_ITEMS.includes(
         item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
       ),
@@ -138,7 +138,7 @@ export function generateTuitionSection(
 
   if (otherItems.length > 0) {
     otherItemsHtml = '<div class="other-tuition mb-4 space-y-1">';
-    otherItems.forEach(item => {
+    otherItems.forEach((/** @type {AccountingMasterItemCore} */ item) => {
       const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
       const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
       const isChecked = formData.checkedItems?.[itemName] || false;
@@ -189,7 +189,7 @@ export function generateTuitionSection(
 
 /**
  * 材料行生成（Components.js活用）
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  * @param {number} index - 行インデックス
  * @param {Object} materialData - 既存の材料データ
  * @returns {string} HTML文字列
@@ -201,7 +201,7 @@ export function generateMaterialRow(
 ) {
   // 材料選択肢を生成
   let materialOptions = '<option value="">おえらびください</option>';
-  materialItems.forEach(item => {
+  materialItems.forEach((/** @type {AccountingMasterItemCore} */ item) => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
     const selected = materialData.type === itemName ? 'selected' : '';
     materialOptions += `<option value="${escapeHTML(itemName)}" ${selected}>${escapeHTML(itemName)}</option>`;

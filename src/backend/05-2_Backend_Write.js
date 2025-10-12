@@ -274,6 +274,7 @@ export function _saveReservationCoreToSheet(reservation, mode) {
       CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
     );
     const targetRowIndex = dataRows.findIndex(
+      /** @param {RawSheetRow} row */
       row => row[reservationIdColIdx] === reservation.reservationId,
     );
 
@@ -293,8 +294,9 @@ export function _saveReservationCoreToSheet(reservation, mode) {
   // インクリメンタルキャッシュ更新
   try {
     /** @type {(string|number|Date)[]} */
-    const rowForCache = newRowData.map(val =>
-      typeof val === 'boolean' ? String(val).toUpperCase() : val,
+    const rowForCache = newRowData.map(
+      /** @param {string|number|Date|boolean} val */
+      val => (typeof val === 'boolean' ? String(val).toUpperCase() : val),
     );
     if (mode === 'create') {
       //todo: 要確認
@@ -597,6 +599,7 @@ export function notifyAvailabilityToWaitlistedUsers(
       return;
     }
     const targetLesson = lessonsResponse.data.find(
+      /** @param {LessonCore} l */
       l => l.date === date && l.classroom === classroom,
     );
     if (!targetLesson) {
@@ -672,6 +675,7 @@ export function getWaitlistedUsersForNotification(
   // ★改善: getCachedReservationsAsObjects を使い、オブジェクトとして直接取得する
   const allReservations = getCachedReservationsAsObjects();
   const waitlistedReservations = allReservations.filter(
+    /** @param {ReservationCore} r */
     r =>
       r.date === date &&
       r.classroom === classroom &&
@@ -686,9 +690,11 @@ export function getWaitlistedUsersForNotification(
   /** @type {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>} */
   const result = [];
 
-  waitlistedReservations.forEach(reservation => {
-    const studentId = reservation.studentId;
-    const isFirstTime = reservation.firstLecture;
+  waitlistedReservations.forEach(
+    /** @param {ReservationCore} reservation */
+    reservation => {
+      const studentId = reservation.studentId;
+      const isFirstTime = reservation.firstLecture;
 
     // 空きタイプに応じたフィルタリング
     let shouldNotify = false;
@@ -805,6 +811,7 @@ export function updateReservationDetails(details) {
         throw new Error('空き状況の取得に失敗し、予約を更新できません。');
       }
       const targetLesson = lessonsResponse.data.find(
+        /** @param {LessonCore} l */
         l =>
           l.date === updatedReservation.date &&
           l.classroom === updatedReservation.classroom,
@@ -1096,6 +1103,7 @@ export function getScheduleInfoForDate(date, classroom) {
   if (!scheduleCache?.schedule) return undefined;
 
   return scheduleCache.schedule.find(
+    /** @param {ScheduleMasterData} item */
     item => item.date === date && item.classroom === classroom,
   );
 }

@@ -55,13 +55,13 @@ interface LessonCore {
   date: string;
 
   /** 会場名 */
-  venue?: string;
+  venue?: string | undefined;
 
   /** 教室形式（'セッション制' | '時間制・2部制' | '時間制・全日'） */
-  classroomType?: string;
+  classroomType?: string | undefined;
 
   /** 備考 */
-  notes?: string;
+  notes?: string | undefined;
 
   /**
    * ステータス
@@ -70,43 +70,43 @@ interface LessonCore {
    * - '休講': 予約不可
    * - '開催済み': 過去の日程
    */
-  status?: string;
+  status?: string | undefined;
 
   // --- 時間情報 ---
   /** 1部開始時刻（HH:mm） */
-  firstStart?: string;
+  firstStart?: string | undefined;
 
   /** 1部終了時刻（HH:mm） */
-  firstEnd?: string;
+  firstEnd?: string | undefined;
 
   /** 2部開始時刻（HH:mm） */
-  secondStart?: string;
+  secondStart?: string | undefined;
 
   /** 2部終了時刻（HH:mm） */
-  secondEnd?: string;
+  secondEnd?: string | undefined;
 
   /** 初回者開始時刻（HH:mm） */
-  beginnerStart?: string;
+  beginnerStart?: string | undefined;
 
   /** 全日開始時刻（HH:mm）- セッション制・時間制全日用 */
-  startTime?: string;
+  startTime?: string | undefined;
 
   /** 全日終了時刻（HH:mm）- セッション制・時間制全日用 */
-  endTime?: string;
+  endTime?: string | undefined;
 
   // --- 定員情報 ---
   /** 全体定員 */
-  totalCapacity?: number;
+  totalCapacity?: number | undefined;
 
   /** 初回者定員 */
-  beginnerCapacity?: number;
+  beginnerCapacity?: number | undefined;
 
   // --- 空き枠情報（計算結果） ---
   /** 1部空き枠数 */
-  firstSlots?: number;
+  firstSlots?: number | undefined;
 
   /** 2部空き枠数（2部制の場合のみ） */
-  secondSlots?: number;
+  secondSlots?: number | undefined;
 
   /**
    * 初回枠の空き数
@@ -114,8 +114,8 @@ interface LessonCore {
    * - 0: 初回枠満席
    * - 1以上: 初回枠あり
    */
-  beginnerSlots?: number | null;
+  beginnerSlots?: number | null | undefined;
 
   /** 行インデックス（シート行番号） */
-  rowIndex?: number;
+  rowIndex?: number | undefined;
 }

@@ -97,7 +97,7 @@ interface AccountingMasterItemCore {
   単位: string;
 
   /** 備考 */
-  備考?: string;
+  備考?: string | undefined;
 }
 
 /**

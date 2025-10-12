@@ -39,7 +39,12 @@ export function calculateTuitionSubtotal(formData: AccountingFormDto, classified
 export function calculateSalesSubtotal(formData: AccountingFormDto, classifiedItems: ClassifiedAccountingItemsCore): any;
 /**
  * 統合計算
- * @param {AccountingFormDto} formData - フォームデータ
+ *
+ * 注意: この関数はformDataを直接変更します（動的項目の追加・削除）。
+ * これは意図的な設計で、時間制授業料の場合に元の項目を削除して
+ * 時間計算済みの項目に置き換える必要があるためです。
+ *
+ * @param {AccountingFormDto} formData - フォームデータ（この関数内で変更される）
  * @param {Array} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
  * @returns {Object} 統合計算結果

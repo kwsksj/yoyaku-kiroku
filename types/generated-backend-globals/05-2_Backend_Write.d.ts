@@ -24,9 +24,10 @@ export function checkDuplicateReservationOnSameDay(studentId: string, date: stri
  * @param {string} date - 日付
  * @param {string} startTime - 開始時間
  * @param {string} endTime - 終了時間
+ * @param {boolean} [isFirstLecture=false] - 初回予約の場合true
  * @returns {boolean} - 定員超過の場合true
  */
-export function checkCapacityFull(classroom: string, date: string, startTime: string, endTime: string): boolean;
+export function checkCapacityFull(classroom: string, date: string, startTime: string, endTime: string, isFirstLecture?: boolean): boolean;
 /**
  * 時間制予約の時刻に関する検証を行うプライベートヘルパー関数。
  * @param {string} startTime - 開始時刻 (HH:mm)。

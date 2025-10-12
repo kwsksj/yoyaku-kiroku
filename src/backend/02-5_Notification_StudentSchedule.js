@@ -67,6 +67,7 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
       try {
         // ★修正: allReservationsはReservationCore[]なので、filterで正しい型の配列を取得
         const studentReservations = allReservations.filter(
+          /** @param {ReservationCore} r */
           r => r.studentId === student.studentId,
         );
 
@@ -75,11 +76,18 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
         today.setHours(0, 0, 0, 0);
 
         const futureReservations = studentReservations
-          .filter(res => {
-            const resDate = new Date(res.date);
-            return resDate >= today && res.status !== CONSTANTS.STATUS.CANCELED; // キャンセル済みは除外
-          })
-          .map(res => ({
+          .filter(
+            /** @param {ReservationCore} res */
+            res => {
+              const resDate = new Date(res.date);
+              return (
+                resDate >= today && res.status !== CONSTANTS.STATUS.CANCELED
+              ); // キャンセル済みは除外
+            },
+          )
+          .map(
+            /** @param {ReservationCore} res */
+            res => ({
             date:
               typeof res.date === 'string'
                 ? res.date

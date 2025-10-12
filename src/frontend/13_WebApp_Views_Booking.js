@@ -18,7 +18,7 @@ export const getBookingView = classroom => {
   const currentState = stateManager.getState();
   const relevantLessons =
     currentState.lessons && Array.isArray(currentState.lessons)
-      ? currentState.lessons.filter(lesson => lesson.classroom === classroom)
+      ? currentState.lessons.filter((/** @type {LessonCore} */ lesson) => lesson.classroom === classroom)
       : [];
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
@@ -349,7 +349,7 @@ export const renderBookingLessons = lessons => {
   }
 
   /** @type {Record<number, LessonCore[]>} */
-  const lessonsByMonth = lessons.reduce((acc, lesson) => {
+  const lessonsByMonth = lessons.reduce((/** @type {Record<number, LessonCore[]>} */ acc, /** @type {LessonCore} */ lesson) => {
     // ガード節: lessonまたはlesson.dateがundefinedの場合はスキップ
     if (!lesson || !lesson.date) {
       console.warn('Invalid lesson data:', lesson);
@@ -551,7 +551,7 @@ export function _buildHistoryCardWithEditMode(
   isInEditMode,
 ) {
   // 履歴カード特有の会計ボタン追加ロジック
-  let allAccountingButtons = [...accountingButtons];
+  const allAccountingButtons = [...accountingButtons];
 
   if (isInEditMode) {
     const isToday = _isToday(String(historyItem.date));
