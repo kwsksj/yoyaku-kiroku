@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -16,11 +16,13 @@
  * @param {ReservationCore} reservation - ユーザー情報を含む予約データ
  * @returns {boolean} 送信成功・失敗
  */
-function sendBookingConfirmationEmail(reservation) {
+export function sendBookingConfirmationEmail(reservation) {
   try {
     const student = reservation.user;
-    if (!student.email) {
-      Logger.log('メール送信スキップ: メールアドレスが空です');
+    if (!student || !student.email) {
+      Logger.log(
+        'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
+      );
       return false;
     }
 
@@ -60,12 +62,14 @@ function sendBookingConfirmationEmail(reservation) {
     return true;
   } catch (error) {
     Logger.log(`メール送信エラー: ${error.message}`);
-    logActivity(
-      reservation.user.studentId,
-      'メール送信エラー',
-      '失敗',
-      `失敗理由: ${error.message}`,
-    );
+    if (reservation.user) {
+      logActivity(
+        reservation.user.studentId,
+        'メール送信エラー',
+        '失敗',
+        `失敗理由: ${error.message}`,
+      );
+    }
     return false;
   }
 }
@@ -75,7 +79,7 @@ function sendBookingConfirmationEmail(reservation) {
  * @param {ReservationCore} reservation - 予約情報
  * @returns {{subject: string, textBody: string}} subject, textBody を含むオブジェクト
  */
-function createBookingConfirmationTemplate(reservation) {
+export function createBookingConfirmationTemplate(reservation) {
   // 基本情報の抽出
   const { date, classroom, status } = reservation;
   const isFirstTime = reservation.firstLecture || false;
@@ -123,7 +127,7 @@ function createBookingConfirmationTemplate(reservation) {
  * @param {string} statusText - ステータステキスト
  * @returns {string} メール本文テキスト
  */
-function createFirstTimeEmailText(
+export function createFirstTimeEmailText(
   reservation,
   student,
   formattedDate,
@@ -180,7 +184,7 @@ ${getContactAndVenueInfoText()}`;
  * @param {string} statusText - ステータステキスト
  * @returns {string} メール本文テキスト
  */
-function createRegularEmailText(
+export function createRegularEmailText(
   reservation,
   student,
   formattedDate,
@@ -229,7 +233,7 @@ ${getContactAndVenueInfoText()}
  * @param {string} classroom - 教室名
  * @returns {string} 授業料テキスト（複数行、例:"授業料（時間制）: ¥600 （30分あたり）\n初回参加費: ¥800"）
  */
-function getTuitionDisplayText(classroom) {
+export function getTuitionDisplayText(classroom) {
   try {
     // 会計マスタから価格データを取得
     /** @type {AccountingCacheData | null} */
@@ -321,7 +325,11 @@ function getTuitionDisplayText(classroom) {
  * @param {string} statusText - ステータステキスト
  * @returns {string} 申込み内容テキスト
  */
-function createBookingDetailsText(reservation, formattedDate, statusText) {
+export function createBookingDetailsText(
+  reservation,
+  formattedDate,
+  statusText,
+) {
   const { classroom, venue, startTime, endTime } = reservation;
 
   // 時間表示
@@ -350,7 +358,7 @@ ${tuitionText}
  * 日付をメール用にフォーマット
  * @param {string|Date} dateInput - 日付（文字列またはDateオブジェクト）
  */
-function formatDateForEmail(dateInput) {
+export function formatDateForEmail(dateInput) {
   try {
     // 文字列またはDateオブジェクトを適切に処理
     const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
@@ -375,7 +383,7 @@ function formatDateForEmail(dateInput) {
 /**
  * 連絡事項・会場情報（テキスト版）
  */
-function getContactAndVenueInfoText() {
+export function getContactAndVenueInfoText() {
   return `
 ----------------------------------------------------
 ★★教室に関して連絡事項★★
@@ -470,7 +478,11 @@ X (Twitter) @kibori_class
  * @param {'confirmation'|'cancellation'} emailType - メール種別
  * @param {string} [cancelMessage] - キャンセル理由（cancellationの場合のみ）
  */
-function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
+export function sendReservationEmailAsync(
+  reservation,
+  emailType,
+  cancelMessage,
+) {
   try {
     const isFirstTime = reservation.firstLecture || false;
 
@@ -478,7 +490,7 @@ function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
     const studentWithEmail = reservation.user;
 
     if (!studentWithEmail || !studentWithEmail.email) {
-      if (isFirstTime && emailType === 'confirmation') {
+      if (isFirstTime && emailType === 'confirmation' && studentWithEmail) {
         // 初回者でメールアドレス未設定の場合はエラーログ
         Logger.log(
           `初回者メール送信失敗: メールアドレス未設定 (${studentWithEmail.studentId})`,
@@ -489,10 +501,12 @@ function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
           '失敗',
           '初回者: メールアドレス未設定',
         );
-      } else {
+      } else if (studentWithEmail) {
         Logger.log(
           `メール送信スキップ: メールアドレス未設定 (${studentWithEmail.studentId})`,
         );
+      } else {
+        Logger.log('メール送信スキップ: ユーザー情報がありません');
       }
       return;
     }
@@ -535,11 +549,13 @@ function sendReservationEmailAsync(reservation, emailType, cancelMessage) {
  * @param {string} [cancelMessage] - キャンセル理由
  * @returns {boolean} 送信成功・失敗
  */
-function sendCancellationEmail(reservation, cancelMessage) {
+export function sendCancellationEmail(reservation, cancelMessage) {
   try {
     const student = reservation.user;
-    if (!student.email) {
-      Logger.log('メール送信スキップ: メールアドレスが空です');
+    if (!student || !student.email) {
+      Logger.log(
+        'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
+      );
       return false;
     }
 
@@ -585,12 +601,14 @@ function sendCancellationEmail(reservation, cancelMessage) {
     return true;
   } catch (error) {
     Logger.log(`キャンセルメール送信エラー: ${error.message}`);
-    logActivity(
-      reservation.user.studentId,
-      'メール送信エラー',
-      '失敗',
-      `失敗理由: ${error.message}`,
-    );
+    if (reservation.user) {
+      logActivity(
+        reservation.user.studentId,
+        'メール送信エラー',
+        '失敗',
+        `失敗理由: ${error.message}`,
+      );
+    }
     return false;
   }
 }
@@ -603,12 +621,15 @@ function sendCancellationEmail(reservation, cancelMessage) {
  * @returns {string} メール本文テキスト
  * @private
  */
-function _createCancellationEmailText(
+export function _createCancellationEmailText(
   reservation,
   formattedDate,
   cancelMessage,
 ) {
   const student = reservation.user;
+  if (!student) {
+    return 'ユーザー情報が見つかりません';
+  }
   const { realName } = student;
   const { classroom, venue, startTime, endTime } = reservation;
 

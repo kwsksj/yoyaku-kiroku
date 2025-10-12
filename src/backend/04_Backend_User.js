@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -22,7 +22,7 @@
  * @param {boolean} [allowEmpty=false] - 空文字列を有効とみなすか。
  * @returns {{isValid: boolean, normalized: string, message: string}} - 検証結果オブジェクト。
  */
-function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
+export function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
   if (!phoneNumber || typeof phoneNumber !== 'string') {
     if (allowEmpty) {
       return { isValid: true, normalized: '', message: '' };
@@ -61,7 +61,7 @@ function _normalizeAndValidatePhone(phoneNumber, allowEmpty = false) {
  * @param {string} phoneNumber - 正規化済み電話番号（フロントエンドで処理済み想定）
  * @returns {boolean} 有効性
  */
-function _validatePhoneLight(phoneNumber) {
+export function _validatePhoneLight(phoneNumber) {
   if (!phoneNumber || typeof phoneNumber !== 'string') return false;
   return /^(070|080|090)\d{8}$/.test(phoneNumber.replace(/\D/g, ''));
 }
@@ -72,7 +72,7 @@ function _validatePhoneLight(phoneNumber) {
  * @param {string} phoneNumber - 認証する電話番号
  * @returns {Object} 認証結果（初期データなし）
  */
-function authenticateUserLightweight(phoneNumber) {
+export function authenticateUserLightweight(phoneNumber) {
   try {
     Logger.log('軽量認証開始: ' + phoneNumber);
 
@@ -147,7 +147,7 @@ function authenticateUserLightweight(phoneNumber) {
  * @param {{allReservationsCache: ReservationCacheData}} cacheData - getAppInitialDataから取得したキャッシュデータ
  * @returns {PersonalDataResult} - 個人の予約、履歴、利用可能枠データ
  */
-function extractPersonalDataFromCache(studentId, cacheData) {
+export function extractPersonalDataFromCache(studentId, cacheData) {
   try {
     Logger.log(`個人データ抽出開始: ${studentId}`);
 
@@ -166,9 +166,12 @@ function extractPersonalDataFromCache(studentId, cacheData) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // キャンセル以外のステータスの予約のみをフィルタリング
+    // キャンセル以外の予約をフィルタリング（初回判定用）
+    // 空き連絡希望も含めることで、正確な初回判定が可能
     const myReservations = convertedReservations.filter(
-      r => r.studentId === studentId && r.status !== CONSTANTS.STATUS.CANCELED,
+      r =>
+        r.studentId === studentId &&
+        r.status !== CONSTANTS.STATUS.CANCELED,
     );
 
     Logger.log(
@@ -191,7 +194,7 @@ function extractPersonalDataFromCache(studentId, cacheData) {
  * @param {string} phoneNumber - 認証に使用する電話番号。
  * @returns {Object} - 認証結果のみ（初期データなし）
  */
-function authenticateUser(phoneNumber) {
+export function authenticateUser(phoneNumber) {
   try {
     Logger.log(`authenticateUser開始: ${phoneNumber}`);
 
@@ -290,7 +293,7 @@ function authenticateUser(phoneNumber) {
  *   firstMessage: 'よろしくお願いします',
  * });
  */
-function registerNewUser(userInfo) {
+export function registerNewUser(userInfo) {
   return withTransaction(() => {
     try {
       /** @type {UserCore} */
@@ -325,7 +328,7 @@ function registerNewUser(userInfo) {
         };
       }
 
-      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+      const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
       if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
       const header = rosterSheet
@@ -536,7 +539,7 @@ function registerNewUser(userInfo) {
  * @param {string} email - チェックするメールアドレス
  * @returns {boolean} - 形式が正しければtrue
  */
-function _isValidEmail(email) {
+export function _isValidEmail(email) {
   if (!email || typeof email !== 'string') return false;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email.trim());
@@ -548,14 +551,14 @@ function _isValidEmail(email) {
  * @param {string} studentId - 生徒ID
  * @returns {ApiResponseGeneric<{message: string}>}
  */
-function requestAccountDeletion(studentId) {
+export function requestAccountDeletion(studentId) {
   return withTransaction(() => {
     try {
       if (!studentId) {
         return { success: false, message: '生徒IDが指定されていません。' };
       }
 
-      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+      const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
       if (!rosterSheet) {
         throw new Error('シート「生徒名簿」が見つかりません。');
       }
@@ -667,13 +670,13 @@ function requestAccountDeletion(studentId) {
  * @param {string} studentId - 生徒ID
  * @returns {ApiResponseGeneric<UserCore>}
  */
-function getUserDetailForEdit(studentId) {
+export function getUserDetailForEdit(studentId) {
   try {
     if (!studentId) {
       return { success: false, message: '生徒IDが指定されていません。' };
     }
 
-    const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+    const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
     if (!rosterSheet) {
       throw new Error('シート「生徒名簿」が見つかりません。');
     }
@@ -827,12 +830,9 @@ function getUserDetailForEdit(studentId) {
  *   address: '東京都渋谷区',
  * });
  */
-function updateUserProfile(userInfo) {
+export function updateUserProfile(userInfo) {
   return withTransaction(() => {
     try {
-      /** @type {UserCore} */
-      const updateDto = /** @type {UserCore} */ (userInfo);
-
       // 新しいヘルパー関数を使用して生徒データを取得
       /** @type {{rowIndex?: number, studentId: string, realName: string, nickname: string, phone: string} | null} */
       const targetStudent =
@@ -887,7 +887,7 @@ function updateUserProfile(userInfo) {
         }
       }
 
-      const rosterSheet = getSheetByName(CONSTANTS.SHEET_NAMES.ROSTER);
+      const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
       if (!rosterSheet) throw new Error('シート「生徒名簿」が見つかりません。');
 
       // ヘッダー情報を取得して更新対象の列インデックスを特定

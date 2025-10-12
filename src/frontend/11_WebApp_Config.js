@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 11_WebApp_Config.html
@@ -214,14 +212,13 @@ window.EmbedConfig = {
     if (newOffset !== null && !isNaN(parseInt(newOffset))) {
       const offset = Math.max(0, Math.min(200, parseInt(newOffset)));
       window.EmbedConfig.saveOffset(offset);
-      window.EmbedConfig.reapplyStyles(offset);
+      window.EmbedConfig.reapplyStyles();
       alert(`ヘッダーオフセットを ${offset}px に設定しました。`);
     }
   },
 
   // スタイルの再適用
-  reapplyStyles: offset => {
-    // eslint-disable-line no-unused-vars
+  reapplyStyles: () => {
     // 既存のスタイルを削除
     const existingStyle = document.getElementById('google-sites-embed-styles');
     if (existingStyle) {
@@ -250,7 +247,7 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
       attention:
         'bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover', // 注意 (若葉色)
       accounting:
-        'bg-orange-100 text-orange-800 active:bg-orange-200 border-2 border-orange-200', // 会計 (調和したオレンジ)
+        'bg-amber-100 text-amber-900 active:bg-amber-200 border-2 border-amber-300', // 会計 (黄金トーン)
       danger:
         'bg-state-danger-bg text-state-danger-text active:bg-state-danger-hover', // 危険 (落ち着いた赤)
       success:
@@ -290,7 +287,7 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
 
     // ボタンの基本スタイル
     buttons: {
-      base: 'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
+      base: 'font-bold rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
       full: 'w-[250px] mx-auto block',
       primary:
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover',
@@ -298,13 +295,15 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover',
       attention:
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover',
+      danger:
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-danger-bg text-action-danger-text active:bg-action-danger-hover',
       accounting:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-orange-100 text-orange-800 active:bg-orange-200 border-2 border-orange-200',
+        'font-bold text-sm py-1.5 px-2 leading-tight rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-amber-100 text-amber-900 active:bg-amber-200 border-2 border-amber-300',
       // カード内ボタン専用スタイル（カードと調和する色）
       bookingCard:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-green-100 text-green-800 active:bg-green-200 border-2 border-green-200',
+        'font-bold text-sm py-1.5 px-1.5 leading-tight rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-green-100 text-green-800 active:bg-green-200 border-2 border-green-200',
       recordCard:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-amber-100 text-amber-800 active:bg-amber-200 border-2 border-amber-200',
+        'font-bold text-sm py-1.5 px-1.5 leading-tight rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-amber-100 text-amber-800 active:bg-amber-200 border-2 border-amber-200',
     },
 
     // テキストスタイル設定
@@ -378,7 +377,7 @@ window.DesignConfig = /** @type {DesignSystemConfig} */ (
 // =================================================================
 // 3. CSS STYLES SETUP
 // =================================================================
-const addCustomStyles = () => {
+export const addCustomStyles = () => {
   const style = document.createElement('style');
   style.textContent = `
       /* ========== Viewport Height Fix for Mobile Keyboards ========== */
@@ -1024,7 +1023,7 @@ const addCustomStyles = () => {
 // =================================================================
 // Font Loading Detection
 // =================================================================
-const setupFontLoadingDetection = () => {
+export const setupFontLoadingDetection = () => {
   if ('fonts' in document) {
     document.fonts.ready.then(() => {
       document.documentElement.classList.add('fonts-loaded');
@@ -1040,7 +1039,7 @@ const setupFontLoadingDetection = () => {
 // =================================================================
 // Page Transition & Content Loading Management
 // =================================================================
-const setupPageTransitionManagement =
+export const setupPageTransitionManagement =
   /** @type {() => PageTransitionManager} */ (
     () => {
       let currentView = /** @type {ViewType | null} */ (null);
@@ -1170,7 +1169,7 @@ window.pageTransitionManager = setupPageTransitionManagement();
 // =================================================================
 // Mobile & Embedded Site Detection
 // =================================================================
-const setupMobileOptimizations = () => {
+export const setupMobileOptimizations = () => {
   // ビューポートの高さをCSSカスタムプロパティとして設定
   const setViewportHeight = () => {
     // window.innerHeight はキーボード表示時に変動する
@@ -1278,7 +1277,7 @@ const setupMobileOptimizations = () => {
 // =================================================================
 // 注意: CDN版Tailwindは本番環境では推奨されませんが、Google Apps Script環境では
 // PostCSS pluginやTailwind CLIの利用が困難なため、CDN版を使用しています。
-const setupTailwindCSS = () => {
+export const setupTailwindCSS = () => {
   const tailwindScript = document.createElement('script');
   tailwindScript.src = 'https://cdn.tailwindcss.com';
 

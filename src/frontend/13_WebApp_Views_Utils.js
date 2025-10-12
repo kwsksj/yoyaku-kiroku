@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Views_Utils.js
@@ -19,7 +17,7 @@
 /**
  * プライバシーポリシーの内容（Markdown形式）
  */
-const PRIVACY_POLICY_CONTENT = `# プライバシーポリシー
+export const PRIVACY_POLICY_CONTENT = `# プライバシーポリシー
 
 川崎誠二木彫り教室 予約システム「きぼりの よやく・きろく」（以下「本サービス」といいます）は、利用者の皆様（以下「ユーザー」といいます）の個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
 
@@ -98,7 +96,7 @@ const PRIVACY_POLICY_CONTENT = `# プライバシーポリシー
  * @param {DateString} dateString - 日付文字列 (YYYY-MM-DD)
  * @returns {boolean} 当日の場合true
  */
-const _isToday = dateString => {
+export const _isToday = dateString => {
   const itemDate = new Date(dateString);
   const today = new Date();
   return itemDate.toDateString() === today.toDateString();
@@ -109,7 +107,7 @@ const _isToday = dateString => {
  * @param {DateString} dateString - 日付文字列 (YYYY-MM-DD)
  * @returns {boolean} 「今日もしくは過去」の場合true
  */
-const _isPastOrToday = dateString => {
+export const _isPastOrToday = dateString => {
   const itemDate = new Date(dateString);
   const today = new Date();
   // 時間を00:00:00にリセットして日付のみで比較
@@ -126,7 +124,7 @@ const _isPastOrToday = dateString => {
  * @param {TimeString | null} selectedValue - 事前に選択する時刻 (HH:mm)
  * @returns {HTMLString} HTMLの<option>タグ文字列
  */
-const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
+export const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
   let options = [];
   for (let h = startHour; h <= endHour; h++) {
     for (let m = 0; m < 60; m += step) {
@@ -144,7 +142,7 @@ const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
  * @param {ClassroomName} classroomName - 教室名
  * @returns {string} Tailwindカラークラス
  */
-const getClassroomColorClass = classroomName => {
+export const getClassroomColorClass = classroomName => {
   switch (classroomName) {
     //TODO: 内容が間違っています！！要修正！！！！
     case 'アトリエ':
@@ -165,7 +163,7 @@ const getClassroomColorClass = classroomName => {
  * @param {string} msg - 表示するメッセージ
  * @returns {string} HTML文字列
  */
-const getCompleteView = msg => {
+export const getCompleteView = msg => {
   // 教室情報を取得（複数のソースから取得を試行）
   const state = stateManager.getState();
   const classroom =
@@ -281,7 +279,7 @@ const getCompleteView = msg => {
  * プライバシーポリシーのモーダルを生成します（タスク1実装）
  * @returns {string} HTML文字列
  */
-const getPrivacyPolicyModal = () => {
+export const getPrivacyPolicyModal = () => {
   // marked.jsライブラリが読み込まれていることを確認
   /** @type {any} */
   const markedGlobal =

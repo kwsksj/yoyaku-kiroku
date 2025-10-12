@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 12_WebApp_Core.js
@@ -62,9 +60,9 @@
 // =================================================================
 
 /** @type {number | null} */
-let loadingMessageTimer = null;
+export let loadingMessageTimer = null;
 
-const LoadingMessages = {
+export const LoadingMessages = {
   // ログイン時のメッセージ
   login: [
     'めいぼ を さがしています...',
@@ -182,7 +180,7 @@ const LoadingMessages = {
   ],
 };
 
-const getRandomMessage = (category = 'default') => {
+export const getRandomMessage = (category = 'default') => {
   const loadingMessages = /** @type {Record<string, string[]>} */ (
     LoadingMessages
   );
@@ -193,7 +191,7 @@ const getRandomMessage = (category = 'default') => {
   return messages[Math.floor(Math.random() * messages.length)];
 };
 
-const updateLoadingMessage = (category = 'default') => {
+export const updateLoadingMessage = (category = 'default') => {
   /** @type {HTMLElement | null} */
   const messageElement = document.getElementById('loading-message');
   if (messageElement) {
@@ -201,7 +199,7 @@ const updateLoadingMessage = (category = 'default') => {
   }
 };
 
-const startLoadingMessageRotation = (category = 'default') => {
+export const startLoadingMessageRotation = (category = 'default') => {
   // 初期メッセージを設定
   updateLoadingMessage(category);
 
@@ -214,7 +212,7 @@ const startLoadingMessageRotation = (category = 'default') => {
   );
 };
 
-const stopLoadingMessageRotation = () => {
+export const stopLoadingMessageRotation = () => {
   if (loadingMessageTimer) {
     clearInterval(loadingMessageTimer);
     loadingMessageTimer = null;
@@ -322,7 +320,7 @@ window.showModal =
     }
   );
 
-const hideModal = () => {
+export const hideModal = () => {
   /** @type {HTMLElement | null} */
   const modal = document.getElementById('custom-modal');
   if (modal) modal.classList.remove('active');
@@ -374,12 +372,12 @@ window.showConfirm =
 // =================================================================
 
 /** @type {Array<{element: Element, type: string, listener: EventListener, options?: AddEventListenerOptions}>} */
-let activeListeners = [];
+export let activeListeners = [];
 
 /**
  * 登録されたイベントリスナーを全て解除する
  */
-function teardownAllListeners() {
+export function teardownAllListeners() {
   activeListeners.forEach(({ element, type, listener, options }) => {
     if (element) {
       element.removeEventListener(type, listener, options);
@@ -395,7 +393,7 @@ function teardownAllListeners() {
  * @param {EventListener} listener - リスナー関数
  * @param {AddEventListenerOptions} [options] - addEventListenerのオプション
  */
-function addTrackedListener(element, type, listener, options) {
+export function addTrackedListener(element, type, listener, options) {
   if (!element) {
     console.warn(
       `Attempted to add listener to a null element for event: ${type}`,
@@ -410,7 +408,7 @@ function addTrackedListener(element, type, listener, options) {
  * StateManagerの初期化後に追加する関数
  * ビュー変更時のイベントリスナー管理を設定
  */
-function setupViewListener() {
+export function setupViewListener() {
   if (!window.stateManager) {
     console.error('StateManager not initialized. Cannot set up view listener.');
     return;
@@ -434,9 +432,9 @@ function setupViewListener() {
               // 会計画面用のデータを取得
               const classifiedItems =
                 window.currentClassifiedItems ||
-                /** @type {ClassifiedAccountingItems} */ (
+                /** @type {ClassifiedAccountingItemsCore} */ (
                   /** @type {unknown} */ ({
-                    tuition: { baseItems: [], additionalItems: [] },
+                    tuition: { items: [] },
                     sales: { materialItems: [], productItems: [] },
                   })
                 );

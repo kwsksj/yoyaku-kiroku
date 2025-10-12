@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -22,7 +22,7 @@
  * @param {string} date - 日付（YYYY-MM-DD形式）
  * @returns {boolean} - 同一日に有効な予約がある場合true
  */
-function checkDuplicateReservationOnSameDay(studentId, date) {
+export function checkDuplicateReservationOnSameDay(studentId, date) {
   try {
     //todo: LessonCoreに、ReservationCoreかReservationIdを紐づけるフィールドを追加し、予約とレッスンを関連付けた場合、要改修
     // ★修正: キャッシュのプロパティを 'data' から 'reservations' に修正
@@ -105,9 +105,10 @@ function checkDuplicateReservationOnSameDay(studentId, date) {
  * @param {string} date - 日付
  * @param {string} startTime - 開始時間
  * @param {string} endTime - 終了時間
+ * @param {boolean} [isFirstLecture=false] - 初回予約の場合true
  * @returns {boolean} - 定員超過の場合true
  */
-function checkCapacityFull(classroom, date, startTime, endTime) {
+export function checkCapacityFull(classroom, date, startTime, endTime, isFirstLecture = false) {
   try {
     // 定員状況を取得
     const availableSlotsResponse = getLessons();
@@ -130,51 +131,59 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
 
     let isFull = false;
 
-    // 教室タイプに応じた満席判定
-    if (
-      targetLesson.firstSlots !== undefined &&
-      targetLesson.secondSlots !== undefined
-    ) {
-      // 時間制・2部制の場合
-      const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
-      const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
-
-      const firstEndTime = targetLesson.firstEnd
-        ? new Date(`1900-01-01T${targetLesson.firstEnd}`)
-        : null;
-      const secondStartTime = targetLesson.secondStart
-        ? new Date(`1900-01-01T${targetLesson.secondStart}`)
-        : null;
-
-      let isMorningRequest = false;
-      let isAfternoonRequest = false;
-
-      if (reqStart && firstEndTime && reqStart < firstEndTime) {
-        isMorningRequest = true;
-      }
-      if (reqEnd && secondStartTime && reqEnd > secondStartTime) {
-        isAfternoonRequest = true;
-      }
-
-      if (isMorningRequest && isAfternoonRequest) {
-        // 両方のセッションにまたがる予約の場合、どちらか一方が満席ならNG
-        isFull =
-          (targetLesson.firstSlots || 0) <= 0 ||
-          (targetLesson.secondSlots || 0) <= 0;
-      } else if (isMorningRequest) {
-        // 午前のみの予約
-        isFull = (targetLesson.firstSlots || 0) <= 0;
-      } else if (isAfternoonRequest) {
-        // 午後のみの予約
-        isFull = (targetLesson.secondSlots || 0) <= 0;
-      } else {
-        // 予約がセッション時間外の場合 (例: 休憩時間内)
-        // この予約は不正だが、ここでは満席とは扱わず、後続のバリデーションに任せる
-        isFull = false;
-      }
+    // 初回予約の場合は初回者枠をチェック
+    if (isFirstLecture && targetLesson.beginnerSlots !== null && targetLesson.beginnerSlots !== undefined) {
+      isFull = (targetLesson.beginnerSlots || 0) <= 0;
+      Logger.log(
+        `[checkCapacityFull] 初回者枠チェック: ${date} ${classroom}: 満席=${isFull}, beginnerSlots=${targetLesson.beginnerSlots}`,
+      );
     } else {
-      // 通常教室（セッション制・全日時間制）の場合
-      isFull = (targetLesson.firstSlots || 0) <= 0;
+      // 教室タイプに応じた満席判定
+      if (
+        targetLesson.firstSlots !== undefined &&
+        targetLesson.secondSlots !== undefined
+      ) {
+        // 時間制・2部制の場合
+        const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
+        const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
+
+        const firstEndTime = targetLesson.firstEnd
+          ? new Date(`1900-01-01T${targetLesson.firstEnd}`)
+          : null;
+        const secondStartTime = targetLesson.secondStart
+          ? new Date(`1900-01-01T${targetLesson.secondStart}`)
+          : null;
+
+        let isMorningRequest = false;
+        let isAfternoonRequest = false;
+
+        if (reqStart && firstEndTime && reqStart < firstEndTime) {
+          isMorningRequest = true;
+        }
+        if (reqEnd && secondStartTime && reqEnd > secondStartTime) {
+          isAfternoonRequest = true;
+        }
+
+        if (isMorningRequest && isAfternoonRequest) {
+          // 両方のセッションにまたがる予約の場合、どちらか一方が満席ならNG
+          isFull =
+            (targetLesson.firstSlots || 0) <= 0 ||
+            (targetLesson.secondSlots || 0) <= 0;
+        } else if (isMorningRequest) {
+          // 午前のみの予約
+          isFull = (targetLesson.firstSlots || 0) <= 0;
+        } else if (isAfternoonRequest) {
+          // 午後のみの予約
+          isFull = (targetLesson.secondSlots || 0) <= 0;
+        } else {
+          // 予約がセッション時間外の場合 (例: 休憩時間内)
+          // この予約は不正だが、ここでは満席とは扱わず、後続のバリデーションに任せる
+          isFull = false;
+        }
+      } else {
+        // 通常教室（セッション制・全日時間制）の場合
+        isFull = (targetLesson.firstSlots || 0) <= 0;
+      }
     }
 
     Logger.log(
@@ -195,7 +204,11 @@ function checkCapacityFull(classroom, date, startTime, endTime) {
  * @param {ScheduleMasterData} scheduleRule - 日程マスタから取得した日程情報。
  * @throws {Error} 検証に失敗した場合、理由を示すエラーをスローする。
  */
-function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
+export function _validateTimeBasedReservation(
+  startTime,
+  endTime,
+  scheduleRule,
+) {
   if (!startTime || !endTime)
     throw new Error('開始時刻と終了時刻の両方を指定してください。');
   const start = new Date(`1900-01-01T${startTime}`);
@@ -240,8 +253,8 @@ function _validateTimeBasedReservation(startTime, endTime, scheduleRule) {
  * @param {'create' | 'update'} mode - 'create'なら新規追加、'update'なら上書き
  * @returns {{newRowData: RawSheetRow, headerMap: HeaderMapType}} 保存された行データとヘッダーマップ
  */
-function _saveReservationCoreToSheet(reservation, mode) {
-  const sheet = getSheetByName(CONSTANTS.SHEET_NAMES.RESERVATIONS);
+export function _saveReservationCoreToSheet(reservation, mode) {
+  const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);
   if (!sheet) throw new Error('予約記録シートが見つかりません。');
 
   const { header, headerMap, dataRows } = getSheetData(sheet);
@@ -319,7 +332,7 @@ function _saveReservationCoreToSheet(reservation, mode) {
  *   firstLecture: false,
  * });
  */
-function makeReservation(reservationInfo) {
+export function makeReservation(reservationInfo) {
   return withTransaction(() => {
     try {
       // 日程マスタから該当日・教室の情報を取得
@@ -381,9 +394,10 @@ function makeReservation(reservationInfo) {
         reservationInfo.date,
         reservationInfo.startTime,
         reservationInfo.endTime,
+        reservationInfo.firstLecture || false,
       );
       Logger.log(
-        `[makeReservation] 定員チェック結果: ${reservationInfo.classroom} ${reservationInfo.date} - 満席=${isFull}`,
+        `[makeReservation] 定員チェック結果: ${reservationInfo.classroom} ${reservationInfo.date} - 満席=${isFull}, 初回=${reservationInfo.firstLecture}`,
       );
 
       // 完全なReservationCoreオブジェクトを構築
@@ -392,22 +406,11 @@ function makeReservation(reservationInfo) {
         ? CONSTANTS.STATUS.WAITLISTED
         : CONSTANTS.STATUS.CONFIRMED;
 
-      // 日付文字列をDateオブジェクトに変換（予約記録シートに適した形式）
-      const targetDate = new Date(reservationInfo.date + 'T00:00:00+09:00');
-
-      // 会場情報を取得（reservationInfoまたは同日同教室の既存予約から）
-      let finalVenue = reservationInfo.venue || '';
-      if (!finalVenue) {
-        // 会場情報が未設定の場合、バックエンドでは無理に補完せず、空のまま保存する方針に変更。
-        // 補完ロジックが必要な場合は、`_saveReservationCoreToSheet`の前で`getSheetData`を呼び出して`data`を取得する必要がある。
-      }
-
       /** @type {ReservationCore} */
       const completeReservation = {
         ...reservationInfo,
         reservationId: createdReservationId,
         status: status,
-        venue: finalVenue,
       };
 
       // 共通関数を呼び出して保存
@@ -489,7 +492,7 @@ ${err.stack}`);
  * @param {ReservationCore} cancelInfo - 予約キャンセル情報。`reservationId`と`studentId`は必須。`cancelMessage`は任意。
  * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
  */
-function cancelReservation(cancelInfo) {
+export function cancelReservation(cancelInfo) {
   return withTransaction(() => {
     try {
       const { reservationId, studentId, cancelMessage } = cancelInfo;
@@ -581,7 +584,7 @@ ${err.stack}`);
  * @param {string} date - 日付（yyyy-MM-dd形式）
  * @param {ReservationCore} _cancelledReservation - キャンセルされた予約データ（将来の拡張用）
  */
-function notifyAvailabilityToWaitlistedUsers(
+export function notifyAvailabilityToWaitlistedUsers(
   classroom,
   date,
   _cancelledReservation,
@@ -661,7 +664,11 @@ function notifyAvailabilityToWaitlistedUsers(
  * @param {string} availabilityType - 空きタイプ ('first', 'second', 'all')
  * @returns {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>}
  */
-function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
+export function getWaitlistedUsersForNotification(
+  classroom,
+  date,
+  availabilityType,
+) {
   // ★改善: getCachedReservationsAsObjects を使い、オブジェクトとして直接取得する
   const allReservations = getCachedReservationsAsObjects();
   const waitlistedReservations = allReservations.filter(
@@ -719,7 +726,7 @@ function getWaitlistedUsersForNotification(classroom, date, availabilityType) {
  * @param {LessonCore} lesson - レッスン情報
  * @returns {string} メール本文
  */
-function createAvailabilityNotificationEmail(recipient, lesson) {
+export function createAvailabilityNotificationEmail(recipient, lesson) {
   const appUrl = CONSTANTS.WEB_APP_URL.PRODUCTION;
   const dateFormatted = Utilities.formatDate(
     new Date(lesson.date),
@@ -748,7 +755,7 @@ function createAvailabilityNotificationEmail(recipient, lesson) {
  * @param {ReservationCore} details - 予約更新リクエスト。`reservationId`と更新したいフィールドのみを持つ部分的な`ReservationCore`オブジェクト。
  * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
  */
-function updateReservationDetails(details) {
+export function updateReservationDetails(details) {
   return withTransaction(() => {
     try {
       // 1. 既存の予約データをCore型オブジェクトとして取得
@@ -912,7 +919,7 @@ ${err.stack}`,
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
  * @returns {ApiResponseGeneric<{message: string}>} - 処理結果。
  */
-function saveAccountingDetails(reservationWithAccounting) {
+export function saveAccountingDetails(reservationWithAccounting) {
   return withTransaction(() => {
     try {
       const { reservationId, studentId, accountingDetails } =
@@ -1012,7 +1019,7 @@ ${err.stack}`);
  * @param {ReservationCore} reservation - 売上ログを生成する対象の予約オブジェクト
  * @param {AccountingDetails} accountingDetails - 計算済みの会計詳細オブジェクト。
  */
-function _logSalesForSingleReservation(reservation, accountingDetails) {
+export function _logSalesForSingleReservation(reservation, accountingDetails) {
   try {
     // 生徒情報を取得
     const studentId = reservation.studentId;
@@ -1084,7 +1091,7 @@ ${err.stack}`,
  * @param {string} classroom - 教室名
  * @returns {ScheduleMasterData | undefined} 日程マスタのルール
  */
-function getScheduleInfoForDate(date, classroom) {
+export function getScheduleInfoForDate(date, classroom) {
   const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
   if (!scheduleCache?.schedule) return undefined;
 
@@ -1098,7 +1105,7 @@ function getScheduleInfoForDate(date, classroom) {
  * @param {object} confirmInfo - { reservationId, studentId, messageToTeacher }
  * @returns {ApiResponseGeneric<any>} 処理結果と最新データ
  */
-function confirmWaitlistedReservation(confirmInfo) {
+export function confirmWaitlistedReservation(confirmInfo) {
   return withTransaction(() => {
     try {
       const { reservationId, studentId, messageToTeacher } = confirmInfo;
@@ -1126,6 +1133,7 @@ function confirmWaitlistedReservation(confirmInfo) {
         targetReservation.date,
         targetReservation.startTime,
         targetReservation.endTime,
+        targetReservation.firstLecture || false,
       );
       if (isFull) {
         throw new Error('現在満席のため確定できません。');

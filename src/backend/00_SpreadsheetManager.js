@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -13,18 +13,21 @@
  */
 
 // 実行時取得定数
-const SALES_SPREADSHEET_ID =
+export const SALES_SPREADSHEET_ID =
   PropertiesService.getScriptProperties().getProperty('SALES_SPREADSHEET_ID');
 
 /**
  * スプレッドシートマネージャー
  * アプリケーション全体でスプレッドシートオブジェクトを共有・管理
  */
-class SpreadsheetManager {
+export class SpreadsheetManager {
   constructor() {
+    /** @type {GoogleAppsScript.Spreadsheet.Spreadsheet | null} */
     this._spreadsheet = null;
+    /** @type {Map<string, GoogleAppsScript.Spreadsheet.Sheet | null>} */
     this._sheets = new Map();
     this._isWarming = false;
+    /** @type {Promise<void> | null} */
     this._warmupPromise = null;
   }
 
@@ -93,7 +96,7 @@ class SpreadsheetManager {
   /**
    * 指定されたシートを取得（キャッシュ付き）
    * @param {string} sheetName - シート名
-   * @returns {GoogleAppsScript.Spreadsheet.Sheet|null}
+   * @returns {GoogleAppsScript.Spreadsheet.Sheet | null | undefined}
    */
   getSheet(sheetName) {
     if (!this._sheets.has(sheetName)) {
@@ -219,18 +222,4 @@ class SpreadsheetManager {
 }
 
 // グローバルインスタンス
-const SS_MANAGER = new SpreadsheetManager();
-
-/**
- * 従来の関数と互換性を保つためのヘルパー関数
- */
-function getActiveSpreadsheet() {
-  return SS_MANAGER.getSpreadsheet();
-}
-
-/**
- * @param {string} sheetName
- */
-function getSheetByName(sheetName) {
-  return SS_MANAGER.getSheet(sheetName);
-}
+export const SS_MANAGER = new SpreadsheetManager();

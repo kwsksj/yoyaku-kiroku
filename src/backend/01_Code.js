@@ -1,59 +1,32 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
  * 【ファイル名】: 01_Code.gs
- * 【バージョン】: 2.3
+ * 【バージョン】: 2.4
  * 【役割】: グローバル定数、UI定義、トリガー関数を集約するプロジェクトのエントリーポイント。
- * 【構成】: 18ファイル構成のうちの1番目（新規00_Constants.jsを含む）
- * 【v2.3での変更点】:
- * - フェーズ1リファクタリング: 定数の統一管理のため、00_Constants.jsで定義された統一定数を使用
- * - 重複定義されていた教室名、ヘッダー名などを削除し、統一ファイルから継承
+ * 【v2.4での変更点】:
+ * - グローバル定数を00_Constants.jsに移行
  * =================================================================
  */
 
-// =================================================================
-// 統一定数ファイル（00_Constants.js）から継承
-// 基本的な定数は00_Constants.jsで統一管理されています
-// =================================================================
-
-// --- グローバル定数定義 ---
-const RESERVATION_DATA_START_ROW = 2;
-
 //  管理者通知用のメールアドレス
-const ADMIN_EMAIL =
+export const ADMIN_EMAIL =
   PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL'); // 管理者のメールアドレス
 
-// --- UI・表示関連の定数 ---
-const COLUMN_WIDTH_DATE = 100; // 日付列の幅
-const COLUMN_WIDTH_CLASSROOM = 100; // 教室列の幅
-const COLUMN_WIDTH_VENUE = 150; // 会場列の幅
-const COLUMN_WIDTH_CLASSROOM_TYPE = 120; // 教室形式列の幅
-const COLUMN_WIDTH_TIME = 80; // 時間関連列の幅
-const COLUMN_WIDTH_BEGINNER_START = 100; // 初回者開始列の幅
-const COLUMN_WIDTH_CAPACITY = 80; // 定員関連列の幅
-const COLUMN_WIDTH_STATUS = 80; // 状態列の幅
-const COLUMN_WIDTH_NOTES = 200; // 備考列の幅
-
-// --- システム処理関連の定数 ---
-const CACHE_EXPIRY_SECONDS = 86400; // キャッシュ有効期限（24時間）
-const WEEKEND_SUNDAY = 0; // 日曜日の曜日コード
-const WEEKEND_SATURDAY = 6; // 土曜日の曜日コード
-const HEADER_ROW = 1; // ヘッダー行番号
-
-// --- 外部サービス連携用ID ---
-
 // --- GoogleカレンダーのID ---
-const CALENDAR_IDS_RAW =
+export const CALENDAR_IDS_RAW =
   PropertiesService.getScriptProperties().getProperty('CALENDAR_IDS');
-const CALENDAR_IDS = CALENDAR_IDS_RAW ? JSON.parse(CALENDAR_IDS_RAW) : {};
+export const CALENDAR_IDS = CALENDAR_IDS_RAW
+  ? JSON.parse(CALENDAR_IDS_RAW)
+  : {};
 
 /**
  * HTMLテンプレートのサブファイルをテンプレート評価の文脈で読み込むためのinclude関数
  * @param {string} filename - 読み込むHTMLファイル名（拡張子不要）
  * @returns {string} - サブファイルのHTML文字列
  */
-function include(filename) {
+export function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
@@ -62,7 +35,7 @@ function include(filename) {
 /**
  * @param {GoogleAppsScript.Events.DoGet} e
  */
-function doGet(e) {
+export function doGet(e) {
   // URLパラメータでテストモードかどうかを判定
   const isTestMode = e && e.parameter && e.parameter['test'] === 'true';
 
@@ -89,7 +62,7 @@ function doGet(e) {
   }
 }
 
-function onOpen() {
+export function onOpen() {
   const ui = SpreadsheetApp.getUi();
   const menu = ui.createMenu('データ処理');
   addAdminMenu(menu);
@@ -100,14 +73,14 @@ function onOpen() {
 /**
  * @param {GoogleAppsScript.Base.Menu} menu
  */
-function addAdminMenu(menu) {
+export function addAdminMenu(menu) {
   menu;
 }
 
 /**
  * @param {GoogleAppsScript.Base.Menu} menu
  */
-function addCacheMenu(menu) {
+export function addCacheMenu(menu) {
   menu
     .addSeparator()
     .addItem('キャッシュサービスを一括更新', 'rebuildAllCachesEntryPoint')
@@ -122,7 +95,7 @@ function addCacheMenu(menu) {
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processChange` へ委譲します。
  * @param {GoogleAppsScript.Events.SheetsOnChange} _e - Google Sheets のイベントオブジェクト
  */
-function handleOnChange(_e) {
+export function handleOnChange(_e) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) return;
 
@@ -139,7 +112,7 @@ function handleOnChange(_e) {
  * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processCellEdit` へ委譲します。
  * @param {GoogleAppsScript.Events.SheetsOnEdit} _e - Google Sheets のイベントオブジェクト
  */
-function handleEdit(_e) {
+export function handleEdit(_e) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) return;
   try {
@@ -154,7 +127,7 @@ function handleEdit(_e) {
  * テスト用WebAppのエントリーポイント
  * パフォーマンステスト画面を表示します
  */
-function doGetTest() {
+export function doGetTest() {
   try {
     const htmlOutput = HtmlService.createTemplateFromFile(
       'test_performance_webapp',
@@ -181,7 +154,7 @@ function doGetTest() {
  * テスト専用のデプロイメントを作成する場合に使用
  * @param {GoogleAppsScript.Events.DoGet} _e
  */
-function doGetPerformanceTest(_e) {
+export function doGetPerformanceTest(_e) {
   return doGetTest();
 }
 
@@ -190,7 +163,7 @@ function doGetPerformanceTest(_e) {
  * GASエディタから一度だけ実行してください
  * @param {string} email - 設定するメールアドレス
  */
-function setAdminEmail(email = 'shiawasenahito3000@gmail.com') {
+export function setAdminEmail(email = 'shiawasenahito3000@gmail.com') {
   try {
     PropertiesService.getScriptProperties().setProperty('ADMIN_EMAIL', email);
     Logger.log(`ADMIN_EMAIL を設定しました: ${email}`);
@@ -209,7 +182,7 @@ function setAdminEmail(email = 'shiawasenahito3000@gmail.com') {
  * 月次通知メールトリガーを設定
  * すべての通知日・時刻の組み合わせに対してトリガーを作成
  */
-function setupMonthlyNotificationTriggers() {
+export function setupMonthlyNotificationTriggers() {
   try {
     // 既存のトリガーを削除
     deleteMonthlyNotificationTriggers();
@@ -246,7 +219,7 @@ function setupMonthlyNotificationTriggers() {
 /**
  * 月次通知メールトリガーを削除
  */
-function deleteMonthlyNotificationTriggers() {
+export function deleteMonthlyNotificationTriggers() {
   try {
     const triggers = ScriptApp.getProjectTriggers();
     let deleteCount = 0;
@@ -275,43 +248,43 @@ function deleteMonthlyNotificationTriggers() {
 // =================================================================
 
 // 5日
-function trigger_sendNotification_day5_hour9() {
+export function trigger_sendNotification_day5_hour9() {
   sendMonthlyNotificationEmails(5, 9);
 }
-function trigger_sendNotification_day5_hour12() {
+export function trigger_sendNotification_day5_hour12() {
   sendMonthlyNotificationEmails(5, 12);
 }
-function trigger_sendNotification_day5_hour18() {
+export function trigger_sendNotification_day5_hour18() {
   sendMonthlyNotificationEmails(5, 18);
 }
-function trigger_sendNotification_day5_hour21() {
+export function trigger_sendNotification_day5_hour21() {
   sendMonthlyNotificationEmails(5, 21);
 }
 
 // 15日
-function trigger_sendNotification_day15_hour9() {
+export function trigger_sendNotification_day15_hour9() {
   sendMonthlyNotificationEmails(15, 9);
 }
-function trigger_sendNotification_day15_hour12() {
+export function trigger_sendNotification_day15_hour12() {
   sendMonthlyNotificationEmails(15, 12);
 }
-function trigger_sendNotification_day15_hour18() {
+export function trigger_sendNotification_day15_hour18() {
   sendMonthlyNotificationEmails(15, 18);
 }
-function trigger_sendNotification_day15_hour21() {
+export function trigger_sendNotification_day15_hour21() {
   sendMonthlyNotificationEmails(15, 21);
 }
 
 // 25日
-function trigger_sendNotification_day25_hour9() {
+export function trigger_sendNotification_day25_hour9() {
   sendMonthlyNotificationEmails(25, 9);
 }
-function trigger_sendNotification_day25_hour12() {
+export function trigger_sendNotification_day25_hour12() {
   sendMonthlyNotificationEmails(25, 12);
 }
-function trigger_sendNotification_day25_hour18() {
+export function trigger_sendNotification_day25_hour18() {
   sendMonthlyNotificationEmails(25, 18);
 }
-function trigger_sendNotification_day25_hour21() {
+export function trigger_sendNotification_day25_hour21() {
   sendMonthlyNotificationEmails(25, 21);
 }

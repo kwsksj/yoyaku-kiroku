@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -18,7 +18,7 @@
  * 【開発用】テスト環境をセットアップします。
  * 現在のスプレッドシートをコピーし、テスト用の新しい環境を作成します。
  */
-function setupTestEnvironment() {
+export function setupTestEnvironment() {
   const ui = SpreadsheetApp.getUi();
   const response = ui.alert(
     'テスト環境の作成',
@@ -32,9 +32,13 @@ function setupTestEnvironment() {
   }
 
   try {
-    getActiveSpreadsheet().toast('テスト環境を作成中です...', '処理中', -1);
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'テスト環境を作成中です...',
+      '処理中',
+      -1,
+    );
 
-    const sourceSpreadsheet = getActiveSpreadsheet();
+    const sourceSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     const sourceFile = DriveApp.getFileById(sourceSpreadsheet.getId());
 
     // 1. スプレッドシートをコピー
@@ -46,7 +50,11 @@ function setupTestEnvironment() {
     const newUrl = copiedSpreadsheet.getUrl();
     const newId = copiedSpreadsheet.getId();
 
-    getActiveSpreadsheet().toast('テスト環境の作成が完了しました。', '完了', 5);
+    SpreadsheetApp.getActiveSpreadsheet().toast(
+      'テスト環境の作成が完了しました。',
+      '完了',
+      5,
+    );
 
     // 3. ユーザーに情報を提示
     const htmlOutput = HtmlService.createHtmlOutput(

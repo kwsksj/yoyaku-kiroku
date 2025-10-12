@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Views_Auth.js
@@ -21,7 +19,7 @@
  * 【主要機能】電話番号入力による認証とユーザー識別
  * @returns {HTMLString} ログイン画面のHTML文字列
  */
-const getLoginView = () => {
+export const getLoginView = () => {
   const phoneValue = stateManager.getState()['loginPhone'] || '';
   return Components.pageContainer({
     maxWidth: 'md',
@@ -63,7 +61,7 @@ const getLoginView = () => {
  * @param {PhoneNumber} phone - 電話番号
  * @returns {HTMLString} HTML文字列
  */
-const getRegistrationStep1View = phone => {
+export const getRegistrationStep1View = phone => {
   const data = /** @type {RegistrationFormData} */ (
     stateManager.getState()['registrationData'] || {}
   );
@@ -194,14 +192,14 @@ const getRegistrationStep1View = phone => {
  * @param {PhoneNumber} p - 電話番号
  * @returns {HTMLString} HTML文字列
  */
-const getRegisterView = p => getRegistrationStep1View(p);
+export const getRegisterView = p => getRegistrationStep1View(p);
 
 /**
  * 新規登録フローのステップ2（プロフィール詳細）
  * 【設計方針】ステップ式登録により、ユーザー負担を軽減
  * @returns {string} プロフィール詳細フォームのHTML文字列
  */
-const getRegistrationStep2View = () => {
+export const getRegistrationStep2View = () => {
   const data = /** @type {RegistrationFormData} */ (
     stateManager.getState()['registrationData']
   );
@@ -290,7 +288,7 @@ const getRegistrationStep2View = () => {
  * 【UX配慮】動的表示制御により、経験者には詳細質問を表示
  * @returns {string} 木彫りアンケートフォームのHTML文字列
  */
-const getRegistrationStep3View = () => {
+export const getRegistrationStep3View = () => {
   const data = stateManager.getState()['registrationData'];
 
   return `
@@ -352,7 +350,7 @@ const getRegistrationStep3View = () => {
  * 【設計方針】最終ステップでユーザーの参加意向とフィードバックを収集
  * @returns {string} アンケートフォームのHTML文字列
  */
-const getRegistrationStep4View = () => {
+export const getRegistrationStep4View = () => {
   const data = stateManager.getState()['registrationData'];
 
   return `
@@ -437,7 +435,7 @@ const getRegistrationStep4View = () => {
  * 【設計方針】step1と統一的な構造
  * @returns {HTMLString} HTML文字列
  */
-const getEditProfileView = () => {
+export const getEditProfileView = () => {
   const userData = /** @type {UserData} */ (
     stateManager.getState().currentUser || {}
   );

@@ -90,6 +90,34 @@ interface ReservationFormContext {
   reservationInfo: Partial<ReservationData>; // 新規の場合は初期値、編集の場合は既存データ
 }
 
+/**
+ * 会計フォームデータ型（フロントエンド専用）
+ */
+interface AccountingFormDto {
+  /** 開始時刻 */
+  startTime?: string;
+  /** 終了時刻 */
+  endTime?: string;
+  /** 休憩時間（分） */
+  breakTime?: number;
+  /** チェック済み項目（授業料・物販） */
+  checkedItems?: Record<string, boolean>;
+  /** 材料データ */
+  materials?: Array<{
+    type: string;
+    l?: number;
+    w?: number;
+    h?: number;
+  }>;
+  /** 物販データ */
+  selectedProducts?: Array<{
+    name: string;
+    price: number;
+  }>;
+  /** その他フォームフィールド */
+  [key: string]: any;
+}
+
 // =================================================================
 // UI State（状態管理の中核）
 // =================================================================
@@ -109,7 +137,7 @@ declare global {
     // --- Core Application Data ---
     lessons: LessonCore[];
     myReservations: ReservationData[];
-    accountingMaster: AccountingMasterData[];
+    accountingMaster: AccountingMasterItemCore[];
     classrooms?: string[];
 
     // --- UI State ---
@@ -121,9 +149,9 @@ declare global {
     selectedLesson: LessonCore | null;
     editingReservationDetails: ReservationDetails | null;
     accountingReservation: ReservationData | null;
-    accountingReservationDetails: AccountingReservationDetails;
+    accountingReservationDetails: AccountingDetailsCore;
     accountingScheduleInfo: ScheduleInfo | null;
-    accountingDetails: AccountingCalculation | null;
+    accountingDetails: AccountingDetailsCore | null;
     accountingCompleted?: boolean;
     isEditingAccountingRecord?: boolean;
     wasFirstTimeBooking?: boolean;

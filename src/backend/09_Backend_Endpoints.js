@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -23,7 +23,7 @@
  * @param {string} successMessage - 操作成功時のメッセージ
  * @returns {ApiResponseGeneric} 操作結果と最新データを含むAPIレスポンス
  */
-function executeOperationAndGetLatestData(
+export function executeOperationAndGetLatestData(
   operationFunction,
   operationParams,
   studentId,
@@ -63,7 +63,7 @@ function executeOperationAndGetLatestData(
  * @param {ReservationCore} reservationInfo - 予約情報。`reservationId`と`status`はバックエンドで生成するため未設定でOK。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
-function makeReservationAndGetLatestData(reservationInfo) {
+export function makeReservationAndGetLatestData(reservationInfo) {
   const isFirstTime = reservationInfo['firstLecture'] || false;
 
   const result = executeOperationAndGetLatestData(
@@ -86,7 +86,7 @@ function makeReservationAndGetLatestData(reservationInfo) {
  * @param {ReservationCore} cancelInfo - キャンセル情報（reservationId, studentId, cancelMessageを含む）
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
-function cancelReservationAndGetLatestData(cancelInfo) {
+export function cancelReservationAndGetLatestData(cancelInfo) {
   return executeOperationAndGetLatestData(
     cancelReservation,
     cancelInfo,
@@ -100,7 +100,7 @@ function cancelReservationAndGetLatestData(cancelInfo) {
  * @param {ReservationCore} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
-function updateReservationDetailsAndGetLatestData(details) {
+export function updateReservationDetailsAndGetLatestData(details) {
   return executeOperationAndGetLatestData(
     updateReservationDetails,
     details,
@@ -116,7 +116,7 @@ function updateReservationDetailsAndGetLatestData(details) {
  * @param {string} newMemo - 新しいメモ内容
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
-function updateReservationMemoAndGetLatestData(
+export function updateReservationMemoAndGetLatestData(
   reservationId,
   studentId,
   newMemo,
@@ -138,7 +138,9 @@ function updateReservationMemoAndGetLatestData(
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
-function saveAccountingDetailsAndGetLatestData(reservationWithAccounting) {
+export function saveAccountingDetailsAndGetLatestData(
+  reservationWithAccounting,
+) {
   return executeOperationAndGetLatestData(
     saveAccountingDetails,
     reservationWithAccounting,
@@ -152,7 +154,7 @@ function saveAccountingDetailsAndGetLatestData(reservationWithAccounting) {
  * @param {string} phone - 電話番号（ユーザー認証用）
  * @returns {ApiResponseGeneric} 認証結果、初期データ、個人データを含む結果
  */
-function getLoginData(phone) {
+export function getLoginData(phone) {
   try {
     Logger.log(`getLoginData統合処理開始: phone=${phone}`);
 
@@ -215,7 +217,7 @@ function getLoginData(phone) {
  * 空き枠データの更新有無を高速で判定
  * @returns {ApiResponseGeneric} - { success: boolean, versions: object }
  */
-function getCacheVersions() {
+export function getCacheVersions() {
   try {
     Logger.log('getCacheVersions開始');
 
@@ -253,7 +255,7 @@ function getCacheVersions() {
  * @param {string|null} studentId - 生徒ID（個人データ取得用、任意）
  * @returns {BatchDataResult} 要求されたすべてのデータを含む統合レスポンス
  */
-function getBatchData(dataTypes = [], phone = null, studentId = null) {
+export function getBatchData(dataTypes = [], phone = null, studentId = null) {
   try {
     Logger.log(
       `getBatchData開始: dataTypes=${JSON.stringify(dataTypes)}, phone=${phone}, studentId=${studentId}`,
@@ -335,7 +337,7 @@ function getBatchData(dataTypes = [], phone = null, studentId = null) {
  * @param {boolean} [log=false] - Loggerにエラーを記録するか
  * @returns {ApiResponseGeneric} 統一されたエラーレスポンス
  */
-function createApiErrorResponse(message, log = false) {
+export function createApiErrorResponse(message, log = false) {
   if (log) {
     Logger.log(message);
   }
@@ -350,7 +352,7 @@ function createApiErrorResponse(message, log = false) {
  * @param {ScheduleInfoParams} params - {date: string, classroom: string}
  * @returns {ApiResponseGeneric} APIレスポンス（日程マスタ情報）
  */
-function getScheduleInfo(params) {
+export function getScheduleInfo(params) {
   try {
     Logger.log(`🔍 getScheduleInfo API: 呼び出し開始`);
     Logger.log(`🔍 getScheduleInfo API: params =`, params);
@@ -400,7 +402,7 @@ function getScheduleInfo(params) {
  * @param {string} reservationId - 予約ID
  * @returns {ApiResponseGeneric<AccountingDetails>} 会計詳細データ
  */
-function getAccountingDetailsFromSheet(reservationId) {
+export function getAccountingDetailsFromSheet(reservationId) {
   try {
     Logger.log(
       `🔍 getAccountingDetailsFromSheet API: 開始 reservationId=${reservationId}`,
@@ -473,6 +475,10 @@ function getAccountingDetailsFromSheet(reservationId) {
         accountingDetails = JSON.parse(accountingDetails);
       } catch (e) {
         // パースに失敗した場合は文字列のまま
+        BackendErrorHandler.handle(
+          e,
+          'getAccountingDetailsFromSheet.jsonParse',
+        );
       }
     }
 
@@ -498,7 +504,7 @@ function getAccountingDetailsFromSheet(reservationId) {
  * @param {{reservationId: string, studentId: string}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric} 処理結果と最新データ
  */
-function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
+export function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
   return executeOperationAndGetLatestData(
     confirmWaitlistedReservation,
     confirmInfo,

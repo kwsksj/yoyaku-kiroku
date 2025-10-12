@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -17,7 +17,7 @@
  * @param {number} targetDay - 通知対象日（5, 15, 25）
  * @param {number} targetHour - 通知対象時刻（9, 12, 18, 21）
  */
-function sendMonthlyNotificationEmails(targetDay, targetHour) {
+export function sendMonthlyNotificationEmails(targetDay, targetHour) {
   try {
     Logger.log(
       `月次通知メール送信開始: ${targetDay}日 ${targetHour}時のトリガー`,
@@ -164,7 +164,7 @@ function sendMonthlyNotificationEmails(targetDay, targetHour) {
  * @returns {UserCore[]} 送信対象生徒の配列
  * @private
  */
-function _getNotificationRecipients(targetDay, targetHour) {
+export function _getNotificationRecipients(targetDay, targetHour) {
   // 生徒キャッシュから全生徒データを取得
   const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
   const allStudents = studentsCache?.students
@@ -215,7 +215,7 @@ function _getNotificationRecipients(targetDay, targetHour) {
  * @returns {string} メール本文
  * @private
  */
-function _generateEmailBody(student, reservations, lessons) {
+export function _generateEmailBody(student, reservations, lessons) {
   const displayName = student.nickname || student.realName;
 
   let body = `${displayName}さま\n\n`;
@@ -349,7 +349,7 @@ function _generateEmailBody(student, reservations, lessons) {
  * @returns {string} フォーマット済み時刻文字列
  * @private
  */
-function _formatTimeRange(startTime, endTime) {
+export function _formatTimeRange(startTime, endTime) {
   const start =
     typeof startTime === 'string'
       ? startTime
@@ -368,7 +368,7 @@ function _formatTimeRange(startTime, endTime) {
  * @returns {string} フォーマット済みステータス文字列
  * @private
  */
-function _formatStatus(status) {
+export function _formatStatus(status) {
   switch (status) {
     case CONSTANTS.STATUS.CONFIRMED:
       return '予約確定';
@@ -387,7 +387,7 @@ function _formatStatus(status) {
  * @param {number} failCount - 失敗件数
  * @private
  */
-function _notifyAdminAboutFailures(successCount, failCount) {
+export function _notifyAdminAboutFailures(successCount, failCount) {
   try {
     const adminEmail = Session.getEffectiveUser().getEmail();
     if (!adminEmail) return;
@@ -416,7 +416,7 @@ function _notifyAdminAboutFailures(successCount, failCount) {
  * 【開発・テスト用】手動で通知メールを送信
  * メニューから実行可能
  */
-function manualSendMonthlyNotificationEmails() {
+export function manualSendMonthlyNotificationEmails() {
   const ui = SpreadsheetApp.getUi();
 
   // 通知日の選択

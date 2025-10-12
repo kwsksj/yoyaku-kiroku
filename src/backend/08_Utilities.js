@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -11,18 +11,15 @@
  * =================================================================
  */
 
-// 環境変数（開発時にのみtrueに設定）
-const DEBUG = false;
-
 /**
  * 環境別ログ制御システム - パフォーマンス最適化
  */
-const PerformanceLog = {
+export const PerformanceLog = {
   /**
    * デバッグログ（開発環境でのみ出力）
    */
   debug(/** @type {string} */ message, /** @type {...any} */ ...args) {
-    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE && DEBUG) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       Logger.log(`[DEBUG] ${message}`, ...args);
     }
   },
@@ -50,7 +47,7 @@ const PerformanceLog = {
     /** @type {string} */ operation,
     /** @type {number} */ startTime,
   ) {
-    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE && DEBUG) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       const duration = Date.now() - startTime;
       Logger.log(`[PERF] ${operation}: ${duration}ms`);
     }
@@ -63,7 +60,7 @@ const PerformanceLog = {
  * @param {any[]} reservations - 予約データ配列
  * @returns {any[]} 有効な予約データのみを含む配列
  */
-function validateReservationsStructure(reservations) {
+export function validateReservationsStructure(reservations) {
   if (!Array.isArray(reservations)) {
     PerformanceLog.error('予約データは配列である必要があります');
     return [];
@@ -80,9 +77,9 @@ function validateReservationsStructure(reservations) {
 /**
  * ヘッダー行の配列から、ヘッダー名をキー、列インデックス(0-based)を値とするマップを作成します。
  * @param {string[]} headerRow - ヘッダーの行データ
- * @returns {Map<string, number>}
+ * @returns {HeaderMapType}
  */
-function createHeaderMap(headerRow) {
+export function createHeaderMap(headerRow) {
   const map = new Map();
   headerRow.forEach((c, i) => {
     if (c && typeof c === 'string') {
@@ -97,7 +94,7 @@ function createHeaderMap(headerRow) {
  * @param {string} message - 表示する
  * @param {boolean} isError - エラーかどうか
  */
-function handleError(message, isError) {
+export function handleError(message, isError) {
   const logMessage = isError ? `エラー: ${message}` : `情報: ${message}`;
   Logger.log(logMessage);
   if (isError) {
@@ -129,19 +126,19 @@ function handleError(message, isError) {
  * @param {*} value - 検索する値
  * @returns {number} - 見つかった行のインデックス (1-based)。見つからない場合は-1。
  */
-function findRowIndexByValue(sheet, col, value) {
-  if (sheet.getLastRow() < RESERVATION_DATA_START_ROW) return -1;
+export function findRowIndexByValue(sheet, col, value) {
+  if (sheet.getLastRow() < CONSTANTS.SYSTEM.DATA_START_ROW) return -1;
   const allValues = sheet
     .getRange(
-      RESERVATION_DATA_START_ROW,
+      CONSTANTS.SYSTEM.DATA_START_ROW,
       col,
-      sheet.getLastRow() - RESERVATION_DATA_START_ROW + 1,
+      sheet.getLastRow() - CONSTANTS.SYSTEM.DATA_START_ROW + 1,
       1,
     )
     .getValues();
   for (let i = 0; i < allValues.length; i++) {
     if (allValues[i][0] == value) {
-      return i + RESERVATION_DATA_START_ROW;
+      return i + CONSTANTS.SYSTEM.DATA_START_ROW;
     }
   }
   return -1;
@@ -155,7 +152,7 @@ function findRowIndexByValue(sheet, col, value) {
  * @param {number} price - 金額。
  * @returns {SalesRowArray} 売上表の1行分の配列。
  */
-function createSalesRow(baseInfo, category, itemName, price) {
+export function createSalesRow(baseInfo, category, itemName, price) {
   // 注意：この配列の順序は、実際の「売上ログ」シートの列の順序と一致させる必要があります。
   return [
     baseInfo.date, // 日付
@@ -180,9 +177,9 @@ function createSalesRow(baseInfo, category, itemName, price) {
  * @param {string} result - 操作の結果 ('成功' or '失敗')。
  * @param {string} details - 操作の詳細情報。
  */
-function logActivity(userId, action, result, details) {
+export function logActivity(userId, action, result, details) {
   try {
-    const ss = getActiveSpreadsheet();
+    const ss = SS_MANAGER.getSpreadsheet();
     const logSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.LOG);
     // シートや数式が未設定の場合は、エラーを出さずに処理を中断する
     if (!logSheet) {
@@ -206,9 +203,9 @@ function logActivity(userId, action, result, details) {
  * F列は自身の値、G列はE列の値に基づいて背景色が設定されます。
  * 実行前に既存のルールはすべてクリアされるため、常に新しい状態でルールが適用されます。
  */
-function setupConditionalFormattingForLogSheet() {
+export function setupConditionalFormattingForLogSheet() {
   const sheetName = 'ログシート';
-  const ss = getActiveSpreadsheet();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {
@@ -328,7 +325,7 @@ function setupConditionalFormattingForLogSheet() {
  * @param {ReservationArrayData} resArray - 配列形式の予約データ
  * @returns {ReservationCore|null} オブジェクト形式の予約データ（生データ）
  */
-function transformReservationArrayToObject(resArray) {
+export function transformReservationArrayToObject(resArray) {
   if (!Array.isArray(resArray) || resArray.length < 15) {
     return null;
   }
@@ -387,7 +384,7 @@ function transformReservationArrayToObject(resArray) {
  * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore|null} - 変換された予約オブジェクト、失敗時はnull
  */
-function transformReservationArrayToObjectWithHeaders(
+export function transformReservationArrayToObjectWithHeaders(
   resArray,
   headerMap,
   studentsMap,
@@ -527,7 +524,7 @@ function transformReservationArrayToObjectWithHeaders(
  * @param {RawReservationObject} rawReservation - 生データの予約オブジェクト
  * @returns {ReservationObject|null} 正規化済み予約オブジェクト
  */
-function normalizeReservationObject(rawReservation) {
+export function normalizeReservationObject(rawReservation) {
   if (!rawReservation) return null;
 
   try {
@@ -574,7 +571,7 @@ function normalizeReservationObject(rawReservation) {
  * @param {TransactionCallback} callback - 実行する処理
  * @returns {*} callbackの戻り値
  */
-function withTransaction(callback) {
+export function withTransaction(callback) {
   const lock = LockService.getScriptLock();
   lock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
   try {
@@ -589,7 +586,7 @@ function withTransaction(callback) {
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象のシート
  * @returns {SheetDataResult} - { header, headerMap, allData, dataRows }
  */
-function getSheetData(sheet) {
+export function getSheetData(sheet) {
   if (!sheet) throw new Error('シートが見つかりません。');
 
   // 全データを一度で取得（ヘッダー含む）
@@ -615,7 +612,7 @@ function getSheetData(sheet) {
  * @param {string|number|Date|boolean|null} searchValue - 検索する値
  * @returns {SheetSearchResult} - { header, headerMap, allData, dataRows, foundRow, rowIndex, searchColIdx }
  */
-function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
+export function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
   const { header, headerMap, allData, dataRows } = getSheetData(sheet);
 
   // 検索列のインデックスを取得
@@ -657,7 +654,7 @@ function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
  * @param {string} status - ステータス（省略可、デフォルトは確定済み予約のみ）
  * @returns {ReservationCore[]} 条件に合致する正規化済み予約配列
  */
-function getNormalizedReservationsFor(
+export function getNormalizedReservationsFor(
   date,
   classroom,
   status = CONSTANTS.STATUS.CONFIRMED,
@@ -678,7 +675,7 @@ function getNormalizedReservationsFor(
  * @param {string} studentId - 生徒ID
  * @returns {StudentData|null} 生徒オブジェクト、見つからない場合はnull
  */
-function getCachedStudentById(studentId) {
+export function getCachedStudentById(studentId) {
   const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
   if (!studentsCache?.['students']) return null;
 
@@ -695,7 +692,11 @@ function getCachedStudentById(studentId) {
  * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
  */
-function convertReservationsToObjects(reservations, headerMap, studentsMap) {
+export function convertReservationsToObjects(
+  reservations,
+  headerMap,
+  studentsMap,
+) {
   return reservations
     .map(reservation => {
       if (Array.isArray(reservation)) {
@@ -714,7 +715,7 @@ function convertReservationsToObjects(reservations, headerMap, studentsMap) {
  * キャッシュから全ての予約データを取得し、オブジェクトの配列として返す
  * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列
  */
-function getCachedReservationsAsObjects() {
+export function getCachedReservationsAsObjects() {
   const reservationCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
   const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
 
@@ -748,7 +749,7 @@ function getCachedReservationsAsObjects() {
  * @param {string} reservationId - 取得する予約のID
  * @returns {ReservationCore | null} ReservationCoreオブジェクト、見つからない場合はnull
  */
-function getReservationCoreById(reservationId) {
+export function getReservationCoreById(reservationId) {
   if (!reservationId) return null;
 
   const reservationRow = getReservationByIdFromCache(reservationId);
@@ -787,7 +788,7 @@ function getReservationCoreById(reservationId) {
  * @param {string} headerName - ヘッダー名
  * @returns {number|undefined} 列インデックス
  */
-function getHeaderIndex(headerMap, headerName) {
+export function getHeaderIndex(headerMap, headerName) {
   if (!headerMap) return undefined;
   if (typeof headerMap.get === 'function') {
     return headerMap.get(headerName);
@@ -807,7 +808,7 @@ function getHeaderIndex(headerMap, headerName) {
  * @param {string} phoneInput - 入力された電話番号
  * @returns {PhoneNormalizationResult} 正規化結果
  */
-function normalizePhoneNumber(phoneInput) {
+export function normalizePhoneNumber(phoneInput) {
   if (!phoneInput || typeof phoneInput !== 'string') {
     return {
       normalized: '',
@@ -865,7 +866,7 @@ function normalizePhoneNumber(phoneInput) {
  * @param {string} phoneNumber - 正規化済み電話番号
  * @returns {string} フォーマット済み電話番号
  */
-function formatPhoneNumber(phoneNumber) {
+export function formatPhoneNumber(phoneNumber) {
   if (!phoneNumber || typeof phoneNumber !== 'string') {
     return '';
   }
@@ -903,7 +904,7 @@ function formatPhoneNumber(phoneNumber) {
  * @param {HeaderMapType} headerMap - ヘッダーマップ
  * @returns {UserCore} 統一Core型のユーザーデータ
  */
-function convertRowToUser(row, headerMap) {
+export function convertRowToUser(row, headerMap) {
   // ヘッダーマップを適切な型にキャスト
   const hm = /** @type {Record<string, number>} */ (
     headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap
@@ -975,7 +976,7 @@ function convertRowToUser(row, headerMap) {
  * @param {HeaderMapType} headerMap - ヘッダーマップ
  * @returns {RawSheetRow} Sheets書き込み用配列データ
  */
-function convertUserToRow(user, headerMap) {
+export function convertUserToRow(user, headerMap) {
   // ヘッダーマップを適切な型にキャスト
   const hm = /** @type {Record<string, number>} */ (
     headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap
@@ -1050,7 +1051,7 @@ function convertUserToRow(user, headerMap) {
  * @param {string[]} header - ヘッダー配列（列数決定用）
  * @returns {RawSheetRow} Sheets書き込み用配列データ
  */
-function convertReservationToRow(reservation, headerMap, header) {
+export function convertReservationToRow(reservation, headerMap, header) {
   const hm =
     headerMap instanceof Map ? Object.fromEntries(headerMap) : headerMap;
   const row = new Array(header.length).fill('');

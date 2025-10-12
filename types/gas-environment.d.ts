@@ -96,6 +96,12 @@ declare global {
   // Google Sheets由来の生データ型（2次元配列）
   type ReservationRawDataArray = Array<Array<string | number | Date | boolean | null>>;
 
+  // 予約データの配列形式（Sheets由来の1行データ）
+  type ReservationArrayData = Array<string | number | Date | boolean | null>;
+
+  // 生シート行データ（任意のシート用）
+  type RawSheetRow = Array<string | number | Date | boolean | null>;
+
   // キャッシュ関連型定義
   interface CacheDataStructure {
     version: number;
@@ -253,6 +259,9 @@ declare global {
     [key: string]: unknown;
   }
 
+  // UserData は StudentData のエイリアス
+  type UserData = StudentData;
+
   // 操作結果型定義
   interface OperationResult {
     success: boolean;
@@ -316,6 +325,66 @@ declare global {
   interface ScheduleInfoParams {
     date: string;
     classroom: string;
+  }
+
+  // スケジュール情報型定義（レスポンス用）
+  interface ScheduleInfo {
+    date: string;
+    classroom: string;
+    venue?: string;
+    classroomType?: string;
+    status?: string;
+    firstStart?: string;
+    firstEnd?: string;
+    secondStart?: string;
+    secondEnd?: string;
+    totalCapacity?: number;
+    beginnerCapacity?: number;
+    notes?: string;
+  }
+
+  // サーバーレスポンス型定義
+  interface ServerResponse<T = any> {
+    success: boolean;
+    data?: T;
+    message?: string;
+    error?: string;
+  }
+
+  // モックデータ型定義
+  interface MockData {
+    [key: string]: any;
+  }
+
+  // 予約検索結果型定義
+  interface ReservationSearchResult {
+    reservations: ReservationCore[];
+    totalCount: number;
+    filteredCount: number;
+    [key: string]: any;
+  }
+
+  // 状態アクション型定義
+  interface StateAction {
+    type: string;
+    payload?: any;
+  }
+
+  interface StateActionPayload {
+    [key: string]: any;
+  }
+
+  // 状態購読者型定義
+  interface StateSubscriber {
+    (state: any): void;
+  }
+
+  // HTML エスケープ関数型
+  type HTMLEscapeFunction = (text: string) => string;
+
+  // 計算済み状態データ型定義
+  interface ComputedStateData {
+    [key: string]: any;
   }
 
   // 会計詳細型定義
@@ -386,6 +455,7 @@ declare global {
 
   // ヘッダーマップ型定義
   interface HeaderMap extends Map<string, number> {}
+  type HeaderMapType = Map<string, number> | Record<string, number>;
 
   // バッチ処理結果型定義
   interface BatchProcessResult {
@@ -555,12 +625,6 @@ declare global {
     error?: string;
   }
 
-  // ヘッダーマップ型定義（主にRecord型として使用、Mapも許可）
-  type HeaderMapType = Record<string, number> | Map<string, number>;
-
-  // 予約配列データ型定義
-  type ReservationArrayData = Array<string | Date | boolean | number | null>;
-
   // 生データ（Google Sheets由来）の予約オブジェクト型定義
   // Google Sheetsの実際のデータ形式に基づく適切な型定義
   interface RawReservationObject {
@@ -612,16 +676,6 @@ declare global {
   // 売上ログ行型定義
   type SalesRowArray = Array<string | Date | number>;
 
-  // キャッシュ内予約データ構造型定義
-  interface CachedReservationData {
-    reservations: ReservationArrayData[];
-    headerMap: { [key: string]: number };
-    metadata?: {
-      totalCount: number;
-      lastUpdated: string;
-    };
-  }
-
   // キャッシュ内生徒データ構造型定義
   interface CachedStudentData {
     students: { [studentId: string]: StudentData };
@@ -642,4 +696,4 @@ declare global {
   }
 }
 
-export {};
+export { };

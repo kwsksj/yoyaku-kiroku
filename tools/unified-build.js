@@ -6,11 +6,7 @@
  */
 
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import path from 'node:path';
 
 // 時刻フォーマット関数
 const formatTime = () => {
@@ -32,6 +28,7 @@ class UnifiedBuilder {
     this.backendDir = path.join(this.devDir, 'backend');
     this.frontendDir = path.join(this.devDir, 'frontend');
     this.templateDir = path.join(this.devDir, 'templates');
+    this.sharedDir = path.join(this.devDir, 'shared');
   }
 
   /**
@@ -90,10 +87,39 @@ class UnifiedBuilder {
   }
 
   /**
-   * バックエンドJSファイルをsrcにコピー（環境判定値を注入）
+   * バックエンドJSファイルをsrcにコピー（環境判定値を注入、export文を削除）
    */
   async buildBackendFiles() {
     console.log(`[${formatTime()}] 🔨 Building backend files...`);
+
+    // 環境判定
+    const isProduction = this.detectEnvironment();
+
+    // 共有ファイルを先に処理
+    const constantsFile = '00_Constants.js';
+    const constantsSrcPath = path.join(this.sharedDir, constantsFile);
+    if (fs.existsSync(constantsSrcPath)) {
+      const constantsDestPath = path.join(this.srcDir, constantsFile);
+      let content = fs.readFileSync(constantsSrcPath, 'utf8');
+
+      // export文を削除
+      content = content.replace(/^export const /gm, 'const ');
+      content = content.replace(/^export function /gm, 'function ');
+      content = content.replace(/^export class /gm, 'class ');
+      content = content.replace(/^export let /gm, 'let ');
+      content = content.replace(/^export var /gm, 'var ');
+
+      // 環境判定値を書き換え
+      content = content.replace(
+        /PRODUCTION_MODE:\s*[^,]+,/,
+        `PRODUCTION_MODE: ${isProduction},`,
+      );
+
+      fs.writeFileSync(constantsDestPath, content);
+      console.log(
+        `[${formatTime()}]   ✅ ${constantsFile} (shared) processed for backend (PRODUCTION_MODE=${isProduction})`,
+      );
+    }
 
     if (!fs.existsSync(this.backendDir)) {
       console.log(
@@ -101,9 +127,6 @@ class UnifiedBuilder {
       );
       return;
     }
-
-    // 環境判定
-    const isProduction = this.detectEnvironment();
 
     const backendFiles = fs
       .readdirSync(this.backendDir)
@@ -114,21 +137,21 @@ class UnifiedBuilder {
       const srcPath = path.join(this.backendDir, jsFile);
       const destPath = path.join(this.srcDir, jsFile);
 
-      // 00_Constants.jsの場合は環境判定値を書き換え
-      if (jsFile === '00_Constants.js') {
+      // JSファイルの場合は内容を変換
+      if (jsFile.endsWith('.js')) {
         let content = fs.readFileSync(srcPath, 'utf8');
 
-        // PRODUCTION_MODE の値をビルド時の環境に応じて設定
-        content = content.replace(
-          /PRODUCTION_MODE:\s*[^,]+,/,
-          `PRODUCTION_MODE: ${isProduction},`,
-        );
+        // export文を削除（GAS環境では不要）
+        content = content.replace(/^export const /gm, 'const ');
+        content = content.replace(/^export function /gm, 'function ');
+        content = content.replace(/^export class /gm, 'class ');
+        content = content.replace(/^export let /gm, 'let ');
+        content = content.replace(/^export var /gm, 'var ');
 
         fs.writeFileSync(destPath, content);
-        console.log(
-          `[${formatTime()}]   ✅ ${jsFile} copied (PRODUCTION_MODE=${isProduction})`,
-        );
+        console.log(`[${formatTime()}]   ✅ ${jsFile} processed`);
       } else {
+        // JSONファイルなどはそのままコピー
         fs.copyFileSync(srcPath, destPath);
         console.log(`[${formatTime()}]   ✅ ${jsFile} copied`);
       }
@@ -143,16 +166,15 @@ class UnifiedBuilder {
 
     // HTMLテンプレートを読み込み
     const templatePath = path.join(this.templateDir, '10_WebApp.html');
-    let htmlContent = '';
 
-    if (fs.existsSync(templatePath)) {
-      htmlContent = fs.readFileSync(templatePath, 'utf8');
-      console.log(`[${formatTime()}]   📄 HTML template loaded`);
-    } else {
-      // デフォルトHTMLテンプレートを生成
-      htmlContent = this.generateDefaultHtmlTemplate();
-      console.log(`[${formatTime()}]   📄 Default HTML template generated`);
+    if (!fs.existsSync(templatePath)) {
+      throw new Error(
+        `❌ HTMLテンプレートが見つかりません: ${templatePath}\n   src/templates/10_WebApp.html を作成してください。`,
+      );
     }
+
+    const htmlContent = fs.readFileSync(templatePath, 'utf8');
+    console.log(`[${formatTime()}]   📄 HTML template loaded`);
 
     // フロントエンドJavaScriptファイルを統合
     const unifiedJs = await this.buildUnifiedJavaScript();
@@ -191,19 +213,29 @@ class UnifiedBuilder {
     let unifiedContent = '';
 
     // --- ▼▼▼ 定数ファイル自動注入 ▼▼▼ ---
-    const constantsPath = path.join(this.backendDir, '00_Constants.js');
+    const constantsPath = path.join(this.sharedDir, '00_Constants.js');
     if (fs.existsSync(constantsPath)) {
       let constantsContent = fs.readFileSync(constantsPath, 'utf8');
 
+      // export文を削除（GAS環境では不要）
+      constantsContent = constantsContent.replace(/^export const /gm, 'const ');
+      constantsContent = constantsContent.replace(
+        /^export function /gm,
+        'function ',
+      );
+      constantsContent = constantsContent.replace(/^export class /gm, 'class ');
+      constantsContent = constantsContent.replace(/^export let /gm, 'let ');
+      constantsContent = constantsContent.replace(/^export var /gm, 'var ');
+
       // PRODUCTION_MODE の値をビルド時の環境に応じて設定
       constantsContent = constantsContent.replace(
-        /PRODUCTION_MODE:\s*[^,]+,/,
+        /PRODUCTION_MODE:\s*[^,]+,/g,
         `PRODUCTION_MODE: ${isProduction},`,
       );
 
       unifiedContent += `
   // =================================================================
-  // 00_Constants.js (自動注入 from backend)
+  // 00_Constants.js (自動注入 from shared)
   // =================================================================
 
 `;
@@ -218,7 +250,14 @@ class UnifiedBuilder {
     // 各フロントエンドファイルを統合
     for (const jsFile of frontendFiles) {
       const filePath = path.join(this.frontendDir, jsFile);
-      const fileContent = fs.readFileSync(filePath, 'utf8');
+      let fileContent = fs.readFileSync(filePath, 'utf8');
+
+      // export文を削除（GAS環境では不要）
+      fileContent = fileContent.replace(/^export const /gm, 'const ');
+      fileContent = fileContent.replace(/^export function /gm, 'function ');
+      fileContent = fileContent.replace(/^export class /gm, 'class ');
+      fileContent = fileContent.replace(/^export let /gm, 'let ');
+      fileContent = fileContent.replace(/^export var /gm, 'var ');
 
       // ファイル情報コメントを追加
       unifiedContent += `\n  // =================================================================\n`;
@@ -240,142 +279,28 @@ class UnifiedBuilder {
   }
 
   /**
-   * HTMLテンプレート内のincludeディレクティブを置換
+   * HTMLテンプレート内のマーカーを統合JavaScriptに置換
    */
   replaceIncludeDirectives(htmlContent, unifiedJs) {
-    // <?!= include('...'); ?>パターンを統合JavaScriptで置換
-    const includePattern = /<\?!=\s*include\(['"]([\w_-]+)['"]\);\s*\?>/g;
-
-    return htmlContent
-      .replace(includePattern, (match, filename) => {
-        // フロントエンド関連のincludeを統合JavaScriptに置換
-        if (filename.match(/^1[1-4]_WebApp_/)) {
-          return ''; // 後でまとめて挿入するため、個別includeは削除
-        }
-        return match; // その他のincludeはそのまま残す
-      })
-      .replace(
-        // 最初のフロントエンドincludeの位置に統合JavaScriptを挿入
-        /<!--\s*設定・定数\s*-->/,
-        `<!-- 統合JavaScript (自動生成) -->\n<script>\n${unifiedJs}</script>`,
-      );
+    // 統合JavaScript挿入ポイントを置換
+    return htmlContent.replace(
+      /<!--\s*__UNIFIED_JAVASCRIPT_INJECTION_POINT__\s*-->/,
+      `<!-- 統合JavaScript (ビルド時自動生成) -->\n    <script>\n${unifiedJs}\n    </script>`,
+    );
   }
 
   /**
    * JavaScriptヘッダーを生成
    */
   generateJavaScriptHeader() {
-    return `  // @ts-check
-  /// <reference path="../html-globals.d.ts" />
-
-  // グローバル変数宣言（VSCode TypeScript言語サーバー用）
-  /* global CONSTANTS:readonly, STATUS:readonly, CLASSROOMS:readonly, ITEMS:readonly, HEADERS:readonly */
-  /* global ITEM_TYPES:readonly, UNITS:readonly, PAYMENT_METHODS:readonly, UI:readonly, SESSIONS:readonly */
-  /* global PAYMENT:readonly, BANK_INFO:readonly, BANK:readonly, MESSAGES:readonly, LOG_ACTIONS:readonly */
-  /* global CLASSROOM_TYPES:readonly, SCHEDULE_STATUS:readonly, SHEET_NAMES:readonly, LIMITS:readonly */
-  /* global DISCOUNT_OPTIONS:readonly, TIME_SETTINGS:readonly, SYSTEM:readonly, HEADERS_RESERVATIONS:readonly */
-  /* global HEADERS_ROSTER:readonly, HEADERS_ACCOUNTING:readonly, HEADERS_SCHEDULE:readonly */
-  /* global DesignConfig:readonly, stateManager:readonly, Components:readonly, pageTransitionManager:readonly */
-  /* global escapeHTML:readonly, formatDate:readonly, showLoading:readonly, hideLoading:readonly */
-  /* global showInfo:readonly, showConfirm:readonly, debugLog:readonly, getTuitionItemRule:readonly */
-  /* global getTimeBasedTuitionHtml:readonly, createReservationCard:readonly, findReservationByDateAndClassroom:readonly */
-  /* global isTimeBasedClassroom:readonly, getClassroomTimesFromSchedule:readonly, buildSalesChecklist:readonly */
-  /* global findReservationById:readonly, google:readonly, server:readonly, MockData:readonly */
-  /* global isProduction:readonly, C:readonly */
-
-  // ESLintワンライン無効化
-  /* eslint-disable no-undef */
-
-  /**
+    return `  /**
    * =================================================================
-   * 統合フロントエンドJavaScript (自動生成)
+   * 統合フロントエンドJavaScript (ビルド時自動生成)
    * Generated: ${new Date().toISOString()}
    * =================================================================
    */
+
 `;
-  }
-
-  /**
-   * デフォルトHTMLテンプレートを生成
-   */
-  generateDefaultHtmlTemplate() {
-    return `<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <base target="_top">
-    <title>きぼりの よやく・きろく</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body class="bg-brand-bg min-h-screen">
-    <div id="app" class="container mx-auto px-4 max-w-lg">
-        <!-- ローディング画面 -->
-        <div id="loading" class="loading-fade fixed inset-0 flex flex-col items-center justify-center z-50">
-            <div class="spinner mb-4"></div>
-            <p id="loading-message" class="text-brand-text">アプリケーションを読み込み中...</p>
-        </div>
-
-        <!-- メインコンテンツ -->
-        <main id="main-content" class="py-6">
-            <div id="view-container"></div>
-        </main>
-
-        <!-- モーダル -->
-        <div id="modal-overlay" class="modal-overlay">
-            <div id="modal-content" class="modal-content">
-                <div id="modal-body"></div>
-            </div>
-        </div>
-
-        <footer class="text-center text-sm text-brand-muted mt-4">
-            きぼりの よやく・きろく
-        </footer>
-    </div>
-
-    <!-- 設定・定数 -->
-    <!-- 統合JavaScriptがここに挿入されます -->
-
-    <script>
-        // 環境判定・初期化処理
-        const isProduction = window.location.href.includes('/exec?') ||
-                            (window.location.href.includes('/macros/s/') &&
-                             !window.location.href.includes('/dev'));
-        const DEBUG_ENABLED = false;
-
-        function debugLog(message) {
-            if (isProduction || !DEBUG_ENABLED) return;
-            console.log('🔍 [DEBUG]', new Date().toLocaleTimeString() + ':', message);
-        }
-
-        const isGAS = typeof google !== 'undefined' && typeof google.script !== 'undefined';
-
-        function initializeApp() {
-            debugLog('initializeApp実行開始');
-
-            const checkReady = setInterval(() => {
-                if (typeof stateManager !== 'undefined' &&
-                    typeof stateManager?.dispatch === 'function' &&
-                    typeof hideLoading === 'function') {
-                    clearInterval(checkReady);
-                    debugLog('初期化条件を満たしました！');
-
-                    window.stateManager.dispatch({
-                        type: 'SET_STATE',
-                        payload: { view: 'login' }
-                    });
-                    hideLoading();
-                }
-            }, 300);
-        }
-
-        if (isGAS) {
-            window.addEventListener('DOMContentLoaded', () => {
-                initializeApp();
-            });
-        }
-    </script>
-</body>
-</html>`;
   }
 
   /**
@@ -398,7 +323,8 @@ class UnifiedBuilder {
   window.hideLoading = function() {
     const loading = document.getElementById('loading');
     if (loading) loading.style.display = 'none';
-  };`;
+  };
+`;
   }
 
   /**
@@ -413,6 +339,7 @@ class UnifiedBuilder {
     if (fs.existsSync(this.backendDir)) watchPaths.push(this.backendDir);
     if (fs.existsSync(this.frontendDir)) watchPaths.push(this.frontendDir);
     if (fs.existsSync(this.templateDir)) watchPaths.push(this.templateDir);
+    if (fs.existsSync(this.sharedDir)) watchPaths.push(this.sharedDir);
 
     if (watchPaths.length === 0) {
       console.log(

@@ -1,0 +1,16 @@
+{
+  // この設定はNode.jsで実行されるツールスクリプト用です。
+  // VS Codeなどのエディタが正しく型チェックを行うために使用されます。
+  "compilerOptions": {
+    // Node.jsのESMを正しく解釈するための設定
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+
+    // JavaScriptファイルに対する型チェックを有効にする
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true // .jsファイルから.jsファイルを生成しない
+  },
+  "include": ["./**/*.js"] // toolsディレクトリ内のすべての.jsファイルを対象にする
+}

@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Views_Dashboard.js
@@ -15,7 +13,7 @@
  * 【改善】ビジネスロジックをヘルパー関数に分離して可読性向上
  * @returns {string} HTML文字列
  */
-const getDashboardView = () => {
+export const getDashboardView = () => {
   // myReservationsから直接フィルタリングして表示（シンプル化）
   const state = stateManager.getState();
   const myReservations = state.myReservations || [];
@@ -112,7 +110,7 @@ const getDashboardView = () => {
  * @param {ReservationData} booking - 予約データ
  * @returns {Array<any>} 編集ボタン設定配列
  */
-const _buildEditButtons = booking => {
+export const _buildEditButtons = booking => {
   const buttons = [];
 
   if (booking.status === CONSTANTS.STATUS.CONFIRMED) {
@@ -149,7 +147,7 @@ const _buildEditButtons = booking => {
  * @param {ReservationData} booking - 予約データ
  * @returns {Array<any>} 会計ボタン設定配列
  */
-const _buildAccountingButtons = booking => {
+export const _buildAccountingButtons = booking => {
   const buttons = [];
 
   // 会計ボタン（予約日以降のみ）
@@ -171,7 +169,10 @@ const _buildAccountingButtons = booking => {
  * @param {string} reservationId - 予約ID
  * @returns {Array<any>} 編集ボタン設定配列
  */
-const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
+export const _buildHistoryEditButtons = (
+  isInEditMode = false,
+  reservationId = '',
+) => {
   const buttons = [];
   const state = stateManager.getState();
 
@@ -188,7 +189,6 @@ const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
       buttons.push({
         action: 'saveAndCloseMemo',
         text: 'メモを<br>保存',
-        size: 'xs',
         dataAttributes: {
           reservationId: reservationId,
         },
@@ -198,7 +198,6 @@ const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
       buttons.push({
         action: 'closeEditMode',
         text: 'とじる',
-        size: 'xs',
         dataAttributes: {
           reservationId: reservationId,
         },
@@ -209,7 +208,6 @@ const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
     buttons.push({
       action: 'expandHistoryCard',
       text: '確認<br>編集',
-      size: 'xs',
     });
   }
 
@@ -221,7 +219,7 @@ const _buildHistoryEditButtons = (isInEditMode = false, reservationId = '') => {
  * @param {ReservationData} historyItem - 履歴データ
  * @returns {Array<any>} 会計ボタン設定配列
  */
-const _buildHistoryAccountingButtons = historyItem => {
+export const _buildHistoryAccountingButtons = historyItem => {
   const buttons = [];
 
   if (historyItem.status === CONSTANTS.STATUS.COMPLETED) {
@@ -231,7 +229,7 @@ const _buildHistoryAccountingButtons = historyItem => {
       // きろく かつ 教室の当日 → 「会計を修正」ボタンは維持
       buttons.push({
         action: 'editAccountingRecord',
-        text: '会計を<br>修正',
+        text: '会計<br>修正',
         style: 'accounting',
       });
     }
@@ -245,12 +243,12 @@ const _buildHistoryAccountingButtons = historyItem => {
  * @param {ReservationData} booking - 予約データ
  * @returns {Array<{type: string, text: string}>} バッジ設定配列
  */
-const _buildBookingBadges = booking => {
+export const _buildBookingBadges = booking => {
   /** @type {Array<{type: string, text: string}>} */
   const badges = [];
 
   if (booking.firstLecture) {
-    badges.push({ type: 'info', text: '初回' });
+    badges.push({ type: 'attention', text: '初回' });
   }
 
   if (
@@ -274,11 +272,11 @@ const _buildBookingBadges = booking => {
  * @param {ReservationData} booking - 予約データ
  * @returns {boolean} 予約可能な場合true
  */
-const _checkIfLessonAvailable = booking => {
+export const _checkIfLessonAvailable = booking => {
   const state = stateManager.getState();
   const lessons = state.lessons || [];
 
-  if (!window.isProduction) {
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 空席判定開始:', {
       bookingDate: booking.date,
       bookingClassroom: booking.classroom,
@@ -295,7 +293,7 @@ const _checkIfLessonAvailable = booking => {
   );
 
   if (!targetLesson) {
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('❌ 該当講座が見つかりません:', {
         searchDate: String(booking.date),
         searchClassroom: booking.classroom,
@@ -315,7 +313,7 @@ const _checkIfLessonAvailable = booking => {
 
     // --- 必須データの存在チェック ---
     if (!bookingStartTime || !bookingEndTime) {
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.error(
           '❌ 2部制判定エラー: 必須データ(booking times)が不足しています。',
           { booking, targetLesson },
@@ -329,7 +327,7 @@ const _checkIfLessonAvailable = booking => {
 
     // --- セッション境界時刻の存在チェック ---
     if (!morningEndTime || !afternoonStartTime) {
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.error(
           '❌ 2部制判定エラー: セッション境界時刻(firstEnd, secondStart)が定義されていません。',
           { targetLesson },
@@ -344,7 +342,7 @@ const _checkIfLessonAvailable = booking => {
 
     // 予約がどちらのセッションにもかからない場合、不正な予約時間とみなしfalseを返す
     if (!morningCheckRequired && !afternoonCheckRequired) {
-      if (!window.isProduction) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.warn('⚠️ 2部制判定警告: 予約時間がセッションの範囲外です。', {
           booking,
           targetLesson,
@@ -367,7 +365,7 @@ const _checkIfLessonAvailable = booking => {
     // 必要なセッション全てに空きがあるか最終判定
     const isAvailable = morningHasSlots && afternoonHasSlots;
 
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('📊 2部制判定結果 (詳細ロジック):', {
         bookingTime: `${bookingStartTime}-${bookingEndTime}`,
         sessionBoundaries: {
@@ -392,7 +390,7 @@ const _checkIfLessonAvailable = booking => {
     // 通常の講座（セッション制・全日時間制）
     const isAvailable = (targetLesson.firstSlots || 0) > 0;
 
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('📊 通常講座判定結果:', {
         firstSlots: targetLesson.firstSlots,
         isAvailable,
@@ -407,7 +405,7 @@ const _checkIfLessonAvailable = booking => {
  * 特定の履歴カードのメモセクションとボタンのみを部分更新（ちらつき防止・スムーズ切替）
  * @param {string} reservationId - 更新対象の予約ID
  */
-function updateSingleHistoryCard(reservationId) {
+export function updateSingleHistoryCard(reservationId) {
   // 該当するカードのDOM要素を取得
   const cardElement = document.querySelector(
     `[data-reservation-id="${reservationId}"]`,
@@ -443,7 +441,7 @@ function updateSingleHistoryCard(reservationId) {
  * @param {ReservationData} historyItem - 履歴データ
  * @param {boolean} isInEditMode - 編集モード状態
  */
-function _updateMemoSection(reservationId, historyItem, isInEditMode) {
+export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
   const cardElement = document.querySelector(
     `[data-reservation-id="${reservationId}"]`,
   );
@@ -525,7 +523,7 @@ function _updateMemoSection(reservationId, historyItem, isInEditMode) {
  * @param {string} reservationId - 予約ID
  * @returns {string} テキストエリアID
  */
-function _getMemoTextareaId(reservationId) {
+export function _getMemoTextareaId(reservationId) {
   return `memo-edit-textarea-${reservationId}`;
 }
 
@@ -533,7 +531,7 @@ function _getMemoTextareaId(reservationId) {
  * メモテキストエリアにイベントリスナーを設定
  * @param {string} reservationId - 予約ID
  */
-function _attachMemoEventListeners(reservationId) {
+export function _attachMemoEventListeners(reservationId) {
   const textareaId = _getMemoTextareaId(reservationId);
 
   // テキストエリアを検索（複数の方法で確実に取得）
@@ -614,7 +612,7 @@ function _attachMemoEventListeners(reservationId) {
  * 履歴カードのボタンのみを部分更新（無限ループ防止）
  * @param {string} reservationId - 予約ID
  */
-function _updateHistoryCardButton(reservationId) {
+export function _updateHistoryCardButton(reservationId) {
   const cardElement = document.querySelector(
     `[data-reservation-id="${reservationId}"]`,
   );
@@ -664,9 +662,8 @@ function _updateHistoryCardButton(reservationId) {
           ...accountingButtons,
           {
             action: 'showHistoryAccounting',
-            text: '会計<br>記録',
+            text: '¥会計<br>記録',
             style: 'accounting',
-            size: 'xs',
             details: historyItem.accountingDetails,
           },
         ];
@@ -681,7 +678,7 @@ function _updateHistoryCardButton(reservationId) {
         action: btn.action,
         text: btn.text,
         style: btn.style || 'accounting',
-        size: 'xs',
+        customClass: btn.customClass || '',
         dataAttributes: {
           classroom: historyItem.classroom,
           reservationId: historyItem.reservationId,
@@ -700,7 +697,7 @@ function _updateHistoryCardButton(reservationId) {
         action: btn.action,
         text: btn.text,
         style: btn.style || 'recordCard',
-        size: btn.size || 'xs',
+        customClass: btn.customClass || '',
         dataAttributes: {
           classroom: historyItem.classroom,
           reservationId: historyItem.reservationId,

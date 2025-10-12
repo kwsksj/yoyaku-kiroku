@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 12_WebApp_Core_Data.js
@@ -25,7 +23,7 @@
  * @param {ReservationData[]} myReservations - 個人の予約データ
  * @returns {Partial<UIState>} シンプルなダッシュボード状態
  */
-function createSimpleDashboardState(currentUser, myReservations) {
+export function createSimpleDashboardState(currentUser, myReservations) {
   return {
     view: 'dashboard',
     currentUser: currentUser,
@@ -42,7 +40,7 @@ function createSimpleDashboardState(currentUser, myReservations) {
  * 全教室分の会計データを分類してキャッシュし、会計画面への高速遷移を実現
  * @param {Array<any>} accountingMaster - 会計マスタデータ
  */
-function preInitializeAccountingSystem(accountingMaster) {
+export function preInitializeAccountingSystem(accountingMaster) {
   if (!accountingMaster || accountingMaster.length === 0) {
     console.warn(
       '⚠️ 会計マスタデータが存在しないため、事前初期化をスキップします',
@@ -55,7 +53,7 @@ function preInitializeAccountingSystem(accountingMaster) {
     const classrooms = CONSTANTS.CLASSROOMS
       ? Object.values(CONSTANTS.CLASSROOMS)
       : [];
-    /** @type {Record<string, ClassifiedAccountingItems>} */
+    /** @type {Record<string, ClassifiedAccountingItemsCore>} */
     const preInitializedData = {};
 
     classrooms.forEach(classroom => {
@@ -71,7 +69,7 @@ function preInitializeAccountingSystem(accountingMaster) {
     // グローバルキャッシュに保存
     /** @type {any} */ (window).accountingSystemCache = preInitializedData;
 
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('✅ 会計システム事前初期化完了:', {
         classrooms: classrooms.length,
         masterItems: accountingMaster.length,
@@ -95,7 +93,7 @@ function preInitializeAccountingSystem(accountingMaster) {
  * 実行環境の検出
  * @returns {string} 'test' | 'production'
  */
-const detectEnvironment = () => {
+export const detectEnvironment = () => {
   try {
     // GAS環境の検出
     if (typeof google !== 'undefined' && google.script && google.script.run) {
@@ -112,7 +110,7 @@ const detectEnvironment = () => {
  * @param {string} dataType - データタイプ
  * @param {unknown} fallback - フォールバックデータ
  */
-const getEnvironmentData = (dataType, fallback = null) => {
+export const getEnvironmentData = (dataType, fallback = null) => {
   const env = detectEnvironment();
 
   if (env === 'test' && typeof MockData !== 'undefined') {
@@ -219,7 +217,7 @@ window.ModalManager = window.ModalManager || {
  * @param {ScheduleInfo} scheduleData - 日程マスタのデータオブジェクト
  * @returns {string | null} 教室形式 ('時間制' | '回数制' | '材料制') またはnull
  */
-function getClassroomTypeFromSchedule(scheduleData) {
+export function getClassroomTypeFromSchedule(scheduleData) {
   if (!scheduleData) return null;
   return scheduleData['classroomType'] || scheduleData['教室形式'] || null;
 }
@@ -229,7 +227,7 @@ function getClassroomTypeFromSchedule(scheduleData) {
  * @param {ScheduleInfo} scheduleData - 日程マスタのデータオブジェクト
  * @returns {boolean} 時間制の場合true
  */
-function isTimeBasedClassroom(scheduleData) {
+export function isTimeBasedClassroom(scheduleData) {
   const classroomType = getClassroomTypeFromSchedule(scheduleData);
   // 時間制の教室形式をすべてチェック（時間制・2部制、時間制・全日）
   return classroomType && classroomType.includes('時間制');
@@ -241,7 +239,7 @@ function isTimeBasedClassroom(scheduleData) {
  * @param {string} classroom - 教室名
  * @returns {Promise<ScheduleInfo | null>} 日程マスタ情報またはnull
  */
-function getScheduleInfoFromCache(date, classroom) {
+export function getScheduleInfoFromCache(date, classroom) {
   return new Promise(resolve => {
     google.script.run['withSuccessHandler'](
       (
@@ -282,7 +280,7 @@ function getScheduleInfoFromCache(date, classroom) {
  * @param {ReservationData} reservation - 予約データ (date, classroom を含む)
  * @returns {ScheduleInfo | null} 日程マスタ情報またはnull (lessons経由の場合)
  */
-function getScheduleDataFromLessons(reservation) {
+export function getScheduleDataFromLessons(reservation) {
   if (!reservation || !reservation.date || !reservation.classroom) {
     console.warn(
       '⚠️ getScheduleDataFromLessons: 予約データが不正',

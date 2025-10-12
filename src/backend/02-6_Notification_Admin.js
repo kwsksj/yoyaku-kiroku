@@ -1,4 +1,4 @@
-/// <reference path="../../types/index.d.ts" />
+/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -16,7 +16,7 @@
  * @param {string} subject - メールの件名
  * @param {string} body - メールの本文
  */
-function sendAdminNotification(subject, body) {
+export function sendAdminNotification(subject, body) {
   try {
     if (!ADMIN_EMAIL || ADMIN_EMAIL === 'your-admin-email@example.com') {
       Logger.log(
@@ -49,7 +49,7 @@ function sendAdminNotification(subject, body) {
  * @param {string} [additionalInfo.cancelMessage] - キャンセル理由
  * @param {string} [additionalInfo.updateDetails] - 更新詳細
  */
-function sendAdminNotificationForReservation(
+export function sendAdminNotificationForReservation(
   reservation,
   operationType,
   additionalInfo = {},
@@ -92,7 +92,7 @@ function sendAdminNotificationForReservation(
  * @returns {{subject: string, body: string}} 件名と本文
  * @private
  */
-function _buildAdminNotificationContent(
+export function _buildAdminNotificationContent(
   reservation,
   student,
   operationType,

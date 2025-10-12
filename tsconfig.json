@@ -9,18 +9,24 @@
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "types": ["google-apps-script"],
-    "allowUnreachableCode": true,
-    "allowUnusedLabels": true,
-    "noImplicitReturns": false,
+
+    // --- より厳格なチェックを有効化 ---
     "noImplicitAny": true,
     "noImplicitThis": true,
+    "noImplicitReturns": true, // 全てのコードパスで値が返されることを保証
+    "strictNullChecks": true, // null と undefined を厳密にチェック
+    "noUnusedLocals": true, // 未使用のローカル変数を検出
+    "noUnusedParameters": true, // 未使用のパラメータを検出
     "noPropertyAccessFromIndexSignature": true,
-    "exactOptionalPropertyTypes": false
+    "exactOptionalPropertyTypes": true, // オプショナルなプロパティにundefinedを代入できなくする
+    "allowUnreachableCode": false, // 到達不能なコードをエラーに
+    "allowUnusedLabels": false // 未使用のラベルをエラーに
   },
-  "include": ["src/**/*.js", "types/**/*.js", "types/**/*.d.ts"],
+  "include": ["src/**/*.js"],
   "exclude": [
     "node_modules",
     "build-output",
+    "tools", // ビルドツールは型チェックの対象外
     "eslint.config.js",
     "eslint.common.js",
     "src/eslint.config.js"

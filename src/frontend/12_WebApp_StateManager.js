@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 12_WebApp_StateManager.js
@@ -43,7 +41,7 @@ if (!window.PerformanceLog) {
 /**
  * シンプルな状態管理システム（リロード時状態保持対応）
  */
-class SimpleStateManager {
+export class SimpleStateManager {
   constructor() {
     /** @type {string} */
     this.STORAGE_KEY = 'yoyaku_kiroku_state';
@@ -67,7 +65,7 @@ class SimpleStateManager {
       lessons: [],
       /** @type {ReservationData[]} */
       myReservations: [],
-      /** @type {AccountingMasterData[]} */
+      /** @type {AccountingMasterItemCore[]} */
       accountingMaster: [],
 
       // --- UI State ---
@@ -85,11 +83,11 @@ class SimpleStateManager {
       editingReservationDetails: null,
       /** @type {ReservationData | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
       accountingReservation: null,
-      /** @type {AccountingReservationDetails} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
+      /** @type {AccountingDetailsCore} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
       accountingReservationDetails: {},
       /** @type {ScheduleInfo | null} - 講座固有情報 (教室形式, 開講時間など) */
       accountingScheduleInfo: null,
-      /** @type {AccountingCalculation | null} - 会計計算結果 */
+      /** @type {AccountingDetailsCore | null} - 会計計算結果 */
       accountingDetails: null,
       /** @type {string} */ completionMessage: '',
       /** @type {number} */ recordsToShow: 10,
@@ -145,7 +143,7 @@ class SimpleStateManager {
       return;
     }
 
-    if (!window.isProduction) {
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log(
         '🎯 Action dispatched:',
         action.type,
@@ -236,13 +234,8 @@ class SimpleStateManager {
       // 【リロード対応】重要な状態変更時は自動保存
       this._autoSaveIfNeeded(oldState, newState);
 
-      if (!window.isProduction) {
-        if (
-          typeof ENVIRONMENT_CONFIG !== 'undefined' &&
-          typeof ENVIRONMENT_CONFIG.DEBUG_ENABLED !== 'undefined' &&
-          ENVIRONMENT_CONFIG.DEBUG_ENABLED
-        )
-          console.log('✅ 状態更新完了:', Object.keys(newState));
+      if (CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+        console.log('✅ 状態更新完了:', Object.keys(newState));
       }
     } catch (error) {
       console.error('❌ 状態更新エラー:', error);
@@ -257,8 +250,14 @@ class SimpleStateManager {
   updateComputed() {
     if (!this.state.myReservations) return;
 
-    // isFirstTimeBooking の計算：予約データが全くない場合
-    this.state.isFirstTimeBooking = this.state.myReservations.length === 0;
+    // isFirstTimeBooking の計算：確定・完了の予約があるかをチェック
+    // 空き連絡希望だけでは経験者扱いにしない
+    const hasConfirmedOrCompleted = this.state.myReservations.some(
+      r =>
+        r.status === CONSTANTS.STATUS.CONFIRMED ||
+        r.status === CONSTANTS.STATUS.COMPLETED,
+    );
+    this.state.isFirstTimeBooking = !hasConfirmedOrCompleted;
   }
 
   /**

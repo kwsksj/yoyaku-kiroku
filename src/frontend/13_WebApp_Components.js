@@ -1,6 +1,4 @@
-// @ts-check
-/// <reference path="../../types/index.d.ts" />
-
+/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Components.js
@@ -53,7 +51,7 @@ window.escapeHTML = /** @type {HTMLEscapeFunction} */ (
 // 最小単位のUIコンポーネント。単一責任でパラメータ最小化。
 // =================================================================
 
-const Components = {
+export const Components = {
   /**
    * 汎用モーダルコンポーネントを生成します
    * @param {ModalConfig} config - 設定オブジェクト
@@ -162,10 +160,11 @@ const Components = {
   }) => {
     // スタイルマッピング
     const styleClasses = {
-      primary: DesignConfig.colors['primary'],
-      secondary: DesignConfig.colors['secondary'],
-      danger: DesignConfig.colors['danger'],
-      accounting: DesignConfig.colors['accounting'],
+      primary: DesignConfig.buttons['primary'],
+      secondary: DesignConfig.buttons['secondary'],
+      attention: DesignConfig.buttons['attention'],
+      danger: DesignConfig.buttons['danger'],
+      accounting: DesignConfig.buttons['accounting'],
       bookingCard: DesignConfig.buttons['bookingCard'],
       recordCard: DesignConfig.buttons['recordCard'],
     };
@@ -173,10 +172,10 @@ const Components = {
     /** @type {Record<ComponentSize, string>} */
     const sizeClasses = {
       normal: '',
-      full: DesignConfig.buttons['full'],
-      small: 'text-sm px-3 py-1.5',
       xs: 'text-xs px-2 py-1',
+      small: 'text-sm px-3 py-1.5',
       large: 'text-lg px-4 py-2.5',
+      full: DesignConfig.buttons['full'],
     };
 
     // データ属性をHTML文字列に変換
@@ -551,6 +550,7 @@ const Components = {
       warning: 'bg-ui-warning-bg text-ui-warning-text',
       error: 'bg-ui-error-bg text-ui-error-text',
       info: 'bg-action-secondary-bg text-action-secondary-text',
+      attention: 'bg-action-attention-bg text-action-attention-text',
     };
 
     return `<span class="inline-block px-1 py-0.5 text-sm font-bold rounded ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
@@ -785,7 +785,7 @@ const Components = {
    * 統一された授業料セクション（セッション制ベース、時間制対応）
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.type - 授業料タイプ（'timeBased' | 'fixed'）
-   * @param {AccountingMasterData[]} config.master - 会計マスター
+   * @param {AccountingMasterItemCore[]} config.master - 会計マスター
    * @param {ReservationData} config.reservation - 予約データ
    * @param {ReservationData} config.reservationDetails - 予約固有情報
    * @param {ScheduleInfo} config.scheduleInfo - 講座固有情報
@@ -873,7 +873,7 @@ const Components = {
 
     const tuitionItems = Array.isArray(master)
       ? master.filter(
-          /** @param {AccountingMasterData} item */
+          /** @param {AccountingMasterItemCore} item */
           item =>
             item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
               CONSTANTS.ITEM_TYPES.TUITION &&
@@ -886,7 +886,7 @@ const Components = {
 
     const tuitionRowsHtml = tuitionItems
       .map(
-        /** @param {AccountingMasterData} item */ item => {
+        /** @param {AccountingMasterItemCore} item */ item => {
           const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
 
           // メイン授業料項目の処理（初回参加時は差し替え）
@@ -1124,8 +1124,6 @@ const Components = {
           style: /** @type {ComponentStyle} */ (
             btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')
           ),
-          size: /** @type {ComponentSize} */ (btn.size || 'xs'),
-          //          customClass: 'mobile-button',
           dataAttributes: {
             classroom: item.classroom,
             reservationId: item.reservationId,
@@ -1142,9 +1140,9 @@ const Components = {
         Components.button({
           action: btn.action,
           text: btn.text,
-          style: /** @type {ComponentStyle} */ (btn.style || 'accounting'),
-          size: /** @type {ComponentSize} */ ('xs'),
-          //          customClass: `mobile-button ${DesignConfig.colors.accounting}`,
+          style: /** @type {ComponentStyle} */ (
+            btn.style || (type === 'accounting' ? 'accounting' : 'normal')
+          ),
           dataAttributes: {
             classroom: item.classroom,
             reservationId: item.reservationId,
@@ -1177,9 +1175,9 @@ const Components = {
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center flex-wrap">
-                <h3 class="font-bold text-brand-text">${formatDate(item.date)} <span class="font-normal text-brand-subtle text-sm">${dateTimeDisplay}</span></h3>
+                <h3 class="font-bold text-base text-brand-text">${formatDate(item.date)} <span class="font-normal text-base text-brand-subtle">${dateTimeDisplay}</span></h3>
               </div>
-              <h4 class="text-sm text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
+              <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
             </div>
             ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
           </div>
@@ -1199,7 +1197,7 @@ const Components = {
     reservationId,
     workInProgress,
     isEditMode = false,
-    showSaveButton = true, // eslint-disable-line no-unused-vars
+    showSaveButton = true,
   }) => {
     if (isEditMode) {
       // 編集モード：textareaと保存ボタン
@@ -1230,14 +1228,14 @@ const Components = {
   /**
    * 販売セクション
    * @param {Object} config - 設定オブジェクト
-   * @param {AccountingMasterData[]} config.master - 会計マスター
+   * @param {AccountingMasterItemCore[]} config.master - 会計マスター
    * @param {ReservationData} config.reservationDetails - 予約固有情報
    * @returns {string} HTML文字列
    */
   salesSection: ({ master, reservationDetails }) => {
     const salesItems = Array.isArray(master)
       ? master.filter(
-          /** @param {AccountingMasterData} item */
+          /** @param {AccountingMasterItemCore} item */
           item =>
             item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
             CONSTANTS.ITEM_TYPES.SALES,
@@ -1324,7 +1322,6 @@ const Components = {
    * @returns {string} HTML文字列
    */
   createSmartBackButton: (currentView, appState = null) => {
-    // eslint-disable-line no-unused-vars
     // 現在のビューに応じてアクションとテキストを決定
     let action = 'smartGoBack';
     let text = 'もどる';
