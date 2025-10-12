@@ -160,10 +160,11 @@ export const Components = {
   }) => {
     // スタイルマッピング
     const styleClasses = {
-      primary: DesignConfig.colors['primary'],
-      secondary: DesignConfig.colors['secondary'],
-      danger: DesignConfig.colors['danger'],
-      accounting: DesignConfig.colors['accounting'],
+      primary: DesignConfig.buttons['primary'],
+      secondary: DesignConfig.buttons['secondary'],
+      attention: DesignConfig.buttons['attention'],
+      danger: DesignConfig.buttons['danger'],
+      accounting: DesignConfig.buttons['accounting'],
       bookingCard: DesignConfig.buttons['bookingCard'],
       recordCard: DesignConfig.buttons['recordCard'],
     };
@@ -171,10 +172,10 @@ export const Components = {
     /** @type {Record<ComponentSize, string>} */
     const sizeClasses = {
       normal: '',
-      full: DesignConfig.buttons['full'],
-      small: 'text-sm px-3 py-1.5',
       xs: 'text-xs px-2 py-1',
+      small: 'text-sm px-3 py-1.5',
       large: 'text-lg px-4 py-2.5',
+      full: DesignConfig.buttons['full'],
     };
 
     // データ属性をHTML文字列に変換
@@ -549,6 +550,7 @@ export const Components = {
       warning: 'bg-ui-warning-bg text-ui-warning-text',
       error: 'bg-ui-error-bg text-ui-error-text',
       info: 'bg-action-secondary-bg text-action-secondary-text',
+      attention: 'bg-action-attention-bg text-action-attention-text',
     };
 
     return `<span class="inline-block px-1 py-0.5 text-sm font-bold rounded ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
@@ -1122,8 +1124,6 @@ export const Components = {
           style: /** @type {ComponentStyle} */ (
             btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')
           ),
-          size: /** @type {ComponentSize} */ (btn.size || 'xs'),
-          //          customClass: 'mobile-button',
           dataAttributes: {
             classroom: item.classroom,
             reservationId: item.reservationId,
@@ -1140,9 +1140,9 @@ export const Components = {
         Components.button({
           action: btn.action,
           text: btn.text,
-          style: /** @type {ComponentStyle} */ (btn.style || 'accounting'),
-          size: /** @type {ComponentSize} */ ('xs'),
-          //          customClass: `mobile-button ${DesignConfig.colors.accounting}`,
+          style: /** @type {ComponentStyle} */ (
+            btn.style || (type === 'accounting' ? 'accounting' : 'normal')
+          ),
           dataAttributes: {
             classroom: item.classroom,
             reservationId: item.reservationId,
@@ -1175,9 +1175,9 @@ export const Components = {
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center flex-wrap">
-                <h3 class="font-bold text-brand-text">${formatDate(item.date)} <span class="font-normal text-brand-subtle text-sm">${dateTimeDisplay}</span></h3>
+                <h3 class="font-bold text-base text-brand-text">${formatDate(item.date)} <span class="font-normal text-base text-brand-subtle">${dateTimeDisplay}</span></h3>
               </div>
-              <h4 class="text-sm text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
+              <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
             </div>
             ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
           </div>

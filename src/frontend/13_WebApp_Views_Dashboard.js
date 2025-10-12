@@ -189,7 +189,6 @@ export const _buildHistoryEditButtons = (
       buttons.push({
         action: 'saveAndCloseMemo',
         text: 'メモを<br>保存',
-        size: 'xs',
         dataAttributes: {
           reservationId: reservationId,
         },
@@ -199,7 +198,6 @@ export const _buildHistoryEditButtons = (
       buttons.push({
         action: 'closeEditMode',
         text: 'とじる',
-        size: 'xs',
         dataAttributes: {
           reservationId: reservationId,
         },
@@ -210,7 +208,6 @@ export const _buildHistoryEditButtons = (
     buttons.push({
       action: 'expandHistoryCard',
       text: '確認<br>編集',
-      size: 'xs',
     });
   }
 
@@ -232,8 +229,9 @@ export const _buildHistoryAccountingButtons = historyItem => {
       // きろく かつ 教室の当日 → 「会計を修正」ボタンは維持
       buttons.push({
         action: 'editAccountingRecord',
-        text: '会計を<br>修正',
+        text: '¥',
         style: 'accounting',
+        customClass: 'px-2.5',
       });
     }
   }
@@ -251,7 +249,7 @@ export const _buildBookingBadges = booking => {
   const badges = [];
 
   if (booking.firstLecture) {
-    badges.push({ type: 'info', text: '初回' });
+    badges.push({ type: 'attention', text: '初回' });
   }
 
   if (
@@ -665,10 +663,10 @@ export function _updateHistoryCardButton(reservationId) {
           ...accountingButtons,
           {
             action: 'showHistoryAccounting',
-            text: '会計<br>記録',
+            text: '¥',
             style: 'accounting',
-            size: 'xs',
             details: historyItem.accountingDetails,
+            customClass: 'px-2.5',
           },
         ];
       }
@@ -682,7 +680,7 @@ export function _updateHistoryCardButton(reservationId) {
         action: btn.action,
         text: btn.text,
         style: btn.style || 'accounting',
-        size: 'xs',
+        customClass: btn.customClass || '',
         dataAttributes: {
           classroom: historyItem.classroom,
           reservationId: historyItem.reservationId,
@@ -701,7 +699,7 @@ export function _updateHistoryCardButton(reservationId) {
         action: btn.action,
         text: btn.text,
         style: btn.style || 'recordCard',
-        size: btn.size || 'xs',
+        customClass: btn.customClass || '',
         dataAttributes: {
           classroom: historyItem.classroom,
           reservationId: historyItem.reservationId,
