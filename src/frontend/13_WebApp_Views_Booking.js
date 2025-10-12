@@ -559,10 +559,9 @@ export function _buildHistoryCardWithEditMode(
       if (!hasAccountingDetailsButton) {
         allAccountingButtons.push({
           action: 'showHistoryAccounting',
-          text: '¥',
+          text: '会計<br>記録',
           style: 'accounting',
           details: historyItem.accountingDetails,
-          customClass: 'px-2.5',
         });
       }
     }

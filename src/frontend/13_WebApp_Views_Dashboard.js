@@ -229,9 +229,8 @@ export const _buildHistoryAccountingButtons = historyItem => {
       // きろく かつ 教室の当日 → 「会計を修正」ボタンは維持
       buttons.push({
         action: 'editAccountingRecord',
-        text: '¥',
+        text: '会計<br>修正',
         style: 'accounting',
-        customClass: 'px-2.5',
       });
     }
   }
@@ -663,10 +662,9 @@ export function _updateHistoryCardButton(reservationId) {
           ...accountingButtons,
           {
             action: 'showHistoryAccounting',
-            text: '¥',
+            text: '¥会計<br>記録',
             style: 'accounting',
             details: historyItem.accountingDetails,
-            customClass: 'px-2.5',
           },
         ];
       }
