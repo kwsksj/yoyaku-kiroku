@@ -222,7 +222,7 @@ export function generateMaterialRow(
       <input
         type="number"
         id="material-length-${index}"
-        value="${materialData.l || ''}"
+        value="${materialData.l ?? ''}"
         placeholder="x"
         class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
@@ -230,7 +230,7 @@ export function generateMaterialRow(
       <input
         type="number"
         id="material-width-${index}"
-        value="${materialData.w || ''}"
+        value="${materialData.w ?? ''}"
         placeholder="y"
         class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
@@ -238,7 +238,7 @@ export function generateMaterialRow(
       <input
         type="number"
         id="material-height-${index}"
-        value="${materialData.h || ''}"
+        value="${materialData.h ?? ''}"
         placeholder="z"
         class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
@@ -400,7 +400,7 @@ export function generateCustomSalesRow(index = 0, itemData = {}) {
           <input
             type="number"
             id="custom-sales-price-${index}"
-            value="${itemData.price || ''}"
+            value="${itemData.price ?? ''}"
             placeholder="金額"
             class="w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
           >

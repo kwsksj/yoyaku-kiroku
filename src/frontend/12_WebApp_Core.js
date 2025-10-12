@@ -434,7 +434,7 @@ export function setupViewListener() {
                 window.currentClassifiedItems ||
                 /** @type {ClassifiedAccountingItemsCore} */ (
                   /** @type {unknown} */ ({
-                    tuition: { baseItems: [], additionalItems: [] },
+                    tuition: { items: [] },
                     sales: { materialItems: [], productItems: [] },
                   })
                 );

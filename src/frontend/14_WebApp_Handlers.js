@@ -43,7 +43,7 @@ export let actionHandlers;
 export const EMPTY_CLASSIFIED_ITEMS =
   /** @type {ClassifiedAccountingItemsCore} */ (
     /** @type {unknown} */ ({
-      tuition: { baseItems: [], additionalItems: [] },
+      tuition: { items: [] },
       sales: { materialItems: [], productItems: [] },
     })
   );

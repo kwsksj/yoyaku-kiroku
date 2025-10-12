@@ -212,13 +212,13 @@ window.EmbedConfig = {
     if (newOffset !== null && !isNaN(parseInt(newOffset))) {
       const offset = Math.max(0, Math.min(200, parseInt(newOffset)));
       window.EmbedConfig.saveOffset(offset);
-      window.EmbedConfig.reapplyStyles(offset);
+      window.EmbedConfig.reapplyStyles();
       alert(`ヘッダーオフセットを ${offset}px に設定しました。`);
     }
   },
 
   // スタイルの再適用
-  reapplyStyles: offset => {
+  reapplyStyles: () => {
     // 既存のスタイルを削除
     const existingStyle = document.getElementById('google-sites-embed-styles');
     if (existingStyle) {
