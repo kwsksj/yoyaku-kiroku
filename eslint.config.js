@@ -67,7 +67,7 @@ export default [
     },
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'script',
+      sourceType: 'module',
       globals: {
         ...gasGlobals,
         ...projectConstants,
@@ -133,7 +133,7 @@ export default [
     files: ['src/frontend/**/*.js', 'src/frontend/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'script',
+      sourceType: 'module',
       globals: {
         ...globals.browser,
         ...globals.es2020,

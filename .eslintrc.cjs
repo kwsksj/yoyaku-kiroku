@@ -10,7 +10,7 @@ module.exports = {
   extends: ['eslint:recommended'],
   parserOptions: {
     ecmaVersion: 2021,
-    sourceType: 'script',
+    sourceType: 'module',
   },
   globals: {
     // GAS特有のグローバル変数
