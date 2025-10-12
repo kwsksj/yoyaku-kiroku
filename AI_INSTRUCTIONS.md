@@ -88,11 +88,90 @@
 - **コードコメント**: 新しいコメントを追加する際は、日本語で記述してください。
 - **ユーザーの好み**: 開発者は、より深い理解のために日本語でのコミュニケーションを好みます。
 
-### コミット管理
+### Git/GitHubワークフロー
 
-- **積極的なコミット**: 機能の完成、バグ修正、アーキテクチャの変更など、適切な節目でコミットを行ってください。
-- **ユーザーへの確認**: コミットする前に、常に「適切な節目でコミットしますか？」などとユーザーに確認を取ってください。
-- **コミットの品質**: 変更内容とその影響について、明確な説明を含む包括的な日本語のコミットメッセージを記述してください。
+このプロジェクトでは、GitHubを使用してコード管理とコラボレーションを行います。以下のワークフローに従ってください。
+
+#### ブランチ戦略
+
+- **mainブランチ**: 本番環境にデプロイ済みの安定版コード
+- **フィーチャーブランチ**: 新機能開発やバグ修正用の一時的なブランチ
+  - 命名規則: `feature/機能名`, `fix/バグ内容`, `refactor/対象`
+  - 例: `feature/new-ui`, `fix/cache-bug`, `refactor/accounting-module`
+
+#### 開発フロー
+
+1. **ブランチ作成**
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b feature/your-feature-name
+   ```
+
+2. **開発とコミット**
+   - 適切な節目（機能完成、バグ修正、重要な変更点）でコミット
+   - コミット前にユーザーに確認: 「コミットしますか？」
+   - コミットメッセージは日本語で明確に記述
+
+   ```bash
+   git add -A
+   git commit -m "feat: 新機能の説明
+
+   詳細な変更内容...
+
+   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+   Co-Authored-By: Claude <noreply@anthropic.com>"
+   ```
+
+3. **プルリクエスト作成**
+   - 作業完了後、リモートにプッシュしてPRを作成
+   - PRタイトルと説明は日本語で明確に
+
+   ```bash
+   git push origin feature/your-feature-name
+   gh pr create --base main --title "PRタイトル" --body "詳細説明"
+   ```
+
+4. **レビューと修正**
+   - AIレビューコメント（Gemini Code Assist, ChatGPT Codex）を確認
+   - 必要に応じて修正を追加コミット
+
+5. **マージ**
+   - レビュー承認後、PRをマージ
+   - マージ後はローカルのmainブランチを更新
+
+   ```bash
+   gh pr merge --squash  # または --merge
+   git checkout main
+   git pull origin main
+   ```
+
+#### コミット管理のベストプラクティス
+
+- **積極的なコミット**: 機能の完成、バグ修正、アーキテクチャの変更など、適切な節目でコミット
+- **ユーザーへの確認**: コミット前に必ず確認を取る
+- **コミットの品質**: 変更内容と影響を明確に説明する日本語のコミットメッセージ
+- **コミットメッセージ形式**:
+  ```
+  <type>: <概要>
+
+  <詳細説明>
+
+  🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+  Co-Authored-By: Claude <noreply@anthropic.com>
+  ```
+  - type: `feat`, `fix`, `refactor`, `docs`, `chore`, `style`, `test`
+
+#### GitHub操作コマンド
+
+- `gh pr create`: プルリクエスト作成
+- `gh pr view [番号]`: PR詳細確認
+- `gh pr merge [番号]`: PRマージ
+- `gh pr list`: PR一覧表示
+- `gh issue create`: Issue作成
+- `gh repo view --web`: リポジトリをブラウザで開く
 
 ### Markdown品質ガイドライン
 
