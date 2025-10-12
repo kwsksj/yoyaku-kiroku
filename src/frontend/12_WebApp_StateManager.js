@@ -250,8 +250,14 @@ export class SimpleStateManager {
   updateComputed() {
     if (!this.state.myReservations) return;
 
-    // isFirstTimeBooking の計算：予約データが全くない場合
-    this.state.isFirstTimeBooking = this.state.myReservations.length === 0;
+    // isFirstTimeBooking の計算：確定・完了の予約があるかをチェック
+    // 空き連絡希望だけでは経験者扱いにしない
+    const hasConfirmedOrCompleted = this.state.myReservations.some(
+      r =>
+        r.status === CONSTANTS.STATUS.CONFIRMED ||
+        r.status === CONSTANTS.STATUS.COMPLETED,
+    );
+    this.state.isFirstTimeBooking = !hasConfirmedOrCompleted;
   }
 
   /**

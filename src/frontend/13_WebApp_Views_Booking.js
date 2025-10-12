@@ -385,7 +385,12 @@ export const renderBookingLessons = lessons => {
 
             if (isFirstTimeBooking) {
               if (lesson.beginnerStart && (lesson.beginnerCapacity || 0) > 0) {
-                statusText = `初回者 空き <span class="font-mono-numbers">${lesson.beginnerSlots}</span>`;
+                // 初回者枠が満席かチェック
+                if ((lesson.beginnerSlots || 0) <= 0) {
+                  statusText = '初回者 満席（空き連絡希望）';
+                } else {
+                  statusText = `初回者 空き <span class="font-mono-numbers">${lesson.beginnerSlots}</span>`;
+                }
               } else {
                 statusText = '経験者のみ';
               }

@@ -204,9 +204,9 @@ export function calculateAvailableSlots(schedule, reservations) {
       const beginnerCount = secondReservations.filter(
         r => r.firstLecture,
       ).length;
-      result.beginner = Math.min(
-        result.second,
-        beginnerCapacity - beginnerCount,
+      result.beginner = Math.max(
+        0,
+        Math.min(result.second, beginnerCapacity - beginnerCount),
       );
     }
   } else {
@@ -216,9 +216,9 @@ export function calculateAvailableSlots(schedule, reservations) {
     // 初回枠計算
     if (beginnerCapacity > 0) {
       const beginnerCount = reservations.filter(r => r.firstLecture).length;
-      result.beginner = Math.min(
-        result.first,
-        beginnerCapacity - beginnerCount,
+      result.beginner = Math.max(
+        0,
+        Math.min(result.first, beginnerCapacity - beginnerCount),
       );
     }
   }

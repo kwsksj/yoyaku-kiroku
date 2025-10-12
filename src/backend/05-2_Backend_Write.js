@@ -105,9 +105,10 @@ export function checkDuplicateReservationOnSameDay(studentId, date) {
  * @param {string} date - 日付
  * @param {string} startTime - 開始時間
  * @param {string} endTime - 終了時間
+ * @param {boolean} [isFirstLecture=false] - 初回予約の場合true
  * @returns {boolean} - 定員超過の場合true
  */
-export function checkCapacityFull(classroom, date, startTime, endTime) {
+export function checkCapacityFull(classroom, date, startTime, endTime, isFirstLecture = false) {
   try {
     // 定員状況を取得
     const availableSlotsResponse = getLessons();
@@ -130,51 +131,59 @@ export function checkCapacityFull(classroom, date, startTime, endTime) {
 
     let isFull = false;
 
-    // 教室タイプに応じた満席判定
-    if (
-      targetLesson.firstSlots !== undefined &&
-      targetLesson.secondSlots !== undefined
-    ) {
-      // 時間制・2部制の場合
-      const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
-      const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
-
-      const firstEndTime = targetLesson.firstEnd
-        ? new Date(`1900-01-01T${targetLesson.firstEnd}`)
-        : null;
-      const secondStartTime = targetLesson.secondStart
-        ? new Date(`1900-01-01T${targetLesson.secondStart}`)
-        : null;
-
-      let isMorningRequest = false;
-      let isAfternoonRequest = false;
-
-      if (reqStart && firstEndTime && reqStart < firstEndTime) {
-        isMorningRequest = true;
-      }
-      if (reqEnd && secondStartTime && reqEnd > secondStartTime) {
-        isAfternoonRequest = true;
-      }
-
-      if (isMorningRequest && isAfternoonRequest) {
-        // 両方のセッションにまたがる予約の場合、どちらか一方が満席ならNG
-        isFull =
-          (targetLesson.firstSlots || 0) <= 0 ||
-          (targetLesson.secondSlots || 0) <= 0;
-      } else if (isMorningRequest) {
-        // 午前のみの予約
-        isFull = (targetLesson.firstSlots || 0) <= 0;
-      } else if (isAfternoonRequest) {
-        // 午後のみの予約
-        isFull = (targetLesson.secondSlots || 0) <= 0;
-      } else {
-        // 予約がセッション時間外の場合 (例: 休憩時間内)
-        // この予約は不正だが、ここでは満席とは扱わず、後続のバリデーションに任せる
-        isFull = false;
-      }
+    // 初回予約の場合は初回者枠をチェック
+    if (isFirstLecture && targetLesson.beginnerSlots !== null && targetLesson.beginnerSlots !== undefined) {
+      isFull = (targetLesson.beginnerSlots || 0) <= 0;
+      Logger.log(
+        `[checkCapacityFull] 初回者枠チェック: ${date} ${classroom}: 満席=${isFull}, beginnerSlots=${targetLesson.beginnerSlots}`,
+      );
     } else {
-      // 通常教室（セッション制・全日時間制）の場合
-      isFull = (targetLesson.firstSlots || 0) <= 0;
+      // 教室タイプに応じた満席判定
+      if (
+        targetLesson.firstSlots !== undefined &&
+        targetLesson.secondSlots !== undefined
+      ) {
+        // 時間制・2部制の場合
+        const reqStart = startTime ? new Date(`1900-01-01T${startTime}`) : null;
+        const reqEnd = endTime ? new Date(`1900-01-01T${endTime}`) : null;
+
+        const firstEndTime = targetLesson.firstEnd
+          ? new Date(`1900-01-01T${targetLesson.firstEnd}`)
+          : null;
+        const secondStartTime = targetLesson.secondStart
+          ? new Date(`1900-01-01T${targetLesson.secondStart}`)
+          : null;
+
+        let isMorningRequest = false;
+        let isAfternoonRequest = false;
+
+        if (reqStart && firstEndTime && reqStart < firstEndTime) {
+          isMorningRequest = true;
+        }
+        if (reqEnd && secondStartTime && reqEnd > secondStartTime) {
+          isAfternoonRequest = true;
+        }
+
+        if (isMorningRequest && isAfternoonRequest) {
+          // 両方のセッションにまたがる予約の場合、どちらか一方が満席ならNG
+          isFull =
+            (targetLesson.firstSlots || 0) <= 0 ||
+            (targetLesson.secondSlots || 0) <= 0;
+        } else if (isMorningRequest) {
+          // 午前のみの予約
+          isFull = (targetLesson.firstSlots || 0) <= 0;
+        } else if (isAfternoonRequest) {
+          // 午後のみの予約
+          isFull = (targetLesson.secondSlots || 0) <= 0;
+        } else {
+          // 予約がセッション時間外の場合 (例: 休憩時間内)
+          // この予約は不正だが、ここでは満席とは扱わず、後続のバリデーションに任せる
+          isFull = false;
+        }
+      } else {
+        // 通常教室（セッション制・全日時間制）の場合
+        isFull = (targetLesson.firstSlots || 0) <= 0;
+      }
     }
 
     Logger.log(
@@ -385,9 +394,10 @@ export function makeReservation(reservationInfo) {
         reservationInfo.date,
         reservationInfo.startTime,
         reservationInfo.endTime,
+        reservationInfo.firstLecture || false,
       );
       Logger.log(
-        `[makeReservation] 定員チェック結果: ${reservationInfo.classroom} ${reservationInfo.date} - 満席=${isFull}`,
+        `[makeReservation] 定員チェック結果: ${reservationInfo.classroom} ${reservationInfo.date} - 満席=${isFull}, 初回=${reservationInfo.firstLecture}`,
       );
 
       // 完全なReservationCoreオブジェクトを構築
@@ -1123,6 +1133,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
         targetReservation.date,
         targetReservation.startTime,
         targetReservation.endTime,
+        targetReservation.firstLecture || false,
       );
       if (isFull) {
         throw new Error('現在満席のため確定できません。');
