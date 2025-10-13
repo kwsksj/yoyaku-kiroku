@@ -14,7 +14,7 @@
  * @global sendBookingConfirmationEmailAsync - External service function from 06_ExternalServices.js
  */
 
-/* global sendBookingConfirmationEmailAsync */
+/* global sendBookingConfirmationEmailAsync, SALES_SPREADSHEET_ID */
 
 /**
  * 指定したユーザーが同一日に予約を持っているかチェックする共通関数。
@@ -1048,6 +1048,9 @@ export function _logSalesForSingleReservation(reservation, accountingDetails) {
       paymentMethod: accountingDetails.paymentMethod || '不明',
     };
 
+    /** @type {SalesRowArray[]} */
+    const salesRows = [];
+
     // 授業料ログ
     if (accountingDetails.tuition && accountingDetails.tuition.subtotal > 0) {
       accountingDetails.tuition.items.forEach(item => {
@@ -1057,9 +1060,7 @@ export function _logSalesForSingleReservation(reservation, accountingDetails) {
           item.name,
           item.price,
         );
-        SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SALES_LOG).appendRow(
-          salesRow,
-        );
+        salesRows.push(salesRow);
       });
     }
 
@@ -1072,10 +1073,27 @@ export function _logSalesForSingleReservation(reservation, accountingDetails) {
           item.name,
           item.price,
         );
-        SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SALES_LOG).appendRow(
-          salesRow,
-        );
+        salesRows.push(salesRow);
       });
+    }
+
+    if (salesRows.length > 0) {
+      if (!SALES_SPREADSHEET_ID) {
+        throw new Error('SALES_SPREADSHEET_IDが設定されていません。');
+      }
+
+      const salesSheet = SS_MANAGER.getExternalSheet(
+        SALES_SPREADSHEET_ID,
+        CONSTANTS.SHEET_NAMES.SALES_LOG,
+      );
+
+      if (!salesSheet) {
+        throw new Error(
+          `${CONSTANTS.SHEET_NAMES.SALES_LOG}シートが見つかりませんでした。`,
+        );
+      }
+
+      salesRows.forEach(row => salesSheet.appendRow(row));
     }
   } catch (err) {
     Logger.log(
