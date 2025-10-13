@@ -70,6 +70,18 @@ interface ApiResponse<T = any> {
 
   /** メッセージ */
   message?: string;
+
+  /** ユーザーデータ（必要なレスポンスで使用） */
+  user?: UserCore | null;
+
+  /** エラー情報（失敗時のみ） */
+  error?: ErrorInfo;
+
+  /** メタ情報 */
+  meta?: Record<string, unknown>;
+
+  /** デバッグ情報 */
+  debug?: Record<string, unknown>;
 }
 
 /**
@@ -211,25 +223,27 @@ type TransactionCallback<T> = () => T;
 /**
  * シートデータ取得結果
  */
-interface SheetDataResult<T = any> {
-  /** 成功フラグ */
-  success: boolean;
-  /** データ */
-  data?: T;
-  /** エラーメッセージ */
-  message?: string;
+interface SheetDataResult<T = RawSheetRow> {
+  /** ヘッダー行 */
+  header: string[];
+  /** ヘッダーマップ */
+  headerMap: HeaderMapType;
+  /** ヘッダーを含む全データ */
+  allData: T[];
+  /** データ行（ヘッダー除外） */
+  dataRows: T[];
 }
 
 /**
  * シート検索結果
  */
-interface SheetSearchResult<T = any> {
-  /** 成功フラグ */
-  success: boolean;
-  /** 検索結果 */
-  results?: T[];
-  /** エラーメッセージ */
-  message?: string;
+interface SheetSearchResult<T = RawSheetRow> extends SheetDataResult<T> {
+  /** 検索で見つかった行 */
+  foundRow?: T;
+  /** 行番号（1-based） */
+  rowIndex?: number;
+  /** 検索した列インデックス */
+  searchColIdx?: number;
 }
 
 /**
@@ -238,10 +252,10 @@ interface SheetSearchResult<T = any> {
 interface PhoneNormalizationResult {
   /** 正規化された電話番号 */
   normalized: string;
-  /** 元の電話番号 */
-  original: string;
-  /** 成功フラグ */
-  success: boolean;
+  /** バリデーション結果 */
+  isValid: boolean;
+  /** エラーメッセージ（無効時のみ） */
+  error?: string;
 }
 
 /**
@@ -297,17 +311,23 @@ interface ChunkedCacheMetadata {
  */
 interface CacheInfo {
   /** キャッシュキー */
-  key: string;
+  key?: string;
   /** 存在フラグ */
   exists: boolean;
   /** サイズ（バイト） */
   size?: number;
   /** データカウント */
-  dataCount?: number;
+  dataCount?: number | null;
   /** バージョン */
-  version?: number;
+  version?: number | null;
   /** 最終更新日時 */
   lastUpdated?: string;
+  /** チャンク形式フラグ */
+  isChunked?: boolean;
+  /** 総チャンク数 */
+  totalChunks?: number | null;
+  /** エラーメッセージ */
+  error?: string;
 }
 
 // --- エラー関連型 ---
@@ -316,14 +336,22 @@ interface CacheInfo {
  * エラー情報
  */
 interface ErrorInfo {
-  /** エラーコード */
-  code: string;
+  /** エラーコード（任意） */
+  code?: string | undefined;
   /** エラーメッセージ */
   message: string;
-  /** 詳細情報 */
-  details?: any;
   /** スタックトレース */
-  stack?: string;
+  stack?: string | undefined;
+  /** 発生コンテキスト */
+  context?: string | undefined;
+  /** 発生時刻（ISO8601） */
+  timestamp?: string | undefined;
+  /** エラータイプ（例: TypeError） */
+  type?: string | undefined;
+  /** 追加情報 */
+  additionalInfo?: Record<string, unknown> | undefined;
+  /** 詳細情報（後方互換用） */
+  details?: any;
 }
 
 /**
@@ -332,10 +360,22 @@ interface ErrorInfo {
 interface ApiErrorResponse {
   /** 成功フラグ（常にfalse） */
   success: false;
-  /** エラー情報 */
-  error: ErrorInfo;
   /** メッセージ */
   message: string;
+  /** エラー情報 */
+  error?: ErrorInfo;
+  /** メタ情報（タイムスタンプやコンテキストなど） */
+  meta?: {
+    timestamp: string;
+    context?: string;
+    errorId?: string;
+  } | undefined;
+  /** デバッグ情報（開発モードのみ） */
+  debug?: {
+    stack?: string;
+    type?: string;
+    additionalInfo?: Record<string, unknown>;
+  } | undefined;
 }
 
 /**
@@ -347,7 +387,12 @@ interface ApiSuccessResponse<T = any> {
   /** レスポンスデータ */
   data: T;
   /** メッセージ */
-  message?: string;
+  message?: string | undefined;
+  /** メタ情報（レスポンス生成時刻など） */
+  meta?: {
+    timestamp: string;
+    version?: number;
+  } | undefined;
 }
 
 /**
@@ -365,19 +410,24 @@ type ApiResponseData<T = any> = T;
 /**
  * バッチデータ結果
  */
-interface BatchDataResult {
-  /** 全生徒データ */
-  allStudents?: Record<string, UserCore>;
-  /** セッション一覧 */
-  sessions?: LessonCore[];
-  /** 自分の予約一覧 */
+interface BatchDataPayload {
+  accounting?: AccountingMasterItemCore[];
+  lessons?: LessonCore[];
   myReservations?: ReservationCore[];
-  /** 会計マスターデータ */
-  accountingMaster?: AccountingMasterItemCore[];
-  /** キャッシュバージョン */
-  cacheVersions?: Record<string, string>;
-  /** 今日の日付 */
-  today?: string;
+  [key: string]: unknown;
+}
+
+interface BatchDataResult {
+  /** 処理結果 */
+  success: boolean;
+  /** データペイロード */
+  data: BatchDataPayload;
+  /** ユーザーを特定できたか */
+  userFound: boolean;
+  /** 認識されたユーザー */
+  user: UserCore | null;
+  /** メッセージ */
+  message?: string;
 }
 
 /**

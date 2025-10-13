@@ -106,7 +106,13 @@ export function checkDuplicateReservationOnSameDay(studentId, date) {
  * @param {boolean} [isFirstLecture=false] - 初回予約の場合true
  * @returns {boolean} - 定員超過の場合true
  */
-export function checkCapacityFull(classroom, date, startTime, endTime, isFirstLecture = false) {
+export function checkCapacityFull(
+  classroom,
+  date,
+  startTime,
+  endTime,
+  isFirstLecture = false,
+) {
   try {
     // 定員状況を取得
     const availableSlotsResponse = getLessons();
@@ -130,7 +136,11 @@ export function checkCapacityFull(classroom, date, startTime, endTime, isFirstLe
     let isFull = false;
 
     // 初回予約の場合は初回者枠をチェック
-    if (isFirstLecture && targetLesson.beginnerSlots !== null && targetLesson.beginnerSlots !== undefined) {
+    if (
+      isFirstLecture &&
+      targetLesson.beginnerSlots !== null &&
+      targetLesson.beginnerSlots !== undefined
+    ) {
       isFull = (targetLesson.beginnerSlots || 0) <= 0;
       Logger.log(
         `[checkCapacityFull] 初回者枠チェック: ${date} ${classroom}: 満席=${isFull}, beginnerSlots=${targetLesson.beginnerSlots}`,
@@ -697,32 +707,37 @@ export function getWaitlistedUsersForNotification(
       const studentId = reservation.studentId;
       const isFirstTime = reservation.firstLecture;
 
-    // 空きタイプに応じたフィルタリング
-    let shouldNotify = false;
-    if (availabilityType === 'all') {
-      shouldNotify = true;
-    } else if (availabilityType === 'first' && !isFirstTime) {
-      shouldNotify = true;
-    } else if (availabilityType === 'second' && isFirstTime) {
-      shouldNotify = true;
-    }
-
-    if (shouldNotify) {
-      // 生徒情報を取得
-      const studentInfo = /** @type {UserCore} */ (
-        getCachedStudentById(String(studentId))
-      );
-
-      if (studentInfo && studentInfo.email && studentInfo.email.trim() !== '') {
-        result.push({
-          studentId: studentId,
-          email: studentInfo.email,
-          realName: studentInfo.realName,
-          isFirstTime: isFirstTime || false,
-        });
+      // 空きタイプに応じたフィルタリング
+      let shouldNotify = false;
+      if (availabilityType === 'all') {
+        shouldNotify = true;
+      } else if (availabilityType === 'first' && !isFirstTime) {
+        shouldNotify = true;
+      } else if (availabilityType === 'second' && isFirstTime) {
+        shouldNotify = true;
       }
-    }
-  });
+
+      if (shouldNotify) {
+        // 生徒情報を取得
+        const studentInfo = /** @type {UserCore} */ (
+          getCachedStudentById(String(studentId))
+        );
+
+        if (
+          studentInfo &&
+          studentInfo.email &&
+          studentInfo.email.trim() !== ''
+        ) {
+          result.push({
+            studentId: studentId,
+            email: studentInfo.email,
+            realName: studentInfo.realName,
+            isFirstTime: isFirstTime || false,
+          });
+        }
+      }
+    },
+  );
 
   return result;
 }
@@ -888,12 +903,15 @@ export function updateReservationDetails(details) {
       );
 
       // ★ フロントエンドに返す最新データを取得
+      /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */
       const userReservationsResult = getUserReservations(
         updatedReservation.studentId,
       );
       const latestMyReservations =
-        userReservationsResult.success && userReservationsResult.data
-          ? userReservationsResult.data
+        userReservationsResult.success &&
+        userReservationsResult.data &&
+        Array.isArray(userReservationsResult.data.myReservations)
+          ? userReservationsResult.data.myReservations
           : [];
 
       const latestLessons = getLessons().data || [];
@@ -1181,10 +1199,13 @@ export function confirmWaitlistedReservation(confirmInfo) {
       sendAdminNotificationForReservation(updatedReservation, 'updated');
 
       // 最新の予約データを取得して返却
+      /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */
       const userReservationsResult = getUserReservations(studentId);
       const latestMyReservations =
-        userReservationsResult.success && userReservationsResult.data
-          ? userReservationsResult.data
+        userReservationsResult.success &&
+        userReservationsResult.data &&
+        Array.isArray(userReservationsResult.data.myReservations)
+          ? userReservationsResult.data.myReservations
           : [];
 
       const latestLessons = getLessons().data || [];

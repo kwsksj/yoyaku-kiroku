@@ -1,4 +1,3 @@
-
 /**
  * =================================================================
  * 【ファイル名】: 08_Utilities.gs
@@ -155,15 +154,15 @@ export function createSalesRow(baseInfo, category, itemName, price) {
   // 注意：この配列の順序は、実際の「売上ログ」シートの列の順序と一致させる必要があります。
   return [
     baseInfo.date, // 日付
-    baseInfo.classroom, // 教室
-    baseInfo.venue, // 会場
-    baseInfo.studentId, // 生徒ID
-    baseInfo.name, // 名前
+    baseInfo.classroom || '', // 教室
+    baseInfo.venue || '', // 会場
+    baseInfo.studentId || '', // 生徒ID
+    baseInfo.name || '', // 名前
     category, // 大項目 (授業料/物販)
     itemName, // 中項目 (商品名など)
     1, // 数量 (常に1として計上)
     price, // 金額
-    baseInfo.paymentMethod, // 支払手段
+    baseInfo.paymentMethod || '', // 支払手段
   ];
 }
 
@@ -380,13 +379,13 @@ export function transformReservationArrayToObject(resArray) {
  * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
  * @param {ReservationArrayData} resArray - 予約データの配列
  * @param {HeaderMapType} headerMap - ヘッダー名とインデックスのマッピング
- * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
+ * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore|null} - 変換された予約オブジェクト、失敗時はnull
  */
 export function transformReservationArrayToObjectWithHeaders(
   resArray,
   headerMap,
-  studentsMap,
+  studentsMap = {},
 ) {
   if (!Array.isArray(resArray) || !headerMap) {
     return transformReservationArrayToObject(resArray); // フォールバック
@@ -407,6 +406,18 @@ export function transformReservationArrayToObjectWithHeaders(
       }
     }
     return undefined;
+  };
+
+  /**
+   * @param {string} headerName
+   * @returns {unknown}
+   */
+  const getCellValue = headerName => {
+    const index = getIndex(headerName);
+    if (index === undefined) {
+      return undefined;
+    }
+    return resArray[index];
   };
 
   // デバッグ情報を追加
@@ -449,69 +460,59 @@ export function transformReservationArrayToObjectWithHeaders(
   }
 
   const studentId = String(
-    resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID)] || '',
+    getCellValue(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID) || '',
   );
 
   /** @type {ReservationCore} */
   const reservation = {
     reservationId: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID)] || '',
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID) || '',
     ),
     studentId: studentId,
     date: (() => {
-      const dateValue = resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.DATE)];
+      const dateValue = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.DATE);
       return dateValue instanceof Date
         ? Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd')
         : String(dateValue || '');
     })(),
     classroom: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM)] ||
-        resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)] ||
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM) ||
+        getCellValue(CONSTANTS.HEADERS.RESERVATIONS.VENUE) ||
         '',
     ),
-    venue: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.VENUE)] || '',
-    ),
+    venue: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.VENUE) || ''),
     startTime: (() => {
-      const time =
-        resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.START_TIME)];
+      const time = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.START_TIME);
       return time instanceof Date
         ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
         : String(time || '');
     })(),
     endTime: (() => {
-      const time = resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.END_TIME)];
+      const time = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.END_TIME);
       return time instanceof Date
         ? Utilities.formatDate(time, CONSTANTS.TIMEZONE, 'HH:mm')
         : String(time || '');
     })(),
-    status: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.STATUS)] || '',
-    ),
+    status: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.STATUS) || ''),
     chiselRental: (() => {
-      const value =
-        resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL)];
+      const value = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL);
       return value === true || String(value).toUpperCase() === 'TRUE';
     })(),
     firstLecture: (() => {
-      const value =
-        resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE)];
+      const value = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE);
       return value === true || String(value).toUpperCase() === 'TRUE';
     })(),
     workInProgress: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS)] || '',
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS) || '',
     ),
-    order: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.ORDER)] || '',
-    ),
+    order: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.ORDER) || ''),
     messageToTeacher: String(
-      resArray[getIndex(CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER)] ||
-        '',
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER) || '',
     ),
   };
 
   // ユーザー情報を付与（引数で渡されたマップから取得）
-  if (studentId && studentsMap && studentsMap[studentId]) {
+  if (studentId && studentsMap[studentId]) {
     reservation.user = studentsMap[studentId];
   }
 
@@ -528,31 +529,35 @@ export function normalizeReservationObject(rawReservation) {
 
   try {
     return {
-      reservationId: String(rawReservation.reservationId || ''),
-      studentId: String(rawReservation.studentId || ''),
+      reservationId: String(rawReservation['reservationId'] || ''),
+      studentId: String(rawReservation['studentId'] || ''),
       date:
-        rawReservation.date instanceof Date
-          ? rawReservation.date.toISOString()
-          : String(rawReservation.date || ''),
-      classroom: String(rawReservation.classroom || ''),
-      venue: rawReservation.venue ? String(rawReservation.venue) : undefined,
-      startTime:
-        rawReservation.startTime instanceof Date
-          ? rawReservation.startTime.toISOString()
-          : String(rawReservation.startTime || ''),
-      endTime:
-        rawReservation.endTime instanceof Date
-          ? rawReservation.endTime.toISOString()
-          : String(rawReservation.endTime || ''),
-      status: String(rawReservation.status || ''),
-      chiselRental: Boolean(rawReservation.chiselRental),
-      firstLecture: Boolean(rawReservation.firstLecture),
-      workInProgress: rawReservation.workInProgress
-        ? String(rawReservation.workInProgress)
+        rawReservation['date'] instanceof Date
+          ? rawReservation['date'].toISOString()
+          : String(rawReservation['date'] || ''),
+      classroom: String(rawReservation['classroom'] || ''),
+      venue: rawReservation['venue']
+        ? String(rawReservation['venue'])
         : undefined,
-      order: rawReservation.order ? String(rawReservation.order) : undefined,
-      messageToTeacher: rawReservation.messageToTeacher
-        ? String(rawReservation.messageToTeacher)
+      startTime:
+        rawReservation['startTime'] instanceof Date
+          ? rawReservation['startTime'].toISOString()
+          : String(rawReservation['startTime'] || ''),
+      endTime:
+        rawReservation['endTime'] instanceof Date
+          ? rawReservation['endTime'].toISOString()
+          : String(rawReservation['endTime'] || ''),
+      status: String(rawReservation['status'] || ''),
+      chiselRental: Boolean(rawReservation['chiselRental']),
+      firstLecture: Boolean(rawReservation['firstLecture']),
+      workInProgress: rawReservation['workInProgress']
+        ? String(rawReservation['workInProgress'])
+        : undefined,
+      order: rawReservation['order']
+        ? String(rawReservation['order'])
+        : undefined,
+      messageToTeacher: rawReservation['messageToTeacher']
+        ? String(rawReservation['messageToTeacher'])
         : undefined,
     };
   } catch (error) {
@@ -567,8 +572,9 @@ export function normalizeReservationObject(rawReservation) {
 
 /**
  * スクリプトロックを利用して処理をアトミックに実行する
- * @param {TransactionCallback} callback - 実行する処理
- * @returns {*} callbackの戻り値
+ * @template T
+ * @param {TransactionCallback<T>} callback - 実行する処理
+ * @returns {T} callbackの戻り値
  */
 export function withTransaction(callback) {
   const lock = LockService.getScriptLock();
@@ -615,9 +621,10 @@ export function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
   const { header, headerMap, allData, dataRows } = getSheetData(sheet);
 
   // 検索列のインデックスを取得
-  const searchColIdx = headerMap.get(searchColumn);
-  if (searchColIdx === undefined)
+  const searchColIdx = getHeaderIndex(headerMap, searchColumn);
+  if (searchColIdx === undefined) {
     throw new Error(`ヘッダー「${searchColumn}」が見つかりません。`);
+  }
 
   // データ行から対象レコードを検索（防御的プログラミング）
   const foundRow = dataRows.find(row => {
@@ -629,15 +636,15 @@ export function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
     }
     return row[searchColIdx] === searchValue;
   });
-  const rowIndex = foundRow ? dataRows.indexOf(foundRow) + 2 : -1; // 1-based + header row
+  const rowIndex = foundRow ? dataRows.indexOf(foundRow) + 2 : undefined; // 1-based + header row
 
   return {
     header,
     headerMap,
     allData,
     dataRows,
-    foundRow,
-    rowIndex,
+    ...(foundRow ? { foundRow } : {}),
+    ...(rowIndex !== undefined ? { rowIndex } : {}),
     searchColIdx,
   };
 }
@@ -688,13 +695,13 @@ export function getCachedStudentById(studentId) {
  * 予約配列データを統一的にオブジェクト配列に変換する
  * @param {ReservationArrayData[]} reservations - 予約配列データ
  * @param {HeaderMapType} headerMap - ヘッダーマップ
- * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
+ * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
  */
 export function convertReservationsToObjects(
   reservations,
   headerMap,
-  studentsMap,
+  studentsMap = {},
 ) {
   return reservations
     .map(reservation => {
@@ -987,7 +994,7 @@ export function convertUserToRow(user, headerMap) {
   const row = new Array(columnCount).fill('');
 
   // 必須フィールド
-  row[hm[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] = user.studentId;
+  row[hm[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] = user.studentId || '';
   row[hm[CONSTANTS.HEADERS.ROSTER.PHONE]] = user.phone;
   row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]] = user.realName;
 
@@ -1101,7 +1108,11 @@ export function convertReservationToRow(reservation, headerMap, header) {
   }
 
   // 動的プロパティ（material/otherSales系）
-  Object.keys(reservation).forEach(key => {
+  const dynamicReservation = /** @type {Record<string, unknown>} */ (
+    /** @type {unknown} */ (reservation)
+  );
+
+  Object.keys(dynamicReservation).forEach(key => {
     if (
       key.startsWith('material') ||
       key.startsWith('otherSales') ||
@@ -1110,7 +1121,9 @@ export function convertReservationToRow(reservation, headerMap, header) {
       key === 'breakTime'
     ) {
       if (hm[key] !== undefined) {
-        row[hm[key]] = reservation[key];
+        row[hm[key]] = /** @type {RawSheetRow[number]} */ (
+          dynamicReservation[key]
+        );
       }
     }
   });

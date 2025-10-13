@@ -61,10 +61,10 @@ export function transformReservationArrayToObject(resArray: ReservationArrayData
  * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
  * @param {ReservationArrayData} resArray - 予約データの配列
  * @param {HeaderMapType} headerMap - ヘッダー名とインデックスのマッピング
- * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
+ * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore|null} - 変換された予約オブジェクト、失敗時はnull
  */
-export function transformReservationArrayToObjectWithHeaders(resArray: ReservationArrayData, headerMap: HeaderMapType, studentsMap: Record<string, UserCore>): ReservationCore | null;
+export function transformReservationArrayToObjectWithHeaders(resArray: ReservationArrayData, headerMap: HeaderMapType, studentsMap?: Record<string, UserCore>): ReservationCore | null;
 /**
  * 生データの予約オブジェクトを正規化済みオブジェクトに変換
  * @param {RawReservationObject} rawReservation - 生データの予約オブジェクト
@@ -73,10 +73,11 @@ export function transformReservationArrayToObjectWithHeaders(resArray: Reservati
 export function normalizeReservationObject(rawReservation: RawReservationObject): ReservationObject | null;
 /**
  * スクリプトロックを利用して処理をアトミックに実行する
- * @param {TransactionCallback} callback - 実行する処理
- * @returns {*} callbackの戻り値
+ * @template T
+ * @param {TransactionCallback<T>} callback - 実行する処理
+ * @returns {T} callbackの戻り値
  */
-export function withTransaction(callback: TransactionCallback): any;
+export function withTransaction<T>(callback: TransactionCallback<T>): T;
 /**
  * シートからヘッダーとデータを一度に取得する共通関数。
  * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 対象のシート
@@ -109,10 +110,10 @@ export function getCachedStudentById(studentId: string): StudentData | null;
  * 予約配列データを統一的にオブジェクト配列に変換する
  * @param {ReservationArrayData[]} reservations - 予約配列データ
  * @param {HeaderMapType} headerMap - ヘッダーマップ
- * @param {Record<string, UserCore>} studentsMap - 全生徒のマップ（パフォーマンス最適化用）
+ * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
  */
-export function convertReservationsToObjects(reservations: ReservationArrayData[], headerMap: HeaderMapType, studentsMap: Record<string, UserCore>): ReservationCore[];
+export function convertReservationsToObjects(reservations: ReservationArrayData[], headerMap: HeaderMapType, studentsMap?: Record<string, UserCore>): ReservationCore[];
 /**
  * キャッシュから全ての予約データを取得し、オブジェクトの配列として返す
  * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列

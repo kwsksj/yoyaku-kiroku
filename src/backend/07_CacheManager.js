@@ -1,4 +1,3 @@
-
 /**
  * =================================================================
  * 【ファイル名】: 07_CacheManager.js
@@ -742,36 +741,51 @@ export function rebuildAllReservationsCache() {
       { index: endTimeColumnIndex, type: 'time' },
     ].filter(column => column.index !== undefined);
 
-    allReservationRows.forEach(/** @param {(string|number|Date)[]} reservationRow */ (reservationRow) => {
-      formatColumns.forEach(({ index, type }) => {
-        const originalValue = reservationRow[index];
-        if (originalValue instanceof Date) {
-          const formatter =
-            type === 'date' ? DateTimeFormatters.date : DateTimeFormatters.time;
-          reservationRow[index] = formatter(originalValue);
-        }
-      });
-    });
+    allReservationRows.forEach(
+      /** @param {(string|number|Date)[]} reservationRow */ reservationRow => {
+        formatColumns.forEach(({ index, type }) => {
+          const originalValue = reservationRow[index];
+          if (originalValue instanceof Date) {
+            const formatter =
+              type === 'date'
+                ? DateTimeFormatters.date
+                : DateTimeFormatters.time;
+            reservationRow[index] = formatter(originalValue);
+          }
+        });
+      },
+    );
 
     // 全データを日付順にソート（新しい順）
-    const sortedReservations = allReservationRows.sort((/** @type {(string|number|Date)[]} */ a, /** @type {(string|number|Date)[]} */ b) => {
-      const dateA = new Date(a[dateColumnIndex]);
-      const dateB = new Date(b[dateColumnIndex]);
-      return dateB.getTime() - dateA.getTime(); // 新しい順
-    });
+    const sortedReservations = allReservationRows.sort(
+      (
+        /** @type {(string|number|Date)[]} */ a,
+        /** @type {(string|number|Date)[]} */ b,
+      ) => {
+        const dateA = new Date(a[dateColumnIndex]);
+        const dateB = new Date(b[dateColumnIndex]);
+        return dateB.getTime() - dateA.getTime(); // 新しい順
+      },
+    );
 
     // reservationIdIndexMap を作成
     const reservationIdColIndex = headerColumnMap.get(
       CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
     );
+    /** @type {{[key: string]: number}} */
     const reservationIdIndexMap = {};
     if (reservationIdColIndex !== undefined) {
-      sortedReservations.forEach((/** @type {(string|number|Date)[]} */ reservation, /** @type {number} */ index) => {
-        const reservationId = reservation[reservationIdColIndex];
-        if (reservationId) {
-          reservationIdIndexMap[String(reservationId)] = index;
-        }
-      });
+      sortedReservations.forEach(
+        (
+          /** @type {(string|number|Date)[]} */ reservation,
+          /** @type {number} */ index,
+        ) => {
+          const reservationId = reservation[reservationIdColIndex];
+          if (reservationId) {
+            reservationIdIndexMap[String(reservationId)] = index;
+          }
+        },
+      );
     }
 
     // データサイズをチェックして分割キャッシュまたは通常キャッシュを決定
@@ -924,118 +938,134 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     ];
 
     const scheduleDataList = allData
-      .filter(/** @param {(string|number|Date)[]} row */ (row) => {
-        const dateValue = row[headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE)];
-        if (!dateValue) return false;
+      .filter(
+        /** @param {(string|number|Date)[]} row */ row => {
+          const dateValue =
+            row[headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE)];
+          if (!dateValue) return false;
 
-        // Date オブジェクトを文字列形式に変換して比較
-        const dateStr =
-          dateValue instanceof Date
-            ? Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd')
-            : String(dateValue);
+          // Date オブジェクトを文字列形式に変換して比較
+          const dateStr =
+            dateValue instanceof Date
+              ? Utilities.formatDate(
+                  dateValue,
+                  CONSTANTS.TIMEZONE,
+                  'yyyy-MM-dd',
+                )
+              : String(dateValue);
 
-        return dateStr >= startDate && dateStr <= endDate;
-      })
-      .map(/** @param {(string|number|Date)[]} row */ (row) => {
-        /** @type {LessonCore} */
-        const scheduleObj = /** @type {LessonCore} */ ({});
-        headers.forEach((/** @type {string} */ header, /** @type {number} */ index) => {
-          let value = row[index];
-          // 時間列の処理
-          if (timeColumnNames.includes(header) && value instanceof Date) {
-            value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
-          }
-          // 日付列の処理（文字列形式でキャッシュに保存）
-          else if (header === CONSTANTS.HEADERS.SCHEDULE.DATE) {
-            if (value instanceof Date) {
-              // Date型を文字列形式に変換してキャッシュ保存
-              value = Utilities.formatDate(
-                value,
-                CONSTANTS.TIMEZONE,
-                'yyyy-MM-dd',
-              );
-            } else if (value && typeof value === 'string') {
-              // 文字列の場合は一度Date型に変換して検証後、文字列に戻す
-              try {
-                const dateObj = new Date(value);
-                if (isNaN(dateObj.getTime())) {
-                  Logger.log(`無効な日付文字列: ${value}, 行をスキップ`);
-                  return null; // 無効な行をスキップ
-                }
+          return dateStr >= startDate && dateStr <= endDate;
+        },
+      )
+      .map(
+        /** @param {(string|number|Date)[]} row */ row => {
+          /** @type {LessonCore} */
+          const scheduleObj = /** @type {LessonCore} */ ({});
+
+          for (let index = 0; index < headers.length; index += 1) {
+            const header = headers[index];
+            let value = row[index];
+
+            // 時間列の処理
+            if (timeColumnNames.includes(header) && value instanceof Date) {
+              value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
+            } else if (header === CONSTANTS.HEADERS.SCHEDULE.DATE) {
+              // 日付列の処理（文字列形式でキャッシュに保存）
+              if (value instanceof Date) {
                 value = Utilities.formatDate(
-                  dateObj,
+                  value,
                   CONSTANTS.TIMEZONE,
                   'yyyy-MM-dd',
                 );
-              } catch (error) {
-                Logger.log(`日付変換エラー: ${value}, 行をスキップ`);
-                return null; // 無効な行をスキップ
+              } else if (value && typeof value === 'string') {
+                try {
+                  const dateObj = new Date(value);
+                  if (isNaN(dateObj.getTime())) {
+                    Logger.log(`無効な日付文字列: ${value}, 行をスキップ`);
+                    return null;
+                  }
+                  value = Utilities.formatDate(
+                    dateObj,
+                    CONSTANTS.TIMEZONE,
+                    'yyyy-MM-dd',
+                  );
+                } catch (error) {
+                  Logger.log(`日付変換エラー: ${value}, 行をスキップ`);
+                  return null;
+                }
+              } else if (value == null || value === '') {
+                Logger.log(`無効な日付値: ${value}, 行をスキップ`);
+                return null;
               }
-            } else {
-              Logger.log(`無効な日付値: ${value}, 行をスキップ`);
-              return null; // 無効な行をスキップ
             }
+
+            // 日本語ヘッダーを英語プロパティ名に変換
+            let propertyName = header;
+            switch (header) {
+              case CONSTANTS.HEADERS.SCHEDULE.DATE:
+                propertyName = 'date';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.CLASSROOM:
+                propertyName = 'classroom';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.VENUE:
+                propertyName = 'venue';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.TYPE:
+                propertyName = 'classroomType';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.FIRST_START:
+                propertyName = 'firstStart';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.FIRST_END:
+                propertyName = 'firstEnd';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.SECOND_START:
+                propertyName = 'secondStart';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.SECOND_END:
+                propertyName = 'secondEnd';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START:
+                propertyName = 'beginnerStart';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY:
+                propertyName = 'totalCapacity';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY:
+                propertyName = 'beginnerCapacity';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.STATUS:
+                propertyName = 'status';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.NOTES:
+                propertyName = 'notes';
+                break;
+              default:
+                propertyName = header;
+            }
+
+            scheduleObj[propertyName] = value;
           }
 
-          // 日本語ヘッダーを英語プロパティ名に変換
-          let propertyName = header;
-          switch (header) {
-            case CONSTANTS.HEADERS.SCHEDULE.DATE:
-              propertyName = 'date';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.CLASSROOM:
-              propertyName = 'classroom';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.VENUE:
-              propertyName = 'venue';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.TYPE:
-              propertyName = 'classroomType';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.FIRST_START:
-              propertyName = 'firstStart';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.FIRST_END:
-              propertyName = 'firstEnd';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.SECOND_START:
-              propertyName = 'secondStart';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.SECOND_END:
-              propertyName = 'secondEnd';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START:
-              propertyName = 'beginnerStart';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY:
-              propertyName = 'totalCapacity';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY:
-              propertyName = 'beginnerCapacity';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.STATUS:
-              propertyName = 'status';
-              break;
-            case CONSTANTS.HEADERS.SCHEDULE.NOTES:
-              propertyName = 'notes';
-              break;
-            // その他はそのまま
-          }
-
-          scheduleObj[propertyName] = value;
-        });
-        return scheduleObj;
-      })
-      .filter(/** @param {ScheduleMasterData | null} scheduleObj */ (scheduleObj) => scheduleObj !== null); // 無効な行を除外
+          return scheduleObj;
+        },
+      )
+      .filter(
+        /** @param {LessonCore | null} scheduleObj */ scheduleObj =>
+          scheduleObj !== null,
+      ); // 無効な行を除外
 
     // ★ 日付順でソート処理を追加（文字列形式前提）
     if (scheduleDataList && scheduleDataList.length > 0) {
-      scheduleDataList.sort((/** @type {ScheduleMasterData} */ a, /** @type {ScheduleMasterData} */ b) => {
-        // 文字列形式（yyyy-MM-dd）で保存されているため文字列比較
-        const dateA = String(a.date);
-        const dateB = String(b.date);
-        return dateA.localeCompare(dateB);
-      });
+      scheduleDataList.sort(
+        (/** @type {LessonCore} */ a, /** @type {LessonCore} */ b) => {
+          // 文字列形式（yyyy-MM-dd）で保存されているため文字列比較
+          const dateA = String(a.date);
+          const dateB = String(b.date);
+          return dateA.localeCompare(dateB);
+        },
+      );
     }
 
     const cacheData = {
@@ -1105,15 +1135,22 @@ export function rebuildAccountingMasterCache() {
     // 時刻情報は日程マスタから取得
 
     // データを処理してオブジェクト形式に変換
-    const processedItems = allData.map(/** @param {(string|number|Date)[]} rowData */ (rowData) => {
-      /** @type {Partial<AccountingMasterItem>} */
-      const item = {};
-      headers.forEach((/** @type {string} */ headerName, /** @type {number} */ columnIndex) => {
-        const cellValue = rowData[columnIndex];
-        item[headerName] = cellValue;
-      });
-      return item;
-    });
+    const processedItems = allData.map(
+      /** @param {(string|number|Date)[]} rowData */ rowData => {
+        /** @type {Partial<AccountingMasterItem>} */
+        const item = {};
+        headers.forEach(
+          (
+            /** @type {string} */ headerName,
+            /** @type {number} */ columnIndex,
+          ) => {
+            const cellValue = rowData[columnIndex];
+            item[headerName] = cellValue;
+          },
+        );
+        return item;
+      },
+    );
 
     const cacheData = {
       version: new Date().getTime(),
@@ -1217,62 +1254,73 @@ export function rebuildAllStudentsBasicCache() {
     // 生徒データをオブジェクト形式に変換
     /** @type {{ [studentId: string]: StudentData }} */
     const studentsDataMap = {};
-    allStudentRows.forEach((/** @type {(string|number|Date)[]} */ studentRow, /** @type {number} */ index) => {
-      const studentId = studentRow[requiredColumns.studentId];
-      if (studentId && String(studentId).trim()) {
-        // メール連絡希望フラグの処理
-        let wantsEmail = false;
-        if (optionalColumns.emailPreference !== undefined) {
-          const preference = studentRow[optionalColumns.emailPreference];
-          wantsEmail =
-            String(preference) === 'TRUE' ||
-            String(preference) === '希望する' ||
-            preference === true;
+    allStudentRows.forEach(
+      (
+        /** @type {(string|number|Date)[]} */ studentRow,
+        /** @type {number} */ index,
+      ) => {
+        const studentId = studentRow[requiredColumns.studentId];
+        if (studentId && String(studentId).trim()) {
+          // メール連絡希望フラグの処理
+          let wantsEmail = false;
+          if (optionalColumns.emailPreference !== undefined) {
+            const preference = studentRow[optionalColumns.emailPreference];
+            wantsEmail =
+              String(preference) === 'TRUE' ||
+              String(preference) === '希望する' ||
+              String(preference) === 'true';
+          }
+
+          // 日程連絡希望フラグの処理
+          let wantsScheduleNotification = false;
+          if (optionalColumns.scheduleNotificationPreference !== undefined) {
+            const preference =
+              studentRow[optionalColumns.scheduleNotificationPreference];
+            wantsScheduleNotification =
+              String(preference) === 'TRUE' ||
+              String(preference) === '希望する' ||
+              String(preference) === 'true';
+          }
+
+          // 通知設定の取得
+          const notificationDay =
+            optionalColumns.notificationDay !== undefined
+              ? studentRow[optionalColumns.notificationDay]
+              : null;
+          const notificationHour =
+            optionalColumns.notificationHour !== undefined
+              ? studentRow[optionalColumns.notificationHour]
+              : null;
+
+          const studentIdStr = String(studentId);
+          studentsDataMap[studentIdStr] = {
+            studentId: studentIdStr,
+            displayName: String(
+              studentRow[requiredColumns.nickname] ||
+                studentRow[requiredColumns.realName] ||
+                '',
+            ),
+            realName: String(studentRow[requiredColumns.realName] || ''),
+            nickname: String(studentRow[requiredColumns.nickname] || ''),
+            phone: String(studentRow[requiredColumns.phone] || ''),
+            email: String(
+              optionalColumns.email !== undefined
+                ? studentRow[optionalColumns.email] || ''
+                : '',
+            ),
+            wantsEmail: wantsEmail,
+            wantsScheduleNotification: wantsScheduleNotification,
+            notificationDay:
+              typeof notificationDay === 'number' ? notificationDay : undefined,
+            notificationHour:
+              typeof notificationHour === 'number'
+                ? notificationHour
+                : undefined,
+            rowIndex: index + 2, // ヘッダー行を考慮した実際の行番号 (1-based + header)
+          };
         }
-
-        // 日程連絡希望フラグの処理
-        let wantsScheduleNotification = false;
-        if (optionalColumns.scheduleNotificationPreference !== undefined) {
-          const preference =
-            studentRow[optionalColumns.scheduleNotificationPreference];
-          wantsScheduleNotification =
-            String(preference) === 'TRUE' ||
-            String(preference) === '希望する' ||
-            preference === true;
-        }
-
-        // 通知設定の取得
-        const notificationDay =
-          optionalColumns.notificationDay !== undefined
-            ? studentRow[optionalColumns.notificationDay]
-            : null;
-        const notificationHour =
-          optionalColumns.notificationHour !== undefined
-            ? studentRow[optionalColumns.notificationHour]
-            : null;
-
-        const studentIdStr = String(studentId);
-        studentsDataMap[studentIdStr] = {
-          studentId: studentIdStr,
-          displayName:
-            studentRow[requiredColumns.nickname] ||
-            studentRow[requiredColumns.realName] ||
-            '',
-          realName: studentRow[requiredColumns.realName] || '',
-          nickname: studentRow[requiredColumns.nickname] || '',
-          phone: studentRow[requiredColumns.phone] || '',
-          email:
-            optionalColumns.email !== undefined
-              ? studentRow[optionalColumns.email] || ''
-              : '',
-          wantsEmail: wantsEmail,
-          wantsScheduleNotification: wantsScheduleNotification,
-          notificationDay: notificationDay,
-          notificationHour: notificationHour,
-          rowIndex: index + 2, // ヘッダー行を考慮した実際の行番号 (1-based + header)
-        };
-      }
-    });
+      },
+    );
 
     // 生徒データを配列形式に変換（分割キャッシュ用）
     /** @type {StudentData[]} */
@@ -1638,11 +1686,18 @@ export function getCachedData(cacheKey, autoRebuild = true) {
     }
 
     parsedData = JSON.parse(cachedData);
-    const dataCount = getDataCount(parsedData, cacheKey);
+    if (!parsedData || typeof parsedData !== 'object') {
+      PerformanceLog.debug(
+        `${cacheKey}キャッシュに不正なデータが含まれています`,
+      );
+      return null;
+    }
+    const typedData = /** @type {CacheDataStructure} */ (parsedData);
+    const dataCount = getDataCount(typedData, cacheKey);
     PerformanceLog.debug(
       `${cacheKey}単一キャッシュから取得完了。件数: ${dataCount}`,
     );
-    return parsedData;
+    return typedData;
   } catch (e) {
     Logger.log(`getCachedData(${cacheKey})でエラー: ${e.message}`);
     return null;
@@ -1907,13 +1962,15 @@ export function loadChunkedDataFromCache(baseKey) {
       // 生徒名簿の場合：配列をオブジェクトに変換
       /** @type {{ [studentId: string]: StudentData }} */
       const studentsMap = {};
-      allData.forEach(/** @param {any} student */ (student) => {
-        // StudentDataは元々配列形式で保存されているため、型アサーションで変換
-        const studentData = /** @type {any} */ (student);
-        if (studentData.studentId) {
-          studentsMap[studentData.studentId] = studentData;
-        }
-      });
+      allData.forEach(
+        /** @param {any} student */ student => {
+          // StudentDataは元々配列形式で保存されているため、型アサーションで変換
+          const studentData = /** @type {any} */ (student);
+          if (studentData.studentId) {
+            studentsMap[studentData.studentId] = studentData;
+          }
+        },
+      );
 
       result = {
         version: metadata.version,
@@ -1932,19 +1989,32 @@ export function loadChunkedDataFromCache(baseKey) {
       const reservationIdIndexMap = metadata.reservationIdIndexMap || {};
 
       // メタデータにreservationIdIndexMapがない場合は再構築
-      if (!metadata.reservationIdIndexMap || Object.keys(reservationIdIndexMap).length === 0) {
-        Logger.log(`${baseKey}: reservationIdIndexMapが見つからないため再構築します`);
+      if (
+        !metadata.reservationIdIndexMap ||
+        Object.keys(reservationIdIndexMap).length === 0
+      ) {
+        Logger.log(
+          `${baseKey}: reservationIdIndexMapが見つからないため再構築します`,
+        );
         const headerMap = metadata.headerMap || {};
-        const reservationIdColIndex = headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
+        const reservationIdColIndex =
+          headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
 
         if (reservationIdColIndex !== undefined) {
-          allData.forEach((/** @type {(string|number|Date)[]} */ row, /** @type {number} */ index) => {
-            const reservationId = row[reservationIdColIndex];
-            if (reservationId) {
-              reservationIdIndexMap[String(reservationId)] = index;
-            }
-          });
-          Logger.log(`${baseKey}: reservationIdIndexMapを再構築しました（${Object.keys(reservationIdIndexMap).length}件）`);
+          allData.forEach(
+            (
+              /** @type {(string|number|Date)[]} */ row,
+              /** @type {number} */ index,
+            ) => {
+              const reservationId = row[reservationIdColIndex];
+              if (reservationId) {
+                reservationIdIndexMap[String(reservationId)] = index;
+              }
+            },
+          );
+          Logger.log(
+            `${baseKey}: reservationIdIndexMapを再構築しました（${Object.keys(reservationIdIndexMap).length}件）`,
+          );
         }
       }
 
@@ -2010,6 +2080,119 @@ export function clearChunkedCache(baseKey) {
 }
 
 /**
+ * 生徒基本情報キャッシュを取得し、Record形式で返すヘルパー
+ * @param {boolean} [autoRebuild=true] - キャッシュ未存在時に再構築を試行するか
+ * @returns {Record<string, UserCore> | null} 生徒情報マップ
+ */
+export function getCachedAllStudents(autoRebuild = true) {
+  const cache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC, autoRebuild);
+  if (!cache || !cache.students || typeof cache.students !== 'object') {
+    return null;
+  }
+  return /** @type {Record<string, UserCore>} */ (cache.students);
+}
+
+/**
+ * キャッシュ上の生徒情報を更新する
+ * @param {UserCore} updatedStudent - 更新後の生徒情報（studentId必須）
+ */
+export function updateCachedStudent(updatedStudent) {
+  if (!updatedStudent || !updatedStudent.studentId) {
+    Logger.log(
+      'updateCachedStudent: studentIdが指定されていないためスキップしました',
+    );
+    return;
+  }
+
+  const cache = getTypedCachedData(
+    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    /* autoRebuild */ false,
+  );
+
+  if (!cache || !cache.students) {
+    Logger.log(
+      'updateCachedStudent: 生徒キャッシュが存在しないため再構築を実行します',
+    );
+    rebuildAllStudentsBasicCache();
+    return;
+  }
+
+  const students = /** @type {Record<string, UserCore>} */ ({
+    ...cache.students,
+  });
+  const baseStudent = students[updatedStudent.studentId] || {};
+  students[updatedStudent.studentId] = {
+    ...baseStudent,
+    ...updatedStudent,
+  };
+
+  const headerMap =
+    cache['headerMap'] && typeof cache['headerMap'] === 'object'
+      ? /** @type {Record<string, number>} */ (cache['headerMap'])
+      : undefined;
+
+  persistStudentCache(students, headerMap);
+}
+
+/**
+ * キャッシュに新しい生徒情報を追加する
+ * @param {UserCore} newStudent - 追加する生徒情報（studentId必須）
+ */
+export function addCachedStudent(newStudent) {
+  if (!newStudent || !newStudent.studentId) {
+    Logger.log(
+      'addCachedStudent: studentIdが指定されていないためスキップしました',
+    );
+    return;
+  }
+
+  const cache = getTypedCachedData(
+    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    /* autoRebuild */ false,
+  );
+
+  if (!cache || !cache.students) {
+    Logger.log(
+      'addCachedStudent: 生徒キャッシュが存在しないため再構築を実行します',
+    );
+    rebuildAllStudentsBasicCache();
+    return;
+  }
+
+  const students = /** @type {Record<string, UserCore>} */ ({
+    ...cache.students,
+  });
+  students[newStudent.studentId] = { ...newStudent };
+
+  const headerMap =
+    cache['headerMap'] && typeof cache['headerMap'] === 'object'
+      ? /** @type {Record<string, number>} */ (cache['headerMap'])
+      : undefined;
+
+  persistStudentCache(students, headerMap);
+}
+
+/**
+ * 指定したキャッシュキーのデータを削除する
+ * @param {CacheKey | string} cacheKey - 削除対象のキャッシュキー
+ */
+export function deleteCache(cacheKey) {
+  const cache = CacheService.getScriptCache();
+  cache.remove(cacheKey);
+  clearChunkedCache(cacheKey);
+  cache.remove(`${cacheKey}_meta`);
+}
+
+/**
+ * すべてのキャッシュを削除する（開発・デバッグ用途）
+ */
+export function deleteAllCache() {
+  for (const key of Object.values(CACHE_KEYS)) {
+    deleteCache(key);
+  }
+}
+
+/**
  * 各キャッシュキーに対応するデータ件数取得関数
  * @param {object} parsedData - パース済みキャッシュデータ
  * @param {string} cacheKey - キャッシュキー
@@ -2039,6 +2222,64 @@ export function getDataCount(parsedData, cacheKey) {
           : 0
         : 0;
   }
+}
+
+/**
+ * 生徒キャッシュを永続化する内部ヘルパー
+ * @param {Record<string, UserCore>} studentsMap - 生徒情報マップ
+ * @param {Record<string, number> | undefined} headerMap - ヘッダーマップ
+ */
+function persistStudentCache(studentsMap, headerMap) {
+  const cache = CacheService.getScriptCache();
+  const totalCount = Object.keys(studentsMap).length;
+  const baseData = {
+    version: new Date().getTime(),
+    students: studentsMap,
+    headerMap: headerMap || undefined,
+    metadata: {
+      totalCount,
+      lastUpdated: new Date().toISOString(),
+    },
+  };
+
+  const serialized = JSON.stringify(baseData);
+  const sizeKB = Math.round(serialized.length / 1024);
+
+  if (sizeKB >= CHUNK_SIZE_LIMIT_KB) {
+    const studentArray = Object.values(studentsMap);
+    /** @type {ChunkedCacheMetadata} */
+    const chunkMetadata = /** @type {ChunkedCacheMetadata} */ ({
+      version: baseData.version,
+      totalCount,
+      lastUpdated: baseData.metadata.lastUpdated,
+      headerMap: baseData.headerMap || {},
+      isChunked: true,
+    });
+
+    const chunks = splitDataIntoChunks(studentArray, CHUNK_SIZE_LIMIT_KB);
+    const success = saveChunkedDataToCache(
+      CACHE_KEYS.ALL_STUDENTS_BASIC,
+      chunks,
+      chunkMetadata,
+    );
+
+    if (!success) {
+      Logger.log(
+        'persistStudentCache: 分割キャッシュの保存に失敗しました。再構築を実行します。',
+      );
+      rebuildAllStudentsBasicCache();
+    } else {
+      cache.remove(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    }
+    return;
+  }
+
+  clearChunkedCache(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  cache.put(
+    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    serialized,
+    CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+  );
 }
 
 /**

@@ -1,4 +1,3 @@
-
 /**
  * =================================================================
  * 【ファイル名】: 04_Backend_User.js
@@ -26,10 +25,12 @@
  *   console.log(student.realName);
  * }
  */
-function getAllStudentsAsObject() {
-  const allStudentsSheet = getSheet(CONSTANTS.SHEET_NAMES.STUDENTS);
+export function getAllStudentsAsObject() {
+  const allStudentsSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.STUDENTS);
   if (!allStudentsSheet) {
-    throw new Error(`シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`);
+    throw new Error(
+      `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`,
+    );
   }
 
   const allStudentsData = allStudentsSheet.getDataRange().getValues();
@@ -84,13 +85,22 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
     if (colIdx !== -1) {
       const value = row[colIdx];
       // JSDocのプロパティ名に変換（例: STUDENT_ID -> studentId）
-      const propName = key.toLowerCase().replace(/_([a-z])/g, g => g[1].toUpperCase());
+      const propName = key
+        .toLowerCase()
+        .replace(/_([a-z])/g, g => g[1].toUpperCase());
 
       // 型変換と設定
-      if (propName === 'wantsEmail' || propName === 'wantsScheduleNotification') {
+      if (
+        propName === 'wantsEmail' ||
+        propName === 'wantsScheduleNotification'
+      ) {
         student[propName] = String(value).toUpperCase() === 'TRUE';
-      } else if (propName === 'notificationDay' || propName === 'notificationHour') {
-        student[propName] = value !== '' && value != null ? Number(value) : undefined;
+      } else if (
+        propName === 'notificationDay' ||
+        propName === 'notificationHour'
+      ) {
+        student[propName] =
+          value !== '' && value != null ? Number(value) : undefined;
       } else {
         student[propName] = String(value);
       }
@@ -98,16 +108,23 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
   }
 
   // 必須プロパティと計算プロパティ
-  student.studentId = String(row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID)]);
-  student.realName = String(row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.REAL_NAME)]);
-  student.phone = String(row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.PHONE)]);
-  student.nickname = String(row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.NICKNAME)]);
+  student.studentId = String(
+    row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID)],
+  );
+  student.realName = String(
+    row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.REAL_NAME)],
+  );
+  student.phone = String(
+    row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.PHONE)],
+  );
+  student.nickname = String(
+    row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.NICKNAME)],
+  );
   student.displayName = student.nickname || student.realName;
   student.rowIndex = rowIndex; // 行番号を付与
 
   return student;
 }
-
 
 // =================================================================
 // ★★★ ユーザー認証・情報取得 ★★★
@@ -125,16 +142,16 @@ function findUserByPhoneAndRealName(phone, realName) {
   try {
     // 全生徒データをキャッシュから取得
     const allStudents = getCachedAllStudents();
-    if (!allStudents) {
+    if (!allStudents || Object.keys(allStudents).length === 0) {
       return {
         success: false,
-        message: '生徒データの取得に失敗しました。キャッシュを更新中です。'
+        message: '生徒データの取得に失敗しました。キャッシュを更新中です。',
       };
     }
 
     // 電話番号と本名でユーザーを検索
     const foundUser = Object.values(allStudents).find(
-      user => user.phone === phone && user.realName === realName
+      user => user.phone === phone && user.realName === realName,
     );
 
     if (foundUser) {
@@ -147,18 +164,80 @@ function findUserByPhoneAndRealName(phone, realName) {
       Logger.log(`ユーザー認証失敗: ${phone}, ${realName}`);
       return {
         success: false,
-        message: '電話番号または本名が一致しませんでした。'
+        message: '電話番号または本名が一致しませんでした。',
       };
     }
   } catch (error) {
     Logger.log(`ユーザー検索エラー: ${error.message}`);
     return {
       success: false,
-      message: `サーバーエラーが発生しました: ${error.message}`
+      message: `サーバーエラーが発生しました: ${error.message}`,
     };
   }
 }
 
+/**
+ * 電話番号からユーザーを認証します。
+ * @param {string} phone - 認証に使用する電話番号
+ * @returns {ApiResponseGeneric<UserCore>}
+ */
+export function authenticateUser(phone) {
+  try {
+    if (!phone) {
+      return {
+        success: false,
+        message: '電話番号が指定されていません。',
+      };
+    }
+
+    const normalizedInput = normalizePhoneNumber(phone);
+    if (!normalizedInput.isValid) {
+      return {
+        success: false,
+        message: normalizedInput.error || '電話番号の形式が正しくありません。',
+      };
+    }
+
+    const allStudents = getCachedAllStudents();
+    if (!allStudents) {
+      return {
+        success: false,
+        message: '生徒データの取得に失敗しました。キャッシュを更新中です。',
+      };
+    }
+
+    const matchedStudent = Object.values(allStudents).find(student => {
+      const normalizedStudentPhone = student.phone
+        ? normalizePhoneNumber(student.phone)
+        : { isValid: false };
+      return (
+        normalizedStudentPhone.isValid &&
+        normalizedStudentPhone.normalized === normalizedInput.normalized
+      );
+    });
+
+    if (!matchedStudent) {
+      return {
+        success: false,
+        message: '一致するユーザーが見つかりませんでした。',
+        user: null,
+      };
+    }
+
+    return {
+      success: true,
+      data: matchedStudent,
+      user: matchedStudent,
+    };
+  } catch (error) {
+    Logger.log(`authenticateUser エラー: ${error.message}`);
+    return {
+      success: false,
+      message: `ユーザー認証に失敗しました: ${error.message}`,
+      user: null,
+    };
+  }
+}
 
 /**
  * ユーザーのプロフィール詳細を取得します（編集画面用）
@@ -167,19 +246,26 @@ function findUserByPhoneAndRealName(phone, realName) {
  * @param {string} studentId - 生徒ID
  * @returns {ApiResponseGeneric<UserCore>}
  */
-function getUserDetailForEdit(studentId) {
+export function getUserDetailForEdit(studentId) {
   try {
-    const allStudentsSheet = SS_MANAGER.getSheetByName(CONSTANTS.SHEET_NAMES.STUDENTS);
+    const allStudentsSheet = SS_MANAGER.getSheet(
+      CONSTANTS.SHEET_NAMES.STUDENTS,
+    );
     if (!allStudentsSheet) {
-      throw new Error(`シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`);
+      throw new Error(
+        `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`,
+      );
     }
 
     const data = allStudentsSheet.getDataRange().getValues();
     const headers = data[0];
 
     // ヘッダーインデックスを取得
-    const studentIdColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID);
-    if (studentIdColIdx === -1) throw new Error('生徒IDヘッダーが見つかりません');
+    const studentIdColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID,
+    );
+    if (studentIdColIdx === -1)
+      throw new Error('生徒IDヘッダーが見つかりません');
 
     // 対象ユーザーの行を検索
     const userRow = data.find(
@@ -194,19 +280,39 @@ function getUserDetailForEdit(studentId) {
     }
 
     // 各列のインデックスを取得
-    const realNameColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.REAL_NAME);
-    const nicknameColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.NICKNAME);
+    const realNameColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.REAL_NAME,
+    );
+    const nicknameColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.NICKNAME,
+    );
     const phoneColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.PHONE);
     const emailColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.EMAIL);
-    const emailPreferenceColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.WANTS_EMAIL);
-    const scheduleNotificationPreferenceColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.WANTS_SCHEDULE_NOTIFICATION);
-    const notificationDayColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.NOTIFICATION_DAY);
-    const notificationHourColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.NOTIFICATION_HOUR);
-    const addressColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.ADDRESS);
-    const ageGroupColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.AGE_GROUP);
+    const emailPreferenceColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.WANTS_EMAIL,
+    );
+    const scheduleNotificationPreferenceColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.WANTS_SCHEDULE_NOTIFICATION,
+    );
+    const notificationDayColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.NOTIFICATION_DAY,
+    );
+    const notificationHourColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.NOTIFICATION_HOUR,
+    );
+    const addressColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.ADDRESS,
+    );
+    const ageGroupColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.AGE_GROUP,
+    );
     const genderColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.GENDER);
-    const dominantHandColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.DOMINANT_HAND);
-    const futureCreationsColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.FUTURE_CREATIONS);
+    const dominantHandColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.DOMINANT_HAND,
+    );
+    const futureCreationsColIdx = headers.indexOf(
+      CONSTANTS.STUDENT_LIST_HEADERS.FUTURE_CREATIONS,
+    );
 
     // 値の取得と整形
     const realName =
@@ -293,7 +399,7 @@ function getUserDetailForEdit(studentId) {
  *   address: '東京都渋谷区',
  * });
  */
-function updateUserProfile(userInfo) {
+export function updateUserProfile(userInfo) {
   return withTransaction(() => {
     try {
       // 新しいヘルパー関数を使用して生徒データを取得
@@ -310,12 +416,18 @@ function updateUserProfile(userInfo) {
         );
       }
 
-      const allStudentsSheet = getSheetByName(CONSTANTS.SHEET_NAMES.STUDENTS);
+      const allStudentsSheet = SS_MANAGER.getSheet(
+        CONSTANTS.SHEET_NAMES.STUDENTS,
+      );
       if (!allStudentsSheet) {
-        throw new Error(`シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`);
+        throw new Error(
+          `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`,
+        );
       }
 
-      const headers = allStudentsSheet.getRange(1, 1, 1, allStudentsSheet.getLastColumn()).getValues()[0];
+      const headers = allStudentsSheet
+        .getRange(1, 1, 1, allStudentsSheet.getLastColumn())
+        .getValues()[0];
 
       // 更新対象の列と値をマッピング
       /** @type {Record<number, any>} */
@@ -325,7 +437,7 @@ function updateUserProfile(userInfo) {
 
         const headerName =
           CONSTANTS.STUDENT_LIST_HEADERS[
-            key.replace(/[A-Z]/g, (letter) => `_${letter}`).toUpperCase()
+            key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
           ];
         if (headerName) {
           const colIdx = headers.indexOf(headerName);
@@ -367,7 +479,12 @@ function updateUserProfile(userInfo) {
       updateCachedStudent(updatedUser);
 
       Logger.log(`ユーザー情報更新成功: ${userInfo.studentId}`);
-      logActivity(userInfo.studentId, 'プロフィール更新', '成功', 'プロフィールが更新されました');
+      logActivity(
+        userInfo.studentId,
+        'プロフィール更新',
+        '成功',
+        'プロフィールが更新されました',
+      );
 
       return {
         success: true,
@@ -378,7 +495,12 @@ function updateUserProfile(userInfo) {
       };
     } catch (error) {
       Logger.log(`ユーザー情報更新エラー: ${error.message}`);
-      logActivity(userInfo.studentId, 'プロフィール更新', '失敗', `エラー: ${error.message}`);
+      logActivity(
+        userInfo.studentId,
+        'プロフィール更新',
+        '失敗',
+        `エラー: ${error.message}`,
+      );
       return {
         success: false,
         message: `プロフィールの更新に失敗しました: ${error.message}`,
@@ -386,75 +508,6 @@ function updateUserProfile(userInfo) {
     }
   });
 }
-
-
-// =================================================================
-// ★★★ 予約データの取得 ★★★
-// =================================================================
-
-/**
- * 指定されたユーザーの予約履歴を取得します。
- * （Phase 3: 型システム統一対応）
- *
- * @param {string} studentId - 生徒ID
- * @returns {ApiResponseGeneric<ReservationCore[]>}
- */
-function getUserReservations(studentId) {
-  try {
-    if (!studentId) {
-      return { success: false, message: '生徒IDが指定されていません。' };
-    }
-
-    // 全予約データをキャッシュから取得
-    const allReservations = getCachedReservationsAsObjects();
-
-    // 該当ユーザーの予約を抽出
-    const userReservations = allReservations.filter(
-      /**
-       * @param {ReservationCore} reservation
-       * @returns {boolean}
-       */
-      (reservation) => reservation.studentId === studentId,
-    );
-
-    // ユーザー情報を取得して各予約に付与
-    const student = getCachedStudentById(studentId);
-    if (student) {
-      userReservations.forEach(
-        /**
-         * @param {ReservationCore} reservation
-         */
-        (reservation) => {
-          reservation.user = student;
-        },
-      );
-    }
-
-    // 日付で降順ソート
-    userReservations.sort(
-      /**
-       * @param {ReservationCore} a
-       * @param {ReservationCore} b
-       * @returns {number}
-       */
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-
-    Logger.log(`予約履歴取得成功: ${studentId}, ${userReservations.length}件`);
-
-    return {
-      success: true,
-      data: userReservations,
-    };
-  } catch (error) {
-    Logger.log(`予約履歴取得エラー: ${error.message}`);
-    return {
-      success: false,
-      message: `予約履歴の取得中にエラーが発生しました: ${error.message}`,
-    };
-  }
-}
-
 
 // =================================================================
 // ★★★ 新規ユーザー登録 ★★★
@@ -467,12 +520,16 @@ function getUserReservations(studentId) {
  * @param {UserCore} userData - 登録するユーザー情報
  * @returns {ApiResponseGeneric<UserCore>}
  */
-function registerNewUser(userData) {
+export function registerNewUser(userData) {
   return withTransaction(() => {
     try {
-      const allStudentsSheet = getSheetByName(CONSTANTS.SHEET_NAMES.STUDENTS);
+      const allStudentsSheet = SS_MANAGER.getSheet(
+        CONSTANTS.SHEET_NAMES.STUDENTS,
+      );
       if (!allStudentsSheet) {
-        throw new Error(`シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`);
+        throw new Error(
+          `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`,
+        );
       }
 
       // 電話番号の重複チェック
@@ -480,7 +537,7 @@ function registerNewUser(userData) {
       if (phoneExists) {
         return {
           success: false,
-          message: 'この電話番号は既に使用されています。'
+          message: 'この電話番号は既に使用されています。',
         };
       }
 
@@ -488,17 +545,24 @@ function registerNewUser(userData) {
       const newStudentId = _generateNewStudentId(allStudentsSheet);
 
       // ヘッダーと列インデックスを取得
-      const headers = allStudentsSheet.getRange(1, 1, 1, allStudentsSheet.getLastColumn()).getValues()[0];
+      const headers = allStudentsSheet
+        .getRange(1, 1, 1, allStudentsSheet.getLastColumn())
+        .getValues()[0];
       const headerMap = createHeaderMap(headers);
 
       // 新しい行データを作成
       const newRow = Array(headers.length).fill('');
-      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID]] = newStudentId;
-      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.REGISTRATION_DATE]] = new Date();
+      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID]] =
+        newStudentId;
+      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.REGISTRATION_DATE]] =
+        new Date();
 
       // userDataから対応する列に値を設定
       for (const key in userData) {
-        const headerName = CONSTANTS.STUDENT_LIST_HEADERS[key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()];
+        const headerName =
+          CONSTANTS.STUDENT_LIST_HEADERS[
+            key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
+          ];
         if (headerName && headerMap[headerName] !== undefined) {
           newRow[headerMap[headerName]] = userData[key];
         }
@@ -506,19 +570,29 @@ function registerNewUser(userData) {
 
       // 表示名を決定
       const displayName = userData.nickname || userData.realName;
-      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.DISPLAY_NAME]] = displayName;
+      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.DISPLAY_NAME]] =
+        displayName;
 
       // シートに新しい行を追加
       allStudentsSheet.appendRow(newRow);
 
       // 登録後のユーザーオブジェクトを作成
-      const registeredUser = { ...userData, studentId: newStudentId, displayName: displayName };
+      const registeredUser = {
+        ...userData,
+        studentId: newStudentId,
+        displayName: displayName,
+      };
 
       // キャッシュを更新
       addCachedStudent(registeredUser);
 
       Logger.log(`新規ユーザー登録成功: ${newStudentId}`);
-      logActivity(newStudentId, '新規登録', '成功', '新しいユーザーが登録されました');
+      logActivity(
+        newStudentId,
+        '新規登録',
+        '成功',
+        '新しいユーザーが登録されました',
+      );
 
       return {
         success: true,
@@ -574,7 +648,6 @@ function _generateNewStudentId(sheet) {
   return `S-${String(newNumber).padStart(3, '0')}`;
 }
 
-
 // =================================================================
 // ★★★ ログイン・ログアウト処理 ★★★
 // =================================================================
@@ -588,7 +661,7 @@ function _generateNewStudentId(sheet) {
  * @param {string} realName - 本名
  * @returns {ApiResponseGeneric<UserCore>}
  */
-function loginUser(phone, realName) {
+export function loginUser(phone, realName) {
   try {
     const result = findUserByPhoneAndRealName(phone, realName);
     if (result.success && result.data) {
@@ -596,12 +669,20 @@ function loginUser(phone, realName) {
       const session = PropertiesService.getUserProperties();
       session.setProperty('user', JSON.stringify(result.data));
       Logger.log(`ログイン成功: ${result.data.studentId}`);
-      logActivity(result.data.studentId, 'ログイン', '成功', 'ログインしました');
+      logActivity(
+        result.data.studentId,
+        'ログイン',
+        '成功',
+        'ログインしました',
+      );
     }
     return result;
   } catch (error) {
     Logger.log(`ログイン処理エラー: ${error.message}`);
-    return { success: false, message: `ログイン処理中にエラーが発生しました: ${error.message}` };
+    return {
+      success: false,
+      message: `ログイン処理中にエラーが発生しました: ${error.message}`,
+    };
   }
 }
 
@@ -610,7 +691,7 @@ function loginUser(phone, realName) {
  * セッション情報を削除します。
  * @returns {ApiResponse}
  */
-function logoutUser() {
+export function logoutUser() {
   try {
     const session = PropertiesService.getUserProperties();
     const userData = session.getProperty('user');
@@ -623,7 +704,10 @@ function logoutUser() {
     return { success: true };
   } catch (error) {
     Logger.log(`ログアウト処理エラー: ${error.message}`);
-    return { success: false, message: `ログアウト処理中にエラーが発生しました: ${error.message}` };
+    return {
+      success: false,
+      message: `ログアウト処理中にエラーが発生しました: ${error.message}`,
+    };
   }
 }
 
@@ -631,7 +715,7 @@ function logoutUser() {
  * 現在ログインしているユーザーの情報を取得します。
  * @returns {ApiResponseGeneric<UserCore>}
  */
-function getLoggedInUser() {
+export function getLoggedInUser() {
   try {
     const session = PropertiesService.getUserProperties();
     const userData = session.getProperty('user');
@@ -643,10 +727,12 @@ function getLoggedInUser() {
     }
   } catch (error) {
     Logger.log(`ログインユーザー取得エラー: ${error.message}`);
-    return { success: false, message: `ログインユーザーの取得中にエラーが発生しました: ${error.message}` };
+    return {
+      success: false,
+      message: `ログインユーザーの取得中にエラーが発生しました: ${error.message}`,
+    };
   }
 }
-
 
 // =================================================================
 // ★★★ 開発・テスト用関数 ★★★
@@ -655,7 +741,7 @@ function getLoggedInUser() {
 /**
  * 【開発用】全生徒キャッシュをクリアします。
  */
-function clearAllStudentsCache_DEV() {
+export function clearAllStudentsCache_DEV() {
   deleteCache(CACHE_KEYS.ALL_STUDENTS);
   Logger.log('全生徒キャッシュをクリアしました。');
 }
@@ -664,7 +750,7 @@ function clearAllStudentsCache_DEV() {
  * 【開発用】指定した生徒のキャッシュをクリアします。
  * @param {string} studentId - 生徒ID
  */
-function clearStudentCache_DEV(studentId) {
+export function clearStudentCache_DEV(studentId) {
   const cacheKey = `${CACHE_KEYS.STUDENT_DETAIL_PREFIX}${studentId}`;
   deleteCache(cacheKey);
   Logger.log(`生徒キャッシュをクリアしました: ${studentId}`);
@@ -673,7 +759,7 @@ function clearStudentCache_DEV(studentId) {
 /**
  * 【開発用】全予約キャッシュをクリアします。
  */
-function clearAllReservationsCache_DEV() {
+export function clearAllReservationsCache_DEV() {
   deleteCache(CACHE_KEYS.ALL_RESERVATIONS);
   Logger.log('全予約キャッシュをクリアしました。');
 }
@@ -681,7 +767,7 @@ function clearAllReservationsCache_DEV() {
 /**
  * 【開発用】全キャッシュをクリアします。
  */
-function clearAllCache_DEV() {
+export function clearAllCache_DEV() {
   deleteAllCache();
   Logger.log('全てのキャッシュをクリアしました。');
 }

@@ -243,6 +243,31 @@ export function loadChunkedDataFromCache(baseKey: string): CacheDataStructure | 
  */
 export function clearChunkedCache(baseKey: string): void;
 /**
+ * 生徒基本情報キャッシュを取得し、Record形式で返すヘルパー
+ * @param {boolean} [autoRebuild=true] - キャッシュ未存在時に再構築を試行するか
+ * @returns {Record<string, UserCore> | null} 生徒情報マップ
+ */
+export function getCachedAllStudents(autoRebuild?: boolean): Record<string, UserCore> | null;
+/**
+ * キャッシュ上の生徒情報を更新する
+ * @param {UserCore} updatedStudent - 更新後の生徒情報（studentId必須）
+ */
+export function updateCachedStudent(updatedStudent: UserCore): void;
+/**
+ * キャッシュに新しい生徒情報を追加する
+ * @param {UserCore} newStudent - 追加する生徒情報（studentId必須）
+ */
+export function addCachedStudent(newStudent: UserCore): void;
+/**
+ * 指定したキャッシュキーのデータを削除する
+ * @param {CacheKey | string} cacheKey - 削除対象のキャッシュキー
+ */
+export function deleteCache(cacheKey: CacheKey | string): void;
+/**
+ * すべてのキャッシュを削除する（開発・デバッグ用途）
+ */
+export function deleteAllCache(): void;
+/**
  * 各キャッシュキーに対応するデータ件数取得関数
  * @param {object} parsedData - パース済みキャッシュデータ
  * @param {string} cacheKey - キャッシュキー
