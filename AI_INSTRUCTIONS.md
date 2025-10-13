@@ -1,6 +1,6 @@
-# GEMINI.md (Geminiへの指示書)
+# AI_INSTRUCTIONS.md (AIへの指示書)
 
-> このファイルは、このリポジトリでGeminiが開発作業を行う際の、ルールとガイドラインを定義します。
+> このファイルは、このリポジトリでAIと開発作業を行う際の、ルールとガイドラインを定義します。
 
 ## 最重要ルール (Top Priority Rules)
 
@@ -9,8 +9,8 @@
 1. **編集対象は `src/` のみ:**
    - **絶対に `build-output/` ディレクトリ内のファイルは編集しないでください。** すべての開発作業は `src/` ディレクトリで行います。
 
-2. **ビルドを常に実行:**
-   - `src/` 内のファイルを編集した後は、**必ずビルドコマンドを実行**して変更を `build-output/` に反映させる必要があります。
+2. **ビルド結果の確認:**
+   - `src/` を編集した後は、**必要に応じてビルドや型チェックを実行し、問題がないことを確認**してください。
    - テスト環境への反映には `npm run dev:test` を使用します。
 
 3. **定義済みのワークフローに従う:**
@@ -56,6 +56,7 @@
 **主要コマンド**
 
 - `npm run check`: フォーマット、Lint、型定義の生成・チェックをすべて実行します。
+- `npm run fix`: フォーマットの修正、Lintの自動修正、型定義の生成・チェックを順次実行します。
 - `npm run build`: `check` を実行後、問題がなければビルドを実行します。
 - `npm run build:force`: 品質チェックをスキップして強制的にビルドを実行します。
 - `npm run watch`: ファイル変更を監視し、自動でビルド（`build:force`）を実行します。
@@ -68,13 +69,13 @@
 
 **補助コマンド**
 
-- `npm run format`: Prettierによるコードフォーマット。
+- `npm run format:fix`: Prettierによるコードフォーマット。
 - `npm run lint:fix`: ESLintによる自動修正。
 - `npm run switch:env -- prod|test`: `.clasp.json`を切り替えて、作業環境を変更します。
 
 ---
 
-## Geminiへの指示
+## AIへの指示
 
 ### 基本原則
 
@@ -102,6 +103,7 @@
 #### 開発フロー
 
 1. **ブランチ作成**
+
    ```bash
    git checkout main
    git pull origin main
@@ -115,13 +117,7 @@
 
    ```bash
    git add -A
-   git commit -m "feat: 新機能の説明
-
-   詳細な変更内容...
-
-   🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-   Co-Authored-By: Claude <noreply@anthropic.com>"
+   git commit  # コミットメッセージはエディタで編集
    ```
 
 3. **プルリクエスト作成**
@@ -152,17 +148,21 @@
 - **積極的なコミット**: 機能の完成、バグ修正、アーキテクチャの変更など、適切な節目でコミット
 - **ユーザーへの確認**: コミット前に必ず確認を取る
 - **コミットの品質**: 変更内容と影響を明確に説明する日本語のコミットメッセージ
-- **コミットメッセージ形式**:
+- **コミットメッセージの形式例**:
+
   ```
-  <type>: <概要>
+  fix: 売上ログを別シートに記録するよう修正
 
-  <詳細説明>
+  会計処理後に売上ログが別スプレッドシートへ書き込まれない問題を修正。
+  SpreadsheetManagerに外部シート用キャッシュを追加し、売上ログ書き込み処理で利用。
 
+  🤖 Generated with [Codex CLI](https://github.com/openai/codex-cli)
   🤖 Generated with [Claude Code](https://claude.com/claude-code)
-
-  Co-Authored-By: Claude <noreply@anthropic.com>
   ```
-  - type: `feat`, `fix`, `refactor`, `docs`, `chore`, `style`, `test`
+
+  - 先頭の `<type>:` は任意ですが、`fix` / `feat` / `refactor` などを付けると履歴管理がしやすくなります。
+  - 変更内容に応じて説明の詳細度を調整してください（小さな修正は簡潔に、複雑な変更は背景も含めて記述）。
+  - コミットに関与したAIごとに署名行（`🤖 Generated with ...` など）を必ず含めてください。
 
 #### GitHub操作コマンド
 
