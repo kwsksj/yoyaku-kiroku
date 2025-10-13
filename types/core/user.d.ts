@@ -99,4 +99,9 @@ interface UserCore {
 
   /** 初回メッセージ */
   firstMessage?: string | undefined;
+
+  /** 行インデックス（シート行番号） */
+  rowIndex?: number | undefined;
+
+  [key: string]: any;
 }

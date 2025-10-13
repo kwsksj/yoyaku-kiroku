@@ -1,4 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -29,7 +28,7 @@ export function getLessons() {
     );
 
     // スケジュールマスタデータ取得
-    /** @type {ScheduleMasterData[]} */
+    /** @type {LessonCore[]} */
     const scheduledDates = getAllScheduledDates(todayString, null);
     Logger.log(`日程マスタ取得: ${scheduledDates.length}件`);
 
@@ -177,11 +176,12 @@ export function getLessons() {
 
 /**
  * 空き枠を計算
- * @param {ScheduleMasterData} schedule
+ * @param {LessonCore} schedule
  * @param {ReservationCore[]} reservations
  * @returns {{first: number, second: number|undefined, beginner: number|null}}
  */
 export function calculateAvailableSlots(schedule, reservations) {
+  /** @type {{first: number, second: number|undefined, beginner: number|null}} */
   const result = {
     first: 0,
     second: undefined,
@@ -291,7 +291,7 @@ export function parseCapacity(capacity) {
  */
 export function getLessonsForClassroom(classroom) {
   const result = getLessons();
-  if (!result.success) {
+  if (!result.success || !result.data) {
     return /** @type {ApiResponse<LessonCore[]>} */ (
       createApiResponse(false, { message: result.message, data: [] })
     );

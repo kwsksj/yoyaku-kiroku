@@ -24,12 +24,12 @@ export function generateTimeOptions(selectedValue?: string): string;
 export function generateTuitionSection(classifiedItems: ClassifiedAccountingItemsCore, classroom: string, formData?: AccountingFormDto): string;
 /**
  * 材料行生成（Components.js活用）
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  * @param {number} index - 行インデックス
  * @param {Object} materialData - 既存の材料データ
  * @returns {string} HTML文字列
  */
-export function generateMaterialRow(materialItems: any[], index?: number, materialData?: any): string;
+export function generateMaterialRow(materialItems: AccountingMasterItemCore[], index?: number, materialData?: any): string;
 /**
  * 販売セクション生成（Components.js活用）
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目

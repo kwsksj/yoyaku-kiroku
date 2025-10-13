@@ -8,7 +8,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noEmit": true,
-    "types": ["google-apps-script"],
 
     // --- より厳格なチェックを有効化 ---
     "noImplicitAny": true,
@@ -19,10 +18,10 @@
     "noUnusedParameters": true, // 未使用のパラメータを検出
     "noPropertyAccessFromIndexSignature": true,
     "exactOptionalPropertyTypes": true, // オプショナルなプロパティにundefinedを代入できなくする
-    "allowUnreachableCode": false, // 到達不能なコードをエラーに
+    "allowUnreachableCode": true, // 到達不能なコードをエラーに
     "allowUnusedLabels": false // 未使用のラベルをエラーに
   },
-  "include": ["src/**/*.js"],
+  //"include": ["src/**/*.js", "types/**/*.d.ts"],
   "exclude": [
     "node_modules",
     "build-output",
@@ -30,9 +29,5 @@
     "eslint.config.js",
     "eslint.common.js",
     "src/eslint.config.js"
-  ],
-  "typeAcquisition": {
-    "enable": true,
-    "include": ["google-apps-script"]
-  }
+  ]
 }

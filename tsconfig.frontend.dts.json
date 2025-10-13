@@ -5,7 +5,6 @@
     // --- ベース設定 ---
     "target": "es2020",
     "lib": ["es2020", "dom"], // フロントエンドなので "dom" が必須
-    "types": ["google-apps-script"],
 
     // --- 型定義生成用の設定 ---
     "declaration": true,
@@ -17,6 +16,10 @@
     "checkJs": false,
     "skipLibCheck": true
   },
+  "files": [
+    "types/frontend-index.d.ts",
+    "types/gas-custom.d.ts"
+  ],
   "include": [
     // フロントエンドのグローバル関数が定義されているファイルのみを対象にする
     "src/frontend/**/*.js",

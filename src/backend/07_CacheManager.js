@@ -1,4 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -938,8 +937,8 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
         return dateStr >= startDate && dateStr <= endDate;
       })
       .map(/** @param {(string|number|Date)[]} row */ (row) => {
-        /** @type {ScheduleMasterData} */
-        const scheduleObj = /** @type {ScheduleMasterData} */ ({});
+        /** @type {LessonCore} */
+        const scheduleObj = /** @type {LessonCore} */ ({});
         headers.forEach((/** @type {string} */ header, /** @type {number} */ index) => {
           let value = row[index];
           // 時間列の処理
@@ -1226,8 +1225,8 @@ export function rebuildAllStudentsBasicCache() {
         if (optionalColumns.emailPreference !== undefined) {
           const preference = studentRow[optionalColumns.emailPreference];
           wantsEmail =
-            preference === 'TRUE' ||
-            preference === '希望する' ||
+            String(preference) === 'TRUE' ||
+            String(preference) === '希望する' ||
             preference === true;
         }
 
@@ -1237,8 +1236,8 @@ export function rebuildAllStudentsBasicCache() {
           const preference =
             studentRow[optionalColumns.scheduleNotificationPreference];
           wantsScheduleNotification =
-            preference === 'TRUE' ||
-            preference === '希望する' ||
+            String(preference) === 'TRUE' ||
+            String(preference) === '希望する' ||
             preference === true;
         }
 
@@ -1252,8 +1251,9 @@ export function rebuildAllStudentsBasicCache() {
             ? studentRow[optionalColumns.notificationHour]
             : null;
 
-        studentsDataMap[studentId] = {
-          studentId: studentId,
+        const studentIdStr = String(studentId);
+        studentsDataMap[studentIdStr] = {
+          studentId: studentIdStr,
           displayName:
             studentRow[requiredColumns.nickname] ||
             studentRow[requiredColumns.realName] ||
@@ -1652,7 +1652,7 @@ export function getCachedData(cacheKey, autoRebuild = true) {
 /**
  * キャッシュの存在確認とバージョン情報を取得する
  * @param {string} cacheKey - キャッシュキー
- * @returns {object} { exists: boolean, version: number|null, dataCount: number|null }
+ * @returns {CacheInfo} { exists: boolean, version: number|null, dataCount: number|null }
  */
 export function getCacheInfo(cacheKey) {
   try {
@@ -2044,7 +2044,7 @@ export function getDataCount(parsedData, cacheKey) {
 /**
  * 予約IDを指定して、キャッシュから単一の予約データを取得する
  * @param {string} reservationId - 取得する予約のID
- * @returns {ReservationArrayData | null} 予約データ配列、見つからない場合はnull
+ * @returns {RawSheetRow | null} 予約データ配列、見つからない場合はnull
  */
 export function getReservationByIdFromCache(reservationId) {
   if (!reservationId) return null;

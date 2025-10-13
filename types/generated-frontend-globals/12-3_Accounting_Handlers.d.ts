@@ -31,14 +31,14 @@ export function updateCheckboxStyle(checkbox: HTMLInputElement): void;
 /**
  * 材料タイプ変更時の処理
  * @param {Event} event - 変更イベント
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  */
-export function handleMaterialTypeChange(event: Event, materialItems: any[]): void;
+export function handleMaterialTypeChange(event: Event, materialItems: AccountingMasterItemCore[]): void;
 /**
  * 材料行追加
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  */
-export function addMaterialRow(materialItems: any[]): void;
+export function addMaterialRow(materialItems: AccountingMasterItemCore[]): void;
 /**
  * 材料行削除
  * @param {string} index - 削除する行のインデックス
@@ -47,9 +47,9 @@ export function removeMaterialRow(index: string): void;
 /**
  * 物販タイプ変更時の処理
  * @param {Event} event - 変更イベント
- * @param {Array} productItems - 物販項目配列
+ * @param {AccountingMasterItemCore[]} productItems - 物販項目配列
  */
-export function handleProductTypeChange(event: Event, productItems: any[]): void;
+export function handleProductTypeChange(event: Event, productItems: AccountingMasterItemCore[]): void;
 /**
  * 物販行削除
  * @param {string} index - 削除する行のインデックス

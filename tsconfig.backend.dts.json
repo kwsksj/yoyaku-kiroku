@@ -5,7 +5,6 @@
     // --- ベース設定 ---
     "target": "es2020",
     "lib": ["es2020", "dom"],
-    "types": ["google-apps-script"],
     "module": "None", // モジュールなし = グローバルスコープの型定義を生成
 
     // --- 型定義生成用の設定 ---
@@ -18,6 +17,10 @@
     "checkJs": false, // 型チェックは行わず、定義生成に専念
     "skipLibCheck": true // ライブラリの型チェックをスキップ
   },
+  "files": [
+    "types/backend-index.d.ts",
+    "types/gas-custom.d.ts"
+  ],
   "include": [
     // バックエンドのグローバル関数が定義されているファイルのみを対象にする
     "src/backend/**/*.js",

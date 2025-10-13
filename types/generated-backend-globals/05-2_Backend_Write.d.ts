@@ -32,10 +32,10 @@ export function checkCapacityFull(classroom: string, date: string, startTime: st
  * 時間制予約の時刻に関する検証を行うプライベートヘルパー関数。
  * @param {string} startTime - 開始時刻 (HH:mm)。
  * @param {string} endTime - 終了時刻 (HH:mm)。
- * @param {ScheduleMasterData} scheduleRule - 日程マスタから取得した日程情報。
+ * @param {LessonCore} scheduleRule - 日程マスタから取得した日程情報。
  * @throws {Error} 検証に失敗した場合、理由を示すエラーをスローする。
  */
-export function _validateTimeBasedReservation(startTime: string, endTime: string, scheduleRule: ScheduleMasterData): void;
+export function _validateTimeBasedReservation(startTime: string, endTime: string, scheduleRule: LessonCore): void;
 /**
  * 【内部関数】ReservationCoreオブジェクトをシートに書き込み、キャッシュを更新する
  * @param {ReservationCore} reservation - 保存する完全な予約オブジェクト
@@ -97,11 +97,16 @@ export function getWaitlistedUsersForNotification(classroom: string, date: strin
 }>;
 /**
  * 空き通知メールの本文を生成
- * @param {object} recipient - 受信者情報
+ * @param {{studentId: string, email: string, realName: string, isFirstTime: boolean}} recipient - 受信者情報
  * @param {LessonCore} lesson - レッスン情報
  * @returns {string} メール本文
  */
-export function createAvailabilityNotificationEmail(recipient: object, lesson: LessonCore): string;
+export function createAvailabilityNotificationEmail(recipient: {
+    studentId: string;
+    email: string;
+    realName: string;
+    isFirstTime: boolean;
+}, lesson: LessonCore): string;
 /**
  * 予約の詳細情報を一括で更新します（Core型オブジェクト中心設計）
  *
@@ -126,19 +131,23 @@ export function saveAccountingDetails(reservationWithAccounting: ReservationCore
  * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
  * @private
  * @param {ReservationCore} reservation - 売上ログを生成する対象の予約オブジェクト
- * @param {AccountingDetails} accountingDetails - 計算済みの会計詳細オブジェクト。
+ * @param {AccountingDetailsCore} accountingDetails - 計算済みの会計詳細オブジェクト。
  */
-export function _logSalesForSingleReservation(reservation: ReservationCore, accountingDetails: AccountingDetails): void;
+export function _logSalesForSingleReservation(reservation: ReservationCore, accountingDetails: AccountingDetailsCore): void;
 /**
  * 日程マスタから特定の日付・教室のルールを取得する
  * @param {string} date - 日付 (YYYY-MM-DD)
  * @param {string} classroom - 教室名
- * @returns {ScheduleMasterData | undefined} 日程マスタのルール
+ * @returns {LessonCore | undefined} 日程マスタのルール
  */
-export function getScheduleInfoForDate(date: string, classroom: string): ScheduleMasterData | undefined;
+export function getScheduleInfoForDate(date: string, classroom: string): LessonCore | undefined;
 /**
  * 空席連絡希望の予約を確定する
- * @param {object} confirmInfo - { reservationId, studentId, messageToTeacher }
+ * @param {{reservationId: string, studentId: string, messageToTeacher?: string}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric<any>} 処理結果と最新データ
  */
-export function confirmWaitlistedReservation(confirmInfo: object): ApiResponseGeneric<any>;
+export function confirmWaitlistedReservation(confirmInfo: {
+    reservationId: string;
+    studentId: string;
+    messageToTeacher?: string;
+}): ApiResponseGeneric<any>;

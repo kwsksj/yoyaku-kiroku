@@ -1,4 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
 
 /**
  * =================================================================
@@ -41,7 +40,7 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
       Logger.log('日程データの取得に失敗しました');
       return;
     }
-    /** @type {any[]} */
+    /** @type {LessonCore[]} */
     const scheduleData = lessonsResponse.data;
     Logger.log(`取得した日程データ: ${scheduleData.length}件`);
 
@@ -88,34 +87,21 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
           .map(
             /** @param {ReservationCore} res */
             res => ({
-            date:
-              typeof res.date === 'string'
-                ? res.date
-                : Utilities.formatDate(
-                    new Date(res.date),
-                    CONSTANTS.TIMEZONE,
-                    'yyyy-MM-dd',
-                  ),
-            startTime:
-              typeof res.startTime === 'string'
-                ? res.startTime
-                : Utilities.formatDate(
-                    res.startTime,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  ),
-            endTime:
-              typeof res.endTime === 'string'
-                ? res.endTime
-                : Utilities.formatDate(
-                    res.endTime,
-                    CONSTANTS.TIMEZONE,
-                    'HH:mm',
-                  ),
-            status: res.status,
-            classroom: res.classroom,
-            venue: res.venue || '',
-          }));
+              date:
+                typeof res.date === 'string'
+                  ? res.date
+                  : Utilities.formatDate(
+                      new Date(res.date),
+                      CONSTANTS.TIMEZONE,
+                      'yyyy-MM-dd',
+                    ),
+              startTime: res.startTime || '',
+              endTime: res.endTime || '',
+              status: res.status,
+              classroom: res.classroom,
+              venue: res.venue || '',
+            }),
+          );
 
         const emailBody = _generateEmailBody(
           student,
@@ -123,11 +109,13 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
           scheduleData,
         );
 
-        GmailApp.sendEmail(student.email, emailSubject, emailBody, {
-          from: fromEmail,
-          name: '川崎誠二 木彫り教室',
-          replyTo: fromEmail,
-        });
+        if (student.email) {
+          GmailApp.sendEmail(student.email, emailSubject, emailBody, {
+            from: fromEmail,
+            name: '川崎誠二 木彫り教室',
+            replyTo: fromEmail,
+          });
+        }
 
         successCount++;
         Logger.log(`送信成功: ${student.studentId} (${student.email})`);
@@ -219,7 +207,7 @@ export function _getNotificationRecipients(targetDay, targetHour) {
  * メール本文を生成
  * @param {UserCore} student - 生徒情報
  * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒の予約一覧
- * @param {Array<any>} lessons - 今後の日程一覧（getLessons()の結果）
+ * @param {LessonCore[]} lessons - 今後の日程一覧（getLessons()の結果）
  * @returns {string} メール本文
  * @private
  */
@@ -247,6 +235,7 @@ export function _generateEmailBody(student, reservations, lessons) {
     body += `現在、ご予約はありません。\n\n`;
   } else {
     for (const res of reservations) {
+      if (!res.date) continue;
       const dateStr = formatDateForEmail(res.date);
       const timeStr = _formatTimeRange(res.startTime, res.endTime);
       const statusStr = _formatStatus(res.status);
@@ -295,35 +284,33 @@ export function _generateEmailBody(student, reservations, lessons) {
       body += `${classroomInfo.label}\n`;
 
       for (const lesson of lessonsByClassroom[classroom]) {
-        /** @type {LessonCore} */
-        const lessonCore = /** @type {any} */ (lesson);
-        const lessonDate = new Date(lessonCore.date);
+        const lessonDate = new Date(lesson.date);
         const monthDay = `${lessonDate.getMonth() + 1}/${String(lessonDate.getDate()).padStart(2, ' ')}`;
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
         const weekday = weekdays[lessonDate.getDay()];
 
         // 日付と会場
         let line = `・${monthDay}${weekday}`;
-        if (lessonCore.venue) {
-          line += ` ${lessonCore.venue}`;
+        if (lesson.venue) {
+          line += ` ${lesson.venue}`;
         }
         line += ` | `;
 
         // 空席情報（教室タイプによって構造が異なる）
-        if (lessonCore.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
+        if (lesson.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
           // つくば教室: 午前・午後で分かれている
-          line += `空き 午前 ${lessonCore.firstSlots || 0}, 午後 ${lessonCore.secondSlots || 0}`;
-          if ((lessonCore.beginnerSlots || 0) > 0) {
-            line += `, 初回 ${lessonCore.beginnerSlots}`;
+          line += `空き 午前 ${lesson.firstSlots || 0}, 午後 ${lesson.secondSlots || 0}`;
+          if ((lesson.beginnerSlots || 0) > 0) {
+            line += `, 初回 ${lesson.beginnerSlots}`;
           } else {
             line += `, 経験者のみ`;
           }
         } else {
           // 東京教室・沼津教室など: firstSlots を使用
-          const totalSlots = lessonCore.firstSlots || 0;
+          const totalSlots = lesson.firstSlots || 0;
           line += `空き ${totalSlots}`;
-          if ((lessonCore.beginnerSlots || 0) > 0) {
-            line += `, 初回 ${lessonCore.beginnerSlots}`;
+          if ((lesson.beginnerSlots || 0) > 0) {
+            line += `, 初回 ${lesson.beginnerSlots}`;
           } else {
             line += `, 経験者のみ`;
           }

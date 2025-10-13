@@ -1,5 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
-
 /**
  * =================================================================
  * 【ファイル名】: 02-4_BusinessLogic_ScheduleMaster.js
@@ -13,14 +11,14 @@
  * フロントエンドから呼び出されるAPI関数
  * @param {string} fromDate - 取得開始日（YYYY-MM-DD形式）
  * @param {string} toDate - 取得終了日（YYYY-MM-DD形式、オプション）
- * @returns {ScheduleDataArray} 開催日程データの配列
+ * @returns {LessonCore[]} 開催日程データの配列
  */
 export function getAllScheduledDates(fromDate, toDate) {
   try {
     const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-    /** @type {ScheduleMasterData[] | null} */
+    /** @type {LessonCore[] | null} */
     const scheduleData = scheduleCache?.['schedule']
-      ? /** @type {ScheduleMasterData[]} */ (scheduleCache['schedule'])
+      ? /** @type {LessonCore[]} */ (scheduleCache['schedule'])
       : null;
 
     Logger.log(
@@ -62,10 +60,10 @@ export function getAllScheduledDates(fromDate, toDate) {
 
 /**
  * キャッシュデータから日付範囲でフィルタリングする
- * @param {ScheduleDataArray} schedules - 日程データ配列
+ * @param {LessonCore[]} schedules - 日程データ配列
  * @param {string} fromDate - 開始日（YYYY-MM-DD形式）
  * @param {string} toDate - 終了日（YYYY-MM-DD形式、オプション）
- * @returns {ScheduleDataArray} フィルタリングされた日程データ配列
+ * @returns {LessonCore[]} フィルタリングされた日程データ配列
  */
 export function filterSchedulesByDateRange(schedules, fromDate, toDate) {
   if (!schedules || schedules.length === 0) {

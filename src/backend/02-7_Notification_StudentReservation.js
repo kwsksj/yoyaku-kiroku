@@ -1,5 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
-
 /**
  * =================================================================
  * 【ファイル名】: 02-7_Notification_StudentReservation.js
@@ -21,7 +19,7 @@ export function sendBookingConfirmationEmail(reservation) {
     const student = reservation.user;
     if (!student || !student.email) {
       Logger.log(
-        'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
+        'メール送信スキップ: ユーザー情報またはメールアドレスが空です'
       );
       return false;
     }
@@ -77,11 +75,22 @@ export function sendBookingConfirmationEmail(reservation) {
 /**
  * メールテンプレート生成（初回者・経験者対応）
  * @param {ReservationCore} reservation - 予約情報
- * @returns {{subject: string, textBody: string}} subject, textBody を含むオブジェクト
+ * @returns {{subject: string, textBody: string}}
  */
 export function createBookingConfirmationTemplate(reservation) {
   // 基本情報の抽出
   const { date, classroom, status } = reservation;
+  const student = reservation.user;
+
+  // studentが未定義の場合はエラーを投げるか、デフォルトのテキストを返す
+  if (!student) {
+    Logger.log('createBookingConfirmationTemplate: reservation.user is missing');
+    return {
+      subject: 'エラー: ユーザー情報不明',
+      textBody: '予約情報にユーザー情報が含まれていないため、メールを生成できませんでした。'
+    };
+  }
+
   const isFirstTime = reservation.firstLecture || false;
 
   // 日付フォーマット
@@ -100,7 +109,7 @@ export function createBookingConfirmationTemplate(reservation) {
       subject,
       textBody: createFirstTimeEmailText(
         reservation,
-        reservation.user,
+        student,
         formattedDate,
         statusText,
       ),
@@ -111,7 +120,7 @@ export function createBookingConfirmationTemplate(reservation) {
       subject,
       textBody: createRegularEmailText(
         reservation,
-        reservation.user,
+        student,
         formattedDate,
         statusText,
       ),
@@ -137,43 +146,10 @@ export function createFirstTimeEmailText(
   const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
 
   const greeting = isWaitlisted
-    ? `木彫り教室へのご参加希望をいただき、ありがとうございます！
-木彫り作家の川崎誠二です。
-私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！
+    ? `木彫り教室へのご参加希望をいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！\n\n現在、満席のため空き連絡希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
+    : `木彫り教室ご参加の申込みをいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！`;
 
-現在、満席のため空き連絡希望として登録させていただきました。
-空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
-    : `木彫り教室ご参加の申込みをいただき、ありがとうございます！
-木彫り作家の川崎誠二です。
-私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！`;
-
-  return `${realName}さま
-
-${greeting}
-
-${createBookingDetailsText(reservation, formattedDate, statusText)}
-
-初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。
-
-残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。
-
-
-予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）
-【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)
-
-次回以降の予約や会計記録や参加の記録もこちらからできますよ。
-スマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！
-
-下に教室に関して連絡事項をまとめました。1度目を通しておいてください。
-他にも質問あれば、このメールに直接ご返信ください。
-
-それではどうぞよろしくお願いいたします！
-
-川崎誠二
-09013755977
-参加当日に場所がわからないなどあれば、こちらにお電話やSMSでご連絡ください。
-
-${getContactAndVenueInfoText()}`;
+  return `${realName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。\n\n残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。\n\n\n予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\n次回以降の予約や会計記録や参加の記録もこちらからできますよ。\nスマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！\n\n下に教室に関して連絡事項をまとめました。1度目を通しておいてください。\n他にも質問あれば、このメールに直接ご返信ください。\n\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\n09013755977\n参加当日に場所がわからないなどあれば、こちらにお電話やSMSでご連絡ください。\n\n${getContactAndVenueInfoText()}`;
 }
 
 /**
@@ -194,34 +170,10 @@ export function createRegularEmailText(
   const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
 
   const greeting = isWaitlisted
-    ? `お申し込みありがとうございます！
-現在、満席のため空き連絡希望として登録させていただきました。
-空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
-    : `お申し込みありがとうございます！
-ご予約を承りました。`;
+    ? `お申し込みありがとうございます！\n現在、満席のため空き連絡希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
+    : `お申し込みありがとうございます！\nご予約を承りました。`;
 
-  return `${realName}さま
-
-${greeting}
-
-${createBookingDetailsText(reservation, formattedDate, statusText)}
-
-予約の確認やキャンセルは、こちらのページで行えます：
-【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)
-
-メール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。
-また次回以降の予約や会計記録や参加の記録もこちらからできます。
-スマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！
-
-何かご不明点があれば、このメールに直接ご返信ください。
-それではどうぞよろしくお願いいたします！
-
-川崎誠二
-Email: shiawasenahito3000@gmail.com
-Tel: 09013755977
-
-${getContactAndVenueInfoText()}
-`;
+  return `${realName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n予約の確認やキャンセルは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nメール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。\nまた次回以降の予約や会計記録や参加の記録もこちらからできます。\nスマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！\n\n何かご不明点があれば、このメールに直接ご返信ください。\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n\n${getContactAndVenueInfoText()}\n`;
 }
 
 /**
@@ -256,7 +208,7 @@ export function getTuitionDisplayText(classroom) {
 
     // 基本授業料を検索
     const baseTuitionRule = masterData.find(
-      /** @param {AccountingMasterItem} item */
+      /** @param {AccountingMasterItemCore} item */
       item =>
         item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
           CONSTANTS.ITEM_TYPES.TUITION &&
@@ -287,7 +239,7 @@ export function getTuitionDisplayText(classroom) {
 
     // 初回参加費を検索（該当教室に設定がある場合のみ）
     const firstLectureRule = masterData.find(
-      /** @param {AccountingMasterItem} item */
+      /** @param {AccountingMasterItemCore} item */
       item =>
         item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] ===
           CONSTANTS.ITEM_TYPES.TUITION &&
@@ -341,17 +293,7 @@ export function createBookingDetailsText(
   // 実際の授業料金額を取得して表示
   const tuitionText = getTuitionDisplayText(classroom);
 
-  return `【申込み内容】
-教室: ${classroom} ${venue || ''}
-日付: ${formattedDate}
-時間: ${timeDisplay}
-
-【授業料】
-${tuitionText}
-
-受付日時: ${new Date().toLocaleString('ja-JP')}
-
-以上の内容を ${statusText} で承りました。`;
+  return `【申込み内容】\n教室: ${classroom} ${venue || ''}\n日付: ${formattedDate}\n時間: ${timeDisplay}\n\n【授業料】\n${tuitionText}\n\n受付日時: ${new Date().toLocaleString('ja-JP')}\n\n以上の内容を ${statusText} で承りました。`;
 }
 
 /**
@@ -544,7 +486,7 @@ export function sendReservationEmailAsync(
 }
 
 /**
- * キャンセル確認メール送信（実装）
+ *キャンセル確認メール送信（実装）
  * @param {ReservationCore} reservation - 予約情報
  * @param {string} [cancelMessage] - キャンセル理由
  * @returns {boolean} 送信成功・失敗
@@ -554,7 +496,7 @@ export function sendCancellationEmail(reservation, cancelMessage) {
     const student = reservation.user;
     if (!student || !student.email) {
       Logger.log(
-        'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
+        'メール送信スキップ: ユーザー情報またはメールアドレスが空です'
       );
       return false;
     }
@@ -644,35 +586,15 @@ export function _createCancellationEmailText(
     ? `\nキャンセル理由: ${cancelMessage}\n`
     : '';
 
-  return `${realName}さま
-
-予約のキャンセルを承りました。
-
-【キャンセルされた予約】
-教室: ${classroom} ${venue}
-日付: ${formattedDate}
-時間: ${timeDisplay}${reasonSection}
-
-キャンセル受付日時: ${new Date().toLocaleString('ja-JP')}
-
-予約の確認や新しい予約は、こちらのページで行えます：
-【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)
-
-またのご参加をお待ちしております。
-何かご不明点があれば、このメールに直接ご返信ください。
-
-川崎誠二
-Email: shiawasenahito3000@gmail.com
-Tel: 09013755977
-`;
+  return `${realName}さま\n\n予約のキャンセルを承りました。\n\n【キャンセルされた予約】\n教室: ${classroom} ${venue}\n日付: ${formattedDate}\n時間: ${timeDisplay}${reasonSection}\n\nキャンセル受付日時: ${new Date().toLocaleString('ja-JP')}\n\n予約の確認や新しい予約は、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nまたのご参加をお待ちしております。\n何かご不明点があれば、このメールに直接ご返信ください。\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n`;
 }
 
 /**
  * 外部サービス連携機能のプレースホルダー
- *
+ * 
  * 現在は日程マスタベースの設計となっており、
  * 外部カレンダー連携などは無効化されています。
- *
+ * 
  * 将来的な拡張時には、日程マスタを正として
  * 外部サービスと同期する設計で実装予定です。
  */

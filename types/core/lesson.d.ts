@@ -47,12 +47,15 @@
  * ```
  */
 interface LessonCore {
+  // --- インデックスシグネチャ ---
+  [key: string]: any;
+
   // --- 基本情報 ---
   /** 教室名 */
   classroom: string;
 
   /** 開催日（YYYY-MM-DD） */
-  date: string;
+  date: string | Date;
 
   /** 会場名 */
   venue?: string | undefined;

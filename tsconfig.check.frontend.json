@@ -3,5 +3,6 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["src/frontend/**/*.js", "src/shared/**/*.js"]
+  "include": ["src/frontend/*.js", "types/**/*.d.ts"],
+  "exclude": ["types/backend-index.d.ts"]
 }

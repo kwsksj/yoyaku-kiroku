@@ -205,9 +205,9 @@ export function getCachedData(cacheKey: string, autoRebuild?: boolean): CacheDat
 /**
  * キャッシュの存在確認とバージョン情報を取得する
  * @param {string} cacheKey - キャッシュキー
- * @returns {object} { exists: boolean, version: number|null, dataCount: number|null }
+ * @returns {CacheInfo} { exists: boolean, version: number|null, dataCount: number|null }
  */
-export function getCacheInfo(cacheKey: string): object;
+export function getCacheInfo(cacheKey: string): CacheInfo;
 /**
  * すべてのキャッシュの状態を取得する
  * @returns {{ [key: string]: CacheInfo }} 各キャッシュの状態情報
@@ -252,9 +252,9 @@ export function getDataCount(parsedData: object, cacheKey: string): number;
 /**
  * 予約IDを指定して、キャッシュから単一の予約データを取得する
  * @param {string} reservationId - 取得する予約のID
- * @returns {ReservationArrayData | null} 予約データ配列、見つからない場合はnull
+ * @returns {RawSheetRow | null} 予約データ配列、見つからない場合はnull
  */
-export function getReservationByIdFromCache(reservationId: string): ReservationArrayData | null;
+export function getReservationByIdFromCache(reservationId: string): RawSheetRow | null;
 /**
  * Schedule Master キャッシュの診断・修復機能
  * シートの存在確認とキャッシュの整合性チェックを実行

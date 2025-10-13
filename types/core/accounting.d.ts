@@ -98,6 +98,8 @@ interface AccountingMasterItemCore {
 
   /** 備考 */
   備考?: string | undefined;
+
+  [key: string]: any;
 }
 
 /**

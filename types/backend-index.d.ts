@@ -5,8 +5,6 @@
  * =================================================================
  */
 
-/// <reference types="google-apps-script" />
-
 // --- 自動生成されるバックエンドのグローバル関数 ---
 /// <reference path="./generated-backend-globals/index.d.ts" />
 
@@ -14,6 +12,3 @@
 /// <reference path="./core/index.d.ts" />
 /// <reference path="./view/index.d.ts" />
 /// <reference path="./generated-shared-globals/index.d.ts" />
-
-// --- 環境依存の型定義（移行中） ---
-/// <reference path="./gas-environment.d.ts" />

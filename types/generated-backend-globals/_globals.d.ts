@@ -58,16 +58,6 @@ declare global {
   const sendReservationEmailAsync: typeof import('.').sendReservationEmailAsync;
   const sendCancellationEmail: typeof import('.').sendCancellationEmail;
   const _createCancellationEmailText: typeof import('.')._createCancellationEmailText;
-  const _normalizeAndValidatePhone: typeof import('.')._normalizeAndValidatePhone;
-  const _validatePhoneLight: typeof import('.')._validatePhoneLight;
-  const authenticateUserLightweight: typeof import('.').authenticateUserLightweight;
-  const extractPersonalDataFromCache: typeof import('.').extractPersonalDataFromCache;
-  const authenticateUser: typeof import('.').authenticateUser;
-  const registerNewUser: typeof import('.').registerNewUser;
-  const _isValidEmail: typeof import('.')._isValidEmail;
-  const requestAccountDeletion: typeof import('.').requestAccountDeletion;
-  const getUserDetailForEdit: typeof import('.').getUserDetailForEdit;
-  const updateUserProfile: typeof import('.').updateUserProfile;
   const checkDuplicateReservationOnSameDay: typeof import('.').checkDuplicateReservationOnSameDay;
   const checkCapacityFull: typeof import('.').checkCapacityFull;
   const _validateTimeBasedReservation: typeof import('.')._validateTimeBasedReservation;

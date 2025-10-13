@@ -17,7 +17,7 @@ export function sendBookingConfirmationEmail(reservation: ReservationCore): bool
 /**
  * メールテンプレート生成（初回者・経験者対応）
  * @param {ReservationCore} reservation - 予約情報
- * @returns {{subject: string, textBody: string}} subject, textBody を含むオブジェクト
+ * @returns {{subject: string, textBody: string}}
  */
 export function createBookingConfirmationTemplate(reservation: ReservationCore): {
     subject: string;
@@ -75,7 +75,7 @@ export function getContactAndVenueInfoText(): string;
  */
 export function sendReservationEmailAsync(reservation: ReservationCore, emailType: "confirmation" | "cancellation", cancelMessage?: string): void;
 /**
- * キャンセル確認メール送信（実装）
+ *キャンセル確認メール送信（実装）
  * @param {ReservationCore} reservation - 予約情報
  * @param {string} [cancelMessage] - キャンセル理由
  * @returns {boolean} 送信成功・失敗
