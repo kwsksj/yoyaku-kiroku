@@ -38,8 +38,18 @@ const toInputElement = target =>
 const toSelectElement = target =>
   target instanceof HTMLSelectElement ? target : null;
 
-/** @type {SimpleStateManager} */
-const accountingStateManager = appWindow.stateManager;
+/**
+ * 安全にstateManagerを取得するヘルパー
+ * @returns {SimpleStateManager | null}
+ */
+const getAccountingStateManager = () => {
+  const manager = appWindow.stateManager;
+  if (!manager) {
+    console.warn('accountingStateManager: stateManagerが未初期化です');
+    return null;
+  }
+  return manager;
+};
 
 /**
  * 会計システムのイベントリスナー設定
@@ -572,7 +582,9 @@ export function updateAccountingCalculation(classifiedItems, classroom) {
     const formData = collectAccountingFormData();
 
     // 元のマスターデータを取得（回数制の基本授業料を含む）
-    const masterData = accountingStateManager.getState().accountingMaster || [];
+    const stateManager = getAccountingStateManager();
+    if (!stateManager) return;
+    const masterData = stateManager.getState().accountingMaster || [];
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 updateAccountingCalculation: マスターデータ使用', {
@@ -971,11 +983,9 @@ export function handleBackToDashboard() {
       globalActionHandlers.smartGoBack();
     } else {
       // フォールバック: StateManagerを使用
-      if (
-        accountingStateManager &&
-        typeof accountingStateManager.dispatch === 'function'
-      ) {
-        accountingStateManager.dispatch({
+      const stateManager = getAccountingStateManager();
+      if (stateManager && typeof stateManager.dispatch === 'function') {
+        stateManager.dispatch({
           type: 'CHANGE_VIEW',
           payload: { view: 'dashboard' },
         });
@@ -1167,7 +1177,9 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
     const ensuredPaymentMethod = paymentMethod;
 
     // 元のマスターデータを取得（回数制の基本授業料を含む）
-    const masterData = accountingStateManager.getState().accountingMaster || [];
+    const stateManager = getAccountingStateManager();
+    if (!stateManager) return;
+    const masterData = stateManager.getState().accountingMaster || [];
 
     // デバッグ：計算前の情報
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
@@ -1426,7 +1438,13 @@ export function processAccountingPayment(formData, result) {
       showLoading('accounting');
     }
 
-    const state = accountingStateManager.getState();
+    const stateManager = getAccountingStateManager();
+    if (!stateManager) {
+      hideLoading();
+      showInfo('アプリケーションの初期化が完了していません。', '計算エラー');
+      return;
+    }
+    const state = stateManager.getState();
     const selectedReservation = state.accountingReservation;
 
     if (!selectedReservation) {
@@ -1476,7 +1494,7 @@ export function processAccountingPayment(formData, result) {
 
             // データを最新に更新
             if (response.data) {
-              accountingStateManager.dispatch({
+              stateManager.dispatch({
                 type: 'UPDATE_STATE',
                 payload: {
                   myReservations: response.data.myReservations || [],
@@ -1486,7 +1504,7 @@ export function processAccountingPayment(formData, result) {
             }
 
             // 完了画面に遷移（会計完了として認識されるメッセージを使用）
-            accountingStateManager.dispatch({
+            stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 view: 'complete',
