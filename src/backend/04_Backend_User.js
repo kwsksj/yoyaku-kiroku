@@ -26,22 +26,20 @@
  * }
  */
 export function getAllStudentsAsObject() {
-  const allStudentsSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.STUDENTS);
+  const allStudentsSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
   if (!allStudentsSheet) {
-    throw new Error(
-      `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`,
-    );
+    throw new Error(`シートが見つかりません: ${CONSTANTS.SHEET_NAMES.ROSTER}`);
   }
 
   const allStudentsData = allStudentsSheet.getDataRange().getValues();
   const headers = allStudentsData[0];
   const studentIdColIdx = headers.indexOf(
-    CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID,
+    CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
   );
 
   if (studentIdColIdx === -1) {
     throw new Error(
-      `必須ヘッダーが見つかりません: ${CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID}`,
+      `必須ヘッダーが見つかりません: ${CONSTANTS.HEADERS.ROSTER.STUDENT_ID}`,
     );
   }
 
@@ -109,7 +107,7 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
 
   // 必須プロパティと計算プロパティ
   student.studentId = String(
-    row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID)],
+    row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.STUDENT_ID)],
   );
   student.realName = String(
     row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.REAL_NAME)],
@@ -248,12 +246,10 @@ export function authenticateUser(phone) {
  */
 export function getUserDetailForEdit(studentId) {
   try {
-    const allStudentsSheet = SS_MANAGER.getSheet(
-      CONSTANTS.SHEET_NAMES.STUDENTS,
-    );
+    const allStudentsSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
     if (!allStudentsSheet) {
       throw new Error(
-        `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`,
+        `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.ROSTER}`,
       );
     }
 
@@ -262,7 +258,7 @@ export function getUserDetailForEdit(studentId) {
 
     // ヘッダーインデックスを取得
     const studentIdColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID,
+      CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
     );
     if (studentIdColIdx === -1)
       throw new Error('生徒IDヘッダーが見つかりません');
@@ -417,11 +413,11 @@ export function updateUserProfile(userInfo) {
       }
 
       const allStudentsSheet = SS_MANAGER.getSheet(
-        CONSTANTS.SHEET_NAMES.STUDENTS,
+        CONSTANTS.SHEET_NAMES.ROSTER,
       );
       if (!allStudentsSheet) {
         throw new Error(
-          `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`,
+          `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.ROSTER}`,
         );
       }
 
@@ -524,11 +520,11 @@ export function registerNewUser(userData) {
   return withTransaction(() => {
     try {
       const allStudentsSheet = SS_MANAGER.getSheet(
-        CONSTANTS.SHEET_NAMES.STUDENTS,
+        CONSTANTS.SHEET_NAMES.ROSTER,
       );
       if (!allStudentsSheet) {
         throw new Error(
-          `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.STUDENTS}`,
+          `シートが見つかりません: ${CONSTANTS.SHEET_NAMES.ROSTER}`,
         );
       }
 
@@ -552,9 +548,9 @@ export function registerNewUser(userData) {
 
       // 新しい行データを作成
       const newRow = Array(headers.length).fill('');
-      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.STUDENT_ID]] =
+      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] =
         newStudentId;
-      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.REGISTRATION_DATE]] =
+      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE]] =
         new Date();
 
       // userDataから対応する列に値を設定

@@ -9,6 +9,18 @@
 /// <reference path="./design-system.d.ts" />
 
 // =================================================================
+// 共有定数型エイリアス
+// =================================================================
+
+type Constants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS;
+type StatusConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.STATUS;
+type UIConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.UI;
+type MessagesConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.MESSAGES;
+type BankInfoConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.BANK_INFO;
+type PaymentDisplayConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.PAYMENT_DISPLAY;
+type HeadersConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.HEADERS;
+
+// =================================================================
 // 一時データ型定義
 // =================================================================
 
