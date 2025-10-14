@@ -6,8 +6,6 @@
  * =================================================================
  */
 
-/// <reference path="../core/index.d.ts" />
-
 // =================================================================
 // View Type定義
 // =================================================================
@@ -33,6 +31,13 @@ type ViewType =
   | 'complete'
   | 'userSearch';
 
+/**
+ * 統一検索結果型
+ */
+interface ReservationSearchResult extends ReservationCore {
+  type: 'booking' | 'record';
+}
+
 // =================================================================
 // ナビゲーション関連型
 // =================================================================
@@ -49,10 +54,10 @@ interface StateNavigationHistoryEntry {
  * ナビゲーションコンテキスト
  */
 interface NavigationContext {
-  selectedClassroom?: string;
+  selectedClassroom?: string | null;
   selectedLesson?: LessonCore;
-  editingReservationDetails?: ReservationDetails;
-  accountingReservation?: ReservationData;
+  editingReservationDetails?: ReservationCore;
+  accountingReservation?: ReservationCore;
   [key: string]: any;
 }
 
@@ -87,7 +92,7 @@ interface RegistrationFormData {
  */
 interface ReservationFormContext {
   lessonInfo: LessonCore;
-  reservationInfo: Partial<ReservationData>; // 新規の場合は初期値、編集の場合は既存データ
+  reservationInfo: Partial<ReservationCore>; // 新規の場合は初期値、編集の場合は既存データ
 }
 
 /**
@@ -114,6 +119,15 @@ interface AccountingFormDto {
     name: string;
     price: number;
   }>;
+  /** 自由入力物販データ */
+  customSales?: Array<{
+    name: string;
+    price: number;
+  }>;
+  /** 制作メモ */
+  workInProgress?: string;
+  /** 支払い方法 */
+  paymentMethod?: string;
   /** その他フォームフィールド */
   [key: string]: any;
 }
@@ -122,13 +136,12 @@ interface AccountingFormDto {
 // UI State（状態管理の中核）
 // =================================================================
 
-declare global {
-  /**
-   * UI状態管理の中核型定義
-   */
-  interface UIState {
+/**
+ * UI状態管理の中核型定義
+ */
+interface UIState {
     // --- User & Session Data ---
-    currentUser: UserData | null;
+    currentUser: UserCore | null;
     loginPhone: string;
     isFirstTimeBooking: boolean;
     registrationData: RegistrationFormData;
@@ -136,7 +149,7 @@ declare global {
 
     // --- Core Application Data ---
     lessons: LessonCore[];
-    myReservations: ReservationData[];
+    myReservations: ReservationCore[];
     accountingMaster: AccountingMasterItemCore[];
     classrooms?: string[];
 
@@ -147,8 +160,8 @@ declare global {
     editingMemo: { reservationId: string; originalValue: string } | null;
     memoInputChanged: boolean;
     selectedLesson: LessonCore | null;
-    editingReservationDetails: ReservationDetails | null;
-    accountingReservation: ReservationData | null;
+    editingReservationDetails: ReservationCore | null;
+    accountingReservation: ReservationCore | null;
     accountingReservationDetails: AccountingDetailsCore;
     accountingScheduleInfo: ScheduleInfo | null;
     accountingDetails: AccountingDetailsCore | null;
@@ -158,7 +171,7 @@ declare global {
     completionMessage: string;
     recordsToShow: number;
     registrationStep: number;
-    searchedUsers: UserData[];
+    searchedUsers: UserCore[];
     searchAttempted: boolean;
 
     // --- New Context for Forms ---
@@ -172,7 +185,7 @@ declare global {
     _dataUpdateInProgress: boolean;
     _dataFetchInProgress: Record<string, boolean>;
     _lessonsVersion: string | null;
-    _allStudents?: Record<string, UserData>;
+    _allStudents?: Record<string, UserCore>;
     _cacheVersions?: Record<string, string>;
     today?: string;
     savedAt?: string;
@@ -192,106 +205,108 @@ declare global {
     [key: string]: any;
   }
 
-  /**
-   * 後方互換性のための型エイリアス
-   */
-  type AppState = UIState;
+/**
+ * 後方互換性のための型エイリアス
+ */
+type AppState = UIState;
 
-  /**
-   * 計算済み状態データ型
-   */
-  interface ComputedStateData {}
+/**
+ * 計算済み状態データ型
+ */
+interface ComputedStateData {}
 
-  // =================================================================
-  // State Action（状態更新）
-  // =================================================================
+// =================================================================
+// State Action（状態更新）
+// =================================================================
 
-  /**
-   * アクション型定義
-   */
-  interface StateAction {
-    type: ActionType;
-    payload?: StateActionPayload;
-  }
+/**
+ * アクション型定義
+ */
+interface StateAction {
+  type: ActionType;
+  payload?: StateActionPayload;
+}
 
-  type ActionType = 'SET_STATE' | 'UPDATE_STATE' | 'CHANGE_VIEW' | 'NAVIGATE';
+type ActionType = 'SET_STATE' | 'UPDATE_STATE' | 'CHANGE_VIEW' | 'NAVIGATE';
 
-  interface StateActionPayload {
-    // AI開発最適化：完全に動的アクセスを許可
-    [key: string]: any;
-  }
+interface StateActionPayload {
+  to?: ViewType;
+  context?: NavigationContext;
+  saveHistory?: boolean;
+  // AI開発最適化：完全に動的アクセスを許可
+  [key: string]: any;
+}
 
-  /**
-   * 状態更新パターン型
-   */
-  interface StateUpdatePattern {
-    trigger: StateTrigger;
-    changes: StateChange[];
-    sideEffects: SideEffect[];
-  }
+/**
+ * 状態更新パターン型
+ */
+interface StateUpdatePattern {
+  trigger: StateTrigger;
+  changes: StateChange[];
+  sideEffects: SideEffect[];
+}
 
-  type StateTrigger =
-    | 'USER_ACTION'
-    | 'DATA_FETCH'
-    | 'NAVIGATION'
-    | 'SYSTEM_EVENT';
+type StateTrigger =
+  | 'USER_ACTION'
+  | 'DATA_FETCH'
+  | 'NAVIGATION'
+  | 'SYSTEM_EVENT';
 
-  interface StateChange {
-    path: string;
-    oldValue: any;
-    newValue: any;
-  }
+interface StateChange {
+  path: string;
+  oldValue: any;
+  newValue: any;
+}
 
-  interface SideEffect {
-    type:
-      | 'RENDER'
-      | 'NOTIFY_SUBSCRIBERS'
-      | 'HIDE_LOADING'
-      | 'SCROLL_MANAGEMENT';
-    target?: string;
-    data?: any;
-  }
+interface SideEffect {
+  type:
+    | 'RENDER'
+    | 'NOTIFY_SUBSCRIBERS'
+    | 'HIDE_LOADING'
+    | 'SCROLL_MANAGEMENT';
+  target?: string;
+  data?: any;
+}
 
-  /**
-   * 購読者コールバック型
-   */
-  interface StateSubscriber {
-    (newState: UIState, oldState: UIState): void;
-  }
+/**
+ * 購読者コールバック型
+ */
+interface StateSubscriber {
+  (newState: UIState, oldState: UIState): void;
+}
 
-  // =================================================================
-  // StateManager
-  // =================================================================
+// =================================================================
+// StateManager
+// =================================================================
 
-  /**
-   * StateManager クラス型定義（AI開発最適化版）
-   */
-  interface SimpleStateManager {
-    state: UIState;
-    isUpdating: boolean;
-    subscribers: StateSubscriber[];
-    _renderScheduled?: boolean;
-    _shouldHideLoadingAfterRender?: boolean;
+/**
+ * StateManager クラス型定義（AI開発最適化版）
+ */
+interface SimpleStateManager {
+  state: UIState;
+  isUpdating: boolean;
+  subscribers: StateSubscriber[];
+  _renderScheduled?: boolean;
+  _shouldHideLoadingAfterRender?: boolean;
 
-    dispatch(action: StateAction): void;
-    getState(): UIState;
-    subscribe(callback: StateSubscriber): () => void;
-    startEditMode(reservationId: string): void;
-    endEditMode(reservationId: string): void;
-    isInEditMode(reservationId: string): boolean;
-    clearAllEditModes(): void;
-    goBack(): UIState | null;
-    updateComputed(): void;
+  dispatch(action: StateAction): void;
+  getState(): UIState;
+  subscribe(callback: StateSubscriber): () => void;
+  startEditMode(reservationId: string): void;
+  endEditMode(reservationId: string): void;
+  isInEditMode(reservationId: string): boolean;
+  clearAllEditModes(): void;
+  goBack(): UIState | null;
+  updateComputed(): void;
 
-    // データフェッチ進行状況管理
-    setDataFetchProgress(key: string, inProgress: boolean): void;
-    isDataFetchInProgress(key: string): boolean;
+  // データフェッチ進行状況管理
+  setDataFetchProgress(key: string, inProgress: boolean): void;
+  isDataFetchInProgress(key: string): boolean;
 
-    // レッスン更新管理
-    needsLessonsUpdate(cacheExpirationMinutes?: number): boolean;
-    updateLessonsVersion(newVersion?: string): void;
+  // レッスン更新管理
+  needsLessonsUpdate(cacheExpirationMinutes?: number): boolean;
+  updateLessonsVersion(newVersion?: string): void;
 
-    // AI開発最適化：動的プロパティアクセスを許可
-    [key: string]: any;
-  }
+  // AI開発最適化：動的プロパティアクセスを許可
+  [key: string]: any;
 }

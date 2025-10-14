@@ -8,16 +8,19 @@
  * =================================================================
  */
 
+const bookingStateManager = appWindow.stateManager;
 /**
  * 特定の教室の予約枠一覧画面のUIを生成します。
  * @param {string} classroom - 教室名
  * @returns {string} HTML文字列
  */
 export const getBookingView = classroom => {
-  const currentState = stateManager.getState();
+  const currentState = bookingStateManager.getState();
   const relevantLessons =
     currentState.lessons && Array.isArray(currentState.lessons)
-      ? currentState.lessons.filter((/** @type {LessonCore} */ lesson) => lesson.classroom === classroom)
+      ? currentState.lessons.filter(
+          (/** @type {LessonCore} */ lesson) => lesson.classroom === classroom,
+        )
       : [];
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
@@ -56,7 +59,7 @@ export const getReservationFormView = () => {
     accountingMaster,
     isFirstTimeBooking,
     currentReservationFormContext,
-  } = stateManager.getState();
+  } = bookingStateManager.getState();
 
   if (!currentReservationFormContext) {
     return 'エラー: 予約フォームのデータが見つかりません。';
@@ -122,13 +125,14 @@ export const getReservationFormView = () => {
   const _renderTuitionDisplaySection = () => {
     if (isTimeBased) {
       const basicTuitionRule = accountingMaster.find(
-        item =>
-          item.item === CONSTANTS.ITEMS.MAIN_LECTURE &&
-          item.classroom?.includes(classroom),
+        (/** @type {AccountingMasterItemCore} */ item) =>
+          item['item'] === CONSTANTS.ITEMS.MAIN_LECTURE &&
+          item['classroom']?.includes(classroom),
       );
       if (basicTuitionRule) {
+        const basicTuitionPrice = Number(basicTuitionRule['price'] ?? 0);
         return Components.priceDisplay({
-          amount: basicTuitionRule.price,
+          amount: basicTuitionPrice,
           label: `${CONSTANTS.ITEMS.MAIN_LECTURE} / 30分`,
           style: 'highlight',
         });
@@ -138,14 +142,16 @@ export const getReservationFormView = () => {
         ? CONSTANTS.ITEMS.FIRST_LECTURE
         : CONSTANTS.ITEMS.MAIN_LECTURE;
       const tuitionItem = accountingMaster.find(
-        item =>
-          item.type === CONSTANTS.ITEM_TYPES.TUITION &&
-          item.item === targetItemName &&
-          (item.classroom === '共通' || item.classroom?.includes(classroom)),
+        (/** @type {AccountingMasterItemCore} */ item) =>
+          item['type'] === CONSTANTS.ITEM_TYPES.TUITION &&
+          item['item'] === targetItemName &&
+          (item['classroom'] === '共通' ||
+            item['classroom']?.includes(classroom)),
       );
       if (tuitionItem) {
+        const tuitionPrice = Number(tuitionItem['price'] ?? 0);
         return Components.priceDisplay({
-          amount: tuitionItem.price,
+          amount: tuitionPrice,
           label: targetItemName,
           style: isFirstTimeBooking ? 'highlight' : 'default',
         });
@@ -257,7 +263,7 @@ export const getReservationFormView = () => {
 
   const _getSelectedSalesOrder = () =>
     Array.from(document.querySelectorAll('input[name="orderSales"]:checked'))
-      .map(cb => cb.value)
+      .map(element => /** @type {HTMLInputElement} */ (element).value)
       .join(', ');
 
   setTimeout(() => {
@@ -265,7 +271,9 @@ export const getReservationFormView = () => {
     if (submitBtn) {
       submitBtn.addEventListener('click', () => {
         const selectedOrder = _getSelectedSalesOrder();
-        const orderInput = document.getElementById('order-input');
+        const orderInput = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('order-input')
+        );
         if (orderInput) {
           const freeText = orderInput.value.trim();
           orderInput.value = selectedOrder
@@ -348,17 +356,23 @@ export const renderBookingLessons = lessons => {
   }
 
   /** @type {Record<number, LessonCore[]>} */
-  const lessonsByMonth = lessons.reduce((/** @type {Record<number, LessonCore[]>} */ acc, /** @type {LessonCore} */ lesson) => {
-    // ガード節: lessonまたはlesson.dateがundefinedの場合はスキップ
-    if (!lesson || !lesson.date) {
-      console.warn('Invalid lesson data:', lesson);
+  const lessonsByMonth = lessons.reduce(
+    (
+      /** @type {Record<number, LessonCore[]>} */ acc,
+      /** @type {LessonCore} */ lesson,
+    ) => {
+      // ガード節: lessonまたはlesson.dateがundefinedの場合はスキップ
+      if (!lesson || !lesson.date) {
+        console.warn('Invalid lesson data:', lesson);
+        return acc;
+      }
+      const month = new Date(lesson.date).getMonth() + 1;
+      if (!acc[month]) acc[month] = [];
+      acc[month].push(lesson);
       return acc;
-    }
-    const month = new Date(lesson.date).getMonth() + 1;
-    if (!acc[month]) acc[month] = [];
-    acc[month].push(lesson);
-    return acc;
-  }, /** @type {Record<number, LessonCore[]>} */ ({}));
+    },
+    /** @type {Record<number, LessonCore[]>} */ ({}),
+  );
 
   const result = Object.keys(lessonsByMonth)
     .sort((a, b) => Number(a) - Number(b))
@@ -369,9 +383,9 @@ export const renderBookingLessons = lessons => {
       const lessonsHtml = lessonsByMonth[month]
         .map(
           /** @param {LessonCore} lesson */ lesson => {
-            const state = stateManager.getState();
+            const state = bookingStateManager.getState();
             const isBooked = (state.myReservations || []).some(
-              b =>
+              (/** @type {ReservationCore} */ b) =>
                 String(b.date) === lesson.date &&
                 b.classroom === lesson.classroom,
             );
@@ -379,7 +393,7 @@ export const renderBookingLessons = lessons => {
             const tag = isBooked ? 'div' : 'button';
 
             const isFirstTimeBooking =
-              stateManager.getState().isFirstTimeBooking;
+              bookingStateManager.getState().isFirstTimeBooking;
             let statusText;
 
             if (isFirstTimeBooking) {
@@ -537,7 +551,7 @@ export const getClassroomSelectionModal = () => {
 
 /**
  * 編集モード対応の履歴カードを生成します
- * @param {ReservationData} historyItem - 履歴データ
+ * @param {ReservationCore} historyItem - 履歴データ
  * @param {Array<any>} editButtons - 編集ボタン配列
  * @param {Array<any>} accountingButtons - 会計ボタン配列
  * @param {boolean} isInEditMode - 編集モード状態

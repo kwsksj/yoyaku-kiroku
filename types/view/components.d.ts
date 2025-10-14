@@ -15,11 +15,14 @@ type ComponentSize = 'normal' | 'full' | 'small' | 'xs' | 'large';
 type ComponentStyle =
   | 'primary'
   | 'secondary'
+  | 'attention'
   | 'danger'
-  | 'none'
+  | 'accounting'
   | 'bookingCard'
   | 'recordCard'
-  | 'accounting';
+  | 'normal'
+  | 'none';
+type BadgeType = 'success' | 'warning' | 'error' | 'info' | 'accounting';
 
 // =================================================================
 // Component Config（基本設定）
@@ -62,14 +65,16 @@ interface ComponentProps {
  */
 interface ButtonConfig {
   text: string;
-  onClick?: string | undefined;
-  action?: string | undefined;
-  type?: ComponentStyle | undefined;
-  style?: ComponentStyle | undefined;
-  size?: ComponentSize | undefined;
-  disabled?: boolean | undefined;
-  customClass?: string | undefined;
-  dataAttributes?: Record<string, string | number | boolean> | undefined;
+  action?: string;
+  onClick?: string;
+  style?: ComponentStyle;
+  type?: ComponentStyle;
+  size?: ComponentSize;
+  disabled?: boolean;
+  customClass?: string;
+  dataAttributes?: Record<string, string | number | boolean>;
+  id?: string;
+  disabledStyle?: 'auto' | 'none' | 'custom';
 }
 
 /**
@@ -82,6 +87,13 @@ interface InputConfig {
   value?: string;
   placeholder?: string;
   required?: boolean;
+  description?: string;
+  caption?: string;
+  inputMode?: string;
+  autocomplete?: string;
+  customClass?: string;
+  dataAttributes?: Record<string, string | number | boolean>;
+  disabled?: boolean;
 }
 
 /**
@@ -92,6 +104,11 @@ interface SelectConfig {
   label: string;
   options: string | Array<{ value?: string; label?: string } | string>;
   selectedValue?: string;
+  description?: string;
+  caption?: string;
+  disabled?: boolean;
+  dataAttributes?: Record<string, string | number | boolean>;
+  customClass?: string;
 }
 
 /**
@@ -103,6 +120,11 @@ interface TextareaConfig {
   value?: string;
   placeholder?: string;
   rows?: number;
+  description?: string;
+  caption?: string;
+  disabled?: boolean;
+  dataAttributes?: Record<string, string | number | boolean>;
+  customClass?: string;
 }
 
 /**
@@ -112,6 +134,14 @@ interface CheckboxConfig {
   id: string;
   label: string;
   checked?: boolean;
+  disabled?: boolean;
+  dynamicStyle?: boolean;
+  dataAttributes?: Record<string, string | number | boolean>;
+  description?: string;
+  caption?: string;
+  onChange?: string;
+  customLabelClass?: string;
+  required?: boolean;
 }
 
 // =================================================================
@@ -155,7 +185,7 @@ interface CardContainerConfig {
  * ステータスバッジ設定
  */
 interface StatusBadgeConfig {
-  type: 'success' | 'warning' | 'error' | 'info';
+  type: BadgeType;
   text: string;
 }
 
@@ -238,7 +268,7 @@ interface DashboardSectionConfig {
  */
 interface ListCardConfig {
   item: ReservationData;
-  badges?: Array<{ type: string; text: string }>;
+  badges?: Array<{ type: BadgeType; text: string }>;
   editButtons?: Array<{
     action: string;
     text: string;
@@ -252,7 +282,9 @@ interface ListCardConfig {
     style?: string;
     details?: any;
   }>;
-  type?: 'booking' | 'record' | 'history';
+  type?: 'booking' | 'record' | 'history' | 'accounting';
+  isEditMode?: boolean;
+  showMemoSaveButton?: boolean;
 }
 
 /**
@@ -260,8 +292,9 @@ interface ListCardConfig {
  */
 interface MemoSectionConfig {
   reservationId: string;
-  workInProgress?: string;
+  workInProgress?: string | null;
   isEditMode?: boolean;
+  showSaveButton?: boolean;
 }
 
 /**

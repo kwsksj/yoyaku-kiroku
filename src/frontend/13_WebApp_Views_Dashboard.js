@@ -7,6 +7,7 @@
  * =================================================================
  */
 
+const dashboardStateManager = appWindow.stateManager;
 /**
  * メインのホーム画面のUIを生成します。
  * 【改善】ビジネスロジックをヘルパー関数に分離して可読性向上
@@ -14,7 +15,7 @@
  */
 export const getDashboardView = () => {
   // myReservationsから直接フィルタリングして表示（シンプル化）
-  const state = stateManager.getState();
+  const state = dashboardStateManager.getState();
   const myReservations = state.myReservations || [];
 
   console.log('📊 ダッシュボード表示開始');
@@ -24,27 +25,32 @@ export const getDashboardView = () => {
   // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
   const activeReservations = myReservations
     .filter(
-      (/** @type {ReservationData} */ res) =>
+      (/** @type {ReservationCore} */ res) =>
         res.status === CONSTANTS.STATUS.CONFIRMED ||
         res.status === CONSTANTS.STATUS.WAITLISTED,
     )
-    .sort((/** @type {ReservationData} */ a, /** @type {ReservationData} */ b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
+    .sort(
+      (/** @type {ReservationCore} */ a, /** @type {ReservationCore} */ b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime(),
+    ); // 新しい順ソート
 
   console.log('   アクティブな予約:', activeReservations.length, '件');
 
-  const bookingCards = activeReservations.map(b => {
-    const badges = _buildBookingBadges(b);
-    const editButtons = _buildEditButtons(b);
-    const accountingButtons = _buildAccountingButtons(b);
+  const bookingCards = activeReservations.map(
+    (/** @type {ReservationCore} */ b) => {
+      const badges = _buildBookingBadges(b);
+      const editButtons = _buildEditButtons(b);
+      const accountingButtons = _buildAccountingButtons(b);
 
-    return Components.listCard({
-      type: 'booking',
-      item: b,
-      badges: badges,
-      editButtons: editButtons,
-      accountingButtons: accountingButtons,
-    });
-  });
+      return Components.listCard({
+        type: 'booking',
+        item: b,
+        badges: badges,
+        editButtons: editButtons,
+        accountingButtons: accountingButtons,
+      });
+    },
+  );
 
   // 予約セクションを生成（Componentsに構造生成を委任）
   const yourBookingsHtml = Components.dashboardSection({
@@ -57,31 +63,41 @@ export const getDashboardView = () => {
   // 履歴セクション用のカード配列を構築：完了ステータスのみ表示
   let historyHtml = '';
   const completedReservations = myReservations
-    .filter((/** @type {ReservationData} */ res) => res.status === CONSTANTS.STATUS.COMPLETED)
-    .sort((/** @type {ReservationData} */ a, /** @type {ReservationData} */ b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 新しい順ソート
+    .filter(
+      (/** @type {ReservationCore} */ res) =>
+        res.status === CONSTANTS.STATUS.COMPLETED,
+    )
+    .sort(
+      (/** @type {ReservationCore} */ a, /** @type {ReservationCore} */ b) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime(),
+    ); // 新しい順ソート
 
   const recordsToShow = state.recordsToShow;
   const completedRecords = completedReservations.slice(0, recordsToShow);
 
   if (completedRecords.length > 0) {
     // 「きろく」は COMPLETED ステータスのみ表示
-    const historyCards = completedRecords.map((/** @type {ReservationData} */ h) => {
-      // 編集モード状態を取得
-      const isInEditMode = stateManager.isInEditMode(h.reservationId);
+    const historyCards = completedRecords.map(
+      (/** @type {ReservationCore} */ h) => {
+        // 編集モード状態を取得
+        const isInEditMode = dashboardStateManager.isInEditMode(
+          h.reservationId,
+        );
 
-      const editButtons = _buildHistoryEditButtons(
-        isInEditMode,
-        h.reservationId,
-      );
-      const accountingButtons = _buildHistoryAccountingButtons(h);
+        const editButtons = _buildHistoryEditButtons(
+          isInEditMode,
+          h.reservationId,
+        );
+        const accountingButtons = _buildHistoryAccountingButtons(h);
 
-      return _buildHistoryCardWithEditMode(
-        h,
-        editButtons,
-        accountingButtons,
-        isInEditMode,
-      );
-    });
+        return _buildHistoryCardWithEditMode(
+          h,
+          editButtons,
+          accountingButtons,
+          isInEditMode,
+        );
+      },
+    );
 
     const showMore = recordsToShow < completedReservations.length;
 
@@ -96,7 +112,7 @@ export const getDashboardView = () => {
 
   return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
-            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${stateManager.getState().currentUser.displayName} <span class="text-base">さん</span></span></h1>
+            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${dashboardStateManager.getState().currentUser.displayName} <span class="text-base">さん</span></span></h1>
             <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
         </div>
         ${yourBookingsHtml}
@@ -106,7 +122,7 @@ export const getDashboardView = () => {
 
 /**
  * 予約カードの編集ボタン配列を生成します。
- * @param {ReservationData} booking - 予約データ
+ * @param {ReservationCore} booking - 予約データ
  * @returns {Array<any>} 編集ボタン設定配列
  */
 export const _buildEditButtons = booking => {
@@ -143,7 +159,7 @@ export const _buildEditButtons = booking => {
 
 /**
  * 予約カードの会計ボタン配列を生成します。
- * @param {ReservationData} booking - 予約データ
+ * @param {ReservationCore} booking - 予約データ
  * @returns {Array<any>} 会計ボタン設定配列
  */
 export const _buildAccountingButtons = booking => {
@@ -173,7 +189,7 @@ export const _buildHistoryEditButtons = (
   reservationId = '',
 ) => {
   const buttons = [];
-  const state = stateManager.getState();
+  const state = dashboardStateManager.getState();
 
   // 編集モード状態に応じてボタンテキストとアクションを変更
   if (isInEditMode) {
@@ -215,7 +231,7 @@ export const _buildHistoryEditButtons = (
 
 /**
  * 履歴カードの会計ボタン配列を生成します。
- * @param {ReservationData} historyItem - 履歴データ
+ * @param {ReservationCore} historyItem - 履歴データ
  * @returns {Array<any>} 会計ボタン設定配列
  */
 export const _buildHistoryAccountingButtons = historyItem => {
@@ -239,7 +255,7 @@ export const _buildHistoryAccountingButtons = historyItem => {
 
 /**
  * 予約カードのバッジ配列を生成します。
- * @param {ReservationData} booking - 予約データ
+ * @param {ReservationCore} booking - 予約データ
  * @returns {Array<{type: string, text: string}>} バッジ設定配列
  */
 export const _buildBookingBadges = booking => {
@@ -268,11 +284,11 @@ export const _buildBookingBadges = booking => {
 
 /**
  * 指定した予約に対応する講座が現在予約可能かチェック
- * @param {ReservationData} booking - 予約データ
+ * @param {ReservationCore} booking - 予約データ
  * @returns {boolean} 予約可能な場合true
  */
 export const _checkIfLessonAvailable = booking => {
-  const state = stateManager.getState();
+  const state = dashboardStateManager.getState();
   const lessons = state.lessons || [];
 
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
@@ -415,14 +431,14 @@ export function updateSingleHistoryCard(reservationId) {
   }
 
   // 現在の状態から該当する履歴アイテムを取得
-  const state = stateManager.getState();
+  const state = dashboardStateManager.getState();
   const historyItem = state.myReservations.find(
-    (/** @type {ReservationData} */ h) => h.reservationId === reservationId,
+    (/** @type {ReservationCore} */ h) => h.reservationId === reservationId,
   );
   if (!historyItem || historyItem.status !== CONSTANTS.STATUS.COMPLETED) return;
 
   // 編集モード状態を取得
-  const isInEditMode = stateManager.isInEditMode(reservationId);
+  const isInEditMode = dashboardStateManager.isInEditMode(reservationId);
 
   // スムーズ切替のため更新をバッチ実行
   requestAnimationFrame(() => {
@@ -437,7 +453,7 @@ export function updateSingleHistoryCard(reservationId) {
 /**
  * メモセクションのみを更新（DOM直接操作）
  * @param {string} reservationId - 予約ID
- * @param {ReservationData} historyItem - 履歴データ
+ * @param {ReservationCore} historyItem - 履歴データ
  * @param {boolean} isInEditMode - 編集モード状態
  */
 export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
@@ -584,8 +600,9 @@ export function _attachMemoEventListeners(reservationId) {
     };
 
     anyTextarea._memoInputHandler = (/** @type {Event} */ event) => {
-      const currentValue = (/** @type {HTMLTextAreaElement} */ (event.target)).value;
-      const hasChanged = stateManager.updateMemoInputChanged(
+      const currentValue = /** @type {HTMLTextAreaElement} */ (event.target)
+        .value;
+      const hasChanged = dashboardStateManager.updateMemoInputChanged(
         reservationId,
         currentValue,
       );
@@ -637,13 +654,13 @@ export function _updateHistoryCardButton(reservationId) {
     return;
   }
 
-  const state = stateManager.getState();
+  const state = dashboardStateManager.getState();
   const historyItem = state.myReservations.find(
-    (/** @type {ReservationData} */ h) => h.reservationId === reservationId,
+    (/** @type {ReservationCore} */ h) => h.reservationId === reservationId,
   );
   if (!historyItem) return;
 
-  const isInEditMode = stateManager.isInEditMode(reservationId);
+  const isInEditMode = dashboardStateManager.isInEditMode(reservationId);
   const editButtons = _buildHistoryEditButtons(isInEditMode, reservationId);
   let accountingButtons = _buildHistoryAccountingButtons(historyItem);
 
