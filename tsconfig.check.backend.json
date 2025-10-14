@@ -4,5 +4,5 @@
     "noEmit": true
   },
   "include": ["src/backend/*.js", "types/**/*.d.ts"],
-  "exclude": ["types/frontend-index.d.ts"],
+  "exclude": ["types/frontend-index.d.ts"]
 }

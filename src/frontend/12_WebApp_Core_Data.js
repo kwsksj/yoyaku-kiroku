@@ -19,7 +19,7 @@
 /**
  * シンプルなダッシュボード状態を構築する（簡素化版）
  * @param {any} currentUser - 軽量認証から取得したユーザー情報
- * @param {ReservationData[]} myReservations - 個人の予約データ
+ * @param {ReservationCore[]} myReservations - 個人の予約データ
  * @returns {Partial<UIState>} シンプルなダッシュボード状態
  */
 export function createSimpleDashboardState(currentUser, myReservations) {
@@ -66,7 +66,7 @@ export function preInitializeAccountingSystem(accountingMaster) {
     });
 
     // グローバルキャッシュに保存
-    /** @type {any} */ (window).accountingSystemCache = preInitializedData;
+    appWindow.accountingSystemCache = preInitializedData;
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('✅ 会計システム事前初期化完了:', {
@@ -111,9 +111,10 @@ export const detectEnvironment = () => {
  */
 export const getEnvironmentData = (dataType, fallback = null) => {
   const env = detectEnvironment();
+  const mockData = appWindow.MockData;
 
-  if (env === 'test' && typeof MockData !== 'undefined') {
-    return MockData[dataType] || fallback;
+  if (env === 'test' && mockData) {
+    return mockData[dataType] ?? fallback;
   }
 
   // GAS環境では初期値のみ返し、データは後でAPI呼び出しで取得
@@ -126,11 +127,11 @@ export const getEnvironmentData = (dataType, fallback = null) => {
 
 // StateManagerの再初期化（依存関数が読み込まれた後）
 if (
-  typeof window.initializeStateManager === 'function' &&
-  !window.stateManager
+  typeof appWindow.initializeStateManager === 'function' &&
+  !appWindow.stateManager
 ) {
   console.log('🔄 StateManagerを再初期化中...');
-  window.initializeStateManager();
+  appWindow.initializeStateManager();
 }
 
 // StateManagerが初期化された後にビューリスナーを設定
@@ -139,13 +140,13 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     // Googleサイト埋め込み環境の調整を適用
     if (
-      window.EmbedConfig &&
-      typeof window.EmbedConfig.applyEmbedStyles === 'function'
+      appWindow.EmbedConfig &&
+      typeof appWindow.EmbedConfig.applyEmbedStyles === 'function'
     ) {
-      window.EmbedConfig.applyEmbedStyles();
+      appWindow.EmbedConfig.applyEmbedStyles();
     }
 
-    if (window.stateManager && typeof setupViewListener === 'function') {
+    if (appWindow.stateManager && typeof setupViewListener === 'function') {
       setupViewListener();
     }
   });
@@ -154,13 +155,13 @@ if (document.readyState === 'loading') {
 
   // Googleサイト埋め込み環境の調整を適用
   if (
-    window.EmbedConfig &&
-    typeof window.EmbedConfig.applyEmbedStyles === 'function'
+    appWindow.EmbedConfig &&
+    typeof appWindow.EmbedConfig.applyEmbedStyles === 'function'
   ) {
-    window.EmbedConfig.applyEmbedStyles();
+    appWindow.EmbedConfig.applyEmbedStyles();
   }
 
-  if (window.stateManager && typeof setupViewListener === 'function') {
+  if (appWindow.stateManager && typeof setupViewListener === 'function') {
     setupViewListener();
   }
 }
@@ -174,7 +175,7 @@ if (document.readyState === 'loading') {
  * カプセル化された方式でモーダルのコールバック処理を管理する
  * グローバル変数の乱用を避けるための設計
  */
-window.ModalManager = window.ModalManager || {
+appWindow.ModalManager = appWindow.ModalManager || {
   onConfirmCallback: null,
 
   /**
@@ -229,7 +230,7 @@ export function getClassroomTypeFromSchedule(scheduleData) {
 export function isTimeBasedClassroom(scheduleData) {
   const classroomType = getClassroomTypeFromSchedule(scheduleData);
   // 時間制の教室形式をすべてチェック（時間制・2部制、時間制・全日）
-  return classroomType && classroomType.includes('時間制');
+  return Boolean(classroomType && classroomType.includes('時間制'));
 }
 
 /**
@@ -261,8 +262,8 @@ export function getScheduleInfoFromCache(date, classroom) {
     )
       ['withFailureHandler']((/** @type {Error} */ error) => {
         console.error('❌ getScheduleInfoFromCache: API呼び出しエラー', error);
-        if (window.FrontendErrorHandler) {
-          window.FrontendErrorHandler.handle(
+        if (appWindow.FrontendErrorHandler) {
+          appWindow.FrontendErrorHandler.handle(
             error,
             'getScheduleInfoFromCache',
             { date, classroom },
@@ -276,7 +277,7 @@ export function getScheduleInfoFromCache(date, classroom) {
 
 /**
  * 予約データから対応する日程マスタ情報を取得
- * @param {ReservationData} reservation - 予約データ (date, classroom を含む)
+ * @param {ReservationCore} reservation - 予約データ (date, classroom を含む)
  * @returns {ScheduleInfo | null} 日程マスタ情報またはnull (lessons経由の場合)
  */
 export function getScheduleDataFromLessons(reservation) {

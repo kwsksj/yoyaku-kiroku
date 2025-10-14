@@ -3,6 +3,7 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["src/frontend/*.js", "types/**/*.d.ts"],
+  "files": ["types/frontend-index.d.ts", "types/gas-custom.d.ts"],
+  "include": ["src/frontend/*.js", "src/frontend/**/*.js", "types/**/*.d.ts"],
   "exclude": ["types/backend-index.d.ts"]
 }

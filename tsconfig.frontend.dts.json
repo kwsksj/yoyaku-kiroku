@@ -16,10 +16,7 @@
     "checkJs": false,
     "skipLibCheck": true
   },
-  "files": [
-    "types/frontend-index.d.ts",
-    "types/gas-custom.d.ts"
-  ],
+  "files": ["types/frontend-index.d.ts", "types/gas-custom.d.ts"],
   "include": [
     // フロントエンドのグローバル関数が定義されているファイルのみを対象にする
     "src/frontend/**/*.js",

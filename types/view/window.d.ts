@@ -6,8 +6,7 @@
  * =================================================================
  */
 
-/// <reference path="../core/index.d.ts" />
-/// <reference path="../dto/index.d.ts" />
+/// <reference path="./design-system.d.ts" />
 
 // =================================================================
 // 一時データ型定義
@@ -32,27 +31,25 @@ interface EmbedConfig {
   saveOffset(offset: number): void;
   addOffsetControl(currentOffset: number): void;
   showOffsetAdjustment(): void;
-  reapplyStyles(offset: number): void;
-}
-
-/**
- * デザインシステム設定
- */
-interface DesignSystemConfig {
-  colors?: any;
-  buttons?: any;
-  modal?: any;
-  form?: any;
-  [key: string]: any;
+  reapplyStyles(offset?: number): void;
 }
 
 /**
  * ページ遷移マネージャー
  */
 interface PageTransitionManager {
-  goTo(viewName: string, context?: any): void;
-  back(): void;
-  getCurrentView(): string;
+  goTo?(viewName: string, context?: any): void;
+  back?(): void;
+  getCurrentView?(): string;
+  onPageTransition?(newView: ViewType): void;
+  initializePage?(): void;
+  onModalOpen?(): void;
+  onModalClose?(): void;
+  handleViewChange?(newView: string | null, isModalTransition: boolean): void;
+  resetScrollPosition?(): void;
+  setScrollPosition?(position: number): void;
+  saveScrollPosition?(): void;
+  restoreScrollPosition?(): void;
   [key: string]: any;
 }
 
@@ -64,14 +61,18 @@ interface ModalManager {
   hide(): void;
   showConfirm(config: any): void;
   showInfo(message: string, title?: string): void;
+  setCallback?(callback: () => void): void;
+  clearCallback?(): void;
+  executeCallback?(): void;
   [key: string]: any;
 }
 
-// =================================================================
-// Window拡張
-// =================================================================
-
 declare global {
+
+  // =================================================================
+  // Window拡張
+  // =================================================================
+
   interface Window {
     // --- 定数オブジェクト ---
     CONSTANTS: Constants;
@@ -88,12 +89,7 @@ declare global {
     render?: () => void;
 
     // --- デザイン設定 ---
-    DesignConfig?: {
-      colors: any;
-      buttons: any;
-      modal: any;
-      form: any;
-    };
+    DesignConfig?: DesignSystemConfig;
 
     // --- グローバル関数 ---
     showLoading?: (category?: string) => void;
@@ -108,7 +104,7 @@ declare global {
     formatDate?: (date: string | Date, format?: string) => string;
 
     // --- ページ遷移 ---
-    pageTransitionManager?: any;
+    pageTransitionManager?: PageTransitionManager;
     normalizePhoneNumberFrontend?: (
       phone: string,
     ) => {
@@ -123,6 +119,8 @@ declare global {
     collectFormData?: () => AccountingFormDto;
     accountingSystemCache?: Record<string, ClassifiedAccountingItemsCore>;
     tempPaymentData?: TempPaymentData;
+    paymentProcessing?: boolean;
+    accountingCalculationTimeout?: any;
 
     // --- 埋め込み環境 ---
     EmbedConfig?: EmbedConfig;
@@ -139,6 +137,19 @@ declare global {
       info(message: string, ...args: any[]): void;
       error(message: string, ...args: any[]): void;
     };
+
+    // --- エラーハンドラー ---
+    FrontendErrorHandler?: {
+      handle(error: Error): void;
+      logError(error: Error): void;
+      [key: string]: any;
+    };
+
+    // --- アクションハンドラー ---
+    actionHandlers?: Record<string, (...args: any[]) => void>;
+
+    // --- テストデータ ---
+    MockData?: Record<string, unknown>;
 
     // --- Google Apps Script WebApp API ---
     google: {
@@ -157,7 +168,13 @@ declare global {
     // --- 外部ライブラリ ---
     tailwind?: any;
     server?: any;
+    ModalManager?: ModalManager;
   }
+
+  /**
+   * Window と globalThis を統合した型
+   */
+  type AppWindow = Window & typeof globalThis;
 }
 
 // =================================================================
@@ -216,12 +233,21 @@ declare var google: {
     };
   };
 };
-declare function updateAccountingCalculation(): void;
-declare function setupAccountingEventListeners(): void;
-declare function generateAccountingView(
-  classifiedItems: any,
+declare function updateAccountingCalculation(
+  classifiedItems: ClassifiedAccountingItemsCore,
   classroom: string,
-  formData?: any,
+): void;
+declare function setupAccountingEventListeners(
+  classifiedItems: ClassifiedAccountingItemsCore,
+  classroom: string,
+): void;
+declare function generateAccountingView(
+  classifiedItems: ClassifiedAccountingItemsCore,
+  classroom: string,
+  formData?: AccountingFormDto,
+  reservationData?: ReservationCore | null,
 ): string;
 declare function getPaymentInfoHtml(selectedPaymentMethod?: string): string;
 declare function getPaymentOptionsHtml(selectedValue?: string): string;
+
+declare var appWindow: AppWindow;

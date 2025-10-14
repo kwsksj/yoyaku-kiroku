@@ -13,6 +13,10 @@
  */
 
 /**
+ * @typedef {ReservationCore & { type: 'booking' | 'record' }} ReservationSearchResult
+ */
+
+/**
  * =================================================================
  * --- 統一検索関数システム (2025-08-30) ---
  * 「よやく」(myBookings) と「きろく」(history) を統一的に検索する関数群
@@ -26,12 +30,13 @@
  * @returns {ReservationSearchResult | null} 見つかった予約/記録データ、見つからない場合はnull
  */
 export function findReservationById(reservationId, state = null) {
-  const currentState = state || window.stateManager?.getState();
+  const currentState = state || appWindow.stateManager?.getState();
   if (!currentState) return null;
 
   // myReservationsから直接検索
   const reservation = currentState.myReservations?.find(
-    item => item.reservationId === reservationId,
+    (/** @type {ReservationCore} */ item) =>
+      item.reservationId === reservationId,
   );
   if (reservation) {
     // ステータスに基づいてtype分類を追加
@@ -57,12 +62,13 @@ export function findReservationByDateAndClassroom(
   classroom,
   state = null,
 ) {
-  const currentState = state || window.stateManager?.getState();
+  const currentState = state || appWindow.stateManager?.getState();
   if (!currentState) return null;
 
   // myReservationsから直接検索（キャンセル済みは既にバックエンドで除外済み）
   const reservation = currentState.myReservations?.find(
-    item => item.date === date && item.classroom === classroom,
+    (/** @type {ReservationCore} */ item) =>
+      item.date === date && item.classroom === classroom,
   );
 
   if (reservation) {
@@ -84,15 +90,17 @@ export function findReservationByDateAndClassroom(
  * @returns {ReservationSearchResult[]} 条件に合致する予約/記録の配列
  */
 export function findReservationsByStatus(status, state = null) {
-  const currentState = state || window.stateManager?.getState();
+  const currentState = state || appWindow.stateManager?.getState();
   if (!currentState) return [];
 
   // myReservationsから直接検索
   const reservations =
-    currentState.myReservations?.filter(item => item.status === status) || [];
+    currentState.myReservations?.filter(
+      (/** @type {ReservationCore} */ item) => item.status === status,
+    ) || [];
 
   // ステータスに基づいてtype分類を追加
-  return reservations.map(item => {
+  return reservations.map((/** @type {ReservationCore} */ item) => {
     if (item.status === CONSTANTS.STATUS.COMPLETED) {
       return { ...item, type: 'record' };
     } else {

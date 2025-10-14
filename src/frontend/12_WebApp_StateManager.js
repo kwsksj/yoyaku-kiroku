@@ -10,11 +10,32 @@
  */
 
 /**
+ * @typedef {SimpleStateManager} StateManagerContract
+ * @typedef {UIState} UIStateAlias
+ * @typedef {(newState: UIState, oldState: UIState) => void} StateSubscriber
+ * @typedef {StateAction} StateActionAlias
+ * @typedef {StateActionPayload} StateActionPayloadAlias
+ * @typedef {ComputedStateData} ComputedStateDataAlias
+ */
+
+/**
  * フロントエンド用PerformanceLogフォールバック
  * バックエンドで定義されたPerformanceLogがフロントエンドで未定義の場合の安全策
  */
-if (!window.PerformanceLog) {
-  window.PerformanceLog = {
+
+/**
+ * 空の会計詳細データを生成
+ * @returns {AccountingDetailsCore}
+ */
+const createEmptyAccountingDetails = () => ({
+  tuition: { items: [], subtotal: 0 },
+  sales: { items: [], subtotal: 0 },
+  grandTotal: 0,
+  paymentMethod: CONSTANTS.PAYMENT_DISPLAY.CASH,
+});
+
+if (!appWindow.PerformanceLog) {
+  appWindow.PerformanceLog = {
     debug(/** @type {string} */ message, /** @type {...any} */ ...args) {
       if (typeof debugLog === 'function') {
         debugLog(`[DEBUG] ${message}`);
@@ -48,7 +69,7 @@ export class SimpleStateManager {
     /** @type {UIState} */
     this.state = {
       // --- User & Session Data ---
-      /** @type {UserData | null} */
+      /** @type {UserCore | null} */
       currentUser: null,
       /** @type {string} */
       loginPhone: '',
@@ -62,7 +83,7 @@ export class SimpleStateManager {
       // --- Core Application Data ---
       /** @type {LessonCore[]} */
       lessons: [],
-      /** @type {ReservationData[]} */
+      /** @type {ReservationCore[]} */
       myReservations: [],
       /** @type {AccountingMasterItemCore[]} */
       accountingMaster: [],
@@ -78,12 +99,12 @@ export class SimpleStateManager {
       memoInputChanged: false,
       /** @type {LessonCore | null} */
       selectedLesson: null,
-      /** @type {ReservationDetails | null} */
+      /** @type {ReservationCore | null} */
       editingReservationDetails: null,
-      /** @type {ReservationData | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
+      /** @type {ReservationCore | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
       accountingReservation: null,
       /** @type {AccountingDetailsCore} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
-      accountingReservationDetails: {},
+      accountingReservationDetails: createEmptyAccountingDetails(),
       /** @type {ScheduleInfo | null} - 講座固有情報 (教室形式, 開講時間など) */
       accountingScheduleInfo: null,
       /** @type {AccountingDetailsCore | null} - 会計計算結果 */
@@ -91,7 +112,7 @@ export class SimpleStateManager {
       /** @type {string} */ completionMessage: '',
       /** @type {number} */ recordsToShow: 10,
       /** @type {number} */ registrationStep: 1,
-      /** @type {UserData[]} */
+      /** @type {UserCore[]} */
       searchedUsers: [],
       /** @type {boolean} */
       searchAttempted: false,
@@ -154,19 +175,22 @@ export class SimpleStateManager {
     const previousView = this.state.view;
 
     // アクションに基づいて状態更新
+    /** @type {Partial<UIState>} */
     let newState = {};
+    const payload = action.payload || {};
+
     switch (action.type) {
       case 'SET_STATE':
-        newState = action.payload || {};
+        newState = payload;
         break;
       case 'UPDATE_STATE':
-        newState = action.payload || {};
+        newState = payload;
         break;
       case 'CHANGE_VIEW':
-        newState = { view: action.payload['view'] };
+        newState = { view: payload['view'] };
         break;
       case 'NAVIGATE':
-        newState = this._handleNavigate(action.payload);
+        newState = this._handleNavigate(payload);
         break;
       default:
         console.warn('未知のアクションタイプ:', action.type);
@@ -181,10 +205,10 @@ export class SimpleStateManager {
       'view' in newState &&
       newState.view &&
       newState.view !== previousView &&
-      window.pageTransitionManager
+      appWindow.pageTransitionManager
     ) {
       const viewValue = /** @type {ViewType} */ (newState.view);
-      window.pageTransitionManager.onPageTransition(viewValue);
+      appWindow.pageTransitionManager.onPageTransition(viewValue);
     }
 
     // 最終的な状態更新（画面遷移を伴う）でのみローディング非表示を実行
@@ -252,7 +276,7 @@ export class SimpleStateManager {
     // isFirstTimeBooking の計算：確定・完了の予約があるかをチェック
     // 空き連絡希望だけでは経験者扱いにしない
     const hasConfirmedOrCompleted = this.state.myReservations.some(
-      r =>
+      (/** @type {ReservationCore} */ r) =>
         r.status === CONSTANTS.STATUS.CONFIRMED ||
         r.status === CONSTANTS.STATUS.COMPLETED,
     );
@@ -270,9 +294,9 @@ export class SimpleStateManager {
     this._renderScheduled = true;
     requestAnimationFrame(() => {
       this._renderScheduled = false;
-      if (typeof window.render === 'function') {
+      if (typeof appWindow.render === 'function') {
         console.log('🎨 Auto-rendering UI...');
-        window.render();
+        appWindow.render();
         // 特定のaction.typeでのみローディングを非表示（最終的な状態更新のみ）
         if (this._shouldHideLoadingAfterRender) {
           if (typeof hideLoading === 'function') hideLoading();
@@ -330,7 +354,9 @@ export class SimpleStateManager {
    * @returns {Partial<UIState>} 新しい状態
    */
   _handleNavigate(payload) {
-    const { to, context = {}, saveHistory = true } = payload;
+    const to = /** @type {ViewType} */ (payload.to);
+    const context = /** @type {NavigationContext} */ (payload.context || {});
+    const saveHistory = payload.saveHistory !== false;
     const currentView = this.state.view;
 
     // 現在のビューを履歴に保存（もどる履歴として）
@@ -495,19 +521,19 @@ export class SimpleStateManager {
    * @private
    */
   _autoSaveIfNeeded(oldState, newState) {
-    // ログイン画面に戻る場合は保存状態をクリア（ログアウト扱い）
+    // ログイン画面に戻る場合は保存状態をクリア(ログアウト扱い)
     if (
       'view' in newState &&
       newState.view === 'login' &&
       oldState.view !== 'login'
     ) {
-      window.PerformanceLog?.info('ログイン画面に戻るため保存状態をクリア');
+      appWindow.PerformanceLog?.info('ログイン画面に戻るため保存状態をクリア');
       this.clearStoredState();
       return;
     }
 
     // 保存対象となる重要な状態変更
-    const importantChanges = [
+    const importantChanges = /** @type {(keyof UIState)[]} */ ([
       'currentUser',
       'loginPhone',
       'view',
@@ -515,7 +541,7 @@ export class SimpleStateManager {
       'isFirstTimeBooking',
       'registrationData',
       'registrationPhone',
-    ];
+    ]);
 
     const hasImportantChange = importantChanges.some(
       key => key in newState && oldState[key] !== newState[key],
@@ -523,8 +549,10 @@ export class SimpleStateManager {
 
     if (hasImportantChange) {
       // 500ms後に保存（連続変更をまとめるため）
-      clearTimeout(this._saveTimeout);
-      this._saveTimeout = setTimeout(() => {
+      if (this._saveTimeout !== null) {
+        clearTimeout(this._saveTimeout);
+      }
+      this._saveTimeout = window.setTimeout(() => {
         this.saveStateToStorage();
       }, 500);
     }
@@ -557,9 +585,9 @@ export class SimpleStateManager {
       };
 
       sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(essentialState));
-      window.PerformanceLog?.debug('状態をSessionStorageに保存しました');
+      appWindow.PerformanceLog?.debug('状態をSessionStorageに保存しました');
     } catch (error) {
-      window.PerformanceLog?.error(`状態保存エラー: ${error.message}`);
+      appWindow.PerformanceLog?.error(`状態保存エラー: ${error.message}`);
     }
   }
 
@@ -571,7 +599,7 @@ export class SimpleStateManager {
     try {
       const savedState = sessionStorage.getItem(this.STORAGE_KEY);
       if (!savedState) {
-        window.PerformanceLog?.debug('保存された状態がありません');
+        appWindow.PerformanceLog?.debug('保存された状態がありません');
         return false;
       }
 
@@ -580,7 +608,7 @@ export class SimpleStateManager {
       // 有効期限チェック（6時間以内）
       const sixHoursInMs = 6 * 60 * 60 * 1000;
       if (Date.now() - parsedState.savedAt > sixHoursInMs) {
-        window.PerformanceLog?.debug('保存された状態が期限切れです');
+        appWindow.PerformanceLog?.debug('保存された状態が期限切れです');
         sessionStorage.removeItem(this.STORAGE_KEY);
         return false;
       }
@@ -595,10 +623,10 @@ export class SimpleStateManager {
       // savedAtは内部データなので削除
       delete this.state.savedAt;
 
-      window.PerformanceLog?.info('状態をSessionStorageから復元しました');
+      appWindow.PerformanceLog?.info('状態をSessionStorageから復元しました');
       return true;
     } catch (error) {
-      window.PerformanceLog?.error(`状態復元エラー: ${error.message}`);
+      appWindow.PerformanceLog?.error(`状態復元エラー: ${error.message}`);
       sessionStorage.removeItem(this.STORAGE_KEY);
       return false;
     }
@@ -610,9 +638,9 @@ export class SimpleStateManager {
   clearStoredState() {
     try {
       sessionStorage.removeItem(this.STORAGE_KEY);
-      window.PerformanceLog?.debug('保存された状態をクリアしました');
+      appWindow.PerformanceLog?.debug('保存された状態をクリアしました');
     } catch (error) {
-      window.PerformanceLog?.error(`状態クリアエラー: ${error.message}`);
+      appWindow.PerformanceLog?.error(`状態クリアエラー: ${error.message}`);
     }
   }
 
@@ -636,7 +664,7 @@ export class SimpleStateManager {
         'lessons'
       ]
     ) {
-      window.PerformanceLog?.debug('講座データ取得中のため更新スキップ');
+      appWindow.PerformanceLog?.debug('講座データ取得中のため更新スキップ');
       return false;
     }
 
@@ -646,7 +674,7 @@ export class SimpleStateManager {
       !Array.isArray(this.state.lessons) ||
       this.state.lessons.length === 0
     ) {
-      window.PerformanceLog?.debug('講座データが存在しないため更新必要');
+      appWindow.PerformanceLog?.debug('講座データが存在しないため更新必要');
       return true;
     }
 
@@ -655,7 +683,7 @@ export class SimpleStateManager {
       this._dataLastUpdated
     )['lessons'];
     if (!lastUpdated) {
-      window.PerformanceLog?.debug(
+      appWindow.PerformanceLog?.debug(
         '講座データの更新時刻が未設定のため更新必要',
       );
       return true;
@@ -665,13 +693,13 @@ export class SimpleStateManager {
     const isExpired = Date.now() - lastUpdated > expirationTime;
 
     if (isExpired) {
-      window.PerformanceLog?.debug(
+      appWindow.PerformanceLog?.debug(
         `講座データキャッシュが期限切れ（${cacheExpirationMinutes}分経過）`,
       );
       return true;
     }
 
-    window.PerformanceLog?.debug('講座データキャッシュは有効');
+    appWindow.PerformanceLog?.debug('講座データキャッシュは有効');
     return false;
   }
 
@@ -697,11 +725,11 @@ export class SimpleStateManager {
       // 取得完了時に更新時刻を記録
       /** @type {Record<string, number>} */ (this._dataLastUpdated)[dataType] =
         Date.now();
-      window.PerformanceLog?.debug(
+      appWindow.PerformanceLog?.debug(
         `${dataType}データ取得完了：${new Date().toLocaleTimeString()}`,
       );
     } else {
-      window.PerformanceLog?.debug(`${dataType}データ取得開始`);
+      appWindow.PerformanceLog?.debug(`${dataType}データ取得開始`);
     }
   }
 
@@ -730,13 +758,15 @@ export class SimpleStateManager {
     if (this.state._lessonsVersion !== newVersion) {
       this.state._lessonsVersion = newVersion;
       this.setDataFetchProgress('lessons', false);
-      window.PerformanceLog?.debug(`講座データバージョンを更新: ${newVersion}`);
+      appWindow.PerformanceLog?.debug(
+        `講座データバージョンを更新: ${newVersion}`,
+      );
     }
   }
 }
 
 // グローバルインスタンスを作成
 console.log('🔧 SimpleStateManager class defined:', typeof SimpleStateManager);
-window.stateManager = new SimpleStateManager();
-console.log('✅ window.stateManager initialized:', !!window.stateManager);
-console.log('   stateManager type:', typeof window.stateManager);
+appWindow.stateManager = new SimpleStateManager();
+console.log('✅ appWindow.stateManager initialized:', !!appWindow.stateManager);
+console.log('   stateManager type:', typeof appWindow.stateManager);

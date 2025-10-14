@@ -76,7 +76,7 @@ export class SimpleStateManager {
      * @param {string} reservationId - 予約ID
      * @param {string} currentValue - 現在のメモ内容
      */
-    updateMemoInputChanged(reservationId: string, currentValue: string): any;
+    updateMemoInputChanged(reservationId: string, currentValue: string): boolean;
     /**
      * 編集モードを終了する
      * @param {string} reservationId - 予約ID
@@ -139,3 +139,9 @@ export class SimpleStateManager {
      */
     updateLessonsVersion(newVersion: string): void;
 }
+export type StateManagerContract = SimpleStateManager;
+export type UIStateAlias = UIState;
+export type StateSubscriber = (newState: UIState, oldState: UIState) => void;
+export type StateActionAlias = StateAction;
+export type StateActionPayloadAlias = StateActionPayload;
+export type ComputedStateDataAlias = ComputedStateData;

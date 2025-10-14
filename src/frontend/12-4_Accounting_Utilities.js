@@ -1,4 +1,9 @@
 /**
+ * @typedef {{ type: string; l?: number; w?: number; h?: number; }} MaterialFormEntry
+ * @typedef {{ name: string; price: number; }} ProductSelectionEntry
+ */
+
+/**
  * 会計システム - ユーティリティ層
  *
  * 責務:
@@ -16,8 +21,8 @@
  */
 export function clearAccountingCache() {
   // 一時的な支払いデータをクリア
-  if (typeof window !== 'undefined' && window.tempPaymentData) {
-    window.tempPaymentData = null;
+  if (typeof window !== 'undefined' && appWindow.tempPaymentData) {
+    appWindow.tempPaymentData = null;
   }
 
   // その他の会計関連の一時データがあればここでクリア
@@ -26,14 +31,16 @@ export function clearAccountingCache() {
 
 /**
  * 制作メモのデータを収集
- * @returns {Object} 制作メモデータ
+ * @returns {{ reservationId?: string; workInProgress?: string }} 制作メモデータ
  */
 export function collectMemoData() {
+  /** @type {{ reservationId?: string; workInProgress?: string }} */
   const memoData = {};
 
   // 会計画面の制作メモテキストエリアを探す
   const textareas = document.querySelectorAll('.memo-edit-textarea');
-  textareas.forEach(textarea => {
+  textareas.forEach(textareaElement => {
+    const textarea = /** @type {HTMLTextAreaElement} */ (textareaElement);
     // テキストエリアのIDからreservationIdを推測
     const id = textarea.id;
     if (id && id.includes('memo-edit-textarea-')) {
@@ -42,10 +49,14 @@ export function collectMemoData() {
       memoData.workInProgress = textarea.value;
     } else {
       // IDパターンが違う場合、親要素から予約IDを取得
-      const card = textarea.closest('[data-reservation-id]');
+      const card = /** @type {HTMLElement | null} */ (
+        textarea.closest('[data-reservation-id]')
+      );
       if (card) {
         const reservationId = card.getAttribute('data-reservation-id');
-        memoData.reservationId = reservationId;
+        if (reservationId) {
+          memoData.reservationId = reservationId;
+        }
         memoData.workInProgress = textarea.value;
       }
     }
@@ -59,6 +70,7 @@ export function collectMemoData() {
  * @returns {AccountingFormDto} 収集されたフォームデータ
  */
 export function collectAccountingFormData() {
+  /** @type {AccountingFormDto} */
   const formData = {};
 
   // デバッグ: フォームデータ収集開始
@@ -67,9 +79,15 @@ export function collectAccountingFormData() {
   }
 
   // 時刻データ収集
-  const startTimeEl = document.getElementById('start-time');
-  const endTimeEl = document.getElementById('end-time');
-  const breakTimeEl = document.getElementById('break-time');
+  const startTimeEl = /** @type {HTMLInputElement | null} */ (
+    document.getElementById('start-time')
+  );
+  const endTimeEl = /** @type {HTMLInputElement | null} */ (
+    document.getElementById('end-time')
+  );
+  const breakTimeEl = /** @type {HTMLInputElement | null} */ (
+    document.getElementById('break-time')
+  );
 
   // デバッグ: 時刻要素の存在確認
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
@@ -88,6 +106,7 @@ export function collectAccountingFormData() {
   if (breakTimeEl) formData.breakTime = Number(breakTimeEl.value) || 0;
 
   // チェックボックス項目収集
+  /** @type {Record<string, boolean>} */
   const checkedItems = {};
 
   // 全チェックボックスを収集（base-tuitionも含む）
@@ -95,7 +114,8 @@ export function collectAccountingFormData() {
     '.accounting-container input[type="checkbox"]',
   );
 
-  checkboxes.forEach(checkbox => {
+  checkboxes.forEach(checkboxElement => {
+    const checkbox = /** @type {HTMLInputElement} */ (checkboxElement);
     if (checkbox.checked) {
       // data属性から項目名を取得（優先）
       const itemName = checkbox.getAttribute('data-item-name');
@@ -103,10 +123,15 @@ export function collectAccountingFormData() {
         checkedItems[itemName] = true;
       } else {
         // フォールバック: ラベルテキストから項目名を抽出
-        const labelElement = checkbox.parentElement.querySelector('span');
-        if (labelElement) {
-          const fallbackItemName = labelElement.textContent.trim();
-          checkedItems[fallbackItemName] = true;
+        const parent = checkbox.parentElement;
+        if (parent) {
+          const labelElement = parent.querySelector('span');
+          if (labelElement) {
+            const fallbackItemName = labelElement.textContent?.trim();
+            if (fallbackItemName) {
+              checkedItems[fallbackItemName] = true;
+            }
+          }
         }
       }
     }
@@ -117,18 +142,28 @@ export function collectAccountingFormData() {
   }
 
   // 材料データ収集
+  /** @type {MaterialFormEntry[]} */
   const materials = [];
   const materialRows = document.querySelectorAll('.material-row');
 
   materialRows.forEach((row, index) => {
-    const typeSelect = row.querySelector(`#material-type-${index}`);
+    const typeSelect = /** @type {HTMLSelectElement | null} */ (
+      row.querySelector(`#material-type-${index}`)
+    );
     if (typeSelect && typeSelect.value) {
+      /** @type {MaterialFormEntry} */
       const material = { type: typeSelect.value };
 
       // サイズデータがある場合
-      const lengthInput = row.querySelector(`#material-length-${index}`);
-      const widthInput = row.querySelector(`#material-width-${index}`);
-      const heightInput = row.querySelector(`#material-height-${index}`);
+      const lengthInput = /** @type {HTMLInputElement | null} */ (
+        row.querySelector(`#material-length-${index}`)
+      );
+      const widthInput = /** @type {HTMLInputElement | null} */ (
+        row.querySelector(`#material-width-${index}`)
+      );
+      const heightInput = /** @type {HTMLInputElement | null} */ (
+        row.querySelector(`#material-height-${index}`)
+      );
 
       if (lengthInput && widthInput && heightInput) {
         material.l = Number(lengthInput.value) || 0;
@@ -145,13 +180,18 @@ export function collectAccountingFormData() {
   }
 
   // 物販データ収集（プルダウン選択式）
+  /** @type {ProductSelectionEntry[]} */
   const selectedProducts = [];
   const productRows = document.querySelectorAll('.product-row');
 
   productRows.forEach((row, index) => {
-    const typeSelect = row.querySelector(`#product-type-${index}`);
+    const typeSelect = /** @type {HTMLSelectElement | null} */ (
+      row.querySelector(`#product-type-${index}`)
+    );
     if (typeSelect && typeSelect.value) {
-      const selectedOption = typeSelect.options[typeSelect.selectedIndex];
+      const selectedOption = /** @type {HTMLOptionElement} */ (
+        typeSelect.options[typeSelect.selectedIndex]
+      );
       const price = selectedOption.getAttribute('data-price');
       selectedProducts.push({
         name: typeSelect.value,
@@ -165,12 +205,17 @@ export function collectAccountingFormData() {
   }
 
   // 自由入力物販データ収集
+  /** @type {Array<{ name: string; price: number }>} */
   const customSales = [];
   const customSalesRows = document.querySelectorAll('.custom-sales-row');
 
   customSalesRows.forEach((row, index) => {
-    const nameInput = row.querySelector(`#custom-sales-name-${index}`);
-    const priceInput = row.querySelector(`#custom-sales-price-${index}`);
+    const nameInput = /** @type {HTMLInputElement | null} */ (
+      row.querySelector(`#custom-sales-name-${index}`)
+    );
+    const priceInput = /** @type {HTMLInputElement | null} */ (
+      row.querySelector(`#custom-sales-price-${index}`)
+    );
 
     if (nameInput && priceInput && nameInput.value && priceInput.value) {
       customSales.push({
@@ -185,8 +230,8 @@ export function collectAccountingFormData() {
   }
 
   // 支払い方法収集
-  const paymentMethodRadio = document.querySelector(
-    'input[name="payment-method"]:checked',
+  const paymentMethodRadio = /** @type {HTMLInputElement | null} */ (
+    document.querySelector('input[name="payment-method"]:checked')
   );
   if (paymentMethodRadio) {
     formData.paymentMethod = paymentMethodRadio.value;
@@ -202,17 +247,16 @@ export function collectAccountingFormData() {
   // デバッグ: 収集されたフォームデータを出力
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 collectAccountingFormData結果:', formData);
-    console.log(
-      '🔍 基本授業料チェック状態:',
-      document.getElementById('base-tuition')?.checked,
+    const baseTuitionCheckbox = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('base-tuition')
     );
+    console.log('🔍 基本授業料チェック状態:', baseTuitionCheckbox?.checked);
     console.log('🔍 支払い方法:', formData.paymentMethod);
     console.log('🔍 チェック済み項目:', formData.checkedItems);
   }
 
   return formData;
 }
-
 
 /**
  * 会計キャッシュ保存
@@ -242,7 +286,7 @@ export function loadAccountingCache() {
     const cacheKey = 'accounting_form_data';
     const cached = localStorage.getItem(cacheKey);
 
-    if (!cached) return {};
+    if (!cached) return /** @type {AccountingFormDto} */ ({});
 
     const cacheData = JSON.parse(cached);
     const maxAge = 24 * 60 * 60 * 1000; // 24時間
@@ -250,41 +294,60 @@ export function loadAccountingCache() {
     // キャッシュが古い場合は削除
     if (Date.now() - cacheData.timestamp > maxAge) {
       localStorage.removeItem(cacheKey);
-      return {};
+      return /** @type {AccountingFormDto} */ ({});
     }
 
-    return cacheData.data || {};
+    return /** @type {AccountingFormDto} */ (cacheData.data || {});
   } catch (error) {
     console.error('会計キャッシュ読込エラー:', error);
-    return {};
+    return /** @type {AccountingFormDto} */ ({});
   }
 }
 
 /**
  * 会計システム初期化関数
- * @param {Array} masterData - 会計マスタデータ
+ * @param {AccountingMasterItemCore[]} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
  * @param {AccountingFormDto} initialFormData - 初期フォームデータ
- * @param {Object} reservationData - 予約データ（講座基本情報表示用）
+ * @param {ReservationCore | null} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} 生成された会計画面HTML
  */
 export function initializeAccountingSystem(
   masterData,
   classroom,
-  initialFormData = {},
+  initialFormData = /** @type {AccountingFormDto} */ ({}),
   reservationData = null,
 ) {
   // グローバル変数に保存（イベント処理で使用）
   const classifiedItems = classifyAccountingItems(masterData, classroom);
-  window.currentClassifiedItems = classifiedItems;
-  window.currentClassroom = classroom;
+  appWindow.currentClassifiedItems = classifiedItems;
+  appWindow.currentClassroom = classroom;
 
   // キャッシュから既存データを読み込み、初期データとマージ
   const cachedData = loadAccountingCache();
-  const formData = { ...cachedData, ...initialFormData };
+  const formData = /** @type {AccountingFormDto} */ ({
+    ...cachedData,
+    ...initialFormData,
+  });
+
+  const createAccountingView =
+    /** @type {(items: ClassifiedAccountingItemsCore, room: string, data: AccountingFormDto, reservation: ReservationCore | null) => string} */ (
+      generateAccountingView
+    );
+  const setupListeners =
+    /** @type {(items: ClassifiedAccountingItemsCore, room: string) => void} */ (
+      setupAccountingEventListeners
+    );
+  const updateCalculation =
+    /** @type {(items: ClassifiedAccountingItemsCore, room: string) => void} */ (
+      updateAccountingCalculation
+    );
+  const initPaymentUI = /** @type {(method: string) => void} */ (
+    initializePaymentMethodUI
+  );
 
   // 会計画面HTML生成
-  const accountingHtml = generateAccountingView(
+  const accountingHtml = createAccountingView(
     classifiedItems,
     classroom,
     formData,
@@ -294,13 +357,13 @@ export function initializeAccountingSystem(
   // DOMに挿入後の初期化処理を予約
   setTimeout(() => {
     // 支払い方法UI初期化（初期状態では何も選択しない）
-    initializePaymentMethodUI('');
+    initPaymentUI('');
 
     // イベントリスナー設定
-    setupAccountingEventListeners(classifiedItems, classroom);
+    setupListeners(classifiedItems, classroom);
 
     // 初期計算実行
-    updateAccountingCalculation(classifiedItems, classroom);
+    updateCalculation(classifiedItems, classroom);
 
     // キャッシュ保存の定期実行
     setInterval(() => {
@@ -317,14 +380,14 @@ export function initializeAccountingSystem(
  */
 export function cleanupAccountingSystem() {
   // タイマーをクリア
-  if (window.accountingCalculationTimeout) {
-    clearTimeout(window.accountingCalculationTimeout);
-    window.accountingCalculationTimeout = null;
+  if (appWindow.accountingCalculationTimeout) {
+    window.clearTimeout(appWindow.accountingCalculationTimeout);
+    appWindow.accountingCalculationTimeout = undefined;
   }
 
   // グローバル変数をクリア
-  window.currentClassifiedItems = null;
-  window.currentClassroom = null;
+  appWindow.currentClassifiedItems = null;
+  appWindow.currentClassroom = null;
 
   // 最終的なキャッシュ保存
   try {

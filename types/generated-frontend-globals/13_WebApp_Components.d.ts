@@ -1,3 +1,4 @@
+export function escapeHTML(str: string | number | boolean): string;
 export namespace Components {
     /**
      * 右上固定配置のもどるボタンを生成します

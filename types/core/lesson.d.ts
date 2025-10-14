@@ -122,3 +122,9 @@ interface LessonCore {
   /** 行インデックス（シート行番号） */
   rowIndex?: number | undefined;
 }
+
+/**
+ * 日程マスタ情報の統一型エイリアス
+ * LessonCoreと同義だが、文脈上の意味付けのために別名を提供
+ */
+type ScheduleInfo = LessonCore;

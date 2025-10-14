@@ -19,7 +19,7 @@ export function sendBookingConfirmationEmail(reservation) {
     const student = reservation.user;
     if (!student || !student.email) {
       Logger.log(
-        'メール送信スキップ: ユーザー情報またはメールアドレスが空です'
+        'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
       );
       return false;
     }
@@ -84,10 +84,13 @@ export function createBookingConfirmationTemplate(reservation) {
 
   // studentが未定義の場合はエラーを投げるか、デフォルトのテキストを返す
   if (!student) {
-    Logger.log('createBookingConfirmationTemplate: reservation.user is missing');
+    Logger.log(
+      'createBookingConfirmationTemplate: reservation.user is missing',
+    );
     return {
       subject: 'エラー: ユーザー情報不明',
-      textBody: '予約情報にユーザー情報が含まれていないため、メールを生成できませんでした。'
+      textBody:
+        '予約情報にユーザー情報が含まれていないため、メールを生成できませんでした。',
     };
   }
 
@@ -496,7 +499,7 @@ export function sendCancellationEmail(reservation, cancelMessage) {
     const student = reservation.user;
     if (!student || !student.email) {
       Logger.log(
-        'メール送信スキップ: ユーザー情報またはメールアドレスが空です'
+        'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
       );
       return false;
     }
@@ -591,10 +594,10 @@ export function _createCancellationEmailText(
 
 /**
  * 外部サービス連携機能のプレースホルダー
- * 
+ *
  * 現在は日程マスタベースの設計となっており、
  * 外部カレンダー連携などは無効化されています。
- * 
+ *
  * 将来的な拡張時には、日程マスタを正として
  * 外部サービスと同期する設計で実装予定です。
  */

@@ -14,10 +14,10 @@
 /**
  * シンプルなダッシュボード状態を構築する（簡素化版）
  * @param {any} currentUser - 軽量認証から取得したユーザー情報
- * @param {ReservationData[]} myReservations - 個人の予約データ
+ * @param {ReservationCore[]} myReservations - 個人の予約データ
  * @returns {Partial<UIState>} シンプルなダッシュボード状態
  */
-export function createSimpleDashboardState(currentUser: any, myReservations: ReservationData[]): Partial<UIState>;
+export function createSimpleDashboardState(currentUser: any, myReservations: ReservationCore[]): Partial<UIState>;
 /**
  * 会計システムの事前初期化（アプリ起動時）
  * 全教室分の会計データを分類してキャッシュし、会計画面への高速遷移を実現
@@ -45,9 +45,9 @@ export function isTimeBasedClassroom(scheduleData: ScheduleInfo): boolean;
 export function getScheduleInfoFromCache(date: string, classroom: string): Promise<ScheduleInfo | null>;
 /**
  * 予約データから対応する日程マスタ情報を取得
- * @param {ReservationData} reservation - 予約データ (date, classroom を含む)
+ * @param {ReservationCore} reservation - 予約データ (date, classroom を含む)
  * @returns {ScheduleInfo | null} 日程マスタ情報またはnull (lessons経由の場合)
  */
-export function getScheduleDataFromLessons(reservation: ReservationData): ScheduleInfo | null;
+export function getScheduleDataFromLessons(reservation: ReservationCore): ScheduleInfo | null;
 export function detectEnvironment(): string;
 export function getEnvironmentData(dataType: string, fallback?: unknown): any;

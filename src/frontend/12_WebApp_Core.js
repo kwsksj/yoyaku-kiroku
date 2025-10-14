@@ -58,7 +58,7 @@
 // 数秒ごとに自動で切り替える機能を提供します。
 // =================================================================
 
-/** @type {number | null} */
+/** @type {ReturnType<typeof setInterval> | null} */
 export let loadingMessageTimer = null;
 
 export const LoadingMessages = {
@@ -218,8 +218,8 @@ export const stopLoadingMessageRotation = () => {
   }
 };
 
-window.showLoading =
-  window.showLoading ||
+appWindow.showLoading =
+  appWindow.showLoading ||
   function (/** @type {string} */ category = 'default') {
     /** @type {HTMLElement | null} */
     const loadingElement = document.getElementById('loading');
@@ -232,8 +232,8 @@ window.showLoading =
     startLoadingMessageRotation(category);
   };
 
-window.hideLoading =
-  window.hideLoading ||
+appWindow.hideLoading =
+  appWindow.hideLoading ||
   function () {
     /** @type {HTMLElement | null} */
     const loadingElement = document.getElementById('loading');
@@ -272,16 +272,16 @@ window.hideLoading =
  * モーダル表示
  * @param {ModalDialogConfig} c - モーダル設定
  */
-window.showModal =
-  window.showModal ||
+appWindow.showModal =
+  appWindow.showModal ||
   /** @type {(c: ModalDialogConfig) => void} */ (
     c => {
       // モーダル表示時にスクロール位置を保存
       if (
-        window.pageTransitionManager &&
-        /** @type {any} */ (window.pageTransitionManager).onModalOpen
+        appWindow.pageTransitionManager &&
+        /** @type {any} */ (appWindow.pageTransitionManager).onModalOpen
       ) {
-        /** @type {any} */ (window.pageTransitionManager).onModalOpen();
+        /** @type {any} */ (appWindow.pageTransitionManager).onModalOpen();
       }
 
       /** @type {HTMLElement | null} */
@@ -307,13 +307,13 @@ window.showModal =
           disabled: /** @type {any} */ (c).disableConfirm,
         })}`;
       }
-      ModalManager.setCallback(c.onConfirm);
+      appWindow.ModalManager?.setCallback?.(c.onConfirm);
       /** @type {HTMLElement | null} */
       const modalTitle = document.getElementById('modal-title');
       /** @type {HTMLElement | null} */
       const modalMessage = document.getElementById('modal-message');
 
-      if (modalTitle) modalTitle.textContent = c.title;
+      if (modalTitle) modalTitle.textContent = c.title ?? null;
       if (modalMessage) modalMessage.innerHTML = c.message;
       m.classList.add('active');
     }
@@ -323,14 +323,14 @@ export const hideModal = () => {
   /** @type {HTMLElement | null} */
   const modal = document.getElementById('custom-modal');
   if (modal) modal.classList.remove('active');
-  ModalManager.clearCallback();
+  appWindow.ModalManager?.clearCallback?.();
 
   // モーダル非表示時にスクロール位置を復元
   if (
-    window.pageTransitionManager &&
-    /** @type {any} */ (window.pageTransitionManager).onModalClose
+    appWindow.pageTransitionManager &&
+    /** @type {any} */ (appWindow.pageTransitionManager).onModalClose
   ) {
-    /** @type {any} */ (window.pageTransitionManager).onModalClose();
+    /** @type {any} */ (appWindow.pageTransitionManager).onModalClose();
   }
 };
 
@@ -340,15 +340,15 @@ export const hideModal = () => {
  * @param {string} t - タイトル
  * @param {VoidCallback|null} cb - コールバック
  */
-window.showInfo =
-  window.showInfo ||
+appWindow.showInfo =
+  appWindow.showInfo ||
   /** @type {(msg: string, t?: string, cb?: VoidCallback | null) => void} */ (
     (msg, t = '情報', cb = null) =>
-      window.showModal({
+      appWindow.showModal({
         title: t,
         message: msg,
         confirmText: 'OK',
-        confirmColorClass: DesignConfig.colors['primary'],
+        confirmColorClass: appWindow.DesignConfig?.colors?.['primary'],
         onConfirm: cb,
       })
   );
@@ -357,10 +357,10 @@ window.showInfo =
  * 確認モーダル表示
  * @param {ModalDialogConfig} c - モーダル設定
  */
-window.showConfirm =
-  window.showConfirm ||
+appWindow.showConfirm =
+  appWindow.showConfirm ||
   /** @type {(c: ModalDialogConfig) => void} */ (
-    c => window.showModal({ ...c, showCancel: true })
+    c => appWindow.showModal({ ...c, showCancel: true })
   );
 
 // =================================================================
@@ -371,6 +371,7 @@ window.showConfirm =
 // =================================================================
 
 /** @type {Array<{element: Element, type: string, listener: EventListener, options?: AddEventListenerOptions}>} */
+/** @type {Array<{ element: Element; type: string; listener: EventListener; options?: AddEventListenerOptions }>} */
 export let activeListeners = [];
 
 /**
@@ -400,7 +401,11 @@ export function addTrackedListener(element, type, listener, options) {
     return;
   }
   element.addEventListener(type, listener, options);
-  activeListeners.push({ element, type, listener, options });
+  if (options) {
+    activeListeners.push({ element, type, listener, options });
+  } else {
+    activeListeners.push({ element, type, listener });
+  }
 }
 
 /**
@@ -408,12 +413,12 @@ export function addTrackedListener(element, type, listener, options) {
  * ビュー変更時のイベントリスナー管理を設定
  */
 export function setupViewListener() {
-  if (!window.stateManager) {
+  if (!appWindow.stateManager) {
     console.error('StateManager not initialized. Cannot set up view listener.');
     return;
   }
 
-  window.stateManager.subscribe(
+  appWindow.stateManager.subscribe(
     (/** @type {UIState} */ newState, /** @type {UIState} */ oldState) => {
       // ビューが変更された場合のみ処理
       if (newState.view !== oldState.view) {
@@ -430,14 +435,14 @@ export function setupViewListener() {
             if (typeof updateAccountingCalculation === 'function') {
               // 会計画面用のデータを取得
               const classifiedItems =
-                window.currentClassifiedItems ||
+                appWindow.currentClassifiedItems ||
                 /** @type {ClassifiedAccountingItemsCore} */ (
                   /** @type {unknown} */ ({
                     tuition: { items: [] },
                     sales: { materialItems: [], productItems: [] },
                   })
                 );
-              const classroom = window.currentClassroom || '';
+              const classroom = appWindow.currentClassroom || '';
               updateAccountingCalculation(classifiedItems, classroom);
             }
           }

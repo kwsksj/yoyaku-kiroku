@@ -1,4 +1,3 @@
-
 /**
  * =================================================================
  * 【ファイル名】: 05-3_Backend_AvailableSlots.js
@@ -58,18 +57,19 @@ export function getLessons() {
     validReservations.forEach(
       /** @param {ReservationCore} reservation */
       reservation => {
-      const reservationDate = new Date(reservation.date);
-      const dateString = Utilities.formatDate(
-        reservationDate,
-        CONSTANTS.TIMEZONE,
-        'yyyy-MM-dd',
-      );
-      const key = `${dateString}|${reservation.classroom}`;
-      if (!reservationsByDateClassroom.has(key)) {
-        reservationsByDateClassroom.set(key, []);
-      }
-      reservationsByDateClassroom.get(key)?.push(reservation);
-    });
+        const reservationDate = new Date(reservation.date);
+        const dateString = Utilities.formatDate(
+          reservationDate,
+          CONSTANTS.TIMEZONE,
+          'yyyy-MM-dd',
+        );
+        const key = `${dateString}|${reservation.classroom}`;
+        if (!reservationsByDateClassroom.has(key)) {
+          reservationsByDateClassroom.set(key, []);
+        }
+        reservationsByDateClassroom.get(key)?.push(reservation);
+      },
+    );
 
     /** @type {LessonCore[]} */
     const lessons = [];

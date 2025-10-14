@@ -17,10 +17,7 @@
     "checkJs": false, // 型チェックは行わず、定義生成に専念
     "skipLibCheck": true // ライブラリの型チェックをスキップ
   },
-  "files": [
-    "types/backend-index.d.ts",
-    "types/gas-custom.d.ts"
-  ],
+  "files": ["types/backend-index.d.ts", "types/gas-custom.d.ts"],
   "include": [
     // バックエンドのグローバル関数が定義されているファイルのみを対象にする
     "src/backend/**/*.js",

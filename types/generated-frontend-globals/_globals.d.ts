@@ -25,6 +25,9 @@ declare global {
   const generateAccountingView: typeof import('.').generateAccountingView;
   const getPaymentOptionsHtml: typeof import('.').getPaymentOptionsHtml;
   const getPaymentInfoHtml: typeof import('.').getPaymentInfoHtml;
+  const MaterialFormEntry: typeof import('.').MaterialFormEntry;
+  const ProductSelectionEntry: typeof import('.').ProductSelectionEntry;
+  const CustomSalesEntry: typeof import('.').CustomSalesEntry;
   const setupAccountingEventListeners: typeof import('.').setupAccountingEventListeners;
   const handleAccountingInputChange: typeof import('.').handleAccountingInputChange;
   const updateCheckboxStyle: typeof import('.').updateCheckboxStyle;
@@ -61,6 +64,8 @@ declare global {
   const loadAccountingCache: typeof import('.').loadAccountingCache;
   const initializeAccountingSystem: typeof import('.').initializeAccountingSystem;
   const cleanupAccountingSystem: typeof import('.').cleanupAccountingSystem;
+  const MaterialFormEntry: typeof import('.').MaterialFormEntry;
+  const ProductSelectionEntry: typeof import('.').ProductSelectionEntry;
   const teardownAllListeners: typeof import('.').teardownAllListeners;
   const addTrackedListener: typeof import('.').addTrackedListener;
   const setupViewListener: typeof import('.').setupViewListener;
@@ -83,7 +88,15 @@ declare global {
   const findReservationById: typeof import('.').findReservationById;
   const findReservationByDateAndClassroom: typeof import('.').findReservationByDateAndClassroom;
   const findReservationsByStatus: typeof import('.').findReservationsByStatus;
+  const ReservationSearchResult: typeof import('.').ReservationSearchResult;
   const SimpleStateManager: typeof import('.').SimpleStateManager;
+  const StateManagerContract: typeof import('.').StateManagerContract;
+  const UIStateAlias: typeof import('.').UIStateAlias;
+  const StateSubscriber: typeof import('.').StateSubscriber;
+  const StateActionAlias: typeof import('.').StateActionAlias;
+  const StateActionPayloadAlias: typeof import('.').StateActionPayloadAlias;
+  const ComputedStateDataAlias: typeof import('.').ComputedStateDataAlias;
+  const escapeHTML: typeof import('.').escapeHTML;
   const Components: typeof import('.').Components;
   const getLoginView: typeof import('.').getLoginView;
   const getRegistrationStep1View: typeof import('.').getRegistrationStep1View;

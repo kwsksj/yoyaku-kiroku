@@ -1,16 +1,4 @@
 /**
- * 会計システム - イベント処理層
- *
- * 責務:
- * - イベントリスナー設定
- * - 入力変更ハンドラー
- * - 材料・物販・自由入力物販の変更処理
- * - 会計計算の更新
- * - UI状態の更新
- * - 支払い処理・モーダル表示
- * - 制作メモ保存処理
- */
-/**
  * 会計システムのイベントリスナー設定
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
@@ -77,31 +65,30 @@ export function removeCustomSalesRow(index: string): void;
 export function updateAccountingCalculation(classifiedItems: ClassifiedAccountingItemsCore, classroom: string): void;
 /**
  * 会計UI更新
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  * @param {string} classroom - 教室名
  */
-export function updateAccountingUI(result: any, classroom: string): void;
+export function updateAccountingUI(result: AccountingDetailsCore, classroom: string): void;
 /**
  * 時間計算表示更新
- * @param {Object} result - 計算結果
  * @param {string} classroom - 教室名
  */
-export function updateTimeCalculationDisplay(result: any, classroom: string): void;
+export function updateTimeCalculationDisplay(classroom: string): void;
 /**
  * 材料価格個別表示更新
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  */
-export function updateMaterialPricesDisplay(result: any): void;
+export function updateMaterialPricesDisplay(result: AccountingDetailsCore): void;
 /**
  * 物販価格個別表示更新
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  */
-export function updateProductPricesDisplay(result: any): void;
+export function updateProductPricesDisplay(result: AccountingDetailsCore): void;
 /**
  * 自由入力物販価格個別表示更新
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  */
-export function updateCustomSalesPricesDisplay(result: any): void;
+export function updateCustomSalesPricesDisplay(result: AccountingDetailsCore): void;
 /**
  * 支払い方法UI初期化（既存関数を活用）
  * @param {string} selectedPaymentMethod - 選択済みの支払い方法
@@ -124,22 +111,22 @@ export function updateConfirmButtonState(): void;
 /**
  * 新フォームデータを既存バックエンド形式に変換
  * @param {AccountingFormDto} formData - 新フォームデータ
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @returns {Object} 既存バックエンド形式のuserInput
  */
-export function convertToLegacyFormat(formData: AccountingFormDto, result: any, classifiedItems: ClassifiedAccountingItemsCore): any;
+export function convertToLegacyFormat(formData: AccountingFormDto, result: AccountingDetailsCore, classifiedItems: ClassifiedAccountingItemsCore): any;
 /**
  * ダッシュボード画面にもどる処理
  */
 export function handleBackToDashboard(): void;
 /**
  * 支払い確認モーダルHTML生成
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  * @param {string} paymentMethod - 支払い方法
  * @returns {string} モーダルHTML
  */
-export function generatePaymentConfirmModal(result: any, paymentMethod: string): string;
+export function generatePaymentConfirmModal(result: AccountingDetailsCore, paymentMethod: string): string;
 /**
  * 支払い確認モーダルを表示する処理
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
@@ -162,6 +149,6 @@ export function handleSaveMemo(target: HTMLElement): void;
 /**
  * 実際の会計処理を実行
  * @param {AccountingFormDto} formData - フォームデータ
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  */
-export function processAccountingPayment(formData: AccountingFormDto, result: any): void;
+export function processAccountingPayment(formData: AccountingFormDto, result: AccountingDetailsCore): void;

@@ -21,9 +21,9 @@ export class FrontendErrorHandler {
    * エラーを処理し、ユーザーに適切に通知（パフォーマンス最適化版）
    * @param {Error} error - エラーオブジェクト
    * @param {string} context - エラーコンテキスト
-   * @param {Object} [additionalInfo={}] - 追加情報
+   * @param {Object} [_additionalInfo={}] - 追加情報
    */
-  static handle(error, context = '', additionalInfo = {}) {
+  static handle(error, context = '', _additionalInfo = {}) {
     // 軽量ログ出力（本番環境では最小限の情報のみ）
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.error(`[ERROR] ${context}: ${error.message}`);
@@ -53,8 +53,8 @@ export class FrontendErrorHandler {
     const userMessage = this.getUserMessage(error, context);
 
     // エラーメッセージをユーザーに表示
-    if (typeof window.showInfo === 'function') {
-      window.showInfo(userMessage, 'エラー');
+    if (typeof appWindow.showInfo === 'function') {
+      appWindow.showInfo(userMessage, 'エラー');
     } else if (typeof alert !== 'undefined') {
       alert(`エラー: ${userMessage}`);
     }
@@ -215,7 +215,7 @@ export function handleServerError(err) {
 }
 
 // グローバルエラーハンドラーの設定
-window.addEventListener('error', (/** @type {ErrorEvent} */ event) => {
+appWindow.addEventListener('error', (/** @type {ErrorEvent} */ event) => {
   FrontendErrorHandler.handle(event.error, 'global-error', {
     filename: event.filename,
     lineno: event.lineno,
@@ -224,7 +224,7 @@ window.addEventListener('error', (/** @type {ErrorEvent} */ event) => {
 });
 
 // Promise拒否エラーのハンドリング
-window.addEventListener(
+appWindow.addEventListener(
   'unhandledrejection',
   (/** @type {PromiseRejectionEvent} */ event) => {
     FrontendErrorHandler.handle(
@@ -236,5 +236,5 @@ window.addEventListener(
 
 // デバッグ用: エラーハンドラーをグローバルに公開（開発環境のみ）
 if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-  window.FrontendErrorHandler = FrontendErrorHandler;
+  appWindow.FrontendErrorHandler = FrontendErrorHandler;
 }
