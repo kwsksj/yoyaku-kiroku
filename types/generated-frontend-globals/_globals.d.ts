@@ -69,12 +69,22 @@ declare global {
   const teardownAllListeners: typeof import('.').teardownAllListeners;
   const addTrackedListener: typeof import('.').addTrackedListener;
   const setupViewListener: typeof import('.').setupViewListener;
-  const LoadingMessages: typeof import('.').LoadingMessages;
+  const loadingMessageTimer: typeof import('.').loadingMessageTimer;
+  const LoadingMessages: {
+    readonly login: string[];
+    readonly booking: string[];
+    readonly cancel: string[];
+    readonly edit: string[];
+    readonly accounting: string[];
+    readonly dataFetch: string[];
+    readonly default: string[];
+  };
   const getRandomMessage: typeof import('.').getRandomMessage;
   const updateLoadingMessage: typeof import('.').updateLoadingMessage;
   const startLoadingMessageRotation: typeof import('.').startLoadingMessageRotation;
   const stopLoadingMessageRotation: typeof import('.').stopLoadingMessageRotation;
   const hideModal: typeof import('.').hideModal;
+  const activeListeners: typeof import('.').activeListeners;
   const createSimpleDashboardState: typeof import('.').createSimpleDashboardState;
   const preInitializeAccountingSystem: typeof import('.').preInitializeAccountingSystem;
   const getClassroomTypeFromSchedule: typeof import('.').getClassroomTypeFromSchedule;
@@ -97,7 +107,8 @@ declare global {
   const StateActionPayloadAlias: typeof import('.').StateActionPayloadAlias;
   const ComputedStateDataAlias: typeof import('.').ComputedStateDataAlias;
   const escapeHTML: typeof import('.').escapeHTML;
-  const Components: typeof import('.').Components;
+  const Components: {
+  };
   const getLoginView: typeof import('.').getLoginView;
   const getRegistrationStep1View: typeof import('.').getRegistrationStep1View;
   const getRegisterView: typeof import('.').getRegisterView;
@@ -132,11 +143,15 @@ declare global {
   const getPrivacyPolicyModal: typeof import('.').getPrivacyPolicyModal;
   const render: typeof import('.').render;
   const handleAccountingFormChange: typeof import('.').handleAccountingFormChange;
+  const actionHandlers: typeof import('.').actionHandlers;
   const EMPTY_CLASSIFIED_ITEMS: typeof import('.').EMPTY_CLASSIFIED_ITEMS;
   const windowTyped: typeof import('.').windowTyped;
-  const authActionHandlers: typeof import('.').authActionHandlers;
-  const historyActionHandlers: typeof import('.').historyActionHandlers;
-  const reservationActionHandlers: typeof import('.').reservationActionHandlers;
+  const authActionHandlers: {
+  };
+  const historyActionHandlers: {
+  };
+  const reservationActionHandlers: {
+  };
   const getElementSafely: typeof import('.').getElementSafely;
   const getInputElementSafely: typeof import('.').getInputElementSafely;
   const getSelectElementSafely: typeof import('.').getSelectElementSafely;

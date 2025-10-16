@@ -6,13 +6,18 @@
  * =================================================================
  */
 
+import type { LessonCore, SessionCore } from './lesson';
+import type { ReservationCore } from './reservation';
+import type { AccountingMasterItemCore, AccountingDetailsCore } from './accounting';
+import type { UserCore } from './user';
+
 /**
  * 生シート行データ型
  *
  * Google Sheetsから取得した1行のデータ
  * convertRowToReservation()やconvertRowToUser()で各Core型に変換する
  */
-type RawSheetRow = Array<string | Date | boolean | number | null>;
+export type RawSheetRow = Array<string | Date | boolean | number | null>;
 
 /**
  * ヘッダーマップ型
@@ -29,14 +34,14 @@ type RawSheetRow = Array<string | Date | boolean | number | null>;
  * };
  * ```
  */
-type HeaderMapType = Record<string, number> | Map<string, number>;
+export type HeaderMapType = Record<string, number> | Map<string, number>;
 
 /**
  * AppInitialData（アプリ初期化データ）
  *
  * ログイン時にフロントエンドへ送信される全データ
  */
-interface AppInitialData {
+export interface AppInitialData {
   /** 全生徒データ（生徒ID → UserCore） */
   allStudents: Record<string, UserCore>;
 
@@ -61,7 +66,7 @@ interface AppInitialData {
  *
  * バックエンド関数の返り値として使用
  */
-interface ApiResponse<T = any> {
+export interface ApiResponse<T = any> {
   /** 成功フラグ */
   success: boolean;
 
@@ -89,16 +94,16 @@ interface ApiResponse<T = any> {
  *
  * @deprecated ApiResponse<T>を使用してください
  */
-type ApiResponseGeneric<T = any> = ApiResponse<T>;
+export type ApiResponseGeneric<T = any> = ApiResponse<T>;
 
 // --- Cache-related types ---
 
-interface CacheDataStructure {
+export interface CacheDataStructure {
   version: number;
   [key: string]: unknown;
 }
 
-interface ReservationCacheData extends CacheDataStructure {
+export interface ReservationCacheData extends CacheDataStructure {
   reservations: RawSheetRow[];
   headerMap?: { [key: string]: number };
   reservationIdIndexMap?: { [key: string]: number };
@@ -110,7 +115,7 @@ interface ReservationCacheData extends CacheDataStructure {
   };
 }
 
-interface ScheduleCacheData extends CacheDataStructure {
+export interface ScheduleCacheData extends CacheDataStructure {
   schedule: LessonCore[];
   dateRange?: {
     from: string;
@@ -119,11 +124,11 @@ interface ScheduleCacheData extends CacheDataStructure {
   };
 }
 
-interface AccountingCacheData extends CacheDataStructure {
+export interface AccountingCacheData extends CacheDataStructure {
   items: AccountingMasterItemCore[];
 }
 
-interface StudentCacheData extends CacheDataStructure {
+export interface StudentCacheData extends CacheDataStructure {
   students: { [studentId: string]: UserCore };
   metadata?: {
     totalCount: number;
@@ -136,52 +141,52 @@ interface StudentCacheData extends CacheDataStructure {
 /**
  * @deprecated ReservationCoreを使用してください
  */
-type ReservationData = ReservationCore;
+export type ReservationData = ReservationCore;
 
 /**
  * @deprecated ReservationCoreを使用してください
  */
-type ReservationObject = ReservationCore;
+export type ReservationObject = ReservationCore;
 
 /**
  * @deprecated AccountingDetailsCoreを使用してください
  */
-type AccountingDetails = AccountingDetailsCore;
+export type AccountingDetails = AccountingDetailsCore;
 
 /**
  * @deprecated UserCoreを使用してください
  */
-type StudentData = UserCore;
+export type StudentData = UserCore;
 
 /**
  * @deprecated LessonCoreを使用してください
  */
-type ScheduleMasterData = LessonCore;
+export type ScheduleMasterData = LessonCore;
 
 /**
  * @deprecated AccountingMasterItemCoreを使用してください
  */
-type AccountingMasterItem = AccountingMasterItemCore;
+export type AccountingMasterItem = AccountingMasterItemCore;
 
 /**
  * @deprecated RawSheetRow[]を使用してください
  */
-type ReservationRawDataArray = RawSheetRow[];
+export type ReservationRawDataArray = RawSheetRow[];
 
 /**
  * @deprecated RawSheetRow[]を使用してください
  */
-type ReservationArrayData = RawSheetRow[];
+export type ReservationArrayData = RawSheetRow[];
 
 /**
  * @deprecated RawSheetRowを使用してください
  */
-type SalesRowArray = RawSheetRow;
+export type SalesRowArray = RawSheetRow;
 
 /**
  * 売上情報の基本型
  */
-interface SalesBaseInfo {
+export interface SalesBaseInfo {
   /** 予約ID (optional) */
   reservationId?: string;
   /** 生徒ID */
@@ -211,19 +216,19 @@ interface SalesBaseInfo {
 /**
  * 未定義オブジェクトの型（一時的な互換性対応）
  */
-interface RawReservationObject {
+export interface RawReservationObject {
   [key: string]: any;
 }
 
 /**
  * トランザクションコールバック型
  */
-type TransactionCallback<T> = () => T;
+export type TransactionCallback<T> = () => T;
 
 /**
  * シートデータ取得結果
  */
-interface SheetDataResult<T = RawSheetRow> {
+export interface SheetDataResult<T = RawSheetRow> {
   /** ヘッダー行 */
   header: string[];
   /** ヘッダーマップ */
@@ -237,7 +242,7 @@ interface SheetDataResult<T = RawSheetRow> {
 /**
  * シート検索結果
  */
-interface SheetSearchResult<T = RawSheetRow> extends SheetDataResult<T> {
+export interface SheetSearchResult<T = RawSheetRow> extends SheetDataResult<T> {
   /** 検索で見つかった行 */
   foundRow?: T;
   /** 行番号（1-based） */
@@ -249,7 +254,7 @@ interface SheetSearchResult<T = RawSheetRow> extends SheetDataResult<T> {
 /**
  * 電話番号正規化結果
  */
-interface PhoneNormalizationResult {
+export interface PhoneNormalizationResult {
   /** 正規化された電話番号 */
   normalized: string;
   /** バリデーション結果 */
@@ -261,12 +266,12 @@ interface PhoneNormalizationResult {
 /**
  * @deprecated PhoneNormalizationResultを使用してください
  */
-type PhoneNumberNormalizationResult = PhoneNormalizationResult;
+export type PhoneNumberNormalizationResult = PhoneNormalizationResult;
 
 /**
  * ユーザープロフィール更新結果
  */
-interface UserProfileUpdateResult {
+export interface UserProfileUpdateResult {
   /** メッセージ */
   message: string;
   /** 更新されたユーザー情報 */
@@ -276,7 +281,7 @@ interface UserProfileUpdateResult {
 /**
  * スケジュール情報パラメータ
  */
-interface ScheduleInfoParams {
+export interface ScheduleInfoParams {
   /** 教室名 */
   classroom: string;
   /** 日付 */
@@ -286,7 +291,7 @@ interface ScheduleInfoParams {
 /**
  * チャンクキャッシュメタデータ
  */
-interface ChunkedCacheMetadata {
+export interface ChunkedCacheMetadata {
   /** バージョン */
   version: number;
   /** データ数 */
@@ -309,7 +314,7 @@ interface ChunkedCacheMetadata {
 /**
  * キャッシュ情報
  */
-interface CacheInfo {
+export interface CacheInfo {
   /** キャッシュキー */
   key?: string;
   /** 存在フラグ */
@@ -335,7 +340,7 @@ interface CacheInfo {
 /**
  * エラー情報
  */
-interface ErrorInfo {
+export interface ErrorInfo {
   /** エラーコード（任意） */
   code?: string | undefined;
   /** エラーメッセージ */
@@ -357,7 +362,7 @@ interface ErrorInfo {
 /**
  * APIエラーレスポンス
  */
-interface ApiErrorResponse {
+export interface ApiErrorResponse {
   /** 成功フラグ（常にfalse） */
   success: false;
   /** メッセージ */
@@ -381,7 +386,7 @@ interface ApiErrorResponse {
 /**
  * API成功レスポンス
  */
-interface ApiSuccessResponse<T = any> {
+export interface ApiSuccessResponse<T = any> {
   /** 成功フラグ（常にtrue） */
   success: true;
   /** レスポンスデータ */
@@ -398,26 +403,26 @@ interface ApiSuccessResponse<T = any> {
 /**
  * 統一APIレスポンス型
  */
-type UnifiedApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+export type UnifiedApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 /**
  * APIレスポンスデータ型（レガシー）
  */
-type ApiResponseData<T = any> = T;
+export type ApiResponseData<T = any> = T;
 
 // --- バッチデータ関連型 ---
 
 /**
  * バッチデータ結果
  */
-interface BatchDataPayload {
+export interface BatchDataPayload {
   accounting?: AccountingMasterItemCore[];
   lessons?: LessonCore[];
   myReservations?: ReservationCore[];
   [key: string]: unknown;
 }
 
-interface BatchDataResult {
+export interface BatchDataResult {
   /** 処理結果 */
   success: boolean;
   /** データペイロード */
@@ -433,12 +438,12 @@ interface BatchDataResult {
 /**
  * @deprecated BatchDataResultを使用してください
  */
-type BatchDataResponse = BatchDataResult;
+export type BatchDataResponse = BatchDataResult;
 
 /**
  * サーバーレスポンス（レガシー）
  */
-interface ServerResponse<T = any> {
+export interface ServerResponse<T = any> {
   /** 成功フラグ */
   success: boolean;
   /** レスポンスデータ */

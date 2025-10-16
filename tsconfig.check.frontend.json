@@ -3,7 +3,14 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "files": ["types/frontend-index.d.ts", "types/gas-custom.d.ts"],
-  "include": ["src/frontend/*.js", "src/frontend/**/*.js", "types/**/*.d.ts"],
-  "exclude": ["types/backend-index.d.ts"]
+  "include": [
+    "types/global-aliases.d.ts",
+    "src/frontend/**/*.js",
+    "src/shared/**/*.js",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "types/backend-index.d.ts",
+    "types/generated-backend-globals/**/*.d.ts"
+  ]
 }

@@ -6,19 +6,24 @@
  * =================================================================
  */
 
+import type { AccountingFormDto } from './state';
+import type { AccountingDetailsCore } from '../core/accounting';
+
+export type AccountingCalculationResult = AccountingDetailsCore;
+
 // =================================================================
 // 基本型定義
 // =================================================================
 
-type DateString = string; // YYYY-MM-DD or various date formats
-type TimeString = string; // HH:MM format
-type ReservationId = string;
-type ClassroomName = string;
-type StudentId = string;
-type PhoneNumber = string;
+export type DateString = string; // YYYY-MM-DD or various date formats
+export type TimeString = string; // HH:MM format
+export type ReservationId = string;
+export type ClassroomName = string;
+export type StudentId = string;
+export type PhoneNumber = string;
 
-type VoidCallback = () => void;
-type AsyncVoidCallback = () => Promise<void>;
+export type VoidCallback = () => void;
+export type AsyncVoidCallback = () => Promise<void>;
 
 // =================================================================
 // Event型定義
@@ -27,7 +32,7 @@ type AsyncVoidCallback = () => Promise<void>;
 /**
  * UIイベントデータ
  */
-interface UIEventData {
+export interface UIEventData {
   type: 'click' | 'change' | 'input' | 'submit' | 'keydown' | 'keyup';
   target: HTMLElement;
   currentTarget: HTMLElement;
@@ -39,49 +44,49 @@ interface UIEventData {
 /**
  * クリックイベントハンドラー
  */
-interface ClickEventHandler {
+export interface ClickEventHandler {
   (event: MouseEvent): void;
 }
 
 /**
  * 変更イベントハンドラー
  */
-interface ChangeEventHandler {
+export interface ChangeEventHandler {
   (event: Event): void;
 }
 
 /**
  * 入力イベントハンドラー
  */
-interface InputEventHandler {
+export interface InputEventHandler {
   (event: Event): void;
 }
 
 /**
  * フォームイベントハンドラー
  */
-interface FormEventHandler {
+export interface FormEventHandler {
   (event: Event): void;
 }
 
 /**
  * イベントハンドラー共通型
  */
-interface EventHandler<T = Event> {
+export interface EventHandler<T = Event> {
   (event: T): void;
 }
 
 /**
  * 非同期イベントハンドラー
  */
-interface AsyncEventHandler<T = Event> {
+export interface AsyncEventHandler<T = Event> {
   (event: T): Promise<void>;
 }
 
 /**
  * イベントハンドラー関数
  */
-interface EventHandlerFunction {
+export interface EventHandlerFunction {
   (event: Event): void;
 }
 
@@ -92,7 +97,7 @@ interface EventHandlerFunction {
 /**
  * アクションハンドラーデータ
  */
-interface ActionHandlerData {
+export interface ActionHandlerData {
   [key: string]: any;
   // 共通プロパティ（実際のdata-*属性に対応）
   reservationId?: string;
@@ -116,14 +121,14 @@ interface ActionHandlerData {
 /**
  * アクションハンドラー
  */
-interface ActionHandler {
+export interface ActionHandler {
   (data?: ActionHandlerData): void | Promise<void>;
 }
 
 /**
  * アクションハンドラーズ（グローバル）
  */
-interface ActionHandlers {
+export interface ActionHandlers {
   // 確実に実装されている必須関数のみ
   smartGoBack: ActionHandler;
   modalConfirm: ActionHandler;
@@ -154,7 +159,7 @@ interface ActionHandlers {
 /**
  * ユーザーアクション・操作型
  */
-interface UserInteraction {
+export interface UserInteraction {
   type: 'click' | 'input' | 'change' | 'submit';
   target: HTMLElement;
   data?: ActionHandlerData;
@@ -169,14 +174,14 @@ interface UserInteraction {
 /**
  * エラーハンドラー型
  */
-interface ErrorHandler {
+export interface ErrorHandler {
   (error: Error | unknown, context?: string): void;
 }
 
 /**
  * フロントエンドエラー情報
  */
-interface FrontendErrorInfo {
+export interface FrontendErrorInfo {
   message: string;
   stack?: string;
   context: string;
@@ -190,7 +195,7 @@ interface FrontendErrorInfo {
 /**
  * フロントエンドエラーハンドラークラス
  */
-interface FrontendErrorHandlerClass {
+export interface FrontendErrorHandlerClass {
   handle: (
     error: Error,
     context?: string,
@@ -212,14 +217,14 @@ interface FrontendErrorHandlerClass {
 /**
  * 汎用コールバック
  */
-interface GenericCallback<T> {
+export interface GenericCallback<T> {
   (data: T): void;
 }
 
 /**
  * 非同期汎用コールバック
  */
-interface AsyncGenericCallback<T> {
+export interface AsyncGenericCallback<T> {
   (data: T): Promise<void>;
 }
 
@@ -231,7 +236,7 @@ declare global {
   /**
    * Window拡張（ハンドラー関連）
    */
-  interface Window {
+  export interface Window {
     actionHandlers?: ActionHandlers;
     handleServerError?: ErrorHandler;
     FrontendErrorHandler?: FrontendErrorHandlerClass;

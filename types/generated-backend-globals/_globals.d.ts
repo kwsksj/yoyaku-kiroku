@@ -123,7 +123,12 @@ declare global {
   const getDataCount: typeof import('.').getDataCount;
   const getReservationByIdFromCache: typeof import('.').getReservationByIdFromCache;
   const diagnoseAndFixScheduleMasterCache: typeof import('.').diagnoseAndFixScheduleMasterCache;
-  const CACHE_KEYS: typeof import('.').CACHE_KEYS;
+  const CACHE_KEYS: {
+    readonly ALL_RESERVATIONS: "all_reservations";
+    readonly ALL_STUDENTS_BASIC: "all_students_basic";
+    readonly MASTER_SCHEDULE_DATA: "master_schedule_data";
+    readonly MASTER_ACCOUNTING_DATA: "master_accounting_data";
+  };
   const CHUNK_SIZE_LIMIT_KB: typeof import('.').CHUNK_SIZE_LIMIT_KB;
   const MAX_CHUNKS: typeof import('.').MAX_CHUNKS;
   const CacheKey: typeof import('.').CacheKey;
@@ -155,7 +160,8 @@ declare global {
   const convertRowToUser: typeof import('.').convertRowToUser;
   const convertUserToRow: typeof import('.').convertUserToRow;
   const convertReservationToRow: typeof import('.').convertReservationToRow;
-  const PerformanceLog: typeof import('.').PerformanceLog;
+  const PerformanceLog: {
+  };
   const executeOperationAndGetLatestData: typeof import('.').executeOperationAndGetLatestData;
   const makeReservationAndGetLatestData: typeof import('.').makeReservationAndGetLatestData;
   const cancelReservationAndGetLatestData: typeof import('.').cancelReservationAndGetLatestData;

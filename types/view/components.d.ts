@@ -10,9 +10,9 @@
 // 基本型定義
 // =================================================================
 
-type HTMLString = string;
-type ComponentSize = 'normal' | 'full' | 'small' | 'xs' | 'large';
-type ComponentStyle =
+export type HTMLString = string;
+export type ComponentSize = 'normal' | 'full' | 'small' | 'xs' | 'large';
+export type ComponentStyle =
   | 'primary'
   | 'secondary'
   | 'attention'
@@ -22,7 +22,7 @@ type ComponentStyle =
   | 'recordCard'
   | 'normal'
   | 'none';
-type BadgeType = 'success' | 'warning' | 'error' | 'info' | 'accounting';
+export type BadgeType = 'success' | 'warning' | 'error' | 'info' | 'accounting';
 
 // =================================================================
 // Component Config（基本設定）
@@ -31,7 +31,7 @@ type BadgeType = 'success' | 'warning' | 'error' | 'info' | 'accounting';
 /**
  * コンポーネント基本設定
  */
-interface ComponentConfig {
+export interface ComponentConfig {
   [key: string]: any;
   id?: string;
   action?: string;
@@ -46,7 +46,7 @@ interface ComponentConfig {
 /**
  * コンポーネントProps
  */
-interface ComponentProps {
+export interface ComponentProps {
   [key: string]: any;
   id?: string;
   className?: string;
@@ -63,7 +63,7 @@ interface ComponentProps {
 /**
  * ボタン設定
  */
-interface ButtonConfig {
+export interface ButtonConfig {
   text: string;
   action?: string;
   onClick?: string;
@@ -80,7 +80,7 @@ interface ButtonConfig {
 /**
  * 入力フィールド設定
  */
-interface InputConfig {
+export interface InputConfig {
   id: string;
   label: string;
   type?: string;
@@ -99,7 +99,7 @@ interface InputConfig {
 /**
  * セレクト設定
  */
-interface SelectConfig {
+export interface SelectConfig {
   id: string;
   label: string;
   options: string | Array<{ value?: string; label?: string } | string>;
@@ -114,7 +114,7 @@ interface SelectConfig {
 /**
  * テキストエリア設定
  */
-interface TextareaConfig {
+export interface TextareaConfig {
   id: string;
   label: string;
   value?: string;
@@ -130,7 +130,7 @@ interface TextareaConfig {
 /**
  * チェックボックス設定
  */
-interface CheckboxConfig {
+export interface CheckboxConfig {
   id: string;
   label: string;
   checked?: boolean;
@@ -151,7 +151,7 @@ interface CheckboxConfig {
 /**
  * ページコンテナ設定
  */
-interface PageContainerConfig {
+export interface PageContainerConfig {
   content: string;
   maxWidth?: string;
 }
@@ -159,7 +159,7 @@ interface PageContainerConfig {
 /**
  * カードコンテナ設定
  */
-interface CardContainerConfig {
+export interface CardContainerConfig {
   content: string;
   variant?:
     | 'default'
@@ -184,7 +184,7 @@ interface CardContainerConfig {
 /**
  * ステータスバッジ設定
  */
-interface StatusBadgeConfig {
+export interface StatusBadgeConfig {
   type: BadgeType;
   text: string;
 }
@@ -192,7 +192,7 @@ interface StatusBadgeConfig {
 /**
  * 価格表示設定
  */
-interface PriceDisplayConfig {
+export interface PriceDisplayConfig {
   amount: number | string;
   label?: string;
   size?: 'small' | 'normal' | 'large';
@@ -204,7 +204,7 @@ interface PriceDisplayConfig {
 /**
  * アクションボタンセクション設定
  */
-interface ActionButtonSectionConfig {
+export interface ActionButtonSectionConfig {
   primaryButton?: ButtonConfig;
   secondaryButton?: ButtonConfig;
   dangerButton?: ButtonConfig;
@@ -219,7 +219,7 @@ interface ActionButtonSectionConfig {
 /**
  * 会計行設定
  */
-interface AccountingRowConfig {
+export interface AccountingRowConfig {
   name: string;
   itemType: string;
   price: number;
@@ -230,7 +230,7 @@ interface AccountingRowConfig {
 /**
  * 材料行設定
  */
-interface MaterialRowConfig {
+export interface MaterialRowConfig {
   index: number;
   values?: {
     type?: string;
@@ -243,7 +243,7 @@ interface MaterialRowConfig {
 /**
  * その他販売行設定
  */
-interface OtherSalesRowConfig {
+export interface OtherSalesRowConfig {
   index: number;
   values?: {
     name?: string;
@@ -254,7 +254,7 @@ interface OtherSalesRowConfig {
 /**
  * ダッシュボードセクション設定
  */
-interface DashboardSectionConfig {
+export interface DashboardSectionConfig {
   title: string;
   items: string[];
   showNewButton?: boolean;
@@ -266,7 +266,7 @@ interface DashboardSectionConfig {
 /**
  * リストカード設定
  */
-interface ListCardConfig {
+export interface ListCardConfig {
   item: ReservationData;
   badges?: Array<{ type: BadgeType; text: string }>;
   editButtons?: Array<{
@@ -290,7 +290,7 @@ interface ListCardConfig {
 /**
  * メモセクション設定
  */
-interface MemoSectionConfig {
+export interface MemoSectionConfig {
   reservationId: string;
   workInProgress?: string | null;
   isEditMode?: boolean;
@@ -300,7 +300,7 @@ interface MemoSectionConfig {
 /**
  * ユーザーフォーム設定
  */
-interface UserFormConfig {
+export interface UserFormConfig {
   mode: 'register' | 'edit';
   phone?: string;
 }
@@ -308,7 +308,7 @@ interface UserFormConfig {
 /**
  * モーダル設定
  */
-interface ModalConfig {
+export interface ModalConfig {
   id: string;
   title: string;
   content: string;
@@ -319,7 +319,7 @@ interface ModalConfig {
 /**
  * モーダルダイアログ設定
  */
-interface ModalDialogConfig {
+export interface ModalDialogConfig {
   title?: string;
   message: string;
   showCancel?: boolean;
@@ -333,7 +333,7 @@ interface ModalDialogConfig {
 /**
  * 確認ダイアログ設定
  */
-interface ConfirmDialogConfig {
+export interface ConfirmDialogConfig {
   title?: string;
   message: string;
   confirmText?: string;
@@ -349,35 +349,35 @@ interface ConfirmDialogConfig {
 /**
  * コンポーネント関数
  */
-interface ComponentFunction<T = ComponentProps> {
+export interface ComponentFunction<T = ComponentProps> {
   (config: T): HTMLString;
 }
 
 /**
  * UI コンポーネント関数
  */
-interface UIComponentFunction<TConfig = ComponentConfig> {
+export interface UIComponentFunction<TConfig = ComponentConfig> {
   (config: TConfig): HTMLString;
 }
 
 /**
  * View生成関数
  */
-interface ViewGenerator {
+export interface ViewGenerator {
   (): HTMLString;
 }
 
 /**
  * View生成関数（設定付き）
  */
-interface ViewGeneratorWithConfig<T = any> {
+export interface ViewGeneratorWithConfig<T = any> {
   (config: T): HTMLString;
 }
 
 /**
  * HTML生成関数
  */
-interface HTMLGeneratorFunction {
+export interface HTMLGeneratorFunction {
   (props?: ComponentProps): string;
 }
 
@@ -388,7 +388,7 @@ interface HTMLGeneratorFunction {
 /**
  * レンダリングコンテキスト
  */
-interface RenderContext {
+export interface RenderContext {
   view: ViewType;
   state: UIState;
   isLoading: boolean;
@@ -398,7 +398,7 @@ interface RenderContext {
 /**
  * コンポーネントレンダラー
  */
-interface ComponentRenderer {
+export interface ComponentRenderer {
   render(context: RenderContext): string;
   update(element: HTMLElement, newProps: ComponentProps): void;
 }
@@ -411,7 +411,7 @@ declare global {
   /**
    * Componentsオブジェクト（グローバル）
    */
-  interface ComponentsObject {
+  export interface ComponentsObject {
     // 基本コンポーネント
     button: (config: ButtonConfig) => string;
     input: (config: InputConfig) => string;

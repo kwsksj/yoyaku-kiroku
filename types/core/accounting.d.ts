@@ -28,7 +28,7 @@
  * };
  * ```
  */
-interface AccountingDetailsCore {
+export interface AccountingDetailsCore {
   /** 授業料 */
   tuition: {
     /** 授業料項目のリスト */
@@ -80,7 +80,7 @@ interface AccountingDetailsCore {
  * };
  * ```
  */
-interface AccountingMasterItemCore {
+export interface AccountingMasterItemCore {
   /** 種別（授業料/材料代/物販） */
   種別: string;
 
@@ -107,7 +107,7 @@ interface AccountingMasterItemCore {
  *
  * 会計マスターを用途別に分類したデータ構造
  */
-interface ClassifiedAccountingItemsCore {
+export interface ClassifiedAccountingItemsCore {
   /** 授業料 */
   tuition: {
     /** 基本授業料項目 */

@@ -6,6 +6,9 @@
  * =================================================================
  */
 
+import type { AccountingDetailsCore } from './accounting';
+import type { UserCore } from './user';
+
 /**
  * 予約データの統一コア型
  *
@@ -24,7 +27,7 @@
  * };
  * ```
  */
-interface ReservationCore {
+export interface ReservationCore {
   // ========================================
   // 必須プロパティ
   // ========================================
@@ -120,5 +123,3 @@ interface ReservationCore {
   /** その他販売品の動的プロパティ（otherSalesName0, otherSalesPrice0等） */
   [key: `otherSales${string}`]: string | number | undefined;
 }
-
-/// <reference path="./common.d.ts" />

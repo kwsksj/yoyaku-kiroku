@@ -6,6 +6,14 @@
  * =================================================================
  */
 
+import type { LessonCore, ScheduleInfo } from '../core/lesson';
+import type { ReservationCore } from '../core/reservation';
+import type {
+  AccountingDetailsCore,
+  AccountingMasterItemCore,
+} from '../core/accounting';
+import type { UserCore } from '../core/user';
+
 // =================================================================
 // View Type定義
 // =================================================================
@@ -13,7 +21,7 @@
 /**
  * ビュー型定義
  */
-type ViewType =
+export type ViewType =
   | 'login'
   | 'dashboard'
   | 'bookingLessons'
@@ -34,7 +42,7 @@ type ViewType =
 /**
  * 統一検索結果型
  */
-interface ReservationSearchResult extends ReservationCore {
+export interface ReservationSearchResult extends ReservationCore {
   type: 'booking' | 'record';
 }
 
@@ -45,7 +53,7 @@ interface ReservationSearchResult extends ReservationCore {
 /**
  * ナビゲーション履歴エントリ
  */
-interface StateNavigationHistoryEntry {
+export interface StateNavigationHistoryEntry {
   view: ViewType;
   context: NavigationContext;
 }
@@ -53,7 +61,7 @@ interface StateNavigationHistoryEntry {
 /**
  * ナビゲーションコンテキスト
  */
-interface NavigationContext {
+export interface NavigationContext {
   selectedClassroom?: string | null;
   selectedLesson?: LessonCore;
   editingReservationDetails?: ReservationCore;
@@ -68,7 +76,7 @@ interface NavigationContext {
 /**
  * 登録フォームデータ型
  */
-interface RegistrationFormData {
+export interface RegistrationFormData {
   phone?: string;
   realName?: string;
   nickname?: string;
@@ -90,7 +98,7 @@ interface RegistrationFormData {
 /**
  * 予約フォーム専用コンテキスト
  */
-interface ReservationFormContext {
+export interface ReservationFormContext {
   lessonInfo: LessonCore;
   reservationInfo: Partial<ReservationCore>; // 新規の場合は初期値、編集の場合は既存データ
 }
@@ -98,7 +106,7 @@ interface ReservationFormContext {
 /**
  * 会計フォームデータ型（フロントエンド専用）
  */
-interface AccountingFormDto {
+export interface AccountingFormDto {
   /** 開始時刻 */
   startTime?: string;
   /** 終了時刻 */
@@ -139,7 +147,7 @@ interface AccountingFormDto {
 /**
  * UI状態管理の中核型定義
  */
-interface UIState {
+export interface UIState {
     // --- User & Session Data ---
     currentUser: UserCore | null;
     loginPhone: string;
@@ -208,12 +216,12 @@ interface UIState {
 /**
  * 後方互換性のための型エイリアス
  */
-type AppState = UIState;
+export type AppState = UIState;
 
 /**
  * 計算済み状態データ型
  */
-interface ComputedStateData {}
+export interface ComputedStateData {}
 
 // =================================================================
 // State Action（状態更新）
@@ -222,14 +230,14 @@ interface ComputedStateData {}
 /**
  * アクション型定義
  */
-interface StateAction {
+export interface StateAction {
   type: ActionType;
   payload?: StateActionPayload;
 }
 
-type ActionType = 'SET_STATE' | 'UPDATE_STATE' | 'CHANGE_VIEW' | 'NAVIGATE';
+export type ActionType = 'SET_STATE' | 'UPDATE_STATE' | 'CHANGE_VIEW' | 'NAVIGATE';
 
-interface StateActionPayload {
+export interface StateActionPayload {
   to?: ViewType;
   context?: NavigationContext;
   saveHistory?: boolean;
@@ -240,25 +248,25 @@ interface StateActionPayload {
 /**
  * 状態更新パターン型
  */
-interface StateUpdatePattern {
+export interface StateUpdatePattern {
   trigger: StateTrigger;
   changes: StateChange[];
   sideEffects: SideEffect[];
 }
 
-type StateTrigger =
+export type StateTrigger =
   | 'USER_ACTION'
   | 'DATA_FETCH'
   | 'NAVIGATION'
   | 'SYSTEM_EVENT';
 
-interface StateChange {
+export interface StateChange {
   path: string;
   oldValue: any;
   newValue: any;
 }
 
-interface SideEffect {
+export interface SideEffect {
   type:
     | 'RENDER'
     | 'NOTIFY_SUBSCRIBERS'
@@ -271,7 +279,7 @@ interface SideEffect {
 /**
  * 購読者コールバック型
  */
-interface StateSubscriber {
+export interface StateSubscriber {
   (newState: UIState, oldState: UIState): void;
 }
 
@@ -282,7 +290,7 @@ interface StateSubscriber {
 /**
  * StateManager クラス型定義（AI開発最適化版）
  */
-interface SimpleStateManager {
+export interface SimpleStateManager {
   state: UIState;
   isUpdating: boolean;
   subscribers: StateSubscriber[];

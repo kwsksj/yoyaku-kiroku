@@ -6,19 +6,29 @@
  * =================================================================
  */
 
-/// <reference path="./design-system.d.ts" />
+import type { DesignSystemConfig } from './design-system';
+import type {
+  ModalDialogConfig,
+  ConfirmDialogConfig,
+} from './components';
+import type { AccountingFormDto, SimpleStateManager, ViewType } from './state';
+import type {
+  AccountingDetailsCore,
+  ClassifiedAccountingItemsCore,
+} from '../core/accounting';
+import type { ReservationCore } from '../core/reservation';
 
 // =================================================================
 // 共有定数型エイリアス
 // =================================================================
 
-type Constants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS;
-type StatusConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.STATUS;
-type UIConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.UI;
-type MessagesConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.MESSAGES;
-type BankInfoConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.BANK_INFO;
-type PaymentDisplayConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.PAYMENT_DISPLAY;
-type HeadersConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.HEADERS;
+export type Constants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS;
+export type StatusConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.STATUS;
+export type UIConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.UI;
+export type MessagesConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.MESSAGES;
+export type BankInfoConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.BANK_INFO;
+export type PaymentDisplayConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.PAYMENT_DISPLAY;
+export type HeadersConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.HEADERS;
 
 // =================================================================
 // 一時データ型定義
@@ -27,7 +37,7 @@ type HeadersConstants = typeof import('../generated-shared-globals/00_Constants'
 /**
  * 一時的な支払いデータ（会計確認フロー用）
  */
-interface TempPaymentData {
+export interface TempPaymentData {
   formData: AccountingFormDto;
   result: AccountingDetailsCore;
   classifiedItems: ClassifiedAccountingItemsCore;
@@ -37,7 +47,7 @@ interface TempPaymentData {
 /**
  * Googleサイト埋め込み環境の設定
  */
-interface EmbedConfig {
+export interface EmbedConfig {
   detectGoogleSiteOffset(): number;
   applyEmbedStyles(): void;
   saveOffset(offset: number): void;
@@ -49,7 +59,7 @@ interface EmbedConfig {
 /**
  * ページ遷移マネージャー
  */
-interface PageTransitionManager {
+export interface PageTransitionManager {
   goTo?(viewName: string, context?: any): void;
   back?(): void;
   getCurrentView?(): string;
@@ -68,7 +78,7 @@ interface PageTransitionManager {
 /**
  * モーダルマネージャー
  */
-interface ModalManager {
+export interface ModalManager {
   show(config: any): void;
   hide(): void;
   showConfirm(config: any): void;
@@ -186,80 +196,73 @@ declare global {
   /**
    * Window と globalThis を統合した型
    */
-  type AppWindow = Window & typeof globalThis;
-}
+  var tailwind: any;
+  var server: any;
+  const marked: {
+    parse(markdown: string): string;
+  };
 
-// =================================================================
-// グローバル変数・関数宣言
-// =================================================================
+  function collectFormData(): any;
+  function saveAccountingCache(data: any): void;
+  function loadAccountingCache(): any;
+  function calculateAccountingTotal(
+    formData: any,
+    masterData: any,
+    classroom: string,
+  ): any;
 
-/** Tailwind CSS のグローバル定義 */
-declare var tailwind: any;
+  function escapeHTML(text: string): string;
+  function debugLog(message: string, ...args: any[]): void;
+  function updateView(viewName: string): void;
+  function formatDate(date: string | Date, format?: string): void;
+  function showInfo(
+    message: string,
+    title?: string,
+    callback?: (() => void) | null,
+  ): void;
+  function showLoading(category?: string): void;
+  function hideLoading(): void;
+  function showConfirm(config: any): void;
 
-/** GAS WebApp 環境での server オブジェクト */
-declare var server: any;
+  var stateManager: SimpleStateManager;
+  var DesignConfig: DesignSystemConfig;
 
-/** marked.js ライブラリのグローバル宣言 */
-declare const marked: {
-  parse(markdown: string): string;
-};
-
-// 会計システム関連のグローバル関数
-declare function collectFormData(): any;
-declare function saveAccountingCache(data: any): void;
-declare function loadAccountingCache(): any;
-declare function calculateAccountingTotal(
-  formData: any,
-  masterData: any,
-  classroom: string,
-): any;
-
-// グローバルヘルパー関数
-declare function escapeHTML(text: string): string;
-declare function debugLog(message: string, ...args: any[]): void;
-declare function updateView(viewName: string): void;
-declare function formatDate(date: string | Date, format?: string): string;
-declare function showInfo(message: string, title?: string, callback?: (() => void) | null): void;
-declare function showLoading(category?: string): void;
-declare function hideLoading(): void;
-declare function showConfirm(config: any): void;
-
-// グローバル変数
-declare var stateManager: SimpleStateManager;
-declare var DesignConfig: DesignSystemConfig;
-
-
-// Google Apps Script WebApp API (グローバルスコープ)
-declare var google: {
-  script: {
-    run: {
-      withSuccessHandler(callback: (result: any) => void): any;
-      withFailureHandler(callback: (error: Error) => void): any;
-      withUserObject(userObject: any): any;
-      [key: string]: any;
-    };
-    host: {
-      close(): void;
-      setWidth(width: number): void;
-      setHeight(height: number): void;
+  const google: {
+    script: {
+      run: {
+        withSuccessHandler(callback: (result: any) => void): any;
+        withFailureHandler(callback: (error: Error) => void): any;
+        withUserObject(userObject: any): any;
+        [key: string]: any;
+      };
+      host: {
+        close(): void;
+        setWidth(width: number): void;
+        setHeight(height: number): void;
+      };
     };
   };
-};
-declare function updateAccountingCalculation(
-  classifiedItems: ClassifiedAccountingItemsCore,
-  classroom: string,
-): void;
-declare function setupAccountingEventListeners(
-  classifiedItems: ClassifiedAccountingItemsCore,
-  classroom: string,
-): void;
-declare function generateAccountingView(
-  classifiedItems: ClassifiedAccountingItemsCore,
-  classroom: string,
-  formData?: AccountingFormDto,
-  reservationData?: ReservationCore | null,
-): string;
-declare function getPaymentInfoHtml(selectedPaymentMethod?: string): string;
-declare function getPaymentOptionsHtml(selectedValue?: string): string;
 
-declare var appWindow: AppWindow;
+  function updateAccountingCalculation(
+    classifiedItems: ClassifiedAccountingItemsCore,
+    classroom: string,
+  ): void;
+  function setupAccountingEventListeners(
+    classifiedItems: ClassifiedAccountingItemsCore,
+    classroom: string,
+  ): void;
+  function generateAccountingView(
+    classifiedItems: ClassifiedAccountingItemsCore,
+    classroom: string,
+    formData?: AccountingFormDto,
+    reservationData?: ReservationCore | null,
+  ): string;
+  function getPaymentInfoHtml(selectedPaymentMethod?: string): string;
+  function getPaymentOptionsHtml(selectedValue?: string): string;
+
+  var appWindow: Window & typeof globalThis;
+}
+
+export type AppWindow = Window & typeof globalThis;
+
+export {};

@@ -13,7 +13,7 @@
 /**
  * デザインシステムの色設定
  */
-interface DesignColors {
+export interface DesignColors {
   /** メインテキスト */
   text: string;
   /** サブテキスト */
@@ -49,7 +49,7 @@ interface DesignColors {
 /**
  * 教室別の色設定
  */
-interface ClassroomColorConfig {
+export interface ClassroomColorConfig {
   /** ボタンスタイル */
   button: string;
   /** カラークラス */
@@ -59,7 +59,7 @@ interface ClassroomColorConfig {
 /**
  * 教室別色マッピング
  */
-interface ClassroomColors {
+export interface ClassroomColors {
   /** 東京教室 */
   tokyo: ClassroomColorConfig;
   /** 沼津教室 */
@@ -77,7 +77,7 @@ interface ClassroomColors {
 /**
  * ボタンスタイル定義
  */
-interface ButtonStyles {
+export interface ButtonStyles {
   /** ベーススタイル */
   base: string;
   /** フル幅ボタン */
@@ -105,7 +105,7 @@ interface ButtonStyles {
 /**
  * テキストスタイル定義
  */
-interface TextStyles {
+export interface TextStyles {
   /** 見出し */
   heading: string;
   /** サブ見出し */
@@ -129,7 +129,7 @@ interface TextStyles {
 /**
  * レイアウトスタイル定義
  */
-interface LayoutStyles {
+export interface LayoutStyles {
   /** コンテナ */
   container: string;
   /** パディングなしコンテナ */
@@ -151,7 +151,7 @@ interface LayoutStyles {
 /**
  * ユーティリティスタイル定義
  */
-interface UtilStyles {
+export interface UtilStyles {
   /** 非表示 */
   hidden: string;
   /** ローディング中 */
@@ -175,7 +175,7 @@ interface UtilStyles {
 /**
  * カード状態設定
  */
-interface CardStateConfig {
+export interface CardStateConfig {
   /** カードスタイル */
   card: string;
   /** テキストスタイル */
@@ -185,7 +185,7 @@ interface CardStateConfig {
 /**
  * 履歴カード設定（textなし）
  */
-interface CardHistoryConfig {
+export interface CardHistoryConfig {
   /** カードスタイル */
   card: string;
 }
@@ -193,7 +193,7 @@ interface CardHistoryConfig {
 /**
  * カード状態別スタイル
  */
-interface CardStates {
+export interface CardStates {
   /** 空き状態 */
   available: CardStateConfig;
   /** 空き連絡希望状態 */
@@ -207,7 +207,7 @@ interface CardStates {
 /**
  * カードスタイル定義
  */
-interface CardStyles {
+export interface CardStyles {
   /** ベーススタイル */
   base: string;
   /** コンテナスタイル */
@@ -225,7 +225,7 @@ interface CardStyles {
 /**
  * 入力フォームスタイル定義
  */
-interface InputStyles {
+export interface InputStyles {
   /** コンテナ */
   container: string;
   /** ベース入力フィールド */
@@ -245,7 +245,7 @@ interface InputStyles {
  *
  * TS4111警告を完全に排除するために、すべてのプロパティを明示的に定義
  */
-interface DesignSystemConfig {
+export interface DesignSystemConfig {
   /** 色設定 */
   colors: DesignColors;
   /** 教室別色設定 */
