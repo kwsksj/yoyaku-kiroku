@@ -294,8 +294,8 @@ export interface SimpleStateManager {
   state: UIState;
   isUpdating: boolean;
   subscribers: StateSubscriber[];
-  _renderScheduled?: boolean;
-  _shouldHideLoadingAfterRender?: boolean;
+  _renderScheduled: boolean | undefined;
+  _shouldHideLoadingAfterRender: boolean | undefined;
 
   dispatch(action: StateAction): void;
   getState(): UIState;
@@ -305,7 +305,7 @@ export interface SimpleStateManager {
   endEditMode(reservationId: string): void;
   isInEditMode(reservationId: string): boolean;
   clearAllEditModes(): void;
-  goBack(): UIState | null;
+  goBack(): Partial<UIState> | null;
   updateComputed(): void;
 
   // データフェッチ進行状況管理

@@ -136,11 +136,11 @@ declare global {
     };
 
     // --- 会計システム ---
-    currentClassifiedItems?: ClassifiedAccountingItemsCore;
-    currentClassroom?: string;
+    currentClassifiedItems?: ClassifiedAccountingItemsCore | null;
+    currentClassroom?: string | null;
     collectFormData?: () => AccountingFormDto;
     accountingSystemCache?: Record<string, ClassifiedAccountingItemsCore>;
-    tempPaymentData?: TempPaymentData;
+    tempPaymentData?: TempPaymentData | null;
     paymentProcessing?: boolean;
     accountingCalculationTimeout?: any;
 

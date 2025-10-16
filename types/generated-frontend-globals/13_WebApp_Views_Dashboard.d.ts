@@ -32,7 +32,7 @@ export function _buildAccountingButtons(booking: ReservationCore): Array<any>;
 export function _buildHistoryEditButtons(isInEditMode?: boolean, reservationId?: string): Array<any>;
 export function _buildHistoryAccountingButtons(historyItem: ReservationCore): Array<any>;
 export function _buildBookingBadges(booking: ReservationCore): Array<{
-    type: string;
+    type: BadgeType;
     text: string;
 }>;
 export function _checkIfLessonAvailable(booking: ReservationCore): boolean;

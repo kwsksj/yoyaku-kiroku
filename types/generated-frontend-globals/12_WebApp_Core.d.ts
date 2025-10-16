@@ -44,7 +44,6 @@ export function getRandomMessage(category?: string): string;
 export function updateLoadingMessage(category?: string): void;
 export function startLoadingMessageRotation(category?: string): void;
 export function stopLoadingMessageRotation(): void;
-export function hideModal(): void;
 /** @type {Array<{element: Element, type: string, listener: EventListener, options?: AddEventListenerOptions}>} */
 /** @type {Array<{ element: Element; type: string; listener: EventListener; options?: AddEventListenerOptions }>} */
 export let activeListeners: Array<{

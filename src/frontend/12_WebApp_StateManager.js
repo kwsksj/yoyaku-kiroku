@@ -205,7 +205,8 @@ export class SimpleStateManager {
       'view' in newState &&
       newState.view &&
       newState.view !== previousView &&
-      appWindow.pageTransitionManager
+      appWindow.pageTransitionManager &&
+      appWindow.pageTransitionManager.onPageTransition
     ) {
       const viewValue = /** @type {ViewType} */ (newState.view);
       appWindow.pageTransitionManager.onPageTransition(viewValue);

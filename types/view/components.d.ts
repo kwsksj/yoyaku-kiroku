@@ -22,7 +22,7 @@ export type ComponentStyle =
   | 'recordCard'
   | 'normal'
   | 'none';
-export type BadgeType = 'success' | 'warning' | 'error' | 'info' | 'accounting';
+export type BadgeType = 'success' | 'warning' | 'error' | 'info' | 'accounting' | 'attention';
 
 // =================================================================
 // Component Config（基本設定）
@@ -150,8 +150,12 @@ export interface CheckboxConfig {
  */
 export interface RadioGroupConfig {
   name: string;
-  label?: string;
+  label: string;
   options: Array<{ value: string; label: string; checked?: boolean }>;
+  selectedValue?: string;
+  layout?: 'vertical' | 'horizontal';
+  description?: string;
+  caption?: string;
 }
 
 /**

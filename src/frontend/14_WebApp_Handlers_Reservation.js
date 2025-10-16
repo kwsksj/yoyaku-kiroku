@@ -55,9 +55,18 @@ export const reservationActionHandlers = {
           document.getElementById('cancel-message')
         );
         const cancelMessage = cancelMessageInput?.value || '';
+        const currentUser = reservationStateManager.getState().currentUser;
+        if (!currentUser) {
+          hideLoading();
+          reservationStateManager.setDataFetchProgress(
+            'reservation-cancel',
+            false,
+          );
+          return showInfo('ユーザー情報が見つかりません', 'エラー');
+        }
         const p = {
           ...d,
-          studentId: reservationStateManager.getState().currentUser.studentId,
+          studentId: currentUser.studentId,
           cancelMessage: cancelMessage,
         };
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
@@ -135,6 +144,10 @@ export const reservationActionHandlers = {
       reservationStateManager.getState();
     if (!currentReservationFormContext) {
       showInfo('予約コンテキストが見つかりません。', 'エラー');
+      return;
+    }
+    if (!currentUser) {
+      showInfo('ユーザー情報が見つかりません。', 'エラー');
       return;
     }
 
@@ -342,6 +355,10 @@ export const reservationActionHandlers = {
       reservationStateManager.getState();
     if (!currentReservationFormContext) {
       showInfo('予約コンテキストが見つかりません。', 'エラー');
+      return;
+    }
+    if (!currentUser) {
+      showInfo('ユーザー情報が見つかりません。', 'エラー');
       return;
     }
 
@@ -646,7 +663,7 @@ export const reservationActionHandlers = {
       })
       .getBatchData(
         ['lessons'],
-        reservationStateManager.getState().currentUser.phone,
+        reservationStateManager.getState().currentUser?.phone || '',
       );
   },
 
@@ -709,6 +726,11 @@ export const reservationActionHandlers = {
       reservationStateManager.getState().currentReservationFormContext
         ?.lessonInfo.classroom ||
       reservationStateManager.getState().selectedClassroom;
+
+    if (!targetClassroom) {
+      showInfo('教室情報が見つかりません', 'エラー');
+      return;
+    }
 
     // StateManagerのキャッシュ判定を優先
     const currentState = reservationStateManager.getState();
@@ -780,9 +802,18 @@ export const reservationActionHandlers = {
           document.getElementById('confirm-message')
         );
         const confirmMessage = confirmMessageInput?.value || '';
+        const currentUser = reservationStateManager.getState().currentUser;
+        if (!currentUser) {
+          hideLoading();
+          reservationStateManager.setDataFetchProgress(
+            'reservation-confirm',
+            false,
+          );
+          return showInfo('ユーザー情報が見つかりません', 'エラー');
+        }
         const p = {
           ...d,
-          studentId: reservationStateManager.getState().currentUser.studentId,
+          studentId: currentUser.studentId,
           messageToTeacher: confirmMessage,
         };
 

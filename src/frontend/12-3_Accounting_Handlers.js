@@ -1035,7 +1035,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
   const generateButton = (
     /** @type {string} */ action,
     /** @type {string} */ text,
-    /** @type {string} */ style,
+    /** @type {ComponentStyle} */ style,
     customClass = '',
   ) => {
     if (typeof Components !== 'undefined' && Components.button) {

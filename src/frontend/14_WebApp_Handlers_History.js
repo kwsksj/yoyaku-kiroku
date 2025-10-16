@@ -39,7 +39,9 @@ export const historyActionHandlers = {
 
     // 編集モード開始（メモの初期値を設定）
     const currentMemo = item.workInProgress || '';
-    historyStateManager.startEditMode(d.reservationId, currentMemo);
+    if (d.reservationId) {
+      historyStateManager.startEditMode(d.reservationId, currentMemo);
+    }
 
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
@@ -57,7 +59,9 @@ export const historyActionHandlers = {
     const scrollY = window.scrollY;
 
     // 編集モードを解除（変更を破棄）
-    historyStateManager.endEditMode(d.reservationId);
+    if (d.reservationId) {
+      historyStateManager.endEditMode(d.reservationId);
+    }
 
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
@@ -96,27 +100,38 @@ export const historyActionHandlers = {
     });
 
     // 編集モードを解除
-    historyStateManager.endEditMode(d.reservationId);
+    if (d.reservationId) {
+      historyStateManager.endEditMode(d.reservationId);
+    }
 
     showInfo('メモを保存しました', '保存完了');
 
     // 該当カードのみを部分更新（ちらつき防止）
-    updateSingleHistoryCard(d.reservationId);
+    if (d.reservationId) {
+      updateSingleHistoryCard(d.reservationId);
+    }
 
     // サーバーに送信
+    const currentUser = historyStateManager.getState().currentUser;
+    if (!currentUser || !d.reservationId) {
+      return showInfo('ユーザー情報が見つかりません', 'エラー');
+    }
+
     showLoading('booking');
     google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
       hideLoading();
       if (!r.success) {
         showInfo(r.message || 'メモの保存に失敗しました', 'エラー');
         // フロント表示を元に戻す
-        updateSingleHistoryCard(d.reservationId);
+        if (d.reservationId) {
+          updateSingleHistoryCard(d.reservationId);
+        }
       }
     })
       ['withFailureHandler'](handleServerError)
       .updateReservationMemoAndGetLatestData(
         d.reservationId,
-        historyStateManager.getState().currentUser.studentId,
+        currentUser.studentId,
         newMemo,
       );
   },

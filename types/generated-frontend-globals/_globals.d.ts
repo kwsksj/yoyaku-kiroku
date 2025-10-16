@@ -83,7 +83,6 @@ declare global {
   const updateLoadingMessage: typeof import('.').updateLoadingMessage;
   const startLoadingMessageRotation: typeof import('.').startLoadingMessageRotation;
   const stopLoadingMessageRotation: typeof import('.').stopLoadingMessageRotation;
-  const hideModal: typeof import('.').hideModal;
   const activeListeners: typeof import('.').activeListeners;
   const createSimpleDashboardState: typeof import('.').createSimpleDashboardState;
   const preInitializeAccountingSystem: typeof import('.').preInitializeAccountingSystem;

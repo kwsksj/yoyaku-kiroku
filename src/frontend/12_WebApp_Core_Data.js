@@ -167,43 +167,10 @@ if (document.readyState === 'loading') {
 }
 
 // =================================================================
-// --- Modal Management System ---
+// --- Modal Management System (Moved) ---
 // -----------------------------------------------------------------
-
-/**
- * モーダル管理オブジェクト
- * カプセル化された方式でモーダルのコールバック処理を管理する
- * グローバル変数の乱用を避けるための設計
- */
-appWindow.ModalManager = appWindow.ModalManager || {
-  onConfirmCallback: null,
-
-  /**
-   * モーダル確認時のコールバック関数を設定
-   * @param {() => void} callback - 確認ボタン押下時に実行する関数
-   */
-  setCallback: function (callback) {
-    this.onConfirmCallback = callback;
-  },
-
-  /**
-   * 設定されたコールバック関数をクリア
-   */
-  clearCallback: function () {
-    this.onConfirmCallback = null;
-  },
-
-  /**
-   * 設定されたコールバック関数を実行し、自動でクリアする
-   * モーダル確認ボタンから呼び出される
-   */
-  executeCallback: function () {
-    if (this.onConfirmCallback) {
-      this.onConfirmCallback();
-      this.clearCallback();
-    }
-  },
-};
+// モーダル管理機能は 12_WebApp_Core_Modal.js に移動しました。
+// =================================================================
 
 // =================================================================
 // --- Schedule Master Helper Functions ---

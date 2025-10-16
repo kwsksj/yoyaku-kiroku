@@ -290,11 +290,11 @@ window.onload = function () {
       if (modalManager && typeof modalManager.executeCallback === 'function') {
         modalManager.executeCallback();
       }
-      hideModal();
+      windowTyped.ModalManager.hide();
     },
 
     /** モーダルのキャンセルボタンを押したときの処理です */
-    modalCancel: () => hideModal(),
+    modalCancel: () => windowTyped.ModalManager.hide(),
 
     // =================================================================
     // --- Authentication Handlers (from 14_WebApp_Handlers_Auth.js) ---
@@ -443,7 +443,7 @@ window.onload = function () {
       };
 
       // モーダルを閉じてローディング開始
-      hideModal();
+      windowTyped.ModalManager.hide();
       showLoading('accounting');
 
       // バックエンド送信

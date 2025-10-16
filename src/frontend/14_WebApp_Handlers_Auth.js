@@ -495,7 +495,11 @@ export const authActionHandlers = {
     if (!n) n = r;
 
     // 電話番号は表示のみなので、現在の値を使用
-    const phone = authHandlersStateManager.getState().currentUser.phone;
+    const currentUser = authHandlersStateManager.getState().currentUser;
+    if (!currentUser) {
+      return showInfo('ユーザー情報が見つかりません。', 'エラー');
+    }
+    const phone = currentUser.phone;
 
     // メール情報の取得とバリデーション
     const emailInput = /** @type {HTMLInputElement | null} */ (

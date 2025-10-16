@@ -145,21 +145,12 @@ export function getTimeValue(elementId, reservationData, timeField) {
       ] || timeField;
 
     // セッション制教室の場合、スケジュール情報から取得
-    const classroomType =
-      /** @type {any} */ (selectedLesson).classroomType;
+    const classroomType = /** @type {any} */ (selectedLesson).classroomType;
     if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
       if (timeField === 'startTime') {
-        return (
-          selectedLesson.firstStart ||
-          selectedLesson.secondStart ||
-          ''
-        );
+        return selectedLesson.firstStart || selectedLesson.secondStart || '';
       } else if (timeField === 'endTime') {
-        return (
-          selectedLesson.firstEnd ||
-          selectedLesson.secondEnd ||
-          ''
-        );
+        return selectedLesson.firstEnd || selectedLesson.secondEnd || '';
       }
     }
 
@@ -272,10 +263,8 @@ export function formatPhoneNumberForDisplay(phoneNumber) {
  * @param {string} targetView - データ取得後に遷移したいビュー名
  */
 export function updateAppStateFromCache(targetView) {
-  if (
-    !handlerUtilsStateManager.getState().currentUser ||
-    !handlerUtilsStateManager.getState().currentUser.phone
-  ) {
+  const currentUser = handlerUtilsStateManager.getState().currentUser;
+  if (!currentUser || !currentUser.phone) {
     if (targetView) {
       appWindow.stateManager.dispatch({
         type: 'SET_STATE',
@@ -357,10 +346,7 @@ export function updateAppStateFromCache(targetView) {
         // setStateがrenderを呼び出すので、ここでのrender()は不要
       },
     )
-    .getBatchData(
-      ['lessons'],
-      handlerUtilsStateManager.getState().currentUser.phone,
-    );
+    .getBatchData(['lessons'], currentUser.phone);
 }
 
 // =================================================================

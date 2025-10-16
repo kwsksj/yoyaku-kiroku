@@ -6,6 +6,7 @@
 export * from './11_WebApp_Config';
 export * from './12_WebApp_Core_Data';
 export * from './12_WebApp_Core_ErrorHandler';
+export * from './12_WebApp_Core_Modal';
 export * from './12_WebApp_Core_Search';
 export * from './12_WebApp_Core';
 export * from './12_WebApp_StateManager';

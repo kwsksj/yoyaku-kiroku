@@ -18,36 +18,12 @@
 // 以下の機能は専用ファイルに分割されました：
 //
 // 📁 12_WebApp_Core_Search.js - 統一検索システム
-//   - findReservationById(reservationId, state)
-//   - findReservationByDateAndClassroom(date, classroom, state)
-//   - findReservationsByStatus(status, state)
-//
 // 📁 12_WebApp_Core_Data.js - データ処理・環境管理
-//   - processInitialData(data, phone, lessons, myReservations)
-//   - detectEnvironment()
-//   - getEnvironmentData(dataType, fallback)
-//   - ModalManager オブジェクト
-//   - StateManager 初期化処理
-//   - スケジュール関連ヘルパー関数
-//
+// 📁 12_WebApp_Core_Modal.js - モーダル管理
 // 📁 12_WebApp_Core_Accounting.js - 会計計算ロジック
-//   - calculateAccountingDetails()
-//   - calculateAccountingDetailsFromForm()
-//   - calculateTimeBasedTuition(tuitionItemRule)
-//   - 各種計算ヘルパー関数
-//   - 会計キャッシュ機能
-//
 // 📁 12_WebApp_Core_ErrorHandler.js - エラーハンドリング
-//   - FrontendErrorHandler クラス
-//   - handleServerError(err) 互換関数
-//   - グローバル・Promise拒否エラー処理
-//   - 開発/本番環境対応ログ出力
 //
 // 📁 14_WebApp_Handlers_Utils.js - 統合済みユーティリティ
-//   - normalizePhoneNumberFrontend(phoneInput)
-//   - buildSalesChecklist(accountingMaster, checkedValues, title)
-//   - formatDate(dStr)
-//   - 各種DOM型安全ヘルパー関数
 // =================================================================
 
 // =================================================================
@@ -249,119 +225,10 @@ appWindow.hideLoading =
   };
 
 // =================================================================
-// --- Error Handling (moved to 12_WebApp_Core_ErrorHandler.js) ---
+// --- Modal System (Moved) ---
 // -----------------------------------------------------------------
-// エラーハンドリング機能は専用ファイルに分割されました：
-//
-// 📁 12_WebApp_Core_ErrorHandler.js - フロントエンド統一エラーハンドリング
-//   - FrontendErrorHandler クラス
-//   - handleServerError() 互換関数
-//   - グローバルエラーハンドラー設定
-//   - 開発/本番環境対応
-//
-// バックエンドエラーハンドリングは src/backend/08_ErrorHandler.js で管理
+// モーダル管理機能は 12_WebApp_Core_Modal.js に移動しました。
 // =================================================================
-
-// =================================================================
-// --- Modal System ---
-// -----------------------------------------------------------------
-// モーダル表示とインタラクション管理
-// =================================================================
-
-/**
- * モーダル表示
- * @param {ModalDialogConfig} c - モーダル設定
- */
-appWindow.showModal =
-  appWindow.showModal ||
-  /** @type {(c: ModalDialogConfig) => void} */ (
-    c => {
-      // モーダル表示時にスクロール位置を保存
-      if (
-        appWindow.pageTransitionManager &&
-        /** @type {any} */ (appWindow.pageTransitionManager).onModalOpen
-      ) {
-        /** @type {any} */ (appWindow.pageTransitionManager).onModalOpen();
-      }
-
-      /** @type {HTMLElement | null} */
-      const m = document.getElementById('custom-modal');
-      /** @type {HTMLElement | null} */
-      const b = document.getElementById('modal-buttons');
-      if (!m || !b) return;
-      b.innerHTML = '';
-      if (c.showCancel) {
-        b.innerHTML += Components.button({
-          text: c.cancelText || CONSTANTS.MESSAGES.CANCEL || 'キャンセル',
-          action: 'modalCancel',
-          style: 'secondary',
-          size: 'normal',
-        });
-      }
-      if (c.confirmText) {
-        b.innerHTML += `<div class="w-3"></div>${Components.button({
-          text: c.confirmText,
-          action: 'modalConfirm',
-          style: c.confirmColorClass?.includes('danger') ? 'danger' : 'primary',
-          size: 'normal',
-          disabled: /** @type {any} */ (c).disableConfirm,
-        })}`;
-      }
-      appWindow.ModalManager?.setCallback?.(c.onConfirm);
-      /** @type {HTMLElement | null} */
-      const modalTitle = document.getElementById('modal-title');
-      /** @type {HTMLElement | null} */
-      const modalMessage = document.getElementById('modal-message');
-
-      if (modalTitle) modalTitle.textContent = c.title ?? null;
-      if (modalMessage) modalMessage.innerHTML = c.message;
-      m.classList.add('active');
-    }
-  );
-
-export const hideModal = () => {
-  /** @type {HTMLElement | null} */
-  const modal = document.getElementById('custom-modal');
-  if (modal) modal.classList.remove('active');
-  appWindow.ModalManager?.clearCallback?.();
-
-  // モーダル非表示時にスクロール位置を復元
-  if (
-    appWindow.pageTransitionManager &&
-    /** @type {any} */ (appWindow.pageTransitionManager).onModalClose
-  ) {
-    /** @type {any} */ (appWindow.pageTransitionManager).onModalClose();
-  }
-};
-
-/**
- * 情報モーダル表示
- * @param {string} msg - メッセージ
- * @param {string} t - タイトル
- * @param {VoidCallback|null} cb - コールバック
- */
-appWindow.showInfo =
-  appWindow.showInfo ||
-  /** @type {(msg: string, t?: string, cb?: VoidCallback | null) => void} */ (
-    (msg, t = '情報', cb = null) =>
-      appWindow.showModal({
-        title: t,
-        message: msg,
-        confirmText: 'OK',
-        confirmColorClass: appWindow.DesignConfig?.colors?.['primary'],
-        onConfirm: cb,
-      })
-  );
-
-/**
- * 確認モーダル表示
- * @param {ModalDialogConfig} c - モーダル設定
- */
-appWindow.showConfirm =
-  appWindow.showConfirm ||
-  /** @type {(c: ModalDialogConfig) => void} */ (
-    c => appWindow.showModal({ ...c, showCancel: true })
-  );
 
 // =================================================================
 // --- Event Listener Management ---

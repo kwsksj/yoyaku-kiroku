@@ -443,6 +443,8 @@ export function generateAccountingReservationCard(reservationData) {
   return Components.listCard({
     item: {
       reservationId: reservationData.reservationId || '',
+      studentId: reservationData.studentId || '',
+      status: reservationData.status || '',
       date: reservationData.date || '',
       startTime: reservationData.startTime || '',
       endTime: reservationData.endTime || '',

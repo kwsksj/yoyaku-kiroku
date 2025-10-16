@@ -110,9 +110,12 @@ export const getDashboardView = () => {
     });
   }
 
+  const currentUser = dashboardStateManager.getState().currentUser;
+  const displayName = currentUser ? currentUser.displayName : '';
+
   return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
-            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${dashboardStateManager.getState().currentUser.displayName} <span class="text-base">さん</span></span></h1>
+            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${displayName} <span class="text-base">さん</span></span></h1>
             <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
         </div>
         ${yourBookingsHtml}
@@ -256,10 +259,10 @@ export const _buildHistoryAccountingButtons = historyItem => {
 /**
  * 予約カードのバッジ配列を生成します。
  * @param {ReservationCore} booking - 予約データ
- * @returns {Array<{type: string, text: string}>} バッジ設定配列
+ * @returns {Array<{type: BadgeType, text: string}>} バッジ設定配列
  */
 export const _buildBookingBadges = booking => {
-  /** @type {Array<{type: string, text: string}>} */
+  /** @type {Array<{type: BadgeType, text: string}>} */
   const badges = [];
 
   if (booking.firstLecture) {

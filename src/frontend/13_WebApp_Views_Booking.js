@@ -234,11 +234,25 @@ export const getReservationFormView = () => {
     const firstLectureDisabled = !isEdit && isFirstTimeBooking;
 
     if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
+      /** @type {CheckboxConfig} */
+      const firstLectureCheckboxConfig = {
+        id: 'option-first-lecture',
+        label: CONSTANTS.ITEMS.FIRST_LECTURE,
+        checked:
+          firstLectureChecked !== undefined ? firstLectureChecked : false,
+        disabled: firstLectureDisabled,
+      };
+      /** @type {CheckboxConfig} */
+      const rentalCheckboxConfig = {
+        id: 'option-rental',
+        label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`,
+        checked: chiselRental !== undefined ? chiselRental : false,
+      };
       return `
         <div class="mt-4 pt-4 border-t-2">
           <h4 class="font-bold text-left mb-2">オプション</h4>
-          ${Components.checkbox({ id: 'option-first-lecture', label: CONSTANTS.ITEMS.FIRST_LECTURE, checked: firstLectureChecked, disabled: firstLectureDisabled })}
-          <div class="mt-2">${Components.checkbox({ id: 'option-rental', label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`, checked: chiselRental })}</div>
+          ${Components.checkbox(firstLectureCheckboxConfig)}
+          <div class="mt-2">${Components.checkbox(rentalCheckboxConfig)}</div>
         </div>`;
     }
     return '';
@@ -299,9 +313,9 @@ export const getReservationFormView = () => {
       style: 'danger',
       size: 'full',
       dataAttributes: {
-        reservationId: reservationInfo.reservationId,
-        classroom: reservationInfo.classroom,
-        date: String(reservationInfo.date),
+        reservationId: reservationInfo.reservationId || '',
+        classroom: reservationInfo.classroom || '',
+        date: reservationInfo.date ? String(reservationInfo.date) : '',
       },
     });
   }
@@ -327,7 +341,7 @@ export const getReservationFormView = () => {
         padding: 'spacious',
         content: `
           <div class="space-y-4 text-left">
-            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser.displayName}さん</p>
+            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.displayName : ''}さん</p>
             <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
             <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
             <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
