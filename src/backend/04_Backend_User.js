@@ -735,7 +735,7 @@ export function getLoggedInUser() {
  * 【開発用】全生徒キャッシュをクリアします。
  */
 export function clearAllStudentsCache_DEV() {
-  deleteCache(CACHE_KEYS.ALL_STUDENTS);
+  deleteCache(CACHE_KEYS.ALL_STUDENTS_BASIC);
   Logger.log('全生徒キャッシュをクリアしました。');
 }
 
@@ -744,7 +744,7 @@ export function clearAllStudentsCache_DEV() {
  * @param {string} studentId - 生徒ID
  */
 export function clearStudentCache_DEV(studentId) {
-  const cacheKey = `${CACHE_KEYS.STUDENT_DETAIL_PREFIX}${studentId}`;
+  const cacheKey = `student_detail_${studentId}`;
   deleteCache(cacheKey);
   Logger.log(`生徒キャッシュをクリアしました: ${studentId}`);
 }
