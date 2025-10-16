@@ -9,6 +9,9 @@ declare global {
     readonly ENVIRONMENT: {
       readonly PRODUCTION_MODE: boolean;
     };
+    readonly WEB_APP_URL: {
+      readonly PRODUCTION: string;
+    };
     readonly CLASSROOMS: {
       readonly TOKYO: string;
       readonly NUMAZU: string;

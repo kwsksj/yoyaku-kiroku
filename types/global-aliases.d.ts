@@ -173,10 +173,10 @@ declare global {
   type ActionHandlers = ____view_handlers_3;
   type ActionType = ____view_state_1;
   type ApiErrorResponse = ____core_common_3;
-  type ApiResponse = ____core_common_4;
-  type ApiResponseData = ____core_common_5;
-  type ApiResponseGeneric = ____core_common_6;
-  type ApiSuccessResponse = ____core_common_7;
+  type ApiResponse<T = any> = ____core_common_4<T>;
+  type ApiResponseData<T = any> = ____core_common_5;
+  type ApiResponseGeneric<T = any> = ____core_common_6<T>;
+  type ApiSuccessResponse<T = any> = ____core_common_7<T>;
   type AppInitialData = ____core_common_8;
   type AppState = ____view_state_2;
   type AsyncEventHandler = ____view_handlers_4;
@@ -273,10 +273,10 @@ declare global {
   type ScheduleInfoParams = ____core_common_29;
   type ScheduleMasterData = ____core_common_30;
   type SelectConfig = ____view_components_26;
-  type ServerResponse = ____core_common_31;
+  type ServerResponse<T = any> = ____core_common_31<T>;
   type SessionCore = ____core_lesson_2;
-  type SheetDataResult = ____core_common_32;
-  type SheetSearchResult = ____core_common_33;
+  type SheetDataResult<T = RawSheetRow> = ____core_common_32<T>;
+  type SheetSearchResult<T = RawSheetRow> = ____core_common_33<T>;
   type SideEffect = ____view_state_8;
   type SimpleStateManager = ____view_state_9;
   type StateAction = ____view_state_10;
@@ -293,7 +293,7 @@ declare global {
   type TextStyles = ____view_design_system_11;
   type TextareaConfig = ____view_components_28;
   type TimeString = ____view_handlers_22;
-  type TransactionCallback = ____core_common_36;
+  type TransactionCallback<T> = ____core_common_36<T>;
   type TypedDocument = ____view_dom_10;
   type TypedFormElements = ____view_dom_11;
   type TypedHTMLFormElement = ____view_dom_12;
@@ -303,7 +303,7 @@ declare global {
   type UIComponentFunction = ____view_components_29;
   type UIEventData = ____view_handlers_23;
   type UIState = ____view_state_17;
-  type UnifiedApiResponse = ____core_common_37;
+  type UnifiedApiResponse<T = any> = ____core_common_37<T>;
   type UserCore = ____core_user_0;
   type UserFormConfig = ____view_components_30;
   type UserInteraction = ____view_handlers_24;

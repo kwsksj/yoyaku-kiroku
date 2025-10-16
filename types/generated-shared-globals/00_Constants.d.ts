@@ -3,6 +3,9 @@ export namespace CONSTANTS {
     namespace ENVIRONMENT {
         let PRODUCTION_MODE: boolean;
     }
+    namespace WEB_APP_URL {
+        let PRODUCTION: string;
+    }
     namespace CLASSROOMS {
         let TOKYO: string;
         let NUMAZU: string;

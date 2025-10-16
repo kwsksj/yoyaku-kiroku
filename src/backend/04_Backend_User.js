@@ -75,7 +75,7 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
 
   // 各プロパティを動的に設定
   for (const key in CONSTANTS.HEADERS.ROSTER) {
-    const headerName = CONSTANTS.HEADERS.ROSTER[key];
+    const headerName = /** @type {Record<string, string>} */ (CONSTANTS.HEADERS.ROSTER)[key];
     const colIdx = headers.indexOf(headerName);
 
     if (colIdx !== -1) {
@@ -426,11 +426,12 @@ export function updateUserProfile(userInfo) {
       // 更新対象の列と値をマッピング
       /** @type {Record<number, any>} */
       const updates = {};
+      const rosterHeaders = /** @type {Record<string, string>} */ (CONSTANTS.HEADERS.ROSTER);
       for (const key in userInfo) {
         if (key === 'studentId' || key === 'displayName') continue; // 更新対象外
 
         const headerName =
-          CONSTANTS.HEADERS.ROSTER[
+          rosterHeaders[
             key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
           ];
         if (headerName) {
@@ -551,9 +552,10 @@ export function registerNewUser(userData) {
         new Date();
 
       // userDataから対応する列に値を設定
+      const rosterHeaders = /** @type {Record<string, string>} */ (CONSTANTS.HEADERS.ROSTER);
       for (const key in userData) {
         const headerName =
-          CONSTANTS.HEADERS.ROSTER[
+          rosterHeaders[
             key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
           ];
         if (headerName && headerMap[headerName] !== undefined) {
