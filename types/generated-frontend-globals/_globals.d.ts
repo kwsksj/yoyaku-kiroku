@@ -108,6 +108,8 @@ declare global {
   const ComputedStateDataAlias: typeof import('.').ComputedStateDataAlias;
   const escapeHTML: typeof import('.').escapeHTML;
   const Components: {
+    readonly createBackButton: (action?: string, text?: string) => string;
+    readonly createSmartBackButton: (currentView: string) => string;
   };
   const getLoginView: typeof import('.').getLoginView;
   const getRegistrationStep1View: typeof import('.').getRegistrationStep1View;
@@ -147,10 +149,45 @@ declare global {
   const EMPTY_CLASSIFIED_ITEMS: typeof import('.').EMPTY_CLASSIFIED_ITEMS;
   const windowTyped: typeof import('.').windowTyped;
   const authActionHandlers: {
+    readonly login: () => any;
+    readonly processLoginWithValidatedPhone: (normalizedPhone: string) => void;
+    readonly goToStep2: () => any;
+    readonly backToStep1: () => void;
+    readonly goToStep3: () => void;
+    readonly backToStep2: () => void;
+    readonly proceedToStep4: () => void;
+    readonly backToStep3: () => void;
+    readonly submitRegistration: () => void;
+    readonly showEditProfile: () => void;
+    readonly saveProfile: () => any;
+    readonly goBackToLogin: () => void;
+    readonly requestAccountDeletion: () => void;
+    readonly showPrivacyPolicy: () => void;
+    readonly closePrivacyPolicy: () => void;
   };
   const historyActionHandlers: {
+    readonly expandHistoryCard: (d: ActionHandlerData) => void;
+    readonly closeEditMode: (d: ActionHandlerData) => void;
+    readonly saveInlineMemo: (d: ActionHandlerData) => void;
+    readonly saveAndCloseMemo: (d: any) => void;
+    readonly loadMoreHistory: () => void;
+    readonly showHistoryAccounting: (d: ActionHandlerData) => void;
   };
   const reservationActionHandlers: {
+    readonly cancel: (d: ActionHandlerData) => void;
+    readonly confirmBooking: () => void;
+    readonly goToEditReservation: (d: ActionHandlerData) => void;
+    readonly updateReservation: () => void;
+    readonly showClassroomModal: () => void;
+    readonly closeClassroomModal: () => void;
+    readonly selectClassroom: (d: ActionHandlerData) => void;
+    readonly updateLessonsAndGoToBooking: (classroomName: string) => void;
+    readonly fetchLatestLessonsData: (classroomName: string, newLessonsVersion: string | null) => void;
+    readonly bookLesson: (d: ActionHandlerData) => void;
+    readonly goBackToDashboard: () => void;
+    readonly goToDashboard: () => void;
+    readonly goBackToBooking: () => void;
+    readonly confirmWaitlistedReservation: (d: ActionHandlerData) => void;
   };
   const getElementSafely: typeof import('.').getElementSafely;
   const getInputElementSafely: typeof import('.').getInputElementSafely;

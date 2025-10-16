@@ -110,6 +110,30 @@ function buildNamespaceType(moduleDecl, sourceFile, indentLevel = 1) {
       continue;
     }
 
+    if (ts.isFunctionDeclaration(statement) && statement.name) {
+      const functionName = statement.name.getText(sourceFile);
+      const typeParams = statement.typeParameters
+        ? `<${statement.typeParameters.map(tp => tp.getText(sourceFile)).join(', ')}>`
+        : '';
+      const params = statement.parameters
+        .map(p => {
+          const paramName = p.name.getText(sourceFile);
+          const paramType = p.type
+            ? printer.printNode(ts.EmitHint.Unspecified, p.type, sourceFile).trim()
+            : 'any';
+          const optional = p.questionToken ? '?' : '';
+          const rest = p.dotDotDotToken ? '...' : '';
+          return `${rest}${paramName}${optional}: ${paramType}`;
+        })
+        .join(', ');
+      const returnType = statement.type
+        ? printer.printNode(ts.EmitHint.Unspecified, statement.type, sourceFile).trim()
+        : 'void';
+      const functionType = `${typeParams}(${params}) => ${returnType}`;
+      addDefinition(functionName, functionType);
+      continue;
+    }
+
     if (ts.isVariableStatement(statement)) {
       for (const declaration of statement.declarationList.declarations) {
         if (!ts.isIdentifier(declaration.name)) {

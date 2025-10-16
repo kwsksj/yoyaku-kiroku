@@ -161,6 +161,10 @@ declare global {
   const convertUserToRow: typeof import('.').convertUserToRow;
   const convertReservationToRow: typeof import('.').convertReservationToRow;
   const PerformanceLog: {
+    readonly debug: (message: string, ...args: any[]) => void;
+    readonly info: (message: string, ...args: any[]) => void;
+    readonly error: (message: string, ...args: any[]) => void;
+    readonly performance: (operation: string, startTime: number) => void;
   };
   const executeOperationAndGetLatestData: typeof import('.').executeOperationAndGetLatestData;
   const makeReservationAndGetLatestData: typeof import('.').makeReservationAndGetLatestData;
