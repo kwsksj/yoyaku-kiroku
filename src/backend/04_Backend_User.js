@@ -74,8 +74,8 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
   const student = {};
 
   // 各プロパティを動的に設定
-  for (const key in CONSTANTS.STUDENT_LIST_HEADERS) {
-    const headerName = CONSTANTS.STUDENT_LIST_HEADERS[key];
+  for (const key in CONSTANTS.HEADERS.ROSTER) {
+    const headerName = CONSTANTS.HEADERS.ROSTER[key];
     const colIdx = headers.indexOf(headerName);
 
     if (colIdx !== -1) {
@@ -108,13 +108,13 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
     row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.STUDENT_ID)],
   );
   student.realName = String(
-    row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.REAL_NAME)],
+    row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME)],
   );
   student.phone = String(
-    row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.PHONE)],
+    row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE)],
   );
   student.nickname = String(
-    row[headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.NICKNAME)],
+    row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME)],
   );
   student.displayName = student.nickname || student.realName;
   student.rowIndex = rowIndex; // 行番号を付与
@@ -275,37 +275,37 @@ export function getUserDetailForEdit(studentId) {
 
     // 各列のインデックスを取得
     const realNameColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.REAL_NAME,
+      CONSTANTS.HEADERS.ROSTER.REAL_NAME,
     );
     const nicknameColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.NICKNAME,
+      CONSTANTS.HEADERS.ROSTER.NICKNAME,
     );
-    const phoneColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.PHONE);
-    const emailColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.EMAIL);
+    const phoneColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
+    const emailColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
     const emailPreferenceColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.WANTS_EMAIL,
+      CONSTANTS.HEADERS.ROSTER.WANTS_EMAIL,
     );
     const scheduleNotificationPreferenceColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.WANTS_SCHEDULE_NOTIFICATION,
+      CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_NOTIFICATION,
     );
     const notificationDayColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.NOTIFICATION_DAY,
+      CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
     );
     const notificationHourColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.NOTIFICATION_HOUR,
+      CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
     );
     const addressColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.ADDRESS,
+      CONSTANTS.HEADERS.ROSTER.ADDRESS,
     );
     const ageGroupColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.AGE_GROUP,
+      CONSTANTS.HEADERS.ROSTER.AGE_GROUP,
     );
-    const genderColIdx = headers.indexOf(CONSTANTS.STUDENT_LIST_HEADERS.GENDER);
+    const genderColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.GENDER);
     const dominantHandColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.DOMINANT_HAND,
+      CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
     );
     const futureCreationsColIdx = headers.indexOf(
-      CONSTANTS.STUDENT_LIST_HEADERS.FUTURE_CREATIONS,
+      CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
     );
 
     // 値の取得と整形
@@ -430,7 +430,7 @@ export function updateUserProfile(userInfo) {
         if (key === 'studentId' || key === 'displayName') continue; // 更新対象外
 
         const headerName =
-          CONSTANTS.STUDENT_LIST_HEADERS[
+          CONSTANTS.HEADERS.ROSTER[
             key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
           ];
         if (headerName) {
@@ -447,7 +447,7 @@ export function updateUserProfile(userInfo) {
         userInfo.nickname !== targetStudent.nickname
       ) {
         const displayNameColIdx = headers.indexOf(
-          CONSTANTS.STUDENT_LIST_HEADERS.DISPLAY_NAME,
+          CONSTANTS.HEADERS.ROSTER.DISPLAY_NAME,
         );
         if (displayNameColIdx !== -1) {
           updates[displayNameColIdx] =
@@ -553,7 +553,7 @@ export function registerNewUser(userData) {
       // userDataから対応する列に値を設定
       for (const key in userData) {
         const headerName =
-          CONSTANTS.STUDENT_LIST_HEADERS[
+          CONSTANTS.HEADERS.ROSTER[
             key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
           ];
         if (headerName && headerMap[headerName] !== undefined) {
@@ -563,7 +563,7 @@ export function registerNewUser(userData) {
 
       // 表示名を決定
       const displayName = userData.nickname || userData.realName;
-      newRow[headerMap[CONSTANTS.STUDENT_LIST_HEADERS.DISPLAY_NAME]] =
+      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.DISPLAY_NAME]] =
         displayName;
 
       // シートに新しい行を追加
