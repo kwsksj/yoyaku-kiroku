@@ -75,7 +75,9 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
 
   // 各プロパティを動的に設定
   for (const key in CONSTANTS.HEADERS.ROSTER) {
-    const headerName = /** @type {Record<string, string>} */ (CONSTANTS.HEADERS.ROSTER)[key];
+    const headerName = /** @type {Record<string, string>} */ (
+      CONSTANTS.HEADERS.ROSTER
+    )[key];
     const colIdx = headers.indexOf(headerName);
 
     if (colIdx !== -1) {
@@ -110,9 +112,7 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
   student.realName = String(
     row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME)],
   );
-  student.phone = String(
-    row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE)],
-  );
+  student.phone = String(row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE)]);
   student.nickname = String(
     row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME)],
   );
@@ -274,12 +274,8 @@ export function getUserDetailForEdit(studentId) {
     }
 
     // 各列のインデックスを取得
-    const realNameColIdx = headers.indexOf(
-      CONSTANTS.HEADERS.ROSTER.REAL_NAME,
-    );
-    const nicknameColIdx = headers.indexOf(
-      CONSTANTS.HEADERS.ROSTER.NICKNAME,
-    );
+    const realNameColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
+    const nicknameColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
     const phoneColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
     const emailColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
     const emailPreferenceColIdx = headers.indexOf(
@@ -294,12 +290,8 @@ export function getUserDetailForEdit(studentId) {
     const notificationHourColIdx = headers.indexOf(
       CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
     );
-    const addressColIdx = headers.indexOf(
-      CONSTANTS.HEADERS.ROSTER.ADDRESS,
-    );
-    const ageGroupColIdx = headers.indexOf(
-      CONSTANTS.HEADERS.ROSTER.AGE_GROUP,
-    );
+    const addressColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.ADDRESS);
+    const ageGroupColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.AGE_GROUP);
     const genderColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.GENDER);
     const dominantHandColIdx = headers.indexOf(
       CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
@@ -426,7 +418,9 @@ export function updateUserProfile(userInfo) {
       // 更新対象の列と値をマッピング
       /** @type {Record<number, any>} */
       const updates = {};
-      const rosterHeaders = /** @type {Record<string, string>} */ (CONSTANTS.HEADERS.ROSTER);
+      const rosterHeaders = /** @type {Record<string, string>} */ (
+        CONSTANTS.HEADERS.ROSTER
+      );
       for (const key in userInfo) {
         if (key === 'studentId' || key === 'displayName') continue; // 更新対象外
 
@@ -552,7 +546,9 @@ export function registerNewUser(userData) {
         new Date();
 
       // userDataから対応する列に値を設定
-      const rosterHeaders = /** @type {Record<string, string>} */ (CONSTANTS.HEADERS.ROSTER);
+      const rosterHeaders = /** @type {Record<string, string>} */ (
+        CONSTANTS.HEADERS.ROSTER
+      );
       for (const key in userData) {
         const headerName =
           rosterHeaders[
@@ -565,8 +561,7 @@ export function registerNewUser(userData) {
 
       // 表示名を決定
       const displayName = userData.nickname || userData.realName;
-      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.NICKNAME]] =
-        displayName;
+      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.NICKNAME]] = displayName;
 
       // シートに新しい行を追加
       allStudentsSheet.appendRow(newRow);

@@ -168,8 +168,8 @@ export const getCompleteView = msg => {
   const state = viewsUtilsStateManager.getState();
   const classroom =
     state.accountingReservation?.classroom ||
-    state.selectedLesson?.schedule?.classroom ||
-    state.currentReservationFormContext?.lessonInfo?.schedule?.classroom ||
+    state.selectedLesson?.classroom ||
+    state.currentReservationFormContext?.lessonInfo?.classroom ||
     state.selectedClassroom;
 
   // 初回予約者かどうかを判定

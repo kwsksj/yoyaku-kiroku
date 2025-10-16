@@ -149,9 +149,9 @@ declare global {
   const EMPTY_CLASSIFIED_ITEMS: typeof import('.').EMPTY_CLASSIFIED_ITEMS;
   const windowTyped: typeof import('.').windowTyped;
   const authActionHandlers: {
-    readonly login: () => any;
+    readonly login: () => void;
     readonly processLoginWithValidatedPhone: (normalizedPhone: string) => void;
-    readonly goToStep2: () => any;
+    readonly goToStep2: () => void;
     readonly backToStep1: () => void;
     readonly goToStep3: () => void;
     readonly backToStep2: () => void;
@@ -159,7 +159,7 @@ declare global {
     readonly backToStep3: () => void;
     readonly submitRegistration: () => void;
     readonly showEditProfile: () => void;
-    readonly saveProfile: () => any;
+    readonly saveProfile: () => void;
     readonly goBackToLogin: () => void;
     readonly requestAccountDeletion: () => void;
     readonly showPrivacyPolicy: () => void;

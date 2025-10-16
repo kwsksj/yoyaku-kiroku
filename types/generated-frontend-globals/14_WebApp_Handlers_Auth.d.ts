@@ -1,7 +1,7 @@
 export namespace authActionHandlers {
-    function login(): any;
+    function login(): void;
     function processLoginWithValidatedPhone(normalizedPhone: string): void;
-    function goToStep2(): any;
+    function goToStep2(): void;
     function backToStep1(): void;
     function goToStep3(): void;
     function backToStep2(): void;
@@ -9,7 +9,7 @@ export namespace authActionHandlers {
     function backToStep3(): void;
     function submitRegistration(): void;
     function showEditProfile(): void;
-    function saveProfile(): any;
+    function saveProfile(): void;
     function goBackToLogin(): void;
     function requestAccountDeletion(): void;
     function showPrivacyPolicy(): void;

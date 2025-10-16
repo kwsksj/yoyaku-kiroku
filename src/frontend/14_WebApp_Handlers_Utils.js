@@ -146,23 +146,18 @@ export function getTimeValue(elementId, reservationData, timeField) {
 
     // セッション制教室の場合、スケジュール情報から取得
     const classroomType =
-      /** @type {any} */ (selectedLesson).schedule?.classroomType ||
       /** @type {any} */ (selectedLesson).classroomType;
     if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
       if (timeField === 'startTime') {
         return (
-          selectedLesson.schedule?.firstStart ||
-          selectedLesson.schedule?.secondStart ||
-          /** @type {any} */ (selectedLesson).firstStart ||
-          /** @type {any} */ (selectedLesson).secondStart ||
+          selectedLesson.firstStart ||
+          selectedLesson.secondStart ||
           ''
         );
       } else if (timeField === 'endTime') {
         return (
-          selectedLesson.schedule?.firstEnd ||
-          selectedLesson.schedule?.secondEnd ||
-          /** @type {any} */ (selectedLesson).firstEnd ||
-          /** @type {any} */ (selectedLesson).secondEnd ||
+          selectedLesson.firstEnd ||
+          selectedLesson.secondEnd ||
           ''
         );
       }

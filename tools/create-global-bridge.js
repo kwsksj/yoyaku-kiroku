@@ -119,7 +119,9 @@ function buildNamespaceType(moduleDecl, sourceFile, indentLevel = 1) {
         .map(p => {
           const paramName = p.name.getText(sourceFile);
           const paramType = p.type
-            ? printer.printNode(ts.EmitHint.Unspecified, p.type, sourceFile).trim()
+            ? printer
+                .printNode(ts.EmitHint.Unspecified, p.type, sourceFile)
+                .trim()
             : 'any';
           const optional = p.questionToken ? '?' : '';
           const rest = p.dotDotDotToken ? '...' : '';
@@ -127,7 +129,9 @@ function buildNamespaceType(moduleDecl, sourceFile, indentLevel = 1) {
         })
         .join(', ');
       const returnType = statement.type
-        ? printer.printNode(ts.EmitHint.Unspecified, statement.type, sourceFile).trim()
+        ? printer
+            .printNode(ts.EmitHint.Unspecified, statement.type, sourceFile)
+            .trim()
         : 'void';
       const functionType = `${typeParams}(${params}) => ${returnType}`;
       addDefinition(functionName, functionType);
@@ -142,11 +146,7 @@ function buildNamespaceType(moduleDecl, sourceFile, indentLevel = 1) {
 
         const typeText = declaration.type
           ? printer
-              .printNode(
-                ts.EmitHint.Unspecified,
-                declaration.type,
-                sourceFile,
-              )
+              .printNode(ts.EmitHint.Unspecified, declaration.type, sourceFile)
               .trim()
           : 'any';
 

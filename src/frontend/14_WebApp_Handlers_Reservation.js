@@ -707,7 +707,7 @@ export const reservationActionHandlers = {
   goBackToBooking: () => {
     const targetClassroom =
       reservationStateManager.getState().currentReservationFormContext
-        ?.lessonInfo.schedule.classroom ||
+        ?.lessonInfo.classroom ||
       reservationStateManager.getState().selectedClassroom;
 
     // StateManagerのキャッシュ判定を優先

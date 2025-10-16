@@ -50,4 +50,4 @@ export function getScheduleInfoFromCache(date: string, classroom: string): Promi
  */
 export function getScheduleDataFromLessons(reservation: ReservationCore): ScheduleInfo | null;
 export function detectEnvironment(): string;
-export function getEnvironmentData(dataType: string, fallback?: unknown): any;
+export function getEnvironmentData(dataType: string, fallback?: unknown): unknown;

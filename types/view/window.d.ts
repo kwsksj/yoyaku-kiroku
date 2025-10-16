@@ -79,14 +79,14 @@ export interface PageTransitionManager {
  * モーダルマネージャー
  */
 export interface ModalManager {
+  onConfirmCallback: (() => void) | null;
   show(config: any): void;
   hide(): void;
   showConfirm(config: any): void;
   showInfo(message: string, title?: string): void;
-  setCallback?(callback: () => void): void;
-  clearCallback?(): void;
-  executeCallback?(): void;
-  [key: string]: any;
+  setCallback(callback: () => void): void;
+  clearCallback(): void;
+  executeCallback(): void;
 }
 
 declare global {

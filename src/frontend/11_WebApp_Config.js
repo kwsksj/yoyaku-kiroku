@@ -28,7 +28,7 @@
 // Googleサイト埋め込み環境の検出と調整
 const appWindow = /** @type {any} */ (window);
 
-/** @type {EmbedConfig} */
+/** @type {import('../../types/view/window').EmbedConfig} */
 const embedConfig = (appWindow.EmbedConfig = {
   // Googleサイトのヘッダー高さ検出
   detectGoogleSiteOffset: () => {
@@ -1042,7 +1042,7 @@ export const setupFontLoadingDetection = () => {
 // Page Transition & Content Loading Management
 // =================================================================
 export const setupPageTransitionManagement =
-  /** @type {() => PageTransitionManager} */ (
+  /** @type {() => import('../../types/view/window').PageTransitionManager} */ (
     () => {
       let currentView = /** @type {ViewType | null} */ (null);
       let previousScrollPosition = 0;
@@ -1124,7 +1124,7 @@ export const setupPageTransitionManagement =
         }
       };
 
-      return /** @type {PageTransitionManager} */ ({
+      return /** @type {import('../../types/view/window').PageTransitionManager} */ ({
         // PageTransitionManagerインターフェース準拠
         onPageTransition: (/** @type {ViewType} */ newView) => {
           handleViewChange(newView, false);

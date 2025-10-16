@@ -92,6 +92,7 @@ export interface InputConfig {
   inputMode?: string;
   autocomplete?: string;
   customClass?: string;
+  containerClass?: string;
   dataAttributes?: Record<string, string | number | boolean>;
   disabled?: boolean;
 }
@@ -142,6 +143,25 @@ export interface CheckboxConfig {
   onChange?: string;
   customLabelClass?: string;
   required?: boolean;
+}
+
+/**
+ * ラジオボタングループ設定
+ */
+export interface RadioGroupConfig {
+  name: string;
+  label?: string;
+  options: Array<{ value: string; label: string; checked?: boolean }>;
+}
+
+/**
+ * 時刻選択オプション設定
+ */
+export interface TimeOptionsConfig {
+  startTime: string;
+  endTime: string;
+  interval: number;
+  selectedValue?: string;
 }
 
 // =================================================================
@@ -210,6 +230,23 @@ export interface ActionButtonSectionConfig {
   dangerButton?: ButtonConfig;
   layout?: 'vertical' | 'horizontal';
   spacing?: 'compact' | 'normal' | 'spacious';
+}
+
+/**
+ * セクションヘッダー設定
+ */
+export interface SectionHeaderConfig {
+  title: string;
+  asSummary?: boolean;
+}
+
+/**
+ * 小計セクション設定
+ */
+export interface SubtotalSectionConfig {
+  title: string;
+  amount: number;
+  id?: string;
 }
 
 // =================================================================
@@ -458,10 +495,13 @@ declare global {
     createBackButton: (action?: string, text?: string) => string;
     createSmartBackButton: (currentView: ViewType, appState?: UIState) => string;
 
-    // その他
-    [key: string]:
-      | ((...args: any[]) => string)
-      | ((...args: any[]) => void);
+    // フォーム関連の追加コンポーネント
+    radioGroup: (config: RadioGroupConfig) => string;
+    timeOptions: (config: TimeOptionsConfig) => string;
+
+    // UI要素の追加コンポーネント
+    sectionHeader: (config: SectionHeaderConfig) => string;
+    subtotalSection: (config: SubtotalSectionConfig) => string;
   }
 
   var Components: ComponentsObject;

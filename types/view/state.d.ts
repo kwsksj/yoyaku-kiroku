@@ -235,7 +235,7 @@ export interface StateAction {
   payload?: StateActionPayload;
 }
 
-export type ActionType = 'SET_STATE' | 'UPDATE_STATE' | 'CHANGE_VIEW' | 'NAVIGATE';
+export type ActionType = 'SET_STATE' | 'UPDATE_STATE' | 'CHANGE_VIEW' | 'NAVIGATE' | 'LOGOUT';
 
 export interface StateActionPayload {
   to?: ViewType;
@@ -300,7 +300,8 @@ export interface SimpleStateManager {
   dispatch(action: StateAction): void;
   getState(): UIState;
   subscribe(callback: StateSubscriber): () => void;
-  startEditMode(reservationId: string): void;
+  startEditMode(reservationId: string, originalMemo?: string): void;
+  updateMemoInputChanged(reservationId: string, currentValue: string): void;
   endEditMode(reservationId: string): void;
   isInEditMode(reservationId: string): boolean;
   clearAllEditModes(): void;
