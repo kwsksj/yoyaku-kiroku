@@ -283,10 +283,10 @@ export function getUserDetailForEdit(studentId) {
     const phoneColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
     const emailColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
     const emailPreferenceColIdx = headers.indexOf(
-      CONSTANTS.HEADERS.ROSTER.WANTS_EMAIL,
+      CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL,
     );
     const scheduleNotificationPreferenceColIdx = headers.indexOf(
-      CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_NOTIFICATION,
+      CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
     );
     const notificationDayColIdx = headers.indexOf(
       CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
@@ -447,7 +447,7 @@ export function updateUserProfile(userInfo) {
         userInfo.nickname !== targetStudent.nickname
       ) {
         const displayNameColIdx = headers.indexOf(
-          CONSTANTS.HEADERS.ROSTER.DISPLAY_NAME,
+          CONSTANTS.HEADERS.ROSTER.NICKNAME,
         );
         if (displayNameColIdx !== -1) {
           updates[displayNameColIdx] =
@@ -563,7 +563,7 @@ export function registerNewUser(userData) {
 
       // 表示名を決定
       const displayName = userData.nickname || userData.realName;
-      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.DISPLAY_NAME]] =
+      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.NICKNAME]] =
         displayName;
 
       // シートに新しい行を追加
