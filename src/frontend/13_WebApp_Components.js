@@ -743,16 +743,13 @@ export const Components = {
               `<option value="${escapeHTML(m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME])}" ${type === m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] ? 'selected' : ''}>${escapeHTML(m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME])}</option>`,
           )
           .join('');
+      } else {
+        console.warn(
+          '⚠️ 会計マスタデータが利用できません。材料リストが表示されません。',
+        );
       }
-    } catch (e) {
-      // フォールバック: 静的オプション
-      const staticOptions = ['桂', 'シナ', '檜', '楠', '桜', '朴', 'その他'];
-      materialOptions = staticOptions
-        .map(
-          option =>
-            `<option value="${option}" ${type === option ? 'selected' : ''}>${option}</option>`,
-        )
-        .join('');
+    } catch (error) {
+      console.error('❌ 材料オプション生成エラー:', error.message);
     }
 
     return `<div data-material-row-index="${index}">

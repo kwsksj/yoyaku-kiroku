@@ -725,6 +725,130 @@ export function getLoggedInUser() {
 }
 
 // =================================================================
+// ★★★ アカウント退会処理 ★★★
+// =================================================================
+
+/**
+ * ユーザーアカウントを退会（電話番号無効化）します
+ * 電話番号にプレフィックスを追加してログイン不可にします
+ * @param {string} studentId - 生徒ID
+ * @returns {ApiResponseGeneric<{message: string}>}
+ */
+export function requestAccountDeletion(studentId) {
+  return withTransaction(() => {
+    try {
+      if (!studentId) {
+        return { success: false, message: '生徒IDが指定されていません。' };
+      }
+
+      const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
+      if (!rosterSheet) {
+        throw new Error('シート「生徒名簿」が見つかりません。');
+      }
+
+      // ヘッダー行を取得
+      const header = rosterSheet
+        .getRange(1, 1, 1, rosterSheet.getLastColumn())
+        .getValues()[0];
+
+      const studentIdColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+      );
+      const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
+
+      if (studentIdColIdx === -1) {
+        throw new Error('生徒名簿のヘッダーに「生徒ID」列が見つかりません。');
+      }
+
+      if (phoneColIdx === -1) {
+        throw new Error('生徒名簿のヘッダーに「電話番号」列が見つかりません。');
+      }
+
+      // 全データを取得
+      const lastRow = rosterSheet.getLastRow();
+      if (lastRow < 2) {
+        throw new Error('生徒名簿にデータがありません。');
+      }
+
+      const allData = rosterSheet
+        .getRange(2, 1, lastRow - 1, header.length)
+        .getValues();
+
+      // 該当ユーザーを検索
+      let targetRowIndex = -1;
+      let currentPhone = '';
+
+      for (let i = 0; i < allData.length; i++) {
+        if (allData[i][studentIdColIdx] === studentId) {
+          targetRowIndex = i + 2; // ヘッダーを考慮して+2
+          currentPhone = String(allData[i][phoneColIdx] || '');
+          break;
+        }
+      }
+
+      if (targetRowIndex === -1) {
+        return {
+          success: false,
+          message: '指定されたユーザーが見つかりません。',
+        };
+      }
+
+      // セキュリティチェック: 既に退会済みの場合はエラー
+      if (currentPhone.startsWith('_WITHDRAWN_')) {
+        return {
+          success: false,
+          message: 'このアカウントは既に退会済みです。',
+        };
+      }
+
+      // 電話番号を無効化（プレフィックス追加）
+      const withdrawnDate = Utilities.formatDate(
+        new Date(),
+        CONSTANTS.TIMEZONE,
+        'yyyyMMdd',
+      );
+      const newPhone = `_WITHDRAWN_${withdrawnDate}_${currentPhone}`;
+
+      rosterSheet.getRange(targetRowIndex, phoneColIdx + 1).setValue(newPhone);
+
+      // ログ記録
+      logActivity(
+        studentId,
+        'アカウント退会',
+        '成功',
+        `退会処理完了: studentId=${studentId}, 元電話番号=${currentPhone}`,
+      );
+
+      // キャッシュ更新
+      rebuildAllStudentsBasicCache();
+
+      Logger.log(
+        `requestAccountDeletion成功: studentId=${studentId}, 新電話番号=${newPhone}`,
+      );
+
+      return {
+        success: true,
+        data: {
+          message: '退会処理が完了しました。',
+        },
+      };
+    } catch (err) {
+      Logger.log(`requestAccountDeletion Error: ${err.message}`);
+      logActivity(
+        studentId || 'N/A',
+        'アカウント退会エラー',
+        '失敗',
+        `Error: ${err.message}`,
+      );
+      return {
+        success: false,
+        message: `サーバーエラーが発生しました。`,
+      };
+    }
+  });
+}
+
+// =================================================================
 // ★★★ 開発・テスト用関数 ★★★
 // =================================================================
 

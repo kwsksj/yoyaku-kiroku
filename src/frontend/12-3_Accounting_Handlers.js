@@ -1385,6 +1385,24 @@ export function handleSaveMemo(target) {
     showLoading('memo');
   }
 
+  // ユーザーIDを取得
+  const stateManager = getAccountingStateManager();
+  if (!stateManager) {
+    if (typeof hideLoading === 'function') {
+      hideLoading();
+    }
+    showInfo('アプリケーションの初期化が完了していません。', 'エラー');
+    return;
+  }
+  const studentId = stateManager.getState().currentUser?.studentId;
+  if (!studentId) {
+    if (typeof hideLoading === 'function') {
+      hideLoading();
+    }
+    showInfo('ユーザー情報が見つかりません。', 'エラー');
+    return;
+  }
+
   // バックエンドAPIコール
   if (typeof google !== 'undefined' && google.script && google.script.run) {
     google.script.run
@@ -1399,6 +1417,17 @@ export function handleSaveMemo(target) {
 
           // テキストエリアの値を更新
           textarea.value = newMemoText;
+
+          // 最新データで状態を更新（予約リストも更新される）
+          if (response.data) {
+            stateManager.dispatch({
+              type: 'UPDATE_STATE',
+              payload: {
+                myReservations: response.data.myReservations || [],
+                lessons: response.data.lessons || [],
+              },
+            });
+          }
         } else {
           showInfo(
             '制作メモの更新に失敗しました: ' + (response.message || ''),
@@ -1413,10 +1442,11 @@ export function handleSaveMemo(target) {
         console.error('制作メモ更新エラー:', error);
         showInfo('制作メモの更新に失敗しました。', 'エラー');
       })
-      .updateWorkInProgress({
-        reservationId: reservationId,
-        workInProgress: newMemoText,
-      });
+      .updateReservationMemoAndGetLatestData(
+        reservationId,
+        studentId,
+        newMemoText,
+      );
   } else {
     // Google Apps Script環境でない場合のフォールバック
     if (typeof hideLoading === 'function') {

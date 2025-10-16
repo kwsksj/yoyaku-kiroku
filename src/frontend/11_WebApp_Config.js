@@ -43,7 +43,7 @@ const embedConfig = (appWindow.EmbedConfig = {
           (window.parent.location.hostname.includes('sites.google.com') ||
             document.referrer.includes('sites.google.com') ||
             window.location.ancestorOrigins?.[0]?.includes('sites.google.com'));
-      } catch (e) {
+      } catch (_e) {
         // Cross-origin制限でアクセスできない場合は他の方法で判定
         isInGoogleSites =
           isInFrame &&
@@ -1203,7 +1203,7 @@ export const setupMobileOptimizations = () => {
       const embedParam = urlParams.get('embedded');
 
       return isInIframe || isFromGoogleSites || embedParam === 'true';
-    } catch (e) {
+    } catch (_e) {
       // Cross-origin制限でエラーが発生した場合、埋め込み環境と判定
       return true;
     }

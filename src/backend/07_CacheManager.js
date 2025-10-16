@@ -990,7 +990,9 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
                     'yyyy-MM-dd',
                   );
                 } catch (error) {
-                  Logger.log(`日付変換エラー: ${value}, 行をスキップ`);
+                  Logger.log(
+                    `日付変換エラー: ${value}, エラー: ${error.message}, 行をスキップ`,
+                  );
                   return null;
                 }
               } else if (value == null || value === '') {
@@ -1462,7 +1464,9 @@ export function updateScheduleStatusToCompleted() {
           const parsedDate = new Date(scheduleDate);
           isDatePast = parsedDate < today;
         } catch (error) {
-          Logger.log(`[ScheduleStatus] 日付解析エラー: ${scheduleDate}`);
+          Logger.log(
+            `[ScheduleStatus] 日付解析エラー: ${scheduleDate}, エラー: ${error.message}`,
+          );
           continue;
         }
       } else {

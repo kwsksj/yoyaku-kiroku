@@ -66,6 +66,7 @@ declare global {
   const loginUser: typeof import('.').loginUser;
   const logoutUser: typeof import('.').logoutUser;
   const getLoggedInUser: typeof import('.').getLoggedInUser;
+  const requestAccountDeletion: typeof import('.').requestAccountDeletion;
   const clearAllStudentsCache_DEV: typeof import('.').clearAllStudentsCache_DEV;
   const clearStudentCache_DEV: typeof import('.').clearStudentCache_DEV;
   const clearAllReservationsCache_DEV: typeof import('.').clearAllReservationsCache_DEV;

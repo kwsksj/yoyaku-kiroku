@@ -562,7 +562,7 @@ window.onload = function () {
 
     if (matched.dataset?.['action']) {
       const action = matched.dataset['action'];
-      const { action: _, ...data } = matched.dataset;
+      const { action: _action, ...data } = matched.dataset;
 
       // デバッグ情報を追加
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {

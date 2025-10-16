@@ -83,6 +83,15 @@ export function logoutUser(): ApiResponse;
  */
 export function getLoggedInUser(): ApiResponseGeneric<UserCore>;
 /**
+ * ユーザーアカウントを退会（電話番号無効化）します
+ * 電話番号にプレフィックスを追加してログイン不可にします
+ * @param {string} studentId - 生徒ID
+ * @returns {ApiResponseGeneric<{message: string}>}
+ */
+export function requestAccountDeletion(studentId: string): ApiResponseGeneric<{
+    message: string;
+}>;
+/**
  * 【開発用】全生徒キャッシュをクリアします。
  */
 export function clearAllStudentsCache_DEV(): void;

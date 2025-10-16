@@ -99,7 +99,7 @@ export const detectEnvironment = () => {
       return 'production';
     }
     return 'test';
-  } catch (error) {
+  } catch (_error) {
     return 'test';
   }
 };
