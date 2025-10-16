@@ -12,7 +12,7 @@
     "types:check:backend": "tsc --project tsconfig.check.backend.json",
     "types:check:frontend": "tsc --project tsconfig.check.frontend.json",
     "types:clean": "rm -rf types/generated-backend-globals types/generated-frontend-globals types/generated-shared-globals",
-    "types:generate": "npm run types:clean && npm run types:generate:shared && npm run types:generate:backend && npm run types:generate:frontend && npm run types:generate:bridge && npm run types:generate:index",
+    "types:generate": "npm run types:clean && npm run types:generate:shared && npm run types:generate:backend && npm run types:generate:frontend && npm run types:generate:index && npm run types:generate:bridge",
     "types:generate:shared": "tsc --project tsconfig.shared.dts.json",
     "types:generate:backend": "tsc --project tsconfig.backend.dts.json",
     "types:generate:frontend": "tsc --project tsconfig.frontend.dts.json",

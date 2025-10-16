@@ -184,3 +184,5 @@ declare var Session: GoogleAppsScript.Base.Session;
 declare var Utilities: GoogleAppsScript.Utilities.Utilities;
 declare var CacheService: GoogleAppsScript.Cache.CacheService;
 declare var DriveApp: GoogleAppsScript.Drive.DriveApp;
+
+export {};

@@ -33,9 +33,7 @@ export function getAllStudentsAsObject() {
 
   const allStudentsData = allStudentsSheet.getDataRange().getValues();
   const headers = allStudentsData[0];
-  const studentIdColIdx = headers.indexOf(
-    CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
-  );
+  const studentIdColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.STUDENT_ID);
 
   if (studentIdColIdx === -1) {
     throw new Error(
@@ -548,8 +546,7 @@ export function registerNewUser(userData) {
 
       // 新しい行データを作成
       const newRow = Array(headers.length).fill('');
-      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] =
-        newStudentId;
+      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] = newStudentId;
       newRow[headerMap[CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE]] =
         new Date();
 

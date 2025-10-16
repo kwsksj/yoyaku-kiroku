@@ -5,7 +5,7 @@
     // --- ベース設定 ---
     "target": "es2020",
     "lib": ["es2020", "dom"],
-    "module": "None", // モジュールなし = グローバルスコープの型定義を生成
+    //    "type": "module",
 
     // --- 型定義生成用の設定 ---
     "declaration": true, // .d.ts ファイルの生成を有効化
@@ -17,11 +17,9 @@
     "checkJs": false, // 型チェックは行わず、定義生成に専念
     "skipLibCheck": true // ライブラリの型チェックをスキップ
   },
-  "files": ["types/backend-index.d.ts", "types/gas-custom.d.ts"],
   "include": [
     // バックエンドのグローバル関数が定義されているファイルのみを対象にする
-    "src/backend/**/*.js",
-    "src/backend/*.js"
+    "src/backend/**/*.js"
   ],
   "exclude": ["node_modules", "build-output"]
 }

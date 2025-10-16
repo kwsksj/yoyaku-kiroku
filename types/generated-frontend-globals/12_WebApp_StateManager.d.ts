@@ -76,7 +76,7 @@ export class SimpleStateManager {
      * @param {string} reservationId - 予約ID
      * @param {string} currentValue - 現在のメモ内容
      */
-    updateMemoInputChanged(reservationId: string, currentValue: string): boolean;
+    updateMemoInputChanged(reservationId: string, currentValue: string): any;
     /**
      * 編集モードを終了する
      * @param {string} reservationId - 予約ID

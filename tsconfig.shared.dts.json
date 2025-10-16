@@ -1,12 +1,25 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
+
   "compilerOptions": {
+    // --- ベース設定 ---
+    "target": "es2020",
+    "lib": ["es2020", "dom"], // フロントエンドなので "dom" が必須
+    //    "type": "module",
+
+    // --- 型定義生成用の設定 ---
     "declaration": true,
     "emitDeclarationOnly": true,
-    "declarationDir": "./types/generated-shared-globals",
+    "declarationDir": "./types/generated-shared-globals", // 生成先ディレクトリを指定
+
+    // --- JSDoc解析のための設定 ---
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
     "skipLibCheck": true
   },
-  "include": ["src/shared/**/*.js"]
+  "include": [
+    // フロントエンドのグローバル関数が定義されているファイルのみを対象にする
+    "src/shared/**/*.js"
+  ],
+  "exclude": ["node_modules", "build-output"]
 }
