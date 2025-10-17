@@ -17,11 +17,11 @@
 export function getLessons(): ApiResponse<LessonCore[]>;
 /**
  * 空き枠を計算
- * @param {ScheduleMasterData} schedule
+ * @param {LessonCore} schedule
  * @param {ReservationCore[]} reservations
  * @returns {{first: number, second: number|undefined, beginner: number|null}}
  */
-export function calculateAvailableSlots(schedule: ScheduleMasterData, reservations: ReservationCore[]): {
+export function calculateAvailableSlots(schedule: LessonCore, reservations: ReservationCore[]): {
     first: number;
     second: number | undefined;
     beginner: number | null;

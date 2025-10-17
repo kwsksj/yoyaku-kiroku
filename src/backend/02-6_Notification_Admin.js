@@ -1,5 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
-
 /**
  * =================================================================
  * 【ファイル名】: 02-6_Notification_Admin.js
@@ -45,9 +43,7 @@ export function sendAdminNotification(subject, body) {
  * 予約操作の管理者通知（統一インターフェース）
  * @param {ReservationCore} reservation - 予約データ
  * @param {'created'|'cancelled'|'updated'} operationType - 操作種別
- * @param {Object} [additionalInfo] - 追加情報
- * @param {string} [additionalInfo.cancelMessage] - キャンセル理由
- * @param {string} [additionalInfo.updateDetails] - 更新詳細
+ * @param {{cancelMessage?: string, updateDetails?: string}} [additionalInfo] - 追加情報
  */
 export function sendAdminNotificationForReservation(
   reservation,
@@ -88,7 +84,7 @@ export function sendAdminNotificationForReservation(
  * @param {ReservationCore} reservation - 予約データ
  * @param {{realName: string, displayName: string}} student - 生徒情報
  * @param {'created'|'cancelled'|'updated'} operationType - 操作種別
- * @param {{cancelMessage?: string, updateDetails?: string}} additionalInfo - 追加情報
+ * @param {{cancelMessage?: string | undefined, updateDetails?: string | undefined}} additionalInfo - 追加情報
  * @returns {{subject: string, body: string}} 件名と本文
  * @private
  */

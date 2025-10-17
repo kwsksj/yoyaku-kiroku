@@ -1,7 +1,7 @@
 /**
  * 現在のアプリケーションの状態に基づいて、適切なビューを描画する
  * データ更新の必要性を判定し、必要に応じて最新データ取得後に再描画
- * stateManager.getState().viewの値に応じて対応するビュー関数を呼び出してUIを更新
+ * handlersStateManager.getState().viewの値に応じて対応するビュー関数を呼び出してUIを更新
  */
 export function render(): void;
 /**
@@ -26,8 +26,8 @@ export function handleAccountingFormChange(): void;
 export let actionHandlers: ActionHandlers;
 /** @type {ClassifiedAccountingItemsCore} */
 export const EMPTY_CLASSIFIED_ITEMS: ClassifiedAccountingItemsCore;
-/** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */
-export const windowTyped: Window & {
-    tempPaymentData?: TempPaymentData;
-    isProduction?: boolean;
-};
+/**
+ * フロントエンド専用のWindow拡張
+ * 主要な会計データとフラグを型安全に扱うためのラッパー
+ */
+export const windowTyped: any;

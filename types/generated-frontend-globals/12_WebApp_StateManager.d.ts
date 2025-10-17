@@ -139,3 +139,9 @@ export class SimpleStateManager {
      */
     updateLessonsVersion(newVersion: string): void;
 }
+export type StateManagerContract = SimpleStateManager;
+export type UIStateAlias = UIState;
+export type StateSubscriber = (newState: UIState, oldState: UIState) => void;
+export type StateActionAlias = StateAction;
+export type StateActionPayloadAlias = StateActionPayload;
+export type ComputedStateDataAlias = ComputedStateData;

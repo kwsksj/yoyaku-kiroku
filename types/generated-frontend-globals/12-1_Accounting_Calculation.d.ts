@@ -1,19 +1,10 @@
 /**
- * 会計システム - 計算ロジック層
- *
- * 責務:
- * - 会計マスタデータの分類
- * - 時間単位の計算
- * - 授業料・販売の小計計算
- * - 統合計算処理
- */
-/**
  * 会計マスタデータを項目種別に分類
- * @param {Array} masterData - 会計マスタデータ
+ * @param {AccountingMasterItemCore[]} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
  * @returns {ClassifiedAccountingItemsCore} 分類済み会計項目
  */
-export function classifyAccountingItems(masterData: any[], classroom: string): ClassifiedAccountingItemsCore;
+export function classifyAccountingItems(masterData: AccountingMasterItemCore[], classroom: string): ClassifiedAccountingItemsCore;
 /**
  * 時間単位の計算（30分刻み）
  * @param {string} startTime - 開始時刻 (HH:MM形式)
@@ -27,16 +18,22 @@ export function calculateTimeUnits(startTime: string, endTime: string, breakTime
  * @param {AccountingFormDto} formData - フォームデータ
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
- * @returns {Object} 授業料計算結果
+ * @returns {{ items: AccountingDetailsCore['tuition']['items']; subtotal: number }} 授業料計算結果
  */
-export function calculateTuitionSubtotal(formData: AccountingFormDto, classifiedItems: ClassifiedAccountingItemsCore, classroom: string): any;
+export function calculateTuitionSubtotal(formData: AccountingFormDto, classifiedItems: ClassifiedAccountingItemsCore, classroom: string): {
+    items: AccountingDetailsCore["tuition"]["items"];
+    subtotal: number;
+};
 /**
  * 販売小計計算
  * @param {AccountingFormDto} formData - フォームデータ
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
- * @returns {Object} 販売計算結果
+ * @returns {{ items: AccountingDetailsCore['sales']['items']; subtotal: number }} 販売計算結果
  */
-export function calculateSalesSubtotal(formData: AccountingFormDto, classifiedItems: ClassifiedAccountingItemsCore): any;
+export function calculateSalesSubtotal(formData: AccountingFormDto, classifiedItems: ClassifiedAccountingItemsCore): {
+    items: AccountingDetailsCore["sales"]["items"];
+    subtotal: number;
+};
 /**
  * 統合計算
  *
@@ -45,8 +42,8 @@ export function calculateSalesSubtotal(formData: AccountingFormDto, classifiedIt
  * 時間計算済みの項目に置き換える必要があるためです。
  *
  * @param {AccountingFormDto} formData - フォームデータ（この関数内で変更される）
- * @param {Array} masterData - 会計マスタデータ
+ * @param {AccountingMasterItemCore[]} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
- * @returns {Object} 統合計算結果
+ * @returns {AccountingDetailsCore} 統合計算結果
  */
-export function calculateAccountingTotal(formData: AccountingFormDto, masterData: any[], classroom: string): any;
+export function calculateAccountingTotal(formData: AccountingFormDto, masterData: AccountingMasterItemCore[], classroom: string): AccountingDetailsCore;

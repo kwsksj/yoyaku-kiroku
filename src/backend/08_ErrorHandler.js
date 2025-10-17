@@ -1,5 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
-
 /**
  * =================================================================
  * 【ファイル名】: 08_ErrorHandler.js
@@ -29,29 +27,14 @@ export class BackendErrorHandler {
     PerformanceLog.error(`${context}: ${error.message}`);
 
     // デバッグ環境でのみ詳細情報を出力
+    const errorInfo = this.buildErrorInfo(error, context, additionalInfo);
+
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      const errorInfo = {
-        message: error.message || 'Unknown error',
-        context: context,
-        type: error.constructor.name || 'Error',
-        additionalInfo: additionalInfo,
-      };
       PerformanceLog.debug(`詳細エラー情報: ${JSON.stringify(errorInfo)}`);
     }
 
     // 統一APIレスポンス形式で返却
-    return this.createErrorResponse(
-      error.message,
-      context,
-      /** @type {ErrorInfo} */ ({
-        type: error.constructor.name,
-        message: error.message,
-        stack: error.stack || '',
-        context: context || '',
-        timestamp: new Date().toISOString(),
-        additionalInfo: {},
-      }),
-    );
+    return this.createErrorResponse(error.message, context, errorInfo);
   }
 
   /**
@@ -62,14 +45,10 @@ export class BackendErrorHandler {
    * @returns {ApiErrorResponse} 統一APIレスポンス形式のエラーオブジェクト
    */
   static handleDetailed(error, context = '', additionalInfo = {}) {
-    const errorInfo = {
-      message: error.message || 'Unknown error',
+    const errorInfo = this.buildErrorInfo(error, context, {
+      ...additionalInfo,
       stack: error.stack || 'No stack trace available',
-      context: context,
-      timestamp: new Date().toISOString(),
-      additionalInfo: additionalInfo,
-      type: error.constructor.name || 'Error',
-    };
+    });
 
     // 重要なエラーの場合は常に詳細ログを出力
     Logger.log(`[CRITICAL_ERROR] ${context}: ${JSON.stringify(errorInfo)}`);
@@ -86,22 +65,27 @@ export class BackendErrorHandler {
    * @returns {ApiErrorResponse} 統一APIレスポンス
    */
   static createErrorResponse(message, context, errorInfo) {
+    const debugInfo = this.isDevelopmentMode()
+      ? {
+          ...(errorInfo.stack ? { stack: errorInfo.stack } : {}),
+          ...(errorInfo.type ? { type: errorInfo.type } : {}),
+          ...(errorInfo.additionalInfo &&
+          Object.keys(errorInfo.additionalInfo).length > 0
+            ? { additionalInfo: errorInfo.additionalInfo }
+            : {}),
+        }
+      : undefined;
+
     return {
       success: false,
       message: message || 'エラーが発生しました',
+      error: errorInfo,
       meta: {
         timestamp: new Date().toISOString(),
         context: context,
         errorId: this.generateErrorId(),
       },
-      // 開発環境でのみエラー詳細を含める
-      ...(this.isDevelopmentMode() && {
-        debug: {
-          stack: errorInfo.stack,
-          type: errorInfo.type,
-          additionalInfo: errorInfo.additionalInfo,
-        },
-      }),
+      ...(debugInfo ? { debug: debugInfo } : {}),
     };
   }
 
@@ -125,6 +109,31 @@ export class BackendErrorHandler {
   }
 
   /**
+   * ErrorInfoオブジェクトを生成
+   * @param {Error} error - エラーオブジェクト
+   * @param {string} context - 発生コンテキスト
+   * @param {Record<string, unknown>} [additionalInfo={}] - 追加情報
+   * @returns {ErrorInfo}
+   */
+  static buildErrorInfo(error, context = '', additionalInfo = {}) {
+    /** @type {Record<string, unknown>} */
+    const safeAdditionalInfo =
+      additionalInfo && typeof additionalInfo === 'object'
+        ? additionalInfo
+        : {};
+
+    return {
+      code: error.name || 'Error',
+      message: error.message || 'Unknown error',
+      stack: error.stack || '',
+      context: context || '',
+      timestamp: new Date().toISOString(),
+      type: error.constructor.name || 'Error',
+      additionalInfo: safeAdditionalInfo,
+    };
+  }
+
+  /**
    * 重要なエラーについて管理者に通知
    * @param {ErrorInfo} errorInfo - エラー情報
    * @param {boolean} isCritical - 重要なエラーかどうか
@@ -137,23 +146,23 @@ export class BackendErrorHandler {
       ? ''
       : '[テスト]';
     const baseSubject = isCritical
-      ? `🚨 [重要] システムエラー: ${errorInfo.context}`
-      : `⚠️ システムエラー: ${errorInfo.context}`;
+      ? `🚨 [重要] システムエラー: ${errorInfo.context || ''}`
+      : `⚠️ システムエラー: ${errorInfo.context || ''}`;
     const subject = `${subjectPrefix}${baseSubject}`;
 
     const body = `
 システムエラーが発生しました。
 
-【発生日時】: ${errorInfo.timestamp}
-【コンテキスト】: ${errorInfo.context}
+【発生日時】: ${errorInfo.timestamp || 'N/A'}
+【コンテキスト】: ${errorInfo.context || 'N/A'}
 【エラーメッセージ】: ${errorInfo.message}
-【エラータイプ】: ${errorInfo.type}
+【エラータイプ】: ${errorInfo.type || 'Error'}
 
 【スタックトレース】:
-${errorInfo.stack}
+${errorInfo.stack || 'N/A'}
 
 【追加情報】:
-${JSON.stringify(errorInfo.additionalInfo, null, 2)}
+${JSON.stringify(errorInfo.additionalInfo || {}, null, 2)}
 
 このメールは自動送信されています。
     `;

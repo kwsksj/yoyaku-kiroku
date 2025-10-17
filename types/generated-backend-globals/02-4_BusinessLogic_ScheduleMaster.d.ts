@@ -10,14 +10,14 @@
  * フロントエンドから呼び出されるAPI関数
  * @param {string} fromDate - 取得開始日（YYYY-MM-DD形式）
  * @param {string} toDate - 取得終了日（YYYY-MM-DD形式、オプション）
- * @returns {ScheduleDataArray} 開催日程データの配列
+ * @returns {LessonCore[]} 開催日程データの配列
  */
-export function getAllScheduledDates(fromDate: string, toDate: string): ScheduleDataArray;
+export function getAllScheduledDates(fromDate: string, toDate: string): LessonCore[];
 /**
  * キャッシュデータから日付範囲でフィルタリングする
- * @param {ScheduleDataArray} schedules - 日程データ配列
+ * @param {LessonCore[]} schedules - 日程データ配列
  * @param {string} fromDate - 開始日（YYYY-MM-DD形式）
  * @param {string} toDate - 終了日（YYYY-MM-DD形式、オプション）
- * @returns {ScheduleDataArray} フィルタリングされた日程データ配列
+ * @returns {LessonCore[]} フィルタリングされた日程データ配列
  */
-export function filterSchedulesByDateRange(schedules: ScheduleDataArray, fromDate: string, toDate: string): ScheduleDataArray;
+export function filterSchedulesByDateRange(schedules: LessonCore[], fromDate: string, toDate: string): LessonCore[];

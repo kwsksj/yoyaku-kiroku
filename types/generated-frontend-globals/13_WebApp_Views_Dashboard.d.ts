@@ -6,10 +6,10 @@ export function updateSingleHistoryCard(reservationId: string): void;
 /**
  * メモセクションのみを更新（DOM直接操作）
  * @param {string} reservationId - 予約ID
- * @param {ReservationData} historyItem - 履歴データ
+ * @param {ReservationCore} historyItem - 履歴データ
  * @param {boolean} isInEditMode - 編集モード状態
  */
-export function _updateMemoSection(reservationId: string, historyItem: ReservationData, isInEditMode: boolean): void;
+export function _updateMemoSection(reservationId: string, historyItem: ReservationCore, isInEditMode: boolean): void;
 /**
  * 統一されたテキストエリアID生成
  * @param {string} reservationId - 予約ID
@@ -27,12 +27,12 @@ export function _attachMemoEventListeners(reservationId: string): void;
  */
 export function _updateHistoryCardButton(reservationId: string): void;
 export function getDashboardView(): string;
-export function _buildEditButtons(booking: ReservationData): Array<any>;
-export function _buildAccountingButtons(booking: ReservationData): Array<any>;
+export function _buildEditButtons(booking: ReservationCore): Array<any>;
+export function _buildAccountingButtons(booking: ReservationCore): Array<any>;
 export function _buildHistoryEditButtons(isInEditMode?: boolean, reservationId?: string): Array<any>;
-export function _buildHistoryAccountingButtons(historyItem: ReservationData): Array<any>;
-export function _buildBookingBadges(booking: ReservationData): Array<{
-    type: string;
+export function _buildHistoryAccountingButtons(historyItem: ReservationCore): Array<any>;
+export function _buildBookingBadges(booking: ReservationCore): Array<{
+    type: BadgeType;
     text: string;
 }>;
-export function _checkIfLessonAvailable(booking: ReservationData): boolean;
+export function _checkIfLessonAvailable(booking: ReservationCore): boolean;

@@ -1,4 +1,9 @@
-/// <reference path="../../types/frontend-index.d.ts" />
+/**
+ * @typedef {{ type: string; l?: number; w?: number; h?: number; }} MaterialFormEntry
+ * @typedef {{ name: string; price: number; }} ProductSelectionEntry
+ * @typedef {{ name?: string; price?: number; }} CustomSalesEntry
+ */
+
 /**
  * 会計システム - UI生成層
  *
@@ -9,7 +14,6 @@
  * - 支払い方法UI生成
  * - 会計画面全体のレイアウト生成
  */
-
 
 // ================================================================================
 // 【UI生成層】（Components.js活用）
@@ -41,22 +45,18 @@ export function generateTuitionSection(
   classroom,
   formData = {},
 ) {
-  // 基本授業料の定数リスト
-  const BASE_TUITION_ITEMS = [
-    CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
-    CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
-    CONSTANTS.ITEMS.MAIN_LECTURE, // 後方互換性のため残す
-  ];
+  const { baseItems, additionalItems } = classifiedItems.tuition;
 
   // 基本授業料項目を取得
-  const baseItem = classifiedItems.tuition.items.find(item => {
-    const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-    const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
-    return (
-      BASE_TUITION_ITEMS.includes(itemName) &&
-      (targetClassroom === classroom || targetClassroom.includes(classroom))
-    );
-  });
+  const baseItem = baseItems.find(
+    (/** @type {AccountingMasterItemCore} */ item) => {
+      const targetClassroom =
+        item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
+      return (
+        targetClassroom === classroom || targetClassroom.includes(classroom)
+      );
+    },
+  );
 
   if (!baseItem) {
     return `<section class="tuition-section">
@@ -129,16 +129,11 @@ export function generateTuitionSection(
 
   // その他の授業料・割引項目UI生成
   let otherItemsHtml = '';
-  const otherItems = classifiedItems.tuition.items.filter(
-    item =>
-      !BASE_TUITION_ITEMS.includes(
-        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
-      ),
-  );
+  const otherItems = additionalItems;
 
   if (otherItems.length > 0) {
     otherItemsHtml = '<div class="other-tuition mb-4 space-y-1">';
-    otherItems.forEach(item => {
+    otherItems.forEach((/** @type {AccountingMasterItemCore} */ item) => {
       const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
       const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
       const isChecked = formData.checkedItems?.[itemName] || false;
@@ -189,30 +184,29 @@ export function generateTuitionSection(
 
 /**
  * 材料行生成（Components.js活用）
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  * @param {number} index - 行インデックス
- * @param {Object} materialData - 既存の材料データ
+ * @param {MaterialFormEntry=} materialData - 既存の材料データ
  * @returns {string} HTML文字列
  */
-export function generateMaterialRow(
-  materialItems,
-  index = 0,
-  materialData = {},
-) {
+export function generateMaterialRow(materialItems, index = 0, materialData) {
+  /** @type {MaterialFormEntry | undefined} */
+  const data = materialData;
+
   // 材料選択肢を生成
   let materialOptions = '<option value="">おえらびください</option>';
-  materialItems.forEach(item => {
+  materialItems.forEach((/** @type {AccountingMasterItemCore} */ item) => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-    const selected = materialData.type === itemName ? 'selected' : '';
+    const selected = data?.type === itemName ? 'selected' : '';
     materialOptions += `<option value="${escapeHTML(itemName)}" ${selected}>${escapeHTML(itemName)}</option>`;
   });
 
   // 体積計算材料の場合のサイズ入力
   const showSizeInputs =
-    materialData.type &&
+    data?.type &&
     materialItems.find(
       item =>
-        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === materialData.type &&
+        item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === data.type &&
         item[CONSTANTS.HEADERS.ACCOUNTING.UNIT] === 'cm³',
     );
 
@@ -222,7 +216,7 @@ export function generateMaterialRow(
       <input
         type="number"
         id="material-length-${index}"
-        value="${materialData.l ?? ''}"
+        value="${data?.l ?? ''}"
         placeholder="x"
         class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
@@ -230,7 +224,7 @@ export function generateMaterialRow(
       <input
         type="number"
         id="material-width-${index}"
-        value="${materialData.w ?? ''}"
+        value="${data?.w ?? ''}"
         placeholder="y"
         class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
@@ -238,7 +232,7 @@ export function generateMaterialRow(
       <input
         type="number"
         id="material-height-${index}"
-        value="${materialData.h ?? ''}"
+        value="${data?.h ?? ''}"
         placeholder="z"
         class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
       >
@@ -272,14 +266,19 @@ export function generateMaterialRow(
  * @returns {string} HTML文字列
  */
 export function generateSalesSection(classifiedItems, formData = {}) {
+  const form = /** @type {AccountingFormDto} */ (formData || {});
+
   // 材料代セクション
   let materialsHtml = '';
   if (classifiedItems.sales.materialItems.length > 0) {
+    const initialMaterial = Array.isArray(form.materials)
+      ? form.materials[0]
+      : undefined;
     materialsHtml = `
       <div class="materials mb-6">
         <h4 class="font-medium text-brand-text mb-3">材料</h4>
         <div id="materials-container">
-          ${generateMaterialRow(classifiedItems.sales.materialItems, 0, formData.materials?.[0] || {})}
+          ${generateMaterialRow(classifiedItems.sales.materialItems, 0, initialMaterial)}
         </div>
       </div>`;
   }
@@ -288,15 +287,24 @@ export function generateSalesSection(classifiedItems, formData = {}) {
   let productsHtml = '';
   if (classifiedItems.sales.productItems.length > 0) {
     // 自由入力物販の初期行を生成
+    const customSalesSource = Array.isArray(form.customSales)
+      ? form.customSales
+      : [];
     const customSalesRows = generateCustomSalesRows(
-      formData.customSales || [{}],
+      customSalesSource.length > 0
+        ? customSalesSource
+        : [/** @type {CustomSalesEntry} */ ({})],
     );
+
+    const initialProduct = Array.isArray(form.selectedProducts)
+      ? form.selectedProducts[0]
+      : undefined;
 
     productsHtml = `
       <div class="products mb-6">
         <h4 class="font-medium text-brand-text mb-3">物販</h4>
         <div id="products-container">
-          ${generateProductRow(classifiedItems.sales.productItems, 0, formData.selectedProducts?.[0] || {})}
+          ${generateProductRow(classifiedItems.sales.productItems, 0, initialProduct)}
         </div>
         <div class="custom-sales-divider mb-2">
         </div>
@@ -330,18 +338,20 @@ export function generateSalesSection(classifiedItems, formData = {}) {
 
 /**
  * 物販行生成（Components.js活用）
- * @param {Array} productItems - 物販項目配列
+ * @param {AccountingMasterItemCore[]} productItems - 物販項目配列
  * @param {number} index - 行インデックス
- * @param {Object} productData - 既存の物販データ
+ * @param {ProductSelectionEntry=} productData - 既存の物販データ
  * @returns {string} HTML文字列
  */
-export function generateProductRow(productItems, index = 0, productData = {}) {
+export function generateProductRow(productItems, index = 0, productData) {
+  /** @type {ProductSelectionEntry | undefined} */
+  const data = productData;
   // 物販選択肢を生成
   let productOptions = '<option value="">おえらびください</option>';
-  productItems.forEach(item => {
+  productItems.forEach((/** @type {AccountingMasterItemCore} */ item) => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
     const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
-    const selected = productData.name === itemName ? 'selected' : '';
+    const selected = data?.name === itemName ? 'selected' : '';
     productOptions += `<option value="${escapeHTML(itemName)}" data-price="${price}" ${selected}>${escapeHTML(itemName)} ${Components.priceDisplay({ amount: price })}</option>`;
   });
 
@@ -357,7 +367,7 @@ export function generateProductRow(productItems, index = 0, productData = {}) {
           </select>
         </div>
         <div class="price-display">
-          <span id="product-price-${index}" class="font-bold">${Components.priceDisplay({ amount: productData.price || 0 })}</span>
+          <span id="product-price-${index}" class="font-bold">${Components.priceDisplay({ amount: data?.price || 0 })}</span>
         </div>
       </div>
     </div>`;
@@ -365,19 +375,26 @@ export function generateProductRow(productItems, index = 0, productData = {}) {
 
 /**
  * 自由入力物販行群生成
- * @param {Array} customSalesData - 自由入力物販データ配列
+ * @param {CustomSalesEntry[]} customSalesData - 自由入力物販データ配列
  * @returns {string} HTML文字列
  */
-export function generateCustomSalesRows(customSalesData = [{}]) {
-  return customSalesData
-    .map((itemData, index) => generateCustomSalesRow(index, itemData))
+export function generateCustomSalesRows(customSalesData = []) {
+  const rows =
+    customSalesData.length > 0
+      ? customSalesData
+      : [/** @type {CustomSalesEntry} */ ({})];
+
+  return rows
+    .map((itemData, index) =>
+      generateCustomSalesRow(index, /** @type {CustomSalesEntry} */ (itemData)),
+    )
     .join('');
 }
 
 /**
  * 自由入力物販行生成（物販行と同じデザイン）
  * @param {number} index - 行インデックス
- * @param {Object} itemData - 既存のアイテムデータ
+ * @param {CustomSalesEntry} [itemData={}] - 既存のアイテムデータ
  * @returns {string} HTML文字列
  */
 export function generateCustomSalesRow(index = 0, itemData = {}) {
@@ -414,7 +431,7 @@ export function generateCustomSalesRow(index = 0, itemData = {}) {
 
 /**
  * 会計画面用よやくカード生成（ボタン非表示、制作メモ編集モード）
- * @param {ReservationCore} reservationData - 予約データ
+ * @param {ReservationCore | null} reservationData - 予約データ
  * @returns {string} HTML文字列
  */
 export function generateAccountingReservationCard(reservationData) {
@@ -426,6 +443,8 @@ export function generateAccountingReservationCard(reservationData) {
   return Components.listCard({
     item: {
       reservationId: reservationData.reservationId || '',
+      studentId: reservationData.studentId || '',
+      status: reservationData.status || '',
       date: reservationData.date || '',
       startTime: reservationData.startTime || '',
       endTime: reservationData.endTime || '',
@@ -447,7 +466,7 @@ export function generateAccountingReservationCard(reservationData) {
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  * @param {AccountingFormDto} formData - フォームデータ
- * @param {Object} reservationData - 予約データ（講座基本情報表示用）
+ * @param {ReservationCore | null} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} HTML文字列
  */
 export function generateAccountingView(

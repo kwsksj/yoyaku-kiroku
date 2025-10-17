@@ -34,6 +34,11 @@ export const CONSTANTS = {
     PRODUCTION_MODE: false, // ビルド時に自動置換される
   },
 
+  // WebアプリケーションURL
+  WEB_APP_URL: {
+    PRODUCTION: 'https://www.kibori-class.net/booking',
+  },
+
   /**
    * 教室名定数
    */

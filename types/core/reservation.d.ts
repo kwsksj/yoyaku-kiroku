@@ -6,6 +6,9 @@
  * =================================================================
  */
 
+import type { AccountingDetailsCore } from './accounting';
+import type { UserCore } from './user';
+
 /**
  * 予約データの統一コア型
  *
@@ -24,7 +27,7 @@
  * };
  * ```
  */
-interface ReservationCore {
+export interface ReservationCore {
   // ========================================
   // 必須プロパティ
   // ========================================
@@ -49,54 +52,54 @@ interface ReservationCore {
   // ========================================
 
   /** 会場名 */
-  venue?: string;
+  venue?: string | undefined;
 
   /** 開始時刻（HH:mm形式、例: 13:00） */
-  startTime?: string;
+  startTime?: string | undefined;
 
   /** 終了時刻（HH:mm形式、例: 16:00） */
-  endTime?: string;
+  endTime?: string | undefined;
 
   // ========================================
   // 予約オプション
   // ========================================
 
   /** 彫刻刀レンタル */
-  chiselRental?: boolean;
+  chiselRental?: boolean | undefined;
 
   /** 初回講座フラグ */
-  firstLecture?: boolean;
+  firstLecture?: boolean | undefined;
 
   /** 制作メモ */
-  workInProgress?: string;
+  workInProgress?: string | undefined;
 
   /** 材料情報 */
-  materialInfo?: string;
+  materialInfo?: string | undefined;
 
   /** 注文内容 */
-  order?: string;
+  order?: string | undefined;
 
   /** 先生へのメッセージ */
-  messageToTeacher?: string;
+  messageToTeacher?: string | undefined;
 
   /** キャンセル理由 */
-  cancelMessage?: string;
+  cancelMessage?: string | undefined;
 
   // ========================================
   // 会計関連
   // ========================================
 
   /** 会計詳細（計算結果） */
-  accountingDetails?: AccountingDetailsCore | null;
+  accountingDetails?: AccountingDetailsCore | null | undefined;
 
   /** 割引適用フラグ */
-  discountApplied?: boolean | string;
+  discountApplied?: boolean | string | undefined;
 
   /** 計算時間（分） */
-  計算時間?: number;
+  計算時間?: number | undefined;
 
   /** 休憩時間（分） */
-  breakTime?: number;
+  breakTime?: number | undefined;
 
   // ========================================
   // 関連データ
@@ -108,7 +111,7 @@ interface ReservationCore {
    * - フロントエンドで reservation.user.displayName としてアクセス可能
    * - JavaScriptの参照なのでメモリ効率的
    */
-  user?: UserCore;
+  user?: UserCore | undefined;
 
   // ========================================
   // 動的プロパティ（material/otherSales系）
@@ -120,5 +123,3 @@ interface ReservationCore {
   /** その他販売品の動的プロパティ（otherSalesName0, otherSalesPrice0等） */
   [key: `otherSales${string}`]: string | number | undefined;
 }
-
-/// <reference path="./common.d.ts" />

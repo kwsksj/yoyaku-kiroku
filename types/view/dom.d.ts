@@ -13,14 +13,16 @@
 /**
  * meta要素の content プロパティ
  */
-declare interface HTMLMetaElement {
-  content: string;
+declare global {
+  interface HTMLMetaElement {
+    content: string;
+  }
 }
 
 /**
  * ID付きHTML要素（拡張）
  */
-interface HTMLElementWithId extends HTMLElement {
+export interface HTMLElementWithId extends HTMLElement {
   value?: string;
   checked?: boolean;
   textContent?: string;
@@ -47,7 +49,7 @@ interface HTMLElementWithId extends HTMLElement {
 /**
  * 共通プロパティ付き要素
  */
-interface ElementWithCommonProperties {
+export interface ElementWithCommonProperties {
   style: CSSStyleDeclaration;
   content?: string;
   focus?: () => void;
@@ -63,7 +65,7 @@ interface ElementWithCommonProperties {
 /**
  * 型安全なDOM要素アクセス
  */
-interface SafeDOMElementAccess {
+export interface SafeDOMElementAccess {
   getElementById<T extends HTMLElement = HTMLElement>(id: string): T | null;
   querySelector<T extends HTMLElement = HTMLElement>(
     selector: string,
@@ -76,7 +78,7 @@ interface SafeDOMElementAccess {
 /**
  * 型安全なフォーム要素アクセス
  */
-interface TypedFormElements {
+export interface TypedFormElements {
   getElementById(id: string): HTMLFormElement | null;
   querySelector(selector: string): HTMLFormElement | null;
   querySelectorAll(
@@ -87,7 +89,7 @@ interface TypedFormElements {
 /**
  * 型付きDocument
  */
-interface TypedDocument extends Document {
+export interface TypedDocument extends Document {
   getElementById<T extends HTMLElement = HTMLElementWithId>(
     elementId: string,
   ): T | null;
@@ -102,7 +104,7 @@ interface TypedDocument extends Document {
 /**
  * 型付き要素を持つDocument
  */
-interface DocumentWithTypedElements extends Document {
+export interface DocumentWithTypedElements extends Document {
   getElementById<T extends HTMLElement = HTMLElementWithId>(
     elementId: string,
   ): T | null;
@@ -111,7 +113,7 @@ interface DocumentWithTypedElements extends Document {
 /**
  * 安全な要素取得
  */
-interface SafeElementGetter {
+export interface SafeElementGetter {
   <T extends HTMLInputElement>(id: string, type: 'input'): T | null;
   <T extends HTMLSelectElement>(id: string, type: 'select'): T | null;
   <T extends HTMLTextAreaElement>(id: string, type: 'textarea'): T | null;
@@ -123,7 +125,7 @@ interface SafeElementGetter {
 /**
  * DOM要素安全アクセス
  */
-interface DOMElementSafeAccess {
+export interface DOMElementSafeAccess {
   // 実際に多用されるパターンの型安全版
   getInputElement(id: string): HTMLInputElement | null;
   getSelectElement(id: string): HTMLSelectElement | null;
@@ -143,7 +145,7 @@ interface DOMElementSafeAccess {
 /**
  * 安全な要素アクセス
  */
-interface SafeElementAccess {
+export interface SafeElementAccess {
   getElementById(
     id: string,
   ): (HTMLElement & ElementWithCommonProperties) | null;
@@ -162,7 +164,7 @@ interface SafeElementAccess {
 /**
  * 型付きHTMLフォーム要素
  */
-interface TypedHTMLFormElement extends HTMLFormElement {
+export interface TypedHTMLFormElement extends HTMLFormElement {
   querySelectorAll<T extends HTMLElement = HTMLElement>(
     selectors: string,
   ): NodeListOf<T>;
@@ -174,7 +176,7 @@ interface TypedHTMLFormElement extends HTMLFormElement {
 /**
  * 型付きHTMLインプット要素
  */
-interface TypedHTMLInputElement extends HTMLInputElement {
+export interface TypedHTMLInputElement extends HTMLInputElement {
   value: string;
   checked: boolean;
   dataset: DOMStringMap & {
@@ -188,14 +190,14 @@ interface TypedHTMLInputElement extends HTMLInputElement {
 /**
  * 型付きHTMLセレクト要素
  */
-interface TypedHTMLSelectElement extends HTMLSelectElement {
+export interface TypedHTMLSelectElement extends HTMLSelectElement {
   value: string;
 }
 
 /**
  * 型付きHTMLテキストエリア要素
  */
-interface TypedHTMLTextAreaElement extends HTMLTextAreaElement {
+export interface TypedHTMLTextAreaElement extends HTMLTextAreaElement {
   value: string;
 }
 
@@ -206,7 +208,7 @@ interface TypedHTMLTextAreaElement extends HTMLTextAreaElement {
 /**
  * HTML要素イベントリスナー
  */
-interface HTMLElementEventListeners {
+export interface HTMLElementEventListeners {
   addEventListener<K extends keyof HTMLElementEventMap>(
     type: K,
     listener: (this: HTMLElement, ev: HTMLElementEventMap[K]) => any,
@@ -226,13 +228,13 @@ interface HTMLElementEventListeners {
 /**
  * コンポーネントクエリセレクター
  */
-interface ComponentQuerySelector {
+export interface ComponentQuerySelector {
   <T extends HTMLElement = HTMLElement>(selector: string): T | null;
 }
 
 /**
  * コンポーネントクエリセレクターAll
  */
-interface ComponentQuerySelectorAll {
+export interface ComponentQuerySelectorAll {
   <T extends HTMLElement = HTMLElement>(selector: string): NodeListOf<T>;
 }

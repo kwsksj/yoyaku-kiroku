@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Views_Auth.js
@@ -8,6 +7,7 @@
  * =================================================================
  */
 
+const authViewsStateManager = appWindow.stateManager;
 // =================================================================
 // --- Authentication Views ---
 // -----------------------------------------------------------------
@@ -20,7 +20,7 @@
  * @returns {HTMLString} ログイン画面のHTML文字列
  */
 export const getLoginView = () => {
-  const phoneValue = stateManager.getState()['loginPhone'] || '';
+  const phoneValue = authViewsStateManager.getState()['loginPhone'] || '';
   return Components.pageContainer({
     maxWidth: 'md',
     content: `
@@ -63,7 +63,7 @@ export const getLoginView = () => {
  */
 export const getRegistrationStep1View = phone => {
   const data = /** @type {RegistrationFormData} */ (
-    stateManager.getState()['registrationData'] || {}
+    authViewsStateManager.getState()['registrationData'] || {}
   );
   const phoneValue = data.phone || phone || '';
 
@@ -201,7 +201,7 @@ export const getRegisterView = p => getRegistrationStep1View(p);
  */
 export const getRegistrationStep2View = () => {
   const data = /** @type {RegistrationFormData} */ (
-    stateManager.getState()['registrationData']
+    authViewsStateManager.getState()['registrationData']
   );
 
   return `
@@ -289,7 +289,7 @@ export const getRegistrationStep2View = () => {
  * @returns {string} 木彫りアンケートフォームのHTML文字列
  */
 export const getRegistrationStep3View = () => {
-  const data = stateManager.getState()['registrationData'];
+  const data = authViewsStateManager.getState()['registrationData'];
 
   return `
     ${Components.pageHeader({
@@ -351,7 +351,7 @@ export const getRegistrationStep3View = () => {
  * @returns {string} アンケートフォームのHTML文字列
  */
 export const getRegistrationStep4View = () => {
-  const data = stateManager.getState()['registrationData'];
+  const data = authViewsStateManager.getState()['registrationData'];
 
   return `
     ${Components.pageHeader({
@@ -436,8 +436,8 @@ export const getRegistrationStep4View = () => {
  * @returns {HTMLString} HTML文字列
  */
 export const getEditProfileView = () => {
-  const userData = /** @type {UserData} */ (
-    stateManager.getState().currentUser || {}
+  const userData = /** @type {UserCore} */ (
+    authViewsStateManager.getState().currentUser || {}
   );
   const phoneValue = userData.phone || '';
   const formattedPhoneValue =

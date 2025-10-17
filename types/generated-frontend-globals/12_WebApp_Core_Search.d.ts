@@ -12,6 +12,9 @@
  * =================================================================
  */
 /**
+ * @typedef {ReservationCore & { type: 'booking' | 'record' }} ReservationSearchResult
+ */
+/**
  * =================================================================
  * --- 統一検索関数システム (2025-08-30) ---
  * 「よやく」(myBookings) と「きろく」(history) を統一的に検索する関数群
@@ -39,3 +42,6 @@ export function findReservationByDateAndClassroom(date: string, classroom: strin
  * @returns {ReservationSearchResult[]} 条件に合致する予約/記録の配列
  */
 export function findReservationsByStatus(status: string, state?: UIState | null): ReservationSearchResult[];
+export type ReservationSearchResult = ReservationCore & {
+    type: "booking" | "record";
+};

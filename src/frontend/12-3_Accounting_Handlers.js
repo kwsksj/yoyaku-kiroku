@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * 会計システム - イベント処理層
  *
@@ -17,6 +16,42 @@
 // ================================================================================
 
 /**
+ * イベントターゲットをHTMLElementとして取得
+ * @param {EventTarget | null} target
+ * @returns {HTMLElement | null}
+ */
+const toHTMLElement = target => (target instanceof HTMLElement ? target : null);
+
+/**
+ * イベントターゲットをHTMLInputElementとして取得
+ * @param {EventTarget | null} target
+ * @returns {HTMLInputElement | null}
+ */
+const toInputElement = target =>
+  target instanceof HTMLInputElement ? target : null;
+
+/**
+ * イベントターゲットをHTMLSelectElementとして取得
+ * @param {EventTarget | null} target
+ * @returns {HTMLSelectElement | null}
+ */
+const toSelectElement = target =>
+  target instanceof HTMLSelectElement ? target : null;
+
+/**
+ * 安全にstateManagerを取得するヘルパー
+ * @returns {SimpleStateManager | null}
+ */
+const getAccountingStateManager = () => {
+  const manager = appWindow.stateManager;
+  if (!manager) {
+    console.warn('accountingStateManager: stateManagerが未初期化です');
+    return null;
+  }
+  return manager;
+};
+
+/**
  * 会計システムのイベントリスナー設定
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
@@ -24,7 +59,8 @@
 export function setupAccountingEventListeners(classifiedItems, classroom) {
   // 入力変更イベント（チェックボックス、セレクト、インプット）
   document.addEventListener('change', function (event) {
-    const target = event.target;
+    const target = toHTMLElement(event.target);
+    if (!target) return;
 
     // 会計関連の入力要素の変更を検知
     if (target.closest('.accounting-container')) {
@@ -32,24 +68,39 @@ export function setupAccountingEventListeners(classifiedItems, classroom) {
     }
 
     // 支払い方法変更
-    if (target.name === 'payment-method') {
+    if (
+      target instanceof HTMLInputElement &&
+      target.name === 'payment-method'
+    ) {
       handlePaymentMethodChange(target.value);
     }
   });
 
   // ボタンクリックイベント
   document.addEventListener('click', function (event) {
-    const target = event.target;
+    const target = toHTMLElement(event.target);
+    if (!target) return;
+
     const action = target.getAttribute('data-action');
 
     if (!action) return;
 
     switch (action) {
       case 'removeMaterialRow':
-        removeMaterialRow(target.getAttribute('data-index'));
+        {
+          const indexAttr = target.getAttribute('data-index');
+          if (indexAttr) {
+            removeMaterialRow(indexAttr);
+          }
+        }
         break;
       case 'removeProductRow':
-        removeProductRow(target.getAttribute('data-index'));
+        {
+          const indexAttr = target.getAttribute('data-index');
+          if (indexAttr) {
+            removeProductRow(indexAttr);
+          }
+        }
         break;
       case 'showPaymentModal':
         // デバッグ: ボタンクリックを記録
@@ -91,21 +142,27 @@ export function setupAccountingEventListeners(classifiedItems, classroom) {
 
   // 材料タイプ変更時の特別処理
   document.addEventListener('change', function (event) {
-    if (event.target.id && event.target.id.startsWith('material-type-')) {
+    const target = toHTMLElement(event.target);
+    if (!target) return;
+    if (target.id && target.id.startsWith('material-type-')) {
       handleMaterialTypeChange(event, classifiedItems.sales.materialItems);
     }
   });
 
   // 物販タイプ変更時の特別処理
   document.addEventListener('change', function (event) {
-    if (event.target.id && event.target.id.startsWith('product-type-')) {
+    const target = toHTMLElement(event.target);
+    if (!target) return;
+    if (target.id && target.id.startsWith('product-type-')) {
       handleProductTypeChange(event, classifiedItems.sales.productItems);
     }
   });
 
   // 自由入力物販の入力変更時の特別処理
   document.addEventListener('input', function (event) {
-    if (event.target.id && event.target.id.startsWith('custom-sales-')) {
+    const target = toHTMLElement(event.target);
+    if (!target) return;
+    if (target.id && target.id.startsWith('custom-sales-')) {
       handleCustomSalesInputChange(event);
     }
   });
@@ -118,16 +175,23 @@ export function setupAccountingEventListeners(classifiedItems, classroom) {
  * @param {string} classroom - 教室名
  */
 export function handleAccountingInputChange(event, classifiedItems, classroom) {
-  const target = event.target;
+  const target = toHTMLElement(event.target);
+  if (!target) return;
 
   // 動的スタイルのチェックボックスの更新
-  if (target.type === 'checkbox' && target.hasAttribute('data-dynamic-style')) {
+  if (
+    target instanceof HTMLInputElement &&
+    target.type === 'checkbox' &&
+    target.hasAttribute('data-dynamic-style')
+  ) {
     updateCheckboxStyle(target);
   }
 
   // 短時間での連続計算を防ぐためのデバウンス
-  clearTimeout(window.accountingCalculationTimeout);
-  window.accountingCalculationTimeout = setTimeout(() => {
+  if (appWindow.accountingCalculationTimeout) {
+    window.clearTimeout(appWindow.accountingCalculationTimeout);
+  }
+  appWindow.accountingCalculationTimeout = window.setTimeout(() => {
     updateAccountingCalculation(classifiedItems, classroom);
   }, 300);
 }
@@ -160,7 +224,6 @@ export function updateCheckboxStyle(checkbox) {
     if (priceAmountElement) {
       // 赤字クラスは保持する
       const hasRedText = priceAmountElement.className.includes('text-red-600');
-      const redClass = hasRedText ? ' text-red-600' : '';
 
       if (checkbox.checked) {
         // チェック済み: 濃い色、太字（赤字の場合は赤を優先）
@@ -197,11 +260,14 @@ export function updateCheckboxStyle(checkbox) {
 /**
  * 材料タイプ変更時の処理
  * @param {Event} event - 変更イベント
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  */
 export function handleMaterialTypeChange(event, materialItems) {
-  const index = event.target.id.split('-')[2]; // material-type-0 -> 0
-  const selectedType = event.target.value;
+  const selectElement = toSelectElement(event.target);
+  if (!selectElement) return;
+
+  const index = selectElement.id.split('-')[2]; // material-type-0 -> 0
+  const selectedType = selectElement.value;
   const materialRow = document.querySelector(`[data-material-row="${index}"]`);
 
   if (!materialRow) return;
@@ -262,7 +328,11 @@ export function handleMaterialTypeChange(event, materialItems) {
     if (container) {
       const existingRows = container.querySelectorAll('.material-row');
       const lastRow = existingRows[existingRows.length - 1];
-      const lastIndex = parseInt(lastRow.getAttribute('data-material-row'));
+      const lastIndexAttr = lastRow.getAttribute('data-material-row');
+      if (!lastIndexAttr) {
+        return;
+      }
+      const lastIndex = Number.parseInt(lastIndexAttr, 10);
 
       // 最後の行が選択されている場合のみ新しい行を追加
       if (lastIndex === parseInt(index)) {
@@ -275,8 +345,8 @@ export function handleMaterialTypeChange(event, materialItems) {
 
   // 計算を更新
   setTimeout(() => {
-    const classifiedItems = window.currentClassifiedItems;
-    const classroom = window.currentClassroom;
+    const classifiedItems = appWindow.currentClassifiedItems;
+    const classroom = appWindow.currentClassroom;
     if (classifiedItems && classroom) {
       updateAccountingCalculation(classifiedItems, classroom);
     }
@@ -285,7 +355,7 @@ export function handleMaterialTypeChange(event, materialItems) {
 
 /**
  * 材料行追加
- * @param {Array} materialItems - 材料項目配列
+ * @param {AccountingMasterItemCore[]} materialItems - 材料項目配列
  */
 export function addMaterialRow(materialItems) {
   const container = document.getElementById('materials-container');
@@ -308,8 +378,8 @@ export function removeMaterialRow(index) {
     row.remove();
     // 計算を更新
     setTimeout(() => {
-      const classifiedItems = window.currentClassifiedItems;
-      const classroom = window.currentClassroom;
+      const classifiedItems = appWindow.currentClassifiedItems;
+      const classroom = appWindow.currentClassroom;
       if (classifiedItems && classroom) {
         updateAccountingCalculation(classifiedItems, classroom);
       }
@@ -320,11 +390,14 @@ export function removeMaterialRow(index) {
 /**
  * 物販タイプ変更時の処理
  * @param {Event} event - 変更イベント
- * @param {Array} productItems - 物販項目配列
+ * @param {AccountingMasterItemCore[]} productItems - 物販項目配列
  */
 export function handleProductTypeChange(event, productItems) {
-  const index = event.target.id.split('-')[2]; // product-type-0 -> 0
-  const selectedType = event.target.value;
+  const selectElement = toSelectElement(event.target);
+  if (!selectElement) return;
+
+  const index = selectElement.id.split('-')[2]; // product-type-0 -> 0
+  const selectedType = selectElement.value;
   const productRow = document.querySelector(`[data-product-row="${index}"]`);
 
   if (!productRow) return;
@@ -343,7 +416,6 @@ export function handleProductTypeChange(event, productItems) {
     priceDisplay.innerHTML = Components.priceDisplay({ amount: price });
 
     // 選択後は商品名のみを表示（価格の2重表示を避ける）
-    const selectElement = event.target;
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     if (selectedOption && selectedOption.value) {
       selectedOption.textContent = selectedType; // 商品名のみ
@@ -352,7 +424,6 @@ export function handleProductTypeChange(event, productItems) {
     priceDisplay.innerHTML = Components.priceDisplay({ amount: 0 });
 
     // 未選択の場合、プルダウンの表示をリセット
-    const selectElement = event.target;
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     if (selectedOption && selectedOption.value === '') {
       // 空の選択肢は元の表示のまま
@@ -366,7 +437,11 @@ export function handleProductTypeChange(event, productItems) {
     if (container) {
       const existingRows = container.querySelectorAll('.product-row');
       const lastRow = existingRows[existingRows.length - 1];
-      const lastIndex = parseInt(lastRow.getAttribute('data-product-row'));
+      const lastIndexAttr = lastRow.getAttribute('data-product-row');
+      if (!lastIndexAttr) {
+        return;
+      }
+      const lastIndex = Number.parseInt(lastIndexAttr, 10);
 
       // 最後の行が選択されている場合のみ新しい行を追加
       if (lastIndex === parseInt(index)) {
@@ -379,8 +454,8 @@ export function handleProductTypeChange(event, productItems) {
 
   // 計算を更新
   setTimeout(() => {
-    const classifiedItems = window.currentClassifiedItems;
-    const classroom = window.currentClassroom;
+    const classifiedItems = appWindow.currentClassifiedItems;
+    const classroom = appWindow.currentClassroom;
     if (classifiedItems && classroom) {
       updateAccountingCalculation(classifiedItems, classroom);
     }
@@ -397,8 +472,8 @@ export function removeProductRow(index) {
     row.remove();
     // 計算を更新
     setTimeout(() => {
-      const classifiedItems = window.currentClassifiedItems;
-      const classroom = window.currentClassroom;
+      const classifiedItems = appWindow.currentClassifiedItems;
+      const classroom = appWindow.currentClassroom;
       if (classifiedItems && classroom) {
         updateAccountingCalculation(classifiedItems, classroom);
       }
@@ -411,7 +486,8 @@ export function removeProductRow(index) {
  * @param {Event} event - 入力変更イベント
  */
 export function handleCustomSalesInputChange(event) {
-  const target = event.target;
+  const target = toInputElement(event.target);
+  if (!target) return;
   const index = parseInt(target.id.split('-')[3]); // custom-sales-name-0 -> 0
   const container = document.getElementById('custom-sales-container');
 
@@ -435,8 +511,12 @@ export function handleCustomSalesInputChange(event) {
   const isLastRow = index === existingRows.length - 1;
 
   if (isLastRow && target.value.trim()) {
-    const nameInput = document.getElementById(`custom-sales-name-${index}`);
-    const priceInput = document.getElementById(`custom-sales-price-${index}`);
+    const nameInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById(`custom-sales-name-${index}`)
+    );
+    const priceInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById(`custom-sales-price-${index}`)
+    );
 
     // 項目名または価格のどちらかが入力されている場合、新しい行を追加
     if (
@@ -449,8 +529,8 @@ export function handleCustomSalesInputChange(event) {
 
   // 計算を更新
   setTimeout(() => {
-    const classifiedItems = window.currentClassifiedItems;
-    const classroom = window.currentClassroom;
+    const classifiedItems = appWindow.currentClassifiedItems;
+    const classroom = appWindow.currentClassroom;
     if (classifiedItems && classroom) {
       updateAccountingCalculation(classifiedItems, classroom);
     }
@@ -481,8 +561,8 @@ export function removeCustomSalesRow(index) {
     row.remove();
     // 計算を更新
     setTimeout(() => {
-      const classifiedItems = window.currentClassifiedItems;
-      const classroom = window.currentClassroom;
+      const classifiedItems = appWindow.currentClassifiedItems;
+      const classroom = appWindow.currentClassroom;
       if (classifiedItems && classroom) {
         updateAccountingCalculation(classifiedItems, classroom);
       }
@@ -496,11 +576,14 @@ export function removeCustomSalesRow(index) {
  * @param {string} classroom - 教室名
  */
 export function updateAccountingCalculation(classifiedItems, classroom) {
+  void classifiedItems;
   try {
     // フォームデータ収集
     const formData = collectAccountingFormData();
 
     // 元のマスターデータを取得（回数制の基本授業料を含む）
+    const stateManager = getAccountingStateManager();
+    if (!stateManager) return;
     const masterData = stateManager.getState().accountingMaster || [];
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
@@ -517,20 +600,19 @@ export function updateAccountingCalculation(classifiedItems, classroom) {
   } catch (error) {
     console.error('会計計算エラー:', error);
     // エラー時は0で表示
-    updateAccountingUI(
-      {
-        tuition: { subtotal: 0 },
-        sales: { subtotal: 0 },
-        grandTotal: 0,
-      },
-      classroom,
-    );
+    const emptyResult = /** @type {AccountingDetailsCore} */ ({
+      tuition: { items: [], subtotal: 0 },
+      sales: { items: [], subtotal: 0 },
+      grandTotal: 0,
+      paymentMethod: CONSTANTS.PAYMENT_DISPLAY.CASH,
+    });
+    updateAccountingUI(emptyResult, classroom);
   }
 }
 
 /**
  * 会計UI更新
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  * @param {string} classroom - 教室名
  */
 export function updateAccountingUI(result, classroom) {
@@ -562,7 +644,7 @@ export function updateAccountingUI(result, classroom) {
   }
 
   // 時間制の場合の時間計算表示更新
-  updateTimeCalculationDisplay(result, classroom);
+  updateTimeCalculationDisplay(classroom);
 
   // 個別価格表示更新
   updateMaterialPricesDisplay(result);
@@ -572,10 +654,9 @@ export function updateAccountingUI(result, classroom) {
 
 /**
  * 時間計算表示更新
- * @param {Object} result - 計算結果
  * @param {string} classroom - 教室名
  */
-export function updateTimeCalculationDisplay(result, classroom) {
+export function updateTimeCalculationDisplay(classroom) {
   const timeCalculation = document.getElementById('time-calculation');
   if (!timeCalculation) return;
 
@@ -590,20 +671,23 @@ export function updateTimeCalculationDisplay(result, classroom) {
   const hours = timeUnits / 2; // 30分単位を時間に変換
 
   // 基本授業料の単価を取得
-  const classifiedItems = window.currentClassifiedItems;
+  const classifiedItems = appWindow.currentClassifiedItems;
   const BASE_TUITION_ITEMS = [
     CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
     CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
     CONSTANTS.ITEMS.MAIN_LECTURE,
   ];
-  const baseItem = classifiedItems?.tuition.items.find(item => {
-    const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
-    const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
-    return (
-      BASE_TUITION_ITEMS.includes(itemName) &&
-      (targetClassroom === classroom || targetClassroom.includes(classroom))
-    );
-  });
+  const baseItem = classifiedItems?.tuition.baseItems.find(
+    (/** @type {AccountingMasterItemCore} */ item) => {
+      const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+      const targetClassroom =
+        item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
+      return (
+        BASE_TUITION_ITEMS.includes(itemName) &&
+        (targetClassroom === classroom || targetClassroom.includes(classroom))
+      );
+    },
+  );
 
   if (baseItem && baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT] === '30分') {
     const unitPrice = Number(baseItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
@@ -615,15 +699,19 @@ export function updateTimeCalculationDisplay(result, classroom) {
 
 /**
  * 材料価格個別表示更新
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  */
 export function updateMaterialPricesDisplay(result) {
   const materials = document.querySelectorAll('.material-row');
-  const salesItems = result.sales?.items || [];
+  const salesItems = result.sales.items;
 
   materials.forEach((row, index) => {
-    const priceDisplay = row.querySelector(`#material-price-${index}`);
-    const typeSelect = row.querySelector(`#material-type-${index}`);
+    const priceDisplay = /** @type {HTMLElement | null} */ (
+      row.querySelector(`#material-price-${index}`)
+    );
+    const typeSelect = /** @type {HTMLSelectElement | null} */ (
+      row.querySelector(`#material-type-${index}`)
+    );
 
     if (priceDisplay && typeSelect) {
       const selectedType = typeSelect.value;
@@ -652,21 +740,27 @@ export function updateMaterialPricesDisplay(result) {
 
 /**
  * 物販価格個別表示更新
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  */
 export function updateProductPricesDisplay(result) {
   const products = document.querySelectorAll('.product-row');
-  const salesItems = result.sales?.items || [];
+  const salesItems = result.sales.items;
 
   products.forEach((row, index) => {
-    const priceDisplay = row.querySelector(`#product-price-${index}`);
-    const typeSelect = row.querySelector(`#product-type-${index}`);
+    const priceDisplay = /** @type {HTMLElement | null} */ (
+      row.querySelector(`#product-price-${index}`)
+    );
+    const typeSelect = /** @type {HTMLSelectElement | null} */ (
+      row.querySelector(`#product-type-${index}`)
+    );
 
     if (priceDisplay && typeSelect) {
       const selectedType = typeSelect.value;
       if (selectedType) {
         // 選択された物販タイプに一致するアイテムを検索
-        const productItem = salesItems.find(item => item.name === selectedType);
+        const productItem = salesItems.find(
+          (/** @type {any} */ item) => item.name === selectedType,
+        );
 
         if (productItem) {
           priceDisplay.innerHTML = Components.priceDisplay({
@@ -684,21 +778,27 @@ export function updateProductPricesDisplay(result) {
 
 /**
  * 自由入力物販価格個別表示更新
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  */
 export function updateCustomSalesPricesDisplay(result) {
   const customSales = document.querySelectorAll('.custom-sales-row');
-  const salesItems = result.sales?.items || [];
+  const salesItems = result.sales.items;
 
   customSales.forEach((row, index) => {
-    const priceDisplay = row.querySelector(`#custom-sales-display-${index}`);
-    const nameInput = row.querySelector(`#custom-sales-name-${index}`);
+    const priceDisplay = /** @type {HTMLElement | null} */ (
+      row.querySelector(`#custom-sales-display-${index}`)
+    );
+    const nameInput = /** @type {HTMLInputElement | null} */ (
+      row.querySelector(`#custom-sales-name-${index}`)
+    );
 
     if (priceDisplay && nameInput) {
       const itemName = nameInput.value.trim();
       if (itemName) {
         // 入力された名前に一致するアイテムを検索
-        const customItem = salesItems.find(item => item.name === itemName);
+        const customItem = salesItems.find(
+          (/** @type {any} */ item) => item.name === itemName,
+        );
 
         if (customItem) {
           priceDisplay.innerHTML = Components.priceDisplay({
@@ -769,7 +869,8 @@ export function updatePaymentMethodStyles(selectedMethod) {
     'input[name="payment-method"]',
   );
 
-  paymentMethodRadios.forEach(radio => {
+  paymentMethodRadios.forEach(radioElement => {
+    const radio = /** @type {HTMLInputElement} */ (radioElement);
     const label = radio.closest('label');
     if (label) {
       const span = label.querySelector('span');
@@ -795,9 +896,11 @@ export function updatePaymentMethodStyles(selectedMethod) {
  * 確認ボタンの有効/無効状態を更新
  */
 export function updateConfirmButtonState() {
-  const confirmButton = document.getElementById('confirm-payment-button');
-  const selectedPaymentMethod = document.querySelector(
-    'input[name="payment-method"]:checked',
+  const confirmButton = /** @type {HTMLButtonElement | null} */ (
+    document.getElementById('confirm-payment-button')
+  );
+  const selectedPaymentMethod = /** @type {HTMLInputElement | null} */ (
+    document.querySelector('input[name="payment-method"]:checked')
   );
 
   if (confirmButton) {
@@ -825,11 +928,12 @@ export function updateConfirmButtonState() {
 /**
  * 新フォームデータを既存バックエンド形式に変換
  * @param {AccountingFormDto} formData - 新フォームデータ
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @returns {Object} 既存バックエンド形式のuserInput
  */
 export function convertToLegacyFormat(formData, result, classifiedItems) {
+  void classifiedItems;
   // デバッグログ追加
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 convertToLegacyFormat入力データ:', {
@@ -873,15 +977,15 @@ export function handleBackToDashboard() {
     saveAccountingCache(currentFormData);
 
     // スマートナビゲーションで前の画面にもどる
-    if (typeof actionHandlers !== 'undefined' && actionHandlers.smartGoBack) {
-      actionHandlers.smartGoBack();
+    const globalActionHandlers = appWindow.actionHandlers;
+
+    if (globalActionHandlers?.smartGoBack) {
+      globalActionHandlers.smartGoBack();
     } else {
       // フォールバック: StateManagerを使用
-      if (
-        window.stateManager &&
-        typeof window.stateManager.dispatch === 'function'
-      ) {
-        window.stateManager.dispatch({
+      const stateManager = getAccountingStateManager();
+      if (stateManager && typeof stateManager.dispatch === 'function') {
+        stateManager.dispatch({
           type: 'CHANGE_VIEW',
           payload: { view: 'dashboard' },
         });
@@ -901,7 +1005,7 @@ export function handleBackToDashboard() {
 
 /**
  * 支払い確認モーダルHTML生成
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  * @param {string} paymentMethod - 支払い方法
  * @returns {string} モーダルHTML
  */
@@ -913,14 +1017,14 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
       : '';
 
   // 金額表示のヘルパー
-  const formatPrice = amount => {
+  const formatPrice = (/** @type {number} */ amount) => {
     if (typeof Components !== 'undefined' && Components.priceDisplay) {
       return Components.priceDisplay({ amount });
     }
     return `¥${amount.toLocaleString()}`;
   };
 
-  const formatPriceLarge = amount => {
+  const formatPriceLarge = (/** @type {number} */ amount) => {
     if (typeof Components !== 'undefined' && Components.priceDisplay) {
       return Components.priceDisplay({ amount, size: 'large' });
     }
@@ -928,7 +1032,12 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
   };
 
   // ボタン生成のヘルパー
-  const generateButton = (action, text, style, customClass = '') => {
+  const generateButton = (
+    /** @type {string} */ action,
+    /** @type {string} */ text,
+    /** @type {ComponentStyle} */ style,
+    customClass = '',
+  ) => {
     if (typeof Components !== 'undefined' && Components.button) {
       return Components.button({
         action,
@@ -951,7 +1060,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
   if (result.tuition.items && result.tuition.items.length > 0) {
     const itemsHtml = result.tuition.items
       .map(
-        item => `
+        (/** @type {any} */ item) => `
       <div class="flex justify-between text-sm">
         <span class="text-brand-subtle">${escapeHTML(item.name)}</span>
         <span class="font-mono-numbers">${formatPrice(item.price)}</span>
@@ -975,7 +1084,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
   if (result.sales.items && result.sales.items.length > 0) {
     const itemsHtml = result.sales.items
       .map(
-        item => `
+        (/** @type {any} */ item) => `
       <div class="flex justify-between text-sm">
         <span class="text-brand-subtle">${escapeHTML(item.name)}</span>
         <span class="font-mono-numbers">${formatPrice(item.price)}</span>
@@ -1050,16 +1159,26 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
     console.log('🔵 showPaymentConfirmModal関数が呼び出されました');
   }
 
-  try {
-    const formData = collectAccountingFormData();
+  /** @type {AccountingFormDto | null} */
+  let debugFormData = null;
+  /** @type {AccountingDetailsCore | null} */
+  let debugResult = null;
 
+  try {
+    const collectedFormData = collectAccountingFormData();
+    debugFormData = collectedFormData;
+
+    const paymentMethod = collectedFormData.paymentMethod;
     // 支払い方法の選択チェック
-    if (!formData.paymentMethod) {
+    if (!paymentMethod) {
       showInfo('支払い方法を選択してください。', '入力エラー');
       return;
     }
+    const ensuredPaymentMethod = paymentMethod;
 
     // 元のマスターデータを取得（回数制の基本授業料を含む）
+    const stateManager = getAccountingStateManager();
+    if (!stateManager) return;
     const masterData = stateManager.getState().accountingMaster || [];
 
     // デバッグ：計算前の情報
@@ -1070,17 +1189,25 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
       });
     }
 
-    const result = calculateAccountingTotal(formData, masterData, classroom);
+    const computedResult = calculateAccountingTotal(
+      collectedFormData,
+      masterData,
+      classroom,
+    );
+    debugResult = computedResult;
 
     // デバッグログ
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🔍 支払い確認モーダル生成開始', { formData, result });
+      console.log('🔍 支払い確認モーダル生成開始', {
+        formData: collectedFormData,
+        result: computedResult,
+      });
     }
 
     // モーダルHTML生成
     const modalHtml = generatePaymentConfirmModal(
-      result,
-      formData.paymentMethod,
+      computedResult,
+      ensuredPaymentMethod,
     );
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
@@ -1101,26 +1228,30 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
     }
 
     // データを一時保存（後で処理時に使用）
-    window.tempPaymentData = {
-      formData,
-      result,
+    appWindow.tempPaymentData = {
+      formData: collectedFormData,
+      result: computedResult,
       classifiedItems,
       classroom,
     };
   } catch (error) {
-    console.error('支払い確認エラー:', error);
-    console.error('エラースタック:', error.stack);
+    const err = error instanceof Error ? error : new Error(String(error));
+    console.error('支払い確認エラー:', err);
+    if (err.stack) {
+      console.error('エラースタック:', err.stack);
+    }
 
     // デバッグ情報
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('エラー発生時の状態:', {
-        formData: formData || 'undefined',
+        formData: debugFormData || 'undefined',
+        result: debugResult || 'undefined',
         classifiedItems: classifiedItems || 'undefined',
         classroom: classroom || 'undefined',
       });
     }
 
-    showInfo(error.message, 'エラー');
+    showInfo(err.message, 'エラー');
   }
 }
 
@@ -1135,8 +1266,8 @@ export function closePaymentConfirmModal() {
 
   // 支払い処理が完了していない場合のみデータをクリア
   // 「修正する」ボタンでキャンセルされた場合
-  if (window.tempPaymentData) {
-    window.tempPaymentData = null;
+  if (appWindow.tempPaymentData) {
+    appWindow.tempPaymentData = null;
   }
 }
 
@@ -1145,17 +1276,17 @@ export function closePaymentConfirmModal() {
  */
 export function handleProcessPayment() {
   // 重複実行防止チェック
-  if (window.paymentProcessing) {
+  if (appWindow.paymentProcessing) {
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('⚠️ 支払い処理は既に実行中です');
     }
     return;
   }
 
-  if (!window.tempPaymentData) {
+  if (!appWindow.tempPaymentData) {
     console.error('支払いデータが見つかりません');
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('デバッグ: window.tempPaymentData =', window.tempPaymentData);
+      console.log('デバッグ: tempPaymentData =', appWindow.tempPaymentData);
     }
 
     showInfo(
@@ -1172,10 +1303,10 @@ export function handleProcessPayment() {
   }
 
   // 処理中フラグを設定
-  window.paymentProcessing = true;
+  appWindow.paymentProcessing = true;
 
   const { formData, result, classifiedItems, classroom } =
-    window.tempPaymentData;
+    appWindow.tempPaymentData;
 
   // デバッグログ
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
@@ -1195,32 +1326,35 @@ export function handleProcessPayment() {
 
   // 実際の会計処理を実行（14_WebApp_Handlers.jsのconfirmAndPay関数を呼び出し）
   try {
+    const globalActionHandlers = appWindow.actionHandlers;
+
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 handleProcessPayment: 処理方法を判定中', {
-        actionHandlers存在: typeof actionHandlers !== 'undefined',
+        actionHandlers存在: typeof globalActionHandlers !== 'undefined',
         confirmAndPay存在:
-          typeof actionHandlers !== 'undefined' && actionHandlers.confirmAndPay,
+          typeof globalActionHandlers !== 'undefined' &&
+          globalActionHandlers?.confirmAndPay,
       });
     }
 
-    if (typeof actionHandlers !== 'undefined' && actionHandlers.confirmAndPay) {
+    if (globalActionHandlers?.confirmAndPay) {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log(
           '🔍 handleProcessPayment: actionHandlers.confirmAndPay()を実行',
         );
       }
-      actionHandlers.confirmAndPay();
+      globalActionHandlers.confirmAndPay();
     } else {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log('🔍 handleProcessPayment: フォールバック処理を実行');
       }
       // フォールバック: 直接処理
-      processAccountingPayment(formData, result, classifiedItems, classroom);
+      processAccountingPayment(formData, result);
     }
   } finally {
     // 支払い処理完了後にデータとフラグをクリア
-    window.tempPaymentData = null;
-    window.paymentProcessing = false;
+    appWindow.tempPaymentData = null;
+    appWindow.paymentProcessing = false;
   }
 }
 
@@ -1236,7 +1370,9 @@ export function handleSaveMemo(target) {
   }
 
   const textareaId = `memo-edit-textarea-${reservationId}`;
-  const textarea = document.getElementById(textareaId);
+  const textarea = /** @type {HTMLTextAreaElement | null} */ (
+    document.getElementById(textareaId)
+  );
   if (!textarea) {
     console.error('制作メモのテキストエリアが見つかりません');
     return;
@@ -1247,6 +1383,24 @@ export function handleSaveMemo(target) {
   // ローディング表示
   if (typeof showLoading === 'function') {
     showLoading('memo');
+  }
+
+  // ユーザーIDを取得
+  const stateManager = getAccountingStateManager();
+  if (!stateManager) {
+    if (typeof hideLoading === 'function') {
+      hideLoading();
+    }
+    showInfo('アプリケーションの初期化が完了していません。', 'エラー');
+    return;
+  }
+  const studentId = stateManager.getState().currentUser?.studentId;
+  if (!studentId) {
+    if (typeof hideLoading === 'function') {
+      hideLoading();
+    }
+    showInfo('ユーザー情報が見つかりません。', 'エラー');
+    return;
   }
 
   // バックエンドAPIコール
@@ -1263,6 +1417,17 @@ export function handleSaveMemo(target) {
 
           // テキストエリアの値を更新
           textarea.value = newMemoText;
+
+          // 最新データで状態を更新（予約リストも更新される）
+          if (response.data) {
+            stateManager.dispatch({
+              type: 'UPDATE_STATE',
+              payload: {
+                myReservations: response.data.myReservations || [],
+                lessons: response.data.lessons || [],
+              },
+            });
+          }
         } else {
           showInfo(
             '制作メモの更新に失敗しました: ' + (response.message || ''),
@@ -1270,17 +1435,18 @@ export function handleSaveMemo(target) {
           );
         }
       })
-      .withFailureHandler(error => {
+      .withFailureHandler((/** @type {Error} */ error) => {
         if (typeof hideLoading === 'function') {
           hideLoading();
         }
         console.error('制作メモ更新エラー:', error);
         showInfo('制作メモの更新に失敗しました。', 'エラー');
       })
-      .updateWorkInProgress({
-        reservationId: reservationId,
-        workInProgress: newMemoText,
-      });
+      .updateReservationMemoAndGetLatestData(
+        reservationId,
+        studentId,
+        newMemoText,
+      );
   } else {
     // Google Apps Script環境でない場合のフォールバック
     if (typeof hideLoading === 'function') {
@@ -1293,7 +1459,7 @@ export function handleSaveMemo(target) {
 /**
  * 実際の会計処理を実行
  * @param {AccountingFormDto} formData - フォームデータ
- * @param {Object} result - 計算結果
+ * @param {AccountingDetailsCore} result - 計算結果
  */
 export function processAccountingPayment(formData, result) {
   try {
@@ -1302,7 +1468,13 @@ export function processAccountingPayment(formData, result) {
       showLoading('accounting');
     }
 
-    const state = window.stateManager.getState();
+    const stateManager = getAccountingStateManager();
+    if (!stateManager) {
+      hideLoading();
+      showInfo('アプリケーションの初期化が完了していません。', '計算エラー');
+      return;
+    }
+    const state = stateManager.getState();
     const selectedReservation = state.accountingReservation;
 
     if (!selectedReservation) {
@@ -1351,8 +1523,8 @@ export function processAccountingPayment(formData, result) {
             }
 
             // データを最新に更新
-            if (response.data && window.stateManager) {
-              window.stateManager.dispatch({
+            if (response.data) {
+              stateManager.dispatch({
                 type: 'UPDATE_STATE',
                 payload: {
                   myReservations: response.data.myReservations || [],
@@ -1362,7 +1534,7 @@ export function processAccountingPayment(formData, result) {
             }
 
             // 完了画面に遷移（会計完了として認識されるメッセージを使用）
-            window.stateManager.dispatch({
+            stateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 view: 'complete',
@@ -1376,7 +1548,7 @@ export function processAccountingPayment(formData, result) {
             );
           }
         })
-        .withFailureHandler(error => {
+        .withFailureHandler((/** @type {Error} */ error) => {
           if (typeof hideLoading === 'function') {
             hideLoading();
           }
@@ -1399,4 +1571,3 @@ export function processAccountingPayment(formData, result) {
     alert('エラーが発生しました。もう一度お試しください。');
   }
 }
-

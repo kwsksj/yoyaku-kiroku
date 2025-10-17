@@ -64,6 +64,14 @@ export class BackendErrorHandler {
      */
     static generateErrorId(): string;
     /**
+     * ErrorInfoオブジェクトを生成
+     * @param {Error} error - エラーオブジェクト
+     * @param {string} context - 発生コンテキスト
+     * @param {Record<string, unknown>} [additionalInfo={}] - 追加情報
+     * @returns {ErrorInfo}
+     */
+    static buildErrorInfo(error: Error, context?: string, additionalInfo?: Record<string, unknown>): ErrorInfo;
+    /**
      * 重要なエラーについて管理者に通知
      * @param {ErrorInfo} errorInfo - エラー情報
      * @param {boolean} isCritical - 重要なエラーかどうか

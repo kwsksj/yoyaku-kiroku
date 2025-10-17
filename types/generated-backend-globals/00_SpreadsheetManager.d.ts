@@ -23,6 +23,20 @@ export class SpreadsheetManager {
     /** @type {Promise<void> | null} */
     _warmupPromise: Promise<void> | null;
     /**
+     * 外部スプレッドシート用キャッシュ
+     * @type {Map<
+     *   string,
+     *   {
+     *     spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet | null;
+     *     sheets: Map<string, GoogleAppsScript.Spreadsheet.Sheet | null>;
+     *   }
+     * >}
+     */
+    _externalSpreadsheets: Map<string, {
+        spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet | null;
+        sheets: Map<string, GoogleAppsScript.Spreadsheet.Sheet | null>;
+    }>;
+    /**
      * アクティブなスプレッドシートオブジェクトを取得（キャッシュ付き）
      * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet}
      */
@@ -33,6 +47,26 @@ export class SpreadsheetManager {
      * @returns {GoogleAppsScript.Spreadsheet.Sheet | null | undefined}
      */
     getSheet(sheetName: string): GoogleAppsScript.Spreadsheet.Sheet | null | undefined;
+    /**
+     * 外部スプレッドシート用キャッシュを取得（必要に応じて初期化）
+     * @param {string} spreadsheetId
+     * @returns {{ spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet | null, sheets: Map<string, GoogleAppsScript.Spreadsheet.Sheet | null> }}
+     * @private
+     */
+    private _ensureExternalSpreadsheetCache;
+    /**
+     * Spreadsheet IDからスプレッドシートオブジェクトを取得（キャッシュ付き）
+     * @param {string} spreadsheetId
+     * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet}
+     */
+    getSpreadsheetById(spreadsheetId: string): GoogleAppsScript.Spreadsheet.Spreadsheet;
+    /**
+     * 指定IDのスプレッドシートからシートを取得（キャッシュ付き）
+     * @param {string} spreadsheetId
+     * @param {string} sheetName
+     * @returns {GoogleAppsScript.Spreadsheet.Sheet | null | undefined}
+     */
+    getExternalSheet(spreadsheetId: string, sheetName: string): GoogleAppsScript.Spreadsheet.Sheet | null | undefined;
     /**
      * スプレッドシートの事前ウォームアップ（非同期）
      * GAS実行環境の初期化遅延を回避するため、バックグラウンドで事前に初期化

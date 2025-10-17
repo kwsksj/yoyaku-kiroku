@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers_History.js
@@ -19,6 +18,8 @@
 // 履歴管理関連のアクションハンドラー群
 // =================================================================
 
+const historyStateManager = appWindow.stateManager;
+
 /** 履歴管理関連のアクションハンドラー群 */
 export const historyActionHandlers = {
   /** きろくカードの確認/編集ボタン
@@ -28,14 +29,19 @@ export const historyActionHandlers = {
     const scrollY = window.scrollY;
 
     // 履歴データを取得
-    const item = stateManager
+    const item = historyStateManager
       .getState()
-      .myReservations.find(h => h.reservationId === d.reservationId);
+      .myReservations.find(
+        (/** @type {ReservationCore} */ h) =>
+          h.reservationId === d.reservationId,
+      );
     if (!item) return;
 
     // 編集モード開始（メモの初期値を設定）
     const currentMemo = item.workInProgress || '';
-    stateManager.startEditMode(d.reservationId, currentMemo);
+    if (d.reservationId) {
+      historyStateManager.startEditMode(d.reservationId, currentMemo);
+    }
 
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
@@ -53,7 +59,9 @@ export const historyActionHandlers = {
     const scrollY = window.scrollY;
 
     // 編集モードを解除（変更を破棄）
-    stateManager.endEditMode(d.reservationId);
+    if (d.reservationId) {
+      historyStateManager.endEditMode(d.reservationId);
+    }
 
     // 該当カードのみを部分更新（ちらつき防止）
     updateSingleHistoryCard(d.reservationId);
@@ -77,40 +85,53 @@ export const historyActionHandlers = {
     const newMemo = textarea.value;
 
     // 楽観的UI: まずフロントの表示を更新
-    const state = window.stateManager.getState();
-    const newReservations = state.myReservations.map(h => {
-      if (h.reservationId === d.reservationId) {
-        return { ...h, workInProgress: newMemo };
-      }
-      return h;
-    });
-    window.stateManager.dispatch({
+    const state = historyStateManager.getState();
+    const newReservations = state.myReservations.map(
+      (/** @type {ReservationCore} */ h) => {
+        if (h.reservationId === d.reservationId) {
+          return { ...h, workInProgress: newMemo };
+        }
+        return h;
+      },
+    );
+    historyStateManager.dispatch({
       type: 'UPDATE_STATE',
       payload: { myReservations: newReservations },
     });
 
     // 編集モードを解除
-    stateManager.endEditMode(d.reservationId);
+    if (d.reservationId) {
+      historyStateManager.endEditMode(d.reservationId);
+    }
 
     showInfo('メモを保存しました', '保存完了');
 
     // 該当カードのみを部分更新（ちらつき防止）
-    updateSingleHistoryCard(d.reservationId);
+    if (d.reservationId) {
+      updateSingleHistoryCard(d.reservationId);
+    }
 
     // サーバーに送信
+    const currentUser = historyStateManager.getState().currentUser;
+    if (!currentUser || !d.reservationId) {
+      return showInfo('ユーザー情報が見つかりません', 'エラー');
+    }
+
     showLoading('booking');
     google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
       hideLoading();
       if (!r.success) {
         showInfo(r.message || 'メモの保存に失敗しました', 'エラー');
         // フロント表示を元に戻す
-        updateSingleHistoryCard(d.reservationId);
+        if (d.reservationId) {
+          updateSingleHistoryCard(d.reservationId);
+        }
       }
     })
       ['withFailureHandler'](handleServerError)
       .updateReservationMemoAndGetLatestData(
         d.reservationId,
-        stateManager.getState().currentUser.studentId,
+        currentUser.studentId,
         newMemo,
       );
   },
@@ -128,11 +149,11 @@ export const historyActionHandlers = {
 
   /** 参加記録を追加で読み込みます（統合ホーム用） */
   loadMoreHistory: () => {
-    const currentCount = stateManager.getState()['recordsToShow'] || 10;
+    const currentCount = historyStateManager.getState()['recordsToShow'] || 10;
     const newCount =
       Number(currentCount) + (CONSTANTS.UI.HISTORY_LOAD_MORE_RECORDS || 10);
 
-    window.stateManager.dispatch({
+    historyStateManager.dispatch({
       type: 'SET_STATE',
       payload: { recordsToShow: newCount },
     });
@@ -142,9 +163,9 @@ export const historyActionHandlers = {
    * @param {ActionHandlerData} d */
   showHistoryAccounting: d => {
     // 予約データを取得
-    const state = stateManager.getState();
+    const state = historyStateManager.getState();
     const reservation = state.myReservations.find(
-      r => r.reservationId === d.reservationId,
+      (/** @type {ReservationCore} */ r) => r.reservationId === d.reservationId,
     );
 
     if (!reservation) {
