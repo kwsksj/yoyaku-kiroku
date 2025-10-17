@@ -433,6 +433,7 @@ export function updateUserProfile(userInfo) {
       /** @type {Record<number, any>} */
       const updates = {};
 
+      /** @type {Record<string, string>} */
       const propToHeaderMap = {
         realName: CONSTANTS.HEADERS.ROSTER.REAL_NAME,
         nickname: CONSTANTS.HEADERS.ROSTER.NICKNAME,
@@ -580,6 +581,7 @@ export function registerNewUser(userData) {
 
       // userDataから対応する列に値を設定
       // (保守性向上: プロパティ名とヘッダー名の明示的なマッピング)
+      /** @type {Record<string, string>} */
       const propToHeaderMap = {
         realName: CONSTANTS.HEADERS.ROSTER.REAL_NAME,
         nickname: CONSTANTS.HEADERS.ROSTER.NICKNAME,

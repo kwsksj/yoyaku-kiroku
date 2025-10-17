@@ -60,11 +60,17 @@
 - `npm run build:force`: 品質チェックをスキップして強制的にビルドを実行します。
 - `npm run watch`: ファイル変更を監視し、自動でビルド（`build:force`）を実行します。
 
-**型定義関連**
+**型定義関連（推奨順）**
 
-- `npm run types:refresh`: 型定義を再生成し、型チェックを実行します。JSDocを編集した際の必須コマンドです。
-- `npm run types:generate`: 型定義のファイル（`.d.ts`）のみを再生成します。
-- `npm run types:check`: 型チェックのみを実行します。
+- `npm run types:refresh`: **【最推奨】** 型定義を再生成 → 型チェックを実行。**JSDoc編集後の必須コマンド**
+- `npm run types:generate`: 型定義ファイル（`.d.ts`）のみを再生成（型チェックなし）
+- `npm run types:check`: 型チェックのみを実行（型定義が最新の場合のみ）
+
+**使い分け:**
+
+- JSDocコメントを編集した → `types:refresh` を実行
+- 型定義は最新で、コードだけ変更した → `types:check` を実行
+- ビルド前の最終確認 → `npm run build` (内部で `check` が実行される)
 
 **補助コマンド**
 
@@ -126,7 +132,51 @@
 
 1. **JSDocによる型付け:** ソースコード（`.js`）内にJSDoc形式で`@param`や`@type`などを記述し、型情報を定義します。
 2. **`checkJs`によるリアルタイム検証:** `tsconfig.json`の`checkJs`設定により、TypeScriptコンパイラがJSDocとコードの間に矛盾がないかを常に監視します。
-3. **型定義ファイルの自動生成:** `npm run types:generate`コマンドにより、JSDocからTypeScriptの型定義ファイル（`.d.ts`）を自動生成します。これにより、ファイル間でのコード補完や型参照が可能になります。
+3. **型定義ファイルの自動生成システム:** `npm run types:generate`コマンドにより、JSDocからTypeScriptの型定義ファイル（`.d.ts`）を自動生成し、ファイル間でのコード補完や型参照を実現します。
+
+#### 型定義生成の仕組み
+
+**生成フロー:**
+
+1. **TypeScriptコンパイラによる型定義抽出** (`tsc --declaration`)
+   - `src/backend/`、`src/frontend/`、`src/shared/` の全JSファイルからJSDocを解析
+   - TypeScriptの宣言ファイル生成機能を使用して `.d.ts` ファイルを作成
+   - `types/generated-*-globals/` ディレクトリに環境別の型定義を生成
+
+2. **環境別インデックス統合** (`tools/create-dts-index.js`)
+   - 各 `generated-*-globals/` 内の型定義を統合
+   - 各ディレクトリに `index.d.ts` を生成し、すべての型をまとめてexport
+
+3. **グローバル型ブリッジ生成** (`tools/create-global-bridge.js`)
+   - export宣言をグローバル宣言（`declare global`）に変換
+   - 各ディレクトリに `_globals.d.ts` を生成
+   - namespace内のfunction定義も正しく処理（例: `PerformanceLog.start()`）
+   - GAS環境ではモジュールシステム（import/export）が使えないため、すべての型をグローバルスコープで利用可能にする
+
+**ディレクトリ構造:**
+
+```
+types/
+├── generated-backend-globals/    # 自動生成（編集禁止）
+│   ├── *.d.ts                    # JSDocから生成された型定義
+│   ├── index.d.ts                # 統合インデックス（自動生成）
+│   └── _globals.d.ts             # グローバル型ブリッジ（自動生成）
+├── generated-frontend-globals/   # 自動生成（編集禁止）
+├── generated-shared-globals/     # 自動生成（編集禁止）
+├── global-aliases.d.ts           # 手動管理型エイリアス（編集可能）
+├── backend-index.d.ts            # 手動管理エントリーポイント（編集可能）
+├── frontend-index.d.ts           # 手動管理エントリーポイント（編集可能）
+├── core/                         # 手動管理型定義（編集可能）
+├── view/                         # 手動管理型定義（編集可能）
+└── gas-custom.d.ts               # 手動管理型定義（編集可能）
+```
+
+**重要な注意事項:**
+
+- JSDocを編集した後は **必ず `npm run types:refresh`** を実行してください
+- `npm run types:check` だけでは型定義が更新されないため、古い型定義のままエラーになります
+- `types/generated-*-globals/` 内のファイルは自動生成されるため、直接編集しないでください
+- その他の型定義ファイル（`global-aliases.d.ts`, `*-index.d.ts`, `core/`, `view/`, `gas-custom.d.ts`）は手動管理のため、必要に応じて編集できます
 
 ### ビルドプロセスによるコード変換
 
