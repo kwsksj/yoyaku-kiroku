@@ -101,9 +101,15 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
       const value = row[i];
 
       // 型変換と設定
-      if (propName === 'wantsEmail' || propName === 'wantsScheduleNotification') {
+      if (
+        propName === 'wantsEmail' ||
+        propName === 'wantsScheduleNotification'
+      ) {
         student[propName] = String(value).toUpperCase() === 'TRUE';
-      } else if (propName === 'notificationDay' || propName === 'notificationHour') {
+      } else if (
+        propName === 'notificationDay' ||
+        propName === 'notificationHour'
+      ) {
         student[propName] =
           value !== '' && value != null ? Number(value) : undefined;
       } else {
@@ -147,7 +153,8 @@ function findUserByPhoneAndRealName(phone, realName) {
     if (!normalizedInputPhone.isValid) {
       return {
         success: false,
-        message: normalizedInputPhone.error || '電話番号の形式が正しくありません。',
+        message:
+          normalizedInputPhone.error || '電話番号の形式が正しくありません。',
       };
     }
 
@@ -451,13 +458,17 @@ export function updateUserProfile(userInfo) {
       };
 
       // 電話番号が更新される場合、バリデーションと重複チェックを実行
-      if (userInfo.phone !== undefined && userInfo.phone !== targetStudent.phone) {
+      if (
+        userInfo.phone !== undefined &&
+        userInfo.phone !== targetStudent.phone
+      ) {
         // 電話番号の正規化とバリデーション
         const normalizedPhone = normalizePhoneNumber(userInfo.phone);
         if (!normalizedPhone.isValid) {
           return {
             success: false,
-            message: normalizedPhone.error || '電話番号の形式が正しくありません。',
+            message:
+              normalizedPhone.error || '電話番号の形式が正しくありません。',
           };
         }
 
@@ -487,7 +498,8 @@ export function updateUserProfile(userInfo) {
       }
 
       for (const key in userInfo) {
-        if (key === 'studentId' || key === 'displayName' || key === 'rowIndex') continue; // 更新対象外
+        if (key === 'studentId' || key === 'displayName' || key === 'rowIndex')
+          continue; // 更新対象外
 
         const headerName = propToHeaderMap[key];
         if (headerName) {
@@ -608,7 +620,8 @@ export function registerNewUser(userData) {
       if (!normalizedPhone.isValid) {
         return {
           success: false,
-          message: normalizedPhone.error || '電話番号の形式が正しくありません。',
+          message:
+            normalizedPhone.error || '電話番号の形式が正しくありません。',
         };
       }
 

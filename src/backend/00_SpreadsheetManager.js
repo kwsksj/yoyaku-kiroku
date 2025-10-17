@@ -133,7 +133,9 @@ export class SpreadsheetManager {
    */
   _ensureExternalSpreadsheetCache(spreadsheetId) {
     if (!spreadsheetId) {
-      throw new Error('Spreadsheet ID is required to access external spreadsheets.');
+      throw new Error(
+        'Spreadsheet ID is required to access external spreadsheets.',
+      );
     }
 
     let cache = this._externalSpreadsheets.get(spreadsheetId) || null;
