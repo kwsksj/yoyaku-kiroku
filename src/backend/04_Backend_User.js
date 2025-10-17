@@ -73,30 +73,37 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
   /** @type {UserCore} */
   const student = {};
 
-  // 各プロパティを動的に設定
-  for (const key in CONSTANTS.HEADERS.ROSTER) {
-    const headerName = /** @type {Record<string, string>} */ (
-      CONSTANTS.HEADERS.ROSTER
-    )[key];
-    const colIdx = headers.indexOf(headerName);
+  // ヘッダー名からUserCoreプロパティ名への明示的なマッピング
+  // (保守性向上: 将来的なプロパティ追加や変更に対応しやすくする)
+  const headerToPropMap = {
+    [CONSTANTS.HEADERS.ROSTER.STUDENT_ID]: 'studentId',
+    [CONSTANTS.HEADERS.ROSTER.REAL_NAME]: 'realName',
+    [CONSTANTS.HEADERS.ROSTER.NICKNAME]: 'nickname',
+    [CONSTANTS.HEADERS.ROSTER.PHONE]: 'phone',
+    [CONSTANTS.HEADERS.ROSTER.EMAIL]: 'email',
+    [CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL]: 'wantsEmail', // ヘッダー名とプロパティ名の不一致を明示的に解決
+    [CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO]: 'wantsScheduleNotification', // ヘッダー名とプロパティ名の不一致を明示的に解決
+    [CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY]: 'notificationDay',
+    [CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR]: 'notificationHour',
+    [CONSTANTS.HEADERS.ROSTER.ADDRESS]: 'address',
+    [CONSTANTS.HEADERS.ROSTER.AGE_GROUP]: 'ageGroup',
+    [CONSTANTS.HEADERS.ROSTER.GENDER]: 'gender',
+    [CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND]: 'dominantHand',
+    [CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]: 'futureCreations',
+  };
 
-    if (colIdx !== -1) {
-      const value = row[colIdx];
-      // JSDocのプロパティ名に変換（例: STUDENT_ID -> studentId）
-      const propName = key
-        .toLowerCase()
-        .replace(/_([a-z])/g, g => g[1].toUpperCase());
+  // 各プロパティを設定
+  for (let i = 0; i < headers.length; i++) {
+    const headerName = headers[i];
+    const propName = headerToPropMap[headerName];
+
+    if (propName) {
+      const value = row[i];
 
       // 型変換と設定
-      if (
-        propName === 'wantsEmail' ||
-        propName === 'wantsScheduleNotification'
-      ) {
+      if (propName === 'wantsEmail' || propName === 'wantsScheduleNotification') {
         student[propName] = String(value).toUpperCase() === 'TRUE';
-      } else if (
-        propName === 'notificationDay' ||
-        propName === 'notificationHour'
-      ) {
+      } else if (propName === 'notificationDay' || propName === 'notificationHour') {
         student[propName] =
           value !== '' && value != null ? Number(value) : undefined;
       } else {
@@ -105,17 +112,7 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
     }
   }
 
-  // 必須プロパティと計算プロパティ
-  student.studentId = String(
-    row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.STUDENT_ID)],
-  );
-  student.realName = String(
-    row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME)],
-  );
-  student.phone = String(row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE)]);
-  student.nickname = String(
-    row[headers.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME)],
-  );
+  // 計算プロパティ
   student.displayName = student.nickname || student.realName;
   student.rowIndex = rowIndex; // 行番号を付与
 
@@ -432,18 +429,30 @@ export function updateUserProfile(userInfo) {
         .getValues()[0];
 
       // 更新対象の列と値をマッピング
+      // (保守性向上: プロパティ名とヘッダー名の明示的なマッピング)
       /** @type {Record<number, any>} */
       const updates = {};
-      const rosterHeaders = /** @type {Record<string, string>} */ (
-        CONSTANTS.HEADERS.ROSTER
-      );
-      for (const key in userInfo) {
-        if (key === 'studentId' || key === 'displayName') continue; // 更新対象外
 
-        const headerName =
-          rosterHeaders[
-            key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()
-          ];
+      const propToHeaderMap = {
+        realName: CONSTANTS.HEADERS.ROSTER.REAL_NAME,
+        nickname: CONSTANTS.HEADERS.ROSTER.NICKNAME,
+        phone: CONSTANTS.HEADERS.ROSTER.PHONE,
+        email: CONSTANTS.HEADERS.ROSTER.EMAIL,
+        wantsEmail: CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL,
+        wantsScheduleNotification: CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
+        notificationDay: CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
+        notificationHour: CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
+        address: CONSTANTS.HEADERS.ROSTER.ADDRESS,
+        ageGroup: CONSTANTS.HEADERS.ROSTER.AGE_GROUP,
+        gender: CONSTANTS.HEADERS.ROSTER.GENDER,
+        dominantHand: CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
+        futureCreations: CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
+      };
+
+      for (const key in userInfo) {
+        if (key === 'studentId' || key === 'displayName' || key === 'rowIndex') continue; // 更新対象外
+
+        const headerName = propToHeaderMap[key];
         if (headerName) {
           const colIdx = headers.indexOf(headerName);
           if (colIdx !== -1) {
@@ -570,14 +579,25 @@ export function registerNewUser(userData) {
         new Date();
 
       // userDataから対応する列に値を設定
-      const rosterHeaders = /** @type {Record<string, string>} */ (
-        CONSTANTS.HEADERS.ROSTER
-      );
+      // (保守性向上: プロパティ名とヘッダー名の明示的なマッピング)
+      const propToHeaderMap = {
+        realName: CONSTANTS.HEADERS.ROSTER.REAL_NAME,
+        nickname: CONSTANTS.HEADERS.ROSTER.NICKNAME,
+        phone: CONSTANTS.HEADERS.ROSTER.PHONE,
+        email: CONSTANTS.HEADERS.ROSTER.EMAIL,
+        wantsEmail: CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL,
+        wantsScheduleNotification: CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
+        notificationDay: CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
+        notificationHour: CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
+        address: CONSTANTS.HEADERS.ROSTER.ADDRESS,
+        ageGroup: CONSTANTS.HEADERS.ROSTER.AGE_GROUP,
+        gender: CONSTANTS.HEADERS.ROSTER.GENDER,
+        dominantHand: CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
+        futureCreations: CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
+      };
+
       for (const key in userData) {
-        const headerName =
-          rosterHeaders[
-            key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()
-          ];
+        const headerName = propToHeaderMap[key];
         if (headerName && headerMap[headerName] !== undefined) {
           newRow[headerMap[headerName]] = userData[key];
         }
