@@ -426,7 +426,7 @@ export function updateUserProfile(userInfo) {
 
         const headerName =
           rosterHeaders[
-            key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
+            key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()
           ];
         if (headerName) {
           const colIdx = headers.indexOf(headerName);
@@ -552,7 +552,7 @@ export function registerNewUser(userData) {
       for (const key in userData) {
         const headerName =
           rosterHeaders[
-            key.replace(/[A-Z]/g, letter => `_${letter}`).toUpperCase()
+            key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase()
           ];
         if (headerName && headerMap[headerName] !== undefined) {
           newRow[headerMap[headerName]] = userData[key];
@@ -613,7 +613,23 @@ function checkExistingUserByPhone(phone) {
       return false;
     }
 
-    return Object.values(allStudents).some(user => user.phone === phone);
+    // 入力電話番号を正規化
+    const normalizedInput = normalizePhoneNumber(phone);
+    if (!normalizedInput.isValid) {
+      Logger.log(`電話番号重複チェック: 無効な電話番号形式 - ${phone}`);
+      return false;
+    }
+
+    // 既存ユーザーの電話番号と正規化して比較
+    return Object.values(allStudents).some(user => {
+      const normalizedUserPhone = user.phone
+        ? normalizePhoneNumber(user.phone)
+        : { isValid: false };
+      return (
+        normalizedUserPhone.isValid &&
+        normalizedUserPhone.normalized === normalizedInput.normalized
+      );
+    });
   } catch (error) {
     Logger.log(`電話番号重複チェックエラー: ${error.message}`);
     return false; // エラー時は重複なしとして処理を続行
