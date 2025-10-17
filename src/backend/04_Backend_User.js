@@ -450,6 +450,42 @@ export function updateUserProfile(userInfo) {
         futureCreations: CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
       };
 
+      // 電話番号が更新される場合、バリデーションと重複チェックを実行
+      if (userInfo.phone !== undefined && userInfo.phone !== targetStudent.phone) {
+        // 電話番号の正規化とバリデーション
+        const normalizedPhone = normalizePhoneNumber(userInfo.phone);
+        if (!normalizedPhone.isValid) {
+          return {
+            success: false,
+            message: normalizedPhone.error || '電話番号の形式が正しくありません。',
+          };
+        }
+
+        // 他のユーザーとの重複チェック
+        const allStudents = getCachedAllStudents();
+        if (allStudents) {
+          const isDuplicate = Object.values(allStudents).some(student => {
+            // 自分自身は除外
+            if (student.studentId === userInfo.studentId) return false;
+
+            const studentPhone = student.phone
+              ? normalizePhoneNumber(student.phone)
+              : { isValid: false };
+            return (
+              studentPhone.isValid &&
+              studentPhone.normalized === normalizedPhone.normalized
+            );
+          });
+
+          if (isDuplicate) {
+            return {
+              success: false,
+              message: 'この電話番号は既に他のユーザーが使用しています。',
+            };
+          }
+        }
+      }
+
       for (const key in userInfo) {
         if (key === 'studentId' || key === 'displayName' || key === 'rowIndex') continue; // 更新対象外
 
@@ -457,7 +493,12 @@ export function updateUserProfile(userInfo) {
         if (headerName) {
           const colIdx = headers.indexOf(headerName);
           if (colIdx !== -1) {
-            updates[colIdx] = userInfo[key];
+            // 電話番号は文字列として明示的に設定（先頭の0を保持）
+            if (key === 'phone' && userInfo[key]) {
+              updates[colIdx] = String(userInfo[key]);
+            } else {
+              updates[colIdx] = userInfo[key];
+            }
           }
         }
       }
@@ -601,7 +642,12 @@ export function registerNewUser(userData) {
       for (const key in userData) {
         const headerName = propToHeaderMap[key];
         if (headerName && headerMap[headerName] !== undefined) {
-          newRow[headerMap[headerName]] = userData[key];
+          // 電話番号は文字列として明示的に設定（先頭の0を保持）
+          if (key === 'phone' && userData[key]) {
+            newRow[headerMap[headerName]] = String(userData[key]);
+          } else {
+            newRow[headerMap[headerName]] = userData[key];
+          }
         }
       }
 
