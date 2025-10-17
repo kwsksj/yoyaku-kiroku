@@ -1,6 +1,22 @@
 /**
- * @file Global type aliases bridging module exports to ambient names.
- * Generated to maintain backward compatibility with legacy JSDoc annotations.
+ * =================================================================
+ * 【ファイル名】: types/global-aliases.d.ts
+ * 【役割】: グローバル型エイリアス定義
+ * 【目的】: モジュールからエクスポートされた型をグローバルスコープで利用可能にする
+ * 【編集方法】: 手動編集可能 - 新しい型を追加する場合は以下の形式で記述
+ * =================================================================
+ *
+ * JSDocアノテーションとの後方互換性を維持するため、
+ * types配下の各モジュールで定義された型をグローバルスコープにエイリアスします。
+ *
+ * @example 新しい型の追加方法
+ * ```typescript
+ * import type { NewType as ____module_name_N } from './path/to/module';
+ *
+ * declare global {
+ *   type NewType = ____module_name_N;
+ * }
+ * ```
  */
 
 import type { AccountingCacheData as ____core_common_0 } from './core/common';

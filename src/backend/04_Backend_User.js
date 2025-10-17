@@ -493,9 +493,9 @@ export function updateUserProfile(userInfo) {
         if (headerName) {
           const colIdx = headers.indexOf(headerName);
           if (colIdx !== -1) {
-            // 電話番号は文字列として明示的に設定（先頭の0を保持）
+            // 電話番号はシングルクォートプレフィックスを追加（先頭の0を保持）
             if (key === 'phone' && userInfo[key]) {
-              updates[colIdx] = String(userInfo[key]);
+              updates[colIdx] = `'${userInfo[key]}`;
             } else {
               updates[colIdx] = userInfo[key];
             }
@@ -596,7 +596,22 @@ export function registerNewUser(userData) {
         );
       }
 
-      // 電話番号の重複チェック
+      // 電話番号のバリデーションと重複チェック
+      if (!userData.phone) {
+        return {
+          success: false,
+          message: '電話番号は必須項目です。',
+        };
+      }
+
+      const normalizedPhone = normalizePhoneNumber(userData.phone);
+      if (!normalizedPhone.isValid) {
+        return {
+          success: false,
+          message: normalizedPhone.error || '電話番号の形式が正しくありません。',
+        };
+      }
+
       const phoneExists = checkExistingUserByPhone(userData.phone);
       if (phoneExists) {
         return {
@@ -642,9 +657,9 @@ export function registerNewUser(userData) {
       for (const key in userData) {
         const headerName = propToHeaderMap[key];
         if (headerName && headerMap[headerName] !== undefined) {
-          // 電話番号は文字列として明示的に設定（先頭の0を保持）
+          // 電話番号はシングルクォートプレフィックスを追加（先頭の0を保持）
           if (key === 'phone' && userData[key]) {
-            newRow[headerMap[headerName]] = String(userData[key]);
+            newRow[headerMap[headerName]] = `'${userData[key]}`;
           } else {
             newRow[headerMap[headerName]] = userData[key];
           }
