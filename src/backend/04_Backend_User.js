@@ -145,10 +145,26 @@ function findUserByPhoneAndRealName(phone, realName) {
       };
     }
 
-    // 電話番号と本名でユーザーを検索
-    const foundUser = Object.values(allStudents).find(
-      user => user.phone === phone && user.realName === realName,
-    );
+    // 入力電話番号を正規化
+    const normalizedInputPhone = normalizePhoneNumber(phone);
+    if (!normalizedInputPhone.isValid) {
+      return {
+        success: false,
+        message: normalizedInputPhone.error || '電話番号の形式が正しくありません。',
+      };
+    }
+
+    // 電話番号と本名でユーザーを検索（電話番号は正規化して比較）
+    const foundUser = Object.values(allStudents).find(user => {
+      const normalizedUserPhone = user.phone
+        ? normalizePhoneNumber(user.phone)
+        : { isValid: false };
+      return (
+        normalizedUserPhone.isValid &&
+        normalizedUserPhone.normalized === normalizedInputPhone.normalized &&
+        user.realName === realName
+      );
+    });
 
     if (foundUser) {
       Logger.log(`ユーザー認証成功: ${foundUser.studentId}`);
@@ -450,13 +466,21 @@ export function updateUserProfile(userInfo) {
         }
       }
 
-      // シートに一括更新
+      // シートに一括更新（パフォーマンス改善: 1回のAPI呼び出しで完了）
+      const rowRange = allStudentsSheet.getRange(
+        targetRowIndex,
+        1,
+        1,
+        allStudentsSheet.getLastColumn(),
+      );
+      const rowValues = rowRange.getValues()[0];
+
       for (const colIdxStr in updates) {
         const colIdx = Number(colIdxStr);
-        allStudentsSheet
-          .getRange(targetRowIndex, colIdx + 1)
-          .setValue(updates[colIdx]);
+        rowValues[colIdx] = updates[colIdx];
       }
+
+      rowRange.setValues([rowValues]);
 
       // 更新後のユーザー情報を生成
       const updatedUser = { ...targetStudent, ...userInfo };

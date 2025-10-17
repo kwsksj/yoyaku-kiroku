@@ -18,7 +18,7 @@
     "noUnusedParameters": true, // 未使用のパラメータを検出
     "noPropertyAccessFromIndexSignature": true,
     "exactOptionalPropertyTypes": true, // オプショナルなプロパティにundefinedを代入できなくする
-    "allowUnreachableCode": true, // 到達不能なコードをエラーに
+    "allowUnreachableCode": false, // 到達不能なコードをエラーに
     "allowUnusedLabels": false // 未使用のラベルをエラーに
   },
   "include": ["types/global-aliases.d.ts", "src/**/*.js", "types/**/*.d.ts"],
