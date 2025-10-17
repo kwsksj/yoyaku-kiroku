@@ -27,6 +27,17 @@ export class SpreadsheetManager {
     this._isWarming = false;
     /** @type {Promise<void> | null} */
     this._warmupPromise = null;
+    /**
+     * 外部スプレッドシート用キャッシュ
+     * @type {Map<
+     *   string,
+     *   {
+     *     spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet | null;
+     *     sheets: Map<string, GoogleAppsScript.Spreadsheet.Sheet | null>;
+     *   }
+     * >}
+     */
+    this._externalSpreadsheets = new Map();
   }
 
   /**
@@ -112,6 +123,100 @@ export class SpreadsheetManager {
       );
     }
     return this._sheets.get(sheetName);
+  }
+
+  /**
+   * 外部スプレッドシート用キャッシュを取得（必要に応じて初期化）
+   * @param {string} spreadsheetId
+   * @returns {{ spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet | null, sheets: Map<string, GoogleAppsScript.Spreadsheet.Sheet | null> }}
+   * @private
+   */
+  _ensureExternalSpreadsheetCache(spreadsheetId) {
+    if (!spreadsheetId) {
+      throw new Error('Spreadsheet ID is required to access external spreadsheets.');
+    }
+
+    let cache = this._externalSpreadsheets.get(spreadsheetId) || null;
+
+    if (cache?.spreadsheet) {
+      try {
+        cache.spreadsheet.getId();
+      } catch (error) {
+        Logger.log(
+          `[SS_MANAGER] 外部Spreadsheetキャッシュ無効化検出(ID: ${spreadsheetId.substring(
+            0,
+            10,
+          )}...): ${error.message}`,
+        );
+        this._externalSpreadsheets.delete(spreadsheetId);
+        cache = null;
+      }
+    }
+
+    if (!cache) {
+      Logger.log(
+        `[SS_MANAGER] 外部Spreadsheet(${spreadsheetId.substring(0, 10)}...)取得開始: ${new Date().toISOString()}`,
+      );
+      const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+      cache = {
+        spreadsheet,
+        sheets: new Map(),
+      };
+      this._externalSpreadsheets.set(spreadsheetId, cache);
+      Logger.log(
+        `[SS_MANAGER] 外部Spreadsheet(${spreadsheetId.substring(0, 10)}...)初期化完了: ${new Date().toISOString()}`,
+      );
+    }
+
+    return cache;
+  }
+
+  /**
+   * Spreadsheet IDからスプレッドシートオブジェクトを取得（キャッシュ付き）
+   * @param {string} spreadsheetId
+   * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet}
+   */
+  getSpreadsheetById(spreadsheetId) {
+    const cache = this._ensureExternalSpreadsheetCache(spreadsheetId);
+    if (!cache.spreadsheet) {
+      throw new Error(
+        `Spreadsheet(ID: ${spreadsheetId})の取得に失敗しました。`,
+      );
+    }
+    return cache.spreadsheet;
+  }
+
+  /**
+   * 指定IDのスプレッドシートからシートを取得（キャッシュ付き）
+   * @param {string} spreadsheetId
+   * @param {string} sheetName
+   * @returns {GoogleAppsScript.Spreadsheet.Sheet | null | undefined}
+   */
+  getExternalSheet(spreadsheetId, sheetName) {
+    const cache = this._ensureExternalSpreadsheetCache(spreadsheetId);
+    if (!cache.sheets.has(sheetName)) {
+      Logger.log(
+        `[SS_MANAGER] 外部シート'${sheetName}'取得開始: ${new Date().toISOString()}`,
+      );
+      const sheet = cache.spreadsheet
+        ? cache.spreadsheet.getSheetByName(sheetName)
+        : null;
+      cache.sheets.set(sheetName, sheet || null);
+      if (sheet) {
+        Logger.log(
+          `[SS_MANAGER] 外部シート'${sheetName}'初期化完了: ${new Date().toISOString()}`,
+        );
+      } else {
+        Logger.log(
+          `[SS_MANAGER] 外部シート'${sheetName}'が見つかりませんでした: ${new Date().toISOString()}`,
+        );
+      }
+    } else {
+      Logger.log(
+        `[SS_MANAGER] 外部シート'${sheetName}'キャッシュ利用: ${new Date().toISOString()}`,
+      );
+    }
+    return cache.sheets.get(sheetName);
   }
 
   /**

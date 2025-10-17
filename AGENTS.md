@@ -1,4 +1,4 @@
-# GEMINI.md (Geminiへの指示書)
+# AGENTS.md (Codex CLI への指示書)
 
 このプロジェクトの開発ルール、ワークフロー、アーキテクチャは **[AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md)** にまとめられています。
 
