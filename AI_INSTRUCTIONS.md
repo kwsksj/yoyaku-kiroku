@@ -43,6 +43,34 @@
   - `build` を実行し、テスト環境へプッシュします。
   - ブラウザで動作確認が必要な場合は `npm run dev:open:test` を使用します。
 
+**3-1. Chrome DevTools MCPを使った自動テスト（AI推奨）**
+
+AIによる開発・テスト時は、Chrome DevTools MCP（Model Context Protocol）を使用することで、WebAppの動作を自動的にテストできます。
+
+- **前提条件**:
+  - テスト環境のWebApp URLとデプロイIDが必要です
+  - これらの情報は開発者から直接提供されます（セキュリティのためGit管理外）
+  - テスト環境は一般公開設定されている必要があります
+
+- **基本的なテストフロー**:
+  1. コードをビルド・デプロイ: `npm run dev:test`
+  2. DevTools MCPでWebAppを開く: `mcp__devtools__navigate_page`（URLは開発者提供）
+  3. スナップショット取得: `mcp__devtools__take_snapshot`
+  4. UI操作: `mcp__devtools__fill`, `mcp__devtools__click`
+  5. コンソールログ確認: `mcp__devtools__list_console_messages`
+  6. スクリーンショット取得: `mcp__devtools__take_screenshot`
+
+- **キャッシュ管理**:
+  - テスト環境では、スプレッドシートを開くと自動的にキャッシュが再構築されます（`onOpen`トリガー）
+  - テストユーザー削除後は、スプレッドシートを開き直すことでキャッシュがクリアされます
+
+- **テスト実施例**:
+  - 新規登録フロー、ログイン、予約作成・編集・キャンセル、プロフィール編集など
+  - レスポンス構造の検証（コンソールログから確認）
+  - UI表示の確認（スクリーンショット・スナップショット）
+
+- **注意**: テスト環境の具体的なURL・ID情報はセキュリティのためGit管理外としてください
+
 **4. 本番環境へのデプロイ**
 
 - `npm run dev:prod`
