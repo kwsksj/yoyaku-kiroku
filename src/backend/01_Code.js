@@ -66,6 +66,11 @@ export function onOpen() {
   addAdminMenu(menu);
   addCacheMenu(menu);
   menu.addToUi();
+
+  // テスト環境のみ：スプレッドシートを開くたびにキャッシュを自動再構築
+  if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+    rebuildAllCachesEntryPoint();
+  }
 }
 
 /**

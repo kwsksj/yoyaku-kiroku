@@ -386,33 +386,40 @@ export const authActionHandlers = {
     });
 
     showLoading('login');
-    google.script.run['withSuccessHandler'](
-      (
-        /** @type {ServerResponse<{ user: UserCore; message: string }>} */ res,
-      ) => {
-        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-          console.log('🔍 registerNewUser レスポンス:', res);
-        }
-        hideLoading();
-        if (res.success && res.data) {
-          // 登録成功時は直接ダッシュボードに遷移（データは後からロード）
-          showInfo('新規ユーザー登録が完了しました', '登録完了');
+    google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+        console.log('🔍 registerNewUser レスポンス:', response);
+      }
+      hideLoading();
+      if (response.success && response.userFound) {
+        // 登録成功時は直接ダッシュボードに遷移
+        showInfo('新規ユーザー登録が完了しました', '登録完了');
 
-          authHandlersStateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              currentUser: res.data.user,
-              view: 'dashboard',
-              myReservations: [], // 新規ユーザーは予約がない
-              lessons: [], // データは必要に応じて後からロード
-              isDataFresh: false, // データを後でリフレッシュする必要があることを示す
-            },
-          });
-        } else {
-          showInfo(res.message || '登録に失敗しました', 'エラー');
-        }
-      },
-    )
+        // 完全なアプリ状態を一度に構築（既存ログインと同じ形式）
+        const newAppState = {
+          view: 'dashboard',
+          currentUser: response.user,
+          myReservations: response.data.myReservations || [],
+          lessons: response.data.lessons || [],
+          classrooms: CONSTANTS.CLASSROOMS
+            ? Object.values(CONSTANTS.CLASSROOMS)
+            : [],
+          accountingMaster: response.data.accountingMaster || [],
+          today: new Date().toISOString().split('T')[0],
+        };
+
+        authHandlersStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            ...newAppState,
+            recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+            isDataFresh: true,
+          },
+        });
+      } else {
+        showInfo(response.message || '登録に失敗しました', 'エラー');
+      }
+    })
       ['withFailureHandler']((/** @type {Error} */ error) => {
         hideLoading();
         if (appWindow.FrontendErrorHandler) {

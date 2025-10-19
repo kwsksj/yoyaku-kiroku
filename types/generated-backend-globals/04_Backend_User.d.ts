@@ -63,8 +63,10 @@ export function updateUserProfile(userInfo: UserCore): ApiResponseGeneric<UserPr
 export function registerNewUser(userData: UserCore): ApiResponseGeneric<UserCore>;
 /**
  * ユーザーのログイン処理を行います。
- * 成功した場合、セッション情報を保存します。
  * （Phase 3: 型システム統一対応）
+ *
+ * 注: セッション管理はフロントエンドのlocalStorage/sessionStorageで行います。
+ * バックエンドではユーザー認証のみを担当します。
  *
  * @param {string} phone - 電話番号
  * @param {string} realName - 本名
@@ -73,12 +75,19 @@ export function registerNewUser(userData: UserCore): ApiResponseGeneric<UserCore
 export function loginUser(phone: string, realName: string): ApiResponseGeneric<UserCore>;
 /**
  * ユーザーのログアウト処理を行います。
- * セッション情報を削除します。
+ *
+ * 注: セッション管理はフロントエンドで行うため、バックエンドでは
+ * ログ記録のみを行います。実際のセッションクリアはフロントエンド側で実施されます。
+ *
  * @returns {ApiResponse}
  */
 export function logoutUser(): ApiResponse;
 /**
  * 現在ログインしているユーザーの情報を取得します。
+ *
+ * @deprecated この関数はフロントエンドのstorage管理に移行したため非推奨です。
+ * フロントエンドのstateManager.getState().currentUserを使用してください。
+ *
  * @returns {ApiResponseGeneric<UserCore>}
  */
 export function getLoggedInUser(): ApiResponseGeneric<UserCore>;

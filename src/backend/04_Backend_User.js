@@ -455,6 +455,11 @@ export function updateUserProfile(userInfo) {
         gender: CONSTANTS.HEADERS.ROSTER.GENDER,
         dominantHand: CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
         futureCreations: CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
+        experience: CONSTANTS.HEADERS.ROSTER.EXPERIENCE,
+        pastWork: CONSTANTS.HEADERS.ROSTER.PAST_WORK,
+        futureParticipation: CONSTANTS.HEADERS.ROSTER.ATTENDANCE_INTENTION,
+        trigger: CONSTANTS.HEADERS.ROSTER.TRIGGER,
+        firstMessage: CONSTANTS.HEADERS.ROSTER.FIRST_MESSAGE,
       };
 
       // 電話番号が更新される場合、バリデーションと重複チェックを実行
@@ -634,7 +639,7 @@ export function registerNewUser(userData) {
       }
 
       // 新しい生徒IDを生成
-      const newStudentId = _generateNewStudentId(allStudentsSheet);
+      const newStudentId = _generateNewStudentId();
 
       // ヘッダーと列インデックスを取得
       const headers = allStudentsSheet
@@ -644,8 +649,8 @@ export function registerNewUser(userData) {
 
       // 新しい行データを作成
       const newRow = Array(headers.length).fill('');
-      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] = newStudentId;
-      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE]] =
+      newRow[headerMap.get(CONSTANTS.HEADERS.ROSTER.STUDENT_ID)] = newStudentId;
+      newRow[headerMap.get(CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE)] =
         new Date();
 
       // userDataから対応する列に値を設定
@@ -665,23 +670,29 @@ export function registerNewUser(userData) {
         gender: CONSTANTS.HEADERS.ROSTER.GENDER,
         dominantHand: CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND,
         futureCreations: CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS,
+        experience: CONSTANTS.HEADERS.ROSTER.EXPERIENCE,
+        pastWork: CONSTANTS.HEADERS.ROSTER.PAST_WORK,
+        futureParticipation: CONSTANTS.HEADERS.ROSTER.ATTENDANCE_INTENTION,
+        trigger: CONSTANTS.HEADERS.ROSTER.TRIGGER,
+        firstMessage: CONSTANTS.HEADERS.ROSTER.FIRST_MESSAGE,
       };
 
       for (const key in userData) {
         const headerName = propToHeaderMap[key];
-        if (headerName && headerMap[headerName] !== undefined) {
+        const colIdx = headerMap.get(headerName);
+        if (headerName && colIdx !== undefined) {
           // 電話番号はシングルクォートプレフィックスを追加（先頭の0を保持）
           if (key === 'phone' && userData[key]) {
-            newRow[headerMap[headerName]] = `'${userData[key]}`;
+            newRow[colIdx] = `'${userData[key]}`;
           } else {
-            newRow[headerMap[headerName]] = userData[key];
+            newRow[colIdx] = userData[key];
           }
         }
       }
 
       // 表示名を決定
       const displayName = userData.nickname || userData.realName;
-      newRow[headerMap[CONSTANTS.HEADERS.ROSTER.NICKNAME]] = displayName;
+      newRow[headerMap.get(CONSTANTS.HEADERS.ROSTER.NICKNAME)] = displayName;
 
       // シートに新しい行を追加
       allStudentsSheet.appendRow(newRow);
@@ -706,7 +717,14 @@ export function registerNewUser(userData) {
 
       return {
         success: true,
-        data: registeredUser,
+        userFound: true,
+        user: registeredUser,
+        data: {
+          accountingMaster: [],
+          cacheVersions: {},
+          lessons: [],
+          myReservations: [],
+        },
       };
     } catch (error) {
       Logger.log(`新規ユーザー登録エラー: ${error.message}`);
@@ -757,21 +775,14 @@ function checkExistingUserByPhone(phone) {
 }
 
 /**
- * 新しい生徒ID（S-XXX形式）を生成します。
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet - 生徒名簿シート
- * @returns {string} 新しい生徒ID
+ * 新しい生徒ID（user_UUID形式）を生成します。
+ * UUIDを使用することで一意性を保証し、セキュリティとスケーラビリティを向上させます。
+ * @returns {string} 新しい生徒ID（例: user_a71976a1-dff3-4fbc-9f23-6d91efd3d0ab）
  * @private
  */
-function _generateNewStudentId(sheet) {
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
-    return 'S-001';
-  }
-
-  const lastStudentId = sheet.getRange(lastRow, 1).getValue();
-  const lastNumber = parseInt(String(lastStudentId).split('-')[1] || '0');
-  const newNumber = lastNumber + 1;
-  return `S-${String(newNumber).padStart(3, '0')}`;
+function _generateNewStudentId() {
+  const uuid = Utilities.getUuid();
+  return `user_${uuid}`;
 }
 
 // =================================================================
@@ -780,8 +791,10 @@ function _generateNewStudentId(sheet) {
 
 /**
  * ユーザーのログイン処理を行います。
- * 成功した場合、セッション情報を保存します。
  * （Phase 3: 型システム統一対応）
+ *
+ * 注: セッション管理はフロントエンドのlocalStorage/sessionStorageで行います。
+ * バックエンドではユーザー認証のみを担当します。
  *
  * @param {string} phone - 電話番号
  * @param {string} realName - 本名
@@ -791,9 +804,6 @@ export function loginUser(phone, realName) {
   try {
     const result = findUserByPhoneAndRealName(phone, realName);
     if (result.success && result.data) {
-      // ユーザー情報をセッションに保存
-      const session = PropertiesService.getUserProperties();
-      session.setProperty('user', JSON.stringify(result.data));
       Logger.log(`ログイン成功: ${result.data.studentId}`);
       logActivity(
         result.data.studentId,
@@ -814,19 +824,15 @@ export function loginUser(phone, realName) {
 
 /**
  * ユーザーのログアウト処理を行います。
- * セッション情報を削除します。
+ *
+ * 注: セッション管理はフロントエンドで行うため、バックエンドでは
+ * ログ記録のみを行います。実際のセッションクリアはフロントエンド側で実施されます。
+ *
  * @returns {ApiResponse}
  */
 export function logoutUser() {
   try {
-    const session = PropertiesService.getUserProperties();
-    const userData = session.getProperty('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      logActivity(user.studentId, 'ログアウト', '成功', 'ログアウトしました');
-      session.deleteProperty('user');
-    }
-    Logger.log('ログアウト成功');
+    Logger.log('ログアウト処理呼び出し（フロントエンドでセッション管理）');
     return { success: true };
   } catch (error) {
     Logger.log(`ログアウト処理エラー: ${error.message}`);
@@ -839,25 +845,19 @@ export function logoutUser() {
 
 /**
  * 現在ログインしているユーザーの情報を取得します。
+ *
+ * @deprecated この関数はフロントエンドのstorage管理に移行したため非推奨です。
+ * フロントエンドのstateManager.getState().currentUserを使用してください。
+ *
  * @returns {ApiResponseGeneric<UserCore>}
  */
 export function getLoggedInUser() {
-  try {
-    const session = PropertiesService.getUserProperties();
-    const userData = session.getProperty('user');
-    if (userData) {
-      const user = JSON.parse(userData);
-      return { success: true, data: user };
-    } else {
-      return { success: false, message: 'ログインしていません。' };
-    }
-  } catch (error) {
-    Logger.log(`ログインユーザー取得エラー: ${error.message}`);
-    return {
-      success: false,
-      message: `ログインユーザーの取得中にエラーが発生しました: ${error.message}`,
-    };
-  }
+  // フロントエンド側でセッション管理しているため、常に未ログイン扱い
+  return {
+    success: false,
+    message:
+      'セッション管理はフロントエンドで行っています。stateManager.getState().currentUserを参照してください。',
+  };
 }
 
 // =================================================================
