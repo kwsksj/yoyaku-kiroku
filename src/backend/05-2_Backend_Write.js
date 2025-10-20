@@ -473,13 +473,11 @@ export function makeReservation(reservationInfo) {
       sendAdminNotificationForReservation(reservationWithUser, 'created');
 
       // 予約確定メール送信（統一インターフェース使用）
-      if (reservationWithUser.user?.wantsEmail) {
-        Utilities.sleep(100); // 短い待機
-        try {
-          sendReservationEmailAsync(reservationWithUser, 'confirmation');
-        } catch (emailError) {
-          Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
-        }
+      Utilities.sleep(100); // 短い待機
+      try {
+        sendReservationEmailAsync(reservationWithUser, 'confirmation');
+      } catch (emailError) {
+        Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
       }
 
       return createApiResponse(true, {
@@ -558,19 +556,17 @@ export function cancelReservation(cancelInfo) {
         cancelMessage: cancelMessage,
       });
 
-      if (cancelledReservation.user?.wantsEmail) {
-        Utilities.sleep(100); // 短い待機
-        try {
-          sendReservationEmailAsync(
-            cancelledReservation,
-            'cancellation',
-            cancelMessage,
-          );
-        } catch (emailError) {
-          Logger.log(
-            `キャンセルメール送信エラー（キャンセルは成功）: ${emailError.message}`,
-          );
-        }
+      Utilities.sleep(100); // 短い待機
+      try {
+        sendReservationEmailAsync(
+          cancelledReservation,
+          'cancellation',
+          cancelMessage,
+        );
+      } catch (emailError) {
+        Logger.log(
+          `キャンセルメール送信エラー（キャンセルは成功）: ${emailError.message}`,
+        );
       }
 
       return {
