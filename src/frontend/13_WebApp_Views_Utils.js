@@ -198,7 +198,7 @@ export const getCompleteView = msg => {
                 会場の住所や駐車場情報なども記載しています。メールが届かない場合は、迷惑メールフォルダもご確認ください。<br>
                 予約の確認やキャンセルは、このページ（Webアプリ上）でおこなえます<br>
                 <br>
-                送信元アドレス: shiawasenehito3000@gmail.com
+                送信元アドレス: shiawasenahito3000@gmail.com
               </p>
             </div>
           </div>
@@ -211,7 +211,7 @@ export const getCompleteView = msg => {
           予約受付完了のメールをお送りしました！<br>
           （会場の住所や駐車場情報なども記載）<br>
           <br>
-          送信元アドレス: shiawasenehito3000@gmail.com
+          送信元アドレス: shiawasenahito3000@gmail.com
         </p>
         </div>
       `;

@@ -22,7 +22,9 @@ const { deploymentId } = claspConfig;
 
 if (!deploymentId) {
   console.error('❌ .clasp.json に deploymentId が設定されていません。');
-  console.error('新規デプロイを作成する場合は clasp deploy を直接実行してください。');
+  console.error(
+    '新規デプロイを作成する場合は clasp deploy を直接実行してください。',
+  );
   process.exit(1);
 }
 
