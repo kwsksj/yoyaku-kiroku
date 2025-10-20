@@ -4,9 +4,9 @@ export namespace authActionHandlers {
     function goToStep2(): void;
     function backToStep1(): void;
     function goToStep3(): void;
-    function backToStep2(): any;
+    function backToStep2(): void;
     function proceedToStep4(): void;
-    function backToStep3(): any;
+    function backToStep3(): void;
     function submitRegistration(): void;
     function showEditProfile(): void;
     function saveProfile(): void;

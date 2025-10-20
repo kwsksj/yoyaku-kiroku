@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 12_WebApp_Core.js
@@ -19,36 +18,12 @@
 // 以下の機能は専用ファイルに分割されました：
 //
 // 📁 12_WebApp_Core_Search.js - 統一検索システム
-//   - findReservationById(reservationId, state)
-//   - findReservationByDateAndClassroom(date, classroom, state)
-//   - findReservationsByStatus(status, state)
-//
 // 📁 12_WebApp_Core_Data.js - データ処理・環境管理
-//   - processInitialData(data, phone, lessons, myReservations)
-//   - detectEnvironment()
-//   - getEnvironmentData(dataType, fallback)
-//   - ModalManager オブジェクト
-//   - StateManager 初期化処理
-//   - スケジュール関連ヘルパー関数
-//
+// 📁 12_WebApp_Core_Modal.js - モーダル管理
 // 📁 12_WebApp_Core_Accounting.js - 会計計算ロジック
-//   - calculateAccountingDetails()
-//   - calculateAccountingDetailsFromForm()
-//   - calculateTimeBasedTuition(tuitionItemRule)
-//   - 各種計算ヘルパー関数
-//   - 会計キャッシュ機能
-//
 // 📁 12_WebApp_Core_ErrorHandler.js - エラーハンドリング
-//   - FrontendErrorHandler クラス
-//   - handleServerError(err) 互換関数
-//   - グローバル・Promise拒否エラー処理
-//   - 開発/本番環境対応ログ出力
 //
 // 📁 14_WebApp_Handlers_Utils.js - 統合済みユーティリティ
-//   - normalizePhoneNumberFrontend(phoneInput)
-//   - buildSalesChecklist(accountingMaster, checkedValues, title)
-//   - formatDate(dStr)
-//   - 各種DOM型安全ヘルパー関数
 // =================================================================
 
 // =================================================================
@@ -59,7 +34,7 @@
 // 数秒ごとに自動で切り替える機能を提供します。
 // =================================================================
 
-/** @type {number | null} */
+/** @type {ReturnType<typeof setInterval> | null} */
 export let loadingMessageTimer = null;
 
 export const LoadingMessages = {
@@ -219,8 +194,8 @@ export const stopLoadingMessageRotation = () => {
   }
 };
 
-window.showLoading =
-  window.showLoading ||
+appWindow.showLoading =
+  appWindow.showLoading ||
   function (/** @type {string} */ category = 'default') {
     /** @type {HTMLElement | null} */
     const loadingElement = document.getElementById('loading');
@@ -233,8 +208,8 @@ window.showLoading =
     startLoadingMessageRotation(category);
   };
 
-window.hideLoading =
-  window.hideLoading ||
+appWindow.hideLoading =
+  appWindow.hideLoading ||
   function () {
     /** @type {HTMLElement | null} */
     const loadingElement = document.getElementById('loading');
@@ -250,119 +225,10 @@ window.hideLoading =
   };
 
 // =================================================================
-// --- Error Handling (moved to 12_WebApp_Core_ErrorHandler.js) ---
+// --- Modal System (Moved) ---
 // -----------------------------------------------------------------
-// エラーハンドリング機能は専用ファイルに分割されました：
-//
-// 📁 12_WebApp_Core_ErrorHandler.js - フロントエンド統一エラーハンドリング
-//   - FrontendErrorHandler クラス
-//   - handleServerError() 互換関数
-//   - グローバルエラーハンドラー設定
-//   - 開発/本番環境対応
-//
-// バックエンドエラーハンドリングは src/backend/08_ErrorHandler.js で管理
+// モーダル管理機能は 12_WebApp_Core_Modal.js に移動しました。
 // =================================================================
-
-// =================================================================
-// --- Modal System ---
-// -----------------------------------------------------------------
-// モーダル表示とインタラクション管理
-// =================================================================
-
-/**
- * モーダル表示
- * @param {ModalDialogConfig} c - モーダル設定
- */
-window.showModal =
-  window.showModal ||
-  /** @type {(c: ModalDialogConfig) => void} */ (
-    c => {
-      // モーダル表示時にスクロール位置を保存
-      if (
-        window.pageTransitionManager &&
-        /** @type {any} */ (window.pageTransitionManager).onModalOpen
-      ) {
-        /** @type {any} */ (window.pageTransitionManager).onModalOpen();
-      }
-
-      /** @type {HTMLElement | null} */
-      const m = document.getElementById('custom-modal');
-      /** @type {HTMLElement | null} */
-      const b = document.getElementById('modal-buttons');
-      if (!m || !b) return;
-      b.innerHTML = '';
-      if (c.showCancel) {
-        b.innerHTML += Components.button({
-          text: c.cancelText || CONSTANTS.MESSAGES.CANCEL || 'キャンセル',
-          action: 'modalCancel',
-          style: 'secondary',
-          size: 'normal',
-        });
-      }
-      if (c.confirmText) {
-        b.innerHTML += `<div class="w-3"></div>${Components.button({
-          text: c.confirmText,
-          action: 'modalConfirm',
-          style: c.confirmColorClass?.includes('danger') ? 'danger' : 'primary',
-          size: 'normal',
-          disabled: /** @type {any} */ (c).disableConfirm,
-        })}`;
-      }
-      ModalManager.setCallback(c.onConfirm);
-      /** @type {HTMLElement | null} */
-      const modalTitle = document.getElementById('modal-title');
-      /** @type {HTMLElement | null} */
-      const modalMessage = document.getElementById('modal-message');
-
-      if (modalTitle) modalTitle.textContent = c.title;
-      if (modalMessage) modalMessage.innerHTML = c.message;
-      m.classList.add('active');
-    }
-  );
-
-export const hideModal = () => {
-  /** @type {HTMLElement | null} */
-  const modal = document.getElementById('custom-modal');
-  if (modal) modal.classList.remove('active');
-  ModalManager.clearCallback();
-
-  // モーダル非表示時にスクロール位置を復元
-  if (
-    window.pageTransitionManager &&
-    /** @type {any} */ (window.pageTransitionManager).onModalClose
-  ) {
-    /** @type {any} */ (window.pageTransitionManager).onModalClose();
-  }
-};
-
-/**
- * 情報モーダル表示
- * @param {string} msg - メッセージ
- * @param {string} t - タイトル
- * @param {VoidCallback|null} cb - コールバック
- */
-window.showInfo =
-  window.showInfo ||
-  /** @type {(msg: string, t?: string, cb?: VoidCallback | null) => void} */ (
-    (msg, t = '情報', cb = null) =>
-      window.showModal({
-        title: t,
-        message: msg,
-        confirmText: 'OK',
-        confirmColorClass: DesignConfig.colors['primary'],
-        onConfirm: cb,
-      })
-  );
-
-/**
- * 確認モーダル表示
- * @param {ModalDialogConfig} c - モーダル設定
- */
-window.showConfirm =
-  window.showConfirm ||
-  /** @type {(c: ModalDialogConfig) => void} */ (
-    c => window.showModal({ ...c, showCancel: true })
-  );
 
 // =================================================================
 // --- Event Listener Management ---
@@ -372,6 +238,7 @@ window.showConfirm =
 // =================================================================
 
 /** @type {Array<{element: Element, type: string, listener: EventListener, options?: AddEventListenerOptions}>} */
+/** @type {Array<{ element: Element; type: string; listener: EventListener; options?: AddEventListenerOptions }>} */
 export let activeListeners = [];
 
 /**
@@ -401,7 +268,11 @@ export function addTrackedListener(element, type, listener, options) {
     return;
   }
   element.addEventListener(type, listener, options);
-  activeListeners.push({ element, type, listener, options });
+  if (options) {
+    activeListeners.push({ element, type, listener, options });
+  } else {
+    activeListeners.push({ element, type, listener });
+  }
 }
 
 /**
@@ -409,12 +280,12 @@ export function addTrackedListener(element, type, listener, options) {
  * ビュー変更時のイベントリスナー管理を設定
  */
 export function setupViewListener() {
-  if (!window.stateManager) {
+  if (!appWindow.stateManager) {
     console.error('StateManager not initialized. Cannot set up view listener.');
     return;
   }
 
-  window.stateManager.subscribe(
+  appWindow.stateManager.subscribe(
     (/** @type {UIState} */ newState, /** @type {UIState} */ oldState) => {
       // ビューが変更された場合のみ処理
       if (newState.view !== oldState.view) {
@@ -431,14 +302,14 @@ export function setupViewListener() {
             if (typeof updateAccountingCalculation === 'function') {
               // 会計画面用のデータを取得
               const classifiedItems =
-                window.currentClassifiedItems ||
+                appWindow.currentClassifiedItems ||
                 /** @type {ClassifiedAccountingItemsCore} */ (
                   /** @type {unknown} */ ({
                     tuition: { items: [] },
                     sales: { materialItems: [], productItems: [] },
                   })
                 );
-              const classroom = window.currentClassroom || '';
+              const classroom = appWindow.currentClassroom || '';
               updateAccountingCalculation(classifiedItems, classroom);
             }
           }

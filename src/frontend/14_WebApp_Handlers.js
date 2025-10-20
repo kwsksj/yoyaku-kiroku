@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers.js
@@ -43,23 +42,30 @@ export let actionHandlers;
 export const EMPTY_CLASSIFIED_ITEMS =
   /** @type {ClassifiedAccountingItemsCore} */ (
     /** @type {unknown} */ ({
-      tuition: { items: [] },
+      tuition: { baseItems: [], additionalItems: [] },
       sales: { materialItems: [], productItems: [] },
     })
   );
 
 // Window型の拡張（型エラー回避のため）
-/** @type {Window & { tempPaymentData?: TempPaymentData; isProduction?: boolean; }} */
-export const windowTyped = window;
+/**
+ * フロントエンド専用のWindow拡張
+ * 主要な会計データとフラグを型安全に扱うためのラッパー
+ */
+
+export const windowTyped = /** @type {any} */ (window);
+
+/** @type {SimpleStateManager} */
+const handlersStateManager = windowTyped.stateManager;
 
 /**
  * 現在のアプリケーションの状態に基づいて、適切なビューを描画する
  * データ更新の必要性を判定し、必要に応じて最新データ取得後に再描画
- * stateManager.getState().viewの値に応じて対応するビュー関数を呼び出してUIを更新
+ * handlersStateManager.getState().viewの値に応じて対応するビュー関数を呼び出してUIを更新
  */
 export function render() {
   // appStateの安全な参照確認
-  const appState = window.stateManager?.getState();
+  const appState = handlersStateManager?.getState();
   if (!appState) {
     console.warn('render(): stateManagerが未初期化のため処理をスキップします');
     return;
@@ -109,7 +115,8 @@ export function render() {
       const classroom = reservationData?.classroom || '';
 
       // 事前初期化されたキャッシュを優先使用
-      const accountingCache = /** @type {any} */ (window).accountingSystemCache;
+      const accountingCache = windowTyped.accountingSystemCache;
+      /** @type {ClassifiedAccountingItemsCore | null} */
       let classifiedItems = null;
 
       if (accountingCache && classroom && accountingCache[classroom]) {
@@ -141,10 +148,11 @@ export function render() {
       // キャッシュされたデータでHTML生成
       if (classifiedItems) {
         // グローバル変数に設定（イベント処理で使用）
-        window.currentClassifiedItems = classifiedItems;
-        window.currentClassroom = classroom;
+        windowTyped.currentClassifiedItems = classifiedItems;
+        windowTyped.currentClassroom = classroom;
 
         // 会計画面HTML生成
+        /** @type {AccountingFormDto} */
         const formData = {};
         v = generateAccountingView(
           classifiedItems,
@@ -180,8 +188,10 @@ export function render() {
       );
       break;
   }
-  document.getElementById('view-container').innerHTML =
-    `<div class="fade-in">${v}</div>`;
+  const viewContainer = document.getElementById('view-container');
+  if (viewContainer) {
+    viewContainer.innerHTML = `<div class="fade-in">${v}</div>`;
+  }
 
   // もどるボタンを動的に更新
   const backButtonContainer = document.getElementById('back-button-container');
@@ -198,8 +208,8 @@ export function render() {
     requestAnimationFrame(() => {
       // 事前設定されたグローバル変数から取得（キャッシュ活用）
       const classifiedItems =
-        window.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
-      const classroom = window.currentClassroom || '';
+        windowTyped.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
+      const classroom = windowTyped.currentClassroom || '';
 
       if (typeof setupAccountingEventListeners === 'function') {
         setupAccountingEventListeners(classifiedItems, classroom);
@@ -223,14 +233,14 @@ export function handleAccountingFormChange() {
   if (typeof updateAccountingCalculation === 'function') {
     // 会計画面用のデータを取得
     const classifiedItems =
-      window.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
-    const classroom = window.currentClassroom || '';
+      windowTyped.currentClassifiedItems || EMPTY_CLASSIFIED_ITEMS;
+    const classroom = windowTyped.currentClassroom || '';
     updateAccountingCalculation(classifiedItems, classroom);
   }
 
   // フォーム内容が変更されたら、キャッシュに保存する
   const reservationId =
-    stateManager.getState().accountingReservation?.reservationId;
+    handlersStateManager.getState().accountingReservation?.reservationId;
   if (reservationId) {
     const accountingData =
       typeof collectAccountingFormData === 'function'
@@ -265,21 +275,26 @@ window.onload = function () {
     // -----------------------------------------------------------------
     /** スマートナビゲーション: 前の画面にもどる */
     smartGoBack: () => {
-      const backState = stateManager.goBack();
-      stateManager.dispatch({
-        type: 'SET_STATE',
-        payload: backState,
-      });
+      const backState = handlersStateManager.goBack();
+      if (backState) {
+        handlersStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: backState,
+        });
+      }
     },
 
     /** モーダルの確認ボタンを押したときの処理です */
     modalConfirm: () => {
-      ModalManager.executeCallback();
-      hideModal();
+      const modalManager = windowTyped.ModalManager;
+      if (modalManager && typeof modalManager.executeCallback === 'function') {
+        modalManager.executeCallback();
+      }
+      windowTyped.ModalManager.hide();
     },
 
     /** モーダルのキャンセルボタンを押したときの処理です */
-    modalCancel: () => hideModal(),
+    modalCancel: () => windowTyped.ModalManager.hide(),
 
     // =================================================================
     // --- Authentication Handlers (from 14_WebApp_Handlers_Auth.js) ---
@@ -322,11 +337,11 @@ window.onload = function () {
 
       if (reservationData) {
         // 会計マスタデータを取得
-        const state = stateManager.getState();
+        const state = handlersStateManager.getState();
         const accountingMaster = state.accountingMaster || [];
 
         // 予約データを状態に設定して会計画面に遷移
-        stateManager.dispatch({
+        handlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: {
             view: 'accounting',
@@ -357,9 +372,9 @@ window.onload = function () {
     /** 支払い確認モーダルを表示 */
     showPaymentModal: () => {
       // 会計画面から支払い確認モーダルを表示する
-      const state = stateManager.getState();
+      const state = handlersStateManager.getState();
       const classroom = state.accountingReservation?.classroom;
-      const classifiedItems = window.currentClassifiedItems;
+      const classifiedItems = windowTyped.currentClassifiedItems;
 
       if (classifiedItems && classroom) {
         // 12_WebApp_Core_Accounting.jsの関数を呼び出し
@@ -384,25 +399,20 @@ window.onload = function () {
             windowTyped.tempPaymentData,
           );
         }
-        const { formData, result, classifiedItems, classroom } =
-          windowTyped.tempPaymentData;
+        const { formData, result } = windowTyped.tempPaymentData;
 
         // processAccountingPayment関数を直接呼び出し
         if (typeof processAccountingPayment === 'function') {
-          processAccountingPayment(
-            formData,
-            result,
-            classifiedItems,
-            classroom,
-          );
+          processAccountingPayment(formData, result);
         } else {
           console.error('processAccountingPayment関数が見つかりません');
         }
+        windowTyped.tempPaymentData = null;
         return;
       }
 
       // 従来の処理（tempPaymentDataがない場合のフォールバック）
-      const state = stateManager.getState();
+      const state = handlersStateManager.getState();
       const reservationId = state.accountingReservation?.reservationId;
       const classroom = state.accountingReservation?.classroom;
       const studentId = state.currentUser?.studentId;
@@ -433,7 +443,7 @@ window.onload = function () {
       };
 
       // モーダルを閉じてローディング開始
-      hideModal();
+      windowTyped.ModalManager.hide();
       showLoading('accounting');
 
       // バックエンド送信
@@ -444,7 +454,7 @@ window.onload = function () {
             if (response.success) {
               // データを最新に更新
               if (response.data) {
-                stateManager.dispatch({
+                handlersStateManager.dispatch({
                   type: 'SET_STATE',
                   payload: response.data,
                 });
@@ -452,8 +462,8 @@ window.onload = function () {
 
               // 成功時：完了画面を表示
               const completionMessage = `会計情報を記録しました。`;
-              const currentState = stateManager.getState();
-              stateManager.dispatch({
+              const currentState = handlersStateManager.getState();
+              handlersStateManager.dispatch({
                 type: 'SET_STATE',
                 payload: {
                   view: 'complete',
@@ -545,18 +555,22 @@ window.onload = function () {
     }
 
     // 【修正】buttonまたはdata-action属性を持つ要素を対象にする
-    const targetElement = e.target.closest('button, [data-action]');
-    if (targetElement?.dataset?.['action']) {
-      const action = targetElement.dataset['action'];
-      const { action: _, ...data } = targetElement.dataset;
+    const matched = e.target.closest('button, [data-action]');
+    if (!matched || !(matched instanceof HTMLElement)) {
+      return;
+    }
+
+    if (matched.dataset?.['action']) {
+      const action = matched.dataset['action'];
+      const { action: _action, ...data } = matched.dataset;
 
       // デバッグ情報を追加
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         console.log('🔘 クリックイベント:', {
           action,
           data,
-          element: targetElement,
-          tagName: targetElement.tagName,
+          element: matched,
+          tagName: matched.tagName,
           modalContext: e.target.closest('[data-modal-content]')
             ? 'モーダル内'
             : '通常',
@@ -568,7 +582,7 @@ window.onload = function () {
       // モーダル内の場合は、イベント伝播を継続する
       if (
         e.target.closest('[data-modal-content]') &&
-        targetElement.dataset['action']
+        matched.dataset['action']
       ) {
         // イベント伝播を停止しない（モーダル内のボタンを有効にする）
       }
@@ -592,7 +606,7 @@ window.onload = function () {
         if (action === 'copyToClipboard' || action === 'copyGrandTotal') {
           /** @type {(data: any) => void} */ (actionHandlers[action])({
             ...data,
-            targetElement,
+            targetElement: matched,
           });
         } else {
           /** @type {(data: any) => void} */ (actionHandlers[action])(data);
@@ -629,9 +643,11 @@ window.onload = function () {
       return;
     }
 
+    const element = /** @type {Element} */ (e.target);
+
     // 会計モーダルでの支払い方法選択
     if (
-      e.target.matches('#modal-accounting-form input[name="payment-method"]')
+      element.matches('#modal-accounting-form input[name="payment-method"]')
     ) {
       /** @type {HTMLButtonElement | null} */
       const confirmButton = /** @type {HTMLButtonElement | null} */ (
@@ -640,8 +656,8 @@ window.onload = function () {
       confirmButton?.removeAttribute('disabled');
 
       // 選択された支払方法に応じて情報を動的に更新
-      const selectedPaymentMethod = /** @type {HTMLInputElement} */ (e.target)
-        .value;
+      const selectedPaymentMethod =
+        element instanceof HTMLInputElement ? element.value : '';
       /** @type {HTMLElement | null} */
       const paymentInfoContainer = document.getElementById(
         'payment-info-container',
@@ -654,30 +670,33 @@ window.onload = function () {
     }
 
     // 会計画面での変更（主に select や checkbox）
-    const accountingForm = e.target.closest('#accounting-form');
-    if (stateManager.getState().view === 'accounting' && accountingForm) {
+    const accountingForm = element.closest('#accounting-form');
+    if (
+      handlersStateManager.getState().view === 'accounting' &&
+      accountingForm
+    ) {
       handleAccountingFormChange();
 
       // デバッグログ
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        const target = /** @type {HTMLInputElement} */ (e.target);
-        console.log('🔄 会計フォーム変更イベント:', {
-          element: target.name || target.id,
-          value: target.value,
-          checked: target.checked,
-        });
+        if (element instanceof HTMLInputElement) {
+          console.log('🔄 会計フォーム変更イベント:', {
+            element: element.name || element.id,
+            value: element.value,
+            checked: element.checked,
+          });
+        }
       }
     }
 
     // 新規登録Step3での経験有無による表示切り替え
-    const inputTarget = /** @type {HTMLInputElement} */ (e.target);
-    if (inputTarget.name === 'experience') {
+    if (element instanceof HTMLInputElement && element.name === 'experience') {
       /** @type {HTMLElement | null} */
       const pastWorkContainer = document.getElementById('past-work-container');
       if (pastWorkContainer) {
         pastWorkContainer.classList.toggle(
           'hidden',
-          inputTarget.value === 'はじめて！',
+          element.value === 'はじめて！',
         );
       }
     }
@@ -695,7 +714,10 @@ window.onload = function () {
 
     // 会計画面での変更
     const accountingForm = e.target.closest('#accounting-form');
-    if (stateManager.getState().view === 'accounting' && accountingForm) {
+    if (
+      handlersStateManager.getState().view === 'accounting' &&
+      accountingForm
+    ) {
       handleAccountingFormChange();
     }
 

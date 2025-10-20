@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers_Utils.js
@@ -12,6 +11,8 @@
  * - AIの作業効率向上のためのファイル分割
  * =================================================================
  */
+
+const handlerUtilsStateManager = appWindow.stateManager;
 
 // =================================================================
 // --- DOM Type Safety Helper Functions ---
@@ -80,9 +81,9 @@ export function ensureDateString(date) {
 }
 
 /**
- * ReservationObjectをReservationDataに安全に変換する
+ * ReservationObjectをReservationCoreに安全に変換する
  * @param {ReservationObject} reservationObj - 予約オブジェクト
- * @returns {ReservationData} 変換された予約データ
+ * @returns {ReservationCore} 変換された予約データ
  */
 export function convertToReservationData(reservationObj) {
   return {
@@ -106,7 +107,7 @@ export function convertToReservationData(reservationObj) {
 /**
  * 時刻データを適切に取得するヘルパー関数
  * @param {string} elementId - 時刻入力要素のID
- * @param {ReservationData | null} reservationData - 予約データ（フォールバック用）
+ * @param {ReservationCore | null} reservationData - 予約データ（フォールバック用）
  * @param {string} timeField - 時刻フィールド名（'startTime' or 'endTime'）
  * @returns {string} 時刻文字列（HH:mm形式）
  */
@@ -136,7 +137,7 @@ export function getTimeValue(elementId, reservationData, timeField) {
   }
 
   // 3. selectedLessonから取得を試行（新規作成時）
-  const selectedLesson = stateManager.getState().selectedLesson;
+  const selectedLesson = handlerUtilsStateManager.getState().selectedLesson;
   if (selectedLesson) {
     const headerField =
       /** @type {any} */ (CONSTANTS.HEADERS.RESERVATIONS)?.[
@@ -144,26 +145,12 @@ export function getTimeValue(elementId, reservationData, timeField) {
       ] || timeField;
 
     // セッション制教室の場合、スケジュール情報から取得
-    const classroomType =
-      /** @type {any} */ (selectedLesson).schedule?.classroomType ||
-      /** @type {any} */ (selectedLesson).classroomType;
+    const classroomType = /** @type {any} */ (selectedLesson).classroomType;
     if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
       if (timeField === 'startTime') {
-        return (
-          selectedLesson.schedule?.firstStart ||
-          selectedLesson.schedule?.secondStart ||
-          /** @type {any} */ (selectedLesson).firstStart ||
-          /** @type {any} */ (selectedLesson).secondStart ||
-          ''
-        );
+        return selectedLesson.firstStart || selectedLesson.secondStart || '';
       } else if (timeField === 'endTime') {
-        return (
-          selectedLesson.schedule?.firstEnd ||
-          selectedLesson.schedule?.secondEnd ||
-          /** @type {any} */ (selectedLesson).firstEnd ||
-          /** @type {any} */ (selectedLesson).secondEnd ||
-          ''
-        );
+        return selectedLesson.firstEnd || selectedLesson.secondEnd || '';
       }
     }
 
@@ -202,7 +189,7 @@ export function handlePhoneInputFormatting(inputElement) {
   const cursorPosition = inputElement.selectionStart;
 
   // 全角数字を半角に変換
-  let formattedValue = originalValue.replace(/[０-９]/g, s =>
+  const formattedValue = originalValue.replace(/[０-９]/g, s =>
     String.fromCharCode(s.charCodeAt(0) - 65248),
   );
 
@@ -231,8 +218,10 @@ export function handlePhoneInputFormatting(inputElement) {
     inputElement.value = formatted;
 
     // カーソル位置を調整（ハイフンの追加を考慮）
+    const cursorBase =
+      cursorPosition === null ? formatted.length : cursorPosition;
     const newCursorPosition = Math.min(
-      cursorPosition + (formatted.length - originalValue.length),
+      cursorBase + (formatted.length - originalValue.length),
       formatted.length,
     );
     inputElement.setSelectionRange(newCursorPosition, newCursorPosition);
@@ -274,12 +263,10 @@ export function formatPhoneNumberForDisplay(phoneNumber) {
  * @param {string} targetView - データ取得後に遷移したいビュー名
  */
 export function updateAppStateFromCache(targetView) {
-  if (
-    !stateManager.getState().currentUser ||
-    !stateManager.getState().currentUser.phone
-  ) {
+  const currentUser = handlerUtilsStateManager.getState().currentUser;
+  if (!currentUser || !currentUser.phone) {
     if (targetView) {
-      window.stateManager.dispatch({
+      appWindow.stateManager.dispatch({
         type: 'SET_STATE',
         payload: { view: /** @type {ViewType} */ (targetView) },
       });
@@ -288,7 +275,7 @@ export function updateAppStateFromCache(targetView) {
   }
 
   // 更新中フラグを設定
-  window.stateManager.dispatch({
+  appWindow.stateManager.dispatch({
     type: 'SET_STATE',
     payload: { _dataUpdateInProgress: true },
   });
@@ -297,14 +284,14 @@ export function updateAppStateFromCache(targetView) {
   google.script.run['withSuccessHandler'](
     /** @param {any} response */ response => {
       hideLoading();
-      window.stateManager.dispatch({
+      appWindow.stateManager.dispatch({
         type: 'SET_STATE',
         payload: { _dataUpdateInProgress: false },
       }); // フラグをクリア
 
       if (response.success && response.userFound) {
         // バッチ処理結果からappStateを更新（initialDataなしでlessons、myReservationsのみ）
-        const existingState = stateManager.getState();
+        const existingState = handlerUtilsStateManager.getState();
         const newAppState = {
           ...existingState,
           lessons: response.data.lessons || [],
@@ -313,27 +300,29 @@ export function updateAppStateFromCache(targetView) {
         // 現在のビューと重要な状態は保持、ただしtargetViewが指定されていればそちらを優先
         const preservedState = {
           view: /** @type {ViewType} */ (
-            targetView || stateManager.getState().view
+            targetView || handlerUtilsStateManager.getState().view
           ),
-          selectedClassroom: stateManager.getState().selectedClassroom,
-          selectedLesson: stateManager.getState().selectedLesson,
+          selectedClassroom:
+            handlerUtilsStateManager.getState().selectedClassroom,
+          selectedLesson: handlerUtilsStateManager.getState().selectedLesson,
           editingReservationDetails:
-            stateManager.getState().editingReservationDetails,
-          accountingReservation: stateManager.getState().accountingReservation,
+            handlerUtilsStateManager.getState().editingReservationDetails,
+          accountingReservation:
+            handlerUtilsStateManager.getState().accountingReservation,
           isDataFresh: true, // 新鮮なデータが読み込まれたことを記録
         };
-        window.stateManager.dispatch({
+        appWindow.stateManager.dispatch({
           type: 'SET_STATE',
           payload: { ...newAppState, ...preservedState },
         }); // setStateに統合し、状態更新と再描画を一元化
       } else {
         // 失敗時もsetStateを介して状態を更新し、再描画をトリガーする
-        window.stateManager.dispatch({
+        appWindow.stateManager.dispatch({
           type: 'SET_STATE',
           payload: {
             _dataUpdateInProgress: false,
             view: /** @type {ViewType} */ (
-              targetView || stateManager.getState().view
+              targetView || handlerUtilsStateManager.getState().view
             ),
           },
         });
@@ -344,12 +333,12 @@ export function updateAppStateFromCache(targetView) {
     ['withFailureHandler'](
       /** @param {any} err */ err => {
         hideLoading();
-        window.stateManager.dispatch({
+        appWindow.stateManager.dispatch({
           type: 'SET_STATE',
           payload: {
             _dataUpdateInProgress: false,
             view: /** @type {ViewType} */ (
-              targetView || stateManager.getState().view
+              targetView || handlerUtilsStateManager.getState().view
             ),
           },
         }); // フラグをクリア
@@ -357,7 +346,7 @@ export function updateAppStateFromCache(targetView) {
         // setStateがrenderを呼び出すので、ここでのrender()は不要
       },
     )
-    .getBatchData(['lessons'], stateManager.getState().currentUser.phone);
+    .getBatchData(['lessons'], currentUser.phone);
 }
 
 // =================================================================
@@ -394,7 +383,7 @@ export function isDateToday(dateString) {
  * @param {string} phoneInput - 入力された電話番号
  * @returns {PhoneNumberNormalizationResult} 正規化結果
  */
-window.normalizePhoneNumberFrontend = function (phoneInput) {
+appWindow.normalizePhoneNumberFrontend = function (phoneInput) {
   if (!phoneInput || typeof phoneInput !== 'string') {
     return {
       normalized: '',

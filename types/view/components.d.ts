@@ -10,16 +10,19 @@
 // 基本型定義
 // =================================================================
 
-type HTMLString = string;
-type ComponentSize = 'normal' | 'full' | 'small' | 'xs' | 'large';
-type ComponentStyle =
+export type HTMLString = string;
+export type ComponentSize = 'normal' | 'full' | 'small' | 'xs' | 'large';
+export type ComponentStyle =
   | 'primary'
   | 'secondary'
+  | 'attention'
   | 'danger'
-  | 'none'
+  | 'accounting'
   | 'bookingCard'
   | 'recordCard'
-  | 'accounting';
+  | 'normal'
+  | 'none';
+export type BadgeType = 'success' | 'warning' | 'error' | 'info' | 'accounting' | 'attention';
 
 // =================================================================
 // Component Config（基本設定）
@@ -28,7 +31,7 @@ type ComponentStyle =
 /**
  * コンポーネント基本設定
  */
-interface ComponentConfig {
+export interface ComponentConfig {
   [key: string]: any;
   id?: string;
   action?: string;
@@ -43,7 +46,7 @@ interface ComponentConfig {
 /**
  * コンポーネントProps
  */
-interface ComponentProps {
+export interface ComponentProps {
   [key: string]: any;
   id?: string;
   className?: string;
@@ -60,58 +63,109 @@ interface ComponentProps {
 /**
  * ボタン設定
  */
-interface ButtonConfig {
+export interface ButtonConfig {
   text: string;
-  onClick?: string;
   action?: string;
-  type?: ComponentStyle;
+  onClick?: string;
   style?: ComponentStyle;
+  type?: ComponentStyle;
   size?: ComponentSize;
   disabled?: boolean;
   customClass?: string;
   dataAttributes?: Record<string, string | number | boolean>;
+  id?: string;
+  disabledStyle?: 'auto' | 'none' | 'custom';
 }
 
 /**
  * 入力フィールド設定
  */
-interface InputConfig {
+export interface InputConfig {
   id: string;
   label: string;
   type?: string;
   value?: string;
   placeholder?: string;
   required?: boolean;
+  description?: string;
+  caption?: string;
+  inputMode?: string;
+  autocomplete?: string;
+  customClass?: string;
+  containerClass?: string;
+  dataAttributes?: Record<string, string | number | boolean>;
+  disabled?: boolean;
 }
 
 /**
  * セレクト設定
  */
-interface SelectConfig {
+export interface SelectConfig {
   id: string;
   label: string;
   options: string | Array<{ value?: string; label?: string } | string>;
   selectedValue?: string;
+  description?: string;
+  caption?: string;
+  disabled?: boolean;
+  dataAttributes?: Record<string, string | number | boolean>;
+  customClass?: string;
 }
 
 /**
  * テキストエリア設定
  */
-interface TextareaConfig {
+export interface TextareaConfig {
   id: string;
   label: string;
   value?: string;
   placeholder?: string;
   rows?: number;
+  description?: string;
+  caption?: string;
+  disabled?: boolean;
+  dataAttributes?: Record<string, string | number | boolean>;
+  customClass?: string;
 }
 
 /**
  * チェックボックス設定
  */
-interface CheckboxConfig {
+export interface CheckboxConfig {
   id: string;
   label: string;
   checked?: boolean;
+  disabled?: boolean;
+  dynamicStyle?: boolean;
+  dataAttributes?: Record<string, string | number | boolean>;
+  description?: string;
+  caption?: string;
+  onChange?: string;
+  customLabelClass?: string;
+  required?: boolean;
+}
+
+/**
+ * ラジオボタングループ設定
+ */
+export interface RadioGroupConfig {
+  name: string;
+  label: string;
+  options: Array<{ value: string; label: string; checked?: boolean }>;
+  selectedValue?: string;
+  layout?: 'vertical' | 'horizontal';
+  description?: string;
+  caption?: string;
+}
+
+/**
+ * 時刻選択オプション設定
+ */
+export interface TimeOptionsConfig {
+  startTime: string;
+  endTime: string;
+  interval: number;
+  selectedValue?: string;
 }
 
 // =================================================================
@@ -121,7 +175,7 @@ interface CheckboxConfig {
 /**
  * ページコンテナ設定
  */
-interface PageContainerConfig {
+export interface PageContainerConfig {
   content: string;
   maxWidth?: string;
 }
@@ -129,7 +183,7 @@ interface PageContainerConfig {
 /**
  * カードコンテナ設定
  */
-interface CardContainerConfig {
+export interface CardContainerConfig {
   content: string;
   variant?:
     | 'default'
@@ -154,15 +208,15 @@ interface CardContainerConfig {
 /**
  * ステータスバッジ設定
  */
-interface StatusBadgeConfig {
-  type: 'success' | 'warning' | 'error' | 'info';
+export interface StatusBadgeConfig {
+  type: BadgeType;
   text: string;
 }
 
 /**
  * 価格表示設定
  */
-interface PriceDisplayConfig {
+export interface PriceDisplayConfig {
   amount: number | string;
   label?: string;
   size?: 'small' | 'normal' | 'large';
@@ -174,12 +228,29 @@ interface PriceDisplayConfig {
 /**
  * アクションボタンセクション設定
  */
-interface ActionButtonSectionConfig {
+export interface ActionButtonSectionConfig {
   primaryButton?: ButtonConfig;
   secondaryButton?: ButtonConfig;
   dangerButton?: ButtonConfig;
   layout?: 'vertical' | 'horizontal';
   spacing?: 'compact' | 'normal' | 'spacious';
+}
+
+/**
+ * セクションヘッダー設定
+ */
+export interface SectionHeaderConfig {
+  title: string;
+  asSummary?: boolean;
+}
+
+/**
+ * 小計セクション設定
+ */
+export interface SubtotalSectionConfig {
+  title: string;
+  amount: number;
+  id?: string;
 }
 
 // =================================================================
@@ -189,7 +260,7 @@ interface ActionButtonSectionConfig {
 /**
  * 会計行設定
  */
-interface AccountingRowConfig {
+export interface AccountingRowConfig {
   name: string;
   itemType: string;
   price: number;
@@ -200,7 +271,7 @@ interface AccountingRowConfig {
 /**
  * 材料行設定
  */
-interface MaterialRowConfig {
+export interface MaterialRowConfig {
   index: number;
   values?: {
     type?: string;
@@ -213,7 +284,7 @@ interface MaterialRowConfig {
 /**
  * その他販売行設定
  */
-interface OtherSalesRowConfig {
+export interface OtherSalesRowConfig {
   index: number;
   values?: {
     name?: string;
@@ -224,7 +295,7 @@ interface OtherSalesRowConfig {
 /**
  * ダッシュボードセクション設定
  */
-interface DashboardSectionConfig {
+export interface DashboardSectionConfig {
   title: string;
   items: string[];
   showNewButton?: boolean;
@@ -236,9 +307,9 @@ interface DashboardSectionConfig {
 /**
  * リストカード設定
  */
-interface ListCardConfig {
+export interface ListCardConfig {
   item: ReservationData;
-  badges?: Array<{ type: string; text: string }>;
+  badges?: Array<{ type: BadgeType; text: string }>;
   editButtons?: Array<{
     action: string;
     text: string;
@@ -252,22 +323,25 @@ interface ListCardConfig {
     style?: string;
     details?: any;
   }>;
-  type?: 'booking' | 'record' | 'history';
+  type?: 'booking' | 'record' | 'history' | 'accounting';
+  isEditMode?: boolean;
+  showMemoSaveButton?: boolean;
 }
 
 /**
  * メモセクション設定
  */
-interface MemoSectionConfig {
+export interface MemoSectionConfig {
   reservationId: string;
-  workInProgress?: string;
+  workInProgress?: string | null;
   isEditMode?: boolean;
+  showSaveButton?: boolean;
 }
 
 /**
  * ユーザーフォーム設定
  */
-interface UserFormConfig {
+export interface UserFormConfig {
   mode: 'register' | 'edit';
   phone?: string;
 }
@@ -275,7 +349,7 @@ interface UserFormConfig {
 /**
  * モーダル設定
  */
-interface ModalConfig {
+export interface ModalConfig {
   id: string;
   title: string;
   content: string;
@@ -286,7 +360,7 @@ interface ModalConfig {
 /**
  * モーダルダイアログ設定
  */
-interface ModalDialogConfig {
+export interface ModalDialogConfig {
   title?: string;
   message: string;
   showCancel?: boolean;
@@ -300,7 +374,7 @@ interface ModalDialogConfig {
 /**
  * 確認ダイアログ設定
  */
-interface ConfirmDialogConfig {
+export interface ConfirmDialogConfig {
   title?: string;
   message: string;
   confirmText?: string;
@@ -316,35 +390,35 @@ interface ConfirmDialogConfig {
 /**
  * コンポーネント関数
  */
-interface ComponentFunction<T = ComponentProps> {
+export interface ComponentFunction<T = ComponentProps> {
   (config: T): HTMLString;
 }
 
 /**
  * UI コンポーネント関数
  */
-interface UIComponentFunction<TConfig = ComponentConfig> {
+export interface UIComponentFunction<TConfig = ComponentConfig> {
   (config: TConfig): HTMLString;
 }
 
 /**
  * View生成関数
  */
-interface ViewGenerator {
+export interface ViewGenerator {
   (): HTMLString;
 }
 
 /**
  * View生成関数（設定付き）
  */
-interface ViewGeneratorWithConfig<T = any> {
+export interface ViewGeneratorWithConfig<T = any> {
   (config: T): HTMLString;
 }
 
 /**
  * HTML生成関数
  */
-interface HTMLGeneratorFunction {
+export interface HTMLGeneratorFunction {
   (props?: ComponentProps): string;
 }
 
@@ -355,7 +429,7 @@ interface HTMLGeneratorFunction {
 /**
  * レンダリングコンテキスト
  */
-interface RenderContext {
+export interface RenderContext {
   view: ViewType;
   state: UIState;
   isLoading: boolean;
@@ -365,7 +439,7 @@ interface RenderContext {
 /**
  * コンポーネントレンダラー
  */
-interface ComponentRenderer {
+export interface ComponentRenderer {
   render(context: RenderContext): string;
   update(element: HTMLElement, newProps: ComponentProps): void;
 }
@@ -378,7 +452,7 @@ declare global {
   /**
    * Componentsオブジェクト（グローバル）
    */
-  interface ComponentsObject {
+  export interface ComponentsObject {
     // 基本コンポーネント
     button: (config: ButtonConfig) => string;
     input: (config: InputConfig) => string;
@@ -425,10 +499,13 @@ declare global {
     createBackButton: (action?: string, text?: string) => string;
     createSmartBackButton: (currentView: ViewType, appState?: UIState) => string;
 
-    // その他
-    [key: string]:
-      | ((...args: any[]) => string)
-      | ((...args: any[]) => void);
+    // フォーム関連の追加コンポーネント
+    radioGroup: (config: RadioGroupConfig) => string;
+    timeOptions: (config: TimeOptionsConfig) => string;
+
+    // UI要素の追加コンポーネント
+    sectionHeader: (config: SectionHeaderConfig) => string;
+    subtotalSection: (config: SubtotalSectionConfig) => string;
   }
 
   var Components: ComponentsObject;

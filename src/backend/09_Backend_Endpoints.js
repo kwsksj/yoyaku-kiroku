@@ -1,5 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
-
 /**
  * =================================================================
  * 【ファイル名】: 09_Backend_Endpoints.js
@@ -426,6 +424,7 @@ export function getAccountingDetailsFromSheet(reservationId) {
       .getRange(1, 1, 1, sheet.getLastColumn())
       .getValues()[0];
     const accountingDetailsColumnIndex = headerRow.findIndex(
+      /** @param {string|number|Date} header */
       header => header === CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
     );
 
@@ -445,6 +444,7 @@ export function getAccountingDetailsFromSheet(reservationId) {
 
     // 予約ID列のインデックスを取得
     const reservationIdColumnIndex = headerRow.findIndex(
+      /** @param {string|number|Date} header */
       header => header === CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
     );
 
@@ -455,6 +455,7 @@ export function getAccountingDetailsFromSheet(reservationId) {
 
     // 該当する予約を検索
     const targetRow = data.find(
+      /** @param {(string|number|Date)[]} row */
       row => row[reservationIdColumnIndex] === reservationId,
     );
 

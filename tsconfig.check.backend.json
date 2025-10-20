@@ -3,6 +3,14 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["src/backend/**/*.js", "src/shared/**/*.js"],
-  "exclude": []
+  "include": [
+    "types/global-aliases.d.ts",
+    "src/backend/**/*.js",
+    "src/shared/**/*.js",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "types/frontend-index.d.ts",
+    "types/generated-frontend-globals/**/*.d.ts"
+  ]
 }

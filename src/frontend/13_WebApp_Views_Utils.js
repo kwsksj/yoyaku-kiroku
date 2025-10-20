@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Views_Utils.js
@@ -8,6 +7,7 @@
  * =================================================================
  */
 
+const viewsUtilsStateManager = appWindow.stateManager;
 // =================================================================
 // --- Privacy Policy Content (タスク1で追加) ---
 // -----------------------------------------------------------------
@@ -125,7 +125,7 @@ export const _isPastOrToday = dateString => {
  * @returns {HTMLString} HTMLの<option>タグ文字列
  */
 export const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
-  let options = [];
+  const options = [];
   for (let h = startHour; h <= endHour; h++) {
     for (let m = 0; m < 60; m += step) {
       const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -165,17 +165,17 @@ export const getClassroomColorClass = classroomName => {
  */
 export const getCompleteView = msg => {
   // 教室情報を取得（複数のソースから取得を試行）
-  const state = stateManager.getState();
+  const state = viewsUtilsStateManager.getState();
   const classroom =
     state.accountingReservation?.classroom ||
-    state.selectedLesson?.schedule?.classroom ||
-    state.currentReservationFormContext?.lessonInfo?.schedule?.classroom ||
+    state.selectedLesson?.classroom ||
+    state.currentReservationFormContext?.lessonInfo?.classroom ||
     state.selectedClassroom;
 
   // 初回予約者かどうかを判定
   const wasFirstTimeBooking =
-    stateManager.getState().wasFirstTimeBooking || false;
-  const currentUser = stateManager.getState().currentUser;
+    viewsUtilsStateManager.getState().wasFirstTimeBooking || false;
+  const currentUser = viewsUtilsStateManager.getState().currentUser;
   const studentHasEmail = currentUser && currentUser.email;
   const emailPreference = currentUser && currentUser.wantsEmail;
 
@@ -198,7 +198,7 @@ export const getCompleteView = msg => {
                 会場の住所や駐車場情報なども記載しています。メールが届かない場合は、迷惑メールフォルダもご確認ください。<br>
                 予約の確認やキャンセルは、このページ（Webアプリ上）でおこなえます<br>
                 <br>
-                送信元アドレス: shiawasenehito3000@gmail.com
+                送信元アドレス: shiawasenahito3000@gmail.com
               </p>
             </div>
           </div>
@@ -211,7 +211,7 @@ export const getCompleteView = msg => {
           予約受付完了のメールをお送りしました！<br>
           （会場の住所や駐車場情報なども記載）<br>
           <br>
-          送信元アドレス: shiawasenehito3000@gmail.com
+          送信元アドレス: shiawasenahito3000@gmail.com
         </p>
         </div>
       `;
@@ -220,11 +220,13 @@ export const getCompleteView = msg => {
   let nextBookingHtml = '';
 
   // 該当教室の未来の予約枠が存在する場合
-  if (classroom && stateManager.getState().lessons) {
+  if (classroom && viewsUtilsStateManager.getState().lessons) {
     // バックエンドで計算済みの空き情報を直接使用
-    const relevantLessons = stateManager
+    const relevantLessons = viewsUtilsStateManager
       .getState()
-      .lessons.filter(lesson => lesson.classroom === classroom);
+      .lessons.filter(
+        (/** @type {LessonCore} */ lesson) => lesson.classroom === classroom,
+      );
     const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
     if (bookingLessonsHtml) {

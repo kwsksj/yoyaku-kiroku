@@ -1,4 +1,4 @@
-/// <reference path="../../types/frontend-index.d.ts" />
+const componentsStateManager = appWindow.stateManager;
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Components.js
@@ -26,24 +26,24 @@
  * @param {string | number | boolean} str - エスケープする文字列、数値、真偽値
  * @returns {string} エスケープされた文字列
  */
-window.escapeHTML = /** @type {HTMLEscapeFunction} */ (
-  str => {
-    if (typeof str !== 'string') {
-      return String(str);
-    }
-    return str.replace(/[&<>"']/g, function (match) {
-      /** @type {Record<string, string>} */
-      const escapeMap = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#39;',
-      };
-      return escapeMap[match] || match;
-    });
+export const escapeHTML = str => {
+  if (typeof str !== 'string') {
+    return String(str);
   }
-);
+  return str.replace(/[&<>"']/g, match => {
+    /** @type {Record<string, string>} */
+    const escapeMap = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return escapeMap[match] || match;
+  });
+};
+
+appWindow.escapeHTML = escapeHTML;
 
 // =================================================================
 // --- Level 1: 基本要素（Atomic Components） ---
@@ -133,7 +133,8 @@ export const Components = {
    */
   handleModalContentClick: event => {
     // ボタンまたはdata-action要素の場合はイベントを継続
-    const actionElement = event.target.closest('button, [data-action]');
+    const target = /** @type {HTMLElement | null} */ (event.target);
+    const actionElement = target?.closest('button, [data-action]');
     if (actionElement) {
       // ボタンクリックの場合は伝播を継続（外側のハンドラーで処理）
       return;
@@ -167,6 +168,7 @@ export const Components = {
       accounting: DesignConfig.buttons['accounting'],
       bookingCard: DesignConfig.buttons['bookingCard'],
       recordCard: DesignConfig.buttons['recordCard'],
+      normal: '',
     };
 
     /** @type {Record<ComponentSize, string>} */
@@ -551,6 +553,7 @@ export const Components = {
       error: 'bg-ui-error-bg text-ui-error-text',
       info: 'bg-action-secondary-bg text-action-secondary-text',
       attention: 'bg-action-attention-bg text-action-attention-text',
+      accounting: 'bg-action-attention-bg text-action-attention-text',
     };
 
     return `<span class="inline-block px-1 py-0.5 text-sm font-bold rounded ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
@@ -622,14 +625,14 @@ export const Components = {
     layout = 'vertical',
     spacing = 'normal',
   }) => {
-    const buttons = [secondaryButton, primaryButton, dangerButton]
-      .filter(btn => btn)
-      .map(btn =>
-        Components.button({
-          ...btn,
-          size: btn.size || (layout === 'horizontal' ? 'large' : 'full'),
-        }),
-      );
+    const buttons = /** @type {ButtonConfig[]} */ (
+      [secondaryButton, primaryButton, dangerButton].filter(Boolean)
+    ).map(btn =>
+      Components.button({
+        ...btn,
+        size: btn.size || (layout === 'horizontal' ? 'large' : 'full'),
+      }),
+    );
 
     if (buttons.length === 0) return '';
 
@@ -727,7 +730,7 @@ export const Components = {
     // マスターデータから材料オプションを動的に生成
     let materialOptions = '';
     try {
-      const master = window.stateManager?.getState?.()?.accountingMaster;
+      const master = appWindow.stateManager?.getState?.()?.accountingMaster;
       if (master && Array.isArray(master)) {
         materialOptions = master
           .filter(
@@ -740,16 +743,13 @@ export const Components = {
               `<option value="${escapeHTML(m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME])}" ${type === m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] ? 'selected' : ''}>${escapeHTML(m[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME])}</option>`,
           )
           .join('');
+      } else {
+        console.warn(
+          '⚠️ 会計マスタデータが利用できません。材料リストが表示されません。',
+        );
       }
-    } catch (e) {
-      // フォールバック: 静的オプション
-      const staticOptions = ['桂', 'シナ', '檜', '楠', '桜', '朴', 'その他'];
-      materialOptions = staticOptions
-        .map(
-          option =>
-            `<option value="${option}" ${type === option ? 'selected' : ''}>${option}</option>`,
-        )
-        .join('');
+    } catch (error) {
+      console.error('❌ 材料オプション生成エラー:', error.message);
     }
 
     return `<div data-material-row-index="${index}">
@@ -786,8 +786,8 @@ export const Components = {
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.type - 授業料タイプ（'timeBased' | 'fixed'）
    * @param {AccountingMasterItemCore[]} config.master - 会計マスター
-   * @param {ReservationData} config.reservation - 予約データ
-   * @param {ReservationData} config.reservationDetails - 予約固有情報
+   * @param {ReservationCore} config.reservation - 予約データ
+   * @param {ReservationCore} config.reservationDetails - 予約固有情報
    * @param {ScheduleInfo} config.scheduleInfo - 講座固有情報
    * @returns {string} HTML文字列
    */
@@ -798,8 +798,8 @@ export const Components = {
     reservationDetails,
     scheduleInfo,
   }) => {
-    // isFirstTimeBooking をstateManagerから取得
-    const state = stateManager.getState();
+    // isFirstTimeBooking をcomponentsStateManagerから取得
+    const state = componentsStateManager.getState();
     const isFirstTimeBooking = state['isFirstTimeBooking'];
 
     // 使用する授業料項目を決定（初回授業料 or 基本授業料）
@@ -1163,7 +1163,7 @@ export const Components = {
     // 制作メモ表示（予約・履歴共通） - 編集モード対応
     const memoSection = Components.memoSection({
       reservationId: item.reservationId,
-      workInProgress: item.workInProgress,
+      workInProgress: item.workInProgress || '',
       isEditMode: isEditMode, // パラメータで制御
       showSaveButton: showMemoSaveButton, // 保存ボタン表示制御
     });
@@ -1202,6 +1202,19 @@ export const Components = {
     if (isEditMode) {
       // 編集モード：textareaと保存ボタン
       const textareaId = `memo-edit-textarea-${reservationId}`;
+      const saveButtonHtml = showSaveButton
+        ? `<div class="flex justify-end mt-2">
+            ${Components.button({
+              action: 'saveMemo',
+              text: 'メモを保存',
+              style: 'primary',
+              size: 'small',
+              dataAttributes: {
+                reservationId,
+              },
+            })}
+          </div>`
+        : '';
       return `
         <div class="p-0.5 bg-white/75">
           <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
@@ -1212,6 +1225,7 @@ export const Components = {
             placeholder="制作内容や進捗をメモしてね"
             data-reservation-id="${reservationId}"
           >${escapeHTML(workInProgress || '')}</textarea>
+          ${saveButtonHtml}
         </div>
       `;
     } else {
@@ -1219,7 +1233,7 @@ export const Components = {
       return `
         <div class="p-0.5 bg-white/75">
           <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
-          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(workInProgress)}</p>
+          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(workInProgress || '')}</p>
         </div>
       `;
     }
@@ -1229,10 +1243,13 @@ export const Components = {
    * 販売セクション
    * @param {Object} config - 設定オブジェクト
    * @param {AccountingMasterItemCore[]} config.master - 会計マスター
-   * @param {ReservationData} config.reservationDetails - 予約固有情報
+   * @param {ReservationCore} config.reservationDetails - 予約固有情報
    * @returns {string} HTML文字列
    */
   salesSection: ({ master, reservationDetails }) => {
+    const toStringOrEmpty = (/** @type {unknown} */ value) =>
+      value === null || value === undefined ? '' : String(value);
+
     const salesItems = Array.isArray(master)
       ? master.filter(
           /** @param {AccountingMasterItemCore} item */
@@ -1266,10 +1283,10 @@ export const Components = {
             ${Components.materialRow({
               index: 0,
               values: {
-                type: reservationDetails?.materialType0,
-                l: reservationDetails?.materialL0,
-                w: reservationDetails?.materialW0,
-                h: reservationDetails?.materialH0,
+                type: toStringOrEmpty(reservationDetails?.['materialType0']),
+                l: toStringOrEmpty(reservationDetails?.['materialL0']),
+                w: toStringOrEmpty(reservationDetails?.['materialW0']),
+                h: toStringOrEmpty(reservationDetails?.['materialH0']),
               },
             })}
           </div>
@@ -1285,8 +1302,12 @@ export const Components = {
               ${Components.otherSalesRow({
                 index: 0,
                 values: {
-                  name: reservationDetails?.otherSalesName0,
-                  price: reservationDetails?.otherSalesPrice0,
+                  name: toStringOrEmpty(
+                    reservationDetails?.['otherSalesName0'],
+                  ),
+                  price: toStringOrEmpty(
+                    reservationDetails?.['otherSalesPrice0'],
+                  ),
                 },
               })}
             </div>
@@ -1318,10 +1339,10 @@ export const Components = {
   /**
    * 現在のビューに応じて適切なもどるボタンを生成します
    * @param {string} currentView - 現在のビュー名
-   * @param {UIState|null} appState - アプリケーション状態
+   * @param {UIState|null} _appState - アプリケーション状態
    * @returns {string} HTML文字列
    */
-  createSmartBackButton: (currentView, appState = null) => {
+  createSmartBackButton: (currentView, _appState = null) => {
     // 現在のビューに応じてアクションとテキストを決定
     let action = 'smartGoBack';
     let text = 'もどる';
@@ -1457,4 +1478,4 @@ Components.createSmartBackButton = currentView => {
 // 注意: createBackButton と createSmartBackButton は Components オブジェクト内で定義済み
 
 // グローバルに公開
-window.Components = Components;
+appWindow.Components = Components;

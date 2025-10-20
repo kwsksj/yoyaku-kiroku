@@ -6,8 +6,29 @@
  * =================================================================
  */
 
-/// <reference path="../core/index.d.ts" />
-/// <reference path="../dto/index.d.ts" />
+import type { DesignSystemConfig } from './design-system';
+import type {
+  ModalDialogConfig,
+  ConfirmDialogConfig,
+} from './components';
+import type { AccountingFormDto, SimpleStateManager, ViewType } from './state';
+import type {
+  AccountingDetailsCore,
+  ClassifiedAccountingItemsCore,
+} from '../core/accounting';
+import type { ReservationCore } from '../core/reservation';
+
+// =================================================================
+// 共有定数型エイリアス
+// =================================================================
+
+export type Constants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS;
+export type StatusConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.STATUS;
+export type UIConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.UI;
+export type MessagesConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.MESSAGES;
+export type BankInfoConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.BANK_INFO;
+export type PaymentDisplayConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.PAYMENT_DISPLAY;
+export type HeadersConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.HEADERS;
 
 // =================================================================
 // 一時データ型定義
@@ -16,7 +37,7 @@
 /**
  * 一時的な支払いデータ（会計確認フロー用）
  */
-interface TempPaymentData {
+export interface TempPaymentData {
   formData: AccountingFormDto;
   result: AccountingDetailsCore;
   classifiedItems: ClassifiedAccountingItemsCore;
@@ -26,52 +47,54 @@ interface TempPaymentData {
 /**
  * Googleサイト埋め込み環境の設定
  */
-interface EmbedConfig {
+export interface EmbedConfig {
   detectGoogleSiteOffset(): number;
   applyEmbedStyles(): void;
   saveOffset(offset: number): void;
   addOffsetControl(currentOffset: number): void;
   showOffsetAdjustment(): void;
-  reapplyStyles(offset: number): void;
-}
-
-/**
- * デザインシステム設定
- */
-interface DesignSystemConfig {
-  colors?: any;
-  buttons?: any;
-  modal?: any;
-  form?: any;
-  [key: string]: any;
+  reapplyStyles(offset?: number): void;
 }
 
 /**
  * ページ遷移マネージャー
  */
-interface PageTransitionManager {
-  goTo(viewName: string, context?: any): void;
-  back(): void;
-  getCurrentView(): string;
+export interface PageTransitionManager {
+  goTo?(viewName: string, context?: any): void;
+  back?(): void;
+  getCurrentView?(): string;
+  onPageTransition?(newView: ViewType): void;
+  initializePage?(): void;
+  onModalOpen?(): void;
+  onModalClose?(): void;
+  handleViewChange?(newView: string | null, isModalTransition: boolean): void;
+  resetScrollPosition?(): void;
+  setScrollPosition?(position: number): void;
+  saveScrollPosition?(): void;
+  restoreScrollPosition?(): void;
   [key: string]: any;
 }
 
 /**
  * モーダルマネージャー
  */
-interface ModalManager {
+export interface ModalManager {
+  onConfirmCallback: (() => void) | null;
   show(config: any): void;
   hide(): void;
   showConfirm(config: any): void;
   showInfo(message: string, title?: string): void;
-  [key: string]: any;
+  setCallback(callback: () => void): void;
+  clearCallback(): void;
+  executeCallback(): void;
 }
 
-// =================================================================
-// Window拡張
-// =================================================================
-
 declare global {
+
+  // =================================================================
+  // Window拡張
+  // =================================================================
+
   interface Window {
     // --- 定数オブジェクト ---
     CONSTANTS: Constants;
@@ -88,12 +111,7 @@ declare global {
     render?: () => void;
 
     // --- デザイン設定 ---
-    DesignConfig?: {
-      colors: any;
-      buttons: any;
-      modal: any;
-      form: any;
-    };
+    DesignConfig?: DesignSystemConfig;
 
     // --- グローバル関数 ---
     showLoading?: (category?: string) => void;
@@ -108,7 +126,7 @@ declare global {
     formatDate?: (date: string | Date, format?: string) => string;
 
     // --- ページ遷移 ---
-    pageTransitionManager?: any;
+    pageTransitionManager?: PageTransitionManager;
     normalizePhoneNumberFrontend?: (
       phone: string,
     ) => {
@@ -118,11 +136,13 @@ declare global {
     };
 
     // --- 会計システム ---
-    currentClassifiedItems?: ClassifiedAccountingItemsCore;
-    currentClassroom?: string;
+    currentClassifiedItems?: ClassifiedAccountingItemsCore | null;
+    currentClassroom?: string | null;
     collectFormData?: () => AccountingFormDto;
     accountingSystemCache?: Record<string, ClassifiedAccountingItemsCore>;
-    tempPaymentData?: TempPaymentData;
+    tempPaymentData?: TempPaymentData | null;
+    paymentProcessing?: boolean;
+    accountingCalculationTimeout?: any;
 
     // --- 埋め込み環境 ---
     EmbedConfig?: EmbedConfig;
@@ -139,6 +159,19 @@ declare global {
       info(message: string, ...args: any[]): void;
       error(message: string, ...args: any[]): void;
     };
+
+    // --- エラーハンドラー ---
+    FrontendErrorHandler?: {
+      handle(error: Error): void;
+      logError(error: Error): void;
+      [key: string]: any;
+    };
+
+    // --- アクションハンドラー ---
+    actionHandlers?: Record<string, (...args: any[]) => void>;
+
+    // --- テストデータ ---
+    MockData?: Record<string, unknown>;
 
     // --- Google Apps Script WebApp API ---
     google: {
@@ -157,71 +190,79 @@ declare global {
     // --- 外部ライブラリ ---
     tailwind?: any;
     server?: any;
+    ModalManager?: ModalManager;
   }
-}
 
-// =================================================================
-// グローバル変数・関数宣言
-// =================================================================
+  /**
+   * Window と globalThis を統合した型
+   */
+  var tailwind: any;
+  var server: any;
+  const marked: {
+    parse(markdown: string): string;
+  };
 
-/** Tailwind CSS のグローバル定義 */
-declare var tailwind: any;
+  function collectFormData(): any;
+  function saveAccountingCache(data: any): void;
+  function loadAccountingCache(): any;
+  function calculateAccountingTotal(
+    formData: any,
+    masterData: any,
+    classroom: string,
+  ): any;
 
-/** GAS WebApp 環境での server オブジェクト */
-declare var server: any;
+  function escapeHTML(text: string): string;
+  function debugLog(message: string, ...args: any[]): void;
+  function updateView(viewName: string): void;
+  function formatDate(date: string | Date, format?: string): void;
+  function showInfo(
+    message: string,
+    title?: string,
+    callback?: (() => void) | null,
+  ): void;
+  function showLoading(category?: string): void;
+  function hideLoading(): void;
+  function showConfirm(config: any): void;
 
-/** marked.js ライブラリのグローバル宣言 */
-declare const marked: {
-  parse(markdown: string): string;
-};
+  var stateManager: SimpleStateManager;
+  var DesignConfig: DesignSystemConfig;
 
-// 会計システム関連のグローバル関数
-declare function collectFormData(): any;
-declare function saveAccountingCache(data: any): void;
-declare function loadAccountingCache(): any;
-declare function calculateAccountingTotal(
-  formData: any,
-  masterData: any,
-  classroom: string,
-): any;
-
-// グローバルヘルパー関数
-declare function escapeHTML(text: string): string;
-declare function debugLog(message: string, ...args: any[]): void;
-declare function updateView(viewName: string): void;
-declare function formatDate(date: string | Date, format?: string): string;
-declare function showInfo(message: string, title?: string, callback?: (() => void) | null): void;
-declare function showLoading(category?: string): void;
-declare function hideLoading(): void;
-declare function showConfirm(config: any): void;
-
-// グローバル変数
-declare var stateManager: SimpleStateManager;
-declare var DesignConfig: DesignSystemConfig;
-
-
-// Google Apps Script WebApp API (グローバルスコープ)
-declare var google: {
-  script: {
-    run: {
-      withSuccessHandler(callback: (result: any) => void): any;
-      withFailureHandler(callback: (error: Error) => void): any;
-      withUserObject(userObject: any): any;
-      [key: string]: any;
-    };
-    host: {
-      close(): void;
-      setWidth(width: number): void;
-      setHeight(height: number): void;
+  const google: {
+    script: {
+      run: {
+        withSuccessHandler(callback: (result: any) => void): any;
+        withFailureHandler(callback: (error: Error) => void): any;
+        withUserObject(userObject: any): any;
+        [key: string]: any;
+      };
+      host: {
+        close(): void;
+        setWidth(width: number): void;
+        setHeight(height: number): void;
+      };
     };
   };
-};
-declare function updateAccountingCalculation(): void;
-declare function setupAccountingEventListeners(): void;
-declare function generateAccountingView(
-  classifiedItems: any,
-  classroom: string,
-  formData?: any,
-): string;
-declare function getPaymentInfoHtml(selectedPaymentMethod?: string): string;
-declare function getPaymentOptionsHtml(selectedValue?: string): string;
+
+  function updateAccountingCalculation(
+    classifiedItems: ClassifiedAccountingItemsCore,
+    classroom: string,
+  ): void;
+  function setupAccountingEventListeners(
+    classifiedItems: ClassifiedAccountingItemsCore,
+    classroom: string,
+  ): void;
+  function generateAccountingView(
+    classifiedItems: ClassifiedAccountingItemsCore,
+    classroom: string,
+    formData?: AccountingFormDto,
+    reservationData?: ReservationCore | null,
+  ): string;
+  function getPaymentInfoHtml(selectedPaymentMethod?: string): string;
+  function getPaymentOptionsHtml(selectedValue?: string): string;
+
+  var appWindow: Window & typeof globalThis;
+}
+
+export type AppWindow = Window & typeof globalThis;
+
+export {};

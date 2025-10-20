@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 13_WebApp_Views_Booking.js
@@ -9,16 +8,19 @@
  * =================================================================
  */
 
+const bookingStateManager = appWindow.stateManager;
 /**
  * 特定の教室の予約枠一覧画面のUIを生成します。
  * @param {string} classroom - 教室名
  * @returns {string} HTML文字列
  */
 export const getBookingView = classroom => {
-  const currentState = stateManager.getState();
+  const currentState = bookingStateManager.getState();
   const relevantLessons =
     currentState.lessons && Array.isArray(currentState.lessons)
-      ? currentState.lessons.filter(lesson => lesson.classroom === classroom)
+      ? currentState.lessons.filter(
+          (/** @type {LessonCore} */ lesson) => lesson.classroom === classroom,
+        )
       : [];
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
@@ -57,7 +59,7 @@ export const getReservationFormView = () => {
     accountingMaster,
     isFirstTimeBooking,
     currentReservationFormContext,
-  } = stateManager.getState();
+  } = bookingStateManager.getState();
 
   if (!currentReservationFormContext) {
     return 'エラー: 予約フォームのデータが見つかりません。';
@@ -123,13 +125,14 @@ export const getReservationFormView = () => {
   const _renderTuitionDisplaySection = () => {
     if (isTimeBased) {
       const basicTuitionRule = accountingMaster.find(
-        item =>
-          item.item === CONSTANTS.ITEMS.MAIN_LECTURE &&
-          item.classroom?.includes(classroom),
+        (/** @type {AccountingMasterItemCore} */ item) =>
+          item['item'] === CONSTANTS.ITEMS.MAIN_LECTURE &&
+          item['classroom']?.includes(classroom),
       );
       if (basicTuitionRule) {
+        const basicTuitionPrice = Number(basicTuitionRule['price'] ?? 0);
         return Components.priceDisplay({
-          amount: basicTuitionRule.price,
+          amount: basicTuitionPrice,
           label: `${CONSTANTS.ITEMS.MAIN_LECTURE} / 30分`,
           style: 'highlight',
         });
@@ -139,14 +142,16 @@ export const getReservationFormView = () => {
         ? CONSTANTS.ITEMS.FIRST_LECTURE
         : CONSTANTS.ITEMS.MAIN_LECTURE;
       const tuitionItem = accountingMaster.find(
-        item =>
-          item.type === CONSTANTS.ITEM_TYPES.TUITION &&
-          item.item === targetItemName &&
-          (item.classroom === '共通' || item.classroom?.includes(classroom)),
+        (/** @type {AccountingMasterItemCore} */ item) =>
+          item['type'] === CONSTANTS.ITEM_TYPES.TUITION &&
+          item['item'] === targetItemName &&
+          (item['classroom'] === '共通' ||
+            item['classroom']?.includes(classroom)),
       );
       if (tuitionItem) {
+        const tuitionPrice = Number(tuitionItem['price'] ?? 0);
         return Components.priceDisplay({
-          amount: tuitionItem.price,
+          amount: tuitionPrice,
           label: targetItemName,
           style: isFirstTimeBooking ? 'highlight' : 'default',
         });
@@ -229,11 +234,25 @@ export const getReservationFormView = () => {
     const firstLectureDisabled = !isEdit && isFirstTimeBooking;
 
     if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
+      /** @type {CheckboxConfig} */
+      const firstLectureCheckboxConfig = {
+        id: 'option-first-lecture',
+        label: CONSTANTS.ITEMS.FIRST_LECTURE,
+        checked:
+          firstLectureChecked !== undefined ? firstLectureChecked : false,
+        disabled: firstLectureDisabled,
+      };
+      /** @type {CheckboxConfig} */
+      const rentalCheckboxConfig = {
+        id: 'option-rental',
+        label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`,
+        checked: chiselRental !== undefined ? chiselRental : false,
+      };
       return `
         <div class="mt-4 pt-4 border-t-2">
           <h4 class="font-bold text-left mb-2">オプション</h4>
-          ${Components.checkbox({ id: 'option-first-lecture', label: CONSTANTS.ITEMS.FIRST_LECTURE, checked: firstLectureChecked, disabled: firstLectureDisabled })}
-          <div class="mt-2">${Components.checkbox({ id: 'option-rental', label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`, checked: chiselRental })}</div>
+          ${Components.checkbox(firstLectureCheckboxConfig)}
+          <div class="mt-2">${Components.checkbox(rentalCheckboxConfig)}</div>
         </div>`;
     }
     return '';
@@ -258,7 +277,7 @@ export const getReservationFormView = () => {
 
   const _getSelectedSalesOrder = () =>
     Array.from(document.querySelectorAll('input[name="orderSales"]:checked'))
-      .map(cb => cb.value)
+      .map(element => /** @type {HTMLInputElement} */ (element).value)
       .join(', ');
 
   setTimeout(() => {
@@ -266,7 +285,9 @@ export const getReservationFormView = () => {
     if (submitBtn) {
       submitBtn.addEventListener('click', () => {
         const selectedOrder = _getSelectedSalesOrder();
-        const orderInput = document.getElementById('order-input');
+        const orderInput = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('order-input')
+        );
         if (orderInput) {
           const freeText = orderInput.value.trim();
           orderInput.value = selectedOrder
@@ -292,9 +313,9 @@ export const getReservationFormView = () => {
       style: 'danger',
       size: 'full',
       dataAttributes: {
-        reservationId: reservationInfo.reservationId,
-        classroom: reservationInfo.classroom,
-        date: String(reservationInfo.date),
+        reservationId: reservationInfo.reservationId || '',
+        classroom: reservationInfo.classroom || '',
+        date: reservationInfo.date ? String(reservationInfo.date) : '',
       },
     });
   }
@@ -320,7 +341,7 @@ export const getReservationFormView = () => {
         padding: 'spacious',
         content: `
           <div class="space-y-4 text-left">
-            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser.displayName}さん</p>
+            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.displayName : ''}さん</p>
             <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
             <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
             <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
@@ -349,17 +370,23 @@ export const renderBookingLessons = lessons => {
   }
 
   /** @type {Record<number, LessonCore[]>} */
-  const lessonsByMonth = lessons.reduce((acc, lesson) => {
-    // ガード節: lessonまたはlesson.dateがundefinedの場合はスキップ
-    if (!lesson || !lesson.date) {
-      console.warn('Invalid lesson data:', lesson);
+  const lessonsByMonth = lessons.reduce(
+    (
+      /** @type {Record<number, LessonCore[]>} */ acc,
+      /** @type {LessonCore} */ lesson,
+    ) => {
+      // ガード節: lessonまたはlesson.dateがundefinedの場合はスキップ
+      if (!lesson || !lesson.date) {
+        console.warn('Invalid lesson data:', lesson);
+        return acc;
+      }
+      const month = new Date(lesson.date).getMonth() + 1;
+      if (!acc[month]) acc[month] = [];
+      acc[month].push(lesson);
       return acc;
-    }
-    const month = new Date(lesson.date).getMonth() + 1;
-    if (!acc[month]) acc[month] = [];
-    acc[month].push(lesson);
-    return acc;
-  }, /** @type {Record<number, LessonCore[]>} */ ({}));
+    },
+    /** @type {Record<number, LessonCore[]>} */ ({}),
+  );
 
   const result = Object.keys(lessonsByMonth)
     .sort((a, b) => Number(a) - Number(b))
@@ -370,9 +397,9 @@ export const renderBookingLessons = lessons => {
       const lessonsHtml = lessonsByMonth[month]
         .map(
           /** @param {LessonCore} lesson */ lesson => {
-            const state = stateManager.getState();
+            const state = bookingStateManager.getState();
             const isBooked = (state.myReservations || []).some(
-              b =>
+              (/** @type {ReservationCore} */ b) =>
                 String(b.date) === lesson.date &&
                 b.classroom === lesson.classroom,
             );
@@ -380,7 +407,7 @@ export const renderBookingLessons = lessons => {
             const tag = isBooked ? 'div' : 'button';
 
             const isFirstTimeBooking =
-              stateManager.getState().isFirstTimeBooking;
+              bookingStateManager.getState().isFirstTimeBooking;
             let statusText;
 
             if (isFirstTimeBooking) {
@@ -538,7 +565,7 @@ export const getClassroomSelectionModal = () => {
 
 /**
  * 編集モード対応の履歴カードを生成します
- * @param {ReservationData} historyItem - 履歴データ
+ * @param {ReservationCore} historyItem - 履歴データ
  * @param {Array<any>} editButtons - 編集ボタン配列
  * @param {Array<any>} accountingButtons - 会計ボタン配列
  * @param {boolean} isInEditMode - 編集モード状態
@@ -551,7 +578,7 @@ export function _buildHistoryCardWithEditMode(
   isInEditMode,
 ) {
   // 履歴カード特有の会計ボタン追加ロジック
-  let allAccountingButtons = [...accountingButtons];
+  const allAccountingButtons = [...accountingButtons];
 
   if (isInEditMode) {
     const isToday = _isToday(String(historyItem.date));

@@ -28,8 +28,8 @@ export function setupViewListener(): void;
  * - AI作業効率向上のための構造最適化
  * =================================================================
  */
-/** @type {number | null} */
-export let loadingMessageTimer: number | null;
+/** @type {ReturnType<typeof setInterval> | null} */
+export let loadingMessageTimer: ReturnType<typeof setInterval> | null;
 export namespace LoadingMessages {
     export let login: string[];
     export let booking: string[];
@@ -44,8 +44,8 @@ export function getRandomMessage(category?: string): string;
 export function updateLoadingMessage(category?: string): void;
 export function startLoadingMessageRotation(category?: string): void;
 export function stopLoadingMessageRotation(): void;
-export function hideModal(): void;
 /** @type {Array<{element: Element, type: string, listener: EventListener, options?: AddEventListenerOptions}>} */
+/** @type {Array<{ element: Element; type: string; listener: EventListener; options?: AddEventListenerOptions }>} */
 export let activeListeners: Array<{
     element: Element;
     type: string;

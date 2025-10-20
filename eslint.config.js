@@ -2,9 +2,19 @@ import prettierConfig from 'eslint-config-prettier';
 import pluginGoogleAppsScript from 'eslint-plugin-googleappsscript';
 import globals from 'globals';
 
-// --- eslint.common.js からの内容をここに統合 ---
+// =============================================================================
+// 共通設定
+// =============================================================================
+
+/**
+ * 全ファイルタイプで共有するESLintルール
+ *
+ * 設計方針:
+ * - no-undef: TypeScriptの型チェック（checkJs）で未定義変数を検出するため無効化
+ * - ESLintはコードスタイルとベストプラクティスに専念
+ */
 const commonRules = {
-  'no-undef': 'warn',
+  'no-undef': 'off', // TypeScript型チェックで検出
   'no-unused-vars': ['warn', { argsIgnorePattern: '^_', vars: 'local' }],
   'no-console': 'off',
   'no-var': 'warn',
@@ -13,8 +23,11 @@ const commonRules = {
   'no-trailing-spaces': 'warn',
 };
 
+/**
+ * プロジェクト共通の定数（ビルド時にグローバルスコープに注入される）
+ * 型定義: src/shared/00_Constants.js
+ */
 const projectConstants = {
-  // 共通プロジェクト定数（TypeScript定義で管理）
   CONSTANTS: 'readonly',
   C: 'readonly',
   STATUS: 'readonly',
@@ -25,9 +38,11 @@ const projectConstants = {
   HEADERS: 'readonly',
 };
 
+/**
+ * Google Apps Script APIのグローバル変数
+ */
 const gasGlobals = {
   ...globals.es2020,
-  // Google Apps Script globals
   SpreadsheetApp: 'readonly',
   DriveApp: 'readonly',
   GmailApp: 'readonly',
@@ -41,66 +56,95 @@ const gasGlobals = {
   Utilities: 'readonly',
   UrlFetchApp: 'readonly',
 };
-// --- 統合ここまで ---
+
+// =============================================================================
+// ESLint設定配列
+// =============================================================================
 
 export default [
-  // =================================================================
-  // グローバルな無視設定 (最初に記述することが重要)
-  // =================================================================
+  // ---------------------------------------------------------------------------
+  // グローバルな無視設定（最初に記述することが重要）
+  // ---------------------------------------------------------------------------
   {
     ignores: [
       'node_modules/**',
       'archive/**',
       'build-output/**',
       'docs/**',
-      'test/**', // `test-*.js` は別途設定しているため、ディレクトリ全体は無視
+      'test/**',
       '.claude/**',
       '.vscode/**',
       '.github/**',
     ],
   },
-  // Google Apps Script server-side files (src/backend only)
+
+  // ---------------------------------------------------------------------------
+  // バックエンド（Google Apps Script サーバーサイド）
+  // ---------------------------------------------------------------------------
   {
-    files: ['src/backend/**/*.js', 'src/backend/*.js'],
+    files: ['src/backend/**/*.js'],
     plugins: {
       googleappsscript: pluginGoogleAppsScript,
     },
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'script',
+      sourceType: 'module',
       globals: {
         ...gasGlobals,
         ...projectConstants,
         ...pluginGoogleAppsScript.environments.googleappsscript.globals,
         verifyMigratedData: 'readonly',
-        // バックエンドのグローバル変数は、`npm run generate-types` で生成された
-        // `types/generated-backend-globals` 以下の型定義ファイルによって解決されます。
-        // そのため、ここでの手動定義は不要になりました。
-        //
-        // `CONSTANTS` や `SS_MANAGER` など、`export` されていない真のグローバル変数のみ
-        // `projectConstants` で定義することで、ESLintに認識させています。
       },
     },
     rules: {
       ...commonRules,
     },
   },
-  // Node.js tools
+
+  // ---------------------------------------------------------------------------
+  // フロントエンド（ブラウザで実行されるJavaScript）
+  // ---------------------------------------------------------------------------
+  {
+    files: ['src/frontend/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'module',
+      globals: {
+        ...globals.browser,
+        ...globals.es2020,
+        ...projectConstants,
+        // ビルド時に注入される変数
+        google: 'readonly', // google.script.run
+        server: 'readonly',
+        isProduction: 'readonly',
+      },
+    },
+    rules: {
+      ...commonRules,
+    },
+  },
+
+  // ---------------------------------------------------------------------------
+  // Node.jsツール（型チェックなし）
+  // ---------------------------------------------------------------------------
   {
     files: ['tools/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'module', // Changed from commonjs
+      sourceType: 'module',
       globals: {
         ...globals.node,
       },
     },
     rules: {
       ...commonRules,
-      'no-undef': 'error', // Node.jsでは未定義変数はエラーにする
+      'no-undef': 'error', // TypeScript型チェックがないため有効化
     },
   },
-  // Special config for frontend test file
+
+  // ---------------------------------------------------------------------------
+  // フロントエンドテストファイル
+  // ---------------------------------------------------------------------------
   {
     files: ['tools/frontend-test.js'],
     languageOptions: {
@@ -111,7 +155,10 @@ export default [
       },
     },
   },
-  // Root-level test files
+
+  // ---------------------------------------------------------------------------
+  // ルートレベルのテストファイル
+  // ---------------------------------------------------------------------------
   {
     files: ['test-*.js'],
     languageOptions: {
@@ -124,33 +171,12 @@ export default [
     },
     rules: {
       ...commonRules,
-      'no-unused-vars': 'off', // テストファイルでは未使用変数を許可
+      'no-unused-vars': 'off',
     },
   },
-  // --- src/eslint.config.js からの内容をここに統合 ---
-  // Frontend JavaScript files
-  {
-    files: ['src/frontend/**/*.js', 'src/frontend/*.js'],
-    languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: 'script',
-      globals: {
-        ...globals.browser,
-        ...globals.es2020,
-        ...projectConstants,
-        // フロントエンドのグローバル変数も、`npm run generate-types` で生成された
-        // `types/generated-frontend-globals` 以下の型定義ファイルによって解決されます。
-        //
-        // `google.script.run` やビルド時に注入される変数など、
-        // JSDocから型定義を生成できないもののみ、ここで定義します。
-        google: 'readonly',
-        server: 'readonly',
-        isProduction: 'readonly',
-      },
-    },
-    rules: {
-      ...commonRules,
-    },
-  },
+
+  // ---------------------------------------------------------------------------
+  // Prettier統合（最後に配置）
+  // ---------------------------------------------------------------------------
   prettierConfig,
 ];

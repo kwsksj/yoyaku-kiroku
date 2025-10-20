@@ -26,9 +26,9 @@ export class FrontendErrorHandler {
      * エラーを処理し、ユーザーに適切に通知（パフォーマンス最適化版）
      * @param {Error} error - エラーオブジェクト
      * @param {string} context - エラーコンテキスト
-     * @param {Object} [additionalInfo={}] - 追加情報
+     * @param {Object} [_additionalInfo={}] - 追加情報
      */
-    static handle(error: Error, context?: string, additionalInfo?: any): void;
+    static handle(error: Error, context?: string, _additionalInfo?: any): void;
     /**
      * 詳細エラーハンドリング（重要なエラーのみで使用）
      * @param {Error} error - エラーオブジェクト

@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 14_WebApp_Handlers_Auth.js
@@ -19,6 +18,8 @@
 // 認証・ユーザー管理関連のアクションハンドラー群
 // =================================================================
 
+const authHandlersStateManager = appWindow.stateManager;
+
 /** 認証関連のアクションハンドラー群 */
 export const authActionHandlers = {
   /** ログインまたは新規登録を開始します（キャッシュ活用版） */
@@ -26,7 +27,7 @@ export const authActionHandlers = {
     const phoneInput = getInputElementSafely('phone');
     const p = phoneInput?.value || '';
     // 入力値をsetState経由で保存
-    window.stateManager.dispatch({
+    authHandlersStateManager.dispatch({
       type: 'UPDATE_STATE',
       payload: { loginPhone: p },
     });
@@ -34,7 +35,12 @@ export const authActionHandlers = {
 
     // 【最適化済み】 フロントエンドでリアルタイム検証（UX向上）
     // バックエンドでは軽量チェックのみ実行（重複処理削減）
-    const normalizeResult = window.normalizePhoneNumberFrontend(p);
+    const normalizer = appWindow.normalizePhoneNumberFrontend;
+    if (!normalizer) {
+      showInfo('電話番号の正規化機能が利用できません。', 'エラー');
+      return;
+    }
+    const normalizeResult = normalizer(p);
 
     if (!normalizeResult.isValid) {
       showInfo(
@@ -89,7 +95,7 @@ export const authActionHandlers = {
         hideLoading();
         debugLog('✅ 統合ログイン完了 - 完全なダッシュボード表示');
 
-        window.stateManager.dispatch({
+        authHandlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: {
             ...newAppState,
@@ -100,7 +106,7 @@ export const authActionHandlers = {
 
         console.log(
           '✅ dispatch完了 - 現在のstate:',
-          window.stateManager.getState().myReservations?.length,
+          authHandlersStateManager.getState().myReservations?.length,
           '件の予約',
         );
 
@@ -121,7 +127,7 @@ export const authActionHandlers = {
         // 認証失敗 - 新規登録に誘導
         hideLoading();
         debugLog('❌ ユーザー未登録 - 新規登録画面へ');
-        window.stateManager.dispatch({
+        authHandlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: {
             view: 'register',
@@ -133,8 +139,8 @@ export const authActionHandlers = {
       ['withFailureHandler']((/** @type {Error} */ err) => {
         debugLog('❌ 統合ログインエラー: ' + err.message);
         hideLoading();
-        if (window.FrontendErrorHandler) {
-          window.FrontendErrorHandler.handle(
+        if (appWindow.FrontendErrorHandler) {
+          appWindow.FrontendErrorHandler.handle(
             err,
             'processLoginWithValidatedPhone_integrated',
           );
@@ -191,7 +197,9 @@ export const authActionHandlers = {
 
     // 入力値をsetState経由で保存
     const updatedRegistrationData = {
-      .../** @type {any} */ (stateManager.getState())?.['registrationData'],
+      .../** @type {any} */ (authHandlersStateManager.getState())?.[
+        'registrationData'
+      ],
       realName,
       nickname: nickname || realName,
       email,
@@ -200,7 +208,7 @@ export const authActionHandlers = {
       notificationDay,
       notificationHour,
     };
-    window.stateManager.dispatch({
+    authHandlersStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
         registrationData: updatedRegistrationData,
@@ -232,11 +240,13 @@ export const authActionHandlers = {
       address: addressInput?.value || '',
     };
 
-    window.stateManager.dispatch({
+    authHandlersStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
         registrationData: {
-          .../** @type {any} */ (stateManager.getState())?.['registrationData'],
+          .../** @type {any} */ (authHandlersStateManager.getState())?.[
+            'registrationData'
+          ],
           ...step2Data,
         },
         registrationStep: 1,
@@ -267,11 +277,13 @@ export const authActionHandlers = {
       address: addressInput?.value || '',
     };
 
-    window.stateManager.dispatch({
+    authHandlersStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
         registrationData: {
-          .../** @type {any} */ (stateManager.getState())?.['registrationData'],
+          .../** @type {any} */ (authHandlersStateManager.getState())?.[
+            'registrationData'
+          ],
           ...step2Data,
         },
         registrationStep: 3,
@@ -282,7 +294,7 @@ export const authActionHandlers = {
 
   /** 新規ユーザー登録：Step3からStep2へもどる */
   backToStep2: () =>
-    window.stateManager.dispatch({
+    authHandlersStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
         view: 'registrationStep2',
@@ -308,12 +320,12 @@ export const authActionHandlers = {
       pastWork: pastWorkInput?.value || '',
       futureCreations: futureCreationsInput?.value || '',
     };
-    window.stateManager.dispatch({
+    authHandlersStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
         registrationData: {
           .../** @type {any} */ (
-            stateManager.getState()['registrationData'] || {}
+            authHandlersStateManager.getState()['registrationData'] || {}
           ),
           ...step3Data,
         },
@@ -325,7 +337,7 @@ export const authActionHandlers = {
 
   /** 新規ユーザー登録：Step4からStep3へもどる */
   backToStep3: () =>
-    window.stateManager.dispatch({
+    authHandlersStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
         view: 'registrationStep3',
@@ -365,44 +377,53 @@ export const authActionHandlers = {
       firstMessage: firstMessageInput?.value || '',
     };
 
-    const finalUserData = {
-      .../** @type {any} */ (stateManager.getState()['registrationData'] || {}),
+    const finalUserData = /** @type {Partial<UserCore>} */ ({
+      .../** @type {any} */ (
+        authHandlersStateManager.getState()['registrationData'] || {}
+      ),
       ...step4Data,
-      phone: stateManager.getState().registrationPhone || '',
-    };
+      phone: authHandlersStateManager.getState().registrationPhone || '',
+    });
 
     showLoading('login');
-    google.script.run['withSuccessHandler'](
-      (
-        /** @type {ServerResponse<{ user: UserData; message: string }>} */ res,
-      ) => {
-        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-          console.log('🔍 registerNewUser レスポンス:', res);
-        }
-        hideLoading();
-        if (res.success && res.data) {
-          // 登録成功時は直接ダッシュボードに遷移（データは後からロード）
-          showInfo('新規ユーザー登録が完了しました', '登録完了');
+    google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+        console.log('🔍 registerNewUser レスポンス:', response);
+      }
+      hideLoading();
+      if (response.success && response.userFound) {
+        // 登録成功時は直接ダッシュボードに遷移
+        showInfo('新規ユーザー登録が完了しました', '登録完了');
 
-          window.stateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              currentUser: res.data.user,
-              view: 'dashboard',
-              myReservations: [], // 新規ユーザーは予約がない
-              lessons: [], // データは必要に応じて後からロード
-              isDataFresh: false, // データを後でリフレッシュする必要があることを示す
-            },
-          });
-        } else {
-          showInfo(res.message || '登録に失敗しました', 'エラー');
-        }
-      },
-    )
+        // 完全なアプリ状態を一度に構築（既存ログインと同じ形式）
+        const newAppState = {
+          view: 'dashboard',
+          currentUser: response.user,
+          myReservations: response.data.myReservations || [],
+          lessons: response.data.lessons || [],
+          classrooms: CONSTANTS.CLASSROOMS
+            ? Object.values(CONSTANTS.CLASSROOMS)
+            : [],
+          accountingMaster: response.data.accountingMaster || [],
+          today: new Date().toISOString().split('T')[0],
+        };
+
+        authHandlersStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            ...newAppState,
+            recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+            isDataFresh: true,
+          },
+        });
+      } else {
+        showInfo(response.message || '登録に失敗しました', 'エラー');
+      }
+    })
       ['withFailureHandler']((/** @type {Error} */ error) => {
         hideLoading();
-        if (window.FrontendErrorHandler) {
-          window.FrontendErrorHandler.handle(
+        if (appWindow.FrontendErrorHandler) {
+          appWindow.FrontendErrorHandler.handle(
             error,
             'submitRegistration:registerNewUser',
             { finalUserData },
@@ -415,7 +436,7 @@ export const authActionHandlers = {
 
   /** プロフィール編集画面を表示します（シートからデータ取得） */
   showEditProfile: () => {
-    const state = stateManager.getState();
+    const state = authHandlersStateManager.getState();
     const studentId = state.currentUser?.studentId;
 
     if (!studentId) {
@@ -430,7 +451,7 @@ export const authActionHandlers = {
       hideLoading();
       if (response.success && response.data) {
         // 取得した詳細情報で currentUser を更新してプロフィール編集画面に遷移
-        window.stateManager.dispatch({
+        authHandlersStateManager.dispatch({
           type: 'NAVIGATE',
           payload: {
             to: 'editProfile',
@@ -481,7 +502,11 @@ export const authActionHandlers = {
     if (!n) n = r;
 
     // 電話番号は表示のみなので、現在の値を使用
-    const phone = stateManager.getState().currentUser.phone;
+    const currentUser = authHandlersStateManager.getState().currentUser;
+    if (!currentUser) {
+      return showInfo('ユーザー情報が見つかりません。', 'エラー');
+    }
+    const phone = currentUser.phone;
 
     // メール情報の取得とバリデーション
     const emailInput = /** @type {HTMLInputElement | null} */ (
@@ -521,7 +546,7 @@ export const authActionHandlers = {
         : null;
 
     const u = {
-      ...stateManager.getState().currentUser,
+      ...authHandlersStateManager.getState().currentUser,
       futureCreations: futureCreations,
       realName: r,
       displayName: n,
@@ -539,7 +564,7 @@ export const authActionHandlers = {
       if (res.success) {
         // プロフィール更新後、キャッシュも更新されているのでそのまま状態更新
         showInfo('プロフィールを更新しました', '更新完了');
-        window.stateManager.dispatch({
+        authHandlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: {
             currentUser: res.updatedUser,
@@ -556,11 +581,13 @@ export const authActionHandlers = {
 
   /** ログイン画面に戻ります（電話番号入力値を保存） */
   goBackToLogin: () => {
-    const phoneInput = document.getElementById('phone');
+    const phoneInput = /** @type {HTMLInputElement | null} */ (
+      document.getElementById('phone')
+    );
     const loginPhone = phoneInput
       ? phoneInput.value
-      : stateManager.getState()['loginPhone'];
-    window.stateManager.dispatch({
+      : authHandlersStateManager.getState()['loginPhone'];
+    authHandlersStateManager.dispatch({
       type: 'NAVIGATE',
       payload: { to: 'login', context: { loginPhone: loginPhone } },
     });
@@ -568,7 +595,7 @@ export const authActionHandlers = {
 
   /** アカウント退会処理を実行します（タスク2実装） */
   requestAccountDeletion: () => {
-    const state = stateManager.getState();
+    const state = authHandlersStateManager.getState();
     const studentId = state.currentUser?.studentId;
 
     if (!studentId) {
@@ -600,9 +627,9 @@ export const authActionHandlers = {
 
               // ログアウト処理（stateをクリア）
               setTimeout(() => {
-                stateManager.dispatch({ type: 'LOGOUT' });
+                authHandlersStateManager.dispatch({ type: 'LOGOUT' });
                 // ログイン画面に遷移
-                stateManager.dispatch({
+                authHandlersStateManager.dispatch({
                   type: 'NAVIGATE',
                   payload: { to: 'login' },
                 });

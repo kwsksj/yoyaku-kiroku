@@ -1,4 +1,8 @@
 /**
+ * @typedef {{ type: string; l?: number; w?: number; h?: number; }} MaterialFormEntry
+ * @typedef {{ name: string; price: number; }} ProductSelectionEntry
+ */
+/**
  * 会計システム - ユーティリティ層
  *
  * 責務:
@@ -12,9 +16,12 @@
 export function clearAccountingCache(): void;
 /**
  * 制作メモのデータを収集
- * @returns {Object} 制作メモデータ
+ * @returns {{ reservationId?: string; workInProgress?: string }} 制作メモデータ
  */
-export function collectMemoData(): any;
+export function collectMemoData(): {
+    reservationId?: string;
+    workInProgress?: string;
+};
 /**
  * フォームデータ収集
  * @returns {AccountingFormDto} 収集されたフォームデータ
@@ -32,14 +39,24 @@ export function saveAccountingCache(formData: AccountingFormDto): void;
 export function loadAccountingCache(): AccountingFormDto;
 /**
  * 会計システム初期化関数
- * @param {Array} masterData - 会計マスタデータ
+ * @param {AccountingMasterItemCore[]} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
  * @param {AccountingFormDto} initialFormData - 初期フォームデータ
- * @param {Object} reservationData - 予約データ（講座基本情報表示用）
+ * @param {ReservationCore | null} reservationData - 予約データ（講座基本情報表示用）
  * @returns {string} 生成された会計画面HTML
  */
-export function initializeAccountingSystem(masterData: any[], classroom: string, initialFormData?: AccountingFormDto, reservationData?: any): string;
+export function initializeAccountingSystem(masterData: AccountingMasterItemCore[], classroom: string, initialFormData?: AccountingFormDto, reservationData?: ReservationCore | null): string;
 /**
  * 会計システムクリーンアップ
  */
 export function cleanupAccountingSystem(): void;
+export type MaterialFormEntry = {
+    type: string;
+    l?: number;
+    w?: number;
+    h?: number;
+};
+export type ProductSelectionEntry = {
+    name: string;
+    price: number;
+};

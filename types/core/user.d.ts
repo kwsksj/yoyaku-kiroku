@@ -23,13 +23,13 @@
  * };
  * ```
  */
-interface UserCore {
+export interface UserCore {
   // ========================================
   // 必須プロパティ
   // ========================================
 
   /** 生徒ID（例: S-001） */
-  studentId?: string;
+  studentId?: string | undefined;
 
   /** 電話番号（ハイフンなし、例: 09012345678） */
   phone: string;
@@ -38,65 +38,70 @@ interface UserCore {
   realName: string;
 
   /** 表示名（ニックネームまたは本名から生成） */
-  displayName?: string;
+  displayName?: string | undefined;
 
   // ========================================
   // 基本情報（オプション）
   // ========================================
 
   /** ニックネーム */
-  nickname?: string;
+  nickname?: string | undefined;
 
   /** メールアドレス */
-  email?: string;
+  email?: string | undefined;
 
   /** メール送信希望フラグ */
-  wantsEmail?: boolean;
+  wantsEmail?: boolean | undefined;
 
   /** スケジュール通知希望フラグ */
-  wantsScheduleNotification?: boolean;
+  wantsScheduleNotification?: boolean | undefined;
 
   /** 通知日（曜日: 0=日曜, 1=月曜, ...） */
-  notificationDay?: number;
+  notificationDay?: number | undefined;
 
   /** 通知時刻（時: 0-23） */
-  notificationHour?: number;
+  notificationHour?: number | undefined;
 
   // ========================================
   // 属性情報（オプション）
   // ========================================
 
   /** 年齢層 */
-  ageGroup?: string;
+  ageGroup?: string | undefined;
 
   /** 性別 */
-  gender?: string;
+  gender?: string | undefined;
 
   /** 利き手 */
-  dominantHand?: string;
+  dominantHand?: string | undefined;
 
   /** 住所 */
-  address?: string;
+  address?: string | undefined;
 
   // ========================================
   // 経験・目標（オプション）
   // ========================================
 
   /** 木彫り経験 */
-  experience?: string;
+  experience?: string | undefined;
 
   /** 過去の作品 */
-  pastWork?: string;
+  pastWork?: string | undefined;
 
   /** 想定参加頻度（今後の参加予定） */
-  futureParticipation?: string;
+  futureParticipation?: string | undefined;
 
   /** 将来制作したいもの */
-  futureCreations?: string;
+  futureCreations?: string | undefined;
 
   /** 登録のきっかけ */
-  trigger?: string;
+  trigger?: string | undefined;
 
   /** 初回メッセージ */
-  firstMessage?: string;
+  firstMessage?: string | undefined;
+
+  /** 行インデックス（シート行番号） */
+  rowIndex?: number | undefined;
+
+  [key: string]: any;
 }

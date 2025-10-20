@@ -5,7 +5,7 @@
     // --- ベース設定 ---
     "target": "es2020",
     "lib": ["es2020", "dom"], // フロントエンドなので "dom" が必須
-    "types": ["google-apps-script"],
+    //    "type": "module",
 
     // --- 型定義生成用の設定 ---
     "declaration": true,
@@ -19,8 +19,7 @@
   },
   "include": [
     // フロントエンドのグローバル関数が定義されているファイルのみを対象にする
-    "src/frontend/**/*.js",
-    "src/frontend/*.js"
+    "src/frontend/**/*.js"
   ],
   "exclude": ["node_modules", "build-output"]
 }

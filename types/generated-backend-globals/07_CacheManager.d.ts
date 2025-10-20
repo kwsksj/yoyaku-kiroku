@@ -205,9 +205,9 @@ export function getCachedData(cacheKey: string, autoRebuild?: boolean): CacheDat
 /**
  * キャッシュの存在確認とバージョン情報を取得する
  * @param {string} cacheKey - キャッシュキー
- * @returns {object} { exists: boolean, version: number|null, dataCount: number|null }
+ * @returns {CacheInfo} { exists: boolean, version: number|null, dataCount: number|null }
  */
-export function getCacheInfo(cacheKey: string): object;
+export function getCacheInfo(cacheKey: string): CacheInfo;
 /**
  * すべてのキャッシュの状態を取得する
  * @returns {{ [key: string]: CacheInfo }} 各キャッシュの状態情報
@@ -243,6 +243,31 @@ export function loadChunkedDataFromCache(baseKey: string): CacheDataStructure | 
  */
 export function clearChunkedCache(baseKey: string): void;
 /**
+ * 生徒基本情報キャッシュを取得し、Record形式で返すヘルパー
+ * @param {boolean} [autoRebuild=true] - キャッシュ未存在時に再構築を試行するか
+ * @returns {Record<string, UserCore> | null} 生徒情報マップ
+ */
+export function getCachedAllStudents(autoRebuild?: boolean): Record<string, UserCore> | null;
+/**
+ * キャッシュ上の生徒情報を更新する
+ * @param {UserCore} updatedStudent - 更新後の生徒情報（studentId必須）
+ */
+export function updateCachedStudent(updatedStudent: UserCore): void;
+/**
+ * キャッシュに新しい生徒情報を追加する
+ * @param {UserCore} newStudent - 追加する生徒情報（studentId必須）
+ */
+export function addCachedStudent(newStudent: UserCore): void;
+/**
+ * 指定したキャッシュキーのデータを削除する
+ * @param {CacheKey | string} cacheKey - 削除対象のキャッシュキー
+ */
+export function deleteCache(cacheKey: CacheKey | string): void;
+/**
+ * すべてのキャッシュを削除する（開発・デバッグ用途）
+ */
+export function deleteAllCache(): void;
+/**
  * 各キャッシュキーに対応するデータ件数取得関数
  * @param {object} parsedData - パース済みキャッシュデータ
  * @param {string} cacheKey - キャッシュキー
@@ -252,9 +277,9 @@ export function getDataCount(parsedData: object, cacheKey: string): number;
 /**
  * 予約IDを指定して、キャッシュから単一の予約データを取得する
  * @param {string} reservationId - 取得する予約のID
- * @returns {ReservationArrayData | null} 予約データ配列、見つからない場合はnull
+ * @returns {RawSheetRow | null} 予約データ配列、見つからない場合はnull
  */
-export function getReservationByIdFromCache(reservationId: string): ReservationArrayData | null;
+export function getReservationByIdFromCache(reservationId: string): RawSheetRow | null;
 /**
  * Schedule Master キャッシュの診断・修復機能
  * シートの存在確認とキャッシュの整合性チェックを実行

@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * =================================================================
  * 【ファイル名】: 11_WebApp_Config.html
@@ -26,8 +25,23 @@
 
 // --- フロントエンド専用定数（バックエンドとの重複なし） ---
 
-// Googleサイト埋め込み環境の検出と調整
-window.EmbedConfig = {
+// =================================================================
+// appWindow グローバル宣言（AI型推論サポート強化）
+// =================================================================
+// appWindowをグローバルスコープに明示的に宣言することで、
+// AIレビューツールの型推論を支援し、false positiveを防止します。
+// types/view/window.d.ts で型定義済み
+
+/** @type {Window & typeof globalThis} */
+const appWindow = window;
+
+// グローバルスコープにも割り当て（他のファイルからの参照をサポート）
+if (typeof globalThis !== 'undefined') {
+  globalThis.appWindow = appWindow;
+}
+
+/** @type {import('../../types/view/window').EmbedConfig} */
+const embedConfig = (appWindow.EmbedConfig = {
   // Googleサイトのヘッダー高さ検出
   detectGoogleSiteOffset: () => {
     try {
@@ -41,7 +55,7 @@ window.EmbedConfig = {
           (window.parent.location.hostname.includes('sites.google.com') ||
             document.referrer.includes('sites.google.com') ||
             window.location.ancestorOrigins?.[0]?.includes('sites.google.com'));
-      } catch (e) {
+      } catch (_e) {
         // Cross-origin制限でアクセスできない場合は他の方法で判定
         isInGoogleSites =
           isInFrame &&
@@ -107,7 +121,7 @@ window.EmbedConfig = {
   },
 
   // オフセット値をローカルストレージに保存
-  saveOffset: offset => {
+  saveOffset: (/** @type {number} */ offset) => {
     try {
       localStorage.setItem('googleSitesHeaderOffset', offset.toString());
       console.log(`ヘッダーオフセット保存: ${offset}px`);
@@ -118,11 +132,11 @@ window.EmbedConfig = {
 
   // 動的スタイル調整の適用
   applyEmbedStyles: () => {
-    const offset = window.EmbedConfig.detectGoogleSiteOffset();
+    const offset = embedConfig.detectGoogleSiteOffset();
 
     if (offset > 0) {
       // オフセット値をローカルストレージに保存
-      window.EmbedConfig.saveOffset(offset);
+      embedConfig.saveOffset(offset);
 
       // ページ全体のトップマージンを調整
       const style = document.createElement('style');
@@ -167,7 +181,7 @@ window.EmbedConfig = {
       document.head.appendChild(style);
 
       // デバッグ用のオフセット調整ボタンを追加
-      window.EmbedConfig.addOffsetControl(offset);
+      embedConfig.addOffsetControl(offset);
 
       console.log(
         `Googleサイト環境を検出: ヘッダーオフセット ${offset}px を適用`,
@@ -176,7 +190,7 @@ window.EmbedConfig = {
   },
 
   // デバッグ用オフセット調整コントロールの追加
-  addOffsetControl: currentOffset => {
+  addOffsetControl: (/** @type {number} */ currentOffset) => {
     // 既存のコントロールを削除
     const existingControl = document.getElementById('embed-offset-control');
     if (existingControl) {
@@ -189,7 +203,7 @@ window.EmbedConfig = {
     control.className = 'embed-offset-control';
     control.innerHTML = `オフセット: ${currentOffset}px`;
     control.onclick = () => {
-      window.EmbedConfig.showOffsetAdjustment();
+      embedConfig.showOffsetAdjustment();
     };
     document.body.appendChild(control);
 
@@ -202,7 +216,7 @@ window.EmbedConfig = {
 
   // オフセット調整のモーダル表示
   showOffsetAdjustment: () => {
-    const currentOffset = window.EmbedConfig.detectGoogleSiteOffset();
+    const currentOffset = embedConfig.detectGoogleSiteOffset();
     const newOffset = prompt(
       `現在のヘッダーオフセット: ${currentOffset}px\n\n` +
         '新しいオフセット値を入力してください（0-200）:',
@@ -211,14 +225,14 @@ window.EmbedConfig = {
 
     if (newOffset !== null && !isNaN(parseInt(newOffset))) {
       const offset = Math.max(0, Math.min(200, parseInt(newOffset)));
-      window.EmbedConfig.saveOffset(offset);
-      window.EmbedConfig.reapplyStyles();
+      embedConfig.saveOffset(offset);
+      embedConfig.reapplyStyles();
       alert(`ヘッダーオフセットを ${offset}px に設定しました。`);
     }
   },
 
   // スタイルの再適用
-  reapplyStyles: () => {
+  reapplyStyles: (/** @type {number | undefined} */ _offset) => {
     // 既存のスタイルを削除
     const existingStyle = document.getElementById('google-sites-embed-styles');
     if (existingStyle) {
@@ -226,15 +240,15 @@ window.EmbedConfig = {
     }
 
     // 新しいオフセットで再適用
-    window.EmbedConfig.applyEmbedStyles();
+    embedConfig.applyEmbedStyles();
   },
-};
+});
 
 // =================================================================
 // 2. DESIGN CONFIGURATION
 // =================================================================
-window.DesignConfig = /** @type {DesignSystemConfig} */ (
-  window.DesignConfig || {
+appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
+  appWindow.DesignConfig || {
     // テキストや背景の色設定（温かみと活気のある配色）
     colors: {
       text: 'text-brand-text', // メインテキスト
@@ -1040,7 +1054,7 @@ export const setupFontLoadingDetection = () => {
 // Page Transition & Content Loading Management
 // =================================================================
 export const setupPageTransitionManagement =
-  /** @type {() => PageTransitionManager} */ (
+  /** @type {() => import('../../types/view/window').PageTransitionManager} */ (
     () => {
       let currentView = /** @type {ViewType | null} */ (null);
       let previousScrollPosition = 0;
@@ -1122,7 +1136,7 @@ export const setupPageTransitionManagement =
         }
       };
 
-      return /** @type {PageTransitionManager} */ ({
+      return /** @type {import('../../types/view/window').PageTransitionManager} */ ({
         // PageTransitionManagerインターフェース準拠
         onPageTransition: (/** @type {ViewType} */ newView) => {
           handleViewChange(newView, false);
@@ -1144,8 +1158,8 @@ export const setupPageTransitionManagement =
         // 統合初期化関数
         initializePage: () => {
           // 初回読み込み時は現在のビューを記録するのみ、スクロールリセットしない
-          if (window.stateManager && window.stateManager.getState) {
-            currentView = window.stateManager.getState().view;
+          if (appWindow.stateManager && appWindow.stateManager.getState) {
+            currentView = appWindow.stateManager.getState().view;
           }
           initializeContentVisibility();
           stabilizeBackButtonPosition();
@@ -1164,7 +1178,7 @@ export const setupPageTransitionManagement =
   );
 
 // グローバルに公開（StateManagerから使用可能）
-window.pageTransitionManager = setupPageTransitionManagement();
+appWindow.pageTransitionManager = setupPageTransitionManagement();
 
 // =================================================================
 // Mobile & Embedded Site Detection
@@ -1201,7 +1215,7 @@ export const setupMobileOptimizations = () => {
       const embedParam = urlParams.get('embedded');
 
       return isInIframe || isFromGoogleSites || embedParam === 'true';
-    } catch (e) {
+    } catch (_e) {
       // Cross-origin制限でエラーが発生した場合、埋め込み環境と判定
       return true;
     }
@@ -1254,16 +1268,21 @@ export const setupMobileOptimizations = () => {
     document.addEventListener(
       'touchmove',
       e => {
+        const target = /** @type {EventTarget | null} */ (e.target);
+        if (!(target instanceof Element)) {
+          return;
+        }
+
         // スクロール可能なエリア内では許可
         if (
-          e.target.closest(
+          target.closest(
             '.scrollable, .scroll-container, main, body, [data-view]',
           )
         ) {
           return; // スクロール許可エリア
         }
         // 固定要素（ヘッダー、フッターなど）でのスクロールを防止
-        if (e.target.closest('header, footer, .fixed, .sticky')) {
+        if (target.closest('header, footer, .fixed, .sticky')) {
           e.preventDefault();
         }
       },
@@ -1379,10 +1398,8 @@ setupMobileOptimizations();
 
 // DOM読み込み完了後にページ遷移管理を初期化
 document.addEventListener('DOMContentLoaded', () => {
-  const manager = /** @type {PageTransitionManager} */ (
-    window.pageTransitionManager
-  );
-  if (manager && manager.initializePage) {
-    manager.initializePage();
+  const manager = appWindow.pageTransitionManager;
+  if (manager && typeof manager?.['initializePage'] === 'function') {
+    manager['initializePage']();
   }
 });

@@ -1,5 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
-
 /**
  * =================================================================
  * 【ファイル名】: 05-2_Backend_Write.gs
@@ -32,8 +30,8 @@ export function checkDuplicateReservationOnSameDay(studentId, date) {
       return false; // エラー時は重複なしと判断（保守的な動作）
     }
 
-    /** @type {ReservationArrayData[]} */
-    const allReservations = /** @type {ReservationArrayData[]} */ (
+    /** @type {ReservationCore[]} */
+    const allReservations = /** @type {ReservationCore[]} */ (
       reservationsCache['reservations']
     );
     const headerMap = /** @type {HeaderMapType} */ (
@@ -68,7 +66,7 @@ export function checkDuplicateReservationOnSameDay(studentId, date) {
 
     // 同一ユーザーの同一日の有効な予約を検索
     const duplicateReservation = allReservations.find(
-      /** @type {function(ReservationArrayData): boolean} */ reservation => {
+      /** @type {function(ReservationCore): boolean} */ reservation => {
         if (!reservation || !Array.isArray(reservation)) return false;
 
         const reservationStudentId = String(reservation[studentIdColIdx] || '');
@@ -108,7 +106,13 @@ export function checkDuplicateReservationOnSameDay(studentId, date) {
  * @param {boolean} [isFirstLecture=false] - 初回予約の場合true
  * @returns {boolean} - 定員超過の場合true
  */
-export function checkCapacityFull(classroom, date, startTime, endTime, isFirstLecture = false) {
+export function checkCapacityFull(
+  classroom,
+  date,
+  startTime,
+  endTime,
+  isFirstLecture = false,
+) {
   try {
     // 定員状況を取得
     const availableSlotsResponse = getLessons();
@@ -132,7 +136,11 @@ export function checkCapacityFull(classroom, date, startTime, endTime, isFirstLe
     let isFull = false;
 
     // 初回予約の場合は初回者枠をチェック
-    if (isFirstLecture && targetLesson.beginnerSlots !== null && targetLesson.beginnerSlots !== undefined) {
+    if (
+      isFirstLecture &&
+      targetLesson.beginnerSlots !== null &&
+      targetLesson.beginnerSlots !== undefined
+    ) {
       isFull = (targetLesson.beginnerSlots || 0) <= 0;
       Logger.log(
         `[checkCapacityFull] 初回者枠チェック: ${date} ${classroom}: 満席=${isFull}, beginnerSlots=${targetLesson.beginnerSlots}`,
@@ -201,7 +209,7 @@ export function checkCapacityFull(classroom, date, startTime, endTime, isFirstLe
  * 時間制予約の時刻に関する検証を行うプライベートヘルパー関数。
  * @param {string} startTime - 開始時刻 (HH:mm)。
  * @param {string} endTime - 終了時刻 (HH:mm)。
- * @param {ScheduleMasterData} scheduleRule - 日程マスタから取得した日程情報。
+ * @param {LessonCore} scheduleRule - 日程マスタから取得した日程情報。
  * @throws {Error} 検証に失敗した場合、理由を示すエラーをスローする。
  */
 export function _validateTimeBasedReservation(
@@ -274,6 +282,7 @@ export function _saveReservationCoreToSheet(reservation, mode) {
       CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
     );
     const targetRowIndex = dataRows.findIndex(
+      /** @param {RawSheetRow} row */
       row => row[reservationIdColIdx] === reservation.reservationId,
     );
 
@@ -293,8 +302,9 @@ export function _saveReservationCoreToSheet(reservation, mode) {
   // インクリメンタルキャッシュ更新
   try {
     /** @type {(string|number|Date)[]} */
-    const rowForCache = newRowData.map(val =>
-      typeof val === 'boolean' ? String(val).toUpperCase() : val,
+    const rowForCache = newRowData.map(
+      /** @param {string|number|Date|boolean} val */
+      val => (typeof val === 'boolean' ? String(val).toUpperCase() : val),
     );
     if (mode === 'create') {
       //todo: 要確認
@@ -337,9 +347,9 @@ export function makeReservation(reservationInfo) {
     try {
       // 日程マスタから該当日・教室の情報を取得
       const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-      /** @type {ScheduleMasterData[]} */
+      /** @type {LessonCore[]} */
       const scheduleData = scheduleCache
-        ? /** @type {ScheduleMasterData[]} */
+        ? /** @type {LessonCore[]} */
           (scheduleCache['schedule'])
         : [];
       // 検索対象日付の標準化
@@ -349,7 +359,7 @@ export function makeReservation(reservationInfo) {
       const targetDateStringForSearch = targetDateForSearch.toDateString();
 
       const scheduleRule = scheduleData.find(
-        /** @param {ScheduleMasterData} item */
+        /** @param {LessonCore} item */
         item => {
           const itemDate = item.date;
           if (!itemDate || !item.classroom) return false;
@@ -362,10 +372,13 @@ export function makeReservation(reservationInfo) {
       );
 
       // 時間制予約（30分単位）の場合の検証
-      if (scheduleRule && scheduleRule['type'] === CONSTANTS.UNITS.THIRTY_MIN) {
+      if (
+        scheduleRule &&
+        scheduleRule.classroomType === CONSTANTS.UNITS.THIRTY_MIN
+      ) {
         _validateTimeBasedReservation(
-          reservationInfo.startTime,
-          reservationInfo.endTime,
+          reservationInfo.startTime || '',
+          reservationInfo.endTime || '',
           scheduleRule,
         );
       }
@@ -392,8 +405,8 @@ export function makeReservation(reservationInfo) {
       const isFull = checkCapacityFull(
         reservationInfo.classroom,
         reservationInfo.date,
-        reservationInfo.startTime,
-        reservationInfo.endTime,
+        reservationInfo.startTime || '',
+        reservationInfo.endTime || '',
         reservationInfo.firstLecture || false,
       );
       Logger.log(
@@ -460,13 +473,11 @@ export function makeReservation(reservationInfo) {
       sendAdminNotificationForReservation(reservationWithUser, 'created');
 
       // 予約確定メール送信（統一インターフェース使用）
-      if (reservationWithUser.user?.wantsEmail) {
-        Utilities.sleep(100); // 短い待機
-        try {
-          sendReservationEmailAsync(reservationWithUser, 'confirmation');
-        } catch (emailError) {
-          Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
-        }
+      Utilities.sleep(100); // 短い待機
+      try {
+        sendReservationEmailAsync(reservationWithUser, 'confirmation');
+      } catch (emailError) {
+        Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
       }
 
       return createApiResponse(true, {
@@ -545,19 +556,17 @@ export function cancelReservation(cancelInfo) {
         cancelMessage: cancelMessage,
       });
 
-      if (cancelledReservation.user?.wantsEmail) {
-        Utilities.sleep(100); // 短い待機
-        try {
-          sendReservationEmailAsync(
-            cancelledReservation,
-            'cancellation',
-            cancelMessage,
-          );
-        } catch (emailError) {
-          Logger.log(
-            `キャンセルメール送信エラー（キャンセルは成功）: ${emailError.message}`,
-          );
-        }
+      Utilities.sleep(100); // 短い待機
+      try {
+        sendReservationEmailAsync(
+          cancelledReservation,
+          'cancellation',
+          cancelMessage,
+        );
+      } catch (emailError) {
+        Logger.log(
+          `キャンセルメール送信エラー（キャンセルは成功）: ${emailError.message}`,
+        );
       }
 
       return {
@@ -597,6 +606,7 @@ export function notifyAvailabilityToWaitlistedUsers(
       return;
     }
     const targetLesson = lessonsResponse.data.find(
+      /** @param {LessonCore} l */
       l => l.date === date && l.classroom === classroom,
     );
     if (!targetLesson) {
@@ -672,6 +682,7 @@ export function getWaitlistedUsersForNotification(
   // ★改善: getCachedReservationsAsObjects を使い、オブジェクトとして直接取得する
   const allReservations = getCachedReservationsAsObjects();
   const waitlistedReservations = allReservations.filter(
+    /** @param {ReservationCore} r */
     r =>
       r.date === date &&
       r.classroom === classroom &&
@@ -686,43 +697,50 @@ export function getWaitlistedUsersForNotification(
   /** @type {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>} */
   const result = [];
 
-  waitlistedReservations.forEach(reservation => {
-    const studentId = reservation.studentId;
-    const isFirstTime = reservation.firstLecture;
+  waitlistedReservations.forEach(
+    /** @param {ReservationCore} reservation */
+    reservation => {
+      const studentId = reservation.studentId;
+      const isFirstTime = reservation.firstLecture;
 
-    // 空きタイプに応じたフィルタリング
-    let shouldNotify = false;
-    if (availabilityType === 'all') {
-      shouldNotify = true;
-    } else if (availabilityType === 'first' && !isFirstTime) {
-      shouldNotify = true;
-    } else if (availabilityType === 'second' && isFirstTime) {
-      shouldNotify = true;
-    }
-
-    if (shouldNotify) {
-      // 生徒情報を取得
-      const studentInfo = /** @type {UserCore} */ (
-        getCachedStudentById(String(studentId))
-      );
-
-      if (studentInfo && studentInfo.email && studentInfo.email.trim() !== '') {
-        result.push({
-          studentId: studentId,
-          email: studentInfo.email,
-          realName: studentInfo.realName,
-          isFirstTime: isFirstTime,
-        });
+      // 空きタイプに応じたフィルタリング
+      let shouldNotify = false;
+      if (availabilityType === 'all') {
+        shouldNotify = true;
+      } else if (availabilityType === 'first' && !isFirstTime) {
+        shouldNotify = true;
+      } else if (availabilityType === 'second' && isFirstTime) {
+        shouldNotify = true;
       }
-    }
-  });
+
+      if (shouldNotify) {
+        // 生徒情報を取得
+        const studentInfo = /** @type {UserCore} */ (
+          getCachedStudentById(String(studentId))
+        );
+
+        if (
+          studentInfo &&
+          studentInfo.email &&
+          studentInfo.email.trim() !== ''
+        ) {
+          result.push({
+            studentId: studentId,
+            email: studentInfo.email,
+            realName: studentInfo.realName,
+            isFirstTime: isFirstTime || false,
+          });
+        }
+      }
+    },
+  );
 
   return result;
 }
 
 /**
  * 空き通知メールの本文を生成
- * @param {object} recipient - 受信者情報
+ * @param {{studentId: string, email: string, realName: string, isFirstTime: boolean}} recipient - 受信者情報
  * @param {LessonCore} lesson - レッスン情報
  * @returns {string} メール本文
  */
@@ -791,11 +809,14 @@ export function updateReservationDetails(details) {
       );
 
       // 時間制予約（30分単位）の場合の検証
-      if (scheduleRule && scheduleRule['type'] === CONSTANTS.UNITS.THIRTY_MIN) {
+      if (
+        scheduleRule &&
+        scheduleRule.classroomType === CONSTANTS.UNITS.THIRTY_MIN
+      ) {
         _validateTimeBasedReservation(
-          updatedReservation.startTime,
-          updatedReservation.endTime,
-          /** @type {ScheduleMasterData} */ (scheduleRule),
+          updatedReservation.startTime || '',
+          updatedReservation.endTime || '',
+          /** @type {LessonCore} */ (scheduleRule),
         );
       }
 
@@ -805,6 +826,7 @@ export function updateReservationDetails(details) {
         throw new Error('空き状況の取得に失敗し、予約を更新できません。');
       }
       const targetLesson = lessonsResponse.data.find(
+        /** @param {LessonCore} l */
         l =>
           l.date === updatedReservation.date &&
           l.classroom === updatedReservation.classroom,
@@ -877,11 +899,14 @@ export function updateReservationDetails(details) {
       );
 
       // ★ フロントエンドに返す最新データを取得
+      /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */
       const userReservationsResult = getUserReservations(
         updatedReservation.studentId,
       );
       const latestMyReservations =
-        userReservationsResult.success && userReservationsResult.data
+        userReservationsResult.success &&
+        userReservationsResult.data &&
+        Array.isArray(userReservationsResult.data.myReservations)
           ? userReservationsResult.data.myReservations
           : [];
 
@@ -956,10 +981,12 @@ export function saveAccountingDetails(reservationWithAccounting) {
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
       // 5. 売上ログの記録
-      _logSalesForSingleReservation(
-        updatedReservation,
-        updatedReservation.accountingDetails,
-      );
+      if (updatedReservation.accountingDetails) {
+        _logSalesForSingleReservation(
+          updatedReservation,
+          updatedReservation.accountingDetails,
+        );
+      }
 
       // ログと通知
       const logDetails = `Classroom: ${updatedReservation.classroom}, ReservationID: ${reservationId}, Total: ${accountingDetails.grandTotal}`;
@@ -1017,7 +1044,7 @@ ${err.stack}`);
  * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
  * @private
  * @param {ReservationCore} reservation - 売上ログを生成する対象の予約オブジェクト
- * @param {AccountingDetails} accountingDetails - 計算済みの会計詳細オブジェクト。
+ * @param {AccountingDetailsCore} accountingDetails - 計算済みの会計詳細オブジェクト。
  */
 export function _logSalesForSingleReservation(reservation, accountingDetails) {
   try {
@@ -1107,20 +1134,21 @@ ${err.stack}`,
  * 日程マスタから特定の日付・教室のルールを取得する
  * @param {string} date - 日付 (YYYY-MM-DD)
  * @param {string} classroom - 教室名
- * @returns {ScheduleMasterData | undefined} 日程マスタのルール
+ * @returns {LessonCore | undefined} 日程マスタのルール
  */
 export function getScheduleInfoForDate(date, classroom) {
   const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
   if (!scheduleCache?.schedule) return undefined;
 
   return scheduleCache.schedule.find(
+    /** @param {LessonCore} item */
     item => item.date === date && item.classroom === classroom,
   );
 }
 
 /**
  * 空席連絡希望の予約を確定する
- * @param {object} confirmInfo - { reservationId, studentId, messageToTeacher }
+ * @param {{reservationId: string, studentId: string, messageToTeacher?: string}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric<any>} 処理結果と最新データ
  */
 export function confirmWaitlistedReservation(confirmInfo) {
@@ -1185,9 +1213,12 @@ export function confirmWaitlistedReservation(confirmInfo) {
       sendAdminNotificationForReservation(updatedReservation, 'updated');
 
       // 最新の予約データを取得して返却
+      /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */
       const userReservationsResult = getUserReservations(studentId);
       const latestMyReservations =
-        userReservationsResult.success && userReservationsResult.data
+        userReservationsResult.success &&
+        userReservationsResult.data &&
+        Array.isArray(userReservationsResult.data.myReservations)
           ? userReservationsResult.data.myReservations
           : [];
 

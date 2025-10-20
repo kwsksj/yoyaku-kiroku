@@ -1,5 +1,3 @@
-/// <reference path="../../types/backend-index.d.ts" />
-
 /**
  * =================================================================
  * 【ファイル名】: 05-3_Backend_AvailableSlots.js
@@ -29,7 +27,7 @@ export function getLessons() {
     );
 
     // スケジュールマスタデータ取得
-    /** @type {ScheduleMasterData[]} */
+    /** @type {LessonCore[]} */
     const scheduledDates = getAllScheduledDates(todayString, null);
     Logger.log(`日程マスタ取得: ${scheduledDates.length}件`);
 
@@ -44,28 +42,34 @@ export function getLessons() {
     const reservationsByDateClassroom = new Map();
 
     // 未来の有効な予約のみフィルタリング
-    const validReservations = convertedReservations.filter(reservation => {
-      const reservationDate = new Date(reservation.date);
-      return (
-        reservationDate >= today &&
-        reservation.status !== CONSTANTS.STATUS.CANCELED &&
-        reservation.status !== CONSTANTS.STATUS.WAITLISTED
-      );
-    });
+    const validReservations = convertedReservations.filter(
+      /** @param {ReservationCore} reservation */
+      reservation => {
+        const reservationDate = new Date(reservation.date);
+        return (
+          reservationDate >= today &&
+          reservation.status !== CONSTANTS.STATUS.CANCELED &&
+          reservation.status !== CONSTANTS.STATUS.WAITLISTED
+        );
+      },
+    );
 
-    validReservations.forEach(reservation => {
-      const reservationDate = new Date(reservation.date);
-      const dateString = Utilities.formatDate(
-        reservationDate,
-        CONSTANTS.TIMEZONE,
-        'yyyy-MM-dd',
-      );
-      const key = `${dateString}|${reservation.classroom}`;
-      if (!reservationsByDateClassroom.has(key)) {
-        reservationsByDateClassroom.set(key, []);
-      }
-      reservationsByDateClassroom.get(key)?.push(reservation);
-    });
+    validReservations.forEach(
+      /** @param {ReservationCore} reservation */
+      reservation => {
+        const reservationDate = new Date(reservation.date);
+        const dateString = Utilities.formatDate(
+          reservationDate,
+          CONSTANTS.TIMEZONE,
+          'yyyy-MM-dd',
+        );
+        const key = `${dateString}|${reservation.classroom}`;
+        if (!reservationsByDateClassroom.has(key)) {
+          reservationsByDateClassroom.set(key, []);
+        }
+        reservationsByDateClassroom.get(key)?.push(reservation);
+      },
+    );
 
     /** @type {LessonCore[]} */
     const lessons = [];
@@ -172,11 +176,12 @@ export function getLessons() {
 
 /**
  * 空き枠を計算
- * @param {ScheduleMasterData} schedule
+ * @param {LessonCore} schedule
  * @param {ReservationCore[]} reservations
  * @returns {{first: number, second: number|undefined, beginner: number|null}}
  */
 export function calculateAvailableSlots(schedule, reservations) {
+  /** @type {{first: number, second: number|undefined, beginner: number|null}} */
   const result = {
     first: 0,
     second: undefined,
@@ -286,7 +291,7 @@ export function parseCapacity(capacity) {
  */
 export function getLessonsForClassroom(classroom) {
   const result = getLessons();
-  if (!result.success) {
+  if (!result.success || !result.data) {
     return /** @type {ApiResponse<LessonCore[]>} */ (
       createApiResponse(false, { message: result.message, data: [] })
     );
@@ -314,11 +319,18 @@ export function getUserReservations(studentId) {
     /** @type {ReservationCore[]} */
     const myReservations = convertedReservations
       .filter(
+        /** @param {ReservationCore} reservation */
         reservation =>
           reservation.studentId === studentId &&
           reservation.status !== CONSTANTS.STATUS.CANCELED,
       )
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort(
+        /**
+         * @param {ReservationCore} a
+         * @param {ReservationCore} b
+         */
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      );
 
     // ユーザー情報はtransformReservationArrayToObjectWithHeaders()で自動付与される
 

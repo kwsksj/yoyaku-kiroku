@@ -1,4 +1,3 @@
-/// <reference path="../../types/frontend-index.d.ts" />
 /**
  * 会計システム - 計算ロジック層
  *
@@ -13,29 +12,42 @@
 // 【計算ロジック層】
 // ================================================================================
 
+const BASE_TUITION_ITEM_NAMES = [
+  CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
+  CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
+  CONSTANTS.ITEMS.MAIN_LECTURE,
+];
+
 /**
  * 会計マスタデータを項目種別に分類
- * @param {Array} masterData - 会計マスタデータ
+ * @param {AccountingMasterItemCore[]} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
  * @returns {ClassifiedAccountingItemsCore} 分類済み会計項目
  */
 export function classifyAccountingItems(masterData, classroom) {
+  /** @type {ClassifiedAccountingItemsCore} */
   const result = {
-    tuition: { items: [] }, // 全ての授業料・割引を統一
+    tuition: { baseItems: [], additionalItems: [] },
     sales: { materialItems: [], productItems: [] },
   };
 
   masterData.forEach(item => {
     const type = item[CONSTANTS.HEADERS.ACCOUNTING.TYPE];
     const targetClassroom = item[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM];
+    const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
 
     // 教室対象チェック
     if (targetClassroom !== '共通' && !targetClassroom.includes(classroom))
       return;
 
-    if (type === '授業料' || type === '割引') {
-      // 全ての授業料・割引項目を統一して扱う
-      result.tuition.items.push(item);
+    if (type === '授業料') {
+      if (BASE_TUITION_ITEM_NAMES.includes(itemName)) {
+        result.tuition.baseItems.push(item);
+      } else {
+        result.tuition.additionalItems.push(item);
+      }
+    } else if (type === '割引') {
+      result.tuition.additionalItems.push(item);
     } else if (type === '材料') {
       result.sales.materialItems.push(item);
     } else if (type === '物販') {
@@ -71,25 +83,31 @@ export function calculateTimeUnits(startTime, endTime, breakTime = 0) {
  * @param {AccountingFormDto} formData - フォームデータ
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
- * @returns {Object} 授業料計算結果
+ * @returns {{ items: AccountingDetailsCore['tuition']['items']; subtotal: number }} 授業料計算結果
  */
 export function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
   let subtotal = 0;
+  /** @type {AccountingDetailsCore['tuition']['items']} */
   const items = [];
+
+  const allTuitionItems = [
+    ...classifiedItems.tuition.baseItems,
+    ...classifiedItems.tuition.additionalItems,
+  ];
 
   // デバッグ: 計算開始
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔍 calculateTuitionSubtotal開始:', {
       classroom,
       checkedItems: formData.checkedItems,
-      tuitionItemsCount: classifiedItems.tuition.items.length,
+      tuitionItemsCount: allTuitionItems.length,
     });
   }
 
   // 全ての授業料・割引項目をチェック（チェックボックス選択）
   // 時刻パターンを含む項目（古いデータ）は除外
   const timePattern = /\(\d{2}:\d{2}\s*-\s*\d{2}:\d{2}\)/;
-  classifiedItems.tuition.items.forEach(item => {
+  allTuitionItems.forEach(item => {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
@@ -127,18 +145,19 @@ export function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
  * 販売小計計算
  * @param {AccountingFormDto} formData - フォームデータ
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
- * @returns {Object} 販売計算結果
+ * @returns {{ items: AccountingDetailsCore['sales']['items']; subtotal: number }} 販売計算結果
  */
 export function calculateSalesSubtotal(formData, classifiedItems) {
   let subtotal = 0;
+  /** @type {AccountingDetailsCore['sales']['items']} */
   const items = [];
 
   // 材料費計算
-  if (formData.materials) {
+  if (Array.isArray(formData.materials)) {
     formData.materials.forEach(material => {
-      const masterItem = classifiedItems.sales.materialItems.find(
-        item => item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === material.type,
-      );
+      const masterItem = classifiedItems.sales.materialItems.find(item => {
+        return item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME] === material.type;
+      });
 
       if (masterItem) {
         const unit = masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT];
@@ -149,7 +168,12 @@ export function calculateSalesSubtotal(formData, classifiedItems) {
         let price = 0;
         let itemName = material.type;
 
-        if (unit === 'cm³') {
+        if (
+          unit === 'cm³' &&
+          typeof material.l === 'number' &&
+          typeof material.w === 'number' &&
+          typeof material.h === 'number'
+        ) {
           // 体積計算（mm → cm変換）
           const volume =
             (material.l / 10) * (material.w / 10) * (material.h / 10);
@@ -168,19 +192,22 @@ export function calculateSalesSubtotal(formData, classifiedItems) {
   }
 
   // 物販（プルダウン選択式）
-  if (formData.selectedProducts) {
+  if (Array.isArray(formData.selectedProducts)) {
     formData.selectedProducts.forEach(product => {
-      items.push({ name: product.name, price: product.price });
-      subtotal += product.price;
+      if (!product || typeof product.name !== 'string') return;
+      const price = Number(product.price) || 0;
+      items.push({ name: product.name, price });
+      subtotal += price;
     });
   }
 
   // 自由入力物販
-  if (formData.customSales) {
-    formData.customSales.forEach(customItem => {
-      if (customItem.name && customItem.price) {
-        const price = Number(customItem.price);
-        items.push({ name: customItem.name, price: price });
+  const customSales = formData.customSales;
+  if (Array.isArray(customSales)) {
+    customSales.forEach(customItem => {
+      if (customItem?.name && customItem.price) {
+        const price = Number(customItem.price) || 0;
+        items.push({ name: customItem.name, price });
         subtotal += price;
       }
     });
@@ -197,9 +224,9 @@ export function calculateSalesSubtotal(formData, classifiedItems) {
  * 時間計算済みの項目に置き換える必要があるためです。
  *
  * @param {AccountingFormDto} formData - フォームデータ（この関数内で変更される）
- * @param {Array} masterData - 会計マスタデータ
+ * @param {AccountingMasterItemCore[]} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
- * @returns {Object} 統合計算結果
+ * @returns {AccountingDetailsCore} 統合計算結果
  */
 export function calculateAccountingTotal(formData, masterData, classroom) {
   // デバッグ: 計算開始
@@ -213,14 +240,9 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
 
   try {
     // マスターデータを拡張（基本授業料を動的に追加）
-    const extendedMasterData = [...masterData];
-
-    // 基本授業料の定数リスト
-    const BASE_TUITION_ITEMS = [
-      CONSTANTS.ITEMS.MAIN_LECTURE_COUNT,
-      CONSTANTS.ITEMS.MAIN_LECTURE_TIME,
-      CONSTANTS.ITEMS.MAIN_LECTURE, // 後方互換性のため残す
-    ];
+    const extendedMasterData = /** @type {AccountingMasterItemCore[]} */ ([
+      ...masterData,
+    ]);
 
     // 基本授業料項目を取得（定数リストから判定）
     const baseItem = masterData.find(item => {
@@ -231,7 +253,7 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
 
       return (
         type === '授業料' &&
-        BASE_TUITION_ITEMS.includes(itemName) &&
+        BASE_TUITION_ITEM_NAMES.includes(itemName) &&
         (targetClassroom === classroom || targetClassroom.includes(classroom))
       );
     });
@@ -245,6 +267,7 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
 
       // 基本授業料がチェックされている場合のみ追加
       if (formData.checkedItems?.[baseItemName]) {
+        /** @type {AccountingMasterItemCore | null} */
         let dynamicItem = null;
 
         if (unit === '30分') {
@@ -260,22 +283,26 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
             const hours = timeUnits / 2;
             const price = timeUnits * unitPrice;
 
-            dynamicItem = {
-              [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
-              [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]:
-                `${baseItemName} ${hours}時間`,
-              [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
-              [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: price,
-              [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
-                baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
-              _isDynamic: true, // 動的項目フラグ
-            };
+            dynamicItem = /** @type {AccountingMasterItemCore} */ (
+              /** @type {unknown} */ ({
+                [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
+                [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]:
+                  `${baseItemName} ${hours}時間`,
+                [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
+                [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: price,
+                [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
+                  baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
+                _isDynamic: true, // 動的項目フラグ
+              })
+            );
           }
         } else if (unit === '回') {
           // 回数制の場合：マスターデータに既に項目があるのでdynamicItemは作成不要
           // checkedItemsの状態を維持するのみ
           if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-            console.log('🔍 回数制基本授業料: dynamicItem作成スキップ（マスターデータに既存）');
+            console.log(
+              '🔍 回数制基本授業料: dynamicItem作成スキップ（マスターデータに既存）',
+            );
           }
         }
 
@@ -322,6 +349,7 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
     );
     const sales = calculateSalesSubtotal(formData, classifiedItems);
 
+    /** @type {AccountingDetailsCore} */
     const result = {
       tuition,
       sales,
@@ -341,11 +369,11 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
   } catch (error) {
     console.error('🔍 calculateAccountingTotal エラー:', error);
     // エラー時は空の結果を返す
-    return {
+    return /** @type {AccountingDetailsCore} */ ({
       tuition: { items: [], subtotal: 0 },
       sales: { items: [], subtotal: 0 },
       grandTotal: 0,
       paymentMethod: formData.paymentMethod || CONSTANTS.PAYMENT_DISPLAY.CASH,
-    };
+    });
   }
 }

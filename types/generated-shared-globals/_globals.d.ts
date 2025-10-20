@@ -4,7 +4,225 @@
  */
 
 declare global {
-  const CONSTANTS: typeof import('.').CONSTANTS;
+  const CONSTANTS: {
+    readonly TIMEZONE: string;
+    readonly ENVIRONMENT: {
+      readonly PRODUCTION_MODE: boolean;
+    };
+    readonly WEB_APP_URL: {
+      readonly PRODUCTION: string;
+    };
+    readonly CLASSROOMS: {
+      readonly TOKYO: string;
+      readonly NUMAZU: string;
+      readonly TSUKUBA: string;
+    };
+    readonly STATUS: {
+      readonly CANCELED: string;
+      readonly WAITLISTED: string;
+      readonly CONFIRMED: string;
+      readonly COMPLETED: string;
+    };
+    readonly UNITS: {
+      readonly THIRTY_MIN: string;
+      readonly PIECE: string;
+      readonly SET: string;
+      readonly CM3: string;
+    };
+    readonly PAYMENT_METHODS: {
+      readonly CASH: string;
+      readonly CARD: string;
+      readonly TRANSFER: string;
+    };
+    readonly UI: {
+      readonly HISTORY_INITIAL_RECORDS: number;
+      readonly HISTORY_LOAD_MORE_RECORDS: number;
+      readonly LOADING_MESSAGE_INTERVAL: number;
+      readonly MODAL_FADE_DURATION: number;
+      readonly COLUMN_WIDTHS: {
+        readonly DATE: number;
+        readonly CLASSROOM: number;
+        readonly VENUE: number;
+        readonly CLASSROOM_TYPE: number;
+        readonly TIME: number;
+        readonly BEGINNER_START: number;
+        readonly CAPACITY: number;
+        readonly STATUS: number;
+        readonly NOTES: number;
+      };
+    };
+    readonly LIMITS: {
+      readonly TSUKUBA_MORNING_SESSION_END_HOUR: number;
+      readonly LOCK_WAIT_TIME_MS: number;
+      readonly MAX_RETRY_COUNT: number;
+    };
+    readonly SHEET_NAMES: {
+      readonly ROSTER: string;
+      readonly ACCOUNTING: string;
+      readonly LOG: string;
+      readonly RESERVATIONS: string;
+      readonly SCHEDULE: string;
+      readonly SALES_LOG: string;
+    };
+    readonly TIME_SLOTS: {
+      readonly MORNING: string;
+      readonly AFTERNOON: string;
+      readonly ALL_DAY: string;
+    };
+    readonly PAYMENT_DISPLAY: {
+      readonly CASH: string;
+      readonly COTRA: string;
+      readonly BANK_TRANSFER: string;
+    };
+    readonly BANK_INFO: {
+      readonly COTRA_PHONE: string;
+      readonly NAME: string;
+      readonly BRANCH: string;
+      readonly ACCOUNT: string;
+    };
+    readonly FRONTEND_UI: {
+      readonly DISCOUNT_OPTIONS: {
+        readonly NONE: number;
+        readonly THIRTY_MIN: number;
+        readonly SIXTY_MIN: number;
+      };
+      readonly TIME_SETTINGS: {
+        readonly STEP_MINUTES: number;
+        readonly END_BUFFER_HOURS: number;
+      };
+    };
+    readonly MESSAGES: {
+      readonly PROCESSING_INTERRUPTED: string;
+      readonly SHEET_INITIALIZATION: string;
+      readonly EXISTING_SHEET_WARNING: string;
+      readonly SUCCESS: string;
+      readonly ERROR: string;
+      readonly CANCEL: string;
+      readonly SAVE: string;
+      readonly EDIT: string;
+    };
+    readonly LOG_ACTIONS: {
+      readonly ROSTER_EDIT: string;
+      readonly RESERVATION_EDIT: string;
+      readonly ROW_INSERT: string;
+      readonly RESERVATION_CANCEL: string;
+    };
+    readonly CLASSROOM_TYPES: {
+      readonly SESSION_BASED: string;
+      readonly TIME_DUAL: string;
+      readonly TIME_FULL: string;
+    };
+    readonly SCHEDULE_STATUS: {
+      readonly SCHEDULED: string;
+      readonly CANCELLED: string;
+      readonly COMPLETED: string;
+    };
+    readonly HEADERS: {
+      readonly RESERVATIONS: {
+        readonly RESERVATION_ID: string;
+        readonly STUDENT_ID: string;
+        readonly DATE: string;
+        readonly CLASSROOM: string;
+        readonly VENUE: string;
+        readonly START_TIME: string;
+        readonly END_TIME: string;
+        readonly STATUS: string;
+        readonly CHISEL_RENTAL: string;
+        readonly FIRST_LECTURE: string;
+        readonly TRANSPORTATION: string;
+        readonly PICKUP: string;
+        readonly WORK_IN_PROGRESS: string;
+        readonly ORDER: string;
+        readonly MESSAGE_TO_TEACHER: string;
+        readonly ACCOUNTING_DETAILS: string;
+      };
+      readonly ROSTER: {
+        readonly STUDENT_ID: string;
+        readonly REAL_NAME: string;
+        readonly NICKNAME: string;
+        readonly PHONE: string;
+        readonly CAR: string;
+        readonly CHISEL_RENTAL: string;
+        readonly LINE: string;
+        readonly NOTES: string;
+        readonly FROM: string;
+        readonly REGISTRATION_DATE: string;
+        readonly EMAIL: string;
+        readonly WANTS_RESERVATION_EMAIL: string;
+        readonly WANTS_SCHEDULE_INFO: string;
+        readonly NOTIFICATION_DAY: string;
+        readonly NOTIFICATION_HOUR: string;
+        readonly AGE_GROUP: string;
+        readonly GENDER: string;
+        readonly DOMINANT_HAND: string;
+        readonly ADDRESS: string;
+        readonly FUTURE_CREATIONS: string;
+        readonly EXPERIENCE: string;
+        readonly PAST_WORK: string;
+        readonly ATTENDANCE_INTENTION: string;
+        readonly TRIGGER: string;
+        readonly FIRST_MESSAGE: string;
+        readonly COMPANION: string;
+        readonly TRANSPORTATION: string;
+        readonly PICKUP: string;
+        readonly TOTAL_PARTICIPATION: string;
+      };
+      readonly ACCOUNTING: {
+        readonly TYPE: string;
+        readonly ITEM_NAME: string;
+        readonly UNIT_PRICE: string;
+        readonly UNIT: string;
+        readonly TARGET_CLASSROOM: string;
+        readonly NOTES: string;
+      };
+      readonly SCHEDULE: {
+        readonly DATE: string;
+        readonly CLASSROOM: string;
+        readonly VENUE: string;
+        readonly TYPE: string;
+        readonly FIRST_START: string;
+        readonly FIRST_END: string;
+        readonly SECOND_START: string;
+        readonly SECOND_END: string;
+        readonly BEGINNER_START: string;
+        readonly TOTAL_CAPACITY: string;
+        readonly BEGINNER_CAPACITY: string;
+        readonly STATUS: string;
+        readonly NOTES: string;
+      };
+    };
+    readonly ITEMS: {
+      readonly MAIN_LECTURE: string;
+      readonly MAIN_LECTURE_COUNT: string;
+      readonly MAIN_LECTURE_TIME: string;
+      readonly FIRST_LECTURE: string;
+      readonly CHISEL_RENTAL: string;
+      readonly DISCOUNT: string;
+    };
+    readonly ITEM_TYPES: {
+      readonly TUITION: string;
+      readonly SALES: string;
+      readonly MATERIAL: string;
+    };
+    readonly SYSTEM: {
+      readonly MATERIAL_INFO_PREFIX: string;
+      readonly ARCHIVE_PREFIX: string;
+      readonly DATA_START_ROW: number;
+      readonly CACHE_EXPIRY_SECONDS: number;
+      readonly HEADER_ROW: number;
+    };
+    readonly NOTIFICATION: {
+      readonly DAYS: number[];
+      readonly HOURS: number[];
+      readonly DEFAULT_DAY: number;
+      readonly DEFAULT_HOUR: number;
+      readonly SCHEDULE_MONTHS_AHEAD: number;
+    };
+    readonly WEEKEND: {
+      readonly SUNDAY: number;
+      readonly SATURDAY: number;
+    };
+  };
 }
 
 export {};

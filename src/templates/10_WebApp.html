@@ -1,4 +1,4 @@
- <reference path="../../types/index.d.ts" />
+<reference path="../../types/index.d.ts" />
 <!--
 =================================================================
 【ファイル名】: 10_WebApp.html
@@ -131,7 +131,11 @@
     <script>
       // デバッグ情報をコンソールに出力する関数（本番環境では無効化）
       function debugLog(message) {
-        if (CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) return; // 本番環境では何も表示しない
+        if (
+          typeof CONSTANTS !== 'undefined' &&
+          CONSTANTS.ENVIRONMENT?.PRODUCTION_MODE
+        )
+          return; // 本番環境では何も表示しない
         console.log(
           '🔍 [DEBUG]',
           new Date().toLocaleTimeString() + ':',
