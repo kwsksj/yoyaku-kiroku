@@ -274,14 +274,56 @@ export class SimpleStateManager {
   updateComputed() {
     if (!this.state.myReservations) return;
 
-    // isFirstTimeBooking の計算：確定・完了の予約があるかをチェック
-    // 空き連絡希望だけでは経験者扱いにしない
-    const hasConfirmedOrCompleted = this.state.myReservations.some(
-      (/** @type {ReservationCore} */ r) =>
-        r.status === CONSTANTS.STATUS.CONFIRMED ||
-        r.status === CONSTANTS.STATUS.COMPLETED,
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    /**
+     * 日付形式の値から Date を生成して日付部分のみ比較
+     * @param {string | number | Date | null | undefined} value
+     * @returns {Date | null}
+     */
+    const parseDateOnly = value => {
+      if (!value) return null;
+      const dateParts = String(value).split('-');
+      if (dateParts.length === 3) {
+        const [yearStr, monthStr, dayStr] = dateParts;
+        const year = Number(yearStr);
+        const month = Number(monthStr);
+        const day = Number(dayStr);
+        if ([year, month, day].some(Number.isNaN)) {
+          return null;
+        }
+        return new Date(year, month - 1, day);
+      }
+      const fallback = new Date(value);
+      return Number.isNaN(fallback.getTime()) ? null : fallback;
+    };
+
+    // 初回予約が実施済みか（日付が今日以前か、または完了済みか）を確認
+    const hasCompletedFirstLecture = this.state.myReservations.some(
+      (/** @type {ReservationCore} */ reservation) => {
+        if (!reservation.firstLecture) {
+          return false;
+        }
+
+        if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
+          return true;
+        }
+
+        if (reservation.status !== CONSTANTS.STATUS.CONFIRMED) {
+          return false;
+        }
+
+        const reservationDate = parseDateOnly(reservation.date);
+        if (!reservationDate) {
+          return false;
+        }
+        reservationDate.setHours(0, 0, 0, 0);
+        return reservationDate.getTime() <= today.getTime();
+      },
     );
-    this.state.isFirstTimeBooking = !hasConfirmedOrCompleted;
+
+    this.state.isFirstTimeBooking = !hasCompletedFirstLecture;
   }
 
   /**

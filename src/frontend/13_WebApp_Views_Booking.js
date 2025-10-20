@@ -9,6 +9,19 @@
  */
 
 const bookingStateManager = appWindow.stateManager;
+
+/**
+ * スロット数を数値に整える
+ * @param {number|string|null|undefined} value
+ * @returns {number}
+ */
+const normalizeSlotValue = value => {
+  if (value === null || typeof value === 'undefined') {
+    return 0;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 /**
  * 特定の教室の予約枠一覧画面のUIを生成します。
  * @param {string} classroom - 教室名
@@ -83,14 +96,19 @@ export const getReservationFormView = () => {
   const isWaiting = reservationInfo.status === CONSTANTS.STATUS.WAITLISTED;
 
   const isTimeBased = isTimeBasedClassroom(lessonInfo);
+  const hasSecondSlots = typeof lessonInfo.secondSlots !== 'undefined';
+  const firstSlotsCount = normalizeSlotValue(lessonInfo.firstSlots);
+  const secondSlotsCount = hasSecondSlots
+    ? normalizeSlotValue(lessonInfo.secondSlots)
+    : 0;
+  const beginnerSlotsCount = normalizeSlotValue(lessonInfo.beginnerSlots);
+  const beginnerCapacityCount = normalizeSlotValue(lessonInfo.beginnerCapacity);
 
   // 満席判定
-  const isFull =
-    typeof lessonInfo.secondSlots !== 'undefined'
-      ? (lessonInfo.firstSlots || 0) === 0 &&
-        (lessonInfo.secondSlots || 0) === 0
-      : (lessonInfo.firstSlots || 0) === 0;
-  const isBeginnerSlotFull = (lessonInfo.beginnerSlots || 0) === 0;
+  const isFull = hasSecondSlots
+    ? firstSlotsCount === 0 && secondSlotsCount === 0
+    : firstSlotsCount === 0;
+  const isBeginnerSlotFull = beginnerSlotsCount === 0;
 
   const title = isEdit
     ? '予約内容の編集'
@@ -111,15 +129,15 @@ export const getReservationFormView = () => {
     if (isFirstTimeBooking) {
       return isBeginnerSlotFull
         ? '初回者枠 満席（空き連絡希望）'
-        : `初回者枠 空き <span class="font-mono-numbers">${lessonInfo.beginnerSlots}</span>`;
+        : `初回者枠 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
     }
     if (isFull) return '満席（空き連絡希望）';
-    if (typeof lessonInfo.secondSlots !== 'undefined') {
+    if (hasSecondSlots) {
       const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
       const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
-      return `空き ${morningLabel} <span class="font-mono-numbers">${lessonInfo.firstSlots}</span> | ${afternoonLabel} <span class="font-mono-numbers">${lessonInfo.secondSlots}</span>`;
+      return `空き ${morningLabel} <span class="font-mono-numbers">${firstSlotsCount}</span> | ${afternoonLabel} <span class="font-mono-numbers">${secondSlotsCount}</span>`;
     }
-    return `空き <span class="font-mono-numbers">${lessonInfo.firstSlots}</span>`;
+    return `空き <span class="font-mono-numbers">${firstSlotsCount}</span>`;
   };
 
   const _renderTuitionDisplaySection = () => {
@@ -186,11 +204,7 @@ export const getReservationFormView = () => {
 
     let fixedStartTime = startTime;
     let isTimeFixed = false;
-    if (
-      isFirstTimeBooking &&
-      beginnerStart &&
-      (lessonInfo.beginnerCapacity || 0) > 0
-    ) {
+    if (isFirstTimeBooking && beginnerStart && beginnerCapacityCount > 0) {
       fixedStartTime = beginnerStart;
       isTimeFixed = true;
     }
@@ -409,25 +423,34 @@ export const renderBookingLessons = lessons => {
             const isFirstTimeBooking =
               bookingStateManager.getState().isFirstTimeBooking;
             let statusText;
+            const hasSecondSlots = typeof lesson.secondSlots !== 'undefined';
+            const firstSlotsCount = normalizeSlotValue(lesson.firstSlots);
+            const secondSlotsCount = hasSecondSlots
+              ? normalizeSlotValue(lesson.secondSlots)
+              : 0;
+            const beginnerSlotsCount = normalizeSlotValue(lesson.beginnerSlots);
+            const beginnerCapacityCount = normalizeSlotValue(
+              lesson.beginnerCapacity,
+            );
 
             if (isFirstTimeBooking) {
-              if (lesson.beginnerStart && (lesson.beginnerCapacity || 0) > 0) {
+              if (lesson.beginnerStart && beginnerCapacityCount > 0) {
                 // 初回者枠が満席かチェック
-                if ((lesson.beginnerSlots || 0) <= 0) {
+                if (beginnerSlotsCount <= 0) {
                   statusText = '初回者 満席（空き連絡希望）';
                 } else {
-                  statusText = `初回者 空き <span class="font-mono-numbers">${lesson.beginnerSlots}</span>`;
+                  statusText = `初回者 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
                 }
               } else {
                 statusText = '経験者のみ';
               }
             } else {
-              if (typeof lesson.secondSlots !== 'undefined') {
+              if (hasSecondSlots) {
                 const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
                 const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
-                statusText = `空き ${morningLabel}<span class="font-mono-numbers">${lesson.firstSlots}</span> ${afternoonLabel}<span class="font-mono-numbers">${lesson.secondSlots}</span>`;
+                statusText = `空き ${morningLabel}<span class="font-mono-numbers">${firstSlotsCount}</span> ${afternoonLabel}<span class="font-mono-numbers">${secondSlotsCount}</span>`;
               } else {
-                statusText = `空き <span class="font-mono-numbers">${lesson.firstSlots}</span>`;
+                statusText = `空き <span class="font-mono-numbers">${firstSlotsCount}</span>`;
               }
             }
 
@@ -456,21 +479,16 @@ export const renderBookingLessons = lessons => {
               let canBook = true;
 
               if (isFirstTimeBooking) {
-                if (
-                  !lesson.beginnerStart ||
-                  (lesson.beginnerCapacity || 0) <= 0
-                ) {
+                if (!lesson.beginnerStart || beginnerCapacityCount <= 0) {
                   canBook = false;
                 }
-                isSlotFull = (lesson.beginnerSlots || 0) === 0;
+                isSlotFull = beginnerSlotsCount === 0;
               } else {
                 // 満席判定：2部制の場合は両方満席、それ以外は1部満席
-                if (typeof lesson.secondSlots !== 'undefined') {
-                  isSlotFull =
-                    (lesson.firstSlots || 0) === 0 &&
-                    (lesson.secondSlots || 0) === 0;
+                if (hasSecondSlots) {
+                  isSlotFull = firstSlotsCount === 0 && secondSlotsCount === 0;
                 } else {
-                  isSlotFull = (lesson.firstSlots || 0) === 0;
+                  isSlotFull = firstSlotsCount === 0;
                 }
               }
 
