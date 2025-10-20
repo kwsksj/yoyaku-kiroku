@@ -32,50 +32,60 @@
 
 **2. 品質チェックとビルド**
 
+- `npm run validate`
+  - フォーマット、Lint、型定義生成・チェックをすべて実行します（チェックのみ）。
+- `npm run validate:fix`
+  - フォーマット自動修正、Lint自動修正、型定義生成・チェックを実行します。
 - `npm run build`
-  - **コミット前の推奨コマンド。**
-  - `check`（フォーマット、Lint、型定義生成・チェック）を実行後、`build-output`に成果物を生成します。
+  - `validate` を実行後、`build-output`に成果物を生成します。
   - エラーがある場合はビルドが停止します。
 
 **3. テスト環境への反映と確認**
 
-- `npm run dev:test`
-  - `build` を実行し、テスト環境へプッシュします。
-  - ブラウザで動作確認が必要な場合は `npm run dev:open:test` を使用します。
+- `npm run ai:test`
+  - **AI操作前の推奨コマンド。**
+  - `validate:fix` を実行し、テスト環境へデプロイします。
+- `npm run build-push:test`
+  - `build` を実行し、テスト環境へプッシュします（デプロイなし）。
 
 **3-1. Chrome DevTools MCPを使った自動テスト（AI推奨）**
 
 AIによる開発・テスト時は、Chrome DevTools MCP（Model Context Protocol）を使用することで、WebAppの動作を自動的にテストできます。
 
 - **前提条件**:
-  - テスト環境のWebApp URLとデプロイIDが必要です
-  - これらの情報は開発者から直接提供されます（セキュリティのためGit管理外）
-  - テスト環境は一般公開設定されている必要があります
+  - テスト環境のWebApp URLとデプロイIDは `.clasp.config.json` に記録されています
+  - URLは `npm run url:exec:test` などで取得できます
+  - テスト環境は一般公開設定されており、ログイン不要でアクセス可能です
 
 - **基本的なテストフロー**:
-  1. コードをビルド・デプロイ: `npm run dev:test`
-  2. DevTools MCPでWebAppを開く: `mcp__devtools__navigate_page`（URLは開発者提供）
-  3. スナップショット取得: `mcp__devtools__take_snapshot`
-  4. UI操作: `mcp__devtools__fill`, `mcp__devtools__click`
-  5. コンソールログ確認: `mcp__devtools__list_console_messages`
-  6. スクリーンショット取得: `mcp__devtools__take_screenshot`
+  1. コードをビルド・デプロイ: `npm run ai:test`
+  2. URLを取得: `npm run url:exec:test` (WebApp)、`npm run url:sheet:test` (スプレッドシート)
+  3. DevTools MCPでWebAppを開く: `mcp__devtools__new_page` または `mcp__devtools__navigate_page`
+  4. スナップショット取得: `mcp__devtools__take_snapshot`
+  5. UI操作: `mcp__devtools__fill`, `mcp__devtools__click`
+  6. コンソールログ確認: `mcp__devtools__list_console_messages`
+  7. スクリーンショット取得: `mcp__devtools__take_screenshot`（必要に応じて `filePath` を指定）
 
 - **キャッシュ管理**:
-  - テスト環境では、スプレッドシートを開くと自動的にキャッシュが再構築されます（`onOpen`トリガー）
-  - テストユーザー削除後は、スプレッドシートを開き直すことでキャッシュがクリアされます
+  - **テスト環境の重要な特性**: スプレッドシートを開くたびに（リロードするたびに）、**全キャッシュが自動的に再構築されます**
+  - これにより、テスト環境では常に最新のデータ構造でテストが可能です
+  - キャッシュをクリアしたい場合は、`npm run url:sheet:test` でスプレッドシートを開き、リロードしてください
 
 - **テスト実施例**:
   - 新規登録フロー、ログイン、予約作成・編集・キャンセル、プロフィール編集など
   - レスポンス構造の検証（コンソールログから確認）
   - UI表示の確認（スクリーンショット・スナップショット）
 
-- **注意**: テスト環境の具体的なURL・ID情報はセキュリティのためGit管理外としてください
+- **注意**:
+  - WebAppのURLは `/exec` エンドポイント（公開URL）を使用してください。`/dev` エンドポイントはGoogleログインが必要なため、MCP DevToolsでは使用できません
+  - スクリーンショットはデフォルトではAIが確認するのみです。ファイルとして保存したい場合は `filePath` パラメータを指定してください
 
 **4. 本番環境へのデプロイ**
 
-- `npm run dev:prod`
-  - テスト環境で問題がないことを確認した後、このコマンドでビルドと本番環境へのプッシュを行います。
-  - ブラウザでの確認も同時に行う場合は `npm run dev:open:prod` を使用します。
+- `npm run ai:prod`
+  - テスト環境で問題がないことを確認した後、このコマンドで自動修正・ビルド・本番環境へのデプロイを行います。
+- `npm run build-push:prod`
+  - `build` を実行し、本番環境へプッシュします（デプロイなし）。
 
 ---
 
@@ -83,9 +93,9 @@ AIによる開発・テスト時は、Chrome DevTools MCP（Model Context Protoc
 
 **主要コマンド**
 
-- `npm run check`: フォーマット、Lint、型定義の生成・チェックをすべて実行します。
-- `npm run fix`: フォーマットの修正、Lintの自動修正、型定義の生成・チェックを順次実行します。
-- `npm run build`: `check` を実行後、問題がなければビルドを実行します。
+- `npm run validate`: フォーマット、Lint、型定義の生成・チェックをすべて実行します（チェックのみ）。
+- `npm run validate:fix`: フォーマットの修正、Lintの自動修正、型定義の生成・チェックを順次実行します。
+- `npm run build`: `validate` を実行後、問題がなければビルドを実行します。
 - `npm run build:force`: 品質チェックをスキップして強制的にビルドを実行します。
 - `npm run watch`: ファイル変更を監視し、自動でビルド（`build:force`）を実行します。
 
@@ -99,12 +109,37 @@ AIによる開発・テスト時は、Chrome DevTools MCP（Model Context Protoc
 
 - JSDocコメントを編集した → `types:refresh` を実行
 - 型定義は最新で、コードだけ変更した → `types:check` を実行
-- ビルド前の最終確認 → `npm run build` (内部で `check` が実行される)
+- ビルド前の最終確認 → `npm run build` (内部で `validate` が実行される)
 
-**補助コマンド**
+**フォーマット・Lint**
 
-- `npm run format:fix`: Prettierによるコードフォーマット。
+- `npm run format`: Prettierによるフォーマットチェック（修正なし）。
+- `npm run format:fix`: Prettierによるフォーマット自動修正。
+- `npm run lint`: ESLintによるLintチェック（修正なし）。
 - `npm run lint:fix`: ESLintによる自動修正。
+- `npm run lint:md`: Markdownファイルのチェック。
+- `npm run lint:md:fix`: Markdownファイルの自動修正。
+
+**デプロイ関連**
+
+- `npm run ai:test`: **AI操作前の推奨コマンド。** `validate:fix` + テスト環境へのデプロイ。
+- `npm run ai:prod`: **本番デプロイ前の推奨コマンド。** `validate:fix` + 本番環境へのデプロイ。
+- `npm run build-push:test`: `build` + テスト環境へのプッシュ（デプロイなし）。
+- `npm run build-push:prod`: `build` + 本番環境へのプッシュ（デプロイなし）。
+- `npm run deploy:test`: テスト環境へのデプロイ（ビルドなし）。
+- `npm run deploy:prod`: 本番環境へのデプロイ（ビルドなし）。
+
+**URL取得（MCP DevTools用）**
+
+- `npm run url:exec:test`: テスト環境の公開WebApp URL取得。
+- `npm run url:exec:prod`: 本番環境の公開WebApp URL取得。
+- `npm run url:sheet:test`: テスト環境のスプレッドシート URL取得。
+- `npm run url:sheet:prod`: 本番環境のスプレッドシート URL取得。
+
+**注意**: スクリプトエディタのURLはGoogleログインが必要なため、MCP DevToolsでは開けません。
+
+**その他**
+
 - `npm run switch:env -- prod|test`: `.clasp.json`を切り替えて、作業環境を変更します。
 
 ---

@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -80,28 +79,6 @@ switch (urlType) {
     process.exit(1);
 }
 
-console.log(`✅ ${urlName}を生成しました:`);
+// MCP DevTools用にURLを出力（AIがこの出力を読み取ってページを開く）
+console.error(`📋 ${urlName}のURLを生成しました`);
 console.log(url);
-
-let openCommand;
-switch (process.platform) {
-  case 'darwin': // macOS
-    openCommand = 'open';
-    break;
-  case 'win32': // Windows
-    openCommand = 'start';
-    break;
-  default: // Linux, etc.
-    openCommand = 'xdg-open';
-    break;
-}
-
-console.log(`🔄 ブラウザで開いています...`);
-exec(`${openCommand} "${url}"`, error => {
-  if (error) {
-    console.error(
-      `❌ ブラウザを自動で開けませんでした。上記URLをコピーして手動で開いてください。`,
-    );
-    console.error(error);
-  }
-});

@@ -111,22 +111,30 @@ types/
 - `src/` ディレクトリ内のファイルを編集します。
 - JSDoc（コード内のコメント）を修正した場合は、`npm run types:refresh` を実行して、型定義の更新とチェックを行ってください。
 
-**2. 品質チェックとビルド（コミット前に推奨）**
+**2. 品質チェックとビルド**
 
+- `npm run validate`
+  - フォーマット、Lint、型定義生成・チェックをすべて実行します（チェックのみ）。
+- `npm run validate:fix`
+  - フォーマット自動修正、Lint自動修正、型定義生成・チェックを実行します。
 - `npm run build`
-  - コードのフォーマット、Lint、型チェックをすべて実行し、問題がなければビルドを行います。
+  - `validate` を実行後、`build-output`に成果物を生成します。
   - **安全なビルドを保証するための基本コマンドです。**
 
-**3. テスト環境への反映**
+**3. テスト環境への反映（AI操作前に推奨）**
 
-- `npm run dev:test`
-  - `build` コマンドを実行し、生成されたファイルをテスト環境へプッシュします。
-  - `npm run dev:open:test` で、プッシュ後にブラウザで動作確認もできます。
+- `npm run ai:test`
+  - `validate:fix` を実行し、テスト環境へデプロイします。
+  - **AIにテストしてもらう際の推奨コマンド。**
+- `npm run build-push:test`
+  - `build` を実行し、テスト環境へプッシュします（デプロイなし）。
 
 **4. 本番環境へのデプロイ**
 
-- `npm run dev:prod`
-  - テスト環境で問題がないことを確認した後、このコマンドでビルドと本番環境へのプッシュを行います。
+- `npm run ai:prod`
+  - `validate:fix` を実行し、本番環境へデプロイします。
+- `npm run build-push:prod`
+  - `build` を実行し、本番環境へプッシュします（デプロイなし）。
 
 ---
 
@@ -134,8 +142,9 @@ types/
 
 **主要コマンド**
 
-- `npm run check`: フォーマット、Lint、型定義の生成・チェックをすべて実行します。
-- `npm run build`: `check` を実行後、問題がなければビルドを実行します。
+- `npm run validate`: フォーマット、Lint、型定義の生成・チェックをすべて実行します（チェックのみ）。
+- `npm run validate:fix`: フォーマットの修正、Lintの自動修正、型定義の生成・チェックを順次実行します。
+- `npm run build`: `validate` を実行後、問題がなければビルドを実行します。
 - `npm run build:force`: 品質チェックをスキップして強制的にビルドを実行します。
 - `npm run watch`: ファイル変更を監視し、自動でビルド（`build:force`）を実行します。
 
@@ -149,17 +158,38 @@ types/
 
 - JSDocコメントを編集した → `types:refresh` を実行
 - 型定義は最新で、コードだけ変更した → `types:check` を実行
-- ビルド前の最終確認 → `npm run build` (内部で `check` が実行される)
+- ビルド前の最終確認 → `npm run build` (内部で `validate` が実行される)
 
-**補助コマンド**
+**フォーマット・Lint**
 
-- `npm run format`: Prettierによるコードフォーマット。
+- `npm run format`: Prettierによるフォーマットチェック（修正なし）。
+- `npm run format:fix`: Prettierによるフォーマット自動修正。
+- `npm run lint`: ESLintによるLintチェック（修正なし）。
 - `npm run lint:fix`: ESLintによる自動修正。
+- `npm run lint:md`: Markdownファイルのチェック。
+- `npm run lint:md:fix`: Markdownファイルの自動修正。
+
+**デプロイ関連**
+
+- `npm run ai:test`: **AI操作前の推奨コマンド。** `validate:fix` + テスト環境へのデプロイ。
+- `npm run ai:prod`: **本番デプロイ前の推奨コマンド。** `validate:fix` + 本番環境へのデプロイ。
+- `npm run build-push:test`: `build` + テスト環境へのプッシュ（デプロイなし）。
+- `npm run build-push:prod`: `build` + 本番環境へのプッシュ（デプロイなし）。
+
+**URL取得（MCP DevTools用）**
+
+- `npm run url:exec:test/prod`: 公開WebApp URL取得。
+- `npm run url:sheet:test/prod`: スプレッドシート URL取得。
+
+**注意**: スクリプトエディタのURLはGoogleログインが必要なため、MCP DevToolsでは開けません。
+
+**その他**
+
 - `npm run switch:env -- prod|test`: `.clasp.json`を切り替えて、作業環境を変更します。
 
 ## 📚 **詳細ドキュメント**
 
-- **[GEMINI.md](GEMINI.md)** - AI (Gemini) 向け開発ガイド。プロジェクトの最も詳細かつ正確なルールブックです。
+- **[AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md)** - AI向け開発ガイド。プロジェクトの最も詳細かつ正確なルールブックです。
 - **[docs/JS_TO_HTML_ARCHITECTURE.md](docs/JS_TO_HTML_ARCHITECTURE.md)** - JavaScript分離開発アーキテクチャの詳細設計
 - **[docs/DATA_MODEL.md](docs/DATA_MODEL.md)** - 統合データモデルの設計仕様
 
@@ -188,7 +218,8 @@ types/
 
 ## ⚠️ **注意**
 
-- **本番影響:** `npm run dev:prod` でユーザーが利用するWebアプリが更新されます
+- **本番影響:** `npm run ai:prod` でユーザーが利用するWebアプリが更新されます
 - **設定ファイル:** `.clasp.config.json` には機密情報が含まれGit管理対象外です
+- **テスト環境:** スプレッドシートを開くたびに全キャッシュが自動再構築されます
 
-**最終更新:** 2025年10月10日 (アーキテクチャ更新とドキュメント整備)
+**最終更新:** 2025年10月20日 (コマンド体系の再構成とMCP DevTools対応)
