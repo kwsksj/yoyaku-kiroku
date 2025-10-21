@@ -51,7 +51,13 @@ const renderBeginnerModeToggle = () => {
   const isChecked = override !== null ? override === 'true' : auto;
   const isAuto = override === null;
 
-  console.log('🎚️ BeginnerModeToggle:', { auto, override, isChecked, isAuto });
+  console.log('🎚️ BeginnerModeToggle:', {
+    auto,
+    override,
+    isChecked,
+    isAuto,
+    effectiveValue: override !== null ? override === 'true' : auto,
+  });
 
   const statusText = isAuto
     ? `(自動判定: ${auto ? '未経験' : '経験者'})`
@@ -123,6 +129,13 @@ export const getBookingView = classroom => {
           (/** @type {LessonCore} */ lesson) => lesson.classroom === classroom,
         )
       : [];
+
+  console.log('🏫 getBookingView:', {
+    classroom,
+    totalLessons: currentState.lessons?.length,
+    relevantLessons: relevantLessons.length,
+    override: localStorage.getItem('beginnerModeOverride'),
+  });
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
@@ -471,7 +484,13 @@ export const getReservationFormView = () => {
  * @returns {string} HTML文字列
  */
 export const renderBookingLessons = lessons => {
+  console.log('📚 renderBookingLessons called:', {
+    lessonsCount: lessons?.length || 0,
+    override: localStorage.getItem('beginnerModeOverride'),
+  });
+
   if (!lessons || lessons.length === 0) {
+    console.warn('⚠️ No lessons to render');
     return '';
   }
 
@@ -616,6 +635,12 @@ export const renderBookingLessons = lessons => {
       return monthHeader + lessonsHtml;
     })
     .join('');
+
+  console.log('✅ renderBookingLessons result:', {
+    resultLength: result.length,
+    isEmpty: !result,
+    monthsCount: Object.keys(lessonsByMonth).length,
+  });
 
   return result;
 };
