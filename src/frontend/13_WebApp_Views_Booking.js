@@ -51,6 +51,8 @@ const renderBeginnerModeToggle = () => {
   const isChecked = override !== null ? override === 'true' : auto;
   const isAuto = override === null;
 
+  console.log('🎚️ BeginnerModeToggle:', { auto, override, isChecked, isAuto });
+
   const statusText = isAuto
     ? `(自動判定: ${auto ? '未経験' : '経験者'})`
     : '(手動設定中)';
@@ -158,7 +160,11 @@ export const getReservationFormView = () => {
     bookingStateManager.getState();
 
   // 実際に使用する初心者モードの値（手動設定を優先）
-  const isFirstTimeBooking = bookingStateManager.getEffectiveBeginnerMode();
+  const override = localStorage.getItem('beginnerModeOverride');
+  const isFirstTimeBooking =
+    override !== null
+      ? override === 'true'
+      : bookingStateManager.getState().isFirstTimeBooking;
 
   if (!currentReservationFormContext) {
     return 'エラー: 予約フォームのデータが見つかりません。';
@@ -507,8 +513,15 @@ export const renderBookingLessons = lessons => {
             const tag = isBooked ? 'div' : 'button';
 
             // 実際に使用する初心者モードの値（手動設定を優先）
+            const override = localStorage.getItem('beginnerModeOverride');
             const isFirstTimeBooking =
-              bookingStateManager.getEffectiveBeginnerMode();
+              override !== null
+                ? override === 'true'
+                : bookingStateManager.getState().isFirstTimeBooking;
+            console.log('📋 Lesson render:', lesson.date, {
+              override,
+              isFirstTimeBooking,
+            });
             let statusText;
             const {
               hasSecondSlots,
