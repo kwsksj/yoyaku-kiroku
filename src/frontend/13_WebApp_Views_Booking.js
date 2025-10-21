@@ -65,15 +65,17 @@ const renderBeginnerModeToggle = () => {
           onchange="
             const isChecked = this.checked;
             localStorage.setItem('beginnerModeOverride', String(isChecked));
-            // 画面を再描画
-            const stateManager = window.stateManager;
-            const currentState = stateManager.getState();
-            if (currentState.view === 'bookingLessons' && currentState.selectedClassroom) {
-              stateManager.dispatch({
-                type: 'NAVIGATE',
-                payload: { view: 'bookingLessons', classroom: currentState.selectedClassroom }
-              });
-            }
+            // 画面を再描画（LocalStorageの反映を保証するため少し遅延）
+            setTimeout(() => {
+              const stateManager = window.stateManager;
+              const currentState = stateManager.getState();
+              if (currentState.view === 'bookingLessons' && currentState.selectedClassroom) {
+                stateManager.dispatch({
+                  type: 'NAVIGATE',
+                  payload: { view: 'bookingLessons', classroom: currentState.selectedClassroom }
+                });
+              }
+            }, 10);
           "
           class="sr-only peer"
         />
@@ -88,15 +90,17 @@ const renderBeginnerModeToggle = () => {
         type="button"
         onclick="
           localStorage.removeItem('beginnerModeOverride');
-          // 画面を再描画
-          const stateManager = window.stateManager;
-          const currentState = stateManager.getState();
-          if (currentState.view === 'bookingLessons' && currentState.selectedClassroom) {
-            stateManager.dispatch({
-              type: 'NAVIGATE',
-              payload: { view: 'bookingLessons', classroom: currentState.selectedClassroom }
-            });
-          }
+          // 画面を再描画（LocalStorageの反映を保証するため少し遅延）
+          setTimeout(() => {
+            const stateManager = window.stateManager;
+            const currentState = stateManager.getState();
+            if (currentState.view === 'bookingLessons' && currentState.selectedClassroom) {
+              stateManager.dispatch({
+                type: 'NAVIGATE',
+                payload: { view: 'bookingLessons', classroom: currentState.selectedClassroom }
+              });
+            }
+          }, 10);
         "
         class="text-xs text-blue-600 hover:underline ml-6 mt-1"
       >自動判定に戻す</button>`

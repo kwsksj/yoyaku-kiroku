@@ -13,6 +13,4 @@ export namespace reservationActionHandlers {
     function goToDashboard(): void;
     function goBackToBooking(): void;
     function confirmWaitlistedReservation(d: ActionHandlerData): void;
-    function toggleBeginnerMode(isBeginnerMode: boolean): void;
-    function resetBeginnerMode(): void;
 }
