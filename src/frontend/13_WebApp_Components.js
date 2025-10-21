@@ -481,6 +481,44 @@ export const Components = {
   },
 
   /**
+   * ボタングループコンポーネント（2択選択）
+   * @param {Object} config - 設定オブジェクト
+   * @param {Array<{value: string, label: string, onclick: string}>} config.buttons - ボタンの配列（2つ）
+   * @param {string} config.selectedValue - 現在選択されている値
+   * @param {string} [config.className=''] - 追加のCSSクラス
+   * @returns {string} HTML文字列
+   */
+  buttonGroup: ({ buttons, selectedValue, className = '' }) => {
+    if (!Array.isArray(buttons) || buttons.length !== 2) {
+      console.error('buttonGroup: buttons must be an array of 2 items');
+      return '';
+    }
+
+    const buttonHtml = buttons
+      .map(btn => {
+        const isSelected = btn.value === selectedValue;
+        const baseClasses =
+          'flex-1 py-2.5 font-base text-center transition-all duration-200';
+        const selectedClasses = isSelected
+          ? 'bg-action-secondary-bg text-action-secondary-text font-bold'
+          : 'bg-white text-brand-muted border-2 border-ui-border-light';
+
+        // 左右のボタンで角丸を調整
+        const positionClasses =
+          btn === buttons[0] ? 'rounded-l-lg' : 'rounded-r-lg';
+
+        return `<button
+          type="button"
+          onclick="${escapeHTML(btn.onclick)}"
+          class="${baseClasses} ${selectedClasses} ${positionClasses}"
+        >${escapeHTML(btn.label)}</button>`;
+      })
+      .join('');
+
+    return `<div class="flex gap-0 ${className}">${buttonHtml}</div>`;
+  },
+
+  /**
    * ラジオボタングループコンポーネント
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.name - ラジオボタングループの名前

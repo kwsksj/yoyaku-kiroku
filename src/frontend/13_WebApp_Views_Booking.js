@@ -42,79 +42,76 @@ const getNormalizedSlotCounts = lesson => {
 };
 
 /**
- * 初心者モード切り替えスイッチのHTMLを生成
+ * グローバルに公開する初心者モード選択ハンドラ
+ * @param {boolean} isBeginner - true: はじめて, false: 経験者
+ */
+window.handleBeginnerModeSelect = function (isBeginner) {
+  console.log('🎚️ handleBeginnerModeSelect called:', { isBeginner });
+  localStorage.setItem('beginnerModeOverride', String(isBeginner));
+
+  // 画面を再描画
+  setTimeout(() => {
+    const stateManager = window.stateManager;
+    const currentState = stateManager.getState();
+    if (
+      currentState.view === 'bookingLessons' &&
+      currentState.selectedClassroom
+    ) {
+      stateManager.dispatch({
+        type: 'NAVIGATE',
+        payload: {
+          to: 'bookingLessons',
+          context: { selectedClassroom: currentState.selectedClassroom },
+        },
+      });
+    }
+  }, 10);
+};
+
+/**
+ * 初心者モード選択ボタングループのHTMLを生成
+ * 自動判定で初回者の場合のみ表示
  * @returns {string} HTML文字列
  */
 const renderBeginnerModeToggle = () => {
   const auto = bookingStateManager.getState().isFirstTimeBooking;
+
+  // 経験者の場合は何も表示しない
+  if (!auto) {
+    return '';
+  }
+
   const override = localStorage.getItem('beginnerModeOverride');
-  const isChecked = override !== null ? override === 'true' : auto;
-  const isAuto = override === null;
+  const selectedValue = override !== null ? override : 'true';
 
   console.log('🎚️ BeginnerModeToggle:', {
     auto,
     override,
-    isChecked,
-    isAuto,
-    effectiveValue: override !== null ? override === 'true' : auto,
+    selectedValue,
   });
 
-  const statusText = isAuto
-    ? `(自動判定: ${auto ? '未経験' : '経験者'})`
-    : '(手動設定中)';
-
-  return `<div class="p-3 bg-gray-50 rounded-lg mb-4">
-    <label class="flex items-center cursor-pointer">
-      <div class="relative">
-        <input
-          type="checkbox"
-          id="beginnerModeSwitch"
-          ${isChecked ? 'checked' : ''}
-          onchange="
-            const isChecked = this.checked;
-            localStorage.setItem('beginnerModeOverride', String(isChecked));
-            // 画面を再描画（LocalStorageの反映を保証するため少し遅延）
-            setTimeout(() => {
-              const stateManager = window.stateManager;
-              const currentState = stateManager.getState();
-              if (currentState.view === 'bookingLessons' && currentState.selectedClassroom) {
-                stateManager.dispatch({
-                  type: 'NAVIGATE',
-                  payload: { view: 'bookingLessons', classroom: currentState.selectedClassroom }
-                });
-              }
-            }, 10);
-          "
-          class="sr-only peer"
-        />
-        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+  return `
+      <p class="text-sm ${DesignConfig.colors.textSubtle} mb-2 text-center">参加枠の表示</p>
+      <div class="flex justify-center mb-6">
+        ${Components.buttonGroup({
+          buttons: [
+            {
+              value: 'true',
+              label: '初回',
+              onclick: 'window.handleBeginnerModeSelect(true)',
+            },
+            {
+              value: 'false',
+              label: '２回目以降',
+              onclick: 'window.handleBeginnerModeSelect(false)',
+            },
+          ],
+          selectedValue: selectedValue,
+          className: 'max-w-md w-full',
+        })}
       </div>
-      <span class="ml-3 font-medium text-brand-text">初回者枠を表示</span>
-      <span class="text-sm text-gray-500 ml-2">${statusText}</span>
-    </label>
-    ${
-      !isAuto
-        ? `<button
-        type="button"
-        onclick="
-          localStorage.removeItem('beginnerModeOverride');
-          // 画面を再描画（LocalStorageの反映を保証するため少し遅延）
-          setTimeout(() => {
-            const stateManager = window.stateManager;
-            const currentState = stateManager.getState();
-            if (currentState.view === 'bookingLessons' && currentState.selectedClassroom) {
-              stateManager.dispatch({
-                type: 'NAVIGATE',
-                payload: { view: 'bookingLessons', classroom: currentState.selectedClassroom }
-              });
-            }
-          }, 10);
-        "
-        class="text-xs text-blue-600 hover:underline ml-6 mt-1"
-      >自動判定に戻す</button>`
-        : ''
-    }
-  </div>`;
+      <hr class="border-ui-border-light"/>
+    `;
 };
 /**
  * 特定の教室の予約枠一覧画面のUIを生成します。
