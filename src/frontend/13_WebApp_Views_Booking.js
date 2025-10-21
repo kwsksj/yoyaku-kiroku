@@ -48,24 +48,7 @@ const getNormalizedSlotCounts = lesson => {
 window.handleBeginnerModeSelect = function (isBeginner) {
   console.log('🎚️ handleBeginnerModeSelect called:', { isBeginner });
   localStorage.setItem('beginnerModeOverride', String(isBeginner));
-
-  // 画面を再描画
-  setTimeout(() => {
-    const stateManager = window.stateManager;
-    const currentState = stateManager.getState();
-    if (
-      currentState.view === 'bookingLessons' &&
-      currentState.selectedClassroom
-    ) {
-      stateManager.dispatch({
-        type: 'NAVIGATE',
-        payload: {
-          to: 'bookingLessons',
-          context: { selectedClassroom: currentState.selectedClassroom },
-        },
-      });
-    }
-  }, 10);
+  bookingStateManager.setBeginnerModeOverride(isBeginner);
 };
 
 /**

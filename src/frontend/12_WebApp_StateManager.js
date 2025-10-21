@@ -308,8 +308,7 @@ export class SimpleStateManager {
       localStorage.setItem('beginnerModeOverride', String(value));
     }
     // 状態変更を購読者に通知（画面再描画をトリガー）
-    const oldState = { ...this.state };
-    this._notifySubscribers(this.state, oldState);
+    this.dispatch({ type: 'UPDATE_STATE', payload: {} });
   }
 
   /**
