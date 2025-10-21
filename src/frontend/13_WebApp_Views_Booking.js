@@ -22,6 +22,50 @@ const normalizeSlotValue = value => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
+
+/**
+ * lessonオブジェクトから正規化されたスロット数を取得します。
+ * @param {LessonCore} lesson
+ * @returns {{ hasSecondSlots: boolean; firstSlotsCount: number; secondSlotsCount: number; beginnerSlotsCount: number; beginnerCapacityCount: number; }}
+ */
+const getNormalizedSlotCounts = lesson => {
+  const hasSecondSlots = typeof lesson.secondSlots !== 'undefined';
+  return {
+    hasSecondSlots,
+    firstSlotsCount: normalizeSlotValue(lesson.firstSlots),
+    secondSlotsCount: hasSecondSlots
+      ? normalizeSlotValue(lesson.secondSlots)
+      : 0,
+    beginnerSlotsCount: normalizeSlotValue(lesson.beginnerSlots),
+    beginnerCapacityCount: normalizeSlotValue(lesson.beginnerCapacity),
+  };
+};
+
+/**
+ * 初心者モード切り替えスイッチのHTMLを生成
+ * @returns {string} HTML文字列
+ */
+const renderBeginnerModeToggle = () => {
+  const auto = bookingStateManager.getState().isFirstTimeBooking;
+  const override = localStorage.getItem('beginnerModeOverride');
+  const isChecked = override !== null ? override === 'true' : auto;
+  const isAuto = override === null;
+
+  const statusText = isAuto
+    ? `(自動判定: ${auto ? '未経験' : '経験者'})`
+    : '(手動設定中)';
+
+  return Components.toggleSwitch({
+    id: 'beginnerModeSwitch',
+    label: '初回者枠を表示',
+    checked: isChecked,
+    onchange: 'Handlers.toggleBeginnerMode(this.checked)',
+    statusText: statusText,
+    helpAction: isAuto ? '' : 'Handlers.resetBeginnerMode()',
+    helpText: isAuto ? '' : '自動判定に戻す',
+    className: 'mb-4',
+  });
+};
 /**
  * 特定の教室の予約枠一覧画面のUIを生成します。
  * @param {string} classroom - 教室名
@@ -54,6 +98,7 @@ export const getBookingView = classroom => {
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
+              ${renderBeginnerModeToggle()}
               <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
         `,
       })}
@@ -67,12 +112,11 @@ export const getBookingView = classroom => {
  * @returns {string} HTML文字列
  */
 export const getReservationFormView = () => {
-  const {
-    currentUser,
-    accountingMaster,
-    isFirstTimeBooking,
-    currentReservationFormContext,
-  } = bookingStateManager.getState();
+  const { currentUser, accountingMaster, currentReservationFormContext } =
+    bookingStateManager.getState();
+
+  // 実際に使用する初心者モードの値（手動設定を優先）
+  const isFirstTimeBooking = bookingStateManager.getEffectiveBeginnerMode();
 
   if (!currentReservationFormContext) {
     return 'エラー: 予約フォームのデータが見つかりません。';
@@ -96,13 +140,13 @@ export const getReservationFormView = () => {
   const isWaiting = reservationInfo.status === CONSTANTS.STATUS.WAITLISTED;
 
   const isTimeBased = isTimeBasedClassroom(lessonInfo);
-  const hasSecondSlots = typeof lessonInfo.secondSlots !== 'undefined';
-  const firstSlotsCount = normalizeSlotValue(lessonInfo.firstSlots);
-  const secondSlotsCount = hasSecondSlots
-    ? normalizeSlotValue(lessonInfo.secondSlots)
-    : 0;
-  const beginnerSlotsCount = normalizeSlotValue(lessonInfo.beginnerSlots);
-  const beginnerCapacityCount = normalizeSlotValue(lessonInfo.beginnerCapacity);
+  const {
+    hasSecondSlots,
+    firstSlotsCount,
+    secondSlotsCount,
+    beginnerSlotsCount,
+    beginnerCapacityCount,
+  } = getNormalizedSlotCounts(lessonInfo);
 
   // 満席判定
   const isFull = hasSecondSlots
@@ -420,18 +464,17 @@ export const renderBookingLessons = lessons => {
             let cardClass, statusBadge, actionAttribute;
             const tag = isBooked ? 'div' : 'button';
 
+            // 実際に使用する初心者モードの値（手動設定を優先）
             const isFirstTimeBooking =
-              bookingStateManager.getState().isFirstTimeBooking;
+              bookingStateManager.getEffectiveBeginnerMode();
             let statusText;
-            const hasSecondSlots = typeof lesson.secondSlots !== 'undefined';
-            const firstSlotsCount = normalizeSlotValue(lesson.firstSlots);
-            const secondSlotsCount = hasSecondSlots
-              ? normalizeSlotValue(lesson.secondSlots)
-              : 0;
-            const beginnerSlotsCount = normalizeSlotValue(lesson.beginnerSlots);
-            const beginnerCapacityCount = normalizeSlotValue(
-              lesson.beginnerCapacity,
-            );
+            const {
+              hasSecondSlots,
+              firstSlotsCount,
+              secondSlotsCount,
+              beginnerSlotsCount,
+              beginnerCapacityCount,
+            } = getNormalizedSlotCounts(lesson);
 
             if (isFirstTimeBooking) {
               if (lesson.beginnerStart && beginnerCapacityCount > 0) {

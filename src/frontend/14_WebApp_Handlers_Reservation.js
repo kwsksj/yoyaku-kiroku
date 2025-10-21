@@ -881,4 +881,47 @@ export const reservationActionHandlers = {
       },
     });
   },
+
+  /**
+   * 初心者モードを切り替えます
+   * @param {boolean} isBeginnerMode - true: 初心者モード, false: 経験者モード
+   */
+  toggleBeginnerMode: isBeginnerMode => {
+    reservationStateManager.setBeginnerModeOverride(isBeginnerMode);
+    // 画面を再描画
+    const currentState = reservationStateManager.getState();
+    if (
+      currentState.view === 'bookingLessons' &&
+      currentState.selectedClassroom
+    ) {
+      reservationStateManager.dispatch({
+        type: 'NAVIGATE',
+        payload: {
+          view: 'bookingLessons',
+          classroom: currentState.selectedClassroom,
+        },
+      });
+    }
+  },
+
+  /**
+   * 初心者モードの手動設定を解除して自動判定に戻します
+   */
+  resetBeginnerMode: () => {
+    reservationStateManager.setBeginnerModeOverride(null);
+    // 画面を再描画
+    const currentState = reservationStateManager.getState();
+    if (
+      currentState.view === 'bookingLessons' &&
+      currentState.selectedClassroom
+    ) {
+      reservationStateManager.dispatch({
+        type: 'NAVIGATE',
+        payload: {
+          view: 'bookingLessons',
+          classroom: currentState.selectedClassroom,
+        },
+      });
+    }
+  },
 };

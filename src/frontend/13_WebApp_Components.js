@@ -423,6 +423,64 @@ export const Components = {
   },
 
   /**
+   * トグルスイッチコンポーネント
+   * @param {Object} config - 設定オブジェクト
+   * @param {string} config.id - スイッチのID
+   * @param {string} config.label - ラベルテキスト
+   * @param {boolean} [config.checked=false] - チェック状態
+   * @param {string} [config.onchange=''] - onchangeイベントハンドラー
+   * @param {string} [config.statusText=''] - 状態表示テキスト
+   * @param {string} [config.helpAction=''] - ヘルプボタンのアクション
+   * @param {string} [config.helpText=''] - ヘルプボタンのテキスト
+   * @param {string} [config.className=''] - 追加のクラス名
+   * @returns {string} HTML文字列
+   */
+  toggleSwitch: ({
+    id,
+    label,
+    checked = false,
+    onchange = '',
+    statusText = '',
+    helpAction = '',
+    helpText = '',
+    className = '',
+  }) => {
+    const checkedAttr = checked ? 'checked' : '';
+    const onchangeAttr = onchange ? `onchange="${escapeHTML(onchange)}"` : '';
+
+    const statusHtml = statusText
+      ? `<span class="text-sm text-gray-500 ml-2">${escapeHTML(statusText)}</span>`
+      : '';
+
+    const helpHtml =
+      helpAction && helpText
+        ? `<button
+          type="button"
+          onclick="${escapeHTML(helpAction)}"
+          class="text-xs text-blue-600 hover:underline ml-6 mt-1"
+        >${escapeHTML(helpText)}</button>`
+        : '';
+
+    return `<div class="p-3 bg-gray-50 rounded-lg ${className}">
+      <label class="flex items-center cursor-pointer">
+        <div class="relative">
+          <input
+            type="checkbox"
+            id="${escapeHTML(id)}"
+            ${checkedAttr}
+            ${onchangeAttr}
+            class="sr-only peer"
+          />
+          <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+        </div>
+        <span class="ml-3 font-medium text-brand-text">${escapeHTML(label)}</span>
+        ${statusHtml}
+      </label>
+      ${helpHtml}
+    </div>`;
+  },
+
+  /**
    * ラジオボタングループコンポーネント
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.name - ラジオボタングループの名前

@@ -187,6 +187,8 @@ declare global {
     readonly goToDashboard: () => void;
     readonly goBackToBooking: () => void;
     readonly confirmWaitlistedReservation: (d: ActionHandlerData) => void;
+    readonly toggleBeginnerMode: (isBeginnerMode: boolean) => void;
+    readonly resetBeginnerMode: () => void;
   };
   const getElementSafely: typeof import('.').getElementSafely;
   const getInputElementSafely: typeof import('.').getInputElementSafely;

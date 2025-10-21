@@ -274,56 +274,42 @@ export class SimpleStateManager {
   updateComputed() {
     if (!this.state.myReservations) return;
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    /**
-     * 日付形式の値から Date を生成して日付部分のみ比較
-     * @param {string | number | Date | null | undefined} value
-     * @returns {Date | null}
-     */
-    const parseDateOnly = value => {
-      if (!value) return null;
-      const dateParts = String(value).split('-');
-      if (dateParts.length === 3) {
-        const [yearStr, monthStr, dayStr] = dateParts;
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        const day = Number(dayStr);
-        if ([year, month, day].some(Number.isNaN)) {
-          return null;
-        }
-        return new Date(year, month - 1, day);
-      }
-      const fallback = new Date(value);
-      return Number.isNaN(fallback.getTime()) ? null : fallback;
-    };
-
-    // 初回予約が実施済みか（日付が今日以前か、または完了済みか）を確認
-    const hasCompletedFirstLecture = this.state.myReservations.some(
-      (/** @type {ReservationCore} */ reservation) => {
-        if (!reservation.firstLecture) {
-          return false;
-        }
-
-        if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
-          return true;
-        }
-
-        if (reservation.status !== CONSTANTS.STATUS.CONFIRMED) {
-          return false;
-        }
-
-        const reservationDate = parseDateOnly(reservation.date);
-        if (!reservationDate) {
-          return false;
-        }
-        reservationDate.setHours(0, 0, 0, 0);
-        return reservationDate.getTime() <= today.getTime();
-      },
+    // シンプルに完了済み予約の有無で判定
+    // 空き連絡希望だけでは経験者扱いにしない
+    const hasCompletedReservation = this.state.myReservations.some(
+      (/** @type {ReservationCore} */ reservation) =>
+        reservation.status === CONSTANTS.STATUS.COMPLETED,
     );
 
-    this.state.isFirstTimeBooking = !hasCompletedFirstLecture;
+    this.state.isFirstTimeBooking = !hasCompletedReservation;
+  }
+
+  /**
+   * 実際に使用する初心者モードの値を取得
+   * ユーザーの手動設定を優先、なければ自動判定
+   * @returns {boolean} true: 初心者モード, false: 経験者モード
+   */
+  getEffectiveBeginnerMode() {
+    const override = localStorage.getItem('beginnerModeOverride');
+    if (override !== null) {
+      return override === 'true';
+    }
+    return this.state.isFirstTimeBooking;
+  }
+
+  /**
+   * 初心者モードを手動設定
+   * @param {boolean|null} value - true: 初心者, false: 経験者, null: 自動
+   */
+  setBeginnerModeOverride(value) {
+    if (value === null) {
+      localStorage.removeItem('beginnerModeOverride');
+    } else {
+      localStorage.setItem('beginnerModeOverride', String(value));
+    }
+    // 状態変更を購読者に通知（画面再描画をトリガー）
+    const oldState = { ...this.state };
+    this._notifySubscribers(this.state, oldState);
   }
 
   /**
