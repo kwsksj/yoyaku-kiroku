@@ -55,16 +55,54 @@ const renderBeginnerModeToggle = () => {
     ? `(自動判定: ${auto ? '未経験' : '経験者'})`
     : '(手動設定中)';
 
-  return Components.toggleSwitch({
-    id: 'beginnerModeSwitch',
-    label: '初回者枠を表示',
-    checked: isChecked,
-    onchange: 'Handlers.toggleBeginnerMode(this.checked)',
-    statusText: statusText,
-    helpAction: isAuto ? '' : 'Handlers.resetBeginnerMode()',
-    helpText: isAuto ? '' : '自動判定に戻す',
-    className: 'mb-4',
-  });
+  return `<div class="p-3 bg-gray-50 rounded-lg mb-4">
+    <label class="flex items-center cursor-pointer">
+      <div class="relative">
+        <input
+          type="checkbox"
+          id="beginnerModeSwitch"
+          ${isChecked ? 'checked' : ''}
+          onchange="
+            const isChecked = this.checked;
+            localStorage.setItem('beginnerModeOverride', String(isChecked));
+            // 画面を再描画
+            const stateManager = window.stateManager;
+            const currentState = stateManager.getState();
+            if (currentState.view === 'bookingLessons' && currentState.selectedClassroom) {
+              stateManager.dispatch({
+                type: 'NAVIGATE',
+                payload: { view: 'bookingLessons', classroom: currentState.selectedClassroom }
+              });
+            }
+          "
+          class="sr-only peer"
+        />
+        <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-primary"></div>
+      </div>
+      <span class="ml-3 font-medium text-brand-text">初回者枠を表示</span>
+      <span class="text-sm text-gray-500 ml-2">${statusText}</span>
+    </label>
+    ${
+      !isAuto
+        ? `<button
+        type="button"
+        onclick="
+          localStorage.removeItem('beginnerModeOverride');
+          // 画面を再描画
+          const stateManager = window.stateManager;
+          const currentState = stateManager.getState();
+          if (currentState.view === 'bookingLessons' && currentState.selectedClassroom) {
+            stateManager.dispatch({
+              type: 'NAVIGATE',
+              payload: { view: 'bookingLessons', classroom: currentState.selectedClassroom }
+            });
+          }
+        "
+        class="text-xs text-blue-600 hover:underline ml-6 mt-1"
+      >自動判定に戻す</button>`
+        : ''
+    }
+  </div>`;
 };
 /**
  * 特定の教室の予約枠一覧画面のUIを生成します。
