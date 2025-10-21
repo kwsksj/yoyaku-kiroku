@@ -274,14 +274,41 @@ export class SimpleStateManager {
   updateComputed() {
     if (!this.state.myReservations) return;
 
-    // isFirstTimeBooking の計算：確定・完了の予約があるかをチェック
+    // シンプルに完了済み予約の有無で判定
     // 空き連絡希望だけでは経験者扱いにしない
-    const hasConfirmedOrCompleted = this.state.myReservations.some(
-      (/** @type {ReservationCore} */ r) =>
-        r.status === CONSTANTS.STATUS.CONFIRMED ||
-        r.status === CONSTANTS.STATUS.COMPLETED,
+    const hasCompletedReservation = this.state.myReservations.some(
+      (/** @type {ReservationCore} */ reservation) =>
+        reservation.status === CONSTANTS.STATUS.COMPLETED,
     );
-    this.state.isFirstTimeBooking = !hasConfirmedOrCompleted;
+
+    this.state.isFirstTimeBooking = !hasCompletedReservation;
+  }
+
+  /**
+   * 実際に使用する初心者モードの値を取得
+   * ユーザーの手動設定を優先、なければ自動判定
+   * @returns {boolean} true: 初心者モード, false: 経験者モード
+   */
+  getEffectiveBeginnerMode() {
+    const override = localStorage.getItem('beginnerModeOverride');
+    if (override !== null) {
+      return override === 'true';
+    }
+    return this.state.isFirstTimeBooking;
+  }
+
+  /**
+   * 初心者モードを手動設定
+   * @param {boolean|null} value - true: 初心者, false: 経験者, null: 自動
+   */
+  setBeginnerModeOverride(value) {
+    if (value === null) {
+      localStorage.removeItem('beginnerModeOverride');
+    } else {
+      localStorage.setItem('beginnerModeOverride', String(value));
+    }
+    // 状態変更を購読者に通知（画面再描画をトリガー）
+    this.dispatch({ type: 'UPDATE_STATE', payload: {} });
   }
 
   /**

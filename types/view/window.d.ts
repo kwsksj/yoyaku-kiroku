@@ -169,6 +169,7 @@ declare global {
 
     // --- アクションハンドラー ---
     actionHandlers?: Record<string, (...args: any[]) => void>;
+    handleBeginnerModeSelect?: (isBeginner: boolean) => void;
 
     // --- テストデータ ---
     MockData?: Record<string, unknown>;

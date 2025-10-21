@@ -28,6 +28,17 @@ export class SimpleStateManager {
      */
     updateComputed(): void;
     /**
+     * 実際に使用する初心者モードの値を取得
+     * ユーザーの手動設定を優先、なければ自動判定
+     * @returns {boolean} true: 初心者モード, false: 経験者モード
+     */
+    getEffectiveBeginnerMode(): boolean;
+    /**
+     * 初心者モードを手動設定
+     * @param {boolean|null} value - true: 初心者, false: 経験者, null: 自動
+     */
+    setBeginnerModeOverride(value: boolean | null): void;
+    /**
      * requestAnimationFrameを使ったレンダリングスケジューリング
      */
     _scheduleRender(): void;

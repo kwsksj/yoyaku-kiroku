@@ -316,6 +316,7 @@ export interface SimpleStateManager {
   needsLessonsUpdate(cacheExpirationMinutes?: number): boolean;
   updateLessonsVersion(newVersion?: string): void;
 
+  setBeginnerModeOverride(value: boolean): void;
   // AI開発最適化：動的プロパティアクセスを許可
   [key: string]: any;
 }

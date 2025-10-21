@@ -9,6 +9,93 @@
  */
 
 const bookingStateManager = appWindow.stateManager;
+
+/**
+ * スロット数を数値に整える
+ * @param {number|string|null|undefined} value
+ * @returns {number}
+ */
+const normalizeSlotValue = value => {
+  if (value === null || typeof value === 'undefined') {
+    return 0;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+/**
+ * lessonオブジェクトから正規化されたスロット数を取得します。
+ * @param {LessonCore} lesson
+ * @returns {{ hasSecondSlots: boolean; firstSlotsCount: number; secondSlotsCount: number; beginnerSlotsCount: number; beginnerCapacityCount: number; }}
+ */
+const getNormalizedSlotCounts = lesson => {
+  const hasSecondSlots = typeof lesson.secondSlots !== 'undefined';
+  return {
+    hasSecondSlots,
+    firstSlotsCount: normalizeSlotValue(lesson.firstSlots),
+    secondSlotsCount: hasSecondSlots
+      ? normalizeSlotValue(lesson.secondSlots)
+      : 0,
+    beginnerSlotsCount: normalizeSlotValue(lesson.beginnerSlots),
+    beginnerCapacityCount: normalizeSlotValue(lesson.beginnerCapacity),
+  };
+};
+
+/**
+ * グローバルに公開する初心者モード選択ハンドラ
+ * @param {boolean} isBeginner - true: はじめて, false: 経験者
+ */
+window.handleBeginnerModeSelect = function (isBeginner) {
+  console.log('🎚️ handleBeginnerModeSelect called:', { isBeginner });
+  localStorage.setItem('beginnerModeOverride', String(isBeginner));
+  bookingStateManager.setBeginnerModeOverride(isBeginner);
+};
+
+/**
+ * 初心者モード選択ボタングループのHTMLを生成
+ * 自動判定で初回者の場合のみ表示
+ * @returns {string} HTML文字列
+ */
+const renderBeginnerModeToggle = () => {
+  const auto = bookingStateManager.getState().isFirstTimeBooking;
+
+  // 経験者の場合は何も表示しない
+  if (!auto) {
+    return '';
+  }
+
+  const override = localStorage.getItem('beginnerModeOverride');
+  const selectedValue = override !== null ? override : 'true';
+
+  console.log('🎚️ BeginnerModeToggle:', {
+    auto,
+    override,
+    selectedValue,
+  });
+
+  return `
+      <p class="text-sm ${DesignConfig.colors.textSubtle} mb-2 text-center">参加枠の表示</p>
+      <div class="flex justify-center mb-6">
+        ${Components.buttonGroup({
+          buttons: [
+            {
+              value: 'true',
+              label: '初回',
+              onclick: 'window.handleBeginnerModeSelect(true)',
+            },
+            {
+              value: 'false',
+              label: '２回目以降',
+              onclick: 'window.handleBeginnerModeSelect(false)',
+            },
+          ],
+          selectedValue: selectedValue,
+          className: 'max-w-md w-full',
+        })}
+      </div>
+      <hr class="border-ui-border-light"/>
+    `;
+};
 /**
  * 特定の教室の予約枠一覧画面のUIを生成します。
  * @param {string} classroom - 教室名
@@ -22,6 +109,13 @@ export const getBookingView = classroom => {
           (/** @type {LessonCore} */ lesson) => lesson.classroom === classroom,
         )
       : [];
+
+  console.log('🏫 getBookingView:', {
+    classroom,
+    totalLessons: currentState.lessons?.length,
+    relevantLessons: relevantLessons.length,
+    override: localStorage.getItem('beginnerModeOverride'),
+  });
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
@@ -41,6 +135,7 @@ export const getBookingView = classroom => {
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
+              ${renderBeginnerModeToggle()}
               <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
         `,
       })}
@@ -54,12 +149,15 @@ export const getBookingView = classroom => {
  * @returns {string} HTML文字列
  */
 export const getReservationFormView = () => {
-  const {
-    currentUser,
-    accountingMaster,
-    isFirstTimeBooking,
-    currentReservationFormContext,
-  } = bookingStateManager.getState();
+  const { currentUser, accountingMaster, currentReservationFormContext } =
+    bookingStateManager.getState();
+
+  // 実際に使用する初心者モードの値（手動設定を優先）
+  const override = localStorage.getItem('beginnerModeOverride');
+  const isFirstTimeBooking =
+    override !== null
+      ? override === 'true'
+      : bookingStateManager.getState().isFirstTimeBooking;
 
   if (!currentReservationFormContext) {
     return 'エラー: 予約フォームのデータが見つかりません。';
@@ -83,14 +181,19 @@ export const getReservationFormView = () => {
   const isWaiting = reservationInfo.status === CONSTANTS.STATUS.WAITLISTED;
 
   const isTimeBased = isTimeBasedClassroom(lessonInfo);
+  const {
+    hasSecondSlots,
+    firstSlotsCount,
+    secondSlotsCount,
+    beginnerSlotsCount,
+    beginnerCapacityCount,
+  } = getNormalizedSlotCounts(lessonInfo);
 
   // 満席判定
-  const isFull =
-    typeof lessonInfo.secondSlots !== 'undefined'
-      ? (lessonInfo.firstSlots || 0) === 0 &&
-        (lessonInfo.secondSlots || 0) === 0
-      : (lessonInfo.firstSlots || 0) === 0;
-  const isBeginnerSlotFull = (lessonInfo.beginnerSlots || 0) === 0;
+  const isFull = hasSecondSlots
+    ? firstSlotsCount === 0 && secondSlotsCount === 0
+    : firstSlotsCount === 0;
+  const isBeginnerSlotFull = beginnerSlotsCount === 0;
 
   const title = isEdit
     ? '予約内容の編集'
@@ -111,15 +214,15 @@ export const getReservationFormView = () => {
     if (isFirstTimeBooking) {
       return isBeginnerSlotFull
         ? '初回者枠 満席（空き連絡希望）'
-        : `初回者枠 空き <span class="font-mono-numbers">${lessonInfo.beginnerSlots}</span>`;
+        : `初回者枠 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
     }
     if (isFull) return '満席（空き連絡希望）';
-    if (typeof lessonInfo.secondSlots !== 'undefined') {
+    if (hasSecondSlots) {
       const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
       const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
-      return `空き ${morningLabel} <span class="font-mono-numbers">${lessonInfo.firstSlots}</span> | ${afternoonLabel} <span class="font-mono-numbers">${lessonInfo.secondSlots}</span>`;
+      return `空き ${morningLabel} <span class="font-mono-numbers">${firstSlotsCount}</span> | ${afternoonLabel} <span class="font-mono-numbers">${secondSlotsCount}</span>`;
     }
-    return `空き <span class="font-mono-numbers">${lessonInfo.firstSlots}</span>`;
+    return `空き <span class="font-mono-numbers">${firstSlotsCount}</span>`;
   };
 
   const _renderTuitionDisplaySection = () => {
@@ -186,11 +289,7 @@ export const getReservationFormView = () => {
 
     let fixedStartTime = startTime;
     let isTimeFixed = false;
-    if (
-      isFirstTimeBooking &&
-      beginnerStart &&
-      (lessonInfo.beginnerCapacity || 0) > 0
-    ) {
+    if (isFirstTimeBooking && beginnerStart && beginnerCapacityCount > 0) {
       fixedStartTime = beginnerStart;
       isTimeFixed = true;
     }
@@ -365,7 +464,13 @@ export const getReservationFormView = () => {
  * @returns {string} HTML文字列
  */
 export const renderBookingLessons = lessons => {
+  console.log('📚 renderBookingLessons called:', {
+    lessonsCount: lessons?.length || 0,
+    override: localStorage.getItem('beginnerModeOverride'),
+  });
+
   if (!lessons || lessons.length === 0) {
+    console.warn('⚠️ No lessons to render');
     return '';
   }
 
@@ -406,28 +511,43 @@ export const renderBookingLessons = lessons => {
             let cardClass, statusBadge, actionAttribute;
             const tag = isBooked ? 'div' : 'button';
 
+            // 実際に使用する初心者モードの値（手動設定を優先）
+            const override = localStorage.getItem('beginnerModeOverride');
             const isFirstTimeBooking =
-              bookingStateManager.getState().isFirstTimeBooking;
+              override !== null
+                ? override === 'true'
+                : bookingStateManager.getState().isFirstTimeBooking;
+            console.log('📋 Lesson render:', lesson.date, {
+              override,
+              isFirstTimeBooking,
+            });
             let statusText;
+            const {
+              hasSecondSlots,
+              firstSlotsCount,
+              secondSlotsCount,
+              beginnerSlotsCount,
+              beginnerCapacityCount,
+            } = getNormalizedSlotCounts(lesson);
 
             if (isFirstTimeBooking) {
-              if (lesson.beginnerStart && (lesson.beginnerCapacity || 0) > 0) {
+              if (lesson.beginnerStart && beginnerCapacityCount > 0) {
                 // 初回者枠が満席かチェック
-                if ((lesson.beginnerSlots || 0) <= 0) {
+                if (beginnerSlotsCount <= 0) {
                   statusText = '初回者 満席（空き連絡希望）';
                 } else {
-                  statusText = `初回者 空き <span class="font-mono-numbers">${lesson.beginnerSlots}</span>`;
+                  statusText = `初回者 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
                 }
               } else {
                 statusText = '経験者のみ';
               }
             } else {
-              if (typeof lesson.secondSlots !== 'undefined') {
+              if (hasSecondSlots) {
                 const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
                 const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
-                statusText = `空き ${morningLabel}<span class="font-mono-numbers">${lesson.firstSlots}</span> ${afternoonLabel}<span class="font-mono-numbers">${lesson.secondSlots}</span>`;
+                statusText = `空き ${morningLabel}<span class="font-mono-numbers">${firstSlotsCount}</span> ${afternoonLabel}<span class="font-mono-numbers">${secondSlotsCount}</span>`;
               } else {
-                statusText = `空き <span class="font-mono-numbers">${lesson.firstSlots}</span>`;
+                statusText = `空き <span class="font-mono-numbers">${firstSlotsCount}</span>`;
               }
             }
 
@@ -456,21 +576,16 @@ export const renderBookingLessons = lessons => {
               let canBook = true;
 
               if (isFirstTimeBooking) {
-                if (
-                  !lesson.beginnerStart ||
-                  (lesson.beginnerCapacity || 0) <= 0
-                ) {
+                if (!lesson.beginnerStart || beginnerCapacityCount <= 0) {
                   canBook = false;
                 }
-                isSlotFull = (lesson.beginnerSlots || 0) === 0;
+                isSlotFull = beginnerSlotsCount === 0;
               } else {
                 // 満席判定：2部制の場合は両方満席、それ以外は1部満席
-                if (typeof lesson.secondSlots !== 'undefined') {
-                  isSlotFull =
-                    (lesson.firstSlots || 0) === 0 &&
-                    (lesson.secondSlots || 0) === 0;
+                if (hasSecondSlots) {
+                  isSlotFull = firstSlotsCount === 0 && secondSlotsCount === 0;
                 } else {
-                  isSlotFull = (lesson.firstSlots || 0) === 0;
+                  isSlotFull = firstSlotsCount === 0;
                 }
               }
 
@@ -500,6 +615,12 @@ export const renderBookingLessons = lessons => {
       return monthHeader + lessonsHtml;
     })
     .join('');
+
+  console.log('✅ renderBookingLessons result:', {
+    resultLength: result.length,
+    isEmpty: !result,
+    monthsCount: Object.keys(lessonsByMonth).length,
+  });
 
   return result;
 };

@@ -159,6 +159,15 @@ export interface RadioGroupConfig {
 }
 
 /**
+ * ボタングループ設定（2択選択）
+ */
+export interface ButtonGroupConfig {
+  buttons: Array<{ value: string; label: string; onclick: string }>;
+  selectedValue: string;
+  className?: string;
+}
+
+/**
  * 時刻選択オプション設定
  */
 export interface TimeOptionsConfig {
@@ -501,6 +510,7 @@ declare global {
 
     // フォーム関連の追加コンポーネント
     radioGroup: (config: RadioGroupConfig) => string;
+    buttonGroup: (config: ButtonGroupConfig) => string;
     timeOptions: (config: TimeOptionsConfig) => string;
 
     // UI要素の追加コンポーネント
