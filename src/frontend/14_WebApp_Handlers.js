@@ -1,14 +1,15 @@
 /**
  * =================================================================
- * 【ファイル名】: 14_WebApp_Handlers.js
- * 【バージョン】: 2.0
- * 【役割】: WebAppのフロントエンドにおける、ユーザーの操作に応じた
- * アクションと、アプリケーション全体の制御フローを集約します。
- * 【構成】: 14ファイル構成のうちの14番目（機能別分割済み）
- * 【v2.0での変更点】:
- * - ファイル分割によるメンテナンス性向上
- * - 機能別アクションハンドラーの統合管理
- * - AI作業効率向上のための構造最適化
+ * ファイル概要
+ * -----------------------------------------------------------------
+ * 名称: 14_WebApp_Handlers.js
+ * 目的: フロントエンド全体のアクション制御とビュー遷移を統括する
+ * 主な責務:
+ *   - グローバル`actionHandlers`の生成と公開
+ *   - 会計・予約・認証など個別ハンドラーの集約と調整
+ *   - UIレンダリング関数との連携ポイントを提供
+ * AI向けメモ:
+ *   - 新しい操作を追加する際は該当する分割ファイルに実装し、最後にこのファイルの統合処理へ登録する
  * =================================================================
  */
 
@@ -16,26 +17,14 @@
  * @typedef {import('./12_WebApp_StateManager.js').SimpleStateManager} SimpleStateManager
  */
 
+// ================================================================
+// UI系モジュール
+// ================================================================
 import { Components } from './13_WebApp_Components.js';
-import {
-  closePaymentConfirmModal,
-  handleProcessPayment,
-  initializePaymentMethodUI,
-  processAccountingPayment,
-  setupAccountingEventListeners,
-  showPaymentConfirmModal,
-  updateAccountingCalculation,
-} from './12-3_Accounting_Handlers.js';
-import {
-  collectAccountingFormData,
-  initializeAccountingSystem,
-  saveAccountingCache,
-} from './12-4_Accounting_Utilities.js';
 import {
   generateAccountingView,
   getPaymentInfoHtml,
 } from './12-2_Accounting_UI.js';
-import { findReservationById } from './12_WebApp_Core_Search.js';
 import {
   getBookingView,
   getReservationFormView,
@@ -50,10 +39,33 @@ import {
   getRegistrationStep3View,
   getRegistrationStep4View,
 } from './13_WebApp_Views_Auth.js';
-import { handlePhoneInputFormatting } from './14_WebApp_Handlers_Utils.js';
+
+// ================================================================
+// ハンドラ系モジュール
+// ================================================================
+import {
+  closePaymentConfirmModal,
+  handleProcessPayment,
+  initializePaymentMethodUI,
+  processAccountingPayment,
+  setupAccountingEventListeners,
+  showPaymentConfirmModal,
+  updateAccountingCalculation,
+} from './12-3_Accounting_Handlers.js';
 import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
+
+// ================================================================
+// ユーティリティ系モジュール
+// ================================================================
+import {
+  collectAccountingFormData,
+  initializeAccountingSystem,
+  saveAccountingCache,
+} from './12-4_Accounting_Utilities.js';
+import { findReservationById } from './12_WebApp_Core_Search.js';
+import { handlePhoneInputFormatting } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
 // --- 分割ファイル統合パターン ---

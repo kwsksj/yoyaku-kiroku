@@ -1,14 +1,16 @@
 /**
- * 会計システム - イベント処理層
- *
- * 責務:
- * - イベントリスナー設定
- * - 入力変更ハンドラー
- * - 材料・物販・自由入力物販の変更処理
- * - 会計計算の更新
- * - UI状態の更新
- * - 支払い処理・モーダル表示
- * - 制作メモ保存処理
+ * =================================================================
+ * ファイル概要
+ * -----------------------------------------------------------------
+ * 名称: 12-3_Accounting_Handlers.js
+ * 目的: 会計画面のイベント処理と状態更新を担当する
+ * 主な責務:
+ *   - 会計フォームのイベントリスナー登録と入力ハンドリング
+ *   - 計算ロジックとUI更新の橋渡し
+ *   - 支払いモーダルの表示/確定処理
+ * AI向けメモ:
+ *   - 新しい会計イベントを追加する際はここでハンドラーを定義し、UI生成や計算ロジックは対応するモジュールへ委譲する
+ * =================================================================
  */
 
 /**
@@ -18,6 +20,21 @@
  * @typedef {import('../../types/view/handlers').ActionHandlers} ActionHandlers
  */
 
+// ================================================================
+// UI系モジュール
+// ================================================================
+import { Components, escapeHTML } from './13_WebApp_Components.js';
+import {
+  generateCustomSalesRow,
+  generateMaterialRow,
+  generateProductRow,
+  getPaymentInfoHtml,
+  getPaymentOptionsHtml,
+} from './12-2_Accounting_UI.js';
+
+// ================================================================
+// ユーティリティ系モジュール
+// ================================================================
 import {
   calculateAccountingTotal,
   calculateTimeUnits,
@@ -27,14 +44,6 @@ import {
   saveAccountingCache,
   clearAccountingCache,
 } from './12-4_Accounting_Utilities.js';
-import { Components, escapeHTML } from './13_WebApp_Components.js';
-import {
-  generateCustomSalesRow,
-  generateMaterialRow,
-  generateProductRow,
-  getPaymentInfoHtml,
-  getPaymentOptionsHtml,
-} from './12-2_Accounting_UI.js';
 
 // ================================================================================
 // 【イベント処理層】
