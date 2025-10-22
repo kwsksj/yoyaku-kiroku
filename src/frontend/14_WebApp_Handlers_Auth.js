@@ -12,6 +12,14 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
+import {
+  FrontendErrorHandler,
+  handleServerError,
+} from './12_WebApp_Core_ErrorHandler.js';
+import { getPrivacyPolicyModal } from './13_WebApp_Views_Utils.js';
+import { getInputElementSafely } from './14_WebApp_Handlers_Utils.js';
+
 // =================================================================
 // --- Authentication Action Handlers ---
 // -----------------------------------------------------------------
@@ -139,12 +147,8 @@ export const authActionHandlers = {
       ['withFailureHandler']((/** @type {Error} */ err) => {
         debugLog('❌ 統合ログインエラー: ' + err.message);
         hideLoading();
-        if (appWindow.FrontendErrorHandler) {
-          appWindow.FrontendErrorHandler.handle(
-            err,
-            'processLoginWithValidatedPhone_integrated',
-          );
-        }
+        const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
+        handler.handle(err, 'processLoginWithValidatedPhone_integrated');
         handleServerError(err);
       })
       .getLoginData(normalizedPhone);
@@ -422,13 +426,10 @@ export const authActionHandlers = {
     })
       ['withFailureHandler']((/** @type {Error} */ error) => {
         hideLoading();
-        if (appWindow.FrontendErrorHandler) {
-          appWindow.FrontendErrorHandler.handle(
-            error,
-            'submitRegistration:registerNewUser',
-            { finalUserData },
-          );
-        }
+        const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
+        handler.handle(error, 'submitRegistration:registerNewUser', {
+          finalUserData,
+        });
         handleServerError(error);
       })
       .registerNewUser(finalUserData);

@@ -3,6 +3,14 @@
  * @typedef {{ name: string; price: number; }} ProductSelectionEntry
  */
 
+import { classifyAccountingItems } from './12-1_Accounting_Calculation.js';
+import { generateAccountingView } from './12-2_Accounting_UI.js';
+import {
+  initializePaymentMethodUI,
+  setupAccountingEventListeners,
+  updateAccountingCalculation,
+} from './12-3_Accounting_Handlers.js';
+
 /**
  * 会計システム - ユーティリティ層
  *

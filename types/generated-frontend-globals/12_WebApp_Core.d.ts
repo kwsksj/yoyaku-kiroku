@@ -15,19 +15,6 @@ export function addTrackedListener(element: Element, type: string, listener: Eve
  * ビュー変更時のイベントリスナー管理を設定
  */
 export function setupViewListener(): void;
-/**
- * =================================================================
- * 【ファイル名】: 12_WebApp_Core.js
- * 【バージョン】: 2.0
- * 【役割】: WebAppのフロントエンドにおける中核機能の統合ファイル。
- * 分割されたコア機能ファイルの参照と、残存する汎用ユーティリティを集約します。
- * 【構成】: 14ファイル構成のうちの12番目
- * 【v2.0での変更点】:
- * - ファイル分割によるメンテナンス性向上
- * - 機能別ファイルへの分離完了
- * - AI作業効率向上のための構造最適化
- * =================================================================
- */
 /** @type {ReturnType<typeof setInterval> | null} */
 export let loadingMessageTimer: ReturnType<typeof setInterval> | null;
 export namespace LoadingMessages {

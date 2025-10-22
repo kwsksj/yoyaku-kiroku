@@ -1,9 +1,4 @@
 /**
- * @typedef {{ type: string; l?: number; w?: number; h?: number; }} MaterialFormEntry
- * @typedef {{ name: string; price: number; }} ProductSelectionEntry
- * @typedef {{ name?: string; price?: number; }} CustomSalesEntry
- */
-/**
  * 会計システム - UI生成層
  *
  * 責務:

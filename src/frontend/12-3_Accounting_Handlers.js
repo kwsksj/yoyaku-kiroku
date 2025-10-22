@@ -11,6 +11,31 @@
  * - 制作メモ保存処理
  */
 
+/**
+ * @typedef {import('./12_WebApp_StateManager.js').SimpleStateManager} SimpleStateManager
+ */
+/**
+ * @typedef {import('../../types/view/handlers').ActionHandlers} ActionHandlers
+ */
+
+import {
+  calculateAccountingTotal,
+  calculateTimeUnits,
+} from './12-1_Accounting_Calculation.js';
+import {
+  collectAccountingFormData,
+  saveAccountingCache,
+  clearAccountingCache,
+} from './12-4_Accounting_Utilities.js';
+import { Components, escapeHTML } from './13_WebApp_Components.js';
+import {
+  generateCustomSalesRow,
+  generateMaterialRow,
+  generateProductRow,
+  getPaymentInfoHtml,
+  getPaymentOptionsHtml,
+} from './12-2_Accounting_UI.js';
+
 // ================================================================================
 // 【イベント処理層】
 // ================================================================================
@@ -48,7 +73,7 @@ const getAccountingStateManager = () => {
     console.warn('accountingStateManager: stateManagerが未初期化です');
     return null;
   }
-  return manager;
+  return /** @type {SimpleStateManager} */ (manager);
 };
 
 /**
@@ -977,7 +1002,9 @@ export function handleBackToDashboard() {
     saveAccountingCache(currentFormData);
 
     // スマートナビゲーションで前の画面にもどる
-    const globalActionHandlers = appWindow.actionHandlers;
+    const globalActionHandlers = /** @type {ActionHandlers | undefined} */ (
+      appWindow.actionHandlers
+    );
 
     if (globalActionHandlers?.smartGoBack) {
       globalActionHandlers.smartGoBack();
@@ -1326,7 +1353,9 @@ export function handleProcessPayment() {
 
   // 実際の会計処理を実行（14_WebApp_Handlers.jsのconfirmAndPay関数を呼び出し）
   try {
-    const globalActionHandlers = appWindow.actionHandlers;
+    const globalActionHandlers = /** @type {ActionHandlers | undefined} */ (
+      appWindow.actionHandlers
+    );
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 handleProcessPayment: 処理方法を判定中', {

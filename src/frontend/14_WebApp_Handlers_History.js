@@ -12,6 +12,10 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
+import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
+import { updateSingleHistoryCard } from './13_WebApp_Views_Dashboard.js';
+
 // =================================================================
 // --- History Management Action Handlers ---
 // -----------------------------------------------------------------
@@ -44,7 +48,9 @@ export const historyActionHandlers = {
     }
 
     // 該当カードのみを部分更新（ちらつき防止）
-    updateSingleHistoryCard(d.reservationId);
+    if (d.reservationId) {
+      updateSingleHistoryCard(d.reservationId);
+    }
 
     // スクロール位置を復元
     requestAnimationFrame(() => {
@@ -64,7 +70,9 @@ export const historyActionHandlers = {
     }
 
     // 該当カードのみを部分更新（ちらつき防止）
-    updateSingleHistoryCard(d.reservationId);
+    if (d.reservationId) {
+      updateSingleHistoryCard(d.reservationId);
+    }
 
     // スクロール位置を復元
     requestAnimationFrame(() => {

@@ -7,6 +7,9 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
+import { renderBookingLessons } from './13_WebApp_Views_Booking.js';
+
 const viewsUtilsStateManager = appWindow.stateManager;
 // =================================================================
 // --- Privacy Policy Content (タスク1で追加) ---

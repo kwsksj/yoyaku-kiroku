@@ -8,6 +8,16 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
+import {
+  getTimeOptionsHtml,
+  getClassroomColorClass,
+  _isToday,
+} from './13_WebApp_Views_Utils.js';
+import { buildSalesChecklist } from './14_WebApp_Handlers_Utils.js';
+import { findReservationByDateAndClassroom } from './12_WebApp_Core_Search.js';
+import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
+
 const bookingStateManager = appWindow.stateManager;
 
 /**
@@ -300,13 +310,13 @@ export const getReservationFormView = () => {
           startHour,
           endHour,
           CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES,
-          startTime,
+          startTime ?? null,
         );
     let endTimeOptions = getTimeOptionsHtml(
       startHour,
       endHour,
       CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES,
-      endTime,
+      endTime ?? null,
     );
     if (endMinutes > 0) {
       const finalEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
@@ -553,7 +563,7 @@ export const renderBookingLessons = lessons => {
 
             if (isBooked) {
               const reservationData = findReservationByDateAndClassroom(
-                lesson.date,
+                String(lesson.date),
                 lesson.classroom,
               );
               if (reservationData?.status === CONSTANTS.STATUS.COMPLETED) {

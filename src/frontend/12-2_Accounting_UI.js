@@ -4,6 +4,8 @@
  * @typedef {{ name?: string; price?: number; }} CustomSalesEntry
  */
 
+import { Components, escapeHTML } from './13_WebApp_Components.js';
+
 /**
  * 会計システム - UI生成層
  *

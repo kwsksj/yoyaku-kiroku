@@ -12,6 +12,21 @@
  * =================================================================
  */
 
+import { classifyAccountingItems } from './12-1_Accounting_Calculation.js';
+import { setupViewListener } from './12_WebApp_Core.js';
+import { FrontendErrorHandler } from './12_WebApp_Core_ErrorHandler.js';
+
+/**
+ * グローバルに登録済みのエラーハンドラーを取得
+ * @returns {typeof FrontendErrorHandler}
+ */
+const getFrontendErrorHandler = () =>
+  /** @type {typeof FrontendErrorHandler} */ (
+    /** @type {unknown} */ (
+      appWindow.FrontendErrorHandler || FrontendErrorHandler
+    )
+  );
+
 // =================================================================
 // --- Initial Data Processing ---
 // -----------------------------------------------------------------
@@ -229,13 +244,10 @@ export function getScheduleInfoFromCache(date, classroom) {
     )
       ['withFailureHandler']((/** @type {Error} */ error) => {
         console.error('❌ getScheduleInfoFromCache: API呼び出しエラー', error);
-        if (appWindow.FrontendErrorHandler) {
-          appWindow.FrontendErrorHandler.handle(
-            error,
-            'getScheduleInfoFromCache',
-            { date, classroom },
-          );
-        }
+        getFrontendErrorHandler().handle(error, 'getScheduleInfoFromCache', {
+          date,
+          classroom,
+        });
         resolve(null);
       })
       .getScheduleInfo({ date, classroom });

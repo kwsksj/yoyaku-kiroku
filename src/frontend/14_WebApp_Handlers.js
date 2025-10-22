@@ -12,6 +12,49 @@
  * =================================================================
  */
 
+/**
+ * @typedef {import('./12_WebApp_StateManager.js').SimpleStateManager} SimpleStateManager
+ */
+
+import { Components } from './13_WebApp_Components.js';
+import {
+  closePaymentConfirmModal,
+  handleProcessPayment,
+  initializePaymentMethodUI,
+  processAccountingPayment,
+  setupAccountingEventListeners,
+  showPaymentConfirmModal,
+  updateAccountingCalculation,
+} from './12-3_Accounting_Handlers.js';
+import {
+  collectAccountingFormData,
+  initializeAccountingSystem,
+  saveAccountingCache,
+} from './12-4_Accounting_Utilities.js';
+import {
+  generateAccountingView,
+  getPaymentInfoHtml,
+} from './12-2_Accounting_UI.js';
+import { findReservationById } from './12_WebApp_Core_Search.js';
+import {
+  getBookingView,
+  getReservationFormView,
+} from './13_WebApp_Views_Booking.js';
+import { getCompleteView } from './13_WebApp_Views_Utils.js';
+import { getDashboardView } from './13_WebApp_Views_Dashboard.js';
+import {
+  getEditProfileView,
+  getLoginView,
+  getRegisterView,
+  getRegistrationStep2View,
+  getRegistrationStep3View,
+  getRegistrationStep4View,
+} from './13_WebApp_Views_Auth.js';
+import { handlePhoneInputFormatting } from './14_WebApp_Handlers_Utils.js';
+import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
+import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
+import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
+
 // =================================================================
 // --- 分割ファイル統合パターン ---
 // -----------------------------------------------------------------
@@ -81,13 +124,14 @@ export function render() {
     case 'login':
       v = getLoginView();
       break;
-    case 'register':
-      v = getRegisterView(
+    case 'register': {
+      const registrationPhone =
         /** @type {string | undefined} */ (
           /** @type {any} */ (appState).registrationPhone
-        ),
-      );
+        ) ?? '';
+      v = getRegisterView(registrationPhone);
       break;
+    }
     case 'registrationStep2':
       v = getRegistrationStep2View();
       break;
@@ -104,7 +148,7 @@ export function render() {
       v = getEditProfileView();
       break;
     case 'bookingLessons':
-      v = getBookingView(appState.selectedClassroom);
+      v = getBookingView(appState.selectedClassroom ?? '');
       break;
     case 'reservationForm':
       v = getReservationFormView();
@@ -112,7 +156,9 @@ export function render() {
     case 'accounting':
       // 会計画面用のデータを取得
       const reservationData = appState.accountingReservation;
-      const classroom = reservationData?.classroom || '';
+      const classroom = reservationData?.classroom
+        ? String(reservationData.classroom)
+        : '';
 
       // 事前初期化されたキャッシュを優先使用
       const accountingCache = windowTyped.accountingSystemCache;
@@ -180,13 +226,14 @@ export function render() {
         }, 100);
       }
       break;
-    case 'complete':
-      v = getCompleteView(
+    case 'complete': {
+      const completionMessage =
         /** @type {string | undefined} */ (
           /** @type {any} */ (appState).completionMessage
-        ),
-      );
+        ) ?? '';
+      v = getCompleteView(completionMessage);
       break;
+    }
   }
   const viewContainer = document.getElementById('view-container');
   if (viewContainer) {
@@ -223,6 +270,8 @@ export function render() {
 
   window.scrollTo(0, 0);
 }
+
+windowTyped.render = render;
 
 /**
  * 会計画面での入力変更を処理します。
@@ -534,6 +583,8 @@ window.onload = function () {
       }
     },
   };
+
+  windowTyped.actionHandlers = actionHandlers;
 
   // アプリケーションの初期化が完了するまでローディング画面を表示
   showLoading('default');

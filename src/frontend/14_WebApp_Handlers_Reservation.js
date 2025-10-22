@@ -9,6 +9,15 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
+import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
+import { getScheduleInfoFromCache } from './12_WebApp_Core_Data.js';
+import { getClassroomSelectionModal } from './13_WebApp_Views_Booking.js';
+import {
+  getTimeValue,
+  updateAppStateFromCache,
+} from './14_WebApp_Handlers_Utils.js';
+
 const reservationStateManager = appWindow.stateManager;
 
 /** 予約管理関連のアクションハンドラー群 */
@@ -480,12 +489,11 @@ export const reservationActionHandlers = {
           false,
         );
 
-        if (appWindow.FrontendErrorHandler) {
-          appWindow.FrontendErrorHandler.handle(error, 'updateReservation', {
-            reservationId: p.reservationId,
-            classroom: p.classroom,
-          });
-        }
+        const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
+        handler.handle(error, 'updateReservation', {
+          reservationId: p.reservationId,
+          classroom: p.classroom,
+        });
         handleServerError(error);
       })
       .updateReservationDetailsAndGetLatestData(p);

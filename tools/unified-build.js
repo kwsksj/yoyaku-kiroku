@@ -32,6 +32,89 @@ class UnifiedBuilder {
   }
 
   /**
+   * 開発時のESM構文をGAS互換コードへ変換する
+   */
+  sanitizeModuleSyntax(content) {
+    return this.removeExportStatements(this.removeImportStatements(content));
+  }
+
+  /**
+   * 複数行の静的import宣言を除去する
+   */
+  removeImportStatements(content) {
+    const lines = content.split('\n');
+    const sanitized = [];
+    let skippingImport = false;
+    let braceDepth = 0;
+
+    for (const line of lines) {
+      if (!skippingImport && /^\s*import\b/.test(line)) {
+        if (/^\s*import\s*(\(|\.)/.test(line)) {
+          sanitized.push(line);
+          continue;
+        }
+
+        skippingImport = true;
+        braceDepth = this.updateBraceDepth(0, line);
+
+        if (line.includes(';') && braceDepth <= 0) {
+          skippingImport = false;
+          braceDepth = 0;
+        }
+        continue;
+      }
+
+      if (skippingImport) {
+        braceDepth = this.updateBraceDepth(braceDepth, line);
+
+        if (line.includes(';') && braceDepth <= 0) {
+          skippingImport = false;
+          braceDepth = 0;
+          continue;
+        }
+
+        const trimmed = line.trim();
+        if (!trimmed) {
+          continue;
+        }
+
+        if (!trimmed.startsWith('//') && braceDepth <= 0) {
+          skippingImport = false;
+          braceDepth = 0;
+          sanitized.push(line);
+          continue;
+        }
+        continue;
+      }
+
+      sanitized.push(line);
+    }
+
+    return sanitized.join('\n');
+  }
+
+  /**
+   * import宣言内の波括弧深度を更新する
+   */
+  updateBraceDepth(currentDepth, line) {
+    const open = (line.match(/\{/g) || []).length;
+    const close = (line.match(/\}/g) || []).length;
+    return currentDepth + open - close;
+  }
+
+  /**
+   * export宣言を標準スコープ宣言へ置換する
+   */
+  removeExportStatements(content) {
+    return content
+      .replace(/^export const /gm, 'const ')
+      .replace(/^export function /gm, 'function ')
+      .replace(/^export class /gm, 'class ')
+      .replace(/^export let /gm, 'let ')
+      .replace(/^export var /gm, 'var ');
+  }
+
+  /**
    * 統合ビルド実行
    */
   async build() {
@@ -102,12 +185,8 @@ class UnifiedBuilder {
       const constantsDestPath = path.join(this.srcDir, constantsFile);
       let content = fs.readFileSync(constantsSrcPath, 'utf8');
 
-      // export文を削除
-      content = content.replace(/^export const /gm, 'const ');
-      content = content.replace(/^export function /gm, 'function ');
-      content = content.replace(/^export class /gm, 'class ');
-      content = content.replace(/^export let /gm, 'let ');
-      content = content.replace(/^export var /gm, 'var ');
+      // ESM構文をGAS互換へ変換
+      content = this.sanitizeModuleSyntax(content);
 
       // 環境判定値を書き換え
       content = content.replace(
@@ -141,12 +220,8 @@ class UnifiedBuilder {
       if (jsFile.endsWith('.js')) {
         let content = fs.readFileSync(srcPath, 'utf8');
 
-        // export文を削除（GAS環境では不要）
-        content = content.replace(/^export const /gm, 'const ');
-        content = content.replace(/^export function /gm, 'function ');
-        content = content.replace(/^export class /gm, 'class ');
-        content = content.replace(/^export let /gm, 'let ');
-        content = content.replace(/^export var /gm, 'var ');
+        // ESM構文をGAS互換へ変換
+        content = this.sanitizeModuleSyntax(content);
 
         fs.writeFileSync(destPath, content);
         console.log(`[${formatTime()}]   ✅ ${jsFile} processed`);
@@ -217,15 +292,8 @@ class UnifiedBuilder {
     if (fs.existsSync(constantsPath)) {
       let constantsContent = fs.readFileSync(constantsPath, 'utf8');
 
-      // export文を削除（GAS環境では不要）
-      constantsContent = constantsContent.replace(/^export const /gm, 'const ');
-      constantsContent = constantsContent.replace(
-        /^export function /gm,
-        'function ',
-      );
-      constantsContent = constantsContent.replace(/^export class /gm, 'class ');
-      constantsContent = constantsContent.replace(/^export let /gm, 'let ');
-      constantsContent = constantsContent.replace(/^export var /gm, 'var ');
+      // ESM構文をGAS互換へ変換
+      constantsContent = this.sanitizeModuleSyntax(constantsContent);
 
       // PRODUCTION_MODE の値をビルド時の環境に応じて設定
       constantsContent = constantsContent.replace(
@@ -252,12 +320,8 @@ class UnifiedBuilder {
       const filePath = path.join(this.frontendDir, jsFile);
       let fileContent = fs.readFileSync(filePath, 'utf8');
 
-      // export文を削除（GAS環境では不要）
-      fileContent = fileContent.replace(/^export const /gm, 'const ');
-      fileContent = fileContent.replace(/^export function /gm, 'function ');
-      fileContent = fileContent.replace(/^export class /gm, 'class ');
-      fileContent = fileContent.replace(/^export let /gm, 'let ');
-      fileContent = fileContent.replace(/^export var /gm, 'var ');
+      // ESM構文をGAS互換へ変換
+      fileContent = this.sanitizeModuleSyntax(fileContent);
 
       // ファイル情報コメントを追加
       unifiedContent += `\n  // =================================================================\n`;

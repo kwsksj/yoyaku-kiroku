@@ -7,6 +7,9 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
+import { formatPhoneNumberForDisplay } from './14_WebApp_Handlers_Utils.js';
+
 const authViewsStateManager = appWindow.stateManager;
 // =================================================================
 // --- Authentication Views ---

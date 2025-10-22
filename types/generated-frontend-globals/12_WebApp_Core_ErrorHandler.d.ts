@@ -21,26 +21,24 @@ export function handleServerError(err: any): void;
  * フロントエンド統一エラーハンドラー
  * ユーザーへの適切な通知とデバッグ情報の管理を行います
  */
+/** @typedef {import('../../types/view/handlers').FrontendErrorInfo} FrontendErrorInfo */
 export class FrontendErrorHandler {
     /**
-     * エラーを処理し、ユーザーに適切に通知（パフォーマンス最適化版）
-     * @param {Error} error - エラーオブジェクト
-     * @param {string} context - エラーコンテキスト
-     * @param {Object} [_additionalInfo={}] - 追加情報
+     * @param {Error} error
+     * @param {string} [context]
+     * @param {Object} [_additionalInfo]
      */
     static handle(error: Error, context?: string, _additionalInfo?: any): void;
     /**
-     * 詳細エラーハンドリング（重要なエラーのみで使用）
-     * @param {Error} error - エラーオブジェクト
-     * @param {string} context - エラーコンテキスト
-     * @param {Object} [additionalInfo={}] - 追加情報
+     * @param {Error} error
+     * @param {string} [context]
+     * @param {Object} [additionalInfo]
      */
     static handleDetailed(error: Error, context?: string, additionalInfo?: any): void;
     /**
-     * コンテキストに応じた適切なユーザーメッセージを生成
-     * @param {Error} error - エラーオブジェクト
-     * @param {string} context - エラーコンテキスト
-     * @returns {string} ユーザー向けメッセージ
+     * @param {Error} error
+     * @param {string} context
+     * @returns {string}
      */
     static getUserMessage(error: Error, context: string): string;
     /**
@@ -79,9 +77,16 @@ export class FrontendErrorHandler {
      */
     static isCriticalError(error: Error): boolean;
     /**
+     * ログレベルのエラー出力
+     * @param {Error} error
+     * @param {string} [context]
+     */
+    static logError(error: Error, context?: string): void;
+    /**
      * エラー情報をレポート
      * TypedErrorHandler インターフェース実装
      * @param {FrontendErrorInfo} errorInfo - エラー情報
      */
     static reportError(errorInfo: FrontendErrorInfo): void;
 }
+export type FrontendErrorInfo = import("../../types/view/handlers").FrontendErrorInfo;

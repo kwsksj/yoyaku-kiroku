@@ -7,6 +7,10 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
+import { _isPastOrToday, _isToday } from './13_WebApp_Views_Utils.js';
+import { _buildHistoryCardWithEditMode } from './13_WebApp_Views_Booking.js';
+
 const dashboardStateManager = appWindow.stateManager;
 /**
  * メインのホーム画面のUIを生成します。

@@ -7,6 +7,8 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
+
 // グローバルオブジェクトに完全なModalManagerを割り当て
 appWindow.ModalManager =
   /** @type {import('../../types/view/window').ModalManager} */ ({

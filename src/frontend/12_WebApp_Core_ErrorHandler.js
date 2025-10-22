@@ -16,12 +16,12 @@
  * フロントエンド統一エラーハンドラー
  * ユーザーへの適切な通知とデバッグ情報の管理を行います
  */
+/** @typedef {import('../../types/view/handlers').FrontendErrorInfo} FrontendErrorInfo */
 export class FrontendErrorHandler {
   /**
-   * エラーを処理し、ユーザーに適切に通知（パフォーマンス最適化版）
-   * @param {Error} error - エラーオブジェクト
-   * @param {string} context - エラーコンテキスト
-   * @param {Object} [_additionalInfo={}] - 追加情報
+   * @param {Error} error
+   * @param {string} [context]
+   * @param {Object} [_additionalInfo]
    */
   static handle(error, context = '', _additionalInfo = {}) {
     // 軽量ログ出力（本番環境では最小限の情報のみ）
@@ -31,10 +31,9 @@ export class FrontendErrorHandler {
   }
 
   /**
-   * 詳細エラーハンドリング（重要なエラーのみで使用）
-   * @param {Error} error - エラーオブジェクト
-   * @param {string} context - エラーコンテキスト
-   * @param {Object} [additionalInfo={}] - 追加情報
+   * @param {Error} error
+   * @param {string} [context]
+   * @param {Object} [additionalInfo]
    */
   static handleDetailed(error, context = '', additionalInfo = {}) {
     const errorInfo = {
@@ -66,10 +65,9 @@ export class FrontendErrorHandler {
   }
 
   /**
-   * コンテキストに応じた適切なユーザーメッセージを生成
-   * @param {Error} error - エラーオブジェクト
-   * @param {string} context - エラーコンテキスト
-   * @returns {string} ユーザー向けメッセージ
+   * @param {Error} error
+   * @param {string} context
+   * @returns {string}
    */
   static getUserMessage(error, context) {
     switch (context) {
@@ -187,6 +185,16 @@ export class FrontendErrorHandler {
   static isCriticalError(error) {
     const criticalErrors = ['TypeError', 'ReferenceError', 'SyntaxError'];
     return criticalErrors.includes(error.constructor.name);
+  }
+
+  /**
+   * ログレベルのエラー出力
+   * @param {Error} error
+   * @param {string} [context]
+   */
+  static logError(error, context = '') {
+    const scope = context ? `[${context}]` : '';
+    console.error(`${scope} ${error.message}`, error);
   }
 
   /**
