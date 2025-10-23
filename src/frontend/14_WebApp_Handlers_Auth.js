@@ -418,6 +418,8 @@ export const authActionHandlers = {
             : [],
           accountingMaster: response.data.accountingMaster || [],
           today: new Date().toISOString().split('T')[0],
+          // 履歴をクリアして、ログイン画面に戻らないようにする
+          navigationHistory: [],
         };
 
         authHandlersStateManager.dispatch({
