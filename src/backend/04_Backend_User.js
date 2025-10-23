@@ -717,15 +717,18 @@ export function registerNewUser(userData) {
       const studentIdColumn = resolveColumnIndex(
         CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
       );
-      if (typeof studentIdColumn === 'number') {
-        newRow[studentIdColumn] = newStudentId;
+      if (typeof studentIdColumn !== 'number') {
+        throw new Error('生徒名簿シートのヘッダーに「生徒ID」列が見つかりません。');
       }
+      newRow[studentIdColumn] = newStudentId;
+
       const registrationDateColumn = resolveColumnIndex(
         CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE,
       );
-      if (typeof registrationDateColumn === 'number') {
-        newRow[registrationDateColumn] = new Date();
+      if (typeof registrationDateColumn !== 'number') {
+        throw new Error('生徒名簿シートのヘッダーに「登録日時」列が見つかりません。');
       }
+      newRow[registrationDateColumn] = new Date();
 
       // userDataから対応する列に値を設定
       // (保守性向上: プロパティ名とヘッダー名の明示的なマッピング)
