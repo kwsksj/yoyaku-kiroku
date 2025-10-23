@@ -1,16 +1,32 @@
 /**
  * =================================================================
- * 【ファイル名】: 14_WebApp_Handlers_Auth.js
- * 【バージョン】: 1.1
- * 【役割】: WebAppのフロントエンドにおける、認証・ユーザー管理関連の
- * アクションハンドラーを集約します。
- * 【構成】: 14ファイル構成から分割された認証管理ファイル
- * 【機能範囲】:
- * - ログイン・ログアウト処理
- * - 新規ユーザー登録（4ステップ）
- * - プロフィール管理（表示・編集・保存）
+ * ファイル概要
+ * -----------------------------------------------------------------
+ * 名称: 14_WebApp_Handlers_Auth.js
+ * 目的: 認証・プロフィール領域のアクションハンドラーを提供する
+ * 主な責務:
+ *   - ログイン/ログアウト/新規登録フローの制御
+ *   - プロフィール編集とプライバシーポリシー表示のハンドリング
+ *   - エラー処理やフォーム操作ユーティリティとの連携
+ * AI向けメモ:
+ *   - 新しい認証アクションを追加する際はstate更新とUI切り替えの副作用を明確にし、このファイル内の`authActionHandlers`へ登録する
  * =================================================================
  */
+
+// ================================================================
+// UI系モジュール
+// ================================================================
+import { Components } from './13_WebApp_Components.js';
+import { getPrivacyPolicyModal } from './13_WebApp_Views_Utils.js';
+
+// ================================================================
+// ユーティリティ系モジュール
+// ================================================================
+import {
+  FrontendErrorHandler,
+  handleServerError,
+} from './12_WebApp_Core_ErrorHandler.js';
+import { getInputElementSafely } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
 // --- Authentication Action Handlers ---
@@ -139,12 +155,8 @@ export const authActionHandlers = {
       ['withFailureHandler']((/** @type {Error} */ err) => {
         debugLog('❌ 統合ログインエラー: ' + err.message);
         hideLoading();
-        if (appWindow.FrontendErrorHandler) {
-          appWindow.FrontendErrorHandler.handle(
-            err,
-            'processLoginWithValidatedPhone_integrated',
-          );
-        }
+        const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
+        handler.handle(err, 'processLoginWithValidatedPhone_integrated');
         handleServerError(err);
       })
       .getLoginData(normalizedPhone);
@@ -422,13 +434,10 @@ export const authActionHandlers = {
     })
       ['withFailureHandler']((/** @type {Error} */ error) => {
         hideLoading();
-        if (appWindow.FrontendErrorHandler) {
-          appWindow.FrontendErrorHandler.handle(
-            error,
-            'submitRegistration:registerNewUser',
-            { finalUserData },
-          );
-        }
+        const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
+        handler.handle(error, 'submitRegistration:registerNewUser', {
+          finalUserData,
+        });
         handleServerError(error);
       })
       .registerNewUser(finalUserData);

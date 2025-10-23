@@ -1,15 +1,31 @@
 /**
  * =================================================================
- * 【ファイル名】: 05-3_Backend_AvailableSlots.js
- * 【バージョン】: 2.0
- * 【役割】: レッスン空き枠計算API（LessonCore統一版）
- * 【v2.0での変更点】:
- * - SessionCore → LessonCore に統一
- * - 拡張構造 {schedule, status} を廃止
- * - 空き枠情報を直接プロパティとして追加
- * - ステータス列を追加（休講判定対応）
+ * 【ファイル名】  : 05-3_Backend_AvailableSlots.js
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : レッスン空き枠 API を提供し、予約関連画面で必要となる最新スケジュールを計算する。
+ *
+ * 【主な責務】
+ *   - `getLessons` で日程マスタ＋予約キャッシュを突合し、教室ごとの空き枠を算出
+ *   - `getUserReservations` など、フロントエンドへ返却する ReservationCore 配列を整形
+ *   - 予約確定や空き通知の補助データ（待機リスト抽出 等）を共通化
+ *
+ * 【関連モジュール】
+ *   - `02-4_BusinessLogic_ScheduleMaster.js`: 日程マスタの読み出し
+ *   - `07_CacheManager.js` / `08_Utilities.js`: 予約キャッシュからのデータ取得
+ *   - `05-2_Backend_Write.js`: 予約確定・キャンセル後に呼び出され、最新データを返却
+ *
+ * 【利用時の留意点】
+ *   - 返却値は `createApiResponse` でラップされるため、呼び出し側は `success` と `data` の存在確認が必須
+ *   - 将来的に時間帯追加など仕様が変わる場合、空き枠判断ロジック（firstSlots/secondSlots 判定）を集中修正できる
  * =================================================================
  */
+
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { getAllScheduledDates } from './02-4_BusinessLogic_ScheduleMaster.js';
+import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
+import { getCachedReservationsAsObjects } from './08_Utilities.js';
 
 /**
  * 開催予定のレッスン情報（空き枠情報を含む）を計算して返す
@@ -28,7 +44,7 @@ export function getLessons() {
 
     // スケジュールマスタデータ取得
     /** @type {LessonCore[]} */
-    const scheduledDates = getAllScheduledDates(todayString, null);
+    const scheduledDates = getAllScheduledDates(todayString, '');
     Logger.log(`日程マスタ取得: ${scheduledDates.length}件`);
 
     // ★改善: 新しいヘルパー関数で予約データをオブジェクトとして直接取得

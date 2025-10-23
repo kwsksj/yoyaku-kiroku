@@ -1,14 +1,15 @@
 /**
  * =================================================================
- * 【ファイル名】: 12_WebApp_Core_ErrorHandler.js
- * 【バージョン】: 1.0
- * 【役割】: WebAppのフロントエンドにおける、統一エラーハンドリングシステムを
- * 集約します。ユーザー通知、開発環境でのデバッグ支援など。
- * 【構成】: 12_WebApp_Core.jsから分割されたエラーハンドリング専用ファイル
- * 【新規作成理由】:
- * - バックエンドとフロントエンドの完全分離
- * - エラーハンドリング機能の独立性向上
- * - TypeScript型競合の解決
+ * ファイル概要
+ * -----------------------------------------------------------------
+ * 名称: 12_WebApp_Core_ErrorHandler.js
+ * 目的: フロントエンド共通のエラー処理フローを提供する
+ * 主な責務:
+ *   - ユーザー向けエラー通知と開発時の詳細ログ出力
+ *   - サーバーエラーなど多様なエラー形式を正規化
+ *   - 非同期処理で再利用しやすいハンドラー生成APIを公開
+ * AI向けメモ:
+ *   - エラー種別を追加する際は`getUserMessage`を更新し、UI通知とログ方針を併せて確認する
  * =================================================================
  */
 
@@ -16,12 +17,12 @@
  * フロントエンド統一エラーハンドラー
  * ユーザーへの適切な通知とデバッグ情報の管理を行います
  */
+/** @typedef {import('../../types/view/handlers').FrontendErrorInfo} FrontendErrorInfo */
 export class FrontendErrorHandler {
   /**
-   * エラーを処理し、ユーザーに適切に通知（パフォーマンス最適化版）
-   * @param {Error} error - エラーオブジェクト
-   * @param {string} context - エラーコンテキスト
-   * @param {Object} [_additionalInfo={}] - 追加情報
+   * @param {Error} error
+   * @param {string} [context]
+   * @param {Object} [_additionalInfo]
    */
   static handle(error, context = '', _additionalInfo = {}) {
     // 軽量ログ出力（本番環境では最小限の情報のみ）
@@ -31,10 +32,9 @@ export class FrontendErrorHandler {
   }
 
   /**
-   * 詳細エラーハンドリング（重要なエラーのみで使用）
-   * @param {Error} error - エラーオブジェクト
-   * @param {string} context - エラーコンテキスト
-   * @param {Object} [additionalInfo={}] - 追加情報
+   * @param {Error} error
+   * @param {string} [context]
+   * @param {Object} [additionalInfo]
    */
   static handleDetailed(error, context = '', additionalInfo = {}) {
     const errorInfo = {
@@ -66,10 +66,9 @@ export class FrontendErrorHandler {
   }
 
   /**
-   * コンテキストに応じた適切なユーザーメッセージを生成
-   * @param {Error} error - エラーオブジェクト
-   * @param {string} context - エラーコンテキスト
-   * @returns {string} ユーザー向けメッセージ
+   * @param {Error} error
+   * @param {string} context
+   * @returns {string}
    */
   static getUserMessage(error, context) {
     switch (context) {
@@ -187,6 +186,16 @@ export class FrontendErrorHandler {
   static isCriticalError(error) {
     const criticalErrors = ['TypeError', 'ReferenceError', 'SyntaxError'];
     return criticalErrors.includes(error.constructor.name);
+  }
+
+  /**
+   * ログレベルのエラー出力
+   * @param {Error} error
+   * @param {string} [context]
+   */
+  static logError(error, context = '') {
+    const scope = context ? `[${context}]` : '';
+    console.error(`${scope} ${error.message}`, error);
   }
 
   /**

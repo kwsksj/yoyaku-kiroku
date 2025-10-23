@@ -1,8 +1,4 @@
 /**
- * @typedef {{ type: string; l?: number; w?: number; h?: number; }} MaterialFormEntry
- * @typedef {{ name: string; price: number; }} ProductSelectionEntry
- */
-/**
  * 会計システム - ユーティリティ層
  *
  * 責務:

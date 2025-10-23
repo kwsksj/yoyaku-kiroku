@@ -1,16 +1,71 @@
 /**
  * =================================================================
- * 【ファイル名】: 14_WebApp_Handlers.js
- * 【バージョン】: 2.0
- * 【役割】: WebAppのフロントエンドにおける、ユーザーの操作に応じた
- * アクションと、アプリケーション全体の制御フローを集約します。
- * 【構成】: 14ファイル構成のうちの14番目（機能別分割済み）
- * 【v2.0での変更点】:
- * - ファイル分割によるメンテナンス性向上
- * - 機能別アクションハンドラーの統合管理
- * - AI作業効率向上のための構造最適化
+ * ファイル概要
+ * -----------------------------------------------------------------
+ * 名称: 14_WebApp_Handlers.js
+ * 目的: フロントエンド全体のアクション制御とビュー遷移を統括する
+ * 主な責務:
+ *   - グローバル`actionHandlers`の生成と公開
+ *   - 会計・予約・認証など個別ハンドラーの集約と調整
+ *   - UIレンダリング関数との連携ポイントを提供
+ * AI向けメモ:
+ *   - 新しい操作を追加する際は該当する分割ファイルに実装し、最後にこのファイルの統合処理へ登録する
  * =================================================================
  */
+
+/**
+ * @typedef {import('./12_WebApp_StateManager.js').SimpleStateManager} SimpleStateManager
+ */
+
+// ================================================================
+// UI系モジュール
+// ================================================================
+import { Components } from './13_WebApp_Components.js';
+import {
+  generateAccountingView,
+  getPaymentInfoHtml,
+} from './12-2_Accounting_UI.js';
+import {
+  getBookingView,
+  getReservationFormView,
+} from './13_WebApp_Views_Booking.js';
+import { getCompleteView } from './13_WebApp_Views_Utils.js';
+import { getDashboardView } from './13_WebApp_Views_Dashboard.js';
+import {
+  getEditProfileView,
+  getLoginView,
+  getRegisterView,
+  getRegistrationStep2View,
+  getRegistrationStep3View,
+  getRegistrationStep4View,
+} from './13_WebApp_Views_Auth.js';
+
+// ================================================================
+// ハンドラ系モジュール
+// ================================================================
+import {
+  closePaymentConfirmModal,
+  handleProcessPayment,
+  initializePaymentMethodUI,
+  processAccountingPayment,
+  setupAccountingEventListeners,
+  showPaymentConfirmModal,
+  updateAccountingCalculation,
+} from './12-3_Accounting_Handlers.js';
+import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
+import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
+import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
+
+// ================================================================
+// ユーティリティ系モジュール
+// ================================================================
+import {
+  collectAccountingFormData,
+  initializeAccountingSystem,
+  saveAccountingCache,
+} from './12-4_Accounting_Utilities.js';
+import { findReservationById } from './12_WebApp_Core_Search.js';
+import { handlePhoneInputFormatting } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
 // --- 分割ファイル統合パターン ---
@@ -81,13 +136,14 @@ export function render() {
     case 'login':
       v = getLoginView();
       break;
-    case 'register':
-      v = getRegisterView(
+    case 'register': {
+      const registrationPhone =
         /** @type {string | undefined} */ (
           /** @type {any} */ (appState).registrationPhone
-        ),
-      );
+        ) ?? '';
+      v = getRegisterView(registrationPhone);
       break;
+    }
     case 'registrationStep2':
       v = getRegistrationStep2View();
       break;
@@ -104,7 +160,7 @@ export function render() {
       v = getEditProfileView();
       break;
     case 'bookingLessons':
-      v = getBookingView(appState.selectedClassroom);
+      v = getBookingView(appState.selectedClassroom ?? '');
       break;
     case 'reservationForm':
       v = getReservationFormView();
@@ -112,7 +168,9 @@ export function render() {
     case 'accounting':
       // 会計画面用のデータを取得
       const reservationData = appState.accountingReservation;
-      const classroom = reservationData?.classroom || '';
+      const classroom = reservationData?.classroom
+        ? String(reservationData.classroom)
+        : '';
 
       // 事前初期化されたキャッシュを優先使用
       const accountingCache = windowTyped.accountingSystemCache;
@@ -180,13 +238,14 @@ export function render() {
         }, 100);
       }
       break;
-    case 'complete':
-      v = getCompleteView(
+    case 'complete': {
+      const completionMessage =
         /** @type {string | undefined} */ (
           /** @type {any} */ (appState).completionMessage
-        ),
-      );
+        ) ?? '';
+      v = getCompleteView(completionMessage);
       break;
+    }
   }
   const viewContainer = document.getElementById('view-container');
   if (viewContainer) {
@@ -223,6 +282,8 @@ export function render() {
 
   window.scrollTo(0, 0);
 }
+
+windowTyped.render = render;
 
 /**
  * 会計画面での入力変更を処理します。
@@ -534,6 +595,8 @@ window.onload = function () {
       }
     },
   };
+
+  windowTyped.actionHandlers = actionHandlers;
 
   // アプリケーションの初期化が完了するまでローディング画面を表示
   showLoading('default');

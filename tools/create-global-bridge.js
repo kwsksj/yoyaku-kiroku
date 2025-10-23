@@ -17,11 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 設定
-const TARGET_DIRS = [
-  path.join(__dirname, '../types/generated-backend-globals'),
-  path.join(__dirname, '../types/generated-frontend-globals'),
-  path.join(__dirname, '../types/generated-shared-globals'),
-];
+const TARGET_DIRS = [path.join(__dirname, '../types/generated-shared-globals')];
 
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 

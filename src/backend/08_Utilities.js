@@ -1,13 +1,51 @@
 /**
  * =================================================================
- * 【ファイル名】: 08_Utilities.gs
- * 【バージョン】: 2.3
- * 【役割】: プロジェクト全体で利用される、業務ドメインに依存しない
- * 汎用的なヘルパー関数を格納します。
- * 【v2.3での変更点】:
- * - 予約オブジェクト変換時の生徒情報取得を最適化（N+1問題の解消）
+ * 【ファイル名】  : 08_Utilities.gs
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : 業務ドメインに依存しない共通ユーティリティを提供し、再利用性と保守性を高める。
+ *
+ * 【主な責務】
+ *   - ログ出力、シートデータ取得、トランザクション制御など基盤となる関数群を提供
+ *   - ReservationCore / LessonCore などドメインオブジェクトの変換・正規化ヘルパーを実装
+ *   - バックエンド全体で使われるバリデーションやフォーマット処理を集約
+ *
+ * 【関連モジュール】
+ *   - `07_CacheManager.js`: キャッシュとの連携で共通ヘルパーを活用
+ *   - `05-2_Backend_Write.js`: シート書き込み・ログ記録・キャッシュ参照など多方面から利用
+ *   - `02-6_Notification_Admin.js`: 管理者通知で `sendAdminNotification` を呼び出す
+ *
+ * 【利用時の留意点】
+ *   - ここにビジネスロジックを追加しすぎると責務が不明確になるため、ドメイン固有処理は該当モジュールへ
+ *   - `withTransaction` は GAS のロックを利用するため、呼び出し側で長時間処理を避ける
+ *   - 新しいユーティリティを追加する場合は JSDoc で型情報を整備し、`npm run types:refresh` を忘れない
  * =================================================================
  */
+
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { sendAdminNotification } from './02-6_Notification_Admin.js';
+import { SS_MANAGER } from './00_SpreadsheetManager.js';
+import {
+  CACHE_KEYS,
+  getCachedData,
+  getReservationByIdFromCache,
+  getTypedCachedData,
+} from './07_CacheManager.js';
+
+/**
+ * @param {HeaderMapType | null | undefined} headerMap
+ * @returns {Map<string, number> | null}
+ */
+const toHeaderMap = headerMap => {
+  if (!headerMap) return null;
+  if (headerMap instanceof Map) {
+    return headerMap;
+  }
+  return new Map(
+    Object.entries(/** @type {Record<string, number>} */ (headerMap)),
+  );
+};
 
 /**
  * 環境別ログ制御システム - パフォーマンス最適化
@@ -320,7 +358,7 @@ export function setupConditionalFormattingForLogSheet() {
 /**
  * 配列形式の予約データをオブジェクト形式に変換
  * フロントエンドの transformReservationArrayToObject と同じロジック
- * @param {ReservationArrayData} resArray - 配列形式の予約データ
+ * @param {RawSheetRow} resArray - 配列形式の予約データ
  * @returns {ReservationCore|null} オブジェクト形式の予約データ（生データ）
  */
 export function transformReservationArrayToObject(resArray) {
@@ -377,8 +415,8 @@ export function transformReservationArrayToObject(resArray) {
 
 /**
  * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
- * @param {ReservationArrayData} resArray - 予約データの配列
- * @param {HeaderMapType} headerMap - ヘッダー名とインデックスのマッピング
+ * @param {RawSheetRow} resArray - 予約データの配列
+ * @param {Map<string, number>} headerMap - ヘッダー名とインデックスのマッピング
  * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore|null} - 変換された予約オブジェクト、失敗時はnull
  */
@@ -397,16 +435,7 @@ export function transformReservationArrayToObjectWithHeaders(
    * @param {string} headerName
    * @returns {number|undefined}
    */
-  const getIndex = headerName => {
-    if (headerMap && typeof headerMap === 'object') {
-      if (headerMap.get && typeof headerMap.get === 'function') {
-        return /** @type {Map<string,number>} */ (headerMap).get(headerName);
-      } else {
-        return /** @type {Record<string,number>} */ (headerMap)[headerName];
-      }
-    }
-    return undefined;
-  };
+  const getIndex = headerName => headerMap.get(headerName);
 
   /**
    * @param {string} headerName
@@ -693,8 +722,8 @@ export function getCachedStudentById(studentId) {
 
 /**
  * 予約配列データを統一的にオブジェクト配列に変換する
- * @param {ReservationArrayData[]} reservations - 予約配列データ
- * @param {HeaderMapType} headerMap - ヘッダーマップ
+ * @param {RawSheetRow[]} reservations - 予約配列データ
+ * @param {Map<string, number>} headerMap - ヘッダーマップ
  * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
  */
@@ -722,31 +751,26 @@ export function convertReservationsToObjects(
  * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列
  */
 export function getCachedReservationsAsObjects() {
-  const reservationCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  const reservationCache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  const studentsCache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
 
   if (!reservationCache) {
     return [];
   }
-  // 型アサーションを追加して安全性を高める
-  const reservationsData = /** @type {ReservationArrayData[]} */ (
+  const reservationsData = /** @type {RawSheetRow[]} */ (
     reservationCache.reservations || []
   );
-  const headerMapData = /** @type {HeaderMapType | null} */ (
-    reservationCache.headerMap || null
-  );
-  const studentsMap = /** @type {Record<string, UserCore> | undefined} */ (
-    studentsCache?.students
-  );
+  const headerMap = toHeaderMap(reservationCache.headerMap);
+  const studentsMap = studentsCache?.students;
 
-  if (!headerMapData) {
+  if (!headerMap) {
     return [];
   }
 
   return convertReservationsToObjects(
     reservationsData,
-    headerMapData,
-    studentsMap,
+    headerMap,
+    studentsMap || {},
   );
 }
 
@@ -767,21 +791,25 @@ export function getReservationCoreById(reservationId) {
   }
 
   // ヘッダーマップをキャッシュから取得
-  const cache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS, false);
-  if (!cache || !cache.headerMap) {
+  const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false);
+  const headerMap = toHeaderMap(cache?.headerMap);
+  if (!cache || !headerMap) {
     Logger.log(`[CORE] 予約キャッシュのヘッダーマップが取得できませんでした。`);
     return null;
   }
 
   // ★修正: 生徒マップも渡して変換処理を最適化
-  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC, false);
+  const studentsCache = getTypedCachedData(
+    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    false,
+  );
   const studentsMap = /** @type {Record<string, UserCore> | undefined} */ (
     studentsCache?.students
   );
 
   const reservationCore = transformReservationArrayToObjectWithHeaders(
     reservationRow,
-    /** @type {HeaderMapType} */ (cache.headerMap),
+    headerMap,
     studentsMap,
   );
 

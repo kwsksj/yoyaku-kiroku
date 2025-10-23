@@ -1,18 +1,84 @@
 /**
  * =================================================================
- * 【ファイル名】: 05-2_Backend_Write.gs
- * 【バージョン】: 3.3
- * 【役割】: WebAppからのデータ書き込み・更新要求（Write）と、
- * それに付随する検証ロジックに特化したバックエンド機能。
- * 【v3.3での変更点】:
- * - updateReservationDetailsのバグ修正（オプション・材料情報が反映されない問題）
- * - 誤って削除された checkCapacityFull 関数を復元
- * =================================================================
+ * 【ファイル名】  : 05-2_Backend_Write.gs
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : WebApp からの書き込み系リクエスト（予約作成・更新・キャンセル等）を一括処理する。
  *
- * @global sendBookingConfirmationEmailAsync - External service function from 06_ExternalServices.js
+ * 【主な責務】
+ *   - 予約情報の CRUD とキャッシュ更新（`addReservationToCache` / `updateReservationInCache` 連携）
+ *   - 日程／定員チェック、キャンセル待ち繰り上げなどのビジネスルール適用
+ *   - 会計情報の確定処理と売上ログ出力（別スプレッドシートへの書き込み）
+ *   - 管理者通知・予約者メール送信など副作用の編成
+ *
+ * 【関連モジュール】
+ *   - `07_CacheManager.js`: キャッシュ取得やヘッダー操作
+ *   - `08_ErrorHandler.js`: API レスポンスの生成と統一的なエラーハンドリング
+ *   - `05-3_Backend_AvailableSlots.js`: 空き枠再計算や予約者向けデータの再取得
+ *   - `02-6_Notification_Admin.js` / `02-7_Notification_StudentReservation.js`: 通知系機能
+ *
+ * 【利用時の留意点】
+ *   - 予約関連の公開関数はすべて `withTransaction` で排他制御される想定。呼び出し側は重複トランザクションを避ける
+ *   - キャッシュ未整備時に備え、`getLessons()` などの戻り値は `success` と `data` を確認してから使用する
+ *   - 追加の副作用（メール・通知）を拡張する場合は、例外が主処理へ影響しないよう try-catch で囲む
+ * =================================================================
  */
 
-/* global sendBookingConfirmationEmailAsync, SALES_SPREADSHEET_ID */
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { SALES_SPREADSHEET_ID, SS_MANAGER } from './00_SpreadsheetManager.js';
+import {
+  CACHE_KEYS,
+  addReservationToCache,
+  getCachedData,
+  getHeaderIndex,
+  rebuildAllReservationsCache,
+  updateReservationInCache,
+} from './07_CacheManager.js';
+import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
+import {
+  convertReservationToRow,
+  createSalesRow,
+  getCachedReservationsAsObjects,
+  getCachedStudentById,
+  getReservationCoreById,
+  getSheetData,
+  logActivity,
+  withTransaction,
+} from './08_Utilities.js';
+import {
+  sendAdminNotification,
+  sendAdminNotificationForReservation,
+} from './02-6_Notification_Admin.js';
+import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
+import {
+  getLessons,
+  getUserReservations,
+} from './05-3_Backend_AvailableSlots.js';
+
+/**
+ * BackendErrorHandlerが返却するエラーレスポンスを
+ * ApiResponseGeneric互換の構造へ正規化するヘルパー。
+ * @param {ApiErrorResponse} errorResponse
+ * @returns {ApiResponseGeneric<any>}
+ */
+function normalizeErrorResponse(errorResponse) {
+  /** @type {ApiResponseGeneric<any>} */
+  const baseResponse = {
+    success: errorResponse.success,
+    message: errorResponse.message,
+    meta: /** @type {Record<string, unknown>} */ (errorResponse.meta || {}),
+  };
+  if (errorResponse.error) {
+    baseResponse.error = errorResponse.error;
+  }
+  if (errorResponse.debug) {
+    baseResponse.debug = /** @type {Record<string, unknown>} */ (
+      errorResponse.debug
+    );
+  }
+  return baseResponse;
+}
 
 /**
  * 指定したユーザーが同一日に予約を持っているかチェックする共通関数。
@@ -278,9 +344,13 @@ export function _saveReservationCoreToSheet(reservation, mode) {
   } else {
     // mode === 'update'
     // 既存行を探して上書き
-    const reservationIdColIdx = headerMap.get(
+    const reservationIdColIdx = getHeaderIndex(
+      headerMap,
       CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
     );
+    if (reservationIdColIdx === undefined) {
+      throw new Error('予約ID列が見つかりません。');
+    }
     const targetRowIndex = dataRows.findIndex(
       /** @param {RawSheetRow} row */
       row => row[reservationIdColIdx] === reservation.reservationId,
@@ -329,7 +399,7 @@ export function _saveReservationCoreToSheet(reservation, mode) {
  * 予約を実行します（Phase 8: Core型統一対応）
  *
  * @param {ReservationCore} reservationInfo - 予約作成リクエスト（Core型）。reservationId/statusはundefined可
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  *
  * @example
  * makeReservation({
@@ -492,7 +562,11 @@ export function makeReservation(reservationInfo) {
       );
       Logger.log(`makeReservation Error: ${err.message}
 ${err.stack}`);
-      return BackendErrorHandler.handle(err, 'makeReservation');
+      const errorResponse = BackendErrorHandler.handle(
+        /** @type {Error} */ (err),
+        'makeReservation',
+      );
+      return normalizeErrorResponse(errorResponse);
     }
   });
 }
@@ -501,7 +575,7 @@ ${err.stack}`);
  * 予約をキャンセルします（Core型オブジェクト中心設計）
  *
  * @param {ReservationCore} cancelInfo - 予約キャンセル情報。`reservationId`と`studentId`は必須。`cancelMessage`は任意。
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  */
 export function cancelReservation(cancelInfo) {
   return withTransaction(() => {
@@ -552,9 +626,12 @@ export function cancelReservation(cancelInfo) {
       }
 
       // 管理者通知とキャンセルメール送信
-      sendAdminNotificationForReservation(cancelledReservation, 'cancelled', {
-        cancelMessage: cancelMessage,
-      });
+      const adminAdditionalInfo = cancelMessage ? { cancelMessage } : undefined;
+      sendAdminNotificationForReservation(
+        cancelledReservation,
+        'cancelled',
+        adminAdditionalInfo,
+      );
 
       Utilities.sleep(100); // 短い待機
       try {
@@ -569,10 +646,7 @@ export function cancelReservation(cancelInfo) {
         );
       }
 
-      return {
-        success: true,
-        message: '予約をキャンセルしました。',
-      };
+      return createApiResponse(true, { message: '予約をキャンセルしました。' });
     } catch (err) {
       logActivity(
         cancelInfo.studentId || 'N/A', // エラー発生時はcancelInfoから取得を試みる
@@ -582,7 +656,11 @@ export function cancelReservation(cancelInfo) {
       );
       Logger.log(`cancelReservation Error: ${err.message}
 ${err.stack}`);
-      return BackendErrorHandler.handle(err, 'cancelReservation');
+      const errorResponse = BackendErrorHandler.handle(
+        /** @type {Error} */ (err),
+        'cancelReservation',
+      );
+      return normalizeErrorResponse(errorResponse);
     }
   });
 }
@@ -601,11 +679,13 @@ export function notifyAvailabilityToWaitlistedUsers(
   try {
     // 1. 空き状況を再評価
     const lessonsResponse = getLessons();
-    if (!lessonsResponse.success) {
+    if (!lessonsResponse.success || !lessonsResponse.data) {
       Logger.log('空き状況の取得に失敗し、通知処理を中断します。');
       return;
     }
-    const targetLesson = lessonsResponse.data.find(
+    /** @type {LessonCore[]} */
+    const lessonsData = /** @type {LessonCore[]} */ (lessonsResponse.data);
+    const targetLesson = lessonsData.find(
       /** @param {LessonCore} l */
       l => l.date === date && l.classroom === classroom,
     );
@@ -616,11 +696,25 @@ export function notifyAvailabilityToWaitlistedUsers(
 
     // 2. 空きタイプを判定
     let availabilityType = null;
-    if (targetLesson.firstSlots > 0 && targetLesson.secondSlots > 0) {
+    const firstSlots =
+      typeof targetLesson.firstSlots === 'number'
+        ? targetLesson.firstSlots
+        : null;
+    const secondSlots =
+      typeof targetLesson.secondSlots === 'number'
+        ? targetLesson.secondSlots
+        : null;
+
+    if (
+      firstSlots !== null &&
+      secondSlots !== null &&
+      firstSlots > 0 &&
+      secondSlots > 0
+    ) {
       availabilityType = 'all';
-    } else if (targetLesson.firstSlots > 0) {
+    } else if (firstSlots !== null && firstSlots > 0) {
       availabilityType = 'first';
-    } else if (targetLesson.secondSlots > 0) {
+    } else if (secondSlots !== null && secondSlots > 0) {
       availabilityType = 'second';
     }
 
@@ -771,7 +865,7 @@ export function createAvailabilityNotificationEmail(recipient, lesson) {
  * 予約の詳細情報を一括で更新します（Core型オブジェクト中心設計）
  *
  * @param {ReservationCore} details - 予約更新リクエスト。`reservationId`と更新したいフィールドのみを持つ部分的な`ReservationCore`オブジェクト。
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  */
 export function updateReservationDetails(details) {
   return withTransaction(() => {
@@ -822,10 +916,12 @@ export function updateReservationDetails(details) {
 
       // --- 定員チェック（予約更新時） ---
       const lessonsResponse = getLessons();
-      if (!lessonsResponse.success) {
+      if (!lessonsResponse.success || !lessonsResponse.data) {
         throw new Error('空き状況の取得に失敗し、予約を更新できません。');
       }
-      const targetLesson = lessonsResponse.data.find(
+      /** @type {LessonCore[]} */
+      const lessonsData = /** @type {LessonCore[]} */ (lessonsResponse.data);
+      const targetLesson = lessonsData.find(
         /** @param {LessonCore} l */
         l =>
           l.date === updatedReservation.date &&
@@ -865,10 +961,18 @@ export function updateReservationDetails(details) {
             newAfternoonRequired = true;
         }
 
-        let adjustedMorningSlots = targetLesson.firstSlots || 0;
+        const originalFirstSlots =
+          typeof targetLesson.firstSlots === 'number'
+            ? targetLesson.firstSlots
+            : 0;
+        const originalSecondSlots =
+          typeof targetLesson.secondSlots === 'number'
+            ? targetLesson.secondSlots
+            : 0;
+        let adjustedMorningSlots = originalFirstSlots;
         if (oldMorningOccupied) adjustedMorningSlots += 1;
 
-        let adjustedAfternoonSlots = targetLesson.secondSlots || 0;
+        let adjustedAfternoonSlots = originalSecondSlots;
         if (oldAfternoonOccupied) adjustedAfternoonSlots += 1;
 
         const canFit =
@@ -910,7 +1014,12 @@ export function updateReservationDetails(details) {
           ? userReservationsResult.data.myReservations
           : [];
 
-      const latestLessons = getLessons().data || [];
+      const latestLessonsResponse = getLessons();
+      const latestLessons =
+        latestLessonsResponse.success &&
+        Array.isArray(latestLessonsResponse.data)
+          ? /** @type {LessonCore[]} */ (latestLessonsResponse.data)
+          : [];
 
       return createApiResponse(true, {
         message: '予約内容を更新しました。',
@@ -932,7 +1041,11 @@ ${err.stack}`,
         CONSTANTS.MESSAGES.ERROR,
         `Error: ${err.message}`,
       );
-      return BackendErrorHandler.handle(err, 'updateReservationDetails');
+      const errorResponse = BackendErrorHandler.handle(
+        /** @type {Error} */ (err),
+        'updateReservationDetails',
+      );
+      return normalizeErrorResponse(errorResponse);
     }
   });
 }
@@ -942,7 +1055,7 @@ ${err.stack}`,
  * バックエンドが料金マスタと照合して金額を再計算・検証する責務を持つ。
  * この関数は、会計処理が完了したReservationCoreオブジェクトを受け取り、永続化する責務を持つ。
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果。
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果。
  */
 export function saveAccountingDetails(reservationWithAccounting) {
   return withTransaction(() => {
@@ -999,6 +1112,9 @@ export function saveAccountingDetails(reservationWithAccounting) {
 
       const userInfo =
         updatedReservation.user || getCachedStudentById(studentId);
+      if (!userInfo) {
+        throw new Error(`生徒情報が取得できませんでした: ${String(studentId)}`);
+      }
 
       const subject = `会計記録 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
       const body =
@@ -1034,7 +1150,11 @@ export function saveAccountingDetails(reservationWithAccounting) {
       );
       Logger.log(`saveAccountingDetails Error: ${err.message}
 ${err.stack}`);
-      return BackendErrorHandler.handle(err, 'saveAccountingDetails');
+      const errorResponse = BackendErrorHandler.handle(
+        /** @type {Error} */ (err),
+        'saveAccountingDetails',
+      );
+      return normalizeErrorResponse(errorResponse);
     }
   });
 }
@@ -1081,11 +1201,13 @@ export function _logSalesForSingleReservation(reservation, accountingDetails) {
     // 授業料ログ
     if (accountingDetails.tuition && accountingDetails.tuition.subtotal > 0) {
       accountingDetails.tuition.items.forEach(item => {
+        const itemName = item.name || '';
+        const itemPrice = typeof item.price === 'number' ? item.price : 0;
         const salesRow = createSalesRow(
           baseInfo,
           '授業料',
-          item.name,
-          item.price,
+          itemName,
+          itemPrice,
         );
         salesRows.push(salesRow);
       });
@@ -1094,12 +1216,9 @@ export function _logSalesForSingleReservation(reservation, accountingDetails) {
     // 物販ログ
     if (accountingDetails.sales && accountingDetails.sales.subtotal > 0) {
       accountingDetails.sales.items.forEach(item => {
-        const salesRow = createSalesRow(
-          baseInfo,
-          '物販',
-          item.name,
-          item.price,
-        );
+        const itemName = item.name || '';
+        const itemPrice = typeof item.price === 'number' ? item.price : 0;
+        const salesRow = createSalesRow(baseInfo, '物販', itemName, itemPrice);
         salesRows.push(salesRow);
       });
     }
@@ -1137,10 +1256,15 @@ ${err.stack}`,
  * @returns {LessonCore | undefined} 日程マスタのルール
  */
 export function getScheduleInfoForDate(date, classroom) {
-  const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-  if (!scheduleCache?.schedule) return undefined;
+  const scheduleCache = /** @type {ScheduleCacheData | null | undefined} */ (
+    getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA)
+  );
+  const scheduleList = Array.isArray(scheduleCache?.['schedule'])
+    ? /** @type {LessonCore[]} */ (scheduleCache['schedule'])
+    : undefined;
+  if (!scheduleList) return undefined;
 
-  return scheduleCache.schedule.find(
+  return scheduleList.find(
     /** @param {LessonCore} item */
     item => item.date === date && item.classroom === classroom,
   );
@@ -1177,8 +1301,8 @@ export function confirmWaitlistedReservation(confirmInfo) {
       const isFull = checkCapacityFull(
         targetReservation.classroom,
         targetReservation.date,
-        targetReservation.startTime,
-        targetReservation.endTime,
+        targetReservation.startTime || '',
+        targetReservation.endTime || '',
         targetReservation.firstLecture || false,
       );
       if (isFull) {
@@ -1222,7 +1346,12 @@ export function confirmWaitlistedReservation(confirmInfo) {
           ? userReservationsResult.data.myReservations
           : [];
 
-      const latestLessons = getLessons().data || [];
+      const latestLessonsResponse = getLessons();
+      const latestLessons =
+        latestLessonsResponse.success &&
+        Array.isArray(latestLessonsResponse.data)
+          ? /** @type {LessonCore[]} */ (latestLessonsResponse.data)
+          : [];
 
       return createApiResponse(true, {
         message: '予約を確定しました。',
@@ -1242,7 +1371,11 @@ export function confirmWaitlistedReservation(confirmInfo) {
         `confirmWaitlistedReservation Error: ${err.message}
 ${err.stack}`,
       );
-      return BackendErrorHandler.handle(err, 'confirmWaitlistedReservation');
+      const errorResponse = BackendErrorHandler.handle(
+        /** @type {Error} */ (err),
+        'confirmWaitlistedReservation',
+      );
+      return normalizeErrorResponse(errorResponse);
     }
   });
 }

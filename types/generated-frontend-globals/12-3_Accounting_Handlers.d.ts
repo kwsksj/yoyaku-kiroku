@@ -152,3 +152,5 @@ export function handleSaveMemo(target: HTMLElement): void;
  * @param {AccountingDetailsCore} result - 計算結果
  */
 export function processAccountingPayment(formData: AccountingFormDto, result: AccountingDetailsCore): void;
+export type SimpleStateManager = import("./12_WebApp_StateManager.js").SimpleStateManager;
+export type ActionHandlers = import("../../types/view/handlers").ActionHandlers;

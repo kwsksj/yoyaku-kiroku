@@ -1,17 +1,45 @@
 /**
  * =================================================================
- * 【ファイル名】: 09_Backend_Endpoints.js
- * 【バージョン】: 3.5
- * 【役割】: WebApp用統合APIエンドポイント関数
- * 【v3.5での変更点】:
- * - getAccountingDetailsFromSheet のリファクタリングを元に戻す
- * =================================================================
+ * 【ファイル名】  : 09_Backend_Endpoints.js
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : フロントエンドから呼び出される統合 API を公開し、認証・ルーティング・レスポンス整形を担う。
  *
- * @global getUserHistoryFromCache - Cache manager function from 07_CacheManager.js
- * @global getScheduleInfoForDate - Business logic function from 02-4_BusinessLogic_ScheduleMaster.js
+ * 【主な責務】
+ *   - ログイン／予約操作／会計処理など、WebApp の主要エンドポイントを提供
+ *   - 各業務モジュール（Write・AvailableSlots など）を呼び出し、結果を `ApiResponse` 形式で返却
+ *   - バッチデータ取得 (`getBatchData`) でダッシュボード初期表示用のデータをまとめて返す
+ *
+ * 【関連モジュール】
+ *   - `04_Backend_User.js`: 認証系関数
+ *   - `05-2_Backend_Write.js`, `05-3_Backend_AvailableSlots.js`: 予約・空き枠の実処理
+ *   - `08_ErrorHandler.js`: エラー発生時のレスポンス生成
+ *
+ * 【利用時の留意点】
+ *   - 新しいエンドポイントを追加する場合は、返却フォーマットを `ApiResponseGeneric` で統一する
+ *   - 認証が必要な関数は早期に `authenticateUser` を呼び、権限チェックを明示する
+ *   - 実行時間の長い処理は `getBatchData` など既存の仕組みを再利用し、不要なシートアクセスを避ける
+ * =================================================================
  */
 
-/* global getUserHistoryFromCache, getScheduleInfoForDate, getLessons, getUserReservations, makeReservation, cancelReservation, updateReservationDetails, getUsersWithoutPhoneNumber, saveAccountingDetails, authenticateUser, createApiResponse, createHeaderMap, getCachedData, diagnoseAndFixScheduleMasterCache, BackendErrorHandler, SS_MANAGER, CONSTANTS, CACHE_KEYS, Utilities, Logger, CacheService */
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { authenticateUser } from './04_Backend_User.js';
+import {
+  makeReservation,
+  cancelReservation,
+  updateReservationDetails,
+  saveAccountingDetails,
+  getScheduleInfoForDate,
+  confirmWaitlistedReservation,
+} from './05-2_Backend_Write.js';
+import {
+  getLessons,
+  getUserReservations,
+} from './05-3_Backend_AvailableSlots.js';
+import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
+import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
+import { SS_MANAGER } from './00_SpreadsheetManager.js';
 
 /**
  * 予約操作後に最新データを取得して返す汎用関数
@@ -262,18 +290,20 @@ export function getBatchData(dataTypes = [], phone = null, studentId = null) {
     /** @type {BatchDataResult} */
     const result = {
       success: true,
-      data: {},
+      data: /** @type {BatchDataPayload} */ ({}),
       userFound: false,
       user: /** @type {StudentData | null} */ (null),
     };
 
     // 1. 会計マスターデータが要求されている場合
     if (dataTypes.includes('accounting')) {
-      const accountingMaster = getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA);
-      if (accountingMaster && accountingMaster['items']) {
+      const accountingMaster = getTypedCachedData(
+        CACHE_KEYS.MASTER_ACCOUNTING_DATA,
+      );
+      if (accountingMaster && accountingMaster.items) {
         result.data = {
           ...result.data,
-          accounting: accountingMaster['items'],
+          accounting: accountingMaster.items,
         };
       }
     }
@@ -306,10 +336,15 @@ export function getBatchData(dataTypes = [], phone = null, studentId = null) {
         studentId || (result.user ? result.user.studentId : null);
       if (targetStudentId) {
         const userReservationsResult = getUserReservations(targetStudentId);
-        if (userReservationsResult.success) {
+        if (userReservationsResult.success && userReservationsResult.data) {
+          const reservationsPayload =
+            'myReservations' in userReservationsResult.data &&
+            Array.isArray(userReservationsResult.data.myReservations)
+              ? userReservationsResult.data.myReservations
+              : [];
           result.data = {
             ...result.data,
-            myReservations: userReservationsResult.data.myReservations,
+            myReservations: reservationsPayload,
           };
         }
       }

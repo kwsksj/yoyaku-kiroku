@@ -1,17 +1,4 @@
 /**
- * =================================================================
- * 【ファイル名】: 05-2_Backend_Write.gs
- * 【バージョン】: 3.3
- * 【役割】: WebAppからのデータ書き込み・更新要求（Write）と、
- * それに付随する検証ロジックに特化したバックエンド機能。
- * 【v3.3での変更点】:
- * - updateReservationDetailsのバグ修正（オプション・材料情報が反映されない問題）
- * - 誤って削除された checkCapacityFull 関数を復元
- * =================================================================
- *
- * @global sendBookingConfirmationEmailAsync - External service function from 06_ExternalServices.js
- */
-/**
  * 指定したユーザーが同一日に予約を持っているかチェックする共通関数。
  * @param {string} studentId - 学生ID
  * @param {string} date - 日付（YYYY-MM-DD形式）
@@ -50,7 +37,7 @@ export function _saveReservationCoreToSheet(reservation: ReservationCore, mode: 
  * 予約を実行します（Phase 8: Core型統一対応）
  *
  * @param {ReservationCore} reservationInfo - 予約作成リクエスト（Core型）。reservationId/statusはundefined可
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  *
  * @example
  * makeReservation({
@@ -70,7 +57,7 @@ export function makeReservation(reservationInfo: ReservationCore): ApiResponseGe
  * 予約をキャンセルします（Core型オブジェクト中心設計）
  *
  * @param {ReservationCore} cancelInfo - 予約キャンセル情報。`reservationId`と`studentId`は必須。`cancelMessage`は任意。
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  */
 export function cancelReservation(cancelInfo: ReservationCore): ApiResponseGeneric<{
     message: string;
@@ -111,7 +98,7 @@ export function createAvailabilityNotificationEmail(recipient: {
  * 予約の詳細情報を一括で更新します（Core型オブジェクト中心設計）
  *
  * @param {ReservationCore} details - 予約更新リクエスト。`reservationId`と更新したいフィールドのみを持つ部分的な`ReservationCore`オブジェクト。
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  */
 export function updateReservationDetails(details: ReservationCore): ApiResponseGeneric<{
     message: string;
@@ -121,7 +108,7 @@ export function updateReservationDetails(details: ReservationCore): ApiResponseG
  * バックエンドが料金マスタと照合して金額を再計算・検証する責務を持つ。
  * この関数は、会計処理が完了したReservationCoreオブジェクトを受け取り、永続化する責務を持つ。
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
- * @returns {ApiResponseGeneric<{message: string}>} - 処理結果。
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果。
  */
 export function saveAccountingDetails(reservationWithAccounting: ReservationCore): ApiResponseGeneric<{
     message: string;

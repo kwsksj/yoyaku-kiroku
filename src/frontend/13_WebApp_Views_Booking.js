@@ -1,12 +1,34 @@
 /**
  * =================================================================
- * 【ファイル名】: 13_WebApp_Views_Booking.js
- * 【バージョン】: 1.1
- * 【役割】: 予約関連のビュー（予約枠一覧、予約フォーム、教室選択）
- * 【構成】: Views.jsから分割された予約機能
- * 【v1.1での変更点】: JSDocの型定義を更新
+ * ファイル概要
+ * -----------------------------------------------------------------
+ * 名称: 13_WebApp_Views_Booking.js
+ * 目的: 予約枠一覧や予約フォームなど予約領域のビュー生成を担当する
+ * 主な責務:
+ *   - 教室単位のレッスンデータからビュー用HTMLを構築
+ *   - 初心者モード切り替えや販売チェックリストなどの補助UIを提供
+ *   - 予約フォームで必要なデータ整形ユーティリティを提供
+ * AI向けメモ:
+ *   - 新しい予約関連ビューは`Components`を活用しつつここに追加し、必要なデータ取得ロジックはCore層から参照する
  * =================================================================
  */
+
+// ================================================================
+// UI系モジュール
+// ================================================================
+import { Components } from './13_WebApp_Components.js';
+import {
+  getTimeOptionsHtml,
+  getClassroomColorClass,
+  _isToday,
+} from './13_WebApp_Views_Utils.js';
+
+// ================================================================
+// ユーティリティ系モジュール
+// ================================================================
+import { buildSalesChecklist } from './14_WebApp_Handlers_Utils.js';
+import { findReservationByDateAndClassroom } from './12_WebApp_Core_Search.js';
+import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
 
 const bookingStateManager = appWindow.stateManager;
 
@@ -300,13 +322,13 @@ export const getReservationFormView = () => {
           startHour,
           endHour,
           CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES,
-          startTime,
+          startTime ?? null,
         );
     let endTimeOptions = getTimeOptionsHtml(
       startHour,
       endHour,
       CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES,
-      endTime,
+      endTime ?? null,
     );
     if (endMinutes > 0) {
       const finalEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
@@ -553,7 +575,7 @@ export const renderBookingLessons = lessons => {
 
             if (isBooked) {
               const reservationData = findReservationByDateAndClassroom(
-                lesson.date,
+                String(lesson.date),
                 lesson.classroom,
               );
               if (reservationData?.status === CONSTANTS.STATUS.COMPLETED) {

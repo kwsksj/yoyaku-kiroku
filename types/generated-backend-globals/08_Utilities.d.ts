@@ -53,18 +53,18 @@ export function setupConditionalFormattingForLogSheet(): void;
 /**
  * 配列形式の予約データをオブジェクト形式に変換
  * フロントエンドの transformReservationArrayToObject と同じロジック
- * @param {ReservationArrayData} resArray - 配列形式の予約データ
+ * @param {RawSheetRow} resArray - 配列形式の予約データ
  * @returns {ReservationCore|null} オブジェクト形式の予約データ（生データ）
  */
-export function transformReservationArrayToObject(resArray: ReservationArrayData): ReservationCore | null;
+export function transformReservationArrayToObject(resArray: RawSheetRow): ReservationCore | null;
 /**
  * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
- * @param {ReservationArrayData} resArray - 予約データの配列
- * @param {HeaderMapType} headerMap - ヘッダー名とインデックスのマッピング
+ * @param {RawSheetRow} resArray - 予約データの配列
+ * @param {Map<string, number>} headerMap - ヘッダー名とインデックスのマッピング
  * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore|null} - 変換された予約オブジェクト、失敗時はnull
  */
-export function transformReservationArrayToObjectWithHeaders(resArray: ReservationArrayData, headerMap: HeaderMapType, studentsMap?: Record<string, UserCore>): ReservationCore | null;
+export function transformReservationArrayToObjectWithHeaders(resArray: RawSheetRow, headerMap: Map<string, number>, studentsMap?: Record<string, UserCore>): ReservationCore | null;
 /**
  * 生データの予約オブジェクトを正規化済みオブジェクトに変換
  * @param {RawReservationObject} rawReservation - 生データの予約オブジェクト
@@ -108,12 +108,12 @@ export function getNormalizedReservationsFor(date: string, classroom: string, st
 export function getCachedStudentById(studentId: string): StudentData | null;
 /**
  * 予約配列データを統一的にオブジェクト配列に変換する
- * @param {ReservationArrayData[]} reservations - 予約配列データ
- * @param {HeaderMapType} headerMap - ヘッダーマップ
+ * @param {RawSheetRow[]} reservations - 予約配列データ
+ * @param {Map<string, number>} headerMap - ヘッダーマップ
  * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
  * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
  */
-export function convertReservationsToObjects(reservations: ReservationArrayData[], headerMap: HeaderMapType, studentsMap?: Record<string, UserCore>): ReservationCore[];
+export function convertReservationsToObjects(reservations: RawSheetRow[], headerMap: Map<string, number>, studentsMap?: Record<string, UserCore>): ReservationCore[];
 /**
  * キャッシュから全ての予約データを取得し、オブジェクトの配列として返す
  * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列

@@ -1,12 +1,36 @@
 /**
  * =================================================================
- * 【ファイル名】: 07_CacheManager.js
- * 【バージョン】: 6.6
- * 【役割】: キャッシュ管理システム
- * 【v6.6での変更点】:
- * - 内部関数の `cacheKey` の型を `string` に統一し、型エラーを解消
+ * 【ファイル名】  : 07_CacheManager.js
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : CacheService と PropertiesService を活用し、予約・生徒などの大型データを統合管理する。
+ *
+ * 【主な責務】
+ *   - `getCachedData` を中心に、キャッシュ取得・自動再構築を一元化
+ *   - 予約／生徒／日程など各種キャッシュのインクリメンタル更新 API を提供
+ *   - キャッシュメタ情報（バージョン、件数、更新時刻）の整合性を維持
+ *
+ * 【関連モジュール】
+ *   - `00_SpreadsheetManager.js`: シートアクセスの基盤
+ *   - `05-2_Backend_Write.js`: 予約操作後のキャッシュ更新で多数利用
+ *   - `08_Utilities.js`: HeaderMap 生成やログ出力との連携
+ *
+ * 【利用時の留意点】
+ *   - CacheService の容量制限（1MB/キー）に対応するため、分割保存ロジックを理解しておく
+ *   - 新しいキャッシュ種別を追加する際は、`CACHE_KEYS` と再構築ハンドラを必ず定義
+ *   - エラー時には `BackendErrorHandler` を用いて API へ適切なレスポンスを返す
  * =================================================================
  */
+
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { SS_MANAGER } from './00_SpreadsheetManager.js';
+import { BackendErrorHandler } from './08_ErrorHandler.js';
+import {
+  PerformanceLog,
+  createHeaderMap,
+  handleError,
+} from './08_Utilities.js';
 
 /**
  * ヘッダーマップから型安全にインデックスを取得するヘルパー関数
@@ -624,7 +648,9 @@ export function rebuildAllReservationsCache() {
     const headerRow = integratedReservationSheet
       .getRange(1, 1, 1, integratedReservationSheet.getLastColumn())
       .getValues()[0];
-    const headerColumnMap = createHeaderMap(headerRow);
+    const headerColumnMap = /** @type {Map<string, number>} */ (
+      createHeaderMap(headerRow)
+    );
 
     // 日付・時刻列のインデックスを取得
     const dateColumnIndex = headerColumnMap.get(
@@ -739,7 +765,17 @@ export function rebuildAllReservationsCache() {
       { index: dateColumnIndex, type: 'date' },
       { index: startTimeColumnIndex, type: 'time' },
       { index: endTimeColumnIndex, type: 'time' },
-    ].filter(column => column.index !== undefined);
+    ].filter(
+      /**
+       * @param {{ index: number | undefined; type: 'date' | 'time' }} column
+       * @returns {column is { index: number; type: 'date' | 'time' }}
+       */
+      column => typeof column.index === 'number',
+    );
+
+    if (dateColumnIndex === undefined) {
+      throw new Error('予約シートで日付列を特定できませんでした。');
+    }
 
     allReservationRows.forEach(
       /** @param {(string|number|Date)[]} reservationRow */ reservationRow => {
@@ -926,7 +962,12 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     }
 
     const allData = sheet.getDataRange().getValues();
-    const headers = allData.shift();
+    const headerRowCandidate = allData.shift();
+    if (!Array.isArray(headerRowCandidate)) {
+      Logger.log('日程マスターのヘッダー行が取得できませんでした。');
+      return;
+    }
+    const headerRow = /** @type {string[]} */ (headerRowCandidate);
 
     // 時間列のインデックスを特定
     const timeColumnNames = [
@@ -937,33 +978,32 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
       CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START,
     ];
 
+    const dateColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
+    if (dateColumn === -1) {
+      throw new Error('日程マスターシートに必須の「日付」列が見つかりません。');
+    }
+
+    // filter内ではdateColumnを直接使用
     const scheduleDataList = allData
-      .filter(
-        /** @param {(string|number|Date)[]} row */ row => {
-          const dateValue =
-            row[headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE)];
-          if (!dateValue) return false;
+      .filter(row => {
+        const dateValue = row[dateColumn];
+        if (!dateValue) return false;
 
-          // Date オブジェクトを文字列形式に変換して比較
-          const dateStr =
-            dateValue instanceof Date
-              ? Utilities.formatDate(
-                  dateValue,
-                  CONSTANTS.TIMEZONE,
-                  'yyyy-MM-dd',
-                )
-              : String(dateValue);
+        // Date オブジェクトを文字列形式に変換して比較
+        const dateStr =
+          dateValue instanceof Date
+            ? Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd')
+            : String(dateValue);
 
-          return dateStr >= startDate && dateStr <= endDate;
-        },
-      )
+        return dateStr >= startDate && dateStr <= endDate;
+      })
       .map(
         /** @param {(string|number|Date)[]} row */ row => {
           /** @type {LessonCore} */
           const scheduleObj = /** @type {LessonCore} */ ({});
 
-          for (let index = 0; index < headers.length; index += 1) {
-            const header = headers[index];
+          for (let index = 0; index < headerRow.length; index += 1) {
+            const header = headerRow[index];
             let value = row[index];
 
             // 時間列の処理
@@ -1131,7 +1171,14 @@ export function rebuildAccountingMasterCache() {
     }
 
     const allData = sheet.getDataRange().getValues();
-    const headers = allData.shift();
+    const accountingHeaderCandidate = allData.shift();
+    if (!Array.isArray(accountingHeaderCandidate)) {
+      Logger.log('会計マスタのヘッダー行が取得できませんでした。');
+      return;
+    }
+    const accountingHeaderRow = /** @type {string[]} */ (
+      accountingHeaderCandidate
+    );
 
     // 削除済み: 会計マスタに時刻情報がなくなったため、時間列の処理は不要
     // 時刻情報は日程マスタから取得
@@ -1141,7 +1188,7 @@ export function rebuildAccountingMasterCache() {
       /** @param {(string|number|Date)[]} rowData */ rowData => {
         /** @type {Partial<AccountingMasterItem>} */
         const item = {};
-        headers.forEach(
+        accountingHeaderRow.forEach(
           (
             /** @type {string} */ headerName,
             /** @type {number} */ columnIndex,
@@ -1209,7 +1256,9 @@ export function rebuildAllStudentsBasicCache() {
     const headerRow = studentRosterSheet
       .getRange(1, 1, 1, studentRosterSheet.getLastColumn())
       .getValues()[0];
-    const headerColumnMap = createHeaderMap(headerRow);
+    const headerColumnMap = /** @type {Map<string, number>} */ (
+      createHeaderMap(headerRow)
+    );
 
     // 必須列のインデックスを取得
     const requiredColumns = {
@@ -1247,6 +1296,15 @@ export function rebuildAllStudentsBasicCache() {
       );
     }
 
+    const {
+      studentId: studentIdColumn,
+      realName: realNameColumn,
+      nickname: nicknameColumn,
+      phone: phoneColumn,
+    } = /** @type {{ studentId: number; realName: number; nickname: number; phone: number }} */ (
+      requiredColumns
+    );
+
     // データ行を取得
     const dataRowCount = studentRosterSheet.getLastRow() - 1;
     const allStudentRows = studentRosterSheet
@@ -1261,11 +1319,11 @@ export function rebuildAllStudentsBasicCache() {
         /** @type {(string|number|Date)[]} */ studentRow,
         /** @type {number} */ index,
       ) => {
-        const studentId = studentRow[requiredColumns.studentId];
+        const studentId = studentRow[studentIdColumn];
         if (studentId && String(studentId).trim()) {
           // メール連絡希望フラグの処理
           let wantsEmail = false;
-          if (optionalColumns.emailPreference !== undefined) {
+          if (typeof optionalColumns.emailPreference === 'number') {
             const preference = studentRow[optionalColumns.emailPreference];
             wantsEmail =
               String(preference) === 'TRUE' ||
@@ -1275,7 +1333,9 @@ export function rebuildAllStudentsBasicCache() {
 
           // 日程連絡希望フラグの処理
           let wantsScheduleNotification = false;
-          if (optionalColumns.scheduleNotificationPreference !== undefined) {
+          if (
+            typeof optionalColumns.scheduleNotificationPreference === 'number'
+          ) {
             const preference =
               studentRow[optionalColumns.scheduleNotificationPreference];
             wantsScheduleNotification =
@@ -1286,11 +1346,11 @@ export function rebuildAllStudentsBasicCache() {
 
           // 通知設定の取得
           const notificationDay =
-            optionalColumns.notificationDay !== undefined
+            typeof optionalColumns.notificationDay === 'number'
               ? studentRow[optionalColumns.notificationDay]
               : null;
           const notificationHour =
-            optionalColumns.notificationHour !== undefined
+            typeof optionalColumns.notificationHour === 'number'
               ? studentRow[optionalColumns.notificationHour]
               : null;
 
@@ -1298,15 +1358,13 @@ export function rebuildAllStudentsBasicCache() {
           studentsDataMap[studentIdStr] = {
             studentId: studentIdStr,
             displayName: String(
-              studentRow[requiredColumns.nickname] ||
-                studentRow[requiredColumns.realName] ||
-                '',
+              studentRow[nicknameColumn] || studentRow[realNameColumn] || '',
             ),
-            realName: String(studentRow[requiredColumns.realName] || ''),
-            nickname: String(studentRow[requiredColumns.nickname] || ''),
-            phone: String(studentRow[requiredColumns.phone] || ''),
+            realName: String(studentRow[realNameColumn] || ''),
+            nickname: String(studentRow[nicknameColumn] || ''),
+            phone: String(studentRow[phoneColumn] || ''),
             email: String(
-              optionalColumns.email !== undefined
+              typeof optionalColumns.email === 'number'
                 ? studentRow[optionalColumns.email] || ''
                 : '',
             ),
@@ -1429,17 +1487,24 @@ export function updateScheduleStatusToCompleted() {
     const allData = dataRange.getValues();
 
     if (allData.length <= 1) {
-      Logger.log('[ScheduleStatus] データが存在しません');
-      return 0;
+      const errorMsg = '[ScheduleStatus] データが存在しません';
+      Logger.log(errorMsg);
+      throw new Error(errorMsg);
     }
 
     const headers = allData[0];
+    if (!Array.isArray(headers)) {
+      const errorMsg = '[ScheduleStatus] ヘッダー行を取得できませんでした';
+      Logger.log(errorMsg);
+      throw new Error(errorMsg);
+    }
     const dateColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
     const statusColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
 
     if (dateColIndex === -1 || statusColIndex === -1) {
-      Logger.log('[ScheduleStatus] 必要な列が見つかりません');
-      return 0;
+      const errorMsg = `[ScheduleStatus] 必要な列が見つかりません: DATE=${dateColIndex}, STATUS=${statusColIndex}`;
+      Logger.log(errorMsg);
+      throw new Error(errorMsg);
     }
 
     let updatedCount = 0;

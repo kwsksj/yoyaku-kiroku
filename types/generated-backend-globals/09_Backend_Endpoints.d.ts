@@ -1,16 +1,4 @@
 /**
- * =================================================================
- * 【ファイル名】: 09_Backend_Endpoints.js
- * 【バージョン】: 3.5
- * 【役割】: WebApp用統合APIエンドポイント関数
- * 【v3.5での変更点】:
- * - getAccountingDetailsFromSheet のリファクタリングを元に戻す
- * =================================================================
- *
- * @global getUserHistoryFromCache - Cache manager function from 07_CacheManager.js
- * @global getScheduleInfoForDate - Business logic function from 02-4_BusinessLogic_ScheduleMaster.js
- */
-/**
  * 予約操作後に最新データを取得して返す汎用関数
  * @param {Function} operationFunction - 実行する操作関数 (makeReservation, cancelReservationなど)
  * @param {ReservationCore|AccountingDetailsCore|any} operationParams - 操作関数に渡すパラメータ (Core型)

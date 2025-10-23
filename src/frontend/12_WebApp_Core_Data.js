@@ -1,16 +1,39 @@
 /**
  * =================================================================
- * 【ファイル名】: 12_WebApp_Core_Data.js
- * 【バージョン】: 1.0
- * 【役割】: WebAppのフロントエンドにおける、データ処理と環境管理を
- * 集約します。初期データ処理、環境検出、StateManager初期化など。
- * 【構成】: 12_WebApp_Core.jsから分割されたデータ管理ファイル
- * 【新規作成理由】:
- * - メインコアファイルの肥大化対策
- * - データ処理機能の独立性向上
- * - AIの作業効率向上のためのファイル分割
+ * ファイル概要
+ * -----------------------------------------------------------------
+ * 名称: 12_WebApp_Core_Data.js
+ * 目的: フロントエンドの初期データ整形と環境判定、StateManager初期化を担う
+ * 主な責務:
+ *   - 会計データなどの事前計算・キャッシュ化
+ *   - 実行環境（GAS/ブラウザ）の判定と適切な初期化フローの選択
+ *   - Coreモジュール間の連携（ビューリスナー、エラーハンドラー）のハブ
+ * AI向けメモ:
+ *   - データ取得処理を追加する際は副作用を明確にし、初期化タイミングに注意する
  * =================================================================
  */
+
+// ================================================================
+// ハンドラ系モジュール
+// ================================================================
+import { setupViewListener } from './12_WebApp_Core.js';
+
+// ================================================================
+// ユーティリティ系モジュール
+// ================================================================
+import { classifyAccountingItems } from './12-1_Accounting_Calculation.js';
+import { FrontendErrorHandler } from './12_WebApp_Core_ErrorHandler.js';
+
+/**
+ * グローバルに登録済みのエラーハンドラーを取得
+ * @returns {typeof FrontendErrorHandler}
+ */
+const getFrontendErrorHandler = () =>
+  /** @type {typeof FrontendErrorHandler} */ (
+    /** @type {unknown} */ (
+      appWindow.FrontendErrorHandler || FrontendErrorHandler
+    )
+  );
 
 // =================================================================
 // --- Initial Data Processing ---
@@ -229,13 +252,10 @@ export function getScheduleInfoFromCache(date, classroom) {
     )
       ['withFailureHandler']((/** @type {Error} */ error) => {
         console.error('❌ getScheduleInfoFromCache: API呼び出しエラー', error);
-        if (appWindow.FrontendErrorHandler) {
-          appWindow.FrontendErrorHandler.handle(
-            error,
-            'getScheduleInfoFromCache',
-            { date, classroom },
-          );
-        }
+        getFrontendErrorHandler().handle(error, 'getScheduleInfoFromCache', {
+          date,
+          classroom,
+        });
         resolve(null);
       })
       .getScheduleInfo({ date, classroom });
