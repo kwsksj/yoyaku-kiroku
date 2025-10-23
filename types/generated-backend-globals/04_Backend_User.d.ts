@@ -56,9 +56,9 @@ export function updateUserProfile(userInfo: UserCore): ApiResponseGeneric<UserPr
  * （Phase 3: 型システム統一対応）
  *
  * @param {UserCore} userData - 登録するユーザー情報
- * @returns {ApiResponseGeneric<InitialAppDataPayload>}
+ * @returns {UserRegistrationResult | ApiErrorResponse}
  */
-export function registerNewUser(userData: UserCore): ApiResponseGeneric<InitialAppDataPayload>;
+export function registerNewUser(userData: UserCore): UserRegistrationResult | ApiErrorResponse;
 /**
  * ユーザーのログイン処理を行います。
  * （Phase 3: 型システム統一対応）

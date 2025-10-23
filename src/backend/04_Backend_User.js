@@ -657,7 +657,7 @@ export function updateUserProfile(userInfo) {
  * （Phase 3: 型システム統一対応）
  *
  * @param {UserCore} userData - 登録するユーザー情報
- * @returns {ApiResponseGeneric<InitialAppDataPayload>}
+ * @returns {UserRegistrationResult | ApiErrorResponse}
  */
 export function registerNewUser(userData) {
   return withTransaction(() => {

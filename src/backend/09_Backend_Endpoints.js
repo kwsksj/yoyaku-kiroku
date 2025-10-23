@@ -177,8 +177,9 @@ export function saveAccountingDetailsAndGetLatestData(
 
 /**
  * 統合ログインエンドポイント：認証 + 初期データ + 個人データを一括取得
+ *
  * @param {string} phone - 電話番号（ユーザー認証用）
- * @returns {ApiResponseGeneric} 認証結果、初期データ、個人データを含む結果
+ * @returns {AuthenticationResponse | ApiErrorResponse} 認証結果、初期データ、個人データを含む結果
  */
 export function getLoginData(phone) {
   try {
@@ -187,31 +188,45 @@ export function getLoginData(phone) {
     // 1. 軽量認証実行
     const authResult = authenticateUser(phone);
 
-    if (/** @type {any} */ (authResult).success) {
+    if (authResult.success && authResult.user) {
       Logger.log(
-        `認証成功: userId=${/** @type {any} */ (authResult).user.studentId}`,
+        `認証成功: userId=${authResult.user.studentId}`,
       );
 
       // 2. 認証成功時：一括データ取得
       const batchResult = getBatchData(
         ['accounting', 'lessons', 'reservations'],
         null,
-        /** @type {any} */ (authResult).user.studentId,
+        authResult.user.studentId,
       );
 
       if (!batchResult.success) {
         Logger.log('バッチデータ取得失敗');
-        return batchResult;
+        // データ取得失敗でも認証は成功しているため、空のデータで返す
+        /** @type {AuthenticationResponse} */
+        const fallbackResponse = {
+          success: true,
+          userFound: true,
+          user: authResult.user,
+          data: {
+            accountingMaster: [],
+            cacheVersions: /** @type {Record<string, unknown>} */ ({}),
+            lessons: [],
+            myReservations: [],
+          },
+        };
+        return fallbackResponse;
       }
 
       // 3. レスポンス統合
+      /** @type {AuthenticationResponse} */
       const result = {
         success: true,
         userFound: true,
-        user: /** @type {any} */ (authResult).user,
+        user: authResult.user,
         data: {
           accountingMaster: batchResult.data['accounting'] || [],
-          cacheVersions: batchResult.data['cache-versions'] || {},
+          cacheVersions: /** @type {Record<string, unknown>} */ (batchResult.data['cache-versions'] || {}),
           lessons: batchResult.data['lessons'] || [],
           myReservations: batchResult.data['myReservations'] || [],
         },
@@ -221,27 +236,36 @@ export function getLoginData(phone) {
       return result;
     } else {
       // 4. 認証失敗時：ユーザー未登録
-      Logger.log(`認証失敗: ${/** @type {any} */ (authResult).message}`);
-      return /** @type {any} */ ({
+      Logger.log(`認証失敗: ${authResult.message || 'Unknown error'}`);
+      /** @type {AuthenticationResponse} */
+      const notFoundResponse = {
         success: true,
         userFound: false,
-        message: /** @type {any} */ (authResult).message,
-        registrationPhone: phone,
-      });
+        user: null,
+        data: {
+          accountingMaster: [],
+          cacheVersions: /** @type {Record<string, unknown>} */ ({}),
+          lessons: [],
+          myReservations: [],
+        },
+        ...(authResult.message && { message: authResult.message }),
+      };
+      return notFoundResponse;
     }
   } catch (e) {
     Logger.log(`getLoginData統合処理エラー: ${e.message}\nStack: ${e.stack}`);
-    return createApiErrorResponse(
+    return /** @type {ApiErrorResponse} */ (createApiErrorResponse(
       `統合ログイン処理中にエラー: ${e.message}`,
       true,
-    );
+    ));
   }
 }
 
 /**
  * 統合新規登録エンドポイント：ユーザー登録 + 初期データを一括取得
+ *
  * @param {UserCore} userData - 登録するユーザー情報
- * @returns {ApiResponseGeneric} 登録結果、初期データを含む結果
+ * @returns {AuthenticationResponse | ApiErrorResponse} 登録結果、初期データを含む結果
  */
 export function getRegistrationData(userData) {
   try {
@@ -252,18 +276,12 @@ export function getRegistrationData(userData) {
 
     if (!registrationResult.success) {
       Logger.log(`新規登録失敗: ${registrationResult.message || 'Unknown error'}`);
-      return registrationResult;
+      return /** @type {ApiErrorResponse} */ (registrationResult);
     }
 
-    // registrationResult の型アサーション
-    const regResult = /** @type {any} */ (registrationResult);
-    const registeredUser = regResult.user;
-    const studentId = regResult.studentId || (registeredUser ? registeredUser.studentId : null);
-
-    if (!studentId) {
-      Logger.log('新規登録: studentIdの取得に失敗');
-      return createApiErrorResponse('ユーザーIDの取得に失敗しました', true);
-    }
+    // 成功時は UserRegistrationResult として扱う
+    const registeredUser = registrationResult.user;
+    const studentId = registrationResult.studentId;
 
     Logger.log(`登録成功: userId=${studentId}`);
 
@@ -277,40 +295,43 @@ export function getRegistrationData(userData) {
     if (!batchResult.success) {
       Logger.log('バッチデータ取得失敗');
       // データ取得失敗でも登録自体は成功しているため、空のデータで返す
-      return /** @type {any} */ ({
+      /** @type {AuthenticationResponse} */
+      const fallbackResponse = {
         success: true,
         userFound: true,
         user: registeredUser,
         data: {
           accountingMaster: [],
-          cacheVersions: {},
+          cacheVersions: /** @type {Record<string, unknown>} */ ({}),
           lessons: [],
           myReservations: [],
         },
-      });
+      };
+      return fallbackResponse;
     }
 
     // 3. レスポンス統合
-    const result = /** @type {any} */ ({
+    /** @type {AuthenticationResponse} */
+    const result = {
       success: true,
       userFound: true,
       user: registeredUser,
       data: {
         accountingMaster: batchResult.data['accounting'] || [],
-        cacheVersions: batchResult.data['cache-versions'] || {},
+        cacheVersions: /** @type {Record<string, unknown>} */ (batchResult.data['cache-versions'] || {}),
         lessons: batchResult.data['lessons'] || [],
         myReservations: batchResult.data['myReservations'] || [],
       },
-    });
+    };
 
     Logger.log(`getRegistrationData統合処理完了: データ一括取得成功`);
     return result;
   } catch (e) {
     Logger.log(`getRegistrationData統合処理エラー: ${e.message}\nStack: ${e.stack}`);
-    return createApiErrorResponse(
+    return /** @type {ApiErrorResponse} */ (createApiErrorResponse(
       `統合登録処理中にエラー: ${e.message}`,
       true,
-    );
+    ));
   }
 }
 
