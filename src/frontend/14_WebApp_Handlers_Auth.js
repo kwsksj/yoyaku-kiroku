@@ -120,6 +120,10 @@ export const authActionHandlers = {
           },
         });
 
+        // データ取得完了を記録（キャッシュ管理用）
+        authHandlersStateManager.setDataFetchProgress('lessons', false);
+        authHandlersStateManager.setDataFetchProgress('reservations', false);
+
         console.log(
           '✅ dispatch完了 - 現在のstate:',
           authHandlersStateManager.getState().myReservations?.length,
@@ -430,6 +434,10 @@ export const authActionHandlers = {
             isDataFresh: true,
           },
         });
+
+        // データ取得完了を記録（キャッシュ管理用）
+        authHandlersStateManager.setDataFetchProgress('lessons', false);
+        authHandlersStateManager.setDataFetchProgress('reservations', false);
       } else {
         showInfo(response.message || '登録に失敗しました', 'エラー');
       }
