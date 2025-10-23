@@ -404,7 +404,7 @@ export const authActionHandlers = {
     showLoading('login');
     google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔍 registerNewUser レスポンス:', response);
+        console.log('🔍 getRegistrationData レスポンス:', response);
       }
       hideLoading();
       if (response.success && response.userFound) {
@@ -445,12 +445,12 @@ export const authActionHandlers = {
       ['withFailureHandler']((/** @type {Error} */ error) => {
         hideLoading();
         const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
-        handler.handle(error, 'submitRegistration:registerNewUser', {
+        handler.handle(error, 'submitRegistration:getRegistrationData', {
           finalUserData,
         });
         handleServerError(error);
       })
-      .registerNewUser(finalUserData);
+      .getRegistrationData(finalUserData);
   },
 
   /** プロフィール編集画面を表示します（シートからデータ取得） */
