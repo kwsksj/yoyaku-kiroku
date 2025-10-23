@@ -718,7 +718,9 @@ export function registerNewUser(userData) {
         CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
       );
       if (typeof studentIdColumn !== 'number') {
-        throw new Error('生徒名簿シートのヘッダーに「生徒ID」列が見つかりません。');
+        throw new Error(
+          '生徒名簿シートのヘッダーに「生徒ID」列が見つかりません。',
+        );
       }
       newRow[studentIdColumn] = newStudentId;
 
@@ -726,7 +728,9 @@ export function registerNewUser(userData) {
         CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE,
       );
       if (typeof registrationDateColumn !== 'number') {
-        throw new Error('生徒名簿シートのヘッダーに「登録日時」列が見つかりません。');
+        throw new Error(
+          '生徒名簿シートのヘッダーに「登録日時」列が見つかりません。',
+        );
       }
       newRow[registrationDateColumn] = new Date();
 

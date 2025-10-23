@@ -774,8 +774,7 @@ export function rebuildAllReservationsCache() {
     );
 
     if (dateColumnIndex === undefined) {
-      Logger.log('予約シートで日付列を特定できませんでした。');
-      return;
+      throw new Error('予約シートで日付列を特定できませんでした。');
     }
 
     allReservationRows.forEach(
@@ -979,27 +978,25 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
       CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START,
     ];
 
+    const dateColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
+    if (dateColumn === -1) {
+      throw new Error('日程マスターシートに必須の「日付」列が見つかりません。');
+    }
+
+    // filter内ではdateColumnを直接使用
     const scheduleDataList = allData
-      .filter(
-        /** @param {(string|number|Date)[]} row */ row => {
-          const dateColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
-          if (dateColumn === -1) return false;
-          const dateValue = row[dateColumn];
-          if (!dateValue) return false;
+      .filter(row => {
+        const dateValue = row[dateColumn];
+        if (!dateValue) return false;
 
-          // Date オブジェクトを文字列形式に変換して比較
-          const dateStr =
-            dateValue instanceof Date
-              ? Utilities.formatDate(
-                  dateValue,
-                  CONSTANTS.TIMEZONE,
-                  'yyyy-MM-dd',
-                )
-              : String(dateValue);
+        // Date オブジェクトを文字列形式に変換して比較
+        const dateStr =
+          dateValue instanceof Date
+            ? Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd')
+            : String(dateValue);
 
-          return dateStr >= startDate && dateStr <= endDate;
-        },
-      )
+        return dateStr >= startDate && dateStr <= endDate;
+      })
       .map(
         /** @param {(string|number|Date)[]} row */ row => {
           /** @type {LessonCore} */
@@ -1490,21 +1487,24 @@ export function updateScheduleStatusToCompleted() {
     const allData = dataRange.getValues();
 
     if (allData.length <= 1) {
-      Logger.log('[ScheduleStatus] データが存在しません');
-      return 0;
+      const errorMsg = '[ScheduleStatus] データが存在しません';
+      Logger.log(errorMsg);
+      throw new Error(errorMsg);
     }
 
     const headers = allData[0];
     if (!Array.isArray(headers)) {
-      Logger.log('[ScheduleStatus] ヘッダー行を取得できませんでした');
-      return 0;
+      const errorMsg = '[ScheduleStatus] ヘッダー行を取得できませんでした';
+      Logger.log(errorMsg);
+      throw new Error(errorMsg);
     }
     const dateColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
     const statusColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
 
     if (dateColIndex === -1 || statusColIndex === -1) {
-      Logger.log('[ScheduleStatus] 必要な列が見つかりません');
-      return 0;
+      const errorMsg = `[ScheduleStatus] 必要な列が見つかりません: DATE=${dateColIndex}, STATUS=${statusColIndex}`;
+      Logger.log(errorMsg);
+      throw new Error(errorMsg);
     }
 
     let updatedCount = 0;

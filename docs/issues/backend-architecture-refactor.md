@@ -21,7 +21,7 @@
 
 ### Phase A: 予約ロジックの分割
 
-1. `reservations/` ディレクトリを作成し、以下のサブモジュールへ分割  
+1. `reservations/` ディレクトリを作成し、以下のサブモジュールへ分割
    - `reservation-create.js` / `reservation-update.js` / `reservation-cancel.js` / `reservation-accounting.js`
 2. 各モジュールに `withTransaction` やログ処理など共通ヘルパーが必要な場合は `reservations/common.js` を新設。
 3. 既存の `05-2_Backend_Write.js` はこれらを re-export するシェルに置き換え、段階的にロジックを移行。
@@ -58,7 +58,4 @@
 
 ---
 
-この Issue を起点に、段階的なリファクタリング計画・実施状況を追跡する。質問や追加アイデアがあればコメントで共有してください。
-@gemini-code-assist
-@chatgpt-codex-connector
-@Claude
+この Issue を起点に、段階的なリファクタリング計画・実施状況を追跡する。質問や追加アイデアがあればコメントで共有してください。@gemini-code-assist @chatgpt-codex-connector @Claude
