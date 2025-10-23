@@ -7,23 +7,12 @@
  */
 export function handleServerError(error: Error, context?: string): ApiErrorResponse;
 /**
- * 統一APIレスポンス作成関数
+ * 統一フォーマットのAPIレスポンスを生成
  * @param {boolean} success - 成功フラグ
  * @param {ApiResponseData} data - レスポンスデータまたはエラー情報
- * @returns {UnifiedApiResponse} 統一APIレスポンス
+ * @returns {ApiResponseGeneric} APIレスポンス
  */
-export function createApiResponse(success: boolean, data?: ApiResponseData): UnifiedApiResponse;
-/**
- * =================================================================
- * 【ファイル名】: 08_ErrorHandler.js
- * 【バージョン】: 1.0
- * 【役割】: プロジェクト全体で使用する統一エラーハンドリングシステム
- * - フロントエンド・バックエンド共通のエラー処理
- * - 構造化されたエラーログ出力
- * - 統一されたユーザー通知
- * 【構成】: 18ファイル構成のうちの8番目（08_Utilities.jsから分離）
- * =================================================================
- */
+export function createApiResponse(success: boolean, data?: ApiResponseData): ApiResponseGeneric;
 /**
  * 統一エラーハンドラークラス（バックエンド用）
  * Google Apps Script環境でのエラー処理を統一

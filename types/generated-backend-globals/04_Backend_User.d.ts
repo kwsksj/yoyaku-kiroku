@@ -1,11 +1,9 @@
 /**
- * =================================================================
- * 【ファイル名】: 04_Backend_User.js
- * 【バージョン】: 1.0
- * 【役割】: ユーザー関連のバックエンドロジック
- * - ユーザー情報の取得、更新
- * - ユーザー認証
- * =================================================================
+ * @typedef {Object} InitialAppDataPayload
+ * @property {AccountingMasterItemCore[]} accountingMaster
+ * @property {Record<string, unknown>} cacheVersions
+ * @property {LessonCore[]} lessons
+ * @property {ReservationCore[]} myReservations
  */
 /**
  * 生徒名簿シートから全生徒データを取得し、オブジェクト形式で返します。
@@ -58,9 +56,9 @@ export function updateUserProfile(userInfo: UserCore): ApiResponseGeneric<UserPr
  * （Phase 3: 型システム統一対応）
  *
  * @param {UserCore} userData - 登録するユーザー情報
- * @returns {ApiResponseGeneric<UserCore>}
+ * @returns {ApiResponseGeneric<InitialAppDataPayload>}
  */
-export function registerNewUser(userData: UserCore): ApiResponseGeneric<UserCore>;
+export function registerNewUser(userData: UserCore): ApiResponseGeneric<InitialAppDataPayload>;
 /**
  * ユーザーのログイン処理を行います。
  * （Phase 3: 型システム統一対応）
@@ -117,3 +115,9 @@ export function clearAllReservationsCache_DEV(): void;
  * 【開発用】全キャッシュをクリアします。
  */
 export function clearAllCache_DEV(): void;
+export type InitialAppDataPayload = {
+    accountingMaster: AccountingMasterItemCore[];
+    cacheVersions: Record<string, unknown>;
+    lessons: LessonCore[];
+    myReservations: ReservationCore[];
+};

@@ -1,13 +1,4 @@
 /**
- * =================================================================
- * 【ファイル名】: 07_CacheManager.js
- * 【バージョン】: 6.6
- * 【役割】: キャッシュ管理システム
- * 【v6.6での変更点】:
- * - 内部関数の `cacheKey` の型を `string` に統一し、型エラーを解消
- * =================================================================
- */
-/**
  * ヘッダーマップから型安全にインデックスを取得するヘルパー関数
  * @param {HeaderMapType} headerMap - ヘッダーマップ（MapまたはRecord）
  * @param {string} headerName - ヘッダー名
@@ -133,7 +124,7 @@ export function rebuildAllReservationsCache(): void;
  */
 export function rebuildScheduleMasterCache(fromDate?: string, toDate?: string): {
     version: number;
-    schedule: any;
+    schedule: any[];
     dateRange: {
         from: string;
         to: string;
@@ -150,7 +141,7 @@ export function rebuildScheduleMasterCache(fromDate?: string, toDate?: string): 
  */
 export function rebuildAccountingMasterCache(): {
     version: number;
-    items: any;
+    items: AccountingMasterItem[];
 };
 /**
  * 生徒名簿から基本情報（ID、本名、ニックネーム、電話番号）を読み込み、CacheServiceに保存する

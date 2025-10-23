@@ -17,15 +17,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // 設定
-const TARGET_DIRS = [
-  path.join(__dirname, '../types/generated-backend-globals'),
-  path.join(__dirname, '../types/generated-shared-globals'),
-];
-
-const FRONTEND_GLOBALS_DIR = path.join(
-  __dirname,
-  '../types/generated-frontend-globals',
-);
+const TARGET_DIRS = [path.join(__dirname, '../types/generated-shared-globals')];
 
 const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
 
@@ -284,12 +276,6 @@ function generateBridgeFiles() {
   console.log(
     '🔍 Scanning generated type definitions to create global bridges...',
   );
-
-  if (fs.existsSync(FRONTEND_GLOBALS_DIR)) {
-    console.log(
-      `ℹ️ Skipping frontend global bridge generation: ${path.basename(FRONTEND_GLOBALS_DIR)}`,
-    );
-  }
 
   for (const dir of TARGET_DIRS) {
     if (!fs.existsSync(dir)) {

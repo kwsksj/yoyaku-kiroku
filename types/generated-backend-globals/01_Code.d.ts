@@ -73,15 +73,6 @@ export function trigger_sendNotification_day25_hour9(): void;
 export function trigger_sendNotification_day25_hour12(): void;
 export function trigger_sendNotification_day25_hour18(): void;
 export function trigger_sendNotification_day25_hour21(): void;
-/**
- * =================================================================
- * 【ファイル名】: 01_Code.gs
- * 【バージョン】: 2.4
- * 【役割】: グローバル定数、UI定義、トリガー関数を集約するプロジェクトのエントリーポイント。
- * 【v2.4での変更点】:
- * - グローバル定数を00_Constants.jsに移行
- * =================================================================
- */
 export const ADMIN_EMAIL: string;
 export const CALENDAR_IDS_RAW: string;
 export const CALENDAR_IDS: any;

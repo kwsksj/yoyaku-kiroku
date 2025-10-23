@@ -1,14 +1,31 @@
 /**
  * =================================================================
- * 【ファイル名】: 08_ErrorHandler.js
- * 【バージョン】: 1.0
- * 【役割】: プロジェクト全体で使用する統一エラーハンドリングシステム
- * - フロントエンド・バックエンド共通のエラー処理
- * - 構造化されたエラーログ出力
- * - 統一されたユーザー通知
- * 【構成】: 18ファイル構成のうちの8番目（08_Utilities.jsから分離）
+ * 【ファイル名】  : 08_ErrorHandler.js
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : プロジェクト全体の統一エラーハンドリングを担い、API レスポンスとログの双方を整備する。
+ *
+ * 【主な責務】
+ *   - `BackendErrorHandler` で例外を捕捉し、API 互換のエラーレスポンスへ変換
+ *   - 重要度に応じてログ出力（PerformanceLog / Logger）と管理者通知を制御
+ *   - 既存の `handleServerError` や `createApiResponse` などレガシー互換 API を提供
+ *
+ * 【関連モジュール】
+ *   - `01_Code.gs`: 管理者メールアドレスの取得
+ *   - `08_Utilities.js`: パフォーマンスログ機能を共有
+ *   - 全バックエンド API (`05-2_Backend_Write.js`, `09_Backend_Endpoints.js` など) がエラー処理で利用
+ *
+ * 【利用時の留意点】
+ *   - 返却するレスポンスは `ApiErrorResponse` 互換となるため、呼び出し側での型注釈を合わせる
+ *   - メール通知は本番環境のみを想定。DEV モード時は詳細ログのみを出力
+ *   - 新しいエラーコードやメタ情報を追加する場合は、型定義（`types/core/common.d.ts`）側も更新する
  * =================================================================
  */
+
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { ADMIN_EMAIL } from './01_Code.js';
+import { PerformanceLog } from './08_Utilities.js';
 
 /**
  * 統一エラーハンドラークラス（バックエンド用）
@@ -191,35 +208,67 @@ export function handleServerError(error, context = 'server-error') {
 }
 
 /**
- * 統一APIレスポンス作成関数
+ * 統一フォーマットのAPIレスポンスを生成
  * @param {boolean} success - 成功フラグ
  * @param {ApiResponseData} data - レスポンスデータまたはエラー情報
- * @returns {UnifiedApiResponse} 統一APIレスポンス
+ * @returns {ApiResponseGeneric} APIレスポンス
  */
 export function createApiResponse(success, data = {}) {
   if (success) {
-    /** @type {ApiSuccessResponse} */
+    const payload = /** @type {Record<string, unknown>} */ (
+      data && typeof data === 'object' ? data : {}
+    );
+    const responseData =
+      'data' in payload && payload['data'] !== undefined
+        ? payload['data']
+        : payload;
     return {
       success: true,
-      data: data.data || data,
-      message: data.message || 'Success',
+      data: /** @type {any} */ (responseData),
+      message:
+        typeof payload['message'] === 'string'
+          ? /** @type {string} */ (payload['message'])
+          : 'Success',
       meta: {
         timestamp: new Date().toISOString(),
         version: 1,
       },
     };
   } else {
-    /** @type {ApiErrorResponse} */
-    return {
-      success: false,
-      message: data.message || 'Error occurred',
-      meta: {
-        timestamp: new Date().toISOString(),
-        context: data.context || 'unknown',
-        errorId: BackendErrorHandler.generateErrorId(),
-      },
-      ...(data.debug && { debug: data.debug }),
+    const payload = /** @type {Record<string, unknown>} */ (
+      data && typeof data === 'object' ? data : {}
+    );
+    const errorId = BackendErrorHandler.generateErrorId();
+    const meta = {
+      timestamp: new Date().toISOString(),
+      context:
+        typeof payload['context'] === 'string'
+          ? /** @type {string} */ (payload['context'])
+          : 'unknown',
+      errorId,
     };
+
+    /** @type {ApiResponseGeneric} */
+    const errorResponse = {
+      success: false,
+      message:
+        typeof payload['message'] === 'string'
+          ? /** @type {string} */ (payload['message'])
+          : 'Error occurred',
+      meta,
+    };
+
+    if (payload['error'] && typeof payload['error'] === 'object') {
+      errorResponse.error = /** @type {ErrorInfo} */ (payload['error']);
+    }
+
+    if (payload['debug'] && typeof payload['debug'] === 'object') {
+      errorResponse.debug = /** @type {Record<string, unknown>} */ (
+        payload['debug']
+      );
+    }
+
+    return errorResponse;
   }
 }
 

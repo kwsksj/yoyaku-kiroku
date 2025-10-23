@@ -1,13 +1,31 @@
 /**
  * =================================================================
- * 【ファイル名】: 02-7_Notification_StudentReservation.js
- * 【バージョン】: 1.0
- * 【役割】: 生徒への予約関連メール通知
- * - 予約確定メール送信
- * - 予約キャンセルメール送信
- * - 統一メール送信インターフェース
+ * 【ファイル名】  : 02-7_Notification_StudentReservation.js
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : 生徒向けの予約関連メール（確定・キャンセルなど）を生成・送信する。
+ *
+ * 【主な責務】
+ *   - 予約確定・キャンセル・待機通知など、ステータスに応じた件名／本文の生成
+ *   - `ADMIN_EMAIL` を送信元として利用し、教室名義でメールを送る
+ *   - 送信結果を `logActivity` へ記録し、失敗時には例外を発生させずログで把握できるようにする
+ *
+ * 【関連モジュール】
+ *   - `07_CacheManager.js`: 予約データや生徒データのキャッシュ参照
+ *   - `05-2_Backend_Write.js`: 予約操作後の通知で呼び出される
+ *   - `02-5_Notification_StudentSchedule.js`: 定期通知用のフォーマッタとして一部関数を共有
+ *
+ * 【利用時の留意点】
+ *   - GmailApp を直接呼び出すため、実行アカウントの送信制限に注意
+ *   - メール本文はテキスト形式を前提としている。HTML 対応する場合は追加パラメータが必要
+ *   - 予約データに `user` が含まれていない場合はキャッシュ補完が必要になるので呼び出し前に準備する
  * =================================================================
  */
+
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
+import { logActivity } from './08_Utilities.js';
 
 /**
  * 予約確定メール送信機能（ReservationCore対応）
@@ -17,6 +35,8 @@
 export function sendBookingConfirmationEmail(reservation) {
   try {
     const student = reservation.user;
+    const studentId =
+      student && typeof student.studentId === 'string' ? student.studentId : '';
     if (!student || !student.email) {
       Logger.log(
         'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
@@ -24,19 +44,27 @@ export function sendBookingConfirmationEmail(reservation) {
       return false;
     }
 
+    const emailAddress =
+      typeof student.email === 'string' ? student.email.trim() : '';
+    if (!emailAddress) {
+      Logger.log('メール送信スキップ: メールアドレスが無効です');
+      return false;
+    }
+
     // PropertiesServiceから送信元メールアドレスを取得
-    const fromEmail =
+    const fromEmailRaw =
       PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL');
-    if (!fromEmail) {
+    if (!fromEmailRaw || String(fromEmailRaw).trim() === '') {
       throw new Error('ADMIN_EMAIL が設定されていません');
     }
+    const fromEmail = String(fromEmailRaw);
 
     // メール内容を生成
     const { subject, textBody } =
       createBookingConfirmationTemplate(reservation);
 
     // GmailAppでメール送信
-    GmailApp.sendEmail(student.email, subject, textBody, {
+    GmailApp.sendEmail(emailAddress, subject, textBody, {
       from: fromEmail,
       name: '川崎誠二 木彫り教室',
       replyTo: fromEmail,
@@ -49,9 +77,9 @@ export function sendBookingConfirmationEmail(reservation) {
       ? '空き連絡希望登録メール'
       : '予約確定メール';
     const userTypeText = isFirstTime ? '初回者' : '経験者';
-    Logger.log(`メール送信成功: ${student.email} (${userTypeText})`);
+    Logger.log(`メール送信成功: ${emailAddress} (${userTypeText})`);
     logActivity(
-      student.studentId,
+      studentId || 'unknown-student',
       'メール送信',
       '成功',
       `${emailTypeText}送信完了 (${userTypeText})`,
@@ -61,8 +89,12 @@ export function sendBookingConfirmationEmail(reservation) {
   } catch (error) {
     Logger.log(`メール送信エラー: ${error.message}`);
     if (reservation.user) {
+      const errorStudentId =
+        typeof reservation.user.studentId === 'string'
+          ? reservation.user.studentId
+          : 'unknown-student';
       logActivity(
-        reservation.user.studentId,
+        errorStudentId,
         'メール送信エラー',
         '失敗',
         `失敗理由: ${error.message}`,
@@ -193,7 +225,7 @@ export function getTuitionDisplayText(classroom) {
     // 会計マスタから価格データを取得
     /** @type {AccountingCacheData | null} */
     const accountingData = /** @type {AccountingCacheData | null} */ (
-      getCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA)
+      getTypedCachedData(CACHE_KEYS.MASTER_ACCOUNTING_DATA)
     );
     if (!accountingData || !accountingData['items']) {
       return '授業料情報が取得できませんでした';
@@ -433,23 +465,23 @@ export function sendReservationEmailAsync(
 
     // ★改善ポイント: reservation.user を直接利用する
     const studentWithEmail = reservation.user;
+    const studentId =
+      studentWithEmail && typeof studentWithEmail.studentId === 'string'
+        ? studentWithEmail.studentId
+        : 'unknown-student';
 
     if (!studentWithEmail || !studentWithEmail.email) {
       if (isFirstTime && emailType === 'confirmation' && studentWithEmail) {
         // 初回者でメールアドレス未設定の場合はエラーログ
-        Logger.log(
-          `初回者メール送信失敗: メールアドレス未設定 (${studentWithEmail.studentId})`,
-        );
+        Logger.log(`初回者メール送信失敗: メールアドレス未設定 (${studentId})`);
         logActivity(
-          studentWithEmail.studentId,
+          studentId,
           'メール送信エラー',
           '失敗',
           '初回者: メールアドレス未設定',
         );
       } else if (studentWithEmail) {
-        Logger.log(
-          `メール送信スキップ: メールアドレス未設定 (${studentWithEmail.studentId})`,
-        );
+        Logger.log(`メール送信スキップ: メールアドレス未設定 (${studentId})`);
       } else {
         Logger.log('メール送信スキップ: ユーザー情報がありません');
       }
@@ -458,9 +490,7 @@ export function sendReservationEmailAsync(
 
     // 初回者は必須送信、経験者はメール連絡希望確認
     if (!isFirstTime && !studentWithEmail.wantsEmail) {
-      Logger.log(
-        `メール送信スキップ: メール連絡希望なし (${studentWithEmail.studentId})`,
-      );
+      Logger.log(`メール送信スキップ: メール連絡希望なし (${studentId})`);
       return;
     }
 
@@ -473,7 +503,7 @@ export function sendReservationEmailAsync(
         : '予約確定メール';
       const userTypeText = isFirstTime ? '初回者' : '経験者';
       Logger.log(
-        `${emailTypeText}送信完了: ${studentWithEmail.studentId} (${userTypeText}, 予約ID: ${reservation.reservationId})`,
+        `${emailTypeText}送信完了: ${studentId} (${userTypeText}, 予約ID: ${reservation.reservationId})`,
       );
     } else if (emailType === 'cancellation') {
       sendCancellationEmail(reservation, cancelMessage);
@@ -497,6 +527,8 @@ export function sendReservationEmailAsync(
 export function sendCancellationEmail(reservation, cancelMessage) {
   try {
     const student = reservation.user;
+    const studentId =
+      student && typeof student.studentId === 'string' ? student.studentId : '';
     if (!student || !student.email) {
       Logger.log(
         'メール送信スキップ: ユーザー情報またはメールアドレスが空です',
@@ -505,11 +537,12 @@ export function sendCancellationEmail(reservation, cancelMessage) {
     }
 
     // PropertiesServiceから送信元メールアドレスを取得
-    const fromEmail =
+    const fromEmailRaw =
       PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL');
-    if (!fromEmail) {
+    if (!fromEmailRaw || String(fromEmailRaw).trim() === '') {
       throw new Error('ADMIN_EMAIL が設定されていません');
     }
+    const fromEmail = String(fromEmailRaw);
 
     // 日付フォーマット
     const formattedDate = formatDateForEmail(reservation.date);
@@ -527,17 +560,23 @@ export function sendCancellationEmail(reservation, cancelMessage) {
       cancelMessage,
     );
 
+    const emailAddress =
+      typeof student.email === 'string' ? student.email.trim() : '';
+    if (!emailAddress) {
+      throw new Error('メールアドレスが設定されていません');
+    }
+
     // GmailAppでメール送信
-    GmailApp.sendEmail(student.email, subject, textBody, {
+    GmailApp.sendEmail(emailAddress, subject, textBody, {
       from: fromEmail,
       name: '川崎誠二 木彫り教室',
       replyTo: fromEmail,
     });
 
     // 送信成功ログ
-    Logger.log(`キャンセルメール送信成功: ${student.email}`);
+    Logger.log(`キャンセルメール送信成功: ${emailAddress}`);
     logActivity(
-      student.studentId,
+      studentId || 'unknown-student',
       'メール送信',
       '成功',
       'キャンセル確認メール送信完了',
@@ -547,8 +586,12 @@ export function sendCancellationEmail(reservation, cancelMessage) {
   } catch (error) {
     Logger.log(`キャンセルメール送信エラー: ${error.message}`);
     if (reservation.user) {
+      const errorStudentId =
+        typeof reservation.user.studentId === 'string'
+          ? reservation.user.studentId
+          : 'unknown-student';
       logActivity(
-        reservation.user.studentId,
+        errorStudentId,
         'メール送信エラー',
         '失敗',
         `失敗理由: ${error.message}`,

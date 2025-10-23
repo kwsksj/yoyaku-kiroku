@@ -1,13 +1,33 @@
 /**
  * =================================================================
- * 【ファイル名】: 02-5_Notification_StudentSchedule.js
- * 【バージョン】: 1.0
- * 【役割】: 生徒への月次日程通知メール
- * - 生徒への定期通知メール送信
- * - 通知対象者の抽出（連絡希望 & 通知設定あり）
- * - メール本文生成（個人予約 + 教室日程）
+ * 【ファイル名】  : 02-5_Notification_StudentSchedule.js
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : 生徒向けの月次日程通知メールを生成・送信する。
+ *
+ * 【主な責務】
+ *   - 通知希望設定（通知日・時間）に基づき送信対象者を抽出
+ *   - `getLessons` や予約キャッシュを参照して、個別の予約状況を本文へ反映
+ *   - 実行ログを `logActivity` に記録し、成功／失敗件数を把握できるようにする
+ *
+ * 【関連モジュール】
+ *   - `05-3_Backend_AvailableSlots.js`: 直近のスケジュール取得
+ *   - `02-7_Notification_StudentReservation.js`: 本文フォーマット用のユーティリティ（例：日付整形）
+ *   - `07_CacheManager.js`: 生徒・予約キャッシュから基本データを取得
+ *
+ * 【利用時の留意点】
+ *   - `ADMIN_EMAIL`（From アドレス）が未設定の場合は送信しない設計。デプロイ時に確認する
+ *   - トリガーは `01_Code.gs` 側で登録されるため、日程変更後はトリガーの整合性をチェック
+ *   - 本文テンプレートを更新する際は、改行コードやマルチバイト文字のエンコードに注意
  * =================================================================
  */
+
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { getLessons } from './05-3_Backend_AvailableSlots.js';
+import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
+import { getCachedReservationsAsObjects, logActivity } from './08_Utilities.js';
+import { formatDateForEmail } from './02-7_Notification_StudentReservation.js';
 
 /**
  * 月次通知メールを送信するメインエントリーポイント（トリガーから実行）
@@ -44,12 +64,13 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
     Logger.log(`取得した日程データ: ${scheduleData.length}件`);
 
     // 送信元メールアドレスを取得
-    const fromEmail =
+    const fromEmailRaw =
       PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL');
-    if (!fromEmail) {
+    if (!fromEmailRaw || String(fromEmailRaw).trim() === '') {
       Logger.log('ADMIN_EMAIL が設定されていません');
       return;
     }
+    const fromEmail = String(fromEmailRaw);
 
     // 件名（テスト環境では[テスト]プレフィックス追加）
     const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
@@ -108,26 +129,34 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
           scheduleData,
         );
 
-        if (student.email) {
-          GmailApp.sendEmail(student.email, emailSubject, emailBody, {
-            from: fromEmail,
-            name: '川崎誠二 木彫り教室',
-            replyTo: fromEmail,
-          });
+        const emailAddress =
+          typeof student.email === 'string' ? student.email.trim() : '';
+        if (!emailAddress) {
+          throw new Error('メールアドレスが設定されていません');
         }
 
+        GmailApp.sendEmail(emailAddress, emailSubject, emailBody, {
+          from: fromEmail,
+          name: '川崎誠二 木彫り教室',
+          replyTo: fromEmail,
+        });
+
         successCount++;
-        Logger.log(`送信成功: ${student.studentId} (${student.email})`);
+        Logger.log(`送信成功: ${student.studentId} (${emailAddress})`);
       } catch (error) {
         failCount++;
         Logger.log(
           `送信失敗: ${student.studentId} - ${error.message || error}`,
         );
+        const errorStudentId =
+          typeof student.studentId === 'string'
+            ? student.studentId
+            : 'unknown-student';
         logActivity(
-          student.studentId,
+          errorStudentId,
           '通知メール送信失敗',
           'エラー',
-          error.message || String(error),
+          typeof error?.message === 'string' ? error.message : String(error),
         );
       }
     }
@@ -161,7 +190,7 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
  */
 export function _getNotificationRecipients(targetDay, targetHour) {
   // 生徒キャッシュから全生徒データを取得
-  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  const studentsCache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
   const allStudents = studentsCache?.students
     ? Object.values(studentsCache.students)
     : [];

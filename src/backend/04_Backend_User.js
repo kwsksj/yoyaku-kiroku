@@ -1,11 +1,59 @@
 /**
  * =================================================================
- * 【ファイル名】: 04_Backend_User.js
- * 【バージョン】: 1.0
- * 【役割】: ユーザー関連のバックエンドロジック
- * - ユーザー情報の取得、更新
- * - ユーザー認証
+ * 【ファイル名】  : 04_Backend_User.js
+ * 【モジュール種別】: バックエンド（GAS）
+ * 【役割】        : 生徒（ユーザー）データの取得・更新・認証に関する中核ロジックをまとめる。
+ *
+ * 【主な責務】
+ *   - `getAllStudentsAsObject` で名簿シートを正規化し、他モジュールへ提供
+ *   - プロフィール更新・登録・ログインなどのユーザー操作を一元管理
+ *   - CacheManager と連携し、生徒キャッシュの整合性を維持
+ *
+ * 【関連モジュール】
+ *   - `00_SpreadsheetManager.js`: シート操作の基盤
+ *   - `07_CacheManager.js`: 生徒キャッシュの取得・再構築
+ *   - `08_Utilities.js`: withTransaction / normalizePhoneNumber などの共通ユーティリティ
+ *
+ * 【利用時の留意点】
+ *   - すべての公開関数は `withTransaction` 等で排他制御を行う設計。呼び出し側で重複ロックを避けること
+ *   - 電話番号比較は `normalizePhoneNumber` に必ず通す（`INVALID_PHONE_RESULT` を活用）
+ *   - 新規フィールドを名簿シートへ追加した際は、ヘッダーマップ (`createHeaderMap`) とプロパティマッピングを更新する
  * =================================================================
+ */
+
+// ================================================================
+// 依存モジュール
+// ================================================================
+import { SS_MANAGER } from './00_SpreadsheetManager.js';
+import {
+  CACHE_KEYS,
+  addCachedStudent,
+  deleteAllCache,
+  deleteCache,
+  getCachedAllStudents,
+  rebuildAllStudentsBasicCache,
+  updateCachedStudent,
+} from './07_CacheManager.js';
+import {
+  createHeaderMap,
+  getCachedStudentById,
+  logActivity,
+  normalizePhoneNumber,
+  withTransaction,
+} from './08_Utilities.js';
+
+/** @type {PhoneNormalizationResult} */
+const INVALID_PHONE_RESULT = {
+  normalized: '',
+  isValid: false,
+};
+
+/**
+ * @typedef {Object} InitialAppDataPayload
+ * @property {AccountingMasterItemCore[]} accountingMaster
+ * @property {Record<string, unknown>} cacheVersions
+ * @property {LessonCore[]} lessons
+ * @property {ReservationCore[]} myReservations
  */
 
 // =================================================================
@@ -162,7 +210,7 @@ function findUserByPhoneAndRealName(phone, realName) {
     const foundUser = Object.values(allStudents).find(user => {
       const normalizedUserPhone = user.phone
         ? normalizePhoneNumber(user.phone)
-        : { isValid: false };
+        : INVALID_PHONE_RESULT;
       return (
         normalizedUserPhone.isValid &&
         normalizedUserPhone.normalized === normalizedInputPhone.normalized &&
@@ -225,7 +273,7 @@ export function authenticateUser(phone) {
     const matchedStudent = Object.values(allStudents).find(student => {
       const normalizedStudentPhone = student.phone
         ? normalizePhoneNumber(student.phone)
-        : { isValid: false };
+        : INVALID_PHONE_RESULT;
       return (
         normalizedStudentPhone.isValid &&
         normalizedStudentPhone.normalized === normalizedInput.normalized
@@ -407,9 +455,19 @@ export function getUserDetailForEdit(studentId) {
  */
 export function updateUserProfile(userInfo) {
   return withTransaction(() => {
+    let studentId = '';
     try {
+      if (!userInfo.studentId) {
+        return {
+          success: false,
+          message: 'studentIdが指定されていません。',
+        };
+      }
+
+      studentId = userInfo.studentId;
+
       // 新しいヘルパー関数を使用して生徒データを取得
-      const targetStudent = getCachedStudentById(userInfo.studentId);
+      const targetStudent = getCachedStudentById(studentId);
       if (!targetStudent) {
         throw new Error('更新対象のユーザーが見つかりませんでした。');
       }
@@ -482,11 +540,11 @@ export function updateUserProfile(userInfo) {
         if (allStudents) {
           const isDuplicate = Object.values(allStudents).some(student => {
             // 自分自身は除外
-            if (student.studentId === userInfo.studentId) return false;
+            if (student.studentId === studentId) return false;
 
             const studentPhone = student.phone
               ? normalizePhoneNumber(student.phone)
-              : { isValid: false };
+              : INVALID_PHONE_RESULT;
             return (
               studentPhone.isValid &&
               studentPhone.normalized === normalizedPhone.normalized
@@ -559,9 +617,9 @@ export function updateUserProfile(userInfo) {
       // キャッシュを更新
       updateCachedStudent(updatedUser);
 
-      Logger.log(`ユーザー情報更新成功: ${userInfo.studentId}`);
+      Logger.log(`ユーザー情報更新成功: ${studentId}`);
       logActivity(
-        userInfo.studentId,
+        studentId,
         'プロフィール更新',
         '成功',
         'プロフィールが更新されました',
@@ -577,7 +635,7 @@ export function updateUserProfile(userInfo) {
     } catch (error) {
       Logger.log(`ユーザー情報更新エラー: ${error.message}`);
       logActivity(
-        userInfo.studentId,
+        studentId,
         'プロフィール更新',
         '失敗',
         `エラー: ${error.message}`,
@@ -599,7 +657,7 @@ export function updateUserProfile(userInfo) {
  * （Phase 3: 型システム統一対応）
  *
  * @param {UserCore} userData - 登録するユーザー情報
- * @returns {ApiResponseGeneric<UserCore>}
+ * @returns {ApiResponseGeneric<InitialAppDataPayload>}
  */
 export function registerNewUser(userData) {
   return withTransaction(() => {
@@ -645,13 +703,29 @@ export function registerNewUser(userData) {
       const headers = allStudentsSheet
         .getRange(1, 1, 1, allStudentsSheet.getLastColumn())
         .getValues()[0];
-      const headerMap = createHeaderMap(headers);
+      const headerMap = /** @type {Map<string, number>} */ (
+        createHeaderMap(headers)
+      );
+      /**
+       * @param {string} headerName
+       * @returns {number | undefined}
+       */
+      const resolveColumnIndex = headerName => headerMap.get(headerName);
 
       // 新しい行データを作成
       const newRow = Array(headers.length).fill('');
-      newRow[headerMap.get(CONSTANTS.HEADERS.ROSTER.STUDENT_ID)] = newStudentId;
-      newRow[headerMap.get(CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE)] =
-        new Date();
+      const studentIdColumn = resolveColumnIndex(
+        CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+      );
+      if (typeof studentIdColumn === 'number') {
+        newRow[studentIdColumn] = newStudentId;
+      }
+      const registrationDateColumn = resolveColumnIndex(
+        CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE,
+      );
+      if (typeof registrationDateColumn === 'number') {
+        newRow[registrationDateColumn] = new Date();
+      }
 
       // userDataから対応する列に値を設定
       // (保守性向上: プロパティ名とヘッダー名の明示的なマッピング)
@@ -679,8 +753,9 @@ export function registerNewUser(userData) {
 
       for (const key in userData) {
         const headerName = propToHeaderMap[key];
-        const colIdx = headerMap.get(headerName);
-        if (headerName && colIdx !== undefined) {
+        const colIdx =
+          headerName !== undefined ? resolveColumnIndex(headerName) : undefined;
+        if (headerName && typeof colIdx === 'number') {
           // 電話番号はシングルクォートプレフィックスを追加（先頭の0を保持）
           if (key === 'phone' && userData[key]) {
             newRow[colIdx] = `'${userData[key]}`;
@@ -692,7 +767,12 @@ export function registerNewUser(userData) {
 
       // 表示名を決定
       const displayName = userData.nickname || userData.realName;
-      newRow[headerMap.get(CONSTANTS.HEADERS.ROSTER.NICKNAME)] = displayName;
+      const nicknameColumn = resolveColumnIndex(
+        CONSTANTS.HEADERS.ROSTER.NICKNAME,
+      );
+      if (typeof nicknameColumn === 'number') {
+        newRow[nicknameColumn] = displayName;
+      }
 
       // シートに新しい行を追加
       allStudentsSheet.appendRow(newRow);
@@ -762,7 +842,7 @@ function checkExistingUserByPhone(phone) {
     return Object.values(allStudents).some(user => {
       const normalizedUserPhone = user.phone
         ? normalizePhoneNumber(user.phone)
-        : { isValid: false };
+        : INVALID_PHONE_RESULT;
       return (
         normalizedUserPhone.isValid &&
         normalizedUserPhone.normalized === normalizedInput.normalized
@@ -804,13 +884,12 @@ export function loginUser(phone, realName) {
   try {
     const result = findUserByPhoneAndRealName(phone, realName);
     if (result.success && result.data) {
-      Logger.log(`ログイン成功: ${result.data.studentId}`);
-      logActivity(
-        result.data.studentId,
-        'ログイン',
-        '成功',
-        'ログインしました',
-      );
+      const studentId =
+        typeof result.data.studentId === 'string'
+          ? result.data.studentId
+          : 'unknown-student';
+      Logger.log(`ログイン成功: ${studentId}`);
+      logActivity(studentId, 'ログイン', '成功', 'ログインしました');
     }
     return result;
   } catch (error) {
