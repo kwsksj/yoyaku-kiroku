@@ -28,6 +28,15 @@
 // ================================================================
 import { SALES_SPREADSHEET_ID, SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
+  sendAdminNotification,
+  sendAdminNotificationForReservation,
+} from './02-6_Notification_Admin.js';
+import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
+import {
+  getLessons,
+  getUserReservations,
+} from './05-3_Backend_AvailableSlots.js';
+import {
   CACHE_KEYS,
   addReservationToCache,
   getCachedData,
@@ -46,15 +55,6 @@ import {
   logActivity,
   withTransaction,
 } from './08_Utilities.js';
-import {
-  sendAdminNotification,
-  sendAdminNotificationForReservation,
-} from './02-6_Notification_Admin.js';
-import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
-import {
-  getLessons,
-  getUserReservations,
-} from './05-3_Backend_AvailableSlots.js';
 
 /**
  * BackendErrorHandlerが返却するエラーレスポンスを
@@ -1095,7 +1095,7 @@ export function saveAccountingDetails(reservationWithAccounting) {
 
       // 5. 売上ログの記録
       if (updatedReservation.accountingDetails) {
-        _logSalesForSingleReservation(
+        logSalesForSingleReservation(
           updatedReservation,
           updatedReservation.accountingDetails,
         );
@@ -1166,7 +1166,7 @@ ${err.stack}`);
  * @param {ReservationCore} reservation - 売上ログを生成する対象の予約オブジェクト
  * @param {AccountingDetailsCore} accountingDetails - 計算済みの会計詳細オブジェクト。
  */
-export function _logSalesForSingleReservation(reservation, accountingDetails) {
+export function logSalesForSingleReservation(reservation, accountingDetails) {
   try {
     // 生徒情報を取得
     const studentId = reservation.studentId;
@@ -1243,7 +1243,7 @@ export function _logSalesForSingleReservation(reservation, accountingDetails) {
     }
   } catch (err) {
     Logger.log(
-      `_logSalesForSingleReservation Error: ${err.message}
+      `logSalesForSingleReservation Error: ${err.message}
 ${err.stack}`,
     );
   }

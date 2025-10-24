@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+  <head>
+    <base target="_top" />
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+        padding: 20px;
+        margin: 0;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        max-width: 400px;
+        margin: 0 auto;
+        background-color: white;
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      h2 {
+        margin-top: 0;
+        color: #333;
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .description {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 20px;
+        line-height: 1.5;
+      }
+
+      label {
+        display: block;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+
+      select {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        background-color: white;
+        cursor: pointer;
+        transition: border-color 0.2s;
+        box-sizing: border-box;
+      }
+
+      select:hover {
+        border-color: #999;
+      }
+
+      select:focus {
+        outline: none;
+        border-color: #4285f4;
+        box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+      }
+
+      .button-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 24px;
+      }
+
+      button {
+        flex: 1;
+        padding: 12px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background-color: #4285f4;
+        color: white;
+      }
+
+      .btn-primary:hover:not(:disabled) {
+        background-color: #3367d6;
+      }
+
+      .btn-primary:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background-color: #f5f5f5;
+        color: #333;
+      }
+
+      .btn-secondary:hover {
+        background-color: #e8e8e8;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+
+      .loading.active {
+        display: block;
+      }
+
+      .form-content.hidden {
+        display: none;
+      }
+
+      .spinner {
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #4285f4;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 12px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .empty-message {
+        text-align: center;
+        color: #999;
+        padding: 20px;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>売上記録の再転載</h2>
+      <p class="description">
+        直近60日間の会計済み予約日から選択してください。
+      </p>
+
+      <div class="loading active">
+        <div class="spinner"></div>
+        <p>日付を読み込んでいます...</p>
+      </div>
+
+      <div class="form-content hidden">
+        <div id="dateSelectContainer">
+          <label for="dateSelect">日付を選択:</label>
+          <select id="dateSelect">
+            <option value="">-- 日付を選択してください --</option>
+          </select>
+        </div>
+
+        <div id="emptyMessage" class="empty-message" style="display: none">
+          直近60日間に会計済みの予約がありません。
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="btn-secondary" onclick="closeDialog()">
+            キャンセル
+          </button>
+          <button
+            type="button"
+            id="submitBtn"
+            class="btn-primary"
+            onclick="submitForm()"
+            disabled
+          >
+            転載実行
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 日付データを読み込む
+      google.script.run
+        .withSuccessHandler(function (dates) {
+          document.querySelector('.loading').classList.remove('active');
+          document.querySelector('.form-content').classList.remove('hidden');
+
+          if (!dates || dates.length === 0) {
+            document.getElementById('dateSelectContainer').style.display =
+              'none';
+            document.getElementById('emptyMessage').style.display = 'block';
+            return;
+          }
+
+          const select = document.getElementById('dateSelect');
+          dates.forEach(function (date) {
+            const option = document.createElement('option');
+            option.value = date;
+            option.textContent = date;
+            select.appendChild(option);
+          });
+
+          // 日付選択時にボタンを有効化
+          select.addEventListener('change', function () {
+            document.getElementById('submitBtn').disabled = !this.value;
+          });
+        })
+        .withFailureHandler(function (error) {
+          document.querySelector('.loading').classList.remove('active');
+          document.querySelector('.form-content').classList.remove('hidden');
+          document.getElementById('dateSelectContainer').style.display = 'none';
+          document.getElementById('emptyMessage').textContent =
+            'エラーが発生しました: ' + error.message;
+          document.getElementById('emptyMessage').style.display = 'block';
+        })
+        .getRecentCompletedReservationDates();
+
+      function submitForm() {
+        const selectedDate = document.getElementById('dateSelect').value;
+        if (!selectedDate) {
+          alert('日付を選択してください。');
+          return;
+        }
+
+        // ボタンを無効化
+        document.getElementById('submitBtn').disabled = true;
+        document.getElementById('submitBtn').textContent = '処理中...';
+
+        // サーバー側の処理を呼び出し
+        google.script.run
+          .withSuccessHandler(function (result) {
+            google.script.host.close();
+          })
+          .withFailureHandler(function (error) {
+            alert('エラーが発生しました: ' + error.message);
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').textContent = '転載実行';
+          })
+          .processRepostSalesLogByDate(selectedDate);
+      }
+
+      function closeDialog() {
+        google.script.host.close();
+      }
+    </script>
+  </body>
+</html>

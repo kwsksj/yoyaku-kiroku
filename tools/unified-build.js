@@ -134,6 +134,9 @@ class UnifiedBuilder {
       // 統合WebAppファイルを生成
       await this.buildUnifiedWebApp();
 
+      // スタンドアロンHTMLダイアログファイルをコピー
+      await this.buildStandaloneHtmlFiles();
+
       console.log(`[${formatTime()}] ✅ Unified build completed successfully!`);
       console.log(`[${formatTime()}]    📁 Output files in: ${this.srcDir}/`);
     } catch (error) {
@@ -262,6 +265,39 @@ class UnifiedBuilder {
     fs.writeFileSync(outputPath, finalHtml);
 
     console.log(`[${formatTime()}]   ✅ Unified WebApp HTML generated`);
+  }
+
+  /**
+   * スタンドアロンHTMLダイアログファイルをコピー
+   */
+  async buildStandaloneHtmlFiles() {
+    console.log(
+      `[${formatTime()}] 🔨 Building standalone HTML dialog files...`,
+    );
+
+    if (!fs.existsSync(this.templateDir)) {
+      console.log(
+        `[${formatTime()}]    ⚠️  Template directory not found: ${this.templateDir}`,
+      );
+      return;
+    }
+
+    const htmlFiles = fs
+      .readdirSync(this.templateDir)
+      .filter(file => file.endsWith('.html') && file !== '10_WebApp.html');
+
+    if (htmlFiles.length === 0) {
+      console.log(`[${formatTime()}]    ℹ️  No standalone HTML files found`);
+      return;
+    }
+
+    for (const htmlFile of htmlFiles) {
+      const srcPath = path.join(this.templateDir, htmlFile);
+      const destPath = path.join(this.srcDir, htmlFile);
+
+      fs.copyFileSync(srcPath, destPath);
+      console.log(`[${formatTime()}]   ✅ ${htmlFile} copied`);
+    }
   }
 
   /**
