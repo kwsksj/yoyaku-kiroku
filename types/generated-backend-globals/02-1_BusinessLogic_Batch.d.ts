@@ -14,11 +14,12 @@ export function getRecentCompletedReservationDates(): string[];
  */
 export function repostSalesLogByDate(): void;
 /**
- * 指定した日付の予約記録から売上ログを再転載する（処理実行部分）
- * HTMLダイアログまたはバッチ処理から呼び出される
+ * 指定した日付の予約記録から売上ログを転載する
+ * HTMLダイアログ（手動再転載）またはバッチ処理（日次転載）から呼び出される
  * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
+ * @returns {{ success: boolean, totalCount: number, successCount: number }} 転載結果
  */
-export function processRepostSalesLogByDate(targetDate?: string): {
+export function transferSalesLogByDate(targetDate?: string): {
     success: boolean;
     totalCount: number;
     successCount: number;

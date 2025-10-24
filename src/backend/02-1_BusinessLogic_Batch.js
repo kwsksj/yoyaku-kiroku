@@ -216,11 +216,12 @@ export function repostSalesLogByDate() {
 }
 
 /**
- * 指定した日付の予約記録から売上ログを再転載する（処理実行部分）
- * HTMLダイアログまたはバッチ処理から呼び出される
+ * 指定した日付の予約記録から売上ログを転載する
+ * HTMLダイアログ（手動再転載）またはバッチ処理（日次転載）から呼び出される
  * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
+ * @returns {{ success: boolean, totalCount: number, successCount: number }} 転載結果
  */
-export function processRepostSalesLogByDate(targetDate) {
+export function transferSalesLogByDate(targetDate) {
   // 日付が指定されていない場合は当日を使用
   if (!targetDate) {
     const today = new Date();
@@ -330,7 +331,7 @@ export function processRepostSalesLogByDate(targetDate) {
         );
         if (!reservation) {
           Logger.log(
-            `[repostSalesLogByDate] 予約が見つかりません: ${targetReservation.reservationId}`,
+            `[transferSalesLogByDate] 予約が見つかりません: ${targetReservation.reservationId}`,
           );
           continue;
         }
@@ -345,7 +346,7 @@ export function processRepostSalesLogByDate(targetDate) {
         successCount++;
       } catch (err) {
         Logger.log(
-          `[repostSalesLogByDate] 予約 ${targetReservation.reservationId} の処理でエラー: ${err.message}`,
+          `[transferSalesLogByDate] 予約 ${targetReservation.reservationId} の処理でエラー: ${err.message}`,
         );
       }
     }
@@ -353,7 +354,7 @@ export function processRepostSalesLogByDate(targetDate) {
     SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
 
     Logger.log(
-      `[processRepostSalesLogByDate] 完了: ${targetDate}, 予約${targetReservations.length}件, 成功${successCount}件`,
+      `[transferSalesLogByDate] 完了: ${targetDate}, 予約${targetReservations.length}件, 成功${successCount}件`,
     );
 
     return {
@@ -364,8 +365,8 @@ export function processRepostSalesLogByDate(targetDate) {
   } catch (err) {
     SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
 
-    const errorMessage = `売上記録の再転載中にエラーが発生しました: ${err.message}`;
-    Logger.log(`[processRepostSalesLogByDate] エラー: ${errorMessage}`);
+    const errorMessage = `売上記録の転載中にエラーが発生しました: ${err.message}`;
+    Logger.log(`[transferSalesLogByDate] エラー: ${errorMessage}`);
 
     // エラーをスロー（HTMLダイアログ側でキャッチ）
     throw new Error(errorMessage);
@@ -387,7 +388,7 @@ export function dailySalesTransferBatch() {
     Logger.log(`[dailySalesTransferBatch] 開始: ${new Date().toISOString()}`);
 
     // 引数なしで呼び出すと当日の売上を転載
-    const result = processRepostSalesLogByDate();
+    const result = transferSalesLogByDate();
 
     Logger.log(
       `[dailySalesTransferBatch] 完了: 予約${result.totalCount}件, 成功${result.successCount}件`,
