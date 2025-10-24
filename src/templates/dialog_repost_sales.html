@@ -147,6 +147,23 @@
         padding: 20px;
         font-size: 14px;
       }
+
+      .warning-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        color: #856404;
+        line-height: 1.5;
+      }
+
+      .warning-box strong {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
     </style>
   </head>
   <body>
@@ -155,6 +172,11 @@
       <p class="description">
         直近60日間の会計済み予約日から選択してください。
       </p>
+
+      <div class="warning-box">
+        <strong>⚠️ 注意</strong>
+        既に転載済みの日付を再実行すると、売上記録が重複します。重複した場合は、手動で削除してください。
+      </div>
 
       <div class="loading active">
         <div class="spinner"></div>
