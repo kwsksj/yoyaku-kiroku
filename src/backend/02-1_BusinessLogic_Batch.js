@@ -221,8 +221,6 @@ export function repostSalesLogByDate() {
  * @param {string} targetDate - 対象日付（YYYY-MM-DD形式）
  */
 export function processRepostSalesLogByDate(targetDate) {
-  const ui = SpreadsheetApp.getUi();
-
   try {
     SpreadsheetApp.getActiveSpreadsheet().toast(
       `${targetDate}の売上記録を転載中...`,
@@ -349,18 +347,12 @@ export function processRepostSalesLogByDate(targetDate) {
 
     SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
 
-    const resultMessage = `${targetDate}の売上記録を転載しました。\n対象予約: ${targetReservations.length}件\n成功: ${successCount}件`;
-
     Logger.log(
       `[processRepostSalesLogByDate] 完了: ${targetDate}, 予約${targetReservations.length}件, 成功${successCount}件`,
     );
 
-    // UIアラートで結果を表示
-    ui.alert('完了', resultMessage, ui.ButtonSet.OK);
-
     return {
       success: true,
-      message: resultMessage,
       totalCount: targetReservations.length,
       successCount: successCount,
     };
