@@ -1153,15 +1153,15 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
 
   return `
     <div id="payment-confirm-modal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg mx-4 max-w-md w-full max-h-screen overflow-y-auto">
+      <div class="bg-white rounded-lg mx-4 max-w-md w-full max-h-[80vh] flex flex-col">
 
-        <!-- モーダルヘッダー -->
-        <div class="p-6 border-b-2 border-gray-200">
+        <!-- モーダルヘッダー（固定） -->
+        <div class="p-6 border-b-2 border-ui-border flex-shrink-0">
           <h3 class="text-xl font-bold text-brand-text">支払い確認</h3>
         </div>
 
-        <!-- モーダルボディ -->
-        <div class="p-4 space-y-4">
+        <!-- モーダルボディ（スクロール可能） -->
+        <div class="p-4 space-y-4 overflow-y-auto flex-1">
 
           <!-- 合計金額セクション -->
           <div class="bg-ui-surface rounded-lg p-4">
@@ -1185,8 +1185,8 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
             ${paymentInfoHtml ? `<div class="mt-3">${paymentInfoHtml}</div>` : ''}
           </div>
         </div>
-        <!-- モーダルフッター -->
-        <div class="p-6 border-t-2 border-gray-200 flex gap-3">
+        <!-- モーダルフッター（固定） -->
+        <div class="p-6 border-t-2 border-ui-border flex gap-3 flex-shrink-0">
           ${generateButton('cancelPaymentConfirm', '修正する', 'secondary')}
           ${generateButton('processPayment', '支払いました', 'primary')}
         </div>
