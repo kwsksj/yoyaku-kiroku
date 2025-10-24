@@ -739,12 +739,16 @@ export function updateMaterialPricesDisplay(result) {
   const materials = document.querySelectorAll('.material-row');
   const salesItems = result.sales.items;
 
-  materials.forEach((row, index) => {
+  materials.forEach(row => {
+    // data-material-row属性から実際のインデックスを取得
+    const rowIndex = row.getAttribute('data-material-row');
+    if (!rowIndex) return;
+
     const priceDisplay = /** @type {HTMLElement | null} */ (
-      row.querySelector(`#material-price-${index}`)
+      row.querySelector(`#material-price-${rowIndex}`)
     );
     const typeSelect = /** @type {HTMLSelectElement | null} */ (
-      row.querySelector(`#material-type-${index}`)
+      row.querySelector(`#material-type-${rowIndex}`)
     );
 
     if (priceDisplay && typeSelect) {
@@ -780,12 +784,16 @@ export function updateProductPricesDisplay(result) {
   const products = document.querySelectorAll('.product-row');
   const salesItems = result.sales.items;
 
-  products.forEach((row, index) => {
+  products.forEach(row => {
+    // data-product-row属性から実際のインデックスを取得
+    const rowIndex = row.getAttribute('data-product-row');
+    if (!rowIndex) return;
+
     const priceDisplay = /** @type {HTMLElement | null} */ (
-      row.querySelector(`#product-price-${index}`)
+      row.querySelector(`#product-price-${rowIndex}`)
     );
     const typeSelect = /** @type {HTMLSelectElement | null} */ (
-      row.querySelector(`#product-type-${index}`)
+      row.querySelector(`#product-type-${rowIndex}`)
     );
 
     if (priceDisplay && typeSelect) {
@@ -818,12 +826,16 @@ export function updateCustomSalesPricesDisplay(result) {
   const customSales = document.querySelectorAll('.custom-sales-row');
   const salesItems = result.sales.items;
 
-  customSales.forEach((row, index) => {
+  customSales.forEach(row => {
+    // data-custom-sales-row属性から実際のインデックスを取得
+    const rowIndex = row.getAttribute('data-custom-sales-row');
+    if (!rowIndex) return;
+
     const priceDisplay = /** @type {HTMLElement | null} */ (
-      row.querySelector(`#custom-sales-display-${index}`)
+      row.querySelector(`#custom-sales-display-${rowIndex}`)
     );
     const nameInput = /** @type {HTMLInputElement | null} */ (
-      row.querySelector(`#custom-sales-name-${index}`)
+      row.querySelector(`#custom-sales-name-${rowIndex}`)
     );
 
     if (priceDisplay && nameInput) {

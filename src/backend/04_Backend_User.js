@@ -657,7 +657,7 @@ export function updateUserProfile(userInfo) {
  * （Phase 3: 型システム統一対応）
  *
  * @param {UserCore} userData - 登録するユーザー情報
- * @returns {ApiResponseGeneric<InitialAppDataPayload>}
+ * @returns {UserRegistrationResult | ApiErrorResponse}
  */
 export function registerNewUser(userData) {
   return withTransaction(() => {
@@ -806,12 +806,7 @@ export function registerNewUser(userData) {
         success: true,
         userFound: true,
         user: registeredUser,
-        data: {
-          accountingMaster: [],
-          cacheVersions: {},
-          lessons: [],
-          myReservations: [],
-        },
+        studentId: newStudentId, // 追加: エンドポイントで使用するために明示的にIDを返す
       };
     } catch (error) {
       Logger.log(`新規ユーザー登録エラー: ${error.message}`);

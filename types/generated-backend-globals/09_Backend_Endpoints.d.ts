@@ -41,10 +41,18 @@ export function updateReservationMemoAndGetLatestData(reservationId: string, stu
 export function saveAccountingDetailsAndGetLatestData(reservationWithAccounting: ReservationCore): ApiResponseGeneric;
 /**
  * 統合ログインエンドポイント：認証 + 初期データ + 個人データを一括取得
+ *
  * @param {string} phone - 電話番号（ユーザー認証用）
- * @returns {ApiResponseGeneric} 認証結果、初期データ、個人データを含む結果
+ * @returns {AuthenticationResponse | ApiErrorResponse} 認証結果、初期データ、個人データを含む結果
  */
-export function getLoginData(phone: string): ApiResponseGeneric;
+export function getLoginData(phone: string): AuthenticationResponse | ApiErrorResponse;
+/**
+ * 統合新規登録エンドポイント：ユーザー登録 + 初期データを一括取得
+ *
+ * @param {UserCore} userData - 登録するユーザー情報
+ * @returns {AuthenticationResponse | ApiErrorResponse} 登録結果、初期データを含む結果
+ */
+export function getRegistrationData(userData: UserCore): AuthenticationResponse | ApiErrorResponse;
 /**
  *軽量なキャッシュバージョンチェック用API
  * 空き枠データの更新有無を高速で判定

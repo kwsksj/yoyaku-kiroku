@@ -40,33 +40,37 @@ export const getLoginView = () => {
   return Components.pageContainer({
     maxWidth: 'md',
     content: `
-      <div class="text-center pt-8 pb-4">
-          <h1 class="text-3xl font-bold text-brand-text tracking-tight">きぼりの<br>よやく・きろく</h1>
-          <h2 class="text-xl text-brand-subtle mt-2 mb-10">川崎誠二 木彫り教室</h2>
-      </div>
-      <div class="${DesignConfig.inputs.container}">
-        <label for="phone" class="block text-brand-subtle text-base text-center mb-2">携帯電話番号</label>
-        <div class="flex justify-center">
-          <input
-            type="tel"
-            id="phone"
-            value="${phoneValue}"
-            class="${DesignConfig.inputs.phone} text-center"
-            placeholder="090 1234 5678"
-            autocomplete="tel"
-            inputmode="numeric"
-            pattern="[0-9]*"
-          >
+      <div class="w-full pt-12 pb-64 md:pt-16 md:pb-64">
+        <div class="w-full space-y-6">
+          <div class="text-center">
+            <h1 class="text-3xl font-bold text-brand-text tracking-tight">きぼりの<br>よやく・きろく</h1>
+            <h2 class="text-xl text-brand-subtle mt-1">川崎誠二 木彫り教室</h2>
+          </div>
+          <div class="${DesignConfig.inputs.container}">
+            <label for="phone" class="block text-brand-subtle text-base text-center mb-2">携帯電話番号</label>
+            <div class="flex justify-center">
+              <input
+                type="tel"
+                id="phone"
+                value="${phoneValue}"
+                class="${DesignConfig.inputs.phone} text-center"
+                placeholder="090 1234 5678"
+                autocomplete="tel"
+                inputmode="numeric"
+                pattern="[0-9]*"
+              >
+            </div>
+          </div>
+          ${Components.actionButtonSection({
+            primaryButton: {
+              action: 'login',
+              text: 'ログイン または 新規登録',
+              style: 'primary',
+            },
+            spacing: 'compact',
+          })}
         </div>
       </div>
-      ${Components.actionButtonSection({
-        primaryButton: {
-          action: 'login',
-          text: 'ログイン または 新規登録',
-          style: 'primary',
-        },
-        spacing: 'normal',
-      })}
     `,
   });
 };

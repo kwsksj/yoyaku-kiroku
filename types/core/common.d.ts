@@ -436,6 +436,58 @@ export interface BatchDataResult {
 }
 
 /**
+ * 初期アプリデータペイロード
+ *
+ * ログインまたは新規登録時にクライアントに返される初期データ
+ */
+export interface InitialAppDataPayload {
+  /** 会計マスターデータ */
+  accountingMaster: AccountingMasterItemCore[];
+  /** キャッシュバージョン情報 */
+  cacheVersions: Record<string, unknown>;
+  /** レッスン情報 */
+  lessons: LessonCore[];
+  /** ユーザーの予約情報 */
+  myReservations: ReservationCore[];
+}
+
+/**
+ * 認証レスポンス（ログイン・新規登録共通）
+ *
+ * ユーザー認証とアプリケーション初期データを含む統合レスポンス
+ */
+export interface AuthenticationResponse {
+  /** 処理成功フラグ */
+  success: boolean;
+  /** ユーザーが見つかったか（認証成功したか） */
+  userFound: boolean;
+  /** 認証されたユーザー情報 */
+  user: UserCore | null;
+  /** アプリケーション初期データ */
+  data: InitialAppDataPayload;
+  /** メッセージ（エラー時など） */
+  message?: string;
+}
+
+/**
+ * ユーザー登録結果
+ *
+ * registerNewUser関数の返り値型（内部使用）
+ */
+export interface UserRegistrationResult {
+  /** 処理成功フラグ */
+  success: boolean;
+  /** ユーザー登録成功フラグ */
+  userFound: boolean;
+  /** 登録されたユーザー情報 */
+  user: UserCore;
+  /** 生成された生徒ID */
+  studentId: string;
+  /** メッセージ（エラー時） */
+  message?: string;
+}
+
+/**
  * @deprecated BatchDataResultを使用してください
  */
 export type BatchDataResponse = BatchDataResult;

@@ -337,6 +337,9 @@ export const _checkIfLessonAvailable = booking => {
     return false;
   }
 
+  // 初回参加者かどうかをチェック
+  const isFirstTimer = booking.firstLecture === true;
+
   // 2部制の場合はセッション別に判定
   if (targetLesson.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
     const bookingStartTime = booking.startTime;
@@ -385,12 +388,22 @@ export const _checkIfLessonAvailable = booking => {
     // --- 各セッションの空き状況をチェック ---
     let morningHasSlots = true; // チェック不要な場合はtrueとして扱う
     if (morningCheckRequired) {
-      morningHasSlots = (targetLesson.firstSlots || 0) > 0;
+      // 初回参加者の場合は初回枠をチェック、経験者の場合は経験者枠をチェック
+      if (isFirstTimer) {
+        morningHasSlots = (targetLesson.beginnerSlots || 0) > 0;
+      } else {
+        morningHasSlots = (targetLesson.firstSlots || 0) > 0;
+      }
     }
 
     let afternoonHasSlots = true; // チェック不要な場合はtrueとして扱う
     if (afternoonCheckRequired) {
-      afternoonHasSlots = (targetLesson.secondSlots || 0) > 0;
+      // 初回参加者の場合は初回枠をチェック、経験者の場合は経験者枠をチェック
+      if (isFirstTimer) {
+        afternoonHasSlots = (targetLesson.beginnerSlots || 0) > 0;
+      } else {
+        afternoonHasSlots = (targetLesson.secondSlots || 0) > 0;
+      }
     }
 
     // 必要なセッション全てに空きがあるか最終判定
@@ -398,6 +411,7 @@ export const _checkIfLessonAvailable = booking => {
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('📊 2部制判定結果 (詳細ロジック):', {
+        isFirstTimer,
         bookingTime: `${bookingStartTime}-${bookingEndTime}`,
         sessionBoundaries: {
           morningEnd: morningEndTime,
@@ -408,8 +422,12 @@ export const _checkIfLessonAvailable = booking => {
           afternoon: afternoonCheckRequired,
         },
         slots: {
-          morning: targetLesson.firstSlots,
-          afternoon: targetLesson.secondSlots,
+          morning: isFirstTimer
+            ? targetLesson.beginnerSlots
+            : targetLesson.firstSlots,
+          afternoon: isFirstTimer
+            ? targetLesson.beginnerSlots
+            : targetLesson.secondSlots,
         },
         result: { morningHasSlots, afternoonHasSlots },
         isAvailable,
@@ -419,10 +437,15 @@ export const _checkIfLessonAvailable = booking => {
     return isAvailable;
   } else {
     // 通常の講座（セッション制・全日時間制）
-    const isAvailable = (targetLesson.firstSlots || 0) > 0;
+    // 初回参加者の場合は初回枠をチェック、経験者の場合は経験者枠をチェック
+    const isAvailable = isFirstTimer
+      ? (targetLesson.beginnerSlots || 0) > 0
+      : (targetLesson.firstSlots || 0) > 0;
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('📊 通常講座判定結果:', {
+        isFirstTimer,
+        beginnerSlots: targetLesson.beginnerSlots,
         firstSlots: targetLesson.firstSlots,
         isAvailable,
       });

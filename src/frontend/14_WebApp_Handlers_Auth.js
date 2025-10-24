@@ -120,6 +120,10 @@ export const authActionHandlers = {
           },
         });
 
+        // データ取得完了を記録（キャッシュ管理用）
+        authHandlersStateManager.setDataFetchProgress('lessons', false);
+        authHandlersStateManager.setDataFetchProgress('reservations', false);
+
         console.log(
           '✅ dispatch完了 - 現在のstate:',
           authHandlersStateManager.getState().myReservations?.length,
@@ -400,7 +404,7 @@ export const authActionHandlers = {
     showLoading('login');
     google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔍 registerNewUser レスポンス:', response);
+        console.log('🔍 getRegistrationData レスポンス:', response);
       }
       hideLoading();
       if (response.success && response.userFound) {
@@ -418,6 +422,8 @@ export const authActionHandlers = {
             : [],
           accountingMaster: response.data.accountingMaster || [],
           today: new Date().toISOString().split('T')[0],
+          // 履歴をクリアして、ログイン画面に戻らないようにする
+          navigationHistory: [],
         };
 
         authHandlersStateManager.dispatch({
@@ -428,6 +434,10 @@ export const authActionHandlers = {
             isDataFresh: true,
           },
         });
+
+        // データ取得完了を記録（キャッシュ管理用）
+        authHandlersStateManager.setDataFetchProgress('lessons', false);
+        authHandlersStateManager.setDataFetchProgress('reservations', false);
       } else {
         showInfo(response.message || '登録に失敗しました', 'エラー');
       }
@@ -435,12 +445,12 @@ export const authActionHandlers = {
       ['withFailureHandler']((/** @type {Error} */ error) => {
         hideLoading();
         const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
-        handler.handle(error, 'submitRegistration:registerNewUser', {
+        handler.handle(error, 'submitRegistration:getRegistrationData', {
           finalUserData,
         });
         handleServerError(error);
       })
-      .registerNewUser(finalUserData);
+      .getRegistrationData(finalUserData);
   },
 
   /** プロフィール編集画面を表示します（シートからデータ取得） */

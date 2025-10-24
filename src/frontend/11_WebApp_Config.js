@@ -1403,4 +1403,26 @@ document.addEventListener('DOMContentLoaded', () => {
   if (manager && typeof manager?.['initializePage'] === 'function') {
     manager['initializePage']();
   }
+
+  // iframe環境での入力フォーカス時のスクロール制御
+  // Googleサイト埋め込み時に上部メニューバーへの食い込みを防ぐ
+  // iframe環境でのみ動作させる（通常表示時は不要）
+  if (window.self !== window.top) {
+    document.addEventListener(
+      'focusin',
+      event => {
+        const target = /** @type {EventTarget | null} */ (event.target);
+        if (
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement
+        ) {
+          // 少し遅延させてブラウザのデフォルト動作を待つ
+          setTimeout(() => {
+            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }, 100);
+        }
+      },
+      true,
+    );
+  }
 });
