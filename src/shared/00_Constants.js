@@ -124,7 +124,7 @@ export const CONSTANTS = {
     LOG: 'ログ',
     RESERVATIONS: '予約記録',
     SCHEDULE: '日程',
-    SALES_LOG: '売上ログ', // 別スプレッドシート
+    SALES_LOG: '売上（項目別）', // 別スプレッドシート
   },
 
   // 時間帯区分（2部制教室用）
