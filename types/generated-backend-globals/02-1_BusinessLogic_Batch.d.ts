@@ -20,7 +20,6 @@ export function repostSalesLogByDate(): void;
  */
 export function processRepostSalesLogByDate(targetDate: string): {
     success: boolean;
-    message: string;
     totalCount: number;
     successCount: number;
 };

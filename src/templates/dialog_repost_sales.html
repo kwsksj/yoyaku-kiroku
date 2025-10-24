@@ -280,11 +280,12 @@
       function showMessage(message, isSuccess) {
         const messageBox = document.getElementById('messageBox');
         messageBox.textContent = message;
-        messageBox.className = 'message-box show ' + (isSuccess ? 'success' : 'error');
+        messageBox.className =
+          'message-box show ' + (isSuccess ? 'success' : 'error');
 
         // 3秒後にメッセージを自動で非表示
         if (isSuccess) {
-          setTimeout(function() {
+          setTimeout(function () {
             messageBox.classList.remove('show');
           }, 3000);
         }
@@ -310,9 +311,12 @@
           .withSuccessHandler(function (result) {
             // 成功メッセージを表示
             showMessage(
-              '✅ ' + selectedDate + 'の売上記録を転載しました（' +
-              result.successCount + '件）',
-              true
+              '✅ ' +
+                selectedDate +
+                'の売上記録を転載しました（' +
+                result.successCount +
+                '件）',
+              true,
             );
 
             // ボタンを再有効化
