@@ -189,9 +189,7 @@ export function getLoginData(phone) {
     const authResult = authenticateUser(phone);
 
     if (authResult.success && authResult.user) {
-      Logger.log(
-        `認証成功: userId=${authResult.user.studentId}`,
-      );
+      Logger.log(`認証成功: userId=${authResult.user.studentId}`);
 
       // 2. 認証成功時：一括データ取得
       const batchResult = getBatchData(
@@ -226,7 +224,9 @@ export function getLoginData(phone) {
         user: authResult.user,
         data: {
           accountingMaster: batchResult.data['accounting'] || [],
-          cacheVersions: /** @type {Record<string, unknown>} */ (batchResult.data['cache-versions'] || {}),
+          cacheVersions: /** @type {Record<string, unknown>} */ (
+            batchResult.data['cache-versions'] || {}
+          ),
           lessons: batchResult.data['lessons'] || [],
           myReservations: batchResult.data['myReservations'] || [],
         },
@@ -254,10 +254,9 @@ export function getLoginData(phone) {
     }
   } catch (e) {
     Logger.log(`getLoginData統合処理エラー: ${e.message}\nStack: ${e.stack}`);
-    return /** @type {ApiErrorResponse} */ (createApiErrorResponse(
-      `統合ログイン処理中にエラー: ${e.message}`,
-      true,
-    ));
+    return /** @type {ApiErrorResponse} */ (
+      createApiErrorResponse(`統合ログイン処理中にエラー: ${e.message}`, true)
+    );
   }
 }
 
@@ -275,7 +274,9 @@ export function getRegistrationData(userData) {
     const registrationResult = registerNewUser(userData);
 
     if (!registrationResult.success) {
-      Logger.log(`新規登録失敗: ${registrationResult.message || 'Unknown error'}`);
+      Logger.log(
+        `新規登録失敗: ${registrationResult.message || 'Unknown error'}`,
+      );
       return /** @type {ApiErrorResponse} */ (registrationResult);
     }
 
@@ -318,7 +319,9 @@ export function getRegistrationData(userData) {
       user: registeredUser,
       data: {
         accountingMaster: batchResult.data['accounting'] || [],
-        cacheVersions: /** @type {Record<string, unknown>} */ (batchResult.data['cache-versions'] || {}),
+        cacheVersions: /** @type {Record<string, unknown>} */ (
+          batchResult.data['cache-versions'] || {}
+        ),
         lessons: batchResult.data['lessons'] || [],
         myReservations: batchResult.data['myReservations'] || [],
       },
@@ -327,11 +330,12 @@ export function getRegistrationData(userData) {
     Logger.log(`getRegistrationData統合処理完了: データ一括取得成功`);
     return result;
   } catch (e) {
-    Logger.log(`getRegistrationData統合処理エラー: ${e.message}\nStack: ${e.stack}`);
-    return /** @type {ApiErrorResponse} */ (createApiErrorResponse(
-      `統合登録処理中にエラー: ${e.message}`,
-      true,
-    ));
+    Logger.log(
+      `getRegistrationData統合処理エラー: ${e.message}\nStack: ${e.stack}`,
+    );
+    return /** @type {ApiErrorResponse} */ (
+      createApiErrorResponse(`統合登録処理中にエラー: ${e.message}`, true)
+    );
   }
 }
 
