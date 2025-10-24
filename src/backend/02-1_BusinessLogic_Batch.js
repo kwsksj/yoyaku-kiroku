@@ -217,10 +217,15 @@ export function repostSalesLogByDate() {
 
 /**
  * 指定した日付の予約記録から売上ログを再転載する（処理実行部分）
- * HTMLダイアログから呼び出される
- * @param {string} targetDate - 対象日付（YYYY-MM-DD形式）
+ * HTMLダイアログまたはバッチ処理から呼び出される
+ * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
  */
 export function processRepostSalesLogByDate(targetDate) {
+  // 日付が指定されていない場合は当日を使用
+  if (!targetDate) {
+    const today = new Date();
+    targetDate = Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  }
   try {
     SpreadsheetApp.getActiveSpreadsheet().toast(
       `${targetDate}の売上記録を転載中...`,
@@ -364,5 +369,32 @@ export function processRepostSalesLogByDate(targetDate) {
 
     // エラーをスロー（HTMLダイアログ側でキャッチ）
     throw new Error(errorMessage);
+  }
+}
+
+/**
+ * 【トリガー関数】毎日20時に実行: 当日の会計済み予約を売上表に転載する
+ * スクリプトのトリガー設定から呼び出される
+ *
+ * @description
+ * このバッチ処理により、会計修正は当日20時まで可能となり、
+ * 20時以降は確定された会計データが売上表に転載される。
+ * これにより、会計処理時の売上ログ記録が不要になり、
+ * 何度修正しても売上表に影響がない運用が実現できる。
+ */
+export function dailySalesTransferBatch() {
+  try {
+    Logger.log(`[dailySalesTransferBatch] 開始: ${new Date().toISOString()}`);
+
+    // 引数なしで呼び出すと当日の売上を転載
+    const result = processRepostSalesLogByDate();
+
+    Logger.log(
+      `[dailySalesTransferBatch] 完了: 予約${result.totalCount}件, 成功${result.successCount}件`,
+    );
+  } catch (err) {
+    const errorMessage = `売上表転載バッチ処理でエラーが発生しました: ${err.message}`;
+    Logger.log(`[dailySalesTransferBatch] エラー: ${errorMessage}`);
+    handleError(errorMessage, false);
   }
 }

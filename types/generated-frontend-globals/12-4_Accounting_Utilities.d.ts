@@ -34,6 +34,17 @@ export function saveAccountingCache(formData: AccountingFormDto): void;
  */
 export function loadAccountingCache(): AccountingFormDto;
 /**
+ * 予約データから会計詳細をロードする（会計修正用）
+ *
+ * @param {ReservationCore} reservation - 予約データ
+ * @returns {AccountingFormDto} フォームデータ
+ *
+ * @description
+ * 既存の会計データをフォームに復元するための関数。
+ * 会計修正モードで使用され、保存済みの会計詳細をUIに反映する。
+ */
+export function loadAccountingFromReservation(reservation: ReservationCore): AccountingFormDto;
+/**
  * 会計システム初期化関数
  * @param {AccountingMasterItemCore[]} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名

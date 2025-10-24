@@ -211,6 +211,10 @@ declare global {
       readonly CACHE_EXPIRY_SECONDS: number;
       readonly HEADER_ROW: number;
     };
+    readonly ACCOUNTING_SYSTEM: {
+      readonly MODIFICATION_DEADLINE_HOUR: number;
+      readonly SALES_TRANSFER_HOUR: number;
+    };
     readonly NOTIFICATION: {
       readonly DAYS: number[];
       readonly HOURS: number[];

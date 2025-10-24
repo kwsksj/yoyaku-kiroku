@@ -306,6 +306,20 @@ export const CONSTANTS = {
     HEADER_ROW: 1,
   },
 
+  // 会計システム設定
+  ACCOUNTING_SYSTEM: {
+    /**
+     * 会計修正締切時刻（24時間形式）
+     * この時刻以降は会計修正が不可能になり、売上表への転載が実行される
+     */
+    MODIFICATION_DEADLINE_HOUR: 20, // 20時
+    /**
+     * 売上表転載バッチの実行時刻
+     * 毎日この時刻に当日の会計済み予約を売上表に転載する
+     */
+    SALES_TRANSFER_HOUR: 20, // 20時
+  },
+
   // メール通知設定
   NOTIFICATION: {
     DAYS: [5, 15, 25], // 選択可能な通知日

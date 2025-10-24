@@ -1093,13 +1093,7 @@ export function saveAccountingDetails(reservationWithAccounting) {
       // 4. 共通関数を呼び出して保存
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
-      // 5. 売上ログの記録
-      if (updatedReservation.accountingDetails) {
-        logSalesForSingleReservation(
-          updatedReservation,
-          updatedReservation.accountingDetails,
-        );
-      }
+      // 5. 売上ログの記録は20時のバッチ処理で実行されるためここでは行わない
 
       // ログと通知
       const logDetails = `Classroom: ${updatedReservation.classroom}, ReservationID: ${reservationId}, Total: ${accountingDetails.grandTotal}`;
@@ -1153,6 +1147,147 @@ ${err.stack}`);
       const errorResponse = BackendErrorHandler.handle(
         /** @type {Error} */ (err),
         'saveAccountingDetails',
+      );
+      return normalizeErrorResponse(errorResponse);
+    }
+  });
+}
+
+/**
+ * 会計情報を修正します（当日20時まで可能）
+ *
+ * @param {ReservationCore} reservationWithUpdatedAccounting - 修正後の会計情報を含む予約オブジェクト。
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果。
+ *
+ * @description
+ * 既存の会計データを修正する機能。修正締切（20時）までのみ実行可能。
+ * 売上表への転載は20時のバッチ処理で行われるため、ここでは予約シートの更新のみを行う。
+ * これにより、何度修正しても売上表に影響を与えずに修正が可能。
+ */
+export function updateAccountingDetails(reservationWithUpdatedAccounting) {
+  return withTransaction(() => {
+    try {
+      const { reservationId, studentId, accountingDetails, date } =
+        reservationWithUpdatedAccounting;
+
+      if (!reservationId || !studentId || !accountingDetails) {
+        throw new Error('会計修正に必要な情報が不足しています。');
+      }
+
+      // 1. 既存の予約データをCore型オブジェクトとして取得
+      const existingReservation = getReservationCoreById(reservationId);
+      if (!existingReservation) {
+        throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
+      }
+
+      // 2. 権限チェック
+      if (existingReservation.studentId !== studentId) {
+        throw new Error('この予約の会計処理を修正する権限がありません。');
+      }
+
+      // 3. ステータスチェック：会計済み（完了）のみ修正可能
+      if (existingReservation.status !== CONSTANTS.STATUS.COMPLETED) {
+        throw new Error('会計処理が完了していない予約は修正できません。');
+      }
+
+      // 4. 時刻チェック：当日20時までのみ修正可能
+      const reservationDate = new Date(date || existingReservation.date);
+      const now = new Date();
+      const deadlineHour =
+        CONSTANTS.ACCOUNTING_SYSTEM.MODIFICATION_DEADLINE_HOUR;
+
+      // 予約日が今日でない場合はエラー
+      const todayStr = Utilities.formatDate(
+        now,
+        CONSTANTS.TIMEZONE,
+        'yyyy-MM-dd',
+      );
+      const reservationDateStr = Utilities.formatDate(
+        reservationDate,
+        CONSTANTS.TIMEZONE,
+        'yyyy-MM-dd',
+      );
+
+      if (reservationDateStr !== todayStr) {
+        throw new Error(
+          '会計修正は教室当日のみ可能です。翌日以降は修正できません。',
+        );
+      }
+
+      // 現在時刻が締切時刻を過ぎている場合はエラー
+      const currentHour = now.getHours();
+      if (currentHour >= deadlineHour) {
+        throw new Error(
+          `会計修正の締切時刻（${deadlineHour}時）を過ぎています。修正できません。`,
+        );
+      }
+
+      // 5. 更新後の完全なReservationCoreオブジェクトを構築
+      /** @type {ReservationCore} */
+      const updatedReservation = {
+        ...existingReservation,
+        accountingDetails: accountingDetails, // 会計情報を更新
+        // ステータスは「完了」のまま維持
+      };
+
+      // 6. 予約シートに保存（売上表への転載は20時のバッチ処理で行う）
+      _saveReservationCoreToSheet(updatedReservation, 'update');
+
+      // 7. ログと通知
+      const logDetails = `Classroom: ${updatedReservation.classroom}, ReservationID: ${reservationId}, Total: ${accountingDetails.grandTotal}, Modified: true`;
+      logActivity(
+        studentId,
+        '会計記録修正',
+        CONSTANTS.MESSAGES.SUCCESS,
+        logDetails,
+      );
+
+      const userInfo =
+        updatedReservation.user || getCachedStudentById(studentId);
+      if (!userInfo) {
+        throw new Error(`生徒情報が取得できませんでした: ${String(studentId)}`);
+      }
+
+      const subject = `会計記録修正 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
+      const body =
+        `会計が修正されました。
+
+` +
+        `本名: ${userInfo.realName}
+` +
+        `ニックネーム: ${userInfo.displayName}
+
+` +
+        `教室: ${updatedReservation.classroom}
+` +
+        `予約ID: ${reservationId}
+` +
+        `生徒ID: ${studentId}
+` +
+        `合計金額: ¥${accountingDetails.grandTotal.toLocaleString()}
+
+` +
+        `※売上表への転載は${deadlineHour}時のバッチ処理で自動的に行われます。
+` +
+        `詳細はスプレッドシートを確認してください。`;
+      sendAdminNotification(subject, body);
+
+      return createApiResponse(true, {
+        message:
+          '会計情報を修正しました。売上表への転載は20時に自動で行われます。',
+      });
+    } catch (err) {
+      logActivity(
+        reservationWithUpdatedAccounting.studentId,
+        '会計記録修正',
+        CONSTANTS.MESSAGES.ERROR,
+        `Error: ${err.message}`,
+      );
+      Logger.log(`updateAccountingDetails Error: ${err.message}
+${err.stack}`);
+      const errorResponse = BackendErrorHandler.handle(
+        /** @type {Error} */ (err),
+        'updateAccountingDetails',
       );
       return normalizeErrorResponse(errorResponse);
     }
