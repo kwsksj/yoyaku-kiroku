@@ -120,7 +120,7 @@ export function saveAccountingDetails(reservationWithAccounting: ReservationCore
  * @param {ReservationCore} reservation - 売上ログを生成する対象の予約オブジェクト
  * @param {AccountingDetailsCore} accountingDetails - 計算済みの会計詳細オブジェクト。
  */
-export function _logSalesForSingleReservation(reservation: ReservationCore, accountingDetails: AccountingDetailsCore): void;
+export function logSalesForSingleReservation(reservation: ReservationCore, accountingDetails: AccountingDetailsCore): void;
 /**
  * 日程マスタから特定の日付・教室のルールを取得する
  * @param {string} date - 日付 (YYYY-MM-DD)

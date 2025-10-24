@@ -24,6 +24,7 @@
 // ================================================================
 // 依存モジュール
 // ================================================================
+import { repostSalesLogByDate } from './02-1_BusinessLogic_Batch.js';
 import { sendMonthlyNotificationEmails } from './02-5_Notification_StudentSchedule.js';
 import { rebuildAllCachesEntryPoint } from './07_CacheManager.js';
 import { handleError } from './08_Utilities.js';
@@ -97,7 +98,9 @@ export function onOpen() {
  * @param {GoogleAppsScript.Base.Menu} menu
  */
 export function addAdminMenu(menu) {
-  menu;
+  // repostSalesLogByDateを文字列で参照するため、明示的に参照して型チェックを通す
+  void repostSalesLogByDate;
+  menu.addItem('売上記録を再転載（日付指定）', 'repostSalesLogByDate');
 }
 
 /**
