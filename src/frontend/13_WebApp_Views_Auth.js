@@ -58,7 +58,6 @@ export const getLoginView = () => {
                 autocomplete="tel"
                 inputmode="numeric"
                 pattern="[0-9]*"
-                onfocus="window.scrollTo({top: 0, behavior: 'smooth'})"
               >
             </div>
           </div>
