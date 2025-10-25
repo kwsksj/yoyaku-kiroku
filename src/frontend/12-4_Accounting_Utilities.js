@@ -363,6 +363,11 @@ export function loadAccountingFromReservation(reservation) {
   if (reservation.startTime) formData.startTime = reservation.startTime;
   if (reservation.endTime) formData.endTime = reservation.endTime;
 
+  // 休憩時間の復元（会計詳細から）
+  if (accountingDetails.breakTime !== undefined) {
+    formData.breakTime = accountingDetails.breakTime;
+  }
+
   // チェック済み項目の復元
   /** @type {Record<string, boolean>} */
   const checkedItems = {};
@@ -376,14 +381,21 @@ export function loadAccountingFromReservation(reservation) {
     });
   }
 
+  if (Object.keys(checkedItems).length > 0) {
+    formData.checkedItems = checkedItems;
+  }
+
+  // 材料詳細の復元（会計詳細から）
+  if (accountingDetails.materials && accountingDetails.materials.length > 0) {
+    formData.materials = accountingDetails.materials;
+  }
+
   // 物販項目の復元（プルダウン選択式）
   /** @type {ProductSelectionEntry[]} */
   const selectedProducts = [];
   if (accountingDetails.sales && accountingDetails.sales.items) {
     accountingDetails.sales.items.forEach(item => {
       if (item.name && item.price !== undefined) {
-        // 自由入力物販との区別：会計マスタに存在する項目はプルダウン選択として扱う
-        // （実装上、物販マスタの項目名と完全一致する場合のみプルダウンとして扱う）
         selectedProducts.push({
           name: item.name,
           price: item.price,
@@ -396,11 +408,12 @@ export function loadAccountingFromReservation(reservation) {
     formData.selectedProducts = selectedProducts;
   }
 
-  // 自由入力物販の復元は後で実装
-  // （現状では selectedProducts に含まれているため、UI復元時に区別が必要）
-
-  if (Object.keys(checkedItems).length > 0) {
-    formData.checkedItems = checkedItems;
+  // 自由入力物販の復元（会計詳細から）
+  if (
+    accountingDetails.customSales &&
+    accountingDetails.customSales.length > 0
+  ) {
+    formData.customSales = accountingDetails.customSales;
   }
 
   // 支払い方法の復元

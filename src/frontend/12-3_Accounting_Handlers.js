@@ -1534,11 +1534,16 @@ export function processAccountingPayment(formData, result) {
     }
 
     // 1. フロントエンドで計算された会計詳細(result)を取得
+    /** @type {AccountingDetailsCore} */
     const calculatedAccountingDetails = {
       tuition: result.tuition,
       sales: result.sales,
       grandTotal: result.grandTotal,
       paymentMethod: result.paymentMethod,
+      // 会計処理時の詳細情報を追加
+      breakTime: formData.breakTime,
+      materials: formData.materials,
+      customSales: formData.customSales,
     };
 
     // 2. 現在の予約情報と会計詳細、フォームの更新内容をマージして、新しいReservationCoreを構築
