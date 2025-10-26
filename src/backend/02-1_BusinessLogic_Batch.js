@@ -318,7 +318,14 @@ export function transferSalesLogByDate(targetDate) {
 
     if (targetReservations.length === 0) {
       SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
-      throw new Error(`${targetDate}の会計済み予約は見つかりませんでした。`);
+      Logger.log(
+        `[transferSalesLogByDate] 対象なし: ${targetDate}の会計済み予約はありません`,
+      );
+      return {
+        success: true,
+        totalCount: 0,
+        successCount: 0,
+      };
     }
 
     // 各予約から売上記録を書き込み（既存の関数を再利用）
