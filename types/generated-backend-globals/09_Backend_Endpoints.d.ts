@@ -40,6 +40,12 @@ export function updateReservationMemoAndGetLatestData(reservationId: string, stu
  */
 export function saveAccountingDetailsAndGetLatestData(reservationWithAccounting: ReservationCore): ApiResponseGeneric;
 /**
+ * 会計修正を実行し、成功した場合に最新の全初期化データを返す。
+ * @param {ReservationCore} reservationWithAccounting - 修正後の会計情報を含む予約オブジェクト。
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
+ */
+export function updateAccountingDetailsAndGetLatestData(reservationWithAccounting: ReservationCore): ApiResponseGeneric;
+/**
  * 統合ログインエンドポイント：認証 + 初期データ + 個人データを一括取得
  *
  * @param {string} phone - 電話番号（ユーザー認証用）

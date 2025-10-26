@@ -30,6 +30,7 @@ import {
   cancelReservation,
   updateReservationDetails,
   saveAccountingDetails,
+  updateAccountingDetails,
   getScheduleInfoForDate,
   confirmWaitlistedReservation,
 } from './05-2_Backend_Write.js';
@@ -172,6 +173,22 @@ export function saveAccountingDetailsAndGetLatestData(
     reservationWithAccounting,
     reservationWithAccounting.studentId,
     '会計処理が完了しました。',
+  );
+}
+
+/**
+ * 会計修正を実行し、成功した場合に最新の全初期化データを返す。
+ * @param {ReservationCore} reservationWithAccounting - 修正後の会計情報を含む予約オブジェクト。
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
+ */
+export function updateAccountingDetailsAndGetLatestData(
+  reservationWithAccounting,
+) {
+  return executeOperationAndGetLatestData(
+    updateAccountingDetails,
+    reservationWithAccounting,
+    reservationWithAccounting.studentId,
+    '会計情報を修正しました。',
   );
 }
 
