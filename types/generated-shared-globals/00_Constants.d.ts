@@ -99,10 +99,28 @@ export namespace CONSTANTS {
         let EDIT: string;
     }
     namespace LOG_ACTIONS {
-        let ROSTER_EDIT: string;
-        let RESERVATION_EDIT: string;
-        let ROW_INSERT: string;
+        let RESERVATION_CREATE: string;
+        let RESERVATION_WAITLIST: string;
         let RESERVATION_CANCEL: string;
+        let RESERVATION_UPDATE: string;
+        let RESERVATION_CONFIRM: string;
+        let RESERVATION_EDIT: string;
+        let ACCOUNTING_SAVE: string;
+        let ACCOUNTING_MODIFY: string;
+        let USER_LOGIN: string;
+        let USER_LOGOUT: string;
+        let USER_REGISTER: string;
+        let USER_UPDATE: string;
+        let USER_UPDATE_ERROR: string;
+        let USER_PASSWORD_CHANGE: string;
+        let USER_WITHDRAWAL: string;
+        let ROSTER_EDIT: string;
+        let ROW_INSERT: string;
+        let EMAIL_VACANCY_NOTIFICATION: string;
+        let BATCH_SALES_TRANSFER_START: string;
+        let BATCH_SALES_TRANSFER_SUCCESS: string;
+        let BATCH_SALES_TRANSFER_ERROR: string;
+        let SYSTEM_ERROR: string;
     }
     namespace CLASSROOM_TYPES {
         let SESSION_BASED: string;

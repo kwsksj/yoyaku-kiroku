@@ -25,7 +25,7 @@
 // 依存モジュール
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
-import { sendAdminNotification } from './02-6_Notification_Admin.js';
+import { sendAdminNotificationForUser } from './02-6_Notification_Admin.js';
 import {
   CACHE_KEYS,
   addCachedStudent,
@@ -804,17 +804,19 @@ export function registerNewUser(userData) {
       );
 
       // 管理者通知
-      const emailSubject = '新規ユーザー登録';
-      const emailBody =
-        `新しいユーザーが登録されました。\n\n` +
-        `生徒ID: ${newStudentId}\n` +
-        `本名: ${realName}\n` +
-        `ニックネーム: ${displayName}\n` +
-        `電話番号: ${phone}\n` +
-        `メールアドレス: ${email || '未登録'}\n` +
-        `登録日時: ${Utilities.formatDate(new Date(), CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}\n\n` +
-        `詳細はスプレッドシートの生徒名簿を確認してください。`;
-      sendAdminNotification(emailSubject, emailBody);
+      sendAdminNotificationForUser(
+        {
+          ...userData,
+          studentId: newStudentId,
+          displayName: displayName,
+          registrationDate: Utilities.formatDate(
+            new Date(),
+            CONSTANTS.TIMEZONE,
+            'yyyy-MM-dd HH:mm:ss',
+          ),
+        },
+        'registered',
+      );
 
       return {
         success: true,
@@ -992,8 +994,10 @@ export function requestAccountDeletion(studentId) {
       );
       const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
       const realNameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
-      const nicknameColIdx = header.indexOf(
-        CONSTANTS.HEADERS.ROSTER.NICKNAME,
+      const nicknameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.NICKNAME);
+      const emailColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.EMAIL);
+      const registrationDateColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.REGISTRATION_DATE,
       );
 
       if (studentIdColIdx === -1) {
@@ -1019,6 +1023,8 @@ export function requestAccountDeletion(studentId) {
       let currentPhone = '';
       let userRealName = '';
       let userNickname = '';
+      let userEmail = '';
+      let userRegistrationDate = '';
 
       for (let i = 0; i < allData.length; i++) {
         if (allData[i][studentIdColIdx] === studentId) {
@@ -1026,6 +1032,14 @@ export function requestAccountDeletion(studentId) {
           currentPhone = String(allData[i][phoneColIdx] || '');
           userRealName = String(allData[i][realNameColIdx] || '');
           userNickname = String(allData[i][nicknameColIdx] || '');
+          userEmail = String(allData[i][emailColIdx] || '');
+          userRegistrationDate = allData[i][registrationDateColIdx]
+            ? Utilities.formatDate(
+                new Date(allData[i][registrationDateColIdx]),
+                CONSTANTS.TIMEZONE,
+                'yyyy-MM-dd HH:mm:ss',
+              )
+            : '';
           break;
         }
       }
@@ -1064,17 +1078,24 @@ export function requestAccountDeletion(studentId) {
       );
 
       // 管理者通知
-      const withdrawalEmailSubject = 'ユーザー退会処理完了';
-      const withdrawalEmailBody =
-        `ユーザーが退会処理を完了しました。\n\n` +
-        `生徒ID: ${studentId}\n` +
-        `本名: ${userRealName}\n` +
-        `ニックネーム: ${userNickname}\n` +
-        `元電話番号: ${currentPhone}\n` +
-        `退会日時: ${Utilities.formatDate(new Date(), CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}\n\n` +
-        `電話番号は無効化されました（プレフィックス: _WITHDRAWN_${withdrawnDate}_）\n` +
-        `詳細はスプレッドシートの生徒名簿を確認してください。`;
-      sendAdminNotification(withdrawalEmailSubject, withdrawalEmailBody);
+      sendAdminNotificationForUser(
+        {
+          studentId: studentId,
+          realName: userRealName,
+          nickname: userNickname,
+          phone: currentPhone,
+          email: userEmail,
+          originalPhone: currentPhone,
+          newPhone: newPhone,
+          registrationDate: userRegistrationDate,
+          withdrawalDate: Utilities.formatDate(
+            new Date(),
+            CONSTANTS.TIMEZONE,
+            'yyyy-MM-dd HH:mm:ss',
+          ),
+        },
+        'withdrawn',
+      );
 
       // キャッシュ更新
       rebuildAllStudentsBasicCache();
