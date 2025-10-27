@@ -780,7 +780,7 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 空席連絡希望の予約を確定予約に変更します。
+   * 空き通知希望の予約を確定予約に変更します。
    * @param {ActionHandlerData} d - 確定対象の予約情報を含むデータ
    */
   confirmWaitlistedReservation: d => {
@@ -789,7 +789,7 @@ export const reservationActionHandlers = {
     const classroomName = d.classroom || '';
     const message = `
         <div class="text-left space-y-4">
-          <p class="text-center"><b>${formattedDate}</b><br>${classroomName}<br>空席連絡希望を確定予約に変更しますか？</p>
+          <p class="text-center"><b>${formattedDate}</b><br>${classroomName}<br>空き通知希望を確定予約に変更しますか？</p>
           <div class="pt-4 border-t">
             <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
             <textarea id="confirm-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
@@ -846,7 +846,7 @@ export const reservationActionHandlers = {
           if (r.success) {
             // 予約確定成功のモーダル表示
             showInfo(
-              '空席連絡希望から予約への変更が完了しました。',
+              '空き通知希望から予約への変更が完了しました。',
               '予約確定',
             );
 

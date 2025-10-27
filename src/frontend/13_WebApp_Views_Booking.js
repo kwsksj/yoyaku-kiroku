@@ -220,25 +220,25 @@ export const getReservationFormView = () => {
   const title = isEdit
     ? '予約内容の編集'
     : isFull || (isFirstTimeBooking && isBeginnerSlotFull)
-      ? '空き連絡希望'
+      ? '空き通知希望'
       : '予約詳細の入力';
   const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
   const submitButtonText = isEdit
     ? 'この内容で更新する'
     : isFull
-      ? '空き連絡希望で登録する'
+      ? '空き通知 登録'
       : 'この内容で予約する';
 
   const _renderStatusHtml = () => {
     if (isEdit) {
-      return isWaiting ? '空き連絡希望' : '予約済み';
+      return isWaiting ? '空き通知希望' : '予約済み';
     }
     if (isFirstTimeBooking) {
       return isBeginnerSlotFull
-        ? '初回者枠 満席（空き連絡希望）'
+        ? '初回者枠 満席（空き通知希望）'
         : `初回者枠 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
     }
-    if (isFull) return '満席（空き連絡希望）';
+    if (isFull) return '満席（空き通知希望）';
     if (hasSecondSlots) {
       const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
       const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
@@ -556,7 +556,7 @@ export const renderBookingLessons = lessons => {
               if (lesson.beginnerStart && beginnerCapacityCount > 0) {
                 // 初回者枠が満席かチェック
                 if (beginnerSlotsCount <= 0) {
-                  statusText = '初回者 満席（空き連絡希望）';
+                  statusText = '初回者 満席（空き通知希望）';
                 } else {
                   statusText = `初回者 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
                 }
@@ -586,7 +586,7 @@ export const renderBookingLessons = lessons => {
                 reservationData?.status === CONSTANTS.STATUS.WAITLISTED
               ) {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">空き連絡希望 登録済</span>`;
+                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">空き通知 登録済</span>`;
                 actionAttribute = '';
               } else {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
@@ -617,7 +617,7 @@ export const renderBookingLessons = lessons => {
                 actionAttribute = '';
               } else if (isSlotFull) {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（空き連絡希望）</span>`;
+                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（空き通知希望）</span>`;
                 actionAttribute = `data-action="bookLesson" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
               } else {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;

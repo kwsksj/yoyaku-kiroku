@@ -114,6 +114,20 @@ export function saveAccountingDetails(reservationWithAccounting: ReservationCore
     message: string;
 }>;
 /**
+ * 会計情報を修正します（当日20時まで可能）
+ *
+ * @param {ReservationCore} reservationWithUpdatedAccounting - 修正後の会計情報を含む予約オブジェクト。
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果。
+ *
+ * @description
+ * 既存の会計データを修正する機能。修正締切（20時）までのみ実行可能。
+ * 売上表への転載は20時のバッチ処理で行われるため、ここでは予約シートの更新のみを行う。
+ * これにより、何度修正しても売上表に影響を与えずに修正が可能。
+ */
+export function updateAccountingDetails(reservationWithUpdatedAccounting: ReservationCore): ApiResponseGeneric<{
+    message: string;
+}>;
+/**
  * [設計思想] 後続処理でエラーが発生してもメインの会計処理は成功と見なすため、
  * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
  * @private

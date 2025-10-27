@@ -291,14 +291,32 @@ export function generateSalesSection(classifiedItems, formData = {}) {
   // 材料代セクション
   let materialsHtml = '';
   if (classifiedItems.sales.materialItems.length > 0) {
-    const initialMaterial = Array.isArray(form.materials)
-      ? form.materials[0]
-      : undefined;
+    const existingMaterials = Array.isArray(form.materials)
+      ? form.materials
+      : [];
+    let materialRows = existingMaterials
+      .map((material, index) =>
+        generateMaterialRow(
+          classifiedItems.sales.materialItems,
+          index,
+          material,
+        ),
+      )
+      .join('');
+
+    // 新規追加用の空行を追加
+    const newMaterialIndex = existingMaterials.length;
+    materialRows += generateMaterialRow(
+      classifiedItems.sales.materialItems,
+      newMaterialIndex,
+      undefined,
+    );
+
     materialsHtml = `
       <div class="materials mb-6">
         <h4 class="font-medium text-brand-text mb-3">材料</h4>
         <div id="materials-container">
-          ${generateMaterialRow(classifiedItems.sales.materialItems, 0, initialMaterial)}
+          ${materialRows}
         </div>
       </div>`;
   }
@@ -316,15 +334,28 @@ export function generateSalesSection(classifiedItems, formData = {}) {
         : [/** @type {CustomSalesEntry} */ ({})],
     );
 
-    const initialProduct = Array.isArray(form.selectedProducts)
-      ? form.selectedProducts[0]
-      : undefined;
+    const existingProducts = Array.isArray(form.selectedProducts)
+      ? form.selectedProducts
+      : [];
+    let productRows = existingProducts
+      .map((product, index) =>
+        generateProductRow(classifiedItems.sales.productItems, index, product),
+      )
+      .join('');
+
+    // 新規追加用の空行を追加
+    const newProductIndex = existingProducts.length;
+    productRows += generateProductRow(
+      classifiedItems.sales.productItems,
+      newProductIndex,
+      undefined,
+    );
 
     productsHtml = `
       <div class="products mb-6">
         <h4 class="font-medium text-brand-text mb-3">物販</h4>
         <div id="products-container">
-          ${generateProductRow(classifiedItems.sales.productItems, 0, initialProduct)}
+          ${productRows}
         </div>
         <div class="custom-sales-divider mb-2">
         </div>

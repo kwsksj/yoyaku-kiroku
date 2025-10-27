@@ -14,12 +14,24 @@ export function getRecentCompletedReservationDates(): string[];
  */
 export function repostSalesLogByDate(): void;
 /**
- * 指定した日付の予約記録から売上ログを再転載する（処理実行部分）
- * HTMLダイアログから呼び出される
- * @param {string} targetDate - 対象日付（YYYY-MM-DD形式）
+ * 指定した日付の予約記録から売上ログを転載する
+ * HTMLダイアログ（手動再転載）またはバッチ処理（日次転載）から呼び出される
+ * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
+ * @returns {{ success: boolean, totalCount: number, successCount: number }} 転載結果
  */
-export function processRepostSalesLogByDate(targetDate: string): {
+export function transferSalesLogByDate(targetDate?: string): {
     success: boolean;
     totalCount: number;
     successCount: number;
 };
+/**
+ * 【トリガー関数】毎日20時に実行: 当日の会計済み予約を売上表に転載する
+ * スクリプトのトリガー設定から呼び出される
+ *
+ * @description
+ * このバッチ処理により、会計修正は当日20時まで可能となり、
+ * 20時以降は確定された会計データが売上表に転載される。
+ * これにより、会計処理時の売上ログ記録が不要になり、
+ * 何度修正しても売上表に影響がない運用が実現できる。
+ */
+export function dailySalesTransferBatch(): void;

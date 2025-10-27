@@ -60,6 +60,29 @@ export interface AccountingDetailsCore {
 
   /** 支払い方法（CONSTANTS.PAYMENT_METHODSの値: cash/card/transfer） */
   paymentMethod: string;
+
+  /** 休憩時間（分） - 会計処理時にのみ設定 */
+  breakTime?: number | undefined;
+
+  /** 材料詳細 - 会計処理時にのみ設定 */
+  materials?: Array<{
+    /** 材料種別 */
+    type: string;
+    /** 長さ（cm） */
+    l?: number;
+    /** 幅（cm） */
+    w?: number;
+    /** 高さ（cm） */
+    h?: number;
+  }> | undefined;
+
+  /** 自由入力物販 - 会計処理時にのみ設定 */
+  customSales?: Array<{
+    /** 商品名 */
+    name: string;
+    /** 金額 */
+    price: number;
+  }> | undefined;
 }
 
 /**

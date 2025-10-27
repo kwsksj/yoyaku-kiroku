@@ -232,6 +232,10 @@ export namespace CONSTANTS {
         let CACHE_EXPIRY_SECONDS: number;
         let HEADER_ROW: number;
     }
+    namespace ACCOUNTING_SYSTEM {
+        let MODIFICATION_DEADLINE_HOUR: number;
+        let SALES_TRANSFER_HOUR: number;
+    }
     namespace NOTIFICATION {
         let DAYS: number[];
         let HOURS: number[];

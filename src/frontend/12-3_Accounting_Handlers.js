@@ -1534,11 +1534,16 @@ export function processAccountingPayment(formData, result) {
     }
 
     // 1. フロントエンドで計算された会計詳細(result)を取得
+    /** @type {AccountingDetailsCore} */
     const calculatedAccountingDetails = {
       tuition: result.tuition,
       sales: result.sales,
       grandTotal: result.grandTotal,
       paymentMethod: result.paymentMethod,
+      // 会計処理時の詳細情報を追加
+      breakTime: formData.breakTime,
+      materials: formData.materials,
+      customSales: formData.customSales,
     };
 
     // 2. 現在の予約情報と会計詳細、フォームの更新内容をマージして、新しいReservationCoreを構築
@@ -1559,9 +1564,18 @@ export function processAccountingPayment(formData, result) {
       );
     }
 
+    // 会計処理が新規か修正かを判定
+    const isAccountingModification =
+      Boolean(selectedReservation.accountingDetails) &&
+      selectedReservation.status === CONSTANTS.STATUS.COMPLETED;
+
+    const endpointName = isAccountingModification
+      ? 'updateAccountingDetailsAndGetLatestData'
+      : 'saveAccountingDetailsAndGetLatestData';
+
     // バックエンドAPIコール
     if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
+      const scriptRunner = google.script.run
         .withSuccessHandler(response => {
           if (typeof hideLoading === 'function') {
             hideLoading();
@@ -1588,7 +1602,8 @@ export function processAccountingPayment(formData, result) {
               type: 'SET_STATE',
               payload: {
                 view: 'complete',
-                completionMessage: '会計情報を記録しました。',
+                completionMessage:
+                  response.message || '会計情報を記録しました。',
               },
             });
           } else {
@@ -1604,8 +1619,26 @@ export function processAccountingPayment(formData, result) {
           }
           console.error('会計処理エラー:', error);
           showInfo('会計処理に失敗しました。', 'エラー');
-        })
-        .saveAccountingDetailsAndGetLatestData(reservationWithAccounting);
+        });
+
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+        console.log('🔍 呼び出しGASエンドポイント:', endpointName);
+      }
+
+      if (typeof scriptRunner[endpointName] === 'function') {
+        scriptRunner[endpointName](reservationWithAccounting);
+      } else {
+        if (typeof hideLoading === 'function') {
+          hideLoading();
+        }
+        console.error(
+          `未定義のGASエンドポイントが指定されました: ${endpointName}`,
+        );
+        showInfo(
+          '会計処理の呼び出しに失敗しました。時間を置いて再度お試しください。',
+          'システムエラー',
+        );
+      }
     } else {
       // Google Apps Script環境でない場合のフォールバック
       if (typeof hideLoading === 'function') {

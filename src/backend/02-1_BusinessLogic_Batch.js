@@ -26,7 +26,8 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
-import { getReservationCoreById, handleError } from './08_Utilities.js';
+import { getReservationCoreById, handleError, logActivity } from './08_Utilities.js';
+import { sendAdminNotification } from './02-6_Notification_Admin.js';
 
 /**
  * 【開発用】テスト環境をセットアップします。
@@ -216,11 +217,17 @@ export function repostSalesLogByDate() {
 }
 
 /**
- * 指定した日付の予約記録から売上ログを再転載する（処理実行部分）
- * HTMLダイアログから呼び出される
- * @param {string} targetDate - 対象日付（YYYY-MM-DD形式）
+ * 指定した日付の予約記録から売上ログを転載する
+ * HTMLダイアログ（手動再転載）またはバッチ処理（日次転載）から呼び出される
+ * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
+ * @returns {{ success: boolean, totalCount: number, successCount: number }} 転載結果
  */
-export function processRepostSalesLogByDate(targetDate) {
+export function transferSalesLogByDate(targetDate) {
+  // 日付が指定されていない場合は当日を使用
+  if (!targetDate) {
+    const today = new Date();
+    targetDate = Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  }
   try {
     SpreadsheetApp.getActiveSpreadsheet().toast(
       `${targetDate}の売上記録を転載中...`,
@@ -312,7 +319,14 @@ export function processRepostSalesLogByDate(targetDate) {
 
     if (targetReservations.length === 0) {
       SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
-      throw new Error(`${targetDate}の会計済み予約は見つかりませんでした。`);
+      Logger.log(
+        `[transferSalesLogByDate] 対象なし: ${targetDate}の会計済み予約はありません`,
+      );
+      return {
+        success: true,
+        totalCount: 0,
+        successCount: 0,
+      };
     }
 
     // 各予約から売上記録を書き込み（既存の関数を再利用）
@@ -325,7 +339,7 @@ export function processRepostSalesLogByDate(targetDate) {
         );
         if (!reservation) {
           Logger.log(
-            `[repostSalesLogByDate] 予約が見つかりません: ${targetReservation.reservationId}`,
+            `[transferSalesLogByDate] 予約が見つかりません: ${targetReservation.reservationId}`,
           );
           continue;
         }
@@ -340,7 +354,7 @@ export function processRepostSalesLogByDate(targetDate) {
         successCount++;
       } catch (err) {
         Logger.log(
-          `[repostSalesLogByDate] 予約 ${targetReservation.reservationId} の処理でエラー: ${err.message}`,
+          `[transferSalesLogByDate] 予約 ${targetReservation.reservationId} の処理でエラー: ${err.message}`,
         );
       }
     }
@@ -348,7 +362,7 @@ export function processRepostSalesLogByDate(targetDate) {
     SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
 
     Logger.log(
-      `[processRepostSalesLogByDate] 完了: ${targetDate}, 予約${targetReservations.length}件, 成功${successCount}件`,
+      `[transferSalesLogByDate] 完了: ${targetDate}, 予約${targetReservations.length}件, 成功${successCount}件`,
     );
 
     return {
@@ -359,10 +373,90 @@ export function processRepostSalesLogByDate(targetDate) {
   } catch (err) {
     SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
 
-    const errorMessage = `売上記録の再転載中にエラーが発生しました: ${err.message}`;
-    Logger.log(`[processRepostSalesLogByDate] エラー: ${errorMessage}`);
+    const errorMessage = `売上記録の転載中にエラーが発生しました: ${err.message}`;
+    Logger.log(`[transferSalesLogByDate] エラー: ${errorMessage}`);
 
     // エラーをスロー（HTMLダイアログ側でキャッチ）
     throw new Error(errorMessage);
+  }
+}
+
+/**
+ * 【トリガー関数】毎日20時に実行: 当日の会計済み予約を売上表に転載する
+ * スクリプトのトリガー設定から呼び出される
+ *
+ * @description
+ * このバッチ処理により、会計修正は当日20時まで可能となり、
+ * 20時以降は確定された会計データが売上表に転載される。
+ * これにより、会計処理時の売上ログ記録が不要になり、
+ * 何度修正しても売上表に影響がない運用が実現できる。
+ */
+export function dailySalesTransferBatch() {
+  const today = new Date();
+  const targetDate = Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+
+  try {
+    Logger.log(`[dailySalesTransferBatch] 開始: ${new Date().toISOString()}`);
+
+    // LOGシートにバッチ開始を記録
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_START,
+      '実行中',
+      `対象日: ${targetDate}`,
+    );
+
+    // 引数なしで呼び出すと当日の売上を転載
+    const result = transferSalesLogByDate();
+
+    Logger.log(
+      `[dailySalesTransferBatch] 完了: 予約${result.totalCount}件, 成功${result.successCount}件`,
+    );
+
+    // LOGシートにバッチ完了を記録
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_SUCCESS,
+      '成功',
+      `対象日: ${targetDate}, 処理件数: ${result.totalCount}件, 成功: ${result.successCount}件`,
+    );
+
+    // 管理者にメール通知
+    const emailSubject = `売上転載バッチ処理完了 (${targetDate})`;
+    const emailBody =
+      `売上転載バッチ処理が完了しました。\n\n` +
+      `対象日: ${targetDate}\n` +
+      `処理件数: ${result.totalCount}件\n` +
+      `成功: ${result.successCount}件\n` +
+      `失敗: ${result.totalCount - result.successCount}件\n\n` +
+      `処理時刻: ${Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}\n\n` +
+      `詳細はスプレッドシートのLOGシートを確認してください。`;
+
+    sendAdminNotification(emailSubject, emailBody);
+
+  } catch (err) {
+    const errorMessage = `売上表転載バッチ処理でエラーが発生しました: ${err.message}`;
+    Logger.log(`[dailySalesTransferBatch] エラー: ${errorMessage}`);
+
+    // LOGシートにエラーを記録
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_ERROR,
+      '失敗',
+      `対象日: ${targetDate}, エラー: ${err.message}`,
+    );
+
+    // 管理者にエラーメール通知
+    const errorEmailSubject = `【エラー】売上転載バッチ処理失敗 (${targetDate})`;
+    const errorEmailBody =
+      `売上転載バッチ処理でエラーが発生しました。\n\n` +
+      `対象日: ${targetDate}\n` +
+      `エラー内容: ${err.message}\n\n` +
+      `処理時刻: ${Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}\n\n` +
+      `詳細はスプレッドシートのLOGシートおよびApps Scriptのログを確認してください。`;
+
+    sendAdminNotification(errorEmailSubject, errorEmailBody);
+
+    handleError(errorMessage, false);
   }
 }

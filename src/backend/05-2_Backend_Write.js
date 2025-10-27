@@ -510,7 +510,7 @@ export function makeReservation(reservationInfo) {
         );
         logActivity(
           reservationInfo.studentId,
-          '予約作成',
+          CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE,
           CONSTANTS.MESSAGES.SUCCESS,
           `ReservationID: ${createdReservationId} (詳細はシート確認)`,
         );
@@ -524,13 +524,15 @@ export function makeReservation(reservationInfo) {
       const isNowWaiting =
         reservationWithUser.status === CONSTANTS.STATUS.WAITLISTED;
       const message = isNowWaiting
-        ? '満席のため、空き連絡希望で登録しました。'
+        ? '満席のため、空き通知希望で登録しました。'
         : '予約が完了しました。';
 
       const messageLog = reservationWithUser.messageToTeacher
         ? `, Message: ${reservationWithUser.messageToTeacher}`
         : '';
-      const actionType = isNowWaiting ? '空き連絡希望登録' : '予約作成';
+      const actionType = isNowWaiting
+        ? CONSTANTS.LOG_ACTIONS.RESERVATION_WAITLIST
+        : CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE;
       const logDetails = `Classroom: ${reservationWithUser.classroom}, Date: ${reservationWithUser.date}, Status: ${reservationWithUser.status}, ReservationID: ${reservationWithUser.reservationId}${messageLog}`;
       logActivity(
         reservationWithUser.studentId,
@@ -556,7 +558,7 @@ export function makeReservation(reservationInfo) {
     } catch (err) {
       logActivity(
         reservationInfo.studentId,
-        '予約作成',
+        CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE,
         CONSTANTS.MESSAGES.ERROR,
         `Error: ${err.message}`,
       );
@@ -666,7 +668,7 @@ ${err.stack}`);
 }
 
 /**
- * キャンセル後の空き連絡希望者への通知機能
+ * キャンセル後の空き通知希望者への通知機能
  * @param {string} classroom - 教室名
  * @param {string} date - 日付（yyyy-MM-dd形式）
  * @param {ReservationCore} _cancelledReservation - キャンセルされた予約データ（将来の拡張用）
@@ -730,7 +732,7 @@ export function notifyAvailabilityToWaitlistedUsers(
       availabilityType,
     );
     if (recipients.length === 0) {
-      Logger.log('通知対象の空席連絡希望ユーザーがいません。');
+      Logger.log('通知対象の空き通知希望ユーザーがいません。');
       return;
     }
 
@@ -742,14 +744,14 @@ export function notifyAvailabilityToWaitlistedUsers(
         GmailApp.sendEmail(recipient.email, subject, body);
         logActivity(
           recipient.studentId,
-          '空き通知メール送信',
+          CONSTANTS.LOG_ACTIONS.EMAIL_VACANCY_NOTIFICATION,
           '成功',
           `Classroom: ${classroom}, Date: ${date}`,
         );
       } catch (e) {
         logActivity(
           recipient.studentId,
-          '空き通知メール送信',
+          CONSTANTS.LOG_ACTIONS.EMAIL_VACANCY_NOTIFICATION,
           '失敗',
           `Error: ${e.message}`,
         );
@@ -997,10 +999,18 @@ export function updateReservationDetails(details) {
       const logDetails = `ReservationID: ${updatedReservation.reservationId}, Classroom: ${updatedReservation.classroom}${messageLog}`;
       logActivity(
         updatedReservation.studentId,
-        '予約詳細更新',
+        CONSTANTS.LOG_ACTIONS.RESERVATION_UPDATE,
         CONSTANTS.MESSAGES.SUCCESS,
         logDetails,
       );
+
+      // 管理者通知
+      const updateDetails = messageToTeacher
+        ? `メッセージが更新されました: ${messageToTeacher}`
+        : '予約詳細が更新されました';
+      sendAdminNotificationForReservation(updatedReservation, 'updated', {
+        updateDetails,
+      });
 
       // ★ フロントエンドに返す最新データを取得
       /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */
@@ -1093,19 +1103,13 @@ export function saveAccountingDetails(reservationWithAccounting) {
       // 4. 共通関数を呼び出して保存
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
-      // 5. 売上ログの記録
-      if (updatedReservation.accountingDetails) {
-        logSalesForSingleReservation(
-          updatedReservation,
-          updatedReservation.accountingDetails,
-        );
-      }
+      // 5. 売上ログの記録は20時のバッチ処理で実行されるためここでは行わない
 
       // ログと通知
       const logDetails = `Classroom: ${updatedReservation.classroom}, ReservationID: ${reservationId}, Total: ${accountingDetails.grandTotal}`;
       logActivity(
         studentId,
-        '会計記録保存',
+        CONSTANTS.LOG_ACTIONS.ACCOUNTING_SAVE,
         CONSTANTS.MESSAGES.SUCCESS,
         logDetails,
       );
@@ -1144,7 +1148,7 @@ export function saveAccountingDetails(reservationWithAccounting) {
     } catch (err) {
       logActivity(
         reservationWithAccounting.studentId,
-        '会計記録保存',
+        CONSTANTS.LOG_ACTIONS.ACCOUNTING_SAVE,
         CONSTANTS.MESSAGES.ERROR,
         `Error: ${err.message}`,
       );
@@ -1153,6 +1157,147 @@ ${err.stack}`);
       const errorResponse = BackendErrorHandler.handle(
         /** @type {Error} */ (err),
         'saveAccountingDetails',
+      );
+      return normalizeErrorResponse(errorResponse);
+    }
+  });
+}
+
+/**
+ * 会計情報を修正します（当日20時まで可能）
+ *
+ * @param {ReservationCore} reservationWithUpdatedAccounting - 修正後の会計情報を含む予約オブジェクト。
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果。
+ *
+ * @description
+ * 既存の会計データを修正する機能。修正締切（20時）までのみ実行可能。
+ * 売上表への転載は20時のバッチ処理で行われるため、ここでは予約シートの更新のみを行う。
+ * これにより、何度修正しても売上表に影響を与えずに修正が可能。
+ */
+export function updateAccountingDetails(reservationWithUpdatedAccounting) {
+  return withTransaction(() => {
+    try {
+      const { reservationId, studentId, accountingDetails, date } =
+        reservationWithUpdatedAccounting;
+
+      if (!reservationId || !studentId || !accountingDetails) {
+        throw new Error('会計修正に必要な情報が不足しています。');
+      }
+
+      // 1. 既存の予約データをCore型オブジェクトとして取得
+      const existingReservation = getReservationCoreById(reservationId);
+      if (!existingReservation) {
+        throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
+      }
+
+      // 2. 権限チェック
+      if (existingReservation.studentId !== studentId) {
+        throw new Error('この予約の会計処理を修正する権限がありません。');
+      }
+
+      // 3. ステータスチェック：会計済み（完了）のみ修正可能
+      if (existingReservation.status !== CONSTANTS.STATUS.COMPLETED) {
+        throw new Error('会計処理が完了していない予約は修正できません。');
+      }
+
+      // 4. 時刻チェック：当日20時までのみ修正可能
+      const reservationDate = new Date(date || existingReservation.date);
+      const now = new Date();
+      const deadlineHour =
+        CONSTANTS.ACCOUNTING_SYSTEM.MODIFICATION_DEADLINE_HOUR;
+
+      // 予約日が今日でない場合はエラー
+      const todayStr = Utilities.formatDate(
+        now,
+        CONSTANTS.TIMEZONE,
+        'yyyy-MM-dd',
+      );
+      const reservationDateStr = Utilities.formatDate(
+        reservationDate,
+        CONSTANTS.TIMEZONE,
+        'yyyy-MM-dd',
+      );
+
+      if (reservationDateStr !== todayStr) {
+        throw new Error(
+          '会計修正は教室当日のみ可能です。翌日以降は修正できません。',
+        );
+      }
+
+      // 現在時刻が締切時刻を過ぎている場合はエラー
+      const currentHour = now.getHours();
+      if (currentHour >= deadlineHour) {
+        throw new Error(
+          `会計修正の締切時刻（${deadlineHour}時）を過ぎています。修正できません。`,
+        );
+      }
+
+      // 5. 更新後の完全なReservationCoreオブジェクトを構築
+      /** @type {ReservationCore} */
+      const updatedReservation = {
+        ...existingReservation,
+        accountingDetails: accountingDetails, // 会計情報を更新
+        // ステータスは「完了」のまま維持
+      };
+
+      // 6. 予約シートに保存（売上表への転載は20時のバッチ処理で行う）
+      _saveReservationCoreToSheet(updatedReservation, 'update');
+
+      // 7. ログと通知
+      const logDetails = `Classroom: ${updatedReservation.classroom}, ReservationID: ${reservationId}, Total: ${accountingDetails.grandTotal}, Modified: true`;
+      logActivity(
+        studentId,
+        CONSTANTS.LOG_ACTIONS.ACCOUNTING_MODIFY,
+        CONSTANTS.MESSAGES.SUCCESS,
+        logDetails,
+      );
+
+      const userInfo =
+        updatedReservation.user || getCachedStudentById(studentId);
+      if (!userInfo) {
+        throw new Error(`生徒情報が取得できませんでした: ${String(studentId)}`);
+      }
+
+      const subject = `会計記録修正 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
+      const body =
+        `会計が修正されました。
+
+` +
+        `本名: ${userInfo.realName}
+` +
+        `ニックネーム: ${userInfo.displayName}
+
+` +
+        `教室: ${updatedReservation.classroom}
+` +
+        `予約ID: ${reservationId}
+` +
+        `生徒ID: ${studentId}
+` +
+        `合計金額: ¥${accountingDetails.grandTotal.toLocaleString()}
+
+` +
+        `※売上表への転載は${deadlineHour}時のバッチ処理で自動的に行われます。
+` +
+        `詳細はスプレッドシートを確認してください。`;
+      sendAdminNotification(subject, body);
+
+      return createApiResponse(true, {
+        message:
+          '会計情報を修正しました。売上表への転載は20時に自動で行われます。',
+      });
+    } catch (err) {
+      logActivity(
+        reservationWithUpdatedAccounting.studentId,
+        CONSTANTS.LOG_ACTIONS.ACCOUNTING_MODIFY,
+        CONSTANTS.MESSAGES.ERROR,
+        `Error: ${err.message}`,
+      );
+      Logger.log(`updateAccountingDetails Error: ${err.message}
+${err.stack}`);
+      const errorResponse = BackendErrorHandler.handle(
+        /** @type {Error} */ (err),
+        'updateAccountingDetails',
       );
       return normalizeErrorResponse(errorResponse);
     }
@@ -1271,7 +1416,7 @@ export function getScheduleInfoForDate(date, classroom) {
 }
 
 /**
- * 空席連絡希望の予約を確定する
+ * 空き通知希望の予約を確定する
  * @param {{reservationId: string, studentId: string, messageToTeacher?: string}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric<any>} 処理結果と最新データ
  */
@@ -1292,9 +1437,9 @@ export function confirmWaitlistedReservation(confirmInfo) {
         throw new Error('この予約を操作する権限がありません。');
       }
 
-      // 現在のステータスが空席連絡希望（待機）かチェック
+      // 現在のステータスが空き通知希望（待機）かチェック
       if (targetReservation.status !== CONSTANTS.STATUS.WAITLISTED) {
-        throw new Error('この予約は空席連絡希望ではありません。');
+        throw new Error('この予約は空き通知希望ではありません。');
       }
 
       // 定員チェック（現在空席があるかチェック）
@@ -1328,7 +1473,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
       const logDetails = `Classroom: ${updatedReservation.classroom}, Date: ${updatedReservation.date}, ReservationID: ${reservationId}${messageLog}`;
       logActivity(
         studentId,
-        '空席連絡希望確定',
+        CONSTANTS.LOG_ACTIONS.RESERVATION_CONFIRM,
         CONSTANTS.MESSAGES.SUCCESS,
         logDetails,
       );
@@ -1363,7 +1508,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
     } catch (err) {
       logActivity(
         confirmInfo.studentId,
-        '空席連絡希望確定',
+        CONSTANTS.LOG_ACTIONS.RESERVATION_CONFIRM,
         CONSTANTS.MESSAGES.ERROR,
         `Error: ${err.message}`,
       );
