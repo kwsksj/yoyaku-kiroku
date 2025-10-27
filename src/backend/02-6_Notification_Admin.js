@@ -69,26 +69,23 @@ export function sendAdminNotificationForReservation(
   additionalInfo = {},
 ) {
   try {
-    const studentInfo = reservation.user
-      ? reservation.user
-      : getCachedStudentById(reservation.studentId);
-
-    const student = {
-      realName: studentInfo?.realName || studentInfo?.displayName || '',
-      displayName: studentInfo?.displayName || '',
-    };
+    const studentInfo =
+      reservation.user ||
+      getCachedStudentById(reservation.studentId) ||
+      undefined;
 
     const { subject, body } = _buildAdminNotificationContent(
       reservation,
-      student,
+      studentInfo,
       operationType,
       additionalInfo,
     );
 
     sendAdminNotification(subject, body);
 
+    const userDisplay = _formatUserDisplay(studentInfo);
     Logger.log(
-      `管理者通知送信完了: ${operationType} - 予約ID ${reservation.reservationId}`,
+      `管理者通知送信完了: ${operationType} - ${userDisplay} (予約ID: ${reservation.reservationId})`,
     );
   } catch (error) {
     Logger.log(
@@ -100,7 +97,7 @@ export function sendAdminNotificationForReservation(
 /**
  * 管理者通知のメッセージ内容を生成（操作種別に応じて）
  * @param {ReservationCore} reservation - 予約データ
- * @param {{realName: string, displayName: string}} student - 生徒情報
+ * @param {UserCore | undefined} student - 生徒情報
  * @param {'created'|'cancelled'|'updated'} operationType - 操作種別
  * @param {{cancelMessage?: string | undefined, updateDetails?: string | undefined}} additionalInfo - 追加情報
  * @returns {{subject: string, body: string}} 件名と本文
@@ -112,6 +109,8 @@ export function _buildAdminNotificationContent(
   operationType,
   additionalInfo,
 ) {
+  const userDisplay = _formatUserDisplay(student);
+
   const templates = {
     created: {
       subject: () => {
@@ -120,7 +119,7 @@ export function _buildAdminNotificationContent(
             ? '空き通知希望'
             : '新規予約';
         const firstTimeText = reservation.firstLecture ? '【初回参加】' : '';
-        return `${statusText} (${reservation.classroom}) ${firstTimeText}${student.realName}:${student.displayName}様`;
+        return `${statusText} (${reservation.classroom}) ${firstTimeText}${userDisplay}様`;
       },
       body: () => {
         const actionText =
@@ -132,8 +131,7 @@ export function _buildAdminNotificationContent(
           `${actionText}が入りました。\n\n` +
           _buildReservationBasicSection(reservation) +
           `\n【ユーザー情報】\n` +
-          `本名: ${student.realName}\n` +
-          `ニックネーム: ${student.displayName}\n` +
+          `名前: ${userDisplay}\n` +
           _buildLessonInfoSection(reservation) +
           _buildReservationContentSection(reservation, additionalInfo) +
           `\n詳細はスプレッドシートを確認してください。`
@@ -142,15 +140,14 @@ export function _buildAdminNotificationContent(
     },
     cancelled: {
       subject: () =>
-        `予約キャンセル (${reservation.classroom}) ${student.realName}:${student.displayName}様`,
+        `予約キャンセル (${reservation.classroom}) ${userDisplay}様`,
       body: () => {
         return (
           `予約がキャンセルされました。\n\n` +
           _buildReservationBasicSection(reservation) +
           `キャンセル日時: ${_formatDateTime()}\n` +
           `\n【ユーザー情報】\n` +
-          `本名: ${student.realName}\n` +
-          `ニックネーム: ${student.displayName}\n` +
+          `名前: ${userDisplay}\n` +
           _buildLessonInfoSection(reservation) +
           `\n【キャンセル理由・制作内容】` +
           _buildReservationContentSection(reservation, additionalInfo) +
@@ -159,16 +156,14 @@ export function _buildAdminNotificationContent(
       },
     },
     updated: {
-      subject: () =>
-        `予約更新 (${reservation.classroom}) ${student.realName}:${student.displayName}様`,
+      subject: () => `予約更新 (${reservation.classroom}) ${userDisplay}様`,
       body: () => {
         return (
           `予約が更新されました。\n\n` +
           _buildReservationBasicSection(reservation) +
           `更新日時: ${_formatDateTime()}\n` +
           `\n【ユーザー情報】\n` +
-          `本名: ${student.realName}\n` +
-          `ニックネーム: ${student.displayName}\n` +
+          `名前: ${userDisplay}\n` +
           _buildLessonInfoSection(reservation) +
           `\n【更新内容・メッセージ・制作情報】` +
           _buildReservationContentSection(reservation, additionalInfo) +
@@ -195,51 +190,48 @@ export function _buildAdminNotificationContent(
 
 /**
  * ユーザー操作の管理者通知（統一インターフェース）
- * @param {any} userData - ユーザーデータ
+ * @param {UserCore & {registrationDate?: string, originalPhone?: string, newPhone?: string, withdrawalDate?: string}} userData - ユーザーデータ（UserCore + 操作固有の追加情報）
  * @param {'registered'|'withdrawn'} operationType - 操作種別
- * @param {any} [additionalInfo] - 追加情報
  */
-export function sendAdminNotificationForUser(
-  userData,
-  operationType,
-  additionalInfo = {},
-) {
+export function sendAdminNotificationForUser(userData, operationType) {
   try {
     const { subject, body } = _buildUserNotificationContent(
       userData,
       operationType,
-      additionalInfo,
     );
 
     sendAdminNotification(subject, body);
 
+    const userDisplay = _formatUserDisplay(userData);
     Logger.log(
-      `管理者通知送信完了: ${operationType} - 生徒ID ${additionalInfo.studentId || 'N/A'}`,
+      `管理者通知送信完了: ${operationType} - ${userDisplay} (生徒ID: ${userData.studentId || 'N/A'})`,
     );
   } catch (error) {
+    const userDisplay = _formatUserDisplay(userData);
     Logger.log(
-      `管理者通知送信エラー: ${error.message} (生徒ID: ${additionalInfo.studentId || 'N/A'})`,
+      `管理者通知送信エラー: ${error.message} - ${userDisplay} (生徒ID: ${userData.studentId || 'N/A'})`,
     );
   }
 }
 
 /**
  * ユーザー通知のメッセージ内容を生成（操作種別に応じて）
- * @param {any} userData - ユーザーデータ
+ * @param {UserCore & {registrationDate?: string, originalPhone?: string, newPhone?: string, withdrawalDate?: string}} userData - ユーザーデータ
  * @param {'registered'|'withdrawn'} operationType - 操作種別
- * @param {any} additionalInfo - 追加情報
  * @returns {{subject: string, body: string}} 件名と本文
  * @private
  */
-function _buildUserNotificationContent(userData, operationType, additionalInfo) {
+function _buildUserNotificationContent(userData, operationType) {
+  const userDisplay = _formatUserDisplay(userData);
+
   const templates = {
     registered: {
-      subject: () => '新規ユーザー登録',
+      subject: () => `新規ユーザー登録 - ${userDisplay}`,
       body: () => {
         return (
           `新しいユーザーが登録されました。\n\n` +
-          _buildUserBasicInfoSection(userData, additionalInfo.studentId) +
-          `登録日時: ${additionalInfo.registrationDate || _formatDateTime()}\n` +
+          _buildUserBasicInfoSection(userData) +
+          `登録日時: ${userData.registrationDate || _formatDateTime()}\n` +
           _buildUserAttributesSection(userData) +
           _buildUserCreationInfoSection(userData) +
           _buildUserOtherInfoSection(userData) +
@@ -248,17 +240,17 @@ function _buildUserNotificationContent(userData, operationType, additionalInfo) 
       },
     },
     withdrawn: {
-      subject: () => 'ユーザー退会処理完了',
+      subject: () => `ユーザー退会処理完了 - ${userDisplay}`,
       body: () => {
         return (
           `ユーザーが退会処理を完了しました。\n\n` +
-          _buildUserBasicInfoSection(userData, additionalInfo.studentId) +
-          `元電話番号: ${additionalInfo.originalPhone || ''}\n` +
-          `登録日: ${additionalInfo.registrationDate || '不明'}\n` +
-          `退会日時: ${additionalInfo.withdrawalDate || _formatDateTime()}\n` +
+          _buildUserBasicInfoSection(userData) +
+          `元電話番号: ${userData.originalPhone || ''}\n` +
+          `登録日: ${userData.registrationDate || '不明'}\n` +
+          `退会日時: ${userData.withdrawalDate || _formatDateTime()}\n` +
           `\n【処理内容】\n` +
           `電話番号は無効化されました\n` +
-          `新しい電話番号: ${additionalInfo.newPhone || ''}\n` +
+          `新しい電話番号: ${userData.newPhone || ''}\n` +
           `\n詳細はスプレッドシートの生徒名簿を確認してください。`
         );
       },
@@ -270,7 +262,7 @@ function _buildUserNotificationContent(userData, operationType, additionalInfo) 
     Logger.log(`未知の操作種別: ${operationType}`);
     return {
       subject: 'ユーザー操作通知',
-      body: `ユーザー操作が実行されました。\n生徒ID: ${additionalInfo.studentId || 'N/A'}\n詳細はスプレッドシートを確認してください。`,
+      body: `ユーザー操作が実行されました。\n${userDisplay} (生徒ID: ${userData.studentId || 'N/A'})\n詳細はスプレッドシートを確認してください。`,
     };
   }
 
@@ -300,17 +292,31 @@ function _formatDateTime(date) {
 }
 
 /**
+ * ユーザー情報を「本名（ニックネーム）」形式で表示
+ * @param {UserCore | undefined} user - ユーザーデータ
+ * @returns {string} 表示用文字列
+ * @private
+ */
+function _formatUserDisplay(user) {
+  if (!user) return 'N/A';
+  const realName = user.realName || 'N/A';
+  const nickname = user.nickname || user.displayName;
+  return nickname && nickname !== realName
+    ? `${realName}（${nickname}）`
+    : realName;
+}
+
+/**
  * ユーザー基本情報セクションを構築
- * @param {any} userData - ユーザーデータ
- * @param {string} [studentId] - 生徒ID（任意）
+ * @param {UserCore} userData - ユーザーデータ
  * @returns {string} フォーマット済みセクション
  * @private
  */
-function _buildUserBasicInfoSection(userData, studentId) {
+function _buildUserBasicInfoSection(userData) {
+  const userDisplay = _formatUserDisplay(userData);
   let section = '【基本情報】\n';
-  if (studentId) section += `生徒ID: ${studentId}\n`;
-  section += `本名: ${userData.realName || ''}\n`;
-  section += `ニックネーム: ${userData.nickname || userData.displayName || ''}\n`;
+  section += `生徒ID: ${userData.studentId || 'N/A'}\n`;
+  section += `名前: ${userDisplay}\n`;
   section += `電話番号: ${userData.phone || ''}\n`;
   section += `メールアドレス: ${userData.email || '未登録'}\n`;
   section += `住所: ${userData.address || '未登録'}\n`;

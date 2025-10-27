@@ -804,15 +804,19 @@ export function registerNewUser(userData) {
       );
 
       // 管理者通知
-      sendAdminNotificationForUser(userData, 'registered', {
-        studentId: newStudentId,
-        displayName: displayName,
-        registrationDate: Utilities.formatDate(
-          new Date(),
-          CONSTANTS.TIMEZONE,
-          'yyyy-MM-dd HH:mm:ss',
-        ),
-      });
+      sendAdminNotificationForUser(
+        {
+          ...userData,
+          studentId: newStudentId,
+          displayName: displayName,
+          registrationDate: Utilities.formatDate(
+            new Date(),
+            CONSTANTS.TIMEZONE,
+            'yyyy-MM-dd HH:mm:ss',
+          ),
+        },
+        'registered',
+      );
 
       return {
         success: true,
@@ -1076,14 +1080,11 @@ export function requestAccountDeletion(studentId) {
       // 管理者通知
       sendAdminNotificationForUser(
         {
+          studentId: studentId,
           realName: userRealName,
           nickname: userNickname,
           phone: currentPhone,
           email: userEmail,
-        },
-        'withdrawn',
-        {
-          studentId: studentId,
           originalPhone: currentPhone,
           newPhone: newPhone,
           registrationDate: userRegistrationDate,
@@ -1093,6 +1094,7 @@ export function requestAccountDeletion(studentId) {
             'yyyy-MM-dd HH:mm:ss',
           ),
         },
+        'withdrawn',
       );
 
       // キャッシュ更新
