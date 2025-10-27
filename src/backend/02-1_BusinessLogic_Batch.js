@@ -26,7 +26,11 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
-import { getReservationCoreById, handleError, logActivity } from './08_Utilities.js';
+import {
+  getReservationCoreById,
+  handleError,
+  logActivity,
+} from './08_Utilities.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
 
 /**
@@ -393,7 +397,11 @@ export function transferSalesLogByDate(targetDate) {
  */
 export function dailySalesTransferBatch() {
   const today = new Date();
-  const targetDate = Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  const targetDate = Utilities.formatDate(
+    today,
+    CONSTANTS.TIMEZONE,
+    'yyyy-MM-dd',
+  );
 
   try {
     Logger.log(`[dailySalesTransferBatch] 開始: ${new Date().toISOString()}`);
@@ -433,7 +441,6 @@ export function dailySalesTransferBatch() {
       `詳細はスプレッドシートのLOGシートを確認してください。`;
 
     sendAdminNotification(emailSubject, emailBody);
-
   } catch (err) {
     const errorMessage = `売上表転載バッチ処理でエラーが発生しました: ${err.message}`;
     Logger.log(`[dailySalesTransferBatch] エラー: ${errorMessage}`);

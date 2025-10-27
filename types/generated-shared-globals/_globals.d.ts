@@ -102,10 +102,28 @@ declare global {
       readonly EDIT: string;
     };
     readonly LOG_ACTIONS: {
-      readonly ROSTER_EDIT: string;
-      readonly RESERVATION_EDIT: string;
-      readonly ROW_INSERT: string;
+      readonly RESERVATION_CREATE: string;
+      readonly RESERVATION_WAITLIST: string;
       readonly RESERVATION_CANCEL: string;
+      readonly RESERVATION_UPDATE: string;
+      readonly RESERVATION_CONFIRM: string;
+      readonly RESERVATION_EDIT: string;
+      readonly ACCOUNTING_SAVE: string;
+      readonly ACCOUNTING_MODIFY: string;
+      readonly USER_LOGIN: string;
+      readonly USER_LOGOUT: string;
+      readonly USER_REGISTER: string;
+      readonly USER_UPDATE: string;
+      readonly USER_UPDATE_ERROR: string;
+      readonly USER_PASSWORD_CHANGE: string;
+      readonly USER_WITHDRAWAL: string;
+      readonly ROSTER_EDIT: string;
+      readonly ROW_INSERT: string;
+      readonly EMAIL_VACANCY_NOTIFICATION: string;
+      readonly BATCH_SALES_TRANSFER_START: string;
+      readonly BATCH_SALES_TRANSFER_SUCCESS: string;
+      readonly BATCH_SALES_TRANSFER_ERROR: string;
+      readonly SYSTEM_ERROR: string;
     };
     readonly CLASSROOM_TYPES: {
       readonly SESSION_BASED: string;

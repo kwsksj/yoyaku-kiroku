@@ -63,7 +63,7 @@ export function cancelReservation(cancelInfo: ReservationCore): ApiResponseGener
     message: string;
 }>;
 /**
- * キャンセル後の空き連絡希望者への通知機能
+ * キャンセル後の空き通知希望者への通知機能
  * @param {string} classroom - 教室名
  * @param {string} date - 日付（yyyy-MM-dd形式）
  * @param {ReservationCore} _cancelledReservation - キャンセルされた予約データ（将来の拡張用）
@@ -143,7 +143,7 @@ export function logSalesForSingleReservation(reservation: ReservationCore, accou
  */
 export function getScheduleInfoForDate(date: string, classroom: string): LessonCore | undefined;
 /**
- * 空席連絡希望の予約を確定する
+ * 空き通知希望の予約を確定する
  * @param {{reservationId: string, studentId: string, messageToTeacher?: string}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric<any>} 処理結果と最新データ
  */

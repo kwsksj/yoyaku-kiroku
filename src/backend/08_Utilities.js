@@ -138,12 +138,7 @@ export function handleError(message, isError) {
     const userEmail = Session.getActiveUser()
       ? Session.getActiveUser().getEmail()
       : 'system';
-    logActivity(
-      userEmail,
-      CONSTANTS.LOG_ACTIONS.SYSTEM_ERROR,
-      '失敗',
-      message,
-    );
+    logActivity(userEmail, CONSTANTS.LOG_ACTIONS.SYSTEM_ERROR, '失敗', message);
     sendAdminNotification(
       '予約システムでエラーが発生しました',
       `エラー詳細:\n\n${message}`,
