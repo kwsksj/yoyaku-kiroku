@@ -26,7 +26,8 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
-import { getReservationCoreById, handleError } from './08_Utilities.js';
+import { getReservationCoreById, handleError, logActivity } from './08_Utilities.js';
+import { sendAdminNotification } from './02-6_Notification_Admin.js';
 
 /**
  * 【開発用】テスト環境をセットアップします。
@@ -391,8 +392,19 @@ export function transferSalesLogByDate(targetDate) {
  * 何度修正しても売上表に影響がない運用が実現できる。
  */
 export function dailySalesTransferBatch() {
+  const today = new Date();
+  const targetDate = Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+
   try {
     Logger.log(`[dailySalesTransferBatch] 開始: ${new Date().toISOString()}`);
+
+    // LOGシートにバッチ開始を記録
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_START,
+      '実行中',
+      `対象日: ${targetDate}`,
+    );
 
     // 引数なしで呼び出すと当日の売上を転載
     const result = transferSalesLogByDate();
@@ -400,9 +412,51 @@ export function dailySalesTransferBatch() {
     Logger.log(
       `[dailySalesTransferBatch] 完了: 予約${result.totalCount}件, 成功${result.successCount}件`,
     );
+
+    // LOGシートにバッチ完了を記録
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_SUCCESS,
+      '成功',
+      `対象日: ${targetDate}, 処理件数: ${result.totalCount}件, 成功: ${result.successCount}件`,
+    );
+
+    // 管理者にメール通知
+    const emailSubject = `売上転載バッチ処理完了 (${targetDate})`;
+    const emailBody =
+      `売上転載バッチ処理が完了しました。\n\n` +
+      `対象日: ${targetDate}\n` +
+      `処理件数: ${result.totalCount}件\n` +
+      `成功: ${result.successCount}件\n` +
+      `失敗: ${result.totalCount - result.successCount}件\n\n` +
+      `処理時刻: ${Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}\n\n` +
+      `詳細はスプレッドシートのLOGシートを確認してください。`;
+
+    sendAdminNotification(emailSubject, emailBody);
+
   } catch (err) {
     const errorMessage = `売上表転載バッチ処理でエラーが発生しました: ${err.message}`;
     Logger.log(`[dailySalesTransferBatch] エラー: ${errorMessage}`);
+
+    // LOGシートにエラーを記録
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_ERROR,
+      '失敗',
+      `対象日: ${targetDate}, エラー: ${err.message}`,
+    );
+
+    // 管理者にエラーメール通知
+    const errorEmailSubject = `【エラー】売上転載バッチ処理失敗 (${targetDate})`;
+    const errorEmailBody =
+      `売上転載バッチ処理でエラーが発生しました。\n\n` +
+      `対象日: ${targetDate}\n` +
+      `エラー内容: ${err.message}\n\n` +
+      `処理時刻: ${Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}\n\n` +
+      `詳細はスプレッドシートのLOGシートおよびApps Scriptのログを確認してください。`;
+
+    sendAdminNotification(errorEmailSubject, errorEmailBody);
+
     handleError(errorMessage, false);
   }
 }

@@ -74,7 +74,7 @@ export function sendBookingConfirmationEmail(reservation) {
     const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
     const isFirstTime = reservation.firstLecture || false;
     const emailTypeText = isWaitlisted
-      ? '空き連絡希望登録メール'
+      ? '空き通知希望登録メール'
       : '予約確定メール';
     const userTypeText = isFirstTime ? '初回者' : '経験者';
     Logger.log(`メール送信成功: ${emailAddress} (${userTypeText})`);
@@ -131,11 +131,11 @@ export function createBookingConfirmationTemplate(reservation) {
   // 日付フォーマット
   const formattedDate = formatDateForEmail(date);
   const isWaitlisted = status === CONSTANTS.STATUS.WAITLISTED;
-  const statusText = isWaitlisted ? '空き連絡希望' : 'ご予約';
+  const statusText = isWaitlisted ? '空き通知希望' : 'ご予約';
 
   // 件名（テスト環境では[テスト]プレフィックス追加）
   const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
-  const subjectType = isWaitlisted ? '空き連絡希望登録完了' : '予約受付完了';
+  const subjectType = isWaitlisted ? '空き通知希望登録完了' : '予約受付完了';
   const subject = `${subjectPrefix}【川崎誠二 木彫り教室】${subjectType}のお知らせ - ${formattedDate} ${classroom}`;
 
   if (isFirstTime) {
@@ -181,7 +181,7 @@ export function createFirstTimeEmailText(
   const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
 
   const greeting = isWaitlisted
-    ? `木彫り教室へのご参加希望をいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！\n\n現在、満席のため空き連絡希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
+    ? `木彫り教室へのご参加希望をいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！\n\n現在、満席のため空き通知希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
     : `木彫り教室ご参加の申込みをいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！`;
 
   return `${realName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。\n\n残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。\n\n\n予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\n次回以降の予約や会計記録や参加の記録もこちらからできますよ。\nスマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！\n\n下に教室に関して連絡事項をまとめました。1度目を通しておいてください。\n他にも質問あれば、このメールに直接ご返信ください。\n\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\n09013755977\n参加当日に場所がわからないなどあれば、こちらにお電話やSMSでご連絡ください。\n\n${getContactAndVenueInfoText()}`;
@@ -205,7 +205,7 @@ export function createRegularEmailText(
   const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
 
   const greeting = isWaitlisted
-    ? `お申し込みありがとうございます！\n現在、満席のため空き連絡希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
+    ? `お申し込みありがとうございます！\n現在、満席のため空き通知希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
     : `お申し込みありがとうございます！\nご予約を承りました。`;
 
   return `${realName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n予約の確認やキャンセルは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nメール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。\nまた次回以降の予約や会計記録や参加の記録もこちらからできます。\nスマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！\n\n何かご不明点があれば、このメールに直接ご返信ください。\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n\n${getContactAndVenueInfoText()}\n`;
@@ -499,7 +499,7 @@ export function sendReservationEmailAsync(
       sendBookingConfirmationEmail(reservation);
       const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
       const emailTypeText = isWaitlisted
-        ? '空き連絡希望登録メール'
+        ? '空き通知希望登録メール'
         : '予約確定メール';
       const userTypeText = isFirstTime ? '初回者' : '経験者';
       Logger.log(

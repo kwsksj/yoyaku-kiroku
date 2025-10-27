@@ -65,7 +65,7 @@ export const CONSTANTS = {
    */
   STATUS: {
     CANCELED: '取消', // キャンセル済み
-    WAITLISTED: '待機', // 空き連絡希望
+    WAITLISTED: '待機', // 空き通知希望
     CONFIRMED: '確定', // 予約確定（会計前）
     COMPLETED: '完了', // 完了（会計済み）
   },
@@ -177,10 +177,39 @@ export const CONSTANTS = {
 
   // ログアクション定数
   LOG_ACTIONS: {
-    ROSTER_EDIT: '名簿編集',
-    RESERVATION_EDIT: '予約編集',
-    ROW_INSERT: '行挿入',
+    // 予約関連
+    RESERVATION_CREATE: '予約作成',
+    RESERVATION_WAITLIST: '空き通知 登録',
     RESERVATION_CANCEL: '予約キャンセル',
+    RESERVATION_UPDATE: '予約詳細更新',
+    RESERVATION_CONFIRM: '予約確定（空き通知から）',
+    RESERVATION_EDIT: '予約編集',
+
+    // 会計関連
+    ACCOUNTING_SAVE: '会計記録保存',
+    ACCOUNTING_MODIFY: '会計記録修正',
+
+    // ユーザー管理関連
+    USER_LOGIN: 'ログイン',
+    USER_LOGOUT: 'ログアウト',
+    USER_REGISTER: '新規登録',
+    USER_UPDATE: 'プロフィール更新',
+    USER_UPDATE_ERROR: 'プロフィール詳細取得エラー',
+    USER_PASSWORD_CHANGE: 'パスワード変更',
+    USER_WITHDRAWAL: '退会',
+
+    // 名簿・データ管理関連
+    ROSTER_EDIT: '名簿編集',
+    ROW_INSERT: '行挿入',
+
+    // メール通知関連
+    EMAIL_VACANCY_NOTIFICATION: '空き通知メール送信',
+
+    // システム・バッチ関連
+    BATCH_SALES_TRANSFER_START: '売上転載バッチ開始',
+    BATCH_SALES_TRANSFER_SUCCESS: '売上転載バッチ完了',
+    BATCH_SALES_TRANSFER_ERROR: '売上転載バッチエラー',
+    SYSTEM_ERROR: 'システムエラー',
   },
 
   // 教室タイプ定数

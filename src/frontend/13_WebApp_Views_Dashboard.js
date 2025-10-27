@@ -151,7 +151,7 @@ export const _buildEditButtons = booking => {
       text: '確認<br>編集',
     });
   } else if (booking.status === CONSTANTS.STATUS.WAITLISTED) {
-    // 空席連絡希望：現在の空席状況に応じてボタンを変更
+    // 空き通知希望：現在の空席状況に応じてボタンを変更
     const isCurrentlyAvailable = _checkIfLessonAvailable(booking);
 
     if (isCurrentlyAvailable) {
@@ -163,7 +163,7 @@ export const _buildEditButtons = booking => {
       });
     }
 
-    // 空席連絡希望は常に確認/編集ボタンも表示
+    // 空き通知希望は常に確認/編集ボタンも表示
     buttons.push({
       action: 'goToEditReservation',
       text: '確認<br>編集',
@@ -286,12 +286,12 @@ export const _buildBookingBadges = booking => {
     booking.status === CONSTANTS.STATUS.WAITLISTED ||
     /** @type {any} */ (booking).isWaiting
   ) {
-    // 空席連絡希望の場合、現在の空席状況に応じてバッジを変更
+    // 空き通知希望の場合、現在の空席状況に応じてバッジを変更
     const isCurrentlyAvailable = _checkIfLessonAvailable(booking);
     if (isCurrentlyAvailable) {
       badges.push({ type: 'success', text: '予約可能！' });
     } else {
-      badges.push({ type: 'warning', text: '空き連絡希望' });
+      badges.push({ type: 'warning', text: '空き通知希望' });
     }
   }
 

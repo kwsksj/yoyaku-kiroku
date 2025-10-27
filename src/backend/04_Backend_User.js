@@ -25,6 +25,7 @@
 // 依存モジュール
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
+import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import {
   CACHE_KEYS,
   addCachedStudent,
@@ -427,7 +428,7 @@ export function getUserDetailForEdit(studentId) {
     Logger.log(`getUserDetailForEdit Error: ${err.message}`);
     logActivity(
       studentId || 'N/A',
-      'プロフィール詳細取得エラー',
+      CONSTANTS.LOG_ACTIONS.USER_UPDATE_ERROR,
       '失敗',
       `Error: ${err.message}`,
     );
@@ -620,7 +621,7 @@ export function updateUserProfile(userInfo) {
       Logger.log(`ユーザー情報更新成功: ${studentId}`);
       logActivity(
         studentId,
-        'プロフィール更新',
+        CONSTANTS.LOG_ACTIONS.USER_UPDATE,
         '成功',
         'プロフィールが更新されました',
       );
@@ -636,7 +637,7 @@ export function updateUserProfile(userInfo) {
       Logger.log(`ユーザー情報更新エラー: ${error.message}`);
       logActivity(
         studentId,
-        'プロフィール更新',
+        CONSTANTS.LOG_ACTIONS.USER_UPDATE,
         '失敗',
         `エラー: ${error.message}`,
       );
@@ -797,10 +798,23 @@ export function registerNewUser(userData) {
       Logger.log(`新規ユーザー登録成功: ${newStudentId}`);
       logActivity(
         newStudentId,
-        '新規登録',
+        CONSTANTS.LOG_ACTIONS.USER_REGISTER,
         '成功',
         '新しいユーザーが登録されました',
       );
+
+      // 管理者通知
+      const emailSubject = '新規ユーザー登録';
+      const emailBody =
+        `新しいユーザーが登録されました。\n\n` +
+        `生徒ID: ${newStudentId}\n` +
+        `本名: ${realName}\n` +
+        `ニックネーム: ${displayName}\n` +
+        `電話番号: ${phone}\n` +
+        `メールアドレス: ${email || '未登録'}\n` +
+        `登録日時: ${Utilities.formatDate(new Date(), CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}\n\n` +
+        `詳細はスプレッドシートの生徒名簿を確認してください。`;
+      sendAdminNotification(emailSubject, emailBody);
 
       return {
         success: true,
@@ -891,7 +905,12 @@ export function loginUser(phone, realName) {
           ? result.data.studentId
           : 'unknown-student';
       Logger.log(`ログイン成功: ${studentId}`);
-      logActivity(studentId, 'ログイン', '成功', 'ログインしました');
+      logActivity(
+        studentId,
+        CONSTANTS.LOG_ACTIONS.USER_LOGIN,
+        '成功',
+        'ログインしました',
+      );
     }
     return result;
   } catch (error) {
@@ -972,6 +991,10 @@ export function requestAccountDeletion(studentId) {
         CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
       );
       const phoneColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
+      const realNameColIdx = header.indexOf(CONSTANTS.HEADERS.ROSTER.REAL_NAME);
+      const nicknameColIdx = header.indexOf(
+        CONSTANTS.HEADERS.ROSTER.NICKNAME,
+      );
 
       if (studentIdColIdx === -1) {
         throw new Error('生徒名簿のヘッダーに「生徒ID」列が見つかりません。');
@@ -994,11 +1017,15 @@ export function requestAccountDeletion(studentId) {
       // 該当ユーザーを検索
       let targetRowIndex = -1;
       let currentPhone = '';
+      let userRealName = '';
+      let userNickname = '';
 
       for (let i = 0; i < allData.length; i++) {
         if (allData[i][studentIdColIdx] === studentId) {
           targetRowIndex = i + 2; // ヘッダーを考慮して+2
           currentPhone = String(allData[i][phoneColIdx] || '');
+          userRealName = String(allData[i][realNameColIdx] || '');
+          userNickname = String(allData[i][nicknameColIdx] || '');
           break;
         }
       }
@@ -1031,10 +1058,23 @@ export function requestAccountDeletion(studentId) {
       // ログ記録
       logActivity(
         studentId,
-        'アカウント退会',
+        CONSTANTS.LOG_ACTIONS.USER_WITHDRAWAL,
         '成功',
         `退会処理完了: studentId=${studentId}, 元電話番号=${currentPhone}`,
       );
+
+      // 管理者通知
+      const withdrawalEmailSubject = 'ユーザー退会処理完了';
+      const withdrawalEmailBody =
+        `ユーザーが退会処理を完了しました。\n\n` +
+        `生徒ID: ${studentId}\n` +
+        `本名: ${userRealName}\n` +
+        `ニックネーム: ${userNickname}\n` +
+        `元電話番号: ${currentPhone}\n` +
+        `退会日時: ${Utilities.formatDate(new Date(), CONSTANTS.TIMEZONE, 'yyyy-MM-dd HH:mm:ss')}\n\n` +
+        `電話番号は無効化されました（プレフィックス: _WITHDRAWN_${withdrawnDate}_）\n` +
+        `詳細はスプレッドシートの生徒名簿を確認してください。`;
+      sendAdminNotification(withdrawalEmailSubject, withdrawalEmailBody);
 
       // キャッシュ更新
       rebuildAllStudentsBasicCache();
@@ -1053,7 +1093,7 @@ export function requestAccountDeletion(studentId) {
       Logger.log(`requestAccountDeletion Error: ${err.message}`);
       logActivity(
         studentId || 'N/A',
-        'アカウント退会エラー',
+        CONSTANTS.LOG_ACTIONS.USER_WITHDRAWAL,
         '失敗',
         `Error: ${err.message}`,
       );

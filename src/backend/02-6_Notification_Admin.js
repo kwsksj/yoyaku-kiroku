@@ -117,7 +117,7 @@ export function _buildAdminNotificationContent(
       subject: () => {
         const statusText =
           reservation.status === CONSTANTS.STATUS.WAITLISTED
-            ? '空き連絡希望'
+            ? '空き通知希望'
             : '新規予約';
         const firstTimeText = reservation.firstLecture ? '【初回参加】' : '';
         return `${statusText} (${reservation.classroom}) ${firstTimeText}${student.realName}:${student.displayName}様`;
@@ -125,7 +125,7 @@ export function _buildAdminNotificationContent(
       body: () => {
         const actionText =
           reservation.status === CONSTANTS.STATUS.WAITLISTED
-            ? '空き連絡希望'
+            ? '空き通知希望'
             : '新しい予約';
         const messageSection = reservation.messageToTeacher
           ? `\n先生へのメッセージ: ${reservation.messageToTeacher}\n`

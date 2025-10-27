@@ -396,7 +396,7 @@ export function _formatStatus(status) {
     case CONSTANTS.STATUS.CONFIRMED:
       return '予約確定';
     case CONSTANTS.STATUS.WAITLISTED:
-      return '空席連絡希望';
+      return '空き通知希望';
     case CONSTANTS.STATUS.COMPLETED:
       return '受講済み';
     default:
