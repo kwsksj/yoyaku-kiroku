@@ -308,7 +308,6 @@ export const CONSTANTS = {
       TOTAL_CAPACITY: '全体定員',
       BEGINNER_CAPACITY: '初回者定員',
       STATUS: 'ステータス',
-      RESERVATION_IDS: '予約IDs', // ★ 追加
       NOTES: '備考',
     },
   },

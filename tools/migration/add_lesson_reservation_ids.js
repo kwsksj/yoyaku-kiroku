@@ -13,36 +13,96 @@
 
 function runUnifiedIdMigration() {
   try {
-    Logger.log('レッスンと予約のID関連付けを更新します。処理には数分かかる場合があります。');
-    
+    Logger.log(
+      'レッスンと予約のID関連付けを更新します。処理には数分かかる場合があります。',
+    );
+
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const scheduleSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE);
-    const reservationSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.RESERVATIONS);
+    const reservationSheet = ss.getSheetByName(
+      CONSTANTS.SHEET_NAMES.RESERVATIONS,
+    );
 
     if (!scheduleSheet || !reservationSheet) {
-      throw new Error('必要なシート（日程マスタ or 予約記録）が見つかりません。');
+      throw new Error(
+        '必要なシート（日程マスタ or 予約記録）が見つかりません。',
+      );
     }
 
     // --- 1. ヘッダー情報の取得と検証 ---
-    const scheduleHeader = scheduleSheet.getRange(1, 1, 1, scheduleSheet.getLastColumn()).getValues()[0];
-    const schLessonIdCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
+    const scheduleHeader = scheduleSheet
+      .getRange(1, 1, 1, scheduleSheet.getLastColumn())
+      .getValues()[0];
+    const schLessonIdCol = scheduleHeader.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    );
     const schDateCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
-    const schClassroomCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.CLASSROOM);
-    const schReservationIdsCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS);
+    const schClassroomCol = scheduleHeader.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.CLASSROOM,
+    );
+    const schReservationIdsCol = scheduleHeader.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS,
+    );
 
-    const reservationHeader = reservationSheet.getRange(1, 1, 1, reservationSheet.getLastColumn()).getValues()[0];
-    const resLessonIdCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID);
-    const resReservationIdCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID);
-    const resDateCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.DATE);
-    const resClassroomCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM);
-    const resStatusCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
+    const reservationHeader = reservationSheet
+      .getRange(1, 1, 1, reservationSheet.getLastColumn())
+      .getValues()[0];
+    const resLessonIdCol = reservationHeader.indexOf(
+      CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID,
+    );
+    const resReservationIdCol = reservationHeader.indexOf(
+      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+    );
+    const resDateCol = reservationHeader.indexOf(
+      CONSTANTS.HEADERS.RESERVATIONS.DATE,
+    );
+    const resClassroomCol = reservationHeader.indexOf(
+      CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM,
+    );
+    const resStatusCol = reservationHeader.indexOf(
+      CONSTANTS.HEADERS.RESERVATIONS.STATUS,
+    );
 
-    if ([schLessonIdCol, schDateCol, schClassroomCol, schReservationIdsCol, resLessonIdCol, resReservationIdCol, resDateCol, resClassroomCol, resStatusCol].includes(-1)) {
-      throw new Error('必要な列が見つかりません。シートのヘッダー名を確認してください。');
+    if (
+      [
+        schLessonIdCol,
+        schDateCol,
+        schClassroomCol,
+        schReservationIdsCol,
+        resLessonIdCol,
+        resReservationIdCol,
+        resDateCol,
+        resClassroomCol,
+        resStatusCol,
+      ].includes(-1)
+    ) {
+      throw new Error(
+        '必要な列が見つかりません。シートのヘッダー名を確認してください。',
+      );
     }
 
-    const scheduleData = scheduleSheet.getLastRow() > 1 ? scheduleSheet.getRange(2, 1, scheduleSheet.getLastRow() - 1, scheduleSheet.getLastColumn()).getValues() : [];
-    const reservationData = reservationSheet.getLastRow() > 1 ? reservationSheet.getRange(2, 1, reservationSheet.getLastRow() - 1, reservationSheet.getLastColumn()).getValues() : [];
+    const scheduleData =
+      scheduleSheet.getLastRow() > 1
+        ? scheduleSheet
+            .getRange(
+              2,
+              1,
+              scheduleSheet.getLastRow() - 1,
+              scheduleSheet.getLastColumn(),
+            )
+            .getValues()
+        : [];
+    const reservationData =
+      reservationSheet.getLastRow() > 1
+        ? reservationSheet
+            .getRange(
+              2,
+              1,
+              reservationSheet.getLastRow() - 1,
+              reservationSheet.getLastColumn(),
+            )
+            .getValues()
+        : [];
 
     // --- 2. 日程マスタの lessonId を確認・採番 ---
     Logger.log('ステップ1: 日程マスタのlessonIdを確認・採番します...');
@@ -54,15 +114,24 @@ function runUnifiedIdMigration() {
       if (!lessonId) {
         lessonId = Utilities.getUuid();
         row[schLessonIdCol] = lessonId; // 後続処理のためにメモリ上のデータも更新
-        lessonIdUpdates.push({ range: scheduleSheet.getRange(i + 2, schLessonIdCol + 1), value: lessonId });
+        lessonIdUpdates.push({
+          range: scheduleSheet.getRange(i + 2, schLessonIdCol + 1),
+          value: lessonId,
+        });
       }
-      const date = Utilities.formatDate(new Date(row[schDateCol]), CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+      const date = Utilities.formatDate(
+        new Date(row[schDateCol]),
+        CONSTANTS.TIMEZONE,
+        'yyyy-MM-dd',
+      );
       const classroom = row[schClassroomCol];
       lessonDateClassroomMap.set(`${date}_${classroom}`, lessonId);
     }
     if (lessonIdUpdates.length > 0) {
       lessonIdUpdates.forEach(update => update.range.setValue(update.value));
-      Logger.log(`${lessonIdUpdates.length}件のレッスンに新しいIDを付与しました。`);
+      Logger.log(
+        `${lessonIdUpdates.length}件のレッスンに新しいIDを付与しました。`,
+      );
     } else {
       Logger.log('日程マスタの全レッスンにIDは設定済みです。');
     }
@@ -73,14 +142,23 @@ function runUnifiedIdMigration() {
     const lessonToReservationsMap = new Map(); // key: lessonId, value: [reservationId, ...]
     for (let i = 0; i < reservationData.length; i++) {
       const row = reservationData[i];
-      const date = Utilities.formatDate(new Date(row[resDateCol]), CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+      const date = Utilities.formatDate(
+        new Date(row[resDateCol]),
+        CONSTANTS.TIMEZONE,
+        'yyyy-MM-dd',
+      );
       const classroom = row[resClassroomCol];
-      const expectedLessonId = lessonDateClassroomMap.get(`${date}_${classroom}`);
-      
+      const expectedLessonId = lessonDateClassroomMap.get(
+        `${date}_${classroom}`,
+      );
+
       if (expectedLessonId && row[resLessonIdCol] !== expectedLessonId) {
-        reservationLessonIdUpdates.push({ range: reservationSheet.getRange(i + 2, resLessonIdCol + 1), value: expectedLessonId });
+        reservationLessonIdUpdates.push({
+          range: reservationSheet.getRange(i + 2, resLessonIdCol + 1),
+          value: expectedLessonId,
+        });
       }
-      
+
       // reservationIdsマップを作成
       const status = row[resStatusCol];
       if (expectedLessonId && status !== CONSTANTS.STATUS.CANCELED) {
@@ -92,8 +170,12 @@ function runUnifiedIdMigration() {
       }
     }
     if (reservationLessonIdUpdates.length > 0) {
-      reservationLessonIdUpdates.forEach(update => update.range.setValue(update.value));
-      Logger.log(`${reservationLessonIdUpdates.length}件の予約に正しいlessonIdを設定しました。`);
+      reservationLessonIdUpdates.forEach(update =>
+        update.range.setValue(update.value),
+      );
+      Logger.log(
+        `${reservationLessonIdUpdates.length}件の予約に正しいlessonIdを設定しました。`,
+      );
     } else {
       Logger.log('予約記録のlessonIdはすべて最新の状態です。');
     }
@@ -107,36 +189,44 @@ function runUnifiedIdMigration() {
       if (lessonId) {
         const newReservationIds = lessonToReservationsMap.get(lessonId) || [];
         const currentReservationIdsStr = row[schReservationIdsCol] || '[]';
-        
+
         // 順序を無視して内容を比較するためにソートして比較
         const newIdsSortedStr = JSON.stringify(newReservationIds.sort());
-        const currentIdsSortedStr = JSON.stringify(JSON.parse(currentReservationIdsStr).sort());
+        const currentIdsSortedStr = JSON.stringify(
+          JSON.parse(currentReservationIdsStr).sort(),
+        );
 
         if (newIdsSortedStr !== currentIdsSortedStr) {
           scheduleReservationIdsUpdates.push({
             range: scheduleSheet.getRange(i + 2, schReservationIdsCol + 1),
-            value: JSON.stringify(newReservationIds) // 元の順序で保存
+            value: JSON.stringify(newReservationIds), // 元の順序で保存
           });
         }
       }
     }
     if (scheduleReservationIdsUpdates.length > 0) {
-      scheduleReservationIdsUpdates.forEach(update => update.range.setValue(update.value));
-      Logger.log(`${scheduleReservationIdsUpdates.length}件の日程のreservationIdsを更新しました。`);
+      scheduleReservationIdsUpdates.forEach(update =>
+        update.range.setValue(update.value),
+      );
+      Logger.log(
+        `${scheduleReservationIdsUpdates.length}件の日程のreservationIdsを更新しました。`,
+      );
     } else {
       Logger.log('日程マスタのreservationIdsはすべて最新の状態です。');
     }
 
-    const totalUpdates = lessonIdUpdates.length + reservationLessonIdUpdates.length + scheduleReservationIdsUpdates.length;
+    const totalUpdates =
+      lessonIdUpdates.length +
+      reservationLessonIdUpdates.length +
+      scheduleReservationIdsUpdates.length;
     if (totalUpdates > 0) {
-        Logger.log(`処理が完了しました。
+      Logger.log(`処理が完了しました。
 - 新規レッスンID採番: ${lessonIdUpdates.length}件
 - 予約のレッスンID更新: ${reservationLessonIdUpdates.length}件
 - 予約リスト更新: ${scheduleReservationIdsUpdates.length}件`);
     } else {
-        Logger.log('すべてのデータは最新の状態です。更新は不要でした。');
+      Logger.log('すべてのデータは最新の状態です。更新は不要でした。');
     }
-
   } catch (e) {
     Logger.log(`エラーが発生しました: ${e.stack}`);
   }

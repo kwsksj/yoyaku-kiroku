@@ -410,7 +410,9 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
 
     const { header, dataRows } = getSheetData(sheet);
     const lessonIdColIdx = header.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
-    const reservationIdsColIdx = header.indexOf(CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS);
+    const reservationIdsColIdx = header.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS,
+    );
 
     if (lessonIdColIdx === -1 || reservationIdsColIdx === -1) {
       throw new Error(
