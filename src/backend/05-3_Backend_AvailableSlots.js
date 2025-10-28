@@ -24,6 +24,7 @@
 // 依存モジュール
 // ================================================================
 import { getAllScheduledDates } from './02-4_BusinessLogic_ScheduleMaster.js';
+import { getReservationsByIdsFromCache } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import { getCachedReservationsAsObjects } from './08_Utilities.js';
 
@@ -47,46 +48,6 @@ export function getLessons() {
     const scheduledDates = getAllScheduledDates(todayString, '');
     Logger.log(`日程マスタ取得: ${scheduledDates.length}件`);
 
-    // ★改善: 新しいヘルパー関数で予約データをオブジェクトとして直接取得
-    const convertedReservations = getCachedReservationsAsObjects();
-    Logger.log(
-      `予約キャッシュからオブジェクト取得: ${convertedReservations.length}件`,
-    );
-
-    // 日付・教室ごとに予約を分類
-    /** @type {Map<string, ReservationCore[]>} */
-    const reservationsByDateClassroom = new Map();
-
-    // 未来の有効な予約のみフィルタリング
-    const validReservations = convertedReservations.filter(
-      /** @param {ReservationCore} reservation */
-      reservation => {
-        const reservationDate = new Date(reservation.date);
-        return (
-          reservationDate >= today &&
-          reservation.status !== CONSTANTS.STATUS.CANCELED &&
-          reservation.status !== CONSTANTS.STATUS.WAITLISTED
-        );
-      },
-    );
-
-    validReservations.forEach(
-      /** @param {ReservationCore} reservation */
-      reservation => {
-        const reservationDate = new Date(reservation.date);
-        const dateString = Utilities.formatDate(
-          reservationDate,
-          CONSTANTS.TIMEZONE,
-          'yyyy-MM-dd',
-        );
-        const key = `${dateString}|${reservation.classroom}`;
-        if (!reservationsByDateClassroom.has(key)) {
-          reservationsByDateClassroom.set(key, []);
-        }
-        reservationsByDateClassroom.get(key)?.push(reservation);
-      },
-    );
-
     /** @type {LessonCore[]} */
     const lessons = [];
 
@@ -97,6 +58,8 @@ export function getLessons() {
       return scheduleDate >= today;
     });
 
+    Logger.log(`処理対象のレッスン数: ${futureSchedules.length}件`);
+
     futureSchedules.forEach(schedule => {
       const dateKey =
         schedule.date instanceof Date
@@ -106,8 +69,18 @@ export function getLessons() {
               'yyyy-MM-dd',
             )
           : String(schedule.date);
-      const key = `${dateKey}|${schedule.classroom}`;
-      const reservationsForDate = reservationsByDateClassroom.get(key) || [];
+
+      // ★最適化: reservationIdsから直接予約を取得（O(1)アクセス）
+      const allReservationsForLesson = getReservationsByIdsFromCache(
+        schedule.reservationIds || [],
+      );
+
+      // 有効な予約のみフィルタリング（キャンセル・待機中を除外）
+      const reservationsForDate = allReservationsForLesson.filter(
+        r =>
+          r.status !== CONSTANTS.STATUS.CANCELED &&
+          r.status !== CONSTANTS.STATUS.WAITLISTED,
+      );
 
       // 空き枠計算
       const slots = calculateAvailableSlots(schedule, reservationsForDate);

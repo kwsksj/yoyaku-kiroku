@@ -41,6 +41,8 @@ import {
   addReservationToCache,
   getCachedData,
   getHeaderIndex,
+  getLessonByIdFromCache,
+  getReservationsByIdsFromCache,
   rebuildAllReservationsCache,
   updateReservationInCache,
 } from './07_CacheManager.js';
@@ -48,7 +50,6 @@ import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
   convertReservationToRow,
   createSalesRow,
-  getCachedReservationsAsObjects,
   getCachedStudentById,
   getReservationCoreById,
   getSheetData,
@@ -717,12 +718,17 @@ export function cancelReservation(cancelInfo) {
 
       //キャンセル後の空き通知処理
       try {
-        // ★改善: 冗長なシート検索を削除し、既存のオブジェクトを利用
-        notifyAvailabilityToWaitlistedUsers(
-          cancelledReservation.classroom,
-          cancelledReservation.date,
-          existingReservation, // 元の予約データ
-        );
+        // ★改善: lessonIdを使って効率的に通知
+        if (cancelledReservation.lessonId) {
+          notifyAvailabilityToWaitlistedUsers(
+            cancelledReservation.lessonId,
+            existingReservation, // 元の予約データ
+          );
+        } else {
+          Logger.log(
+            '警告: lessonIdが見つからないため、空き通知をスキップします。',
+          );
+        }
       } catch (notificationError) {
         Logger.log(`空き通知エラー: ${notificationError.message}`);
       }
@@ -769,17 +775,23 @@ ${err.stack}`);
 
 /**
  * キャンセル後の空き通知希望者への通知機能
- * @param {string} classroom - 教室名
- * @param {string} date - 日付（yyyy-MM-dd形式）
+ * @param {string} lessonId - レッスンID
  * @param {ReservationCore} _cancelledReservation - キャンセルされた予約データ（将来の拡張用）
  */
 export function notifyAvailabilityToWaitlistedUsers(
-  classroom,
-  date,
+  lessonId,
   _cancelledReservation,
 ) {
   try {
-    // 1. 空き状況を再評価
+    // 1. lessonIdからレッスン情報を取得（O(1)アクセス）
+    const targetLesson = getLessonByIdFromCache(lessonId);
+    if (!targetLesson) {
+      Logger.log(`該当レッスンが見つかりません。lessonId: ${lessonId}`);
+      return;
+    }
+
+    // lessonIdから空き枠情報を再計算するため、getLessons()を呼び出す
+    // （最適化案: 将来的にはcalculateAvailableSlotsを直接呼ぶ）
     const lessonsResponse = getLessons();
     if (!lessonsResponse.success || !lessonsResponse.data) {
       Logger.log('空き状況の取得に失敗し、通知処理を中断します。');
@@ -787,24 +799,21 @@ export function notifyAvailabilityToWaitlistedUsers(
     }
     /** @type {LessonCore[]} */
     const lessonsData = /** @type {LessonCore[]} */ (lessonsResponse.data);
-    const targetLesson = lessonsData.find(
-      /** @param {LessonCore} l */
-      l => l.date === date && l.classroom === classroom,
-    );
-    if (!targetLesson) {
-      Logger.log('該当日時のレッスンが見つかりません。');
+    const lessonWithSlots = lessonsData.find(l => l.lessonId === lessonId);
+    if (!lessonWithSlots) {
+      Logger.log('空き枠情報の取得に失敗しました。');
       return;
     }
 
     // 2. 空きタイプを判定
     let availabilityType = null;
     const firstSlots =
-      typeof targetLesson.firstSlots === 'number'
-        ? targetLesson.firstSlots
+      typeof lessonWithSlots.firstSlots === 'number'
+        ? lessonWithSlots.firstSlots
         : null;
     const secondSlots =
-      typeof targetLesson.secondSlots === 'number'
-        ? targetLesson.secondSlots
+      typeof lessonWithSlots.secondSlots === 'number'
+        ? lessonWithSlots.secondSlots
         : null;
 
     if (
@@ -825,10 +834,9 @@ export function notifyAvailabilityToWaitlistedUsers(
       return;
     }
 
-    // 3. 通知対象ユーザーを取得
+    // 3. 通知対象ユーザーを取得（lessonIdを使用）
     const recipients = getWaitlistedUsersForNotification(
-      classroom,
-      date,
+      lessonId,
       availabilityType,
     );
     if (recipients.length === 0) {
@@ -838,15 +846,18 @@ export function notifyAvailabilityToWaitlistedUsers(
 
     // 4. メール送信
     recipients.forEach(recipient => {
-      const subject = `【きぼりのよやく】${classroom} ${date}に空きが出ました`;
-      const body = createAvailabilityNotificationEmail(recipient, targetLesson);
+      const subject = `【きぼりのよやく】${targetLesson.classroom} ${targetLesson.date}に空きが出ました`;
+      const body = createAvailabilityNotificationEmail(
+        recipient,
+        lessonWithSlots,
+      );
       try {
         GmailApp.sendEmail(recipient.email, subject, body);
         logActivity(
           recipient.studentId,
           CONSTANTS.LOG_ACTIONS.EMAIL_VACANCY_NOTIFICATION,
           '成功',
-          `Classroom: ${classroom}, Date: ${date}`,
+          `Classroom: ${targetLesson.classroom}, Date: ${targetLesson.date}`,
         );
       } catch (e) {
         logActivity(
@@ -865,24 +876,24 @@ export function notifyAvailabilityToWaitlistedUsers(
 
 /**
  * 空き通知対象のユーザーリストを取得
- * @param {string} classroom - 教室名
- * @param {string} date - 日付（yyyy-MM-dd形式）
+ * @param {string} lessonId - レッスンID
  * @param {string} availabilityType - 空きタイプ ('first', 'second', 'all')
  * @returns {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>}
  */
-export function getWaitlistedUsersForNotification(
-  classroom,
-  date,
-  availabilityType,
-) {
-  // ★改善: getCachedReservationsAsObjects を使い、オブジェクトとして直接取得する
-  const allReservations = getCachedReservationsAsObjects();
-  const waitlistedReservations = allReservations.filter(
-    /** @param {ReservationCore} r */
-    r =>
-      r.date === date &&
-      r.classroom === classroom &&
-      r.status === CONSTANTS.STATUS.WAITLISTED,
+export function getWaitlistedUsersForNotification(lessonId, availabilityType) {
+  // ★最適化: lessonIdから直接取得（O(1)アクセス）
+  const lesson = getLessonByIdFromCache(lessonId);
+  if (!lesson || !lesson.reservationIds) {
+    Logger.log('レッスン情報または予約リストが見つかりません。');
+    return [];
+  }
+
+  // reservationIdsから予約を取得し、待機中のもののみフィルタリング
+  const allReservationsForLesson = getReservationsByIdsFromCache(
+    lesson.reservationIds,
+  );
+  const waitlistedReservations = allReservationsForLesson.filter(
+    r => r.status === CONSTANTS.STATUS.WAITLISTED,
   );
 
   if (waitlistedReservations.length === 0) {

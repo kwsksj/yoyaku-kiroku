@@ -2431,6 +2431,75 @@ export function getReservationByIdFromCache(reservationId) {
 }
 
 /**
+ * lessonIdでレッスン情報をキャッシュから取得（O(1)アクセス）
+ *
+ * @param {string} lessonId - 取得対象のレッスンID
+ * @returns {LessonCore | null} レッスン情報、見つからない場合はnull
+ *
+ * @example
+ * const lesson = getLessonByIdFromCache('c3e2a1b0-5b3a-4b9c-8b0a-0e1b0e1b0e1b');
+ * if (lesson) {
+ *   console.log(`教室: ${lesson.classroom}, 日付: ${lesson.date}`);
+ * }
+ */
+export function getLessonByIdFromCache(lessonId) {
+  if (!lessonId) return null;
+
+  const scheduleCache = getTypedCachedData(
+    CACHE_KEYS.MASTER_SCHEDULE_DATA,
+    false,
+  );
+  if (!scheduleCache || !scheduleCache.schedule) {
+    return null;
+  }
+
+  // lessonIdインデックスMapを構築（初回のみ、キャッシュに保存）
+  if (!scheduleCache._lessonIdMap) {
+    scheduleCache._lessonIdMap = new Map();
+    for (const lesson of scheduleCache.schedule) {
+      if (lesson.lessonId) {
+        scheduleCache._lessonIdMap.set(lesson.lessonId, lesson);
+      }
+    }
+  }
+
+  return scheduleCache._lessonIdMap.get(lessonId) || null;
+}
+
+/**
+ * 複数の予約IDから予約オブジェクトを一括取得
+ *
+ * @param {string[]} reservationIds - 取得対象の予約IDの配列
+ * @returns {ReservationCore[]} 予約オブジェクトの配列（見つからないIDはスキップ）
+ *
+ * @example
+ * const reservations = getReservationsByIdsFromCache(['R-001', 'R-002', 'R-003']);
+ * console.log(`取得した予約数: ${reservations.length}`);
+ */
+export function getReservationsByIdsFromCache(reservationIds) {
+  if (!Array.isArray(reservationIds) || reservationIds.length === 0) {
+    return [];
+  }
+
+  const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false);
+  if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
+    return [];
+  }
+
+  const reservations = [];
+  for (const id of reservationIds) {
+    if (!id) continue; // 空文字やnullをスキップ
+
+    const index = cache.reservationIdIndexMap[id];
+    if (index !== undefined && cache.reservations[index]) {
+      reservations.push(cache.reservations[index]);
+    }
+  }
+
+  return reservations;
+}
+
+/**
  * Schedule Master キャッシュの診断・修復機能
  * シートの存在確認とキャッシュの整合性チェックを実行
  * GASエディタから直接実行可能（メニューからトリガー登録推奨）
