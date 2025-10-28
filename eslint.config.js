@@ -15,7 +15,15 @@ import globals from 'globals';
  */
 const commonRules = {
   'no-undef': 'off', // TypeScript型チェックで検出
-  'no-unused-vars': ['warn', { argsIgnorePattern: '^_', vars: 'local' }],
+  'no-unused-vars': [
+    'warn',
+    {
+      argsIgnorePattern: '^_',
+      varsIgnorePattern: '^_',
+      caughtErrorsIgnorePattern: '^_',
+      vars: 'local',
+    },
+  ],
   'no-console': 'off',
   'no-var': 'warn',
   'prefer-const': 'warn',
