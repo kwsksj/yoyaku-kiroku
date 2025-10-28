@@ -71,7 +71,7 @@ export default [
       'archive/**',
       'build-output/**',
       'docs/**',
-      'test/**',
+      'tools/**',
       '.claude/**',
       '.vscode/**',
       '.github/**',

@@ -196,6 +196,7 @@ export const reservationActionHandlers = {
 
     // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
     const p = {
+      lessonId: lessonInfo.lessonId, // ★ lessonId を追加
       classroom: lessonInfo.classroom,
       date: lessonInfo.date,
       venue: lessonInfo.venue,
@@ -692,11 +693,12 @@ export const reservationActionHandlers = {
    */
   bookLesson: d => {
     const currentState = reservationStateManager.getState();
+    const lessonId = d.lessonId; // ★ lessonId を使用
+
     const foundLesson =
       currentState.lessons && Array.isArray(currentState.lessons)
         ? currentState.lessons.find(
-            (/** @type {LessonCore} */ lesson) =>
-              lesson.classroom === d.classroom && lesson.date === d.date,
+            (/** @type {LessonCore} */ lesson) => lesson.lessonId === lessonId,
           )
         : null;
     if (foundLesson) {

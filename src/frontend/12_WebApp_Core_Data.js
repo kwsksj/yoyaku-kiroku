@@ -319,6 +319,8 @@ export function getScheduleDataFromLessons(reservation) {
 
   // LessonCoreから日程マスタ形式の情報を返す
   return {
+    lessonId: matchingLesson.lessonId, // ★ 追加
+    reservationIds: matchingLesson.reservationIds, // ★ 追加
     classroom: reservation.classroom,
     date: reservation.date,
     classroomType: matchingLesson.classroomType || '',

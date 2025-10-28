@@ -138,6 +138,7 @@ declare global {
     readonly HEADERS: {
       readonly RESERVATIONS: {
         readonly RESERVATION_ID: string;
+        readonly LESSON_ID: string;
         readonly STUDENT_ID: string;
         readonly DATE: string;
         readonly CLASSROOM: string;
@@ -194,6 +195,8 @@ declare global {
         readonly NOTES: string;
       };
       readonly SCHEDULE: {
+        readonly LESSON_ID: string;
+        readonly RESERVATION_IDS: string;
         readonly DATE: string;
         readonly CLASSROOM: string;
         readonly VENUE: string;

@@ -494,6 +494,7 @@ export function generateAccountingReservationCard(reservationData) {
   return Components.listCard({
     item: {
       reservationId: reservationData.reservationId || '',
+      lessonId: reservationData.lessonId || '',
       studentId: reservationData.studentId || '',
       status: reservationData.status || '',
       date: reservationData.date || '',

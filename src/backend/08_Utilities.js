@@ -388,6 +388,7 @@ export function transformReservationArrayToObject(resArray) {
   /** @type {ReservationCore} */
   const reservation = {
     reservationId: String(reservationId || ''),
+    lessonId: '', // ★ 追加（この旧式関数では取得できないため空文字）
     studentId: String(studentId || ''),
     date:
       date instanceof Date
@@ -497,6 +498,9 @@ export function transformReservationArrayToObjectWithHeaders(
     reservationId: String(
       getCellValue(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID) || '',
     ),
+    lessonId: String(
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID) || '',
+    ), // ★ 追加
     studentId: studentId,
     date: (() => {
       const dateValue = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.DATE);
@@ -559,6 +563,7 @@ export function normalizeReservationObject(rawReservation) {
   try {
     return {
       reservationId: String(rawReservation['reservationId'] || ''),
+      lessonId: '', // ★ 追加
       studentId: String(rawReservation['studentId'] || ''),
       date:
         rawReservation['date'] instanceof Date
@@ -1093,6 +1098,7 @@ export function convertReservationToRow(reservation, headerMap, header) {
   // 必須・基本フィールド
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID]] =
     reservation.reservationId;
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID]] = reservation.lessonId; // ★ 追加
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID]] = reservation.studentId;
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.STATUS]] = reservation.status;
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM]] = reservation.classroom;

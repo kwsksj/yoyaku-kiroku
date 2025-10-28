@@ -100,6 +100,7 @@ export interface EventHandlerFunction {
 export interface ActionHandlerData {
   [key: string]: any;
   // 共通プロパティ（実際のdata-*属性に対応）
+  lessonId?: string;
   reservationId?: string;
   classroom?: string;
   date?: string;

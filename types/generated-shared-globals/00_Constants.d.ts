@@ -136,6 +136,7 @@ export namespace CONSTANTS {
     namespace HEADERS {
         export namespace RESERVATIONS_1 {
             export let RESERVATION_ID: string;
+            export let LESSON_ID: string;
             export let STUDENT_ID: string;
             let DATE_1: string;
             export { DATE_1 as DATE };
@@ -205,6 +206,9 @@ export namespace CONSTANTS {
         }
         export { ACCOUNTING_1 as ACCOUNTING };
         export namespace SCHEDULE_1 {
+            let LESSON_ID_1: string;
+            export { LESSON_ID_1 as LESSON_ID };
+            export let RESERVATION_IDS: string;
             let DATE_2: string;
             export { DATE_2 as DATE };
             let CLASSROOM_2: string;

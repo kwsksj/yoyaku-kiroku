@@ -979,9 +979,21 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     ];
 
     const dateColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
+    const lessonIdColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    ); // ★ 追加
+
     if (dateColumn === -1) {
       throw new Error('日程マスターシートに必須の「日付」列が見つかりません。');
     }
+    if (lessonIdColumn === -1) {
+      throw new Error(
+        '日程マスターシートに必須の「レッスンID」列が見つかりません。',
+      );
+    }
+
+    /** @type {{row: number, col: number, value: string}[]} */
+    const updatesForSheet = []; // シートへの書き戻し用
 
     // filter内ではdateColumnを直接使用
     const scheduleDataList = allData
@@ -998,9 +1010,21 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
         return dateStr >= startDate && dateStr <= endDate;
       })
       .map(
-        /** @param {(string|number|Date)[]} row */ row => {
+        /** @param {(string|number|Date)[]} row */ (row, rowIndex) => {
           /** @type {LessonCore} */
           const scheduleObj = /** @type {LessonCore} */ ({});
+
+          // ★ lessonId がない場合に自動採番して書き戻し準備
+          let lessonId = row[lessonIdColumn];
+          if (!lessonId) {
+            lessonId = Utilities.getUuid();
+            row[lessonIdColumn] = lessonId; // 後続の処理で使えるように
+            updatesForSheet.push({
+              row: rowIndex + 2, // allDataはヘッダーが除かれているので、+2でシート上の行番号
+              col: lessonIdColumn + 1,
+              value: lessonId,
+            });
+          }
 
           for (let index = 0; index < headerRow.length; index += 1) {
             const header = headerRow[index];
@@ -1083,6 +1107,19 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
               case CONSTANTS.HEADERS.SCHEDULE.NOTES:
                 propertyName = 'notes';
                 break;
+              case CONSTANTS.HEADERS.SCHEDULE.LESSON_ID:
+                propertyName = 'lessonId';
+                break;
+              case CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS:
+                propertyName = 'reservationIds';
+                // reservationIdsはJSON文字列で保存されているため、配列にパースする
+                try {
+                  value = value ? JSON.parse(String(value)) : [];
+                } catch (e) {
+                  Logger.log(`reservationIdsのJSONパースに失敗: ${value}`);
+                  value = /** @type {any} */ ([]); // パース失敗時は空配列
+                }
+                break;
               default:
                 propertyName = header;
             }
@@ -1097,6 +1134,25 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
         /** @param {LessonCore | null} scheduleObj */ scheduleObj =>
           scheduleObj !== null,
       ); // 無効な行を除外
+
+    // ★ 自動採番した lessonId をシートに書き戻す（キャッシュ保存より前に実行）
+    if (updatesForSheet.length > 0) {
+      try {
+        const ranges = updatesForSheet.map(
+          update => `R${update.row}C${update.col}`,
+        );
+        const rangeList = sheet.getRangeList(ranges).getRanges();
+        rangeList.forEach((range, i) => {
+          range.setValue(updatesForSheet[i].value);
+        });
+        Logger.log(
+          `${updatesForSheet.length}件の日程に新しいレッスンIDを付与し、シートに保存しました。`,
+        );
+      } catch (e) {
+        Logger.log(`lessonIdのシート書き戻し中にエラーが発生: ${e.message}`);
+        // エラーが発生してもキャッシュ構築は続行する
+      }
+    }
 
     // ★ 日付順でソート処理を追加（文字列形式前提）
     if (scheduleDataList && scheduleDataList.length > 0) {
