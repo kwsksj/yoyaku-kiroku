@@ -493,9 +493,9 @@ export function generateAccountingReservationCard(reservationData) {
   // 予約カードを生成（ボタンなし、制作メモ編集モード、メモ保存ボタン非表示）
   return Components.listCard({
     item: {
-      reservationId: 'R-DUMMY-001',
-      lessonId: '', // ★ 追加
-      studentId: 'S-DUMMY-001',
+      reservationId: reservationData.reservationId || '',
+      lessonId: reservationData.lessonId || '',
+      studentId: reservationData.studentId || '',
       status: reservationData.status || '',
       date: reservationData.date || '',
       startTime: reservationData.startTime || '',

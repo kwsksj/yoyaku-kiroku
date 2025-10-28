@@ -454,7 +454,8 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
     }
   } catch (error) {
     Logger.log(`_updateReservationIdsInLesson エラー: ${error.message}`);
-    // このエラーは上位に伝播させず、ログに記録するに留める
+    // このエラーは上位に伝播させ、トランザクションがロールバックされるようにする
+    throw error;
   }
 }
 
