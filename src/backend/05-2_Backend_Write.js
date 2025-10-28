@@ -45,6 +45,7 @@ import {
   getReservationsByIdsFromCache,
   rebuildAllReservationsCache,
   updateReservationInCache,
+  updateLessonReservationIdsInCache,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
@@ -462,6 +463,13 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
       }
 
       reservationIdsCell.setValue(JSON.stringify(currentIds));
+      try {
+        updateLessonReservationIdsInCache(lessonId, currentIds);
+      } catch (syncError) {
+        Logger.log(
+          `_updateReservationIdsInLesson: キャッシュ同期に失敗しました。lessonId: ${lessonId}, Error: ${syncError.message}`,
+        );
+      }
     }
   } catch (error) {
     Logger.log(`_updateReservationIdsInLesson エラー: ${error.message}`);

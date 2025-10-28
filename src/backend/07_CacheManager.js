@@ -30,6 +30,8 @@ import {
   PerformanceLog,
   createHeaderMap,
   handleError,
+  transformReservationArrayToObject,
+  transformReservationArrayToObjectWithHeaders,
 } from './08_Utilities.js';
 
 /**
@@ -56,6 +58,30 @@ export function normalizeHeaderMap(headerMap) {
   }
   return headerMap;
 }
+
+/**
+ * ヘッダーマップをMap型に復元するヘルパー関数
+ * @param {HeaderMapType} headerMap - ヘッダーマップ（MapまたはRecord）
+ * @returns {Map<string, number> | null} Map型のヘッダーマップ
+ */
+function toHeaderMapInstance(headerMap) {
+  if (!headerMap) return null;
+  if (headerMap instanceof Map) {
+    return headerMap;
+  }
+  return new Map(
+    Object.entries(/** @type {Record<string, number>} */ (headerMap)),
+  );
+}
+
+/**
+ * lessonId → LessonCore のインメモリインデックスを保持するためのキャッシュ
+ * @type {{ version: string | number | null, map: Map<string, LessonCore> }}
+ */
+const lessonIdCacheState = {
+  version: null,
+  map: new Map(),
+};
 
 /**
  * キャッシュデータの型安全な取得ヘルパー関数
@@ -2445,25 +2471,36 @@ export function getReservationByIdFromCache(reservationId) {
 export function getLessonByIdFromCache(lessonId) {
   if (!lessonId) return null;
 
-  const scheduleCache = getTypedCachedData(
+  /** @type {ScheduleCacheData | null} */
+  let scheduleCache = getTypedCachedData(
     CACHE_KEYS.MASTER_SCHEDULE_DATA,
     false,
   );
-  if (!scheduleCache || !scheduleCache.schedule) {
-    return null;
-  }
 
-  // lessonIdインデックスMapを構築（初回のみ、キャッシュに保存）
-  if (!scheduleCache._lessonIdMap) {
-    scheduleCache._lessonIdMap = new Map();
-    for (const lesson of scheduleCache.schedule) {
-      if (lesson.lessonId) {
-        scheduleCache._lessonIdMap.set(lesson.lessonId, lesson);
-      }
+  if (!scheduleCache || !Array.isArray(scheduleCache.schedule)) {
+    scheduleCache = getTypedCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+    if (!scheduleCache || !Array.isArray(scheduleCache.schedule)) {
+      return null;
     }
   }
 
-  return scheduleCache._lessonIdMap.get(lessonId) || null;
+  const cacheVersion =
+    scheduleCache.version ||
+    scheduleCache?.dateRange?.cached ||
+    `${scheduleCache.schedule.length}-${Date.now()}`;
+
+  if (lessonIdCacheState.version !== cacheVersion) {
+    const indexMap = new Map();
+    for (const lesson of scheduleCache.schedule) {
+      if (lesson && lesson.lessonId) {
+        indexMap.set(String(lesson.lessonId), lesson);
+      }
+    }
+    lessonIdCacheState.map = indexMap;
+    lessonIdCacheState.version = cacheVersion;
+  }
+
+  return lessonIdCacheState.map.get(String(lessonId)) || null;
 }
 
 /**
@@ -2486,17 +2523,91 @@ export function getReservationsByIdsFromCache(reservationIds) {
     return [];
   }
 
+  const headerMap =
+    toHeaderMapInstance(normalizeHeaderMap(cache.headerMap || {})) || null;
+  const studentsCache = getTypedCachedData(
+    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    false,
+  );
+  const studentsMap = studentsCache?.students || {};
+
+  /** @type {ReservationCore[]} */
   const reservations = [];
   for (const id of reservationIds) {
     if (!id) continue; // 空文字やnullをスキップ
 
     const index = cache.reservationIdIndexMap[id];
-    if (index !== undefined && cache.reservations[index]) {
-      reservations.push(cache.reservations[index]);
+    if (index === undefined) continue;
+
+    const rawReservation = cache.reservations[index];
+    if (!rawReservation) continue;
+
+    if (Array.isArray(rawReservation)) {
+      const converted = headerMap
+        ? transformReservationArrayToObjectWithHeaders(
+            rawReservation,
+            headerMap,
+            studentsMap,
+          )
+        : transformReservationArrayToObject(rawReservation);
+      if (converted) {
+        reservations.push(converted);
+      }
+    } else if (typeof rawReservation === 'object') {
+      reservations.push(/** @type {ReservationCore} */ (rawReservation));
     }
   }
 
   return reservations;
+}
+
+/**
+ * 日程キャッシュ内の特定レッスンの予約ID配列を最新化する
+ * @param {string} lessonId - レッスンID
+ * @param {string[]} reservationIds - 最新の予約ID配列
+ */
+export function updateLessonReservationIdsInCache(lessonId, reservationIds) {
+  if (!lessonId || !Array.isArray(reservationIds)) {
+    return;
+  }
+
+  try {
+    /** @type {ScheduleCacheData | null} */
+    const scheduleCache = getTypedCachedData(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      false,
+    );
+    if (!scheduleCache || !Array.isArray(scheduleCache.schedule)) {
+      return;
+    }
+
+    const targetLesson = scheduleCache.schedule.find(
+      lesson => lesson && String(lesson.lessonId) === String(lessonId),
+    );
+    if (!targetLesson) {
+      return;
+    }
+
+    targetLesson.reservationIds = reservationIds.map(id => String(id));
+
+    const updatedCache = {
+      ...scheduleCache,
+      schedule: scheduleCache.schedule,
+      version: new Date().getTime(),
+    };
+
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      JSON.stringify(updatedCache),
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+    );
+
+    // lessonIdインデックスを再構築させるためバージョンをリセット
+    lessonIdCacheState.version = null;
+    lessonIdCacheState.map = new Map();
+  } catch (error) {
+    Logger.log(`updateLessonReservationIdsInCache Error: ${error.message}`);
+  }
 }
 
 /**

@@ -64,19 +64,17 @@ export function cancelReservation(cancelInfo: ReservationCore): ApiResponseGener
 }>;
 /**
  * キャンセル後の空き通知希望者への通知機能
- * @param {string} classroom - 教室名
- * @param {string} date - 日付（yyyy-MM-dd形式）
+ * @param {string} lessonId - レッスンID
  * @param {ReservationCore} _cancelledReservation - キャンセルされた予約データ（将来の拡張用）
  */
-export function notifyAvailabilityToWaitlistedUsers(classroom: string, date: string, _cancelledReservation: ReservationCore): void;
+export function notifyAvailabilityToWaitlistedUsers(lessonId: string, _cancelledReservation: ReservationCore): void;
 /**
  * 空き通知対象のユーザーリストを取得
- * @param {string} classroom - 教室名
- * @param {string} date - 日付（yyyy-MM-dd形式）
+ * @param {string} lessonId - レッスンID
  * @param {string} availabilityType - 空きタイプ ('first', 'second', 'all')
  * @returns {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>}
  */
-export function getWaitlistedUsersForNotification(classroom: string, date: string, availabilityType: string): Array<{
+export function getWaitlistedUsersForNotification(lessonId: string, availabilityType: string): Array<{
     studentId: string;
     email: string;
     realName: string;
