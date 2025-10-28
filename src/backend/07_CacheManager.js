@@ -979,9 +979,16 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     ];
 
     const dateColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
+    const lessonIdColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID); // ★ 追加
+
     if (dateColumn === -1) {
       throw new Error('日程マスターシートに必須の「日付」列が見つかりません。');
     }
+    if (lessonIdColumn === -1) {
+      throw new Error('日程マスターシートに必須の「レッスンID」列が見つかりません。');
+    }
+
+    const updatesForSheet = []; // シートへの書き戻し用
 
     // filter内ではdateColumnを直接使用
     const scheduleDataList = allData
@@ -998,9 +1005,21 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
         return dateStr >= startDate && dateStr <= endDate;
       })
       .map(
-        /** @param {(string|number|Date)[]} row */ row => {
+        /** @param {(string|number|Date)[]} row */ (row, rowIndex) => {
           /** @type {LessonCore} */
           const scheduleObj = /** @type {LessonCore} */ ({});
+
+          // ★ lessonId がない場合に自動採番して書き戻し準備
+          let lessonId = row[lessonIdColumn];
+          if (!lessonId) {
+            lessonId = Utilities.getUuid();
+            row[lessonIdColumn] = lessonId; // 後続の処理で使えるように
+            updatesForSheet.push({
+              row: rowIndex + 2, // allDataはヘッダーが除かれているので、+2でシート上の行番号
+              col: lessonIdColumn + 1,
+              value: lessonId,
+            });
+          }
 
           for (let index = 0; index < headerRow.length; index += 1) {
             const header = headerRow[index];
@@ -1121,6 +1140,14 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
           return dateA.localeCompare(dateB);
         },
       );
+    }
+
+    // ★ 自動採番した lessonId をシートに書き戻す
+    if (updatesForSheet.length > 0) {
+      updatesForSheet.forEach(update => {
+        sheet.getRange(update.row, update.col).setValue(update.value);
+      });
+      Logger.log(`${updatesForSheet.length}件の日程に新しいレッスンIDを付与し、シートに保存しました。`);
     }
 
     const cacheData = {
