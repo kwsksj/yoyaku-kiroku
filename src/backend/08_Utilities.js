@@ -388,6 +388,7 @@ export function transformReservationArrayToObject(resArray) {
   /** @type {ReservationCore} */
   const reservation = {
     reservationId: String(reservationId || ''),
+    lessonId: '', // ★ 追加（この旧式関数では取得できないため空文字）
     studentId: String(studentId || ''),
     date:
       date instanceof Date
@@ -560,6 +561,7 @@ export function normalizeReservationObject(rawReservation) {
   try {
     return {
       reservationId: String(rawReservation['reservationId'] || ''),
+      lessonId: '', // ★ 追加
       studentId: String(rawReservation['studentId'] || ''),
       date:
         rawReservation['date'] instanceof Date

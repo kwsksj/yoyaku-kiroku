@@ -988,6 +988,7 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
       throw new Error('日程マスターシートに必須の「レッスンID」列が見つかりません。');
     }
 
+    /** @type {{row: number, col: number, value: string}[]} */
     const updatesForSheet = []; // シートへの書き戻し用
 
     // filter内ではdateColumnを直接使用
@@ -1109,10 +1110,10 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
                 propertyName = 'reservationIds';
                 // reservationIdsはJSON文字列で保存されているため、配列にパースする
                 try {
-                  value = value ? JSON.parse(value) : [];
+                  value = value ? JSON.parse(String(value)) : [];
                 } catch (e) {
                   Logger.log(`reservationIdsのJSONパースに失敗: ${value}`);
-                  value = []; // パース失敗時は空配列
+                  value = '[]'; // パース失敗時は空配列の文字列
                 }
                 break;
               default:

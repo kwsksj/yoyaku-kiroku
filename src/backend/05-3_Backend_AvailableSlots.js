@@ -114,6 +114,8 @@ export function getLessons() {
 
       // LessonCore形式で追加
       lessons.push({
+        lessonId: schedule.lessonId, // ★ 追加
+        reservationIds: schedule.reservationIds, // ★ 追加
         classroom: schedule.classroom,
         date: dateKey,
         venue: schedule.venue,

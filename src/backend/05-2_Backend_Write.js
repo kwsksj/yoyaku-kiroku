@@ -396,23 +396,6 @@ export function _saveReservationCoreToSheet(reservation, mode) {
 }
 
 /**
- * 予約を実行します（Phase 8: Core型統一対応）
- *
- * @param {ReservationCore} reservationInfo - 予約作成リクエスト（Core型）。reservationId/statusはundefined可
- * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
- *
- * @example
- * makeReservation({
- *   studentId: 'S-001',
- *   classroom: '東京教室',
- *   date: '2025-10-15',
- *   startTime: '13:00',
- *   endTime: '16:00',
- *   chiselRental: true,
- *   firstLecture: false,
- * });
-
-/**
  * 【内部関数】指定されたレッスンの reservationIds 配列を更新する
  * @param {string} lessonId - 対象のレッスンID
  * @param {string} reservationId - 追加または削除する予約ID
@@ -469,6 +452,21 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
 /**
  * 予約を実行します（Phase 8: Core型統一対応）
  *
+ * @param {ReservationCore} reservationInfo - 予約作成リクエスト（Core型）。reservationId/statusはundefined可
+ * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
+ *
+ * @example
+ * makeReservation({
+ *   studentId: 'S-001',
+ *   classroom: '東京教室',
+ *   date: '2025-10-15',
+ *   startTime: '13:00',
+ *   endTime: '16:00',
+ *   chiselRental: true,
+ *   firstLecture: false,
+ * });
+ */
+export function makeReservation(reservationInfo) {
   return withTransaction(() => {
     try {
       // 日程マスタから該当日・教室の情報を取得
@@ -496,6 +494,10 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
           return dateMatches && item.classroom === reservationInfo.classroom;
         },
       );
+
+      if (!scheduleRule) { // ★ ガード節を追加
+        throw new Error('対象の日程情報が見つかりませんでした。');
+      }
 
       // 時間制予約（30分単位）の場合の検証
       if (
