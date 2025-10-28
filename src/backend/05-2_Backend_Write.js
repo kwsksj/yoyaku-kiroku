@@ -482,8 +482,10 @@ export function makeReservation(reservationInfo) {
 
       // ★ lessonId を使って日程マスタから情報を取得
       const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-      /** @type {LessonCore[]} */
-      const scheduleData = scheduleCache?.['schedule'] || [];
+      let scheduleData = /** @type {LessonCore[]} */ ([]);
+      if (scheduleCache && scheduleCache['schedule']) {
+        scheduleData = /** @type {LessonCore[]} */ (scheduleCache['schedule']);
+      }
 
       const scheduleRule = scheduleData.find(
         item => item.lessonId === reservationInfo.lessonId,
