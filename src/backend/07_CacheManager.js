@@ -1135,6 +1135,21 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
           scheduleObj !== null,
       ); // 無効な行を除外
 
+    // ★ 自動採番した lessonId をシートに書き戻す（キャッシュ保存より前に実行）
+    if (updatesForSheet.length > 0) {
+      try {
+        updatesForSheet.forEach(update => {
+          sheet.getRange(update.row, update.col).setValue(update.value);
+        });
+        Logger.log(
+          `${updatesForSheet.length}件の日程に新しいレッスンIDを付与し、シートに保存しました。`,
+        );
+      } catch (e) {
+        Logger.log(`lessonIdのシート書き戻し中にエラーが発生: ${e.message}`);
+        // エラーが発生してもキャッシュ構築は続行する
+      }
+    }
+
     // ★ 日付順でソート処理を追加（文字列形式前提）
     if (scheduleDataList && scheduleDataList.length > 0) {
       scheduleDataList.sort(
