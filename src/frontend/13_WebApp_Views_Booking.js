@@ -336,7 +336,7 @@ export const getReservationFormView = () => {
     }
 
     const timeFixedMessage = isTimeFixed
-      ? `<p class="${/** @type {any} */ (DesignConfig.text).caption} mb-2">初回の方は <span class="time-display">${fixedStartTime}</span> より開始です。昼をまたぐ場合は、1時間休憩を挟みます</p>`
+      ? `<p class="${/** @type {any} */ (DesignConfig.text).caption} mb-2">初回の方は <span class="time-display">${fixedStartTime}</span> より開始です。${fixedStartTime}昼をまたぐ場合は、1時間休憩を挟みます</p>`
       : '';
 
     return `

@@ -643,7 +643,6 @@ export const addCustomStyles = () => {
         font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
         font-feature-settings: 'tnum' 1;
         font-variant-numeric: tabular-nums;
-        font-weight: 500;
         display: inline-block;
         min-width: 4.5em;
         text-align: right;

@@ -107,7 +107,7 @@ export function generateTuitionSection(
             <select id="start-time" class="time-select time-display flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               ${generateTimeOptions(formData.startTime)}
             </select>
-            <span class="text-sm text-brand-text">-</span>
+            <span class="font-mono-numbers text-brand-text">~</span>
             <select id="end-time" class="time-select time-display flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
               ${generateTimeOptions(formData.endTime)}
             </select>
@@ -119,8 +119,8 @@ export function generateTuitionSection(
               <option value="90" ${formData.breakTime === 90 ? 'selected' : ''}>90分</option>
             </select>
           </div>
-          <div class="calculated-amount text-sm text-gray-600">
-            <span id="time-calculation" class="font-mono-numbers">-- ×${Components.priceDisplay({ amount: unitPrice * 2 })} = <span class="font-bold text-brand-text text-right">--</span></span>
+          <div class="calculated-amount font-mono-numbers text-gray-600 w-full flex justify-end">
+            <span id="time-calculation">-- ×${Components.priceDisplay({ amount: unitPrice * 2 })} = <span class="font-bold text-brand-text text-right">--</span></span>
           </div>
         </div>
       </div>`;

@@ -23,7 +23,6 @@
 // ================================================================
 // UI系モジュール
 // ================================================================
-import { Components, escapeHTML } from './13_WebApp_Components.js';
 import {
   generateCustomSalesRow,
   generateMaterialRow,
@@ -31,6 +30,7 @@ import {
   getPaymentInfoHtml,
   getPaymentOptionsHtml,
 } from './12-2_Accounting_UI.js';
+import { Components, escapeHTML } from './13_WebApp_Components.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -40,9 +40,9 @@ import {
   calculateTimeUnits,
 } from './12-1_Accounting_Calculation.js';
 import {
+  clearAccountingCache,
   collectAccountingFormData,
   saveAccountingCache,
-  clearAccountingCache,
 } from './12-4_Accounting_Utilities.js';
 
 // ================================================================================
@@ -1064,21 +1064,6 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
       ? getPaymentInfoHtml(paymentMethod)
       : '';
 
-  // 金額表示のヘルパー
-  const formatPrice = (/** @type {number} */ amount) => {
-    if (typeof Components !== 'undefined' && Components.priceDisplay) {
-      return Components.priceDisplay({ amount });
-    }
-    return `¥${amount.toLocaleString()}`;
-  };
-
-  const formatPriceLarge = (/** @type {number} */ amount) => {
-    if (typeof Components !== 'undefined' && Components.priceDisplay) {
-      return Components.priceDisplay({ amount, size: 'large' });
-    }
-    return `¥${amount.toLocaleString()}`;
-  };
-
   // ボタン生成のヘルパー
   const generateButton = (
     /** @type {string} */ action,
@@ -1111,7 +1096,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
         (/** @type {any} */ item) => `
       <div class="flex justify-between text-sm">
         <span class="text-brand-subtle">${escapeHTML(item.name)}</span>
-        <span class="font-mono-numbers">${formatPrice(item.price)}</span>
+        ${Components.priceDisplay({ amount: item.price, style: 'light' })}
       </div>
     `,
       )
@@ -1121,7 +1106,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
         ${itemsHtml}
         <div class="flex justify-between text-sm border-t border-ui-border pt-1 mt-1">
           <span class="text-brand-text font-medium">授業料小計:</span>
-          <span class="font-mono-numbers font-medium">${formatPrice(result.tuition.subtotal)}</span>
+          ${Components.priceDisplay({ amount: result.tuition.subtotal })}
         </div>
       </div>
     `;
@@ -1135,7 +1120,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
         (/** @type {any} */ item) => `
       <div class="flex justify-between text-sm">
         <span class="text-brand-subtle">${escapeHTML(item.name)}</span>
-        <span class="font-mono-numbers">${formatPrice(item.price)}</span>
+        ${Components.priceDisplay({ amount: item.price, style: 'light' })}
       </div>
     `,
       )
@@ -1145,7 +1130,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
         ${itemsHtml}
         <div class="flex justify-between text-sm border-t border-ui-border pt-1 mt-1">
           <span class="text-brand-text font-medium">販売小計:</span>
-          <span class="font-mono-numbers font-medium">${formatPrice(result.sales.subtotal)}</span>
+          ${Components.priceDisplay({ amount: result.sales.subtotal })}
         </div>
       </div>
     `;
@@ -1164,24 +1149,24 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
         <div class="p-4 space-y-4 overflow-y-auto flex-1">
 
           <!-- 合計金額セクション -->
-          <div class="bg-ui-surface rounded-lg p-4">
-            <h4 class="font-medium text-brand-text mb-3">金額</h4>
-            <div class="space-y-2">
+          ${Components.sectionHeader({ title: '金額' })}
+          <div class="pb-4">
+            <div class="space-y-3">
               ${tuitionSectionHtml}
               ${salesSectionHtml}
               <div class="border-t-2 border-ui-border pt-2 mt-2">
                 <div class="flex justify-between">
                   <span class="font-bold text-brand-text">総合計:</span>
-                  <span class="font-bold text-xl text-brand-text font-mono-numbers">${formatPriceLarge(result.grandTotal)}</span>
+                  ${Components.priceDisplay({ amount: result.grandTotal, style: 'total' })}
                 </div>
               </div>
             </div>
           </div>
 
           <!-- 支払い方法セクション -->
-          <div class="bg-ui-surface rounded-lg p-4">
-            <h4 class="font-medium text-brand-text mb-3">支払い方法</h4>
-            <div class="text-lg font-bold text-brand-text mb-3">${paymentMethod}</div>
+          ${Components.sectionHeader({ title: '支払い方法' })}
+          <div class="pb-4">
+            <div class="text-base text-brand-text mb-3"> ◉ ${paymentMethod}</div>
             ${paymentInfoHtml ? `<div class="mt-3">${paymentInfoHtml}</div>` : ''}
           </div>
         </div>

@@ -229,7 +229,7 @@ export interface PriceDisplayConfig {
   amount: number | string;
   label?: string;
   size?: 'small' | 'normal' | 'large';
-  style?: 'default' | 'highlight' | 'subtotal' | 'total';
+  style?: 'default' | 'muted' | 'light' | 'highlight' | 'subtotal' | 'total';
   showCurrency?: boolean;
   align?: 'left' | 'center' | 'right';
 }

@@ -680,7 +680,9 @@ export const Components = {
     };
 
     const styles = {
-      default: 'text-brand-text',
+      default: 'text-brand-text font-normal',
+      light: 'text-brand-subtle font-thin',
+      muted: 'text-brand-muted font-thin',
       highlight: 'text-brand-text font-semibold',
       subtotal: 'text-brand-text font-semibold text-lg',
       total: 'text-brand-text font-bold text-xl',
