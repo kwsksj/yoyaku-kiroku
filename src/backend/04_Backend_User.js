@@ -629,7 +629,6 @@ export function updateUserProfile(userInfo) {
       return {
         success: true,
         message: 'プロフィールが正常に更新されました。',
-        updatedUser: updatedUser,
         data: {
           message: 'プロフィールが正常に更新されました。',
           updatedUser: updatedUser,
