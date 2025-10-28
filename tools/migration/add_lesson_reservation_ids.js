@@ -1,160 +1,161 @@
 /**
  * @file add_lesson_reservation_ids.js
- * @description 1回限りのマイグレーションスクリプト。
- * 既存の「日程マスタ」と「予約記録」シートに `lessonId` と `reservationIds` を付与する。
+ * @description 【統合版】レッスン・予約ID関連のデータ整合性スクリプト
+ * 
+ * このスクリプトは、以下の処理をまとめて実行します。
+ * 1. 日程マスタの各レッスンに `lessonId` がなければ自動採番します。
+ * 2. 予約記録の各予約に、対応する `lessonId` を設定します。
+ * 3. 日程マスタの各レッスンに、関連する予約IDのリスト `reservationIds` を設定します。
+ * 
+ * 何度実行しても問題ないように設計されています（冪等性）。
  * GASエディタにコピー＆ペーストして実行することを想定。
  */
 
-/**
- * =================================================================
- * マイグレーション実行関数
- * =================================================================
- * 1. 日程マスタに `lessonId` を追加
- * 2. 予約記録に `lessonId` を追加
- * 3. 日程マスタに `reservationIds` を追加
- */
-function runMigrationAddLessonReservationIds() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const scheduleSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE);
-  const reservationSheet = ss.getSheetByName(
-    CONSTANTS.SHEET_NAMES.RESERVATIONS,
-  );
-
+function runUnifiedIdMigration() {
+  const ui = SpreadsheetApp.getUi();
   try {
-    // ステップ1: 日程マスタに lessonId を付与
-    Logger.log('ステップ1: 日程マスタへの lessonId 付与を開始');
-    const scheduleHeader = scheduleSheet
-      .getRange(1, 1, 1, scheduleSheet.getLastColumn())
-      .getValues()[0];
-    const scheduleLessonIdCol =
-      scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID) + 1;
-    const scheduleDateCol =
-      scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE) + 1;
-    const scheduleClassroomCol =
-      scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.CLASSROOM) + 1;
+    const response = ui.alert(
+      'データ整合性処理の開始',
+      'レッスンと予約のID関連付けを更新します。シートのバックアップを取得した上で実行してください。
 
-    if (scheduleLessonIdCol === 0) {
-      throw new Error('日程マスタに「レッスンID」列が見つかりません。');
+処理には数分かかる場合があります。続行しますか？',
+      ui.ButtonSet.OK_CANCEL
+    );
+    if (response !== ui.Button.OK) {
+      ui.alert('処理を中断しました。');
+      return;
     }
 
-    const scheduleData = scheduleSheet
-      .getRange(
-        2,
-        1,
-        scheduleSheet.getLastRow() - 1,
-        scheduleSheet.getLastColumn(),
-      )
-      .getValues();
-    const lessonIdUpdates = [];
-    const lessonMap = {}; // { [date_classroom]: lessonId }
+    ui.alert('処理を開始します。完了まで操作しないでください。');
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const scheduleSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    const reservationSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.RESERVATIONS);
 
-    scheduleData.forEach((row, index) => {
-      let lessonId = row[scheduleLessonIdCol - 1];
+    if (!scheduleSheet || !reservationSheet) {
+      throw new Error('必要なシート（日程マスタ or 予約記録）が見つかりません。');
+    }
+
+    // --- 1. ヘッダー情報の取得と検証 ---
+    const scheduleHeader = scheduleSheet.getRange(1, 1, 1, scheduleSheet.getLastColumn()).getValues()[0];
+    const schLessonIdCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
+    const schDateCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
+    const schClassroomCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.CLASSROOM);
+    const schReservationIdsCol = scheduleHeader.indexOf('reservationIds');
+
+    const reservationHeader = reservationSheet.getRange(1, 1, 1, reservationSheet.getLastColumn()).getValues()[0];
+    const resLessonIdCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID);
+    const resReservationIdCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID);
+    const resDateCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.DATE);
+    const resClassroomCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM);
+    const resStatusCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
+
+    if ([schLessonIdCol, schDateCol, schClassroomCol, schReservationIdsCol, resLessonIdCol, resReservationIdCol, resDateCol, resClassroomCol, resStatusCol].includes(-1)) {
+      throw new Error('必要な列が見つかりません。シートのヘッダー名を確認してください。');
+    }
+
+    const scheduleData = scheduleSheet.getLastRow() > 1 ? scheduleSheet.getRange(2, 1, scheduleSheet.getLastRow() - 1, scheduleSheet.getLastColumn()).getValues() : [];
+    const reservationData = reservationSheet.getLastRow() > 1 ? reservationSheet.getRange(2, 1, reservationSheet.getLastRow() - 1, reservationSheet.getLastColumn()).getValues() : [];
+
+    // --- 2. 日程マスタの lessonId を確認・採番 ---
+    Logger.log('ステップ1: 日程マスタのlessonIdを確認・採番します...');
+    const lessonDateClassroomMap = new Map(); // key: 'YYYY-MM-DD_教室名', value: lessonId
+    const lessonIdUpdates = [];
+    for (let i = 0; i < scheduleData.length; i++) {
+      const row = scheduleData[i];
+      let lessonId = row[schLessonIdCol];
       if (!lessonId) {
         lessonId = Utilities.getUuid();
-        lessonIdUpdates.push({
-          range: scheduleSheet.getRange(index + 2, scheduleLessonIdCol),
-          value: lessonId,
-        });
+        row[schLessonIdCol] = lessonId; // 後続処理のためにメモリ上のデータも更新
+        lessonIdUpdates.push({ range: scheduleSheet.getRange(i + 2, schLessonIdCol + 1), value: lessonId });
       }
-      const date = new Date(row[scheduleDateCol - 1])
-        .toISOString()
-        .slice(0, 10);
-      const classroom = row[scheduleClassroomCol - 1];
-      lessonMap[`${date}_${classroom}`] = lessonId;
-    });
-
-    lessonIdUpdates.forEach(update => update.range.setValue(update.value));
-    Logger.log(
-      `ステップ1: 日程マスタに ${lessonIdUpdates.length} 件の lessonId を付与しました。`,
-    );
-
-    // ステップ2: 予約記録に lessonId を付与
-    Logger.log('ステップ2: 予約記録への lessonId 付与を開始');
-    const reservationHeader = reservationSheet
-      .getRange(1, 1, 1, reservationSheet.getLastColumn())
-      .getValues()[0];
-    const reservationLessonIdCol =
-      reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID) + 1;
-    const reservationDateCol =
-      reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.DATE) + 1;
-    const reservationClassroomCol =
-      reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM) + 1;
-    const reservationIdCol =
-      reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID) +
-      1;
-
-    if (reservationLessonIdCol === 0) {
-      throw new Error('予約記録に「レッスンID」列が見つかりません。');
+      const date = Utilities.formatDate(new Date(row[schDateCol]), CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+      const classroom = row[schClassroomCol];
+      lessonDateClassroomMap.set(`${date}_${classroom}`, lessonId);
     }
-
-    const reservationData = reservationSheet
-      .getRange(
-        2,
-        1,
-        reservationSheet.getLastRow() - 1,
-        reservationSheet.getLastColumn(),
-      )
-      .getValues();
-    const reservationUpdates = [];
-    const lessonToReservationsMap = {}; // { [lessonId]: [reservationId, ...] }
-
-    reservationData.forEach((row, index) => {
-      const date = new Date(row[reservationDateCol - 1])
-        .toISOString()
-        .slice(0, 10);
-      const classroom = row[reservationClassroomCol - 1];
-      const lessonId = lessonMap[`${date}_${classroom}`];
-      const reservationId = row[reservationIdCol - 1];
-
-      if (lessonId) {
-        reservationUpdates.push({
-          range: reservationSheet.getRange(index + 2, reservationLessonIdCol),
-          value: lessonId,
-        });
-
-        if (!lessonToReservationsMap[lessonId]) {
-          lessonToReservationsMap[lessonId] = [];
-        }
-        lessonToReservationsMap[lessonId].push(reservationId);
-      }
-    });
-
-    reservationUpdates.forEach(update => update.range.setValue(update.value));
-    Logger.log(
-      `ステップ2: 予約記録に ${reservationUpdates.length} 件の lessonId を付与しました。`,
-    );
-
-    // ステップ3: 日程マスタに reservationIds を付与
-    Logger.log('ステップ3: 日程マスタへの reservationIds 付与を開始');
-    // reservationIds 列は存在しない前提で、ヘッダーから探さずに固定の場所に書き込むか、
-    // もしくは手動で列を追加してもらう前提とする。今回は手動追加を前提とする。
-    const scheduleReservationIdsColName = 'reservationIds'; // 仮の列名
-    const scheduleReservationIdsCol =
-      scheduleHeader.indexOf(scheduleReservationIdsColName) + 1;
-    if (scheduleReservationIdsCol === 0) {
-      Logger.log(
-        '日程マスタに `reservationIds` 列が見つからないため、スキップします。手動で列を追加してください。',
-      );
+    if (lessonIdUpdates.length > 0) {
+      lessonIdUpdates.forEach(update => update.range.setValue(update.value));
+      Logger.log(`${lessonIdUpdates.length}件のレッスンに新しいIDを付与しました。`);
     } else {
-      const reservationIdsUpdates = [];
-      scheduleData.forEach((row, index) => {
-        const lessonId = row[scheduleLessonIdCol - 1];
-        const reservationIds = lessonToReservationsMap[lessonId] || [];
-        reservationIdsUpdates.push({
-          range: scheduleSheet.getRange(index + 2, scheduleReservationIdsCol),
-          value: JSON.stringify(reservationIds), // GASでは配列を直接セルに入れるとCSVになるためJSON文字列化
-        });
-      });
-
-      reservationIdsUpdates.forEach(update =>
-        update.range.setValue(update.value),
-      );
-      Logger.log(
-        `ステップ3: 日程マスタに ${reservationIdsUpdates.length} 件の reservationIds を設定しました。`,
-      );
+      Logger.log('日程マスタの全レッスンにIDは設定済みです。');
     }
+
+    // --- 3. 予約記録の lessonId を確認・設定 ---
+    Logger.log('ステップ2: 予約記録のlessonIdを確認・設定します...');
+    const reservationLessonIdUpdates = [];
+    const lessonToReservationsMap = new Map(); // key: lessonId, value: [reservationId, ...]
+    for (let i = 0; i < reservationData.length; i++) {
+      const row = reservationData[i];
+      const date = Utilities.formatDate(new Date(row[resDateCol]), CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+      const classroom = row[resClassroomCol];
+      const expectedLessonId = lessonDateClassroomMap.get(`${date}_${classroom}`);
+      
+      if (expectedLessonId && row[resLessonIdCol] !== expectedLessonId) {
+        reservationLessonIdUpdates.push({ range: reservationSheet.getRange(i + 2, resLessonIdCol + 1), value: expectedLessonId });
+      }
+      
+      // reservationIdsマップを作成
+      const status = row[resStatusCol];
+      if (expectedLessonId && status !== CONSTANTS.STATUS.CANCELED) {
+        const reservationId = row[resReservationIdCol];
+        if (!lessonToReservationsMap.has(expectedLessonId)) {
+          lessonToReservationsMap.set(expectedLessonId, []);
+        }
+        lessonToReservationsMap.get(expectedLessonId).push(reservationId);
+      }
+    }
+    if (reservationLessonIdUpdates.length > 0) {
+      reservationLessonIdUpdates.forEach(update => update.range.setValue(update.value));
+      Logger.log(`${reservationLessonIdUpdates.length}件の予約に正しいlessonIdを設定しました。`);
+    } else {
+      Logger.log('予約記録のlessonIdはすべて最新の状態です。');
+    }
+
+    // --- 4. 日程マスタの reservationIds を更新 ---
+    Logger.log('ステップ3: 日程マスタのreservationIdsを更新します...');
+    const scheduleReservationIdsUpdates = [];
+    for (let i = 0; i < scheduleData.length; i++) {
+      const row = scheduleData[i];
+      const lessonId = row[schLessonIdCol];
+      if (lessonId) {
+        const newReservationIds = lessonToReservationsMap.get(lessonId) || [];
+        const currentReservationIdsStr = row[schReservationIdsCol] || '[]';
+        
+        // 順序を無視して内容を比較するためにソートして比較
+        const newIdsSortedStr = JSON.stringify(newReservationIds.sort());
+        const currentIdsSortedStr = JSON.stringify(JSON.parse(currentReservationIdsStr).sort());
+
+        if (newIdsSortedStr !== currentIdsSortedStr) {
+          scheduleReservationIdsUpdates.push({
+            range: scheduleSheet.getRange(i + 2, schReservationIdsCol + 1),
+            value: JSON.stringify(newReservationIds) // 元の順序で保存
+          });
+        }
+      }
+    }
+    if (scheduleReservationIdsUpdates.length > 0) {
+      scheduleReservationIdsUpdates.forEach(update => update.range.setValue(update.value));
+      Logger.log(`${scheduleReservationIdsUpdates.length}件の日程のreservationIdsを更新しました。`);
+    } else {
+      Logger.log('日程マスタのreservationIdsはすべて最新の状態です。');
+    }
+
+    const totalUpdates = lessonIdUpdates.length + reservationLessonIdUpdates.length + scheduleReservationIdsUpdates.length;
+    if (totalUpdates > 0) {
+        ui.alert(`処理が完了しました。
+
+- 新規レッスンID採番: ${lessonIdUpdates.length}件
+- 予約のレッスンID更新: ${reservationLessonIdUpdates.length}件
+- 予約リスト更新: ${scheduleReservationIdsUpdates.length}件`);
+    } else {
+        ui.alert('すべてのデータは最新の状態です。更新は不要でした。');
+    }
+
   } catch (e) {
-    Logger.log('マイグレーション中にエラーが発生しました: %s', e.stack);
+    Logger.log(`エラーが発生しました: ${e.stack}`);
+    ui.alert(`処理中にエラーが発生しました。
+詳細はログを確認してください。
+
+${e.message}`);
   }
 }
