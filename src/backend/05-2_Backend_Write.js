@@ -411,8 +411,64 @@ export function _saveReservationCoreToSheet(reservation, mode) {
  *   chiselRental: true,
  *   firstLecture: false,
  * });
+
+/**
+ * 【内部関数】指定されたレッスンの reservationIds 配列を更新する
+ * @param {string} lessonId - 対象のレッスンID
+ * @param {string} reservationId - 追加または削除する予約ID
+ * @param {'add' | 'remove'} mode - 操作モード
  */
-export function makeReservation(reservationInfo) {
+function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
+  if (!lessonId || !reservationId) return;
+
+  try {
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    if (!sheet) throw new Error('日程マスタシートが見つかりません。');
+
+    const { header, dataRows } = getSheetData(sheet);
+    const lessonIdColIdx = header.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
+    const reservationIdsColIdx = header.indexOf('reservationIds'); // 定数化推奨
+
+    if (lessonIdColIdx === -1 || reservationIdsColIdx === -1) {
+      throw new Error('`lessonId` または `reservationIds` 列が見つかりません。');
+    }
+
+    const targetRowIndex = dataRows.findIndex(row => row[lessonIdColIdx] === lessonId);
+
+    if (targetRowIndex !== -1) {
+      const rowIndex = targetRowIndex + 2; // 1-based index + header
+      const reservationIdsCell = sheet.getRange(rowIndex, reservationIdsColIdx + 1);
+      const currentIdsStr = reservationIdsCell.getValue() || '[]';
+      let currentIds = [];
+      try {
+        currentIds = JSON.parse(currentIdsStr);
+      } catch (e) {
+        // パース失敗時は空配列から開始
+        currentIds = [];
+      }
+
+      if (mode === 'add') {
+        if (!currentIds.includes(reservationId)) {
+          currentIds.push(reservationId);
+        }
+      } else if (mode === 'remove') {
+        const indexToRemove = currentIds.indexOf(reservationId);
+        if (indexToRemove > -1) {
+          currentIds.splice(indexToRemove, 1);
+        }
+      }
+
+      reservationIdsCell.setValue(JSON.stringify(currentIds));
+    }
+  } catch (error) {
+    Logger.log(`_updateReservationIdsInLesson エラー: ${error.message}`);
+    // このエラーは上位に伝播させず、ログに記録するに留める
+  }
+}
+
+/**
+ * 予約を実行します（Phase 8: Core型統一対応）
+ *
   return withTransaction(() => {
     try {
       // 日程マスタから該当日・教室の情報を取得
@@ -494,10 +550,14 @@ export function makeReservation(reservationInfo) {
         ...reservationInfo,
         reservationId: createdReservationId,
         status: status,
+        lessonId: scheduleRule.lessonId, // ★ lessonId を追加
       };
 
       // 共通関数を呼び出して保存
       _saveReservationCoreToSheet(completeReservation, 'create');
+
+      // ★ reservationIds を更新
+      _updateReservationIdsInLesson(completeReservation.lessonId, completeReservation.reservationId, 'add');
 
       // userが自動付与された状態で取得
       const reservationWithUser = getReservationCoreById(createdReservationId);
@@ -605,6 +665,11 @@ export function cancelReservation(cancelInfo) {
 
       // 共通関数を呼び出して保存
       _saveReservationCoreToSheet(cancelledReservation, 'update');
+
+      // ★ reservationIds を更新
+      if (cancelledReservation.lessonId) {
+        _updateReservationIdsInLesson(cancelledReservation.lessonId, cancelledReservation.reservationId, 'remove');
+      }
 
       const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
       const logDetails = `Classroom: ${cancelledReservation.classroom}, ReservationID: ${cancelledReservation.reservationId}${messageLog}`;

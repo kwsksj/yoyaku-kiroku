@@ -231,6 +231,7 @@ export const CONSTANTS = {
     // 予約記録シート（短縮名: RESERVATIONS）
     RESERVATIONS: {
       RESERVATION_ID: '予約ID',
+      LESSON_ID: 'レッスンID', // 追加
       STUDENT_ID: '生徒ID',
       DATE: '日付',
       CLASSROOM: '教室',
@@ -293,6 +294,7 @@ export const CONSTANTS = {
 
     // 日程マスタ（短縮名: SCHEDULE）
     SCHEDULE: {
+      LESSON_ID: 'レッスンID', // 追加
       DATE: '日付',
       CLASSROOM: '教室',
       VENUE: '会場',

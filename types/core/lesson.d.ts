@@ -50,6 +50,19 @@ export interface LessonCore {
   // --- インデックスシグネチャ ---
   [key: string]: any;
 
+  // --- 識別子 ---
+  /**
+   * レッスンを一意に識別するID (UUID)
+   * @example "c3e2a1b0-5b3a-4b9c-8b0a-0e1b0e1b0e1b"
+   */
+  lessonId: string;
+
+  /**
+   * このレッスンに紐づく予約IDの配列
+   * @example ["rsv-001", "rsv-002"]
+   */
+  reservationIds: string[];
+
   // --- 基本情報 ---
   /** 教室名 */
   classroom: string;

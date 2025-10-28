@@ -1083,6 +1083,19 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
               case CONSTANTS.HEADERS.SCHEDULE.NOTES:
                 propertyName = 'notes';
                 break;
+              case CONSTANTS.HEADERS.SCHEDULE.LESSON_ID: // ★ 追加
+                propertyName = 'lessonId';
+                break;
+              case 'reservationIds': // ★ 追加 (定数化推奨)
+                propertyName = 'reservationIds';
+                // reservationIdsはJSON文字列で保存されているため、配列にパースする
+                try {
+                  value = value ? JSON.parse(value) : [];
+                } catch (e) {
+                  Logger.log(`reservationIdsのJSONパースに失敗: ${value}`);
+                  value = []; // パース失敗時は空配列
+                }
+                break;
               default:
                 propertyName = header;
             }

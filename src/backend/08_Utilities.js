@@ -495,8 +495,9 @@ export function transformReservationArrayToObjectWithHeaders(
   /** @type {ReservationCore} */
   const reservation = {
     reservationId: String(
-      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID) || '',
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID) || ''
     ),
+    lessonId: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID) || ''), // ★ 追加
     studentId: studentId,
     date: (() => {
       const dateValue = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.DATE);
@@ -1093,6 +1094,7 @@ export function convertReservationToRow(reservation, headerMap, header) {
   // 必須・基本フィールド
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID]] =
     reservation.reservationId;
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID]] = reservation.lessonId; // ★ 追加
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID]] = reservation.studentId;
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.STATUS]] = reservation.status;
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.CLASSROOM]] = reservation.classroom;

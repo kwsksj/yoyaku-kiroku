@@ -35,6 +35,12 @@ export interface ReservationCore {
   /** 予約ID（例: R-20251003-001） */
   reservationId: string;
 
+  /**
+   * 関連するレッスンの一意なID (UUID)
+   * @see LessonCore.lessonId
+   */
+  lessonId: string;
+
   /** 生徒ID（例: S-001） */
   studentId: string;
 
