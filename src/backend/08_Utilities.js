@@ -496,9 +496,11 @@ export function transformReservationArrayToObjectWithHeaders(
   /** @type {ReservationCore} */
   const reservation = {
     reservationId: String(
-      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID) || ''
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID) || '',
     ),
-    lessonId: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID) || ''), // ★ 追加
+    lessonId: String(
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID) || '',
+    ), // ★ 追加
     studentId: studentId,
     date: (() => {
       const dateValue = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.DATE);

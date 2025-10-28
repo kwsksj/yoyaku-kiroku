@@ -692,11 +692,12 @@ export const reservationActionHandlers = {
    */
   bookLesson: d => {
     const currentState = reservationStateManager.getState();
+    const lessonId = d.lessonId; // ★ lessonId を使用
+
     const foundLesson =
       currentState.lessons && Array.isArray(currentState.lessons)
         ? currentState.lessons.find(
-            (/** @type {LessonCore} */ lesson) =>
-              lesson.classroom === d.classroom && lesson.date === d.date,
+            (/** @type {LessonCore} */ lesson) => lesson.lessonId === lessonId,
           )
         : null;
     if (foundLesson) {

@@ -979,13 +979,17 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     ];
 
     const dateColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
-    const lessonIdColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID); // ★ 追加
+    const lessonIdColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    ); // ★ 追加
 
     if (dateColumn === -1) {
       throw new Error('日程マスターシートに必須の「日付」列が見つかりません。');
     }
     if (lessonIdColumn === -1) {
-      throw new Error('日程マスターシートに必須の「レッスンID」列が見つかりません。');
+      throw new Error(
+        '日程マスターシートに必須の「レッスンID」列が見つかりません。',
+      );
     }
 
     /** @type {{row: number, col: number, value: string}[]} */
@@ -1148,7 +1152,9 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
       updatesForSheet.forEach(update => {
         sheet.getRange(update.row, update.col).setValue(update.value);
       });
-      Logger.log(`${updatesForSheet.length}件の日程に新しいレッスンIDを付与し、シートに保存しました。`);
+      Logger.log(
+        `${updatesForSheet.length}件の日程に新しいレッスンIDを付与し、シートに保存しました。`,
+      );
     }
 
     const cacheData = {

@@ -17,6 +17,5 @@ export * from './07_CacheManager';
 export * from './08_ErrorHandler';
 export * from './08_Utilities';
 export * from './09_Backend_Endpoints';
-export * from './add_lesson_reservation_ids';
 
 export {};

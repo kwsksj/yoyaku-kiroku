@@ -413,14 +413,21 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
     const reservationIdsColIdx = header.indexOf('reservationIds'); // 定数化推奨
 
     if (lessonIdColIdx === -1 || reservationIdsColIdx === -1) {
-      throw new Error('`lessonId` または `reservationIds` 列が見つかりません。');
+      throw new Error(
+        '`lessonId` または `reservationIds` 列が見つかりません。',
+      );
     }
 
-    const targetRowIndex = dataRows.findIndex(row => row[lessonIdColIdx] === lessonId);
+    const targetRowIndex = dataRows.findIndex(
+      row => row[lessonIdColIdx] === lessonId,
+    );
 
     if (targetRowIndex !== -1) {
       const rowIndex = targetRowIndex + 2; // 1-based index + header
-      const reservationIdsCell = sheet.getRange(rowIndex, reservationIdsColIdx + 1);
+      const reservationIdsCell = sheet.getRange(
+        rowIndex,
+        reservationIdsColIdx + 1,
+      );
       const currentIdsStr = reservationIdsCell.getValue() || '[]';
       let currentIds = [];
       try {
@@ -469,33 +476,21 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
 export function makeReservation(reservationInfo) {
   return withTransaction(() => {
     try {
-      // 日程マスタから該当日・教室の情報を取得
+      if (!reservationInfo.lessonId) {
+        throw new Error('lessonIdが指定されていません。');
+      }
+
+      // ★ lessonId を使って日程マスタから情報を取得
       const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
       /** @type {LessonCore[]} */
-      const scheduleData = scheduleCache
-        ? /** @type {LessonCore[]} */
-          (scheduleCache['schedule'])
-        : [];
-      // 検索対象日付の標準化
-      const targetDateForSearch = new Date(
-        reservationInfo.date + 'T00:00:00+09:00',
-      );
-      const targetDateStringForSearch = targetDateForSearch.toDateString();
+      const scheduleData = scheduleCache?.['schedule'] || [];
 
       const scheduleRule = scheduleData.find(
-        /** @param {LessonCore} item */
-        item => {
-          const itemDate = item.date;
-          if (!itemDate || !item.classroom) return false;
-
-          const dateMatches =
-            itemDate instanceof Date &&
-            itemDate.toDateString() === targetDateStringForSearch;
-          return dateMatches && item.classroom === reservationInfo.classroom;
-        },
+        item => item.lessonId === reservationInfo.lessonId,
       );
 
-      if (!scheduleRule) { // ★ ガード節を追加
+      if (!scheduleRule) {
+        // ★ ガード節を追加
         throw new Error('対象の日程情報が見つかりませんでした。');
       }
 
@@ -559,7 +554,11 @@ export function makeReservation(reservationInfo) {
       _saveReservationCoreToSheet(completeReservation, 'create');
 
       // ★ reservationIds を更新
-      _updateReservationIdsInLesson(completeReservation.lessonId, completeReservation.reservationId, 'add');
+      _updateReservationIdsInLesson(
+        completeReservation.lessonId,
+        completeReservation.reservationId,
+        'add',
+      );
 
       // userが自動付与された状態で取得
       const reservationWithUser = getReservationCoreById(createdReservationId);
@@ -670,7 +669,11 @@ export function cancelReservation(cancelInfo) {
 
       // ★ reservationIds を更新
       if (cancelledReservation.lessonId) {
-        _updateReservationIdsInLesson(cancelledReservation.lessonId, cancelledReservation.reservationId, 'remove');
+        _updateReservationIdsInLesson(
+          cancelledReservation.lessonId,
+          cancelledReservation.reservationId,
+          'remove',
+        );
       }
 
       const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
