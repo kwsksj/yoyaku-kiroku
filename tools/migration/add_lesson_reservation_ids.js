@@ -1,32 +1,19 @@
 /**
  * @file add_lesson_reservation_ids.js
  * @description 【統合版】レッスン・予約ID関連のデータ整合性スクリプト
- * 
+ *
  * このスクリプトは、以下の処理をまとめて実行します。
  * 1. 日程マスタの各レッスンに `lessonId` がなければ自動採番します。
  * 2. 予約記録の各予約に、対応する `lessonId` を設定します。
  * 3. 日程マスタの各レッスンに、関連する予約IDのリスト `reservationIds` を設定します。
- * 
+ *
  * 何度実行しても問題ないように設計されています（冪等性）。
- * GASエディタにコピー＆ペーストして実行することを想定。
+ * GASエディタから直接実行することを想定。
  */
 
 function runUnifiedIdMigration() {
-  const ui = SpreadsheetApp.getUi();
   try {
-    const response = ui.alert(
-      'データ整合性処理の開始',
-      'レッスンと予約のID関連付けを更新します。シートのバックアップを取得した上で実行してください。
-
-処理には数分かかる場合があります。続行しますか？',
-      ui.ButtonSet.OK_CANCEL
-    );
-    if (response !== ui.Button.OK) {
-      ui.alert('処理を中断しました。');
-      return;
-    }
-
-    ui.alert('処理を開始します。完了まで操作しないでください。');
+    Logger.log('レッスンと予約のID関連付けを更新します。処理には数分かかる場合があります。');
     
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const scheduleSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.SCHEDULE);
@@ -41,7 +28,7 @@ function runUnifiedIdMigration() {
     const schLessonIdCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
     const schDateCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
     const schClassroomCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.CLASSROOM);
-    const schReservationIdsCol = scheduleHeader.indexOf('reservationIds');
+    const schReservationIdsCol = scheduleHeader.indexOf(CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS);
 
     const reservationHeader = reservationSheet.getRange(1, 1, 1, reservationSheet.getLastColumn()).getValues()[0];
     const resLessonIdCol = reservationHeader.indexOf(CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID);
@@ -142,20 +129,15 @@ function runUnifiedIdMigration() {
 
     const totalUpdates = lessonIdUpdates.length + reservationLessonIdUpdates.length + scheduleReservationIdsUpdates.length;
     if (totalUpdates > 0) {
-        ui.alert(`処理が完了しました。
-
+        Logger.log(`処理が完了しました。
 - 新規レッスンID採番: ${lessonIdUpdates.length}件
 - 予約のレッスンID更新: ${reservationLessonIdUpdates.length}件
 - 予約リスト更新: ${scheduleReservationIdsUpdates.length}件`);
     } else {
-        ui.alert('すべてのデータは最新の状態です。更新は不要でした。');
+        Logger.log('すべてのデータは最新の状態です。更新は不要でした。');
     }
 
   } catch (e) {
     Logger.log(`エラーが発生しました: ${e.stack}`);
-    ui.alert(`処理中にエラーが発生しました。
-詳細はログを確認してください。
-
-${e.message}`);
   }
 }

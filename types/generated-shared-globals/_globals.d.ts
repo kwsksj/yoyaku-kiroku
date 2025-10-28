@@ -196,6 +196,7 @@ declare global {
       };
       readonly SCHEDULE: {
         readonly LESSON_ID: string;
+        readonly RESERVATION_IDS: string;
         readonly DATE: string;
         readonly CLASSROOM: string;
         readonly VENUE: string;

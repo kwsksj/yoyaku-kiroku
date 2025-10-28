@@ -27,9 +27,9 @@
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { BackendErrorHandler } from './08_ErrorHandler.js';
 import {
-  PerformanceLog,
-  createHeaderMap,
-  handleError,
+    PerformanceLog,
+    createHeaderMap,
+    handleError,
 } from './08_Utilities.js';
 
 /**
@@ -1107,10 +1107,10 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
               case CONSTANTS.HEADERS.SCHEDULE.NOTES:
                 propertyName = 'notes';
                 break;
-              case CONSTANTS.HEADERS.SCHEDULE.LESSON_ID: // ★ 追加
+              case CONSTANTS.HEADERS.SCHEDULE.LESSON_ID:
                 propertyName = 'lessonId';
                 break;
-              case 'reservationIds': // ★ 追加 (定数化推奨)
+              case CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS:
                 propertyName = 'reservationIds';
                 // reservationIdsはJSON文字列で保存されているため、配列にパースする
                 try {
