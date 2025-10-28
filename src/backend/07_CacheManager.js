@@ -30,6 +30,7 @@ import {
   PerformanceLog,
   createHeaderMap,
   handleError,
+  getCachedReservationsAsObjects,
   transformReservationArrayToObject,
   transformReservationArrayToObjectWithHeaders,
 } from './08_Utilities.js';
@@ -2442,7 +2443,11 @@ function persistStudentCache(studentsMap, headerMap) {
 export function getReservationByIdFromCache(reservationId) {
   if (!reservationId) return null;
 
-  const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false); // autoRebuildはfalseで良い
+  let cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false); // autoRebuildはfalseで良い
+  if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
+    // フォールバック: キャッシュを再構築（以前の挙動と同等）
+    cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  }
   if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
     return null;
   }
@@ -2517,9 +2522,21 @@ export function getReservationsByIdsFromCache(reservationIds) {
     return [];
   }
 
-  const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false);
+  let cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false);
   if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
-    return [];
+    // フォールバック: 自動再構築を許可した取得を実行
+    cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  }
+  if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
+    // それでも取得できない場合は旧処理と同様に全件から抽出する
+    const allReservations = getCachedReservationsAsObjects();
+    if (!allReservations.length) {
+      return [];
+    }
+    const reservationIdSet = new Set(reservationIds.map(id => String(id)));
+    return allReservations.filter(reservation =>
+      reservationIdSet.has(String(reservation.reservationId)),
+    );
   }
 
   const headerMap =

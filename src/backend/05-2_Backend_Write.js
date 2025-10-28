@@ -35,6 +35,7 @@ import { sendReservationEmailAsync } from './02-7_Notification_StudentReservatio
 import {
   getLessons,
   getUserReservations,
+  calculateAvailableSlots,
 } from './05-3_Backend_AvailableSlots.js';
 import {
   CACHE_KEYS,
@@ -798,20 +799,22 @@ export function notifyAvailabilityToWaitlistedUsers(
       return;
     }
 
-    // lessonIdから空き枠情報を再計算するため、getLessons()を呼び出す
-    // （最適化案: 将来的にはcalculateAvailableSlotsを直接呼ぶ）
-    const lessonsResponse = getLessons();
-    if (!lessonsResponse.success || !lessonsResponse.data) {
-      Logger.log('空き状況の取得に失敗し、通知処理を中断します。');
-      return;
-    }
-    /** @type {LessonCore[]} */
-    const lessonsData = /** @type {LessonCore[]} */ (lessonsResponse.data);
-    const lessonWithSlots = lessonsData.find(l => l.lessonId === lessonId);
-    if (!lessonWithSlots) {
-      Logger.log('空き枠情報の取得に失敗しました。');
-      return;
-    }
+    const reservationsForLesson = getReservationsByIdsFromCache(
+      targetLesson.reservationIds || [],
+    );
+    const validReservations = reservationsForLesson.filter(
+      r =>
+        r.status !== CONSTANTS.STATUS.CANCELED &&
+        r.status !== CONSTANTS.STATUS.WAITLISTED,
+    );
+    const slots = calculateAvailableSlots(targetLesson, validReservations);
+    const lessonWithSlots = {
+      ...targetLesson,
+      firstSlots: slots.first,
+      secondSlots: slots.second,
+      beginnerSlots: slots.beginner,
+    };
+
 
     // 2. 空きタイプを判定
     let availabilityType = null;
