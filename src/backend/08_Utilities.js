@@ -24,8 +24,8 @@
 // ================================================================
 // 依存モジュール
 // ================================================================
-import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
+import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import {
   CACHE_KEYS,
   getCachedData,
@@ -954,13 +954,10 @@ export function convertRowToUser(row, headerMap) {
     studentId: String(row[hm[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] || ''),
     phone: String(row[hm[CONSTANTS.HEADERS.ROSTER.PHONE]] || ''),
     realName: String(row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]] || ''),
-    displayName:
+    nickname:
       String(row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]]) ||
       String(row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]]) ||
       '',
-    nickname: row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]]
-      ? String(row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]])
-      : undefined,
     email: row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]]
       ? String(row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]])
       : undefined,

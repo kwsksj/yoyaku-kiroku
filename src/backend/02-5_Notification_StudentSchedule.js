@@ -24,10 +24,10 @@
 // ================================================================
 // 依存モジュール
 // ================================================================
+import { formatDateForEmail } from './02-7_Notification_StudentReservation.js';
 import { getLessons } from './05-3_Backend_AvailableSlots.js';
 import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
 import { getCachedReservationsAsObjects, logActivity } from './08_Utilities.js';
-import { formatDateForEmail } from './02-7_Notification_StudentReservation.js';
 
 /**
  * 月次通知メールを送信するメインエントリーポイント（トリガーから実行）
@@ -240,9 +240,9 @@ export function _getNotificationRecipients(targetDay, targetHour) {
  * @private
  */
 export function _generateEmailBody(student, reservations, lessons) {
-  const displayName = student.nickname || student.realName;
+  const nickname = student.nickname || student.realName;
 
-  let body = `${displayName}さま\n\n`;
+  let body = `${nickname}さま\n\n`;
   body += `こんにちは！\n川崎誠二 木彫り教室です。\n`;
   body += `現在のご予約内容と、今後の教室日程のお知らせです！\n（メール下部に記載）\n\n`;
 

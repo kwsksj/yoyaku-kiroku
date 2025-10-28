@@ -18,17 +18,17 @@
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
 import {
-  getTimeOptionsHtml,
-  getClassroomColorClass,
   _isToday,
+  getClassroomColorClass,
+  getTimeOptionsHtml,
 } from './13_WebApp_Views_Utils.js';
 
 // ================================================================
 // ユーティリティ系モジュール
 // ================================================================
-import { buildSalesChecklist } from './14_WebApp_Handlers_Utils.js';
-import { findReservationByDateAndClassroom } from './12_WebApp_Core_Search.js';
 import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
+import { findReservationByDateAndClassroom } from './12_WebApp_Core_Search.js';
+import { buildSalesChecklist } from './14_WebApp_Handlers_Utils.js';
 
 const bookingStateManager = appWindow.stateManager;
 
@@ -462,7 +462,7 @@ export const getReservationFormView = () => {
         padding: 'spacious',
         content: `
           <div class="space-y-4 text-left">
-            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.displayName : ''}さん</p>
+            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.nickname : ''}さん</p>
             <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
             <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
             <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>

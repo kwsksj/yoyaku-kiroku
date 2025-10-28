@@ -44,8 +44,8 @@ import {
   getLessonByIdFromCache,
   getReservationsByIdsFromCache,
   rebuildAllReservationsCache,
-  updateReservationInCache,
   updateLessonReservationIdsInCache,
+  updateReservationInCache,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
@@ -1239,14 +1239,14 @@ export function saveAccountingDetails(reservationWithAccounting) {
         throw new Error(`生徒情報が取得できませんでした: ${String(studentId)}`);
       }
 
-      const subject = `会計記録 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
+      const subject = `会計記録 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.nickname}様`;
       const body =
         `会計が記録されました。
 
 ` +
         `本名: ${userInfo.realName}
 ` +
-        `ニックネーム: ${userInfo.displayName}
+        `ニックネーム: ${userInfo.nickname}
 
 ` +
         `教室: ${updatedReservation.classroom}
@@ -1377,14 +1377,14 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
         throw new Error(`生徒情報が取得できませんでした: ${String(studentId)}`);
       }
 
-      const subject = `会計記録修正 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.displayName}様`;
+      const subject = `会計記録修正 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.nickname}様`;
       const body =
         `会計が修正されました。
 
 ` +
         `本名: ${userInfo.realName}
 ` +
-        `ニックネーム: ${userInfo.displayName}
+        `ニックネーム: ${userInfo.nickname}
 
 ` +
         `教室: ${updatedReservation.classroom}
@@ -1436,15 +1436,15 @@ export function logSalesForSingleReservation(reservation, accountingDetails) {
     const studentId = reservation.studentId;
 
     // 名前を「本名（ニックネーム）」形式で構築
-    let displayNameForSales = '不明';
+    let nicknameForSales = '不明';
     if (reservation.user) {
       const realName = reservation.user.realName || '';
-      const nickName = reservation.user.displayName || '';
+      const nickName = reservation.user.nickname || '';
 
       if (realName && nickName) {
-        displayNameForSales = `${realName}（${nickName}）`;
+        nicknameForSales = `${realName}（${nickName}）`;
       } else {
-        displayNameForSales = realName || nickName;
+        nicknameForSales = realName || nickName;
       }
     }
 
@@ -1453,7 +1453,7 @@ export function logSalesForSingleReservation(reservation, accountingDetails) {
       date: new Date(reservation.date), // YYYY-MM-DD形式の文字列をDateオブジェクトに変換
       studentId: studentId,
       // 生徒名を「本名（ニックネーム）」形式で表示
-      name: displayNameForSales,
+      name: nicknameForSales,
       classroom: reservation.classroom, // reservationオブジェクトから直接取得
       venue: reservation.venue || '', // ReservationCoreから直接取得
       paymentMethod: accountingDetails.paymentMethod || '不明',

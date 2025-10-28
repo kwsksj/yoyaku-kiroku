@@ -1441,11 +1441,10 @@ export function rebuildAllStudentsBasicCache() {
           const studentIdStr = String(studentId);
           studentsDataMap[studentIdStr] = {
             studentId: studentIdStr,
-            displayName: String(
+            nickname: String(
               studentRow[nicknameColumn] || studentRow[realNameColumn] || '',
             ),
             realName: String(studentRow[realNameColumn] || ''),
-            nickname: String(studentRow[nicknameColumn] || ''),
             phone: String(studentRow[phoneColumn] || ''),
             email: String(
               typeof optionalColumns.email === 'number'
