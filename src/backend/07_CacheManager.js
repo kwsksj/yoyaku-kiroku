@@ -1117,7 +1117,7 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
                   value = value ? JSON.parse(String(value)) : [];
                 } catch (e) {
                   Logger.log(`reservationIdsのJSONパースに失敗: ${value}`);
-                  value = []; // パース失敗時は空配列
+                  value = /** @type {any} */ ([]); // パース失敗時は空配列
                 }
                 break;
               default:
