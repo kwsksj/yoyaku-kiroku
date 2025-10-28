@@ -434,8 +434,18 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
       let currentIds = [];
       try {
         currentIds = JSON.parse(currentIdsStr);
+        // 配列であることを確認
+        if (!Array.isArray(currentIds)) {
+          Logger.log(
+            `警告: reservationIdsが配列ではありません。lessonId: ${lessonId}, 値: ${currentIdsStr}`,
+          );
+          currentIds = [];
+        }
       } catch (e) {
-        // パース失敗時は空配列から開始
+        // パース失敗時は空配列から開始（既存データが失われる可能性）
+        Logger.log(
+          `クリティカル: reservationIdsのパース失敗。既存データが失われる可能性があります。lessonId: ${lessonId}, 値: ${currentIdsStr}, エラー: ${e.message}`,
+        );
         currentIds = [];
       }
 
@@ -479,8 +489,15 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
 export function makeReservation(reservationInfo) {
   return withTransaction(() => {
     try {
-      if (!reservationInfo.lessonId) {
-        throw new Error('lessonIdが指定されていません。');
+      // lessonId の検証を強化
+      if (!reservationInfo.lessonId || typeof reservationInfo.lessonId !== 'string') {
+        throw new Error('無効なlessonIdが指定されました。');
+      }
+
+      // UUIDフォーマットの検証（警告のみ）
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(reservationInfo.lessonId)) {
+        Logger.log(`警告: lessonIdの形式が不正です: ${reservationInfo.lessonId}`);
       }
 
       // ★ lessonId を使って日程マスタから情報を取得
@@ -496,7 +513,7 @@ export function makeReservation(reservationInfo) {
 
       if (!scheduleRule) {
         // ★ ガード節を追加
-        throw new Error('対象の日程情報が見つかりませんでした。');
+        throw new Error(`対象の日程情報が見つかりませんでした。lessonId: ${reservationInfo.lessonId}`);
       }
 
       // 時間制予約（30分単位）の場合の検証
