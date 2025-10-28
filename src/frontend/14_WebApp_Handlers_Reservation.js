@@ -196,6 +196,7 @@ export const reservationActionHandlers = {
 
     // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
     const p = {
+      lessonId: lessonInfo.lessonId, // ★ lessonId を追加
       classroom: lessonInfo.classroom,
       date: lessonInfo.date,
       venue: lessonInfo.venue,
