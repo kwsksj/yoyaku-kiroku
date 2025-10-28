@@ -3,7 +3,7 @@
 ### Phase 1 — Cache Optimization Rebuild (High Priority)
 
 - **Scope**  
-  Switch the backend entirely to the lessonId/reservationIds fast path from `cache-phase1-fixes`, including the reliability fixes required for production. Legacy lookup paths will be removed so validation targets only the new logic.
+  Switch the backend entirely to the lessonId/reservationIds fast path from `cache-phase1-fixes`, including the reliability fixes required for production. Legacy lookup paths will be removed so validation targets only the new logic. The primary goal is to simplify the reservation/lesson lookup flow; any performance gains are treated as a secondary benefit.
 
 - **Tasks**  
   - Update `src/backend/07_CacheManager.js` helpers to provide lesson lookups, reservation lookups, and cache synchronization with rebuild fallbacks for expired caches.  
