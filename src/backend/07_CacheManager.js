@@ -1117,7 +1117,7 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
                   value = value ? JSON.parse(String(value)) : [];
                 } catch (e) {
                   Logger.log(`reservationIdsのJSONパースに失敗: ${value}`);
-                  value = '[]'; // パース失敗時は空配列の文字列
+                  value = []; // パース失敗時は空配列
                 }
                 break;
               default:
@@ -1163,16 +1163,6 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
           const dateB = String(b.date);
           return dateA.localeCompare(dateB);
         },
-      );
-    }
-
-    // ★ 自動採番した lessonId をシートに書き戻す
-    if (updatesForSheet.length > 0) {
-      updatesForSheet.forEach(update => {
-        sheet.getRange(update.row, update.col).setValue(update.value);
-      });
-      Logger.log(
-        `${updatesForSheet.length}件の日程に新しいレッスンIDを付与し、シートに保存しました。`,
       );
     }
 
