@@ -281,11 +281,20 @@ export class SimpleStateManager {
     // シンプルに完了済み予約の有無で判定
     // 空き通知希望だけでは経験者扱いにしない
     const hasCompletedReservation = this.state.myReservations.some(
-      (/** @type {ReservationCore} */ reservation) =>
-        reservation.status === CONSTANTS.STATUS.COMPLETED,
+      (/** @type {ReservationCore} */ reservation) => {
+        const normalizedStatus = String(reservation.status || '').trim();
+        return normalizedStatus === CONSTANTS.STATUS.COMPLETED;
+      },
     );
 
     this.state.isFirstTimeBooking = !hasCompletedReservation;
+
+    if (!this.state.isFirstTimeBooking && typeof localStorage !== 'undefined') {
+      // 初心者モードが自動的に解除されたら「初回」固定の手動設定をクリア
+      if (localStorage.getItem('beginnerModeOverride') === 'true') {
+        localStorage.removeItem('beginnerModeOverride');
+      }
+    }
   }
 
   /**
@@ -294,11 +303,21 @@ export class SimpleStateManager {
    * @returns {boolean} true: 初心者モード, false: 経験者モード
    */
   getEffectiveBeginnerMode() {
-    const override = localStorage.getItem('beginnerModeOverride');
+    const override =
+      typeof localStorage !== 'undefined'
+        ? localStorage.getItem('beginnerModeOverride')
+        : null;
+
+    if (!this.state.isFirstTimeBooking) {
+      // 初心者扱いでない場合は常に経験者モード
+      return false;
+    }
+
     if (override !== null) {
       return override === 'true';
     }
-    return this.state.isFirstTimeBooking;
+
+    return true;
   }
 
   /**
@@ -306,10 +325,12 @@ export class SimpleStateManager {
    * @param {boolean|null} value - true: 初心者, false: 経験者, null: 自動
    */
   setBeginnerModeOverride(value) {
-    if (value === null) {
-      localStorage.removeItem('beginnerModeOverride');
-    } else {
-      localStorage.setItem('beginnerModeOverride', String(value));
+    if (typeof localStorage !== 'undefined') {
+      if (value === null) {
+        localStorage.removeItem('beginnerModeOverride');
+      } else {
+        localStorage.setItem('beginnerModeOverride', String(value));
+      }
     }
     // 状態変更を購読者に通知（画面再描画をトリガー）
     this.dispatch({ type: 'UPDATE_STATE', payload: {} });

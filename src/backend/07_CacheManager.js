@@ -30,6 +30,9 @@ import {
   PerformanceLog,
   createHeaderMap,
   handleError,
+  getCachedReservationsAsObjects,
+  transformReservationArrayToObject,
+  transformReservationArrayToObjectWithHeaders,
 } from './08_Utilities.js';
 
 /**
@@ -56,6 +59,30 @@ export function normalizeHeaderMap(headerMap) {
   }
   return headerMap;
 }
+
+/**
+ * ヘッダーマップをMap型に復元するヘルパー関数
+ * @param {HeaderMapType} headerMap - ヘッダーマップ（MapまたはRecord）
+ * @returns {Map<string, number> | null} Map型のヘッダーマップ
+ */
+function toHeaderMapInstance(headerMap) {
+  if (!headerMap) return null;
+  if (headerMap instanceof Map) {
+    return headerMap;
+  }
+  return new Map(
+    Object.entries(/** @type {Record<string, number>} */ (headerMap)),
+  );
+}
+
+/**
+ * lessonId → LessonCore のインメモリインデックスを保持するためのキャッシュ
+ * @type {{ version: string | number | null, map: Map<string, LessonCore> }}
+ */
+const lessonIdCacheState = {
+  version: null,
+  map: new Map(),
+};
 
 /**
  * キャッシュデータの型安全な取得ヘルパー関数
@@ -1415,11 +1442,10 @@ export function rebuildAllStudentsBasicCache() {
           const studentIdStr = String(studentId);
           studentsDataMap[studentIdStr] = {
             studentId: studentIdStr,
-            displayName: String(
+            nickname: String(
               studentRow[nicknameColumn] || studentRow[realNameColumn] || '',
             ),
             realName: String(studentRow[realNameColumn] || ''),
-            nickname: String(studentRow[nicknameColumn] || ''),
             phone: String(studentRow[phoneColumn] || ''),
             email: String(
               typeof optionalColumns.email === 'number'
@@ -2417,7 +2443,11 @@ function persistStudentCache(studentsMap, headerMap) {
 export function getReservationByIdFromCache(reservationId) {
   if (!reservationId) return null;
 
-  const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false); // autoRebuildはfalseで良い
+  let cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false); // autoRebuildはfalseで良い
+  if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
+    // フォールバック: キャッシュを再構築（以前の挙動と同等）
+    cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  }
   if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
     return null;
   }
@@ -2428,6 +2458,172 @@ export function getReservationByIdFromCache(reservationId) {
   }
 
   return cache.reservations[index] || null;
+}
+
+/**
+ * lessonIdでレッスン情報をキャッシュから取得（O(1)アクセス）
+ *
+ * @param {string} lessonId - 取得対象のレッスンID
+ * @returns {LessonCore | null} レッスン情報、見つからない場合はnull
+ *
+ * @example
+ * const lesson = getLessonByIdFromCache('c3e2a1b0-5b3a-4b9c-8b0a-0e1b0e1b0e1b');
+ * if (lesson) {
+ *   console.log(`教室: ${lesson.classroom}, 日付: ${lesson.date}`);
+ * }
+ */
+export function getLessonByIdFromCache(lessonId) {
+  if (!lessonId) return null;
+
+  /** @type {ScheduleCacheData | null} */
+  let scheduleCache = getTypedCachedData(
+    CACHE_KEYS.MASTER_SCHEDULE_DATA,
+    false,
+  );
+
+  if (!scheduleCache || !Array.isArray(scheduleCache.schedule)) {
+    scheduleCache = getTypedCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+    if (!scheduleCache || !Array.isArray(scheduleCache.schedule)) {
+      return null;
+    }
+  }
+
+  const cacheVersion =
+    scheduleCache.version ||
+    scheduleCache?.dateRange?.cached ||
+    `${scheduleCache.schedule.length}-${Date.now()}`;
+
+  if (lessonIdCacheState.version !== cacheVersion) {
+    const indexMap = new Map();
+    for (const lesson of scheduleCache.schedule) {
+      if (lesson && lesson.lessonId) {
+        indexMap.set(String(lesson.lessonId), lesson);
+      }
+    }
+    lessonIdCacheState.map = indexMap;
+    lessonIdCacheState.version = cacheVersion;
+  }
+
+  return lessonIdCacheState.map.get(String(lessonId)) || null;
+}
+
+/**
+ * 複数の予約IDから予約オブジェクトを一括取得
+ *
+ * @param {string[]} reservationIds - 取得対象の予約IDの配列
+ * @returns {ReservationCore[]} 予約オブジェクトの配列（見つからないIDはスキップ）
+ *
+ * @example
+ * const reservations = getReservationsByIdsFromCache(['R-001', 'R-002', 'R-003']);
+ * console.log(`取得した予約数: ${reservations.length}`);
+ */
+export function getReservationsByIdsFromCache(reservationIds) {
+  if (!Array.isArray(reservationIds) || reservationIds.length === 0) {
+    return [];
+  }
+
+  let cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false);
+  if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
+    // フォールバック: 自動再構築を許可した取得を実行
+    cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+  }
+  if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
+    // それでも取得できない場合は旧処理と同様に全件から抽出する
+    const allReservations = getCachedReservationsAsObjects();
+    if (!allReservations.length) {
+      return [];
+    }
+    const reservationIdSet = new Set(reservationIds.map(id => String(id)));
+    return allReservations.filter(reservation =>
+      reservationIdSet.has(String(reservation.reservationId)),
+    );
+  }
+
+  const headerMap =
+    toHeaderMapInstance(normalizeHeaderMap(cache.headerMap || {})) || null;
+  const studentsCache = getTypedCachedData(
+    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    false,
+  );
+  const studentsMap = studentsCache?.students || {};
+
+  /** @type {ReservationCore[]} */
+  const reservations = [];
+  for (const id of reservationIds) {
+    if (!id) continue; // 空文字やnullをスキップ
+
+    const index = cache.reservationIdIndexMap[id];
+    if (index === undefined) continue;
+
+    const rawReservation = cache.reservations[index];
+    if (!rawReservation) continue;
+
+    if (Array.isArray(rawReservation)) {
+      const converted = headerMap
+        ? transformReservationArrayToObjectWithHeaders(
+            rawReservation,
+            headerMap,
+            studentsMap,
+          )
+        : transformReservationArrayToObject(rawReservation);
+      if (converted) {
+        reservations.push(converted);
+      }
+    } else if (typeof rawReservation === 'object') {
+      reservations.push(/** @type {ReservationCore} */ (rawReservation));
+    }
+  }
+
+  return reservations;
+}
+
+/**
+ * 日程キャッシュ内の特定レッスンの予約ID配列を最新化する
+ * @param {string} lessonId - レッスンID
+ * @param {string[]} reservationIds - 最新の予約ID配列
+ */
+export function updateLessonReservationIdsInCache(lessonId, reservationIds) {
+  if (!lessonId || !Array.isArray(reservationIds)) {
+    return;
+  }
+
+  try {
+    /** @type {ScheduleCacheData | null} */
+    const scheduleCache = getTypedCachedData(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      false,
+    );
+    if (!scheduleCache || !Array.isArray(scheduleCache.schedule)) {
+      return;
+    }
+
+    const targetLesson = scheduleCache.schedule.find(
+      lesson => lesson && String(lesson.lessonId) === String(lessonId),
+    );
+    if (!targetLesson) {
+      return;
+    }
+
+    targetLesson.reservationIds = reservationIds.map(id => String(id));
+
+    const updatedCache = {
+      ...scheduleCache,
+      schedule: scheduleCache.schedule,
+      version: new Date().getTime(),
+    };
+
+    CacheService.getScriptCache().put(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      JSON.stringify(updatedCache),
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+    );
+
+    // lessonIdインデックスを再構築させるためバージョンをリセット
+    lessonIdCacheState.version = null;
+    lessonIdCacheState.map = new Map();
+  } catch (error) {
+    Logger.log(`updateLessonReservationIdsInCache Error: ${error.message}`);
+  }
 }
 
 /**

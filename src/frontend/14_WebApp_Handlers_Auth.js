@@ -82,9 +82,7 @@ export const authActionHandlers = {
     google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
       console.log('🔍 ログインレスポンス受信:', response);
       if (response.success && response.userFound) {
-        debugLog(
-          '✅ 統合ログイン成功 - ユーザー: ' + response.user.displayName,
-        );
+        debugLog('✅ 統合ログイン成功 - ユーザー: ' + response.user.nickname);
         debugLog(
           `📦 データ一括取得完了: 予約${response.data.myReservations?.length || 0}件, レッスン${response.data.lessons?.length || 0}件`,
         );
@@ -568,7 +566,7 @@ export const authActionHandlers = {
       ...authHandlersStateManager.getState().currentUser,
       futureCreations: futureCreations,
       realName: r,
-      displayName: n,
+      nickname: n,
       phone: phone,
       email: email || '',
       wantsEmail: wantsEmail || false,
@@ -583,10 +581,11 @@ export const authActionHandlers = {
       if (res.success) {
         // プロフィール更新後、キャッシュも更新されているのでそのまま状態更新
         showInfo('プロフィールを更新しました', '更新完了');
+        const updatedUser = res.data?.updatedUser;
         authHandlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: {
-            currentUser: res.updatedUser,
+            currentUser: updatedUser || null,
             view: 'dashboard',
           },
         });

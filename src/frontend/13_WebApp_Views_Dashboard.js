@@ -17,8 +17,8 @@
 // UI系モジュール
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
-import { _isPastOrToday, _isToday } from './13_WebApp_Views_Utils.js';
 import { _buildHistoryCardWithEditMode } from './13_WebApp_Views_Booking.js';
+import { _isPastOrToday, _isToday } from './13_WebApp_Views_Utils.js';
 
 const dashboardStateManager = appWindow.stateManager;
 /**
@@ -124,11 +124,11 @@ export const getDashboardView = () => {
   }
 
   const currentUser = dashboardStateManager.getState().currentUser;
-  const displayName = currentUser ? currentUser.displayName : '';
+  const nickname = currentUser ? currentUser.nickname : '';
 
   return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
-            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${displayName} <span class="text-base">さん</span></span></h1>
+            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
             <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
         </div>
         ${yourBookingsHtml}

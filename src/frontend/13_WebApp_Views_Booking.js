@@ -18,17 +18,17 @@
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
 import {
-  getTimeOptionsHtml,
-  getClassroomColorClass,
   _isToday,
+  getClassroomColorClass,
+  getTimeOptionsHtml,
 } from './13_WebApp_Views_Utils.js';
 
 // ================================================================
 // ユーティリティ系モジュール
 // ================================================================
-import { buildSalesChecklist } from './14_WebApp_Handlers_Utils.js';
-import { findReservationByDateAndClassroom } from './12_WebApp_Core_Search.js';
 import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
+import { findReservationByDateAndClassroom } from './12_WebApp_Core_Search.js';
+import { buildSalesChecklist } from './14_WebApp_Handlers_Utils.js';
 
 const bookingStateManager = appWindow.stateManager;
 
@@ -63,13 +63,22 @@ const getNormalizedSlotCounts = lesson => {
   };
 };
 
+const resolveEffectiveBeginnerMode = () => {
+  const getter = /** @type {any} */ (
+    bookingStateManager['getEffectiveBeginnerMode']
+  );
+  if (typeof getter === 'function') {
+    return Boolean(getter.call(bookingStateManager));
+  }
+  return bookingStateManager.getState().isFirstTimeBooking;
+};
+
 /**
  * グローバルに公開する初心者モード選択ハンドラ
  * @param {boolean} isBeginner - true: はじめて, false: 経験者
  */
 window.handleBeginnerModeSelect = function (isBeginner) {
   console.log('🎚️ handleBeginnerModeSelect called:', { isBeginner });
-  localStorage.setItem('beginnerModeOverride', String(isBeginner));
   bookingStateManager.setBeginnerModeOverride(isBeginner);
 };
 
@@ -86,8 +95,16 @@ const renderBeginnerModeToggle = () => {
     return '';
   }
 
-  const override = localStorage.getItem('beginnerModeOverride');
-  const selectedValue = override !== null ? override : 'true';
+  const override =
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('beginnerModeOverride')
+      : null;
+  const selectedValue =
+    override !== null
+      ? override
+      : resolveEffectiveBeginnerMode()
+        ? 'true'
+        : 'false';
 
   console.log('🎚️ BeginnerModeToggle:', {
     auto,
@@ -171,15 +188,13 @@ export const getBookingView = classroom => {
  * @returns {string} HTML文字列
  */
 export const getReservationFormView = () => {
-  const { currentUser, accountingMaster, currentReservationFormContext } =
-    bookingStateManager.getState();
-
-  // 実際に使用する初心者モードの値（手動設定を優先）
-  const override = localStorage.getItem('beginnerModeOverride');
-  const isFirstTimeBooking =
-    override !== null
-      ? override === 'true'
-      : bookingStateManager.getState().isFirstTimeBooking;
+  const {
+    currentUser,
+    accountingMaster,
+    currentReservationFormContext,
+    isFirstTimeBooking: autoFirstTime,
+  } = bookingStateManager.getState();
+  const isBeginnerMode = resolveEffectiveBeginnerMode();
 
   if (!currentReservationFormContext) {
     return 'エラー: 予約フォームのデータが見つかりません。';
@@ -219,7 +234,7 @@ export const getReservationFormView = () => {
 
   const title = isEdit
     ? '予約内容の編集'
-    : isFull || (isFirstTimeBooking && isBeginnerSlotFull)
+    : isFull || (isBeginnerMode && isBeginnerSlotFull)
       ? '空き通知希望'
       : '予約詳細の入力';
   const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
@@ -233,7 +248,7 @@ export const getReservationFormView = () => {
     if (isEdit) {
       return isWaiting ? '空き通知希望' : '予約済み';
     }
-    if (isFirstTimeBooking) {
+    if (isBeginnerMode) {
       return isBeginnerSlotFull
         ? '初回者枠 満席（空き通知希望）'
         : `初回者枠 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
@@ -263,7 +278,7 @@ export const getReservationFormView = () => {
         });
       }
     } else {
-      const targetItemName = isFirstTimeBooking
+      const targetItemName = isBeginnerMode
         ? CONSTANTS.ITEMS.FIRST_LECTURE
         : CONSTANTS.ITEMS.MAIN_LECTURE;
       const tuitionItem = accountingMaster.find(
@@ -278,7 +293,7 @@ export const getReservationFormView = () => {
         return Components.priceDisplay({
           amount: tuitionPrice,
           label: targetItemName,
-          style: isFirstTimeBooking ? 'highlight' : 'default',
+          style: isBeginnerMode ? 'highlight' : 'default',
         });
       }
     }
@@ -311,7 +326,7 @@ export const getReservationFormView = () => {
 
     let fixedStartTime = startTime;
     let isTimeFixed = false;
-    if (isFirstTimeBooking && beginnerStart && beginnerCapacityCount > 0) {
+    if (isBeginnerMode && beginnerStart && beginnerCapacityCount > 0) {
       fixedStartTime = beginnerStart;
       isTimeFixed = true;
     }
@@ -351,8 +366,8 @@ export const getReservationFormView = () => {
   };
 
   const _renderBookingOptionsSection = () => {
-    const firstLectureChecked = firstLecture || (!isEdit && isFirstTimeBooking);
-    const firstLectureDisabled = !isEdit && isFirstTimeBooking;
+    const firstLectureChecked = firstLecture || (!isEdit && isBeginnerMode);
+    const firstLectureDisabled = !isEdit && isBeginnerMode;
 
     if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
       /** @type {CheckboxConfig} */
@@ -386,7 +401,7 @@ export const getReservationFormView = () => {
         : '';
     return `
         <div class="mt-4 pt-4 border-t-2 space-y-4">
-          ${Components.textarea({ id: 'wip-input', label: isFirstTimeBooking && !isEdit ? '今回つくりたいもの/やりたいこと' : 'つくりたいもの/やりたいこと/作業予定', placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！', value: workInProgress || '' })}
+          ${Components.textarea({ id: 'wip-input', label: autoFirstTime && !isEdit ? '今回つくりたいもの/やりたいこと' : 'つくりたいもの/やりたいこと/作業予定', placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！', value: workInProgress || '' })}
           ${Components.textarea({ id: 'material-input', label: '材料のサイズや樹種の希望', placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
         </div>
         <div class="mt-4 pt-4 border-t-2 space-y-4">
@@ -462,7 +477,7 @@ export const getReservationFormView = () => {
         padding: 'spacious',
         content: `
           <div class="space-y-4 text-left">
-            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.displayName : ''}さん</p>
+            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.nickname : ''}さん</p>
             <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
             <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
             <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
@@ -533,15 +548,12 @@ export const renderBookingLessons = lessons => {
             let cardClass, statusBadge, actionAttribute;
             const tag = isBooked ? 'div' : 'button';
 
-            // 実際に使用する初心者モードの値（手動設定を優先）
-            const override = localStorage.getItem('beginnerModeOverride');
-            const isFirstTimeBooking =
-              override !== null
-                ? override === 'true'
-                : bookingStateManager.getState().isFirstTimeBooking;
+            const autoFirstTime =
+              bookingStateManager.getState().isFirstTimeBooking;
+            const isBeginnerMode = resolveEffectiveBeginnerMode();
             console.log('📋 Lesson render:', lesson.date, {
-              override,
-              isFirstTimeBooking,
+              autoFirstTime,
+              isBeginnerMode,
             });
             let statusText;
             const {
@@ -552,7 +564,7 @@ export const renderBookingLessons = lessons => {
               beginnerCapacityCount,
             } = getNormalizedSlotCounts(lesson);
 
-            if (isFirstTimeBooking) {
+            if (isBeginnerMode) {
               if (lesson.beginnerStart && beginnerCapacityCount > 0) {
                 // 初回者枠が満席かチェック
                 if (beginnerSlotsCount <= 0) {
@@ -597,7 +609,7 @@ export const renderBookingLessons = lessons => {
               let isSlotFull = false;
               let canBook = true;
 
-              if (isFirstTimeBooking) {
+              if (isBeginnerMode) {
                 if (!lesson.beginnerStart || beginnerCapacityCount <= 0) {
                   canBook = false;
                 }

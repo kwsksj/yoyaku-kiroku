@@ -272,6 +272,36 @@ export function getDataCount(parsedData: object, cacheKey: string): number;
  */
 export function getReservationByIdFromCache(reservationId: string): RawSheetRow | null;
 /**
+ * lessonIdでレッスン情報をキャッシュから取得（O(1)アクセス）
+ *
+ * @param {string} lessonId - 取得対象のレッスンID
+ * @returns {LessonCore | null} レッスン情報、見つからない場合はnull
+ *
+ * @example
+ * const lesson = getLessonByIdFromCache('c3e2a1b0-5b3a-4b9c-8b0a-0e1b0e1b0e1b');
+ * if (lesson) {
+ *   console.log(`教室: ${lesson.classroom}, 日付: ${lesson.date}`);
+ * }
+ */
+export function getLessonByIdFromCache(lessonId: string): LessonCore | null;
+/**
+ * 複数の予約IDから予約オブジェクトを一括取得
+ *
+ * @param {string[]} reservationIds - 取得対象の予約IDの配列
+ * @returns {ReservationCore[]} 予約オブジェクトの配列（見つからないIDはスキップ）
+ *
+ * @example
+ * const reservations = getReservationsByIdsFromCache(['R-001', 'R-002', 'R-003']);
+ * console.log(`取得した予約数: ${reservations.length}`);
+ */
+export function getReservationsByIdsFromCache(reservationIds: string[]): ReservationCore[];
+/**
+ * 日程キャッシュ内の特定レッスンの予約ID配列を最新化する
+ * @param {string} lessonId - レッスンID
+ * @param {string[]} reservationIds - 最新の予約ID配列
+ */
+export function updateLessonReservationIdsInCache(lessonId: string, reservationIds: string[]): void;
+/**
  * Schedule Master キャッシュの診断・修復機能
  * シートの存在確認とキャッシュの整合性チェックを実行
  * GASエディタから直接実行可能（メニューからトリガー登録推奨）

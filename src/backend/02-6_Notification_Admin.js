@@ -300,7 +300,7 @@ function _formatDateTime(date) {
 function _formatUserDisplay(user) {
   if (!user) return 'N/A';
   const realName = user.realName || 'N/A';
-  const nickname = user.nickname || user.displayName;
+  const nickname = user.nickname || 'N/A';
   return nickname && nickname !== realName
     ? `${realName}（${nickname}）`
     : realName;

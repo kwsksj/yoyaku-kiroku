@@ -168,7 +168,7 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
   }
 
   // 計算プロパティ
-  student.displayName = student.nickname || student.realName;
+  student.nickname = student.nickname || student.realName;
   student.rowIndex = rowIndex; // 行番号を付与
 
   return student;
@@ -383,8 +383,7 @@ export function getUserDetailForEdit(studentId) {
     const userDetail = {
       studentId: studentId,
       realName: realName,
-      displayName: nickname || realName, // displayNameとしてnicknameを返す（フロントエンドとの整合性）
-      nickname: nickname, // 互換性のため残す
+      nickname: nickname || realName,
       phone: phoneColIdx !== -1 ? String(userRow[phoneColIdx]) : '',
       email: emailColIdx !== -1 ? String(userRow[emailColIdx]) : '',
       wantsEmail:
@@ -562,7 +561,7 @@ export function updateUserProfile(userInfo) {
       }
 
       for (const key in userInfo) {
-        if (key === 'studentId' || key === 'displayName' || key === 'rowIndex')
+        if (key === 'studentId' || key === 'nickname' || key === 'rowIndex')
           continue; // 更新対象外
 
         const headerName = propToHeaderMap[key];
@@ -584,12 +583,11 @@ export function updateUserProfile(userInfo) {
         userInfo.nickname !== undefined &&
         userInfo.nickname !== targetStudent.nickname
       ) {
-        const displayNameColIdx = headers.indexOf(
+        const nicknameColIdx = headers.indexOf(
           CONSTANTS.HEADERS.ROSTER.NICKNAME,
         );
-        if (displayNameColIdx !== -1) {
-          updates[displayNameColIdx] =
-            userInfo.nickname || targetStudent.realName;
+        if (nicknameColIdx !== -1) {
+          updates[nicknameColIdx] = userInfo.nickname || targetStudent.realName;
         }
       }
 
@@ -612,7 +610,7 @@ export function updateUserProfile(userInfo) {
       // 更新後のユーザー情報を生成
       const updatedUser = { ...targetStudent, ...userInfo };
       if (userInfo.nickname !== undefined) {
-        updatedUser.displayName = userInfo.nickname || targetStudent.realName;
+        updatedUser.nickname = userInfo.nickname || targetStudent.realName;
       }
 
       // キャッシュを更新
@@ -628,6 +626,7 @@ export function updateUserProfile(userInfo) {
 
       return {
         success: true,
+        message: 'プロフィールが正常に更新されました。',
         data: {
           message: 'プロフィールが正常に更新されました。',
           updatedUser: updatedUser,
@@ -774,12 +773,12 @@ export function registerNewUser(userData) {
       }
 
       // 表示名を決定
-      const displayName = userData.nickname || userData.realName;
+      const nickname = userData.nickname || userData.realName;
       const nicknameColumn = resolveColumnIndex(
         CONSTANTS.HEADERS.ROSTER.NICKNAME,
       );
       if (typeof nicknameColumn === 'number') {
-        newRow[nicknameColumn] = displayName;
+        newRow[nicknameColumn] = nickname;
       }
 
       // シートに新しい行を追加
@@ -789,7 +788,7 @@ export function registerNewUser(userData) {
       const registeredUser = {
         ...userData,
         studentId: newStudentId,
-        displayName: displayName,
+        nickname: nickname,
       };
 
       // キャッシュを更新
@@ -808,7 +807,7 @@ export function registerNewUser(userData) {
         {
           ...userData,
           studentId: newStudentId,
-          displayName: displayName,
+          nickname: nickname,
           registrationDate: Utilities.formatDate(
             new Date(),
             CONSTANTS.TIMEZONE,

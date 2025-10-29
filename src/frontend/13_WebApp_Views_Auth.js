@@ -503,7 +503,7 @@ export const getEditProfileView = () => {
           label: 'ニックネーム（表示名）',
           caption: '他の生徒さんにも表示されます',
           type: 'text',
-          value: userData.displayName || '',
+          value: userData.nickname || '',
           placeholder: '空欄の場合はお名前',
           containerClass: '',
         })}
