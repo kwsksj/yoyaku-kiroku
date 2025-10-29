@@ -281,8 +281,10 @@ export class SimpleStateManager {
     // シンプルに完了済み予約の有無で判定
     // 空き通知希望だけでは経験者扱いにしない
     const hasCompletedReservation = this.state.myReservations.some(
-      (/** @type {ReservationCore} */ reservation) =>
-        reservation.status === CONSTANTS.STATUS.COMPLETED,
+      (/** @type {ReservationCore} */ reservation) => {
+        const normalizedStatus = String(reservation.status || '').trim();
+        return normalizedStatus === CONSTANTS.STATUS.COMPLETED;
+      },
     );
 
     this.state.isFirstTimeBooking = !hasCompletedReservation;
