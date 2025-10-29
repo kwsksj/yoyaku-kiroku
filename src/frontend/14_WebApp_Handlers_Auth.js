@@ -581,10 +581,7 @@ export const authActionHandlers = {
       if (res.success) {
         // プロフィール更新後、キャッシュも更新されているのでそのまま状態更新
         showInfo('プロフィールを更新しました', '更新完了');
-        const updatedUser =
-          res.updatedUser ||
-          (res.data &&
-            /** @type {{ updatedUser?: UserCore }} */ (res.data).updatedUser);
+        const updatedUser = res.data?.updatedUser;
         authHandlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: {
