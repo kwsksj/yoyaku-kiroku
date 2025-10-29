@@ -2611,10 +2611,9 @@ export function getReservationCacheSnapshot(autoRebuild = true) {
     ) {
       return reservationCacheState.cache;
     }
-    reservationCacheState.cache = null;
-    reservationCacheState.version = null;
   }
 
+  invalidateReservationCacheSnapshot();
   const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, autoRebuild);
   if (cache) {
     reservationCacheState.cache = cache;
@@ -2622,9 +2621,6 @@ export function getReservationCacheSnapshot(autoRebuild = true) {
       typeof cache.version === 'number' || typeof cache.version === 'string'
         ? cache.version
         : null;
-  } else {
-    reservationCacheState.cache = null;
-    reservationCacheState.version = null;
   }
   return cache;
 }
@@ -2643,10 +2639,9 @@ export function getStudentCacheSnapshot(autoRebuild = true) {
     ) {
       return studentCacheState.cache;
     }
-    studentCacheState.cache = null;
-    studentCacheState.version = null;
   }
 
+  invalidateStudentCacheSnapshot();
   const cache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC, autoRebuild);
   if (cache) {
     studentCacheState.cache = cache;
@@ -2654,9 +2649,6 @@ export function getStudentCacheSnapshot(autoRebuild = true) {
       typeof cache.version === 'number' || typeof cache.version === 'string'
         ? cache.version
         : null;
-  } else {
-    studentCacheState.cache = null;
-    studentCacheState.version = null;
   }
   return cache;
 }
