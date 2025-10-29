@@ -30,7 +30,8 @@ import {
   CACHE_KEYS,
   getCachedData,
   getReservationByIdFromCache,
-  getTypedCachedData,
+  getReservationCacheSnapshot,
+  getStudentCacheSnapshot,
 } from './07_CacheManager.js';
 
 /**
@@ -756,8 +757,8 @@ export function convertReservationsToObjects(
  * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列
  */
 export function getCachedReservationsAsObjects() {
-  const reservationCache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
-  const studentsCache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  const reservationCache = getReservationCacheSnapshot();
+  const studentsCache = getStudentCacheSnapshot();
 
   if (!reservationCache) {
     return [];
@@ -796,7 +797,7 @@ export function getReservationCoreById(reservationId) {
   }
 
   // ヘッダーマップをキャッシュから取得
-  const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false);
+  const cache = getReservationCacheSnapshot(false);
   const headerMap = toHeaderMap(cache?.headerMap);
   if (!cache || !headerMap) {
     Logger.log(`[CORE] 予約キャッシュのヘッダーマップが取得できませんでした。`);
@@ -804,10 +805,7 @@ export function getReservationCoreById(reservationId) {
   }
 
   // ★修正: 生徒マップも渡して変換処理を最適化
-  const studentsCache = getTypedCachedData(
-    CACHE_KEYS.ALL_STUDENTS_BASIC,
-    false,
-  );
+  const studentsCache = getStudentCacheSnapshot(false);
   const studentsMap = /** @type {Record<string, UserCore> | undefined} */ (
     studentsCache?.students
   );

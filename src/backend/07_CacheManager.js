@@ -85,6 +85,24 @@ const lessonIdCacheState = {
 };
 
 /**
+ * 予約キャッシュのインメモリスナップショット
+ * @type {{ version: string | number | null, cache: ReservationCacheData | null }}
+ */
+const reservationCacheState = {
+  version: null,
+  cache: null,
+};
+
+/**
+ * 生徒キャッシュのインメモリスナップショット
+ * @type {{ version: string | number | null, cache: StudentCacheData | null }}
+ */
+const studentCacheState = {
+  version: null,
+  cache: null,
+};
+
+/**
  * キャッシュデータの型安全な取得ヘルパー関数
  * @param {any} cacheData - キャッシュデータ
  * @param {string} property - プロパティ名
@@ -257,6 +275,7 @@ export function addReservationToCache(newReservationRow, headerMap) {
       JSON.stringify(updatedCacheData),
       CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
+    invalidateReservationCacheSnapshot();
 
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
@@ -342,6 +361,7 @@ export function updateReservationStatusInCache(reservationId, newStatus) {
       JSON.stringify(updatedCacheData),
       CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
+    invalidateReservationCacheSnapshot();
 
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
@@ -668,6 +688,7 @@ export function rebuildAllReservationsCache() {
         JSON.stringify(emptyCacheData),
         CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
+      invalidateReservationCacheSnapshot();
       return;
     }
 
@@ -720,6 +741,7 @@ export function rebuildAllReservationsCache() {
         JSON.stringify(emptyCacheData),
         CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
+      invalidateReservationCacheSnapshot();
       return;
     }
 
@@ -904,6 +926,7 @@ export function rebuildAllReservationsCache() {
       Logger.log(
         `分割キャッシュ保存完了: ${dataChunks.length}チャンク, 合計${sortedReservations.length}件`,
       );
+      invalidateReservationCacheSnapshot();
     } else {
       // 通常の単一キャッシュを使用
       PerformanceLog.debug('通常の単一キャッシュを使用します。');
@@ -924,6 +947,7 @@ export function rebuildAllReservationsCache() {
           `キャッシュ保存に失敗: ${putError.message}（データサイズ: ${dataSizeKB}KB）`,
         );
       }
+      invalidateReservationCacheSnapshot();
     }
 
     Logger.log(
@@ -1334,6 +1358,7 @@ export function rebuildAllStudentsBasicCache() {
         JSON.stringify(emptyCacheData),
         CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
+      invalidateStudentCacheSnapshot();
       return;
     }
 
@@ -1518,6 +1543,7 @@ export function rebuildAllStudentsBasicCache() {
         Logger.log(
           `生徒基本情報キャッシュを分割保存しました。件数: ${studentsArray.length}, チャンク数: ${dataChunks.length}`,
         );
+        invalidateStudentCacheSnapshot();
       } else {
         Logger.log('⚠️ 分割キャッシュの保存に失敗しました。');
         throw new Error('分割キャッシュの保存に失敗しました。');
@@ -1529,6 +1555,7 @@ export function rebuildAllStudentsBasicCache() {
         cacheDataJson,
         CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
+      invalidateStudentCacheSnapshot();
 
       Logger.log(
         `生徒基本情報キャッシュを更新しました。件数: ${Object.keys(studentsDataMap).length}`,
@@ -2423,6 +2450,7 @@ function persistStudentCache(studentsMap, headerMap) {
       rebuildAllStudentsBasicCache();
     } else {
       cache.remove(CACHE_KEYS.ALL_STUDENTS_BASIC);
+      invalidateStudentCacheSnapshot();
     }
     return;
   }
@@ -2433,6 +2461,71 @@ function persistStudentCache(studentsMap, headerMap) {
     serialized,
     CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
   );
+  invalidateStudentCacheSnapshot();
+}
+
+/**
+ * 予約キャッシュのインメモリスナップショットを無効化する
+ */
+export function invalidateReservationCacheSnapshot() {
+  reservationCacheState.version = null;
+  reservationCacheState.cache = null;
+}
+
+/**
+ * 生徒キャッシュのインメモリスナップショットを無効化する
+ */
+export function invalidateStudentCacheSnapshot() {
+  studentCacheState.version = null;
+  studentCacheState.cache = null;
+}
+
+/**
+ * 予約キャッシュのスナップショットを取得（実行中はインメモリ再利用）
+ * @param {boolean} [autoRebuild=true] - キャッシュ未存在時に再構築を許可するか
+ * @returns {ReservationCacheData | null}
+ */
+export function getReservationCacheSnapshot(autoRebuild = true) {
+  if (reservationCacheState.cache) {
+    return reservationCacheState.cache;
+  }
+
+  const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, autoRebuild);
+  if (cache) {
+    reservationCacheState.cache = cache;
+    reservationCacheState.version =
+      typeof cache.version === 'number' || typeof cache.version === 'string'
+        ? cache.version
+        : null;
+  } else {
+    reservationCacheState.cache = null;
+    reservationCacheState.version = null;
+  }
+  return cache;
+}
+
+/**
+ * 生徒キャッシュのスナップショットを取得（実行中はインメモリ再利用）
+ * @param {boolean} [autoRebuild=true] - キャッシュ未存在時に再構築を許可するか
+ * @returns {StudentCacheData | null}
+ */
+export function getStudentCacheSnapshot(autoRebuild = true) {
+  if (studentCacheState.cache) {
+    return studentCacheState.cache;
+  }
+
+  const cache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC, autoRebuild);
+  if (cache) {
+    studentCacheState.cache = cache;
+    studentCacheState.version =
+      typeof cache.version === 'number' || typeof cache.version === 'string'
+        ? cache.version
+        : null;
+  } else {
+    studentCacheState.cache = null;
+    studentCacheState.version = null;
+  }
+  return cache;
 }
 
 /**
@@ -2443,10 +2536,10 @@ function persistStudentCache(studentsMap, headerMap) {
 export function getReservationByIdFromCache(reservationId) {
   if (!reservationId) return null;
 
-  let cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false); // autoRebuildはfalseで良い
+  let cache = getReservationCacheSnapshot(false); // autoRebuildはfalseで良い
   if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
     // フォールバック: キャッシュを再構築（以前の挙動と同等）
-    cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    cache = getReservationCacheSnapshot(true);
   }
   if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
     return null;
@@ -2522,10 +2615,10 @@ export function getReservationsByIdsFromCache(reservationIds) {
     return [];
   }
 
-  let cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, false);
+  let cache = getReservationCacheSnapshot(false);
   if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
     // フォールバック: 自動再構築を許可した取得を実行
-    cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS);
+    cache = getReservationCacheSnapshot(true);
   }
   if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
     // それでも取得できない場合は旧処理と同様に全件から抽出する
@@ -2541,10 +2634,7 @@ export function getReservationsByIdsFromCache(reservationIds) {
 
   const headerMap =
     toHeaderMapInstance(normalizeHeaderMap(cache.headerMap || {})) || null;
-  const studentsCache = getTypedCachedData(
-    CACHE_KEYS.ALL_STUDENTS_BASIC,
-    false,
-  );
+  const studentsCache = getStudentCacheSnapshot(false);
   const studentsMap = studentsCache?.students || {};
 
   /** @type {ReservationCore[]} */

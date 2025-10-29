@@ -266,6 +266,26 @@ export function deleteAllCache(): void;
  */
 export function getDataCount(parsedData: object, cacheKey: string): number;
 /**
+ * 予約キャッシュのインメモリスナップショットを無効化する
+ */
+export function invalidateReservationCacheSnapshot(): void;
+/**
+ * 生徒キャッシュのインメモリスナップショットを無効化する
+ */
+export function invalidateStudentCacheSnapshot(): void;
+/**
+ * 予約キャッシュのスナップショットを取得（実行中はインメモリ再利用）
+ * @param {boolean} [autoRebuild=true] - キャッシュ未存在時に再構築を許可するか
+ * @returns {ReservationCacheData | null}
+ */
+export function getReservationCacheSnapshot(autoRebuild?: boolean): ReservationCacheData | null;
+/**
+ * 生徒キャッシュのスナップショットを取得（実行中はインメモリ再利用）
+ * @param {boolean} [autoRebuild=true] - キャッシュ未存在時に再構築を許可するか
+ * @returns {StudentCacheData | null}
+ */
+export function getStudentCacheSnapshot(autoRebuild?: boolean): StudentCacheData | null;
+/**
  * 予約IDを指定して、キャッシュから単一の予約データを取得する
  * @param {string} reservationId - 取得する予約のID
  * @returns {RawSheetRow | null} 予約データ配列、見つからない場合はnull
