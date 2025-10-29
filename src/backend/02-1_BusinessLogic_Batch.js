@@ -27,7 +27,7 @@
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
 import {
-  getReservationCoreById,
+  getCachedReservationsAsObjects,
   handleError,
   logActivity,
 } from './08_Utilities.js';
@@ -126,76 +126,35 @@ export function setupTestEnvironment() {
  */
 export function getRecentCompletedReservationDates() {
   try {
-    const ss = SS_MANAGER.getSpreadsheet();
-    const reservationSheet = ss.getSheetByName(
-      CONSTANTS.SHEET_NAMES.RESERVATIONS,
-    );
-
-    if (!reservationSheet) {
+    const reservations = getCachedReservationsAsObjects();
+    if (!reservations || reservations.length === 0) {
       return [];
     }
 
-    // ヘッダー行を取得
-    const headers = reservationSheet
-      .getRange(1, 1, 1, reservationSheet.getLastColumn())
-      .getValues()[0];
-    const dateColIndex = headers.indexOf(CONSTANTS.HEADERS.RESERVATIONS.DATE);
-    const statusColIndex = headers.indexOf(
-      CONSTANTS.HEADERS.RESERVATIONS.STATUS,
-    );
-    const accountingColIndex = headers.indexOf(
-      CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
-    );
-
-    if (
-      dateColIndex === -1 ||
-      statusColIndex === -1 ||
-      accountingColIndex === -1
-    ) {
-      return [];
-    }
-
-    // データ行を取得
-    const dataRange = reservationSheet.getRange(
-      CONSTANTS.SYSTEM.DATA_START_ROW,
-      1,
-      reservationSheet.getLastRow() - CONSTANTS.SYSTEM.DATA_START_ROW + 1,
-      reservationSheet.getLastColumn(),
-    );
-    const data = dataRange.getValues();
-
-    // 60日前の日付を計算
     const sixtyDaysAgo = new Date();
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
 
+    const completedReservations = reservations.filter(reservation => {
+      if (!reservation) return false;
+      if (reservation.status !== CONSTANTS.STATUS.COMPLETED) return false;
+      return typeof reservation.reservationId === 'string';
+    });
+
+    const reservationIds = completedReservations
+      .map(reservation => reservation.reservationId)
+      .filter(id => typeof id === 'string' && id !== '');
+    const accountingDetailsMap = getAccountingDetailsMap(reservationIds);
+
     // 会計済み予約の日付を収集
     const dateSet = new Set();
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      const dateValue = row[dateColIndex];
-      const status = row[statusColIndex];
-      const accountingDetailsJson = row[accountingColIndex];
-
-      // 会計済みステータスかつ会計詳細があるもののみ
-      if (
-        status === CONSTANTS.STATUS.COMPLETED &&
-        accountingDetailsJson &&
-        dateValue
-      ) {
-        const date =
-          dateValue instanceof Date ? dateValue : new Date(dateValue);
-
-        // 60日以内のもののみ
-        if (date >= sixtyDaysAgo) {
-          const dateStr = Utilities.formatDate(
-            date,
-            CONSTANTS.TIMEZONE,
-            'yyyy-MM-dd',
-          );
-          dateSet.add(dateStr);
-        }
+    completedReservations.forEach(reservation => {
+      if (!reservation.date) return;
+      if (!accountingDetailsMap.has(reservation.reservationId)) return;
+      const dateCandidate = new Date(`${reservation.date}T00:00:00+09:00`);
+      if (!isNaN(dateCandidate.getTime()) && dateCandidate >= sixtyDaysAgo) {
+        dateSet.add(reservation.date);
       }
-    }
+    });
 
     // 配列に変換して降順ソート
     return Array.from(dateSet).sort((a, b) => b.localeCompare(a));
@@ -221,6 +180,92 @@ export function repostSalesLogByDate() {
 }
 
 /**
+ * 指定した予約ID群の会計詳細をシートから取得してマップで返す
+ * @param {string[]} reservationIds
+ * @returns {Map<string, AccountingDetailsCore>}
+ */
+function getAccountingDetailsMap(reservationIds) {
+  const resultMap = new Map();
+  if (!Array.isArray(reservationIds) || reservationIds.length === 0) {
+    return resultMap;
+  }
+
+  const reservationIdSet = new Set(
+    reservationIds.map(id => String(id || '')).filter(id => id !== ''),
+  );
+  if (reservationIdSet.size === 0) {
+    return resultMap;
+  }
+
+  const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);
+  if (!sheet) {
+    Logger.log(
+      '[getAccountingDetailsMap] 予約シートが取得できなかったため、会計詳細を取得できません。',
+    );
+    return resultMap;
+  }
+
+  const headerRow = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0];
+  const reservationIdColIndex = headerRow.indexOf(
+    CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+  );
+  const accountingColIndex = headerRow.indexOf(
+    CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
+  );
+
+  if (reservationIdColIndex === -1 || accountingColIndex === -1) {
+    Logger.log(
+      '[getAccountingDetailsMap] 必要な列が見つからないため、会計詳細を取得できません。',
+    );
+    return resultMap;
+  }
+
+  const dataRowCount = sheet.getLastRow() - 1;
+  if (dataRowCount <= 0) {
+    return resultMap;
+  }
+
+  const reservationIdValues = sheet
+    .getRange(2, reservationIdColIndex + 1, dataRowCount, 1)
+    .getValues();
+  const accountingValues = sheet
+    .getRange(2, accountingColIndex + 1, dataRowCount, 1)
+    .getValues();
+
+  for (let i = 0; i < dataRowCount; i++) {
+    const rawId = reservationIdValues[i]?.[0];
+    const reservationId = String(rawId || '');
+    if (!reservationIdSet.has(reservationId)) continue;
+
+    let accountingDetails = accountingValues[i]?.[0] || null;
+    if (
+      typeof accountingDetails === 'string' &&
+      accountingDetails.trim().startsWith('{')
+    ) {
+      try {
+        accountingDetails = JSON.parse(accountingDetails);
+      } catch (error) {
+        Logger.log(
+          `[getAccountingDetailsMap] 会計詳細のJSONパースに失敗しました (reservationId=${reservationId}): ${error.message}`,
+        );
+        accountingDetails = null;
+      }
+    }
+
+    if (accountingDetails && typeof accountingDetails === 'object') {
+      resultMap.set(
+        reservationId,
+        /** @type {AccountingDetailsCore} */ (accountingDetails),
+      );
+    }
+  }
+
+  return resultMap;
+}
+
+/**
  * 指定した日付の予約記録から売上ログを転載する
  * HTMLダイアログ（手動再転載）またはバッチ処理（日次転載）から呼び出される
  * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
@@ -239,87 +284,26 @@ export function transferSalesLogByDate(targetDate) {
       -1,
     );
 
-    // 予約記録シートを取得
-    const ss = SS_MANAGER.getSpreadsheet();
-    const reservationSheet = ss.getSheetByName(
-      CONSTANTS.SHEET_NAMES.RESERVATIONS,
-    );
-
-    if (!reservationSheet) {
-      throw new Error(
-        `${CONSTANTS.SHEET_NAMES.RESERVATIONS}シートが見つかりません。`,
+    const reservations = getCachedReservationsAsObjects();
+    if (!reservations || reservations.length === 0) {
+      SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
+      Logger.log(
+        `[transferSalesLogByDate] 対象なし: ${targetDate}の予約データがキャッシュに存在しません`,
       );
+      return {
+        success: true,
+        totalCount: 0,
+        successCount: 0,
+      };
     }
 
-    // ヘッダー行を取得
-    const headers = reservationSheet
-      .getRange(1, 1, 1, reservationSheet.getLastColumn())
-      .getValues()[0];
-    const reservationIdColIndex = headers.indexOf(
-      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
-    );
-    const dateColIndex = headers.indexOf(CONSTANTS.HEADERS.RESERVATIONS.DATE);
-    const statusColIndex = headers.indexOf(
-      CONSTANTS.HEADERS.RESERVATIONS.STATUS,
-    );
-    const accountingColIndex = headers.indexOf(
-      CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
-    );
-
-    if (
-      reservationIdColIndex === -1 ||
-      dateColIndex === -1 ||
-      statusColIndex === -1 ||
-      accountingColIndex === -1
-    ) {
-      throw new Error(
-        '必要な列が見つかりません（予約ID、日付、ステータス、会計詳細）。',
-      );
-    }
-
-    // データ行を取得
-    const dataRange = reservationSheet.getRange(
-      CONSTANTS.SYSTEM.DATA_START_ROW,
-      1,
-      reservationSheet.getLastRow() - CONSTANTS.SYSTEM.DATA_START_ROW + 1,
-      reservationSheet.getLastColumn(),
-    );
-    const data = dataRange.getValues();
-
-    // 指定日付の予約を検索（予約IDと会計詳細をペアで保持）
-    /** @type {Array<{reservationId: string, accountingDetailsJson: string}>} */
-    const targetReservations = [];
-    for (let i = 0; i < data.length; i++) {
-      const row = data[i];
-      const reservationId = row[reservationIdColIndex];
-      const dateValue = row[dateColIndex];
-      const status = row[statusColIndex];
-      const accountingDetailsJson = row[accountingColIndex];
-
-      // 日付を文字列に変換（Dateオブジェクトの場合）
-      let dateStr = '';
-      if (dateValue instanceof Date) {
-        dateStr = Utilities.formatDate(
-          dateValue,
-          CONSTANTS.TIMEZONE,
-          'yyyy-MM-dd',
-        );
-      } else {
-        dateStr = String(dateValue);
-      }
-
-      // 指定日付で、かつ会計済み（完了）のステータス、かつ会計詳細があるもののみ対象
-      if (
-        dateStr === targetDate &&
-        status === CONSTANTS.STATUS.COMPLETED &&
-        accountingDetailsJson
-      ) {
-        targetReservations.push({
-          reservationId: String(reservationId),
-          accountingDetailsJson: String(accountingDetailsJson),
-        });
-      }
-    }
+    /** @type {ReservationCore[]} */
+    const targetReservations = reservations.filter(reservation => {
+      if (!reservation) return false;
+      if (reservation.date !== targetDate) return false;
+      if (reservation.status !== CONSTANTS.STATUS.COMPLETED) return false;
+      return true;
+    });
 
     if (targetReservations.length === 0) {
       SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
@@ -333,28 +317,33 @@ export function transferSalesLogByDate(targetDate) {
       };
     }
 
+    const reservationIdList = targetReservations
+      .map(reservation => reservation.reservationId)
+      .filter(id => typeof id === 'string' && id !== '');
+    const accountingDetailsMap = getAccountingDetailsMap(reservationIdList);
+
     // 各予約から売上記録を書き込み（既存の関数を再利用）
     let successCount = 0;
     for (const targetReservation of targetReservations) {
       try {
-        // 予約データを完全な形で取得
-        const reservation = getReservationCoreById(
-          targetReservation.reservationId,
-        );
-        if (!reservation) {
+        let accountingDetails = targetReservation.accountingDetails;
+        if (!accountingDetails) {
+          accountingDetails = accountingDetailsMap.get(
+            targetReservation.reservationId,
+          );
+        }
+        if (!accountingDetails || typeof accountingDetails !== 'object') {
           Logger.log(
-            `[transferSalesLogByDate] 予約が見つかりません: ${targetReservation.reservationId}`,
+            `[transferSalesLogByDate] 会計詳細が不正なためスキップ: ${targetReservation.reservationId}`,
           );
           continue;
         }
 
-        /** @type {AccountingDetailsCore} */
-        const accountingDetails = JSON.parse(
-          targetReservation.accountingDetailsJson,
-        );
-
         // 既存の売上記録書き込み関数を呼び出し
-        logSalesForSingleReservation(reservation, accountingDetails);
+        logSalesForSingleReservation(
+          targetReservation,
+          /** @type {AccountingDetailsCore} */ (accountingDetails),
+        );
         successCount++;
       } catch (err) {
         Logger.log(
