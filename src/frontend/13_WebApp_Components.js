@@ -20,6 +20,16 @@ import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
 
 const componentsStateManager = appWindow.stateManager;
 
+const resolveComponentsBeginnerMode = () => {
+  const getter = /** @type {any} */ (
+    componentsStateManager['getEffectiveBeginnerMode']
+  );
+  if (typeof getter === 'function') {
+    return Boolean(getter.call(componentsStateManager));
+  }
+  return componentsStateManager.getState().isFirstTimeBooking;
+};
+
 // =================================================================
 // --- HTML Escape Utility ---
 // -----------------------------------------------------------------
@@ -902,8 +912,7 @@ export const Components = {
     scheduleInfo,
   }) => {
     // isFirstTimeBooking をcomponentsStateManagerから取得
-    const state = componentsStateManager.getState();
-    const isFirstTimeBooking = state['isFirstTimeBooking'];
+    const isFirstTimeBooking = resolveComponentsBeginnerMode();
 
     // 使用する授業料項目を決定（初回授業料 or 基本授業料）
     const targetItemName = isFirstTimeBooking
