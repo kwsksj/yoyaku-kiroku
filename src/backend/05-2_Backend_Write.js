@@ -815,7 +815,6 @@ export function notifyAvailabilityToWaitlistedUsers(
       beginnerSlots: slots.beginner,
     };
 
-
     // 2. 空きタイプを判定
     let availabilityType = null;
     const firstSlots =

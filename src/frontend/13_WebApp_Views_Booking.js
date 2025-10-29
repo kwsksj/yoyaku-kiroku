@@ -100,7 +100,11 @@ const renderBeginnerModeToggle = () => {
       ? localStorage.getItem('beginnerModeOverride')
       : null;
   const selectedValue =
-    override !== null ? override : resolveEffectiveBeginnerMode() ? 'true' : 'false';
+    override !== null
+      ? override
+      : resolveEffectiveBeginnerMode()
+        ? 'true'
+        : 'false';
 
   console.log('🎚️ BeginnerModeToggle:', {
     auto,
