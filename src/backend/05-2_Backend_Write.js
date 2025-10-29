@@ -56,6 +56,7 @@ import {
   getReservationCoreById,
   getSheetData,
   logActivity,
+  PerformanceLog,
   withTransaction,
 } from './08_Utilities.js';
 
@@ -791,6 +792,12 @@ export function notifyAvailabilityToWaitlistedUsers(
   lessonId,
   _cancelledReservation,
 ) {
+  const perfStart = Date.now();
+  let availabilityTypeForLog = '(none)';
+  let recipientsCount = 0;
+  let cacheHit = false;
+  let cachedReservationCount = 0;
+  let validReservationCount = 0;
   try {
     // 1. lessonIdからレッスン情報を取得（O(1)アクセス）
     const targetLesson = getLessonByIdFromCache(lessonId);
@@ -798,15 +805,18 @@ export function notifyAvailabilityToWaitlistedUsers(
       Logger.log(`該当レッスンが見つかりません。lessonId: ${lessonId}`);
       return;
     }
+    cacheHit = true;
 
     const reservationsForLesson = getReservationsByIdsFromCache(
       targetLesson.reservationIds || [],
     );
+    cachedReservationCount = reservationsForLesson.length;
     const validReservations = reservationsForLesson.filter(
       r =>
         r.status !== CONSTANTS.STATUS.CANCELED &&
         r.status !== CONSTANTS.STATUS.WAITLISTED,
     );
+    validReservationCount = validReservations.length;
     const slots = calculateAvailableSlots(targetLesson, validReservations);
     const lessonWithSlots = {
       ...targetLesson,
@@ -843,12 +853,14 @@ export function notifyAvailabilityToWaitlistedUsers(
       Logger.log('空きが発生しなかったため、通知は行いません。');
       return;
     }
+    availabilityTypeForLog = availabilityType;
 
     // 3. 通知対象ユーザーを取得（lessonIdを使用）
     const recipients = getWaitlistedUsersForNotification(
       lessonId,
       availabilityType,
     );
+    recipientsCount = recipients.length;
     if (recipients.length === 0) {
       Logger.log('通知対象の空き通知希望ユーザーがいません。');
       return;
@@ -881,6 +893,14 @@ export function notifyAvailabilityToWaitlistedUsers(
   } catch (error) {
     Logger.log(`notifyAvailabilityToWaitlistedUsers Error: ${error.message}`);
     // この関数は上位にエラーを伝播させない
+  } finally {
+    PerformanceLog.debug(
+      `[notifyAvailabilityToWaitlistedUsers] lessonId=${lessonId}, cacheHit=${cacheHit}, cachedReservations=${cachedReservationCount}, validReservations=${validReservationCount}, availability=${availabilityTypeForLog}, notified=${recipientsCount}`,
+    );
+    PerformanceLog.performance(
+      'notifyAvailabilityToWaitlistedUsers',
+      perfStart,
+    );
   }
 }
 
@@ -991,7 +1011,14 @@ export function createAvailabilityNotificationEmail(recipient, lesson) {
  * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  */
 export function updateReservationDetails(details) {
+  const perfStart = Date.now();
   return withTransaction(() => {
+    let availabilityLookupMode = 'cache';
+    let cachedReservationsCount = 0;
+    /** @type {LessonCore | null} */
+    let availabilityLesson = null;
+    /** @type {string | null} */
+    let effectiveLessonId = null;
     try {
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(details.reservationId);
@@ -1038,18 +1065,74 @@ export function updateReservationDetails(details) {
       }
 
       // --- 定員チェック（予約更新時） ---
-      const lessonsResponse = getLessons();
-      if (!lessonsResponse.success || !lessonsResponse.data) {
-        throw new Error('空き状況の取得に失敗し、予約を更新できません。');
+      const lessonIdFromDetails =
+        typeof details.lessonId === 'string' ? details.lessonId : undefined;
+      const lessonIdFromSchedule =
+        scheduleRule && typeof scheduleRule.lessonId === 'string'
+          ? scheduleRule.lessonId
+          : undefined;
+      const lessonIdFromExisting =
+        typeof existingReservation.lessonId === 'string'
+          ? existingReservation.lessonId
+          : undefined;
+
+      effectiveLessonId =
+        lessonIdFromDetails ||
+        lessonIdFromSchedule ||
+        lessonIdFromExisting ||
+        null;
+
+      if (effectiveLessonId) {
+        const cachedLesson = getLessonByIdFromCache(effectiveLessonId);
+        if (cachedLesson) {
+          const reservationsForLesson = getReservationsByIdsFromCache(
+            Array.isArray(cachedLesson.reservationIds)
+              ? cachedLesson.reservationIds
+              : [],
+          );
+          cachedReservationsCount = reservationsForLesson.length;
+          const validReservations = reservationsForLesson.filter(
+            r =>
+              r.status !== CONSTANTS.STATUS.CANCELED &&
+              r.status !== CONSTANTS.STATUS.WAITLISTED,
+          );
+          const slots = calculateAvailableSlots(
+            cachedLesson,
+            validReservations,
+          );
+          availabilityLesson = {
+            ...cachedLesson,
+            firstSlots: slots.first,
+            secondSlots:
+              typeof slots.second === 'number' ? slots.second : undefined,
+            beginnerSlots:
+              typeof slots.beginner === 'number'
+                ? slots.beginner
+                : (cachedLesson.beginnerSlots ?? null),
+          };
+        }
       }
-      /** @type {LessonCore[]} */
-      const lessonsData = /** @type {LessonCore[]} */ (lessonsResponse.data);
-      const targetLesson = lessonsData.find(
-        /** @param {LessonCore} l */
-        l =>
-          l.date === updatedReservation.date &&
-          l.classroom === updatedReservation.classroom,
-      );
+
+      if (!availabilityLesson) {
+        availabilityLookupMode = 'fallback-getLessons';
+        const lessonsResponse = getLessons();
+        if (!lessonsResponse.success || !lessonsResponse.data) {
+          throw new Error('空き状況の取得に失敗し、予約を更新できません。');
+        }
+        /** @type {LessonCore[]} */
+        const lessonsData = /** @type {LessonCore[]} */ (lessonsResponse.data);
+        const fallbackLesson = lessonsData.find(
+          /** @param {LessonCore} l */
+          l =>
+            l.date === updatedReservation.date &&
+            l.classroom === updatedReservation.classroom,
+        );
+        if (fallbackLesson) {
+          availabilityLesson = fallbackLesson;
+        }
+      }
+
+      const targetLesson = availabilityLesson;
 
       if (
         targetLesson &&
@@ -1152,6 +1235,14 @@ export function updateReservationDetails(details) {
           ? /** @type {LessonCore[]} */ (latestLessonsResponse.data)
           : [];
 
+      PerformanceLog.debug(
+        `[updateReservationDetails] availabilityLookup=${availabilityLookupMode}, lessonId=${
+          effectiveLessonId || '(unknown)'
+        }, cacheReservationCount=${cachedReservationsCount}, targetLessonFound=${Boolean(
+          targetLesson,
+        )}`,
+      );
+
       return createApiResponse(true, {
         message: '予約内容を更新しました。',
         data: {
@@ -1177,6 +1268,8 @@ ${err.stack}`,
         'updateReservationDetails',
       );
       return normalizeErrorResponse(errorResponse);
+    } finally {
+      PerformanceLog.performance('updateReservationDetails', perfStart);
     }
   });
 }
