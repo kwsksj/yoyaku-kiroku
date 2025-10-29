@@ -84,6 +84,8 @@ const lessonIdCacheState = {
   map: new Map(),
 };
 
+const CACHE_VERSION_SUFFIX = '__version';
+
 /**
  * 予約キャッシュのインメモリスナップショット
  * @type {{ version: string | number | null, cache: ReservationCacheData | null }}
@@ -101,6 +103,60 @@ const studentCacheState = {
   version: null,
   cache: null,
 };
+
+/**
+ * キャッシュバージョンキーを返す
+ * @param {string} cacheKey
+ * @returns {string}
+ */
+function getCacheVersionKey(cacheKey) {
+  return `${cacheKey}${CACHE_VERSION_SUFFIX}`;
+}
+
+/**
+ * キャッシュのバージョンを更新する
+ * @param {string} cacheKey
+ * @param {string|number|null} version
+ * @param {number} [expiry]
+ */
+function setCacheVersion(cacheKey, version, expiry) {
+  if (version === undefined || version === null) return;
+  try {
+    CacheService.getScriptCache().put(
+      getCacheVersionKey(cacheKey),
+      String(version),
+      expiry || CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+    );
+  } catch (error) {
+    Logger.log(`setCacheVersion Error (${cacheKey}): ${error.message}`);
+  }
+}
+
+/**
+ * 現在のキャッシュバージョンを取得する
+ * @param {string} cacheKey
+ * @returns {string|null}
+ */
+function getCacheVersion(cacheKey) {
+  try {
+    return CacheService.getScriptCache().get(getCacheVersionKey(cacheKey));
+  } catch (error) {
+    Logger.log(`getCacheVersion Error (${cacheKey}): ${error.message}`);
+    return null;
+  }
+}
+
+/**
+ * キャッシュのバージョンキーを削除する
+ * @param {string} cacheKey
+ */
+function removeCacheVersion(cacheKey) {
+  try {
+    CacheService.getScriptCache().remove(getCacheVersionKey(cacheKey));
+  } catch (error) {
+    Logger.log(`removeCacheVersion Error (${cacheKey}): ${error.message}`);
+  }
+}
 
 /**
  * キャッシュデータの型安全な取得ヘルパー関数
@@ -275,6 +331,17 @@ export function addReservationToCache(newReservationRow, headerMap) {
       JSON.stringify(updatedCacheData),
       CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
+    setCacheVersion(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      updatedCacheData.version,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+    );
+    invalidateReservationCacheSnapshot();
+    setCacheVersion(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      updatedCacheData.version,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+    );
     invalidateReservationCacheSnapshot();
 
     const endTime = new Date();
@@ -359,6 +426,11 @@ export function updateReservationStatusInCache(reservationId, newStatus) {
     CacheService.getScriptCache().put(
       CACHE_KEYS.ALL_RESERVATIONS,
       JSON.stringify(updatedCacheData),
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+    );
+    setCacheVersion(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      updatedCacheData.version,
       CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
     invalidateReservationCacheSnapshot();
@@ -480,6 +552,12 @@ export function updateReservationInCache(
       JSON.stringify(updatedCacheData),
       CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
+    setCacheVersion(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      updatedCacheData.version,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+    );
+    invalidateReservationCacheSnapshot();
 
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
@@ -565,6 +643,12 @@ export function updateReservationColumnInCache(
       JSON.stringify(updatedCacheData),
       CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
     );
+    setCacheVersion(
+      CACHE_KEYS.ALL_RESERVATIONS,
+      updatedCacheData.version,
+      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+    );
+    invalidateReservationCacheSnapshot();
 
     const endTime = new Date();
     const duration = endTime.getTime() - startTime.getTime();
@@ -688,6 +772,11 @@ export function rebuildAllReservationsCache() {
         JSON.stringify(emptyCacheData),
         CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
+      setCacheVersion(
+        CACHE_KEYS.ALL_RESERVATIONS,
+        emptyCacheData.version,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
       invalidateReservationCacheSnapshot();
       return;
     }
@@ -739,6 +828,11 @@ export function rebuildAllReservationsCache() {
       CacheService.getScriptCache().put(
         CACHE_KEYS.ALL_RESERVATIONS,
         JSON.stringify(emptyCacheData),
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
+      setCacheVersion(
+        CACHE_KEYS.ALL_RESERVATIONS,
+        emptyCacheData.version,
         CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
       invalidateReservationCacheSnapshot();
@@ -935,6 +1029,11 @@ export function rebuildAllReservationsCache() {
         CacheService.getScriptCache().put(
           CACHE_KEYS.ALL_RESERVATIONS,
           cacheDataJson,
+          CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+        );
+        setCacheVersion(
+          CACHE_KEYS.ALL_RESERVATIONS,
+          testCacheData.version,
           CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
         );
 
@@ -1358,6 +1457,11 @@ export function rebuildAllStudentsBasicCache() {
         JSON.stringify(emptyCacheData),
         CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
+      setCacheVersion(
+        CACHE_KEYS.ALL_STUDENTS_BASIC,
+        emptyCacheData.version,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
       invalidateStudentCacheSnapshot();
       return;
     }
@@ -1553,6 +1657,11 @@ export function rebuildAllStudentsBasicCache() {
       CacheService.getScriptCache().put(
         CACHE_KEYS.ALL_STUDENTS_BASIC,
         cacheDataJson,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
+      setCacheVersion(
+        CACHE_KEYS.ALL_STUDENTS_BASIC,
+        cacheData.version,
         CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
       );
       invalidateStudentCacheSnapshot();
@@ -2078,6 +2187,7 @@ export function saveChunkedDataToCache(
       );
     }
 
+    setCacheVersion(baseKey, metaData.version, expiry);
     Logger.log(
       `分割キャッシュ保存完了: ${dataChunks.length}チャンク, 合計${dataChunks.reduce(
         (sum, chunk) => sum + chunk.length,
@@ -2253,6 +2363,7 @@ export function clearChunkedCache(baseKey) {
 
     // メタデータも削除
     cache.remove(metaCacheKey);
+    removeCacheVersion(baseKey);
     Logger.log(`${baseKey}の分割キャッシュをクリアしました`);
   } catch (error) {
     Logger.log(`分割キャッシュクリアエラー: ${error.message}`);
@@ -2361,6 +2472,7 @@ export function deleteCache(cacheKey) {
   cache.remove(cacheKey);
   clearChunkedCache(cacheKey);
   cache.remove(`${cacheKey}_meta`);
+  removeCacheVersion(cacheKey);
 }
 
 /**
@@ -2461,6 +2573,11 @@ function persistStudentCache(studentsMap, headerMap) {
     serialized,
     CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
   );
+  setCacheVersion(
+    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    baseData.version,
+    CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+  );
   invalidateStudentCacheSnapshot();
 }
 
@@ -2487,7 +2604,15 @@ export function invalidateStudentCacheSnapshot() {
  */
 export function getReservationCacheSnapshot(autoRebuild = true) {
   if (reservationCacheState.cache) {
-    return reservationCacheState.cache;
+    const currentVersion = getCacheVersion(CACHE_KEYS.ALL_RESERVATIONS);
+    if (
+      currentVersion &&
+      String(currentVersion) === String(reservationCacheState.version || '')
+    ) {
+      return reservationCacheState.cache;
+    }
+    reservationCacheState.cache = null;
+    reservationCacheState.version = null;
   }
 
   const cache = getTypedCachedData(CACHE_KEYS.ALL_RESERVATIONS, autoRebuild);
@@ -2511,7 +2636,15 @@ export function getReservationCacheSnapshot(autoRebuild = true) {
  */
 export function getStudentCacheSnapshot(autoRebuild = true) {
   if (studentCacheState.cache) {
-    return studentCacheState.cache;
+    const currentVersion = getCacheVersion(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    if (
+      currentVersion &&
+      String(currentVersion) === String(studentCacheState.version || '')
+    ) {
+      return studentCacheState.cache;
+    }
+    studentCacheState.cache = null;
+    studentCacheState.version = null;
   }
 
   const cache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC, autoRebuild);
