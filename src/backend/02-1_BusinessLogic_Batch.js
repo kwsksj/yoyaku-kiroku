@@ -227,19 +227,16 @@ function getAccountingDetailsMap(reservationIds) {
     return resultMap;
   }
 
-  const reservationIdValues = sheet
-    .getRange(2, reservationIdColIndex + 1, dataRowCount, 1)
-    .getValues();
-  const accountingValues = sheet
-    .getRange(2, accountingColIndex + 1, dataRowCount, 1)
+  const allValues = sheet
+    .getRange(2, 1, dataRowCount, sheet.getLastColumn())
     .getValues();
 
-  for (let i = 0; i < dataRowCount; i++) {
-    const rawId = reservationIdValues[i]?.[0];
+  for (const row of allValues) {
+    const rawId = row[reservationIdColIndex];
     const reservationId = String(rawId || '');
     if (!reservationIdSet.has(reservationId)) continue;
 
-    let accountingDetails = accountingValues[i]?.[0] || null;
+    let accountingDetails = row[accountingColIndex] || null;
     if (
       typeof accountingDetails === 'string' &&
       accountingDetails.trim().startsWith('{')

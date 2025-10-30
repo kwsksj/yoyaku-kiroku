@@ -550,37 +550,6 @@ export function transformReservationArrayToObjectWithHeaders(
     reservation.user = studentsMap[studentId];
   }
 
-  // 会計詳細（JSON文字列をパース）
-  const accountingDetailsRaw = getCellValue(
-    CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
-  );
-  if (accountingDetailsRaw) {
-    /** @type {AccountingDetailsCore | null} */
-    let parsedAccounting = null;
-    if (typeof accountingDetailsRaw === 'string') {
-      const trimmed = accountingDetailsRaw.trim();
-      if (trimmed) {
-        try {
-          parsedAccounting = /** @type {AccountingDetailsCore} */ (
-            JSON.parse(trimmed)
-          );
-        } catch (error) {
-          Logger.log(
-            `[transformReservationArrayToObjectWithHeaders] accountingDetails の解析に失敗しました: ${error.message}`,
-          );
-        }
-      }
-    } else if (typeof accountingDetailsRaw === 'object') {
-      parsedAccounting = /** @type {AccountingDetailsCore} */ (
-        accountingDetailsRaw
-      );
-    }
-
-    if (parsedAccounting) {
-      reservation.accountingDetails = parsedAccounting;
-    }
-  }
-
   return reservation;
 }
 
