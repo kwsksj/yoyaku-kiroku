@@ -324,9 +324,8 @@ export function authenticateUser(phone) {
  */
 export function isAdminLogin(phone) {
   try {
-    const adminPassword = PropertiesService.getScriptProperties().getProperty(
-      'ADMIN_PASSWORD',
-    );
+    const adminPassword =
+      PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
 
     if (!adminPassword) {
       Logger.log(
@@ -1266,9 +1265,7 @@ export function setupAdminPassword(password) {
       password,
     );
     Logger.log(`管理者パスワードを設定しました: ${password}`);
-    Logger.log(
-      '注意: このパスワードは電話番号形式で正規化されて比較されます',
-    );
+    Logger.log('注意: このパスワードは電話番号形式で正規化されて比較されます');
   } catch (error) {
     Logger.log(`管理者パスワード設定エラー: ${error.message}`);
   }
@@ -1281,9 +1278,8 @@ export function setupAdminPassword(password) {
  */
 export function getAdminPassword_DEV() {
   try {
-    const password = PropertiesService.getScriptProperties().getProperty(
-      'ADMIN_PASSWORD',
-    );
+    const password =
+      PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
     if (password) {
       Logger.log(`現在の管理者パスワード: ${password}`);
     } else {

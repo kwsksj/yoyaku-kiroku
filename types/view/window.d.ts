@@ -192,6 +192,30 @@ declare global {
     tailwind?: any;
     server?: any;
     ModalManager?: ModalManager;
+
+    // --- Participants WebApp ---
+    ParticipantsApp?: {
+      init: () => void;
+      loadLessons: () => void;
+      loadReservationsForLesson: (lessonId: string) => void;
+      loadStudentDetails: (studentId: string) => void;
+      showLessonListView: () => void;
+      showReservationsView: () => void;
+      showStudentDetailView: () => void;
+      getState: () => any;
+    };
+    ParticipantsViews?: {
+      renderLessonList: (lessons: any[]) => string;
+      renderReservationsList: (lesson: any, reservations: any[]) => string;
+      renderStudentDetail: (student: any, isAdmin: boolean) => string;
+      renderError: (message: string) => string;
+    };
+    ParticipantsHandlers?: {
+      onLessonClick: (lessonId: string) => void;
+      onStudentClick: (studentId: string) => void;
+      onBackToListClick: () => void;
+      onBackToReservationsClick: () => void;
+    };
   }
 
   /**
@@ -262,6 +286,30 @@ declare global {
   function getPaymentOptionsHtml(selectedValue?: string): string;
 
   var appWindow: Window & typeof globalThis;
+
+  // Participants WebApp globals
+  var ParticipantsApp: {
+    init: () => void;
+    loadLessons: () => void;
+    loadReservationsForLesson: (lessonId: string) => void;
+    loadStudentDetails: (studentId: string) => void;
+    showLessonListView: () => void;
+    showReservationsView: () => void;
+    showStudentDetailView: () => void;
+    getState: () => any;
+  };
+  var ParticipantsViews: {
+    renderLessonList: (lessons: any[]) => string;
+    renderReservationsList: (lesson: any, reservations: any[]) => string;
+    renderStudentDetail: (student: any, isAdmin: boolean) => string;
+    renderError: (message: string) => string;
+  };
+  var ParticipantsHandlers: {
+    onLessonClick: (lessonId: string) => void;
+    onStudentClick: (studentId: string) => void;
+    onBackToListClick: () => void;
+    onBackToReservationsClick: () => void;
+  };
 }
 
 export type AppWindow = Window & typeof globalThis;

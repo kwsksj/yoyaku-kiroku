@@ -52,39 +52,39 @@ _補足: 今回はデータの閲覧（読み取り）機能に限定し、情�
 #### UIコンポーネント
 
 1. **レッスン選択ドロップダウン:**
-    - システムに登録されている全ての `Lesson` を選択肢として表示します。
+   - システムに登録されている全ての `Lesson` を選択肢として表示します。
 2. **参加者テーブル:**
-    - 選択された `Lesson` に紐づく予約情報の一覧を表示します。
-    - 「本名」または「ニックネーム」列は、生徒詳細ページへのリンクとして機能します。
+   - 選択された `Lesson` に紐づく予約情報の一覧を表示します。
+   - 「本名」または「ニックネーム」列は、生徒詳細ページへのリンクとして機能します。
 
 #### 表示項目（テーブル列）
 
-| ヘッダー名     | データ項目                      | 権限           | 備考                             |
-| -------------- | ------------------------------- | -------------- | -------------------------------- |
-| 日付           | `ReservationCore.date`          | 全員           |                                  |
-| 教室           | `LessonCore.classroom`          | 全員           |                                  |
-| 会場           | `LessonCore.venue`              | 全員           |                                  |
-| 開始時刻       | `ReservationCore.startTime`     | 全員           |                                  |
-| 終了時刻       | `ReservationCore.endTime`       | 全員           |                                  |
-| ステータス     | `ReservationCore.status`        | 全員           |                                  |
-| 本名           | `UserCore.realName`             | **管理者のみ** |                                  |
-| ニックネーム   | `UserCore.nickname`             | 全員           | 生徒詳細ページへのリンク         |
-| 表示名         | `UserCore.displayName`          | 全員           | nicknameが未設定の場合の代替     |
-| 初回           | `ReservationCore.firstLecture`  | 全員           | (例: "●" や "初回" のような表示) |
-| 彫刻刀レンタル | `ReservationCore.chiselRental`  | 全員           | (例: "●" や "あり" のような表示) |
-| 制作メモ       | `ReservationCore.workInProgress`| 全員           |                                  |
-| order          | `ReservationCore.order`         | 全員           | 注文内容                         |
+| ヘッダー名     | データ項目                       | 権限           | 備考                             |
+| -------------- | -------------------------------- | -------------- | -------------------------------- |
+| 日付           | `ReservationCore.date`           | 全員           |                                  |
+| 教室           | `LessonCore.classroom`           | 全員           |                                  |
+| 会場           | `LessonCore.venue`               | 全員           |                                  |
+| 開始時刻       | `ReservationCore.startTime`      | 全員           |                                  |
+| 終了時刻       | `ReservationCore.endTime`        | 全員           |                                  |
+| ステータス     | `ReservationCore.status`         | 全員           |                                  |
+| 本名           | `UserCore.realName`              | **管理者のみ** |                                  |
+| ニックネーム   | `UserCore.nickname`              | 全員           | 生徒詳細ページへのリンク         |
+| 表示名         | `UserCore.displayName`           | 全員           | nicknameが未設定の場合の代替     |
+| 初回           | `ReservationCore.firstLecture`   | 全員           | (例: "●" や "初回" のような表示) |
+| 彫刻刀レンタル | `ReservationCore.chiselRental`   | 全員           | (例: "●" や "あり" のような表示) |
+| 制作メモ       | `ReservationCore.workInProgress` | 全員           |                                  |
+| order          | `ReservationCore.order`          | 全員           | 注文内容                         |
 
 ### 2.3. 生徒詳細ページ
 
 #### UIコンポーネント
 
 1. **戻るボタン:**
-    - レッスン別参加者リスト画面の表示に戻ります。
+   - レッスン別参加者リスト画面の表示に戻ります。
 2. **生徒情報セクション:**
-    - 顧客の基本情報を表示します。
+   - 顧客の基本情報を表示します。
 3. **予約履歴セクション:**
-    - 該当顧客の過去の予約履歴（よやくカード、きろくカード）をテーブルで表示します。
+   - 該当顧客の過去の予約履歴（よやくカード、きろくカード）をテーブルで表示します。
 
 #### 表示項目（生徒情報）
 
@@ -321,21 +321,21 @@ _補足: 今回はデータの閲覧（読み取り）機能に限定し、情�
 
 ```javascript
 // 13_WebApp_Components.js を活用
-Components.dropdown()         // レッスン選択ドロップダウン
-Components.table()            // 参加者リストテーブル
-Components.button()           // 戻るボタンなど
-Components.cardContainer()    // 生徒詳細カード
-Components.loader()           // ローディング表示
+Components.dropdown(); // レッスン選択ドロップダウン
+Components.table(); // 参加者リストテーブル
+Components.button(); // 戻るボタンなど
+Components.cardContainer(); // 生徒詳細カード
+Components.loader(); // ローディング表示
 ```
 
 **デザインシステムの遵守**:
 
 ```javascript
 // 11_WebApp_Config.js の DesignConfig を使用
-DesignConfig.colors           // カラーパレット
-DesignConfig.spacing          // 余白・サイズ
-DesignConfig.typography       // フォント設定
-DesignConfig.breakpoints      // レスポンシブ対応
+DesignConfig.colors; // カラーパレット
+DesignConfig.spacing; // 余白・サイズ
+DesignConfig.typography; // フォント設定
+DesignConfig.breakpoints; // レスポンシブ対応
 ```
 
 #### Task 2.3: 参加者リスト画面の実装
@@ -344,10 +344,7 @@ DesignConfig.breakpoints      // レスポンシブ対応
 
    ```javascript
    // ページロード時
-   google.script.run
-     .withSuccessHandler(handleLessonsLoaded)
-     .withFailureHandler(ErrorHandler.handleApiError)
-     .getLessonsForParticipantsView();
+   google.script.run.withSuccessHandler(handleLessonsLoaded).withFailureHandler(ErrorHandler.handleApiError).getLessonsForParticipantsView();
    ```
 
 2. **ドロップダウン生成**: `Components.dropdown()` を使用
@@ -365,10 +362,7 @@ DesignConfig.breakpoints      // レスポンシブ対応
 
    ```javascript
    // ニックネームクリック時
-   google.script.run
-     .withSuccessHandler(handleStudentDetailsLoaded)
-     .withFailureHandler(ErrorHandler.handleApiError)
-     .getStudentDetailsForParticipantsView(targetStudentId, requestingStudentId);
+   google.script.run.withSuccessHandler(handleStudentDetailsLoaded).withFailureHandler(ErrorHandler.handleApiError).getStudentDetailsForParticipantsView(targetStudentId, requestingStudentId);
    ```
 
 2. **情報カードの生成**: `Components.cardContainer()` を使用
@@ -410,13 +404,13 @@ DesignConfig.breakpoints      // レスポンシブ対応
 1. **WebAppを開く**:
 
    ```javascript
-   mcp__devtools__new_page({ url: "<test-env-url>" })
+   mcp__devtools__new_page({ url: '<test-env-url>' });
    ```
 
 2. **スナップショット取得**:
 
    ```javascript
-   mcp__devtools__take_snapshot()
+   mcp__devtools__take_snapshot();
    ```
 
 3. **レッスン選択とテーブル確認**:
@@ -431,13 +425,13 @@ DesignConfig.breakpoints      // レスポンシブ対応
 5. **コンソールログの確認**:
 
    ```javascript
-   mcp__devtools__list_console_messages()
+   mcp__devtools__list_console_messages();
    ```
 
 6. **スクリーンショット取得**（必要に応じて）:
 
    ```javascript
-   mcp__devtools__take_screenshot({ filePath: "test-screenshots/participants-view.png" })
+   mcp__devtools__take_screenshot({ filePath: 'test-screenshots/participants-view.png' });
    ```
 
 #### Task 3.3: 権限テスト
@@ -484,9 +478,9 @@ APIで交換されるデータの型定義案です。管理者限定の項目�
  */
 interface ParticipantsViewLessonItem {
   lessonId: string;
-  classroom: string;  // LessonCore.classroom
-  date: string;       // LessonCore.date
-  venue?: string;     // LessonCore.venue
+  classroom: string; // LessonCore.classroom
+  date: string; // LessonCore.date
+  venue?: string; // LessonCore.venue
 }
 
 /**
@@ -509,7 +503,7 @@ interface ParticipantsViewReservation {
   // 生徒情報（公開）
   studentId: string;
   nickname?: string;
-  displayName?: string;  // nicknameの代替
+  displayName?: string; // nicknameの代替
 
   // 生徒情報（管理者のみ）
   realName?: string;
@@ -532,7 +526,7 @@ interface ParticipantsViewStudentDetail {
   studentId: string;
   nickname?: string;
   displayName?: string;
-  participationCount: number;  // 予約履歴から計算
+  participationCount: number; // 予約履歴から計算
 
   // 詳細情報（管理者 or 本人のみ）
   realName?: string;

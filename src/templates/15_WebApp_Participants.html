@@ -1,0 +1,65 @@
+<reference path="../../types/index.d.ts" />
+<!--
+=================================================================
+【ファイル名】: 15_WebApp_Participants.html
+【バージョン】: 1.0
+【更新日時】: 2025-10-30
+【説明】:
+- レッスン参加者リスト表示WebApp
+- コミュニティ感を醸成するための参加者情報閲覧機能
+- 管理者と一般生徒で表示情報を切り替え
+=================================================================
+-->
+<!doctype html>
+<html lang="ja" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <base target="_top" />
+    <title>参加者リスト - 川崎誠二木彫り教室</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
+    <style>
+      body {
+        font-family: 'Zen Kaku Gothic New', sans-serif;
+      }
+    </style>
+  </head>
+
+  <body class="bg-brand-bg h-full">
+    <!-- アプリケーションのメインコンテナ -->
+    <div id="app" class="container mx-auto px-4 max-w-4xl">
+      <!-- ローディング画面 -->
+      <div
+        id="loading"
+        class="loading-fade fixed inset-0 flex flex-col items-center justify-center z-50"
+      >
+        <div class="spinner mb-4"></div>
+        <p id="loading-message" class="text-brand-text">読み込み中...</p>
+      </div>
+
+      <!-- メインコンテンツ -->
+      <main id="main-content" class="py-6 embedded-no-padding">
+        <div id="view-container"></div>
+      </main>
+
+      <!-- モーダルコンテナ -->
+      <div id="modal-container"></div>
+    </div>
+
+    <!-- JavaScriptはビルドプロセスで自動注入されます -->
+  </body>
+</html>

@@ -735,7 +735,9 @@ export function getLessonsForParticipantsView(
 
     // 過去データを除外する場合
     if (!includeHistory) {
-      lessonsWithDate = lessonsWithDate.filter(lesson => lesson._dateObj >= today);
+      lessonsWithDate = lessonsWithDate.filter(
+        lesson => lesson._dateObj >= today,
+      );
     }
 
     // 日付順にソート（新しい順）
@@ -999,7 +1001,8 @@ export function getStudentDetailsForParticipantsView(
         phone: targetStudent.phone || '',
         email: targetStudent.email || '',
         wantsEmail: targetStudent.wantsEmail || false,
-        wantsScheduleNotification: targetStudent.wantsScheduleNotification || false,
+        wantsScheduleNotification:
+          targetStudent.wantsScheduleNotification || false,
         notificationDay: targetStudent.notificationDay || 0,
         notificationHour: targetStudent.notificationHour || 0,
         ageGroup: targetStudent.ageGroup || '',

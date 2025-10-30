@@ -24,5 +24,8 @@ export * from './14_WebApp_Handlers_History';
 export * from './14_WebApp_Handlers_Reservation';
 export * from './14_WebApp_Handlers_Utils';
 export * from './14_WebApp_Handlers';
+export * from './15_WebApp_Participants_Core';
+export * from './15_WebApp_Participants_Handlers';
+export * from './15_WebApp_Participants_Views';
 
 export {};
