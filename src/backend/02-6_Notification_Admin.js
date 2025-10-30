@@ -362,7 +362,7 @@ function _buildUserCreationInfoSection(userData) {
  */
 function _buildUserOtherInfoSection(userData) {
   const notificationInfo = userData.wantsScheduleNotification
-    ? `はい (${userData.notificationDay || '未設定'}曜日 ${userData.notificationHour || '未設定'}時)`
+    ? `はい (${userData.notificationDay || '未設定'}日 ${userData.notificationHour || '未設定'}時)`
     : 'いいえ';
 
   return (
