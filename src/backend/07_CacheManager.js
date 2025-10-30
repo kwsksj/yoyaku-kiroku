@@ -1077,14 +1077,11 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     // デフォルトの日付範囲を設定（今日から1年後まで）
     const today = new Date();
 
-    const oldestDate = new Date(
-      today.getFullYear() - 1,
-      today.getMonth(),
-      today.getDate(),
-    );
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const startDate =
       fromDate ||
-      Utilities.formatDate(oldestDate, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+      Utilities.formatDate(sevenDaysAgo, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
 
     const oneYearLater = new Date(
       today.getFullYear() + 1,
@@ -1277,6 +1274,14 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
             }
 
             scheduleObj[propertyName] = value;
+          }
+
+          if (Array.isArray(scheduleObj.reservationIds)) {
+            scheduleObj.reservationIds = scheduleObj.reservationIds
+              .map(id => String(id || ''))
+              .filter(id => id !== '');
+          } else {
+            scheduleObj.reservationIds = [];
           }
 
           return scheduleObj;
