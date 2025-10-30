@@ -29,7 +29,10 @@ import {
   registerNewUser,
   isAdminUser,
 } from './04_Backend_User.js';
-import { getCachedStudentById } from './08_Utilities.js';
+import {
+  getCachedStudentById,
+  getCachedReservationsAsObjects,
+} from './08_Utilities.js';
 import {
   makeReservation,
   cancelReservation,
@@ -704,7 +707,7 @@ export function getLessonsForParticipantsView(
       CACHE_KEYS.MASTER_SCHEDULE_DATA,
     );
 
-    if (!scheduleMasterCache || !scheduleMasterCache['items']) {
+    if (!scheduleMasterCache || !Array.isArray(scheduleMasterCache.schedule)) {
       Logger.log('スケジュールマスターキャッシュが見つかりません');
       return createApiErrorResponse(
         'レッスン情報の取得に失敗しました。しばらくしてから再度お試しください。',
@@ -714,9 +717,8 @@ export function getLessonsForParticipantsView(
     const today = new Date();
     today.setHours(0, 0, 0, 0); // 今日の0時0分0秒に設定
 
-    // レッスン一覧をフィルタリング
-    const rawItems = /** @type {any[]} */ (scheduleMasterCache['items']);
-    let lessons = rawItems.map((/** @type {any} */ lesson) => {
+    // レッスン一覧をフィルタリング（内部フィールド付き）
+    let lessonsWithDate = scheduleMasterCache.schedule.map(lesson => {
       const lessonDate = new Date(lesson.date);
       lessonDate.setHours(0, 0, 0, 0);
 
@@ -733,14 +735,14 @@ export function getLessonsForParticipantsView(
 
     // 過去データを除外する場合
     if (!includeHistory) {
-      lessons = lessons.filter((/** @type {any} */ lesson) => lesson._dateObj >= today);
+      lessonsWithDate = lessonsWithDate.filter(lesson => lesson._dateObj >= today);
     }
 
     // 日付順にソート（新しい順）
-    lessons.sort((/** @type {any} */ a, /** @type {any} */ b) => b._dateObj.getTime() - a._dateObj.getTime());
+    lessonsWithDate.sort((a, b) => b._dateObj.getTime() - a._dateObj.getTime());
 
-    // 内部フィールドを削除
-    lessons = lessons.map((/** @type {any} */ lesson) => {
+    // 内部フィールドを削除して最終形にする
+    const lessons = lessonsWithDate.map(lesson => {
       const { _dateObj, ...rest } = lesson;
       return rest;
     });
@@ -786,13 +788,11 @@ export function getReservationsForLesson(lessonId, studentId) {
     const isAdmin = isAdminUser(studentId);
     Logger.log(`管理者権限: ${isAdmin}`);
 
-    // キャッシュから予約情報を取得
-    const allReservationsCache = getTypedCachedData(
-      CACHE_KEYS.ALL_RESERVATIONS,
-    );
+    // キャッシュから予約情報を取得（ReservationCore[]として取得）
+    const allReservations = getCachedReservationsAsObjects();
 
-    if (!allReservationsCache || !allReservationsCache['items']) {
-      Logger.log('予約キャッシュが見つかりません');
+    if (!allReservations || allReservations.length === 0) {
+      Logger.log('予約データが見つかりません');
       return createApiErrorResponse(
         '予約情報の取得に失敗しました。しばらくしてから再度お試しください。',
       );
@@ -803,7 +803,7 @@ export function getReservationsForLesson(lessonId, studentId) {
       CACHE_KEYS.MASTER_SCHEDULE_DATA,
     );
 
-    if (!scheduleMasterCache || !scheduleMasterCache['items']) {
+    if (!scheduleMasterCache || !Array.isArray(scheduleMasterCache.schedule)) {
       Logger.log('スケジュールマスターキャッシュが見つかりません');
       return createApiErrorResponse(
         'レッスン情報の取得に失敗しました。しばらくしてから再度お試しください。',
@@ -811,9 +811,8 @@ export function getReservationsForLesson(lessonId, studentId) {
     }
 
     // 該当レッスンを検索
-    const scheduleMasterItems = /** @type {any[]} */ (scheduleMasterCache['items']);
-    const targetLesson = scheduleMasterItems.find(
-      (/** @type {any} */ lesson) => lesson.lessonId === lessonId,
+    const targetLesson = scheduleMasterCache.schedule.find(
+      lesson => lesson.lessonId === lessonId,
     );
 
     if (!targetLesson) {
@@ -821,15 +820,14 @@ export function getReservationsForLesson(lessonId, studentId) {
     }
 
     // 該当レッスンの予約をフィルタリング
-    const allReservationItems = /** @type {any[]} */ (allReservationsCache['items']);
-    const lessonReservations = allReservationItems.filter(
-      (/** @type {any} */ reservation) => reservation.lessonId === lessonId,
+    const lessonReservations = allReservations.filter(
+      reservation => reservation.lessonId === lessonId,
     );
 
     Logger.log(`該当レッスンの予約: ${lessonReservations.length}件`);
 
     // 予約情報に生徒情報を結合し、権限に応じてフィルタリング
-    const reservationsWithUserInfo = lessonReservations.map((/** @type {any} */ reservation) => {
+    const reservationsWithUserInfo = lessonReservations.map(reservation => {
       // 生徒情報を取得
       const student = getCachedStudentById(reservation.studentId);
 
@@ -926,13 +924,11 @@ export function getStudentDetailsForParticipantsView(
       return createApiErrorResponse('指定された生徒が見つかりません');
     }
 
-    // 予約履歴を取得
-    const allReservationsCache = getTypedCachedData(
-      CACHE_KEYS.ALL_RESERVATIONS,
-    );
+    // 予約履歴を取得（ReservationCore[]として取得）
+    const allReservations = getCachedReservationsAsObjects();
 
-    if (!allReservationsCache || !allReservationsCache['items']) {
-      Logger.log('予約キャッシュが見つかりません');
+    if (!allReservations || allReservations.length === 0) {
+      Logger.log('予約データが見つかりません');
       return createApiErrorResponse(
         '予約情報の取得に失敗しました。しばらくしてから再度お試しください。',
       );
@@ -943,7 +939,7 @@ export function getStudentDetailsForParticipantsView(
       CACHE_KEYS.MASTER_SCHEDULE_DATA,
     );
 
-    if (!scheduleMasterCache || !scheduleMasterCache['items']) {
+    if (!scheduleMasterCache || !Array.isArray(scheduleMasterCache.schedule)) {
       Logger.log('スケジュールマスターキャッシュが見つかりません');
       return createApiErrorResponse(
         'レッスン情報の取得に失敗しました。しばらくしてから再度お試しください。',
@@ -951,17 +947,15 @@ export function getStudentDetailsForParticipantsView(
     }
 
     // 該当生徒の予約履歴をフィルタリング
-    const allReservationItems = /** @type {any[]} */ (allReservationsCache['items']);
-    const studentReservations = allReservationItems.filter(
-      (/** @type {any} */ reservation) => reservation.studentId === targetStudentId,
+    const studentReservations = allReservations.filter(
+      reservation => reservation.studentId === targetStudentId,
     );
 
     // 予約履歴にレッスン情報を結合
-    const scheduleMasterItems = /** @type {any[]} */ (scheduleMasterCache['items']);
     const reservationHistory = studentReservations
-      .map((/** @type {any} */ reservation) => {
-        const lesson = scheduleMasterItems.find(
-          (/** @type {any} */ l) => l.lessonId === reservation.lessonId,
+      .map(reservation => {
+        const lesson = scheduleMasterCache.schedule.find(
+          l => l.lessonId === reservation.lessonId,
         );
 
         return {
@@ -976,14 +970,14 @@ export function getStudentDetailsForParticipantsView(
           _dateObj: new Date(reservation.date || lesson?.date || ''),
         };
       })
-      .sort((/** @type {any} */ a, /** @type {any} */ b) => b._dateObj.getTime() - a._dateObj.getTime()) // 新しい順
-      .map((/** @type {any} */ item) => {
+      .sort((a, b) => b._dateObj.getTime() - a._dateObj.getTime()) // 新しい順
+      .map(item => {
         const { _dateObj, ...rest } = item;
         return rest;
       }); // 内部フィールドを削除
 
     // 参加回数を計算（完了・会計待ち・会計済みのみカウント）
-    const participationCount = studentReservations.filter((/** @type {any} */ r) =>
+    const participationCount = studentReservations.filter(r =>
       ['完了', '会計待ち', '会計済み'].includes(r.status),
     ).length;
 
