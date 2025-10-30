@@ -102,3 +102,34 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo: {
     reservationId: string;
     studentId: string;
 }): ApiResponseGeneric;
+/**
+ * 参加者リスト表示用のレッスン一覧を取得する
+ * - キャッシュから6ヶ月前〜1年後のレッスン情報を取得
+ * - 管理者・一般生徒を問わず、同じデータを返す（レッスン情報は公開情報）
+ *
+ * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用に予約）
+ * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
+ * @returns {ApiResponseGeneric} レッスン一覧
+ */
+export function getLessonsForParticipantsView(studentId: string, includeHistory?: boolean): ApiResponseGeneric;
+/**
+ * 特定レッスンの予約情報リストを取得する（権限に応じてフィルタリング）
+ * - 管理者: 全項目を返す（本名、電話番号、メールアドレスなど）
+ * - 一般生徒: 公開情報のみ（本名、電話番号、メールアドレスを除外）
+ *
+ * @param {string} lessonId - レッスンID
+ * @param {string} studentId - リクエストしている生徒のID
+ * @returns {ApiResponseGeneric} 予約情報リスト
+ */
+export function getReservationsForLesson(lessonId: string, studentId: string): ApiResponseGeneric;
+/**
+ * 特定生徒の詳細情報と予約履歴を取得する（権限に応じてフィルタリング）
+ * - 管理者: 全項目を返す
+ * - 一般生徒（本人）: 自分の情報のみ閲覧可能
+ * - 一般生徒（他人）: 公開情報のみ（ニックネーム、参加回数など）
+ *
+ * @param {string} targetStudentId - 表示対象の生徒ID
+ * @param {string} requestingStudentId - リクエストしている生徒のID
+ * @returns {ApiResponseGeneric} 生徒詳細情報と予約履歴
+ */
+export function getStudentDetailsForParticipantsView(targetStudentId: string, requestingStudentId: string): ApiResponseGeneric;
