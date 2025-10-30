@@ -803,10 +803,13 @@ export function getLessonsForParticipantsView(
       return rest;
     });
 
-    Logger.log(`getLessonsForParticipantsView完了: ${lessons.length}件`);
+    Logger.log(
+      `getLessonsForParticipantsView完了: ${lessons.length}件, isAdmin=${isAdmin}`,
+    );
 
     return createApiResponse(true, {
       lessons: lessons,
+      isAdmin: isAdmin,
       message: 'レッスン一覧を取得しました',
     });
   } catch (error) {

@@ -58,12 +58,18 @@ function loadParticipantsView(forceReload = false) {
       console.log('✅ レッスン一覧取得成功:', response);
 
       if (response.success) {
+        const nextIsAdmin =
+          Object.prototype.hasOwnProperty.call(response.data, 'isAdmin') &&
+          response.data.isAdmin !== undefined
+            ? response.data.isAdmin
+            : state.participantsIsAdmin;
+
         // stateManagerに保存
         participantsHandlersStateManager.dispatch({
           type: 'UPDATE_STATE',
           payload: {
             participantsLessons: response.data.lessons,
-            participantsIsAdmin: response.data.isAdmin,
+            participantsIsAdmin: nextIsAdmin,
             participantsSubView: 'list',
           },
         });
