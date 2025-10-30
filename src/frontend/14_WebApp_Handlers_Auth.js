@@ -88,9 +88,15 @@ export const authActionHandlers = {
         );
         console.log('📦 myReservations詳細:', response.data.myReservations);
 
+        // 管理者判定: isAdminフラグまたは電話番号がADMIN_PASSWORDと一致するか
+        const isAdmin = response.user?.isAdmin || response.isAdmin || false;
+
         // 完全なアプリ状態を一度に構築
+        /** @type {ViewType} */
+        const initialView = isAdmin ? 'participants' : 'dashboard';
+
         const newAppState = {
-          view: 'dashboard',
+          view: initialView,
           currentUser: response.user,
           myReservations: response.data.myReservations || [],
           lessons: response.data.lessons || [],
@@ -109,13 +115,23 @@ export const authActionHandlers = {
         hideLoading();
         debugLog('✅ 統合ログイン完了 - 完全なダッシュボード表示');
 
+        // 管理者の場合は参加者リスト用のデータも初期化（追加のAPIコールを避ける）
+        /** @type {Partial<UIState>} */
+        const statePayload = {
+          ...newAppState,
+          recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+          isDataFresh: true,
+        };
+
+        if (isAdmin) {
+          statePayload.participantsLessons = response.data.lessons || [];
+          statePayload.participantsIsAdmin = true;
+          statePayload.participantsSubView = 'list';
+        }
+
         authHandlersStateManager.dispatch({
           type: 'SET_STATE',
-          payload: {
-            ...newAppState,
-            recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
-            isDataFresh: true,
-          },
+          payload: statePayload,
         });
 
         // データ取得完了を記録（キャッシュ管理用）

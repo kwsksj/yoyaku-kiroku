@@ -37,7 +37,8 @@ export type ViewType =
   | 'registrationStep4'
   | 'editProfile'
   | 'complete'
-  | 'userSearch';
+  | 'userSearch'
+  | 'participants'; // 参加者リスト画面
 
 /**
  * 統一検索結果型
@@ -184,6 +185,14 @@ export interface UIState {
 
     // --- New Context for Forms ---
     currentReservationFormContext: ReservationFormContext | null;
+
+    // --- Participants View (Admin) ---
+    participantsSubView?: 'list' | 'reservations' | 'studentDetail';
+    participantsLessons?: LessonCore[];
+    participantsReservations?: ReservationCore[];
+    participantsSelectedLesson?: LessonCore | null;
+    participantsSelectedStudent?: UserCore | null;
+    participantsIsAdmin?: boolean;
 
     // --- Navigation History ---
     navigationHistory: StateNavigationHistoryEntry[];

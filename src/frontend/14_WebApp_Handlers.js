@@ -39,6 +39,7 @@ import {
   getRegistrationStep3View,
   getRegistrationStep4View,
 } from './13_WebApp_Views_Auth.js';
+import { getParticipantsView } from './13_WebApp_Views_Participants.js';
 
 // ================================================================
 // ハンドラ系モジュール
@@ -55,6 +56,7 @@ import {
 import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
+import { participantsActionHandlers } from './14_WebApp_Handlers_Participants.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -246,6 +248,9 @@ export function render() {
       v = getCompleteView(completionMessage);
       break;
     }
+    case 'participants':
+      v = getParticipantsView();
+      break;
   }
   const viewContainer = document.getElementById('view-container');
   if (viewContainer) {
@@ -374,6 +379,13 @@ window.onload = function () {
     // -----------------------------------------------------------------
     ...(typeof reservationActionHandlers !== 'undefined'
       ? reservationActionHandlers
+      : {}),
+
+    // =================================================================
+    // --- Participants Handlers (from 14_WebApp_Handlers_Participants.js) ---
+    // -----------------------------------------------------------------
+    ...(typeof participantsActionHandlers !== 'undefined'
+      ? participantsActionHandlers
       : {}),
 
     // =================================================================

@@ -28,6 +28,7 @@ import {
   authenticateUser,
   registerNewUser,
   isAdminUser,
+  isAdminLogin,
 } from './04_Backend_User.js';
 import {
   getCachedStudentById,
@@ -241,12 +242,19 @@ export function getLoginData(phone) {
         return fallbackResponse;
       }
 
-      // 3. レスポンス統合
+      // 3. 管理者判定
+      const isAdmin = authResult.user.studentId
+        ? isAdminUser(authResult.user.studentId)
+        : false;
+      Logger.log(`管理者判定: ${isAdmin}`);
+
+      // 4. レスポンス統合
       /** @type {AuthenticationResponse} */
       const result = {
         success: true,
         userFound: true,
         user: authResult.user,
+        isAdmin: isAdmin,
         data: {
           accountingMaster: batchResult.data['accounting'] || [],
           cacheVersions: /** @type {Record<string, unknown>} */ (
@@ -262,6 +270,53 @@ export function getLoginData(phone) {
     } else {
       // 4. 認証失敗時：ユーザー未登録
       Logger.log(`認証失敗: ${authResult.message || 'Unknown error'}`);
+
+      // 4-1. 管理者パスワードチェック（未登録でも管理者なら許可）
+      if (isAdminLogin(phone)) {
+        Logger.log('管理者パスワード一致 - 未登録でも管理者としてログイン');
+
+        // 管理者用ダミーユーザーオブジェクト
+        /** @type {UserCore} */
+        const adminUser = {
+          studentId: 'ADMIN',
+          phone: phone,
+          realName: '管理者',
+          displayName: '管理者',
+        };
+
+        // データ一括取得（管理者用）
+        const batchResult = getBatchData(['accounting', 'lessons'], null, null);
+        if (!batchResult.success) {
+          Logger.log('データ一括取得失敗（管理者）');
+          return /** @type {ApiErrorResponse} */ (
+            createApiErrorResponse(
+              'データの取得に失敗しました。しばらくしてから再度お試しください。',
+              true,
+            )
+          );
+        }
+
+        /** @type {AuthenticationResponse} */
+        const adminResponse = {
+          success: true,
+          userFound: true,
+          user: adminUser,
+          isAdmin: true,
+          data: {
+            accountingMaster: batchResult.data['accounting'] || [],
+            cacheVersions: /** @type {Record<string, unknown>} */ (
+              batchResult.data['cache-versions'] || {}
+            ),
+            lessons: batchResult.data['lessons'] || [],
+            myReservations: [],
+          },
+        };
+
+        Logger.log('管理者ログイン完了（未登録）');
+        return adminResponse;
+      }
+
+      // 4-2. 通常の認証失敗レスポンス
       /** @type {AuthenticationResponse} */
       const notFoundResponse = {
         success: true,
@@ -697,10 +752,9 @@ export function getLessonsForParticipantsView(
       `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}`,
     );
 
-    // studentIdの検証
-    if (!studentId) {
-      return createApiErrorResponse('生徒IDが必要です');
-    }
+    // 管理者判定（studentId="ADMIN"または未指定の場合）
+    const isAdmin = studentId === 'ADMIN' || !studentId;
+    Logger.log(`管理者モード: ${isAdmin}`);
 
     // キャッシュからレッスン情報を取得（6ヶ月前〜1年後のデータ）
     const scheduleMasterCache = getTypedCachedData(
@@ -782,12 +836,12 @@ export function getReservationsForLesson(lessonId, studentId) {
     );
 
     // パラメータ検証
-    if (!lessonId || !studentId) {
-      return createApiErrorResponse('レッスンIDと生徒IDが必要です');
+    if (!lessonId) {
+      return createApiErrorResponse('レッスンIDが必要です');
     }
 
-    // 管理者権限チェック
-    const isAdmin = isAdminUser(studentId);
+    // 管理者権限チェック（studentId="ADMIN"または登録済み管理者）
+    const isAdmin = studentId === 'ADMIN' || isAdminUser(studentId);
     Logger.log(`管理者権限: ${isAdmin}`);
 
     // キャッシュから予約情報を取得（ReservationCore[]として取得）
@@ -910,12 +964,13 @@ export function getStudentDetailsForParticipantsView(
     );
 
     // パラメータ検証
-    if (!targetStudentId || !requestingStudentId) {
-      return createApiErrorResponse('生徒IDが必要です');
+    if (!targetStudentId) {
+      return createApiErrorResponse('対象生徒IDが必要です');
     }
 
-    // 権限チェック
-    const isAdmin = isAdminUser(requestingStudentId);
+    // 権限チェック（requestingStudentId="ADMIN"または登録済み管理者）
+    const isAdmin =
+      requestingStudentId === 'ADMIN' || isAdminUser(requestingStudentId);
     const isSelf = targetStudentId === requestingStudentId;
     Logger.log(`管理者権限: ${isAdmin}, 本人: ${isSelf}`);
 

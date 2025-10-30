@@ -463,6 +463,8 @@ export interface AuthenticationResponse {
   userFound: boolean;
   /** 認証されたユーザー情報 */
   user: UserCore | null;
+  /** 管理者フラグ */
+  isAdmin?: boolean;
   /** アプリケーション初期データ */
   data: InitialAppDataPayload;
   /** メッセージ（エラー時など） */

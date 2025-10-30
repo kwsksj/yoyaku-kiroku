@@ -15,5 +15,6 @@ export * from './components';
 export * from './dom';
 export * from './handlers';
 export * from './design-system';
+export * from './global';
 
 export {};
