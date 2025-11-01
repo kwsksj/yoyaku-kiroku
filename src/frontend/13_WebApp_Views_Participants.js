@@ -52,7 +52,10 @@ function renderLessonList(lessons) {
   if (!lessons || lessons.length === 0) {
     return `
       <div class="${DesignConfig.layout.container}">
-        <h1 class="${DesignConfig.text.heading} mb-6">レッスン一覧</h1>
+        ${Components.pageHeader({
+          title: 'レッスン一覧',
+          showBackButton: false,
+        })}
         <div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 text-center">
           <p class="${DesignConfig.text.body}">レッスンが見つかりません</p>
         </div>
@@ -87,7 +90,10 @@ function renderLessonList(lessons) {
 
   return `
     <div class="${DesignConfig.layout.container}">
-      <h1 class="${DesignConfig.text.heading} mb-6 text-center">レッスン一覧</h1>
+      ${Components.pageHeader({
+        title: 'レッスン一覧',
+        showBackButton: false,
+      })}
       <div class="${DesignConfig.cards.container}">
         ${lessonsHtml}
       </div>
@@ -143,15 +149,12 @@ function renderReservationsList(lesson, reservations) {
 
   return `
     <div class="${DesignConfig.layout.container}" style="max-width: 1200px;">
-      <button
-        class="${DesignConfig.buttons.secondary} mb-4"
-        onclick="actionHandlers.backToParticipantsList()"
-      >
-        ← レッスン一覧に戻る
-      </button>
+      ${Components.pageHeader({
+        title: `${escapeHTML(lesson.classroom)} - ${formattedDate}`,
+        backAction: 'backToParticipantsList',
+      })}
 
-      <h1 class="${DesignConfig.text.heading} mb-2">${escapeHTML(lesson.classroom)}</h1>
-      <p class="${DesignConfig.text.body} mb-4 text-gray-600">${formattedDate} ${lesson.venue ? `- ${escapeHTML(lesson.venue)}` : ''}</p>
+      ${lesson.venue ? `<p class="${DesignConfig.text.body} mb-4 text-gray-600">${escapeHTML(lesson.venue)}</p>` : ''}
 
       <div class="overflow-x-auto bg-ui-surface border-2 border-ui-border rounded-lg">
         <table class="w-full">
@@ -241,14 +244,10 @@ function renderStudentDetail(student, isAdmin) {
 
   return `
     <div class="${DesignConfig.layout.container}">
-      <button
-        class="${DesignConfig.buttons.secondary} mb-4"
-        onclick="actionHandlers.backToParticipantsReservations()"
-      >
-        ← 参加者リストに戻る
-      </button>
-
-      <h1 class="${DesignConfig.text.heading} mb-6">${escapeHTML(displayName)}</h1>
+      ${Components.pageHeader({
+        title: escapeHTML(displayName),
+        backAction: 'backToParticipantsReservations',
+      })}
 
       <div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 mb-6">
         ${publicInfoHtml}
