@@ -5,6 +5,20 @@ export namespace participantsActionHandlers {
     export { backToParticipantsList };
     export { backToParticipantsReservations };
 }
+export type CacheEntry = {
+    /**
+     * - キャッシュされたデータ
+     */
+    data: any;
+    /**
+     * - キャッシュ保存時刻
+     */
+    timestamp: number;
+    /**
+     * - キャッシュ有効期限（ミリ秒）
+     */
+    maxAge: number;
+};
 /**
  * 参加者リストビュー初期化
  * ログイン成功後、管理者の場合に呼ばれる

@@ -16,6 +16,332 @@ import { render } from './14_WebApp_Handlers.js';
 /** @type {SimpleStateManager} */
 const participantsHandlersStateManager = appWindow.stateManager;
 
+// =================================================================
+// --- キャッシュ管理システム ---
+// -----------------------------------------------------------------
+// 予約データと生徒データのキャッシュを一元管理
+// =================================================================
+
+/**
+ * @typedef {Object} CacheEntry
+ * @property {any} data - キャッシュされたデータ
+ * @property {number} timestamp - キャッシュ保存時刻
+ * @property {number} maxAge - キャッシュ有効期限（ミリ秒）
+ */
+
+/** @type {Record<string, CacheEntry>} */
+const reservationsCache = {};
+
+/** @type {Record<string, CacheEntry>} */
+const studentsCache = {};
+
+/** @type {Record<string, boolean>} */
+const fetchingReservations = {};
+
+/** @type {Record<string, boolean>} */
+const fetchingStudents = {};
+
+/** @type {string[]} */
+const reservationsCacheKeys = [];
+
+/** @type {string[]} */
+const studentsCacheKeys = [];
+
+const MAX_CACHE_SIZE = 10;
+const CACHE_MAX_AGE = 5 * 60 * 1000; // 5分
+
+/**
+ * キャッシュが有効かチェック
+ * @param {Record<string, CacheEntry>} cache - キャッシュオブジェクト
+ * @param {string} key - キャッシュキー
+ * @returns {boolean}
+ */
+function isCacheValid(cache, key) {
+  const entry = cache[key];
+  if (!entry) return false;
+  const age = Date.now() - entry.timestamp;
+  return age < entry.maxAge;
+}
+
+/**
+ * キャッシュにデータを保存（LRU方式）
+ * @param {Record<string, CacheEntry>} cache - キャッシュオブジェクト
+ * @param {string[]} cacheKeys - キャッシュキーの配列
+ * @param {string} key - キャッシュキー
+ * @param {any} data - 保存するデータ
+ */
+function saveToCache(cache, cacheKeys, key, data) {
+  // 既存のキーを削除
+  const existingIndex = cacheKeys.indexOf(key);
+  if (existingIndex !== -1) {
+    cacheKeys.splice(existingIndex, 1);
+  }
+
+  // サイズ制限チェック
+  if (cacheKeys.length >= MAX_CACHE_SIZE) {
+    const oldest = cacheKeys.shift();
+    if (oldest) {
+      delete cache[oldest];
+      console.log(`🗑️ 最古のキャッシュを削除: ${oldest}`);
+    }
+  }
+
+  // 新しいデータを保存
+  cache[key] = {
+    data,
+    timestamp: Date.now(),
+    maxAge: CACHE_MAX_AGE,
+  };
+  cacheKeys.push(key);
+  console.log(`💾 キャッシュ保存: ${key}`);
+}
+
+// =================================================================
+// --- 統一データ取得関数 ---
+// -----------------------------------------------------------------
+// キャッシュ、フェッチ状態管理、Optimistic UIを統合
+// =================================================================
+
+/**
+ * 予約データを取得（キャッシュ + Optimistic UI）
+ * @param {string} lessonId - レッスンID
+ * @param {string} studentId - 生徒ID
+ * @param {Object} options - オプション
+ * @param {boolean} [options.forceRefresh=false] - 強制再取得
+ * @param {boolean} [options.shouldShowLoading=true] - ローディング表示
+ * @param {boolean} [options.prefetch=false] - プリフェッチモード
+ * @returns {Promise<any>}
+ */
+function fetchReservationsForLesson(lessonId, studentId, options = {}) {
+  const {
+    forceRefresh = false,
+    shouldShowLoading = true,
+    prefetch = false,
+  } = options;
+
+  // 1. フェッチ中チェック
+  if (fetchingReservations[lessonId] && !forceRefresh) {
+    console.log(`⏳ 既に取得中: ${lessonId} - スキップ`);
+    return Promise.resolve(null);
+  }
+
+  // 2. キャッシュチェック
+  if (!forceRefresh && isCacheValid(reservationsCache, lessonId)) {
+    console.log(`✅ キャッシュ使用: ${lessonId}`);
+    const cachedData = reservationsCache[lessonId].data;
+
+    if (!prefetch) {
+      // Optimistic UI: 即座に表示
+      const state = participantsHandlersStateManager.getState();
+      const selectedLesson = state.participantsLessons?.find(
+        /** @param {import('../../types/core/lesson').LessonCore} l */
+        l => l.lessonId === lessonId,
+      );
+
+      participantsHandlersStateManager.dispatch({
+        type: 'UPDATE_STATE',
+        payload: {
+          participantsSelectedLesson: selectedLesson,
+          participantsReservations: cachedData,
+          participantsSubView: 'reservations',
+        },
+      });
+      render();
+
+      // バックグラウンドで最新データ取得（控えめ）
+      console.log('🔄 バックグラウンドで最新データ取得中...');
+      fetchReservationsForLesson(lessonId, studentId, {
+        shouldShowLoading: false,
+        forceRefresh: true,
+      });
+    }
+
+    return Promise.resolve(cachedData);
+  }
+
+  // 3. API呼び出し
+  if (shouldShowLoading && !prefetch) {
+    showLoading('participants');
+  }
+
+  fetchingReservations[lessonId] = true;
+
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler(function (response) {
+        console.log(`✅ 予約情報取得成功: ${lessonId}`, response);
+
+        fetchingReservations[lessonId] = false;
+
+        if (response.success) {
+          // キャッシュに保存
+          saveToCache(
+            reservationsCache,
+            reservationsCacheKeys,
+            lessonId,
+            response.data.reservations,
+          );
+
+          if (!prefetch) {
+            // 通常モード: stateManagerに保存して表示
+            const state = participantsHandlersStateManager.getState();
+            const selectedLesson = state.participantsLessons?.find(
+              /** @param {import('../../types/core/lesson').LessonCore} l */
+              l => l.lessonId === lessonId,
+            );
+
+            participantsHandlersStateManager.dispatch({
+              type: 'UPDATE_STATE',
+              payload: {
+                participantsSelectedLesson: selectedLesson,
+                participantsReservations: response.data.reservations,
+                participantsSubView: 'reservations',
+              },
+            });
+
+            if (shouldShowLoading) hideLoading();
+            render();
+          }
+
+          resolve(response.data.reservations);
+        } else {
+          if (shouldShowLoading && !prefetch) hideLoading();
+          if (!prefetch) {
+            showInfo(
+              response.message || '予約情報の取得に失敗しました',
+              'エラー',
+            );
+          }
+          reject(new Error(response.message));
+        }
+      })
+      .withFailureHandler(
+        /** @param {Error} error */
+        function (error) {
+          console.error(`❌ 予約情報取得失敗: ${lessonId}`, error);
+          fetchingReservations[lessonId] = false;
+
+          if (shouldShowLoading && !prefetch) hideLoading();
+          if (!prefetch) {
+            showInfo('通信エラーが発生しました', 'エラー');
+          }
+          reject(error);
+        },
+      )
+      .getReservationsForLesson(lessonId, studentId);
+  });
+}
+
+/**
+ * 生徒詳細を取得（キャッシュ + Optimistic UI）
+ * @param {string} targetStudentId - 表示対象の生徒ID
+ * @param {string} requestingStudentId - リクエスト元の生徒ID
+ * @param {Object} options - オプション
+ * @param {boolean} [options.forceRefresh=false] - 強制再取得
+ * @param {boolean} [options.shouldShowLoading=true] - ローディング表示
+ * @returns {Promise<any>}
+ */
+function fetchStudentDetails(
+  targetStudentId,
+  requestingStudentId,
+  options = {},
+) {
+  const { forceRefresh = false, shouldShowLoading = true } = options;
+
+  // 1. フェッチ中チェック
+  if (fetchingStudents[targetStudentId] && !forceRefresh) {
+    console.log(`⏳ 既に取得中: ${targetStudentId} - スキップ`);
+    return Promise.resolve(null);
+  }
+
+  // 2. キャッシュチェック
+  if (!forceRefresh && isCacheValid(studentsCache, targetStudentId)) {
+    console.log(`✅ キャッシュ使用: ${targetStudentId}`);
+    const cachedData = studentsCache[targetStudentId].data;
+
+    // Optimistic UI: 即座に表示
+    participantsHandlersStateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: {
+        participantsSelectedStudent: cachedData,
+        participantsSubView: 'studentDetail',
+      },
+    });
+    render();
+
+    // バックグラウンドで最新データ取得
+    console.log('🔄 バックグラウンドで最新データ取得中...');
+    fetchStudentDetails(targetStudentId, requestingStudentId, {
+      shouldShowLoading: false,
+      forceRefresh: true,
+    });
+
+    return Promise.resolve(cachedData);
+  }
+
+  // 3. API呼び出し
+  if (shouldShowLoading) {
+    showLoading('participants');
+  }
+
+  fetchingStudents[targetStudentId] = true;
+
+  return new Promise((resolve, reject) => {
+    google.script.run
+      .withSuccessHandler(function (response) {
+        console.log(`✅ 生徒詳細取得成功: ${targetStudentId}`, response);
+
+        fetchingStudents[targetStudentId] = false;
+
+        if (response.success) {
+          // キャッシュに保存
+          saveToCache(
+            studentsCache,
+            studentsCacheKeys,
+            targetStudentId,
+            response.data.student,
+          );
+
+          // stateManagerに保存して表示
+          participantsHandlersStateManager.dispatch({
+            type: 'UPDATE_STATE',
+            payload: {
+              participantsSelectedStudent: response.data.student,
+              participantsSubView: 'studentDetail',
+            },
+          });
+
+          if (shouldShowLoading) hideLoading();
+          render();
+
+          resolve(response.data.student);
+        } else {
+          if (shouldShowLoading) hideLoading();
+          showInfo(
+            response.message || '生徒情報の取得に失敗しました',
+            'エラー',
+          );
+          reject(new Error(response.message));
+        }
+      })
+      .withFailureHandler(
+        /** @param {Error} error */
+        function (error) {
+          console.error(`❌ 生徒詳細取得失敗: ${targetStudentId}`, error);
+          fetchingStudents[targetStudentId] = false;
+
+          if (shouldShowLoading) hideLoading();
+          showInfo('通信エラーが発生しました', 'エラー');
+          reject(error);
+        },
+      )
+      .getStudentDetailsForParticipantsView(
+        targetStudentId,
+        requestingStudentId,
+      );
+  });
+}
+
 /**
  * 参加者リストビュー初期化
  * ログイン成功後、管理者の場合に呼ばれる
@@ -76,6 +402,27 @@ function loadParticipantsView(forceReload = false) {
 
         hideLoading();
         render();
+
+        // 🚀 プリフェッチ: 近日3件のレッスンの予約情報をバックグラウンドで先読み
+        const upcomingLessons = response.data.lessons.slice(0, 3);
+        console.log(
+          `🚀 プリフェッチ開始: ${upcomingLessons.length}件のレッスン`,
+        );
+
+        upcomingLessons.forEach(
+          /**
+           * @param {import('../../types/core/lesson').LessonCore} lesson
+           */
+          lesson => {
+            // バックグラウンドでキャッシュに保存（UI更新なし）
+            fetchReservationsForLesson(lesson.lessonId, studentId, {
+              prefetch: true,
+              shouldShowLoading: false,
+            }).catch(error => {
+              console.warn(`⚠️ プリフェッチ失敗: ${lesson.lessonId}`, error);
+            });
+          },
+        );
       } else {
         hideLoading();
         showInfo(
@@ -116,40 +463,13 @@ function selectParticipantsLesson(lessonId) {
     return;
   }
 
-  showLoading('participants');
+  if (!studentId) {
+    showInfo('ユーザー情報が見つかりません', 'エラー');
+    return;
+  }
 
-  // バックエンドから予約情報を取得
-  google.script.run
-    .withSuccessHandler(function (response) {
-      console.log('✅ 予約情報取得成功:', response);
-
-      if (response.success) {
-        // stateManagerに保存
-        participantsHandlersStateManager.dispatch({
-          type: 'UPDATE_STATE',
-          payload: {
-            participantsSelectedLesson: selectedLesson,
-            participantsReservations: response.data.reservations,
-            participantsSubView: 'reservations',
-          },
-        });
-
-        hideLoading();
-        render();
-      } else {
-        hideLoading();
-        showInfo(response.message || '予約情報の取得に失敗しました', 'エラー');
-      }
-    })
-    .withFailureHandler(
-      /** @param {Error} error */
-      function (error) {
-        console.error('❌ 予約情報取得失敗:', error);
-        hideLoading();
-        showInfo('通信エラーが発生しました', 'エラー');
-      },
-    )
-    .getReservationsForLesson(lessonId, studentId);
+  // 統一データ取得関数を使用（キャッシュ + Optimistic UI）
+  fetchReservationsForLesson(lessonId, studentId);
 }
 
 /**
@@ -164,39 +484,13 @@ function selectParticipantsStudent(targetStudentId) {
   const state = participantsHandlersStateManager.getState();
   const requestingStudentId = state.currentUser?.studentId;
 
-  showLoading('participants');
+  if (!requestingStudentId) {
+    showInfo('ユーザー情報が見つかりません', 'エラー');
+    return;
+  }
 
-  // バックエンドから生徒詳細を取得
-  google.script.run
-    .withSuccessHandler(function (response) {
-      console.log('✅ 生徒詳細取得成功:', response);
-
-      if (response.success) {
-        // stateManagerに保存
-        participantsHandlersStateManager.dispatch({
-          type: 'UPDATE_STATE',
-          payload: {
-            participantsSelectedStudent: response.data.student,
-            participantsSubView: 'studentDetail',
-          },
-        });
-
-        hideLoading();
-        render();
-      } else {
-        hideLoading();
-        showInfo(response.message || '生徒情報の取得に失敗しました', 'エラー');
-      }
-    })
-    .withFailureHandler(
-      /** @param {Error} error */
-      function (error) {
-        console.error('❌ 生徒詳細取得失敗:', error);
-        hideLoading();
-        showInfo('通信エラーが発生しました', 'エラー');
-      },
-    )
-    .getStudentDetailsForParticipantsView(targetStudentId, requestingStudentId);
+  // 統一データ取得関数を使用（キャッシュ + Optimistic UI）
+  fetchStudentDetails(targetStudentId, requestingStudentId);
 }
 
 /**
