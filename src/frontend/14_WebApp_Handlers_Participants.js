@@ -378,10 +378,10 @@ function loadParticipantsView(forceReload = false) {
 
   showLoading('participants');
 
-  // バックエンドからレッスン一覧を取得
+  // バックエンドからレッスン一覧と予約データを一括取得
   google.script.run
     .withSuccessHandler(function (response) {
-      console.log('✅ レッスン一覧取得成功:', response);
+      console.log('✅ レッスン一覧+予約データ取得成功:', response);
 
       if (response.success) {
         const nextIsAdmin =
@@ -403,26 +403,26 @@ function loadParticipantsView(forceReload = false) {
         hideLoading();
         render();
 
-        // 🚀 プリフェッチ: 近日3件のレッスンの予約情報をバックグラウンドで先読み
-        const upcomingLessons = response.data.lessons.slice(0, 3);
-        console.log(
-          `🚀 プリフェッチ開始: ${upcomingLessons.length}件のレッスン`,
-        );
+        // 🚀 予約データを一括キャッシュに保存
+        if (response.data.reservationsMap) {
+          const reservationsMap = response.data.reservationsMap;
+          const lessonIds = Object.keys(reservationsMap);
 
-        upcomingLessons.forEach(
-          /**
-           * @param {import('../../types/core/lesson').LessonCore} lesson
-           */
-          lesson => {
-            // バックグラウンドでキャッシュに保存（UI更新なし）
-            fetchReservationsForLesson(lesson.lessonId, studentId, {
-              prefetch: true,
-              shouldShowLoading: false,
-            }).catch(error => {
-              console.warn(`⚠️ プリフェッチ失敗: ${lesson.lessonId}`, error);
-            });
-          },
-        );
+          console.log(
+            `💾 予約データを一括キャッシュ保存: ${lessonIds.length}レッスン分`,
+          );
+
+          lessonIds.forEach(lessonId => {
+            saveToCache(
+              reservationsCache,
+              reservationsCacheKeys,
+              lessonId,
+              reservationsMap[lessonId],
+            );
+          });
+
+          console.log('✅ 全予約データのキャッシュ保存完了');
+        }
       } else {
         hideLoading();
         showInfo(
@@ -439,7 +439,7 @@ function loadParticipantsView(forceReload = false) {
         showInfo('通信エラーが発生しました', 'エラー');
       },
     )
-    .getLessonsForParticipantsView(studentId, true);
+    .getLessonsForParticipantsView(studentId, true, true); // 第3引数: includeReservations=true
 }
 
 /**

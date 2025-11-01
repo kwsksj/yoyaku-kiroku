@@ -746,10 +746,11 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
 export function getLessonsForParticipantsView(
   studentId,
   includeHistory = true,
+  includeReservations = false,
 ) {
   try {
     Logger.log(
-      `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}`,
+      `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}, includeReservations=${includeReservations}`,
     );
 
     // 管理者判定（studentId="ADMIN"または未指定の場合）
@@ -803,6 +804,68 @@ export function getLessonsForParticipantsView(
       return rest;
     });
 
+    // 🚀 予約データを一括取得（オプション）
+    /** @type {Record<string, any[]>} */
+    const reservationsMap = {};
+    if (includeReservations && isAdmin) {
+      Logger.log('予約データを一括取得開始...');
+
+      // キャッシュから全予約データを取得
+      const allReservations = getCachedReservationsAsObjects();
+
+      if (allReservations && allReservations.length > 0) {
+        // レッスンIDごとに予約をグループ化
+        lessons.forEach(lesson => {
+          const lessonReservations = allReservations.filter(
+            reservation => reservation.lessonId === lesson.lessonId,
+          );
+
+          // 予約情報に生徒情報を結合
+          const reservationsWithUserInfo = lessonReservations.map(
+            reservation => {
+              const student = getCachedStudentById(reservation.studentId);
+
+              // 基本情報
+              const baseInfo = {
+                reservationId: reservation.reservationId,
+                date: reservation.date || lesson.date,
+                classroom: lesson.classroom,
+                venue: lesson.venue || '',
+                startTime: reservation.startTime || '',
+                endTime: reservation.endTime || '',
+                status: reservation.status,
+                studentId: reservation.studentId,
+                nickname: student?.nickname || '',
+                displayName: student?.displayName || '',
+                firstLecture: reservation.firstLecture || false,
+                chiselRental: reservation.chiselRental || false,
+                workInProgress: reservation.workInProgress || '',
+                order: reservation.order || '',
+              };
+
+              // 管理者の場合は個人情報を追加
+              if (isAdmin) {
+                return {
+                  ...baseInfo,
+                  realName: student?.realName || '',
+                  phone: student?.phone || '',
+                  email: student?.email || '',
+                };
+              }
+
+              return baseInfo;
+            },
+          );
+
+          reservationsMap[lesson.lessonId] = reservationsWithUserInfo;
+        });
+
+        Logger.log(
+          `予約データ一括取得完了: ${Object.keys(reservationsMap).length}レッスン分`,
+        );
+      }
+    }
+
     Logger.log(
       `getLessonsForParticipantsView完了: ${lessons.length}件, isAdmin=${isAdmin}`,
     );
@@ -810,6 +873,7 @@ export function getLessonsForParticipantsView(
     return createApiResponse(true, {
       lessons: lessons,
       isAdmin: isAdmin,
+      reservationsMap: includeReservations ? reservationsMap : undefined,
       message: 'レッスン一覧を取得しました',
     });
   } catch (error) {
