@@ -17,9 +17,9 @@ import { render } from './14_WebApp_Handlers.js';
 const participantsHandlersStateManager = appWindow.stateManager;
 
 // =================================================================
-// --- キャッシュ管理システム ---
+// --- 生徒詳細キャッシュ ---
 // -----------------------------------------------------------------
-// 予約データと生徒データのキャッシュを一元管理
+// 生徒詳細データは初回一括取得していないため、個別キャッシュが必要
 // =================================================================
 
 /**
@@ -30,19 +30,10 @@ const participantsHandlersStateManager = appWindow.stateManager;
  */
 
 /** @type {Record<string, CacheEntry>} */
-const reservationsCache = {};
-
-/** @type {Record<string, CacheEntry>} */
 const studentsCache = {};
 
 /** @type {Record<string, boolean>} */
-const fetchingReservations = {};
-
-/** @type {Record<string, boolean>} */
 const fetchingStudents = {};
-
-/** @type {string[]} */
-const reservationsCacheKeys = [];
 
 /** @type {string[]} */
 const studentsCacheKeys = [];
@@ -94,142 +85,6 @@ function saveToCache(cache, cacheKeys, key, data) {
   };
   cacheKeys.push(key);
   console.log(`💾 キャッシュ保存: ${key}`);
-}
-
-// =================================================================
-// --- 統一データ取得関数 ---
-// -----------------------------------------------------------------
-// キャッシュ、フェッチ状態管理、Optimistic UIを統合
-// =================================================================
-
-/**
- * 予約データを取得（キャッシュ + Optimistic UI）
- * @param {string} lessonId - レッスンID
- * @param {string} studentId - 生徒ID
- * @param {Object} options - オプション
- * @param {boolean} [options.forceRefresh=false] - 強制再取得
- * @param {boolean} [options.shouldShowLoading=true] - ローディング表示
- * @param {boolean} [options.prefetch=false] - プリフェッチモード
- * @returns {Promise<any>}
- */
-function fetchReservationsForLesson(lessonId, studentId, options = {}) {
-  const {
-    forceRefresh = false,
-    shouldShowLoading = true,
-    prefetch = false,
-  } = options;
-
-  // 1. フェッチ中チェック
-  if (fetchingReservations[lessonId] && !forceRefresh) {
-    console.log(`⏳ 既に取得中: ${lessonId} - スキップ`);
-    return Promise.resolve(null);
-  }
-
-  // 2. キャッシュチェック
-  if (!forceRefresh && isCacheValid(reservationsCache, lessonId)) {
-    console.log(`✅ キャッシュ使用: ${lessonId}`);
-    const cachedData = reservationsCache[lessonId].data;
-
-    if (!prefetch) {
-      // Optimistic UI: 即座に表示
-      const state = participantsHandlersStateManager.getState();
-      const selectedLesson = state.participantsLessons?.find(
-        /** @param {import('../../types/core/lesson').LessonCore} l */
-        l => l.lessonId === lessonId,
-      );
-
-      participantsHandlersStateManager.dispatch({
-        type: 'UPDATE_STATE',
-        payload: {
-          participantsSelectedLesson: selectedLesson,
-          participantsReservations: cachedData,
-          participantsSubView: 'reservations',
-        },
-      });
-      render();
-
-      // バックグラウンドで最新データ取得（控えめ）
-      console.log('🔄 バックグラウンドで最新データ取得中...');
-      fetchReservationsForLesson(lessonId, studentId, {
-        shouldShowLoading: false,
-        forceRefresh: true,
-      });
-    }
-
-    return Promise.resolve(cachedData);
-  }
-
-  // 3. API呼び出し
-  if (shouldShowLoading && !prefetch) {
-    showLoading('participants');
-  }
-
-  fetchingReservations[lessonId] = true;
-
-  return new Promise((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler(function (response) {
-        console.log(`✅ 予約情報取得成功: ${lessonId}`, response);
-
-        fetchingReservations[lessonId] = false;
-
-        if (response.success) {
-          // キャッシュに保存
-          saveToCache(
-            reservationsCache,
-            reservationsCacheKeys,
-            lessonId,
-            response.data.reservations,
-          );
-
-          if (!prefetch) {
-            // 通常モード: stateManagerに保存して表示
-            const state = participantsHandlersStateManager.getState();
-            const selectedLesson = state.participantsLessons?.find(
-              /** @param {import('../../types/core/lesson').LessonCore} l */
-              l => l.lessonId === lessonId,
-            );
-
-            participantsHandlersStateManager.dispatch({
-              type: 'UPDATE_STATE',
-              payload: {
-                participantsSelectedLesson: selectedLesson,
-                participantsReservations: response.data.reservations,
-                participantsSubView: 'reservations',
-              },
-            });
-
-            if (shouldShowLoading) hideLoading();
-            render();
-          }
-
-          resolve(response.data.reservations);
-        } else {
-          if (shouldShowLoading && !prefetch) hideLoading();
-          if (!prefetch) {
-            showInfo(
-              response.message || '予約情報の取得に失敗しました',
-              'エラー',
-            );
-          }
-          reject(new Error(response.message));
-        }
-      })
-      .withFailureHandler(
-        /** @param {Error} error */
-        function (error) {
-          console.error(`❌ 予約情報取得失敗: ${lessonId}`, error);
-          fetchingReservations[lessonId] = false;
-
-          if (shouldShowLoading && !prefetch) hideLoading();
-          if (!prefetch) {
-            showInfo('通信エラーが発生しました', 'エラー');
-          }
-          reject(error);
-        },
-      )
-      .getReservationsForLesson(lessonId, studentId);
-  });
 }
 
 /**
@@ -348,11 +203,19 @@ function fetchStudentDetails(
  *
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
  */
-function loadParticipantsView(forceReload = false) {
+function loadParticipantsView(
+  forceReload = false,
+  shouldShowLoading = true,
+  baseAppState = /** @type {Partial<UIState> | null} */ (null),
+) {
   console.log('📋 参加者リストビュー初期化開始');
 
   const state = participantsHandlersStateManager.getState();
-  const studentId = state.currentUser?.studentId;
+  const studentId =
+    state.currentUser?.studentId ||
+    (baseAppState && baseAppState.currentUser
+      ? baseAppState.currentUser.studentId
+      : undefined);
 
   if (!studentId) {
     console.error('❌ studentIdが見つかりません');
@@ -360,23 +223,41 @@ function loadParticipantsView(forceReload = false) {
   }
 
   // 既にデータがある場合はAPIコールをスキップ（レート制限対策）
+  // 重要: 予約データ（reservationsMap）も必要なのでチェック
   if (
     !forceReload &&
     state.participantsLessons &&
-    state.participantsLessons.length > 0
+    state.participantsLessons.length > 0 &&
+    state.participantsReservationsMap &&
+    Object.keys(state.participantsReservationsMap).length > 0
   ) {
     console.log('✅ キャッシュ済みデータを使用 - APIコールをスキップ');
+    /** @type {Partial<UIState>} */
+    const cachePayload = baseAppState
+      ? {
+          .../** @type {Partial<UIState>} */ (baseAppState),
+          view: 'participants',
+          participantsSubView: 'list',
+          recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+          isDataFresh: true,
+        }
+      : {
+          view: 'participants',
+          participantsSubView: 'list',
+        };
+
     participantsHandlersStateManager.dispatch({
-      type: 'UPDATE_STATE',
-      payload: {
-        participantsSubView: 'list',
-      },
+      type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
+      payload: cachePayload,
     });
+    hideLoading(); // キャッシュ使用時もローディングを非表示
     render();
     return;
   }
 
-  showLoading('participants');
+  if (shouldShowLoading) {
+    showLoading('participants');
+  }
 
   // バックエンドからレッスン一覧と予約データを一括取得
   google.script.run
@@ -390,39 +271,41 @@ function loadParticipantsView(forceReload = false) {
             ? response.data.isAdmin
             : state.participantsIsAdmin;
 
-        // stateManagerに保存
+        // stateManagerに保存（レッスン一覧と予約データ）
+        // ログイン時の場合はbaseAppStateをマージ
+        /** @type {Partial<UIState>} */
+        const payload = baseAppState
+          ? {
+              .../** @type {Partial<UIState>} */ (baseAppState),
+              view: 'participants',
+              participantsLessons: response.data.lessons,
+              participantsReservationsMap: response.data.reservationsMap || {},
+              participantsIsAdmin: nextIsAdmin,
+              participantsSubView: 'list',
+              recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+              isDataFresh: true,
+            }
+          : {
+              view: 'participants',
+              participantsLessons: response.data.lessons,
+              participantsReservationsMap: response.data.reservationsMap || {},
+              participantsIsAdmin: nextIsAdmin,
+              participantsSubView: 'list',
+            };
+
         participantsHandlersStateManager.dispatch({
-          type: 'UPDATE_STATE',
-          payload: {
-            participantsLessons: response.data.lessons,
-            participantsIsAdmin: nextIsAdmin,
-            participantsSubView: 'list',
-          },
+          type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
+          payload,
         });
+
+        if (response.data.reservationsMap) {
+          console.log(
+            `💾 予約データをstateManagerに保存: ${Object.keys(response.data.reservationsMap).length}レッスン分`,
+          );
+        }
 
         hideLoading();
         render();
-
-        // 🚀 予約データを一括キャッシュに保存
-        if (response.data.reservationsMap) {
-          const reservationsMap = response.data.reservationsMap;
-          const lessonIds = Object.keys(reservationsMap);
-
-          console.log(
-            `💾 予約データを一括キャッシュ保存: ${lessonIds.length}レッスン分`,
-          );
-
-          lessonIds.forEach(lessonId => {
-            saveToCache(
-              reservationsCache,
-              reservationsCacheKeys,
-              lessonId,
-              reservationsMap[lessonId],
-            );
-          });
-
-          console.log('✅ 全予約データのキャッシュ保存完了');
-        }
       } else {
         hideLoading();
         showInfo(
@@ -452,7 +335,6 @@ function selectParticipantsLesson(lessonId) {
   console.log('📅 レッスン選択:', lessonId);
 
   const state = participantsHandlersStateManager.getState();
-  const studentId = state.currentUser?.studentId;
   const selectedLesson = state.participantsLessons?.find(
     /** @param {import('../../types/core/lesson').LessonCore} l */
     l => l.lessonId === lessonId,
@@ -463,13 +345,22 @@ function selectParticipantsLesson(lessonId) {
     return;
   }
 
-  if (!studentId) {
-    showInfo('ユーザー情報が見つかりません', 'エラー');
-    return;
-  }
+  // stateManagerから予約データを取得（初回ロード時に全データ取得済み）
+  const reservations = state.participantsReservationsMap?.[lessonId] || [];
 
-  // 統一データ取得関数を使用（キャッシュ + Optimistic UI）
-  fetchReservationsForLesson(lessonId, studentId);
+  console.log(`✅ stateManagerから予約データ取得: ${reservations.length}件`);
+
+  // 状態を更新して表示
+  participantsHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      participantsSelectedLesson: selectedLesson,
+      participantsReservations: reservations,
+      participantsSubView: 'reservations',
+    },
+  });
+
+  render();
 }
 
 /**

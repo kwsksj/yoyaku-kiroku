@@ -190,6 +190,7 @@ export interface UIState {
     participantsSubView?: 'list' | 'reservations' | 'studentDetail';
     participantsLessons?: LessonCore[];
     participantsReservations?: ReservationCore[];
+    participantsReservationsMap?: Record<string, ReservationCore[]>; // 全レッスンの予約データ（キー: lessonId）
     participantsSelectedLesson?: LessonCore | null;
     participantsSelectedStudent?: UserCore | null;
     participantsIsAdmin?: boolean;

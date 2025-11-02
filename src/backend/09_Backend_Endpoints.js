@@ -47,7 +47,11 @@ import {
   getLessons,
   getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
-import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
+import {
+  CACHE_KEYS,
+  getTypedCachedData,
+  getCachedData,
+} from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 
@@ -753,9 +757,13 @@ export function getLessonsForParticipantsView(
       `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}, includeReservations=${includeReservations}`,
     );
 
-    // 管理者判定（studentId="ADMIN"または未指定の場合）
-    const isAdmin = studentId === 'ADMIN' || !studentId;
-    Logger.log(`管理者モード: ${isAdmin}`);
+    // 管理者判定（studentId="ADMIN"または登録済み管理者）
+    const isAdminBySpecialId = studentId === 'ADMIN';
+    const isAdminByUser = isAdminUser(studentId);
+    const isAdmin = isAdminBySpecialId || isAdminByUser;
+    Logger.log(
+      `管理者判定: studentId="${studentId}", isAdminBySpecialId=${isAdminBySpecialId}, isAdminByUser=${isAdminByUser}, 最終判定=${isAdmin}`,
+    );
 
     // キャッシュからレッスン情報を取得（6ヶ月前〜1年後のデータ）
     const scheduleMasterCache = getTypedCachedData(
@@ -808,10 +816,16 @@ export function getLessonsForParticipantsView(
     /** @type {Record<string, any[]>} */
     const reservationsMap = {};
     if (includeReservations && isAdmin) {
-      Logger.log('予約データを一括取得開始...');
+      Logger.log('✅ 予約データを一括取得開始...');
 
-      // キャッシュから全予約データを取得
+      // キャッシュから全予約データと全生徒データを1回だけ取得
       const allReservations = getCachedReservationsAsObjects();
+      const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+      /** @type {Record<string, any>} */
+      const allStudents = studentsCache?.['students'] || {};
+      Logger.log(
+        `📚 データ取得: 予約${allReservations.length}件, 生徒${Object.keys(allStudents).length}件`,
+      );
 
       if (allReservations && allReservations.length > 0) {
         // レッスンIDごとに予約をグループ化
@@ -820,10 +834,10 @@ export function getLessonsForParticipantsView(
             reservation => reservation.lessonId === lesson.lessonId,
           );
 
-          // 予約情報に生徒情報を結合
+          // 予約情報に生徒情報を結合（キャッシュ読み込みはループ外で1回のみ）
           const reservationsWithUserInfo = lessonReservations.map(
             reservation => {
-              const student = getCachedStudentById(reservation.studentId);
+              const student = allStudents[reservation.studentId];
 
               // 基本情報
               const baseInfo = {
@@ -861,13 +875,19 @@ export function getLessonsForParticipantsView(
         });
 
         Logger.log(
-          `予約データ一括取得完了: ${Object.keys(reservationsMap).length}レッスン分`,
+          `✅ 予約データ一括取得完了: ${Object.keys(reservationsMap).length}レッスン分`,
         );
+      } else {
+        Logger.log('⚠️ 全予約データが取得できませんでした（キャッシュ空）');
       }
+    } else {
+      Logger.log(
+        `❌ 予約データ取得スキップ: includeReservations=${includeReservations}, isAdmin=${isAdmin}`,
+      );
     }
 
     Logger.log(
-      `getLessonsForParticipantsView完了: ${lessons.length}件, isAdmin=${isAdmin}`,
+      `getLessonsForParticipantsView完了: ${lessons.length}件のレッスン, reservationsMapキー数=${Object.keys(reservationsMap).length}`,
     );
 
     return createApiResponse(true, {
