@@ -671,6 +671,101 @@ export const Components = {
   },
 
   /**
+   * テーブル形式リストコンポーネント
+   * @param {TableConfig} config - 設定オブジェクト
+   * @returns {string} HTML文字列
+   */
+  table: ({
+    columns,
+    rows,
+    striped = true,
+    bordered = true,
+    hoverable = true,
+    compact = false,
+    responsive = true,
+    emptyMessage = 'データがありません',
+  }) => {
+    if (!columns || columns.length === 0) {
+      console.error('table: columns must be provided');
+      return '';
+    }
+
+    // ヘッダー生成
+    const headerHtml = /** @type {TableColumn[]} */ (columns)
+      .map(col => {
+        const align = col.align || 'left';
+        /** @type {Record<string, string>} */
+        const alignClasses = {
+          left: 'text-left',
+          center: 'text-center',
+          right: 'text-right',
+        };
+        const alignClass = alignClasses[align] || alignClasses['left'];
+        return `<th class="px-4 py-3 font-bold text-brand-text border-b-2 border-ui-border ${alignClass}">${escapeHTML(col.label)}</th>`;
+      })
+      .join('');
+
+    // データ行生成
+    const rowsHtml =
+      rows && rows.length > 0
+        ? /** @type {Record<string, any>[]} */ (rows)
+            .map(row => {
+              const cellsHtml = /** @type {TableColumn[]} */ (columns)
+                .map(col => {
+                  const value = row[col.key] || '';
+                  const align = col.align || 'left';
+                  /** @type {Record<string, string>} */
+                  const alignClasses = {
+                    left: 'text-left',
+                    center: 'text-center',
+                    right: 'text-right',
+                  };
+                  const alignClass =
+                    alignClasses[align] || alignClasses['left'];
+
+                  // カスタムレンダラーがある場合はそれを使用
+                  const content = col.render
+                    ? col.render(value, row)
+                    : escapeHTML(String(value));
+
+                  return `<td class="px-4 py-3 ${bordered ? 'border-b border-ui-border-light' : ''} ${alignClass}">${content}</td>`;
+                })
+                .join('');
+
+              return `<tr class="${hoverable ? 'hover:bg-gray-50' : ''}">${cellsHtml}</tr>`;
+            })
+            .join('')
+        : `<tr><td colspan="${columns.length}" class="px-4 py-8 text-center text-brand-muted">${escapeHTML(emptyMessage)}</td></tr>`;
+
+    // スタイルクラス
+    const tableClasses = [
+      'w-full',
+      compact ? 'text-sm' : 'text-base',
+      bordered ? 'border-2 border-ui-border' : '',
+      striped ? '[&_tbody_tr:nth-child(odd)]:bg-gray-50' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    const containerClass = responsive
+      ? 'overflow-x-auto rounded-lg'
+      : 'rounded-lg';
+
+    return `
+      <div class="${containerClass}">
+        <table class="${tableClasses}">
+          <thead class="bg-ui-surface">
+            <tr>${headerHtml}</tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  /**
    * 拡張料金表示コンポーネント
    * @param {PriceDisplayConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列

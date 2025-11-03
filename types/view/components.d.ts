@@ -262,6 +262,7 @@ export interface SubtotalSectionConfig {
   id?: string;
 }
 
+
 // =================================================================
 // Specialized Components
 // =================================================================
@@ -459,6 +460,42 @@ export interface ComponentRenderer {
 
 declare global {
   /**
+   * テーブルカラム設定
+   */
+  interface TableColumn {
+    /** カラムラベル */
+    label: string;
+    /** データキー */
+    key: string;
+    /** テキスト揃え */
+    align?: 'left' | 'center' | 'right';
+    /** カスタムレンダラー */
+    render?: (value: any, row: any) => string;
+  }
+
+  /**
+   * テーブル設定
+   */
+  interface TableConfig {
+    /** カラム定義 */
+    columns: TableColumn[];
+    /** データ行 */
+    rows: Record<string, any>[];
+    /** 縞模様表示 */
+    striped?: boolean;
+    /** 境界線表示 */
+    bordered?: boolean;
+    /** ホバー効果 */
+    hoverable?: boolean;
+    /** コンパクト表示 */
+    compact?: boolean;
+    /** レスポンシブ対応 */
+    responsive?: boolean;
+    /** 空データ時のメッセージ */
+    emptyMessage?: string;
+  }
+
+  /**
    * Componentsオブジェクト（グローバル）
    */
   export interface ComponentsObject {
@@ -475,6 +512,7 @@ declare global {
 
     // UI要素
     statusBadge: (config: StatusBadgeConfig) => string;
+    table: (config: TableConfig) => string;
     priceDisplay: (config: PriceDisplayConfig) => string;
     actionButtonSection: (config: ActionButtonSectionConfig) => string;
 

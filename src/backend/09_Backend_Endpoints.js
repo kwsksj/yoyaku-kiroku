@@ -855,6 +855,7 @@ export function getLessonsForParticipantsView(
                 chiselRental: reservation.chiselRental || false,
                 workInProgress: reservation.workInProgress || '',
                 order: reservation.order || '',
+                participationCount: student?.participationCount || 0,
               };
 
               // 管理者の場合は個人情報を追加
