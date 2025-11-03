@@ -151,7 +151,8 @@ function renderReservationsList(lesson, reservations) {
     {
       label: '参加者',
       key: 'participant',
-      align: 'left',
+      align: 'center',
+      width: '80px',
       render: (_value, row) => {
         const displayName = row.nickname || row.displayName || '名前なし';
         const hasRealName = row.realName && row.realName.trim() !== '';
@@ -192,7 +193,7 @@ function renderReservationsList(lesson, reservations) {
     {
       label: '制作メモ',
       key: 'workInProgress',
-      align: 'left',
+      align: 'center',
       render: value => {
         return `<div class="text-sm ${value ? '' : 'text-gray-400 italic'}">
           ${escapeHTML(value || '—')}
@@ -202,7 +203,7 @@ function renderReservationsList(lesson, reservations) {
     {
       label: '注文',
       key: 'order',
-      align: 'left',
+      align: 'center',
       render: value => {
         return `<div class="text-xs ${value ? '' : 'text-gray-400 italic'}">
           ${escapeHTML(value || '—')}

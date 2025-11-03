@@ -469,6 +469,8 @@ declare global {
     key: string;
     /** テキスト揃え */
     align?: 'left' | 'center' | 'right';
+    /** カラム幅（CSS値: '200px', '20%', '15rem' など） */
+    width?: string;
     /** カスタムレンダラー */
     render?: (value: any, row: any) => string;
   }

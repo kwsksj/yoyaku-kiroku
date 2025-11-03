@@ -701,7 +701,10 @@ export const Components = {
           right: 'text-right',
         };
         const alignClass = alignClasses[align] || alignClasses['left'];
-        return `<th class="px-1 py-0.5 font-bold text-brand-text border-b-2 border-ui-border ${alignClass}">${escapeHTML(col.label)}</th>`;
+        const widthStyle = col.width
+          ? `style="width: ${escapeHTML(col.width)}"`
+          : '';
+        return `<th class="px-1 py-0.5 font-bold text-brand-text border-b-2 border-ui-border ${alignClass}" ${widthStyle}>${escapeHTML(col.label)}</th>`;
       })
       .join('');
 
@@ -728,7 +731,10 @@ export const Components = {
                     ? col.render(value, row)
                     : escapeHTML(String(value));
 
-                  return `<td class="px-0.5 py-0.5 ${bordered ? 'border-b border-ui-border-light' : ''} ${alignClass}">${content}</td>`;
+                  const widthStyle = col.width
+                    ? `style="width: ${escapeHTML(col.width)}"`
+                    : '';
+                  return `<td class="px-0.5 py-0.5 ${bordered ? 'border-b border-ui-border-light' : ''} ${alignClass}" ${widthStyle}>${content}</td>`;
                 })
                 .join('');
 

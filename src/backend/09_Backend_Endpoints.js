@@ -828,6 +828,23 @@ export function getLessonsForParticipantsView(
       );
 
       if (allReservations && allReservations.length > 0) {
+        // 各生徒の参加回数を事前に計算（過去の予約をカウント）
+        /** @type {Record<string, number>} */
+        const participationCounts = {};
+        allReservations.forEach(reservation => {
+          const resDate = new Date(reservation.date);
+          resDate.setHours(0, 0, 0, 0);
+          // 過去の予約のみカウント
+          if (resDate < today) {
+            const studentId = reservation.studentId;
+            participationCounts[studentId] =
+              (participationCounts[studentId] || 0) + 1;
+          }
+        });
+        Logger.log(
+          `📊 参加回数計算完了: ${Object.keys(participationCounts).length}名分`,
+        );
+
         // レッスンIDごとに予約をグループ化
         lessons.forEach(lesson => {
           const lessonReservations = allReservations.filter(
@@ -855,7 +872,8 @@ export function getLessonsForParticipantsView(
                 chiselRental: reservation.chiselRental || false,
                 workInProgress: reservation.workInProgress || '',
                 order: reservation.order || '',
-                participationCount: student?.participationCount || 0,
+                participationCount:
+                  participationCounts[reservation.studentId] || 0,
               };
 
               // 管理者の場合は個人情報を追加
