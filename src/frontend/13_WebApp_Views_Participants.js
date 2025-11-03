@@ -128,7 +128,7 @@ function createBadge(text, color = 'gray') {
   };
 
   const colorClass = colorClasses[color] || colorClasses['gray'];
-  return `<span class="inline-block px-2 py-1 text-xs font-medium rounded ${colorClass}">${escapeHTML(text)}</span>`;
+  return `<span class="inline-block p-0.5 text-xs font-medium rounded ${colorClass}">${escapeHTML(text)}</span>`;
 }
 
 /**
@@ -159,10 +159,10 @@ function renderReservationsList(lesson, reservations) {
         // バッジを生成
         const badges = [];
         if (row.firstLecture) {
-          badges.push(createBadge('初回', 'green'));
+          badges.push(createBadge('初', 'green'));
         }
         if (row.chiselRental) {
-          badges.push(createBadge('レンタル', 'orange'));
+          badges.push(createBadge('刀', 'orange'));
         }
         // 参加回数を表示（初回でない場合）
         if (!row.firstLecture && row.participationCount) {
@@ -173,7 +173,7 @@ function renderReservationsList(lesson, reservations) {
 
         return `
           <div>
-            <div class="font-bold text-lg mb-1">
+            <div class="font-bold text-sm mb-0.5">
               <button
                 class="text-blue-600 hover:text-blue-800 hover:underline text-left"
                 onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
@@ -181,8 +181,8 @@ function renderReservationsList(lesson, reservations) {
                 ${escapeHTML(displayName)}
               </button>
             </div>
-            ${hasRealName ? `<div class="text-sm text-gray-600 mb-2">${escapeHTML(row.realName)}</div>` : ''}
-            <div class="flex flex-wrap gap-1 mt-2">
+            ${hasRealName ? `<div class="text-xs text-gray-600 mb-0.5">${escapeHTML(row.realName)}</div>` : ''}
+            <div class="flex flex-wrap gap-0.5 mt-0.5 text-xs">
               ${badgesHtml}
             </div>
           </div>
@@ -204,7 +204,7 @@ function renderReservationsList(lesson, reservations) {
       key: 'order',
       align: 'left',
       render: value => {
-        return `<div class="text-sm ${value ? '' : 'text-gray-400 italic'}">
+        return `<div class="text-xs ${value ? '' : 'text-gray-400 italic'}">
           ${escapeHTML(value || '—')}
         </div>`;
       },
@@ -218,7 +218,7 @@ function renderReservationsList(lesson, reservations) {
     striped: false,
     bordered: true,
     hoverable: true,
-    compact: false,
+    compact: true,
     responsive: true,
     emptyMessage: '参加者がいません',
   });
@@ -228,7 +228,7 @@ function renderReservationsList(lesson, reservations) {
       title: `${escapeHTML(lesson.classroom)} - ${formattedDate}`,
       backAction: 'backToParticipantsList',
     })}
-    <div class="${DesignConfig.layout.container}" style="max-width: 1200px;">
+    <div style="max-width: 1200px;">
 
       ${lesson.venue ? `<p class="${DesignConfig.text.body} mb-4 text-gray-600">${escapeHTML(lesson.venue)}</p>` : ''}
 

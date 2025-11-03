@@ -701,7 +701,7 @@ export const Components = {
           right: 'text-right',
         };
         const alignClass = alignClasses[align] || alignClasses['left'];
-        return `<th class="px-4 py-3 font-bold text-brand-text border-b-2 border-ui-border ${alignClass}">${escapeHTML(col.label)}</th>`;
+        return `<th class="px-1 py-0.5 font-bold text-brand-text border-b-2 border-ui-border ${alignClass}">${escapeHTML(col.label)}</th>`;
       })
       .join('');
 
@@ -728,28 +728,30 @@ export const Components = {
                     ? col.render(value, row)
                     : escapeHTML(String(value));
 
-                  return `<td class="px-4 py-3 ${bordered ? 'border-b border-ui-border-light' : ''} ${alignClass}">${content}</td>`;
+                  return `<td class="px-0.5 py-0.5 ${bordered ? 'border-b border-ui-border-light' : ''} ${alignClass}">${content}</td>`;
                 })
                 .join('');
 
               return `<tr class="${hoverable ? 'hover:bg-gray-50' : ''}">${cellsHtml}</tr>`;
             })
             .join('')
-        : `<tr><td colspan="${columns.length}" class="px-4 py-8 text-center text-brand-muted">${escapeHTML(emptyMessage)}</td></tr>`;
+        : `<tr><td colspan="${columns.length}" class="px-2 py-2 text-center text-brand-muted">${escapeHTML(emptyMessage)}</td></tr>`;
 
     // スタイルクラス
     const tableClasses = [
       'w-full',
       compact ? 'text-sm' : 'text-base',
-      bordered ? 'border-2 border-ui-border' : '',
       striped ? '[&_tbody_tr:nth-child(odd)]:bg-gray-50' : '',
     ]
       .filter(Boolean)
       .join(' ');
 
-    const containerClass = responsive
-      ? 'overflow-x-auto rounded-lg'
-      : 'rounded-lg';
+    const containerClass = [
+      bordered ? 'border-2 border-ui-border' : '',
+      responsive ? 'overflow-x-auto rounded-lg' : 'rounded-lg',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     return `
       <div class="${containerClass}">
