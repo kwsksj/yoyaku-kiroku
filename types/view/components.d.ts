@@ -495,6 +495,8 @@ declare global {
     responsive?: boolean;
     /** 空データ時のメッセージ */
     emptyMessage?: string;
+    /** テーブルの最小幅（CSS値: '800px', '100%' など） */
+    minWidth?: string;
   }
 
   /**

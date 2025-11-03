@@ -684,6 +684,7 @@ export const Components = {
     compact = false,
     responsive = true,
     emptyMessage = 'データがありません',
+    minWidth = '',
   }) => {
     if (!columns || columns.length === 0) {
       console.error('table: columns must be provided');
@@ -759,9 +760,13 @@ export const Components = {
       .filter(Boolean)
       .join(' ');
 
+    const tableStyle = minWidth
+      ? `style="min-width: ${escapeHTML(minWidth)}"`
+      : '';
+
     return `
       <div class="${containerClass}">
-        <table class="${tableClasses}">
+        <table class="${tableClasses}" ${tableStyle}>
           <thead class="bg-ui-surface">
             <tr>${headerHtml}</tr>
           </thead>

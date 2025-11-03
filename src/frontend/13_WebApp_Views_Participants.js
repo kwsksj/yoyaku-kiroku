@@ -222,6 +222,7 @@ function renderReservationsList(lesson, reservations) {
     compact: true,
     responsive: true,
     emptyMessage: '参加者がいません',
+    minWidth: '800px',
   });
 
   return `
