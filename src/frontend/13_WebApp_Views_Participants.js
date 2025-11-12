@@ -85,7 +85,7 @@ function renderLessonList(lessons) {
             <span class="${DesignConfig.text.subheading}">${formattedDate}</span>
             <div class="flex gap-2 items-center">
               ${createBadge(`${reservationCount}名`, reservationCount > 0 ? 'blue' : 'gray')}
-              <span class="px-2 py-1 rounded text-sm ${lesson.status === '開催予定' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+              <span class="px-2 py-1 rounded text-xs ${lesson.status === '開催予定' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
                 ${escapeHTML(lesson.status)}
               </span>
             </div>
@@ -128,7 +128,7 @@ function createBadge(text, color = 'gray') {
   };
 
   const colorClass = colorClasses[color] || colorClasses['gray'];
-  return `<span class="inline-block p-0.5 text-xs font-medium rounded ${colorClass}">${escapeHTML(text)}</span>`;
+  return `<span class=" font-medium rounded-xs px-0.5 py-0 text-xs ${colorClass}">${escapeHTML(text)}</span>`;
 }
 
 /**
@@ -152,7 +152,7 @@ function renderReservationsList(lesson, reservations) {
       label: '参加者',
       key: 'participant',
       align: 'center',
-      width: '80px',
+      width: '100px',
       render: (_value, row) => {
         const displayName = row.nickname || row.displayName || '名前なし';
         const hasRealName = row.realName && row.realName.trim() !== '';
@@ -174,7 +174,7 @@ function renderReservationsList(lesson, reservations) {
 
         return `
           <div>
-            <div class="font-bold text-sm mb-0.5">
+            <div class="font-bold text-xs mb-0.5">
               <button
                 class="text-blue-600 hover:text-blue-800 hover:underline text-left"
                 onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
@@ -183,7 +183,7 @@ function renderReservationsList(lesson, reservations) {
               </button>
             </div>
             ${hasRealName ? `<div class="text-xs text-gray-600 mb-0.5">${escapeHTML(row.realName)}</div>` : ''}
-            <div class="flex flex-wrap gap-0.5 mt-0.5 text-xs">
+            <div class="gap-0.5 text-xs">
               ${badgesHtml}
             </div>
           </div>
@@ -193,7 +193,8 @@ function renderReservationsList(lesson, reservations) {
     {
       label: '制作メモ',
       key: 'workInProgress',
-      align: 'center',
+      width: '250px',
+      align: 'left',
       render: value => {
         return `<div class="text-sm ${value ? '' : 'text-gray-400 italic'}">
           ${escapeHTML(value || '—')}
@@ -203,7 +204,8 @@ function renderReservationsList(lesson, reservations) {
     {
       label: '注文',
       key: 'order',
-      align: 'center',
+      width: '150px',
+      align: 'left',
       render: value => {
         return `<div class="text-xs ${value ? '' : 'text-gray-400 italic'}">
           ${escapeHTML(value || '—')}
@@ -222,7 +224,6 @@ function renderReservationsList(lesson, reservations) {
     compact: true,
     responsive: true,
     emptyMessage: '参加者がいません',
-    minWidth: '800px',
   });
 
   return `
