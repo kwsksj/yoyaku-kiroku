@@ -326,7 +326,32 @@ function loadParticipantsView(
 }
 
 /**
- * レッスン選択ハンドラ
+ * アコーディオンの開閉を切り替えるハンドラ
+ * @param {string} lessonId - レッスンID
+ */
+function toggleParticipantsLessonAccordion(lessonId) {
+  if (!lessonId) return;
+
+  console.log('🎯 アコーディオン切り替え:', lessonId);
+
+  const state = participantsHandlersStateManager.getState();
+  const currentExpandedId = state.expandedLessonId;
+
+  // 同じレッスンをクリックした場合は閉じる、異なるレッスンをクリックした場合は開く
+  const newExpandedId = currentExpandedId === lessonId ? null : lessonId;
+
+  participantsHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      expandedLessonId: newExpandedId,
+    },
+  });
+
+  render();
+}
+
+/**
+ * レッスン選択ハンドラ（旧実装 - 互換性のため残す）
  * @param {string} lessonId - レッスンID
  */
 function selectParticipantsLesson(lessonId) {
@@ -424,6 +449,7 @@ function backToParticipantsReservations() {
  */
 export const participantsActionHandlers = {
   loadParticipantsView,
+  toggleParticipantsLessonAccordion,
   selectParticipantsLesson,
   selectParticipantsStudent,
   backToParticipantsList,

@@ -63,9 +63,10 @@ function renderLessonList(lessons) {
     `;
   }
 
-  // stateManagerから予約データを取得
+  // stateManagerから予約データとアコーディオン状態を取得
   const state = participantsStateManager.getState();
   const reservationsMap = state.participantsReservationsMap || {};
+  const expandedLessonId = state.expandedLessonId || null;
 
   const lessonsHtml = lessons
     .map(lesson => {
@@ -76,25 +77,38 @@ function renderLessonList(lessons) {
       const reservations = reservationsMap[lesson.lessonId] || [];
       const reservationCount = reservations.length;
 
+      // アコーディオンが展開されているかチェック
+      const isExpanded = expandedLessonId === lesson.lessonId;
+
+      // 詳細な日付表示（アコーディオン内用）
+      const detailedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
+
       return `
-        <button
-          class="${DesignConfig.cards.base} ${DesignConfig.cards.background} hover:bg-gray-50"
-          onclick="actionHandlers.selectParticipantsLesson('${escapeHTML(lesson.lessonId)}')"
-        >
-          <div class="${DesignConfig.utils.flexBetween} mb-2">
-            <span class="${DesignConfig.text.subheading}">${formattedDate}</span>
-            <div class="flex gap-2 items-center">
-              ${createBadge(`${reservationCount}名`, reservationCount > 0 ? 'blue' : 'gray')}
-              <span class="px-2 py-1 rounded text-xs ${lesson.status === '開催予定' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                ${escapeHTML(lesson.status)}
-              </span>
+        <div class="mb-4">
+          <button
+            class="${DesignConfig.cards.base} ${DesignConfig.cards.background} hover:bg-gray-50 w-full transition-all ${isExpanded ? 'border-blue-500 border-2' : ''}"
+            onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
+          >
+            <div class="${DesignConfig.utils.flexBetween} mb-2">
+              <span class="${DesignConfig.text.subheading}">${formattedDate}</span>
+              <div class="flex gap-2 items-center">
+                ${createBadge(`${reservationCount}名`, reservationCount > 0 ? 'blue' : 'gray')}
+                <span class="px-2 py-1 rounded text-xs ${lesson.status === '開催予定' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                  ${escapeHTML(lesson.status)}
+                </span>
+                <svg class="w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
             </div>
-          </div>
-          <div class="${DesignConfig.text.body} mb-1">
-            <span class="font-bold">${escapeHTML(lesson.classroom)}</span>
-            ${lesson.venue ? `<span class="text-gray-600"> - ${escapeHTML(lesson.venue)}</span>` : ''}
-          </div>
-        </button>
+            <div class="${DesignConfig.text.body} mb-1">
+              <span class="font-bold">${escapeHTML(lesson.classroom)}</span>
+              ${lesson.venue ? `<span class="text-gray-600"> - ${escapeHTML(lesson.venue)}</span>` : ''}
+            </div>
+          </button>
+
+          ${isExpanded ? renderAccordionContent(lesson, reservations, detailedDate) : ''}
+        </div>
       `;
     })
     .join('');
@@ -108,6 +122,114 @@ function renderLessonList(lessons) {
       <div class="${DesignConfig.cards.container}">
         ${lessonsHtml}
       </div>
+    </div>
+  `;
+}
+
+/**
+ * アコーディオン展開時の予約詳細コンテンツを生成
+ * @param {any} lesson - レッスン情報
+ * @param {any[]} reservations - 予約一覧
+ * @param {string} detailedDate - 詳細な日付表示
+ * @returns {string} HTML文字列
+ */
+function renderAccordionContent(lesson, reservations, detailedDate) {
+  if (!reservations || reservations.length === 0) {
+    return `
+      <div class="bg-gray-50 border-2 border-gray-200 rounded-lg p-6 mt-2 animate-slideDown">
+        <p class="text-center text-gray-500">参加者がいません</p>
+      </div>
+    `;
+  }
+
+  // テーブルのカラム定義
+  /** @type {TableColumn[]} */
+  const columns = [
+    {
+      label: '参加者',
+      key: 'participant',
+      align: 'center',
+      width: '100px',
+      render: (_value, row) => {
+        const displayName = row.nickname || row.displayName || '名前なし';
+        const hasRealName = row.realName && row.realName.trim() !== '';
+
+        // バッジを生成
+        const badges = [];
+        if (row.firstLecture) {
+          badges.push(createBadge('初', 'green'));
+        }
+        if (row.chiselRental) {
+          badges.push(createBadge('刀', 'orange'));
+        }
+        // 参加回数を表示（初回でない場合）
+        if (!row.firstLecture && row.participationCount) {
+          badges.push(createBadge(`${row.participationCount}回`, 'blue'));
+        }
+
+        const badgesHtml = badges.length > 0 ? badges.join(' ') : '';
+
+        return `
+          <div>
+            <div class="font-bold text-xs mb-0.5">
+              <button
+                class="text-blue-600 hover:text-blue-800 hover:underline text-left"
+                onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
+              >
+                ${escapeHTML(displayName)}
+              </button>
+            </div>
+            ${hasRealName ? `<div class="text-xs text-gray-600 mb-0.5">${escapeHTML(row.realName)}</div>` : ''}
+            <div class="gap-0.5 text-xs">
+              ${badgesHtml}
+            </div>
+          </div>
+        `;
+      },
+    },
+    {
+      label: '制作メモ',
+      key: 'workInProgress',
+      width: '250px',
+      align: 'left',
+      render: value => {
+        return `<div class="text-sm ${value ? '' : 'text-gray-400 italic'}">
+          ${escapeHTML(value || '—')}
+        </div>`;
+      },
+    },
+    {
+      label: '注文',
+      key: 'order',
+      width: '150px',
+      align: 'left',
+      render: value => {
+        return `<div class="text-xs ${value ? '' : 'text-gray-400 italic'}">
+          ${escapeHTML(value || '—')}
+        </div>`;
+      },
+    },
+  ];
+
+  // テーブルHTML生成
+  const tableHtml = Components.table({
+    columns,
+    rows: reservations,
+    striped: false,
+    bordered: true,
+    hoverable: true,
+    compact: true,
+    responsive: true,
+    emptyMessage: '参加者がいません',
+  });
+
+  return `
+    <div class="bg-white border-2 border-blue-200 rounded-lg p-4 mt-2 animate-slideDown">
+      <div class="mb-4">
+        <h3 class="font-bold text-lg mb-1">${escapeHTML(lesson.classroom)} - ${detailedDate}</h3>
+        ${lesson.venue ? `<p class="text-sm text-gray-600">${escapeHTML(lesson.venue)}</p>` : ''}
+      </div>
+      ${tableHtml}
     </div>
   `;
 }
