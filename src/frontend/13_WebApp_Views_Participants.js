@@ -15,6 +15,27 @@
 const participantsStateManager = appWindow.stateManager;
 
 /**
+ * 教室ごとの色定義
+ */
+const CLASSROOM_COLORS = {
+  '木彫り教室A': { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-700' },
+  '木彫り教室B': { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-800', badge: 'bg-green-100 text-green-700' },
+  '木彫り教室C': { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-800', badge: 'bg-purple-100 text-purple-700' },
+  '木彫り教室D': { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-800', badge: 'bg-orange-100 text-orange-700' },
+  '木彫り教室E': { bg: 'bg-pink-50', border: 'border-pink-300', text: 'text-pink-800', badge: 'bg-pink-100 text-pink-700' },
+  'default': { bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-800', badge: 'bg-gray-100 text-gray-700' }
+};
+
+/**
+ * 教室の色を取得
+ * @param {string} classroom - 教室名
+ * @returns {Object} 色定義オブジェクト
+ */
+function getClassroomColor(classroom) {
+  return CLASSROOM_COLORS[classroom] || CLASSROOM_COLORS['default'];
+}
+
+/**
  * 参加者リストメインビュー
  * stateManagerの状態に応じて適切なサブビューを返す
  * @returns {string} HTML文字列
@@ -195,14 +216,55 @@ function renderLessonList(lessons) {
   const reservationsMap = state.participantsReservationsMap || {};
   const expandedLessonId = state.expandedLessonId || null;
   const selectedClassroom = state.selectedParticipantsClassroom || 'all';
+  const showPastLessons = state.showPastLessons || false;
 
   // 教室一覧を取得（重複を除く）
   const classrooms = ['all', ...new Set(lessons.map(l => l.classroom).filter(Boolean))];
 
+  // 今日の日付（時刻を00:00:00にリセット）
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 未来と過去のレッスンに分ける
+  const futureLessons = lessons.filter(l => {
+    const lessonDate = new Date(l.date);
+    lessonDate.setHours(0, 0, 0, 0);
+    return lessonDate >= today;
+  }).sort((a, b) => new Date(a.date) - new Date(b.date)); // 昇順
+
+  const pastLessons = lessons.filter(l => {
+    const lessonDate = new Date(l.date);
+    lessonDate.setHours(0, 0, 0, 0);
+    return lessonDate < today;
+  }).sort((a, b) => new Date(b.date) - new Date(a.date)); // 降順
+
+  // 表示対象のレッスンを選択
+  const targetLessons = showPastLessons ? pastLessons : futureLessons;
+
   // フィルタリングされたレッスン
   const filteredLessons = selectedClassroom === 'all'
-    ? lessons
-    : lessons.filter(l => l.classroom === selectedClassroom);
+    ? targetLessons
+    : targetLessons.filter(l => l.classroom === selectedClassroom);
+
+  // タブUIの生成
+  const tabsHtml = `
+    <div class="mb-4 border-b border-gray-200">
+      <div class="flex space-x-4">
+        <button
+          class="pb-2 px-1 border-b-2 transition-colors ${!showPastLessons ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
+          onclick="actionHandlers.togglePastLessons(false)"
+        >
+          未来の予約 (${futureLessons.length})
+        </button>
+        <button
+          class="pb-2 px-1 border-b-2 transition-colors ${showPastLessons ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
+          onclick="actionHandlers.togglePastLessons(true)"
+        >
+          過去の記録 (${pastLessons.length})
+        </button>
+      </div>
+    </div>
+  `;
 
   // フィルタUIの生成
   const filterHtml = `
@@ -236,26 +298,47 @@ function renderLessonList(lessons) {
       // 詳細な日付表示（アコーディオン内用）
       const detailedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
 
+      // 教室の色を取得
+      const classroomColor = getClassroomColor(lesson.classroom);
+
+      // 完了済みかどうかを判定
+      const isCompleted = lesson.status === '完了' || lesson.status === 'キャンセル';
+      const isPast = showPastLessons;
+
+      // ステータスによる色分け
+      const statusColor = lesson.status === '開催予定'
+        ? 'bg-green-100 text-green-800'
+        : lesson.status === '完了'
+        ? 'bg-blue-100 text-blue-800'
+        : lesson.status === 'キャンセル'
+        ? 'bg-red-100 text-red-800'
+        : 'bg-gray-100 text-gray-800';
+
       return `
         <div class="mb-4">
           <button
-            class="${DesignConfig.cards.base} ${DesignConfig.cards.background} hover:bg-gray-50 w-full transition-all ${isExpanded ? 'border-blue-500 border-2' : ''}"
+            class="${DesignConfig.cards.base} ${classroomColor.bg} border-2 ${classroomColor.border} ${isCompleted ? 'opacity-75' : ''} hover:opacity-100 w-full transition-all ${isExpanded ? 'ring-2 ring-blue-500' : ''}"
             onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           >
             <div class="${DesignConfig.utils.flexBetween} mb-2">
-              <span class="${DesignConfig.text.subheading}">${formattedDate}</span>
+              <div class="flex items-center gap-2">
+                <span class="${DesignConfig.text.subheading} ${classroomColor.text}">${formattedDate}</span>
+                ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
+              </div>
               <div class="flex gap-2 items-center">
-                ${createBadge(`${reservationCount}名`, reservationCount > 0 ? 'blue' : 'gray')}
-                <span class="px-2 py-1 rounded text-xs ${lesson.status === '開催予定' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                <span class="px-2 py-1 rounded text-xs font-medium ${classroomColor.badge}">
+                  ${reservationCount}名
+                </span>
+                <span class="px-2 py-1 rounded text-xs font-medium ${statusColor}">
                   ${escapeHTML(lesson.status)}
                 </span>
-                <svg class="w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
               </div>
             </div>
             <div class="${DesignConfig.text.body} mb-1">
-              <span class="font-bold">${escapeHTML(lesson.classroom)}</span>
+              <span class="font-bold ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
               ${lesson.venue ? `<span class="text-gray-600"> - ${escapeHTML(lesson.venue)}</span>` : ''}
             </div>
           </button>
@@ -266,15 +349,24 @@ function renderLessonList(lessons) {
     })
     .join('');
 
+  // データがない場合のメッセージ
+  const emptyMessage = filteredLessons.length === 0
+    ? `<div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 text-center">
+         <p class="${DesignConfig.text.body}">${showPastLessons ? '過去の記録がありません' : '未来の予約がありません'}</p>
+       </div>`
+    : '';
+
   return `
     ${Components.pageHeader({
       title: 'レッスン一覧',
       showBackButton: false,
     })}
     <div class="${DesignConfig.layout.container}">
+      ${tabsHtml}
       ${filterHtml}
       <div class="${DesignConfig.cards.container}">
         ${lessonsHtml}
+        ${emptyMessage}
       </div>
     </div>
   `;

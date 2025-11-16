@@ -239,6 +239,7 @@ function loadParticipantsView(
           view: 'participants',
           participantsSubView: 'list',
           selectedParticipantsClassroom: state.selectedParticipantsClassroom || 'all',
+          showPastLessons: state.showPastLessons || false,
           recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
           isDataFresh: true,
         }
@@ -246,6 +247,7 @@ function loadParticipantsView(
           view: 'participants',
           participantsSubView: 'list',
           selectedParticipantsClassroom: state.selectedParticipantsClassroom || 'all',
+          showPastLessons: state.showPastLessons || false,
         };
 
     participantsHandlersStateManager.dispatch({
@@ -285,6 +287,7 @@ function loadParticipantsView(
               participantsIsAdmin: nextIsAdmin,
               participantsSubView: 'list',
               selectedParticipantsClassroom: 'all',
+              showPastLessons: false,
               recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
               isDataFresh: true,
             }
@@ -295,6 +298,7 @@ function loadParticipantsView(
               participantsIsAdmin: nextIsAdmin,
               participantsSubView: 'list',
               selectedParticipantsClassroom: 'all',
+              showPastLessons: false,
             };
 
         participantsHandlersStateManager.dispatch({
@@ -467,6 +471,24 @@ function filterParticipantsByClassroom(classroom) {
 }
 
 /**
+ * 過去/未来のレッスン切り替えハンドラ
+ * @param {boolean} showPast - 過去のレッスンを表示するか
+ */
+function togglePastLessons(showPast) {
+  console.log('📅 レッスン表示切り替え:', showPast ? '過去' : '未来');
+
+  participantsHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      showPastLessons: showPast,
+      expandedLessonId: null, // タブ切り替え時はアコーディオンを閉じる
+    },
+  });
+
+  render();
+}
+
+/**
  * 参加者リスト用アクションハンドラー
  */
 export const participantsActionHandlers = {
@@ -477,4 +499,5 @@ export const participantsActionHandlers = {
   backToParticipantsList,
   backToParticipantsReservations,
   filterParticipantsByClassroom,
+  togglePastLessons,
 };
