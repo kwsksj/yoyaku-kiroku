@@ -238,12 +238,14 @@ function loadParticipantsView(
           .../** @type {Partial<UIState>} */ (baseAppState),
           view: 'participants',
           participantsSubView: 'list',
+          selectedParticipantsClassroom: state.selectedParticipantsClassroom || 'all',
           recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
           isDataFresh: true,
         }
       : {
           view: 'participants',
           participantsSubView: 'list',
+          selectedParticipantsClassroom: state.selectedParticipantsClassroom || 'all',
         };
 
     participantsHandlersStateManager.dispatch({
@@ -282,6 +284,7 @@ function loadParticipantsView(
               participantsReservationsMap: response.data.reservationsMap || {},
               participantsIsAdmin: nextIsAdmin,
               participantsSubView: 'list',
+              selectedParticipantsClassroom: 'all',
               recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
               isDataFresh: true,
             }
@@ -291,6 +294,7 @@ function loadParticipantsView(
               participantsReservationsMap: response.data.reservationsMap || {},
               participantsIsAdmin: nextIsAdmin,
               participantsSubView: 'list',
+              selectedParticipantsClassroom: 'all',
             };
 
         participantsHandlersStateManager.dispatch({
@@ -445,6 +449,24 @@ function backToParticipantsReservations() {
 }
 
 /**
+ * 教室フィルタハンドラ
+ * @param {string} classroom - 選択された教室（'all'または教室名）
+ */
+function filterParticipantsByClassroom(classroom) {
+  console.log('🔍 教室フィルタ:', classroom);
+
+  participantsHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      selectedParticipantsClassroom: classroom,
+      expandedLessonId: null, // フィルタ変更時はアコーディオンを閉じる
+    },
+  });
+
+  render();
+}
+
+/**
  * 参加者リスト用アクションハンドラー
  */
 export const participantsActionHandlers = {
@@ -454,4 +476,5 @@ export const participantsActionHandlers = {
   selectParticipantsStudent,
   backToParticipantsList,
   backToParticipantsReservations,
+  filterParticipantsByClassroom,
 };

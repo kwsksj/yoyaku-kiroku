@@ -194,8 +194,34 @@ function renderLessonList(lessons) {
   const state = participantsStateManager.getState();
   const reservationsMap = state.participantsReservationsMap || {};
   const expandedLessonId = state.expandedLessonId || null;
+  const selectedClassroom = state.selectedParticipantsClassroom || 'all';
 
-  const lessonsHtml = lessons
+  // 教室一覧を取得（重複を除く）
+  const classrooms = ['all', ...new Set(lessons.map(l => l.classroom).filter(Boolean))];
+
+  // フィルタリングされたレッスン
+  const filteredLessons = selectedClassroom === 'all'
+    ? lessons
+    : lessons.filter(l => l.classroom === selectedClassroom);
+
+  // フィルタUIの生成
+  const filterHtml = `
+    <div class="mb-4">
+      <label class="block text-sm font-medium text-gray-700 mb-2">教室で絞り込み</label>
+      <select
+        class="${DesignConfig.inputs.base}"
+        onchange="actionHandlers.filterParticipantsByClassroom(this.value)"
+      >
+        ${classrooms.map(classroom => {
+          const displayName = classroom === 'all' ? 'すべて' : classroom;
+          const selected = classroom === selectedClassroom ? 'selected' : '';
+          return `<option value="${escapeHTML(classroom)}" ${selected}>${escapeHTML(displayName)}</option>`;
+        }).join('')}
+      </select>
+    </div>
+  `;
+
+  const lessonsHtml = filteredLessons
     .map(lesson => {
       const dateObj = new Date(lesson.date);
       const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
@@ -246,6 +272,7 @@ function renderLessonList(lessons) {
       showBackButton: false,
     })}
     <div class="${DesignConfig.layout.container}">
+      ${filterHtml}
       <div class="${DesignConfig.cards.container}">
         ${lessonsHtml}
       </div>
