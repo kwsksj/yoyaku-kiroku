@@ -44,86 +44,22 @@ export function getParticipantsView() {
 }
 
 /**
- * レッスン一覧を描画
- * @param {any[]} lessons - レッスン一覧
+ * バッジHTMLを生成
+ * @param {string} text - バッジテキスト
+ * @param {'gray'|'blue'|'green'|'orange'} [color='gray'] - バッジカラー
  * @returns {string} HTML文字列
  */
-function renderLessonList(lessons) {
-  if (!lessons || lessons.length === 0) {
-    return `
-      ${Components.pageHeader({
-        title: 'レッスン一覧',
-        showBackButton: false,
-      })}
-      <div class="${DesignConfig.layout.container}">
-        <div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 text-center">
-          <p class="${DesignConfig.text.body}">レッスンが見つかりません</p>
-        </div>
-      </div>
-    `;
-  }
+function createBadge(text, color = 'gray') {
+  /** @type {Record<string, string>} */
+  const colorClasses = {
+    gray: 'bg-gray-100 text-gray-700',
+    blue: 'bg-blue-100 text-blue-700',
+    green: 'bg-green-100 text-green-700',
+    orange: 'bg-orange-100 text-orange-700',
+  };
 
-  // stateManagerから予約データとアコーディオン状態を取得
-  const state = participantsStateManager.getState();
-  const reservationsMap = state.participantsReservationsMap || {};
-  const expandedLessonId = state.expandedLessonId || null;
-
-  const lessonsHtml = lessons
-    .map(lesson => {
-      const dateObj = new Date(lesson.date);
-      const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
-
-      // 予約数を計算
-      const reservations = reservationsMap[lesson.lessonId] || [];
-      const reservationCount = reservations.length;
-
-      // アコーディオンが展開されているかチェック
-      const isExpanded = expandedLessonId === lesson.lessonId;
-
-      // 詳細な日付表示（アコーディオン内用）
-      const detailedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
-
-      return `
-        <div class="mb-4">
-          <button
-            class="${DesignConfig.cards.base} ${DesignConfig.cards.background} hover:bg-gray-50 w-full transition-all ${isExpanded ? 'border-blue-500 border-2' : ''}"
-            onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
-          >
-            <div class="${DesignConfig.utils.flexBetween} mb-2">
-              <span class="${DesignConfig.text.subheading}">${formattedDate}</span>
-              <div class="flex gap-2 items-center">
-                ${createBadge(`${reservationCount}名`, reservationCount > 0 ? 'blue' : 'gray')}
-                <span class="px-2 py-1 rounded text-xs ${lesson.status === '開催予定' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                  ${escapeHTML(lesson.status)}
-                </span>
-                <svg class="w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
-            </div>
-            <div class="${DesignConfig.text.body} mb-1">
-              <span class="font-bold">${escapeHTML(lesson.classroom)}</span>
-              ${lesson.venue ? `<span class="text-gray-600"> - ${escapeHTML(lesson.venue)}</span>` : ''}
-            </div>
-          </button>
-
-          ${isExpanded ? renderAccordionContent(lesson, reservations, detailedDate) : ''}
-        </div>
-      `;
-    })
-    .join('');
-
-  return `
-    ${Components.pageHeader({
-      title: 'レッスン一覧',
-      showBackButton: false,
-    })}
-    <div class="${DesignConfig.layout.container}">
-      <div class="${DesignConfig.cards.container}">
-        ${lessonsHtml}
-      </div>
-    </div>
-  `;
+  const colorClass = colorClasses[color] || colorClasses['gray'];
+  return `<span class=" font-medium rounded-xs px-0.5 py-0 text-xs ${colorClass}">${escapeHTML(text)}</span>`;
 }
 
 /**
@@ -235,22 +171,86 @@ function renderAccordionContent(lesson, reservations, detailedDate) {
 }
 
 /**
- * バッジHTMLを生成
- * @param {string} text - バッジテキスト
- * @param {'gray'|'blue'|'green'|'orange'} [color='gray'] - バッジカラー
+ * レッスン一覧を描画
+ * @param {any[]} lessons - レッスン一覧
  * @returns {string} HTML文字列
  */
-function createBadge(text, color = 'gray') {
-  /** @type {Record<string, string>} */
-  const colorClasses = {
-    gray: 'bg-gray-100 text-gray-700',
-    blue: 'bg-blue-100 text-blue-700',
-    green: 'bg-green-100 text-green-700',
-    orange: 'bg-orange-100 text-orange-700',
-  };
+function renderLessonList(lessons) {
+  if (!lessons || lessons.length === 0) {
+    return `
+      ${Components.pageHeader({
+        title: 'レッスン一覧',
+        showBackButton: false,
+      })}
+      <div class="${DesignConfig.layout.container}">
+        <div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 text-center">
+          <p class="${DesignConfig.text.body}">レッスンが見つかりません</p>
+        </div>
+      </div>
+    `;
+  }
 
-  const colorClass = colorClasses[color] || colorClasses['gray'];
-  return `<span class=" font-medium rounded-xs px-0.5 py-0 text-xs ${colorClass}">${escapeHTML(text)}</span>`;
+  // stateManagerから予約データとアコーディオン状態を取得
+  const state = participantsStateManager.getState();
+  const reservationsMap = state.participantsReservationsMap || {};
+  const expandedLessonId = state.expandedLessonId || null;
+
+  const lessonsHtml = lessons
+    .map(lesson => {
+      const dateObj = new Date(lesson.date);
+      const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
+
+      // 予約数を計算
+      const reservations = reservationsMap[lesson.lessonId] || [];
+      const reservationCount = reservations.length;
+
+      // アコーディオンが展開されているかチェック
+      const isExpanded = expandedLessonId === lesson.lessonId;
+
+      // 詳細な日付表示（アコーディオン内用）
+      const detailedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
+
+      return `
+        <div class="mb-4">
+          <button
+            class="${DesignConfig.cards.base} ${DesignConfig.cards.background} hover:bg-gray-50 w-full transition-all ${isExpanded ? 'border-blue-500 border-2' : ''}"
+            onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
+          >
+            <div class="${DesignConfig.utils.flexBetween} mb-2">
+              <span class="${DesignConfig.text.subheading}">${formattedDate}</span>
+              <div class="flex gap-2 items-center">
+                ${createBadge(`${reservationCount}名`, reservationCount > 0 ? 'blue' : 'gray')}
+                <span class="px-2 py-1 rounded text-xs ${lesson.status === '開催予定' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                  ${escapeHTML(lesson.status)}
+                </span>
+                <svg class="w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+              </div>
+            </div>
+            <div class="${DesignConfig.text.body} mb-1">
+              <span class="font-bold">${escapeHTML(lesson.classroom)}</span>
+              ${lesson.venue ? `<span class="text-gray-600"> - ${escapeHTML(lesson.venue)}</span>` : ''}
+            </div>
+          </button>
+
+          ${isExpanded ? renderAccordionContent(lesson, reservations, detailedDate) : ''}
+        </div>
+      `;
+    })
+    .join('');
+
+  return `
+    ${Components.pageHeader({
+      title: 'レッスン一覧',
+      showBackButton: false,
+    })}
+    <div class="${DesignConfig.layout.container}">
+      <div class="${DesignConfig.cards.container}">
+        ${lessonsHtml}
+      </div>
+    </div>
+  `;
 }
 
 /**
