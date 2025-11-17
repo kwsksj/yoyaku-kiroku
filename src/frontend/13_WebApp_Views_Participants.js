@@ -15,24 +15,65 @@
 const participantsStateManager = appWindow.stateManager;
 
 /**
+ * @typedef {Object} ClassroomColorConfig
+ * @property {string} bg - 背景色クラス
+ * @property {string} border - ボーダー色クラス
+ * @property {string} text - テキスト色クラス
+ * @property {string} badge - バッジ色クラス
+ */
+
+/**
  * 教室ごとの色定義
+ * @type {{[key: string]: ClassroomColorConfig}}
  */
 const CLASSROOM_COLORS = {
-  '木彫り教室A': { bg: 'bg-blue-50', border: 'border-blue-300', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-700' },
-  '木彫り教室B': { bg: 'bg-green-50', border: 'border-green-300', text: 'text-green-800', badge: 'bg-green-100 text-green-700' },
-  '木彫り教室C': { bg: 'bg-purple-50', border: 'border-purple-300', text: 'text-purple-800', badge: 'bg-purple-100 text-purple-700' },
-  '木彫り教室D': { bg: 'bg-orange-50', border: 'border-orange-300', text: 'text-orange-800', badge: 'bg-orange-100 text-orange-700' },
-  '木彫り教室E': { bg: 'bg-pink-50', border: 'border-pink-300', text: 'text-pink-800', badge: 'bg-pink-100 text-pink-700' },
-  'default': { bg: 'bg-gray-50', border: 'border-gray-300', text: 'text-gray-800', badge: 'bg-gray-100 text-gray-700' }
+  木彫り教室A: {
+    bg: 'bg-blue-50',
+    border: 'border-blue-300',
+    text: 'text-blue-800',
+    badge: 'bg-blue-100 text-blue-700',
+  },
+  木彫り教室B: {
+    bg: 'bg-green-50',
+    border: 'border-green-300',
+    text: 'text-green-800',
+    badge: 'bg-green-100 text-green-700',
+  },
+  木彫り教室C: {
+    bg: 'bg-purple-50',
+    border: 'border-purple-300',
+    text: 'text-purple-800',
+    badge: 'bg-purple-100 text-purple-700',
+  },
+  木彫り教室D: {
+    bg: 'bg-orange-50',
+    border: 'border-orange-300',
+    text: 'text-orange-800',
+    badge: 'bg-orange-100 text-orange-700',
+  },
+  木彫り教室E: {
+    bg: 'bg-pink-50',
+    border: 'border-pink-300',
+    text: 'text-pink-800',
+    badge: 'bg-pink-100 text-pink-700',
+  },
+  default: {
+    bg: 'bg-gray-50',
+    border: 'border-gray-300',
+    text: 'text-gray-800',
+    badge: 'bg-gray-100 text-gray-700',
+  },
 };
 
 /**
  * 教室の色を取得
  * @param {string} classroom - 教室名
- * @returns {Object} 色定義オブジェクト
+ * @returns {ClassroomColorConfig} 色定義オブジェクト
  */
 function getClassroomColor(classroom) {
-  return CLASSROOM_COLORS[classroom] || CLASSROOM_COLORS['default'];
+  return /** @type {ClassroomColorConfig} */ (
+    CLASSROOM_COLORS[classroom] || CLASSROOM_COLORS['default']
+  );
 }
 
 /**
@@ -219,32 +260,40 @@ function renderLessonList(lessons) {
   const showPastLessons = state.showPastLessons || false;
 
   // 教室一覧を取得（重複を除く）
-  const classrooms = ['all', ...new Set(lessons.map(l => l.classroom).filter(Boolean))];
+  const classrooms = [
+    'all',
+    ...new Set(lessons.map(l => l.classroom).filter(Boolean)),
+  ];
 
   // 今日の日付（時刻を00:00:00にリセット）
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   // 未来と過去のレッスンに分ける
-  const futureLessons = lessons.filter(l => {
-    const lessonDate = new Date(l.date);
-    lessonDate.setHours(0, 0, 0, 0);
-    return lessonDate >= today;
-  }).sort((a, b) => new Date(a.date) - new Date(b.date)); // 昇順
+  const futureLessons = lessons
+    .filter(l => {
+      const lessonDate = new Date(l.date);
+      lessonDate.setHours(0, 0, 0, 0);
+      return lessonDate >= today;
+    })
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // 昇順
 
-  const pastLessons = lessons.filter(l => {
-    const lessonDate = new Date(l.date);
-    lessonDate.setHours(0, 0, 0, 0);
-    return lessonDate < today;
-  }).sort((a, b) => new Date(b.date) - new Date(a.date)); // 降順
+  const pastLessons = lessons
+    .filter(l => {
+      const lessonDate = new Date(l.date);
+      lessonDate.setHours(0, 0, 0, 0);
+      return lessonDate < today;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 降順
 
   // 表示対象のレッスンを選択
   const targetLessons = showPastLessons ? pastLessons : futureLessons;
 
   // フィルタリングされたレッスン
-  const filteredLessons = selectedClassroom === 'all'
-    ? targetLessons
-    : targetLessons.filter(l => l.classroom === selectedClassroom);
+  const filteredLessons =
+    selectedClassroom === 'all'
+      ? targetLessons
+      : targetLessons.filter(l => l.classroom === selectedClassroom);
 
   // タブUIの生成
   const tabsHtml = `
@@ -274,11 +323,13 @@ function renderLessonList(lessons) {
         class="${DesignConfig.inputs.base}"
         onchange="actionHandlers.filterParticipantsByClassroom(this.value)"
       >
-        ${classrooms.map(classroom => {
-          const displayName = classroom === 'all' ? 'すべて' : classroom;
-          const selected = classroom === selectedClassroom ? 'selected' : '';
-          return `<option value="${escapeHTML(classroom)}" ${selected}>${escapeHTML(displayName)}</option>`;
-        }).join('')}
+        ${classrooms
+          .map(classroom => {
+            const displayName = classroom === 'all' ? 'すべて' : classroom;
+            const selected = classroom === selectedClassroom ? 'selected' : '';
+            return `<option value="${escapeHTML(classroom)}" ${selected}>${escapeHTML(displayName)}</option>`;
+          })
+          .join('')}
       </select>
     </div>
   `;
@@ -302,17 +353,18 @@ function renderLessonList(lessons) {
       const classroomColor = getClassroomColor(lesson.classroom);
 
       // 完了済みかどうかを判定
-      const isCompleted = lesson.status === '完了' || lesson.status === 'キャンセル';
-      const isPast = showPastLessons;
+      const isCompleted =
+        lesson.status === '完了' || lesson.status === 'キャンセル';
 
       // ステータスによる色分け
-      const statusColor = lesson.status === '開催予定'
-        ? 'bg-green-100 text-green-800'
-        : lesson.status === '完了'
-        ? 'bg-blue-100 text-blue-800'
-        : lesson.status === 'キャンセル'
-        ? 'bg-red-100 text-red-800'
-        : 'bg-gray-100 text-gray-800';
+      const statusColor =
+        lesson.status === '開催予定'
+          ? 'bg-green-100 text-green-800'
+          : lesson.status === '完了'
+            ? 'bg-blue-100 text-blue-800'
+            : lesson.status === 'キャンセル'
+              ? 'bg-red-100 text-red-800'
+              : 'bg-gray-100 text-gray-800';
 
       return `
         <div class="mb-4">
@@ -350,11 +402,12 @@ function renderLessonList(lessons) {
     .join('');
 
   // データがない場合のメッセージ
-  const emptyMessage = filteredLessons.length === 0
-    ? `<div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 text-center">
+  const emptyMessage =
+    filteredLessons.length === 0
+      ? `<div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 text-center">
          <p class="${DesignConfig.text.body}">${showPastLessons ? '過去の記録がありません' : '未来の予約がありません'}</p>
        </div>`
-    : '';
+      : '';
 
   return `
     ${Components.pageHeader({

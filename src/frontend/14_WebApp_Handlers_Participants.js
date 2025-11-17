@@ -238,7 +238,8 @@ function loadParticipantsView(
           .../** @type {Partial<UIState>} */ (baseAppState),
           view: 'participants',
           participantsSubView: 'list',
-          selectedParticipantsClassroom: state.selectedParticipantsClassroom || 'all',
+          selectedParticipantsClassroom:
+            state.selectedParticipantsClassroom || 'all',
           showPastLessons: state.showPastLessons || false,
           recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
           isDataFresh: true,
@@ -246,7 +247,8 @@ function loadParticipantsView(
       : {
           view: 'participants',
           participantsSubView: 'list',
-          selectedParticipantsClassroom: state.selectedParticipantsClassroom || 'all',
+          selectedParticipantsClassroom:
+            state.selectedParticipantsClassroom || 'all',
           showPastLessons: state.showPastLessons || false,
         };
 

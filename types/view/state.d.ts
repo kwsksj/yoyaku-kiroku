@@ -194,6 +194,9 @@ export interface UIState {
     participantsSelectedLesson?: LessonCore | null;
     participantsSelectedStudent?: UserCore | null;
     participantsIsAdmin?: boolean;
+    expandedLessonId?: string | null; // アコーディオン展開中のレッスンID
+    selectedParticipantsClassroom?: string; // 参加者画面で選択中の教室
+    showPastLessons?: boolean; // 過去のレッスンを表示するかどうか
 
     // --- Navigation History ---
     navigationHistory: StateNavigationHistoryEntry[];

@@ -1,9 +1,12 @@
 export namespace participantsActionHandlers {
     export { loadParticipantsView };
+    export { toggleParticipantsLessonAccordion };
     export { selectParticipantsLesson };
     export { selectParticipantsStudent };
     export { backToParticipantsList };
     export { backToParticipantsReservations };
+    export { filterParticipantsByClassroom };
+    export { togglePastLessons };
 }
 export type CacheEntry = {
     /**
@@ -27,7 +30,12 @@ export type CacheEntry = {
  */
 declare function loadParticipantsView(forceReload?: boolean, shouldShowLoading?: boolean, baseAppState?: Partial<UIState> | null): void;
 /**
- * レッスン選択ハンドラ
+ * アコーディオンの開閉を切り替えるハンドラ
+ * @param {string} lessonId - レッスンID
+ */
+declare function toggleParticipantsLessonAccordion(lessonId: string): void;
+/**
+ * レッスン選択ハンドラ（旧実装 - 互換性のため残す）
  * @param {string} lessonId - レッスンID
  */
 declare function selectParticipantsLesson(lessonId: string): void;
@@ -44,4 +52,14 @@ declare function backToParticipantsList(): void;
  * 参加者リストに戻る
  */
 declare function backToParticipantsReservations(): void;
+/**
+ * 教室フィルタハンドラ
+ * @param {string} classroom - 選択された教室（'all'または教室名）
+ */
+declare function filterParticipantsByClassroom(classroom: string): void;
+/**
+ * 過去/未来のレッスン切り替えハンドラ
+ * @param {boolean} showPast - 過去のレッスンを表示するか
+ */
+declare function togglePastLessons(showPast: boolean): void;
 export {};
