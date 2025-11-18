@@ -126,16 +126,15 @@ function createBadge(text, color = 'gray') {
 
 /**
  * アコーディオン展開時の予約詳細コンテンツを生成
- * @param {any} lesson - レッスン情報
+ * @param {any} _lesson - レッスン情報（未使用）
  * @param {any[]} reservations - 予約一覧
- * @param {string} detailedDate - 詳細な日付表示
  * @returns {string} HTML文字列
  */
-function renderAccordionContent(lesson, reservations, detailedDate) {
+function renderAccordionContent(_lesson, reservations) {
   if (!reservations || reservations.length === 0) {
     return `
-      <div class="bg-gray-50 border-2 border-gray-200 rounded-lg p-6 mt-2 animate-slideDown">
-        <p class="text-center text-gray-500">参加者がいません</p>
+      <div class="bg-gray-50 border-t-2 border-gray-200 p-3">
+        <p class="text-center text-gray-500 text-sm">参加者がいません</p>
       </div>
     `;
   }
@@ -222,11 +221,7 @@ function renderAccordionContent(lesson, reservations, detailedDate) {
   });
 
   return `
-    <div class="bg-white border-2 border-blue-200 rounded-lg p-4 mt-2 animate-slideDown">
-      <div class="mb-4">
-        <h3 class="font-bold text-lg mb-1">${escapeHTML(lesson.classroom)} - ${detailedDate}</h3>
-        ${lesson.venue ? `<p class="text-sm text-gray-600">${escapeHTML(lesson.venue)}</p>` : ''}
-      </div>
+    <div class="bg-white border-t-2 border-blue-200 p-2">
       ${tableHtml}
     </div>
   `;
@@ -255,7 +250,7 @@ function renderLessonList(lessons) {
   // stateManagerから予約データとアコーディオン状態を取得
   const state = participantsStateManager.getState();
   const reservationsMap = state.participantsReservationsMap || {};
-  const expandedLessonId = state.expandedLessonId || null;
+  const expandedLessonIds = state.expandedLessonIds || [];
   const selectedClassroom = state.selectedParticipantsClassroom || 'all';
   const showPastLessons = state.showPastLessons || false;
 
@@ -343,11 +338,8 @@ function renderLessonList(lessons) {
       const reservations = reservationsMap[lesson.lessonId] || [];
       const reservationCount = reservations.length;
 
-      // アコーディオンが展開されているかチェック
-      const isExpanded = expandedLessonId === lesson.lessonId;
-
-      // 詳細な日付表示（アコーディオン内用）
-      const detailedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
+      // アコーディオンが展開されているかチェック（配列に含まれているか）
+      const isExpanded = expandedLessonIds.includes(lesson.lessonId);
 
       // 教室の色を取得
       const classroomColor = getClassroomColor(lesson.classroom);
@@ -367,35 +359,34 @@ function renderLessonList(lessons) {
               : 'bg-gray-100 text-gray-800';
 
       return `
-        <div class="mb-4">
+        <div class="mb-3 ${classroomColor.bg} border-2 ${classroomColor.border} rounded-lg overflow-hidden transition-all">
           <button
-            class="${DesignConfig.cards.base} ${classroomColor.bg} border-2 ${classroomColor.border} ${isCompleted ? 'opacity-75' : ''} hover:opacity-100 w-full transition-all ${isExpanded ? 'ring-2 ring-blue-500' : ''}"
+            class="p-3 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
             onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           >
-            <div class="${DesignConfig.utils.flexBetween} mb-2">
+            <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-2">
-                <span class="${DesignConfig.text.subheading} ${classroomColor.text}">${formattedDate}</span>
+                <span class="text-sm font-semibold ${classroomColor.text}">${formattedDate}</span>
                 ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
               </div>
-              <div class="flex gap-2 items-center">
-                <span class="px-2 py-1 rounded text-xs font-medium ${classroomColor.badge}">
+              <div class="flex gap-1.5 items-center">
+                <span class="px-1.5 py-0.5 rounded text-xs font-medium ${classroomColor.badge}">
                   ${reservationCount}名
                 </span>
-                <span class="px-2 py-1 rounded text-xs font-medium ${statusColor}">
+                <span class="px-1.5 py-0.5 rounded text-xs font-medium ${statusColor}">
                   ${escapeHTML(lesson.status)}
                 </span>
-                <svg class="w-5 h-5 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                 </svg>
               </div>
             </div>
-            <div class="${DesignConfig.text.body} mb-1">
+            <div class="text-sm text-left">
               <span class="font-bold ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
               ${lesson.venue ? `<span class="text-gray-600"> - ${escapeHTML(lesson.venue)}</span>` : ''}
             </div>
           </button>
-
-          ${isExpanded ? renderAccordionContent(lesson, reservations, detailedDate) : ''}
+          ${isExpanded ? renderAccordionContent(lesson, reservations) : ''}
         </div>
       `;
     })
