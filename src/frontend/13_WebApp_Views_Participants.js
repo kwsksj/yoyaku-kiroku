@@ -133,8 +133,8 @@ function createBadge(text, color = 'gray') {
 function renderAccordionContent(_lesson, reservations) {
   if (!reservations || reservations.length === 0) {
     return `
-      <div class="bg-gray-50 border-t-2 border-gray-200 p-3">
-        <p class="text-center text-gray-500 text-sm">参加者がいません</p>
+      <div class="bg-gray-50 border-t border-gray-200 p-2">
+        <p class="text-center text-gray-500 text-xs">参加者がいません</p>
       </div>
     `;
   }
@@ -221,7 +221,7 @@ function renderAccordionContent(_lesson, reservations) {
   });
 
   return `
-    <div class="bg-white border-t-2 border-blue-200 p-2">
+    <div class="bg-white border-t border-blue-200">
       ${tableHtml}
     </div>
   `;
@@ -292,19 +292,19 @@ function renderLessonList(lessons) {
 
   // タブUIの生成
   const tabsHtml = `
-    <div class="mb-4 border-b border-gray-200">
-      <div class="flex space-x-4">
+    <div class="mb-2 border-b border-gray-200">
+      <div class="flex space-x-3">
         <button
-          class="pb-2 px-1 border-b-2 transition-colors ${!showPastLessons ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
+          class="pb-1.5 px-1 text-sm border-b-2 transition-colors ${!showPastLessons ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
           onclick="actionHandlers.togglePastLessons(false)"
         >
-          未来の予約 (${futureLessons.length})
+          未来 (${futureLessons.length})
         </button>
         <button
-          class="pb-2 px-1 border-b-2 transition-colors ${showPastLessons ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
+          class="pb-1.5 px-1 text-sm border-b-2 transition-colors ${showPastLessons ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
           onclick="actionHandlers.togglePastLessons(true)"
         >
-          過去の記録 (${pastLessons.length})
+          過去 (${pastLessons.length})
         </button>
       </div>
     </div>
@@ -312,10 +312,10 @@ function renderLessonList(lessons) {
 
   // フィルタUIの生成
   const filterHtml = `
-    <div class="mb-4">
-      <label class="block text-sm font-medium text-gray-700 mb-2">教室で絞り込み</label>
+    <div class="mb-2">
+      <label class="block text-xs font-medium text-gray-700 mb-1">教室</label>
       <select
-        class="${DesignConfig.inputs.base}"
+        class="${DesignConfig.inputs.base} text-sm py-1"
         onchange="actionHandlers.filterParticipantsByClassroom(this.value)"
       >
         ${classrooms
@@ -359,17 +359,20 @@ function renderLessonList(lessons) {
               : 'bg-gray-100 text-gray-800';
 
       return `
-        <div class="mb-3 ${classroomColor.bg} border-2 ${classroomColor.border} rounded-lg overflow-hidden transition-all">
+        <div class="mb-2 ${classroomColor.bg} border-2 ${classroomColor.border} rounded-lg overflow-hidden" data-lesson-container="${escapeHTML(lesson.lessonId)}">
           <button
-            class="p-3 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
+            class="p-2 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
             onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
+            data-lesson-id="${escapeHTML(lesson.lessonId)}"
           >
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 flex-1">
                 <span class="text-sm font-semibold ${classroomColor.text}">${formattedDate}</span>
+                <span class="font-bold text-sm ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
+                ${lesson.venue ? `<span class="text-gray-600 text-xs">@${escapeHTML(lesson.venue)}</span>` : ''}
                 ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
               </div>
-              <div class="flex gap-1.5 items-center">
+              <div class="flex gap-1 items-center">
                 <span class="px-1.5 py-0.5 rounded text-xs font-medium ${classroomColor.badge}">
                   ${reservationCount}名
                 </span>
@@ -381,12 +384,10 @@ function renderLessonList(lessons) {
                 </svg>
               </div>
             </div>
-            <div class="text-sm text-left">
-              <span class="font-bold ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
-              ${lesson.venue ? `<span class="text-gray-600"> - ${escapeHTML(lesson.venue)}</span>` : ''}
-            </div>
           </button>
-          ${isExpanded ? renderAccordionContent(lesson, reservations) : ''}
+          <div class="accordion-content ${isExpanded ? '' : 'hidden'}">
+            ${renderAccordionContent(lesson, reservations)}
+          </div>
         </div>
       `;
     })
@@ -395,8 +396,8 @@ function renderLessonList(lessons) {
   // データがない場合のメッセージ
   const emptyMessage =
     filteredLessons.length === 0
-      ? `<div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 text-center">
-         <p class="${DesignConfig.text.body}">${showPastLessons ? '過去の記録がありません' : '未来の予約がありません'}</p>
+      ? `<div class="bg-ui-surface border border-ui-border rounded-lg p-3 text-center">
+         <p class="text-sm text-gray-500">${showPastLessons ? '過去の記録がありません' : '未来の予約がありません'}</p>
        </div>`
       : '';
 

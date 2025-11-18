@@ -336,7 +336,7 @@ function loadParticipantsView(
 }
 
 /**
- * アコーディオンの開閉を切り替えるハンドラ（複数展開対応）
+ * アコーディオンの開閉を切り替えるハンドラ（複数展開対応・DOM直接操作版）
  * @param {string} lessonId - レッスンID
  */
 function toggleParticipantsLessonAccordion(lessonId) {
@@ -348,10 +348,12 @@ function toggleParticipantsLessonAccordion(lessonId) {
   const currentExpandedIds = state.expandedLessonIds || [];
 
   // 配列に含まれている場合は削除、含まれていない場合は追加
-  const newExpandedIds = currentExpandedIds.includes(lessonId)
+  const isCurrentlyExpanded = currentExpandedIds.includes(lessonId);
+  const newExpandedIds = isCurrentlyExpanded
     ? currentExpandedIds.filter(id => id !== lessonId)
     : [...currentExpandedIds, lessonId];
 
+  // State更新
   participantsHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
     payload: {
@@ -359,7 +361,32 @@ function toggleParticipantsLessonAccordion(lessonId) {
     },
   });
 
-  render();
+  // DOM直接操作でコンテンツを切り替え（再レンダリング不要）
+  const container = document.querySelector(
+    `[data-lesson-container="${lessonId}"]`,
+  );
+  if (!container) return;
+
+  const contentElement = container.querySelector('.accordion-content');
+  const arrowElement = container.querySelector('svg');
+
+  if (isCurrentlyExpanded) {
+    // 閉じる
+    if (contentElement) {
+      contentElement.classList.add('hidden');
+    }
+    if (arrowElement) {
+      arrowElement.classList.remove('rotate-180');
+    }
+  } else {
+    // 開く
+    if (contentElement) {
+      contentElement.classList.remove('hidden');
+    }
+    if (arrowElement) {
+      arrowElement.classList.add('rotate-180');
+    }
+  }
 }
 
 /**
