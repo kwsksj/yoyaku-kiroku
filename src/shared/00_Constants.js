@@ -55,9 +55,9 @@ export const CONSTANTS = {
    * 教室名定数
    */
   CLASSROOMS: {
-    TOKYO: '東京教室',
-    NUMAZU: '沼津教室',
-    TSUKUBA: 'つくば教室',
+    TOKYO: '東京',
+    NUMAZU: '沼津',
+    TSUKUBA: 'つくば',
   },
 
   /**

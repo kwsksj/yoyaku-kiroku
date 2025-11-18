@@ -27,35 +27,23 @@ const participantsStateManager = appWindow.stateManager;
  * @type {{[key: string]: ClassroomColorConfig}}
  */
 const CLASSROOM_COLORS = {
-  木彫り教室A: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-300',
-    text: 'text-blue-800',
-    badge: 'bg-blue-100 text-blue-700',
+  東京教室: {
+    bg: 'bg-red-50',
+    border: 'border-red-300',
+    text: 'text-red-800',
+    badge: 'bg-red-100 text-red-700',
   },
-  木彫り教室B: {
+  つくば教室: {
     bg: 'bg-green-50',
     border: 'border-green-300',
     text: 'text-green-800',
     badge: 'bg-green-100 text-green-700',
   },
-  木彫り教室C: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-300',
-    text: 'text-purple-800',
-    badge: 'bg-purple-100 text-purple-700',
-  },
-  木彫り教室D: {
-    bg: 'bg-orange-50',
-    border: 'border-orange-300',
-    text: 'text-orange-800',
-    badge: 'bg-orange-100 text-orange-700',
-  },
-  木彫り教室E: {
-    bg: 'bg-pink-50',
-    border: 'border-pink-300',
-    text: 'text-pink-800',
-    badge: 'bg-pink-100 text-pink-700',
+  沼津教室: {
+    bg: 'bg-blue-50',
+    border: 'border-blue-300',
+    text: 'text-blue-800',
+    badge: 'bg-blue-100 text-blue-700',
   },
   default: {
     bg: 'bg-gray-50',
@@ -208,21 +196,44 @@ function renderAccordionContent(_lesson, reservations) {
     },
   ];
 
-  // テーブルHTML生成
-  const tableHtml = Components.table({
-    columns,
-    rows: reservations,
-    striped: false,
-    bordered: true,
-    hoverable: true,
-    compact: true,
-    responsive: true,
-    emptyMessage: '参加者がいません',
-  });
+  // カスタムテーブルHTML生成（背景透明、枠なし、破線区切り）
+  const headerHtml = columns
+    .map(
+      col =>
+        `<th class="px-1 py-0.5 text-xxs font-medium text-gray-600 ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}">${escapeHTML(col.label)}</th>`,
+    )
+    .join('');
+
+  const rowsHtml = reservations
+    .map(row => {
+      const cellsHtml = columns
+        .map(col => {
+          const value = col.render
+            ? col.render(row[col.key], row)
+            : row[col.key] || '';
+          const alignClass =
+            col.align === 'center'
+              ? 'text-center'
+              : col.align === 'right'
+                ? 'text-right'
+                : 'text-left';
+          return `<td class="px-1 py-1 text-xs ${alignClass}">${value}</td>`;
+        })
+        .join('');
+      return `<tr class="border-t border-dashed border-gray-200 hover:bg-gray-50">${cellsHtml}</tr>`;
+    })
+    .join('');
 
   return `
-    <div class="bg-white border-t border-blue-200">
-      ${tableHtml}
+    <div class="border-t border-gray-300">
+      <table class="w-full bg-transparent">
+        <thead>
+          <tr>${headerHtml}</tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
     </div>
   `;
 }
@@ -406,7 +417,7 @@ function renderLessonList(lessons) {
       title: 'レッスン一覧',
       showBackButton: false,
     })}
-    <div class="${DesignConfig.layout.container}">
+    <div class="${DesignConfig.layout.containerNoPadding}">
       ${tabsHtml}
       ${filterHtml}
       <div class="${DesignConfig.cards.container}">
@@ -505,7 +516,7 @@ function renderReservationsList(lesson, reservations) {
     columns,
     rows: reservations,
     striped: false,
-    bordered: true,
+    bordered: false,
     hoverable: true,
     compact: true,
     responsive: true,
