@@ -335,8 +335,13 @@ function loadParticipantsView(
     .getLessonsForParticipantsView(studentId, true, true); // 第3引数: includeReservations=true
 }
 
+// アコーディオン開閉状態をローカル変数で管理（StateManager外）
+// これにより自動レンダリングを回避し、ちらつき・位置ズレを防止
+/** @type {string[]} */
+let localExpandedLessonIds = [];
+
 /**
- * アコーディオンの開閉を切り替えるハンドラ（複数展開対応・DOM直接操作版）
+ * アコーディオンの開閉を切り替えるハンドラ（DOM操作のみ、再描画なし）
  * @param {string} lessonId - レッスンID
  */
 function toggleParticipantsLessonAccordion(lessonId) {
@@ -344,24 +349,18 @@ function toggleParticipantsLessonAccordion(lessonId) {
 
   console.log('🎯 アコーディオン切り替え:', lessonId);
 
-  const state = participantsHandlersStateManager.getState();
-  const currentExpandedIds = state.expandedLessonIds || [];
+  // ローカル配列で開閉状態を管理（dispatch()を呼ばない）
+  const isCurrentlyExpanded = localExpandedLessonIds.includes(lessonId);
 
-  // 配列に含まれている場合は削除、含まれていない場合は追加
-  const isCurrentlyExpanded = currentExpandedIds.includes(lessonId);
-  const newExpandedIds = isCurrentlyExpanded
-    ? currentExpandedIds.filter(id => id !== lessonId)
-    : [...currentExpandedIds, lessonId];
+  if (isCurrentlyExpanded) {
+    localExpandedLessonIds = localExpandedLessonIds.filter(
+      id => id !== lessonId,
+    );
+  } else {
+    localExpandedLessonIds.push(lessonId);
+  }
 
-  // State更新
-  participantsHandlersStateManager.dispatch({
-    type: 'UPDATE_STATE',
-    payload: {
-      expandedLessonIds: newExpandedIds,
-    },
-  });
-
-  // DOM直接操作でコンテンツを切り替え（再レンダリング不要）
+  // DOM直接操作のみでコンテンツを切り替え（自動レンダリング発生せず）
   const container = document.querySelector(
     `[data-lesson-container="${lessonId}"]`,
   );

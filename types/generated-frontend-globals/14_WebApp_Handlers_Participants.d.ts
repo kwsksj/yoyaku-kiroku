@@ -30,7 +30,7 @@ export type CacheEntry = {
  */
 declare function loadParticipantsView(forceReload?: boolean, shouldShowLoading?: boolean, baseAppState?: Partial<UIState> | null): void;
 /**
- * アコーディオンの開閉を切り替えるハンドラ（複数展開対応・DOM直接操作版）
+ * アコーディオンの開閉を切り替えるハンドラ（DOM操作のみ、再描画なし）
  * @param {string} lessonId - レッスンID
  */
 declare function toggleParticipantsLessonAccordion(lessonId: string): void;

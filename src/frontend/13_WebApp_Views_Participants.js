@@ -113,106 +113,75 @@ function createBadge(text, color = 'gray') {
 }
 
 /**
- * アコーディオン展開時の予約詳細コンテンツを生成
+ * アコーディオン展開時の予約詳細コンテンツを生成（ヘッダーなし、データ行のみ）
  * @param {any} _lesson - レッスン情報（未使用）
  * @param {any[]} reservations - 予約一覧
  * @returns {string} HTML文字列
  */
 function renderAccordionContent(_lesson, reservations) {
   if (!reservations || reservations.length === 0) {
-    return Components.cardContainer({
-      variant: 'default',
-      padding: 'compact',
-      content:
-        '<p class="text-center text-gray-500 text-xs">参加者がいません</p>',
-    });
+    return '<div class="text-center text-gray-500 text-xs py-2">参加者がいません</div>';
   }
 
-  // テーブルのカラム定義
-  /** @type {TableColumn[]} */
-  const columns = [
-    {
-      label: '参加者',
-      key: 'participant',
-      align: 'center',
-      width: '100px',
-      render: (_value, row) => {
-        const displayName = row.nickname || row.displayName || '名前なし';
-        const hasRealName = row.realName && row.realName.trim() !== '';
+  // データ行のみを生成（ヘッダーなし）
+  return reservations
+    .map(row => {
+      const displayName = row.nickname || row.displayName || '名前なし';
+      const hasRealName = row.realName && row.realName.trim() !== '';
 
-        // バッジを生成
-        const badges = [];
-        if (row.firstLecture) {
-          badges.push(createBadge('初', 'green'));
-        }
-        if (row.chiselRental) {
-          badges.push(createBadge('刀', 'orange'));
-        }
-        // 参加回数を表示（初回でない場合）
-        if (!row.firstLecture && row.participationCount) {
-          badges.push(createBadge(`${row.participationCount}回`, 'blue'));
-        }
+      // バッジを生成
+      const badges = [];
+      if (row.firstLecture) {
+        badges.push(createBadge('初', 'green'));
+      }
+      if (row.chiselRental) {
+        badges.push(createBadge('刀', 'orange'));
+      }
+      // 参加回数を表示（初回でない場合）
+      if (!row.firstLecture && row.participationCount) {
+        badges.push(createBadge(`${row.participationCount}回`, 'blue'));
+      }
 
-        const badgesHtml = badges.length > 0 ? badges.join(' ') : '';
+      const badgesHtml = badges.length > 0 ? badges.join(' ') : '';
 
-        return `
-          <div>
-            <div class="font-bold text-xs mb-0.5">
-              <button
-                class="text-blue-600 hover:text-blue-800 hover:underline text-left"
-                onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
-              >
-                ${escapeHTML(displayName)}
-              </button>
-            </div>
-            ${hasRealName ? `<div class="text-xs text-gray-600 mb-0.5">${escapeHTML(row.realName)}</div>` : ''}
-            <div class="gap-0.5 text-xs">
-              ${badgesHtml}
-            </div>
+      // 参加者情報カラム
+      const participantHtml = `
+        <div>
+          <div class="font-bold text-xs mb-0.5">
+            <button
+              class="text-blue-600 hover:text-blue-800 hover:underline text-left"
+              onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
+            >
+              ${escapeHTML(displayName)}
+            </button>
           </div>
-        `;
-      },
-    },
-    {
-      label: '制作メモ',
-      key: 'workInProgress',
-      width: '250px',
-      align: 'left',
-      render: value => {
-        return `<div class="text-sm ${value ? '' : 'text-gray-400 italic'}">
-          ${escapeHTML(value || '—')}
-        </div>`;
-      },
-    },
-    {
-      label: '注文',
-      key: 'order',
-      width: '150px',
-      align: 'left',
-      render: value => {
-        return `<div class="text-xs ${value ? '' : 'text-gray-400 italic'}">
-          ${escapeHTML(value || '—')}
-        </div>`;
-      },
-    },
-  ];
+          ${hasRealName ? `<div class="text-xs text-gray-600 mb-0.5">${escapeHTML(row.realName)}</div>` : ''}
+          <div class="gap-0.5 text-xs">
+            ${badgesHtml}
+          </div>
+        </div>
+      `;
 
-  // Components.tableを使用してテーブルを生成
-  return Components.cardContainer({
-    variant: 'default',
-    padding: 'compact',
-    customClass: 'bg-white',
-    content: Components.table({
-      columns,
-      rows: reservations,
-      striped: false,
-      bordered: false,
-      hoverable: true,
-      compact: true,
-      responsive: true,
-      emptyMessage: '参加者がいません',
-    }),
-  });
+      // 制作メモカラム
+      const memoHtml = `<div class="text-xs ${row.workInProgress ? '' : 'text-gray-400 italic'}">
+        ${escapeHTML(row.workInProgress || '—')}
+      </div>`;
+
+      // 注文カラム
+      const orderHtml = `<div class="text-xs ${row.order ? '' : 'text-gray-400 italic'}">
+        ${escapeHTML(row.order || '—')}
+      </div>`;
+
+      // グリッドレイアウトでデータ行を生成
+      return `
+        <div class="grid grid-cols-[100px_1fr_150px] gap-1 border-t border-dashed border-gray-200 py-0.5 px-1 hover:bg-gray-50">
+          <div class="text-center">${participantHtml}</div>
+          <div>${memoHtml}</div>
+          <div>${orderHtml}</div>
+        </div>
+      `;
+    })
+    .join('');
 }
 
 /**
@@ -238,10 +207,9 @@ function renderLessonList(lessons) {
     `;
   }
 
-  // stateManagerから予約データとアコーディオン状態を取得
+  // stateManagerから予約データを取得
   const state = participantsStateManager.getState();
   const reservationsMap = state.participantsReservationsMap || {};
-  const expandedLessonIds = state.expandedLessonIds || [];
   const selectedClassroom = state.selectedParticipantsClassroom || 'all';
   const showPastLessons = state.showPastLessons || false;
 
@@ -320,6 +288,17 @@ function renderLessonList(lessons) {
     </div>
   `;
 
+  // 共通テーブルヘッダー（一覧上部に1回のみ表示）
+  const tableHeaderHtml = `
+    <div class="sticky top-0 bg-white z-10 border-b-2 border-gray-300 px-1 py-0.5 mb-1">
+      <div class="grid grid-cols-[100px_1fr_150px] gap-1 text-xs font-medium text-gray-600">
+        <div class="text-center">参加者</div>
+        <div>制作メモ</div>
+        <div>注文</div>
+      </div>
+    </div>
+  `;
+
   const lessonsHtml = filteredLessons
     .map(lesson => {
       const dateObj = new Date(lesson.date);
@@ -329,8 +308,8 @@ function renderLessonList(lessons) {
       const reservations = reservationsMap[lesson.lessonId] || [];
       const reservationCount = reservations.length;
 
-      // アコーディオンが展開されているかチェック（配列に含まれているか）
-      const isExpanded = expandedLessonIds.includes(lesson.lessonId);
+      // アコーディオンが展開されているか（ローカル変数ではなくDOMから判定）
+      const isExpanded = false; // 初期レンダリング時は全て閉じている
 
       // 教室の色を取得
       const classroomColor = getClassroomColor(lesson.classroom);
@@ -349,25 +328,25 @@ function renderLessonList(lessons) {
               ? 'bg-red-100 text-red-800'
               : 'bg-gray-100 text-gray-800';
 
-      // アコーディオンのボタンとコンテンツ
+      // アコーディオンのボタン（パディング削減: p-2 → p-1）
       const accordionButton = `
         <button
-          class="p-2 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
+          class="p-1 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
           onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           data-lesson-id="${escapeHTML(lesson.lessonId)}"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2 flex-1">
-              <span class="text-sm font-semibold ${classroomColor.text}">${formattedDate}</span>
-              <span class="font-bold text-sm ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
+              <span class="text-xs font-semibold ${classroomColor.text}">${formattedDate}</span>
+              <span class="font-bold text-xs ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
               ${lesson.venue ? `<span class="text-gray-600 text-xs">@${escapeHTML(lesson.venue)}</span>` : ''}
               ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
             </div>
             <div class="flex gap-1 items-center">
-              <span class="px-1.5 py-0.5 rounded text-xs font-medium ${classroomColor.badge}">
+              <span class="px-1 py-0.5 rounded text-xs font-medium ${classroomColor.badge}">
                 ${reservationCount}名
               </span>
-              <span class="px-1.5 py-0.5 rounded text-xs font-medium ${statusColor}">
+              <span class="px-1 py-0.5 rounded text-xs font-medium ${statusColor}">
                 ${escapeHTML(lesson.status)}
               </span>
               <svg class="w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -378,20 +357,20 @@ function renderLessonList(lessons) {
         </button>
       `;
 
+      // アコーディオンコンテンツ（透明背景）
       const accordionContent = `
-        <div class="accordion-content ${isExpanded ? '' : 'hidden'}">
+        <div class="accordion-content bg-transparent hidden">
           ${renderAccordionContent(lesson, reservations)}
         </div>
       `;
 
+      // レッスンカード（余白削減: mb-2 → mb-0.5、padding削除）
       return `
-        <div class="mb-2" data-lesson-container="${escapeHTML(lesson.lessonId)}">
-          ${Components.cardContainer({
-            variant: 'default',
-            padding: 'compact',
-            customClass: `${classroomColor.bg} border-2 ${classroomColor.border} overflow-hidden`,
-            content: accordionButton + accordionContent,
-          })}
+        <div class="mb-0.5" data-lesson-container="${escapeHTML(lesson.lessonId)}">
+          <div class="${classroomColor.bg} border-2 ${classroomColor.border} rounded-lg overflow-hidden">
+            ${accordionButton}
+            ${accordionContent}
+          </div>
         </div>
       `;
     })
@@ -400,19 +379,9 @@ function renderLessonList(lessons) {
   // データがない場合のメッセージ
   const emptyMessage =
     filteredLessons.length === 0
-      ? Components.cardContainer({
-          variant: 'default',
-          padding: 'normal',
-          customClass: 'bg-white',
-          content:
-            '<p class="text-sm text-gray-500 text-center">' +
-            escapeHTML(
-              showPastLessons
-                ? '過去の記録がありません'
-                : '未来の予約がありません',
-            ) +
-            '</p>',
-        })
+      ? `<div class="bg-white border-2 border-ui-border rounded-lg p-2">
+           <p class="text-xs text-gray-500 text-center">${escapeHTML(showPastLessons ? '過去の記録がありません' : '未来の予約がありません')}</p>
+         </div>`
       : '';
 
   return `
@@ -423,7 +392,8 @@ function renderLessonList(lessons) {
     <div class="${DesignConfig.layout.containerNoPadding}">
       ${tabsHtml}
       ${filterHtml}
-      <div class="${DesignConfig.cards.container}">
+      ${tableHeaderHtml}
+      <div class="space-y-0.5">
         ${lessonsHtml}
         ${emptyMessage}
       </div>
