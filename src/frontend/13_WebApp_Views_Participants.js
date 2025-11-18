@@ -120,11 +120,12 @@ function createBadge(text, color = 'gray') {
  */
 function renderAccordionContent(_lesson, reservations) {
   if (!reservations || reservations.length === 0) {
-    return `
-      <div class="bg-gray-50 border-t border-gray-200 p-2">
-        <p class="text-center text-gray-500 text-xs">参加者がいません</p>
-      </div>
-    `;
+    return Components.cardContainer({
+      variant: 'default',
+      padding: 'compact',
+      content:
+        '<p class="text-center text-gray-500 text-xs">参加者がいません</p>',
+    });
   }
 
   // テーブルのカラム定義
@@ -196,46 +197,22 @@ function renderAccordionContent(_lesson, reservations) {
     },
   ];
 
-  // カスタムテーブルHTML生成（背景透明、枠なし、破線区切り）
-  const headerHtml = columns
-    .map(
-      col =>
-        `<th class="px-1 py-0.5 text-xxs font-medium text-gray-600 ${col.align === 'center' ? 'text-center' : col.align === 'right' ? 'text-right' : 'text-left'}">${escapeHTML(col.label)}</th>`,
-    )
-    .join('');
-
-  const rowsHtml = reservations
-    .map(row => {
-      const cellsHtml = columns
-        .map(col => {
-          const value = col.render
-            ? col.render(row[col.key], row)
-            : row[col.key] || '';
-          const alignClass =
-            col.align === 'center'
-              ? 'text-center'
-              : col.align === 'right'
-                ? 'text-right'
-                : 'text-left';
-          return `<td class="px-1 py-1 text-xs ${alignClass}">${value}</td>`;
-        })
-        .join('');
-      return `<tr class="border-t border-dashed border-gray-200 hover:bg-gray-50">${cellsHtml}</tr>`;
-    })
-    .join('');
-
-  return `
-    <div class="border-t border-gray-300">
-      <table class="w-full bg-transparent">
-        <thead>
-          <tr>${headerHtml}</tr>
-        </thead>
-        <tbody>
-          ${rowsHtml}
-        </tbody>
-      </table>
-    </div>
-  `;
+  // Components.tableを使用してテーブルを生成
+  return Components.cardContainer({
+    variant: 'default',
+    padding: 'compact',
+    customClass: 'bg-white',
+    content: Components.table({
+      columns,
+      rows: reservations,
+      striped: false,
+      bordered: false,
+      hoverable: true,
+      compact: true,
+      responsive: true,
+      emptyMessage: '参加者がいません',
+    }),
+  });
 }
 
 /**
@@ -251,9 +228,12 @@ function renderLessonList(lessons) {
         showBackButton: false,
       })}
       <div class="${DesignConfig.layout.container}">
-        <div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 text-center">
-          <p class="${DesignConfig.text.body}">レッスンが見つかりません</p>
-        </div>
+        ${Components.cardContainer({
+          variant: 'default',
+          padding: 'spacious',
+          customClass: 'bg-white',
+          content: `<p class="${DesignConfig.text.body} text-center">レッスンが見つかりません</p>`,
+        })}
       </div>
     `;
   }
@@ -369,36 +349,49 @@ function renderLessonList(lessons) {
               ? 'bg-red-100 text-red-800'
               : 'bg-gray-100 text-gray-800';
 
-      return `
-        <div class="mb-2 ${classroomColor.bg} border-2 ${classroomColor.border} rounded-lg overflow-hidden" data-lesson-container="${escapeHTML(lesson.lessonId)}">
-          <button
-            class="p-2 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
-            onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
-            data-lesson-id="${escapeHTML(lesson.lessonId)}"
-          >
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2 flex-1">
-                <span class="text-sm font-semibold ${classroomColor.text}">${formattedDate}</span>
-                <span class="font-bold text-sm ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
-                ${lesson.venue ? `<span class="text-gray-600 text-xs">@${escapeHTML(lesson.venue)}</span>` : ''}
-                ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
-              </div>
-              <div class="flex gap-1 items-center">
-                <span class="px-1.5 py-0.5 rounded text-xs font-medium ${classroomColor.badge}">
-                  ${reservationCount}名
-                </span>
-                <span class="px-1.5 py-0.5 rounded text-xs font-medium ${statusColor}">
-                  ${escapeHTML(lesson.status)}
-                </span>
-                <svg class="w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </div>
+      // アコーディオンのボタンとコンテンツ
+      const accordionButton = `
+        <button
+          class="p-2 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
+          onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
+          data-lesson-id="${escapeHTML(lesson.lessonId)}"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 flex-1">
+              <span class="text-sm font-semibold ${classroomColor.text}">${formattedDate}</span>
+              <span class="font-bold text-sm ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
+              ${lesson.venue ? `<span class="text-gray-600 text-xs">@${escapeHTML(lesson.venue)}</span>` : ''}
+              ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
             </div>
-          </button>
-          <div class="accordion-content ${isExpanded ? '' : 'hidden'}">
-            ${renderAccordionContent(lesson, reservations)}
+            <div class="flex gap-1 items-center">
+              <span class="px-1.5 py-0.5 rounded text-xs font-medium ${classroomColor.badge}">
+                ${reservationCount}名
+              </span>
+              <span class="px-1.5 py-0.5 rounded text-xs font-medium ${statusColor}">
+                ${escapeHTML(lesson.status)}
+              </span>
+              <svg class="w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+              </svg>
+            </div>
           </div>
+        </button>
+      `;
+
+      const accordionContent = `
+        <div class="accordion-content ${isExpanded ? '' : 'hidden'}">
+          ${renderAccordionContent(lesson, reservations)}
+        </div>
+      `;
+
+      return `
+        <div class="mb-2" data-lesson-container="${escapeHTML(lesson.lessonId)}">
+          ${Components.cardContainer({
+            variant: 'default',
+            padding: 'compact',
+            customClass: `${classroomColor.bg} border-2 ${classroomColor.border} overflow-hidden`,
+            content: accordionButton + accordionContent,
+          })}
         </div>
       `;
     })
@@ -407,9 +400,19 @@ function renderLessonList(lessons) {
   // データがない場合のメッセージ
   const emptyMessage =
     filteredLessons.length === 0
-      ? `<div class="bg-ui-surface border border-ui-border rounded-lg p-3 text-center">
-         <p class="text-sm text-gray-500">${showPastLessons ? '過去の記録がありません' : '未来の予約がありません'}</p>
-       </div>`
+      ? Components.cardContainer({
+          variant: 'default',
+          padding: 'normal',
+          customClass: 'bg-white',
+          content:
+            '<p class="text-sm text-gray-500 text-center">' +
+            escapeHTML(
+              showPastLessons
+                ? '過去の記録がありません'
+                : '未来の予約がありません',
+            ) +
+            '</p>',
+        })
       : '';
 
   return `
@@ -609,15 +612,22 @@ function renderStudentDetail(student, isAdmin) {
     })}
     <div class="${DesignConfig.layout.container}">
 
-      <div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6 mb-6">
-        ${publicInfoHtml}
-        ${detailedInfoHtml}
-      </div>
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'spacious',
+        customClass: 'bg-white mb-6',
+        content: publicInfoHtml + detailedInfoHtml,
+      })}
 
-      <div class="bg-ui-surface border-2 border-ui-border rounded-lg p-6">
-        <h2 class="${DesignConfig.text.subheading} mb-4">予約履歴</h2>
-        ${historyHtml}
-      </div>
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'spacious',
+        customClass: 'bg-white',
+        content: `
+          <h2 class="${DesignConfig.text.subheading} mb-4">予約履歴</h2>
+          ${historyHtml}
+        `,
+      })}
     </div>
   `;
 }
@@ -630,10 +640,16 @@ function renderStudentDetail(student, isAdmin) {
 function renderError(message) {
   return `
     <div class="${DesignConfig.layout.container}">
-      <div class="bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border rounded-lg p-6 text-center">
-        <p class="font-bold mb-2">エラー</p>
-        <p>${escapeHTML(message)}</p>
-      </div>
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'spacious',
+        customClass:
+          'bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border',
+        content: `
+          <p class="font-bold mb-2 text-center">エラー</p>
+          <p class="text-center">${escapeHTML(message)}</p>
+        `,
+      })}
     </div>
   `;
 }
