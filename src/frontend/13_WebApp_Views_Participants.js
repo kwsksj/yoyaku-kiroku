@@ -147,7 +147,7 @@ function renderAccordionContent(_lesson, reservations) {
       // 参加者情報カラム
       const participantHtml = `
         <div>
-          <div class="font-bold text-xs mb-0.5">
+          <div class="font-bold text-xs">
             <button
               class="text-blue-600 hover:text-blue-800 hover:underline text-left"
               onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
@@ -155,7 +155,7 @@ function renderAccordionContent(_lesson, reservations) {
               ${escapeHTML(displayName)}
             </button>
           </div>
-          ${hasRealName ? `<div class="text-xs text-gray-600 mb-0.5">${escapeHTML(row.realName)}</div>` : ''}
+          ${hasRealName ? `<div class="text-xs text-gray-600 ">${escapeHTML(row.realName)}</div>` : ''}
           <div class="gap-0.5 text-xs">
             ${badgesHtml}
           </div>
@@ -172,12 +172,32 @@ function renderAccordionContent(_lesson, reservations) {
         ${escapeHTML(row.order || '—')}
       </div>`;
 
-      // グリッドレイアウトでデータ行を生成
+      // 追加フィールド（生徒名簿情報）
+      const ageGroupHtml = `<div class="text-xs text-center">${escapeHTML(row.ageGroup || '—')}</div>`;
+      const genderHtml = `<div class="text-xs text-center">${escapeHTML(row.gender || '—')}</div>`;
+      const addressHtml = `<div class="text-xs truncate" title="${escapeHTML(row.address || '—')}">${escapeHTML(row.address || '—')}</div>`;
+      const futureCreationsHtml = `<div class="text-xs truncate" title="${escapeHTML(row.futureCreations || '—')}">${escapeHTML(row.futureCreations || '—')}</div>`;
+      const companionHtml = `<div class="text-xs truncate" title="${escapeHTML(row.companion || '—')}">${escapeHTML(row.companion || '—')}</div>`;
+      const transportationHtml = `<div class="text-xs truncate" title="${escapeHTML(row.transportation || '—')}">${escapeHTML(row.transportation || '—')}</div>`;
+      const pickupHtml = `<div class="text-xs text-center">${escapeHTML(row.pickup || '—')}</div>`;
+      const carHtml = `<div class="text-xs text-center">${escapeHTML(row.car || '—')}</div>`;
+      const notesHtml = `<div class="text-xs truncate" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`;
+
+      // グリッドレイアウトでデータ行を生成（3行分の高さに固定）
       return `
-        <div class="grid grid-cols-[100px_1fr_150px] gap-1 border-t border-dashed border-gray-200 py-0.5 px-1 hover:bg-gray-50">
-          <div class="text-center">${participantHtml}</div>
-          <div>${memoHtml}</div>
-          <div>${orderHtml}</div>
+        <div class="grid gap-1 border-t border-dashed border-gray-200 py-0.5 px-1 hover:bg-gray-50" style="grid-template-columns: 100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px; min-width: 1200px; height: calc(3 * 1.2rem + 0.5rem);">
+          <div class="text-center overflow-hidden">${participantHtml}</div>
+          <div class="overflow-hidden">${memoHtml}</div>
+          <div class="overflow-hidden">${orderHtml}</div>
+          <div class="overflow-hidden">${ageGroupHtml}</div>
+          <div class="overflow-hidden">${genderHtml}</div>
+          <div class="overflow-hidden">${addressHtml}</div>
+          <div class="overflow-hidden">${futureCreationsHtml}</div>
+          <div class="overflow-hidden">${companionHtml}</div>
+          <div class="overflow-hidden">${transportationHtml}</div>
+          <div class="overflow-hidden">${pickupHtml}</div>
+          <div class="overflow-hidden">${carHtml}</div>
+          <div class="overflow-hidden">${notesHtml}</div>
         </div>
       `;
     })
@@ -269,35 +289,47 @@ function renderLessonList(lessons) {
     </div>
   `;
 
-  // フィルタUIの生成
+  // フィルタUIの生成（コンパクトなボタン形式）
   const filterHtml = `
-    <div class="mb-2">
-      <label class="block text-xs font-medium text-gray-700 mb-1">教室</label>
-      <select
-        class="${DesignConfig.inputs.base} text-sm py-1"
-        onchange="actionHandlers.filterParticipantsByClassroom(this.value)"
-      >
-        ${classrooms
-          .map(classroom => {
-            const displayName = classroom === 'all' ? 'すべて' : classroom;
-            const selected = classroom === selectedClassroom ? 'selected' : '';
-            return `<option value="${escapeHTML(classroom)}" ${selected}>${escapeHTML(displayName)}</option>`;
-          })
-          .join('')}
-      </select>
+    <div class="mb-1 flex gap-1 flex-wrap">
+      ${classrooms
+        .map(classroom => {
+          const displayName = classroom === 'all' ? 'すべて' : classroom;
+          const isSelected = classroom === selectedClassroom;
+          const buttonClass = isSelected
+            ? 'bg-blue-500 text-white border-blue-600'
+            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50';
+          return `<button
+            class="px-2 py-0.5 text-xs font-medium border rounded ${buttonClass}"
+            onclick="actionHandlers.filterParticipantsByClassroom('${escapeHTML(classroom)}')"
+          >${escapeHTML(displayName)}</button>`;
+        })
+        .join('')}
     </div>
   `;
 
-  // 共通テーブルヘッダー（一覧上部に1回のみ表示）
-  const tableHeaderHtml = `
-    <div class="sticky top-0 bg-white z-10 border-b-2 border-gray-300 px-1 py-0.5 mb-1">
-      <div class="grid grid-cols-[100px_1fr_150px] gap-1 text-xs font-medium text-gray-600">
+  // 共通テーブルヘッダー（カードコンポーネント化、横スクロール対応）
+  const tableHeaderHtml = Components.cardContainer({
+    variant: 'default',
+    padding: 'compact',
+    customClass: 'sticky top-0 z-10 mb-0.5 overflow-x-auto',
+    content: `
+      <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: 100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px; min-width: 1200px;">
         <div class="text-center">参加者</div>
         <div>制作メモ</div>
         <div>注文</div>
+        <div>年代</div>
+        <div>性別</div>
+        <div>住所</div>
+        <div>将来制作したいもの</div>
+        <div>同行者</div>
+        <div>来場手段</div>
+        <div>送迎</div>
+        <div>車</div>
+        <div>notes</div>
       </div>
-    </div>
-  `;
+    `,
+  });
 
   const lessonsHtml = filteredLessons
     .map(lesson => {
@@ -357,17 +389,17 @@ function renderLessonList(lessons) {
         </button>
       `;
 
-      // アコーディオンコンテンツ（透明背景）
+      // アコーディオンコンテンツ（横スクロール対応）
       const accordionContent = `
-        <div class="accordion-content bg-transparent hidden">
+        <div class="accordion-content bg-transparent hidden overflow-x-auto">
           ${renderAccordionContent(lesson, reservations)}
         </div>
       `;
 
-      // レッスンカード（余白削減: mb-2 → mb-0.5、padding削除）
+      // レッスンカード（白背景、コンパクト表示）
       return `
         <div class="mb-0.5" data-lesson-container="${escapeHTML(lesson.lessonId)}">
-          <div class="${classroomColor.bg} border-2 ${classroomColor.border} rounded-lg overflow-hidden">
+          <div class="bg-white border-2 ${classroomColor.border} rounded-lg overflow-hidden">
             ${accordionButton}
             ${accordionContent}
           </div>

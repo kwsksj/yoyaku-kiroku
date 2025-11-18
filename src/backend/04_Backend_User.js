@@ -139,6 +139,11 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
     [CONSTANTS.HEADERS.ROSTER.GENDER]: 'gender',
     [CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND]: 'dominantHand',
     [CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]: 'futureCreations',
+    [CONSTANTS.HEADERS.ROSTER.COMPANION]: 'companion',
+    [CONSTANTS.HEADERS.ROSTER.TRANSPORTATION]: 'transportation',
+    [CONSTANTS.HEADERS.ROSTER.PICKUP]: 'pickup',
+    [CONSTANTS.HEADERS.ROSTER.CAR]: 'car',
+    [CONSTANTS.HEADERS.ROSTER.NOTES]: 'notes',
   };
 
   // 各プロパティを設定

@@ -100,6 +100,25 @@ export interface UserCore {
   /** 初回メッセージ */
   firstMessage?: string | undefined;
 
+  // ========================================
+  // 来場・交通情報（オプション）
+  // ========================================
+
+  /** 同行者 */
+  companion?: string | undefined;
+
+  /** 来場手段 */
+  transportation?: string | undefined;
+
+  /** 送迎 */
+  pickup?: string | undefined;
+
+  /** 車 */
+  car?: string | undefined;
+
+  /** 備考 */
+  notes?: string | undefined;
+
   /** 行インデックス（シート行番号） */
   rowIndex?: number | undefined;
 
