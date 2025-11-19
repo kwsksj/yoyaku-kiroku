@@ -257,6 +257,15 @@ export function render() {
     viewContainer.innerHTML = `<div class="fade-in">${v}</div>`;
   }
 
+  // 参加者画面の場合、横スクロール同期を設定
+  if (appState.view === 'participants') {
+    requestAnimationFrame(() => {
+      if (typeof setupParticipantsScrollSync === 'function') {
+        setupParticipantsScrollSync();
+      }
+    });
+  }
+
   // もどるボタンを動的に更新
   const backButtonContainer = document.getElementById('back-button-container');
   if (backButtonContainer) {

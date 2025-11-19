@@ -65,6 +65,37 @@ function getClassroomColor(classroom) {
 }
 
 /**
+ * 予約の時間帯を判定（午前・午後・全日）
+ * @param {any} reservation - 予約データ
+ * @returns {'morning' | 'afternoon' | 'allDay'} 時間帯
+ */
+function getReservationTimeSlot(reservation) {
+  if (!reservation.startTime || !reservation.endTime) {
+    return 'allDay';
+  }
+
+  // 開始時刻と終了時刻を数値化（例: "09:30" -> 9.5）
+  const parseTime = /** @param {string} time */ time => {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours + minutes / 60;
+  };
+
+  const startHour = parseTime(reservation.startTime);
+  const endHour = parseTime(reservation.endTime);
+
+  // 午前: 開始が12時より前で終了も12時以前
+  // 午後: 開始が12時以降
+  // 全日: 12時をまたぐ（開始が12時より前で終了が12時以降）
+  if (startHour < 12 && endHour <= 12) {
+    return 'morning';
+  } else if (startHour >= 12) {
+    return 'afternoon';
+  } else {
+    return 'allDay';
+  }
+}
+
+/**
  * 参加者リストメインビュー
  * stateManagerの状態に応じて適切なサブビューを返す
  * @returns {string} HTML文字列
@@ -93,24 +124,7 @@ export function getParticipantsView() {
   }
 }
 
-/**
- * バッジHTMLを生成
- * @param {string} text - バッジテキスト
- * @param {'gray'|'blue'|'green'|'orange'} [color='gray'] - バッジカラー
- * @returns {string} HTML文字列
- */
-function createBadge(text, color = 'gray') {
-  /** @type {Record<string, string>} */
-  const colorClasses = {
-    gray: 'bg-gray-100 text-gray-700',
-    blue: 'bg-blue-100 text-blue-700',
-    green: 'bg-green-100 text-green-700',
-    orange: 'bg-orange-100 text-orange-700',
-  };
-
-  const colorClass = colorClasses[color] || colorClasses['gray'];
-  return `<span class=" font-medium rounded-xs px-0.5 py-0 text-xs ${colorClass}">${escapeHTML(text)}</span>`;
-}
+// createBadge関数は削除 - Components.badge()を使用
 
 /**
  * アコーディオン展開時の予約詳細コンテンツを生成（ヘッダーなし、データ行のみ）
@@ -132,14 +146,24 @@ function renderAccordionContent(_lesson, reservations) {
       // バッジを生成
       const badges = [];
       if (row.firstLecture) {
-        badges.push(createBadge('初', 'green'));
+        // 初心者の場合は「初」のみ表示
+        badges.push(
+          Components.badge({ text: '初', color: 'green', size: 'xs' }),
+        );
+      } else if (row.participationCount) {
+        // 初心者でない場合は参加回数のみ表示
+        badges.push(
+          Components.badge({
+            text: `${row.participationCount}`,
+            color: 'blue',
+            size: 'xs',
+          }),
+        );
       }
       if (row.chiselRental) {
-        badges.push(createBadge('刀', 'orange'));
-      }
-      // 参加回数を表示（初回でない場合）
-      if (!row.firstLecture && row.participationCount) {
-        badges.push(createBadge(`${row.participationCount}回`, 'blue'));
+        badges.push(
+          Components.badge({ text: '刀', color: 'orange', size: 'xs' }),
+        );
       }
 
       const badgesHtml = badges.length > 0 ? badges.join(' ') : '';
@@ -183,9 +207,9 @@ function renderAccordionContent(_lesson, reservations) {
       const carHtml = `<div class="text-xs text-center">${escapeHTML(row.car || '—')}</div>`;
       const notesHtml = `<div class="text-xs truncate" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`;
 
-      // グリッドレイアウトでデータ行を生成（3行分の高さに固定）
+      // グリッドレイアウトでデータ行を生成（3行分の高さに固定、パディングなし）
       return `
-        <div class="grid gap-1 border-t border-dashed border-gray-200 py-0.5 px-1 hover:bg-gray-50" style="grid-template-columns: 100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px; min-width: 1200px; height: calc(3 * 1.2rem + 0.5rem);">
+        <div class="grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50" style="grid-template-columns: 100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px; min-width: 1200px; height: calc(3 * 1.2rem);">
           <div class="text-center overflow-hidden">${participantHtml}</div>
           <div class="overflow-hidden">${memoHtml}</div>
           <div class="overflow-hidden">${orderHtml}</div>
@@ -269,76 +293,108 @@ function renderLessonList(lessons) {
       ? targetLessons
       : targetLessons.filter(l => l.classroom === selectedClassroom);
 
-  // タブUIの生成
-  const tabsHtml = `
-    <div class="mb-2 border-b border-gray-200">
-      <div class="flex space-x-3">
-        <button
-          class="pb-1.5 px-1 text-sm border-b-2 transition-colors ${!showPastLessons ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
-          onclick="actionHandlers.togglePastLessons(false)"
-        >
-          未来 (${futureLessons.length})
-        </button>
-        <button
-          class="pb-1.5 px-1 text-sm border-b-2 transition-colors ${showPastLessons ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
-          onclick="actionHandlers.togglePastLessons(true)"
-        >
-          過去 (${pastLessons.length})
-        </button>
-      </div>
-    </div>
-  `;
+  // タブUIの生成（コンポーネント使用）
+  const tabsHtml = Components.tabGroup({
+    tabs: [
+      {
+        label: '未来',
+        count: futureLessons.length,
+        isActive: !showPastLessons,
+        onclick: 'actionHandlers.togglePastLessons(false)',
+      },
+      {
+        label: '過去',
+        count: pastLessons.length,
+        isActive: showPastLessons,
+        onclick: 'actionHandlers.togglePastLessons(true)',
+      },
+    ],
+  });
 
-  // フィルタUIの生成（コンパクトなボタン形式）
-  const filterHtml = `
-    <div class="mb-1 flex gap-1 flex-wrap">
-      ${classrooms
-        .map(classroom => {
-          const displayName = classroom === 'all' ? 'すべて' : classroom;
-          const isSelected = classroom === selectedClassroom;
-          const buttonClass = isSelected
-            ? 'bg-blue-500 text-white border-blue-600'
-            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50';
-          return `<button
-            class="px-2 py-0.5 text-xs font-medium border rounded ${buttonClass}"
-            onclick="actionHandlers.filterParticipantsByClassroom('${escapeHTML(classroom)}')"
-          >${escapeHTML(displayName)}</button>`;
-        })
-        .join('')}
-    </div>
-  `;
+  // フィルタUIの生成（コンポーネント使用）
+  const filterOptions = classrooms.map(classroom => ({
+    value: classroom,
+    label: classroom === 'all' ? 'すべて' : classroom,
+  }));
+  const filterHtml = Components.filterChips({
+    options: filterOptions,
+    selectedValue: selectedClassroom,
+    onClickHandler: 'filterParticipantsByClassroom',
+  });
 
-  // 共通テーブルヘッダー（カードコンポーネント化、横スクロール対応）
-  const tableHeaderHtml = Components.cardContainer({
-    variant: 'default',
-    padding: 'compact',
-    customClass: 'sticky top-0 z-10 mb-0.5 overflow-x-auto',
-    content: `
-      <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: 100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px; min-width: 1200px;">
-        <div class="text-center">参加者</div>
-        <div>制作メモ</div>
-        <div>注文</div>
-        <div>年代</div>
-        <div>性別</div>
-        <div>住所</div>
-        <div>将来制作したいもの</div>
-        <div>同行者</div>
-        <div>来場手段</div>
-        <div>送迎</div>
-        <div>車</div>
-        <div>notes</div>
-      </div>
-    `,
+  // 共通テーブルヘッダー（コンポーネント使用）
+  const gridTemplate =
+    '100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px';
+  const tableHeaderHtml = Components.stickyTableHeader({
+    headerId: 'participants-table-header',
+    columns: [
+      { label: '参加者', align: 'center' },
+      { label: '制作メモ' },
+      { label: '注文' },
+      { label: '年代' },
+      { label: '性別' },
+      { label: '住所' },
+      { label: '将来制作したいもの' },
+      { label: '同行者' },
+      { label: '来場手段' },
+      { label: '送迎' },
+      { label: '車' },
+      { label: 'notes' },
+    ],
+    gridTemplate,
   });
 
   const lessonsHtml = filteredLessons
     .map(lesson => {
-      const dateObj = new Date(lesson.date);
-      const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
-
       // 予約数を計算
       const reservations = reservationsMap[lesson.lessonId] || [];
       const reservationCount = reservations.length;
+
+      // 初回参加者数を計算
+      const firstLectureCount = reservations.filter(r => r.firstLecture).length;
+
+      // formatDate関数を使用して日付を表示（xsサイズに調整）
+      const formattedDateHtml = window.formatDate(lesson.date);
+      // formatDateの結果のfont-sizeをxsに変更
+      const formattedDate = formattedDateHtml.replace(
+        /class="font-mono-numbers"/,
+        'class="font-mono-numbers text-xs"',
+      );
+
+      // 教室形式で2部制かどうかを判定（classroomTypeを優先、フォールバックとしてclassroom名も確認）
+      const isTwoSession =
+        lesson.classroomType === '時間制・2部制' ||
+        (lesson.classroom &&
+          (lesson.classroom.includes('午前') ||
+            lesson.classroom.includes('午後')));
+
+      // 2部制の場合は「3,2」形式で表示
+      let reservationBadge = '';
+      let firstLectureBadge = '';
+      if (isTwoSession) {
+        // 2部制教室の場合: 予約時間で午前・午後を判定
+        const morningCount = reservations.filter(
+          r => getReservationTimeSlot(r) === 'morning',
+        ).length;
+        const afternoonCount = reservations.filter(
+          r => getReservationTimeSlot(r) === 'afternoon',
+        ).length;
+        const morningFirstCount = reservations.filter(
+          r => getReservationTimeSlot(r) === 'morning' && r.firstLecture,
+        ).length;
+        const afternoonFirstCount = reservations.filter(
+          r => getReservationTimeSlot(r) === 'afternoon' && r.firstLecture,
+        ).length;
+        reservationBadge = `${morningCount},${afternoonCount}`;
+        if (morningFirstCount > 0 || afternoonFirstCount > 0) {
+          firstLectureBadge = `初${morningFirstCount},${afternoonFirstCount}`;
+        }
+      } else {
+        reservationBadge = `${reservationCount}`;
+        if (firstLectureCount > 0) {
+          firstLectureBadge = `初${firstLectureCount}`;
+        }
+      }
 
       // アコーディオンが展開されているか（ローカル変数ではなくDOMから判定）
       const isExpanded = false; // 初期レンダリング時は全て閉じている
@@ -375,8 +431,15 @@ function renderLessonList(lessons) {
               ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
             </div>
             <div class="flex gap-1 items-center">
+              ${
+                firstLectureBadge
+                  ? `<span class="px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                ${firstLectureBadge}
+              </span>`
+                  : ''
+              }
               <span class="px-1 py-0.5 rounded text-xs font-medium ${classroomColor.badge}">
-                ${reservationCount}名
+                ${reservationBadge}
               </span>
               <span class="px-1 py-0.5 rounded text-xs font-medium ${statusColor}">
                 ${escapeHTML(lesson.status)}
@@ -389,9 +452,9 @@ function renderLessonList(lessons) {
         </button>
       `;
 
-      // アコーディオンコンテンツ（横スクロール対応）
+      // アコーディオンコンテンツ（横スクロール対応、同期用クラス追加）
       const accordionContent = `
-        <div class="accordion-content bg-transparent hidden overflow-x-auto">
+        <div class="accordion-content participants-table-body bg-transparent hidden overflow-x-auto" data-lesson-id="${escapeHTML(lesson.lessonId)}">
           ${renderAccordionContent(lesson, reservations)}
         </div>
       `;
@@ -462,14 +525,24 @@ function renderReservationsList(lesson, reservations) {
         // バッジを生成
         const badges = [];
         if (row.firstLecture) {
-          badges.push(createBadge('初', 'green'));
+          badges.push(
+            Components.badge({ text: '初', color: 'green', size: 'xs' }),
+          );
         }
         if (row.chiselRental) {
-          badges.push(createBadge('刀', 'orange'));
+          badges.push(
+            Components.badge({ text: '刀', color: 'orange', size: 'xs' }),
+          );
         }
         // 参加回数を表示（初回でない場合）
         if (!row.firstLecture && row.participationCount) {
-          badges.push(createBadge(`${row.participationCount}回`, 'blue'));
+          badges.push(
+            Components.badge({
+              text: `${row.participationCount}回`,
+              color: 'blue',
+              size: 'xs',
+            }),
+          );
         }
 
         const badgesHtml = badges.length > 0 ? badges.join(' ') : '';

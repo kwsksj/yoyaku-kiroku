@@ -1,4 +1,4 @@
-<reference path="../../types/index.d.ts" />
+<!doctype html>
 <!--
 =================================================================
 【ファイル名】: 10_WebApp.html
@@ -10,7 +10,6 @@
 - テスト環境とプロダクション環境の分離
 =================================================================
 -->
-<!doctype html>
 <html lang="ja" class="h-full">
   <head>
     <meta charset="UTF-8" />
@@ -87,6 +86,15 @@
 
       .animate-slideDown {
         animation: slideDown 0.3s ease-out forwards;
+      }
+
+      /* スクロールバーを非表示にするクラス */
+      .scrollbar-hide {
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
       }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>

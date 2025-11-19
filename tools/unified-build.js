@@ -115,6 +115,89 @@ class UnifiedBuilder {
   }
 
   /**
+   * JavaScriptコメントを削除する（ファイルサイズ削減用）
+   * 文字列リテラル内のコメント風文字列（URLなど）は保持
+   */
+  removeJSComments(code) {
+    let result = '';
+    let i = 0;
+
+    while (i < code.length) {
+      // 文字列リテラル（シングルクォート、ダブルクォート、テンプレートリテラル）
+      if (code[i] === "'" || code[i] === '"' || code[i] === '`') {
+        const quote = code[i];
+        result += code[i++];
+        while (i < code.length) {
+          if (code[i] === '\\') {
+            result += code[i++];
+            if (i < code.length) result += code[i++];
+          } else if (code[i] === quote) {
+            result += code[i++];
+            break;
+          } else {
+            result += code[i++];
+          }
+        }
+      }
+      // 複数行コメント
+      else if (code[i] === '/' && code[i + 1] === '*') {
+        i += 2;
+        while (i < code.length - 1) {
+          if (code[i] === '*' && code[i + 1] === '/') {
+            i += 2;
+            break;
+          }
+          i++;
+        }
+      }
+      // 単一行コメント
+      else if (code[i] === '/' && code[i + 1] === '/') {
+        i += 2;
+        while (i < code.length && code[i] !== '\n') {
+          i++;
+        }
+        if (i < code.length) result += code[i++]; // 改行を保持
+      }
+      // 正規表現リテラル（簡易判定）
+      else if (code[i] === '/' && this.isRegexContext(code, i)) {
+        result += code[i++];
+        while (i < code.length) {
+          if (code[i] === '\\') {
+            result += code[i++];
+            if (i < code.length) result += code[i++];
+          } else if (code[i] === '/') {
+            result += code[i++];
+            break;
+          } else {
+            result += code[i++];
+          }
+        }
+      }
+      // その他
+      else {
+        result += code[i++];
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * 正規表現リテラルの文脈かどうかを簡易判定
+   */
+  isRegexContext(code, pos) {
+    // 直前の非空白文字を探す
+    let i = pos - 1;
+    while (i >= 0 && /\s/.test(code[i])) i--;
+
+    if (i < 0) return true;
+
+    // 正規表現が来る可能性のある文字
+    const regexPreceding = /[=([,;:!&|?+\-*/%^~<>]$/;
+    return regexPreceding.test(code.substring(Math.max(0, i - 10), i + 1));
+  }
+
+  /**
    * 統合ビルド実行
    */
   async build() {
@@ -374,6 +457,24 @@ class UnifiedBuilder {
 
       console.log(`[${formatTime()}]   ✅ ${jsFile} integrated`);
     }
+
+    // コメントを削除してファイルサイズを削減（GASの500KB制限対策）
+    unifiedContent = this.removeJSComments(unifiedContent);
+
+    // ファイル区切りコメント（=== 行）を削除
+    unifiedContent = unifiedContent.replace(/\n\s*\/\/\s*={20,}.*?\n/g, '\n');
+
+    // 複数の連続する空白行を1行に統一
+    unifiedContent = unifiedContent.replace(/\n\n+/g, '\n\n');
+
+    // 各行の行頭・行末の空白を削除（インデントも削除）
+    unifiedContent = unifiedContent
+      .split('\n')
+      .map(line => line.trim())
+      .join('\n');
+
+    // 空行のみの行を削除
+    unifiedContent = unifiedContent.replace(/\n\s*\n/g, '\n');
 
     return unifiedContent;
   }
