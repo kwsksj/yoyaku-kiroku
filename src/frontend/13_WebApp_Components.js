@@ -1664,10 +1664,10 @@ export const Components = {
       .map(option => {
         const isSelected = option.value === selectedValue;
         const buttonClass = isSelected
-          ? 'bg-blue-500 text-white border-blue-600'
-          : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50';
+          ? 'bg-action-primary text-white border-action-primary'
+          : 'bg-white text-ui-text border-ui-border hover:bg-gray-50';
         return `<button
-          class="px-2 py-0.5 text-xs font-medium border rounded ${buttonClass}"
+          class="px-2 py-0.5 text-xs font-medium border-2 rounded ${buttonClass}"
           onclick="actionHandlers.${onClickHandler}('${escapeHTML(option.value)}')"
         >${escapeHTML(option.label)}</button>`;
       })
@@ -1771,7 +1771,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="bg-white border border-gray-200 rounded-lg sticky top-0 z-10 mb-0.5">
+    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-0 z-10 mb-0.5">
       <div id="${escapeHTML(headerId)}" class="overflow-x-auto scrollbar-hide">
         <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;">
           ${columnsHtml}

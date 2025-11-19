@@ -171,9 +171,9 @@ function renderAccordionContent(_lesson, reservations) {
       // 参加者情報カラム
       const participantHtml = `
         <div>
-          <div class="font-bold text-xs">
+          <div class="text-xs">
             <button
-              class="text-blue-600 hover:text-blue-800 hover:underline text-left"
+              class="text-action-primary font-bold hover:opacity-80 hover:underline text-left"
               onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
             >
               ${escapeHTML(displayName)}
@@ -209,7 +209,7 @@ function renderAccordionContent(_lesson, reservations) {
 
       // グリッドレイアウトでデータ行を生成（3行分の高さに固定、パディングなし）
       return `
-        <div class="grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50" style="grid-template-columns: 100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px; min-width: 1200px; height: calc(3 * 1.2rem);">
+        <div class="grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50" style="grid-template-columns: 100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px; min-width: 1200px; height: calc(3 * 1rem);">
           <div class="text-center overflow-hidden">${participantHtml}</div>
           <div class="overflow-hidden">${memoHtml}</div>
           <div class="overflow-hidden">${orderHtml}</div>
@@ -425,7 +425,7 @@ function renderLessonList(lessons) {
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2 flex-1">
-              <span class="text-xs font-semibold ${classroomColor.text}">${formattedDate}</span>
+              <span class="text-xs font-semibold text-action-primary">${formattedDate}</span>
               <span class="font-bold text-xs ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
               ${lesson.venue ? `<span class="text-gray-600 text-xs">@${escapeHTML(lesson.venue)}</span>` : ''}
               ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
@@ -438,7 +438,7 @@ function renderLessonList(lessons) {
               </span>`
                   : ''
               }
-              <span class="px-1 py-0.5 rounded text-xs font-medium ${classroomColor.badge}">
+              <span class="px-1 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
                 ${reservationBadge}
               </span>
               <span class="px-1 py-0.5 rounded text-xs font-medium ${statusColor}">
@@ -549,9 +549,9 @@ function renderReservationsList(lesson, reservations) {
 
         return `
           <div>
-            <div class="font-bold text-xs mb-0.5">
+            <div class="text-xs mb-0.5">
               <button
-                class="text-blue-600 hover:text-blue-800 hover:underline text-left"
+                class="text-action-primary font-bold hover:opacity-80 hover:underline text-left"
                 onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
               >
                 ${escapeHTML(displayName)}
@@ -616,26 +616,26 @@ function renderReservationsList(lesson, reservations) {
 }
 
 /**
- * 生徒詳細を描画
+ * 生徒詳細をモーダル用のコンテンツとして生成
  * @param {any} student - 生徒情報
  * @param {boolean} isAdmin - 管理者権限
- * @returns {string} HTML文字列
+ * @returns {string} モーダル用HTML文字列
  */
-function renderStudentDetail(student, isAdmin) {
+function renderStudentDetailModalContent(student, isAdmin) {
   if (!student) {
-    return renderError('生徒情報が見つかりません');
+    return '<p class="text-center text-red-600">生徒情報が見つかりません</p>';
   }
 
   const displayName = student.nickname || student.displayName || '名前なし';
 
   // 基本情報（公開）
   const publicInfoHtml = `
-    <div class="mb-6">
-      <h2 class="${DesignConfig.text.subheading} mb-4">基本情報</h2>
-      <div class="space-y-2">
-        <div><span class="font-bold">ニックネーム:</span> ${escapeHTML(displayName)}</div>
-        <div><span class="font-bold">参加回数:</span> ${student.participationCount}回</div>
-        ${student.futureCreations ? `<div><span class="font-bold">将来制作したいもの:</span> ${escapeHTML(student.futureCreations)}</div>` : ''}
+    <div class="mb-4">
+      <h3 class="text-sm font-bold text-brand-text mb-2">基本情報</h3>
+      <div class="space-y-1 text-sm">
+        <div><span class="font-semibold">ニックネーム:</span> ${escapeHTML(displayName)}</div>
+        <div><span class="font-semibold">参加回数:</span> ${student.participationCount}回</div>
+        ${student.futureCreations ? `<div><span class="font-semibold">将来制作したいもの:</span> ${escapeHTML(student.futureCreations)}</div>` : ''}
       </div>
     </div>
   `;
@@ -644,13 +644,13 @@ function renderStudentDetail(student, isAdmin) {
   const detailedInfoHtml =
     isAdmin || student.isSelf
       ? `
-    <div class="mb-6">
-      <h2 class="${DesignConfig.text.subheading} mb-4">詳細情報</h2>
-      <div class="space-y-2 text-sm">
-        ${student.realName ? `<div><span class="font-bold">本名:</span> ${escapeHTML(student.realName)}</div>` : ''}
-        ${student.phone ? `<div><span class="font-bold">電話番号:</span> ${escapeHTML(student.phone)}</div>` : ''}
-        ${student.email ? `<div><span class="font-bold">メール:</span> ${escapeHTML(student.email)}</div>` : ''}
-        ${student.address ? `<div><span class="font-bold">住所:</span> ${escapeHTML(student.address)}</div>` : ''}
+    <div class="mb-4 pb-4 border-b border-gray-200">
+      <h3 class="text-sm font-bold text-brand-text mb-2">詳細情報</h3>
+      <div class="space-y-1 text-sm">
+        ${student.realName ? `<div><span class="font-semibold">本名:</span> ${escapeHTML(student.realName)}</div>` : ''}
+        ${student.phone ? `<div><span class="font-semibold">電話番号:</span> ${escapeHTML(student.phone)}</div>` : ''}
+        ${student.email ? `<div><span class="font-semibold">メール:</span> ${escapeHTML(student.email)}</div>` : ''}
+        ${student.address ? `<div><span class="font-semibold">住所:</span> ${escapeHTML(student.address)}</div>` : ''}
       </div>
     </div>
   `
@@ -669,42 +669,39 @@ function renderStudentDetail(student, isAdmin) {
               const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
 
               return `
-            <div class="border-b border-gray-200 py-3">
-              <div class="font-bold">${formattedDate} - ${escapeHTML(res.classroom)}</div>
-              ${res.venue ? `<div class="text-sm text-gray-600">${escapeHTML(res.venue)}</div>` : ''}
-              ${res.workInProgress ? `<div class="text-sm mt-1">${escapeHTML(res.workInProgress)}</div>` : ''}
+            <div class="border-b border-gray-200 py-2">
+              <div class="font-semibold text-sm">${formattedDate} - ${escapeHTML(res.classroom)}</div>
+              ${res.venue ? `<div class="text-xs text-gray-600">${escapeHTML(res.venue)}</div>` : ''}
+              ${res.workInProgress ? `<div class="text-xs mt-1">${escapeHTML(res.workInProgress)}</div>` : ''}
             </div>
           `;
             },
           )
           .join('')
-      : '<p class="text-gray-500">予約履歴がありません</p>';
+      : '<p class="text-sm text-gray-500">予約履歴がありません</p>';
 
   return `
-    ${Components.pageHeader({
-      title: escapeHTML(displayName),
-      backAction: 'backToParticipantsReservations',
-    })}
-    <div class="${DesignConfig.layout.container}">
-
-      ${Components.cardContainer({
-        variant: 'default',
-        padding: 'spacious',
-        customClass: 'bg-white mb-6',
-        content: publicInfoHtml + detailedInfoHtml,
-      })}
-
-      ${Components.cardContainer({
-        variant: 'default',
-        padding: 'spacious',
-        customClass: 'bg-white',
-        content: `
-          <h2 class="${DesignConfig.text.subheading} mb-4">予約履歴</h2>
-          ${historyHtml}
-        `,
-      })}
+    <div class="max-h-[70vh] overflow-y-auto">
+      ${publicInfoHtml}
+      ${detailedInfoHtml}
+      <div class="mb-2">
+        <h3 class="text-sm font-bold text-brand-text mb-2">予約履歴</h3>
+        ${historyHtml}
+      </div>
     </div>
   `;
+}
+
+/**
+ * 生徒詳細を描画（後方互換性のため残す、使用しない）
+ * @deprecated モーダル表示に移行したため使用しない
+ * @param {any} student - 生徒情報
+ * @param {boolean} isAdmin - 管理者権限
+ * @returns {string} HTML文字列
+ */
+function renderStudentDetail(student, isAdmin) {
+  // この関数は使用されなくなりましたが、後方互換性のため残します
+  return renderStudentDetailModalContent(student, isAdmin);
 }
 
 /**

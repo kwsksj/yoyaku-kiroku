@@ -4,7 +4,6 @@ export namespace participantsActionHandlers {
     export { selectParticipantsLesson };
     export { selectParticipantsStudent };
     export { backToParticipantsList };
-    export { backToParticipantsReservations };
     export { filterParticipantsByClassroom };
     export { togglePastLessons };
 }
@@ -40,7 +39,7 @@ declare function toggleParticipantsLessonAccordion(lessonId: string): void;
  */
 declare function selectParticipantsLesson(lessonId: string): void;
 /**
- * 生徒選択ハンドラ
+ * 生徒選択ハンドラ（モーダル表示）
  * @param {string} targetStudentId - 表示対象の生徒ID
  */
 declare function selectParticipantsStudent(targetStudentId: string): void;
@@ -48,10 +47,6 @@ declare function selectParticipantsStudent(targetStudentId: string): void;
  * レッスン一覧に戻る
  */
 declare function backToParticipantsList(): void;
-/**
- * 参加者リストに戻る
- */
-declare function backToParticipantsReservations(): void;
 /**
  * 教室フィルタハンドラ
  * @param {string} classroom - 選択された教室（'all'または教室名）

@@ -125,6 +125,7 @@ declare global {
     updateView?: (viewName: string) => void;
     formatDate?: (date: string | Date, format?: string) => string;
     setupParticipantsScrollSync?: () => void;
+    renderStudentDetailModalContent?: (student: any, isAdmin: boolean) => string;
 
     // --- ページ遷移 ---
     pageTransitionManager?: PageTransitionManager;
@@ -242,6 +243,7 @@ declare global {
   function updateView(viewName: string): void;
   function formatDate(date: string | Date, format?: string): void;
   function setupParticipantsScrollSync(): void;
+  function renderStudentDetailModalContent(student: any, isAdmin: boolean): string;
   function showInfo(
     message: string,
     title?: string,

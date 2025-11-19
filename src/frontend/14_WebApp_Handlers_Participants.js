@@ -89,6 +89,7 @@ function saveToCache(cache, cacheKeys, key, data) {
 
 /**
  * 生徒詳細を取得（キャッシュ + Optimistic UI）
+ * @deprecated モーダル化に伴いselectParticipantsStudentに統合
  * @param {string} targetStudentId - 表示対象の生徒ID
  * @param {string} requestingStudentId - リクエスト元の生徒ID
  * @param {Object} options - オプション
@@ -96,6 +97,7 @@ function saveToCache(cache, cacheKeys, key, data) {
  * @param {boolean} [options.shouldShowLoading=true] - ローディング表示
  * @returns {Promise<any>}
  */
+// @ts-ignore - 未使用だが後方互換性のため残す
 function fetchStudentDetails(
   targetStudentId,
   requestingStudentId,
@@ -427,7 +429,7 @@ function selectParticipantsLesson(lessonId) {
 }
 
 /**
- * 生徒選択ハンドラ
+ * 生徒選択ハンドラ（モーダル表示）
  * @param {string} targetStudentId - 表示対象の生徒ID
  */
 function selectParticipantsStudent(targetStudentId) {
@@ -443,8 +445,98 @@ function selectParticipantsStudent(targetStudentId) {
     return;
   }
 
-  // 統一データ取得関数を使用（キャッシュ + Optimistic UI）
-  fetchStudentDetails(targetStudentId, requestingStudentId);
+  // ローディング表示
+  showLoading('participants');
+
+  // キャッシュチェック
+  if (isCacheValid(studentsCache, targetStudentId)) {
+    console.log(`✅ キャッシュ使用: ${targetStudentId}`);
+    const cachedData = studentsCache[targetStudentId].data;
+    hideLoading();
+    showStudentModal(cachedData, state.currentUser?.['isAdmin'] || false);
+    return;
+  }
+
+  // フェッチ中チェック
+  if (fetchingStudents[targetStudentId]) {
+    console.log(`⏳ 既に取得中: ${targetStudentId} - スキップ`);
+    hideLoading();
+    return;
+  }
+
+  fetchingStudents[targetStudentId] = true;
+
+  // API呼び出し
+  google.script.run
+    .withSuccessHandler(function (response) {
+      console.log(`✅ 生徒詳細取得成功: ${targetStudentId}`, response);
+
+      fetchingStudents[targetStudentId] = false;
+      hideLoading();
+
+      if (response.success) {
+        // キャッシュに保存
+        saveToCache(
+          studentsCache,
+          studentsCacheKeys,
+          targetStudentId,
+          response.data.student,
+        );
+
+        // モーダル表示
+        showStudentModal(
+          response.data.student,
+          state.currentUser?.['isAdmin'] || false,
+        );
+      } else {
+        showInfo(response.message || '生徒詳細の取得に失敗しました', 'エラー');
+      }
+    })
+    .withFailureHandler(
+      /**
+       * @param {any} error
+       */
+      function (error) {
+        console.error(`❌ 生徒詳細取得エラー: ${targetStudentId}`, error);
+        fetchingStudents[targetStudentId] = false;
+        hideLoading();
+        showInfo('生徒詳細の取得中にエラーが発生しました', 'エラー');
+      },
+    )
+    .getStudentDetails(targetStudentId, requestingStudentId);
+}
+
+/**
+ * 生徒詳細をモーダルで表示
+ * @param {any} student - 生徒情報
+ * @param {boolean} isAdmin - 管理者権限
+ */
+function showStudentModal(student, isAdmin) {
+  if (!student) {
+    showInfo('生徒情報が見つかりません', 'エラー');
+    return;
+  }
+
+  const displayName = student.nickname || student.displayName || '名前なし';
+
+  // モーダルコンテンツを生成（グローバル関数を使用）
+  const content =
+    typeof appWindow.renderStudentDetailModalContent === 'function'
+      ? appWindow.renderStudentDetailModalContent(student, isAdmin)
+      : '<p class="text-center text-red-600">モーダルコンテンツの生成に失敗しました</p>';
+
+  // モーダル表示
+  if (typeof appWindow.showModal === 'function') {
+    appWindow.showModal(
+      /** @type {any} */ ({
+        title: escapeHTML(displayName),
+        content: content,
+        size: 'medium',
+      }),
+    );
+  } else {
+    console.error('showModal関数が見つかりません');
+  }
 }
 
 /**
@@ -459,23 +551,6 @@ function backToParticipantsList() {
       participantsSubView: 'list',
       participantsSelectedLesson: null,
       participantsReservations: [],
-    },
-  });
-
-  render();
-}
-
-/**
- * 参加者リストに戻る
- */
-function backToParticipantsReservations() {
-  console.log('⬅️ 参加者リストに戻る');
-
-  participantsHandlersStateManager.dispatch({
-    type: 'UPDATE_STATE',
-    payload: {
-      participantsSubView: 'reservations',
-      participantsSelectedStudent: null,
     },
   });
 
@@ -527,7 +602,6 @@ export const participantsActionHandlers = {
   selectParticipantsLesson,
   selectParticipantsStudent,
   backToParticipantsList,
-  backToParticipantsReservations,
   filterParticipantsByClassroom,
   togglePastLessons,
 };
