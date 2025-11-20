@@ -1767,13 +1767,13 @@ export const Components = {
             : col.align === 'right'
               ? 'text-right'
               : '';
-        return `<div class="${alignClass}">${escapeHTML(col.label)}</div>`;
+        return `<div class="${alignClass} py-0.5">${escapeHTML(col.label)}</div>`;
       })
       .join('');
 
     return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-0 z-10 mb-0.5">
       <div id="${escapeHTML(headerId)}" class="overflow-x-auto scrollbar-hide">
-        <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;">
+        <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; min-height: 1.5rem;">
           ${columnsHtml}
         </div>
       </div>

@@ -22,3 +22,29 @@ export type ClassroomColorConfig = {
      */
     badge: string;
 };
+export type ParticipantColumnConfig = {
+    /**
+     * - データのキー
+     */
+    key: string;
+    /**
+     * - 列のラベル
+     */
+    label: string;
+    /**
+     * - 列の幅（CSS grid用）
+     */
+    width: string;
+    /**
+     * - テキスト配置（center, left, right）
+     */
+    align?: string;
+    /**
+     * - 管理者のみ表示
+     */
+    adminOnly?: boolean;
+    /**
+     * - カスタムレンダリング関数
+     */
+    render?: (row: any) => string;
+};

@@ -54,6 +54,166 @@ const CLASSROOM_COLORS = {
 };
 
 /**
+ * @typedef {Object} ParticipantColumnConfig
+ * @property {string} key - データのキー
+ * @property {string} label - 列のラベル
+ * @property {string} width - 列の幅（CSS grid用）
+ * @property {string} [align] - テキスト配置（center, left, right）
+ * @property {boolean} [adminOnly] - 管理者のみ表示
+ * @property {(row: any) => string} [render] - カスタムレンダリング関数
+ */
+
+/**
+ * 参加者テーブルの列定義
+ * @type {ParticipantColumnConfig[]}
+ */
+const PARTICIPANT_TABLE_COLUMNS = [
+  {
+    key: 'participant',
+    label: '参加者',
+    width: '100px',
+    align: 'center',
+    adminOnly: false,
+    render: row => {
+      const displayName = row.nickname || row.displayName || '名前なし';
+      const hasRealName = row.realName && row.realName.trim() !== '';
+
+      // バッジを生成
+      const badges = [];
+      if (row.firstLecture) {
+        badges.push(
+          Components.badge({ text: '初', color: 'green', size: 'xs' }),
+        );
+      } else if (row.participationCount) {
+        badges.push(
+          Components.badge({
+            text: `${row.participationCount}`,
+            color: 'blue',
+            size: 'xs',
+          }),
+        );
+      }
+      if (row.chiselRental) {
+        badges.push(
+          Components.badge({ text: '刀', color: 'orange', size: 'xs' }),
+        );
+      }
+
+      const badgesHtml = badges.length > 0 ? badges.join(' ') : '';
+
+      return `
+        <div>
+          <div class="text-xs">
+            <button
+              class="text-action-primary font-bold hover:opacity-80 hover:underline text-left"
+              onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
+            >
+              ${escapeHTML(displayName)}
+            </button>
+          </div>
+          ${hasRealName ? `<div class="text-xs text-gray-600">${escapeHTML(row.realName)}</div>` : ''}
+          <div class="gap-0.5 text-xs">
+            ${badgesHtml}
+          </div>
+        </div>
+      `;
+    },
+  },
+  {
+    key: 'workInProgress',
+    label: '制作メモ',
+    width: '1fr',
+    adminOnly: false,
+    render: row =>
+      `<div class="text-xs ${row.workInProgress ? '' : 'text-gray-400 italic'}">${escapeHTML(row.workInProgress || '—')}</div>`,
+  },
+  {
+    key: 'order',
+    label: '注文',
+    width: '150px',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs ${row.order ? '' : 'text-gray-400 italic'}">${escapeHTML(row.order || '—')}</div>`,
+  },
+  {
+    key: 'ageGroup',
+    label: '年代',
+    width: '60px',
+    align: 'center',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs text-center">${escapeHTML(row.ageGroup || '—')}</div>`,
+  },
+  {
+    key: 'gender',
+    label: '性別',
+    width: '60px',
+    align: 'center',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs text-center">${escapeHTML(row.gender || '—')}</div>`,
+  },
+  {
+    key: 'address',
+    label: '住所',
+    width: '80px',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs truncate" title="${escapeHTML(row.address || '—')}">${escapeHTML(row.address || '—')}</div>`,
+  },
+  {
+    key: 'futureCreations',
+    label: '将来制作したいもの',
+    width: '120px',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs truncate" title="${escapeHTML(row.futureCreations || '—')}">${escapeHTML(row.futureCreations || '—')}</div>`,
+  },
+  {
+    key: 'companion',
+    label: '同行者',
+    width: '80px',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs truncate" title="${escapeHTML(row.companion || '—')}">${escapeHTML(row.companion || '—')}</div>`,
+  },
+  {
+    key: 'transportation',
+    label: '来場手段',
+    width: '80px',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs truncate" title="${escapeHTML(row.transportation || '—')}">${escapeHTML(row.transportation || '—')}</div>`,
+  },
+  {
+    key: 'pickup',
+    label: '送迎',
+    width: '80px',
+    align: 'center',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs text-center">${escapeHTML(row.pickup || '—')}</div>`,
+  },
+  {
+    key: 'car',
+    label: '車',
+    width: '60px',
+    align: 'center',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs text-center">${escapeHTML(row.car || '—')}</div>`,
+  },
+  {
+    key: 'notes',
+    label: '備考',
+    width: '150px',
+    adminOnly: true,
+    render: row =>
+      `<div class="text-xs truncate" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
+  },
+];
+
+/**
  * 教室の色を取得
  * @param {string} classroom - 教室名
  * @returns {ClassroomColorConfig} 色定義オブジェクト
@@ -127,101 +287,47 @@ export function getParticipantsView() {
 // createBadge関数は削除 - Components.badge()を使用
 
 /**
+ * 表示する列をフィルタリング（管理者権限に基づく）
+ * @param {boolean} isAdmin - 管理者フラグ
+ * @returns {ParticipantColumnConfig[]} フィルタリングされた列定義
+ */
+function getVisibleColumns(isAdmin) {
+  return PARTICIPANT_TABLE_COLUMNS.filter(col => !col.adminOnly || isAdmin);
+}
+
+/**
  * アコーディオン展開時の予約詳細コンテンツを生成（ヘッダーなし、データ行のみ）
  * @param {any} _lesson - レッスン情報（未使用）
  * @param {any[]} reservations - 予約一覧
+ * @param {boolean} isAdmin - 管理者フラグ
  * @returns {string} HTML文字列
  */
-function renderAccordionContent(_lesson, reservations) {
+function renderAccordionContent(_lesson, reservations, isAdmin = true) {
   if (!reservations || reservations.length === 0) {
     return '<div class="text-center text-gray-500 text-xs py-2">参加者がいません</div>';
   }
 
+  // 表示する列を取得
+  const visibleColumns = getVisibleColumns(isAdmin);
+  const gridTemplate = visibleColumns.map(col => col.width).join(' ');
+
   // データ行のみを生成（ヘッダーなし）
   return reservations
     .map(row => {
-      const displayName = row.nickname || row.displayName || '名前なし';
-      const hasRealName = row.realName && row.realName.trim() !== '';
-
-      // バッジを生成
-      const badges = [];
-      if (row.firstLecture) {
-        // 初心者の場合は「初」のみ表示
-        badges.push(
-          Components.badge({ text: '初', color: 'green', size: 'xs' }),
-        );
-      } else if (row.participationCount) {
-        // 初心者でない場合は参加回数のみ表示
-        badges.push(
-          Components.badge({
-            text: `${row.participationCount}`,
-            color: 'blue',
-            size: 'xs',
-          }),
-        );
-      }
-      if (row.chiselRental) {
-        badges.push(
-          Components.badge({ text: '刀', color: 'orange', size: 'xs' }),
-        );
-      }
-
-      const badgesHtml = badges.length > 0 ? badges.join(' ') : '';
-
-      // 参加者情報カラム
-      const participantHtml = `
-        <div>
-          <div class="text-xs">
-            <button
-              class="text-action-primary font-bold hover:opacity-80 hover:underline text-left"
-              onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
-            >
-              ${escapeHTML(displayName)}
-            </button>
-          </div>
-          ${hasRealName ? `<div class="text-xs text-gray-600 ">${escapeHTML(row.realName)}</div>` : ''}
-          <div class="gap-0.5 text-xs">
-            ${badgesHtml}
-          </div>
-        </div>
-      `;
-
-      // 制作メモカラム
-      const memoHtml = `<div class="text-xs ${row.workInProgress ? '' : 'text-gray-400 italic'}">
-        ${escapeHTML(row.workInProgress || '—')}
-      </div>`;
-
-      // 注文カラム
-      const orderHtml = `<div class="text-xs ${row.order ? '' : 'text-gray-400 italic'}">
-        ${escapeHTML(row.order || '—')}
-      </div>`;
-
-      // 追加フィールド（生徒名簿情報）
-      const ageGroupHtml = `<div class="text-xs text-center">${escapeHTML(row.ageGroup || '—')}</div>`;
-      const genderHtml = `<div class="text-xs text-center">${escapeHTML(row.gender || '—')}</div>`;
-      const addressHtml = `<div class="text-xs truncate" title="${escapeHTML(row.address || '—')}">${escapeHTML(row.address || '—')}</div>`;
-      const futureCreationsHtml = `<div class="text-xs truncate" title="${escapeHTML(row.futureCreations || '—')}">${escapeHTML(row.futureCreations || '—')}</div>`;
-      const companionHtml = `<div class="text-xs truncate" title="${escapeHTML(row.companion || '—')}">${escapeHTML(row.companion || '—')}</div>`;
-      const transportationHtml = `<div class="text-xs truncate" title="${escapeHTML(row.transportation || '—')}">${escapeHTML(row.transportation || '—')}</div>`;
-      const pickupHtml = `<div class="text-xs text-center">${escapeHTML(row.pickup || '—')}</div>`;
-      const carHtml = `<div class="text-xs text-center">${escapeHTML(row.car || '—')}</div>`;
-      const notesHtml = `<div class="text-xs truncate" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`;
+      // 各列のHTMLを生成
+      const columnsHtml = visibleColumns
+        .map(col => {
+          const content = col.render
+            ? col.render(row)
+            : escapeHTML(row[col.key] || '—');
+          return `<div class="overflow-hidden">${content}</div>`;
+        })
+        .join('');
 
       // グリッドレイアウトでデータ行を生成（3行分の高さに固定、パディングなし）
       return `
-        <div class="grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50" style="grid-template-columns: 100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px; min-width: 1200px; height: calc(3 * 1rem);">
-          <div class="text-center overflow-hidden">${participantHtml}</div>
-          <div class="overflow-hidden">${memoHtml}</div>
-          <div class="overflow-hidden">${orderHtml}</div>
-          <div class="overflow-hidden">${ageGroupHtml}</div>
-          <div class="overflow-hidden">${genderHtml}</div>
-          <div class="overflow-hidden">${addressHtml}</div>
-          <div class="overflow-hidden">${futureCreationsHtml}</div>
-          <div class="overflow-hidden">${companionHtml}</div>
-          <div class="overflow-hidden">${transportationHtml}</div>
-          <div class="overflow-hidden">${pickupHtml}</div>
-          <div class="overflow-hidden">${carHtml}</div>
-          <div class="overflow-hidden">${notesHtml}</div>
+        <div class="grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; height: calc(3 * 1rem);">
+          ${columnsHtml}
         </div>
       `;
     })
@@ -237,7 +343,7 @@ function renderLessonList(lessons) {
   if (!lessons || lessons.length === 0) {
     return `
       ${Components.pageHeader({
-        title: 'レッスン一覧',
+        title: '教室日程一覧',
         showBackButton: false,
       })}
       <div class="${DesignConfig.layout.container}">
@@ -256,6 +362,7 @@ function renderLessonList(lessons) {
   const reservationsMap = state.participantsReservationsMap || {};
   const selectedClassroom = state.selectedParticipantsClassroom || 'all';
   const showPastLessons = state.showPastLessons || false;
+  const isAdmin = state.currentUser?.['isAdmin'] || false;
 
   // 教室一覧を取得（重複を除く）
   const classrooms = [
@@ -322,25 +429,17 @@ function renderLessonList(lessons) {
     onClickHandler: 'filterParticipantsByClassroom',
   });
 
-  // 共通テーブルヘッダー（コンポーネント使用）
-  const gridTemplate =
-    '100px 1fr 150px 60px 60px 80px 120px 80px 80px 80px 60px 150px';
+  // 共通テーブルヘッダー（列定義から生成）
+  const visibleColumns = getVisibleColumns(isAdmin);
+  const gridTemplate = visibleColumns.map(col => col.width).join(' ');
   const tableHeaderHtml = Components.stickyTableHeader({
     headerId: 'participants-table-header',
-    columns: [
-      { label: '参加者', align: 'center' },
-      { label: '制作メモ' },
-      { label: '注文' },
-      { label: '年代' },
-      { label: '性別' },
-      { label: '住所' },
-      { label: '将来制作したいもの' },
-      { label: '同行者' },
-      { label: '来場手段' },
-      { label: '送迎' },
-      { label: '車' },
-      { label: 'notes' },
-    ],
+    columns: visibleColumns.map(col => {
+      /** @type {{label: string, align?: string}} */
+      const headerCol = { label: col.label };
+      if (col.align) headerCol.align = col.align;
+      return headerCol;
+    }),
     gridTemplate,
   });
 
@@ -455,7 +554,7 @@ function renderLessonList(lessons) {
       // アコーディオンコンテンツ（横スクロール対応、同期用クラス追加）
       const accordionContent = `
         <div class="accordion-content participants-table-body bg-transparent hidden overflow-x-auto" data-lesson-id="${escapeHTML(lesson.lessonId)}">
-          ${renderAccordionContent(lesson, reservations)}
+          ${renderAccordionContent(lesson, reservations, isAdmin)}
         </div>
       `;
 
@@ -481,7 +580,7 @@ function renderLessonList(lessons) {
 
   return `
     ${Components.pageHeader({
-      title: 'レッスン一覧',
+      title: '教室日程一覧',
       showBackButton: false,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
