@@ -1664,7 +1664,7 @@ export const Components = {
       .map(option => {
         const isSelected = option.value === selectedValue;
         const buttonClass = isSelected
-          ? 'bg-action-primary text-white border-action-primary'
+          ? 'bg-action-primary-bg text-action-primary-text border-brand-accent-border'
           : 'bg-white text-ui-text border-ui-border hover:bg-gray-50';
         return `<button
           class="px-2 py-0.5 text-xs font-medium border-2 rounded ${buttonClass}"

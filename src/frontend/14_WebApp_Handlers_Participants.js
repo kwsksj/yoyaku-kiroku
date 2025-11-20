@@ -527,13 +527,11 @@ function showStudentModal(student, isAdmin) {
 
   // モーダル表示
   if (typeof appWindow.showModal === 'function') {
-    appWindow.showModal(
-      /** @type {any} */ ({
-        title: escapeHTML(displayName),
-        content: content,
-        size: 'medium',
-      }),
-    );
+    appWindow.showModal({
+      title: escapeHTML(displayName),
+      message: content,
+      confirmText: '閉じる',
+    });
   } else {
     console.error('showModal関数が見つかりません');
   }
