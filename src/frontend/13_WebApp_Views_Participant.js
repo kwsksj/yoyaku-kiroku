@@ -2,7 +2,7 @@
  * =================================================================
  * ファイル概要
  * -----------------------------------------------------------------
- * 名称: 13_WebApp_Views_Participants.js
+ * 名称: 13_WebApp_Views_Participant.js
  * 目的: 参加者リスト画面のビュー生成
  * 主な責務:
  *   - レッスン選択画面のレンダリング
@@ -12,7 +12,7 @@
  */
 
 /** @type {SimpleStateManager} */
-const participantsStateManager = appWindow.stateManager;
+const participantStateManager = appWindow.stateManager;
 
 /**
  * @typedef {Object} ClassroomColorConfig
@@ -74,9 +74,14 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '80px',
     align: 'center',
     adminOnly: false,
-    render: row => {
-      const displayName = row.nickname || row.displayName || '名前なし';
+    render: (row, isAdmin) => {
+      let displayName = row.nickname || row.displayName || '名前なし';
       const hasRealName = row.realName && row.realName.trim() !== '';
+
+      // 管理者でない、かつ表示名が本名と同じ場合は、表示名を最初の2文字にする
+      if (!isAdmin && hasRealName && displayName === row.realName) {
+        displayName = displayName.substring(0, 2);
+      }
 
       // バッジを生成
       const badges = [];
@@ -106,12 +111,12 @@ const PARTICIPANT_TABLE_COLUMNS = [
           <div class="text-xs" align="center">
             <button
               class="text-action-primary font-bold text-center hover:opacity-80 hover:underline"
-              onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
+              onclick="actionHandlers.selectParticipantStudent('${escapeHTML(row.studentId)}')"
             >
               ${escapeHTML(displayName)}
             </button>
           </div>
-          ${hasRealName ? `<div class="text-xs text-gray-400 text-center">${escapeHTML(row.realName)}</div>` : ''}
+          ${isAdmin && hasRealName ? `<div class="text-xs text-gray-400 text-center">${escapeHTML(row.realName)}</div>` : ''}
           <div class="pl-2 gap-0.5 text-xs">
             ${badgesHtml}
           </div>
@@ -161,7 +166,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '80px',
     adminOnly: true,
     render: row =>
-      `<div class="text-xs truncate" title="${escapeHTML(row.address || '—')}">${escapeHTML(row.address || '—')}</div>`,
+      `<div class="text-xs break-words" title="${escapeHTML(row.address || '—')}">${escapeHTML(row.address || '—')}</div>`,
   },
   {
     key: 'futureCreations',
@@ -169,7 +174,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '120px',
     adminOnly: false,
     render: row =>
-      `<div class="text-xs truncate" title="${escapeHTML(row.futureCreations || '—')}">${escapeHTML(row.futureCreations || '—')}</div>`,
+      `<div class="text-xs break-words" title="${escapeHTML(row.futureCreations || '—')}">${escapeHTML(row.futureCreations || '—')}</div>`,
   },
   {
     key: 'companion',
@@ -177,7 +182,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '80px',
     adminOnly: false,
     render: row =>
-      `<div class="text-xs truncate" title="${escapeHTML(row.companion || '—')}">${escapeHTML(row.companion || '—')}</div>`,
+      `<div class="text-xs break-words" title="${escapeHTML(row.companion || '—')}">${escapeHTML(row.companion || '—')}</div>`,
   },
   {
     key: 'transportation',
@@ -185,7 +190,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '80px',
     adminOnly: false,
     render: row =>
-      `<div class="text-xs truncate" title="${escapeHTML(row.transportation || '—')}">${escapeHTML(row.transportation || '—')}</div>`,
+      `<div class="text-xs break-words" title="${escapeHTML(row.transportation || '—')}">${escapeHTML(row.transportation || '—')}</div>`,
   },
   {
     key: 'pickup',
@@ -211,7 +216,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '150px',
     adminOnly: true,
     render: row =>
-      `<div class="text-xs truncate" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
+      `<div class="text-xs break-words" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
   },
 ];
 
@@ -262,24 +267,24 @@ function getReservationTimeSlot(reservation) {
  * stateManagerの状態に応じて適切なサブビューを返す
  * @returns {string} HTML文字列
  */
-export function getParticipantsView() {
-  const state = participantsStateManager.getState();
-  const subView = state.participantsSubView || 'list';
+export function getParticipantView() {
+  const state = participantStateManager.getState();
+  const subView = state.participantSubView || 'list';
 
   console.log('🎨 参加者リストビュー表示:', subView);
 
   switch (subView) {
     case 'list':
-      return renderLessonList(state.participantsLessons || []);
+      return renderLessonList(state.participantLessons || []);
     case 'reservations':
       return renderReservationsList(
-        state.participantsSelectedLesson,
-        state.participantsReservations || [],
+        state.participantSelectedLesson,
+        state.participantReservations || [],
       );
     case 'studentDetail':
       return renderStudentDetailModalContent(
-        state.participantsSelectedStudent,
-        state.participantsIsAdmin || false,
+        state.participantSelectedStudent,
+        state.participantIsAdmin || false,
       );
     default:
       return renderError('不明なビューです');
@@ -320,7 +325,7 @@ function renderAccordionContent(_lesson, reservations, isAdmin = true) {
       const columnsHtml = visibleColumns
         .map(col => {
           const content = col.render
-            ? col.render(row)
+            ? col.render(row, isAdmin)
             : escapeHTML(row[col.key] || '—');
           return `<div class="overflow-hidden">${content}</div>`;
         })
@@ -360,11 +365,11 @@ function renderLessonList(lessons) {
   }
 
   // stateManagerから予約データを取得
-  const state = participantsStateManager.getState();
-  const reservationsMap = state.participantsReservationsMap || {};
-  const selectedClassroom = state.selectedParticipantsClassroom || 'all';
+  const state = participantStateManager.getState();
+  const reservationsMap = state.participantReservationsMap || {};
+  const selectedClassroom = state.selectedParticipantClassroom || 'all';
   const showPastLessons = state.showPastLessons || false;
-  const isAdmin = state.currentUser?.['isAdmin'] || false;
+  const isAdmin = state.participantIsAdmin || false;
 
   // 教室一覧を取得（重複を除く）
   const classrooms = [
@@ -428,7 +433,7 @@ function renderLessonList(lessons) {
   const filterHtml = Components.filterChips({
     options: filterOptions,
     selectedValue: selectedClassroom,
-    onClickHandler: 'filterParticipantsByClassroom',
+    onClickHandler: 'filterParticipantByClassroom',
   });
 
   // 共通テーブルヘッダー（列定義から生成）
@@ -452,7 +457,9 @@ function renderLessonList(lessons) {
       const reservationCount = reservations.length;
 
       // 初回参加者数を計算
-      const firstLectureCount = reservations.filter(r => r.firstLecture).length;
+      const firstLectureCount = reservations.filter(
+        /** @param {any} r */ r => r.firstLecture,
+      ).length;
 
       // formatDate関数を使用して日付を表示（xsサイズに調整）
       const formattedDateHtml = window.formatDate(lesson.date);
@@ -475,16 +482,18 @@ function renderLessonList(lessons) {
       if (isTwoSession) {
         // 2部制教室の場合: 予約時間で午前・午後を判定
         const morningCount = reservations.filter(
-          r => getReservationTimeSlot(r) === 'morning',
+          /** @param {any} r */ r => getReservationTimeSlot(r) === 'morning',
         ).length;
         const afternoonCount = reservations.filter(
-          r => getReservationTimeSlot(r) === 'afternoon',
+          /** @param {any} r */ r => getReservationTimeSlot(r) === 'afternoon',
         ).length;
         const morningFirstCount = reservations.filter(
-          r => getReservationTimeSlot(r) === 'morning' && r.firstLecture,
+          /** @param {any} r */ r =>
+            getReservationTimeSlot(r) === 'morning' && r.firstLecture,
         ).length;
         const afternoonFirstCount = reservations.filter(
-          r => getReservationTimeSlot(r) === 'afternoon' && r.firstLecture,
+          /** @param {any} r */ r =>
+            getReservationTimeSlot(r) === 'afternoon' && r.firstLecture,
         ).length;
         reservationBadge = `${morningCount},${afternoonCount}`;
         if (morningFirstCount > 0 || afternoonFirstCount > 0) {
@@ -521,7 +530,7 @@ function renderLessonList(lessons) {
       const accordionButton = `
         <button
           class="px-1 py-0.5 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
-          onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
+          onclick="actionHandlers.toggleParticipantLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           data-lesson-id="${escapeHTML(lesson.lessonId)}"
         >
           <div class="flex items-center justify-between">
@@ -653,7 +662,7 @@ function renderReservationsList(lesson, reservations) {
             <div class="text-xs mb-0.5">
               <button
                 class="text-action-primary font-bold hover:opacity-80 hover:underline text-left"
-                onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
+                onclick="actionHandlers.selectParticipantStudent('${escapeHTML(row.studentId)}')"
               >
                 ${escapeHTML(displayName)}
               </button>
@@ -705,7 +714,7 @@ function renderReservationsList(lesson, reservations) {
   return `
     ${Components.pageHeader({
       title: `${escapeHTML(lesson.classroom)} - ${formattedDate}`,
-      backAction: 'backToParticipantsList',
+      backAction: 'backToParticipantList',
     })}
     <div style="max-width: 1200px;">
 
@@ -729,14 +738,25 @@ function renderStudentDetailModalContent(student, isAdmin) {
 
   const displayName = student.nickname || student.displayName || '名前なし';
 
+  // Helper to create a list item if value exists
+  /**
+   * @param {string} label
+   * @param {string | number | null | undefined} value
+   */
+  const createListItem = (label, value) => {
+    return value
+      ? `<div class="grid grid-cols-3 gap-2"><span class="font-semibold col-span-1">${label}:</span> <span class="col-span-2">${escapeHTML(String(value))}</span></div>`
+      : '';
+  };
+
   // 基本情報（公開）
   const publicInfoHtml = `
     <div class="mb-4">
       <h3 class="text-sm font-bold text-brand-text mb-2">基本情報</h3>
       <div class="space-y-1 text-sm">
-        <div><span class="font-semibold">ニックネーム:</span> ${escapeHTML(displayName)}</div>
-        <div><span class="font-semibold">参加回数:</span> ${student.participationCount}回</div>
-        ${student.futureCreations ? `<div><span class="font-semibold">将来制作したいもの:</span> ${escapeHTML(student.futureCreations)}</div>` : ''}
+        ${createListItem('ニックネーム', displayName)}
+        ${createListItem('参加回数', student.participationCount ? `${student.participationCount}回` : '')}
+        ${createListItem('将来制作したいもの', student.futureCreations)}
       </div>
     </div>
   `;
@@ -748,10 +768,37 @@ function renderStudentDetailModalContent(student, isAdmin) {
     <div class="mb-4 pb-4 border-b border-gray-200">
       <h3 class="text-sm font-bold text-brand-text mb-2">詳細情報</h3>
       <div class="space-y-1 text-sm">
-        ${student.realName ? `<div><span class="font-semibold">本名:</span> ${escapeHTML(student.realName)}</div>` : ''}
-        ${student.phone ? `<div><span class="font-semibold">電話番号:</span> ${escapeHTML(student.phone)}</div>` : ''}
-        ${student.email ? `<div><span class="font-semibold">メール:</span> ${escapeHTML(student.email)}</div>` : ''}
-        ${student.address ? `<div><span class="font-semibold">住所:</span> ${escapeHTML(student.address)}</div>` : ''}
+        ${createListItem('本名', student.realName)}
+        ${createListItem('電話番号', student.phone)}
+        ${createListItem('メール', student.email)}
+        ${createListItem('住所', student.address)}
+        ${createListItem('年代', student.ageGroup)}
+        ${createListItem('性別', student.gender)}
+        ${createListItem('利き手', student.dominantHand)}
+      </div>
+    </div>
+    <div class="mb-4 pb-4 border-b border-gray-200">
+      <h3 class="text-sm font-bold text-brand-text mb-2">アンケート情報</h3>
+      <div class="space-y-1 text-sm">
+        ${createListItem('木彫り経験', student.experience)}
+        ${createListItem('過去の作品', student.pastWork)}
+        ${createListItem('登録のきっかけ', student.trigger)}
+        ${createListItem('初回メッセージ', student.firstMessage)}
+      </div>
+    </div>
+     <div class="mb-4 pb-4 border-b border-gray-200">
+      <h3 class="text-sm font-bold text-brand-text mb-2">来場・交通情報</h3>
+      <div class="space-y-1 text-sm">
+        ${createListItem('同行者', student.companion)}
+        ${createListItem('来場手段', student.transportation)}
+        ${createListItem('送迎', student.pickup)}
+        ${createListItem('車', student.car)}
+      </div>
+    </div>
+     <div class="mb-4 pb-4 border-b border-gray-200">
+      <h3 class="text-sm font-bold text-brand-text mb-2">備考</h3>
+      <div class="space-y-1 text-sm">
+        ${createListItem('備考', student.notes)}
       </div>
     </div>
   `
@@ -782,7 +829,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
       : '<p class="text-sm text-gray-500">予約履歴がありません</p>';
 
   return `
-    <div class="max-h-[70vh] overflow-y-auto">
+    <div class="max-h-[70vh] overflow-y-auto p-1">
       ${publicInfoHtml}
       ${detailedInfoHtml}
       <div class="mb-2">
@@ -826,3 +873,6 @@ function renderError(message) {
     </div>
   `;
 }
+
+// ハンドラからモーダルコンテンツを生成するためにグローバルに公開
+appWindow.renderStudentDetailModalContent = renderStudentDetailModalContent;

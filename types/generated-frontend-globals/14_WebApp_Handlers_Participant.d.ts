@@ -1,10 +1,10 @@
-export namespace participantsActionHandlers {
-    export { loadParticipantsView };
-    export { toggleParticipantsLessonAccordion };
-    export { selectParticipantsLesson };
-    export { selectParticipantsStudent };
-    export { backToParticipantsList };
-    export { filterParticipantsByClassroom };
+export namespace participantActionHandlers {
+    export { loadParticipantView };
+    export { toggleParticipantLessonAccordion };
+    export { selectParticipantLesson };
+    export { selectParticipantStudent };
+    export { backToParticipantList };
+    export { filterParticipantByClassroom };
     export { togglePastLessons };
 }
 export type CacheEntry = {
@@ -27,31 +27,31 @@ export type CacheEntry = {
  *
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
  */
-declare function loadParticipantsView(forceReload?: boolean, shouldShowLoading?: boolean, baseAppState?: Partial<UIState> | null): void;
+declare function loadParticipantView(forceReload?: boolean, shouldShowLoading?: boolean, baseAppState?: Partial<UIState> | null): void;
 /**
  * アコーディオンの開閉を切り替えるハンドラ（DOM操作のみ、再描画なし）
  * @param {string} lessonId - レッスンID
  */
-declare function toggleParticipantsLessonAccordion(lessonId: string): void;
+declare function toggleParticipantLessonAccordion(lessonId: string): void;
 /**
  * レッスン選択ハンドラ（旧実装 - 互換性のため残す）
  * @param {string} lessonId - レッスンID
  */
-declare function selectParticipantsLesson(lessonId: string): void;
+declare function selectParticipantLesson(lessonId: string): void;
 /**
  * 生徒選択ハンドラ（モーダル表示）
  * @param {string} targetStudentId - 表示対象の生徒ID
  */
-declare function selectParticipantsStudent(targetStudentId: string): void;
+declare function selectParticipantStudent(targetStudentId: string): void;
 /**
  * レッスン一覧に戻る
  */
-declare function backToParticipantsList(): void;
+declare function backToParticipantList(): void;
 /**
  * 教室フィルタハンドラ
  * @param {string} classroom - 選択された教室（'all'または教室名）
  */
-declare function filterParticipantsByClassroom(classroom: string): void;
+declare function filterParticipantByClassroom(classroom: string): void;
 /**
  * 過去/未来のレッスン切り替えハンドラ
  * @param {boolean} showPast - 過去のレッスンを表示するか

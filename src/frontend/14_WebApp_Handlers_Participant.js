@@ -2,7 +2,7 @@
  * =================================================================
  * ファイル概要
  * -----------------------------------------------------------------
- * 名称: 14_WebApp_Handlers_Participants.js
+ * 名称: 14_WebApp_Handlers_Participant.js
  * 目的: 参加者リスト画面のアクションハンドラ
  * 主な責務:
  *   - レッスン選択処理
@@ -14,7 +14,7 @@
 import { render } from './14_WebApp_Handlers.js';
 
 /** @type {SimpleStateManager} */
-const participantsHandlersStateManager = appWindow.stateManager;
+const participantHandlersStateManager = appWindow.stateManager;
 
 // =================================================================
 // --- 生徒詳細キャッシュ ---
@@ -88,131 +88,19 @@ function saveToCache(cache, cacheKeys, key, data) {
 }
 
 /**
- * 生徒詳細を取得（キャッシュ + Optimistic UI）
- * @deprecated モーダル化に伴いselectParticipantsStudentに統合
- * @param {string} targetStudentId - 表示対象の生徒ID
- * @param {string} requestingStudentId - リクエスト元の生徒ID
- * @param {Object} options - オプション
- * @param {boolean} [options.forceRefresh=false] - 強制再取得
- * @param {boolean} [options.shouldShowLoading=true] - ローディング表示
- * @returns {Promise<any>}
- */
-// @ts-ignore - 未使用だが後方互換性のため残す
-function fetchStudentDetails(
-  targetStudentId,
-  requestingStudentId,
-  options = {},
-) {
-  const { forceRefresh = false, shouldShowLoading = true } = options;
-
-  // 1. フェッチ中チェック
-  if (fetchingStudents[targetStudentId] && !forceRefresh) {
-    console.log(`⏳ 既に取得中: ${targetStudentId} - スキップ`);
-    return Promise.resolve(null);
-  }
-
-  // 2. キャッシュチェック
-  if (!forceRefresh && isCacheValid(studentsCache, targetStudentId)) {
-    console.log(`✅ キャッシュ使用: ${targetStudentId}`);
-    const cachedData = studentsCache[targetStudentId].data;
-
-    // Optimistic UI: 即座に表示
-    participantsHandlersStateManager.dispatch({
-      type: 'UPDATE_STATE',
-      payload: {
-        participantsSelectedStudent: cachedData,
-        participantsSubView: 'studentDetail',
-      },
-    });
-    render();
-
-    // バックグラウンドで最新データ取得
-    console.log('🔄 バックグラウンドで最新データ取得中...');
-    fetchStudentDetails(targetStudentId, requestingStudentId, {
-      shouldShowLoading: false,
-      forceRefresh: true,
-    });
-
-    return Promise.resolve(cachedData);
-  }
-
-  // 3. API呼び出し
-  if (shouldShowLoading) {
-    showLoading('participants');
-  }
-
-  fetchingStudents[targetStudentId] = true;
-
-  return new Promise((resolve, reject) => {
-    google.script.run
-      .withSuccessHandler(function (response) {
-        console.log(`✅ 生徒詳細取得成功: ${targetStudentId}`, response);
-
-        fetchingStudents[targetStudentId] = false;
-
-        if (response.success) {
-          // キャッシュに保存
-          saveToCache(
-            studentsCache,
-            studentsCacheKeys,
-            targetStudentId,
-            response.data.student,
-          );
-
-          // stateManagerに保存して表示
-          participantsHandlersStateManager.dispatch({
-            type: 'UPDATE_STATE',
-            payload: {
-              participantsSelectedStudent: response.data.student,
-              participantsSubView: 'studentDetail',
-            },
-          });
-
-          if (shouldShowLoading) hideLoading();
-          render();
-
-          resolve(response.data.student);
-        } else {
-          if (shouldShowLoading) hideLoading();
-          showInfo(
-            response.message || '生徒情報の取得に失敗しました',
-            'エラー',
-          );
-          reject(new Error(response.message));
-        }
-      })
-      .withFailureHandler(
-        /** @param {Error} error */
-        function (error) {
-          console.error(`❌ 生徒詳細取得失敗: ${targetStudentId}`, error);
-          fetchingStudents[targetStudentId] = false;
-
-          if (shouldShowLoading) hideLoading();
-          showInfo('通信エラーが発生しました', 'エラー');
-          reject(error);
-        },
-      )
-      .getStudentDetailsForParticipantsView(
-        targetStudentId,
-        requestingStudentId,
-      );
-  });
-}
-
-/**
  * 参加者リストビュー初期化
  * ログイン成功後、管理者の場合に呼ばれる
  *
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
  */
-function loadParticipantsView(
+function loadParticipantView(
   forceReload = false,
   shouldShowLoading = true,
   baseAppState = /** @type {Partial<UIState> | null} */ (null),
 ) {
   console.log('📋 参加者リストビュー初期化開始');
 
-  const state = participantsHandlersStateManager.getState();
+  const state = participantHandlersStateManager.getState();
   const studentId =
     state.currentUser?.studentId ||
     (baseAppState && baseAppState.currentUser
@@ -228,10 +116,10 @@ function loadParticipantsView(
   // 重要: 予約データ（reservationsMap）も必要なのでチェック
   if (
     !forceReload &&
-    state.participantsLessons &&
-    state.participantsLessons.length > 0 &&
-    state.participantsReservationsMap &&
-    Object.keys(state.participantsReservationsMap).length > 0
+    state.participantLessons &&
+    state.participantLessons.length > 0 &&
+    state.participantReservationsMap &&
+    Object.keys(state.participantReservationsMap).length > 0
   ) {
     console.log('✅ キャッシュ済みデータを使用 - APIコールをスキップ');
     /** @type {Partial<UIState>} */
@@ -239,22 +127,22 @@ function loadParticipantsView(
       ? {
           .../** @type {Partial<UIState>} */ (baseAppState),
           view: 'participants',
-          participantsSubView: 'list',
-          selectedParticipantsClassroom:
-            state.selectedParticipantsClassroom || 'all',
+          participantSubView: 'list',
+          selectedParticipantClassroom:
+            state.selectedParticipantClassroom || 'all',
           showPastLessons: state.showPastLessons || false,
           recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
           isDataFresh: true,
         }
       : {
           view: 'participants',
-          participantsSubView: 'list',
-          selectedParticipantsClassroom:
-            state.selectedParticipantsClassroom || 'all',
+          participantSubView: 'list',
+          selectedParticipantClassroom:
+            state.selectedParticipantClassroom || 'all',
           showPastLessons: state.showPastLessons || false,
         };
 
-    participantsHandlersStateManager.dispatch({
+    participantHandlersStateManager.dispatch({
       type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
       payload: cachePayload,
     });
@@ -277,7 +165,7 @@ function loadParticipantsView(
           Object.prototype.hasOwnProperty.call(response.data, 'isAdmin') &&
           response.data.isAdmin !== undefined
             ? response.data.isAdmin
-            : state.participantsIsAdmin;
+            : state.participantIsAdmin;
 
         // stateManagerに保存（レッスン一覧と予約データ）
         // ログイン時の場合はbaseAppStateをマージ
@@ -286,26 +174,26 @@ function loadParticipantsView(
           ? {
               .../** @type {Partial<UIState>} */ (baseAppState),
               view: 'participants',
-              participantsLessons: response.data.lessons,
-              participantsReservationsMap: response.data.reservationsMap || {},
-              participantsIsAdmin: nextIsAdmin,
-              participantsSubView: 'list',
-              selectedParticipantsClassroom: 'all',
+              participantLessons: response.data.lessons,
+              participantReservationsMap: response.data.reservationsMap || {},
+              participantIsAdmin: nextIsAdmin,
+              participantSubView: 'list',
+              selectedParticipantClassroom: 'all',
               showPastLessons: false,
               recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
               isDataFresh: true,
             }
           : {
               view: 'participants',
-              participantsLessons: response.data.lessons,
-              participantsReservationsMap: response.data.reservationsMap || {},
-              participantsIsAdmin: nextIsAdmin,
-              participantsSubView: 'list',
-              selectedParticipantsClassroom: 'all',
+              participantLessons: response.data.lessons,
+              participantReservationsMap: response.data.reservationsMap || {},
+              participantIsAdmin: nextIsAdmin,
+              participantSubView: 'list',
+              selectedParticipantClassroom: 'all',
               showPastLessons: false,
             };
 
-        participantsHandlersStateManager.dispatch({
+        participantHandlersStateManager.dispatch({
           type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
           payload,
         });
@@ -346,7 +234,7 @@ let localExpandedLessonIds = [];
  * アコーディオンの開閉を切り替えるハンドラ（DOM操作のみ、再描画なし）
  * @param {string} lessonId - レッスンID
  */
-function toggleParticipantsLessonAccordion(lessonId) {
+function toggleParticipantLessonAccordion(lessonId) {
   if (!lessonId) return;
 
   console.log('🎯 アコーディオン切り替え:', lessonId);
@@ -394,13 +282,13 @@ function toggleParticipantsLessonAccordion(lessonId) {
  * レッスン選択ハンドラ（旧実装 - 互換性のため残す）
  * @param {string} lessonId - レッスンID
  */
-function selectParticipantsLesson(lessonId) {
+function selectParticipantLesson(lessonId) {
   if (!lessonId) return;
 
   console.log('📅 レッスン選択:', lessonId);
 
-  const state = participantsHandlersStateManager.getState();
-  const selectedLesson = state.participantsLessons?.find(
+  const state = participantHandlersStateManager.getState();
+  const selectedLesson = state.participantLessons?.find(
     /** @param {import('../../types/core/lesson').LessonCore} l */
     l => l.lessonId === lessonId,
   );
@@ -411,17 +299,17 @@ function selectParticipantsLesson(lessonId) {
   }
 
   // stateManagerから予約データを取得（初回ロード時に全データ取得済み）
-  const reservations = state.participantsReservationsMap?.[lessonId] || [];
+  const reservations = state.participantReservationsMap?.[lessonId] || [];
 
   console.log(`✅ stateManagerから予約データ取得: ${reservations.length}件`);
 
   // 状態を更新して表示
-  participantsHandlersStateManager.dispatch({
+  participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
     payload: {
-      participantsSelectedLesson: selectedLesson,
-      participantsReservations: reservations,
-      participantsSubView: 'reservations',
+      participantSelectedLesson: selectedLesson,
+      participantReservations: reservations,
+      participantSubView: 'reservations',
     },
   });
 
@@ -432,12 +320,12 @@ function selectParticipantsLesson(lessonId) {
  * 生徒選択ハンドラ（モーダル表示）
  * @param {string} targetStudentId - 表示対象の生徒ID
  */
-function selectParticipantsStudent(targetStudentId) {
+function selectParticipantStudent(targetStudentId) {
   if (!targetStudentId) return;
 
   console.log('👤 生徒選択:', targetStudentId);
 
-  const state = participantsHandlersStateManager.getState();
+  const state = participantHandlersStateManager.getState();
   const requestingStudentId = state.currentUser?.studentId;
 
   if (!requestingStudentId) {
@@ -453,7 +341,7 @@ function selectParticipantsStudent(targetStudentId) {
     console.log(`✅ キャッシュ使用: ${targetStudentId}`);
     const cachedData = studentsCache[targetStudentId].data;
     hideLoading();
-    showStudentModal(cachedData, state.currentUser?.['isAdmin'] || false);
+    showStudentModal(cachedData, state.participantIsAdmin || false);
     return;
   }
 
@@ -486,7 +374,7 @@ function selectParticipantsStudent(targetStudentId) {
         // モーダル表示
         showStudentModal(
           response.data.student,
-          state.currentUser?.['isAdmin'] || false,
+          state.participantIsAdmin || false,
         );
       } else {
         showInfo(response.message || '生徒詳細の取得に失敗しました', 'エラー');
@@ -503,7 +391,7 @@ function selectParticipantsStudent(targetStudentId) {
         showInfo('生徒詳細の取得中にエラーが発生しました', 'エラー');
       },
     )
-    .getStudentDetails(targetStudentId, requestingStudentId);
+    .getStudentDetailsForParticipantsView(targetStudentId, requestingStudentId);
 }
 
 /**
@@ -540,15 +428,15 @@ function showStudentModal(student, isAdmin) {
 /**
  * レッスン一覧に戻る
  */
-function backToParticipantsList() {
+function backToParticipantList() {
   console.log('⬅️ レッスン一覧に戻る');
 
-  participantsHandlersStateManager.dispatch({
+  participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
     payload: {
-      participantsSubView: 'list',
-      participantsSelectedLesson: null,
-      participantsReservations: [],
+      participantSubView: 'list',
+      participantSelectedLesson: null,
+      participantReservations: [],
     },
   });
 
@@ -559,13 +447,13 @@ function backToParticipantsList() {
  * 教室フィルタハンドラ
  * @param {string} classroom - 選択された教室（'all'または教室名）
  */
-function filterParticipantsByClassroom(classroom) {
+function filterParticipantByClassroom(classroom) {
   console.log('🔍 教室フィルタ:', classroom);
 
-  participantsHandlersStateManager.dispatch({
+  participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
     payload: {
-      selectedParticipantsClassroom: classroom,
+      selectedParticipantClassroom: classroom,
       expandedLessonId: null, // フィルタ変更時はアコーディオンを閉じる
     },
   });
@@ -580,7 +468,7 @@ function filterParticipantsByClassroom(classroom) {
 function togglePastLessons(showPast) {
   console.log('📅 レッスン表示切り替え:', showPast ? '過去' : '未来');
 
-  participantsHandlersStateManager.dispatch({
+  participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
     payload: {
       showPastLessons: showPast,
@@ -594,12 +482,12 @@ function togglePastLessons(showPast) {
 /**
  * 参加者リスト用アクションハンドラー
  */
-export const participantsActionHandlers = {
-  loadParticipantsView,
-  toggleParticipantsLessonAccordion,
-  selectParticipantsLesson,
-  selectParticipantsStudent,
-  backToParticipantsList,
-  filterParticipantsByClassroom,
+export const participantActionHandlers = {
+  loadParticipantView,
+  toggleParticipantLessonAccordion,
+  selectParticipantLesson,
+  selectParticipantStudent,
+  backToParticipantList,
+  filterParticipantByClassroom,
   togglePastLessons,
 };

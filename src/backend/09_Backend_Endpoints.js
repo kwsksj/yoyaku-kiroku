@@ -820,7 +820,7 @@ export function getLessonsForParticipantsView(
 
       // キャッシュから全予約データと全生徒データを1回だけ取得
       const allReservations = getCachedReservationsAsObjects();
-      const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+      const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS);
       /** @type {Record<string, any>} */
       const allStudents = studentsCache?.['students'] || {};
       Logger.log(
@@ -856,6 +856,9 @@ export function getLessonsForParticipantsView(
             reservation => {
               const student = allStudents[reservation.studentId];
 
+              // 生徒情報がない場合はスキップせず、予約情報だけでも返す
+              const studentData = student || {};
+
               // 基本情報
               const baseInfo = {
                 reservationId: reservation.reservationId,
@@ -866,23 +869,32 @@ export function getLessonsForParticipantsView(
                 endTime: reservation.endTime || '',
                 status: reservation.status,
                 studentId: reservation.studentId,
-                nickname: student?.nickname || '',
-                displayName: student?.displayName || '',
+                nickname: studentData.nickname || '',
+                displayName: studentData.displayName || '',
                 firstLecture: reservation.firstLecture || false,
                 chiselRental: reservation.chiselRental || false,
                 workInProgress: reservation.workInProgress || '',
                 order: reservation.order || '',
                 participationCount:
                   participationCounts[reservation.studentId] || 0,
+                futureCreations: studentData.futureCreations || '',
+                companion: reservation.companion || '',
+                transportation: reservation.transportation || '',
+                pickup: reservation.pickup || '',
+                car: reservation.car || '',
               };
 
               // 管理者の場合は個人情報を追加
               if (isAdmin) {
                 return {
                   ...baseInfo,
-                  realName: student?.realName || '',
-                  phone: student?.phone || '',
-                  email: student?.email || '',
+                  realName: studentData.realName || '',
+                  phone: studentData.phone || '',
+                  email: studentData.email || '',
+                  ageGroup: studentData.ageGroup || '',
+                  gender: studentData.gender || '',
+                  address: studentData.address || '',
+                  notes: reservation.notes || '', // 予約固有の備考
                 };
               }
 

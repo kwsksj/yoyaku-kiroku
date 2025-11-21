@@ -3,7 +3,7 @@
  * stateManagerの状態に応じて適切なサブビューを返す
  * @returns {string} HTML文字列
  */
-export function getParticipantsView(): string;
+export function getParticipantView(): string;
 export type ClassroomColorConfig = {
     /**
      * - 背景色クラス

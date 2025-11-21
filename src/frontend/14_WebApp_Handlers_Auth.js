@@ -18,7 +18,7 @@
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
 import { getPrivacyPolicyModal } from './13_WebApp_Views_Utils.js';
-import { participantsActionHandlers } from './14_WebApp_Handlers_Participants.js';
+import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -119,7 +119,7 @@ export const authActionHandlers = {
         if (isAdmin) {
           console.log('📋 管理者ログイン - 参加者リストビューデータ取得開始');
           // 基本データを渡してloadParticipantsViewで一括設定
-          participantsActionHandlers.loadParticipantsView(
+          participantActionHandlers.loadParticipantView(
             false,
             false,
             newAppState,

@@ -32,7 +32,7 @@ import {
   deleteAllCache,
   deleteCache,
   getCachedAllStudents,
-  rebuildAllStudentsBasicCache,
+  rebuildAllStudentsCache,
   updateCachedStudent,
 } from './07_CacheManager.js';
 import {
@@ -1177,7 +1177,7 @@ export function requestAccountDeletion(studentId) {
       );
 
       // キャッシュ更新
-      rebuildAllStudentsBasicCache();
+      rebuildAllStudentsCache();
 
       Logger.log(
         `requestAccountDeletion成功: studentId=${studentId}, 新電話番号=${newPhone}`,
@@ -1213,7 +1213,7 @@ export function requestAccountDeletion(studentId) {
  * 【開発用】全生徒キャッシュをクリアします。
  */
 export function clearAllStudentsCache_DEV() {
-  deleteCache(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  deleteCache(CACHE_KEYS.ALL_STUDENTS);
   Logger.log('全生徒キャッシュをクリアしました。');
 }
 
