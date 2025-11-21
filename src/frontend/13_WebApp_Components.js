@@ -1633,10 +1633,10 @@ export const Components = {
     const tabsHtml = tabs
       .map(tab => {
         const activeClass = tab.isActive
-          ? 'border-blue-500 text-blue-600 font-medium'
+          ? 'border-ui-border text-brand-text font-medium'
           : 'border-transparent text-gray-500 hover:text-gray-700';
         return `<button
-          class="pb-1.5 px-1 text-sm border-b-2 transition-colors ${activeClass}"
+          class="pb-0.5 px-1 text-xs border-b-4 transition-colors ${activeClass}"
           onclick="${escapeHTML(tab.onclick)}"
         >
           ${escapeHTML(tab.label)} (${tab.count})
@@ -1644,7 +1644,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="mb-2 border-b border-gray-200">
+    return `<div class="mb-2 border-b-2 border-brand-accent-border">
       <div class="flex space-x-3">
         ${tabsHtml}
       </div>
@@ -1664,7 +1664,7 @@ export const Components = {
       .map(option => {
         const isSelected = option.value === selectedValue;
         const buttonClass = isSelected
-          ? 'bg-action-primary-bg text-action-primary-text border-brand-accent-border'
+          ? 'bg-action-primary-bg text-action-primary-text border-ui-border'
           : 'bg-white text-ui-text border-ui-border hover:bg-gray-50';
         return `<button
           class="px-2 py-0.5 text-xs font-medium border-2 rounded ${buttonClass}"
@@ -1771,9 +1771,9 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-0 z-10 mb-0.5">
+    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-50 z-10 mb-0.5">
       <div id="${escapeHTML(headerId)}" class="overflow-x-auto scrollbar-hide">
-        <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; min-height: 1.5rem;">
+        <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;height: 1rem;">
           ${columnsHtml}
         </div>
       </div>

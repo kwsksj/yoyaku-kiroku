@@ -103,16 +103,16 @@ const PARTICIPANT_TABLE_COLUMNS = [
 
       return `
         <div>
-          <div class="text-xs">
+          <div class="text-xs" align="center">
             <button
-              class="text-action-primary font-bold hover:opacity-80 hover:underline text-left"
+              class="text-action-primary font-bold text-center hover:opacity-80 hover:underline"
               onclick="actionHandlers.selectParticipantsStudent('${escapeHTML(row.studentId)}')"
             >
               ${escapeHTML(displayName)}
             </button>
           </div>
-          ${hasRealName ? `<div class="text-xs text-gray-600">${escapeHTML(row.realName)}</div>` : ''}
-          <div class="gap-0.5 text-xs">
+          ${hasRealName ? `<div class="text-xs text-gray-400 text-center">${escapeHTML(row.realName)}</div>` : ''}
+          <div class="pl-2 gap-0.5 text-xs">
             ${badgesHtml}
           </div>
         </div>
@@ -275,7 +275,7 @@ export function getParticipantsView() {
         state.participantsReservations || [],
       );
     case 'studentDetail':
-      return renderStudentDetail(
+      return renderStudentDetailModalContent(
         state.participantsSelectedStudent,
         state.participantsIsAdmin || false,
       );
@@ -326,7 +326,7 @@ function renderAccordionContent(_lesson, reservations, isAdmin = true) {
 
       // グリッドレイアウトでデータ行を生成（3行分の高さに固定、パディングなし）
       return `
-        <div class="grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; height: calc(3 * 1rem);">
+        <div class="px-0.5 grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; height: calc(3 * 1rem);">
           ${columnsHtml}
         </div>
       `;
@@ -343,7 +343,7 @@ function renderLessonList(lessons) {
   if (!lessons || lessons.length === 0) {
     return `
       ${Components.pageHeader({
-        title: '教室日程一覧',
+        title: '教室日程 一覧',
         showBackButton: false,
       })}
       <div class="${DesignConfig.layout.container}">
@@ -404,13 +404,13 @@ function renderLessonList(lessons) {
   const tabsHtml = Components.tabGroup({
     tabs: [
       {
-        label: '未来',
+        label: '未来のよやく',
         count: futureLessons.length,
         isActive: !showPastLessons,
         onclick: 'actionHandlers.togglePastLessons(false)',
       },
       {
-        label: '過去',
+        label: '過去のきろく',
         count: pastLessons.length,
         isActive: showPastLessons,
         onclick: 'actionHandlers.togglePastLessons(true)',
@@ -518,7 +518,7 @@ function renderLessonList(lessons) {
       // アコーディオンのボタン（パディング削減: p-2 → p-1）
       const accordionButton = `
         <button
-          class="p-1 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
+          class="px-1 py-0.5 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
           onclick="actionHandlers.toggleParticipantsLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           data-lesson-id="${escapeHTML(lesson.lessonId)}"
         >
@@ -553,7 +553,7 @@ function renderLessonList(lessons) {
 
       // アコーディオンコンテンツ（横スクロール対応、同期用クラス追加）
       const accordionContent = `
-        <div class="accordion-content participants-table-body bg-transparent hidden overflow-x-auto" data-lesson-id="${escapeHTML(lesson.lessonId)}">
+        <div class="accordion-content participants-table-body bg-white hidden overflow-x-auto" data-lesson-id="${escapeHTML(lesson.lessonId)}">
           ${renderAccordionContent(lesson, reservations, isAdmin)}
         </div>
       `;
@@ -561,7 +561,7 @@ function renderLessonList(lessons) {
       // レッスンカード（白背景、コンパクト表示）
       return `
         <div class="mb-0.5" data-lesson-container="${escapeHTML(lesson.lessonId)}">
-          <div class="bg-white border-2 ${classroomColor.border} rounded-lg overflow-hidden">
+          <div class="border-2 ${classroomColor.bg}  ${classroomColor.border} rounded-lg overflow-hidden">
             ${accordionButton}
             ${accordionContent}
           </div>
@@ -580,7 +580,7 @@ function renderLessonList(lessons) {
 
   return `
     ${Components.pageHeader({
-      title: '教室日程一覧',
+      title: '教室日程 一覧',
       showBackButton: false,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
@@ -791,17 +791,17 @@ function renderStudentDetailModalContent(student, isAdmin) {
   `;
 }
 
-/**
- * 生徒詳細を描画（後方互換性のため残す、使用しない）
- * @deprecated モーダル表示に移行したため使用しない
- * @param {any} student - 生徒情報
- * @param {boolean} isAdmin - 管理者権限
- * @returns {string} HTML文字列
- */
-function renderStudentDetail(student, isAdmin) {
-  // この関数は使用されなくなりましたが、後方互換性のため残します
-  return renderStudentDetailModalContent(student, isAdmin);
-}
+// /**
+//  * 生徒詳細を描画（後方互換性のため残す、使用しない）
+//  * @deprecated モーダル表示に移行したため使用しない
+//  * @param {any} student - 生徒情報
+//  * @param {boolean} isAdmin - 管理者権限
+//  * @returns {string} HTML文字列
+//  */
+// function renderStudentDetail(student, isAdmin) {
+//   // この関数は使用されなくなりましたが、後方互換性のため残します
+//   return renderStudentDetailModalContent(student, isAdmin);
+// }
 
 /**
  * エラー画面を描画
