@@ -225,6 +225,14 @@ const PARTICIPANT_TABLE_COLUMNS = [
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
   },
+  {
+    key: 'messageToTeacher',
+    label: 'メッセージ',
+    width: '150px',
+    adminOnly: true,
+    render: /** @param {any} row */ row =>
+      `<div class="text-xs break-words" title="${escapeHTML(row.messageToTeacher || '—')}">${escapeHTML(row.messageToTeacher || '—')}</div>`,
+  },
 ];
 
 /**
@@ -782,6 +790,22 @@ function renderReservationsList(lesson, reservations) {
         return `<div class="text-xs ${value ? '' : 'text-gray-400 italic'}">
           ${escapeHTML(value || '—')}
         </div>`;
+      },
+    },
+    {
+      label: 'メッセージ',
+      key: 'messageToTeacher',
+      width: '150px',
+      align: 'left',
+      adminOnly: true,
+      render: (_value, row) => {
+        const isAdmin =
+          participantStateManager.getState().participantIsAdmin || false;
+        return isAdmin
+          ? `<div class="text-xs break-words" title="${escapeHTML(row.messageToTeacher || '—')}">
+              ${escapeHTML(row.messageToTeacher || '—')}
+            </div>`
+          : '';
       },
     },
   ];

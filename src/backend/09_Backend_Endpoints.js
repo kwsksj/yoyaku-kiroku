@@ -893,6 +893,7 @@ export function getLessonsForParticipantsView(
                   nickname: nickname || rawDisplayName,
                   displayName: rawDisplayName,
                   realName: realName,
+                  messageToTeacher: reservation.messageToTeacher || '',
                   phone: studentData.phone || '',
                   email: studentData.email || '',
                   ageGroup: studentData.ageGroup || '',
@@ -1042,6 +1043,7 @@ export function getReservationsForLesson(lessonId, studentId) {
           nickname: nickname || rawDisplayName,
           displayName: rawDisplayName,
           realName: realName,
+          messageToTeacher: reservation.messageToTeacher || '',
           phone: student?.phone || '',
           email: student?.email || '',
         };
