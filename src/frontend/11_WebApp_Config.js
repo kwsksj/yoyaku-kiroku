@@ -335,7 +335,7 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
     // レイアウトユーティリティ
     layout: {
       container: 'max-w-screen-sm mx-auto p-4',
-      containerNoPadding: 'max-w-screen-sm mx-auto',
+      containerNoPadding: 'max-w-screen-xl mx-auto',
       section: 'mb-8',
       card: 'shadow-card rounded-lg border-2 border-solid border-card-border',
       centerContent: 'flex items-center justify-center',
