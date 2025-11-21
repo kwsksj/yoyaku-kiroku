@@ -131,6 +131,8 @@ function loadParticipantView(
           selectedParticipantClassroom:
             state.selectedParticipantClassroom || 'all',
           showPastLessons: state.showPastLessons || false,
+          participantIsAdmin:
+            state.participantIsAdmin || state.currentUser?.isAdmin || false,
           recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
           isDataFresh: true,
         }
@@ -176,7 +178,8 @@ function loadParticipantView(
               view: 'participants',
               participantLessons: response.data.lessons,
               participantReservationsMap: response.data.reservationsMap || {},
-              participantIsAdmin: nextIsAdmin,
+              participantIsAdmin:
+                nextIsAdmin || state.currentUser?.isAdmin || false,
               participantSubView: 'list',
               selectedParticipantClassroom: 'all',
               showPastLessons: false,
@@ -187,7 +190,8 @@ function loadParticipantView(
               view: 'participants',
               participantLessons: response.data.lessons,
               participantReservationsMap: response.data.reservationsMap || {},
-              participantIsAdmin: nextIsAdmin,
+              participantIsAdmin:
+                nextIsAdmin || state.currentUser?.isAdmin || false,
               participantSubView: 'list',
               selectedParticipantClassroom: 'all',
               showPastLessons: false,

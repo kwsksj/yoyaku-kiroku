@@ -469,16 +469,20 @@ function renderLessonList(lessons) {
       const confirmedReservations = allLessonReservations.filter(
         r => r.status === CONSTANTS.STATUS.CONFIRMED,
       );
+      const completedReservations = allLessonReservations.filter(
+        r => r.status === CONSTANTS.STATUS.COMPLETED,
+      );
       const waitlistedReservations = allLessonReservations.filter(
         r => r.status === CONSTANTS.STATUS.WAITLISTED,
       );
 
-      // 初回参加者数を計算
-      const firstLectureCount = confirmedReservations.filter(
-        /** @param {any} r */ r => r.firstLecture,
-      ).length;
+      // 表示対象となるベースの予約（未来は確定、過去は完了）
+      const baseBadgeReservations = showPastLessons
+        ? completedReservations
+        : confirmedReservations;
 
-      const waitlistedFirstCount = waitlistedReservations.filter(
+      // 初回参加者数を計算（対象予約のみ）
+      const firstLectureCount = baseBadgeReservations.filter(
         /** @param {any} r */ r => r.firstLecture,
       ).length;
 
@@ -502,43 +506,72 @@ function renderLessonList(lessons) {
       let firstLectureBadge = '';
       if (isTwoSession) {
         // 2部制教室の場合: 予約時間で午前・午後を判定
-        const morningCount = confirmedReservations.filter(
-          /** @param {any} r */ r => getReservationTimeSlot(r) === 'morning',
-        ).length;
-        const afternoonCount = confirmedReservations.filter(
-          /** @param {any} r */ r => getReservationTimeSlot(r) === 'afternoon',
-        ).length;
-        const morningFirstCount = confirmedReservations.filter(
+        const countBySlot = reservations =>
+          reservations.reduce(
+            (acc, r) => {
+              const slot = getReservationTimeSlot(r);
+              if (slot === 'morning') acc.morning += 1;
+              if (slot === 'afternoon') acc.afternoon += 1;
+              return acc;
+            },
+            { morning: 0, afternoon: 0 },
+          );
+
+        const baseCounts = countBySlot(baseBadgeReservations);
+        const confirmedCounts = countBySlot(confirmedReservations);
+        const morningFirstCount = baseBadgeReservations.filter(
           /** @param {any} r */ r =>
             getReservationTimeSlot(r) === 'morning' && r.firstLecture,
         ).length;
-        const afternoonFirstCount = confirmedReservations.filter(
+        const afternoonFirstCount = baseBadgeReservations.filter(
           /** @param {any} r */ r =>
             getReservationTimeSlot(r) === 'afternoon' && r.firstLecture,
         ).length;
-        reservationBadge = `${morningCount},${afternoonCount}`;
+        reservationBadge = `${baseCounts.morning},${baseCounts.afternoon}`;
         if (morningFirstCount > 0 || afternoonFirstCount > 0) {
           firstLectureBadge = `初${morningFirstCount},${afternoonFirstCount}`;
         }
+
+        // 過去表示時は未完了（確定）数を「未X」で表示
+        const pendingCount =
+          confirmedCounts.morning + confirmedCounts.afternoon;
+        const pendingBadge =
+          showPastLessons && pendingCount > 0 ? `未${pendingCount}` : '';
+        if (pendingBadge) {
+          reservationBadge = `${reservationBadge} ${pendingBadge}`;
+        }
       } else {
-        reservationBadge = `${confirmedReservations.length}`;
+        reservationBadge = `${baseBadgeReservations.length}`;
         if (firstLectureCount > 0) {
           firstLectureBadge = `初${firstLectureCount}`;
+        }
+
+        // 過去表示時は未完了（確定）数を「未X」で表示
+        const pendingCount = confirmedReservations.length;
+        if (showPastLessons && pendingCount > 0) {
+          reservationBadge = `${reservationBadge} 未${pendingCount}`;
         }
       }
 
       // 待機者バッジ
-      let waitlistBadge = '';
-      if (waitlistedReservations.length > 0) {
-        if (waitlistedFirstCount > 0) {
-          waitlistBadge = `<span class="px-1 py-0 rounded text-xs font-medium bg-yellow-100 text-yellow-800">初待${waitlistedFirstCount}</span>`;
-        }
-        const nonFirstWaitlistedCount =
-          waitlistedReservations.length - waitlistedFirstCount;
-        if (nonFirstWaitlistedCount > 0) {
-          waitlistBadge += `<span class="ml-1 px-1 py-0 rounded text-xs font-medium bg-yellow-100 text-yellow-800">待${nonFirstWaitlistedCount}</span>`;
-        }
-      }
+      const waitlistBadge =
+        showPastLessons || waitlistedReservations.length === 0
+          ? ''
+          : (() => {
+              const waitlistedFirstCount = waitlistedReservations.filter(
+                /** @param {any} r */ r => r.firstLecture,
+              ).length;
+              let badge = '';
+              if (waitlistedFirstCount > 0) {
+                badge = `<span class="px-1 py-0 rounded text-xs font-medium bg-yellow-100 text-yellow-800">初待${waitlistedFirstCount}</span>`;
+              }
+              const nonFirstWaitlistedCount =
+                waitlistedReservations.length - waitlistedFirstCount;
+              if (nonFirstWaitlistedCount > 0) {
+                badge += `<span class="ml-1 px-1 py-0 rounded text-xs font-medium bg-yellow-100 text-yellow-800">待${nonFirstWaitlistedCount}</span>`;
+              }
+              return badge;
+            })();
 
       // アコーディオンが展開されているか（ローカル変数ではなくDOMから判定）
       const isExpanded = false; // 初期レンダリング時は全て閉じている
@@ -585,9 +618,11 @@ function renderLessonList(lessons) {
       `;
 
       // 予約ボタン
-      const reserveButtonHtml = `
-        <div class="pt-2 text-right px-2 pb-2">
-          <button class="bg-blue-500 text-white text-xs py-1 px-2 rounded hover:bg-blue-600"
+      const reserveButtonHtml = showPastLessons
+        ? ''
+        : `
+        <div class="pt-1 text-right px-2 pb-1">
+          <button class="bg-blue-500 text-white text-xs py-0.5 px-2 rounded hover:bg-blue-600"
                   data-action="goToReservationFormForLesson"
                   data-lesson-id="${lesson.lessonId}">
             この日程で予約する
