@@ -71,7 +71,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'participant',
     label: '参加者',
-    width: '100px',
+    width: '80px',
     align: 'center',
     adminOnly: false,
     render: row => {
@@ -122,7 +122,8 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'workInProgress',
     label: '制作メモ',
-    width: '1fr',
+    width: '160px',
+    align: 'left',
     adminOnly: false,
     render: row =>
       `<div class="text-xs ${row.workInProgress ? '' : 'text-gray-400 italic'}">${escapeHTML(row.workInProgress || '—')}</div>`,
@@ -130,8 +131,9 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'order',
     label: '注文',
-    width: '150px',
-    adminOnly: true,
+    width: '110px',
+    align: 'left',
+    adminOnly: false,
     render: row =>
       `<div class="text-xs ${row.order ? '' : 'text-gray-400 italic'}">${escapeHTML(row.order || '—')}</div>`,
   },
@@ -165,7 +167,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     key: 'futureCreations',
     label: '将来制作したいもの',
     width: '120px',
-    adminOnly: true,
+    adminOnly: false,
     render: row =>
       `<div class="text-xs truncate" title="${escapeHTML(row.futureCreations || '—')}">${escapeHTML(row.futureCreations || '—')}</div>`,
   },
@@ -173,7 +175,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     key: 'companion',
     label: '同行者',
     width: '80px',
-    adminOnly: true,
+    adminOnly: false,
     render: row =>
       `<div class="text-xs truncate" title="${escapeHTML(row.companion || '—')}">${escapeHTML(row.companion || '—')}</div>`,
   },
@@ -181,7 +183,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     key: 'transportation',
     label: '来場手段',
     width: '80px',
-    adminOnly: true,
+    adminOnly: false,
     render: row =>
       `<div class="text-xs truncate" title="${escapeHTML(row.transportation || '—')}">${escapeHTML(row.transportation || '—')}</div>`,
   },
@@ -190,7 +192,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     label: '送迎',
     width: '80px',
     align: 'center',
-    adminOnly: true,
+    adminOnly: false,
     render: row =>
       `<div class="text-xs text-center">${escapeHTML(row.pickup || '—')}</div>`,
   },
@@ -199,7 +201,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     label: '車',
     width: '60px',
     align: 'center',
-    adminOnly: true,
+    adminOnly: false,
     render: row =>
       `<div class="text-xs text-center">${escapeHTML(row.car || '—')}</div>`,
   },
@@ -532,18 +534,18 @@ function renderLessonList(lessons) {
             <div class="flex gap-1 items-center">
               ${
                 firstLectureBadge
-                  ? `<span class="px-1 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                  ? `<span class="px-1 py-0 rounded text-xs font-medium bg-green-100 text-green-800">
                 ${firstLectureBadge}
               </span>`
                   : ''
               }
-              <span class="px-1 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+              <span class="px-1 py-0 rounded text-xs font-medium bg-gray-100 text-gray-700">
                 ${reservationBadge}
               </span>
-              <span class="px-1 py-0.5 rounded text-xs font-medium ${statusColor}">
+              <span class="px-1 py-0 rounded text-xs font-medium ${statusColor}">
                 ${escapeHTML(lesson.status)}
               </span>
-              <svg class="w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </div>

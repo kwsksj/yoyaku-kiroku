@@ -1771,7 +1771,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-50 z-10 mb-0.5">
+    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-50 z-10 mb-0.5 participants-table-sticky-header">
       <div id="${escapeHTML(headerId)}" class="overflow-x-auto scrollbar-hide">
         <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;height: 1rem;">
           ${columnsHtml}

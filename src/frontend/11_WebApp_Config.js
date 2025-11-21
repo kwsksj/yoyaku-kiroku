@@ -893,6 +893,12 @@ export const addCustomStyles = () => {
         padding-bottom: 0.75rem;
       }
 
+      /* 参加者一覧テーブルヘッダーの埋め込み時スタイルを調整 */
+      body.embedded-in-google-sites .participants-table-sticky-header {
+        padding-top: 0px !important;
+        padding-bottom: 2px !important;
+      }
+
       /* 埋め込み環境でのページヘッダー最適化 */
       body.embedded-in-google-sites .sticky .back-button-container {
         position: relative;
