@@ -74,7 +74,9 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '80px',
     align: 'center',
     adminOnly: false,
-    render: (row, isAdmin) => {
+    render: /** @param {any} row */ row => {
+      const isAdmin =
+        participantStateManager.getState().participantIsAdmin || false;
       let displayName = row.nickname || row.displayName || '名前なし';
       const hasRealName = row.realName && row.realName.trim() !== '';
 
@@ -85,6 +87,11 @@ const PARTICIPANT_TABLE_COLUMNS = [
 
       // バッジを生成
       const badges = [];
+      if (row.status === CONSTANTS.STATUS.WAITLISTED) {
+        badges.push(
+          Components.badge({ text: '待', color: 'yellow', size: 'xs' }),
+        );
+      }
       if (row.firstLecture) {
         badges.push(
           Components.badge({ text: '初', color: 'green', size: 'xs' }),
@@ -130,7 +137,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '160px',
     align: 'left',
     adminOnly: false,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs ${row.workInProgress ? '' : 'text-gray-400 italic'}">${escapeHTML(row.workInProgress || '—')}</div>`,
   },
   {
@@ -139,7 +146,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '110px',
     align: 'left',
     adminOnly: false,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs ${row.order ? '' : 'text-gray-400 italic'}">${escapeHTML(row.order || '—')}</div>`,
   },
   {
@@ -148,7 +155,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '60px',
     align: 'center',
     adminOnly: true,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs text-center">${escapeHTML(row.ageGroup || '—')}</div>`,
   },
   {
@@ -157,7 +164,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '60px',
     align: 'center',
     adminOnly: true,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs text-center">${escapeHTML(row.gender || '—')}</div>`,
   },
   {
@@ -165,7 +172,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     label: '住所',
     width: '80px',
     adminOnly: true,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.address || '—')}">${escapeHTML(row.address || '—')}</div>`,
   },
   {
@@ -173,7 +180,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     label: '将来制作したいもの',
     width: '120px',
     adminOnly: false,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.futureCreations || '—')}">${escapeHTML(row.futureCreations || '—')}</div>`,
   },
   {
@@ -181,7 +188,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     label: '同行者',
     width: '80px',
     adminOnly: false,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.companion || '—')}">${escapeHTML(row.companion || '—')}</div>`,
   },
   {
@@ -189,7 +196,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     label: '来場手段',
     width: '80px',
     adminOnly: false,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.transportation || '—')}">${escapeHTML(row.transportation || '—')}</div>`,
   },
   {
@@ -198,7 +205,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '80px',
     align: 'center',
     adminOnly: false,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs text-center">${escapeHTML(row.pickup || '—')}</div>`,
   },
   {
@@ -207,7 +214,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '60px',
     align: 'center',
     adminOnly: false,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs text-center">${escapeHTML(row.car || '—')}</div>`,
   },
   {
@@ -215,7 +222,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     label: '備考',
     width: '150px',
     adminOnly: true,
-    render: row =>
+    render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
   },
 ];
@@ -325,15 +332,20 @@ function renderAccordionContent(_lesson, reservations, isAdmin = true) {
       const columnsHtml = visibleColumns
         .map(col => {
           const content = col.render
-            ? col.render(row, isAdmin)
+            ? col.render(row)
             : escapeHTML(row[col.key] || '—');
           return `<div class="overflow-hidden">${content}</div>`;
         })
         .join('');
 
-      // グリッドレイアウトでデータ行を生成（3行分の高さに固定、パディングなし）
+      const rowBgColor =
+        row.status === CONSTANTS.STATUS.WAITLISTED
+          ? 'bg-yellow-50 hover:bg-yellow-100'
+          : 'hover:bg-gray-50';
+
+      // グリッドレイアウトでデータ行を生成
       return `
-        <div class="px-0.5 grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; height: calc(3 * 1rem);">
+        <div class="px-0.5 grid gap-1 border-t border-dashed border-gray-200 ${rowBgColor}" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; height: calc(3 * 1rem);">
           ${columnsHtml}
         </div>
       `;
@@ -452,12 +464,21 @@ function renderLessonList(lessons) {
 
   const lessonsHtml = filteredLessons
     .map(lesson => {
-      // 予約数を計算
-      const reservations = reservationsMap[lesson.lessonId] || [];
-      const reservationCount = reservations.length;
+      // 予約データをフィルタリング
+      const allLessonReservations = reservationsMap[lesson.lessonId] || [];
+      const confirmedReservations = allLessonReservations.filter(
+        r => r.status === CONSTANTS.STATUS.CONFIRMED,
+      );
+      const waitlistedReservations = allLessonReservations.filter(
+        r => r.status === CONSTANTS.STATUS.WAITLISTED,
+      );
 
       // 初回参加者数を計算
-      const firstLectureCount = reservations.filter(
+      const firstLectureCount = confirmedReservations.filter(
+        /** @param {any} r */ r => r.firstLecture,
+      ).length;
+
+      const waitlistedFirstCount = waitlistedReservations.filter(
         /** @param {any} r */ r => r.firstLecture,
       ).length;
 
@@ -481,17 +502,17 @@ function renderLessonList(lessons) {
       let firstLectureBadge = '';
       if (isTwoSession) {
         // 2部制教室の場合: 予約時間で午前・午後を判定
-        const morningCount = reservations.filter(
+        const morningCount = confirmedReservations.filter(
           /** @param {any} r */ r => getReservationTimeSlot(r) === 'morning',
         ).length;
-        const afternoonCount = reservations.filter(
+        const afternoonCount = confirmedReservations.filter(
           /** @param {any} r */ r => getReservationTimeSlot(r) === 'afternoon',
         ).length;
-        const morningFirstCount = reservations.filter(
+        const morningFirstCount = confirmedReservations.filter(
           /** @param {any} r */ r =>
             getReservationTimeSlot(r) === 'morning' && r.firstLecture,
         ).length;
-        const afternoonFirstCount = reservations.filter(
+        const afternoonFirstCount = confirmedReservations.filter(
           /** @param {any} r */ r =>
             getReservationTimeSlot(r) === 'afternoon' && r.firstLecture,
         ).length;
@@ -500,9 +521,22 @@ function renderLessonList(lessons) {
           firstLectureBadge = `初${morningFirstCount},${afternoonFirstCount}`;
         }
       } else {
-        reservationBadge = `${reservationCount}`;
+        reservationBadge = `${confirmedReservations.length}`;
         if (firstLectureCount > 0) {
           firstLectureBadge = `初${firstLectureCount}`;
+        }
+      }
+
+      // 待機者バッジ
+      let waitlistBadge = '';
+      if (waitlistedReservations.length > 0) {
+        if (waitlistedFirstCount > 0) {
+          waitlistBadge = `<span class="px-1 py-0 rounded text-xs font-medium bg-yellow-100 text-yellow-800">初待${waitlistedFirstCount}</span>`;
+        }
+        const nonFirstWaitlistedCount =
+          waitlistedReservations.length - waitlistedFirstCount;
+        if (nonFirstWaitlistedCount > 0) {
+          waitlistBadge += `<span class="ml-1 px-1 py-0 rounded text-xs font-medium bg-yellow-100 text-yellow-800">待${nonFirstWaitlistedCount}</span>`;
         }
       }
 
@@ -515,16 +549,6 @@ function renderLessonList(lessons) {
       // 完了済みかどうかを判定
       const isCompleted =
         lesson.status === '完了' || lesson.status === 'キャンセル';
-
-      // ステータスによる色分け
-      const statusColor =
-        lesson.status === '開催予定'
-          ? 'bg-green-100 text-green-800'
-          : lesson.status === '完了'
-            ? 'bg-blue-100 text-blue-800'
-            : lesson.status === 'キャンセル'
-              ? 'bg-red-100 text-red-800'
-              : 'bg-gray-100 text-gray-800';
 
       // アコーディオンのボタン（パディング削減: p-2 → p-1）
       const accordionButton = `
@@ -541,6 +565,7 @@ function renderLessonList(lessons) {
               ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
             </div>
             <div class="flex gap-1 items-center">
+              ${waitlistBadge}
               ${
                 firstLectureBadge
                   ? `<span class="px-1 py-0 rounded text-xs font-medium bg-green-100 text-green-800">
@@ -551,9 +576,6 @@ function renderLessonList(lessons) {
               <span class="px-1 py-0 rounded text-xs font-medium bg-gray-100 text-gray-700">
                 ${reservationBadge}
               </span>
-              <span class="px-1 py-0 rounded text-xs font-medium ${statusColor}">
-                ${escapeHTML(lesson.status)}
-              </span>
               <svg class="w-4 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
@@ -562,10 +584,24 @@ function renderLessonList(lessons) {
         </button>
       `;
 
-      // アコーディオンコンテンツ（横スクロール対応、同期用クラス追加）
+      // 予約ボタン
+      const reserveButtonHtml = `
+        <div class="pt-2 text-right px-2 pb-2">
+          <button class="bg-blue-500 text-white text-xs py-1 px-2 rounded hover:bg-blue-600"
+                  data-action="goToReservationFormForLesson"
+                  data-lesson-id="${lesson.lessonId}">
+            この日程で予約する
+          </button>
+        </div>
+      `;
+
+      // アコーディオンコンテンツ
       const accordionContent = `
-        <div class="accordion-content participants-table-body bg-white hidden overflow-x-auto" data-lesson-id="${escapeHTML(lesson.lessonId)}">
-          ${renderAccordionContent(lesson, reservations, isAdmin)}
+        <div class="accordion-content bg-white hidden" data-lesson-id="${escapeHTML(lesson.lessonId)}">
+          <div class="overflow-x-auto participants-table-body">
+            ${renderAccordionContent(lesson, allLessonReservations, isAdmin)}
+          </div>
+          ${reserveButtonHtml}
         </div>
       `;
 
@@ -592,7 +628,8 @@ function renderLessonList(lessons) {
   return `
     ${Components.pageHeader({
       title: '教室日程 一覧',
-      showBackButton: false,
+      showBackButton: true,
+      backAction: 'smartGoBack',
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
       ${tabsHtml}
@@ -601,6 +638,14 @@ function renderLessonList(lessons) {
       <div class="space-y-0.5">
         ${lessonsHtml}
         ${emptyMessage}
+      </div>
+      <div class="mt-4">
+        ${Components.button({
+          text: 'ホーム画面にもどる',
+          action: 'smartGoBack',
+          style: 'secondary',
+          size: 'full',
+        })}
       </div>
     </div>
   `;
@@ -761,10 +806,9 @@ function renderStudentDetailModalContent(student, isAdmin) {
     </div>
   `;
 
-  // 詳細情報（管理者または本人のみ）
-  const detailedInfoHtml =
-    isAdmin || student.isSelf
-      ? `
+  // 詳細情報（管理者のみ）
+  const detailedInfoHtml = isAdmin
+    ? `
     <div class="mb-4 pb-4 border-b border-gray-200">
       <h3 class="text-sm font-bold text-brand-text mb-2">詳細情報</h3>
       <div class="space-y-1 text-sm">
@@ -802,7 +846,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
       </div>
     </div>
   `
-      : '';
+    : '';
 
   // 予約履歴
   const historyHtml =

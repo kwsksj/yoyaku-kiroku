@@ -102,6 +102,7 @@ export interface RegistrationFormData {
 export interface ReservationFormContext {
   lessonInfo: LessonCore;
   reservationInfo: Partial<ReservationCore>; // 新規の場合は初期値、編集の場合は既存データ
+  source?: 'participants' | 'booking'; // 遷移元
 }
 
 /**

@@ -9,6 +9,7 @@ export namespace reservationActionHandlers {
     function updateLessonsAndGoToBooking(classroomName: string): void;
     function fetchLatestLessonsData(classroomName: string, newLessonsVersion: string | null): void;
     function bookLesson(d: ActionHandlerData): void;
+    function goToReservationFormForLesson(d: ActionHandlerData): void;
     function goBackToDashboard(): void;
     function goToDashboard(): void;
     function goBackToBooking(): void;

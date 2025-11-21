@@ -1593,9 +1593,9 @@ export const Components = {
 
   /**
    * 汎用バッジコンポーネント
-   * @param {Object} config
+   * @param {object} config
    * @param {string} config.text - バッジテキスト
-   * @param {'gray'|'blue'|'green'|'red'|'orange'|'purple'} [config.color='gray'] - 色
+   * @param {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} [config.color='gray'] - 色
    * @param {'xs'|'sm'|'md'} [config.size='sm'] - サイズ
    * @returns {string} HTML文字列
    */
@@ -1608,6 +1608,7 @@ export const Components = {
       red: 'bg-red-100 text-red-800',
       orange: 'bg-orange-100 text-orange-700',
       purple: 'bg-purple-100 text-purple-700',
+      yellow: 'bg-yellow-100 text-yellow-800',
     };
 
     /** @type {Record<string, string>} */

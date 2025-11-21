@@ -1,9 +1,11 @@
 export namespace participantActionHandlers {
     export { loadParticipantView };
+    export function goToParticipantsView(): void;
     export { toggleParticipantLessonAccordion };
     export { selectParticipantLesson };
     export { selectParticipantStudent };
     export { backToParticipantList };
+    export function backToParticipantsView(): void;
     export { filterParticipantByClassroom };
     export { togglePastLessons };
 }

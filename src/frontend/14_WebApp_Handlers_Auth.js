@@ -91,11 +91,12 @@ export const authActionHandlers = {
 
         // 管理者判定: isAdminフラグまたは電話番号がADMIN_PASSWORDと一致するか
         const isAdmin = response.user?.isAdmin || response.isAdmin || false;
+        const userWithAdmin = { ...response.user, isAdmin: isAdmin };
 
         // 完全なアプリ状態を一度に構築
         // 管理者の場合はviewを設定せず、loadParticipantsView内で設定
         const newAppState = {
-          currentUser: response.user,
+          currentUser: userWithAdmin,
           myReservations: response.data.myReservations || [],
           lessons: response.data.lessons || [],
           classrooms: CONSTANTS.CLASSROOMS

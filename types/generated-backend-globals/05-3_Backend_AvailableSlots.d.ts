@@ -2,7 +2,7 @@
  * 開催予定のレッスン情報（空き枠情報を含む）を計算して返す
  * @returns {ApiResponse<LessonCore[]>}
  */
-export function getLessons(): ApiResponse<LessonCore[]>;
+export function getLessons(includePast?: boolean): ApiResponse<LessonCore[]>;
 /**
  * 空き枠を計算
  * @param {LessonCore} schedule

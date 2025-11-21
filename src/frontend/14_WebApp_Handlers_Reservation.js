@@ -723,6 +723,50 @@ export const reservationActionHandlers = {
     }
   },
 
+  /**
+   * 指定された日程の予約フォーム画面に遷移します。
+   * @param {ActionHandlerData} d - 選択した日程の情報 (lessonId) を含むデータ
+   */
+  goToReservationFormForLesson: d => {
+    const currentState = reservationStateManager.getState();
+    const lessonId = d.lessonId;
+
+    const foundLesson =
+      currentState.participantLessons &&
+      Array.isArray(currentState.participantLessons)
+        ? currentState.participantLessons.find(
+            (/** @type {LessonCore} */ lesson) => lesson.lessonId === lessonId,
+          )
+        : null;
+
+    if (foundLesson) {
+      // ユーザーの既存予約を検索
+      const existingReservation = (currentState.myReservations || []).find(
+        (/** @type {ReservationCore} */ res) => res.lessonId === lessonId,
+      );
+
+      const formContext = {
+        lessonInfo: foundLesson,
+        // 既存予約があればそれを、なければ空のオブジェクトをセット
+        reservationInfo: existingReservation || {
+          firstLecture: false,
+          chiselRental: false,
+        },
+        source: 'participants', // 遷移元を記録
+      };
+
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
+        payload: {
+          currentReservationFormContext: formContext,
+          view: 'reservationForm',
+        },
+      });
+    } else {
+      showInfo('選択した日程が見つかりません。', 'エラー');
+    }
+  },
+
   /** ホーム（メイン画面）に遷移（別名） */
   goBackToDashboard: () => reservationActionHandlers.goToDashboard(),
 

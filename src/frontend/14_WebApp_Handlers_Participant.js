@@ -484,10 +484,23 @@ function togglePastLessons(showPast) {
  */
 export const participantActionHandlers = {
   loadParticipantView,
+  goToParticipantsView: () => {
+    // データはloadParticipantViewで取得されるので、ここではビューの初期化を呼び出すだけ
+    loadParticipantView(false); // 強制再読み込みはしない
+  },
   toggleParticipantLessonAccordion,
   selectParticipantLesson,
   selectParticipantStudent,
   backToParticipantList,
+  backToParticipantsView: () => {
+    participantHandlersStateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: {
+        view: 'participants',
+      },
+    });
+    render();
+  },
   filterParticipantByClassroom,
   togglePastLessons,
 };

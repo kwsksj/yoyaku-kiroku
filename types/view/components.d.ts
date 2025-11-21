@@ -572,7 +572,7 @@ declare global {
     // 参加者ビュー専用コンポーネント
     badge: (config: {
       text: string;
-      color?: 'gray' | 'blue' | 'green' | 'red' | 'orange' | 'purple';
+      color?: 'gray' | 'blue' | 'green' | 'red' | 'orange' | 'purple' | 'yellow';
       size?: 'xs' | 'sm' | 'md';
     }) => string;
     tabGroup: (config: {

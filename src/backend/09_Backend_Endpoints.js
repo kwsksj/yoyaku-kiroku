@@ -765,49 +765,37 @@ export function getLessonsForParticipantsView(
       `管理者判定: studentId="${studentId}", isAdminBySpecialId=${isAdminBySpecialId}, isAdminByUser=${isAdminByUser}, 最終判定=${isAdmin}`,
     );
 
-    // キャッシュからレッスン情報を取得（6ヶ月前〜1年後のデータ）
-    const scheduleMasterCache = getTypedCachedData(
-      CACHE_KEYS.MASTER_SCHEDULE_DATA,
-    );
-
-    if (!scheduleMasterCache || !Array.isArray(scheduleMasterCache.schedule)) {
-      Logger.log('スケジュールマスターキャッシュが見つかりません');
+    // 空き枠計算済みのレッスン情報を取得
+    const lessonsResult = getLessons(true);
+    if (!lessonsResult.success || !Array.isArray(lessonsResult.data)) {
+      Logger.log('レッスン情報の取得に失敗しました（getLessons）');
       return createApiErrorResponse(
         'レッスン情報の取得に失敗しました。しばらくしてから再度お試しください。',
       );
     }
+    const allLessons = lessonsResult.data;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0); // 今日の0時0分0秒に設定
 
-    // レッスン一覧をフィルタリング（内部フィールド付き）
-    let lessonsWithDate = scheduleMasterCache.schedule.map(lesson => {
-      const lessonDate = new Date(lesson.date);
-      lessonDate.setHours(0, 0, 0, 0);
-
-      return {
-        lessonId: lesson.lessonId,
-        classroom: lesson.classroom,
-        date: lesson.date,
-        venue: lesson.venue || '',
-        status: lessonDate >= today ? '開催予定' : '開催済み',
-        // ソート用の内部フィールド
-        _dateObj: lessonDate,
-      };
-    });
+    // レッスン一覧をフィルタリング
+    let filteredLessons = allLessons.map(lesson => ({
+      ...lesson,
+      _dateObj: new Date(lesson.date),
+    }));
 
     // 過去データを除外する場合
     if (!includeHistory) {
-      lessonsWithDate = lessonsWithDate.filter(
+      filteredLessons = filteredLessons.filter(
         lesson => lesson._dateObj >= today,
       );
     }
 
     // 日付順にソート（新しい順）
-    lessonsWithDate.sort((a, b) => b._dateObj.getTime() - a._dateObj.getTime());
+    filteredLessons.sort((a, b) => b._dateObj.getTime() - a._dateObj.getTime());
 
     // 内部フィールドを削除して最終形にする
-    const lessons = lessonsWithDate.map(lesson => {
+    const lessons = filteredLessons.map(lesson => {
       const { _dateObj, ...rest } = lesson;
       return rest;
     });
@@ -815,7 +803,7 @@ export function getLessonsForParticipantsView(
     // 🚀 予約データを一括取得（オプション）
     /** @type {Record<string, any[]>} */
     const reservationsMap = {};
-    if (includeReservations && isAdmin) {
+    if (includeReservations) {
       Logger.log('✅ 予約データを一括取得開始...');
 
       // キャッシュから全予約データと全生徒データを1回だけ取得
@@ -848,7 +836,9 @@ export function getLessonsForParticipantsView(
         // レッスンIDごとに予約をグループ化
         lessons.forEach(lesson => {
           const lessonReservations = allReservations.filter(
-            reservation => reservation.lessonId === lesson.lessonId,
+            reservation =>
+              reservation.lessonId === lesson.lessonId &&
+              reservation.status !== CONSTANTS.STATUS.CANCELED,
           );
 
           // 予約情報に生徒情報を結合（キャッシュ読み込みはループ外で1回のみ）
