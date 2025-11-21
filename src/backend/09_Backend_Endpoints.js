@@ -849,6 +849,18 @@ export function getLessonsForParticipantsView(
               // 生徒情報がない場合はスキップせず、予約情報だけでも返す
               const studentData = student || {};
 
+              const nickname = studentData.nickname || '';
+              const rawDisplayName = studentData.displayName || nickname || '';
+              const realName = studentData.realName || '';
+              const shouldMaskDisplayName =
+                !isAdmin &&
+                realName &&
+                rawDisplayName &&
+                rawDisplayName === realName;
+              const publicDisplayName = shouldMaskDisplayName
+                ? rawDisplayName.substring(0, 2)
+                : rawDisplayName;
+
               // 基本情報
               const baseInfo = {
                 reservationId: reservation.reservationId,
@@ -859,8 +871,8 @@ export function getLessonsForParticipantsView(
                 endTime: reservation.endTime || '',
                 status: reservation.status,
                 studentId: reservation.studentId,
-                nickname: studentData.nickname || '',
-                displayName: studentData.displayName || '',
+                nickname: publicDisplayName,
+                displayName: publicDisplayName,
                 firstLecture: reservation.firstLecture || false,
                 chiselRental: reservation.chiselRental || false,
                 workInProgress: reservation.workInProgress || '',
@@ -874,11 +886,13 @@ export function getLessonsForParticipantsView(
                 car: reservation.car || '',
               };
 
-              // 管理者の場合は個人情報を追加
+              // 管理者の場合は個人情報を追加（表示名はフルで保持）
               if (isAdmin) {
                 return {
                   ...baseInfo,
-                  realName: studentData.realName || '',
+                  nickname: nickname || rawDisplayName,
+                  displayName: rawDisplayName,
+                  realName: realName,
                   phone: studentData.phone || '',
                   email: studentData.email || '',
                   ageGroup: studentData.ageGroup || '',
@@ -994,6 +1008,14 @@ export function getReservationsForLesson(lessonId, studentId) {
     const reservationsWithUserInfo = lessonReservations.map(reservation => {
       // 生徒情報を取得
       const student = getCachedStudentById(reservation.studentId);
+      const nickname = student?.nickname || '';
+      const rawDisplayName = student?.displayName || nickname;
+      const realName = student?.realName || '';
+      const shouldMaskDisplayName =
+        !isAdmin && realName && rawDisplayName && rawDisplayName === realName;
+      const publicDisplayName = shouldMaskDisplayName
+        ? rawDisplayName.substring(0, 2)
+        : rawDisplayName;
 
       // 基本情報（全員に公開）
       const baseInfo = {
@@ -1005,19 +1027,21 @@ export function getReservationsForLesson(lessonId, studentId) {
         endTime: reservation.endTime || '',
         status: reservation.status,
         studentId: reservation.studentId,
-        nickname: student?.nickname || '',
-        displayName: student?.displayName || '',
+        nickname: publicDisplayName,
+        displayName: publicDisplayName,
         firstLecture: reservation.firstLecture || false,
         chiselRental: reservation.chiselRental || false,
         workInProgress: reservation.workInProgress || '',
         order: reservation.order || '',
       };
 
-      // 管理者の場合は個人情報を追加
+      // 管理者の場合は個人情報を追加（表示名はフルで保持）
       if (isAdmin) {
         return {
           ...baseInfo,
-          realName: student?.realName || '',
+          nickname: nickname || rawDisplayName,
+          displayName: rawDisplayName,
+          realName: realName,
           phone: student?.phone || '',
           email: student?.email || '',
         };
@@ -1146,11 +1170,24 @@ export function getStudentDetailsForParticipantsView(
       ['完了', '会計待ち', '会計済み'].includes(r.status),
     ).length;
 
+    const rawNickname = targetStudent.nickname || '';
+    const rawDisplayName = targetStudent.displayName || rawNickname;
+    const realName = targetStudent.realName || '';
+    const shouldMaskDisplayName =
+      !isAdmin &&
+      !isSelf &&
+      realName &&
+      rawDisplayName &&
+      rawDisplayName === realName;
+    const publicDisplayName = shouldMaskDisplayName
+      ? rawDisplayName.substring(0, 2)
+      : rawDisplayName;
+
     // 基本情報（公開）
     const publicInfo = {
       studentId: targetStudent.studentId,
-      nickname: targetStudent.nickname || '',
-      displayName: targetStudent.displayName || '',
+      nickname: publicDisplayName,
+      displayName: publicDisplayName,
       participationCount: participationCount,
       futureCreations: targetStudent.futureCreations || '',
       reservationHistory: reservationHistory,
@@ -1160,6 +1197,8 @@ export function getStudentDetailsForParticipantsView(
     if (isAdmin || isSelf) {
       const detailedInfo = {
         ...publicInfo,
+        nickname: rawNickname || rawDisplayName,
+        displayName: rawDisplayName,
         realName: targetStudent.realName || '',
         phone: targetStudent.phone || '',
         email: targetStudent.email || '',
