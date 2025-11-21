@@ -122,5 +122,8 @@ export interface UserCore {
   /** 行インデックス（シート行番号） */
   rowIndex?: number | undefined;
 
+  /** 管理者フラグ（ADMINログイン用の特別IDを含む） */
+  isAdmin?: boolean | undefined;
+
   [key: string]: any;
 }

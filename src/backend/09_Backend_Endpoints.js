@@ -833,81 +833,79 @@ export function getLessonsForParticipantsView(
           `📊 参加回数計算完了: ${Object.keys(participationCounts).length}名分`,
         );
 
-        // レッスンIDごとに予約をグループ化
+        // レッスンIDのセットと高速参照用マップを準備
+        /** @type {Record<string, any>} */
+        const lessonMapById = {};
         lessons.forEach(lesson => {
-          const lessonReservations = allReservations.filter(
-            reservation =>
-              reservation.lessonId === lesson.lessonId &&
-              reservation.status !== CONSTANTS.STATUS.CANCELED,
-          );
+          lessonMapById[lesson.lessonId] = lesson;
+          reservationsMap[lesson.lessonId] = [];
+        });
 
-          // 予約情報に生徒情報を結合（キャッシュ読み込みはループ外で1回のみ）
-          const reservationsWithUserInfo = lessonReservations.map(
-            reservation => {
-              const student = allStudents[reservation.studentId];
+        // レッスンIDごとに予約をグループ化（1パス）
+        allReservations.forEach(reservation => {
+          if (reservation.status === CONSTANTS.STATUS.CANCELED) return;
+          const lesson = lessonMapById[reservation.lessonId];
+          if (!lesson) return; // 取得対象外のレッスン
 
-              // 生徒情報がない場合はスキップせず、予約情報だけでも返す
-              const studentData = student || {};
+          const student = allStudents[reservation.studentId];
 
-              const nickname = studentData.nickname || '';
-              const rawDisplayName = studentData.displayName || nickname || '';
-              const realName = studentData.realName || '';
-              const shouldMaskDisplayName =
-                !isAdmin &&
-                realName &&
-                rawDisplayName &&
-                rawDisplayName === realName;
-              const publicDisplayName = shouldMaskDisplayName
-                ? rawDisplayName.substring(0, 2)
-                : rawDisplayName;
+          // 生徒情報がない場合はスキップせず、予約情報だけでも返す
+          const studentData = student || {};
 
-              // 基本情報
-              const baseInfo = {
-                reservationId: reservation.reservationId,
-                date: reservation.date || lesson.date,
-                classroom: lesson.classroom,
-                venue: lesson.venue || '',
-                startTime: reservation.startTime || '',
-                endTime: reservation.endTime || '',
-                status: reservation.status,
-                studentId: reservation.studentId,
-                nickname: publicDisplayName,
-                displayName: publicDisplayName,
-                firstLecture: reservation.firstLecture || false,
-                chiselRental: reservation.chiselRental || false,
-                workInProgress: reservation.workInProgress || '',
-                order: reservation.order || '',
-                participationCount:
-                  participationCounts[reservation.studentId] || 0,
-                futureCreations: studentData.futureCreations || '',
-                companion: reservation.companion || '',
-                transportation: reservation.transportation || '',
-                pickup: reservation.pickup || '',
-                car: reservation.car || '',
-              };
+          const nickname = studentData.nickname || '';
+          const rawDisplayName = studentData.displayName || nickname || '';
+          const realName = studentData.realName || '';
+          const shouldMaskDisplayName =
+            !isAdmin &&
+            realName &&
+            rawDisplayName &&
+            rawDisplayName === realName;
+          const publicDisplayName = shouldMaskDisplayName
+            ? rawDisplayName.substring(0, 2)
+            : rawDisplayName;
 
-              // 管理者の場合は個人情報を追加（表示名はフルで保持）
-              if (isAdmin) {
-                return {
-                  ...baseInfo,
-                  nickname: nickname || rawDisplayName,
-                  displayName: rawDisplayName,
-                  realName: realName,
-                  messageToTeacher: reservation.messageToTeacher || '',
-                  phone: studentData.phone || '',
-                  email: studentData.email || '',
-                  ageGroup: studentData.ageGroup || '',
-                  gender: studentData.gender || '',
-                  address: studentData.address || '',
-                  notes: reservation.notes || '', // 予約固有の備考
-                };
+          // 基本情報
+          const baseInfo = {
+            reservationId: reservation.reservationId,
+            date: reservation.date || lesson.date,
+            classroom: lesson.classroom,
+            venue: lesson.venue || '',
+            startTime: reservation.startTime || '',
+            endTime: reservation.endTime || '',
+            status: reservation.status,
+            studentId: reservation.studentId,
+            nickname: publicDisplayName,
+            displayName: publicDisplayName,
+            firstLecture: reservation.firstLecture || false,
+            chiselRental: reservation.chiselRental || false,
+            workInProgress: reservation.workInProgress || '',
+            order: reservation.order || '',
+            participationCount: participationCounts[reservation.studentId] || 0,
+            futureCreations: studentData.futureCreations || '',
+            companion: reservation.companion || '',
+            transportation: reservation.transportation || '',
+            pickup: reservation.pickup || '',
+            car: reservation.car || '',
+          };
+
+          // 管理者の場合は個人情報を追加（表示名はフルで保持）
+          const fullInfo = isAdmin
+            ? {
+                ...baseInfo,
+                nickname: nickname || rawDisplayName,
+                displayName: rawDisplayName,
+                realName: realName,
+                messageToTeacher: reservation.messageToTeacher || '',
+                phone: studentData.phone || '',
+                email: studentData.email || '',
+                ageGroup: studentData.ageGroup || '',
+                gender: studentData.gender || '',
+                address: studentData.address || '',
+                notes: reservation.notes || '', // 予約固有の備考
               }
+            : baseInfo;
 
-              return baseInfo;
-            },
-          );
-
-          reservationsMap[lesson.lessonId] = reservationsWithUserInfo;
+          reservationsMap[lesson.lessonId].push(fullInfo);
         });
 
         Logger.log(

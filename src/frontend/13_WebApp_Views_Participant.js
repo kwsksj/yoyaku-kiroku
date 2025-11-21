@@ -150,6 +150,14 @@ const PARTICIPANT_TABLE_COLUMNS = [
       `<div class="text-xs ${row.order ? '' : 'text-gray-400 italic'}">${escapeHTML(row.order || '—')}</div>`,
   },
   {
+    key: 'messageToTeacher',
+    label: 'メッセージ',
+    width: '150px',
+    adminOnly: true,
+    render: /** @param {any} row */ row =>
+      `<div class="text-xs break-words" title="${escapeHTML(row.messageToTeacher || '—')}">${escapeHTML(row.messageToTeacher || '—')}</div>`,
+  },
+  {
     key: 'ageGroup',
     label: '年代',
     width: '60px',
@@ -224,14 +232,6 @@ const PARTICIPANT_TABLE_COLUMNS = [
     adminOnly: true,
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
-  },
-  {
-    key: 'messageToTeacher',
-    label: 'メッセージ',
-    width: '150px',
-    adminOnly: true,
-    render: /** @param {any} row */ row =>
-      `<div class="text-xs break-words" title="${escapeHTML(row.messageToTeacher || '—')}">${escapeHTML(row.messageToTeacher || '—')}</div>`,
   },
 ];
 
@@ -514,8 +514,16 @@ function renderLessonList(lessons) {
       let firstLectureBadge = '';
       if (isTwoSession) {
         // 2部制教室の場合: 予約時間で午前・午後を判定
+        /**
+         * @param {any[]} reservations
+         * @returns {{morning: number, afternoon: number}}
+         */
         const countBySlot = reservations =>
           reservations.reduce(
+            /**
+             * @param {{morning: number, afternoon: number}} acc
+             * @param {any} r
+             */
             (acc, r) => {
               const slot = getReservationTimeSlot(r);
               if (slot === 'morning') acc.morning += 1;
@@ -709,6 +717,9 @@ function renderReservationsList(lesson, reservations) {
   const formattedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日(${['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()]})`;
 
   // テーブルのカラム定義
+  const isAdmin =
+    participantStateManager.getState().participantIsAdmin || false;
+
   /** @type {TableColumn[]} */
   const columns = [
     {
@@ -717,8 +728,6 @@ function renderReservationsList(lesson, reservations) {
       align: 'center',
       width: '100px',
       render: (_value, row) => {
-        const isAdmin =
-          participantStateManager.getState().participantIsAdmin || false;
         let displayName = row.nickname || row.displayName || '名前なし';
         const hasRealName = row.realName && row.realName.trim() !== '';
 
@@ -792,23 +801,21 @@ function renderReservationsList(lesson, reservations) {
         </div>`;
       },
     },
-    {
+  ];
+
+  if (isAdmin) {
+    columns.push({
       label: 'メッセージ',
       key: 'messageToTeacher',
       width: '150px',
       align: 'left',
-      adminOnly: true,
       render: (_value, row) => {
-        const isAdmin =
-          participantStateManager.getState().participantIsAdmin || false;
-        return isAdmin
-          ? `<div class="text-xs break-words" title="${escapeHTML(row.messageToTeacher || '—')}">
+        return `<div class="text-xs break-words" title="${escapeHTML(row.messageToTeacher || '—')}">
               ${escapeHTML(row.messageToTeacher || '—')}
-            </div>`
-          : '';
+            </div>`;
       },
-    },
-  ];
+    });
+  }
 
   // テーブルHTML生成
   const tableHtml = Components.table({
