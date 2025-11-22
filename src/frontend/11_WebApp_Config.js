@@ -897,6 +897,7 @@ export const addCustomStyles = () => {
       body.embedded-in-google-sites .participants-table-sticky-header {
         padding-top: 0px !important;
         padding-bottom: 2px !important;
+        top: 4.5rem !important;
       }
 
       /* 埋め込み環境でのページヘッダー最適化 */
