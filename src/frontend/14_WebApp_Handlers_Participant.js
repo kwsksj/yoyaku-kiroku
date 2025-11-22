@@ -97,6 +97,7 @@ function loadParticipantView(
   forceReload = false,
   shouldShowLoading = true,
   baseAppState = /** @type {Partial<UIState> | null} */ (null),
+  includeHistory = false,
 ) {
   console.log('📋 参加者リストビュー初期化開始');
 
@@ -183,6 +184,7 @@ function loadParticipantView(
               participantSubView: 'list',
               selectedParticipantClassroom: 'all',
               showPastLessons: false,
+              participantHasPastLessonsLoaded: includeHistory,
               recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
               isDataFresh: true,
             }
@@ -195,6 +197,7 @@ function loadParticipantView(
               participantSubView: 'list',
               selectedParticipantClassroom: 'all',
               showPastLessons: false,
+              participantHasPastLessonsLoaded: includeHistory,
             };
 
         participantHandlersStateManager.dispatch({
@@ -472,6 +475,63 @@ function filterParticipantByClassroom(classroom) {
 function togglePastLessons(showPast) {
   console.log('📅 レッスン表示切り替え:', showPast ? '過去' : '未来');
 
+  const state = participantHandlersStateManager.getState();
+  const alreadyLoaded = state.participantHasPastLessonsLoaded || false;
+
+  if (showPast && !alreadyLoaded) {
+    const studentId = state.currentUser?.studentId;
+    if (!studentId) {
+      console.error('❌ studentIdが見つかりません');
+      return;
+    }
+
+    showLoading('participants');
+    google.script.run
+      .withSuccessHandler(function (response) {
+        hideLoading();
+        if (!response.success) {
+          showInfo(
+            response.message || '過去のレッスン取得に失敗しました',
+            'エラー',
+          );
+          return;
+        }
+
+        const nextIsAdmin =
+          Object.prototype.hasOwnProperty.call(response.data, 'isAdmin') &&
+          response.data.isAdmin !== undefined
+            ? response.data.isAdmin
+            : state.participantIsAdmin;
+
+        participantHandlersStateManager.dispatch({
+          type: 'UPDATE_STATE',
+          payload: {
+            view: 'participants',
+            participantLessons: response.data.lessons,
+            participantReservationsMap: response.data.reservationsMap || {},
+            participantIsAdmin:
+              nextIsAdmin || state.currentUser?.isAdmin || false,
+            participantSubView: 'list',
+            selectedParticipantClassroom:
+              state.selectedParticipantClassroom || 'all',
+            showPastLessons: true,
+            participantHasPastLessonsLoaded: true,
+          },
+        });
+        render();
+      })
+      .withFailureHandler(
+        /** @param {Error} error */
+        function (error) {
+          hideLoading();
+          console.error('❌ 過去レッスン取得失敗:', error);
+          showInfo('通信エラーが発生しました', 'エラー');
+        },
+      )
+      .getLessonsForParticipantsView(studentId, true, true);
+    return;
+  }
+
   participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
     payload: {
@@ -490,7 +550,7 @@ export const participantActionHandlers = {
   loadParticipantView,
   goToParticipantsView: () => {
     // データはloadParticipantViewで取得されるので、ここではビューの初期化を呼び出すだけ
-    loadParticipantView(false); // 強制再読み込みはしない
+    loadParticipantView(false); // 強制再読み込みはしない（未来分のみ先読み）
   },
   toggleParticipantLessonAccordion,
   selectParticipantLesson,

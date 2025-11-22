@@ -898,7 +898,11 @@ export function getLessonsForParticipantsView(
                 messageToTeacher: reservation.messageToTeacher || '',
                 phone: studentData.phone || '',
                 email: studentData.email || '',
-                ageGroup: studentData.ageGroup || '',
+                ageGroup:
+                  studentData.ageGroup !== undefined &&
+                  studentData.ageGroup !== null
+                    ? String(studentData.ageGroup)
+                    : '',
                 gender: studentData.gender || '',
                 address: studentData.address || '',
                 notes: reservation.notes || '', // 予約固有の備考
@@ -1044,6 +1048,12 @@ export function getReservationsForLesson(lessonId, studentId) {
           messageToTeacher: reservation.messageToTeacher || '',
           phone: student?.phone || '',
           email: student?.email || '',
+          ageGroup:
+            student?.ageGroup !== undefined && student?.ageGroup !== null
+              ? String(student?.ageGroup)
+              : '',
+          gender: student?.gender || '',
+          address: student?.address || '',
         };
       }
 
@@ -1207,7 +1217,11 @@ export function getStudentDetailsForParticipantsView(
           targetStudent.wantsScheduleNotification || false,
         notificationDay: targetStudent.notificationDay || 0,
         notificationHour: targetStudent.notificationHour || 0,
-        ageGroup: targetStudent.ageGroup || '',
+        ageGroup:
+          targetStudent.ageGroup !== undefined &&
+          targetStudent.ageGroup !== null
+            ? String(targetStudent.ageGroup)
+            : '',
         gender: targetStudent.gender || '',
         dominantHand: targetStudent.dominantHand || '',
         address: targetStudent.address || '',

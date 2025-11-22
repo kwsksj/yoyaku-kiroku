@@ -195,6 +195,7 @@ export interface UIState {
     participantSelectedLesson?: LessonCore | null;
     participantSelectedStudent?: UserCore | null;
     participantIsAdmin?: boolean;
+    participantHasPastLessonsLoaded?: boolean; // 過去分を取得済みか
     expandedLessonIds?: string[]; // アコーディオン展開中のレッスンID配列（複数展開対応）
     selectedParticipantClassroom?: string; // 参加者画面で選択中の教室
     showPastLessons?: boolean; // 過去のレッスンを表示するかどうか
