@@ -662,6 +662,230 @@ export function updateReservationColumnInCache(
 }
 
 /**
+ * 生徒名簿からすべての情報を読み込み、CacheServiceに保存する
+ * 生徒IDをキーとしたオブジェクト形式でキャッシュに保存します。
+ *
+ * @throws {Error} 生徒名簿シートが見つからない場合
+ * @throws {Error} 必須ヘッダーが見つからない場合
+ * @throws {Error} データ処理中にエラーが発生した場合
+ */
+export function rebuildAllStudentsCache() {
+  try {
+    const studentRosterSheet = SS_MANAGER.getSheet(
+      CONSTANTS.SHEET_NAMES.ROSTER,
+    );
+    if (!studentRosterSheet || studentRosterSheet.getLastRow() < 2) {
+      Logger.log('生徒名簿シートが見つからないか、データが空です。');
+      const emptyCacheData = { version: new Date().getTime(), students: {} };
+      CacheService.getScriptCache().put(
+        CACHE_KEYS.ALL_STUDENTS,
+        JSON.stringify(emptyCacheData),
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
+      setCacheVersion(
+        CACHE_KEYS.ALL_STUDENTS,
+        emptyCacheData.version,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
+      return;
+    }
+
+    const headerRow = studentRosterSheet
+      .getRange(1, 1, 1, studentRosterSheet.getLastColumn())
+      .getValues()[0];
+    const headerColumnMap = /** @type {Map<string, number>} */ (
+      createHeaderMap(headerRow)
+    );
+
+    const studentIdColIdx = headerColumnMap.get(
+      CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+    );
+    if (studentIdColIdx === undefined) {
+      throw new Error('生徒名簿に必須の「生徒ID」列が見つかりません。');
+    }
+
+    const allStudentRows = studentRosterSheet
+      .getRange(2, 1, studentRosterSheet.getLastRow() - 1, headerRow.length)
+      .getValues();
+
+    /** @type {{ [studentId: string]: UserCore }} */
+    const studentsDataMap = {};
+    allStudentRows.forEach((studentRow, index) => {
+      const studentId = studentRow[studentIdColIdx];
+      if (!studentId || !String(studentId).trim()) return;
+
+      /** @type {Partial<UserCore>} */
+      const studentData = {};
+      headerRow.forEach((header, colIdx) => {
+        let propName = ''; // マッピングされない場合は空
+        let value = studentRow[colIdx];
+
+        switch (header) {
+          case CONSTANTS.HEADERS.ROSTER.STUDENT_ID:
+            propName = 'studentId';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.REAL_NAME:
+            propName = 'realName';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.NICKNAME:
+            propName = 'nickname';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.PHONE:
+            propName = 'phone';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.EMAIL:
+            propName = 'email';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL:
+            propName = 'wantsEmail';
+            value =
+              String(value).toUpperCase() === 'TRUE' || value === '希望する';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO:
+            propName = 'wantsScheduleNotification';
+            value =
+              String(value).toUpperCase() === 'TRUE' || value === '希望する';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY:
+            propName = 'notificationDay';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR:
+            propName = 'notificationHour';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.AGE_GROUP:
+            propName = 'ageGroup';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.GENDER:
+            propName = 'gender';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND:
+            propName = 'dominantHand';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.ADDRESS:
+            propName = 'address';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.EXPERIENCE:
+            propName = 'experience';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.PAST_WORK:
+            propName = 'pastWork';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.ATTENDANCE_INTENTION:
+            propName = 'futureParticipation';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS:
+            propName = 'futureCreations';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.TRIGGER:
+            propName = 'trigger';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.FIRST_MESSAGE:
+            propName = 'firstMessage';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.COMPANION:
+            propName = 'companion';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.TRANSPORTATION:
+            propName = 'transportation';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.PICKUP:
+            propName = 'pickup';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.CAR:
+            propName = 'car';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.NOTES:
+            propName = 'notes';
+            break;
+        }
+        if (propName) {
+          studentData[propName] = value;
+        }
+      });
+
+      if (!studentData.displayName) {
+        studentData.displayName = studentData.nickname || studentData.realName;
+      }
+
+      studentData.rowIndex = index + 2;
+      studentsDataMap[String(studentId)] = /** @type {UserCore} */ (
+        studentData
+      );
+    });
+
+    const studentsArray = Object.values(studentsDataMap);
+    const cacheData = {
+      version: new Date().getTime(),
+      students: studentsDataMap,
+      headerMap: Object.fromEntries(headerColumnMap),
+      metadata: {
+        totalCount: studentsArray.length,
+        lastUpdated: new Date().toISOString(),
+      },
+    };
+
+    const cacheDataJson = JSON.stringify(cacheData);
+    const dataSizeKB = Math.round(cacheDataJson.length / 1024);
+
+    Logger.log(
+      `生徒全情報キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${studentsArray.length}`,
+    );
+
+    if (dataSizeKB >= CHUNK_SIZE_LIMIT_KB) {
+      Logger.log(
+        `データサイズが${CHUNK_SIZE_LIMIT_KB}KB以上のため、分割キャッシュシステムを使用します。`,
+      );
+
+      const dataChunks = splitDataIntoChunks(
+        studentsArray,
+        CHUNK_SIZE_LIMIT_KB,
+      );
+      /** @type {ChunkedCacheMetadata} */
+      const metadata = {
+        version: new Date().getTime(),
+        totalCount: studentsArray.length,
+        headerMap: Object.fromEntries(headerColumnMap),
+        lastUpdated: new Date().toISOString(),
+        isChunked: true,
+        totalChunks: dataChunks.length,
+      };
+
+      const success = saveChunkedDataToCache(
+        CACHE_KEYS.ALL_STUDENTS,
+        dataChunks,
+        metadata,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
+
+      if (success) {
+        Logger.log(
+          `生徒全情報キャッシュを分割保存しました。件数: ${studentsArray.length}, チャンク数: ${dataChunks.length}`,
+        );
+      } else {
+        throw new Error('生徒全情報の分割キャッシュ保存に失敗しました。');
+      }
+    } else {
+      CacheService.getScriptCache().put(
+        CACHE_KEYS.ALL_STUDENTS,
+        cacheDataJson,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
+      setCacheVersion(
+        CACHE_KEYS.ALL_STUDENTS,
+        cacheData.version,
+        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+      );
+      Logger.log(
+        `生徒全情報キャッシュを更新しました。件数: ${Object.keys(studentsDataMap).length}`,
+      );
+    }
+  } catch (e) {
+    BackendErrorHandler.handle(e, 'rebuildAllStudentsCache');
+    throw e;
+  }
+}
+
+/**
  * 全てのキャッシュデータを一括で再構築するエントリーポイント関数
  * UI確認ダイアログを表示してから、全種類のキャッシュを順次再構築します。
  * スプレッドシートのメニューから手動実行される場合に使用されます。
@@ -684,7 +908,7 @@ export function rebuildAllCachesEntryPoint() {
 
     // 全てのキャッシュを順次再構築
     rebuildAllReservationsCache();
-    rebuildAllStudentsBasicCache();
+    rebuildAllStudentsCache();
     rebuildAccountingMasterCache();
     rebuildScheduleMasterCache();
 
@@ -1440,250 +1664,6 @@ export function rebuildAccountingMasterCache() {
 }
 
 /**
- * 生徒名簿から基本情報（ID、本名、ニックネーム、電話番号）を読み込み、CacheServiceに保存する
- * 生徒IDをキーとしたオブジェクト形式でキャッシュに保存します。
- *
- * @throws {Error} 生徒名簿シートが見つからない場合
- * @throws {Error} 必須ヘッダーが見つからない場合
- * @throws {Error} データ処理中にエラーが発生した場合
- */
-export function rebuildAllStudentsBasicCache() {
-  try {
-    const studentRosterSheet = SS_MANAGER.getSheet(
-      CONSTANTS.SHEET_NAMES.ROSTER,
-    );
-    if (!studentRosterSheet || studentRosterSheet.getLastRow() < 2) {
-      Logger.log('生徒名簿シートが見つからないか、データが空です。');
-      // 空データの場合もキャッシュを作成
-      const emptyCacheData = {
-        version: new Date().getTime(),
-        students: {},
-      };
-      CacheService.getScriptCache().put(
-        CACHE_KEYS.ALL_STUDENTS_BASIC,
-        JSON.stringify(emptyCacheData),
-        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
-      );
-      setCacheVersion(
-        CACHE_KEYS.ALL_STUDENTS_BASIC,
-        emptyCacheData.version,
-        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
-      );
-      invalidateStudentCacheSnapshot();
-      return;
-    }
-
-    // ヘッダー行を取得してマッピングを作成
-    const headerRow = studentRosterSheet
-      .getRange(1, 1, 1, studentRosterSheet.getLastColumn())
-      .getValues()[0];
-    const headerColumnMap = /** @type {Map<string, number>} */ (
-      createHeaderMap(headerRow)
-    );
-
-    // 必須列のインデックスを取得
-    const requiredColumns = {
-      studentId: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.STUDENT_ID),
-      realName: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.REAL_NAME),
-      nickname: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.NICKNAME),
-      phone: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.PHONE),
-    };
-
-    // オプション列のインデックスを取得（メール関連・通知設定）
-    const optionalColumns = {
-      email: headerColumnMap.get(CONSTANTS.HEADERS.ROSTER.EMAIL),
-      emailPreference: headerColumnMap.get(
-        CONSTANTS.HEADERS.ROSTER.WANTS_RESERVATION_EMAIL,
-      ),
-      scheduleNotificationPreference: headerColumnMap.get(
-        CONSTANTS.HEADERS.ROSTER.WANTS_SCHEDULE_INFO,
-      ),
-      notificationDay: headerColumnMap.get(
-        CONSTANTS.HEADERS.ROSTER.NOTIFICATION_DAY,
-      ),
-      notificationHour: headerColumnMap.get(
-        CONSTANTS.HEADERS.ROSTER.NOTIFICATION_HOUR,
-      ),
-    };
-
-    // 必須列の存在確認
-    const missingColumns = Object.entries(requiredColumns)
-      .filter(([, index]) => index === undefined)
-      .map(([columnName]) => columnName);
-
-    if (missingColumns.length > 0) {
-      throw new Error(
-        `生徒名簿の必須ヘッダーが見つかりません: ${missingColumns.join(', ')}`,
-      );
-    }
-
-    const {
-      studentId: studentIdColumn,
-      realName: realNameColumn,
-      nickname: nicknameColumn,
-      phone: phoneColumn,
-    } = /** @type {{ studentId: number; realName: number; nickname: number; phone: number }} */ (
-      requiredColumns
-    );
-
-    // データ行を取得
-    const dataRowCount = studentRosterSheet.getLastRow() - 1;
-    const allStudentRows = studentRosterSheet
-      .getRange(2, 1, dataRowCount, studentRosterSheet.getLastColumn())
-      .getValues();
-
-    // 生徒データをオブジェクト形式に変換
-    /** @type {{ [studentId: string]: StudentData }} */
-    const studentsDataMap = {};
-    allStudentRows.forEach(
-      (
-        /** @type {(string|number|Date)[]} */ studentRow,
-        /** @type {number} */ index,
-      ) => {
-        const studentId = studentRow[studentIdColumn];
-        if (studentId && String(studentId).trim()) {
-          // メール連絡希望フラグの処理
-          let wantsEmail = false;
-          if (typeof optionalColumns.emailPreference === 'number') {
-            const preference = studentRow[optionalColumns.emailPreference];
-            wantsEmail =
-              String(preference) === 'TRUE' ||
-              String(preference) === '希望する' ||
-              String(preference) === 'true';
-          }
-
-          // 日程連絡希望フラグの処理
-          let wantsScheduleNotification = false;
-          if (
-            typeof optionalColumns.scheduleNotificationPreference === 'number'
-          ) {
-            const preference =
-              studentRow[optionalColumns.scheduleNotificationPreference];
-            wantsScheduleNotification =
-              String(preference) === 'TRUE' ||
-              String(preference) === '希望する' ||
-              String(preference) === 'true';
-          }
-
-          // 通知設定の取得
-          const notificationDay =
-            typeof optionalColumns.notificationDay === 'number'
-              ? studentRow[optionalColumns.notificationDay]
-              : null;
-          const notificationHour =
-            typeof optionalColumns.notificationHour === 'number'
-              ? studentRow[optionalColumns.notificationHour]
-              : null;
-
-          const studentIdStr = String(studentId);
-          studentsDataMap[studentIdStr] = {
-            studentId: studentIdStr,
-            nickname: String(
-              studentRow[nicknameColumn] || studentRow[realNameColumn] || '',
-            ),
-            realName: String(studentRow[realNameColumn] || ''),
-            phone: String(studentRow[phoneColumn] || ''),
-            email: String(
-              typeof optionalColumns.email === 'number'
-                ? studentRow[optionalColumns.email] || ''
-                : '',
-            ),
-            wantsEmail: wantsEmail,
-            wantsScheduleNotification: wantsScheduleNotification,
-            notificationDay:
-              typeof notificationDay === 'number' ? notificationDay : undefined,
-            notificationHour:
-              typeof notificationHour === 'number'
-                ? notificationHour
-                : undefined,
-            rowIndex: index + 2, // ヘッダー行を考慮した実際の行番号 (1-based + header)
-          };
-        }
-      },
-    );
-
-    // 生徒データを配列形式に変換（分割キャッシュ用）
-    /** @type {StudentData[]} */
-    const studentsArray = Object.values(studentsDataMap);
-
-    const cacheData = {
-      version: new Date().getTime(),
-      students: studentsDataMap,
-      headerMap: Object.fromEntries(headerColumnMap), // ヘッダーマップを追加
-      metadata: {
-        totalCount: Object.keys(studentsDataMap).length,
-        lastUpdated: new Date().toISOString(),
-      },
-    };
-
-    // データサイズをチェックして分割キャッシュまたは通常キャッシュを決定
-    const cacheDataJson = JSON.stringify(cacheData);
-    const dataSizeKB = Math.round(cacheDataJson.length / 1024);
-
-    Logger.log(
-      `生徒名簿キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${studentsArray.length}`,
-    );
-
-    if (dataSizeKB >= CHUNK_SIZE_LIMIT_KB) {
-      // 分割キャッシュシステムを使用
-      Logger.log(
-        `データサイズが${CHUNK_SIZE_LIMIT_KB}KB以上のため、分割キャッシュシステムを使用します。`,
-      );
-
-      const dataChunks = splitDataIntoChunks(
-        studentsArray,
-        CHUNK_SIZE_LIMIT_KB,
-      );
-      /** @type {ChunkedCacheMetadata} */
-      const metadata = /** @type {ChunkedCacheMetadata} */ ({
-        version: new Date().getTime(),
-        totalCount: studentsArray.length,
-        headerMap: Object.fromEntries(headerColumnMap), // ヘッダーマップを追加
-        lastUpdated: new Date().toISOString(),
-        isChunked: true,
-      });
-
-      const success = saveChunkedDataToCache(
-        CACHE_KEYS.ALL_STUDENTS_BASIC,
-        dataChunks,
-        metadata,
-        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
-      );
-
-      if (success) {
-        Logger.log(
-          `生徒基本情報キャッシュを分割保存しました。件数: ${studentsArray.length}, チャンク数: ${dataChunks.length}`,
-        );
-        invalidateStudentCacheSnapshot();
-      } else {
-        Logger.log('⚠️ 分割キャッシュの保存に失敗しました。');
-        throw new Error('分割キャッシュの保存に失敗しました。');
-      }
-    } else {
-      // 通常のキャッシュシステムを使用
-      CacheService.getScriptCache().put(
-        CACHE_KEYS.ALL_STUDENTS_BASIC,
-        cacheDataJson,
-        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
-      );
-      setCacheVersion(
-        CACHE_KEYS.ALL_STUDENTS_BASIC,
-        cacheData.version,
-        CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
-      );
-      invalidateStudentCacheSnapshot();
-
-      Logger.log(
-        `生徒基本情報キャッシュを更新しました。件数: ${Object.keys(studentsDataMap).length}`,
-      );
-    }
-  } catch (e) {
-    BackendErrorHandler.handle(e, 'rebuildAllStudentsBasicCache');
-    throw e;
-  }
-}
-
-/**
  * 日程マスタのステータスを自動更新（開催予定 → 開催済み）
  * 現在日時を基準に、過去の開催予定講座を開催済みに変更します。
  *
@@ -1823,7 +1803,7 @@ export function triggerScheduledCacheRebuild() {
 
     // 2. 全てのキャッシュを順次再構築
     rebuildAllReservationsCache();
-    rebuildAllStudentsBasicCache();
+    rebuildAllStudentsCache();
     rebuildScheduleMasterCache(); // ステータス更新後にキャッシュも再構築
     rebuildAccountingMasterCache();
 
@@ -1850,7 +1830,7 @@ export function triggerScheduledCacheRebuild() {
  */
 export const CACHE_KEYS = /** @type {const} */ ({
   ALL_RESERVATIONS: 'all_reservations',
-  ALL_STUDENTS_BASIC: 'all_students_basic',
+  ALL_STUDENTS: 'all_students', // 生徒名簿の全情報
   MASTER_SCHEDULE_DATA: 'master_schedule_data',
   MASTER_ACCOUNTING_DATA: 'master_accounting_data',
 });
@@ -1862,7 +1842,7 @@ export const CACHE_KEYS = /** @type {const} */ ({
 /**
  * @template {CacheKey} K
  * @typedef {K extends 'all_reservations' ? ReservationCacheData :
- *           K extends 'all_students_basic' ? StudentCacheData :
+ *           K extends 'all_students' ? StudentCacheData :
  *           K extends 'master_schedule_data' ? ScheduleCacheData :
  *           K extends 'master_accounting_data' ? AccountingCacheData :
  *           never} CacheDataType
@@ -1939,8 +1919,11 @@ export function getCachedData(cacheKey, autoRebuild = true) {
           case CACHE_KEYS.ALL_RESERVATIONS:
             rebuildAllReservationsCache();
             break;
-          case CACHE_KEYS.ALL_STUDENTS_BASIC:
-            rebuildAllStudentsBasicCache();
+          case CACHE_KEYS.ALL_STUDENTS:
+            rebuildAllStudentsCache();
+            break;
+          case CACHE_KEYS.ALL_STUDENTS:
+            rebuildAllStudentsCache();
             break;
           case CACHE_KEYS.MASTER_SCHEDULE_DATA:
             rebuildScheduleMasterCache();
@@ -2255,7 +2238,7 @@ export function loadChunkedDataFromCache(baseKey) {
     /** @type {CacheDataStructure} */
     let result;
 
-    if (baseKey === CACHE_KEYS.ALL_STUDENTS_BASIC) {
+    if (baseKey === CACHE_KEYS.ALL_STUDENTS) {
       // 生徒名簿の場合：配列をオブジェクトに変換
       /** @type {{ [studentId: string]: StudentData }} */
       const studentsMap = {};
@@ -2383,7 +2366,7 @@ export function clearChunkedCache(baseKey) {
  * @returns {Record<string, UserCore> | null} 生徒情報マップ
  */
 export function getCachedAllStudents(autoRebuild = true) {
-  const cache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC, autoRebuild);
+  const cache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS, autoRebuild);
   if (!cache || !cache.students || typeof cache.students !== 'object') {
     return null;
   }
@@ -2403,7 +2386,7 @@ export function updateCachedStudent(updatedStudent) {
   }
 
   const cache = getTypedCachedData(
-    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    CACHE_KEYS.ALL_STUDENTS,
     /* autoRebuild */ false,
   );
 
@@ -2411,7 +2394,7 @@ export function updateCachedStudent(updatedStudent) {
     Logger.log(
       'updateCachedStudent: 生徒キャッシュが存在しないため再構築を実行します',
     );
-    rebuildAllStudentsBasicCache();
+    rebuildAllStudentsCache();
     return;
   }
 
@@ -2445,7 +2428,7 @@ export function addCachedStudent(newStudent) {
   }
 
   const cache = getTypedCachedData(
-    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    CACHE_KEYS.ALL_STUDENTS,
     /* autoRebuild */ false,
   );
 
@@ -2453,7 +2436,7 @@ export function addCachedStudent(newStudent) {
     Logger.log(
       'addCachedStudent: 生徒キャッシュが存在しないため再構築を実行します',
     );
-    rebuildAllStudentsBasicCache();
+    rebuildAllStudentsCache();
     return;
   }
 
@@ -2508,7 +2491,7 @@ export function getDataCount(parsedData, cacheKey) {
       return Array.isArray(data['reservations'])
         ? /** @type {any[]} */ (data['reservations']).length
         : 0;
-    case CACHE_KEYS.ALL_STUDENTS_BASIC:
+    case CACHE_KEYS.ALL_STUDENTS:
       return Object.keys(data['students'] || {}).length;
     case CACHE_KEYS.MASTER_SCHEDULE_DATA:
       return Array.isArray(data['schedule']) ? data['schedule'].length : 0;
@@ -2557,7 +2540,7 @@ function persistStudentCache(studentsMap, headerMap) {
 
     const chunks = splitDataIntoChunks(studentArray, CHUNK_SIZE_LIMIT_KB);
     const success = saveChunkedDataToCache(
-      CACHE_KEYS.ALL_STUDENTS_BASIC,
+      CACHE_KEYS.ALL_STUDENTS,
       chunks,
       chunkMetadata,
     );
@@ -2566,22 +2549,22 @@ function persistStudentCache(studentsMap, headerMap) {
       Logger.log(
         'persistStudentCache: 分割キャッシュの保存に失敗しました。再構築を実行します。',
       );
-      rebuildAllStudentsBasicCache();
+      rebuildAllStudentsCache();
     } else {
-      cache.remove(CACHE_KEYS.ALL_STUDENTS_BASIC);
+      cache.remove(CACHE_KEYS.ALL_STUDENTS);
       invalidateStudentCacheSnapshot();
     }
     return;
   }
 
-  clearChunkedCache(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  clearChunkedCache(CACHE_KEYS.ALL_STUDENTS);
   cache.put(
-    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    CACHE_KEYS.ALL_STUDENTS,
     serialized,
     CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
   );
   setCacheVersion(
-    CACHE_KEYS.ALL_STUDENTS_BASIC,
+    CACHE_KEYS.ALL_STUDENTS,
     baseData.version,
     CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
   );
@@ -2639,7 +2622,7 @@ export function getReservationCacheSnapshot(autoRebuild = true) {
  */
 export function getStudentCacheSnapshot(autoRebuild = true) {
   if (studentCacheState.cache) {
-    const currentVersion = getCacheVersion(CACHE_KEYS.ALL_STUDENTS_BASIC);
+    const currentVersion = getCacheVersion(CACHE_KEYS.ALL_STUDENTS);
     if (
       currentVersion &&
       String(currentVersion) === String(studentCacheState.version || '')
@@ -2649,7 +2632,7 @@ export function getStudentCacheSnapshot(autoRebuild = true) {
   }
 
   invalidateStudentCacheSnapshot();
-  const cache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC, autoRebuild);
+  const cache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS, autoRebuild);
   if (cache) {
     studentCacheState.cache = cache;
     studentCacheState.version =

@@ -102,6 +102,7 @@ export interface RegistrationFormData {
 export interface ReservationFormContext {
   lessonInfo: LessonCore;
   reservationInfo: Partial<ReservationCore>; // 新規の場合は初期値、編集の場合は既存データ
+  source?: 'participants' | 'booking'; // 遷移元
 }
 
 /**
@@ -187,13 +188,15 @@ export interface UIState {
     currentReservationFormContext: ReservationFormContext | null;
 
     // --- Participants View (Admin) ---
-    participantsSubView?: 'list' | 'reservations' | 'studentDetail';
-    participantsLessons?: LessonCore[];
-    participantsReservations?: ReservationCore[];
-    participantsReservationsMap?: Record<string, ReservationCore[]>; // 全レッスンの予約データ（キー: lessonId）
-    participantsSelectedLesson?: LessonCore | null;
-    participantsSelectedStudent?: UserCore | null;
-    participantsIsAdmin?: boolean;
+    participantSubView?: 'list' | 'studentDetail';
+    participantLessons?: LessonCore[];
+    participantReservationsMap?: Record<string, ReservationCore[]>; // 全レッスンの予約データ（キー: lessonId）
+    participantSelectedStudent?: UserCore | null;
+    participantIsAdmin?: boolean;
+    participantHasPastLessonsLoaded?: boolean; // 過去分を取得済みか
+    expandedLessonIds?: string[]; // アコーディオン展開中のレッスンID配列（複数展開対応）
+    selectedParticipantClassroom?: string; // 参加者画面で選択中の教室
+    showPastLessons?: boolean; // 過去のレッスンを表示するかどうか
 
     // --- Navigation History ---
     navigationHistory: StateNavigationHistoryEntry[];

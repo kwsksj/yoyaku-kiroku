@@ -22,7 +22,13 @@ export type ComponentStyle =
   | 'recordCard'
   | 'normal'
   | 'none';
-export type BadgeType = 'success' | 'warning' | 'error' | 'info' | 'accounting' | 'attention';
+export type BadgeType =
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'info'
+  | 'accounting'
+  | 'attention';
 
 // =================================================================
 // Component Config（基本設定）
@@ -261,7 +267,6 @@ export interface SubtotalSectionConfig {
   amount: number;
   id?: string;
 }
-
 
 // =================================================================
 // Specialized Components
@@ -537,7 +542,9 @@ declare global {
     listCard: (config: ListCardConfig) => string;
     memoSection: (config: MemoSectionConfig) => string;
     dashboardSection: (config: DashboardSectionConfig) => string;
-    newReservationCard: (config: ComponentConfig & { action: string }) => string;
+    newReservationCard: (
+      config: ComponentConfig & { action: string },
+    ) => string;
 
     // モーダル
     modal: (config: ModalConfig) => string;
@@ -548,7 +555,10 @@ declare global {
 
     // ナビゲーション
     createBackButton: (action?: string, text?: string) => string;
-    createSmartBackButton: (currentView: ViewType, appState?: UIState) => string;
+    createSmartBackButton: (
+      currentView: ViewType,
+      appState?: UIState,
+    ) => string;
 
     // フォーム関連の追加コンポーネント
     radioGroup: (config: RadioGroupConfig) => string;
@@ -558,6 +568,68 @@ declare global {
     // UI要素の追加コンポーネント
     sectionHeader: (config: SectionHeaderConfig) => string;
     subtotalSection: (config: SubtotalSectionConfig) => string;
+
+    // 参加者ビュー専用コンポーネント
+    badge: (config: {
+      text: string;
+      color?: 'gray' | 'blue' | 'green' | 'red' | 'orange' | 'purple' | 'yellow';
+      size?: 'xs' | 'sm' | 'md';
+    }) => string;
+    tabGroup: (config: {
+      tabs: Array<{
+        label: string;
+        count: number;
+        isActive: boolean;
+        onclick: string;
+      }>;
+    }) => string;
+    filterChips: (config: {
+      options: Array<{ value: string; label: string }>;
+      selectedValue: string;
+      onClickHandler: string;
+    }) => string;
+    emptyState: (config: {
+      message: string;
+      icon?: string;
+      actionButton?: { text: string; onClick: string; style?: string };
+    }) => string;
+    accordionItem: (config: {
+      id: string;
+      headerContent: string;
+      bodyContent: string;
+      toggleHandler: string;
+      borderColor?: string;
+      bgColor?: string;
+      isExpanded?: boolean;
+    }) => string;
+    stickyTableHeader: (config: {
+      headerId: string;
+      columns: Array<{ label: string; width?: string; align?: string }>;
+      gridTemplate: string;
+    }) => string;
+    gridRow: (config: {
+      columns: Array<{
+        content: string;
+        width?: string;
+        align?: string;
+        className?: string;
+      }>;
+      gridTemplate: string;
+      rowClassName?: string;
+      onClick?: string;
+      rowHeight?: string;
+    }) => string;
+    detailRow: (config: {
+      label: string;
+      value: string;
+      className?: string;
+    }) => string;
+    historyItem: (config: {
+      date: string;
+      title: string;
+      subtitle?: string;
+      content?: string;
+    }) => string;
   }
 
   var Components: ComponentsObject;

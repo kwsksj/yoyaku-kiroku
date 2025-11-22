@@ -18,7 +18,7 @@
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
 import { getPrivacyPolicyModal } from './13_WebApp_Views_Utils.js';
-import { participantsActionHandlers } from './14_WebApp_Handlers_Participants.js';
+import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -91,11 +91,12 @@ export const authActionHandlers = {
 
         // 管理者判定: isAdminフラグまたは電話番号がADMIN_PASSWORDと一致するか
         const isAdmin = response.user?.isAdmin || response.isAdmin || false;
+        const userWithAdmin = { ...response.user, isAdmin: isAdmin };
 
         // 完全なアプリ状態を一度に構築
         // 管理者の場合はviewを設定せず、loadParticipantsView内で設定
         const newAppState = {
-          currentUser: response.user,
+          currentUser: userWithAdmin,
           myReservations: response.data.myReservations || [],
           lessons: response.data.lessons || [],
           classrooms: CONSTANTS.CLASSROOMS
@@ -119,7 +120,7 @@ export const authActionHandlers = {
         if (isAdmin) {
           console.log('📋 管理者ログイン - 参加者リストビューデータ取得開始');
           // 基本データを渡してloadParticipantsViewで一括設定
-          participantsActionHandlers.loadParticipantsView(
+          participantActionHandlers.loadParticipantView(
             false,
             false,
             newAppState,

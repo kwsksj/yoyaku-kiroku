@@ -325,6 +325,50 @@ types/
 - `types/generated-*-globals/` 内のファイルは自動生成されるため、直接編集しないでください
 - その他の型定義ファイル（`global-aliases.d.ts`, `*-index.d.ts`, `core/`, `view/`, `gas-custom.d.ts`）は手動管理のため、必要に応じて編集できます
 
+#### 型エラーの対処法：インデックスシグネチャではなく型定義を修正する
+
+型チェックでエラーが発生した場合、**安易にインデックスシグネチャ（`state['propertyName']`）を使った回避策を取らず**、根本的な型定義を修正してください。
+
+**❌ 避けるべき対処法:**
+
+```javascript
+// ブラケット記法での回避（推奨しない）
+const value = state['expandedLessonId'];
+```
+
+**✅ 推奨される対処法:**
+
+1. **手動管理の型定義ファイルを修正する**（`types/core/`, `types/view/` など）
+
+   ```typescript
+   // types/view/state.d.ts
+   export interface UIState {
+     expandedLessonId?: string | null; // 不足していたプロパティを追加
+     selectedParticipantsClassroom?: string;
+     showPastLessons?: boolean;
+     // ...
+   }
+   ```
+
+2. **ソースコードではドット記法を使用する**
+   ```javascript
+   // 型定義修正後はドット記法でアクセス可能
+   const value = state.expandedLessonId;
+   ```
+
+**このアプローチの利点:**
+
+- **型安全性の向上**: TypeScript が正確な型推論を提供
+- **コードの可読性**: ドット記法の方が自然で読みやすい
+- **IDEサポート**: オートコンプリートとエラー検出が機能する
+- **保守性**: プロパティ名のタイポを型チェックで検出できる
+
+**型定義の修正対象:**
+
+- `UIState` インターフェース: `types/view/state.d.ts`
+- Core型定義: `types/core/` 配下のファイル
+- グローバルエイリアス: `types/global-aliases.d.ts`
+
 ### ビルドプロセスによるコード変換
 
 開発のしやすさとGAS環境の互換性を両立させるため、ビルドプロセス (`npm run build` など) 実行時に以下のコード自動変換が行われます。

@@ -200,7 +200,7 @@ export const getReservationFormView = () => {
     return 'エラー: 予約フォームのデータが見つかりません。';
   }
 
-  const { lessonInfo, reservationInfo } = currentReservationFormContext;
+  const { lessonInfo, reservationInfo, source } = currentReservationFormContext;
   const isEdit = !!reservationInfo.reservationId;
 
   // lessonInfoは既にLessonCore型（統一済み）
@@ -243,6 +243,9 @@ export const getReservationFormView = () => {
     : isFull
       ? '空き通知 登録'
       : 'この内容で予約する';
+
+  const backAction =
+    source === 'participants' ? 'backToParticipantsView' : 'goBackToBooking';
 
   const _renderStatusHtml = () => {
     if (isEdit) {
@@ -457,7 +460,7 @@ export const getReservationFormView = () => {
   }
   buttonsHtml += Components.button({
     text: 'もどる',
-    action: 'smartGoBack',
+    action: backAction,
     style: 'secondary',
     size: 'full',
   });
@@ -471,7 +474,7 @@ export const getReservationFormView = () => {
   };
 
   return `
-      ${Components.pageHeader({ title: title })}
+      ${Components.pageHeader({ title: title, backAction: backAction })}
       ${Components.cardContainer({
         variant: 'default',
         padding: 'spacious',

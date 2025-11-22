@@ -765,62 +765,52 @@ export function getLessonsForParticipantsView(
       `管理者判定: studentId="${studentId}", isAdminBySpecialId=${isAdminBySpecialId}, isAdminByUser=${isAdminByUser}, 最終判定=${isAdmin}`,
     );
 
-    // キャッシュからレッスン情報を取得（6ヶ月前〜1年後のデータ）
-    const scheduleMasterCache = getTypedCachedData(
-      CACHE_KEYS.MASTER_SCHEDULE_DATA,
-    );
-
-    if (!scheduleMasterCache || !Array.isArray(scheduleMasterCache.schedule)) {
-      Logger.log('スケジュールマスターキャッシュが見つかりません');
+    // 空き枠計算済みのレッスン情報を取得
+    const lessonsResult = getLessons(true);
+    if (!lessonsResult.success || !Array.isArray(lessonsResult.data)) {
+      Logger.log('レッスン情報の取得に失敗しました（getLessons）');
       return createApiErrorResponse(
         'レッスン情報の取得に失敗しました。しばらくしてから再度お試しください。',
       );
     }
+    const allLessons = lessonsResult.data;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0); // 今日の0時0分0秒に設定
 
-    // レッスン一覧をフィルタリング（内部フィールド付き）
-    let lessonsWithDate = scheduleMasterCache.schedule.map(lesson => {
-      const lessonDate = new Date(lesson.date);
-      lessonDate.setHours(0, 0, 0, 0);
-
-      return {
-        lessonId: lesson.lessonId,
-        classroom: lesson.classroom,
-        date: lesson.date,
-        venue: lesson.venue || '',
-        status: lessonDate >= today ? '開催予定' : '開催済み',
-        // ソート用の内部フィールド
-        _dateObj: lessonDate,
-      };
-    });
+    // レッスン一覧をフィルタリング
+    let filteredLessons = allLessons.map(lesson => ({
+      ...lesson,
+      _dateObj: new Date(lesson.date),
+    }));
 
     // 過去データを除外する場合
     if (!includeHistory) {
-      lessonsWithDate = lessonsWithDate.filter(
+      filteredLessons = filteredLessons.filter(
         lesson => lesson._dateObj >= today,
       );
     }
 
     // 日付順にソート（新しい順）
-    lessonsWithDate.sort((a, b) => b._dateObj.getTime() - a._dateObj.getTime());
+    filteredLessons.sort((a, b) => b._dateObj.getTime() - a._dateObj.getTime());
 
     // 内部フィールドを削除して最終形にする
-    const lessons = lessonsWithDate.map(lesson => {
+    const lessons = filteredLessons.map(lesson => {
       const { _dateObj, ...rest } = lesson;
       return rest;
     });
 
-    // 🚀 予約データを一括取得（オプション）
+    const shouldIncludeReservations = includeReservations;
+
+    // 🚀 予約データを一括取得（オプション：管理者は個人情報付き、一般は公開情報のみ）
     /** @type {Record<string, any[]>} */
     const reservationsMap = {};
-    if (includeReservations && isAdmin) {
+    if (shouldIncludeReservations) {
       Logger.log('✅ 予約データを一括取得開始...');
 
       // キャッシュから全予約データと全生徒データを1回だけ取得
       const allReservations = getCachedReservationsAsObjects();
-      const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+      const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS);
       /** @type {Record<string, any>} */
       const allStudents = studentsCache?.['students'] || {};
       Logger.log(
@@ -845,52 +835,83 @@ export function getLessonsForParticipantsView(
           `📊 参加回数計算完了: ${Object.keys(participationCounts).length}名分`,
         );
 
-        // レッスンIDごとに予約をグループ化
+        // レッスンIDのセットと高速参照用マップを準備
+        /** @type {Record<string, any>} */
+        const lessonMapById = {};
         lessons.forEach(lesson => {
-          const lessonReservations = allReservations.filter(
-            reservation => reservation.lessonId === lesson.lessonId,
-          );
+          lessonMapById[lesson.lessonId] = lesson;
+          reservationsMap[lesson.lessonId] = [];
+        });
 
-          // 予約情報に生徒情報を結合（キャッシュ読み込みはループ外で1回のみ）
-          const reservationsWithUserInfo = lessonReservations.map(
-            reservation => {
-              const student = allStudents[reservation.studentId];
+        // レッスンIDごとに予約をグループ化（1パス）
+        allReservations.forEach(reservation => {
+          if (reservation.status === CONSTANTS.STATUS.CANCELED) return;
+          const lesson = lessonMapById[reservation.lessonId];
+          if (!lesson) return; // 取得対象外のレッスン
 
-              // 基本情報
-              const baseInfo = {
-                reservationId: reservation.reservationId,
-                date: reservation.date || lesson.date,
-                classroom: lesson.classroom,
-                venue: lesson.venue || '',
-                startTime: reservation.startTime || '',
-                endTime: reservation.endTime || '',
-                status: reservation.status,
-                studentId: reservation.studentId,
-                nickname: student?.nickname || '',
-                displayName: student?.displayName || '',
-                firstLecture: reservation.firstLecture || false,
-                chiselRental: reservation.chiselRental || false,
-                workInProgress: reservation.workInProgress || '',
-                order: reservation.order || '',
-                participationCount:
-                  participationCounts[reservation.studentId] || 0,
-              };
+          const student = allStudents[reservation.studentId];
 
-              // 管理者の場合は個人情報を追加
-              if (isAdmin) {
-                return {
-                  ...baseInfo,
-                  realName: student?.realName || '',
-                  phone: student?.phone || '',
-                  email: student?.email || '',
-                };
+          // 生徒情報がない場合はスキップせず、予約情報だけでも返す
+          const studentData = student || {};
+
+          const nickname = studentData.nickname || '';
+          const rawDisplayName = studentData.displayName || nickname || '';
+          const realName = studentData.realName || '';
+          const shouldMaskDisplayName =
+            !isAdmin &&
+            realName &&
+            rawDisplayName &&
+            rawDisplayName === realName;
+          const publicDisplayName = shouldMaskDisplayName
+            ? rawDisplayName.substring(0, 2)
+            : rawDisplayName;
+
+          // 基本情報
+          const baseInfo = {
+            reservationId: reservation.reservationId,
+            date: reservation.date || lesson.date,
+            classroom: lesson.classroom,
+            venue: lesson.venue || '',
+            startTime: reservation.startTime || '',
+            endTime: reservation.endTime || '',
+            status: reservation.status,
+            studentId: reservation.studentId,
+            nickname: publicDisplayName,
+            displayName: publicDisplayName,
+            firstLecture: reservation.firstLecture || false,
+            chiselRental: reservation.chiselRental || false,
+            workInProgress: reservation.workInProgress || '',
+            order: reservation.order || '',
+            participationCount: participationCounts[reservation.studentId] || 0,
+            futureCreations: studentData.futureCreations || '',
+            companion: reservation.companion || '',
+            transportation: reservation.transportation || '',
+            pickup: reservation.pickup || '',
+            car: reservation.car || '',
+          };
+
+          // 管理者の場合は個人情報を追加（表示名はフルで保持）
+          const fullInfo = isAdmin
+            ? {
+                ...baseInfo,
+                nickname: nickname || rawDisplayName,
+                displayName: rawDisplayName,
+                realName: realName,
+                messageToTeacher: reservation.messageToTeacher || '',
+                phone: studentData.phone || '',
+                email: studentData.email || '',
+                ageGroup:
+                  studentData.ageGroup !== undefined &&
+                  studentData.ageGroup !== null
+                    ? String(studentData.ageGroup)
+                    : '',
+                gender: studentData.gender || '',
+                address: studentData.address || '',
+                notes: reservation.notes || '', // 予約固有の備考
               }
+            : baseInfo;
 
-              return baseInfo;
-            },
-          );
-
-          reservationsMap[lesson.lessonId] = reservationsWithUserInfo;
+          reservationsMap[lesson.lessonId].push(fullInfo);
         });
 
         Logger.log(
@@ -912,7 +933,7 @@ export function getLessonsForParticipantsView(
     return createApiResponse(true, {
       lessons: lessons,
       isAdmin: isAdmin,
-      reservationsMap: includeReservations ? reservationsMap : undefined,
+      reservationsMap: shouldIncludeReservations ? reservationsMap : undefined,
       message: 'レッスン一覧を取得しました',
     });
   } catch (error) {
@@ -992,6 +1013,14 @@ export function getReservationsForLesson(lessonId, studentId) {
     const reservationsWithUserInfo = lessonReservations.map(reservation => {
       // 生徒情報を取得
       const student = getCachedStudentById(reservation.studentId);
+      const nickname = student?.nickname || '';
+      const rawDisplayName = student?.displayName || nickname;
+      const realName = student?.realName || '';
+      const shouldMaskDisplayName =
+        !isAdmin && realName && rawDisplayName && rawDisplayName === realName;
+      const publicDisplayName = shouldMaskDisplayName
+        ? rawDisplayName.substring(0, 2)
+        : rawDisplayName;
 
       // 基本情報（全員に公開）
       const baseInfo = {
@@ -1003,21 +1032,30 @@ export function getReservationsForLesson(lessonId, studentId) {
         endTime: reservation.endTime || '',
         status: reservation.status,
         studentId: reservation.studentId,
-        nickname: student?.nickname || '',
-        displayName: student?.displayName || '',
+        nickname: publicDisplayName,
+        displayName: publicDisplayName,
         firstLecture: reservation.firstLecture || false,
         chiselRental: reservation.chiselRental || false,
         workInProgress: reservation.workInProgress || '',
         order: reservation.order || '',
       };
 
-      // 管理者の場合は個人情報を追加
+      // 管理者の場合は個人情報を追加（表示名はフルで保持）
       if (isAdmin) {
         return {
           ...baseInfo,
-          realName: student?.realName || '',
+          nickname: nickname || rawDisplayName,
+          displayName: rawDisplayName,
+          realName: realName,
+          messageToTeacher: reservation.messageToTeacher || '',
           phone: student?.phone || '',
           email: student?.email || '',
+          ageGroup:
+            student?.ageGroup !== undefined && student?.ageGroup !== null
+              ? String(student?.ageGroup)
+              : '',
+          gender: student?.gender || '',
+          address: student?.address || '',
         };
       }
 
@@ -1144,11 +1182,24 @@ export function getStudentDetailsForParticipantsView(
       ['完了', '会計待ち', '会計済み'].includes(r.status),
     ).length;
 
+    const rawNickname = targetStudent.nickname || '';
+    const rawDisplayName = targetStudent.displayName || rawNickname;
+    const realName = targetStudent.realName || '';
+    const shouldMaskDisplayName =
+      !isAdmin &&
+      !isSelf &&
+      realName &&
+      rawDisplayName &&
+      rawDisplayName === realName;
+    const publicDisplayName = shouldMaskDisplayName
+      ? rawDisplayName.substring(0, 2)
+      : rawDisplayName;
+
     // 基本情報（公開）
     const publicInfo = {
       studentId: targetStudent.studentId,
-      nickname: targetStudent.nickname || '',
-      displayName: targetStudent.displayName || '',
+      nickname: publicDisplayName,
+      displayName: publicDisplayName,
       participationCount: participationCount,
       futureCreations: targetStudent.futureCreations || '',
       reservationHistory: reservationHistory,
@@ -1158,6 +1209,8 @@ export function getStudentDetailsForParticipantsView(
     if (isAdmin || isSelf) {
       const detailedInfo = {
         ...publicInfo,
+        nickname: rawNickname || rawDisplayName,
+        displayName: rawDisplayName,
         realName: targetStudent.realName || '',
         phone: targetStudent.phone || '',
         email: targetStudent.email || '',
@@ -1166,7 +1219,11 @@ export function getStudentDetailsForParticipantsView(
           targetStudent.wantsScheduleNotification || false,
         notificationDay: targetStudent.notificationDay || 0,
         notificationHour: targetStudent.notificationHour || 0,
-        ageGroup: targetStudent.ageGroup || '',
+        ageGroup:
+          targetStudent.ageGroup !== undefined &&
+          targetStudent.ageGroup !== null
+            ? String(targetStudent.ageGroup)
+            : '',
         gender: targetStudent.gender || '',
         dominantHand: targetStudent.dominantHand || '',
         address: targetStudent.address || '',

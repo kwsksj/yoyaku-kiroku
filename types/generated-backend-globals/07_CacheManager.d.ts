@@ -87,6 +87,15 @@ export function updateReservationInCache(reservationId: string, updatedRowData: 
  */
 export function updateReservationColumnInCache(reservationId: string, columnHeaderName: string, newValue: string | number | Date): void;
 /**
+ * 生徒名簿からすべての情報を読み込み、CacheServiceに保存する
+ * 生徒IDをキーとしたオブジェクト形式でキャッシュに保存します。
+ *
+ * @throws {Error} 生徒名簿シートが見つからない場合
+ * @throws {Error} 必須ヘッダーが見つからない場合
+ * @throws {Error} データ処理中にエラーが発生した場合
+ */
+export function rebuildAllStudentsCache(): void;
+/**
  * 全てのキャッシュデータを一括で再構築するエントリーポイント関数
  * UI確認ダイアログを表示してから、全種類のキャッシュを順次再構築します。
  * スプレッドシートのメニューから手動実行される場合に使用されます。
@@ -143,15 +152,6 @@ export function rebuildAccountingMasterCache(): {
     version: number;
     items: AccountingMasterItem[];
 };
-/**
- * 生徒名簿から基本情報（ID、本名、ニックネーム、電話番号）を読み込み、CacheServiceに保存する
- * 生徒IDをキーとしたオブジェクト形式でキャッシュに保存します。
- *
- * @throws {Error} 生徒名簿シートが見つからない場合
- * @throws {Error} 必須ヘッダーが見つからない場合
- * @throws {Error} データ処理中にエラーが発生した場合
- */
-export function rebuildAllStudentsBasicCache(): void;
 /**
  * 日程マスタのステータスを自動更新（開催予定 → 開催済み）
  * 現在日時を基準に、過去の開催予定講座を開催済みに変更します。
@@ -329,7 +329,7 @@ export function updateLessonReservationIdsInCache(lessonId: string, reservationI
 export function diagnoseAndFixScheduleMasterCache(): void;
 export namespace CACHE_KEYS {
     let ALL_RESERVATIONS: "all_reservations";
-    let ALL_STUDENTS_BASIC: "all_students_basic";
+    let ALL_STUDENTS: "all_students";
     let MASTER_SCHEDULE_DATA: "master_schedule_data";
     let MASTER_ACCOUNTING_DATA: "master_accounting_data";
 }
@@ -339,4 +339,4 @@ export namespace CACHE_KEYS {
 export const CHUNK_SIZE_LIMIT_KB: 90;
 export const MAX_CHUNKS: 20;
 export type CacheKey = (typeof CACHE_KEYS)[keyof typeof CACHE_KEYS];
-export type CacheDataType<K extends CacheKey> = K extends "all_reservations" ? ReservationCacheData : K extends "all_students_basic" ? StudentCacheData : K extends "master_schedule_data" ? ScheduleCacheData : K extends "master_accounting_data" ? AccountingCacheData : never;
+export type CacheDataType<K extends CacheKey> = K extends "all_reservations" ? ReservationCacheData : K extends "all_students" ? StudentCacheData : K extends "master_schedule_data" ? ScheduleCacheData : K extends "master_accounting_data" ? AccountingCacheData : never;
