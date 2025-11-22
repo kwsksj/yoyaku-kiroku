@@ -14,6 +14,8 @@
 /** @type {SimpleStateManager} */
 const participantStateManager = appWindow.stateManager;
 
+/** @typedef {import('../../types/core/lesson').LessonCore} LessonCore */
+
 /**
  * @typedef {Object} ClassroomColorConfig
  * @property {string} bg - 背景色クラス
@@ -87,6 +89,9 @@ const PARTICIPANT_TABLE_COLUMNS = [
 
       // バッジを生成
       const badges = [];
+      if (row._pending) {
+        badges.push(Components.badge({ text: '未', color: 'red', size: 'xs' }));
+      }
       if (row.status === CONSTANTS.STATUS.WAITLISTED) {
         badges.push(
           Components.badge({ text: '待', color: 'yellow', size: 'xs' }),
@@ -290,7 +295,9 @@ export function getParticipantView() {
 
   switch (subView) {
     case 'list':
-      return renderLessonList(state.participantLessons || []);
+      return renderLessonList(
+        /** @type {LessonCore[]} */ (state.participantLessons || []),
+      );
     case 'studentDetail':
       return renderStudentDetailModalContent(
         state.participantSelectedStudent,
@@ -314,12 +321,18 @@ function getVisibleColumns(isAdmin) {
 
 /**
  * アコーディオン展開時の予約詳細コンテンツを生成（ヘッダーなし、データ行のみ）
- * @param {any} _lesson - レッスン情報（未使用）
+ * @param {LessonCore} _lesson - レッスン情報（未使用）
  * @param {any[]} reservations - 予約一覧
  * @param {boolean} isAdmin - 管理者フラグ
+ * @param {boolean} showPastLessons - 過去表示フラグ
  * @returns {string} HTML文字列
  */
-function renderAccordionContent(_lesson, reservations, isAdmin = true) {
+function renderAccordionContent(
+  _lesson,
+  reservations,
+  isAdmin = true,
+  showPastLessons = false,
+) {
   if (!reservations || reservations.length === 0) {
     return '<div class="text-center text-gray-500 text-xs py-2">参加者がいません</div>';
   }
@@ -331,12 +344,16 @@ function renderAccordionContent(_lesson, reservations, isAdmin = true) {
   // データ行のみを生成（ヘッダーなし）
   return reservations
     .map(row => {
+      const isPending =
+        showPastLessons && row.status === CONSTANTS.STATUS.CONFIRMED;
+      const rowForRender = isPending ? { ...row, _pending: true } : row;
+
       // 各列のHTMLを生成
       const columnsHtml = visibleColumns
         .map(col => {
           const content = col.render
-            ? col.render(row)
-            : escapeHTML(row[col.key] || '—');
+            ? col.render(rowForRender)
+            : escapeHTML(rowForRender[col.key] || '—');
           return `<div class="overflow-hidden">${content}</div>`;
         })
         .join('');
@@ -358,7 +375,7 @@ function renderAccordionContent(_lesson, reservations, isAdmin = true) {
 
 /**
  * レッスン一覧を描画
- * @param {any[]} lessons - レッスン一覧
+ * @param {LessonCore[]} lessons - レッスン一覧
  * @returns {string} HTML文字列
  */
 function renderLessonList(lessons) {
@@ -516,18 +533,27 @@ function renderLessonList(lessons) {
         if (!start && !end) return 'allDay';
         // 日程シートに時間があれば利用（開始/終了）。無ければ既存ロジックでフォールバック
         const slot = getReservationTimeSlot(reservation);
-        if (!lesson.startTime || !lesson.endTime) {
-          return slot === 'allDay' ? 'both' : slot;
-        }
         // 1部終了時刻と2部開始時刻を基準に判定
-        const parseTime = /** @param {string} time */ time => {
+        const parseTime = /** @param {string | undefined} time */ time => {
+          if (!time) return null;
           const [h, m] = time.split(':').map(Number);
+          if (Number.isNaN(h) || Number.isNaN(m)) return null;
           return h + m / 60;
         };
-        const session1End = parseTime(lesson.endTime); // 1部終了
-        const session2Start = parseTime(lesson.startTimeSecond || lesson.startTime || '12:00'); // 2部開始（存在すれば）
-        const startNum = start ? parseTime(start) : 0;
-        const endNum = end ? parseTime(end) : 24;
+        const session1End =
+          parseTime(lesson.firstEnd) || parseTime(lesson.endTime);
+        const session2Start =
+          parseTime(lesson.secondStart) || parseTime(lesson.startTime);
+        if (session1End === null || session2Start === null) {
+          return slot === 'allDay' ? 'both' : slot;
+        }
+
+        const startNum = parseTime(start);
+        const endNum = parseTime(end);
+        if (startNum === null || endNum === null) {
+          return slot === 'allDay' ? 'both' : slot;
+        }
+
         const inMorning = startNum < session1End;
         const inAfternoon = endNum > session2Start;
         if (inMorning && inAfternoon) return 'both';
@@ -678,7 +704,12 @@ function renderLessonList(lessons) {
       const accordionContent = `
         <div class="accordion-content bg-white hidden" data-lesson-id="${escapeHTML(lesson.lessonId)}">
           <div class="overflow-x-auto participants-table-body">
-            ${renderAccordionContent(lesson, allLessonReservations, isAdmin)}
+            ${renderAccordionContent(
+              lesson,
+              allLessonReservations,
+              isAdmin,
+              showPastLessons,
+            )}
           </div>
           ${reserveButtonHtml}
         </div>

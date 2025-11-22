@@ -4,6 +4,7 @@
  * @returns {string} HTML文字列
  */
 export function getParticipantView(): string;
+export type LessonCore = import("../../types/core/lesson").LessonCore;
 export type ClassroomColorConfig = {
     /**
      * - 背景色クラス
