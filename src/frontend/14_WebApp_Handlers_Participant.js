@@ -286,44 +286,6 @@ function toggleParticipantLessonAccordion(lessonId) {
 }
 
 /**
- * レッスン選択ハンドラ（旧実装 - 互換性のため残す）
- * @param {string} lessonId - レッスンID
- */
-function selectParticipantLesson(lessonId) {
-  if (!lessonId) return;
-
-  console.log('📅 レッスン選択:', lessonId);
-
-  const state = participantHandlersStateManager.getState();
-  const selectedLesson = state.participantLessons?.find(
-    /** @param {import('../../types/core/lesson').LessonCore} l */
-    l => l.lessonId === lessonId,
-  );
-
-  if (!selectedLesson) {
-    showInfo('レッスン情報が見つかりません', 'エラー');
-    return;
-  }
-
-  // stateManagerから予約データを取得（初回ロード時に全データ取得済み）
-  const reservations = state.participantReservationsMap?.[lessonId] || [];
-
-  console.log(`✅ stateManagerから予約データ取得: ${reservations.length}件`);
-
-  // 状態を更新して表示
-  participantHandlersStateManager.dispatch({
-    type: 'UPDATE_STATE',
-    payload: {
-      participantSelectedLesson: selectedLesson,
-      participantReservations: reservations,
-      participantSubView: 'reservations',
-    },
-  });
-
-  render();
-}
-
-/**
  * 生徒選択ハンドラ（モーダル表示）
  * @param {string} targetStudentId - 表示対象の生徒ID
  */
@@ -442,8 +404,6 @@ function backToParticipantList() {
     type: 'UPDATE_STATE',
     payload: {
       participantSubView: 'list',
-      participantSelectedLesson: null,
-      participantReservations: [],
     },
   });
 
@@ -553,7 +513,6 @@ export const participantActionHandlers = {
     loadParticipantView(false); // 強制再読み込みはしない（未来分のみ先読み）
   },
   toggleParticipantLessonAccordion,
-  selectParticipantLesson,
   selectParticipantStudent,
   backToParticipantList,
   backToParticipantsView: () => {

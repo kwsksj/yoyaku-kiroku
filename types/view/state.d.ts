@@ -188,11 +188,9 @@ export interface UIState {
     currentReservationFormContext: ReservationFormContext | null;
 
     // --- Participants View (Admin) ---
-    participantSubView?: 'list' | 'reservations' | 'studentDetail';
+    participantSubView?: 'list' | 'studentDetail';
     participantLessons?: LessonCore[];
-    participantReservations?: ReservationCore[];
     participantReservationsMap?: Record<string, ReservationCore[]>; // 全レッスンの予約データ（キー: lessonId）
-    participantSelectedLesson?: LessonCore | null;
     participantSelectedStudent?: UserCore | null;
     participantIsAdmin?: boolean;
     participantHasPastLessonsLoaded?: boolean; // 過去分を取得済みか
