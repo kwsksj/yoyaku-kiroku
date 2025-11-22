@@ -800,10 +800,12 @@ export function getLessonsForParticipantsView(
       return rest;
     });
 
-    // 🚀 予約データを一括取得（オプション）
+    const shouldIncludeReservations = includeReservations && isAdmin;
+
+    // 🚀 予約データを一括取得（オプション・管理者限定）
     /** @type {Record<string, any[]>} */
     const reservationsMap = {};
-    if (includeReservations) {
+    if (shouldIncludeReservations) {
       Logger.log('✅ 予約データを一括取得開始...');
 
       // キャッシュから全予約データと全生徒データを1回だけ取得
@@ -931,7 +933,7 @@ export function getLessonsForParticipantsView(
     return createApiResponse(true, {
       lessons: lessons,
       isAdmin: isAdmin,
-      reservationsMap: includeReservations ? reservationsMap : undefined,
+      reservationsMap: shouldIncludeReservations ? reservationsMap : undefined,
       message: 'レッスン一覧を取得しました',
     });
   } catch (error) {

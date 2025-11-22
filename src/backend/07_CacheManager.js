@@ -2394,6 +2394,7 @@ export function updateCachedStudent(updatedStudent) {
     Logger.log(
       'updateCachedStudent: 生徒キャッシュが存在しないため再構築を実行します',
     );
+    rebuildAllStudentsCache();
     return;
   }
 
@@ -2435,6 +2436,7 @@ export function addCachedStudent(newStudent) {
     Logger.log(
       'addCachedStudent: 生徒キャッシュが存在しないため再構築を実行します',
     );
+    rebuildAllStudentsCache();
     return;
   }
 
