@@ -358,8 +358,9 @@ function renderAccordionContent(
         })
         .join('');
 
-      const rowBgColor =
-        row.status === CONSTANTS.STATUS.WAITLISTED
+      const rowBgColor = isPending
+        ? 'bg-red-50 hover:bg-red-100'
+        : row.status === CONSTANTS.STATUS.WAITLISTED
           ? 'bg-yellow-50 hover:bg-yellow-100'
           : 'hover:bg-gray-50';
 
