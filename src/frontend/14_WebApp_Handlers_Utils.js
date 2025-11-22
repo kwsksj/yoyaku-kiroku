@@ -524,3 +524,49 @@ window.formatDate =
       return `<span class="font-mono-numbers">${d.getMonth() + 1}/${d.getDate()}</span><span class="font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day] || ''}</span>`;
     }
   );
+
+/**
+ * 参加者画面の横スクロール同期をセットアップ
+ * ヘッダー行と各アコーディオンのテーブルボディ間でスクロールを同期
+ */
+window.setupParticipantsScrollSync =
+  window.setupParticipantsScrollSync ||
+  function () {
+    const header = document.getElementById('participants-table-header');
+    const bodies = document.querySelectorAll('.participants-table-body');
+
+    if (!header || bodies.length === 0) return;
+
+    let isScrolling = false;
+
+    // ヘッダーのスクロールを全てのボディに同期
+    header.addEventListener('scroll', function () {
+      if (isScrolling) return;
+      isScrolling = true;
+      const scrollLeft = header.scrollLeft;
+      bodies.forEach(body => {
+        body.scrollLeft = scrollLeft;
+      });
+      setTimeout(() => {
+        isScrolling = false;
+      }, 10);
+    });
+
+    // 各ボディのスクロールをヘッダーと他のボディに同期
+    bodies.forEach(body => {
+      body.addEventListener('scroll', function () {
+        if (isScrolling) return;
+        isScrolling = true;
+        const scrollLeft = body.scrollLeft;
+        header.scrollLeft = scrollLeft;
+        bodies.forEach(otherBody => {
+          if (otherBody !== body) {
+            otherBody.scrollLeft = scrollLeft;
+          }
+        });
+        setTimeout(() => {
+          isScrolling = false;
+        }, 10);
+      });
+    });
+  };

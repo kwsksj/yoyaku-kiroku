@@ -24,7 +24,16 @@
 // ================================================================
 // 依存モジュール
 // ================================================================
-import { authenticateUser, registerNewUser } from './04_Backend_User.js';
+import {
+  authenticateUser,
+  registerNewUser,
+  isAdminUser,
+  isAdminLogin,
+} from './04_Backend_User.js';
+import {
+  getCachedStudentById,
+  getCachedReservationsAsObjects,
+} from './08_Utilities.js';
 import {
   makeReservation,
   cancelReservation,
@@ -38,7 +47,11 @@ import {
   getLessons,
   getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
-import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
+import {
+  CACHE_KEYS,
+  getTypedCachedData,
+  getCachedData,
+} from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 
@@ -233,12 +246,19 @@ export function getLoginData(phone) {
         return fallbackResponse;
       }
 
-      // 3. レスポンス統合
+      // 3. 管理者判定
+      const isAdmin = authResult.user.studentId
+        ? isAdminUser(authResult.user.studentId)
+        : false;
+      Logger.log(`管理者判定: ${isAdmin}`);
+
+      // 4. レスポンス統合
       /** @type {AuthenticationResponse} */
       const result = {
         success: true,
         userFound: true,
         user: authResult.user,
+        isAdmin: isAdmin,
         data: {
           accountingMaster: batchResult.data['accounting'] || [],
           cacheVersions: /** @type {Record<string, unknown>} */ (
@@ -254,6 +274,53 @@ export function getLoginData(phone) {
     } else {
       // 4. 認証失敗時：ユーザー未登録
       Logger.log(`認証失敗: ${authResult.message || 'Unknown error'}`);
+
+      // 4-1. 管理者パスワードチェック（未登録でも管理者なら許可）
+      if (isAdminLogin(phone)) {
+        Logger.log('管理者パスワード一致 - 未登録でも管理者としてログイン');
+
+        // 管理者用ダミーユーザーオブジェクト
+        /** @type {UserCore} */
+        const adminUser = {
+          studentId: 'ADMIN',
+          phone: phone,
+          realName: '管理者',
+          displayName: '管理者',
+        };
+
+        // データ一括取得（管理者用）
+        const batchResult = getBatchData(['accounting', 'lessons'], null, null);
+        if (!batchResult.success) {
+          Logger.log('データ一括取得失敗（管理者）');
+          return /** @type {ApiErrorResponse} */ (
+            createApiErrorResponse(
+              'データの取得に失敗しました。しばらくしてから再度お試しください。',
+              true,
+            )
+          );
+        }
+
+        /** @type {AuthenticationResponse} */
+        const adminResponse = {
+          success: true,
+          userFound: true,
+          user: adminUser,
+          isAdmin: true,
+          data: {
+            accountingMaster: batchResult.data['accounting'] || [],
+            cacheVersions: /** @type {Record<string, unknown>} */ (
+              batchResult.data['cache-versions'] || {}
+            ),
+            lessons: batchResult.data['lessons'] || [],
+            myReservations: [],
+          },
+        };
+
+        Logger.log('管理者ログイン完了（未登録）');
+        return adminResponse;
+      }
+
+      // 4-2. 通常の認証失敗レスポンス
       /** @type {AuthenticationResponse} */
       const notFoundResponse = {
         success: true,
@@ -665,4 +732,540 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
     confirmInfo.studentId,
     '予約が確定しました。',
   );
+}
+
+// ================================================================
+// 参加者リスト機能用のAPIエンドポイント
+// ================================================================
+
+/**
+ * 参加者リスト表示用のレッスン一覧を取得する
+ * - キャッシュから6ヶ月前〜1年後のレッスン情報を取得
+ * - 管理者・一般生徒を問わず、同じデータを返す（レッスン情報は公開情報）
+ *
+ * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用に予約）
+ * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
+ * @returns {ApiResponseGeneric} レッスン一覧
+ */
+export function getLessonsForParticipantsView(
+  studentId,
+  includeHistory = true,
+  includeReservations = false,
+) {
+  try {
+    Logger.log(
+      `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}, includeReservations=${includeReservations}`,
+    );
+
+    // 管理者判定（studentId="ADMIN"または登録済み管理者）
+    const isAdminBySpecialId = studentId === 'ADMIN';
+    const isAdminByUser = isAdminUser(studentId);
+    const isAdmin = isAdminBySpecialId || isAdminByUser;
+    Logger.log(
+      `管理者判定: studentId="${studentId}", isAdminBySpecialId=${isAdminBySpecialId}, isAdminByUser=${isAdminByUser}, 最終判定=${isAdmin}`,
+    );
+
+    // 空き枠計算済みのレッスン情報を取得
+    const lessonsResult = getLessons(true);
+    if (!lessonsResult.success || !Array.isArray(lessonsResult.data)) {
+      Logger.log('レッスン情報の取得に失敗しました（getLessons）');
+      return createApiErrorResponse(
+        'レッスン情報の取得に失敗しました。しばらくしてから再度お試しください。',
+      );
+    }
+    const allLessons = lessonsResult.data;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // 今日の0時0分0秒に設定
+
+    // レッスン一覧をフィルタリング
+    let filteredLessons = allLessons.map(lesson => ({
+      ...lesson,
+      _dateObj: new Date(lesson.date),
+    }));
+
+    // 過去データを除外する場合
+    if (!includeHistory) {
+      filteredLessons = filteredLessons.filter(
+        lesson => lesson._dateObj >= today,
+      );
+    }
+
+    // 日付順にソート（新しい順）
+    filteredLessons.sort((a, b) => b._dateObj.getTime() - a._dateObj.getTime());
+
+    // 内部フィールドを削除して最終形にする
+    const lessons = filteredLessons.map(lesson => {
+      const { _dateObj, ...rest } = lesson;
+      return rest;
+    });
+
+    const shouldIncludeReservations = includeReservations;
+
+    // 🚀 予約データを一括取得（オプション：管理者は個人情報付き、一般は公開情報のみ）
+    /** @type {Record<string, any[]>} */
+    const reservationsMap = {};
+    if (shouldIncludeReservations) {
+      Logger.log('✅ 予約データを一括取得開始...');
+
+      // キャッシュから全予約データと全生徒データを1回だけ取得
+      const allReservations = getCachedReservationsAsObjects();
+      const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS);
+      /** @type {Record<string, any>} */
+      const allStudents = studentsCache?.['students'] || {};
+      Logger.log(
+        `📚 データ取得: 予約${allReservations.length}件, 生徒${Object.keys(allStudents).length}件`,
+      );
+
+      if (allReservations && allReservations.length > 0) {
+        // 各生徒の参加回数を事前に計算（過去の予約をカウント）
+        /** @type {Record<string, number>} */
+        const participationCounts = {};
+        allReservations.forEach(reservation => {
+          const resDate = new Date(reservation.date);
+          resDate.setHours(0, 0, 0, 0);
+          // 過去の予約のみカウント
+          if (resDate < today) {
+            const studentId = reservation.studentId;
+            participationCounts[studentId] =
+              (participationCounts[studentId] || 0) + 1;
+          }
+        });
+        Logger.log(
+          `📊 参加回数計算完了: ${Object.keys(participationCounts).length}名分`,
+        );
+
+        // レッスンIDのセットと高速参照用マップを準備
+        /** @type {Record<string, any>} */
+        const lessonMapById = {};
+        lessons.forEach(lesson => {
+          lessonMapById[lesson.lessonId] = lesson;
+          reservationsMap[lesson.lessonId] = [];
+        });
+
+        // レッスンIDごとに予約をグループ化（1パス）
+        allReservations.forEach(reservation => {
+          if (reservation.status === CONSTANTS.STATUS.CANCELED) return;
+          const lesson = lessonMapById[reservation.lessonId];
+          if (!lesson) return; // 取得対象外のレッスン
+
+          const student = allStudents[reservation.studentId];
+
+          // 生徒情報がない場合はスキップせず、予約情報だけでも返す
+          const studentData = student || {};
+
+          const nickname = studentData.nickname || '';
+          const rawDisplayName = studentData.displayName || nickname || '';
+          const realName = studentData.realName || '';
+          const shouldMaskDisplayName =
+            !isAdmin &&
+            realName &&
+            rawDisplayName &&
+            rawDisplayName === realName;
+          const publicDisplayName = shouldMaskDisplayName
+            ? rawDisplayName.substring(0, 2)
+            : rawDisplayName;
+
+          // 基本情報
+          const baseInfo = {
+            reservationId: reservation.reservationId,
+            date: reservation.date || lesson.date,
+            classroom: lesson.classroom,
+            venue: lesson.venue || '',
+            startTime: reservation.startTime || '',
+            endTime: reservation.endTime || '',
+            status: reservation.status,
+            studentId: reservation.studentId,
+            nickname: publicDisplayName,
+            displayName: publicDisplayName,
+            firstLecture: reservation.firstLecture || false,
+            chiselRental: reservation.chiselRental || false,
+            workInProgress: reservation.workInProgress || '',
+            order: reservation.order || '',
+            participationCount: participationCounts[reservation.studentId] || 0,
+            futureCreations: studentData.futureCreations || '',
+            companion: reservation.companion || '',
+            transportation: reservation.transportation || '',
+            pickup: reservation.pickup || '',
+            car: reservation.car || '',
+          };
+
+          // 管理者の場合は個人情報を追加（表示名はフルで保持）
+          const fullInfo = isAdmin
+            ? {
+                ...baseInfo,
+                nickname: nickname || rawDisplayName,
+                displayName: rawDisplayName,
+                realName: realName,
+                messageToTeacher: reservation.messageToTeacher || '',
+                phone: studentData.phone || '',
+                email: studentData.email || '',
+                ageGroup:
+                  studentData.ageGroup !== undefined &&
+                  studentData.ageGroup !== null
+                    ? String(studentData.ageGroup)
+                    : '',
+                gender: studentData.gender || '',
+                address: studentData.address || '',
+                notes: reservation.notes || '', // 予約固有の備考
+              }
+            : baseInfo;
+
+          reservationsMap[lesson.lessonId].push(fullInfo);
+        });
+
+        Logger.log(
+          `✅ 予約データ一括取得完了: ${Object.keys(reservationsMap).length}レッスン分`,
+        );
+      } else {
+        Logger.log('⚠️ 全予約データが取得できませんでした（キャッシュ空）');
+      }
+    } else {
+      Logger.log(
+        `❌ 予約データ取得スキップ: includeReservations=${includeReservations}, isAdmin=${isAdmin}`,
+      );
+    }
+
+    Logger.log(
+      `getLessonsForParticipantsView完了: ${lessons.length}件のレッスン, reservationsMapキー数=${Object.keys(reservationsMap).length}`,
+    );
+
+    return createApiResponse(true, {
+      lessons: lessons,
+      isAdmin: isAdmin,
+      reservationsMap: shouldIncludeReservations ? reservationsMap : undefined,
+      message: 'レッスン一覧を取得しました',
+    });
+  } catch (error) {
+    Logger.log(
+      `getLessonsForParticipantsView エラー: ${error.message}\nStack: ${error.stack}`,
+    );
+    return createApiErrorResponse(
+      `レッスン一覧の取得中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
+}
+
+/**
+ * 特定レッスンの予約情報リストを取得する（権限に応じてフィルタリング）
+ * - 管理者: 全項目を返す（本名、電話番号、メールアドレスなど）
+ * - 一般生徒: 公開情報のみ（本名、電話番号、メールアドレスを除外）
+ *
+ * @param {string} lessonId - レッスンID
+ * @param {string} studentId - リクエストしている生徒のID
+ * @returns {ApiResponseGeneric} 予約情報リスト
+ */
+export function getReservationsForLesson(lessonId, studentId) {
+  try {
+    Logger.log(
+      `getReservationsForLesson開始: lessonId=${lessonId}, studentId=${studentId}`,
+    );
+
+    // パラメータ検証
+    if (!lessonId) {
+      return createApiErrorResponse('レッスンIDが必要です');
+    }
+
+    // 管理者権限チェック（studentId="ADMIN"または登録済み管理者）
+    const isAdmin = studentId === 'ADMIN' || isAdminUser(studentId);
+    Logger.log(`管理者権限: ${isAdmin}`);
+
+    // キャッシュから予約情報を取得（ReservationCore[]として取得）
+    const allReservations = getCachedReservationsAsObjects();
+
+    if (!allReservations || allReservations.length === 0) {
+      Logger.log('予約データが見つかりません');
+      return createApiErrorResponse(
+        '予約情報の取得に失敗しました。しばらくしてから再度お試しください。',
+      );
+    }
+
+    // キャッシュからレッスン情報を取得（教室・会場情報を結合するため）
+    const scheduleMasterCache = getTypedCachedData(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+    );
+
+    if (!scheduleMasterCache || !Array.isArray(scheduleMasterCache.schedule)) {
+      Logger.log('スケジュールマスターキャッシュが見つかりません');
+      return createApiErrorResponse(
+        'レッスン情報の取得に失敗しました。しばらくしてから再度お試しください。',
+      );
+    }
+
+    // 該当レッスンを検索
+    const targetLesson = scheduleMasterCache.schedule.find(
+      lesson => lesson.lessonId === lessonId,
+    );
+
+    if (!targetLesson) {
+      return createApiErrorResponse('指定されたレッスンが見つかりません');
+    }
+
+    // 該当レッスンの予約をフィルタリング
+    const lessonReservations = allReservations.filter(
+      reservation => reservation.lessonId === lessonId,
+    );
+
+    Logger.log(`該当レッスンの予約: ${lessonReservations.length}件`);
+
+    // 予約情報に生徒情報を結合し、権限に応じてフィルタリング
+    const reservationsWithUserInfo = lessonReservations.map(reservation => {
+      // 生徒情報を取得
+      const student = getCachedStudentById(reservation.studentId);
+      const nickname = student?.nickname || '';
+      const rawDisplayName = student?.displayName || nickname;
+      const realName = student?.realName || '';
+      const shouldMaskDisplayName =
+        !isAdmin && realName && rawDisplayName && rawDisplayName === realName;
+      const publicDisplayName = shouldMaskDisplayName
+        ? rawDisplayName.substring(0, 2)
+        : rawDisplayName;
+
+      // 基本情報（全員に公開）
+      const baseInfo = {
+        reservationId: reservation.reservationId,
+        date: reservation.date || targetLesson.date,
+        classroom: targetLesson.classroom,
+        venue: targetLesson.venue || '',
+        startTime: reservation.startTime || '',
+        endTime: reservation.endTime || '',
+        status: reservation.status,
+        studentId: reservation.studentId,
+        nickname: publicDisplayName,
+        displayName: publicDisplayName,
+        firstLecture: reservation.firstLecture || false,
+        chiselRental: reservation.chiselRental || false,
+        workInProgress: reservation.workInProgress || '',
+        order: reservation.order || '',
+      };
+
+      // 管理者の場合は個人情報を追加（表示名はフルで保持）
+      if (isAdmin) {
+        return {
+          ...baseInfo,
+          nickname: nickname || rawDisplayName,
+          displayName: rawDisplayName,
+          realName: realName,
+          messageToTeacher: reservation.messageToTeacher || '',
+          phone: student?.phone || '',
+          email: student?.email || '',
+          ageGroup:
+            student?.ageGroup !== undefined && student?.ageGroup !== null
+              ? String(student?.ageGroup)
+              : '',
+          gender: student?.gender || '',
+          address: student?.address || '',
+        };
+      }
+
+      // 一般生徒の場合は公開情報のみ
+      return baseInfo;
+    });
+
+    Logger.log(
+      `getReservationsForLesson完了: ${reservationsWithUserInfo.length}件`,
+    );
+
+    return createApiResponse(true, {
+      reservations: reservationsWithUserInfo,
+      lesson: {
+        lessonId: targetLesson.lessonId,
+        classroom: targetLesson.classroom,
+        date: targetLesson.date,
+        venue: targetLesson.venue || '',
+      },
+      message: '予約情報を取得しました',
+    });
+  } catch (error) {
+    Logger.log(
+      `getReservationsForLesson エラー: ${error.message}\nStack: ${error.stack}`,
+    );
+    return createApiErrorResponse(
+      `予約情報の取得中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
+}
+
+/**
+ * 特定生徒の詳細情報と予約履歴を取得する（権限に応じてフィルタリング）
+ * - 管理者: 全項目を返す
+ * - 一般生徒（本人）: 自分の情報のみ閲覧可能
+ * - 一般生徒（他人）: 公開情報のみ（ニックネーム、参加回数など）
+ *
+ * @param {string} targetStudentId - 表示対象の生徒ID
+ * @param {string} requestingStudentId - リクエストしている生徒のID
+ * @returns {ApiResponseGeneric} 生徒詳細情報と予約履歴
+ */
+export function getStudentDetailsForParticipantsView(
+  targetStudentId,
+  requestingStudentId,
+) {
+  try {
+    Logger.log(
+      `getStudentDetailsForParticipantsView開始: targetStudentId=${targetStudentId}, requestingStudentId=${requestingStudentId}`,
+    );
+
+    // パラメータ検証
+    if (!targetStudentId) {
+      return createApiErrorResponse('対象生徒IDが必要です');
+    }
+
+    // 権限チェック（requestingStudentId="ADMIN"または登録済み管理者）
+    const isAdmin =
+      requestingStudentId === 'ADMIN' || isAdminUser(requestingStudentId);
+    const isSelf = targetStudentId === requestingStudentId;
+    Logger.log(`管理者権限: ${isAdmin}, 本人: ${isSelf}`);
+
+    // 生徒情報を取得
+    const targetStudent = getCachedStudentById(targetStudentId);
+
+    if (!targetStudent) {
+      return createApiErrorResponse('指定された生徒が見つかりません');
+    }
+
+    // 予約履歴を取得（ReservationCore[]として取得）
+    const allReservations = getCachedReservationsAsObjects();
+
+    if (!allReservations || allReservations.length === 0) {
+      Logger.log('予約データが見つかりません');
+      return createApiErrorResponse(
+        '予約情報の取得に失敗しました。しばらくしてから再度お試しください。',
+      );
+    }
+
+    // レッスン情報も取得（予約履歴に教室・会場情報を結合するため）
+    const scheduleMasterCache = getTypedCachedData(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+    );
+
+    if (!scheduleMasterCache || !Array.isArray(scheduleMasterCache.schedule)) {
+      Logger.log('スケジュールマスターキャッシュが見つかりません');
+      return createApiErrorResponse(
+        'レッスン情報の取得に失敗しました。しばらくしてから再度お試しください。',
+      );
+    }
+
+    // 該当生徒の予約履歴をフィルタリング
+    const studentReservations = allReservations.filter(
+      reservation => reservation.studentId === targetStudentId,
+    );
+
+    // 予約履歴にレッスン情報を結合
+    const reservationHistory = studentReservations
+      .map(reservation => {
+        const lesson = scheduleMasterCache.schedule.find(
+          l => l.lessonId === reservation.lessonId,
+        );
+
+        return {
+          date: reservation.date || lesson?.date || '',
+          classroom: lesson?.classroom || '',
+          venue: lesson?.venue || '',
+          startTime: reservation.startTime || '',
+          endTime: reservation.endTime || '',
+          status: reservation.status,
+          workInProgress: reservation.workInProgress || '',
+          // ソート用の内部フィールド
+          _dateObj: new Date(reservation.date || lesson?.date || ''),
+        };
+      })
+      .sort((a, b) => b._dateObj.getTime() - a._dateObj.getTime()) // 新しい順
+      .map(item => {
+        const { _dateObj, ...rest } = item;
+        return rest;
+      }); // 内部フィールドを削除
+
+    // 参加回数を計算（完了・会計待ち・会計済みのみカウント）
+    const participationCount = studentReservations.filter(r =>
+      ['完了', '会計待ち', '会計済み'].includes(r.status),
+    ).length;
+
+    const rawNickname = targetStudent.nickname || '';
+    const rawDisplayName = targetStudent.displayName || rawNickname;
+    const realName = targetStudent.realName || '';
+    const shouldMaskDisplayName =
+      !isAdmin &&
+      !isSelf &&
+      realName &&
+      rawDisplayName &&
+      rawDisplayName === realName;
+    const publicDisplayName = shouldMaskDisplayName
+      ? rawDisplayName.substring(0, 2)
+      : rawDisplayName;
+
+    // 基本情報（公開）
+    const publicInfo = {
+      studentId: targetStudent.studentId,
+      nickname: publicDisplayName,
+      displayName: publicDisplayName,
+      participationCount: participationCount,
+      futureCreations: targetStudent.futureCreations || '',
+      reservationHistory: reservationHistory,
+    };
+
+    // 管理者または本人の場合は詳細情報を追加
+    if (isAdmin || isSelf) {
+      const detailedInfo = {
+        ...publicInfo,
+        nickname: rawNickname || rawDisplayName,
+        displayName: rawDisplayName,
+        realName: targetStudent.realName || '',
+        phone: targetStudent.phone || '',
+        email: targetStudent.email || '',
+        wantsEmail: targetStudent.wantsEmail || false,
+        wantsScheduleNotification:
+          targetStudent.wantsScheduleNotification || false,
+        notificationDay: targetStudent.notificationDay || 0,
+        notificationHour: targetStudent.notificationHour || 0,
+        ageGroup:
+          targetStudent.ageGroup !== undefined &&
+          targetStudent.ageGroup !== null
+            ? String(targetStudent.ageGroup)
+            : '',
+        gender: targetStudent.gender || '',
+        dominantHand: targetStudent.dominantHand || '',
+        address: targetStudent.address || '',
+        experience: targetStudent.experience || '',
+        pastWork: targetStudent.pastWork || '',
+        futureParticipation: targetStudent.futureParticipation || '',
+        trigger: targetStudent.trigger || '',
+        firstMessage: targetStudent.firstMessage || '',
+        companion: targetStudent['companion'] || '',
+        transportation: targetStudent['transportation'] || '',
+        pickupDropoff: targetStudent['pickupDropoff'] || '',
+        notes: targetStudent['notes'] || '',
+      };
+
+      Logger.log(
+        `getStudentDetailsForParticipantsView完了: 詳細情報（管理者/本人）`,
+      );
+
+      return createApiResponse(true, {
+        student: detailedInfo,
+        isAdmin: isAdmin,
+        isSelf: isSelf,
+        message: '生徒詳細情報を取得しました',
+      });
+    }
+
+    // 一般生徒（他人）の場合は公開情報のみ
+    Logger.log(`getStudentDetailsForParticipantsView完了: 公開情報のみ`);
+
+    return createApiResponse(true, {
+      student: publicInfo,
+      isAdmin: false,
+      isSelf: false,
+      message: '生徒詳細情報を取得しました',
+    });
+  } catch (error) {
+    Logger.log(
+      `getStudentDetailsForParticipantsView エラー: ${error.message}\nStack: ${error.stack}`,
+    );
+    return createApiErrorResponse(
+      `生徒詳細情報の取得中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
 }

@@ -335,7 +335,7 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
     // レイアウトユーティリティ
     layout: {
       container: 'max-w-screen-sm mx-auto p-4',
-      containerNoPadding: 'max-w-screen-sm mx-auto',
+      containerNoPadding: 'max-w-screen-xl mx-auto',
       section: 'mb-8',
       card: 'shadow-card rounded-lg border-2 border-solid border-card-border',
       centerContent: 'flex items-center justify-center',
@@ -891,6 +891,13 @@ export const addCustomStyles = () => {
         top: 0 !important;
         padding-top: 0.75rem;
         padding-bottom: 0.75rem;
+      }
+
+      /* 参加者一覧テーブルヘッダーの埋め込み時スタイルを調整 */
+      body.embedded-in-google-sites .participants-table-sticky-header {
+        padding-top: 0px !important;
+        padding-bottom: 2px !important;
+        top: 4.5rem !important;
       }
 
       /* 埋め込み環境でのページヘッダー最適化 */

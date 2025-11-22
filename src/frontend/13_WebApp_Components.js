@@ -671,6 +671,114 @@ export const Components = {
   },
 
   /**
+   * テーブル形式リストコンポーネント
+   * @param {TableConfig} config - 設定オブジェクト
+   * @returns {string} HTML文字列
+   */
+  table: ({
+    columns,
+    rows,
+    striped = true,
+    bordered = true,
+    hoverable = true,
+    compact = false,
+    responsive = true,
+    emptyMessage = 'データがありません',
+    minWidth = '',
+  }) => {
+    if (!columns || columns.length === 0) {
+      console.error('table: columns must be provided');
+      return '';
+    }
+
+    // ヘッダー生成
+    const headerHtml = /** @type {TableColumn[]} */ (columns)
+      .map(col => {
+        const align = col.align || 'left';
+        /** @type {Record<string, string>} */
+        const alignClasses = {
+          left: 'text-left',
+          center: 'text-center',
+          right: 'text-right',
+        };
+        const alignClass = alignClasses[align] || alignClasses['left'];
+        const widthStyle = col.width
+          ? `style="width: ${escapeHTML(col.width)}"`
+          : '';
+        return `<th class="px-1 py-0.5 font-bold text-brand-text border-b-2 border-ui-border ${alignClass}" ${widthStyle}>${escapeHTML(col.label)}</th>`;
+      })
+      .join('');
+
+    // データ行生成
+    const rowsHtml =
+      rows && rows.length > 0
+        ? /** @type {Record<string, any>[]} */ (rows)
+            .map(row => {
+              const cellsHtml = /** @type {TableColumn[]} */ (columns)
+                .map(col => {
+                  const value = row[col.key] || '';
+                  const align = col.align || 'left';
+                  /** @type {Record<string, string>} */
+                  const alignClasses = {
+                    left: 'text-left',
+                    center: 'text-center',
+                    right: 'text-right',
+                  };
+                  const alignClass =
+                    alignClasses[align] || alignClasses['left'];
+
+                  // カスタムレンダラーがある場合はそれを使用
+                  const content = col.render
+                    ? col.render(value, row)
+                    : escapeHTML(String(value));
+
+                  const widthStyle = col.width
+                    ? `style="width: ${escapeHTML(col.width)}"`
+                    : '';
+                  return `<td class="px-0.5 py-0.5 ${bordered ? 'border-b border-ui-border-light' : ''} ${alignClass}" ${widthStyle}>${content}</td>`;
+                })
+                .join('');
+
+              return `<tr class="${hoverable ? 'hover:bg-gray-50' : ''}">${cellsHtml}</tr>`;
+            })
+            .join('')
+        : `<tr><td colspan="${columns.length}" class="px-2 py-2 text-center text-brand-muted">${escapeHTML(emptyMessage)}</td></tr>`;
+
+    // スタイルクラス
+    const tableClasses = [
+      'w-full',
+      compact ? 'text-sm' : 'text-base',
+      striped ? '[&_tbody_tr:nth-child(odd)]:bg-gray-50' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    const containerClass = [
+      bordered ? 'border-2 border-ui-border' : '',
+      responsive ? 'overflow-x-auto rounded-lg' : 'rounded-lg',
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    const tableStyle = minWidth
+      ? `style="min-width: ${escapeHTML(minWidth)}"`
+      : '';
+
+    return `
+      <div class="${containerClass}">
+        <table class="${tableClasses}" ${tableStyle}>
+          <thead class="bg-ui-surface">
+            <tr>${headerHtml}</tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  /**
    * 拡張料金表示コンポーネント
    * @param {PriceDisplayConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
@@ -1475,6 +1583,281 @@ export const Components = {
     }
 
     return Components.createBackButton(action, text);
+  },
+
+  // =================================================================
+  // --- Participants View Components ---
+  // -----------------------------------------------------------------
+  // 参加者ビュー専用の再利用可能コンポーネント
+  // =================================================================
+
+  /**
+   * 汎用バッジコンポーネント
+   * @param {object} config
+   * @param {string} config.text - バッジテキスト
+   * @param {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} [config.color='gray'] - 色
+   * @param {'xs'|'sm'|'md'} [config.size='sm'] - サイズ
+   * @returns {string} HTML文字列
+   */
+  badge: ({ text, color = 'gray', size = 'sm' }) => {
+    /** @type {Record<string, string>} */
+    const colorClasses = {
+      gray: 'bg-gray-100 text-gray-700',
+      blue: 'bg-blue-100 text-blue-700',
+      green: 'bg-green-100 text-green-800',
+      red: 'bg-red-100 text-red-800',
+      orange: 'bg-orange-100 text-orange-700',
+      purple: 'bg-purple-100 text-purple-700',
+      yellow: 'bg-yellow-100 text-yellow-800',
+    };
+
+    /** @type {Record<string, string>} */
+    const sizeClasses = {
+      xs: 'text-xs px-0.5 py-0',
+      sm: 'text-sm px-1 py-0.5',
+      md: 'text-base px-1.5 py-1',
+    };
+
+    const colorClass = colorClasses[color] || colorClasses['gray'];
+    const sizeClass = sizeClasses[size] || sizeClasses['sm'];
+
+    return `<span class="font-medium rounded ${sizeClass} ${colorClass}">${escapeHTML(text)}</span>`;
+  },
+
+  /**
+   * タブナビゲーショングループ
+   * @param {Object} config
+   * @param {Array<{label: string, count: number, isActive: boolean, onclick: string}>} config.tabs - タブ配列
+   * @returns {string} HTML文字列
+   */
+  tabGroup: ({ tabs }) => {
+    const tabsHtml = tabs
+      .map(tab => {
+        const activeClass = tab.isActive
+          ? 'border-ui-border text-brand-text font-medium'
+          : 'border-transparent text-gray-500 hover:text-gray-700';
+        return `<button
+          class="pb-0.5 px-1 text-xs border-b-4 transition-colors ${activeClass}"
+          onclick="${escapeHTML(tab.onclick)}"
+        >
+          ${escapeHTML(tab.label)} (${tab.count})
+        </button>`;
+      })
+      .join('');
+
+    return `<div class="mb-2 border-b-2 border-brand-accent-border">
+      <div class="flex space-x-3">
+        ${tabsHtml}
+      </div>
+    </div>`;
+  },
+
+  /**
+   * フィルターチップボタングループ
+   * @param {Object} config
+   * @param {Array<{value: string, label: string}>} config.options - オプション配列
+   * @param {string} config.selectedValue - 選択中の値
+   * @param {string} config.onClickHandler - クリックハンドラー名（例: 'filterByClassroom'）
+   * @returns {string} HTML文字列
+   */
+  filterChips: ({ options, selectedValue, onClickHandler }) => {
+    const chipsHtml = options
+      .map(option => {
+        const isSelected = option.value === selectedValue;
+        const buttonClass = isSelected
+          ? 'bg-action-primary-bg text-action-primary-text border-ui-border'
+          : 'bg-white text-ui-text border-ui-border hover:bg-gray-50';
+        return `<button
+          class="px-2 py-0.5 text-xs font-medium border-2 rounded ${buttonClass}"
+          onclick="actionHandlers.${onClickHandler}('${escapeHTML(option.value)}')"
+        >${escapeHTML(option.label)}</button>`;
+      })
+      .join('');
+
+    return `<div class="mb-1 flex gap-1 flex-wrap">${chipsHtml}</div>`;
+  },
+
+  /**
+   * 空状態メッセージ
+   * @param {Object} config
+   * @param {string} config.message - メッセージ
+   * @param {string} [config.icon] - アイコン（絵文字またはSVG）
+   * @param {{text: string, onClick: string, style?: string}} [config.actionButton] - アクションボタン設定
+   * @returns {string} HTML文字列
+   */
+  emptyState: ({ message, icon, actionButton }) => {
+    const iconHtml = icon ? `<div class="text-4xl mb-2">${icon}</div>` : '';
+    const buttonHtml = actionButton
+      ? Components.button({
+          text: actionButton.text,
+          onClick: actionButton.onClick,
+          style: /** @type {ComponentStyle} */ (
+            actionButton.style || 'secondary'
+          ),
+        })
+      : '';
+
+    return `<div class="bg-white border-2 border-ui-border rounded-lg p-2">
+      <div class="text-xs text-gray-500 text-center">
+        ${iconHtml}
+        <p>${escapeHTML(message)}</p>
+        ${buttonHtml}
+      </div>
+    </div>`;
+  },
+
+  /**
+   * アコーディオンアイテム
+   * @param {Object} config
+   * @param {string} config.id - 一意なID
+   * @param {string} config.headerContent - ヘッダー内容（HTML）
+   * @param {string} config.bodyContent - ボディ内容（HTML）
+   * @param {string} config.toggleHandler - トグルハンドラー名
+   * @param {string} [config.borderColor='border-gray-300'] - ボーダー色クラス
+   * @param {string} [config.bgColor='bg-white'] - 背景色クラス
+   * @param {boolean} [config.isExpanded=false] - 初期展開状態
+   * @returns {string} HTML文字列
+   */
+  accordionItem: ({
+    id,
+    headerContent,
+    bodyContent,
+    toggleHandler,
+    borderColor = 'border-gray-300',
+    bgColor = 'bg-white',
+    isExpanded = false,
+  }) => {
+    const expandedClass = isExpanded ? '' : 'hidden';
+    const arrowClass = isExpanded ? 'rotate-180' : '';
+
+    return `<div class="mb-0.5" data-lesson-container="${escapeHTML(id)}">
+      <div class="${bgColor} border-2 ${borderColor} rounded-lg overflow-hidden">
+        <button
+          class="p-1 w-full hover:opacity-100"
+          onclick="actionHandlers.${toggleHandler}('${escapeHTML(id)}')"
+          data-lesson-id="${escapeHTML(id)}"
+        >
+          <div class="flex items-center justify-between">
+            ${headerContent}
+            <svg class="w-4 h-4 transition-transform ${arrowClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </div>
+        </button>
+        <div class="accordion-content participants-table-body bg-transparent ${expandedClass} overflow-x-auto" data-lesson-id="${escapeHTML(id)}">
+          ${bodyContent}
+        </div>
+      </div>
+    </div>`;
+  },
+
+  /**
+   * 固定ヘッダーテーブル
+   * @param {Object} config
+   * @param {string} config.headerId - ヘッダー要素のID
+   * @param {Array<{label: string, width?: string, align?: string}>} config.columns - カラム定義
+   * @param {string} config.gridTemplate - grid-template-columnsの値
+   * @returns {string} HTML文字列
+   */
+  stickyTableHeader: ({ headerId, columns, gridTemplate }) => {
+    const columnsHtml = columns
+      .map(col => {
+        const alignClass =
+          col.align === 'center'
+            ? 'text-center'
+            : col.align === 'right'
+              ? 'text-right'
+              : '';
+        return `<div class="${alignClass} py-0.5">${escapeHTML(col.label)}</div>`;
+      })
+      .join('');
+
+    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-16 z-[5] mb-0.5 participants-table-sticky-header">
+      <div id="${escapeHTML(headerId)}" class="overflow-x-auto scrollbar-hide">
+        <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;height: 1rem;">
+          ${columnsHtml}
+        </div>
+      </div>
+    </div>`;
+  },
+
+  /**
+   * グリッド行
+   * @param {Object} config
+   * @param {Array<{content: string, width?: string, align?: string, className?: string}>} config.columns - カラムデータ
+   * @param {string} config.gridTemplate - grid-template-columnsの値
+   * @param {string} [config.rowClassName=''] - 行に追加するクラス
+   * @param {string} [config.onClick] - クリックハンドラー
+   * @param {string} [config.rowHeight] - 行の高さ（CSSの値）
+   * @returns {string} HTML文字列
+   */
+  gridRow: ({
+    columns,
+    gridTemplate,
+    rowClassName = '',
+    onClick,
+    rowHeight,
+  }) => {
+    const columnsHtml = columns
+      .map(col => {
+        const alignClass =
+          col.align === 'center'
+            ? 'text-center'
+            : col.align === 'right'
+              ? 'text-right'
+              : '';
+        const customClass = col.className || '';
+        return `<div class="overflow-hidden ${alignClass} ${customClass}">${col.content}</div>`;
+      })
+      .join('');
+
+    const clickAttr = onClick ? `onclick="${escapeHTML(onClick)}"` : '';
+    const heightStyle = rowHeight ? `height: ${rowHeight};` : '';
+
+    return `<div
+      class="grid gap-1 border-t border-dashed border-gray-200 hover:bg-gray-50 ${rowClassName}"
+      style="grid-template-columns: ${gridTemplate}; min-width: 1200px; ${heightStyle}"
+      ${clickAttr}
+    >
+      ${columnsHtml}
+    </div>`;
+  },
+
+  /**
+   * 詳細行（ラベル・値のペア）
+   * @param {Object} config
+   * @param {string} config.label - ラベル
+   * @param {string} config.value - 値
+   * @param {string} [config.className=''] - 追加クラス
+   * @returns {string} HTML文字列
+   */
+  detailRow: ({ label, value, className = '' }) => {
+    if (!value) return '';
+    return `<div class="${className}"><span class="font-bold">${escapeHTML(label)}:</span> ${escapeHTML(value)}</div>`;
+  },
+
+  /**
+   * 履歴アイテム
+   * @param {Object} config
+   * @param {string} config.date - 日付（フォーマット済み）
+   * @param {string} config.title - タイトル
+   * @param {string} [config.subtitle] - サブタイトル
+   * @param {string} [config.content] - 内容
+   * @returns {string} HTML文字列
+   */
+  historyItem: ({ date, title, subtitle, content }) => {
+    const subtitleHtml = subtitle
+      ? `<div class="text-sm text-gray-600">${escapeHTML(subtitle)}</div>`
+      : '';
+    const contentHtml = content
+      ? `<div class="text-sm mt-1">${escapeHTML(content)}</div>`
+      : '';
+
+    return `<div class="border-b border-gray-200 py-3">
+      <div class="font-bold">${escapeHTML(date)} - ${escapeHTML(title)}</div>
+      ${subtitleHtml}
+      ${contentHtml}
+    </div>`;
   },
 };
 

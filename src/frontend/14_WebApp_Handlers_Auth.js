@@ -18,6 +18,7 @@
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
 import { getPrivacyPolicyModal } from './13_WebApp_Views_Utils.js';
+import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -88,10 +89,14 @@ export const authActionHandlers = {
         );
         console.log('📦 myReservations詳細:', response.data.myReservations);
 
+        // 管理者判定: isAdminフラグまたは電話番号がADMIN_PASSWORDと一致するか
+        const isAdmin = response.user?.isAdmin || response.isAdmin || false;
+        const userWithAdmin = { ...response.user, isAdmin: isAdmin };
+
         // 完全なアプリ状態を一度に構築
+        // 管理者の場合はviewを設定せず、loadParticipantsView内で設定
         const newAppState = {
-          view: 'dashboard',
-          currentUser: response.user,
+          currentUser: userWithAdmin,
           myReservations: response.data.myReservations || [],
           lessons: response.data.lessons || [],
           classrooms: CONSTANTS.CLASSROOMS
@@ -106,27 +111,44 @@ export const authActionHandlers = {
           lessonsCount: newAppState.lessons.length,
         });
 
-        hideLoading();
-        debugLog('✅ 統合ログイン完了 - 完全なダッシュボード表示');
-
-        authHandlersStateManager.dispatch({
-          type: 'SET_STATE',
-          payload: {
-            ...newAppState,
-            recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
-            isDataFresh: true,
-          },
-        });
-
         // データ取得完了を記録（キャッシュ管理用）
         authHandlersStateManager.setDataFetchProgress('lessons', false);
         authHandlersStateManager.setDataFetchProgress('reservations', false);
 
-        console.log(
-          '✅ dispatch完了 - 現在のstate:',
-          authHandlersStateManager.getState().myReservations?.length,
-          '件の予約',
-        );
+        // 管理者の場合は参加者リストビューのデータ取得で一括設定
+        // loadParticipantsView内でrender()とhideLoading()が呼ばれる
+        if (isAdmin) {
+          console.log('📋 管理者ログイン - 参加者リストビューデータ取得開始');
+          // 基本データを渡してloadParticipantsViewで一括設定
+          participantActionHandlers.loadParticipantView(
+            false,
+            false,
+            newAppState,
+          ); // ローディング継続
+        } else {
+          // 一般ユーザーはここでstateを設定
+          /** @type {Partial<UIState>} */
+          const statePayload = {
+            ...newAppState,
+            view: 'dashboard',
+            recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+            isDataFresh: true,
+          };
+
+          authHandlersStateManager.dispatch({
+            type: 'SET_STATE',
+            payload: statePayload,
+          });
+
+          console.log(
+            '✅ dispatch完了 - 現在のstate:',
+            authHandlersStateManager.getState().myReservations?.length,
+            '件の予約',
+          );
+
+          hideLoading();
+          debugLog('✅ 統合ログイン完了 - 完全なダッシュボード表示');
+        }
 
         // 通知設定チェック：日程連絡希望ONで通知設定が未設定の場合に喚起
         if (

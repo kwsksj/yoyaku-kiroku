@@ -190,7 +190,7 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
  */
 export function _getNotificationRecipients(targetDay, targetHour) {
   // 生徒キャッシュから全生徒データを取得
-  const studentsCache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  const studentsCache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS);
   const allStudents = studentsCache?.students
     ? Object.values(studentsCache.students)
     : [];

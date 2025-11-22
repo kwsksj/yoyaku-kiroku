@@ -717,7 +717,7 @@ export function getNormalizedReservationsFor(
  * @returns {StudentData|null} 生徒オブジェクト、見つからない場合はnull
  */
 export function getCachedStudentById(studentId) {
-  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS);
   if (!studentsCache?.['students']) return null;
 
   const students = /** @type {{ [key: string]: StudentData }} */ (

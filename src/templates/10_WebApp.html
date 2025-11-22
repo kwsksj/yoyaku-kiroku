@@ -1,4 +1,4 @@
-<reference path="../../types/index.d.ts" />
+<!doctype html>
 <!--
 =================================================================
 【ファイル名】: 10_WebApp.html
@@ -10,7 +10,6 @@
 - テスト環境とプロダクション環境の分離
 =================================================================
 -->
-<!doctype html>
 <html lang="ja" class="h-full">
   <head>
     <meta charset="UTF-8" />
@@ -70,6 +69,33 @@
       .markdown-content strong {
         font-weight: bold;
       }
+
+      /* アコーディオンアニメーション */
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          max-height: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          max-height: 5000px;
+          transform: translateY(0);
+        }
+      }
+
+      .animate-slideDown {
+        animation: slideDown 0.3s ease-out forwards;
+      }
+
+      /* スクロールバーを非表示にするクラス */
+      .scrollbar-hide {
+        -ms-overflow-style: none; /* IE and Edge */
+        scrollbar-width: none; /* Firefox */
+      }
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera */
+      }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   </head>
@@ -78,7 +104,7 @@
     <!-- デバッグ情報表示エリア（本番環境では非表示） -->
 
     <!-- アプリケーションのメインコンテナ -->
-    <div id="app" class="container mx-auto px-4 max-w-lg">
+    <div id="app" class="container mx-auto px-4">
       <!-- ローディング画面 -->
       <div
         id="loading"

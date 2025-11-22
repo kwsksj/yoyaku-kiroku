@@ -145,6 +145,13 @@ export interface ActionHandlers {
     formData?: AccountingFormDto,
   ) => void;
 
+  // 参加者リスト関連アクションハンドラー（管理者機能）
+  loadParticipantsView?: (forceReload?: boolean) => void;
+  selectParticipantsLesson?: (lessonId: string) => void;
+  selectParticipantsStudent?: (targetStudentId: string) => void;
+  backToParticipantsList?: () => void;
+  backToParticipantsReservations?: () => void;
+
   // 動的に取り込まれる関数（レガシー対応）
   [actionName: string]:
     | ActionHandler

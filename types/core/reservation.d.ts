@@ -91,6 +91,21 @@ export interface ReservationCore {
   /** キャンセル理由 */
   cancelMessage?: string | undefined;
 
+  /** 同行者 */
+  companion?: string | undefined;
+
+  /** 来場手段 */
+  transportation?: string | undefined;
+
+  /** 送迎 */
+  pickup?: string | undefined;
+
+  /** 車 */
+  car?: string | undefined;
+
+  /** 備考 */
+  notes?: string | undefined;
+
   // ========================================
   // 会計関連
   // ========================================

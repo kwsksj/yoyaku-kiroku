@@ -32,7 +32,7 @@ import { getCachedReservationsAsObjects } from './08_Utilities.js';
  * 開催予定のレッスン情報（空き枠情報を含む）を計算して返す
  * @returns {ApiResponse<LessonCore[]>}
  */
-export function getLessons() {
+export function getLessons(includePast = false) {
   try {
     Logger.log('=== getLessons 開始 ===');
     const today = new Date();
@@ -44,23 +44,28 @@ export function getLessons() {
     );
 
     // スケジュールマスタデータ取得
+    const fromDateForFilter = includePast ? '' : todayString;
     /** @type {LessonCore[]} */
-    const scheduledDates = getAllScheduledDates(todayString, '');
+    const scheduledDates = getAllScheduledDates(fromDateForFilter, '');
     Logger.log(`日程マスタ取得: ${scheduledDates.length}件`);
 
     /** @type {LessonCore[]} */
     const lessons = [];
 
-    // 未来の日程のみに絞り込み
-    const futureSchedules = scheduledDates.filter(schedule => {
-      const scheduleDate =
-        schedule.date instanceof Date ? schedule.date : new Date(schedule.date);
-      return scheduleDate >= today;
-    });
+    // 未来の日程のみに絞り込み（includePastフラグで制御）
+    const targetSchedules = includePast
+      ? scheduledDates
+      : scheduledDates.filter(schedule => {
+          const scheduleDate =
+            schedule.date instanceof Date
+              ? schedule.date
+              : new Date(schedule.date);
+          return scheduleDate >= today;
+        });
 
-    Logger.log(`処理対象のレッスン数: ${futureSchedules.length}件`);
+    Logger.log(`処理対象のレッスン数: ${targetSchedules.length}件`);
 
-    futureSchedules.forEach(schedule => {
+    targetSchedules.forEach(schedule => {
       const dateKey =
         schedule.date instanceof Date
           ? Utilities.formatDate(

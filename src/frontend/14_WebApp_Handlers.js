@@ -39,6 +39,7 @@ import {
   getRegistrationStep3View,
   getRegistrationStep4View,
 } from './13_WebApp_Views_Auth.js';
+import { getParticipantView } from './13_WebApp_Views_Participant.js';
 
 // ================================================================
 // ハンドラ系モジュール
@@ -55,6 +56,7 @@ import {
 import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
+import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -246,10 +248,22 @@ export function render() {
       v = getCompleteView(completionMessage);
       break;
     }
+    case 'participants':
+      v = getParticipantView();
+      break;
   }
   const viewContainer = document.getElementById('view-container');
   if (viewContainer) {
     viewContainer.innerHTML = `<div class="fade-in">${v}</div>`;
+  }
+
+  // 参加者画面の場合、横スクロール同期を設定
+  if (appState.view === 'participants') {
+    requestAnimationFrame(() => {
+      if (typeof setupParticipantsScrollSync === 'function') {
+        setupParticipantsScrollSync();
+      }
+    });
   }
 
   // もどるボタンを動的に更新
@@ -374,6 +388,13 @@ window.onload = function () {
     // -----------------------------------------------------------------
     ...(typeof reservationActionHandlers !== 'undefined'
       ? reservationActionHandlers
+      : {}),
+
+    // =================================================================
+    // --- Participants Handlers (from 14_WebApp_Handlers_Participants.js) ---
+    // -----------------------------------------------------------------
+    ...(typeof participantActionHandlers !== 'undefined'
+      ? participantActionHandlers
       : {}),
 
     // =================================================================

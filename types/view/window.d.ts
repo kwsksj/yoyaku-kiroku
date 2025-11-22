@@ -124,6 +124,8 @@ declare global {
     debugLog?: (message: string, ...args: any[]) => void;
     updateView?: (viewName: string) => void;
     formatDate?: (date: string | Date, format?: string) => string;
+    setupParticipantsScrollSync?: () => void;
+    renderStudentDetailModalContent?: (student: any, isAdmin: boolean) => string;
 
     // --- ページ遷移 ---
     pageTransitionManager?: PageTransitionManager;
@@ -192,6 +194,30 @@ declare global {
     tailwind?: any;
     server?: any;
     ModalManager?: ModalManager;
+
+    // --- Participants WebApp ---
+    ParticipantsApp?: {
+      init: () => void;
+      loadLessons: () => void;
+      loadReservationsForLesson: (lessonId: string) => void;
+      loadStudentDetails: (studentId: string) => void;
+      showLessonListView: () => void;
+      showReservationsView: () => void;
+      showStudentDetailView: () => void;
+      getState: () => any;
+    };
+    ParticipantsViews?: {
+      renderLessonList: (lessons: any[]) => string;
+      renderReservationsList: (lesson: any, reservations: any[]) => string;
+      renderStudentDetail: (student: any, isAdmin: boolean) => string;
+      renderError: (message: string) => string;
+    };
+    ParticipantsHandlers?: {
+      onLessonClick: (lessonId: string) => void;
+      onStudentClick: (studentId: string) => void;
+      onBackToListClick: () => void;
+      onBackToReservationsClick: () => void;
+    };
   }
 
   /**
@@ -216,6 +242,8 @@ declare global {
   function debugLog(message: string, ...args: any[]): void;
   function updateView(viewName: string): void;
   function formatDate(date: string | Date, format?: string): void;
+  function setupParticipantsScrollSync(): void;
+  function renderStudentDetailModalContent(student: any, isAdmin: boolean): string;
   function showInfo(
     message: string,
     title?: string,
@@ -262,6 +290,30 @@ declare global {
   function getPaymentOptionsHtml(selectedValue?: string): string;
 
   var appWindow: Window & typeof globalThis;
+
+  // Participants WebApp globals
+  var ParticipantsApp: {
+    init: () => void;
+    loadLessons: () => void;
+    loadReservationsForLesson: (lessonId: string) => void;
+    loadStudentDetails: (studentId: string) => void;
+    showLessonListView: () => void;
+    showReservationsView: () => void;
+    showStudentDetailView: () => void;
+    getState: () => any;
+  };
+  var ParticipantsViews: {
+    renderLessonList: (lessons: any[]) => string;
+    renderReservationsList: (lesson: any, reservations: any[]) => string;
+    renderStudentDetail: (student: any, isAdmin: boolean) => string;
+    renderError: (message: string) => string;
+  };
+  var ParticipantsHandlers: {
+    onLessonClick: (lessonId: string) => void;
+    onStudentClick: (studentId: string) => void;
+    onBackToListClick: () => void;
+    onBackToReservationsClick: () => void;
+  };
 }
 
 export type AppWindow = Window & typeof globalThis;

@@ -32,7 +32,7 @@ import {
   deleteAllCache,
   deleteCache,
   getCachedAllStudents,
-  rebuildAllStudentsBasicCache,
+  rebuildAllStudentsCache,
   updateCachedStudent,
 } from './07_CacheManager.js';
 import {
@@ -139,6 +139,11 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
     [CONSTANTS.HEADERS.ROSTER.GENDER]: 'gender',
     [CONSTANTS.HEADERS.ROSTER.DOMINANT_HAND]: 'dominantHand',
     [CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]: 'futureCreations',
+    [CONSTANTS.HEADERS.ROSTER.COMPANION]: 'companion',
+    [CONSTANTS.HEADERS.ROSTER.TRANSPORTATION]: 'transportation',
+    [CONSTANTS.HEADERS.ROSTER.PICKUP]: 'pickup',
+    [CONSTANTS.HEADERS.ROSTER.CAR]: 'car',
+    [CONSTANTS.HEADERS.ROSTER.NOTES]: 'notes',
   };
 
   // 各プロパティを設定
@@ -301,6 +306,81 @@ export function authenticateUser(phone) {
       message: `ユーザー認証に失敗しました: ${error.message}`,
       user: null,
     };
+  }
+}
+
+// =================================================================
+// ★★★ 管理者権限システム ★★★
+// =================================================================
+
+/**
+ * 電話番号が管理者パスワードと一致するかをチェック
+ * PropertiesServiceに保存された管理者パスワード（電話番号形式）と照合します
+ *
+ * @param {string} phone - 電話番号（正規化済み）
+ * @returns {boolean} 管理者の場合true
+ *
+ * @example
+ * // 管理者パスワードの初回設定（GASエディタから一度だけ実行）
+ * function setupAdminPassword() {
+ *   PropertiesService.getScriptProperties().setProperty('ADMIN_PASSWORD', '99999999999');
+ *   Logger.log('管理者パスワードを設定しました');
+ * }
+ */
+export function isAdminLogin(phone) {
+  try {
+    const adminPassword =
+      PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
+
+    if (!adminPassword) {
+      Logger.log(
+        '管理者パスワードが設定されていません。PropertiesServiceで設定してください。',
+      );
+      return false;
+    }
+
+    // 電話番号を正規化して比較
+    const normalizedPhone = normalizePhoneNumber(phone);
+    const normalizedAdminPassword = normalizePhoneNumber(adminPassword);
+
+    if (!normalizedPhone.isValid || !normalizedAdminPassword.isValid) {
+      return false;
+    }
+
+    return normalizedPhone.normalized === normalizedAdminPassword.normalized;
+  } catch (error) {
+    Logger.log(`isAdminLogin エラー: ${error.message}`);
+    return false;
+  }
+}
+
+/**
+ * 生徒IDが管理者かどうかを判定
+ * 生徒名簿から電話番号を取得し、管理者パスワードと照合します
+ *
+ * @param {string} studentId - 生徒ID
+ * @returns {boolean} 管理者の場合true
+ *
+ * @example
+ * if (isAdminUser(studentId)) {
+ *   // 管理者限定の処理
+ * }
+ */
+export function isAdminUser(studentId) {
+  try {
+    if (!studentId) {
+      return false;
+    }
+
+    const student = getCachedStudentById(studentId);
+    if (!student || !student.phone) {
+      return false;
+    }
+
+    return isAdminLogin(student.phone);
+  } catch (error) {
+    Logger.log(`isAdminUser エラー: ${error.message}`);
+    return false;
   }
 }
 
@@ -1097,7 +1177,7 @@ export function requestAccountDeletion(studentId) {
       );
 
       // キャッシュ更新
-      rebuildAllStudentsBasicCache();
+      rebuildAllStudentsCache();
 
       Logger.log(
         `requestAccountDeletion成功: studentId=${studentId}, 新電話番号=${newPhone}`,
@@ -1133,7 +1213,7 @@ export function requestAccountDeletion(studentId) {
  * 【開発用】全生徒キャッシュをクリアします。
  */
 export function clearAllStudentsCache_DEV() {
-  deleteCache(CACHE_KEYS.ALL_STUDENTS_BASIC);
+  deleteCache(CACHE_KEYS.ALL_STUDENTS);
   Logger.log('全生徒キャッシュをクリアしました。');
 }
 
@@ -1161,4 +1241,56 @@ export function clearAllReservationsCache_DEV() {
 export function clearAllCache_DEV() {
   deleteAllCache();
   Logger.log('全てのキャッシュをクリアしました。');
+}
+
+// =================================================================
+// ★★★ 管理者パスワード設定（初回セットアップ用）★★★
+// =================================================================
+
+/**
+ * 管理者パスワードを設定する（初回セットアップ用）
+ * GASエディタから一度だけ実行してください
+ *
+ * @param {string} password - 管理者パスワード（電話番号形式を推奨）
+ * @returns {void}
+ *
+ * @example
+ * // GASエディタから実行
+ * setupAdminPassword('99999999999');
+ */
+export function setupAdminPassword(password) {
+  if (!password) {
+    Logger.log('エラー: パスワードが指定されていません');
+    return;
+  }
+
+  try {
+    PropertiesService.getScriptProperties().setProperty(
+      'ADMIN_PASSWORD',
+      password,
+    );
+    Logger.log(`管理者パスワードを設定しました: ${password}`);
+    Logger.log('注意: このパスワードは電話番号形式で正規化されて比較されます');
+  } catch (error) {
+    Logger.log(`管理者パスワード設定エラー: ${error.message}`);
+  }
+}
+
+/**
+ * 現在の管理者パスワードを確認する（デバッグ用）
+ *
+ * @returns {void}
+ */
+export function getAdminPassword_DEV() {
+  try {
+    const password =
+      PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD');
+    if (password) {
+      Logger.log(`現在の管理者パスワード: ${password}`);
+    } else {
+      Logger.log('管理者パスワードは設定されていません');
+    }
+  } catch (error) {
+    Logger.log(`管理者パスワード取得エラー: ${error.message}`);
+  }
 }
