@@ -2,7 +2,6 @@ export namespace participantActionHandlers {
     export { loadParticipantView };
     export function goToParticipantsView(): void;
     export { toggleParticipantLessonAccordion };
-    export { selectParticipantLesson };
     export { selectParticipantStudent };
     export { backToParticipantList };
     export function backToParticipantsView(): void;
@@ -35,11 +34,6 @@ declare function loadParticipantView(forceReload?: boolean, shouldShowLoading?: 
  * @param {string} lessonId - レッスンID
  */
 declare function toggleParticipantLessonAccordion(lessonId: string): void;
-/**
- * レッスン選択ハンドラ（旧実装 - 互換性のため残す）
- * @param {string} lessonId - レッスンID
- */
-declare function selectParticipantLesson(lessonId: string): void;
 /**
  * 生徒選択ハンドラ（モーダル表示）
  * @param {string} targetStudentId - 表示対象の生徒ID

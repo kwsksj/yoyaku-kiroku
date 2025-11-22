@@ -800,9 +800,9 @@ export function getLessonsForParticipantsView(
       return rest;
     });
 
-    const shouldIncludeReservations = includeReservations && isAdmin;
+    const shouldIncludeReservations = includeReservations;
 
-    // 🚀 予約データを一括取得（オプション・管理者限定）
+    // 🚀 予約データを一括取得（オプション：管理者は個人情報付き、一般は公開情報のみ）
     /** @type {Record<string, any[]>} */
     const reservationsMap = {};
     if (shouldIncludeReservations) {
