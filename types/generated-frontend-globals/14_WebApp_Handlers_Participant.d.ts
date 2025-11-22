@@ -29,7 +29,7 @@ export type CacheEntry = {
  *
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
  */
-declare function loadParticipantView(forceReload?: boolean, shouldShowLoading?: boolean, baseAppState?: Partial<UIState> | null): void;
+declare function loadParticipantView(forceReload?: boolean, shouldShowLoading?: boolean, baseAppState?: Partial<UIState> | null, includeHistory?: boolean): void;
 /**
  * アコーディオンの開閉を切り替えるハンドラ（DOM操作のみ、再描画なし）
  * @param {string} lessonId - レッスンID
