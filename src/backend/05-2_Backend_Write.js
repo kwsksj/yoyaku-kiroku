@@ -986,10 +986,10 @@ export function notifyAvailabilityToWaitlistedUsers(
     }
     availabilityTypeForLog = availabilityType;
 
-    // 3. 通知対象ユーザーを取得（lessonIdを使用）
+    // 3. 通知対象ユーザーを取得（スロット状況を考慮して判定）
     const recipients = getWaitlistedUsersForNotification(
-      lessonId,
-      availabilityType,
+      lessonWithSlots,
+      reservationsForLesson,
     );
     recipientsCount = recipients.length;
     if (recipients.length === 0) {
@@ -1037,23 +1037,22 @@ export function notifyAvailabilityToWaitlistedUsers(
 
 /**
  * 空き通知対象のユーザーリストを取得
- * @param {string} lessonId - レッスンID
- * @param {string} availabilityType - 空きタイプ ('first', 'second', 'all')
+ * @param {LessonCore} lessonWithSlots - 空き枠を含むレッスン情報
+ * @param {ReservationCore[]} reservationsForLesson - 対象レッスンの予約一覧
  * @returns {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>}
  */
-export function getWaitlistedUsersForNotification(lessonId, availabilityType) {
-  // ★最適化: lessonIdから直接取得（O(1)アクセス）
-  const lesson = getLessonByIdFromCache(lessonId);
-  if (!lesson || !lesson.reservationIds) {
-    Logger.log('レッスン情報または予約リストが見つかりません。');
+export function getWaitlistedUsersForNotification(
+  lessonWithSlots,
+  reservationsForLesson,
+) {
+  // lesson情報が取得できない場合は即終了
+  if (!lessonWithSlots || !lessonWithSlots.lessonId) {
+    Logger.log('レッスン情報が見つからないため空き通知をスキップします。');
     return [];
   }
 
-  // reservationIdsから予約を取得し、待機中のもののみフィルタリング
-  const allReservationsForLesson = getReservationsByIdsFromCache(
-    lesson.reservationIds,
-  );
-  const waitlistedReservations = allReservationsForLesson.filter(
+  // 予約一覧から待機中のもののみフィルタリング
+  const waitlistedReservations = reservationsForLesson.filter(
     r => r.status === CONSTANTS.STATUS.WAITLISTED,
   );
 
@@ -1071,17 +1070,8 @@ export function getWaitlistedUsersForNotification(lessonId, availabilityType) {
       const studentId = reservation.studentId;
       const isFirstTime = reservation.firstLecture;
 
-      // 空きタイプに応じたフィルタリング
-      let shouldNotify = false;
-      if (availabilityType === 'all') {
-        shouldNotify = true;
-      } else if (availabilityType === 'first' && !isFirstTime) {
-        shouldNotify = true;
-      } else if (availabilityType === 'second' && isFirstTime) {
-        shouldNotify = true;
-      }
-
-      if (shouldNotify) {
+      // 予約内容と現在の空き枠を突き合わせて通知対象か判定
+      if (_canNotifyWaitlistedReservation(reservation, lessonWithSlots)) {
         // 生徒情報を取得
         const studentInfo = /** @type {UserCore} */ (
           getCachedStudentById(String(studentId))
@@ -1104,6 +1094,78 @@ export function getWaitlistedUsersForNotification(lessonId, availabilityType) {
   );
 
   return result;
+}
+
+/**
+ * 待機中予約が現在の枠で予約可能かを判定
+ * @param {ReservationCore} reservation
+ * @param {LessonCore} lessonWithSlots
+ * @returns {boolean}
+ */
+function _canNotifyWaitlistedReservation(reservation, lessonWithSlots) {
+  const firstSlots =
+    typeof lessonWithSlots.firstSlots === 'number' &&
+    !isNaN(lessonWithSlots.firstSlots)
+      ? lessonWithSlots.firstSlots
+      : 0;
+  const secondSlots =
+    typeof lessonWithSlots.secondSlots === 'number' &&
+    !isNaN(lessonWithSlots.secondSlots)
+      ? lessonWithSlots.secondSlots
+      : 0;
+  const beginnerSlots =
+    typeof lessonWithSlots.beginnerSlots === 'number' &&
+    !isNaN(lessonWithSlots.beginnerSlots)
+      ? lessonWithSlots.beginnerSlots
+      : null;
+
+  const isFirstTime = reservation.firstLecture === true;
+
+  // 初回枠が設定されている場合はそれを優先的にチェック
+  if (isFirstTime && beginnerSlots !== null) {
+    return beginnerSlots > 0;
+  }
+
+  // 2部制の場合は予約時間帯に応じて判定
+  if (lessonWithSlots.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
+    const reqStart = reservation.startTime
+      ? new Date(`1900-01-01T${reservation.startTime}`)
+      : null;
+    const reqEnd = reservation.endTime
+      ? new Date(`1900-01-01T${reservation.endTime}`)
+      : null;
+
+    const firstEndTime = lessonWithSlots.firstEnd
+      ? new Date(`1900-01-01T${lessonWithSlots.firstEnd}`)
+      : null;
+    const secondStartTime = lessonWithSlots.secondStart
+      ? new Date(`1900-01-01T${lessonWithSlots.secondStart}`)
+      : null;
+
+    // 必須情報が欠けている場合は、空きがあれば通知する
+    if (!reqStart || !reqEnd || !firstEndTime || !secondStartTime) {
+      return firstSlots > 0 || secondSlots > 0;
+    }
+
+    const needsMorning = reqStart < firstEndTime;
+    const needsAfternoon = reqEnd > secondStartTime;
+
+    if (needsMorning && needsAfternoon) {
+      return firstSlots > 0 && secondSlots > 0;
+    }
+    if (needsMorning) {
+      return firstSlots > 0;
+    }
+    if (needsAfternoon) {
+      return secondSlots > 0;
+    }
+
+    // どちらのセッションにも属さない場合は通知対象外
+    return false;
+  }
+
+  // 通常枠は経験者枠の空きで判定
+  return firstSlots > 0;
 }
 
 /**

@@ -70,11 +70,11 @@ export function cancelReservation(cancelInfo: ReservationCore): ApiResponseGener
 export function notifyAvailabilityToWaitlistedUsers(lessonId: string, _cancelledReservation: ReservationCore): void;
 /**
  * 空き通知対象のユーザーリストを取得
- * @param {string} lessonId - レッスンID
- * @param {string} availabilityType - 空きタイプ ('first', 'second', 'all')
+ * @param {LessonCore} lessonWithSlots - 空き枠を含むレッスン情報
+ * @param {ReservationCore[]} reservationsForLesson - 対象レッスンの予約一覧
  * @returns {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>}
  */
-export function getWaitlistedUsersForNotification(lessonId: string, availabilityType: string): Array<{
+export function getWaitlistedUsersForNotification(lessonWithSlots: LessonCore, reservationsForLesson: ReservationCore[]): Array<{
     studentId: string;
     email: string;
     realName: string;
