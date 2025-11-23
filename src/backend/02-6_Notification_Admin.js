@@ -149,8 +149,9 @@ export function _buildAdminNotificationContent(
           `\n【ユーザー情報】\n` +
           `名前: ${userDisplay}\n` +
           _buildLessonInfoSection(reservation) +
-          `\n【キャンセル理由・制作内容】` +
-          _buildReservationContentSection(reservation, additionalInfo) +
+          _buildReservationContentSection(reservation, additionalInfo, {
+            heading: '【キャンセル理由・制作内容】',
+          }) +
           `\n詳細はスプレッドシートを確認してください。`
         );
       },
@@ -165,8 +166,9 @@ export function _buildAdminNotificationContent(
           `\n【ユーザー情報】\n` +
           `名前: ${userDisplay}\n` +
           _buildLessonInfoSection(reservation) +
-          `\n【更新内容・メッセージ・制作情報】` +
-          _buildReservationContentSection(reservation, additionalInfo) +
+          _buildReservationContentSection(reservation, additionalInfo, {
+            heading: '【更新内容・メッセージ・制作情報】',
+          }) +
           `\n詳細はスプレッドシートを確認してください。`
         );
       },
@@ -412,47 +414,59 @@ function _buildLessonInfoSection(reservation) {
  * 予約の制作内容・メッセージセクションを構築
  * @param {ReservationCore} reservation - 予約データ
  * @param {any} [additionalInfo] - 追加情報
+ * @param {{heading?: string, includeRecordedCancelMessage?: boolean, suppressDuplicateCancelReason?: boolean}} [options] - 表示オプション
  * @returns {string} フォーマット済みセクション
  * @private
  */
-function _buildReservationContentSection(reservation, additionalInfo = {}) {
-  let section = '\n【メッセージ・制作内容】\n';
-  let hasContent = false;
+function _buildReservationContentSection(
+  reservation,
+  additionalInfo = {},
+  options = {},
+) {
+  const {
+    heading = '【メッセージ・制作内容】',
+    includeRecordedCancelMessage = true,
+    suppressDuplicateCancelReason = true,
+  } = options;
+
+  /** @type {string[]} */
+  const lines = [];
 
   if (additionalInfo.updateDetails) {
-    section += `更新内容: ${additionalInfo.updateDetails}\n`;
-    hasContent = true;
+    lines.push(`更新内容: ${additionalInfo.updateDetails}`);
   }
 
   if (additionalInfo.cancelMessage) {
-    section += `キャンセル理由: ${additionalInfo.cancelMessage}\n`;
-    hasContent = true;
+    lines.push(`キャンセル理由: ${additionalInfo.cancelMessage}`);
   }
 
-  if (reservation.cancelMessage) {
-    section += `記録されたキャンセル理由: ${reservation.cancelMessage}\n`;
-    hasContent = true;
+  const shouldIncludeRecordedCancelReason =
+    includeRecordedCancelMessage &&
+    reservation.cancelMessage &&
+    (!suppressDuplicateCancelReason ||
+      reservation.cancelMessage !== additionalInfo.cancelMessage);
+
+  if (shouldIncludeRecordedCancelReason) {
+    lines.push(`記録されたキャンセル理由: ${reservation.cancelMessage}`);
   }
 
   if (reservation.messageToTeacher) {
-    section += `先生へのメッセージ: ${reservation.messageToTeacher}\n`;
-    hasContent = true;
+    lines.push(`先生へのメッセージ: ${reservation.messageToTeacher}`);
   }
 
   if (reservation.workInProgress) {
-    section += `制作メモ: ${reservation.workInProgress}\n`;
-    hasContent = true;
+    lines.push(`制作メモ: ${reservation.workInProgress}`);
   }
 
   if (reservation.materialInfo) {
-    section += `材料情報: ${reservation.materialInfo}\n`;
-    hasContent = true;
+    lines.push(`材料情報: ${reservation.materialInfo}`);
   }
 
   if (reservation.order) {
-    section += `注文内容: ${reservation.order}\n`;
-    hasContent = true;
+    lines.push(`注文内容: ${reservation.order}`);
   }
 
-  return hasContent ? section : '';
+  if (lines.length === 0) return '';
+
+  return `\n${heading}\n${lines.join('\n')}\n`;
 }
