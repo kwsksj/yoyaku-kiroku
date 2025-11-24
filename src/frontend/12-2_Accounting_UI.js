@@ -24,6 +24,15 @@
 // ================================================================
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 
+const ACCOUNTING_SELECT_CLASS =
+  'w-full px-3 py-2.5 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus mobile-input touch-friendly';
+const ACCOUNTING_NUMBER_INPUT_CLASS =
+  'px-3 py-2 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus text-right';
+const ACCOUNTING_TEXT_INPUT_CLASS =
+  'px-3 py-2 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus';
+export const ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS =
+  'w-16 px-2 py-1.5 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus text-right';
+
 /**
  * 会計システム - UI生成層
  *
@@ -100,6 +109,7 @@ export function generateTuitionSection(
           id: 'base-tuition',
           label: baseItemName,
           checked: true,
+          size: 'large',
           dataAttributes: { 'item-name': baseItemName },
         })}
         <div class="time-controls mt-3 ml-2">
@@ -134,6 +144,7 @@ export function generateTuitionSection(
               id: 'base-tuition',
               label: baseItemName,
               checked: true,
+              size: 'large',
               dynamicStyle: true,
               dataAttributes: { 'item-name': baseItemName },
             })}
@@ -166,6 +177,7 @@ export function generateTuitionSection(
                 id: `other-${itemName.replace(/\s+/g, '-')}`,
                 label: itemName,
                 checked: isChecked,
+                size: 'large',
                 dynamicStyle: true,
                 dataAttributes: {
                   'item-name': itemName,
@@ -232,13 +244,13 @@ export function generateMaterialRow(materialItems, index = 0, materialData) {
 
   const sizeInputsHtml = showSizeInputs
     ? `
-    <div class="size-inputs flex items-center space-x-0 mb-2 pl-7">
+    <div class="size-inputs flex items-center space-x-1 mb-2 pl-5">
       <input
         type="number"
         id="material-length-${index}"
         value="${data?.l ?? ''}"
         placeholder="x"
-        class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+        class="${ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS}"
       >
       <span class="text-sm">×</span>
       <input
@@ -246,7 +258,7 @@ export function generateMaterialRow(materialItems, index = 0, materialData) {
         id="material-width-${index}"
         value="${data?.w ?? ''}"
         placeholder="y"
-        class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+        class="${ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS}"
       >
       <span class="text-sm">×</span>
       <input
@@ -254,7 +266,7 @@ export function generateMaterialRow(materialItems, index = 0, materialData) {
         id="material-height-${index}"
         value="${data?.h ?? ''}"
         placeholder="z"
-        class="w-12 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+        class="${ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS}"
       >
       <span class="text-sm text-gray-600">mm</span>
     </div>`
@@ -267,7 +279,7 @@ export function generateMaterialRow(materialItems, index = 0, materialData) {
           <span class="text-brand-text">•</span>
         </div>
         <div class="flex-1">
-          <select id="material-type-${index}" class="material-select w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+          <select id="material-type-${index}" class="material-select ${ACCOUNTING_SELECT_CLASS}">
             ${materialOptions}
           </select>
         </div>
@@ -413,7 +425,7 @@ export function generateProductRow(productItems, index = 0, productData) {
           <span class="text-brand-text">•</span>
         </div>
         <div class="flex-1">
-          <select id="product-type-${index}" class="product-select w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+          <select id="product-type-${index}" class="product-select ${ACCOUNTING_SELECT_CLASS}">
             ${productOptions}
           </select>
         </div>
@@ -461,16 +473,16 @@ export function generateCustomSalesRow(index = 0, itemData = {}) {
             id="custom-sales-name-${index}"
             value="${itemData.name || ''}"
             placeholder="自由入力"
-            class="w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text"
+            class="w-full ${ACCOUNTING_TEXT_INPUT_CLASS}"
           >
         </div>
-        <div class="w-20">
+        <div class="w-24">
           <input
             type="number"
             id="custom-sales-price-${index}"
             value="${itemData.price ?? ''}"
             placeholder="金額"
-            class="w-full p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right"
+            class="w-full ${ACCOUNTING_NUMBER_INPUT_CLASS}"
           >
         </div>
         <div class="price-display">
@@ -560,9 +572,10 @@ export function generateAccountingView(
         content: `
           <section class="payment-section">
             ${Components.sectionHeader({ title: '支払方法' })}
-            <div id="payment-options-container">
+            <div id="payment-options-container" class="flex flex-wrap gap-3 md:gap-4">
               <!-- getPaymentOptionsHtml()で生成される -->
             </div>
+            <div id="payment-info-container" class="mt-3"></div>
           </section>
         `,
       })}
@@ -574,15 +587,14 @@ export function generateAccountingView(
         content: `
           <div class="space-y-3">
             ${Components.button({
-              action: 'showPaymentModal',
-              text: '先生が確認しました',
+              action: 'confirmAndPay',
+              text: '先生に確認&支払い しました！',
               style: 'primary',
               size: 'large',
-              customClass:
-                'w-full transition-all duration-200 hover:shadow-md opacity-60 cursor-not-allowed',
-              disabled: true,
+              customClass: 'w-full transition-all duration-200 hover:shadow-md',
+              disabled: true, // 支払方法選択までは無効
               id: 'confirm-payment-button',
-              disabledStyle: 'none', // カスタムスタイルで制御
+              disabledStyle: 'auto',
             })}
             ${Components.button({
               action: 'smartGoBack',
@@ -603,46 +615,37 @@ export function generateAccountingView(
  * @returns {string} HTML文字列
  */
 export const getPaymentOptionsHtml = selectedValue => {
-  const cotraDetails = `
-        <details class="mt-0 ml-4">
-            <summary class="inline-block px-0 py-0 bg-ui-warning-light text-ui-warning-text text-sm font-semibold rounded-md active:bg-ui-warning-bg">
-            <span class="arrow">▶</span> ことら送金とは？
-            </summary>
-            <p class="mt-2 p-2 bg-ui-warning-bg rounded-md text-sm text-left text-brand-subtle">
-                電話番号だけで銀行口座間で送金できるサービスです。手数料無料。対応の銀行アプリから利用できます。<br>
-                (例：ゆうちょ通帳アプリ、三井住友銀行アプリ、住信SBIネット銀行アプリなど)
-                <a href="https://www.cotra.ne.jp/member/" target="_blank" class="text-ui-link-text">対応アプリ一覧</a>
-            </p>
-        </details>`;
   const options = [
     {
       value: CONSTANTS.PAYMENT_DISPLAY.CASH,
       text: CONSTANTS.PAYMENT_DISPLAY.CASH,
-      details: '',
     },
     {
       value: CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER,
       text: CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER,
-      details: '',
     },
     {
       value: CONSTANTS.PAYMENT_DISPLAY.COTRA,
       text: CONSTANTS.PAYMENT_DISPLAY.COTRA,
-      details: cotraDetails,
     },
   ];
-  return options
-    .map(
-      opt => `
-        <div class="mb-2">
-            <label class="flex items-center space-x-2 ${selectedValue === opt.value ? 'font-bold text-brand-text' : 'text-brand-muted'} cursor-pointer transition-all duration-150">
-                <input type="radio" name="payment-method" value="${opt.value}" class="accent-action-primary-bg" ${selectedValue === opt.value ? 'checked' : ''}>
-                <span>${opt.text}</span>
-            </label>
-            ${opt.details}
-        </div>`,
-    )
+  const optionCards = options
+    .map(opt => {
+      const isSelected = selectedValue === opt.value;
+      const baseClass =
+        'flex items-center gap-2 px-3 py-2 border-2 rounded-lg min-w-[160px] transition-all duration-150';
+      const selectedClass =
+        'border-action-attention bg-action-secondary-bg font-bold text-brand-text shadow-sm';
+      const unselectedClass = 'border-ui-border bg-ui-surface text-brand-muted';
+
+      return `<label class="${baseClass} ${isSelected ? selectedClass : unselectedClass} cursor-pointer">
+          <input type="radio" name="payment-method" value="${opt.value}" class="accent-action-primary-bg" ${isSelected ? 'checked' : ''}>
+          <span class="text-base">${opt.text}</span>
+        </label>`;
+    })
     .join('');
+
+  return `<div class="flex flex-wrap gap-2">${optionCards}</div>`;
 };
 
 /**
@@ -651,35 +654,54 @@ export const getPaymentOptionsHtml = selectedValue => {
  * @returns {string} HTML文字列
  */
 export const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
-  let paymentInfoHtml = '';
+  const baseWrapperStart =
+    '<div class="bg-ui-surface border-2 border-ui-border p-3 rounded-md space-y-2">';
+  const wrapperEnd = '</div>';
 
-  // ことら送金が選択された場合のみ電話番号を表示
+  if (!selectedPaymentMethod) {
+    return `<p class="text-brand-muted text-sm">支払方法をえらんでください。</p>`;
+  }
+
   if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.COTRA) {
-    paymentInfoHtml += `
-        <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-md">
-            <div class="flex justify-between items-center">
-                <div class="${DesignConfig.text['body']}"><span class="font-bold">送金先 電話番号:</span><span class="ml-2 font-mono">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span></div>
-                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
-            </div>
-        </div>`;
+    return `
+      ${baseWrapperStart}
+        <div class="${DesignConfig.text['body']} font-bold">ことら送金のご案内</div>
+        <div class="${DesignConfig.text['body']} flex justify-between items-center">
+          <span class="font-bold">送金先 電話番号:</span>
+          <span class="ml-2 font-mono">${CONSTANTS.BANK_INFO.COTRA_PHONE}</span>
+          <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.COTRA_PHONE}" class="flex-shrink-0 text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+        </div>
+        <p class="text-sm text-brand-subtle">
+          電話番号だけで銀行口座間で送金できるサービスです。手数料無料。対応アプリ一覧は
+          <a href="https://www.cotra.ne.jp/member/" target="_blank" class="text-ui-link-text underline">こちら</a>。
+        </p>
+      ${wrapperEnd}
+    `;
   }
 
-  // 振込が選択された場合のみ口座情報を表示
   if (selectedPaymentMethod === CONSTANTS.PAYMENT_DISPLAY.BANK_TRANSFER) {
-    paymentInfoHtml += `
-        <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-md">
-            <div class="text-brand-text"><span class="font-bold">振込先:</span><span class="ml-2">${CONSTANTS.BANK_INFO.NAME}</span></div>
-            <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">店番: ${CONSTANTS.BANK_INFO.BRANCH}</div>
-                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
-            </div>
-            <div class="mt-1 flex justify-between items-center">
-                <div class="text-base text-brand-text">普通: ${CONSTANTS.BANK_INFO.ACCOUNT}</div>
-                <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
-            </div>
-        </div>`;
+    return `
+      ${baseWrapperStart}
+        <div class="${DesignConfig.text['body']} font-bold">振込先</div>
+        <div class="flex justify-between items-center">
+          <div class="text-base text-brand-text">${CONSTANTS.BANK_INFO.NAME}</div>
+        </div>
+        <div class="flex justify-between items-center">
+          <div class="text-base text-brand-text">店番: ${CONSTANTS.BANK_INFO.BRANCH}</div>
+          <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.BRANCH}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+        </div>
+        <div class="flex justify-between items-center">
+          <div class="text-base text-brand-text">普通: ${CONSTANTS.BANK_INFO.ACCOUNT}</div>
+          <button data-action="copyToClipboard" data-copy-text="${CONSTANTS.BANK_INFO.ACCOUNT}" class="text-sm bg-action-secondary-bg active:bg-action-secondary-hover text-action-secondary-text font-bold px-2 py-1 rounded mobile-button">コピー</button>
+        </div>
+      ${wrapperEnd}
+    `;
   }
 
-  // 現金の場合は何も表示しない
-  return paymentInfoHtml;
+  // 現金の場合
+  return `
+    ${baseWrapperStart}
+      <div class="${DesignConfig.text['body']} text-brand-text">現金でお支払いください。</div>
+    ${wrapperEnd}
+  `;
 };

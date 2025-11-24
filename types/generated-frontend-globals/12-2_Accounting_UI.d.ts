@@ -73,6 +73,7 @@ export function generateAccountingReservationCard(reservationData: ReservationCo
  * @returns {string} HTML文字列
  */
 export function generateAccountingView(classifiedItems: ClassifiedAccountingItemsCore, classroom: string, formData?: AccountingFormDto, reservationData?: ReservationCore | null): string;
+export const ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS: "w-16 px-2 py-1.5 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus text-right";
 export function getPaymentOptionsHtml(selectedValue: string): string;
 export function getPaymentInfoHtml(selectedPaymentMethod?: string): string;
 export type MaterialFormEntry = {

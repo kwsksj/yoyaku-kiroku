@@ -29,6 +29,7 @@ import {
   generateProductRow,
   getPaymentInfoHtml,
   getPaymentOptionsHtml,
+  ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 
@@ -135,29 +136,6 @@ export function setupAccountingEventListeners(classifiedItems, classroom) {
             removeProductRow(indexAttr);
           }
         }
-        break;
-      case 'showPaymentModal':
-        // デバッグ: ボタンクリックを記録
-        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-          console.log('🔴 showPaymentModalボタンがクリックされました');
-        }
-
-        // イベントの伝播を停止
-        event.preventDefault();
-        event.stopPropagation();
-
-        // ボタンが無効状態でないかチェック
-        if (
-          target.hasAttribute('disabled') ||
-          target.style.pointerEvents === 'none'
-        ) {
-          if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-            console.log('⚠️ ボタンが無効状態のためクリックを無視');
-          }
-          return;
-        }
-
-        showPaymentConfirmModal(classifiedItems, classroom);
         break;
       case 'smartGoBack':
         handleBackToDashboard();
@@ -323,26 +301,26 @@ export function handleMaterialTypeChange(event, materialItems) {
     selectedMaterial[CONSTANTS.HEADERS.ACCOUNTING.UNIT] === 'cm³'
   ) {
     const sizeInputsHtml = `
-      <div class="size-inputs flex items-center space-x-2 mt-2 pl-7">
+      <div class="size-inputs flex items-center space-x-1 mt-2 mb-2 pl-5">
         <input
           type="number"
           id="material-length-${index}"
           placeholder="x"
-          class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+          class="${ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS}"
         >
         <span class="text-sm">×</span>
         <input
           type="number"
           id="material-width-${index}"
           placeholder="y"
-          class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+          class="${ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS}"
         >
         <span class="text-sm">×</span>
         <input
           type="number"
           id="material-height-${index}"
           placeholder="z"
-          class="w-10 p-0.5 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text text-right text-sm"
+          class="${ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS}"
         >
         <span class="text-sm text-gray-600">mm</span>
       </div>`;

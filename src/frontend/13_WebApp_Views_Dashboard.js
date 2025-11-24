@@ -133,9 +133,17 @@ export const getDashboardView = () => {
     style: 'primary',
     size: 'full',
   });
+  const accountingMenuButton = Components.button({
+    text: '今日の教室の会計',
+    action: 'goToTodayAccounting',
+    style: 'accounting',
+    size: 'full',
+  });
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
-    items: [menuButton],
+    items: [
+      `<div class="grid gap-2 sm:grid-cols-2">${menuButton}${accountingMenuButton}</div>`,
+    ],
   });
 
   return `

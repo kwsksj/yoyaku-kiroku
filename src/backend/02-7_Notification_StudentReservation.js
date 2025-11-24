@@ -714,7 +714,7 @@ export function _createCancellationEmailText(
         ])
       : _buildSection('【キャンセル受付】', [
           `キャンセル受付日時: ${new Date().toLocaleString('ja-JP')}`,
-        }),
+        ]),
   ].filter(Boolean);
 
   const tail = [
@@ -722,7 +722,11 @@ export function _createCancellationEmailText(
     `またのご参加をお待ちしております。\n何かご不明点があれば、このメールに直接ご返信ください。\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n${getContactAndVenueInfoText()}`,
   ];
 
-  return _composeStudentEmail([`${displayName}さま`, '予約のキャンセルを承りました。'], sections, tail);
+  return _composeStudentEmail(
+    [`${displayName}さま`, '予約のキャンセルを承りました。'],
+    sections,
+    tail,
+  );
 }
 
 /**

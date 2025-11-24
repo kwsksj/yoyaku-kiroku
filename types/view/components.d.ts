@@ -149,6 +149,7 @@ export interface CheckboxConfig {
   onChange?: string;
   customLabelClass?: string;
   required?: boolean;
+  size?: 'small' | 'medium' | 'large';
 }
 
 /**

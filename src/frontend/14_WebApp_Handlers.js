@@ -50,7 +50,6 @@ import {
   initializePaymentMethodUI,
   processAccountingPayment,
   setupAccountingEventListeners,
-  showPaymentConfirmModal,
   updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
@@ -67,7 +66,10 @@ import {
   saveAccountingCache,
 } from './12-4_Accounting_Utilities.js';
 import { findReservationById } from './12_WebApp_Core_Search.js';
-import { handlePhoneInputFormatting } from './14_WebApp_Handlers_Utils.js';
+import {
+  handlePhoneInputFormatting,
+  isDateToday,
+} from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
 // --- 分割ファイル統合パターン ---
@@ -401,6 +403,54 @@ window.onload = function () {
     // --- Accounting Handlers (整理済み) ---
     // -----------------------------------------------------------------
 
+    /** 今日の予約を開いて会計画面へ遷移 */
+    goToTodayAccounting: () => {
+      const state = handlersStateManager.getState();
+      const reservations = state.myReservations || [];
+
+      const todayCandidates = reservations.filter(reservation => {
+        const dateValue = reservation?.date
+          ? String(reservation.date).split('T')[0]
+          : '';
+        if (!dateValue) return false;
+
+        const status = reservation.status;
+        const isAccountingStatus =
+          status === CONSTANTS.STATUS.CONFIRMED ||
+          status === CONSTANTS.STATUS.COMPLETED;
+
+        return isAccountingStatus && isDateToday(dateValue);
+      });
+
+      if (todayCandidates.length === 0) {
+        showInfo(
+          '本日の会計対象の予約がありません。日程一覧から選択してください。',
+          'お知らせ',
+        );
+        return;
+      }
+
+      const toSortableTime = (
+        /** @type {string | null | undefined} */ value,
+      ) => (value ? value.toString() : '99:99');
+      const sortedCandidates = [...todayCandidates].sort((a, b) =>
+        toSortableTime(a.startTime).localeCompare(toSortableTime(b.startTime)),
+      );
+
+      const candidate =
+        sortedCandidates.find(
+          res => res.status === CONSTANTS.STATUS.CONFIRMED,
+        ) || sortedCandidates[0];
+
+      if (candidate?.reservationId) {
+        actionHandlers.goToAccounting({
+          reservationId: candidate.reservationId,
+        });
+      } else {
+        showInfo('本日の会計対象の予約が見つかりませんでした。', 'お知らせ');
+      }
+    },
+
     /** 会計画面に遷移（新システム対応版） */
     goToAccounting: (/** @type {{ reservationId: string }} */ d) => {
       showLoading('accounting');
@@ -451,24 +501,9 @@ window.onload = function () {
       actionHandlers.goToAccounting(d);
     },
 
-    /** 支払い確認モーダルを表示 */
+    /** 支払い確認モーダルを廃止し、直接処理 */
     showPaymentModal: () => {
-      // 会計画面から支払い確認モーダルを表示する
-      const state = handlersStateManager.getState();
-      const classroom = state.accountingReservation?.classroom;
-      const classifiedItems = windowTyped.currentClassifiedItems;
-
-      if (classifiedItems && classroom) {
-        // 12_WebApp_Core_Accounting.jsの関数を呼び出し
-        if (typeof showPaymentConfirmModal === 'function') {
-          showPaymentConfirmModal(classifiedItems, classroom);
-        } else {
-          console.error('showPaymentConfirmModal関数が見つかりません');
-          showInfo('支払い確認モーダルの表示に失敗しました。', 'エラー');
-        }
-      } else {
-        showInfo('会計データが不足しています。', 'エラー');
-      }
+      actionHandlers.confirmAndPay();
     },
 
     /** 支払い完了処理（ローディング→完了画面の流れ） */

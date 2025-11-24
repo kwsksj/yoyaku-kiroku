@@ -388,7 +388,20 @@ export const Components = {
     onChange = '',
     customLabelClass = '',
     required = false,
+    size = 'medium',
   }) => {
+    /** @type {Record<'small' | 'medium' | 'large', string>} */
+    const checkboxSizeClasses = {
+      small: 'h-4 w-4',
+      medium: 'h-5 w-5',
+      large: 'h-6 w-6',
+    };
+    const checkboxSizeClass =
+      checkboxSizeClasses[/** @type {'small' | 'medium' | 'large'} */ (size)] ||
+      checkboxSizeClasses.medium;
+    const spacingClass = size === 'large' ? 'space-x-3' : 'space-x-2';
+    const labelSizeClass = size === 'large' ? 'text-lg' : 'text-base';
+
     // 動的スタイル用のクラス設定
     const labelClass = dynamicStyle
       ? checked
@@ -419,14 +432,14 @@ export const Components = {
 
     return `<div>
         ${descriptionHtml}
-        <label class="flex items-center space-x-2 ${finalLabelClass}">
+        <label class="flex items-center ${spacingClass} ${labelSizeClass} ${finalLabelClass}">
           <input
             type="checkbox"
             id="${id}"
             ${checked ? 'checked' : ''}
             ${disabled ? 'disabled' : ''}
             ${requiredAttr}
-            class="h-5 w-5 accent-action-primary-bg"
+            class="${checkboxSizeClass} accent-action-primary-bg"
             ${onChangeAttr}
             ${dynamicStyle ? 'data-dynamic-style="true"' : ''}
             ${dataAttributesString}
