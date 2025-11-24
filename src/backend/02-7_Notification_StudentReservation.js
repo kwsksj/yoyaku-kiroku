@@ -185,7 +185,16 @@ export function createFirstTimeEmailText(
     ? `木彫り教室へのご参加希望をいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！\n\n現在、満席のため空き通知希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
     : `木彫り教室ご参加の申込みをいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！`;
 
-  return `${displayName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。\n\n残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。\n\n\n予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\n次回以降の予約や会計記録や参加の記録もこちらからできますよ。\nスマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！\n\n下に教室に関して連絡事項をまとめました。1度目を通しておいてください。\n他にも質問あれば、このメールに直接ご返信ください。\n\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\n09013755977\n参加当日に場所がわからないなどあれば、こちらにお電話やSMSでご連絡ください。\n\n${getContactAndVenueInfoText()}`;
+  return _composeStudentEmail(
+    [`${displayName}さま`, greeting],
+    [_buildBookingDetailsSection(reservation, formattedDate, statusText)],
+    [
+      '初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。',
+      '残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。',
+      '予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\n次回以降の予約や会計記録や参加の記録もこちらからできますよ。\nスマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！\n\n下に教室に関して連絡事項をまとめました。1度目を通しておいてください。\n他にも質問あれば、このメールに直接ご返信ください。',
+      `それではどうぞよろしくお願いいたします！\n\n川崎誠二\n09013755977\n参加当日に場所がわからないなどあれば、こちらにお電話やSMSでご連絡ください。\n\n${getContactAndVenueInfoText()}`,
+    ],
+  );
 }
 
 /**
@@ -209,7 +218,14 @@ export function createRegularEmailText(
     ? `お申し込みありがとうございます！\n現在、満席のため空き通知希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
     : `お申し込みありがとうございます！\nご予約を承りました。`;
 
-  return `${displayName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n予約の確認やキャンセルは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nメール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。\nまた次回以降の予約や会計記録や参加の記録もこちらからできます。\nスマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！\n\n何かご不明点があれば、このメールに直接ご返信ください。\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n\n${getContactAndVenueInfoText()}\n`;
+  return _composeStudentEmail(
+    [`${displayName}さま`, greeting],
+    [_buildBookingDetailsSection(reservation, formattedDate, statusText)],
+    [
+      '予約の確認やキャンセルは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nメール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。\nまた次回以降の予約や会計記録や参加の記録もこちらからできます。\nスマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！\n\n何かご不明点があれば、このメールに直接ご返信ください。',
+      `それではどうぞよろしくお願いいたします！\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n\n${getContactAndVenueInfoText()}`,
+    ],
+  );
 }
 
 /**
@@ -318,18 +334,7 @@ export function createBookingDetailsText(
   formattedDate,
   statusText,
 ) {
-  const { classroom, venue, startTime, endTime } = reservation;
-
-  // 時間表示
-  let timeDisplay = '予約webアプリ上か、各教室のページなどをご確認ください';
-  if (startTime && endTime) {
-    timeDisplay = `${startTime} - ${endTime}`;
-  }
-
-  // 実際の授業料金額を取得して表示
-  const tuitionText = getTuitionDisplayText(classroom);
-
-  return `【申込み内容】\n教室: ${classroom} ${venue || ''}\n日付: ${formattedDate}\n時間: ${timeDisplay}\n\n【授業料】\n${tuitionText}\n\n受付日時: ${new Date().toLocaleString('ja-JP')}\n\n以上の内容を ${statusText} で承りました。`;
+  return _buildBookingDetailsSection(reservation, formattedDate, statusText);
 }
 
 /**
@@ -448,6 +453,69 @@ Facebook @woodcarving.kawasaki
 Instagram @kibori_class
 X (Twitter) @kibori_class
 ----------------------------------------------------`;
+}
+
+/**
+ * 申込み内容セクションを生成
+ * @param {ReservationCore} reservation
+ * @param {string} formattedDate
+ * @param {string} statusText
+ * @returns {string}
+ * @private
+ */
+function _buildBookingDetailsSection(reservation, formattedDate, statusText) {
+  const { classroom, venue, startTime, endTime } = reservation;
+
+  let timeDisplay = '予約webアプリ上か、各教室のページなどをご確認ください';
+  if (startTime && endTime) {
+    timeDisplay = `${startTime} - ${endTime}`;
+  }
+
+  const tuitionText = getTuitionDisplayText(classroom);
+  const lines = [
+    `教室: ${classroom} ${venue || ''}`,
+    `日付: ${formattedDate}`,
+    `時間: ${timeDisplay}`,
+    '',
+    '【授業料】',
+    tuitionText,
+    '',
+    `受付日時: ${new Date().toLocaleString('ja-JP')}`,
+    '',
+    `以上の内容を ${statusText} で承りました。`,
+  ];
+
+  return _buildSection('【申込み内容】', lines);
+}
+
+/**
+ * 学生向けメール本文を構築（シンプルなセクション組み立て）
+ * @param {string[]} introLines
+ * @param {string[]} sections
+ * @param {string[]} tailBlocks
+ * @returns {string}
+ * @private
+ */
+function _composeStudentEmail(introLines, sections, tailBlocks) {
+  const intro = introLines.filter(Boolean).join('\n\n');
+  const sectionBody = sections.filter(Boolean).join('\n\n');
+  const tail = tailBlocks.filter(Boolean).join('\n\n');
+  return [intro, sectionBody, tail].filter(Boolean).join('\n\n');
+}
+
+/**
+ * セクション文字列を生成
+ * @param {string} title
+ * @param {string[]} lines
+ * @returns {string}
+ * @private
+ */
+function _buildSection(title, lines) {
+  const normalized = (Array.isArray(lines) ? lines : [])
+    .map(line => (line === undefined || line === null ? '' : String(line)))
+    .filter(line => line.trim() !== '');
+  if (normalized.length === 0) return '';
+  return `${title}\n${normalized.join('\n')}`;
 }
 
 /**
@@ -633,7 +701,28 @@ export function _createCancellationEmailText(
     ? `\nキャンセル理由: ${cancelMessage}\n`
     : '';
 
-  return `${displayName}さま\n\n予約のキャンセルを承りました。\n\n【キャンセルされた予約】\n教室: ${classroom} ${venue}\n日付: ${formattedDate}\n時間: ${timeDisplay}${reasonSection}\n\nキャンセル受付日時: ${new Date().toLocaleString('ja-JP')}\n\n予約の確認や新しい予約は、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nまたのご参加をお待ちしております。\n何かご不明点があれば、このメールに直接ご返信ください。\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n`;
+  const sections = [
+    _buildSection('【キャンセルされた予約】', [
+      `教室: ${classroom} ${venue}`,
+      `日付: ${formattedDate}`,
+      `時間: ${timeDisplay}`,
+    ]),
+    reasonSection
+      ? _buildSection('【キャンセル理由】', [
+          cancelMessage || '',
+          `キャンセル受付日時: ${new Date().toLocaleString('ja-JP')}`,
+        ])
+      : _buildSection('【キャンセル受付】', [
+          `キャンセル受付日時: ${new Date().toLocaleString('ja-JP')}`,
+        }),
+  ].filter(Boolean);
+
+  const tail = [
+    '予約の確認や新しい予約は、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)',
+    `またのご参加をお待ちしております。\n何かご不明点があれば、このメールに直接ご返信ください。\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n${getContactAndVenueInfoText()}`,
+  ];
+
+  return _composeStudentEmail([`${displayName}さま`, '予約のキャンセルを承りました。'], sections, tail);
 }
 
 /**

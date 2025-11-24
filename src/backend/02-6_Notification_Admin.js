@@ -34,7 +34,7 @@ import { getCachedStudentById } from './08_Utilities.js';
  */
 export function sendAdminNotification(subject, body) {
   try {
-    if (!ADMIN_EMAIL || ADMIN_EMAIL === 'your-admin-email@example.com') {
+    if (!ADMIN_EMAIL) {
       Logger.log(
         '管理者メールアドレスが設定されていないため、通知をスキップしました。',
       );
