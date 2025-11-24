@@ -514,9 +514,9 @@ export const addCustomStyles = () => {
         to { opacity: 1; transform: translateY(0); }
       }
       .spinner {
-        border: 4px solid var(--spinner-border);
-        width: 32px;
-        height: 32px;
+        border: 5px solid var(--spinner-border);
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
         border-left-color: var(--brand-text);
         animation: spin 1s linear infinite;
