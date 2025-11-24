@@ -30,21 +30,22 @@ import { SALES_SPREADSHEET_ID, SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
   sendAdminNotification,
   sendAdminNotificationForReservation,
+  formatAdminUserDisplay,
 } from './02-6_Notification_Admin.js';
 import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
 import {
+  calculateAvailableSlots,
   getLessons,
   getUserReservations,
-  calculateAvailableSlots,
 } from './05-3_Backend_AvailableSlots.js';
 import {
-  CACHE_KEYS,
   addReservationToCache,
+  CACHE_KEYS,
   getCachedData,
   getHeaderIndex,
   getLessonByIdFromCache,
-  getTypedCachedData,
   getReservationsByIdsFromCache,
+  getTypedCachedData,
   rebuildAllReservationsCache,
   updateLessonReservationIdsInCache,
   updateReservationInCache,
@@ -1189,9 +1190,8 @@ export function createAvailabilityNotificationEmail(recipient, lesson) {
   body += `※このメールは空席の確保を保証するものではありません。他の方が先に予約を確定された場合、再度満席となることがございますのでご了承ください。\n\n`;
   body += `--------------------\n`;
   body += `きぼりのよやく・きろく\n`;
-  body += `https://woody-notes.net/yoyaku-kiroku/\n`;
+  body += `川崎 誠二\n`;
   body += `Tel: 09013755977\n`;
-  body += `X (Twitter) @kibori_class\n`;
   body += `--------------------\n`;
 
   return body;
@@ -1527,10 +1527,13 @@ export function saveAccountingDetails(reservationWithAccounting) {
         throw new Error(`生徒情報が取得できませんでした: ${String(studentId)}`);
       }
 
-      const subject = `会計記録 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.nickname}様`;
+      const userDisplay = formatAdminUserDisplay(userInfo);
+      const subject = `会計記録 (${updatedReservation.classroom}) ${userDisplay}様`;
       const body =
         `会計が記録されました。
 
+` +
+        `表示名: ${userDisplay}
 ` +
         `本名: ${userInfo.realName}
 ` +
@@ -1665,10 +1668,13 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
         throw new Error(`生徒情報が取得できませんでした: ${String(studentId)}`);
       }
 
-      const subject = `会計記録修正 (${updatedReservation.classroom}) ${userInfo.realName}: ${userInfo.nickname}様`;
+      const userDisplay = formatAdminUserDisplay(userInfo);
+      const subject = `会計記録修正 (${updatedReservation.classroom}) ${userDisplay}様`;
       const body =
         `会計が修正されました。
 
+` +
+        `表示名: ${userDisplay}
 ` +
         `本名: ${userInfo.realName}
 ` +

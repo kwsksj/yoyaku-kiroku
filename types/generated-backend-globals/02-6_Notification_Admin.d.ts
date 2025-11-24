@@ -41,3 +41,9 @@ export function sendAdminNotificationForUser(userData: UserCore & {
     newPhone?: string;
     withdrawalDate?: string;
 }, operationType: "registered" | "withdrawn"): void;
+/**
+ * 管理者通知向けに表示名を生成（本名とニックネーム併記）
+ * @param {UserCore | undefined} user
+ * @returns {string}
+ */
+export function formatAdminUserDisplay(user: UserCore | undefined): string;

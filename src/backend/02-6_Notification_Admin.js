@@ -127,14 +127,23 @@ export function _buildAdminNotificationContent(
             ? '空き通知希望'
             : '新しい予約';
 
-        return (
-          `${actionText}が入りました。\n\n` +
-          _buildReservationBasicSection(reservation) +
-          `\n【ユーザー情報】\n` +
-          `名前: ${userDisplay}\n` +
-          _buildLessonInfoSection(reservation) +
-          _buildReservationContentSection(reservation, additionalInfo) +
-          `\n詳細はスプレッドシートを確認してください。`
+        return _composeAdminBody(
+          [`${actionText}が入りました。`],
+          [
+            _buildSection(
+              '【予約情報】',
+              _buildReservationBasicSectionLines(reservation),
+            ),
+            _buildSection('【ユーザー情報】', _buildUserSectionLines(student)),
+            _buildSection(
+              '【講座情報】',
+              _buildLessonInfoSectionLines(reservation),
+            ),
+            _buildSection(
+              '【メッセージ・制作内容】',
+              _buildReservationContentSectionLines(reservation, additionalInfo),
+            ),
+          ],
         );
       },
     },
@@ -142,34 +151,50 @@ export function _buildAdminNotificationContent(
       subject: () =>
         `予約キャンセル (${reservation.classroom}) ${userDisplay}様`,
       body: () => {
-        return (
-          `予約がキャンセルされました。\n\n` +
-          _buildReservationBasicSection(reservation) +
-          `キャンセル日時: ${_formatDateTime()}\n` +
-          `\n【ユーザー情報】\n` +
-          `名前: ${userDisplay}\n` +
-          _buildLessonInfoSection(reservation) +
-          _buildReservationContentSection(reservation, additionalInfo, {
-            heading: '【キャンセル理由・制作内容】',
-          }) +
-          `\n詳細はスプレッドシートを確認してください。`
+        return _composeAdminBody(
+          ['予約がキャンセルされました。'],
+          [
+            _buildSection(
+              '【予約情報】',
+              _buildReservationBasicSectionLines(reservation, [
+                `キャンセル日時: ${_formatDateTime()}`,
+              ]),
+            ),
+            _buildSection('【ユーザー情報】', _buildUserSectionLines(student)),
+            _buildSection(
+              '【講座情報】',
+              _buildLessonInfoSectionLines(reservation),
+            ),
+            _buildSection(
+              '【キャンセル理由・制作内容】',
+              _buildReservationContentSectionLines(reservation, additionalInfo),
+            ),
+          ],
         );
       },
     },
     updated: {
       subject: () => `予約更新 (${reservation.classroom}) ${userDisplay}様`,
       body: () => {
-        return (
-          `予約が更新されました。\n\n` +
-          _buildReservationBasicSection(reservation) +
-          `更新日時: ${_formatDateTime()}\n` +
-          `\n【ユーザー情報】\n` +
-          `名前: ${userDisplay}\n` +
-          _buildLessonInfoSection(reservation) +
-          _buildReservationContentSection(reservation, additionalInfo, {
-            heading: '【更新内容・メッセージ・制作情報】',
-          }) +
-          `\n詳細はスプレッドシートを確認してください。`
+        return _composeAdminBody(
+          ['予約が更新されました。'],
+          [
+            _buildSection(
+              '【予約情報】',
+              _buildReservationBasicSectionLines(reservation, [
+                `更新日時: ${_formatDateTime()}`,
+              ]),
+            ),
+            _buildSection('【ユーザー情報】', _buildUserSectionLines(student)),
+            _buildSection(
+              '【講座情報】',
+              _buildLessonInfoSectionLines(reservation),
+            ),
+            _buildSection(
+              '【更新内容・メッセージ・制作情報】',
+              _buildReservationContentSectionLines(reservation, additionalInfo),
+            ),
+          ],
         );
       },
     },
@@ -230,30 +255,44 @@ function _buildUserNotificationContent(userData, operationType) {
     registered: {
       subject: () => `新規ユーザー登録 - ${userDisplay}`,
       body: () => {
-        return (
-          `新しいユーザーが登録されました。\n\n` +
-          _buildUserBasicInfoSection(userData) +
-          `登録日時: ${userData.registrationDate || _formatDateTime()}\n` +
-          _buildUserAttributesSection(userData) +
-          _buildUserCreationInfoSection(userData) +
-          _buildUserOtherInfoSection(userData) +
-          `\n詳細はスプレッドシートの生徒名簿を確認してください。`
+        return _composeAdminBody(
+          ['新しいユーザーが登録されました。'],
+          [
+            _buildSection(
+              '【基本情報】',
+              _buildUserBasicInfoLines(userData, [
+                `登録日時: ${userData.registrationDate || _formatDateTime()}`,
+              ]),
+            ),
+            _buildSection('【属性情報】', _buildUserAttributesLines(userData)),
+            _buildSection(
+              '【制作・参加情報】',
+              _buildUserCreationInfoLines(userData),
+            ),
+            _buildSection('【その他】', _buildUserOtherInfoLines(userData)),
+          ],
         );
       },
     },
     withdrawn: {
       subject: () => `ユーザー退会処理完了 - ${userDisplay}`,
       body: () => {
-        return (
-          `ユーザーが退会処理を完了しました。\n\n` +
-          _buildUserBasicInfoSection(userData) +
-          `元電話番号: ${userData.originalPhone || ''}\n` +
-          `登録日: ${userData.registrationDate || '不明'}\n` +
-          `退会日時: ${userData.withdrawalDate || _formatDateTime()}\n` +
-          `\n【処理内容】\n` +
-          `電話番号は無効化されました\n` +
-          `新しい電話番号: ${userData.newPhone || ''}\n` +
-          `\n詳細はスプレッドシートの生徒名簿を確認してください。`
+        return _composeAdminBody(
+          ['ユーザーが退会処理を完了しました。'],
+          [
+            _buildSection(
+              '【基本情報】',
+              _buildUserBasicInfoLines(userData, [
+                `元電話番号: ${userData.originalPhone || ''}`,
+                `登録日: ${userData.registrationDate || '不明'}`,
+                `退会日時: ${userData.withdrawalDate || _formatDateTime()}`,
+              ]),
+            ),
+            _buildSection('【処理内容】', [
+              '電話番号は無効化されました',
+              `新しい電話番号: ${userData.newPhone || ''}`,
+            ]),
+          ],
         );
       },
     },
@@ -274,9 +313,48 @@ function _buildUserNotificationContent(userData, operationType) {
   };
 }
 
+/**
+ * 管理者通知向けに表示名を生成（本名とニックネーム併記）
+ * @param {UserCore | undefined} user
+ * @returns {string}
+ */
+export function formatAdminUserDisplay(user) {
+  return _formatUserDisplay(user);
+}
+
 // ================================================================
 // 共通ヘルパー関数
 // ================================================================
+
+/**
+ * セクション付き本文を組み立てる
+ * @param {string[]} introLines - 先頭に配置する1行メッセージ
+ * @param {string[]} sections - `【見出し】\n本文` 形式のセクション文字列
+ * @returns {string} 完成した本文
+ */
+function _composeAdminBody(introLines, sections) {
+  const intro = introLines.filter(Boolean).join('\n');
+  const sectionBody = sections.filter(Boolean).join('\n\n');
+  const parts = [];
+  if (intro) parts.push(intro);
+  if (sectionBody) parts.push(sectionBody);
+  parts.push('詳細はスプレッドシートを確認してください。');
+  return parts.join('\n\n');
+}
+
+/**
+ * セクション文字列を生成
+ * @param {string} title - セクション見出し
+ * @param {string[]} lines - 本文行
+ * @returns {string} セクション文字列。本文が空の場合は空文字を返す。
+ */
+function _buildSection(title, lines) {
+  const normalized = (Array.isArray(lines) ? lines : [])
+    .map(line => (line === undefined || line === null ? '' : String(line)))
+    .filter(line => line.trim() !== '');
+  if (normalized.length === 0) return '';
+  return `${title}\n${normalized.join('\n')}`;
+}
 
 /**
  * 日時を統一フォーマットで文字列化
@@ -309,127 +387,135 @@ function _formatUserDisplay(user) {
 }
 
 /**
- * ユーザー基本情報セクションを構築
+ * 管理者通知用のユーザー情報行を構築
+ * @param {UserCore | undefined} user - ユーザーデータ
+ * @returns {string[]} ユーザー情報行
+ */
+function _buildUserSectionLines(user) {
+  const realName = user && user.realName ? user.realName : 'N/A';
+  const nickname = user && user.nickname ? user.nickname : 'N/A';
+  return [
+    `本名: ${realName}`,
+    `ニックネーム: ${nickname}`,
+    user && user.studentId ? `生徒ID: ${user.studentId}` : '生徒ID: N/A',
+  ];
+}
+
+/**
+ * ユーザー基本情報行を構築
  * @param {UserCore} userData - ユーザーデータ
- * @returns {string} フォーマット済みセクション
- * @private
+ * @param {string[]} [extraLines] - 追加行
+ * @returns {string[]} 本文行
  */
-function _buildUserBasicInfoSection(userData) {
-  const userDisplay = _formatUserDisplay(userData);
-  let section = '【基本情報】\n';
-  section += `生徒ID: ${userData.studentId || 'N/A'}\n`;
-  section += `名前: ${userDisplay}\n`;
-  section += `電話番号: ${userData.phone || ''}\n`;
-  section += `メールアドレス: ${userData.email || '未登録'}\n`;
-  section += `住所: ${userData.address || '未登録'}\n`;
-  return section;
+function _buildUserBasicInfoLines(userData, extraLines = []) {
+  const realName = userData.realName || 'N/A';
+  const nickname = userData.nickname || 'N/A';
+  const lines = [
+    `生徒ID: ${userData.studentId || 'N/A'}`,
+    `本名: ${realName}`,
+    `ニックネーム: ${nickname}`,
+    `電話番号: ${userData.phone || ''}`,
+    `メールアドレス: ${userData.email || '未登録'}`,
+    `住所: ${userData.address || '未登録'}`,
+  ];
+  return lines.concat(extraLines.filter(Boolean));
 }
 
 /**
- * ユーザー属性情報セクションを構築
+ * ユーザー属性情報行を構築
  * @param {any} userData - ユーザーデータ
- * @returns {string} フォーマット済みセクション
- * @private
+ * @returns {string[]} 本文行
  */
-function _buildUserAttributesSection(userData) {
-  return (
-    '\n【属性情報】\n' +
-    `年齢層: ${userData.ageGroup || '未登録'}\n` +
-    `性別: ${userData.gender || '未登録'}\n` +
-    `利き手: ${userData.dominantHand || '未登録'}\n`
-  );
+function _buildUserAttributesLines(userData) {
+  return [
+    `年齢層: ${userData.ageGroup || '未登録'}`,
+    `性別: ${userData.gender || '未登録'}`,
+    `利き手: ${userData.dominantHand || '未登録'}`,
+  ];
 }
 
 /**
- * ユーザー制作・参加情報セクションを構築
+ * ユーザー制作・参加情報行を構築
  * @param {any} userData - ユーザーデータ
- * @returns {string} フォーマット済みセクション
- * @private
+ * @returns {string[]} 本文行
  */
-function _buildUserCreationInfoSection(userData) {
-  return (
-    '\n【制作・参加情報】\n' +
-    `今後作りたい物: ${userData.futureCreations || '未登録'}\n` +
-    `経験: ${userData.experience || '未登録'}\n` +
-    `過去の作品: ${userData.pastWork || '未登録'}\n` +
-    `今後の参加意向: ${userData.futureParticipation || '未登録'}\n`
-  );
+function _buildUserCreationInfoLines(userData) {
+  return [
+    `今後作りたい物: ${userData.futureCreations || '未登録'}`,
+    `経験: ${userData.experience || '未登録'}`,
+    `過去の作品: ${userData.pastWork || '未登録'}`,
+    `今後の参加意向: ${userData.futureParticipation || '未登録'}`,
+  ];
 }
 
 /**
- * ユーザー設定・その他情報セクションを構築
+ * ユーザー設定・その他情報行を構築
  * @param {any} userData - ユーザーデータ
- * @returns {string} フォーマット済みセクション
- * @private
+ * @returns {string[]} 本文行
  */
-function _buildUserOtherInfoSection(userData) {
+function _buildUserOtherInfoLines(userData) {
   const notificationInfo = userData.wantsScheduleNotification
     ? `はい (${userData.notificationDay || '未設定'}日 ${userData.notificationHour || '未設定'}時)`
     : 'いいえ';
 
-  return (
-    '\n【その他】\n' +
-    `きっかけ: ${userData.trigger || '未登録'}\n` +
-    `初回メッセージ: ${userData.firstMessage || 'なし'}\n` +
-    `予約確認メール希望: ${userData.wantsEmail ? 'はい' : 'いいえ'}\n` +
-    `スケジュール通知希望: ${notificationInfo}\n`
-  );
+  return [
+    `きっかけ: ${userData.trigger || '未登録'}`,
+    `初回メッセージ: ${userData.firstMessage || 'なし'}`,
+    `予約確認メール希望: ${userData.wantsEmail ? 'はい' : 'いいえ'}`,
+    `スケジュール通知希望: ${notificationInfo}`,
+  ];
 }
 
 /**
- * 予約基本情報セクションを構築
+ * 予約基本情報行を構築
  * @param {ReservationCore} reservation - 予約データ
- * @returns {string} フォーマット済みセクション
- * @private
+ * @param {string[]} [extraLines] - 追加行
+ * @returns {string[]} 本文行
  */
-function _buildReservationBasicSection(reservation) {
-  let section = '【予約情報】\n';
-  section += `予約ID: ${reservation.reservationId}\n`;
-  section += `生徒ID: ${reservation.studentId}\n`;
-  section += `状態: ${reservation.status}\n`;
-  section += `彫刻刀レンタル: ${reservation.chiselRental ? 'あり' : 'なし'}\n`;
+function _buildReservationBasicSectionLines(reservation, extraLines = []) {
+  const lines = [
+    `予約ID: ${reservation.reservationId}`,
+    `生徒ID: ${reservation.studentId}`,
+    `状態: ${reservation.status}`,
+    `彫刻刀レンタル: ${reservation.chiselRental ? 'あり' : 'なし'}`,
+  ];
   if (reservation.firstLecture) {
-    section += `参加区分: 初回参加\n`;
+    lines.push('参加区分: 初回参加');
   }
-  return section;
+  return lines.concat(extraLines.filter(Boolean));
 }
 
 /**
- * 講座情報セクションを構築
+ * 講座情報行を構築
  * @param {ReservationCore} reservation - 予約データ
- * @returns {string} フォーマット済みセクション
- * @private
+ * @returns {string[]} 本文行
  */
-function _buildLessonInfoSection(reservation) {
-  return (
-    '\n【講座情報】\n' +
-    `教室: ${reservation.classroom}\n` +
-    `日付: ${reservation.date}\n` +
-    `会場: ${reservation.venue || ''}\n` +
-    `時間: ${reservation.startTime || ''} - ${reservation.endTime || ''}\n`
-  );
+function _buildLessonInfoSectionLines(reservation) {
+  return [
+    `教室: ${reservation.classroom}`,
+    `日付: ${reservation.date}`,
+    `会場: ${reservation.venue || ''}`,
+    `時間: ${reservation.startTime || ''} - ${reservation.endTime || ''}`,
+  ];
 }
 
 /**
- * 予約の制作内容・メッセージセクションを構築
+ * 予約の制作内容・メッセージ行を構築
  * @param {ReservationCore} reservation - 予約データ
  * @param {any} [additionalInfo] - 追加情報
- * @param {{heading?: string, includeRecordedCancelMessage?: boolean, suppressDuplicateCancelReason?: boolean}} [options] - 表示オプション
- * @returns {string} フォーマット済みセクション
- * @private
+ * @param {{includeRecordedCancelMessage?: boolean, suppressDuplicateCancelReason?: boolean}} [options] - 表示オプション
+ * @returns {string[]} 本文行
  */
-function _buildReservationContentSection(
+function _buildReservationContentSectionLines(
   reservation,
   additionalInfo = {},
   options = {},
 ) {
   const {
-    heading = '【メッセージ・制作内容】',
     includeRecordedCancelMessage = true,
     suppressDuplicateCancelReason = true,
   } = options;
 
-  /** @type {string[]} */
   const lines = [];
 
   if (additionalInfo.updateDetails) {
@@ -466,7 +552,5 @@ function _buildReservationContentSection(
     lines.push(`注文内容: ${reservation.order}`);
   }
 
-  if (lines.length === 0) return '';
-
-  return `\n${heading}\n${lines.join('\n')}\n`;
+  return lines;
 }
