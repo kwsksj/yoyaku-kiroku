@@ -24,6 +24,7 @@
 // ================================================================
 // 依存モジュール
 // ================================================================
+import { formatAdminUserDisplay } from './02-6_Notification_Admin.js';
 import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
 import { logActivity } from './08_Utilities.js';
 
@@ -177,14 +178,14 @@ export function createFirstTimeEmailText(
   formattedDate,
   statusText,
 ) {
-  const { realName } = student;
+  const displayName = formatAdminUserDisplay(student);
   const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
 
   const greeting = isWaitlisted
     ? `木彫り教室へのご参加希望をいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！\n\n現在、満席のため空き通知希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
     : `木彫り教室ご参加の申込みをいただき、ありがとうございます！\n木彫り作家の川崎誠二です。\n私の教室を見つけていただき、また選んでくださり、とてもうれしく思います！！`;
 
-  return `${realName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。\n\n残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。\n\n\n予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\n次回以降の予約や会計記録や参加の記録もこちらからできますよ。\nスマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！\n\n下に教室に関して連絡事項をまとめました。1度目を通しておいてください。\n他にも質問あれば、このメールに直接ご返信ください。\n\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\n09013755977\n参加当日に場所がわからないなどあれば、こちらにお電話やSMSでご連絡ください。\n\n${getContactAndVenueInfoText()}`;
+  return `${displayName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。\n\n残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。\n\n\n予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\n次回以降の予約や会計記録や参加の記録もこちらからできますよ。\nスマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！\n\n下に教室に関して連絡事項をまとめました。1度目を通しておいてください。\n他にも質問あれば、このメールに直接ご返信ください。\n\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\n09013755977\n参加当日に場所がわからないなどあれば、こちらにお電話やSMSでご連絡ください。\n\n${getContactAndVenueInfoText()}`;
 }
 
 /**
@@ -201,14 +202,14 @@ export function createRegularEmailText(
   formattedDate,
   statusText,
 ) {
-  const { realName } = student;
+  const displayName = formatAdminUserDisplay(student);
   const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
 
   const greeting = isWaitlisted
     ? `お申し込みありがとうございます！\n現在、満席のため空き通知希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
     : `お申し込みありがとうございます！\nご予約を承りました。`;
 
-  return `${realName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n予約の確認やキャンセルは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nメール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。\nまた次回以降の予約や会計記録や参加の記録もこちらからできます。\nスマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！\n\n何かご不明点があれば、このメールに直接ご返信ください。\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n\n${getContactAndVenueInfoText()}\n`;
+  return `${displayName}さま\n\n${greeting}\n\n${createBookingDetailsText(reservation, formattedDate, statusText)}\n\n予約の確認やキャンセルは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nメール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。\nまた次回以降の予約や会計記録や参加の記録もこちらからできます。\nスマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！\n\n何かご不明点があれば、このメールに直接ご返信ください。\nそれではどうぞよろしくお願いいたします！\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n\n${getContactAndVenueInfoText()}\n`;
 }
 
 /**
@@ -618,7 +619,7 @@ export function _createCancellationEmailText(
   if (!student) {
     return 'ユーザー情報が見つかりません';
   }
-  const { realName } = student;
+  const displayName = formatAdminUserDisplay(student);
   const { classroom, venue, startTime, endTime } = reservation;
 
   // 時間表示
@@ -632,7 +633,7 @@ export function _createCancellationEmailText(
     ? `\nキャンセル理由: ${cancelMessage}\n`
     : '';
 
-  return `${realName}さま\n\n予約のキャンセルを承りました。\n\n【キャンセルされた予約】\n教室: ${classroom} ${venue}\n日付: ${formattedDate}\n時間: ${timeDisplay}${reasonSection}\n\nキャンセル受付日時: ${new Date().toLocaleString('ja-JP')}\n\n予約の確認や新しい予約は、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nまたのご参加をお待ちしております。\n何かご不明点があれば、このメールに直接ご返信ください。\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n`;
+  return `${displayName}さま\n\n予約のキャンセルを承りました。\n\n【キャンセルされた予約】\n教室: ${classroom} ${venue}\n日付: ${formattedDate}\n時間: ${timeDisplay}${reasonSection}\n\nキャンセル受付日時: ${new Date().toLocaleString('ja-JP')}\n\n予約の確認や新しい予約は、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nまたのご参加をお待ちしております。\n何かご不明点があれば、このメールに直接ご返信ください。\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n`;
 }
 
 /**
