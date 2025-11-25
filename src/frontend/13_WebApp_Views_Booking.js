@@ -154,13 +154,19 @@ export const getBookingView = classroom => {
     totalLessons: currentState.lessons?.length,
     relevantLessons: relevantLessons.length,
     override: localStorage.getItem('beginnerModeOverride'),
+    isChangingDate: currentState['isChangingReservationDate'],
   });
+
+  // 日程変更モードの場合はタイトルを変更
+  const pageTitle = currentState['isChangingReservationDate']
+    ? '参加日の変更'
+    : classroom;
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
   if (!bookingLessonsHtml) {
     return `
-      ${Components.pageHeader({ title: classroom })}
+      ${Components.pageHeader({ title: pageTitle })}
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
@@ -170,7 +176,7 @@ export const getBookingView = classroom => {
     `;
   } else {
     return `
-      ${Components.pageHeader({ title: classroom })}
+      ${Components.pageHeader({ title: pageTitle })}
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `

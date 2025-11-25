@@ -738,10 +738,14 @@ export const reservationActionHandlers = {
     const currentState = reservationStateManager.getState();
     const lessonId = d.lessonId;
 
+    // 日程変更モードの場合はlessonsから、通常モードはparticipantLessonsから検索
+    const lessonsList = currentState['isChangingReservationDate']
+      ? currentState.lessons
+      : currentState.participantLessons;
+
     const foundLesson =
-      currentState.participantLessons &&
-      Array.isArray(currentState.participantLessons)
-        ? currentState.participantLessons.find(
+      lessonsList && Array.isArray(lessonsList)
+        ? lessonsList.find(
             (/** @type {LessonCore} */ lesson) => lesson.lessonId === lessonId,
           )
         : null;
