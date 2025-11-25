@@ -995,6 +995,17 @@ export const reservationActionHandlers = {
     const state = reservationStateManager.getState();
     const currentContext = state.currentReservationFormContext;
 
+    // デバッグログ
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      console.log('🔍 changeReservationDate called', {
+        hasCurrentContext: !!currentContext,
+        hasReservationInfo: currentContext
+          ? !!currentContext.reservationInfo
+          : false,
+        data: d,
+      });
+    }
+
     if (!currentContext || !currentContext.reservationInfo) {
       showInfo('予約情報が見つかりません。', 'エラー');
       return;
@@ -1020,7 +1031,7 @@ export const reservationActionHandlers = {
     reservationStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
-        view: 'booking',
+        view: 'bookingLessons',
         selectedClassroom: d.classroom || '',
         isChangingReservationDate: true, // 日付変更モードフラグ
       },

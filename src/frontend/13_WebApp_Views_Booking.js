@@ -255,8 +255,7 @@ export const getReservationFormView = () => {
         ? '空き通知 登録'
         : 'この内容で予約する';
 
-  const backAction =
-    source === 'participants' ? 'backToParticipantsView' : 'goBackToBooking';
+  const backAction = 'smartGoBack';
 
   const _renderStatusHtml = () => {
     if (isEdit) {
