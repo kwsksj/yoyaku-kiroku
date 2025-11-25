@@ -128,14 +128,22 @@ export const getDashboardView = () => {
 
   // --- メニューセクション ---
   const menuButton = Components.button({
-    text: '日程&予約状況 一覧',
+    text: '教室日程・予約状況 一覧',
     action: 'goToParticipantsView',
     style: 'primary',
     size: 'full',
   });
+  const accountingMenuButton = Components.button({
+    text: '本日の教室 会計',
+    action: 'goToTodayAccounting',
+    style: 'accounting',
+    size: 'full',
+  });
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
-    items: [menuButton],
+    items: [
+      `<div class="grid gap-2 sm:grid-cols-2">${menuButton}${accountingMenuButton}</div>`,
+    ],
   });
 
   return `
