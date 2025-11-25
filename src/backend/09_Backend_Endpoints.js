@@ -150,6 +150,59 @@ export function updateReservationDetailsAndGetLatestData(details) {
 }
 
 /**
+ * 予約の参加日を変更し、成功した場合に最新の全初期化データを返す。
+ * 内部的には新規予約作成と旧予約キャンセルを実行します。
+ * @param {ReservationCore} newReservationData - 新しい予約データ
+ * @param {string} originalReservationId - キャンセルする元の予約ID
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
+ */
+export function changeReservationDateAndGetLatestData(
+  newReservationData,
+  originalReservationId,
+) {
+  return withTransaction(() => {
+    try {
+      // 1. 元の予約をキャンセル
+      const cancelResult = cancelReservation({
+        reservationId: originalReservationId,
+        studentId: newReservationData.studentId,
+        cancelMessage: '参加日変更のため自動キャンセル',
+      });
+
+      if (!cancelResult.success) {
+        throw new Error(
+          `元の予約のキャンセルに失敗しました: ${cancelResult.message}`,
+        );
+      }
+
+      // 2. 新しい予約を作成
+      const bookingResult = createReservation(newReservationData);
+
+      if (!bookingResult.success) {
+        // 新規予約失敗時はロールバック
+        throw new Error(
+          `新しい予約の作成に失敗しました: ${bookingResult.message}`,
+        );
+      }
+
+      // 3. 成功時は最新データを返す
+      const latestData = getInitialData(newReservationData.studentId);
+      return {
+        success: true,
+        message: '参加日を変更しました。',
+        data: latestData.data,
+      };
+    } catch (error) {
+      Logger.log(`参加日変更エラー: ${error.message}`);
+      return {
+        success: false,
+        message: error.message || '参加日の変更に失敗しました。',
+      };
+    }
+  });
+}
+
+/**
  * 予約のメモを更新し、成功した場合に最新の全初期化データを返す
  * @param {string} reservationId - 更新対象の予約ID
  * @param {string} studentId - 対象生徒のID

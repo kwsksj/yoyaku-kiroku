@@ -232,17 +232,28 @@ export const getReservationFormView = () => {
     : firstSlotsCount === 0;
   const isBeginnerSlotFull = beginnerSlotsCount === 0;
 
-  const title = isEdit
-    ? '予約内容の編集'
-    : isFull || (isBeginnerMode && isBeginnerSlotFull)
-      ? '空き通知希望'
-      : '予約詳細の入力';
-  const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
-  const submitButtonText = isEdit
-    ? 'この内容で更新する'
-    : isFull
-      ? '空き通知 登録'
-      : 'この内容で予約する';
+  // 日程変更モードかどうかを判定
+  const isChangingDate = /** @type {string} */ (source) === 'dateChange';
+
+  const title = isChangingDate
+    ? '新しい日程の予約詳細'
+    : isEdit
+      ? '予約内容の編集'
+      : isFull || (isBeginnerMode && isBeginnerSlotFull)
+        ? '空き通知希望'
+        : '予約詳細の入力';
+  const submitAction = isChangingDate
+    ? 'confirmDateChange'
+    : isEdit
+      ? 'updateReservation'
+      : 'confirmBooking';
+  const submitButtonText = isChangingDate
+    ? 'この日程に変更する'
+    : isEdit
+      ? 'この内容で更新する'
+      : isFull
+        ? '空き通知 登録'
+        : 'この内容で予約する';
 
   const backAction =
     source === 'participants' ? 'backToParticipantsView' : 'goBackToBooking';
@@ -446,6 +457,18 @@ export const getReservationFormView = () => {
     size: 'full',
   });
   if (isEdit) {
+    // 参加日を変更するボタン
+    buttonsHtml += Components.button({
+      text: '参加日を変更する',
+      action: 'changeReservationDate',
+      style: 'secondary',
+      size: 'full',
+      dataAttributes: {
+        reservationId: reservationInfo.reservationId || '',
+        classroom: reservationInfo.classroom || '',
+      },
+    });
+    // キャンセルボタン
     buttonsHtml += Components.button({
       text: 'この予約をキャンセルする',
       action: 'cancel',
