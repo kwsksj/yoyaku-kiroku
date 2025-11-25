@@ -400,7 +400,8 @@ export const Components = {
       checkboxSizeClasses[/** @type {'small' | 'medium' | 'large'} */ (size)] ||
       checkboxSizeClasses.medium;
     const spacingClass = size === 'large' ? 'space-x-3' : 'space-x-2';
-    const labelSizeClass = size === 'large' ? 'text-lg' : 'text-base';
+    const labelSizeClass =
+      size === 'large' ? 'text-lg' : 'text-base leading-tight';
 
     // 動的スタイル用のクラス設定
     const labelClass = dynamicStyle
@@ -432,14 +433,14 @@ export const Components = {
 
     return `<div>
         ${descriptionHtml}
-        <label class="flex items-center ${spacingClass} ${labelSizeClass} ${finalLabelClass}">
+        <label class="flex items-start ${spacingClass} ${labelSizeClass} ${finalLabelClass}">
           <input
             type="checkbox"
             id="${id}"
             ${checked ? 'checked' : ''}
             ${disabled ? 'disabled' : ''}
             ${requiredAttr}
-            class="${checkboxSizeClass} accent-action-primary-bg"
+            class="${checkboxSizeClass} accent-action-primary-bg mt-0.5"
             ${onChangeAttr}
             ${dynamicStyle ? 'data-dynamic-style="true"' : ''}
             ${dataAttributesString}
