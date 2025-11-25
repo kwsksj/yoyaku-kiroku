@@ -33,6 +33,7 @@ import {
 import {
   getCachedStudentById,
   getCachedReservationsAsObjects,
+  withTransaction,
 } from './08_Utilities.js';
 import {
   makeReservation,
@@ -163,11 +164,17 @@ export function changeReservationDateAndGetLatestData(
   return withTransaction(() => {
     try {
       // 1. 元の予約をキャンセル
-      const cancelResult = cancelReservation({
+      /** @type {ReservationCore} */
+      const cancelParams = {
         reservationId: originalReservationId,
         studentId: newReservationData.studentId,
+        lessonId: '', // cancelReservationでは不要だが型定義上必要
+        classroom: '', // cancelReservationでは不要だが型定義上必要
+        date: '', // cancelReservationでは不要だが型定義上必要
+        status: '', // cancelReservationでは不要だが型定義上必要
         cancelMessage: '参加日変更のため自動キャンセル',
-      });
+      };
+      const cancelResult = cancelReservation(cancelParams);
 
       if (!cancelResult.success) {
         throw new Error(
@@ -176,7 +183,7 @@ export function changeReservationDateAndGetLatestData(
       }
 
       // 2. 新しい予約を作成
-      const bookingResult = createReservation(newReservationData);
+      const bookingResult = makeReservation(newReservationData);
 
       if (!bookingResult.success) {
         // 新規予約失敗時はロールバック
@@ -186,7 +193,11 @@ export function changeReservationDateAndGetLatestData(
       }
 
       // 3. 成功時は最新データを返す
-      const latestData = getInitialData(newReservationData.studentId);
+      const latestData = getBatchData(
+        ['reservations', 'lessons'],
+        null,
+        newReservationData.studentId,
+      );
       return {
         success: true,
         message: '参加日を変更しました。',

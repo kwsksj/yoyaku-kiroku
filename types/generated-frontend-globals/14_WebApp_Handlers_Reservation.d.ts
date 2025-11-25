@@ -14,4 +14,6 @@ export namespace reservationActionHandlers {
     function goToDashboard(): void;
     function goBackToBooking(): void;
     function confirmWaitlistedReservation(d: ActionHandlerData): void;
+    function changeReservationDate(d: ActionHandlerData): void;
+    function confirmDateChange(): void;
 }

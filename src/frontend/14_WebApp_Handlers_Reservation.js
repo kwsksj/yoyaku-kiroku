@@ -752,8 +752,9 @@ export const reservationActionHandlers = {
       // 日程変更モードの場合
       if (currentState['isChangingReservationDate']) {
         try {
-          const originalReservationJson =
-            sessionStorage.getItem('changingReservation');
+          const originalReservationJson = sessionStorage.getItem(
+            'changingReservation',
+          );
           if (originalReservationJson) {
             const originalReservation = JSON.parse(originalReservationJson);
             // 元の予約情報を使用（日付とlessonIdは新しいものに更新）
@@ -1030,7 +1031,8 @@ export const reservationActionHandlers = {
    * 日程変更を確定します（新規予約作成 + 旧予約キャンセル）。
    */
   confirmDateChange: () => {
-    const ctx = reservationStateManager.getState().currentReservationFormContext;
+    const ctx =
+      reservationStateManager.getState().currentReservationFormContext;
     if (!ctx) {
       showInfo('予約フォーム情報が見つかりません。', 'エラー');
       return;
@@ -1039,8 +1041,9 @@ export const reservationActionHandlers = {
     // 元の予約IDを取得
     let originalReservationId = '';
     try {
-      const originalReservationJson =
-        sessionStorage.getItem('changingReservation');
+      const originalReservationJson = sessionStorage.getItem(
+        'changingReservation',
+      );
       if (originalReservationJson) {
         const originalReservation = JSON.parse(originalReservationJson);
         originalReservationId = originalReservation.reservationId || '';
@@ -1130,45 +1133,43 @@ export const reservationActionHandlers = {
 
         // バックエンドAPIを呼び出し（新規予約 + 旧予約キャンセル）
         google.script.run
-          .withSuccessHandler(
-            (/** @type {ApiResponseGeneric} */ response) => {
-              hideLoading();
-              sessionStorage.removeItem('changingReservation'); // クリーンアップ
+          .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
+            hideLoading();
+            sessionStorage.removeItem('changingReservation'); // クリーンアップ
 
-              if (response.success) {
-                // 成功時は最新データで状態を更新
-                if (response.data) {
-                  const updatedPayload = /** @type {AppState} */ (
-                    /** @type {unknown} */ (response.data)
-                  );
-                  const currentState = reservationStateManager.getState();
-                  if (!updatedPayload.lessons) {
-                    /** @type {any} */ (updatedPayload).lessons =
-                      currentState.lessons;
-                  }
-                  reservationStateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: updatedPayload,
-                  });
+            if (response.success) {
+              // 成功時は最新データで状態を更新
+              if (response.data) {
+                const updatedPayload = /** @type {AppState} */ (
+                  /** @type {unknown} */ (response.data)
+                );
+                const currentState = reservationStateManager.getState();
+                if (!updatedPayload.lessons) {
+                  /** @type {any} */ (updatedPayload).lessons =
+                    currentState.lessons;
                 }
-
-                // 完了画面に遷移
                 reservationStateManager.dispatch({
                   type: 'SET_STATE',
-                  payload: {
-                    view: 'complete',
-                    completionMessage:
-                      response.message || '参加日を変更しました。',
-                  },
+                  payload: updatedPayload,
                 });
-              } else {
-                showInfo(
-                  response.message || '参加日の変更に失敗しました。',
-                  'エラー',
-                );
               }
-            },
-          )
+
+              // 完了画面に遷移
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'complete',
+                  completionMessage:
+                    response.message || '参加日を変更しました。',
+                },
+              });
+            } else {
+              showInfo(
+                response.message || '参加日の変更に失敗しました。',
+                'エラー',
+              );
+            }
+          })
           .withFailureHandler((/** @type {Error} */ error) => {
             hideLoading();
             sessionStorage.removeItem('changingReservation'); // エラー時もクリーンアップ
