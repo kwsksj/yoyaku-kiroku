@@ -130,7 +130,14 @@ export const reservationActionHandlers = {
                 },
               });
             }
-            showInfo(r.message || '予約を取り消しました。', 'キャンセル完了');
+            // キャンセル完了画面を表示（予約完了や会計完了と同様のUX）
+            reservationStateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                view: 'complete',
+                completionMessage: r.message || '予約をキャンセルしました。',
+              },
+            });
           } else {
             showInfo(r.message || 'キャンセル処理に失敗しました。', 'エラー');
           }
