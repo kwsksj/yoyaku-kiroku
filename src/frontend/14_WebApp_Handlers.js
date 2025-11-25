@@ -423,10 +423,7 @@ window.onload = function () {
       });
 
       if (todayCandidates.length === 0) {
-        showInfo(
-          '本日の会計対象の予約がありません。日程一覧から選択してください。',
-          'お知らせ',
-        );
+        showInfo('本日の会計対象の予約がありません。', 'お知らせ');
         return;
       }
 

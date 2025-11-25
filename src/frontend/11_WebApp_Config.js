@@ -313,7 +313,7 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
       danger:
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-danger-bg text-action-danger-text active:bg-action-danger-hover',
       accounting:
-        'font-bold text-sm py-1.5 px-2 leading-tight rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-amber-100 text-amber-900 active:bg-amber-200 border-2 border-amber-300',
+        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover',
       // カード内ボタン専用スタイル（カードと調和する色）
       bookingCard:
         'font-bold text-sm py-1.5 px-1.5 leading-tight rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-green-100 text-green-800 active:bg-green-200 border-2 border-green-200',
@@ -1337,7 +1337,7 @@ export const setupTailwindCSS = () => {
                 'attention-text': '#FFFFFF',
                 'attention-hover': '#4A732C',
                 'accounting-bg': '#F59E0B', // Amber
-                'accounting-text': '#4E342E', // Dark text for readability
+                'accounting-text': '#FFFFFF',
                 'accounting-hover': '#D97706',
                 'danger-bg': '#B91C1C',
                 'danger-text': '#FFFFFF',

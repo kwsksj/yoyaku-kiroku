@@ -383,7 +383,7 @@ function renderLessonList(lessons) {
   if (!lessons || lessons.length === 0) {
     return `
       ${Components.pageHeader({
-        title: '教室日程 一覧',
+        title: '教室日程・予約状況 一覧',
         showBackButton: false,
       })}
       <div class="${DesignConfig.layout.container}">
@@ -738,7 +738,7 @@ function renderLessonList(lessons) {
 
   return `
     ${Components.pageHeader({
-      title: '教室日程 一覧',
+      title: '教室日程・予約状況 一覧',
       showBackButton: true,
       backAction: 'smartGoBack',
     })}

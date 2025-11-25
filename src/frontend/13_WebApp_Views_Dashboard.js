@@ -128,13 +128,13 @@ export const getDashboardView = () => {
 
   // --- メニューセクション ---
   const menuButton = Components.button({
-    text: '日程&予約状況 一覧',
+    text: '教室日程・予約状況 一覧',
     action: 'goToParticipantsView',
     style: 'primary',
     size: 'full',
   });
   const accountingMenuButton = Components.button({
-    text: '今日の教室の会計',
+    text: '本日の教室 会計',
     action: 'goToTodayAccounting',
     style: 'accounting',
     size: 'full',
