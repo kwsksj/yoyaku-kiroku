@@ -159,7 +159,7 @@ export const getBookingView = classroom => {
 
   // 日程変更モードの場合はタイトルを変更
   const pageTitle = currentState['isChangingReservationDate']
-    ? '参加日の変更'
+    ? `${classroom} 予約日の変更`
     : classroom;
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
@@ -510,7 +510,19 @@ export const getReservationFormView = () => {
           <div class="space-y-4 text-left">
             <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.nickname : ''}さん</p>
             <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
-            <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
+            <div class="flex items-center justify-between gap-2">
+              <p class="flex-1"><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
+              ${
+                isEdit
+                  ? `<button
+                class="px-3 py-1 text-sm rounded-md ${DesignConfig.buttons.secondary}"
+                data-action="changeReservationDate"
+                data-reservation-id="${reservationInfo.reservationId || ''}"
+                data-classroom="${reservationInfo.classroom || ''}"
+              >予約日の変更</button>`
+                  : ''
+              }
+            </div>
             <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
             <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
             ${_renderTuitionDisplaySection()}

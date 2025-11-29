@@ -802,7 +802,7 @@ export const reservationActionHandlers = {
         payload: {
           currentReservationFormContext: formContext,
           view: 'reservationForm',
-          isChangingReservationDate: false, // フラグをリセット
+          // isChangingReservationDateはformContext.sourceで判定できるのでリセットしない
         },
       });
     } else {

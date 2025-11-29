@@ -172,7 +172,7 @@ export function changeReservationDateAndGetLatestData(
         classroom: '', // cancelReservationでは不要だが型定義上必要
         date: '', // cancelReservationでは不要だが型定義上必要
         status: '', // cancelReservationでは不要だが型定義上必要
-        cancelMessage: '参加日変更のため自動キャンセル',
+        cancelMessage: '予約日変更のため自動キャンセル',
       };
       const cancelResult = cancelReservation(cancelParams);
 
@@ -200,14 +200,14 @@ export function changeReservationDateAndGetLatestData(
       );
       return {
         success: true,
-        message: '参加日を変更しました。',
+        message: '予約日を変更しました。',
         data: latestData.data,
       };
     } catch (error) {
-      Logger.log(`参加日変更エラー: ${error.message}`);
+      Logger.log(`予約日変更エラー: ${error.message}`);
       return {
         success: false,
-        message: error.message || '参加日の変更に失敗しました。',
+        message: error.message || '予約日の変更に失敗しました。',
       };
     }
   });
