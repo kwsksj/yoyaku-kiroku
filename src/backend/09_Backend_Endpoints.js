@@ -811,9 +811,8 @@ export function getLessonsForParticipantsView(
       // キャッシュから全予約データと全生徒データを1回だけ取得
       const studentCache = getStudentCacheSnapshot();
       const preloadedStudentsMap = studentCache?.students;
-      const allReservations = getCachedReservationsAsObjects(
-        preloadedStudentsMap,
-      );
+      const allReservations =
+        getCachedReservationsAsObjects(preloadedStudentsMap);
       /** @type {Record<string, any>} */
       const allStudents = preloadedStudentsMap || {};
       Logger.log(

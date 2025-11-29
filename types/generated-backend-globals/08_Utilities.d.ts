@@ -116,9 +116,10 @@ export function getCachedStudentById(studentId: string): StudentData | null;
 export function convertReservationsToObjects(reservations: RawSheetRow[], headerMap: Map<string, number>, studentsMap?: Record<string, UserCore>): ReservationCore[];
 /**
  * キャッシュから全ての予約データを取得し、オブジェクトの配列として返す
+ * @param {Record<string, UserCore>=} studentsMapOverride - 事前取得済みの生徒マップ。指定時はキャッシュ読み込みを省略して再利用する
  * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列
  */
-export function getCachedReservationsAsObjects(): ReservationCore[];
+export function getCachedReservationsAsObjects(studentsMapOverride?: Record<string, UserCore> | undefined): ReservationCore[];
 /**
  * 予約IDを指定して、キャッシュから単一のReservationCoreオブジェクトを取得する
  * @param {string} reservationId - 取得する予約のID
