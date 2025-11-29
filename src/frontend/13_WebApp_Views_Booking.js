@@ -158,9 +158,13 @@ export const getBookingView = classroom => {
 
   const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
+  const pageTitle = currentState['isChangingReservationDate']
+    ? `${classroom} 予約日の変更`
+    : classroom;
+
   if (!bookingLessonsHtml) {
     return `
-      ${Components.pageHeader({ title: classroom })}
+      ${Components.pageHeader({ title: pageTitle })}
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
@@ -170,7 +174,7 @@ export const getBookingView = classroom => {
     `;
   } else {
     return `
-      ${Components.pageHeader({ title: classroom })}
+      ${Components.pageHeader({ title: pageTitle })}
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
@@ -232,20 +236,31 @@ export const getReservationFormView = () => {
     : firstSlotsCount === 0;
   const isBeginnerSlotFull = beginnerSlotsCount === 0;
 
-  const title = isEdit
-    ? '予約内容の編集'
-    : isFull || (isBeginnerMode && isBeginnerSlotFull)
-      ? '空き通知希望'
-      : '予約詳細の入力';
-  const submitAction = isEdit ? 'updateReservation' : 'confirmBooking';
-  const submitButtonText = isEdit
-    ? 'この内容で更新する'
-    : isFull
-      ? '空き通知 登録'
-      : 'この内容で予約する';
+  // 予約日変更モードかどうかを判定
+  const isChangingDate = String(source) === 'dateChange';
+
+  const title = isChangingDate
+    ? '新しい日程の予約詳細'
+    : isEdit
+      ? '予約内容の編集'
+      : isFull || (isBeginnerMode && isBeginnerSlotFull)
+        ? '空き通知希望'
+        : '予約詳細の入力';
+  const submitAction = isChangingDate
+    ? 'confirmDateChange'
+    : isEdit
+      ? 'updateReservation'
+      : 'confirmBooking';
+  const submitButtonText = isChangingDate
+    ? 'この日程に変更する'
+    : isEdit
+      ? 'この内容で更新する'
+      : isFull
+        ? '空き通知 登録'
+        : 'この内容で予約する';
 
   const backAction =
-    source === 'participants' ? 'backToParticipantsView' : 'goBackToBooking';
+    source === 'participants' ? 'backToParticipantsView' : 'smartGoBack';
 
   const _renderStatusHtml = () => {
     if (isEdit) {
@@ -482,7 +497,19 @@ export const getReservationFormView = () => {
           <div class="space-y-4 text-left">
             <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.nickname : ''}さん</p>
             <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
-            <p><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
+            <div class="flex items-center justify-between gap-2">
+              <p class="flex-1"><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
+              ${
+                isEdit
+                  ? `<button
+                class="px-3 py-1 text-sm rounded-md ${DesignConfig.buttons.secondary}"
+                data-action="changeReservationDate"
+                data-reservation-id="${reservationInfo.reservationId || ''}"
+                data-classroom="${reservationInfo.classroom || ''}"
+              >予約日の変更</button>`
+                  : ''
+              }
+            </div>
             <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
             <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
             ${_renderTuitionDisplaySection()}

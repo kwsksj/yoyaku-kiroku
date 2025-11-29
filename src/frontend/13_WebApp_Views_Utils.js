@@ -191,8 +191,15 @@ export const getCompleteView = msg => {
   const studentHasEmail = currentUser && currentUser.email;
   const emailPreference = currentUser && currentUser.wantsEmail;
 
-  // 予約完了か会計完了かを判定
-  const isReservationComplete = msg !== '会計情報を記録しました。';
+  // 完了種別を判定
+  /** @type {'reservation' | 'accounting' | 'cancel'} */
+  const completionType = (() => {
+    const normalized = (msg || '').toString();
+    if (normalized.includes('キャンセル')) return 'cancel';
+    if (normalized.includes('会計')) return 'accounting';
+    return 'reservation';
+  })();
+  const isReservationComplete = completionType === 'reservation';
 
   // メール送信に関する案内メッセージ（予約完了時のみ表示）
   let emailNoticeHtml = '';
@@ -242,10 +249,13 @@ export const getCompleteView = msg => {
     const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
     if (bookingLessonsHtml) {
-      // 予約完了時と会計完了時で表記を変更
-      const sectionTitle = isReservationComplete
-        ? '▼ さらに よやく ▼'
-        : '▼ つぎの よやく ▼';
+      // 完了種別ごとに表記を変更
+      const sectionTitle =
+        completionType === 'reservation'
+          ? '↓ さらに よやく をする！'
+          : completionType === 'accounting'
+            ? '↓ つぎの よやく をする！'
+            : '↓ かわりの よやく をする！';
 
       nextBookingHtml = `
           <div class="mt-0 pt-0">

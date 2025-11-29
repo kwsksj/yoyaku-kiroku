@@ -70,6 +70,7 @@ import {
   handlePhoneInputFormatting,
   isDateToday,
 } from './14_WebApp_Handlers_Utils.js';
+import { calculateAccountingTotal } from './12-1_Accounting_Calculation.js';
 
 // =================================================================
 // --- 分割ファイル統合パターン ---
@@ -549,60 +550,32 @@ window.onload = function () {
       }
 
       // ペイロード準備
-      const payload = {
-        reservationId,
-        classroom,
-        studentId,
-        userInput: formData,
-      };
-
-      // モーダルを閉じてローディング開始
-      windowTyped.ModalManager.hide();
-      showLoading('accounting');
-
-      // バックエンド送信
-      if (typeof google !== 'undefined' && google.script && google.script.run) {
-        google.script.run['withSuccessHandler'](
-          (/** @type {ServerResponse<any>} */ response) => {
-            hideLoading();
-            if (response.success) {
-              // データを最新に更新
-              if (response.data) {
-                handlersStateManager.dispatch({
-                  type: 'SET_STATE',
-                  payload: response.data,
-                });
-              }
-
-              // 成功時：完了画面を表示
-              const completionMessage = `会計情報を記録しました。`;
-              const currentState = handlersStateManager.getState();
-              handlersStateManager.dispatch({
-                type: 'SET_STATE',
-                payload: {
-                  view: 'complete',
-                  completionMessage: completionMessage,
-                  selectedClassroom:
-                    currentState.accountingReservation?.classroom,
-                },
-              });
-            } else {
-              showInfo('会計処理に失敗しました: ' + (response.message || ''));
-            }
-          },
-        )
-          ['withFailureHandler']((/** @type {Error} */ error) => {
-            hideLoading();
-            console.error('会計処理エラー:', error);
-            showInfo('会計処理に失敗しました。', 'エラー');
-          })
-          .saveAccountingDetailsAndGetLatestData(payload);
-      } else {
-        hideLoading();
+      const masterData = state.accountingMaster || [];
+      if (!Array.isArray(masterData) || masterData.length === 0) {
         showInfo(
-          'システムエラー：Google Apps Scriptとの通信ができません。',
-          'システムエラー',
+          '会計マスタが読み込まれていません。リロードして再度お試しください。',
+          'エラー',
         );
+        return;
+      }
+
+      const result =
+        typeof calculateAccountingTotal === 'function'
+          ? calculateAccountingTotal(formData, masterData, classroom)
+          : null;
+
+      if (!result) {
+        showInfo(
+          '会計計算に失敗しました。入力内容を確認してください。',
+          'エラー',
+        );
+        return;
+      }
+
+      if (typeof processAccountingPayment === 'function') {
+        processAccountingPayment(formData, result);
+      } else {
+        showInfo('会計処理の開始に失敗しました。', 'エラー');
       }
     },
 

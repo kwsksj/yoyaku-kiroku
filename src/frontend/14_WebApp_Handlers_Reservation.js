@@ -946,4 +946,173 @@ export const reservationActionHandlers = {
       },
     });
   },
+
+  /**
+   * 予約日の変更を開始します。
+   * 元の予約情報をsessionStorageに保存し、予約画面に遷移します。
+   * @param {ActionHandlerData} d - 変更対象の予約情報を含むデータ
+   */
+  changeReservationDate: d => {
+    const state = reservationStateManager.getState();
+    const currentContext = state.currentReservationFormContext;
+
+    if (!currentContext) {
+      showInfo('予約情報が見つかりません。', 'エラー');
+      return;
+    }
+
+    // 元の予約情報を取得
+    const originalReservation = {
+      reservationId: d.reservationId || '',
+      ...currentContext.reservationInfo,
+      ...currentContext.lessonInfo,
+    };
+
+    // sessionStorageに保存
+    sessionStorage.setItem(
+      'changingReservation',
+      JSON.stringify(originalReservation),
+    );
+
+    // 予約画面に遷移
+    reservationStateManager.dispatch({
+      type: 'SET_STATE',
+      payload: {
+        view: 'bookingLessons',
+        selectedClassroom: d.classroom || '',
+        isChangingReservationDate: true,
+      },
+    });
+  },
+
+  /**
+   * 予約日の変更を確定します。
+   * 新しい予約を作成し、古い予約をキャンセルします。
+   */
+  confirmDateChange: () => {
+    const state = reservationStateManager.getState();
+    const currentContext = state.currentReservationFormContext;
+
+    if (!currentContext) {
+      showInfo('予約情報が見つかりません。', 'エラー');
+      return;
+    }
+
+    // 元の予約情報を取得
+    const originalReservationJson = sessionStorage.getItem(
+      'changingReservation',
+    );
+    if (!originalReservationJson) {
+      showInfo('元の予約情報が見つかりません。', 'エラー');
+      return;
+    }
+
+    const originalReservation = JSON.parse(originalReservationJson);
+    const newReservationInfo = currentContext.reservationInfo;
+    const newLessonInfo = currentContext.lessonInfo;
+
+    // 確認メッセージを表示
+    const oldDate = formatDate(String(originalReservation.date));
+    const newDate = formatDate(String(newReservationInfo.date));
+    const classroom = newReservationInfo.classroom;
+
+    const message = `
+      <div class="text-left space-y-4">
+        <p class="text-center font-bold">予約日を変更します</p>
+        <div class="space-y-2">
+          <p><span class="font-bold">教室:</span> ${classroom}</p>
+          <p><span class="font-bold">変更前:</span> ${oldDate}</p>
+          <p><span class="font-bold">変更後:</span> ${newDate}</p>
+        </div>
+        <p class="text-sm text-ui-text-subtle">※元の予約は自動的にキャンセルされます</p>
+      </div>
+    `;
+
+    showConfirm({
+      title: '予約日の変更',
+      message: message,
+      confirmText: '変更する',
+      onConfirm: () => {
+        showLoading('予約日を変更しています...');
+
+        // 新しい予約のデータを構築
+        const newReservationData = /** @type {any} */ ({
+          lessonId: newLessonInfo.lessonId,
+          classroom: newReservationInfo.classroom,
+          date: newReservationInfo.date,
+          studentId: state.currentUser?.studentId,
+          nickname: state.currentUser?.nickname,
+          startTime: getTimeValue(
+            'res-start-time',
+            /** @type {any} */ (newReservationInfo),
+            'startTime',
+          ),
+          endTime: getTimeValue(
+            'res-end-time',
+            /** @type {any} */ (newReservationInfo),
+            'endTime',
+          ),
+          workInProgress: /** @type {HTMLTextAreaElement} */ (
+            document.getElementById('wip-input')
+          )?.value,
+          materialInfo: /** @type {HTMLTextAreaElement} */ (
+            document.getElementById('material-input')
+          )?.value,
+          messageToTeacher: /** @type {HTMLTextAreaElement} */ (
+            document.getElementById('message-input')
+          )?.value,
+          order: /** @type {HTMLTextAreaElement} */ (
+            document.getElementById('order-input')
+          )?.value,
+          firstLecture: /** @type {HTMLInputElement} */ (
+            document.getElementById('option-first-lecture')
+          )?.checked,
+          chiselRental: /** @type {HTMLInputElement} */ (
+            document.getElementById('option-rental')
+          )?.checked,
+        });
+
+        const originalReservationId = originalReservation.reservationId;
+
+        google.script.run
+          .withSuccessHandler(
+            /** @param {ServerResponse<BatchDataResult>} r */ r => {
+              hideLoading();
+              sessionStorage.removeItem('changingReservation');
+
+              if (r.success && r.data) {
+                showInfo(r.message || '予約日を変更しました。', '完了');
+
+                const myReservations =
+                  /** @type {any} */ (r.data).myReservations || [];
+                const lessons = /** @type {any} */ (r.data).lessons || [];
+
+                // 状態を更新
+                reservationStateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: {
+                    myReservations: myReservations,
+                    lessons: lessons,
+                    view: 'dashboard',
+                    isChangingReservationDate: false,
+                    isDataFresh: true,
+                  },
+                });
+              } else {
+                showInfo(r.message || '予約日の変更に失敗しました。', 'エラー');
+              }
+            },
+          )
+          .withFailureHandler((/** @type {Error} */ error) => {
+            hideLoading();
+            sessionStorage.removeItem('changingReservation');
+            handleServerError(error);
+          })
+          .changeReservationDateAndGetLatestData(
+            newReservationData,
+            originalReservationId,
+          );
+      },
+    });
+  },
 };
