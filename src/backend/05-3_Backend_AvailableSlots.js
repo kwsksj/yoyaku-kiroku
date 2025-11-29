@@ -58,16 +58,13 @@ export function getLessons(includePast = false) {
       if (reservationsMapByLessonId) return reservationsMapByLessonId;
       // 予約IDsが欠落している場合のフォールバック用に、lessonId単位のマップを一度だけ構築
       const allReservations = getCachedReservationsAsObjects();
-      reservationsMapByLessonId = allReservations.reduce(
-        (acc, reservation) => {
-          if (!reservation || !reservation.lessonId) return acc;
-          const key = String(reservation.lessonId);
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(reservation);
-          return acc;
-        },
-        /** @type {Record<string, ReservationCore[]>} */ ({}),
-      );
+      reservationsMapByLessonId = allReservations.reduce((acc, reservation) => {
+        if (!reservation || !reservation.lessonId) return acc;
+        const key = String(reservation.lessonId);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(reservation);
+        return acc;
+      }, /** @type {Record<string, ReservationCore[]>} */ ({}));
       return reservationsMapByLessonId;
     };
 
