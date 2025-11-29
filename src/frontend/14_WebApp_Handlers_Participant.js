@@ -229,7 +229,7 @@ function loadParticipantView(
         showInfo('通信エラーが発生しました', 'エラー');
       },
     )
-    .getLessonsForParticipantsView(studentId, true, true); // 第3引数: includeReservations=true
+    .getLessonsForParticipantsView(studentId, false, true); // 未来のみ先読み。過去はタブ切替で遅延取得
 }
 
 // アコーディオン開閉状態をローカル変数で管理（StateManager外）
