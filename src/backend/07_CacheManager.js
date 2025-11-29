@@ -1368,155 +1368,156 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     /** @type {{row: number, col: number, value: string}[]} */
     const updatesForSheet = []; // シートへの書き戻し用
 
-    // filter内ではdateColumnを直接使用
-    const scheduleDataList = allData
-      .filter(row => {
-        const dateValue = row[dateColumn];
-        if (!dateValue) return false;
+    // filter内ではdateColumnを直接使用。行インデックスを保ったまま処理する
+    /** @type {LessonCore[]} */
+    const scheduleDataList = [];
+    for (let i = 0; i < allData.length; i += 1) {
+      const row = allData[i];
+      const dateValue = row[dateColumn];
+      if (!dateValue) continue;
 
-        // Date オブジェクトを文字列形式に変換して比較
-        const dateStr =
-          dateValue instanceof Date
-            ? Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd')
-            : String(dateValue);
+      // Date オブジェクトを文字列形式に変換して比較
+      const dateStr =
+        dateValue instanceof Date
+          ? Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd')
+          : String(dateValue);
 
-        return dateStr >= startDate && dateStr <= endDate;
-      })
-      .map(
-        /** @param {(string|number|Date)[]} row */ (row, rowIndex) => {
-          /** @type {LessonCore} */
-          const scheduleObj = /** @type {LessonCore} */ ({});
+      if (dateStr < startDate || dateStr > endDate) continue;
 
-          // ★ lessonId がない場合に自動採番して書き戻し準備
-          let lessonId = row[lessonIdColumn];
-          if (!lessonId) {
-            lessonId = Utilities.getUuid();
-            row[lessonIdColumn] = lessonId; // 後続の処理で使えるように
-            updatesForSheet.push({
-              row: rowIndex + 2, // allDataはヘッダーが除かれているので、+2でシート上の行番号
-              col: lessonIdColumn + 1,
-              value: lessonId,
-            });
-          }
+      /** @type {LessonCore} */
+      const scheduleObj = /** @type {LessonCore} */ ({});
 
-          for (let index = 0; index < headerRow.length; index += 1) {
-            const header = headerRow[index];
-            let value = row[index];
+      // ★ lessonId がない場合に自動採番して書き戻し準備
+      let lessonId = row[lessonIdColumn];
+      if (!lessonId) {
+        lessonId = Utilities.getUuid();
+        row[lessonIdColumn] = lessonId; // 後続の処理で使えるように
+        updatesForSheet.push({
+          row: i + 2, // allDataはヘッダーが除かれているので、+2でシート上の行番号
+          col: lessonIdColumn + 1,
+          value: lessonId,
+        });
+      }
 
-            // 時間列の処理
-            if (timeColumnNames.includes(header) && value instanceof Date) {
-              value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
-            } else if (header === CONSTANTS.HEADERS.SCHEDULE.DATE) {
-              // 日付列の処理（文字列形式でキャッシュに保存）
-              if (value instanceof Date) {
-                value = Utilities.formatDate(
-                  value,
-                  CONSTANTS.TIMEZONE,
-                  'yyyy-MM-dd',
-                );
-              } else if (value && typeof value === 'string') {
-                try {
-                  const dateObj = new Date(value);
-                  if (isNaN(dateObj.getTime())) {
-                    Logger.log(`無効な日付文字列: ${value}, 行をスキップ`);
-                    return null;
-                  }
-                  value = Utilities.formatDate(
-                    dateObj,
-                    CONSTANTS.TIMEZONE,
-                    'yyyy-MM-dd',
-                  );
-                } catch (error) {
-                  Logger.log(
-                    `日付変換エラー: ${value}, エラー: ${error.message}, 行をスキップ`,
-                  );
-                  return null;
-                }
-              } else if (value == null || value === '') {
-                Logger.log(`無効な日付値: ${value}, 行をスキップ`);
-                return null;
+      let isValidRow = true;
+      for (let index = 0; index < headerRow.length; index += 1) {
+        const header = headerRow[index];
+        let value = row[index];
+
+        // 時間列の処理
+        if (timeColumnNames.includes(header) && value instanceof Date) {
+          value = Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
+        } else if (header === CONSTANTS.HEADERS.SCHEDULE.DATE) {
+          // 日付列の処理（文字列形式でキャッシュに保存）
+          if (value instanceof Date) {
+            value = Utilities.formatDate(
+              value,
+              CONSTANTS.TIMEZONE,
+              'yyyy-MM-dd',
+            );
+          } else if (value && typeof value === 'string') {
+            try {
+              const dateObj = new Date(value);
+              if (isNaN(dateObj.getTime())) {
+                Logger.log(`無効な日付文字列: ${value}, 行をスキップ`);
+                isValidRow = false;
+                break;
               }
+              value = Utilities.formatDate(
+                dateObj,
+                CONSTANTS.TIMEZONE,
+                'yyyy-MM-dd',
+              );
+            } catch (error) {
+              Logger.log(
+                `日付変換エラー: ${value}, エラー: ${error.message}, 行をスキップ`,
+              );
+              isValidRow = false;
+              break;
             }
+          } else if (value == null || value === '') {
+            Logger.log(`無効な日付値: ${value}, 行をスキップ`);
+            isValidRow = false;
+            break;
+          }
+        }
 
-            // 日本語ヘッダーを英語プロパティ名に変換
-            let propertyName = header;
-            switch (header) {
-              case CONSTANTS.HEADERS.SCHEDULE.DATE:
-                propertyName = 'date';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.CLASSROOM:
-                propertyName = 'classroom';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.VENUE:
-                propertyName = 'venue';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.TYPE:
-                propertyName = 'classroomType';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.FIRST_START:
-                propertyName = 'firstStart';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.FIRST_END:
-                propertyName = 'firstEnd';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.SECOND_START:
-                propertyName = 'secondStart';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.SECOND_END:
-                propertyName = 'secondEnd';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START:
-                propertyName = 'beginnerStart';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY:
-                propertyName = 'totalCapacity';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY:
-                propertyName = 'beginnerCapacity';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.STATUS:
-                propertyName = 'status';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.NOTES:
-                propertyName = 'notes';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.LESSON_ID:
-                propertyName = 'lessonId';
-                break;
-              case CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS:
-                propertyName = 'reservationIds';
-                // reservationIdsはJSON文字列で保存されているため、配列にパースする
-                try {
-                  value = value ? JSON.parse(String(value)) : [];
-                } catch (e) {
-                  Logger.log(
-                    `reservationIdsのJSONパースに失敗: ${value}, エラー: ${e.message}`,
-                  );
-                  value = /** @type {any} */ ([]); // パース失敗時は空配列
-                }
-                break;
-              default:
-                propertyName = header;
+        // 日本語ヘッダーを英語プロパティ名に変換
+        let propertyName = header;
+        switch (header) {
+          case CONSTANTS.HEADERS.SCHEDULE.DATE:
+            propertyName = 'date';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.CLASSROOM:
+            propertyName = 'classroom';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.VENUE:
+            propertyName = 'venue';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.TYPE:
+            propertyName = 'classroomType';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.FIRST_START:
+            propertyName = 'firstStart';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.FIRST_END:
+            propertyName = 'firstEnd';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.SECOND_START:
+            propertyName = 'secondStart';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.SECOND_END:
+            propertyName = 'secondEnd';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START:
+            propertyName = 'beginnerStart';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY:
+            propertyName = 'totalCapacity';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY:
+            propertyName = 'beginnerCapacity';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.STATUS:
+            propertyName = 'status';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.NOTES:
+            propertyName = 'notes';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.LESSON_ID:
+            propertyName = 'lessonId';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS:
+            propertyName = 'reservationIds';
+            // reservationIdsはJSON文字列で保存されているため、配列にパースする
+            try {
+              value = value ? JSON.parse(String(value)) : [];
+            } catch (e) {
+              Logger.log(
+                `reservationIdsのJSONパースに失敗: ${value}, エラー: ${e.message}`,
+              );
+              value = /** @type {any} */ ([]); // パース失敗時は空配列
             }
+            break;
+          default:
+            propertyName = header;
+        }
 
-            scheduleObj[propertyName] = value;
-          }
+        scheduleObj[propertyName] = value;
+      }
 
-          if (Array.isArray(scheduleObj.reservationIds)) {
-            scheduleObj.reservationIds = scheduleObj.reservationIds
-              .map(id => String(id || ''))
-              .filter(id => id !== '');
-          } else {
-            scheduleObj.reservationIds = [];
-          }
+      if (!isValidRow) continue;
 
-          return scheduleObj;
-        },
-      )
-      .filter(
-        /** @param {LessonCore | null} scheduleObj */ scheduleObj =>
-          scheduleObj !== null,
-      ); // 無効な行を除外
+      if (Array.isArray(scheduleObj.reservationIds)) {
+        scheduleObj.reservationIds = scheduleObj.reservationIds
+          .map(id => String(id || ''))
+          .filter(id => id !== '');
+      } else {
+        scheduleObj.reservationIds = [];
+      }
+
+      scheduleDataList.push(scheduleObj);
+    }
 
     // ★ 自動採番した lessonId をシートに書き戻す（キャッシュ保存より前に実行）
     if (updatesForSheet.length > 0) {
