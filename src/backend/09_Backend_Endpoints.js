@@ -50,7 +50,7 @@ import {
 import {
   CACHE_KEYS,
   getTypedCachedData,
-  getCachedData,
+  getStudentCacheSnapshot,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
@@ -809,10 +809,13 @@ export function getLessonsForParticipantsView(
       Logger.log('✅ 予約データを一括取得開始...');
 
       // キャッシュから全予約データと全生徒データを1回だけ取得
-      const allReservations = getCachedReservationsAsObjects();
-      const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS);
+      const studentCache = getStudentCacheSnapshot();
+      const preloadedStudentsMap = studentCache?.students;
+      const allReservations = getCachedReservationsAsObjects(
+        preloadedStudentsMap,
+      );
       /** @type {Record<string, any>} */
-      const allStudents = studentsCache?.['students'] || {};
+      const allStudents = preloadedStudentsMap || {};
       Logger.log(
         `📚 データ取得: 予約${allReservations.length}件, 生徒${Object.keys(allStudents).length}件`,
       );

@@ -754,11 +754,11 @@ export function convertReservationsToObjects(
 
 /**
  * キャッシュから全ての予約データを取得し、オブジェクトの配列として返す
+ * @param {Record<string, UserCore>=} studentsMapOverride - 事前取得済みの生徒マップ。指定時はキャッシュ読み込みを省略して再利用する
  * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列
  */
-export function getCachedReservationsAsObjects() {
+export function getCachedReservationsAsObjects(studentsMapOverride) {
   const reservationCache = getReservationCacheSnapshot();
-  const studentsCache = getStudentCacheSnapshot();
 
   if (!reservationCache) {
     return [];
@@ -767,7 +767,11 @@ export function getCachedReservationsAsObjects() {
     reservationCache.reservations || []
   );
   const headerMap = toHeaderMap(reservationCache.headerMap);
-  const studentsMap = studentsCache?.students;
+  let studentsMap = studentsMapOverride;
+  if (!studentsMap) {
+    const studentsCache = getStudentCacheSnapshot();
+    studentsMap = studentsCache?.students;
+  }
 
   if (!headerMap) {
     return [];
