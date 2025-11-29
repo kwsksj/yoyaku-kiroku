@@ -133,7 +133,7 @@ export function rebuildAllReservationsCache(): void;
  */
 export function rebuildScheduleMasterCache(fromDate?: string, toDate?: string): {
     version: number;
-    schedule: any[];
+    schedule: LessonCore[];
     dateRange: {
         from: string;
         to: string;
