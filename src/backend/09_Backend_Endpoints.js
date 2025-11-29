@@ -757,9 +757,17 @@ export function getLessonsForParticipantsView(
       `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}, includeReservations=${includeReservations}`,
     );
 
+    // 生徒キャッシュを1回取得（以降の処理で使い回す）
+    const studentCache = getStudentCacheSnapshot();
+    /** @type {Record<string, UserCore>} */
+    const preloadedStudentsMap = studentCache?.students || {};
+
     // 管理者判定（studentId="ADMIN"または登録済み管理者）
     const isAdminBySpecialId = studentId === 'ADMIN';
-    const isAdminByUser = isAdminUser(studentId);
+    const studentForAdminCheck = preloadedStudentsMap[studentId];
+    const isAdminByUser = studentForAdminCheck
+      ? isAdminLogin(studentForAdminCheck.phone || '')
+      : isAdminUser(studentId); // フォールバック
     const isAdmin = isAdminBySpecialId || isAdminByUser;
     Logger.log(
       `管理者判定: studentId="${studentId}", isAdminBySpecialId=${isAdminBySpecialId}, isAdminByUser=${isAdminByUser}, 最終判定=${isAdmin}`,
@@ -809,8 +817,6 @@ export function getLessonsForParticipantsView(
       Logger.log('✅ 予約データを一括取得開始...');
 
       // キャッシュから全予約データと全生徒データを1回だけ取得
-      const studentCache = getStudentCacheSnapshot();
-      const preloadedStudentsMap = studentCache?.students;
       const allReservations =
         getCachedReservationsAsObjects(preloadedStudentsMap);
       /** @type {Record<string, any>} */
