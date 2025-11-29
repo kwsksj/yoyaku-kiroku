@@ -2757,6 +2757,7 @@ export function getReservationsByIdsFromCache(reservationIds, options = {}) {
 
   const headerMap =
     toHeaderMapInstance(normalizeHeaderMap(cache.headerMap || {})) || null;
+  /** @type {Record<string, UserCore>} */
   let studentsMap = {};
   if (includeStudents) {
     const studentsCache = getStudentCacheSnapshot(false);
