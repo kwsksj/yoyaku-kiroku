@@ -991,37 +991,27 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 参加日を変更するフローを開始します。
-   * 現在の予約情報を保持したまま、予約画面（booking view）に遷移します。
+   * 予約日の変更を開始します。
+   * 元の予約情報をsessionStorageに保存し、予約画面に遷移します。
    * @param {ActionHandlerData} d - 変更対象の予約情報を含むデータ
    */
   changeReservationDate: d => {
     const state = reservationStateManager.getState();
     const currentContext = state.currentReservationFormContext;
 
-    // デバッグログ
-    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🔍 changeReservationDate called', {
-        hasCurrentContext: !!currentContext,
-        hasReservationInfo: currentContext
-          ? !!currentContext.reservationInfo
-          : false,
-        data: d,
-      });
-    }
-
-    if (!currentContext || !currentContext.reservationInfo) {
+    if (!currentContext) {
       showInfo('予約情報が見つかりません。', 'エラー');
       return;
     }
 
-    // 元の予約情報をセッションストレージに一時保存
+    // 元の予約情報を取得
     const originalReservation = {
       reservationId: d.reservationId || '',
       ...currentContext.reservationInfo,
       ...currentContext.lessonInfo,
     };
 
+    // sessionStorageに保存（エラーハンドリング付き）
     try {
       sessionStorage.setItem(
         'changingReservation',
@@ -1029,15 +1019,17 @@ export const reservationActionHandlers = {
       );
     } catch (e) {
       console.error('セッションストレージへの保存エラー:', e);
+      showInfo('予約情報の保存に失敗しました。', 'エラー');
+      return;
     }
 
-    // 予約画面（booking view）に遷移
+    // 予約画面に遷移
     reservationStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
         view: 'bookingLessons',
         selectedClassroom: d.classroom || '',
-        isChangingReservationDate: true, // 日付変更モードフラグ
+        isChangingReservationDate: true,
       },
     });
   },

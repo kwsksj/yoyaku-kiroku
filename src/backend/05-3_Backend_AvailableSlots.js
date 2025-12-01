@@ -52,6 +52,22 @@ export function getLessons(includePast = false) {
     /** @type {LessonCore[]} */
     const lessons = [];
 
+    /** @type {Record<string, ReservationCore[]> | null} */
+    let reservationsMapByLessonId = null;
+    const buildReservationsMapByLessonId = () => {
+      if (reservationsMapByLessonId) return reservationsMapByLessonId;
+      // 予約IDsが欠落している場合のフォールバック用に、lessonId単位のマップを一度だけ構築
+      const allReservations = getCachedReservationsAsObjects();
+      reservationsMapByLessonId = allReservations.reduce((acc, reservation) => {
+        if (!reservation || !reservation.lessonId) return acc;
+        const key = String(reservation.lessonId);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(reservation);
+        return acc;
+      }, /** @type {Record<string, ReservationCore[]>} */ ({}));
+      return reservationsMapByLessonId;
+    };
+
     // 未来の日程のみに絞り込み（includePastフラグで制御）
     const targetSchedules = includePast
       ? scheduledDates
@@ -80,8 +96,19 @@ export function getLessons(includePast = false) {
         schedule.reservationIds || [],
       );
 
+      // 予約IDsが空・欠落している場合はlessonId経由でフォールバック取得
+      const lessonIdKey =
+        schedule.lessonId && typeof schedule.lessonId === 'string'
+          ? schedule.lessonId
+          : '';
+      const reservationsForLookup =
+        (allReservationsForLesson && allReservationsForLesson.length > 0) ||
+        !lessonIdKey
+          ? allReservationsForLesson
+          : buildReservationsMapByLessonId()[lessonIdKey] || [];
+
       // 有効な予約のみフィルタリング（キャンセル・待機中を除外）
-      const reservationsForDate = allReservationsForLesson.filter(
+      const reservationsForDate = reservationsForLookup.filter(
         r =>
           r.status !== CONSTANTS.STATUS.CANCELED &&
           r.status !== CONSTANTS.STATUS.WAITLISTED,

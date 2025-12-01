@@ -238,8 +238,8 @@ export const getReservationFormView = () => {
     : firstSlotsCount === 0;
   const isBeginnerSlotFull = beginnerSlotsCount === 0;
 
-  // 日程変更モードかどうかを判定
-  const isChangingDate = /** @type {string} */ (source) === 'dateChange';
+  // 予約日変更モードかどうかを判定
+  const isChangingDate = String(source) === 'dateChange';
 
   const title = isChangingDate
     ? '新しい日程の予約詳細'
@@ -261,7 +261,8 @@ export const getReservationFormView = () => {
         ? '空き通知 登録'
         : 'この内容で予約する';
 
-  const backAction = 'smartGoBack';
+  const backAction =
+    source === 'participants' ? 'backToParticipantsView' : 'smartGoBack';
 
   const _renderStatusHtml = () => {
     if (isEdit) {
