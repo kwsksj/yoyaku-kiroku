@@ -1398,78 +1398,52 @@ export const reservationActionHandlers = {
 };
 
 /**
-
-     * 参加者リストモーダルを表示するヘルパー関数
-
-     * @param {ReservationCore[]} reservations
-
-     * @param {LessonCore} lesson
-
-     */
-
+ * 参加者リストモーダルを表示するヘルパー関数
+ * @param {ReservationCore[]} reservations
+ * @param {LessonCore} lesson
+ */
 function _showParticipantListModal(reservations, lesson) {
-  const dateFormatted = formatDate(String(lesson.date));
+  // formatDateを使うとHTMLタグが含まれるため、テキストのみの日付を作成
+  const dateObj = new Date(String(lesson.date));
+  const dateFormatted = isNaN(dateObj.getTime())
+    ? ''
+    : `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
 
   const rows = reservations
-
     .map(r => {
       // 管理者用プロパティへのアクセス用にキャスト
-
       const adminR = /** @type {any} */ (r);
-
       const name = adminR.realName
         ? `${adminR.realName} (${adminR.nickname})`
         : adminR.nickname || '不明';
-
       const status = r.status;
-
       const time = r.startTime ? `${r.startTime}~${r.endTime}` : '';
 
       return `
-
-          <div class="flex items-center justify-between p-3 border-b border-ui-border">
-
-            <div>
-
-              <div class="font-bold text-brand-text">${name}</div>
-
-              <div class="text-sm text-brand-subtle">${status} ${time}</div>
-
-            </div>
-
-            <div class="flex space-x-2">
-
-              ${Components.button({
-                text: '編集',
-
-                action: 'goToAdminReservationForm',
-
-                style: 'secondary',
-
-                size: 'small',
-
-                dataAttributes: { reservationId: r.reservationId },
-              })}
-
-              ${Components.button({
-                text: '会計',
-
-                action: 'showAdminAccounting',
-
-                style: 'primary',
-
-                size: 'small',
-
-                dataAttributes: { reservationId: r.reservationId },
-              })}
-
-            </div>
-
-          </div>
-
-        `;
+      <div class="flex items-center justify-between p-3 border-b border-ui-border">
+        <div>
+          <div class="font-bold text-brand-text">${name}</div>
+          <div class="text-sm text-brand-subtle">${status} ${time}</div>
+        </div>
+        <div class="flex space-x-2">
+          ${Components.button({
+            text: '編集',
+            action: 'goToAdminReservationForm',
+            style: 'secondary',
+            size: 'small',
+            dataAttributes: { reservationId: r.reservationId },
+          })}
+          ${Components.button({
+            text: '会計',
+            action: 'showAdminAccounting',
+            style: 'primary',
+            size: 'small',
+            dataAttributes: { reservationId: r.reservationId },
+          })}
+        </div>
+      </div>
+    `;
     })
-
     .join('');
 
   const content = `
