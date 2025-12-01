@@ -449,6 +449,11 @@ export interface InitialAppDataPayload {
   lessons: LessonCore[];
   /** ユーザーの予約情報 */
   myReservations: ReservationCore[];
+  /** 参加者ビュー用データ（管理者ログイン時のみ） */
+  participantData?: {
+    lessons: LessonCore[];
+    reservationsMap?: Record<string, any[]>;
+  };
 }
 
 /**

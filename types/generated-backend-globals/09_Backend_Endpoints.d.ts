@@ -111,7 +111,7 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo: {
  * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
  * @returns {ApiResponseGeneric} レッスン一覧
  */
-export function getLessonsForParticipantsView(studentId: string, includeHistory?: boolean, includeReservations?: boolean): ApiResponseGeneric;
+export function getLessonsForParticipantsView(studentId: string, includeHistory?: boolean, includeReservations?: boolean, adminLoginId?: string): ApiResponseGeneric;
 /**
  * 特定レッスンの予約情報リストを取得する（権限に応じてフィルタリング）
  * - 管理者: 全項目を返す（本名、電話番号、メールアドレスなど）

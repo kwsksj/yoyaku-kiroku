@@ -119,12 +119,35 @@ export const authActionHandlers = {
         // loadParticipantsView内でrender()とhideLoading()が呼ばれる
         if (isAdmin) {
           console.log('📋 管理者ログイン - 参加者リストビューデータ取得開始');
-          // 基本データを渡してloadParticipantsViewで一括設定
-          participantActionHandlers.loadParticipantView(
-            false,
-            false,
-            newAppState,
-          ); // ローディング継続
+          const participantData = response.data?.participantData;
+          if (
+            participantData &&
+            Array.isArray(participantData.lessons) &&
+            participantData.lessons.length > 0
+          ) {
+            /** @type {Partial<UIState>} */
+            const baseAppState = {
+              ...newAppState,
+              view: 'participants',
+              participantLessons: participantData.lessons,
+              participantReservationsMap:
+                participantData.reservationsMap || {},
+              participantIsAdmin: true,
+              participantHasPastLessonsLoaded: true,
+            };
+            participantActionHandlers.loadParticipantView(
+              false,
+              false,
+              baseAppState,
+              true,
+            ); // データ済みなので即描画
+          } else {
+            participantActionHandlers.loadParticipantView(
+              false,
+              false,
+              newAppState,
+            ); // ローディング継続（従来どおり取得）
+          }
         } else {
           // 一般ユーザーはここでstateを設定
           /** @type {Partial<UIState>} */

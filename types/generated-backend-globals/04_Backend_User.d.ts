@@ -166,4 +166,8 @@ export type InitialAppDataPayload = {
     cacheVersions: Record<string, unknown>;
     lessons: LessonCore[];
     myReservations: ReservationCore[];
+    participantData?: {
+        lessons: LessonCore[];
+        reservationsMap?: Record<string, any[]>;
+    };
 };

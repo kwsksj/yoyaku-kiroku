@@ -55,6 +55,7 @@ const INVALID_PHONE_RESULT = {
  * @property {Record<string, unknown>} cacheVersions
  * @property {LessonCore[]} lessons
  * @property {ReservationCore[]} myReservations
+ * @property {{lessons: LessonCore[], reservationsMap?: Record<string, any[]>}=} participantData
  */
 
 // =================================================================
