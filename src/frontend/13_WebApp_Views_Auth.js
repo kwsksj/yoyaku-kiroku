@@ -135,36 +135,26 @@ export const getRegistrationStep1View = phone => {
         })}
         ${Components.cardContainer({
           variant: 'default',
-          content: Components.checkbox({
-            id: 'reg-wants-email',
-            label: '予約受付 のメール連絡を希望する',
-            checked: data.wantsEmail || false,
-            caption: '* 初回予約時は、すべての方へ送信します',
-          }),
-        })}
-        ${Components.cardContainer({
-          variant: 'default',
           content: `
             ${Components.checkbox({
               id: 'reg-wants-schedule-notification',
               label: '教室日程 のメール連絡（毎月）を希望する',
-              checked: data['wantsScheduleNotification'] || false,
+              checked: data['wantsScheduleNotification'] ?? true,
               onChange:
                 "document.getElementById('reg-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
             })}
-            <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data['wantsScheduleNotification'] ? '' : 'hidden'}">
+            <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data['wantsScheduleNotification'] === false ? 'hidden' : ''}">
               ${Components.select(
                 /** @type {SelectConfig} */ (
                   /** @type {unknown} */ ({
                     id: 'reg-notification-day',
                     label: '送信日',
                     options: [
-                      { value: '', label: '--' },
                       { value: '5', label: '毎月5日' },
                       { value: '15', label: '毎月15日' },
                       { value: '25', label: '毎月25日' },
                     ],
-                    selectedValue: String(data['notificationDay'] || ''),
+                    selectedValue: String(data['notificationDay'] || '25'),
                   })
                 ),
               )}
@@ -174,20 +164,29 @@ export const getRegistrationStep1View = phone => {
                     id: 'reg-notification-hour',
                     label: '送信時刻',
                     options: [
-                      { value: '', label: '--' },
                       { value: '9', label: '9時' },
                       { value: '12', label: '12時' },
                       { value: '18', label: '18時' },
                       { value: '21', label: '21時' },
                     ],
-                    selectedValue: String(data['notificationHour'] || ''),
+                    selectedValue: String(data['notificationHour'] || '18'),
                   })
                 ),
               )}
             </div>
           `,
         })}
-      </form>
+        ${Components.cardContainer({
+          variant: 'default',
+          content: Components.checkbox({
+            id: 'reg-wants-email',
+            label: '予約受付 のメール連絡を希望する',
+            checked: data.wantsEmail || false,
+            caption:
+              '初回予約時は、すべての方へ送信します。予約状況に関してはこのページで確認可能です。',
+          }),
+        })}
+     </form>
 
         ${Components.actionButtonSection({
           secondaryButton: {
@@ -522,15 +521,6 @@ export const getEditProfileView = () => {
         })}
         ${Components.cardContainer({
           variant: 'default',
-          content: Components.checkbox({
-            id: 'edit-wants-email',
-            label: '予約受付 のメール連絡を希望する',
-            checked: userData.wantsEmail || false,
-            caption: '初回予約時は、すべての方へ送信します',
-          }),
-        })}
-        ${Components.cardContainer({
-          variant: 'default',
           content: `
             ${Components.checkbox({
               id: 'edit-wants-schedule-notification',
@@ -546,13 +536,12 @@ export const getEditProfileView = () => {
                     id: 'edit-notification-day',
                     label: '送信日',
                     options: [
-                      { value: '', label: '--' },
                       { value: '5', label: '毎月5日' },
                       { value: '15', label: '毎月15日' },
                       { value: '25', label: '毎月25日' },
                     ],
                     selectedValue: String(
-                      /** @type {any} */ (userData)['notificationDay'] || '',
+                      /** @type {any} */ (userData)['notificationDay'] || '25',
                     ),
                   })
                 ),
@@ -563,20 +552,29 @@ export const getEditProfileView = () => {
                     id: 'edit-notification-hour',
                     label: '送信時刻',
                     options: [
-                      { value: '', label: '--' },
                       { value: '9', label: '9時' },
                       { value: '12', label: '12時' },
                       { value: '18', label: '18時' },
                       { value: '21', label: '21時' },
                     ],
                     selectedValue: String(
-                      /** @type {any} */ (userData)['notificationHour'] || '',
+                      /** @type {any} */ (userData)['notificationHour'] || '18',
                     ),
                   })
                 ),
               )}
             </div>
           `,
+        })}
+        ${Components.cardContainer({
+          variant: 'default',
+          content: Components.checkbox({
+            id: 'edit-wants-email',
+            label: '予約受付 のメール連絡を希望する',
+            checked: userData.wantsEmail || false,
+            caption:
+              '初回予約時は、すべての方へ送信します。予約状況に関してはこのページで確認可能です。',
+          }),
         })}
         ${Components.input({
           id: 'edit-address',

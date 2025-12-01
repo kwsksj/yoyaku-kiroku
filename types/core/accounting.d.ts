@@ -65,24 +65,28 @@ export interface AccountingDetailsCore {
   breakTime?: number | undefined;
 
   /** 材料詳細 - 会計処理時にのみ設定 */
-  materials?: Array<{
-    /** 材料種別 */
-    type: string;
-    /** 長さ（cm） */
-    l?: number;
-    /** 幅（cm） */
-    w?: number;
-    /** 高さ（cm） */
-    h?: number;
-  }> | undefined;
+  materials?:
+    | Array<{
+        /** 材料種別 */
+        type: string;
+        /** 長さ（cm） */
+        l?: number;
+        /** 幅（cm） */
+        w?: number;
+        /** 高さ（cm） */
+        h?: number;
+      }>
+    | undefined;
 
   /** 自由入力物販 - 会計処理時にのみ設定 */
-  customSales?: Array<{
-    /** 商品名 */
-    name: string;
-    /** 金額 */
-    price: number;
-  }> | undefined;
+  customSales?:
+    | Array<{
+        /** 商品名 */
+        name: string;
+        /** 金額 */
+        price: number;
+      }>
+    | undefined;
 }
 
 /**

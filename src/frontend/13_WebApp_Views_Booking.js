@@ -154,13 +154,15 @@ export const getBookingView = classroom => {
     totalLessons: currentState.lessons?.length,
     relevantLessons: relevantLessons.length,
     override: localStorage.getItem('beginnerModeOverride'),
+    isChangingDate: currentState['isChangingReservationDate'],
   });
 
-  const bookingLessonsHtml = renderBookingLessons(relevantLessons);
-
+  // 日程変更モードの場合はタイトルを変更
   const pageTitle = currentState['isChangingReservationDate']
     ? `${classroom} 予約日の変更`
     : classroom;
+
+  const bookingLessonsHtml = renderBookingLessons(relevantLessons);
 
   if (!bookingLessonsHtml) {
     return `
@@ -461,6 +463,7 @@ export const getReservationFormView = () => {
     size: 'full',
   });
   if (isEdit) {
+    // キャンセルボタン
     buttonsHtml += Components.button({
       text: 'この予約をキャンセルする',
       action: 'cancel',
@@ -578,6 +581,12 @@ export const renderBookingLessons = lessons => {
             let cardClass, statusBadge, actionAttribute;
             const tag = isBooked ? 'div' : 'button';
 
+            // 日程変更モードの場合は異なるアクションを使用
+            const isChangingDate = state['isChangingReservationDate'];
+            const bookAction = isChangingDate
+              ? 'goToReservationFormForLesson'
+              : 'bookLesson';
+
             const autoFirstTime =
               bookingStateManager.getState().isFirstTimeBooking;
             const isBeginnerMode = resolveEffectiveBeginnerMode();
@@ -660,11 +669,11 @@ export const renderBookingLessons = lessons => {
               } else if (isSlotFull) {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
                 statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（空き通知希望）</span>`;
-                actionAttribute = `data-action="bookLesson" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
+                actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
               } else {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
                 statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
-                actionAttribute = `data-action="bookLesson" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
+                actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
               }
             }
 

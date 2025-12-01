@@ -713,9 +713,19 @@ window.onload = function () {
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     console.log('🔧 actionHandlers構築完了:', {
       hasCancel: typeof actionHandlers['cancel'] === 'function',
+      hasChangeReservationDate:
+        typeof actionHandlers['changeReservationDate'] === 'function',
+      hasConfirmDateChange:
+        typeof actionHandlers['confirmDateChange'] === 'function',
       totalHandlers: Object.keys(actionHandlers).length,
       reservationHandlers: Object.keys(actionHandlers).filter(key =>
-        ['cancel', 'confirmBooking', 'goToEditReservation'].includes(key),
+        [
+          'cancel',
+          'confirmBooking',
+          'goToEditReservation',
+          'changeReservationDate',
+          'confirmDateChange',
+        ].includes(key),
       ),
     });
   }

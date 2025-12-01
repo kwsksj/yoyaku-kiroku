@@ -130,7 +130,14 @@ export const reservationActionHandlers = {
                 },
               });
             }
-            showInfo(r.message || '予約を取り消しました。', 'キャンセル完了');
+            // キャンセル完了画面を表示（予約完了や会計完了と同様のUX）
+            reservationStateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                view: 'complete',
+                completionMessage: r.message || '予約をキャンセルしました。',
+              },
+            });
           } else {
             showInfo(r.message || 'キャンセル処理に失敗しました。', 'エラー');
           }
@@ -731,28 +738,63 @@ export const reservationActionHandlers = {
     const currentState = reservationStateManager.getState();
     const lessonId = d.lessonId;
 
+    // 日程変更モードの場合はlessonsから、通常モードはparticipantLessonsから検索
+    const lessonsList = currentState['isChangingReservationDate']
+      ? currentState.lessons
+      : currentState.participantLessons;
+
     const foundLesson =
-      currentState.participantLessons &&
-      Array.isArray(currentState.participantLessons)
-        ? currentState.participantLessons.find(
+      lessonsList && Array.isArray(lessonsList)
+        ? lessonsList.find(
             (/** @type {LessonCore} */ lesson) => lesson.lessonId === lessonId,
           )
         : null;
 
     if (foundLesson) {
-      // ユーザーの既存予約を検索
-      const existingReservation = (currentState.myReservations || []).find(
-        (/** @type {ReservationCore} */ res) => res.lessonId === lessonId,
-      );
+      let reservationInfo;
+
+      // 日程変更モードの場合
+      if (currentState['isChangingReservationDate']) {
+        try {
+          const originalReservationJson = sessionStorage.getItem(
+            'changingReservation',
+          );
+          if (originalReservationJson) {
+            const originalReservation = JSON.parse(originalReservationJson);
+            // 元の予約情報を使用（日付とlessonIdは新しいものに更新）
+            reservationInfo = {
+              ...originalReservation,
+              date: foundLesson.date,
+              lessonId: foundLesson.lessonId,
+              classroom: foundLesson.classroom,
+              // 予約IDは含めない（新規予約として扱う）
+              reservationId: undefined,
+            };
+          }
+        } catch (e) {
+          console.error('元の予約情報の読み込みエラー:', e);
+        }
+      }
+
+      // 通常モード、または日程変更モードで元情報が取得できなかった場合
+      if (!reservationInfo) {
+        // ユーザーの既存予約を検索
+        const existingReservation = (currentState.myReservations || []).find(
+          (/** @type {ReservationCore} */ res) => res.lessonId === lessonId,
+        );
+        reservationInfo = existingReservation || {
+          firstLecture: false,
+          chiselRental: false,
+        };
+      }
 
       const formContext = {
         lessonInfo: foundLesson,
-        // 既存予約があればそれを、なければ空のオブジェクトをセット
-        reservationInfo: existingReservation || {
-          firstLecture: false,
-          chiselRental: false,
-        },
-        source: 'participants', // 遷移元を記録
+        reservationInfo: reservationInfo,
+        source: currentState['isChangingReservationDate']
+          ? 'dateChange'
+          : 'participants',
+        isChangingReservationDate: currentState['isChangingReservationDate'],
       };
 
       reservationStateManager.dispatch({
@@ -760,6 +802,7 @@ export const reservationActionHandlers = {
         payload: {
           currentReservationFormContext: formContext,
           view: 'reservationForm',
+          // isChangingReservationDateはformContext.sourceで判定できるのでリセットしない
         },
       });
     } else {
@@ -968,11 +1011,17 @@ export const reservationActionHandlers = {
       ...currentContext.lessonInfo,
     };
 
-    // sessionStorageに保存
-    sessionStorage.setItem(
-      'changingReservation',
-      JSON.stringify(originalReservation),
-    );
+    // sessionStorageに保存（エラーハンドリング付き）
+    try {
+      sessionStorage.setItem(
+        'changingReservation',
+        JSON.stringify(originalReservation),
+      );
+    } catch (e) {
+      console.error('セッションストレージへの保存エラー:', e);
+      showInfo('予約情報の保存に失敗しました。', 'エラー');
+      return;
+    }
 
     // 予約画面に遷移
     reservationStateManager.dispatch({
@@ -986,126 +1035,163 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 予約日の変更を確定します。
-   * 新しい予約を作成し、古い予約をキャンセルします。
+   * 日程変更を確定します（新規予約作成 + 旧予約キャンセル）。
    */
   confirmDateChange: () => {
-    const state = reservationStateManager.getState();
-    const currentContext = state.currentReservationFormContext;
-
-    if (!currentContext) {
-      showInfo('予約情報が見つかりません。', 'エラー');
+    const ctx =
+      reservationStateManager.getState().currentReservationFormContext;
+    if (!ctx) {
+      showInfo('予約フォーム情報が見つかりません。', 'エラー');
       return;
     }
 
-    // 元の予約情報を取得
-    const originalReservationJson = sessionStorage.getItem(
-      'changingReservation',
-    );
-    if (!originalReservationJson) {
+    // 元の予約情報を一度だけ取得・パース
+    let originalReservation;
+    try {
+      const originalReservationJson = sessionStorage.getItem(
+        'changingReservation',
+      );
+      if (originalReservationJson) {
+        originalReservation = JSON.parse(originalReservationJson);
+      }
+    } catch (e) {
+      console.error('元の予約情報の読み込みエラー:', e);
+    }
+
+    if (!originalReservation || !originalReservation.reservationId) {
       showInfo('元の予約情報が見つかりません。', 'エラー');
       return;
     }
 
-    const originalReservation = JSON.parse(originalReservationJson);
-    const newReservationInfo = currentContext.reservationInfo;
-    const newLessonInfo = currentContext.lessonInfo;
+    const originalReservationId = originalReservation.reservationId;
 
-    // 確認メッセージを表示
-    const oldDate = formatDate(String(originalReservation.date));
-    const newDate = formatDate(String(newReservationInfo.date));
-    const classroom = newReservationInfo.classroom;
-
-    const message = `
-      <div class="text-left space-y-4">
-        <p class="text-center font-bold">予約日を変更します</p>
-        <div class="space-y-2">
-          <p><span class="font-bold">教室:</span> ${classroom}</p>
-          <p><span class="font-bold">変更前:</span> ${oldDate}</p>
-          <p><span class="font-bold">変更後:</span> ${newDate}</p>
-        </div>
-        <p class="text-sm text-ui-text-subtle">※元の予約は自動的にキャンセルされます</p>
-      </div>
-    `;
+    // 確認モーダルを表示
+    const oldDate = formatDate(originalReservation.date || '');
+    const newDate = formatDate(String(ctx.lessonInfo.date));
+    const classroom = ctx.lessonInfo.classroom;
 
     showConfirm({
-      title: '予約日の変更',
-      message: message,
+      title: '参加日の変更',
+      message: `
+        <div class="text-left space-y-2">
+          <p class="text-center font-bold">参加日を変更しますか？</p>
+          <p class="text-sm text-brand-subtle">変更前: ${oldDate} ${classroom}</p>
+          <p class="text-sm text-brand-text">変更後: ${newDate} ${classroom}</p>
+          <p class="text-xs text-brand-subtle mt-4">※ 元の予約はキャンセルされ、新しい日程で予約が作成されます</p>
+        </div>
+      `,
       confirmText: '変更する',
+      cancelText: 'やめる',
       onConfirm: () => {
-        showLoading('予約日を変更しています...');
+        showLoading('dateChange');
 
-        // 新しい予約のデータを構築
-        const newReservationData = /** @type {any} */ ({
-          lessonId: newLessonInfo.lessonId,
-          classroom: newReservationInfo.classroom,
-          date: newReservationInfo.date,
-          studentId: state.currentUser?.studentId,
-          nickname: state.currentUser?.nickname,
-          startTime: getTimeValue(
-            'res-start-time',
-            /** @type {any} */ (newReservationInfo),
-            'startTime',
-          ),
-          endTime: getTimeValue(
-            'res-end-time',
-            /** @type {any} */ (newReservationInfo),
-            'endTime',
-          ),
-          workInProgress: /** @type {HTMLTextAreaElement} */ (
-            document.getElementById('wip-input')
-          )?.value,
-          materialInfo: /** @type {HTMLTextAreaElement} */ (
-            document.getElementById('material-input')
-          )?.value,
-          messageToTeacher: /** @type {HTMLTextAreaElement} */ (
-            document.getElementById('message-input')
-          )?.value,
-          order: /** @type {HTMLTextAreaElement} */ (
-            document.getElementById('order-input')
-          )?.value,
-          firstLecture: /** @type {HTMLInputElement} */ (
-            document.getElementById('option-first-lecture')
-          )?.checked,
-          chiselRental: /** @type {HTMLInputElement} */ (
-            document.getElementById('option-rental')
-          )?.checked,
-        });
+        // 新規予約データを構築
+        const currentUser = reservationStateManager.getState().currentUser;
+        if (!currentUser) {
+          hideLoading();
+          showInfo('ユーザー情報が見つかりません。', 'エラー');
+          return;
+        }
 
-        const originalReservationId = originalReservation.reservationId;
+        /** @type {ReservationCore} */
+        const newReservationData = {
+          reservationId: '', // 新規予約のため空文字列
+          status: '', // バックエンドで設定される
+          lessonId: String(ctx.lessonInfo.lessonId || ''),
+          studentId: currentUser.studentId || '',
+          classroom: ctx.lessonInfo.classroom,
+          date: String(ctx.lessonInfo.date),
+          startTime:
+            getTimeValue('res-start-time', null, 'startTime') ||
+            ctx.lessonInfo.firstStart ||
+            '',
+          endTime:
+            getTimeValue('res-end-time', null, 'endTime') ||
+            ctx.lessonInfo.firstEnd ||
+            '',
+          firstLecture:
+            /** @type {HTMLInputElement | null} */ (
+              document.getElementById('option-first-lecture')
+            )?.checked || false,
+          chiselRental:
+            /** @type {HTMLInputElement | null} */ (
+              document.getElementById('option-rental')
+            )?.checked || false,
+          workInProgress:
+            /** @type {HTMLTextAreaElement | null} */ (
+              document.getElementById('wip-input')
+            )?.value || '',
+          materialInfo:
+            /** @type {HTMLTextAreaElement | null} */ (
+              document.getElementById('material-input')
+            )?.value || '',
+          order:
+            /** @type {HTMLTextAreaElement | null} */ (
+              document.getElementById('order-input')
+            )?.value || '',
+          messageToTeacher:
+            /** @type {HTMLTextAreaElement | null} */ (
+              document.getElementById('message-input')
+            )?.value || '',
+        };
 
+        // バックエンドAPIを呼び出し（新規予約 + 旧予約キャンセル）
         google.script.run
-          .withSuccessHandler(
-            /** @param {ServerResponse<BatchDataResult>} r */ r => {
-              hideLoading();
-              sessionStorage.removeItem('changingReservation');
+          .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
+            hideLoading();
+            sessionStorage.removeItem('changingReservation'); // クリーンアップ
 
-              if (r.success && r.data) {
-                showInfo(r.message || '予約日を変更しました。', '完了');
-
-                const myReservations =
-                  /** @type {any} */ (r.data).myReservations || [];
-                const lessons = /** @type {any} */ (r.data).lessons || [];
-
-                // 状態を更新
+            if (response.success) {
+              // 成功時は最新データで状態を更新
+              if (response.data) {
+                const updatedPayload = /** @type {AppState} */ (
+                  /** @type {unknown} */ (response.data)
+                );
+                const currentState = reservationStateManager.getState();
+                if (!updatedPayload.lessons) {
+                  /** @type {any} */ (updatedPayload).lessons =
+                    currentState.lessons;
+                }
                 reservationStateManager.dispatch({
                   type: 'SET_STATE',
-                  payload: {
-                    myReservations: myReservations,
-                    lessons: lessons,
-                    view: 'dashboard',
-                    isChangingReservationDate: false,
-                    isDataFresh: true,
-                  },
+                  payload: updatedPayload,
                 });
-              } else {
-                showInfo(r.message || '予約日の変更に失敗しました。', 'エラー');
               }
-            },
-          )
+
+              // 完了画面に遷移（日程変更モードフラグをリセット）
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'complete',
+                  completionMessage:
+                    response.message || '参加日を変更しました。',
+                  isChangingReservationDate: false, // 日程変更モードをリセット
+                },
+              });
+            } else {
+              showInfo(
+                response.message || '参加日の変更に失敗しました。',
+                'エラー',
+              );
+              // エラー時もフラグをリセット
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  isChangingReservationDate: false,
+                },
+              });
+            }
+          })
           .withFailureHandler((/** @type {Error} */ error) => {
             hideLoading();
-            sessionStorage.removeItem('changingReservation');
+            sessionStorage.removeItem('changingReservation'); // エラー時もクリーンアップ
+            // エラー時もフラグをリセット
+            reservationStateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                isChangingReservationDate: false,
+              },
+            });
             handleServerError(error);
           })
           .changeReservationDateAndGetLatestData(
