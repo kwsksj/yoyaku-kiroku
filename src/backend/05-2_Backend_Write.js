@@ -1615,7 +1615,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
         CONSTANTS.ACCOUNTING_SYSTEM.MODIFICATION_DEADLINE_HOUR;
 
       // _isByAdminフラグがある場合はチェックをスキップ
-      if (!/** @type {any} */ (reservationWithUpdatedAccounting)._isByAdmin) {
+      if (!(/** @type {any} */ (reservationWithUpdatedAccounting)._isByAdmin)) {
         const reservationDate = new Date(date || existingReservation.date);
         const now = new Date();
 

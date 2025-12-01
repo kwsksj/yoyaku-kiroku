@@ -1225,9 +1225,15 @@ export const reservationActionHandlers = {
 
         // 1. プリロードされたデータを確認 (高速表示)
 
+        // Dashboardビュー（participantData）またはParticipantビュー（participantReservationsMap）から取得
+
         const preloadedReservations =
 
-          state['participantData']?.reservationsMap?.[String(lessonId)];
+          state['participantData']?.reservationsMap?.[String(lessonId)] ||
+
+          state['participantReservationsMap']?.[String(lessonId)];
+
+    
 
         if (preloadedReservations) {
 
@@ -1257,69 +1263,48 @@ export const reservationActionHandlers = {
 
         }
 
-    
+    // 2. プリロードがない場合はサーバーから取得
 
-        // 2. プリロードがない場合はサーバーから取得
+    showLoading('participants');
 
-        showLoading('participants');
+    google.script.run
 
-        google.script.run
+      .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
+        hideLoading();
 
-          .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
+        if (response.success && response.data) {
+          const reservations = response.data.reservations || [];
 
-            hideLoading();
+          const fetchedLesson = response.data.lesson || lesson;
 
-            if (response.success && response.data) {
+          // 一時保存（編集・会計への遷移用）
 
-              const reservations = response.data.reservations || [];
+          reservationStateManager.dispatch({
+            type: 'SET_STATE',
 
-              const fetchedLesson = response.data.lesson || lesson;
+            payload: {
+              adminCurrentLessonReservations: reservations,
 
-    
+              adminCurrentLesson: fetchedLesson,
+            },
+          });
 
-              // 一時保存（編集・会計への遷移用）
+          _showParticipantListModal(reservations, fetchedLesson);
+        } else {
+          showInfo('参加者情報の取得に失敗しました。', 'エラー');
+        }
+      })
 
-              reservationStateManager.dispatch({
+      .withFailureHandler((/** @type {Error} */ error) => {
+        hideLoading();
 
-                type: 'SET_STATE',
+        handleServerError(error);
+      })
 
-                payload: {
+      .getReservationsForLesson(lessonId, 'ADMIN');
+  },
 
-                  adminCurrentLessonReservations: reservations,
-
-                  adminCurrentLesson: fetchedLesson,
-
-                },
-
-              });
-
-    
-
-              _showParticipantListModal(reservations, fetchedLesson);
-
-            } else {
-
-              showInfo('参加者情報の取得に失敗しました。', 'エラー');
-
-            }
-
-          })
-
-          .withFailureHandler((/** @type {Error} */ error) => {
-
-            hideLoading();
-
-            handleServerError(error);
-
-          })
-
-          .getReservationsForLesson(lessonId, 'ADMIN');
-
-      },
-
-    
-
-      /**
+  /**
 
        * 管理者用：予約編集画面へ遷移
 
@@ -1327,79 +1312,51 @@ export const reservationActionHandlers = {
 
        */
 
-      goToAdminReservationForm: d => {
+  goToAdminReservationForm: d => {
+    const state = reservationStateManager.getState();
 
-        const state = reservationStateManager.getState();
+    const reservationId = d.reservationId;
 
-        const reservationId = d.reservationId;
+    const reservations = state['adminCurrentLessonReservations'] || [];
 
-        const reservations = state['adminCurrentLessonReservations'] || [];
+    const reservation = reservations.find(
+      (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+    );
 
-        const reservation = reservations.find(
+    // レッスン情報はキャッシュまたはadminCurrentLessonから
 
-          (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+    const lesson =
+      state['adminCurrentLesson'] ||
+      (state.lessons || []).find(
+        (/** @type {LessonCore} */ l) => l.lessonId === reservation?.lessonId,
+      );
 
-        );
+    if (reservation && lesson) {
+      // モーダルを閉じる
 
-    
+      Components.closeModal('participant-list-modal');
 
-        // レッスン情報はキャッシュまたはadminCurrentLessonから
+      const formContext = {
+        lessonInfo: lesson,
 
-        const lesson =
+        reservationInfo: reservation,
+      };
 
-          state['adminCurrentLesson'] ||
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
 
-          (state.lessons || []).find(
+        payload: {
+          view: 'reservationForm',
 
-            (/** @type {LessonCore} */ l) => l.lessonId === reservation?.lessonId,
+          currentReservationFormContext: formContext,
+        },
+      });
+    } else {
+      showInfo('予約情報が見つかりません', 'エラー');
+    }
+  },
 
-          );
-
-    
-
-        if (reservation && lesson) {
-
-          // モーダルを閉じる
-
-          Components.closeModal('participant-list-modal');
-
-    
-
-          const formContext = {
-
-            lessonInfo: lesson,
-
-            reservationInfo: reservation,
-
-          };
-
-    
-
-          reservationStateManager.dispatch({
-
-            type: 'SET_STATE',
-
-            payload: {
-
-              view: 'reservationForm',
-
-              currentReservationFormContext: formContext,
-
-            },
-
-          });
-
-        } else {
-
-          showInfo('予約情報が見つかりません', 'エラー');
-
-        }
-
-      },
-
-    
-
-      /**
+  /**
 
        * 管理者用：会計画面へ遷移
 
@@ -1407,59 +1364,40 @@ export const reservationActionHandlers = {
 
        */
 
-      showAdminAccounting: d => {
+  showAdminAccounting: d => {
+    const state = reservationStateManager.getState();
 
-        const state = reservationStateManager.getState();
+    const reservationId = d.reservationId;
 
-        const reservationId = d.reservationId;
+    const reservations = state['adminCurrentLessonReservations'] || [];
 
-        const reservations = state['adminCurrentLessonReservations'] || [];
+    const reservation = reservations.find(
+      (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+    );
 
-        const reservation = reservations.find(
+    if (reservation) {
+      // モーダルを閉じる
 
-          (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+      Components.closeModal('participant-list-modal');
 
-        );
+      // accountingReservationを設定して画面遷移
 
-    
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
 
-        if (reservation) {
+        payload: {
+          accountingReservation: reservation,
 
-          // モーダルを閉じる
+          view: 'accounting',
+        },
+      });
+    } else {
+      showInfo('予約情報が見つかりません', 'エラー');
+    }
+  },
+};
 
-          Components.closeModal('participant-list-modal');
-
-    
-
-          // accountingReservationを設定して画面遷移
-
-          reservationStateManager.dispatch({
-
-            type: 'SET_STATE',
-
-            payload: {
-
-              accountingReservation: reservation,
-
-              view: 'accounting',
-
-            },
-
-          });
-
-        } else {
-
-          showInfo('予約情報が見つかりません', 'エラー');
-
-        }
-
-      },
-
-    };
-
-    
-
-    /**
+/**
 
      * 参加者リストモーダルを表示するヘルパー関数
 
@@ -1469,33 +1407,25 @@ export const reservationActionHandlers = {
 
      */
 
-    function _showParticipantListModal(reservations, lesson) {
+function _showParticipantListModal(reservations, lesson) {
+  const dateFormatted = formatDate(String(lesson.date));
 
-      const dateFormatted = formatDate(String(lesson.date));
+  const rows = reservations
 
-    
+    .map(r => {
+      // 管理者用プロパティへのアクセス用にキャスト
 
-      const rows = reservations
+      const adminR = /** @type {any} */ (r);
 
-        .map(r => {
+      const name = adminR.realName
+        ? `${adminR.realName} (${adminR.nickname})`
+        : adminR.nickname || '不明';
 
-          // 管理者用プロパティへのアクセス用にキャスト
+      const status = r.status;
 
-          const adminR = /** @type {any} */ (r);
+      const time = r.startTime ? `${r.startTime}~${r.endTime}` : '';
 
-          const name = adminR.realName
-
-            ? `${adminR.realName} (${adminR.nickname})`
-
-            : adminR.nickname || '不明';
-
-          const status = r.status;
-
-          const time = r.startTime ? `${r.startTime}~${r.endTime}` : '';
-
-    
-
-          return `
+      return `
 
           <div class="flex items-center justify-between p-3 border-b border-ui-border">
 
@@ -1510,7 +1440,6 @@ export const reservationActionHandlers = {
             <div class="flex space-x-2">
 
               ${Components.button({
-
                 text: '編集',
 
                 action: 'goToAdminReservationForm',
@@ -1520,11 +1449,9 @@ export const reservationActionHandlers = {
                 size: 'small',
 
                 dataAttributes: { reservationId: r.reservationId },
-
               })}
 
               ${Components.button({
-
                 text: '会計',
 
                 action: 'showAdminAccounting',
@@ -1534,7 +1461,6 @@ export const reservationActionHandlers = {
                 size: 'small',
 
                 dataAttributes: { reservationId: r.reservationId },
-
               })}
 
             </div>
@@ -1542,10 +1468,9 @@ export const reservationActionHandlers = {
           </div>
 
         `;
+    })
 
-        })
-
-        .join('');
+    .join('');
 
   const content = `
     <div class="max-h-[60vh] overflow-y-auto">
