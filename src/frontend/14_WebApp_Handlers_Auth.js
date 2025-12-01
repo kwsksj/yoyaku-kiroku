@@ -130,8 +130,7 @@ export const authActionHandlers = {
               ...newAppState,
               view: 'participants',
               participantLessons: participantData.lessons,
-              participantReservationsMap:
-                participantData.reservationsMap || {},
+              participantReservationsMap: participantData.reservationsMap || {},
               participantIsAdmin: true,
               participantHasPastLessonsLoaded: true,
             };

@@ -109,6 +109,8 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo: {
  *
  * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用に予約）
  * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
+ * @param {boolean} [includeReservations=false] - 予約データを含めるか
+ * @param {string} [adminLoginId=''] - 管理者用ログインID（PropertyServiceと突合する）
  * @returns {ApiResponseGeneric} レッスン一覧
  */
 export function getLessonsForParticipantsView(studentId: string, includeHistory?: boolean, includeReservations?: boolean, adminLoginId?: string): ApiResponseGeneric;

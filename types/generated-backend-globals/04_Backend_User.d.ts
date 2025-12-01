@@ -4,6 +4,7 @@
  * @property {Record<string, unknown>} cacheVersions
  * @property {LessonCore[]} lessons
  * @property {ReservationCore[]} myReservations
+ * @property {{lessons: LessonCore[], reservationsMap?: Record<string, any[]>}=} participantData
  */
 /**
  * 生徒名簿シートから全生徒データを取得し、オブジェクト形式で返します。
@@ -169,5 +170,5 @@ export type InitialAppDataPayload = {
     participantData?: {
         lessons: LessonCore[];
         reservationsMap?: Record<string, any[]>;
-    };
+    } | undefined;
 };
