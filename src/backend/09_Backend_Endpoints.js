@@ -27,7 +27,6 @@
 import {
   authenticateUser,
   registerNewUser,
-  isAdminUser,
   isAdminLogin,
 } from './04_Backend_User.js';
 import {
@@ -277,6 +276,55 @@ export function getLoginData(phone) {
   try {
     Logger.log(`getLoginData統合処理開始: phone=${phone}`);
 
+    // 管理者パスワード一致の場合（名簿に存在しない管理者IDを許可）
+    if (isAdminLogin(phone)) {
+      Logger.log('管理者パスワード一致 - 管理者としてログイン');
+
+      /** @type {UserCore} */
+      const adminUser = {
+        studentId: 'ADMIN',
+        phone: phone,
+        realName: '管理者',
+        displayName: '管理者',
+        isAdmin: true,
+      };
+
+      // 管理者用データ取得（会計・レッスン・参加者ビュー用データ）
+      const batchResult = getBatchData(['accounting', 'lessons'], null, null);
+      const participantData = getLessonsForParticipantsView(
+        'ADMIN',
+        true,
+        true,
+        phone,
+      );
+
+      /** @type {AuthenticationResponse} */
+      const adminResponse = {
+        success: true,
+        userFound: true,
+        user: adminUser,
+        isAdmin: true,
+        data: {
+          accountingMaster: batchResult.success
+            ? batchResult.data['accounting'] || []
+            : [],
+          cacheVersions: /** @type {Record<string, unknown>} */ (
+            (batchResult.success && batchResult.data['cache-versions']) || {}
+          ),
+          lessons:
+            (participantData.success && participantData.data?.lessons) ||
+            (batchResult.success ? batchResult.data['lessons'] || [] : []),
+          myReservations: [],
+          participantData: participantData.success
+            ? participantData.data
+            : undefined,
+        },
+      };
+
+      Logger.log('管理者ログイン完了（未登録）');
+      return adminResponse;
+    }
+
     // 1. 軽量認証実行
     const authResult = authenticateUser(phone);
 
@@ -310,7 +358,7 @@ export function getLoginData(phone) {
 
       // 3. 管理者判定
       const isAdmin = authResult.user.studentId
-        ? isAdminUser(authResult.user.studentId)
+        ? isAdminLogin(authResult.user.phone || '')
         : false;
       Logger.log(`管理者判定: ${isAdmin}`);
 
@@ -807,24 +855,31 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
  *
  * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用に予約）
  * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
+ * @param {boolean} [includeReservations=false] - 予約データを含めるか
+ * @param {string} [adminLoginId=''] - 管理者用ログインID（PropertyServiceと突合する）
  * @returns {ApiResponseGeneric} レッスン一覧
  */
 export function getLessonsForParticipantsView(
   studentId,
   includeHistory = true,
   includeReservations = false,
+  adminLoginId = '',
 ) {
   try {
     Logger.log(
       `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}, includeReservations=${includeReservations}`,
     );
 
-    // 管理者判定（studentId="ADMIN"または登録済み管理者）
+    // 管理者判定（studentId="ADMIN"または登録済み管理者）+ PropertyServiceの管理者ID
+    const adminLoginIdSafe =
+      typeof adminLoginId === 'string' ? adminLoginId : '';
     const isAdminBySpecialId = studentId === 'ADMIN';
-    const isAdminByUser = isAdminUser(studentId);
-    const isAdmin = isAdminBySpecialId || isAdminByUser;
+    const isAdminByLoginId = adminLoginIdSafe
+      ? isAdminLogin(adminLoginIdSafe)
+      : false;
+    const isAdmin = isAdminBySpecialId || isAdminByLoginId;
     Logger.log(
-      `管理者判定: studentId="${studentId}", isAdminBySpecialId=${isAdminBySpecialId}, isAdminByUser=${isAdminByUser}, 最終判定=${isAdmin}`,
+      `管理者判定: studentId="${studentId}", isAdminBySpecialId=${isAdminBySpecialId}, isAdminByLoginId=${isAdminByLoginId}, 最終判定=${isAdmin}`,
     );
 
     // 空き枠計算済みのレッスン情報を取得
@@ -1030,7 +1085,7 @@ export function getReservationsForLesson(lessonId, studentId) {
     }
 
     // 管理者権限チェック（studentId="ADMIN"または登録済み管理者）
-    const isAdmin = studentId === 'ADMIN' || isAdminUser(studentId);
+    const isAdmin = studentId === 'ADMIN';
     Logger.log(`管理者権限: ${isAdmin}`);
 
     // キャッシュから予約情報を取得（ReservationCore[]として取得）
@@ -1175,8 +1230,7 @@ export function getStudentDetailsForParticipantsView(
     }
 
     // 権限チェック（requestingStudentId="ADMIN"または登録済み管理者）
-    const isAdmin =
-      requestingStudentId === 'ADMIN' || isAdminUser(requestingStudentId);
+    const isAdmin = requestingStudentId === 'ADMIN';
     const isSelf = targetStudentId === requestingStudentId;
     Logger.log(`管理者権限: ${isAdmin}, 本人: ${isSelf}`);
 

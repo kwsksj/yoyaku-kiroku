@@ -460,6 +460,18 @@ export interface InitialAppDataPayload {
   lessons: LessonCore[];
   /** ユーザーの予約情報 */
   myReservations: ReservationCore[];
+  /** 参加者ビュー用データ（管理者ログイン時のみ） */
+  participantData?: ParticipantsViewData;
+}
+
+/**
+ * 参加者ビュー用データ
+ */
+export interface ParticipantsViewData {
+  lessons: LessonCore[];
+  isAdmin?: boolean;
+  reservationsMap?: Record<string, ReservationCore[]>;
+  message?: string;
 }
 
 /**

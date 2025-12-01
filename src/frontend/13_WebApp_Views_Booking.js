@@ -544,10 +544,10 @@ export const renderBookingLessons = lessons => {
     return '';
   }
 
-  /** @type {Record<number, LessonCore[]>} */
+  /** @type {Record<string, LessonCore[]>} */
   const lessonsByMonth = lessons.reduce(
     (
-      /** @type {Record<number, LessonCore[]>} */ acc,
+      /** @type {Record<string, LessonCore[]>} */ acc,
       /** @type {LessonCore} */ lesson,
     ) => {
       // ガード節: lessonまたはlesson.dateがundefinedの場合はスキップ
@@ -555,21 +555,46 @@ export const renderBookingLessons = lessons => {
         console.warn('Invalid lesson data:', lesson);
         return acc;
       }
-      const month = new Date(lesson.date).getMonth() + 1;
-      if (!acc[month]) acc[month] = [];
-      acc[month].push(lesson);
+      const lessonDate = new Date(lesson.date);
+      if (Number.isNaN(lessonDate.getTime())) {
+        console.warn('Invalid lesson date:', lesson.date);
+        return acc;
+      }
+      const monthKey = `${lessonDate.getFullYear()}-${String(
+        lessonDate.getMonth() + 1,
+      ).padStart(2, '0')}`;
+      if (!acc[monthKey]) acc[monthKey] = [];
+      acc[monthKey].push(lesson);
       return acc;
     },
-    /** @type {Record<number, LessonCore[]>} */ ({}),
+    /** @type {Record<string, LessonCore[]>} */ ({}),
   );
 
-  const result = Object.keys(lessonsByMonth)
-    .sort((a, b) => Number(a) - Number(b))
-    .map(monthStr => {
-      const month = Number(monthStr);
-      const monthHeader = `<h4 class="text-lg font-medium ${DesignConfig.colors.textSubtle} mt-4 mb-2 text-center">${month}月</h4>`;
+  const sortedMonthKeys = Object.keys(lessonsByMonth).sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const currentYear = new Date().getFullYear();
+  /** @type {number | null} */
+  let lastYear = null;
 
-      const lessonsHtml = lessonsByMonth[month]
+  const result = sortedMonthKeys
+    .map(monthKey => {
+      const [yearStr, monthStr] = monthKey.split('-');
+      const month = Number(monthStr);
+      const year = Number(yearStr);
+      const yearHeader =
+        lastYear !== year && year > currentYear
+          ? `<h3 class="text-xl font-semibold ${DesignConfig.colors.textSubtle} mt-6 mb-2 text-center">${year}年</h3>`
+          : '';
+      lastYear = year;
+      const monthHeader = `<h4 class="text-lg font-medium ${DesignConfig.colors.textSubtle} mt-2 mb-2 text-center">${month}月</h4>`;
+
+      const lessonsHtml = lessonsByMonth[monthKey]
+        .slice()
+        .sort(
+          (/** @type {LessonCore} */ a, /** @type {LessonCore} */ b) =>
+            new Date(a.date).getTime() - new Date(b.date).getTime(),
+        )
         .map(
           /** @param {LessonCore} lesson */ lesson => {
             const state = bookingStateManager.getState();
@@ -685,7 +710,7 @@ export const renderBookingLessons = lessons => {
         )
         .join('');
 
-      return monthHeader + lessonsHtml;
+      return yearHeader + monthHeader + lessonsHtml;
     })
     .join('');
 

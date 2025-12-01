@@ -113,6 +113,37 @@ function loadParticipantView(
     return;
   }
 
+  // 事前取得済みデータがある場合はAPIコールをスキップ
+  if (
+    baseAppState &&
+    Array.isArray(baseAppState.participantLessons) &&
+    baseAppState.participantLessons.length > 0
+  ) {
+    const nextIsAdmin =
+      baseAppState.participantIsAdmin ||
+      baseAppState.currentUser?.isAdmin ||
+      false;
+    /** @type {Partial<UIState>} */
+    const payload = {
+      ...baseAppState,
+      view: 'participants',
+      participantSubView: 'list',
+      selectedParticipantClassroom: 'all',
+      showPastLessons: false,
+      participantHasPastLessonsLoaded: true,
+      participantIsAdmin: nextIsAdmin,
+      recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
+      isDataFresh: true,
+    };
+    participantHandlersStateManager.dispatch({
+      type: 'SET_STATE',
+      payload,
+    });
+    hideLoading();
+    render();
+    return;
+  }
+
   // 既にデータがある場合はAPIコールをスキップ（レート制限対策）
   // 重要: 予約データ（reservationsMap）も必要なのでチェック
   if (
@@ -229,7 +260,12 @@ function loadParticipantView(
         showInfo('通信エラーが発生しました', 'エラー');
       },
     )
-    .getLessonsForParticipantsView(studentId, false, true); // 未来のみ先読み。過去はタブ切替で遅延取得
+    .getLessonsForParticipantsView(
+      studentId,
+      false,
+      true,
+      state.currentUser?.phone || '',
+    ); // 未来のみ先読み。過去はタブ切替で遅延取得
 }
 
 // アコーディオン開閉状態をローカル変数で管理（StateManager外）
@@ -488,7 +524,12 @@ function togglePastLessons(showPast) {
           showInfo('通信エラーが発生しました', 'エラー');
         },
       )
-      .getLessonsForParticipantsView(studentId, true, true);
+      .getLessonsForParticipantsView(
+        studentId,
+        true,
+        true,
+        state.currentUser?.phone || '',
+      );
     return;
   }
 
