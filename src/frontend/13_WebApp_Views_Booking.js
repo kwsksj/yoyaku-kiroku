@@ -462,17 +462,6 @@ export const getReservationFormView = () => {
     size: 'full',
   });
   if (isEdit) {
-    // 参加日を変更するボタン
-    buttonsHtml += Components.button({
-      text: '参加日を変更する',
-      action: 'changeReservationDate',
-      style: 'secondary',
-      size: 'full',
-      dataAttributes: {
-        reservationId: reservationInfo.reservationId || '',
-        classroom: reservationInfo.classroom || '',
-      },
-    });
     // キャンセルボタン
     buttonsHtml += Components.button({
       text: 'この予約をキャンセルする',

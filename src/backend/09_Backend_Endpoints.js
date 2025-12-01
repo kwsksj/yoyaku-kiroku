@@ -163,32 +163,30 @@ export function changeReservationDateAndGetLatestData(
 ) {
   return withTransaction(() => {
     try {
-      // 1. 元の予約をキャンセル
-      /** @type {ReservationCore} */
+      // 1. 新しい予約を作成（先に実行して失敗時は元の予約を保持）
+      const bookingResult = makeReservation(newReservationData);
+
+      if (!bookingResult.success) {
+        throw new Error(
+          `新しい予約の作成に失敗しました: ${bookingResult.message}`,
+        );
+      }
+
+      // 2. 元の予約をキャンセル（新規予約成功後のみ実行）
+      /** @type {import('../../types/core/reservation').CancelReservationParams} */
       const cancelParams = {
         reservationId: originalReservationId,
         studentId: newReservationData.studentId,
-        lessonId: '', // cancelReservationでは不要だが型定義上必要
-        classroom: '', // cancelReservationでは不要だが型定義上必要
-        date: '', // cancelReservationでは不要だが型定義上必要
-        status: '', // cancelReservationでは不要だが型定義上必要
         cancelMessage: '予約日変更のため自動キャンセル',
       };
       const cancelResult = cancelReservation(cancelParams);
 
       if (!cancelResult.success) {
+        // キャンセル失敗時、新規予約を削除して元の状態に戻す
+        // 注: 理想的には新規予約の削除処理を実装すべきだが、
+        // 現時点では管理者による手動対応が必要
         throw new Error(
           `元の予約のキャンセルに失敗しました: ${cancelResult.message}`,
-        );
-      }
-
-      // 2. 新しい予約を作成
-      const bookingResult = makeReservation(newReservationData);
-
-      if (!bookingResult.success) {
-        // 新規予約失敗時はロールバック
-        throw new Error(
-          `新しい予約の作成に失敗しました: ${bookingResult.message}`,
         );
       }
 

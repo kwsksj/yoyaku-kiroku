@@ -150,81 +150,81 @@ export interface AccountingFormDto {
  * UI状態管理の中核型定義
  */
 export interface UIState {
-    // --- User & Session Data ---
-    currentUser: UserCore | null;
-    loginPhone: string;
-    isFirstTimeBooking: boolean;
-    registrationData: RegistrationFormData;
-    registrationPhone: string | null;
+  // --- User & Session Data ---
+  currentUser: UserCore | null;
+  loginPhone: string;
+  isFirstTimeBooking: boolean;
+  registrationData: RegistrationFormData;
+  registrationPhone: string | null;
 
-    // --- Core Application Data ---
-    lessons: LessonCore[];
-    myReservations: ReservationCore[];
-    accountingMaster: AccountingMasterItemCore[];
-    classrooms?: string[];
+  // --- Core Application Data ---
+  lessons: LessonCore[];
+  myReservations: ReservationCore[];
+  accountingMaster: AccountingMasterItemCore[];
+  classrooms?: string[];
 
-    // --- UI State ---
-    view: ViewType;
-    selectedClassroom: string | null;
-    editingReservationIds: Set<string>;
-    editingMemo: { reservationId: string; originalValue: string } | null;
-    memoInputChanged: boolean;
-    selectedLesson: LessonCore | null;
-    editingReservationDetails: ReservationCore | null;
-    accountingReservation: ReservationCore | null;
-    accountingReservationDetails: AccountingDetailsCore;
-    accountingScheduleInfo: ScheduleInfo | null;
-    accountingDetails: AccountingDetailsCore | null;
-    accountingCompleted?: boolean;
-    isEditingAccountingRecord?: boolean;
-    wasFirstTimeBooking?: boolean;
-    completionMessage: string;
-    recordsToShow: number;
-    registrationStep: number;
-    searchedUsers: UserCore[];
-    searchAttempted: boolean;
+  // --- UI State ---
+  view: ViewType;
+  selectedClassroom: string | null;
+  editingReservationIds: Set<string>;
+  editingMemo: { reservationId: string; originalValue: string } | null;
+  memoInputChanged: boolean;
+  selectedLesson: LessonCore | null;
+  editingReservationDetails: ReservationCore | null;
+  accountingReservation: ReservationCore | null;
+  accountingReservationDetails: AccountingDetailsCore;
+  accountingScheduleInfo: ScheduleInfo | null;
+  accountingDetails: AccountingDetailsCore | null;
+  accountingCompleted?: boolean;
+  isEditingAccountingRecord?: boolean;
+  wasFirstTimeBooking?: boolean;
+  completionMessage: string;
+  recordsToShow: number;
+  registrationStep: number;
+  searchedUsers: UserCore[];
+  searchAttempted: boolean;
 
-    // --- New Context for Forms ---
-    currentReservationFormContext: ReservationFormContext | null;
+  // --- New Context for Forms ---
+  currentReservationFormContext: ReservationFormContext | null;
 
-    // --- Participants View (Admin) ---
-    participantSubView?: 'list' | 'studentDetail';
-    participantLessons?: LessonCore[];
-    participantReservationsMap?: Record<string, ReservationCore[]>; // 全レッスンの予約データ（キー: lessonId）
-    participantSelectedStudent?: UserCore | null;
-    participantIsAdmin?: boolean;
-    participantHasPastLessonsLoaded?: boolean; // 過去分を取得済みか
-    expandedLessonIds?: string[]; // アコーディオン展開中のレッスンID配列（複数展開対応）
-    selectedParticipantClassroom?: string; // 参加者画面で選択中の教室
-    showPastLessons?: boolean; // 過去のレッスンを表示するかどうか
+  // --- Participants View (Admin) ---
+  participantSubView?: 'list' | 'studentDetail';
+  participantLessons?: LessonCore[];
+  participantReservationsMap?: Record<string, ReservationCore[]>; // 全レッスンの予約データ（キー: lessonId）
+  participantSelectedStudent?: UserCore | null;
+  participantIsAdmin?: boolean;
+  participantHasPastLessonsLoaded?: boolean; // 過去分を取得済みか
+  expandedLessonIds?: string[]; // アコーディオン展開中のレッスンID配列（複数展開対応）
+  selectedParticipantClassroom?: string; // 参加者画面で選択中の教室
+  showPastLessons?: boolean; // 過去のレッスンを表示するかどうか
 
-    // --- Navigation History ---
-    navigationHistory: StateNavigationHistoryEntry[];
+  // --- Navigation History ---
+  navigationHistory: StateNavigationHistoryEntry[];
 
-    // --- System State ---
-    isDataFresh: boolean;
-    _dataUpdateInProgress: boolean;
-    _dataFetchInProgress: Record<string, boolean>;
-    _lessonsVersion: string | null;
-    _allStudents?: Record<string, UserCore>;
-    _cacheVersions?: Record<string, string>;
-    today?: string;
-    savedAt?: string;
+  // --- System State ---
+  isDataFresh: boolean;
+  _dataUpdateInProgress: boolean;
+  _dataFetchInProgress: Record<string, boolean>;
+  _lessonsVersion: string | null;
+  _allStudents?: Record<string, UserCore>;
+  _cacheVersions?: Record<string, string>;
+  today?: string;
+  savedAt?: string;
 
-    // --- Computed Data ---
-    computed: ComputedStateData;
+  // --- Computed Data ---
+  computed: ComputedStateData;
 
-    // --- 実際のコードで使用される追加プロパティ ---
-    targetElement?: HTMLElement | null;
-    caption?: string;
-    breakTime?: number;
+  // --- 実際のコードで使用される追加プロパティ ---
+  targetElement?: HTMLElement | null;
+  caption?: string;
+  breakTime?: number;
 
-    // --- 動的プロパティ（データ管理用） ---
-    _dataLastUpdated?: Record<string, number>;
+  // --- 動的プロパティ（データ管理用） ---
+  _dataLastUpdated?: Record<string, number>;
 
-    // --- AI開発最適化：完全に動的アクセスを許可 ---
-    [key: string]: any;
-  }
+  // --- AI開発最適化：完全に動的アクセスを許可 ---
+  [key: string]: any;
+}
 
 /**
  * 後方互換性のための型エイリアス
@@ -248,7 +248,12 @@ export interface StateAction {
   payload?: StateActionPayload;
 }
 
-export type ActionType = 'SET_STATE' | 'UPDATE_STATE' | 'CHANGE_VIEW' | 'NAVIGATE' | 'LOGOUT';
+export type ActionType =
+  | 'SET_STATE'
+  | 'UPDATE_STATE'
+  | 'CHANGE_VIEW'
+  | 'NAVIGATE'
+  | 'LOGOUT';
 
 export interface StateActionPayload {
   to?: ViewType;
@@ -280,11 +285,7 @@ export interface StateChange {
 }
 
 export interface SideEffect {
-  type:
-    | 'RENDER'
-    | 'NOTIFY_SUBSCRIBERS'
-    | 'HIDE_LOADING'
-    | 'SCROLL_MANAGEMENT';
+  type: 'RENDER' | 'NOTIFY_SUBSCRIBERS' | 'HIDE_LOADING' | 'SCROLL_MANAGEMENT';
   target?: string;
   data?: any;
 }

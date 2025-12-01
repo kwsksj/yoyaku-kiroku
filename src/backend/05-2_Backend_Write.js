@@ -810,7 +810,7 @@ ${err.stack}`);
 /**
  * 予約をキャンセルします（Core型オブジェクト中心設計）
  *
- * @param {ReservationCore} cancelInfo - 予約キャンセル情報。`reservationId`と`studentId`は必須。`cancelMessage`は任意。
+ * @param {import('../../types/core/reservation').CancelReservationParams} cancelInfo - 予約キャンセル情報。`reservationId`と`studentId`は必須。`cancelMessage`は任意。
  * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  */
 export function cancelReservation(cancelInfo) {

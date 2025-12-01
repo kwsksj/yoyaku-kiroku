@@ -139,14 +139,11 @@ export const getRegistrationStep1View = phone => {
             ${Components.checkbox({
               id: 'reg-wants-schedule-notification',
               label: '教室日程 のメール連絡（毎月）を希望する',
-              checked:
-                data['wantsScheduleNotification'] !== undefined
-                  ? data['wantsScheduleNotification']
-                  : true,
+              checked: data['wantsScheduleNotification'] ?? true,
               onChange:
                 "document.getElementById('reg-schedule-notification-settings').classList.toggle('hidden', !this.checked)",
             })}
-            <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data['wantsScheduleNotification'] !== undefined ? (data['wantsScheduleNotification'] ? '' : 'hidden') : ''}">
+            <div id="reg-schedule-notification-settings" class="grid grid-cols-2 gap-3 mt-3 ${data['wantsScheduleNotification'] === false ? 'hidden' : ''}">
               ${Components.select(
                 /** @type {SelectConfig} */ (
                   /** @type {unknown} */ ({

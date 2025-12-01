@@ -1053,31 +1053,28 @@ export const reservationActionHandlers = {
       return;
     }
 
-    // 元の予約IDを取得
-    let originalReservationId = '';
+    // 元の予約情報を一度だけ取得・パース
+    let originalReservation;
     try {
       const originalReservationJson = sessionStorage.getItem(
         'changingReservation',
       );
       if (originalReservationJson) {
-        const originalReservation = JSON.parse(originalReservationJson);
-        originalReservationId = originalReservation.reservationId || '';
+        originalReservation = JSON.parse(originalReservationJson);
       }
     } catch (e) {
       console.error('元の予約情報の読み込みエラー:', e);
     }
 
-    if (!originalReservationId) {
+    if (!originalReservation || !originalReservation.reservationId) {
       showInfo('元の予約情報が見つかりません。', 'エラー');
       return;
     }
 
+    const originalReservationId = originalReservation.reservationId;
+
     // 確認モーダルを表示
-    const oldDate = formatDate(
-      sessionStorage.getItem('changingReservation')
-        ? JSON.parse(sessionStorage.getItem('changingReservation') || '{}').date
-        : '',
-    );
+    const oldDate = formatDate(originalReservation.date || '');
     const newDate = formatDate(String(ctx.lessonInfo.date));
     const classroom = ctx.lessonInfo.classroom;
 
@@ -1169,13 +1166,14 @@ export const reservationActionHandlers = {
                 });
               }
 
-              // 完了画面に遷移
+              // 完了画面に遷移（日程変更モードフラグをリセット）
               reservationStateManager.dispatch({
                 type: 'SET_STATE',
                 payload: {
                   view: 'complete',
                   completionMessage:
                     response.message || '参加日を変更しました。',
+                  isChangingReservationDate: false, // 日程変更モードをリセット
                 },
               });
             } else {
@@ -1183,11 +1181,25 @@ export const reservationActionHandlers = {
                 response.message || '参加日の変更に失敗しました。',
                 'エラー',
               );
+              // エラー時もフラグをリセット
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  isChangingReservationDate: false,
+                },
+              });
             }
           })
           .withFailureHandler((/** @type {Error} */ error) => {
             hideLoading();
             sessionStorage.removeItem('changingReservation'); // エラー時もクリーンアップ
+            // エラー時もフラグをリセット
+            reservationStateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                isChangingReservationDate: false,
+              },
+            });
             handleServerError(error);
           })
           .changeReservationDateAndGetLatestData(

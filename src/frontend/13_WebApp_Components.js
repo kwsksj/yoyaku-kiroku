@@ -1650,11 +1650,15 @@ export const Components = {
         const activeClass = tab.isActive
           ? 'border-ui-border text-brand-text font-medium'
           : 'border-transparent text-gray-500 hover:text-gray-700';
+        const count =
+          typeof tab.count === 'number' && tab.count > 0
+            ? ` (${tab.count})`
+            : '';
         return `<button
           class="pb-0.5 px-1 text-xs border-b-4 transition-colors ${activeClass}"
           onclick="${escapeHTML(tab.onclick)}"
         >
-          ${escapeHTML(tab.label)} (${tab.count})
+          ${escapeHTML(tab.label)}${count}
         </button>`;
       })
       .join('');
