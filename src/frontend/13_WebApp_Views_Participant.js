@@ -410,7 +410,8 @@ function renderLessonList(lessons) {
   const reservationsMap = state.participantReservationsMap || {};
   const selectedClassroom = state.selectedParticipantClassroom || 'all';
   const showPastLessons = state.showPastLessons || false;
-  const isAdmin = state.participantIsAdmin || false;
+  const isAdmin =
+    state.participantIsAdmin || state.currentUser?.isAdmin || false;
 
   // 教室一覧を取得（重複を除く）
   const classrooms = [
@@ -702,7 +703,7 @@ function renderLessonList(lessons) {
         // 管理者用「管理」ボタン（モーダルでリスト表示・編集）
         reserveButtonHtml = `
         <div class="pt-1 text-right px-2 pb-1">
-          <button class="bg-brand-primary text-white text-xs py-0.5 px-2 rounded hover:bg-brand-secondary"
+          <button class="bg-action-primary-bg text-white text-xs py-0.5 px-2 rounded hover:bg-action-primary-hover"
                   data-action="showLessonParticipants"
                   data-lesson-id="${lesson.lessonId}">
             管理

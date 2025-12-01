@@ -1223,45 +1223,31 @@ export const reservationActionHandlers = {
       return;
     }
 
-        // 1. プリロードされたデータを確認 (高速表示)
+    // 1. プリロードされたデータを確認 (高速表示)
 
-        // Dashboardビュー（participantData）またはParticipantビュー（participantReservationsMap）から取得
+    // Dashboardビュー（participantData）またはParticipantビュー（participantReservationsMap）から取得
 
-        const preloadedReservations =
+    const preloadedReservations =
+      state['participantData']?.reservationsMap?.[String(lessonId)] ||
+      state['participantReservationsMap']?.[String(lessonId)];
 
-          state['participantData']?.reservationsMap?.[String(lessonId)] ||
+    if (preloadedReservations) {
+      console.log('⚡ Using preloaded participant data for lesson:', lessonId);
 
-          state['participantReservationsMap']?.[String(lessonId)];
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
 
-    
+        payload: {
+          adminCurrentLessonReservations: preloadedReservations,
 
-        if (preloadedReservations) {
+          adminCurrentLesson: lesson,
+        },
+      });
 
-          console.log('⚡ Using preloaded participant data for lesson:', lessonId);
+      _showParticipantListModal(preloadedReservations, lesson);
 
-    
-
-          reservationStateManager.dispatch({
-
-            type: 'SET_STATE',
-
-            payload: {
-
-              adminCurrentLessonReservations: preloadedReservations,
-
-              adminCurrentLesson: lesson,
-
-            },
-
-          });
-
-    
-
-          _showParticipantListModal(preloadedReservations, lesson);
-
-          return;
-
-        }
+      return;
+    }
 
     // 2. プリロードがない場合はサーバーから取得
 

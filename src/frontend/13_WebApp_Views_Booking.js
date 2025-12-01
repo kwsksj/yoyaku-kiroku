@@ -665,13 +665,12 @@ export const renderBookingLessons = lessons => {
               }
             }
 
-            if (isAdmin) {
-              // 管理者用カードスタイル
-              cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card} border-brand-primary`;
-              statusBadge = `<span class="text-sm font-bold text-brand-primary">管理</span>`;
-              actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
-            } else if (isBooked) {
-              const reservationData = findReservationByDateAndClassroom(
+                        if (isAdmin) {
+                             // 管理者用カードスタイル
+                             cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card} border-2 border-action-primary-bg`;
+                             statusBadge = `<span class="text-sm font-bold text-action-primary-bg">管理</span>`;
+                             actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
+                        } else if (isBooked) {              const reservationData = findReservationByDateAndClassroom(
                 String(lesson.date),
                 lesson.classroom,
               );

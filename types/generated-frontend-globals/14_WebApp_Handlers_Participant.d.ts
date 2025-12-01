@@ -37,8 +37,9 @@ declare function toggleParticipantLessonAccordion(lessonId: string): void;
 /**
  * 生徒選択ハンドラ（モーダル表示）
  * @param {string} targetStudentId - 表示対象の生徒ID
+ * @param {string} [lessonId] - レッスンID（プリロードデータ検索用）
  */
-declare function selectParticipantStudent(targetStudentId: string): void;
+declare function selectParticipantStudent(targetStudentId: string, lessonId?: string): void;
 /**
  * レッスン一覧に戻る
  */
