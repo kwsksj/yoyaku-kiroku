@@ -754,7 +754,9 @@ export function convertReservationsToObjects(
 
 /**
  * キャッシュから全ての予約データを取得し、オブジェクトの配列として返す
- * @param {Record<string, UserCore>=} studentsMapOverride - 事前取得済みの生徒マップ。指定時はキャッシュ読み込みを省略して再利用する
+ * @param {Record<string, UserCore>=} studentsMapOverride - 事前取得済みの生徒マップ。
+ *   指定時はキャッシュ読み込みを省略して再利用する（パフォーマンス最適化）。
+ *   未指定の場合は内部でgetStudentCacheSnapshotを呼び出す。
  * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列
  */
 export function getCachedReservationsAsObjects(studentsMapOverride) {

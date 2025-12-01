@@ -765,8 +765,8 @@ export function getLessonsForParticipantsView(
     // 管理者判定（studentId="ADMIN"または登録済み管理者）
     const isAdminBySpecialId = studentId === 'ADMIN';
     const studentForAdminCheck = preloadedStudentsMap[studentId];
-    const isAdminByUser = studentForAdminCheck
-      ? isAdminLogin(studentForAdminCheck.phone || '')
+    const isAdminByUser = studentForAdminCheck?.phone
+      ? isAdminLogin(studentForAdminCheck.phone)
       : isAdminUser(studentId); // フォールバック
     const isAdmin = isAdminBySpecialId || isAdminByUser;
     Logger.log(
