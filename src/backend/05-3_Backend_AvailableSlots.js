@@ -94,6 +94,7 @@ export function getLessons(includePast = false) {
       // ★最適化: reservationIdsから直接予約を取得（O(1)アクセス）
       const allReservationsForLesson = getReservationsByIdsFromCache(
         schedule.reservationIds || [],
+        { includeStudents: false },
       );
 
       // 予約IDsが空・欠落している場合はlessonId経由でフォールバック取得

@@ -50,7 +50,7 @@ import {
 import {
   CACHE_KEYS,
   getTypedCachedData,
-  getCachedData,
+  getStudentCacheSnapshot,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
@@ -357,9 +357,19 @@ export function getLoginData(phone) {
       }
 
       // 3. 管理者判定
-      const isAdmin = authResult.user.studentId
-        ? isAdminLogin(authResult.user.phone || '')
-        : false;
+      const isAdmin = isAdminLogin(authResult.user.phone || '');
+      let participantData = null;
+      if (isAdmin) {
+        const participantResponse = getLessonsForParticipantsView(
+          authResult.user.studentId || 'ADMIN',
+          true,
+          true,
+          authResult.user.phone || '',
+        );
+        if (participantResponse.success) {
+          participantData = participantResponse.data || null;
+        }
+      }
       Logger.log(`管理者判定: ${isAdmin}`);
 
       // 4. レスポンス統合
@@ -374,8 +384,12 @@ export function getLoginData(phone) {
           cacheVersions: /** @type {Record<string, unknown>} */ (
             batchResult.data['cache-versions'] || {}
           ),
-          lessons: batchResult.data['lessons'] || [],
+          lessons:
+            (participantData && participantData['lessons']) ||
+            batchResult.data['lessons'] ||
+            [],
           myReservations: batchResult.data['myReservations'] || [],
+          ...(participantData ? { participantData: participantData } : {}),
         },
       };
 
@@ -870,6 +884,11 @@ export function getLessonsForParticipantsView(
       `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}, includeReservations=${includeReservations}`,
     );
 
+    // 生徒キャッシュを1回取得（以降の処理で使い回す）
+    const studentCache = getStudentCacheSnapshot();
+    /** @type {Record<string, UserCore>} */
+    const preloadedStudentsMap = studentCache?.students || {};
+
     // 管理者判定（studentId="ADMIN"または登録済み管理者）+ PropertyServiceの管理者ID
     const adminLoginIdSafe =
       typeof adminLoginId === 'string' ? adminLoginId : '';
@@ -926,10 +945,10 @@ export function getLessonsForParticipantsView(
       Logger.log('✅ 予約データを一括取得開始...');
 
       // キャッシュから全予約データと全生徒データを1回だけ取得
-      const allReservations = getCachedReservationsAsObjects();
-      const studentsCache = getCachedData(CACHE_KEYS.ALL_STUDENTS);
+      const allReservations =
+        getCachedReservationsAsObjects(preloadedStudentsMap);
       /** @type {Record<string, any>} */
-      const allStudents = studentsCache?.['students'] || {};
+      const allStudents = preloadedStudentsMap || {};
       Logger.log(
         `📚 データ取得: 予約${allReservations.length}件, 生徒${Object.keys(allStudents).length}件`,
       );

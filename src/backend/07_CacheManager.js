@@ -2720,16 +2720,23 @@ export function getLessonByIdFromCache(lessonId) {
  * 複数の予約IDから予約オブジェクトを一括取得
  *
  * @param {string[]} reservationIds - 取得対象の予約IDの配列
+ * @param {{ includeStudents?: boolean }=} options - 付加情報取得の挙動を制御するオプション
  * @returns {ReservationCore[]} 予約オブジェクトの配列（見つからないIDはスキップ）
  *
  * @example
  * const reservations = getReservationsByIdsFromCache(['R-001', 'R-002', 'R-003']);
  * console.log(`取得した予約数: ${reservations.length}`);
  */
-export function getReservationsByIdsFromCache(reservationIds) {
+export function getReservationsByIdsFromCache(reservationIds, options = {}) {
   if (!Array.isArray(reservationIds) || reservationIds.length === 0) {
     return [];
   }
+
+  const includeStudents =
+    Object.prototype.hasOwnProperty.call(options, 'includeStudents') &&
+    options.includeStudents === false
+      ? false
+      : true;
 
   let cache = getReservationCacheSnapshot(false);
   if (!cache || !cache.reservations || !cache.reservationIdIndexMap) {
@@ -2750,8 +2757,12 @@ export function getReservationsByIdsFromCache(reservationIds) {
 
   const headerMap =
     toHeaderMapInstance(normalizeHeaderMap(cache.headerMap || {})) || null;
-  const studentsCache = getStudentCacheSnapshot(false);
-  const studentsMap = studentsCache?.students || {};
+  /** @type {Record<string, UserCore>} */
+  let studentsMap = {};
+  if (includeStudents) {
+    const studentsCache = getStudentCacheSnapshot(false);
+    studentsMap = studentsCache?.students || {};
+  }
 
   /** @type {ReservationCore[]} */
   const reservations = [];
