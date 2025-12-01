@@ -599,13 +599,15 @@ export const renderBookingLessons = lessons => {
           /** @param {LessonCore} lesson */ lesson => {
             const state = bookingStateManager.getState();
             const isAdmin = state.currentUser?.isAdmin;
-            
+
             // 管理者の場合は予約済みかどうかは関係なく常に管理アクション
-            const isBooked = !isAdmin && (state.myReservations || []).some(
-              (/** @type {ReservationCore} */ b) =>
-                String(b.date) === lesson.date &&
-                b.classroom === lesson.classroom,
-            );
+            const isBooked =
+              !isAdmin &&
+              (state.myReservations || []).some(
+                (/** @type {ReservationCore} */ b) =>
+                  String(b.date) === lesson.date &&
+                  b.classroom === lesson.classroom,
+              );
             let cardClass, statusBadge, actionAttribute;
             // 管理者は常にボタン
             const tag = isBooked ? 'div' : 'button';
@@ -613,11 +615,11 @@ export const renderBookingLessons = lessons => {
             // 日程変更モードの場合は異なるアクションを使用
             const isChangingDate = state['isChangingReservationDate'];
             let bookAction;
-            
+
             if (isAdmin) {
-               bookAction = 'showLessonParticipants';
+              bookAction = 'showLessonParticipants';
             } else {
-               bookAction = isChangingDate
+              bookAction = isChangingDate
                 ? 'goToReservationFormForLesson'
                 : 'bookLesson';
             }
@@ -628,7 +630,7 @@ export const renderBookingLessons = lessons => {
             console.log('📋 Lesson render:', lesson.date, {
               autoFirstTime,
               isBeginnerMode,
-              isAdmin
+              isAdmin,
             });
             let statusText;
             const {
@@ -640,8 +642,8 @@ export const renderBookingLessons = lessons => {
             } = getNormalizedSlotCounts(lesson);
 
             if (isAdmin) {
-                // 管理者用表示: すべての枠数を表示
-                statusText = `<span class="text-xs">一般(前/後):${firstSlotsCount}/${secondSlotsCount} 初回:${beginnerSlotsCount}</span>`;
+              // 管理者用表示: すべての枠数を表示
+              statusText = `<span class="text-xs">一般(前/後):${firstSlotsCount}/${secondSlotsCount} 初回:${beginnerSlotsCount}</span>`;
             } else if (isBeginnerMode) {
               if (lesson.beginnerStart && beginnerCapacityCount > 0) {
                 // 初回者枠が満席かチェック
@@ -664,10 +666,10 @@ export const renderBookingLessons = lessons => {
             }
 
             if (isAdmin) {
-                 // 管理者用カードスタイル
-                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card} border-brand-primary`;
-                 statusBadge = `<span class="text-sm font-bold text-brand-primary">管理</span>`;
-                 actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
+              // 管理者用カードスタイル
+              cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card} border-brand-primary`;
+              statusBadge = `<span class="text-sm font-bold text-brand-primary">管理</span>`;
+              actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
             } else if (isBooked) {
               const reservationData = findReservationByDateAndClassroom(
                 String(lesson.date),

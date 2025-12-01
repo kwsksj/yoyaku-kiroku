@@ -1611,12 +1611,13 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
       }
 
       // 4. 時刻チェック：当日20時までのみ修正可能（管理者は例外）
+      const deadlineHour =
+        CONSTANTS.ACCOUNTING_SYSTEM.MODIFICATION_DEADLINE_HOUR;
+
       // _isByAdminフラグがある場合はチェックをスキップ
-      if (!reservationWithUpdatedAccounting._isByAdmin) {
+      if (!/** @type {any} */ (reservationWithUpdatedAccounting)._isByAdmin) {
         const reservationDate = new Date(date || existingReservation.date);
         const now = new Date();
-        const deadlineHour =
-          CONSTANTS.ACCOUNTING_SYSTEM.MODIFICATION_DEADLINE_HOUR;
 
         // 予約日が今日でない場合はエラー
         const todayStr = Utilities.formatDate(
