@@ -1517,6 +1517,7 @@ export function processAccountingPayment(formData, result) {
       workInProgress: formData.workInProgress, // フォームから更新された制作メモ
       startTime: formData.startTime, // フォームから更新された時間
       endTime: formData.endTime,
+      _isByAdmin: state.currentUser?.isAdmin || false, // 管理者フラグを注入（backendで日付チェック回避に使用）
     };
 
     // デバッグログ：最終ペイロード

@@ -1610,36 +1610,39 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
         throw new Error('会計処理が完了していない予約は修正できません。');
       }
 
-      // 4. 時刻チェック：当日20時までのみ修正可能
-      const reservationDate = new Date(date || existingReservation.date);
-      const now = new Date();
-      const deadlineHour =
-        CONSTANTS.ACCOUNTING_SYSTEM.MODIFICATION_DEADLINE_HOUR;
+      // 4. 時刻チェック：当日20時までのみ修正可能（管理者は例外）
+      // _isByAdminフラグがある場合はチェックをスキップ
+      if (!reservationWithUpdatedAccounting._isByAdmin) {
+        const reservationDate = new Date(date || existingReservation.date);
+        const now = new Date();
+        const deadlineHour =
+          CONSTANTS.ACCOUNTING_SYSTEM.MODIFICATION_DEADLINE_HOUR;
 
-      // 予約日が今日でない場合はエラー
-      const todayStr = Utilities.formatDate(
-        now,
-        CONSTANTS.TIMEZONE,
-        'yyyy-MM-dd',
-      );
-      const reservationDateStr = Utilities.formatDate(
-        reservationDate,
-        CONSTANTS.TIMEZONE,
-        'yyyy-MM-dd',
-      );
-
-      if (reservationDateStr !== todayStr) {
-        throw new Error(
-          '会計修正は教室当日のみ可能です。翌日以降は修正できません。',
+        // 予約日が今日でない場合はエラー
+        const todayStr = Utilities.formatDate(
+          now,
+          CONSTANTS.TIMEZONE,
+          'yyyy-MM-dd',
         );
-      }
-
-      // 現在時刻が締切時刻を過ぎている場合はエラー
-      const currentHour = now.getHours();
-      if (currentHour >= deadlineHour) {
-        throw new Error(
-          `会計修正の締切時刻（${deadlineHour}時）を過ぎています。修正できません。`,
+        const reservationDateStr = Utilities.formatDate(
+          reservationDate,
+          CONSTANTS.TIMEZONE,
+          'yyyy-MM-dd',
         );
+
+        if (reservationDateStr !== todayStr) {
+          throw new Error(
+            '会計修正は教室当日のみ可能です。翌日以降は修正できません。',
+          );
+        }
+
+        // 現在時刻が締切時刻を過ぎている場合はエラー
+        const currentHour = now.getHours();
+        if (currentHour >= deadlineHour) {
+          throw new Error(
+            `会計修正の締切時刻（${deadlineHour}時）を過ぎています。修正できません。`,
+          );
+        }
       }
 
       // 5. 更新後の完全なReservationCoreオブジェクトを構築

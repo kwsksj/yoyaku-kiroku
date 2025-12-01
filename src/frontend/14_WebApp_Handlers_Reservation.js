@@ -1201,4 +1201,225 @@ export const reservationActionHandlers = {
       },
     });
   },
+
+  /**
+   * 管理者用：レッスンの参加者一覧を表示します。
+   * @param {ActionHandlerData} d - レッスン情報を含むデータ
+   */
+  showLessonParticipants: d => {
+    const lessonId = d.lessonId;
+    const state = reservationStateManager.getState();
+    const currentUser = state.currentUser;
+    
+    if (!currentUser || !currentUser.isAdmin) {
+      showInfo('管理者権限が必要です。', 'エラー');
+      return;
+    }
+
+    // レッスン情報を特定
+    const lesson = (state.lessons || []).find(l => l.lessonId === lessonId);
+    if (!lesson) {
+        showInfo('レッスン情報が見つかりません。', 'エラー');
+        return;
+    }
+
+    // 1. プリロードされたデータを確認 (高速表示)
+    const preloadedReservations = state.participantData?.reservationsMap?.[lessonId];
+    if (preloadedReservations) {
+        console.log('⚡ Using preloaded participant data for lesson:', lessonId);
+        
+        reservationStateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              adminCurrentLessonReservations: preloadedReservations,
+              adminCurrentLesson: lesson,
+            },
+        });
+
+        _showParticipantListModal(preloadedReservations, lesson);
+        return;
+    }
+
+    // 2. プリロードがない場合はサーバーから取得
+    showLoading('participants');
+    google.script.run
+      .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
+        hideLoading();
+        if (response.success && response.data) {
+          const reservations = response.data.reservations || [];
+          const fetchedLesson = response.data.lesson || lesson;
+
+          // 一時保存（編集・会計への遷移用）
+          reservationStateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              adminCurrentLessonReservations: reservations,
+              adminCurrentLesson: fetchedLesson,
+            },
+          });
+
+          _showParticipantListModal(reservations, fetchedLesson);
+        } else {
+          showInfo('参加者情報の取得に失敗しました。', 'エラー');
+        }
+      })
+      .withFailureHandler((/** @type {Error} */ error) => {
+        hideLoading();
+        handleServerError(error);
+      })
+      .getReservationsForLesson(lessonId, 'ADMIN');
+  },
+
+  /**
+   * 管理者用：予約編集画面へ遷移
+   * @param {ActionHandlerData} d
+   */
+  goToAdminReservationForm: d => {
+    const state = reservationStateManager.getState();
+    const reservationId = d.reservationId;
+    const reservations = state.adminCurrentLessonReservations || [];
+    const reservation = reservations.find(
+      r => r.reservationId === reservationId,
+    );
+
+    // レッスン情報はキャッシュまたはadminCurrentLessonから
+    const lesson =
+      state.adminCurrentLesson ||
+      (state.lessons || []).find(
+        (/** @type {LessonCore} */ l) => l.lessonId === reservation?.lessonId,
+      );
+
+    if (reservation && lesson) {
+      // モーダルを閉じる
+      Components.closeModal('participant-list-modal');
+
+      const formContext = {
+        lessonInfo: lesson,
+        reservationInfo: reservation,
+      };
+
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
+        payload: {
+          view: 'reservationForm',
+          currentReservationFormContext: formContext,
+        },
+      });
+    } else {
+      showInfo('予約情報が見つかりません', 'エラー');
+    }
+  },
+
+  /**
+   * 管理者用：会計画面へ遷移
+   * @param {ActionHandlerData} d
+   */
+  showAdminAccounting: d => {
+    const state = reservationStateManager.getState();
+    const reservationId = d.reservationId;
+    const reservations = state.adminCurrentLessonReservations || [];
+    const reservation = reservations.find(
+      r => r.reservationId === reservationId,
+    );
+
+    if (reservation) {
+      // モーダルを閉じる
+      Components.closeModal('participant-list-modal');
+
+      // accountingReservationを設定して画面遷移
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
+        payload: {
+          accountingReservation: reservation,
+          view: 'accounting',
+        },
+      });
+    } else {
+      showInfo('予約情報が見つかりません', 'エラー');
+    }
+  },
 };
+
+/**
+ * 参加者リストモーダルを表示するヘルパー関数
+ * @param {ReservationCore[]} reservations
+ * @param {LessonCore} lesson
+ */
+function _showParticipantListModal(reservations, lesson) {
+  const dateFormatted = formatDate(String(lesson.date));
+
+  const rows = reservations
+    .map(r => {
+      const name = r.realName
+        ? `${r.realName} (${r.nickname})`
+        : r.nickname || '不明';
+      const status = r.status;
+      const time = r.startTime ? `${r.startTime}~${r.endTime}` : '';
+
+      return `
+      <div class="flex items-center justify-between p-3 border-b border-ui-border">
+        <div>
+          <div class="font-bold text-brand-text">${name}</div>
+          <div class="text-sm text-brand-subtle">${status} ${time}</div>
+        </div>
+        <div class="flex space-x-2">
+          ${Components.button({
+            text: '編集',
+            action: 'goToAdminReservationForm',
+            style: 'secondary',
+            size: 'small',
+            dataAttributes: { reservationId: r.reservationId },
+          })}
+          ${Components.button({
+            text: '会計',
+            action: 'showAdminAccounting',
+            style: 'primary',
+            size: 'small',
+            dataAttributes: { reservationId: r.reservationId },
+          })}
+        </div>
+      </div>
+    `;
+    })
+    .join('');
+
+  const content = `
+    <div class="max-h-[60vh] overflow-y-auto">
+      ${rows.length > 0 ? rows : '<p class="p-4 text-center text-brand-subtle">予約はありません</p>'}
+    </div>
+    <div class="p-4 border-t border-ui-border">
+      ${Components.button({
+        text: '閉じる',
+        action: 'closeModal',
+        style: 'secondary',
+        size: 'full',
+        dataAttributes: { modalId: 'participant-list-modal' },
+      })}
+    </div>
+  `;
+
+  const modalHtml = Components.modal({
+    id: 'participant-list-modal',
+    title: `${dateFormatted} ${lesson.classroom} 参加者`,
+    content: content,
+  });
+
+  // Remove existing if any
+  const existing = document.getElementById('participant-list-modal');
+  if (existing) existing.remove();
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  Components.showModal('participant-list-modal');
+
+  // Bind close button
+  setTimeout(() => {
+    const closeBtn = document.querySelector(
+      '[data-action="closeModal"][data-modal-id="participant-list-modal"]',
+    );
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () =>
+        Components.closeModal('participant-list-modal'),
+      );
+    }
+  }, 100);
+}
