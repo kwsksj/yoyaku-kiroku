@@ -7,10 +7,7 @@
  */
 
 import type { DesignSystemConfig } from './design-system';
-import type {
-  ModalDialogConfig,
-  ConfirmDialogConfig,
-} from './components';
+import type { ModalDialogConfig, ConfirmDialogConfig } from './components';
 import type { AccountingFormDto, SimpleStateManager, ViewType } from './state';
 import type {
   AccountingDetailsCore,
@@ -22,13 +19,20 @@ import type { ReservationCore } from '../core/reservation';
 // 共有定数型エイリアス
 // =================================================================
 
-export type Constants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS;
-export type StatusConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.STATUS;
-export type UIConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.UI;
-export type MessagesConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.MESSAGES;
-export type BankInfoConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.BANK_INFO;
-export type PaymentDisplayConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.PAYMENT_DISPLAY;
-export type HeadersConstants = typeof import('../generated-shared-globals/00_Constants').CONSTANTS.HEADERS;
+export type Constants =
+  typeof import('../generated-shared-globals/00_Constants').CONSTANTS;
+export type StatusConstants =
+  typeof import('../generated-shared-globals/00_Constants').CONSTANTS.STATUS;
+export type UIConstants =
+  typeof import('../generated-shared-globals/00_Constants').CONSTANTS.UI;
+export type MessagesConstants =
+  typeof import('../generated-shared-globals/00_Constants').CONSTANTS.MESSAGES;
+export type BankInfoConstants =
+  typeof import('../generated-shared-globals/00_Constants').CONSTANTS.BANK_INFO;
+export type PaymentDisplayConstants =
+  typeof import('../generated-shared-globals/00_Constants').CONSTANTS.PAYMENT_DISPLAY;
+export type HeadersConstants =
+  typeof import('../generated-shared-globals/00_Constants').CONSTANTS.HEADERS;
 
 // =================================================================
 // 一時データ型定義
@@ -90,7 +94,6 @@ export interface ModalManager {
 }
 
 declare global {
-
   // =================================================================
   // Window拡張
   // =================================================================
@@ -116,7 +119,11 @@ declare global {
     // --- グローバル関数 ---
     showLoading?: (category?: string) => void;
     hideLoading?: () => void;
-    showInfo?: (message: string, title?: string, callback?: (() => void) | null) => void;
+    showInfo?: (
+      message: string,
+      title?: string,
+      callback?: (() => void) | null,
+    ) => void;
     showConfirm?: (config: ModalDialogConfig | ConfirmDialogConfig) => void;
     showModal?: (config: ModalDialogConfig) => void;
     hideModal?: () => void;
@@ -125,13 +132,14 @@ declare global {
     updateView?: (viewName: string) => void;
     formatDate?: (date: string | Date, format?: string) => string;
     setupParticipantsScrollSync?: () => void;
-    renderStudentDetailModalContent?: (student: any, isAdmin: boolean) => string;
+    renderStudentDetailModalContent?: (
+      student: any,
+      isAdmin: boolean,
+    ) => string;
 
     // --- ページ遷移 ---
     pageTransitionManager?: PageTransitionManager;
-    normalizePhoneNumberFrontend?: (
-      phone: string,
-    ) => {
+    normalizePhoneNumberFrontend?: (phone: string) => {
       normalized: string;
       isValid: boolean;
       error?: string;
@@ -243,7 +251,10 @@ declare global {
   function updateView(viewName: string): void;
   function formatDate(date: string | Date, format?: string): void;
   function setupParticipantsScrollSync(): void;
-  function renderStudentDetailModalContent(student: any, isAdmin: boolean): string;
+  function renderStudentDetailModalContent(
+    student: any,
+    isAdmin: boolean,
+  ): string;
   function showInfo(
     message: string,
     title?: string,

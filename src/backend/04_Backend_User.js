@@ -50,12 +50,20 @@ const INVALID_PHONE_RESULT = {
 };
 
 /**
+ * @typedef {Object} ParticipantsViewData
+ * @property {LessonCore[]} lessons
+ * @property {boolean} [isAdmin]
+ * @property {Record<string, ReservationCore[]>} [reservationsMap]
+ * @property {string} [message]
+ */
+
+/**
  * @typedef {Object} InitialAppDataPayload
  * @property {AccountingMasterItemCore[]} accountingMaster
  * @property {Record<string, unknown>} cacheVersions
  * @property {LessonCore[]} lessons
  * @property {ReservationCore[]} myReservations
- * @property {{lessons: LessonCore[], reservationsMap?: Record<string, any[]>}=} participantData
+ * @property {ParticipantsViewData} [participantData]
  */
 
 // =================================================================

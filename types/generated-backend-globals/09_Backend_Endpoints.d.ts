@@ -26,6 +26,14 @@ export function cancelReservationAndGetLatestData(cancelInfo: ReservationCore): 
  */
 export function updateReservationDetailsAndGetLatestData(details: ReservationCore): ApiResponseGeneric;
 /**
+ * 予約の参加日を変更し、成功した場合に最新の全初期化データを返す。
+ * 内部的には新規予約作成と旧予約キャンセルを実行します。
+ * @param {ReservationCore} newReservationData - 新しい予約データ
+ * @param {string} originalReservationId - キャンセルする元の予約ID
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
+ */
+export function changeReservationDateAndGetLatestData(newReservationData: ReservationCore, originalReservationId: string): ApiResponseGeneric;
+/**
  * 予約のメモを更新し、成功した場合に最新の全初期化データを返す
  * @param {string} reservationId - 更新対象の予約ID
  * @param {string} studentId - 対象生徒のID

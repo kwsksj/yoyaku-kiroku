@@ -1,10 +1,17 @@
 /**
+ * @typedef {Object} ParticipantsViewData
+ * @property {LessonCore[]} lessons
+ * @property {boolean} [isAdmin]
+ * @property {Record<string, ReservationCore[]>} [reservationsMap]
+ * @property {string} [message]
+ */
+/**
  * @typedef {Object} InitialAppDataPayload
  * @property {AccountingMasterItemCore[]} accountingMaster
  * @property {Record<string, unknown>} cacheVersions
  * @property {LessonCore[]} lessons
  * @property {ReservationCore[]} myReservations
- * @property {{lessons: LessonCore[], reservationsMap?: Record<string, any[]>}=} participantData
+ * @property {ParticipantsViewData} [participantData]
  */
 /**
  * 生徒名簿シートから全生徒データを取得し、オブジェクト形式で返します。
@@ -162,13 +169,16 @@ export function setupAdminPassword(password: string): void;
  * @returns {void}
  */
 export function getAdminPassword_DEV(): void;
+export type ParticipantsViewData = {
+    lessons: LessonCore[];
+    isAdmin?: boolean;
+    reservationsMap?: Record<string, ReservationCore[]>;
+    message?: string;
+};
 export type InitialAppDataPayload = {
     accountingMaster: AccountingMasterItemCore[];
     cacheVersions: Record<string, unknown>;
     lessons: LessonCore[];
     myReservations: ReservationCore[];
-    participantData?: {
-        lessons: LessonCore[];
-        reservationsMap?: Record<string, any[]>;
-    } | undefined;
+    participantData?: ParticipantsViewData;
 };

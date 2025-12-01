@@ -144,3 +144,29 @@ export interface ReservationCore {
   /** その他販売品の動的プロパティ（otherSalesName0, otherSalesPrice0等） */
   [key: `otherSales${string}`]: string | number | undefined;
 }
+
+/**
+ * 予約キャンセル専用のパラメータ型
+ *
+ * - ReservationCoreから必要最小限のプロパティのみを抽出
+ * - 型安全性の向上とコードの意図を明確化
+ *
+ * @example
+ * ```typescript
+ * const cancelParams: CancelReservationParams = {
+ *   reservationId: 'R-20251003-001',
+ *   studentId: 'S-001',
+ *   cancelMessage: '予約日変更のため自動キャンセル',
+ * };
+ * ```
+ */
+export interface CancelReservationParams {
+  /** 予約ID（例: R-20251003-001） */
+  reservationId: string;
+
+  /** 生徒ID（例: S-001） */
+  studentId: string;
+
+  /** キャンセル理由 */
+  cancelMessage?: string | undefined;
+}

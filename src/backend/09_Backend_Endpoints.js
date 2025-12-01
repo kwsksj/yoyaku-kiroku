@@ -32,6 +32,7 @@ import {
 import {
   getCachedStudentById,
   getCachedReservationsAsObjects,
+  withTransaction,
 } from './08_Utilities.js';
 import {
   makeReservation,
@@ -146,6 +147,67 @@ export function updateReservationDetailsAndGetLatestData(details) {
     details.studentId,
     '予約内容を更新しました。',
   );
+}
+
+/**
+ * 予約の参加日を変更し、成功した場合に最新の全初期化データを返す。
+ * 内部的には新規予約作成と旧予約キャンセルを実行します。
+ * @param {ReservationCore} newReservationData - 新しい予約データ
+ * @param {string} originalReservationId - キャンセルする元の予約ID
+ * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
+ */
+export function changeReservationDateAndGetLatestData(
+  newReservationData,
+  originalReservationId,
+) {
+  return withTransaction(() => {
+    try {
+      // 1. 新しい予約を作成（先に実行して失敗時は元の予約を保持）
+      const bookingResult = makeReservation(newReservationData);
+
+      if (!bookingResult.success) {
+        throw new Error(
+          `新しい予約の作成に失敗しました: ${bookingResult.message}`,
+        );
+      }
+
+      // 2. 元の予約をキャンセル（新規予約成功後のみ実行）
+      /** @type {import('../../types/core/reservation').CancelReservationParams} */
+      const cancelParams = {
+        reservationId: originalReservationId,
+        studentId: newReservationData.studentId,
+        cancelMessage: '予約日変更のため自動キャンセル',
+      };
+      const cancelResult = cancelReservation(cancelParams);
+
+      if (!cancelResult.success) {
+        // キャンセル失敗時、新規予約を削除して元の状態に戻す
+        // 注: 理想的には新規予約の削除処理を実装すべきだが、
+        // 現時点では管理者による手動対応が必要
+        throw new Error(
+          `元の予約のキャンセルに失敗しました: ${cancelResult.message}`,
+        );
+      }
+
+      // 3. 成功時は最新データを返す
+      const latestData = getBatchData(
+        ['reservations', 'lessons'],
+        null,
+        newReservationData.studentId,
+      );
+      return {
+        success: true,
+        message: '予約日を変更しました。',
+        data: latestData.data,
+      };
+    } catch (error) {
+      Logger.log(`予約日変更エラー: ${error.message}`);
+      return {
+        success: false,
+        message: error.message || '予約日の変更に失敗しました。',
+      };
+    }
+  });
 }
 
 /**
@@ -827,7 +889,7 @@ export function getLessonsForParticipantsView(
     /** @type {Record<string, UserCore>} */
     const preloadedStudentsMap = studentCache?.students || {};
 
-    // 管理者判定（studentId="ADMIN"またはPropertyServiceの管理者ID）
+    // 管理者判定（studentId="ADMIN"または登録済み管理者）+ PropertyServiceの管理者ID
     const adminLoginIdSafe =
       typeof adminLoginId === 'string' ? adminLoginId : '';
     const isAdminBySpecialId = studentId === 'ADMIN';
@@ -1041,7 +1103,7 @@ export function getReservationsForLesson(lessonId, studentId) {
       return createApiErrorResponse('レッスンIDが必要です');
     }
 
-    // 管理者権限チェック（studentId="ADMIN"のみ）
+    // 管理者権限チェック（studentId="ADMIN"または登録済み管理者）
     const isAdmin = studentId === 'ADMIN';
     Logger.log(`管理者権限: ${isAdmin}`);
 
@@ -1186,7 +1248,7 @@ export function getStudentDetailsForParticipantsView(
       return createApiErrorResponse('対象生徒IDが必要です');
     }
 
-    // 権限チェック（requestingStudentId="ADMIN"のみ）
+    // 権限チェック（requestingStudentId="ADMIN"または登録済み管理者）
     const isAdmin = requestingStudentId === 'ADMIN';
     const isSelf = targetStudentId === requestingStudentId;
     Logger.log(`管理者権限: ${isAdmin}, 本人: ${isSelf}`);

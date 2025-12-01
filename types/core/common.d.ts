@@ -8,7 +8,10 @@
 
 import type { LessonCore, SessionCore } from './lesson';
 import type { ReservationCore } from './reservation';
-import type { AccountingMasterItemCore, AccountingDetailsCore } from './accounting';
+import type {
+  AccountingMasterItemCore,
+  AccountingDetailsCore,
+} from './accounting';
 import type { UserCore } from './user';
 
 /**
@@ -370,17 +373,21 @@ export interface ApiErrorResponse {
   /** エラー情報 */
   error?: ErrorInfo;
   /** メタ情報（タイムスタンプやコンテキストなど） */
-  meta?: {
-    timestamp: string;
-    context?: string;
-    errorId?: string;
-  } | undefined;
+  meta?:
+    | {
+        timestamp: string;
+        context?: string;
+        errorId?: string;
+      }
+    | undefined;
   /** デバッグ情報（開発モードのみ） */
-  debug?: {
-    stack?: string;
-    type?: string;
-    additionalInfo?: Record<string, unknown>;
-  } | undefined;
+  debug?:
+    | {
+        stack?: string;
+        type?: string;
+        additionalInfo?: Record<string, unknown>;
+      }
+    | undefined;
 }
 
 /**
@@ -394,16 +401,20 @@ export interface ApiSuccessResponse<T = any> {
   /** メッセージ */
   message?: string | undefined;
   /** メタ情報（レスポンス生成時刻など） */
-  meta?: {
-    timestamp: string;
-    version?: number;
-  } | undefined;
+  meta?:
+    | {
+        timestamp: string;
+        version?: number;
+      }
+    | undefined;
 }
 
 /**
  * 統一APIレスポンス型
  */
-export type UnifiedApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
+export type UnifiedApiResponse<T = any> =
+  | ApiSuccessResponse<T>
+  | ApiErrorResponse;
 
 /**
  * APIレスポンスデータ型（レガシー）
@@ -450,10 +461,17 @@ export interface InitialAppDataPayload {
   /** ユーザーの予約情報 */
   myReservations: ReservationCore[];
   /** 参加者ビュー用データ（管理者ログイン時のみ） */
-  participantData?: {
-    lessons: LessonCore[];
-    reservationsMap?: Record<string, any[]>;
-  };
+  participantData?: ParticipantsViewData;
+}
+
+/**
+ * 参加者ビュー用データ
+ */
+export interface ParticipantsViewData {
+  lessons: LessonCore[];
+  isAdmin?: boolean;
+  reservationsMap?: Record<string, ReservationCore[]>;
+  message?: string;
 }
 
 /**
