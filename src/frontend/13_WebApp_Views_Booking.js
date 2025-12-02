@@ -538,13 +538,56 @@ export const renderBookingLessons = lessons => {
     override: localStorage.getItem('beginnerModeOverride'),
   });
 
-  if (!lessons || lessons.length === 0) {
+  const state = bookingStateManager.getState();
+  const isChangingDate = Boolean(state['isChangingReservationDate']);
+  const targetStudentId =
+    state.currentReservationFormContext?.reservationInfo?.studentId || '';
+
+  // 変更時は過去レッスンを除外
+  /** @type {LessonCore[]} */
+  const lessonsToRender = (lessons || []).filter(lesson => {
+    if (!lesson || !lesson.date) return false;
+    if (!isChangingDate) return true;
+    const dateObj = new Date(lesson.date);
+    dateObj.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return dateObj >= today;
+  });
+
+  // 変更対象生徒の予約一覧を組み立て（管理者向け）
+  let effectiveReservations = /** @type {ReservationCore[]} */ (
+    state.myReservations || []
+  );
+  if (isChangingDate && targetStudentId) {
+    const map = state.participantReservationsMap || {};
+    const gathered = Object.keys(map).reduce((acc, key) => {
+      const list = map[key] || [];
+      list.forEach((/** @type {ReservationCore} */ r) => {
+        if (r.studentId === targetStudentId) {
+          acc.push(r);
+        }
+      });
+      return acc;
+    }, /** @type {ReservationCore[]} */ ([]));
+    if (gathered.length > 0) {
+      effectiveReservations = gathered;
+    } else if (state.currentReservationFormContext?.reservationInfo) {
+      effectiveReservations = [
+        /** @type {ReservationCore} */ (
+          state.currentReservationFormContext.reservationInfo
+        ),
+      ];
+    }
+  }
+
+  if (!lessonsToRender || lessonsToRender.length === 0) {
     console.warn('⚠️ No lessons to render');
     return '';
   }
 
   /** @type {Record<string, LessonCore[]>} */
-  const lessonsByMonth = lessons.reduce(
+  const lessonsByMonth = lessonsToRender.reduce(
     (
       /** @type {Record<string, LessonCore[]>} */ acc,
       /** @type {LessonCore} */ lesson,
@@ -596,9 +639,8 @@ export const renderBookingLessons = lessons => {
         )
         .map(
           /** @param {LessonCore} lesson */ lesson => {
-            const state = bookingStateManager.getState();
             // 管理者でも通常の予約画面として機能させる（予約日変更時などに必要）
-            const isBooked = (state.myReservations || []).some(
+            const isBooked = (effectiveReservations || []).some(
               (/** @type {ReservationCore} */ b) =>
                 String(b.date) === lesson.date &&
                 b.classroom === lesson.classroom,
@@ -653,6 +695,10 @@ export const renderBookingLessons = lessons => {
               const reservationData = findReservationByDateAndClassroom(
                 String(lesson.date),
                 lesson.classroom,
+                /** @type {any} */ ({
+                  ...state,
+                  myReservations: effectiveReservations,
+                }),
               );
               if (reservationData?.status === CONSTANTS.STATUS.COMPLETED) {
                 cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;

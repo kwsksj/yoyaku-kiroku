@@ -1210,15 +1210,64 @@ export const reservationActionHandlers = {
       return;
     }
 
-    // 予約画面に遷移
-    reservationStateManager.dispatch({
-      type: 'SET_STATE',
-      payload: {
-        view: 'bookingLessons',
-        selectedClassroom: d.classroom || '',
-        isChangingReservationDate: true,
-      },
-    });
+    const targetStudentId =
+      currentContext.reservationInfo?.studentId ||
+      state.currentUser?.studentId ||
+      '';
+    if (!targetStudentId) {
+      showInfo('生徒IDが取得できません。', 'エラー');
+      return;
+    }
+
+    const targetClassroom =
+      d.classroom || currentContext.lessonInfo?.classroom || '';
+
+    // 対象生徒の最新レッスン・予約を取得してから遷移（一般ユーザーと同じルートに揃える）
+    showLoading('booking');
+    google.script.run
+      .withSuccessHandler((/** @type {BatchDataResponse} */ response) => {
+        hideLoading();
+        if (response.success && response.data) {
+          reservationStateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              view: 'bookingLessons',
+              selectedClassroom: targetClassroom,
+              isChangingReservationDate: true,
+              lessons: response.data.lessons || state.lessons,
+              myReservations:
+                response.data.myReservations || state.myReservations,
+              isDataFresh: true,
+            },
+          });
+        } else {
+          showInfo(
+            response.message || '最新データの取得に失敗しました。',
+            'エラー',
+          );
+          reservationStateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              view: 'bookingLessons',
+              selectedClassroom: targetClassroom,
+              isChangingReservationDate: true,
+            },
+          });
+        }
+      })
+      .withFailureHandler(() => {
+        hideLoading();
+        showInfo('最新データの取得に失敗しました。', 'エラー');
+        reservationStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            view: 'bookingLessons',
+            selectedClassroom: targetClassroom,
+            isChangingReservationDate: true,
+          },
+        });
+      })
+      .getBatchData(['lessons', 'reservations'], null, targetStudentId);
   },
 
   /**
