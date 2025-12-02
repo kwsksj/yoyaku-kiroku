@@ -1229,26 +1229,40 @@ export function sortReservationRows(rows, headerMap) {
     }
 
     // 3. 開始時間順（昇順: 早い時間が上）
-    const startA = String(a[startTimeIdx] || '');
-    const startB = String(b[startTimeIdx] || '');
-    if (startA !== startB) {
-      return startA.localeCompare(startB);
+    const startAValue = a[startTimeIdx];
+    const startBValue = b[startTimeIdx];
+    if (startAValue instanceof Date && startBValue instanceof Date) {
+      if (startAValue.getTime() !== startBValue.getTime()) {
+        return startAValue.getTime() - startBValue.getTime();
+      }
+    } else {
+      const startA = String(startAValue || '');
+      const startB = String(startBValue || '');
+      if (startA !== startB) {
+        return startA.localeCompare(startB);
+      }
     }
 
     // 4. 終了時間順（昇順: 早い時間が上）
-    const endA = String(a[endTimeIdx] || '');
-    const endB = String(b[endTimeIdx] || '');
-    if (endA !== endB) {
-      return endA.localeCompare(endB);
+    const endAValue = a[endTimeIdx];
+    const endBValue = b[endTimeIdx];
+    if (endAValue instanceof Date && endBValue instanceof Date) {
+      if (endAValue.getTime() !== endBValue.getTime()) {
+        return endAValue.getTime() - endBValue.getTime();
+      }
+    } else {
+      const endA = String(endAValue || '');
+      const endB = String(endBValue || '');
+      if (endA !== endB) {
+        return endA.localeCompare(endB);
+      }
     }
 
     // 5. 初回順（初回=true が先、空白/false が後）
     const firstValueA = /** @type {string|boolean|null} */ (a[firstLectureIdx]);
     const firstValueB = /** @type {string|boolean|null} */ (b[firstLectureIdx]);
-    const firstA =
-      firstValueA === true || firstValueA === 'TRUE' || firstValueA === 'true';
-    const firstB =
-      firstValueB === true || firstValueB === 'TRUE' || firstValueB === 'true';
+    const firstA = String(firstValueA).toLowerCase() === 'true';
+    const firstB = String(firstValueB).toLowerCase() === 'true';
     if (firstA !== firstB) {
       return firstA ? -1 : 1; // true が先（-1）、false が後（1）
     }

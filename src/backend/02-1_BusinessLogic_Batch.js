@@ -490,43 +490,28 @@ export function dailySalesTransferBatch() {
     sendAdminNotification(emailSubject, emailBody);
 
     // 売上転載後に予約シート全体をソート
-    try {
-      Logger.log('[dailySalesTransferBatch] 予約シートソート開始');
-      const sortResult = sortReservationSheet();
+    Logger.log('[dailySalesTransferBatch] 予約シートソート開始');
+    const sortResult = sortReservationSheet();
 
-      if (sortResult.success) {
-        Logger.log(
-          `[dailySalesTransferBatch] ソート完了: ${sortResult.sortedCount}件`,
-        );
-        logActivity(
-          'SYSTEM',
-          CONSTANTS.LOG_ACTIONS.BATCH_SORT_SUCCESS,
-          '成功',
-          sortResult.message,
-        );
-      } else {
-        Logger.log(
-          `[dailySalesTransferBatch] ソート失敗: ${sortResult.message}`,
-        );
-        logActivity(
-          'SYSTEM',
-          CONSTANTS.LOG_ACTIONS.BATCH_SORT_ERROR,
-          '失敗',
-          sortResult.message,
-        );
-        // ソート失敗してもバッチ全体は継続
-      }
-    } catch (sortErr) {
+    if (sortResult.success) {
       Logger.log(
-        `[dailySalesTransferBatch] ソート処理でエラー: ${sortErr.message}`,
+        `[dailySalesTransferBatch] ソート完了: ${sortResult.sortedCount}件`,
       );
       logActivity(
         'SYSTEM',
-        CONSTANTS.LOG_ACTIONS.BATCH_SORT_ERROR,
-        'エラー',
-        `ソート処理でエラーが発生: ${sortErr.message}`,
+        CONSTANTS.LOG_ACTIONS.BATCH_SORT_SUCCESS,
+        '成功',
+        sortResult.message,
       );
-      // ソートエラーでもバッチ全体は継続
+    } else {
+      Logger.log(`[dailySalesTransferBatch] ソート失敗: ${sortResult.message}`);
+      logActivity(
+        'SYSTEM',
+        CONSTANTS.LOG_ACTIONS.BATCH_SORT_ERROR,
+        '失敗',
+        sortResult.message,
+      );
+      // ソート失敗してもバッチ全体は継続
     }
   } catch (err) {
     const errorMessage = `売上表転載バッチ処理でエラーが発生しました: ${err.message}`;
