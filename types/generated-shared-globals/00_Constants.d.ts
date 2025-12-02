@@ -17,6 +17,12 @@ export namespace CONSTANTS {
         let CONFIRMED: string;
         let COMPLETED: string;
     }
+    namespace STATUS_PRIORITY {
+        let 完了: number;
+        let 確定: number;
+        let 待機: number;
+        let 取消: number;
+    }
     namespace UNITS {
         let THIRTY_MIN: string;
         let PIECE: string;
@@ -120,6 +126,8 @@ export namespace CONSTANTS {
         let BATCH_SALES_TRANSFER_START: string;
         let BATCH_SALES_TRANSFER_SUCCESS: string;
         let BATCH_SALES_TRANSFER_ERROR: string;
+        let BATCH_SORT_SUCCESS: string;
+        let BATCH_SORT_ERROR: string;
         let SYSTEM_ERROR: string;
     }
     namespace CLASSROOM_TYPES {

@@ -180,6 +180,21 @@ export function convertUserToRow(user: UserCore, headerMap: HeaderMapType): RawS
  * @returns {RawSheetRow} Sheets書き込み用配列データ
  */
 export function convertReservationToRow(reservation: ReservationCore, headerMap: HeaderMapType, header: string[]): RawSheetRow;
+/**
+ * 予約データの行配列を多段階ソートします
+ *
+ * ソート順序:
+ * 1. 日付順（降順: 新しい日付が上）
+ * 2. ステータス順（完了=確定 > 待機 > 取消）
+ * 3. 開始時間順（昇順: 早い時間が上）
+ * 4. 終了時間順（昇順: 早い時間が上）
+ * 5. 初回順（初回=true > 空白/false）
+ *
+ * @param {Array<Array<string|number|Date>>} rows - ソート対象の行配列
+ * @param {Map<string, number>|Record<string, number>} headerMap - ヘッダー列マップ
+ * @returns {Array<Array<string|number|Date>>} ソート済み行配列
+ */
+export function sortReservationRows(rows: Array<Array<string | number | Date>>, headerMap: Map<string, number> | Record<string, number>): Array<Array<string | number | Date>>;
 export namespace PerformanceLog {
     /**
      * デバッグログ（開発環境でのみ出力）

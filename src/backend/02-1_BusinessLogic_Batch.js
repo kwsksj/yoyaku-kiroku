@@ -30,6 +30,8 @@ import {
   getCachedReservationsAsObjects,
   handleError,
   logActivity,
+  sortReservationRows,
+  getSheetData,
 } from './08_Utilities.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
 
@@ -372,6 +374,65 @@ export function transferSalesLogByDate(targetDate) {
 }
 
 /**
+ * 予約シート全体をソートします（バッチ処理用）
+ *
+ * @description
+ * 予約シートのデータを以下の順序でソートします:
+ * 1. 日付順（降順: 新しい日付が上）
+ * 2. ステータス順（完了=確定 > 待機 > 取消）
+ * 3. 開始時間順（昇順）
+ * 4. 終了時間順（昇順）
+ * 5. 初回順（初回=true > 空白/false）
+ *
+ * @returns {{success: boolean, message: string, sortedCount: number}}
+ */
+export function sortReservationSheet() {
+  try {
+    Logger.log('[sortReservationSheet] 開始');
+
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);
+    if (!sheet) {
+      const errorMsg = '予約シートが取得できませんでした';
+      Logger.log(`[sortReservationSheet] エラー: ${errorMsg}`);
+      return { success: false, message: errorMsg, sortedCount: 0 };
+    }
+
+    const { header, headerMap, dataRows } = getSheetData(sheet);
+
+    if (!dataRows || dataRows.length === 0) {
+      Logger.log('[sortReservationSheet] ソート対象データなし');
+      return { success: true, message: 'ソート対象データなし', sortedCount: 0 };
+    }
+
+    // ソート実行（RawSheetRowをキャスト）
+    const sortedRows = sortReservationRows(
+      /** @type {Array<Array<string|number|Date>>} */ (dataRows),
+      headerMap,
+    );
+
+    // シート全体を上書き（ヘッダー + データ）
+    const allData = [header, ...sortedRows];
+    sheet.getRange(1, 1, allData.length, header.length).setValues(allData);
+    SpreadsheetApp.flush();
+
+    Logger.log(`[sortReservationSheet] 完了: ${sortedRows.length}件`);
+
+    return {
+      success: true,
+      message: `予約シートをソートしました（${sortedRows.length}件）`,
+      sortedCount: sortedRows.length,
+    };
+  } catch (err) {
+    Logger.log(`[sortReservationSheet] エラー: ${err.message}`);
+    return {
+      success: false,
+      message: `ソート処理でエラーが発生: ${err.message}`,
+      sortedCount: 0,
+    };
+  }
+}
+
+/**
  * 【トリガー関数】毎日20時に実行: 当日の会計済み予約を売上表に転載する
  * スクリプトのトリガー設定から呼び出される
  *
@@ -427,6 +488,46 @@ export function dailySalesTransferBatch() {
       `詳細はスプレッドシートのLOGシートを確認してください。`;
 
     sendAdminNotification(emailSubject, emailBody);
+
+    // 売上転載後に予約シート全体をソート
+    try {
+      Logger.log('[dailySalesTransferBatch] 予約シートソート開始');
+      const sortResult = sortReservationSheet();
+
+      if (sortResult.success) {
+        Logger.log(
+          `[dailySalesTransferBatch] ソート完了: ${sortResult.sortedCount}件`,
+        );
+        logActivity(
+          'SYSTEM',
+          CONSTANTS.LOG_ACTIONS.BATCH_SORT_SUCCESS,
+          '成功',
+          sortResult.message,
+        );
+      } else {
+        Logger.log(
+          `[dailySalesTransferBatch] ソート失敗: ${sortResult.message}`,
+        );
+        logActivity(
+          'SYSTEM',
+          CONSTANTS.LOG_ACTIONS.BATCH_SORT_ERROR,
+          '失敗',
+          sortResult.message,
+        );
+        // ソート失敗してもバッチ全体は継続
+      }
+    } catch (sortErr) {
+      Logger.log(
+        `[dailySalesTransferBatch] ソート処理でエラー: ${sortErr.message}`,
+      );
+      logActivity(
+        'SYSTEM',
+        CONSTANTS.LOG_ACTIONS.BATCH_SORT_ERROR,
+        'エラー',
+        `ソート処理でエラーが発生: ${sortErr.message}`,
+      );
+      // ソートエラーでもバッチ全体は継続
+    }
   } catch (err) {
     const errorMessage = `売上表転載バッチ処理でエラーが発生しました: ${err.message}`;
     Logger.log(`[dailySalesTransferBatch] エラー: ${errorMessage}`);

@@ -71,6 +71,17 @@ export const CONSTANTS = {
   },
 
   /**
+   * ステータス優先度（ソート用）
+   * 数値が小さいほど優先度が高い
+   */
+  STATUS_PRIORITY: {
+    完了: 1, // COMPLETED
+    確定: 1, // CONFIRMED（同優先度）
+    待機: 2, // WAITLISTED
+    取消: 3, // CANCELED
+  },
+
+  /**
    * 単位定数
    */
   UNITS: {
@@ -209,6 +220,8 @@ export const CONSTANTS = {
     BATCH_SALES_TRANSFER_START: '売上転載バッチ開始',
     BATCH_SALES_TRANSFER_SUCCESS: '売上転載バッチ完了',
     BATCH_SALES_TRANSFER_ERROR: '売上転載バッチエラー',
+    BATCH_SORT_SUCCESS: 'バッチ処理: 予約ソート成功',
+    BATCH_SORT_ERROR: 'バッチ処理: 予約ソートエラー',
     SYSTEM_ERROR: 'システムエラー',
   },
 
