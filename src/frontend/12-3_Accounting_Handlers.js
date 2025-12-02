@@ -1567,15 +1567,17 @@ export function processAccountingPayment(formData, result) {
             // 管理者の場合は参加者リストをリロードして戻る
             const currentUser = stateManager.getState().currentUser;
             if (currentUser && currentUser.isAdmin) {
-              if (
-                appWindow.actionHandlers &&
-                typeof appWindow.actionHandlers['loadParticipantView'] ===
-                  'function'
-              ) {
-                /** @type {any} */ (appWindow.actionHandlers)[
-                  'loadParticipantView'
-                ](true);
-              }
+              // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
+              stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'participants',
+                  participantLessons: response.data
+                    ? response.data.lessons
+                    : null,
+                  participantReservationsMap: null,
+                },
+              });
               showInfo(response.message || '会計情報を記録しました。');
               return;
             }

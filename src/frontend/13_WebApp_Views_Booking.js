@@ -261,8 +261,7 @@ export const getReservationFormView = () => {
         ? '空き通知 登録'
         : 'この内容で予約する';
 
-  const backAction =
-    source === 'participants' ? 'backToParticipantsView' : 'smartGoBack';
+  const backAction = 'smartGoBack';
 
   const _renderStatusHtml = () => {
     if (isEdit) {
@@ -598,34 +597,20 @@ export const renderBookingLessons = lessons => {
         .map(
           /** @param {LessonCore} lesson */ lesson => {
             const state = bookingStateManager.getState();
-            // isAdmin判定の強化 (予約日変更モード中は通常表示にする)
-            const isAdmin =
-              !state['isChangingReservationDate'] &&
-              (state.currentUser?.isAdmin || false);
-
-            // 管理者の場合は予約済みかどうかは関係なく常に管理アクション
-            const isBooked =
-              !isAdmin &&
-              (state.myReservations || []).some(
-                (/** @type {ReservationCore} */ b) =>
-                  String(b.date) === lesson.date &&
-                  b.classroom === lesson.classroom,
-              );
+            // 管理者でも通常の予約画面として機能させる（予約日変更時などに必要）
+            const isBooked = (state.myReservations || []).some(
+              (/** @type {ReservationCore} */ b) =>
+                String(b.date) === lesson.date &&
+                b.classroom === lesson.classroom,
+            );
             let cardClass, statusBadge, actionAttribute;
-            // 管理者は常にボタン
             const tag = isBooked ? 'div' : 'button';
 
             // 日程変更モードの場合は異なるアクションを使用
             const isChangingDate = state['isChangingReservationDate'];
-            let bookAction;
-
-            if (isAdmin) {
-              bookAction = 'showLessonParticipants';
-            } else {
-              bookAction = isChangingDate
-                ? 'goToReservationFormForLesson'
-                : 'bookLesson';
-            }
+            const bookAction = isChangingDate
+              ? 'goToReservationFormForLesson'
+              : 'bookLesson';
 
             const autoFirstTime =
               bookingStateManager.getState().isFirstTimeBooking;
@@ -633,7 +618,6 @@ export const renderBookingLessons = lessons => {
             console.log('📋 Lesson render:', lesson.date, {
               autoFirstTime,
               isBeginnerMode,
-              isAdmin,
             });
             let statusText;
             const {
@@ -644,10 +628,7 @@ export const renderBookingLessons = lessons => {
               beginnerCapacityCount,
             } = getNormalizedSlotCounts(lesson);
 
-            if (isAdmin) {
-              // 管理者用表示: すべての枠数を表示
-              statusText = `<span class="text-xs">一般(前/後):${firstSlotsCount}/${secondSlotsCount} 初回:${beginnerSlotsCount}</span>`;
-            } else if (isBeginnerMode) {
+            if (isBeginnerMode) {
               if (lesson.beginnerStart && beginnerCapacityCount > 0) {
                 // 初回者枠が満席かチェック
                 if (beginnerSlotsCount <= 0) {
@@ -668,12 +649,7 @@ export const renderBookingLessons = lessons => {
               }
             }
 
-            if (isAdmin) {
-              // 管理者用カードスタイル
-              cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card} border-2 border-action-primary-bg`;
-              statusBadge = `<span class="text-sm font-bold text-action-primary-bg">管理</span>`;
-              actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
-            } else if (isBooked) {
+            if (isBooked) {
               const reservationData = findReservationByDateAndClassroom(
                 String(lesson.date),
                 lesson.classroom,

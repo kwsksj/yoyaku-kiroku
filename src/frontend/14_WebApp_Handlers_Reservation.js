@@ -101,15 +101,15 @@ export const reservationActionHandlers = {
           if (r.success) {
             // 管理者の場合は参加者リストをリロードして戻る
             if (currentUser.isAdmin) {
-              if (
-                appWindow.actionHandlers &&
-                typeof appWindow.actionHandlers['loadParticipantView'] ===
-                  'function'
-              ) {
-                /** @type {any} */ (appWindow.actionHandlers)[
-                  'loadParticipantView'
-                ](true);
-              }
+              // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'participants',
+                  participantLessons: r.data ? r.data.lessons : null, // レッスン一覧を更新
+                  participantReservationsMap: null, // 詳細キャッシュはクリアして再取得させる
+                },
+              });
               showInfo(r.message || '予約をキャンセルしました。');
               return;
             }
@@ -486,30 +486,43 @@ export const reservationActionHandlers = {
           false,
         );
 
-        if (r.success) {
-          // 管理者の場合は参加者リストに戻る
-          if (currentUser.isAdmin) {
-            if (
-              appWindow.actionHandlers &&
-              typeof appWindow.actionHandlers['loadParticipantView'] ===
-                'function'
-            ) {
-              /** @type {any} */ (appWindow.actionHandlers)[
-                'loadParticipantView'
-              ](true);
-            } else {
-              reservationStateManager.dispatch({
-                type: 'SET_STATE',
-                payload: { view: 'participants' },
-              });
-            }
-            showInfo(
-              `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'}`,
-            );
-            return;
-          }
+                if (r.success) {
 
-          if (r.data) {
+                  // 管理者の場合は参加者リストに戻る
+
+                  if (currentUser.isAdmin) {
+
+                    // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
+
+                    reservationStateManager.dispatch({
+
+                      type: 'SET_STATE',
+
+                      payload: {
+
+                        view: 'participants',
+
+                        participantLessons: r.data ? r.data.lessons : null,
+
+                        participantReservationsMap: null,
+
+                      },
+
+                    });
+
+                    showInfo(
+
+                      `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+
+                    );
+
+                    return;
+
+                  }
+
+        
+
+                  if (r.data) {
             // 予約更新後は個人予約データを優先的に更新
             const currentState = reservationStateManager.getState();
             const updatedPayload = {
@@ -998,15 +1011,15 @@ export const reservationActionHandlers = {
           if (r.success) {
             // 管理者の場合は参加者リストをリロードして戻る
             if (currentUser.isAdmin) {
-              if (
-                appWindow.actionHandlers &&
-                typeof appWindow.actionHandlers['loadParticipantView'] ===
-                  'function'
-              ) {
-                /** @type {any} */ (appWindow.actionHandlers)[
-                  'loadParticipantView'
-                ](true);
-              }
+              // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'participants',
+                  participantLessons: r.data ? r.data.lessons : null,
+                  participantReservationsMap: null,
+                },
+              });
               showInfo(
                 '空き通知希望から予約への変更が完了しました。',
                 '予約確定',
