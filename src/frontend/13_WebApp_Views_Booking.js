@@ -598,7 +598,10 @@ export const renderBookingLessons = lessons => {
         .map(
           /** @param {LessonCore} lesson */ lesson => {
             const state = bookingStateManager.getState();
-            const isAdmin = state.currentUser?.isAdmin;
+            // isAdmin判定の強化 (予約日変更モード中は通常表示にする)
+            const isAdmin =
+              !state['isChangingReservationDate'] &&
+              (state.currentUser?.isAdmin || false);
 
             // 管理者の場合は予約済みかどうかは関係なく常に管理アクション
             const isBooked =
@@ -665,12 +668,13 @@ export const renderBookingLessons = lessons => {
               }
             }
 
-                        if (isAdmin) {
-                             // 管理者用カードスタイル
-                             cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card} border-2 border-action-primary-bg`;
-                             statusBadge = `<span class="text-sm font-bold text-action-primary-bg">管理</span>`;
-                             actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
-                        } else if (isBooked) {              const reservationData = findReservationByDateAndClassroom(
+            if (isAdmin) {
+              // 管理者用カードスタイル
+              cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card} border-2 border-action-primary-bg`;
+              statusBadge = `<span class="text-sm font-bold text-action-primary-bg">管理</span>`;
+              actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
+            } else if (isBooked) {
+              const reservationData = findReservationByDateAndClassroom(
                 String(lesson.date),
                 lesson.classroom,
               );

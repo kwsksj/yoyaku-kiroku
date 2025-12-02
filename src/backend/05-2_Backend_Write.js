@@ -816,7 +816,9 @@ ${err.stack}`);
 export function cancelReservation(cancelInfo) {
   return withTransaction(() => {
     try {
+      // _isByAdmin はフロントエンドから渡される管理者フラグ（anyキャストで型エラー回避）
       const { reservationId, studentId, cancelMessage } = cancelInfo;
+      const _isByAdmin = /** @type {any} */ (cancelInfo)._isByAdmin;
 
       const existingReservation = getReservationCoreById(reservationId);
 
@@ -824,8 +826,8 @@ export function cancelReservation(cancelInfo) {
         throw new Error(`予約が見つかりません: ID=${reservationId}`);
       }
 
-      // 権限チェック
-      if (existingReservation.studentId !== studentId) {
+      // 権限チェック（管理者はスキップ）
+      if (!_isByAdmin && existingReservation.studentId !== studentId) {
         throw new Error('この予約をキャンセルする権限がありません。');
       }
 
