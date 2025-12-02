@@ -59,6 +59,7 @@ import {
   getSheetData,
   logActivity,
   PerformanceLog,
+  validateUserOperation,
   withTransaction,
 } from './08_Utilities.js';
 
@@ -816,29 +817,23 @@ ${err.stack}`);
 export function cancelReservation(cancelInfo) {
   return withTransaction(() => {
     try {
-      // _isByAdmin はフロントエンドから渡される管理者フラグ（anyキャストで型エラー回避）
       const { reservationId, studentId, cancelMessage } = cancelInfo;
       const _isByAdmin = /** @type {any} */ (cancelInfo)._isByAdmin;
 
-      const existingReservation = getReservationCoreById(reservationId);
-
-      if (!existingReservation) {
-        throw new Error(`予約が見つかりません: ID=${reservationId}`);
-      }
-
-      // 権限チェック（管理者はスキップ）
-      if (!_isByAdmin && existingReservation.studentId !== studentId) {
-        throw new Error('この予約をキャンセルする権限がありません。');
-      }
-
-      // 2. キャンセル後の新しい予約オブジェクトを構築
-      /** @type {ReservationCore} */
-      const cancelledReservation = {
-        ...existingReservation,
-        status: CONSTANTS.STATUS.CANCELED,
-        cancelMessage: cancelMessage || existingReservation.cancelMessage, // 新しいメッセージがあれば上書き
-      };
-
+            const existingReservation = getReservationCoreById(reservationId);
+      
+            validateUserOperation(existingReservation, studentId, _isByAdmin);
+            const validReservation = /** @type {ReservationCore} */ (
+              existingReservation
+            );
+      
+            // 2. キャンセル後の新しい予約オブジェクトを構築
+            /** @type {ReservationCore} */
+            const cancelledReservation = {
+              ...validReservation,
+              status: CONSTANTS.STATUS.CANCELED,
+              cancelMessage: cancelMessage || validReservation.cancelMessage, // 新しいメッセージがあれば上書き
+            };
       // 共通関数を呼び出して保存
       _saveReservationCoreToSheet(cancelledReservation, 'update');
 
@@ -866,7 +861,7 @@ export function cancelReservation(cancelInfo) {
         if (cancelledReservation.lessonId) {
           notifyAvailabilityToWaitlistedUsers(
             cancelledReservation.lessonId,
-            existingReservation, // 元の予約データ
+            validReservation, // 元の予約データ
           );
         } else {
           Logger.log(
@@ -1217,16 +1212,17 @@ export function updateReservationDetails(details) {
     try {
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(details.reservationId);
-      if (!existingReservation) {
-        throw new Error(
-          `予約ID「${details.reservationId}」が見つかりませんでした。`,
-        );
-      }
+
+      const _isByAdmin = /** @type {any} */ (details)._isByAdmin;
+      validateUserOperation(existingReservation, details.studentId, _isByAdmin);
+      const validReservation = /** @type {ReservationCore} */ (
+        existingReservation
+      );
 
       // 2. 更新内容をマージして、新しい予約オブジェクトを構築
       /** @type {ReservationCore} */
       const updatedReservation = {
-        ...existingReservation,
+        ...validReservation,
         ...details,
       };
 
@@ -1267,8 +1263,8 @@ export function updateReservationDetails(details) {
           ? scheduleRule.lessonId
           : undefined;
       const lessonIdFromExisting =
-        typeof existingReservation.lessonId === 'string'
-          ? existingReservation.lessonId
+        typeof validReservation.lessonId === 'string'
+          ? validReservation.lessonId
           : undefined;
 
       effectiveLessonId =
@@ -1337,14 +1333,14 @@ export function updateReservationDetails(details) {
         let oldMorningOccupied = false;
         let oldAfternoonOccupied = false;
         if (
-          existingReservation.startTime &&
-          existingReservation.endTime &&
+          validReservation.startTime &&
+          validReservation.endTime &&
           targetLesson.firstEnd &&
           targetLesson.secondStart
         ) {
-          if (existingReservation.startTime < targetLesson.firstEnd)
+          if (validReservation.startTime < targetLesson.firstEnd)
             oldMorningOccupied = true;
-          if (existingReservation.endTime > targetLesson.secondStart)
+          if (validReservation.endTime > targetLesson.secondStart)
             oldAfternoonOccupied = true;
         }
 
@@ -1487,14 +1483,9 @@ export function saveAccountingDetails(reservationWithAccounting) {
 
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(reservationId);
-      if (!existingReservation) {
-        throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
-      }
-
-      // 権限チェック
-      if (existingReservation.studentId !== studentId) {
-        throw new Error('この予約の会計処理を行う権限がありません。');
-      }
+      
+      const _isByAdmin = /** @type {any} */ (reservationWithAccounting)._isByAdmin;
+      validateUserOperation(existingReservation, studentId, _isByAdmin);
 
       // TODO: バックエンドでの金額再計算・検証ロジックをここに追加することが望ましい
       // 現状はフロントエンドで計算された金額を信頼する形になっているが、
@@ -1598,17 +1589,17 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
 
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(reservationId);
-      if (!existingReservation) {
-        throw new Error(`予約ID「${reservationId}」が見つかりませんでした。`);
-      }
-
-      // 2. 権限チェック
-      if (existingReservation.studentId !== studentId) {
-        throw new Error('この予約の会計処理を修正する権限がありません。');
-      }
+      
+      // 2. 権限チェック (共通関数を使用)
+      const _isByAdmin = /** @type {any} */ (reservationWithUpdatedAccounting)
+        ._isByAdmin;
+      validateUserOperation(existingReservation, studentId, _isByAdmin);
+      const validReservation = /** @type {ReservationCore} */ (
+        existingReservation
+      );
 
       // 3. ステータスチェック：会計済み（完了）のみ修正可能
-      if (existingReservation.status !== CONSTANTS.STATUS.COMPLETED) {
+      if (validReservation.status !== CONSTANTS.STATUS.COMPLETED) {
         throw new Error('会計処理が完了していない予約は修正できません。');
       }
 
@@ -1618,7 +1609,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
 
       // _isByAdminフラグがある場合はチェックをスキップ
       if (!(/** @type {any} */ (reservationWithUpdatedAccounting)._isByAdmin)) {
-        const reservationDate = new Date(date || existingReservation.date);
+        const reservationDate = new Date(date || validReservation.date);
         const now = new Date();
 
         // 予約日が今日でない場合はエラー
@@ -1651,7 +1642,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
       // 5. 更新後の完全なReservationCoreオブジェクトを構築
       /** @type {ReservationCore} */
       const updatedReservation = {
-        ...existingReservation,
+        ...validReservation,
         accountingDetails: accountingDetails, // 会計情報を更新
         // ステータスは「完了」のまま維持
       };
@@ -1847,27 +1838,24 @@ export function confirmWaitlistedReservation(confirmInfo) {
       // ★改善: getReservationCoreByIdを使用して予約情報を一行で取得
       const targetReservation = getReservationCoreById(reservationId);
 
-      if (!targetReservation) {
-        throw new Error('対象の予約が見つかりません。');
-      }
-
-      // 権限チェック
-      if (targetReservation.studentId !== studentId) {
-        throw new Error('この予約を操作する権限がありません。');
-      }
+      const _isByAdmin = /** @type {any} */ (confirmInfo)._isByAdmin;
+      validateUserOperation(targetReservation, studentId, _isByAdmin);
+      const validReservation = /** @type {ReservationCore} */ (
+        targetReservation
+      );
 
       // 現在のステータスが空き通知希望（待機）かチェック
-      if (targetReservation.status !== CONSTANTS.STATUS.WAITLISTED) {
+      if (validReservation.status !== CONSTANTS.STATUS.WAITLISTED) {
         throw new Error('この予約は空き通知希望ではありません。');
       }
 
       // 定員チェック（現在空席があるかチェック）
       const isFull = checkCapacityFull(
-        targetReservation.classroom,
-        targetReservation.date,
-        targetReservation.startTime || '',
-        targetReservation.endTime || '',
-        targetReservation.firstLecture || false,
+        validReservation.classroom,
+        validReservation.date,
+        validReservation.startTime || '',
+        validReservation.endTime || '',
+        validReservation.firstLecture || false,
       );
       if (isFull) {
         throw new Error('現在満席のため確定できません。');
@@ -1876,10 +1864,10 @@ export function confirmWaitlistedReservation(confirmInfo) {
       // 更新後の予約オブジェクトを構築
       /** @type {ReservationCore} */
       const updatedReservation = {
-        ...targetReservation,
+        ...validReservation,
         status: CONSTANTS.STATUS.CONFIRMED,
         messageToTeacher:
-          messageToTeacher || targetReservation.messageToTeacher || '',
+          messageToTeacher || validReservation.messageToTeacher || '',
       };
 
       // 共通関数を呼び出して保存

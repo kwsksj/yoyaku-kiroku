@@ -437,114 +437,115 @@ export const reservationActionHandlers = {
       order: /** @type {HTMLInputElement} */ (
         document.getElementById('order-input')
       ).value,
-      messageToTeacher: /** @type {HTMLInputElement} */ (
-        document.getElementById('message-input')
-      ).value,
-      materialInfo:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('material-input')
-        )?.value || '',
-    };
-    showLoading('booking');
-    // 予約更新処理中フラグを設定
-    reservationStateManager.setDataFetchProgress('reservation-update', true);
-
-    google.script.run['withSuccessHandler'](
-      (/** @type {BatchDataResponse} */ r) => {
-        hideLoading();
-        // 予約更新処理中フラグをクリア
-        reservationStateManager.setDataFetchProgress(
-          'reservation-update',
-          false,
-        );
-
-        if (r.success) {
-          // 管理者の場合は参加者リストに戻る
-          if (currentUser.isAdmin) {
-            if (
-              appWindow.actionHandlers &&
-              typeof appWindow.actionHandlers['backToParticipantsView'] ===
-                'function'
-            ) {
-              /** @type {any} */ (appWindow.actionHandlers)[
-                'backToParticipantsView'
-              ]();
-            } else {
-              reservationStateManager.dispatch({
-                type: 'SET_STATE',
-                payload: { view: 'participants' },
+            messageToTeacher: /** @type {HTMLInputElement} */ (
+              document.getElementById('message-input')
+            ).value,
+            materialInfo:
+              /** @type {HTMLInputElement} */ (
+                document.getElementById('material-input')
+              )?.value || '',
+            _isByAdmin: currentUser.isAdmin || false,
+          };
+          showLoading('booking');
+          // 予約更新処理中フラグを設定
+          reservationStateManager.setDataFetchProgress('reservation-update', true);
+      
+          google.script.run['withSuccessHandler'](
+            (/** @type {BatchDataResponse} */ r) => {
+              hideLoading();
+              // 予約更新処理中フラグをクリア
+              reservationStateManager.setDataFetchProgress(
+                'reservation-update',
+                false,
+              );
+      
+              if (r.success) {
+                // 管理者の場合は参加者リストに戻る
+                if (currentUser.isAdmin) {
+                  if (
+                    appWindow.actionHandlers &&
+                    typeof appWindow.actionHandlers['backToParticipantsView'] ===
+                      'function'
+                  ) {
+                    /** @type {any} */ (appWindow.actionHandlers)[
+                      'backToParticipantsView'
+                    ]();
+                  } else {
+                    reservationStateManager.dispatch({
+                      type: 'SET_STATE',
+                      payload: { view: 'participants' },
+                    });
+                  }
+                  showInfo(
+                    `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+                  );
+                  return;
+                }
+      
+                if (r.data) {
+                  // 予約更新後は個人予約データを優先的に更新
+                  const currentState = reservationStateManager.getState();
+                  const updatedPayload = {
+                    myReservations: r.data.myReservations || [],
+                    view: 'dashboard',
+                    isDataFresh: true,
+                  };
+      
+                  // initialデータがある場合は追加
+                  if (r.data['initial']) {
+                    Object.assign(updatedPayload, r.data['initial']);
+                  }
+      
+                  // 講座データの選択的更新
+                  if (r.data.lessons && r.data.lessons.length > 0) {
+                    /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
+                    reservationStateManager.setDataFetchProgress('lessons', false);
+                  } else if (
+                    currentState.lessons &&
+                    currentState.lessons.length > 0
+                  ) {
+                    // 既存の講座データを保持
+                    /** @type {any} */ (updatedPayload).lessons =
+                      currentState.lessons;
+                  }
+      
+                  reservationStateManager.dispatch({
+                    type: 'SET_STATE',
+                    payload: updatedPayload,
+                  });
+                } else {
+                  reservationStateManager.dispatch({
+                    type: 'SET_STATE',
+                    payload: {
+                      view: 'dashboard',
+                      isDataFresh: false,
+                    },
+                  });
+                }
+                showInfo(
+                  `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+                );
+              } else {
+                showInfo(r.message || '更新に失敗しました。', 'エラー');
+              }
+            },
+          )
+            .withFailureHandler((/** @type {Error} */ error) => {
+              hideLoading();
+              // エラー時も予約更新処理中フラグをクリア
+              reservationStateManager.setDataFetchProgress(
+                'reservation-update',
+                false,
+              );
+      
+              const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
+              handler.handle(error, 'updateReservation', {
+                reservationId: p.reservationId,
+                classroom: p.classroom,
               });
-            }
-            showInfo(
-              `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'}`,
-            );
-            return;
-          }
-
-          if (r.data) {
-            // 予約更新後は個人予約データを優先的に更新
-            const currentState = reservationStateManager.getState();
-            const updatedPayload = {
-              myReservations: r.data.myReservations || [],
-              view: 'dashboard',
-              isDataFresh: true,
-            };
-
-            // initialデータがある場合は追加
-            if (r.data['initial']) {
-              Object.assign(updatedPayload, r.data['initial']);
-            }
-
-            // 講座データの選択的更新
-            if (r.data.lessons && r.data.lessons.length > 0) {
-              /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
-              reservationStateManager.setDataFetchProgress('lessons', false);
-            } else if (
-              currentState.lessons &&
-              currentState.lessons.length > 0
-            ) {
-              // 既存の講座データを保持
-              /** @type {any} */ (updatedPayload).lessons =
-                currentState.lessons;
-            }
-
-            reservationStateManager.dispatch({
-              type: 'SET_STATE',
-              payload: updatedPayload,
-            });
-          } else {
-            reservationStateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                view: 'dashboard',
-                isDataFresh: false,
-              },
-            });
-          }
-          showInfo(
-            `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'}`,
-          );
-        } else {
-          showInfo(r.message || '更新に失敗しました。', 'エラー');
-        }
-      },
-    )
-      .withFailureHandler((/** @type {Error} */ error) => {
-        hideLoading();
-        // エラー時も予約更新処理中フラグをクリア
-        reservationStateManager.setDataFetchProgress(
-          'reservation-update',
-          false,
-        );
-
-        const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
-        handler.handle(error, 'updateReservation', {
-          reservationId: p.reservationId,
-          classroom: p.classroom,
-        });
-        handleServerError(error);
-      })
-      .updateReservationDetailsAndGetLatestData(p);
+              handleServerError(error);
+            })
+            .updateReservationDetailsAndGetLatestData(/** @type {any} */ (p));
   },
 
   /** 新規予約のための教室選択モーダルを表示します */
@@ -1260,87 +1261,60 @@ export const reservationActionHandlers = {
       state['participantData']?.reservationsMap?.[String(lessonId)] ||
       state['participantReservationsMap']?.[String(lessonId)];
 
-            if (preloadedReservations) {
+    if (preloadedReservations) {
+      console.log('⚡ Using preloaded participant data for lesson:', lessonId);
 
-              console.log('⚡ Using preloaded participant data for lesson:', lessonId);
+      // 再描画を防ぐため、Stateではなくグローバルコンテキストに一時保存
 
-        
+      /** @type {any} */ (appWindow).adminContext = {
+        reservations: preloadedReservations,
 
-              // 再描画を防ぐため、Stateではなくグローバルコンテキストに一時保存
+        lesson: lesson,
+      };
 
-              /** @type {any} */ (appWindow).adminContext = {
+      _showParticipantListModal(preloadedReservations, lesson);
 
-                reservations: preloadedReservations,
+      return;
+    }
 
-                lesson: lesson,
+    // 2. プリロードがない場合はサーバーから取得
 
-              };
+    showLoading('participants');
 
-        
+    google.script.run
 
-              _showParticipantListModal(preloadedReservations, lesson);
+      .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
+        hideLoading();
 
-              return;
+        if (response.success && response.data) {
+          const reservations = response.data.reservations || [];
 
-            }
+          const fetchedLesson = response.data.lesson || lesson;
 
-        
+          // 再描画を防ぐため、Stateではなくグローバルコンテキストに一時保存
 
-            // 2. プリロードがない場合はサーバーから取得
+          /** @type {any} */ (appWindow).adminContext = {
+            reservations: reservations,
 
-            showLoading('participants');
+            lesson: fetchedLesson,
+          };
 
-            google.script.run
+          _showParticipantListModal(reservations, fetchedLesson);
+        } else {
+          showInfo('参加者情報の取得に失敗しました。', 'エラー');
+        }
+      })
 
-              .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
+      .withFailureHandler((/** @type {Error} */ error) => {
+        hideLoading();
 
-                hideLoading();
+        handleServerError(error);
+      })
 
-                if (response.success && response.data) {
+      .getReservationsForLesson(lessonId, 'ADMIN');
+  },
 
-                  const reservations = response.data.reservations || [];
-
-                  const fetchedLesson = response.data.lesson || lesson;
-
-        
-
-                  // 再描画を防ぐため、Stateではなくグローバルコンテキストに一時保存
-
-                  /** @type {any} */ (appWindow).adminContext = {
-
-                    reservations: reservations,
-
-                    lesson: fetchedLesson,
-
-                  };
-
-        
-
-                  _showParticipantListModal(reservations, fetchedLesson);
-
-                } else {
-
-                  showInfo('参加者情報の取得に失敗しました。', 'エラー');
-
-                }
-
-              })
-
-              .withFailureHandler((/** @type {Error} */ error) => {
-
-                hideLoading();
-
-                handleServerError(error);
-
-              })
-
-              .getReservationsForLesson(lessonId, 'ADMIN');
-
-          },
-
-        
-
-          /**
+  /**
 
            * 管理者用：予約編集画面へ遷移
 
@@ -1348,71 +1322,47 @@ export const reservationActionHandlers = {
 
            */
 
-          goToAdminReservationForm: d => {
+  goToAdminReservationForm: d => {
+    const reservationId = d.reservationId;
 
-            const reservationId = d.reservationId;
+    // グローバルコンテキストからデータを取得
 
-            // グローバルコンテキストからデータを取得
+    const context = /** @type {any} */ (appWindow).adminContext || {};
 
-            const context = /** @type {any} */ (appWindow).adminContext || {};
+    const reservations = context.reservations || [];
 
-            const reservations = context.reservations || [];
+    const reservation = reservations.find(
+      (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+    );
 
-            const reservation = reservations.find(
+    const lesson = context.lesson;
 
-              (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+    if (reservation && lesson) {
+      // モーダルを閉じる
 
-            );
+      Components.closeModal('participant-list-modal');
 
-        
+      const formContext = {
+        lessonInfo: lesson,
 
-            const lesson = context.lesson;
+        reservationInfo: reservation,
+      };
 
-        
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
 
-            if (reservation && lesson) {
+        payload: {
+          view: 'reservationForm',
 
-              // モーダルを閉じる
+          currentReservationFormContext: formContext,
+        },
+      });
+    } else {
+      showInfo('予約情報が見つかりません', 'エラー');
+    }
+  },
 
-              Components.closeModal('participant-list-modal');
-
-        
-
-              const formContext = {
-
-                lessonInfo: lesson,
-
-                reservationInfo: reservation,
-
-              };
-
-        
-
-              reservationStateManager.dispatch({
-
-                type: 'SET_STATE',
-
-                payload: {
-
-                  view: 'reservationForm',
-
-                  currentReservationFormContext: formContext,
-
-                },
-
-              });
-
-            } else {
-
-              showInfo('予約情報が見つかりません', 'エラー');
-
-            }
-
-          },
-
-        
-
-          /**
+  /**
 
            * 管理者用：会計画面へ遷移
 
@@ -1420,55 +1370,39 @@ export const reservationActionHandlers = {
 
            */
 
-          showAdminAccounting: d => {
+  showAdminAccounting: d => {
+    const reservationId = d.reservationId;
 
-            const reservationId = d.reservationId;
+    // グローバルコンテキストからデータを取得
 
-            // グローバルコンテキストからデータを取得
+    const context = /** @type {any} */ (appWindow).adminContext || {};
 
-            const context = /** @type {any} */ (appWindow).adminContext || {};
+    const reservations = context.reservations || [];
 
-            const reservations = context.reservations || [];
+    const reservation = reservations.find(
+      (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+    );
 
-            const reservation = reservations.find(
+    if (reservation) {
+      // モーダルを閉じる
 
-              (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+      Components.closeModal('participant-list-modal');
 
-            );
+      // accountingReservationを設定して画面遷移
 
-        
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
 
-            if (reservation) {
+        payload: {
+          accountingReservation: reservation,
 
-              // モーダルを閉じる
-
-              Components.closeModal('participant-list-modal');
-
-        
-
-              // accountingReservationを設定して画面遷移
-
-              reservationStateManager.dispatch({
-
-                type: 'SET_STATE',
-
-                payload: {
-
-                  accountingReservation: reservation,
-
-                  view: 'accounting',
-
-                },
-
-              });
-
-            } else {
-
-              showInfo('予約情報が見つかりません', 'エラー');
-
-            }
-
-          },
+          view: 'accounting',
+        },
+      });
+    } else {
+      showInfo('予約情報が見つかりません', 'エラー');
+    }
+  },
 };
 
 /**
