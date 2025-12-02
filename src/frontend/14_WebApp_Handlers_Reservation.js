@@ -1394,6 +1394,23 @@ export const reservationActionHandlers = {
                     String(r.lessonId) === newLessonId,
                 );
 
+                const basePersonInfo = /** @type {any} */ (
+                  originalReservation
+                    ? {
+                        realName: originalReservation.realName,
+                        nickname: originalReservation.nickname,
+                        displayName: originalReservation.displayName,
+                        phone: originalReservation.phone,
+                        email: originalReservation.email,
+                        ageGroup: originalReservation.ageGroup,
+                        gender: originalReservation.gender,
+                        address: originalReservation.address,
+                        messageToTeacher: originalReservation.messageToTeacher,
+                        notes: originalReservation.notes,
+                      }
+                    : {}
+                );
+
                 let participantCacheUpdate = null;
                 if (oldLessonId) {
                   participantCacheUpdate =
@@ -1410,9 +1427,14 @@ export const reservationActionHandlers = {
                     );
                 }
                 if (newReservationFromResponse) {
+                  const reservationForCache = /** @type {ReservationCore} */ ({
+                    ...basePersonInfo,
+                    ...newReservationFromResponse,
+                    lessonId: newLessonId,
+                  });
                   participantCacheUpdate =
                     updateParticipantViewCacheFromReservation(
-                      { ...newReservationFromResponse, lessonId: newLessonId },
+                      reservationForCache,
                       'upsert',
                       participantCacheUpdate
                         ? participantCacheUpdate.participantReservationsMap
