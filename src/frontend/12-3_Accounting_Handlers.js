@@ -1550,6 +1550,14 @@ export function processAccountingPayment(formData, result) {
               clearAccountingCache();
             }
 
+            const currentUser = stateManager.getState().currentUser;
+            const isAdmin = Boolean(currentUser && currentUser.isAdmin);
+            const lessonIdForCache =
+              selectedReservation.lessonId ||
+              state.accountingScheduleInfo?.lessonId ||
+              /** @type {any} */ (appWindow).adminContext?.lesson?.lessonId ||
+              '';
+
             // データを最新に更新
             if (response.data) {
               stateManager.dispatch({
@@ -1557,25 +1565,50 @@ export function processAccountingPayment(formData, result) {
                 payload: {
                   myReservations: response.data.myReservations || [],
                   lessons: response.data.lessons || [],
-                  // 参加者リストのキャッシュをクリア
-                  participantLessons: null,
-                  participantReservationsMap: null,
+                  // 参加者リストのキャッシュをクリア（一般ユーザーのみ）
+                  ...(isAdmin
+                    ? {}
+                    : {
+                        participantLessons: null,
+                        participantReservationsMap: null,
+                      }),
                 },
               });
             }
 
             // 管理者の場合は参加者リストをリロードして戻る
-            const currentUser = stateManager.getState().currentUser;
-            if (currentUser && currentUser.isAdmin) {
+            if (isAdmin) {
+              const cacheUpdater = /** @type {any} */ (appWindow)
+                .updateParticipantViewCacheFromReservation;
+              const participantCacheUpdate =
+                typeof cacheUpdater === 'function'
+                  ? cacheUpdater(
+                      lessonIdForCache
+                        ? {
+                            ...selectedReservation,
+                            ...reservationWithAccounting,
+                            lessonId: lessonIdForCache,
+                          }
+                        : null,
+                      'upsert',
+                    )
+                  : null;
+              const fallbackPayload = {
+                participantLessons:
+                  (response.data && response.data.lessons) ||
+                  state.participantLessons ||
+                  state.lessons ||
+                  null,
+                participantReservationsMap:
+                  state.participantReservationsMap || null,
+              };
               // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
               stateManager.dispatch({
                 type: 'SET_STATE',
                 payload: {
                   view: 'participants',
-                  participantLessons: response.data
-                    ? response.data.lessons
-                    : null,
-                  participantReservationsMap: null,
+                  navigationHistory: [],
+                  ...(participantCacheUpdate || fallbackPayload),
                 },
               });
               showInfo(response.message || '会計情報を記録しました。');

@@ -53,6 +53,9 @@ export interface ReservationCore {
   /** ステータス（CONSTANTS.STATUSの値: 取消/待機/確定/完了） */
   status: string;
 
+  /** 管理者操作かどうか（締切や権限チェックの緩和に利用） */
+  _isByAdmin?: boolean | undefined;
+
   // ========================================
   // 基本オプション
   // ========================================
@@ -169,4 +172,7 @@ export interface CancelReservationParams {
 
   /** キャンセル理由 */
   cancelMessage?: string | undefined;
+
+  /** 管理者操作フラグ（権限チェックや締切解除用） */
+  _isByAdmin?: boolean | undefined;
 }

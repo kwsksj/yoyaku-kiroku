@@ -177,6 +177,7 @@ export function changeReservationDateAndGetLatestData(
         reservationId: originalReservationId,
         studentId: newReservationData.studentId,
         cancelMessage: '予約日変更のため自動キャンセル',
+        _isByAdmin: /** @type {any} */ (newReservationData)._isByAdmin || false,
       };
       const cancelResult = cancelReservation(cancelParams);
 
