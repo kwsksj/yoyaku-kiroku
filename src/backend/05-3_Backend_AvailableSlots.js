@@ -159,9 +159,10 @@ export function getLessons(includePast = false) {
         return true;
       }
 
-      // 当日の場合、終了時刻をチェック
-      if (lesson.firstEnd) {
-        const [endHour, endMinute] = lesson.firstEnd.split(':').map(Number);
+      // 当日の場合、終了時刻をチェック（secondEnd優先、なければfirstEnd）
+      const latestEnd = lesson.secondEnd || lesson.firstEnd || '';
+      if (latestEnd) {
+        const [endHour, endMinute] = latestEnd.split(':').map(Number);
         const endDateTime = new Date(
           now.getFullYear(),
           now.getMonth(),

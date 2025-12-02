@@ -542,27 +542,11 @@ export const renderBookingLessons = lessons => {
   const isChangingDate = Boolean(state['isChangingReservationDate']);
   const targetStudentId =
     state.currentReservationFormContext?.reservationInfo?.studentId || '';
-  const now = new Date();
 
   // 変更時は過去レッスンを除外
   /** @type {LessonCore[]} */
   const lessonsToRender = (lessons || []).filter(lesson => {
     if (!lesson || !lesson.date) return false;
-
-    // 終了済みレッスンは非表示（当日を含め終了時刻で判定）
-    const latestEnd =
-      lesson.secondEnd || lesson.firstEnd || lesson.endTime || '';
-    if (latestEnd) {
-      const [endHour, endMinute] = latestEnd.split(':').map(Number);
-      const endDate = new Date(lesson.date);
-      if (Number.isFinite(endHour) && Number.isFinite(endMinute)) {
-        endDate.setHours(endHour, endMinute, 0, 0);
-        if (endDate.getTime() < now.getTime()) {
-          return false;
-        }
-      }
-    }
-
     if (!isChangingDate) return true;
     const dateObj = new Date(lesson.date);
     dateObj.setHours(0, 0, 0, 0);
