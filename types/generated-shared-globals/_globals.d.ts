@@ -23,6 +23,12 @@ declare global {
       readonly CONFIRMED: string;
       readonly COMPLETED: string;
     };
+    readonly STATUS_PRIORITY: {
+      readonly 完了: number;
+      readonly 確定: number;
+      readonly 待機: number;
+      readonly 取消: number;
+    };
     readonly UNITS: {
       readonly THIRTY_MIN: string;
       readonly PIECE: string;
@@ -123,6 +129,8 @@ declare global {
       readonly BATCH_SALES_TRANSFER_START: string;
       readonly BATCH_SALES_TRANSFER_SUCCESS: string;
       readonly BATCH_SALES_TRANSFER_ERROR: string;
+      readonly BATCH_SORT_SUCCESS: string;
+      readonly BATCH_SORT_ERROR: string;
       readonly SYSTEM_ERROR: string;
     };
     readonly CLASSROOM_TYPES: {

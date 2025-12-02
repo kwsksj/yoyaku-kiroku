@@ -25,6 +25,24 @@ export function transferSalesLogByDate(targetDate?: string): {
     successCount: number;
 };
 /**
+ * 予約シート全体をソートします（バッチ処理用）
+ *
+ * @description
+ * 予約シートのデータを以下の順序でソートします:
+ * 1. 日付順（降順: 新しい日付が上）
+ * 2. ステータス順（完了=確定 > 待機 > 取消）
+ * 3. 開始時間順（昇順）
+ * 4. 終了時間順（昇順）
+ * 5. 初回順（初回=true > 空白/false）
+ *
+ * @returns {{success: boolean, message: string, sortedCount: number}}
+ */
+export function sortReservationSheet(): {
+    success: boolean;
+    message: string;
+    sortedCount: number;
+};
+/**
  * 【トリガー関数】毎日20時に実行: 当日の会計済み予約を売上表に転載する
  * スクリプトのトリガー設定から呼び出される
  *

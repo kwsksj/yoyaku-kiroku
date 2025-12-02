@@ -33,6 +33,7 @@ import {
   getCachedReservationsAsObjects,
   transformReservationArrayToObject,
   transformReservationArrayToObjectWithHeaders,
+  sortReservationRows,
 } from './08_Utilities.js';
 
 /**
@@ -1159,16 +1160,10 @@ export function rebuildAllReservationsCache() {
       },
     );
 
-    // 全データを日付順にソート（新しい順）
-    const sortedReservations = allReservationRows.sort(
-      (
-        /** @type {(string|number|Date)[]} */ a,
-        /** @type {(string|number|Date)[]} */ b,
-      ) => {
-        const dateA = new Date(a[dateColumnIndex]);
-        const dateB = new Date(b[dateColumnIndex]);
-        return dateB.getTime() - dateA.getTime(); // 新しい順
-      },
+    // 全データを多段階ソート（日付・ステータス・時間・参加回数）
+    const sortedReservations = sortReservationRows(
+      allReservationRows,
+      headerColumnMap,
     );
 
     // reservationIdIndexMap を作成
