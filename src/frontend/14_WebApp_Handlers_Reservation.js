@@ -1756,6 +1756,8 @@ function updateParticipantViewCacheFromReservation(
       'ageGroup',
       'gender',
       'address',
+      'messageToTeacher',
+      'notes',
     ].forEach(key => {
       if (!merged[key] && base && base[key]) {
         merged[key] = base[key];
@@ -1885,16 +1887,4 @@ function _showParticipantListModal(reservations, lesson) {
 
   document.body.insertAdjacentHTML('beforeend', modalHtml);
   Components.showModal('participant-list-modal');
-
-  // Bind close button
-  setTimeout(() => {
-    const closeBtn = document.querySelector(
-      '[data-action="closeModal"][data-modal-id="participant-list-modal"]',
-    );
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () =>
-        Components.closeModal('participant-list-modal'),
-      );
-    }
-  }, 100);
 }

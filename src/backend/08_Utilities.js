@@ -26,6 +26,7 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
+import { isAdminUser } from './04_Backend_User.js';
 import {
   CACHE_KEYS,
   getCachedData,
@@ -372,9 +373,14 @@ export function validateUserOperation(
     throw new Error('予約が見つかりません。');
   }
 
-  // 管理者は権限チェックをスキップ
-  if (isByAdmin) {
+  // 管理者は権限チェックをスキップ（サーバー側で権限再確認）
+  const isAdminUserServerSide =
+    studentId === 'ADMIN' || isAdminUser(studentId) || false;
+  if (isByAdmin && isAdminUserServerSide) {
     return;
+  }
+  if (isByAdmin && !isAdminUserServerSide) {
+    throw new Error('管理者権限が確認できません。');
   }
 
   // 生徒IDの一致確認
