@@ -1471,10 +1471,11 @@ export const reservationActionHandlers = {
                   /** @type {any} */ (updatedPayload).lessons =
                     currentState.lessons;
                 }
-                // 参加者リストのキャッシュをクリア
+                // 参加者リストのキャッシュをクリア（一般ユーザーも次回再取得させる）
                 /** @type {any} */ (updatedPayload).participantLessons = null;
                 /** @type {any} */ (updatedPayload).participantReservationsMap =
                   null;
+                /** @type {any} */ (updatedPayload).participantData = null;
 
                 reservationStateManager.dispatch({
                   type: 'SET_STATE',
@@ -1490,9 +1491,10 @@ export const reservationActionHandlers = {
                   completionMessage:
                     response.message || '参加日を変更しました。',
                   isChangingReservationDate: false, // 日程変更モードをリセット
-                  // 参加者リストのキャッシュをクリア
+                  // 参加者リストのキャッシュをクリア（一般ユーザーも次回再取得させる）
                   participantLessons: null,
                   participantReservationsMap: null,
+                  participantData: null,
                 },
               });
             } else {
