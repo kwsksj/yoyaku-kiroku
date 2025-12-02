@@ -1557,6 +1557,9 @@ export function processAccountingPayment(formData, result) {
                 payload: {
                   myReservations: response.data.myReservations || [],
                   lessons: response.data.lessons || [],
+                  // 参加者リストのキャッシュをクリア
+                  participantLessons: null,
+                  participantReservationsMap: null,
                 },
               });
             }
@@ -1584,6 +1587,9 @@ export function processAccountingPayment(formData, result) {
                 view: 'complete',
                 completionMessage:
                   response.message || '会計情報を記録しました。',
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
               },
             });
           } else {

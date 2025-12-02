@@ -121,6 +121,9 @@ export const reservationActionHandlers = {
                 myReservations: r.data.myReservations || [],
                 view: 'dashboard',
                 isDataFresh: true,
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
               };
 
               // 講座データが提供された場合のみ更新
@@ -143,6 +146,9 @@ export const reservationActionHandlers = {
                 payload: {
                   view: 'dashboard',
                   isDataFresh: false,
+                  // 参加者リストのキャッシュをクリア
+                  participantLessons: null,
+                  participantReservationsMap: null,
                 },
               });
             }
@@ -269,6 +275,9 @@ export const reservationActionHandlers = {
             completionMessage: r.message,
             selectedClassroom: lessonInfo.classroom,
             isDataFresh: true,
+            // 参加者リストのキャッシュをクリア
+            participantLessons: null,
+            participantReservationsMap: null,
           };
 
           // 講座データの選択的更新
@@ -292,6 +301,9 @@ export const reservationActionHandlers = {
               completionMessage: r.message,
               selectedClassroom: lessonInfo.classroom,
               isDataFresh: false,
+              // 参加者リストのキャッシュをクリア
+              participantLessons: null,
+              participantReservationsMap: null,
             },
           });
         }
@@ -475,27 +487,27 @@ export const reservationActionHandlers = {
         );
 
         if (r.success) {
-                    // 管理者の場合は参加者リストに戻る
-                    if (currentUser.isAdmin) {
-                      if (
-                        appWindow.actionHandlers &&
-                        typeof appWindow.actionHandlers['loadParticipantView'] ===
-                          'function'
-                      ) {
-                        /** @type {any} */ (appWindow.actionHandlers)[
-                          'loadParticipantView'
-                        ](true);
-                      } else {
-                        reservationStateManager.dispatch({
-                          type: 'SET_STATE',
-                          payload: { view: 'participants' },
-                        });
-                      }
-                      showInfo(
-                        `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'}`,
-                      );
-                      return;
-                    }
+          // 管理者の場合は参加者リストに戻る
+          if (currentUser.isAdmin) {
+            if (
+              appWindow.actionHandlers &&
+              typeof appWindow.actionHandlers['loadParticipantView'] ===
+                'function'
+            ) {
+              /** @type {any} */ (appWindow.actionHandlers)[
+                'loadParticipantView'
+              ](true);
+            } else {
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: { view: 'participants' },
+              });
+            }
+            showInfo(
+              `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'}`,
+            );
+            return;
+          }
 
           if (r.data) {
             // 予約更新後は個人予約データを優先的に更新
@@ -504,6 +516,9 @@ export const reservationActionHandlers = {
               myReservations: r.data.myReservations || [],
               view: 'dashboard',
               isDataFresh: true,
+              // 参加者リストのキャッシュをクリア
+              participantLessons: null,
+              participantReservationsMap: null,
             };
 
             // initialデータがある場合は追加
@@ -534,6 +549,9 @@ export const reservationActionHandlers = {
               payload: {
                 view: 'dashboard',
                 isDataFresh: false,
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
               },
             });
           }
@@ -1009,6 +1027,9 @@ export const reservationActionHandlers = {
                 myReservations: r.data.myReservations || [],
                 view: 'dashboard',
                 isDataFresh: true,
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
               };
               // 講座データが提供された場合のみ更新
               if (r.data.lessons && r.data.lessons.length > 0) {
@@ -1032,6 +1053,9 @@ export const reservationActionHandlers = {
                   view: 'complete',
                   completionMessage: r.message,
                   isDataFresh: false,
+                  // 参加者リストのキャッシュをクリア
+                  participantLessons: null,
+                  participantReservationsMap: null,
                 },
               });
             }
@@ -1215,6 +1239,11 @@ export const reservationActionHandlers = {
                   /** @type {any} */ (updatedPayload).lessons =
                     currentState.lessons;
                 }
+                // 参加者リストのキャッシュをクリア
+                /** @type {any} */ (updatedPayload).participantLessons = null;
+                /** @type {any} */ (updatedPayload).participantReservationsMap =
+                  null;
+
                 reservationStateManager.dispatch({
                   type: 'SET_STATE',
                   payload: updatedPayload,
@@ -1229,6 +1258,9 @@ export const reservationActionHandlers = {
                   completionMessage:
                     response.message || '参加日を変更しました。',
                   isChangingReservationDate: false, // 日程変更モードをリセット
+                  // 参加者リストのキャッシュをクリア
+                  participantLessons: null,
+                  participantReservationsMap: null,
                 },
               });
             } else {
