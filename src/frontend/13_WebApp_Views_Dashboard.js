@@ -149,7 +149,7 @@ export const getDashboardView = () => {
   return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
             <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
-            <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">Profile 編集</button>
+            <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">プロフィール編集</button>
         </div>
         ${menuSectionHtml}
         ${yourBookingsHtml}
@@ -196,23 +196,12 @@ export const _buildEditButtons = booking => {
 
 /**
  * 予約カードの会計ボタン配列を生成します。
- * @param {ReservationCore} booking - 予約データ
+ * @param {ReservationCore} _booking - 予約データ（未使用）
  * @returns {Array<any>} 会計ボタン設定配列
  */
-export const _buildAccountingButtons = booking => {
-  const buttons = [];
-
-  // 会計ボタン（予約日以降のみ）
-  const isBookingPastOrToday = _isPastOrToday(booking.date);
-  if (booking.status === CONSTANTS.STATUS.CONFIRMED && isBookingPastOrToday) {
-    buttons.push({
-      action: 'goToAccounting',
-      text: '会計',
-      style: 'accounting',
-    });
-  }
-
-  return buttons;
+export const _buildAccountingButtons = _booking => {
+  // 会計ボタンは削除（きろくカードの会計修正ボタンのみ残す）
+  return [];
 };
 
 /**

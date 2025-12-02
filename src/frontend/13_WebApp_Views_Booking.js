@@ -182,6 +182,18 @@ export const getBookingView = classroom => {
         content: `
               ${renderBeginnerModeToggle()}
               <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
+
+              <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border rounded-lg text-center">
+                <p class="${DesignConfig.text.caption} mb-3">
+                  今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
+                </p>
+                ${Components.button({
+                  text: 'プロフィール編集',
+                  action: 'showEditProfile',
+                  style: 'secondary',
+                  size: 'normal',
+                })}
+              </div>
         `,
       })}
     `;
