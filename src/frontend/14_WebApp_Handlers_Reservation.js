@@ -99,6 +99,21 @@ export const reservationActionHandlers = {
           );
 
           if (r.success) {
+            // 管理者の場合は参加者リストをリロードして戻る
+            if (currentUser.isAdmin) {
+              if (
+                appWindow.actionHandlers &&
+                typeof appWindow.actionHandlers['loadParticipantView'] ===
+                  'function'
+              ) {
+                /** @type {any} */ (appWindow.actionHandlers)[
+                  'loadParticipantView'
+                ](true);
+              }
+              showInfo(r.message || '予約をキャンセルしました。');
+              return;
+            }
+
             if (r.data) {
               // 予約取り消し後は個人予約データのみ更新（講座データは既存のキャッシュを利用）
               const currentState = reservationStateManager.getState();
@@ -437,115 +452,115 @@ export const reservationActionHandlers = {
       order: /** @type {HTMLInputElement} */ (
         document.getElementById('order-input')
       ).value,
-            messageToTeacher: /** @type {HTMLInputElement} */ (
-              document.getElementById('message-input')
-            ).value,
-            materialInfo:
-              /** @type {HTMLInputElement} */ (
-                document.getElementById('material-input')
-              )?.value || '',
-            _isByAdmin: currentUser.isAdmin || false,
-          };
-          showLoading('booking');
-          // 予約更新処理中フラグを設定
-          reservationStateManager.setDataFetchProgress('reservation-update', true);
-      
-          google.script.run['withSuccessHandler'](
-            (/** @type {BatchDataResponse} */ r) => {
-              hideLoading();
-              // 予約更新処理中フラグをクリア
-              reservationStateManager.setDataFetchProgress(
-                'reservation-update',
-                false,
-              );
-      
-              if (r.success) {
-                // 管理者の場合は参加者リストに戻る
-                if (currentUser.isAdmin) {
-                  if (
-                    appWindow.actionHandlers &&
-                    typeof appWindow.actionHandlers['backToParticipantsView'] ===
-                      'function'
-                  ) {
-                    /** @type {any} */ (appWindow.actionHandlers)[
-                      'backToParticipantsView'
-                    ]();
-                  } else {
-                    reservationStateManager.dispatch({
-                      type: 'SET_STATE',
-                      payload: { view: 'participants' },
-                    });
-                  }
-                  showInfo(
-                    `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
-                  );
-                  return;
-                }
-      
-                if (r.data) {
-                  // 予約更新後は個人予約データを優先的に更新
-                  const currentState = reservationStateManager.getState();
-                  const updatedPayload = {
-                    myReservations: r.data.myReservations || [],
-                    view: 'dashboard',
-                    isDataFresh: true,
-                  };
-      
-                  // initialデータがある場合は追加
-                  if (r.data['initial']) {
-                    Object.assign(updatedPayload, r.data['initial']);
-                  }
-      
-                  // 講座データの選択的更新
-                  if (r.data.lessons && r.data.lessons.length > 0) {
-                    /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
-                    reservationStateManager.setDataFetchProgress('lessons', false);
-                  } else if (
-                    currentState.lessons &&
-                    currentState.lessons.length > 0
-                  ) {
-                    // 既存の講座データを保持
-                    /** @type {any} */ (updatedPayload).lessons =
-                      currentState.lessons;
-                  }
-      
-                  reservationStateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: updatedPayload,
-                  });
-                } else {
-                  reservationStateManager.dispatch({
-                    type: 'SET_STATE',
-                    payload: {
-                      view: 'dashboard',
-                      isDataFresh: false,
-                    },
-                  });
-                }
-                showInfo(
-                  `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
-                );
-              } else {
-                showInfo(r.message || '更新に失敗しました。', 'エラー');
-              }
-            },
-          )
-            .withFailureHandler((/** @type {Error} */ error) => {
-              hideLoading();
-              // エラー時も予約更新処理中フラグをクリア
-              reservationStateManager.setDataFetchProgress(
-                'reservation-update',
-                false,
-              );
-      
-              const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
-              handler.handle(error, 'updateReservation', {
-                reservationId: p.reservationId,
-                classroom: p.classroom,
-              });
-              handleServerError(error);
-            })
-            .updateReservationDetailsAndGetLatestData(/** @type {any} */ (p));
+      messageToTeacher: /** @type {HTMLInputElement} */ (
+        document.getElementById('message-input')
+      ).value,
+      materialInfo:
+        /** @type {HTMLInputElement} */ (
+          document.getElementById('material-input')
+        )?.value || '',
+      _isByAdmin: currentUser.isAdmin || false,
+    };
+    showLoading('booking');
+    // 予約更新処理中フラグを設定
+    reservationStateManager.setDataFetchProgress('reservation-update', true);
+
+    google.script.run['withSuccessHandler'](
+      (/** @type {BatchDataResponse} */ r) => {
+        hideLoading();
+        // 予約更新処理中フラグをクリア
+        reservationStateManager.setDataFetchProgress(
+          'reservation-update',
+          false,
+        );
+
+        if (r.success) {
+                    // 管理者の場合は参加者リストに戻る
+                    if (currentUser.isAdmin) {
+                      if (
+                        appWindow.actionHandlers &&
+                        typeof appWindow.actionHandlers['loadParticipantView'] ===
+                          'function'
+                      ) {
+                        /** @type {any} */ (appWindow.actionHandlers)[
+                          'loadParticipantView'
+                        ](true);
+                      } else {
+                        reservationStateManager.dispatch({
+                          type: 'SET_STATE',
+                          payload: { view: 'participants' },
+                        });
+                      }
+                      showInfo(
+                        `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'}`,
+                      );
+                      return;
+                    }
+
+          if (r.data) {
+            // 予約更新後は個人予約データを優先的に更新
+            const currentState = reservationStateManager.getState();
+            const updatedPayload = {
+              myReservations: r.data.myReservations || [],
+              view: 'dashboard',
+              isDataFresh: true,
+            };
+
+            // initialデータがある場合は追加
+            if (r.data['initial']) {
+              Object.assign(updatedPayload, r.data['initial']);
+            }
+
+            // 講座データの選択的更新
+            if (r.data.lessons && r.data.lessons.length > 0) {
+              /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
+              reservationStateManager.setDataFetchProgress('lessons', false);
+            } else if (
+              currentState.lessons &&
+              currentState.lessons.length > 0
+            ) {
+              // 既存の講座データを保持
+              /** @type {any} */ (updatedPayload).lessons =
+                currentState.lessons;
+            }
+
+            reservationStateManager.dispatch({
+              type: 'SET_STATE',
+              payload: updatedPayload,
+            });
+          } else {
+            reservationStateManager.dispatch({
+              type: 'SET_STATE',
+              payload: {
+                view: 'dashboard',
+                isDataFresh: false,
+              },
+            });
+          }
+          showInfo(
+            `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+          );
+        } else {
+          showInfo(r.message || '更新に失敗しました。', 'エラー');
+        }
+      },
+    )
+      .withFailureHandler((/** @type {Error} */ error) => {
+        hideLoading();
+        // エラー時も予約更新処理中フラグをクリア
+        reservationStateManager.setDataFetchProgress(
+          'reservation-update',
+          false,
+        );
+
+        const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
+        handler.handle(error, 'updateReservation', {
+          reservationId: p.reservationId,
+          classroom: p.classroom,
+        });
+        handleServerError(error);
+      })
+      .updateReservationDetailsAndGetLatestData(/** @type {any} */ (p));
   },
 
   /** 新規予約のための教室選択モーダルを表示します */
@@ -963,6 +978,24 @@ export const reservationActionHandlers = {
             false,
           );
           if (r.success) {
+            // 管理者の場合は参加者リストをリロードして戻る
+            if (currentUser.isAdmin) {
+              if (
+                appWindow.actionHandlers &&
+                typeof appWindow.actionHandlers['loadParticipantView'] ===
+                  'function'
+              ) {
+                /** @type {any} */ (appWindow.actionHandlers)[
+                  'loadParticipantView'
+                ](true);
+              }
+              showInfo(
+                '空き通知希望から予約への変更が完了しました。',
+                '予約確定',
+              );
+              return;
+            }
+
             // 予約確定成功のモーダル表示
             showInfo(
               '空き通知希望から予約への変更が完了しました。',

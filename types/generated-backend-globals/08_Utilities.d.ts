@@ -51,6 +51,14 @@ export function logActivity(userId: string, action: string, result: string, deta
  */
 export function setupConditionalFormattingForLogSheet(): void;
 /**
+ * 予約操作の権限バリデーションを行う共通関数
+ * @param {ReservationCore | null} reservation - 対象の予約オブジェクト
+ * @param {string} studentId - 操作を実行しようとしているユーザーのID
+ * @param {boolean} [isByAdmin=false] - 管理者による操作かどうか
+ * @throws {Error} 権限がない場合や予約が存在しない場合にエラーをスロー
+ */
+export function validateUserOperation(reservation: ReservationCore | null, studentId: string, isByAdmin?: boolean): void;
+/**
  * 配列形式の予約データをオブジェクト形式に変換
  * フロントエンドの transformReservationArrayToObject と同じロジック
  * @param {RawSheetRow} resArray - 配列形式の予約データ

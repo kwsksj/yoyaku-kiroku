@@ -1561,6 +1561,22 @@ export function processAccountingPayment(formData, result) {
               });
             }
 
+            // 管理者の場合は参加者リストをリロードして戻る
+            const currentUser = stateManager.getState().currentUser;
+            if (currentUser && currentUser.isAdmin) {
+              if (
+                appWindow.actionHandlers &&
+                typeof appWindow.actionHandlers['loadParticipantView'] ===
+                  'function'
+              ) {
+                /** @type {any} */ (appWindow.actionHandlers)[
+                  'loadParticipantView'
+                ](true);
+              }
+              showInfo(response.message || '会計情報を記録しました。');
+              return;
+            }
+
             // 完了画面に遷移（会計完了として認識されるメッセージを使用）
             stateManager.dispatch({
               type: 'SET_STATE',

@@ -820,20 +820,20 @@ export function cancelReservation(cancelInfo) {
       const { reservationId, studentId, cancelMessage } = cancelInfo;
       const _isByAdmin = /** @type {any} */ (cancelInfo)._isByAdmin;
 
-            const existingReservation = getReservationCoreById(reservationId);
-      
-            validateUserOperation(existingReservation, studentId, _isByAdmin);
-            const validReservation = /** @type {ReservationCore} */ (
-              existingReservation
-            );
-      
-            // 2. キャンセル後の新しい予約オブジェクトを構築
-            /** @type {ReservationCore} */
-            const cancelledReservation = {
-              ...validReservation,
-              status: CONSTANTS.STATUS.CANCELED,
-              cancelMessage: cancelMessage || validReservation.cancelMessage, // 新しいメッセージがあれば上書き
-            };
+      const existingReservation = getReservationCoreById(reservationId);
+
+      validateUserOperation(existingReservation, studentId, _isByAdmin);
+      const validReservation = /** @type {ReservationCore} */ (
+        existingReservation
+      );
+
+      // 2. キャンセル後の新しい予約オブジェクトを構築
+      /** @type {ReservationCore} */
+      const cancelledReservation = {
+        ...validReservation,
+        status: CONSTANTS.STATUS.CANCELED,
+        cancelMessage: cancelMessage || validReservation.cancelMessage, // 新しいメッセージがあれば上書き
+      };
       // 共通関数を呼び出して保存
       _saveReservationCoreToSheet(cancelledReservation, 'update');
 
@@ -1483,8 +1483,9 @@ export function saveAccountingDetails(reservationWithAccounting) {
 
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(reservationId);
-      
-      const _isByAdmin = /** @type {any} */ (reservationWithAccounting)._isByAdmin;
+
+      const _isByAdmin = /** @type {any} */ (reservationWithAccounting)
+        ._isByAdmin;
       validateUserOperation(existingReservation, studentId, _isByAdmin);
 
       // TODO: バックエンドでの金額再計算・検証ロジックをここに追加することが望ましい
@@ -1589,7 +1590,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
 
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(reservationId);
-      
+
       // 2. 権限チェック (共通関数を使用)
       const _isByAdmin = /** @type {any} */ (reservationWithUpdatedAccounting)
         ._isByAdmin;

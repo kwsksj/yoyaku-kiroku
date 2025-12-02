@@ -363,7 +363,11 @@ export function setupConditionalFormattingForLogSheet() {
  * @param {boolean} [isByAdmin=false] - 管理者による操作かどうか
  * @throws {Error} 権限がない場合や予約が存在しない場合にエラーをスロー
  */
-export function validateUserOperation(reservation, studentId, isByAdmin = false) {
+export function validateUserOperation(
+  reservation,
+  studentId,
+  isByAdmin = false,
+) {
   if (!reservation) {
     throw new Error('予約が見つかりません。');
   }
