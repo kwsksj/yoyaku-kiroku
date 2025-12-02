@@ -178,4 +178,7 @@ export interface CancelReservationParams {
 
   /** 管理者操作フラグ（権限チェックや締切解除用） */
   _isByAdmin?: boolean | undefined;
+
+  /** 操作者の生徒ID（管理者権限再確認用） */
+  _actorStudentId?: string | null | undefined;
 }
