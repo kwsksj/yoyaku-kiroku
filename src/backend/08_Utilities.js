@@ -368,6 +368,7 @@ export function validateUserOperation(
   reservation,
   studentId,
   isByAdmin = false,
+  actorStudentId = null,
 ) {
   if (!reservation) {
     throw new Error('予約が見つかりません。');
@@ -375,7 +376,10 @@ export function validateUserOperation(
 
   // 管理者は権限チェックをスキップ（サーバー側で権限再確認）
   const isAdminUserServerSide =
-    studentId === 'ADMIN' || isAdminUser(studentId) || false;
+    actorStudentId === 'ADMIN' ||
+    isAdminUser(actorStudentId || '') ||
+    isAdminUser(studentId) ||
+    false;
   if (isByAdmin && isAdminUserServerSide) {
     return;
   }
