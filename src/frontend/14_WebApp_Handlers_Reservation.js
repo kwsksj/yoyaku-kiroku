@@ -1550,7 +1550,27 @@ export const reservationActionHandlers = {
     }
 
     // レッスン情報を特定
-    const lesson = (state.lessons || []).find(l => l.lessonId === lessonId);
+    const lessonsCandidates = [
+      ...(state.participantLessons || []),
+      ...(state.lessons || []),
+      ...(state['participantData']?.lessons || []),
+    ];
+    let lesson = lessonsCandidates.find(l => l.lessonId === lessonId) || null;
+
+    // 予約データから最低限のレッスン情報を復元（過去データなどでlessonsに存在しない場合）
+    if (!lesson) {
+      const fallbackReservation =
+        state['participantReservationsMap']?.[String(lessonId)]?.[0];
+      if (fallbackReservation) {
+        lesson = {
+          lessonId: lessonId,
+          classroom: fallbackReservation.classroom || '',
+          date: String(fallbackReservation.date || ''),
+          venue: fallbackReservation.venue || '',
+        };
+      }
+    }
+
     if (!lesson) {
       showInfo('レッスン情報が見つかりません。', 'エラー');
       return;
