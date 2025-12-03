@@ -746,7 +746,16 @@ export function makeReservation(reservationInfo) {
           reservationInfo.studentId,
           CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE,
           CONSTANTS.MESSAGES.SUCCESS,
-          `ReservationID: ${createdReservationId} (詳細はシート確認)`,
+          {
+            classroom: reservationInfo.classroom,
+            reservationId: createdReservationId,
+            date: reservationInfo.date,
+            message: '予約が完了（キャッシュ再取得失敗）',
+            details: {
+              warning: 'キャッシュからの再取得に失敗',
+              note: '詳細はシート確認',
+            },
+          },
         );
         // この場合、通知はスキップされる
         return createApiResponse(true, {
@@ -805,7 +814,16 @@ export function makeReservation(reservationInfo) {
         reservationInfo.studentId,
         CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE,
         CONSTANTS.MESSAGES.ERROR,
-        `Error: ${err.message}`,
+        {
+          classroom: reservationInfo.classroom,
+          reservationId: '',
+          date: reservationInfo.date,
+          message: '予約作成に失敗しました',
+          details: {
+            error: err.message,
+            stack: err.stack,
+          },
+        },
       );
       Logger.log(`makeReservation Error: ${err.message}
 ${err.stack}`);

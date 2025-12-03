@@ -292,12 +292,12 @@ export function logActivity(userId, action, result, optionsOrDetails) {
  * 実行前に既存のルールはすべてクリアされるため、常に新しい状態でルールが適用されます。
  */
 export function setupConditionalFormattingForLogSheet() {
-  const sheetName = 'ログシート';
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = CONSTANTS.SHEET_NAMES.LOG;
+  const ss = SS_MANAGER.getSpreadsheet();
   const sheet = ss.getSheetByName(sheetName);
 
   if (!sheet) {
-    SpreadsheetApp.getUi().alert(`シート「${sheetName}」が見つかりません。`);
+    Logger.log(`シート「${sheetName}」が見つかりません。`);
     return;
   }
 
@@ -406,7 +406,7 @@ export function setupConditionalFormattingForLogSheet() {
   sheet.clearConditionalFormatRules();
   sheet.setConditionalFormatRules(rules);
 
-  SpreadsheetApp.getUi().alert('ログシートの条件付き書式を更新しました。');
+  Logger.log('ログシートの条件付き書式を更新しました。');
 }
 
 // ===================================================================
