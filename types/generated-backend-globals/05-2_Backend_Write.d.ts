@@ -150,3 +150,10 @@ export function confirmWaitlistedReservation(confirmInfo: {
     studentId: string;
     messageToTeacher?: string;
 }): ApiResponseGeneric<any>;
+/**
+ * 指定した予約IDと日付の売上ログが既に記録されているか確認
+ * @param {string} reservationId - 予約ID
+ * @param {string} _date - 予約日（YYYY-MM-DD形式）※未使用（将来の拡張用）
+ * @returns {boolean} 既に記録されている場合はtrue
+ */
+export function checkIfSalesAlreadyLogged(reservationId: string, _date: string): boolean;

@@ -1937,3 +1937,55 @@ ${err.stack}`,
     }
   });
 }
+
+/**
+ * 指定した予約IDと日付の売上ログが既に記録されているか確認
+ * @param {string} reservationId - 予約ID
+ * @param {string} _date - 予約日（YYYY-MM-DD形式）※未使用（将来の拡張用）
+ * @returns {boolean} 既に記録されている場合はtrue
+ */
+export function checkIfSalesAlreadyLogged(reservationId, _date) {
+  try {
+    if (!SALES_SPREADSHEET_ID) {
+      Logger.log(
+        `[checkIfSalesAlreadyLogged] SALES_SPREADSHEET_IDが設定されていません`,
+      );
+      return false;
+    }
+
+    const salesLogSheet = SS_MANAGER.getExternalSheet(
+      SALES_SPREADSHEET_ID,
+      CONSTANTS.SHEET_NAMES.SALES_LOG,
+    );
+
+    if (!salesLogSheet) {
+      Logger.log(`[checkIfSalesAlreadyLogged] 売上ログシートが見つかりません`);
+      return false;
+    }
+
+    const lastRow = salesLogSheet.getLastRow();
+    if (lastRow < 2) {
+      return false;
+    }
+
+    const data = salesLogSheet.getRange(2, 1, lastRow - 1, 10).getValues();
+
+    // 予約IDで重複チェック
+    for (const row of data) {
+      const logReservationId = String(row[9] || ''); // J列: 予約ID
+      const logDate = row[0]; // A列: 日付
+
+      if (logReservationId === reservationId) {
+        Logger.log(
+          `[checkIfSalesAlreadyLogged] 重複検出: ${reservationId}, 既存日付: ${logDate}`,
+        );
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    Logger.log(`[checkIfSalesAlreadyLogged] エラー: ${error.message}`);
+    return false; // エラー時は重複なしとして処理継続
+  }
+}

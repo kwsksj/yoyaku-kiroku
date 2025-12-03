@@ -347,6 +347,106 @@ window.onload = function () {
     });
   }
 
+  /**
+   * 現在のユーザーが管理者かどうかを判定
+   * @returns {boolean}
+   */
+  const isCurrentUserAdmin = () => {
+    const state = handlersStateManager.getState();
+    const currentUser = state.currentUser;
+    return currentUser?.isAdmin || false;
+  };
+
+  /**
+   * 会計処理を実行するヘルパー関数
+   * @param {boolean} withSalesTransfer - 売上転載を即時実行するか
+   */
+  const proceedWithPaymentHelper = withSalesTransfer => {
+    // フォームデータを収集
+    const state = handlersStateManager.getState();
+    const reservationId = state.accountingReservation?.reservationId;
+    const classroom = state.accountingReservation?.classroom;
+    const studentId = state.currentUser?.studentId;
+
+    if (!reservationId || !classroom || !studentId) {
+      showInfo('必要な情報が不足しています。', 'エラー');
+      return;
+    }
+
+    const formData =
+      typeof collectAccountingFormData === 'function'
+        ? collectAccountingFormData()
+        : {};
+
+    if (!formData.paymentMethod) {
+      showInfo('支払い方法を選択してください。', '入力エラー');
+      return;
+    }
+
+    const masterData = state.accountingMaster || [];
+    if (!Array.isArray(masterData) || masterData.length === 0) {
+      showInfo(
+        '会計マスタが読み込まれていません。リロードして再度お試しください。',
+        'エラー',
+      );
+      return;
+    }
+
+    const result =
+      typeof calculateAccountingTotal === 'function'
+        ? calculateAccountingTotal(formData, masterData, classroom)
+        : null;
+
+    if (!result) {
+      showInfo(
+        '会計計算に失敗しました。入力内容を確認してください。',
+        'エラー',
+      );
+      return;
+    }
+
+    // ローディング表示
+    if (typeof showLoading === 'function') {
+      showLoading('payment');
+    }
+
+    // バックエンドに送信（withSalesTransferフラグを追加）
+    google.script.run
+      .withSuccessHandler(
+        /** @param {any} response */
+        response => {
+          if (typeof hideLoading === 'function') {
+            hideLoading();
+          }
+
+          if (response.success) {
+            showInfo(
+              withSalesTransfer
+                ? '会計処理と売上転載が完了しました'
+                : '会計処理が完了しました（売上は20時に自動転載されます）',
+              '完了',
+            );
+            handlersStateManager.dispatch({
+              type: 'SET_STATE',
+              payload: { view: 'dashboard' },
+            });
+          } else {
+            showInfo(response.error || 'エラーが発生しました', 'エラー');
+          }
+        },
+      )
+      .withFailureHandler(
+        /** @param {any} error */
+        error => {
+          if (typeof hideLoading === 'function') {
+            hideLoading();
+          }
+          showInfo(`エラーが発生しました: ${error.message}`, 'エラー');
+        },
+      )
+      .processAccountingWithTransferOption(formData, result, withSalesTransfer);
+  };
+
   actionHandlers = {
     // =================================================================
     // --- Core Navigation Handlers ---
@@ -506,6 +606,14 @@ window.onload = function () {
 
     /** 支払い完了処理（ローディング→完了画面の流れ） */
     confirmAndPay: () => {
+      // 管理者の場合は売上転載確認モーダルを表示
+      if (isCurrentUserAdmin()) {
+        if (actionHandlers['showSalesTransferConfirmModal']) {
+          actionHandlers['showSalesTransferConfirmModal'](null, null);
+        }
+        return;
+      }
+
       // window.tempPaymentDataが存在する場合はそれを使用（支払い確認モーダルから呼び出された場合）
       if (windowTyped.tempPaymentData) {
         if (!windowTyped.isProduction) {
@@ -516,7 +624,7 @@ window.onload = function () {
         }
         const { formData, result } = windowTyped.tempPaymentData;
 
-        // processAccountingPayment関数を直接呼び出し
+        // 生徒の場合は従来通り（20時のバッチで転載）
         if (typeof processAccountingPayment === 'function') {
           processAccountingPayment(formData, result);
         } else {
@@ -577,6 +685,78 @@ window.onload = function () {
       } else {
         showInfo('会計処理の開始に失敗しました。', 'エラー');
       }
+    },
+
+    /** 売上転載確認モーダルを表示（管理者専用） */
+    showSalesTransferConfirmModal: () => {
+      const modalId = 'salesTransferModal';
+      const modalContent = `
+        <p class="mb-6">会計処理と同時に売上ログへの転載を行いますか？</p>
+        <div class="flex flex-col space-y-3">
+          ${Components.button({
+            text: '転載する（即時反映）',
+            action: 'confirmPaymentWithTransfer',
+            style: 'primary',
+            size: 'full',
+          })}
+          ${Components.button({
+            text: '転載しない（20時のバッチで自動転載）',
+            action: 'confirmPaymentWithoutTransfer',
+            style: 'secondary',
+            size: 'full',
+          })}
+          ${Components.button({
+            text: 'キャンセル',
+            action: 'closeSalesTransferModal',
+            style: 'secondary',
+            size: 'full',
+          })}
+        </div>
+      `;
+
+      // モーダルHTMLを生成して挿入
+      const modalHtml = Components.modal({
+        id: modalId,
+        title: '売上ログへの転載について',
+        content: modalContent,
+        showCloseButton: true,
+      });
+
+      // 既存のモーダルがあれば削除
+      const existingModal = document.getElementById(modalId);
+      if (existingModal) {
+        existingModal.remove();
+      }
+
+      // モーダルをDOMに追加
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = modalHtml;
+      const modalElement = tempDiv.firstElementChild;
+      if (modalElement) {
+        document.body.appendChild(modalElement);
+      }
+
+      // モーダルを表示
+      Components.showModal(modalId);
+    },
+
+    /** 売上転載モーダルを閉じる */
+    closeSalesTransferModal: () => {
+      Components.closeModal('salesTransferModal');
+    },
+
+    /** 会計処理を実行（売上転載あり） */
+    confirmPaymentWithTransfer: () => {
+      Components.closeModal('salesTransferModal');
+      // proceedWithPaymentヘルパー関数を呼び出す
+      proceedWithPaymentHelper(true);
+    },
+
+    /** 会計処理を実行（売上転載なし） */
+    confirmPaymentWithoutTransfer: () => {
+      Components.closeModal('salesTransferModal');
+      // proceedWithPaymentヘルパー関数を呼び出す
+      proceedWithPaymentHelper(false);
     },
 
     // --- モーダル関連アクション ---

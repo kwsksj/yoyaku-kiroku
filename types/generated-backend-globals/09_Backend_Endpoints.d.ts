@@ -143,3 +143,13 @@ export function getReservationsForLesson(lessonId: string, studentId: string): A
  * @returns {ApiResponseGeneric} 生徒詳細情報と予約履歴
  */
 export function getStudentDetailsForParticipantsView(targetStudentId: string, requestingStudentId: string): ApiResponseGeneric;
+/**
+ * 会計処理を実行（売上転載オプション付き）
+ * @param {any} formData - フォームデータ
+ * @param {AccountingDetailsCore} calculationResult - 計算結果
+ * @param {boolean} withSalesTransfer - 売上転載を即時実行するか
+ * @returns {ApiResponseGeneric<{message: string}>} 処理結果
+ */
+export function processAccountingWithTransferOption(formData: any, calculationResult: AccountingDetailsCore, withSalesTransfer: boolean): ApiResponseGeneric<{
+    message: string;
+}>;

@@ -42,6 +42,8 @@ import {
   updateAccountingDetails,
   getScheduleInfoForDate,
   confirmWaitlistedReservation,
+  checkIfSalesAlreadyLogged,
+  logSalesForSingleReservation,
 } from './05-2_Backend_Write.js';
 import {
   getLessons,
@@ -1400,6 +1402,85 @@ export function getStudentDetailsForParticipantsView(
     );
     return createApiErrorResponse(
       `生徒詳細情報の取得中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
+}
+
+/**
+ * 会計処理を実行（売上転載オプション付き）
+ * @param {any} formData - フォームデータ
+ * @param {AccountingDetailsCore} calculationResult - 計算結果
+ * @param {boolean} withSalesTransfer - 売上転載を即時実行するか
+ * @returns {ApiResponseGeneric<{message: string}>} 処理結果
+ */
+export function processAccountingWithTransferOption(
+  formData,
+  calculationResult,
+  withSalesTransfer,
+) {
+  try {
+    Logger.log(
+      `[processAccountingWithTransferOption] 開始: withSalesTransfer=${withSalesTransfer}`,
+    );
+
+    // 会計処理を実行
+    const accountingResult = saveAccountingDetails(formData);
+
+    if (!accountingResult.success) {
+      Logger.log(
+        `[processAccountingWithTransferOption] 会計処理失敗: ${accountingResult.error}`,
+      );
+      return accountingResult;
+    }
+
+    // 即時転載が指定されている場合は売上ログに記録
+    if (withSalesTransfer) {
+      const reservationId = /** @type {string} */ (formData.reservationId);
+      const date = /** @type {string} */ (formData.date);
+
+      Logger.log(
+        `[processAccountingWithTransferOption] 即時転載開始: ${reservationId}`,
+      );
+
+      // 重複チェック（売上ログに既に記録されているか確認）
+      const isDuplicate = checkIfSalesAlreadyLogged(reservationId, date);
+
+      if (!isDuplicate) {
+        // 予約情報を取得
+        const reservations = getCachedReservationsAsObjects();
+        const reservation = reservations.find(
+          r => r.reservationId === reservationId,
+        );
+
+        if (reservation) {
+          logSalesForSingleReservation(reservation, calculationResult);
+          Logger.log(
+            `[processAccountingWithTransferOption] 売上ログに即時転載しました: ${reservationId}`,
+          );
+        } else {
+          Logger.log(
+            `[processAccountingWithTransferOption] 予約情報が見つかりません: ${reservationId}`,
+          );
+        }
+      } else {
+        Logger.log(
+          `[processAccountingWithTransferOption] 既に売上ログに記録済みのためスキップ: ${reservationId}`,
+        );
+      }
+    }
+
+    return createApiResponse(true, {
+      message: withSalesTransfer
+        ? '会計処理と売上転載が完了しました'
+        : '会計処理が完了しました（売上は20時に自動転載されます）',
+    });
+  } catch (error) {
+    Logger.log(
+      `[processAccountingWithTransferOption] エラー: ${error.message}\nStack: ${error.stack}`,
+    );
+    return createApiErrorResponse(
+      `会計処理中にエラーが発生しました: ${error.message}`,
       true,
     );
   }
