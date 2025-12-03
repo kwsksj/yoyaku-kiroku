@@ -139,6 +139,7 @@ export const reservationActionHandlers = {
                   ...(participantCacheUpdate || fallbackPayload),
                 },
               });
+              refreshParticipantsViewForAdmin();
               showInfo(r.message || '予約をキャンセルしました。');
               return;
             }
@@ -553,6 +554,8 @@ export const reservationActionHandlers = {
                 ...(participantCacheUpdate || fallbackPayload),
               },
             });
+
+            refreshParticipantsViewForAdmin();
 
             showInfo(
               `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
@@ -1114,6 +1117,7 @@ export const reservationActionHandlers = {
                 '空き通知希望から予約への変更が完了しました。',
                 '予約確定',
               );
+              refreshParticipantsViewForAdmin();
               return;
             }
 
@@ -1461,6 +1465,7 @@ export const reservationActionHandlers = {
                     ...(participantCacheUpdate || fallbackPayload),
                   },
                 });
+                refreshParticipantsViewForAdmin();
                 showInfo(response.message || '参加日を変更しました。');
                 return;
               }
@@ -1836,6 +1841,24 @@ function getParticipantPayloadForAdminView(responseLessons) {
 /** @type {any} */ (appWindow).updateParticipantViewCacheFromReservation =
   /** @type {any} */ (appWindow).updateParticipantViewCacheFromReservation ||
   updateParticipantViewCacheFromReservation;
+
+/**
+ * 管理者操作後に参加者ビューを最新化するヘルパー
+ */
+function refreshParticipantsViewForAdmin() {
+  const handler =
+    /** @type {any} */ (appWindow).participantActionHandlers ||
+    /** @type {any} */ (window).participantActionHandlers;
+  if (handler && typeof handler.loadParticipantView === 'function') {
+    const state = reservationStateManager.getState();
+    handler.loadParticipantView(
+      true,
+      true,
+      null,
+      state.showPastLessons || false,
+    );
+  }
+}
 
 /**
  * 参加者リストモーダルを表示するヘルパー関数
