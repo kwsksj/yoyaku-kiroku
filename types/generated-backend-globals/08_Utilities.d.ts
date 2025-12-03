@@ -35,15 +35,20 @@ export function findRowIndexByValue(sheet: GoogleAppsScript.Spreadsheet.Sheet, c
  */
 export function createSalesRow(baseInfo: SalesBaseInfo, category: string, itemName: string, price: number): SalesRowArray;
 /**
- * アプリケーションのアクティビティをログシートに記録します。
+ * アプリケーションのアクティビティをログシートに記録します（新フォーマット）。
  * 新しい行は常に2行目に挿入されます。
  * 本名とニックネームはスプレッドシートのARRAYFORMULAによって自動的に表示されます。
+ *
+ * 【新フォーマット列構成】
+ * A: タイムスタンプ, B: ユーザーID, C: 本名（ARRAYFORMULA）, D: ニックネーム（ARRAYFORMULA）,
+ * E: アクション, F: 結果, G: 教室名, H: 予約ID, I: 日付, J: メッセージ, K: 詳細情報
+ *
  * @param {string} userId - 操作を行ったユーザーのID。'system'なども可。
- * @param {string} action - 操作の種類 (日本語推奨)。
+ * @param {string} action - 操作の種類（CONSTANTS.LOG_ACTIONSを使用）。
  * @param {string} result - 操作の結果 ('成功' or '失敗')。
- * @param {string} details - 操作の詳細情報。
+ * @param {Object|string} [optionsOrDetails] - オプションオブジェクトまたは詳細文字列（後方互換性のため）
  */
-export function logActivity(userId: string, action: string, result: string, details: string): void;
+export function logActivity(userId: string, action: string, result: string, optionsOrDetails?: any | string): void;
 /**
  * ログシートシートに、定義済みの条件付き書式を一括で設定します。
  * F列は自身の値、G列はE列の値に基づいて背景色が設定されます。

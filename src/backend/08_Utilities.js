@@ -206,15 +206,20 @@ export function createSalesRow(baseInfo, category, itemName, price) {
 }
 
 /**
- * アプリケーションのアクティビティをログシートに記録します。
+ * アプリケーションのアクティビティをログシートに記録します（新フォーマット）。
  * 新しい行は常に2行目に挿入されます。
  * 本名とニックネームはスプレッドシートのARRAYFORMULAによって自動的に表示されます。
+ *
+ * 【新フォーマット列構成】
+ * A: タイムスタンプ, B: ユーザーID, C: 本名（ARRAYFORMULA）, D: ニックネーム（ARRAYFORMULA）,
+ * E: アクション, F: 結果, G: 教室名, H: 予約ID, I: 日付, J: メッセージ, K: 詳細情報
+ *
  * @param {string} userId - 操作を行ったユーザーのID。'system'なども可。
- * @param {string} action - 操作の種類 (日本語推奨)。
+ * @param {string} action - 操作の種類（CONSTANTS.LOG_ACTIONSを使用）。
  * @param {string} result - 操作の結果 ('成功' or '失敗')。
- * @param {string} details - 操作の詳細情報。
+ * @param {Object|string} [optionsOrDetails] - オプションオブジェクトまたは詳細文字列（後方互換性のため）
  */
-export function logActivity(userId, action, result, details) {
+export function logActivity(userId, action, result, optionsOrDetails) {
   try {
     const ss = SS_MANAGER.getSpreadsheet();
     const logSheet = ss.getSheetByName(CONSTANTS.SHEET_NAMES.LOG);
@@ -226,10 +231,56 @@ export function logActivity(userId, action, result, details) {
 
     logSheet.insertRowAfter(1); // 常にヘッダーの直下(2行目)に行を挿入
     const timestamp = new Date();
-    // A, B, E, F, G列に値を設定。C,D列は数式が自動計算するため書き込まない。
-    logSheet
-      .getRange('A2:G2')
-      .setValues([[timestamp, userId, '', '', action, result, details]]);
+
+    // 後方互換性: optionsOrDetailsが文字列の場合は旧フォーマット
+    let classroom = '';
+    let reservationId = '';
+    let date = '';
+    let message = '';
+    let detailsValue = '';
+
+    if (typeof optionsOrDetails === 'string') {
+      // 旧フォーマット: 詳細を詳細情報列（K列）に記録
+      detailsValue = optionsOrDetails;
+    } else if (optionsOrDetails && typeof optionsOrDetails === 'object') {
+      // 新フォーマット: オプションオブジェクト
+      const options = /** @type {any} */ (optionsOrDetails);
+      classroom = options.classroom || '';
+      reservationId = options.reservationId || '';
+      date = options.date || '';
+      message = options.message || '';
+
+      // 詳細情報をJSON文字列に変換（オブジェクトの場合）
+      const details = options.details;
+      if (details) {
+        if (typeof details === 'object') {
+          try {
+            detailsValue = JSON.stringify(details, null, 2);
+          } catch (e) {
+            detailsValue = String(details);
+          }
+        } else {
+          detailsValue = String(details);
+        }
+      }
+    }
+
+    // A-K列に値を設定（C,D列は数式が自動計算）
+    logSheet.getRange('A2:K2').setValues([
+      [
+        timestamp, // A: タイムスタンプ
+        userId, // B: ユーザーID
+        '', // C: 本名（ARRAYFORMULA）
+        '', // D: ニックネーム（ARRAYFORMULA）
+        action, // E: アクション
+        result, // F: 結果
+        classroom, // G: 教室名
+        reservationId, // H: 予約ID
+        date, // I: 日付
+        message, // J: メッセージ
+        detailsValue, // K: 詳細情報
+      ],
+    ]);
   } catch (e) {
     Logger.log(`ログの記録に失敗しました: ${e.message}`);
   }
