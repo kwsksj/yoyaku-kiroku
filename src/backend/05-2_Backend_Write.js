@@ -860,13 +860,21 @@ export function cancelReservation(cancelInfo) {
         );
       }
 
-      const messageLog = cancelMessage ? `, Message: ${cancelMessage}` : '';
-      const logDetails = `Classroom: ${cancelledReservation.classroom}, ReservationID: ${cancelledReservation.reservationId}${messageLog}`;
       logActivity(
         studentId,
         CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
         CONSTANTS.MESSAGES.SUCCESS,
-        logDetails,
+        {
+          classroom: cancelledReservation.classroom,
+          reservationId: cancelledReservation.reservationId,
+          date: cancelledReservation.date,
+          message: '予約をキャンセルしました',
+          details: {
+            status: 'cancelled',
+            cancelMessage: cancelMessage || '',
+            lessonId: cancelledReservation.lessonId,
+          },
+        },
       );
 
       //キャンセル後の空き通知処理
@@ -1401,15 +1409,21 @@ export function updateReservationDetails(details) {
 
       // ログ記録
       const messageToTeacher = updatedReservation.messageToTeacher || '';
-      const messageLog = messageToTeacher
-        ? `, Message: ${messageToTeacher}`
-        : '';
-      const logDetails = `ReservationID: ${updatedReservation.reservationId}, Classroom: ${updatedReservation.classroom}${messageLog}`;
       logActivity(
         updatedReservation.studentId,
         CONSTANTS.LOG_ACTIONS.RESERVATION_UPDATE,
         CONSTANTS.MESSAGES.SUCCESS,
-        logDetails,
+        {
+          classroom: updatedReservation.classroom,
+          reservationId: updatedReservation.reservationId,
+          date: updatedReservation.date,
+          message: '予約詳細を更新しました',
+          details: {
+            messageToTeacher: messageToTeacher,
+            status: updatedReservation.status,
+            lessonId: updatedReservation.lessonId,
+          },
+        },
       );
 
       // 管理者通知
@@ -1524,12 +1538,22 @@ export function saveAccountingDetails(reservationWithAccounting) {
       // 5. 売上ログの記録は20時のバッチ処理で実行されるためここでは行わない
 
       // ログと通知
-      const logDetails = `Classroom: ${updatedReservation.classroom}, ReservationID: ${reservationId}, Total: ${accountingDetails.grandTotal}`;
       logActivity(
         studentId,
         CONSTANTS.LOG_ACTIONS.ACCOUNTING_SAVE,
         CONSTANTS.MESSAGES.SUCCESS,
-        logDetails,
+        {
+          classroom: updatedReservation.classroom,
+          reservationId: reservationId,
+          date: updatedReservation.date,
+          message: '会計記録を保存しました',
+          details: {
+            grandTotal: accountingDetails.grandTotal,
+            tuitionSubtotal: accountingDetails.tuition.subtotal,
+            salesSubtotal: accountingDetails.sales.subtotal,
+            paymentMethod: accountingDetails.paymentMethod,
+          },
+        },
       );
 
       const userInfo =
@@ -1571,7 +1595,16 @@ export function saveAccountingDetails(reservationWithAccounting) {
         reservationWithAccounting.studentId,
         CONSTANTS.LOG_ACTIONS.ACCOUNTING_SAVE,
         CONSTANTS.MESSAGES.ERROR,
-        `Error: ${err.message}`,
+        {
+          classroom: reservationWithAccounting.classroom || '',
+          reservationId: reservationWithAccounting.reservationId || '',
+          date: reservationWithAccounting.date || '',
+          message: '会計記録の保存に失敗しました',
+          details: {
+            error: err.message,
+            stack: err.stack,
+          },
+        },
       );
       Logger.log(`saveAccountingDetails Error: ${err.message}
 ${err.stack}`);

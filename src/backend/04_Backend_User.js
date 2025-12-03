@@ -706,12 +706,18 @@ export function updateUserProfile(userInfo) {
       updateCachedStudent(updatedUser);
 
       Logger.log(`ユーザー情報更新成功: ${studentId}`);
-      logActivity(
-        studentId,
-        CONSTANTS.LOG_ACTIONS.USER_UPDATE,
-        '成功',
-        'プロフィールが更新されました',
-      );
+      logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_UPDATE, '成功', {
+        classroom: targetStudent['classroom'] || '',
+        reservationId: '',
+        date: '',
+        message: 'プロフィールが更新されました',
+        details: {
+          updatedFields: Object.keys(userInfo),
+          realName: updatedUser.realName,
+          nickname: updatedUser.nickname,
+          email: updatedUser.email,
+        },
+      });
 
       return {
         success: true,
@@ -723,12 +729,16 @@ export function updateUserProfile(userInfo) {
       };
     } catch (error) {
       Logger.log(`ユーザー情報更新エラー: ${error.message}`);
-      logActivity(
-        studentId,
-        CONSTANTS.LOG_ACTIONS.USER_UPDATE,
-        '失敗',
-        `エラー: ${error.message}`,
-      );
+      logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_UPDATE, '失敗', {
+        classroom: '',
+        reservationId: '',
+        date: '',
+        message: 'プロフィールの更新に失敗しました',
+        details: {
+          error: error.message,
+          attemptedFields: Object.keys(userInfo),
+        },
+      });
       return {
         success: false,
         message: `プロフィールの更新に失敗しました: ${error.message}`,
