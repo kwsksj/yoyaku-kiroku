@@ -77,6 +77,7 @@ export const reservationActionHandlers = {
         const cancelMessage = cancelMessageInput?.value || '';
         const state = reservationStateManager.getState();
         const currentUser = state.currentUser;
+        const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
         const currentFormContext = state.currentReservationFormContext;
         if (!currentUser) {
           hideLoading();
@@ -99,6 +100,7 @@ export const reservationActionHandlers = {
           studentId: targetStudentId,
           cancelMessage: cancelMessage,
           _isByAdmin: currentUser.isAdmin || false,
+          _adminToken: adminToken,
         };
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
           hideLoading();
@@ -460,6 +462,7 @@ export const reservationActionHandlers = {
     const validReservationInfo = /** @type {ReservationCore} */ (
       reservationInfo
     );
+    const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
     const startTime = getTimeValue(
       'res-start-time',
       validReservationInfo,
@@ -505,6 +508,7 @@ export const reservationActionHandlers = {
           document.getElementById('material-input')
         )?.value || '',
       _isByAdmin: currentUser.isAdmin || false,
+      _adminToken: adminToken,
     };
     showLoading('booking');
     // 予約更新処理中フラグを設定
@@ -1032,6 +1036,7 @@ export const reservationActionHandlers = {
         const confirmMessage = confirmMessageInput?.value || '';
         const state = reservationStateManager.getState();
         const currentUser = state.currentUser;
+        const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
         if (!currentUser) {
           hideLoading();
           reservationStateManager.setDataFetchProgress(
@@ -1068,6 +1073,7 @@ export const reservationActionHandlers = {
           studentId: targetStudentId,
           messageToTeacher: confirmMessage,
           _isByAdmin: currentUser.isAdmin || false,
+          _adminToken: adminToken,
         };
 
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
@@ -1327,6 +1333,7 @@ export const reservationActionHandlers = {
 
         // 新規予約データを構築
         const currentUser = reservationStateManager.getState().currentUser;
+        const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
         if (!currentUser) {
           hideLoading();
           showInfo('ユーザー情報が見つかりません。', 'エラー');
@@ -1377,6 +1384,7 @@ export const reservationActionHandlers = {
               document.getElementById('message-input')
             )?.value || '',
           _isByAdmin: currentUser.isAdmin || false,
+          _adminToken: adminToken,
         };
 
         // バックエンドAPIを呼び出し（新規予約 + 旧予約キャンセル）

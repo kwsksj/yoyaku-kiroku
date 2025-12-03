@@ -1,4 +1,9 @@
 /**
+ * ScriptPropertiesの取得を共通化
+ * @returns {GoogleAppsScript.Properties.Properties}
+ */
+export function getScriptProperties(): GoogleAppsScript.Properties.Properties;
+/**
  * 予約データの事前バリデーション（パフォーマンス最適化）
  * 冗長なデータ検証を削減するため、一度だけ全体構造を検証
  * @param {any[]} reservations - 予約データ配列
@@ -57,7 +62,7 @@ export function setupConditionalFormattingForLogSheet(): void;
  * @param {boolean} [isByAdmin=false] - 管理者による操作かどうか
  * @throws {Error} 権限がない場合や予約が存在しない場合にエラーをスロー
  */
-export function validateUserOperation(reservation: ReservationCore | null, studentId: string, isByAdmin?: boolean): void;
+export function validateUserOperation(reservation: ReservationCore | null, studentId: string, isByAdmin?: boolean, adminToken?: any): boolean;
 /**
  * 配列形式の予約データをオブジェクト形式に変換
  * フロントエンドの transformReservationArrayToObject と同じロジック

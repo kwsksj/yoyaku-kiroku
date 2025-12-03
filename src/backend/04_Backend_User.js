@@ -39,6 +39,7 @@ import {
   createHeaderMap,
   getCachedStudentById,
   logActivity,
+  getScriptProperties,
   normalizePhoneNumber,
   withTransaction,
 } from './08_Utilities.js';
@@ -64,6 +65,7 @@ const INVALID_PHONE_RESULT = {
  * @property {LessonCore[]} lessons
  * @property {ReservationCore[]} myReservations
  * @property {ParticipantsViewData} [participantData]
+ * @property {string} [adminToken]
  */
 
 // =================================================================
@@ -361,6 +363,30 @@ export function isAdminLogin(phone) {
     Logger.log(`isAdminLogin エラー: ${error.message}`);
     return false;
   }
+}
+
+/**
+ * 管理者ログイン時にセッション用トークンを発行する
+ * 再ログイン時には新しいトークンが発行され、以前のトークンは無効化される
+ * @returns {string} adminToken
+ */
+export function issueAdminSessionToken() {
+  const token = Utilities.getUuid();
+  const props = getScriptProperties();
+  props.setProperty('ADMIN_SESSION_TOKEN', token);
+  return token;
+}
+
+/**
+ * 管理者トークンが有効か検証する
+ * @param {string | null | undefined} token
+ * @returns {boolean}
+ */
+export function validateAdminSessionToken(token) {
+  if (!token) return false;
+  const props = getScriptProperties();
+  const stored = props.getProperty('ADMIN_SESSION_TOKEN');
+  return stored === token;
 }
 
 /**

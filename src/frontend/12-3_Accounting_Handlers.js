@@ -1489,6 +1489,7 @@ export function processAccountingPayment(formData, result) {
     }
     const state = stateManager.getState();
     const selectedReservation = state.accountingReservation;
+    const adminToken = /** @type {any} */ (state.currentUser)?.adminToken || '';
 
     if (!selectedReservation) {
       showInfo('会計対象の予約が見つかりません。', 'エラー');
@@ -1518,6 +1519,7 @@ export function processAccountingPayment(formData, result) {
       startTime: formData.startTime, // フォームから更新された時間
       endTime: formData.endTime,
       _isByAdmin: state.currentUser?.isAdmin || false, // 管理者フラグを注入（backendで日付チェック回避に使用）
+      _adminToken: adminToken,
     });
 
     // デバッグログ：最終ペイロード

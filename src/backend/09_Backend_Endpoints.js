@@ -28,6 +28,7 @@ import {
   authenticateUser,
   registerNewUser,
   isAdminLogin,
+  issueAdminSessionToken,
 } from './04_Backend_User.js';
 import {
   getCachedStudentById,
@@ -178,6 +179,8 @@ export function changeReservationDateAndGetLatestData(
         studentId: newReservationData.studentId,
         cancelMessage: '予約日変更のため自動キャンセル',
         _isByAdmin: /** @type {any} */ (newReservationData)._isByAdmin || false,
+        _adminToken:
+          /** @type {any} */ (newReservationData)._adminToken || null,
       };
       const cancelResult = cancelReservation(cancelParams);
 
@@ -292,6 +295,7 @@ export function getLoginData(phone) {
 
       // 管理者用データ取得（会計・レッスン・参加者ビュー用データ）
       const batchResult = getBatchData(['accounting', 'lessons'], null, null);
+      const adminToken = issueAdminSessionToken();
       const participantData = getLessonsForParticipantsView(
         'ADMIN',
         true,
@@ -299,27 +303,31 @@ export function getLoginData(phone) {
         phone,
       );
 
+      /** @type {InitialAppDataPayload & {adminToken: string}} */
+      const adminData = {
+        accountingMaster: batchResult.success
+          ? batchResult.data['accounting'] || []
+          : [],
+        cacheVersions: /** @type {Record<string, unknown>} */ (
+          (batchResult.success && batchResult.data['cache-versions']) || {}
+        ),
+        lessons:
+          (participantData.success && participantData.data?.lessons) ||
+          (batchResult.success ? batchResult.data['lessons'] || [] : []),
+        myReservations: [],
+        participantData: participantData.success
+          ? participantData.data
+          : undefined,
+        adminToken,
+      };
+
       /** @type {AuthenticationResponse} */
       const adminResponse = {
         success: true,
         userFound: true,
         user: adminUser,
         isAdmin: true,
-        data: {
-          accountingMaster: batchResult.success
-            ? batchResult.data['accounting'] || []
-            : [],
-          cacheVersions: /** @type {Record<string, unknown>} */ (
-            (batchResult.success && batchResult.data['cache-versions']) || {}
-          ),
-          lessons:
-            (participantData.success && participantData.data?.lessons) ||
-            (batchResult.success ? batchResult.data['lessons'] || [] : []),
-          myReservations: [],
-          participantData: participantData.success
-            ? participantData.data
-            : undefined,
-        },
+        data: adminData,
       };
 
       Logger.log('管理者ログイン完了（未登録）');

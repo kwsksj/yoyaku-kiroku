@@ -56,6 +56,9 @@ export interface ReservationCore {
   /** 管理者操作かどうか（締切や権限チェックの緩和に利用） */
   _isByAdmin?: boolean | undefined;
 
+  /** 管理者セッショントークン（管理操作時のみ） */
+  _adminToken?: string | undefined;
+
   // ========================================
   // 基本オプション
   // ========================================
@@ -175,4 +178,7 @@ export interface CancelReservationParams {
 
   /** 管理者操作フラグ（権限チェックや締切解除用） */
   _isByAdmin?: boolean | undefined;
+
+  /** 管理者セッショントークン（管理操作時のみ） */
+  _adminToken?: string | null | undefined;
 }

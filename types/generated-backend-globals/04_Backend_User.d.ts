@@ -12,6 +12,7 @@
  * @property {LessonCore[]} lessons
  * @property {ReservationCore[]} myReservations
  * @property {ParticipantsViewData} [participantData]
+ * @property {string} [adminToken]
  */
 /**
  * 生徒名簿シートから全生徒データを取得し、オブジェクト形式で返します。
@@ -50,6 +51,18 @@ export function authenticateUser(phone: string): ApiResponseGeneric<UserCore>;
  * }
  */
 export function isAdminLogin(phone: string): boolean;
+/**
+ * 管理者ログイン時にセッション用トークンを発行する
+ * 再ログイン時には新しいトークンが発行され、以前のトークンは無効化される
+ * @returns {string} adminToken
+ */
+export function issueAdminSessionToken(): string;
+/**
+ * 管理者トークンが有効か検証する
+ * @param {string | null | undefined} token
+ * @returns {boolean}
+ */
+export function validateAdminSessionToken(token: string | null | undefined): boolean;
 /**
  * 生徒IDが管理者かどうかを判定
  * 生徒名簿から電話番号を取得し、管理者パスワードと照合します
@@ -181,4 +194,5 @@ export type InitialAppDataPayload = {
     lessons: LessonCore[];
     myReservations: ReservationCore[];
     participantData?: ParticipantsViewData;
+    adminToken?: string;
 };
