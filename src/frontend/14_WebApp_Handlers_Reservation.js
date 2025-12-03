@@ -99,8 +99,6 @@ export const reservationActionHandlers = {
           studentId: targetStudentId,
           cancelMessage: cancelMessage,
           _isByAdmin: currentUser.isAdmin || false,
-          _actorStudentId:
-            currentUser.studentId || (currentUser.isAdmin ? 'ADMIN' : ''),
         };
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
           hideLoading();
@@ -507,8 +505,6 @@ export const reservationActionHandlers = {
           document.getElementById('material-input')
         )?.value || '',
       _isByAdmin: currentUser.isAdmin || false,
-      _actorStudentId:
-        currentUser.studentId || (currentUser.isAdmin ? 'ADMIN' : ''),
     };
     showLoading('booking');
     // 予約更新処理中フラグを設定
@@ -1072,8 +1068,6 @@ export const reservationActionHandlers = {
           studentId: targetStudentId,
           messageToTeacher: confirmMessage,
           _isByAdmin: currentUser.isAdmin || false,
-          _actorStudentId:
-            currentUser.studentId || (currentUser.isAdmin ? 'ADMIN' : ''),
         };
 
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
@@ -1383,8 +1377,6 @@ export const reservationActionHandlers = {
               document.getElementById('message-input')
             )?.value || '',
           _isByAdmin: currentUser.isAdmin || false,
-          _actorStudentId:
-            currentUser.studentId || (currentUser.isAdmin ? 'ADMIN' : ''),
         };
 
         // バックエンドAPIを呼び出し（新規予約 + 旧予約キャンセル）

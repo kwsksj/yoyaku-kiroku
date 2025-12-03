@@ -1518,9 +1518,6 @@ export function processAccountingPayment(formData, result) {
       startTime: formData.startTime, // フォームから更新された時間
       endTime: formData.endTime,
       _isByAdmin: state.currentUser?.isAdmin || false, // 管理者フラグを注入（backendで日付チェック回避に使用）
-      _actorStudentId:
-        state.currentUser?.studentId ||
-        (state.currentUser?.isAdmin ? 'ADMIN' : ''),
     });
 
     // デバッグログ：最終ペイロード

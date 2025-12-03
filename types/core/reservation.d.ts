@@ -56,9 +56,6 @@ export interface ReservationCore {
   /** 管理者操作かどうか（締切や権限チェックの緩和に利用） */
   _isByAdmin?: boolean | undefined;
 
-  /** 操作者の生徒ID（管理者権限再確認用） */
-  _actorStudentId?: string | undefined;
-
   // ========================================
   // 基本オプション
   // ========================================
@@ -178,7 +175,4 @@ export interface CancelReservationParams {
 
   /** 管理者操作フラグ（権限チェックや締切解除用） */
   _isByAdmin?: boolean | undefined;
-
-  /** 操作者の生徒ID（管理者権限再確認用） */
-  _actorStudentId?: string | null | undefined;
 }

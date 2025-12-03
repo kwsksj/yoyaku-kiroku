@@ -822,12 +822,7 @@ export function cancelReservation(cancelInfo) {
 
       const existingReservation = getReservationCoreById(reservationId);
 
-      validateUserOperation(
-        existingReservation,
-        studentId,
-        _isByAdmin,
-        /** @type {any} */ (cancelInfo)._actorStudentId || null,
-      );
+      validateUserOperation(existingReservation, studentId, _isByAdmin);
       const validReservation = /** @type {ReservationCore} */ (
         existingReservation
       );
@@ -1219,12 +1214,7 @@ export function updateReservationDetails(details) {
       const existingReservation = getReservationCoreById(details.reservationId);
 
       const _isByAdmin = /** @type {any} */ (details)._isByAdmin;
-      validateUserOperation(
-        existingReservation,
-        details.studentId,
-        _isByAdmin,
-        /** @type {any} */ (details)._actorStudentId || null,
-      );
+      validateUserOperation(existingReservation, details.studentId, _isByAdmin);
       const validReservation = /** @type {ReservationCore} */ (
         existingReservation
       );
@@ -1496,12 +1486,7 @@ export function saveAccountingDetails(reservationWithAccounting) {
 
       const _isByAdmin = /** @type {any} */ (reservationWithAccounting)
         ._isByAdmin;
-      validateUserOperation(
-        existingReservation,
-        studentId,
-        _isByAdmin,
-        /** @type {any} */ (reservationWithAccounting)._actorStudentId || null,
-      );
+      validateUserOperation(existingReservation, studentId, _isByAdmin);
 
       // TODO: バックエンドでの金額再計算・検証ロジックをここに追加することが望ましい
       // 現状はフロントエンドで計算された金額を信頼する形になっているが、
@@ -1609,13 +1594,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
       // 2. 権限チェック (共通関数を使用)
       const _isByAdmin = /** @type {any} */ (reservationWithUpdatedAccounting)
         ._isByAdmin;
-      validateUserOperation(
-        existingReservation,
-        studentId,
-        _isByAdmin,
-        /** @type {any} */ (reservationWithUpdatedAccounting)._actorStudentId ||
-          null,
-      );
+      validateUserOperation(existingReservation, studentId, _isByAdmin);
       const validReservation = /** @type {ReservationCore} */ (
         existingReservation
       );
@@ -1861,12 +1840,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
       const targetReservation = getReservationCoreById(reservationId);
 
       const _isByAdmin = /** @type {any} */ (confirmInfo)._isByAdmin;
-      validateUserOperation(
-        targetReservation,
-        studentId,
-        _isByAdmin,
-        /** @type {any} */ (confirmInfo)._actorStudentId || null,
-      );
+      validateUserOperation(targetReservation, studentId, _isByAdmin);
       const validReservation = /** @type {ReservationCore} */ (
         targetReservation
       );

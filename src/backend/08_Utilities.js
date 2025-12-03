@@ -26,7 +26,6 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
-import { isAdminUser } from './04_Backend_User.js';
 import {
   CACHE_KEYS,
   getCachedData,
@@ -368,24 +367,15 @@ export function validateUserOperation(
   reservation,
   studentId,
   isByAdmin = false,
-  actorStudentId = null,
 ) {
   if (!reservation) {
     throw new Error('予約が見つかりません。');
   }
 
-  // 管理者判定は常にサーバー側で実施（フラグの有無に依存しない）
-  const actorId = actorStudentId || studentId;
-  const isAdminUserServerSide =
-    actorId === 'ADMIN' || isAdminUser(actorId || '') || false;
-  if (isAdminUserServerSide) {
-    return; // 管理者は本人以外の予約も操作可能
-  }
-  if (isByAdmin && !isAdminUserServerSide) {
-    throw new Error('管理者権限が確認できません。');
-  }
+  // 管理者フラグが立っている場合は本人確認をスキップ
+  if (isByAdmin) return;
 
-  // 生徒IDの一致確認
+  // 生徒IDの一致確認（管理者以外）
   if (reservation.studentId !== studentId) {
     throw new Error('この予約を操作する権限がありません。');
   }

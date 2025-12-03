@@ -57,7 +57,7 @@ export function setupConditionalFormattingForLogSheet(): void;
  * @param {boolean} [isByAdmin=false] - 管理者による操作かどうか
  * @throws {Error} 権限がない場合や予約が存在しない場合にエラーをスロー
  */
-export function validateUserOperation(reservation: ReservationCore | null, studentId: string, isByAdmin?: boolean, actorStudentId?: any): void;
+export function validateUserOperation(reservation: ReservationCore | null, studentId: string, isByAdmin?: boolean): void;
 /**
  * 配列形式の予約データをオブジェクト形式に変換
  * フロントエンドの transformReservationArrayToObject と同じロジック
