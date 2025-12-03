@@ -761,18 +761,29 @@ export function makeReservation(reservationInfo) {
         ? '満席のため、空き通知希望で登録しました。'
         : '予約が完了しました。';
 
-      const messageLog = reservationWithUser.messageToTeacher
-        ? `, Message: ${reservationWithUser.messageToTeacher}`
-        : '';
       const actionType = isNowWaiting
         ? CONSTANTS.LOG_ACTIONS.RESERVATION_WAITLIST
         : CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE;
-      const logDetails = `Classroom: ${reservationWithUser.classroom}, Date: ${reservationWithUser.date}, Status: ${reservationWithUser.status}, ReservationID: ${reservationWithUser.reservationId}${messageLog}`;
+      const logMessage = isNowWaiting
+        ? '満席のため、空き通知希望で登録'
+        : '予約が完了';
+
       logActivity(
         reservationWithUser.studentId,
         actionType,
         CONSTANTS.MESSAGES.SUCCESS,
-        logDetails,
+        {
+          classroom: reservationWithUser.classroom,
+          reservationId: reservationWithUser.reservationId,
+          date: reservationWithUser.date,
+          message: logMessage,
+          details: {
+            status: reservationWithUser.status,
+            startTime: reservationWithUser.startTime,
+            endTime: reservationWithUser.endTime,
+            messageToTeacher: reservationWithUser.messageToTeacher || '',
+          },
+        },
       );
 
       // 管理者通知（統一関数使用）
