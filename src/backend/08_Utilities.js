@@ -374,14 +374,12 @@ export function validateUserOperation(
     throw new Error('予約が見つかりません。');
   }
 
-  // 管理者は権限チェックをスキップ（サーバー側で権限再確認）
+  // 管理者判定は常にサーバー側で実施（フラグの有無に依存しない）
+  const actorId = actorStudentId || studentId;
   const isAdminUserServerSide =
-    actorStudentId === 'ADMIN' ||
-    isAdminUser(actorStudentId || '') ||
-    isAdminUser(studentId) ||
-    false;
-  if (isByAdmin && isAdminUserServerSide) {
-    return;
+    actorId === 'ADMIN' || isAdminUser(actorId || '') || false;
+  if (isAdminUserServerSide) {
+    return; // 管理者は本人以外の予約も操作可能
   }
   if (isByAdmin && !isAdminUserServerSide) {
     throw new Error('管理者権限が確認できません。');
