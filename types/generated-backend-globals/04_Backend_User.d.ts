@@ -53,7 +53,7 @@ export function authenticateUser(phone: string): ApiResponseGeneric<UserCore>;
 export function isAdminLogin(phone: string): boolean;
 /**
  * 管理者ログイン時にセッション用トークンを発行する
- * 再ログイン時には新しいトークンが発行され、以前のトークンは無効化される
+ * 再ログイン時には新しいトークンを先頭に追加し、最大4件に制限
  * @returns {string} adminToken
  */
 export function issueAdminSessionToken(): string;

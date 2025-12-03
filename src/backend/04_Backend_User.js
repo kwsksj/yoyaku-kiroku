@@ -366,14 +366,57 @@ export function isAdminLogin(phone) {
 }
 
 /**
+ * 管理者セッショントークンを複数（最大4件）管理する
+ * 複数デバイスでの並行ログインを許可するため、最新を先頭に保持
+ */
+const ADMIN_SESSION_TOKENS_KEY = 'ADMIN_SESSION_TOKENS';
+const ADMIN_SESSION_TOKEN_LIMIT = 4;
+
+/**
+ * 管理者セッショントークンリストを取得
+ * @returns {Array<{token: string, issuedAt: string}>}
+ */
+function getAdminSessionTokens() {
+  const props = getScriptProperties();
+  const raw = props.getProperty(ADMIN_SESSION_TOKENS_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter(
+          t =>
+            t && typeof t.token === 'string' && typeof t.issuedAt === 'string',
+        )
+        .slice(0, ADMIN_SESSION_TOKEN_LIMIT);
+    }
+  } catch (e) {
+    Logger.log(`ADMIN_SESSION_TOKENSのパースに失敗: ${e.message}`);
+  }
+  return [];
+}
+
+/**
+ * トークンリストを保存（最大件数で切り詰め）
+ * @param {Array<{token: string, issuedAt: string}>} tokens
+ */
+function saveAdminSessionTokens(tokens) {
+  const props = getScriptProperties();
+  const trimmed = (tokens || []).slice(0, ADMIN_SESSION_TOKEN_LIMIT);
+  props.setProperty(ADMIN_SESSION_TOKENS_KEY, JSON.stringify(trimmed));
+}
+
+/**
  * 管理者ログイン時にセッション用トークンを発行する
- * 再ログイン時には新しいトークンが発行され、以前のトークンは無効化される
+ * 再ログイン時には新しいトークンを先頭に追加し、最大4件に制限
  * @returns {string} adminToken
  */
 export function issueAdminSessionToken() {
   const token = Utilities.getUuid();
-  const props = getScriptProperties();
-  props.setProperty('ADMIN_SESSION_TOKEN', token);
+  const now = new Date().toISOString();
+  const tokens = getAdminSessionTokens();
+  tokens.unshift({ token, issuedAt: now });
+  saveAdminSessionTokens(tokens);
   return token;
 }
 
@@ -384,9 +427,13 @@ export function issueAdminSessionToken() {
  */
 export function validateAdminSessionToken(token) {
   if (!token) return false;
-  const props = getScriptProperties();
-  const stored = props.getProperty('ADMIN_SESSION_TOKEN');
-  return stored === token;
+  const tokens = getAdminSessionTokens();
+  const isValid = tokens.some(t => t.token === token);
+
+  // 不正データや超過分があれば保存し直す（軽いセルフヒーリング）
+  saveAdminSessionTokens(tokens);
+
+  return isValid;
 }
 
 /**
