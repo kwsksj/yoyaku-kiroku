@@ -386,13 +386,19 @@ export function setupConditionalFormattingForLogSheet() {
         .setRanges([sheet.getRange('E:E')]);
       rules.push(ruleForE.build());
 
-      // 【G列用のルール】カスタム数式を使い、E列のテキストを評価します
+      // 【G-K列用のルール】カスタム数式を使い、E列のテキストを評価します
       const formula = `=$E1="${text}"`;
-      const ruleForG = SpreadsheetApp.newConditionalFormatRule()
-        .whenFormulaSatisfied(formula) // 正しいメソッドを使用します
+      const ruleForRelated = SpreadsheetApp.newConditionalFormatRule()
+        .whenFormulaSatisfied(formula)
         .setBackground(rule.color)
-        .setRanges([sheet.getRange('G:G')]);
-      rules.push(ruleForG.build());
+        .setRanges([
+          sheet.getRange('G:G'), // 教室名
+          sheet.getRange('H:H'), // 予約ID
+          sheet.getRange('I:I'), // 日付
+          sheet.getRange('J:J'), // メッセージ
+          sheet.getRange('K:K'), // 詳細情報
+        ]);
+      rules.push(ruleForRelated.build());
     });
   });
 
