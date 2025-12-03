@@ -324,11 +324,12 @@ function toggleParticipantLessonAccordion(lessonId) {
 /**
  * 生徒選択ハンドラ（モーダル表示）
  * @param {string} targetStudentId - 表示対象の生徒ID
+ * @param {string} [lessonId] - レッスンID（プリロードデータ検索用）
  */
-function selectParticipantStudent(targetStudentId) {
+function selectParticipantStudent(targetStudentId, lessonId) {
   if (!targetStudentId) return;
 
-  console.log('👤 生徒選択:', targetStudentId);
+  console.log('👤 生徒選択:', targetStudentId, lessonId);
 
   const state = participantHandlersStateManager.getState();
   const requestingStudentId = state.currentUser?.studentId;
@@ -336,6 +337,24 @@ function selectParticipantStudent(targetStudentId) {
   if (!requestingStudentId) {
     showInfo('ユーザー情報が見つかりません', 'エラー');
     return;
+  }
+
+  // 1. プリロードデータ（現在表示中のリスト）からの検索
+  if (lessonId && state.participantReservationsMap) {
+    const lessonReservations = state.participantReservationsMap[lessonId];
+    if (lessonReservations) {
+      const targetReservation = lessonReservations.find(
+        (/** @type {any} */ r) => r.studentId === targetStudentId,
+      );
+      if (targetReservation) {
+        console.log(`✅ プリロードデータ使用: ${targetStudentId}`);
+        // プリロードデータはReservationCore拡張型なので、UserCore互換の部分を使用
+        // 足りない情報（過去の履歴など）は妥協するか、必要なら別途取得するが、
+        // "すぐ表示"の要件を満たすためこれを使用する
+        showStudentModal(targetReservation, state.participantIsAdmin || false);
+        return;
+      }
+    }
   }
 
   // ローディング表示
