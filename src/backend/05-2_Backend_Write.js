@@ -773,9 +773,6 @@ export function makeReservation(reservationInfo) {
       const actionType = isNowWaiting
         ? CONSTANTS.LOG_ACTIONS.RESERVATION_WAITLIST
         : CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE;
-      const logMessage = isNowWaiting
-        ? '満席のため、空き通知希望で登録'
-        : '予約が完了';
 
       logActivity(
         reservationWithUser.studentId,
@@ -785,12 +782,11 @@ export function makeReservation(reservationInfo) {
           classroom: reservationWithUser.classroom,
           reservationId: reservationWithUser.reservationId,
           date: reservationWithUser.date,
-          message: logMessage,
+          message: reservationWithUser.messageToTeacher || '',
           details: {
             status: reservationWithUser.status,
             startTime: reservationWithUser.startTime,
             endTime: reservationWithUser.endTime,
-            messageToTeacher: reservationWithUser.messageToTeacher || '',
           },
         },
       );
@@ -886,10 +882,9 @@ export function cancelReservation(cancelInfo) {
           classroom: cancelledReservation.classroom,
           reservationId: cancelledReservation.reservationId,
           date: cancelledReservation.date,
-          message: '予約をキャンセルしました',
+          message: cancelMessage || '',
           details: {
             status: 'cancelled',
-            cancelMessage: cancelMessage || '',
             lessonId: cancelledReservation.lessonId,
           },
         },
@@ -1426,7 +1421,6 @@ export function updateReservationDetails(details) {
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
       // ログ記録
-      const messageToTeacher = updatedReservation.messageToTeacher || '';
       logActivity(
         updatedReservation.studentId,
         CONSTANTS.LOG_ACTIONS.RESERVATION_UPDATE,
@@ -1435,9 +1429,8 @@ export function updateReservationDetails(details) {
           classroom: updatedReservation.classroom,
           reservationId: updatedReservation.reservationId,
           date: updatedReservation.date,
-          message: '予約詳細を更新しました',
+          message: updatedReservation.messageToTeacher || '',
           details: {
-            messageToTeacher: messageToTeacher,
             status: updatedReservation.status,
             lessonId: updatedReservation.lessonId,
           },
@@ -1445,6 +1438,7 @@ export function updateReservationDetails(details) {
       );
 
       // 管理者通知
+      const messageToTeacher = updatedReservation.messageToTeacher || '';
       const updateDetails = messageToTeacher
         ? `メッセージが更新されました: ${messageToTeacher}`
         : '予約詳細が更新されました';
