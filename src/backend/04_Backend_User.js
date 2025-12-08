@@ -1005,16 +1005,46 @@ export function loginUser(phone, realName) {
           ? result.data.studentId
           : 'unknown-student';
       Logger.log(`ログイン成功: ${studentId}`);
-      logActivity(
-        studentId,
-        CONSTANTS.LOG_ACTIONS.USER_LOGIN,
-        '成功',
-        'ログインしました',
-      );
+      logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_LOGIN, '成功', {
+        classroom: result.data['classroom'] || '',
+        reservationId: '',
+        date: '',
+        message: '',
+        details: {
+          realName: realName,
+          phone: phone,
+        },
+      });
+    } else {
+      // ログイン失敗の記録
+      Logger.log(`ログイン失敗: ${phone} / ${realName}`);
+      logActivity('system', CONSTANTS.LOG_ACTIONS.USER_LOGIN, '失敗', {
+        classroom: '',
+        reservationId: '',
+        date: '',
+        message: '',
+        details: {
+          realName: realName,
+          phone: phone,
+          reason: result.message || 'ユーザーが見つかりませんでした',
+        },
+      });
     }
     return result;
   } catch (error) {
     Logger.log(`ログイン処理エラー: ${error.message}`);
+    logActivity('system', CONSTANTS.LOG_ACTIONS.USER_LOGIN, 'エラー', {
+      classroom: '',
+      reservationId: '',
+      date: '',
+      message: '',
+      details: {
+        realName: realName,
+        phone: phone,
+        error: error.message,
+        stack: error.stack,
+      },
+    });
     return {
       success: false,
       message: `ログイン処理中にエラーが発生しました: ${error.message}`,
