@@ -296,12 +296,38 @@ export function authenticateUser(phone) {
     });
 
     if (!matchedStudent) {
+      // ログイン失敗の記録
+      Logger.log(`認証失敗: ${phone}`);
+      logActivity('system', CONSTANTS.LOG_ACTIONS.USER_LOGIN, '失敗', {
+        classroom: '',
+        reservationId: '',
+        date: '',
+        message: '',
+        details: {
+          phone: phone,
+          reason: '一致するユーザーが見つかりませんでした',
+        },
+      });
       return {
         success: false,
         message: '一致するユーザーが見つかりませんでした。',
         user: null,
       };
     }
+
+    // ログイン成功の記録
+    const studentId = matchedStudent.studentId || 'unknown-student';
+    Logger.log(`認証成功: ${studentId}`);
+    logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_LOGIN, '成功', {
+      classroom: matchedStudent['classroom'] || '',
+      reservationId: '',
+      date: '',
+      message: '',
+      details: {
+        realName: matchedStudent.realName,
+        phone: phone,
+      },
+    });
 
     return {
       success: true,
@@ -310,6 +336,18 @@ export function authenticateUser(phone) {
     };
   } catch (error) {
     Logger.log(`authenticateUser エラー: ${error.message}`);
+    // エラー時のログ記録
+    logActivity('system', CONSTANTS.LOG_ACTIONS.USER_LOGIN, 'エラー', {
+      classroom: '',
+      reservationId: '',
+      date: '',
+      message: '',
+      details: {
+        phone: phone,
+        error: error.message,
+        stack: error.stack,
+      },
+    });
     return {
       success: false,
       message: `ユーザー認証に失敗しました: ${error.message}`,
