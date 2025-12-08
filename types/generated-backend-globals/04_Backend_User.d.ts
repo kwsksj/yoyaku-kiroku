@@ -64,6 +64,16 @@ export function issueAdminSessionToken(): string;
  */
 export function validateAdminSessionToken(token: string | null | undefined): boolean;
 /**
+ * 管理者ログアウト時にトークンを無効化
+ * @param {string} token
+ * @returns {boolean} 削除成功
+ */
+export function revokeAdminSessionToken(token: string): boolean;
+/**
+ * すべての管理者トークンを無効化（緊急用）
+ */
+export function revokeAllAdminSessionTokens(): void;
+/**
  * 生徒IDが管理者かどうかを判定
  * 生徒名簿から電話番号を取得し、管理者パスワードと照合します
  *

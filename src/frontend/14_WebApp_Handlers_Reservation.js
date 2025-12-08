@@ -1794,7 +1794,7 @@ function updateParticipantViewCacheFromReservation(
       'messageToTeacher',
       'notes',
     ].forEach(key => {
-      if (!merged[key] && base && base[key]) {
+      if (merged[key] === undefined && base && base[key]) {
         merged[key] = base[key];
       }
     });

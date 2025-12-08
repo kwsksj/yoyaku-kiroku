@@ -817,8 +817,13 @@ ${err.stack}`);
 export function cancelReservation(cancelInfo) {
   return withTransaction(() => {
     try {
-      const { reservationId, studentId, cancelMessage } = cancelInfo;
-      const _isByAdmin = /** @type {any} */ (cancelInfo)._isByAdmin;
+      const {
+        reservationId,
+        studentId,
+        cancelMessage,
+        _isByAdmin,
+        _adminToken,
+      } = cancelInfo;
 
       const existingReservation = getReservationCoreById(reservationId);
 
@@ -826,7 +831,7 @@ export function cancelReservation(cancelInfo) {
         existingReservation,
         studentId,
         _isByAdmin,
-        /** @type {any} */ (cancelInfo)._adminToken || null,
+        _adminToken || null,
       );
       const validReservation = /** @type {ReservationCore} */ (
         existingReservation
@@ -1218,12 +1223,12 @@ export function updateReservationDetails(details) {
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(details.reservationId);
 
-      const _isByAdmin = /** @type {any} */ (details)._isByAdmin;
+      const { _isByAdmin, _adminToken } = details;
       validateUserOperation(
         existingReservation,
         details.studentId,
         _isByAdmin,
-        /** @type {any} */ (details)._adminToken || null,
+        _adminToken || null,
       );
       const validReservation = /** @type {ReservationCore} */ (
         existingReservation
@@ -1494,13 +1499,12 @@ export function saveAccountingDetails(reservationWithAccounting) {
       // 1. 既存の予約データをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(reservationId);
 
-      const _isByAdmin = /** @type {any} */ (reservationWithAccounting)
-        ._isByAdmin;
+      const { _isByAdmin, _adminToken } = reservationWithAccounting;
       validateUserOperation(
         existingReservation,
         studentId,
         _isByAdmin,
-        /** @type {any} */ (reservationWithAccounting)._adminToken || null,
+        _adminToken || null,
       );
 
       // TODO: バックエンドでの金額再計算・検証ロジックをここに追加することが望ましい
@@ -1607,14 +1611,12 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
       const existingReservation = getReservationCoreById(reservationId);
 
       // 2. 権限チェック (共通関数を使用)
-      const _isByAdmin = /** @type {any} */ (reservationWithUpdatedAccounting)
-        ._isByAdmin;
+      const { _isByAdmin, _adminToken } = reservationWithUpdatedAccounting;
       validateUserOperation(
         existingReservation,
         studentId,
         _isByAdmin,
-        /** @type {any} */ (reservationWithUpdatedAccounting)._adminToken ||
-          null,
+        _adminToken || null,
       );
       const validReservation = /** @type {ReservationCore} */ (
         existingReservation
@@ -1849,7 +1851,7 @@ export function getScheduleInfoForDate(date, classroom) {
 
 /**
  * 空き通知希望の予約を確定する
- * @param {{reservationId: string, studentId: string, messageToTeacher?: string}} confirmInfo - 確定情報
+ * @param {{reservationId: string, studentId: string, messageToTeacher?: string, _isByAdmin?: boolean, _adminToken?: string | null}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric<any>} 処理結果と最新データ
  */
 export function confirmWaitlistedReservation(confirmInfo) {
@@ -1860,12 +1862,12 @@ export function confirmWaitlistedReservation(confirmInfo) {
       // ★改善: getReservationCoreByIdを使用して予約情報を一行で取得
       const targetReservation = getReservationCoreById(reservationId);
 
-      const _isByAdmin = /** @type {any} */ (confirmInfo)._isByAdmin;
+      const { _isByAdmin, _adminToken } = confirmInfo;
       validateUserOperation(
         targetReservation,
         studentId,
         _isByAdmin,
-        /** @type {any} */ (confirmInfo)._adminToken || null,
+        _adminToken || null,
       );
       const validReservation = /** @type {ReservationCore} */ (
         targetReservation

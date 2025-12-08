@@ -142,11 +142,13 @@ export function logSalesForSingleReservation(reservation: ReservationCore, accou
 export function getScheduleInfoForDate(date: string, classroom: string): LessonCore | undefined;
 /**
  * 空き通知希望の予約を確定する
- * @param {{reservationId: string, studentId: string, messageToTeacher?: string}} confirmInfo - 確定情報
+ * @param {{reservationId: string, studentId: string, messageToTeacher?: string, _isByAdmin?: boolean, _adminToken?: string | null}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric<any>} 処理結果と最新データ
  */
 export function confirmWaitlistedReservation(confirmInfo: {
     reservationId: string;
     studentId: string;
     messageToTeacher?: string;
+    _isByAdmin?: boolean;
+    _adminToken?: string | null;
 }): ApiResponseGeneric<any>;

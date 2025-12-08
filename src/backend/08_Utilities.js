@@ -370,6 +370,7 @@ export function setupConditionalFormattingForLogSheet() {
  * @param {ReservationCore | null} reservation - 対象の予約オブジェクト
  * @param {string} studentId - 操作を実行しようとしているユーザーのID
  * @param {boolean} [isByAdmin=false] - 管理者による操作かどうか
+ * @param {string | null} [adminToken=null] - 管理者トークン
  * @throws {Error} 権限がない場合や予約が存在しない場合にエラーをスロー
  */
 export function validateUserOperation(
@@ -387,14 +388,13 @@ export function validateUserOperation(
     if (!validateAdminSessionToken(adminToken)) {
       throw new Error('管理者権限が確認できません。再ログインしてください。');
     }
-    return true;
+    return;
   }
 
   // 生徒IDの一致確認（管理者以外）
   if (reservation.studentId !== studentId) {
     throw new Error('この予約を操作する権限がありません。');
   }
-  return false;
 }
 
 /**
