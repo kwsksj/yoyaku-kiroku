@@ -135,6 +135,7 @@
       <div
         id="custom-modal"
         class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
+        onclick="if (event.target === this) hideModal();"
       >
         <div class="bg-white rounded-lg p-6 max-w-sm mx-4">
           <h3 id="modal-title" class="text-lg font-bold mb-4"></h3>

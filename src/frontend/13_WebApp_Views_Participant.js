@@ -875,9 +875,44 @@ function renderStudentDetailModalContent(student, isAdmin) {
               const dateObj = new Date(res.date);
               const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
 
+              // ステータスバッジの生成
+              let statusBadge = '';
+              if (res.status) {
+                const statusText =
+                  res.status === CONSTANTS.STATUS.CONFIRMED
+                    ? '確定'
+                    : res.status === CONSTANTS.STATUS.COMPLETED
+                      ? '完了'
+                      : res.status === CONSTANTS.STATUS.CANCELED
+                        ? 'キャンセル'
+                        : res.status === CONSTANTS.STATUS.WAITLISTED
+                          ? '待機'
+                          : res.status;
+
+                const statusColor =
+                  res.status === CONSTANTS.STATUS.CONFIRMED
+                    ? 'blue'
+                    : res.status === CONSTANTS.STATUS.COMPLETED
+                      ? 'green'
+                      : res.status === CONSTANTS.STATUS.CANCELED
+                        ? 'gray'
+                        : res.status === CONSTANTS.STATUS.WAITLISTED
+                          ? 'yellow'
+                          : 'gray';
+
+                statusBadge = Components.badge({
+                  text: statusText,
+                  color: statusColor,
+                  size: 'xs',
+                });
+              }
+
               return `
             <div class="border-b border-gray-200 py-2">
-              <div class="font-semibold text-sm">${formattedDate} - ${escapeHTML(res.classroom)}</div>
+              <div class="flex items-center gap-2">
+                <div class="font-semibold text-sm">${formattedDate} - ${escapeHTML(res.classroom)}</div>
+                ${statusBadge}
+              </div>
               ${res.venue ? `<div class="text-xs text-gray-600">${escapeHTML(res.venue)}</div>` : ''}
               ${res.workInProgress ? `<div class="text-xs mt-1">${escapeHTML(res.workInProgress)}</div>` : ''}
             </div>
