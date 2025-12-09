@@ -177,10 +177,30 @@ export interface CancelReservationParams extends AdminOperationParams {
 
   /** キャンセル理由 */
   cancelMessage?: string | undefined;
+}
 
-  /** 管理者操作フラグ（権限チェックや締切解除用） */
-  _isByAdmin?: boolean | undefined;
+/**
+ * 予約詳細更新用パラメータ（管理者操作対応）
+ */
+export interface UpdateReservationDetailsParams
+  extends Partial<ReservationCore>, AdminOperationParams {
+  reservationId: string;
+  studentId: string;
+}
 
-  /** 管理者セッショントークン（管理操作時のみ） */
-  _adminToken?: string | null | undefined;
+/**
+ * 待機予約確定用パラメータ（管理者操作対応）
+ */
+export interface ConfirmWaitlistedReservationParams extends AdminOperationParams {
+  reservationId: string;
+  studentId: string;
+  messageToTeacher?: string | undefined;
+}
+
+/**
+ * 会計処理用の予約データ（管理者操作対応）
+ */
+export interface ReservationCoreWithAccounting
+  extends ReservationCore, AdminOperationParams {
+  accountingDetails: AccountingDetailsCore;
 }

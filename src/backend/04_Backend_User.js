@@ -440,6 +440,12 @@ export function issueAdminSessionToken() {
     expiresAt: expiresAt.toISOString(),
   });
   saveAdminSessionTokens(tokens);
+  logActivity(
+    'ADMIN',
+    '管理者トークン発行',
+    'システム',
+    `トークン発行（並行ログイン数: ${tokens.length}/${ADMIN_SESSION_TOKEN_LIMIT}）`,
+  );
   return token;
 }
 
@@ -449,7 +455,10 @@ export function issueAdminSessionToken() {
  * @returns {boolean}
  */
 export function validateAdminSessionToken(token) {
-  if (!token) return false;
+  if (!token) {
+    logActivity('ADMIN', '管理者トークン検証', 'エラー', 'トークンが空');
+    return false;
+  }
   const tokens = getAdminSessionTokens();
   const now = Date.now();
   const validTokens = tokens.filter(t => Date.parse(t.expiresAt) > now);
@@ -458,6 +467,10 @@ export function validateAdminSessionToken(token) {
   // 不正データや超過分があれば保存し直す（軽いセルフヒーリング）
   if (validTokens.length !== tokens.length) {
     saveAdminSessionTokens(validTokens);
+  }
+
+  if (!isValid) {
+    logActivity('ADMIN', '管理者トークン検証', 'エラー', '無効なトークン');
   }
 
   return isValid;
@@ -474,6 +487,7 @@ export function revokeAdminSessionToken(token) {
   const filtered = tokens.filter(t => t.token !== token);
   if (filtered.length !== tokens.length) {
     saveAdminSessionTokens(filtered);
+    logActivity('ADMIN', '管理者トークン失効', 'システム', 'トークン削除');
     return true;
   }
   return false;

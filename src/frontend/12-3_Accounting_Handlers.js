@@ -1512,7 +1512,7 @@ export function processAccountingPayment(formData, result) {
 
     // 2. 現在の予約情報と会計詳細、フォームの更新内容をマージして、新しいReservationCoreを構築
     /** @type {ReservationCore} */
-    const reservationWithAccounting = /** @type {any} */ ({
+    const reservationWithAccounting = {
       ...selectedReservation, // 既存の予約情報
       accountingDetails: calculatedAccountingDetails, // 計算した会計詳細
       workInProgress: formData.workInProgress, // フォームから更新された制作メモ
@@ -1520,7 +1520,7 @@ export function processAccountingPayment(formData, result) {
       endTime: formData.endTime,
       _isByAdmin: state.currentUser?.isAdmin || false, // 管理者フラグを注入（backendで日付チェック回避に使用）
       _adminToken: adminToken,
-    });
+    };
 
     // デバッグログ：最終ペイロード
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
