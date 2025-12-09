@@ -475,13 +475,8 @@ window.onload = function () {
     modalCancel: () => windowTyped.ModalManager.hide(),
 
     /** 任意のモーダルを閉じる */
-    closeModal: (/** @type {HTMLElement | null} */ element) => {
-      const modalId =
-        (element && element.dataset && element.dataset['modalId']) ||
-        (element && typeof element.getAttribute === 'function'
-          ? element.getAttribute('data-modal-id')
-          : null) ||
-        null;
+    closeModal: (/** @type {any} */ data) => {
+      const modalId = data?.modalId || data?.['modalId'] || null;
       if (modalId) {
         Components.closeModal(modalId);
       }
