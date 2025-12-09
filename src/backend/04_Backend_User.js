@@ -415,12 +415,17 @@ export function issueAdminSessionToken() {
     expiresAt: expiresAt.toISOString(),
   });
   saveAdminSessionTokens(tokens);
-  logActivity(
-    'ADMIN',
-    '管理者トークン発行',
-    'システム',
-    `トークン発行（並行ログイン数: ${tokens.length}/${ADMIN_SESSION_TOKEN_LIMIT}）`,
-  );
+  logActivity('ADMIN', CONSTANTS.LOG_ACTIONS.ADMIN_TOKEN_ISSUE, '成功', {
+    classroom: '',
+    reservationId: '',
+    date: '',
+    message: '',
+    details: {
+      tokenCount: tokens.length,
+      tokenLimit: ADMIN_SESSION_TOKEN_LIMIT,
+      expiresAt: expiresAt.toISOString(),
+    },
+  });
   return token;
 }
 
@@ -431,7 +436,20 @@ export function issueAdminSessionToken() {
  */
 export function validateAdminSessionToken(token) {
   if (!token) {
-    logActivity('ADMIN', '管理者トークン検証', 'エラー', 'トークンが空');
+    logActivity(
+      'ADMIN',
+      CONSTANTS.LOG_ACTIONS.ADMIN_TOKEN_VALIDATE_ERROR,
+      '失敗',
+      {
+        classroom: '',
+        reservationId: '',
+        date: '',
+        message: '',
+        details: {
+          reason: 'トークンが空',
+        },
+      },
+    );
     return false;
   }
   const tokens = getAdminSessionTokens();
@@ -445,7 +463,21 @@ export function validateAdminSessionToken(token) {
   }
 
   if (!isValid) {
-    logActivity('ADMIN', '管理者トークン検証', 'エラー', '無効なトークン');
+    logActivity(
+      'ADMIN',
+      CONSTANTS.LOG_ACTIONS.ADMIN_TOKEN_VALIDATE_ERROR,
+      '失敗',
+      {
+        classroom: '',
+        reservationId: '',
+        date: '',
+        message: '',
+        details: {
+          reason: '無効なトークン',
+          expiredCount: tokens.length - validTokens.length,
+        },
+      },
+    );
   }
 
   return isValid;
@@ -462,7 +494,15 @@ export function revokeAdminSessionToken(token) {
   const filtered = tokens.filter(t => t.token !== token);
   if (filtered.length !== tokens.length) {
     saveAdminSessionTokens(filtered);
-    logActivity('ADMIN', '管理者トークン失効', 'システム', 'トークン削除');
+    logActivity('ADMIN', CONSTANTS.LOG_ACTIONS.ADMIN_TOKEN_REVOKE, '成功', {
+      classroom: '',
+      reservationId: '',
+      date: '',
+      message: '',
+      details: {
+        remainingTokens: filtered.length,
+      },
+    });
     return true;
   }
   return false;

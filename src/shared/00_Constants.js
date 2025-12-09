@@ -209,6 +209,11 @@ export const CONSTANTS = {
     USER_PASSWORD_CHANGE: 'パスワード変更',
     USER_WITHDRAWAL: '退会',
 
+    // 管理者トークン関連
+    ADMIN_TOKEN_ISSUE: '管理者トークン発行',
+    ADMIN_TOKEN_VALIDATE_ERROR: '管理者トークン検証エラー',
+    ADMIN_TOKEN_REVOKE: '管理者トークン失効',
+
     // 名簿・データ管理関連
     ROSTER_EDIT: '名簿編集',
     ROW_INSERT: '行挿入',

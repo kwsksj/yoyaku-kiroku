@@ -123,6 +123,9 @@ declare global {
       readonly USER_UPDATE_ERROR: string;
       readonly USER_PASSWORD_CHANGE: string;
       readonly USER_WITHDRAWAL: string;
+      readonly ADMIN_TOKEN_ISSUE: string;
+      readonly ADMIN_TOKEN_VALIDATE_ERROR: string;
+      readonly ADMIN_TOKEN_REVOKE: string;
       readonly ROSTER_EDIT: string;
       readonly ROW_INSERT: string;
       readonly EMAIL_VACANCY_NOTIFICATION: string;

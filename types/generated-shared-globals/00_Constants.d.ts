@@ -120,6 +120,9 @@ export namespace CONSTANTS {
         let USER_UPDATE_ERROR: string;
         let USER_PASSWORD_CHANGE: string;
         let USER_WITHDRAWAL: string;
+        let ADMIN_TOKEN_ISSUE: string;
+        let ADMIN_TOKEN_VALIDATE_ERROR: string;
+        let ADMIN_TOKEN_REVOKE: string;
         let ROSTER_EDIT: string;
         let ROW_INSERT: string;
         let EMAIL_VACANCY_NOTIFICATION: string;
