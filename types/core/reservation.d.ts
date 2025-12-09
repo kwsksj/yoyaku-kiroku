@@ -27,7 +27,15 @@ import type { UserCore } from './user';
  * };
  * ```
  */
-export interface ReservationCore {
+export interface AdminOperationParams {
+  /** 管理者操作かどうか（締切や権限チェックの緩和に利用） */
+  _isByAdmin?: boolean | undefined;
+
+  /** 管理者セッショントークン（管理操作時のみ） */
+  _adminToken?: string | null | undefined;
+}
+
+export interface ReservationCore extends AdminOperationParams {
   // ========================================
   // 必須プロパティ
   // ========================================
@@ -160,7 +168,7 @@ export interface ReservationCore {
  * };
  * ```
  */
-export interface CancelReservationParams {
+export interface CancelReservationParams extends AdminOperationParams {
   /** 予約ID（例: R-20251003-001） */
   reservationId: string;
 
@@ -169,4 +177,30 @@ export interface CancelReservationParams {
 
   /** キャンセル理由 */
   cancelMessage?: string | undefined;
+}
+
+/**
+ * 予約詳細更新用パラメータ（管理者操作対応）
+ */
+export interface UpdateReservationDetailsParams
+  extends Partial<ReservationCore>, AdminOperationParams {
+  reservationId: string;
+  studentId: string;
+}
+
+/**
+ * 待機予約確定用パラメータ（管理者操作対応）
+ */
+export interface ConfirmWaitlistedReservationParams extends AdminOperationParams {
+  reservationId: string;
+  studentId: string;
+  messageToTeacher?: string | undefined;
+}
+
+/**
+ * 会計処理用の予約データ（管理者操作対応）
+ */
+export interface ReservationCoreWithAccounting
+  extends ReservationCore, AdminOperationParams {
+  accountingDetails: AccountingDetailsCore;
 }

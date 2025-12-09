@@ -39,6 +39,7 @@ import {
   createHeaderMap,
   getCachedStudentById,
   logActivity,
+  getScriptProperties,
   normalizePhoneNumber,
   withTransaction,
 } from './08_Utilities.js';
@@ -64,6 +65,7 @@ const INVALID_PHONE_RESULT = {
  * @property {LessonCore[]} lessons
  * @property {ReservationCore[]} myReservations
  * @property {ParticipantsViewData} [participantData]
+ * @property {string} [adminToken]
  */
 
 // =================================================================
@@ -336,6 +338,141 @@ export function isAdminLogin(phone) {
     Logger.log(`isAdminLogin エラー: ${error.message}`);
     return false;
   }
+}
+
+/**
+ * 管理者セッショントークンを複数（最大4件）管理する
+ * 複数デバイスでの並行ログインを許可するため、最新を先頭に保持
+ */
+const ADMIN_SESSION_TOKENS_KEY = 'ADMIN_SESSION_TOKENS';
+/**
+ * 管理者セッショントークンの最大保持数
+ *
+ * 想定利用シーン:
+ * - スマートフォン（1台）
+ * - タブレット（1台）
+ * - PC（2台: 自宅とオフィス）
+ * 合計4デバイスまでの並行ログインを許可
+ *
+ * セキュリティ考慮:
+ * - 5台目以降は最古のトークンが自動失効
+ */
+const ADMIN_SESSION_TOKEN_LIMIT = 4;
+const ADMIN_SESSION_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7日
+
+/**
+ * 管理者セッショントークンリストを取得
+ * @returns {Array<{token: string, issuedAt: string, expiresAt: string}>}
+ */
+function getAdminSessionTokens() {
+  const props = getScriptProperties();
+  const raw = props.getProperty(ADMIN_SESSION_TOKENS_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      const now = Date.now();
+      return parsed
+        .filter(
+          t =>
+            t &&
+            typeof t.token === 'string' &&
+            typeof t.issuedAt === 'string' &&
+            typeof t.expiresAt === 'string' &&
+            Date.parse(t.expiresAt) > now,
+        )
+        .slice(0, ADMIN_SESSION_TOKEN_LIMIT);
+    }
+  } catch (e) {
+    Logger.log(`ADMIN_SESSION_TOKENSのパースに失敗: ${e.message}`);
+  }
+  return [];
+}
+
+/**
+ * トークンリストを保存（最大件数で切り詰め）
+ * @param {Array<{token: string, issuedAt: string}>} tokens
+ */
+function saveAdminSessionTokens(tokens) {
+  const props = getScriptProperties();
+  const trimmed = (tokens || []).slice(0, ADMIN_SESSION_TOKEN_LIMIT);
+  props.setProperty(ADMIN_SESSION_TOKENS_KEY, JSON.stringify(trimmed));
+}
+
+/**
+ * 管理者ログイン時にセッション用トークンを発行する
+ * 再ログイン時には新しいトークンを先頭に追加し、最大4件に制限
+ * @returns {string} adminToken
+ */
+export function issueAdminSessionToken() {
+  const token = Utilities.getUuid();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + ADMIN_SESSION_TOKEN_TTL_MS);
+  const tokens = getAdminSessionTokens();
+  tokens.unshift({
+    token,
+    issuedAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+  });
+  saveAdminSessionTokens(tokens);
+  logActivity(
+    'ADMIN',
+    '管理者トークン発行',
+    'システム',
+    `トークン発行（並行ログイン数: ${tokens.length}/${ADMIN_SESSION_TOKEN_LIMIT}）`,
+  );
+  return token;
+}
+
+/**
+ * 管理者トークンが有効か検証する
+ * @param {string | null | undefined} token
+ * @returns {boolean}
+ */
+export function validateAdminSessionToken(token) {
+  if (!token) {
+    logActivity('ADMIN', '管理者トークン検証', 'エラー', 'トークンが空');
+    return false;
+  }
+  const tokens = getAdminSessionTokens();
+  const now = Date.now();
+  const validTokens = tokens.filter(t => Date.parse(t.expiresAt) > now);
+  const isValid = validTokens.some(t => t.token === token);
+
+  // 不正データや超過分があれば保存し直す（軽いセルフヒーリング）
+  if (validTokens.length !== tokens.length) {
+    saveAdminSessionTokens(validTokens);
+  }
+
+  if (!isValid) {
+    logActivity('ADMIN', '管理者トークン検証', 'エラー', '無効なトークン');
+  }
+
+  return isValid;
+}
+
+/**
+ * 管理者ログアウト時にトークンを無効化
+ * @param {string} token
+ * @returns {boolean} 削除成功
+ */
+export function revokeAdminSessionToken(token) {
+  if (!token) return false;
+  const tokens = getAdminSessionTokens();
+  const filtered = tokens.filter(t => t.token !== token);
+  if (filtered.length !== tokens.length) {
+    saveAdminSessionTokens(filtered);
+    logActivity('ADMIN', '管理者トークン失効', 'システム', 'トークン削除');
+    return true;
+  }
+  return false;
+}
+
+/**
+ * すべての管理者トークンを無効化（緊急用）
+ */
+export function revokeAllAdminSessionTokens() {
+  saveAdminSessionTokens([]);
 }
 
 /**

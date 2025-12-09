@@ -118,12 +118,15 @@ const PARTICIPANT_TABLE_COLUMNS = [
 
       const badgesHtml = badges.length > 0 ? badges.join(' ') : '';
 
+      // レッスンIDがあれば渡す（プリロード用）
+      const lessonIdArg = row.lessonId ? `, '${escapeHTML(row.lessonId)}'` : '';
+
       return `
         <div>
           <div class="text-xs" align="center">
             <button
               class="text-action-primary font-bold text-center hover:opacity-80 hover:underline"
-              onclick="actionHandlers.selectParticipantStudent('${escapeHTML(row.studentId)}')"
+              onclick="actionHandlers.selectParticipantStudent('${escapeHTML(row.studentId)}'${lessonIdArg})"
             >
               ${escapeHTML(displayName)}
             </button>
@@ -346,7 +349,12 @@ function renderAccordionContent(
     .map(row => {
       const isPending =
         showPastLessons && row.status === CONSTANTS.STATUS.CONFIRMED;
-      const rowForRender = isPending ? { ...row, _pending: true } : row;
+      // レッスンIDを注入（プリロード用）
+      const rowForRender = {
+        ...row,
+        lessonId: _lesson.lessonId,
+        _pending: isPending,
+      };
 
       // 各列のHTMLを生成
       const columnsHtml = visibleColumns
@@ -402,7 +410,8 @@ function renderLessonList(lessons) {
   const reservationsMap = state.participantReservationsMap || {};
   const selectedClassroom = state.selectedParticipantClassroom || 'all';
   const showPastLessons = state.showPastLessons || false;
-  const isAdmin = state.participantIsAdmin || false;
+  const isAdmin =
+    state.participantIsAdmin || state.currentUser?.isAdmin || false;
 
   // 教室一覧を取得（重複を除く）
   const classrooms = [
@@ -688,10 +697,23 @@ function renderLessonList(lessons) {
         </button>
       `;
 
-      // 予約ボタン
-      const reserveButtonHtml = showPastLessons
-        ? ''
-        : `
+      // 予約ボタンまたは管理ボタン
+      let reserveButtonHtml;
+      if (isAdmin) {
+        // 管理者用「管理」ボタン（モーダルでリスト表示・編集）
+        reserveButtonHtml = `
+        <div class="pt-1 text-right px-2 pb-1">
+          <button class="bg-action-primary-bg text-white text-xs py-0.5 px-2 rounded hover:bg-action-primary-hover"
+                  data-action="showLessonParticipants"
+                  data-lesson-id="${lesson.lessonId}">
+            管理
+          </button>
+        </div>`;
+      } else {
+        // 通常ユーザー用「予約」ボタン
+        reserveButtonHtml = showPastLessons
+          ? ''
+          : `
         <div class="pt-1 text-right px-2 pb-1">
           <button class="bg-blue-500 text-white text-xs py-0.5 px-2 rounded hover:bg-blue-600"
                   data-action="goToReservationFormForLesson"
@@ -700,6 +722,7 @@ function renderLessonList(lessons) {
           </button>
         </div>
       `;
+      }
 
       // アコーディオンコンテンツ
       const accordionContent = `

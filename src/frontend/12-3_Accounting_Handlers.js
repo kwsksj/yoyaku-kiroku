@@ -1489,6 +1489,7 @@ export function processAccountingPayment(formData, result) {
     }
     const state = stateManager.getState();
     const selectedReservation = state.accountingReservation;
+    const adminToken = /** @type {any} */ (state.currentUser)?.adminToken || '';
 
     if (!selectedReservation) {
       showInfo('会計対象の予約が見つかりません。', 'エラー');
@@ -1517,6 +1518,8 @@ export function processAccountingPayment(formData, result) {
       workInProgress: formData.workInProgress, // フォームから更新された制作メモ
       startTime: formData.startTime, // フォームから更新された時間
       endTime: formData.endTime,
+      _isByAdmin: state.currentUser?.isAdmin || false, // 管理者フラグを注入（backendで日付チェック回避に使用）
+      _adminToken: adminToken,
     };
 
     // デバッグログ：最終ペイロード
@@ -1549,6 +1552,14 @@ export function processAccountingPayment(formData, result) {
               clearAccountingCache();
             }
 
+            const currentUser = stateManager.getState().currentUser;
+            const isAdmin = Boolean(currentUser && currentUser.isAdmin);
+            const lessonIdForCache =
+              selectedReservation.lessonId ||
+              state.accountingScheduleInfo?.lessonId ||
+              /** @type {any} */ (appWindow).adminContext?.lesson?.lessonId ||
+              '';
+
             // データを最新に更新
             if (response.data) {
               stateManager.dispatch({
@@ -1556,8 +1567,54 @@ export function processAccountingPayment(formData, result) {
                 payload: {
                   myReservations: response.data.myReservations || [],
                   lessons: response.data.lessons || [],
+                  // 参加者リストのキャッシュをクリア（一般ユーザーのみ）
+                  ...(isAdmin
+                    ? {}
+                    : {
+                        participantLessons: null,
+                        participantReservationsMap: null,
+                      }),
                 },
               });
+            }
+
+            // 管理者の場合は参加者リストをリロードして戻る
+            if (isAdmin) {
+              const cacheUpdater = /** @type {any} */ (appWindow)
+                .updateParticipantViewCacheFromReservation;
+              const participantCacheUpdate =
+                typeof cacheUpdater === 'function'
+                  ? cacheUpdater(
+                      lessonIdForCache
+                        ? {
+                            ...selectedReservation,
+                            ...reservationWithAccounting,
+                            lessonId: lessonIdForCache,
+                          }
+                        : null,
+                      'upsert',
+                    )
+                  : null;
+              const fallbackPayload = {
+                participantLessons:
+                  (response.data && response.data.lessons) ||
+                  state.participantLessons ||
+                  state.lessons ||
+                  null,
+                participantReservationsMap:
+                  state.participantReservationsMap || null,
+              };
+              // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
+              stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'participants',
+                  navigationHistory: [],
+                  ...(participantCacheUpdate || fallbackPayload),
+                },
+              });
+              showInfo(response.message || '会計情報を記録しました。');
+              return;
             }
 
             // 完了画面に遷移（会計完了として認識されるメッセージを使用）
@@ -1567,6 +1624,9 @@ export function processAccountingPayment(formData, result) {
                 view: 'complete',
                 completionMessage:
                   response.message || '会計情報を記録しました。',
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
               },
             });
           } else {

@@ -16,4 +16,7 @@ export namespace reservationActionHandlers {
     function confirmWaitlistedReservation(d: ActionHandlerData): void;
     function changeReservationDate(d: ActionHandlerData): void;
     function confirmDateChange(): void;
+    function showLessonParticipants(d: ActionHandlerData): void;
+    function goToAdminReservationForm(d: ActionHandlerData): void;
+    function showAdminAccounting(d: ActionHandlerData): void;
 }

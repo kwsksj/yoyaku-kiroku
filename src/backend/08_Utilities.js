@@ -26,6 +26,7 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
+import { validateAdminSessionToken } from './04_Backend_User.js';
 import {
   CACHE_KEYS,
   getCachedData,
@@ -90,6 +91,14 @@ export const PerformanceLog = {
     }
   },
 };
+
+/**
+ * ScriptPropertiesの取得を共通化
+ * @returns {GoogleAppsScript.Properties.Properties}
+ */
+export function getScriptProperties() {
+  return PropertiesService.getScriptProperties();
+}
 
 /**
  * 予約データの事前バリデーション（パフォーマンス最適化）
@@ -412,6 +421,38 @@ export function setupConditionalFormattingForLogSheet() {
 // ===================================================================
 // データ形式統一のためのユーティリティ関数群
 // ===================================================================
+
+/**
+ * 予約操作の権限バリデーションを行う共通関数
+ * @param {ReservationCore | null} reservation - 対象の予約オブジェクト
+ * @param {string} studentId - 操作を実行しようとしているユーザーのID
+ * @param {boolean} [isByAdmin=false] - 管理者による操作かどうか
+ * @param {string | null} [adminToken=null] - 管理者トークン
+ * @throws {Error} 権限がない場合や予約が存在しない場合にエラーをスロー
+ */
+export function validateUserOperation(
+  reservation,
+  studentId,
+  isByAdmin = false,
+  adminToken = null,
+) {
+  if (!reservation) {
+    throw new Error('予約が見つかりません。');
+  }
+
+  // 管理者フラグが立っている場合はトークン検証のうえ本人確認をスキップ
+  if (isByAdmin) {
+    if (!validateAdminSessionToken(adminToken)) {
+      throw new Error('管理者権限が確認できません。再ログインしてください。');
+    }
+    return;
+  }
+
+  // 生徒IDの一致確認（管理者以外）
+  if (reservation.studentId !== studentId) {
+    throw new Error('この予約を操作する権限がありません。');
+  }
+}
 
 /**
  * 配列形式の予約データをオブジェクト形式に変換

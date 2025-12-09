@@ -75,7 +75,10 @@ export const reservationActionHandlers = {
           document.getElementById('cancel-message')
         );
         const cancelMessage = cancelMessageInput?.value || '';
-        const currentUser = reservationStateManager.getState().currentUser;
+        const state = reservationStateManager.getState();
+        const currentUser = state.currentUser;
+        const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
+        const currentFormContext = state.currentReservationFormContext;
         if (!currentUser) {
           hideLoading();
           reservationStateManager.setDataFetchProgress(
@@ -84,10 +87,20 @@ export const reservationActionHandlers = {
           );
           return showInfo('ユーザー情報が見つかりません', 'エラー');
         }
+        const targetStudentId =
+          (currentUser.isAdmin &&
+            (currentFormContext?.reservationInfo?.studentId || d.studentId)) ||
+          d.studentId ||
+          currentUser.studentId ||
+          '';
+        const targetLessonId =
+          currentFormContext?.lessonInfo?.lessonId || d.lessonId || '';
         const p = {
           ...d,
-          studentId: currentUser.studentId,
+          studentId: targetStudentId,
           cancelMessage: cancelMessage,
+          _isByAdmin: currentUser.isAdmin || false,
+          _adminToken: adminToken,
         };
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
           hideLoading();
@@ -98,6 +111,40 @@ export const reservationActionHandlers = {
           );
 
           if (r.success) {
+            // 管理者の場合は参加者リストをリロードして戻る
+            if (currentUser.isAdmin) {
+              let participantCacheUpdate = null;
+              if (currentFormContext && targetLessonId) {
+                participantCacheUpdate =
+                  updateParticipantViewCacheFromReservation(
+                    /** @type {ReservationCore} */ ({
+                      ...currentFormContext.reservationInfo,
+                      reservationId:
+                        currentFormContext.reservationInfo?.reservationId ||
+                        d.reservationId ||
+                        '',
+                      lessonId: targetLessonId,
+                      status: CONSTANTS.STATUS.CANCELED,
+                    }),
+                    'remove',
+                  );
+              }
+              const fallbackPayload = getParticipantPayloadForAdminView(
+                r.data ? r.data.lessons : null,
+              );
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'participants',
+                  navigationHistory: [],
+                  ...(participantCacheUpdate || fallbackPayload),
+                },
+              });
+              refreshParticipantsViewForAdmin();
+              showInfo(r.message || '予約をキャンセルしました。');
+              return;
+            }
+
             if (r.data) {
               // 予約取り消し後は個人予約データのみ更新（講座データは既存のキャッシュを利用）
               const currentState = reservationStateManager.getState();
@@ -105,6 +152,9 @@ export const reservationActionHandlers = {
                 myReservations: r.data.myReservations || [],
                 view: 'dashboard',
                 isDataFresh: true,
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
               };
 
               // 講座データが提供された場合のみ更新
@@ -127,6 +177,9 @@ export const reservationActionHandlers = {
                 payload: {
                   view: 'dashboard',
                   isDataFresh: false,
+                  // 参加者リストのキャッシュをクリア
+                  participantLessons: null,
+                  participantReservationsMap: null,
                 },
               });
             }
@@ -253,6 +306,9 @@ export const reservationActionHandlers = {
             completionMessage: r.message,
             selectedClassroom: lessonInfo.classroom,
             isDataFresh: true,
+            // 参加者リストのキャッシュをクリア
+            participantLessons: null,
+            participantReservationsMap: null,
           };
 
           // 講座データの選択的更新
@@ -276,6 +332,9 @@ export const reservationActionHandlers = {
               completionMessage: r.message,
               selectedClassroom: lessonInfo.classroom,
               isDataFresh: false,
+              // 参加者リストのキャッシュをクリア
+              participantLessons: null,
+              participantReservationsMap: null,
             },
           });
         }
@@ -332,10 +391,12 @@ export const reservationActionHandlers = {
       };
 
       reservationStateManager.dispatch({
-        type: 'SET_STATE',
+        type: 'NAVIGATE',
         payload: {
-          view: 'reservationForm',
-          currentReservationFormContext: formContext,
+          to: 'reservationForm',
+          context: {
+            currentReservationFormContext: formContext,
+          },
         },
       });
     } else {
@@ -356,10 +417,12 @@ export const reservationActionHandlers = {
         };
 
         reservationStateManager.dispatch({
-          type: 'SET_STATE',
+          type: 'NAVIGATE',
           payload: {
-            view: 'reservationForm',
-            currentReservationFormContext: formContext,
+            to: 'reservationForm',
+            context: {
+              currentReservationFormContext: formContext,
+            },
           },
         });
 
@@ -399,6 +462,7 @@ export const reservationActionHandlers = {
     const validReservationInfo = /** @type {ReservationCore} */ (
       reservationInfo
     );
+    const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
     const startTime = getTimeValue(
       'res-start-time',
       validReservationInfo,
@@ -410,10 +474,16 @@ export const reservationActionHandlers = {
       'endTime',
     );
 
+    // 管理者の場合は対象の生徒IDを使用、それ以外は自身のID
+    const targetStudentId =
+      currentUser.isAdmin && validReservationInfo.studentId
+        ? validReservationInfo.studentId
+        : currentUser.studentId || '';
+
     const p = {
       reservationId: validReservationInfo.reservationId,
       classroom: validReservationInfo.classroom,
-      studentId: currentUser.studentId,
+      studentId: targetStudentId,
       chiselRental:
         /** @type {HTMLInputElement} */ (
           document.getElementById('option-rental')
@@ -437,6 +507,8 @@ export const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('material-input')
         )?.value || '',
+      _isByAdmin: currentUser.isAdmin || false,
+      _adminToken: adminToken,
     };
     showLoading('booking');
     // 予約更新処理中フラグを設定
@@ -452,6 +524,48 @@ export const reservationActionHandlers = {
         );
 
         if (r.success) {
+          // 管理者の場合は参加者リストに戻る
+
+          if (currentUser.isAdmin) {
+            // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
+            let participantCacheUpdate = null;
+            if (currentReservationFormContext?.lessonInfo?.lessonId) {
+              participantCacheUpdate =
+                updateParticipantViewCacheFromReservation(
+                  /** @type {ReservationCore} */ ({
+                    ...currentReservationFormContext.reservationInfo,
+                    ...p,
+                    lessonId:
+                      currentReservationFormContext.lessonInfo?.lessonId,
+                  }),
+                  'upsert',
+                );
+            }
+            const fallbackPayload = getParticipantPayloadForAdminView(
+              r.data ? r.data.lessons : null,
+            );
+
+            reservationStateManager.dispatch({
+              type: 'SET_STATE',
+
+              payload: {
+                view: 'participants',
+
+                navigationHistory: [],
+
+                ...(participantCacheUpdate || fallbackPayload),
+              },
+            });
+
+            refreshParticipantsViewForAdmin();
+
+            showInfo(
+              `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+            );
+
+            return;
+          }
+
           if (r.data) {
             // 予約更新後は個人予約データを優先的に更新
             const currentState = reservationStateManager.getState();
@@ -459,6 +573,9 @@ export const reservationActionHandlers = {
               myReservations: r.data.myReservations || [],
               view: 'dashboard',
               isDataFresh: true,
+              // 参加者リストのキャッシュをクリア
+              participantLessons: null,
+              participantReservationsMap: null,
             };
 
             // initialデータがある場合は追加
@@ -489,11 +606,14 @@ export const reservationActionHandlers = {
               payload: {
                 view: 'dashboard',
                 isDataFresh: false,
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
               },
             });
           }
           showInfo(
-            `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'}`,
+            `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
           );
         } else {
           showInfo(r.message || '更新に失敗しました。', 'エラー');
@@ -515,7 +635,7 @@ export const reservationActionHandlers = {
         });
         handleServerError(error);
       })
-      .updateReservationDetailsAndGetLatestData(p);
+      .updateReservationDetailsAndGetLatestData(/** @type {any} */ (p));
   },
 
   /** 新規予約のための教室選択モーダルを表示します */
@@ -719,10 +839,12 @@ export const reservationActionHandlers = {
       };
 
       reservationStateManager.dispatch({
-        type: 'SET_STATE',
+        type: 'NAVIGATE',
         payload: {
-          currentReservationFormContext: formContext,
-          view: 'reservationForm',
+          to: 'reservationForm',
+          context: {
+            currentReservationFormContext: formContext,
+          },
         },
       });
     } else {
@@ -798,11 +920,13 @@ export const reservationActionHandlers = {
       };
 
       reservationStateManager.dispatch({
-        type: 'SET_STATE',
+        type: 'NAVIGATE',
         payload: {
-          currentReservationFormContext: formContext,
-          view: 'reservationForm',
-          // isChangingReservationDateはformContext.sourceで判定できるのでリセットしない
+          to: 'reservationForm',
+          context: {
+            currentReservationFormContext: formContext,
+            // isChangingReservationDateはformContext.sourceで判定できるのでリセットしない
+          },
         },
       });
     } else {
@@ -910,7 +1034,9 @@ export const reservationActionHandlers = {
           document.getElementById('confirm-message')
         );
         const confirmMessage = confirmMessageInput?.value || '';
-        const currentUser = reservationStateManager.getState().currentUser;
+        const state = reservationStateManager.getState();
+        const currentUser = state.currentUser;
+        const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
         if (!currentUser) {
           hideLoading();
           reservationStateManager.setDataFetchProgress(
@@ -919,10 +1045,35 @@ export const reservationActionHandlers = {
           );
           return showInfo('ユーザー情報が見つかりません', 'エラー');
         }
+        const currentFormContext = state.currentReservationFormContext;
+        const adminContextReservations =
+          /** @type {any} */ (appWindow).adminContext?.reservations || [];
+        const targetReservation =
+          currentFormContext?.reservationInfo ||
+          (state.myReservations || []).find(
+            (/** @type {ReservationCore} */ r) =>
+              r.reservationId === d.reservationId,
+          ) ||
+          adminContextReservations.find(
+            (/** @type {ReservationCore} */ r) =>
+              r.reservationId === d.reservationId,
+          );
+        const targetLessonId =
+          currentFormContext?.lessonInfo?.lessonId ||
+          targetReservation?.lessonId ||
+          d.lessonId ||
+          '';
+        const targetStudentId =
+          (currentUser.isAdmin && targetReservation?.studentId) ||
+          currentUser.studentId ||
+          '';
         const p = {
           ...d,
-          studentId: currentUser.studentId,
+          lessonId: targetLessonId || d.lessonId,
+          studentId: targetStudentId,
           messageToTeacher: confirmMessage,
+          _isByAdmin: currentUser.isAdmin || false,
+          _adminToken: adminToken,
         };
 
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
@@ -933,6 +1084,46 @@ export const reservationActionHandlers = {
             false,
           );
           if (r.success) {
+            // 管理者の場合は参加者リストをリロードして戻る
+            if (currentUser.isAdmin) {
+              // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
+              const updatedFromResponse =
+                (r.data?.myReservations || []).find(
+                  (/** @type {ReservationCore} */ res) =>
+                    res.reservationId === d.reservationId,
+                ) ||
+                (targetReservation && targetLessonId
+                  ? {
+                      ...targetReservation,
+                      lessonId: targetLessonId,
+                      status: CONSTANTS.STATUS.CONFIRMED,
+                      messageToTeacher: confirmMessage,
+                    }
+                  : null);
+              const participantCacheUpdate =
+                updateParticipantViewCacheFromReservation(
+                  updatedFromResponse,
+                  'upsert',
+                );
+              const fallbackPayload = getParticipantPayloadForAdminView(
+                r.data ? r.data.lessons : null,
+              );
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'participants',
+                  navigationHistory: [],
+                  ...(participantCacheUpdate || fallbackPayload),
+                },
+              });
+              showInfo(
+                '空き通知希望から予約への変更が完了しました。',
+                '予約確定',
+              );
+              refreshParticipantsViewForAdmin();
+              return;
+            }
+
             // 予約確定成功のモーダル表示
             showInfo(
               '空き通知希望から予約への変更が完了しました。',
@@ -946,6 +1137,9 @@ export const reservationActionHandlers = {
                 myReservations: r.data.myReservations || [],
                 view: 'dashboard',
                 isDataFresh: true,
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
               };
               // 講座データが提供された場合のみ更新
               if (r.data.lessons && r.data.lessons.length > 0) {
@@ -969,6 +1163,9 @@ export const reservationActionHandlers = {
                   view: 'complete',
                   completionMessage: r.message,
                   isDataFresh: false,
+                  // 参加者リストのキャッシュをクリア
+                  participantLessons: null,
+                  participantReservationsMap: null,
                 },
               });
             }
@@ -1023,15 +1220,64 @@ export const reservationActionHandlers = {
       return;
     }
 
-    // 予約画面に遷移
-    reservationStateManager.dispatch({
-      type: 'SET_STATE',
-      payload: {
-        view: 'bookingLessons',
-        selectedClassroom: d.classroom || '',
-        isChangingReservationDate: true,
-      },
-    });
+    const targetStudentId =
+      currentContext.reservationInfo?.studentId ||
+      state.currentUser?.studentId ||
+      '';
+    if (!targetStudentId) {
+      showInfo('生徒IDが取得できません。', 'エラー');
+      return;
+    }
+
+    const targetClassroom =
+      d.classroom || currentContext.lessonInfo?.classroom || '';
+
+    // 対象生徒の最新レッスン・予約を取得してから遷移（一般ユーザーと同じルートに揃える）
+    showLoading('booking');
+    google.script.run
+      .withSuccessHandler((/** @type {BatchDataResponse} */ response) => {
+        hideLoading();
+        if (response.success && response.data) {
+          reservationStateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              view: 'bookingLessons',
+              selectedClassroom: targetClassroom,
+              isChangingReservationDate: true,
+              lessons: response.data.lessons || state.lessons,
+              myReservations:
+                response.data.myReservations || state.myReservations,
+              isDataFresh: true,
+            },
+          });
+        } else {
+          showInfo(
+            response.message || '最新データの取得に失敗しました。',
+            'エラー',
+          );
+          reservationStateManager.dispatch({
+            type: 'SET_STATE',
+            payload: {
+              view: 'bookingLessons',
+              selectedClassroom: targetClassroom,
+              isChangingReservationDate: true,
+            },
+          });
+        }
+      })
+      .withFailureHandler(() => {
+        hideLoading();
+        showInfo('最新データの取得に失敗しました。', 'エラー');
+        reservationStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            view: 'bookingLessons',
+            selectedClassroom: targetClassroom,
+            isChangingReservationDate: true,
+          },
+        });
+      })
+      .getBatchData(['lessons', 'reservations'], null, targetStudentId);
   },
 
   /**
@@ -1087,6 +1333,7 @@ export const reservationActionHandlers = {
 
         // 新規予約データを構築
         const currentUser = reservationStateManager.getState().currentUser;
+        const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
         if (!currentUser) {
           hideLoading();
           showInfo('ユーザー情報が見つかりません。', 'エラー');
@@ -1098,7 +1345,10 @@ export const reservationActionHandlers = {
           reservationId: '', // 新規予約のため空文字列
           status: '', // バックエンドで設定される
           lessonId: String(ctx.lessonInfo.lessonId || ''),
-          studentId: currentUser.studentId || '',
+          studentId:
+            (currentUser.isAdmin && originalReservation?.studentId) ||
+            currentUser.studentId ||
+            '',
           classroom: ctx.lessonInfo.classroom,
           date: String(ctx.lessonInfo.date),
           startTime:
@@ -1133,6 +1383,8 @@ export const reservationActionHandlers = {
             /** @type {HTMLTextAreaElement | null} */ (
               document.getElementById('message-input')
             )?.value || '',
+          _isByAdmin: currentUser.isAdmin || false,
+          _adminToken: adminToken,
         };
 
         // バックエンドAPIを呼び出し（新規予約 + 旧予約キャンセル）
@@ -1142,7 +1394,87 @@ export const reservationActionHandlers = {
             sessionStorage.removeItem('changingReservation'); // クリーンアップ
 
             if (response.success) {
-              // 成功時は最新データで状態を更新
+              if (currentUser.isAdmin) {
+                const newLessonId = String(ctx.lessonInfo.lessonId || '');
+                const oldLessonId = String(
+                  originalReservation.lessonId || newLessonId,
+                );
+                const newReservationFromResponse = (
+                  response.data?.myReservations || []
+                ).find(
+                  (/** @type {ReservationCore} */ r) =>
+                    String(r.lessonId) === newLessonId,
+                );
+
+                const basePersonInfo = /** @type {any} */ (
+                  originalReservation
+                    ? {
+                        realName: originalReservation.realName,
+                        nickname: originalReservation.nickname,
+                        displayName: originalReservation.displayName,
+                        phone: originalReservation.phone,
+                        email: originalReservation.email,
+                        ageGroup: originalReservation.ageGroup,
+                        gender: originalReservation.gender,
+                        address: originalReservation.address,
+                        messageToTeacher: originalReservation.messageToTeacher,
+                        notes: originalReservation.notes,
+                      }
+                    : {}
+                );
+
+                let participantCacheUpdate = null;
+                if (oldLessonId) {
+                  participantCacheUpdate =
+                    updateParticipantViewCacheFromReservation(
+                      /** @type {ReservationCore} */ ({
+                        ...originalReservation,
+                        reservationId: originalReservationId,
+                        lessonId: oldLessonId,
+                        status:
+                          originalReservation.status ||
+                          CONSTANTS.STATUS.CANCELED,
+                      }),
+                      'remove',
+                    );
+                }
+                if (newReservationFromResponse) {
+                  const reservationForCache = /** @type {ReservationCore} */ ({
+                    ...basePersonInfo,
+                    ...newReservationFromResponse,
+                    lessonId: newLessonId,
+                  });
+                  participantCacheUpdate =
+                    updateParticipantViewCacheFromReservation(
+                      reservationForCache,
+                      'upsert',
+                      participantCacheUpdate
+                        ? participantCacheUpdate.participantReservationsMap
+                        : undefined,
+                      participantCacheUpdate
+                        ? participantCacheUpdate.participantLessons
+                        : undefined,
+                    );
+                }
+                const fallbackPayload = getParticipantPayloadForAdminView(
+                  response.data ? response.data.lessons : null,
+                );
+
+                reservationStateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: {
+                    view: 'participants',
+                    navigationHistory: [],
+                    isChangingReservationDate: false,
+                    ...(participantCacheUpdate || fallbackPayload),
+                  },
+                });
+                refreshParticipantsViewForAdmin();
+                showInfo(response.message || '参加日を変更しました。');
+                return;
+              }
+
+              // 成功時は最新データで状態を更新（一般ユーザー）
               if (response.data) {
                 const updatedPayload = /** @type {AppState} */ (
                   /** @type {unknown} */ (response.data)
@@ -1152,6 +1484,12 @@ export const reservationActionHandlers = {
                   /** @type {any} */ (updatedPayload).lessons =
                     currentState.lessons;
                 }
+                // 参加者リストのキャッシュをクリア（一般ユーザーも次回再取得させる）
+                /** @type {any} */ (updatedPayload).participantLessons = null;
+                /** @type {any} */ (updatedPayload).participantReservationsMap =
+                  null;
+                /** @type {any} */ (updatedPayload).participantData = null;
+
                 reservationStateManager.dispatch({
                   type: 'SET_STATE',
                   payload: updatedPayload,
@@ -1166,6 +1504,10 @@ export const reservationActionHandlers = {
                   completionMessage:
                     response.message || '参加日を変更しました。',
                   isChangingReservationDate: false, // 日程変更モードをリセット
+                  // 参加者リストのキャッシュをクリア（一般ユーザーも次回再取得させる）
+                  participantLessons: null,
+                  participantReservationsMap: null,
+                  participantData: null,
                 },
               });
             } else {
@@ -1201,4 +1543,401 @@ export const reservationActionHandlers = {
       },
     });
   },
+
+  /**
+   * 管理者用：レッスンの参加者一覧を表示します。
+   * @param {ActionHandlerData} d - レッスン情報を含むデータ
+   */
+  showLessonParticipants: d => {
+    const lessonId = d.lessonId;
+    const state = reservationStateManager.getState();
+    const currentUser = state.currentUser;
+
+    if (!currentUser || !currentUser.isAdmin) {
+      showInfo('管理者権限が必要です。', 'エラー');
+      return;
+    }
+
+    // レッスン情報を特定
+    const lessonsCandidates = [
+      ...(state.participantLessons || []),
+      ...(state.lessons || []),
+      ...(state['participantData']?.lessons || []),
+    ];
+    let lesson = lessonsCandidates.find(l => l.lessonId === lessonId) || null;
+
+    // 予約データから最低限のレッスン情報を復元（過去データなどでlessonsに存在しない場合）
+    if (!lesson) {
+      const fallbackReservation =
+        state['participantReservationsMap']?.[String(lessonId)]?.[0];
+      if (fallbackReservation) {
+        lesson = {
+          lessonId: lessonId,
+          classroom: fallbackReservation.classroom || '',
+          date: String(fallbackReservation.date || ''),
+          venue: fallbackReservation.venue || '',
+        };
+      }
+    }
+
+    if (!lesson) {
+      showInfo('レッスン情報が見つかりません。', 'エラー');
+      return;
+    }
+
+    // 1. プリロードされたデータを確認 (高速表示)
+
+    // Dashboardビュー（participantData）またはParticipantビュー（participantReservationsMap）から取得
+
+    const preloadedReservations =
+      state['participantData']?.reservationsMap?.[String(lessonId)] ||
+      state['participantReservationsMap']?.[String(lessonId)];
+
+    if (preloadedReservations) {
+      console.log('⚡ Using preloaded participant data for lesson:', lessonId);
+
+      // 再描画を防ぐため、Stateではなくグローバルコンテキストに一時保存
+
+      /** @type {any} */ (appWindow).adminContext = {
+        reservations: preloadedReservations,
+
+        lesson: lesson,
+      };
+
+      _showParticipantListModal(preloadedReservations, lesson);
+
+      return;
+    }
+
+    // 2. プリロードがない場合はサーバーから取得
+
+    showLoading('participants');
+
+    google.script.run
+
+      .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
+        hideLoading();
+
+        if (response.success && response.data) {
+          const reservations = response.data.reservations || [];
+
+          const fetchedLesson = response.data.lesson || lesson;
+
+          // 再描画を防ぐため、Stateではなくグローバルコンテキストに一時保存
+
+          /** @type {any} */ (appWindow).adminContext = {
+            reservations: reservations,
+
+            lesson: fetchedLesson,
+          };
+
+          _showParticipantListModal(reservations, fetchedLesson);
+        } else {
+          showInfo('参加者情報の取得に失敗しました。', 'エラー');
+        }
+      })
+
+      .withFailureHandler((/** @type {Error} */ error) => {
+        hideLoading();
+
+        handleServerError(error);
+      })
+
+      .getReservationsForLesson(lessonId, 'ADMIN');
+  },
+
+  /**
+
+           * 管理者用：予約編集画面へ遷移
+
+           * @param {ActionHandlerData} d
+
+           */
+
+  goToAdminReservationForm: d => {
+    const reservationId = d.reservationId;
+
+    // グローバルコンテキストからデータを取得
+
+    const context = /** @type {any} */ (appWindow).adminContext || {};
+
+    const reservations = context.reservations || [];
+
+    const reservation = reservations.find(
+      (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+    );
+
+    const lesson = context.lesson;
+
+    if (reservation && lesson) {
+      // モーダルを閉じる
+
+      Components.closeModal('participant-list-modal');
+
+      const formContext = {
+        lessonInfo: lesson,
+
+        reservationInfo: reservation,
+      };
+
+      reservationStateManager.dispatch({
+        type: 'NAVIGATE',
+
+        payload: {
+          to: 'reservationForm',
+
+          context: {
+            currentReservationFormContext: formContext,
+          },
+        },
+      });
+    } else {
+      showInfo('予約情報が見つかりません', 'エラー');
+    }
+  },
+
+  /**
+
+           * 管理者用：会計画面へ遷移
+
+           * @param {ActionHandlerData} d
+
+           */
+
+  showAdminAccounting: d => {
+    const reservationId = d.reservationId;
+
+    // グローバルコンテキストからデータを取得
+
+    const context = /** @type {any} */ (appWindow).adminContext || {};
+
+    const reservations = context.reservations || [];
+
+    const reservation = reservations.find(
+      (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
+    );
+
+    if (reservation) {
+      // モーダルを閉じる
+
+      Components.closeModal('participant-list-modal');
+
+      // accountingReservationを設定して画面遷移
+
+      reservationStateManager.dispatch({
+        type: 'NAVIGATE',
+
+        payload: {
+          to: 'accounting',
+
+          context: {
+            accountingReservation: reservation,
+          },
+        },
+      });
+    } else {
+      showInfo('予約情報が見つかりません', 'エラー');
+    }
+  },
 };
+
+/**
+ * 管理者操作後に参加者リストキャッシュを部分更新する
+ * @param {ReservationCore & {lessonId?: string}} reservation
+ * @param {'remove'|'upsert'} [mode='upsert']
+ * @param {Record<string, any[]>} [baseMap]
+ * @param {LessonCore[] | null} [baseLessons]
+ * @returns {Partial<UIState> | null}
+ */
+function updateParticipantViewCacheFromReservation(
+  reservation,
+  mode = 'upsert',
+  baseMap = undefined,
+  baseLessons = undefined,
+) {
+  if (!reservation || !reservation.reservationId) return null;
+  const lessonIdSafe = reservation.lessonId ? String(reservation.lessonId) : '';
+  if (!lessonIdSafe) return null;
+
+  const state = reservationStateManager.getState();
+  const participantLessons =
+    baseLessons ||
+    (state.participantLessons && state.participantLessons.length > 0
+      ? state.participantLessons
+      : state.lessons) ||
+    null;
+
+  const currentMap = baseMap || state.participantReservationsMap || {};
+  const existingList = currentMap[lessonIdSafe]
+    ? [...currentMap[lessonIdSafe]]
+    : [];
+  const targetIndex = existingList.findIndex(
+    (/** @type {any} */ r) => r.reservationId === reservation.reservationId,
+  );
+
+  if (mode === 'remove') {
+    if (targetIndex !== -1) {
+      existingList.splice(targetIndex, 1);
+    }
+  } else {
+    const base = targetIndex !== -1 ? existingList[targetIndex] : {};
+    const merged = { ...base, ...reservation, lessonId: lessonIdSafe };
+    [
+      'realName',
+      'nickname',
+      'displayName',
+      'phone',
+      'email',
+      'ageGroup',
+      'gender',
+      'address',
+      'messageToTeacher',
+      'notes',
+    ].forEach(key => {
+      if (merged[key] === undefined && base && base[key]) {
+        merged[key] = base[key];
+      }
+    });
+
+    if (targetIndex !== -1) {
+      existingList[targetIndex] = merged;
+    } else {
+      existingList.push(merged);
+    }
+  }
+
+  const updatedMap = { ...currentMap };
+  if (existingList.length > 0) {
+    updatedMap[lessonIdSafe] = existingList;
+  } else {
+    delete updatedMap[lessonIdSafe];
+  }
+
+  const adminContext = /** @type {any} */ (appWindow).adminContext;
+  if (
+    adminContext &&
+    adminContext.lesson &&
+    adminContext.lesson.lessonId === lessonIdSafe
+  ) {
+    adminContext.reservations = existingList;
+  }
+
+  return {
+    participantLessons: participantLessons,
+    participantReservationsMap: updatedMap,
+  };
+}
+
+/**
+ * 管理者戻り用の参加者リストペイロードを作成（既存データを優先）
+ * @param {LessonCore[] | null | undefined} responseLessons
+ * @returns {Partial<UIState>}
+ */
+function getParticipantPayloadForAdminView(responseLessons) {
+  const state = reservationStateManager.getState();
+  return {
+    participantLessons:
+      responseLessons || state.participantLessons || state.lessons || null,
+    participantReservationsMap: state.participantReservationsMap || {},
+  };
+}
+
+/** @type {any} */ (appWindow).updateParticipantViewCacheFromReservation =
+  /** @type {any} */ (appWindow).updateParticipantViewCacheFromReservation ||
+  updateParticipantViewCacheFromReservation;
+
+/**
+ * 管理者操作後に参加者ビューを最新化するヘルパー
+ */
+function refreshParticipantsViewForAdmin() {
+  const handler =
+    /** @type {any} */ (appWindow).participantActionHandlers ||
+    /** @type {any} */ (window).participantActionHandlers;
+  if (handler && typeof handler.loadParticipantView === 'function') {
+    const state = reservationStateManager.getState();
+    handler.loadParticipantView(
+      true,
+      true,
+      null,
+      state.showPastLessons || false,
+    );
+  }
+}
+
+/**
+ * 参加者リストモーダルを表示するヘルパー関数
+ * @param {ReservationCore[]} reservations
+ * @param {LessonCore} lesson
+ */
+function _showParticipantListModal(reservations, lesson) {
+  // formatDateを使うとHTMLタグが含まれるため、テキストのみの日付を作成
+  const dateObj = new Date(String(lesson.date));
+  const dateFormatted = isNaN(dateObj.getTime())
+    ? ''
+    : `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+
+  const rows = reservations
+    .map(r => {
+      // 管理者用プロパティへのアクセス用にキャスト
+      const adminR = /** @type {any} */ (r);
+      const name = adminR.realName
+        ? `${adminR.realName} (${adminR.nickname})`
+        : adminR.nickname || '不明';
+      const status = r.status;
+      const time = r.startTime ? `${r.startTime}~${r.endTime}` : '';
+
+      return `
+      <div class="flex items-center justify-between p-3 border-b border-ui-border">
+        <div>
+          <div class="font-bold text-brand-text">${name}</div>
+          <div class="text-sm text-brand-subtle">${status} ${time}</div>
+        </div>
+        <div class="flex space-x-2">
+          ${Components.button({
+            text: '編集',
+            action: 'goToAdminReservationForm',
+            style: 'secondary',
+            size: 'small',
+            dataAttributes: { reservationId: r.reservationId },
+          })}
+          ${Components.button({
+            text: '会計',
+            action: 'showAdminAccounting',
+            style: 'primary',
+            size: 'small',
+            dataAttributes: { reservationId: r.reservationId },
+          })}
+        </div>
+      </div>
+    `;
+    })
+    .join('');
+
+  const content = `
+    <div class="max-h-[60vh] overflow-y-auto">
+      ${rows.length > 0 ? rows : '<p class="p-4 text-center text-brand-subtle">予約はありません</p>'}
+    </div>
+    <div class="p-4 border-t border-ui-border">
+      ${Components.button({
+        text: '閉じる',
+        action: 'closeModal',
+        style: 'secondary',
+        size: 'full',
+        dataAttributes: { modalId: 'participant-list-modal' },
+      })}
+    </div>
+  `;
+
+  const modalHtml = Components.modal({
+    id: 'participant-list-modal',
+    title: `${dateFormatted} ${lesson.classroom} 参加者`,
+    content: content,
+  });
+
+  // Remove existing if any
+  const existing = document.getElementById('participant-list-modal');
+  if (existing) existing.remove();
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  Components.showModal('participant-list-modal');
+}
