@@ -474,6 +474,19 @@ window.onload = function () {
     /** モーダルのキャンセルボタンを押したときの処理です */
     modalCancel: () => windowTyped.ModalManager.hide(),
 
+    /** 任意のモーダルを閉じる */
+    closeModal: (/** @type {HTMLElement | null} */ element) => {
+      const modalId =
+        (element && element.dataset && element.dataset['modalId']) ||
+        (element && typeof element.getAttribute === 'function'
+          ? element.getAttribute('data-modal-id')
+          : null) ||
+        null;
+      if (modalId) {
+        Components.closeModal(modalId);
+      }
+    },
+
     // =================================================================
     // --- Authentication Handlers (from 14_WebApp_Handlers_Auth.js) ---
     // -----------------------------------------------------------------

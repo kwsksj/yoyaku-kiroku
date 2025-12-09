@@ -1919,7 +1919,7 @@ function _showParticipantListModal(reservations, lesson) {
     </div>
     <div class="p-4 border-t border-ui-border">
       ${Components.button({
-        text: '閉じる',
+        text: 'もどる',
         action: 'closeModal',
         style: 'secondary',
         size: 'full',

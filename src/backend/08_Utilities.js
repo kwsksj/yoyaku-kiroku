@@ -265,7 +265,7 @@ export function logActivity(userId, action, result, optionsOrDetails) {
         if (typeof details === 'object') {
           try {
             detailsValue = JSON.stringify(details, null, 2);
-          } catch (e) {
+          } catch (_e) {
             detailsValue = String(details);
           }
         } else {
