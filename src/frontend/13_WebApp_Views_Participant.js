@@ -878,31 +878,24 @@ function renderStudentDetailModalContent(student, isAdmin) {
               // ステータスバッジの生成
               let statusBadge = '';
               if (res.status) {
-                const statusText =
-                  res.status === CONSTANTS.STATUS.CONFIRMED
-                    ? '確定'
-                    : res.status === CONSTANTS.STATUS.COMPLETED
-                      ? '完了'
-                      : res.status === CONSTANTS.STATUS.CANCELED
-                        ? 'キャンセル'
-                        : res.status === CONSTANTS.STATUS.WAITLISTED
-                          ? '待機'
-                          : res.status;
+                /** @type {Record<string, {text: string, color: 'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'}>} */
+                const statusMap = {
+                  [CONSTANTS.STATUS.CONFIRMED]: { text: '確定', color: 'blue' },
+                  [CONSTANTS.STATUS.COMPLETED]: { text: '完了', color: 'green' },
+                  [CONSTANTS.STATUS.CANCELED]: { text: 'キャンセル', color: 'gray' },
+                  [CONSTANTS.STATUS.WAITLISTED]: { text: '待機', color: 'yellow' },
+                };
 
-                const statusColor =
-                  res.status === CONSTANTS.STATUS.CONFIRMED
-                    ? 'blue'
-                    : res.status === CONSTANTS.STATUS.COMPLETED
-                      ? 'green'
-                      : res.status === CONSTANTS.STATUS.CANCELED
-                        ? 'gray'
-                        : res.status === CONSTANTS.STATUS.WAITLISTED
-                          ? 'yellow'
-                          : 'gray';
+                const statusInfo = statusMap[res.status] || {
+                  text: res.status,
+                  color: /** @type {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} */ (
+                    'gray'
+                  ),
+                };
 
                 statusBadge = Components.badge({
-                  text: statusText,
-                  color: statusColor,
+                  text: statusInfo.text,
+                  color: statusInfo.color,
                   size: 'xs',
                 });
               }

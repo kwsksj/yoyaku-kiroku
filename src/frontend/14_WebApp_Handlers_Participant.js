@@ -343,10 +343,20 @@ function selectParticipantStudent(targetStudentId, lessonId) {
   if (state.participantReservationsMap && state.participantLessons) {
     console.log(`✅ プリロードデータから予約履歴を生成: ${targetStudentId}`);
 
-    // 全レッスンから該当生徒の予約を抽出
-    /** @type {any[]} */
+    /**
+     * @typedef {object} ReservationHistoryItem
+     * @property {string} date
+     * @property {string} classroom
+     * @property {string} venue
+     * @property {string} startTime
+     * @property {string} endTime
+     * @property {string} status
+     * @property {string} workInProgress
+     * @property {Date} _dateObj
+     */
+    /** @type {ReservationHistoryItem[]} */
     const reservationHistory = [];
-    /** @type {Record<string, any>} */
+    /** @type {Record<string, import('../../types/core/lesson').LessonCore>} */
     const lessonsMap = {};
 
     // レッスン情報をマップ化
@@ -354,25 +364,40 @@ function selectParticipantStudent(targetStudentId, lessonId) {
       lessonsMap[lesson.lessonId] = lesson;
     });
 
-    // 全レッスンの予約データから該当生徒の予約を検索
+    // 全レッスンの予約データから該当生徒の予約を検索し、基本情報を取得
     const reservationsMap = state.participantReservationsMap;
+    /** @type {import('../../types/core/reservation').ReservationCore | null} */
+    let firstFoundReservation = null;
     Object.keys(reservationsMap).forEach(lessonId => {
       const lessonReservations = reservationsMap[lessonId];
       const studentReservation = lessonReservations.find(
-        (/** @type {any} */ r) => r.studentId === targetStudentId,
+        (/** @type {import('../../types/core/reservation').ReservationCore} */ r) =>
+          r.studentId === targetStudentId,
       );
 
       if (studentReservation) {
+        if (!firstFoundReservation) {
+          firstFoundReservation = studentReservation;
+        }
         const lesson = lessonsMap[lessonId];
+        // dateが文字列でない場合は空文字列にフォールバック
+        const reservationDate = studentReservation.date;
+        const lessonDate = lesson?.date;
+        const dateStr =
+          typeof reservationDate === 'string'
+            ? reservationDate
+            : typeof lessonDate === 'string'
+              ? lessonDate
+              : '';
         reservationHistory.push({
-          date: studentReservation.date || lesson?.date || '',
+          date: dateStr,
           classroom: lesson?.classroom || '',
           venue: lesson?.venue || '',
           startTime: studentReservation.startTime || '',
           endTime: studentReservation.endTime || '',
           status: studentReservation.status,
           workInProgress: studentReservation.workInProgress || '',
-          _dateObj: new Date(studentReservation.date || lesson?.date || ''),
+          _dateObj: new Date(dateStr),
         });
       }
     });
@@ -388,25 +413,16 @@ function selectParticipantStudent(targetStudentId, lessonId) {
       return rest;
     });
 
-    // 基本情報を取得（最初に見つかった予約データから）
+    // 基本情報を取得（指定されたlessonIdを優先し、なければ最初に見つかった予約データから）
     let targetReservation = null;
     if (lessonId && state.participantReservationsMap[lessonId]) {
       targetReservation = state.participantReservationsMap[lessonId].find(
-        (/** @type {any} */ r) => r.studentId === targetStudentId,
+        (/** @type {import('../../types/core/reservation').ReservationCore} */ r) =>
+          r.studentId === targetStudentId,
       );
     }
-
-    // lessonIdが指定されていない、または見つからない場合は、全レッスンから検索
     if (!targetReservation) {
-      for (const lid of Object.keys(state.participantReservationsMap)) {
-        const found = state.participantReservationsMap[lid].find(
-          (/** @type {any} */ r) => r.studentId === targetStudentId,
-        );
-        if (found) {
-          targetReservation = found;
-          break;
-        }
-      }
+      targetReservation = firstFoundReservation;
     }
 
     if (targetReservation) {
