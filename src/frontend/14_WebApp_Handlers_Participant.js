@@ -339,24 +339,104 @@ function selectParticipantStudent(targetStudentId, lessonId) {
     return;
   }
 
-  // 1. プリロードデータ（現在表示中のリスト）からの検索
-  if (lessonId && state.participantReservationsMap) {
-    const lessonReservations = state.participantReservationsMap[lessonId];
-    if (lessonReservations) {
-      const targetReservation = lessonReservations.find(
-        (/** @type {any} */ r) => r.studentId === targetStudentId,
+  // 1. プリロードデータから予約履歴を生成
+  if (state.participantReservationsMap && state.participantLessons) {
+    console.log(`✅ プリロードデータから予約履歴を生成: ${targetStudentId}`);
+
+    /**
+     * @typedef {object} ReservationHistoryItem
+     * @property {string} date
+     * @property {string} classroom
+     * @property {string} venue
+     * @property {string} startTime
+     * @property {string} endTime
+     * @property {string} status
+     * @property {string} workInProgress
+     * @property {Date} _dateObj
+     */
+    /** @type {ReservationHistoryItem[]} */
+    const reservationHistory = [];
+    /** @type {Record<string, import('../../types/core/lesson').LessonCore>} */
+    const lessonsMap = {};
+
+    // レッスン情報をマップ化
+    state.participantLessons.forEach(lesson => {
+      lessonsMap[lesson.lessonId] = lesson;
+    });
+
+    // 全レッスンの予約データから該当生徒の予約を検索し、基本情報を取得
+    const reservationsMap = state.participantReservationsMap;
+    /** @type {import('../../types/core/reservation').ReservationCore | null} */
+    let firstFoundReservation = null;
+    Object.keys(reservationsMap).forEach(lessonId => {
+      const lessonReservations = reservationsMap[lessonId];
+      const studentReservation = lessonReservations.find(
+        (/** @type {import('../../types/core/reservation').ReservationCore} */ r) =>
+          r.studentId === targetStudentId,
       );
-      if (targetReservation) {
-        console.log(`✅ プリロードデータ使用: ${targetStudentId}`);
-        // プリロードデータはReservationCore拡張型なので、UserCore互換の部分を使用
-        // 足りない情報（過去の履歴など）は妥協するか、必要なら別途取得するが、
-        // "すぐ表示"の要件を満たすためこれを使用する
-        showStudentModal(targetReservation, state.participantIsAdmin || false);
-        return;
+
+      if (studentReservation) {
+        if (!firstFoundReservation) {
+          firstFoundReservation = studentReservation;
+        }
+        const lesson = lessonsMap[lessonId];
+        // dateが文字列でない場合は空文字列にフォールバック
+        const reservationDate = studentReservation.date;
+        const lessonDate = lesson?.date;
+        const dateStr =
+          typeof reservationDate === 'string'
+            ? reservationDate
+            : typeof lessonDate === 'string'
+              ? lessonDate
+              : '';
+        reservationHistory.push({
+          date: dateStr,
+          classroom: lesson?.classroom || '',
+          venue: lesson?.venue || '',
+          startTime: studentReservation.startTime || '',
+          endTime: studentReservation.endTime || '',
+          status: studentReservation.status,
+          workInProgress: studentReservation.workInProgress || '',
+          _dateObj: new Date(dateStr),
+        });
       }
+    });
+
+    // 日付順にソート（新しい順）
+    reservationHistory.sort(
+      (a, b) => b._dateObj.getTime() - a._dateObj.getTime(),
+    );
+
+    // 内部フィールドを削除
+    const cleanedHistory = reservationHistory.map(item => {
+      const { _dateObj, ...rest } = item;
+      return rest;
+    });
+
+    // 基本情報を取得（指定されたlessonIdを優先し、なければ最初に見つかった予約データから）
+    let targetReservation = null;
+    if (lessonId && state.participantReservationsMap[lessonId]) {
+      targetReservation = state.participantReservationsMap[lessonId].find(
+        (/** @type {import('../../types/core/reservation').ReservationCore} */ r) =>
+          r.studentId === targetStudentId,
+      );
+    }
+    if (!targetReservation) {
+      targetReservation = firstFoundReservation;
+    }
+
+    if (targetReservation) {
+      // 予約履歴を追加
+      const studentData = {
+        ...targetReservation,
+        reservationHistory: cleanedHistory,
+      };
+      showStudentModal(studentData, state.participantIsAdmin || false);
+      return;
     }
   }
 
+  // プリロードデータがない場合はAPIコール
   // ローディング表示
   showLoading('participants');
 

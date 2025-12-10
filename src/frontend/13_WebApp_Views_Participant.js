@@ -875,9 +875,37 @@ function renderStudentDetailModalContent(student, isAdmin) {
               const dateObj = new Date(res.date);
               const formattedDate = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
 
+              // ステータスバッジの生成
+              let statusBadge = '';
+              if (res.status) {
+                /** @type {Record<string, {text: string, color: 'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'}>} */
+                const statusMap = {
+                  [CONSTANTS.STATUS.CONFIRMED]: { text: '確定', color: 'blue' },
+                  [CONSTANTS.STATUS.COMPLETED]: { text: '完了', color: 'green' },
+                  [CONSTANTS.STATUS.CANCELED]: { text: 'キャンセル', color: 'gray' },
+                  [CONSTANTS.STATUS.WAITLISTED]: { text: '待機', color: 'yellow' },
+                };
+
+                const statusInfo = statusMap[res.status] || {
+                  text: res.status,
+                  color: /** @type {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} */ (
+                    'gray'
+                  ),
+                };
+
+                statusBadge = Components.badge({
+                  text: statusInfo.text,
+                  color: statusInfo.color,
+                  size: 'xs',
+                });
+              }
+
               return `
             <div class="border-b border-gray-200 py-2">
-              <div class="font-semibold text-sm">${formattedDate} - ${escapeHTML(res.classroom)}</div>
+              <div class="flex items-center gap-2">
+                <div class="font-semibold text-sm">${formattedDate} - ${escapeHTML(res.classroom)}</div>
+                ${statusBadge}
+              </div>
               ${res.venue ? `<div class="text-xs text-gray-600">${escapeHTML(res.venue)}</div>` : ''}
               ${res.workInProgress ? `<div class="text-xs mt-1">${escapeHTML(res.workInProgress)}</div>` : ''}
             </div>
