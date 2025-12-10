@@ -339,24 +339,88 @@ function selectParticipantStudent(targetStudentId, lessonId) {
     return;
   }
 
-  // 1. プリロードデータ（現在表示中のリスト）からの検索
-  if (lessonId && state.participantReservationsMap) {
-    const lessonReservations = state.participantReservationsMap[lessonId];
-    if (lessonReservations) {
-      const targetReservation = lessonReservations.find(
+  // 1. プリロードデータから予約履歴を生成
+  if (state.participantReservationsMap && state.participantLessons) {
+    console.log(`✅ プリロードデータから予約履歴を生成: ${targetStudentId}`);
+
+    // 全レッスンから該当生徒の予約を抽出
+    /** @type {any[]} */
+    const reservationHistory = [];
+    /** @type {Record<string, any>} */
+    const lessonsMap = {};
+
+    // レッスン情報をマップ化
+    state.participantLessons.forEach(lesson => {
+      lessonsMap[lesson.lessonId] = lesson;
+    });
+
+    // 全レッスンの予約データから該当生徒の予約を検索
+    const reservationsMap = state.participantReservationsMap;
+    Object.keys(reservationsMap).forEach(lessonId => {
+      const lessonReservations = reservationsMap[lessonId];
+      const studentReservation = lessonReservations.find(
         (/** @type {any} */ r) => r.studentId === targetStudentId,
       );
-      if (targetReservation) {
-        console.log(`✅ プリロードデータ使用: ${targetStudentId}`);
-        // プリロードデータはReservationCore拡張型なので、UserCore互換の部分を使用
-        // 足りない情報（過去の履歴など）は妥協するか、必要なら別途取得するが、
-        // "すぐ表示"の要件を満たすためこれを使用する
-        showStudentModal(targetReservation, state.participantIsAdmin || false);
-        return;
+
+      if (studentReservation) {
+        const lesson = lessonsMap[lessonId];
+        reservationHistory.push({
+          date: studentReservation.date || lesson?.date || '',
+          classroom: lesson?.classroom || '',
+          venue: lesson?.venue || '',
+          startTime: studentReservation.startTime || '',
+          endTime: studentReservation.endTime || '',
+          status: studentReservation.status,
+          workInProgress: studentReservation.workInProgress || '',
+          _dateObj: new Date(studentReservation.date || lesson?.date || ''),
+        });
       }
+    });
+
+    // 日付順にソート（新しい順）
+    reservationHistory.sort(
+      (a, b) => b._dateObj.getTime() - a._dateObj.getTime(),
+    );
+
+    // 内部フィールドを削除
+    const cleanedHistory = reservationHistory.map(item => {
+      const { _dateObj, ...rest } = item;
+      return rest;
+    });
+
+    // 基本情報を取得（最初に見つかった予約データから）
+    let targetReservation = null;
+    if (lessonId && state.participantReservationsMap[lessonId]) {
+      targetReservation = state.participantReservationsMap[lessonId].find(
+        (/** @type {any} */ r) => r.studentId === targetStudentId,
+      );
+    }
+
+    // lessonIdが指定されていない、または見つからない場合は、全レッスンから検索
+    if (!targetReservation) {
+      for (const lid of Object.keys(state.participantReservationsMap)) {
+        const found = state.participantReservationsMap[lid].find(
+          (/** @type {any} */ r) => r.studentId === targetStudentId,
+        );
+        if (found) {
+          targetReservation = found;
+          break;
+        }
+      }
+    }
+
+    if (targetReservation) {
+      // 予約履歴を追加
+      const studentData = {
+        ...targetReservation,
+        reservationHistory: cleanedHistory,
+      };
+      showStudentModal(studentData, state.participantIsAdmin || false);
+      return;
     }
   }
 
+  // プリロードデータがない場合はAPIコール
   // ローディング表示
   showLoading('participants');
 
