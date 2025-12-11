@@ -92,10 +92,13 @@ function saveToCache(cache, cacheKeys, key, data) {
  * ログイン成功後、管理者の場合に呼ばれる
  *
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
+ * @param {string|boolean} loadingCategory - ローディングバリエーション（'participants' | 'dataFetch' 等）。falseの場合は非表示。
+ * @param {Partial<UIState> | null} baseAppState - 初期状態
+ * @param {boolean} includeHistory - 過去の履歴も含めるか
  */
 function loadParticipantView(
   forceReload = false,
-  shouldShowLoading = true,
+  loadingCategory = 'participants',
   baseAppState = /** @type {Partial<UIState> | null} */ (null),
   includeHistory = false,
 ) {
@@ -112,6 +115,14 @@ function loadParticipantView(
     console.error('❌ studentIdが見つかりません');
     return;
   }
+
+  // categoryの正規化（trueの場合はデフォルト、falseの場合はnull）
+  const category =
+    loadingCategory === true
+      ? 'participants'
+      : loadingCategory === false
+        ? null
+        : loadingCategory;
 
   // 事前取得済みデータがある場合はAPIコールをスキップ
   if (
@@ -139,7 +150,7 @@ function loadParticipantView(
       type: 'SET_STATE',
       payload,
     });
-    hideLoading();
+    if (category) hideLoading();
     render();
     return;
   }
@@ -180,13 +191,14 @@ function loadParticipantView(
       type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
       payload: cachePayload,
     });
-    hideLoading(); // キャッシュ使用時もローディングを非表示
+    // キャッシュ使用時もローディングを非表示（表示していた場合）
+    if (category) hideLoading();
     render();
     return;
   }
 
-  if (shouldShowLoading) {
-    showLoading('dataFetch');
+  if (category) {
+    showLoading(category);
   }
 
   // バックエンドからレッスン一覧と予約データを一括取得
@@ -256,10 +268,10 @@ function loadParticipantView(
           );
         }
 
-        hideLoading();
+        if (category) hideLoading();
         render();
       } else {
-        hideLoading();
+        if (category) hideLoading();
         showInfo(
           response.message || 'レッスン一覧の取得に失敗しました',
           'エラー',
@@ -270,7 +282,7 @@ function loadParticipantView(
       /** @param {Error} error */
       function (error) {
         console.error('❌ レッスン一覧取得失敗:', error);
-        hideLoading();
+        if (category) hideLoading();
         showInfo('通信エラーが発生しました', 'エラー');
       },
     )
@@ -280,6 +292,17 @@ function loadParticipantView(
       true,
       state.currentUser?.phone || '',
     ); // 未来のみ先読み。過去はタブ切替で遅延取得
+}
+
+// ... (existing code) ...
+
+/**
+ * 参加者リストビューのデータ更新（手動リフレッシュ）
+ */
+function refreshParticipantView() {
+  // キャッシュをクリアして再ロード
+  // 'dataFetch'のローディングメッセージを表示させる
+  loadParticipantView(true, 'dataFetch');
 }
 
 // アコーディオン開閉状態をローカル変数で管理（StateManager外）
@@ -661,23 +684,6 @@ function togglePastLessons(showPast) {
   });
 
   render();
-}
-
-/**
- * 画面更新（管理者用）
- */
-async function refreshParticipantView() {
-  try {
-    showLoading('dataFetch');
-    // キャッシュをクリアして再ロード
-    // 第1引数: forceReload = true, 第2引数: shouldShowLoading = false (dataFetchローディングを使用するため)
-    await loadParticipantView(true, false);
-  } catch (error) {
-    console.error('Refresh error:', error);
-    showInfo('更新に失敗しました', 'エラー');
-  } finally {
-    hideLoading();
-  }
 }
 
 /**

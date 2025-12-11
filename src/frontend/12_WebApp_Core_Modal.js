@@ -94,15 +94,27 @@ appWindow.ModalManager =
       if (modalMessage) modalMessage.innerHTML = c.message;
 
       // 幅のカスタマイズ（オプション）
-      const content = /** @type {HTMLElement | null} */ (
-        m.querySelector('.modal-content')
-      );
-      if (content) {
-        if (/** @type {any} */ (c).maxWidth) {
-          content.style.maxWidth = /** @type {any} */ (c).maxWidth;
+      // モーダルコンテンツの取得（クラス名がない場合もあるため、直下の子要素も考慮）
+      /** @type {HTMLElement | null} */
+      let content = m.querySelector('.modal-content');
+      if (!content) {
+        // 直下の子要素のdivを取得（Tailwindクラスが直接設定されている要素）
+        content = /** @type {HTMLElement | null} */ (m.querySelector('div'));
+      }
+
+      const maxWidth = /** @type {any} */ (c).maxWidth;
+      if (maxWidth && content) {
+        if (typeof maxWidth === 'number') {
+          content.style.maxWidth = `${maxWidth}px`;
         } else {
-          content.style.maxWidth = ''; // デフォルト（CSS定義）に戻す
+          content.style.maxWidth = maxWidth;
         }
+        // モーダルが画面幅いっぱいに広がるようにwidthも設定（ただしmaxWidthを超えないように）
+        content.style.width = '100%';
+      } else if (content) {
+        // maxWidthが指定されていない場合はリセット（またはTailwindクラスに従う）
+        content.style.maxWidth = '';
+        content.style.width = '';
       }
 
       m.classList.add('active');
