@@ -1628,9 +1628,10 @@ export const Components = {
    * @param {string} config.text - バッジテキスト
    * @param {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} [config.color='gray'] - 色
    * @param {'xs'|'sm'|'md'} [config.size='sm'] - サイズ
+   * @param {boolean} [config.border=false] - 枠線を表示するか
    * @returns {string} HTML文字列
    */
-  badge: ({ text, color = 'gray', size = 'sm' }) => {
+  badge: ({ text, color = 'gray', size = 'sm', border = false }) => {
     /** @type {Record<string, string>} */
     const colorClasses = {
       gray: 'bg-gray-100 text-gray-700',
@@ -1643,6 +1644,17 @@ export const Components = {
     };
 
     /** @type {Record<string, string>} */
+    const borderClasses = {
+      gray: 'border-gray-300',
+      blue: 'border-blue-300',
+      green: 'border-green-300',
+      red: 'border-red-300',
+      orange: 'border-orange-300',
+      purple: 'border-purple-300',
+      yellow: 'border-yellow-300',
+    };
+
+    /** @type {Record<string, string>} */
     const sizeClasses = {
       xs: 'text-xs px-0.5 py-0',
       sm: 'text-sm px-1 py-0.5',
@@ -1651,8 +1663,11 @@ export const Components = {
 
     const colorClass = colorClasses[color] || colorClasses['gray'];
     const sizeClass = sizeClasses[size] || sizeClasses['sm'];
+    const borderClass = border
+      ? `border-2 ${borderClasses[color] || 'border-gray-300'}`
+      : '';
 
-    return `<span class="font-medium rounded ${sizeClass} ${colorClass}">${escapeHTML(text)}</span>`;
+    return `<span class="font-medium rounded ${sizeClass} ${colorClass} ${borderClass}">${escapeHTML(text)}</span>`;
   },
 
   /**

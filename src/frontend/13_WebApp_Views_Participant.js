@@ -636,12 +636,25 @@ function renderLessonList(lessons) {
               ).length;
               let badge = '';
               if (waitlistedFirstCount > 0) {
-                badge = `<span class="px-1 py-0 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border-2 border-yellow-200">初待${waitlistedFirstCount}</span>`;
+                badge = Components.badge({
+                  text: `初待${waitlistedFirstCount}`,
+                  color: 'yellow',
+                  size: 'xs',
+                  border: true,
+                });
               }
               const nonFirstWaitlistedCount =
                 waitlistedReservations.length - waitlistedFirstCount;
               if (nonFirstWaitlistedCount > 0) {
-                badge += `<span class="ml-1 px-1 py-0 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border-2 border-yellow-200">待${nonFirstWaitlistedCount}</span>`;
+                // スペースを確保するためにHTML文字列結合
+                badge +=
+                  (badge ? ' ' : '') +
+                  Components.badge({
+                    text: `待${nonFirstWaitlistedCount}`,
+                    color: 'yellow',
+                    size: 'xs',
+                    border: true,
+                  });
               }
               return badge;
             })();
@@ -650,7 +663,12 @@ function renderLessonList(lessons) {
       const pendingCount = confirmedReservations.length;
       const pendingBadge =
         showPastLessons && pendingCount > 0
-          ? `<span class="px-1 py-0 rounded text-xs font-bold bg-red-100 text-red-700 border-2 border-red-200">未${pendingCount}</span>`
+          ? Components.badge({
+              text: `未${pendingCount}`,
+              color: 'red',
+              size: 'xs',
+              border: true,
+            })
           : '';
 
       // アコーディオンが展開されているか（ローカル変数ではなくDOMから判定）
@@ -674,33 +692,43 @@ function renderLessonList(lessons) {
         lesson.status === '完了' || lesson.status === 'キャンセル';
 
       // アコーディオンのボタン（パディング調整: py-0.5 -> py-2 で高さを少し確保）
-      // バッジ表示エリアのレイアウト調整（flex-wrap抑制、幅確保）
+      // バッジ表示エリアのレイアウト調整（左寄せ、justify-between廃止）
       const accordionButton = `
         <button
           class="px-2 py-2 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100 group"
           onclick="actionHandlers.toggleParticipantLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           data-lesson-id="${escapeHTML(lesson.lessonId)}"
         >
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2 flex-1 min-w-0">
-              <span class="text-sm font-bold text-action-primary font-mono-numbers">${formattedDate.replace(/class=".*?"/, '')}</span>
+          <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="text-sm font-bold text-action-primary font-mono-numbers whitespace-nowrap">${formattedDate.replace(/class=".*?"/, '')}</span>
               <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom)}</span>
               ${lesson.venue ? `<span class="text-gray-500 text-xs hidden sm:inline truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
               ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
             </div>
-            <div class="flex gap-1 items-center flex-shrink-0 ml-1">
+            <div class="flex gap-1 items-center flex-shrink-0">
               ${waitlistBadge}
               ${pendingBadge}
               ${
                 firstLectureBadge
-                  ? `<span class="px-1.5 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800 border-2 border-green-200 shadow-sm">
-                ${firstLectureBadge}
-              </span>`
+                  ? Components.badge({
+                      text: firstLectureBadge,
+                      color: 'green',
+                      size: 'xs',
+                      border: true,
+                    })
                   : ''
               }
-              <span class="px-1.5 py-0.5 rounded text-xs font-bold bg-white text-gray-700 border-2 border-gray-300 shadow-sm min-w-[1.5rem] text-center">
-                ${reservationBadge}
-              </span>
+              ${
+                reservationBadge
+                  ? Components.badge({
+                      text: reservationBadge.toString(),
+                      color: 'gray', // reservationBadgeの色はデフォルトgray? 以前はbg-white text-gray-700 border-gray-300
+                      size: 'xs',
+                      border: true,
+                    })
+                  : ''
+              }
               <svg class="w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text} opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
