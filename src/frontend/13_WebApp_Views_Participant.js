@@ -695,43 +695,45 @@ function renderLessonList(lessons) {
       // バッジ表示エリアのレイアウト調整（左寄せ、justify-between廃止）
       const accordionButton = `
         <button
-          class="px-2 py-2 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100 group"
+          class="px-2 py-2 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100 group text-left"
           onclick="actionHandlers.toggleParticipantLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           data-lesson-id="${escapeHTML(lesson.lessonId)}"
         >
           <div class="flex items-center gap-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <span class="text-sm font-bold text-action-primary font-mono-numbers whitespace-nowrap">${formattedDate.replace(/class=".*?"/, '')}</span>
-              <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom)}</span>
-              ${lesson.venue ? `<span class="text-gray-500 text-xs hidden sm:inline truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
-              ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
-            </div>
-            <div class="flex gap-1 items-center flex-shrink-0">
-              ${waitlistBadge}
-              ${pendingBadge}
-              ${
-                firstLectureBadge
-                  ? Components.badge({
-                      text: firstLectureBadge,
-                      color: 'green',
-                      size: 'xs',
-                      border: true,
-                    })
-                  : ''
-              }
-              ${
-                reservationBadge
-                  ? Components.badge({
-                      text: reservationBadge.toString(),
-                      color: 'gray', // reservationBadgeの色はデフォルトgray? 以前はbg-white text-gray-700 border-gray-300
-                      size: 'xs',
-                      border: true,
-                    })
-                  : ''
-              }
-              <svg class="w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text} opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-              </svg>
+            <svg class="w-5 h-5 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text} opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+            <div class="flex items-center justify-between gap-2 flex-grow max-w-[400px]">
+              <div class="flex items-center gap-2 min-w-0">
+                <span class="text-sm font-bold text-action-primary font-mono-numbers whitespace-nowrap">${formattedDate.replace(/class=".*?"/, '')}</span>
+                <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom)}</span>
+                ${lesson.venue ? `<span class="text-gray-500 text-xs hidden sm:inline truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
+                ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
+              </div>
+              <div class="flex gap-1 items-center flex-shrink-0">
+                ${waitlistBadge}
+                ${pendingBadge}
+                ${
+                  firstLectureBadge
+                    ? Components.badge({
+                        text: firstLectureBadge,
+                        color: 'green',
+                        size: 'xs',
+                        border: true,
+                      })
+                    : ''
+                }
+                ${
+                  reservationBadge
+                    ? Components.badge({
+                        text: reservationBadge.toString(),
+                        color: 'gray',
+                        size: 'xs',
+                        border: true,
+                      })
+                    : ''
+                }
+              </div>
             </div>
           </div>
         </button>
