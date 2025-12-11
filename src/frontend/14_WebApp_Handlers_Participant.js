@@ -11,6 +11,7 @@
  * =================================================================
  */
 
+import { Components } from './13_WebApp_Components.js';
 import { render } from './14_WebApp_Handlers.js';
 
 /** @type {SimpleStateManager} */
@@ -538,6 +539,11 @@ function selectParticipantStudent(targetStudentId, lessonId) {
  * @param {any} student - 生徒情報
  * @param {boolean} isAdmin - 管理者権限
  */
+/**
+ * 生徒詳細をモーダルで表示
+ * @param {any} student - 生徒情報
+ * @param {boolean} isAdmin - 管理者権限
+ */
 function showStudentModal(student, isAdmin) {
   if (!student) {
     showInfo('生徒情報が見つかりません', 'エラー');
@@ -552,18 +558,29 @@ function showStudentModal(student, isAdmin) {
       ? appWindow.renderStudentDetailModalContent(student, isAdmin)
       : '<p class="text-center text-red-600">モーダルコンテンツの生成に失敗しました</p>';
 
-  // モーダル表示
-  if (typeof appWindow.showModal === 'function') {
-    appWindow.showModal({
-      title: escapeHTML(displayName),
-      message: content,
-      confirmText: '閉じる',
-      // @ts-ignore custom property
-      maxWidth: '800px',
-    });
-  } else {
-    console.error('showModal関数が見つかりません');
+  const modalId = 'student-detail-modal';
+
+  // Components.modalを使用してモーダルHTMLを生成
+  // レスポンシブな最大幅クラスを指定 (max-w-4xl = 56rem = 896px)
+  const modalHtml = Components.modal({
+    id: modalId,
+    title: displayName,
+    content: content,
+    maxWidth: 'max-w-4xl',
+    showCloseButton: true,
+  });
+
+  // 既存のモーダルがあれば削除
+  const existingModal = document.getElementById(modalId);
+  if (existingModal) {
+    existingModal.remove();
   }
+
+  // モーダルをDOMに追加
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  // モーダルを表示
+  Components.showModal(modalId);
 }
 
 /**
