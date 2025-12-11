@@ -892,17 +892,19 @@ export const Components = {
   // -----------------------------------------------------------------
 
   /**
-   * ページヘッダー（タイトル + もどるボタン）
+   * ページヘッダー（タイトル + もどるボタン + オプションアクションボタン）
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.title - ページタイトル
    * @param {string} [config.backAction='smartGoBack'] - もどるボタンのアクション
    * @param {boolean} [config.showBackButton=true] - もどるボタンを表示するか
+   * @param {{text: string, action: string, style?: string, size?: string} | null} [config.actionButton=null] - オプションのアクションボタン設定
    * @returns {string} HTML文字列
    */
   pageHeader: ({
     title,
     backAction = 'smartGoBack',
     showBackButton = true,
+    actionButton = null,
   }) => {
     const backButtonHtml = showBackButton
       ? Components.button({
@@ -914,11 +916,26 @@ export const Components = {
         })
       : '';
 
+    const actionButtonHtml = actionButton
+      ? Components.button({
+          action: actionButton.action,
+          text: actionButton.text,
+          style: /** @type {ComponentStyle} */ (
+            actionButton.style || 'primary'
+          ),
+          size: /** @type {ComponentSize} */ (actionButton.size || 'xs'),
+          customClass: 'ml-2',
+        })
+      : '';
+
     return `
       <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4 -mx-4">
         <div class="flex justify-between items-center px-4">
-          <h1 class="text-lg font-bold text-brand-text">${escapeHTML(title)}</h1>
-          ${backButtonHtml}
+          <h1 class="text-lg font-bold text-brand-text flex-1">${escapeHTML(title)}</h1>
+          <div class="flex items-center gap-2">
+            ${actionButtonHtml}
+            ${backButtonHtml}
+          </div>
         </div>
       </div>`;
   },
@@ -1790,7 +1807,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-16 z-[5] mb-0.5 participants-table-sticky-header">
+    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-16 z-[5] mb-1 participants-table-sticky-header">
       <div id="${escapeHTML(headerId)}" class="overflow-x-auto scrollbar-hide">
         <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;height: 1rem;">
           ${columnsHtml}

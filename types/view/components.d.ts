@@ -531,6 +531,12 @@ declare global {
       title: string;
       backAction?: string;
       showBackButton?: boolean;
+      actionButton?: {
+        text: string;
+        action: string;
+        style?: ComponentStyle;
+        size?: ComponentSize;
+      } | null;
     }) => string;
 
     // 会計系

@@ -151,7 +151,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'order',
     label: '注文',
-    width: '110px',
+    width: '120px',
     align: 'left',
     adminOnly: false,
     render: /** @param {any} row */ row =>
@@ -160,7 +160,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'messageToTeacher',
     label: 'メッセージ',
-    width: '150px',
+    width: '160px',
     adminOnly: true,
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.messageToTeacher || '—')}">${escapeHTML(row.messageToTeacher || '—')}</div>`,
@@ -168,7 +168,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'ageGroup',
     label: '年代',
-    width: '60px',
+    width: '40px',
     align: 'center',
     adminOnly: true,
     render: /** @param {any} row */ row =>
@@ -177,7 +177,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'gender',
     label: '性別',
-    width: '60px',
+    width: '40px',
     align: 'center',
     adminOnly: true,
     render: /** @param {any} row */ row =>
@@ -186,7 +186,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'address',
     label: '住所',
-    width: '80px',
+    width: '40px',
     adminOnly: true,
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.address || '—')}">${escapeHTML(row.address || '—')}</div>`,
@@ -194,7 +194,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'futureCreations',
     label: '将来制作したいもの',
-    width: '120px',
+    width: '160px',
     adminOnly: false,
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.futureCreations || '—')}">${escapeHTML(row.futureCreations || '—')}</div>`,
@@ -202,7 +202,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'companion',
     label: '同行者',
-    width: '80px',
+    width: '40px',
     adminOnly: false,
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.companion || '—')}">${escapeHTML(row.companion || '—')}</div>`,
@@ -210,7 +210,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'transportation',
     label: '来場手段',
-    width: '80px',
+    width: '40px',
     adminOnly: false,
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.transportation || '—')}">${escapeHTML(row.transportation || '—')}</div>`,
@@ -218,7 +218,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'pickup',
     label: '送迎',
-    width: '80px',
+    width: '40px',
     align: 'center',
     adminOnly: false,
     render: /** @param {any} row */ row =>
@@ -227,7 +227,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'car',
     label: '車',
-    width: '60px',
+    width: '40px',
     align: 'center',
     adminOnly: false,
     render: /** @param {any} row */ row =>
@@ -236,7 +236,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'notes',
     label: '備考',
-    width: '150px',
+    width: '160px',
     adminOnly: true,
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
@@ -373,8 +373,9 @@ function renderAccordionContent(
           : 'hover:bg-gray-50';
 
       // グリッドレイアウトでデータ行を生成
+      // min-heightを設定して内容量に応じて自動で広がるようにする (h-autoを使用)
       return `
-        <div class="px-0.5 grid gap-1 border-t border-dashed border-gray-200 ${rowBgColor}" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; height: calc(3 * 1rem);">
+        <div class="px-0.5 grid gap-1 border-t border-dashed border-gray-200 ${rowBgColor} items-start py-1" style="grid-template-columns: ${gridTemplate}; min-width: 1200px; min-height: 3rem;">
           ${columnsHtml}
         </div>
       `;
@@ -635,12 +636,12 @@ function renderLessonList(lessons) {
               ).length;
               let badge = '';
               if (waitlistedFirstCount > 0) {
-                badge = `<span class="px-1 py-0 rounded text-xs font-medium bg-yellow-100 text-yellow-800">初待${waitlistedFirstCount}</span>`;
+                badge = `<span class="px-1 py-0 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border-2 border-yellow-200">初待${waitlistedFirstCount}</span>`;
               }
               const nonFirstWaitlistedCount =
                 waitlistedReservations.length - waitlistedFirstCount;
               if (nonFirstWaitlistedCount > 0) {
-                badge += `<span class="ml-1 px-1 py-0 rounded text-xs font-medium bg-yellow-100 text-yellow-800">待${nonFirstWaitlistedCount}</span>`;
+                badge += `<span class="ml-1 px-1 py-0 rounded text-xs font-bold bg-yellow-100 text-yellow-800 border-2 border-yellow-200">待${nonFirstWaitlistedCount}</span>`;
               }
               return badge;
             })();
@@ -649,11 +650,21 @@ function renderLessonList(lessons) {
       const pendingCount = confirmedReservations.length;
       const pendingBadge =
         showPastLessons && pendingCount > 0
-          ? `<span class="px-1 py-0 rounded text-xs font-medium bg-red-100 text-red-700">未${pendingCount}</span>`
+          ? `<span class="px-1 py-0 rounded text-xs font-bold bg-red-100 text-red-700 border-2 border-red-200">未${pendingCount}</span>`
           : '';
 
       // アコーディオンが展開されているか（ローカル変数ではなくDOMから判定）
-      const isExpanded = false; // 初期レンダリング時は全て閉じている
+      // 【変更】未来のレッスンはデフォルト全開、過去は全閉。DOM状態があればそれを優先、なければデフォルト
+      let isExpanded = !showPastLessons; // デフォルト設定
+      const container = document.querySelector(
+        `[data-lesson-container="${escapeHTML(lesson.lessonId)}"]`,
+      );
+      if (container) {
+        const content = container.querySelector('.accordion-content');
+        if (content) {
+          isExpanded = !content.classList.contains('hidden');
+        }
+      }
 
       // 教室の色を取得
       const classroomColor = getClassroomColor(lesson.classroom);
@@ -662,34 +673,35 @@ function renderLessonList(lessons) {
       const isCompleted =
         lesson.status === '完了' || lesson.status === 'キャンセル';
 
-      // アコーディオンのボタン（パディング削減: p-2 → p-1）
+      // アコーディオンのボタン（パディング調整: py-0.5 -> py-2 で高さを少し確保）
+      // バッジ表示エリアのレイアウト調整（flex-wrap抑制、幅確保）
       const accordionButton = `
         <button
-          class="px-1 py-0.5 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100"
+          class="px-2 py-2 w-full ${isCompleted ? 'opacity-75' : ''} hover:opacity-100 group"
           onclick="actionHandlers.toggleParticipantLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           data-lesson-id="${escapeHTML(lesson.lessonId)}"
         >
           <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2 flex-1">
-              <span class="text-xs font-semibold text-action-primary">${formattedDate}</span>
-              <span class="font-bold text-xs ${classroomColor.text}">${escapeHTML(lesson.classroom)}</span>
-              ${lesson.venue ? `<span class="text-gray-600 text-xs">@${escapeHTML(lesson.venue)}</span>` : ''}
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span class="text-sm font-bold text-action-primary font-mono-numbers">${formattedDate.replace(/class=".*?"/, '')}</span>
+              <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom)}</span>
+              ${lesson.venue ? `<span class="text-gray-500 text-xs hidden sm:inline truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
               ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
             </div>
-            <div class="flex gap-1 items-center">
+            <div class="flex gap-1 items-center flex-shrink-0 ml-1">
               ${waitlistBadge}
               ${pendingBadge}
               ${
                 firstLectureBadge
-                  ? `<span class="px-1 py-0 rounded text-xs font-medium bg-green-100 text-green-800">
+                  ? `<span class="px-1.5 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800 border-2 border-green-200 shadow-sm">
                 ${firstLectureBadge}
               </span>`
                   : ''
               }
-              <span class="px-1 py-0 rounded text-xs font-medium bg-gray-100 text-gray-700">
+              <span class="px-1.5 py-0.5 rounded text-xs font-bold bg-white text-gray-700 border-2 border-gray-300 shadow-sm min-w-[1.5rem] text-center">
                 ${reservationBadge}
               </span>
-              <svg class="w-4 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text} opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </div>
@@ -703,30 +715,45 @@ function renderLessonList(lessons) {
         // 管理者用「管理」ボタン（モーダルでリスト表示・編集）
         reserveButtonHtml = `
         <div class="pt-1 text-right px-2 pb-1">
-          <button class="bg-action-primary-bg text-white text-xs py-0.5 px-2 rounded hover:bg-action-primary-hover"
+          <button class="bg-action-primary-bg text-white text-xs py-1 px-3 rounded hover:bg-action-primary-hover shadow-sm"
                   data-action="showLessonParticipants"
                   data-lesson-id="${lesson.lessonId}">
             管理
           </button>
         </div>`;
       } else {
-        // 通常ユーザー用「予約」ボタン
-        reserveButtonHtml = showPastLessons
-          ? ''
-          : `
-        <div class="pt-1 text-right px-2 pb-1">
-          <button class="bg-blue-500 text-white text-xs py-0.5 px-2 rounded hover:bg-blue-600"
-                  data-action="goToReservationFormForLesson"
-                  data-lesson-id="${lesson.lessonId}">
-            この日程で予約する
-          </button>
-        </div>
-      `;
+        // 通常ユーザー用ボタン（状態に応じて出し分け）
+        if (showPastLessons) {
+          reserveButtonHtml = '';
+        } else {
+          // ボタン状態判定ロジック
+          const buttonState = _getLocalButtonState(
+            lesson,
+            state.currentUser?.studentId,
+            reservationsMap[lesson.lessonId] || [],
+          );
+
+          if (buttonState) {
+            reserveButtonHtml = `
+            <div class="pt-1 text-right px-2 pb-1">
+              <button class="${buttonState.class}"
+                      data-action="${buttonState.action}"
+                      data-lesson-id="${lesson.lessonId}">
+                ${buttonState.text}
+              </button>
+            </div>`;
+          } else {
+            reserveButtonHtml = '';
+          }
+        }
       }
 
       // アコーディオンコンテンツ
+      // 【変更】未来はデフォルト表示(hiddenクラスなし)、過去は非表示(hiddenクラスあり)
+      const hiddenClass = isExpanded ? '' : 'hidden';
+
       const accordionContent = `
-        <div class="accordion-content bg-white hidden" data-lesson-id="${escapeHTML(lesson.lessonId)}">
+        <div class="accordion-content bg-white ${hiddenClass}" data-lesson-id="${escapeHTML(lesson.lessonId)}">
           <div class="overflow-x-auto participants-table-body">
             ${renderAccordionContent(
               lesson,
@@ -764,6 +791,14 @@ function renderLessonList(lessons) {
       title: '教室日程・予約状況 一覧',
       showBackButton: true,
       backAction: 'smartGoBack',
+      actionButton: isAdmin
+        ? {
+            text: '更新',
+            action: 'refreshParticipantView',
+            style: 'secondary',
+            size: 'xs',
+          }
+        : null,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
       ${tabsHtml}
@@ -785,11 +820,83 @@ function renderLessonList(lessons) {
   `;
 }
 
+// Button State Logic Helper
+/**
+ * ユーザーとレッスンの状態に基づいてボタンの表示内容を決定
+ * @param {LessonCore} lesson
+ * @param {string|undefined} currentStudentId
+ * @param {import('../../types/core/reservation').ReservationCore[]} lessonReservations
+ * @returns {{text: string, action: string, class: string}|null}
+ */
+function _getLocalButtonState(lesson, currentStudentId, lessonReservations) {
+  // 1. 予約済みチェック (確定 or 待機)
+  const myReservation = lessonReservations.find(
+    r =>
+      r.studentId === currentStudentId &&
+      (r.status === CONSTANTS.STATUS.CONFIRMED ||
+        r.status === CONSTANTS.STATUS.WAITLISTED),
+  );
+
+  if (myReservation) {
+    // 予約済み -> 「よやく へんしゅう」
+    return {
+      text: 'よやく へんしゅう',
+      action: 'goToReservationFormForLesson', // 編集モードで開くかはHandler側で制御、または同じフォームへ
+      class:
+        'bg-green-600 text-white text-xs py-1 px-3 rounded hover:bg-green-700 shadow-sm font-bold',
+    };
+  }
+
+  // 2. 空席チェック (簡易判定: 厳密な判定はHandlers/Accounting_Utilitiesで行うが、ここではView用ロジックを使用)
+  // _checkIfLessonAvailable相当のロジックが必要だが、ここではプロパティから簡易判定
+  // dashboardから_checkIfLessonAvailableをインポートできないため、簡易実装
+  const isTimeDual =
+    lesson.classroomType === '時間制・2部制' ||
+    lesson.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL;
+
+  let hasVacancy = false;
+  if (isTimeDual) {
+    // 2部制: どちらかに空きがあれば空席ありとみなす（詳細はフォームで選択）
+    const morningSlots =
+      (lesson.firstSlots || 0) > 0 || (lesson.beginnerSlots || 0) > 0;
+    const afternoonSlots =
+      (lesson.secondSlots || 0) > 0 || (lesson.beginnerSlots || 0) > 0;
+    hasVacancy = morningSlots || afternoonSlots;
+  } else {
+    // 通常: 経験者枠か初心者枠に空きがあればOK
+    hasVacancy =
+      (lesson.firstSlots || 0) > 0 || (lesson.beginnerSlots || 0) > 0;
+  }
+
+  // 3. 空き通知登録チェック (未実装: ユーザープロファイル等に保持する必要があるが、現状は特定の予約ステータスがないため判定困難)
+  // FIXME: 空き通知登録済みかどうかを判定するデータがないため、今回は「空席あり」か「満席」かで分岐
+
+  if (hasVacancy) {
+    // 空席あり -> 「この日で よやく」
+    // (空き通知登録済みで空席が出た場合もここに含まれるが、文言は同じで良い)
+    return {
+      text: 'この日で よやく',
+      action: 'goToReservationFormForLesson',
+      class:
+        'bg-blue-600 text-white text-xs py-1 px-3 rounded hover:bg-blue-700 shadow-sm font-bold',
+    };
+  } else {
+    // 満席 -> 「空き通知 とうろく」
+    return {
+      text: '空き通知 とうろく',
+      action: 'goToReservationFormForLesson', // フォーム側で満席時は待機登録になる想定
+      class:
+        'bg-yellow-500 text-white text-xs py-1 px-3 rounded hover:bg-yellow-600 shadow-sm font-bold',
+    };
+  }
+}
+
 /**
  * 生徒詳細をモーダル用のコンテンツとして生成
  * @param {any} student - 生徒情報
  * @param {boolean} isAdmin - 管理者権限
  * @returns {string} モーダル用HTML文字列
+ * @modified 2025-12-11 UI改善: レスポンシブグリッドレイアウト適用
  */
 function renderStudentDetailModalContent(student, isAdmin) {
   if (!student) {
@@ -803,17 +910,28 @@ function renderStudentDetailModalContent(student, isAdmin) {
    * @param {string} label
    * @param {string | number | null | undefined} value
    */
+  // Helper to create a list item if value exists
+  /**
+   * @param {string} label
+   * @param {string | number | null | undefined} value
+   */
   const createListItem = (label, value) => {
     return value
-      ? `<div class="grid grid-cols-3 gap-2"><span class="font-semibold col-span-1">${label}:</span> <span class="col-span-2">${escapeHTML(String(value))}</span></div>`
+      ? `<div class="flex flex-col sm:flex-row sm:gap-2 border-b border-gray-50 sm:border-0 pb-1 sm:pb-0 last:border-0 last:pb-0">
+          <span class="font-semibold text-gray-600 text-xs sm:text-sm min-w-[6rem]">${label}</span>
+          <span class="text-brand-text text-sm break-words">${escapeHTML(String(value))}</span>
+         </div>`
       : '';
   };
 
   // 基本情報（公開）
   const publicInfoHtml = `
-    <div class="mb-4">
-      <h3 class="text-sm font-bold text-brand-text mb-2">基本情報</h3>
-      <div class="space-y-1 text-sm">
+    <div class="mb-4 bg-gray-50 p-3 rounded-lg">
+      <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
+        <span class="w-1 h-4 bg-brand-primary rounded-full"></span>
+        基本情報
+      </h3>
+      <div class="space-y-2">
         ${createListItem('ニックネーム', displayName)}
         ${createListItem('参加回数', student.participationCount ? `${student.participationCount}回` : '')}
         ${createListItem('将来制作したいもの', student.futureCreations)}
@@ -822,41 +940,61 @@ function renderStudentDetailModalContent(student, isAdmin) {
   `;
 
   // 詳細情報（管理者のみ）
+  // グリッドレイアウト（2カラム）を適用
   const detailedInfoHtml = isAdmin
     ? `
-    <div class="mb-4 pb-4 border-b border-gray-200">
-      <h3 class="text-sm font-bold text-brand-text mb-2">詳細情報</h3>
-      <div class="space-y-1 text-sm">
-        ${createListItem('本名', student.realName)}
-        ${createListItem('電話番号', student.phone)}
-        ${createListItem('メール', student.email)}
-        ${createListItem('住所', student.address)}
-        ${createListItem('年代', student.ageGroup)}
-        ${createListItem('性別', student.gender)}
-        ${createListItem('利き手', student.dominantHand)}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+      <div class="bg-gray-50 p-3 rounded-lg">
+        <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
+          <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
+          詳細情報
+        </h3>
+        <div class="space-y-2">
+          ${createListItem('本名', student.realName)}
+          ${createListItem('電話番号', student.phone)}
+          ${createListItem('メール', student.email)}
+          ${createListItem('住所', student.address)}
+          ${createListItem('年代', student.ageGroup)}
+          ${createListItem('性別', student.gender)}
+          ${createListItem('利き手', student.dominantHand)}
+        </div>
+      </div>
+
+      <div class="space-y-4">
+        <div class="bg-gray-50 p-3 rounded-lg">
+          <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
+            <span class="w-1 h-4 bg-green-500 rounded-full"></span>
+            アンケート情報
+          </h3>
+          <div class="space-y-2">
+            ${createListItem('木彫り経験', student.experience)}
+            ${createListItem('過去の作品', student.pastWork)}
+            ${createListItem('登録のきっかけ', student.trigger)}
+            ${createListItem('初回メッセージ', student.firstMessage)}
+          </div>
+        </div>
+
+        <div class="bg-gray-50 p-3 rounded-lg">
+          <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
+            <span class="w-1 h-4 bg-orange-500 rounded-full"></span>
+            来場・交通情報
+          </h3>
+          <div class="space-y-2">
+            ${createListItem('同行者', student.companion)}
+            ${createListItem('来場手段', student.transportation)}
+            ${createListItem('送迎', student.pickup)}
+            ${createListItem('車', student.car)}
+          </div>
+        </div>
       </div>
     </div>
-    <div class="mb-4 pb-4 border-b border-gray-200">
-      <h3 class="text-sm font-bold text-brand-text mb-2">アンケート情報</h3>
-      <div class="space-y-1 text-sm">
-        ${createListItem('木彫り経験', student.experience)}
-        ${createListItem('過去の作品', student.pastWork)}
-        ${createListItem('登録のきっかけ', student.trigger)}
-        ${createListItem('初回メッセージ', student.firstMessage)}
-      </div>
-    </div>
-     <div class="mb-4 pb-4 border-b border-gray-200">
-      <h3 class="text-sm font-bold text-brand-text mb-2">来場・交通情報</h3>
-      <div class="space-y-1 text-sm">
-        ${createListItem('同行者', student.companion)}
-        ${createListItem('来場手段', student.transportation)}
-        ${createListItem('送迎', student.pickup)}
-        ${createListItem('車', student.car)}
-      </div>
-    </div>
-     <div class="mb-4 pb-4 border-b border-gray-200">
-      <h3 class="text-sm font-bold text-brand-text mb-2">備考</h3>
-      <div class="space-y-1 text-sm">
+
+    <div class="mb-4 bg-gray-50 p-3 rounded-lg">
+      <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
+        <span class="w-1 h-4 bg-gray-500 rounded-full"></span>
+        備考
+      </h3>
+      <div class="space-y-2">
         ${createListItem('備考', student.notes)}
       </div>
     </div>
@@ -881,16 +1019,26 @@ function renderStudentDetailModalContent(student, isAdmin) {
                 /** @type {Record<string, {text: string, color: 'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'}>} */
                 const statusMap = {
                   [CONSTANTS.STATUS.CONFIRMED]: { text: '確定', color: 'blue' },
-                  [CONSTANTS.STATUS.COMPLETED]: { text: '完了', color: 'green' },
-                  [CONSTANTS.STATUS.CANCELED]: { text: 'キャンセル', color: 'gray' },
-                  [CONSTANTS.STATUS.WAITLISTED]: { text: '待機', color: 'yellow' },
+                  [CONSTANTS.STATUS.COMPLETED]: {
+                    text: '完了',
+                    color: 'green',
+                  },
+                  [CONSTANTS.STATUS.CANCELED]: {
+                    text: 'キャンセル',
+                    color: 'gray',
+                  },
+                  [CONSTANTS.STATUS.WAITLISTED]: {
+                    text: '待機',
+                    color: 'yellow',
+                  },
                 };
 
                 const statusInfo = statusMap[res.status] || {
                   text: res.status,
-                  color: /** @type {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} */ (
-                    'gray'
-                  ),
+                  color:
+                    /** @type {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} */ (
+                      'gray'
+                    ),
                 };
 
                 statusBadge = Components.badge({

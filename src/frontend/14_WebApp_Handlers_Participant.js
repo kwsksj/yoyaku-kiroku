@@ -231,6 +231,20 @@ function loadParticipantView(
               participantHasPastLessonsLoaded: includeHistory,
             };
 
+        // 初期表示時は未来のレッスンのみ取得するため、すべて展開状態にする
+        // 過去のレッスンはデフォルトで閉じる（showPastLessonsフラグで制御）
+        if (!payload.showPastLessons) {
+          // すべてのレッスンIDを展開済みリストに追加
+          const allLessonIds = response.data.lessons.map(
+            (/** @type {import('../../types/core/lesson').LessonCore} */ l) =>
+              l.lessonId,
+          );
+          localExpandedLessonIds = allLessonIds; // 直接更新
+        } else {
+          // 過去のレッスンを表示する場合は全て閉じる
+          localExpandedLessonIds = []; // 直接更新
+        }
+
         participantHandlersStateManager.dispatch({
           type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
           payload,
@@ -371,8 +385,9 @@ function selectParticipantStudent(targetStudentId, lessonId) {
     Object.keys(reservationsMap).forEach(lessonId => {
       const lessonReservations = reservationsMap[lessonId];
       const studentReservation = lessonReservations.find(
-        (/** @type {import('../../types/core/reservation').ReservationCore} */ r) =>
-          r.studentId === targetStudentId,
+        (
+          /** @type {import('../../types/core/reservation').ReservationCore} */ r,
+        ) => r.studentId === targetStudentId,
       );
 
       if (studentReservation) {
@@ -417,8 +432,9 @@ function selectParticipantStudent(targetStudentId, lessonId) {
     let targetReservation = null;
     if (lessonId && state.participantReservationsMap[lessonId]) {
       targetReservation = state.participantReservationsMap[lessonId].find(
-        (/** @type {import('../../types/core/reservation').ReservationCore} */ r) =>
-          r.studentId === targetStudentId,
+        (
+          /** @type {import('../../types/core/reservation').ReservationCore} */ r,
+        ) => r.studentId === targetStudentId,
       );
     }
     if (!targetReservation) {
@@ -598,6 +614,9 @@ function togglePastLessons(showPast) {
             ? response.data.isAdmin
             : state.participantIsAdmin;
 
+        // 過去のレッスンを表示する場合は全て閉じる
+        localExpandedLessonIds = []; // 直接更新
+
         participantHandlersStateManager.dispatch({
           type: 'UPDATE_STATE',
           payload: {
@@ -631,6 +650,9 @@ function togglePastLessons(showPast) {
       );
     return;
   }
+
+  // タブ切り替え時はアコーディオンを閉じる
+  localExpandedLessonIds = []; // 直接更新
 
   participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
