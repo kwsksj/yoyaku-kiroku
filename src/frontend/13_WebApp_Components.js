@@ -892,17 +892,19 @@ export const Components = {
   // -----------------------------------------------------------------
 
   /**
-   * ページヘッダー（タイトル + もどるボタン）
+   * ページヘッダー（タイトル + もどるボタン + オプションアクションボタン）
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.title - ページタイトル
    * @param {string} [config.backAction='smartGoBack'] - もどるボタンのアクション
    * @param {boolean} [config.showBackButton=true] - もどるボタンを表示するか
+   * @param {{text: string, action: string, style?: string, size?: string} | null} [config.actionButton=null] - オプションのアクションボタン設定
    * @returns {string} HTML文字列
    */
   pageHeader: ({
     title,
     backAction = 'smartGoBack',
     showBackButton = true,
+    actionButton = null,
   }) => {
     const backButtonHtml = showBackButton
       ? Components.button({
@@ -914,11 +916,26 @@ export const Components = {
         })
       : '';
 
+    const actionButtonHtml = actionButton
+      ? Components.button({
+          action: actionButton.action,
+          text: actionButton.text,
+          style: /** @type {ComponentStyle} */ (
+            actionButton.style || 'primary'
+          ),
+          size: /** @type {ComponentSize} */ (actionButton.size || 'xs'),
+          customClass: 'ml-2',
+        })
+      : '';
+
     return `
       <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4 -mx-4">
         <div class="flex justify-between items-center px-4">
-          <h1 class="text-lg font-bold text-brand-text">${escapeHTML(title)}</h1>
-          ${backButtonHtml}
+          <h1 class="text-lg font-bold text-brand-text flex-1">${escapeHTML(title)}</h1>
+          <div class="flex items-center gap-2">
+            ${actionButtonHtml}
+            ${backButtonHtml}
+          </div>
         </div>
       </div>`;
   },
@@ -1606,14 +1623,19 @@ export const Components = {
   // =================================================================
 
   /**
+   * @typedef {object} BadgeConfig
+   * @property {string} text - バッジテキスト
+   * @property {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} [color='gray'] - 色
+   * @property {'xs'|'sm'|'md'} [size='sm'] - サイズ
+   * @property {boolean} [border=false] - 枠線を表示するか
+   */
+
+  /**
    * 汎用バッジコンポーネント
-   * @param {object} config
-   * @param {string} config.text - バッジテキスト
-   * @param {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} [config.color='gray'] - 色
-   * @param {'xs'|'sm'|'md'} [config.size='sm'] - サイズ
+   * @param {BadgeConfig} config
    * @returns {string} HTML文字列
    */
-  badge: ({ text, color = 'gray', size = 'sm' }) => {
+  badge: ({ text, color = 'gray', size = 'sm', border = false }) => {
     /** @type {Record<string, string>} */
     const colorClasses = {
       gray: 'bg-gray-100 text-gray-700',
@@ -1626,6 +1648,17 @@ export const Components = {
     };
 
     /** @type {Record<string, string>} */
+    const borderClasses = {
+      gray: 'border-gray-300',
+      blue: 'border-blue-300',
+      green: 'border-green-300',
+      red: 'border-red-300',
+      orange: 'border-orange-300',
+      purple: 'border-purple-300',
+      yellow: 'border-yellow-300',
+    };
+
+    /** @type {Record<string, string>} */
     const sizeClasses = {
       xs: 'text-xs px-0.5 py-0',
       sm: 'text-sm px-1 py-0.5',
@@ -1634,8 +1667,11 @@ export const Components = {
 
     const colorClass = colorClasses[color] || colorClasses['gray'];
     const sizeClass = sizeClasses[size] || sizeClasses['sm'];
+    const borderClass = border
+      ? `border-2 ${borderClasses[color] || 'border-gray-300'}`
+      : '';
 
-    return `<span class="font-medium rounded ${sizeClass} ${colorClass}">${escapeHTML(text)}</span>`;
+    return `<span class="font-medium rounded ${sizeClass} ${colorClass} ${borderClass}">${escapeHTML(text)}</span>`;
   },
 
   /**
@@ -1790,7 +1826,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-16 z-[5] mb-0.5 participants-table-sticky-header">
+    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-16 z-[5] mb-1 participants-table-sticky-header">
       <div id="${escapeHTML(headerId)}" class="overflow-x-auto scrollbar-hide">
         <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;height: 1rem;">
           ${columnsHtml}
@@ -1884,96 +1920,6 @@ export const Components = {
 // -----------------------------------------------------------------
 // 特定用途に特化したコンポーネント
 // =================================================================
-
-/**
- * 右上固定配置のもどるボタンを生成します
- * @param {string} action - アクション名（デフォルト: 'smartGoBack'）
- * @param {string} text - ボタンテキスト（デフォルト: 'もどる'）
- * @returns {string} HTML文字列
- */
-Components.createBackButton = (action = 'smartGoBack', text = 'もどる') => {
-  return `
-      <div class="back-button-container fixed top-4 right-4 z-30">
-        <button
-          data-action="${escapeHTML(action)}"
-          class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
-        >
-          ${escapeHTML(text)}
-        </button>
-      </div>`;
-};
-
-/**
- * 現在のビューに応じて適切なもどるボタンを生成します
- * @param {string} currentView - 現在のビュー名
- * @returns {string} HTML文字列
- */
-Components.createSmartBackButton = currentView => {
-  let action = 'smartGoBack';
-  let text = 'もどる';
-
-  // ビューに応じて適切なアクションとテキストを設定
-  switch (currentView) {
-    case 'login':
-      // ログイン画面ではもどるボタンを表示しない
-      return '';
-
-    case 'register':
-      text = 'ログインへ';
-      action = 'goBackToLogin';
-      break;
-
-    case 'registrationStep2':
-      text = '前へ';
-      action = 'backToStep1';
-      break;
-
-    case 'registrationStep3':
-      text = '前へ';
-      action = 'backToStep2';
-      break;
-
-    case 'registrationStep4':
-      text = '前へ';
-      action = 'backToStep3';
-      break;
-
-    case 'dashboard':
-      // ダッシュボードではもどるボタンを表示しない
-      return '';
-
-    case 'bookingLessons':
-      text = 'ホーム';
-      action = 'goBackToDashboard';
-      break;
-
-    case 'newReservation':
-      text = '予約一覧';
-      action = 'goBackToBooking';
-      break;
-
-    case 'editReservation':
-      text = 'ホーム';
-      action = 'goBackToDashboard';
-      break;
-
-    case 'accounting':
-      text = 'ホーム';
-      action = 'goBackToDashboard';
-      break;
-
-    case 'complete':
-      text = 'ホーム';
-      action = 'goBackToDashboard';
-      break;
-
-    default:
-      // デフォルトはスマートもどる
-      break;
-  }
-
-  return Components.createBackButton(action, text);
-};
 
 // =================================================================
 // --- レガシー互換性サポート ---

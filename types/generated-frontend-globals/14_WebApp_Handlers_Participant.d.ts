@@ -1,5 +1,6 @@
 export namespace participantActionHandlers {
     export { loadParticipantView };
+    export { refreshParticipantView };
     export function goToParticipantsView(): void;
     export { toggleParticipantLessonAccordion };
     export { selectParticipantStudent };
@@ -27,8 +28,15 @@ export type CacheEntry = {
  * ログイン成功後、管理者の場合に呼ばれる
  *
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
+ * @param {string|boolean} loadingCategory - ローディングバリエーション（'participants' | 'dataFetch' 等）。falseの場合は非表示。
+ * @param {Partial<UIState> | null} baseAppState - 初期状態
+ * @param {boolean} includeHistory - 過去の履歴も含めるか
  */
-declare function loadParticipantView(forceReload?: boolean, shouldShowLoading?: boolean, baseAppState?: Partial<UIState> | null, includeHistory?: boolean): void;
+declare function loadParticipantView(forceReload?: boolean, loadingCategory?: string | boolean, baseAppState?: Partial<UIState> | null, includeHistory?: boolean): void;
+/**
+ * 参加者リストビューのデータ更新（手動リフレッシュ）
+ */
+declare function refreshParticipantView(): void;
 /**
  * アコーディオンの開閉を切り替えるハンドラ（DOM操作のみ、再描画なし）
  * @param {string} lessonId - レッスンID
