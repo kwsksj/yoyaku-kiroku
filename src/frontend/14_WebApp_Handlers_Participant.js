@@ -186,7 +186,7 @@ function loadParticipantView(
   }
 
   if (shouldShowLoading) {
-    showLoading('participants');
+    showLoading('dataFetch');
   }
 
   // バックエンドからレッスン一覧と予約データを一括取得
@@ -450,7 +450,7 @@ function selectParticipantStudent(targetStudentId, lessonId) {
 
   // プリロードデータがない場合はAPIコール
   // ローディング表示
-  showLoading('participants');
+  showLoading('dataFetch');
 
   // キャッシュチェック
   if (isCacheValid(studentsCache, targetStudentId)) {
@@ -594,7 +594,7 @@ function togglePastLessons(showPast) {
       return;
     }
 
-    showLoading('participants');
+    showLoading('dataFetch');
     google.script.run
       .withSuccessHandler(function (response) {
         hideLoading();
@@ -670,8 +670,8 @@ async function refreshParticipantView() {
   try {
     showLoading('dataFetch');
     // キャッシュをクリアして再ロード
-    // 第1引数: forceReload = true
-    await loadParticipantView(true);
+    // 第1引数: forceReload = true, 第2引数: shouldShowLoading = false (dataFetchローディングを使用するため)
+    await loadParticipantView(true, false);
   } catch (error) {
     console.error('Refresh error:', error);
     showInfo('更新に失敗しました', 'エラー');
