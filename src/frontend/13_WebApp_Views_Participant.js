@@ -576,6 +576,7 @@ function renderLessonList(lessons) {
       // 2部制の場合は「3,2」形式で表示
       let reservationBadge = '';
       let firstLectureBadge = '';
+      let chiselRentalBadge = '';
       if (isTwoSession) {
         // 2部制教室の場合: 予約時間で午前・午後を判定
         /**
@@ -615,11 +616,36 @@ function renderLessonList(lessons) {
           firstLectureBadge = `初${morningFirstCount},${afternoonFirstCount}`;
         }
 
+        // 彫刻刀レンタル数（2部制: 午前・午後別）
+        const morningChiselCount = baseBadgeReservations.filter(
+          /** @param {any} r */ r => {
+            const slot = getTwoSessionSlot(r);
+            return (slot === 'morning' || slot === 'both') && r.chiselRental;
+          },
+        ).length;
+        const afternoonChiselCount = baseBadgeReservations.filter(
+          /** @param {any} r */ r => {
+            const slot = getTwoSessionSlot(r);
+            return (slot === 'afternoon' || slot === 'both') && r.chiselRental;
+          },
+        ).length;
+        if (morningChiselCount > 0 || afternoonChiselCount > 0) {
+          chiselRentalBadge = `刀${morningChiselCount},${afternoonChiselCount}`;
+        }
+
         // 未完了バッジは別表示にするため、ここではreservationBadgeへ追加しない
       } else {
         reservationBadge = `${baseBadgeReservations.length}`;
         if (firstLectureCount > 0) {
           firstLectureBadge = `初${firstLectureCount}`;
+        }
+
+        // 彫刻刀レンタル数（通常教室）
+        const chiselRentalCount = baseBadgeReservations.filter(
+          /** @param {any} r */ r => r.chiselRental,
+        ).length;
+        if (chiselRentalCount > 0) {
+          chiselRentalBadge = `刀${chiselRentalCount}`;
         }
 
         // 過去表示時は未完了（確定）数を「未X」で表示
@@ -713,6 +739,16 @@ function renderLessonList(lessons) {
               <div class="flex gap-1 items-center flex-shrink-0">
                 ${waitlistBadge}
                 ${pendingBadge}
+                ${
+                  chiselRentalBadge
+                    ? Components.badge({
+                        text: chiselRentalBadge,
+                        color: 'blue',
+                        size: 'xs',
+                        border: true,
+                      })
+                    : ''
+                }
                 ${
                   firstLectureBadge
                     ? Components.badge({
@@ -821,14 +857,12 @@ function renderLessonList(lessons) {
       title: '教室日程・予約状況 一覧',
       showBackButton: true,
       backAction: 'smartGoBack',
-      actionButton: isAdmin
-        ? {
-            text: '更新',
-            action: 'refreshParticipantView',
-            style: 'secondary',
-            size: 'xs',
-          }
-        : null,
+      actionButton: {
+        text: '更新',
+        action: 'refreshParticipantView',
+        style: 'secondary',
+        size: 'xs',
+      },
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
       ${tabsHtml}
@@ -940,11 +974,6 @@ function renderStudentDetailModalContent(student, isAdmin) {
    * @param {string} label
    * @param {string | number | null | undefined} value
    */
-  // Helper to create a list item if value exists
-  /**
-   * @param {string} label
-   * @param {string | number | null | undefined} value
-   */
   const createListItem = (label, value) => {
     return value
       ? `<div class="flex flex-col sm:flex-row sm:gap-2 border-b border-gray-50 sm:border-0 pb-1 sm:pb-0 last:border-0 last:pb-0">
@@ -962,7 +991,6 @@ function renderStudentDetailModalContent(student, isAdmin) {
         基本情報
       </h3>
       <div class="space-y-2">
-        ${createListItem('生徒ID', student.studentId || student['生徒ID'])}
         ${createListItem('ニックネーム', displayName)}
         ${createListItem('参加回数', student.participationCount ? `${student.participationCount}回` : '')}
         ${createListItem('将来制作したいもの', student.futureCreations)}
@@ -981,6 +1009,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
           詳細情報
         </h3>
         <div class="space-y-2">
+          ${createListItem('生徒ID', student.studentId)}
           ${createListItem('本名', student.realName)}
           ${createListItem('電話番号', student.phone)}
           ${createListItem('メール', student.email)}
@@ -1095,14 +1124,22 @@ function renderStudentDetailModalContent(student, isAdmin) {
           .join('')
       : '<p class="text-sm text-gray-500">予約履歴がありません</p>';
 
+  // 予約履歴セクション（全ユーザーに公開）
+  const reservationHistoryHtml = `
+    <div class="mb-4 bg-gray-50 p-3 rounded-lg">
+      <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
+        <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
+        予約履歴
+      </h3>
+      ${historyHtml}
+    </div>
+  `;
+
   return `
     <div class="max-h-[70vh] overflow-y-auto p-1">
       ${publicInfoHtml}
       ${detailedInfoHtml}
-      <div class="mb-2">
-        <h3 class="text-sm font-bold text-brand-text mb-2">予約履歴</h3>
-        ${historyHtml}
-      </div>
+      ${reservationHistoryHtml}
     </div>
   `;
 }
