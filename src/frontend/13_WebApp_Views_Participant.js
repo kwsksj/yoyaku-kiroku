@@ -948,8 +948,8 @@ function renderStudentDetailModalContent(student, isAdmin) {
   const createListItem = (label, value) => {
     return value
       ? `<div class="flex flex-col sm:flex-row sm:gap-2 border-b border-gray-50 sm:border-0 pb-1 sm:pb-0 last:border-0 last:pb-0">
-          <span class="font-semibold text-gray-600 text-xs sm:text-sm min-w-[6rem]">${label}</span>
-          <span class="text-brand-text text-sm break-words">${escapeHTML(String(value))}</span>
+          <span class="font-semibold text-gray-600 text-xs sm:text-sm min-w-[6rem] whitespace-nowrap">${label}</span>
+          <span class="text-brand-text text-sm break-all">${escapeHTML(String(value))}</span>
          </div>`
       : '';
   };
@@ -962,6 +962,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
         基本情報
       </h3>
       <div class="space-y-2">
+        ${createListItem('生徒ID', student.studentId || student['生徒ID'])}
         ${createListItem('ニックネーム', displayName)}
         ${createListItem('参加回数', student.participationCount ? `${student.participationCount}回` : '')}
         ${createListItem('将来制作したいもの', student.futureCreations)}
@@ -973,7 +974,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
   // グリッドレイアウト（2カラム）を適用
   const detailedInfoHtml = isAdmin
     ? `
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-left">
       <div class="bg-gray-50 p-3 rounded-lg">
         <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
           <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
@@ -997,10 +998,11 @@ function renderStudentDetailModalContent(student, isAdmin) {
             アンケート情報
           </h3>
           <div class="space-y-2">
-            ${createListItem('木彫り経験', student.experience)}
-            ${createListItem('過去の作品', student.pastWork)}
-            ${createListItem('登録のきっかけ', student.trigger)}
-            ${createListItem('初回メッセージ', student.firstMessage)}
+            ${createListItem('木彫り経験', student.experience || student['木彫り経験'])}
+            ${createListItem('過去の作品', student.pastWork || student['過去の制作物'])}
+            ${createListItem('想定参加頻度', student.attendanceIntention || student['想定参加頻度'])}
+            ${createListItem('登録のきっかけ', student.trigger || student['きっかけ'])}
+            ${createListItem('初回メッセージ', student.firstMessage || student['初回メッセージ'])}
           </div>
         </div>
 

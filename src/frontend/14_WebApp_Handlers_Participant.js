@@ -535,6 +535,8 @@ function showStudentModal(student, isAdmin) {
       title: escapeHTML(displayName),
       message: content,
       confirmText: '閉じる',
+      // @ts-ignore custom property
+      maxWidth: '800px',
     });
   } else {
     console.error('showModal関数が見つかりません');
@@ -666,7 +668,7 @@ function togglePastLessons(showPast) {
  */
 async function refreshParticipantView() {
   try {
-    showLoading('データを更新中...');
+    showLoading('dataFetch');
     // キャッシュをクリアして再ロード
     // 第1引数: forceReload = true
     await loadParticipantView(true);

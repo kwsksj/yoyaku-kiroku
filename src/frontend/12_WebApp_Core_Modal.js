@@ -92,6 +92,19 @@ appWindow.ModalManager =
 
       if (modalTitle) modalTitle.textContent = c.title ?? null;
       if (modalMessage) modalMessage.innerHTML = c.message;
+
+      // 幅のカスタマイズ（オプション）
+      const content = /** @type {HTMLElement | null} */ (
+        m.querySelector('.modal-content')
+      );
+      if (content) {
+        if (/** @type {any} */ (c).maxWidth) {
+          content.style.maxWidth = /** @type {any} */ (c).maxWidth;
+        } else {
+          content.style.maxWidth = ''; // デフォルト（CSS定義）に戻す
+        }
+      }
+
       m.classList.add('active');
     },
 
