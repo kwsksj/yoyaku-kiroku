@@ -662,10 +662,28 @@ function togglePastLessons(showPast) {
 }
 
 /**
+ * 画面更新（管理者用）
+ */
+async function refreshParticipantView() {
+  try {
+    showLoading('データを更新中...');
+    // キャッシュをクリアして再ロード
+    // 第1引数: forceReload = true
+    await loadParticipantView(true);
+  } catch (error) {
+    console.error('Refresh error:', error);
+    showInfo('更新に失敗しました', 'エラー');
+  } finally {
+    hideLoading();
+  }
+}
+
+/**
  * 参加者リスト用アクションハンドラー
  */
 export const participantActionHandlers = {
   loadParticipantView,
+  refreshParticipantView,
   goToParticipantsView: () => {
     // データはloadParticipantViewで取得されるので、ここではビューの初期化を呼び出すだけ
     loadParticipantView(false); // 強制再読み込みはしない（未来分のみ先読み）
