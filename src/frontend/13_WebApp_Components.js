@@ -1623,12 +1623,16 @@ export const Components = {
   // =================================================================
 
   /**
+   * @typedef {object} BadgeConfig
+   * @property {string} text - バッジテキスト
+   * @property {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} [color='gray'] - 色
+   * @property {'xs'|'sm'|'md'} [size='sm'] - サイズ
+   * @property {boolean} [border=false] - 枠線を表示するか
+   */
+
+  /**
    * 汎用バッジコンポーネント
-   * @param {object} config
-   * @param {string} config.text - バッジテキスト
-   * @param {'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow'} [config.color='gray'] - 色
-   * @param {'xs'|'sm'|'md'} [config.size='sm'] - サイズ
-   * @param {boolean} [config.border=false] - 枠線を表示するか
+   * @param {BadgeConfig} config
    * @returns {string} HTML文字列
    */
   badge: ({ text, color = 'gray', size = 'sm', border = false }) => {
@@ -1917,95 +1921,6 @@ export const Components = {
 // 特定用途に特化したコンポーネント
 // =================================================================
 
-/**
- * 右上固定配置のもどるボタンを生成します
- * @param {string} action - アクション名（デフォルト: 'smartGoBack'）
- * @param {string} text - ボタンテキスト（デフォルト: 'もどる'）
- * @returns {string} HTML文字列
- */
-Components.createBackButton = (action = 'smartGoBack', text = 'もどる') => {
-  return `
-      <div class="back-button-container fixed top-4 right-4 z-30">
-        <button
-          data-action="${escapeHTML(action)}"
-          class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
-        >
-          ${escapeHTML(text)}
-        </button>
-      </div>`;
-};
-
-/**
- * 現在のビューに応じて適切なもどるボタンを生成します
- * @param {string} currentView - 現在のビュー名
- * @returns {string} HTML文字列
- */
-Components.createSmartBackButton = currentView => {
-  let action = 'smartGoBack';
-  let text = 'もどる';
-
-  // ビューに応じて適切なアクションとテキストを設定
-  switch (currentView) {
-    case 'login':
-      // ログイン画面ではもどるボタンを表示しない
-      return '';
-
-    case 'register':
-      text = 'ログインへ';
-      action = 'goBackToLogin';
-      break;
-
-    case 'registrationStep2':
-      text = '前へ';
-      action = 'backToStep1';
-      break;
-
-    case 'registrationStep3':
-      text = '前へ';
-      action = 'backToStep2';
-      break;
-
-    case 'registrationStep4':
-      text = '前へ';
-      action = 'backToStep3';
-      break;
-
-    case 'dashboard':
-      // ダッシュボードではもどるボタンを表示しない
-      return '';
-
-    case 'bookingLessons':
-      text = 'ホーム';
-      action = 'goBackToDashboard';
-      break;
-
-    case 'newReservation':
-      text = '予約一覧';
-      action = 'goBackToBooking';
-      break;
-
-    case 'editReservation':
-      text = 'ホーム';
-      action = 'goBackToDashboard';
-      break;
-
-    case 'accounting':
-      text = 'ホーム';
-      action = 'goBackToDashboard';
-      break;
-
-    case 'complete':
-      text = 'ホーム';
-      action = 'goBackToDashboard';
-      break;
-
-    default:
-      // デフォルトはスマートもどる
-      break;
-  }
-
-  return Components.createBackButton(action, text);
-};
 
 // =================================================================
 // --- レガシー互換性サポート ---

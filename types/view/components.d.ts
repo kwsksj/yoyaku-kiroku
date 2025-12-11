@@ -588,6 +588,7 @@ declare global {
         | 'purple'
         | 'yellow';
       size?: 'xs' | 'sm' | 'md';
+      border?: boolean;
     }) => string;
     tabGroup: (config: {
       tabs: Array<{
