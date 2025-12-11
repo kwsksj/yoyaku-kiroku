@@ -294,20 +294,7 @@ let localExpandedLessonIds = [];
 function toggleParticipantLessonAccordion(lessonId) {
   if (!lessonId) return;
 
-  console.log('🎯 アコーディオン切り替え:', lessonId);
-
-  // ローカル配列で開閉状態を管理（dispatch()を呼ばない）
-  const isCurrentlyExpanded = localExpandedLessonIds.includes(lessonId);
-
-  if (isCurrentlyExpanded) {
-    localExpandedLessonIds = localExpandedLessonIds.filter(
-      id => id !== lessonId,
-    );
-  } else {
-    localExpandedLessonIds.push(lessonId);
-  }
-
-  // DOM直接操作のみでコンテンツを切り替え（自動レンダリング発生せず）
+  // DOM直接操作でコンテンツを切り替え
   const container = document.querySelector(
     `[data-lesson-container="${lessonId}"]`,
   );
@@ -316,22 +303,31 @@ function toggleParticipantLessonAccordion(lessonId) {
   const contentElement = container.querySelector('.accordion-content');
   const arrowElement = container.querySelector('svg');
 
-  if (isCurrentlyExpanded) {
-    // 閉じる
-    if (contentElement) {
-      contentElement.classList.add('hidden');
-    }
-    if (arrowElement) {
-      arrowElement.classList.remove('rotate-180');
-    }
-  } else {
+  if (!contentElement) return;
+
+  // DOMの状態から現在の開閉状態を判定（hiddenがあれば閉じている）
+  const isClosed = contentElement.classList.contains('hidden');
+
+  if (isClosed) {
     // 開く
-    if (contentElement) {
-      contentElement.classList.remove('hidden');
-    }
+    contentElement.classList.remove('hidden');
     if (arrowElement) {
       arrowElement.classList.add('rotate-180');
     }
+    // 状態を保存
+    if (!localExpandedLessonIds.includes(lessonId)) {
+      localExpandedLessonIds.push(lessonId);
+    }
+  } else {
+    // 閉じる
+    contentElement.classList.add('hidden');
+    if (arrowElement) {
+      arrowElement.classList.remove('rotate-180');
+    }
+    // 状態を保存
+    localExpandedLessonIds = localExpandedLessonIds.filter(
+      id => id !== lessonId,
+    );
   }
 }
 
