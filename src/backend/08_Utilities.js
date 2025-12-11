@@ -628,11 +628,15 @@ export function transformReservationArrayToObjectWithHeaders(
     status: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.STATUS) || ''),
     chiselRental: (() => {
       const value = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL);
-      return value === true || String(value).toUpperCase() === 'TRUE';
+      return (
+        value === true || String(value).toUpperCase() === 'TRUE' || value == 1
+      );
     })(),
     firstLecture: (() => {
       const value = getCellValue(CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE);
-      return value === true || String(value).toUpperCase() === 'TRUE';
+      return (
+        value === true || String(value).toUpperCase() === 'TRUE' || value == 1
+      );
     })(),
     workInProgress: String(
       getCellValue(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS) || '',

@@ -743,7 +743,7 @@ function renderLessonList(lessons) {
                   chiselRentalBadge
                     ? Components.badge({
                         text: chiselRentalBadge,
-                        color: 'blue',
+                        color: 'orange',
                         size: 'xs',
                         border: true,
                       })
