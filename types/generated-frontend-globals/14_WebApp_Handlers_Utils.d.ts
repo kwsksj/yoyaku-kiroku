@@ -59,6 +59,21 @@ export function formatPhoneNumberForDisplay(phoneNumber: string): string;
  */
 export function isCurrentUserAdmin(): boolean;
 /**
+ * 管理者操作後のなりすまし終了と画面遷移を一括処理するヘルパー
+ * @param {object} options
+ * @param {any} [options.participantCacheUpdate] - updateParticipantViewCacheFromReservation の戻り値
+ * @param {any} [options.response] - サーバーレスポンス（lessonsデータを含む）
+ * @param {string} [options.message] - 表示するメッセージ
+ * @param {string} [options.messageTitle] - メッセージタイトル
+ * @returns {boolean} processed - 管理者操作として処理された場合はtrue
+ */
+export function handleAdminImpersonationAfterAction({ participantCacheUpdate, response, message, messageTitle, }?: {
+    participantCacheUpdate?: any;
+    response?: any;
+    message?: string;
+    messageTitle?: string;
+}): boolean;
+/**
  * バッチ処理でキャッシュから最新データを取得してappStateを更新
  * ユーザーの予約・履歴・スロット情報を一括取得し、指定されたビューに遷移
  * @param {string} targetView - データ取得後に遷移したいビュー名
@@ -85,3 +100,24 @@ export function buildSalesChecklist(accountingMaster: AccountingMasterItemCore[]
  * @returns {string} HTML文字列
  */
 export function getSalesCheckboxListHtml(salesList: AccountingMasterItemCore[], checkedValues?: string[]): string;
+/**
+ * 管理者操作後に参加者リストキャッシュを部分更新する
+ * @param {ReservationCore & {lessonId?: string}} reservation
+ * @param {'remove'|'upsert'} [mode='upsert']
+ * @param {Record<string, any[]>} [baseMap]
+ * @param {LessonCore[] | null} [baseLessons]
+ * @returns {Partial<UIState> | null}
+ */
+export function updateParticipantViewCacheFromReservation(reservation: ReservationCore & {
+    lessonId?: string;
+}, mode?: "remove" | "upsert", baseMap?: Record<string, any[]>, baseLessons?: LessonCore[] | null): Partial<UIState> | null;
+/**
+ * 管理者戻り用の参加者リストペイロードを作成（既存データを優先）
+ * @param {LessonCore[] | null | undefined} responseLessons
+ * @returns {Partial<UIState>}
+ */
+export function getParticipantPayloadForAdminView(responseLessons: LessonCore[] | null | undefined): Partial<UIState>;
+/**
+ * 管理者操作後に参加者ビューを最新化するヘルパー
+ */
+export function refreshParticipantsViewForAdmin(): void;

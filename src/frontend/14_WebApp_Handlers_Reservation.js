@@ -25,12 +25,12 @@ import { getClassroomSelectionModal } from './13_WebApp_Views_Booking.js';
 import { getScheduleInfoFromCache } from './12_WebApp_Core_Data.js';
 import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 import {
-    getParticipantPayloadForAdminView,
-    getTimeValue,
-    isCurrentUserAdmin,
-    refreshParticipantsViewForAdmin,
-    updateAppStateFromCache,
-    updateParticipantViewCacheFromReservation,
+  getParticipantPayloadForAdminView,
+  getTimeValue,
+  isCurrentUserAdmin,
+  refreshParticipantsViewForAdmin,
+  updateAppStateFromCache,
+  updateParticipantViewCacheFromReservation,
 } from './14_WebApp_Handlers_Utils.js';
 
 const reservationStateManager = appWindow.stateManager;
@@ -1817,8 +1817,6 @@ export const reservationActionHandlers = {
     }
   },
 };
-
-
 
 /**
  * 参加者リストモーダルを表示するヘルパー関数
