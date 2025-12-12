@@ -713,6 +713,13 @@ export class SimpleStateManager {
     const originalUser =
       currentState.adminImpersonationOriginalUser || currentState.currentUser;
 
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      console.log('🎭 startImpersonation:', {
+        target: targetUser?.studentId,
+        original: originalUser?.studentId,
+      });
+    }
+
     this.dispatch({
       type: 'UPDATE_STATE',
       payload: {
@@ -729,6 +736,13 @@ export class SimpleStateManager {
   endImpersonation() {
     const currentState = this.state;
     const originalUser = currentState.adminImpersonationOriginalUser;
+
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      console.log('🎭 endImpersonation:', {
+        hadOriginal: !!originalUser,
+        originalId: originalUser?.studentId,
+      });
+    }
 
     if (originalUser) {
       this.dispatch({

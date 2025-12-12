@@ -436,6 +436,9 @@ window.onload = function () {
           }
 
           if (response.success) {
+            // 管理者操作かどうかをなりすまし終了前に記録
+            const wasAdminOperation = isAdminOperation;
+
             // 成功時はなりすましを終了して戻る
             handlersStateManager.endImpersonation();
 
@@ -446,9 +449,13 @@ window.onload = function () {
                     '会計処理が完了しました（売上は20時に自動転載されます）',
               '完了',
             );
+
+            // 管理者操作の場合は参加者リストへ、一般ユーザーはダッシュボードへ
             handlersStateManager.dispatch({
               type: 'SET_STATE',
-              payload: { view: 'dashboard' },
+              payload: {
+                view: wasAdminOperation ? 'participants' : 'dashboard',
+              },
             });
           } else {
             showInfo(response.error || 'エラーが発生しました', 'エラー');
@@ -473,12 +480,20 @@ window.onload = function () {
     // -----------------------------------------------------------------
     /** スマートナビゲーション: 前の画面にもどる */
     smartGoBack: () => {
+      const state = handlersStateManager.getState();
+      const wasImpersonating = !!state.adminImpersonationOriginalUser;
+
       // ナビゲーションでもどる際はなりすまし解除を試みる
       // （もしなりすまし中なら、元の管理者に戻る）
       handlersStateManager.endImpersonation();
 
+      // 通常の履歴ベースの戻る処理
       const backState = handlersStateManager.goBack();
       if (backState) {
+        // なりすまし中で履歴がなく dashboard に戻ろうとした場合は participants に変更
+        if (wasImpersonating && backState.view === 'dashboard') {
+          backState.view = 'participants';
+        }
         handlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: backState,

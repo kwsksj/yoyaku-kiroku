@@ -166,7 +166,7 @@ export const getBookingView = classroom => {
 
   if (!bookingLessonsHtml) {
     return `
-      ${Components.pageHeader({ title: pageTitle })}
+      ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
@@ -176,7 +176,7 @@ export const getBookingView = classroom => {
     `;
   } else {
     return `
-      ${Components.pageHeader({ title: pageTitle })}
+      ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `

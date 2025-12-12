@@ -138,8 +138,11 @@ export const reservationActionHandlers = {
           );
 
           if (r.success) {
-            // 管理者の場合は参加者リストをリロードして戻る
-            if (currentUser.isAdmin) {
+            // 管理者がなりすまし中かどうかを正しく判定
+            const state = reservationStateManager.getState();
+            const isAdminImpersonating = !!state.adminImpersonationOriginalUser;
+
+            if (isAdminImpersonating) {
               let participantCacheUpdate = null;
               if (currentFormContext && targetLessonId) {
                 participantCacheUpdate =
@@ -159,6 +162,10 @@ export const reservationActionHandlers = {
               const fallbackPayload = getParticipantPayloadForAdminView(
                 r.data ? r.data.lessons : null,
               );
+
+              // なりすましを終了
+              reservationStateManager.endImpersonation();
+
               reservationStateManager.dispatch({
                 type: 'SET_STATE',
                 payload: {
@@ -581,9 +588,11 @@ export const reservationActionHandlers = {
         );
 
         if (r.success) {
-          // 管理者の場合は参加者リストに戻る
+          // 管理者がなりすまし中かどうかを正しく判定
+          const state = reservationStateManager.getState();
+          const isAdminImpersonating = !!state.adminImpersonationOriginalUser;
 
-          if (currentUser.isAdmin) {
+          if (isAdminImpersonating) {
             // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
             let participantCacheUpdate = null;
             if (currentReservationFormContext?.lessonInfo?.lessonId) {
@@ -601,6 +610,9 @@ export const reservationActionHandlers = {
             const fallbackPayload = getParticipantPayloadForAdminView(
               r.data ? r.data.lessons : null,
             );
+
+            // なりすまし終了
+            reservationStateManager.endImpersonation();
 
             reservationStateManager.dispatch({
               type: 'SET_STATE',
@@ -996,10 +1008,20 @@ export const reservationActionHandlers = {
 
   /** ホーム（メイン画面）に遷移 */
   goToDashboard: () => {
-    if (
-      !reservationStateManager.getState().isDataFresh &&
-      !reservationStateManager.getState()._dataUpdateInProgress
-    ) {
+    const state = reservationStateManager.getState();
+
+    // なりすまし中の場合は、なりすましを終了して参加者ビューへ
+    if (state.adminImpersonationOriginalUser) {
+      reservationStateManager.endImpersonation();
+      reservationStateManager.dispatch({
+        type: 'SET_STATE',
+        payload: { view: 'participants' },
+      });
+      return;
+    }
+
+    // 通常フロー
+    if (!state.isDataFresh && !state._dataUpdateInProgress) {
       updateAppStateFromCache('dashboard');
     } else {
       reservationStateManager.dispatch({
@@ -1451,7 +1473,12 @@ export const reservationActionHandlers = {
             sessionStorage.removeItem('changingReservation'); // クリーンアップ
 
             if (response.success) {
-              if (currentUser.isAdmin) {
+              // 管理者がなりすまし中かどうかを正しく判定
+              const state = reservationStateManager.getState();
+              const isAdminImpersonating =
+                !!state.adminImpersonationOriginalUser;
+
+              if (isAdminImpersonating) {
                 const newLessonId = String(ctx.lessonInfo.lessonId || '');
                 const oldLessonId = String(
                   originalReservation.lessonId || newLessonId,
@@ -1516,6 +1543,9 @@ export const reservationActionHandlers = {
                 const fallbackPayload = getParticipantPayloadForAdminView(
                   response.data ? response.data.lessons : null,
                 );
+
+                // なりすましを終了
+                reservationStateManager.endImpersonation();
 
                 reservationStateManager.dispatch({
                   type: 'SET_STATE',
