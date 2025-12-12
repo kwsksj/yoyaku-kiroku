@@ -24,27 +24,23 @@
 // ================================================================
 // 依存モジュール
 // ================================================================
+import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
   authenticateUser,
-  registerNewUser,
   isAdminLogin,
   issueAdminSessionToken,
+  registerNewUser,
 } from './04_Backend_User.js';
 import {
-  getCachedStudentById,
-  getCachedReservationsAsObjects,
-  withTransaction,
-} from './08_Utilities.js';
-import {
-  makeReservation,
   cancelReservation,
-  updateReservationDetails,
+  checkIfSalesAlreadyLogged,
+  confirmWaitlistedReservation,
+  getScheduleInfoForDate,
+  logSalesForSingleReservation,
+  makeReservation,
   saveAccountingDetails,
   updateAccountingDetails,
-  getScheduleInfoForDate,
-  confirmWaitlistedReservation,
-  checkIfSalesAlreadyLogged,
-  logSalesForSingleReservation,
+  updateReservationDetails,
 } from './05-2_Backend_Write.js';
 import {
   getLessons,
@@ -52,11 +48,19 @@ import {
 } from './05-3_Backend_AvailableSlots.js';
 import {
   CACHE_KEYS,
-  getTypedCachedData,
   getStudentCacheSnapshot,
+  getTypedCachedData,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
-import { SS_MANAGER } from './00_SpreadsheetManager.js';
+import {
+  getCachedReservationsAsObjects,
+  getCachedStudentById,
+  withTransaction,
+} from './08_Utilities.js';
+
+/**
+ * @typedef {import('../../types/core/reservation').ReservationCoreWithAccounting} ReservationCoreWithAccounting
+ */
 
 /**
  * 予約操作後に最新データを取得して返す汎用関数
@@ -1433,8 +1437,14 @@ export function processAccountingWithTransferOption(
       `[processAccountingWithTransferOption] 開始: withSalesTransfer=${withSalesTransfer}`,
     );
 
-    // 会計処理を実行
-    const accountingResult = saveAccountingDetails(formData);
+    // 4. 会計情報の保存（ログへの記録）
+    // NOTE: saveAccountingDetailsは reservationWithAccounting (formData + accountingDetails) を期待する
+    /** @type {ReservationCoreWithAccounting} */
+    const reservationToSave = {
+      ...formData,
+      accountingDetails: calculationResult,
+    };
+    const accountingResult = saveAccountingDetails(reservationToSave);
 
     if (!accountingResult.success) {
       Logger.log(

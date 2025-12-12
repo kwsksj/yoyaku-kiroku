@@ -1,4 +1,7 @@
 /**
+ * @typedef {import('../../types/core/reservation').ReservationCoreWithAccounting} ReservationCoreWithAccounting
+ */
+/**
  * 予約操作後に最新データを取得して返す汎用関数
  * @param {Function} operationFunction - 実行する操作関数 (makeReservation, cancelReservationなど)
  * @param {ReservationCore|AccountingDetailsCore|any} operationParams - 操作関数に渡すパラメータ (Core型)
@@ -153,3 +156,4 @@ export function getStudentDetailsForParticipantsView(targetStudentId: string, re
 export function processAccountingWithTransferOption(formData: any, calculationResult: AccountingDetailsCore, withSalesTransfer: boolean): ApiResponseGeneric<{
     message: string;
 }>;
+export type ReservationCoreWithAccounting = import("../../types/core/reservation").ReservationCoreWithAccounting;

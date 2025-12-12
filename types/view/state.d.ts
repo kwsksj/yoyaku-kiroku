@@ -6,12 +6,12 @@
  * =================================================================
  */
 
+import type {
+    AccountingDetailsCore,
+    AccountingMasterItemCore,
+} from '../core/accounting';
 import type { LessonCore, ScheduleInfo } from '../core/lesson';
 import type { ReservationCore } from '../core/reservation';
-import type {
-  AccountingDetailsCore,
-  AccountingMasterItemCore,
-} from '../core/accounting';
 import type { UserCore } from '../core/user';
 
 // =================================================================
@@ -152,6 +152,8 @@ export interface AccountingFormDto {
 export interface UIState {
   // --- User & Session Data ---
   currentUser: UserCore | null;
+  /** なりすまし操作時の元の管理者ユーザー */
+  adminImpersonationOriginalUser: UserCore | null;
   loginPhone: string;
   isFirstTimeBooking: boolean;
   registrationData: RegistrationFormData;
@@ -328,7 +330,16 @@ export interface SimpleStateManager {
 
   // レッスン更新管理
   needsLessonsUpdate(cacheExpirationMinutes?: number): boolean;
-  updateLessonsVersion(newVersion?: string): void;
+  updateLessonsVersion(newVersion: string): void;
+  /**
+   * なりすまし操作を開始
+   * @param {UserCore} targetUser - なりすまし対象のユーザー
+   */
+  startImpersonation(targetUser: UserCore): void;
+  /**
+   * なりすまし操作を終了
+   */
+  endImpersonation(): void;
 
   setBeginnerModeOverride(value: boolean): void;
   // AI開発最適化：動的プロパティアクセスを許可

@@ -351,6 +351,7 @@ const value = state['expandedLessonId'];
    ```
 
 2. **ソースコードではドット記法を使用する**
+
    ```javascript
    // 型定義修正後はドット記法でアクセス可能
    const value = state.expandedLessonId;

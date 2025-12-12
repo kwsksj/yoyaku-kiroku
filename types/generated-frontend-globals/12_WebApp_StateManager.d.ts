@@ -125,6 +125,15 @@ export class SimpleStateManager {
      */
     clearStoredState(): void;
     /**
+     * なりすまし操作を開始
+     * @param {UserCore} targetUser - なりすまし対象のユーザー
+     */
+    startImpersonation(targetUser: UserCore): void;
+    /**
+     * なりすまし操作を終了し、元の管理者に戻る
+     */
+    endImpersonation(): void;
+    /**
      * 講座データの更新が必要かチェック
      * @param {number} [cacheExpirationMinutes=10] - キャッシュ有効期限（分）
      * @returns {boolean} 更新が必要な場合true

@@ -28,9 +28,9 @@
 // ================================================================
 import { SALES_SPREADSHEET_ID, SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
+  formatAdminUserDisplay,
   sendAdminNotification,
   sendAdminNotificationForReservation,
-  formatAdminUserDisplay,
 } from './02-6_Notification_Admin.js';
 import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
 import {
@@ -1529,8 +1529,18 @@ export function saveAccountingDetails(reservationWithAccounting) {
     try {
       const { reservationId, studentId, accountingDetails } =
         reservationWithAccounting;
-      if (!reservationId || !studentId || !accountingDetails) {
-        throw new Error('会計情報が不足しています。');
+
+      const missingFields = [];
+      if (!reservationId) missingFields.push('reservationId');
+      if (!studentId) missingFields.push('studentId');
+      if (!accountingDetails) missingFields.push('accountingDetails');
+      else if (accountingDetails.grandTotal === undefined)
+        missingFields.push('accountingDetails.grandTotal');
+
+      if (missingFields.length > 0) {
+        throw new Error(
+          `会計情報が不足しています: ${missingFields.join(', ')}`,
+        );
       }
 
       // 1. 既存の予約データをCore型オブジェクトとして取得
@@ -1563,6 +1573,14 @@ export function saveAccountingDetails(reservationWithAccounting) {
       // 5. 売上ログの記録は20時のバッチ処理で実行されるためここでは行わない
 
       // ログと通知
+      // 管理者操作の場合はログにその旨を記録
+      const formDataAny = /** @type {any} */ (reservationWithAccounting);
+      const isAdminOp = formDataAny.isAdminOperation;
+      const adminUserId = formDataAny.adminUserId;
+      const logMessage = isAdminOp
+        ? `【管理者操作】会計記録を保存しました（操作者: ${adminUserId}）`
+        : '会計記録を保存しました';
+
       logActivity(
         studentId,
         CONSTANTS.LOG_ACTIONS.ACCOUNTING_SAVE,
@@ -1571,13 +1589,16 @@ export function saveAccountingDetails(reservationWithAccounting) {
           classroom: updatedReservation.classroom,
           reservationId: reservationId,
           date: updatedReservation.date,
-          message: '会計記録を保存しました',
-          details: {
-            grandTotal: accountingDetails.grandTotal,
-            tuitionSubtotal: accountingDetails.tuition.subtotal,
-            salesSubtotal: accountingDetails.sales.subtotal,
-            paymentMethod: accountingDetails.paymentMethod,
-          },
+          message: logMessage,
+          details: accountingDetails
+            ? {
+                grandTotal: accountingDetails.grandTotal,
+                tuitionSubtotal: accountingDetails.tuition?.subtotal || 0,
+                salesSubtotal: accountingDetails.sales?.subtotal || 0,
+                paymentMethod: accountingDetails.paymentMethod,
+                ...(isAdminOp ? { isAdminOperation: true, adminUserId } : {}),
+              }
+            : {},
         },
       );
 
@@ -1606,7 +1627,7 @@ export function saveAccountingDetails(reservationWithAccounting) {
 ` +
         `生徒ID: ${studentId}
 ` +
-        `合計金額: ¥${accountingDetails.grandTotal.toLocaleString()}
+        `合計金額: ¥${(accountingDetails?.grandTotal || 0).toLocaleString()}
 
 ` +
         `詳細はスプレッドシートを確認してください。`;

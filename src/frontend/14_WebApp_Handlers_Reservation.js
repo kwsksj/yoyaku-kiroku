@@ -22,14 +22,38 @@ import { getClassroomSelectionModal } from './13_WebApp_Views_Booking.js';
 // ================================================================
 // ユーティリティ系モジュール
 // ================================================================
-import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 import { getScheduleInfoFromCache } from './12_WebApp_Core_Data.js';
+import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 import {
   getTimeValue,
   updateAppStateFromCache,
 } from './14_WebApp_Handlers_Utils.js';
 
 const reservationStateManager = appWindow.stateManager;
+
+/**
+ * 現在のユーザーが管理者かどうかを判定（なりすまし中も判定可能）
+ * @returns {boolean}
+ */
+const isCurrentUserAdmin = () => {
+  const state = reservationStateManager.getState();
+  // なりすまし中は元の管理者ユーザーを確認
+  const actualUser = state.adminImpersonationOriginalUser || state.currentUser;
+  return actualUser?.isAdmin || false;
+};
+
+/**
+ * 管理者トークンを取得（なりすまし中も考慮）
+ * @returns {string}
+ */
+const getAdminToken = () => {
+  const state = reservationStateManager.getState();
+  return (
+    state.adminImpersonationOriginalUser?.['adminToken'] ||
+    state.currentUser?.['adminToken'] ||
+    ''
+  );
+};
 
 /** 予約管理関連のアクションハンドラー群 */
 export const reservationActionHandlers = {
@@ -77,7 +101,6 @@ export const reservationActionHandlers = {
         const cancelMessage = cancelMessageInput?.value || '';
         const state = reservationStateManager.getState();
         const currentUser = state.currentUser;
-        const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
         const currentFormContext = state.currentReservationFormContext;
         if (!currentUser) {
           hideLoading();
@@ -88,18 +111,22 @@ export const reservationActionHandlers = {
           return showInfo('ユーザー情報が見つかりません', 'エラー');
         }
         const targetStudentId =
-          (currentUser.isAdmin &&
+          (isCurrentUserAdmin() &&
             (currentFormContext?.reservationInfo?.studentId || d.studentId)) ||
           d.studentId ||
           currentUser.studentId ||
           '';
         const targetLessonId =
           currentFormContext?.lessonInfo?.lessonId || d.lessonId || '';
+
+        // 管理者トークンを取得
+        const adminToken = getAdminToken();
+
         const p = {
           ...d,
           studentId: targetStudentId,
           cancelMessage: cancelMessage,
-          _isByAdmin: currentUser.isAdmin || false,
+          _isByAdmin: isCurrentUserAdmin(),
           _adminToken: adminToken,
         };
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
@@ -429,6 +456,37 @@ export const reservationActionHandlers = {
         hideLoading();
       });
     }
+
+    // 管理者操作のなりすましロジック（編集画面遷移時）
+    if (isCurrentUserAdmin()) {
+      const targetStudentId = reservation.studentId;
+      const currentAdminId = state.currentUser?.studentId;
+
+      if (
+        targetStudentId &&
+        targetStudentId !== currentAdminId &&
+        state.currentUser
+      ) {
+        // 生徒情報を検索（検索済みユーザーリストから）
+        const targetUser =
+          state.searchedUsers?.find(u => u.studentId === targetStudentId) ||
+          /** @type {UserCore} */ ({
+            studentId: targetStudentId,
+            realName: /** @type {any} */ (reservation)['studentName'] || '生徒', // reservationDataに名前が含まれていると仮定
+            nickname: /** @type {any} */ (reservation)['studentName'] || '生徒',
+            isAdmin: false,
+            email: '',
+          });
+
+        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+          console.log(
+            '🎭 予約編集のためなりすましを開始します:',
+            targetUser.realName,
+          );
+        }
+        reservationStateManager.startImpersonation(targetUser);
+      }
+    }
   },
 
   /**
@@ -462,7 +520,6 @@ export const reservationActionHandlers = {
     const validReservationInfo = /** @type {ReservationCore} */ (
       reservationInfo
     );
-    const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
     const startTime = getTimeValue(
       'res-start-time',
       validReservationInfo,
@@ -507,8 +564,8 @@ export const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('material-input')
         )?.value || '',
-      _isByAdmin: currentUser.isAdmin || false,
-      _adminToken: adminToken,
+      _isByAdmin: isCurrentUserAdmin(),
+      _adminToken: getAdminToken(),
     };
     showLoading('booking');
     // 予約更新処理中フラグを設定
@@ -1658,34 +1715,48 @@ export const reservationActionHandlers = {
     const reservationId = d.reservationId;
 
     // グローバルコンテキストからデータを取得
-
     const context = /** @type {any} */ (appWindow).adminContext || {};
-
     const reservations = context.reservations || [];
-
     const reservation = reservations.find(
       (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
     );
-
     const lesson = context.lesson;
 
     if (reservation && lesson) {
       // モーダルを閉じる
-
       Components.closeModal('participant-list-modal');
+
+      // 管理者操作のなりすましロジック
+      const state = reservationStateManager.getState();
+      const targetStudentId = reservation.studentId;
+      const currentAdminId = state.currentUser?.studentId;
+
+      if (
+        state.currentUser?.isAdmin &&
+        targetStudentId &&
+        targetStudentId !== currentAdminId
+      ) {
+        // 生徒情報を構築（reservationから利用可能な情報を使用）
+        const adminR = /** @type {any} */ (reservation);
+        const targetUser = /** @type {UserCore} */ ({
+          studentId: targetStudentId,
+          realName: adminR.realName || adminR.nickname || '生徒',
+          nickname: adminR.nickname || adminR.realName || '生徒',
+          isAdmin: false,
+          email: adminR.email || '',
+        });
+        reservationStateManager.startImpersonation(targetUser);
+      }
 
       const formContext = {
         lessonInfo: lesson,
-
         reservationInfo: reservation,
       };
 
       reservationStateManager.dispatch({
         type: 'NAVIGATE',
-
         payload: {
           to: 'reservationForm',
-
           context: {
             currentReservationFormContext: formContext,
           },
@@ -1706,37 +1777,20 @@ export const reservationActionHandlers = {
 
   showAdminAccounting: d => {
     const reservationId = d.reservationId;
-
-    // グローバルコンテキストからデータを取得
-
-    const context = /** @type {any} */ (appWindow).adminContext || {};
-
-    const reservations = context.reservations || [];
-
-    const reservation = reservations.find(
-      (/** @type {ReservationCore} */ r) => r.reservationId === reservationId,
-    );
-
-    if (reservation) {
-      // モーダルを閉じる
-
-      Components.closeModal('participant-list-modal');
-
-      // accountingReservationを設定して画面遷移
-
-      reservationStateManager.dispatch({
-        type: 'NAVIGATE',
-
-        payload: {
-          to: 'accounting',
-
-          context: {
-            accountingReservation: reservation,
-          },
-        },
-      });
-    } else {
+    if (!reservationId) {
       showInfo('予約情報が見つかりません', 'エラー');
+      return;
+    }
+
+    // モーダルを閉じる
+    Components.closeModal('participant-list-modal');
+
+    // goToAccountingに委譲（なりすましロジックを含む）
+    // actionHandlersはグローバルに公開されている
+    if (appWindow.actionHandlers?.goToAccounting) {
+      appWindow.actionHandlers.goToAccounting({ reservationId });
+    } else {
+      showInfo('会計機能の初期化に失敗しました', 'エラー');
     }
   },
 };

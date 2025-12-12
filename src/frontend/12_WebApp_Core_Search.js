@@ -48,6 +48,40 @@ export function findReservationById(reservationId, state = null) {
     }
   }
 
+  // 管理者操作時: adminContext.reservations をフォールバック検索
+  const adminContext = /** @type {any} */ (appWindow).adminContext;
+  if (adminContext?.reservations) {
+    const adminReservation = adminContext.reservations.find(
+      (/** @type {ReservationCore} */ item) =>
+        item.reservationId === reservationId,
+    );
+    if (adminReservation) {
+      if (adminReservation.status === CONSTANTS.STATUS.COMPLETED) {
+        return { ...adminReservation, type: 'record' };
+      } else {
+        return { ...adminReservation, type: 'booking' };
+      }
+    }
+  }
+
+  // 管理者操作時: participantReservationsMap をフォールバック検索
+  const participantMap = currentState.participantReservationsMap;
+  if (participantMap) {
+    for (const lessonId of Object.keys(participantMap)) {
+      const found = participantMap[lessonId]?.find(
+        (/** @type {ReservationCore} */ item) =>
+          item.reservationId === reservationId,
+      );
+      if (found) {
+        if (found.status === CONSTANTS.STATUS.COMPLETED) {
+          return { ...found, type: 'record' };
+        } else {
+          return { ...found, type: 'booking' };
+        }
+      }
+    }
+  }
+
   return null;
 }
 
