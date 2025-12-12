@@ -156,4 +156,15 @@ export function getStudentDetailsForParticipantsView(targetStudentId: string, re
 export function processAccountingWithTransferOption(formData: any, calculationResult: AccountingDetailsCore, withSalesTransfer: boolean): ApiResponseGeneric<{
     message: string;
 }>;
+/**
+ * セッション終了ウィザードの統合処理エンドポイント
+ * 1. 今日の記録（workInProgress）を更新
+ * 2. 会計処理を実行
+ * 3. オプションで次回予約を作成
+ *
+ * @param {any} payload - メイン処理データ
+ * @param {any} nextReservationPayload - 次回予約データ（null = スキップ）
+ * @returns {ApiResponseGeneric} 処理結果
+ */
+export function processSessionConclusion(payload: any, nextReservationPayload: any): ApiResponseGeneric;
 export type ReservationCoreWithAccounting = import("../../types/core/reservation").ReservationCoreWithAccounting;

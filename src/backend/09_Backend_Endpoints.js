@@ -1504,3 +1504,108 @@ export function processAccountingWithTransferOption(
     );
   }
 }
+
+/**
+ * セッション終了ウィザードの統合処理エンドポイント
+ * 1. 今日の記録（workInProgress）を更新
+ * 2. 会計処理を実行
+ * 3. オプションで次回予約を作成
+ *
+ * @param {any} payload - メイン処理データ
+ * @param {any} nextReservationPayload - 次回予約データ（null = スキップ）
+ * @returns {ApiResponseGeneric} 処理結果
+ */
+export function processSessionConclusion(payload, nextReservationPayload) {
+  return withTransaction(() => {
+    try {
+      Logger.log(
+        `[processSessionConclusion] 開始: reservationId=${payload.reservationId}`,
+      );
+
+      // 1. 今日の予約の workInProgress を更新
+      const memoUpdatePayload = /** @type {ReservationCore} */ (
+        /** @type {any} */ ({
+          reservationId: payload.reservationId,
+          studentId: payload.studentId,
+          workInProgress: payload.workInProgress || '',
+        })
+      );
+      const memoResult = updateReservationDetails(memoUpdatePayload);
+
+      if (!memoResult.success) {
+        Logger.log(
+          `[processSessionConclusion] メモ更新失敗: ${memoResult.message}`,
+        );
+        return memoResult;
+      }
+
+      // 2. 会計処理
+      // 簡易会計詳細オブジェクトを構築
+      const accountingDetails = /** @type {AccountingDetailsCore} */ (
+        /** @type {any} */ ({
+          tuition: { items: [], total: 0 },
+          sales: { items: [], total: 0 },
+          paymentMethod: payload.paymentMethod,
+          grandTotal: 0,
+        })
+      );
+
+      const reservationWithAccounting =
+        /** @type {ReservationCoreWithAccounting} */ (
+          /** @type {any} */ ({
+            reservationId: payload.reservationId,
+            studentId: payload.studentId,
+            classroom: payload.classroom,
+            accountingDetails: accountingDetails,
+          })
+        );
+
+      const accountingResult = saveAccountingDetails(reservationWithAccounting);
+      if (!accountingResult.success) {
+        Logger.log(
+          `[processSessionConclusion] 会計処理失敗: ${accountingResult.message}`,
+        );
+        return accountingResult;
+      }
+
+      // 3. 次回予約を作成（ペイロードがある場合のみ）
+      if (nextReservationPayload) {
+        Logger.log(
+          `[processSessionConclusion] 次回予約作成: lessonId=${nextReservationPayload.lessonId}`,
+        );
+
+        const reservationResult = makeReservation(
+          /** @type {ReservationCore} */ (nextReservationPayload),
+        );
+        if (!reservationResult.success) {
+          // 次回予約の失敗は警告扱いで続行（会計は完了済み）
+          Logger.log(
+            `[processSessionConclusion] 次回予約作成失敗（警告）: ${reservationResult.message}`,
+          );
+        }
+      }
+
+      // 4. 成功時は最新データを返す
+      const latestData = getBatchData(
+        ['reservations', 'lessons'],
+        null,
+        payload.studentId,
+      );
+
+      Logger.log(`[processSessionConclusion] 完了`);
+      return createApiResponse(true, {
+        message: 'セッション終了処理が完了しました。',
+        myReservations: latestData.data?.myReservations || [],
+        lessons: latestData.data?.lessons || [],
+      });
+    } catch (error) {
+      Logger.log(
+        `[processSessionConclusion] エラー: ${error.message}\nStack: ${error.stack}`,
+      );
+      return createApiErrorResponse(
+        `セッション終了処理中にエラーが発生しました: ${error.message}`,
+        true,
+      );
+    }
+  });
+}

@@ -241,6 +241,27 @@ const PARTICIPANT_TABLE_COLUMNS = [
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
   },
+  {
+    key: 'action',
+    label: 'アクション',
+    width: '110px',
+    align: 'center',
+    adminOnly: true,
+    render: /** @param {any} row */ row => {
+      if (row.status !== CONSTANTS.STATUS.CONFIRMED) {
+        return '';
+      }
+      return `
+        <button
+          class="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 font-bold"
+          data-action="startSessionConclusion"
+          data-reservation-id="${escapeHTML(row.reservationId)}"
+        >
+          まとめ
+        </button>
+      `;
+    },
+  },
 ];
 
 /**

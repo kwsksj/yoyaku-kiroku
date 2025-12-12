@@ -56,6 +56,10 @@ import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
 import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
+import {
+  sessionConclusionActionHandlers,
+  startSessionConclusion,
+} from './14_WebApp_Handlers_SessionConclusion.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -550,10 +554,56 @@ window.onload = function () {
       : {}),
 
     // =================================================================
+    // --- Session Conclusion Handlers (from 14_WebApp_Handlers_SessionConclusion.js) ---
+    // -----------------------------------------------------------------
+    ...(typeof sessionConclusionActionHandlers !== 'undefined'
+      ? sessionConclusionActionHandlers
+      : {}),
+
+    // =================================================================
     // --- Accounting Handlers (整理済み) ---
     // -----------------------------------------------------------------
 
-    /** 今日の予約を開いて会計画面へ遷移 */
+    /** きょうの まとめ画面へ遷移 */
+    goToSessionConclusion: () => {
+      const state = handlersStateManager.getState();
+      const reservations = state.myReservations || [];
+
+      // 本日の確定済み予約を検索
+      const todayCandidates = reservations.filter(reservation => {
+        const dateValue = reservation?.date
+          ? String(reservation.date).split('T')[0]
+          : '';
+        if (!dateValue) return false;
+
+        const status = reservation.status;
+        return status === CONSTANTS.STATUS.CONFIRMED && isDateToday(dateValue);
+      });
+
+      if (todayCandidates.length === 0) {
+        showInfo('本日の予約がありません。', 'お知らせ');
+        return;
+      }
+
+      // 最も早い開始時刻の予約を選択
+      const toSortableTime = (
+        /** @type {string | null | undefined} */ value,
+      ) => (value ? value.toString() : '99:99');
+      const sortedCandidates = [...todayCandidates].sort((a, b) =>
+        toSortableTime(a.startTime).localeCompare(toSortableTime(b.startTime)),
+      );
+
+      const candidate = sortedCandidates[0];
+
+      if (candidate?.reservationId) {
+        // セッション終了ウィザードを開始
+        startSessionConclusion(candidate.reservationId);
+      } else {
+        showInfo('本日の予約が見つかりませんでした。', 'お知らせ');
+      }
+    },
+
+    /** 今日の予約を開いて会計画面へ遷移（レガシー） */
     goToTodayAccounting: () => {
       const state = handlersStateManager.getState();
       const reservations = state.myReservations || [];

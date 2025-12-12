@@ -18,7 +18,7 @@
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
 import { _buildHistoryCardWithEditMode } from './13_WebApp_Views_Booking.js';
-import { _isPastOrToday, _isToday } from './13_WebApp_Views_Utils.js';
+import { _isToday } from './13_WebApp_Views_Utils.js';
 
 const dashboardStateManager = appWindow.stateManager;
 /**
@@ -133,16 +133,16 @@ export const getDashboardView = () => {
     style: 'primary',
     size: 'full',
   });
-  const accountingMenuButton = Components.button({
-    text: '本日の教室 会計',
-    action: 'goToTodayAccounting',
+  const summaryMenuButton = Components.button({
+    text: 'きょうの まとめ',
+    action: 'goToSessionConclusion',
     style: 'accounting',
     size: 'full',
   });
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
     items: [
-      `<div class="grid gap-2 sm:grid-cols-2">${menuButton}${accountingMenuButton}</div>`,
+      `<div class="grid gap-2 sm:grid-cols-2">${menuButton}${summaryMenuButton}</div>`,
     ],
   });
 
