@@ -155,19 +155,24 @@ export const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
  * @returns {string} Tailwindカラークラス
  */
 export const getClassroomColorClass = classroomName => {
-  switch (classroomName) {
-    //TODO: 内容が間違っています！！要修正！！！！
-    case 'アトリエ':
-      return 'bg-ui-atelier text-white';
-    case 'はじめて':
-      return 'bg-ui-hajimete text-white';
-    case 'みんなの':
-      return 'bg-ui-minnano text-white';
-    case 'こども':
-      return 'bg-ui-kodomo text-white';
-    default:
-      return 'bg-ui-surface text-brand-text';
+  /**
+   * 教室名からDesignConfigのキーへ変換する対応表
+   * @type {Record<string, keyof typeof DesignConfig.classroomColors>}
+   */
+  const classroomKeyMap = {
+    東京教室: 'tokyo',
+    沼津教室: 'numazu',
+    つくば教室: 'tsukuba',
+  };
+
+  const classroomConfig = DesignConfig.classroomColors || {};
+  const classroomKey = classroomKeyMap[classroomName];
+
+  if (classroomKey && classroomConfig[classroomKey]?.colorClass) {
+    return classroomConfig[classroomKey].colorClass;
   }
+
+  return classroomConfig.default?.colorClass || DesignConfig.colors.primary;
 };
 
 /**
