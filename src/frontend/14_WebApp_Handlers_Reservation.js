@@ -25,9 +25,12 @@ import { getClassroomSelectionModal } from './13_WebApp_Views_Booking.js';
 import { getScheduleInfoFromCache } from './12_WebApp_Core_Data.js';
 import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 import {
-  getTimeValue,
-  isCurrentUserAdmin,
-  updateAppStateFromCache,
+    getParticipantPayloadForAdminView,
+    getTimeValue,
+    isCurrentUserAdmin,
+    refreshParticipantsViewForAdmin,
+    updateAppStateFromCache,
+    updateParticipantViewCacheFromReservation,
 } from './14_WebApp_Handlers_Utils.js';
 
 const reservationStateManager = appWindow.stateManager;
@@ -1815,128 +1818,7 @@ export const reservationActionHandlers = {
   },
 };
 
-/**
- * 管理者操作後に参加者リストキャッシュを部分更新する
- * @param {ReservationCore & {lessonId?: string}} reservation
- * @param {'remove'|'upsert'} [mode='upsert']
- * @param {Record<string, any[]>} [baseMap]
- * @param {LessonCore[] | null} [baseLessons]
- * @returns {Partial<UIState> | null}
- */
-function updateParticipantViewCacheFromReservation(
-  reservation,
-  mode = 'upsert',
-  baseMap = undefined,
-  baseLessons = undefined,
-) {
-  if (!reservation || !reservation.reservationId) return null;
-  const lessonIdSafe = reservation.lessonId ? String(reservation.lessonId) : '';
-  if (!lessonIdSafe) return null;
 
-  const state = reservationStateManager.getState();
-  const participantLessons =
-    baseLessons ||
-    (state.participantLessons && state.participantLessons.length > 0
-      ? state.participantLessons
-      : state.lessons) ||
-    null;
-
-  const currentMap = baseMap || state.participantReservationsMap || {};
-  const existingList = currentMap[lessonIdSafe]
-    ? [...currentMap[lessonIdSafe]]
-    : [];
-  const targetIndex = existingList.findIndex(
-    (/** @type {any} */ r) => r.reservationId === reservation.reservationId,
-  );
-
-  if (mode === 'remove') {
-    if (targetIndex !== -1) {
-      existingList.splice(targetIndex, 1);
-    }
-  } else {
-    const base = targetIndex !== -1 ? existingList[targetIndex] : {};
-    const merged = { ...base, ...reservation, lessonId: lessonIdSafe };
-    [
-      'realName',
-      'nickname',
-      'displayName',
-      'phone',
-      'email',
-      'ageGroup',
-      'gender',
-      'address',
-      'messageToTeacher',
-      'notes',
-    ].forEach(key => {
-      if (merged[key] === undefined && base && base[key]) {
-        merged[key] = base[key];
-      }
-    });
-
-    if (targetIndex !== -1) {
-      existingList[targetIndex] = merged;
-    } else {
-      existingList.push(merged);
-    }
-  }
-
-  const updatedMap = { ...currentMap };
-  if (existingList.length > 0) {
-    updatedMap[lessonIdSafe] = existingList;
-  } else {
-    delete updatedMap[lessonIdSafe];
-  }
-
-  const adminContext = /** @type {any} */ (appWindow).adminContext;
-  if (
-    adminContext &&
-    adminContext.lesson &&
-    adminContext.lesson.lessonId === lessonIdSafe
-  ) {
-    adminContext.reservations = existingList;
-  }
-
-  return {
-    participantLessons: participantLessons,
-    participantReservationsMap: updatedMap,
-  };
-}
-
-/**
- * 管理者戻り用の参加者リストペイロードを作成（既存データを優先）
- * @param {LessonCore[] | null | undefined} responseLessons
- * @returns {Partial<UIState>}
- */
-function getParticipantPayloadForAdminView(responseLessons) {
-  const state = reservationStateManager.getState();
-  return {
-    participantLessons:
-      responseLessons || state.participantLessons || state.lessons || null,
-    participantReservationsMap: state.participantReservationsMap || {},
-  };
-}
-
-/** @type {any} */ (appWindow).updateParticipantViewCacheFromReservation =
-  /** @type {any} */ (appWindow).updateParticipantViewCacheFromReservation ||
-  updateParticipantViewCacheFromReservation;
-
-/**
- * 管理者操作後に参加者ビューを最新化するヘルパー
- */
-function refreshParticipantsViewForAdmin() {
-  const handler =
-    /** @type {any} */ (appWindow).participantActionHandlers ||
-    /** @type {any} */ (window).participantActionHandlers;
-  if (handler && typeof handler.loadParticipantView === 'function') {
-    const state = reservationStateManager.getState();
-    handler.loadParticipantView(
-      true,
-      true,
-      null,
-      state.showPastLessons || false,
-    );
-  }
-}
 
 /**
  * 参加者リストモーダルを表示するヘルパー関数
