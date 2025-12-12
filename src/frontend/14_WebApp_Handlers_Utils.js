@@ -258,6 +258,82 @@ export function formatPhoneNumberForDisplay(phoneNumber) {
 }
 
 // =================================================================
+// --- Admin Context Helper Functions ---
+// -----------------------------------------------------------------
+// 管理者コンテキスト関連のヘルパー関数群
+// =================================================================
+
+/**
+ * 現在のユーザーが管理者かどうかを判定（なりすまし中も判定可能）
+ * @returns {boolean}
+ */
+export function isCurrentUserAdmin() {
+  const state = handlerUtilsStateManager.getState();
+  // なりすまし中は元の管理者ユーザーを確認
+  const actualUser = state.adminImpersonationOriginalUser || state.currentUser;
+  return actualUser?.isAdmin || false;
+}
+
+/**
+ * 管理者操作後のなりすまし終了と画面遷移を一括処理するヘルパー
+ * @param {object} options
+ * @param {any} [options.participantCacheUpdate] - updateParticipantViewCacheFromReservation の戻り値
+ * @param {any} [options.response] - サーバーレスポンス（lessonsデータを含む）
+ * @param {string} [options.message] - 表示するメッセージ
+ * @param {string} [options.messageTitle] - メッセージタイトル
+ * @returns {boolean} processed - 管理者操作として処理された場合はtrue
+ */
+export function handleAdminImpersonationAfterAction({
+  participantCacheUpdate = null,
+  response = null,
+  message = '',
+  messageTitle = '',
+} = {}) {
+  const state = handlerUtilsStateManager.getState();
+  const isAdminImpersonating = !!state.adminImpersonationOriginalUser;
+
+  if (isAdminImpersonating) {
+    const fallbackPayload = getParticipantPayloadForAdminView(
+      response?.data ? response.data.lessons : null,
+    );
+
+    // End impersonation
+    handlerUtilsStateManager.endImpersonation();
+
+    // Navigate to participants view
+    handlerUtilsStateManager.dispatch({
+      type: 'SET_STATE',
+      payload: {
+        view: 'participants',
+        navigationHistory: [],
+        ...(participantCacheUpdate || fallbackPayload),
+      },
+    });
+
+    refreshParticipantsViewForAdmin();
+
+    if (message) {
+      if (messageTitle) {
+        // showInfo is global
+        // @ts-ignore
+        if (typeof showInfo === 'function') {
+          // @ts-ignore
+          showInfo(`<h3 class="font-bold mb-3">${messageTitle}</h3>${message}`);
+        }
+      } else {
+        // @ts-ignore
+        if (typeof showInfo === 'function') {
+          // @ts-ignore
+          showInfo(message);
+        }
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+// =================================================================
 // --- Application State Management Helper Functions ---
 // -----------------------------------------------------------------
 // アプリケーション状態管理関連のヘルパー関数群
@@ -570,3 +646,133 @@ window.setupParticipantsScrollSync =
       });
     });
   };
+
+// =================================================================
+// --- Participant View Management ---
+// -----------------------------------------------------------------
+// 参加者画面のキャッシュ管理および表示更新ヘルパー
+// =================================================================
+
+/**
+ * 管理者操作後に参加者リストキャッシュを部分更新する
+ * @param {ReservationCore & {lessonId?: string}} reservation
+ * @param {'remove'|'upsert'} [mode='upsert']
+ * @param {Record<string, any[]>} [baseMap]
+ * @param {LessonCore[] | null} [baseLessons]
+ * @returns {Partial<UIState> | null}
+ */
+export function updateParticipantViewCacheFromReservation(
+  reservation,
+  mode = 'upsert',
+  baseMap = undefined,
+  baseLessons = undefined,
+) {
+  if (!reservation || !reservation.reservationId) return null;
+  const lessonIdSafe = reservation.lessonId ? String(reservation.lessonId) : '';
+  if (!lessonIdSafe) return null;
+
+  const state = handlerUtilsStateManager.getState();
+  const participantLessons =
+    baseLessons ||
+    (state.participantLessons && state.participantLessons.length > 0
+      ? state.participantLessons
+      : state.lessons) ||
+    null;
+
+  const currentMap = baseMap || state.participantReservationsMap || {};
+  const existingList = currentMap[lessonIdSafe]
+    ? [...currentMap[lessonIdSafe]]
+    : [];
+  const targetIndex = existingList.findIndex(
+    (/** @type {any} */ r) => r.reservationId === reservation.reservationId,
+  );
+
+  if (mode === 'remove') {
+    if (targetIndex !== -1) {
+      existingList.splice(targetIndex, 1);
+    }
+  } else {
+    const base = targetIndex !== -1 ? existingList[targetIndex] : {};
+    const merged = { ...base, ...reservation, lessonId: lessonIdSafe };
+    [
+      'realName',
+      'nickname',
+      'displayName',
+      'phone',
+      'email',
+      'ageGroup',
+      'gender',
+      'address',
+      'messageToTeacher',
+      'notes',
+    ].forEach(key => {
+      if (merged[key] === undefined && base && base[key]) {
+        merged[key] = base[key];
+      }
+    });
+
+    if (targetIndex !== -1) {
+      existingList[targetIndex] = merged;
+    } else {
+      existingList.push(merged);
+    }
+  }
+
+  const updatedMap = { ...currentMap };
+  if (existingList.length > 0) {
+    updatedMap[lessonIdSafe] = existingList;
+  } else {
+    delete updatedMap[lessonIdSafe];
+  }
+
+  const adminContext = /** @type {any} */ (appWindow).adminContext;
+  if (
+    adminContext &&
+    adminContext.lesson &&
+    adminContext.lesson.lessonId === lessonIdSafe
+  ) {
+    adminContext.reservations = existingList;
+  }
+
+  return {
+    participantLessons: participantLessons,
+    participantReservationsMap: updatedMap,
+  };
+}
+
+/**
+ * 管理者戻り用の参加者リストペイロードを作成（既存データを優先）
+ * @param {LessonCore[] | null | undefined} responseLessons
+ * @returns {Partial<UIState>}
+ */
+export function getParticipantPayloadForAdminView(responseLessons) {
+  const state = handlerUtilsStateManager.getState();
+  return {
+    participantLessons:
+      responseLessons || state.participantLessons || state.lessons || null,
+    participantReservationsMap: state.participantReservationsMap || {},
+  };
+}
+
+/**
+ * 管理者操作後に参加者ビューを最新化するヘルパー
+ */
+export function refreshParticipantsViewForAdmin() {
+  const handler =
+    /** @type {any} */ (appWindow).participantActionHandlers ||
+    /** @type {any} */ (window).participantActionHandlers;
+  if (handler && typeof handler.loadParticipantView === 'function') {
+    const state = handlerUtilsStateManager.getState();
+    handler.loadParticipantView(
+      true,
+      true,
+      null,
+      state.showPastLessons || false,
+    );
+  }
+}
+
+// グローバルスコープにも公開（後方互換性のため）
+/** @type {any} */ (appWindow).updateParticipantViewCacheFromReservation =
+  /** @type {any} */ (appWindow).updateParticipantViewCacheFromReservation ||
+  updateParticipantViewCacheFromReservation;

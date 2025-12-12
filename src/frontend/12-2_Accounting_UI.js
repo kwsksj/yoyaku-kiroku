@@ -540,7 +540,7 @@ export function generateAccountingView(
   reservationData = null,
 ) {
   return `
-    ${Components.pageHeader({ title: '会計' })}
+    ${Components.pageHeader({ title: '会計', backAction: 'smartGoBack' })}
     <div class="accounting-container max-w-4xl mx-auto p-2 space-y-6">
       <!-- よやくカード（ボタン非表示、制作メモ編集モード） -->
       ${generateAccountingReservationCard(reservationData)}

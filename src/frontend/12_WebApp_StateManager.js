@@ -75,6 +75,8 @@ export class SimpleStateManager {
       // --- User & Session Data ---
       /** @type {UserCore | null} */
       currentUser: null,
+      /** @type {UserCore | null} なりすまし操作時の元の管理者ユーザー */
+      adminImpersonationOriginalUser: null,
       /** @type {string} */
       loginPhone: '',
       /** @type {boolean} */
@@ -624,8 +626,12 @@ export class SimpleStateManager {
       };
 
       // 保存対象の状態のみを選択（大量データは除外）
+      // 【安全策】なりすまし中は元の管理者ユーザーを保存する
+      const currentUserToSave =
+        stateToSave.adminImpersonationOriginalUser || stateToSave.currentUser;
+
       const essentialState = {
-        currentUser: stateToSave.currentUser,
+        currentUser: currentUserToSave,
         loginPhone: stateToSave.loginPhone,
         view: stateToSave.view,
         selectedClassroom: stateToSave.selectedClassroom,
@@ -694,6 +700,59 @@ export class SimpleStateManager {
       appWindow.PerformanceLog?.debug('保存された状態をクリアしました');
     } catch (error) {
       appWindow.PerformanceLog?.error(`状態クリアエラー: ${error.message}`);
+    }
+  }
+
+  /**
+   * なりすまし操作を開始
+   * @param {UserCore} targetUser - なりすまし対象のユーザー
+   */
+  startImpersonation(targetUser) {
+    const currentState = this.state;
+    // 既に元の管理者が保存されていない場合のみ保存（二重なりすまし防止）
+    const originalUser =
+      currentState.adminImpersonationOriginalUser || currentState.currentUser;
+
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      console.log('🎭 startImpersonation:', {
+        target: targetUser?.studentId,
+        original: originalUser?.studentId,
+      });
+    }
+
+    this.dispatch({
+      type: 'UPDATE_STATE',
+      payload: {
+        currentUser: targetUser,
+        adminImpersonationOriginalUser: originalUser,
+      },
+    });
+    this.saveStateToStorage(); // 状態を即時保存
+  }
+
+  /**
+   * なりすまし操作を終了し、元の管理者に戻る
+   */
+  endImpersonation() {
+    const currentState = this.state;
+    const originalUser = currentState.adminImpersonationOriginalUser;
+
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      console.log('🎭 endImpersonation:', {
+        hadOriginal: !!originalUser,
+        originalId: originalUser?.studentId,
+      });
+    }
+
+    if (originalUser) {
+      this.dispatch({
+        type: 'UPDATE_STATE',
+        payload: {
+          currentUser: originalUser,
+          adminImpersonationOriginalUser: null,
+        },
+      });
+      this.saveStateToStorage(); // 状態を即時保存
     }
   }
 

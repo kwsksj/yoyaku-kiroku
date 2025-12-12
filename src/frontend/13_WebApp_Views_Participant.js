@@ -393,7 +393,7 @@ function renderLessonList(lessons) {
     return `
       ${Components.pageHeader({
         title: '教室日程・予約状況 一覧',
-        showBackButton: false,
+        backAction: 'smartGoBack',
       })}
       <div class="${DesignConfig.layout.container}">
         ${Components.cardContainer({

@@ -906,6 +906,17 @@ export const Components = {
     showBackButton = true,
     actionButton = null,
   }) => {
+    // なりすまし操作中はタイトルに注釈を付与
+    // コンポーネントロード時の初期化タイミング問題を避けるため、appWindowから直接取得
+    const sm = appWindow.stateManager;
+    const isImpersonating = !!sm?.getState().adminImpersonationOriginalUser;
+
+    if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+      console.log('🖼️ pageHeader check:', { title, isImpersonating });
+    }
+
+    const finalTitle = isImpersonating ? `${title}（管理者操作）` : title;
+
     const backButtonHtml = showBackButton
       ? Components.button({
           action: backAction,
@@ -931,7 +942,7 @@ export const Components = {
     return `
       <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4 -mx-4">
         <div class="flex justify-between items-center px-4">
-          <h1 class="text-lg font-bold text-brand-text flex-1">${escapeHTML(title)}</h1>
+          <h1 class="text-lg font-bold text-brand-text flex-1">${escapeHTML(finalTitle)}</h1>
           <div class="flex items-center gap-2">
             ${actionButtonHtml}
             ${backButtonHtml}

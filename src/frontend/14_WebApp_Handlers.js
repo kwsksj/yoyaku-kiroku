@@ -20,17 +20,11 @@
 // ================================================================
 // UI系モジュール
 // ================================================================
-import { Components } from './13_WebApp_Components.js';
 import {
   generateAccountingView,
   getPaymentInfoHtml,
 } from './12-2_Accounting_UI.js';
-import {
-  getBookingView,
-  getReservationFormView,
-} from './13_WebApp_Views_Booking.js';
-import { getCompleteView } from './13_WebApp_Views_Utils.js';
-import { getDashboardView } from './13_WebApp_Views_Dashboard.js';
+import { Components } from './13_WebApp_Components.js';
 import {
   getEditProfileView,
   getLoginView,
@@ -39,7 +33,13 @@ import {
   getRegistrationStep3View,
   getRegistrationStep4View,
 } from './13_WebApp_Views_Auth.js';
+import {
+  getBookingView,
+  getReservationFormView,
+} from './13_WebApp_Views_Booking.js';
+import { getDashboardView } from './13_WebApp_Views_Dashboard.js';
 import { getParticipantView } from './13_WebApp_Views_Participant.js';
+import { getCompleteView } from './13_WebApp_Views_Utils.js';
 
 // ================================================================
 // ハンドラ系モジュール
@@ -54,12 +54,13 @@ import {
 } from './12-3_Accounting_Handlers.js';
 import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
-import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
 import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
+import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
 
 // ================================================================
 // ユーティリティ系モジュール
 // ================================================================
+import { calculateAccountingTotal } from './12-1_Accounting_Calculation.js';
 import {
   collectAccountingFormData,
   initializeAccountingSystem,
@@ -68,9 +69,9 @@ import {
 import { findReservationById } from './12_WebApp_Core_Search.js';
 import {
   handlePhoneInputFormatting,
+  isCurrentUserAdmin,
   isDateToday,
 } from './14_WebApp_Handlers_Utils.js';
-import { calculateAccountingTotal } from './12-1_Accounting_Calculation.js';
 
 // =================================================================
 // --- 分割ファイル統合パターン ---
@@ -348,16 +349,6 @@ window.onload = function () {
   }
 
   /**
-   * 現在のユーザーが管理者かどうかを判定
-   * @returns {boolean}
-   */
-  const isCurrentUserAdmin = () => {
-    const state = handlersStateManager.getState();
-    const currentUser = state.currentUser;
-    return currentUser?.isAdmin || false;
-  };
-
-  /**
    * 会計処理を実行するヘルパー関数
    * @param {boolean} withSalesTransfer - 売上転載を即時実行するか
    */
@@ -410,6 +401,20 @@ window.onload = function () {
       showLoading('payment');
     }
 
+    // フォームデータに必須IDを明示的に注入
+    // これによりバックエンドのチェックを確実にパスする
+    formData['reservationId'] = reservationId;
+    formData['studentId'] = studentId;
+    formData['classroom'] = classroom;
+
+    // 管理者操作フラグを追加（なりすまし中＝管理者が他人のデータを操作中）
+    const isAdminOperation = !!state.adminImpersonationOriginalUser;
+    formData['isAdminOperation'] = isAdminOperation;
+    if (isAdminOperation) {
+      formData['adminUserId'] =
+        state.adminImpersonationOriginalUser?.studentId || '';
+    }
+
     // バックエンドに送信（withSalesTransferフラグを追加）
     google.script.run
       .withSuccessHandler(
@@ -420,15 +425,26 @@ window.onload = function () {
           }
 
           if (response.success) {
+            // 管理者操作かどうかをなりすまし終了前に記録
+            const wasAdminOperation = isAdminOperation;
+
+            // 成功時はなりすましを終了して戻る
+            handlersStateManager.endImpersonation();
+
             showInfo(
               withSalesTransfer
-                ? '会計処理と売上転載が完了しました'
-                : '会計処理が完了しました（売上は20時に自動転載されます）',
+                ? response.message || '会計処理と売上転載が完了しました'
+                : response.message ||
+                    '会計処理が完了しました（売上は20時に自動転載されます）',
               '完了',
             );
+
+            // 管理者操作の場合は参加者リストへ、一般ユーザーはダッシュボードへ
             handlersStateManager.dispatch({
               type: 'SET_STATE',
-              payload: { view: 'dashboard' },
+              payload: {
+                view: wasAdminOperation ? 'participants' : 'dashboard',
+              },
             });
           } else {
             showInfo(response.error || 'エラーが発生しました', 'エラー');
@@ -453,8 +469,20 @@ window.onload = function () {
     // -----------------------------------------------------------------
     /** スマートナビゲーション: 前の画面にもどる */
     smartGoBack: () => {
+      const state = handlersStateManager.getState();
+      const wasImpersonating = !!state.adminImpersonationOriginalUser;
+
+      // ナビゲーションでもどる際はなりすまし解除を試みる
+      // （もしなりすまし中なら、元の管理者に戻る）
+      handlersStateManager.endImpersonation();
+
+      // 通常の履歴ベースの戻る処理
       const backState = handlersStateManager.goBack();
       if (backState) {
+        // なりすまし中で履歴がなく dashboard に戻ろうとした場合は participants に変更
+        if (wasImpersonating && backState.view === 'dashboard') {
+          backState.view = 'participants';
+        }
         handlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: backState,
@@ -574,6 +602,43 @@ window.onload = function () {
         : null;
 
       if (reservationData) {
+        // 管理者操作のなりすましロジック
+        if (isCurrentUserAdmin()) {
+          const state = handlersStateManager.getState();
+          const targetStudentId = reservationData.studentId;
+          const currentAdminId = state.currentUser?.studentId;
+
+          if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+            console.log('👮 Admin Impersonation Check:', {
+              isAdmin: true,
+              target: targetStudentId,
+              current: currentAdminId,
+            });
+          }
+
+          if (
+            targetStudentId &&
+            targetStudentId !== currentAdminId &&
+            state.currentUser // ensure logged in
+          ) {
+            // 生徒情報を検索（検索済みユーザーリストから）
+            // 見つからない場合は最低限の情報でオブジェクトを作成
+            const targetUser =
+              state.searchedUsers?.find(u => u.studentId === targetStudentId) ||
+              /** @type {UserCore} */ ({
+                studentId: targetStudentId,
+                realName:
+                  /** @type {any} */ (reservationData)['studentName'] || '生徒', // reservationDataに名前が含まれていると仮定
+                nickname:
+                  /** @type {any} */ (reservationData)['studentName'] || '生徒',
+                isAdmin: false,
+                email: '',
+              });
+
+            handlersStateManager.startImpersonation(targetUser);
+          }
+        }
+
         // 会計マスタデータを取得
         const state = handlersStateManager.getState();
         const accountingMaster = state.accountingMaster || [];
