@@ -18,6 +18,19 @@
  */
 
 /**
+ * 予約データにtype属性を付与して分類する
+ * @param {ReservationCore} reservation - 予約データ
+ * @returns {ReservationSearchResult} type属性付きの予約データ
+ */
+function categorizeReservation(reservation) {
+  return {
+    ...reservation,
+    type:
+      reservation.status === CONSTANTS.STATUS.COMPLETED ? 'record' : 'booking',
+  };
+}
+
+/**
  * =================================================================
  * --- 統一検索関数システム (2025-08-30) ---
  * 「よやく」(myBookings) と「きろく」(history) を統一的に検索する関数群
@@ -40,12 +53,7 @@ export function findReservationById(reservationId, state = null) {
       item.reservationId === reservationId,
   );
   if (reservation) {
-    // ステータスに基づいてtype分類を追加
-    if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
-      return { ...reservation, type: 'record' };
-    } else {
-      return { ...reservation, type: 'booking' };
-    }
+    return categorizeReservation(reservation);
   }
 
   // 管理者操作時: adminContext.reservations をフォールバック検索
@@ -56,11 +64,7 @@ export function findReservationById(reservationId, state = null) {
         item.reservationId === reservationId,
     );
     if (adminReservation) {
-      if (adminReservation.status === CONSTANTS.STATUS.COMPLETED) {
-        return { ...adminReservation, type: 'record' };
-      } else {
-        return { ...adminReservation, type: 'booking' };
-      }
+      return categorizeReservation(adminReservation);
     }
   }
 
@@ -73,11 +77,7 @@ export function findReservationById(reservationId, state = null) {
           item.reservationId === reservationId,
       );
       if (found) {
-        if (found.status === CONSTANTS.STATUS.COMPLETED) {
-          return { ...found, type: 'record' };
-        } else {
-          return { ...found, type: 'booking' };
-        }
+        return categorizeReservation(found);
       }
     }
   }
@@ -107,12 +107,7 @@ export function findReservationByDateAndClassroom(
   );
 
   if (reservation) {
-    // ステータスに基づいてtype分類を追加
-    if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
-      return { ...reservation, type: 'record' };
-    } else {
-      return { ...reservation, type: 'booking' };
-    }
+    return categorizeReservation(reservation);
   }
 
   return null;

@@ -258,6 +258,23 @@ export function formatPhoneNumberForDisplay(phoneNumber) {
 }
 
 // =================================================================
+// --- Admin Context Helper Functions ---
+// -----------------------------------------------------------------
+// 管理者コンテキスト関連のヘルパー関数群
+// =================================================================
+
+/**
+ * 現在のユーザーが管理者かどうかを判定（なりすまし中も判定可能）
+ * @returns {boolean}
+ */
+export function isCurrentUserAdmin() {
+  const state = handlerUtilsStateManager.getState();
+  // なりすまし中は元の管理者ユーザーを確認
+  const actualUser = state.adminImpersonationOriginalUser || state.currentUser;
+  return actualUser?.isAdmin || false;
+}
+
+// =================================================================
 // --- Application State Management Helper Functions ---
 // -----------------------------------------------------------------
 // アプリケーション状態管理関連のヘルパー関数群

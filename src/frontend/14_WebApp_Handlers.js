@@ -69,6 +69,7 @@ import {
 import { findReservationById } from './12_WebApp_Core_Search.js';
 import {
   handlePhoneInputFormatting,
+  isCurrentUserAdmin,
   isDateToday,
 } from './14_WebApp_Handlers_Utils.js';
 
@@ -346,18 +347,6 @@ window.onload = function () {
           : [],
     });
   }
-
-  /**
-   * 現在のユーザーが管理者かどうかを判定（なりすまし中も判定可能）
-   * @returns {boolean}
-   */
-  const isCurrentUserAdmin = () => {
-    const state = handlersStateManager.getState();
-    // なりすまし中は元の管理者ユーザーを確認
-    const actualUser =
-      state.adminImpersonationOriginalUser || state.currentUser;
-    return actualUser?.isAdmin || false;
-  };
 
   /**
    * 会計処理を実行するヘルパー関数

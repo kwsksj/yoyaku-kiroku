@@ -26,21 +26,11 @@ import { getScheduleInfoFromCache } from './12_WebApp_Core_Data.js';
 import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 import {
   getTimeValue,
+  isCurrentUserAdmin,
   updateAppStateFromCache,
 } from './14_WebApp_Handlers_Utils.js';
 
 const reservationStateManager = appWindow.stateManager;
-
-/**
- * 現在のユーザーが管理者かどうかを判定（なりすまし中も判定可能）
- * @returns {boolean}
- */
-const isCurrentUserAdmin = () => {
-  const state = reservationStateManager.getState();
-  // なりすまし中は元の管理者ユーザーを確認
-  const actualUser = state.adminImpersonationOriginalUser || state.currentUser;
-  return actualUser?.isAdmin || false;
-};
 
 /**
  * 管理者トークンを取得（なりすまし中も考慮）

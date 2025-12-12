@@ -54,6 +54,11 @@ export function handlePhoneInputFormatting(inputElement: HTMLInputElement): void
  */
 export function formatPhoneNumberForDisplay(phoneNumber: string): string;
 /**
+ * 現在のユーザーが管理者かどうかを判定（なりすまし中も判定可能）
+ * @returns {boolean}
+ */
+export function isCurrentUserAdmin(): boolean;
+/**
  * バッチ処理でキャッシュから最新データを取得してappStateを更新
  * ユーザーの予約・履歴・スロット情報を一括取得し、指定されたビューに遷移
  * @param {string} targetView - データ取得後に遷移したいビュー名
