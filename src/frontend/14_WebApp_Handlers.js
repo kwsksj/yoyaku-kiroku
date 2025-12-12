@@ -71,7 +71,7 @@ import {
   handlePhoneInputFormatting,
   isCurrentUserAdmin,
   isDateToday,
-  updateAppStateFromCache,
+  refreshParticipantsViewForAdmin,
 } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
@@ -442,7 +442,14 @@ window.onload = function () {
 
             // 管理者操作の場合は最新データを取得してから participants へ遷移
             if (wasAdminOperation) {
-              updateAppStateFromCache('participants');
+              // participants ビューに遷移してから最新データを読み込む
+              handlersStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'participants',
+                },
+              });
+              refreshParticipantsViewForAdmin();
             } else {
               // 一般ユーザーはダッシュボードへ
               handlersStateManager.dispatch({
