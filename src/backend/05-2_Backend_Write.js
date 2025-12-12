@@ -881,6 +881,13 @@ export function cancelReservation(cancelInfo) {
         );
       }
 
+      // ログ記録（管理者操作の場合は【管理者操作】を付与）
+      const isAdminOp = !!_isByAdmin;
+      const adminUserId = isAdminOp && _adminToken ? _adminToken : null;
+      const logMessage = isAdminOp
+        ? `【管理者操作】予約をキャンセルしました${adminUserId ? `（操作者: ${adminUserId}）` : ''}`
+        : cancelMessage || '';
+
       logActivity(
         studentId,
         CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
@@ -889,10 +896,11 @@ export function cancelReservation(cancelInfo) {
           classroom: cancelledReservation.classroom,
           reservationId: cancelledReservation.reservationId,
           date: cancelledReservation.date,
-          message: cancelMessage || '',
+          message: logMessage,
           details: {
             status: 'cancelled',
             lessonId: cancelledReservation.lessonId,
+            ...(isAdminOp ? { isAdminOperation: true, adminUserId } : {}),
           },
         },
       );
@@ -977,6 +985,18 @@ export function notifyAvailabilityToWaitlistedUsers(
       return;
     }
     cacheHit = true;
+
+    // 1-2. 日付チェック: 過去のレッスンには通知しない
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const lessonDate = new Date(targetLesson.date);
+    lessonDate.setHours(0, 0, 0, 0);
+    if (lessonDate < today) {
+      PerformanceLog.debug(
+        `[notifyAvailabilityToWaitlistedUsers] 過去のレッスンのためスキップ。lessonId=${lessonId}, date=${targetLesson.date}`,
+      );
+      return;
+    }
 
     const reservationsForLesson = getReservationsByIdsFromCache(
       targetLesson.reservationIds || [],

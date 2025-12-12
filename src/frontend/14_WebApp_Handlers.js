@@ -71,6 +71,7 @@ import {
   handlePhoneInputFormatting,
   isCurrentUserAdmin,
   isDateToday,
+  updateAppStateFromCache,
 } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
@@ -439,13 +440,18 @@ window.onload = function () {
               '完了',
             );
 
-            // 管理者操作の場合は参加者リストへ、一般ユーザーはダッシュボードへ
-            handlersStateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                view: wasAdminOperation ? 'participants' : 'dashboard',
-              },
-            });
+            // 管理者操作の場合は最新データを取得してから participants へ遷移
+            if (wasAdminOperation) {
+              updateAppStateFromCache('participants');
+            } else {
+              // 一般ユーザーはダッシュボードへ
+              handlersStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'dashboard',
+                },
+              });
+            }
           } else {
             showInfo(response.error || 'エラーが発生しました', 'エラー');
           }
