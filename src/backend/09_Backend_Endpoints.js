@@ -1540,14 +1540,16 @@ export function processSessionConclusion(payload, nextReservationPayload) {
       }
 
       // 2. 会計処理
-      // 簡易会計詳細オブジェクトを構築
+      // フロントエンドから渡された会計詳細を使用（計算済み）
+      // なければ簡易オブジェクト（後方互換性）
       const accountingDetails = /** @type {AccountingDetailsCore} */ (
-        /** @type {any} */ ({
-          tuition: { items: [], total: 0 },
-          sales: { items: [], total: 0 },
-          paymentMethod: payload.paymentMethod,
-          grandTotal: 0,
-        })
+        payload.accountingDetails ||
+          /** @type {any} */ ({
+            tuition: { items: [], total: 0 },
+            sales: { items: [], total: 0 },
+            paymentMethod: payload.paymentMethod,
+            grandTotal: 0,
+          })
       );
 
       const reservationWithAccounting =

@@ -14,7 +14,10 @@
  * =================================================================
  */
 
-import { classifyAccountingItems } from './12-1_Accounting_Calculation.js';
+import {
+  calculateAccountingTotal,
+  classifyAccountingItems,
+} from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
   initializePaymentMethodUI,
@@ -293,8 +296,6 @@ export function setWizardStep(step) {
   }
 }
 
-
-
 /**
  * 会計ステップの追加設定（既存の会計ハンドラーを利用）
  */
@@ -398,6 +399,14 @@ async function finalizeConclusion() {
   }
 
   try {
+    // 会計詳細を計算して追加（バックエンドはこれをそのまま保存する設計のため）
+    const accountingMaster = state.accountingMaster || [];
+    const accountingDetails = calculateAccountingTotal(
+      wizardState.accountingFormData || {},
+      accountingMaster,
+      reservation.classroom,
+    );
+
     // 1. 今日の記録を更新 + 会計処理を同時に行う
     const payload = {
       reservationId: reservation.reservationId,
@@ -416,6 +425,8 @@ async function finalizeConclusion() {
       endTime: reservation.endTime,
       // 管理者フラグ
       isAdminOperation: isCurrentUserAdmin(),
+      // 計算済み会計詳細（明示的に含める）
+      accountingDetails: accountingDetails,
     };
 
     // 2. 次回予約を作成（スキップしていない場合）
