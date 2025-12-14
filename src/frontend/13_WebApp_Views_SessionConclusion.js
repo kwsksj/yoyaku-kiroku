@@ -328,11 +328,12 @@ export function renderStep3Accounting(state) {
       <div class="mt-6 flex flex-col space-y-3">
         ${Components.button({
           action: 'conclusionFinalize',
-          text: '先生に確認へすすむ',
+          text: 'せんせい に<br>かくにん と しはらい<br>を しました！',
           style: 'accounting',
           size: 'full',
           id: 'conclusion-finalize-button',
           disabled: true,
+          customClass: 'h-auto py-3 leading-relaxed',
         })}
         ${Components.button({
           action: 'conclusionPrevStep',
@@ -352,18 +353,48 @@ export function renderStep3Accounting(state) {
  */
 export function renderConclusionComplete() {
   return `
-    <div class="session-conclusion-complete text-center py-8">
-      <div class="text-6xl mb-4">🎉</div>
-      <p class="text-xl font-bold text-brand-text mb-2">ありがとうございました！</p>
-      <p class="text-brand-subtle mb-6">またお待ちしています</p>
+    <div class="session-conclusion-complete text-center py-12 animate-fade-in">
+      <div class="mb-6 flex justify-center">
+        <div class="relative">
+          <div class="absolute inset-0 bg-green-500 rounded-full opacity-20 animate-ping"></div>
+          <div class="relative bg-white rounded-full p-4 ring-8 ring-green-50">
+            <svg class="w-16 h-16 text-green-500 check-params" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" class="animate-check-stroke"></path>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <h3 class="text-2xl font-bold text-brand-text mb-4">おつかれさまでした！</h3>
+      <p class="text-brand-text mb-2">
+        きょうの きろく と かいけい が<br>
+        かんりょうしました。
+      </p>
+      <p class="text-brand-text mb-8">
+        また おあいできるのを<br>
+        たのしみに しています。
+      </p>
+
 
       ${Components.button({
         action: 'conclusionDone',
-        text: 'とじる',
+        text: 'ホームへもどる',
         style: 'primary',
         size: 'full',
       })}
     </div>
+
+    <style>
+      .check-params {
+        stroke-dasharray: 24;
+        stroke-dashoffset: 24;
+        animation: check-draw 0.6s cubic-bezier(0.65, 0, 0.45, 1) 0.3s forwards;
+      }
+      @keyframes check-draw {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+    </style>
   `;
 }
 
