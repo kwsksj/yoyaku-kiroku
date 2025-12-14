@@ -415,14 +415,26 @@ export class SimpleStateManager {
     const currentView = this.state.view;
 
     // 現在のビューを履歴に保存（もどる履歴として）
-    if (saveHistory && currentView !== to) {
+    // ビューが異なる場合、または同じビューでもコンテキスト（ステップなど）が大きく異なる場合
+    const isSameView = currentView === to;
+    const isDifferentStep =
+      currentView === /** @type {any} */ ('sessionConclusion') &&
+      isSameView &&
+      this._extractCurrentContext()['step'] !== context['step'];
+
+    if (saveHistory && (!isSameView || isDifferentStep)) {
       const currentContext = this._extractCurrentContext();
       const historyEntry = { view: currentView, context: currentContext };
 
-      // 同じビューの連続エントリを避ける
+      // 同じビューかつ同じコンテキストの連続エントリを避ける
       const lastEntry =
         this.state.navigationHistory[this.state.navigationHistory.length - 1];
-      if (!lastEntry || lastEntry.view !== currentView) {
+      const isDuplicateEntry =
+        lastEntry &&
+        lastEntry.view === currentView &&
+        JSON.stringify(lastEntry.context) === JSON.stringify(currentContext);
+
+      if (!isDuplicateEntry) {
         const newHistory = [...this.state.navigationHistory, historyEntry];
         // 履歴を最大10件に制限
         if (newHistory.length > 10) {
@@ -470,6 +482,20 @@ export class SimpleStateManager {
       case 'accounting':
         if (this.state.accountingReservation) {
           context.accountingReservation = this.state.accountingReservation;
+        }
+        break;
+      case 'accounting':
+        if (this.state.accountingReservation) {
+          context.accountingReservation = this.state.accountingReservation;
+        }
+        break;
+      case /** @type {any} */ ('sessionConclusion'):
+        // ウィザードの現在のステップを保存
+        // Note: handlers側で管理されているwizardStateを直接参照できないため
+        // startSessionConclusion時にcontextにstepを含める運用とする
+        // ここでは、もしstateにstepが含まれていればそれを保存
+        if (/** @type {any} */ (this.state).step) {
+          context.step = /** @type {any} */ (this.state).step;
         }
         break;
       default:

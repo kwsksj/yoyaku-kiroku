@@ -57,7 +57,9 @@ import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
 import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
 import {
+  getCurrentSessionConclusionView,
   sessionConclusionActionHandlers,
+  setupSessionConclusionUI,
   startSessionConclusion,
 } from './14_WebApp_Handlers_SessionConclusion.js';
 
@@ -260,6 +262,9 @@ export function render() {
     case 'participants':
       v = getParticipantView();
       break;
+    case /** @type {any} */ ('sessionConclusion'):
+      v = getCurrentSessionConclusionView();
+      break;
   }
   const viewContainer = document.getElementById('view-container');
   if (viewContainer) {
@@ -278,10 +283,14 @@ export function render() {
   // もどるボタンを動的に更新
   const backButtonContainer = document.getElementById('back-button-container');
   if (backButtonContainer) {
-    backButtonContainer.innerHTML = Components.createSmartBackButton(
-      appState.view,
-      appState,
-    );
+    if (appState.view === /** @type {any} */ ('sessionConclusion')) {
+      backButtonContainer.innerHTML = ''; // ヘッダー戻るボタン非表示
+    } else {
+      backButtonContainer.innerHTML = Components.createSmartBackButton(
+        appState.view,
+        appState,
+      );
+    }
   }
 
   // 会計画面の場合、イベントリスナーを設定
@@ -298,9 +307,26 @@ export function render() {
       }
       // 初期計算も実行
       if (typeof updateAccountingCalculation === 'function') {
-        updateAccountingCalculation(classifiedItems, classroom);
+        updateAccountingCalculation(
+          classifiedItems,
+          classroom, // 第2引数として教室名を渡す
+        );
       }
     });
+  }
+
+  // セッション終了ウィザードの場合、UIセットアップを実行
+  if (appState.view === /** @type {any} */ ('sessionConclusion')) {
+    // コンテキストからステップを同期（ブラウザバック対応）
+    const context = /** @type {any} */ (appState);
+    if (context.step) {
+      // 動的インポートされた関数を使用（循環参照回避のためHandlers内でimport済み）
+      setupSessionConclusionUI(context.step);
+    } else {
+      requestAnimationFrame(() => {
+        setupSessionConclusionUI();
+      });
+    }
   }
 
   window.scrollTo(0, 0);

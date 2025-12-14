@@ -15,17 +15,14 @@
  */
 
 import { classifyAccountingItems } from './12-1_Accounting_Calculation.js';
+import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-  getPaymentInfoHtml,
-  getPaymentOptionsHtml,
-} from './12-2_Accounting_UI.js';
-import {
-  getSessionConclusionView,
-  renderConclusionComplete,
-  renderStep1Record,
-  renderStep2Reservation,
-  renderStep3Accounting,
-} from './13_WebApp_Views_SessionConclusion.js';
+  initializePaymentMethodUI,
+  setupAccountingEventListeners,
+  updateAccountingCalculation,
+} from './12-3_Accounting_Handlers.js';
+import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
+import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
 import { isCurrentUserAdmin } from './14_WebApp_Handlers_Utils.js';
 
 const conclusionStateManager = appWindow.stateManager;
@@ -174,15 +171,39 @@ export function startSessionConclusion(reservationId) {
     accountingFormData: {},
   };
 
-  // フルページViewとして表示
-  const viewHtml = getSessionConclusionView(wizardState);
-  const mainContent = document.getElementById('main-content');
-  if (mainContent) {
-    mainContent.innerHTML = viewHtml;
-  }
+  // 履歴に現在の状態を保存（smartGoBackが機能するため）
+  // NAVIGATEアクションを使用して履歴を管理
 
-  // イベントリスナーを設定
+  // フルページViewとして表示
+  // 手動でDOM更新せず、状態遷移で描画させる
+  conclusionStateManager.dispatch({
+    type: 'NAVIGATE',
+    payload: {
+      to: /** @type {any} */ ('sessionConclusion'),
+    },
+  });
+}
+
+/**
+ * 現在の状態に基づいてウィザードViewを取得（14_WebApp_Handlers.jsから呼ばれる）
+ * @returns {string} View HTML
+ */
+export function getCurrentSessionConclusionView() {
+  return getSessionConclusionView(wizardState);
+}
+
+/**
+ * ウィザードのUIセットアップ（14_WebApp_Handlers.jsから呼ばれる）
+ * @param {number} [step] - 指定された場合、そのステップに強制同期
+ */
+export function setupSessionConclusionUI(step) {
+  if (step && wizardState) {
+    wizardState.currentStep = step;
+  }
   setupConclusionEventListeners();
+  if (wizardState.currentStep === 3) {
+    setTimeout(() => setupAccountingStep(), 100);
+  }
 }
 
 /**
@@ -193,47 +214,30 @@ function goToStep(targetStep) {
   // 現ステップのデータを保存
   saveCurrentStepData();
 
+  // ステップ更新
   wizardState.currentStep = targetStep;
 
-  // フルページのコンテンツを更新
+  // 状態マネージャー更新（再描画トリガー）
+  // 履歴には追加せず、現在の状態を更新するのみ
+  // note: 履歴を使わないシンプルなステップ遷移
+  conclusionStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {},
+  });
+
+  // DOMを直接更新
   const contentContainer = document.querySelector('.session-conclusion-wizard');
-  if (!contentContainer) {
-    // コンテナがない場合は全体を再レンダリング
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-      mainContent.innerHTML = getSessionConclusionView(wizardState);
-      setupConclusionEventListeners();
-      if (targetStep === 3) {
-        setTimeout(() => setupAccountingStep(), 100);
-      }
+  if (contentContainer) {
+    const viewHtml = getSessionConclusionView(wizardState);
+    // 全体を置換するか、中身だけ置換するか
+    // getSessionConclusionViewはフルページHTMLを返すため、main-contentを更新したほうが安全
+    // しかしヘッダー周りは変えたくないため、view-containerの中身を更新する
+    const viewContainer = document.getElementById('view-container');
+    if (viewContainer) {
+      viewContainer.innerHTML = `<div class="fade-in">${viewHtml}</div>`;
+      setupSessionConclusionUI();
     }
-    return;
   }
-
-  let newContent = '';
-  switch (targetStep) {
-    case 1:
-      newContent = renderStep1Record(wizardState);
-      break;
-    case 2:
-      newContent = renderStep2Reservation(wizardState);
-      break;
-    case 3:
-      newContent = renderStep3Accounting(wizardState);
-      // 会計画面の追加設定が必要
-      setTimeout(() => setupAccountingStep(), 100);
-      break;
-    case 4:
-      newContent = renderConclusionComplete();
-      break;
-    default:
-      newContent = renderStep1Record(wizardState);
-  }
-
-  contentContainer.innerHTML = newContent;
-
-  // イベントリスナーを再設定
-  setupConclusionEventListeners();
 }
 
 /**
@@ -272,107 +276,82 @@ function saveCurrentStepData() {
       break;
     }
     case 3: {
-      // 会計データの収集（別関数で処理）
-      collectAccountingData();
+      // 会計データの収集（ユーティリティを利用）
+      wizardState.accountingFormData = collectAccountingFormData();
       break;
     }
   }
 }
 
 /**
- * 会計データを収集
- * 既存の12-4_Accounting_Utilities.jsのcollectAccountingFormDataを活用
+ * 外部からウィザードのステップを設定する（履歴ナビゲーション用）
+ * @param {number} step
  */
-function collectAccountingData() {
-  // モーダル内の会計UIからデータを収集
-  /** @type {AccountingFormDto} */
-  const formData = {};
-
-  // 支払い方法収集
-  const paymentMethodRadio = /** @type {HTMLInputElement | null} */ (
-    document.querySelector(
-      '#session-conclusion-modal input[name="payment-method"]:checked',
-    )
-  );
-  if (paymentMethodRadio) {
-    formData.paymentMethod = paymentMethodRadio.value;
+export function setWizardStep(step) {
+  if (wizardState) {
+    wizardState.currentStep = step;
   }
-
-  // チェックボックス項目収集
-  /** @type {Record<string, boolean>} */
-  const checkedItems = {};
-  const checkboxes = document.querySelectorAll(
-    '#session-conclusion-modal .accounting-container input[type="checkbox"]',
-  );
-  checkboxes.forEach(checkboxElement => {
-    const checkbox = /** @type {HTMLInputElement} */ (checkboxElement);
-    if (checkbox.checked) {
-      const itemName = checkbox.getAttribute('data-item-name');
-      if (itemName) {
-        checkedItems[itemName] = true;
-      }
-    }
-  });
-  if (Object.keys(checkedItems).length > 0) {
-    formData.checkedItems = checkedItems;
-  }
-
-  wizardState.accountingFormData = formData;
 }
 
+
+
 /**
- * 会計ステップの追加設定（支払い方法の表示など）
+ * 会計ステップの追加設定（既存の会計ハンドラーを利用）
  */
 function setupAccountingStep() {
-  const paymentOptionsContainer = document.getElementById(
-    'payment-options-container',
-  );
-  const paymentInfoContainer = document.getElementById(
-    'payment-info-container',
-  );
+  if (!wizardState.classifiedItems || !wizardState.currentReservation) return;
 
-  if (paymentOptionsContainer) {
-    paymentOptionsContainer.innerHTML = getPaymentOptionsHtml('');
-  }
-  if (paymentInfoContainer) {
-    paymentInfoContainer.innerHTML = getPaymentInfoHtml('');
-  }
+  const classifiedItems = wizardState.classifiedItems;
+  const classroom = wizardState.currentReservation.classroom;
 
-  // 会計計算を実行
-  updateAccountingCalculation();
+  // 1. 支払い方法UIを初期化（デフォルト選択なし）
+  // ユーザーが明示的に選択するように変更
+  initializePaymentMethodUI('');
+
+  // 2. 会計イベントリスナーを設定
+  setupAccountingEventListeners(classifiedItems, classroom);
+
+  // 3. appWindowにデータを設定（既存の updateAccountingCalculation が参照する）
+  appWindow.currentClassifiedItems = classifiedItems;
+  appWindow.currentClassroom = classroom;
+
+  // 4. 会計計算を実行してUI更新
+  setTimeout(() => {
+    // フォームデータの収集を確実に行うため、DOM更新を待つ
+    updateAccountingCalculation(classifiedItems, classroom);
+    // 確認ボタンの初期状態を設定
+    updateConclusionConfirmButtonState();
+  }, 200); // 100ms -> 200ms に少し延長して安全策
 }
 
 /**
- * 会計の再計算
+ * きょうのまとめ専用の確認ボタン状態更新
  */
-function updateAccountingCalculation() {
-  if (!wizardState.classifiedItems || !wizardState.currentReservation) return;
-
-  // 基本授業料は時間で自動計算されるため、ここでは合計表示を更新
-  let total = 0;
-
-  // 授業料セクションのチェック済み項目から金額を計算
-  const checkedItemElements = document.querySelectorAll(
-    '#session-conclusion-modal .accounting-container input[type="checkbox"]:checked',
+function updateConclusionConfirmButtonState() {
+  const confirmButton = /** @type {HTMLButtonElement | null} */ (
+    document.getElementById('conclusion-finalize-button')
   );
-  checkedItemElements.forEach(el => {
-    const priceAttr = el.getAttribute('data-price');
-    if (priceAttr) {
-      total += parseInt(priceAttr, 10) || 0;
+  const selectedPaymentMethod = /** @type {HTMLInputElement | null} */ (
+    document.querySelector('input[name="payment-method"]:checked')
+  );
+
+  if (confirmButton) {
+    if (selectedPaymentMethod) {
+      // 有効状態
+      confirmButton.removeAttribute('disabled');
+      confirmButton.removeAttribute('style'); // インラインの無効化スタイル（背景グレー等）を削除
+      confirmButton.className = confirmButton.className.replace(
+        /\sopacity-\d+|\scursor-not-allowed/g,
+        '',
+      );
+    } else {
+      // 無効状態
+      confirmButton.setAttribute('disabled', 'true');
+      confirmButton.style.pointerEvents = 'none';
+      if (!confirmButton.className.includes('opacity-60')) {
+        confirmButton.className += ' opacity-60 cursor-not-allowed';
+      }
     }
-  });
-
-  // 基本授業料（教室ごと固定 or 時間計算）
-  // 既存のclassifiedItemsから取得
-  const baseItem = wizardState.classifiedItems?.tuition?.baseItems?.[0];
-  if (baseItem) {
-    // 授業料は通常チェック済みとして加算
-    total += baseItem['price'] || 0;
-  }
-
-  const totalDisplay = document.getElementById('grand-total-amount');
-  if (totalDisplay) {
-    totalDisplay.innerHTML = `¥${total.toLocaleString()}`;
   }
 }
 
@@ -380,6 +359,15 @@ function updateAccountingCalculation() {
  * ウィザード完了処理
  */
 async function finalizeConclusion() {
+  const confirmButton = /** @type {HTMLButtonElement | null} */ (
+    document.getElementById('conclusion-finalize-button')
+  );
+
+  // 処理中なら何もしない（ダブルサブミット防止）
+  if (confirmButton && confirmButton.hasAttribute('data-processing')) {
+    return;
+  }
+
   saveCurrentStepData();
 
   const paymentMethod = wizardState.accountingFormData?.paymentMethod;
@@ -388,13 +376,22 @@ async function finalizeConclusion() {
     return;
   }
 
-  window.showLoading?.('processing');
+  // 処理中フラグを設定（論理的なダブルサブミット防止のみ残す）
+  if (confirmButton) {
+    confirmButton.setAttribute('data-processing', 'true');
+  }
+
+  // 会計用のローディングメッセージを表示
+  window.showLoading?.('accounting');
 
   const state = conclusionStateManager.getState();
   const currentUser = state.currentUser;
   const reservation = wizardState.currentReservation;
 
   if (!reservation || !currentUser) {
+    if (confirmButton) {
+      confirmButton.removeAttribute('data-processing');
+    }
     window.hideLoading?.();
     window.showInfo?.('必要な情報が不足しています。', 'エラー');
     return;
@@ -408,9 +405,13 @@ async function finalizeConclusion() {
       classroom: reservation.classroom,
       // 今日の記録
       workInProgress: wizardState.workInProgressToday,
-      // 会計データ
+      // 会計データ（すべてのフィールドを展開）
       paymentMethod: paymentMethod,
       checkedItems: wizardState.accountingFormData?.checkedItems || {},
+      materials: wizardState.accountingFormData?.materials || [],
+      selectedProducts: wizardState.accountingFormData?.selectedProducts || [],
+      customSales: wizardState.accountingFormData?.customSales || [],
+      breakTime: wizardState.accountingFormData?.breakTime,
       startTime: reservation.startTime,
       endTime: reservation.endTime,
       // 管理者フラグ
@@ -441,6 +442,9 @@ async function finalizeConclusion() {
     google.script.run
       .withSuccessHandler((/** @type {any} */ response) => {
         window.hideLoading?.();
+        if (confirmButton) {
+          confirmButton.removeAttribute('data-processing');
+        }
 
         if (response.success) {
           // 完了画面へ
@@ -468,12 +472,18 @@ async function finalizeConclusion() {
       })
       .withFailureHandler((/** @type {Error} */ error) => {
         window.hideLoading?.();
+        if (confirmButton) {
+          confirmButton.removeAttribute('data-processing');
+        }
         console.error('Session conclusion error:', error);
         window.showInfo?.('処理中にエラーが発生しました。', 'エラー');
       })
       .processSessionConclusion(payload, nextReservationPayload);
   } catch (error) {
     console.error('Session conclusion error:', error);
+    if (confirmButton) {
+      confirmButton.removeAttribute('data-processing');
+    }
     window.showInfo?.('処理中にエラーが発生しました。', 'エラー');
     window.hideLoading?.();
   }
@@ -486,7 +496,7 @@ function closeConclusion() {
   // stateManager経由でダッシュボードへ戻る
   conclusionStateManager.dispatch({
     type: 'SET_STATE',
-    payload: { currentView: 'dashboard' },
+    payload: { view: 'dashboard' },
   });
 
   // View再レンダリングのためにイベント発火
@@ -605,15 +615,14 @@ function handleConclusionChange(event) {
       paymentInfoContainer.innerHTML = getPaymentInfoHtml(target.value);
     }
     // 確定ボタンを有効化
-    const finalizeBtn = /** @type {HTMLButtonElement | null} */ (
-      document.getElementById('conclusion-finalize-button')
-    );
-    if (finalizeBtn) {
-      finalizeBtn.disabled = false;
-      finalizeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-    }
+    updateConclusionConfirmButtonState();
     // 会計再計算
-    updateAccountingCalculation();
+    if (wizardState.classifiedItems && wizardState.currentReservation) {
+      updateAccountingCalculation(
+        wizardState.classifiedItems,
+        wizardState.currentReservation.classroom,
+      );
+    }
   }
 }
 

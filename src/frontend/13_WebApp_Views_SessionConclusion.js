@@ -96,7 +96,7 @@ export function renderStep1Record(state) {
   const currentMemo = state.workInProgressToday || '';
 
   return `
-    <div class="session-conclusion-step1">
+    <div class="session-conclusion-step1 session-conclusion-view">
       ${renderWizardProgressBar(1)}
 
       ${Components.cardContainer({
@@ -128,7 +128,7 @@ export function renderStep1Record(state) {
         })}
         ${Components.button({
           action: 'conclusionCancel',
-          text: 'やめる',
+          text: 'もどる',
           style: 'secondary',
           size: 'full',
         })}
@@ -203,7 +203,7 @@ export function renderStep2Reservation(state) {
   }
 
   return `
-    <div class="session-conclusion-step2">
+    <div class="session-conclusion-step2 session-conclusion-view">
       ${renderWizardProgressBar(2)}
 
       ${Components.cardContainer({
@@ -243,21 +243,14 @@ export function renderStep2Reservation(state) {
           text: 'つぎへ（かいけい）',
           style: 'primary',
           size: 'full',
-          dataAttributes: { 'target-step': '3' },
-        })}
-        ${Components.button({
-          action: 'conclusionSkipReservation',
-          text: '今は決めない',
-          style: 'secondary',
-          size: 'small',
-          customClass: 'text-sm text-brand-subtle',
+          dataAttributes: { targetStep: 3 },
         })}
         ${Components.button({
           action: 'conclusionPrevStep',
           text: 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { 'target-step': '1' },
+          dataAttributes: { targetStep: 1 },
         })}
       </div>
     </div>
@@ -288,7 +281,7 @@ export function renderStep3Accounting(state) {
   }
 
   return `
-    <div class="session-conclusion-step3">
+    <div class="session-conclusion-step3 session-conclusion-view">
       ${renderWizardProgressBar(3)}
 
       <div class="text-center mb-4">
@@ -336,7 +329,7 @@ export function renderStep3Accounting(state) {
         ${Components.button({
           action: 'conclusionFinalize',
           text: '先生に確認へすすむ',
-          style: 'primary',
+          style: 'accounting',
           size: 'full',
           id: 'conclusion-finalize-button',
           disabled: true,
@@ -346,7 +339,7 @@ export function renderStep3Accounting(state) {
           text: 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { 'target-step': '2' },
+          dataAttributes: { targetStep: 2 },
         })}
       </div>
     </div>
@@ -414,11 +407,10 @@ export function getSessionConclusionView(state) {
     <div class="session-conclusion-view">
       ${Components.pageHeader({
         title: 'きょうの まとめ',
-        showBackButton: state.currentStep === 1,
-        backAction: 'goToDashboard',
+        showBackButton: false,
       })}
       ${summaryHtml}
-      <div class="session-conclusion-wizard p-2">
+      <div class="session-conclusion-wizard p-2 fade-in">
         ${stepContent}
       </div>
     </div>
