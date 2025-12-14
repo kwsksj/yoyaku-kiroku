@@ -104,7 +104,7 @@ export function renderStep1Record(state) {
         padding: 'spacious',
         content: `
           <div class="text-center mb-4">
-            <p class="text-lg font-bold text-brand-text">きょうの きろく をつけましょう！</p>
+            <p class="text-lg font-bold text-brand-text">きょう の きろく をつけましょう！</p>
           </div>
 
           ${Components.textarea({
@@ -161,7 +161,7 @@ export function renderStep2Reservation(state) {
            data-lesson-id="${escapeHTML(lesson.lessonId)}">
         <div class="flex justify-between items-center">
           <div>
-            <p class="text-sm text-brand-subtle">おすすめの日程（約4週間後）</p>
+            <p class="text-sm text-brand-subtle">おすすめの日程</p>
             <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
             <p class="text-sm text-brand-subtle">${escapeHTML(lesson.classroom)} ${lesson.venue ? escapeHTML(lesson.venue) : ''}</p>
           </div>
@@ -366,7 +366,7 @@ export function renderConclusionComplete() {
       </div>
       <h3 class="text-2xl font-bold text-brand-text mb-4">おつかれさまでした！</h3>
       <p class="text-brand-text mb-2">
-        きょうの きろく と かいけい が<br>
+        きょう の きろく と かいけい が<br>
         かんりょうしました。
       </p>
       <p class="text-brand-text mb-8">
@@ -437,7 +437,7 @@ export function getSessionConclusionView(state) {
   return `
     <div class="session-conclusion-view">
       ${Components.pageHeader({
-        title: 'きょうの まとめ',
+        title: 'きょう の まとめ',
         showBackButton: false,
       })}
       ${summaryHtml}
@@ -476,7 +476,7 @@ export function generateSessionConclusionModal(state) {
 
   return Components.modal({
     id: 'session-conclusion-modal',
-    title: 'きょうの まとめ',
+    title: 'きょう の まとめ',
     content: `
       <div class="session-conclusion-wizard p-2">
         ${stepContent}

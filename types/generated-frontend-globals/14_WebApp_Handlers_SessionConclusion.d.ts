@@ -26,5 +26,6 @@ export namespace sessionConclusionActionHandlers {
     function conclusionFinalize(): void;
     function conclusionCancel(): void;
     function conclusionDone(): void;
+    function selectRecommendedLesson(_d: any, target: HTMLElement): void;
 }
 export type SessionConclusionState = import("./13_WebApp_Views_SessionConclusion.js").SessionConclusionState;

@@ -64,11 +64,9 @@ function findRecommendedNextLesson(currentReservation) {
   const currentDate = new Date(currentReservation.date);
   const currentDayOfWeek = currentDate.getDay();
 
-  // 3週間後〜5週間後の範囲
+  // 2週間後以降の範囲（上限なし）
   const minDate = new Date(currentDate);
-  minDate.setDate(minDate.getDate() + 21); // 3週間後
-  const maxDate = new Date(currentDate);
-  maxDate.setDate(maxDate.getDate() + 35); // 5週間後
+  minDate.setDate(minDate.getDate() + 14); // 2週間後
 
   /** @type {LessonCore | null} */
   let bestMatch = null;
@@ -76,8 +74,8 @@ function findRecommendedNextLesson(currentReservation) {
   for (const lesson of lessons) {
     const lessonDate = new Date(lesson.date);
 
-    // 日付範囲チェック
-    if (lessonDate < minDate || lessonDate > maxDate) {
+    // 日付範囲チェック（2週間後以降）
+    if (lessonDate < minDate) {
       continue;
     }
 
@@ -670,5 +668,15 @@ export const sessionConclusionActionHandlers = {
   },
   conclusionDone: () => {
     closeConclusion();
+  },
+  selectRecommendedLesson: (
+    /** @type {any} */ _d,
+    /** @type {HTMLElement} */ target,
+  ) => {
+    // 視覚的フィードバックのみ（既にstateには保持されている）
+    if (target) {
+      target.classList.add('ring-2', 'ring-action-primary-bg');
+      // 数秒後に消すなどの演出があっても良いが、一旦シンプルに
+    }
   },
 };

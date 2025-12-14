@@ -134,7 +134,7 @@ export const getDashboardView = () => {
     size: 'full',
   });
   const summaryMenuButton = Components.button({
-    text: 'きょうの まとめ',
+    text: 'きょう の まとめ',
     action: 'goToSessionConclusion',
     style: 'accounting',
     size: 'full',
