@@ -128,7 +128,7 @@ export const getDashboardView = () => {
 
   // --- メニューセクション ---
   const menuButton = Components.button({
-    text: '教室日程・予約状況 一覧',
+    text: 'よやく・きろく いちらん',
     action: 'goToParticipantsView',
     style: 'primary',
     size: 'full',
@@ -169,7 +169,7 @@ export const _buildEditButtons = booking => {
     // 確定済み予約：確認/編集ボタンのみ
     buttons.push({
       action: 'goToEditReservation',
-      text: '確認<br>編集',
+      text: 'かくにん<br>へんしゅう',
     });
   } else if (booking.status === CONSTANTS.STATUS.WAITLISTED) {
     // 空き通知希望：現在の空席状況に応じてボタンを変更
@@ -187,7 +187,7 @@ export const _buildEditButtons = booking => {
     // 空き通知希望は常に確認/編集ボタンも表示
     buttons.push({
       action: 'goToEditReservation',
-      text: '確認<br>編集',
+      text: 'かくにん<br>へんしゅう',
     });
   }
 
@@ -248,7 +248,7 @@ export const _buildHistoryEditButtons = (
     // 通常時：編集モードに入る
     buttons.push({
       action: 'expandHistoryCard',
-      text: '確認<br>編集',
+      text: 'かくにん<br>へんしゅう',
     });
   }
 

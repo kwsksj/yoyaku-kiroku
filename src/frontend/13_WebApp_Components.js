@@ -1538,7 +1538,7 @@ export const Components = {
       .join('');
 
     return `<div class="p-4 bg-ui-surface border-2 border-ui-border rounded-lg">
-        <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3>
+        <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売（材料・物販）</h3>
         <div class="mb-3 space-y-4">
           <label class="block text-brand-text text-base font-bold">材料代</label>
           <div id="materials-container">

@@ -15,14 +15,14 @@
  */
 
 import {
-    calculateAccountingTotal,
-    classifyAccountingItems,
+  calculateAccountingTotal,
+  classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-    initializePaymentMethodUI,
-    setupAccountingEventListeners,
-    updateAccountingCalculation,
+  initializePaymentMethodUI,
+  setupAccountingEventListeners,
+  updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -204,7 +204,7 @@ export function setupSessionConclusionUI(step) {
     wizardState.currentStep = step;
   }
   setupConclusionEventListeners();
-  if (wizardState.currentStep === '3') {
+  if (wizardState.currentStep === '4') {
     setTimeout(() => setupAccountingStep(), 100);
   }
 }
@@ -257,7 +257,7 @@ function saveCurrentStepData() {
       }
       break;
     }
-    case '2a': {
+    case '2': {
       // 次回やりたいこと（生徒名簿に保存される）
       const goalInput = /** @type {HTMLTextAreaElement | null} */ (
         document.getElementById('conclusion-next-lesson-goal')
@@ -267,7 +267,7 @@ function saveCurrentStepData() {
       }
       break;
     }
-    case '2b': {
+    case '3': {
       const startTimeSelect = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('conclusion-next-start-time')
       );
@@ -282,7 +282,7 @@ function saveCurrentStepData() {
       }
       break;
     }
-    case '3': {
+    case '4': {
       // 会計データの収集（ユーティリティを利用）
       wizardState.accountingFormData = collectAccountingFormData();
       break;
@@ -465,7 +465,7 @@ async function finalizeConclusion() {
 
         if (response.success) {
           // 完了画面へ
-          goToStep('4');
+          goToStep('5');
 
           // stateを更新（myReservationsなど）
           if (response.data) {
@@ -568,21 +568,19 @@ function handleConclusionClick(event) {
 
   switch (action) {
     case 'conclusionNextStep': {
-      const targetStep =
-        actionElement.getAttribute('data-target-step') || '1';
+      const targetStep = actionElement.getAttribute('data-target-step') || '1';
       goToStep(targetStep);
       break;
     }
     case 'conclusionPrevStep': {
-      const targetStep =
-        actionElement.getAttribute('data-target-step') || '1';
+      const targetStep = actionElement.getAttribute('data-target-step') || '1';
       goToStep(targetStep);
       break;
     }
     case 'conclusionSkipReservation':
       // 予約をスキップして会計へ
       wizardState.recommendedNextLesson = null;
-      goToStep('3');
+      goToStep('4');
       break;
     case 'conclusionFinalize':
       finalizeConclusion();
@@ -656,7 +654,7 @@ export const sessionConclusionActionHandlers = {
   },
   conclusionSkipReservation: () => {
     wizardState.recommendedNextLesson = null;
-    goToStep('3');
+    goToStep('4');
   },
   conclusionFinalize: () => {
     finalizeConclusion();

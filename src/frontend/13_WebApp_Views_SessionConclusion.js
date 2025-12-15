@@ -15,8 +15,8 @@
  */
 
 import {
-    generateSalesSection,
-    generateTuitionSection,
+  generateSalesSection,
+  generateTuitionSection,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
@@ -43,8 +43,9 @@ import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
 export function renderWizardProgressBar(currentStep) {
   const steps = [
     { num: 1, label: 'きろく' },
-    { num: 2, label: 'よやく' },
-    { num: 3, label: 'かいけい' },
+    { num: 2, label: 'けいかく' },
+    { num: 3, label: 'よやく' },
+    { num: 4, label: 'かいけい' },
   ];
 
   const stepsHtml = steps
@@ -75,7 +76,7 @@ export function renderWizardProgressBar(currentStep) {
 
   // ステップ間のコネクター線
   const connectorHtml = `
-    <div class="absolute top-4 left-0 right-0 flex justify-center z-[-1]" style="padding: 0 25%;">
+    <div class="absolute top-4 left-0 right-0 flex justify-center z-[-1]" style="padding: 0 12%;">
       <div class="h-0.5 bg-gray-200 flex-1"></div>
     </div>
   `;
@@ -100,21 +101,23 @@ export function renderStep1Record(state) {
     <div class="session-conclusion-step1 session-conclusion-view">
       ${renderWizardProgressBar(1)}
 
+      <div class="text-center mb-4">
+      <p class="text-lg font-bold text-brand-text">きょう の きろく を つけましょう！</p>
+      </div>
+
       ${Components.cardContainer({
         variant: 'default',
         padding: 'spacious',
         content: `
-          <div class="text-center mb-4">
-            <p class="text-lg font-bold text-brand-text">きょう の きろく をつけましょう！</p>
-          </div>
-
           ${Components.textarea({
             id: 'conclusion-work-progress-today',
-            label: '今日の進捗・感想',
+            label: 'きろく・かんそう',
             value: currentMemo,
             placeholder:
-              '今日はどこまで進みましたか？次はどこからやりたいですか？',
+              'つくったもの・やったさぎょう・しんちょく などや、 かんそう を メモしましょう',
             rows: 5,
+            caption:
+              'せんせい が あとで おもいだしやすく なります。よやく・きろく いちらん にのります（みんな にも みえます）。',
           })}
         `,
       })}
@@ -125,11 +128,11 @@ export function renderStep1Record(state) {
           text: 'つぎへ',
           style: 'primary',
           size: 'full',
-          dataAttributes: { 'target-step': '2a' },
+          dataAttributes: { 'target-step': '2' },
         })}
         ${Components.button({
           action: 'conclusionCancel',
-          text: 'もどる',
+          text: 'ホームへもどる',
           style: 'secondary',
           size: 'full',
         })}
@@ -150,21 +153,23 @@ export function renderStep2AGoalInput(state) {
     <div class="session-conclusion-step2a session-conclusion-view">
       ${renderWizardProgressBar(2)}
 
+      <div class="text-center mb-4">
+      <p class="text-lg font-bold text-brand-text">つぎに つくりたいもの、やりたいこと は ありますか？</p>
+      </div>
+
       ${Components.cardContainer({
         variant: 'default',
         padding: 'spacious',
         content: `
-          <div class="text-center mb-4">
-            <p class="text-lg font-bold text-brand-text">つぎ やりたいこと は ありますか？</p>
-            <p class="text-sm text-brand-subtle mt-2">（にゅうりょく は じゆう です）</p>
-          </div>
-
           ${Components.textarea({
             id: 'conclusion-next-lesson-goal',
-            label: '',
+            label: 'けいかく・もくひょう',
             value: nextGoal,
-            placeholder: '次回やりたいこと、準備しておくものなど',
-            rows: 4,
+            placeholder:
+              'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
+            rows: 5,
+            caption:
+              'よやく・きろく いちらん にのります（みんな にも みえます）。',
           })}
         `,
       })}
@@ -172,10 +177,10 @@ export function renderStep2AGoalInput(state) {
       <div class="mt-6 flex flex-col space-y-3">
         ${Components.button({
           action: 'conclusionNextStep',
-          text: 'つぎへ（よやく）',
+          text: 'つぎへ',
           style: 'primary',
           size: 'full',
-          dataAttributes: { 'target-step': '2b' },
+          dataAttributes: { 'target-step': '3' },
         })}
         ${Components.button({
           action: 'conclusionPrevStep',
@@ -255,16 +260,16 @@ export function renderStep2BReservation(state) {
 
   return `
     <div class="session-conclusion-step2b session-conclusion-view">
-      ${renderWizardProgressBar(2)}
+      ${renderWizardProgressBar(3)}
+
+      <div class="text-center mb-4">
+        <p class="text-lg font-bold text-brand-text">つぎは いつにしますか？</p>
+      </div>
 
       ${Components.cardContainer({
         variant: 'default',
         padding: 'spacious',
         content: `
-          <div class="text-center mb-4">
-            <p class="text-lg font-bold text-brand-text">つぎは いつにしますか？</p>
-          </div>
-
           ${recommendedCardHtml}
 
           <div class="mb-4">
@@ -284,14 +289,14 @@ export function renderStep2BReservation(state) {
           text: 'つぎへ（かいけい）',
           style: 'primary',
           size: 'full',
-          dataAttributes: { 'target-step': '3' },
+          dataAttributes: { 'target-step': '4' },
         })}
         ${Components.button({
           action: 'conclusionPrevStep',
           text: 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { 'target-step': '2a' },
+          dataAttributes: { 'target-step': '2' },
         })}
       </div>
     </div>
@@ -311,7 +316,7 @@ export function renderStep3Accounting(state) {
   if (!classifiedItems) {
     return `
       <div class="session-conclusion-step3">
-        ${renderWizardProgressBar(3)}
+        ${renderWizardProgressBar(4)}
         ${Components.cardContainer({
           variant: 'default',
           padding: 'spacious',
@@ -323,10 +328,11 @@ export function renderStep3Accounting(state) {
 
   return `
     <div class="session-conclusion-step3 session-conclusion-view">
-      ${renderWizardProgressBar(3)}
+      ${renderWizardProgressBar(4)}
 
       <div class="text-center mb-4">
-        <p class="text-lg font-bold text-brand-text">おかねを けいさん します</p>
+        <p class="text-lg font-bold text-brand-text">きょう の おかいけい</p>
+        <p class="text-sm font-normal text-brand-subtle">りょうきん を けいさん します。 にゅうりょく してください。</p>
       </div>
 
       <div class="accounting-container space-y-4">
@@ -357,6 +363,7 @@ export function renderStep3Accounting(state) {
           content: `
             <section class="payment-section">
               ${Components.sectionHeader({ title: '支払方法' })}
+              <p class="text-sm text-brand-subtle mb-3">しはらいほうほう を おしえてください。</p>
               <div id="payment-options-container" class="flex flex-wrap gap-3 md:gap-4">
                 <!-- getPaymentOptionsHtml()で生成される -->
               </div>
@@ -381,7 +388,7 @@ export function renderStep3Accounting(state) {
           text: 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { targetStep: 2 },
+          dataAttributes: { targetStep: 3 },
         })}
       </div>
     </div>
@@ -451,16 +458,16 @@ export function getSessionConclusionView(state) {
     case '1':
       stepContent = renderStep1Record(state);
       break;
-    case '2a':
+    case '2':
       stepContent = renderStep2AGoalInput(state);
       break;
-    case '2b':
+    case '3':
       stepContent = renderStep2BReservation(state);
       break;
-    case '3':
+    case '4':
       stepContent = renderStep3Accounting(state);
       break;
-    case '4': // 完了
+    case '5': // 完了
       stepContent = renderConclusionComplete();
       break;
     default:
@@ -484,10 +491,14 @@ export function getSessionConclusionView(state) {
         title: 'きょう の まとめ',
         showBackButton: false,
       })}
-      ${summaryHtml}
-      <div class="session-conclusion-wizard p-2 fade-in">
-        ${stepContent}
-      </div>
+      ${Components.pageContainer({
+        content: `
+          ${summaryHtml}
+          <div class="session-conclusion-wizard p-2 fade-in">
+            ${stepContent}
+          </div>
+        `,
+      })}
     </div>
   `;
 }
@@ -505,16 +516,16 @@ export function generateSessionConclusionModal(state) {
     case '1':
       stepContent = renderStep1Record(state);
       break;
-    case '2a':
+    case '2':
       stepContent = renderStep2AGoalInput(state);
       break;
-    case '2b':
+    case '3':
       stepContent = renderStep2BReservation(state);
       break;
-    case '3':
+    case '4':
       stepContent = renderStep3Accounting(state);
       break;
-    case '4': // 完了
+    case '5': // 完了
       stepContent = renderConclusionComplete();
       break;
     default:
