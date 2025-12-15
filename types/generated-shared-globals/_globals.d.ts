@@ -196,6 +196,7 @@ declare global {
         readonly TRANSPORTATION: string;
         readonly PICKUP: string;
         readonly TOTAL_PARTICIPATION: string;
+        readonly NEXT_LESSON_GOAL: string;
       };
       readonly ACCOUNTING: {
         readonly TYPE: string;

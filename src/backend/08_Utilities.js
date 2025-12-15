@@ -28,11 +28,11 @@ import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import { validateAdminSessionToken } from './04_Backend_User.js';
 import {
-  CACHE_KEYS,
-  getCachedData,
-  getReservationByIdFromCache,
-  getReservationCacheSnapshot,
-  getStudentCacheSnapshot,
+    CACHE_KEYS,
+    getCachedData,
+    getReservationByIdFromCache,
+    getReservationCacheSnapshot,
+    getStudentCacheSnapshot,
 } from './07_CacheManager.js';
 
 /**
@@ -1371,4 +1371,59 @@ export function sortReservationRows(rows, headerMap) {
 
     return 0;
   });
+}
+
+/**
+ * 生徒名簿の特定のフィールドを更新するヘルパー関数
+ * @param {string} studentId - 生徒ID
+ * @param {string} headerName - 更新する列のヘッダー名（CONSTANTS.HEADERS.ROSTER.* を使用）
+ * @param {string | number | boolean} value - 新しい値
+ * @returns {{success: boolean, message: string}}
+ */
+export function updateStudentField(studentId, headerName, value) {
+  try {
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
+    if (!sheet) {
+      return { success: false, message: '生徒名簿シートが見つかりません。' };
+    }
+
+    const { headerMap, dataRows } = getSheetData(sheet);
+    const studentIdColIdx = getHeaderIndex(headerMap, CONSTANTS.HEADERS.ROSTER.STUDENT_ID);
+    const targetColIdx = getHeaderIndex(headerMap, headerName);
+
+    if (studentIdColIdx === undefined) {
+      return { success: false, message: '生徒ID列が見つかりません。' };
+    }
+    if (targetColIdx === undefined) {
+      return { success: false, message: `列 '${headerName}' が見つかりません。` };
+    }
+
+    // 生徒を探す
+    let rowIndex = -1;
+    for (let i = 0; i < dataRows.length; i++) {
+      if (String(dataRows[i][studentIdColIdx]) === studentId) {
+        rowIndex = i + 2; // シート上の行番号 (1-based + header)
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        message: `生徒ID '${studentId}' が見つかりません。`,
+      };
+    }
+
+    // セルを更新
+    sheet.getRange(rowIndex, targetColIdx + 1).setValue(value);
+
+    Logger.log(
+      `[updateStudentField] 生徒 ${studentId} の ${headerName} を更新: ${value}`,
+    );
+
+    return { success: true, message: 'フィールドを更新しました。' };
+  } catch (error) {
+    Logger.log(`[updateStudentField] エラー: ${error.message}`);
+    return { success: false, message: error.message };
+  }
 }

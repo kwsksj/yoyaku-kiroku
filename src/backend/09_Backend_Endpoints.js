@@ -26,36 +26,37 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
-  authenticateUser,
-  isAdminLogin,
-  issueAdminSessionToken,
-  registerNewUser,
+    authenticateUser,
+    isAdminLogin,
+    issueAdminSessionToken,
+    registerNewUser,
 } from './04_Backend_User.js';
 import {
-  cancelReservation,
-  checkIfSalesAlreadyLogged,
-  confirmWaitlistedReservation,
-  getScheduleInfoForDate,
-  logSalesForSingleReservation,
-  makeReservation,
-  saveAccountingDetails,
-  updateAccountingDetails,
-  updateReservationDetails,
+    cancelReservation,
+    checkIfSalesAlreadyLogged,
+    confirmWaitlistedReservation,
+    getScheduleInfoForDate,
+    logSalesForSingleReservation,
+    makeReservation,
+    saveAccountingDetails,
+    updateAccountingDetails,
+    updateReservationDetails,
 } from './05-2_Backend_Write.js';
 import {
-  getLessons,
-  getUserReservations,
+    getLessons,
+    getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
 import {
-  CACHE_KEYS,
-  getStudentCacheSnapshot,
-  getTypedCachedData,
+    CACHE_KEYS,
+    getStudentCacheSnapshot,
+    getTypedCachedData,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
-  getCachedReservationsAsObjects,
-  getCachedStudentById,
-  withTransaction,
+    getCachedReservationsAsObjects,
+    getCachedStudentById,
+    updateStudentField,
+    withTransaction,
 } from './08_Utilities.js';
 
 /**
@@ -1537,6 +1538,23 @@ export function processSessionConclusion(payload, nextReservationPayload) {
           `[processSessionConclusion] メモ更新失敗: ${memoResult.message}`,
         );
         return memoResult;
+      }
+
+      // 1.5. 次回目標を生徒名簿に保存（任意入力）
+      if (payload.nextLessonGoal !== undefined && payload.nextLessonGoal !== null) {
+        const goalResult = updateStudentField(
+          payload.studentId,
+          CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL,
+          payload.nextLessonGoal,
+        );
+        if (!goalResult.success) {
+          // 失敗しても続行（警告ログのみ）
+          Logger.log(
+            `[processSessionConclusion] 次回目標保存失敗（警告）: ${goalResult.message}`,
+          );
+        } else {
+          Logger.log(`[processSessionConclusion] 次回目標を保存しました`);
+        }
       }
 
       // 2. 会計処理

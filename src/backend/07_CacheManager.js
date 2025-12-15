@@ -27,13 +27,13 @@
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { BackendErrorHandler } from './08_ErrorHandler.js';
 import {
-  PerformanceLog,
-  createHeaderMap,
-  handleError,
-  getCachedReservationsAsObjects,
-  transformReservationArrayToObject,
-  transformReservationArrayToObjectWithHeaders,
-  sortReservationRows,
+    PerformanceLog,
+    createHeaderMap,
+    getCachedReservationsAsObjects,
+    handleError,
+    sortReservationRows,
+    transformReservationArrayToObject,
+    transformReservationArrayToObjectWithHeaders,
 } from './08_Utilities.js';
 
 /**
@@ -797,6 +797,9 @@ export function rebuildAllStudentsCache() {
             break;
           case CONSTANTS.HEADERS.ROSTER.NOTES:
             propName = 'notes';
+            break;
+          case CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL:
+            propName = 'nextLessonGoal';
             break;
         }
         if (propName) {

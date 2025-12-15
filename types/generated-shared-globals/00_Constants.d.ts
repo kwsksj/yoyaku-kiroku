@@ -204,6 +204,7 @@ export namespace CONSTANTS {
             let PICKUP_1: string;
             export { PICKUP_1 as PICKUP };
             export let TOTAL_PARTICIPATION: string;
+            export let NEXT_LESSON_GOAL: string;
         }
         export { ROSTER_1 as ROSTER };
         export namespace ACCOUNTING_1 {
