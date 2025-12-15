@@ -28,11 +28,11 @@ import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import { validateAdminSessionToken } from './04_Backend_User.js';
 import {
-    CACHE_KEYS,
-    getCachedData,
-    getReservationByIdFromCache,
-    getReservationCacheSnapshot,
-    getStudentCacheSnapshot,
+  CACHE_KEYS,
+  getCachedData,
+  getReservationByIdFromCache,
+  getReservationCacheSnapshot,
+  getStudentCacheSnapshot,
 } from './07_CacheManager.js';
 
 /**
@@ -1388,14 +1388,20 @@ export function updateStudentField(studentId, headerName, value) {
     }
 
     const { headerMap, dataRows } = getSheetData(sheet);
-    const studentIdColIdx = getHeaderIndex(headerMap, CONSTANTS.HEADERS.ROSTER.STUDENT_ID);
+    const studentIdColIdx = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+    );
     const targetColIdx = getHeaderIndex(headerMap, headerName);
 
     if (studentIdColIdx === undefined) {
       return { success: false, message: '生徒ID列が見つかりません。' };
     }
     if (targetColIdx === undefined) {
-      return { success: false, message: `列 '${headerName}' が見つかりません。` };
+      return {
+        success: false,
+        message: `列 '${headerName}' が見つかりません。`,
+      };
     }
 
     // 生徒を探す

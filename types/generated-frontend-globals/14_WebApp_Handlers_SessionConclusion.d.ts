@@ -10,14 +10,14 @@ export function startSessionConclusion(reservationId: string): void;
 export function getCurrentSessionConclusionView(): string;
 /**
  * ウィザードのUIセットアップ（14_WebApp_Handlers.jsから呼ばれる）
- * @param {number} [step] - 指定された場合、そのステップに強制同期
+ * @param {string} [step] - 指定された場合、そのステップに強制同期
  */
-export function setupSessionConclusionUI(step?: number): void;
+export function setupSessionConclusionUI(step?: string): void;
 /**
  * 外部からウィザードのステップを設定する（履歴ナビゲーション用）
- * @param {number} step
+ * @param {string} step
  */
-export function setWizardStep(step: number): void;
+export function setWizardStep(step: string): void;
 export namespace sessionConclusionActionHandlers {
     function startSessionConclusion(d: ActionHandlerData): void;
     function conclusionNextStep(d: ActionHandlerData): void;

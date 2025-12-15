@@ -27,13 +27,13 @@
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { BackendErrorHandler } from './08_ErrorHandler.js';
 import {
-    PerformanceLog,
-    createHeaderMap,
-    getCachedReservationsAsObjects,
-    handleError,
-    sortReservationRows,
-    transformReservationArrayToObject,
-    transformReservationArrayToObjectWithHeaders,
+  PerformanceLog,
+  createHeaderMap,
+  getCachedReservationsAsObjects,
+  handleError,
+  sortReservationRows,
+  transformReservationArrayToObject,
+  transformReservationArrayToObjectWithHeaders,
 } from './08_Utilities.js';
 
 /**

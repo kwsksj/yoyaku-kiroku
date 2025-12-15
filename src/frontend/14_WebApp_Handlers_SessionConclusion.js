@@ -15,14 +15,14 @@
  */
 
 import {
-  calculateAccountingTotal,
-  classifyAccountingItems,
+    calculateAccountingTotal,
+    classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-  initializePaymentMethodUI,
-  setupAccountingEventListeners,
-  updateAccountingCalculation,
+    initializePaymentMethodUI,
+    setupAccountingEventListeners,
+    updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -36,10 +36,11 @@ const conclusionStateManager = appWindow.stateManager;
 
 /** ウィザードの内部状態を保持 */
 let wizardState = /** @type {SessionConclusionState} */ ({
-  currentStep: 1,
+  currentStep: '1',
   currentReservation: null,
   recommendedNextLesson: null,
   workInProgressToday: '',
+  nextLessonGoal: '',
   workInProgressNext: '',
   nextStartTime: '',
   nextEndTime: '',
@@ -161,10 +162,11 @@ export function startSessionConclusion(reservationId) {
 
   // ウィザード状態を初期化
   wizardState = {
-    currentStep: 1,
+    currentStep: '1',
     currentReservation: currentReservation,
     recommendedNextLesson: recommendedNextLesson,
     workInProgressToday: currentReservation.workInProgress || '',
+    nextLessonGoal: '',
     workInProgressNext: '',
     nextStartTime: recommendedNextLesson?.firstStart || '',
     nextEndTime: recommendedNextLesson?.firstEnd || '',
@@ -195,21 +197,21 @@ export function getCurrentSessionConclusionView() {
 
 /**
  * ウィザードのUIセットアップ（14_WebApp_Handlers.jsから呼ばれる）
- * @param {number} [step] - 指定された場合、そのステップに強制同期
+ * @param {string} [step] - 指定された場合、そのステップに強制同期
  */
 export function setupSessionConclusionUI(step) {
   if (step && wizardState) {
     wizardState.currentStep = step;
   }
   setupConclusionEventListeners();
-  if (wizardState.currentStep === 3) {
+  if (wizardState.currentStep === '3') {
     setTimeout(() => setupAccountingStep(), 100);
   }
 }
 
 /**
  * ウィザードのステップを切り替える
- * @param {number} targetStep - 移動先のステップ番号
+ * @param {string} targetStep - 移動先のステップ ('1', '2a', '2b', '3', '4')
  */
 function goToStep(targetStep) {
   // 現ステップのデータを保存
@@ -246,7 +248,7 @@ function goToStep(targetStep) {
  */
 function saveCurrentStepData() {
   switch (wizardState.currentStep) {
-    case 1: {
+    case '1': {
       const wipInput = /** @type {HTMLTextAreaElement | null} */ (
         document.getElementById('conclusion-work-progress-today')
       );
@@ -255,13 +257,17 @@ function saveCurrentStepData() {
       }
       break;
     }
-    case 2: {
-      const nextWipInput = /** @type {HTMLTextAreaElement | null} */ (
-        document.getElementById('conclusion-work-progress-next')
+    case '2a': {
+      // 次回やりたいこと（生徒名簿に保存される）
+      const goalInput = /** @type {HTMLTextAreaElement | null} */ (
+        document.getElementById('conclusion-next-lesson-goal')
       );
-      if (nextWipInput) {
-        wizardState.workInProgressNext = nextWipInput.value;
+      if (goalInput) {
+        wizardState.nextLessonGoal = goalInput.value;
       }
+      break;
+    }
+    case '2b': {
       const startTimeSelect = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('conclusion-next-start-time')
       );
@@ -276,7 +282,7 @@ function saveCurrentStepData() {
       }
       break;
     }
-    case 3: {
+    case '3': {
       // 会計データの収集（ユーティリティを利用）
       wizardState.accountingFormData = collectAccountingFormData();
       break;
@@ -286,7 +292,7 @@ function saveCurrentStepData() {
 
 /**
  * 外部からウィザードのステップを設定する（履歴ナビゲーション用）
- * @param {number} step
+ * @param {string} step
  */
 export function setWizardStep(step) {
   if (wizardState) {
@@ -412,6 +418,8 @@ async function finalizeConclusion() {
       classroom: reservation.classroom,
       // 今日の記録
       workInProgress: wizardState.workInProgressToday,
+      // 次回目標（生徒名簿に保存される）
+      nextLessonGoal: wizardState.nextLessonGoal || null,
       // 会計データ（すべてのフィールドを展開）
       paymentMethod: paymentMethod,
       checkedItems: wizardState.accountingFormData?.checkedItems || {},
@@ -457,7 +465,7 @@ async function finalizeConclusion() {
 
         if (response.success) {
           // 完了画面へ
-          goToStep(4);
+          goToStep('4');
 
           // stateを更新（myReservationsなど）
           if (response.data) {
@@ -560,25 +568,21 @@ function handleConclusionClick(event) {
 
   switch (action) {
     case 'conclusionNextStep': {
-      const targetStep = parseInt(
-        actionElement.getAttribute('data-target-step') || '1',
-        10,
-      );
+      const targetStep =
+        actionElement.getAttribute('data-target-step') || '1';
       goToStep(targetStep);
       break;
     }
     case 'conclusionPrevStep': {
-      const targetStep = parseInt(
-        actionElement.getAttribute('data-target-step') || '1',
-        10,
-      );
+      const targetStep =
+        actionElement.getAttribute('data-target-step') || '1';
       goToStep(targetStep);
       break;
     }
     case 'conclusionSkipReservation':
       // 予約をスキップして会計へ
       wizardState.recommendedNextLesson = null;
-      goToStep(3);
+      goToStep('3');
       break;
     case 'conclusionFinalize':
       finalizeConclusion();
@@ -643,22 +647,16 @@ export const sessionConclusionActionHandlers = {
     }
   },
   conclusionNextStep: (/** @type {ActionHandlerData} */ d) => {
-    const step = parseInt(
-      String(d['target-step'] || d['targetStep'] || '1'),
-      10,
-    );
+    const step = String(d['target-step'] || d['targetStep'] || '1');
     goToStep(step);
   },
   conclusionPrevStep: (/** @type {ActionHandlerData} */ d) => {
-    const step = parseInt(
-      String(d['target-step'] || d['targetStep'] || '1'),
-      10,
-    );
+    const step = String(d['target-step'] || d['targetStep'] || '1');
     goToStep(step);
   },
   conclusionSkipReservation: () => {
     wizardState.recommendedNextLesson = null;
-    goToStep(3);
+    goToStep('3');
   },
   conclusionFinalize: () => {
     finalizeConclusion();

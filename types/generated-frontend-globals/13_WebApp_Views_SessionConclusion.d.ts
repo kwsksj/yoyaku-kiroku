@@ -1,10 +1,11 @@
 /**
  * @typedef {Object} SessionConclusionState
- * @property {number} currentStep - 現在のステップ (1, 2, 3)
+ * @property {string} currentStep - 現在のステップ ('1', '2a', '2b', '3')
  * @property {ReservationCore | null} currentReservation - 今日の予約データ
  * @property {LessonCore | null} recommendedNextLesson - おすすめの次回レッスン
  * @property {string} workInProgressToday - 今日の制作メモ
- * @property {string} workInProgressNext - 次回やりたいこと
+ * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
+ * @property {string} workInProgressNext - 次回予約へのメッセージ
  * @property {string} nextStartTime - 次回開始時間
  * @property {string} nextEndTime - 次回終了時間
  * @property {ClassifiedAccountingItemsCore | null} classifiedItems - 会計項目
@@ -23,11 +24,17 @@ export function renderWizardProgressBar(currentStep: number): string;
  */
 export function renderStep1Record(state: SessionConclusionState): string;
 /**
- * ステップ2: 次回予約画面を生成
+ * ステップ2A: 次回やりたいこと入力画面を生成
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderStep2Reservation(state: SessionConclusionState): string;
+export function renderStep2AGoalInput(state: SessionConclusionState): string;
+/**
+ * ステップ2B: 次回予約画面を生成
+ * @param {SessionConclusionState} state - 現在の状態
+ * @returns {string} HTML文字列
+ */
+export function renderStep2BReservation(state: SessionConclusionState): string;
 /**
  * ステップ3: 会計画面を生成
  * @param {SessionConclusionState} state - 現在の状態
@@ -54,9 +61,9 @@ export function getSessionConclusionView(state: SessionConclusionState): string;
 export function generateSessionConclusionModal(state: SessionConclusionState): string;
 export type SessionConclusionState = {
     /**
-     * - 現在のステップ (1, 2, 3)
+     * - 現在のステップ ('1', '2a', '2b', '3')
      */
-    currentStep: number;
+    currentStep: string;
     /**
      * - 今日の予約データ
      */
@@ -70,7 +77,11 @@ export type SessionConclusionState = {
      */
     workInProgressToday: string;
     /**
-     * - 次回やりたいこと
+     * - 次回やりたいこと（生徒名簿に保存）
+     */
+    nextLessonGoal: string;
+    /**
+     * - 次回予約へのメッセージ
      */
     workInProgressNext: string;
     /**

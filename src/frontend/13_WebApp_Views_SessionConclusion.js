@@ -15,19 +15,20 @@
  */
 
 import {
-  generateSalesSection,
-  generateTuitionSection,
+    generateSalesSection,
+    generateTuitionSection,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
 
 /**
  * @typedef {Object} SessionConclusionState
- * @property {number} currentStep - 現在のステップ (1, 2, 3)
+ * @property {string} currentStep - 現在のステップ ('1', '2a', '2b', '3')
  * @property {ReservationCore | null} currentReservation - 今日の予約データ
  * @property {LessonCore | null} recommendedNextLesson - おすすめの次回レッスン
  * @property {string} workInProgressToday - 今日の制作メモ
- * @property {string} workInProgressNext - 次回やりたいこと
+ * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
+ * @property {string} workInProgressNext - 次回予約へのメッセージ
  * @property {string} nextStartTime - 次回開始時間
  * @property {string} nextEndTime - 次回終了時間
  * @property {ClassifiedAccountingItemsCore | null} classifiedItems - 会計項目
@@ -124,7 +125,7 @@ export function renderStep1Record(state) {
           text: 'つぎへ',
           style: 'primary',
           size: 'full',
-          dataAttributes: { 'target-step': '2' },
+          dataAttributes: { 'target-step': '2a' },
         })}
         ${Components.button({
           action: 'conclusionCancel',
@@ -138,13 +139,63 @@ export function renderStep1Record(state) {
 }
 
 /**
- * ステップ2: 次回予約画面を生成
+ * ステップ2A: 次回やりたいこと入力画面を生成
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderStep2Reservation(state) {
+export function renderStep2AGoalInput(state) {
+  const nextGoal = state.nextLessonGoal || '';
+
+  return `
+    <div class="session-conclusion-step2a session-conclusion-view">
+      ${renderWizardProgressBar(2)}
+
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'spacious',
+        content: `
+          <div class="text-center mb-4">
+            <p class="text-lg font-bold text-brand-text">つぎ やりたいこと は ありますか？</p>
+            <p class="text-sm text-brand-subtle mt-2">（にゅうりょく は じゆう です）</p>
+          </div>
+
+          ${Components.textarea({
+            id: 'conclusion-next-lesson-goal',
+            label: '',
+            value: nextGoal,
+            placeholder: '次回やりたいこと、準備しておくものなど',
+            rows: 4,
+          })}
+        `,
+      })}
+
+      <div class="mt-6 flex flex-col space-y-3">
+        ${Components.button({
+          action: 'conclusionNextStep',
+          text: 'つぎへ（よやく）',
+          style: 'primary',
+          size: 'full',
+          dataAttributes: { 'target-step': '2b' },
+        })}
+        ${Components.button({
+          action: 'conclusionPrevStep',
+          text: 'もどる',
+          style: 'secondary',
+          size: 'full',
+          dataAttributes: { 'target-step': '1' },
+        })}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * ステップ2B: 次回予約画面を生成
+ * @param {SessionConclusionState} state - 現在の状態
+ * @returns {string} HTML文字列
+ */
+export function renderStep2BReservation(state) {
   const lesson = state.recommendedNextLesson;
-  const nextMemo = state.workInProgressNext || '';
   const startTime = state.nextStartTime || lesson?.firstStart || '';
   const endTime = state.nextEndTime || lesson?.firstEnd || '';
 
@@ -203,7 +254,7 @@ export function renderStep2Reservation(state) {
   }
 
   return `
-    <div class="session-conclusion-step2 session-conclusion-view">
+    <div class="session-conclusion-step2b session-conclusion-view">
       ${renderWizardProgressBar(2)}
 
       ${Components.cardContainer({
@@ -219,19 +270,9 @@ export function renderStep2Reservation(state) {
           <div class="mb-4">
             ${Components.button({
               action: 'goToCalendarSelection',
-              text: 'カレンダーからえらぶ',
+              text: '日程一覧から えらぶ',
               style: 'secondary',
               size: 'full',
-            })}
-          </div>
-
-          <div class="mt-4 pt-4 border-t border-ui-border">
-            ${Components.textarea({
-              id: 'conclusion-work-progress-next',
-              label: '次回やりたいこと（任意）',
-              value: nextMemo,
-              placeholder: '次回やりたいこと、準備しておくものなど',
-              rows: 3,
             })}
           </div>
         `,
@@ -243,14 +284,14 @@ export function renderStep2Reservation(state) {
           text: 'つぎへ（かいけい）',
           style: 'primary',
           size: 'full',
-          dataAttributes: { targetStep: 3 },
+          dataAttributes: { 'target-step': '3' },
         })}
         ${Components.button({
           action: 'conclusionPrevStep',
           text: 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { targetStep: 1 },
+          dataAttributes: { 'target-step': '2a' },
         })}
       </div>
     </div>
@@ -407,16 +448,19 @@ export function getSessionConclusionView(state) {
   let stepContent = '';
 
   switch (state.currentStep) {
-    case 1:
+    case '1':
       stepContent = renderStep1Record(state);
       break;
-    case 2:
-      stepContent = renderStep2Reservation(state);
+    case '2a':
+      stepContent = renderStep2AGoalInput(state);
       break;
-    case 3:
+    case '2b':
+      stepContent = renderStep2BReservation(state);
+      break;
+    case '3':
       stepContent = renderStep3Accounting(state);
       break;
-    case 4: // 完了
+    case '4': // 完了
       stepContent = renderConclusionComplete();
       break;
     default:
@@ -458,16 +502,19 @@ export function generateSessionConclusionModal(state) {
   let stepContent = '';
 
   switch (state.currentStep) {
-    case 1:
+    case '1':
       stepContent = renderStep1Record(state);
       break;
-    case 2:
-      stepContent = renderStep2Reservation(state);
+    case '2a':
+      stepContent = renderStep2AGoalInput(state);
       break;
-    case 3:
+    case '2b':
+      stepContent = renderStep2BReservation(state);
+      break;
+    case '3':
       stepContent = renderStep3Accounting(state);
       break;
-    case 4: // 完了
+    case '4': // 完了
       stepContent = renderConclusionComplete();
       break;
     default:
