@@ -133,7 +133,7 @@ export const getDashboardView = () => {
 
   // --- メニューセクション ---
   const menuButton = Components.button({
-    text: 'よやく・きろく いちらん',
+    text: 'よやく・きろく  いちらん',
     action: 'goToParticipantsView',
     style: 'primary',
     size: 'full',

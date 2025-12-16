@@ -413,7 +413,7 @@ function renderLessonList(lessons) {
   if (!lessons || lessons.length === 0) {
     return `
       ${Components.pageHeader({
-        title: 'よやく・きろく いちらん',
+        title: 'よやく・きろく  いちらん',
         backAction: 'smartGoBack',
       })}
       <div class="${DesignConfig.layout.container}">
@@ -875,7 +875,7 @@ function renderLessonList(lessons) {
 
   return `
     ${Components.pageHeader({
-      title: 'よやく・きろく いちらん',
+      title: 'よやく・きろく  いちらん',
       showBackButton: true,
       backAction: 'smartGoBack',
       actionButton: {

@@ -1,8 +1,12 @@
 /**
  * @typedef {Object} SessionConclusionState
- * @property {string} currentStep - 現在のステップ ('1', '2a', '2b', '3')
+ * @property {string} currentStep - 現在のステップ ('1', '2', '3', '4', '5')
  * @property {ReservationCore | null} currentReservation - 今日の予約データ
  * @property {LessonCore | null} recommendedNextLesson - おすすめの次回レッスン
+ * @property {LessonCore | null} selectedLesson - ユーザーが選択したレッスン
+ * @property {ReservationCore | null} existingFutureReservation - 既存の未来予約
+ * @property {boolean} reservationSkipped - 「いまはきめない」を選択
+ * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
  * @property {string} workInProgressToday - 今日の制作メモ
  * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
  * @property {string} workInProgressNext - 次回予約へのメッセージ
@@ -30,7 +34,7 @@ export function renderStep1Record(state: SessionConclusionState): string;
  */
 export function renderStep2AGoalInput(state: SessionConclusionState): string;
 /**
- * ステップ2B: 次回予約画面を生成
+ * ステップ3: 次回予約画面を生成（よやく）
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
@@ -61,7 +65,7 @@ export function getSessionConclusionView(state: SessionConclusionState): string;
 export function generateSessionConclusionModal(state: SessionConclusionState): string;
 export type SessionConclusionState = {
     /**
-     * - 現在のステップ ('1', '2a', '2b', '3')
+     * - 現在のステップ ('1', '2', '3', '4', '5')
      */
     currentStep: string;
     /**
@@ -72,6 +76,22 @@ export type SessionConclusionState = {
      * - おすすめの次回レッスン
      */
     recommendedNextLesson: LessonCore | null;
+    /**
+     * - ユーザーが選択したレッスン
+     */
+    selectedLesson: LessonCore | null;
+    /**
+     * - 既存の未来予約
+     */
+    existingFutureReservation: ReservationCore | null;
+    /**
+     * - 「いまはきめない」を選択
+     */
+    reservationSkipped: boolean;
+    /**
+     * - 日程一覧アコーディオン展開状態
+     */
+    isLessonListExpanded: boolean;
     /**
      * - 今日の制作メモ
      */

@@ -19,13 +19,18 @@ import {
   generateTuitionSection,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
+import { renderBookingLessons } from './13_WebApp_Views_Booking.js';
 import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
 
 /**
  * @typedef {Object} SessionConclusionState
- * @property {string} currentStep - 現在のステップ ('1', '2a', '2b', '3')
+ * @property {string} currentStep - 現在のステップ ('1', '2', '3', '4', '5')
  * @property {ReservationCore | null} currentReservation - 今日の予約データ
  * @property {LessonCore | null} recommendedNextLesson - おすすめの次回レッスン
+ * @property {LessonCore | null} selectedLesson - ユーザーが選択したレッスン
+ * @property {ReservationCore | null} existingFutureReservation - 既存の未来予約
+ * @property {boolean} reservationSkipped - 「いまはきめない」を選択
+ * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
  * @property {string} workInProgressToday - 今日の制作メモ
  * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
  * @property {string} workInProgressNext - 次回予約へのメッセージ
@@ -195,95 +200,210 @@ export function renderStep2AGoalInput(state) {
 }
 
 /**
- * ステップ2B: 次回予約画面を生成
+ * ステップ3: 次回予約画面を生成（よやく）
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
 export function renderStep2BReservation(state) {
-  const lesson = state.recommendedNextLesson;
-  const startTime = state.nextStartTime || lesson?.firstStart || '';
-  const endTime = state.nextEndTime || lesson?.firstEnd || '';
+  const existingReservation = state.existingFutureReservation;
+  const selectedLesson = state.selectedLesson;
+  const recommendedLesson = state.recommendedNextLesson;
+  const isSkipped = state.reservationSkipped;
+  const isExpanded = state.isLessonListExpanded;
 
-  // おすすめレッスンカードの生成
-  let recommendedCardHtml = '';
-  if (lesson) {
-    const formattedDate = window.formatDate
-      ? window.formatDate(lesson.date)
-      : lesson.date;
+  // 表示するレッスン（優先順: 選択 > 予約済み > おすすめ）
+  const displayLesson = selectedLesson || existingReservation || recommendedLesson;
 
-    recommendedCardHtml = `
-      <div class="recommended-lesson-card border-2 border-action-primary-bg rounded-lg p-4 bg-action-secondary-bg mb-4 cursor-pointer hover:shadow-md transition-shadow"
-           data-action="selectRecommendedLesson"
-           data-lesson-id="${escapeHTML(lesson.lessonId)}">
+  // 時間情報を取得（型に応じてフィールドが異なる）
+  const getFirstStart = () => {
+    if (selectedLesson?.firstStart) return selectedLesson.firstStart;
+    if (recommendedLesson?.firstStart) return recommendedLesson.firstStart;
+    if (existingReservation?.startTime) return existingReservation.startTime;
+    return '';
+  };
+  const getFirstEnd = () => {
+    if (selectedLesson?.firstEnd) return selectedLesson.firstEnd;
+    if (recommendedLesson?.firstEnd) return recommendedLesson.firstEnd;
+    if (existingReservation?.endTime) return existingReservation.endTime;
+    return '';
+  };
+
+  const startTime = state.nextStartTime || getFirstStart();
+  const endTime = state.nextEndTime || getFirstEnd();
+
+  // 時間選択を表示するかどうか（時間情報がある場合のみ）
+  const showTimeSelection = Boolean(getFirstStart());
+
+  // スロット表示エリアの生成
+  let slotDisplayHtml = '';
+
+  if (isSkipped) {
+    // スキップ状態
+    slotDisplayHtml = `
+      <div class="border-2 border-gray-300 rounded-lg p-4 bg-gray-50 mb-4">
         <div class="flex justify-between items-center">
           <div>
-            <p class="text-sm text-brand-subtle">おすすめの日程</p>
+            <p class="text-sm text-brand-subtle">よやく</p>
+            <p class="text-lg font-bold text-gray-500">いまは きめない</p>
+          </div>
+          <button type="button"
+                  class="text-sm text-action-primary underline"
+                  data-action="undoReservationSkip">
+            やっぱり えらぶ
+          </button>
+        </div>
+      </div>
+    `;
+  } else if (existingReservation && !selectedLesson) {
+    // 既存の予約がある場合
+    const formattedDate = window.formatDate
+      ? window.formatDate(existingReservation.date)
+      : existingReservation.date;
+
+    slotDisplayHtml = `
+      <div class="border-2 border-green-500 rounded-lg p-4 bg-green-50 mb-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-sm font-bold text-green-700">よやく ずみ</p>
             <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-            <p class="text-sm text-brand-subtle">${escapeHTML(lesson.classroom)} ${lesson.venue ? escapeHTML(lesson.venue) : ''}</p>
+            <p class="text-sm text-brand-subtle">${escapeHTML(existingReservation.classroom)} ${existingReservation.venue ? escapeHTML(existingReservation.venue) : ''}</p>
+            ${existingReservation.startTime ? `<p class="text-sm text-brand-subtle">${existingReservation.startTime} 〜 ${existingReservation.endTime || ''}</p>` : ''}
+          </div>
+          <div class="text-green-500 text-3xl">✓</div>
+        </div>
+      </div>
+    `;
+  } else if (selectedLesson) {
+    // ユーザーが選択したレッスン
+    const formattedDate = window.formatDate
+      ? window.formatDate(selectedLesson.date)
+      : selectedLesson.date;
+
+    slotDisplayHtml = `
+      <div class="border-2 border-action-primary-bg rounded-lg p-4 bg-action-secondary-bg mb-4">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-sm text-action-primary-bg font-bold">せんたく ずみ</p>
+            <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
+            <p class="text-sm text-brand-subtle">${escapeHTML(selectedLesson.classroom)} ${selectedLesson.venue ? escapeHTML(selectedLesson.venue) : ''}</p>
+          </div>
+          <button type="button"
+                  class="text-sm text-action-primary underline"
+                  data-action="clearSelectedLesson">
+            べつの ひを えらぶ
+          </button>
+        </div>
+      </div>
+    `;
+  } else if (recommendedLesson) {
+    // おすすめ日程
+    const formattedDate = window.formatDate
+      ? window.formatDate(recommendedLesson.date)
+      : recommendedLesson.date;
+
+    slotDisplayHtml = `
+      <div class="recommended-lesson-card border-2 border-action-primary-bg rounded-lg p-4 bg-action-secondary-bg mb-4 cursor-pointer hover:shadow-md transition-shadow"
+           data-action="selectRecommendedLesson"
+           data-lesson-id="${escapeHTML(recommendedLesson.lessonId)}">
+        <div class="flex justify-between items-center">
+          <div>
+            <p class="text-sm text-brand-subtle">おすすめの にってい</p>
+            <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
+            <p class="text-sm text-brand-subtle">${escapeHTML(recommendedLesson.classroom)} ${recommendedLesson.venue ? escapeHTML(recommendedLesson.venue) : ''}</p>
           </div>
           <div class="text-action-primary-bg text-3xl">→</div>
         </div>
       </div>
-
-      <!-- 時間変更トグル -->
-      <div class="mb-4">
-        <button type="button"
-                class="text-sm text-action-primary underline"
-                data-action="toggleTimeEdit"
-                id="toggle-time-edit-btn">
-          時間を変更する
-        </button>
-        <div id="time-edit-section" class="hidden mt-3 p-3 bg-ui-surface rounded-lg border border-ui-border">
-          <div class="grid grid-cols-2 gap-4">
-            ${Components.select({
-              id: 'conclusion-next-start-time',
-              label: '開始',
-              options: getTimeOptionsHtml(9, 18, 30, startTime),
-            })}
-            ${Components.select({
-              id: 'conclusion-next-end-time',
-              label: '終了',
-              options: getTimeOptionsHtml(9, 18, 30, endTime),
-            })}
-          </div>
-        </div>
-      </div>
     `;
   } else {
-    recommendedCardHtml = `
+    // おすすめなし
+    slotDisplayHtml = `
       <div class="text-center p-4 bg-ui-surface rounded-lg border border-ui-border mb-4">
-        <p class="text-brand-subtle">条件に合う次回の日程が見つかりませんでした。</p>
-        <p class="text-brand-subtle text-sm">カレンダーから選択してください。</p>
+        <p class="text-brand-subtle">おすすめの にってい が みつかりませんでした</p>
+        <p class="text-brand-subtle text-sm">した から えらんでください</p>
       </div>
     `;
   }
+
+  // 時間選択セクション（時間制の場合のみ）
+  const timeSelectionHtml = showTimeSelection && !isSkipped && displayLesson ? `
+    <div class="mb-4">
+      <button type="button"
+              class="text-sm text-action-primary underline"
+              data-action="toggleTimeEdit"
+              id="toggle-time-edit-btn">
+        じかん を へんこう する
+      </button>
+      <div id="time-edit-section" class="hidden mt-3 p-3 bg-ui-surface rounded-lg border border-ui-border">
+        <div class="grid grid-cols-2 gap-4">
+          ${Components.select({
+            id: 'conclusion-next-start-time',
+            label: 'かいし',
+            options: getTimeOptionsHtml(9, 18, 30, startTime),
+          })}
+          ${Components.select({
+            id: 'conclusion-next-end-time',
+            label: 'しゅうりょう',
+            options: getTimeOptionsHtml(9, 18, 30, endTime),
+          })}
+        </div>
+      </div>
+    </div>
+  ` : '';
+
+  // アコーディオン式日程一覧
+  const lessonListHtml = isExpanded ? `
+    <div class="lesson-list-accordion mt-4 border-t border-ui-border pt-4">
+      <div class="mb-4">
+        ${Components.button({
+          action: 'toggleLessonList',
+          text: 'にってい を とじる',
+          style: 'secondary',
+          size: 'full',
+        })}
+      </div>
+      <div class="lesson-list-content max-h-96 overflow-y-auto">
+        ${renderBookingLessons([])}
+      </div>
+    </div>
+  ` : `
+    <div class="mb-4">
+      ${Components.button({
+        action: 'toggleLessonList',
+        text: 'にってい いちらん から えらぶ',
+        style: 'secondary',
+        size: 'full',
+      })}
+    </div>
+  `;
 
   return `
     <div class="session-conclusion-step2b session-conclusion-view">
       ${renderWizardProgressBar(3)}
 
       <div class="text-center mb-4">
-        <p class="text-lg font-bold text-brand-text">つぎは いつにしますか？</p>
+        <p class="text-lg font-bold text-brand-text">つぎは いつに しますか？</p>
       </div>
 
       ${Components.cardContainer({
         variant: 'default',
         padding: 'spacious',
         content: `
-          ${recommendedCardHtml}
-
-          <div class="mb-4">
-            ${Components.button({
-              action: 'goToCalendarSelection',
-              text: '日程一覧から えらぶ',
-              style: 'secondary',
-              size: 'full',
-            })}
-          </div>
+          ${slotDisplayHtml}
+          ${timeSelectionHtml}
+          ${lessonListHtml}
         `,
       })}
 
       <div class="mt-6 flex flex-col space-y-3">
+        ${!isSkipped ? `
+          ${Components.button({
+            action: 'skipReservation',
+            text: 'いまは きめない',
+            style: 'secondary',
+            size: 'full',
+          })}
+        ` : ''}
         ${Components.button({
           action: 'conclusionNextStep',
           text: 'つぎへ（かいけい）',

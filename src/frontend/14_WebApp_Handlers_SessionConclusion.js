@@ -15,14 +15,14 @@
  */
 
 import {
-  calculateAccountingTotal,
-  classifyAccountingItems,
+    calculateAccountingTotal,
+    classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-  initializePaymentMethodUI,
-  setupAccountingEventListeners,
-  updateAccountingCalculation,
+    initializePaymentMethodUI,
+    setupAccountingEventListeners,
+    updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -39,6 +39,10 @@ let wizardState = /** @type {SessionConclusionState} */ ({
   currentStep: '1',
   currentReservation: null,
   recommendedNextLesson: null,
+  selectedLesson: null,
+  existingFutureReservation: null,
+  reservationSkipped: false,
+  isLessonListExpanded: false,
   workInProgressToday: '',
   nextLessonGoal: '',
   workInProgressNext: '',
@@ -160,11 +164,30 @@ export function startSessionConclusion(reservationId) {
   // おすすめレッスンを検索
   const recommendedNextLesson = findRecommendedNextLesson(currentReservation);
 
+  // 既存の未来予約を検索（今日以降で確定済みのもの）
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const futureReservation = (state.myReservations || []).find(
+    (/** @type {ReservationCore} */ r) => {
+      const reservationDate = new Date(r.date);
+      reservationDate.setHours(0, 0, 0, 0);
+      return (
+        reservationDate > today &&
+        r.status === CONSTANTS.STATUS.CONFIRMED &&
+        r.reservationId !== currentReservation.reservationId
+      );
+    },
+  );
+
   // ウィザード状態を初期化
   wizardState = {
     currentStep: '1',
     currentReservation: currentReservation,
     recommendedNextLesson: recommendedNextLesson,
+    selectedLesson: null,
+    existingFutureReservation: futureReservation || null,
+    reservationSkipped: false,
+    isLessonListExpanded: false,
     workInProgressToday: currentReservation.workInProgress || '',
     nextLessonGoal: '',
     workInProgressNext: '',
@@ -669,10 +692,38 @@ export const sessionConclusionActionHandlers = {
     /** @type {any} */ _d,
     /** @type {HTMLElement} */ target,
   ) => {
-    // 視覚的フィードバックのみ（既にstateには保持されている）
-    if (target) {
-      target.classList.add('ring-2', 'ring-action-primary-bg');
-      // 数秒後に消すなどの演出があっても良いが、一旦シンプルに
+    // おすすめ日程を選択済みとしてマーク
+    const lessonId = target?.getAttribute('data-lesson-id');
+    if (lessonId && wizardState.recommendedNextLesson) {
+      wizardState.selectedLesson = wizardState.recommendedNextLesson;
+      wizardState.reservationSkipped = false;
+      // 再描画
+      goToStep('3');
     }
+  },
+  // 「いまはきめない」
+  skipReservation: () => {
+    wizardState.reservationSkipped = true;
+    wizardState.selectedLesson = null;
+    // 再描画
+    goToStep('3');
+  },
+  // 「やっぱりえらぶ」
+  undoReservationSkip: () => {
+    wizardState.reservationSkipped = false;
+    // 再描画
+    goToStep('3');
+  },
+  // 日程一覧アコーディオン開閉
+  toggleLessonList: () => {
+    wizardState.isLessonListExpanded = !wizardState.isLessonListExpanded;
+    // 再描画
+    goToStep('3');
+  },
+  // 選択解除
+  clearSelectedLesson: () => {
+    wizardState.selectedLesson = null;
+    // 再描画
+    goToStep('3');
   },
 };
