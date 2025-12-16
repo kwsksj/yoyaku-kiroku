@@ -137,6 +137,7 @@ export const authActionHandlers = {
               participantReservationsMap: participantData.reservationsMap || {},
               participantIsAdmin: true,
               participantHasPastLessonsLoaded: true,
+              participantAllStudents: participantData.allStudents || {},
             };
             participantActionHandlers.loadParticipantView(
               false,
