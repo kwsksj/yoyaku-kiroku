@@ -383,7 +383,7 @@ export function generateSalesSection(classifiedItems, formData = {}) {
     content: `
       <section class="sales-section">
         <details>
-          ${Components.sectionHeader({ title: '販売', asSummary: true })}
+          ${Components.sectionHeader({ title: '販売（材料・物販）', asSummary: true })}
           <div class="mt-3">
             ${materialsHtml}
             ${productsHtml}
