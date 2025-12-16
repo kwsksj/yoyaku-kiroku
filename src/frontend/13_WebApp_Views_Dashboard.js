@@ -126,6 +126,11 @@ export const getDashboardView = () => {
   const currentUser = dashboardStateManager.getState().currentUser;
   const nickname = currentUser ? currentUser.nickname : '';
 
+  // 今日の予約を検索（会計フォールバックボタン用）
+  const todayReservation = activeReservations.find(
+    (/** @type {ReservationCore} */ r) => _isToday(r.date),
+  );
+
   // --- メニューセクション ---
   const menuButton = Components.button({
     text: 'よやく・きろく いちらん',
@@ -139,11 +144,26 @@ export const getDashboardView = () => {
     style: 'accounting',
     size: 'full',
   });
+
+  // 今日の予約がある場合のみ会計フォールバックボタンを表示
+  const accountingFallbackButton = todayReservation
+    ? Components.button({
+        text: 'かいけい のみ',
+        action: 'goToAccounting',
+        style: 'secondary',
+        size: 'full',
+        dataAttributes: { reservationId: todayReservation.reservationId },
+      })
+    : '';
+
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
     items: [
       `<div class="grid gap-2 sm:grid-cols-2">${menuButton}${summaryMenuButton}</div>`,
-    ],
+      accountingFallbackButton
+        ? `<div class="mt-2">${accountingFallbackButton}</div>`
+        : '',
+    ].filter(Boolean),
   });
 
   return `
