@@ -17,76 +17,7 @@ import { render } from './14_WebApp_Handlers.js';
 /** @type {SimpleStateManager} */
 const participantHandlersStateManager = appWindow.stateManager;
 
-// =================================================================
-// --- 生徒詳細キャッシュ ---
-// -----------------------------------------------------------------
-// 生徒詳細データは初回一括取得していないため、個別キャッシュが必要
-// =================================================================
-
-/**
- * @typedef {Object} CacheEntry
- * @property {any} data - キャッシュされたデータ
- * @property {number} timestamp - キャッシュ保存時刻
- * @property {number} maxAge - キャッシュ有効期限（ミリ秒）
- */
-
-/** @type {Record<string, CacheEntry>} */
-const studentsCache = {};
-
-/** @type {Record<string, boolean>} */
-const fetchingStudents = {};
-
-/** @type {string[]} */
-const studentsCacheKeys = [];
-
-const MAX_CACHE_SIZE = 10;
-const CACHE_MAX_AGE = 5 * 60 * 1000; // 5分
-
-/**
- * キャッシュが有効かチェック
- * @param {Record<string, CacheEntry>} cache - キャッシュオブジェクト
- * @param {string} key - キャッシュキー
- * @returns {boolean}
- */
-function isCacheValid(cache, key) {
-  const entry = cache[key];
-  if (!entry) return false;
-  const age = Date.now() - entry.timestamp;
-  return age < entry.maxAge;
-}
-
-/**
- * キャッシュにデータを保存（LRU方式）
- * @param {Record<string, CacheEntry>} cache - キャッシュオブジェクト
- * @param {string[]} cacheKeys - キャッシュキーの配列
- * @param {string} key - キャッシュキー
- * @param {any} data - 保存するデータ
- */
-function saveToCache(cache, cacheKeys, key, data) {
-  // 既存のキーを削除
-  const existingIndex = cacheKeys.indexOf(key);
-  if (existingIndex !== -1) {
-    cacheKeys.splice(existingIndex, 1);
-  }
-
-  // サイズ制限チェック
-  if (cacheKeys.length >= MAX_CACHE_SIZE) {
-    const oldest = cacheKeys.shift();
-    if (oldest) {
-      delete cache[oldest];
-      console.log(`🗑️ 最古のキャッシュを削除: ${oldest}`);
-    }
-  }
-
-  // 新しいデータを保存
-  cache[key] = {
-    data,
-    timestamp: Date.now(),
-    maxAge: CACHE_MAX_AGE,
-  };
-  cacheKeys.push(key);
-  console.log(`💾 キャッシュ保存: ${key}`);
-}
+// 生徒詳細は participantAllStudents でプリロードされるため、個別キャッシュは不要になりました
 
 /**
  * 参加者リストビュー初期化
@@ -95,13 +26,13 @@ function saveToCache(cache, cacheKeys, key, data) {
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
  * @param {string|boolean} loadingCategory - ローディングバリエーション（'participants' | 'dataFetch' 等）。falseの場合は非表示。
  * @param {Partial<UIState> | null} baseAppState - 初期状態
- * @param {boolean} includeHistory - 過去の履歴も含めるか
+ * @param {boolean} _includeHistory - 過去の履歴も含めるか（現在は常にtrueで取得するため未使用）
  */
 function loadParticipantView(
   forceReload = false,
   loadingCategory = 'participants',
   baseAppState = /** @type {Partial<UIState> | null} */ (null),
-  includeHistory = false,
+  _includeHistory = false,
 ) {
   console.log('📋 参加者リストビュー初期化開始');
 
@@ -228,9 +159,10 @@ function loadParticipantView(
               participantSubView: 'list',
               selectedParticipantClassroom: 'all',
               showPastLessons: false,
-              participantHasPastLessonsLoaded: includeHistory,
+              participantHasPastLessonsLoaded: true,
               recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
               isDataFresh: true,
+              participantAllStudents: response.data.allStudents || {},
             }
           : {
               view: 'participants',
@@ -241,7 +173,8 @@ function loadParticipantView(
               participantSubView: 'list',
               selectedParticipantClassroom: 'all',
               showPastLessons: false,
-              participantHasPastLessonsLoaded: includeHistory,
+              participantHasPastLessonsLoaded: true,
+              participantAllStudents: response.data.allStudents || {},
             };
 
         // 初期表示時は未来のレッスンのみ取得するため、すべて展開状態にする
@@ -289,10 +222,10 @@ function loadParticipantView(
     )
     .getLessonsForParticipantsView(
       studentId,
-      false,
+      true,
       true,
       state.currentUser?.phone || '',
-    ); // 未来のみ先読み。過去はタブ切替で遅延取得
+    ); // 過去データを含めて一括取得（多重ロード防止）
 }
 
 // ... (existing code) ...
@@ -357,39 +290,33 @@ function toggleParticipantLessonAccordion(lessonId) {
 
 /**
  * 生徒選択ハンドラ（モーダル表示）
+ * プリロードされた生徒データから即座に詳細を表示
  * @param {string} targetStudentId - 表示対象の生徒ID
- * @param {string} [lessonId] - レッスンID（プリロードデータ検索用）
+ * @param {string} [_lessonId] - レッスンID（未使用、後方互換性のため残す）
  */
-function selectParticipantStudent(targetStudentId, lessonId) {
+function selectParticipantStudent(targetStudentId, _lessonId) {
   if (!targetStudentId) return;
 
-  console.log('👤 生徒選択:', targetStudentId, lessonId);
+  console.log('👤 生徒選択:', targetStudentId);
 
   const state = participantHandlersStateManager.getState();
-  const requestingStudentId = state.currentUser?.studentId;
 
-  if (!requestingStudentId) {
-    showInfo('ユーザー情報が見つかりません', 'エラー');
+  // 1. プリロードデータから生徒情報を取得
+  const allStudents = state['participantAllStudents'] || {};
+  const studentData = allStudents[targetStudentId];
+
+  if (!studentData) {
+    console.warn(`⚠️ 生徒データが見つかりません: ${targetStudentId}`);
+    showInfo('生徒情報が見つかりません', 'エラー');
     return;
   }
 
-  // 1. プリロードデータから予約履歴を生成
-  if (state.participantReservationsMap && state.participantLessons) {
-    console.log(`✅ プリロードデータから予約履歴を生成: ${targetStudentId}`);
+  console.log(`✅ プリロードデータから生徒情報を取得: ${targetStudentId}`);
 
-    /**
-     * @typedef {object} ReservationHistoryItem
-     * @property {string} date
-     * @property {string} classroom
-     * @property {string} venue
-     * @property {string} startTime
-     * @property {string} endTime
-     * @property {string} status
-     * @property {string} workInProgress
-     * @property {Date} _dateObj
-     */
-    /** @type {ReservationHistoryItem[]} */
-    const reservationHistory = [];
+  // 2. プリロードデータから予約履歴を生成
+  /** @type {any[]} */
+  let reservationHistory = [];
+  if (state.participantReservationsMap && state.participantLessons) {
     /** @type {Record<string, import('../../types/core/lesson').LessonCore>} */
     const lessonsMap = {};
 
@@ -398,10 +325,8 @@ function selectParticipantStudent(targetStudentId, lessonId) {
       lessonsMap[lesson.lessonId] = lesson;
     });
 
-    // 全レッスンの予約データから該当生徒の予約を検索し、基本情報を取得
+    // 全レッスンの予約データから該当生徒の予約を検索
     const reservationsMap = state.participantReservationsMap;
-    /** @type {import('../../types/core/reservation').ReservationCore | null} */
-    let firstFoundReservation = null;
     Object.keys(reservationsMap).forEach(lessonId => {
       const lessonReservations = reservationsMap[lessonId];
       const studentReservation = lessonReservations.find(
@@ -411,11 +336,7 @@ function selectParticipantStudent(targetStudentId, lessonId) {
       );
 
       if (studentReservation) {
-        if (!firstFoundReservation) {
-          firstFoundReservation = studentReservation;
-        }
         const lesson = lessonsMap[lessonId];
-        // dateが文字列でない場合は空文字列にフォールバック
         const reservationDate = studentReservation.date;
         const lessonDate = lesson?.date;
         const dateStr =
@@ -443,95 +364,20 @@ function selectParticipantStudent(targetStudentId, lessonId) {
     );
 
     // 内部フィールドを削除
-    const cleanedHistory = reservationHistory.map(item => {
+    reservationHistory = reservationHistory.map(item => {
       const { _dateObj, ...rest } = item;
       return rest;
     });
-
-    // 基本情報を取得（指定されたlessonIdを優先し、なければ最初に見つかった予約データから）
-    let targetReservation = null;
-    if (lessonId && state.participantReservationsMap[lessonId]) {
-      targetReservation = state.participantReservationsMap[lessonId].find(
-        (
-          /** @type {import('../../types/core/reservation').ReservationCore} */ r,
-        ) => r.studentId === targetStudentId,
-      );
-    }
-    if (!targetReservation) {
-      targetReservation = firstFoundReservation;
-    }
-
-    if (targetReservation) {
-      // 予約履歴を追加
-      const studentData = {
-        ...targetReservation,
-        reservationHistory: cleanedHistory,
-      };
-      showStudentModal(studentData, state.participantIsAdmin || false);
-      return;
-    }
   }
 
-  // プリロードデータがない場合はAPIコール
-  // ローディング表示
-  showLoading('dataFetch');
+  // 3. 生徒データに予約履歴をマージ
+  const studentDataWithHistory = {
+    ...studentData,
+    reservationHistory: reservationHistory,
+  };
 
-  // キャッシュチェック
-  if (isCacheValid(studentsCache, targetStudentId)) {
-    console.log(`✅ キャッシュ使用: ${targetStudentId}`);
-    const cachedData = studentsCache[targetStudentId].data;
-    hideLoading();
-    showStudentModal(cachedData, state.participantIsAdmin || false);
-    return;
-  }
-
-  // フェッチ中チェック
-  if (fetchingStudents[targetStudentId]) {
-    console.log(`⏳ 既に取得中: ${targetStudentId} - スキップ`);
-    hideLoading();
-    return;
-  }
-
-  fetchingStudents[targetStudentId] = true;
-
-  // API呼び出し
-  google.script.run
-    .withSuccessHandler(function (response) {
-      console.log(`✅ 生徒詳細取得成功: ${targetStudentId}`, response);
-
-      fetchingStudents[targetStudentId] = false;
-      hideLoading();
-
-      if (response.success) {
-        // キャッシュに保存
-        saveToCache(
-          studentsCache,
-          studentsCacheKeys,
-          targetStudentId,
-          response.data.student,
-        );
-
-        // モーダル表示
-        showStudentModal(
-          response.data.student,
-          state.participantIsAdmin || false,
-        );
-      } else {
-        showInfo(response.message || '生徒詳細の取得に失敗しました', 'エラー');
-      }
-    })
-    .withFailureHandler(
-      /**
-       * @param {any} error
-       */
-      function (error) {
-        console.error(`❌ 生徒詳細取得エラー: ${targetStudentId}`, error);
-        fetchingStudents[targetStudentId] = false;
-        hideLoading();
-        showInfo('生徒詳細の取得中にエラーが発生しました', 'エラー');
-      },
-    )
-    .getStudentDetailsForParticipantsView(targetStudentId, requestingStudentId);
+  // 4. モーダル表示
+  showStudentModal(studentDataWithHistory, state.participantIsAdmin || false);
 }
 
 /**
@@ -668,6 +514,7 @@ function togglePastLessons(showPast) {
               state.selectedParticipantClassroom || 'all',
             showPastLessons: true,
             participantHasPastLessonsLoaded: true,
+            participantAllStudents: response.data.allStudents || {},
           },
         });
         render();

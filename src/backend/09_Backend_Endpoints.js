@@ -1077,14 +1077,43 @@ export function getLessonsForParticipantsView(
       );
     }
 
+    // 全生徒データを準備（権限に応じてフィルタリング）
+    /** @type {Record<string, any>} */
+    const allStudentsForResponse = {};
+    Object.entries(preloadedStudentsMap).forEach(([id, student]) => {
+      if (isAdmin) {
+        // 管理者: 全フィールドを返却
+        allStudentsForResponse[id] = student;
+      } else {
+        // 一般ユーザー: 公開情報のみ
+        const nickname = student.nickname || '';
+        const rawDisplayName = student.displayName || nickname || '';
+        const realName = student.realName || '';
+        // 本名と表示名が同じ場合はマスク
+        const shouldMaskDisplayName =
+          realName && rawDisplayName && rawDisplayName === realName;
+        const publicDisplayName = shouldMaskDisplayName
+          ? rawDisplayName.substring(0, 2)
+          : rawDisplayName;
+
+        allStudentsForResponse[id] = {
+          studentId: student.studentId,
+          nickname: publicDisplayName,
+          displayName: publicDisplayName,
+          futureCreations: student.futureCreations || '',
+        };
+      }
+    });
+
     Logger.log(
-      `getLessonsForParticipantsView完了: ${lessons.length}件のレッスン, reservationsMapキー数=${Object.keys(reservationsMap).length}`,
+      `getLessonsForParticipantsView完了: ${lessons.length}件のレッスン, reservationsMapキー数=${Object.keys(reservationsMap).length}, allStudents=${Object.keys(allStudentsForResponse).length}件`,
     );
 
     return createApiResponse(true, {
       lessons: lessons,
       isAdmin: isAdmin,
       reservationsMap: shouldIncludeReservations ? reservationsMap : undefined,
+      allStudents: allStudentsForResponse,
       message: 'レッスン一覧を取得しました',
     });
   } catch (error) {

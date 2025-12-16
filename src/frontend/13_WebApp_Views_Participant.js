@@ -1029,7 +1029,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
           <div class="space-y-2">
             ${createListItem('木彫り経験', student.experience || student['木彫り経験'])}
             ${createListItem('過去の作品', student.pastWork || student['過去の制作物'])}
-            ${createListItem('想定参加頻度', student.attendanceIntention || student['想定参加頻度'])}
+            ${createListItem('想定参加頻度', student.futureParticipation || student.attendanceIntention || student['想定参加頻度'])}
             ${createListItem('登録のきっかけ', student.trigger || student['きっかけ'])}
             ${createListItem('初回メッセージ', student.firstMessage || student['初回メッセージ'])}
           </div>

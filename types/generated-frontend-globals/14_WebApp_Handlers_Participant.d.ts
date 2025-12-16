@@ -9,20 +9,6 @@ export namespace participantActionHandlers {
     export { filterParticipantByClassroom };
     export { togglePastLessons };
 }
-export type CacheEntry = {
-    /**
-     * - キャッシュされたデータ
-     */
-    data: any;
-    /**
-     * - キャッシュ保存時刻
-     */
-    timestamp: number;
-    /**
-     * - キャッシュ有効期限（ミリ秒）
-     */
-    maxAge: number;
-};
 /**
  * 参加者リストビュー初期化
  * ログイン成功後、管理者の場合に呼ばれる
@@ -30,9 +16,9 @@ export type CacheEntry = {
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
  * @param {string|boolean} loadingCategory - ローディングバリエーション（'participants' | 'dataFetch' 等）。falseの場合は非表示。
  * @param {Partial<UIState> | null} baseAppState - 初期状態
- * @param {boolean} includeHistory - 過去の履歴も含めるか
+ * @param {boolean} _includeHistory - 過去の履歴も含めるか（現在は常にtrueで取得するため未使用）
  */
-declare function loadParticipantView(forceReload?: boolean, loadingCategory?: string | boolean, baseAppState?: Partial<UIState> | null, includeHistory?: boolean): void;
+declare function loadParticipantView(forceReload?: boolean, loadingCategory?: string | boolean, baseAppState?: Partial<UIState> | null, _includeHistory?: boolean): void;
 /**
  * 参加者リストビューのデータ更新（手動リフレッシュ）
  */
@@ -44,10 +30,11 @@ declare function refreshParticipantView(): void;
 declare function toggleParticipantLessonAccordion(lessonId: string): void;
 /**
  * 生徒選択ハンドラ（モーダル表示）
+ * プリロードされた生徒データから即座に詳細を表示
  * @param {string} targetStudentId - 表示対象の生徒ID
- * @param {string} [lessonId] - レッスンID（プリロードデータ検索用）
+ * @param {string} [_lessonId] - レッスンID（未使用、後方互換性のため残す）
  */
-declare function selectParticipantStudent(targetStudentId: string, lessonId?: string): void;
+declare function selectParticipantStudent(targetStudentId: string, _lessonId?: string): void;
 /**
  * レッスン一覧に戻る
  */
