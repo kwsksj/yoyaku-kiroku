@@ -212,7 +212,8 @@ export function renderStep2BReservation(state) {
   const isExpanded = state.isLessonListExpanded;
 
   // 表示するレッスン（優先順: 選択 > 予約済み > おすすめ）
-  const displayLesson = selectedLesson || existingReservation || recommendedLesson;
+  const displayLesson =
+    selectedLesson || existingReservation || recommendedLesson;
 
   // 時間情報を取得（型に応じてフィールドが異なる）
   const getFirstStart = () => {
@@ -326,7 +327,9 @@ export function renderStep2BReservation(state) {
   }
 
   // 時間選択セクション（時間制の場合のみ）
-  const timeSelectionHtml = showTimeSelection && !isSkipped && displayLesson ? `
+  const timeSelectionHtml =
+    showTimeSelection && !isSkipped && displayLesson
+      ? `
     <div class="mb-4">
       <button type="button"
               class="text-sm text-action-primary underline"
@@ -349,10 +352,12 @@ export function renderStep2BReservation(state) {
         </div>
       </div>
     </div>
-  ` : '';
+  `
+      : '';
 
   // アコーディオン式日程一覧
-  const lessonListHtml = isExpanded ? `
+  const lessonListHtml = isExpanded
+    ? `
     <div class="lesson-list-accordion mt-4 border-t border-ui-border pt-4">
       <div class="mb-4">
         ${Components.button({
@@ -366,7 +371,8 @@ export function renderStep2BReservation(state) {
         ${renderBookingLessons([])}
       </div>
     </div>
-  ` : `
+  `
+    : `
     <div class="mb-4">
       ${Components.button({
         action: 'toggleLessonList',
@@ -396,14 +402,18 @@ export function renderStep2BReservation(state) {
       })}
 
       <div class="mt-6 flex flex-col space-y-3">
-        ${!isSkipped ? `
+        ${
+          !isSkipped
+            ? `
           ${Components.button({
             action: 'skipReservation',
             text: 'いまは きめない',
             style: 'secondary',
             size: 'full',
           })}
-        ` : ''}
+        `
+            : ''
+        }
         ${Components.button({
           action: 'conclusionNextStep',
           text: 'つぎへ（かいけい）',
