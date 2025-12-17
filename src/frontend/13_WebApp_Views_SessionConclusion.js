@@ -21,9 +21,6 @@ import {
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
 
-// State manager for accessing lessons
-const stateManager = window.appWindow?.stateManager;
-
 /**
  * @typedef {Object} SessionConclusionState
  * @property {string} currentStep - 現在のステップ ('1', '2', '3', '4', '5')
@@ -360,7 +357,7 @@ export function renderStep2BReservation(state) {
   // アコーディオン式日程一覧
   // 現在の教室と同じレッスンをフィルタ（未来日程のみ）
   const currentClassroom = state.currentReservation?.classroom || '';
-  const allLessons = stateManager?.getState()?.lessons || [];
+  const allLessons = window.appWindow?.stateManager?.getState()?.lessons || [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const filteredLessons = allLessons.filter((/** @type {LessonCore} */ l) => {
