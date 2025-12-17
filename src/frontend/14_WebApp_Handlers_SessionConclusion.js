@@ -15,14 +15,14 @@
  */
 
 import {
-  calculateAccountingTotal,
-  classifyAccountingItems,
+    calculateAccountingTotal,
+    classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-  initializePaymentMethodUI,
-  setupAccountingEventListeners,
-  updateAccountingCalculation,
+    initializePaymentMethodUI,
+    setupAccountingEventListeners,
+    updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -632,6 +632,11 @@ function handleConclusionClick(event) {
       const accordion = document.getElementById('lesson-list-accordion');
       const arrow = document.getElementById('accordion-arrow');
       const toggleText = document.getElementById('accordion-toggle-text');
+      console.log('🔄 toggleLessonListDOM:', {
+        accordionFound: !!accordion,
+        arrowFound: !!arrow,
+        toggleTextFound: !!toggleText,
+      });
       if (accordion) {
         const isHidden = accordion.classList.contains('hidden');
         accordion.classList.toggle('hidden');
@@ -642,6 +647,8 @@ function handleConclusionClick(event) {
             : 'にってい いちらん から えらぶ';
         }
         wizardState.isLessonListExpanded = isHidden;
+      } else {
+        console.warn('⚠️ lesson-list-accordion element not found!');
       }
       break;
     }
