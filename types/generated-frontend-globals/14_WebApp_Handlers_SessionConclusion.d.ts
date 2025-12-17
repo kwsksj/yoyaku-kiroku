@@ -30,6 +30,8 @@ export namespace sessionConclusionActionHandlers {
     function skipReservation(): void;
     function undoReservationSkip(): void;
     function toggleLessonList(): void;
+    function toggleLessonListDOM(): void;
+    function selectLessonForConclusion(_d: any, target: HTMLElement): void;
     function clearSelectedLesson(): void;
     function toggleTimeEdit(): void;
 }

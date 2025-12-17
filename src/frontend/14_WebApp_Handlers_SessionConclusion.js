@@ -714,11 +714,54 @@ export const sessionConclusionActionHandlers = {
     // 再描画
     goToStep('3');
   },
-  // 日程一覧アコーディオン開閉
+  // 日程一覧アコーディオン開閉（再描画あり - 旧版、削除予定）
   toggleLessonList: () => {
     wizardState.isLessonListExpanded = !wizardState.isLessonListExpanded;
     // 再描画
     goToStep('3');
+  },
+  // 日程一覧アコーディオン開閉（DOM直接操作）
+  toggleLessonListDOM: () => {
+    const accordion = document.getElementById('lesson-list-accordion');
+    const arrow = document.getElementById('accordion-arrow');
+    const toggleText = document.getElementById('accordion-toggle-text');
+    if (accordion) {
+      const isHidden = accordion.classList.contains('hidden');
+      accordion.classList.toggle('hidden');
+      if (arrow) {
+        arrow.textContent = isHidden ? '▲' : '▼';
+      }
+      if (toggleText) {
+        toggleText.textContent = isHidden
+          ? 'にってい を とじる'
+          : 'にってい いちらん から えらぶ';
+      }
+      // stateも同期（再描画時用）
+      wizardState.isLessonListExpanded = isHidden;
+    }
+  },
+  // ウィザード内での日程選択
+  selectLessonForConclusion: (
+    /** @type {any} */ _d,
+    /** @type {HTMLElement} */ target,
+  ) => {
+    const lessonId = target?.getAttribute('data-lesson-id');
+    if (!lessonId) return;
+
+    // lessonsからlessonIdで検索
+    const state = conclusionStateManager.getState();
+    const lessons = state.lessons || [];
+    const selectedLesson = lessons.find(
+      (/** @type {LessonCore} */ l) => l.lessonId === lessonId,
+    );
+
+    if (selectedLesson) {
+      wizardState.selectedLesson = selectedLesson;
+      wizardState.reservationSkipped = false;
+      wizardState.isLessonListExpanded = false;
+      // 再描画してスロット表示を更新
+      goToStep('3');
+    }
   },
   // 選択解除
   clearSelectedLesson: () => {

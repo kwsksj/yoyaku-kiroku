@@ -19,7 +19,6 @@ import {
   generateTuitionSection,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
-import { renderBookingLessons } from './13_WebApp_Views_Booking.js';
 import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
 
 // State manager for accessing lessons
@@ -364,38 +363,59 @@ export function renderStep2BReservation(state) {
   const allLessons = stateManager?.getState()?.lessons || [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const filteredLessons = allLessons.filter(
-    (/** @type {LessonCore} */ l) => {
-      const lessonDate = new Date(l.date);
-      lessonDate.setHours(0, 0, 0, 0);
-      return lessonDate > today && l.classroom === currentClassroom;
-    },
-  );
+  const filteredLessons = allLessons.filter((/** @type {LessonCore} */ l) => {
+    const lessonDate = new Date(l.date);
+    lessonDate.setHours(0, 0, 0, 0);
+    return lessonDate > today && l.classroom === currentClassroom;
+  });
 
-  const lessonListHtml = isExpanded
-    ? `
-    <div class="lesson-list-accordion mt-4 border-t border-ui-border pt-4">
-      <div class="mb-4">
-        ${Components.button({
-          action: 'toggleLessonList',
-          text: 'にってい を とじる',
-          style: 'secondary',
-          size: 'full',
-        })}
-      </div>
-      <div class="lesson-list-content max-h-96 overflow-y-auto">
-        ${renderBookingLessons(filteredLessons)}
-      </div>
-    </div>
-  `
-    : `
+  // ウィザード専用のレッスンカードを生成
+  const wizardLessonCards = filteredLessons
+    .slice()
+    .sort(
+      (/** @type {LessonCore} */ a, /** @type {LessonCore} */ b) =>
+        new Date(a.date).getTime() - new Date(b.date).getTime(),
+    )
+    .map((/** @type {LessonCore} */ lesson) => {
+      const formattedDate = window.formatDate
+        ? window.formatDate(lesson.date)
+        : lesson.date;
+      const slots = lesson.firstSlots || 0;
+      const slotText =
+        slots > 0 ? `空き <span class="font-mono-numbers">${slots}</span>` : '満席';
+      const slotClass = slots > 0 ? 'text-green-600' : 'text-red-500';
+
+      return `
+        <button type="button"
+                class="w-full text-left p-3 mb-2 bg-ui-surface border border-ui-border rounded-lg hover:bg-action-secondary-bg transition-colors"
+                data-action="selectLessonForConclusion"
+                data-lesson-id="${escapeHTML(lesson.lessonId)}">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="font-bold text-brand-text">${formattedDate}</p>
+              <p class="text-sm text-brand-subtle">${escapeHTML(lesson.venue || '')}</p>
+            </div>
+            <span class="text-sm ${slotClass}">${slotText}</span>
+          </div>
+        </button>
+      `;
+    })
+    .join('');
+
+  // アコーディオンはDOMで開閉する（再描画しない）
+  const lessonListHtml = `
     <div class="mb-4">
-      ${Components.button({
-        action: 'toggleLessonList',
-        text: 'にってい いちらん から えらぶ',
-        style: 'secondary',
-        size: 'full',
-      })}
+      <button type="button"
+              class="w-full py-3 px-4 bg-ui-surface border border-ui-border rounded-lg text-brand-text font-medium text-center hover:bg-action-secondary-bg transition-colors"
+              data-action="toggleLessonListDOM">
+        <span id="accordion-toggle-text">にってい いちらん から えらぶ</span>
+        <span id="accordion-arrow" class="ml-2">▼</span>
+      </button>
+    </div>
+    <div id="lesson-list-accordion" class="${isExpanded ? '' : 'hidden'}">
+      <div class="lesson-list-content max-h-80 overflow-y-auto pb-2">
+        ${wizardLessonCards || '<p class="text-center text-brand-subtle p-4">日程がありません</p>'}
+      </div>
     </div>
   `;
 
