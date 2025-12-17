@@ -620,12 +620,89 @@ function handleConclusionClick(event) {
       break;
     }
     case 'selectRecommendedLesson':
-      // おすすめレッスンを選択した場合の視覚的フィードバック
-      actionElement.classList.add('ring-2', 'ring-action-primary-bg');
+      // おすすめレッスンを選択した場合
+      if (wizardState.recommendedNextLesson) {
+        wizardState.selectedLesson = wizardState.recommendedNextLesson;
+        wizardState.reservationSkipped = false;
+        goToStep('3');
+      }
+      break;
+    case 'toggleLessonListDOM': {
+      // アコーディオン開閉（DOM直接操作）
+      const accordion = document.getElementById('lesson-list-accordion');
+      const arrow = document.getElementById('accordion-arrow');
+      const toggleText = document.getElementById('accordion-toggle-text');
+      if (accordion) {
+        const isHidden = accordion.classList.contains('hidden');
+        accordion.classList.toggle('hidden');
+        if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
+        if (toggleText) {
+          toggleText.textContent = isHidden
+            ? 'にってい を とじる'
+            : 'にってい いちらん から えらぶ';
+        }
+        wizardState.isLessonListExpanded = isHidden;
+      }
+      break;
+    }
+    case 'selectLessonForConclusion': {
+      // 日程選択
+      const lessonId = actionElement.getAttribute('data-lesson-id');
+      if (lessonId) {
+        const state = conclusionStateManager.getState();
+        const lessons = state.lessons || [];
+        const selectedLesson = lessons.find(
+          (/** @type {LessonCore} */ l) => l.lessonId === lessonId,
+        );
+        if (selectedLesson) {
+          wizardState.selectedLesson = selectedLesson;
+          wizardState.reservationSkipped = false;
+          wizardState.isLessonListExpanded = false;
+          goToStep('3');
+        }
+      }
+      break;
+    }
+    case 'requestWaitlistForConclusion': {
+      // 空き通知希望
+      const lessonId = actionElement.getAttribute('data-lesson-id');
+      if (lessonId) {
+        const state = conclusionStateManager.getState();
+        const lessons = state.lessons || [];
+        const selectedLesson = lessons.find(
+          (/** @type {LessonCore} */ l) => l.lessonId === lessonId,
+        );
+        if (selectedLesson) {
+          wizardState.selectedLesson = selectedLesson;
+          wizardState.reservationSkipped = false;
+          wizardState.isLessonListExpanded = false;
+          window.showInfo?.(
+            `${window.formatDate?.(selectedLesson.date) || selectedLesson.date} の空き通知希望を登録します`,
+            '空き通知',
+          );
+          goToStep('3');
+        }
+      }
+      break;
+    }
+    case 'skipReservation':
+      // いまはきめない
+      wizardState.reservationSkipped = true;
+      wizardState.selectedLesson = null;
+      goToStep('3');
+      break;
+    case 'undoReservationSkip':
+      // やっぱりえらぶ
+      wizardState.reservationSkipped = false;
+      goToStep('3');
+      break;
+    case 'clearSelectedLesson':
+      // 選択解除
+      wizardState.selectedLesson = null;
+      goToStep('3');
       break;
     case 'goToCalendarSelection':
       // カレンダー選択画面への遷移
-      // TODO: 別途実装
       window.showInfo?.('カレンダー選択機能は準備中です。', 'お知らせ');
       break;
     default:
