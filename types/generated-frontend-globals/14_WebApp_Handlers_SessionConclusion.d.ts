@@ -31,5 +31,6 @@ export namespace sessionConclusionActionHandlers {
     function undoReservationSkip(): void;
     function toggleLessonList(): void;
     function clearSelectedLesson(): void;
+    function toggleTimeEdit(): void;
 }
 export type SessionConclusionState = import("./13_WebApp_Views_SessionConclusion.js").SessionConclusionState;

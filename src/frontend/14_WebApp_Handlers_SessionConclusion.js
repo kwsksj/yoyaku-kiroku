@@ -15,14 +15,14 @@
  */
 
 import {
-  calculateAccountingTotal,
-  classifyAccountingItems,
+    calculateAccountingTotal,
+    classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-  initializePaymentMethodUI,
-  setupAccountingEventListeners,
-  updateAccountingCalculation,
+    initializePaymentMethodUI,
+    setupAccountingEventListeners,
+    updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -725,5 +725,12 @@ export const sessionConclusionActionHandlers = {
     wizardState.selectedLesson = null;
     // 再描画
     goToStep('3');
+  },
+  // 時間編集セクション開閉
+  toggleTimeEdit: () => {
+    const timeSection = document.getElementById('time-edit-section');
+    if (timeSection) {
+      timeSection.classList.toggle('hidden');
+    }
   },
 };
