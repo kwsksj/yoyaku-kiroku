@@ -638,15 +638,19 @@ function handleConclusionClick(event) {
         toggleTextFound: !!toggleText,
       });
       if (accordion) {
-        const isHidden = accordion.classList.contains('hidden');
+        const isHiddenBefore = accordion.classList.contains('hidden');
+        console.log('🔄 Before toggle - isHidden:', isHiddenBefore);
         accordion.classList.toggle('hidden');
-        if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
+        const isHiddenAfter = accordion.classList.contains('hidden');
+        console.log('🔄 After toggle - isHidden:', isHiddenAfter);
+        console.log('🔄 Accordion innerHTML length:', accordion.innerHTML.length);
+        if (arrow) arrow.textContent = isHiddenBefore ? '▲' : '▼';
         if (toggleText) {
-          toggleText.textContent = isHidden
+          toggleText.textContent = isHiddenBefore
             ? 'にってい を とじる'
             : 'にってい いちらん から えらぶ';
         }
-        wizardState.isLessonListExpanded = isHidden;
+        wizardState.isLessonListExpanded = isHiddenBefore;
       } else {
         console.warn('⚠️ lesson-list-accordion element not found!');
       }
