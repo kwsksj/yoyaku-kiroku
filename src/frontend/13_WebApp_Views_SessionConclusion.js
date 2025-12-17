@@ -358,6 +358,11 @@ export function renderStep2BReservation(state) {
   // 現在の教室と同じレッスンをフィルタ（未来日程のみ）
   const currentClassroom = state.currentReservation?.classroom || '';
   const allLessons = window.appWindow?.stateManager?.getState()?.lessons || [];
+  console.log('📅 Accordion debug:', {
+    currentClassroom,
+    allLessonsCount: allLessons.length,
+    stateManagerExists: !!window.appWindow?.stateManager,
+  });
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const filteredLessons = allLessons.filter((/** @type {LessonCore} */ l) => {
@@ -365,6 +370,7 @@ export function renderStep2BReservation(state) {
     lessonDate.setHours(0, 0, 0, 0);
     return lessonDate > today && l.classroom === currentClassroom;
   });
+  console.log('📅 Filtered lessons:', filteredLessons.length);
 
   // ウィザード専用のレッスンカードを生成
   const wizardLessonCards = filteredLessons
