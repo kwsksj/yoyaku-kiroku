@@ -382,7 +382,9 @@ export function renderStep2BReservation(state) {
         : lesson.date;
       const slots = lesson.firstSlots || 0;
       const slotText =
-        slots > 0 ? `空き <span class="font-mono-numbers">${slots}</span>` : '満席';
+        slots > 0
+          ? `空き <span class="font-mono-numbers">${slots}</span>`
+          : '満席';
       const slotClass = slots > 0 ? 'text-green-600' : 'text-red-500';
 
       return `
