@@ -34,5 +34,6 @@ export namespace sessionConclusionActionHandlers {
     function selectLessonForConclusion(_d: any, target: HTMLElement): void;
     function clearSelectedLesson(): void;
     function toggleTimeEdit(): void;
+    function requestWaitlistForConclusion(_d: any, target: HTMLElement): void;
 }
 export type SessionConclusionState = import("./13_WebApp_Views_SessionConclusion.js").SessionConclusionState;

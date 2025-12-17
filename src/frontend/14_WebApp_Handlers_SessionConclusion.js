@@ -15,14 +15,14 @@
  */
 
 import {
-  calculateAccountingTotal,
-  classifyAccountingItems,
+    calculateAccountingTotal,
+    classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-  initializePaymentMethodUI,
-  setupAccountingEventListeners,
-  updateAccountingCalculation,
+    initializePaymentMethodUI,
+    setupAccountingEventListeners,
+    updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -774,6 +774,35 @@ export const sessionConclusionActionHandlers = {
     const timeSection = document.getElementById('time-edit-section');
     if (timeSection) {
       timeSection.classList.toggle('hidden');
+    }
+  },
+  // 空き通知希望（ウィザード内）
+  requestWaitlistForConclusion: (
+    /** @type {any} */ _d,
+    /** @type {HTMLElement} */ target,
+  ) => {
+    const lessonId = target?.getAttribute('data-lesson-id');
+    if (!lessonId) return;
+
+    // lessonsからlessonIdで検索
+    const state = conclusionStateManager.getState();
+    const lessons = state.lessons || [];
+    const selectedLesson = lessons.find(
+      (/** @type {LessonCore} */ l) => l.lessonId === lessonId,
+    );
+
+    if (selectedLesson) {
+      // 空き通知希望として選択
+      wizardState.selectedLesson = selectedLesson;
+      wizardState.reservationSkipped = false;
+      wizardState.isLessonListExpanded = false;
+      // TODO: 実際の空き通知希望登録はfinalizeConclusion時に行う
+      window.showInfo?.(
+        `${window.formatDate?.(selectedLesson.date) || selectedLesson.date} の空き通知希望を登録します`,
+        '空き通知',
+      );
+      // 再描画してスロット表示を更新
+      goToStep('3');
     }
   },
 };
