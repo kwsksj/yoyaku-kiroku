@@ -29,6 +29,7 @@ import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
  * @property {LessonCore | null} selectedLesson - ユーザーが選択したレッスン
  * @property {ReservationCore | null} existingFutureReservation - 既存の未来予約
  * @property {boolean} reservationSkipped - 「いまはきめない」を選択
+ * @property {boolean} isWaitlistRequest - 空き通知希望として選択
  * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
  * @property {string} workInProgressToday - 今日の制作メモ
  * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
@@ -208,6 +209,7 @@ export function renderStep2BReservation(state) {
   const selectedLesson = state.selectedLesson;
   const recommendedLesson = state.recommendedNextLesson;
   const isSkipped = state.reservationSkipped;
+  const isWaitlist = state.isWaitlistRequest;
   const isExpanded = state.isLessonListExpanded;
 
   // 表示するレッスン（優先順: 選択 > 予約済み > おすすめ）
@@ -279,22 +281,43 @@ export function renderStep2BReservation(state) {
       ? window.formatDate(selectedLesson.date)
       : selectedLesson.date;
 
-    slotDisplayHtml = `
-      <div class="border-2 border-action-primary-bg rounded-lg p-4 bg-action-secondary-bg mb-4">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm text-action-primary-bg font-bold">せんたく ずみ</p>
-            <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-            <p class="text-sm text-brand-subtle">${escapeHTML(selectedLesson.classroom)} ${selectedLesson.venue ? escapeHTML(selectedLesson.venue) : ''}</p>
+    if (isWaitlist) {
+      // 空き通知希望
+      slotDisplayHtml = `
+        <div class="border-2 border-yellow-500 rounded-lg p-4 bg-yellow-50 mb-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-sm font-bold text-yellow-700">空き つうち きぼう</p>
+              <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
+              <p class="text-sm text-brand-subtle">${escapeHTML(selectedLesson.classroom)} ${selectedLesson.venue ? escapeHTML(selectedLesson.venue) : ''}</p>
+            </div>
+            <button type="button"
+                    class="text-sm text-action-primary underline"
+                    data-action="clearSelectedLesson">
+              べつの ひを えらぶ
+            </button>
           </div>
-          <button type="button"
-                  class="text-sm text-action-primary underline"
-                  data-action="clearSelectedLesson">
-            べつの ひを えらぶ
-          </button>
         </div>
-      </div>
-    `;
+      `;
+    } else {
+      // 通常予約
+      slotDisplayHtml = `
+        <div class="border-2 border-action-primary-bg rounded-lg p-4 bg-action-secondary-bg mb-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <p class="text-sm text-action-primary-bg font-bold">せんたく ずみ</p>
+              <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
+              <p class="text-sm text-brand-subtle">${escapeHTML(selectedLesson.classroom)} ${selectedLesson.venue ? escapeHTML(selectedLesson.venue) : ''}</p>
+            </div>
+            <button type="button"
+                    class="text-sm text-action-primary underline"
+                    data-action="clearSelectedLesson">
+              べつの ひを えらぶ
+            </button>
+          </div>
+        </div>
+      `;
+    }
   } else if (recommendedLesson) {
     // おすすめ日程
     const formattedDate = window.formatDate
@@ -358,11 +381,6 @@ export function renderStep2BReservation(state) {
   // 現在の教室と同じレッスンをフィルタ（未来日程のみ）
   const currentClassroom = state.currentReservation?.classroom || '';
   const allLessons = window.appWindow?.stateManager?.getState()?.lessons || [];
-  console.log('📅 Accordion debug:', {
-    currentClassroom,
-    allLessonsCount: allLessons.length,
-    stateManagerExists: !!window.appWindow?.stateManager,
-  });
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const filteredLessons = allLessons.filter((/** @type {LessonCore} */ l) => {
@@ -370,7 +388,6 @@ export function renderStep2BReservation(state) {
     lessonDate.setHours(0, 0, 0, 0);
     return lessonDate > today && l.classroom === currentClassroom;
   });
-  console.log('📅 Filtered lessons:', filteredLessons.length);
 
   // ウィザード専用のレッスンカードを生成
   const wizardLessonCards = filteredLessons

@@ -187,6 +187,7 @@ export function startSessionConclusion(reservationId) {
     selectedLesson: null,
     existingFutureReservation: futureReservation || null,
     reservationSkipped: false,
+    isWaitlistRequest: false,
     isLessonListExpanded: false,
     workInProgressToday: currentReservation.workInProgress || '',
     nextLessonGoal: '',
@@ -632,17 +633,11 @@ function handleConclusionClick(event) {
       const accordion = document.getElementById('lesson-list-accordion');
       const arrow = document.getElementById('accordion-arrow');
       const toggleText = document.getElementById('accordion-toggle-text');
-      console.log('🔄 toggleLessonListDOM:', {
-        accordionFound: !!accordion,
-        arrowFound: !!arrow,
-        toggleTextFound: !!toggleText,
-      });
       if (accordion) {
         // hidden クラスではなく、display スタイルを直接操作
         const isHidden =
           accordion.style.display === 'none' ||
           accordion.classList.contains('hidden');
-        console.log('🔄 Before toggle - isHidden:', isHidden);
 
         if (isHidden) {
           accordion.classList.remove('hidden');
@@ -651,16 +646,6 @@ function handleConclusionClick(event) {
           accordion.classList.add('hidden');
           accordion.style.display = 'none';
         }
-        console.log(
-          '🔄 After toggle - display:',
-          accordion.style.display,
-          'class:',
-          accordion.className,
-        );
-        console.log(
-          '🔄 Accordion innerHTML length:',
-          accordion.innerHTML.length,
-        );
         if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
         if (toggleText) {
           toggleText.textContent = isHidden
@@ -674,7 +659,7 @@ function handleConclusionClick(event) {
       break;
     }
     case 'selectLessonForConclusion': {
-      // 日程選択
+      // 日程選択（通常予約）
       const lessonId = actionElement.getAttribute('data-lesson-id');
       if (lessonId) {
         const state = conclusionStateManager.getState();
@@ -684,6 +669,7 @@ function handleConclusionClick(event) {
         );
         if (selectedLesson) {
           wizardState.selectedLesson = selectedLesson;
+          wizardState.isWaitlistRequest = false;
           wizardState.reservationSkipped = false;
           wizardState.isLessonListExpanded = false;
           goToStep('3');
@@ -702,12 +688,9 @@ function handleConclusionClick(event) {
         );
         if (selectedLesson) {
           wizardState.selectedLesson = selectedLesson;
+          wizardState.isWaitlistRequest = true;
           wizardState.reservationSkipped = false;
           wizardState.isLessonListExpanded = false;
-          window.showInfo?.(
-            `${window.formatDate?.(selectedLesson.date) || selectedLesson.date} の空き通知希望を登録します`,
-            '空き通知',
-          );
           goToStep('3');
         }
       }
@@ -727,6 +710,7 @@ function handleConclusionClick(event) {
     case 'clearSelectedLesson':
       // 選択解除
       wizardState.selectedLesson = null;
+      wizardState.isWaitlistRequest = false;
       goToStep('3');
       break;
     case 'goToCalendarSelection':

@@ -6,6 +6,7 @@
  * @property {LessonCore | null} selectedLesson - ユーザーが選択したレッスン
  * @property {ReservationCore | null} existingFutureReservation - 既存の未来予約
  * @property {boolean} reservationSkipped - 「いまはきめない」を選択
+ * @property {boolean} isWaitlistRequest - 空き通知希望として選択
  * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
  * @property {string} workInProgressToday - 今日の制作メモ
  * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
@@ -88,6 +89,10 @@ export type SessionConclusionState = {
      * - 「いまはきめない」を選択
      */
     reservationSkipped: boolean;
+    /**
+     * - 空き通知希望として選択
+     */
+    isWaitlistRequest: boolean;
     /**
      * - 日程一覧アコーディオン展開状態
      */
