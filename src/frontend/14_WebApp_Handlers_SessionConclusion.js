@@ -15,14 +15,14 @@
  */
 
 import {
-    calculateAccountingTotal,
-    classifyAccountingItems,
+  calculateAccountingTotal,
+  classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-    initializePaymentMethodUI,
-    setupAccountingEventListeners,
-    updateAccountingCalculation,
+  initializePaymentMethodUI,
+  setupAccountingEventListeners,
+  updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -638,19 +638,36 @@ function handleConclusionClick(event) {
         toggleTextFound: !!toggleText,
       });
       if (accordion) {
-        const isHiddenBefore = accordion.classList.contains('hidden');
-        console.log('🔄 Before toggle - isHidden:', isHiddenBefore);
-        accordion.classList.toggle('hidden');
-        const isHiddenAfter = accordion.classList.contains('hidden');
-        console.log('🔄 After toggle - isHidden:', isHiddenAfter);
-        console.log('🔄 Accordion innerHTML length:', accordion.innerHTML.length);
-        if (arrow) arrow.textContent = isHiddenBefore ? '▲' : '▼';
+        // hidden クラスではなく、display スタイルを直接操作
+        const isHidden =
+          accordion.style.display === 'none' ||
+          accordion.classList.contains('hidden');
+        console.log('🔄 Before toggle - isHidden:', isHidden);
+
+        if (isHidden) {
+          accordion.classList.remove('hidden');
+          accordion.style.display = 'block';
+        } else {
+          accordion.classList.add('hidden');
+          accordion.style.display = 'none';
+        }
+        console.log(
+          '🔄 After toggle - display:',
+          accordion.style.display,
+          'class:',
+          accordion.className,
+        );
+        console.log(
+          '🔄 Accordion innerHTML length:',
+          accordion.innerHTML.length,
+        );
+        if (arrow) arrow.textContent = isHidden ? '▲' : '▼';
         if (toggleText) {
-          toggleText.textContent = isHiddenBefore
+          toggleText.textContent = isHidden
             ? 'にってい を とじる'
             : 'にってい いちらん から えらぶ';
         }
-        wizardState.isLessonListExpanded = isHiddenBefore;
+        wizardState.isLessonListExpanded = isHidden;
       } else {
         console.warn('⚠️ lesson-list-accordion element not found!');
       }
