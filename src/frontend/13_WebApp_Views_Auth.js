@@ -43,10 +43,10 @@ export const getLoginView = () => {
       <div class="w-full min-h-[80vh] flex flex-col justify-center py-8 md:py-12">
         <!-- ヘッダーセクション（カードなし） -->
         <div class="text-center mt-8 mb-8">
-          <h1 class="text-3xl md:text-4xl font-black text-brand-text tracking-tight leading-tight">
-            きぼりの<br class="md:hidden">よやく・きろく
+          <h1 class="text-4xl md:text-5xl font-black text-brand-text tracking-tight leading-tight">
+            きぼりの<br>よやく・きろく
           </h1>
-          <p class="text-lg md:text-xl text-brand-subtle font-normal mt-3">
+          <p class="text-lg md:text-xl text-brand-subtle font-medium mt-3">
             川崎誠二 木彫り教室
           </p>
         </div>
@@ -55,7 +55,7 @@ export const getLoginView = () => {
         ${Components.cardContainer({
           variant: 'default',
           padding: 'spacious',
-          customClass: 'rounded-2xl',
+          customClass: '',
           content: `
             <div class="">
               <!-- 説明セクション -->
