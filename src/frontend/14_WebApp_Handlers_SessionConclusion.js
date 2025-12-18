@@ -459,24 +459,34 @@ async function finalizeConclusion() {
       accountingDetails: accountingDetails,
     };
 
-    // 2. 次回予約を作成（スキップしていない場合）
+    // 2. 次回予約を作成（スキップしていない場合、かつ既存予約がない場合）
     /** @type {any} */
     let nextReservationPayload = null;
-    if (wizardState.recommendedNextLesson) {
-      nextReservationPayload = {
-        lessonId: wizardState.recommendedNextLesson.lessonId,
-        classroom: wizardState.recommendedNextLesson.classroom,
-        date: wizardState.recommendedNextLesson.date,
-        venue: wizardState.recommendedNextLesson.venue,
-        startTime:
-          wizardState.nextStartTime ||
-          wizardState.recommendedNextLesson.firstStart,
-        endTime:
-          wizardState.nextEndTime || wizardState.recommendedNextLesson.firstEnd,
-        user: currentUser,
-        studentId: currentUser.studentId,
-        workInProgress: wizardState.workInProgressNext,
-      };
+
+    // 予約をスキップした場合、または既存の予約がある場合は次回予約を作成しない
+    const shouldSkipReservation =
+      wizardState.reservationSkipped || wizardState.existingFutureReservation;
+
+    if (!shouldSkipReservation) {
+      // 選択されたレッスン（ユーザー選択 > おすすめ）
+      const nextLesson =
+        wizardState.selectedLesson || wizardState.recommendedNextLesson;
+
+      if (nextLesson) {
+        nextReservationPayload = {
+          lessonId: nextLesson.lessonId,
+          classroom: nextLesson.classroom,
+          date: nextLesson.date,
+          venue: nextLesson.venue,
+          startTime: wizardState.nextStartTime || nextLesson.firstStart,
+          endTime: wizardState.nextEndTime || nextLesson.firstEnd,
+          user: currentUser,
+          studentId: currentUser.studentId,
+          workInProgress: wizardState.workInProgressNext,
+          // 空き通知希望の場合、完全満席でも予約を試みる（バックエンドがWAITLISTEDにする）
+          isWaitlistRequest: wizardState.isWaitlistRequest,
+        };
+      }
     }
 
     // サーバー呼び出し
