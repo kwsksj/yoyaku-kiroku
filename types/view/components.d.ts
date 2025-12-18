@@ -96,9 +96,12 @@ export interface InputConfig {
   description?: string;
   caption?: string;
   inputMode?: string;
+  inputmode?: string;
   autocomplete?: string;
   customClass?: string;
+  labelClass?: string;
   containerClass?: string;
+  pattern?: string;
   dataAttributes?: Record<string, string | number | boolean>;
   disabled?: boolean;
 }
