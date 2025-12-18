@@ -247,13 +247,32 @@ export const Components = {
     required = false,
     description = '',
     caption = '',
+    customClass = '',
+    labelClass = '',
+    containerClass = '',
+    inputmode = '',
+    pattern = '',
+    autocomplete = 'off',
   }) => {
     // 電話番号・メールの場合は専用クラスを使用
-    const inputClass =
+    const baseInputClass =
       type === 'tel' || type === 'email'
         ? /** @type {any} */ (DesignConfig.inputs)['phone'] ||
           DesignConfig.inputs['base']
         : DesignConfig.inputs['base'];
+
+    // カスタムクラスがあれば追加
+    const inputClass = customClass
+      ? `${baseInputClass} ${customClass}`
+      : baseInputClass;
+
+    // ラベルクラスのカスタマイズ
+    const finalLabelClass = labelClass
+      ? `${DesignConfig.text['labelBlock']} ${labelClass}`
+      : DesignConfig.text['labelBlock'];
+
+    // コンテナクラスのカスタマイズ
+    const finalContainerClass = containerClass || 'mb-4';
 
     const descriptionHtml = description
       ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
@@ -263,10 +282,14 @@ export const Components = {
       ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
       : '';
 
-    return `<div class="mb-4">
+    // 追加属性の生成
+    const inputmodeAttr = inputmode ? `inputmode="${inputmode}"` : '';
+    const patternAttr = pattern ? `pattern="${escapeHTML(pattern)}"` : '';
+
+    return `<div class="${finalContainerClass}">
         <label
           for="${id}"
-          class="${DesignConfig.text['labelBlock']}"
+          class="${finalLabelClass}"
         >${escapeHTML(label)}</label>
         ${descriptionHtml}
         <input
@@ -276,7 +299,9 @@ export const Components = {
           class="${inputClass}"
           placeholder="${escapeHTML(placeholder)}"
           ${required ? 'required' : ''}
-          autocomplete="off"
+          autocomplete="${autocomplete}"
+          ${inputmodeAttr}
+          ${patternAttr}
         >
         ${captionHtml}
       </div>`;

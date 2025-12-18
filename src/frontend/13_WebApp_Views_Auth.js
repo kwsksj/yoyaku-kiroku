@@ -40,35 +40,64 @@ export const getLoginView = () => {
   return Components.pageContainer({
     maxWidth: 'md',
     content: `
-      <div class="w-full pt-12 pb-64 md:pt-16 md:pb-64">
-        <div class="w-full space-y-6">
-          <div class="text-center">
-            <h1 class="text-3xl font-bold text-brand-text tracking-tight">きぼりの<br>よやく・きろく</h1>
-            <h2 class="text-xl text-brand-subtle mt-1">川崎誠二 木彫り教室</h2>
-          </div>
-          <div class="${DesignConfig.inputs.container}">
-            <label for="phone" class="block text-brand-subtle text-base text-center mb-2">携帯電話番号</label>
-            <div class="flex justify-center">
-              <input
-                type="tel"
-                id="phone"
-                value="${phoneValue}"
-                class="${DesignConfig.inputs.phone} text-center"
-                placeholder="090 1234 5678"
-                autocomplete="tel"
-                inputmode="numeric"
-                pattern="[0-9]*"
-              >
+      <div class="w-full min-h-[80vh] flex flex-col justify-center py-8 md:py-12">
+        <!-- ヘッダーセクション（カードなし） -->
+        <div class="text-center mt-8 mb-8">
+          <h1 class="text-3xl md:text-4xl font-black text-brand-text tracking-tight leading-tight">
+            きぼりの<br class="md:hidden">よやく・きろく
+          </h1>
+          <p class="text-lg md:text-xl text-brand-subtle font-normal mt-3">
+            川崎誠二 木彫り教室
+          </p>
+        </div>
+
+        <!-- メインカード: 説明 + 入力フォーム -->
+        ${Components.cardContainer({
+          variant: 'default',
+          padding: 'spacious',
+          customClass: 'rounded-2xl',
+          content: `
+            <div class="">
+              <!-- 説明セクション -->
+              <div class="text-center">
+                <p class="text-brand-text text-base mb-6">
+                  <span class="font-semibold text-action-primary-bg">参加予約</span>と<span class="font-semibold text-action-primary-bg">製作記録</span>のページです。
+                </p>
+                <p class="text-brand-subtle text-sm leading-relaxed mb-6">
+                はじめての方は、携帯電話番号を入力し<span class="font-bold text-brand-text">とうろく</span>してください。(日程連絡希望の方もこちらから)
+                </p>
+              </div>
+
+              <!-- 入力フォーム + ボタンセクション -->
+              <div class="flex flex-col items-center space-y-3">
+                ${Components.input({
+                  id: 'phone',
+                  label: '携帯電話番号',
+                  type: 'tel',
+                  value: phoneValue,
+                  placeholder: '090 1234 5678',
+                  customClass:
+                    'text-center text-xl tracking-widest w-64 h-12 !p-2',
+                  labelClass: 'text-center',
+                  containerClass: 'w-full text-center',
+                  inputmode: 'numeric',
+                  pattern: '[0-9]*',
+                  autocomplete: 'tel',
+                })}
+                ${Components.button({
+                  action: 'login',
+                  text: 'ログイン または とうろく',
+                  style: 'primary',
+                  customClass: 'w-64 h-12 border-2 border-action-primary-bg',
+                })}
+              </div>
             </div>
-          </div>
-          ${Components.actionButtonSection({
-            primaryButton: {
-              action: 'login',
-              text: 'ログイン または 新規登録',
-              style: 'primary',
-            },
-            spacing: 'compact',
-          })}
+          `,
+        })}
+
+        <!-- フッターノート -->
+        <div class="text-center text-brand-muted text-sm mt-6">
+          <p>* ブラウザの「戻る」ボタンは使わないでください</p>
         </div>
       </div>
     `,
