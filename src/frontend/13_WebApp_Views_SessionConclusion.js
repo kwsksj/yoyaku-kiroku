@@ -407,26 +407,26 @@ export function renderStep2BReservation(state) {
         : `空き <span class="font-mono-numbers">${slots}</span>`;
       const slotClass = isFullyBooked ? 'text-red-500' : 'text-green-600';
 
-      // 満席の場合は空き通知希望ボタンを表示
+      // 満席の場合は空き通知希望として選択可能
       if (isFullyBooked) {
         return `
-          <div class="w-full p-3 mb-2 bg-gray-50 border border-ui-border rounded-lg">
+          <button type="button"
+                  class="w-full text-left p-3 mb-2 bg-yellow-50 border border-yellow-300 rounded-lg hover:bg-yellow-100 transition-colors"
+                  data-action="requestWaitlistForConclusion"
+                  data-lesson-id="${escapeHTML(lesson.lessonId)}">
             <div class="flex justify-between items-center">
               <div>
-                <p class="font-bold text-gray-400">${formattedDate}</p>
-                <p class="text-sm text-gray-400">${escapeHTML(lesson.venue || '')}</p>
+                <p class="font-bold text-brand-text">${formattedDate}</p>
+                <p class="text-sm text-brand-subtle">${escapeHTML(lesson.venue || '')}</p>
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-sm ${slotClass}">${slotText}</span>
-                <button type="button"
-                        class="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 border border-yellow-300 rounded hover:bg-yellow-200 transition-colors"
-                        data-action="requestWaitlistForConclusion"
-                        data-lesson-id="${escapeHTML(lesson.lessonId)}">
+                <span class="text-xs px-2 py-1 bg-yellow-200 text-yellow-800 rounded">
                   空き通知
-                </button>
+                </span>
               </div>
             </div>
-          </div>
+          </button>
         `;
       }
 
