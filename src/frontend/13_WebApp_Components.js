@@ -1476,6 +1476,55 @@ export const Components = {
   },
 
   /**
+   * プレースホルダーカード（日程未定の場合用）
+   * listCardと同じ視覚構造で、予約がない場合に使用
+   * @param {{
+   *   title?: string,
+   *   badge?: {type: BadgeType, text: string},
+   *   memoTitle?: string,
+   *   memoContent?: string,
+   *   dimmed?: boolean
+   * }} config - 設定オブジェクト
+   * @returns {string} HTML文字列
+   */
+  placeholderCard: ({
+    title = 'ー',
+    badge = { type: /** @type {BadgeType} */ ('info'), text: '日程未定' },
+    memoTitle = '制作メモ',
+    memoContent = '',
+    dimmed = false,
+  }) => {
+    const cardColorClass = `booking-card ${DesignConfig.cards.state.booked.card}`;
+    const dimmedClass = dimmed ? 'opacity-50' : '';
+
+    const badgeHtml = Components.statusBadge({
+      type: badge.type,
+      text: badge.text,
+    });
+
+    return `
+      <div class="w-full mb-4 px-0">
+        <div class="${cardColorClass} p-2 rounded-lg shadow-sm ${dimmedClass}">
+          <!-- 上部：タイトル+バッジ -->
+          <div class="flex justify-between items-start mb-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center flex-wrap">
+                <h3 class="font-bold text-base text-brand-text">${escapeHTML(title)}</h3>
+              </div>
+              <h4 class="text-base text-brand-text font-bold mt-0">${badgeHtml}</h4>
+            </div>
+          </div>
+          <!-- 制作メモセクション -->
+          <div class="p-0.5 bg-white/75">
+            <h4 class="text-xs font-bold text-brand-subtle mb-0">${escapeHTML(memoTitle)}</h4>
+            <p class="text-sm ${dimmed ? 'text-brand-subtle' : 'text-brand-text'} whitespace-pre-wrap px-1 min-h-14">${escapeHTML(memoContent) || 'ー'}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
    * 制作メモセクション（表示・編集両対応）
    * @param {MemoSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列

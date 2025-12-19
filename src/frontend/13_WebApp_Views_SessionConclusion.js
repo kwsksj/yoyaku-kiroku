@@ -730,60 +730,33 @@ export function renderConclusionComplete(state) {
     `;
   };
 
-  // けいかくのみの場合のカード（listCardスタイルに統一）
+  // けいかくのみの場合のカード（Components.placeholderCard使用）
   const renderGoalOnlyCard = (/** @type {string} */ goal) => {
     return `
       <div class="mt-6 max-w-md mx-auto text-left">
         <p class="text-sm text-brand-text mb-3 text-left">
           つぎの よやく は あとで えらんでね！
         </p>
-        <div class="w-full mb-4 px-0">
-          <div class="booking-card ${DesignConfig.cards.state.booked.card} p-2 rounded-lg shadow-sm">
-            <div class="flex justify-between items-start mb-0">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center flex-wrap">
-                  <h3 class="font-bold text-base text-brand-text">ー</h3>
-                </div>
-                <h4 class="text-base text-brand-text font-bold mt-0">
-                  ${Components.statusBadge({ type: 'info', text: '日程未定' })}
-                </h4>
-              </div>
-            </div>
-            <div class="p-0.5 bg-white/75">
-              <h4 class="text-xs font-bold text-brand-subtle mb-0">つぎに やりたいこと</h4>
-              <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(goal)}</p>
-            </div>
-          </div>
-        </div>
+        ${Components.placeholderCard({
+          badge: { type: /** @type {BadgeType} */ ('info'), text: '日程未定' },
+          memoTitle: 'つぎに やりたいこと',
+          memoContent: goal,
+        })}
       </div>
     `;
   };
 
-  // リマインダーのみの場合のカード（listCardスタイルに統一）
+  // リマインダーのみの場合のカード（Components.placeholderCard使用）
   const renderReminderCard = () => {
     return `
       <div class="mt-6 max-w-md mx-auto text-left">
         <p class="text-sm text-brand-text mb-3 text-left">
           つぎの よやく は あとで えらんでね！
         </p>
-        <div class="w-full mb-4 px-0">
-          <div class="booking-card ${DesignConfig.cards.state.booked.card} p-2 rounded-lg shadow-sm opacity-50">
-            <div class="flex justify-between items-start mb-0">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center flex-wrap">
-                  <h3 class="font-bold text-base text-brand-text">ー</h3>
-                </div>
-                <h4 class="text-base text-brand-text font-bold mt-0">
-                  ${Components.statusBadge({ type: /** @type {BadgeType} */ ('neutral'), text: '日程未定' })}
-                </h4>
-              </div>
-            </div>
-            <div class="p-0.5 bg-white/75">
-              <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
-              <p class="text-sm text-brand-subtle whitespace-pre-wrap px-1 min-h-14">ー</p>
-            </div>
-          </div>
-        </div>
+        ${Components.placeholderCard({
+          badge: { type: /** @type {BadgeType} */ ('neutral'), text: '日程未定' },
+          dimmed: true,
+        })}
       </div>
     `;
   };
