@@ -504,6 +504,12 @@ async function finalizeConclusion() {
               response.data.nextReservationResult;
           }
 
+          // myReservationsをwizardStateに保存（完了画面でのカード表示用）
+          if (response.data?.myReservations) {
+            /** @type {any} */ (wizardState).myReservations =
+              response.data.myReservations;
+          }
+
           // stateを更新（myReservationsなど）- 完了画面へ遷移する前に更新
           if (response.data) {
             conclusionStateManager.dispatch({
