@@ -668,8 +668,7 @@ export function renderConclusionComplete(state) {
       if (type === 'waitlisted') {
         introHtml = `
           <p class="text-sm text-brand-text mb-3 text-left">
-            じかいについては こちらで 空き通知 とうろく しました。<br>
-            メールで おしらせするので このページで よやく してください（先着順です）
+            じかいについては こちらで 空き通知 とうろく しました！
           </p>
         `;
       } else {
@@ -682,7 +681,7 @@ export function renderConclusionComplete(state) {
     } else {
       introHtml = `
         <p class="text-sm text-brand-text mb-3 text-left">
-          じかいの よてい は こちらです。
+          じかいの よてい は こちらです！
         </p>
       `;
     }
@@ -692,14 +691,14 @@ export function renderConclusionComplete(state) {
       ? `<div class="mb-3">${mismatchNote}</div>`
       : '';
 
-    // 空き通知の補足説明（新規作成でない場合のみ表示）
+    // 空き通知の補足説明
     const waitlistNoteHtml =
-      type === 'waitlisted' && !isNewReservation
+      type === 'waitlisted'
         ? `
           <div class="mt-2 p-2 bg-amber-50 rounded-lg">
             <p class="text-xs text-amber-700 leading-relaxed">
               🔔 空きが でたら メールで おしらせします<br>
-              　 このページから よやく してください（先着順です）
+              このページから よやく してください（先着順です）
             </p>
           </div>
         `
