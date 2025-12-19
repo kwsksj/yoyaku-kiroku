@@ -618,98 +618,36 @@ export function renderConclusionComplete(state) {
   const skippedReservation = state.reservationSkipped;
   const nextLessonGoal = state.nextLessonGoal || '';
 
-  // 制作メモ（けいかく・もくひょう）表示用ヘルパー
-  const renderGoalSection = (/** @type {string} */ goal) => {
-    if (!goal) return '';
-    return `
-      <div class="mt-3 pt-3 border-t border-opacity-30 border-current">
-        <div class="flex items-start gap-2">
-          <span class="text-lg">📝</span>
-          <div>
-            <p class="text-xs text-brand-subtle mb-1">つぎに やりたいこと</p>
-            <p class="text-sm text-brand-text">${escapeHTML(goal)}</p>
-          </div>
-        </div>
-      </div>
-    `;
+  // Components.listCard用のバッジを生成
+  /** @param {'confirmed' | 'waitlisted'} type */
+  const buildCompletionBadges = type => {
+    if (type === 'waitlisted') {
+      return /** @type {{type: BadgeType, text: string}[]} */ ([
+        { type: 'warning', text: '空き通知希望' },
+      ]);
+    }
+    return /** @type {{type: BadgeType, text: string}[]} */ ([
+      { type: 'success', text: '予約確定' },
+    ]);
   };
 
-  // 予約カード生成ヘルパー
-  const renderReservationCard = (/** @type {{
-    type: 'confirmed' | 'waitlisted' | 'goal-only' | 'reminder',
-    date?: string,
-    classroom?: string,
-    venue?: string,
-    goal?: string,
-    mismatchNote?: string
-  }} */ config) => {
-    const { type, date, classroom, venue, goal, mismatchNote } = config;
-
-    // タイプに応じたスタイル設定
-    const styles = {
-      confirmed: {
-        bg: 'bg-gradient-to-br from-green-50 to-emerald-50',
-        border: 'border-green-300',
-        icon: '📅',
-        iconBg: 'bg-green-100',
-        titleColor: 'text-green-700',
-        title: 'よやく かくてい',
-      },
-      waitlisted: {
-        bg: 'bg-gradient-to-br from-amber-50 to-yellow-50',
-        border: 'border-amber-300',
-        icon: '🔔',
-        iconBg: 'bg-amber-100',
-        titleColor: 'text-amber-700',
-        title: '空き通知 登録',
-      },
-      'goal-only': {
-        bg: 'bg-gradient-to-br from-blue-50 to-indigo-50',
-        border: 'border-blue-300',
-        icon: '📝',
-        iconBg: 'bg-blue-100',
-        titleColor: 'text-blue-700',
-        title: 'つぎに やりたいこと',
-      },
-      reminder: {
-        bg: 'bg-gray-50',
-        border: 'border-gray-200',
-        icon: '💭',
-        iconBg: 'bg-gray-100',
-        titleColor: 'text-gray-600',
-        title: '',
-      },
-    };
-
-    const style = styles[type];
-    const formattedDate = date && window.formatDate ? window.formatDate(date) : date;
-
+  // 予約カードをComponents.listCardで生成
+  const renderListCardReservation = (
+    /** @type {ReservationCore} */ reservation,
+    /** @type {'confirmed' | 'waitlisted'} */ type,
+    /** @type {string} */ goal,
+    /** @type {string} */ mismatchNote,
+  ) => {
     // 不一致ノートHTML
     const mismatchHtml = mismatchNote
       ? `<div class="mb-3">${mismatchNote}</div>`
       : '';
 
-    // 日付・教室部分
-    const dateClassroomHtml =
-      date && classroom
-        ? `
-          <div class="flex items-center gap-3">
-            <div class="${style.iconBg} p-2 rounded-xl">
-              <span class="text-2xl">${style.icon}</span>
-            </div>
-            <div class="flex-1 text-left">
-              <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-              <p class="text-sm text-brand-subtle">${escapeHTML(classroom)}${venue ? ` ・ ${escapeHTML(venue)}` : ''}</p>
-            </div>
-          </div>
-        `
-        : '';
-
     // 空き通知の補足説明
     const waitlistNoteHtml =
       type === 'waitlisted'
         ? `
-          <div class="mt-3 pt-3 border-t border-amber-200">
+          <div class="mt-2 p-2 bg-amber-50 rounded-lg">
             <p class="text-xs text-amber-700 leading-relaxed">
               🔔 空きが でたら メールで おしらせします<br>
               　 このページから よやく してください
@@ -718,47 +656,61 @@ export function renderConclusionComplete(state) {
         `
         : '';
 
-    // リマインダーのみの場合
-    if (type === 'reminder') {
-      return `
-        <div class="mt-6 p-4 ${style.bg} rounded-xl border ${style.border}">
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">${style.icon}</span>
-            <p class="text-sm text-brand-subtle">つぎ の よやく は<br>あとで えらんでね</p>
-          </div>
-        </div>
-      `;
-    }
+    // listCardのworkInProgressを「けいかく」として表示
+    const cardReservation = {
+      ...reservation,
+      workInProgress: goal || '',
+    };
 
-    // けいかくのみの場合
-    if (type === 'goal-only' && goal) {
-      return `
-        <div class="mt-6 p-4 ${style.bg} rounded-xl border ${style.border}">
-          <div class="flex items-start gap-3">
-            <div class="${style.iconBg} p-2 rounded-xl">
-              <span class="text-2xl">${style.icon}</span>
-            </div>
-            <div class="flex-1 text-left">
-              <p class="text-xs ${style.titleColor} font-bold mb-1">${style.title}</p>
-              <p class="text-sm text-brand-text">${escapeHTML(goal)}</p>
-            </div>
-          </div>
-          <div class="mt-3 pt-3 border-t border-blue-200">
-            <p class="text-xs text-brand-subtle text-center">
-              よやく は あとで えらんでね
-            </p>
-          </div>
-        </div>
-      `;
-    }
+    const cardHtml = Components.listCard({
+      type: 'booking',
+      item: cardReservation,
+      badges: buildCompletionBadges(type),
+      editButtons: [], // 編集ボタンは非表示
+      accountingButtons: [], // 会計ボタンも非表示
+      isEditMode: false,
+      showMemoSaveButton: false,
+    });
 
     return `
-      <div class="mt-6 p-4 ${style.bg} rounded-xl border ${style.border} shadow-sm">
+      <div class="mt-6">
         ${mismatchHtml}
-        <p class="text-xs ${style.titleColor} font-bold mb-2">${style.title}</p>
-        ${dateClassroomHtml}
+        ${cardHtml}
         ${waitlistNoteHtml}
-        ${renderGoalSection(goal || '')}
+      </div>
+    `;
+  };
+
+  // けいかくのみの場合のカード
+  const renderGoalOnlyCard = (/** @type {string} */ goal) => {
+    return `
+      <div class="mt-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-300">
+        <div class="flex items-start gap-3">
+          <div class="bg-blue-100 p-2 rounded-xl">
+            <span class="text-2xl">📝</span>
+          </div>
+          <div class="flex-1 text-left">
+            <p class="text-xs text-blue-700 font-bold mb-1">つぎに やりたいこと</p>
+            <p class="text-sm text-brand-text">${escapeHTML(goal)}</p>
+          </div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-blue-200">
+          <p class="text-xs text-brand-subtle text-center">
+            よやく は あとで えらんでね
+          </p>
+        </div>
+      </div>
+    `;
+  };
+
+  // リマインダーのみの場合のカード
+  const renderReminderCard = () => {
+    return `
+      <div class="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">💭</span>
+          <p class="text-sm text-brand-subtle">つぎ の よやく は<br>あとで えらんでね</p>
+        </div>
       </div>
     `;
   };
@@ -768,21 +720,17 @@ export function renderConclusionComplete(state) {
 
   if (hasExistingReservation && state.existingFutureReservation) {
     const existing = state.existingFutureReservation;
-    reservationMessageHtml = renderReservationCard({
-      type: 'confirmed',
-      date: existing.date,
-      classroom: existing.classroom,
-      venue: existing.venue || '',
-      goal: nextLessonGoal,
-    });
+    reservationMessageHtml = renderListCardReservation(
+      existing,
+      'confirmed',
+      nextLessonGoal,
+      '',
+    );
   } else if (skippedReservation) {
     if (nextLessonGoal) {
-      reservationMessageHtml = renderReservationCard({
-        type: 'goal-only',
-        goal: nextLessonGoal,
-      });
+      reservationMessageHtml = renderGoalOnlyCard(nextLessonGoal);
     } else {
-      reservationMessageHtml = renderReservationCard({ type: 'reminder' });
+      reservationMessageHtml = renderReminderCard();
     }
   } else if (nextResult?.created) {
     const isWaitlisted = nextResult.status === '待機';
@@ -806,14 +754,28 @@ export function renderConclusionComplete(state) {
       `;
     }
 
-    reservationMessageHtml = renderReservationCard({
-      type: isWaitlisted ? 'waitlisted' : 'confirmed',
-      date: nextResult.date,
-      classroom: nextResult.classroom,
-      venue: nextResult.venue,
-      goal: nextLessonGoal,
+    // nextResultから簡易的なReservationCoreオブジェクトを構築
+    /** @type {ReservationCore} */
+    const reservationForCard = {
+      reservationId: '',
+      studentId: '',
+      date: nextResult.date || '',
+      classroom: nextResult.classroom || '',
+      venue: nextResult.venue || '',
+      status: nextResult.status || '',
+      workInProgress: '',
+      startTime: '',
+      endTime: '',
+      messageToTeacher: '',
+      lessonId: '',
+    };
+
+    reservationMessageHtml = renderListCardReservation(
+      reservationForCard,
+      isWaitlisted ? 'waitlisted' : 'confirmed',
+      nextLessonGoal,
       mismatchNote,
-    });
+    );
   }
 
   return `
