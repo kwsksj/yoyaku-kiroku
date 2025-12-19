@@ -27,13 +27,13 @@
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { BackendErrorHandler } from './08_ErrorHandler.js';
 import {
-    PerformanceLog,
-    createHeaderMap,
-    getCachedReservationsAsObjects,
-    handleError,
-    sortReservationRows,
-    transformReservationArrayToObject,
-    transformReservationArrayToObjectWithHeaders,
+  PerformanceLog,
+  createHeaderMap,
+  getCachedReservationsAsObjects,
+  handleError,
+  sortReservationRows,
+  transformReservationArrayToObject,
+  transformReservationArrayToObjectWithHeaders,
 } from './08_Utilities.js';
 
 /**
@@ -1592,13 +1592,17 @@ export function syncReservationIdsToSchedule() {
     // 1. 予約キャッシュから全予約を取得
     const reservationCache = getReservationCacheSnapshot(true);
     if (!reservationCache || !reservationCache.reservations) {
-      Logger.log('[syncReservationIdsToSchedule] 予約キャッシュが見つかりません');
+      Logger.log(
+        '[syncReservationIdsToSchedule] 予約キャッシュが見つかりません',
+      );
       return;
     }
 
     // 予約データをオブジェクト形式で取得
     const headerMap =
-      toHeaderMapInstance(normalizeHeaderMap(reservationCache.headerMap || {})) || null;
+      toHeaderMapInstance(
+        normalizeHeaderMap(reservationCache.headerMap || {}),
+      ) || null;
     /** @type {Map<string, string[]>} */
     const lessonIdToReservationIds = new Map();
 
@@ -1610,13 +1614,18 @@ export function syncReservationIdsToSchedule() {
       let reservation = null;
       if (Array.isArray(rawReservation)) {
         reservation = headerMap
-          ? transformReservationArrayToObjectWithHeaders(rawReservation, headerMap, {})
+          ? transformReservationArrayToObjectWithHeaders(
+              rawReservation,
+              headerMap,
+              {},
+            )
           : transformReservationArrayToObject(rawReservation);
       } else if (typeof rawReservation === 'object') {
         reservation = /** @type {ReservationCore} */ (rawReservation);
       }
 
-      if (!reservation || !reservation.lessonId || !reservation.reservationId) continue;
+      if (!reservation || !reservation.lessonId || !reservation.reservationId)
+        continue;
       if (reservation.status === CONSTANTS.STATUS.CANCELED) continue;
 
       const lessonId = String(reservation.lessonId);
@@ -1644,7 +1653,9 @@ export function syncReservationIdsToSchedule() {
 
     const headerRow = /** @type {string[]} */ (data[0]);
     const lessonIdCol = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
-    const reservationIdsCol = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS);
+    const reservationIdsCol = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS,
+    );
 
     if (lessonIdCol === -1 || reservationIdsCol === -1) {
       Logger.log('[syncReservationIdsToSchedule] 必要な列が見つかりません');
@@ -1683,7 +1694,9 @@ export function syncReservationIdsToSchedule() {
     // 4. 日程キャッシュも更新
     if (updatedCount > 0) {
       rebuildScheduleMasterCache();
-      Logger.log('[syncReservationIdsToSchedule] 日程キャッシュを再構築しました');
+      Logger.log(
+        '[syncReservationIdsToSchedule] 日程キャッシュを再構築しました',
+      );
     }
 
     Logger.log('[syncReservationIdsToSchedule] 完了');

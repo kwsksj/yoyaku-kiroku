@@ -141,6 +141,11 @@ export function rebuildScheduleMasterCache(fromDate?: string, toDate?: string): 
     };
 };
 /**
+ * 予約キャッシュからlessonIdを使ってreservationIdsを再構築し、日程シートとキャッシュを更新する
+ * キャッシュ一括更新時に呼び出され、データの整合性を保証する
+ */
+export function syncReservationIdsToSchedule(): void;
+/**
  * 会計マスターデータを読み込み、CacheServiceに保存する
  * スプレッドシートの「会計マスタ」シートから直接データを読み込み、
  * 時間列を適切にフォーマットしてキャッシュに保存します。
