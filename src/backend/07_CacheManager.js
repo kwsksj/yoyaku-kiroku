@@ -27,13 +27,13 @@
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { BackendErrorHandler } from './08_ErrorHandler.js';
 import {
-  PerformanceLog,
-  createHeaderMap,
-  getCachedReservationsAsObjects,
-  handleError,
-  sortReservationRows,
-  transformReservationArrayToObject,
-  transformReservationArrayToObjectWithHeaders,
+    PerformanceLog,
+    createHeaderMap,
+    getCachedReservationsAsObjects,
+    handleError,
+    sortReservationRows,
+    transformReservationArrayToObject,
+    transformReservationArrayToObjectWithHeaders,
 } from './08_Utilities.js';
 
 /**
@@ -916,6 +916,9 @@ export function rebuildAllCachesEntryPoint() {
     rebuildAccountingMasterCache();
     rebuildScheduleMasterCache();
 
+    // 予約IDsを予約キャッシュから再構築（シート編集によるズレを修正）
+    syncReservationIdsToSchedule();
+
     SS_MANAGER.getSpreadsheet().toast(
       'キャッシュデータの一括再構築が完了しました。',
       '成功',
@@ -1575,6 +1578,118 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     throw new Error(
       `日程マスターのキャッシュ作成に失敗しました: ${error.message}`,
     );
+  }
+}
+
+/**
+ * 予約キャッシュからlessonIdを使ってreservationIdsを再構築し、日程シートとキャッシュを更新する
+ * キャッシュ一括更新時に呼び出され、データの整合性を保証する
+ */
+export function syncReservationIdsToSchedule() {
+  try {
+    Logger.log('[syncReservationIdsToSchedule] 開始');
+
+    // 1. 予約キャッシュから全予約を取得
+    const reservationCache = getReservationCacheSnapshot(true);
+    if (!reservationCache || !reservationCache.reservations) {
+      Logger.log('[syncReservationIdsToSchedule] 予約キャッシュが見つかりません');
+      return;
+    }
+
+    // 予約データをオブジェクト形式で取得
+    const headerMap =
+      toHeaderMapInstance(normalizeHeaderMap(reservationCache.headerMap || {})) || null;
+    /** @type {Map<string, string[]>} */
+    const lessonIdToReservationIds = new Map();
+
+    // 2. lessonIdごとに予約IDをグループ化（キャンセル以外）
+    for (const rawReservation of reservationCache.reservations) {
+      if (!rawReservation) continue;
+
+      /** @type {ReservationCore | null} */
+      let reservation = null;
+      if (Array.isArray(rawReservation)) {
+        reservation = headerMap
+          ? transformReservationArrayToObjectWithHeaders(rawReservation, headerMap, {})
+          : transformReservationArrayToObject(rawReservation);
+      } else if (typeof rawReservation === 'object') {
+        reservation = /** @type {ReservationCore} */ (rawReservation);
+      }
+
+      if (!reservation || !reservation.lessonId || !reservation.reservationId) continue;
+      if (reservation.status === CONSTANTS.STATUS.CANCELED) continue;
+
+      const lessonId = String(reservation.lessonId);
+      const reservationId = String(reservation.reservationId);
+
+      if (!lessonIdToReservationIds.has(lessonId)) {
+        lessonIdToReservationIds.set(lessonId, []);
+      }
+      lessonIdToReservationIds.get(lessonId)?.push(reservationId);
+    }
+
+    Logger.log(
+      `[syncReservationIdsToSchedule] ${lessonIdToReservationIds.size}件のレッスンに予約IDを再構築`,
+    );
+
+    // 3. 日程シートを更新
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    if (!sheet) {
+      Logger.log('[syncReservationIdsToSchedule] 日程シートが見つかりません');
+      return;
+    }
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length < 2) return;
+
+    const headerRow = /** @type {string[]} */ (data[0]);
+    const lessonIdCol = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
+    const reservationIdsCol = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS);
+
+    if (lessonIdCol === -1 || reservationIdsCol === -1) {
+      Logger.log('[syncReservationIdsToSchedule] 必要な列が見つかりません');
+      return;
+    }
+
+    let updatedCount = 0;
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const lessonId = String(row[lessonIdCol] || '');
+      if (!lessonId) continue;
+
+      const newReservationIds = lessonIdToReservationIds.get(lessonId) || [];
+      const currentIdsStr = String(row[reservationIdsCol] || '[]');
+      let currentIds = [];
+      try {
+        currentIds = JSON.parse(currentIdsStr);
+        if (!Array.isArray(currentIds)) currentIds = [];
+      } catch (e) {
+        currentIds = [];
+      }
+
+      // 差分がある場合のみ更新
+      const newIdsStr = JSON.stringify(newReservationIds);
+      const currentIdsSorted = [...currentIds].sort();
+      const newIdsSorted = [...newReservationIds].sort();
+
+      if (JSON.stringify(currentIdsSorted) !== JSON.stringify(newIdsSorted)) {
+        sheet.getRange(i + 1, reservationIdsCol + 1).setValue(newIdsStr);
+        updatedCount++;
+      }
+    }
+
+    Logger.log(`[syncReservationIdsToSchedule] ${updatedCount}件の日程を更新`);
+
+    // 4. 日程キャッシュも更新
+    if (updatedCount > 0) {
+      rebuildScheduleMasterCache();
+      Logger.log('[syncReservationIdsToSchedule] 日程キャッシュを再構築しました');
+    }
+
+    Logger.log('[syncReservationIdsToSchedule] 完了');
+  } catch (error) {
+    Logger.log(`[syncReservationIdsToSchedule] エラー: ${error.message}`);
+    // エラーが発生しても他のキャッシュ処理は続行
   }
 }
 
