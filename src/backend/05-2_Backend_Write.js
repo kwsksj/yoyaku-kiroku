@@ -712,13 +712,10 @@ export function makeReservation(reservationInfo) {
 
       // 完全なReservationCoreオブジェクトを構築
       const createdReservationId = Utilities.getUuid();
-      // 空き通知希望フラグが明示的に指定された場合、または満席の場合はWAITLISTED
-      const isExplicitWaitlistRequest =
-        /** @type {any} */ (reservationInfo).isWaitlistRequest === true;
-      const status =
-        isFull || isExplicitWaitlistRequest
-          ? CONSTANTS.STATUS.WAITLISTED
-          : CONSTANTS.STATUS.CONFIRMED;
+      // 処理時点の空き状況でステータスを決定（空きがあれば予約確定、なければ空き通知登録）
+      const status = isFull
+        ? CONSTANTS.STATUS.WAITLISTED
+        : CONSTANTS.STATUS.CONFIRMED;
 
       /** @type {ReservationCore} */
       const completeReservation = {

@@ -483,8 +483,8 @@ async function finalizeConclusion() {
           user: currentUser,
           studentId: currentUser.studentId,
           workInProgress: wizardState.workInProgressNext,
-          // 空き通知希望の場合、完全満席でも予約を試みる（バックエンドがWAITLISTEDにする）
-          isWaitlistRequest: wizardState.isWaitlistRequest,
+          // ユーザーの期待（予約 or 空き通知）を追跡（完了画面で差異を表示するため）
+          expectedWaitlist: wizardState.isWaitlistRequest,
         };
       }
     }

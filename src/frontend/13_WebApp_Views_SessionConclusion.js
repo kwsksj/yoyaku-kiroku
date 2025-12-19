@@ -642,6 +642,25 @@ export function renderConclusionComplete(state) {
       ? window.formatDate(nextResult.date)
       : nextResult.date;
     const isWaitlisted = nextResult.status === 'WAITLISTED';
+    const expectedWaitlist = !!nextResult.expectedWaitlist;
+
+    // 期待と結果が異なる場合のメッセージ
+    let mismatchNote = '';
+    if (expectedWaitlist && !isWaitlisted) {
+      // 空き通知希望 → 予約確定（空きができていた）
+      mismatchNote = `
+        <p class="text-xs text-green-700 mt-2 bg-green-100 p-2 rounded">
+          🎉 空きが できていたので 予約 できました！
+        </p>
+      `;
+    } else if (!expectedWaitlist && isWaitlisted) {
+      // 予約希望 → 空き通知登録（満席になった）
+      mismatchNote = `
+        <p class="text-xs text-yellow-700 mt-2 bg-yellow-100 p-2 rounded">
+          ⚠️ 直前に 予約が はいり、空き通知登録 になりました
+        </p>
+      `;
+    }
 
     if (isWaitlisted) {
       reservationMessageHtml = `
@@ -652,6 +671,7 @@ export function renderConclusionComplete(state) {
           <p class="text-xs text-yellow-700 mt-2">
             空きが でたら メールで おしらせします
           </p>
+          ${mismatchNote}
         </div>
       `;
     } else {
@@ -660,6 +680,7 @@ export function renderConclusionComplete(state) {
           <p class="text-sm font-bold text-green-700 mb-1">つぎ の よやく</p>
           <p class="text-brand-text font-bold">${formattedDate}</p>
           <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')}</p>
+          ${mismatchNote}
         </div>
       `;
     }
