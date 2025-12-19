@@ -667,7 +667,7 @@ export function renderConclusionComplete(state) {
     const formattedDate = window.formatDate
       ? window.formatDate(nextResult.date)
       : nextResult.date;
-    const isWaitlisted = nextResult.status === 'WAITLISTED';
+    const isWaitlisted = nextResult.status === '待機';
     const expectedWaitlist = !!nextResult.expectedWaitlist;
 
     // 期待と結果が異なる場合のメッセージ
