@@ -54,6 +54,7 @@ import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
     convertReservationToRow,
     createSalesRow,
+    getCachedReservationsAsObjects,
     getCachedStudentById,
     getReservationCoreById,
     getSheetData,
@@ -245,9 +246,22 @@ export function checkCapacityFull(
     const reservationIds = Array.isArray(targetLesson.reservationIds)
       ? targetLesson.reservationIds.filter(Boolean).map(id => String(id))
       : [];
-    const reservations = reservationIds.length
+    let reservations = reservationIds.length
       ? getReservationsByIdsFromCache(reservationIds)
       : [];
+
+    // フォールバック: reservationIdsから予約が取得できない場合、lessonIdで全予約を検索
+    if (reservations.length === 0 && targetLesson.lessonId) {
+      Logger.log(
+        `[checkCapacityFull] reservationIds取得失敗。lessonIdでフォールバック検索: ${targetLesson.lessonId}`,
+      );
+      const allReservations = getCachedReservationsAsObjects();
+      reservations = allReservations.filter(
+        (/** @type {ReservationCore} */ r) =>
+          r.lessonId === targetLesson.lessonId,
+      );
+    }
+
     const activeReservations = reservations.filter(
       reservation =>
         reservation.status !== CONSTANTS.STATUS.CANCELED &&
