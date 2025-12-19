@@ -763,7 +763,7 @@ export function renderConclusionComplete(state) {
     const waitlistNoteHtml = buildWaitlistNote();
 
     return `
-      <div class="mt-6 max-w-md mx-auto">
+      <div class="mt-4 max-w-md mx-auto">
         <p class="text-base text-brand-text mb-3">${introMessage}</p>
         ${mismatchHtml}
         ${cardHtml}

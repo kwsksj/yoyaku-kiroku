@@ -1461,7 +1461,7 @@ export const Components = {
           <!-- 上部：教室情報+会計・編集ボタン -->
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center flex-wrap text-left">
+              <div class="flex items-center flex-wrap">
                 <h3 class="font-bold text-base text-brand-text">${formatDate(item.date)} <span class="font-normal text-base text-brand-subtle">${dateTimeDisplay}</span></h3>
               </div>
               <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
