@@ -622,7 +622,9 @@ export function renderConclusionComplete(state) {
 
   // myReservationsから翌日以降の最も近い有効な予約を探す
   const myReservations =
-    /** @type {ReservationCore[]} */ (/** @type {any} */ (state).myReservations) || [];
+    /** @type {ReservationCore[]} */ (
+      /** @type {any} */ (state).myReservations
+    ) || [];
   const futureReservations = myReservations
     .filter(
       (/** @type {ReservationCore} */ r) =>
@@ -766,7 +768,8 @@ export function renderConclusionComplete(state) {
     }
 
     // 「けいかく」はnextLessonGoalまたは予約のworkInProgressを使用
-    const goalToShow = nextLessonGoal || nearestFutureReservation.workInProgress || '';
+    const goalToShow =
+      nextLessonGoal || nearestFutureReservation.workInProgress || '';
 
     reservationMessageHtml = renderListCardReservation(
       nearestFutureReservation,

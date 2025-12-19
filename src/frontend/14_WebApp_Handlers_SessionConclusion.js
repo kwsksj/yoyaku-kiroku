@@ -15,14 +15,14 @@
  */
 
 import {
-  calculateAccountingTotal,
-  classifyAccountingItems,
+    calculateAccountingTotal,
+    classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-  initializePaymentMethodUI,
-  setupAccountingEventListeners,
-  updateAccountingCalculation,
+    initializePaymentMethodUI,
+    setupAccountingEventListeners,
+    updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -504,10 +504,7 @@ async function finalizeConclusion() {
               response.data.nextReservationResult;
           }
 
-          // 完了画面へ
-          goToStep('5');
-
-          // stateを更新（myReservationsなど）
+          // stateを更新（myReservationsなど）- 完了画面へ遷移する前に更新
           if (response.data) {
             conclusionStateManager.dispatch({
               type: 'SET_STATE',
@@ -520,6 +517,9 @@ async function finalizeConclusion() {
               },
             });
           }
+
+          // 完了画面へ
+          goToStep('5');
         } else {
           window.showInfo?.(
             response.message || '処理に失敗しました。',
