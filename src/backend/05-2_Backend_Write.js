@@ -28,40 +28,40 @@
 // ================================================================
 import { SALES_SPREADSHEET_ID, SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
-    formatAdminUserDisplay,
-    sendAdminNotification,
-    sendAdminNotificationForReservation,
+  formatAdminUserDisplay,
+  sendAdminNotification,
+  sendAdminNotificationForReservation,
 } from './02-6_Notification_Admin.js';
 import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
 import {
-    calculateAvailableSlots,
-    getLessons,
-    getUserReservations,
+  calculateAvailableSlots,
+  getLessons,
+  getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
 import {
-    addReservationToCache,
-    CACHE_KEYS,
-    getCachedData,
-    getHeaderIndex,
-    getLessonByIdFromCache,
-    getReservationsByIdsFromCache,
-    getTypedCachedData,
-    rebuildAllReservationsCache,
-    updateLessonReservationIdsInCache,
-    updateReservationInCache,
+  addReservationToCache,
+  CACHE_KEYS,
+  getCachedData,
+  getHeaderIndex,
+  getLessonByIdFromCache,
+  getReservationsByIdsFromCache,
+  getTypedCachedData,
+  rebuildAllReservationsCache,
+  updateLessonReservationIdsInCache,
+  updateReservationInCache,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
-    convertReservationToRow,
-    createSalesRow,
-    getCachedReservationsAsObjects,
-    getCachedStudentById,
-    getReservationCoreById,
-    getSheetData,
-    logActivity,
-    PerformanceLog,
-    validateUserOperation,
-    withTransaction,
+  convertReservationToRow,
+  createSalesRow,
+  getCachedReservationsAsObjects,
+  getCachedStudentById,
+  getReservationCoreById,
+  getSheetData,
+  logActivity,
+  PerformanceLog,
+  validateUserOperation,
+  withTransaction,
 } from './08_Utilities.js';
 
 /**
@@ -834,6 +834,7 @@ export function makeReservation(reservationInfo) {
 
       return createApiResponse(true, {
         message: message,
+        status: reservationWithUser.status, // ★ステータスを明示的に返す
       });
     } catch (err) {
       logActivity(

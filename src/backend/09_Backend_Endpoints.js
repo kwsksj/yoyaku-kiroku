@@ -1633,13 +1633,11 @@ export function processSessionConclusion(payload, nextReservationPayload) {
           /** @type {ReservationCore} */ (nextReservationPayload),
         );
         if (reservationResult.success) {
-          // 成功の場合、ステータスを判定
-          const isWaitlisted =
-            reservationResult.data?.message?.includes('空き通知') ||
-            reservationResult.message?.includes('空き通知');
-          const actualStatus = isWaitlisted
-            ? CONSTANTS.STATUS.WAITLISTED
-            : CONSTANTS.STATUS.CONFIRMED;
+          // 成功の場合、makeReservationから返されたステータスを使用
+          const actualStatus =
+            /** @type {any} */ (reservationResult.data)?.status ||
+            CONSTANTS.STATUS.CONFIRMED;
+          const isWaitlisted = actualStatus === CONSTANTS.STATUS.WAITLISTED;
           // ユーザーの期待と実際の結果を記録
           const expectedWaitlist =
             /** @type {any} */ (nextReservationPayload).expectedWaitlist ===
@@ -1653,6 +1651,9 @@ export function processSessionConclusion(payload, nextReservationPayload) {
             date: nextReservationPayload.date,
             classroom: nextReservationPayload.classroom,
           };
+          Logger.log(
+            `[processSessionConclusion] 予約結果: status=${actualStatus}, isWaitlisted=${isWaitlisted}`,
+          );
         } else {
           // 次回予約の失敗は警告扱いで続行（会計は完了済み）
           Logger.log(
