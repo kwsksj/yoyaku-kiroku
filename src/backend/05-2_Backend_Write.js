@@ -250,10 +250,15 @@ export function checkCapacityFull(
       ? getReservationsByIdsFromCache(reservationIds)
       : [];
 
-    // フォールバック: reservationIdsから予約が取得できない場合、lessonIdで全予約を検索
-    if (reservations.length === 0 && targetLesson.lessonId) {
+    // フォールバック: reservationIdsがあるのに予約が取得できない場合のみ、lessonIdで全予約を検索
+    // （reservationIdsが空の場合は本当に予約がないので、フォールバック不要）
+    if (
+      reservations.length === 0 &&
+      reservationIds.length > 0 &&
+      targetLesson.lessonId
+    ) {
       Logger.log(
-        `[checkCapacityFull] reservationIds取得失敗。lessonIdでフォールバック検索: ${targetLesson.lessonId}`,
+        `[checkCapacityFull] reservationIds(${reservationIds.length}件)から予約取得失敗。lessonIdでフォールバック検索: ${targetLesson.lessonId}`,
       );
       const allReservations = getCachedReservationsAsObjects();
       reservations = allReservations.filter(
