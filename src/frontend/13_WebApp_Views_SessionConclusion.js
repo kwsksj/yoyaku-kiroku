@@ -835,6 +835,25 @@ export function renderConclusionComplete(state) {
 
   const reservationMessageHtml = buildReservationMessageHtml();
 
+  // 予約がない場合のクイック予約ボタン
+  const hasNoFutureReservation = !nearestFutureReservation;
+  const currentClassroom = state.currentReservation?.classroom || '';
+  const quickBookingButtonHtml = hasNoFutureReservation
+    ? `
+      <div class="mt-4">
+        ${Components.button({
+          action: 'navigateToBooking',
+          text: 'やっぱり よやく する！',
+          style: 'secondary',
+          size: 'full',
+          dataAttributes: {
+            classroom: currentClassroom,
+          },
+        })}
+      </div>
+    `
+    : '';
+
   return `
     <div class="session-conclusion-complete text-center py-12 animate-fade-in">
       <div class="mb-6 flex justify-center">
@@ -860,13 +879,16 @@ export function renderConclusionComplete(state) {
         たのしみに しています。
       </p>
 
-      <div class="mt-8">
-        ${Components.button({
-          action: 'conclusionDone',
-          text: 'ホームへもどる',
-          style: 'primary',
-          size: 'full',
-        })}
+      <div class="mt-8 max-w-md mx-auto">
+        ${quickBookingButtonHtml}
+        <div class="${hasNoFutureReservation ? 'mt-2' : ''}">
+          ${Components.button({
+            action: 'conclusionDone',
+            text: 'ホームへもどる',
+            style: 'primary',
+            size: 'full',
+          })}
+        </div>
       </div>
     </div>
 

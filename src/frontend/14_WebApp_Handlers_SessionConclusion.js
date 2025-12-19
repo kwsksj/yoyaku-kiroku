@@ -631,6 +631,19 @@ function handleConclusionClick(event) {
     case 'conclusionFinalize':
       finalizeConclusion();
       break;
+    case 'navigateToBooking': {
+      // 完了画面から予約画面へ遷移
+      const classroom = actionElement.getAttribute('data-classroom') || '';
+      closeConclusion();
+      conclusionStateManager.dispatch({
+        type: 'SET_STATE',
+        payload: {
+          selectedClassroom: classroom,
+          view: 'bookingLessons',
+        },
+      });
+      break;
+    }
     case 'conclusionCancel':
     case 'conclusionDone':
       closeConclusion();
