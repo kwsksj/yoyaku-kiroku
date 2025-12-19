@@ -622,97 +622,198 @@ export function renderConclusionComplete(state) {
   const renderGoalSection = (/** @type {string} */ goal) => {
     if (!goal) return '';
     return `
-      <div class="mt-3 pt-3 border-t border-gray-200 text-left">
-        <p class="text-xs text-brand-subtle mb-1">けいかく・もくひょう</p>
-        <p class="text-sm text-brand-text">${escapeHTML(goal)}</p>
+      <div class="mt-3 pt-3 border-t border-opacity-30 border-current">
+        <div class="flex items-start gap-2">
+          <span class="text-lg">📝</span>
+          <div>
+            <p class="text-xs text-brand-subtle mb-1">つぎに やりたいこと</p>
+            <p class="text-sm text-brand-text">${escapeHTML(goal)}</p>
+          </div>
+        </div>
       </div>
     `;
   };
 
-  // 予約状況に応じたメッセージを生成
-  let reservationMessageHtml = '';
-  if (hasExistingReservation && state.existingFutureReservation) {
-    const existing = state.existingFutureReservation;
-    const formattedDate = window.formatDate
-      ? window.formatDate(existing.date)
-      : existing.date;
-    reservationMessageHtml = `
-      <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200 text-left">
-        <p class="text-sm font-bold text-green-700 mb-1">つぎ の よやく</p>
-        <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-        <p class="text-sm text-brand-subtle">${escapeHTML(existing.classroom || '')} ${existing.venue ? escapeHTML(existing.venue) : ''}</p>
-        ${renderGoalSection(nextLessonGoal)}
-      </div>
-    `;
-  } else if (skippedReservation) {
-    // スキップした場合 - けいかく・もくひょうのみ表示
-    if (nextLessonGoal) {
-      reservationMessageHtml = `
-        <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200 text-left">
-          <p class="text-sm font-bold text-blue-700 mb-2">つぎに やりたいこと</p>
-          <p class="text-sm text-brand-text">${escapeHTML(nextLessonGoal)}</p>
-          <p class="text-xs text-brand-subtle mt-3">
-            よやく は あとで えらんでね
-          </p>
-        </div>
-      `;
-    } else {
-      reservationMessageHtml = `
-        <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p class="text-sm text-brand-subtle">つぎ の よやく は あとで えらんでね</p>
+  // 予約カード生成ヘルパー
+  const renderReservationCard = (/** @type {{
+    type: 'confirmed' | 'waitlisted' | 'goal-only' | 'reminder',
+    date?: string,
+    classroom?: string,
+    venue?: string,
+    goal?: string,
+    mismatchNote?: string
+  }} */ config) => {
+    const { type, date, classroom, venue, goal, mismatchNote } = config;
+
+    // タイプに応じたスタイル設定
+    const styles = {
+      confirmed: {
+        bg: 'bg-gradient-to-br from-green-50 to-emerald-50',
+        border: 'border-green-300',
+        icon: '📅',
+        iconBg: 'bg-green-100',
+        titleColor: 'text-green-700',
+        title: 'よやく かくてい',
+      },
+      waitlisted: {
+        bg: 'bg-gradient-to-br from-amber-50 to-yellow-50',
+        border: 'border-amber-300',
+        icon: '🔔',
+        iconBg: 'bg-amber-100',
+        titleColor: 'text-amber-700',
+        title: '空き通知 登録',
+      },
+      'goal-only': {
+        bg: 'bg-gradient-to-br from-blue-50 to-indigo-50',
+        border: 'border-blue-300',
+        icon: '📝',
+        iconBg: 'bg-blue-100',
+        titleColor: 'text-blue-700',
+        title: 'つぎに やりたいこと',
+      },
+      reminder: {
+        bg: 'bg-gray-50',
+        border: 'border-gray-200',
+        icon: '💭',
+        iconBg: 'bg-gray-100',
+        titleColor: 'text-gray-600',
+        title: '',
+      },
+    };
+
+    const style = styles[type];
+    const formattedDate = date && window.formatDate ? window.formatDate(date) : date;
+
+    // 不一致ノートHTML
+    const mismatchHtml = mismatchNote
+      ? `<div class="mb-3">${mismatchNote}</div>`
+      : '';
+
+    // 日付・教室部分
+    const dateClassroomHtml =
+      date && classroom
+        ? `
+          <div class="flex items-center gap-3">
+            <div class="${style.iconBg} p-2 rounded-xl">
+              <span class="text-2xl">${style.icon}</span>
+            </div>
+            <div class="flex-1 text-left">
+              <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
+              <p class="text-sm text-brand-subtle">${escapeHTML(classroom)}${venue ? ` ・ ${escapeHTML(venue)}` : ''}</p>
+            </div>
+          </div>
+        `
+        : '';
+
+    // 空き通知の補足説明
+    const waitlistNoteHtml =
+      type === 'waitlisted'
+        ? `
+          <div class="mt-3 pt-3 border-t border-amber-200">
+            <p class="text-xs text-amber-700 leading-relaxed">
+              🔔 空きが でたら メールで おしらせします<br>
+              　 このページから よやく してください
+            </p>
+          </div>
+        `
+        : '';
+
+    // リマインダーのみの場合
+    if (type === 'reminder') {
+      return `
+        <div class="mt-6 p-4 ${style.bg} rounded-xl border ${style.border}">
+          <div class="flex items-center gap-3">
+            <span class="text-2xl">${style.icon}</span>
+            <p class="text-sm text-brand-subtle">つぎ の よやく は<br>あとで えらんでね</p>
+          </div>
         </div>
       `;
     }
+
+    // けいかくのみの場合
+    if (type === 'goal-only' && goal) {
+      return `
+        <div class="mt-6 p-4 ${style.bg} rounded-xl border ${style.border}">
+          <div class="flex items-start gap-3">
+            <div class="${style.iconBg} p-2 rounded-xl">
+              <span class="text-2xl">${style.icon}</span>
+            </div>
+            <div class="flex-1 text-left">
+              <p class="text-xs ${style.titleColor} font-bold mb-1">${style.title}</p>
+              <p class="text-sm text-brand-text">${escapeHTML(goal)}</p>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-blue-200">
+            <p class="text-xs text-brand-subtle text-center">
+              よやく は あとで えらんでね
+            </p>
+          </div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="mt-6 p-4 ${style.bg} rounded-xl border ${style.border} shadow-sm">
+        ${mismatchHtml}
+        <p class="text-xs ${style.titleColor} font-bold mb-2">${style.title}</p>
+        ${dateClassroomHtml}
+        ${waitlistNoteHtml}
+        ${renderGoalSection(goal || '')}
+      </div>
+    `;
+  };
+
+  // 予約状況に応じたカードを生成
+  let reservationMessageHtml = '';
+
+  if (hasExistingReservation && state.existingFutureReservation) {
+    const existing = state.existingFutureReservation;
+    reservationMessageHtml = renderReservationCard({
+      type: 'confirmed',
+      date: existing.date,
+      classroom: existing.classroom,
+      venue: existing.venue || '',
+      goal: nextLessonGoal,
+    });
+  } else if (skippedReservation) {
+    if (nextLessonGoal) {
+      reservationMessageHtml = renderReservationCard({
+        type: 'goal-only',
+        goal: nextLessonGoal,
+      });
+    } else {
+      reservationMessageHtml = renderReservationCard({ type: 'reminder' });
+    }
   } else if (nextResult?.created) {
-    const formattedDate = window.formatDate
-      ? window.formatDate(nextResult.date)
-      : nextResult.date;
     const isWaitlisted = nextResult.status === '待機';
     const expectedWaitlist = !!nextResult.expectedWaitlist;
 
     // 期待と結果が異なる場合のメッセージ
     let mismatchNote = '';
     if (expectedWaitlist && !isWaitlisted) {
-      // 空き通知希望 → 予約確定（空きができていた）
       mismatchNote = `
-        <p class="text-xs text-green-700 mt-2 bg-green-100 p-2 rounded">
-          🎉 空きが できていたので よやく できました！
-        </p>
+        <div class="bg-green-100 text-green-800 text-xs p-2 rounded-lg flex items-center gap-2">
+          <span>🎉</span>
+          <span>空きが できていたので よやく できました！</span>
+        </div>
       `;
     } else if (!expectedWaitlist && isWaitlisted) {
-      // 予約希望 → 空き通知登録（満席になった）
       mismatchNote = `
-        <p class="text-xs text-yellow-700 mt-2 bg-yellow-100 p-2 rounded">
-          ⚠️ 直前に よやく が入り 空き通知登録 になりました
-        </p>
+        <div class="bg-amber-100 text-amber-800 text-xs p-2 rounded-lg flex items-center gap-2">
+          <span>⚠️</span>
+          <span>直前に よやく が入り 空き通知登録 になりました</span>
+        </div>
       `;
     }
 
-    if (isWaitlisted) {
-      reservationMessageHtml = `
-        <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-300 text-left">
-          ${mismatchNote}
-          <p class="text-sm font-bold text-yellow-700 mb-1">空き通知 登録</p>
-          <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-          <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')} ${nextResult.venue ? escapeHTML(nextResult.venue) : ''}</p>
-          <p class="text-xs text-yellow-700 mt-2">
-            空きが でたら メールで おしらせします。<br>
-            このページから よやく してください（はやいもの がち です！）
-          </p>
-          ${renderGoalSection(nextLessonGoal)}
-        </div>
-      `;
-    } else {
-      reservationMessageHtml = `
-        <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200 text-left">
-          ${mismatchNote}
-          <p class="text-sm font-bold text-green-700 mb-1">つぎ の よやく</p>
-          <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-          <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')} ${nextResult.venue ? escapeHTML(nextResult.venue) : ''}</p>
-          ${renderGoalSection(nextLessonGoal)}
-        </div>
-      `;
-    }
+    reservationMessageHtml = renderReservationCard({
+      type: isWaitlisted ? 'waitlisted' : 'confirmed',
+      date: nextResult.date,
+      classroom: nextResult.classroom,
+      venue: nextResult.venue,
+      goal: nextLessonGoal,
+      mismatchNote,
+    });
   }
 
   return `
