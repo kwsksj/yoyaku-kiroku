@@ -255,6 +255,15 @@ export function checkCapacityFull(
     );
     const slots = calculateAvailableSlots(targetLesson, activeReservations);
 
+    // 詳細ログ: 定員チェックのデバッグ
+    Logger.log(
+      `[checkCapacityFull][DEBUG] ${date} ${classroom}: ` +
+        `reservationIds.length=${reservationIds.length}, ` +
+        `activeReservations.length=${activeReservations.length}, ` +
+        `totalCapacity=${targetLesson.totalCapacity}, ` +
+        `slots.first=${slots.first}, slots.second=${slots.second}`,
+    );
+
     let isFull = false;
 
     // 初回予約の場合は初回者枠をチェック

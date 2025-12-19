@@ -1648,7 +1648,8 @@ export function processSessionConclusion(payload, nextReservationPayload) {
             created: true,
             status: actualStatus,
             expectedWaitlist: expectedWaitlist,
-            message: reservationResult.data?.message || reservationResult.message,
+            message:
+              reservationResult.data?.message || reservationResult.message,
             date: nextReservationPayload.date,
             classroom: nextReservationPayload.classroom,
           };
