@@ -667,7 +667,14 @@ export function renderConclusionComplete(state) {
    * @returns {string} HTML文字列
    */
   const renderNextReservationSection = config => {
-    const { type, reservation, isWaitlisted, isNewReservation, goal, mismatchNote } = config;
+    const {
+      type,
+      reservation,
+      isWaitlisted,
+      isNewReservation,
+      goal,
+      mismatchNote,
+    } = config;
 
     // === イントロメッセージ（状況に応じて分岐） ===
     const buildIntroMessage = () => {
@@ -701,7 +708,9 @@ export function renderConclusionComplete(state) {
           return Components.listCard({
             type: 'booking',
             item: cardReservation,
-            badges: buildCompletionBadges(isWaitlisted ? 'waitlisted' : 'confirmed'),
+            badges: buildCompletionBadges(
+              isWaitlisted ? 'waitlisted' : 'confirmed',
+            ),
             editButtons: [],
             accountingButtons: [],
             isEditMode: false,
@@ -710,14 +719,20 @@ export function renderConclusionComplete(state) {
 
         case 'goal-only':
           return Components.placeholderCard({
-            badge: { type: /** @type {BadgeType} */ ('info'), text: '日程未定' },
+            badge: {
+              type: /** @type {BadgeType} */ ('info'),
+              text: '日程未定',
+            },
             memoTitle: 'つぎに やりたいこと',
             memoContent: goal || '',
           });
 
         case 'reminder':
           return Components.placeholderCard({
-            badge: { type: /** @type {BadgeType} */ ('neutral'), text: '日程未定' },
+            badge: {
+              type: /** @type {BadgeType} */ ('neutral'),
+              text: '日程未定',
+            },
             dimmed: true,
           });
 
@@ -731,7 +746,7 @@ export function renderConclusionComplete(state) {
       if (type !== 'reservation' || !isWaitlisted) return '';
       return `
         <div class="mt-2 p-2 bg-amber-50 rounded-lg">
-          <p class="text-xs text-amber-700 leading-relaxed">
+          <p class="text-sm text-amber-700 leading-relaxed">
             🔔 空きが でたら メールで おしらせします<br>
             このページから よやく してください（先着順です）
           </p>
@@ -741,13 +756,15 @@ export function renderConclusionComplete(state) {
 
     // === 統一フォーマットで出力 ===
     const introMessage = buildIntroMessage();
-    const mismatchHtml = mismatchNote ? `<div class="mb-3">${mismatchNote}</div>` : '';
+    const mismatchHtml = mismatchNote
+      ? `<div class="mb-3">${mismatchNote}</div>`
+      : '';
     const cardHtml = buildCardHtml();
     const waitlistNoteHtml = buildWaitlistNote();
 
     return `
-      <div class="mt-6 max-w-md mx-auto text-left">
-        <p class="text-sm text-brand-text mb-3 text-left">${introMessage}</p>
+      <div class="mt-6 max-w-md mx-auto">
+        <p class="text-base text-brand-text mb-3">${introMessage}</p>
         ${mismatchHtml}
         ${cardHtml}
         ${waitlistNoteHtml}
@@ -765,7 +782,7 @@ export function renderConclusionComplete(state) {
 
     if (expectedWaitlist && !isActuallyWaitlisted) {
       return `
-        <div class="bg-green-100 text-green-800 text-xs p-2 rounded-lg flex items-center gap-2">
+        <div class="bg-green-100 text-green-800 text-sm p-2 rounded-lg flex items-center gap-2">
           <span>🎉</span>
           <span>空きが でたので よやく できました！</span>
         </div>
@@ -774,7 +791,7 @@ export function renderConclusionComplete(state) {
 
     if (!expectedWaitlist && isActuallyWaitlisted) {
       return `
-        <div class="bg-amber-100 text-amber-800 text-xs p-2 rounded-lg flex items-center gap-2">
+        <div class="bg-amber-100 text-amber-800 text-sm p-2 rounded-lg flex items-center gap-2">
           <span>⚠️</span>
           <span>直前に よやく が入り 空き通知登録 になりました</span>
         </div>
