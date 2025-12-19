@@ -15,8 +15,8 @@
  */
 
 import {
-    generateSalesSection,
-    generateTuitionSection,
+  generateSalesSection,
+  generateTuitionSection,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
@@ -616,6 +616,18 @@ export function renderConclusionComplete(state) {
   const nextResult = /** @type {any} */ (state).nextReservationResult;
   const hasExistingReservation = !!state.existingFutureReservation;
   const skippedReservation = state.reservationSkipped;
+  const nextLessonGoal = state.nextLessonGoal || '';
+
+  // 制作メモ（けいかく・もくひょう）表示用ヘルパー
+  const renderGoalSection = (/** @type {string} */ goal) => {
+    if (!goal) return '';
+    return `
+      <div class="mt-3 pt-3 border-t border-gray-200 text-left">
+        <p class="text-xs text-brand-subtle mb-1">けいかく・もくひょう</p>
+        <p class="text-sm text-brand-text">${escapeHTML(goal)}</p>
+      </div>
+    `;
+  };
 
   // 予約状況に応じたメッセージを生成
   let reservationMessageHtml = '';
@@ -625,18 +637,32 @@ export function renderConclusionComplete(state) {
       ? window.formatDate(existing.date)
       : existing.date;
     reservationMessageHtml = `
-      <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+      <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200 text-left">
         <p class="text-sm font-bold text-green-700 mb-1">つぎ の よやく</p>
-        <p class="text-brand-text font-bold">${formattedDate}</p>
-        <p class="text-sm text-brand-subtle">${escapeHTML(existing.classroom || '')}</p>
+        <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
+        <p class="text-sm text-brand-subtle">${escapeHTML(existing.classroom || '')} ${existing.venue ? escapeHTML(existing.venue) : ''}</p>
+        ${renderGoalSection(nextLessonGoal)}
       </div>
     `;
   } else if (skippedReservation) {
-    reservationMessageHtml = `
-      <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <p class="text-sm text-brand-subtle">つぎ の よやく は あとで えらんでね</p>
-      </div>
-    `;
+    // スキップした場合 - けいかく・もくひょうのみ表示
+    if (nextLessonGoal) {
+      reservationMessageHtml = `
+        <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200 text-left">
+          <p class="text-sm font-bold text-blue-700 mb-2">つぎに やりたいこと</p>
+          <p class="text-sm text-brand-text">${escapeHTML(nextLessonGoal)}</p>
+          <p class="text-xs text-brand-subtle mt-3">
+            よやく は あとで えらんでね
+          </p>
+        </div>
+      `;
+    } else {
+      reservationMessageHtml = `
+        <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+          <p class="text-sm text-brand-subtle">つぎ の よやく は あとで えらんでね</p>
+        </div>
+      `;
+    }
   } else if (nextResult?.created) {
     const formattedDate = window.formatDate
       ? window.formatDate(nextResult.date)
@@ -650,37 +676,40 @@ export function renderConclusionComplete(state) {
       // 空き通知希望 → 予約確定（空きができていた）
       mismatchNote = `
         <p class="text-xs text-green-700 mt-2 bg-green-100 p-2 rounded">
-          🎉 空きが できていたので 予約 できました！
+          🎉 空きが できていたので よやく できました！
         </p>
       `;
     } else if (!expectedWaitlist && isWaitlisted) {
       // 予約希望 → 空き通知登録（満席になった）
       mismatchNote = `
         <p class="text-xs text-yellow-700 mt-2 bg-yellow-100 p-2 rounded">
-          ⚠️ 直前に 予約が はいり、空き通知登録 になりました
+          ⚠️ 直前に よやく が入り 空き通知登録 になりました
         </p>
       `;
     }
 
     if (isWaitlisted) {
       reservationMessageHtml = `
-        <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-300">
-          <p class="text-sm font-bold text-yellow-700 mb-1">空き つうち きぼう</p>
-          <p class="text-brand-text font-bold">${formattedDate}</p>
-          <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')}</p>
-          <p class="text-xs text-yellow-700 mt-2">
-            空きが でたら メールで おしらせします
-          </p>
+        <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-300 text-left">
           ${mismatchNote}
+          <p class="text-sm font-bold text-yellow-700 mb-1">空き通知 登録</p>
+          <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
+          <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')} ${nextResult.venue ? escapeHTML(nextResult.venue) : ''}</p>
+          <p class="text-xs text-yellow-700 mt-2">
+            空きが でたら メールで おしらせします。<br>
+            このページから よやく してください（はやいもの がち です！）
+          </p>
+          ${renderGoalSection(nextLessonGoal)}
         </div>
       `;
     } else {
       reservationMessageHtml = `
-        <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
-          <p class="text-sm font-bold text-green-700 mb-1">つぎ の よやく</p>
-          <p class="text-brand-text font-bold">${formattedDate}</p>
-          <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')}</p>
+        <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200 text-left">
           ${mismatchNote}
+          <p class="text-sm font-bold text-green-700 mb-1">つぎ の よやく</p>
+          <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
+          <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')} ${nextResult.venue ? escapeHTML(nextResult.venue) : ''}</p>
+          ${renderGoalSection(nextLessonGoal)}
         </div>
       `;
     }
@@ -703,12 +732,13 @@ export function renderConclusionComplete(state) {
         きょう の きろく と かいけい が<br>
         かんりょうしました。
       </p>
+
+      ${reservationMessageHtml}
+
       <p class="text-brand-text mb-4">
         また おあいできるのを<br>
         たのしみに しています。
       </p>
-
-      ${reservationMessageHtml}
 
       <div class="mt-8">
         ${Components.button({
