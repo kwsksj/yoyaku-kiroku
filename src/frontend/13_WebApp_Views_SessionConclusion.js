@@ -761,57 +761,64 @@ export function renderConclusionComplete(state) {
     `;
   };
 
-  // 予約状況に応じたカードを生成
-  let reservationMessageHtml = '';
+  // ミスマッチノート生成（期待と結果の差分表示）
+  const buildMismatchNote = () => {
+    if (!nextResult?.created) return '';
 
-  // 翌日以降の予約がある場合（新規作成または既存）
-  if (nearestFutureReservation) {
-    const isWaitlisted =
-      nearestFutureReservation.status === CONSTANTS.STATUS.WAITLISTED;
+    const isActuallyWaitlisted =
+      nearestFutureReservation?.status === CONSTANTS.STATUS.WAITLISTED;
+    const expectedWaitlist = !!nextResult.expectedWaitlist;
 
-    // 今回作成された予約かどうかを判定し、期待との差分を表示
-    let mismatchNote = '';
-    if (nextResult?.created) {
-      const expectedWaitlist = !!nextResult.expectedWaitlist;
-      if (expectedWaitlist && !isWaitlisted) {
-        mismatchNote = `
-          <div class="bg-green-100 text-green-800 text-xs p-2 rounded-lg flex items-center gap-2">
-            <span>🎉</span>
-            <span>空きが でたので よやく できました！</span>
-          </div>
-        `;
-      } else if (!expectedWaitlist && isWaitlisted) {
-        mismatchNote = `
-          <div class="bg-amber-100 text-amber-800 text-xs p-2 rounded-lg flex items-center gap-2">
-            <span>⚠️</span>
-            <span>直前に よやく が入り 空き通知登録 になりました</span>
-          </div>
-        `;
-      }
+    if (expectedWaitlist && !isActuallyWaitlisted) {
+      return `
+        <div class="bg-green-100 text-green-800 text-xs p-2 rounded-lg flex items-center gap-2">
+          <span>🎉</span>
+          <span>空きが でたので よやく できました！</span>
+        </div>
+      `;
     }
 
-    // 「けいかく」はnextLessonGoalまたは予約のworkInProgressを使用
-    const goalToShow =
-      nextLessonGoal || nearestFutureReservation.workInProgress || '';
+    if (!expectedWaitlist && isActuallyWaitlisted) {
+      return `
+        <div class="bg-amber-100 text-amber-800 text-xs p-2 rounded-lg flex items-center gap-2">
+          <span>⚠️</span>
+          <span>直前に よやく が入り 空き通知登録 になりました</span>
+        </div>
+      `;
+    }
 
-    // 今回の処理で予約が作成されたかどうか
-    const isNewReservation = !!nextResult?.created;
+    return '';
+  };
 
-    reservationMessageHtml = renderListCardReservation(
-      nearestFutureReservation,
-      isWaitlisted ? 'waitlisted' : 'confirmed',
-      goalToShow,
-      mismatchNote,
-      isNewReservation,
-    );
-  } else {
-    // 翌日以降の予約がない場合
+  // 予約メッセージHTML生成
+  const buildReservationMessageHtml = () => {
+    // ケース1: 翌日以降の予約がある場合
+    if (nearestFutureReservation) {
+      const isWaitlisted =
+        nearestFutureReservation.status === CONSTANTS.STATUS.WAITLISTED;
+      const goalToShow =
+        nextLessonGoal || nearestFutureReservation.workInProgress || '';
+      const isNewReservation = !!nextResult?.created;
+
+      return renderListCardReservation(
+        nearestFutureReservation,
+        isWaitlisted ? 'waitlisted' : 'confirmed',
+        goalToShow,
+        buildMismatchNote(),
+        isNewReservation,
+      );
+    }
+
+    // ケース2: 予約なし + けいかくあり
     if (nextLessonGoal) {
-      reservationMessageHtml = renderGoalOnlyCard(nextLessonGoal);
-    } else {
-      reservationMessageHtml = renderReminderCard();
+      return renderGoalOnlyCard(nextLessonGoal);
     }
-  }
+
+    // ケース3: 予約なし + けいかくなし（リマインダー）
+    return renderReminderCard();
+  };
+
+  const reservationMessageHtml = buildReservationMessageHtml();
 
   return `
     <div class="session-conclusion-complete text-center py-12 animate-fade-in">
