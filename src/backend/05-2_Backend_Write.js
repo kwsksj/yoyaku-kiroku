@@ -28,39 +28,39 @@
 // ================================================================
 import { SALES_SPREADSHEET_ID, SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
-  formatAdminUserDisplay,
-  sendAdminNotification,
-  sendAdminNotificationForReservation,
+    formatAdminUserDisplay,
+    sendAdminNotification,
+    sendAdminNotificationForReservation,
 } from './02-6_Notification_Admin.js';
 import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
 import {
-  calculateAvailableSlots,
-  getLessons,
-  getUserReservations,
+    calculateAvailableSlots,
+    getLessons,
+    getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
 import {
-  addReservationToCache,
-  CACHE_KEYS,
-  getCachedData,
-  getHeaderIndex,
-  getLessonByIdFromCache,
-  getReservationsByIdsFromCache,
-  getTypedCachedData,
-  rebuildAllReservationsCache,
-  updateLessonReservationIdsInCache,
-  updateReservationInCache,
+    addReservationToCache,
+    CACHE_KEYS,
+    getCachedData,
+    getHeaderIndex,
+    getLessonByIdFromCache,
+    getReservationsByIdsFromCache,
+    getTypedCachedData,
+    rebuildAllReservationsCache,
+    updateLessonReservationIdsInCache,
+    updateReservationInCache,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
-  convertReservationToRow,
-  createSalesRow,
-  getCachedStudentById,
-  getReservationCoreById,
-  getSheetData,
-  logActivity,
-  PerformanceLog,
-  validateUserOperation,
-  withTransaction,
+    convertReservationToRow,
+    createSalesRow,
+    getCachedStudentById,
+    getReservationCoreById,
+    getSheetData,
+    logActivity,
+    PerformanceLog,
+    validateUserOperation,
+    withTransaction,
 } from './08_Utilities.js';
 
 /**
@@ -712,9 +712,13 @@ export function makeReservation(reservationInfo) {
 
       // 完全なReservationCoreオブジェクトを構築
       const createdReservationId = Utilities.getUuid();
-      const status = isFull
-        ? CONSTANTS.STATUS.WAITLISTED
-        : CONSTANTS.STATUS.CONFIRMED;
+      // 空き通知希望フラグが明示的に指定された場合、または満席の場合はWAITLISTED
+      const isExplicitWaitlistRequest =
+        /** @type {any} */ (reservationInfo).isWaitlistRequest === true;
+      const status =
+        isFull || isExplicitWaitlistRequest
+          ? CONSTANTS.STATUS.WAITLISTED
+          : CONSTANTS.STATUS.CONFIRMED;
 
       /** @type {ReservationCore} */
       const completeReservation = {

@@ -26,37 +26,37 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
-  authenticateUser,
-  isAdminLogin,
-  issueAdminSessionToken,
-  registerNewUser,
+    authenticateUser,
+    isAdminLogin,
+    issueAdminSessionToken,
+    registerNewUser,
 } from './04_Backend_User.js';
 import {
-  cancelReservation,
-  checkIfSalesAlreadyLogged,
-  confirmWaitlistedReservation,
-  getScheduleInfoForDate,
-  logSalesForSingleReservation,
-  makeReservation,
-  saveAccountingDetails,
-  updateAccountingDetails,
-  updateReservationDetails,
+    cancelReservation,
+    checkIfSalesAlreadyLogged,
+    confirmWaitlistedReservation,
+    getScheduleInfoForDate,
+    logSalesForSingleReservation,
+    makeReservation,
+    saveAccountingDetails,
+    updateAccountingDetails,
+    updateReservationDetails,
 } from './05-2_Backend_Write.js';
 import {
-  getLessons,
-  getUserReservations,
+    getLessons,
+    getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
 import {
-  CACHE_KEYS,
-  getStudentCacheSnapshot,
-  getTypedCachedData,
+    CACHE_KEYS,
+    getStudentCacheSnapshot,
+    getTypedCachedData,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
-  getCachedReservationsAsObjects,
-  getCachedStudentById,
-  updateStudentField,
-  withTransaction,
+    getCachedReservationsAsObjects,
+    getCachedStudentById,
+    updateStudentField,
+    withTransaction,
 } from './08_Utilities.js';
 
 /**
@@ -1621,6 +1621,9 @@ export function processSessionConclusion(payload, nextReservationPayload) {
       }
 
       // 3. 次回予約を作成（ペイロードがある場合のみ）
+      /** @type {{created: boolean, status?: string | undefined, message?: string | undefined, date?: string | undefined, classroom?: string | undefined}} */
+      let nextReservationResult = { created: false };
+
       if (nextReservationPayload) {
         Logger.log(
           `[processSessionConclusion] 次回予約作成: lessonId=${nextReservationPayload.lessonId}`,
@@ -1629,11 +1632,29 @@ export function processSessionConclusion(payload, nextReservationPayload) {
         const reservationResult = makeReservation(
           /** @type {ReservationCore} */ (nextReservationPayload),
         );
-        if (!reservationResult.success) {
+        if (reservationResult.success) {
+          // 成功の場合、ステータスを判定
+          const isWaitlisted =
+            reservationResult.data?.message?.includes('空き通知') ||
+            reservationResult.message?.includes('空き通知');
+          nextReservationResult = {
+            created: true,
+            status: isWaitlisted
+              ? CONSTANTS.STATUS.WAITLISTED
+              : CONSTANTS.STATUS.CONFIRMED,
+            message: reservationResult.data?.message || reservationResult.message,
+            date: nextReservationPayload.date,
+            classroom: nextReservationPayload.classroom,
+          };
+        } else {
           // 次回予約の失敗は警告扱いで続行（会計は完了済み）
           Logger.log(
             `[processSessionConclusion] 次回予約作成失敗（警告）: ${reservationResult.message}`,
           );
+          nextReservationResult = {
+            created: false,
+            message: reservationResult.message,
+          };
         }
       }
 
@@ -1649,6 +1670,7 @@ export function processSessionConclusion(payload, nextReservationPayload) {
         message: 'セッション終了処理が完了しました。',
         myReservations: latestData.data?.myReservations || [],
         lessons: latestData.data?.lessons || [],
+        nextReservationResult: nextReservationResult,
       });
     } catch (error) {
       Logger.log(

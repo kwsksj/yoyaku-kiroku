@@ -15,14 +15,14 @@
  */
 
 import {
-  calculateAccountingTotal,
-  classifyAccountingItems,
+    calculateAccountingTotal,
+    classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-  initializePaymentMethodUI,
-  setupAccountingEventListeners,
-  updateAccountingCalculation,
+    initializePaymentMethodUI,
+    setupAccountingEventListeners,
+    updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
@@ -498,6 +498,12 @@ async function finalizeConclusion() {
         }
 
         if (response.success) {
+          // 次回予約結果を保存
+          if (response.data?.nextReservationResult) {
+            /** @type {any} */ (wizardState).nextReservationResult =
+              response.data.nextReservationResult;
+          }
+
           // 完了画面へ
           goToStep('5');
 

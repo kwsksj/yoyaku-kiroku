@@ -15,8 +15,8 @@
  */
 
 import {
-  generateSalesSection,
-  generateTuitionSection,
+    generateSalesSection,
+    generateTuitionSection,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
@@ -608,9 +608,63 @@ export function renderStep3Accounting(state) {
 
 /**
  * 完了画面を生成
+ * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderConclusionComplete() {
+export function renderConclusionComplete(state) {
+  // 次回予約結果を取得
+  const nextResult = /** @type {any} */ (state).nextReservationResult;
+  const hasExistingReservation = !!state.existingFutureReservation;
+  const skippedReservation = state.reservationSkipped;
+
+  // 予約状況に応じたメッセージを生成
+  let reservationMessageHtml = '';
+  if (hasExistingReservation && state.existingFutureReservation) {
+    const existing = state.existingFutureReservation;
+    const formattedDate = window.formatDate
+      ? window.formatDate(existing.date)
+      : existing.date;
+    reservationMessageHtml = `
+      <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+        <p class="text-sm font-bold text-green-700 mb-1">つぎ の よやく</p>
+        <p class="text-brand-text font-bold">${formattedDate}</p>
+        <p class="text-sm text-brand-subtle">${escapeHTML(existing.classroom || '')}</p>
+      </div>
+    `;
+  } else if (skippedReservation) {
+    reservationMessageHtml = `
+      <div class="mt-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <p class="text-sm text-brand-subtle">つぎ の よやく は あとで えらんでね</p>
+      </div>
+    `;
+  } else if (nextResult?.created) {
+    const formattedDate = window.formatDate
+      ? window.formatDate(nextResult.date)
+      : nextResult.date;
+    const isWaitlisted = nextResult.status === 'WAITLISTED';
+
+    if (isWaitlisted) {
+      reservationMessageHtml = `
+        <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-300">
+          <p class="text-sm font-bold text-yellow-700 mb-1">空き つうち きぼう</p>
+          <p class="text-brand-text font-bold">${formattedDate}</p>
+          <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')}</p>
+          <p class="text-xs text-yellow-700 mt-2">
+            空きが でたら メールで おしらせします
+          </p>
+        </div>
+      `;
+    } else {
+      reservationMessageHtml = `
+        <div class="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+          <p class="text-sm font-bold text-green-700 mb-1">つぎ の よやく</p>
+          <p class="text-brand-text font-bold">${formattedDate}</p>
+          <p class="text-sm text-brand-subtle">${escapeHTML(nextResult.classroom || '')}</p>
+        </div>
+      `;
+    }
+  }
+
   return `
     <div class="session-conclusion-complete text-center py-12 animate-fade-in">
       <div class="mb-6 flex justify-center">
@@ -628,18 +682,21 @@ export function renderConclusionComplete() {
         きょう の きろく と かいけい が<br>
         かんりょうしました。
       </p>
-      <p class="text-brand-text mb-8">
+      <p class="text-brand-text mb-4">
         また おあいできるのを<br>
         たのしみに しています。
       </p>
 
+      ${reservationMessageHtml}
 
-      ${Components.button({
-        action: 'conclusionDone',
-        text: 'ホームへもどる',
-        style: 'primary',
-        size: 'full',
-      })}
+      <div class="mt-8">
+        ${Components.button({
+          action: 'conclusionDone',
+          text: 'ホームへもどる',
+          style: 'primary',
+          size: 'full',
+        })}
+      </div>
     </div>
 
     <style>
@@ -679,7 +736,7 @@ export function getSessionConclusionView(state) {
       stepContent = renderStep3Accounting(state);
       break;
     case '5': // 完了
-      stepContent = renderConclusionComplete();
+      stepContent = renderConclusionComplete(state);
       break;
     default:
       stepContent = renderStep1Record(state);
@@ -737,7 +794,7 @@ export function generateSessionConclusionModal(state) {
       stepContent = renderStep3Accounting(state);
       break;
     case '5': // 完了
-      stepContent = renderConclusionComplete();
+      stepContent = renderConclusionComplete(state);
       break;
     default:
       stepContent = renderStep1Record(state);

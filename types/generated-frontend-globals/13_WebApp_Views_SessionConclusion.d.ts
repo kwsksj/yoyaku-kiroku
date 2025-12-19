@@ -48,9 +48,10 @@ export function renderStep2BReservation(state: SessionConclusionState): string;
 export function renderStep3Accounting(state: SessionConclusionState): string;
 /**
  * 完了画面を生成
+ * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderConclusionComplete(): string;
+export function renderConclusionComplete(state: SessionConclusionState): string;
 /**
  * セッション終了ウィザード全体のフルページViewを生成
  * @param {SessionConclusionState} state - 現在の状態
