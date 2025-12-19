@@ -646,11 +646,11 @@ export function renderConclusionComplete(state) {
   const buildCompletionBadges = type => {
     if (type === 'waitlisted') {
       return /** @type {{type: BadgeType, text: string}[]} */ ([
-        { type: 'warning', text: '空き通知希望' },
+        { type: 'warning', text: '空き通知 登録済み' },
       ]);
     }
     return /** @type {{type: BadgeType, text: string}[]} */ ([
-      { type: 'success', text: '予約確定' },
+      { type: 'success', text: '予約確定 済み' },
     ]);
   };
 
@@ -660,20 +660,46 @@ export function renderConclusionComplete(state) {
     /** @type {'confirmed' | 'waitlisted'} */ type,
     /** @type {string} */ goal,
     /** @type {string} */ mismatchNote,
+    /** @type {boolean} */ isNewReservation = false,
   ) => {
+    // 状況に応じた紹介メッセージ
+    let introHtml = '';
+    if (isNewReservation) {
+      if (type === 'waitlisted') {
+        introHtml = `
+          <p class="text-sm text-brand-text mb-3 text-left">
+            じかいについては こちらで 空き通知 とうろく しました。<br>
+            メールで おしらせするので このページで よやく してください（先着順です）
+          </p>
+        `;
+      } else {
+        introHtml = `
+          <p class="text-sm text-brand-text mb-3 text-left">
+            じかいの よやく は こちらで かくてい しました！
+          </p>
+        `;
+      }
+    } else {
+      introHtml = `
+        <p class="text-sm text-brand-text mb-3 text-left">
+          じかいの よてい は こちらです。
+        </p>
+      `;
+    }
+
     // 不一致ノートHTML
     const mismatchHtml = mismatchNote
       ? `<div class="mb-3">${mismatchNote}</div>`
       : '';
 
-    // 空き通知の補足説明
+    // 空き通知の補足説明（新規作成でない場合のみ表示）
     const waitlistNoteHtml =
-      type === 'waitlisted'
+      type === 'waitlisted' && !isNewReservation
         ? `
           <div class="mt-2 p-2 bg-amber-50 rounded-lg">
             <p class="text-xs text-amber-700 leading-relaxed">
               🔔 空きが でたら メールで おしらせします<br>
-              　 このページから よやく してください
+              　 このページから よやく してください（先着順です）
             </p>
           </div>
         `
@@ -696,7 +722,8 @@ export function renderConclusionComplete(state) {
     });
 
     return `
-      <div class="mt-6">
+      <div class="mt-6 max-w-md mx-auto text-left">
+        ${introHtml}
         ${mismatchHtml}
         ${cardHtml}
         ${waitlistNoteHtml}
@@ -754,7 +781,7 @@ export function renderConclusionComplete(state) {
         mismatchNote = `
           <div class="bg-green-100 text-green-800 text-xs p-2 rounded-lg flex items-center gap-2">
             <span>🎉</span>
-            <span>空きが できていたので よやく できました！</span>
+            <span>空きが でたので よやく できました！</span>
           </div>
         `;
       } else if (!expectedWaitlist && isWaitlisted) {
@@ -771,11 +798,15 @@ export function renderConclusionComplete(state) {
     const goalToShow =
       nextLessonGoal || nearestFutureReservation.workInProgress || '';
 
+    // 今回の処理で予約が作成されたかどうか
+    const isNewReservation = !!nextResult?.created;
+
     reservationMessageHtml = renderListCardReservation(
       nearestFutureReservation,
       isWaitlisted ? 'waitlisted' : 'confirmed',
       goalToShow,
       mismatchNote,
+      isNewReservation,
     );
   } else {
     // 翌日以降の予約がない場合
