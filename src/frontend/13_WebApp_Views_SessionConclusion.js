@@ -654,109 +654,103 @@ export function renderConclusionComplete(state) {
     ]);
   };
 
-  // 予約カードをComponents.listCardで生成
-  const renderListCardReservation = (
-    /** @type {ReservationCore} */ reservation,
-    /** @type {'confirmed' | 'waitlisted'} */ type,
-    /** @type {string} */ goal,
-    /** @type {string} */ mismatchNote,
-    /** @type {boolean} */ isNewReservation = false,
-  ) => {
-    // 状況に応じた紹介メッセージ
-    let introHtml = '';
-    if (isNewReservation) {
-      if (type === 'waitlisted') {
-        introHtml = `
-          <p class="text-sm text-brand-text mb-3 text-left">
-            じかいについては こちらで 空き通知 とうろく しました！
-          </p>
-        `;
-      } else {
-        introHtml = `
-          <p class="text-sm text-brand-text mb-3 text-left">
-            じかいの よやく は こちらで かくてい しました！
-          </p>
-        `;
+  /**
+   * 次回予約セクションを統一フォーマットで生成
+   * @param {{
+   *   type: 'reservation' | 'goal-only' | 'reminder',
+   *   reservation?: ReservationCore,
+   *   isWaitlisted?: boolean,
+   *   isNewReservation?: boolean,
+   *   goal?: string,
+   *   mismatchNote?: string
+   * }} config - 設定オブジェクト
+   * @returns {string} HTML文字列
+   */
+  const renderNextReservationSection = config => {
+    const { type, reservation, isWaitlisted, isNewReservation, goal, mismatchNote } = config;
+
+    // === イントロメッセージ（状況に応じて分岐） ===
+    const buildIntroMessage = () => {
+      switch (type) {
+        case 'reservation':
+          if (isNewReservation) {
+            return isWaitlisted
+              ? 'じかいについては こちらで 空き通知 とうろく しました！'
+              : 'じかいの よやく は こちらで かくてい しました！';
+          }
+          return 'じかいの よてい は こちらです！';
+
+        case 'goal-only':
+        case 'reminder':
+          return 'つぎの よやく は あとで えらんでね！';
+
+        default:
+          return '';
       }
-    } else {
-      introHtml = `
-        <p class="text-sm text-brand-text mb-3 text-left">
-          じかいの よてい は こちらです！
-        </p>
-      `;
-    }
-
-    // 不一致ノートHTML
-    const mismatchHtml = mismatchNote
-      ? `<div class="mb-3">${mismatchNote}</div>`
-      : '';
-
-    // 空き通知の補足説明
-    const waitlistNoteHtml =
-      type === 'waitlisted'
-        ? `
-          <div class="mt-2 p-2 bg-amber-50 rounded-lg">
-            <p class="text-xs text-amber-700 leading-relaxed">
-              🔔 空きが でたら メールで おしらせします<br>
-              このページから よやく してください（先着順です）
-            </p>
-          </div>
-        `
-        : '';
-
-    // listCardのworkInProgressを「けいかく」として表示
-    const cardReservation = {
-      ...reservation,
-      workInProgress: goal || '',
     };
 
-    const cardHtml = Components.listCard({
-      type: 'booking',
-      item: cardReservation,
-      badges: buildCompletionBadges(type),
-      editButtons: [], // 編集ボタンは非表示
-      accountingButtons: [], // 会計ボタンも非表示
-      isEditMode: false,
-      showMemoSaveButton: false,
-    });
+    // === カード本体（タイプに応じて分岐） ===
+    const buildCardHtml = () => {
+      switch (type) {
+        case 'reservation':
+          if (!reservation) return '';
+          const cardReservation = {
+            ...reservation,
+            workInProgress: goal || '',
+          };
+          return Components.listCard({
+            type: 'booking',
+            item: cardReservation,
+            badges: buildCompletionBadges(isWaitlisted ? 'waitlisted' : 'confirmed'),
+            editButtons: [],
+            accountingButtons: [],
+            isEditMode: false,
+            showMemoSaveButton: false,
+          });
+
+        case 'goal-only':
+          return Components.placeholderCard({
+            badge: { type: /** @type {BadgeType} */ ('info'), text: '日程未定' },
+            memoTitle: 'つぎに やりたいこと',
+            memoContent: goal || '',
+          });
+
+        case 'reminder':
+          return Components.placeholderCard({
+            badge: { type: /** @type {BadgeType} */ ('neutral'), text: '日程未定' },
+            dimmed: true,
+          });
+
+        default:
+          return '';
+      }
+    };
+
+    // === 補足ノート（空き通知の場合のみ） ===
+    const buildWaitlistNote = () => {
+      if (type !== 'reservation' || !isWaitlisted) return '';
+      return `
+        <div class="mt-2 p-2 bg-amber-50 rounded-lg">
+          <p class="text-xs text-amber-700 leading-relaxed">
+            🔔 空きが でたら メールで おしらせします<br>
+            このページから よやく してください（先着順です）
+          </p>
+        </div>
+      `;
+    };
+
+    // === 統一フォーマットで出力 ===
+    const introMessage = buildIntroMessage();
+    const mismatchHtml = mismatchNote ? `<div class="mb-3">${mismatchNote}</div>` : '';
+    const cardHtml = buildCardHtml();
+    const waitlistNoteHtml = buildWaitlistNote();
 
     return `
       <div class="mt-6 max-w-md mx-auto text-left">
-        ${introHtml}
+        <p class="text-sm text-brand-text mb-3 text-left">${introMessage}</p>
         ${mismatchHtml}
         ${cardHtml}
         ${waitlistNoteHtml}
-      </div>
-    `;
-  };
-
-  // けいかくのみの場合のカード（Components.placeholderCard使用）
-  const renderGoalOnlyCard = (/** @type {string} */ goal) => {
-    return `
-      <div class="mt-6 max-w-md mx-auto text-left">
-        <p class="text-sm text-brand-text mb-3 text-left">
-          つぎの よやく は あとで えらんでね！
-        </p>
-        ${Components.placeholderCard({
-          badge: { type: /** @type {BadgeType} */ ('info'), text: '日程未定' },
-          memoTitle: 'つぎに やりたいこと',
-          memoContent: goal,
-        })}
-      </div>
-    `;
-  };
-
-  // リマインダーのみの場合のカード（Components.placeholderCard使用）
-  const renderReminderCard = () => {
-    return `
-      <div class="mt-6 max-w-md mx-auto text-left">
-        <p class="text-sm text-brand-text mb-3 text-left">
-          つぎの よやく は あとで えらんでね！
-        </p>
-        ${Components.placeholderCard({
-          badge: { type: /** @type {BadgeType} */ ('neutral'), text: '日程未定' },
-          dimmed: true,
-        })}
       </div>
     `;
   };
@@ -800,22 +794,26 @@ export function renderConclusionComplete(state) {
         nextLessonGoal || nearestFutureReservation.workInProgress || '';
       const isNewReservation = !!nextResult?.created;
 
-      return renderListCardReservation(
-        nearestFutureReservation,
-        isWaitlisted ? 'waitlisted' : 'confirmed',
-        goalToShow,
-        buildMismatchNote(),
+      return renderNextReservationSection({
+        type: 'reservation',
+        reservation: nearestFutureReservation,
+        isWaitlisted,
         isNewReservation,
-      );
+        goal: goalToShow,
+        mismatchNote: buildMismatchNote(),
+      });
     }
 
     // ケース2: 予約なし + けいかくあり
     if (nextLessonGoal) {
-      return renderGoalOnlyCard(nextLessonGoal);
+      return renderNextReservationSection({
+        type: 'goal-only',
+        goal: nextLessonGoal,
+      });
     }
 
     // ケース3: 予約なし + けいかくなし（リマインダー）
-    return renderReminderCard();
+    return renderNextReservationSection({ type: 'reminder' });
   };
 
   const reservationMessageHtml = buildReservationMessageHtml();
