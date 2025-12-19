@@ -612,11 +612,32 @@ export function renderStep3Accounting(state) {
  * @returns {string} HTML文字列
  */
 export function renderConclusionComplete(state) {
-  // 次回予約結果を取得
+  // 次回予約結果を取得（作成された場合のメタデータ用）
   const nextResult = /** @type {any} */ (state).nextReservationResult;
-  const hasExistingReservation = !!state.existingFutureReservation;
-  const skippedReservation = state.reservationSkipped;
   const nextLessonGoal = state.nextLessonGoal || '';
+
+  // 今日の日付（翌日以降の予約を探すため）
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // myReservationsから翌日以降の最も近い有効な予約を探す
+  const myReservations =
+    /** @type {ReservationCore[]} */ (/** @type {any} */ (state).myReservations) || [];
+  const futureReservations = myReservations
+    .filter(
+      (/** @type {ReservationCore} */ r) =>
+        (r.status === CONSTANTS.STATUS.CONFIRMED ||
+          r.status === CONSTANTS.STATUS.WAITLISTED) &&
+        new Date(r.date) > today,
+    )
+    .sort(
+      (/** @type {ReservationCore} */ a, /** @type {ReservationCore} */ b) =>
+        new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+
+  /** @type {ReservationCore | null} */
+  const nearestFutureReservation =
+    futureReservations.length > 0 ? futureReservations[0] : null;
 
   // Components.listCard用のバッジを生成
   /** @param {'confirmed' | 'waitlisted'} type */
@@ -718,64 +739,48 @@ export function renderConclusionComplete(state) {
   // 予約状況に応じたカードを生成
   let reservationMessageHtml = '';
 
-  if (hasExistingReservation && state.existingFutureReservation) {
-    const existing = state.existingFutureReservation;
+  // 翌日以降の予約がある場合（新規作成または既存）
+  if (nearestFutureReservation) {
+    const isWaitlisted =
+      nearestFutureReservation.status === CONSTANTS.STATUS.WAITLISTED;
+
+    // 今回作成された予約かどうかを判定し、期待との差分を表示
+    let mismatchNote = '';
+    if (nextResult?.created) {
+      const expectedWaitlist = !!nextResult.expectedWaitlist;
+      if (expectedWaitlist && !isWaitlisted) {
+        mismatchNote = `
+          <div class="bg-green-100 text-green-800 text-xs p-2 rounded-lg flex items-center gap-2">
+            <span>🎉</span>
+            <span>空きが できていたので よやく できました！</span>
+          </div>
+        `;
+      } else if (!expectedWaitlist && isWaitlisted) {
+        mismatchNote = `
+          <div class="bg-amber-100 text-amber-800 text-xs p-2 rounded-lg flex items-center gap-2">
+            <span>⚠️</span>
+            <span>直前に よやく が入り 空き通知登録 になりました</span>
+          </div>
+        `;
+      }
+    }
+
+    // 「けいかく」はnextLessonGoalまたは予約のworkInProgressを使用
+    const goalToShow = nextLessonGoal || nearestFutureReservation.workInProgress || '';
+
     reservationMessageHtml = renderListCardReservation(
-      existing,
-      'confirmed',
-      nextLessonGoal,
-      '',
+      nearestFutureReservation,
+      isWaitlisted ? 'waitlisted' : 'confirmed',
+      goalToShow,
+      mismatchNote,
     );
-  } else if (skippedReservation) {
+  } else {
+    // 翌日以降の予約がない場合
     if (nextLessonGoal) {
       reservationMessageHtml = renderGoalOnlyCard(nextLessonGoal);
     } else {
       reservationMessageHtml = renderReminderCard();
     }
-  } else if (nextResult?.created) {
-    const isWaitlisted = nextResult.status === '待機';
-    const expectedWaitlist = !!nextResult.expectedWaitlist;
-
-    // 期待と結果が異なる場合のメッセージ
-    let mismatchNote = '';
-    if (expectedWaitlist && !isWaitlisted) {
-      mismatchNote = `
-        <div class="bg-green-100 text-green-800 text-xs p-2 rounded-lg flex items-center gap-2">
-          <span>🎉</span>
-          <span>空きが できていたので よやく できました！</span>
-        </div>
-      `;
-    } else if (!expectedWaitlist && isWaitlisted) {
-      mismatchNote = `
-        <div class="bg-amber-100 text-amber-800 text-xs p-2 rounded-lg flex items-center gap-2">
-          <span>⚠️</span>
-          <span>直前に よやく が入り 空き通知登録 になりました</span>
-        </div>
-      `;
-    }
-
-    // nextResultから簡易的なReservationCoreオブジェクトを構築
-    /** @type {ReservationCore} */
-    const reservationForCard = {
-      reservationId: '',
-      studentId: '',
-      date: nextResult.date || '',
-      classroom: nextResult.classroom || '',
-      venue: nextResult.venue || '',
-      status: nextResult.status || '',
-      workInProgress: '',
-      startTime: '',
-      endTime: '',
-      messageToTeacher: '',
-      lessonId: '',
-    };
-
-    reservationMessageHtml = renderListCardReservation(
-      reservationForCard,
-      isWaitlisted ? 'waitlisted' : 'confirmed',
-      nextLessonGoal,
-      mismatchNote,
-    );
   }
 
   return `
