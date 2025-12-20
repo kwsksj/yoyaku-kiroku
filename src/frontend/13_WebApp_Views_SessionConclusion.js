@@ -723,7 +723,6 @@ export function renderConclusionComplete(state) {
               type: /** @type {BadgeType} */ ('info'),
               text: '日程未定',
             },
-            memoTitle: 'つぎに やりたいこと',
             memoContent: goal || '',
           });
 

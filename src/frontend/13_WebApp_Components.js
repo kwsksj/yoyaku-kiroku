@@ -1490,7 +1490,6 @@ export const Components = {
   placeholderCard: ({
     title = 'ー',
     badge = { type: /** @type {BadgeType} */ ('info'), text: '日程未定' },
-    memoTitle = '制作メモ',
     memoContent = '',
     dimmed = false,
   }) => {
@@ -1514,9 +1513,8 @@ export const Components = {
               <h4 class="text-base text-brand-text font-bold mt-0">${badgeHtml}</h4>
             </div>
           </div>
-          <!-- 制作メモセクション -->
+          <!-- メモセクション -->
           <div class="p-0.5 bg-white/75">
-            <h4 class="text-xs font-bold text-brand-subtle mb-0">${escapeHTML(memoTitle)}</h4>
             <p class="text-sm ${dimmed ? 'text-brand-subtle' : 'text-brand-text'} whitespace-pre-wrap px-1 min-h-14">${escapeHTML(memoContent) || 'ー'}</p>
           </div>
         </div>
@@ -1553,7 +1551,6 @@ export const Components = {
         : '';
       return `
         <div class="p-0.5 bg-white/75">
-          <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
           <textarea
             id="${textareaId}"
             class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
@@ -1568,7 +1565,6 @@ export const Components = {
       // 通常モード：読み取り専用表示
       return `
         <div class="p-0.5 bg-white/75">
-          <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
           <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(workInProgress || '')}</p>
         </div>
       `;

@@ -553,11 +553,12 @@ export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
 
   if (isInEditMode) {
     // 通常モード→編集モード：読み取り専用メモセクションを探す
-    // 「制作メモ」という見出しを含む要素を探す
-    const memoHeaders = Array.from(cardElement.querySelectorAll('h4'));
-    for (const header of memoHeaders) {
-      if (header.textContent && header.textContent.includes('制作メモ')) {
-        existingMemoSection = header.closest('div');
+    // メモセクションは bg-white/75 を持つ div 内に p 要素がある
+    const memoContainers = Array.from(cardElement.querySelectorAll('div.p-0\\.5.bg-white\\/75'));
+    for (const container of memoContainers) {
+      // p 要素を持つコンテナ（読み取り専用モード）
+      if (container.querySelector('p.whitespace-pre-wrap')) {
+        existingMemoSection = container;
         break;
       }
     }
@@ -576,10 +577,10 @@ export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
 
     // フォールバック：メモセクション全体を再検索
     if (!existingMemoSection) {
-      const memoHeaders = Array.from(cardElement.querySelectorAll('h4'));
-      for (const header of memoHeaders) {
-        if (header.textContent && header.textContent.includes('制作メモ')) {
-          existingMemoSection = header.closest('div');
+      const memoContainers = Array.from(cardElement.querySelectorAll('div.p-0\\.5.bg-white\\/75'));
+      for (const container of memoContainers) {
+        if (container.querySelector('p.whitespace-pre-wrap')) {
+          existingMemoSection = container;
           break;
         }
       }
