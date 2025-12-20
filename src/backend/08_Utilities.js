@@ -28,11 +28,11 @@ import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import { validateAdminSessionToken } from './04_Backend_User.js';
 import {
-  CACHE_KEYS,
-  getCachedData,
-  getReservationByIdFromCache,
-  getReservationCacheSnapshot,
-  getStudentCacheSnapshot,
+    CACHE_KEYS,
+    getCachedData,
+    getReservationByIdFromCache,
+    getReservationCacheSnapshot,
+    getStudentCacheSnapshot,
 } from './07_CacheManager.js';
 
 /**
@@ -1432,4 +1432,111 @@ export function updateStudentField(studentId, headerName, value) {
     Logger.log(`[updateStudentField] エラー: ${error.message}`);
     return { success: false, message: error.message };
   }
+}
+
+/**
+ * 【一時的なマイグレーション関数】
+ * 未来の予約のworkInProgressを生徒名簿の次回目標に移植し、予約の制作メモをクリアする。
+ * スプレッドシートエディタから直接実行してください。
+ * @returns {void}
+ */
+export function migrateWorkInProgressToNextGoal() {
+  Logger.log('[migrateWorkInProgressToNextGoal] マイグレーション開始');
+
+  const reservationsSheet = SS_MANAGER.getSheet(
+    CONSTANTS.SHEET_NAMES.RESERVATIONS,
+  );
+  const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
+
+  if (!reservationsSheet || !rosterSheet) {
+    Logger.log('[migrateWorkInProgressToNextGoal] シートが見つかりません');
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 予約シートのヘッダー
+  const reservationHeader = reservationsSheet.getRange(1, 1, 1, reservationsSheet.getLastColumn()).getValues()[0];
+  const resHeaderMap = new Map(reservationHeader.map((h, i) => [h, i]));
+
+  const studentIdCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID);
+  const dateCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE);
+  const statusCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
+  const wipCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS);
+
+  if (studentIdCol === undefined || dateCol === undefined || statusCol === undefined || wipCol === undefined) {
+    Logger.log('[migrateWorkInProgressToNextGoal] 必要なカラムが見つかりません');
+    return;
+  }
+
+  // 名簿シートのヘッダー
+  const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
+  const rosterHeaderMap = new Map(rosterHeader.map((h, i) => [h, i]));
+
+  const rosterStudentIdCol = rosterHeaderMap.get(CONSTANTS.HEADERS.ROSTER.STUDENT_ID);
+  const nextGoalCol = rosterHeaderMap.get(CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL);
+
+  if (rosterStudentIdCol === undefined || nextGoalCol === undefined) {
+    Logger.log('[migrateWorkInProgressToNextGoal] 名簿の必要なカラムが見つかりません');
+    return;
+  }
+
+  // 全予約データ取得
+  const reservationData = reservationsSheet.getDataRange().getValues();
+  const rosterData = rosterSheet.getDataRange().getValues();
+
+  // 生徒ID → 行番号のマップ作成
+  const studentRowMap = new Map();
+  for (let i = 1; i < rosterData.length; i++) {
+    const studentId = rosterData[i][rosterStudentIdCol];
+    if (studentId) {
+      studentRowMap.set(studentId, i + 1); // 1-based
+    }
+  }
+
+  let migratedCount = 0;
+
+  // 未来の予約（CONFIRMED or WAITLISTED）で制作メモがあるものを処理
+  for (let i = 1; i < reservationData.length; i++) {
+    const row = reservationData[i];
+    const studentId = row[studentIdCol];
+    const dateValue = row[dateCol];
+    const status = row[statusCol];
+    const workInProgress = row[wipCol];
+
+    // 日付をパース
+    const reservationDate = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (isNaN(reservationDate.getTime())) {
+      continue;
+    }
+
+    // 未来の予約かつ有効なステータスか
+    const isFuture = reservationDate >= today;
+    const isValidStatus = status === CONSTANTS.STATUS.CONFIRMED || status === CONSTANTS.STATUS.WAITLISTED;
+
+    // 制作メモがあるか
+    const hasWorkInProgress = workInProgress && String(workInProgress).trim() !== '';
+
+    if (isFuture && isValidStatus && hasWorkInProgress) {
+      const studentRowIndex = studentRowMap.get(studentId);
+      if (!studentRowIndex) {
+        Logger.log(`[migrateWorkInProgressToNextGoal] 生徒が見つかりません: ${studentId}`);
+        continue;
+      }
+
+      // 1. 生徒名簿の次回目標に保存
+      rosterSheet.getRange(studentRowIndex, nextGoalCol + 1).setValue(workInProgress);
+
+      // 2. 予約の制作メモをクリア
+      reservationsSheet.getRange(i + 1, wipCol + 1).setValue('');
+
+      Logger.log(
+        `[migrateWorkInProgressToNextGoal] 移植完了: studentId=${studentId}, date=${reservationDate.toISOString().split('T')[0]}, wip="${workInProgress}"`,
+      );
+      migratedCount++;
+    }
+  }
+
+  Logger.log(`[migrateWorkInProgressToNextGoal] マイグレーション完了: ${migratedCount}件を移植しました`);
 }
