@@ -74,7 +74,7 @@ const CLASSROOM_COLORS = {
 const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'participant',
-    label: '参加者',
+    label: 'なまえ',
     width: '80px',
     align: 'center',
     adminOnly: false,
@@ -143,7 +143,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'sessionNote',
-    label: '制作メモ',
+    label: 'ノート',
     width: '160px',
     align: 'left',
     adminOnly: false,
@@ -163,7 +163,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'order',
-    label: '注文',
+    label: 'ちゅうもん',
     width: '120px',
     align: 'left',
     adminOnly: false,
@@ -180,7 +180,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'ageGroup',
-    label: '年代',
+    label: '*年代*',
     width: '40px',
     align: 'center',
     adminOnly: true,
@@ -189,7 +189,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'gender',
-    label: '性別',
+    label: '*性別*',
     width: '40px',
     align: 'center',
     adminOnly: true,
@@ -198,7 +198,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'address',
-    label: '住所',
+    label: '*住所*',
     width: '40px',
     adminOnly: true,
     render: /** @param {any} row */ row =>
@@ -248,7 +248,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'notes',
-    label: '備考',
+    label: '*備考*',
     width: '160px',
     adminOnly: true,
     render: /** @param {any} row */ row =>
