@@ -1373,6 +1373,25 @@ export const Components = {
   },
 
   /**
+   * けいかく・もくひょうセクション（ダッシュボード用）
+   * @param {{goal: string}} config - 設定オブジェクト
+   * @returns {string} HTML文字列
+   */
+  goalSection: ({ goal }) => {
+    if (!goal || goal.trim() === '') {
+      return '';
+    }
+    return `
+      <div class="mb-6 max-w-md mx-auto">
+        <div class="p-4 bg-brand-light rounded-lg border-2 border-brand-border">
+          <h3 class="text-sm font-medium text-brand-subtle mb-2">けいかく・もくひょう</h3>
+          <p class="text-base text-brand-text whitespace-pre-wrap">${escapeHTML(goal)}</p>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
    * 統一カードレイアウト（予約・履歴共通）- 純粋描画層
    * @param {ListCardConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
@@ -1447,13 +1466,17 @@ export const Components = {
     const classroomDisplay = item.classroom ? ` ${item.classroom}` : '';
     const venueDisplay = item.venue ? ` ${item.venue}` : '';
 
-    // 制作メモ表示（予約・履歴共通） - 編集モード対応
-    const memoSection = Components.memoSection({
-      reservationId: item.reservationId,
-      sessionNote: item.sessionNote || '',
-      isEditMode: isEditMode, // パラメータで制御
-      showSaveButton: showMemoSaveButton, // 保存ボタン表示制御
-    });
+    // メモ表示：完了（COMPLETED）の記録カードのみに表示
+    // 予約カード（CONFIRMED/WAITLISTED）にはメモを表示しない
+    const isCompleted = item.status === CONSTANTS.STATUS.COMPLETED;
+    const memoSection = isCompleted
+      ? Components.memoSection({
+          reservationId: item.reservationId,
+          sessionNote: item.sessionNote || '',
+          isEditMode: isEditMode,
+          showSaveButton: showMemoSaveButton,
+        })
+      : '';
 
     return `
       <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">

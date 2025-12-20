@@ -27,21 +27,21 @@
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotificationForUser } from './02-6_Notification_Admin.js';
 import {
-  CACHE_KEYS,
-  addCachedStudent,
-  deleteAllCache,
-  deleteCache,
-  getCachedAllStudents,
-  rebuildAllStudentsCache,
-  updateCachedStudent,
+    CACHE_KEYS,
+    addCachedStudent,
+    deleteAllCache,
+    deleteCache,
+    getCachedAllStudents,
+    rebuildAllStudentsCache,
+    updateCachedStudent,
 } from './07_CacheManager.js';
 import {
-  createHeaderMap,
-  getCachedStudentById,
-  logActivity,
-  getScriptProperties,
-  normalizePhoneNumber,
-  withTransaction,
+    createHeaderMap,
+    getCachedStudentById,
+    getScriptProperties,
+    logActivity,
+    normalizePhoneNumber,
+    withTransaction,
 } from './08_Utilities.js';
 
 /** @type {PhoneNormalizationResult} */
@@ -155,6 +155,7 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
     [CONSTANTS.HEADERS.ROSTER.PICKUP]: 'pickup',
     [CONSTANTS.HEADERS.ROSTER.CAR]: 'car',
     [CONSTANTS.HEADERS.ROSTER.NOTES]: 'notes',
+    [CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL]: 'nextLessonGoal',
   };
 
   // 各プロパティを設定
