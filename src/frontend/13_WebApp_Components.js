@@ -1456,7 +1456,7 @@ export const Components = {
     });
 
     return `
-      <div class="w-full max-w-md mb-4 px-0 text-left">
+      <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
         <div class="${cardColorClass} p-2 rounded-lg shadow-sm" data-reservation-id="${item.reservationId}">
           <!-- 上部：教室情報+会計・編集ボタン -->
           <div class="flex justify-between items-start mb-0">
@@ -1502,7 +1502,7 @@ export const Components = {
     });
 
     return `
-      <div class="w-full max-w-md mb-4 px-0 text-left">
+      <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
         <div class="${cardColorClass} p-2 rounded-lg shadow-sm ${dimmedClass}">
           <!-- 上部：タイトル+バッジ -->
           <div class="flex justify-between items-start mb-0">
