@@ -1622,16 +1622,15 @@ export function processSessionConclusion(payload, nextReservationPayload) {
         return memoResult;
       }
 
-      // 1.5. 次回目標を生徒名簿に保存（任意入力）
+      // 1.5. 次回目標を生徒名簿に保存（任意入力）- 共通関数を使用
       if (
         payload.nextLessonGoal !== undefined &&
         payload.nextLessonGoal !== null
       ) {
-        const goalResult = updateStudentField(
-          payload.studentId,
-          CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL,
-          payload.nextLessonGoal,
-        );
+        const goalResult = updateNextLessonGoal({
+          studentId: payload.studentId,
+          nextLessonGoal: payload.nextLessonGoal,
+        });
         if (!goalResult.success) {
           // 失敗しても続行（警告ログのみ）
           Logger.log(
