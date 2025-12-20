@@ -48,6 +48,7 @@ import {
 } from './05-3_Backend_AvailableSlots.js';
 import {
   CACHE_KEYS,
+  clearChunkedCache,
   getStudentCacheSnapshot,
   getTypedCachedData,
 } from './07_CacheManager.js';
@@ -55,6 +56,7 @@ import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
   getCachedReservationsAsObjects,
   getCachedStudentById,
+  logActivity,
   updateStudentField,
   withTransaction,
 } from './08_Utilities.js';
@@ -264,9 +266,23 @@ export function updateNextLessonGoal(payload) {
       nextLessonGoal || '',
     );
 
-    if (!result) {
+    if (!result || !result.success) {
+      logActivity(studentId, 'けいかく更新', '失敗', {
+        details: result?.message || '更新処理に失敗',
+      });
       return { success: false, message: '更新に失敗しました。' };
     }
+
+    // キャッシュをクリア（生徒名簿データが更新されたので再取得が必要）
+    clearChunkedCache(CACHE_KEYS.ALL_STUDENTS);
+    Logger.log(
+      `[updateNextLessonGoal] キャッシュクリア: CACHE_KEYS.ALL_STUDENTS`,
+    );
+
+    // ログシートに記録
+    logActivity(studentId, 'けいかく更新', '成功', {
+      details: nextLessonGoal || '(空白にクリア)',
+    });
 
     Logger.log(
       `[updateNextLessonGoal] 成功: studentId=${studentId}, goal=${nextLessonGoal}`,
@@ -274,6 +290,9 @@ export function updateNextLessonGoal(payload) {
     return { success: true, message: 'けいかく・もくひょうを更新しました。' };
   } catch (error) {
     Logger.log(`[updateNextLessonGoal] エラー: ${error.message}`);
+    logActivity(payload?.studentId || 'unknown', 'けいかく更新', '失敗', {
+      details: error.message,
+    });
     return { success: false, message: `更新に失敗しました: ${error.message}` };
   }
 }
