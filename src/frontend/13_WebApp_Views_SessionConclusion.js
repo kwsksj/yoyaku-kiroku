@@ -6,8 +6,8 @@
  * 目的: セッション終了ウィザード（きろく→よやく→かいけい）のビュー生成
  * 主な責務:
  *   - 3ステップウィザードのレンダリング
- *   - ステップ1：今日の記録（制作メモ入力）
- *   - ステップ2：次回予約（おすすめ日程カード、時間変更、次回メモ）
+ *   - ステップ1：今日のきろく（セッションノート入力）
+ *   - ステップ2：けいかく・もくひょう（次回目標入力）
  *   - ステップ3：会計（既存会計UIの再利用）
  * AI向けメモ:
  *   - 各ステップは独立した関数で描画し、Handlerからステップ遷移を管理する
@@ -31,8 +31,8 @@ import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
  * @property {boolean} reservationSkipped - 「いまはきめない」を選択
  * @property {boolean} isWaitlistRequest - 空き通知希望として選択
  * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
- * @property {string} sessionNoteToday - 今日の制作メモ
- * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
+ * @property {string} sessionNoteToday - 今日のきろく（セッションノート）
+ * @property {string} nextLessonGoal - けいかく・もくひょう（生徒名簿に保存）
  * @property {string} sessionNoteNext - 次回予約へのメッセージ
  * @property {string} nextStartTime - 次回開始時間
  * @property {string} nextEndTime - 次回終了時間
@@ -147,7 +147,7 @@ export function renderStep1Record(state) {
 }
 
 /**
- * ステップ2A: 次回やりたいこと入力画面を生成
+ * ステップ2A: けいかく・もくひょう入力画面を生成
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
