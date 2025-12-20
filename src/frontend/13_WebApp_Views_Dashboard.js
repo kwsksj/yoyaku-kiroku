@@ -139,7 +139,7 @@ export const getDashboardView = () => {
 
   // 新規予約ボタン
   const newBookingButton = Components.button({
-    text: 'あたらしく よやく する',
+    text: 'あたらしく　よやく　する',
     action: 'showClassroomModal',
     style: 'secondary',
     size: 'full',
