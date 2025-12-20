@@ -642,7 +642,7 @@ window.onload = function () {
             /** @param {ApiResponse} result */ result => {
               hideLoading();
               if (result.success) {
-                // 状態を更新（dispatchで永続化）
+                // 状態を更新（dispatchで永続化）＆参加者キャッシュをクリア
                 const state = handlersStateManager.getState();
                 if (state.currentUser) {
                   handlersStateManager.dispatch({
@@ -652,6 +652,9 @@ window.onload = function () {
                         ...state.currentUser,
                         nextLessonGoal: newGoal,
                       },
+                      // 参加者ビューのキャッシュをクリア（次回アクセス時に再取得）
+                      participantReservationsMap: null,
+                      participantLessons: null,
                     },
                   });
                 }
