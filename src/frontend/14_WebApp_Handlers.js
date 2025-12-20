@@ -642,10 +642,18 @@ window.onload = function () {
             /** @param {ApiResponse} result */ result => {
               hideLoading();
               if (result.success) {
-                // 状態を更新
+                // 状態を更新（dispatchで永続化）
                 const state = handlersStateManager.getState();
                 if (state.currentUser) {
-                  state.currentUser['nextLessonGoal'] = newGoal;
+                  handlersStateManager.dispatch({
+                    type: 'UPDATE_STATE',
+                    payload: {
+                      currentUser: {
+                        ...state.currentUser,
+                        nextLessonGoal: newGoal,
+                      },
+                    },
+                  });
                 }
                 // 表示モードに切り替え＆テキスト更新
                 const displayMode =
