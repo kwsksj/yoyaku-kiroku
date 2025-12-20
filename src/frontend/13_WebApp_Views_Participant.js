@@ -62,6 +62,8 @@ const CLASSROOM_COLORS = {
  * @property {string} width - 列の幅（CSS grid用）
  * @property {string} [align] - テキスト配置（center, left, right）
  * @property {boolean} [adminOnly] - 管理者のみ表示
+ * @property {boolean} [pastOnly] - 過去表示のみ
+ * @property {boolean} [futureOnly] - 未来表示のみ
  * @property {(row: any) => string} [render] - カスタムレンダリング関数
  */
 
@@ -145,8 +147,19 @@ const PARTICIPANT_TABLE_COLUMNS = [
     width: '160px',
     align: 'left',
     adminOnly: false,
+    pastOnly: true, // 過去表示のみ（未来では非表示）
     render: /** @param {any} row */ row =>
       `<div class="text-xs ${row.sessionNote ? '' : 'text-gray-400 italic'}">${escapeHTML(row.sessionNote || '—')}</div>`,
+  },
+  {
+    key: 'nextLessonGoal',
+    label: 'けいかく・もくひょう',
+    width: '160px',
+    align: 'left',
+    adminOnly: false,
+    futureOnly: true, // 未来表示のみ（過去では非表示）
+    render: /** @param {any} row */ row =>
+      `<div class="text-xs ${row.nextLessonGoal ? '' : 'text-gray-400 italic'}">${escapeHTML(row.nextLessonGoal || '—')}</div>`,
   },
   {
     key: 'order',
@@ -335,12 +348,21 @@ export function getParticipantView() {
 // createBadge関数は削除 - Components.badge()を使用
 
 /**
- * 表示する列をフィルタリング（管理者権限に基づく）
+ * 表示する列をフィルタリング（管理者権限と表示モードに基づく）
  * @param {boolean} isAdmin - 管理者フラグ
+ * @param {boolean} showPastLessons - 過去表示フラグ
  * @returns {ParticipantColumnConfig[]} フィルタリングされた列定義
  */
-function getVisibleColumns(isAdmin) {
-  return PARTICIPANT_TABLE_COLUMNS.filter(col => !col.adminOnly || isAdmin);
+function getVisibleColumns(isAdmin, showPastLessons = false) {
+  return PARTICIPANT_TABLE_COLUMNS.filter(col => {
+    // 管理者専用カラムの判定
+    if (col.adminOnly && !isAdmin) return false;
+    // 過去表示のみのカラム
+    if (col.pastOnly && !showPastLessons) return false;
+    // 未来表示のみのカラム
+    if (col.futureOnly && showPastLessons) return false;
+    return true;
+  });
 }
 
 /**
@@ -362,7 +384,7 @@ function renderAccordionContent(
   }
 
   // 表示する列を取得
-  const visibleColumns = getVisibleColumns(isAdmin);
+  const visibleColumns = getVisibleColumns(isAdmin, showPastLessons);
   const gridTemplate = visibleColumns.map(col => col.width).join(' ');
 
   // データ行のみを生成（ヘッダーなし）
@@ -445,12 +467,12 @@ function renderLessonList(lessons) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 未来と過去のレッスンに分ける
+  // 未来と過去のレッスンに分ける（当日は過去に含める）
   const futureLessons = lessons
     .filter(l => {
       const lessonDate = new Date(l.date);
       lessonDate.setHours(0, 0, 0, 0);
-      return lessonDate >= today;
+      return lessonDate > today; // 当日を含まない（当日より後のみ）
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // 昇順
 
@@ -458,7 +480,7 @@ function renderLessonList(lessons) {
     .filter(l => {
       const lessonDate = new Date(l.date);
       lessonDate.setHours(0, 0, 0, 0);
-      return lessonDate < today;
+      return lessonDate <= today; // 当日を含む
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 降順
 
@@ -501,7 +523,7 @@ function renderLessonList(lessons) {
   });
 
   // 共通テーブルヘッダー（列定義から生成）
-  const visibleColumns = getVisibleColumns(isAdmin);
+  const visibleColumns = getVisibleColumns(isAdmin, showPastLessons);
   const gridTemplate = visibleColumns.map(col => col.width).join(' ');
   const tableHeaderHtml = Components.stickyTableHeader({
     headerId: 'participants-table-header',
