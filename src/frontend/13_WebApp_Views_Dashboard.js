@@ -190,12 +190,9 @@ export const getDashboardView = () => {
       <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">
         <!-- 表示モード -->
         <div id="goal-display-mode" class="${nextLessonGoal ? '' : 'hidden'}">
-          <div class="flex justify-between items-start mb-1">
-            <div class="flex-1 min-w-0"></div>
-            <button data-action="editGoal" class="text-sm text-action-secondary-text px-2 py-0.5 rounded-md active:bg-action-secondary-hover">へんしゅう</button>
-          </div>
-          <div class="bg-white/75 rounded p-2">
-            <p id="goal-display-text" class="text-base text-brand-text whitespace-pre-wrap">${escapeHTML(nextLessonGoal) || 'まだ設定されていません'}</p>
+          <div class="bg-white/75 rounded p-2 relative">
+            <p id="goal-display-text" class="text-base text-brand-text whitespace-pre-wrap pr-16 min-h-8">${escapeHTML(nextLessonGoal) || 'まだ設定されていません'}</p>
+            <button data-action="editGoal" class="absolute bottom-2 right-2 text-xs text-brand-subtle px-2 py-0.5 rounded border border-brand-subtle/30 hover:bg-brand-light active:bg-brand-light">へんしゅう</button>
           </div>
         </div>
         <!-- 編集モード -->
