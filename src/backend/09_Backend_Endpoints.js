@@ -1069,6 +1069,7 @@ export function getLessonsForParticipantsView(
             order: reservation.order || '',
             participationCount: participationCounts[reservation.studentId] || 0,
             futureCreations: studentData.futureCreations || '',
+            nextLessonGoal: studentData.nextLessonGoal || '', // けいかく・もくひょう
             companion: reservation.companion || '',
             transportation: reservation.transportation || '',
             pickup: reservation.pickup || '',
