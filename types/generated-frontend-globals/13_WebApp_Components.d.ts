@@ -89,7 +89,7 @@ export namespace Components {
         action: string;
     }): string;
     function listCard({ item, badges, editButtons, accountingButtons, type, isEditMode, showMemoSaveButton, }: ListCardConfig): string;
-    function placeholderCard({ title, badge, memoTitle, memoContent, dimmed, }: {
+    function placeholderCard({ title, badge, memoContent, dimmed, }: {
         title?: string;
         badge?: {
             type: BadgeType;
