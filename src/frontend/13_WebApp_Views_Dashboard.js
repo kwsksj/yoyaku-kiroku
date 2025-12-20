@@ -187,7 +187,7 @@ export const getDashboardView = () => {
   const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
   const goalCardContent = `
     <div class="w-full max-w-md mx-auto">
-      <div class="bg-card-booking p-2 rounded-lg shadow-sm">
+      <div class="${DesignConfig.cards.state.booked.card} p-2 rounded-lg">
         <!-- 表示モード -->
         <div id="goal-display-mode" class="${nextLessonGoal ? '' : 'hidden'}">
           <div class="flex justify-between items-start mb-1">
