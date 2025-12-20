@@ -45,6 +45,15 @@ export function changeReservationDateAndGetLatestData(newReservationData: Reserv
  */
 export function updateReservationMemoAndGetLatestData(reservationId: string, studentId: string, newMemo: string): ApiResponseGeneric;
 /**
+ * 生徒のけいかく・もくひょうを更新する
+ * @param {{ studentId: string, nextLessonGoal: string }} payload - 更新内容
+ * @returns {ApiResponse} 処理結果
+ */
+export function updateNextLessonGoal(payload: {
+    studentId: string;
+    nextLessonGoal: string;
+}): ApiResponse;
+/**
  * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ

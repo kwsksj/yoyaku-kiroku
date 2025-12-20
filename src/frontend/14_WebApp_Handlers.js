@@ -21,21 +21,21 @@
 // UI系モジュール
 // ================================================================
 import {
-    generateAccountingView,
-    getPaymentInfoHtml,
+  generateAccountingView,
+  getPaymentInfoHtml,
 } from './12-2_Accounting_UI.js';
 import { Components } from './13_WebApp_Components.js';
 import {
-    getEditProfileView,
-    getLoginView,
-    getRegisterView,
-    getRegistrationStep2View,
-    getRegistrationStep3View,
-    getRegistrationStep4View,
+  getEditProfileView,
+  getLoginView,
+  getRegisterView,
+  getRegistrationStep2View,
+  getRegistrationStep3View,
+  getRegistrationStep4View,
 } from './13_WebApp_Views_Auth.js';
 import {
-    getBookingView,
-    getReservationFormView,
+  getBookingView,
+  getReservationFormView,
 } from './13_WebApp_Views_Booking.js';
 import { getDashboardView } from './13_WebApp_Views_Dashboard.js';
 import { getParticipantView } from './13_WebApp_Views_Participant.js';
@@ -45,22 +45,22 @@ import { getCompleteView } from './13_WebApp_Views_Utils.js';
 // ハンドラ系モジュール
 // ================================================================
 import {
-    closePaymentConfirmModal,
-    handleProcessPayment,
-    initializePaymentMethodUI,
-    processAccountingPayment,
-    setupAccountingEventListeners,
-    updateAccountingCalculation,
+  closePaymentConfirmModal,
+  handleProcessPayment,
+  initializePaymentMethodUI,
+  processAccountingPayment,
+  setupAccountingEventListeners,
+  updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
 import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
 import {
-    getCurrentSessionConclusionView,
-    sessionConclusionActionHandlers,
-    setupSessionConclusionUI,
-    startSessionConclusion,
+  getCurrentSessionConclusionView,
+  sessionConclusionActionHandlers,
+  setupSessionConclusionUI,
+  startSessionConclusion,
 } from './14_WebApp_Handlers_SessionConclusion.js';
 
 // ================================================================
@@ -68,16 +68,16 @@ import {
 // ================================================================
 import { calculateAccountingTotal } from './12-1_Accounting_Calculation.js';
 import {
-    collectAccountingFormData,
-    initializeAccountingSystem,
-    saveAccountingCache,
+  collectAccountingFormData,
+  initializeAccountingSystem,
+  saveAccountingCache,
 } from './12-4_Accounting_Utilities.js';
 import { findReservationById } from './12_WebApp_Core_Search.js';
 import {
-    handlePhoneInputFormatting,
-    isCurrentUserAdmin,
-    isDateToday,
-    refreshParticipantsViewForAdmin,
+  handlePhoneInputFormatting,
+  isCurrentUserAdmin,
+  isDateToday,
+  refreshParticipantsViewForAdmin,
 } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
@@ -648,9 +648,11 @@ window.onload = function () {
                   state.currentUser['nextLessonGoal'] = newGoal;
                 }
                 // 表示モードに切り替え＆テキスト更新
-                const displayMode = document.getElementById('goal-display-mode');
+                const displayMode =
+                  document.getElementById('goal-display-mode');
                 const editMode = document.getElementById('goal-edit-mode');
-                const displayText = document.getElementById('goal-display-text');
+                const displayText =
+                  document.getElementById('goal-display-text');
                 if (displayMode && editMode) {
                   if (newGoal) {
                     displayMode.classList.remove('hidden');
