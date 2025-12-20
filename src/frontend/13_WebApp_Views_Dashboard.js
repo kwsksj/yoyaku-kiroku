@@ -69,8 +69,6 @@ export const getDashboardView = () => {
   const yourBookingsHtml = Components.dashboardSection({
     title: 'よやく',
     items: bookingCards,
-    showNewButton: true,
-    newAction: 'showClassroomModal',
   });
 
   // 履歴セクション用のカード配列を構築：完了ステータスのみ表示
@@ -138,14 +136,25 @@ export const getDashboardView = () => {
     style: 'primary',
     size: 'full',
   });
-  const summaryMenuButton = Components.button({
-    text: 'きょう の まとめ',
-    action: 'goToSessionConclusion',
-    style: 'accounting',
+
+  // 新規予約ボタン
+  const newBookingButton = Components.button({
+    text: 'あたらしく よやく する',
+    action: 'showClassroomModal',
+    style: 'secondary',
     size: 'full',
   });
 
-  // 今日の予約がある場合のみ会計フォールバックボタンを表示
+  // 今日の予約がある場合のみ表示するボタン
+  const summaryMenuButton = todayReservation
+    ? Components.button({
+        text: 'きょう の まとめ',
+        action: 'goToSessionConclusion',
+        style: 'accounting',
+        size: 'full',
+      })
+    : '';
+
   const accountingFallbackButton = todayReservation
     ? Components.button({
         text: 'かいけい のみ',
@@ -156,12 +165,20 @@ export const getDashboardView = () => {
       })
     : '';
 
+  // メニューアイテムを構築
+  const primaryMenuButtons = [menuButton, newBookingButton]
+    .filter(Boolean)
+    .join('');
+  const todayButtons = [summaryMenuButton, accountingFallbackButton]
+    .filter(Boolean)
+    .join('');
+
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
     items: [
-      `<div class="grid gap-2 sm:grid-cols-2">${menuButton}${summaryMenuButton}</div>`,
-      accountingFallbackButton
-        ? `<div class="mt-2">${accountingFallbackButton}</div>`
+      `<div class="grid gap-2 sm:grid-cols-2">${primaryMenuButtons}</div>`,
+      todayButtons
+        ? `<div class="grid gap-2 sm:grid-cols-2 mt-2">${todayButtons}</div>`
         : '',
     ].filter(Boolean),
   });
