@@ -189,8 +189,8 @@ export function startSessionConclusion(reservationId) {
     reservationSkipped: false,
     isWaitlistRequest: false,
     isLessonListExpanded: false,
-    sessionNoteToday: currentReservation.sessionNote || '',
-    nextLessonGoal: '',
+    sessionNoteToday: '', // 常に空でスタート（既存値をロードしない）
+    nextLessonGoal: '', // 常に空でスタート（既存値をロードしない）
     sessionNoteNext: '',
     nextStartTime: recommendedNextLesson?.firstStart || '',
     nextEndTime: recommendedNextLesson?.firstEnd || '',
