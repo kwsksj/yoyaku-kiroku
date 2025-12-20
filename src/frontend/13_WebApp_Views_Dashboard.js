@@ -139,7 +139,7 @@ export const getDashboardView = () => {
 
   // 新規予約ボタン
   const newBookingButton = Components.button({
-    text: 'あたらしく　よやくする',
+    text: 'あたらしく　よやく　する',
     action: 'showClassroomModal',
     style: 'secondary',
     size: 'full',
@@ -157,10 +157,10 @@ export const getDashboardView = () => {
 
   const accountingFallbackButton = todayReservation
     ? Components.button({
-        text: 'かいけい のみ',
+        text: 'かいけい のみ（まとめがうまく使えないとき用）',
         action: 'goToAccounting',
         style: 'secondary',
-        size: 'full',
+        size: 'small',
         dataAttributes: { reservationId: todayReservation.reservationId },
       })
     : '';
