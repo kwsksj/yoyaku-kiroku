@@ -246,6 +246,39 @@ export function updateReservationMemoAndGetLatestData(
 }
 
 /**
+ * 生徒のけいかく・もくひょうを更新する
+ * @param {{ studentId: string, nextLessonGoal: string }} payload - 更新内容
+ * @returns {ApiResponse} 処理結果
+ */
+export function updateNextLessonGoal(payload) {
+  try {
+    const { studentId, nextLessonGoal } = payload;
+    if (!studentId) {
+      return { success: false, message: '生徒IDが指定されていません。' };
+    }
+
+    // updateStudentField を使用して生徒名簿を更新
+    const result = updateStudentField(
+      studentId,
+      CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL,
+      nextLessonGoal || '',
+    );
+
+    if (!result) {
+      return { success: false, message: '更新に失敗しました。' };
+    }
+
+    Logger.log(
+      `[updateNextLessonGoal] 成功: studentId=${studentId}, goal=${nextLessonGoal}`,
+    );
+    return { success: true, message: 'けいかく・もくひょうを更新しました。' };
+  } catch (error) {
+    Logger.log(`[updateNextLessonGoal] エラー: ${error.message}`);
+    return { success: false, message: `更新に失敗しました: ${error.message}` };
+  }
+}
+
+/**
  * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ

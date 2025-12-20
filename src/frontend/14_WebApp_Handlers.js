@@ -21,21 +21,21 @@
 // UI系モジュール
 // ================================================================
 import {
-  generateAccountingView,
-  getPaymentInfoHtml,
+    generateAccountingView,
+    getPaymentInfoHtml,
 } from './12-2_Accounting_UI.js';
 import { Components } from './13_WebApp_Components.js';
 import {
-  getEditProfileView,
-  getLoginView,
-  getRegisterView,
-  getRegistrationStep2View,
-  getRegistrationStep3View,
-  getRegistrationStep4View,
+    getEditProfileView,
+    getLoginView,
+    getRegisterView,
+    getRegistrationStep2View,
+    getRegistrationStep3View,
+    getRegistrationStep4View,
 } from './13_WebApp_Views_Auth.js';
 import {
-  getBookingView,
-  getReservationFormView,
+    getBookingView,
+    getReservationFormView,
 } from './13_WebApp_Views_Booking.js';
 import { getDashboardView } from './13_WebApp_Views_Dashboard.js';
 import { getParticipantView } from './13_WebApp_Views_Participant.js';
@@ -45,22 +45,22 @@ import { getCompleteView } from './13_WebApp_Views_Utils.js';
 // ハンドラ系モジュール
 // ================================================================
 import {
-  closePaymentConfirmModal,
-  handleProcessPayment,
-  initializePaymentMethodUI,
-  processAccountingPayment,
-  setupAccountingEventListeners,
-  updateAccountingCalculation,
+    closePaymentConfirmModal,
+    handleProcessPayment,
+    initializePaymentMethodUI,
+    processAccountingPayment,
+    setupAccountingEventListeners,
+    updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
 import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
 import {
-  getCurrentSessionConclusionView,
-  sessionConclusionActionHandlers,
-  setupSessionConclusionUI,
-  startSessionConclusion,
+    getCurrentSessionConclusionView,
+    sessionConclusionActionHandlers,
+    setupSessionConclusionUI,
+    startSessionConclusion,
 } from './14_WebApp_Handlers_SessionConclusion.js';
 
 // ================================================================
@@ -68,16 +68,16 @@ import {
 // ================================================================
 import { calculateAccountingTotal } from './12-1_Accounting_Calculation.js';
 import {
-  collectAccountingFormData,
-  initializeAccountingSystem,
-  saveAccountingCache,
+    collectAccountingFormData,
+    initializeAccountingSystem,
+    saveAccountingCache,
 } from './12-4_Accounting_Utilities.js';
 import { findReservationById } from './12_WebApp_Core_Search.js';
 import {
-  handlePhoneInputFormatting,
-  isCurrentUserAdmin,
-  isDateToday,
-  refreshParticipantsViewForAdmin,
+    handlePhoneInputFormatting,
+    isCurrentUserAdmin,
+    isDateToday,
+    refreshParticipantsViewForAdmin,
 } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
@@ -585,6 +585,101 @@ window.onload = function () {
     ...(typeof sessionConclusionActionHandlers !== 'undefined'
       ? sessionConclusionActionHandlers
       : {}),
+
+    // =================================================================
+    // --- Goal Editing Handlers (けいかく・もくひょう) ---
+    // -----------------------------------------------------------------
+
+    /** けいかく・もくひょうの編集モードに切り替え */
+    editGoal: () => {
+      const displayMode = document.getElementById('goal-display-mode');
+      const editMode = document.getElementById('goal-edit-mode');
+      if (displayMode && editMode) {
+        displayMode.classList.add('hidden');
+        editMode.classList.remove('hidden');
+        const textarea = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('goal-edit-textarea')
+        );
+        if (textarea) {
+          textarea.focus();
+        }
+      }
+    },
+
+    /** けいかく・もくひょうの編集をキャンセル */
+    cancelEditGoal: () => {
+      const displayMode = document.getElementById('goal-display-mode');
+      const editMode = document.getElementById('goal-edit-mode');
+      if (displayMode && editMode) {
+        displayMode.classList.remove('hidden');
+        editMode.classList.add('hidden');
+      }
+    },
+
+    /** けいかく・もくひょうを保存 */
+    saveGoal: () => {
+      const textarea = /** @type {HTMLTextAreaElement | null} */ (
+        document.getElementById('goal-edit-textarea')
+      );
+      if (!textarea) {
+        console.error('ゴールテキストエリアが見つかりません');
+        return;
+      }
+
+      const newGoal = textarea.value.trim();
+      const studentId = handlersStateManager.getState().currentUser?.studentId;
+      if (!studentId) {
+        showInfo('ユーザー情報が見つかりません。', 'エラー');
+        return;
+      }
+
+      // ローディング表示
+      showLoading('goal');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(
+            /** @param {ApiResponse} result */ result => {
+              hideLoading();
+              if (result.success) {
+                // 状態を更新
+                const state = handlersStateManager.getState();
+                if (state.currentUser) {
+                  state.currentUser['nextLessonGoal'] = newGoal;
+                }
+                // 表示モードに切り替え＆テキスト更新
+                const displayMode = document.getElementById('goal-display-mode');
+                const editMode = document.getElementById('goal-edit-mode');
+                const displayText = document.getElementById('goal-display-text');
+                if (displayMode && editMode) {
+                  if (newGoal) {
+                    displayMode.classList.remove('hidden');
+                    editMode.classList.add('hidden');
+                    if (displayText) {
+                      displayText.textContent = newGoal;
+                    }
+                  } else {
+                    // 空の場合は編集モードのまま
+                    displayMode.classList.add('hidden');
+                    editMode.classList.remove('hidden');
+                  }
+                }
+                showInfo('けいかく・もくひょうを保存しました。', 'success');
+              } else {
+                showInfo(result.message || '保存に失敗しました。', 'エラー');
+              }
+            },
+          )
+          .withFailureHandler(
+            /** @param {Error} error */ error => {
+              hideLoading();
+              console.error('ゴール保存エラー:', error);
+              showInfo(`保存に失敗しました: ${error.message}`, 'エラー');
+            },
+          )
+          .updateNextLessonGoal({ studentId, nextLessonGoal: newGoal });
+      }
+    },
 
     // =================================================================
     // --- Accounting Handlers (整理済み) ---

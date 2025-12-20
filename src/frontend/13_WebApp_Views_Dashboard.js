@@ -183,20 +183,48 @@ export const getDashboardView = () => {
     ].filter(Boolean),
   });
 
-  // けいかく・もくひょうセクション（生徒名簿から取得）
+  // けいかく・もくひょうセクション（生徒名簿から取得、編集可能）
   const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
-  const goalSectionHtml = nextLessonGoal
-    ? Components.dashboardSection({
-        title: 'けいかく・もくひょう',
-        items: [
-          `<div class="w-full max-w-md mx-auto">
-            <div class="bg-white/75 rounded p-2">
-              <p class="text-base text-brand-text whitespace-pre-wrap">${escapeHTML(nextLessonGoal)}</p>
+  const goalCardContent = `
+    <div class="w-full max-w-md mx-auto">
+      <div class="bg-card-booking p-2 rounded-lg shadow-sm">
+        <!-- 表示モード -->
+        <div id="goal-display-mode" class="${nextLessonGoal ? '' : 'hidden'}">
+          <div class="flex justify-between items-start mb-1">
+            <div class="flex-1 min-w-0"></div>
+            <button data-action="editGoal" class="text-sm text-action-secondary-text px-2 py-0.5 rounded-md active:bg-action-secondary-hover">へんしゅう</button>
+          </div>
+          <div class="bg-white/75 rounded p-2">
+            <p id="goal-display-text" class="text-base text-brand-text whitespace-pre-wrap">${escapeHTML(nextLessonGoal) || 'まだ設定されていません'}</p>
+          </div>
+        </div>
+        <!-- 編集モード -->
+        <div id="goal-edit-mode" class="${nextLessonGoal ? 'hidden' : ''}">
+          <div class="bg-white/75 rounded p-2">
+            <textarea
+              id="goal-edit-textarea"
+              class="${DesignConfig.inputs.textarea} min-h-14 w-full px-1"
+              rows="3"
+              placeholder="つくりたいもの、けいかく、もくひょう など"
+            >${escapeHTML(nextLessonGoal)}</textarea>
+            <div class="flex justify-end mt-2 gap-2">
+              ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>` : ''}
+              ${Components.button({
+                action: 'saveGoal',
+                text: 'ほぞん',
+                style: 'primary',
+                size: 'small',
+              })}
             </div>
-          </div>`,
-        ],
-      })
-    : '';
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  const goalSectionHtml = Components.dashboardSection({
+    title: 'けいかく・もくひょう',
+    items: [goalCardContent],
+  });
 
   return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
