@@ -184,9 +184,19 @@ export const getDashboardView = () => {
   });
 
   // けいかく・もくひょうセクション（生徒名簿から取得）
-  const goalSectionHtml = Components.goalSection({
-    goal: currentUser?.['nextLessonGoal'] || '',
-  });
+  const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
+  const goalSectionHtml = nextLessonGoal
+    ? Components.dashboardSection({
+        title: 'けいかく・もくひょう',
+        items: [
+          `<div class="w-full max-w-md mx-auto">
+            <div class="bg-white/75 rounded p-2">
+              <p class="text-base text-brand-text whitespace-pre-wrap">${escapeHTML(nextLessonGoal)}</p>
+            </div>
+          </div>`,
+        ],
+      })
+    : '';
 
   return `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">

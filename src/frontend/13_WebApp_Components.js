@@ -1373,27 +1373,6 @@ export const Components = {
   },
 
   /**
-   * けいかく・もくひょうセクション（ダッシュボード用）
-   * @param {{goal: string}} config - 設定オブジェクト
-   * @returns {string} HTML文字列
-   */
-  goalSection: ({ goal }) => {
-    if (!goal || goal.trim() === '') {
-      return '';
-    }
-    return `
-      <div class="mb-8 max-w-md mx-auto">
-        <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg">
-          <h3 class="text-sm font-medium text-brand-subtle mb-2 text-center">けいかく・もくひょう</h3>
-          <div class="bg-white/75 rounded p-2">
-            <p class="text-base text-brand-text whitespace-pre-wrap">${escapeHTML(goal)}</p>
-          </div>
-        </div>
-      </div>
-    `;
-  },
-
-  /**
    * 統一カードレイアウト（予約・履歴共通）- 純粋描画層
    * @param {ListCardConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
