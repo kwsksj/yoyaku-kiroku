@@ -1382,10 +1382,12 @@ export const Components = {
       return '';
     }
     return `
-      <div class="mb-6 max-w-md mx-auto">
-        <div class="p-4 bg-brand-light rounded-lg border-2 border-brand-border">
-          <h3 class="text-sm font-medium text-brand-subtle mb-2">けいかく・もくひょう</h3>
-          <p class="text-base text-brand-text whitespace-pre-wrap">${escapeHTML(goal)}</p>
+      <div class="mb-8 max-w-md mx-auto">
+        <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg">
+          <h3 class="text-sm font-medium text-brand-subtle mb-2 text-center">けいかく・もくひょう</h3>
+          <div class="bg-white/75 rounded p-2">
+            <p class="text-base text-brand-text whitespace-pre-wrap">${escapeHTML(goal)}</p>
+          </div>
         </div>
       </div>
     `;
