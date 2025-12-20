@@ -99,7 +99,7 @@ export namespace Components {
         memoContent?: string;
         dimmed?: boolean;
     }): string;
-    function memoSection({ reservationId, workInProgress, isEditMode, showSaveButton, }: MemoSectionConfig): string;
+    function memoSection({ reservationId, sessionNote, isEditMode, showSaveButton, }: MemoSectionConfig): string;
     function salesSection({ master, reservationDetails }: {
         master: AccountingMasterItemCore[];
         reservationDetails: ReservationCore;

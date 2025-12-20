@@ -1325,8 +1325,8 @@ export function updateReservationDetails(details) {
 
       // ★ バグ修正: 材料情報が指定されている場合、制作メモに追記する
       if (details.materialInfo) {
-        const baseWip = updatedReservation.workInProgress || '';
-        updatedReservation.workInProgress =
+        const baseWip = updatedReservation.sessionNote || '';
+        updatedReservation.sessionNote =
           baseWip +
           (baseWip ? '\n' : '') + // 既存メモがあれば改行を挟む
           CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX +

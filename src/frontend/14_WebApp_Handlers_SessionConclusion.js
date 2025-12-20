@@ -43,9 +43,9 @@ let wizardState = /** @type {SessionConclusionState} */ ({
   existingFutureReservation: null,
   reservationSkipped: false,
   isLessonListExpanded: false,
-  workInProgressToday: '',
+  sessionNoteToday: '',
   nextLessonGoal: '',
-  workInProgressNext: '',
+  sessionNoteNext: '',
   nextStartTime: '',
   nextEndTime: '',
   classifiedItems: null,
@@ -189,9 +189,9 @@ export function startSessionConclusion(reservationId) {
     reservationSkipped: false,
     isWaitlistRequest: false,
     isLessonListExpanded: false,
-    workInProgressToday: currentReservation.workInProgress || '',
+    sessionNoteToday: currentReservation.sessionNote || '',
     nextLessonGoal: '',
-    workInProgressNext: '',
+    sessionNoteNext: '',
     nextStartTime: recommendedNextLesson?.firstStart || '',
     nextEndTime: recommendedNextLesson?.firstEnd || '',
     classifiedItems: classifiedItems,
@@ -277,7 +277,7 @@ function saveCurrentStepData() {
         document.getElementById('conclusion-work-progress-today')
       );
       if (wipInput) {
-        wizardState.workInProgressToday = wipInput.value;
+        wizardState.sessionNoteToday = wipInput.value;
       }
       break;
     }
@@ -441,7 +441,7 @@ async function finalizeConclusion() {
       studentId: currentUser.studentId,
       classroom: reservation.classroom,
       // 今日の記録
-      workInProgress: wizardState.workInProgressToday,
+      sessionNote: wizardState.sessionNoteToday,
       // 次回目標（生徒名簿に保存される）
       nextLessonGoal: wizardState.nextLessonGoal || null,
       // 会計データ（すべてのフィールドを展開）
@@ -482,7 +482,7 @@ async function finalizeConclusion() {
           endTime: wizardState.nextEndTime || nextLesson.firstEnd,
           user: currentUser,
           studentId: currentUser.studentId,
-          workInProgress: wizardState.workInProgressNext,
+          sessionNote: wizardState.sessionNoteNext,
           // ユーザーの期待（予約 or 空き通知）を追跡（完了画面で差異を表示するため）
           expectedWaitlist: wizardState.isWaitlistRequest,
         };

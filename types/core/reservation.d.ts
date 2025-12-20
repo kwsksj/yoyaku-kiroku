@@ -85,7 +85,7 @@ export interface ReservationCore extends AdminOperationParams {
   firstLecture?: boolean | undefined;
 
   /** 制作メモ */
-  workInProgress?: string | undefined;
+  sessionNote?: string | undefined;
 
   /** 材料情報 */
   materialInfo?: string | undefined;

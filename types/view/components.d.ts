@@ -352,7 +352,7 @@ export interface ListCardConfig {
  */
 export interface MemoSectionConfig {
   reservationId: string;
-  workInProgress?: string | null;
+  sessionNote?: string | null;
   isEditMode?: boolean;
   showSaveButton?: boolean;
 }

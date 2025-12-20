@@ -261,7 +261,7 @@ export const CONSTANTS = {
       FIRST_LECTURE: '初回',
       TRANSPORTATION: '来場手段',
       PICKUP: '送迎',
-      WORK_IN_PROGRESS: '制作メモ',
+      SEESSION_NOTE: 'セッションノート',
       ORDER: 'order',
       MESSAGE_TO_TEACHER: 'メッセージ',
       ACCOUNTING_DETAILS: '会計詳細',

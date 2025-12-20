@@ -25,12 +25,12 @@ import { getClassroomSelectionModal } from './13_WebApp_Views_Booking.js';
 import { getScheduleInfoFromCache } from './12_WebApp_Core_Data.js';
 import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 import {
-  getParticipantPayloadForAdminView,
-  getTimeValue,
-  isCurrentUserAdmin,
-  refreshParticipantsViewForAdmin,
-  updateAppStateFromCache,
-  updateParticipantViewCacheFromReservation,
+    getParticipantPayloadForAdminView,
+    getTimeValue,
+    isCurrentUserAdmin,
+    refreshParticipantsViewForAdmin,
+    updateAppStateFromCache,
+    updateParticipantViewCacheFromReservation,
 } from './14_WebApp_Handlers_Utils.js';
 
 const reservationStateManager = appWindow.stateManager;
@@ -299,7 +299,7 @@ export const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('option-first-lecture')
         )?.checked || isFirstTimeBooking,
-      workInProgress: combinedWip,
+      sessionNote: combinedWip,
       order:
         /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
           ?.value || '',
@@ -551,7 +551,7 @@ export const reservationActionHandlers = {
         )?.checked || false,
       startTime: startTime,
       endTime: endTime,
-      workInProgress: /** @type {HTMLInputElement} */ (
+      sessionNote: /** @type {HTMLInputElement} */ (
         document.getElementById('wip-input')
       ).value,
       order: /** @type {HTMLInputElement} */ (
@@ -1439,7 +1439,7 @@ export const reservationActionHandlers = {
             /** @type {HTMLInputElement | null} */ (
               document.getElementById('option-rental')
             )?.checked || false,
-          workInProgress:
+          sessionNote:
             /** @type {HTMLTextAreaElement | null} */ (
               document.getElementById('wip-input')
             )?.value || '',

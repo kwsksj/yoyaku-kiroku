@@ -479,7 +479,7 @@ export function transformReservationArrayToObject(resArray) {
     ,
     ,
     // 送迎をスキップ
-    workInProgress,
+    sessionNote,
     order,
     message, // 先生へのメッセージ
   ] = resArray;
@@ -506,7 +506,7 @@ export function transformReservationArrayToObject(resArray) {
     status: String(status || ''),
     chiselRental: Boolean(chiselRental),
     firstLecture: Boolean(firstLecture),
-    workInProgress: String(workInProgress || ''),
+    sessionNote: String(sessionNote || ''),
     order: String(order || ''),
     messageToTeacher: String(message || ''),
   };
@@ -638,8 +638,8 @@ export function transformReservationArrayToObjectWithHeaders(
         value === true || String(value).toUpperCase() === 'TRUE' || value == 1
       );
     })(),
-    workInProgress: String(
-      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS) || '',
+    sessionNote: String(
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.SEESSION_NOTE) || '',
     ),
     order: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.ORDER) || ''),
     messageToTeacher: String(
@@ -687,8 +687,8 @@ export function normalizeReservationObject(rawReservation) {
       status: String(rawReservation['status'] || ''),
       chiselRental: Boolean(rawReservation['chiselRental']),
       firstLecture: Boolean(rawReservation['firstLecture']),
-      workInProgress: rawReservation['workInProgress']
-        ? String(rawReservation['workInProgress'])
+      sessionNote: rawReservation['sessionNote']
+        ? String(rawReservation['sessionNote'])
         : undefined,
       order: rawReservation['order']
         ? String(rawReservation['order'])
@@ -1229,8 +1229,8 @@ export function convertReservationToRow(reservation, headerMap, header) {
     reservation.chiselRental ? 'TRUE' : '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]] =
     reservation.firstLecture ? 'TRUE' : '';
-  row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]] =
-    reservation.workInProgress || '';
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.SEESSION_NOTE]] =
+    reservation.sessionNote || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]] = reservation.order || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]] =
     reservation.messageToTeacher || '';
@@ -1436,12 +1436,12 @@ export function updateStudentField(studentId, headerName, value) {
 
 /**
  * 【一時的なマイグレーション関数】
- * 未来の予約のworkInProgressを生徒名簿の次回目標に移植し、予約の制作メモをクリアする。
+ * 未来の予約のsessionNoteを生徒名簿の次回目標に移植し、予約の制作メモをクリアする。
  * スプレッドシートエディタから直接実行してください。
  * @returns {void}
  */
-export function migrateWorkInProgressToNextGoal() {
-  Logger.log('[migrateWorkInProgressToNextGoal] マイグレーション開始');
+export function migratesessionNoteToNextGoal() {
+  Logger.log('[migratesessionNoteToNextGoal] マイグレーション開始');
 
   const reservationsSheet = SS_MANAGER.getSheet(
     CONSTANTS.SHEET_NAMES.RESERVATIONS,
@@ -1449,7 +1449,7 @@ export function migrateWorkInProgressToNextGoal() {
   const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
 
   if (!reservationsSheet || !rosterSheet) {
-    Logger.log('[migrateWorkInProgressToNextGoal] シートが見つかりません');
+    Logger.log('[migratesessionNoteToNextGoal] シートが見つかりません');
     return;
   }
 
@@ -1468,7 +1468,7 @@ export function migrateWorkInProgressToNextGoal() {
   const dateCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE);
   const statusCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
   const wipCol = resHeaderMap.get(
-    CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS,
+    CONSTANTS.HEADERS.RESERVATIONS.SEESSION_NOTE,
   );
 
   if (
@@ -1478,7 +1478,7 @@ export function migrateWorkInProgressToNextGoal() {
     wipCol === undefined
   ) {
     Logger.log(
-      '[migrateWorkInProgressToNextGoal] 必要なカラムが見つかりません',
+      '[migratesessionNoteToNextGoal] 必要なカラムが見つかりません',
     );
     return;
   }
@@ -1498,7 +1498,7 @@ export function migrateWorkInProgressToNextGoal() {
 
   if (rosterStudentIdCol === undefined || nextGoalCol === undefined) {
     Logger.log(
-      '[migrateWorkInProgressToNextGoal] 名簿の必要なカラムが見つかりません',
+      '[migratesessionNoteToNextGoal] 名簿の必要なカラムが見つかりません',
     );
     return;
   }
@@ -1524,7 +1524,7 @@ export function migrateWorkInProgressToNextGoal() {
     const studentId = row[studentIdCol];
     const dateValue = row[dateCol];
     const status = row[statusCol];
-    const workInProgress = row[wipCol];
+    const sessionNote = row[wipCol];
 
     // 日付をパース
     const reservationDate =
@@ -1540,14 +1540,14 @@ export function migrateWorkInProgressToNextGoal() {
       status === CONSTANTS.STATUS.WAITLISTED;
 
     // 制作メモがあるか
-    const hasWorkInProgress =
-      workInProgress && String(workInProgress).trim() !== '';
+    const hassessionNote =
+      sessionNote && String(sessionNote).trim() !== '';
 
-    if (isFuture && isValidStatus && hasWorkInProgress) {
+    if (isFuture && isValidStatus && hassessionNote) {
       const studentRowIndex = studentRowMap.get(studentId);
       if (!studentRowIndex) {
         Logger.log(
-          `[migrateWorkInProgressToNextGoal] 生徒が見つかりません: ${studentId}`,
+          `[migratesessionNoteToNextGoal] 生徒が見つかりません: ${studentId}`,
         );
         continue;
       }
@@ -1555,19 +1555,19 @@ export function migrateWorkInProgressToNextGoal() {
       // 1. 生徒名簿の次回目標に保存
       rosterSheet
         .getRange(studentRowIndex, nextGoalCol + 1)
-        .setValue(workInProgress);
+        .setValue(sessionNote);
 
       // 2. 予約の制作メモをクリア
       reservationsSheet.getRange(i + 1, wipCol + 1).setValue('');
 
       Logger.log(
-        `[migrateWorkInProgressToNextGoal] 移植完了: studentId=${studentId}, date=${reservationDate.toISOString().split('T')[0]}, wip="${workInProgress}"`,
+        `[migratesessionNoteToNextGoal] 移植完了: studentId=${studentId}, date=${reservationDate.toISOString().split('T')[0]}, wip="${sessionNote}"`,
       );
       migratedCount++;
     }
   }
 
   Logger.log(
-    `[migrateWorkInProgressToNextGoal] マイグレーション完了: ${migratedCount}件を移植しました`,
+    `[migratesessionNoteToNextGoal] マイグレーション完了: ${migratedCount}件を移植しました`,
   );
 }

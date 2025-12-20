@@ -140,13 +140,13 @@ const PARTICIPANT_TABLE_COLUMNS = [
     },
   },
   {
-    key: 'workInProgress',
+    key: 'sessionNote',
     label: '制作メモ',
     width: '160px',
     align: 'left',
     adminOnly: false,
     render: /** @param {any} row */ row =>
-      `<div class="text-xs ${row.workInProgress ? '' : 'text-gray-400 italic'}">${escapeHTML(row.workInProgress || '—')}</div>`,
+      `<div class="text-xs ${row.sessionNote ? '' : 'text-gray-400 italic'}">${escapeHTML(row.sessionNote || '—')}</div>`,
   },
   {
     key: 'order',
@@ -1137,7 +1137,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
                 ${statusBadge}
               </div>
               ${res.venue ? `<div class="text-xs text-gray-600">${escapeHTML(res.venue)}</div>` : ''}
-              ${res.workInProgress ? `<div class="text-xs mt-1">${escapeHTML(res.workInProgress)}</div>` : ''}
+              ${res.sessionNote ? `<div class="text-xs mt-1">${escapeHTML(res.sessionNote)}</div>` : ''}
             </div>
           `;
             },

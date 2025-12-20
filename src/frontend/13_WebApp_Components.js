@@ -1450,7 +1450,7 @@ export const Components = {
     // 制作メモ表示（予約・履歴共通） - 編集モード対応
     const memoSection = Components.memoSection({
       reservationId: item.reservationId,
-      workInProgress: item.workInProgress || '',
+      sessionNote: item.sessionNote || '',
       isEditMode: isEditMode, // パラメータで制御
       showSaveButton: showMemoSaveButton, // 保存ボタン表示制御
     });
@@ -1529,7 +1529,7 @@ export const Components = {
    */
   memoSection: ({
     reservationId,
-    workInProgress,
+    sessionNote,
     isEditMode = false,
     showSaveButton = true,
   }) => {
@@ -1557,7 +1557,7 @@ export const Components = {
             rows="4"
             placeholder="制作内容や進捗をメモしてね"
             data-reservation-id="${reservationId}"
-          >${escapeHTML(workInProgress || '')}</textarea>
+          >${escapeHTML(sessionNote || '')}</textarea>
           ${saveButtonHtml}
         </div>
       `;
@@ -1565,7 +1565,7 @@ export const Components = {
       // 通常モード：読み取り専用表示
       return `
         <div class="p-0.5 bg-white/75">
-          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(workInProgress || '')}</p>
+          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(sessionNote || '')}</p>
         </div>
       `;
     }

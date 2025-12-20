@@ -158,7 +158,7 @@ export function processAccountingWithTransferOption(formData: any, calculationRe
 }>;
 /**
  * セッション終了ウィザードの統合処理エンドポイント
- * 1. 今日の記録（workInProgress）を更新
+ * 1. 今日の記録（sessionNote）を更新
  * 2. 会計処理を実行
  * 3. オプションで次回予約を作成
  *

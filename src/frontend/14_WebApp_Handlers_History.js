@@ -50,7 +50,7 @@ export const historyActionHandlers = {
     if (!item) return;
 
     // 編集モード開始（メモの初期値を設定）
-    const currentMemo = item.workInProgress || '';
+    const currentMemo = item.sessionNote || '';
     if (d.reservationId) {
       historyStateManager.startEditMode(d.reservationId, currentMemo);
     }
@@ -105,7 +105,7 @@ export const historyActionHandlers = {
     const newReservations = state.myReservations.map(
       (/** @type {ReservationCore} */ h) => {
         if (h.reservationId === d.reservationId) {
-          return { ...h, workInProgress: newMemo };
+          return { ...h, sessionNote: newMemo };
         }
         return h;
       },

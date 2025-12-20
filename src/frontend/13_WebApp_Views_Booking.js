@@ -226,7 +226,7 @@ export const getReservationFormView = () => {
   const {
     firstLecture,
     chiselRental,
-    workInProgress,
+    sessionNote,
     materialInfo,
     order,
     messageToTeacher,
@@ -432,7 +432,7 @@ export const getReservationFormView = () => {
         : '';
     return `
         <div class="mt-4 pt-4 border-t-2 space-y-4">
-          ${Components.textarea({ id: 'wip-input', label: autoFirstTime && !isEdit ? '今回つくりたいもの/やりたいこと' : 'つくりたいもの/やりたいこと/作業予定', placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！', value: workInProgress || '' })}
+          ${Components.textarea({ id: 'wip-input', label: autoFirstTime && !isEdit ? '今回つくりたいもの/やりたいこと' : 'つくりたいもの/やりたいこと/作業予定', placeholder: 'あとからでも記入できます。当日に相談でも大丈夫！', value: sessionNote || '' })}
           ${Components.textarea({ id: 'material-input', label: '材料のサイズや樹種の希望', placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
         </div>
         <div class="mt-4 pt-4 border-t-2 space-y-4">

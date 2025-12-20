@@ -514,7 +514,7 @@ export function generateAccountingReservationCard(reservationData) {
       endTime: reservationData.endTime || '',
       classroom: reservationData.classroom || '',
       venue: reservationData.venue || '',
-      workInProgress: reservationData.workInProgress || '',
+      sessionNote: reservationData.sessionNote || '',
     },
     badges: [], // ステータスバッジは表示しない
     editButtons: [], // 編集ボタンは表示しない

@@ -598,7 +598,7 @@ export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
   // 新しいメモセクションHTMLを生成
   const newMemoSection = Components.memoSection({
     reservationId: historyItem.reservationId,
-    workInProgress: historyItem.workInProgress || '',
+    sessionNote: historyItem.sessionNote || '',
     isEditMode: isInEditMode,
     showSaveButton: true,
   });

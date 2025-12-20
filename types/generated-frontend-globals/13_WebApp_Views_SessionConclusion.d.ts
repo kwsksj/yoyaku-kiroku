@@ -8,9 +8,9 @@
  * @property {boolean} reservationSkipped - 「いまはきめない」を選択
  * @property {boolean} isWaitlistRequest - 空き通知希望として選択
  * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
- * @property {string} workInProgressToday - 今日の制作メモ
+ * @property {string} sessionNoteToday - 今日の制作メモ
  * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
- * @property {string} workInProgressNext - 次回予約へのメッセージ
+ * @property {string} sessionNoteNext - 次回予約へのメッセージ
  * @property {string} nextStartTime - 次回開始時間
  * @property {string} nextEndTime - 次回終了時間
  * @property {ClassifiedAccountingItemsCore | null} classifiedItems - 会計項目
@@ -101,7 +101,7 @@ export type SessionConclusionState = {
     /**
      * - 今日の制作メモ
      */
-    workInProgressToday: string;
+    sessionNoteToday: string;
     /**
      * - 次回やりたいこと（生徒名簿に保存）
      */
@@ -109,7 +109,7 @@ export type SessionConclusionState = {
     /**
      * - 次回予約へのメッセージ
      */
-    workInProgressNext: string;
+    sessionNoteNext: string;
     /**
      * - 次回開始時間
      */

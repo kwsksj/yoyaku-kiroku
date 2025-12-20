@@ -540,8 +540,8 @@ function _buildReservationContentSectionLines(
     lines.push(`先生へのメッセージ: ${reservation.messageToTeacher}`);
   }
 
-  if (reservation.workInProgress) {
-    lines.push(`制作メモ: ${reservation.workInProgress}`);
+  if (reservation.sessionNote) {
+    lines.push(`制作メモ: ${reservation.sessionNote}`);
   }
 
   if (reservation.materialInfo) {

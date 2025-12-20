@@ -24,12 +24,12 @@
 // UI系モジュール
 // ================================================================
 import {
-  generateCustomSalesRow,
-  generateMaterialRow,
-  generateProductRow,
-  getPaymentInfoHtml,
-  getPaymentOptionsHtml,
-  ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS,
+    ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS,
+    generateCustomSalesRow,
+    generateMaterialRow,
+    generateProductRow,
+    getPaymentInfoHtml,
+    getPaymentOptionsHtml,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 
@@ -37,13 +37,13 @@ import { Components, escapeHTML } from './13_WebApp_Components.js';
 // ユーティリティ系モジュール
 // ================================================================
 import {
-  calculateAccountingTotal,
-  calculateTimeUnits,
+    calculateAccountingTotal,
+    calculateTimeUnits,
 } from './12-1_Accounting_Calculation.js';
 import {
-  clearAccountingCache,
-  collectAccountingFormData,
-  saveAccountingCache,
+    clearAccountingCache,
+    collectAccountingFormData,
+    saveAccountingCache,
 } from './12-4_Accounting_Utilities.js';
 
 // ================================================================================
@@ -1515,7 +1515,7 @@ export function processAccountingPayment(formData, result) {
     const reservationWithAccounting = {
       ...selectedReservation, // 既存の予約情報
       accountingDetails: calculatedAccountingDetails, // 計算した会計詳細
-      workInProgress: formData.workInProgress, // フォームから更新された制作メモ
+      sessionNote: formData.sessionNote, // フォームから更新された制作メモ
       startTime: formData.startTime, // フォームから更新された時間
       endTime: formData.endTime,
       _isByAdmin: state.currentUser?.isAdmin || false, // 管理者フラグを注入（backendで日付チェック回避に使用）

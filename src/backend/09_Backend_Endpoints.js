@@ -238,7 +238,7 @@ export function updateReservationMemoAndGetLatestData(
     {
       reservationId,
       studentId,
-      workInProgress: newMemo, // 制作メモのみを更新
+      sessionNote: newMemo, // 制作メモのみを更新
     },
     studentId,
     '制作メモを更新しました。',
@@ -1032,7 +1032,7 @@ export function getLessonsForParticipantsView(
             displayName: publicDisplayName,
             firstLecture: reservation.firstLecture || false,
             chiselRental: reservation.chiselRental || false,
-            workInProgress: reservation.workInProgress || '',
+            sessionNote: reservation.sessionNote || '',
             order: reservation.order || '',
             participationCount: participationCounts[reservation.studentId] || 0,
             futureCreations: studentData.futureCreations || '',
@@ -1217,7 +1217,7 @@ export function getReservationsForLesson(lessonId, studentId) {
         displayName: publicDisplayName,
         firstLecture: reservation.firstLecture || false,
         chiselRental: reservation.chiselRental || false,
-        workInProgress: reservation.workInProgress || '',
+        sessionNote: reservation.sessionNote || '',
         order: reservation.order || '',
       };
 
@@ -1346,7 +1346,7 @@ export function getStudentDetailsForParticipantsView(
           startTime: reservation.startTime || '',
           endTime: reservation.endTime || '',
           status: reservation.status,
-          workInProgress: reservation.workInProgress || '',
+          sessionNote: reservation.sessionNote || '',
           // ソート用の内部フィールド
           _dateObj: new Date(reservation.date || lesson?.date || ''),
         };
@@ -1537,7 +1537,7 @@ export function processAccountingWithTransferOption(
 
 /**
  * セッション終了ウィザードの統合処理エンドポイント
- * 1. 今日の記録（workInProgress）を更新
+ * 1. 今日の記録（sessionNote）を更新
  * 2. 会計処理を実行
  * 3. オプションで次回予約を作成
  *
@@ -1552,12 +1552,12 @@ export function processSessionConclusion(payload, nextReservationPayload) {
         `[processSessionConclusion] 開始: reservationId=${payload.reservationId}`,
       );
 
-      // 1. 今日の予約の workInProgress を更新
+      // 1. 今日の予約の sessionNote を更新
       const memoUpdatePayload = /** @type {ReservationCore} */ (
         /** @type {any} */ ({
           reservationId: payload.reservationId,
           studentId: payload.studentId,
-          workInProgress: payload.workInProgress || '',
+          sessionNote: payload.sessionNote || '',
         })
       );
       const memoResult = updateReservationDetails(memoUpdatePayload);
