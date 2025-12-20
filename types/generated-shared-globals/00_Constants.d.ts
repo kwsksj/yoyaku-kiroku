@@ -163,7 +163,7 @@ export namespace CONSTANTS {
             export let FIRST_LECTURE: string;
             export let TRANSPORTATION: string;
             export let PICKUP: string;
-            export let SEESSION_NOTE: string;
+            export let SESSION_NOTE: string;
             export let ORDER: string;
             export let MESSAGE_TO_TEACHER: string;
             export let ACCOUNTING_DETAILS: string;

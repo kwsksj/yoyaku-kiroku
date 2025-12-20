@@ -8,8 +8,8 @@
  * @property {boolean} reservationSkipped - 「いまはきめない」を選択
  * @property {boolean} isWaitlistRequest - 空き通知希望として選択
  * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
- * @property {string} sessionNoteToday - 今日の制作メモ
- * @property {string} nextLessonGoal - 次回やりたいこと（生徒名簿に保存）
+ * @property {string} sessionNoteToday - 今日のきろく（セッションノート）
+ * @property {string} nextLessonGoal - けいかく・もくひょう（生徒名簿に保存）
  * @property {string} sessionNoteNext - 次回予約へのメッセージ
  * @property {string} nextStartTime - 次回開始時間
  * @property {string} nextEndTime - 次回終了時間
@@ -29,7 +29,7 @@ export function renderWizardProgressBar(currentStep: number): string;
  */
 export function renderStep1Record(state: SessionConclusionState): string;
 /**
- * ステップ2A: 次回やりたいこと入力画面を生成
+ * ステップ2A: けいかく・もくひょう入力画面を生成
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
@@ -99,11 +99,11 @@ export type SessionConclusionState = {
      */
     isLessonListExpanded: boolean;
     /**
-     * - 今日の制作メモ
+     * - 今日のきろく（セッションノート）
      */
     sessionNoteToday: string;
     /**
-     * - 次回やりたいこと（生徒名簿に保存）
+     * - けいかく・もくひょう（生徒名簿に保存）
      */
     nextLessonGoal: string;
     /**

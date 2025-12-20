@@ -88,6 +88,9 @@ export namespace Components {
     function newReservationCard({ action }: ComponentConfig & {
         action: string;
     }): string;
+    function goalSection({ goal }: {
+        goal: string;
+    }): string;
     function listCard({ item, badges, editButtons, accountingButtons, type, isEditMode, showMemoSaveButton, }: ListCardConfig): string;
     function placeholderCard({ title, badge, memoContent, dimmed, }: {
         title?: string;

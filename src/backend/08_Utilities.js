@@ -639,7 +639,7 @@ export function transformReservationArrayToObjectWithHeaders(
       );
     })(),
     sessionNote: String(
-      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.SEESSION_NOTE) || '',
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.SESSION_NOTE) || '',
     ),
     order: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.ORDER) || ''),
     messageToTeacher: String(
@@ -1229,7 +1229,7 @@ export function convertReservationToRow(reservation, headerMap, header) {
     reservation.chiselRental ? 'TRUE' : '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]] =
     reservation.firstLecture ? 'TRUE' : '';
-  row[hm[CONSTANTS.HEADERS.RESERVATIONS.SEESSION_NOTE]] =
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.SESSION_NOTE]] =
     reservation.sessionNote || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]] = reservation.order || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]] =
@@ -1440,8 +1440,8 @@ export function updateStudentField(studentId, headerName, value) {
  * スプレッドシートエディタから直接実行してください。
  * @returns {void}
  */
-export function migratesessionNoteToNextGoal() {
-  Logger.log('[migratesessionNoteToNextGoal] マイグレーション開始');
+export function migrateSessionNoteToNextGoal() {
+  Logger.log('[migrateSessionNoteToNextGoal] マイグレーション開始');
 
   const reservationsSheet = SS_MANAGER.getSheet(
     CONSTANTS.SHEET_NAMES.RESERVATIONS,
@@ -1449,7 +1449,7 @@ export function migratesessionNoteToNextGoal() {
   const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
 
   if (!reservationsSheet || !rosterSheet) {
-    Logger.log('[migratesessionNoteToNextGoal] シートが見つかりません');
+    Logger.log('[migrateSessionNoteToNextGoal] シートが見つかりません');
     return;
   }
 
@@ -1467,9 +1467,7 @@ export function migratesessionNoteToNextGoal() {
   );
   const dateCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE);
   const statusCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
-  const wipCol = resHeaderMap.get(
-    CONSTANTS.HEADERS.RESERVATIONS.SEESSION_NOTE,
-  );
+  const wipCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.SESSION_NOTE);
 
   if (
     studentIdCol === undefined ||
@@ -1477,9 +1475,7 @@ export function migratesessionNoteToNextGoal() {
     statusCol === undefined ||
     wipCol === undefined
   ) {
-    Logger.log(
-      '[migratesessionNoteToNextGoal] 必要なカラムが見つかりません',
-    );
+    Logger.log('[migrateSessionNoteToNextGoal] 必要なカラムが見つかりません');
     return;
   }
 
@@ -1498,7 +1494,7 @@ export function migratesessionNoteToNextGoal() {
 
   if (rosterStudentIdCol === undefined || nextGoalCol === undefined) {
     Logger.log(
-      '[migratesessionNoteToNextGoal] 名簿の必要なカラムが見つかりません',
+      '[migrateSessionNoteToNextGoal] 名簿の必要なカラムが見つかりません',
     );
     return;
   }
@@ -1540,14 +1536,13 @@ export function migratesessionNoteToNextGoal() {
       status === CONSTANTS.STATUS.WAITLISTED;
 
     // 制作メモがあるか
-    const hassessionNote =
-      sessionNote && String(sessionNote).trim() !== '';
+    const hasSessionNote = sessionNote && String(sessionNote).trim() !== '';
 
-    if (isFuture && isValidStatus && hassessionNote) {
+    if (isFuture && isValidStatus && hasSessionNote) {
       const studentRowIndex = studentRowMap.get(studentId);
       if (!studentRowIndex) {
         Logger.log(
-          `[migratesessionNoteToNextGoal] 生徒が見つかりません: ${studentId}`,
+          `[migrateSessionNoteToNextGoal] 生徒が見つかりません: ${studentId}`,
         );
         continue;
       }
@@ -1561,13 +1556,13 @@ export function migratesessionNoteToNextGoal() {
       reservationsSheet.getRange(i + 1, wipCol + 1).setValue('');
 
       Logger.log(
-        `[migratesessionNoteToNextGoal] 移植完了: studentId=${studentId}, date=${reservationDate.toISOString().split('T')[0]}, wip="${sessionNote}"`,
+        `[migrateSessionNoteToNextGoal] 移植完了: studentId=${studentId}, date=${reservationDate.toISOString().split('T')[0]}, wip="${sessionNote}"`,
       );
       migratedCount++;
     }
   }
 
   Logger.log(
-    `[migratesessionNoteToNextGoal] マイグレーション完了: ${migratedCount}件を移植しました`,
+    `[migrateSessionNoteToNextGoal] マイグレーション完了: ${migratedCount}件を移植しました`,
   );
 }

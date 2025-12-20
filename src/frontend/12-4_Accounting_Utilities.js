@@ -27,9 +27,9 @@ import { generateAccountingView } from './12-2_Accounting_UI.js';
 // ハンドラ系モジュール
 // ================================================================
 import {
-    initializePaymentMethodUI,
-    setupAccountingEventListeners,
-    updateAccountingCalculation,
+  initializePaymentMethodUI,
+  setupAccountingEventListeners,
+  updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 
 // ================================================================

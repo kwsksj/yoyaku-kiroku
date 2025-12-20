@@ -231,7 +231,7 @@ export function updateStudentField(studentId: string, headerName: string, value:
  * スプレッドシートエディタから直接実行してください。
  * @returns {void}
  */
-export function migratesessionNoteToNextGoal(): void;
+export function migrateSessionNoteToNextGoal(): void;
 export namespace PerformanceLog {
     /**
      * デバッグログ（開発環境でのみ出力）

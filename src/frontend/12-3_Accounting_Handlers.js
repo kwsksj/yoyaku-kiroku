@@ -24,12 +24,12 @@
 // UI系モジュール
 // ================================================================
 import {
-    ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS,
-    generateCustomSalesRow,
-    generateMaterialRow,
-    generateProductRow,
-    getPaymentInfoHtml,
-    getPaymentOptionsHtml,
+  ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS,
+  generateCustomSalesRow,
+  generateMaterialRow,
+  generateProductRow,
+  getPaymentInfoHtml,
+  getPaymentOptionsHtml,
 } from './12-2_Accounting_UI.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 
@@ -37,13 +37,13 @@ import { Components, escapeHTML } from './13_WebApp_Components.js';
 // ユーティリティ系モジュール
 // ================================================================
 import {
-    calculateAccountingTotal,
-    calculateTimeUnits,
+  calculateAccountingTotal,
+  calculateTimeUnits,
 } from './12-1_Accounting_Calculation.js';
 import {
-    clearAccountingCache,
-    collectAccountingFormData,
-    saveAccountingCache,
+  clearAccountingCache,
+  collectAccountingFormData,
+  saveAccountingCache,
 } from './12-4_Accounting_Utilities.js';
 
 // ================================================================================

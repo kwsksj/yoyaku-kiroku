@@ -161,7 +161,7 @@ declare global {
         readonly FIRST_LECTURE: string;
         readonly TRANSPORTATION: string;
         readonly PICKUP: string;
-        readonly SEESSION_NOTE: string;
+        readonly SESSION_NOTE: string;
         readonly ORDER: string;
         readonly MESSAGE_TO_TEACHER: string;
         readonly ACCOUNTING_DETAILS: string;
@@ -262,4 +262,4 @@ declare global {
   };
 }
 
-export { };
+export {};
