@@ -467,12 +467,12 @@ function renderLessonList(lessons) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 未来と過去のレッスンに分ける（当日は過去に含める）
+  // 未来と過去のレッスンに分ける（当日は両方に含める）
   const futureLessons = lessons
     .filter(l => {
       const lessonDate = new Date(l.date);
       lessonDate.setHours(0, 0, 0, 0);
-      return lessonDate > today; // 当日を含まない（当日より後のみ）
+      return lessonDate >= today; // 当日を含む
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // 昇順
 
