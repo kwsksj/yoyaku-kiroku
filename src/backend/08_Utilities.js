@@ -28,11 +28,11 @@ import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import { validateAdminSessionToken } from './04_Backend_User.js';
 import {
-    CACHE_KEYS,
-    getCachedData,
-    getReservationByIdFromCache,
-    getReservationCacheSnapshot,
-    getStudentCacheSnapshot,
+  CACHE_KEYS,
+  getCachedData,
+  getReservationByIdFromCache,
+  getReservationCacheSnapshot,
+  getStudentCacheSnapshot,
 } from './07_CacheManager.js';
 
 /**
@@ -1457,28 +1457,49 @@ export function migrateWorkInProgressToNextGoal() {
   today.setHours(0, 0, 0, 0);
 
   // 予約シートのヘッダー
-  const reservationHeader = reservationsSheet.getRange(1, 1, 1, reservationsSheet.getLastColumn()).getValues()[0];
+  const reservationHeader = reservationsSheet
+    .getRange(1, 1, 1, reservationsSheet.getLastColumn())
+    .getValues()[0];
   const resHeaderMap = new Map(reservationHeader.map((h, i) => [h, i]));
 
-  const studentIdCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID);
+  const studentIdCol = resHeaderMap.get(
+    CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+  );
   const dateCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE);
   const statusCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
-  const wipCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS);
+  const wipCol = resHeaderMap.get(
+    CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS,
+  );
 
-  if (studentIdCol === undefined || dateCol === undefined || statusCol === undefined || wipCol === undefined) {
-    Logger.log('[migrateWorkInProgressToNextGoal] 必要なカラムが見つかりません');
+  if (
+    studentIdCol === undefined ||
+    dateCol === undefined ||
+    statusCol === undefined ||
+    wipCol === undefined
+  ) {
+    Logger.log(
+      '[migrateWorkInProgressToNextGoal] 必要なカラムが見つかりません',
+    );
     return;
   }
 
   // 名簿シートのヘッダー
-  const rosterHeader = rosterSheet.getRange(1, 1, 1, rosterSheet.getLastColumn()).getValues()[0];
+  const rosterHeader = rosterSheet
+    .getRange(1, 1, 1, rosterSheet.getLastColumn())
+    .getValues()[0];
   const rosterHeaderMap = new Map(rosterHeader.map((h, i) => [h, i]));
 
-  const rosterStudentIdCol = rosterHeaderMap.get(CONSTANTS.HEADERS.ROSTER.STUDENT_ID);
-  const nextGoalCol = rosterHeaderMap.get(CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL);
+  const rosterStudentIdCol = rosterHeaderMap.get(
+    CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+  );
+  const nextGoalCol = rosterHeaderMap.get(
+    CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL,
+  );
 
   if (rosterStudentIdCol === undefined || nextGoalCol === undefined) {
-    Logger.log('[migrateWorkInProgressToNextGoal] 名簿の必要なカラムが見つかりません');
+    Logger.log(
+      '[migrateWorkInProgressToNextGoal] 名簿の必要なカラムが見つかりません',
+    );
     return;
   }
 
@@ -1506,27 +1527,35 @@ export function migrateWorkInProgressToNextGoal() {
     const workInProgress = row[wipCol];
 
     // 日付をパース
-    const reservationDate = dateValue instanceof Date ? dateValue : new Date(dateValue);
+    const reservationDate =
+      dateValue instanceof Date ? dateValue : new Date(dateValue);
     if (isNaN(reservationDate.getTime())) {
       continue;
     }
 
     // 未来の予約かつ有効なステータスか
     const isFuture = reservationDate >= today;
-    const isValidStatus = status === CONSTANTS.STATUS.CONFIRMED || status === CONSTANTS.STATUS.WAITLISTED;
+    const isValidStatus =
+      status === CONSTANTS.STATUS.CONFIRMED ||
+      status === CONSTANTS.STATUS.WAITLISTED;
 
     // 制作メモがあるか
-    const hasWorkInProgress = workInProgress && String(workInProgress).trim() !== '';
+    const hasWorkInProgress =
+      workInProgress && String(workInProgress).trim() !== '';
 
     if (isFuture && isValidStatus && hasWorkInProgress) {
       const studentRowIndex = studentRowMap.get(studentId);
       if (!studentRowIndex) {
-        Logger.log(`[migrateWorkInProgressToNextGoal] 生徒が見つかりません: ${studentId}`);
+        Logger.log(
+          `[migrateWorkInProgressToNextGoal] 生徒が見つかりません: ${studentId}`,
+        );
         continue;
       }
 
       // 1. 生徒名簿の次回目標に保存
-      rosterSheet.getRange(studentRowIndex, nextGoalCol + 1).setValue(workInProgress);
+      rosterSheet
+        .getRange(studentRowIndex, nextGoalCol + 1)
+        .setValue(workInProgress);
 
       // 2. 予約の制作メモをクリア
       reservationsSheet.getRange(i + 1, wipCol + 1).setValue('');
@@ -1538,5 +1567,7 @@ export function migrateWorkInProgressToNextGoal() {
     }
   }
 
-  Logger.log(`[migrateWorkInProgressToNextGoal] マイグレーション完了: ${migratedCount}件を移植しました`);
+  Logger.log(
+    `[migrateWorkInProgressToNextGoal] マイグレーション完了: ${migratedCount}件を移植しました`,
+  );
 }

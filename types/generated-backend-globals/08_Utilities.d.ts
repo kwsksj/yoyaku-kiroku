@@ -225,6 +225,13 @@ export function updateStudentField(studentId: string, headerName: string, value:
     success: boolean;
     message: string;
 };
+/**
+ * 【一時的なマイグレーション関数】
+ * 未来の予約のworkInProgressを生徒名簿の次回目標に移植し、予約の制作メモをクリアする。
+ * スプレッドシートエディタから直接実行してください。
+ * @returns {void}
+ */
+export function migrateWorkInProgressToNextGoal(): void;
 export namespace PerformanceLog {
     /**
      * デバッグログ（開発環境でのみ出力）
