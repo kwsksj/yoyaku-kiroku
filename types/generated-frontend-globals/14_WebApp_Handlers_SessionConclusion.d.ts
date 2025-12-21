@@ -29,7 +29,6 @@ export namespace sessionConclusionActionHandlers {
     function selectRecommendedLesson(_d: any, target: HTMLElement): void;
     function skipReservation(): void;
     function undoReservationSkip(): void;
-    function toggleLessonList(): void;
     function toggleLessonListDOM(): void;
     function selectLessonForConclusion(_d: any, target: HTMLElement): void;
     function clearSelectedLesson(): void;

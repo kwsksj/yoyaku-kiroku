@@ -262,7 +262,7 @@ export function render() {
     case 'participants':
       v = getParticipantView();
       break;
-    case /** @type {any} */ ('sessionConclusion'):
+    case 'sessionConclusion':
       v = getCurrentSessionConclusionView();
       break;
   }
@@ -283,7 +283,7 @@ export function render() {
   // もどるボタンを動的に更新
   const backButtonContainer = document.getElementById('back-button-container');
   if (backButtonContainer) {
-    if (appState.view === /** @type {any} */ ('sessionConclusion')) {
+    if (appState.view === 'sessionConclusion') {
       backButtonContainer.innerHTML = ''; // ヘッダー戻るボタン非表示
     } else {
       backButtonContainer.innerHTML = Components.createSmartBackButton(
@@ -316,7 +316,7 @@ export function render() {
   }
 
   // セッション終了ウィザードの場合、UIセットアップを実行
-  if (appState.view === /** @type {any} */ ('sessionConclusion')) {
+  if (appState.view === 'sessionConclusion') {
     // コンテキストからステップを同期（ブラウザバック対応）
     const context = /** @type {any} */ (appState);
     if (context.step) {

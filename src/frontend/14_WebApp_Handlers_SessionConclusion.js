@@ -209,7 +209,7 @@ export function startSessionConclusion(reservationId) {
   conclusionStateManager.dispatch({
     type: 'NAVIGATE',
     payload: {
-      to: /** @type {any} */ ('sessionConclusion'),
+      to: 'sessionConclusion',
     },
   });
 }
@@ -851,12 +851,6 @@ export const sessionConclusionActionHandlers = {
     // 再描画
     goToStep(STEPS.RESERVATION);
   },
-  // 日程一覧アコーディオン開閉（再描画あり - 旧版、削除予定）
-  toggleLessonList: () => {
-    wizardState.isLessonListExpanded = !wizardState.isLessonListExpanded;
-    // 再描画
-    goToStep(STEPS.RESERVATION);
-  },
   // 日程一覧アコーディオン開閉（DOM直接操作）
   toggleLessonListDOM: () => {
     const accordion = document.getElementById('lesson-list-accordion');
@@ -933,7 +927,7 @@ export const sessionConclusionActionHandlers = {
       wizardState.selectedLesson = selectedLesson;
       wizardState.reservationSkipped = false;
       wizardState.isLessonListExpanded = false;
-      // TODO: 実際の空き通知希望登録はfinalizeConclusion時に行う
+      // 空き通知希望登録はfinalizeConclusion→makeReservationで自動判定される
       window.showInfo?.(
         `${window.formatDate?.(selectedLesson.date) || selectedLesson.date} の空き通知希望を登録します`,
         '空き通知',

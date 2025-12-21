@@ -418,7 +418,7 @@ export class SimpleStateManager {
     // ビューが異なる場合、または同じビューでもコンテキスト（ステップなど）が大きく異なる場合
     const isSameView = currentView === to;
     const isDifferentStep =
-      currentView === /** @type {any} */ ('sessionConclusion') &&
+      currentView === 'sessionConclusion' &&
       isSameView &&
       this._extractCurrentContext()['step'] !== context['step'];
 
@@ -489,7 +489,7 @@ export class SimpleStateManager {
           context.accountingReservation = this.state.accountingReservation;
         }
         break;
-      case /** @type {any} */ ('sessionConclusion'):
+      case 'sessionConclusion':
         // ウィザードの現在のステップを保存
         // Note: handlers側で管理されているwizardStateを直接参照できないため
         // startSessionConclusion時にcontextにstepを含める運用とする
