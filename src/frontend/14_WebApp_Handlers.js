@@ -56,6 +56,12 @@ import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
 import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
+import {
+  getCurrentSessionConclusionView,
+  sessionConclusionActionHandlers,
+  setupSessionConclusionUI,
+  startSessionConclusion,
+} from './14_WebApp_Handlers_SessionConclusion.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -256,6 +262,9 @@ export function render() {
     case 'participants':
       v = getParticipantView();
       break;
+    case 'sessionConclusion':
+      v = getCurrentSessionConclusionView();
+      break;
   }
   const viewContainer = document.getElementById('view-container');
   if (viewContainer) {
@@ -274,10 +283,14 @@ export function render() {
   // もどるボタンを動的に更新
   const backButtonContainer = document.getElementById('back-button-container');
   if (backButtonContainer) {
-    backButtonContainer.innerHTML = Components.createSmartBackButton(
-      appState.view,
-      appState,
-    );
+    if (appState.view === 'sessionConclusion') {
+      backButtonContainer.innerHTML = ''; // ヘッダー戻るボタン非表示
+    } else {
+      backButtonContainer.innerHTML = Components.createSmartBackButton(
+        appState.view,
+        appState,
+      );
+    }
   }
 
   // 会計画面の場合、イベントリスナーを設定
@@ -294,9 +307,26 @@ export function render() {
       }
       // 初期計算も実行
       if (typeof updateAccountingCalculation === 'function') {
-        updateAccountingCalculation(classifiedItems, classroom);
+        updateAccountingCalculation(
+          classifiedItems,
+          classroom, // 第2引数として教室名を渡す
+        );
       }
     });
+  }
+
+  // セッション終了ウィザードの場合、UIセットアップを実行
+  if (appState.view === 'sessionConclusion') {
+    // コンテキストからステップを同期（ブラウザバック対応）
+    const context = /** @type {any} */ (appState);
+    if (context.step) {
+      // 動的インポートされた関数を使用（循環参照回避のためHandlers内でimport済み）
+      setupSessionConclusionUI(context.step);
+    } else {
+      requestAnimationFrame(() => {
+        setupSessionConclusionUI();
+      });
+    }
   }
 
   window.scrollTo(0, 0);
@@ -550,10 +580,173 @@ window.onload = function () {
       : {}),
 
     // =================================================================
+    // --- Session Conclusion Handlers (from 14_WebApp_Handlers_SessionConclusion.js) ---
+    // -----------------------------------------------------------------
+    ...(typeof sessionConclusionActionHandlers !== 'undefined'
+      ? sessionConclusionActionHandlers
+      : {}),
+
+    // =================================================================
+    // --- Goal Editing Handlers (けいかく・もくひょう) ---
+    // -----------------------------------------------------------------
+
+    /** けいかく・もくひょうの編集モードに切り替え */
+    editGoal: () => {
+      const displayMode = document.getElementById('goal-display-mode');
+      const editMode = document.getElementById('goal-edit-mode');
+      if (displayMode && editMode) {
+        displayMode.classList.add('hidden');
+        editMode.classList.remove('hidden');
+        const textarea = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('goal-edit-textarea')
+        );
+        if (textarea) {
+          textarea.focus();
+        }
+      }
+    },
+
+    /** けいかく・もくひょうの編集をキャンセル */
+    cancelEditGoal: () => {
+      const displayMode = document.getElementById('goal-display-mode');
+      const editMode = document.getElementById('goal-edit-mode');
+      if (displayMode && editMode) {
+        displayMode.classList.remove('hidden');
+        editMode.classList.add('hidden');
+      }
+    },
+
+    /** けいかく・もくひょうを保存 */
+    saveGoal: () => {
+      const textarea = /** @type {HTMLTextAreaElement | null} */ (
+        document.getElementById('goal-edit-textarea')
+      );
+      if (!textarea) {
+        console.error('ゴールテキストエリアが見つかりません');
+        return;
+      }
+
+      const newGoal = textarea.value.trim();
+      const studentId = handlersStateManager.getState().currentUser?.studentId;
+      if (!studentId) {
+        showInfo('ユーザー情報が見つかりません。', 'エラー');
+        return;
+      }
+
+      // ローディング表示
+      showLoading('goal');
+
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run
+          .withSuccessHandler(
+            /** @param {ApiResponse} result */ result => {
+              hideLoading();
+              if (result.success) {
+                // 状態を更新（dispatchで永続化）＆参加者キャッシュをクリア
+                const state = handlersStateManager.getState();
+                if (state.currentUser) {
+                  handlersStateManager.dispatch({
+                    type: 'UPDATE_STATE',
+                    payload: {
+                      currentUser: {
+                        ...state.currentUser,
+                        nextLessonGoal: newGoal,
+                      },
+                      // 参加者ビューのキャッシュをクリア（次回アクセス時に再取得）
+                      participantReservationsMap: null,
+                      participantLessons: null,
+                    },
+                  });
+                }
+                // 表示モードに切り替え＆テキスト更新
+                const displayMode =
+                  document.getElementById('goal-display-mode');
+                const editMode = document.getElementById('goal-edit-mode');
+                const displayText =
+                  document.getElementById('goal-display-text');
+                if (displayMode && editMode) {
+                  if (newGoal) {
+                    displayMode.classList.remove('hidden');
+                    editMode.classList.add('hidden');
+                    if (displayText) {
+                      displayText.textContent = newGoal;
+                    }
+                  } else {
+                    // 空の場合は編集モードのまま
+                    displayMode.classList.add('hidden');
+                    editMode.classList.remove('hidden');
+                  }
+                }
+                showInfo('けいかく・もくひょうを保存しました。', 'success');
+              } else {
+                showInfo(result.message || '保存に失敗しました。', 'エラー');
+              }
+            },
+          )
+          .withFailureHandler(
+            /** @param {Error} error */ error => {
+              hideLoading();
+              console.error('ゴール保存エラー:', error);
+              showInfo(`保存に失敗しました: ${error.message}`, 'エラー');
+            },
+          )
+          .updateNextLessonGoal({ studentId, nextLessonGoal: newGoal });
+      }
+    },
+
+    /** 写真ギャラリーを新しいタブで開く */
+    openPhotoGallery: () => {
+      window.open(
+        'https://photos.google.com/share/AF1QipNpD9FJ9rd-_c-GuL4n09UjADAOGlIcUV8c3fVWnUBqISR2jYSI_4FvZ53RJnX7GA?key=TVFISm56Uy1qSzF2bGNPWWticTdrd3hHdGZTX3NR',
+        '_blank',
+        'noopener,noreferrer',
+      );
+    },
+
+    // =================================================================
     // --- Accounting Handlers (整理済み) ---
     // -----------------------------------------------------------------
 
-    /** 今日の予約を開いて会計画面へ遷移 */
+    /** きょうの まとめ画面へ遷移 */
+    goToSessionConclusion: () => {
+      const state = handlersStateManager.getState();
+      const reservations = state.myReservations || [];
+
+      // 本日の確定済み予約を検索
+      const todayCandidates = reservations.filter(reservation => {
+        const dateValue = reservation?.date
+          ? String(reservation.date).split('T')[0]
+          : '';
+        if (!dateValue) return false;
+
+        const status = reservation.status;
+        return status === CONSTANTS.STATUS.CONFIRMED && isDateToday(dateValue);
+      });
+
+      if (todayCandidates.length === 0) {
+        showInfo('本日の予約がありません。', 'お知らせ');
+        return;
+      }
+
+      // 最も早い開始時刻の予約を選択
+      const toSortableTime = (
+        /** @type {string | null | undefined} */ value,
+      ) => (value ? value.toString() : '99:99');
+      const sortedCandidates = [...todayCandidates].sort((a, b) =>
+        toSortableTime(a.startTime).localeCompare(toSortableTime(b.startTime)),
+      );
+
+      const candidate = sortedCandidates[0];
+
+      if (candidate?.reservationId) {
+        // セッション終了ウィザードを開始
+        startSessionConclusion(candidate.reservationId);
+      } else {
+        showInfo('本日の予約が見つかりませんでした。', 'お知らせ');
+      }
+    },
+
+    /** 今日の予約を開いて会計画面へ遷移（レガシー） */
     goToTodayAccounting: () => {
       const state = handlersStateManager.getState();
       const reservations = state.myReservations || [];

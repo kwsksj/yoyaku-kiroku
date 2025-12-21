@@ -19,11 +19,13 @@ export * from './13_WebApp_Views_Auth';
 export * from './13_WebApp_Views_Booking';
 export * from './13_WebApp_Views_Dashboard';
 export * from './13_WebApp_Views_Participant';
+export * from './13_WebApp_Views_SessionConclusion';
 export * from './13_WebApp_Views_Utils';
 export * from './14_WebApp_Handlers_Auth';
 export * from './14_WebApp_Handlers_History';
 export * from './14_WebApp_Handlers_Participant';
 export * from './14_WebApp_Handlers_Reservation';
+export * from './14_WebApp_Handlers_SessionConclusion';
 export * from './14_WebApp_Handlers_Utils';
 export * from './14_WebApp_Handlers';
 

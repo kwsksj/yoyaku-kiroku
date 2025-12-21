@@ -383,7 +383,7 @@ export function generateSalesSection(classifiedItems, formData = {}) {
     content: `
       <section class="sales-section">
         <details>
-          ${Components.sectionHeader({ title: '販売', asSummary: true })}
+          ${Components.sectionHeader({ title: '販売（材料・物販）', asSummary: true })}
           <div class="mt-3">
             ${materialsHtml}
             ${productsHtml}
@@ -514,7 +514,7 @@ export function generateAccountingReservationCard(reservationData) {
       endTime: reservationData.endTime || '',
       classroom: reservationData.classroom || '',
       venue: reservationData.venue || '',
-      workInProgress: reservationData.workInProgress || '',
+      sessionNote: reservationData.sessionNote || '',
     },
     badges: [], // ステータスバッジは表示しない
     editButtons: [], // 編集ボタンは表示しない

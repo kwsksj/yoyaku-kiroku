@@ -45,6 +45,14 @@ export type ParticipantColumnConfig = {
      */
     adminOnly?: boolean;
     /**
+     * - 過去表示のみ
+     */
+    pastOnly?: boolean;
+    /**
+     * - 未来表示のみ
+     */
+    futureOnly?: boolean;
+    /**
      * - カスタムレンダリング関数
      */
     render?: (row: any) => string;

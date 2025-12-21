@@ -214,6 +214,24 @@ export function convertReservationToRow(reservation: ReservationCore, headerMap:
  * @returns {Array<Array<string|number|Date>>} ソート済み行配列
  */
 export function sortReservationRows(rows: Array<Array<string | number | Date>>, headerMap: Map<string, number> | Record<string, number>): Array<Array<string | number | Date>>;
+/**
+ * 生徒名簿の特定のフィールドを更新するヘルパー関数
+ * @param {string} studentId - 生徒ID
+ * @param {string} headerName - 更新する列のヘッダー名（CONSTANTS.HEADERS.ROSTER.* を使用）
+ * @param {string | number | boolean} value - 新しい値
+ * @returns {{success: boolean, message: string}}
+ */
+export function updateStudentField(studentId: string, headerName: string, value: string | number | boolean): {
+    success: boolean;
+    message: string;
+};
+/**
+ * 【一時的なマイグレーション関数】
+ * 未来の予約のsessionNoteを生徒名簿の次回目標に移植し、予約の制作メモをクリアする。
+ * スプレッドシートエディタから直接実行してください。
+ * @returns {void}
+ */
+export function migrateSessionNoteToNextGoal(): void;
 export namespace PerformanceLog {
     /**
      * デバッグログ（開発環境でのみ出力）

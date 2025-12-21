@@ -65,10 +65,10 @@ export function clearAccountingCache() {
 
 /**
  * 制作メモのデータを収集
- * @returns {{ reservationId?: string; workInProgress?: string }} 制作メモデータ
+ * @returns {{ reservationId?: string; sessionNote?: string }} 制作メモデータ
  */
 export function collectMemoData() {
-  /** @type {{ reservationId?: string; workInProgress?: string }} */
+  /** @type {{ reservationId?: string; sessionNote?: string }} */
   const memoData = {};
 
   // 会計画面の制作メモテキストエリアを探す
@@ -80,7 +80,7 @@ export function collectMemoData() {
     if (id && id.includes('memo-edit-textarea-')) {
       const reservationId = id.replace('memo-edit-textarea-', '');
       memoData.reservationId = reservationId;
-      memoData.workInProgress = textarea.value;
+      memoData.sessionNote = textarea.value;
     } else {
       // IDパターンが違う場合、親要素から予約IDを取得
       const card = /** @type {HTMLElement | null} */ (
@@ -91,7 +91,7 @@ export function collectMemoData() {
         if (reservationId) {
           memoData.reservationId = reservationId;
         }
-        memoData.workInProgress = textarea.value;
+        memoData.sessionNote = textarea.value;
       }
     }
   });
@@ -274,8 +274,8 @@ export function collectAccountingFormData() {
 
   // 制作メモ収集（会計処理時の保存に利用）
   const memoData = collectMemoData();
-  if (memoData && 'workInProgress' in memoData) {
-    formData.workInProgress = memoData.workInProgress;
+  if (memoData && 'sessionNote' in memoData) {
+    formData.sessionNote = memoData.sessionNote;
   }
 
   // デバッグ: 収集されたフォームデータを出力
@@ -422,8 +422,8 @@ export function loadAccountingFromReservation(reservation) {
   }
 
   // 制作メモの復元
-  if (reservation.workInProgress) {
-    formData.workInProgress = reservation.workInProgress;
+  if (reservation.sessionNote) {
+    formData.sessionNote = reservation.sessionNote;
   }
 
   console.log('📥 会計データをロードしました:', formData);

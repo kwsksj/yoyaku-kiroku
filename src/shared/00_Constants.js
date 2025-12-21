@@ -261,7 +261,7 @@ export const CONSTANTS = {
       FIRST_LECTURE: '初回',
       TRANSPORTATION: '来場手段',
       PICKUP: '送迎',
-      WORK_IN_PROGRESS: '制作メモ',
+      SESSION_NOTE: 'セッションノート',
       ORDER: 'order',
       MESSAGE_TO_TEACHER: 'メッセージ',
       ACCOUNTING_DETAILS: '会計詳細',
@@ -298,6 +298,7 @@ export const CONSTANTS = {
       TRANSPORTATION: '来場手段',
       PICKUP: '送迎',
       TOTAL_PARTICIPATION: '参加回数',
+      NEXT_LESSON_GOAL: '次回目標',
     },
 
     // 会計マスタ（短縮名: ACCOUNTING）

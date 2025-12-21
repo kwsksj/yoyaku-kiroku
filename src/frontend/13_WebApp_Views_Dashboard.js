@@ -18,7 +18,7 @@
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
 import { _buildHistoryCardWithEditMode } from './13_WebApp_Views_Booking.js';
-import { _isPastOrToday, _isToday } from './13_WebApp_Views_Utils.js';
+import { _isToday } from './13_WebApp_Views_Utils.js';
 
 const dashboardStateManager = appWindow.stateManager;
 /**
@@ -69,8 +69,6 @@ export const getDashboardView = () => {
   const yourBookingsHtml = Components.dashboardSection({
     title: 'よやく',
     items: bookingCards,
-    showNewButton: true,
-    newAction: 'showClassroomModal',
   });
 
   // 履歴セクション用のカード配列を構築：完了ステータスのみ表示
@@ -126,24 +124,111 @@ export const getDashboardView = () => {
   const currentUser = dashboardStateManager.getState().currentUser;
   const nickname = currentUser ? currentUser.nickname : '';
 
+  // 今日の予約を検索（会計フォールバックボタン用）
+  const todayReservation = activeReservations.find(
+    (/** @type {ReservationCore} */ r) => _isToday(r.date),
+  );
+
   // --- メニューセクション ---
   const menuButton = Components.button({
-    text: '教室日程・予約状況 一覧',
+    text: 'よやく・きろく　いちらん',
     action: 'goToParticipantsView',
     style: 'primary',
     size: 'full',
   });
-  const accountingMenuButton = Components.button({
-    text: '本日の教室 会計',
-    action: 'goToTodayAccounting',
-    style: 'accounting',
+
+  // 新規予約ボタン
+  const newBookingButton = Components.button({
+    text: 'あたらしく　よやく　する',
+    action: 'showClassroomModal',
+    style: 'secondary',
     size: 'full',
   });
+
+  // 今日の予約がある場合のみ表示するボタン
+  const summaryMenuButton = todayReservation
+    ? Components.button({
+        text: 'きょう の まとめ',
+        action: 'goToSessionConclusion',
+        style: 'accounting',
+        size: 'full',
+      })
+    : '';
+
+  const accountingFallbackButton = todayReservation
+    ? Components.button({
+        text: 'かいけい のみ（まとめがうまく使えないとき用）',
+        action: 'goToAccounting',
+        style: 'secondary',
+        size: 'small',
+        dataAttributes: { reservationId: todayReservation.reservationId },
+      })
+    : '';
+
+  // 写真ギャラリーリンク
+  const photoButton = Components.button({
+    text: 'しゃしん',
+    action: 'openPhotoGallery',
+    style: 'secondary',
+    size: 'full',
+  });
+
+  // メニューアイテムを構築
+  const primaryMenuButtons = [menuButton, newBookingButton, photoButton]
+    .filter(Boolean)
+    .join('');
+  const todayButtons = [summaryMenuButton].filter(Boolean).join('');
+
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
     items: [
-      `<div class="grid gap-2 sm:grid-cols-2">${menuButton}${accountingMenuButton}</div>`,
-    ],
+      `<div class="grid gap-2 sm:grid-cols-3">${primaryMenuButtons}</div>`,
+      todayButtons
+        ? `<div class="grid gap-2 sm:grid-cols-2 mt-2">${todayButtons}</div>`
+        : '',
+    ].filter(Boolean),
+  });
+
+  // けいかく・もくひょうセクション（生徒名簿から取得、編集可能）
+  const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
+  const goalCardContent = `
+    <div class="w-full max-w-md mx-auto">
+      <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">
+        <!-- 表示モード -->
+        <div id="goal-display-mode" class="${nextLessonGoal ? '' : 'hidden'}">
+          <div class="bg-white/75 rounded p-2 relative">
+            <p id="goal-display-text" class="text-base text-brand-text whitespace-pre-wrap pr-16 min-h-8">${escapeHTML(nextLessonGoal) || 'まだ設定されていません'}</p>
+            <button data-action="editGoal" class="absolute bottom-2 right-2 text-xs text-brand-subtle px-2 py-0.5 rounded border border-brand-subtle/30 hover:bg-brand-light active:bg-brand-light">へんしゅう</button>
+          </div>
+        </div>
+        <!-- 編集モード -->
+        <div id="goal-edit-mode" class="${nextLessonGoal ? 'hidden' : ''}">
+          ${Components.textarea({
+            id: 'goal-edit-textarea',
+            label: '',
+            value: nextLessonGoal,
+            placeholder:
+              'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
+            rows: 5,
+            caption:
+              'よやく・きろく いちらん にのります（みんな にも みえます）。',
+          })}
+          <div class="flex justify-end mt-2 gap-2">
+            ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>` : ''}
+            ${Components.button({
+              action: 'saveGoal',
+              text: 'ほぞん',
+              style: 'primary',
+              size: 'small',
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  const goalSectionHtml = Components.dashboardSection({
+    title: 'けいかく・もくひょう',
+    items: [goalCardContent],
   });
 
   return `
@@ -152,8 +237,10 @@ export const getDashboardView = () => {
             <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">プロフィール編集</button>
         </div>
         ${menuSectionHtml}
+        ${goalSectionHtml}
         ${yourBookingsHtml}
         ${historyHtml}
+        ${accountingFallbackButton ? `<div class="mt-8 text-center">${accountingFallbackButton}</div>` : ''}
     `;
 };
 
@@ -169,7 +256,7 @@ export const _buildEditButtons = booking => {
     // 確定済み予約：確認/編集ボタンのみ
     buttons.push({
       action: 'goToEditReservation',
-      text: '確認<br>編集',
+      text: 'かくにん<br>へんしゅう',
     });
   } else if (booking.status === CONSTANTS.STATUS.WAITLISTED) {
     // 空き通知希望：現在の空席状況に応じてボタンを変更
@@ -187,7 +274,7 @@ export const _buildEditButtons = booking => {
     // 空き通知希望は常に確認/編集ボタンも表示
     buttons.push({
       action: 'goToEditReservation',
-      text: '確認<br>編集',
+      text: 'かくにん<br>へんしゅう',
     });
   }
 
@@ -248,7 +335,7 @@ export const _buildHistoryEditButtons = (
     // 通常時：編集モードに入る
     buttons.push({
       action: 'expandHistoryCard',
-      text: '確認<br>編集',
+      text: 'かくにん<br>へんしゅう',
     });
   }
 
@@ -512,39 +599,27 @@ export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
   if (!cardElement) return;
 
   // より確実なセレクターを使ってメモセクションを探す
-  let existingMemoSection;
+  // data-memo-container属性を使用（CSSクラスの変更に影響されない）
+  let existingMemoSection = cardElement.querySelector('[data-memo-container]');
 
-  if (isInEditMode) {
-    // 通常モード→編集モード：読み取り専用メモセクションを探す
-    // 「制作メモ」という見出しを含む要素を探す
-    const memoHeaders = Array.from(cardElement.querySelectorAll('h4'));
-    for (const header of memoHeaders) {
-      if (header.textContent && header.textContent.includes('制作メモ')) {
-        existingMemoSection = header.closest('div');
-        break;
-      }
-    }
-  } else {
-    // 編集モード→通常モード：テキストエリアを含むメモセクションを探す
-    const textarea = cardElement.querySelector('.memo-edit-textarea');
-    if (textarea) {
-      // テキストエリアの適切な親コンテナを探す
-      existingMemoSection =
-        textarea.closest('div.p-0\\.5.bg-white\\/75') ||
-        textarea.closest('div.p-0\\.5') ||
-        textarea.closest('.memo-section') ||
-        textarea.closest('div[style*="padding"]') ||
-        textarea.closest('div');
-    }
-
-    // フォールバック：メモセクション全体を再検索
-    if (!existingMemoSection) {
-      const memoHeaders = Array.from(cardElement.querySelectorAll('h4'));
-      for (const header of memoHeaders) {
-        if (header.textContent && header.textContent.includes('制作メモ')) {
-          existingMemoSection = header.closest('div');
+  // フォールバック：属性がない古いコンテンツの場合
+  if (!existingMemoSection) {
+    if (isInEditMode) {
+      // 通常モード→編集モード：読み取り専用メモセクションを探す
+      const memoContainers = Array.from(
+        cardElement.querySelectorAll('div.p-0\\.5.bg-white\\/75'),
+      );
+      for (const container of memoContainers) {
+        if (container.querySelector('p.whitespace-pre-wrap')) {
+          existingMemoSection = container;
           break;
         }
+      }
+    } else {
+      // 編集モード→通常モード：テキストエリアを含むメモセクションを探す
+      const textarea = cardElement.querySelector('.memo-edit-textarea');
+      if (textarea) {
+        existingMemoSection = textarea.closest('div');
       }
     }
   }
@@ -556,7 +631,7 @@ export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
   // 新しいメモセクションHTMLを生成
   const newMemoSection = Components.memoSection({
     reservationId: historyItem.reservationId,
-    workInProgress: historyItem.workInProgress || '',
+    sessionNote: historyItem.sessionNote || '',
     isEditMode: isInEditMode,
     showSaveButton: true,
   });

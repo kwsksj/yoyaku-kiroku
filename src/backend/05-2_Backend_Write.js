@@ -54,6 +54,7 @@ import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
   convertReservationToRow,
   createSalesRow,
+  getCachedReservationsAsObjects,
   getCachedStudentById,
   getReservationCoreById,
   getSheetData,
@@ -245,15 +246,42 @@ export function checkCapacityFull(
     const reservationIds = Array.isArray(targetLesson.reservationIds)
       ? targetLesson.reservationIds.filter(Boolean).map(id => String(id))
       : [];
-    const reservations = reservationIds.length
+    let reservations = reservationIds.length
       ? getReservationsByIdsFromCache(reservationIds)
       : [];
+
+    // フォールバック: reservationIdsがあるのに予約が取得できない場合のみ、lessonIdで全予約を検索
+    // （reservationIdsが空の場合は本当に予約がないので、フォールバック不要）
+    if (
+      reservations.length === 0 &&
+      reservationIds.length > 0 &&
+      targetLesson.lessonId
+    ) {
+      Logger.log(
+        `[checkCapacityFull] reservationIds(${reservationIds.length}件)から予約取得失敗。lessonIdでフォールバック検索: ${targetLesson.lessonId}`,
+      );
+      const allReservations = getCachedReservationsAsObjects();
+      reservations = allReservations.filter(
+        (/** @type {ReservationCore} */ r) =>
+          r.lessonId === targetLesson.lessonId,
+      );
+    }
+
     const activeReservations = reservations.filter(
       reservation =>
         reservation.status !== CONSTANTS.STATUS.CANCELED &&
         reservation.status !== CONSTANTS.STATUS.WAITLISTED,
     );
     const slots = calculateAvailableSlots(targetLesson, activeReservations);
+
+    // 詳細ログ: 定員チェックのデバッグ
+    Logger.log(
+      `[checkCapacityFull][DEBUG] ${date} ${classroom}: ` +
+        `reservationIds.length=${reservationIds.length}, ` +
+        `activeReservations.length=${activeReservations.length}, ` +
+        `totalCapacity=${targetLesson.totalCapacity}, ` +
+        `slots.first=${slots.first}, slots.second=${slots.second}`,
+    );
 
     let isFull = false;
 
@@ -712,6 +740,7 @@ export function makeReservation(reservationInfo) {
 
       // 完全なReservationCoreオブジェクトを構築
       const createdReservationId = Utilities.getUuid();
+      // 処理時点の空き状況でステータスを決定（空きがあれば予約確定、なければ空き通知登録）
       const status = isFull
         ? CONSTANTS.STATUS.WAITLISTED
         : CONSTANTS.STATUS.CONFIRMED;
@@ -805,6 +834,7 @@ export function makeReservation(reservationInfo) {
 
       return createApiResponse(true, {
         message: message,
+        status: reservationWithUser.status, // ★ステータスを明示的に返す
       });
     } catch (err) {
       logActivity(
@@ -1295,8 +1325,8 @@ export function updateReservationDetails(details) {
 
       // ★ バグ修正: 材料情報が指定されている場合、制作メモに追記する
       if (details.materialInfo) {
-        const baseWip = updatedReservation.workInProgress || '';
-        updatedReservation.workInProgress =
+        const baseWip = updatedReservation.sessionNote || '';
+        updatedReservation.sessionNote =
           baseWip +
           (baseWip ? '\n' : '') + // 既存メモがあれば改行を挟む
           CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX +

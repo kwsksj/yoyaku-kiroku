@@ -38,8 +38,8 @@ import {
 import {
   createHeaderMap,
   getCachedStudentById,
-  logActivity,
   getScriptProperties,
+  logActivity,
   normalizePhoneNumber,
   withTransaction,
 } from './08_Utilities.js';
@@ -155,6 +155,7 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
     [CONSTANTS.HEADERS.ROSTER.PICKUP]: 'pickup',
     [CONSTANTS.HEADERS.ROSTER.CAR]: 'car',
     [CONSTANTS.HEADERS.ROSTER.NOTES]: 'notes',
+    [CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL]: 'nextLessonGoal',
   };
 
   // 各プロパティを設定

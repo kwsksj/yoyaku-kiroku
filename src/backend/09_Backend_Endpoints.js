@@ -48,6 +48,7 @@ import {
 } from './05-3_Backend_AvailableSlots.js';
 import {
   CACHE_KEYS,
+  clearChunkedCache,
   getStudentCacheSnapshot,
   getTypedCachedData,
 } from './07_CacheManager.js';
@@ -55,6 +56,8 @@ import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
   getCachedReservationsAsObjects,
   getCachedStudentById,
+  logActivity,
+  updateStudentField,
   withTransaction,
 } from './08_Utilities.js';
 
@@ -112,6 +115,7 @@ export function executeOperationAndGetLatestData(
  */
 export function makeReservationAndGetLatestData(reservationInfo) {
   const isFirstTime = reservationInfo['firstLecture'] || false;
+  const nextLessonGoal = /** @type {any} */ (reservationInfo)['nextLessonGoal'];
 
   const result = executeOperationAndGetLatestData(
     makeReservation,
@@ -123,6 +127,18 @@ export function makeReservationAndGetLatestData(reservationInfo) {
   // 初回フラグ情報を追加
   if (result.success && result.data) {
     result.data.wasFirstTimeBooking = isFirstTime;
+
+    // nextLessonGoalが提供されている場合は生徒名簿を更新
+    if (nextLessonGoal !== undefined) {
+      try {
+        updateNextLessonGoal({
+          studentId: reservationInfo.studentId,
+          nextLessonGoal: nextLessonGoal,
+        });
+      } catch (e) {
+        Logger.log(`[makeReservation] nextLessonGoal更新エラー: ${e.message}`);
+      }
+    }
   }
 
   return result;
@@ -144,16 +160,34 @@ export function cancelReservationAndGetLatestData(cancelInfo) {
 
 /**
  * 予約詳細を更新し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
+ * @param {ReservationCore & {nextLessonGoal?: string}} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function updateReservationDetailsAndGetLatestData(details) {
-  return executeOperationAndGetLatestData(
+  const nextLessonGoal = /** @type {any} */ (details)['nextLessonGoal'];
+
+  const result = executeOperationAndGetLatestData(
     updateReservationDetails,
     details,
     details.studentId,
     '予約内容を更新しました。',
   );
+
+  // nextLessonGoalが提供されている場合は生徒名簿を更新
+  if (result.success && nextLessonGoal !== undefined) {
+    try {
+      updateNextLessonGoal({
+        studentId: details.studentId,
+        nextLessonGoal: nextLessonGoal,
+      });
+    } catch (e) {
+      Logger.log(
+        `[updateReservationDetails] nextLessonGoal更新エラー: ${e.message}`,
+      );
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -237,11 +271,61 @@ export function updateReservationMemoAndGetLatestData(
     {
       reservationId,
       studentId,
-      workInProgress: newMemo, // 制作メモのみを更新
+      sessionNote: newMemo, // 制作メモのみを更新
     },
     studentId,
     '制作メモを更新しました。',
   );
+}
+
+/**
+ * 生徒のけいかく・もくひょうを更新する
+ * @param {{ studentId: string, nextLessonGoal: string }} payload - 更新内容
+ * @returns {ApiResponse} 処理結果
+ */
+export function updateNextLessonGoal(payload) {
+  try {
+    const { studentId, nextLessonGoal } = payload;
+    if (!studentId) {
+      return { success: false, message: '生徒IDが指定されていません。' };
+    }
+
+    // updateStudentField を使用して生徒名簿を更新
+    const result = updateStudentField(
+      studentId,
+      CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL,
+      nextLessonGoal || '',
+    );
+
+    if (!result || !result.success) {
+      logActivity(studentId, 'けいかく更新', '失敗', {
+        details: result?.message || '更新処理に失敗',
+      });
+      return { success: false, message: '更新に失敗しました。' };
+    }
+
+    // キャッシュをクリア（生徒名簿データが更新されたので再取得が必要）
+    clearChunkedCache(CACHE_KEYS.ALL_STUDENTS);
+    Logger.log(
+      `[updateNextLessonGoal] キャッシュクリア: CACHE_KEYS.ALL_STUDENTS`,
+    );
+
+    // ログシートに記録
+    logActivity(studentId, 'けいかく更新', '成功', {
+      details: nextLessonGoal || '(空白にクリア)',
+    });
+
+    Logger.log(
+      `[updateNextLessonGoal] 成功: studentId=${studentId}, goal=${nextLessonGoal}`,
+    );
+    return { success: true, message: 'けいかく・もくひょうを更新しました。' };
+  } catch (error) {
+    Logger.log(`[updateNextLessonGoal] エラー: ${error.message}`);
+    logActivity(payload?.studentId || 'unknown', 'けいかく更新', '失敗', {
+      details: error.message,
+    });
+    return { success: false, message: `更新に失敗しました: ${error.message}` };
+  }
 }
 
 /**
@@ -1031,10 +1115,11 @@ export function getLessonsForParticipantsView(
             displayName: publicDisplayName,
             firstLecture: reservation.firstLecture || false,
             chiselRental: reservation.chiselRental || false,
-            workInProgress: reservation.workInProgress || '',
+            sessionNote: reservation.sessionNote || '',
             order: reservation.order || '',
             participationCount: participationCounts[reservation.studentId] || 0,
             futureCreations: studentData.futureCreations || '',
+            nextLessonGoal: studentData.nextLessonGoal || '', // けいかく・もくひょう
             companion: reservation.companion || '',
             transportation: reservation.transportation || '',
             pickup: reservation.pickup || '',
@@ -1216,7 +1301,7 @@ export function getReservationsForLesson(lessonId, studentId) {
         displayName: publicDisplayName,
         firstLecture: reservation.firstLecture || false,
         chiselRental: reservation.chiselRental || false,
-        workInProgress: reservation.workInProgress || '',
+        sessionNote: reservation.sessionNote || '',
         order: reservation.order || '',
       };
 
@@ -1345,7 +1430,7 @@ export function getStudentDetailsForParticipantsView(
           startTime: reservation.startTime || '',
           endTime: reservation.endTime || '',
           status: reservation.status,
-          workInProgress: reservation.workInProgress || '',
+          sessionNote: reservation.sessionNote || '',
           // ソート用の内部フィールド
           _dateObj: new Date(reservation.date || lesson?.date || ''),
         };
@@ -1529,6 +1614,161 @@ export function processAccountingWithTransferOption(
     );
     return createApiErrorResponse(
       `会計処理中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
+}
+
+/**
+ * セッション終了ウィザードの統合処理エンドポイント
+ * 1. 今日の記録（sessionNote）を更新
+ * 2. 会計処理を実行
+ * 3. オプションで次回予約を作成
+ *
+ * @param {any} payload - メイン処理データ
+ * @param {any} nextReservationPayload - 次回予約データ（null = スキップ）
+ * @returns {ApiResponseGeneric} 処理結果
+ */
+export function processSessionConclusion(payload, nextReservationPayload) {
+  // 注意: withTransactionは使用しない
+  // 内部で呼び出すupdateReservationDetails、saveAccountingDetails、makeReservationは
+  // 各自でwithTransactionを持っているため、外側でラップすると多重ロック取得でエラーになる
+  try {
+    Logger.log(
+      `[processSessionConclusion] 開始: reservationId=${payload.reservationId}`,
+    );
+
+    // 1. 今日の予約の sessionNote を更新
+    const memoUpdatePayload = /** @type {ReservationCore} */ (
+      /** @type {any} */ ({
+        reservationId: payload.reservationId,
+        studentId: payload.studentId,
+        sessionNote: payload.sessionNote || '',
+      })
+    );
+    const memoResult = updateReservationDetails(memoUpdatePayload);
+
+    if (!memoResult.success) {
+      Logger.log(
+        `[processSessionConclusion] メモ更新失敗: ${memoResult.message}`,
+      );
+      return memoResult;
+    }
+
+    // 1.5. 次回目標を生徒名簿に保存（任意入力）- 共通関数を使用
+    if (
+      payload.nextLessonGoal !== undefined &&
+      payload.nextLessonGoal !== null
+    ) {
+      const goalResult = updateNextLessonGoal({
+        studentId: payload.studentId,
+        nextLessonGoal: payload.nextLessonGoal,
+      });
+      if (!goalResult.success) {
+        // 失敗しても続行（警告ログのみ）
+        Logger.log(
+          `[processSessionConclusion] 次回目標保存失敗（警告）: ${goalResult.message}`,
+        );
+      } else {
+        Logger.log(`[processSessionConclusion] 次回目標を保存しました`);
+      }
+    }
+
+    // 2. 会計処理
+    // フロントエンドから渡された会計詳細を使用（計算済み）
+    // なければ簡易オブジェクト（後方互換性）
+    const accountingDetails = /** @type {AccountingDetailsCore} */ (
+      payload.accountingDetails ||
+        /** @type {any} */ ({
+          tuition: { items: [], total: 0 },
+          sales: { items: [], total: 0 },
+          paymentMethod: payload.paymentMethod,
+          grandTotal: 0,
+        })
+    );
+
+    const reservationWithAccounting =
+      /** @type {ReservationCoreWithAccounting} */ (
+        /** @type {any} */ ({
+          reservationId: payload.reservationId,
+          studentId: payload.studentId,
+          classroom: payload.classroom,
+          accountingDetails: accountingDetails,
+        })
+      );
+
+    const accountingResult = saveAccountingDetails(reservationWithAccounting);
+    if (!accountingResult.success) {
+      Logger.log(
+        `[processSessionConclusion] 会計処理失敗: ${accountingResult.message}`,
+      );
+      return accountingResult;
+    }
+
+    // 3. 次回予約を作成（ペイロードがある場合のみ）
+    /** @type {{created: boolean, status?: string | undefined, expectedWaitlist?: boolean | undefined, message?: string | undefined, date?: string | undefined, classroom?: string | undefined}} */
+    let nextReservationResult = { created: false };
+
+    if (nextReservationPayload) {
+      Logger.log(
+        `[processSessionConclusion] 次回予約作成: lessonId=${nextReservationPayload.lessonId}`,
+      );
+
+      const reservationResult = makeReservation(
+        /** @type {ReservationCore} */ (nextReservationPayload),
+      );
+      if (reservationResult.success) {
+        // 成功の場合、makeReservationから返されたステータスを使用
+        const actualStatus =
+          /** @type {any} */ (reservationResult.data)?.status ||
+          CONSTANTS.STATUS.CONFIRMED;
+        const isWaitlisted = actualStatus === CONSTANTS.STATUS.WAITLISTED;
+        // ユーザーの期待と実際の結果を記録
+        const expectedWaitlist =
+          /** @type {any} */ (nextReservationPayload).expectedWaitlist === true;
+        nextReservationResult = {
+          created: true,
+          status: actualStatus,
+          expectedWaitlist: expectedWaitlist,
+          message: reservationResult.data?.message || reservationResult.message,
+          date: nextReservationPayload.date,
+          classroom: nextReservationPayload.classroom,
+        };
+        Logger.log(
+          `[processSessionConclusion] 予約結果: status=${actualStatus}, isWaitlisted=${isWaitlisted}`,
+        );
+      } else {
+        // 次回予約の失敗は警告扱いで続行（会計は完了済み）
+        Logger.log(
+          `[processSessionConclusion] 次回予約作成失敗（警告）: ${reservationResult.message}`,
+        );
+        nextReservationResult = {
+          created: false,
+          message: reservationResult.message,
+        };
+      }
+    }
+
+    // 4. 成功時は最新データを返す
+    const latestData = getBatchData(
+      ['reservations', 'lessons'],
+      null,
+      payload.studentId,
+    );
+
+    Logger.log(`[processSessionConclusion] 完了`);
+    return createApiResponse(true, {
+      message: 'セッション終了処理が完了しました。',
+      myReservations: latestData.data?.myReservations || [],
+      lessons: latestData.data?.lessons || [],
+      nextReservationResult: nextReservationResult,
+    });
+  } catch (error) {
+    Logger.log(
+      `[processSessionConclusion] エラー: ${error.message}\nStack: ${error.stack}`,
+    );
+    return createApiErrorResponse(
+      `セッション終了処理中にエラーが発生しました: ${error.message}`,
       true,
     );
   }

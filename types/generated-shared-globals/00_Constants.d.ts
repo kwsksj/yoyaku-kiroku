@@ -163,7 +163,7 @@ export namespace CONSTANTS {
             export let FIRST_LECTURE: string;
             export let TRANSPORTATION: string;
             export let PICKUP: string;
-            export let WORK_IN_PROGRESS: string;
+            export let SESSION_NOTE: string;
             export let ORDER: string;
             export let MESSAGE_TO_TEACHER: string;
             export let ACCOUNTING_DETAILS: string;
@@ -204,6 +204,7 @@ export namespace CONSTANTS {
             let PICKUP_1: string;
             export { PICKUP_1 as PICKUP };
             export let TOTAL_PARTICIPATION: string;
+            export let NEXT_LESSON_GOAL: string;
         }
         export { ROSTER_1 as ROSTER };
         export namespace ACCOUNTING_1 {

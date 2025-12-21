@@ -161,7 +161,7 @@ declare global {
         readonly FIRST_LECTURE: string;
         readonly TRANSPORTATION: string;
         readonly PICKUP: string;
-        readonly WORK_IN_PROGRESS: string;
+        readonly SESSION_NOTE: string;
         readonly ORDER: string;
         readonly MESSAGE_TO_TEACHER: string;
         readonly ACCOUNTING_DETAILS: string;
@@ -196,6 +196,7 @@ declare global {
         readonly TRANSPORTATION: string;
         readonly PICKUP: string;
         readonly TOTAL_PARTICIPATION: string;
+        readonly NEXT_LESSON_GOAL: string;
       };
       readonly ACCOUNTING: {
         readonly TYPE: string;

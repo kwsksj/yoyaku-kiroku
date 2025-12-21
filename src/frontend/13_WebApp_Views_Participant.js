@@ -62,6 +62,8 @@ const CLASSROOM_COLORS = {
  * @property {string} width - 列の幅（CSS grid用）
  * @property {string} [align] - テキスト配置（center, left, right）
  * @property {boolean} [adminOnly] - 管理者のみ表示
+ * @property {boolean} [pastOnly] - 過去表示のみ
+ * @property {boolean} [futureOnly] - 未来表示のみ
  * @property {(row: any) => string} [render] - カスタムレンダリング関数
  */
 
@@ -72,7 +74,7 @@ const CLASSROOM_COLORS = {
 const PARTICIPANT_TABLE_COLUMNS = [
   {
     key: 'participant',
-    label: '参加者',
+    label: 'なまえ',
     width: '80px',
     align: 'center',
     adminOnly: false,
@@ -140,17 +142,28 @@ const PARTICIPANT_TABLE_COLUMNS = [
     },
   },
   {
-    key: 'workInProgress',
-    label: '制作メモ',
+    key: 'sessionNote',
+    label: 'ノート',
     width: '160px',
     align: 'left',
     adminOnly: false,
+    pastOnly: true, // 過去表示のみ（未来では非表示）
     render: /** @param {any} row */ row =>
-      `<div class="text-xs ${row.workInProgress ? '' : 'text-gray-400 italic'}">${escapeHTML(row.workInProgress || '—')}</div>`,
+      `<div class="text-xs ${row.sessionNote ? '' : 'text-gray-400 italic'}">${escapeHTML(row.sessionNote || '—')}</div>`,
+  },
+  {
+    key: 'nextLessonGoal',
+    label: 'けいかく・もくひょう',
+    width: '160px',
+    align: 'left',
+    adminOnly: false,
+    futureOnly: true, // 未来表示のみ（過去では非表示）
+    render: /** @param {any} row */ row =>
+      `<div class="text-xs ${row.nextLessonGoal ? '' : 'text-gray-400 italic'}">${escapeHTML(row.nextLessonGoal || '—')}</div>`,
   },
   {
     key: 'order',
-    label: '注文',
+    label: 'ちゅうもん',
     width: '120px',
     align: 'left',
     adminOnly: false,
@@ -167,7 +180,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'ageGroup',
-    label: '年代',
+    label: '*年代*',
     width: '40px',
     align: 'center',
     adminOnly: true,
@@ -176,7 +189,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'gender',
-    label: '性別',
+    label: '*性別*',
     width: '40px',
     align: 'center',
     adminOnly: true,
@@ -185,7 +198,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'address',
-    label: '住所',
+    label: '*住所*',
     width: '40px',
     adminOnly: true,
     render: /** @param {any} row */ row =>
@@ -235,11 +248,32 @@ const PARTICIPANT_TABLE_COLUMNS = [
   },
   {
     key: 'notes',
-    label: '備考',
+    label: '*備考*',
     width: '160px',
     adminOnly: true,
     render: /** @param {any} row */ row =>
       `<div class="text-xs break-words" title="${escapeHTML(row.notes || '—')}">${escapeHTML(row.notes || '—')}</div>`,
+  },
+  {
+    key: 'action',
+    label: 'アクション',
+    width: '110px',
+    align: 'center',
+    adminOnly: true,
+    render: /** @param {any} row */ row => {
+      if (row.status !== CONSTANTS.STATUS.CONFIRMED) {
+        return '';
+      }
+      return `
+        <button
+          class="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 font-bold"
+          data-action="startSessionConclusion"
+          data-reservation-id="${escapeHTML(row.reservationId)}"
+        >
+          まとめ
+        </button>
+      `;
+    },
   },
 ];
 
@@ -314,12 +348,21 @@ export function getParticipantView() {
 // createBadge関数は削除 - Components.badge()を使用
 
 /**
- * 表示する列をフィルタリング（管理者権限に基づく）
+ * 表示する列をフィルタリング（管理者権限と表示モードに基づく）
  * @param {boolean} isAdmin - 管理者フラグ
+ * @param {boolean} showPastLessons - 過去表示フラグ
  * @returns {ParticipantColumnConfig[]} フィルタリングされた列定義
  */
-function getVisibleColumns(isAdmin) {
-  return PARTICIPANT_TABLE_COLUMNS.filter(col => !col.adminOnly || isAdmin);
+function getVisibleColumns(isAdmin, showPastLessons = false) {
+  return PARTICIPANT_TABLE_COLUMNS.filter(col => {
+    // 管理者専用カラムの判定
+    if (col.adminOnly && !isAdmin) return false;
+    // 過去表示のみのカラム
+    if (col.pastOnly && !showPastLessons) return false;
+    // 未来表示のみのカラム
+    if (col.futureOnly && showPastLessons) return false;
+    return true;
+  });
 }
 
 /**
@@ -341,7 +384,7 @@ function renderAccordionContent(
   }
 
   // 表示する列を取得
-  const visibleColumns = getVisibleColumns(isAdmin);
+  const visibleColumns = getVisibleColumns(isAdmin, showPastLessons);
   const gridTemplate = visibleColumns.map(col => col.width).join(' ');
 
   // データ行のみを生成（ヘッダーなし）
@@ -392,7 +435,7 @@ function renderLessonList(lessons) {
   if (!lessons || lessons.length === 0) {
     return `
       ${Components.pageHeader({
-        title: '教室日程・予約状況 一覧',
+        title: 'よやく・きろく  いちらん',
         backAction: 'smartGoBack',
       })}
       <div class="${DesignConfig.layout.container}">
@@ -424,12 +467,12 @@ function renderLessonList(lessons) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 未来と過去のレッスンに分ける
+  // 未来と過去のレッスンに分ける（当日は両方に含める）
   const futureLessons = lessons
     .filter(l => {
       const lessonDate = new Date(l.date);
       lessonDate.setHours(0, 0, 0, 0);
-      return lessonDate >= today;
+      return lessonDate >= today; // 当日を含む
     })
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // 昇順
 
@@ -437,7 +480,7 @@ function renderLessonList(lessons) {
     .filter(l => {
       const lessonDate = new Date(l.date);
       lessonDate.setHours(0, 0, 0, 0);
-      return lessonDate < today;
+      return lessonDate <= today; // 当日を含む
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 降順
 
@@ -480,7 +523,7 @@ function renderLessonList(lessons) {
   });
 
   // 共通テーブルヘッダー（列定義から生成）
-  const visibleColumns = getVisibleColumns(isAdmin);
+  const visibleColumns = getVisibleColumns(isAdmin, showPastLessons);
   const gridTemplate = visibleColumns.map(col => col.width).join(' ');
   const tableHeaderHtml = Components.stickyTableHeader({
     headerId: 'participants-table-header',
@@ -854,7 +897,7 @@ function renderLessonList(lessons) {
 
   return `
     ${Components.pageHeader({
-      title: '教室日程・予約状況 一覧',
+      title: 'よやく・きろく  いちらん',
       showBackButton: true,
       backAction: 'smartGoBack',
       actionButton: {
@@ -1116,7 +1159,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
                 ${statusBadge}
               </div>
               ${res.venue ? `<div class="text-xs text-gray-600">${escapeHTML(res.venue)}</div>` : ''}
-              ${res.workInProgress ? `<div class="text-xs mt-1">${escapeHTML(res.workInProgress)}</div>` : ''}
+              ${res.sessionNote ? `<div class="text-xs mt-1">${escapeHTML(res.sessionNote)}</div>` : ''}
             </div>
           `;
             },

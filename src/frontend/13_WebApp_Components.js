@@ -1447,16 +1447,20 @@ export const Components = {
     const classroomDisplay = item.classroom ? ` ${item.classroom}` : '';
     const venueDisplay = item.venue ? ` ${item.venue}` : '';
 
-    // 制作メモ表示（予約・履歴共通） - 編集モード対応
-    const memoSection = Components.memoSection({
-      reservationId: item.reservationId,
-      workInProgress: item.workInProgress || '',
-      isEditMode: isEditMode, // パラメータで制御
-      showSaveButton: showMemoSaveButton, // 保存ボタン表示制御
-    });
+    // メモ表示：完了（COMPLETED）の記録カードのみに表示
+    // 予約カード（CONFIRMED/WAITLISTED）にはメモを表示しない
+    const isCompleted = item.status === CONSTANTS.STATUS.COMPLETED;
+    const memoSection = isCompleted
+      ? Components.memoSection({
+          reservationId: item.reservationId,
+          sessionNote: item.sessionNote || '',
+          isEditMode: isEditMode,
+          showSaveButton: showMemoSaveButton,
+        })
+      : '';
 
     return `
-      <div class="w-full mb-4 px-0">
+      <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
         <div class="${cardColorClass} p-2 rounded-lg shadow-sm" data-reservation-id="${item.reservationId}">
           <!-- 上部：教室情報+会計・編集ボタン -->
           <div class="flex justify-between items-start mb-0">
@@ -1476,13 +1480,60 @@ export const Components = {
   },
 
   /**
+   * プレースホルダーカード（日程未定の場合用）
+   * listCardと同じ視覚構造で、予約がない場合に使用
+   * @param {{
+   *   title?: string,
+   *   badge?: {type: BadgeType, text: string},
+   *   memoTitle?: string,
+   *   memoContent?: string,
+   *   dimmed?: boolean
+   * }} config - 設定オブジェクト
+   * @returns {string} HTML文字列
+   */
+  placeholderCard: ({
+    title = 'ー',
+    badge = { type: /** @type {BadgeType} */ ('info'), text: '日程未定' },
+    memoContent = '',
+    dimmed = false,
+  }) => {
+    const cardColorClass = `booking-card ${DesignConfig.cards.state.booked.card}`;
+    const dimmedClass = dimmed ? 'opacity-50' : '';
+
+    const badgeHtml = Components.statusBadge({
+      type: badge.type,
+      text: badge.text,
+    });
+
+    return `
+      <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
+        <div class="${cardColorClass} p-2 rounded-lg shadow-sm ${dimmedClass}">
+          <!-- 上部：タイトル+バッジ -->
+          <div class="flex justify-between items-start mb-0">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center flex-wrap">
+                <h3 class="font-bold text-base text-brand-text">${escapeHTML(title)}</h3>
+              </div>
+              <h4 class="text-base text-brand-text font-bold mt-0">${badgeHtml}</h4>
+            </div>
+          </div>
+          <!-- メモセクション -->
+          <div class="p-0.5 bg-white/75">
+            <p class="text-sm ${dimmed ? 'text-brand-subtle' : 'text-brand-text'} whitespace-pre-wrap px-1 min-h-14">${escapeHTML(memoContent) || 'ー'}</p>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  /**
    * 制作メモセクション（表示・編集両対応）
    * @param {MemoSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
   memoSection: ({
     reservationId,
-    workInProgress,
+    sessionNote,
     isEditMode = false,
     showSaveButton = true,
   }) => {
@@ -1503,24 +1554,22 @@ export const Components = {
           </div>`
         : '';
       return `
-        <div class="p-0.5 bg-white/75">
-          <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
+        <div class="p-0.5 bg-white/75" data-memo-container>
           <textarea
             id="${textareaId}"
             class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
             rows="4"
             placeholder="制作内容や進捗をメモしてね"
             data-reservation-id="${reservationId}"
-          >${escapeHTML(workInProgress || '')}</textarea>
+          >${escapeHTML(sessionNote || '')}</textarea>
           ${saveButtonHtml}
         </div>
       `;
     } else {
       // 通常モード：読み取り専用表示
       return `
-        <div class="p-0.5 bg-white/75">
-          <h4 class="text-xs font-bold text-brand-subtle mb-0">制作メモ</h4>
-          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(workInProgress || '')}</p>
+        <div class="p-0.5 bg-white/75" data-memo-container>
+          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(sessionNote || '')}</p>
         </div>
       `;
     }
@@ -1563,7 +1612,7 @@ export const Components = {
       .join('');
 
     return `<div class="p-4 bg-ui-surface border-2 border-ui-border rounded-lg">
-        <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売</h3>
+        <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売（材料・物販）</h3>
         <div class="mb-3 space-y-4">
           <label class="block text-brand-text text-base font-bold">材料代</label>
           <div id="materials-container">

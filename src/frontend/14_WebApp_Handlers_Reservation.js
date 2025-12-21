@@ -265,7 +265,7 @@ export const reservationActionHandlers = {
     const startTime = getTimeValue('res-start-time', null, 'startTime');
     const endTime = getTimeValue('res-end-time', null, 'endTime');
 
-    // 制作メモと材料情報を統合
+    // けいかく・もくひょうと材料情報を取得
     const wipValue =
       /** @type {HTMLInputElement} */ (document.getElementById('wip-input'))
         ?.value || '';
@@ -273,13 +273,28 @@ export const reservationActionHandlers = {
       /** @type {HTMLInputElement} */ (
         document.getElementById('material-input')
       )?.value || '';
-    const combinedWip = materialInfoValue
-      ? wipValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
-      : wipValue;
+    const orderValue =
+      /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
+        ?.value || '';
+    // 材料情報はOrderに追記する（可読性のためif文を使用）
+    let combinedOrder = orderValue;
+    if (materialInfoValue) {
+      const materialPrefix = '【希望材料】';
+      if (combinedOrder) {
+        // 既存の注文があれば、改行と接頭辞を追加して追記
+        combinedOrder += `\n${materialPrefix}${materialInfoValue}`;
+      } else {
+        // 既存の注文がなければ、接頭辞のみ追加
+        combinedOrder = `${materialPrefix}${materialInfoValue}`;
+      }
+    }
 
     showLoading('booking');
     // 予約処理中フラグを設定
     reservationStateManager.setDataFetchProgress('reservation-booking', true);
+
+    // nextLessonGoal は wip-input から取得（生徒名簿に保存される）
+    const nextLessonGoalValue = wipValue;
 
     // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
     const p = {
@@ -299,10 +314,9 @@ export const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('option-first-lecture')
         )?.checked || isFirstTimeBooking,
-      workInProgress: combinedWip,
-      order:
-        /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
-          ?.value || '',
+      sessionNote: wipValue, // 予約ログ用（けいかく・もくひょうのみ）
+      nextLessonGoal: nextLessonGoalValue, // 生徒名簿に保存するけいかく・もくひょう
+      order: combinedOrder, // 材料情報を含む購入希望
       messageToTeacher:
         /** @type {HTMLInputElement} */ (
           document.getElementById('message-input')
@@ -537,6 +551,30 @@ export const reservationActionHandlers = {
         ? validReservationInfo.studentId
         : currentUser.studentId || '';
 
+    // wip-inputの値を取得（nextLessonGoal用）
+    const wipInputValue =
+      /** @type {HTMLInputElement} */ (document.getElementById('wip-input'))
+        ?.value || '';
+    const materialInfoValue =
+      /** @type {HTMLInputElement} */ (
+        document.getElementById('material-input')
+      )?.value || '';
+    const orderValue =
+      /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
+        ?.value || '';
+    // 材料情報はOrderに追記する（可読性のためif文を使用）
+    let combinedOrder = orderValue;
+    if (materialInfoValue) {
+      const materialPrefix = '【希望材料】';
+      if (combinedOrder) {
+        // 既存の注文があれば、改行と接頭辞を追加して追記
+        combinedOrder += `\n${materialPrefix}${materialInfoValue}`;
+      } else {
+        // 既存の注文がなければ、接頭辞のみ追加
+        combinedOrder = `${materialPrefix}${materialInfoValue}`;
+      }
+    }
+
     const p = {
       reservationId: validReservationInfo.reservationId,
       classroom: validReservationInfo.classroom,
@@ -551,19 +589,13 @@ export const reservationActionHandlers = {
         )?.checked || false,
       startTime: startTime,
       endTime: endTime,
-      workInProgress: /** @type {HTMLInputElement} */ (
-        document.getElementById('wip-input')
-      ).value,
-      order: /** @type {HTMLInputElement} */ (
-        document.getElementById('order-input')
-      ).value,
+      sessionNote: wipInputValue, // 予約ログ用（けいかく・もくひょうのみ）
+      nextLessonGoal: wipInputValue, // 生徒名簿に保存するけいかく・もくひょう
+      order: combinedOrder, // 材料情報を含む購入希望
       messageToTeacher: /** @type {HTMLInputElement} */ (
         document.getElementById('message-input')
       ).value,
-      materialInfo:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('material-input')
-        )?.value || '',
+      materialInfo: materialInfoValue,
       _isByAdmin: isCurrentUserAdmin(),
       _adminToken: getAdminToken(),
     };
@@ -1439,7 +1471,7 @@ export const reservationActionHandlers = {
             /** @type {HTMLInputElement | null} */ (
               document.getElementById('option-rental')
             )?.checked || false,
-          workInProgress:
+          sessionNote:
             /** @type {HTMLTextAreaElement | null} */ (
               document.getElementById('wip-input')
             )?.value || '',

@@ -24,10 +24,12 @@ export function makeReservationAndGetLatestData(reservationInfo: ReservationCore
 export function cancelReservationAndGetLatestData(cancelInfo: ReservationCore): ApiResponseGeneric;
 /**
  * 予約詳細を更新し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
+ * @param {ReservationCore & {nextLessonGoal?: string}} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
-export function updateReservationDetailsAndGetLatestData(details: ReservationCore): ApiResponseGeneric;
+export function updateReservationDetailsAndGetLatestData(details: ReservationCore & {
+    nextLessonGoal?: string;
+}): ApiResponseGeneric;
 /**
  * 予約の参加日を変更し、成功した場合に最新の全初期化データを返す。
  * 内部的には新規予約作成と旧予約キャンセルを実行します。
@@ -44,6 +46,15 @@ export function changeReservationDateAndGetLatestData(newReservationData: Reserv
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function updateReservationMemoAndGetLatestData(reservationId: string, studentId: string, newMemo: string): ApiResponseGeneric;
+/**
+ * 生徒のけいかく・もくひょうを更新する
+ * @param {{ studentId: string, nextLessonGoal: string }} payload - 更新内容
+ * @returns {ApiResponse} 処理結果
+ */
+export function updateNextLessonGoal(payload: {
+    studentId: string;
+    nextLessonGoal: string;
+}): ApiResponse;
 /**
  * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
@@ -156,4 +167,15 @@ export function getStudentDetailsForParticipantsView(targetStudentId: string, re
 export function processAccountingWithTransferOption(formData: any, calculationResult: AccountingDetailsCore, withSalesTransfer: boolean): ApiResponseGeneric<{
     message: string;
 }>;
+/**
+ * セッション終了ウィザードの統合処理エンドポイント
+ * 1. 今日の記録（sessionNote）を更新
+ * 2. 会計処理を実行
+ * 3. オプションで次回予約を作成
+ *
+ * @param {any} payload - メイン処理データ
+ * @param {any} nextReservationPayload - 次回予約データ（null = スキップ）
+ * @returns {ApiResponseGeneric} 処理結果
+ */
+export function processSessionConclusion(payload: any, nextReservationPayload: any): ApiResponseGeneric;
 export type ReservationCoreWithAccounting = import("../../types/core/reservation").ReservationCoreWithAccounting;

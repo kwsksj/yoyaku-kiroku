@@ -479,7 +479,7 @@ export function transformReservationArrayToObject(resArray) {
     ,
     ,
     // 送迎をスキップ
-    workInProgress,
+    sessionNote,
     order,
     message, // 先生へのメッセージ
   ] = resArray;
@@ -506,7 +506,7 @@ export function transformReservationArrayToObject(resArray) {
     status: String(status || ''),
     chiselRental: Boolean(chiselRental),
     firstLecture: Boolean(firstLecture),
-    workInProgress: String(workInProgress || ''),
+    sessionNote: String(sessionNote || ''),
     order: String(order || ''),
     messageToTeacher: String(message || ''),
   };
@@ -638,8 +638,8 @@ export function transformReservationArrayToObjectWithHeaders(
         value === true || String(value).toUpperCase() === 'TRUE' || value == 1
       );
     })(),
-    workInProgress: String(
-      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS) || '',
+    sessionNote: String(
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.SESSION_NOTE) || '',
     ),
     order: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.ORDER) || ''),
     messageToTeacher: String(
@@ -687,8 +687,8 @@ export function normalizeReservationObject(rawReservation) {
       status: String(rawReservation['status'] || ''),
       chiselRental: Boolean(rawReservation['chiselRental']),
       firstLecture: Boolean(rawReservation['firstLecture']),
-      workInProgress: rawReservation['workInProgress']
-        ? String(rawReservation['workInProgress'])
+      sessionNote: rawReservation['sessionNote']
+        ? String(rawReservation['sessionNote'])
         : undefined,
       order: rawReservation['order']
         ? String(rawReservation['order'])
@@ -1229,8 +1229,8 @@ export function convertReservationToRow(reservation, headerMap, header) {
     reservation.chiselRental ? 'TRUE' : '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]] =
     reservation.firstLecture ? 'TRUE' : '';
-  row[hm[CONSTANTS.HEADERS.RESERVATIONS.WORK_IN_PROGRESS]] =
-    reservation.workInProgress || '';
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.SESSION_NOTE]] =
+    reservation.sessionNote || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]] = reservation.order || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER]] =
     reservation.messageToTeacher || '';
@@ -1371,4 +1371,198 @@ export function sortReservationRows(rows, headerMap) {
 
     return 0;
   });
+}
+
+/**
+ * 生徒名簿の特定のフィールドを更新するヘルパー関数
+ * @param {string} studentId - 生徒ID
+ * @param {string} headerName - 更新する列のヘッダー名（CONSTANTS.HEADERS.ROSTER.* を使用）
+ * @param {string | number | boolean} value - 新しい値
+ * @returns {{success: boolean, message: string}}
+ */
+export function updateStudentField(studentId, headerName, value) {
+  try {
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
+    if (!sheet) {
+      return { success: false, message: '生徒名簿シートが見つかりません。' };
+    }
+
+    const { headerMap, dataRows } = getSheetData(sheet);
+    const studentIdColIdx = getHeaderIndex(
+      headerMap,
+      CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+    );
+    const targetColIdx = getHeaderIndex(headerMap, headerName);
+
+    if (studentIdColIdx === undefined) {
+      return { success: false, message: '生徒ID列が見つかりません。' };
+    }
+    if (targetColIdx === undefined) {
+      return {
+        success: false,
+        message: `列 '${headerName}' が見つかりません。`,
+      };
+    }
+
+    // 生徒を探す
+    let rowIndex = -1;
+    for (let i = 0; i < dataRows.length; i++) {
+      if (String(dataRows[i][studentIdColIdx]) === studentId) {
+        rowIndex = i + 2; // シート上の行番号 (1-based + header)
+        break;
+      }
+    }
+
+    if (rowIndex === -1) {
+      return {
+        success: false,
+        message: `生徒ID '${studentId}' が見つかりません。`,
+      };
+    }
+
+    // セルを更新
+    sheet.getRange(rowIndex, targetColIdx + 1).setValue(value);
+
+    Logger.log(
+      `[updateStudentField] 生徒 ${studentId} の ${headerName} を更新: ${value}`,
+    );
+
+    return { success: true, message: 'フィールドを更新しました。' };
+  } catch (error) {
+    Logger.log(`[updateStudentField] エラー: ${error.message}`);
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * 【一時的なマイグレーション関数】
+ * 未来の予約のsessionNoteを生徒名簿の次回目標に移植し、予約の制作メモをクリアする。
+ * スプレッドシートエディタから直接実行してください。
+ * @returns {void}
+ */
+export function migrateSessionNoteToNextGoal() {
+  Logger.log('[migrateSessionNoteToNextGoal] マイグレーション開始');
+
+  const reservationsSheet = SS_MANAGER.getSheet(
+    CONSTANTS.SHEET_NAMES.RESERVATIONS,
+  );
+  const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
+
+  if (!reservationsSheet || !rosterSheet) {
+    Logger.log('[migrateSessionNoteToNextGoal] シートが見つかりません');
+    return;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 予約シートのヘッダー
+  const reservationHeader = reservationsSheet
+    .getRange(1, 1, 1, reservationsSheet.getLastColumn())
+    .getValues()[0];
+  const resHeaderMap = new Map(reservationHeader.map((h, i) => [h, i]));
+
+  const studentIdCol = resHeaderMap.get(
+    CONSTANTS.HEADERS.RESERVATIONS.STUDENT_ID,
+  );
+  const dateCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.DATE);
+  const statusCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.STATUS);
+  const wipCol = resHeaderMap.get(CONSTANTS.HEADERS.RESERVATIONS.SESSION_NOTE);
+
+  if (
+    studentIdCol === undefined ||
+    dateCol === undefined ||
+    statusCol === undefined ||
+    wipCol === undefined
+  ) {
+    Logger.log('[migrateSessionNoteToNextGoal] 必要なカラムが見つかりません');
+    return;
+  }
+
+  // 名簿シートのヘッダー
+  const rosterHeader = rosterSheet
+    .getRange(1, 1, 1, rosterSheet.getLastColumn())
+    .getValues()[0];
+  const rosterHeaderMap = new Map(rosterHeader.map((h, i) => [h, i]));
+
+  const rosterStudentIdCol = rosterHeaderMap.get(
+    CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+  );
+  const nextGoalCol = rosterHeaderMap.get(
+    CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL,
+  );
+
+  if (rosterStudentIdCol === undefined || nextGoalCol === undefined) {
+    Logger.log(
+      '[migrateSessionNoteToNextGoal] 名簿の必要なカラムが見つかりません',
+    );
+    return;
+  }
+
+  // 全予約データ取得
+  const reservationData = reservationsSheet.getDataRange().getValues();
+  const rosterData = rosterSheet.getDataRange().getValues();
+
+  // 生徒ID → 行番号のマップ作成
+  const studentRowMap = new Map();
+  for (let i = 1; i < rosterData.length; i++) {
+    const studentId = rosterData[i][rosterStudentIdCol];
+    if (studentId) {
+      studentRowMap.set(studentId, i + 1); // 1-based
+    }
+  }
+
+  let migratedCount = 0;
+
+  // 未来の予約（CONFIRMED or WAITLISTED）で制作メモがあるものを処理
+  for (let i = 1; i < reservationData.length; i++) {
+    const row = reservationData[i];
+    const studentId = row[studentIdCol];
+    const dateValue = row[dateCol];
+    const status = row[statusCol];
+    const sessionNote = row[wipCol];
+
+    // 日付をパース
+    const reservationDate =
+      dateValue instanceof Date ? dateValue : new Date(dateValue);
+    if (isNaN(reservationDate.getTime())) {
+      continue;
+    }
+
+    // 未来の予約かつ有効なステータスか
+    const isFuture = reservationDate >= today;
+    const isValidStatus =
+      status === CONSTANTS.STATUS.CONFIRMED ||
+      status === CONSTANTS.STATUS.WAITLISTED;
+
+    // 制作メモがあるか
+    const hasSessionNote = sessionNote && String(sessionNote).trim() !== '';
+
+    if (isFuture && isValidStatus && hasSessionNote) {
+      const studentRowIndex = studentRowMap.get(studentId);
+      if (!studentRowIndex) {
+        Logger.log(
+          `[migrateSessionNoteToNextGoal] 生徒が見つかりません: ${studentId}`,
+        );
+        continue;
+      }
+
+      // 1. 生徒名簿の次回目標に保存
+      rosterSheet
+        .getRange(studentRowIndex, nextGoalCol + 1)
+        .setValue(sessionNote);
+
+      // 2. 予約の制作メモをクリア
+      reservationsSheet.getRange(i + 1, wipCol + 1).setValue('');
+
+      Logger.log(
+        `[migrateSessionNoteToNextGoal] 移植完了: studentId=${studentId}, date=${reservationDate.toISOString().split('T')[0]}, wip="${sessionNote}"`,
+      );
+      migratedCount++;
+    }
+  }
+
+  Logger.log(
+    `[migrateSessionNoteToNextGoal] マイグレーション完了: ${migratedCount}件を移植しました`,
+  );
 }

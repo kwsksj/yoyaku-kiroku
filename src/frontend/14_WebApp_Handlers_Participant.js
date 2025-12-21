@@ -352,7 +352,7 @@ function selectParticipantStudent(targetStudentId, _lessonId) {
           startTime: studentReservation.startTime || '',
           endTime: studentReservation.endTime || '',
           status: studentReservation.status,
-          workInProgress: studentReservation.workInProgress || '',
+          sessionNote: studentReservation.sessionNote || '',
           _dateObj: new Date(dateStr),
         });
       }

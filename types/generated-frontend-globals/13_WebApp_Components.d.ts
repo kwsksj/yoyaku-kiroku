@@ -89,7 +89,17 @@ export namespace Components {
         action: string;
     }): string;
     function listCard({ item, badges, editButtons, accountingButtons, type, isEditMode, showMemoSaveButton, }: ListCardConfig): string;
-    function memoSection({ reservationId, workInProgress, isEditMode, showSaveButton, }: MemoSectionConfig): string;
+    function placeholderCard({ title, badge, memoContent, dimmed, }: {
+        title?: string;
+        badge?: {
+            type: BadgeType;
+            text: string;
+        };
+        memoTitle?: string;
+        memoContent?: string;
+        dimmed?: boolean;
+    }): string;
+    function memoSection({ reservationId, sessionNote, isEditMode, showSaveButton, }: MemoSectionConfig): string;
     function salesSection({ master, reservationDetails }: {
         master: AccountingMasterItemCore[];
         reservationDetails: ReservationCore;

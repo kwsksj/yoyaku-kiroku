@@ -38,7 +38,8 @@ export type ViewType =
   | 'editProfile'
   | 'complete'
   | 'userSearch'
-  | 'participants'; // 参加者リスト画面
+  | 'participants' // 参加者リスト画面
+  | 'sessionConclusion'; // セッション終了ウィザード
 
 /**
  * 統一検索結果型
@@ -135,7 +136,7 @@ export interface AccountingFormDto {
     price: number;
   }>;
   /** 制作メモ */
-  workInProgress?: string;
+  sessionNote?: string;
   /** 支払い方法 */
   paymentMethod?: string;
   /** その他フォームフィールド */

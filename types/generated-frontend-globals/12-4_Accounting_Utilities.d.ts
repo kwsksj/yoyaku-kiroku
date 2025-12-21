@@ -12,11 +12,11 @@
 export function clearAccountingCache(): void;
 /**
  * 制作メモのデータを収集
- * @returns {{ reservationId?: string; workInProgress?: string }} 制作メモデータ
+ * @returns {{ reservationId?: string; sessionNote?: string }} 制作メモデータ
  */
 export function collectMemoData(): {
     reservationId?: string;
-    workInProgress?: string;
+    sessionNote?: string;
 };
 /**
  * フォームデータ収集
