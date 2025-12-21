@@ -169,7 +169,7 @@ export const getDashboardView = () => {
   const primaryMenuButtons = [menuButton, newBookingButton]
     .filter(Boolean)
     .join('');
-  const todayButtons = [summaryMenuButton, accountingFallbackButton]
+  const todayButtons = [summaryMenuButton]
     .filter(Boolean)
     .join('');
 
@@ -232,6 +232,7 @@ export const getDashboardView = () => {
         ${goalSectionHtml}
         ${yourBookingsHtml}
         ${historyHtml}
+        ${accountingFallbackButton ? `<div class="mt-8 text-center">${accountingFallbackButton}</div>` : ''}
     `;
 };
 
