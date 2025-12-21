@@ -694,6 +694,15 @@ window.onload = function () {
       }
     },
 
+    /** 写真ギャラリーを新しいタブで開く */
+    openPhotoGallery: () => {
+      window.open(
+        'https://photos.google.com/share/AF1QipNpD9FJ9rd-_c-GuL4n09UjADAOGlIcUV8c3fVWnUBqISR2jYSI_4FvZ53RJnX7GA?key=TVFISm56Uy1qSzF2bGNPWWticTdrd3hHdGZTX3NR',
+        '_blank',
+        'noopener,noreferrer',
+      );
+    },
+
     // =================================================================
     // --- Accounting Handlers (整理済み) ---
     // -----------------------------------------------------------------
