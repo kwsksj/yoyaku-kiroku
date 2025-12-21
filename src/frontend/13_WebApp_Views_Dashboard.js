@@ -165,8 +165,11 @@ export const getDashboardView = () => {
       })
     : '';
 
+  // 写真ギャラリーリンク
+  const photoButton = `<a href="https://photos.google.com/share/AF1QipNpD9FJ9rd-_c-GuL4n09UjADAOGlIcUV8c3fVWnUBqISR2jYSI_4FvZ53RJnX7GA?key=TVFISm56Uy1qSzF2bGNPWWticTdrd3hHdGZTX3NR" target="_blank" rel="noopener noreferrer" class="text-base font-bold py-3 px-4 rounded-lg border-2 border-ui-border bg-ui-surface text-action-secondary-text hover:bg-action-secondary-hover inline-flex items-center justify-center">しゃしん</a>`;
+
   // メニューアイテムを構築
-  const primaryMenuButtons = [menuButton, newBookingButton]
+  const primaryMenuButtons = [menuButton, newBookingButton, photoButton]
     .filter(Boolean)
     .join('');
   const todayButtons = [summaryMenuButton].filter(Boolean).join('');
@@ -174,7 +177,7 @@ export const getDashboardView = () => {
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
     items: [
-      `<div class="grid gap-2 sm:grid-cols-2">${primaryMenuButtons}</div>`,
+      `<div class="grid gap-2 sm:grid-cols-3">${primaryMenuButtons}</div>`,
       todayButtons
         ? `<div class="grid gap-2 sm:grid-cols-2 mt-2">${todayButtons}</div>`
         : '',
