@@ -1630,147 +1630,148 @@ export function processAccountingWithTransferOption(
  * @returns {ApiResponseGeneric} 処理結果
  */
 export function processSessionConclusion(payload, nextReservationPayload) {
-  return withTransaction(() => {
-    try {
-      Logger.log(
-        `[processSessionConclusion] 開始: reservationId=${payload.reservationId}`,
-      );
+  // 注意: withTransactionは使用しない
+  // 内部で呼び出すupdateReservationDetails、saveAccountingDetails、makeReservationは
+  // 各自でwithTransactionを持っているため、外側でラップすると多重ロック取得でエラーになる
+  try {
+    Logger.log(
+      `[processSessionConclusion] 開始: reservationId=${payload.reservationId}`,
+    );
 
-      // 1. 今日の予約の sessionNote を更新
-      const memoUpdatePayload = /** @type {ReservationCore} */ (
+    // 1. 今日の予約の sessionNote を更新
+    const memoUpdatePayload = /** @type {ReservationCore} */ (
+      /** @type {any} */ ({
+        reservationId: payload.reservationId,
+        studentId: payload.studentId,
+        sessionNote: payload.sessionNote || '',
+      })
+    );
+    const memoResult = updateReservationDetails(memoUpdatePayload);
+
+    if (!memoResult.success) {
+      Logger.log(
+        `[processSessionConclusion] メモ更新失敗: ${memoResult.message}`,
+      );
+      return memoResult;
+    }
+
+    // 1.5. 次回目標を生徒名簿に保存（任意入力）- 共通関数を使用
+    if (
+      payload.nextLessonGoal !== undefined &&
+      payload.nextLessonGoal !== null
+    ) {
+      const goalResult = updateNextLessonGoal({
+        studentId: payload.studentId,
+        nextLessonGoal: payload.nextLessonGoal,
+      });
+      if (!goalResult.success) {
+        // 失敗しても続行（警告ログのみ）
+        Logger.log(
+          `[processSessionConclusion] 次回目標保存失敗（警告）: ${goalResult.message}`,
+        );
+      } else {
+        Logger.log(`[processSessionConclusion] 次回目標を保存しました`);
+      }
+    }
+
+    // 2. 会計処理
+    // フロントエンドから渡された会計詳細を使用（計算済み）
+    // なければ簡易オブジェクト（後方互換性）
+    const accountingDetails = /** @type {AccountingDetailsCore} */ (
+      payload.accountingDetails ||
+        /** @type {any} */ ({
+          tuition: { items: [], total: 0 },
+          sales: { items: [], total: 0 },
+          paymentMethod: payload.paymentMethod,
+          grandTotal: 0,
+        })
+    );
+
+    const reservationWithAccounting =
+      /** @type {ReservationCoreWithAccounting} */ (
         /** @type {any} */ ({
           reservationId: payload.reservationId,
           studentId: payload.studentId,
-          sessionNote: payload.sessionNote || '',
+          classroom: payload.classroom,
+          accountingDetails: accountingDetails,
         })
       );
-      const memoResult = updateReservationDetails(memoUpdatePayload);
 
-      if (!memoResult.success) {
-        Logger.log(
-          `[processSessionConclusion] メモ更新失敗: ${memoResult.message}`,
-        );
-        return memoResult;
-      }
-
-      // 1.5. 次回目標を生徒名簿に保存（任意入力）- 共通関数を使用
-      if (
-        payload.nextLessonGoal !== undefined &&
-        payload.nextLessonGoal !== null
-      ) {
-        const goalResult = updateNextLessonGoal({
-          studentId: payload.studentId,
-          nextLessonGoal: payload.nextLessonGoal,
-        });
-        if (!goalResult.success) {
-          // 失敗しても続行（警告ログのみ）
-          Logger.log(
-            `[processSessionConclusion] 次回目標保存失敗（警告）: ${goalResult.message}`,
-          );
-        } else {
-          Logger.log(`[processSessionConclusion] 次回目標を保存しました`);
-        }
-      }
-
-      // 2. 会計処理
-      // フロントエンドから渡された会計詳細を使用（計算済み）
-      // なければ簡易オブジェクト（後方互換性）
-      const accountingDetails = /** @type {AccountingDetailsCore} */ (
-        payload.accountingDetails ||
-          /** @type {any} */ ({
-            tuition: { items: [], total: 0 },
-            sales: { items: [], total: 0 },
-            paymentMethod: payload.paymentMethod,
-            grandTotal: 0,
-          })
-      );
-
-      const reservationWithAccounting =
-        /** @type {ReservationCoreWithAccounting} */ (
-          /** @type {any} */ ({
-            reservationId: payload.reservationId,
-            studentId: payload.studentId,
-            classroom: payload.classroom,
-            accountingDetails: accountingDetails,
-          })
-        );
-
-      const accountingResult = saveAccountingDetails(reservationWithAccounting);
-      if (!accountingResult.success) {
-        Logger.log(
-          `[processSessionConclusion] 会計処理失敗: ${accountingResult.message}`,
-        );
-        return accountingResult;
-      }
-
-      // 3. 次回予約を作成（ペイロードがある場合のみ）
-      /** @type {{created: boolean, status?: string | undefined, expectedWaitlist?: boolean | undefined, message?: string | undefined, date?: string | undefined, classroom?: string | undefined}} */
-      let nextReservationResult = { created: false };
-
-      if (nextReservationPayload) {
-        Logger.log(
-          `[processSessionConclusion] 次回予約作成: lessonId=${nextReservationPayload.lessonId}`,
-        );
-
-        const reservationResult = makeReservation(
-          /** @type {ReservationCore} */ (nextReservationPayload),
-        );
-        if (reservationResult.success) {
-          // 成功の場合、makeReservationから返されたステータスを使用
-          const actualStatus =
-            /** @type {any} */ (reservationResult.data)?.status ||
-            CONSTANTS.STATUS.CONFIRMED;
-          const isWaitlisted = actualStatus === CONSTANTS.STATUS.WAITLISTED;
-          // ユーザーの期待と実際の結果を記録
-          const expectedWaitlist =
-            /** @type {any} */ (nextReservationPayload).expectedWaitlist ===
-            true;
-          nextReservationResult = {
-            created: true,
-            status: actualStatus,
-            expectedWaitlist: expectedWaitlist,
-            message:
-              reservationResult.data?.message || reservationResult.message,
-            date: nextReservationPayload.date,
-            classroom: nextReservationPayload.classroom,
-          };
-          Logger.log(
-            `[processSessionConclusion] 予約結果: status=${actualStatus}, isWaitlisted=${isWaitlisted}`,
-          );
-        } else {
-          // 次回予約の失敗は警告扱いで続行（会計は完了済み）
-          Logger.log(
-            `[processSessionConclusion] 次回予約作成失敗（警告）: ${reservationResult.message}`,
-          );
-          nextReservationResult = {
-            created: false,
-            message: reservationResult.message,
-          };
-        }
-      }
-
-      // 4. 成功時は最新データを返す
-      const latestData = getBatchData(
-        ['reservations', 'lessons'],
-        null,
-        payload.studentId,
-      );
-
-      Logger.log(`[processSessionConclusion] 完了`);
-      return createApiResponse(true, {
-        message: 'セッション終了処理が完了しました。',
-        myReservations: latestData.data?.myReservations || [],
-        lessons: latestData.data?.lessons || [],
-        nextReservationResult: nextReservationResult,
-      });
-    } catch (error) {
+    const accountingResult = saveAccountingDetails(reservationWithAccounting);
+    if (!accountingResult.success) {
       Logger.log(
-        `[processSessionConclusion] エラー: ${error.message}\nStack: ${error.stack}`,
+        `[processSessionConclusion] 会計処理失敗: ${accountingResult.message}`,
       );
-      return createApiErrorResponse(
-        `セッション終了処理中にエラーが発生しました: ${error.message}`,
-        true,
-      );
+      return accountingResult;
     }
-  });
+
+    // 3. 次回予約を作成（ペイロードがある場合のみ）
+    /** @type {{created: boolean, status?: string | undefined, expectedWaitlist?: boolean | undefined, message?: string | undefined, date?: string | undefined, classroom?: string | undefined}} */
+    let nextReservationResult = { created: false };
+
+    if (nextReservationPayload) {
+      Logger.log(
+        `[processSessionConclusion] 次回予約作成: lessonId=${nextReservationPayload.lessonId}`,
+      );
+
+      const reservationResult = makeReservation(
+        /** @type {ReservationCore} */ (nextReservationPayload),
+      );
+      if (reservationResult.success) {
+        // 成功の場合、makeReservationから返されたステータスを使用
+        const actualStatus =
+          /** @type {any} */ (reservationResult.data)?.status ||
+          CONSTANTS.STATUS.CONFIRMED;
+        const isWaitlisted = actualStatus === CONSTANTS.STATUS.WAITLISTED;
+        // ユーザーの期待と実際の結果を記録
+        const expectedWaitlist =
+          /** @type {any} */ (nextReservationPayload).expectedWaitlist ===
+          true;
+        nextReservationResult = {
+          created: true,
+          status: actualStatus,
+          expectedWaitlist: expectedWaitlist,
+          message:
+            reservationResult.data?.message || reservationResult.message,
+          date: nextReservationPayload.date,
+          classroom: nextReservationPayload.classroom,
+        };
+        Logger.log(
+          `[processSessionConclusion] 予約結果: status=${actualStatus}, isWaitlisted=${isWaitlisted}`,
+        );
+      } else {
+        // 次回予約の失敗は警告扱いで続行（会計は完了済み）
+        Logger.log(
+          `[processSessionConclusion] 次回予約作成失敗（警告）: ${reservationResult.message}`,
+        );
+        nextReservationResult = {
+          created: false,
+          message: reservationResult.message,
+        };
+      }
+    }
+
+    // 4. 成功時は最新データを返す
+    const latestData = getBatchData(
+      ['reservations', 'lessons'],
+      null,
+      payload.studentId,
+    );
+
+    Logger.log(`[processSessionConclusion] 完了`);
+    return createApiResponse(true, {
+      message: 'セッション終了処理が完了しました。',
+      myReservations: latestData.data?.myReservations || [],
+      lessons: latestData.data?.lessons || [],
+      nextReservationResult: nextReservationResult,
+    });
+  } catch (error) {
+    Logger.log(
+      `[processSessionConclusion] エラー: ${error.message}\nStack: ${error.stack}`,
+    );
+    return createApiErrorResponse(
+      `セッション終了処理中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
 }

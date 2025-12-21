@@ -599,36 +599,13 @@ export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
   if (!cardElement) return;
 
   // より確実なセレクターを使ってメモセクションを探す
-  let existingMemoSection;
+  // data-memo-container属性を使用（CSSクラスの変更に影響されない）
+  let existingMemoSection = cardElement.querySelector('[data-memo-container]');
 
-  if (isInEditMode) {
-    // 通常モード→編集モード：読み取り専用メモセクションを探す
-    // メモセクションは bg-white/75 を持つ div 内に p 要素がある
-    const memoContainers = Array.from(
-      cardElement.querySelectorAll('div.p-0\\.5.bg-white\\/75'),
-    );
-    for (const container of memoContainers) {
-      // p 要素を持つコンテナ（読み取り専用モード）
-      if (container.querySelector('p.whitespace-pre-wrap')) {
-        existingMemoSection = container;
-        break;
-      }
-    }
-  } else {
-    // 編集モード→通常モード：テキストエリアを含むメモセクションを探す
-    const textarea = cardElement.querySelector('.memo-edit-textarea');
-    if (textarea) {
-      // テキストエリアの適切な親コンテナを探す
-      existingMemoSection =
-        textarea.closest('div.p-0\\.5.bg-white\\/75') ||
-        textarea.closest('div.p-0\\.5') ||
-        textarea.closest('.memo-section') ||
-        textarea.closest('div[style*="padding"]') ||
-        textarea.closest('div');
-    }
-
-    // フォールバック：メモセクション全体を再検索
-    if (!existingMemoSection) {
+  // フォールバック：属性がない古いコンテンツの場合
+  if (!existingMemoSection) {
+    if (isInEditMode) {
+      // 通常モード→編集モード：読み取り専用メモセクションを探す
       const memoContainers = Array.from(
         cardElement.querySelectorAll('div.p-0\\.5.bg-white\\/75'),
       );
@@ -637,6 +614,12 @@ export function _updateMemoSection(reservationId, historyItem, isInEditMode) {
           existingMemoSection = container;
           break;
         }
+      }
+    } else {
+      // 編集モード→通常モード：テキストエリアを含むメモセクションを探す
+      const textarea = cardElement.querySelector('.memo-edit-textarea');
+      if (textarea) {
+        existingMemoSection = textarea.closest('div');
       }
     }
   }

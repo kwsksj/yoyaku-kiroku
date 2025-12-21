@@ -25,12 +25,12 @@ import { getClassroomSelectionModal } from './13_WebApp_Views_Booking.js';
 import { getScheduleInfoFromCache } from './12_WebApp_Core_Data.js';
 import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 import {
-  getParticipantPayloadForAdminView,
-  getTimeValue,
-  isCurrentUserAdmin,
-  refreshParticipantsViewForAdmin,
-  updateAppStateFromCache,
-  updateParticipantViewCacheFromReservation,
+    getParticipantPayloadForAdminView,
+    getTimeValue,
+    isCurrentUserAdmin,
+    refreshParticipantsViewForAdmin,
+    updateAppStateFromCache,
+    updateParticipantViewCacheFromReservation,
 } from './14_WebApp_Handlers_Utils.js';
 
 const reservationStateManager = appWindow.stateManager;
@@ -276,12 +276,18 @@ export const reservationActionHandlers = {
     const orderValue =
       /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
         ?.value || '';
-    // 材料情報はOrderに追記する
-    const combinedOrder = materialInfoValue
-      ? orderValue
-        ? orderValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
-        : '【材料】' + materialInfoValue
-      : orderValue;
+    // 材料情報はOrderに追記する（可読性のためif文を使用）
+    let combinedOrder = orderValue;
+    if (materialInfoValue) {
+      const materialPrefix = '【希望材料】';
+      if (combinedOrder) {
+        // 既存の注文があれば、改行と接頭辞を追加して追記
+        combinedOrder += `\n${materialPrefix}${materialInfoValue}`;
+      } else {
+        // 既存の注文がなければ、接頭辞のみ追加
+        combinedOrder = `${materialPrefix}${materialInfoValue}`;
+      }
+    }
 
     showLoading('booking');
     // 予約処理中フラグを設定
@@ -556,12 +562,18 @@ export const reservationActionHandlers = {
     const orderValue =
       /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
         ?.value || '';
-    // 材料情報はOrderに追記する
-    const combinedOrder = materialInfoValue
-      ? orderValue
-        ? orderValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
-        : '【材料】' + materialInfoValue
-      : orderValue;
+    // 材料情報はOrderに追記する（可読性のためif文を使用）
+    let combinedOrder = orderValue;
+    if (materialInfoValue) {
+      const materialPrefix = '【希望材料】';
+      if (combinedOrder) {
+        // 既存の注文があれば、改行と接頭辞を追加して追記
+        combinedOrder += `\n${materialPrefix}${materialInfoValue}`;
+      } else {
+        // 既存の注文がなければ、接頭辞のみ追加
+        combinedOrder = `${materialPrefix}${materialInfoValue}`;
+      }
+    }
 
     const p = {
       reservationId: validReservationInfo.reservationId,

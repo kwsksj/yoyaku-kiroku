@@ -1554,7 +1554,7 @@ export const Components = {
           </div>`
         : '';
       return `
-        <div class="p-0.5 bg-white/75">
+        <div class="p-0.5 bg-white/75" data-memo-container>
           <textarea
             id="${textareaId}"
             class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
@@ -1568,7 +1568,7 @@ export const Components = {
     } else {
       // 通常モード：読み取り専用表示
       return `
-        <div class="p-0.5 bg-white/75">
+        <div class="p-0.5 bg-white/75" data-memo-container>
           <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(sessionNote || '')}</p>
         </div>
       `;
