@@ -1053,22 +1053,56 @@ export function getLessonsForParticipantsView(
       );
 
       if (allReservations && allReservations.length > 0) {
-        // 各生徒の参加回数を事前に計算（過去の予約をカウント）
-        /** @type {Record<string, number>} */
-        const participationCounts = {};
+        // 各生徒の完了済み予約日リストを事前に計算（ソート済み）
+        // これにより各予約ごとに「当日以前の完了数」を効率的に計算できる
+        /** @type {Record<string, number[]>} */
+        const completedDatesByStudent = {};
         allReservations.forEach(reservation => {
-          const resDate = new Date(reservation.date);
-          resDate.setHours(0, 0, 0, 0);
-          // 過去の予約のみカウント
-          if (resDate < today) {
+          // 完了済みの予約のみ収集
+          if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
             const studentId = reservation.studentId;
-            participationCounts[studentId] =
-              (participationCounts[studentId] || 0) + 1;
+            if (!completedDatesByStudent[studentId]) {
+              completedDatesByStudent[studentId] = [];
+            }
+            // 日付をタイムスタンプとして保存（比較用）
+            const dateTs = new Date(reservation.date).getTime();
+            if (!isNaN(dateTs)) {
+              completedDatesByStudent[studentId].push(dateTs);
+            }
           }
         });
-        Logger.log(
-          `📊 参加回数計算完了: ${Object.keys(participationCounts).length}名分`,
+        // 各生徒の完了日リストをソート（昇順）
+        Object.values(completedDatesByStudent).forEach(dates =>
+          dates.sort((a, b) => a - b),
         );
+        Logger.log(
+          `📊 参加回数計算用データ準備完了: ${Object.keys(completedDatesByStudent).length}名分`,
+        );
+
+        /**
+         * 指定日以前の完了済み予約数をカウント（二分探索でupper bound）
+         * @param {string} studentId - 生徒ID
+         * @param {string} reservationDate - 予約日（YYYY-MM-DD形式）
+         * @returns {number} 完了済み予約数
+         */
+        const getParticipationCountAsOf = (studentId, reservationDate) => {
+          const dates = completedDatesByStudent[studentId];
+          if (!dates || dates.length === 0) return 0;
+          const targetTs = new Date(reservationDate).getTime();
+          if (isNaN(targetTs)) return 0;
+          // 二分探索: targetTs以下の要素数を求める（upper bound）
+          let left = 0;
+          let right = dates.length;
+          while (left < right) {
+            const mid = Math.floor((left + right) / 2);
+            if (dates[mid] <= targetTs) {
+              left = mid + 1;
+            } else {
+              right = mid;
+            }
+          }
+          return left;
+        };
 
         // レッスンIDのセットと高速参照用マップを準備
         /** @type {Record<string, any>} */
@@ -1117,7 +1151,12 @@ export function getLessonsForParticipantsView(
             chiselRental: reservation.chiselRental || false,
             sessionNote: reservation.sessionNote || '',
             order: reservation.order || '',
-            participationCount: participationCounts[reservation.studentId] || 0,
+            // 参加回数: 当日以前の完了数 + 1（何回目の参加か）
+            participationCount:
+              getParticipationCountAsOf(
+                reservation.studentId,
+                reservation.date || lesson.date,
+              ) + 1,
             futureCreations: studentData.futureCreations || '',
             nextLessonGoal: studentData.nextLessonGoal || '', // けいかく・もくひょう
             companion: reservation.companion || '',
