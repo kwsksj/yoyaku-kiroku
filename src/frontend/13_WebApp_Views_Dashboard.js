@@ -145,9 +145,6 @@ export const getDashboardView = () => {
     size: 'full',
   });
 
-  // 写真ギャラリーリンク
-  const photoButton = `<a href="https://photos.app.goo.gl/CWw2WzgcG1iV1Crm7" target="_blank" rel="noopener noreferrer" class="text-base font-bold py-3 px-4 rounded-lg border-2 border-ui-border bg-ui-surface text-action-secondary-text hover:bg-action-secondary-hover inline-flex items-center justify-center">しゃしん</a>`;
-
   // 今日の予約がある場合のみ表示するボタン
   const summaryMenuButton = todayReservation
     ? Components.button({
@@ -169,7 +166,7 @@ export const getDashboardView = () => {
     : '';
 
   // メニューアイテムを構築
-  const primaryMenuButtons = [menuButton, newBookingButton, photoButton]
+  const primaryMenuButtons = [menuButton, newBookingButton]
     .filter(Boolean)
     .join('');
   const todayButtons = [summaryMenuButton].filter(Boolean).join('');
@@ -177,7 +174,7 @@ export const getDashboardView = () => {
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
     items: [
-      `<div class="grid gap-2 sm:grid-cols-3">${primaryMenuButtons}</div>`,
+      `<div class="grid gap-2 sm:grid-cols-2">${primaryMenuButtons}</div>`,
       todayButtons
         ? `<div class="grid gap-2 sm:grid-cols-2 mt-2">${todayButtons}</div>`
         : '',
@@ -198,22 +195,24 @@ export const getDashboardView = () => {
         </div>
         <!-- 編集モード -->
         <div id="goal-edit-mode" class="${nextLessonGoal ? 'hidden' : ''}">
-          <div class="bg-white/75 rounded p-2">
-            <textarea
-              id="goal-edit-textarea"
-              class="${DesignConfig.inputs.textarea} min-h-14 w-full px-1"
-              rows="3"
-              placeholder="つくりたいもの、けいかく、もくひょう など"
-            >${escapeHTML(nextLessonGoal)}</textarea>
-            <div class="flex justify-end mt-2 gap-2">
-              ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>` : ''}
-              ${Components.button({
-                action: 'saveGoal',
-                text: 'ほぞん',
-                style: 'primary',
-                size: 'small',
-              })}
-            </div>
+          ${Components.textarea({
+            id: 'goal-edit-textarea',
+            label: '',
+            value: nextLessonGoal,
+            placeholder:
+              'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
+            rows: 5,
+            caption:
+              'よやく・きろく いちらん にのります（みんな にも みえます）。',
+          })}
+          <div class="flex justify-end mt-2 gap-2">
+            ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>` : ''}
+            ${Components.button({
+              action: 'saveGoal',
+              text: 'ほぞん',
+              style: 'primary',
+              size: 'small',
+            })}
           </div>
         </div>
       </div>
