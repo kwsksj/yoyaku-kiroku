@@ -265,7 +265,7 @@ export const reservationActionHandlers = {
     const startTime = getTimeValue('res-start-time', null, 'startTime');
     const endTime = getTimeValue('res-end-time', null, 'endTime');
 
-    // 制作メモと材料情報を統合
+    // けいかく・もくひょうと材料情報を取得
     const wipValue =
       /** @type {HTMLInputElement} */ (document.getElementById('wip-input'))
         ?.value || '';
@@ -273,9 +273,15 @@ export const reservationActionHandlers = {
       /** @type {HTMLInputElement} */ (
         document.getElementById('material-input')
       )?.value || '';
-    const combinedWip = materialInfoValue
-      ? wipValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
-      : wipValue;
+    const orderValue =
+      /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
+        ?.value || '';
+    // 材料情報はOrderに追記する
+    const combinedOrder = materialInfoValue
+      ? orderValue
+        ? orderValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
+        : '【材料】' + materialInfoValue
+      : orderValue;
 
     showLoading('booking');
     // 予約処理中フラグを設定
@@ -302,11 +308,9 @@ export const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('option-first-lecture')
         )?.checked || isFirstTimeBooking,
-      sessionNote: combinedWip, // 従来互換（materialInfoを含む予約ログ用）
+      sessionNote: wipValue, // 予約ログ用（けいかく・もくひょうのみ）
       nextLessonGoal: nextLessonGoalValue, // 生徒名簿に保存するけいかく・もくひょう
-      order:
-        /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
-          ?.value || '',
+      order: combinedOrder, // 材料情報を含む購入希望
       messageToTeacher:
         /** @type {HTMLInputElement} */ (
           document.getElementById('message-input')
@@ -549,10 +553,15 @@ export const reservationActionHandlers = {
       /** @type {HTMLInputElement} */ (
         document.getElementById('material-input')
       )?.value || '';
-    // sessionNoteは従来互換（materialInfoを含む予約ログ用）
-    const combinedSessionNote = materialInfoValue
-      ? wipInputValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
-      : wipInputValue;
+    const orderValue =
+      /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
+        ?.value || '';
+    // 材料情報はOrderに追記する
+    const combinedOrder = materialInfoValue
+      ? orderValue
+        ? orderValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
+        : '【材料】' + materialInfoValue
+      : orderValue;
 
     const p = {
       reservationId: validReservationInfo.reservationId,
@@ -568,11 +577,9 @@ export const reservationActionHandlers = {
         )?.checked || false,
       startTime: startTime,
       endTime: endTime,
-      sessionNote: combinedSessionNote, // 従来互換（予約ログ用）
+      sessionNote: wipInputValue, // 予約ログ用（けいかく・もくひょうのみ）
       nextLessonGoal: wipInputValue, // 生徒名簿に保存するけいかく・もくひょう
-      order: /** @type {HTMLInputElement} */ (
-        document.getElementById('order-input')
-      ).value,
+      order: combinedOrder, // 材料情報を含む購入希望
       messageToTeacher: /** @type {HTMLInputElement} */ (
         document.getElementById('message-input')
       ).value,
