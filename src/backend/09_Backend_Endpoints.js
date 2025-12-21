@@ -115,6 +115,7 @@ export function executeOperationAndGetLatestData(
  */
 export function makeReservationAndGetLatestData(reservationInfo) {
   const isFirstTime = reservationInfo['firstLecture'] || false;
+  const nextLessonGoal = /** @type {any} */ (reservationInfo)['nextLessonGoal'];
 
   const result = executeOperationAndGetLatestData(
     makeReservation,
@@ -126,6 +127,20 @@ export function makeReservationAndGetLatestData(reservationInfo) {
   // 初回フラグ情報を追加
   if (result.success && result.data) {
     result.data.wasFirstTimeBooking = isFirstTime;
+
+    // nextLessonGoalが提供されている場合は生徒名簿を更新
+    if (nextLessonGoal !== undefined) {
+      try {
+        updateNextLessonGoal({
+          studentId: reservationInfo.studentId,
+          nextLessonGoal: nextLessonGoal,
+        });
+      } catch (e) {
+        Logger.log(
+          `[makeReservation] nextLessonGoal更新エラー: ${e.message}`,
+        );
+      }
+    }
   }
 
   return result;
@@ -147,16 +162,34 @@ export function cancelReservationAndGetLatestData(cancelInfo) {
 
 /**
  * 予約詳細を更新し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
+ * @param {ReservationCore & {nextLessonGoal?: string}} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function updateReservationDetailsAndGetLatestData(details) {
-  return executeOperationAndGetLatestData(
+  const nextLessonGoal = /** @type {any} */ (details)['nextLessonGoal'];
+
+  const result = executeOperationAndGetLatestData(
     updateReservationDetails,
     details,
     details.studentId,
     '予約内容を更新しました。',
   );
+
+  // nextLessonGoalが提供されている場合は生徒名簿を更新
+  if (result.success && nextLessonGoal !== undefined) {
+    try {
+      updateNextLessonGoal({
+        studentId: details.studentId,
+        nextLessonGoal: nextLessonGoal,
+      });
+    } catch (e) {
+      Logger.log(
+        `[updateReservationDetails] nextLessonGoal更新エラー: ${e.message}`,
+      );
+    }
+  }
+
+  return result;
 }
 
 /**

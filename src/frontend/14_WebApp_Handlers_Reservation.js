@@ -25,12 +25,12 @@ import { getClassroomSelectionModal } from './13_WebApp_Views_Booking.js';
 import { getScheduleInfoFromCache } from './12_WebApp_Core_Data.js';
 import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 import {
-  getParticipantPayloadForAdminView,
-  getTimeValue,
-  isCurrentUserAdmin,
-  refreshParticipantsViewForAdmin,
-  updateAppStateFromCache,
-  updateParticipantViewCacheFromReservation,
+    getParticipantPayloadForAdminView,
+    getTimeValue,
+    isCurrentUserAdmin,
+    refreshParticipantsViewForAdmin,
+    updateAppStateFromCache,
+    updateParticipantViewCacheFromReservation,
 } from './14_WebApp_Handlers_Utils.js';
 
 const reservationStateManager = appWindow.stateManager;
@@ -281,6 +281,9 @@ export const reservationActionHandlers = {
     // 予約処理中フラグを設定
     reservationStateManager.setDataFetchProgress('reservation-booking', true);
 
+    // nextLessonGoal は wip-input から取得（生徒名簿に保存される）
+    const nextLessonGoalValue = wipValue;
+
     // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
     const p = {
       lessonId: lessonInfo.lessonId, // ★ lessonId を追加
@@ -299,7 +302,8 @@ export const reservationActionHandlers = {
         /** @type {HTMLInputElement} */ (
           document.getElementById('option-first-lecture')
         )?.checked || isFirstTimeBooking,
-      sessionNote: combinedWip,
+      sessionNote: combinedWip, // 従来互換（materialInfoを含む予約ログ用）
+      nextLessonGoal: nextLessonGoalValue, // 生徒名簿に保存するけいかく・もくひょう
       order:
         /** @type {HTMLInputElement} */ (document.getElementById('order-input'))
           ?.value || '',
@@ -537,6 +541,19 @@ export const reservationActionHandlers = {
         ? validReservationInfo.studentId
         : currentUser.studentId || '';
 
+    // wip-inputの値を取得（nextLessonGoal用）
+    const wipInputValue =
+      /** @type {HTMLInputElement} */ (document.getElementById('wip-input'))
+        ?.value || '';
+    const materialInfoValue =
+      /** @type {HTMLInputElement} */ (
+        document.getElementById('material-input')
+      )?.value || '';
+    // sessionNoteは従来互換（materialInfoを含む予約ログ用）
+    const combinedSessionNote = materialInfoValue
+      ? wipInputValue + CONSTANTS.SYSTEM.MATERIAL_INFO_PREFIX + materialInfoValue
+      : wipInputValue;
+
     const p = {
       reservationId: validReservationInfo.reservationId,
       classroom: validReservationInfo.classroom,
@@ -551,19 +568,15 @@ export const reservationActionHandlers = {
         )?.checked || false,
       startTime: startTime,
       endTime: endTime,
-      sessionNote: /** @type {HTMLInputElement} */ (
-        document.getElementById('wip-input')
-      ).value,
+      sessionNote: combinedSessionNote, // 従来互換（予約ログ用）
+      nextLessonGoal: wipInputValue, // 生徒名簿に保存するけいかく・もくひょう
       order: /** @type {HTMLInputElement} */ (
         document.getElementById('order-input')
       ).value,
       messageToTeacher: /** @type {HTMLInputElement} */ (
         document.getElementById('message-input')
       ).value,
-      materialInfo:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('material-input')
-        )?.value || '',
+      materialInfo: materialInfoValue,
       _isByAdmin: isCurrentUserAdmin(),
       _adminToken: getAdminToken(),
     };
