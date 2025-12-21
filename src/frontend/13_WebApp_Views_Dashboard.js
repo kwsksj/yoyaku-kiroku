@@ -200,22 +200,24 @@ export const getDashboardView = () => {
         </div>
         <!-- 編集モード -->
         <div id="goal-edit-mode" class="${nextLessonGoal ? 'hidden' : ''}">
-          <div class="bg-white/75 rounded p-2">
-            <textarea
-              id="goal-edit-textarea"
-              class="${DesignConfig.inputs.textarea} min-h-14 w-full px-1"
-              rows="3"
-              placeholder="つくりたいもの、けいかく、もくひょう など"
-            >${escapeHTML(nextLessonGoal)}</textarea>
-            <div class="flex justify-end mt-2 gap-2">
-              ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>` : ''}
-              ${Components.button({
-                action: 'saveGoal',
-                text: 'ほぞん',
-                style: 'primary',
-                size: 'small',
-              })}
-            </div>
+          ${Components.textarea({
+            id: 'goal-edit-textarea',
+            label: '',
+            value: nextLessonGoal,
+            placeholder:
+              'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
+            rows: 5,
+            caption:
+              'よやく・きろく いちらん にのります（みんな にも みえます）。',
+          })}
+          <div class="flex justify-end mt-2 gap-2">
+            ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>` : ''}
+            ${Components.button({
+              action: 'saveGoal',
+              text: 'ほぞん',
+              style: 'primary',
+              size: 'small',
+            })}
           </div>
         </div>
       </div>
