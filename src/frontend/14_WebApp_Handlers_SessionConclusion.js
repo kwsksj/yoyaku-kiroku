@@ -512,11 +512,19 @@ async function finalizeConclusion() {
 
           // stateを更新（myReservationsなど）- 完了画面へ遷移する前に更新
           if (response.data) {
+            const currentState = conclusionStateManager.getState();
             conclusionStateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 myReservations:
-                  response.data.myReservations || state.myReservations,
+                  response.data.myReservations || currentState.myReservations,
+                // currentUserのnextLessonGoalを更新（ダッシュボードで反映されるように）
+                currentUser: currentState.currentUser
+                  ? {
+                      ...currentState.currentUser,
+                      nextLessonGoal: wizardState.nextLessonGoal || '',
+                    }
+                  : currentState.currentUser,
                 // 参加者リストキャッシュをクリア
                 participantLessons: null,
                 participantReservationsMap: null,
