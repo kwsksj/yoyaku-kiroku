@@ -1725,14 +1725,12 @@ export function processSessionConclusion(payload, nextReservationPayload) {
         const isWaitlisted = actualStatus === CONSTANTS.STATUS.WAITLISTED;
         // ユーザーの期待と実際の結果を記録
         const expectedWaitlist =
-          /** @type {any} */ (nextReservationPayload).expectedWaitlist ===
-          true;
+          /** @type {any} */ (nextReservationPayload).expectedWaitlist === true;
         nextReservationResult = {
           created: true,
           status: actualStatus,
           expectedWaitlist: expectedWaitlist,
-          message:
-            reservationResult.data?.message || reservationResult.message,
+          message: reservationResult.data?.message || reservationResult.message,
           date: nextReservationPayload.date,
           classroom: nextReservationPayload.classroom,
         };

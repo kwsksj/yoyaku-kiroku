@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} SessionConclusionState
- * @property {string} currentStep - 現在のステップ ('1', '2', '3', '4', '5')
+ * @property {string} currentStep - 現在のステップ (STEPS定数参照)
  * @property {ReservationCore | null} currentReservation - 今日の予約データ
  * @property {LessonCore | null} recommendedNextLesson - おすすめの次回レッスン
  * @property {LessonCore | null} selectedLesson - ユーザーが選択したレッスン
@@ -18,10 +18,10 @@
  */
 /**
  * ウィザードの進行バーを生成
- * @param {number} currentStep - 現在のステップ (1, 2, or 3)
+ * @param {string} currentStep - 現在のステップID
  * @returns {string} HTML文字列
  */
-export function renderWizardProgressBar(currentStep: number): string;
+export function renderWizardProgressBar(currentStep: string): string;
 /**
  * ステップ1: 今日の記録画面を生成
  * @param {SessionConclusionState} state - 現在の状態
@@ -29,23 +29,23 @@ export function renderWizardProgressBar(currentStep: number): string;
  */
 export function renderStep1Record(state: SessionConclusionState): string;
 /**
- * ステップ2A: けいかく・もくひょう入力画面を生成
+ * ステップ2: けいかく・もくひょう入力画面を生成
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderStep2AGoalInput(state: SessionConclusionState): string;
+export function renderStep2GoalInput(state: SessionConclusionState): string;
 /**
  * ステップ3: 次回予約画面を生成（よやく）
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderStep2BReservation(state: SessionConclusionState): string;
+export function renderStep3Reservation(state: SessionConclusionState): string;
 /**
- * ステップ3: 会計画面を生成
+ * ステップ4: 会計画面を生成
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderStep3Accounting(state: SessionConclusionState): string;
+export function renderStep4Accounting(state: SessionConclusionState): string;
 /**
  * 完了画面を生成
  * @param {SessionConclusionState} state - 現在の状態
@@ -65,9 +65,16 @@ export function getSessionConclusionView(state: SessionConclusionState): string;
  * @deprecated getSessionConclusionView を使用してください
  */
 export function generateSessionConclusionModal(state: SessionConclusionState): string;
+export namespace STEPS {
+    let RECORD: string;
+    let GOAL: string;
+    let RESERVATION: string;
+    let ACCOUNTING: string;
+    let COMPLETE: string;
+}
 export type SessionConclusionState = {
     /**
-     * - 現在のステップ ('1', '2', '3', '4', '5')
+     * - 現在のステップ (STEPS定数参照)
      */
     currentStep: string;
     /**

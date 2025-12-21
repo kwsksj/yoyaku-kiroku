@@ -25,7 +25,10 @@ import {
   updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
-import { getSessionConclusionView } from './13_WebApp_Views_SessionConclusion.js';
+import {
+  getSessionConclusionView,
+  STEPS,
+} from './13_WebApp_Views_SessionConclusion.js';
 import { isCurrentUserAdmin } from './14_WebApp_Handlers_Utils.js';
 
 const conclusionStateManager = appWindow.stateManager;
@@ -36,7 +39,7 @@ const conclusionStateManager = appWindow.stateManager;
 
 /** ウィザードの内部状態を保持 */
 let wizardState = /** @type {SessionConclusionState} */ ({
-  currentStep: '1',
+  currentStep: STEPS.RECORD,
   currentReservation: null,
   recommendedNextLesson: null,
   selectedLesson: null,
@@ -181,7 +184,7 @@ export function startSessionConclusion(reservationId) {
 
   // ウィザード状態を初期化
   wizardState = {
-    currentStep: '1',
+    currentStep: STEPS.RECORD,
     currentReservation: currentReservation,
     recommendedNextLesson: recommendedNextLesson,
     selectedLesson: null,
@@ -228,7 +231,7 @@ export function setupSessionConclusionUI(step) {
     wizardState.currentStep = step;
   }
   setupConclusionEventListeners();
-  if (wizardState.currentStep === '4') {
+  if (wizardState.currentStep === STEPS.ACCOUNTING) {
     setTimeout(() => setupAccountingStep(), 100);
   }
 }
@@ -272,7 +275,7 @@ function goToStep(targetStep) {
  */
 function saveCurrentStepData() {
   switch (wizardState.currentStep) {
-    case '1': {
+    case STEPS.RECORD: {
       const wipInput = /** @type {HTMLTextAreaElement | null} */ (
         document.getElementById('conclusion-work-progress-today')
       );
@@ -281,7 +284,7 @@ function saveCurrentStepData() {
       }
       break;
     }
-    case '2': {
+    case STEPS.GOAL: {
       // 次回やりたいこと（生徒名簿に保存される）
       const goalInput = /** @type {HTMLTextAreaElement | null} */ (
         document.getElementById('conclusion-next-lesson-goal')
@@ -291,7 +294,7 @@ function saveCurrentStepData() {
       }
       break;
     }
-    case '3': {
+    case STEPS.RESERVATION: {
       const startTimeSelect = /** @type {HTMLSelectElement | null} */ (
         document.getElementById('conclusion-next-start-time')
       );
@@ -306,7 +309,7 @@ function saveCurrentStepData() {
       }
       break;
     }
-    case '4': {
+    case STEPS.ACCOUNTING: {
       // 会計データの収集（ユーティリティを利用）
       wizardState.accountingFormData = collectAccountingFormData();
       break;
@@ -533,7 +536,7 @@ async function finalizeConclusion() {
           }
 
           // 完了画面へ
-          goToStep('5');
+          goToStep(STEPS.COMPLETE);
         } else {
           window.showInfo?.(
             response.message || '処理に失敗しました。',
@@ -622,19 +625,21 @@ function handleConclusionClick(event) {
 
   switch (action) {
     case 'conclusionNextStep': {
-      const targetStep = actionElement.getAttribute('data-target-step') || '1';
+      const targetStep =
+        actionElement.getAttribute('data-target-step') || STEPS.RECORD;
       goToStep(targetStep);
       break;
     }
     case 'conclusionPrevStep': {
-      const targetStep = actionElement.getAttribute('data-target-step') || '1';
+      const targetStep =
+        actionElement.getAttribute('data-target-step') || STEPS.RECORD;
       goToStep(targetStep);
       break;
     }
     case 'conclusionSkipReservation':
       // 予約をスキップして会計へ
       wizardState.recommendedNextLesson = null;
-      goToStep('4');
+      goToStep(STEPS.ACCOUNTING);
       break;
     case 'conclusionFinalize':
       finalizeConclusion();
@@ -668,7 +673,7 @@ function handleConclusionClick(event) {
       if (wizardState.recommendedNextLesson) {
         wizardState.selectedLesson = wizardState.recommendedNextLesson;
         wizardState.reservationSkipped = false;
-        goToStep('3');
+        goToStep(STEPS.RESERVATION);
       }
       break;
     case 'toggleLessonListDOM': {
@@ -743,18 +748,18 @@ function handleConclusionClick(event) {
       // いまはきめない
       wizardState.reservationSkipped = true;
       wizardState.selectedLesson = null;
-      goToStep('3');
+      goToStep(STEPS.RESERVATION);
       break;
     case 'undoReservationSkip':
       // やっぱりえらぶ
       wizardState.reservationSkipped = false;
-      goToStep('3');
+      goToStep(STEPS.RESERVATION);
       break;
     case 'clearSelectedLesson':
       // 選択解除
       wizardState.selectedLesson = null;
       wizardState.isWaitlistRequest = false;
-      goToStep('3');
+      goToStep(STEPS.RESERVATION);
       break;
     case 'goToCalendarSelection':
       // カレンダー選択画面への遷移
@@ -800,16 +805,16 @@ export const sessionConclusionActionHandlers = {
     }
   },
   conclusionNextStep: (/** @type {ActionHandlerData} */ d) => {
-    const step = String(d['target-step'] || d['targetStep'] || '1');
+    const step = String(d['target-step'] || d['targetStep'] || STEPS.RECORD);
     goToStep(step);
   },
   conclusionPrevStep: (/** @type {ActionHandlerData} */ d) => {
-    const step = String(d['target-step'] || d['targetStep'] || '1');
+    const step = String(d['target-step'] || d['targetStep'] || STEPS.RECORD);
     goToStep(step);
   },
   conclusionSkipReservation: () => {
     wizardState.recommendedNextLesson = null;
-    goToStep('4');
+    goToStep(STEPS.ACCOUNTING);
   },
   conclusionFinalize: () => {
     finalizeConclusion();
@@ -830,7 +835,7 @@ export const sessionConclusionActionHandlers = {
       wizardState.selectedLesson = wizardState.recommendedNextLesson;
       wizardState.reservationSkipped = false;
       // 再描画
-      goToStep('3');
+      goToStep(STEPS.RESERVATION);
     }
   },
   // 「いまはきめない」
@@ -838,19 +843,19 @@ export const sessionConclusionActionHandlers = {
     wizardState.reservationSkipped = true;
     wizardState.selectedLesson = null;
     // 再描画
-    goToStep('3');
+    goToStep(STEPS.RESERVATION);
   },
   // 「やっぱりえらぶ」
   undoReservationSkip: () => {
     wizardState.reservationSkipped = false;
     // 再描画
-    goToStep('3');
+    goToStep(STEPS.RESERVATION);
   },
   // 日程一覧アコーディオン開閉（再描画あり - 旧版、削除予定）
   toggleLessonList: () => {
     wizardState.isLessonListExpanded = !wizardState.isLessonListExpanded;
     // 再描画
-    goToStep('3');
+    goToStep(STEPS.RESERVATION);
   },
   // 日程一覧アコーディオン開閉（DOM直接操作）
   toggleLessonListDOM: () => {
@@ -892,14 +897,14 @@ export const sessionConclusionActionHandlers = {
       wizardState.reservationSkipped = false;
       wizardState.isLessonListExpanded = false;
       // 再描画してスロット表示を更新
-      goToStep('3');
+      goToStep(STEPS.RESERVATION);
     }
   },
   // 選択解除
   clearSelectedLesson: () => {
     wizardState.selectedLesson = null;
     // 再描画
-    goToStep('3');
+    goToStep(STEPS.RESERVATION);
   },
   // 時間編集セクション開閉
   toggleTimeEdit: () => {
@@ -934,7 +939,7 @@ export const sessionConclusionActionHandlers = {
         '空き通知',
       );
       // 再描画してスロット表示を更新
-      goToStep('3');
+      goToStep(STEPS.RESERVATION);
     }
   },
 };

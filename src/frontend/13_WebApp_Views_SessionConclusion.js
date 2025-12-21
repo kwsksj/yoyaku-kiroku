@@ -8,7 +8,8 @@
  *   - 3ステップウィザードのレンダリング
  *   - ステップ1：今日のきろく（セッションノート入力）
  *   - ステップ2：けいかく・もくひょう（次回目標入力）
- *   - ステップ3：会計（既存会計UIの再利用）
+ *   - ステップ3：予約（次回日程選択）
+ *   - ステップ4：会計（既存会計UIの再利用）
  * AI向けメモ:
  *   - 各ステップは独立した関数で描画し、Handlerからステップ遷移を管理する
  * =================================================================
@@ -22,8 +23,19 @@ import { Components, escapeHTML } from './13_WebApp_Components.js';
 import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
 
 /**
+ * ウィザードのステップID定義
+ */
+export const STEPS = {
+  RECORD: '1',
+  GOAL: '2',
+  RESERVATION: '3',
+  ACCOUNTING: '4',
+  COMPLETE: '5',
+};
+
+/**
  * @typedef {Object} SessionConclusionState
- * @property {string} currentStep - 現在のステップ ('1', '2', '3', '4', '5')
+ * @property {string} currentStep - 現在のステップ (STEPS定数参照)
  * @property {ReservationCore | null} currentReservation - 今日の予約データ
  * @property {LessonCore | null} recommendedNextLesson - おすすめの次回レッスン
  * @property {LessonCore | null} selectedLesson - ユーザーが選択したレッスン
@@ -42,21 +54,23 @@ import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
 
 /**
  * ウィザードの進行バーを生成
- * @param {number} currentStep - 現在のステップ (1, 2, or 3)
+ * @param {string} currentStep - 現在のステップID
  * @returns {string} HTML文字列
  */
 export function renderWizardProgressBar(currentStep) {
   const steps = [
-    { num: 1, label: 'きろく' },
-    { num: 2, label: 'けいかく' },
-    { num: 3, label: 'よやく' },
-    { num: 4, label: 'かいけい' },
+    { id: STEPS.RECORD, num: 1, label: 'きろく' },
+    { id: STEPS.GOAL, num: 2, label: 'けいかく' },
+    { id: STEPS.RESERVATION, num: 3, label: 'よやく' },
+    { id: STEPS.ACCOUNTING, num: 4, label: 'かいけい' },
   ];
+
+  const currentStepNum = steps.find(s => s.id === currentStep)?.num || 1;
 
   const stepsHtml = steps
     .map(step => {
-      const isActive = step.num === currentStep;
-      const isCompleted = step.num < currentStep;
+      const isActive = step.id === currentStep;
+      const isCompleted = step.num < currentStepNum;
       const circleClass = isActive
         ? 'bg-action-primary-bg text-white'
         : isCompleted
@@ -104,7 +118,7 @@ export function renderStep1Record(state) {
 
   return `
     <div class="session-conclusion-step1 session-conclusion-view">
-      ${renderWizardProgressBar(1)}
+      ${renderWizardProgressBar(STEPS.RECORD)}
 
       <div class="text-center mb-4">
       <p class="text-lg font-bold text-brand-text">きょう の きろく を つけましょう！</p>
@@ -133,7 +147,7 @@ export function renderStep1Record(state) {
           text: 'つぎへ',
           style: 'primary',
           size: 'full',
-          dataAttributes: { 'target-step': '2' },
+          dataAttributes: { 'target-step': STEPS.GOAL },
         })}
         ${Components.button({
           action: 'conclusionCancel',
@@ -147,16 +161,16 @@ export function renderStep1Record(state) {
 }
 
 /**
- * ステップ2A: けいかく・もくひょう入力画面を生成
+ * ステップ2: けいかく・もくひょう入力画面を生成
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderStep2AGoalInput(state) {
+export function renderStep2GoalInput(state) {
   const nextGoal = state.nextLessonGoal || '';
 
   return `
-    <div class="session-conclusion-step2a session-conclusion-view">
-      ${renderWizardProgressBar(2)}
+    <div class="session-conclusion-step2 session-conclusion-view">
+      ${renderWizardProgressBar(STEPS.GOAL)}
 
       <div class="text-center mb-4">
       <p class="text-lg font-bold text-brand-text">つぎに つくりたいもの、やりたいこと は ありますか？</p>
@@ -185,15 +199,60 @@ export function renderStep2AGoalInput(state) {
           text: 'つぎへ',
           style: 'primary',
           size: 'full',
-          dataAttributes: { 'target-step': '3' },
+          dataAttributes: { 'target-step': STEPS.RESERVATION },
         })}
         ${Components.button({
           action: 'conclusionPrevStep',
           text: 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { 'target-step': '1' },
+          dataAttributes: { 'target-step': STEPS.RECORD },
         })}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 予約スロットカードを生成するヘルパー関数
+ * @param {Object} props
+ * @param {string} props.statusText
+ * @param {string} props.date
+ * @param {string} props.venue
+ * @param {string} props.borderColorClass
+ * @param {string} props.bgColorClass
+ * @param {string} props.textColorClass
+ * @param {string} [props.actionButtonHtml]
+ * @param {string} [props.subInfo]
+ * @param {string} [props.icon]
+ */
+function renderReservationSlotCard({
+  statusText,
+  date,
+  venue,
+  borderColorClass,
+  bgColorClass,
+  textColorClass,
+  actionButtonHtml = '',
+  subInfo = '',
+  icon = '',
+}) {
+  return `
+    <div class="border-2 ${borderColorClass} rounded-lg p-4 ${bgColorClass} mb-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <p class="text-sm font-bold ${textColorClass}">${statusText}</p>
+          <p class="text-lg font-bold text-brand-text">${date}</p>
+          <p class="text-sm text-brand-subtle">${venue}</p>
+          ${subInfo}
+        </div>
+        ${
+          actionButtonHtml
+            ? actionButtonHtml
+            : icon
+              ? `<div class="${textColorClass} text-3xl">${icon}</div>`
+              : ''
+        }
       </div>
     </div>
   `;
@@ -204,7 +263,7 @@ export function renderStep2AGoalInput(state) {
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderStep2BReservation(state) {
+export function renderStep3Reservation(state) {
   const existingReservation = state.existingFutureReservation;
   const selectedLesson = state.selectedLesson;
   const recommendedLesson = state.recommendedNextLesson;
@@ -241,82 +300,77 @@ export function renderStep2BReservation(state) {
 
   if (isSkipped) {
     // スキップ状態
-    slotDisplayHtml = `
-      <div class="border-2 border-gray-300 rounded-lg p-4 bg-gray-50 mb-4">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm text-brand-subtle">よやく</p>
-            <p class="text-lg font-bold text-gray-500">いまは きめない</p>
-          </div>
-          <button type="button"
-                  class="text-sm text-action-primary underline"
-                  data-action="undoReservationSkip">
-            やっぱり えらぶ
-          </button>
-        </div>
-      </div>
-    `;
+    slotDisplayHtml = renderReservationSlotCard({
+      statusText: 'よやく',
+      date: 'いまは きめない',
+      venue: '',
+      borderColorClass: 'border-gray-300',
+      bgColorClass: 'bg-gray-50',
+      textColorClass: 'text-brand-subtle',
+      actionButtonHtml: `
+        <button type="button"
+                class="text-sm text-action-primary underline"
+                data-action="undoReservationSkip">
+          やっぱり えらぶ
+        </button>
+      `,
+    });
   } else if (existingReservation && !selectedLesson) {
     // 既存の予約がある場合
     const formattedDate = window.formatDate
       ? window.formatDate(existingReservation.date)
       : existingReservation.date;
+    const timeInfo = existingReservation.startTime
+      ? `<p class="text-sm text-brand-subtle">${existingReservation.startTime} 〜 ${existingReservation.endTime || ''}</p>`
+      : '';
 
-    slotDisplayHtml = `
-      <div class="border-2 border-green-500 rounded-lg p-4 bg-green-50 mb-4">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm font-bold text-green-700">よやく ずみ</p>
-            <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-            <p class="text-sm text-brand-subtle">${escapeHTML(existingReservation.classroom)} ${existingReservation.venue ? escapeHTML(existingReservation.venue) : ''}</p>
-            ${existingReservation.startTime ? `<p class="text-sm text-brand-subtle">${existingReservation.startTime} 〜 ${existingReservation.endTime || ''}</p>` : ''}
-          </div>
-          <div class="text-green-500 text-3xl">✓</div>
-        </div>
-      </div>
-    `;
+    slotDisplayHtml = renderReservationSlotCard({
+      statusText: 'よやく ずみ',
+      date: formattedDate,
+      venue: `${escapeHTML(existingReservation.classroom)} ${existingReservation.venue ? escapeHTML(existingReservation.venue) : ''}`,
+      borderColorClass: 'border-green-500',
+      bgColorClass: 'bg-green-50',
+      textColorClass: 'text-green-700',
+      subInfo: timeInfo,
+      icon: '✓',
+    });
   } else if (selectedLesson) {
     // ユーザーが選択したレッスン
     const formattedDate = window.formatDate
       ? window.formatDate(selectedLesson.date)
-      : selectedLesson.date;
+      : String(selectedLesson.date);
+    const venueText = `${escapeHTML(selectedLesson.classroom)} ${selectedLesson.venue ? escapeHTML(selectedLesson.venue) : ''}`;
+
+    const actionBtn = `
+      <button type="button"
+              class="text-sm text-action-primary underline"
+              data-action="clearSelectedLesson">
+        べつの ひを えらぶ
+      </button>
+    `;
 
     if (isWaitlist) {
       // 空き通知希望
-      slotDisplayHtml = `
-        <div class="border-2 border-yellow-500 rounded-lg p-4 bg-yellow-50 mb-4">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-sm font-bold text-yellow-700">空き つうち きぼう</p>
-              <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-              <p class="text-sm text-brand-subtle">${escapeHTML(selectedLesson.classroom)} ${selectedLesson.venue ? escapeHTML(selectedLesson.venue) : ''}</p>
-            </div>
-            <button type="button"
-                    class="text-sm text-action-primary underline"
-                    data-action="clearSelectedLesson">
-              べつの ひを えらぶ
-            </button>
-          </div>
-        </div>
-      `;
+      slotDisplayHtml = renderReservationSlotCard({
+        statusText: '空き つうち きぼう',
+        date: formattedDate,
+        venue: venueText,
+        borderColorClass: 'border-yellow-500',
+        bgColorClass: 'bg-yellow-50',
+        textColorClass: 'text-yellow-700',
+        actionButtonHtml: actionBtn,
+      });
     } else {
       // 通常予約
-      slotDisplayHtml = `
-        <div class="border-2 border-action-primary-bg rounded-lg p-4 bg-action-secondary-bg mb-4">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-sm text-action-primary-bg font-bold">せんたく ずみ</p>
-              <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-              <p class="text-sm text-brand-subtle">${escapeHTML(selectedLesson.classroom)} ${selectedLesson.venue ? escapeHTML(selectedLesson.venue) : ''}</p>
-            </div>
-            <button type="button"
-                    class="text-sm text-action-primary underline"
-                    data-action="clearSelectedLesson">
-              べつの ひを えらぶ
-            </button>
-          </div>
-        </div>
-      `;
+      slotDisplayHtml = renderReservationSlotCard({
+        statusText: 'せんたく ずみ',
+        date: formattedDate,
+        venue: venueText,
+        borderColorClass: 'border-action-primary-bg',
+        bgColorClass: 'bg-action-secondary-bg',
+        textColorClass: 'text-action-primary-bg',
+        actionButtonHtml: actionBtn,
+      });
     }
   } else if (recommendedLesson) {
     // おすすめ日程
@@ -399,7 +453,7 @@ export function renderStep2BReservation(state) {
     .map((/** @type {LessonCore} */ lesson) => {
       const formattedDate = window.formatDate
         ? window.formatDate(lesson.date)
-        : lesson.date;
+        : String(lesson.date);
       const slots = lesson.firstSlots || 0;
       const isFullyBooked = slots <= 0;
       const slotText = isFullyBooked
@@ -465,8 +519,8 @@ export function renderStep2BReservation(state) {
   `;
 
   return `
-    <div class="session-conclusion-step2b session-conclusion-view">
-      ${renderWizardProgressBar(3)}
+    <div class="session-conclusion-step3 session-conclusion-view">
+      ${renderWizardProgressBar(STEPS.RESERVATION)}
 
       <div class="text-center mb-4">
         <p class="text-lg font-bold text-brand-text">つぎは いつに しますか？</p>
@@ -500,14 +554,14 @@ export function renderStep2BReservation(state) {
           text: 'つぎへ（かいけい）',
           style: 'primary',
           size: 'full',
-          dataAttributes: { 'target-step': '4' },
+          dataAttributes: { 'target-step': STEPS.ACCOUNTING },
         })}
         ${Components.button({
           action: 'conclusionPrevStep',
           text: 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { 'target-step': '2' },
+          dataAttributes: { 'target-step': STEPS.GOAL },
         })}
       </div>
     </div>
@@ -515,19 +569,19 @@ export function renderStep2BReservation(state) {
 }
 
 /**
- * ステップ3: 会計画面を生成
+ * ステップ4: 会計画面を生成
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
-export function renderStep3Accounting(state) {
+export function renderStep4Accounting(state) {
   const classifiedItems = state.classifiedItems;
   const classroom = state.currentReservation?.classroom || '';
   const formData = state.accountingFormData || {};
 
   if (!classifiedItems) {
     return `
-      <div class="session-conclusion-step3">
-        ${renderWizardProgressBar(4)}
+      <div class="session-conclusion-step4">
+        ${renderWizardProgressBar(STEPS.ACCOUNTING)}
         ${Components.cardContainer({
           variant: 'default',
           padding: 'spacious',
@@ -538,8 +592,8 @@ export function renderStep3Accounting(state) {
   }
 
   return `
-    <div class="session-conclusion-step3 session-conclusion-view">
-      ${renderWizardProgressBar(4)}
+    <div class="session-conclusion-step4 session-conclusion-view">
+      ${renderWizardProgressBar(STEPS.ACCOUNTING)}
 
       <div class="text-center mb-4">
         <p class="text-lg font-bold text-brand-text">きょう の おかいけい</p>
@@ -599,7 +653,7 @@ export function renderStep3Accounting(state) {
           text: 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { targetStep: 3 },
+          dataAttributes: { targetStep: STEPS.RESERVATION },
         })}
       </div>
     </div>
@@ -915,19 +969,19 @@ export function getSessionConclusionView(state) {
   let stepContent = '';
 
   switch (state.currentStep) {
-    case '1':
+    case STEPS.RECORD:
       stepContent = renderStep1Record(state);
       break;
-    case '2':
-      stepContent = renderStep2AGoalInput(state);
+    case STEPS.GOAL:
+      stepContent = renderStep2GoalInput(state);
       break;
-    case '3':
-      stepContent = renderStep2BReservation(state);
+    case STEPS.RESERVATION:
+      stepContent = renderStep3Reservation(state);
       break;
-    case '4':
-      stepContent = renderStep3Accounting(state);
+    case STEPS.ACCOUNTING:
+      stepContent = renderStep4Accounting(state);
       break;
-    case '5': // 完了
+    case STEPS.COMPLETE: // 完了
       stepContent = renderConclusionComplete(state);
       break;
     default:
@@ -973,19 +1027,19 @@ export function generateSessionConclusionModal(state) {
   let stepContent = '';
 
   switch (state.currentStep) {
-    case '1':
+    case STEPS.RECORD:
       stepContent = renderStep1Record(state);
       break;
-    case '2':
-      stepContent = renderStep2AGoalInput(state);
+    case STEPS.GOAL:
+      stepContent = renderStep2GoalInput(state);
       break;
-    case '3':
-      stepContent = renderStep2BReservation(state);
+    case STEPS.RESERVATION:
+      stepContent = renderStep3Reservation(state);
       break;
-    case '4':
-      stepContent = renderStep3Accounting(state);
+    case STEPS.ACCOUNTING:
+      stepContent = renderStep4Accounting(state);
       break;
-    case '5': // 完了
+    case STEPS.COMPLETE: // 完了
       stepContent = renderConclusionComplete(state);
       break;
     default:
