@@ -432,10 +432,12 @@ export const getReservationFormView = () => {
           ${Components.textarea({
             id: 'wip-input',
             label: 'けいかく・もくひょう',
-            placeholder: 'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
+            placeholder:
+              'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
             value: nextLessonGoal,
             rows: 5,
-            caption: 'よやく・きろく いちらん にのります（みんな にも みえます）。',
+            caption:
+              'よやく・きろく いちらん にのります（みんな にも みえます）。',
           })}
           ${Components.textarea({ id: 'material-input', label: '材料のサイズや樹種の希望', placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
         </div>

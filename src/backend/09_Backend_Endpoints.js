@@ -136,9 +136,7 @@ export function makeReservationAndGetLatestData(reservationInfo) {
           nextLessonGoal: nextLessonGoal,
         });
       } catch (e) {
-        Logger.log(
-          `[makeReservation] nextLessonGoal更新エラー: ${e.message}`,
-        );
+        Logger.log(`[makeReservation] nextLessonGoal更新エラー: ${e.message}`);
       }
     }
   }
