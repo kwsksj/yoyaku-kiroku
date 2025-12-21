@@ -142,6 +142,23 @@ const PARTICIPANT_TABLE_COLUMNS = [
     },
   },
   {
+    key: 'time',
+    label: 'じかん',
+    width: '60px',
+    align: 'center',
+    adminOnly: false,
+    render: /** @param {any} row */ row => {
+      const startTime = row.startTime || '—';
+      const endTime = row.endTime || '—';
+      return `
+        <div class="text-sm leading-tight">
+          <div class="text-left"> ${escapeHTML(startTime)}</div>
+          <div class="text-right"> - ${escapeHTML(endTime)} </div>
+        </div>
+      `;
+    },
+  },
+  {
     key: 'sessionNote',
     label: 'ノート',
     width: '160px',
