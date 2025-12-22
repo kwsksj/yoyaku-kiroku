@@ -134,7 +134,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
             </button>
           </div>
           ${isAdmin && hasRealName ? `<div class="text-xs text-gray-400 text-center">${escapeHTML(row.realName)}</div>` : ''}
-          <div class="pl-2 gap-0.5 text-xs">
+          <div class="pl-2 gap-0.5 text-xs font-mono-numbers">
             ${badgesHtml}
           </div>
         </div>
@@ -151,7 +151,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
       const startTime = row.startTime || '—';
       const endTime = row.endTime || '—';
       return `
-        <div class="text-sm leading-tight">
+        <div class="text-sm leading-tight font-mono-numbers">
           <div class="text-left"> ${escapeHTML(startTime)}</div>
           <div class="text-right"> - ${escapeHTML(endTime)} </div>
         </div>
@@ -303,37 +303,6 @@ function getClassroomColor(classroom) {
   return /** @type {ClassroomColorConfig} */ (
     CLASSROOM_COLORS[classroom] || CLASSROOM_COLORS['default']
   );
-}
-
-/**
- * 予約の時間帯を判定（午前・午後・全日）
- * @param {any} reservation - 予約データ
- * @returns {'morning' | 'afternoon' | 'allDay'} 時間帯
- */
-function getReservationTimeSlot(reservation) {
-  if (!reservation.startTime || !reservation.endTime) {
-    return 'allDay';
-  }
-
-  // 開始時刻と終了時刻を数値化（例: "09:30" -> 9.5）
-  const parseTime = /** @param {string} time */ time => {
-    const [hours, minutes] = time.split(':').map(Number);
-    return hours + minutes / 60;
-  };
-
-  const startHour = parseTime(reservation.startTime);
-  const endHour = parseTime(reservation.endTime);
-
-  // 午前: 開始が12時より前で終了も12時以前
-  // 午後: 開始が12時以降
-  // 全日: 12時をまたぐ（開始が12時より前で終了が12時以降）
-  if (startHour < 12 && endHour <= 12) {
-    return 'morning';
-  } else if (startHour >= 12) {
-    return 'afternoon';
-  } else {
-    return 'allDay';
-  }
 }
 
 /**
@@ -585,6 +554,13 @@ function renderLessonList(lessons) {
         'class="font-mono-numbers text-xs"',
       );
 
+      // ========================================
+      // バッジ生成（新フォーマット）
+      // 通常: 人数:[5,初2], 待機:[2,初1], 刀:[3]
+      // 2部制: 人数:[5,3,初2], 待機:[2,0,初1], 刀:[3,2]
+      // 過去: 人数:[5,初2] or [5,3,初2], 未処理:[1]
+      // ========================================
+
       // 教室形式で2部制かどうかを判定（classroomTypeを優先、フォールバックとしてclassroom名も確認）
       const isTwoSession =
         lesson.classroomType === '時間制・2部制' ||
@@ -592,165 +568,205 @@ function renderLessonList(lessons) {
           (lesson.classroom.includes('午前') ||
             lesson.classroom.includes('午後')));
 
-      // 2部制の区切り時間を判定（開始/終了時刻からスロットを決定）
       /**
-       * @param {any} reservation
-       * @returns {'morning'|'afternoon'|'both'|'allDay'}
+       * 予約の時間帯を判定（午前・午後）
+       * @param {any} reservation - 予約データ
+       * @returns {'morning' | 'afternoon' | 'both'}
        */
-      const getTwoSessionSlot = reservation => {
-        // デフォルトは allDay
+      const getTimeSlot = reservation => {
         const start = reservation.startTime || '';
         const end = reservation.endTime || '';
-        if (!start && !end) return 'allDay';
-        // 日程シートに時間があれば利用（開始/終了）。無ければ既存ロジックでフォールバック
-        const slot = getReservationTimeSlot(reservation);
-        // 1部終了時刻と2部開始時刻を基準に判定
-        const parseTime = /** @param {string | undefined} time */ time => {
+        if (!start && !end) return 'both';
+
+        const parseTime = /** @param {string|undefined} time */ time => {
           if (!time) return null;
           const [h, m] = time.split(':').map(Number);
           if (Number.isNaN(h) || Number.isNaN(m)) return null;
           return h + m / 60;
         };
+
+        // 1部終了時刻と2部開始時刻を基準に判定
         const session1End =
-          parseTime(lesson.firstEnd) || parseTime(lesson.endTime);
+          parseTime(lesson.firstEnd) || parseTime(lesson.endTime) || 12;
         const session2Start =
-          parseTime(lesson.secondStart) || parseTime(lesson.startTime);
-        if (session1End === null || session2Start === null) {
-          return slot === 'allDay' ? 'both' : slot;
-        }
+          parseTime(lesson.secondStart) || parseTime(lesson.startTime) || 13;
 
         const startNum = parseTime(start);
         const endNum = parseTime(end);
-        if (startNum === null || endNum === null) {
-          return slot === 'allDay' ? 'both' : slot;
-        }
+        if (startNum === null || endNum === null) return 'both';
 
         const inMorning = startNum < session1End;
         const inAfternoon = endNum > session2Start;
         if (inMorning && inAfternoon) return 'both';
         if (inMorning) return 'morning';
         if (inAfternoon) return 'afternoon';
-        return slot === 'allDay' ? 'both' : slot;
+        return 'both';
       };
 
-      // 2部制の場合は「3,2」形式で表示
-      let reservationBadge = '';
-      let firstLectureBadge = '';
-      let chiselRentalBadge = '';
-      if (isTwoSession) {
-        // 2部制教室の場合: 予約時間で午前・午後を判定
-        /**
-         * @param {any[]} reservations
-         * @returns {{morning: number, afternoon: number}}
-         */
-        const countBySlot = reservations =>
-          reservations.reduce(
-            /**
-             * @param {{morning: number, afternoon: number}} acc
-             * @param {any} r
-             */
-            (acc, r) => {
-              const slot = getTwoSessionSlot(r);
-              if (slot === 'morning' || slot === 'both') acc.morning += 1;
-              if (slot === 'afternoon' || slot === 'both') acc.afternoon += 1;
-              return acc;
-            },
-            { morning: 0, afternoon: 0 },
-          );
-
-        const baseCounts = countBySlot(baseBadgeReservations);
-        const morningFirstCount = baseBadgeReservations.filter(
-          /** @param {any} r */ r => {
-            const slot = getTwoSessionSlot(r);
-            return (slot === 'morning' || slot === 'both') && r.firstLecture;
-          },
-        ).length;
-        const afternoonFirstCount = baseBadgeReservations.filter(
-          /** @param {any} r */ r => {
-            const slot = getTwoSessionSlot(r);
-            return (slot === 'afternoon' || slot === 'both') && r.firstLecture;
-          },
-        ).length;
-        reservationBadge = `${baseCounts.morning},${baseCounts.afternoon}`;
-        if (morningFirstCount > 0 || afternoonFirstCount > 0) {
-          firstLectureBadge = `初${morningFirstCount},${afternoonFirstCount}`;
+      /**
+       * バッジ用テキストを生成するヘルパー（通常）
+       * @param {string} label - ラベル
+       * @param {number} count - メインカウント
+       * @param {number} [firstCount=0] - 初回カウント（オプション）
+       * @returns {string} バッジテキスト（例: "人数:[5,初2]"）
+       */
+      const formatBadgeText = (label, count, firstCount = 0) => {
+        if (firstCount > 0) {
+          return `${label} ${count} 初${firstCount}`;
         }
+        return `${label} ${count}`;
+      };
 
-        // 彫刻刀レンタル数（2部制: 午前・午後別）
-        const morningChiselCount = baseBadgeReservations.filter(
-          /** @param {any} r */ r => {
-            const slot = getTwoSessionSlot(r);
-            return (slot === 'morning' || slot === 'both') && r.chiselRental;
-          },
-        ).length;
-        const afternoonChiselCount = baseBadgeReservations.filter(
-          /** @param {any} r */ r => {
-            const slot = getTwoSessionSlot(r);
-            return (slot === 'afternoon' || slot === 'both') && r.chiselRental;
-          },
-        ).length;
-        if (morningChiselCount > 0 || afternoonChiselCount > 0) {
-          chiselRentalBadge = `刀${morningChiselCount},${afternoonChiselCount}`;
+      /**
+       * バッジ用テキストを生成するヘルパー（2部制）
+       * @param {string} label - ラベル
+       * @param {number} morningCount - 午前カウント
+       * @param {number} afternoonCount - 午後カウント
+       * @param {number} [firstCount=0] - 初回カウント（オプション）
+       * @returns {string} バッジテキスト（例: "人数:[5,3,初2]"）
+       */
+      const formatTwoSessionBadgeText = (
+        label,
+        morningCount,
+        afternoonCount,
+        firstCount = 0,
+      ) => {
+        if (firstCount > 0) {
+          return `${label} ${morningCount} ${afternoonCount} 初${firstCount}`;
         }
+        return `${label} ${morningCount} ${afternoonCount}`;
+      };
 
-        // 未完了バッジは別表示にするため、ここではreservationBadgeへ追加しない
-      } else {
-        reservationBadge = `${baseBadgeReservations.length}`;
-        if (firstLectureCount > 0) {
-          firstLectureBadge = `初${firstLectureCount}`;
+      /**
+       * 予約を午前・午後でカウント
+       * @param {any[]} reservations
+       * @returns {{morning: number, afternoon: number}}
+       */
+      const countBySlot = reservations =>
+        reservations.reduce(
+          /**
+           * @param {{morning: number, afternoon: number}} acc
+           * @param {any} r
+           */
+          (acc, r) => {
+            const slot = getTimeSlot(r);
+            if (slot === 'morning' || slot === 'both') acc.morning += 1;
+            if (slot === 'afternoon' || slot === 'both') acc.afternoon += 1;
+            return acc;
+          },
+          { morning: 0, afternoon: 0 },
+        );
+
+      // 人数バッジ（メイン）
+      const mainCount = baseBadgeReservations.length;
+      let mainBadge = '';
+      if (mainCount > 0) {
+        if (isTwoSession) {
+          const baseCounts = countBySlot(baseBadgeReservations);
+          const morningFirstCount = baseBadgeReservations.filter(
+            /** @param {any} r */ r =>
+              (getTimeSlot(r) === 'morning' || getTimeSlot(r) === 'both') &&
+              r.firstLecture,
+          ).length;
+          const afternoonFirstCount = baseBadgeReservations.filter(
+            /** @param {any} r */ r =>
+              (getTimeSlot(r) === 'afternoon' || getTimeSlot(r) === 'both') &&
+              r.firstLecture,
+          ).length;
+          const totalFirstCount = morningFirstCount + afternoonFirstCount;
+          mainBadge = Components.badge({
+            text: formatTwoSessionBadgeText(
+              '人数',
+              baseCounts.morning,
+              baseCounts.afternoon,
+              totalFirstCount,
+            ),
+            color: 'gray',
+            size: 'xs',
+            border: true,
+          });
+        } else {
+          mainBadge = Components.badge({
+            text: formatBadgeText('人数', mainCount, firstLectureCount),
+            color: 'gray',
+            size: 'xs',
+            border: true,
+          });
         }
+      }
 
-        // 彫刻刀レンタル数（通常教室）
+      // 待機バッジ（未来のみ）
+      let waitlistBadge = '';
+      if (!showPastLessons && waitlistedReservations.length > 0) {
+        if (isTwoSession) {
+          const waitlistCounts = countBySlot(waitlistedReservations);
+          const waitlistFirstCount = waitlistedReservations.filter(
+            /** @param {any} r */ r => r.firstLecture,
+          ).length;
+          waitlistBadge = Components.badge({
+            text: formatTwoSessionBadgeText(
+              '待機',
+              waitlistCounts.morning,
+              waitlistCounts.afternoon,
+              waitlistFirstCount,
+            ),
+            color: 'yellow',
+            size: 'xs',
+            border: true,
+          });
+        } else {
+          const waitlistedFirstCount = waitlistedReservations.filter(
+            /** @param {any} r */ r => r.firstLecture,
+          ).length;
+          waitlistBadge = Components.badge({
+            text: formatBadgeText(
+              '待機',
+              waitlistedReservations.length,
+              waitlistedFirstCount,
+            ),
+            color: 'yellow',
+            size: 'xs',
+            border: true,
+          });
+        }
+      }
+
+      // 刀バッジ（未来のみ）
+      let chiselBadge = '';
+      if (!showPastLessons) {
         const chiselRentalCount = baseBadgeReservations.filter(
           /** @param {any} r */ r => r.chiselRental,
         ).length;
         if (chiselRentalCount > 0) {
-          chiselRentalBadge = `刀${chiselRentalCount}`;
+          if (isTwoSession) {
+            const chiselCounts = countBySlot(
+              baseBadgeReservations.filter(
+                /** @param {any} r */ r => r.chiselRental,
+              ),
+            );
+            chiselBadge = Components.badge({
+              text: `刀 ${chiselCounts.morning} ${chiselCounts.afternoon}`,
+              color: 'orange',
+              size: 'xs',
+              border: true,
+            });
+          } else {
+            chiselBadge = Components.badge({
+              text: `刀 ${chiselRentalCount}`,
+              color: 'orange',
+              size: 'xs',
+              border: true,
+            });
+          }
         }
-
-        // 過去表示時は未完了（確定）数を「未X」で表示
-        // 未完了バッジは別表示にするため、ここではreservationBadgeへ追加しない
       }
 
-      // 待機者バッジ
-      const waitlistBadge =
-        showPastLessons || waitlistedReservations.length === 0
-          ? ''
-          : (() => {
-              const waitlistedFirstCount = waitlistedReservations.filter(
-                /** @param {any} r */ r => r.firstLecture,
-              ).length;
-              let badge = '';
-              if (waitlistedFirstCount > 0) {
-                badge = Components.badge({
-                  text: `初待${waitlistedFirstCount}`,
-                  color: 'yellow',
-                  size: 'xs',
-                  border: true,
-                });
-              }
-              const nonFirstWaitlistedCount =
-                waitlistedReservations.length - waitlistedFirstCount;
-              if (nonFirstWaitlistedCount > 0) {
-                // スペースを確保するためにHTML文字列結合
-                badge +=
-                  (badge ? ' ' : '') +
-                  Components.badge({
-                    text: `待${nonFirstWaitlistedCount}`,
-                    color: 'yellow',
-                    size: 'xs',
-                    border: true,
-                  });
-              }
-              return badge;
-            })();
-
-      // 未完了（確定）バッジ
+      // 未処理バッジ（過去のみ）
       const pendingCount = confirmedReservations.length;
       const pendingBadge =
         showPastLessons && pendingCount > 0
           ? Components.badge({
-              text: `未${pendingCount}`,
+              text: `未処理 ${pendingCount}`,
               color: 'red',
               size: 'xs',
               border: true,
@@ -796,39 +812,11 @@ function renderLessonList(lessons) {
                 ${lesson.venue ? `<span class="text-gray-500 text-xs hidden sm:inline truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
                 ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
               </div>
-              <div class="flex gap-1 items-center flex-shrink-0">
+              <div class="flex gap-1 items-center flex-shrink-0 justify-start min-w-[200px] font-mono-numbers">
+                ${mainBadge}
                 ${waitlistBadge}
+                ${chiselBadge}
                 ${pendingBadge}
-                ${
-                  chiselRentalBadge
-                    ? Components.badge({
-                        text: chiselRentalBadge,
-                        color: 'orange',
-                        size: 'xs',
-                        border: true,
-                      })
-                    : ''
-                }
-                ${
-                  firstLectureBadge
-                    ? Components.badge({
-                        text: firstLectureBadge,
-                        color: 'green',
-                        size: 'xs',
-                        border: true,
-                      })
-                    : ''
-                }
-                ${
-                  reservationBadge
-                    ? Components.badge({
-                        text: reservationBadge.toString(),
-                        color: 'gray',
-                        size: 'xs',
-                        border: true,
-                      })
-                    : ''
-                }
               </div>
             </div>
           </div>
