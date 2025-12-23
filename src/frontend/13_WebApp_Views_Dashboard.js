@@ -49,9 +49,16 @@ export const getDashboardView = () => {
 
   console.log('   アクティブな予約:', activeReservations.length, '件');
 
+  // 予約カードを生成（今日の予約には「本日」バッジを追加）
   const bookingCards = activeReservations.map(
     (/** @type {ReservationCore} */ b) => {
       const badges = _buildBookingBadges(b);
+
+      // 今日の予約に「本日」バッジを追加（UX改善）
+      if (_isToday(b.date)) {
+        badges.unshift({ type: 'attention', text: '本日' });
+      }
+
       const editButtons = _buildEditButtons(b);
       const accountingButtons = _buildAccountingButtons(b);
 
@@ -65,10 +72,19 @@ export const getDashboardView = () => {
     },
   );
 
+  // 予約がない場合の空状態デザイン
+  const emptyBookingHtml =
+    activeReservations.length === 0
+      ? `<div class="text-center py-6 text-brand-muted">
+          <p class="text-base">よやくは ありません</p>
+          <p class="text-sm mt-1">「メニュー」からあたらしく よやく できます</p>
+        </div>`
+      : '';
+
   // 予約セクションを生成（Componentsに構造生成を委任）
   const yourBookingsHtml = Components.dashboardSection({
     title: 'よやく',
-    items: bookingCards,
+    items: activeReservations.length > 0 ? bookingCards : [emptyBookingHtml],
   });
 
   // 履歴セクション用のカード配列を構築：完了ステータスのみ表示
@@ -131,27 +147,30 @@ export const getDashboardView = () => {
 
   // --- メニューセクション ---
   const menuButton = Components.button({
-    text: 'よやく・きろく　いちらん',
+    text: 'みんな の<br>よやく・きろく',
     action: 'goToParticipantsView',
     style: 'primary',
-    size: 'full',
+    customClass:
+      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
   });
 
   // 新規予約ボタン
   const newBookingButton = Components.button({
-    text: 'あたらしく　よやく　する',
+    text: 'よやく<br>する',
     action: 'showClassroomModal',
     style: 'secondary',
-    size: 'full',
+    customClass:
+      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
   });
 
   // 今日の予約がある場合のみ表示するボタン
   const summaryMenuButton = todayReservation
     ? Components.button({
-        text: 'きょう の まとめ',
+        text: 'きょう の<br>まとめ',
         action: 'goToSessionConclusion',
         style: 'accounting',
-        size: 'full',
+        customClass:
+          'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
       })
     : '';
 
@@ -167,27 +186,30 @@ export const getDashboardView = () => {
 
   // 写真ギャラリーリンク
   const photoButton = Components.button({
-    text: 'さくひん ギャラリー',
+    text: 'さくひん<br>ギャラリー',
     action: 'openPhotoGallery',
     style: 'secondary',
-    size: 'full',
+    customClass:
+      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
     caption: 'Googleフォトのアルバムページが開きます',
   });
 
-  // メニューアイテムを構築
-  const primaryMenuButtons = [menuButton, newBookingButton, photoButton]
+  // メニューアイテムを構築（すべてをフラットな配列にしてグリッド配置）
+  // 順序: 一覧、予約、(まとめ)、ギャラリー
+  const allMenuButtons = [
+    menuButton,
+    newBookingButton,
+    summaryMenuButton,
+    photoButton,
+  ]
     .filter(Boolean)
     .join('');
-  const todayButtons = [summaryMenuButton].filter(Boolean).join('');
 
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
     items: [
-      `<div class="grid gap-2 sm:grid-cols-3">${primaryMenuButtons}</div>`,
-      todayButtons
-        ? `<div class="grid gap-2 sm:grid-cols-2 mt-2">${todayButtons}</div>`
-        : '',
-    ].filter(Boolean),
+      `<div class="w-full max-w-md mx-auto"><div class="grid grid-cols-2 gap-3 items-stretch">${allMenuButtons}</div></div>`,
+    ],
   });
 
   // けいかく・もくひょうセクション（生徒名簿から取得、編集可能）
@@ -233,12 +255,13 @@ export const getDashboardView = () => {
   });
 
   return `
-        <div class="flex flex-col sm:flex-row justify-between sm:items-center my-2">
-            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
-            <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">プロフィール編集</button>
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center mt-4 mb-2">
+            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-6 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
+            <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">プロフィール</button>
         </div>
-        ${goalSectionHtml}
+        <!-- セクション順序: メニュー→けいかく→よやく→きろく -->
         ${menuSectionHtml}
+        ${goalSectionHtml}
         ${yourBookingsHtml}
         ${historyHtml}
         ${accountingFallbackButton ? `<div class="mt-8 text-center">${accountingFallbackButton}</div>` : ''}

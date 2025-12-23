@@ -236,7 +236,7 @@ export const Components = {
     // キャプションがある場合はコンテナでラップして表示
     if (caption) {
       return `
-        <div class="w-full flex flex-col">
+        <div class="w-full flex flex-col h-full">
           ${buttonHtml}
           <div class="text-xs text-brand-muted mt-1 text-center leading-tight">
             ${escapeHTML(caption)}
@@ -1360,10 +1360,11 @@ export const Components = {
         </div>`;
     }
 
+    // セクションタイトル：下線付きでシンプルに区切りを強調
     return `
-        <div class="mb-8 w-full">
-          <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg space-y-3">
-            <h2 class="text-xl font-medium text-brand-text text-center mb-2">${escapeHTML(title)}</h2>
+        <div class="mb-2 w-full">
+          <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg shadow-sm space-y-3">
+            <h2 class="text-lg font-bold text-brand-text text-center pb-2 border-b-2 border-ui-border-light">${escapeHTML(title)}</h2>
             ${newButtonHtml}
             ${itemsHtml}
             ${moreButtonHtml}

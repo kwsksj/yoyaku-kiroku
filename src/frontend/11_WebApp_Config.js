@@ -302,7 +302,7 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
 
     // ボタンの基本スタイル
     buttons: {
-      base: 'font-bold rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
+      base: 'font-bold rounded-md shadow transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
       full: 'w-[250px] mx-auto block',
       primary:
         'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover',
