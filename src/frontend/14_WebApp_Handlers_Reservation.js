@@ -312,8 +312,8 @@ export const reservationActionHandlers = {
         )?.checked || false,
       firstLecture:
         /** @type {HTMLInputElement} */ (
-          document.getElementById('option-first-lecture')
-        )?.checked || isFirstTimeBooking,
+          document.getElementById('hidden-first-lecture')
+        )?.value === 'true' || isFirstTimeBooking,
       sessionNote: wipValue, // 予約ログ用（けいかく・もくひょうのみ）
       nextLessonGoal: nextLessonGoalValue, // 生徒名簿に保存するけいかく・もくひょう
       order: combinedOrder, // 材料情報を含む購入希望
@@ -585,8 +585,8 @@ export const reservationActionHandlers = {
         )?.checked || false,
       firstLecture:
         /** @type {HTMLInputElement} */ (
-          document.getElementById('option-first-lecture')
-        )?.checked || false,
+          document.getElementById('hidden-first-lecture')
+        )?.value === 'true',
       startTime: startTime,
       endTime: endTime,
       sessionNote: wipInputValue, // 予約ログ用（けいかく・もくひょうのみ）

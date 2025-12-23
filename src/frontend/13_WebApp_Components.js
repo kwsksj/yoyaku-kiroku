@@ -172,7 +172,8 @@ export const Components = {
     customClass = '',
     dataAttributes = {},
     id = '',
-    disabledStyle = 'auto', // 'auto', 'none', 'custom'
+    disabledStyle = 'auto',
+    caption = '',
   }) => {
     // スタイルマッピング
     const styleClasses = {
@@ -223,7 +224,7 @@ export const Components = {
     // ID属性の生成
     const idAttr = id ? `id="${escapeHTML(id)}"` : '';
 
-    return `<button type="button"
+    const buttonHtml = `<button type="button"
         ${idAttr}
         data-action="${escapeHTML(action || '')}"
         class="${[baseClass, styleClass, sizeClass, disabledClass, customClass || ''].filter(Boolean).join(' ')}"
@@ -231,6 +232,19 @@ export const Components = {
         ${disabled ? 'disabled' : ''}
         ${inlineStyle ? `style="${inlineStyle}"` : ''}
       >${text}</button>`;
+
+    // キャプションがある場合はコンテナでラップして表示
+    if (caption) {
+      return `
+        <div class="w-full flex flex-col">
+          ${buttonHtml}
+          <div class="text-xs text-brand-muted mt-1 text-center leading-tight">
+            ${escapeHTML(caption)}
+          </div>
+        </div>
+      `;
+    }
+    return buttonHtml;
   },
 
   /**
@@ -704,6 +718,7 @@ export const Components = {
       info: 'bg-action-secondary-bg text-action-secondary-text',
       attention: 'bg-action-attention-bg text-action-attention-text',
       accounting: 'bg-action-attention-bg text-action-attention-text',
+      beginner: 'bg-green-100 text-green-800',
     };
 
     return `<span class="inline-block px-1 py-0.5 text-sm font-bold rounded ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;

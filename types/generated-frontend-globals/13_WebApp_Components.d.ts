@@ -5,7 +5,7 @@ export namespace Components {
     function closeModal(modalId: string): void;
     function closeModalOnBackdrop(event: Event, modalId: string): void;
     function handleModalContentClick(event: Event): void;
-    function button({ action, text, style, size, disabled, customClass, dataAttributes, id, disabledStyle, }: ButtonConfig): string;
+    function button({ action, text, style, size, disabled, customClass, dataAttributes, id, disabledStyle, caption, }: ButtonConfig): string;
     function input({ id, label, type, value, placeholder, required, description, caption, customClass, labelClass, containerClass, inputmode, pattern, autocomplete, }: InputConfig): string;
     function select({ id, label, options, selectedValue, description, caption, }: SelectConfig): string;
     function textarea({ id, label, value, placeholder, rows, description, caption, }: TextareaConfig): string;

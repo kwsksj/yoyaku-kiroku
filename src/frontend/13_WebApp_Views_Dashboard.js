@@ -167,10 +167,11 @@ export const getDashboardView = () => {
 
   // 写真ギャラリーリンク
   const photoButton = Components.button({
-    text: 'しゃしん',
+    text: 'さくひん ギャラリー',
     action: 'openPhotoGallery',
     style: 'secondary',
     size: 'full',
+    caption: 'Googleフォトのアルバムページが開きます',
   });
 
   // メニューアイテムを構築
@@ -236,8 +237,8 @@ export const getDashboardView = () => {
             <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-4 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
             <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">プロフィール編集</button>
         </div>
-        ${menuSectionHtml}
         ${goalSectionHtml}
+        ${menuSectionHtml}
         ${yourBookingsHtml}
         ${historyHtml}
         ${accountingFallbackButton ? `<div class="mt-8 text-center">${accountingFallbackButton}</div>` : ''}
@@ -376,7 +377,7 @@ export const _buildBookingBadges = booking => {
   const badges = [];
 
   if (booking.firstLecture) {
-    badges.push({ type: 'attention', text: '初回' });
+    badges.push({ type: 'beginner', text: '初回講習' });
   }
 
   if (

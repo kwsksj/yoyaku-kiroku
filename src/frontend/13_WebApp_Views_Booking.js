@@ -17,11 +17,7 @@
 // UI系モジュール
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
-import {
-  _isToday,
-  getClassroomColorClass,
-  getTimeOptionsHtml,
-} from './13_WebApp_Views_Utils.js';
+import { _isToday, getClassroomColorClass } from './13_WebApp_Views_Utils.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -342,108 +338,204 @@ export const getReservationFormView = () => {
       return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
     }
 
-    const startHour = parseInt(lessonInfo.firstStart.split(':')[0]);
-    const endHour = parseInt(
-      (lessonInfo.secondEnd || lessonInfo.firstEnd).split(':')[0],
-    );
-    const endMinutes = parseInt(
-      (lessonInfo.secondEnd || lessonInfo.firstEnd).split(':')[1],
-    );
+    // --- 時間生成ヘルパー関数 ---
+    /**
+     * 時間リストを生成
+     * @param {string} start "HH:MM"
+     * @param {string} end "HH:MM"
+     * @param {number} minDurationMinutes 最低利用時間（分）- 開始時間リスト生成時は「終了時刻の何分前まで選べるか」に使用
+     * @returns {string[]} "HH:MM"の配列
+     */
+    const generateTimeSlots = (start, end, minDurationMinutes = 0) => {
+      const slots = [];
+      const [sH, sM] = start.split(':').map(Number);
+      const [eH, eM] = end.split(':').map(Number);
 
+      let currentMin = sH * 60 + sM;
+      const endMin = eH * 60 + eM;
+      // limitMin: 最終終了時刻から最低利用時間を引いた時刻
+      const limitMin = endMin - minDurationMinutes;
+
+      while (currentMin <= limitMin) {
+        const h = Math.floor(currentMin / 60);
+        const m = currentMin % 60;
+        slots.push(
+          `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+        );
+        currentMin += CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES;
+      }
+      return slots;
+    };
+
+    // --- 選択肢生成ロジック ---
+    const MIN_DURATION = 120; // 最低2時間
+    let startTimeOptionsHtml = '';
+
+    // 初回講習の固定時間ロジック
     let fixedStartTime = startTime;
     let isTimeFixed = false;
-    if (isBeginnerMode && beginnerStart && beginnerCapacityCount > 0) {
+    const isFirstTime = isEdit ? firstLecture : isBeginnerMode;
+
+    if (isFirstTime && beginnerStart && beginnerCapacityCount > 0) {
       fixedStartTime = beginnerStart;
       isTimeFixed = true;
+      startTimeOptionsHtml = `<option value="${fixedStartTime}" selected>${fixedStartTime}</option>`;
+    } else {
+      // 経験者（または初回固定枠なし）: 自由選択
+      const isDual = classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL;
+      /** @type {string[]} */
+      let validStartTimes = [];
+
+      if (!isDual) {
+        // 全日: firstStart 〜 firstEnd (MIN_DURATION考慮)
+        validStartTimes = generateTimeSlots(
+          lessonInfo.firstStart,
+          lessonInfo.firstEnd,
+          MIN_DURATION,
+        );
+      } else {
+        // 2部制: 休憩またぎ許可。開始可能な時間は「休憩中」を除く
+        // 全体の開始可能範囲: firstStart 〜 secondEnd (MIN_DURATION考慮)
+        // ただし generateTimeSlots は単純な範囲生成なので、まずは全体範囲（あるいは部ごとの範囲）を考える
+        // ここでは「1部開始〜1部終了前」と「2部開始〜2部終了(MIN_DURATION考慮)」の2ブロックを生成し連結するアプローチが安全かつ確実
+
+        const s2End = lessonInfo.secondEnd || lessonInfo.firstEnd; // 安全策
+
+        // 1. 第1部ブロック: firstStart 〜 (firstEnd - 30m)
+        // ただし、もし休憩またぎで第2部終了まで使えるなら、第1部の開始リミットは「firstEnd - 30m」ではない。
+        // リミットはあくまで「全体の終了時間(secondEnd) - 2h」である。
+
+        // なので方針転換: 全体範囲をループで回し、NGな時間を除外する
+        const [fsH, fsM] = lessonInfo.firstStart.split(':').map(Number);
+        const [seH, seM] = s2End.split(':').map(Number);
+        const [feH, feM] = lessonInfo.firstEnd.split(':').map(Number);
+        // secondStartは必須
+        const [ssH, ssM] = (lessonInfo.secondStart || '99:99')
+          .split(':')
+          .map(Number);
+
+        let currentMin = fsH * 60 + fsM;
+        const limitMin = seH * 60 + seM - MIN_DURATION; // 全体の最終リミット
+
+        const firstEndMin = feH * 60 + feM;
+        const secondStartMin = ssH * 60 + ssM;
+
+        while (currentMin <= limitMin) {
+          // 禁止ルール: 「1部終了時刻(firstEnd) と 休憩中(firstEnd < t < secondStart)」は選択不可
+          // つまり t >= firstEnd && t < secondStart はNG
+          if (currentMin >= firstEndMin && currentMin < secondStartMin) {
+            // スキップ
+          } else {
+            const h = Math.floor(currentMin / 60);
+            const m = currentMin % 60;
+            validStartTimes.push(
+              `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+            );
+          }
+          currentMin += CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES;
+        }
+      }
+
+      startTimeOptionsHtml = validStartTimes
+        .map(t => {
+          const selected = t === startTime ? 'selected' : '';
+          return `<option value="${t}" ${selected}>${t}</option>`;
+        })
+        .join('');
     }
 
-    const startTimeOptions = isTimeFixed
-      ? `<option value="${fixedStartTime}" selected>${fixedStartTime}</option>`
-      : getTimeOptionsHtml(
-          startHour,
-          endHour,
-          CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES,
-          startTime ?? null,
-        );
-    let endTimeOptions = getTimeOptionsHtml(
-      startHour,
-      endHour,
-      CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES,
-      endTime ?? null,
-    );
-    if (endMinutes > 0) {
-      const finalEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
-      endTimeOptions += `<option value="${finalEndTime}">${finalEndTime}</option>`;
-    }
+    // 終了時間はJSで制御するため初期は空（または現在値）
+    const endTimeOptionsHtml = endTime
+      ? `<option value="${endTime}" selected>${endTime}</option>`
+      : '';
 
     const timeFixedMessage = isTimeFixed
       ? `<p class="${/** @type {any} */ (DesignConfig.text).caption} mb-2">初回の方は <span class="time-display">${fixedStartTime}</span> より開始です。${fixedStartTime}昼をまたぐ場合は、1時間休憩を挟みます</p>`
       : '';
 
+    // 会計画面と同じスタイル
+    const timeSelectClass =
+      'w-full px-3 py-2.5 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus mobile-input touch-friendly font-mono-numbers';
+
     return `
         <div class="mt-4 pt-4 border-t-2">
           <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間</h4>
           ${timeFixedMessage}
-          <div class="grid grid-cols-2 gap-4 mb-2">
-            ${Components.select({ id: 'res-start-time', label: '開始予定', options: startTimeOptions })}
-            ${Components.select({ id: 'res-end-time', label: '終了予定', options: endTimeOptions })}
+          <div class="flex items-center space-x-2 mb-2">
+            <div class="flex-1">
+              <label class="block text-sm font-bold mb-1">開始予定</label>
+              <select id="res-start-time" class="${timeSelectClass}">
+                ${startTimeOptionsHtml}
+              </select>
+            </div>
+            <span class="pt-6 font-bold">~</span>
+            <div class="flex-1">
+              <label class="block text-sm font-bold mb-1">終了予定</label>
+              <select id="res-end-time" class="${timeSelectClass}">
+                ${endTimeOptionsHtml}
+              </select>
+            </div>
           </div>
+          <p class="text-sm text-gray-500 text-right">※最低2時間から予約可能です</p>
         </div>`;
   };
 
   const _renderBookingOptionsSection = () => {
-    const firstLectureChecked = firstLecture || (!isEdit && isBeginnerMode);
-    const firstLectureDisabled = !isEdit && isBeginnerMode;
+    // 初回講習チェックボックスは廃止 - 基本情報欄にバッジで表示
+    // 彫刻刀レンタルのみ表示（全教室タイプ共通）
 
-    if (classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED) {
-      /** @type {CheckboxConfig} */
-      const firstLectureCheckboxConfig = {
-        id: 'option-first-lecture',
-        label: CONSTANTS.ITEMS.FIRST_LECTURE,
-        checked:
-          firstLectureChecked !== undefined ? firstLectureChecked : false,
-        disabled: firstLectureDisabled,
-      };
-      /** @type {CheckboxConfig} */
-      const rentalCheckboxConfig = {
-        id: 'option-rental',
-        label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`,
-        checked: chiselRental !== undefined ? chiselRental : false,
-      };
-      return `
-        <div class="mt-4 pt-4 border-t-2">
-          <h4 class="font-bold text-left mb-2">オプション</h4>
-          ${Components.checkbox(firstLectureCheckboxConfig)}
-          <div class="mt-2">${Components.checkbox(rentalCheckboxConfig)}</div>
-        </div>`;
-    }
-    return '';
+    /** @type {CheckboxConfig} */
+    const rentalCheckboxConfig = {
+      id: 'option-rental',
+      label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`,
+      checked: chiselRental !== undefined ? chiselRental : false,
+    };
+    return `
+      <div class="mt-4 pt-4 border-t-2">
+        <h4 class="font-bold text-left mb-2">オプション</h4>
+        ${Components.checkbox(rentalCheckboxConfig)}
+      </div>`;
   };
 
-  const _renderDetailsInputSection = () => {
+  const _renderPlanSection = () => {
+    // nextLessonGoalはcurrentUserから取得（生徒名簿の継続的な目標）
+    const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
+
+    // 初回講習の値を隠しフィールドで保持（新規予約時: isBeginnerMode、編集時: reservationInfo.firstLecture）
+    const firstLectureValue = isEdit ? firstLecture || false : isBeginnerMode;
+    const hiddenFirstLectureInput = `<input type="hidden" id="hidden-first-lecture" value="${firstLectureValue}" />`;
+
+    return `
+        ${hiddenFirstLectureInput}
+        <h4 class="font-bold text-left mb-2">けいかく・もくひょう</h4>
+        ${Components.textarea({
+          id: 'wip-input',
+          label: '',
+          placeholder:
+            'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
+          value: nextLessonGoal,
+          rows: 5,
+          caption:
+            'よやく・きろく いちらん にのります（みんな にも みえます）。',
+        })}`;
+  };
+
+  const _renderSalesAndContactSection = () => {
     const salesChecklistHtml =
       typeof buildSalesChecklist === 'function'
         ? buildSalesChecklist(accountingMaster)
         : '';
-    // nextLessonGoalはcurrentUserから取得（生徒名簿の継続的な目標）
-    const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
     return `
-        <div class="mt-4 pt-4 border-t-2 space-y-4">
-          ${Components.textarea({
-            id: 'wip-input',
-            label: 'けいかく・もくひょう',
-            placeholder:
-              'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
-            value: nextLessonGoal,
-            rows: 5,
-            caption:
-              'よやく・きろく いちらん にのります（みんな にも みえます）。',
-          })}
-          ${Components.textarea({ id: 'material-input', label: '材料のサイズや樹種の希望', placeholder: '例：30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
-        </div>
-        <div class="mt-4 pt-4 border-t-2 space-y-4">
+        <!-- 販売品 -->
+        <h4 class="font-bold text-left mb-3">販売品</h4>
+        <div class="space-y-4">
+          ${Components.textarea({ id: 'material-input', label: '材料の希望', placeholder: '例：「30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
           ${salesChecklistHtml}
-          ${Components.textarea({ id: 'order-input', label: '購入希望（自由記入）', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
+          ${Components.textarea({ id: 'order-input', label: 'その他購入希望', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
+        </div>
+
+        <!-- 連絡事項 -->
+        <div class="mt-4 pt-4 border-t-2">
           ${Components.textarea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
         </div>`;
   };
@@ -454,6 +546,109 @@ export const getReservationFormView = () => {
       .join(', ');
 
   setTimeout(() => {
+    // 終了時間の動的制御（最低2時間ルール & セッション境界考慮）
+    const startSelect = /** @type {HTMLSelectElement} */ (
+      document.getElementById('res-start-time')
+    );
+    const endSelect = /** @type {HTMLSelectElement} */ (
+      document.getElementById('res-end-time')
+    );
+
+    if (startSelect && endSelect) {
+      const updateEndTimeOptions = () => {
+        const startTimeVal = startSelect.value;
+        if (!startTimeVal) return;
+
+        // 現在の終了時間（選択がある場合維持を試みる）
+        const currentEndTimeVal = endSelect.value;
+
+        const isDual = classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL;
+        const [sH, sM] = startTimeVal.split(':').map(Number);
+        const startTotalM = sH * 60 + sM;
+        const MIN_DURATION = 120; // 最低2時間
+
+        // セッション境界の取得
+        let fEndM = 0;
+        let sStartM = 9999;
+        let sEndM = 0;
+
+        if (lessonInfo.firstEnd) {
+          const [feh, fem] = lessonInfo.firstEnd.split(':').map(Number);
+          fEndM = feh * 60 + fem;
+        }
+
+        if (isDual && lessonInfo.secondStart && lessonInfo.secondEnd) {
+          const [sh, sm] = lessonInfo.secondStart.split(':').map(Number);
+          sStartM = sh * 60 + sm;
+          const [seh, sem] = lessonInfo.secondEnd.split(':').map(Number);
+          sEndM = seh * 60 + sem;
+        }
+
+        // ターゲット終了時刻の決定
+        // 休憩またぎOKなので、2部制なら第2部終了まで、全日なら第1部終了(firstEnd)まで
+        let limitEndM = fEndM;
+        if (isDual) {
+          limitEndM = sEndM;
+        }
+
+        // 終了時間の候補生成（開始+2時間 〜 ターゲット終了）
+        const minEndM = startTotalM + MIN_DURATION;
+        /** @type {string[]} */
+        const validEndTimes = [];
+
+        if (minEndM <= limitEndM) {
+          let curr = minEndM;
+          while (curr <= limitEndM) {
+            let isExcluded = false;
+            // 2部制の場合の禁止ルール:
+            // 「休憩中(firstEnd) < t <= 2部開始(secondStart)」は選択不可
+            // ※2部開始時刻ジャストも選択不可
+            if (isDual) {
+              if (curr > fEndM && curr <= sStartM) {
+                isExcluded = true;
+              }
+            }
+
+            if (!isExcluded) {
+              const h = Math.floor(curr / 60);
+              const m = curr % 60;
+              validEndTimes.push(
+                `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+              );
+            }
+            curr += CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES;
+          }
+        }
+
+        // プルダウン再構築
+        if (validEndTimes.length === 0) {
+          endSelect.innerHTML =
+            '<option value="">選択可能な時間がありません</option>';
+        } else {
+          const newOptionsHtml = validEndTimes
+            .map(t => {
+              const selected = t === currentEndTimeVal ? 'selected' : '';
+              return `<option value="${t}" ${selected}>${t}</option>`;
+            })
+            .join('');
+          endSelect.innerHTML = newOptionsHtml;
+
+          // 値の整合性チェック
+          if (currentEndTimeVal && !validEndTimes.includes(currentEndTimeVal)) {
+            endSelect.value = validEndTimes[0];
+          } else if (!currentEndTimeVal && validEndTimes.length > 0) {
+            endSelect.value = validEndTimes[0];
+          }
+        }
+      };
+
+      startSelect.addEventListener('change', updateEndTimeOptions);
+      // 初期化時にも実行
+      // 初期レンダリング直後は endSelect は空（または一部）かもしれないので、
+      // 必ず一度実行して正しいリストを作成する
+      updateEndTimeOptions();
+    }
+
     const submitBtn = document.querySelector(`[data-action="${submitAction}"]`);
     if (submitBtn) {
       submitBtn.addEventListener('click', () => {
@@ -510,37 +705,55 @@ export const getReservationFormView = () => {
 
   return `
       ${Components.pageHeader({ title: title, backAction: backAction })}
-      ${Components.cardContainer({
-        variant: 'default',
-        padding: 'spacious',
-        content: `
-          <div class="space-y-4 text-left">
-            <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.nickname : ''}さん</p>
-            <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
-            <div class="flex items-center justify-between gap-2">
-              <p class="flex-1"><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
-              ${
-                isEdit
-                  ? `<button
-                class="px-3 py-1 text-sm rounded-md ${DesignConfig.buttons.secondary}"
-                data-action="changeReservationDate"
-                data-reservation-id="${reservationInfo.reservationId || ''}"
-                data-classroom="${reservationInfo.classroom || ''}"
-              >予約日の変更</button>`
-                  : ''
-              }
+      <div class="space-y-6">
+        <!-- 1. 計画・目標 -->
+        ${Components.cardContainer({
+          variant: 'default',
+          padding: 'spacious', // defaultはspaciousだが明示
+          content: _renderPlanSection(),
+        })}
+
+        <!-- 2. 予約基本情報 -->
+        ${Components.cardContainer({
+          variant: 'default',
+          padding: 'spacious',
+          content: `
+            <div class="space-y-4 text-left">
+              <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.nickname : ''}さん${(isEdit ? firstLecture : isBeginnerMode) ? ' ' + Components.statusBadge({ type: 'beginner', text: '初回講習' }) : ''}</p>
+              <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
+              <div class="flex items-center justify-between gap-2">
+                <p class="flex-1"><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
+                ${
+                  isEdit
+                    ? `<button
+                  class="px-3 py-1 text-sm rounded-md ${DesignConfig.buttons.secondary}"
+                  data-action="changeReservationDate"
+                  data-reservation-id="${reservationInfo.reservationId || ''}"
+                  data-classroom="${reservationInfo.classroom || ''}"
+                >予約日の変更</button>`
+                    : ''
+                }
+              </div>
+              <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
+              <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
+              ${_renderTuitionDisplaySection()}
+              ${_renderTimeOptionsSection()}
+              ${_renderBookingOptionsSection()}
             </div>
-            <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
-            <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
-            ${_renderTuitionDisplaySection()}
-            ${_renderTimeOptionsSection()}
-            ${_renderBookingOptionsSection()}
-            ${_renderDetailsInputSection()}
-          </div>
-        `,
-      })}
-      <div class="mt-8 flex flex-col space-y-3">
-        ${buttonsHtml}
+          `,
+        })}
+
+        <!-- 3. 販売品・連絡事項 -->
+        ${Components.cardContainer({
+          variant: 'default',
+          padding: 'spacious',
+          content: _renderSalesAndContactSection(),
+        })}
+
+        <!-- アクションボタン -->
+        <div class="mt-8 flex flex-col space-y-3">
+          ${buttonsHtml}
+        </div>
       </div>`;
 };
 

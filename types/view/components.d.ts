@@ -28,7 +28,8 @@ export type BadgeType =
   | 'error'
   | 'info'
   | 'accounting'
-  | 'attention';
+  | 'attention'
+  | 'beginner';
 
 // =================================================================
 // Component Config（基本設定）
@@ -81,6 +82,7 @@ export interface ButtonConfig {
   dataAttributes?: Record<string, string | number | boolean>;
   id?: string;
   disabledStyle?: 'auto' | 'none' | 'custom';
+  caption?: string;
 }
 
 /**
