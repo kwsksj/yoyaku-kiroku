@@ -1338,19 +1338,7 @@ export const Components = {
    * @param {DashboardSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  dashboardSection: ({
-    title,
-    items,
-    showNewButton = false,
-    newAction,
-    showMoreButton = false,
-    moreAction,
-  }) => {
-    let newButtonHtml = '';
-    if (showNewButton && newAction) {
-      newButtonHtml = Components.newReservationCard({ action: newAction });
-    }
-
+  dashboardSection: ({ title, items, showMoreButton = false, moreAction }) => {
     const itemsHtml = items.join('');
 
     let moreButtonHtml = '';
@@ -1365,24 +1353,8 @@ export const Components = {
         <div class="mb-2 w-full">
           <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg shadow-sm space-y-3">
             <h2 class="text-lg font-bold text-brand-text text-center pb-2 border-b-2 border-ui-border-light">${escapeHTML(title)}</h2>
-            ${newButtonHtml}
             ${itemsHtml}
             ${moreButtonHtml}
-          </div>
-        </div>
-      `;
-  },
-
-  /**
-   * 新規予約カード（ホーム用）
-   * @param {ComponentConfig & {action: string}} config - 設定オブジェクト
-   * @returns {string} HTML文字列
-   */
-  newReservationCard: ({ action }) => {
-    return `
-        <div data-action="${action}" class="w-full p-4 rounded-lg border-2 border-dashed border-action-primary-border bg-action-primary-light cursor-pointer mobile-card touch-friendly">
-          <div class="text-center">
-            <span class="text-xl font-bold text-action-primary-bg">+ あたらしく よやく する</span>
           </div>
         </div>
       `;
@@ -1458,7 +1430,7 @@ export const Components = {
 
     // 日時・会場表示
     const dateTimeDisplay = item.startTime
-      ? ` <span class="time-display">${item.startTime}~${item.endTime}</span>`.trim()
+      ? ` ${item.startTime}~${item.endTime}`.trim()
       : '';
     const classroomDisplay = item.classroom ? ` ${item.classroom}` : '';
     const venueDisplay = item.venue ? ` ${item.venue}` : '';
@@ -1482,9 +1454,9 @@ export const Components = {
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
               <div class="flex items-center flex-wrap">
-                <h3 class="font-bold text-base text-brand-text">${formatDate(item.date)} <span class="font-normal text-base text-brand-subtle">${dateTimeDisplay}</span></h3>
+                <h3 class="text-base text-brand-text font-bold">${formatDate(item.date)}<span class="font-normal text-sm text-brand-subtle ml-2">${dateTimeDisplay}</span></h3>
               </div>
-              <h4 class="text-base text-brand-text font-bold mt-0">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
+              <h4 class="text-sm text-brand-text">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
             </div>
             ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
           </div>

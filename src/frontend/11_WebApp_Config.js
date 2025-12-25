@@ -452,8 +452,31 @@ export const addCustomStyles = () => {
       }
 
       /* ========== Base Styles ========== */
+      /* Courier Prime のフォントメトリクスを日本語フォントに合わせて調整 */
+      @font-face {
+        font-family: 'Courier Prime Adjusted';
+        src: url(https://fonts.gstatic.com/s/courierprime/v11/u-450q2lgwslOqpF_6gQ8kELWwY.ttf) format('truetype');
+        font-weight: 400;
+        font-display: swap;
+        ascent-override: 85%;
+        descent-override: 15%;
+        line-gap-override: 0%;
+        size-adjust: 120%;
+      }
+      @font-face {
+        font-family: 'Courier Prime Adjusted';
+        src: url(https://fonts.gstatic.com/s/courierprime/v11/u-4k0q2lgwslOqpF_6gQ8kELY7pMf-c.ttf) format('truetype');
+        font-weight: 700;
+        font-display: swap;
+        ascent-override: 85%;
+        descent-override: 15%;
+        line-gap-override: 0%;
+        size-adjust: 120%;
+      }
       body {
-        font-family: 'Zen Kaku Gothic New', sans-serif;
+        font-family: 'Courier Prime Adjusted', 'Zen Kaku Gothic New', sans-serif;
+        font-feature-settings: 'tnum' 1;
+        font-variant-numeric: tabular-nums;
         color: var(--brand-text);
         background-color: var(--brand-bg);
         line-height: 1.6;
@@ -631,18 +654,8 @@ export const addCustomStyles = () => {
         }
       }
 
-      /* ========== 数字専用等幅フォント ========== */
-      .font-mono-numbers {
-        font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
-        font-feature-settings: 'tnum' 1; /* Tabular numbers */
-        font-variant-numeric: tabular-nums;
-      }
-
       /* 価格表示専用クラス */
       .price-amount {
-        font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
-        font-feature-settings: 'tnum' 1;
-        font-variant-numeric: tabular-nums;
         display: inline-block;
         min-width: 4.5em;
         text-align: right;
@@ -658,31 +671,20 @@ export const addCustomStyles = () => {
         min-width: 3.5em; /* より小さな金額用 */
       }
 
-      /* 時間表示専用クラス */
-      .time-display {
-        font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
-        font-feature-settings: 'tnum' 1;
-        font-variant-numeric: tabular-nums;
-      }
-
-      /* 電話番号・メールアドレス入力フィールド専用クラス */
-      input[type="tel"], input[type="email"] {
-        font-family: 'JetBrains Mono', 'Inconsolata', 'Monaco', 'Consolas', 'Courier New', monospace;
-        font-feature-settings: 'tnum' 1;
-        font-variant-numeric: tabular-nums;
-        font-size: 1rem; /* プレースホルダと入力時のフォントサイズを統一 */
-      }
-
       /* メールアドレス入力フィールドを広く */
       input[type="email"] {
         min-width: 280px;
         width: 100%;
       }
 
-      /* プレースホルダのフォントサイズを明示的に設定 */
-      input[type="tel"]::placeholder, input[type="email"]::placeholder {
-        font-size: 1rem;
+      /* プレースホルダの透明度 */
+      input::placeholder {
         opacity: 0.6;
+      }
+
+      /* フォーム要素はフォントを継承しないので明示的に指定 */
+      input, select, textarea, button {
+        font-family: inherit;
       }
 
       /* ========== カスタムプルダウンスタイル ========== */

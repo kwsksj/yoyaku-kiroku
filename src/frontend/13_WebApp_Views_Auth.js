@@ -151,7 +151,7 @@ export const getRegistrationStep1View = phone => {
         })}
         <div class="mb-4">
           <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
-          <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block"><span class="font-mono-numbers">${formattedPhoneValue}</span></p>
+          <p class="font-bold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block">${formattedPhoneValue}</p>
         </div>
         ${Components.input({
           id: 'reg-email',
@@ -537,7 +537,7 @@ export const getEditProfileView = () => {
         })}
         <div class="mb-4">
           <label class="block text-brand-text text-base font-bold mb-2">携帯電話番号</label>
-          <p class="font-semibold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block"><span class="font-mono-numbers">${formattedPhoneValue}</span></p>
+          <p class="font-bold p-3 bg-ui-surface text-brand-text rounded-lg w-auto inline-block">${formattedPhoneValue}</p>
         </div>
         ${Components.input({
           id: 'edit-email',

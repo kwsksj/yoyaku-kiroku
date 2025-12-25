@@ -114,22 +114,22 @@ export function generateTuitionSection(
         })}
         <div class="time-controls mt-3 ml-2">
           <div class="flex items-center space-x-2 mb-3">
-            <select id="start-time" class="time-select time-display flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <select id="start-time" class="time-select flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text font-bold">
               ${generateTimeOptions(formData.startTime)}
             </select>
-            <span class="font-mono-numbers text-brand-text">~</span>
-            <select id="end-time" class="time-select time-display flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <span class="text-brand-text font-light">~</span>
+            <select id="end-time" class="time-select flex-1 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text font-bold">
               ${generateTimeOptions(formData.endTime)}
             </select>
             <span class="text-sm text-brand-text ml-2">休憩</span>
-            <select id="break-time" class="time-select time-display w-14 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text">
+            <select id="break-time" class="time-select w-14 p-2 border-2 border-ui-border rounded focus:outline-none focus:ring-2 focus:ring-brand-text font-bold">
               <option value="0" ${formData.breakTime === 0 ? 'selected' : ''}>0分</option>
               <option value="30" ${formData.breakTime === 30 ? 'selected' : ''}>30分</option>
               <option value="60" ${formData.breakTime === 60 ? 'selected' : ''}>60分</option>
               <option value="90" ${formData.breakTime === 90 ? 'selected' : ''}>90分</option>
             </select>
           </div>
-          <div class="calculated-amount font-mono-numbers text-gray-600 w-full flex justify-end">
+          <div class="calculated-amount font-light text-gray-600 w-full flex justify-end">
             <span id="time-calculation">-- ×${Components.priceDisplay({ amount: unitPrice * 2 })} = <span class="font-bold text-brand-text text-right">--</span></span>
           </div>
         </div>

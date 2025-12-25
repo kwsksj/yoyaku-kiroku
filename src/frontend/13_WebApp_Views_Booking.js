@@ -273,15 +273,15 @@ export const getReservationFormView = () => {
     if (isBeginnerMode) {
       return isBeginnerSlotFull
         ? '初回者枠 満席（空き通知希望）'
-        : `初回者枠 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
+        : `初回者枠 空き ${beginnerSlotsCount}`;
     }
     if (isFull) return '満席（空き通知希望）';
     if (hasSecondSlots) {
       const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
       const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
-      return `空き ${morningLabel} <span class="font-mono-numbers">${firstSlotsCount}</span> | ${afternoonLabel} <span class="font-mono-numbers">${secondSlotsCount}</span>`;
+      return `空き ${morningLabel} ${firstSlotsCount} | ${afternoonLabel} ${secondSlotsCount}`;
     }
-    return `空き <span class="font-mono-numbers">${firstSlotsCount}</span>`;
+    return `空き ${firstSlotsCount}`;
   };
 
   const _renderTuitionDisplaySection = () => {
@@ -450,16 +450,16 @@ export const getReservationFormView = () => {
       : '';
 
     const timeFixedMessage = isTimeFixed
-      ? `<p class="${/** @type {any} */ (DesignConfig.text).caption} mb-2">初回の方は <span class="time-display">${fixedStartTime}</span> より開始です。${fixedStartTime}昼をまたぐ場合は、1時間休憩を挟みます</p>`
+      ? `<p class="${/** @type {any} */ (DesignConfig.text).caption} mb-2">初回の方は ${fixedStartTime} より開始です。</p>`
       : '';
 
     // 会計画面と同じスタイル
     const timeSelectClass =
-      'w-full px-3 py-2.5 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus mobile-input touch-friendly font-mono-numbers';
+      'w-full px-3 py-2.5 text-base text-center border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus mobile-input touch-friendly font-bold';
 
     return `
         <div class="mt-4 pt-4 border-t-2">
-          <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間</h4>
+          <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間：</h4>
           ${timeFixedMessage}
           <div class="flex items-center space-x-2 mb-2">
             <div class="flex-1">
@@ -484,16 +484,26 @@ export const getReservationFormView = () => {
     // 初回講習チェックボックスは廃止 - 基本情報欄にバッジで表示
     // 彫刻刀レンタルのみ表示（全教室タイプ共通）
 
+    // 料金をマスタから取得
+    const rentalItem =
+      accountingMaster &&
+      accountingMaster.find(
+        (/** @type {AccountingMasterItemCore} */ item) =>
+          item['item'] === CONSTANTS.ITEMS.CHISEL_RENTAL &&
+          (item['classroom'] === '共通' ||
+            item['classroom']?.includes(classroom)),
+      );
+    const rentalPrice = rentalItem ? Number(rentalItem['price']) : 500;
+
     /** @type {CheckboxConfig} */
     const rentalCheckboxConfig = {
       id: 'option-rental',
-      label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ¥500`,
+      label: `${CONSTANTS.ITEMS.CHISEL_RENTAL} 1回 ${Components.priceDisplay({ amount: rentalPrice })}`,
       checked: chiselRental !== undefined ? chiselRental : false,
     };
     return `
       <div class="mt-4 pt-4 border-t-2">
-        <h4 class="font-bold text-left mb-2">オプション</h4>
-        ${Components.checkbox(rentalCheckboxConfig)}
+        <span class="font-bold text-left mb-2">オプション：</span>${Components.checkbox(rentalCheckboxConfig)}
       </div>`;
   };
 
@@ -697,10 +707,10 @@ export const getReservationFormView = () => {
 
   const _renderOpeningHoursHtml = () => {
     if (!lessonInfo.firstStart || !lessonInfo.firstEnd)
-      return '<span class="text-ui-error-text">開講時間未設定</span>';
+      return '<span class="text-ui-error-text text-sm">開講時間未設定</span>';
     if (lessonInfo.secondStart && lessonInfo.secondEnd)
-      return `<span class="time-display">${lessonInfo.firstStart}~${lessonInfo.firstEnd}</span> , <span class="time-display">${lessonInfo.secondStart}~${lessonInfo.secondEnd}</span>`;
-    return `<span class="time-display">${lessonInfo.firstStart}~${lessonInfo.firstEnd}</span>`;
+      return `${lessonInfo.firstStart}~${lessonInfo.firstEnd}, ${lessonInfo.secondStart}~${lessonInfo.secondEnd}`;
+    return `${lessonInfo.firstStart}~${lessonInfo.firstEnd}`;
   };
 
   return `
@@ -718,15 +728,14 @@ export const getReservationFormView = () => {
           variant: 'default',
           padding: 'spacious',
           content: `
-            <div class="space-y-4 text-left">
-              <p><span class="font-bold w-20 inline-block">お名前:</span> ${currentUser ? currentUser.nickname : ''}さん${(isEdit ? firstLecture : isBeginnerMode) ? ' ' + Components.statusBadge({ type: 'beginner', text: '初回講習' }) : ''}</p>
-              <p><span class="font-bold w-20 inline-block">教室:</span> ${classroom}${venue ? ` ${venue}` : ''}</p>
+            <div class="space-y-2 text-left">
+              <p><span class="font-bold w-20 inline-block">教室　　：</span> ${classroom}${venue ? ` ${venue}` : ''} ${(isEdit ? firstLecture : isBeginnerMode) ? ' ' + Components.statusBadge({ type: 'beginner', text: '初回講習' }) : ''}</p>
               <div class="flex items-center justify-between gap-2">
-                <p class="flex-1"><span class="font-bold w-20 inline-block">日付:</span> ${formatDate(String(date))}</p>
+                <p class="flex-1"><span class="font-bold w-20 inline-block">日付　　：</span> ${formatDate(String(date))}</p>
                 ${
                   isEdit
                     ? `<button
-                  class="px-3 py-1 text-sm rounded-md ${DesignConfig.buttons.secondary}"
+                  class="px-3 text-sm rounded-md ${DesignConfig.buttons.secondary}"
                   data-action="changeReservationDate"
                   data-reservation-id="${reservationInfo.reservationId || ''}"
                   data-classroom="${reservationInfo.classroom || ''}"
@@ -734,8 +743,8 @@ export const getReservationFormView = () => {
                     : ''
                 }
               </div>
-              <p><span class="font-bold w-20 inline-block">状況:</span> ${_renderStatusHtml()}</p>
-              <p><span class="font-bold w-20 inline-block">開講時間:</span> ${_renderOpeningHoursHtml()}</p>
+              <p><span class="font-bold w-20 inline-block">状況　　：</span> ${_renderStatusHtml()}</p>
+              <p><span class="font-bold w-20 inline-block">開講時間：</span> ${_renderOpeningHoursHtml()}</p>
               ${_renderTuitionDisplaySection()}
               ${_renderTimeOptionsSection()}
               ${_renderBookingOptionsSection()}
@@ -907,7 +916,7 @@ export const renderBookingLessons = lessons => {
                 if (beginnerSlotsCount <= 0) {
                   statusText = '初回者 満席（空き通知希望）';
                 } else {
-                  statusText = `初回者 空き <span class="font-mono-numbers">${beginnerSlotsCount}</span>`;
+                  statusText = `初回者 空き ${beginnerSlotsCount}`;
                 }
               } else {
                 statusText = '経験者のみ';
@@ -916,9 +925,9 @@ export const renderBookingLessons = lessons => {
               if (hasSecondSlots) {
                 const morningLabel = CONSTANTS.TIME_SLOTS.MORNING || '午前';
                 const afternoonLabel = CONSTANTS.TIME_SLOTS.AFTERNOON || '午後';
-                statusText = `空き ${morningLabel}<span class="font-mono-numbers">${firstSlotsCount}</span> ${afternoonLabel}<span class="font-mono-numbers">${secondSlotsCount}</span>`;
+                statusText = `空き ${morningLabel}${firstSlotsCount} ${afternoonLabel}${secondSlotsCount}`;
               } else {
-                statusText = `空き <span class="font-mono-numbers">${firstSlotsCount}</span>`;
+                statusText = `空き ${firstSlotsCount}`;
               }
             }
 

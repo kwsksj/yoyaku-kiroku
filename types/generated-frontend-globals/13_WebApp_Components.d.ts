@@ -84,10 +84,7 @@ export namespace Components {
         interval?: number;
         selectedValue?: string;
     }): string;
-    function dashboardSection({ title, items, showNewButton, newAction, showMoreButton, moreAction, }: DashboardSectionConfig): string;
-    function newReservationCard({ action }: ComponentConfig & {
-        action: string;
-    }): string;
+    function dashboardSection({ title, items, showMoreButton, moreAction }: DashboardSectionConfig): string;
     function listCard({ item, badges, editButtons, accountingButtons, type, isEditMode, showMemoSaveButton, }: ListCardConfig): string;
     function placeholderCard({ title, badge, memoContent, dimmed, }: {
         title?: string;

@@ -456,9 +456,7 @@ export function renderStep3Reservation(state) {
         : String(lesson.date);
       const slots = lesson.firstSlots || 0;
       const isFullyBooked = slots <= 0;
-      const slotText = isFullyBooked
-        ? '満席'
-        : `空き <span class="font-mono-numbers">${slots}</span>`;
+      const slotText = isFullyBooked ? '満席' : `空き ${slots}`;
       const slotClass = isFullyBooked ? 'text-red-500' : 'text-green-600';
 
       // 満席の場合は空き通知希望として選択可能

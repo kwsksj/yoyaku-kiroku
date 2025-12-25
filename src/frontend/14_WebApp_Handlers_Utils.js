@@ -597,7 +597,7 @@ window.formatDate =
       d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
       const day = d.getDay();
       const wd = ['日', '月', '火', '水', '木', '金', '土'];
-      return `<span class="font-mono-numbers">${d.getMonth() + 1}/${d.getDate()}</span><span class="font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day] || ''}</span>`;
+      return `<span class="font-bold">${d.getMonth() + 1}/${d.getDate()}</span><span class="ml-1 font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day] || ''}</span>`;
     }
   );
 

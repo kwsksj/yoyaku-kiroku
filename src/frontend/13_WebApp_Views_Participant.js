@@ -134,7 +134,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
             </button>
           </div>
           ${isAdmin && hasRealName ? `<div class="text-xs text-gray-400 text-center">${escapeHTML(row.realName)}</div>` : ''}
-          <div class="pl-2 gap-0.5 text-xs font-mono-numbers">
+          <div class="pl-2 gap-0.5 text-[13px] font-light">
             ${badgesHtml}
           </div>
         </div>
@@ -151,7 +151,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
       const startTime = row.startTime || '—';
       const endTime = row.endTime || '—';
       return `
-        <div class="text-sm leading-tight font-mono-numbers">
+        <div class="text-sm font-light">
           <div class="text-left"> ${escapeHTML(startTime)}</div>
           <div class="text-right"> - ${escapeHTML(endTime)} </div>
         </div>
@@ -550,8 +550,8 @@ function renderLessonList(lessons) {
       const formattedDateHtml = window.formatDate(lesson.date);
       // formatDateの結果のfont-sizeをxsに変更
       const formattedDate = formattedDateHtml.replace(
-        /class="font-mono-numbers"/,
-        'class="font-mono-numbers text-xs"',
+        /class="font-mono-numbers font-bold"/,
+        'class="text-sm font-bold"',
       );
 
       // ========================================
@@ -807,12 +807,12 @@ function renderLessonList(lessons) {
             </svg>
             <div class="flex items-center justify-between gap-2 flex-grow max-w-[400px]">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="text-sm font-bold text-action-primary font-mono-numbers whitespace-nowrap">${formattedDate.replace(/class=".*?"/, '')}</span>
+                <span class="text-xs font-bold text-action-primary whitespace-nowrap">${formattedDate.replace(/class=".*?"/g, '')}</span>
                 <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom)}</span>
                 ${lesson.venue ? `<span class="text-gray-500 text-xs hidden sm:inline truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
                 ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
               </div>
-              <div class="flex gap-1 items-center flex-shrink-0 justify-start min-w-[200px] font-mono-numbers">
+              <div class="flex gap-1 items-center flex-shrink-0 justify-start min-w-[200px] font-light">
                 ${mainBadge}
                 ${waitlistBadge}
                 ${chiselBadge}

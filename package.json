@@ -28,6 +28,7 @@
     "validate": "npm run format && npm run lint && npm run types:refresh",
     "validate:fix": "npm run format:fix && npm run lint:fix && npm run types:refresh",
     "build": "npm run validate && node tools/unified-build.js build",
+    "build:fix": "npm run validate:fix && node tools/unified-build.js build",
     "build:force": "node tools/unified-build.js build",
     "watch": "node tools/unified-build.js watch",
     "switch:env": "node tools/switch-env.js",
@@ -35,12 +36,16 @@
     "push:prod": "npm run switch:env -- prod && npm run build && clasp push --force",
     "deploy:test": "npm run push:test && node tools/deploy-update.js \"Test deployment\"",
     "deploy:prod": "npm run push:prod && node tools/deploy-update.js \"Production deployment\"",
-    "ai:test": "npm run validate:fix && npm run deploy:test",
-    "ai:prod": "npm run validate:fix && npm run deploy:prod",
+    "ai:test": "npm run fix-deploy:test",
+    "ai:prod": "npm run fix-deploy:prod",
     "url:exec:test": "node tools/get-url.js test exec",
     "url:exec:prod": "node tools/get-url.js prod exec",
     "url:sheet:test": "node tools/get-url.js test spreadsheet",
-    "url:sheet:prod": "node tools/get-url.js prod spreadsheet"
+    "url:sheet:prod": "node tools/get-url.js prod spreadsheet",
+    "fix-push:test": "npm run build:fix && npm run push:test",
+    "fix-push:prod": "npm run build:fix && npm run push:prod",
+    "fix-deploy:test": "npm run build:fix && npm run deploy:test",
+    "fix-deploy:prod": "npm run build:fix && npm run deploy:prod"
   },
   "repository": {
     "type": "git",

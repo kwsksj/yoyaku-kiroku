@@ -166,21 +166,11 @@ export const getDashboardView = () => {
   // 今日の予約がある場合のみ表示するボタン
   const summaryMenuButton = todayReservation
     ? Components.button({
-        text: 'きょう の<br>まとめ',
+        text: 'きょう の<br>まとめ（かいけい）',
         action: 'goToSessionConclusion',
         style: 'accounting',
         customClass:
           'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
-      })
-    : '';
-
-  const accountingFallbackButton = todayReservation
-    ? Components.button({
-        text: 'かいけい のみ（まとめがうまく使えないとき用）',
-        action: 'goToAccounting',
-        style: 'secondary',
-        size: 'small',
-        dataAttributes: { reservationId: todayReservation.reservationId },
       })
     : '';
 
@@ -264,7 +254,6 @@ export const getDashboardView = () => {
         ${goalSectionHtml}
         ${yourBookingsHtml}
         ${historyHtml}
-        ${accountingFallbackButton ? `<div class="mt-8 text-center">${accountingFallbackButton}</div>` : ''}
     `;
 };
 
