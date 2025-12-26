@@ -151,9 +151,9 @@ const PARTICIPANT_TABLE_COLUMNS = [
       const startTime = row.startTime || '—';
       const endTime = row.endTime || '—';
       return `
-        <div class="text-sm font-light">
+        <div class="text-xs font-light">
           <div class="text-left"> ${escapeHTML(startTime)}</div>
-          <div class="text-right"> - ${escapeHTML(endTime)} </div>
+          <div class="text-right">-${escapeHTML(endTime)} </div>
         </div>
       `;
     },
@@ -607,13 +607,9 @@ function renderLessonList(lessons) {
        * バッジ用テキストを生成するヘルパー（通常）
        * @param {string} label - ラベル
        * @param {number} count - メインカウント
-       * @param {number} [firstCount=0] - 初回カウント（オプション）
-       * @returns {string} バッジテキスト（例: "人数:[5,初2]"）
+       * @returns {string} バッジテキスト（例: "人数 5"）
        */
-      const formatBadgeText = (label, count, firstCount = 0) => {
-        if (firstCount > 0) {
-          return `${label} ${count} 初${firstCount}`;
-        }
+      const formatBadgeText = (label, count) => {
         return `${label} ${count}`;
       };
 
@@ -622,18 +618,13 @@ function renderLessonList(lessons) {
        * @param {string} label - ラベル
        * @param {number} morningCount - 午前カウント
        * @param {number} afternoonCount - 午後カウント
-       * @param {number} [firstCount=0] - 初回カウント（オプション）
-       * @returns {string} バッジテキスト（例: "人数:[5,3,初2]"）
+       * @returns {string} バッジテキスト（例: "人数 5 3"）
        */
       const formatTwoSessionBadgeText = (
         label,
         morningCount,
         afternoonCount,
-        firstCount = 0,
       ) => {
-        if (firstCount > 0) {
-          return `${label} ${morningCount} ${afternoonCount} 初${firstCount}`;
-        }
         return `${label} ${morningCount} ${afternoonCount}`;
       };
 
@@ -660,26 +651,15 @@ function renderLessonList(lessons) {
       // 人数バッジ（メイン）
       const mainCount = baseBadgeReservations.length;
       let mainBadge = '';
+      let firstLectureBadge = ''; // 初回バッジ（分離）
       if (mainCount > 0) {
         if (isTwoSession) {
           const baseCounts = countBySlot(baseBadgeReservations);
-          const morningFirstCount = baseBadgeReservations.filter(
-            /** @param {any} r */ r =>
-              (getTimeSlot(r) === 'morning' || getTimeSlot(r) === 'both') &&
-              r.firstLecture,
-          ).length;
-          const afternoonFirstCount = baseBadgeReservations.filter(
-            /** @param {any} r */ r =>
-              (getTimeSlot(r) === 'afternoon' || getTimeSlot(r) === 'both') &&
-              r.firstLecture,
-          ).length;
-          const totalFirstCount = morningFirstCount + afternoonFirstCount;
           mainBadge = Components.badge({
             text: formatTwoSessionBadgeText(
               '人数',
               baseCounts.morning,
               baseCounts.afternoon,
-              totalFirstCount,
             ),
             color: 'gray',
             size: 'xs',
@@ -687,8 +667,17 @@ function renderLessonList(lessons) {
           });
         } else {
           mainBadge = Components.badge({
-            text: formatBadgeText('人数', mainCount, firstLectureCount),
+            text: formatBadgeText('人数', mainCount),
             color: 'gray',
+            size: 'xs',
+            border: true,
+          });
+        }
+        // 初回バッジ（分離して緑色で表示）
+        if (firstLectureCount > 0) {
+          firstLectureBadge = Components.badge({
+            text: `初 ${firstLectureCount}`,
+            color: 'green',
             size: 'xs',
             border: true,
           });
@@ -700,30 +689,19 @@ function renderLessonList(lessons) {
       if (!showPastLessons && waitlistedReservations.length > 0) {
         if (isTwoSession) {
           const waitlistCounts = countBySlot(waitlistedReservations);
-          const waitlistFirstCount = waitlistedReservations.filter(
-            /** @param {any} r */ r => r.firstLecture,
-          ).length;
           waitlistBadge = Components.badge({
             text: formatTwoSessionBadgeText(
               '待機',
               waitlistCounts.morning,
               waitlistCounts.afternoon,
-              waitlistFirstCount,
             ),
             color: 'yellow',
             size: 'xs',
             border: true,
           });
         } else {
-          const waitlistedFirstCount = waitlistedReservations.filter(
-            /** @param {any} r */ r => r.firstLecture,
-          ).length;
           waitlistBadge = Components.badge({
-            text: formatBadgeText(
-              '待機',
-              waitlistedReservations.length,
-              waitlistedFirstCount,
-            ),
+            text: formatBadgeText('待機', waitlistedReservations.length),
             color: 'yellow',
             size: 'xs',
             border: true,
@@ -807,13 +785,14 @@ function renderLessonList(lessons) {
             </svg>
             <div class="flex items-center justify-between gap-2 flex-grow max-w-[400px]">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="text-xs font-bold text-action-primary whitespace-nowrap">${formattedDate.replace(/class=".*?"/g, '')}</span>
+                <span class="text-xs sm:text-sm font-bold text-action-primary whitespace-nowrap">${formattedDate.replace(/class=".*?"/g, '')}</span>
                 <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom)}</span>
                 ${lesson.venue ? `<span class="text-gray-500 text-xs hidden sm:inline truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
                 ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
               </div>
               <div class="flex gap-1 items-center flex-shrink-0 justify-start min-w-[200px] font-light">
                 ${mainBadge}
+                ${firstLectureBadge}
                 ${waitlistBadge}
                 ${chiselBadge}
                 ${pendingBadge}
