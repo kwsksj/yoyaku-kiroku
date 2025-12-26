@@ -787,7 +787,7 @@ function renderLessonList(lessons) {
               <div class="flex items-center gap-2 min-w-0">
                 <span class="text-xs sm:text-sm font-bold text-action-primary whitespace-nowrap">${formattedDate.replace(/class=".*?"/g, '')}</span>
                 <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom)}</span>
-                ${lesson.venue ? `<span class="text-gray-500 text-xs hidden sm:inline truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
+                ${lesson.venue ? `<span class="text-gray-500 text-xs truncate ml-1">@${escapeHTML(lesson.venue)}</span>` : ''}
                 ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
               </div>
               <div class="flex gap-1 items-center flex-shrink-0 justify-start min-w-[200px] font-light">
