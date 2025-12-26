@@ -136,7 +136,7 @@ export function renderStep1Record(state) {
               'つくったもの・やったさぎょう・しんちょく などや、 かんそう を メモしましょう',
             rows: 5,
             caption:
-              'せんせい が あとで おもいだしやすく なります。よやく・きろく いちらん にのります（みんな にも みえます）。',
+              'せんせい が あとで おもいだしやすく なります。「みんな の よやく・きろく」にも のります。',
           })}
         `,
       })}
@@ -187,8 +187,7 @@ export function renderStep2GoalInput(state) {
             placeholder:
               'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
             rows: 5,
-            caption:
-              'よやく・きろく いちらん にのります（みんな にも みえます）。',
+            caption: '「みんな の よやく・きろく」にも のります。',
           })}
         `,
       })}
@@ -612,8 +611,8 @@ export function renderStep4Accounting(state) {
           content: `
             <section class="total-section">
               <div class="grand-total text-center">
-                <span class="text-2xl font-bold text-brand-text">総合計: </span>
-                <span id="grand-total-amount" class="text-2xl font-bold text-brand-text">${Components.priceDisplay({ amount: 0, size: 'large' })}</span>
+                <span class="text-2xl font-bold text-brand-text">総合計：</span>
+                <span id="grand-total-amount" class="text-2xl font-bold text-brand-text">${Components.priceDisplay({ amount: 0, size: 'extraLarge' })}</span>
               </div>
             </section>
           `,
@@ -1006,53 +1005,11 @@ export function getSessionConclusionView(state) {
       ${Components.pageContainer({
         content: `
           ${summaryHtml}
-          <div class="session-conclusion-wizard p-2 fade-in">
+          <div class="session-conclusion-wizard fade-in">
             ${stepContent}
           </div>
         `,
       })}
     </div>
   `;
-}
-
-/**
- * セッション終了ウィザード全体のモーダルを生成（後方互換用）
- * @param {SessionConclusionState} state - 現在の状態
- * @returns {string} HTML文字列
- * @deprecated getSessionConclusionView を使用してください
- */
-export function generateSessionConclusionModal(state) {
-  let stepContent = '';
-
-  switch (state.currentStep) {
-    case STEPS.RECORD:
-      stepContent = renderStep1Record(state);
-      break;
-    case STEPS.GOAL:
-      stepContent = renderStep2GoalInput(state);
-      break;
-    case STEPS.RESERVATION:
-      stepContent = renderStep3Reservation(state);
-      break;
-    case STEPS.ACCOUNTING:
-      stepContent = renderStep4Accounting(state);
-      break;
-    case STEPS.COMPLETE: // 完了
-      stepContent = renderConclusionComplete(state);
-      break;
-    default:
-      stepContent = renderStep1Record(state);
-  }
-
-  return Components.modal({
-    id: 'session-conclusion-modal',
-    title: 'きょう の まとめ',
-    content: `
-      <div class="session-conclusion-wizard p-2">
-        ${stepContent}
-      </div>
-    `,
-    maxWidth: 'max-w-lg',
-    showCloseButton: false, // ウィザードなので閉じるボタンは表示しない
-  });
 }

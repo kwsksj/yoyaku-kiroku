@@ -211,7 +211,7 @@ export const historyActionHandlers = {
             accounting.tuition.items.forEach((/** @type {any} */ item) => {
               formattedHtml += `<div>・${item.name}: ¥${item.price?.toLocaleString() || 0}</div>`;
             });
-            formattedHtml += `<div class="font-medium">小計: ¥${accounting.tuition.subtotal?.toLocaleString() || 0}</div>`;
+            formattedHtml += `<div class="font-medium">小計：¥${accounting.tuition.subtotal?.toLocaleString() || 0}</div>`;
             formattedHtml += '</div></div>';
           }
 
@@ -228,7 +228,7 @@ export const historyActionHandlers = {
             accounting.sales.items.forEach((/** @type {any} */ item) => {
               formattedHtml += `<div>・${item.name}: ¥${item.price?.toLocaleString() || 0}</div>`;
             });
-            formattedHtml += `<div class="font-medium">小計: ¥${accounting.sales.subtotal?.toLocaleString() || 0}</div>`;
+            formattedHtml += `<div class="font-medium">小計：¥${accounting.sales.subtotal?.toLocaleString() || 0}</div>`;
             formattedHtml += '</div></div>';
           }
 

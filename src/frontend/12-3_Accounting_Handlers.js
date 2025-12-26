@@ -1083,7 +1083,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
       <div class="space-y-1">
         ${itemsHtml}
         <div class="flex justify-between text-sm border-t border-ui-border pt-1 mt-1">
-          <span class="text-brand-text font-medium">授業料小計:</span>
+          <span class="text-brand-text font-medium">授業料小計：</span>
           ${Components.priceDisplay({ amount: result.tuition.subtotal })}
         </div>
       </div>
@@ -1107,7 +1107,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
       <div class="space-y-1 ${tuitionSectionHtml ? 'mt-3' : ''}">
         ${itemsHtml}
         <div class="flex justify-between text-sm border-t border-ui-border pt-1 mt-1">
-          <span class="text-brand-text font-medium">販売小計:</span>
+          <span class="text-brand-text font-medium">販売小計：</span>
           ${Components.priceDisplay({ amount: result.sales.subtotal })}
         </div>
       </div>

@@ -427,7 +427,7 @@ function renderLessonList(lessons) {
       <div class="${DesignConfig.layout.container}">
         ${Components.cardContainer({
           variant: 'default',
-          padding: 'spacious',
+          padding: 'compact',
           customClass: 'bg-white',
           content: `<p class="${DesignConfig.text.body} text-center">レッスンが見つかりません</p>`,
         })}

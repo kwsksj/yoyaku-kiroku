@@ -648,7 +648,7 @@ export const Components = {
    * @returns {string} HTML文字列
    */
   pageContainer: ({ content, maxWidth = '2xl' }) => {
-    return `<div class="max-w-${maxWidth} mx-auto px-4">${content}</div>`;
+    return `<div class="max-w-${maxWidth} mx-auto px-2">${content}</div>`;
   },
 
   /**
@@ -849,6 +849,7 @@ export const Components = {
       small: 'text-sm',
       normal: 'text-base',
       large: 'text-xl',
+      extraLarge: 'text-2xl',
     };
 
     const styles = {
@@ -1230,7 +1231,7 @@ export const Components = {
 
     return Components.cardContainer({
       variant: 'default',
-      padding: 'spacious',
+      padding: 'compact',
       content: `
         <div class="space-y-3">
           <h3 class="${DesignConfig.text['heading']} mb-2">授業料</h3>
@@ -1239,7 +1240,7 @@ export const Components = {
           <div class="space-y-3">${tuitionRowsHtml}</div>
 
           <div id="tuition-breakdown" class="mt-4 pt-4 border-t border-ui-border space-y-1 text-base ${DesignConfig.colors['textSubtle']}"></div>
-          <div class="text-right font-bold mt-2" id="tuition-subtotal">小計: ¥0</div>
+          <div class="text-right font-bold mt-2" id="tuition-subtotal">小計：¥0</div>
         </div>
       `,
     });
@@ -1282,7 +1283,7 @@ export const Components = {
    * @returns {string} HTML文字列
    */
   subtotalSection: ({ title, amount, id = '' }) => {
-    return `<div class="subtotal mt-4 pt-3 border-t border-ui-border text-right">
+    return `<div class="subtotal mt-4 pt-3 border-t-2 border-ui-border text-right">
       <span class="text-lg font-bold text-brand-text">${escapeHTML(title)}: </span>
       <span ${id ? `id="${escapeHTML(id)}"` : ''} class="text-lg font-bold text-brand-text">${Components.priceDisplay({ amount, size: 'large' })}</span>
     </div>`;
@@ -1299,7 +1300,7 @@ export const Components = {
    */
   timeOptions: ({
     startTime = '09:00',
-    endTime = '17:00',
+    endTime = '19:00',
     interval = 30,
     selectedValue = '',
   }) => {
@@ -1638,7 +1639,7 @@ export const Components = {
           </div>
           ${Components.button({ action: 'addOtherSalesRow', text: '+ 自由入力欄を追加', style: 'secondary', size: 'full' })}
         </details>
-        <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計: ¥0</div>
+        <div class="text-right font-bold mt-2 text-brand-text" id="sales-subtotal">小計：¥0</div>
       </div>`;
   },
 

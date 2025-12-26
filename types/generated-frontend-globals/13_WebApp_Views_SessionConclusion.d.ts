@@ -58,13 +58,6 @@ export function renderConclusionComplete(state: SessionConclusionState): string;
  * @returns {string} HTML文字列
  */
 export function getSessionConclusionView(state: SessionConclusionState): string;
-/**
- * セッション終了ウィザード全体のモーダルを生成（後方互換用）
- * @param {SessionConclusionState} state - 現在の状態
- * @returns {string} HTML文字列
- * @deprecated getSessionConclusionView を使用してください
- */
-export function generateSessionConclusionModal(state: SessionConclusionState): string;
 export namespace STEPS {
     let RECORD: string;
     let GOAL: string;

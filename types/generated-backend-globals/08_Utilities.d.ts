@@ -34,11 +34,15 @@ export function findRowIndexByValue(sheet: GoogleAppsScript.Spreadsheet.Sheet, c
  * 売上表に書き込むための単一の行データを作成する。
  * @param {SalesBaseInfo} baseInfo - 日付、名前などの基本情報。
  * @param {string} category - '授業料' or '物販'
- * @param {string} itemName - 商品名や授業内容。
- * @param {number} price - 金額。
+ * @param {{ name: string; price: number; unitPrice?: number; quantity?: number }} item - 項目データ
  * @returns {SalesRowArray} 売上表の1行分の配列。
  */
-export function createSalesRow(baseInfo: SalesBaseInfo, category: string, itemName: string, price: number): SalesRowArray;
+export function createSalesRow(baseInfo: SalesBaseInfo, category: string, item: {
+    name: string;
+    price: number;
+    unitPrice?: number;
+    quantity?: number;
+}): SalesRowArray;
 /**
  * アプリケーションのアクティビティをログシートに記録します（新フォーマット）。
  * 新しい行は常に2行目に挿入されます。

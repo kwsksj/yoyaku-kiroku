@@ -525,8 +525,7 @@ export const getReservationFormView = () => {
             'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
           value: nextLessonGoal,
           rows: 5,
-          caption:
-            'よやく・きろく いちらん にのります（みんな にも みえます）。',
+          caption: '「みんな の よやく・きろく」にも のります。',
         })}`;
   };
 
@@ -719,7 +718,7 @@ export const getReservationFormView = () => {
         <!-- 1. 計画・目標 -->
         ${Components.cardContainer({
           variant: 'default',
-          padding: 'spacious', // defaultはspaciousだが明示
+          padding: 'spacious',
           content: _renderPlanSection(),
         })}
 

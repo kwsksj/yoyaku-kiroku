@@ -223,8 +223,7 @@ export const getDashboardView = () => {
             placeholder:
               'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
             rows: 5,
-            caption:
-              'よやく・きろく いちらん にのります（みんな にも みえます）。',
+            caption: '「みんな の よやく・きろく」にも のります。',
           })}
           <div class="flex justify-end mt-2 gap-2">
             ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>` : ''}

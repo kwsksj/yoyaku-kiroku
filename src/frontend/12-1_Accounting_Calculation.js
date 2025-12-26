@@ -130,7 +130,29 @@ export function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
     }
     if (formData.checkedItems?.[itemName]) {
       const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]);
-      items.push({ name: itemName, price: price });
+
+      // 動的項目（時間制）の場合は単価と数量を追加
+      const itemAny = /** @type {any} */ (item);
+      if (itemAny._isDynamic && itemAny._hourlyUnitPrice && itemAny._hours) {
+        // 売上表用の項目名は時間情報なしの元の名前を使用
+        const salesItemName = itemAny._baseItemName || itemName;
+        items.push({
+          name: salesItemName,
+          price: price,
+          unitPrice: itemAny._hourlyUnitPrice, // 1時間あたりの単価
+          quantity: itemAny._hours, // 時間数（例: 3.5）
+          unit: '時間',
+        });
+      } else {
+        // 通常項目（回数制など）
+        items.push({
+          name: itemName,
+          price: price,
+          unitPrice: price,
+          quantity: 1,
+          unit: '回',
+        });
+      }
       subtotal += price;
 
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
@@ -166,7 +188,7 @@ export function calculateSalesSubtotal(formData, classifiedItems) {
 
       if (masterItem) {
         const unit = masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT];
-        const unitPrice = Number(
+        const masterUnitPrice = Number(
           masterItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
         );
 
@@ -182,15 +204,21 @@ export function calculateSalesSubtotal(formData, classifiedItems) {
           // 体積計算（mm → cm変換）
           const volume =
             (material.l / 10) * (material.w / 10) * (material.h / 10);
-          price = Math.round((volume * unitPrice) / 100) * 100; // ¥100単位
+          price = Math.round((volume * masterUnitPrice) / 100) * 100; // ¥100単位
           price = Math.max(100, price); // 最低¥100
           itemName = `${material.type} (${material.l}×${material.w}×${material.h}mm)`;
         } else {
           // 固定価格
-          price = unitPrice;
+          price = masterUnitPrice;
         }
 
-        items.push({ name: itemName, price: price });
+        items.push({
+          name: itemName,
+          price: price,
+          unitPrice: price,
+          quantity: 1,
+          unit: '個',
+        });
         subtotal += price;
       }
     });
@@ -201,7 +229,13 @@ export function calculateSalesSubtotal(formData, classifiedItems) {
     formData.selectedProducts.forEach(product => {
       if (!product || typeof product.name !== 'string') return;
       const price = Number(product.price) || 0;
-      items.push({ name: product.name, price });
+      items.push({
+        name: product.name,
+        price,
+        unitPrice: price,
+        quantity: 1,
+        unit: '個',
+      });
       subtotal += price;
     });
   }
@@ -212,7 +246,13 @@ export function calculateSalesSubtotal(formData, classifiedItems) {
     customSales.forEach(customItem => {
       if (customItem?.name && customItem.price) {
         const price = Number(customItem.price) || 0;
-        items.push({ name: customItem.name, price });
+        items.push({
+          name: customItem.name,
+          price,
+          unitPrice: price,
+          quantity: 1,
+          unit: '個',
+        });
         subtotal += price;
       }
     });
@@ -285,19 +325,25 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
             );
 
             // 0時間の場合でも動的項目を作成（元の基本授業料のチェックを削除するため）
-            const hours = timeUnits / 2;
+            const hours = timeUnits / 2; // 30分単位を時間に変換
+            const hourlyUnitPrice = unitPrice * 2; // 30分単価を1時間単価に変換
             const price = timeUnits * unitPrice;
+
+            // 動的項目名には時間を含める（元の項目名と区別するため）
+            const dynamicItemName = `${baseItemName} ${hours}時間`;
 
             dynamicItem = /** @type {AccountingMasterItemCore} */ (
               /** @type {unknown} */ ({
                 [CONSTANTS.HEADERS.ACCOUNTING.TYPE]: '授業料',
-                [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]:
-                  `${baseItemName} ${hours}時間`,
+                [CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]: dynamicItemName,
                 [CONSTANTS.HEADERS.ACCOUNTING.UNIT]: '回',
                 [CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]: price,
                 [CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM]:
                   baseItem[CONSTANTS.HEADERS.ACCOUNTING.TARGET_CLASSROOM],
                 _isDynamic: true, // 動的項目フラグ
+                _hourlyUnitPrice: hourlyUnitPrice, // 1時間あたりの単価（売上表用）
+                _hours: hours, // 時間数（売上表用、例: 3.5）
+                _baseItemName: baseItemName, // 元の項目名（売上表表示用）
               })
             );
           }
@@ -365,8 +411,8 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
     // デバッグ: 計算結果
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log('🔍 calculateAccountingTotal結果:', result);
-      console.log('🔍 授業料小計:', tuition.subtotal);
-      console.log('🔍 販売小計:', sales.subtotal);
+      console.log('🔍 授業料小計：', tuition.subtotal);
+      console.log('🔍 販売小計：', sales.subtotal);
       console.log('🔍 総合計:', result.grandTotal);
     }
 

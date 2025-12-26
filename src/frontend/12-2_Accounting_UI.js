@@ -558,7 +558,7 @@ export function generateAccountingView(
         content: `
           <section class="total-section">
             <div class="grand-total text-center">
-              <span class="text-2xl font-bold text-brand-text">総合計: </span>
+              <span class="text-2xl font-bold text-brand-text">総合計：</span>
               <span id="grand-total-amount" class="text-2xl font-bold text-brand-text">${Components.priceDisplay({ amount: 0, size: 'large' })}</span>
             </div>
           </section>
@@ -633,7 +633,7 @@ export const getPaymentOptionsHtml = selectedValue => {
     .map(opt => {
       const isSelected = selectedValue === opt.value;
       const baseClass =
-        'flex items-center gap-2 px-3 py-2 border-2 rounded-lg min-w-[160px] transition-all duration-150';
+        'flex items-center gap-2 px-2 py-2 border-2 rounded-lg min-w-[140px] transition-all duration-150';
       const selectedClass =
         'border-action-attention bg-action-secondary-bg font-bold text-brand-text shadow-sm';
       const unselectedClass = 'border-ui-border bg-ui-surface text-brand-muted';

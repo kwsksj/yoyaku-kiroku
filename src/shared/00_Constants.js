@@ -329,6 +329,21 @@ export const CONSTANTS = {
       STATUS: 'ステータス',
       NOTES: '備考',
     },
+
+    // 売上ログシート（短縮名: SALES_LOG）- 別スプレッドシート
+    SALES_LOG: {
+      DATE: '日付',
+      CLASSROOM: '教室',
+      VENUE: '会場',
+      STUDENT_ID: '生徒ID',
+      NAME: '名前',
+      CATEGORY: '大項目',
+      ITEM_NAME: '中項目',
+      UNIT_PRICE: '単価',
+      QUANTITY: '数量',
+      TOTAL: '金額',
+      PAYMENT_METHOD: '支払手段',
+    },
   },
 
   // 会計項目定数

@@ -194,12 +194,18 @@ export function findRowIndexByValue(sheet, col, value) {
  * 売上表に書き込むための単一の行データを作成する。
  * @param {SalesBaseInfo} baseInfo - 日付、名前などの基本情報。
  * @param {string} category - '授業料' or '物販'
- * @param {string} itemName - 商品名や授業内容。
- * @param {number} price - 金額。
+ * @param {{ name: string; price: number; unitPrice?: number; quantity?: number }} item - 項目データ
  * @returns {SalesRowArray} 売上表の1行分の配列。
  */
-export function createSalesRow(baseInfo, category, itemName, price) {
+export function createSalesRow(baseInfo, category, item) {
+  // 単価と数量の決定：
+  // - unitPrice/quantityが設定されている場合はそれを使用
+  // - 設定されていない場合は price を単価とし、数量は 1
+  const unitPrice = item.unitPrice ?? item.price;
+  const quantity = item.quantity ?? 1;
+
   // 注意：この配列の順序は、実際の「売上ログ」シートの列の順序と一致させる必要があります。
+  // 新フォーマット: 日付, 教室, 会場, 生徒ID, 名前, 大項目, 中項目, 単価, 数量, 金額, 支払手段
   return [
     baseInfo.date, // 日付
     baseInfo.classroom || '', // 教室
@@ -207,9 +213,10 @@ export function createSalesRow(baseInfo, category, itemName, price) {
     baseInfo.studentId || '', // 生徒ID
     baseInfo.name || '', // 名前
     category, // 大項目 (授業料/物販)
-    itemName, // 中項目 (商品名など)
-    1, // 数量 (常に1として計上)
-    price, // 金額
+    item.name || '', // 中項目 (商品名など)
+    unitPrice, // 単価
+    quantity, // 数量
+    item.price, // 金額（合計）
     baseInfo.paymentMethod || '', // 支払手段
   ];
 }

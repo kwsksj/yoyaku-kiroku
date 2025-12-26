@@ -35,8 +35,14 @@ export interface AccountingDetailsCore {
     items: Array<{
       /** 項目名 */
       name: string;
-      /** 金額 */
+      /** 金額（合計） */
       price: number;
+      /** 単価（オプション、時間制の場合は1時間あたりの金額） */
+      unitPrice?: number;
+      /** 数量（オプション、時間制の場合は時間数、例: 3.5） */
+      quantity?: number;
+      /** 単位（オプション、'時間', '回', '個'など） */
+      unit?: string;
     }>;
     /** 授業料小計 */
     subtotal: number;
@@ -48,8 +54,14 @@ export interface AccountingDetailsCore {
     items: Array<{
       /** 項目名 */
       name: string;
-      /** 金額 */
+      /** 金額（合計） */
       price: number;
+      /** 単価（オプション） */
+      unitPrice?: number;
+      /** 数量（オプション） */
+      quantity?: number;
+      /** 単位（オプション） */
+      unit?: string;
     }>;
     /** 物販小計 */
     subtotal: number;

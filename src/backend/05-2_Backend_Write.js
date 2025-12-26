@@ -1907,14 +1907,8 @@ export function logSalesForSingleReservation(reservation, accountingDetails) {
     // 授業料ログ
     if (accountingDetails.tuition && accountingDetails.tuition.subtotal > 0) {
       accountingDetails.tuition.items.forEach(item => {
-        const itemName = item.name || '';
-        const itemPrice = typeof item.price === 'number' ? item.price : 0;
-        const salesRow = createSalesRow(
-          baseInfo,
-          '授業料',
-          itemName,
-          itemPrice,
-        );
+        // アイテムオブジェクトを直接渡す（unitPrice, quantityがあれば含まれる）
+        const salesRow = createSalesRow(baseInfo, '授業料', item);
         salesRows.push(salesRow);
       });
     }
@@ -1922,9 +1916,8 @@ export function logSalesForSingleReservation(reservation, accountingDetails) {
     // 物販ログ
     if (accountingDetails.sales && accountingDetails.sales.subtotal > 0) {
       accountingDetails.sales.items.forEach(item => {
-        const itemName = item.name || '';
-        const itemPrice = typeof item.price === 'number' ? item.price : 0;
-        const salesRow = createSalesRow(baseInfo, '物販', itemName, itemPrice);
+        // アイテムオブジェクトを直接渡す
+        const salesRow = createSalesRow(baseInfo, '物販', item);
         salesRows.push(salesRow);
       });
     }

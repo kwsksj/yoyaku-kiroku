@@ -243,6 +243,27 @@ export namespace CONSTANTS {
             export { NOTES_3 as NOTES };
         }
         export { SCHEDULE_1 as SCHEDULE };
+        export namespace SALES_LOG_1 {
+            let DATE_3: string;
+            export { DATE_3 as DATE };
+            let CLASSROOM_3: string;
+            export { CLASSROOM_3 as CLASSROOM };
+            let VENUE_3: string;
+            export { VENUE_3 as VENUE };
+            let STUDENT_ID_2: string;
+            export { STUDENT_ID_2 as STUDENT_ID };
+            let NAME_1: string;
+            export { NAME_1 as NAME };
+            export let CATEGORY: string;
+            let ITEM_NAME_1: string;
+            export { ITEM_NAME_1 as ITEM_NAME };
+            let UNIT_PRICE_1: string;
+            export { UNIT_PRICE_1 as UNIT_PRICE };
+            export let QUANTITY: string;
+            export let TOTAL: string;
+            export let PAYMENT_METHOD: string;
+        }
+        export { SALES_LOG_1 as SALES_LOG };
     }
     namespace ITEMS {
         export let MAIN_LECTURE: string;
