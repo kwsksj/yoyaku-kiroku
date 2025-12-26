@@ -459,7 +459,7 @@ export const getReservationFormView = () => {
 
     return `
         <div class="mt-4 pt-4 border-t-2">
-          <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間：</h4>
+          <h4 class="font-bold ${DesignConfig.colors.text} mb-2">予約時間</h4>
           ${timeFixedMessage}
           <div class="flex items-center space-x-2 mb-2">
             <div class="flex-1">
@@ -503,7 +503,7 @@ export const getReservationFormView = () => {
     };
     return `
       <div class="mt-4 pt-4 border-t-2">
-        <span class="font-bold text-left mb-2">オプション：</span>${Components.checkbox(rentalCheckboxConfig)}
+        <span class="font-bold text-left mb-2">オプション</span>${Components.checkbox(rentalCheckboxConfig)}
       </div>`;
   };
 
@@ -896,10 +896,27 @@ export const renderBookingLessons = lessons => {
 
             const autoFirstTime =
               bookingStateManager.getState().isFirstTimeBooking;
-            const isBeginnerMode = resolveEffectiveBeginnerMode();
+            // 日程変更モード時は元の予約の初回講習フラグを優先
+            let isBeginnerMode = resolveEffectiveBeginnerMode();
+            if (isChangingDate) {
+              try {
+                const storedJson = sessionStorage.getItem(
+                  'changingReservation',
+                );
+                if (storedJson) {
+                  const originalRes = JSON.parse(storedJson);
+                  if (originalRes.firstLecture) {
+                    isBeginnerMode = true;
+                  }
+                }
+              } catch (e) {
+                console.warn('sessionStorage読み取りエラー:', e);
+              }
+            }
             console.log('📋 Lesson render:', lesson.date, {
               autoFirstTime,
               isBeginnerMode,
+              isChangingDate,
             });
             let statusText;
             const {

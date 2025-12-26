@@ -198,7 +198,7 @@ export const getDashboardView = () => {
   const menuSectionHtml = Components.dashboardSection({
     title: 'メニュー',
     items: [
-      `<div class="w-full max-w-md mx-auto"><div class="grid grid-cols-2 gap-3 items-stretch">${allMenuButtons}</div></div>`,
+      `<div class="w-full max-w-md mx-auto"><div class="grid grid-cols-2 gap-3 items-start">${allMenuButtons}</div></div>`,
     ],
   });
 

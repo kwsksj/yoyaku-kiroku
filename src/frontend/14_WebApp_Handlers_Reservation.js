@@ -1465,8 +1465,10 @@ export const reservationActionHandlers = {
             '',
           firstLecture:
             /** @type {HTMLInputElement | null} */ (
-              document.getElementById('option-first-lecture')
-            )?.checked || false,
+              document.getElementById('hidden-first-lecture')
+            )?.value === 'true' ||
+            originalReservation?.firstLecture ||
+            false,
           chiselRental:
             /** @type {HTMLInputElement | null} */ (
               document.getElementById('option-rental')

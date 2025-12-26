@@ -77,7 +77,7 @@ export const getLoginView = () => {
                   value: phoneValue,
                   placeholder: '090 1234 5678',
                   customClass:
-                    'text-center text-xl tracking-widest w-64 h-12 !p-2',
+                    'text-center text-xl tracking-widest w-64 h-12 !p-2 !font-[inherit]',
                   labelClass: 'text-center',
                   containerClass: 'w-full text-center',
                   inputmode: 'numeric',
