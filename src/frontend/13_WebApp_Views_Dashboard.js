@@ -189,8 +189,8 @@ export const getDashboardView = () => {
   const allMenuButtons = [
     menuButton,
     newBookingButton,
-    summaryMenuButton,
     photoButton,
+    summaryMenuButton,
   ]
     .filter(Boolean)
     .join('');

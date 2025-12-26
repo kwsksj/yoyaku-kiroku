@@ -1300,15 +1300,15 @@ export function rebuildAllReservationsCache() {
 export function rebuildScheduleMasterCache(fromDate, toDate) {
   try {
     // デフォルトの日付範囲を設定
-    // 変更履歴: 7日前 → 6ヶ月前（参加者リスト機能で過去データを表示するため）
+    // 変更履歴: 7日前 → 6ヶ月前 → 1年前（参加者リスト機能で過去データを表示するため）
     const today = new Date();
 
-    // 6ヶ月前から（過去のレッスン履歴を表示するため）
-    const sixMonthsAgo = new Date(today);
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    // 1年前から（過去のレッスン履歴を表示するため）
+    const oneYearAgo = new Date(today);
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     const startDate =
       fromDate ||
-      Utilities.formatDate(sixMonthsAgo, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+      Utilities.formatDate(oneYearAgo, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
 
     const oneYearLater = new Date(
       today.getFullYear() + 1,

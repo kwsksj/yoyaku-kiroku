@@ -3,6 +3,9 @@ export namespace participantActionHandlers {
     export { refreshParticipantView };
     export function goToParticipantsView(): void;
     export { toggleParticipantLessonAccordion };
+    export { expandAllAccordions };
+    export { collapseAllAccordions };
+    export { toggleAllAccordions };
     export { selectParticipantStudent };
     export { backToParticipantList };
     export function backToParticipantsView(): void;
@@ -28,6 +31,19 @@ declare function refreshParticipantView(): void;
  * @param {string} lessonId - レッスンID
  */
 declare function toggleParticipantLessonAccordion(lessonId: string): void;
+/**
+ * すべてのアコーディオンを開くハンドラ（DOM操作のみ、再描画なし）
+ */
+declare function expandAllAccordions(): void;
+/**
+ * すべてのアコーディオンを閉じるハンドラ（DOM操作のみ、再描画なし）
+ */
+declare function collapseAllAccordions(): void;
+/**
+ * すべてのアコーディオンの開閉をトグル（DOM操作のみ、再描画なし）
+ * 1つでも閉じているものがあれば全て開く、すべて開いていれば全て閉じる
+ */
+declare function toggleAllAccordions(): void;
 /**
  * 生徒選択ハンドラ（モーダル表示）
  * プリロードされた生徒データから即座に詳細を表示

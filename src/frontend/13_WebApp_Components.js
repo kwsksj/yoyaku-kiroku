@@ -1901,7 +1901,7 @@ export const Components = {
       .join('');
 
     return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-16 z-[5] mb-1 participants-table-sticky-header">
-      <div id="${escapeHTML(headerId)}" class="overflow-x-auto scrollbar-hide">
+      <div id="${escapeHTML(headerId)}" class="overflow-x-auto overflow-y-hidden scrollbar-hide">
         <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;height: 1rem;">
           ${columnsHtml}
         </div>

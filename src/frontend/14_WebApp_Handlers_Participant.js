@@ -177,19 +177,12 @@ function loadParticipantView(
               participantAllStudents: response.data.allStudents || {},
             };
 
-        // 初期表示時は未来のレッスンのみ取得するため、すべて展開状態にする
-        // 過去のレッスンはデフォルトで閉じる（showPastLessonsフラグで制御）
-        if (!payload.showPastLessons) {
-          // すべてのレッスンIDを展開済みリストに追加
-          const allLessonIds = response.data.lessons.map(
-            (/** @type {import('../../types/core/lesson').LessonCore} */ l) =>
-              l.lessonId,
-          );
-          localExpandedLessonIds = allLessonIds; // 直接更新
-        } else {
-          // 過去のレッスンを表示する場合は全て閉じる
-          localExpandedLessonIds = []; // 直接更新
-        }
+        // 初期表示時はすべてのレッスンを展開状態にする
+        const allLessonIds = response.data.lessons.map(
+          (/** @type {import('../../types/core/lesson').LessonCore} */ l) =>
+            l.lessonId,
+        );
+        localExpandedLessonIds = allLessonIds; // 直接更新
 
         participantHandlersStateManager.dispatch({
           type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
@@ -285,6 +278,99 @@ function toggleParticipantLessonAccordion(lessonId) {
     localExpandedLessonIds = localExpandedLessonIds.filter(
       id => id !== lessonId,
     );
+  }
+}
+
+/**
+ * すべてのアコーディオンを開くハンドラ（DOM操作のみ、再描画なし）
+ */
+function expandAllAccordions() {
+  const containers = document.querySelectorAll('[data-lesson-container]');
+  containers.forEach(container => {
+    const contentElement = container.querySelector('.accordion-content');
+    const arrowElement = container.querySelector('svg');
+    const lessonId = container.getAttribute('data-lesson-container');
+
+    if (contentElement && contentElement.classList.contains('hidden')) {
+      contentElement.classList.remove('hidden');
+      if (arrowElement) {
+        arrowElement.classList.add('rotate-180');
+      }
+      if (lessonId && !localExpandedLessonIds.includes(lessonId)) {
+        localExpandedLessonIds.push(lessonId);
+      }
+    }
+  });
+  updateToggleIcon(true);
+}
+
+/**
+ * すべてのアコーディオンを閉じるハンドラ（DOM操作のみ、再描画なし）
+ */
+function collapseAllAccordions() {
+  const containers = document.querySelectorAll('[data-lesson-container]');
+  containers.forEach(container => {
+    const contentElement = container.querySelector('.accordion-content');
+    const arrowElement = container.querySelector('svg');
+    const lessonId = container.getAttribute('data-lesson-container');
+
+    if (contentElement && !contentElement.classList.contains('hidden')) {
+      contentElement.classList.add('hidden');
+      if (arrowElement) {
+        arrowElement.classList.remove('rotate-180');
+      }
+      if (lessonId) {
+        localExpandedLessonIds = localExpandedLessonIds.filter(
+          id => id !== lessonId,
+        );
+      }
+    }
+  });
+  updateToggleIcon(false);
+}
+
+/**
+ * すべてのアコーディオンの開閉をトグル（DOM操作のみ、再描画なし）
+ * 1つでも閉じているものがあれば全て開く、すべて開いていれば全て閉じる
+ */
+function toggleAllAccordions() {
+  const containers = document.querySelectorAll('[data-lesson-container]');
+  if (containers.length === 0) return;
+
+  // 閉じているアコーディオンがあるかチェック
+  let hasClosedAccordion = false;
+  containers.forEach(container => {
+    const contentElement = container.querySelector('.accordion-content');
+    if (contentElement && contentElement.classList.contains('hidden')) {
+      hasClosedAccordion = true;
+    }
+  });
+
+  if (hasClosedAccordion) {
+    // 1つでも閉じていれば全て開く
+    expandAllAccordions();
+  } else {
+    // 全て開いていれば全て閉じる
+    collapseAllAccordions();
+  }
+}
+
+/**
+ * トグルボタンのアイコンを更新
+ * @param {boolean} isExpanded - true: 展開状態（折りたたみアイコン表示）、false: 折りたたみ状態（展開アイコン表示）
+ */
+function updateToggleIcon(isExpanded) {
+  const icon = document.getElementById('accordion-toggle-icon');
+  if (!icon) return;
+
+  if (isExpanded) {
+    // 折りたたみアイコン（矢印が内側を向く）
+    icon.innerHTML =
+      '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"></path>';
+  } else {
+    // 展開アイコン（矢印が外側を向く）
+    icon.innerHTML =
+      '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>';
   }
 }
 
@@ -498,8 +584,12 @@ function togglePastLessons(showPast) {
             ? response.data.isAdmin
             : state.participantIsAdmin;
 
-        // 過去のレッスンを表示する場合は全て閉じる
-        localExpandedLessonIds = []; // 直接更新
+        // 過去のレッスンを表示する場合も全て開く
+        const allLessonIds = response.data.lessons.map(
+          (/** @type {import('../../types/core/lesson').LessonCore} */ l) =>
+            l.lessonId,
+        );
+        localExpandedLessonIds = allLessonIds; // 直接更新
 
         participantHandlersStateManager.dispatch({
           type: 'UPDATE_STATE',
@@ -561,6 +651,9 @@ export const participantActionHandlers = {
     loadParticipantView(false); // 強制再読み込みはしない（未来分のみ先読み）
   },
   toggleParticipantLessonAccordion,
+  expandAllAccordions,
+  collapseAllAccordions,
+  toggleAllAccordions,
   selectParticipantStudent,
   backToParticipantList,
   backToParticipantsView: () => {

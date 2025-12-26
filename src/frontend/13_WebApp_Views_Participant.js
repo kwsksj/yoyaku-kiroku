@@ -479,6 +479,18 @@ function renderLessonList(lessons) {
       ? targetLessons
       : targetLessons.filter(l => l.classroom === selectedClassroom);
 
+  // 未処理件数を計算（管理者向け）
+  let totalPendingCount = 0;
+  if (isAdmin) {
+    pastLessons.forEach(lesson => {
+      const lessonReservations = reservationsMap[lesson.lessonId] || [];
+      const confirmedCount = lessonReservations.filter(
+        r => r.status === CONSTANTS.STATUS.CONFIRMED,
+      ).length;
+      totalPendingCount += confirmedCount;
+    });
+  }
+
   // タブUIの生成（コンポーネント使用）
   const tabsHtml = Components.tabGroup({
     tabs: [
@@ -489,7 +501,10 @@ function renderLessonList(lessons) {
         onclick: 'actionHandlers.togglePastLessons(false)',
       },
       {
-        label: '過去のきろく',
+        label:
+          isAdmin && totalPendingCount > 0
+            ? `過去のきろく ⚠${totalPendingCount}`
+            : '過去のきろく',
         count: pastLessons.length,
         isActive: showPastLessons,
         onclick: 'actionHandlers.togglePastLessons(true)',
@@ -610,7 +625,7 @@ function renderLessonList(lessons) {
        * @returns {string} バッジテキスト（例: "人数 5"）
        */
       const formatBadgeText = (label, count) => {
-        return `${label} ${count}`;
+        return `${label}${count}`;
       };
 
       /**
@@ -625,7 +640,7 @@ function renderLessonList(lessons) {
         morningCount,
         afternoonCount,
       ) => {
-        return `${label} ${morningCount} ${afternoonCount}`;
+        return `${label}${morningCount} ${afternoonCount}`;
       };
 
       /**
@@ -676,7 +691,7 @@ function renderLessonList(lessons) {
         // 初回バッジ（分離して緑色で表示）
         if (firstLectureCount > 0) {
           firstLectureBadge = Components.badge({
-            text: `初 ${firstLectureCount}`,
+            text: `初${firstLectureCount}`,
             color: 'green',
             size: 'xs',
             border: true,
@@ -723,14 +738,14 @@ function renderLessonList(lessons) {
               ),
             );
             chiselBadge = Components.badge({
-              text: `刀 ${chiselCounts.morning} ${chiselCounts.afternoon}`,
+              text: `刀${chiselCounts.morning} ${chiselCounts.afternoon}`,
               color: 'orange',
               size: 'xs',
               border: true,
             });
           } else {
             chiselBadge = Components.badge({
-              text: `刀 ${chiselRentalCount}`,
+              text: `刀${chiselRentalCount}`,
               color: 'orange',
               size: 'xs',
               border: true,
@@ -752,8 +767,8 @@ function renderLessonList(lessons) {
           : '';
 
       // アコーディオンが展開されているか（ローカル変数ではなくDOMから判定）
-      // 【変更】未来のレッスンはデフォルト全開、過去は全閉。DOM状態があればそれを優先、なければデフォルト
-      let isExpanded = !showPastLessons; // デフォルト設定
+      // すべてのレッスンはデフォルト全開。DOM状態があればそれを優先
+      let isExpanded = true; // デフォルト設定（全展開）
       const container = document.querySelector(
         `[data-lesson-container="${escapeHTML(lesson.lessonId)}"]`,
       );
@@ -779,24 +794,22 @@ function renderLessonList(lessons) {
           onclick="actionHandlers.toggleParticipantLessonAccordion('${escapeHTML(lesson.lessonId)}')"
           data-lesson-id="${escapeHTML(lesson.lessonId)}"
         >
-          <div class="flex items-center gap-2">
-            <svg class="w-5 h-5 flex-shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text} opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="flex items-center gap-1 sm:gap-2">
+            <svg class="w-4 h-4 flex-shrink-0 transition-transform duration-200 mt-0.5 ${isExpanded ? 'rotate-180' : ''} ${classroomColor.text} opacity-70 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
             </svg>
-            <div class="flex items-center justify-between gap-2 flex-grow max-w-[400px]">
-              <div class="flex items-center gap-2 min-w-0">
-                <span class="text-xs sm:text-sm font-bold text-action-primary whitespace-nowrap">${formattedDate.replace(/class=".*?"/g, '')}</span>
-                <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom)}</span>
-                ${lesson.venue ? `<span class="text-gray-500 text-xs truncate ml-1">@${escapeHTML(lesson.venue)}</span>` : ''}
-                ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
-              </div>
-              <div class="flex gap-1 items-center flex-shrink-0 justify-start min-w-[200px] font-light">
-                ${mainBadge}
-                ${firstLectureBadge}
-                ${waitlistBadge}
-                ${chiselBadge}
-                ${pendingBadge}
-              </div>
+            <div class="flex items-center gap-1 sm:gap-2 min-w-0 w-[140px] sm:w-[200px] flex-shrink-0">
+              <span class="text-xs sm:text-sm font-bold text-action-primary whitespace-nowrap">${formattedDate.replace(/class=".*?"/g, '')}</span>
+              <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom.replace('教室', ''))}</span>
+              ${lesson.venue ? `<span class="text-gray-500 text-xs truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
+              ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
+            </div>
+            <div class="flex flex-wrap gap-0.5 items-center font-light">
+              ${mainBadge}
+              ${firstLectureBadge}
+              ${waitlistBadge}
+              ${chiselBadge}
+              ${pendingBadge}
             </div>
           </div>
         </button>
@@ -893,7 +906,25 @@ function renderLessonList(lessons) {
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
       ${tabsHtml}
-      ${filterHtml}
+      <div class="flex flex-wrap items-start justify-between gap-1 sm:gap-2 mb-2">
+        <div class="flex-grow">
+          ${filterHtml}
+        </div>
+        <button
+          id="accordion-toggle-all-btn"
+          class="px-2 py-0.5 text-xs font-medium border-2 rounded bg-white text-brand-text border-ui-border hover:bg-gray-50 flex items-center"
+          onclick="actionHandlers.toggleAllAccordions()"
+          title="すべて開く/閉じる"
+        >
+          <svg id="accordion-toggle-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            ${
+              showPastLessons
+                ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path>'
+                : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M9 15v4.5M9 15H4.5M9 15l-5.25 5.25M15 9h4.5M15 9V4.5M15 9l5.25-5.25M15 15h4.5M15 15v4.5m0-4.5l5.25 5.25"></path>'
+            }
+          </svg>
+        </button>
+      </div>
       ${tableHeaderHtml}
       <div class="space-y-0.5">
         ${lessonsHtml}
