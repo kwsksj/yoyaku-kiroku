@@ -279,10 +279,23 @@
                   : 'null'),
             );
 
-            window.stateManager.dispatch({
-              type: 'SET_STATE',
-              payload: { view: 'login' },
-            });
+            // 復元された状態をチェックして適切な画面に遷移
+            var restoredState = window.stateManager.getState();
+            if (restoredState.currentUser) {
+              // ログイン済みユーザーがいる場合は復元されたビューへ（なければダッシュボード）
+              debugLog(
+                '✅ セッション復元: ' + restoredState.currentUser.nickname,
+              );
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: { view: restoredState.view || 'dashboard' },
+              });
+            } else {
+              window.stateManager.dispatch({
+                type: 'SET_STATE',
+                payload: { view: 'login' },
+              });
+            }
             hideLoading();
           } else {
             // 一部未準備 - 100ms間隔でリトライ（300ms → 100ms に短縮）
