@@ -15,6 +15,7 @@
  * @property {string} nextEndTime - 次回終了時間
  * @property {ClassifiedAccountingItemsCore | null} classifiedItems - 会計項目
  * @property {AccountingFormDto} accountingFormData - 会計フォームデータ
+ * @property {string} filterClassroom - 教室フィルター ('current' | 'all')
  */
 /**
  * ウィザードの進行バーを生成
@@ -35,7 +36,7 @@ export function renderStep1Record(state: SessionConclusionState): string;
  */
 export function renderStep2GoalInput(state: SessionConclusionState): string;
 /**
- * ステップ3: 次回予約画面を生成（よやく）
+ * ステップ3: 次回予約画面を生成（よやく）- スロット型UI
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
@@ -126,4 +127,8 @@ export type SessionConclusionState = {
      * - 会計フォームデータ
      */
     accountingFormData: AccountingFormDto;
+    /**
+     * - 教室フィルター ('current' | 'all')
+     */
+    filterClassroom: string;
 };

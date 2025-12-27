@@ -600,33 +600,57 @@ export const getReservationFormView = () => {
           limitEndM = sEndM;
         }
 
-        // 終了時間の候補生成（開始+2時間 〜 ターゲット終了）
-        const minEndM = startTotalM + MIN_DURATION;
+        // 休憩時間（分）を計算
+        const breakDuration = isDual ? sStartM - fEndM : 0;
+
+        /**
+         * 開始時刻から終了時刻までの実質作業時間を計算
+         * @param {number} endM - 終了時刻（分）
+         * @returns {number} 実質作業時間（分）
+         */
+        const calculateActualWorkMinutes = endM => {
+          const totalMinutes = endM - startTotalM;
+          // 休憩をまたぐ場合は休憩時間を差し引く
+          if (isDual && startTotalM < fEndM && endM > sStartM) {
+            return totalMinutes - breakDuration;
+          }
+          return totalMinutes;
+        };
+
+        // 終了時間の候補生成（実質2時間以上の作業時間を確保）
         /** @type {string[]} */
         const validEndTimes = [];
 
-        if (minEndM <= limitEndM) {
-          let curr = minEndM;
-          while (curr <= limitEndM) {
-            let isExcluded = false;
-            // 2部制の場合の禁止ルール:
-            // 「休憩中(firstEnd) < t <= 2部開始(secondStart)」は選択不可
-            // ※2部開始時刻ジャストも選択不可
-            if (isDual) {
-              if (curr > fEndM && curr <= sStartM) {
-                isExcluded = true;
-              }
+        // 開始時刻の30分後から検索
+        let curr =
+          startTotalM + CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES;
+        while (curr <= limitEndM) {
+          let isExcluded = false;
+          // 2部制の場合の禁止ルール:
+          // 「休憩中(firstEnd) < t <= 2部開始(secondStart)」は選択不可
+          // ※2部開始時刻ジャストも選択不可
+          if (isDual) {
+            if (curr > fEndM && curr <= sStartM) {
+              isExcluded = true;
             }
-
-            if (!isExcluded) {
-              const h = Math.floor(curr / 60);
-              const m = curr % 60;
-              validEndTimes.push(
-                `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
-              );
-            }
-            curr += CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES;
           }
+
+          // 実質2時間以上の作業時間が確保できるかチェック
+          if (!isExcluded) {
+            const actualWork = calculateActualWorkMinutes(curr);
+            if (actualWork < MIN_DURATION) {
+              isExcluded = true;
+            }
+          }
+
+          if (!isExcluded) {
+            const h = Math.floor(curr / 60);
+            const m = curr % 60;
+            validEndTimes.push(
+              `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+            );
+          }
+          curr += CONSTANTS.FRONTEND_UI.TIME_SETTINGS.STEP_MINUTES;
         }
 
         // プルダウン再構築

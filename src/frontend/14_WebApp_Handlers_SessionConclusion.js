@@ -45,6 +45,7 @@ let wizardState = /** @type {SessionConclusionState} */ ({
   selectedLesson: null,
   existingFutureReservation: null,
   reservationSkipped: false,
+  isWaitlistRequest: false,
   isLessonListExpanded: false,
   sessionNoteToday: '',
   nextLessonGoal: '',
@@ -53,73 +54,68 @@ let wizardState = /** @type {SessionConclusionState} */ ({
   nextEndTime: '',
   classifiedItems: null,
   accountingFormData: {},
+  filterClassroom: 'current', // 'current' | 'all'
 });
 
 /**
- * おすすめの次回レッスンを検索
- * 3〜5週間後の同条件（教室・会場・曜日・開始時間）のレッスンを探す
+ * 次回のおすすめレッスンを探す（3週間後以降、同じ曜日タイプ、同じ教室・会場）
  * @param {ReservationCore} currentReservation - 今日の予約データ
  * @returns {LessonCore | null} おすすめのレッスン、見つからなければnull
  */
 function findRecommendedNextLesson(currentReservation) {
-  const state = conclusionStateManager.getState();
-  const lessons = state.lessons || [];
-
   if (!currentReservation || !currentReservation.date) {
     return null;
   }
 
+  const allLessons = window.appWindow?.stateManager?.getState()?.lessons || [];
   const currentDate = new Date(currentReservation.date);
-  const currentDayOfWeek = currentDate.getDay();
+  currentDate.setHours(0, 0, 0, 0);
 
-  // 2週間後以降の範囲（上限なし）
-  const minDate = new Date(currentDate);
-  minDate.setDate(minDate.getDate() + 14); // 2週間後
+  // 1. 3週間後の日付を計算
+  const targetStartDate = new Date(currentDate);
+  targetStartDate.setDate(targetStartDate.getDate() + 21); // 3週間後
 
-  /** @type {LessonCore | null} */
-  let bestMatch = null;
+  // 2. 曜日タイプの判定 (0:日曜, 6:土曜 => 土日, 1-5 => 平日)
+  const currentDay = currentDate.getDay();
+  const isWeekend = currentDay === 0 || currentDay === 6;
 
-  for (const lesson of lessons) {
+  // 3. 検索
+  const candidates = allLessons.filter((/** @type {LessonCore} */ lesson) => {
     const lessonDate = new Date(lesson.date);
+    lessonDate.setHours(0, 0, 0, 0);
 
-    // 日付範囲チェック（2週間後以降）
-    if (lessonDate < minDate) {
-      continue;
-    }
+    // 未来の日程（3週間後以降）であること
+    if (lessonDate < targetStartDate) return false;
 
-    // 同じ曜日チェック
-    if (lessonDate.getDay() !== currentDayOfWeek) {
-      continue;
-    }
+    // 同じ教室であること
+    if (lesson.classroom !== currentReservation.classroom) return false;
 
-    // 同じ教室チェック
-    if (lesson.classroom !== currentReservation.classroom) {
-      continue;
-    }
+    // 同じ会場であること (null/undefined/空文字も考慮して比較)
+    const currentVenue = currentReservation.venue || '';
+    const lessonVenue = lesson.venue || '';
+    if (currentVenue !== lessonVenue) return false;
 
-    // 同じ会場チェック（venue が存在する場合）
-    if (currentReservation.venue && lesson.venue !== currentReservation.venue) {
-      continue;
-    }
-
-    // 空き枠があるかチェック
+    // 満席でないこと (first or second slots)
     const hasAvailability =
       (lesson.firstSlots || 0) > 0 ||
       (typeof lesson.secondSlots !== 'undefined'
         ? (lesson.secondSlots || 0) > 0
         : false);
+    if (!hasAvailability) return false;
 
-    if (!hasAvailability) {
-      continue;
-    }
+    // 曜日タイプの一致
+    const lessonDay = lessonDate.getDay();
+    const lessonIsWeekend = lessonDay === 0 || lessonDay === 6;
 
-    // 最も近い日程を選択
-    if (!bestMatch || lessonDate < new Date(bestMatch.date)) {
-      bestMatch = lesson;
-    }
-  }
+    return isWeekend === lessonIsWeekend;
+  });
 
-  return bestMatch;
+  // 日付順にソートして最短のものを選ぶ
+  candidates.sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
+
+  return candidates.length > 0 ? candidates[0] : null;
 }
 
 /**
@@ -182,6 +178,22 @@ export function startSessionConclusion(reservationId) {
     },
   );
 
+  // 時間制クラスの場合、初期時間を「今日の予約時間」に合わせる
+  let initialStartTime = '';
+  let initialEndTime = '';
+
+  if (recommendedNextLesson && currentReservation) {
+    // 今日の予約時間があればそれを使う
+    if (currentReservation.startTime && currentReservation.endTime) {
+      initialStartTime = currentReservation.startTime;
+      initialEndTime = currentReservation.endTime;
+    } else {
+      // なければレッスンの開始時間を使う（保険）
+      initialStartTime = recommendedNextLesson.firstStart || '';
+      initialEndTime = recommendedNextLesson.firstEnd || '';
+    }
+  }
+
   // ウィザード状態を初期化
   wizardState = {
     currentStep: STEPS.RECORD,
@@ -195,10 +207,11 @@ export function startSessionConclusion(reservationId) {
     sessionNoteToday: '', // 常に空でスタート（既存値をロードしない）
     nextLessonGoal: '', // 常に空でスタート（既存値をロードしない）
     sessionNoteNext: '',
-    nextStartTime: recommendedNextLesson?.firstStart || '',
-    nextEndTime: recommendedNextLesson?.firstEnd || '',
+    nextStartTime: initialStartTime,
+    nextEndTime: initialEndTime,
     classifiedItems: classifiedItems,
     accountingFormData: {},
+    filterClassroom: 'current',
   };
 
   // 履歴に現在の状態を保存（smartGoBackが機能するため）
@@ -750,15 +763,81 @@ function handleConclusionClick(event) {
       wizardState.selectedLesson = null;
       goToStep(STEPS.RESERVATION);
       break;
+    case 'setFilterClassroom': {
+      const filter = actionElement.getAttribute('data-filter');
+      if (filter && (filter === 'current' || filter === 'all')) {
+        wizardState.filterClassroom = filter;
+        // 状態更新して再描画
+        conclusionStateManager.dispatch({
+          type: 'UPDATE_STATE',
+          payload: {},
+        });
+        // DOMを更新（簡易的）
+        const container = document.querySelector('.session-conclusion-wizard');
+        if (container) {
+          const viewHtml = getSessionConclusionView(wizardState);
+          const viewContainer = document.getElementById('view-container');
+          if (viewContainer) {
+            viewContainer.innerHTML = viewHtml;
+            setupConclusionEventListeners(); // リスナー再設定
+          }
+        }
+      }
+      break;
+    }
+    case 'confirmRecommendedLesson': {
+      const lessonId = actionElement.getAttribute('data-lesson-id');
+      const lesson = (
+        window.appWindow?.stateManager?.getState()?.lessons || []
+      ).find(l => String(l.lessonId) === lessonId);
+      if (lesson) {
+        // レッスン選択
+        wizardState.selectedLesson = lesson;
+        wizardState.isWaitlistRequest = false;
+
+        // 時間制の場合は、現在セットされているnextStartTimeなどをそのまま使う
+        // （変更されているかもしれないし、初期値のままかもしれない）
+        //
+        // 即座に会計ステップへ進む
+        goToStep(STEPS.ACCOUNTING);
+      }
+      break;
+    }
+    case 'expandLessonList': {
+      // 展開/折りたたみはDOM操作で行い、再描画しない（ちらつき防止）
+      wizardState.isLessonListExpanded = !wizardState.isLessonListExpanded;
+      const isExpanded = wizardState.isLessonListExpanded;
+
+      // 新しいDOM構造に対応: slot-content, slot-list-view, action-buttons
+      const slotContent = document.querySelector('.slot-content');
+      const slotListView = document.querySelector('.slot-list-view');
+      const actionButtons = document.querySelector('.action-buttons');
+
+      if (slotContent) {
+        slotContent.classList.toggle('hidden', isExpanded);
+      }
+      if (slotListView) {
+        slotListView.classList.toggle('hidden', !isExpanded);
+      }
+      if (actionButtons) {
+        actionButtons.classList.toggle('hidden', isExpanded);
+      }
+      break;
+    }
     case 'undoReservationSkip':
       // やっぱりえらぶ
       wizardState.reservationSkipped = false;
       goToStep(STEPS.RESERVATION);
       break;
     case 'clearSelectedLesson':
-      // 選択解除
+      // 選択解除（変更する）
       wizardState.selectedLesson = null;
       wizardState.isWaitlistRequest = false;
+
+      // 変更ボタンを押したときは、時間選択もリセットするほうが自然だが、
+      // ユーザーが「日時だけ変えたい」場合もあるかもしれない。
+      // 一旦、予約状態をクリアしてリストを表示する。
+
       goToStep(STEPS.RESERVATION);
       break;
     case 'goToCalendarSelection':
@@ -794,6 +873,117 @@ function handleConclusionChange(event) {
         wizardState.currentReservation.classroom,
       );
     }
+  }
+
+  // 開始時間の変更（終了時間の選択肢を更新）
+  if (target.id === 'conclusion-next-start-time') {
+    const startSelect = /** @type {HTMLSelectElement} */ (
+      /** @type {unknown} */ (target)
+    );
+    const endSelect = /** @type {HTMLSelectElement | null} */ (
+      document.getElementById('conclusion-next-end-time')
+    );
+
+    if (endSelect) {
+      const startTimeVal = startSelect.value;
+      const lesson =
+        wizardState.selectedLesson || wizardState.recommendedNextLesson;
+
+      if (startTimeVal && lesson) {
+        const [sH, sM] = startTimeVal.split(':').map(Number);
+        const startTotalM = sH * 60 + sM;
+        const MIN_DURATION = 120; // 実質2時間
+
+        // レッスン終了時刻を取得
+        let limitEndM = 18 * 60 + 30; // デフォルト18:30
+        if (lesson.secondEnd) {
+          const [h, m] = lesson.secondEnd.split(':').map(Number);
+          limitEndM = h * 60 + m;
+        } else if (lesson.firstEnd) {
+          const [h, m] = lesson.firstEnd.split(':').map(Number);
+          limitEndM = h * 60 + m;
+        }
+
+        // 2部制の判定と休憩時間計算
+        const classroomType = lesson.classroomType || '';
+        const isDualSession = classroomType.includes('2部制');
+        let breakStartM = 9999;
+        let breakEndM = 0;
+        let breakDuration = 0;
+
+        if (isDualSession && lesson.firstEnd && lesson.secondStart) {
+          const [feH, feM] = lesson.firstEnd.split(':').map(Number);
+          const [ssH, ssM] = lesson.secondStart.split(':').map(Number);
+          breakStartM = feH * 60 + feM;
+          breakEndM = ssH * 60 + ssM;
+          breakDuration = breakEndM - breakStartM;
+        }
+
+        /**
+         * 実質作業時間を計算（休憩をまたぐ場合は差し引く）
+         * @param {number} endM
+         * @returns {number}
+         */
+        const calcActualWork = endM => {
+          const total = endM - startTotalM;
+          if (isDualSession && startTotalM < breakStartM && endM > breakEndM) {
+            return total - breakDuration;
+          }
+          return total;
+        };
+
+        const validEndTimes = [];
+        let curr = startTotalM + 30; // 30分後から開始
+
+        while (curr <= limitEndM) {
+          // 休憩中(firstEnd < t <= secondStart)は選択不可
+          if (isDualSession && curr > breakStartM && curr <= breakEndM) {
+            curr += 30;
+            continue;
+          }
+
+          // 実質2時間以上の作業時間が確保できるか
+          const actualWork = calcActualWork(curr);
+          if (actualWork >= MIN_DURATION) {
+            const h = Math.floor(curr / 60);
+            const m = curr % 60;
+            validEndTimes.push(
+              `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+            );
+          }
+          curr += 30; // 30分刻み
+        }
+
+        // 現在の選択値を維持できるか確認
+        const currentEndVal = endSelect.value;
+
+        // オプション再生成
+        if (validEndTimes.length === 0) {
+          endSelect.innerHTML = '<option value="">選択不可</option>';
+        } else {
+          endSelect.innerHTML = validEndTimes
+            .map(
+              t =>
+                `<option value="${t}" ${t === currentEndVal ? 'selected' : ''}>${t}</option>`,
+            )
+            .join('');
+
+          // 値が不正になったら先頭を選択
+          if (!validEndTimes.includes(currentEndVal)) {
+            endSelect.value = validEndTimes[0];
+          }
+        }
+
+        // stateも更新
+        wizardState.nextStartTime = startTimeVal;
+        wizardState.nextEndTime = endSelect.value;
+      }
+    }
+  }
+
+  // 終了時間の変更
+  if (target.id === 'conclusion-next-end-time') {
+    wizardState.nextEndTime = target.value;
   }
 }
 

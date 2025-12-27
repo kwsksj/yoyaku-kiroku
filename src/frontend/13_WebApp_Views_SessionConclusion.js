@@ -19,8 +19,9 @@ import {
   generateSalesSection,
   generateTuitionSection,
 } from './12-2_Accounting_UI.js';
+import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
-import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
+import { getClassroomColorClass } from './13_WebApp_Views_Utils.js';
 
 /**
  * ウィザードのステップID定義
@@ -50,6 +51,7 @@ export const STEPS = {
  * @property {string} nextEndTime - 次回終了時間
  * @property {ClassifiedAccountingItemsCore | null} classifiedItems - 会計項目
  * @property {AccountingFormDto} accountingFormData - 会計フォームデータ
+ * @property {string} filterClassroom - 教室フィルター ('current' | 'all')
  */
 
 /**
@@ -213,52 +215,7 @@ export function renderStep2GoalInput(state) {
 }
 
 /**
- * 予約スロットカードを生成するヘルパー関数
- * @param {Object} props
- * @param {string} props.statusText
- * @param {string} props.date
- * @param {string} props.venue
- * @param {string} props.borderColorClass
- * @param {string} props.bgColorClass
- * @param {string} props.textColorClass
- * @param {string} [props.actionButtonHtml]
- * @param {string} [props.subInfo]
- * @param {string} [props.icon]
- */
-function renderReservationSlotCard({
-  statusText,
-  date,
-  venue,
-  borderColorClass,
-  bgColorClass,
-  textColorClass,
-  actionButtonHtml = '',
-  subInfo = '',
-  icon = '',
-}) {
-  return `
-    <div class="border-2 ${borderColorClass} rounded-lg p-4 ${bgColorClass} mb-4">
-      <div class="flex justify-between items-center">
-        <div>
-          <p class="text-sm font-bold ${textColorClass}">${statusText}</p>
-          <p class="text-lg font-bold text-brand-text">${date}</p>
-          <p class="text-sm text-brand-subtle">${venue}</p>
-          ${subInfo}
-        </div>
-        ${
-          actionButtonHtml
-            ? actionButtonHtml
-            : icon
-              ? `<div class="${textColorClass} text-3xl">${icon}</div>`
-              : ''
-        }
-      </div>
-    </div>
-  `;
-}
-
-/**
- * ステップ3: 次回予約画面を生成（よやく）
+ * ステップ3: 次回予約画面を生成（よやく）- スロット型UI
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
@@ -269,298 +226,426 @@ export function renderStep3Reservation(state) {
   const isSkipped = state.reservationSkipped;
   const isWaitlist = state.isWaitlistRequest;
   const isExpanded = state.isLessonListExpanded;
+  const filterClassroom = state.filterClassroom || 'current';
 
-  // 表示するレッスン（優先順: 選択 > 予約済み > おすすめ）
-  const displayLesson =
-    selectedLesson || existingReservation || recommendedLesson;
+  // --- スロットに表示するレッスンを決定 ---
+  // 優先順: 選択済み > おすすめ > なし
+  const slotLesson = selectedLesson || recommendedLesson;
 
-  // 時間情報を取得（型に応じてフィールドが異なる）
-  const getFirstStart = () => {
-    if (selectedLesson?.firstStart) return selectedLesson.firstStart;
-    if (recommendedLesson?.firstStart) return recommendedLesson.firstStart;
-    if (existingReservation?.startTime) return existingReservation.startTime;
-    return '';
-  };
-  const getFirstEnd = () => {
-    if (selectedLesson?.firstEnd) return selectedLesson.firstEnd;
-    if (recommendedLesson?.firstEnd) return recommendedLesson.firstEnd;
-    if (existingReservation?.endTime) return existingReservation.endTime;
-    return '';
-  };
+  // 時間制かどうか
+  const isTimeBased =
+    slotLesson && isTimeBasedClassroom(/** @type {any} */ (slotLesson));
 
-  const startTime = state.nextStartTime || getFirstStart();
-  const endTime = state.nextEndTime || getFirstEnd();
+  // 時間の初期値
+  const startTime = state.nextStartTime || slotLesson?.firstStart || '';
+  const endTime = state.nextEndTime || slotLesson?.firstEnd || '';
 
-  // 時間選択を表示するかどうか（時間情報がある場合のみ）
-  const showTimeSelection = Boolean(getFirstStart());
+  // --- 時間選択オプション生成（レッスン範囲に制約、休憩時間除外） ---
+  const MIN_DURATION = 120; // 最低2時間
 
-  // スロット表示エリアの生成
-  let slotDisplayHtml = '';
+  /**
+   * 開始時間オプションを生成
+   * - 2部制の場合は休憩時間（firstEnd〜secondStart）を除外
+   * - 終了時刻から最低2時間前までしか選択不可
+   */
+  const generateStartTimeOptions = () => {
+    if (!slotLesson) return '';
 
-  if (isSkipped) {
-    // スキップ状態
-    slotDisplayHtml = renderReservationSlotCard({
-      statusText: 'よやく',
-      date: 'いまは きめない',
-      venue: '',
-      borderColorClass: 'border-gray-300',
-      bgColorClass: 'bg-gray-50',
-      textColorClass: 'text-brand-subtle',
-      actionButtonHtml: `
-        <button type="button"
-                class="text-sm text-action-primary underline"
-                data-action="undoReservationSkip">
-          やっぱり えらぶ
-        </button>
-      `,
-    });
-  } else if (existingReservation && !selectedLesson) {
-    // 既存の予約がある場合
-    const formattedDate = window.formatDate
-      ? window.formatDate(existingReservation.date)
-      : existingReservation.date;
-    const timeInfo = existingReservation.startTime
-      ? `<p class="text-sm text-brand-subtle">${existingReservation.startTime} 〜 ${existingReservation.endTime || ''}</p>`
-      : '';
+    const lessonStart = slotLesson.firstStart || '09:00';
+    const lessonEnd = slotLesson.secondEnd || slotLesson.firstEnd || '18:00';
+    const firstEnd = slotLesson.firstEnd || '';
+    const secondStart = slotLesson.secondStart || '';
+    const classroomType = slotLesson.classroomType || '';
+    const isDualSession = classroomType.includes('2部制');
 
-    slotDisplayHtml = renderReservationSlotCard({
-      statusText: 'よやく ずみ',
-      date: formattedDate,
-      venue: `${escapeHTML(existingReservation.classroom)} ${existingReservation.venue ? escapeHTML(existingReservation.venue) : ''}`,
-      borderColorClass: 'border-green-500',
-      bgColorClass: 'bg-green-50',
-      textColorClass: 'text-green-700',
-      subInfo: timeInfo,
-      icon: '✓',
-    });
-  } else if (selectedLesson) {
-    // ユーザーが選択したレッスン
-    const formattedDate = window.formatDate
-      ? window.formatDate(selectedLesson.date)
-      : String(selectedLesson.date);
-    const venueText = `${escapeHTML(selectedLesson.classroom)} ${selectedLesson.venue ? escapeHTML(selectedLesson.venue) : ''}`;
+    const [sH, sM] = lessonStart.split(':').map(Number);
+    const [eH, eM] = lessonEnd.split(':').map(Number);
+    const startMin = sH * 60 + sM;
+    const limitMin = eH * 60 + eM - MIN_DURATION;
 
-    const actionBtn = `
-      <button type="button"
-              class="text-sm text-action-primary underline"
-              data-action="clearSelectedLesson">
-        べつの ひを えらぶ
-      </button>
-    `;
-
-    if (isWaitlist) {
-      // 空き通知希望
-      slotDisplayHtml = renderReservationSlotCard({
-        statusText: '空き つうち きぼう',
-        date: formattedDate,
-        venue: venueText,
-        borderColorClass: 'border-yellow-500',
-        bgColorClass: 'bg-yellow-50',
-        textColorClass: 'text-yellow-700',
-        actionButtonHtml: actionBtn,
-      });
-    } else {
-      // 通常予約
-      slotDisplayHtml = renderReservationSlotCard({
-        statusText: 'せんたく ずみ',
-        date: formattedDate,
-        venue: venueText,
-        borderColorClass: 'border-action-primary-bg',
-        bgColorClass: 'bg-action-secondary-bg',
-        textColorClass: 'text-action-primary-bg',
-        actionButtonHtml: actionBtn,
-      });
+    // 休憩時間の計算（2部制の場合）
+    let breakStartMin = 9999;
+    let breakEndMin = 0;
+    if (isDualSession && firstEnd && secondStart) {
+      const [feH, feM] = firstEnd.split(':').map(Number);
+      const [ssH, ssM] = secondStart.split(':').map(Number);
+      breakStartMin = feH * 60 + feM;
+      breakEndMin = ssH * 60 + ssM;
     }
-  } else if (recommendedLesson) {
-    // おすすめ日程
-    const formattedDate = window.formatDate
-      ? window.formatDate(recommendedLesson.date)
-      : recommendedLesson.date;
 
-    slotDisplayHtml = `
-      <div class="recommended-lesson-card border-2 border-action-primary-bg rounded-lg p-4 bg-action-secondary-bg mb-4 cursor-pointer hover:shadow-md transition-shadow"
-           data-action="selectRecommendedLesson"
-           data-lesson-id="${escapeHTML(recommendedLesson.lessonId)}">
-        <div class="flex justify-between items-center">
-          <div>
-            <p class="text-sm text-brand-subtle">おすすめの にってい</p>
-            <p class="text-lg font-bold text-brand-text">${formattedDate}</p>
-            <p class="text-sm text-brand-subtle">${escapeHTML(recommendedLesson.classroom)} ${recommendedLesson.venue ? escapeHTML(recommendedLesson.venue) : ''}</p>
+    const options = [];
+    for (let m = startMin; m <= limitMin; m += 30) {
+      // 休憩時間中（firstEnd <= t < secondStart）は除外
+      if (isDualSession && m >= breakStartMin && m < breakEndMin) {
+        continue;
+      }
+      const h = Math.floor(m / 60);
+      const mm = m % 60;
+      const t = `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      const selected = t === startTime ? 'selected' : '';
+      options.push(`<option value="${t}" ${selected}>${t}</option>`);
+    }
+    return options.join('');
+  };
+
+  /**
+   * 終了時間オプションを生成
+   * - 実質2時間以上の作業時間が確保できる終了時刻のみ表示
+   * - 休憩をまたぐ場合は休憩時間を差し引いて計算
+   * - 2部制の場合は休憩時間（firstEnd〜secondStart）を終了時刻として選択不可
+   */
+  const generateEndTimeOptions = () => {
+    if (!slotLesson || !startTime) return '';
+
+    const lessonEnd = slotLesson.secondEnd || slotLesson.firstEnd || '18:00';
+    const firstEnd = slotLesson.firstEnd || '';
+    const secondStart = slotLesson.secondStart || '';
+    const classroomType = slotLesson.classroomType || '';
+    const isDualSession = classroomType.includes('2部制');
+
+    const [stH, stM] = startTime.split(':').map(Number);
+    const [eH, eM] = lessonEnd.split(':').map(Number);
+    const startMin = stH * 60 + stM;
+    const maxEndMin = eH * 60 + eM;
+
+    // 休憩時間の計算（2部制の場合）
+    let breakStartMin = 9999;
+    let breakEndMin = 0;
+    let breakDuration = 0;
+    if (isDualSession && firstEnd && secondStart) {
+      const [feH, feM] = firstEnd.split(':').map(Number);
+      const [ssH, ssM] = secondStart.split(':').map(Number);
+      breakStartMin = feH * 60 + feM;
+      breakEndMin = ssH * 60 + ssM;
+      breakDuration = breakEndMin - breakStartMin;
+    }
+
+    /**
+     * 開始時刻から終了時刻までの実質作業時間を計算
+     * @param {number} endMin - 終了時刻（分）
+     * @returns {number} 実質作業時間（分）
+     */
+    const calculateActualWorkMinutes = endMin => {
+      const totalMinutes = endMin - startMin;
+      // 休憩をまたぐ場合は休憩時間を差し引く
+      if (isDualSession && startMin < breakStartMin && endMin > breakEndMin) {
+        return totalMinutes - breakDuration;
+      }
+      return totalMinutes;
+    };
+
+    const options = [];
+    // 開始時刻の30分後から検索（最低単位）
+    for (let m = startMin + 30; m <= maxEndMin; m += 30) {
+      // 2部制の場合の禁止ルール:
+      // 「休憩中(firstEnd) < t <= 2部開始(secondStart)」は選択不可
+      if (isDualSession && m > breakStartMin && m <= breakEndMin) {
+        continue;
+      }
+
+      // 実質2時間以上の作業時間が確保できるかチェック
+      const actualWork = calculateActualWorkMinutes(m);
+      if (actualWork < MIN_DURATION) {
+        continue;
+      }
+
+      const h = Math.floor(m / 60);
+      const mm = m % 60;
+      const t = `${String(h).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+      const selected = t === endTime ? 'selected' : '';
+      options.push(`<option value="${t}" ${selected}>${t}</option>`);
+    }
+    return options.join('');
+  };
+
+  // --- 統合スロットコンテナ：選択ビュー と リストビュー を切り替え ---
+  const slotContentHtml = (() => {
+    if (isSkipped) {
+      return `
+        <div class="slot-content-inner bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
+          <p class="text-gray-400 text-sm mb-2">予約スロット</p>
+          <p class="text-xl font-bold text-gray-500 mb-4">未定</p>
+          <p class="text-sm text-gray-400">あとで予約してください</p>
+        </div>
+      `;
+    } else if (existingReservation && !selectedLesson && !recommendedLesson) {
+      const formattedDate = window.formatDate
+        ? window.formatDate(existingReservation.date)
+        : existingReservation.date;
+      return `
+        <div class="slot-content-inner bg-green-50 border-2 border-green-500 rounded-xl p-6 text-center">
+          <p class="text-green-600 text-sm font-bold mb-2">予約 済み ✓</p>
+          <p class="text-xl font-bold text-brand-text mb-1">${formattedDate}</p>
+          <p class="text-sm text-brand-subtle">${escapeHTML(existingReservation.classroom)} ${existingReservation.venue ? escapeHTML(existingReservation.venue) : ''}</p>
+          ${existingReservation.startTime ? `<p class="text-sm text-brand-subtle mt-1">${existingReservation.startTime} 〜 ${existingReservation.endTime || ''}</p>` : ''}
+        </div>
+      `;
+    } else if (slotLesson) {
+      const formattedDate = window.formatDate
+        ? window.formatDate(slotLesson.date)
+        : String(slotLesson.date);
+      const venueText = `${escapeHTML(slotLesson.classroom)} ${slotLesson.venue ? escapeHTML(slotLesson.venue) : ''}`;
+      const isSelected = Boolean(selectedLesson);
+      const statusText = isWaitlist
+        ? '空き通知 希望'
+        : isSelected
+          ? 'この日程で予約'
+          : 'きょう と にた にってい';
+      const borderColor = isWaitlist
+        ? 'border-yellow-500'
+        : 'border-action-primary-bg';
+      const bgColor = isWaitlist ? 'bg-yellow-50' : 'bg-action-secondary-bg';
+      const statusColor = isWaitlist
+        ? 'text-yellow-700'
+        : 'text-action-primary-bg';
+
+      const timeSelectionHtml = isTimeBased
+        ? `
+          <div class="mt-4 pt-4 border-t border-dashed border-gray-300">
+            <div class="flex items-center justify-center space-x-2">
+              <select id="conclusion-next-start-time"
+                      class="px-3 py-2 border-2 border-gray-300 rounded-lg font-bold text-lg text-center bg-white focus:border-action-primary-bg">
+                ${generateStartTimeOptions()}
+              </select>
+              <span class="font-bold text-gray-400">〜</span>
+              <select id="conclusion-next-end-time"
+                      class="px-3 py-2 border-2 border-gray-300 rounded-lg font-bold text-lg text-center bg-white focus:border-action-primary-bg">
+                ${generateEndTimeOptions()}
+              </select>
+            </div>
+            <p class="text-xs text-gray-400 text-center mt-2">※最低2時間</p>
           </div>
-          <div class="text-action-primary-bg text-3xl">→</div>
-        </div>
-      </div>
-    `;
-  } else {
-    // おすすめなし
-    slotDisplayHtml = `
-      <div class="text-center p-4 bg-ui-surface rounded-lg border border-ui-border mb-4">
-        <p class="text-brand-subtle">おすすめの にってい が みつかりませんでした</p>
-        <p class="text-brand-subtle text-sm">した から えらんでください</p>
-      </div>
-    `;
-  }
+        `
+        : '';
 
-  // 時間選択セクション（時間制の場合のみ）
-  const timeSelectionHtml =
-    showTimeSelection && !isSkipped && displayLesson
-      ? `
-    <div class="mb-4">
-      <button type="button"
-              class="text-sm text-action-primary underline"
-              data-action="toggleTimeEdit"
-              id="toggle-time-edit-btn">
-        じかん を へんこう する
-      </button>
-      <div id="time-edit-section" class="hidden mt-3 p-3 bg-ui-surface rounded-lg border border-ui-border">
-        <div class="grid grid-cols-2 gap-4">
-          ${Components.select({
-            id: 'conclusion-next-start-time',
-            label: 'かいし',
-            options: getTimeOptionsHtml(9, 18, 30, startTime),
-          })}
-          ${Components.select({
-            id: 'conclusion-next-end-time',
-            label: 'しゅうりょう',
-            options: getTimeOptionsHtml(9, 18, 30, endTime),
-          })}
+      return `
+        <div class="slot-content-inner ${bgColor} border-2 ${borderColor} rounded-xl overflow-hidden shadow-sm">
+          <div class="p-5 text-center">
+            <p class="text-xs font-bold ${statusColor} mb-2 uppercase tracking-wider">${statusText}</p>
+            <h3 class="text-2xl font-bold text-brand-text mb-1">${formattedDate}</h3>
+            <p class="text-sm text-brand-subtle font-medium">${venueText}</p>
+            ${timeSelectionHtml}
+          </div>
         </div>
-      </div>
-    </div>
-  `
-      : '';
+      `;
+    } else {
+      return `
+        <div class="slot-content-inner bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
+          <p class="text-gray-400 text-sm mb-2">予約スロット</p>
+          <p class="text-lg font-bold text-gray-500 mb-2">おすすめ日程がありません</p>
+          <p class="text-sm text-gray-400">下のボタンから日程を選んでください</p>
+        </div>
+      `;
+    }
+  })();
 
-  // アコーディオン式日程一覧
-  // 現在の教室と同じレッスンをフィルタ（未来日程のみ）
+  // --- レッスン一覧の生成 ---
   const currentClassroom = state.currentReservation?.classroom || '';
   const allLessons = window.appWindow?.stateManager?.getState()?.lessons || [];
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
   const filteredLessons = allLessons.filter((/** @type {LessonCore} */ l) => {
     const lessonDate = new Date(l.date);
     lessonDate.setHours(0, 0, 0, 0);
-    return lessonDate > today && l.classroom === currentClassroom;
+    if (lessonDate <= today) return false;
+    if (filterClassroom === 'current') {
+      return l.classroom === currentClassroom;
+    }
+    return true;
   });
 
-  // ウィザード専用のレッスンカードを生成
-  const wizardLessonCards = filteredLessons
-    .slice()
-    .sort(
-      (/** @type {LessonCore} */ a, /** @type {LessonCore} */ b) =>
-        new Date(a.date).getTime() - new Date(b.date).getTime(),
-    )
-    .map((/** @type {LessonCore} */ lesson) => {
-      const formattedDate = window.formatDate
-        ? window.formatDate(lesson.date)
-        : String(lesson.date);
-      const slots = lesson.firstSlots || 0;
-      const isFullyBooked = slots <= 0;
-      const slotText = isFullyBooked ? '満席' : `空き ${slots}`;
-      const slotClass = isFullyBooked ? 'text-red-500' : 'text-green-600';
+  filteredLessons.sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+  );
 
-      // 満席の場合は空き通知希望として選択可能
-      if (isFullyBooked) {
-        return `
-          <button type="button"
-                  class="w-full text-left p-3 mb-2 bg-yellow-50 border border-yellow-300 rounded-lg hover:bg-yellow-100 transition-colors"
-                  data-action="requestWaitlistForConclusion"
-                  data-lesson-id="${escapeHTML(lesson.lessonId)}">
-            <div class="flex justify-between items-center">
-              <div>
-                <p class="font-bold text-brand-text">${formattedDate}</p>
-                <p class="text-sm text-brand-subtle">${escapeHTML(lesson.venue || '')}</p>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-sm ${slotClass}">${slotText}</span>
-                <span class="text-xs px-2 py-1 bg-yellow-200 text-yellow-800 rounded">
-                  空き通知
-                </span>
-              </div>
+  /** @type {Record<string, LessonCore[]>} */
+  const groupedLessons = {};
+  filteredLessons.forEach(lesson => {
+    const d = new Date(lesson.date);
+    const monthKey = `${d.getMonth() + 1}月`;
+    if (!groupedLessons[monthKey]) {
+      groupedLessons[monthKey] = [];
+    }
+    groupedLessons[monthKey].push(lesson);
+  });
+
+  const lessonListHtml =
+    filteredLessons.length === 0
+      ? `<p class="text-center text-gray-500 py-4">予約可能な日程がありません</p>`
+      : Object.entries(groupedLessons)
+          .map(([month, lessons]) => {
+            const cardsHtml = lessons
+              .map(lesson => {
+                const formattedDate = window.formatDate
+                  ? window.formatDate(lesson.date)
+                  : String(lesson.date);
+                const slots = lesson.firstSlots || 0;
+                const isFullyBooked = slots <= 0;
+                const isRecommended =
+                  recommendedLesson?.lessonId === lesson.lessonId;
+                const classroomColor = getClassroomColorClass(lesson.classroom);
+
+                if (isFullyBooked) {
+                  return `
+                  <button type="button"
+                          class="w-full text-left p-3 mb-2 bg-yellow-50 border-2 border-yellow-200 rounded-lg hover:bg-yellow-100"
+                          data-action="requestWaitlistForConclusion"
+                          data-lesson-id="${escapeHTML(lesson.lessonId)}">
+                    <div class="flex justify-between items-center">
+                      <div>
+                        ${filterClassroom === 'all' ? `<span class="text-xs px-1 rounded border ${classroomColor} mr-1">${lesson.classroom}</span>` : ''}
+                        <span class="font-bold">${formattedDate}</span>
+                        ${isRecommended ? '<span class="ml-1 text-xs text-yellow-600">★</span>' : ''}
+                      </div>
+                      <span class="text-xs text-yellow-600 font-bold">キャンセル待ち</span>
+                    </div>
+                  </button>
+                `;
+                }
+
+                return `
+                <button type="button"
+                        class="w-full text-left p-3 mb-2 bg-white border-2 border-gray-200 rounded-lg hover:border-action-primary-bg hover:shadow-sm"
+                        data-action="selectLessonForConclusion"
+                        data-lesson-id="${escapeHTML(lesson.lessonId)}">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      ${filterClassroom === 'all' ? `<span class="text-xs px-1 rounded border ${classroomColor} mr-1">${lesson.classroom}</span>` : ''}
+                      <span class="font-bold">${formattedDate}</span>
+                      ${isRecommended ? '<span class="ml-1 text-xs text-yellow-500">★おすすめ</span>' : ''}
+                    </div>
+                    <span class="text-sm text-action-primary-bg font-bold">空き${slots}</span>
+                  </div>
+                </button>
+              `;
+              })
+              .join('');
+
+            return `
+            <div class="mb-4">
+              <p class="text-xs font-bold text-gray-500 mb-2 border-l-2 border-gray-300 pl-2">${month}</p>
+              ${cardsHtml}
             </div>
-          </button>
-        `;
-      }
+          `;
+          })
+          .join('');
 
-      return `
-        <button type="button"
-                class="w-full text-left p-3 mb-2 bg-ui-surface border border-ui-border rounded-lg hover:bg-action-secondary-bg transition-colors"
-                data-action="selectLessonForConclusion"
-                data-lesson-id="${escapeHTML(lesson.lessonId)}">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="font-bold text-brand-text">${formattedDate}</p>
-              <p class="text-sm text-brand-subtle">${escapeHTML(lesson.venue || '')}</p>
-            </div>
-            <span class="text-sm ${slotClass}">${slotText}</span>
-          </div>
-        </button>
-      `;
-    })
-    .join('');
-
-  // アコーディオンはDOMで開閉する（再描画しない）
-  const lessonListHtml = `
-    <div class="mb-4">
+  // フィルター
+  const activeClass = 'bg-action-primary-bg text-white';
+  const inactiveClass = 'bg-gray-100 text-gray-500';
+  const filterHtml = `
+    <div class="flex justify-center mb-4 bg-gray-100 p-1 rounded-full">
       <button type="button"
-              class="w-full py-3 px-4 bg-ui-surface border border-ui-border rounded-lg text-brand-text font-medium text-center hover:bg-action-secondary-bg transition-colors"
-              data-action="toggleLessonListDOM">
-        <span id="accordion-toggle-text">にってい いちらん から えらぶ</span>
-        <span id="accordion-arrow" class="ml-2">▼</span>
+              class="flex-1 py-1 px-2 text-xs font-bold rounded-full ${filterClassroom === 'current' ? activeClass : inactiveClass}"
+              data-action="setFilterClassroom"
+              data-filter="current">
+        今の教室
+      </button>
+      <button type="button"
+              class="flex-1 py-1 px-2 text-xs font-bold rounded-full ${filterClassroom === 'all' ? activeClass : inactiveClass}"
+              data-action="setFilterClassroom"
+              data-filter="all">
+        すべて
       </button>
     </div>
-    <div id="lesson-list-accordion" class="${isExpanded ? '' : 'hidden'}">
-      <div class="lesson-list-content max-h-80 overflow-y-auto pb-2">
-        ${wizardLessonCards || '<p class="text-center text-brand-subtle p-4">日程がありません</p>'}
+  `;
+
+  // リストビュー (スロット内に表示)
+  const lessonListViewHtml = `
+    <div class="slot-list-view bg-white border-2 border-gray-200 rounded-xl p-4 shadow-sm ${isExpanded ? '' : 'hidden'}">
+      <div class="flex items-center justify-between mb-4">
+        <h4 class="font-bold text-gray-700">べつの にってい</h4>
+        <button type="button" class="text-sm text-action-primary-bg font-bold" data-action="expandLessonList">✕ とじる</button>
+      </div>
+      ${filterHtml}
+      <div class="max-h-64 overflow-y-auto">
+        ${lessonListHtml}
       </div>
     </div>
   `;
 
+  // 統合スロットコンテナ
+  const unifiedSlotHtml = `
+    <div class="slot-container mb-6">
+      <div class="slot-content ${isExpanded ? 'hidden' : ''}">${slotContentHtml}</div>
+      ${lessonListViewHtml}
+    </div>
+  `;
+
+  // --- アクションボタン ---
+  const canProceed = slotLesson || isSkipped;
+  const proceedButtonHtml = canProceed
+    ? Components.button({
+        action: isSkipped ? 'conclusionNextStep' : 'confirmRecommendedLesson',
+        text: 'これで すすむ！',
+        style: 'primary',
+        size: 'full',
+        customClass: 'text-lg py-4 shadow-md font-bold mb-3',
+        dataAttributes: isSkipped
+          ? { 'target-step': STEPS.ACCOUNTING }
+          : { 'lesson-id': slotLesson?.lessonId || '' },
+      })
+    : '';
+
+  const changeButtonHtml = !isExpanded
+    ? Components.button({
+        action: 'expandLessonList',
+        text: 'にってい へんこう',
+        style: 'secondary',
+        size: 'full',
+        customClass: 'mb-3',
+      })
+    : '';
+
+  const skipButtonHtml = !isSkipped
+    ? `
+      <div class="text-center">
+        <button type="button"
+                class="text-sm text-gray-400 underline"
+                data-action="skipReservation">
+          いまは きめない
+        </button>
+      </div>
+    `
+    : `
+      <div class="text-center">
+        <button type="button"
+                class="text-sm text-action-primary underline font-bold"
+                data-action="undoReservationSkip">
+          やっぱり えらぶ
+        </button>
+      </div>
+    `;
+
+  // --- 戻るボタン ---
+  const backButtonHtml = Components.button({
+    action: 'conclusionPrevStep',
+    text: 'もどる',
+    style: 'secondary',
+    size: 'full',
+    customClass: 'mt-4',
+    dataAttributes: { 'target-step': STEPS.GOAL },
+  });
+
+  // --- メインHTMLの組み立て ---
   return `
-    <div class="session-conclusion-step3 session-conclusion-view">
+    <div class="session-conclusion-step3 session-conclusion-view pb-12">
       ${renderWizardProgressBar(STEPS.RESERVATION)}
 
-      <div class="text-center mb-4">
-        <p class="text-lg font-bold text-brand-text">つぎは いつに しますか？</p>
+      <div class="text-center mb-6">
+        <p class="text-xl font-bold text-brand-text">つぎは いつに しますか？</p>
       </div>
 
-      ${Components.cardContainer({
-        variant: 'default',
-        padding: 'spacious',
-        content: `
-          ${slotDisplayHtml}
-          ${timeSelectionHtml}
-          ${lessonListHtml}
-        `,
-      })}
+      ${unifiedSlotHtml}
 
-      <div class="mt-6 flex flex-col space-y-3">
-        ${
-          !isSkipped
-            ? `
-          ${Components.button({
-            action: 'skipReservation',
-            text: 'いまは きめない',
-            style: 'secondary',
-            size: 'full',
-          })}
-        `
-            : ''
-        }
-        ${Components.button({
-          action: 'conclusionNextStep',
-          text: 'つぎへ（かいけい）',
-          style: 'primary',
-          size: 'full',
-          dataAttributes: { 'target-step': STEPS.ACCOUNTING },
-        })}
-        ${Components.button({
-          action: 'conclusionPrevStep',
-          text: 'もどる',
-          style: 'secondary',
-          size: 'full',
-          dataAttributes: { 'target-step': STEPS.GOAL },
-        })}
+      <div class="action-buttons ${isExpanded ? 'hidden' : ''}">
+        ${proceedButtonHtml}
+        ${changeButtonHtml}
+        ${skipButtonHtml}
       </div>
+
+      ${backButtonHtml}
     </div>
   `;
 }
