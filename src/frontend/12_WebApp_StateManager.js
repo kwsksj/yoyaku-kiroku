@@ -73,6 +73,28 @@ export class SimpleStateManager {
     /** @type {UIState} */
     this.state = {
       // --- User & Session Data ---
+      ...this._getInitialState(),
+    };
+
+    /** @type {boolean} 無限ループ防止フラグ */
+    this.isUpdating = false;
+    /** @type {StateSubscriber[]} 状態変更の購読者リスト */
+    this.subscribers = [];
+    /** @type {number | null} 自動保存タイマーID */
+    this._saveTimeout = null;
+
+    // 【リロード対応】ページロード時に保存状態を復元
+    this.restoreStateFromStorage();
+  }
+
+  /**
+   * 初期状態を返します
+   * @returns {UIState} 初期状態
+   * @private
+   */
+  _getInitialState() {
+    return {
+      // --- User & Session Data ---
       /** @type {UserCore | null} */
       currentUser: null,
       /** @type {UserCore | null} なりすまし操作時の元の管理者ユーザー */
@@ -147,16 +169,6 @@ export class SimpleStateManager {
       /** @type {ComputedStateData} */
       computed: {},
     };
-
-    /** @type {boolean} 無限ループ防止フラグ */
-    this.isUpdating = false;
-    /** @type {StateSubscriber[]} 状態変更の購読者リスト */
-    this.subscribers = [];
-    /** @type {number | null} 自動保存タイマーID */
-    this._saveTimeout = null;
-
-    // 【リロード対応】ページロード時に保存状態を復元
-    this.restoreStateFromStorage();
   }
 
   /**
@@ -164,11 +176,6 @@ export class SimpleStateManager {
    * @param {StateAction} action - アクションオブジェクト { type: ActionType, payload?: StateActionPayload }
    */
   dispatch(action) {
-    if (this.isUpdating) {
-      console.warn('状態更新中のため処理をスキップ');
-      return;
-    }
-
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
       console.log(
         '🎯 Action dispatched:',
@@ -197,6 +204,10 @@ export class SimpleStateManager {
         break;
       case 'NAVIGATE':
         newState = this._handleNavigate(payload);
+        break;
+      case 'LOGOUT':
+        this.clearStoredState();
+        newState = this._getInitialState();
         break;
       default:
         console.warn('未知のアクションタイプ:', action.type);
@@ -667,6 +678,8 @@ export class SimpleStateManager {
         editingReservationIds: stateToSave.editingReservationIds,
         // タイムスタンプを追加（有効期限チェック用）
         savedAt: Date.now(),
+        // アプリバージョン（更新検知用）
+        appVersion: CONSTANTS.ENVIRONMENT.APP_VERSION,
       };
 
       sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(essentialState));
@@ -694,6 +707,16 @@ export class SimpleStateManager {
       const sixHoursInMs = 6 * 60 * 60 * 1000;
       if (Date.now() - parsedState.savedAt > sixHoursInMs) {
         appWindow.PerformanceLog?.debug('保存された状態が期限切れです');
+        sessionStorage.removeItem(this.STORAGE_KEY);
+        return false;
+      }
+
+      // バージョンチェック（アプリ更新検知）
+      const currentVersion = CONSTANTS.ENVIRONMENT.APP_VERSION;
+      if (parsedState.appVersion && parsedState.appVersion !== currentVersion) {
+        appWindow.PerformanceLog?.info(
+          `アプリ更新を検知: ${parsedState.appVersion} → ${currentVersion}（自動ログアウト）`,
+        );
         sessionStorage.removeItem(this.STORAGE_KEY);
         return false;
       }

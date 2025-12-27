@@ -44,6 +44,12 @@ export const CONSTANTS = {
   // 環境設定（PRODUCTION_MODEはビルド時に自動設定される）
   ENVIRONMENT: {
     PRODUCTION_MODE: false, // ビルド時に自動置換される
+    /**
+     * アプリバージョン
+     * この値を変更すると、次回アクセス時に自動ログアウトされます
+     * 形式: 'YYYY.MM.DD' または 'YYYY.MM.DD.N' (同日複数更新時)
+     */
+    APP_VERSION: '2024.12.27',
   },
 
   // WebアプリケーションURL

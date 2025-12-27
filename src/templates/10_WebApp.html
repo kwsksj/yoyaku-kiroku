@@ -188,15 +188,20 @@
           <div id="modal-buttons" class="flex gap-3 justify-end"></div>
         </div>
       </div>
-      <footer class="text-center text-sm text-brand-muted mt-4">
+      <footer
+        class="text-center text-xs text-brand-muted mt-8 pb-4 border-t border-brand-muted/20 pt-4"
+      >
         <p>きぼりの よやく・きろく</p>
-        <p class="mt-2">
+        <p class="mt-1 opacity-70">
           <span
             id="privacy-policy-link"
             data-action="showPrivacyPolicy"
             class="text-brand-muted underline hover:text-brand-text cursor-pointer"
             >プライバシーポリシー</span
           >
+        </p>
+        <p class="mt-3 text-[10px] opacity-50">
+          <span id="app-version"></span> · Made by KAWASAKI Seiji
         </p>
       </footer>
     </div>
@@ -311,6 +316,13 @@
         // GAS本番環境のみ初期化
         window.addEventListener('DOMContentLoaded', () => {
           initializeApp();
+
+          // フッターにバージョン情報を表示
+          const versionEl = document.getElementById('app-version');
+          if (versionEl && typeof CONSTANTS !== 'undefined') {
+            versionEl.textContent =
+              'v' + (CONSTANTS.ENVIRONMENT?.APP_VERSION || '---');
+          }
         });
       }
     </script>

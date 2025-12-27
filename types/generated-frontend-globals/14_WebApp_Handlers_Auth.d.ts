@@ -11,6 +11,7 @@ export namespace authActionHandlers {
     function showEditProfile(): void;
     function saveProfile(): void;
     function goBackToLogin(): void;
+    function logout(): void;
     function requestAccountDeletion(): void;
     function showPrivacyPolicy(): void;
     function closePrivacyPolicy(): void;

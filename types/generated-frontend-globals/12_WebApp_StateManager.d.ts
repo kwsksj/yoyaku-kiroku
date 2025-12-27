@@ -13,6 +13,12 @@ export class SimpleStateManager {
     /** @type {number | null} 自動保存タイマーID */
     _saveTimeout: number | null;
     /**
+     * 初期状態を返します
+     * @returns {UIState} 初期状態
+     * @private
+     */
+    private _getInitialState;
+    /**
      * アクションをディスパッチして状態を更新し、UIを自動再描画
      * @param {StateAction} action - アクションオブジェクト { type: ActionType, payload?: StateActionPayload }
      */

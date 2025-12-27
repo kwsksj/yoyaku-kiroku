@@ -2,6 +2,7 @@ export namespace CONSTANTS {
     let TIMEZONE: string;
     namespace ENVIRONMENT {
         let PRODUCTION_MODE: boolean;
+        let APP_VERSION: string;
     }
     namespace WEB_APP_URL {
         let PRODUCTION: string;

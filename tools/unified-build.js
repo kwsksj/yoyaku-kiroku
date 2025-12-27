@@ -256,6 +256,20 @@ class UnifiedBuilder {
   }
 
   /**
+   * ビルドバージョン文字列を生成（YYYY.MM.DD.HHmm形式）
+   * 同日の複数デプロイも区別できる
+   */
+  generateBuildVersion() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hour = String(now.getHours()).padStart(2, '0');
+    const minute = String(now.getMinutes()).padStart(2, '0');
+    return `${year}.${month}.${day}.${hour}${minute}`;
+  }
+
+  /**
    * バックエンドJSファイルをsrcにコピー（環境判定値を注入、export文を削除）
    */
   async buildBackendFiles() {
@@ -279,6 +293,14 @@ class UnifiedBuilder {
         /PRODUCTION_MODE:\s*[^,]+,/,
         `PRODUCTION_MODE: ${isProduction},`,
       );
+
+      // APP_VERSION をビルド日時で自動更新
+      const buildVersion = this.generateBuildVersion();
+      content = content.replace(
+        /APP_VERSION:\s*['"][^'"]*['"]/,
+        `APP_VERSION: '${buildVersion}'`,
+      );
+      console.log(`[${formatTime()}]   📌 APP_VERSION set to: ${buildVersion}`);
 
       fs.writeFileSync(constantsDestPath, content);
       console.log(
@@ -418,6 +440,13 @@ class UnifiedBuilder {
       constantsContent = constantsContent.replace(
         /PRODUCTION_MODE:\s*[^,]+,/g,
         `PRODUCTION_MODE: ${isProduction},`,
+      );
+
+      // APP_VERSION をビルド日時で自動更新（バックエンドと同じ値）
+      const buildVersion = this.generateBuildVersion();
+      constantsContent = constantsContent.replace(
+        /APP_VERSION:\s*['"][^'"]*['"]/,
+        `APP_VERSION: '${buildVersion}'`,
       );
 
       unifiedContent += `

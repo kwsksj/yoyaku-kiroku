@@ -77,7 +77,7 @@ export const getDashboardView = () => {
     activeReservations.length === 0
       ? `<div class="text-center py-6 text-brand-muted">
           <p class="text-base">よやくは ありません</p>
-          <p class="text-sm mt-1">「メニュー」からあたらしく よやく できます</p>
+          <p class="text-sm mt-1">メニュー から よやく できます</p>
         </div>`
       : '';
 
@@ -135,6 +135,17 @@ export const getDashboardView = () => {
       showMoreButton: showMore,
       moreAction: 'loadMoreHistory',
     });
+  } else {
+    // 履歴がない場合は空状態を表示
+    const emptyHistoryHtml = `<div class="text-center py-6 text-brand-muted">
+          <p class="text-base">きろく は まだ ありません</p>
+          <p class="text-sm mt-1">さんかすると ここに きろく されます</p>
+        </div>`;
+
+    historyHtml = Components.dashboardSection({
+      title: 'きろく',
+      items: [emptyHistoryHtml],
+    });
   }
 
   const currentUser = dashboardStateManager.getState().currentUser;
@@ -147,11 +158,11 @@ export const getDashboardView = () => {
 
   // --- メニューセクション ---
   const menuButton = Components.button({
-    text: 'みんな の<br>よやく・きろく',
+    text: 'みんな の<br>よやく•きろく',
     action: 'goToParticipantsView',
     style: 'primary',
     customClass:
-      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
+      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
   // 新規予約ボタン
@@ -160,13 +171,13 @@ export const getDashboardView = () => {
     action: 'showClassroomModal',
     style: 'secondary',
     customClass:
-      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
+      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
   // 今日の予約がある場合のみ表示するボタン
   const summaryMenuButton = todayReservation
     ? Components.button({
-        text: 'きょう の<br>まとめ（かいけい）',
+        text: 'きょう の まとめ<br>(かいけい)',
         action: 'goToSessionConclusion',
         style: 'accounting',
         customClass:
@@ -180,7 +191,7 @@ export const getDashboardView = () => {
     action: 'openPhotoGallery',
     style: 'secondary',
     customClass:
-      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
+      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug !px-0',
     caption: 'Googleフォトのアルバムページが開きます',
   });
 
@@ -243,10 +254,14 @@ export const getDashboardView = () => {
     items: [goalCardContent],
   });
 
-  return `
+  // --- 4. Render Whole Dashboard ---
+  const headerHtml = `
         <div class="flex flex-col sm:flex-row justify-between sm:items-center mt-4 mb-2">
             <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-6 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
-            <button data-action="showEditProfile" class="${DesignConfig.colors.info} self-end sm:self-auto text-sm text-action-secondary-text px-3 py-0.5 rounded-md active:bg-action-secondary-hover">プロフィール</button>
+            <div class="flex items-center gap-1 self-end sm:self-auto">
+                <button data-action="showEditProfile" class="bg-brand-light text-xs text-action-secondary-text px-0.5 py-0.5 rounded-md active:bg-action-secondary-hover">プロフィール</button>
+                <button data-action="logout" class="bg-brand-light text-xs text-action-secondary-text px-0.5 py-0.5 rounded-md active:bg-action-secondary-hover">ログアウト</button>
+            </div>
         </div>
         <!-- セクション順序: メニュー→けいかく→よやく→きろく -->
         ${menuSectionHtml}
@@ -254,6 +269,8 @@ export const getDashboardView = () => {
         ${yourBookingsHtml}
         ${historyHtml}
     `;
+
+  return headerHtml;
 };
 
 /**

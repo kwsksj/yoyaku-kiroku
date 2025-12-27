@@ -660,6 +660,26 @@ export const authActionHandlers = {
     });
   },
 
+  /** ログアウト処理を実行します */
+  logout: () => {
+    showConfirm({
+      title: 'ログアウト',
+      message: 'ログアウトしますか？',
+      confirmText: 'ログアウト',
+      cancelText: 'キャンセル',
+      onConfirm: () => {
+        // ログアウト処理（stateをクリア）
+        authHandlersStateManager.dispatch({ type: 'LOGOUT' });
+        // ログイン画面に遷移
+        authHandlersStateManager.dispatch({
+          type: 'NAVIGATE',
+          payload: { to: 'login' },
+        });
+        showInfo('ログアウトしました', '成功');
+      },
+    });
+  },
+
   /** アカウント退会処理を実行します（タスク2実装） */
   requestAccountDeletion: () => {
     const state = authHandlersStateManager.getState();

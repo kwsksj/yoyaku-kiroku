@@ -8,6 +8,7 @@ declare global {
     readonly TIMEZONE: string;
     readonly ENVIRONMENT: {
       readonly PRODUCTION_MODE: boolean;
+      readonly APP_VERSION: string;
     };
     readonly WEB_APP_URL: {
       readonly PRODUCTION: string;
