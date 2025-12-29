@@ -606,7 +606,7 @@ if (status === CONSTANTS.STATUS.CONFIRMED) { ... }
 if (status === STATUS.CONFIRMED) { ... }
 
 // 両方とも型エラー検出される
-STATUS.CONFIMED;               // ❌ タイポ検出
+STATUS.CONFIMED;               // ❌ タイポ検出（CONFIRMED のスペルミス）
 CONSTANTS.STATUS.INVALID;      // ❌ 存在しないプロパティ
 ```
 
