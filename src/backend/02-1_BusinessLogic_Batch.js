@@ -25,15 +25,15 @@
 // 依存モジュール
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
+import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
 import {
   getCachedReservationsAsObjects,
+  getSheetData,
   handleError,
   logActivity,
   sortReservationRows,
-  getSheetData,
 } from './08_Utilities.js';
-import { sendAdminNotification } from './02-6_Notification_Admin.js';
 
 /**
  * 【開発用】テスト環境をセットアップします。
@@ -339,14 +339,21 @@ export function transferSalesLogByDate(targetDate) {
         }
 
         // 既存の売上記録書き込み関数を呼び出し
-        logSalesForSingleReservation(
+        const result = logSalesForSingleReservation(
           targetReservation,
           /** @type {AccountingDetailsCore} */ (accountingDetails),
         );
-        successCount++;
+
+        if (result.success) {
+          successCount++;
+        } else {
+          Logger.log(
+            `[transferSalesLogByDate] 失敗: 予約 ${targetReservation.reservationId} - ${result.error?.message}`,
+          );
+        }
       } catch (err) {
         Logger.log(
-          `[transferSalesLogByDate] 予約 ${targetReservation.reservationId} の処理でエラー: ${err.message}`,
+          `[transferSalesLogByDate] 予約 ${targetReservation.reservationId} の処理で予期せぬエラー: ${err.message}`,
         );
       }
     }

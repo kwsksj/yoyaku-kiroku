@@ -128,11 +128,17 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting: Reserv
 /**
  * [設計思想] 後続処理でエラーが発生してもメインの会計処理は成功と見なすため、
  * この関数内でのエラーはログに記録するに留め、上位にはスローしない。
+ * ただし、バッチ処理等で成否を知る必要があるため、戻り値で結果を返す。
+ *
  * @private
  * @param {ReservationCore} reservation - 売上ログを生成する対象の予約オブジェクト
  * @param {AccountingDetailsCore} accountingDetails - 計算済みの会計詳細オブジェクト。
+ * @returns {{ success: boolean, error?: Error }} 処理結果
  */
-export function logSalesForSingleReservation(reservation: ReservationCore, accountingDetails: AccountingDetailsCore): void;
+export function logSalesForSingleReservation(reservation: ReservationCore, accountingDetails: AccountingDetailsCore): {
+    success: boolean;
+    error?: Error;
+};
 /**
  * 日程マスタから特定の日付・教室のルールを取得する
  * @param {string} date - 日付 (YYYY-MM-DD)

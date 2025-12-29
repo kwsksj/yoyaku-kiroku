@@ -644,11 +644,9 @@ CONSTANTS.STATUS.INVALID;      // ❌ 存在しないプロパティ
    ```
 
    これだけで以下が自動的に行われる：
-
    - `types/generated-backend-globals/新しいファイル.d.ts` が生成される
    - `types/generated-backend-globals/index.d.ts` に参照が追加される
    - グローバル型ブリッジに `declare global` が追加される
-
 
 ### トラブルシューティング
 
