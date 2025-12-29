@@ -196,7 +196,7 @@ types/
 ## 📚 **詳細ドキュメント**
 
 - 🤖 **[AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md)** - AI向け開発ガイド。プロジェクトの最も詳細かつ正確なルールブックです。
-- 📋 **[docs/TODO.md](docs/TODO.md)** - プロジェクトのタスク、バグ、アイデア管理
+- 📋 **[TODO.md](TODO.md)** - プロジェクトのタスク、バグ、アイデア管理
 - 🕒 **[docs/CHANGELOG.md](docs/CHANGELOG.md)** - 変更履歴
 - 🏗️ **[docs/JS_TO_HTML_ARCHITECTURE.md](docs/JS_TO_HTML_ARCHITECTURE.md)** - JavaScript分離開発アーキテクチャの詳細設計
 - 🗃️ **[docs/DATA_MODEL.md](docs/DATA_MODEL.md)** - 統合データモデルの設計仕様
