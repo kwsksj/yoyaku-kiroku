@@ -229,8 +229,12 @@ export function renderStep3Reservation(state) {
   const filterClassroom = state.filterClassroom || 'current';
 
   // --- スロットに表示するレッスンを決定 ---
-  // 優先順: 選択済み > おすすめ > なし
-  const slotLesson = selectedLesson || recommendedLesson;
+  // 優先順:
+  // 1. ユーザーが明示的に選択したレッスン（既存予約があっても上書き）
+  // 2. 既存予約がある場合 → おすすめは不要（既存予約表示へ）
+  // 3. 既存予約がない場合 → おすすめを表示
+  const slotLesson =
+    selectedLesson || (!existingReservation ? recommendedLesson : null);
 
   // 時間制かどうか
   const isTimeBased =
