@@ -96,7 +96,7 @@ export const getLoginView = () => {
         })}
 
         <!-- フッターノート -->
-        <div class="text-center text-brand-muted text-sm mt-6">
+        <div class="text-center text-brand-text text-base mt-6">
           <p>* ブラウザの「戻る」ボタンは使わないでください</p>
         </div>
       </div>

@@ -362,9 +362,9 @@ export function renderStep3Reservation(state) {
   const slotContentHtml = (() => {
     if (isSkipped) {
       return `
-        <div class="slot-content-inner bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-          <p class="text-gray-400 text-sm mb-2">予約スロット</p>
-          <p class="text-xl font-bold text-gray-500 mb-4">未定</p>
+        <div class="slot-content-inner text-center py-6 border-2 border-dashed border-gray-300 rounded-xl">
+          <p class="text-3xl mb-2">📅</p>
+          <p class="text-lg font-bold text-gray-500 mb-1">未定</p>
           <p class="text-sm text-gray-400">あとで予約してください</p>
         </div>
       `;
@@ -373,9 +373,12 @@ export function renderStep3Reservation(state) {
         ? window.formatDate(existingReservation.date)
         : existingReservation.date;
       return `
-        <div class="slot-content-inner bg-green-50 border-2 border-green-500 rounded-xl p-6 text-center">
-          <p class="text-green-600 text-sm font-bold mb-2">予約 済み ✓</p>
-          <p class="text-xl font-bold text-brand-text mb-1">${formattedDate}</p>
+        <div class="slot-content-inner text-center py-4 border-2 border-green-500 rounded-xl bg-green-50">
+          <div class="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold mb-2">
+            <span>✓</span>
+            <span>予約済み</span>
+          </div>
+          <p class="text-2xl font-bold text-brand-text mb-1">${formattedDate}</p>
           <p class="text-sm text-brand-subtle">${escapeHTML(existingReservation.classroom)} ${existingReservation.venue ? escapeHTML(existingReservation.venue) : ''}</p>
           ${existingReservation.startTime ? `<p class="text-sm text-brand-subtle mt-1">${existingReservation.startTime} 〜 ${existingReservation.endTime || ''}</p>` : ''}
         </div>
@@ -386,53 +389,52 @@ export function renderStep3Reservation(state) {
         : String(slotLesson.date);
       const venueText = `${escapeHTML(slotLesson.classroom)} ${slotLesson.venue ? escapeHTML(slotLesson.venue) : ''}`;
       const isSelected = Boolean(selectedLesson);
-      const statusText = isWaitlist
-        ? '空き通知 希望'
-        : isSelected
-          ? 'この日程で予約'
-          : 'きょう と にた にってい';
-      const borderColor = isWaitlist
-        ? 'border-yellow-500'
-        : 'border-action-primary-bg';
-      const bgColor = isWaitlist ? 'bg-yellow-50' : 'bg-action-secondary-bg';
-      const statusColor = isWaitlist
-        ? 'text-yellow-700'
-        : 'text-action-primary-bg';
+
+      // ステータスバッジ
+      let statusBadge = '';
+      if (isWaitlist) {
+        statusBadge =
+          '<div class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold mb-3">空き通知 希望</div>';
+      } else if (isSelected) {
+        statusBadge =
+          '<div class="inline-flex items-center gap-1 bg-action-secondary-bg text-action-primary-bg px-3 py-1 rounded-full text-sm font-bold mb-3">この日程で予約</div>';
+      } else {
+        statusBadge =
+          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">★ おすすめ</div>';
+      }
 
       const timeSelectionHtml = isTimeBased
         ? `
-          <div class="mt-4 pt-4 border-t border-dashed border-gray-300">
+          <div class="mx-3 pt-2 border-t border-action-primary-bg">
             <div class="flex items-center justify-center space-x-2">
               <select id="conclusion-next-start-time"
-                      class="px-3 py-2 border-2 border-gray-300 rounded-lg font-bold text-lg text-center bg-white focus:border-action-primary-bg">
+                      class="px-2 py-1 border-2 border-action-primary-bg rounded-lg font-bold text-base text-center bg-white focus:border-action-primary-bg">
                 ${generateStartTimeOptions()}
               </select>
-              <span class="font-bold text-gray-400">〜</span>
+              <span class="font-bold text-brand-text">〜</span>
               <select id="conclusion-next-end-time"
-                      class="px-3 py-2 border-2 border-gray-300 rounded-lg font-bold text-lg text-center bg-white focus:border-action-primary-bg">
+                      class="px-2 py-1 border-2 border-action-primary-bg rounded-lg font-bold text-base text-center bg-white focus:border-action-primary-bg">
                 ${generateEndTimeOptions()}
               </select>
             </div>
-            <p class="text-xs text-gray-400 text-center mt-2">※最低2時間</p>
+            <p class="text-xs text-brand-subtle text-center mt-1">* 最低2時間</p>
           </div>
         `
         : '';
 
       return `
-        <div class="slot-content-inner ${bgColor} border-2 ${borderColor} rounded-xl overflow-hidden shadow-sm">
-          <div class="p-5 text-center">
-            <p class="text-xs font-bold ${statusColor} mb-2 uppercase tracking-wider">${statusText}</p>
-            <h3 class="text-2xl font-bold text-brand-text mb-1">${formattedDate}</h3>
-            <p class="text-sm text-brand-subtle font-medium">${venueText}</p>
-            ${timeSelectionHtml}
-          </div>
+        <div class="slot-content-inner text-center py-2 border-2 border-action-primary-bg rounded-xl bg-action-secondary-bg">
+          ${statusBadge}
+          <p class="text-2xl font-bold text-brand-text mb-1">${formattedDate}</p>
+          <p class="text-sm text-brand-subtle">${venueText}</p>
+          ${timeSelectionHtml}
         </div>
       `;
     } else {
       return `
-        <div class="slot-content-inner bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-          <p class="text-gray-400 text-sm mb-2">予約スロット</p>
-          <p class="text-lg font-bold text-gray-500 mb-2">おすすめ日程がありません</p>
+        <div class="slot-content-inner text-center py-6 border-2 border-dashed border-gray-300 rounded-xl">
+          <p class="text-3xl mb-2">🔍</p>
+          <p class="text-lg font-bold text-gray-500 mb-1">おすすめ日程がありません</p>
           <p class="text-sm text-gray-400">下のボタンから日程を選んでください</p>
         </div>
       `;
@@ -470,6 +472,63 @@ export function renderStep3Reservation(state) {
     groupedLessons[monthKey].push(lesson);
   });
 
+  /**
+   * スロット値を正規化（予約画面と同じロジック）
+   * @param {number | string | undefined} value
+   * @returns {number}
+   */
+  const normalizeSlotValue = value => {
+    if (value === undefined || value === null || value === '') return 0;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  /**
+   * スロット表示テキストを生成
+   * @param {LessonCore} lesson
+   * @returns {{ text: string, isFullyBooked: boolean, isExperiencedOnly: boolean }}
+   */
+  const getSlotStatusText = lesson => {
+    const hasSecondSlots = typeof lesson.secondSlots !== 'undefined';
+    const firstSlotsCount = normalizeSlotValue(lesson.firstSlots);
+    const secondSlotsCount = hasSecondSlots
+      ? normalizeSlotValue(lesson.secondSlots)
+      : 0;
+    const beginnerCapacity = normalizeSlotValue(lesson.beginnerCapacity);
+
+    // 満席判定（2部制の場合は両方が0のとき満席）
+    const isFullyBooked = hasSecondSlots
+      ? firstSlotsCount === 0 && secondSlotsCount === 0
+      : firstSlotsCount === 0;
+
+    // 経験者のみ判定（初回者枠なしまたは初回者定員が0）
+    const isExperiencedOnly = !lesson.beginnerStart || beginnerCapacity === 0;
+
+    if (isFullyBooked) {
+      return {
+        text: '満席（空き通知登録）',
+        isFullyBooked: true,
+        isExperiencedOnly,
+      };
+    }
+
+    if (hasSecondSlots) {
+      const morningLabel = window.CONSTANTS?.TIME_SLOTS?.MORNING || '午前';
+      const afternoonLabel = window.CONSTANTS?.TIME_SLOTS?.AFTERNOON || '午後';
+      return {
+        text: `${morningLabel}${firstSlotsCount} ${afternoonLabel}${secondSlotsCount}`,
+        isFullyBooked: false,
+        isExperiencedOnly,
+      };
+    }
+
+    return {
+      text: `空き${firstSlotsCount}`,
+      isFullyBooked: false,
+      isExperiencedOnly,
+    };
+  };
+
   const lessonListHtml =
     filteredLessons.length === 0
       ? `<p class="text-center text-gray-500 py-4">予約可能な日程がありません</p>`
@@ -480,11 +539,20 @@ export function renderStep3Reservation(state) {
                 const formattedDate = window.formatDate
                   ? window.formatDate(lesson.date)
                   : String(lesson.date);
-                const slots = lesson.firstSlots || 0;
-                const isFullyBooked = slots <= 0;
                 const isRecommended =
                   recommendedLesson?.lessonId === lesson.lessonId;
                 const classroomColor = getClassroomColorClass(lesson.classroom);
+                const {
+                  text: slotText,
+                  isFullyBooked,
+                  isExperiencedOnly,
+                } = getSlotStatusText(lesson);
+
+                // 経験者のみの場合は別表記
+                const experiencedOnlyBadge =
+                  isExperiencedOnly && !isFullyBooked
+                    ? '<span class="text-xs text-gray-400 ml-1">経験者のみ</span>'
+                    : '';
 
                 if (isFullyBooked) {
                   return `
@@ -498,7 +566,7 @@ export function renderStep3Reservation(state) {
                         <span class="font-bold">${formattedDate}</span>
                         ${isRecommended ? '<span class="ml-1 text-xs text-yellow-600">★</span>' : ''}
                       </div>
-                      <span class="text-xs text-yellow-600 font-bold">キャンセル待ち</span>
+                      <span class="text-xs text-yellow-600 font-bold">${slotText}</span>
                     </div>
                   </button>
                 `;
@@ -514,8 +582,9 @@ export function renderStep3Reservation(state) {
                       ${filterClassroom === 'all' ? `<span class="text-xs px-1 rounded border ${classroomColor} mr-1">${lesson.classroom}</span>` : ''}
                       <span class="font-bold">${formattedDate}</span>
                       ${isRecommended ? '<span class="ml-1 text-xs text-yellow-500">★おすすめ</span>' : ''}
+                      ${experiencedOnlyBadge}
                     </div>
-                    <span class="text-sm text-action-primary-bg font-bold">空き${slots}</span>
+                    <span class="text-sm text-action-primary-bg font-bold">${slotText}</span>
                   </div>
                 </button>
               `;
@@ -531,47 +600,56 @@ export function renderStep3Reservation(state) {
           })
           .join('');
 
-  // フィルター
+  // フィルター（教室名を表示）
   const activeClass = 'bg-action-primary-bg text-white';
   const inactiveClass = 'bg-gray-100 text-gray-500';
+  const currentClassroomLabel = currentClassroom || '現在の教室';
   const filterHtml = `
-    <div class="flex justify-center mb-4 bg-gray-100 p-1 rounded-full">
+    <div class="lesson-filter flex justify-center mb-4 bg-gray-100 p-1 rounded-full">
       <button type="button"
-              class="flex-1 py-1 px-2 text-xs font-bold rounded-full ${filterClassroom === 'current' ? activeClass : inactiveClass}"
+              class="flex-1 py-1 px-2 text-xs font-bold rounded-full filter-btn-current ${filterClassroom === 'current' ? activeClass : inactiveClass}"
               data-action="setFilterClassroom"
               data-filter="current">
-        今の教室
+        ${escapeHTML(currentClassroomLabel)}
       </button>
       <button type="button"
-              class="flex-1 py-1 px-2 text-xs font-bold rounded-full ${filterClassroom === 'all' ? activeClass : inactiveClass}"
+              class="flex-1 py-1 px-2 text-xs font-bold rounded-full filter-btn-all ${filterClassroom === 'all' ? activeClass : inactiveClass}"
               data-action="setFilterClassroom"
               data-filter="all">
-        すべて
+        すべての教室
       </button>
     </div>
   `;
 
-  // リストビュー (スロット内に表示)
-  const lessonListViewHtml = `
-    <div class="slot-list-view bg-white border-2 border-gray-200 rounded-xl p-4 shadow-sm ${isExpanded ? '' : 'hidden'}">
-      <div class="flex items-center justify-between mb-4">
-        <h4 class="font-bold text-gray-700">べつの にってい</h4>
-        <button type="button" class="text-sm text-action-primary-bg font-bold" data-action="expandLessonList">✕ とじる</button>
+  // リストビュー内容（カード内に表示）
+  const lessonListContentHtml = `
+    <div class="slot-list-content ${isExpanded ? '' : 'hidden'}">
+      <label class="block text-base font-bold text-brand-text mb-2">にってい いちらん</label>
+      <div class="flex items-center justify-between mb-3">
+        ${filterHtml}
+        <button type="button" class="text-sm text-action-primary-bg font-bold px-2 py-1 rounded hover:bg-gray-100 flex-shrink-0" data-action="expandLessonList">✕ とじる</button>
       </div>
-      ${filterHtml}
-      <div class="max-h-64 overflow-y-auto">
+      <div class="max-h-64 overflow-y-auto lesson-list-scroll -mx-2 px-2">
         ${lessonListHtml}
       </div>
     </div>
   `;
 
-  // 統合スロットコンテナ
-  const unifiedSlotHtml = `
-    <div class="slot-container mb-6">
-      <div class="slot-content ${isExpanded ? 'hidden' : ''}">${slotContentHtml}</div>
-      ${lessonListViewHtml}
+  // スロットビュー内容（カード内に表示）
+  const slotViewContentHtml = `
+    <div class="slot-view-content ${isExpanded ? 'hidden' : ''}">
+      <label class="block text-base font-bold text-brand-text mb-2">よやく</label>
+      ${slotContentHtml}
     </div>
   `;
+
+  // 統合スロットコンテナ（1つのカードで切り替え）
+  const unifiedSlotHtml = Components.cardContainer({
+    variant: 'default',
+    padding: 'spacious',
+    customClass: 'slot-container mb-6',
+    content: `${slotViewContentHtml}${lessonListContentHtml}`,
+  });
 
   // --- アクションボタン ---
   const canProceed = slotLesson || isSkipped;

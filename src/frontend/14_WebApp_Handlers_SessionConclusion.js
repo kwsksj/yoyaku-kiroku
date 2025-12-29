@@ -720,7 +720,7 @@ function handleConclusionClick(event) {
       break;
     }
     case 'selectLessonForConclusion': {
-      // 日程選択（通常予約）
+      // 日程選択（通常予約）— DOM操作でちらつき防止
       const lessonId = actionElement.getAttribute('data-lesson-id');
       if (lessonId) {
         const state = conclusionStateManager.getState();
@@ -733,13 +733,40 @@ function handleConclusionClick(event) {
           wizardState.isWaitlistRequest = false;
           wizardState.reservationSkipped = false;
           wizardState.isLessonListExpanded = false;
-          goToStep('3');
+
+          // DOM操作でスロット表示を更新
+          const slotViewContent = document.querySelector('.slot-view-content');
+          const slotListContent = document.querySelector('.slot-list-content');
+          const actionButtons = document.querySelector('.action-buttons');
+
+          if (slotViewContent && slotListContent && actionButtons) {
+            // スロット内容を更新（再描画用のHTMLを生成）
+            const viewHtml = getSessionConclusionView(wizardState);
+            const temp = document.createElement('div');
+            temp.innerHTML = viewHtml;
+            const newSlotViewContent = temp.querySelector('.slot-view-content');
+            if (newSlotViewContent) {
+              slotViewContent.innerHTML = newSlotViewContent.innerHTML;
+            }
+            const newActionButtons = temp.querySelector('.action-buttons');
+            if (newActionButtons) {
+              actionButtons.innerHTML = newActionButtons.innerHTML;
+            }
+
+            // 表示を切り替え
+            slotViewContent.classList.remove('hidden');
+            slotListContent.classList.add('hidden');
+            actionButtons.classList.remove('hidden');
+          } else {
+            // フォールバック: goToStepを使用
+            goToStep('3');
+          }
         }
       }
       break;
     }
     case 'requestWaitlistForConclusion': {
-      // 空き通知希望
+      // 空き通知希望 — DOM操作でちらつき防止
       const lessonId = actionElement.getAttribute('data-lesson-id');
       if (lessonId) {
         const state = conclusionStateManager.getState();
@@ -752,7 +779,31 @@ function handleConclusionClick(event) {
           wizardState.isWaitlistRequest = true;
           wizardState.reservationSkipped = false;
           wizardState.isLessonListExpanded = false;
-          goToStep('3');
+
+          // DOM操作でスロット表示を更新
+          const slotViewContent = document.querySelector('.slot-view-content');
+          const slotListContent = document.querySelector('.slot-list-content');
+          const actionButtons = document.querySelector('.action-buttons');
+
+          if (slotViewContent && slotListContent && actionButtons) {
+            const viewHtml = getSessionConclusionView(wizardState);
+            const temp = document.createElement('div');
+            temp.innerHTML = viewHtml;
+            const newSlotViewContent = temp.querySelector('.slot-view-content');
+            if (newSlotViewContent) {
+              slotViewContent.innerHTML = newSlotViewContent.innerHTML;
+            }
+            const newActionButtons = temp.querySelector('.action-buttons');
+            if (newActionButtons) {
+              actionButtons.innerHTML = newActionButtons.innerHTML;
+            }
+
+            slotViewContent.classList.remove('hidden');
+            slotListContent.classList.add('hidden');
+            actionButtons.classList.remove('hidden');
+          } else {
+            goToStep('3');
+          }
         }
       }
       break;
@@ -766,20 +817,47 @@ function handleConclusionClick(event) {
     case 'setFilterClassroom': {
       const filter = actionElement.getAttribute('data-filter');
       if (filter && (filter === 'current' || filter === 'all')) {
+        // 即座にボタンのスタイルを更新（ちらつき軽減）
+        const activeClass = 'bg-action-primary-bg text-white';
+        const inactiveClass = 'bg-gray-100 text-gray-500';
+        const currentBtn = document.querySelector('.filter-btn-current');
+        const allBtn = document.querySelector('.filter-btn-all');
+
+        if (currentBtn && allBtn) {
+          if (filter === 'current') {
+            currentBtn.className = currentBtn.className.replace(
+              inactiveClass,
+              activeClass,
+            );
+            allBtn.className = allBtn.className.replace(
+              activeClass,
+              inactiveClass,
+            );
+          } else {
+            currentBtn.className = currentBtn.className.replace(
+              activeClass,
+              inactiveClass,
+            );
+            allBtn.className = allBtn.className.replace(
+              inactiveClass,
+              activeClass,
+            );
+          }
+        }
+
+        // 状態を更新してリスト再生成（リスト部分のみ再描画が理想だが、完全対応は複雑なため要件に応じて拡張）
         wizardState.filterClassroom = filter;
-        // 状態更新して再描画
-        conclusionStateManager.dispatch({
-          type: 'UPDATE_STATE',
-          payload: {},
-        });
-        // DOMを更新（簡易的）
-        const container = document.querySelector('.session-conclusion-wizard');
-        if (container) {
-          const viewHtml = getSessionConclusionView(wizardState);
-          const viewContainer = document.getElementById('view-container');
-          if (viewContainer) {
-            viewContainer.innerHTML = viewHtml;
-            setupConclusionEventListeners(); // リスナー再設定
+
+        // リストの再生成（slot-list-contentの内容を更新）
+        const viewHtml = getSessionConclusionView(wizardState);
+        const listContentEl = document.querySelector('.slot-list-content');
+        if (listContentEl) {
+          // 一時的なコンテナでHTMLをパース
+          const temp = document.createElement('div');
+          temp.innerHTML = viewHtml;
+          const newListContent = temp.querySelector('.slot-list-content');
+          if (newListContent) {
+            listContentEl.innerHTML = newListContent.innerHTML;
           }
         }
       }
@@ -808,16 +886,16 @@ function handleConclusionClick(event) {
       wizardState.isLessonListExpanded = !wizardState.isLessonListExpanded;
       const isExpanded = wizardState.isLessonListExpanded;
 
-      // 新しいDOM構造に対応: slot-content, slot-list-view, action-buttons
-      const slotContent = document.querySelector('.slot-content');
-      const slotListView = document.querySelector('.slot-list-view');
+      // 新しいDOM構造に対応: slot-view-content, slot-list-content, action-buttons
+      const slotViewContent = document.querySelector('.slot-view-content');
+      const slotListContent = document.querySelector('.slot-list-content');
       const actionButtons = document.querySelector('.action-buttons');
 
-      if (slotContent) {
-        slotContent.classList.toggle('hidden', isExpanded);
+      if (slotViewContent) {
+        slotViewContent.classList.toggle('hidden', isExpanded);
       }
-      if (slotListView) {
-        slotListView.classList.toggle('hidden', !isExpanded);
+      if (slotListContent) {
+        slotListContent.classList.toggle('hidden', !isExpanded);
       }
       if (actionButtons) {
         actionButtons.classList.toggle('hidden', isExpanded);

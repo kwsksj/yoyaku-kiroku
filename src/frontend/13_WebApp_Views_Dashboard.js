@@ -158,11 +158,11 @@ export const getDashboardView = () => {
 
   // --- メニューセクション ---
   const menuButton = Components.button({
-    text: 'みんな の<br>よやく•きろく',
+    text: 'みんな の<br>よやく・きろく',
     action: 'goToParticipantsView',
     style: 'primary',
     customClass:
-      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug !px-0',
+      'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
   // 新規予約ボタン
@@ -171,17 +171,17 @@ export const getDashboardView = () => {
     action: 'showClassroomModal',
     style: 'secondary',
     customClass:
-      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug !px-0',
+      'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
   // 今日の予約がある場合のみ表示するボタン
   const summaryMenuButton = todayReservation
     ? Components.button({
-        text: 'きょう の まとめ<br>(かいけい)',
+        text: 'きょう の まとめ<br>（かいけい）',
         action: 'goToSessionConclusion',
         style: 'accounting',
         customClass:
-          'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug px-0',
+          'w-full h-[3.5rem] flex items-center justify-center leading-snug px-0',
       })
     : '';
 
@@ -191,7 +191,7 @@ export const getDashboardView = () => {
     action: 'openPhotoGallery',
     style: 'secondary',
     customClass:
-      'w-full h-full min-h-[3.5rem] flex items-center justify-center leading-snug !px-0',
+      'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
     caption: 'Googleフォトのアルバムページが開きます',
   });
 
