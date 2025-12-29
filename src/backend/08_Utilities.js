@@ -489,6 +489,7 @@ export function transformReservationArrayToObject(resArray) {
     sessionNote,
     order,
     message, // 先生へのメッセージ
+    accountingDetails, // 会計詳細
   ] = resArray;
 
   /** @type {ReservationCore} */
@@ -516,6 +517,11 @@ export function transformReservationArrayToObject(resArray) {
     sessionNote: String(sessionNote || ''),
     order: String(order || ''),
     messageToTeacher: String(message || ''),
+    accountingDetails: accountingDetails
+      ? typeof accountingDetails === 'string'
+        ? JSON.parse(accountingDetails)
+        : accountingDetails
+      : undefined,
   };
   return reservation;
 }
@@ -652,6 +658,17 @@ export function transformReservationArrayToObjectWithHeaders(
     messageToTeacher: String(
       getCellValue(CONSTANTS.HEADERS.RESERVATIONS.MESSAGE_TO_TEACHER) || '',
     ),
+    accountingDetails: (() => {
+      const details = getCellValue(
+        CONSTANTS.HEADERS.RESERVATIONS.ACCOUNTING_DETAILS,
+      );
+      if (!details) return undefined;
+      try {
+        return typeof details === 'string' ? JSON.parse(details) : details;
+      } catch (e) {
+        return undefined;
+      }
+    })(),
   };
 
   // ユーザー情報を付与（引数で渡されたマップから取得）
@@ -702,6 +719,11 @@ export function normalizeReservationObject(rawReservation) {
         : undefined,
       messageToTeacher: rawReservation['messageToTeacher']
         ? String(rawReservation['messageToTeacher'])
+        : undefined,
+      accountingDetails: rawReservation['accountingDetails']
+        ? typeof rawReservation['accountingDetails'] === 'string'
+          ? JSON.parse(rawReservation['accountingDetails'])
+          : rawReservation['accountingDetails']
         : undefined,
     };
   } catch (error) {
