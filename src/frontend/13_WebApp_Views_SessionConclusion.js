@@ -652,17 +652,36 @@ export function renderStep3Reservation(state) {
   });
 
   // --- アクションボタン ---
-  const canProceed = slotLesson || isSkipped;
+  // 進めるケース: レッスン選択済み or スキップ済み or 既存予約あり
+  const canProceed = slotLesson || isSkipped || existingReservation;
+
+  /**
+   * 進むボタンのアクションを決定
+   * - スキップまたは既存予約あり: 次のステップへ
+   * - レッスン選択済み: 確認アクション
+   */
+  const getProceedButtonConfig = () => {
+    if (isSkipped || existingReservation) {
+      return {
+        action: 'conclusionNextStep',
+        dataAttributes: { 'target-step': STEPS.ACCOUNTING },
+      };
+    }
+    return {
+      action: 'confirmRecommendedLesson',
+      dataAttributes: { 'lesson-id': slotLesson?.lessonId || '' },
+    };
+  };
+
+  const proceedConfig = getProceedButtonConfig();
   const proceedButtonHtml = canProceed
     ? Components.button({
-        action: isSkipped ? 'conclusionNextStep' : 'confirmRecommendedLesson',
+        action: proceedConfig.action,
         text: 'これで すすむ！',
         style: 'primary',
         size: 'full',
         customClass: 'text-lg py-4 shadow-md font-bold mb-3',
-        dataAttributes: isSkipped
-          ? { 'target-step': STEPS.ACCOUNTING }
-          : { 'lesson-id': slotLesson?.lessonId || '' },
+        dataAttributes: proceedConfig.dataAttributes,
       })
     : '';
 
