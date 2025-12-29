@@ -1,5 +1,5 @@
 # claude.md (Claudeへの指示書)
 
-このプロジェクトの開発ルール、ワークフロー、アーキテクチャは **[AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md)** にまとめられています。
+このプロジェクトの開発ルール、ワークフロー、アーキテクチャは **[AI_INSTRUCTIONS.md](AI_INSTRUCTIONS.md)** にまとめられている。
 
-**作業前に必ず確認してください。**
+**作業前に必ず確認すること。**
