@@ -573,15 +573,101 @@ const venue = reservation.venue ? reservation.venue : '未設定';
 const email = user.email?.toLowerCase();
 ```
 
+## 定数の使い方
+
+### 2段階定数構造
+
+バックエンドとフロントエンド間の定数不整合を防ぐため、2段階定数構造を採用している。
+
+```javascript
+// 1段階目: 個別定数オブジェクト
+const STATUS = {
+  CONFIRMED: '確定',
+  CANCELED: '取消',
+  WAITLISTED: '待機',
+  COMPLETED: '完了',
+};
+
+// 2段階目: CONSTANTS統合オブジェクト
+const CONSTANTS = {
+  STATUS: STATUS,
+  CLASSROOMS: CLASSROOMS,
+  // ... 他の定数群
+};
+```
+
+### 使用パターン
+
+```javascript
+// ✅ 推奨：完全参照（AI理解性・一貫性）
+if (status === CONSTANTS.STATUS.CONFIRMED) { ... }
+
+// ✅ 許容：短縮参照（タイピング効率重視時）
+if (status === STATUS.CONFIRMED) { ... }
+
+// 両方とも型エラー検出される
+STATUS.CONFIMED;               // ❌ タイポ検出
+CONSTANTS.STATUS.INVALID;      // ❌ 存在しないプロパティ
+```
+
+### 定数追加・変更時
+
+1. `src/shared/00_Constants.js` を編集
+2. `npm run types:refresh` で型定義を再生成
+3. `npm run validate` で整合性を確認
+
+---
+
+## 型生成ワークフロー
+
+### コマンド一覧
+
+| コマンド                | 説明                       |
+| ----------------------- | -------------------------- |
+| `npm run types:refresh` | 型定義の完全再生成（推奨） |
+| `npm run types:check`   | 型チェックのみ実行         |
+
+### 新しい定数やクラスを追加する方法
+
+1. ソースファイルに export を追加
+
+   ```javascript
+   // src/backend/新しいファイル.js
+   export const MY_NEW_CONSTANT = { ... };
+   export class MyNewClass { ... }
+   ```
+
+2. 型定義を再生成
+
+   ```bash
+   npm run types:refresh
+   ```
+
+   これだけで以下が自動的に行われる：
+
+   - `types/generated-backend-globals/新しいファイル.d.ts` が生成される
+   - `types/generated-backend-globals/index.d.ts` に参照が追加される
+   - グローバル型ブリッジに `declare global` が追加される
+
+
+### トラブルシューティング
+
+```bash
+# 型定義が更新されない場合
+npm run clean:types && npm run types:refresh
+
+# ビルドエラー: "export is not defined"
+# → ビルドプロセスで export は自動削除される。build-output/ を確認
+grep "^export" build-output/*.js
+```
+
 ---
 
 ## 関連ドキュメント
 
-- [TYPE_SYSTEM_UNIFICATION.md](TYPE_SYSTEM_UNIFICATION.md) - 型システム統一の詳細設計
-- [TYPE_SYSTEM_REMAINING_TASKS.md](TYPE_SYSTEM_REMAINING_TASKS.md) - 型システム統一の進捗状況
 - [DATA_MODEL.md](DATA_MODEL.md) - データモデル全体の設計
-- [CLAUDE.md](../CLAUDE.md) - プロジェクト全体のガイド
+- [AI_INSTRUCTIONS.md](../AI_INSTRUCTIONS.md) - 開発ルール・ワークフロー
 
 ---
 
-**最終更新**: 2025-10-06 **バージョン**: 2.0 - DTO型を廃止し、Core型のみに統一
+**最終更新**: 2025-12-29 **バージョン**: 2.1 - CONSTANTS_GUIDE.md と type-generation-workflow.md を統合

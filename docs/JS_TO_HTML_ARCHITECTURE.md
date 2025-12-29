@@ -2,7 +2,7 @@
 
 ## 概要
 
-現在のHTML內JavaScript開発の型チェック・IntelliSense問題を根本解決するため、開発時はJavaScriptファイルとして作業し、デプロイ時にHTML形式に自動変換するハイブリッドアーキテクチャを導入。
+現在のHTML内JavaScript開発の型チェック・IntelliSense問題を根本解決するため、開発時はJavaScriptファイルとして作業し、デプロイ時にHTML形式に自動変換するハイブリッドアーキテクチャを導入。
 
 ## GAS特有制約の対応
 
