@@ -92,6 +92,16 @@ export function onOpen() {
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
     rebuildAllCachesEntryPoint();
   }
+
+  // ログシートがアクティブな状態で開かれた場合、最新行（最下行）を表示する
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const activeSheet = ss.getActiveSheet();
+  if (activeSheet.getName() === CONSTANTS.SHEET_NAMES.LOG) {
+    const lastRow = activeSheet.getLastRow();
+    if (lastRow > 0) {
+      activeSheet.getRange(lastRow, 1).activate();
+    }
+  }
 }
 
 /**

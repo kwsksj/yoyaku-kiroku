@@ -245,7 +245,6 @@ export function logActivity(userId, action, result, optionsOrDetails) {
       return;
     }
 
-    logSheet.insertRowAfter(1); // 常にヘッダーの直下(2行目)に行を挿入
     const timestamp = new Date();
 
     // 後方互換性: optionsOrDetailsが文字列の場合は旧フォーマット
@@ -282,20 +281,19 @@ export function logActivity(userId, action, result, optionsOrDetails) {
     }
 
     // A-K列に値を設定（C,D列は数式が自動計算）
-    logSheet.getRange('A2:K2').setValues([
-      [
-        timestamp, // A: タイムスタンプ
-        userId, // B: ユーザーID
-        '', // C: 本名（ARRAYFORMULA）
-        '', // D: ニックネーム（ARRAYFORMULA）
-        action, // E: アクション
-        result, // F: 結果
-        classroom, // G: 教室名
-        reservationId, // H: 予約ID
-        date, // I: 日付
-        message, // J: メッセージ
-        detailsValue, // K: 詳細情報
-      ],
+    // 競合回避のため appendRow を使用（最下行に追加）
+    logSheet.appendRow([
+      timestamp, // A: タイムスタンプ
+      userId, // B: ユーザーID
+      '', // C: 本名（ARRAYFORMULA）
+      '', // D: ニックネーム（ARRAYFORMULA）
+      action, // E: アクション
+      result, // F: 結果
+      classroom, // G: 教室名
+      reservationId, // H: 予約ID
+      date, // I: 日付
+      message, // J: メッセージ
+      detailsValue, // K: 詳細情報
     ]);
   } catch (e) {
     Logger.log(`ログの記録に失敗しました: ${e.message}`);
