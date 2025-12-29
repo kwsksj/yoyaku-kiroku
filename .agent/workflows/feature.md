@@ -34,7 +34,19 @@ git checkout -b feature/機能名
 ## 4. 実装
 
 - 適切な節目で自動コミット
-- UI追加時は既存コンポーネントを使用
+
+### UI追加・変更時（重要）
+
+1. **既存コンポーネントを確認**
+   - `src/frontend/13_WebApp_Components.js` を確認し、再利用できるものを探す
+   - `Components.button`, `Components.modal`, `Components.card` など
+
+2. **デザイン定義を確認**
+   - `src/frontend/11_WebApp_Config.js` で色、余白、フォントを確認
+   - ハードコードせず、定義済みの値を使用
+
+3. **ゼロからHTMLを作成しない**
+   - 既存コンポーネントを組み合わせて構築
 
 ## 5. 完了後
 
