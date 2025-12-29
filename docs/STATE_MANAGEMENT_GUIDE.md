@@ -164,7 +164,7 @@ stateManager.dispatch({
 });
 ```
 
-2. **型の一貫性**: State定義で宣言された型を守る
+1. **型の一貫性**: State定義で宣言された型を守る
 
 ```javascript
 // ❌ BAD: 型が異なる

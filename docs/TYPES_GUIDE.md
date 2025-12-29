@@ -76,6 +76,52 @@ types/
 
 ---
 
+## 型定義生成システム
+
+このプロジェクトでは、JSDocからTypeScriptの型定義ファイル（`.d.ts`）を自動生成する仕組みを採用している。
+
+### 生成フロー
+
+1. **TypeScriptコンパイラによる型定義抽出** (`tsc --declaration`)
+   - `src/backend/`、`src/frontend/`、`src/shared/` の全JSファイルからJSDocを解析
+   - TypeScriptの宣言ファイル生成機能を使用して `.d.ts` ファイルを作成
+   - `types/generated-*-globals/` ディレクトリに環境別の型定義を生成
+
+2. **環境別インデックス統合** (`tools/create-dts-index.js`)
+   - 各 `generated-*-globals/` 内の型定義を統合
+   - 各ディレクトリに `index.d.ts` を生成し、すべての型をまとめてexport
+
+3. **グローバル型ブリッジ生成** (`tools/create-global-bridge.js`)
+   - export宣言をグローバル宣言（`declare global`）に変換
+   - 各ディレクトリに `_globals.d.ts` を生成
+   - namespace内のfunction定義も正しく処理（例: `PerformanceLog.start()`）
+   - GAS環境ではモジュールシステム（import/export）が使えないため、すべての型をグローバルスコープで利用可能にする
+
+### ディレクトリ構造
+
+```text
+types/
+├── generated-backend-globals/    # 自動生成（編集禁止）
+│   ├── *.d.ts                    # JSDocから生成された型定義
+│   ├── index.d.ts                # 統合インデックス（自動生成）
+│   └── _globals.d.ts             # グローバル型ブリッジ（自動生成）
+├── generated-frontend-globals/   # 自動生成（編集禁止）
+├── generated-shared-globals/     # 自動生成（編集禁止）
+├── global-aliases.d.ts           # 手動管理型エイリアス（編集可能）
+├── backend-index.d.ts            # 手動管理エントリーポイント（編集可能）
+├── frontend-index.d.ts           # 手動管理エントリーポイント（編集可能）
+├── core/                         # 手動管理型定義（編集可能）
+├── view/                         # 手動管理型定義（編集可能）
+└── gas-custom.d.ts               # 手動管理型定義（編集可能）
+```
+
+### 重要な注意事項
+
+- `types/generated-*-globals/` 内のファイルは自動生成されるため、直接編集しないこと
+- その他の型定義ファイル（`global-aliases.d.ts`, `*-index.d.ts`, `core/`, `view/`, `gas-custom.d.ts`）は手動管理のため、必要に応じて編集可能
+
+---
+
 ## Core型の使い方
 
 ### ReservationCore

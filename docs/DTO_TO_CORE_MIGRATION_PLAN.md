@@ -483,19 +483,19 @@ interface UserCore {
 
 ### Week 2: Phase 2-3（User/Accounting統一）
 
-5. **Day 1**: `registerNewUser()` 改修
+1. **Day 1**: `registerNewUser()` 改修
 
-6. **Day 2**: `saveAccountingDetails()` 改修
+2. **Day 2**: `saveAccountingDetails()` 改修
 
-7. **Day 3-4**: テスト・検証
+3. **Day 3-4**: テスト・検証
 
 ### Week 3: Phase 4（フロントエンド）
 
-8. **Day 1-2**: 予約ハンドラ修正
+1. **Day 1-2**: 予約ハンドラ修正
 
-9. **Day 3**: 会計フォーム修正
+2. **Day 3**: 会計フォーム修正
 
-10. **Day 4-5**: 統合テスト
+3. **Day 4-5**: 統合テスト
 
 ---
 
