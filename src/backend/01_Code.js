@@ -110,6 +110,45 @@ export function onOpen() {
 }
 
 /**
+ * 選択範囲変更時に実行されるシンプルトリガー
+ * シート切り替えを検知して、ログ系シートの場合は最下部にスクロールする
+ *
+ * @description
+ * ユーザーがシートタブを切り替えた際にも発火するため、
+ * CacheServiceを使って「直前のシート」を記憶し、
+ * シートが変わったタイミングでのみ自動スクロールを実行する。
+ * これにより、同一シート内でのセル選択移動ではスクロールが発生しないようにする。
+ *
+ * @param {{ range: GoogleAppsScript.Spreadsheet.Range }} e
+ */
+export function onSelectionChange(e) {
+  const range = e.range;
+  const sheet = range.getSheet();
+  const sheetName = sheet.getName();
+  const userCache = CacheService.getUserCache(); // ユーザーごとのキャッシュを使用
+  const cacheKey = 'LAST_ACTIVE_SHEET';
+  const lastSheetName = userCache.get(cacheKey);
+
+  // シートが切り替わった場合のみ処理を実行
+  if (sheetName !== lastSheetName) {
+    // 現在のシート名をキャッシュに保存（有効期限: 6時間）
+    userCache.put(cacheKey, sheetName, 21600);
+
+    // 対象のシート（ログ記録・予約記録）なら最下部にスクロール
+    if (
+      sheetName === CONSTANTS.SHEET_NAMES.LOG ||
+      sheetName === CONSTANTS.SHEET_NAMES.RESERVATIONS
+    ) {
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 0) {
+        // A列の最下行をアクティブにする
+        sheet.getRange(lastRow, 1).activate();
+      }
+    }
+  }
+}
+
+/**
  * @param {GoogleAppsScript.Base.Menu} menu
  */
 export function addAdminMenu(menu) {

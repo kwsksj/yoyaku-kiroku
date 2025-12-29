@@ -10,6 +10,21 @@ export function include(filename: string): string;
 export function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutput;
 export function onOpen(): void;
 /**
+ * 選択範囲変更時に実行されるシンプルトリガー
+ * シート切り替えを検知して、ログ系シートの場合は最下部にスクロールする
+ *
+ * @description
+ * ユーザーがシートタブを切り替えた際にも発火するため、
+ * CacheServiceを使って「直前のシート」を記憶し、
+ * シートが変わったタイミングでのみ自動スクロールを実行する。
+ * これにより、同一シート内でのセル選択移動ではスクロールが発生しないようにする。
+ *
+ * @param {{ range: GoogleAppsScript.Spreadsheet.Range }} e
+ */
+export function onSelectionChange(e: {
+    range: GoogleAppsScript.Spreadsheet.Range;
+}): void;
+/**
  * @param {GoogleAppsScript.Base.Menu} menu
  */
 export function addAdminMenu(menu: GoogleAppsScript.Base.Menu): void;
