@@ -1299,7 +1299,7 @@ export function convertReservationToRow(reservation, headerMap, header) {
  * 予約データの行配列を多段階ソートします
  *
  * ソート順序:
- * 1. 日付順（降順: 新しい日付が上）
+ * 1. 日付順（昇順: 古い日付が上）
  * 2. ステータス順（完了=確定 > 待機 > 取消）
  * 3. 開始時間順（昇順: 早い時間が上）
  * 4. 終了時間順（昇順: 早い時間が上）
@@ -1335,11 +1335,11 @@ export function sortReservationRows(rows, headerMap) {
   }
 
   return rows.sort((a, b) => {
-    // 1. 日付順（降順: 新しい日付が上）
+    // 1. 日付順（昇順: 古い日付が上）
     const dateA = new Date(/** @type {string|Date} */ (a[dateIdx]));
     const dateB = new Date(/** @type {string|Date} */ (b[dateIdx]));
     if (dateA.getTime() !== dateB.getTime()) {
-      return dateB.getTime() - dateA.getTime(); // 新しい順
+      return dateA.getTime() - dateB.getTime(); // 古い順
     }
 
     // 2. ステータス順（優先度: 完了=確定 > 待機 > 取消）

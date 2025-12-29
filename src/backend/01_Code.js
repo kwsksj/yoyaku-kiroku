@@ -96,7 +96,12 @@ export function onOpen() {
   // ログシートがアクティブな状態で開かれた場合、最新行（最下行）を表示する
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const activeSheet = ss.getActiveSheet();
-  if (activeSheet.getName() === CONSTANTS.SHEET_NAMES.LOG) {
+  const activeSheetName = activeSheet.getName();
+
+  if (
+    activeSheetName === CONSTANTS.SHEET_NAMES.LOG ||
+    activeSheetName === CONSTANTS.SHEET_NAMES.RESERVATIONS
+  ) {
     const lastRow = activeSheet.getLastRow();
     if (lastRow > 0) {
       activeSheet.getRange(lastRow, 1).activate();
