@@ -19,6 +19,7 @@ grep -r "キーワード" src/
 ```
 
 必要に応じて以下を参照:
+
 - @DATA_MODEL.md - データ構造
 - @TYPES_GUIDE.md - 型定義
 - @SYSTEM_ARCHITECTURE.md - アーキテクチャ
