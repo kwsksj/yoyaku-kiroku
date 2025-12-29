@@ -47,50 +47,10 @@
 
 **3. テスト環境への反映と確認**
 
-- `npm run ai:test`
-  - **AI操作前の推奨コマンド。**
-  - `validate:fix` を実行し、テスト環境へデプロイします。
-- `npm run build-push:test`
-  - `build` を実行し、テスト環境へプッシュします（デプロイなし）。
-
-**3-1. Chrome DevTools MCPを使った自動テスト（AI推奨）**
-
-AIによる開発・テスト時は、Chrome DevTools MCP（Model Context Protocol）を使用することで、WebAppの動作を自動的にテストできます。
-
-- **前提条件**:
-  - テスト環境のWebApp URLとデプロイIDは `.clasp.config.json` に記録されています
-  - URLは `npm run url:exec:test` などで取得できます
-  - テスト環境は一般公開設定されており、ログイン不要でアクセス可能です
-
-- **基本的なテストフロー**:
-  1. コードをビルド・デプロイ: `npm run ai:test`
-  2. URLを取得: `npm run url:exec:test` (WebApp)、`npm run url:sheet:test` (スプレッドシート)
-  3. DevTools MCPでWebAppを開く: `mcp__devtools__new_page` または `mcp__devtools__navigate_page`
-  4. スナップショット取得: `mcp__devtools__take_snapshot`
-  5. UI操作: `mcp__devtools__fill`, `mcp__devtools__click`
-  6. コンソールログ確認: `mcp__devtools__list_console_messages`
-  7. スクリーンショット取得: `mcp__devtools__take_screenshot`（必要に応じて `filePath` を指定）
-
-- **キャッシュ管理**:
-  - **テスト環境の重要な特性**: スプレッドシートを開くたびに（リロードするたびに）、**全キャッシュが自動的に再構築されます**
-  - これにより、テスト環境では常に最新のデータ構造でテストが可能です
-  - キャッシュをクリアしたい場合は、`npm run url:sheet:test` でスプレッドシートを開き、リロードしてください
-
-- **テスト実施例**:
-  - 新規登録フロー、ログイン、予約作成・編集・キャンセル、プロフィール編集など
-  - レスポンス構造の検証（コンソールログから確認）
-  - UI表示の確認（スクリーンショット・スナップショット）
-
-- **注意**:
-  - WebAppのURLは `/exec` エンドポイント（公開URL）を使用してください。`/dev` エンドポイントはGoogleログインが必要なため、MCP DevToolsでは使用できません
-  - スクリーンショットはデフォルトではAIが確認するのみです。ファイルとして保存したい場合は `filePath` パラメータを指定してください
-
-**4. 本番環境へのデプロイ**
-
-- `npm run ai:prod`
-  - テスト環境で問題がないことを確認した後、このコマンドで自動修正・ビルド・本番環境へのデプロイを行います。
-- `npm run build-push:prod`
-  - `build` を実行し、本番環境へプッシュします（デプロイなし）。
+- `npm run fix-push:test`
+  - **【ユーザー推奨】** 改修後の標準コマンド。
+  - 自動修正(`validate:fix`)を行い、テスト環境へプッシュします（デプロイなし）。
+  - ユーザーが即座にテスト・確認を行うために使用します。
 
 ---
 
@@ -127,27 +87,14 @@ AIによる開発・テスト時は、Chrome DevTools MCP（Model Context Protoc
 
 **デプロイ関連**
 
-- `npm run ai:test`: **AI操作前の推奨コマンド。** `validate:fix` + テスト環境へのデプロイ。
-- `npm run ai:prod`: **本番デプロイ前の推奨コマンド。** `validate:fix` + 本番環境へのデプロイ。
-- `npm run build-push:test`: `build` + テスト環境へのプッシュ（デプロイなし）。
-- `npm run build-push:prod`: `build` + 本番環境へのプッシュ（デプロイなし）。
-- `npm run deploy:test`: テスト環境へのデプロイ（ビルドなし）。
-- `npm run deploy:prod`: 本番環境へのデプロイ（ビルドなし）。
+- `npm run fix-push:test`: **【ユーザー推奨】** `validate:fix` + テスト環境へのプッシュ（デプロイなし）。
+- `npm run ai:test`: `validate:fix` + テスト環境へのデプロイ（バージョン発行）。
 
 **URL取得（MCP DevTools用）**
 
 - `npm run url:exec:test`: テスト環境の公開WebApp URL取得。
-- `npm run url:exec:prod`: 本番環境の公開WebApp URL取得。
-- `npm run url:sheet:test`: テスト環境のスプレッドシート URL取得。
-- `npm run url:sheet:prod`: 本番環境のスプレッドシート URL取得。
 
 **注意**: スクリプトエディタのURLはGoogleログインが必要なため、MCP DevToolsでは開けません。
-
-**その他**
-
-- `npm run switch:env -- prod|test`: `.clasp.json`を切り替えて、作業環境を変更します。
-
----
 
 ## AIへの指示
 
@@ -271,6 +218,12 @@ AIによる開発・テスト時は、Chrome DevTools MCP（Model Context Protoc
 - **見出しの使用**: セクションタイトルには、強調（**太字**）ではなく、適切なレベルの見出し（`##`など）を使用してください。
 - **見出しの重複**: 同じ内容の見出しを複数作成しないでください（例: `## まとめ` が複数あるなど）。
 - **コードブロックの言語指定**: コードブロックには常に言語（javascript, text, json, bash, htmlなど）を指定してください。
+
+### タスク管理とTODO
+
+- **`docs/TODO.md`**: プロジェクトのタスク、バグ、アイデアを管理するファイルです。
+- **Inbox（未整理メモ）**: ユーザーが思いついたことを自由に記述する場所です。AIは定期的にこのセクションを確認し、適切なカテゴリー（Bugs, UI Improvements, Features）に整理・分類してください。
+- **運用ルール**: ユーザーがInboxにメモを追加したら、AIはそれを構造化データに変換する役割を担います。
 
 ---
 
