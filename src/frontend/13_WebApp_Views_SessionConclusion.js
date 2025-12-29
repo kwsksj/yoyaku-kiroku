@@ -372,7 +372,7 @@ export function renderStep3Reservation(state) {
           <p class="text-sm text-gray-400">あとで予約してください</p>
         </div>
       `;
-    } else if (existingReservation && !selectedLesson && !recommendedLesson) {
+    } else if (existingReservation && !selectedLesson) {
       const formattedDate = window.formatDate
         ? window.formatDate(existingReservation.date)
         : existingReservation.date;
