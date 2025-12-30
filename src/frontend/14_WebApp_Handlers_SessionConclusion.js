@@ -908,24 +908,9 @@ function handleConclusionClick(event) {
       break;
     }
     case 'expandLessonList': {
-      // 展開/折りたたみはDOM操作で行い、再描画しない（ちらつき防止）
+      // 展開/折りたたみを切り替えて再描画（戻るボタンの動作も更新される）
       wizardState.isLessonListExpanded = !wizardState.isLessonListExpanded;
-      const isExpanded = wizardState.isLessonListExpanded;
-
-      // 新しいDOM構造に対応: slot-view-content, slot-list-content, action-buttons
-      const slotViewContent = document.querySelector('.slot-view-content');
-      const slotListContent = document.querySelector('.slot-list-content');
-      const actionButtons = document.querySelector('.action-buttons');
-
-      if (slotViewContent) {
-        slotViewContent.classList.toggle('hidden', isExpanded);
-      }
-      if (slotListContent) {
-        slotListContent.classList.toggle('hidden', !isExpanded);
-      }
-      if (actionButtons) {
-        actionButtons.classList.toggle('hidden', isExpanded);
-      }
+      goToStep(STEPS.RESERVATION);
       break;
     }
     case 'undoReservationSkip':

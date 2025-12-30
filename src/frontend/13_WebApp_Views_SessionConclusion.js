@@ -503,7 +503,7 @@ export function renderStep3Reservation(state) {
         <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
           <p class="text-3xl mb-3">📅</p>
           <p class="text-lg font-bold text-gray-500 mb-1">いまは きめない</p>
-          <p class="text-sm text-gray-400">あとで よやく してください</p>
+          <p class="text-sm text-gray-400">あとで よやく してね</p>
         </div>
       `;
     } else if (existingReservation && !selectedLesson) {
@@ -557,7 +557,7 @@ export function renderStep3Reservation(state) {
           '<div class="inline-flex items-center gap-1 bg-action-primary-bg text-white px-3 py-1 rounded-full text-sm font-bold mb-3">この にってい で よやく</div>';
       } else {
         statusBadge =
-          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">★ おすすめ</div>';
+          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">★ おすすめ（きょうと にた にってい）</div>';
       }
 
       const experienceLabel = renderExperienceLabel(isExperiencedOnly);
@@ -716,7 +716,7 @@ export function renderStep3Reservation(state) {
               class="flex-1 py-1 px-2 text-xs font-bold rounded-full filter-btn-all ${filterClassroom === 'all' ? activeClass : inactiveClass}"
               data-action="setFilterClassroom"
               data-filter="all">
-        すべて の きょうしつ
+        すべて の 教室
       </button>
     </div>
   `;
