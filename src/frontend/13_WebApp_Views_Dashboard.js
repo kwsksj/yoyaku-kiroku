@@ -104,26 +104,43 @@ export const getDashboardView = () => {
 
   if (completedRecords.length > 0) {
     // リストビュー形式できろくを表示
+    /** @type {number | null} */
+    let lastYear = null; // 年が変わったらセパレーターを表示するため
     const historyListItems = completedRecords.map(
-      (/** @type {ReservationCore} */ h) => {
+      (/** @type {ReservationCore} */ h, index) => {
         // 編集モード状態を取得
         const isInEditMode = dashboardStateManager.isInEditMode(
           h.reservationId,
         );
 
+        // 日付の年を取得
+        const dateObj = new Date(h.date);
+        const year = dateObj.getFullYear();
+        const currentYear = new Date().getFullYear();
+
+        // 年が切り替わるタイミングで年表示
+        let yearSeparator = '';
+        if (lastYear !== null && lastYear !== year) {
+          yearSeparator = `<div class="text-xs text-brand-subtle text-center py-1 border-t border-brand-subtle/30 mt-2">── ${year}年 ──</div>`;
+        } else if (index === 0 && year !== currentYear) {
+          // 最初の記録が今年でない場合も年を表示
+          yearSeparator = `<div class="text-xs text-brand-subtle text-center py-1">── ${year}年 ──</div>`;
+        }
+        lastYear = year;
+
         // 日付・時間・教室・会場を小さく表示
         const dateStr = formatDate(String(h.date));
         const timeStr = h.startTime ? `${h.startTime}~${h.endTime}` : '';
         const classroomStr = h.classroom || '';
-        const venueStr = h.venue ? `@${h.venue}` : '';
+        const venueStr = h.venue || '';
 
-        // ヘッダー行（日付・教室などを小さく表示）
+        // ヘッダー行（日付・教室などを小さく表示、時間はより小さく）
         const headerLine = `
-          <div class="flex items-center gap-2 text-sm text-brand-subtle mb-1">
+          <div class="flex items-center gap-1.5 text-sm text-brand-subtle mb-1 flex-wrap">
             <span class="font-bold">${dateStr}</span>
-            ${timeStr ? `<span>${escapeHTML(timeStr)}</span>` : ''}
             ${classroomStr ? `<span>${escapeHTML(classroomStr)}</span>` : ''}
-            ${venueStr ? `<span>${escapeHTML(venueStr)}</span>` : ''}
+            ${venueStr ? `<span class="text-xs">${escapeHTML(venueStr)}</span>` : ''}
+            ${timeStr ? `<span class="text-xs">${escapeHTML(timeStr)}</span>` : ''}
           </div>
         `;
 
@@ -136,6 +153,7 @@ export const getDashboardView = () => {
         });
 
         return `
+          ${yearSeparator}
           <div class="border-b border-ui-border last:border-b-0 py-2" data-reservation-id="${h.reservationId}">
             ${headerLine}
             ${memoHtml}
