@@ -29,8 +29,8 @@ export function _updateHistoryCardButton(reservationId: string): void;
 export function getDashboardView(): string;
 export function _buildEditButtons(booking: ReservationCore): Array<any>;
 export function _buildAccountingButtons(_booking: ReservationCore): Array<any>;
-export function _buildHistoryEditButtons(isInEditMode?: boolean, reservationId?: string): Array<any>;
-export function _buildHistoryAccountingButtons(historyItem: ReservationCore): Array<any>;
+export function _buildHistoryEditButtons(_isInEditMode?: boolean, _reservationId?: string): Array<any>;
+export function _buildHistoryAccountingButtons(_historyItem: ReservationCore): Array<any>;
 export function _buildBookingBadges(booking: ReservationCore): Array<{
     type: BadgeType;
     text: string;

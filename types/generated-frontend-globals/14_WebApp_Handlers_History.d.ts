@@ -5,4 +5,5 @@ export namespace historyActionHandlers {
     function saveAndCloseMemo(d: any): void;
     function loadMoreHistory(): void;
     function showHistoryAccounting(d: ActionHandlerData): void;
+    function showAccountingHistory(): void;
 }

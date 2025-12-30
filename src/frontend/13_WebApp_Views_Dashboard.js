@@ -195,13 +195,23 @@ export const getDashboardView = () => {
     caption: 'Googleフォトのアルバムページが開きます',
   });
 
+  // 会計履歴ボタン
+  const accountingHistoryButton = Components.button({
+    text: 'かいけい<br>履歴',
+    action: 'showAccountingHistory',
+    style: 'accounting',
+    customClass:
+      'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
+  });
+
   // メニューアイテムを構築（すべてをフラットな配列にしてグリッド配置）
-  // 順序: 一覧、予約、(まとめ)、ギャラリー
+  // 順序: 一覧、予約、(まとめ)、会計履歴、ギャラリー
   const allMenuButtons = [
     menuButton,
     newBookingButton,
-    photoButton,
     summaryMenuButton,
+    accountingHistoryButton,
+    photoButton,
   ]
     .filter(Boolean)
     .join('');
@@ -322,77 +332,28 @@ export const _buildAccountingButtons = _booking => {
 
 /**
  * 履歴カードの編集ボタン配列を生成します。
- * @param {boolean} isInEditMode - 編集モードフラグ
- * @param {string} reservationId - 予約ID
- * @returns {Array<any>} 編集ボタン設定配列
+ * 【廃止】ボタンはmemoSection内に移動。常に空配列を返す。
+ * @param {boolean} _isInEditMode - 編集モードフラグ（未使用）
+ * @param {string} _reservationId - 予約ID（未使用）
+ * @returns {Array<any>} 空の配列
  */
 export const _buildHistoryEditButtons = (
-  isInEditMode = false,
-  reservationId = '',
+  _isInEditMode = false,
+  _reservationId = '',
 ) => {
-  const buttons = [];
-  const state = dashboardStateManager.getState();
-
-  // 編集モード状態に応じてボタンテキストとアクションを変更
-  if (isInEditMode) {
-    // 編集モード時：入力変更があるかチェック
-    const hasInputChanged =
-      state.memoInputChanged &&
-      state.editingMemo &&
-      state.editingMemo.reservationId === reservationId;
-
-    if (hasInputChanged) {
-      // 入力変更あり：保存ボタンを表示
-      buttons.push({
-        action: 'saveAndCloseMemo',
-        text: 'メモを<br>保存',
-        dataAttributes: {
-          reservationId: reservationId,
-        },
-      });
-    } else {
-      // 入力変更なし：とじるボタンを表示
-      buttons.push({
-        action: 'closeEditMode',
-        text: 'とじる',
-        dataAttributes: {
-          reservationId: reservationId,
-        },
-      });
-    }
-  } else {
-    // 通常時：編集モードに入る
-    buttons.push({
-      action: 'expandHistoryCard',
-      text: 'かくにん<br>へんしゅう',
-    });
-  }
-
-  return buttons;
+  // ボタンはmemoSection内に移動したため、空配列を返す
+  return [];
 };
 
 /**
  * 履歴カードの会計ボタン配列を生成します。
- * @param {ReservationCore} historyItem - 履歴データ
- * @returns {Array<any>} 会計ボタン設定配列
+ * 【廃止】メニューの「会計履歴」から確認する方式に変更。常に空配列を返す。
+ * @param {ReservationCore} _historyItem - 履歴データ（未使用）
+ * @returns {Array<any>} 空の配列
  */
-export const _buildHistoryAccountingButtons = historyItem => {
-  const buttons = [];
-
-  if (historyItem.status === CONSTANTS.STATUS.COMPLETED) {
-    const isHistoryToday = _isToday(historyItem.date);
-
-    if (isHistoryToday) {
-      // きろく かつ 教室の当日 → 「会計を修正」ボタンは維持
-      buttons.push({
-        action: 'editAccountingRecord',
-        text: '会計<br>修正',
-        style: 'accounting',
-      });
-    }
-  }
-
-  return buttons;
+export const _buildHistoryAccountingButtons = _historyItem => {
+  // メニューの「会計履歴」から確認する方式に変更
+  return [];
 };
 
 /**

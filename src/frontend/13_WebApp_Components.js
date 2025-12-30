@@ -1526,14 +1526,28 @@ export const Components = {
     isEditMode = false,
     showSaveButton = true,
   }) => {
+    // モノクロ鉛筆アイコン（Noto Emojiベース、シンプル化）
+    const editIconSvg = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+    </svg>`;
+
     if (isEditMode) {
-      // 編集モード：textareaと保存ボタン
+      // 編集モード：textareaと保存/とじるボタン
       const textareaId = `memo-edit-textarea-${reservationId}`;
-      const saveButtonHtml = showSaveButton
-        ? `<div class="flex justify-end mt-2">
+      const buttonsHtml = showSaveButton
+        ? `<div class="flex justify-end gap-2 mt-2">
             ${Components.button({
-              action: 'saveMemo',
-              text: 'メモを保存',
+              action: 'closeEditMode',
+              text: 'とじる',
+              style: 'secondary',
+              size: 'small',
+              dataAttributes: {
+                reservationId,
+              },
+            })}
+            ${Components.button({
+              action: 'saveAndCloseMemo',
+              text: '保存',
               style: 'primary',
               size: 'small',
               dataAttributes: {
@@ -1551,14 +1565,22 @@ export const Components = {
             placeholder="制作内容や進捗をメモしてね"
             data-reservation-id="${reservationId}"
           >${escapeHTML(sessionNote || '')}</textarea>
-          ${saveButtonHtml}
+          ${buttonsHtml}
         </div>
       `;
     } else {
-      // 通常モード：読み取り専用表示
+      // 通常モード：読み取り専用表示 + 編集アイコン
       return `
-        <div class="p-0.5 bg-white/75" data-memo-container>
-          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14">${escapeHTML(sessionNote || '')}</p>
+        <div class="p-0.5 bg-white/75 relative" data-memo-container>
+          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14 pr-8">${escapeHTML(sessionNote || '')}</p>
+          <button
+            data-action="expandHistoryCard"
+            data-reservation-id="${reservationId}"
+            class="absolute bottom-1 right-1 p-1 text-brand-subtle hover:text-brand-text active:bg-brand-light rounded transition-colors"
+            aria-label="メモを編集"
+          >
+            ${editIconSvg}
+          </button>
         </div>
       `;
     }

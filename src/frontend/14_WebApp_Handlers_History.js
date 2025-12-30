@@ -287,4 +287,111 @@ export const historyActionHandlers = {
       })
       .getAccountingDetailsFromSheet(d.reservationId);
   },
+
+  /** 会計履歴を一覧表示するモーダルを開く */
+  showAccountingHistory: () => {
+    const state = historyStateManager.getState();
+    const myReservations = state.myReservations || [];
+
+    // 完了済みの予約のうち会計記録があるものを抽出
+    const completedReservations = myReservations
+      .filter(
+        (/** @type {ReservationCore} */ res) =>
+          res.status === CONSTANTS.STATUS.COMPLETED,
+      )
+      .sort(
+        (/** @type {ReservationCore} */ a, /** @type {ReservationCore} */ b) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime(),
+      );
+
+    if (completedReservations.length === 0) {
+      showInfo('会計履歴はまだありません', '会計履歴');
+      return;
+    }
+
+    // 会計履歴リストを生成
+    const historyListHtml = completedReservations
+      .map((/** @type {ReservationCore} */ res) => {
+        const dateStr = formatDate(String(res.date));
+        const classroom = res.classroom || '';
+        const accountingDetails = /** @type {any} */ (res.accountingDetails);
+        const hasAccounting =
+          accountingDetails &&
+          (typeof accountingDetails === 'object' ||
+            (typeof accountingDetails === 'string' &&
+              accountingDetails.trim() !== ''));
+
+        if (!hasAccounting) {
+          return `
+            <div class="p-3 border-b border-ui-border last:border-b-0">
+              <div class="flex justify-between items-center">
+                <div>
+                  <span class="font-bold text-brand-text">${dateStr}</span>
+                  <span class="text-sm text-brand-subtle ml-2">${escapeHTML(classroom)}</span>
+                </div>
+                <span class="text-sm text-brand-subtle">記録なし</span>
+              </div>
+            </div>
+          `;
+        }
+
+        // 会計詳細がある場合は金額を表示
+        let totalAmount = 0;
+        if (
+          typeof res.accountingDetails === 'object' &&
+          res.accountingDetails !== null
+        ) {
+          const accounting = res.accountingDetails;
+          totalAmount = accounting.grandTotal || 0;
+        }
+
+        const amountDisplay =
+          totalAmount > 0
+            ? `<span class="font-bold text-brand-text">¥${totalAmount.toLocaleString()}</span>`
+            : `<span class="text-sm text-brand-subtle">¥0</span>`;
+
+        return `
+          <button
+            data-action="showHistoryAccounting"
+            data-reservation-id="${res.reservationId}"
+            class="w-full p-3 border-b border-ui-border last:border-b-0 hover:bg-ui-hover active:bg-ui-pressed text-left transition-colors"
+          >
+            <div class="flex justify-between items-center">
+              <div>
+                <span class="font-bold text-brand-text">${dateStr}</span>
+                <span class="text-sm text-brand-subtle ml-2">${escapeHTML(classroom)}</span>
+              </div>
+              ${amountDisplay}
+            </div>
+          </button>
+        `;
+      })
+      .join('');
+
+    const modalContent = `
+      <div class="max-h-[60vh] overflow-y-auto">
+        ${historyListHtml}
+      </div>
+    `;
+
+    const modalId = 'accounting-history-modal';
+    const modalHtml = Components.modal({
+      id: modalId,
+      title: '会計履歴',
+      content: modalContent,
+      maxWidth: 'max-w-md',
+    });
+
+    // 既存のモーダルがあれば削除
+    const existingModal = document.getElementById(modalId);
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // モーダルをDOMに追加
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // モーダルを表示
+    Components.showModal(modalId);
+  },
 };
