@@ -234,6 +234,18 @@ export function renderStep3Reservation(state) {
   const myReservations =
     window.appWindow?.stateManager?.getState()?.myReservations || [];
 
+  /**
+   * 指定のレッスンが予約済みかどうかをチェック
+   * @param {LessonCore | null} lesson
+   * @returns {boolean}
+   */
+  const isLessonAlreadyBooked = lesson => {
+    if (!lesson) return false;
+    return myReservations.some(
+      r => r.lessonId === lesson.lessonId && r.status === '予約',
+    );
+  };
+
   // --- スロットに表示するレッスンを決定 ---
   // 優先順:
   // 1. ユーザーが明示的に選択したレッスン（既存予約があっても上書き）
@@ -542,12 +554,20 @@ export function renderStep3Reservation(state) {
       const isSelected = Boolean(selectedLesson);
       const { isExperiencedOnly } = getSlotStatus(slotLesson);
 
-      // ステータスバッジ
       let statusBadge = '';
       let cardBorderClass = 'border-action-primary-bg';
       let cardBgClass = 'bg-action-secondary-bg';
 
-      if (isWaitlist) {
+      // 選択した日程が予約済みかどうか
+      const isAlreadyBooked = isLessonAlreadyBooked(slotLesson);
+
+      if (isAlreadyBooked) {
+        // 予約済みの日程を選択した場合
+        statusBadge =
+          '<div class="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold mb-3">✓ よやくずみ</div>';
+        cardBorderClass = 'border-green-400';
+        cardBgClass = 'bg-green-50';
+      } else if (isWaitlist) {
         statusBadge =
           '<div class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold mb-3">空き通知 きぼう</div>';
         cardBorderClass = 'border-yellow-400';
@@ -824,7 +844,7 @@ export function renderStep3Reservation(state) {
   const changeButtonHtml = !isExpanded
     ? Components.button({
         action: 'expandLessonList',
-        text: 'にってい へんこう',
+        text: 'ほか の にってい',
         style: 'secondary',
         size: 'full',
         customClass: 'mb-3',
