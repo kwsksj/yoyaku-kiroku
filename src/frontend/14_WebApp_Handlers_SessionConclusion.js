@@ -263,25 +263,27 @@ function goToStep(targetStep) {
   wizardState.currentStep = targetStep;
 
   // 状態マネージャー更新（再描画トリガー）
-  // 履歴には追加せず、現在の状態を更新するのみ
-  // note: 履歴を使わないシンプルなステップ遷移
   conclusionStateManager.dispatch({
     type: 'UPDATE_STATE',
     payload: {},
   });
 
-  // DOMを直接更新
-  const contentContainer = document.querySelector('.session-conclusion-wizard');
-  if (contentContainer) {
-    const viewHtml = getSessionConclusionView(wizardState);
-    // 全体を置換するか、中身だけ置換するか
-    // getSessionConclusionViewはフルページHTMLを返すため、main-contentを更新したほうが安全
-    // しかしヘッダー周りは変えたくないため、view-containerの中身を更新する
-    const viewContainer = document.getElementById('view-container');
-    if (viewContainer) {
+  // フェードアウト → フェードイン のシーケンス
+  const viewContainer = document.getElementById('view-container');
+  if (viewContainer) {
+    // 現在のコンテンツにフェードアウトを適用
+    const currentContent = viewContainer.querySelector('.fade-in');
+    if (currentContent) {
+      currentContent.classList.remove('fade-in');
+      currentContent.classList.add('fade-out');
+    }
+
+    // フェードアウト完了後に新コンテンツでフェードイン
+    setTimeout(() => {
+      const viewHtml = getSessionConclusionView(wizardState);
       viewContainer.innerHTML = `<div class="fade-in">${viewHtml}</div>`;
       setupSessionConclusionUI();
-    }
+    }, 150); // フェードアウトのduration (0.15s) と同期
   }
 }
 

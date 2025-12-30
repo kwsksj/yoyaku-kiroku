@@ -531,10 +531,15 @@ export const addCustomStyles = () => {
       }
 
       /* ========== Animations ========== */
-      .fade-in { animation: fadeInUp 0.3s ease-out; }
+      .fade-in { animation: fadeInUp 0.2s ease-out forwards; }
+      .fade-out { animation: fadeOutDown 0.15s ease-in forwards; }
       @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(10px); }
+        from { opacity: 0; transform: translateY(8px); }
         to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes fadeOutDown {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-8px); }
       }
       .spinner {
         border: 5px solid var(--spinner-border);
