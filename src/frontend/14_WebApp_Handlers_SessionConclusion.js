@@ -262,13 +262,8 @@ function goToStep(targetStep) {
   // ステップ更新
   wizardState.currentStep = targetStep;
 
-  // 状態マネージャー更新（再描画トリガー）
-  conclusionStateManager.dispatch({
-    type: 'UPDATE_STATE',
-    payload: {},
-  });
-
-  // フェードアウト → フェードイン のシーケンス
+  // フェードアウト → フェードイン のシーケンスでビューを更新
+  // note: 直接DOM更新のみで、dispatchによる二重描画を防ぐ
   const viewContainer = document.getElementById('view-container');
   if (viewContainer) {
     // 現在のコンテンツにフェードアウトを適用
