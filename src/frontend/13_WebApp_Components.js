@@ -1558,7 +1558,7 @@ export const Components = {
     </svg>`;
 
     if (isEditMode) {
-      // 編集モード：textareaと保存/キャンセルボタン（けいかくカードと同一デザイン）
+      // 編集モード：textareaと保存/キャンセルボタン（けいかくカードと同一構造：白枠なし）
       const buttonsHtml = showSaveButton
         ? `<div class="flex justify-end mt-2 gap-2">
             <button data-action="closeEditMode" data-reservation-id="${reservationId}" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>
@@ -1574,7 +1574,7 @@ export const Components = {
           </div>`
         : '';
       return `
-        <div class="bg-white/75 rounded p-2" data-memo-container>
+        <div data-memo-container>
           ${Components.textarea({
             id: `memo-edit-textarea-${reservationId}`,
             label: '',
