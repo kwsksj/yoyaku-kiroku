@@ -716,7 +716,7 @@ export function renderStep3Reservation(state) {
               class="flex-1 py-1 px-2 text-xs font-bold rounded-full filter-btn-all ${filterClassroom === 'all' ? activeClass : inactiveClass}"
               data-action="setFilterClassroom"
               data-filter="all">
-        すべて の 教室
+        すべての教室
       </button>
     </div>
   `;
