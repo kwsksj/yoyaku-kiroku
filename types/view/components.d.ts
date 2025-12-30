@@ -347,6 +347,7 @@ export interface ListCardConfig {
   type?: 'booking' | 'record' | 'history' | 'accounting';
   isEditMode?: boolean;
   showMemoSaveButton?: boolean;
+  useEditIcon?: boolean;
 }
 
 /**

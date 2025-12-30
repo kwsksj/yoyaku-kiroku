@@ -68,6 +68,7 @@ export const getDashboardView = () => {
         badges: badges,
         editButtons: editButtons,
         accountingButtons: accountingButtons,
+        useEditIcon: true,
       });
     },
   );
@@ -225,14 +226,18 @@ export const getDashboardView = () => {
 
   // けいかく・もくひょうセクション（生徒名簿から取得、編集可能）
   const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
+  // 編集アイコンSVG（きろくカードと同じ）
+  const editIconSvg = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+  </svg>`;
   const goalCardContent = `
     <div class="w-full max-w-md mx-auto">
       <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">
         <!-- 表示モード -->
         <div id="goal-display-mode" class="${nextLessonGoal ? '' : 'hidden'}">
           <div class="bg-white/75 rounded p-2 relative">
-            <p id="goal-display-text" class="text-base text-brand-text whitespace-pre-wrap pr-16 min-h-8">${escapeHTML(nextLessonGoal) || 'まだ設定されていません'}</p>
-            <button data-action="editGoal" class="absolute bottom-2 right-2 text-xs text-brand-subtle px-2 py-0.5 rounded border border-brand-subtle/30 hover:bg-brand-light active:bg-brand-light">へんしゅう</button>
+            <p id="goal-display-text" class="text-base text-brand-text whitespace-pre-wrap pr-8 min-h-8">${escapeHTML(nextLessonGoal) || 'まだ設定されていません'}</p>
+            <button data-action="editGoal" class="absolute bottom-1 right-1 p-1 text-brand-subtle hover:text-brand-text active:bg-brand-light rounded transition-colors" aria-label="けいかく・もくひょうを編集">${editIconSvg}</button>
           </div>
         </div>
         <!-- 編集モード -->

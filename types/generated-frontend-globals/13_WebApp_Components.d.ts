@@ -85,7 +85,7 @@ export namespace Components {
         selectedValue?: string;
     }): string;
     function dashboardSection({ title, items, showMoreButton, moreAction }: DashboardSectionConfig): string;
-    function listCard({ item, badges, editButtons, accountingButtons, type, isEditMode, showMemoSaveButton, }: ListCardConfig): string;
+    function listCard({ item, badges, editButtons, accountingButtons, type, isEditMode, showMemoSaveButton, useEditIcon, }: ListCardConfig): string;
     function placeholderCard({ title, badge, memoContent, dimmed, }: {
         title?: string;
         badge?: {

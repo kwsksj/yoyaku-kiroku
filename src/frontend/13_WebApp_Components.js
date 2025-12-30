@@ -1374,6 +1374,7 @@ export const Components = {
     type = 'booking',
     isEditMode = false,
     showMemoSaveButton = true,
+    useEditIcon = false,
   }) => {
     // カード基本スタイル
     const cardColorClass =
@@ -1391,24 +1392,48 @@ export const Components = {
       )
       .join('');
 
+    // 編集アイコンSVG
+    const editIconSvg = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+    </svg>`;
+
     // 編集ボタンHTML生成
-    const editButtonsHtml = editButtons
-      .map(btn =>
-        Components.button({
-          action: btn.action,
-          text: btn.text,
-          style: /** @type {ComponentStyle} */ (
-            btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')
-          ),
-          dataAttributes: {
-            classroom: item.classroom,
-            reservationId: item.reservationId,
-            date: item.date,
-            ...(btn.details && { details: JSON.stringify(btn.details) }),
-          },
-        }),
-      )
-      .join('');
+    let editButtonsHtml = '';
+    if (useEditIcon && editButtons.length > 0) {
+      // アイコンモード：最初の編集ボタンをアイコンで表示
+      const firstBtn = editButtons[0];
+      editButtonsHtml = `
+        <button
+          data-action="${firstBtn.action}"
+          data-classroom="${item.classroom || ''}"
+          data-reservation-id="${item.reservationId || ''}"
+          data-date="${item.date || ''}"
+          class="p-1 text-brand-subtle hover:text-brand-text active:bg-brand-light rounded transition-colors"
+          aria-label="編集"
+        >
+          ${editIconSvg}
+        </button>
+      `;
+    } else {
+      // 通常モード：テキストボタン
+      editButtonsHtml = editButtons
+        .map(btn =>
+          Components.button({
+            action: btn.action,
+            text: btn.text,
+            style: /** @type {ComponentStyle} */ (
+              btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')
+            ),
+            dataAttributes: {
+              classroom: item.classroom,
+              reservationId: item.reservationId,
+              date: item.date,
+              ...(btn.details && { details: JSON.stringify(btn.details) }),
+            },
+          }),
+        )
+        .join('');
+    }
 
     // 会計ボタンHTML生成
     const accountingButtonsHtml = accountingButtons
@@ -1459,7 +1484,7 @@ export const Components = {
               </div>
               <h4 class="text-sm text-brand-text">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
             </div>
-            ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
+            ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1 items-center">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
           </div>
 
           ${memoSection}
