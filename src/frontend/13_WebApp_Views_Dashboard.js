@@ -17,7 +17,6 @@
 // UI系モジュール
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
-import { _buildHistoryCardWithEditMode } from './13_WebApp_Views_Booking.js';
 import { _isToday } from './13_WebApp_Views_Utils.js';
 
 const dashboardStateManager = appWindow.stateManager;
@@ -104,35 +103,61 @@ export const getDashboardView = () => {
   const completedRecords = completedReservations.slice(0, recordsToShow);
 
   if (completedRecords.length > 0) {
-    // 「きろく」は COMPLETED ステータスのみ表示
-    const historyCards = completedRecords.map(
+    // リストビュー形式できろくを表示
+    const historyListItems = completedRecords.map(
       (/** @type {ReservationCore} */ h) => {
         // 編集モード状態を取得
         const isInEditMode = dashboardStateManager.isInEditMode(
           h.reservationId,
         );
 
-        const editButtons = _buildHistoryEditButtons(
-          isInEditMode,
-          h.reservationId,
-        );
-        const accountingButtons = _buildHistoryAccountingButtons(h);
+        // 日付・時間・教室・会場を小さく表示
+        const dateStr = formatDate(String(h.date));
+        const timeStr = h.startTime ? `${h.startTime}~${h.endTime}` : '';
+        const classroomStr = h.classroom || '';
+        const venueStr = h.venue ? `@${h.venue}` : '';
 
-        return _buildHistoryCardWithEditMode(
-          h,
-          editButtons,
-          accountingButtons,
-          isInEditMode,
-        );
+        // ヘッダー行（日付・教室などを小さく表示）
+        const headerLine = `
+          <div class="flex items-center gap-2 text-sm text-brand-subtle mb-1">
+            <span class="font-bold">${dateStr}</span>
+            ${timeStr ? `<span>${escapeHTML(timeStr)}</span>` : ''}
+            ${classroomStr ? `<span>${escapeHTML(classroomStr)}</span>` : ''}
+            ${venueStr ? `<span>${escapeHTML(venueStr)}</span>` : ''}
+          </div>
+        `;
+
+        // メモセクション（改良版を維持）
+        const memoHtml = Components.memoSection({
+          reservationId: h.reservationId,
+          sessionNote: h.sessionNote || '',
+          isEditMode: isInEditMode,
+          showSaveButton: true,
+        });
+
+        return `
+          <div class="border-b border-ui-border last:border-b-0 py-2" data-reservation-id="${h.reservationId}">
+            ${headerLine}
+            ${memoHtml}
+          </div>
+        `;
       },
     );
 
     const showMore = recordsToShow < completedReservations.length;
 
-    // Componentsに構造生成を委任
+    // リストビュー形式のきろくセクション
+    const historyListHtml = `
+      <div class="w-full max-w-md mx-auto">
+        <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">
+          ${historyListItems.join('')}
+        </div>
+      </div>
+    `;
+
     historyHtml = Components.dashboardSection({
       title: 'きろく',
-      items: historyCards,
+      items: [historyListHtml],
       showMoreButton: showMore,
       moreAction: 'loadMoreHistory',
     });
