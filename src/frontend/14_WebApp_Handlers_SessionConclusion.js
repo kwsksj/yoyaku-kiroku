@@ -55,6 +55,8 @@ let wizardState = /** @type {SessionConclusionState} */ ({
   classifiedItems: null,
   accountingFormData: {},
   filterClassroom: 'current', // 'current' | 'all'
+  orderInput: '', // 材料希望
+  materialInput: '', // 注文品希望
 });
 
 /**
@@ -320,6 +322,19 @@ function saveCurrentStepData() {
       if (endTimeSelect) {
         wizardState.nextEndTime = endTimeSelect.value;
       }
+      // 材料/注文品の希望を保存
+      const orderInput = /** @type {HTMLTextAreaElement | null} */ (
+        document.getElementById('conclusion-order-input')
+      );
+      if (orderInput) {
+        wizardState.orderInput = orderInput.value;
+      }
+      const materialInput = /** @type {HTMLTextAreaElement | null} */ (
+        document.getElementById('conclusion-material-input')
+      );
+      if (materialInput) {
+        wizardState.materialInput = materialInput.value;
+      }
       break;
     }
     case STEPS.ACCOUNTING: {
@@ -489,6 +504,16 @@ async function finalizeConclusion() {
         wizardState.selectedLesson || wizardState.recommendedNextLesson;
 
       if (nextLesson) {
+        // 材料/注文品の希望をorder形式にまとめる
+        const orderParts = [];
+        if (wizardState.orderInput) {
+          orderParts.push(`【材料希望】${wizardState.orderInput}`);
+        }
+        if (wizardState.materialInput) {
+          orderParts.push(`【注文品】${wizardState.materialInput}`);
+        }
+        const orderValue = orderParts.join('\n');
+
         nextReservationPayload = {
           lessonId: nextLesson.lessonId,
           classroom: nextLesson.classroom,
@@ -499,6 +524,7 @@ async function finalizeConclusion() {
           user: currentUser,
           studentId: currentUser.studentId,
           sessionNote: wizardState.sessionNoteNext,
+          order: orderValue, // 材料/注文品の希望
           // ユーザーの期待（予約 or 空き通知）を追跡（完了画面で差異を表示するため）
           expectedWaitlist: wizardState.isWaitlistRequest,
         };

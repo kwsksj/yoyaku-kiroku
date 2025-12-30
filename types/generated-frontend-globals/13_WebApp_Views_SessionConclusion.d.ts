@@ -16,6 +16,8 @@
  * @property {ClassifiedAccountingItemsCore | null} classifiedItems - 会計項目
  * @property {AccountingFormDto} accountingFormData - 会計フォームデータ
  * @property {string} filterClassroom - 教室フィルター ('current' | 'all')
+ * @property {string} [orderInput] - 材料希望入力
+ * @property {string} [materialInput] - 注文品希望入力
  */
 /**
  * ウィザードの進行バーを生成
@@ -131,4 +133,12 @@ export type SessionConclusionState = {
      * - 教室フィルター ('current' | 'all')
      */
     filterClassroom: string;
+    /**
+     * - 材料希望入力
+     */
+    orderInput?: string;
+    /**
+     * - 注文品希望入力
+     */
+    materialInput?: string;
 };
