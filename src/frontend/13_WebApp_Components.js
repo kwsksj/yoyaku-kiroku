@@ -388,6 +388,7 @@ export const Components = {
     rows = 4,
     description = '',
     caption = '',
+    dataAttributes = {},
   }) => {
     const descriptionHtml = description
       ? `<p class="text-xs text-brand-subtle mb-2">${escapeHTML(description)}</p>`
@@ -397,14 +398,25 @@ export const Components = {
       ? `<p class="text-xs text-brand-subtle mt-1">${escapeHTML(caption)}</p>`
       : '';
 
-    return `<div class="mb-4">
-        <label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>
+    // ラベルが空の場合はlabelタグを出力しない
+    const labelHtml = label
+      ? `<label for="${id}" class="${DesignConfig.text['labelBlock']}">${escapeHTML(label)}</label>`
+      : '';
+
+    // dataAttributesをHTML属性に変換
+    const dataAttrs = Object.entries(dataAttributes)
+      .map(([key, val]) => `data-${key}="${escapeHTML(String(val))}"`)
+      .join(' ');
+
+    return `<div class="${label ? 'mb-4' : ''}">
+        ${labelHtml}
         ${descriptionHtml}
         <textarea
           id="${id}"
           class="${DesignConfig.inputs['textarea']}"
           placeholder="${escapeHTML(placeholder)}"
           rows="${rows}"
+          ${dataAttrs}
         >${escapeHTML(value)}</textarea>
         ${captionHtml}
       </div>`;

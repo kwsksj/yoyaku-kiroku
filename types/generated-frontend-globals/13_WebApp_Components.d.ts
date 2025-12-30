@@ -8,7 +8,7 @@ export namespace Components {
     function button({ action, text, style, size, disabled, customClass, dataAttributes, id, disabledStyle, caption, }: ButtonConfig): string;
     function input({ id, label, type, value, placeholder, required, description, caption, customClass, labelClass, containerClass, inputmode, pattern, autocomplete, }: InputConfig): string;
     function select({ id, label, options, selectedValue, description, caption, }: SelectConfig): string;
-    function textarea({ id, label, value, placeholder, rows, description, caption, }: TextareaConfig): string;
+    function textarea({ id, label, value, placeholder, rows, description, caption, dataAttributes, }: TextareaConfig): string;
     function checkbox({ id, label, checked, disabled, dynamicStyle, dataAttributes, description, caption, onChange, customLabelClass, required, size, }: CheckboxConfig): string;
     function toggleSwitch({ id, label, checked, onchange, statusText, helpAction, helpText, className, }: {
         id: string;
