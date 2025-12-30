@@ -561,9 +561,12 @@ export function renderStep3Reservation(state) {
       }
 
       const experienceLabel = renderExperienceLabel(isExperiencedOnly);
-      const timeSelectionHtml = isTimeBased
+      // 時間制: 時間選択UI、回数制: 静的テキスト表示
+      const timeDisplayHtml = isTimeBased
         ? renderTimeSelectionUI(slotLesson, startTime, endTime)
-        : '';
+        : startTime
+          ? `<p class="text-sm text-brand-subtle mt-2">${startTime} 〜 ${endTime || ''}</p>`
+          : '';
 
       return `
         <div class="slot-content-inner text-center py-4 border-2 ${cardBorderClass} rounded-xl ${cardBgClass}">
@@ -571,7 +574,7 @@ export function renderStep3Reservation(state) {
           <p class="text-2xl font-bold text-brand-text mb-1">${formattedDate}</p>
           <p class="text-sm text-brand-subtle mb-2">${venueText}</p>
           ${experienceLabel}
-          ${timeSelectionHtml}
+          ${timeDisplayHtml}
         </div>
       `;
     } else {
