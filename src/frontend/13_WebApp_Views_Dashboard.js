@@ -99,8 +99,8 @@ export const getDashboardView = () => {
         new Date(b.date).getTime() - new Date(a.date).getTime(),
     ); // 新しい順ソート
 
-  const recordsToShow = state.recordsToShow;
-  const completedRecords = completedReservations.slice(0, recordsToShow);
+  // すべての記録を表示（データは既に全件取得済み）
+  const completedRecords = completedReservations;
 
   if (completedRecords.length > 0) {
     // リストビュー形式できろくを表示
@@ -162,8 +162,6 @@ export const getDashboardView = () => {
       },
     );
 
-    const showMore = recordsToShow < completedReservations.length;
-
     // リストビュー形式のきろくセクション
     const historyListHtml = `
       <div class="w-full max-w-md mx-auto">
@@ -176,8 +174,6 @@ export const getDashboardView = () => {
     historyHtml = Components.dashboardSection({
       title: 'きろく',
       items: [historyListHtml],
-      showMoreButton: showMore,
-      moreAction: 'loadMoreHistory',
     });
   } else {
     // 履歴がない場合は空状態を表示
