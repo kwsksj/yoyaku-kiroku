@@ -1542,6 +1542,7 @@ export const Components = {
 
   /**
    * 制作メモセクション（表示・編集両対応）
+   * けいかくカードと同一デザイン
    * @param {MemoSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
@@ -1557,22 +1558,13 @@ export const Components = {
     </svg>`;
 
     if (isEditMode) {
-      // 編集モード：textareaと保存/とじるボタン
-      const textareaId = `memo-edit-textarea-${reservationId}`;
+      // 編集モード：textareaと保存/キャンセルボタン（けいかくカードと同一デザイン）
       const buttonsHtml = showSaveButton
-        ? `<div class="flex justify-end gap-2 mt-2">
-            ${Components.button({
-              action: 'closeEditMode',
-              text: 'とじる',
-              style: 'secondary',
-              size: 'small',
-              dataAttributes: {
-                reservationId,
-              },
-            })}
+        ? `<div class="flex justify-end mt-2 gap-2">
+            <button data-action="closeEditMode" data-reservation-id="${reservationId}" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>
             ${Components.button({
               action: 'saveAndCloseMemo',
-              text: '保存',
+              text: 'ほぞん',
               style: 'primary',
               size: 'small',
               dataAttributes: {
@@ -1582,22 +1574,25 @@ export const Components = {
           </div>`
         : '';
       return `
-        <div class="p-0.5 bg-white/75" data-memo-container>
-          <textarea
-            id="${textareaId}"
-            class="memo-edit-textarea ${DesignConfig.inputs.textarea} min-h-14 w-full mt-1 px-1"
-            rows="4"
-            placeholder="制作内容や進捗をメモしてね"
-            data-reservation-id="${reservationId}"
-          >${escapeHTML(sessionNote || '')}</textarea>
+        <div class="bg-white/75 rounded p-2" data-memo-container>
+          ${Components.textarea({
+            id: `memo-edit-textarea-${reservationId}`,
+            label: '',
+            value: sessionNote || '',
+            placeholder: '制作内容や進捗をメモしてね',
+            rows: 4,
+            dataAttributes: {
+              reservationId,
+            },
+          })}
           ${buttonsHtml}
         </div>
       `;
     } else {
-      // 通常モード：読み取り専用表示 + 編集アイコン
+      // 通常モード：読み取り専用表示 + 編集アイコン（けいかくカードと同一デザイン）
       return `
-        <div class="p-0.5 bg-white/75 relative" data-memo-container>
-          <p class="text-sm text-brand-text whitespace-pre-wrap px-1 min-h-14 pr-8">${escapeHTML(sessionNote || '')}</p>
+        <div class="bg-white/75 rounded p-2 relative" data-memo-container>
+          <p class="text-base text-brand-text whitespace-pre-wrap pr-8 min-h-8">${escapeHTML(sessionNote || '')}</p>
           <button
             data-action="expandHistoryCard"
             data-reservation-id="${reservationId}"
