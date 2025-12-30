@@ -138,9 +138,9 @@ export const getDashboardView = () => {
         const headerLine = `
           <div class="flex items-center gap-1.5 text-sm text-brand-subtle mb-1 flex-wrap">
             <span class="font-bold">${dateStr}</span>
+            ${timeStr ? `<span class="text-xs">${escapeHTML(timeStr)}</span>` : ''}
             ${classroomStr ? `<span>${escapeHTML(classroomStr)}</span>` : ''}
             ${venueStr ? `<span class="text-xs">${escapeHTML(venueStr)}</span>` : ''}
-            ${timeStr ? `<span class="text-xs">${escapeHTML(timeStr)}</span>` : ''}
           </div>
         `;
 
