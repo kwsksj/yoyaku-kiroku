@@ -776,30 +776,9 @@ export function _updateHistoryCardButton(reservationId) {
 
   const isInEditMode = dashboardStateManager.isInEditMode(reservationId);
   const editButtons = _buildHistoryEditButtons(isInEditMode, reservationId);
-  let accountingButtons = _buildHistoryAccountingButtons(historyItem);
+  const accountingButtons = _buildHistoryAccountingButtons(historyItem);
 
-  // 編集モード時に会計記録ボタンを追加（_buildHistoryCardWithEditModeと同じロジック）
-  if (isInEditMode) {
-    const isToday = _isToday(String(historyItem.date));
-    if (historyItem.status === CONSTANTS.STATUS.COMPLETED && !isToday) {
-      // 重複チェック：既に「会計記録」ボタンが存在しない場合のみ追加
-      const hasAccountingDetailsButton = accountingButtons.some(
-        btn => btn.action === 'showHistoryAccounting',
-      );
-
-      if (!hasAccountingDetailsButton) {
-        accountingButtons = [
-          ...accountingButtons,
-          {
-            action: 'showHistoryAccounting',
-            text: '¥会計<br>記録',
-            style: 'accounting',
-            details: historyItem.accountingDetails,
-          },
-        ];
-      }
-    }
-  }
+  // 【廃止】会計記録ボタンはメニューの「会計履歴」に統一したため、ここでは追加しない
 
   // 会計ボタンHTML生成
   const accountingButtonsHtml = accountingButtons

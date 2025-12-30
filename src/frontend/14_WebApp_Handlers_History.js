@@ -293,7 +293,7 @@ export const historyActionHandlers = {
     const state = historyStateManager.getState();
     const myReservations = state.myReservations || [];
 
-    // 完了済みの予約のうち会計記録があるものを抽出
+    // 完了済みの予約を抽出
     const completedReservations = myReservations
       .filter(
         (/** @type {ReservationCore} */ res) =>
@@ -309,46 +309,28 @@ export const historyActionHandlers = {
       return;
     }
 
-    // 会計履歴リストを生成
+    // 会計履歴リストを生成（すべてクリック可能にして詳細をサーバーから取得）
     const historyListHtml = completedReservations
       .map((/** @type {ReservationCore} */ res) => {
         const dateStr = formatDate(String(res.date));
         const classroom = res.classroom || '';
+
+        // キャッシュにaccountingDetailsがあれば金額を表示、なければ「タップで確認」
         const accountingDetails = /** @type {any} */ (res.accountingDetails);
-        const hasAccounting =
-          accountingDetails &&
-          (typeof accountingDetails === 'object' ||
-            (typeof accountingDetails === 'string' &&
-              accountingDetails.trim() !== ''));
+        let amountDisplay =
+          '<span class="text-sm text-brand-subtle">タップで確認 →</span>';
 
-        if (!hasAccounting) {
-          return `
-            <div class="p-3 border-b border-ui-border last:border-b-0">
-              <div class="flex justify-between items-center">
-                <div>
-                  <span class="font-bold text-brand-text">${dateStr}</span>
-                  <span class="text-sm text-brand-subtle ml-2">${escapeHTML(classroom)}</span>
-                </div>
-                <span class="text-sm text-brand-subtle">記録なし</span>
-              </div>
-            </div>
-          `;
-        }
-
-        // 会計詳細がある場合は金額を表示
-        let totalAmount = 0;
         if (
-          typeof res.accountingDetails === 'object' &&
-          res.accountingDetails !== null
+          accountingDetails &&
+          typeof accountingDetails === 'object' &&
+          accountingDetails.grandTotal !== undefined
         ) {
-          const accounting = res.accountingDetails;
-          totalAmount = accounting.grandTotal || 0;
+          const totalAmount = accountingDetails.grandTotal || 0;
+          amountDisplay =
+            totalAmount > 0
+              ? `<span class="font-bold text-brand-text">¥${totalAmount.toLocaleString()}</span>`
+              : `<span class="text-sm text-brand-subtle">¥0</span>`;
         }
-
-        const amountDisplay =
-          totalAmount > 0
-            ? `<span class="font-bold text-brand-text">¥${totalAmount.toLocaleString()}</span>`
-            : `<span class="text-sm text-brand-subtle">¥0</span>`;
 
         return `
           <button

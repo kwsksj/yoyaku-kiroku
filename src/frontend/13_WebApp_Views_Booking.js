@@ -17,7 +17,7 @@
 // UI系モジュール
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
-import { _isToday, getClassroomColorClass } from './13_WebApp_Views_Utils.js';
+import { getClassroomColorClass } from './13_WebApp_Views_Utils.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -1122,27 +1122,8 @@ export function _buildHistoryCardWithEditMode(
   accountingButtons,
   isInEditMode,
 ) {
-  // 履歴カード特有の会計ボタン追加ロジック
+  // 【廃止】会計記録ボタンはメニューの「会計履歴」に統一したため、ここでは追加しない
   const allAccountingButtons = [...accountingButtons];
-
-  if (isInEditMode) {
-    const isToday = _isToday(String(historyItem.date));
-    if (historyItem.status === CONSTANTS.STATUS.COMPLETED && !isToday) {
-      // 重複チェック：既に「会計記録」ボタンが存在しない場合のみ追加
-      const hasAccountingDetailsButton = allAccountingButtons.some(
-        btn => btn.action === 'showHistoryAccounting',
-      );
-
-      if (!hasAccountingDetailsButton) {
-        allAccountingButtons.push({
-          action: 'showHistoryAccounting',
-          text: '会計<br>記録',
-          style: 'accounting',
-          details: historyItem.accountingDetails,
-        });
-      }
-    }
-  }
 
   // listCard を使用してカードを生成
   return Components.listCard({
