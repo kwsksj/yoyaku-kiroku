@@ -485,17 +485,13 @@ export function renderStep3Reservation(state) {
   };
 
   /**
-   * 経験者/初回者ラベルを生成
+   * 経験者のみラベルを生成
    * @param {boolean} isExperiencedOnly
-   * @param {boolean} hasBeginnerSlot
    * @returns {string} HTML文字列
    */
-  const renderExperienceLabel = (isExperiencedOnly, hasBeginnerSlot) => {
+  const renderExperienceLabel = isExperiencedOnly => {
     if (isExperiencedOnly) {
       return '<span class="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">経験者のみ</span>';
-    }
-    if (hasBeginnerSlot) {
-      return '<span class="inline-block text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">初回者あり</span>';
     }
     return '';
   };
@@ -544,7 +540,7 @@ export function renderStep3Reservation(state) {
         : String(slotLesson.date);
       const venueText = `${escapeHTML(slotLesson.classroom)} ${slotLesson.venue ? escapeHTML(slotLesson.venue) : ''}`;
       const isSelected = Boolean(selectedLesson);
-      const { isExperiencedOnly, hasBeginnerSlot } = getSlotStatus(slotLesson);
+      const { isExperiencedOnly } = getSlotStatus(slotLesson);
 
       // ステータスバッジ
       let statusBadge = '';
@@ -564,10 +560,7 @@ export function renderStep3Reservation(state) {
           '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">★ おすすめ</div>';
       }
 
-      const experienceLabel = renderExperienceLabel(
-        isExperiencedOnly,
-        hasBeginnerSlot,
-      );
+      const experienceLabel = renderExperienceLabel(isExperiencedOnly);
       const timeSelectionHtml = isTimeBased
         ? renderTimeSelectionUI(slotLesson, startTime, endTime)
         : '';
@@ -734,10 +727,10 @@ export function renderStep3Reservation(state) {
   // リストビュー内容
   const lessonListContentHtml = `
     <div class="slot-list-content ${isExpanded ? '' : 'hidden'}">
+      <label class="block text-base font-bold text-brand-text mb-3">にってい いちらん</label>
       <p class="text-sm text-brand-subtle mb-3">${listDescriptionText}</p>
-      <div class="flex items-center justify-between mb-3">
+      <div class="mb-3">
         ${filterHtml}
-        <button type="button" class="text-sm text-action-primary-bg font-bold px-2 py-1 rounded hover:bg-gray-100 flex-shrink-0" data-action="expandLessonList">✕ とじる</button>
       </div>
       <div class="max-h-64 overflow-y-auto lesson-list-scroll -mx-2 px-2">
         ${lessonListHtml}
@@ -753,6 +746,7 @@ export function renderStep3Reservation(state) {
   // スロットビュー内容
   const slotViewContentHtml = `
     <div class="slot-view-content ${isExpanded ? 'hidden' : ''}">
+      <label class="block text-base font-bold text-brand-text mb-2">よやく</label>
       ${slotDescriptionHtml}
       ${slotContentHtml}
     </div>
@@ -854,14 +848,23 @@ export function renderStep3Reservation(state) {
       </div>
     `;
 
-  const backButtonHtml = Components.button({
-    action: 'conclusionPrevStep',
-    text: 'もどる',
-    style: 'secondary',
-    size: 'full',
-    customClass: 'mt-4',
-    dataAttributes: { 'target-step': STEPS.GOAL },
-  });
+  // もどるボタン（日程リスト展開時はスロット表示に戻る、そうでなければ前のステップへ）
+  const backButtonHtml = isExpanded
+    ? Components.button({
+        action: 'expandLessonList',
+        text: 'もどる',
+        style: 'secondary',
+        size: 'full',
+        customClass: 'mt-4',
+      })
+    : Components.button({
+        action: 'conclusionPrevStep',
+        text: 'もどる',
+        style: 'secondary',
+        size: 'full',
+        customClass: 'mt-4',
+        dataAttributes: { 'target-step': STEPS.GOAL },
+      });
 
   // --- メインHTMLの組み立て ---
   return `
