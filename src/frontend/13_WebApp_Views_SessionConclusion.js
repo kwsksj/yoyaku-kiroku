@@ -242,17 +242,23 @@ export function renderStep3Reservation(state) {
   const getLessonDisplayStatus = lesson => {
     if (!lesson) return 'skip';
 
-    // 1. 予約済み
-    const reservedRecord = myReservations.find(
-      r => r.lessonId === lesson.lessonId && r.status === '予約',
+    // myReservationsから該当レッスンの予約情報を検索
+    // lessonId または date+classroom で一致を確認
+    const reservationRecord = myReservations.find(
+      (/** @type {ReservationCore} */ r) =>
+        r.lessonId === lesson.lessonId ||
+        (r.date === lesson.date && r.classroom === lesson.classroom),
     );
-    if (reservedRecord) return 'reserved';
+
+    // 1. 予約済み
+    if (reservationRecord?.status === CONSTANTS.STATUS.CONFIRMED) {
+      return 'reserved';
+    }
 
     // 2. 空き通知登録済み
-    const waitlistRecord = myReservations.find(
-      r => r.lessonId === lesson.lessonId && r.status === '空き通知',
-    );
-    if (waitlistRecord) return 'waitlist';
+    if (reservationRecord?.status === CONSTANTS.STATUS.WAITLISTED) {
+      return 'waitlist';
+    }
 
     // 3. 満席かどうかは getSlotStatus で判定（後で呼ぶ）
     // ここでは getSlotStatus がまだ定義されていないのでスキップ
@@ -492,7 +498,6 @@ export function renderStep3Reservation(state) {
     idPrefix = 'conclusion-next',
   ) => {
     return `
-      <div class="mt-3 pt-2 border-t border-gray-200">
         <div class="flex items-center justify-center gap-2">
           <select id="${idPrefix}-start-time"
                   class="px-2 py-1 border-2 border-action-primary-bg rounded-lg font-bold text-base text-center bg-white">
@@ -504,8 +509,6 @@ export function renderStep3Reservation(state) {
             ${generateEndTimeOptions(lesson, currentStartTime, currentEndTime)}
           </select>
         </div>
-        <p class="text-xs text-brand-subtle text-center mt-1">* さいてい 2じかん</p>
-      </div>
     `;
   };
 
@@ -516,7 +519,7 @@ export function renderStep3Reservation(state) {
    */
   const renderExperienceLabel = isExperiencedOnly => {
     if (isExperiencedOnly) {
-      return '<span class="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">経験者のみ</span>';
+      return '<span class="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full mb-2">経験者のみ</span>';
     }
     return '';
   };
@@ -557,7 +560,7 @@ export function renderStep3Reservation(state) {
       },
       waitlist: {
         badge:
-          '<div class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold mb-3">空き通知 とうろく 済み</div>',
+          '<div class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold mb-3">空き通知 とうろく ずみ</div>',
         borderClass: 'border-yellow-400',
         bgClass: 'bg-yellow-50',
       },
@@ -569,7 +572,7 @@ export function renderStep3Reservation(state) {
       },
       recommended: {
         badge:
-          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">★ おすすめ（きょうと にた にってい）</div>',
+          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">★ おすすめ<br>（きょうと にた にってい）</div>',
         borderClass: 'border-gray-200',
         bgClass: 'bg-action-secondary-bg',
       },
@@ -604,7 +607,7 @@ export function renderStep3Reservation(state) {
     const experienceLabel = renderExperienceLabel(slotStatus.isExperiencedOnly);
 
     return `
-      <div class="slot-content-inner text-center py-4 border-2 ${styleConfig.borderClass} rounded-xl ${styleConfig.bgClass}">
+      <div class="slot-content-inner text-center py-4 border-2 ${styleConfig.borderClass} rounded-lg ${styleConfig.bgClass}">
         ${styleConfig.badge}
         <p class="text-2xl font-bold text-brand-text mb-1">${formattedDate}</p>
         <p class="text-sm text-brand-subtle mb-2">${venueText}</p>
@@ -618,7 +621,7 @@ export function renderStep3Reservation(state) {
   const slotContentHtml = (() => {
     if (isSkipped) {
       return `
-        <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
+        <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
           <p class="text-3xl mb-3">📅</p>
           <p class="text-lg font-bold text-gray-500 mb-1">いまは きめない</p>
           <p class="text-sm text-gray-400">あとで よやく してね</p>
@@ -657,7 +660,7 @@ export function renderStep3Reservation(state) {
 
     if (!targetLesson) {
       return `
-        <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
+        <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
           <p class="text-3xl mb-3">🔍</p>
           <p class="text-lg font-bold text-gray-500 mb-1">おすすめが ありません</p>
           <p class="text-sm text-gray-400">にってい いちらん から えらんでください</p>
