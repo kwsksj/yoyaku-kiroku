@@ -522,19 +522,19 @@ export function renderStep3Reservation(state) {
     const styleMap = {
       reserved: {
         badge:
-          '<div class="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold mb-3">✓ よやくずみ</div>',
+          '<div class="inline-flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-bold mb-3">✓ よやく済</div>',
         borderClass: 'border-green-400',
         bgClass: 'bg-green-50',
       },
       waitlist: {
         badge:
-          '<div class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold mb-3">空き通知 とうろく ずみ</div>',
+          '<div class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-bold mb-3">空き通知 とうろく中</div>',
         borderClass: 'border-yellow-400',
         bgClass: 'bg-yellow-50',
       },
       full: {
         badge:
-          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">満席：空き通知 とうろく</div>',
+          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">満席 → 空き通知 とうろく</div>',
         borderClass: 'border-gray-300',
         bgClass: 'bg-gray-50',
       },
@@ -630,7 +630,7 @@ export function renderStep3Reservation(state) {
       return `
         <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
           <p class="text-3xl mb-3">🔍</p>
-          <p class="text-lg font-bold text-gray-500 mb-1">おすすめが ありません</p>
+
           <p class="text-sm text-gray-400">にってい いちらん から えらんでください</p>
         </div>
       `;
@@ -708,13 +708,13 @@ export function renderStep3Reservation(state) {
                 let reservationBadge = '';
                 if (isReserved) {
                   reservationBadge =
-                    '<span class="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded ml-1">よやく済み</span>';
+                    '<span class="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded ml-1">よやく済</span>';
                 } else if (isWaitlistedStatus) {
                   reservationBadge =
-                    '<span class="text-xs bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded ml-1">空き通知とうろく済み</span>';
+                    '<span class="text-xs bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded ml-1">空き通知とうろく中</span>';
                 } else if (isFullyBooked) {
                   reservationBadge =
-                    '<span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-1">空き通知とうろく希望</span>';
+                    '<span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-1">空き通知とうろく</span>';
                 }
 
                 const experiencedOnlyBadge =
@@ -773,7 +773,7 @@ export function renderStep3Reservation(state) {
   // フィルター
   const activeClass = 'bg-action-primary-bg text-white';
   const inactiveClass = 'bg-gray-100 text-gray-500';
-  const currentClassroomLabel = currentClassroom || 'いま の きょうしつ';
+  const currentClassroomLabel = currentClassroom || 'いま の 教室';
   const filterHtml = `
     <div class="lesson-filter flex justify-center mb-4 bg-gray-100 p-1 rounded-full">
       <button type="button"
@@ -1086,11 +1086,11 @@ export function renderConclusionComplete(state) {
   const buildCompletionBadges = type => {
     if (type === 'waitlisted') {
       return /** @type {{type: BadgeType, text: string}[]} */ ([
-        { type: 'warning', text: '空き通知 登録済み' },
+        { type: 'warning', text: '空き通知 とうろく中' },
       ]);
     }
     return /** @type {{type: BadgeType, text: string}[]} */ ([
-      { type: 'success', text: '予約確定 済み' },
+      { type: 'success', text: 'よやく済' },
     ]);
   };
 
