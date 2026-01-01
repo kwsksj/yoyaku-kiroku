@@ -450,27 +450,6 @@ export function renderStep3Reservation(state) {
   };
 
   // --- スロットカード生成（改善版） ---
-  /**
-   * スロットカードの説明テキストを生成
-   * @returns {string} HTML文字列
-   */
-  const getSlotDescriptionText = () => {
-    if (isSkipped) return '';
-    if (existingReservation && !selectedLesson) {
-      return 'つぎ の よやく';
-    }
-    if (slotLesson) {
-      const isSelected = Boolean(selectedLesson);
-      if (isWaitlist) {
-        return 'まんせき です（あき が でたら れんらく します）';
-      } else if (isSelected) {
-        return 'えらんだ にってい';
-      } else {
-        return 'おすすめ の にってい（きょう と にた にってい）';
-      }
-    }
-    return '';
-  };
 
   /**
    * 時間選択UIを生成
@@ -833,16 +812,10 @@ export function renderStep3Reservation(state) {
     </div>
   `;
 
-  // スロット説明テキスト（スロット上部外に配置）
-  const slotDescriptionHtml = getSlotDescriptionText()
-    ? `<p class="text-sm text-brand-subtle mb-3">${getSlotDescriptionText()}</p>`
-    : '';
-
   // スロットビュー内容
   const slotViewContentHtml = `
     <div class="slot-view-content ${isExpanded ? 'hidden' : ''}">
       <label class="block text-base font-bold text-brand-text mb-2">よやく</label>
-      ${slotDescriptionHtml}
       ${slotContentHtml}
     </div>
   `;
