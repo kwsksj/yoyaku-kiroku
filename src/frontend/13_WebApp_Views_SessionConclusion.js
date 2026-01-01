@@ -737,26 +737,34 @@ export function renderStep3Reservation(state) {
                 const { isReserved, isWaitlisted: isWaitlistedStatus } =
                   getReservationStatus(lesson);
 
-                // 予約済み/空き通知バッジ
+                // 状況に応じたバッジ表示
+                // 優先順位: よやく済み > 空き通知とうろく済み > 空き通知とうろく希望（満席時のみ）
                 let reservationBadge = '';
                 if (isReserved) {
                   reservationBadge =
-                    '<span class="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded ml-1">予約済み</span>';
+                    '<span class="text-xs bg-green-100 text-green-600 px-1.5 py-0.5 rounded ml-1">よやく済み</span>';
                 } else if (isWaitlistedStatus) {
                   reservationBadge =
-                    '<span class="text-xs bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded ml-1">通知登録中</span>';
+                    '<span class="text-xs bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded ml-1">空き通知とうろく済み</span>';
+                } else if (isFullyBooked) {
+                  reservationBadge =
+                    '<span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-1">空き通知とうろく希望</span>';
                 }
+
+                // スロット表示: 満席時は「満席」のみ、そうでなければ通常表示
+                const displaySlotText = isFullyBooked ? '満席' : slotText;
 
                 const experiencedOnlyBadge =
                   isExperiencedOnly && !isFullyBooked
                     ? '<span class="text-xs text-gray-400 ml-1">経験者のみ</span>'
                     : '';
 
+                // 満席の場合
                 if (isFullyBooked) {
                   return `
                   <button type="button"
-                          class="w-full text-left p-3 mb-2 bg-yellow-50 border-2 border-yellow-200 rounded-lg hover:bg-yellow-100"
-                          data-action="requestWaitlistForConclusion"
+                          class="w-full text-left p-3 mb-2 bg-gray-50 border-2 border-gray-200 rounded-lg hover:bg-gray-100 ${isReserved || isWaitlistedStatus ? 'opacity-60' : ''}"
+                          data-action="${isReserved || isWaitlistedStatus ? 'selectLessonForConclusion' : 'requestWaitlistForConclusion'}"
                           data-lesson-id="${escapeHTML(lesson.lessonId)}">
                     <div class="flex justify-between items-center">
                       <div>
@@ -765,15 +773,16 @@ export function renderStep3Reservation(state) {
                         ${isRecommended ? '<span class="ml-1 text-xs text-yellow-600">★</span>' : ''}
                         ${reservationBadge}
                       </div>
-                      <span class="text-xs text-yellow-600 font-bold">${slotText}</span>
+                      <span class="text-xs text-gray-500 font-bold">${displaySlotText}</span>
                     </div>
                   </button>
                 `;
                 }
 
+                // 空きありの場合
                 return `
                 <button type="button"
-                        class="w-full text-left p-3 mb-2 bg-white border-2 border-gray-200 rounded-lg hover:border-action-primary-bg hover:shadow-sm ${isReserved ? 'opacity-60' : ''}"
+                        class="w-full text-left p-3 mb-2 bg-white border-2 border-gray-200 rounded-lg hover:border-action-primary-bg hover:shadow-sm ${isReserved || isWaitlistedStatus ? 'opacity-60' : ''}"
                         data-action="selectLessonForConclusion"
                         data-lesson-id="${escapeHTML(lesson.lessonId)}">
                   <div class="flex justify-between items-center">
@@ -784,7 +793,7 @@ export function renderStep3Reservation(state) {
                       ${reservationBadge}
                       ${experiencedOnlyBadge}
                     </div>
-                    <span class="text-sm text-action-primary-bg font-bold">${slotText}</span>
+                    <span class="text-sm text-action-primary-bg font-bold">${displaySlotText}</span>
                   </div>
                 </button>
               `;
