@@ -431,7 +431,7 @@ export function renderStep3Reservation(state) {
 
     let text;
     if (isFullyBooked) {
-      text = '満席（空き通知登録）';
+      text = '満席';
     } else if (hasSecondSlots) {
       const morningLabel = window.CONSTANTS?.TIME_SLOTS?.MORNING || '午前';
       const afternoonLabel = window.CONSTANTS?.TIME_SLOTS?.AFTERNOON || '午後';
