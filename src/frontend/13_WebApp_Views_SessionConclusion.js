@@ -540,7 +540,7 @@ export function renderStep3Reservation(state) {
       },
       recommended: {
         badge:
-          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">★ おすすめ<br>（きょうと にた にってい）</div>',
+          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">この にってい は いかがでしょうか？</div>',
         borderClass: 'border-gray-200',
         bgClass: 'bg-action-secondary-bg',
       },
