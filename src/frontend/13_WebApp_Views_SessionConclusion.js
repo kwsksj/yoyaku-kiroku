@@ -540,7 +540,7 @@ export function renderStep3Reservation(state) {
       },
       recommended: {
         badge:
-          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">この にってい は いかがでしょうか？</div>',
+          '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">こちらは いかがでしょうか？</div>',
         borderClass: 'border-gray-200',
         bgClass: 'bg-action-secondary-bg',
       },
@@ -694,8 +694,6 @@ export function renderStep3Reservation(state) {
                 const formattedDate = window.formatDate
                   ? window.formatDate(lesson.date)
                   : String(lesson.date);
-                const isRecommended =
-                  recommendedLesson?.lessonId === lesson.lessonId;
                 const classroomColor = getClassroomColorClass(lesson.classroom);
                 const {
                   text: slotText,
@@ -735,7 +733,6 @@ export function renderStep3Reservation(state) {
                       <div>
                         ${filterClassroom === 'all' ? `<span class="text-xs px-1 rounded border ${classroomColor} mr-1">${lesson.classroom}</span>` : ''}
                         <span class="font-bold">${formattedDate}</span>
-                        ${isRecommended ? '<span class="ml-1 text-xs text-yellow-600">★</span>' : ''}
                         ${reservationBadge}
                       </div>
                       <span class="text-xs text-gray-500 font-bold">${slotText}</span>
@@ -754,7 +751,6 @@ export function renderStep3Reservation(state) {
                     <div>
                       ${filterClassroom === 'all' ? `<span class="text-xs px-1 rounded border ${classroomColor} mr-1">${lesson.classroom}</span>` : ''}
                       <span class="font-bold">${formattedDate}</span>
-                      ${isRecommended ? '<span class="ml-1 text-xs text-yellow-500">★おすすめ</span>' : ''}
                       ${reservationBadge}
                       ${experiencedOnlyBadge}
                     </div>
