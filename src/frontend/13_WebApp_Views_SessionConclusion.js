@@ -751,9 +751,6 @@ export function renderStep3Reservation(state) {
                     '<span class="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded ml-1">空き通知とうろく希望</span>';
                 }
 
-                // スロット表示: 満席時は「満席」のみ、そうでなければ通常表示
-                const displaySlotText = isFullyBooked ? '満席' : slotText;
-
                 const experiencedOnlyBadge =
                   isExperiencedOnly && !isFullyBooked
                     ? '<span class="text-xs text-gray-400 ml-1">経験者のみ</span>'
@@ -773,7 +770,7 @@ export function renderStep3Reservation(state) {
                         ${isRecommended ? '<span class="ml-1 text-xs text-yellow-600">★</span>' : ''}
                         ${reservationBadge}
                       </div>
-                      <span class="text-xs text-gray-500 font-bold">${displaySlotText}</span>
+                      <span class="text-xs text-gray-500 font-bold">${slotText}</span>
                     </div>
                   </button>
                 `;
@@ -793,7 +790,7 @@ export function renderStep3Reservation(state) {
                       ${reservationBadge}
                       ${experiencedOnlyBadge}
                     </div>
-                    <span class="text-sm text-action-primary-bg font-bold">${displaySlotText}</span>
+                    <span class="text-sm text-action-primary-bg font-bold">${slotText}</span>
                   </div>
                 </button>
               `;
