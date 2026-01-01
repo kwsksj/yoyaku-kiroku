@@ -235,12 +235,18 @@ export function renderStep3Reservation(state) {
     window.appWindow?.stateManager?.getState()?.myReservations || [];
 
   /**
-   * 日程の表示ステータスを評価（優先順位順）
+   * 日程の表示ステータスと予約情報を取得（統合版）
    * @param {LessonCore | null} lesson
-   * @returns {'reserved' | 'waitlist' | 'full' | 'recommended' | 'available' | 'skip'}
+   * @returns {{
+   *   displayStatus: 'reserved' | 'waitlist' | 'full' | 'recommended' | 'available' | 'skip',
+   *   isReserved: boolean,
+   *   isWaitlisted: boolean
+   * }}
    */
-  const getLessonDisplayStatus = lesson => {
-    if (!lesson) return 'skip';
+  const getLessonInfo = lesson => {
+    if (!lesson) {
+      return { displayStatus: 'skip', isReserved: false, isWaitlisted: false };
+    }
 
     // myReservationsから該当レッスンの予約情報を検索
     // lessonId または date+classroom で一致を確認
@@ -250,24 +256,24 @@ export function renderStep3Reservation(state) {
         (r.date === lesson.date && r.classroom === lesson.classroom),
     );
 
-    // 1. 予約済み
-    if (reservationRecord?.status === CONSTANTS.STATUS.CONFIRMED) {
-      return 'reserved';
+    const isReserved = reservationRecord?.status === CONSTANTS.STATUS.CONFIRMED;
+    const isWaitlisted =
+      reservationRecord?.status === CONSTANTS.STATUS.WAITLISTED;
+
+    // 表示ステータスを判定（優先順位順）
+    /** @type {'reserved' | 'waitlist' | 'full' | 'recommended' | 'available' | 'skip'} */
+    let displayStatus = 'available';
+
+    if (isReserved) {
+      displayStatus = 'reserved';
+    } else if (isWaitlisted) {
+      displayStatus = 'waitlist';
+    } else if (recommendedLesson?.lessonId === lesson.lessonId) {
+      displayStatus = 'recommended';
     }
+    // 満席判定は getSlotStatus で行うため、ここでは 'available' のまま
 
-    // 2. 空き通知登録済み
-    if (reservationRecord?.status === CONSTANTS.STATUS.WAITLISTED) {
-      return 'waitlist';
-    }
-
-    // 3. 満席かどうかは getSlotStatus で判定（後で呼ぶ）
-    // ここでは getSlotStatus がまだ定義されていないのでスキップ
-
-    // 4. おすすめ
-    if (recommendedLesson?.lessonId === lesson.lessonId) return 'recommended';
-
-    // 5. その他（選択可能）
-    return 'available';
+    return { displayStatus, isReserved, isWaitlisted };
   };
   // --- スロットに表示するレッスンを決定 ---
   // 優先順: selectedLesson > existingReservation > recommendedLesson
@@ -441,23 +447,6 @@ export function renderStep3Reservation(state) {
     }
 
     return { text, isFullyBooked, isExperiencedOnly, hasBeginnerSlot };
-  };
-
-  /**
-   * 日程の予約状態を取得
-   * @param {LessonCore} lesson
-   * @returns {{ isReserved: boolean, isWaitlisted: boolean }}
-   */
-  const getReservationStatus = lesson => {
-    const found = myReservations.find(
-      (/** @type {ReservationCore} */ r) =>
-        r.lessonId === lesson.lessonId ||
-        (r.date === lesson.date && r.classroom === lesson.classroom),
-    );
-    return {
-      isReserved: found?.status === CONSTANTS.STATUS.CONFIRMED,
-      isWaitlisted: found?.status === CONSTANTS.STATUS.WAITLISTED,
-    };
   };
 
   // --- スロットカード生成（改善版） ---
@@ -639,7 +628,7 @@ export function renderStep3Reservation(state) {
     if (selectedLesson) {
       targetLesson = selectedLesson;
       // 選択したレッスンのステータスを評価
-      displayStatus = getLessonDisplayStatus(selectedLesson);
+      displayStatus = getLessonInfo(selectedLesson).displayStatus;
       // 満席チェックを追加
       if (displayStatus === 'available' || displayStatus === 'recommended') {
         const slotStatus = getSlotStatus(selectedLesson);
@@ -735,7 +724,7 @@ export function renderStep3Reservation(state) {
                   isExperiencedOnly,
                 } = getSlotStatus(lesson);
                 const { isReserved, isWaitlisted: isWaitlistedStatus } =
-                  getReservationStatus(lesson);
+                  getLessonInfo(lesson);
 
                 // 状況に応じたバッジ表示
                 // 優先順位: よやく済み > 空き通知とうろく済み > 空き通知とうろく希望（満席時のみ）
