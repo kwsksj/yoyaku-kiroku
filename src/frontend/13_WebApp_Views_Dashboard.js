@@ -69,14 +69,12 @@ export const getDashboardView = () => {
       }
 
       const editButtons = _buildEditButtons(b);
-      const accountingButtons = _buildAccountingButtons(b);
 
       return Components.listCard({
         type: 'booking',
         item: b,
         badges: badges,
         editButtons: editButtons,
-        accountingButtons: accountingButtons,
         useEditIcon: true,
       });
     },
@@ -372,42 +370,6 @@ export const _buildEditButtons = booking => {
   }
 
   return buttons;
-};
-
-/**
- * 予約カードの会計ボタン配列を生成します。
- * @param {ReservationCore} _booking - 予約データ（未使用）
- * @returns {Array<any>} 会計ボタン設定配列
- */
-export const _buildAccountingButtons = _booking => {
-  // 会計ボタンは削除（きろくカードの会計修正ボタンのみ残す）
-  return [];
-};
-
-/**
- * 履歴カードの編集ボタン配列を生成します。
- * 【廃止】ボタンはmemoSection内に移動。常に空配列を返す。
- * @param {boolean} _isInEditMode - 編集モードフラグ（未使用）
- * @param {string} _reservationId - 予約ID（未使用）
- * @returns {Array<any>} 空の配列
- */
-export const _buildHistoryEditButtons = (
-  _isInEditMode = false,
-  _reservationId = '',
-) => {
-  // ボタンはmemoSection内に移動したため、空配列を返す
-  return [];
-};
-
-/**
- * 履歴カードの会計ボタン配列を生成します。
- * 【廃止】メニューの「会計履歴」から確認する方式に変更。常に空配列を返す。
- * @param {ReservationCore} _historyItem - 履歴データ（未使用）
- * @returns {Array<any>} 空の配列
- */
-export const _buildHistoryAccountingButtons = _historyItem => {
-  // メニューの「会計履歴」から確認する方式に変更
-  return [];
 };
 
 /**
@@ -793,84 +755,11 @@ export function _attachMemoEventListeners(reservationId) {
 }
 
 /**
- * 履歴カードのボタンのみを部分更新（無限ループ防止）
- * @param {string} reservationId - 予約ID
+ * 履歴カードのボタンのみを部分更新
+ * 【廃止】ボタンはmemoSection内に移動したため、この関数は空実装になりました。
+ * 将来削除予定ですが、呼び出し元との互換性のため空関数として残しています。
+ * @param {string} _reservationId - 予約ID（未使用）
  */
-export function _updateHistoryCardButton(reservationId) {
-  const cardElement = document.querySelector(
-    `[data-reservation-id="${reservationId}"]`,
-  );
-  if (!cardElement) return;
-
-  // ボタンエリアを探す（実際のHTML構造に合わせる）
-  let buttonArea = cardElement.querySelector('.flex.gap-1');
-
-  // フォールバック：別のセレクターでも探す
-  if (!buttonArea) {
-    buttonArea = cardElement.querySelector(
-      '.flex-shrink-0.self-start.flex.gap-1',
-    );
-  }
-
-  if (!buttonArea) {
-    console.warn(
-      'ボタンエリアが見つかりません:',
-      reservationId,
-      'カード内要素:',
-      cardElement.innerHTML,
-    );
-    return;
-  }
-
-  const state = dashboardStateManager.getState();
-  const historyItem = state.myReservations.find(
-    (/** @type {ReservationCore} */ h) => h.reservationId === reservationId,
-  );
-  if (!historyItem) return;
-
-  const isInEditMode = dashboardStateManager.isInEditMode(reservationId);
-  const editButtons = _buildHistoryEditButtons(isInEditMode, reservationId);
-  const accountingButtons = _buildHistoryAccountingButtons(historyItem);
-
-  // 【廃止】会計記録ボタンはメニューの「会計履歴」に統一したため、ここでは追加しない
-
-  // 会計ボタンHTML生成
-  const accountingButtonsHtml = accountingButtons
-    .map(btn =>
-      Components.button({
-        action: btn.action,
-        text: btn.text,
-        style: btn.style || 'accounting',
-        customClass: btn.customClass || '',
-        dataAttributes: {
-          classroom: historyItem.classroom,
-          reservationId: historyItem.reservationId,
-          date: historyItem.date,
-          ...(btn.details && { details: JSON.stringify(btn.details) }),
-          ...(btn.dataAttributes || {}),
-        },
-      }),
-    )
-    .join('');
-
-  // 編集ボタンHTML生成
-  const editButtonsHtml = editButtons
-    .map(btn =>
-      Components.button({
-        action: btn.action,
-        text: btn.text,
-        style: btn.style || 'recordCard',
-        customClass: btn.customClass || '',
-        dataAttributes: {
-          classroom: historyItem.classroom,
-          reservationId: historyItem.reservationId,
-          date: historyItem.date,
-          ...(btn.dataAttributes || {}),
-        },
-      }),
-    )
-    .join('');
-
-  // ボタンエリアを更新
-  buttonArea.innerHTML = accountingButtonsHtml + editButtonsHtml;
+export function _updateHistoryCardButton(_reservationId) {
+  // ボタンはmemoSection内に移動したため、この関数では何もしない
 }

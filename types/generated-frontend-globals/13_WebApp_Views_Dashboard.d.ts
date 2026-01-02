@@ -22,15 +22,14 @@ export function _getMemoTextareaId(reservationId: string): string;
  */
 export function _attachMemoEventListeners(reservationId: string): void;
 /**
- * 履歴カードのボタンのみを部分更新（無限ループ防止）
- * @param {string} reservationId - 予約ID
+ * 履歴カードのボタンのみを部分更新
+ * 【廃止】ボタンはmemoSection内に移動したため、この関数は空実装になりました。
+ * 将来削除予定ですが、呼び出し元との互換性のため空関数として残しています。
+ * @param {string} _reservationId - 予約ID（未使用）
  */
-export function _updateHistoryCardButton(reservationId: string): void;
+export function _updateHistoryCardButton(_reservationId: string): void;
 export function getDashboardView(): string;
 export function _buildEditButtons(booking: ReservationCore): Array<any>;
-export function _buildAccountingButtons(_booking: ReservationCore): Array<any>;
-export function _buildHistoryEditButtons(_isInEditMode?: boolean, _reservationId?: string): Array<any>;
-export function _buildHistoryAccountingButtons(_historyItem: ReservationCore): Array<any>;
 export function _buildBookingBadges(booking: ReservationCore): Array<{
     type: BadgeType;
     text: string;
