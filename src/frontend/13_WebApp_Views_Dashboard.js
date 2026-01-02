@@ -249,7 +249,7 @@ export const getDashboardView = () => {
   const accountingHistoryButton = Components.button({
     text: 'かいけい<br>履歴',
     action: 'showAccountingHistory',
-    style: 'accounting',
+    style: 'secondary',
     customClass:
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
