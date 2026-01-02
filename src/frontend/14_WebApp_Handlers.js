@@ -176,6 +176,19 @@ export function render() {
       v = getBookingView(appState.selectedClassroom ?? '');
       break;
     case 'reservationForm':
+      // コンテキストがない場合（リロード後など）はダッシュボードへリダイレクト
+      if (!appState.currentReservationFormContext) {
+        console.warn(
+          'reservationFormコンテキストがないためダッシュボードへリダイレクト',
+        );
+        v = getDashboardView();
+        // 状態も更新して次回render時にダッシュボードを表示
+        handlersStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: { view: 'dashboard' },
+        });
+        break;
+      }
       v = getReservationFormView();
       break;
     case 'accounting':
