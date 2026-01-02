@@ -34,17 +34,27 @@ export const getDashboardView = () => {
   console.log('   myReservations:', myReservations);
   console.log('   予約数:', myReservations.length);
 
-  // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
+  // 予約セクション用のカード配列を構築：確定・待機ステータスかつ当日以降のみ表示
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const activeReservations = myReservations
-    .filter(
-      (/** @type {ReservationCore} */ res) =>
+    .filter((/** @type {ReservationCore} */ res) => {
+      // ステータスが確定または待機中
+      const isActiveStatus =
         res.status === CONSTANTS.STATUS.CONFIRMED ||
-        res.status === CONSTANTS.STATUS.WAITLISTED,
-    )
+        res.status === CONSTANTS.STATUS.WAITLISTED;
+      if (!isActiveStatus) return false;
+
+      // 当日以降の予約のみ表示
+      const resDate = new Date(res.date);
+      resDate.setHours(0, 0, 0, 0);
+      return resDate >= today;
+    })
     .sort(
       (/** @type {ReservationCore} */ a, /** @type {ReservationCore} */ b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime(),
-    ); // 新しい順ソート
+        new Date(a.date).getTime() - new Date(b.date).getTime(),
+    ); // 日付順（古い順）
 
   console.log('   アクティブな予約:', activeReservations.length, '件');
 
