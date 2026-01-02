@@ -275,10 +275,8 @@ export const getDashboardView = () => {
 
   // けいかく・もくひょうセクション（生徒名簿から取得、編集可能）
   const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
-  // 編集アイコンSVG（きろくカードと同じ）
-  const editIconSvg = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-  </svg>`;
+  // 編集アイコンSVG（共通関数を使用）
+  const editIconSvg = Components.editIcon();
   const goalCardContent = `
     <div class="w-full max-w-md mx-auto">
       <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">

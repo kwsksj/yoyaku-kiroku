@@ -68,6 +68,18 @@ appWindow.escapeHTML = escapeHTML;
 
 export const Components = {
   /**
+   * 編集アイコンSVGを生成します（C案: 用紙付き鉛筆）
+   * @param {string} [size='w-4 h-4'] - サイズクラス
+   * @returns {string} SVG HTML文字列
+   */
+  editIcon: (size = 'w-4 h-4') => {
+    return `<svg class="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>`;
+  },
+
+  /**
    * 汎用モーダルコンポーネントを生成します
    * @param {ModalConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
@@ -1404,11 +1416,8 @@ export const Components = {
       )
       .join('');
 
-    // 編集アイコンSVG（C案: 用紙付き）
-    const editIconSvg = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-    </svg>`;
+    // 編集アイコンSVG（共通関数を使用）
+    const editIconSvg = Components.editIcon();
 
     // 編集ボタンHTML生成
     let editButtonsHtml = '';
@@ -1570,10 +1579,8 @@ export const Components = {
     isEditMode = false,
     showSaveButton = true,
   }) => {
-    // モノクロ鉛筆アイコン（Noto Emojiベース、シンプル化）
-    const editIconSvg = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-    </svg>`;
+    // 編集アイコンSVG（共通関数を使用）
+    const editIconSvg = Components.editIcon();
 
     if (isEditMode) {
       // 編集モード：textareaと保存/キャンセルボタン（けいかくカードと同一構造：白枠なし）
