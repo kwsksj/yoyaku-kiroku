@@ -166,7 +166,15 @@ export const getBookingView = classroom => {
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
-              <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
+          <div class="text-center py-4">
+            <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
+            ${Components.button({
+              text: 'ホームへもどる',
+              action: 'goToDashboard',
+              style: 'primary',
+              size: 'full',
+            })}
+          </div>
         `,
       })}
     `;
