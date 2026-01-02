@@ -34,17 +34,27 @@ export const getDashboardView = () => {
   console.log('   myReservations:', myReservations);
   console.log('   予約数:', myReservations.length);
 
-  // 予約セクション用のカード配列を構築：確定・待機ステータスのみ表示
+  // 予約セクション用のカード配列を構築：確定・待機ステータスかつ当日以降のみ表示
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const activeReservations = myReservations
-    .filter(
-      (/** @type {ReservationCore} */ res) =>
+    .filter((/** @type {ReservationCore} */ res) => {
+      // ステータスが確定または待機中
+      const isActiveStatus =
         res.status === CONSTANTS.STATUS.CONFIRMED ||
-        res.status === CONSTANTS.STATUS.WAITLISTED,
-    )
+        res.status === CONSTANTS.STATUS.WAITLISTED;
+      if (!isActiveStatus) return false;
+
+      // 当日以降の予約のみ表示
+      const resDate = new Date(res.date);
+      resDate.setHours(0, 0, 0, 0);
+      return resDate >= today;
+    })
     .sort(
       (/** @type {ReservationCore} */ a, /** @type {ReservationCore} */ b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime(),
-    ); // 新しい順ソート
+        new Date(a.date).getTime() - new Date(b.date).getTime(),
+    ); // 日付順（古い順）
 
   console.log('   アクティブな予約:', activeReservations.length, '件');
 
@@ -59,15 +69,15 @@ export const getDashboardView = () => {
       }
 
       const editButtons = _buildEditButtons(b);
-      const accountingButtons = _buildAccountingButtons(b);
+      // 空きが出た場合はテキストボタン、それ以外はアイコンボタンを使用
+      const shouldUseEditIcon = !editButtons.some(btn => btn.useTextButton);
 
       return Components.listCard({
         type: 'booking',
         item: b,
         badges: badges,
         editButtons: editButtons,
-        accountingButtons: accountingButtons,
-        useEditIcon: true,
+        useEditIcon: shouldUseEditIcon,
       });
     },
   );
@@ -239,7 +249,7 @@ export const getDashboardView = () => {
   const accountingHistoryButton = Components.button({
     text: 'かいけい<br>履歴',
     action: 'showAccountingHistory',
-    style: 'accounting',
+    style: 'secondary',
     customClass:
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
@@ -265,10 +275,8 @@ export const getDashboardView = () => {
 
   // けいかく・もくひょうセクション（生徒名簿から取得、編集可能）
   const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
-  // 編集アイコンSVG（きろくカードと同じ）
-  const editIconSvg = `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-  </svg>`;
+  // 編集アイコンSVG（共通関数を使用）
+  const editIconSvg = Components.editIcon();
   const goalCardContent = `
     <div class="w-full max-w-md mx-auto">
       <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">
@@ -346,58 +354,24 @@ export const _buildEditButtons = booking => {
     const isCurrentlyAvailable = _checkIfLessonAvailable(booking);
 
     if (isCurrentlyAvailable) {
-      // 現在空席：予約するボタンを追加
+      // 現在空席：「よやくする」ボタンを表示（モーダルで確認）
       buttons.push({
         action: 'confirmWaitlistedReservation',
-        text: '予約する',
+        text: 'よやくする',
         style: 'primary',
+        // アイコンモード無効化のため、useEditIcon: falseをlistCardに渡す必要あり
+        useTextButton: true,
+      });
+    } else {
+      // 空席なし：通常の確認/編集ボタン
+      buttons.push({
+        action: 'goToEditReservation',
+        text: 'かくにん<br>へんしゅう',
       });
     }
-
-    // 空き通知希望は常に確認/編集ボタンも表示
-    buttons.push({
-      action: 'goToEditReservation',
-      text: 'かくにん<br>へんしゅう',
-    });
   }
 
   return buttons;
-};
-
-/**
- * 予約カードの会計ボタン配列を生成します。
- * @param {ReservationCore} _booking - 予約データ（未使用）
- * @returns {Array<any>} 会計ボタン設定配列
- */
-export const _buildAccountingButtons = _booking => {
-  // 会計ボタンは削除（きろくカードの会計修正ボタンのみ残す）
-  return [];
-};
-
-/**
- * 履歴カードの編集ボタン配列を生成します。
- * 【廃止】ボタンはmemoSection内に移動。常に空配列を返す。
- * @param {boolean} _isInEditMode - 編集モードフラグ（未使用）
- * @param {string} _reservationId - 予約ID（未使用）
- * @returns {Array<any>} 空の配列
- */
-export const _buildHistoryEditButtons = (
-  _isInEditMode = false,
-  _reservationId = '',
-) => {
-  // ボタンはmemoSection内に移動したため、空配列を返す
-  return [];
-};
-
-/**
- * 履歴カードの会計ボタン配列を生成します。
- * 【廃止】メニューの「会計履歴」から確認する方式に変更。常に空配列を返す。
- * @param {ReservationCore} _historyItem - 履歴データ（未使用）
- * @returns {Array<any>} 空の配列
- */
-export const _buildHistoryAccountingButtons = _historyItem => {
-  // メニューの「会計履歴」から確認する方式に変更
-  return [];
 };
 
 /**
@@ -783,84 +757,11 @@ export function _attachMemoEventListeners(reservationId) {
 }
 
 /**
- * 履歴カードのボタンのみを部分更新（無限ループ防止）
- * @param {string} reservationId - 予約ID
+ * 履歴カードのボタンのみを部分更新
+ * 【廃止】ボタンはmemoSection内に移動したため、この関数は空実装になりました。
+ * 将来削除予定ですが、呼び出し元との互換性のため空関数として残しています。
+ * @param {string} _reservationId - 予約ID（未使用）
  */
-export function _updateHistoryCardButton(reservationId) {
-  const cardElement = document.querySelector(
-    `[data-reservation-id="${reservationId}"]`,
-  );
-  if (!cardElement) return;
-
-  // ボタンエリアを探す（実際のHTML構造に合わせる）
-  let buttonArea = cardElement.querySelector('.flex.gap-1');
-
-  // フォールバック：別のセレクターでも探す
-  if (!buttonArea) {
-    buttonArea = cardElement.querySelector(
-      '.flex-shrink-0.self-start.flex.gap-1',
-    );
-  }
-
-  if (!buttonArea) {
-    console.warn(
-      'ボタンエリアが見つかりません:',
-      reservationId,
-      'カード内要素:',
-      cardElement.innerHTML,
-    );
-    return;
-  }
-
-  const state = dashboardStateManager.getState();
-  const historyItem = state.myReservations.find(
-    (/** @type {ReservationCore} */ h) => h.reservationId === reservationId,
-  );
-  if (!historyItem) return;
-
-  const isInEditMode = dashboardStateManager.isInEditMode(reservationId);
-  const editButtons = _buildHistoryEditButtons(isInEditMode, reservationId);
-  const accountingButtons = _buildHistoryAccountingButtons(historyItem);
-
-  // 【廃止】会計記録ボタンはメニューの「会計履歴」に統一したため、ここでは追加しない
-
-  // 会計ボタンHTML生成
-  const accountingButtonsHtml = accountingButtons
-    .map(btn =>
-      Components.button({
-        action: btn.action,
-        text: btn.text,
-        style: btn.style || 'accounting',
-        customClass: btn.customClass || '',
-        dataAttributes: {
-          classroom: historyItem.classroom,
-          reservationId: historyItem.reservationId,
-          date: historyItem.date,
-          ...(btn.details && { details: JSON.stringify(btn.details) }),
-          ...(btn.dataAttributes || {}),
-        },
-      }),
-    )
-    .join('');
-
-  // 編集ボタンHTML生成
-  const editButtonsHtml = editButtons
-    .map(btn =>
-      Components.button({
-        action: btn.action,
-        text: btn.text,
-        style: btn.style || 'recordCard',
-        customClass: btn.customClass || '',
-        dataAttributes: {
-          classroom: historyItem.classroom,
-          reservationId: historyItem.reservationId,
-          date: historyItem.date,
-          ...(btn.dataAttributes || {}),
-        },
-      }),
-    )
-    .join('');
-
-  // ボタンエリアを更新
-  buttonArea.innerHTML = accountingButtonsHtml + editButtonsHtml;
+export function _updateHistoryCardButton(_reservationId) {
+  // ボタンはmemoSection内に移動したため、この関数では何もしない
 }

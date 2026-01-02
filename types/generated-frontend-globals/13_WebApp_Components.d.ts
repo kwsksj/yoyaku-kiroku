@@ -1,5 +1,6 @@
 export function escapeHTML(str: string | number | boolean): string;
 export namespace Components {
+    function editIcon(size?: string): string;
     function modal(config: ModalConfig): string;
     function showModal(modalId: string): void;
     function closeModal(modalId: string): void;

@@ -427,9 +427,19 @@ function renderLessonList(lessons) {
       <div class="${DesignConfig.layout.container}">
         ${Components.cardContainer({
           variant: 'default',
-          padding: 'compact',
+          padding: 'spacious',
           customClass: 'bg-white',
-          content: `<p class="${DesignConfig.text.body} text-center">レッスンが見つかりません</p>`,
+          content: `
+            <div class="text-center py-4">
+              <p class="${DesignConfig.text.body} mb-4">レッスンが見つかりません</p>
+              ${Components.button({
+                text: 'ホームへもどる',
+                action: 'goToDashboard',
+                style: 'primary',
+                size: 'full',
+              })}
+            </div>
+          `,
         })}
       </div>
     `;
@@ -1022,7 +1032,17 @@ function _getLocalButtonState(lesson, currentStudentId, lessonReservations) {
  */
 function renderStudentDetailModalContent(student, isAdmin) {
   if (!student) {
-    return '<p class="text-center text-red-600">生徒情報が見つかりません</p>';
+    return `
+      <div class="text-center py-4">
+        <p class="text-red-600 mb-4">生徒情報が見つかりません</p>
+        ${Components.button({
+          text: 'ホームへもどる',
+          action: 'goToDashboard',
+          style: 'primary',
+          size: 'full',
+        })}
+      </div>
+    `;
   }
 
   const displayName = student.nickname || student.displayName || '名前なし';

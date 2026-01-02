@@ -166,7 +166,15 @@ export const getBookingView = classroom => {
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
-              <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
+          <div class="text-center py-4">
+            <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
+            ${Components.button({
+              text: 'ホームへもどる',
+              action: 'goToDashboard',
+              style: 'primary',
+              size: 'full',
+            })}
+          </div>
         `,
       })}
     `;
@@ -207,7 +215,41 @@ export const getReservationFormView = () => {
   const isBeginnerMode = resolveEffectiveBeginnerMode();
 
   if (!currentReservationFormContext) {
-    return 'エラー: 予約フォームのデータが見つかりません。';
+    // リカバリーオプションを提供するエラービュー
+    return `
+      ${Components.pageHeader({ title: 'エラー', backAction: 'smartGoBack' })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+          ${Components.cardContainer({
+            variant: 'default',
+            padding: 'spacious',
+            content: `
+              <div class="text-center py-6">
+                <p class="text-4xl mb-4">⚠️</p>
+                <p class="text-lg font-bold text-brand-text mb-2">予約フォームのデータが見つかりません</p>
+                <p class="text-sm text-brand-subtle mb-6">操作の途中でエラーが発生したか、セッションが切れた可能性があります。</p>
+              </div>
+            `,
+          })}
+
+          <div class="mt-6 flex flex-col space-y-3">
+            ${Components.button({
+              text: 'ホームへもどる',
+              action: 'goToDashboard',
+              style: 'primary',
+              size: 'full',
+            })}
+            ${Components.button({
+              text: 'ログアウトしてやりなおす',
+              action: 'logoutAndRestart',
+              style: 'secondary',
+              size: 'full',
+            })}
+          </div>
+        `,
+      })}
+    `;
   }
 
   const { lessonInfo, reservationInfo, source } = currentReservationFormContext;

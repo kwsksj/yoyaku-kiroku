@@ -176,6 +176,19 @@ export function render() {
       v = getBookingView(appState.selectedClassroom ?? '');
       break;
     case 'reservationForm':
+      // コンテキストがない場合（リロード後など）はダッシュボードへリダイレクト
+      if (!appState.currentReservationFormContext) {
+        console.warn(
+          'reservationFormコンテキストがないためダッシュボードへリダイレクト',
+        );
+        v = getDashboardView();
+        // 状態も更新して次回render時にダッシュボードを表示
+        handlersStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: { view: 'dashboard' },
+        });
+        break;
+      }
       v = getReservationFormView();
       break;
     case 'accounting':
@@ -531,6 +544,31 @@ window.onload = function () {
           payload: backState,
         });
       }
+    },
+
+    // =================================================================
+    // --- Error Recovery Handlers ---
+    // -----------------------------------------------------------------
+    /** ダッシュボードへ遷移（エラーリカバリー用） */
+    goToDashboard: () => {
+      handlersStateManager.dispatch({
+        type: 'SET_STATE',
+        payload: { view: 'dashboard' },
+      });
+    },
+
+    /** ログアウトしてLocalStorageもクリア（エラーリカバリー用） */
+    logoutAndRestart: () => {
+      // LocalStorageをクリア
+      if (typeof localStorage !== 'undefined') {
+        localStorage.clear();
+      }
+      // ログアウト処理（stateをクリア）してログイン画面へ
+      handlersStateManager.dispatch({ type: 'LOGOUT' });
+      handlersStateManager.dispatch({
+        type: 'NAVIGATE',
+        payload: { to: 'login' },
+      });
     },
 
     /** モーダルの確認ボタンを押したときの処理です */
