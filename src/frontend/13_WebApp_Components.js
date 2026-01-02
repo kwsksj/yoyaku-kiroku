@@ -1485,9 +1485,13 @@ export const Components = {
         })
       : '';
 
+    // 予約カード（メモなし）でアイコンモードの場合は右下、それ以外は右上に配置
+    const showButtonBottomRight =
+      useEditIcon && !isCompleted && type === 'booking';
+
     return `
       <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
-        <div class="${cardColorClass} p-2 rounded-lg shadow-sm" data-reservation-id="${item.reservationId}">
+        <div class="${cardColorClass} p-2 rounded-lg shadow-sm${showButtonBottomRight ? ' relative' : ''}" data-reservation-id="${item.reservationId}">
           <!-- 上部：教室情報+会計・編集ボタン -->
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
@@ -1496,10 +1500,11 @@ export const Components = {
               </div>
               <h4 class="text-sm text-brand-text">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
             </div>
-            ${accountingButtonsHtml || editButtonsHtml ? `<div class="flex-shrink-0 self-start flex gap-1 items-center">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
+            ${!showButtonBottomRight && (accountingButtonsHtml || editButtonsHtml) ? `<div class="flex-shrink-0 self-start flex gap-1 items-center">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
           </div>
 
           ${memoSection}
+          ${showButtonBottomRight && editButtonsHtml ? `<div class="absolute bottom-1 right-1">${editButtonsHtml}</div>` : ''}
         </div>
       </div>
     `;
