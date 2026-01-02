@@ -69,13 +69,15 @@ export const getDashboardView = () => {
       }
 
       const editButtons = _buildEditButtons(b);
+      // 空きが出た場合はテキストボタン、それ以外はアイコンボタンを使用
+      const shouldUseEditIcon = !editButtons.some(btn => btn.useTextButton);
 
       return Components.listCard({
         type: 'booking',
         item: b,
         badges: badges,
         editButtons: editButtons,
-        useEditIcon: true,
+        useEditIcon: shouldUseEditIcon,
       });
     },
   );
@@ -354,11 +356,13 @@ export const _buildEditButtons = booking => {
     const isCurrentlyAvailable = _checkIfLessonAvailable(booking);
 
     if (isCurrentlyAvailable) {
-      // 現在空席：予約するボタンを表示（アイコンモード時はaria-labelに使用）
+      // 現在空席：「よやくする」ボタンを表示（モーダルで確認）
       buttons.push({
-        action: 'goToEditReservation',
+        action: 'confirmWaitlistedReservation',
         text: 'よやくする',
         style: 'primary',
+        // アイコンモード無効化のため、useEditIcon: falseをlistCardに渡す必要あり
+        useTextButton: true,
       });
     } else {
       // 空席なし：通常の確認/編集ボタン
