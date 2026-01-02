@@ -356,19 +356,19 @@ export const _buildEditButtons = booking => {
     const isCurrentlyAvailable = _checkIfLessonAvailable(booking);
 
     if (isCurrentlyAvailable) {
-      // 現在空席：予約するボタンを追加
+      // 現在空席：「よやくする」ボタンのみ表示（編集ボタンは非表示）
       buttons.push({
         action: 'confirmWaitlistedReservation',
-        text: '予約する',
+        text: 'よやくする',
         style: 'primary',
       });
+    } else {
+      // 空きなし：確認/編集ボタンを表示
+      buttons.push({
+        action: 'goToEditReservation',
+        text: 'かくにん<br>へんしゅう',
+      });
     }
-
-    // 空き通知希望は常に確認/編集ボタンも表示
-    buttons.push({
-      action: 'goToEditReservation',
-      text: 'かくにん<br>へんしゅう',
-    });
   }
 
   return buttons;
