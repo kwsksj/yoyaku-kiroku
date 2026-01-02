@@ -570,9 +570,14 @@ export function renderStep3Reservation(state) {
         ? `<p class="text-sm text-brand-subtle mt-2">${currentStartTime} 〜 ${currentEndTime || ''}</p>`
         : '';
 
-    // 経験者のみラベル
-    const slotStatus = getSlotStatus(/** @type {LessonCore} */ (lesson));
-    const experienceLabel = renderExperienceLabel(slotStatus.isExperiencedOnly);
+    // 経験者のみラベル（予約済みの場合はスロット情報がないためスキップ）
+    const slotStatus =
+      status !== 'reserved'
+        ? getSlotStatus(/** @type {LessonCore} */ (lesson))
+        : null;
+    const experienceLabel = slotStatus
+      ? renderExperienceLabel(slotStatus.isExperiencedOnly)
+      : '';
 
     return `
       <div class="slot-content-inner text-center py-4 border-2 ${styleConfig.borderClass} rounded-lg ${styleConfig.bgClass}">
@@ -1394,7 +1399,7 @@ export function getSessionConclusionView(state) {
       ${Components.pageContainer({
         content: `
           ${summaryHtml}
-          <div class="session-conclusion-wizard fade-in">
+          <div class="session-conclusion-wizard">
             ${stepContent}
           </div>
         `,
