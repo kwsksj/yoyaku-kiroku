@@ -533,6 +533,31 @@ window.onload = function () {
       }
     },
 
+    // =================================================================
+    // --- Error Recovery Handlers ---
+    // -----------------------------------------------------------------
+    /** ダッシュボードへ遷移（エラーリカバリー用） */
+    goToDashboard: () => {
+      handlersStateManager.dispatch({
+        type: 'SET_STATE',
+        payload: { view: 'dashboard' },
+      });
+    },
+
+    /** ログアウトしてLocalStorageもクリア（エラーリカバリー用） */
+    logoutAndRestart: () => {
+      // LocalStorageをクリア
+      if (typeof localStorage !== 'undefined') {
+        localStorage.clear();
+      }
+      // ログアウト処理（stateをクリア）してログイン画面へ
+      handlersStateManager.dispatch({ type: 'LOGOUT' });
+      handlersStateManager.dispatch({
+        type: 'NAVIGATE',
+        payload: { to: 'login' },
+      });
+    },
+
     /** モーダルの確認ボタンを押したときの処理です */
     modalConfirm: () => {
       const modalManager = windowTyped.ModalManager;
