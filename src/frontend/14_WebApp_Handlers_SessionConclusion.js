@@ -55,6 +55,8 @@ let wizardState = /** @type {SessionConclusionState} */ ({
   classifiedItems: null,
   accountingFormData: {},
   filterClassroom: 'current', // 'current' | 'all'
+  orderInput: '', // 材料希望
+  materialInput: '', // 注文品希望
 });
 
 /**
@@ -260,26 +262,23 @@ function goToStep(targetStep) {
   // ステップ更新
   wizardState.currentStep = targetStep;
 
-  // 状態マネージャー更新（再描画トリガー）
-  // 履歴には追加せず、現在の状態を更新するのみ
-  // note: 履歴を使わないシンプルなステップ遷移
-  conclusionStateManager.dispatch({
-    type: 'UPDATE_STATE',
-    payload: {},
-  });
+  // フェードアウト → フェードイン のシーケンスでビューを更新
+  // note: 直接DOM更新のみで、dispatchによる二重描画を防ぐ
+  const viewContainer = document.getElementById('view-container');
+  if (viewContainer) {
+    // 現在のコンテンツにフェードアウトを適用
+    const currentContent = viewContainer.querySelector('.fade-in');
+    if (currentContent) {
+      currentContent.classList.remove('fade-in');
+      currentContent.classList.add('fade-out');
+    }
 
-  // DOMを直接更新
-  const contentContainer = document.querySelector('.session-conclusion-wizard');
-  if (contentContainer) {
-    const viewHtml = getSessionConclusionView(wizardState);
-    // 全体を置換するか、中身だけ置換するか
-    // getSessionConclusionViewはフルページHTMLを返すため、main-contentを更新したほうが安全
-    // しかしヘッダー周りは変えたくないため、view-containerの中身を更新する
-    const viewContainer = document.getElementById('view-container');
-    if (viewContainer) {
+    // フェードアウト完了後に新コンテンツでフェードイン
+    setTimeout(() => {
+      const viewHtml = getSessionConclusionView(wizardState);
       viewContainer.innerHTML = `<div class="fade-in">${viewHtml}</div>`;
       setupSessionConclusionUI();
-    }
+    }, 150); // フェードアウトのduration (0.15s) と同期
   }
 }
 
@@ -319,6 +318,19 @@ function saveCurrentStepData() {
       );
       if (endTimeSelect) {
         wizardState.nextEndTime = endTimeSelect.value;
+      }
+      // 材料/注文品の希望を保存
+      const orderInput = /** @type {HTMLTextAreaElement | null} */ (
+        document.getElementById('conclusion-order-input')
+      );
+      if (orderInput) {
+        wizardState.orderInput = orderInput.value;
+      }
+      const materialInput = /** @type {HTMLTextAreaElement | null} */ (
+        document.getElementById('conclusion-material-input')
+      );
+      if (materialInput) {
+        wizardState.materialInput = materialInput.value;
       }
       break;
     }
@@ -489,6 +501,16 @@ async function finalizeConclusion() {
         wizardState.selectedLesson || wizardState.recommendedNextLesson;
 
       if (nextLesson) {
+        // 材料/注文品の希望をorder形式にまとめる
+        const orderParts = [];
+        if (wizardState.orderInput) {
+          orderParts.push(`【材料希望】${wizardState.orderInput}`);
+        }
+        if (wizardState.materialInput) {
+          orderParts.push(`【注文品】${wizardState.materialInput}`);
+        }
+        const orderValue = orderParts.join('\n');
+
         nextReservationPayload = {
           lessonId: nextLesson.lessonId,
           classroom: nextLesson.classroom,
@@ -499,6 +521,7 @@ async function finalizeConclusion() {
           user: currentUser,
           studentId: currentUser.studentId,
           sessionNote: wizardState.sessionNoteNext,
+          order: orderValue, // 材料/注文品の希望
           // ユーザーの期待（予約 or 空き通知）を追跡（完了画面で差異を表示するため）
           expectedWaitlist: wizardState.isWaitlistRequest,
         };
@@ -882,24 +905,9 @@ function handleConclusionClick(event) {
       break;
     }
     case 'expandLessonList': {
-      // 展開/折りたたみはDOM操作で行い、再描画しない（ちらつき防止）
+      // 展開/折りたたみを切り替えて再描画（戻るボタンの動作も更新される）
       wizardState.isLessonListExpanded = !wizardState.isLessonListExpanded;
-      const isExpanded = wizardState.isLessonListExpanded;
-
-      // 新しいDOM構造に対応: slot-view-content, slot-list-content, action-buttons
-      const slotViewContent = document.querySelector('.slot-view-content');
-      const slotListContent = document.querySelector('.slot-list-content');
-      const actionButtons = document.querySelector('.action-buttons');
-
-      if (slotViewContent) {
-        slotViewContent.classList.toggle('hidden', isExpanded);
-      }
-      if (slotListContent) {
-        slotListContent.classList.toggle('hidden', !isExpanded);
-      }
-      if (actionButtons) {
-        actionButtons.classList.toggle('hidden', isExpanded);
-      }
+      goToStep(STEPS.RESERVATION);
       break;
     }
     case 'undoReservationSkip':

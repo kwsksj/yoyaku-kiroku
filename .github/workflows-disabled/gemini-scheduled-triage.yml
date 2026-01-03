@@ -94,15 +94,15 @@ jobs:
         with:
           gemini_cli_version: 'latest'
           gemini_api_key: '${{ secrets.GEMINI_API_KEY }}'
+          gemini_model: 'gemini-2.0-flash'
           use_vertex_ai: 'false'
           use_gemini_code_assist: 'false'
-          gemini_debug: 'false'
+          gemini_debug: 'true'
           settings: |-
             {
               "maxSessionTurns": 25,
               "telemetry": {
-                "enabled": ${{ vars.GOOGLE_CLOUD_PROJECT != '' }},
-                "target": "gcp"
+                "enabled": false
               },
               "coreTools": [
                 "run_shell_command(echo)",

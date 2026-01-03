@@ -341,12 +341,22 @@ export const reservationActionHandlers = {
         if (r.data) {
           // 新規予約後は個人予約データと必要に応じて講座データを更新
           const currentState = reservationStateManager.getState();
+
+          // currentUserのnextLessonGoalを更新（ダッシュボードで最新表示）
+          const updatedCurrentUser = currentState.currentUser
+            ? {
+                ...currentState.currentUser,
+                nextLessonGoal: nextLessonGoalValue,
+              }
+            : null;
+
           const updatedPayload = {
             myReservations: r.data.myReservations || [],
             view: 'complete',
             completionMessage: r.message,
             selectedClassroom: lessonInfo.classroom,
             isDataFresh: true,
+            currentUser: updatedCurrentUser,
             // 参加者リストのキャッシュをクリア
             participantLessons: null,
             participantReservationsMap: null,
@@ -663,10 +673,20 @@ export const reservationActionHandlers = {
           if (r.data) {
             // 予約更新後は個人予約データを優先的に更新
             const currentState = reservationStateManager.getState();
+
+            // currentUserのnextLessonGoalを更新（ダッシュボードで最新表示）
+            const updatedCurrentUser = currentState.currentUser
+              ? {
+                  ...currentState.currentUser,
+                  nextLessonGoal: wipInputValue,
+                }
+              : null;
+
             const updatedPayload = {
               myReservations: r.data.myReservations || [],
               view: 'dashboard',
               isDataFresh: true,
+              currentUser: updatedCurrentUser,
               // 参加者リストのキャッシュをクリア
               participantLessons: null,
               participantReservationsMap: null,
