@@ -858,6 +858,44 @@ export function updateUserProfile(userInfo) {
       // キャッシュを更新
       updateCachedStudent(updatedUser);
 
+      // 実際に変更されたフィールドのみを記録
+      /** @type {Array<{field: string, from: any, to: any}>} */
+      const changes = [];
+
+      /**
+       * falsy値（false, '', undefined, null）を正規化して比較用の値に変換
+       * @param {any} value
+       * @returns {any}
+       */
+      const normalizeForComparison = value => {
+        // false, '', undefined, null はすべて空文字として扱う
+        if (value === false || value === '' || value == null) {
+          return '';
+        }
+        return value;
+      };
+
+      for (const key in userInfo) {
+        if (key === 'studentId' || key === 'rowIndex') continue;
+        const headerName = propToHeaderMap[key];
+        if (!headerName) continue;
+
+        const oldValue = targetStudent[key];
+        const newValue = userInfo[key];
+
+        // 正規化した値で比較し、実際に変わった場合のみ記録
+        const normalizedOld = normalizeForComparison(oldValue);
+        const normalizedNew = normalizeForComparison(newValue);
+
+        if (normalizedOld !== normalizedNew) {
+          changes.push({
+            field: headerName,
+            from: normalizedOld,
+            to: normalizedNew,
+          });
+        }
+      }
+
       Logger.log(`ユーザー情報更新成功: ${studentId}`);
       logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_UPDATE, '成功', {
         classroom: targetStudent['classroom'] || '',
@@ -865,10 +903,7 @@ export function updateUserProfile(userInfo) {
         date: '',
         message: 'プロフィールが更新されました',
         details: {
-          updatedFields: Object.keys(userInfo),
-          realName: updatedUser.realName,
-          nickname: updatedUser.nickname,
-          email: updatedUser.email,
+          changes: changes,
         },
       });
 
