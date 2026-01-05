@@ -136,10 +136,28 @@ export const authActionHandlers = {
             participantAllStudents: participantData?.allStudents || {},
           };
 
+          // ログデータを反映（即時表示用）
+          const adminLogs = response.data?.adminLogs || [];
+          if (adminLogs.length > 0) {
+            // ここでparticipantHandlersStateManagerのステートも更新必要があるが、
+            // participantHandlersStateManagerは14_WebApp_Handlers_Participant.jsで定義されており
+            // 相互参照になる可能性があるため、SimpleStateManagerを通じて更新するか、
+            // あるいはgoToLogView側でキャッシュを利用する仕組みになっているため、
+            // goToLogViewを呼ぶ前にadminStateに含めておく（set_stateは上書き）。
+
+            // adminStateにadminLogsを追加
+            adminState['adminLogs'] = adminLogs;
+            adminState['adminLogsLoading'] = false;
+          }
+
           authHandlersStateManager.dispatch({
             type: 'SET_STATE',
             payload: adminState,
           });
+
+          // ログビュー側のステートマネージャにも同期（同じインスタンスを参照しているはずだが念のため）
+          // 注: 14_WebApp_Handlers_Participant.js の participantHandlersStateManager は
+          // appWindow.stateManager を使用しているので、dispatchで同期されるはず。
 
           hideLoading();
 

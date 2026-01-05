@@ -58,7 +58,7 @@ export const getLogView = () => {
   }, 1000);
 
   // ヘッダー用カスタムアクションHTML
-  const refreshIcon = `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
+  const refreshIcon = `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
 
   const headerActions = `
     <div class="flex items-center gap-2">
@@ -67,13 +67,10 @@ export const getLogView = () => {
         text: refreshIcon,
         style: 'secondary',
         size: 'xs',
-        customClass: isRefreshing
-          ? 'opacity-50 cursor-not-allowed animate-spin'
-          : '',
         disabled: isRefreshing || isLoading,
       })}
       ${Components.button({
-        action: 'goToParticipantsView',
+        action: 'backToParticipantsView',
         text: '参加者ビュー',
         style: 'primary',
         size: 'xs',
@@ -129,9 +126,9 @@ export const getLogView = () => {
       backAction: 'logout',
       customActionHtml: headerActions,
     })}
-    <div class="${DesignConfig.layout.container}">
+    <div class="w-full px-4">
       <p class="text-xs text-brand-subtle mb-2 text-right">直近30日分のログ（${logs.length}件）</p>
-      <div class="overflow-x-auto -mx-4 px-4 pb-8">
+      <div class="overflow-x-auto pb-8">
         ${tableHtml}
       </div>
     </div>
@@ -229,8 +226,29 @@ function renderLogTable(logs, lastViewedTime) {
           content += `<div class="truncate font-medium">${escapeHTML(classroom)}</div>`;
         if (reservationId)
           content += `<div class="truncate text-[10px] text-brand-muted font-mono">${escapeHTML(reservationId)}</div>`;
-        if (details)
-          content += `<div class="truncate text-[10px] text-gray-500" title="${escapeHTML(details)}">${escapeHTML(details)}</div>`;
+        if (details) {
+          try {
+            const parsed = JSON.parse(details);
+            if (typeof parsed === 'object' && parsed !== null) {
+              content += '<div class="mt-1 space-y-0.5">';
+              for (const [k, v] of Object.entries(parsed)) {
+                // 値がオブジェクトの場合も文字列化して表示
+                const displayVal =
+                  typeof v === 'object' ? JSON.stringify(v) : String(v);
+                content += `
+                  <div class="flex items-baseline text-[9px] leading-tight">
+                    <span class="font-mono text-gray-400 w-16 shrink-0 truncate mr-1">${escapeHTML(k)}:</span>
+                    <span class="text-gray-600 break-all">${escapeHTML(displayVal)}</span>
+                  </div>`;
+              }
+              content += '</div>';
+            } else {
+              content += `<div class="truncate text-[10px] text-gray-500" title="${escapeHTML(details)}">${escapeHTML(details)}</div>`;
+            }
+          } catch (e) {
+            content += `<div class="truncate text-[10px] text-gray-500" title="${escapeHTML(details)}">${escapeHTML(details)}</div>`;
+          }
+        }
 
         return content || '<span class="text-gray-300">-</span>';
       },

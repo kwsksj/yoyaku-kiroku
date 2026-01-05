@@ -363,7 +363,7 @@ export const CONSTANTS = {
       RESERVATION_ID: '予約ID',
       DATE: '日付',
       MESSAGE: 'メッセージ',
-      DETAILS: '詳細情報',
+      DETAILS: '詳細',
     },
   },
 
