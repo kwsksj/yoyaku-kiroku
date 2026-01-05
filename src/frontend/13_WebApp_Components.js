@@ -763,6 +763,8 @@ export const Components = {
     responsive = true,
     emptyMessage = 'データがありません',
     minWidth = '',
+    headerSize = '',
+    rowBorderClass = '',
   }) => {
     if (!columns || columns.length === 0) {
       console.error('table: columns must be provided');
@@ -783,9 +785,14 @@ export const Components = {
         const widthStyle = col.width
           ? `style="width: ${escapeHTML(col.width)}"`
           : '';
-        return `<th class="px-1 py-0.5 font-bold text-brand-text border-b-2 border-ui-border ${alignClass}" ${widthStyle}>${escapeHTML(col.label)}</th>`;
+        // headerSize指定があれば優先、なければデフォルト
+        const sizeClass = headerSize || 'text-base font-bold';
+        return `<th class="px-1 py-1 ${sizeClass} text-brand-text border-b-2 border-ui-border ${alignClass}" ${widthStyle}>${escapeHTML(col.label)}</th>`;
       })
       .join('');
+
+    // 行ボーダークラス（指定がなければデフォルト）
+    const borderClass = rowBorderClass || 'border-b border-ui-border-light';
 
     // データ行生成
     const rowsHtml =
@@ -813,7 +820,7 @@ export const Components = {
                   const widthStyle = col.width
                     ? `style="width: ${escapeHTML(col.width)}"`
                     : '';
-                  return `<td class="px-0.5 py-0.5 ${bordered ? 'border-b border-ui-border-light' : ''} ${alignClass}" ${widthStyle}>${content}</td>`;
+                  return `<td class="px-1 py-1 ${bordered ? borderClass : ''} ${alignClass}" ${widthStyle}>${content}</td>`;
                 })
                 .join('');
 
@@ -963,6 +970,7 @@ export const Components = {
    * @param {string} [config.backAction='smartGoBack'] - もどるボタンのアクション
    * @param {boolean} [config.showBackButton=true] - もどるボタンを表示するか
    * @param {{text: string, action: string, style?: string, size?: string} | null} [config.actionButton=null] - オプションのアクションボタン設定
+   * @param {string | null} [config.customActionHtml=null] - カスタムアクションボタンHTML
    * @returns {string} HTML文字列
    */
   pageHeader: ({
@@ -970,6 +978,7 @@ export const Components = {
     backAction = 'smartGoBack',
     showBackButton = true,
     actionButton = null,
+    customActionHtml = null,
   }) => {
     // なりすまし操作中はタイトルに注釈を付与
     // コンポーネントロード時の初期化タイミング問題を避けるため、appWindowから直接取得
@@ -992,24 +1001,26 @@ export const Components = {
         })
       : '';
 
-    const actionButtonHtml = actionButton
-      ? Components.button({
-          action: actionButton.action,
-          text: actionButton.text,
-          style: /** @type {ComponentStyle} */ (
-            actionButton.style || 'primary'
-          ),
-          size: /** @type {ComponentSize} */ (actionButton.size || 'xs'),
-          customClass: 'ml-2',
-        })
-      : '';
+    // customActionHtmlが優先、なければ従来のactionButton生成
+    let actionHtml = '';
+    if (customActionHtml) {
+      actionHtml = customActionHtml;
+    } else if (actionButton) {
+      actionHtml = Components.button({
+        action: actionButton.action,
+        text: actionButton.text,
+        style: /** @type {ComponentStyle} */ (actionButton.style || 'primary'),
+        size: /** @type {ComponentSize} */ (actionButton.size || 'xs'),
+        customClass: 'ml-2',
+      });
+    }
 
     return `
       <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4 -mx-4">
         <div class="flex justify-between items-center px-4">
           <h1 class="text-lg font-bold text-brand-text flex-1">${escapeHTML(finalTitle)}</h1>
           <div class="flex items-center gap-2">
-            ${actionButtonHtml}
+            ${actionHtml}
             ${backButtonHtml}
           </div>
         </div>

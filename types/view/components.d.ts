@@ -508,6 +508,10 @@ declare global {
     emptyMessage?: string;
     /** テーブルの最小幅（CSS値: '800px', '100%' など） */
     minWidth?: string;
+    /** ヘッダーの文字サイズクラス */
+    headerSize?: string;
+    /** 行のボーダークラス */
+    rowBorderClass?: string;
   }
 
   var Components: typeof GeneratedComponents;

@@ -18,6 +18,7 @@ export * from './13_WebApp_Components';
 export * from './13_WebApp_Views_Auth';
 export * from './13_WebApp_Views_Booking';
 export * from './13_WebApp_Views_Dashboard';
+export * from './13_WebApp_Views_Log';
 export * from './13_WebApp_Views_Participant';
 export * from './13_WebApp_Views_SessionConclusion';
 export * from './13_WebApp_Views_Utils';

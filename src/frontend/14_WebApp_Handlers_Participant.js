@@ -650,6 +650,57 @@ export const participantActionHandlers = {
     // データはloadParticipantViewで取得されるので、ここではビューの初期化を呼び出すだけ
     loadParticipantView(false); // 強制再読み込みはしない（未来分のみ先読み）
   },
+  goToLogView: () => {
+    // ログビューに遷移（データ取得は描画時に行う）
+    participantHandlersStateManager.dispatch({
+      type: 'SET_STATE',
+      payload: {
+        view: 'adminLog',
+        adminLogsLoading: true,
+      },
+    });
+    render();
+    // バックエンドからログを取得
+    google.script.run
+      .withSuccessHandler(
+        /** @param {ApiResponseGeneric<any[]>} response */ response => {
+          if (response.success) {
+            participantHandlersStateManager.dispatch({
+              type: 'UPDATE_STATE',
+              payload: {
+                adminLogs: response.data || [],
+                adminLogsLoading: false,
+              },
+            });
+          } else {
+            participantHandlersStateManager.dispatch({
+              type: 'UPDATE_STATE',
+              payload: {
+                adminLogs: [],
+                adminLogsLoading: false,
+              },
+            });
+            showInfo(response.message || 'ログ取得に失敗しました', 'エラー');
+          }
+          render();
+        },
+      )
+      .withFailureHandler(
+        /** @param {Error} error */ error => {
+          console.error('❌ ログ取得失敗:', error);
+          participantHandlersStateManager.dispatch({
+            type: 'UPDATE_STATE',
+            payload: {
+              adminLogs: [],
+              adminLogsLoading: false,
+            },
+          });
+          showInfo('通信エラーが発生しました', 'エラー');
+          render();
+        },
+      )
+      .getRecentLogs(30);
+  },
   toggleParticipantLessonAccordion,
   expandAllAccordions,
   collapseAllAccordions,

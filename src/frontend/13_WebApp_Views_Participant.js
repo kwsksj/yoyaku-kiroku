@@ -902,17 +902,30 @@ function renderLessonList(lessons) {
          </div>`
       : '';
 
+  // 管理者向けのアクションボタン（操作ログ・更新）
+  const adminButtons = isAdmin
+    ? `<div class="flex gap-1">
+        ${Components.button({
+          text: '操作ログ',
+          action: 'goToLogView',
+          style: 'secondary',
+          size: 'xs',
+        })}
+        ${Components.button({
+          text: '更新',
+          action: 'refreshParticipantView',
+          style: 'secondary',
+          size: 'xs',
+        })}
+       </div>`
+    : null;
+
   return `
     ${Components.pageHeader({
       title: 'みんな の よやく・きろく',
       showBackButton: true,
       backAction: 'smartGoBack',
-      actionButton: {
-        text: '更新',
-        action: 'refreshParticipantView',
-        style: 'secondary',
-        size: 'xs',
-      },
+      customActionHtml: adminButtons,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
       ${tabsHtml}

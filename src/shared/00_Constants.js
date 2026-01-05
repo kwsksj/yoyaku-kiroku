@@ -350,6 +350,21 @@ export const CONSTANTS = {
       TOTAL: '金額',
       PAYMENT_METHOD: '支払手段',
     },
+
+    // ログシート（短縮名: LOG）
+    LOG: {
+      TIMESTAMP: 'タイムスタンプ',
+      USER_ID: 'ユーザーID',
+      REAL_NAME: '本名',
+      NICKNAME: 'ニックネーム',
+      ACTION: 'アクション',
+      RESULT: '結果',
+      CLASSROOM: '教室名',
+      RESERVATION_ID: '予約ID',
+      DATE: '日付',
+      MESSAGE: 'メッセージ',
+      DETAILS: '詳細情報',
+    },
   },
 
   // 会計項目定数

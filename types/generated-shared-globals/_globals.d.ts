@@ -237,6 +237,19 @@ declare global {
         readonly TOTAL: string;
         readonly PAYMENT_METHOD: string;
       };
+      readonly LOG: {
+        readonly TIMESTAMP: string;
+        readonly USER_ID: string;
+        readonly REAL_NAME: string;
+        readonly NICKNAME: string;
+        readonly ACTION: string;
+        readonly RESULT: string;
+        readonly CLASSROOM: string;
+        readonly RESERVATION_ID: string;
+        readonly DATE: string;
+        readonly MESSAGE: string;
+        readonly DETAILS: string;
+      };
     };
     readonly ITEMS: {
       readonly MAIN_LECTURE: string;

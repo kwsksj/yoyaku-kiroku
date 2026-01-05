@@ -265,6 +265,25 @@ export namespace CONSTANTS {
             export let PAYMENT_METHOD: string;
         }
         export { SALES_LOG_1 as SALES_LOG };
+        export namespace LOG_1 {
+            export let TIMESTAMP: string;
+            export let USER_ID: string;
+            let REAL_NAME_1: string;
+            export { REAL_NAME_1 as REAL_NAME };
+            let NICKNAME_1: string;
+            export { NICKNAME_1 as NICKNAME };
+            export let ACTION: string;
+            export let RESULT: string;
+            let CLASSROOM_4: string;
+            export { CLASSROOM_4 as CLASSROOM };
+            let RESERVATION_ID_1: string;
+            export { RESERVATION_ID_1 as RESERVATION_ID };
+            let DATE_4: string;
+            export { DATE_4 as DATE };
+            export let MESSAGE: string;
+            export let DETAILS: string;
+        }
+        export { LOG_1 as LOG };
     }
     namespace ITEMS {
         export let MAIN_LECTURE: string;

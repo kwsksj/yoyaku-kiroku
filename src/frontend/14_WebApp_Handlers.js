@@ -38,6 +38,7 @@ import {
   getReservationFormView,
 } from './13_WebApp_Views_Booking.js';
 import { getDashboardView } from './13_WebApp_Views_Dashboard.js';
+import { getLogView } from './13_WebApp_Views_Log.js';
 import { getParticipantView } from './13_WebApp_Views_Participant.js';
 import { getCompleteView } from './13_WebApp_Views_Utils.js';
 
@@ -274,6 +275,9 @@ export function render() {
     }
     case 'participants':
       v = getParticipantView();
+      break;
+    case 'adminLog':
+      v = getLogView();
       break;
     case 'sessionConclusion':
       v = getCurrentSessionConclusionView();

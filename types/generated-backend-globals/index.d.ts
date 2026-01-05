@@ -13,6 +13,7 @@ export * from './02-7_Notification_StudentReservation';
 export * from './04_Backend_User';
 export * from './05-2_Backend_Write';
 export * from './05-3_Backend_AvailableSlots';
+export * from './05-4_Backend_Log';
 export * from './07_CacheManager';
 export * from './08_ErrorHandler';
 export * from './08_Utilities';

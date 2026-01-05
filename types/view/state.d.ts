@@ -39,6 +39,7 @@ export type ViewType =
   | 'complete'
   | 'userSearch'
   | 'participants' // 参加者リスト画面
+  | 'adminLog' // 管理者ログビュー
   | 'sessionConclusion'; // セッション終了ウィザード
 
 /**
