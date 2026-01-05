@@ -32,11 +32,18 @@ const logViewStateManager = appWindow.stateManager;
  * ログビューのメインHTMLを生成
  * @returns {string} HTML文字列
  */
-export function getLogView() {
+/**
+ * ログビューのメインHTMLを生成
+ * @returns {string} HTML文字列
+ */
+export const getLogView = () => {
   const state = logViewStateManager.getState();
+
   /** @type {LogEntry[]} */
   const logs = state['adminLogs'] || [];
   const isLoading = state['adminLogsLoading'] || false;
+  // リフレッシュ中かどうか（バックグラウンド更新）
+  const isRefreshing = state['adminLogsRefreshing'] || false;
 
   // 最後に表示した日時を取得（未読判定用）
   const lastViewedKey = 'YOYAKU_KIROKU_ADMIN_LOG_LAST_VIEWED';
@@ -45,33 +52,44 @@ export function getLogView() {
     ? new Date(lastViewedTimeStr).getTime()
     : 0;
 
-  // 現在時刻を保存（次回用に更新）
-  // 描画サイクルでのちらつきを防ぐため、少し遅延させるか、このまま保存
+  // 現在時刻を保存
   setTimeout(() => {
     localStorage.setItem(lastViewedKey, new Date().toISOString());
   }, 1000);
 
-  // 参加者ビューへ遷移するボタン
-  const navigationButtons = `
-    <div class="flex gap-2 mb-4">
+  // ヘッダー用カスタムアクションHTML
+  const refreshIcon = `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
+
+  const headerActions = `
+    <div class="flex items-center gap-2">
       ${Components.button({
-        text: '参加者ビューへ',
-        action: 'goToParticipantsView',
+        action: 'refreshLogView',
+        text: refreshIcon,
         style: 'secondary',
-        size: 'small',
+        size: 'xs',
+        customClass: isRefreshing
+          ? 'opacity-50 cursor-not-allowed animate-spin'
+          : '',
+        disabled: isRefreshing || isLoading,
+      })}
+      ${Components.button({
+        action: 'goToParticipantsView',
+        text: '参加者ビュー',
+        style: 'primary',
+        size: 'xs',
       })}
     </div>
   `;
 
-  // ローディング状態
+  // ローディング状態（初期ロード）
   if (isLoading) {
     return `
       ${Components.pageHeader({
         title: '操作ログ',
         backAction: 'logout',
+        customActionHtml: headerActions, // ヘッダーは表示しておく
       })}
       <div class="${DesignConfig.layout.container}">
-        ${navigationButtons}
         <div class="text-center py-12">
           <p class="text-brand-subtle">ログを読み込み中...</p>
         </div>
@@ -85,9 +103,9 @@ export function getLogView() {
       ${Components.pageHeader({
         title: '操作ログ',
         backAction: 'logout',
+        customActionHtml: headerActions,
       })}
       <div class="${DesignConfig.layout.container}">
-        ${navigationButtons}
         ${Components.cardContainer({
           variant: 'default',
           padding: 'spacious',
@@ -109,26 +127,16 @@ export function getLogView() {
     ${Components.pageHeader({
       title: '操作ログ',
       backAction: 'logout',
+      customActionHtml: headerActions,
     })}
     <div class="${DesignConfig.layout.container}">
-      ${navigationButtons}
-      <p class="text-xs text-brand-subtle mb-2">直近30日分のログ（${logs.length}件）</p>
-      <div class="overflow-x-auto -mx-4 px-4">
+      <p class="text-xs text-brand-subtle mb-2 text-right">直近30日分のログ（${logs.length}件）</p>
+      <div class="overflow-x-auto -mx-4 px-4 pb-8">
         ${tableHtml}
       </div>
     </div>
   `;
-}
-
-/**
- * 曜日を取得するユーティリティ
- * @param {Date} date
- * @returns {string} (月), (火) etc.
- */
-function getDayOfWeek(date) {
-  const days = ['日', '月', '火', '水', '木', '金', '土'];
-  return `(${days[date.getDay()]})`;
-}
+};
 
 /**
  * ログテーブルを描画
@@ -141,25 +149,28 @@ function renderLogTable(logs, lastViewedTime) {
   /** @type {TableColumn[]} */
   const columns = [
     {
-      label: 'タイムスタンプ',
+      label: '日時',
       key: 'timestamp',
-      width: '100px',
+      width: '110px',
       render: (_val, row) => {
         const r = /** @type {LogEntry} */ (row);
+        // window.formatDateを使用（HTMLが返る）
+        const dateHtml = window.formatDate
+          ? window.formatDate(r.timestamp)
+          : r.timestamp;
         const d = new Date(r.timestamp);
-        const date = `${d.getMonth() + 1}/${d.getDate()}${getDayOfWeek(d)}`;
         const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
-        // 未読判定（タイムスタンプが最終閲覧時間より新しい場合）
+        // 未読判定
         const isNew = d.getTime() > lastViewedTime;
         const newBadge = isNew
-          ? `<span class="inline-block bg-red-500 text-white text-[9px] px-1 rounded ml-1">NEW</span>`
+          ? `<span class="inline-block bg-red-500 text-white text-[9px] px-1 rounded ml-1 align-top">NEW</span>`
           : '';
 
         return `
-          <div class="text-brand-subtle leading-tight">
-            <div class="font-bold flex items-center">${date}${newBadge}</div>
-            <div class="text-[11px] font-mono mt-0.5">${time}</div>
+          <div class="leading-snug">
+            <div class="text-xs">${dateHtml}${newBadge}</div>
+            <div class="text-[10px] text-brand-subtle font-mono">${time}</div>
           </div>
         `;
       },
@@ -172,9 +183,8 @@ function renderLogTable(logs, lastViewedTime) {
         const r = /** @type {LogEntry} */ (row);
         const realName = r.realName || '—';
         const nickname = r.nickname || '—';
-        // 名前とニックネームを2行で表示
         return `
-          <div class="leading-tight">
+          <div class="leading-snug">
              <div class="text-xs font-bold truncate" title="${escapeHTML(realName)}">${escapeHTML(realName)}</div>
              <div class="text-[10px] text-brand-muted truncate" title="${escapeHTML(nickname)}">${escapeHTML(nickname)}</div>
           </div>
@@ -200,13 +210,13 @@ function renderLogTable(logs, lastViewedTime) {
             : v === '失敗'
               ? 'text-red-600'
               : 'text-gray-600';
-        return `<div class="${colorClass} text-xs font-bold">${escapeHTML(v)}</div>`;
+        return `<div class="${colorClass} text-xs font-bold text-center">${escapeHTML(v)}</div>`;
       },
     },
     {
       label: '詳細',
       key: 'details',
-      width: '100px',
+      width: '140px',
       render: (val, row) => {
         const r = /** @type {LogEntry} */ (row);
         const classroom = r.classroom ? `教室:${r.classroom}` : '';
@@ -216,35 +226,32 @@ function renderLogTable(logs, lastViewedTime) {
         // 重要な詳細情報をまとめて表示
         let content = '';
         if (classroom)
-          content += `<div class="truncate">${escapeHTML(classroom)}</div>`;
+          content += `<div class="truncate font-medium">${escapeHTML(classroom)}</div>`;
         if (reservationId)
-          content += `<div class="truncate text-[10px] text-brand-muted">${escapeHTML(reservationId)}</div>`;
+          content += `<div class="truncate text-[10px] text-brand-muted font-mono">${escapeHTML(reservationId)}</div>`;
         if (details)
-          content += `<div class="truncate text-[10px] text-gray-400" title="${escapeHTML(details)}">${escapeHTML(details)}</div>`;
+          content += `<div class="truncate text-[10px] text-gray-500" title="${escapeHTML(details)}">${escapeHTML(details)}</div>`;
 
         return content || '<span class="text-gray-300">-</span>';
       },
     },
     {
-      label: '教室日程',
+      label: '日程',
       key: 'date',
-      width: '80px',
+      width: '90px',
       render: val => {
         const v = /** @type {string} */ (val);
         if (!v) return '<span class="text-gray-300">-</span>';
-        // 日付文字列から曜日を追加しようと試みる（形式が YYYY/MM/DD の場合など）
-        // ただしログの date カラムの形式が不明確なため、単純な日付パースを試みる
-        const d = new Date(v);
-        if (!isNaN(d.getTime())) {
-          return `<div class="truncate text-xs font-medium">${d.getMonth() + 1}/${d.getDate()}${getDayOfWeek(d)}</div>`;
-        }
-        return `<div class="truncate text-xs">${escapeHTML(v)}</div>`;
+        const dateHtml = window.formatDate
+          ? window.formatDate(v)
+          : escapeHTML(v);
+        return `<div class="truncate text-xs">${dateHtml}</div>`;
       },
     },
     {
       label: 'メッセージ',
       key: 'message',
-      width: '160px',
+      width: '180px',
       render: val =>
         `<div class="text-xs text-gray-500 break-words whitespace-normal line-clamp-2" title="${escapeHTML(/** @type {string} */ (val))}">${escapeHTML(/** @type {string} */ (val) || '—')}</div>`,
     },
@@ -254,14 +261,14 @@ function renderLogTable(logs, lastViewedTime) {
   return Components.table({
     columns: columns,
     rows: logs,
-    striped: true, // 縞々も維持しつつボーダーも破線にする
+    striped: false,
     bordered: true,
     hoverable: true,
     compact: true,
     responsive: true,
-    minWidth: '800px',
+    minWidth: '',
     emptyMessage: '表示するログがありません',
-    headerSize: 'text-xs font-bold bg-brand-light', // ヘッダー文字サイズxsと背景色調整
-    rowBorderClass: 'border-b-2 border-dashed border-ui-border', // 行境界：破線、border-2
+    headerSize: 'text-xs font-bold bg-brand-light',
+    rowBorderClass: 'border-b border-dashed border-ui-border',
   });
 }

@@ -646,21 +646,87 @@ function togglePastLessons(showPast) {
 export const participantActionHandlers = {
   loadParticipantView,
   refreshParticipantView,
-  goToParticipantsView: () => {
-    // データはloadParticipantViewで取得されるので、ここではビューの初期化を呼び出すだけ
-    loadParticipantView(false); // 強制再読み込みはしない（未来分のみ先読み）
+  refreshLogView: () => {
+    // ログ更新ボタンハンドラ
+    participantHandlersStateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: { adminLogsRefreshing: true },
+    });
+    render(); // ローディング表示更新
+
+    google.script.run
+      .withSuccessHandler(
+        /** @param {ApiResponseGeneric<any[]>} response */ response => {
+          let updatedLogs = [];
+          if (response.success && response.data) {
+            updatedLogs = response.data;
+          }
+
+          // 差分チェック相当（件数や最新タイムスタンプなど）
+          // 今回はシンプルに上書き更新し、データが変わったかどうかで通知を分ける
+          const currentState = participantHandlersStateManager.getState();
+          const currentLogs = currentState['adminLogs'] || [];
+
+          let message = 'ログを更新しました';
+          // 簡易チェック: 最新のログのタイムスタンプが同じなら変更なしとみなす
+          // （厳密には件数なども見るべきだが、シンプルなUXとして）
+          const latestCurrent =
+            currentLogs.length > 0 ? currentLogs[0].timestamp : '';
+          const latestUpdated =
+            updatedLogs.length > 0 ? updatedLogs[0].timestamp : '';
+
+          if (
+            latestCurrent === latestUpdated &&
+            currentLogs.length === updatedLogs.length
+          ) {
+            message = '新しいログはありません';
+            showInfo(message, '通知'); // 静かな通知
+          } else {
+            // 差分あり
+            showInfo('最新のログを読み込みました', '完了');
+          }
+
+          participantHandlersStateManager.dispatch({
+            type: 'UPDATE_STATE',
+            payload: {
+              adminLogs: updatedLogs,
+              adminLogsRefreshing: false,
+            },
+          });
+          render();
+        },
+      )
+      .withFailureHandler(
+        /** @param {Error} error */ error => {
+          console.error('❌ ログリフレッシュ失敗:', error);
+          participantHandlersStateManager.dispatch({
+            type: 'UPDATE_STATE',
+            payload: { adminLogsRefreshing: false },
+          });
+          showInfo('更新に失敗しました', 'エラー');
+          render();
+        },
+      )
+      .getRecentLogs(30);
   },
   goToLogView: () => {
-    // ログビューに遷移（データ取得は描画時に行う）
+    // ログビューに遷移
+    const state = participantHandlersStateManager.getState();
+    const cachedLogs = state['adminLogs'];
+    const hasCache = cachedLogs && cachedLogs.length > 0;
+
+    // キャッシュがあれば即表示、なければロード画面
     participantHandlersStateManager.dispatch({
       type: 'SET_STATE',
       payload: {
         view: 'adminLog',
-        adminLogsLoading: true,
+        adminLogsLoading: !hasCache,
+        adminLogsRefreshing: hasCache, // キャッシュがある場合は更新モード
       },
     });
     render();
-    // バックエンドからログを取得
+
+    // バックグラウンドで最新を取得（キャッシュがあっても更新確認）
     google.script.run
       .withSuccessHandler(
         /** @param {ApiResponseGeneric<any[]>} response */ response => {
@@ -670,17 +736,23 @@ export const participantActionHandlers = {
               payload: {
                 adminLogs: response.data || [],
                 adminLogsLoading: false,
+                adminLogsRefreshing: false,
               },
             });
+            // キャッシュがあった場合、サイレントに更新される
           } else {
+            // エラー時
             participantHandlersStateManager.dispatch({
               type: 'UPDATE_STATE',
               payload: {
-                adminLogs: [],
                 adminLogsLoading: false,
+                adminLogsRefreshing: false,
               },
             });
-            showInfo(response.message || 'ログ取得に失敗しました', 'エラー');
+            // キャッシュがない場合のみエラー通知
+            if (!hasCache) {
+              showInfo(response.message || 'ログ取得に失敗しました', 'エラー');
+            }
           }
           render();
         },
@@ -691,11 +763,13 @@ export const participantActionHandlers = {
           participantHandlersStateManager.dispatch({
             type: 'UPDATE_STATE',
             payload: {
-              adminLogs: [],
               adminLogsLoading: false,
+              adminLogsRefreshing: false,
             },
           });
-          showInfo('通信エラーが発生しました', 'エラー');
+          if (!hasCache) {
+            showInfo('通信エラーが発生しました', 'エラー');
+          }
           render();
         },
       )
