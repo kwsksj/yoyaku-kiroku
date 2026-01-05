@@ -898,24 +898,18 @@ export function renderStep3Reservation(state) {
     : '';
 
   const skipButtonHtml = !isSkipped
-    ? `
-      <div class="text-center">
-        <button type="button"
-                class="text-sm text-gray-400 underline"
-                data-action="skipReservation">
-          いまは きめない
-        </button>
-      </div>
-    `
-    : `
-      <div class="text-center">
-        <button type="button"
-                class="text-sm text-action-primary underline font-bold"
-                data-action="undoReservationSkip">
-          やっぱり えらぶ
-        </button>
-      </div>
-    `;
+    ? Components.button({
+        action: 'skipReservation',
+        text: 'いまは きめない',
+        style: 'secondary',
+        size: 'full',
+      })
+    : Components.button({
+        action: 'undoReservationSkip',
+        text: 'やっぱり えらぶ',
+        style: 'secondary',
+        size: 'full',
+      });
 
   // もどるボタン（日程リスト展開時はスロット表示に戻る、そうでなければ前のステップへ）
   const backButtonHtml = isExpanded
