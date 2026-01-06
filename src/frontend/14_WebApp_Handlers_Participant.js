@@ -725,6 +725,7 @@ function togglePastLessons(showPast) {
  */
 export const participantActionHandlers = {
   loadParticipantView,
+  goToParticipantsView: () => loadParticipantView(),
   refreshParticipantView,
   markAllLogsAsViewed: () => {
     const lastViewedKey = 'YOYAKU_KIROKU_ADMIN_LOG_LAST_VIEWED';

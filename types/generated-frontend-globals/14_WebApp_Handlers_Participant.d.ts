@@ -1,5 +1,6 @@
 export namespace participantActionHandlers {
     export { loadParticipantView };
+    export function goToParticipantsView(): void;
     export { refreshParticipantView };
     export function markAllLogsAsViewed(): void;
     export function refreshLogView(): void;
