@@ -100,6 +100,9 @@ export interface UserCore {
   /** 初回メッセージ */
   firstMessage?: string | undefined;
 
+  /** 次回目標 */
+  nextLessonGoal?: string | undefined;
+
   // ========================================
   // 来場・交通情報（オプション）
   // ========================================

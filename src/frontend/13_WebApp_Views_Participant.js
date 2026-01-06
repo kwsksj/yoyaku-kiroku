@@ -902,17 +902,39 @@ function renderLessonList(lessons) {
          </div>`
       : '';
 
+  // 管理者向けのアクションボタン（更新・操作ログ）
+  // LogViewと統一されたデザイン
+  const isRefreshing = state['adminLogsRefreshing'] || false; // 参加者ビューのリフレッシュ状態もこれを使うか、別途定義するか。
+  // participantHandlersStateManagerでは adminLogsRefreshing を使用している（653行目）
+
+  const refreshIcon = `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
+
+  const adminButtons = isAdmin
+    ? `<div class="flex items-center gap-2">
+        ${Components.button({
+          action: 'refreshParticipantView',
+          text: refreshIcon,
+          style: 'secondary',
+          size: 'xs',
+          disabled: isRefreshing,
+        })}
+        ${Components.button({
+          text: '操作<br>ログ',
+          action: 'goToLogView',
+          style: 'primary', // 統一感を出すためPrimaryにするか、LogView側がPrimary(参加者ビューへ)だったので逆にするか。
+          // LogView: Refresh(Secondary), Participants(Primary)
+          // ここでも Refresh(Secondary), Log(Primary) で合わせるのが良さそう。
+          size: 'xs',
+        })}
+       </div>`
+    : null;
+
   return `
     ${Components.pageHeader({
       title: 'みんな の よやく・きろく',
-      showBackButton: true,
+      showBackButton: !isAdmin,
       backAction: 'smartGoBack',
-      actionButton: {
-        text: '更新',
-        action: 'refreshParticipantView',
-        style: 'secondary',
-        size: 'xs',
-      },
+      customActionHtml: adminButtons,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
       ${tabsHtml}
@@ -1214,7 +1236,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
   `;
 
   return `
-    <div class="max-h-[70vh] overflow-y-auto p-1">
+    <div class="max-h-[70vh] overflow-y-auto p-0">
       ${publicInfoHtml}
       ${detailedInfoHtml}
       ${reservationHistoryHtml}

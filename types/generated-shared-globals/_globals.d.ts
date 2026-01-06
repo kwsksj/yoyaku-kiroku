@@ -121,6 +121,7 @@ declare global {
       readonly USER_LOGOUT: string;
       readonly USER_REGISTER: string;
       readonly USER_UPDATE: string;
+      readonly USER_GOAL_UPDATE: string;
       readonly USER_UPDATE_ERROR: string;
       readonly USER_PASSWORD_CHANGE: string;
       readonly USER_WITHDRAWAL: string;
@@ -236,6 +237,19 @@ declare global {
         readonly QUANTITY: string;
         readonly TOTAL: string;
         readonly PAYMENT_METHOD: string;
+      };
+      readonly LOG: {
+        readonly TIMESTAMP: string;
+        readonly USER_ID: string;
+        readonly REAL_NAME: string;
+        readonly NICKNAME: string;
+        readonly ACTION: string;
+        readonly RESULT: string;
+        readonly CLASSROOM: string;
+        readonly RESERVATION_ID: string;
+        readonly DATE: string;
+        readonly MESSAGE: string;
+        readonly DETAILS: string;
       };
     };
     readonly ITEMS: {

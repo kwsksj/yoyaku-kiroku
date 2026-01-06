@@ -903,7 +903,11 @@ export function updateUserProfile(userInfo) {
         date: '',
         message: 'プロフィールが更新されました',
         details: {
-          changes: changes,
+          変更箇所数: `${changes.length}件`,
+          ...changes.reduce((acc, curr) => {
+            acc[curr.field] = `${curr.from} → ${curr.to}`;
+            return acc;
+          }, /** @type {Record<string, string>} */ ({})),
         },
       });
 
@@ -923,8 +927,8 @@ export function updateUserProfile(userInfo) {
         date: '',
         message: 'プロフィールの更新に失敗しました',
         details: {
-          error: error.message,
-          attemptedFields: Object.keys(userInfo),
+          エラー: error.message,
+          試行フィールド: Object.keys(userInfo).join(', '),
         },
       });
       return {
@@ -1082,12 +1086,13 @@ export function registerNewUser(userData) {
       addCachedStudent(registeredUser);
 
       Logger.log(`新規ユーザー登録成功: ${newStudentId}`);
-      logActivity(
-        newStudentId,
-        CONSTANTS.LOG_ACTIONS.USER_REGISTER,
-        '成功',
-        '新しいユーザーが登録されました',
-      );
+      logActivity(newStudentId, CONSTANTS.LOG_ACTIONS.USER_REGISTER, '成功', {
+        details: {
+          新規登録: '完了',
+          生徒ID: newStudentId,
+          名前: userData.realName || '',
+        },
+      });
 
       // 管理者通知
       sendAdminNotificationForUser(
@@ -1319,12 +1324,13 @@ export function requestAccountDeletion(studentId) {
       rosterSheet.getRange(targetRowIndex, phoneColIdx + 1).setValue(newPhone);
 
       // ログ記録
-      logActivity(
-        studentId,
-        CONSTANTS.LOG_ACTIONS.USER_WITHDRAWAL,
-        '成功',
-        `退会処理完了: studentId=${studentId}, 元電話番号=${currentPhone}`,
-      );
+      logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_WITHDRAWAL, '成功', {
+        details: {
+          処理内容: '退会処理完了',
+          生徒ID: studentId,
+          元電話番号: currentPhone,
+        },
+      });
 
       // 管理者通知
       sendAdminNotificationForUser(
@@ -1365,7 +1371,11 @@ export function requestAccountDeletion(studentId) {
         studentId || 'N/A',
         CONSTANTS.LOG_ACTIONS.USER_WITHDRAWAL,
         '失敗',
-        `Error: ${err.message}`,
+        {
+          details: {
+            エラー: err.message,
+          },
+        },
       );
       return {
         success: false,

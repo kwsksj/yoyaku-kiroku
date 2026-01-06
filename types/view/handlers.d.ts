@@ -6,8 +6,8 @@
  * =================================================================
  */
 
-import type { AccountingFormDto } from './state';
 import type { AccountingDetailsCore } from '../core/accounting';
+import type { AccountingFormDto } from './state';
 
 export type AccountingCalculationResult = AccountingDetailsCore;
 
@@ -151,6 +151,9 @@ export interface ActionHandlers {
   selectParticipantsStudent?: (targetStudentId: string) => void;
   backToParticipantsList?: () => void;
   backToParticipantsReservations?: () => void;
+
+  // けいかく・もくひょう関連
+  cancelEditGoal: ActionHandler;
 
   // 動的に取り込まれる関数（レガシー対応）
   [actionName: string]:

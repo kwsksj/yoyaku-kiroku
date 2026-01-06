@@ -46,6 +46,7 @@ import {
   getLessons,
   getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
+import { getRecentLogs } from './05-4_Backend_Log.js';
 import {
   CACHE_KEYS,
   clearChunkedCache,
@@ -298,8 +299,10 @@ export function updateNextLessonGoal(payload) {
     );
 
     if (!result || !result.success) {
-      logActivity(studentId, 'けいかく更新', '失敗', {
-        details: result?.message || '更新処理に失敗',
+      logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE, '失敗', {
+        details: {
+          エラー: result?.message || '更新処理に失敗',
+        },
       });
       return { success: false, message: '更新に失敗しました。' };
     }
@@ -311,8 +314,10 @@ export function updateNextLessonGoal(payload) {
     );
 
     // ログシートに記録
-    logActivity(studentId, 'けいかく更新', '成功', {
-      details: nextLessonGoal || '(空白にクリア)',
+    logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE, '成功', {
+      details: {
+        更新内容: nextLessonGoal || '(空白にクリア)',
+      },
     });
 
     Logger.log(
@@ -321,9 +326,16 @@ export function updateNextLessonGoal(payload) {
     return { success: true, message: 'けいかく・もくひょうを更新しました。' };
   } catch (error) {
     Logger.log(`[updateNextLessonGoal] エラー: ${error.message}`);
-    logActivity(payload?.studentId || 'unknown', 'けいかく更新', '失敗', {
-      details: error.message,
-    });
+    logActivity(
+      payload?.studentId || 'unknown',
+      CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE,
+      '失敗',
+      {
+        details: {
+          エラー: error.message,
+        },
+      },
+    );
     return { success: false, message: `更新に失敗しました: ${error.message}` };
   }
 }
@@ -392,8 +404,10 @@ export function getLoginData(phone) {
         true,
         phone,
       );
+      // ログデータ取得（直近30日）
+      const logsResult = getRecentLogs(30);
 
-      /** @type {InitialAppDataPayload & {adminToken: string}} */
+      /** @type {InitialAppDataPayload & {adminToken: string, adminLogs: any[]}} */
       const adminData = {
         accountingMaster: batchResult.success
           ? batchResult.data['accounting'] || []
@@ -409,6 +423,7 @@ export function getLoginData(phone) {
           ? participantData.data
           : undefined,
         adminToken,
+        adminLogs: logsResult.success ? logsResult.data || [] : [],
       };
 
       /** @type {AuthenticationResponse} */
@@ -469,6 +484,17 @@ export function getLoginData(phone) {
           participantData = participantResponse.data || null;
         }
       }
+
+      // 管理者の場合、ログデータも取得
+      /** @type {any[]} */
+      let adminLogs = [];
+      if (isAdmin) {
+        const logsResult = getRecentLogs(30);
+        if (logsResult.success) {
+          adminLogs = logsResult.data || [];
+        }
+      }
+
       Logger.log(`管理者判定: ${isAdmin}`);
 
       // 4. レスポンス統合
@@ -478,7 +504,7 @@ export function getLoginData(phone) {
         userFound: true,
         user: authResult.user,
         isAdmin: isAdmin,
-        data: {
+        data: /** @type {InitialAppDataPayload & {adminLogs?: any[]}} */ ({
           accountingMaster: batchResult.data['accounting'] || [],
           cacheVersions: /** @type {Record<string, unknown>} */ (
             batchResult.data['cache-versions'] || {}
@@ -489,7 +515,8 @@ export function getLoginData(phone) {
             [],
           myReservations: batchResult.data['myReservations'] || [],
           ...(participantData ? { participantData: participantData } : {}),
-        },
+          ...(isAdmin ? { adminLogs: adminLogs } : {}),
+        }),
       };
 
       Logger.log(`getLoginData統合処理完了: データ一括取得成功`);
@@ -529,14 +556,18 @@ export function getLoginData(phone) {
           userFound: true,
           user: adminUser,
           isAdmin: true,
-          data: {
+          data: /** @type {InitialAppDataPayload & {adminLogs?: any[]}} */ ({
             accountingMaster: batchResult.data['accounting'] || [],
             cacheVersions: /** @type {Record<string, unknown>} */ (
               batchResult.data['cache-versions'] || {}
             ),
             lessons: batchResult.data['lessons'] || [],
             myReservations: [],
-          },
+            adminLogs: (() => {
+              const logsResult = getRecentLogs(30);
+              return logsResult.success ? logsResult.data || [] : [];
+            })(),
+          }),
         };
 
         Logger.log('管理者ログイン完了（未登録）');

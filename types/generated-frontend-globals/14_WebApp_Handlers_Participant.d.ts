@@ -1,7 +1,10 @@
 export namespace participantActionHandlers {
     export { loadParticipantView };
-    export { refreshParticipantView };
     export function goToParticipantsView(): void;
+    export { refreshParticipantView };
+    export function markAllLogsAsViewed(): void;
+    export function refreshLogView(): void;
+    export function goToLogView(): void;
     export { toggleParticipantLessonAccordion };
     export { expandAllAccordions };
     export { collapseAllAccordions };

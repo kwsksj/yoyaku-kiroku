@@ -122,35 +122,57 @@ export const authActionHandlers = {
         // 管理者の場合は参加者リストビューのデータ取得で一括設定
         // loadParticipantsView内でrender()とhideLoading()が呼ばれる
         if (isAdmin) {
-          console.log('📋 管理者ログイン - 参加者リストビューデータ取得開始');
+          console.log('📋 管理者ログイン - ログビューへ遷移開始');
           const participantData = response.data?.participantData;
-          if (
-            participantData &&
-            Array.isArray(participantData.lessons) &&
-            participantData.lessons.length > 0
-          ) {
-            /** @type {Partial<UIState>} */
-            const baseAppState = {
-              ...newAppState,
-              view: 'participants',
-              participantLessons: participantData.lessons,
-              participantReservationsMap: participantData.reservationsMap || {},
-              participantIsAdmin: true,
-              participantHasPastLessonsLoaded: true,
-              participantAllStudents: participantData.allStudents || {},
-            };
-            participantActionHandlers.loadParticipantView(
-              false,
-              false,
-              baseAppState,
-              true,
-            ); // データ済みなので即描画
+
+          // 管理者として必要な基本データをstateに保存
+          /** @type {Partial<UIState>} */
+          const adminState = {
+            ...newAppState,
+            participantIsAdmin: true,
+            participantHasPastLessonsLoaded: false,
+            participantLessons: participantData?.lessons || [],
+            participantReservationsMap: participantData?.reservationsMap || {},
+            participantAllStudents: participantData?.allStudents || {},
+          };
+
+          // ログデータを反映（即時表示用）
+          const adminLogs = response.data?.adminLogs || [];
+          if (adminLogs.length > 0) {
+            // ここでparticipantHandlersStateManagerのステートも更新必要があるが、
+            // participantHandlersStateManagerは14_WebApp_Handlers_Participant.jsで定義されており
+            // 相互参照になる可能性があるため、SimpleStateManagerを通じて更新するか、
+            // あるいはgoToLogView側でキャッシュを利用する仕組みになっているため、
+            // goToLogViewを呼ぶ前にadminStateに含めておく（set_stateは上書き）。
+
+            // adminStateにadminLogsを追加
+            adminState['adminLogs'] = adminLogs;
+            adminState['adminLogsLoading'] = false;
+          }
+
+          authHandlersStateManager.dispatch({
+            type: 'SET_STATE',
+            payload: adminState,
+          });
+
+          // ログビュー側のステートマネージャにも同期（同じインスタンスを参照しているはずだが念のため）
+          // 注: 14_WebApp_Handlers_Participant.js の participantHandlersStateManager は
+          // appWindow.stateManager を使用しているので、dispatchで同期されるはず。
+
+          hideLoading();
+
+          // ログビューへ遷移
+          if (typeof participantActionHandlers.goToLogView === 'function') {
+            participantActionHandlers.goToLogView();
           } else {
+            // フォールバック: 参加者ビュー
+            console.warn('⚠️ goToLogViewが見つかりません');
             participantActionHandlers.loadParticipantView(
               false,
               false,
-              newAppState,
-            ); // ローディング継続（従来どおり取得）
+              adminState,
+              true,
+            );
           }
         } else {
           // 一般ユーザーはここでstateを設定

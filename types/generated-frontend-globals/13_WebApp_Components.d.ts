@@ -45,10 +45,10 @@ export namespace Components {
     function pageContainer({ content, maxWidth }: PageContainerConfig): string;
     function cardContainer({ content, variant, padding, touchFriendly, customClass, dataAttributes, }: CardContainerConfig): string;
     function statusBadge({ type, text }: StatusBadgeConfig): string;
-    function table({ columns, rows, striped, bordered, hoverable, compact, responsive, emptyMessage, minWidth, }: TableConfig): string;
+    function table({ columns, rows, striped, bordered, hoverable, compact, responsive, emptyMessage, minWidth, headerSize, rowBorderClass, fixedLayout, }: TableConfig): string;
     function priceDisplay({ amount, label, size, style, showCurrency, align, }: PriceDisplayConfig): string;
     function actionButtonSection({ primaryButton, secondaryButton, dangerButton, layout, spacing, }: ActionButtonSectionConfig): string;
-    function pageHeader({ title, backAction, showBackButton, actionButton, }: {
+    function pageHeader({ title, backAction, showBackButton, actionButton, customActionHtml, }: {
         title: string;
         backAction?: string;
         showBackButton?: boolean;
@@ -58,6 +58,7 @@ export namespace Components {
             style?: string;
             size?: string;
         } | null;
+        customActionHtml?: string | null;
     }): string;
     function accountingRow({ name, itemType, price, checked, disabled, }: AccountingRowConfig): string;
     function materialRow({ index, values }: MaterialRowConfig): string;
