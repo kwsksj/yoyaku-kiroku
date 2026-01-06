@@ -200,12 +200,20 @@ function renderLogTable(logs, lastViewedTime) {
         /** @type {Record<string, {bg: string, text: string}>} */
         const actionStyles = {
           予約作成: { bg: 'bg-green-100', text: 'text-green-800' },
+          '予約作成（予約日変更）': {
+            bg: 'bg-amber-100',
+            text: 'text-amber-800',
+          },
           '空き通知 登録': { bg: 'bg-green-100', text: 'text-green-800' },
           '予約確定（空き通知から）': {
             bg: 'bg-green-100',
             text: 'text-green-800',
           },
           予約キャンセル: { bg: 'bg-red-100', text: 'text-red-800' },
+          '予約キャンセル（予約日変更）': {
+            bg: 'bg-amber-100',
+            text: 'text-amber-800',
+          },
           退会: { bg: 'bg-red-100', text: 'text-red-800' },
           予約詳細更新: { bg: 'bg-blue-100', text: 'text-blue-800' },
           予約編集: { bg: 'bg-blue-100', text: 'text-blue-800' },
@@ -214,6 +222,7 @@ function renderLogTable(logs, lastViewedTime) {
           会計記録保存: { bg: 'bg-orange-100', text: 'text-orange-800' },
           会計記録修正: { bg: 'bg-orange-100', text: 'text-orange-800' },
           けいかく更新: { bg: 'bg-purple-100', text: 'text-purple-800' },
+          メッセージ送信: { bg: 'bg-cyan-100', text: 'text-cyan-800' },
         };
         const style = actionStyles[action] || {
           bg: 'bg-gray-50',
