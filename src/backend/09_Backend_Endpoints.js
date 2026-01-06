@@ -563,9 +563,10 @@ export function getLoginData(phone) {
             ),
             lessons: batchResult.data['lessons'] || [],
             myReservations: [],
-            adminLogs: getRecentLogs(30).success
-              ? /** @type {any} */ (getRecentLogs(30).data) || []
-              : [],
+            adminLogs: (() => {
+              const logsResult = getRecentLogs(30);
+              return logsResult.success ? logsResult.data || [] : [];
+            })(),
           }),
         };
 

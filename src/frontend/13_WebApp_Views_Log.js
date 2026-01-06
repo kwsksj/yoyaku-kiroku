@@ -309,7 +309,7 @@ function renderLogTable(logs, lastViewedTime) {
             } else {
               content += `<div class="truncate text-[10px] text-gray-500 mt-1" title="${escapeHTML(details)}">${escapeHTML(details)}</div>`;
             }
-          } catch (e) {
+          } catch (_e) {
             content += `<div class="truncate text-[10px] text-gray-500 mt-1" title="${escapeHTML(details)}">${escapeHTML(details)}</div>`;
           }
         }

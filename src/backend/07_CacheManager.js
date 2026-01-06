@@ -1674,7 +1674,7 @@ export function syncReservationIdsToSchedule() {
       try {
         currentIds = JSON.parse(currentIdsStr);
         if (!Array.isArray(currentIds)) currentIds = [];
-      } catch (e) {
+      } catch (_e) {
         currentIds = [];
       }
 

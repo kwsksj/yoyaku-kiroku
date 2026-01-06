@@ -663,7 +663,7 @@ export function transformReservationArrayToObjectWithHeaders(
       if (!details) return undefined;
       try {
         return typeof details === 'string' ? JSON.parse(details) : details;
-      } catch (e) {
+      } catch (_e) {
         return undefined;
       }
     })(),
