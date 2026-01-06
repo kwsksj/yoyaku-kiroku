@@ -680,7 +680,6 @@ window.onload = function () {
 
       // 変更がない場合はバックエンド処理をスキップ
       if (newGoal === currentGoal) {
-        console.log('✅ 変更なしのため保存処理をスキップ');
         actionHandlers.cancelEditGoal();
         return;
       }
