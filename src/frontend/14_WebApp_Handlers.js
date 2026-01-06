@@ -675,6 +675,16 @@ window.onload = function () {
         return;
       }
 
+      const state = handlersStateManager.getState();
+      const currentGoal = state.currentUser?.nextLessonGoal || '';
+
+      // 変更がない場合はバックエンド処理をスキップ
+      if (newGoal === currentGoal) {
+        console.log('✅ 変更なしのため保存処理をスキップ');
+        actionHandlers.cancelEditGoal();
+        return;
+      }
+
       // ローディング表示
       showLoading('goal');
 
