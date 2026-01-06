@@ -56,6 +56,15 @@ export function updateNextLessonGoal(payload: {
     nextLessonGoal: string;
 }): ApiResponse;
 /**
+ * 先生へのメッセージをログに記録する
+ * @param {{ studentId: string, message: string }} payload - メッセージ内容
+ * @returns {ApiResponse} 処理結果
+ */
+export function sendMessageToTeacher(payload: {
+    studentId: string;
+    message: string;
+}): ApiResponse;
+/**
  * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ

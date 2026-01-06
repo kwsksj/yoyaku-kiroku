@@ -262,7 +262,6 @@ export const getReservationFormView = () => {
     chiselRental,
     materialInfo,
     order,
-    messageToTeacher,
     startTime,
     endTime,
   } = reservationInfo;
@@ -583,11 +582,6 @@ export const getReservationFormView = () => {
           ${Components.textarea({ id: 'material-input', label: '材料の希望', placeholder: '例：「30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
           ${salesChecklistHtml}
           ${Components.textarea({ id: 'order-input', label: 'その他購入希望', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
-        </div>
-
-        <!-- 連絡事項 -->
-        <div class="mt-4 pt-4 border-t-2">
-          ${Components.textarea({ id: 'message-input', label: 'その他の連絡事項や要望など', placeholder: '', value: messageToTeacher || '' })}
         </div>`;
   };
 

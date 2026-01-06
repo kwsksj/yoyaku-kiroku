@@ -289,120 +289,151 @@ export const reservationActionHandlers = {
       }
     }
 
-    showLoading('booking');
-    // 予約処理中フラグを設定
-    reservationStateManager.setDataFetchProgress('reservation-booking', true);
+    // 確認モーダルを表示（メッセージ入力付き）
+    const formattedDate = formatDate(String(lessonInfo.date));
+    const timeDisplay = startTime ? `${startTime}〜${endTime}` : '';
+    const confirmMessage = `
+      <div class="text-left space-y-4">
+        <p class="text-center"><b>${formattedDate}</b><br>${lessonInfo.classroom}<br>${timeDisplay}</p>
+        <div class="pt-4 border-t">
+          <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
+          <textarea id="booking-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
+        </div>
+      </div>
+    `;
 
-    // nextLessonGoal は wip-input から取得（生徒名簿に保存される）
-    const nextLessonGoalValue = wipValue;
+    showConfirm({
+      title: '予約の確認',
+      message: confirmMessage,
+      confirmText: '予約する',
+      cancelText: 'やめる',
+      onConfirm: () => {
+        // メッセージを取得
+        const messageInput = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('booking-message')
+        );
+        const messageToTeacher = messageInput?.value || '';
 
-    // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
-    const p = {
-      lessonId: lessonInfo.lessonId, // ★ lessonId を追加
-      classroom: lessonInfo.classroom,
-      date: lessonInfo.date,
-      venue: lessonInfo.venue,
-      startTime: startTime,
-      endTime: endTime,
-      user: currentUser,
-      studentId: currentUser.studentId,
-      chiselRental:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('option-rental')
-        )?.checked || false,
-      firstLecture:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('hidden-first-lecture')
-        )?.value === 'true' || isFirstTimeBooking,
-      sessionNote: wipValue, // 予約ログ用（けいかく・もくひょうのみ）
-      nextLessonGoal: nextLessonGoalValue, // 生徒名簿に保存するけいかく・もくひょう
-      order: combinedOrder, // 材料情報を含む購入希望
-      messageToTeacher:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('message-input')
-        )?.value || '',
-      // 満席判定（LessonCoreから計算）
-      isFull:
-        typeof lessonInfo.secondSlots !== 'undefined'
-          ? (lessonInfo.firstSlots || 0) === 0 &&
-            (lessonInfo.secondSlots || 0) === 0
-          : (lessonInfo.firstSlots || 0) === 0,
-    };
-
-    google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
-      hideLoading();
-      // 予約処理中フラグをクリア
-      reservationStateManager.setDataFetchProgress(
-        'reservation-booking',
-        false,
-      );
-
-      if (r.success) {
-        if (r.data) {
-          // 新規予約後は個人予約データと必要に応じて講座データを更新
-          const currentState = reservationStateManager.getState();
-
-          // currentUserのnextLessonGoalを更新（ダッシュボードで最新表示）
-          const updatedCurrentUser = currentState.currentUser
-            ? {
-                ...currentState.currentUser,
-                nextLessonGoal: nextLessonGoalValue,
-              }
-            : null;
-
-          const updatedPayload = {
-            myReservations: r.data.myReservations || [],
-            view: 'complete',
-            completionMessage: r.message,
-            selectedClassroom: lessonInfo.classroom,
-            isDataFresh: true,
-            currentUser: updatedCurrentUser,
-            // 参加者リストのキャッシュをクリア
-            participantLessons: null,
-            participantReservationsMap: null,
-          };
-
-          // 講座データの選択的更新
-          if (r.data.lessons && r.data.lessons.length > 0) {
-            /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
-            reservationStateManager.setDataFetchProgress('lessons', false);
-          } else if (currentState.lessons && currentState.lessons.length > 0) {
-            // サーバーが講座データを返さない場合は既存データを保持
-            /** @type {any} */ (updatedPayload).lessons = currentState.lessons;
-          }
-
-          reservationStateManager.dispatch({
-            type: 'SET_STATE',
-            payload: updatedPayload,
-          });
-        } else {
-          reservationStateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              view: 'complete',
-              completionMessage: r.message,
-              selectedClassroom: lessonInfo.classroom,
-              isDataFresh: false,
-              // 参加者リストのキャッシュをクリア
-              participantLessons: null,
-              participantReservationsMap: null,
-            },
-          });
-        }
-      } else {
-        showInfo(r.message || '予約に失敗しました。', 'エラー');
-      }
-    })
-      .withFailureHandler((/** @type {Error} */ error) => {
-        hideLoading();
-        // エラー時も予約処理中フラグをクリア
+        showLoading('booking');
+        // 予約処理中フラグを設定
         reservationStateManager.setDataFetchProgress(
           'reservation-booking',
-          false,
+          true,
         );
-        handleServerError(error);
-      })
-      .makeReservationAndGetLatestData(p);
+
+        // nextLessonGoal は wip-input から取得（生徒名簿に保存される）
+        const nextLessonGoalValue = wipValue;
+
+        // 新形式: 直接プロパティとして送信（ReservationCreateDto形式）
+        const p = {
+          lessonId: lessonInfo.lessonId, // ★ lessonId を追加
+          classroom: lessonInfo.classroom,
+          date: lessonInfo.date,
+          venue: lessonInfo.venue,
+          startTime: startTime,
+          endTime: endTime,
+          user: currentUser,
+          studentId: currentUser.studentId,
+          chiselRental:
+            /** @type {HTMLInputElement} */ (
+              document.getElementById('option-rental')
+            )?.checked || false,
+          firstLecture:
+            /** @type {HTMLInputElement} */ (
+              document.getElementById('hidden-first-lecture')
+            )?.value === 'true' || isFirstTimeBooking,
+          sessionNote: wipValue, // 予約ログ用（けいかく・もくひょうのみ）
+          nextLessonGoal: nextLessonGoalValue, // 生徒名簿に保存するけいかく・もくひょう
+          order: combinedOrder, // 材料情報を含む購入希望
+          messageToTeacher: messageToTeacher,
+          // 満席判定（LessonCoreから計算）
+          isFull:
+            typeof lessonInfo.secondSlots !== 'undefined'
+              ? (lessonInfo.firstSlots || 0) === 0 &&
+                (lessonInfo.secondSlots || 0) === 0
+              : (lessonInfo.firstSlots || 0) === 0,
+        };
+
+        google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
+          hideLoading();
+          // 予約処理中フラグをクリア
+          reservationStateManager.setDataFetchProgress(
+            'reservation-booking',
+            false,
+          );
+
+          if (r.success) {
+            if (r.data) {
+              // 新規予約後は個人予約データと必要に応じて講座データを更新
+              const currentState = reservationStateManager.getState();
+
+              // currentUserのnextLessonGoalを更新（ダッシュボードで最新表示）
+              const updatedCurrentUser = currentState.currentUser
+                ? {
+                    ...currentState.currentUser,
+                    nextLessonGoal: nextLessonGoalValue,
+                  }
+                : null;
+
+              const updatedPayload = {
+                myReservations: r.data.myReservations || [],
+                view: 'complete',
+                completionMessage: r.message,
+                selectedClassroom: lessonInfo.classroom,
+                isDataFresh: true,
+                currentUser: updatedCurrentUser,
+                // 参加者リストのキャッシュをクリア
+                participantLessons: null,
+                participantReservationsMap: null,
+              };
+
+              // 講座データの選択的更新
+              if (r.data.lessons && r.data.lessons.length > 0) {
+                /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
+                reservationStateManager.setDataFetchProgress('lessons', false);
+              } else if (
+                currentState.lessons &&
+                currentState.lessons.length > 0
+              ) {
+                // サーバーが講座データを返さない場合は既存データを保持
+                /** @type {any} */ (updatedPayload).lessons =
+                  currentState.lessons;
+              }
+
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: updatedPayload,
+              });
+            } else {
+              reservationStateManager.dispatch({
+                type: 'SET_STATE',
+                payload: {
+                  view: 'complete',
+                  completionMessage: r.message,
+                  selectedClassroom: lessonInfo.classroom,
+                  isDataFresh: false,
+                  // 参加者リストのキャッシュをクリア
+                  participantLessons: null,
+                  participantReservationsMap: null,
+                },
+              });
+            }
+          } else {
+            showInfo(r.message || '予約に失敗しました。', 'エラー');
+          }
+        })
+          .withFailureHandler((/** @type {Error} */ error) => {
+            hideLoading();
+            // エラー時も予約処理中フラグをクリア
+            reservationStateManager.setDataFetchProgress(
+              'reservation-booking',
+              false,
+            );
+            handleServerError(error);
+          })
+          .makeReservationAndGetLatestData(p);
+      },
+    });
   },
 
   /**
@@ -535,7 +566,7 @@ export const reservationActionHandlers = {
       return;
     }
 
-    const { reservationInfo } = currentReservationFormContext;
+    const { reservationInfo, lessonInfo } = currentReservationFormContext;
     // 予約編集ではreservationIdは必須
     if (!reservationInfo.reservationId) {
       showInfo('予約IDが見つかりません。', 'エラー');
@@ -585,171 +616,210 @@ export const reservationActionHandlers = {
       }
     }
 
-    const p = {
-      reservationId: validReservationInfo.reservationId,
-      classroom: validReservationInfo.classroom,
-      studentId: targetStudentId,
-      chiselRental:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('option-rental')
-        )?.checked || false,
-      firstLecture:
-        /** @type {HTMLInputElement} */ (
-          document.getElementById('hidden-first-lecture')
-        )?.value === 'true',
-      startTime: startTime,
-      endTime: endTime,
-      sessionNote: wipInputValue, // 予約ログ用（けいかく・もくひょうのみ）
-      nextLessonGoal: wipInputValue, // 生徒名簿に保存するけいかく・もくひょう
-      order: combinedOrder, // 材料情報を含む購入希望
-      messageToTeacher: /** @type {HTMLInputElement} */ (
-        document.getElementById('message-input')
-      ).value,
-      materialInfo: materialInfoValue,
-      _isByAdmin: isCurrentUserAdmin(),
-      _adminToken: getAdminToken(),
-    };
-    showLoading('booking');
-    // 予約更新処理中フラグを設定
-    reservationStateManager.setDataFetchProgress('reservation-update', true);
+    // チェックボックスの値を事前取得（モーダル内からは取得できない）
+    const chiselRentalValue =
+      /** @type {HTMLInputElement} */ (document.getElementById('option-rental'))
+        ?.checked || false;
+    const firstLectureValue =
+      /** @type {HTMLInputElement} */ (
+        document.getElementById('hidden-first-lecture')
+      )?.value === 'true';
 
-    google.script.run['withSuccessHandler'](
-      (/** @type {BatchDataResponse} */ r) => {
-        hideLoading();
-        // 予約更新処理中フラグをクリア
+    // 確認モーダルを表示（メッセージ入力付き）
+    const formattedDate = formatDate(
+      String(lessonInfo?.date || reservationInfo.date),
+    );
+    const classroom = lessonInfo?.classroom || reservationInfo.classroom || '';
+    const timeDisplay = startTime ? `${startTime}〜${endTime}` : '';
+    const confirmMessage = `
+      <div class="text-left space-y-4">
+        <p class="text-center"><b>${formattedDate}</b><br>${classroom}<br>${timeDisplay}</p>
+        <div class="pt-4 border-t">
+          <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
+          <textarea id="update-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
+        </div>
+      </div>
+    `;
+
+    showConfirm({
+      title: '予約の更新',
+      message: confirmMessage,
+      confirmText: '更新する',
+      cancelText: 'やめる',
+      onConfirm: () => {
+        // メッセージを取得
+        const messageInput = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('update-message')
+        );
+        const messageToTeacher = messageInput?.value || '';
+
+        const p = {
+          reservationId: validReservationInfo.reservationId,
+          classroom: validReservationInfo.classroom,
+          studentId: targetStudentId,
+          chiselRental: chiselRentalValue,
+          firstLecture: firstLectureValue,
+          startTime: startTime,
+          endTime: endTime,
+          sessionNote: wipInputValue, // 予約ログ用（けいかく・もくひょうのみ）
+          nextLessonGoal: wipInputValue, // 生徒名簿に保存するけいかく・もくひょう
+          order: combinedOrder, // 材料情報を含む購入希望
+          messageToTeacher: messageToTeacher,
+          materialInfo: materialInfoValue,
+          _isByAdmin: isCurrentUserAdmin(),
+          _adminToken: getAdminToken(),
+        };
+        showLoading('booking');
+        // 予約更新処理中フラグを設定
         reservationStateManager.setDataFetchProgress(
           'reservation-update',
-          false,
+          true,
         );
 
-        if (r.success) {
-          // 管理者がなりすまし中かどうかを正しく判定
-          const state = reservationStateManager.getState();
-          const isAdminImpersonating = !!state.adminImpersonationOriginalUser;
-
-          if (isAdminImpersonating) {
-            // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
-            let participantCacheUpdate = null;
-            if (currentReservationFormContext?.lessonInfo?.lessonId) {
-              participantCacheUpdate =
-                updateParticipantViewCacheFromReservation(
-                  /** @type {ReservationCore} */ ({
-                    ...currentReservationFormContext.reservationInfo,
-                    ...p,
-                    lessonId:
-                      currentReservationFormContext.lessonInfo?.lessonId,
-                  }),
-                  'upsert',
-                );
-            }
-            const fallbackPayload = getParticipantPayloadForAdminView(
-              r.data ? r.data.lessons : null,
+        google.script.run['withSuccessHandler'](
+          (/** @type {BatchDataResponse} */ r) => {
+            hideLoading();
+            // 予約更新処理中フラグをクリア
+            reservationStateManager.setDataFetchProgress(
+              'reservation-update',
+              false,
             );
 
-            // なりすまし終了
-            reservationStateManager.endImpersonation();
+            if (r.success) {
+              // 管理者がなりすまし中かどうかを正しく判定
+              const state = reservationStateManager.getState();
+              const isAdminImpersonating =
+                !!state.adminImpersonationOriginalUser;
 
-            reservationStateManager.dispatch({
-              type: 'SET_STATE',
-
-              payload: {
-                view: 'participants',
-
-                navigationHistory: [],
-
-                ...(participantCacheUpdate || fallbackPayload),
-              },
-            });
-
-            refreshParticipantsViewForAdmin();
-
-            showInfo(
-              `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
-            );
-
-            return;
-          }
-
-          if (r.data) {
-            // 予約更新後は個人予約データを優先的に更新
-            const currentState = reservationStateManager.getState();
-
-            // currentUserのnextLessonGoalを更新（ダッシュボードで最新表示）
-            const updatedCurrentUser = currentState.currentUser
-              ? {
-                  ...currentState.currentUser,
-                  nextLessonGoal: wipInputValue,
+              if (isAdminImpersonating) {
+                // 余計な通信を避けるため、サーバーからの戻り値で更新して画面遷移
+                let participantCacheUpdate = null;
+                if (currentReservationFormContext?.lessonInfo?.lessonId) {
+                  participantCacheUpdate =
+                    updateParticipantViewCacheFromReservation(
+                      /** @type {ReservationCore} */ ({
+                        ...currentReservationFormContext.reservationInfo,
+                        ...p,
+                        lessonId:
+                          currentReservationFormContext.lessonInfo?.lessonId,
+                      }),
+                      'upsert',
+                    );
                 }
-              : null;
+                const fallbackPayload = getParticipantPayloadForAdminView(
+                  r.data ? r.data.lessons : null,
+                );
 
-            const updatedPayload = {
-              myReservations: r.data.myReservations || [],
-              view: 'dashboard',
-              isDataFresh: true,
-              currentUser: updatedCurrentUser,
-              // 参加者リストのキャッシュをクリア
-              participantLessons: null,
-              participantReservationsMap: null,
-            };
+                // なりすまし終了
+                reservationStateManager.endImpersonation();
 
-            // initialデータがある場合は追加
-            if (r.data['initial']) {
-              Object.assign(updatedPayload, r.data['initial']);
+                reservationStateManager.dispatch({
+                  type: 'SET_STATE',
+
+                  payload: {
+                    view: 'participants',
+
+                    navigationHistory: [],
+
+                    ...(participantCacheUpdate || fallbackPayload),
+                  },
+                });
+
+                refreshParticipantsViewForAdmin();
+
+                showInfo(
+                  `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+                );
+
+                return;
+              }
+
+              if (r.data) {
+                // 予約更新後は個人予約データを優先的に更新
+                const currentState = reservationStateManager.getState();
+
+                // currentUserのnextLessonGoalを更新（ダッシュボードで最新表示）
+                const updatedCurrentUser = currentState.currentUser
+                  ? {
+                      ...currentState.currentUser,
+                      nextLessonGoal: wipInputValue,
+                    }
+                  : null;
+
+                const updatedPayload = {
+                  myReservations: r.data.myReservations || [],
+                  view: 'dashboard',
+                  isDataFresh: true,
+                  currentUser: updatedCurrentUser,
+                  // 参加者リストのキャッシュをクリア
+                  participantLessons: null,
+                  participantReservationsMap: null,
+                };
+
+                // initialデータがある場合は追加
+                if (r.data['initial']) {
+                  Object.assign(updatedPayload, r.data['initial']);
+                }
+
+                // 講座データの選択的更新
+                if (r.data.lessons && r.data.lessons.length > 0) {
+                  /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
+                  reservationStateManager.setDataFetchProgress(
+                    'lessons',
+                    false,
+                  );
+                } else if (
+                  currentState.lessons &&
+                  currentState.lessons.length > 0
+                ) {
+                  // 既存の講座データを保持
+                  /** @type {any} */ (updatedPayload).lessons =
+                    currentState.lessons;
+                }
+
+                reservationStateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: updatedPayload,
+                });
+              } else {
+                reservationStateManager.dispatch({
+                  type: 'SET_STATE',
+                  payload: {
+                    view: 'dashboard',
+                    isDataFresh: false,
+                    // 参加者リストのキャッシュをクリア
+                    participantLessons: null,
+                    participantReservationsMap: null,
+                  },
+                });
+              }
+              showInfo(
+                `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+              );
+            } else {
+              showInfo(r.message || '更新に失敗しました。', 'エラー');
             }
+          },
+        )
+          .withFailureHandler((/** @type {Error} */ error) => {
+            hideLoading();
+            // エラー時も予約更新処理中フラグをクリア
+            reservationStateManager.setDataFetchProgress(
+              'reservation-update',
+              false,
+            );
 
-            // 講座データの選択的更新
-            if (r.data.lessons && r.data.lessons.length > 0) {
-              /** @type {any} */ (updatedPayload).lessons = r.data.lessons;
-              reservationStateManager.setDataFetchProgress('lessons', false);
-            } else if (
-              currentState.lessons &&
-              currentState.lessons.length > 0
-            ) {
-              // 既存の講座データを保持
-              /** @type {any} */ (updatedPayload).lessons =
-                currentState.lessons;
-            }
-
-            reservationStateManager.dispatch({
-              type: 'SET_STATE',
-              payload: updatedPayload,
+            const handler =
+              appWindow.FrontendErrorHandler || FrontendErrorHandler;
+            handler.handle(error, 'updateReservation', {
+              reservationId: p.reservationId,
+              classroom: p.classroom,
             });
-          } else {
-            reservationStateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                view: 'dashboard',
-                isDataFresh: false,
-                // 参加者リストのキャッシュをクリア
-                participantLessons: null,
-                participantReservationsMap: null,
-              },
-            });
-          }
-          showInfo(
-            `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
-          );
-        } else {
-          showInfo(r.message || '更新に失敗しました。', 'エラー');
-        }
+            handleServerError(error);
+          })
+          .updateReservationDetailsAndGetLatestData(/** @type {any} */ (p));
       },
-    )
-      .withFailureHandler((/** @type {Error} */ error) => {
-        hideLoading();
-        // エラー時も予約更新処理中フラグをクリア
-        reservationStateManager.setDataFetchProgress(
-          'reservation-update',
-          false,
-        );
-
-        const handler = appWindow.FrontendErrorHandler || FrontendErrorHandler;
-        handler.handle(error, 'updateReservation', {
-          reservationId: p.reservationId,
-          classroom: p.classroom,
-        });
-        handleServerError(error);
-      })
-      .updateReservationDetailsAndGetLatestData(/** @type {any} */ (p));
+    });
   },
 
   /** 新規予約のための教室選択モーダルを表示します */
@@ -1443,17 +1513,27 @@ export const reservationActionHandlers = {
     showConfirm({
       title: '参加日の変更',
       message: `
-        <div class="text-left space-y-2">
+        <div class="text-left space-y-4">
           <p class="text-center font-bold">参加日を変更しますか？</p>
           <p class="text-sm text-brand-subtle">変更前: ${oldDate} ${classroom}</p>
           <p class="text-sm text-brand-text">変更後: ${newDate} ${classroom}</p>
-          <p class="text-xs text-brand-subtle mt-4">※ 元の予約はキャンセルされ、新しい日程で予約が作成されます</p>
+          <p class="text-xs text-brand-subtle mt-2">※ 元の予約はキャンセルされ、新しい日程で予約が作成されます</p>
+          <div class="pt-4 border-t">
+            <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
+            <textarea id="date-change-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
+          </div>
         </div>
       `,
       confirmText: '変更する',
       cancelText: 'やめる',
       onConfirm: () => {
         showLoading('dateChange');
+
+        // メッセージを取得
+        const messageInput = /** @type {HTMLTextAreaElement | null} */ (
+          document.getElementById('date-change-message')
+        );
+        const messageToTeacher = messageInput?.value || '';
 
         // 新規予約データを構築
         const currentUser = reservationStateManager.getState().currentUser;
@@ -1505,10 +1585,7 @@ export const reservationActionHandlers = {
             /** @type {HTMLTextAreaElement | null} */ (
               document.getElementById('order-input')
             )?.value || '',
-          messageToTeacher:
-            /** @type {HTMLTextAreaElement | null} */ (
-              document.getElementById('message-input')
-            )?.value || '',
+          messageToTeacher: messageToTeacher,
           _isByAdmin: currentUser.isAdmin || false,
           _adminToken: adminToken,
         };

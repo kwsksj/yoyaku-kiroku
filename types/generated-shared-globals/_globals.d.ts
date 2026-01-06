@@ -125,6 +125,7 @@ declare global {
       readonly USER_UPDATE_ERROR: string;
       readonly USER_PASSWORD_CHANGE: string;
       readonly USER_WITHDRAWAL: string;
+      readonly USER_MESSAGE_SENT: string;
       readonly ADMIN_TOKEN_ISSUE: string;
       readonly ADMIN_TOKEN_VALIDATE_ERROR: string;
       readonly ADMIN_TOKEN_REVOKE: string;

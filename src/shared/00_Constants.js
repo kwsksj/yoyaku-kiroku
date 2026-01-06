@@ -215,6 +215,7 @@ export const CONSTANTS = {
     USER_UPDATE_ERROR: 'プロフィール詳細取得エラー',
     USER_PASSWORD_CHANGE: 'パスワード変更',
     USER_WITHDRAWAL: '退会',
+    USER_MESSAGE_SENT: 'メッセージ送信',
 
     // 管理者トークン関連
     ADMIN_TOKEN_ISSUE: '管理者トークン発行',

@@ -55,6 +55,7 @@ import {
 } from './12-3_Accounting_Handlers.js';
 import { authActionHandlers } from './14_WebApp_Handlers_Auth.js';
 import { historyActionHandlers } from './14_WebApp_Handlers_History.js';
+import { messageActionHandlers } from './14_WebApp_Handlers_Message.js';
 import { participantActionHandlers } from './14_WebApp_Handlers_Participant.js';
 import { reservationActionHandlers } from './14_WebApp_Handlers_Reservation.js';
 import {
@@ -626,6 +627,13 @@ window.onload = function () {
     // -----------------------------------------------------------------
     ...(typeof sessionConclusionActionHandlers !== 'undefined'
       ? sessionConclusionActionHandlers
+      : {}),
+
+    // =================================================================
+    // --- Message Handlers (from 14_WebApp_Handlers_Message.js) ---
+    // -----------------------------------------------------------------
+    ...(typeof messageActionHandlers !== 'undefined'
+      ? messageActionHandlers
       : {}),
 
     // =================================================================

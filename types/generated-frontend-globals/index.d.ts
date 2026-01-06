@@ -24,6 +24,7 @@ export * from './13_WebApp_Views_SessionConclusion';
 export * from './13_WebApp_Views_Utils';
 export * from './14_WebApp_Handlers_Auth';
 export * from './14_WebApp_Handlers_History';
+export * from './14_WebApp_Handlers_Message';
 export * from './14_WebApp_Handlers_Participant';
 export * from './14_WebApp_Handlers_Reservation';
 export * from './14_WebApp_Handlers_SessionConclusion';

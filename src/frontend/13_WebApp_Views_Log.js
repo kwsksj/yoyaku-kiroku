@@ -248,7 +248,7 @@ function renderLogTable(logs, lastViewedTime) {
       key: 'message',
       width: '120px',
       render: val =>
-        `<div class="text-xs text-gray-500 break-words whitespace-normal line-clamp-2" title="${escapeHTML(/** @type {string} */ (val))}">${escapeHTML(/** @type {string} */ (val) || '—')}</div>`,
+        `<div class="text-xs text-brand-text break-words whitespace-pre-wrap">${escapeHTML(/** @type {string} */ (val) || '—')}</div>`,
     },
     {
       label: '詳細',

@@ -341,6 +341,46 @@ export function updateNextLessonGoal(payload) {
 }
 
 /**
+ * 先生へのメッセージをログに記録する
+ * @param {{ studentId: string, message: string }} payload - メッセージ内容
+ * @returns {ApiResponse} 処理結果
+ */
+export function sendMessageToTeacher(payload) {
+  try {
+    const { studentId, message } = payload;
+    if (!studentId) {
+      return { success: false, message: '生徒IDが指定されていません。' };
+    }
+    if (!message || !message.trim()) {
+      return { success: false, message: 'メッセージを入力してください。' };
+    }
+
+    // ログシートに記録
+    logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_MESSAGE_SENT, '成功', {
+      message: message.trim(),
+    });
+
+    Logger.log(
+      `[sendMessageToTeacher] 成功: studentId=${studentId}, message=${message.substring(0, 50)}...`,
+    );
+    return { success: true, message: 'メッセージを送信しました。' };
+  } catch (error) {
+    Logger.log(`[sendMessageToTeacher] エラー: ${error.message}`);
+    logActivity(
+      payload?.studentId || 'unknown',
+      CONSTANTS.LOG_ACTIONS.USER_MESSAGE_SENT,
+      '失敗',
+      {
+        details: {
+          エラー: error.message,
+        },
+      },
+    );
+    return { success: false, message: `送信に失敗しました: ${error.message}` };
+  }
+}
+
+/**
  * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
  * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ

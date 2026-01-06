@@ -254,14 +254,24 @@ export const getDashboardView = () => {
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
+  // 先生へ連絡ボタン
+  const messageToTeacherButton = Components.button({
+    text: 'せんせいへ<br>れんらく',
+    action: 'showMessageToTeacherModal',
+    style: 'secondary',
+    customClass:
+      'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
+  });
+
   // メニューアイテムを構築（すべてをフラットな配列にしてグリッド配置）
-  // 順序: 一覧、予約、(まとめ)、会計履歴、ギャラリー
+  // 順序: 一覧、予約、(まとめ)、会計履歴、ギャラリー、連絡
   const allMenuButtons = [
     menuButton,
     newBookingButton,
     summaryMenuButton,
     accountingHistoryButton,
     photoButton,
+    messageToTeacherButton,
   ]
     .filter(Boolean)
     .join('');
