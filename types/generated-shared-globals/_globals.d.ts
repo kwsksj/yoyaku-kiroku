@@ -110,8 +110,10 @@ declare global {
     };
     readonly LOG_ACTIONS: {
       readonly RESERVATION_CREATE: string;
+      readonly RESERVATION_CREATE_DATE_CHANGE: string;
       readonly RESERVATION_WAITLIST: string;
       readonly RESERVATION_CANCEL: string;
+      readonly RESERVATION_CANCEL_DATE_CHANGE: string;
       readonly RESERVATION_UPDATE: string;
       readonly RESERVATION_CONFIRM: string;
       readonly RESERVATION_EDIT: string;

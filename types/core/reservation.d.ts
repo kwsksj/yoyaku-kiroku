@@ -177,6 +177,9 @@ export interface CancelReservationParams extends AdminOperationParams {
 
   /** キャンセル理由 */
   cancelMessage?: string | undefined;
+
+  /** 予約日変更による自動キャンセルかどうか（ログアクション用） */
+  _isDateChange?: boolean | undefined;
 }
 
 /**

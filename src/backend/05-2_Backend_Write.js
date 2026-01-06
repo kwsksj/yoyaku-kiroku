@@ -802,7 +802,9 @@ export function makeReservation(reservationInfo) {
 
       const actionType = isNowWaiting
         ? CONSTANTS.LOG_ACTIONS.RESERVATION_WAITLIST
-        : CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE;
+        : /** @type {any} */ (reservationInfo)._isDateChange
+          ? CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE_DATE_CHANGE
+          : CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE;
 
       logActivity(
         reservationWithUser.studentId,
@@ -878,6 +880,7 @@ export function cancelReservation(cancelInfo) {
         cancelMessage,
         _isByAdmin,
         _adminToken,
+        _isDateChange,
       } = cancelInfo;
 
       const existingReservation = getReservationCoreById(reservationId);
@@ -918,22 +921,22 @@ export function cancelReservation(cancelInfo) {
         ? `【管理者操作】予約をキャンセルしました${adminUserId ? `（操作者: ${adminUserId}）` : ''}`
         : cancelMessage || '';
 
-      logActivity(
-        studentId,
-        CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
-        CONSTANTS.MESSAGES.SUCCESS,
-        {
-          classroom: cancelledReservation.classroom,
-          reservationId: cancelledReservation.reservationId,
-          date: cancelledReservation.date,
-          message: logMessage,
-          details: {
-            ステータス: 'キャンセル済',
-            LessonID: cancelledReservation.lessonId,
-            ...(isAdminOp ? { 管理者操作: 'はい', 操作者: adminUserId } : {}),
-          },
+      // ログ記録用のアクションタイプを決定
+      const cancelActionType = _isDateChange
+        ? CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL_DATE_CHANGE
+        : CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL;
+
+      logActivity(studentId, cancelActionType, CONSTANTS.MESSAGES.SUCCESS, {
+        classroom: cancelledReservation.classroom,
+        reservationId: cancelledReservation.reservationId,
+        date: cancelledReservation.date,
+        message: logMessage,
+        details: {
+          ステータス: 'キャンセル済',
+          LessonID: cancelledReservation.lessonId,
+          ...(isAdminOp ? { 管理者操作: 'はい', 操作者: adminUserId } : {}),
         },
-      );
+      });
 
       //キャンセル後の空き通知処理
       try {

@@ -196,8 +196,10 @@ export const CONSTANTS = {
   LOG_ACTIONS: {
     // 予約関連
     RESERVATION_CREATE: '予約作成',
+    RESERVATION_CREATE_DATE_CHANGE: '予約作成（予約日変更）',
     RESERVATION_WAITLIST: '空き通知 登録',
     RESERVATION_CANCEL: '予約キャンセル',
+    RESERVATION_CANCEL_DATE_CHANGE: '予約キャンセル（予約日変更）',
     RESERVATION_UPDATE: '予約詳細更新',
     RESERVATION_CONFIRM: '予約確定（空き通知から）',
     RESERVATION_EDIT: '予約編集',

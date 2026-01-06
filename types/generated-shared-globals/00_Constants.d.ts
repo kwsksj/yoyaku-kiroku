@@ -107,8 +107,10 @@ export namespace CONSTANTS {
     }
     namespace LOG_ACTIONS {
         let RESERVATION_CREATE: string;
+        let RESERVATION_CREATE_DATE_CHANGE: string;
         let RESERVATION_WAITLIST: string;
         let RESERVATION_CANCEL: string;
+        let RESERVATION_CANCEL_DATE_CHANGE: string;
         let RESERVATION_UPDATE: string;
         let RESERVATION_CONFIRM: string;
         let RESERVATION_EDIT: string;

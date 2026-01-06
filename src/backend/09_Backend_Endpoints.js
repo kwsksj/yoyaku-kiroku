@@ -205,7 +205,12 @@ export function changeReservationDateAndGetLatestData(
   return withTransaction(() => {
     try {
       // 1. 新しい予約を作成（先に実行して失敗時は元の予約を保持）
-      const bookingResult = makeReservation(newReservationData);
+      // 日程変更フラグを追加してログに「予約作成（予約日変更）」と記録
+      const reservationDataWithFlag = {
+        ...newReservationData,
+        _isDateChange: true,
+      };
+      const bookingResult = makeReservation(reservationDataWithFlag);
 
       if (!bookingResult.success) {
         throw new Error(
@@ -214,6 +219,7 @@ export function changeReservationDateAndGetLatestData(
       }
 
       // 2. 元の予約をキャンセル（新規予約成功後のみ実行）
+      // 日程変更フラグを追加してログに「予約キャンセル（予約日変更）」と記録
       /** @type {import('../../types/core/reservation').CancelReservationParams} */
       const cancelParams = {
         reservationId: originalReservationId,
@@ -222,6 +228,7 @@ export function changeReservationDateAndGetLatestData(
         _isByAdmin: /** @type {any} */ (newReservationData)._isByAdmin || false,
         _adminToken:
           /** @type {any} */ (newReservationData)._adminToken || null,
+        _isDateChange: true,
       };
       const cancelResult = cancelReservation(cancelParams);
 
@@ -291,11 +298,24 @@ export function updateNextLessonGoal(payload) {
       return { success: false, message: '生徒IDが指定されていません。' };
     }
 
+    // 差分チェック: 現在の値を取得して比較
+    const currentStudent = getCachedStudentById(studentId);
+    const currentGoal = currentStudent?.nextLessonGoal || '';
+    const newGoal = nextLessonGoal || '';
+
+    // 差分がない場合は更新をスキップ
+    if (currentGoal === newGoal) {
+      Logger.log(
+        `[updateNextLessonGoal] 差分なし: studentId=${studentId}, goal="${newGoal}"`,
+      );
+      return { success: true, message: '変更はありませんでした。' };
+    }
+
     // updateStudentField を使用して生徒名簿を更新
     const result = updateStudentField(
       studentId,
       CONSTANTS.HEADERS.ROSTER.NEXT_LESSON_GOAL,
-      nextLessonGoal || '',
+      newGoal,
     );
 
     if (!result || !result.success) {
