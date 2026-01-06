@@ -765,6 +765,7 @@ export const Components = {
     minWidth = '',
     headerSize = '',
     rowBorderClass = '',
+    fixedLayout = false,
   }) => {
     if (!columns || columns.length === 0) {
       console.error('table: columns must be provided');
@@ -832,6 +833,7 @@ export const Components = {
     // スタイルクラス
     const tableClasses = [
       'w-full',
+      fixedLayout ? 'table-fixed' : '',
       compact ? 'text-sm' : 'text-base',
       striped ? '[&_tbody_tr:nth-child(odd)]:bg-gray-50' : '',
     ]
@@ -1018,7 +1020,7 @@ export const Components = {
     return `
       <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4 -mx-4">
         <div class="flex justify-between items-center px-4">
-          <h1 class="text-lg font-bold text-brand-text flex-1">${escapeHTML(finalTitle)}</h1>
+          <h1 class="text-lg font-bold text-brand-text flex-1">${finalTitle}</h1>
           <div class="flex items-center gap-2">
             ${actionHtml}
             ${backButtonHtml}

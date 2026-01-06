@@ -782,8 +782,8 @@ export function makeReservation(reservationInfo) {
             date: reservationInfo.date,
             message: '予約が完了（キャッシュ再取得失敗）',
             details: {
-              warning: 'キャッシュからの再取得に失敗',
-              note: '詳細はシート確認',
+              警告: 'キャッシュからの再取得に失敗',
+              備考: '詳細はシート確認',
             },
           },
         );
@@ -814,9 +814,9 @@ export function makeReservation(reservationInfo) {
           date: reservationWithUser.date,
           message: reservationWithUser.messageToTeacher || '',
           details: {
-            status: reservationWithUser.status,
-            startTime: reservationWithUser.startTime,
-            endTime: reservationWithUser.endTime,
+            ステータス: reservationWithUser.status,
+            開始時間: reservationWithUser.startTime,
+            終了時間: reservationWithUser.endTime,
           },
         },
       );
@@ -847,8 +847,8 @@ export function makeReservation(reservationInfo) {
           date: reservationInfo.date,
           message: '予約作成に失敗しました',
           details: {
-            error: err.message,
-            stack: err.stack,
+            エラー: err.message,
+            スタック: err.stack,
           },
         },
       );
@@ -928,9 +928,9 @@ export function cancelReservation(cancelInfo) {
           date: cancelledReservation.date,
           message: logMessage,
           details: {
-            status: 'cancelled',
-            lessonId: cancelledReservation.lessonId,
-            ...(isAdminOp ? { isAdminOperation: true, adminUserId } : {}),
+            ステータス: 'キャンセル済',
+            LessonID: cancelledReservation.lessonId,
+            ...(isAdminOp ? { 管理者操作: 'はい', 操作者: adminUserId } : {}),
           },
         },
       );
@@ -979,7 +979,11 @@ export function cancelReservation(cancelInfo) {
         cancelInfo.studentId || 'N/A', // エラー発生時はcancelInfoから取得を試みる
         CONSTANTS.LOG_ACTIONS.RESERVATION_CANCEL,
         CONSTANTS.MESSAGES.ERROR,
-        `Error: ${err.message}`,
+        {
+          details: {
+            エラー: err.message,
+          },
+        },
       );
       Logger.log(`cancelReservation Error: ${err.message}
 ${err.stack}`);
@@ -1100,14 +1104,23 @@ export function notifyAvailabilityToWaitlistedUsers(
           recipient.studentId,
           CONSTANTS.LOG_ACTIONS.EMAIL_VACANCY_NOTIFICATION,
           '成功',
-          `Classroom: ${targetLesson.classroom}, Date: ${targetLesson.date}`,
+          {
+            details: {
+              教室: targetLesson.classroom,
+              日付: targetLesson.date,
+            },
+          },
         );
       } catch (e) {
         logActivity(
           recipient.studentId,
           CONSTANTS.LOG_ACTIONS.EMAIL_VACANCY_NOTIFICATION,
           '失敗',
-          `Error: ${e.message}`,
+          {
+            details: {
+              エラー: e.message,
+            },
+          },
         );
       }
     });
@@ -1494,8 +1507,8 @@ export function updateReservationDetails(details) {
           date: updatedReservation.date,
           message: updatedReservation.messageToTeacher || '',
           details: {
-            status: updatedReservation.status,
-            lessonId: updatedReservation.lessonId,
+            ステータス: updatedReservation.status,
+            LessonID: updatedReservation.lessonId,
           },
         },
       );
@@ -1550,12 +1563,11 @@ ${err.stack}`,
       );
       // studentIdが取得できない場合もあるため、detailsから取得を試みる
       const studentIdForLog = details.studentId || '(不明)';
-      logActivity(
-        studentIdForLog,
-        '予約詳細更新',
-        CONSTANTS.MESSAGES.ERROR,
-        `Error: ${err.message}`,
-      );
+      logActivity(studentIdForLog, '予約詳細更新', CONSTANTS.MESSAGES.ERROR, {
+        details: {
+          エラー: err.message,
+        },
+      });
       const errorResponse = BackendErrorHandler.handle(
         /** @type {Error} */ (err),
         'updateReservationDetails',
@@ -1697,8 +1709,8 @@ export function saveAccountingDetails(reservationWithAccounting) {
           date: reservationWithAccounting.date || '',
           message: '会計記録の保存に失敗しました',
           details: {
-            error: err.message,
-            stack: err.stack,
+            エラー: err.message,
+            スタック: err.stack,
           },
         },
       );
@@ -1802,12 +1814,19 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
       // 7. ログと通知
-      const logDetails = `Classroom: ${updatedReservation.classroom}, ReservationID: ${reservationId}, Total: ${accountingDetails.grandTotal}, Modified: true`;
       logActivity(
         studentId,
         CONSTANTS.LOG_ACTIONS.ACCOUNTING_MODIFY,
         CONSTANTS.MESSAGES.SUCCESS,
-        logDetails,
+        {
+          classroom: updatedReservation.classroom,
+          reservationId: reservationId,
+          date: updatedReservation.date,
+          details: {
+            合計金額: accountingDetails.grandTotal,
+            修正済み: 'はい',
+          },
+        },
       );
 
       const userInfo =
@@ -2032,15 +2051,23 @@ export function confirmWaitlistedReservation(confirmInfo) {
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
       // ログ記録
-      const messageLog = messageToTeacher
-        ? `, Message: ${messageToTeacher}`
-        : '';
-      const logDetails = `Classroom: ${updatedReservation.classroom}, Date: ${updatedReservation.date}, ReservationID: ${reservationId}${messageLog}`;
+
       logActivity(
         studentId,
         CONSTANTS.LOG_ACTIONS.RESERVATION_CONFIRM,
         CONSTANTS.MESSAGES.SUCCESS,
-        logDetails,
+        {
+          classroom: updatedReservation.classroom,
+          reservationId: reservationId,
+          date: updatedReservation.date,
+          message: messageToTeacher
+            ? `空き待ち確定: ${messageToTeacher}`
+            : '空き待ちから確定しました',
+          details: {
+            ステータス: '確定済',
+            LessonID: updatedReservation.lessonId,
+          },
+        },
       );
 
       // 管理者通知

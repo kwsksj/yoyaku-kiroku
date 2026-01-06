@@ -126,6 +126,8 @@ function loadParticipantView(
     // キャッシュ使用時もローディングを非表示（表示していた場合）
     if (category) hideLoading();
     render();
+    // キャッシュ使用時もバックグラウンドで更新確認（Stale-while-revalidate）
+    fetchParticipantDataBackground(studentId, 'background', baseAppState);
     return;
   }
 
@@ -133,7 +135,34 @@ function loadParticipantView(
     showLoading(category);
   }
 
-  // バックエンドからレッスン一覧と予約データを一括取得
+  // 初回ロード（キャッシュなし）の場合
+  fetchParticipantDataBackground(
+    studentId,
+    category || 'participants',
+    baseAppState,
+  );
+}
+
+// ... (existing code) ...
+
+/**
+ * 参加者リストビューのデータ更新（手動リフレッシュ）
+ */
+/**
+ * 参加者データのバックグラウンド取得と更新
+ * @param {string} studentId
+ * @param {string} loadingCategory
+ * @param {Partial<UIState> | null} baseAppState
+ * @param {boolean} [isManualRefresh=false] - 手動更新かどうか
+ */
+function fetchParticipantDataBackground(
+  studentId,
+  loadingCategory,
+  baseAppState,
+  isManualRefresh = false,
+) {
+  const state = participantHandlersStateManager.getState();
+
   google.script.run
     .withSuccessHandler(function (response) {
       console.log('✅ レッスン一覧+予約データ取得成功:', response);
@@ -145,8 +174,41 @@ function loadParticipantView(
             ? response.data.isAdmin
             : state.participantIsAdmin;
 
-        // stateManagerに保存（レッスン一覧と予約データ）
-        // ログイン時の場合はbaseAppStateをマージ
+        // データの変化を確認
+        const currentLessonsJson = JSON.stringify(
+          state.participantLessons || [],
+        );
+        const newLessonsJson = JSON.stringify(response.data.lessons || []);
+        // 予約データの比較
+        const currentReservationsJson = JSON.stringify(
+          state.participantReservationsMap || {},
+        );
+        const newReservationsJson = JSON.stringify(
+          response.data.reservationsMap || {},
+        );
+
+        const hasChanges =
+          currentLessonsJson !== newLessonsJson ||
+          currentReservationsJson !== newReservationsJson;
+
+        if (!hasChanges && isManualRefresh) {
+          console.log('ℹ️ データに変更はありません');
+          if (loadingCategory !== 'background') hideLoading();
+          showInfo(
+            '新しいデータはありませんでした。最新の状態です。',
+            '更新完了',
+          );
+          return;
+        }
+
+        if (!hasChanges && loadingCategory === 'background') {
+          console.log('ℹ️ バックグラウンド更新: 変更なし');
+          return;
+        }
+
+        // 変更がある場合、または初回ロードの場合は更新
+        console.log('🔄 データ更新あり: 再描画します');
+
         /** @type {Partial<UIState>} */
         const payload = baseAppState
           ? {
@@ -170,19 +232,25 @@ function loadParticipantView(
               participantReservationsMap: response.data.reservationsMap || {},
               participantIsAdmin:
                 nextIsAdmin || state.currentUser?.isAdmin || false,
-              participantSubView: 'list',
-              selectedParticipantClassroom: 'all',
-              showPastLessons: false,
+              participantSubView: 'list', // Duplicate removed below
+              // 既存の状態を維持したい場合はここを調整するが、
+              // 基本的にサーバー同期時は最新データで上書きが安全
+              // ただし participantSubView などUI状態はリセットしたくない場合もある
+              // 今回は view: 'participants' を指定しているのでリセット挙動に近い
+              // participantSubView: state.participantSubView || 'list', // Duplicate removed
+              selectedParticipantClassroom:
+                state.selectedParticipantClassroom || 'all',
+              showPastLessons: state.showPastLessons || false,
               participantHasPastLessonsLoaded: true,
               participantAllStudents: response.data.allStudents || {},
             };
 
-        // 初期表示時はすべてのレッスンを展開状態にする
+        // ローカルアコーディオン状態の更新
         const allLessonIds = response.data.lessons.map(
           (/** @type {import('../../types/core/lesson').LessonCore} */ l) =>
             l.lessonId,
         );
-        localExpandedLessonIds = allLessonIds; // 直接更新
+        localExpandedLessonIds = allLessonIds;
 
         participantHandlersStateManager.dispatch({
           type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
@@ -195,22 +263,28 @@ function loadParticipantView(
           );
         }
 
-        if (category) hideLoading();
-        render();
+        if (loadingCategory !== 'background') hideLoading();
+        render(); // 再描画
       } else {
-        if (category) hideLoading();
-        showInfo(
-          response.message || 'レッスン一覧の取得に失敗しました',
-          'エラー',
-        );
+        // エラーハンドリング
+        if (loadingCategory !== 'background') hideLoading();
+        // 手動更新または初回ロード時のみエラー表示
+        if (loadingCategory !== 'background') {
+          showInfo(
+            response.message || 'レッスン一覧の取得に失敗しました',
+            'エラー',
+          );
+        }
       }
     })
     .withFailureHandler(
       /** @param {Error} error */
       function (error) {
         console.error('❌ レッスン一覧取得失敗:', error);
-        if (category) hideLoading();
-        showInfo('通信エラーが発生しました', 'エラー');
+        if (loadingCategory !== 'background') {
+          hideLoading();
+          showInfo('通信エラーが発生しました', 'エラー');
+        }
       },
     )
     .getLessonsForParticipantsView(
@@ -218,18 +292,24 @@ function loadParticipantView(
       true,
       true,
       state.currentUser?.phone || '',
-    ); // 過去データを含めて一括取得（多重ロード防止）
+    );
 }
-
-// ... (existing code) ...
 
 /**
  * 参加者リストビューのデータ更新（手動リフレッシュ）
  */
 function refreshParticipantView() {
-  // キャッシュをクリアして再ロード
-  // 'dataFetch'のローディングメッセージを表示させる
-  loadParticipantView(true, 'dataFetch');
+  const state = participantHandlersStateManager.getState();
+  const studentId = state.currentUser?.studentId;
+
+  if (!studentId) {
+    console.error('No student ID for refresh');
+    return;
+  }
+
+  showLoading('dataFetch');
+  // baseAppState=null, isManualRefresh=true
+  fetchParticipantDataBackground(studentId, 'dataFetch', null, true);
 }
 
 // アコーディオン開閉状態をローカル変数で管理（StateManager外）
@@ -646,6 +726,12 @@ function togglePastLessons(showPast) {
 export const participantActionHandlers = {
   loadParticipantView,
   refreshParticipantView,
+  markAllLogsAsViewed: () => {
+    const lastViewedKey = 'YOYAKU_KIROKU_ADMIN_LOG_LAST_VIEWED';
+    localStorage.setItem(lastViewedKey, new Date().toISOString());
+    render();
+    showInfo('すべてのログを既読にしました', '完了');
+  },
   refreshLogView: () => {
     // ログ更新ボタンハンドラ
     participantHandlersStateManager.dispatch({

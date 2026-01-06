@@ -299,8 +299,10 @@ export function updateNextLessonGoal(payload) {
     );
 
     if (!result || !result.success) {
-      logActivity(studentId, 'けいかく更新', '失敗', {
-        details: result?.message || '更新処理に失敗',
+      logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE, '失敗', {
+        details: {
+          エラー: result?.message || '更新処理に失敗',
+        },
       });
       return { success: false, message: '更新に失敗しました。' };
     }
@@ -312,8 +314,10 @@ export function updateNextLessonGoal(payload) {
     );
 
     // ログシートに記録
-    logActivity(studentId, 'けいかく更新', '成功', {
-      details: nextLessonGoal || '(空白にクリア)',
+    logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE, '成功', {
+      details: {
+        更新内容: nextLessonGoal || '(空白にクリア)',
+      },
     });
 
     Logger.log(
@@ -322,9 +326,16 @@ export function updateNextLessonGoal(payload) {
     return { success: true, message: 'けいかく・もくひょうを更新しました。' };
   } catch (error) {
     Logger.log(`[updateNextLessonGoal] エラー: ${error.message}`);
-    logActivity(payload?.studentId || 'unknown', 'けいかく更新', '失敗', {
-      details: error.message,
-    });
+    logActivity(
+      payload?.studentId || 'unknown',
+      CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE,
+      '失敗',
+      {
+        details: {
+          エラー: error.message,
+        },
+      },
+    );
     return { success: false, message: `更新に失敗しました: ${error.message}` };
   }
 }

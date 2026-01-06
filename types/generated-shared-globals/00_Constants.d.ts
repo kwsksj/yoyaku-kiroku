@@ -118,6 +118,7 @@ export namespace CONSTANTS {
         let USER_LOGOUT: string;
         let USER_REGISTER: string;
         let USER_UPDATE: string;
+        let USER_GOAL_UPDATE: string;
         let USER_UPDATE_ERROR: string;
         let USER_PASSWORD_CHANGE: string;
         let USER_WITHDRAWAL: string;

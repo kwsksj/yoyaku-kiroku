@@ -512,6 +512,8 @@ declare global {
     headerSize?: string;
     /** 行のボーダークラス */
     rowBorderClass?: string;
+    /** テーブルレイアウトを固定にするか */
+    fixedLayout?: boolean;
   }
 
   var Components: typeof GeneratedComponents;

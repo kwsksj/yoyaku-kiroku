@@ -919,7 +919,7 @@ function renderLessonList(lessons) {
           disabled: isRefreshing,
         })}
         ${Components.button({
-          text: '操作ログ',
+          text: '操作<br>ログ',
           action: 'goToLogView',
           style: 'primary', // 統一感を出すためPrimaryにするか、LogView側がPrimary(参加者ビューへ)だったので逆にするか。
           // LogView: Refresh(Secondary), Participants(Primary)
@@ -932,7 +932,7 @@ function renderLessonList(lessons) {
   return `
     ${Components.pageHeader({
       title: 'みんな の よやく・きろく',
-      showBackButton: true,
+      showBackButton: !isAdmin,
       backAction: 'smartGoBack',
       customActionHtml: adminButtons,
     })}
@@ -1236,7 +1236,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
   `;
 
   return `
-    <div class="max-h-[70vh] overflow-y-auto p-1">
+    <div class="max-h-[70vh] overflow-y-auto p-0">
       ${publicInfoHtml}
       ${detailedInfoHtml}
       ${reservationHistoryHtml}

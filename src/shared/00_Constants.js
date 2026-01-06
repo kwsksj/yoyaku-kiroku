@@ -211,6 +211,7 @@ export const CONSTANTS = {
     USER_LOGOUT: 'ログアウト',
     USER_REGISTER: '新規登録',
     USER_UPDATE: 'プロフィール更新',
+    USER_GOAL_UPDATE: 'けいかく更新',
     USER_UPDATE_ERROR: 'プロフィール詳細取得エラー',
     USER_PASSWORD_CHANGE: 'パスワード変更',
     USER_WITHDRAWAL: '退会',

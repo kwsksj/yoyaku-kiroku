@@ -121,6 +121,7 @@ declare global {
       readonly USER_LOGOUT: string;
       readonly USER_REGISTER: string;
       readonly USER_UPDATE: string;
+      readonly USER_GOAL_UPDATE: string;
       readonly USER_UPDATE_ERROR: string;
       readonly USER_PASSWORD_CHANGE: string;
       readonly USER_WITHDRAWAL: string;

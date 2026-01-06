@@ -45,7 +45,7 @@ export namespace Components {
     function pageContainer({ content, maxWidth }: PageContainerConfig): string;
     function cardContainer({ content, variant, padding, touchFriendly, customClass, dataAttributes, }: CardContainerConfig): string;
     function statusBadge({ type, text }: StatusBadgeConfig): string;
-    function table({ columns, rows, striped, bordered, hoverable, compact, responsive, emptyMessage, minWidth, headerSize, rowBorderClass, }: TableConfig): string;
+    function table({ columns, rows, striped, bordered, hoverable, compact, responsive, emptyMessage, minWidth, headerSize, rowBorderClass, fixedLayout, }: TableConfig): string;
     function priceDisplay({ amount, label, size, style, showCurrency, align, }: PriceDisplayConfig): string;
     function actionButtonSection({ primaryButton, secondaryButton, dangerButton, layout, spacing, }: ActionButtonSectionConfig): string;
     function pageHeader({ title, backAction, showBackButton, actionButton, customActionHtml, }: {
