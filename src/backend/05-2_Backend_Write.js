@@ -816,16 +816,15 @@ export function makeReservation(reservationInfo) {
           date: reservationWithUser.date,
           message: reservationWithUser.messageToTeacher || '',
           details: {
-            ステータス: reservationWithUser.status,
-            開始時間: reservationWithUser.startTime,
-            終了時間: reservationWithUser.endTime,
-            コース: /** @type {any} */ (reservationWithUser).course || '',
-            レンタル: /** @type {any} */ (reservationInfo).rentalRequest
-              ? 'あり'
-              : 'なし',
-            オプション: JSON.stringify(
-              /** @type {any} */ (reservationInfo).options || {},
-            ),
+            [CONSTANTS.HEADERS.RESERVATIONS.STATUS]: reservationWithUser.status,
+            [CONSTANTS.HEADERS.RESERVATIONS.START_TIME]:
+              reservationWithUser.startTime,
+            [CONSTANTS.HEADERS.RESERVATIONS.END_TIME]:
+              reservationWithUser.endTime,
+            [CONSTANTS.HEADERS.RESERVATIONS.CHISEL_RENTAL]:
+              reservationWithUser.chiselRental ? 'あり' : 'なし',
+            [CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]:
+              reservationWithUser.firstLecture ? 'はい' : 'いいえ',
           },
         },
       );

@@ -1087,16 +1087,18 @@ export function registerNewUser(userData) {
 
       Logger.log(`新規ユーザー登録成功: ${newStudentId}`);
       logActivity(newStudentId, CONSTANTS.LOG_ACTIONS.USER_REGISTER, '成功', {
+        message: userData.firstMessage || '',
         details: {
           新規登録: '完了',
-          生徒ID: newStudentId,
-          名前: userData.realName || '',
-          ニックネーム: userData.nickname || '',
-          住所: userData.address || '',
-          年代: userData.ageGroup || '',
-          性別: userData.gender || '',
-          動機: userData.trigger || '',
-          制作希望: userData.futureCreations || '',
+          [CONSTANTS.HEADERS.ROSTER.STUDENT_ID]: newStudentId,
+          [CONSTANTS.HEADERS.ROSTER.REAL_NAME]: userData.realName || '',
+          [CONSTANTS.HEADERS.ROSTER.NICKNAME]: userData.nickname || '',
+          [CONSTANTS.HEADERS.ROSTER.ADDRESS]: userData.address || '',
+          [CONSTANTS.HEADERS.ROSTER.AGE_GROUP]: userData.ageGroup || '',
+          [CONSTANTS.HEADERS.ROSTER.GENDER]: userData.gender || '',
+          [CONSTANTS.HEADERS.ROSTER.TRIGGER]: userData.trigger || '',
+          [CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]:
+            userData.futureCreations || '',
         },
       });
 
