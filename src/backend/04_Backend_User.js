@@ -1091,6 +1091,12 @@ export function registerNewUser(userData) {
           新規登録: '完了',
           生徒ID: newStudentId,
           名前: userData.realName || '',
+          ニックネーム: userData.nickname || '',
+          住所: userData.address || '',
+          年代: userData.ageGroup || '',
+          性別: userData.gender || '',
+          動機: userData.trigger || '',
+          制作希望: userData.futureCreations || '',
         },
       });
 
