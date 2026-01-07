@@ -244,8 +244,8 @@ export function authenticateUser(phone) {
         date: '',
         message: '',
         details: {
-          phone: phone,
-          reason: '一致するユーザーが見つかりませんでした',
+          [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
+          理由: '一致するユーザーが見つかりませんでした',
         },
       });
       return {
@@ -264,8 +264,8 @@ export function authenticateUser(phone) {
       date: '',
       message: '',
       details: {
-        realName: matchedStudent.realName,
-        phone: phone,
+        [CONSTANTS.HEADERS.ROSTER.REAL_NAME]: matchedStudent.realName,
+        [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
       },
     });
 
@@ -283,9 +283,9 @@ export function authenticateUser(phone) {
       date: '',
       message: '',
       details: {
-        phone: phone,
-        error: error.message,
-        stack: error.stack,
+        [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
+        エラー: error.message,
+        スタック: error.stack,
       },
     });
     return {
@@ -1335,8 +1335,8 @@ export function requestAccountDeletion(studentId) {
       logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_WITHDRAWAL, '成功', {
         details: {
           処理内容: '退会処理完了',
-          生徒ID: studentId,
-          元電話番号: currentPhone,
+          [CONSTANTS.HEADERS.ROSTER.STUDENT_ID]: studentId,
+          [CONSTANTS.HEADERS.ROSTER.PHONE]: currentPhone,
         },
       });
 

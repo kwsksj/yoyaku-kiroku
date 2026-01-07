@@ -358,7 +358,7 @@ export const CONSTANTS = {
     // ログシート（短縮名: LOG）
     LOG: {
       TIMESTAMP: 'タイムスタンプ',
-      USER_ID: 'ユーザーID',
+      USER_ID: '生徒ID',
       REAL_NAME: '本名',
       NICKNAME: 'ニックネーム',
       ACTION: 'アクション',

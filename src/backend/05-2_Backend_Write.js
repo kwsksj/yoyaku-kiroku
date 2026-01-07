@@ -938,8 +938,9 @@ export function cancelReservation(cancelInfo) {
         date: cancelledReservation.date,
         message: logMessage,
         details: {
-          ステータス: 'キャンセル済',
-          LessonID: cancelledReservation.lessonId,
+          [CONSTANTS.HEADERS.RESERVATIONS.STATUS]: 'キャンセル済',
+          [CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID]:
+            cancelledReservation.lessonId,
           ...(isAdminOp ? { 管理者操作: 'はい', 操作者: adminUserId } : {}),
         },
       });
@@ -1516,8 +1517,9 @@ export function updateReservationDetails(details) {
           date: updatedReservation.date,
           message: updatedReservation.messageToTeacher || '',
           details: {
-            ステータス: updatedReservation.status,
-            LessonID: updatedReservation.lessonId,
+            [CONSTANTS.HEADERS.RESERVATIONS.STATUS]: updatedReservation.status,
+            [CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID]:
+              updatedReservation.lessonId,
           },
         },
       );
