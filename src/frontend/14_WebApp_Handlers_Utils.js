@@ -594,7 +594,13 @@ window.formatDate =
       if (!dStr) return '';
       const d = new Date(dStr);
       if (isNaN(d.getTime())) return '';
-      d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+
+      // YYYY-MM-DD形式（UTC扱い）の場合のみ、タイムゾーンオフセットを補正して日付を合わせる
+      // ISOタイムスタンプやその他の形式（Fri Oct...）は既にローカル時間として扱われるため補正しない
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dStr)) {
+        d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+      }
+
       const day = d.getDay();
       const wd = ['日', '月', '火', '水', '木', '金', '土'];
       return `<span class="font-bold">${d.getMonth() + 1}/${d.getDate()}</span><span class="ml-1 font-bold ${day === 0 ? 'text-ui-weekend-sunday' : day === 6 ? 'text-ui-weekend-saturday' : ''}">${wd[day] || ''}</span>`;
