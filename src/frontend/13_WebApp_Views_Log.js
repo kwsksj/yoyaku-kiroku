@@ -192,8 +192,8 @@ function renderLogTable(logs, lastViewedTime) {
                  class="text-left w-full hover:bg-gray-50 rounded px-1 -mx-1 transition-colors group"
                  onclick="actionHandlers.selectParticipantStudent('${escapeHTML(studentId)}')"
                >
-                   <div class="text-xs font-bold truncate text-action-primary group-hover:underline" title="${escapeHTML(realName)}">${escapeHTML(realName)}</div>
-                   <div class="text-[10px] text-brand-muted truncate group-hover:text-gray-600" title="${escapeHTML(nickname)}">${escapeHTML(nickname)}</div>
+                   <div class="text-xs font-bold text-action-primary group-hover:underline">${escapeHTML(realName)}</div>
+                   <div class="text-[10px] text-brand-muted group-hover:text-gray-600">${escapeHTML(nickname)}</div>
                </button>
             </div>
           `;
@@ -201,8 +201,8 @@ function renderLogTable(logs, lastViewedTime) {
 
         return `
           <div class="leading-snug">
-             <div class="text-xs font-bold truncate" title="${escapeHTML(realName)}">${escapeHTML(realName)}</div>
-             <div class="text-[10px] text-brand-muted truncate" title="${escapeHTML(nickname)}">${escapeHTML(nickname)}</div>
+             <div class="text-xs font-bold">${escapeHTML(realName)}</div>
+             <div class="text-[10px] text-brand-muted">${escapeHTML(nickname)}</div>
           </div>
         `;
       },
