@@ -1249,25 +1249,29 @@ export function renderConclusionComplete(state) {
     // ケース1: 翌日以降の予約がある場合（複数対応）
     if (futureReservations.length > 0) {
       const isNewReservation = !!nextResult?.created;
+      // 新規作成された予約を正確に特定（date/classroomで判定）
+      const createdDate = nextResult?.date || '';
+      const createdClassroom = nextResult?.classroom || '';
 
       // 複数予約対応: すべての将来予約をカードとして表示
       const reservationCards = futureReservations.map((reservation, index) => {
         const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+        // この予約が今回新規作成されたものかどうかを判定
+        const isThisNewlyCreated =
+          isNewReservation &&
+          reservation.date === createdDate &&
+          reservation.classroom === createdClassroom;
         // けいかくは最初の予約のみに表示（重複表示を避ける）
         const goalToShow =
-          index === 0
-            ? nextLessonGoal || reservation.sessionNote || ''
-            : reservation.sessionNote || '';
-        // ミスマッチノートは最初の予約（今回作成された予約）のみ
-        const mismatchNote = index === 0 ? buildMismatchNote() : '';
-        // 新規予約フラグは最初の予約のみ
-        const isNewRes = index === 0 ? isNewReservation : false;
+          (index === 0 && nextLessonGoal) || reservation.sessionNote || '';
+        // ミスマッチノートは今回作成された予約のみ
+        const mismatchNote = isThisNewlyCreated ? buildMismatchNote() : '';
 
         return renderNextReservationSection({
           type: 'reservation',
           reservation,
           isWaitlisted,
-          isNewReservation: isNewRes,
+          isNewReservation: isThisNewlyCreated,
           goal: goalToShow,
           mismatchNote,
         });
