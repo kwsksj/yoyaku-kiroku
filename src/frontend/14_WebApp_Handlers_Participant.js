@@ -473,7 +473,6 @@ function selectParticipantStudent(targetStudentId, _lessonId) {
 
   if (!studentData) {
     // プリロードデータがない場合（ログビューからのアクセスなど）、APIで取得
-    console.log(`📡 生徒データをAPIから取得: ${targetStudentId}`);
     showLoading('dataFetch');
 
     google.script.run
