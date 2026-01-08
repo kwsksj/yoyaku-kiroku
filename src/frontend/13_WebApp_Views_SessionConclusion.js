@@ -876,10 +876,15 @@ export function renderStep3Reservation(state) {
   };
 
   const proceedConfig = getProceedButtonConfig();
+  // ボタン文言：新規予約時 vs 既存予約/スキップ時
+  const proceedButtonText =
+    isSkipped || existingReservation
+      ? 'かいけい に すすむ'
+      : 'よやく して<br>かいけい に すすむ';
   const proceedButtonHtml = canProceed
     ? Components.button({
         action: proceedConfig.action,
-        text: 'これで すすむ！',
+        text: proceedButtonText,
         style: 'primary',
         size: 'full',
         customClass: 'text-lg py-4 shadow-md font-bold mb-3',
@@ -1241,22 +1246,34 @@ export function renderConclusionComplete(state) {
 
   // 予約メッセージHTML生成
   const buildReservationMessageHtml = () => {
-    // ケース1: 翌日以降の予約がある場合
-    if (nearestFutureReservation) {
-      const isWaitlisted =
-        nearestFutureReservation.status === CONSTANTS.STATUS.WAITLISTED;
-      const goalToShow =
-        nextLessonGoal || nearestFutureReservation.sessionNote || '';
+    // ケース1: 翌日以降の予約がある場合（複数対応）
+    if (futureReservations.length > 0) {
       const isNewReservation = !!nextResult?.created;
 
-      return renderNextReservationSection({
-        type: 'reservation',
-        reservation: nearestFutureReservation,
-        isWaitlisted,
-        isNewReservation,
-        goal: goalToShow,
-        mismatchNote: buildMismatchNote(),
+      // 複数予約対応: すべての将来予約をカードとして表示
+      const reservationCards = futureReservations.map((reservation, index) => {
+        const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
+        // けいかくは最初の予約のみに表示（重複表示を避ける）
+        const goalToShow =
+          index === 0
+            ? nextLessonGoal || reservation.sessionNote || ''
+            : reservation.sessionNote || '';
+        // ミスマッチノートは最初の予約（今回作成された予約）のみ
+        const mismatchNote = index === 0 ? buildMismatchNote() : '';
+        // 新規予約フラグは最初の予約のみ
+        const isNewRes = index === 0 ? isNewReservation : false;
+
+        return renderNextReservationSection({
+          type: 'reservation',
+          reservation,
+          isWaitlisted,
+          isNewReservation: isNewRes,
+          goal: goalToShow,
+          mismatchNote,
+        });
       });
+
+      return reservationCards.join('');
     }
 
     // ケース2: 予約なし + けいかくあり

@@ -224,14 +224,14 @@ export const getDashboardView = () => {
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
-  // 今日の予約がある場合のみ表示するボタン
+  // 今日の予約がある場合のみ表示するボタン（2カラム幅で目立たせる）
   const summaryMenuButton = todayReservation
     ? Components.button({
         text: 'きょう の まとめ<br>（かいけい）',
         action: 'goToSessionConclusion',
         style: 'accounting',
         customClass:
-          'w-full h-[3.5rem] flex items-center justify-center leading-snug px-0',
+          'w-full h-[3.5rem] flex items-center justify-center leading-snug px-0 col-span-2',
       })
     : '';
 
