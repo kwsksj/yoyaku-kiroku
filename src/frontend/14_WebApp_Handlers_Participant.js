@@ -472,8 +472,34 @@ function selectParticipantStudent(targetStudentId, _lessonId) {
   const studentData = allStudents[targetStudentId];
 
   if (!studentData) {
-    console.warn(`⚠️ 生徒データが見つかりません: ${targetStudentId}`);
-    showInfo('生徒情報が見つかりません', 'エラー');
+    // プリロードデータがない場合（ログビューからのアクセスなど）、APIで取得
+    showLoading('dataFetch');
+
+    google.script.run
+      .withSuccessHandler(
+        /** @param {ApiResponseGeneric<any>} response */ response => {
+          hideLoading();
+          if (response.success && response.data) {
+            showStudentModal(
+              response.data,
+              state.participantIsAdmin || state.currentUser?.isAdmin || false,
+            );
+          } else {
+            showInfo(
+              response.message || '生徒情報の取得に失敗しました',
+              'エラー',
+            );
+          }
+        },
+      )
+      .withFailureHandler(
+        /** @param {Error} error */ error => {
+          hideLoading();
+          console.error('❌ 生徒情報取得失敗:', error);
+          showInfo('通信エラーが発生しました', 'エラー');
+        },
+      )
+      .getUserDetailForEdit(targetStudentId);
     return;
   }
 

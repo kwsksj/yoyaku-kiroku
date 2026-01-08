@@ -244,8 +244,8 @@ export function authenticateUser(phone) {
         date: '',
         message: '',
         details: {
-          phone: phone,
-          reason: '一致するユーザーが見つかりませんでした',
+          [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
+          理由: '一致するユーザーが見つかりませんでした',
         },
       });
       return {
@@ -264,8 +264,8 @@ export function authenticateUser(phone) {
       date: '',
       message: '',
       details: {
-        realName: matchedStudent.realName,
-        phone: phone,
+        [CONSTANTS.HEADERS.ROSTER.REAL_NAME]: matchedStudent.realName,
+        [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
       },
     });
 
@@ -283,9 +283,9 @@ export function authenticateUser(phone) {
       date: '',
       message: '',
       details: {
-        phone: phone,
-        error: error.message,
-        stack: error.stack,
+        [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
+        エラー: error.message,
+        スタック: error.stack,
       },
     });
     return {
@@ -1087,10 +1087,18 @@ export function registerNewUser(userData) {
 
       Logger.log(`新規ユーザー登録成功: ${newStudentId}`);
       logActivity(newStudentId, CONSTANTS.LOG_ACTIONS.USER_REGISTER, '成功', {
+        message: userData.firstMessage || '',
         details: {
           新規登録: '完了',
-          生徒ID: newStudentId,
-          名前: userData.realName || '',
+          [CONSTANTS.HEADERS.ROSTER.STUDENT_ID]: newStudentId,
+          [CONSTANTS.HEADERS.ROSTER.REAL_NAME]: userData.realName || '',
+          [CONSTANTS.HEADERS.ROSTER.NICKNAME]: userData.nickname || '',
+          [CONSTANTS.HEADERS.ROSTER.ADDRESS]: userData.address || '',
+          [CONSTANTS.HEADERS.ROSTER.AGE_GROUP]: userData.ageGroup || '',
+          [CONSTANTS.HEADERS.ROSTER.GENDER]: userData.gender || '',
+          [CONSTANTS.HEADERS.ROSTER.TRIGGER]: userData.trigger || '',
+          [CONSTANTS.HEADERS.ROSTER.FUTURE_CREATIONS]:
+            userData.futureCreations || '',
         },
       });
 
@@ -1327,8 +1335,8 @@ export function requestAccountDeletion(studentId) {
       logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_WITHDRAWAL, '成功', {
         details: {
           処理内容: '退会処理完了',
-          生徒ID: studentId,
-          元電話番号: currentPhone,
+          [CONSTANTS.HEADERS.ROSTER.STUDENT_ID]: studentId,
+          [CONSTANTS.HEADERS.ROSTER.PHONE]: currentPhone,
         },
       });
 
