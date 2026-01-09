@@ -1086,31 +1086,38 @@ export function renderConclusionComplete(state) {
     futureReservations.length > 0 ? futureReservations[0] : null;
 
   // Components.listCard用のバッジを生成
-  /** @param {'confirmed' | 'waitlisted'} type */
-  const buildCompletionBadges = (type, isNew = false) => {
-    if (type === 'waitlisted') {
-      return /** @type {{type: BadgeType, text: string}[]} */ ([
-        {
-          type: 'warning',
-          text: isNew ? '新規 空き通知' : '空き通知 とうろく中',
-        },
-      ]);
+  /**
+   * @param {'confirmed' | 'waitlisted'} type
+   * @param {boolean} [isNewlyCreated] - 今回新規作成された予約かどうか
+   */
+  const buildCompletionBadges = (type, isNewlyCreated = false) => {
+    /** @type {{type: BadgeType, text: string}[]} */
+    const badges = [];
+
+    // 新規作成バッジ（最優先で表示）
+    if (isNewlyCreated) {
+      badges.push({ type: 'attention', text: '今回 よやく' });
     }
-    return /** @type {{type: BadgeType, text: string}[]} */ ([
-      { type: 'success', text: isNew ? '新規 よやく確定' : 'よやく済' },
-    ]);
+
+    // ステータスバッジ
+    if (type === 'waitlisted') {
+      badges.push({ type: 'warning', text: '空き通知 とうろく中' });
+    } else {
+      badges.push({ type: 'success', text: 'よやく済' });
+    }
+
+    return badges;
   };
 
   /**
-   * 次回予約セクションを統一フォーマットで生成
+   * 予約カードを統一フォーマットで生成
    * @param {{
    *   type: 'reservation' | 'goal-only' | 'reminder',
    *   reservation?: ReservationCore,
    *   isWaitlisted?: boolean,
    *   isNewReservation?: boolean,
    *   goal?: string,
-   *   mismatchNote?: string,
-   *   hideIntro?: boolean
+   *   mismatchNote?: string
    * }} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
@@ -1122,29 +1129,7 @@ export function renderConclusionComplete(state) {
       isNewReservation,
       goal,
       mismatchNote,
-      hideIntro = false,
     } = config;
-
-    // === イントロメッセージ（状況に応じて分岐） ===
-    const buildIntroMessage = () => {
-      if (hideIntro) return '';
-      switch (type) {
-        case 'reservation':
-          if (isNewReservation) {
-            return isWaitlisted
-              ? 'じかいについては こちらで 空き通知 とうろく しました！'
-              : 'じかいの よやく は こちらで かくてい しました！';
-          }
-          return 'じかいの よてい は こちらです！';
-
-        case 'goal-only':
-        case 'reminder':
-          return 'つぎの よやく は あとで えらんでね！';
-
-        default:
-          return '';
-      }
-    };
 
     // === カード本体（タイプに応じて分岐） ===
     const buildCardHtml = () => {
@@ -1204,8 +1189,7 @@ export function renderConclusionComplete(state) {
       `;
     };
 
-    // === 統一フォーマットで出力 ===
-    const introMessage = buildIntroMessage();
+    // === 統一フォーマットで出力（イントロメッセージなし） ===
     const mismatchHtml = mismatchNote
       ? `<div class="mb-3">${mismatchNote}</div>`
       : '';
@@ -1213,8 +1197,7 @@ export function renderConclusionComplete(state) {
     const waitlistNoteHtml = buildWaitlistNote();
 
     return `
-      <div class="${hideIntro ? 'mt-2' : 'mt-4'} max-w-md mx-auto">
-        ${introMessage ? `<p class="text-base text-brand-text mb-3">${introMessage}</p>` : ''}
+      <div class="mt-2 max-w-md mx-auto">
         ${mismatchHtml}
         ${cardHtml}
         ${waitlistNoteHtml}
@@ -1223,9 +1206,11 @@ export function renderConclusionComplete(state) {
   };
 
   // ミスマッチノート生成（期待と結果の差分表示）
-  const buildMismatchNote = (isActuallyWaitlisted = false) => {
+  const buildMismatchNote = () => {
     if (!nextResult?.created) return '';
 
+    const isActuallyWaitlisted =
+      nearestFutureReservation?.status === CONSTANTS.STATUS.WAITLISTED;
     const expectedWaitlist = !!nextResult.expectedWaitlist;
 
     if (expectedWaitlist && !isActuallyWaitlisted) {
@@ -1254,24 +1239,13 @@ export function renderConclusionComplete(state) {
     // ケース1: 翌日以降の予約がある場合（複数対応）
     if (futureReservations.length > 0) {
       const isNewReservation = !!nextResult?.created;
+      // 新規作成された予約を正確に特定（date/classroomで判定）
       const createdDate = nextResult?.date || '';
       const createdClassroom = nextResult?.classroom || '';
 
-      // 複数予約がある場合の全体イントロメッセージ
-      let overallIntro = '';
-      if (isNewReservation) {
-        const isWaitlisted = nextResult?.status === CONSTANTS.STATUS.WAITLISTED;
-        overallIntro = isWaitlisted
-          ? 'じかいについては こちらで 空き通知 とうろく しました！'
-          : 'じかいの よやく を かくてい しました！';
-      } else {
-        overallIntro = 'じかいの よてい は こちらです！';
-      }
-
       // 複数予約対応: すべての将来予約をカードとして表示
       const reservationCards = futureReservations.map((reservation, index) => {
-        const isActuallyWaitlisted =
-          reservation.status === CONSTANTS.STATUS.WAITLISTED;
+        const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
         // この予約が今回新規作成されたものかどうかを判定
         const isThisNewlyCreated =
           isNewReservation &&
@@ -1281,24 +1255,22 @@ export function renderConclusionComplete(state) {
         const goalToShow =
           (index === 0 && nextLessonGoal) || reservation.sessionNote || '';
         // ミスマッチノートは今回作成された予約のみ
-        const mismatchNote = isThisNewlyCreated
-          ? buildMismatchNote(isActuallyWaitlisted)
-          : '';
+        const mismatchNote = isThisNewlyCreated ? buildMismatchNote() : '';
 
         return renderNextReservationSection({
           type: 'reservation',
           reservation,
-          isWaitlisted: isActuallyWaitlisted,
+          isWaitlisted,
           isNewReservation: isThisNewlyCreated,
           goal: goalToShow,
           mismatchNote,
-          hideIntro: true, // 複数リスト時は個別のイントロを隠す
         });
       });
 
+      // 統一ヘッダー付きで複数カードを表示
       return `
-        <div class="mt-6">
-          <p class="text-base font-bold text-brand-text mb-2 text-center">${overallIntro}</p>
+        <div class="mt-4 max-w-md mx-auto">
+          <p class="text-base text-brand-text font-bold mb-2">📅 こんご の よやく</p>
           ${reservationCards.join('')}
         </div>
       `;
