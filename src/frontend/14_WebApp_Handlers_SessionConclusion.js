@@ -165,11 +165,11 @@ export function startSessionConclusion(reservationId) {
   // おすすめレッスンを検索
   const recommendedNextLesson = findRecommendedNextLesson(currentReservation);
 
-  // 既存の未来予約を検索（今日以降で確定済みのもの）
+  // 既存の未来予約を検索（翌日以降で最も近い日程の確定済み予約）
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const futureReservation = (state.myReservations || []).find(
-    (/** @type {ReservationCore} */ r) => {
+  const futureReservations = (state.myReservations || [])
+    .filter((/** @type {ReservationCore} */ r) => {
       const reservationDate = new Date(r.date);
       reservationDate.setHours(0, 0, 0, 0);
       return (
@@ -177,8 +177,13 @@ export function startSessionConclusion(reservationId) {
         r.status === CONSTANTS.STATUS.CONFIRMED &&
         r.reservationId !== currentReservation.reservationId
       );
-    },
-  );
+    })
+    .sort(
+      (/** @type {ReservationCore} */ a, /** @type {ReservationCore} */ b) =>
+        new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+  const futureReservation =
+    futureReservations.length > 0 ? futureReservations[0] : null;
 
   // 時間制クラスの場合、初期時間を「今日の予約時間」に合わせる
   let initialStartTime = '';
