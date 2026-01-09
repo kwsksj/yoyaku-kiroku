@@ -541,7 +541,7 @@ export function renderStep3Reservation(state) {
       recommended: {
         badge:
           '<div class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-bold mb-3">こちらは いかがでしょうか？</div>',
-        borderClass: 'border-gray-200',
+        borderClass: 'border-action-primary-bg',
         bgClass: 'bg-action-secondary-bg',
       },
       available: {
@@ -739,17 +739,36 @@ export function renderStep3Reservation(state) {
                     ? '<span class="text-xs text-gray-400 ml-1">経験者のみ</span>'
                     : '';
 
-                // 満席の場合
-                if (isFullyBooked) {
+                // 予約済みの場合（緑系の見た目）
+                if (isReserved || isWaitlistedStatus) {
                   return `
                   <button type="button"
-                          class="w-full text-left p-3 mb-2 bg-gray-50 border-2 border-gray-200 rounded-lg hover:bg-gray-100 ${isReserved || isWaitlistedStatus ? 'opacity-60' : ''}"
-                          data-action="${isReserved || isWaitlistedStatus ? 'selectLessonForConclusion' : 'requestWaitlistForConclusion'}"
+                          class="w-full text-left p-3 mb-2 bg-green-50 border-2 border-green-300 rounded-lg"
+                          data-action="selectLessonForConclusion"
                           data-lesson-id="${escapeHTML(lesson.lessonId)}">
                     <div class="flex justify-between items-center">
                       <div>
                         ${filterClassroom === 'all' ? `<span class="text-xs px-1 rounded border ${classroomColor} mr-1">${lesson.classroom}</span>` : ''}
-                        <span class="font-bold">${formattedDate}</span>
+                        <span class="font-bold text-green-800">${formattedDate}</span>
+                        ${reservationBadge}
+                      </div>
+                      <span class="text-xs text-green-600 font-bold">${slotText}</span>
+                    </div>
+                  </button>
+                `;
+                }
+
+                // 満席の場合（濃いグレー背景）
+                if (isFullyBooked) {
+                  return `
+                  <button type="button"
+                          class="w-full text-left p-3 mb-2 bg-gray-200 border-2 border-gray-300 rounded-lg"
+                          data-action="requestWaitlistForConclusion"
+                          data-lesson-id="${escapeHTML(lesson.lessonId)}">
+                    <div class="flex justify-between items-center">
+                      <div>
+                        ${filterClassroom === 'all' ? `<span class="text-xs px-1 rounded border ${classroomColor} mr-1">${lesson.classroom}</span>` : ''}
+                        <span class="font-bold text-gray-500">${formattedDate}</span>
                         ${reservationBadge}
                       </div>
                       <span class="text-xs text-gray-500 font-bold">${slotText}</span>
@@ -758,17 +777,16 @@ export function renderStep3Reservation(state) {
                 `;
                 }
 
-                // 空きありの場合
+                // 空きありの場合（テラコッタボーダー）
                 return `
                 <button type="button"
-                        class="w-full text-left p-3 mb-2 bg-white border-2 border-gray-200 rounded-lg hover:border-action-primary-bg hover:shadow-sm ${isReserved || isWaitlistedStatus ? 'opacity-60' : ''}"
+                        class="w-full text-left p-3 mb-2 bg-white border-2 border-action-primary-bg rounded-lg"
                         data-action="selectLessonForConclusion"
                         data-lesson-id="${escapeHTML(lesson.lessonId)}">
                   <div class="flex justify-between items-center">
                     <div>
                       ${filterClassroom === 'all' ? `<span class="text-xs px-1 rounded border ${classroomColor} mr-1">${lesson.classroom}</span>` : ''}
                       <span class="font-bold">${formattedDate}</span>
-                      ${reservationBadge}
                       ${experiencedOnlyBadge}
                     </div>
                     <span class="text-sm text-action-primary-bg font-bold">${slotText}</span>
