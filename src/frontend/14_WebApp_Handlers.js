@@ -1368,13 +1368,15 @@ window.onload = function () {
 
           // 管理者かどうか判定
           const isAdmin =
-            response.user?.role === 'admin' || response.data?.isAdmin === true;
+            response.user?.isAdmin ||
+            response.user?.role === 'admin' ||
+            response.data?.isAdmin === true;
 
           // 基本データを設定
           /** @type {Partial<UIState>} */
           const dataPayload = {
             lessons: response.data?.lessons || [],
-            myReservations: response.data?.reservations || [],
+            myReservations: response.data?.myReservations || [],
             accountingMaster: response.data?.accountingMaster || [],
           };
 
