@@ -872,13 +872,26 @@ export function renderStep3Reservation(state) {
   // --- アクションボタン ---
   const canProceed = slotLesson || isSkipped || existingReservation;
 
+  // 新規予約を追加するかどうかの判定
+  // selectedLesson がある場合は既存予約があっても新規予約を作成
+  const willCreateNewReservation = selectedLesson && !isSkipped;
+
   const getProceedButtonConfig = () => {
+    if (willCreateNewReservation) {
+      // 新規予約を追加する場合
+      return {
+        action: 'confirmRecommendedLesson',
+        dataAttributes: { 'lesson-id': slotLesson?.lessonId || '' },
+      };
+    }
     if (isSkipped || existingReservation) {
+      // 既存予約のみ or スキップの場合
       return {
         action: 'conclusionNextStep',
         dataAttributes: { 'target-step': STEPS.ACCOUNTING },
       };
     }
+    // おすすめレッスンを予約する場合
     return {
       action: 'confirmRecommendedLesson',
       dataAttributes: { 'lesson-id': slotLesson?.lessonId || '' },
@@ -886,11 +899,10 @@ export function renderStep3Reservation(state) {
   };
 
   const proceedConfig = getProceedButtonConfig();
-  // ボタン文言：新規予約時 vs 既存予約/スキップ時
-  const proceedButtonText =
-    isSkipped || existingReservation
-      ? 'かいけい に すすむ'
-      : 'よやく して<br>かいけい に すすむ';
+  // ボタン文言：新規予約を追加する場合 vs 既存予約のみ/スキップ
+  const proceedButtonText = willCreateNewReservation
+    ? 'よやく して<br>かいけい に すすむ'
+    : 'かいけい に すすむ';
   const proceedButtonHtml = canProceed
     ? Components.button({
         action: proceedConfig.action,

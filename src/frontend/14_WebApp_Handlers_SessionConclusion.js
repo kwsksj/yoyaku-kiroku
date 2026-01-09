@@ -492,45 +492,43 @@ async function finalizeConclusion() {
       accountingDetails: accountingDetails,
     };
 
-    // 2. 次回予約を作成（スキップしていない場合、かつ既存予約がない場合）
+    // 2. 次回予約を作成（スキップしていない場合）
     /** @type {any} */
     let nextReservationPayload = null;
 
-    // 予約をスキップした場合、または既存の予約がある場合は次回予約を作成しない
+    // 予約をスキップした場合は次回予約を作成しない
+    // 既存予約があっても selectedLesson があれば新規予約を追加
     const shouldSkipReservation =
-      wizardState.reservationSkipped || wizardState.existingFutureReservation;
+      wizardState.reservationSkipped || !wizardState.selectedLesson;
 
-    if (!shouldSkipReservation) {
-      // 選択されたレッスン（ユーザー選択 > おすすめ）
-      const nextLesson =
-        wizardState.selectedLesson || wizardState.recommendedNextLesson;
+    // 選択されたレッスン（ユーザー選択のみ）
+    const nextLesson = wizardState.selectedLesson;
 
-      if (nextLesson) {
-        // 材料/注文品の希望をorder形式にまとめる
-        const orderParts = [];
-        if (wizardState.orderInput) {
-          orderParts.push(`【材料希望】${wizardState.orderInput}`);
-        }
-        if (wizardState.materialInput) {
-          orderParts.push(`【注文品】${wizardState.materialInput}`);
-        }
-        const orderValue = orderParts.join('\n');
-
-        nextReservationPayload = {
-          lessonId: nextLesson.lessonId,
-          classroom: nextLesson.classroom,
-          date: nextLesson.date,
-          venue: nextLesson.venue,
-          startTime: wizardState.nextStartTime || nextLesson.firstStart,
-          endTime: wizardState.nextEndTime || nextLesson.firstEnd,
-          user: currentUser,
-          studentId: currentUser.studentId,
-          sessionNote: wizardState.sessionNoteNext,
-          order: orderValue, // 材料/注文品の希望
-          // ユーザーの期待（予約 or 空き通知）を追跡（完了画面で差異を表示するため）
-          expectedWaitlist: wizardState.isWaitlistRequest,
-        };
+    if (!shouldSkipReservation && nextLesson) {
+      // 材料/注文品の希望をorder形式にまとめる
+      const orderParts = [];
+      if (wizardState.orderInput) {
+        orderParts.push(`【材料希望】${wizardState.orderInput}`);
       }
+      if (wizardState.materialInput) {
+        orderParts.push(`【注文品】${wizardState.materialInput}`);
+      }
+      const orderValue = orderParts.join('\n');
+
+      nextReservationPayload = {
+        lessonId: nextLesson.lessonId,
+        classroom: nextLesson.classroom,
+        date: nextLesson.date,
+        venue: nextLesson.venue,
+        startTime: wizardState.nextStartTime || nextLesson.firstStart,
+        endTime: wizardState.nextEndTime || nextLesson.firstEnd,
+        user: currentUser,
+        studentId: currentUser.studentId,
+        sessionNote: wizardState.sessionNoteNext,
+        order: orderValue, // 材料/注文品の希望
+        // ユーザーの期待（予約 or 空き通知）を追跡（完了画面で差異を表示するため）
+        expectedWaitlist: wizardState.isWaitlistRequest,
+      };
     }
 
     // サーバー呼び出し
