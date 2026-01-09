@@ -1358,6 +1358,12 @@ window.onload = function () {
 
   if (restoredPhone && needsRefresh) {
     console.log('🔄 リロード復元: データ再取得を開始します');
+
+    // データ取得中はview-containerをクリアしてローディング画面のみ表示
+    const viewContainer = document.getElementById('view-container');
+    if (viewContainer) {
+      viewContainer.innerHTML = ''; // 古いデータの表示を防ぐ
+    }
     showLoading('login');
 
     google.script.run['withSuccessHandler'](
