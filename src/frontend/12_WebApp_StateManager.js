@@ -948,27 +948,12 @@ export class SimpleStateManager {
       return false;
     }
 
-    // データが空の場合は再取得が必要
+    // 基本データ（lessons）がなければ全ユーザーで再取得必要
     const hasLessons =
       this.state.lessons &&
       Array.isArray(this.state.lessons) &&
       this.state.lessons.length > 0;
 
-    // 管理者関連のビューかどうか
-    const isAdminView =
-      this.state.view === 'adminLog' || this.state.view === 'participants';
-
-    // 管理者データの有無をチェック
-    const hasAdminLogs =
-      this.state['adminLogs'] &&
-      Array.isArray(this.state['adminLogs']) &&
-      this.state['adminLogs'].length > 0;
-
-    const hasParticipantData =
-      this.state['participantReservationsMap'] &&
-      Object.keys(this.state['participantReservationsMap']).length > 0;
-
-    // いずれかのデータがなければ再取得必要
     if (!hasLessons) {
       appWindow.PerformanceLog?.info(
         'リロード復元: lessonsデータがないため再取得必要',
@@ -976,12 +961,20 @@ export class SimpleStateManager {
       return true;
     }
 
-    // 管理者ビューでログまたは参加者データがない場合
-    if (isAdminView && !hasAdminLogs && !hasParticipantData) {
-      appWindow.PerformanceLog?.info(
-        'リロード復元: 管理者データがないため再取得必要',
-      );
-      return true;
+    // 管理者の場合はadminLogsもチェック（大きいデータなのでsessionStorageに保存していない）
+    const isAdmin = this.state.currentUser?.isAdmin === true;
+    if (isAdmin) {
+      const hasAdminLogs =
+        this.state['adminLogs'] &&
+        Array.isArray(this.state['adminLogs']) &&
+        this.state['adminLogs'].length > 0;
+
+      if (!hasAdminLogs) {
+        appWindow.PerformanceLog?.info(
+          'リロード復元: adminLogsデータがないため再取得必要',
+        );
+        return true;
+      }
     }
 
     return false;
