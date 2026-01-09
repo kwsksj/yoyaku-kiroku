@@ -82,9 +82,11 @@ export class SimpleStateManager {
     this.subscribers = [];
     /** @type {number | null} 自動保存タイマーID */
     this._saveTimeout = null;
+    /** @type {boolean} リロード時に状態が復元されたかどうか */
+    this._restoredFromStorage = false;
 
     // 【リロード対応】ページロード時に保存状態を復元
-    this.restoreStateFromStorage();
+    this._restoredFromStorage = this.restoreStateFromStorage();
   }
 
   /**
@@ -923,6 +925,89 @@ export class SimpleStateManager {
         `講座データバージョンを更新: ${newVersion}`,
       );
     }
+  }
+
+  /**
+   * リロード復元後にデータ再取得が必要かどうかを判定
+   * ユーザー情報はあるがデータがない場合にtrueを返す
+   * @returns {boolean} データ再取得が必要な場合true
+   */
+  needsDataRefresh() {
+    // 復元されていなければ不要
+    if (!this._restoredFromStorage) {
+      return false;
+    }
+
+    // ユーザー情報がなければ不要（ログイン画面へ）
+    if (!this.state.currentUser) {
+      return false;
+    }
+
+    // ログイン画面の場合は不要
+    if (this.state.view === 'login' || this.state.view === 'register') {
+      return false;
+    }
+
+    // データが空の場合は再取得が必要
+    const hasLessons =
+      this.state.lessons &&
+      Array.isArray(this.state.lessons) &&
+      this.state.lessons.length > 0;
+
+    // 管理者のログビューの場合はadminLogsもチェック
+    const isAdminLogView = this.state.view === 'adminLog';
+    const hasAdminLogs =
+      this.state['adminLogs'] &&
+      Array.isArray(this.state['adminLogs']) &&
+      this.state['adminLogs'].length > 0;
+
+    // いずれかのデータがなければ再取得必要
+    if (!hasLessons) {
+      appWindow.PerformanceLog?.info(
+        'リロード復元: lessonsデータがないため再取得必要',
+      );
+      return true;
+    }
+
+    // 管理者ログビューでログがない場合
+    if (isAdminLogView && !hasAdminLogs) {
+      appWindow.PerformanceLog?.info(
+        'リロード復元: adminLogsデータがないため再取得必要',
+      );
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * 復元された電話番号を取得（データ再取得用）
+   * @returns {string | null} 電話番号、またはnull
+   */
+  getRestoredPhone() {
+    // 復元されていなければnull
+    if (!this._restoredFromStorage) {
+      return null;
+    }
+
+    // loginPhoneを優先、なければcurrentUserのphone
+    if (this.state.loginPhone) {
+      return this.state.loginPhone;
+    }
+
+    if (this.state.currentUser?.phone) {
+      return this.state.currentUser.phone;
+    }
+
+    return null;
+  }
+
+  /**
+   * データ再取得完了後にフラグをリセット
+   */
+  markDataRefreshComplete() {
+    this._restoredFromStorage = false;
+    appWindow.PerformanceLog?.info('リロード復元: データ再取得完了');
   }
 }
 

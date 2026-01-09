@@ -1347,9 +1347,89 @@ window.onload = function () {
 
   app.addEventListener('input', handleInput);
 
-  // 初期画面を描画
-  render();
+  // =================================================================
+  // --- リロード時のデータ再取得処理 ---
+  // -----------------------------------------------------------------
+  // sessionStorageから復元されたがデータがない場合、
+  // ログインと同様のフローでデータを再取得する
+  // =================================================================
+  const restoredPhone = handlersStateManager.getRestoredPhone();
+  const needsRefresh = handlersStateManager.needsDataRefresh();
 
-  // 初期画面の描画が完了したらローディング画面を非表示にする
-  hideLoading();
+  if (restoredPhone && needsRefresh) {
+    console.log('🔄 リロード復元: データ再取得を開始します');
+    showLoading('login');
+
+    google.script.run['withSuccessHandler'](
+      /** @param {any} response */
+      response => {
+        if (response.success && response.userFound) {
+          console.log('✅ リロード復元: データ再取得成功');
+
+          // 管理者かどうか判定
+          const isAdmin =
+            response.user?.role === 'admin' || response.data?.isAdmin === true;
+
+          // 基本データを設定
+          /** @type {Partial<UIState>} */
+          const dataPayload = {
+            lessons: response.data?.lessons || [],
+            myReservations: response.data?.reservations || [],
+            accountingMaster: response.data?.accountingMaster || [],
+          };
+
+          // 管理者の場合は追加データも設定
+          if (isAdmin && response.data?.adminLogs) {
+            dataPayload['adminLogs'] = response.data.adminLogs;
+            dataPayload['adminLogsLoading'] = false;
+          }
+
+          if (isAdmin && response.data?.participantData) {
+            dataPayload['participantReservationsMap'] =
+              response.data.participantData.reservationsMap || {};
+            dataPayload['participantLessons'] =
+              response.data.participantData.lessons || [];
+            dataPayload['participantAllStudents'] =
+              response.data.participantData.allStudents || {};
+          }
+
+          handlersStateManager.dispatch({
+            type: 'UPDATE_STATE',
+            payload: dataPayload,
+          });
+
+          // フラグをリセット
+          handlersStateManager.markDataRefreshComplete();
+        } else {
+          // ユーザーが見つからない場合はログイン画面へ
+          console.warn('⚠️ リロード復元: ユーザーが見つかりません');
+          handlersStateManager.dispatch({
+            type: 'NAVIGATE',
+            payload: { to: 'login' },
+          });
+        }
+
+        hideLoading();
+        render();
+      },
+    )
+      ['withFailureHandler'](
+        /** @param {Error} error */
+        error => {
+          console.error('❌ リロード復元: データ再取得エラー:', error);
+          // エラー時はログイン画面へ
+          handlersStateManager.dispatch({
+            type: 'NAVIGATE',
+            payload: { to: 'login' },
+          });
+          hideLoading();
+          render();
+        },
+      )
+      .getLoginData(restoredPhone);
+  } else {
+    // リロード復元不要の場合は通常通り描画
+    render();
+    hideLoading();
+  }
 };

@@ -12,6 +12,8 @@ export class SimpleStateManager {
     subscribers: StateSubscriber[];
     /** @type {number | null} 自動保存タイマーID */
     _saveTimeout: number | null;
+    /** @type {boolean} リロード時に状態が復元されたかどうか */
+    _restoredFromStorage: boolean;
     /**
      * 初期状態を返します
      * @returns {UIState} 初期状態
@@ -164,6 +166,21 @@ export class SimpleStateManager {
      * @param {string} newVersion - 新しいバージョン
      */
     updateLessonsVersion(newVersion: string): void;
+    /**
+     * リロード復元後にデータ再取得が必要かどうかを判定
+     * ユーザー情報はあるがデータがない場合にtrueを返す
+     * @returns {boolean} データ再取得が必要な場合true
+     */
+    needsDataRefresh(): boolean;
+    /**
+     * 復元された電話番号を取得（データ再取得用）
+     * @returns {string | null} 電話番号、またはnull
+     */
+    getRestoredPhone(): string | null;
+    /**
+     * データ再取得完了後にフラグをリセット
+     */
+    markDataRefreshComplete(): void;
 }
 export type StateManagerContract = SimpleStateManager;
 export type UIStateAlias = UIState;
