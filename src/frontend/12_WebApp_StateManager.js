@@ -954,12 +954,19 @@ export class SimpleStateManager {
       Array.isArray(this.state.lessons) &&
       this.state.lessons.length > 0;
 
-    // 管理者のログビューの場合はadminLogsもチェック
-    const isAdminLogView = this.state.view === 'adminLog';
+    // 管理者関連のビューかどうか
+    const isAdminView =
+      this.state.view === 'adminLog' || this.state.view === 'participants';
+
+    // 管理者データの有無をチェック
     const hasAdminLogs =
       this.state['adminLogs'] &&
       Array.isArray(this.state['adminLogs']) &&
       this.state['adminLogs'].length > 0;
+
+    const hasParticipantData =
+      this.state['participantReservationsMap'] &&
+      Object.keys(this.state['participantReservationsMap']).length > 0;
 
     // いずれかのデータがなければ再取得必要
     if (!hasLessons) {
@@ -969,10 +976,10 @@ export class SimpleStateManager {
       return true;
     }
 
-    // 管理者ログビューでログがない場合
-    if (isAdminLogView && !hasAdminLogs) {
+    // 管理者ビューでログまたは参加者データがない場合
+    if (isAdminView && !hasAdminLogs && !hasParticipantData) {
       appWindow.PerformanceLog?.info(
-        'リロード復元: adminLogsデータがないため再取得必要',
+        'リロード復元: 管理者データがないため再取得必要',
       );
       return true;
     }
