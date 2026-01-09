@@ -813,11 +813,21 @@ export function renderStep3Reservation(state) {
     </div>
   `;
 
-  // スロットビュー内容
+  // 「ほか の にってい」ボタン（スロットコンテナ内に配置）
+  const changeButtonHtml = Components.button({
+    action: 'expandLessonList',
+    text: 'ほか の にってい',
+    style: 'secondary',
+    size: 'full',
+    customClass: 'mt-3',
+  });
+
+  // スロットビュー内容（「ほか の にってい」ボタン込み）
   const slotViewContentHtml = `
     <div class="slot-view-content ${isExpanded ? 'hidden' : ''}">
       <label class="block text-base font-bold text-brand-text mb-2">よやく</label>
       ${slotContentHtml}
+      ${changeButtonHtml}
     </div>
   `;
 
@@ -892,15 +902,7 @@ export function renderStep3Reservation(state) {
       })
     : '';
 
-  const changeButtonHtml = !isExpanded
-    ? Components.button({
-        action: 'expandLessonList',
-        text: 'ほか の にってい',
-        style: 'secondary',
-        size: 'full',
-        customClass: 'mb-3',
-      })
-    : '';
+  // 「ほか の にってい」ボタンは slotViewContentHtml 内に移動済み
 
   const skipButtonHtml = !isSkipped
     ? Components.button({
@@ -949,7 +951,6 @@ export function renderStep3Reservation(state) {
 
       <div class="action-buttons ${isExpanded ? 'hidden' : ''}">
         ${proceedButtonHtml}
-        ${changeButtonHtml}
         ${skipButtonHtml}
       </div>
 
