@@ -496,15 +496,16 @@ async function finalizeConclusion() {
     /** @type {any} */
     let nextReservationPayload = null;
 
-    // 予約をスキップした場合は次回予約を作成しない
-    // 既存予約があっても selectedLesson があれば新規予約を追加
-    const shouldSkipReservation =
-      wizardState.reservationSkipped || !wizardState.selectedLesson;
+    // 予約対象のレッスン（ユーザー選択 > おすすめ）
+    const nextLesson =
+      wizardState.selectedLesson || wizardState.recommendedNextLesson;
 
-    // 選択されたレッスン（ユーザー選択のみ）
-    const nextLesson = wizardState.selectedLesson;
+    // 予約をスキップした場合、または予約対象がない場合は次回予約を作成しない
+    // 既存予約があってもnextLessonがあれば追加で作成する
+    const shouldCreateReservation =
+      !wizardState.reservationSkipped && nextLesson;
 
-    if (!shouldSkipReservation && nextLesson) {
+    if (shouldCreateReservation) {
       // 材料/注文品の希望をorder形式にまとめる
       const orderParts = [];
       if (wizardState.orderInput) {

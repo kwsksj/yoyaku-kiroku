@@ -591,8 +591,15 @@ export function renderStep3Reservation(state) {
   };
 
   // スロットカード本体（リファクタリング版）
+  // displayStatus を外部で参照するため、IIFE から結果オブジェクトを返す
+  /** @type {'reserved' | 'waitlist' | 'full' | 'recommended' | 'available' | 'skip'} */
+  let slotDisplayStatus = 'skip';
+  /** @type {LessonCore | ReservationCore | null} */
+  let slotTargetLesson = null;
+
   const slotContentHtml = (() => {
     if (isSkipped) {
+      slotDisplayStatus = 'skip';
       return `
         <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
           <p class="text-3xl mb-3">📅</p>
@@ -631,7 +638,12 @@ export function renderStep3Reservation(state) {
       displayStatus = 'recommended';
     }
 
+    // 外部参照用に保存
+    slotDisplayStatus = displayStatus;
+    slotTargetLesson = targetLesson;
+
     if (!targetLesson) {
+      slotDisplayStatus = 'skip';
       return `
         <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
           <p class="text-3xl mb-3">🔍</p>
@@ -872,34 +884,31 @@ export function renderStep3Reservation(state) {
   // --- アクションボタン ---
   const canProceed = slotLesson || isSkipped || existingReservation;
 
-  // 新規予約を追加するかどうかの判定
-  // selectedLesson がある場合は既存予約があっても新規予約を作成
-  const willCreateNewReservation = selectedLesson && !isSkipped;
+  // 新規予約を作成するかどうかの判定
+  // slotDisplayStatus が 'reserved' (予約済み) または 'skip' (プレースホルダー) 以外なら新規予約を作成
+  // 'recommended', 'available', 'full' は全て未予約の日程（予約を作成する）
+  const willCreateNewReservation =
+    slotDisplayStatus !== 'reserved' && slotDisplayStatus !== 'skip';
 
   const getProceedButtonConfig = () => {
-    if (willCreateNewReservation) {
-      // 新規予約を追加する場合
+    if (willCreateNewReservation && slotTargetLesson) {
+      // 新規予約を作成する場合
       return {
         action: 'confirmRecommendedLesson',
-        dataAttributes: { 'lesson-id': slotLesson?.lessonId || '' },
+        dataAttributes: {
+          'lesson-id': /** @type {any} */ (slotTargetLesson).lessonId || '',
+        },
       };
     }
-    if (isSkipped || existingReservation) {
-      // 既存予約のみ or スキップの場合
-      return {
-        action: 'conclusionNextStep',
-        dataAttributes: { 'target-step': STEPS.ACCOUNTING },
-      };
-    }
-    // おすすめレッスンを予約する場合
+    // 予約済みまたはスキップの場合
     return {
-      action: 'confirmRecommendedLesson',
-      dataAttributes: { 'lesson-id': slotLesson?.lessonId || '' },
+      action: 'conclusionNextStep',
+      dataAttributes: { 'target-step': STEPS.ACCOUNTING },
     };
   };
 
   const proceedConfig = getProceedButtonConfig();
-  // ボタン文言：新規予約を追加する場合 vs 既存予約のみ/スキップ
+  // ボタン文言：新規予約を作成する場合 vs 既存予約のみ/スキップ
   const proceedButtonText = willCreateNewReservation
     ? 'よやく して<br>かいけい に すすむ'
     : 'かいけい に すすむ';
