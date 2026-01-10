@@ -301,7 +301,17 @@
                 payload: { view: 'login' },
               });
             }
-            hideLoading();
+
+            // データ再取得が必要な場合はhideLoadingを呼ばない
+            // （window.onload でデータ再取得後に呼ばれる）
+            var needsRefresh =
+              typeof window.stateManager.needsDataRefresh === 'function' &&
+              window.stateManager.needsDataRefresh();
+            if (!needsRefresh) {
+              hideLoading();
+            } else {
+              debugLog('🔄 データ再取得が必要 - ローディング継続');
+            }
           } else {
             // 一部未準備 - 100ms間隔でリトライ（300ms → 100ms に短縮）
             setTimeout(safeInitializeApp, 100);
