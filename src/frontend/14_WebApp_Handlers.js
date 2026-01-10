@@ -1364,7 +1364,7 @@ window.onload = function () {
     if (viewContainer) {
       viewContainer.innerHTML = ''; // 古いデータの表示を防ぐ
     }
-    showLoading('login');
+    showLoading('dataFetch');
 
     google.script.run['withSuccessHandler'](
       /** @param {any} response */
