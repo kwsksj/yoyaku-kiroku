@@ -221,6 +221,11 @@ export function startSessionConclusion(reservationId) {
     filterClassroom: 'current',
   };
 
+  // キャッシュから入力データを復元（リロード対応）
+  if (currentReservation?.reservationId) {
+    restoreWizardStateFromCache(currentReservation.reservationId);
+  }
+
   // 履歴に現在の状態を保存（smartGoBackが機能するため）
   // NAVIGATEアクションを使用して履歴を管理
 
@@ -345,6 +350,9 @@ function saveCurrentStepData() {
       break;
     }
   }
+
+  // ステップ移動ごとにキャッシュを更新（リロード対応）
+  cacheWizardState();
 }
 
 /**
@@ -575,6 +583,9 @@ async function finalizeConclusion() {
             });
           }
 
+          // 完了したのでキャッシュをクリア
+          clearWizardStateCache();
+
           // 完了画面へ
           goToStep(STEPS.COMPLETE);
         } else {
@@ -607,6 +618,9 @@ async function finalizeConclusion() {
  * ウィザードを閉じてダッシュボードに戻る
  */
 function closeConclusion() {
+  // キャンセルなのでキャッシュをクリア
+  clearWizardStateCache();
+
   // stateManager経由でダッシュボードへ戻る
   conclusionStateManager.dispatch({
     type: 'SET_STATE',
@@ -1217,3 +1231,91 @@ export const sessionConclusionActionHandlers = {
     }
   },
 };
+
+// =================================================================
+// --- Wizard State Cache (リロード時入力保持用) ---
+// =================================================================
+
+/**
+ * ウィザードの入力状態をformInputCacheに保存
+ * 各ステップ移動時に呼び出される
+ */
+function cacheWizardState() {
+  const stateManager = window.appWindow?.stateManager;
+  if (!stateManager) return;
+
+  // 保存対象：ユーザー入力データのみ（システムデータは除外）
+  const cacheData = {
+    currentStep: wizardState.currentStep,
+    currentReservationId: wizardState.currentReservation?.reservationId,
+    sessionNoteToday: wizardState.sessionNoteToday,
+    nextLessonGoal: wizardState.nextLessonGoal,
+    nextStartTime: wizardState.nextStartTime,
+    nextEndTime: wizardState.nextEndTime,
+    orderInput: wizardState.orderInput || '',
+    materialInput: wizardState.materialInput || '',
+    accountingFormData: wizardState.accountingFormData || {},
+    filterClassroom: wizardState.filterClassroom,
+    reservationSkipped: wizardState.reservationSkipped,
+    selectedLessonId: wizardState.selectedLesson?.lessonId || null,
+  };
+
+  stateManager['cacheFormInput']('wizardState', cacheData);
+}
+
+/**
+ * formInputCacheからウィザード状態を復元
+ * セッション終了フロー開始時に呼び出される
+ * @param {string} reservationId - 現在の予約ID
+ * @returns {boolean} 復元できた場合true
+ */
+function restoreWizardStateFromCache(reservationId) {
+  const stateManager = window.appWindow?.stateManager;
+  if (!stateManager) return false;
+
+  const cached = stateManager['getFormInputCache']('wizardState');
+  if (!cached) return false;
+
+  // 同じ予約に対する編集中の状態か確認
+  if (cached.currentReservationId !== reservationId) {
+    // 別の予約のキャッシュなのでクリア
+    stateManager['clearFormInputCache']('wizardState');
+    return false;
+  }
+
+  // 入力データを復元
+  wizardState.currentStep = cached.currentStep || STEPS.RECORD;
+  wizardState.sessionNoteToday = cached.sessionNoteToday || '';
+  wizardState.nextLessonGoal = cached.nextLessonGoal || '';
+  wizardState.nextStartTime = cached.nextStartTime || '';
+  wizardState.nextEndTime = cached.nextEndTime || '';
+  wizardState.orderInput = cached.orderInput || '';
+  wizardState.materialInput = cached.materialInput || '';
+  wizardState.accountingFormData = cached.accountingFormData || {};
+  wizardState.filterClassroom = cached.filterClassroom || 'current';
+  wizardState.reservationSkipped = cached.reservationSkipped || false;
+
+  // 選択済みレッスンの復元（lessonIdから検索）
+  if (cached.selectedLessonId) {
+    const lessons = stateManager.getState().lessons || [];
+    const selectedLesson = lessons.find(
+      (/** @type {LessonCore} */ l) => l.lessonId === cached.selectedLessonId,
+    );
+    if (selectedLesson) {
+      wizardState.selectedLesson = selectedLesson;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * ウィザード状態キャッシュをクリア
+ * 完了・キャンセル時に呼び出される
+ */
+function clearWizardStateCache() {
+  const stateManager = window.appWindow?.stateManager;
+  if (stateManager) {
+    stateManager['clearFormInputCache']('wizardState');
+  }
+}
