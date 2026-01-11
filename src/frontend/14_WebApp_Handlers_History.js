@@ -185,8 +185,8 @@ export const historyActionHandlers = {
   saveAndCloseMemo: function (/** @type {any} */ d) {
     // ボタンからreservationIdが渡された場合
     if (d && d.reservationId) {
-      // thisを使って同じオブジェクト内のsaveInlineMemoを呼び出し
-      this.saveInlineMemo(d);
+      // historyActionHandlersへの参照を使って呼び出し（thisはスプレッド時に失われるため）
+      historyActionHandlers.saveInlineMemo(d);
     } else {
       console.warn('保存対象のreservationIdが見つかりません');
     }
