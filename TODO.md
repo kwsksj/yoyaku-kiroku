@@ -95,7 +95,7 @@
   - 📄 実装詳細: [docs/RELOAD_OPTIMIZATION.md](docs/RELOAD_OPTIMIZATION.md)
 
 - [ ] **データ再取得のタイムアウト処理**
-  - リロード時のデータ再取得に10秒タイムアウトを追加
+  - リロード時のデータ再取得に30秒タイムアウトを追加
   - タイムアウト時はログイン画面へ遷移しユーザーに通知
   - 優先度: 中（ネットワーク不安定時のUX改善）
   - 📄 実装詳細: [docs/RELOAD_OPTIMIZATION.md](docs/RELOAD_OPTIMIZATION.md)
