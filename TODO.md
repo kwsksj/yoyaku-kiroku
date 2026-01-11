@@ -79,11 +79,26 @@
   - 対象: きろく、もくひょう、よやく（材料/注文品）、会計
   - 優先度: 低（現状でも大きな問題なし）
 
-- [ ] **必要な情報をローカルに事前保存**
+- [ ] **必要な情報をローカルに事前保存** ⭐
   - `lessons`, `myReservations`, `accountingMaster` を sessionStorage に追加保存
   - リロード時のデータ再取得を削減
   - サイズ制限は余裕あり（ユーザー確認済み）
   - 注意: データ不整合リスクへの対応（バージョン管理・有効期限）
+  - 優先度: 中（UX向上、ただしデータ不整合リスク要対策）
+  - 📄 実装詳細: [docs/RELOAD_OPTIMIZATION.md](docs/RELOAD_OPTIMIZATION.md)
+
+- [ ] **sessionStorageサイズ監視機能**
+  - `saveStateToStorage()` で保存サイズを監視
+  - 4MB超過時に警告ログ出力
+  - QuotaExceededError のエラーハンドリング追加
+  - 優先度: 中（上記「ローカル事前保存」実装時に必須）
+  - 📄 実装詳細: [docs/RELOAD_OPTIMIZATION.md](docs/RELOAD_OPTIMIZATION.md)
+
+- [ ] **データ再取得のタイムアウト処理**
+  - リロード時のデータ再取得に10秒タイムアウトを追加
+  - タイムアウト時はログイン画面へ遷移しユーザーに通知
+  - 優先度: 中（ネットワーク不安定時のUX改善）
+  - 📄 実装詳細: [docs/RELOAD_OPTIMIZATION.md](docs/RELOAD_OPTIMIZATION.md)
 
 ### API最適化
 
@@ -91,10 +106,24 @@
   - バックエンドに統合エンドポイント追加
   - または既存エンドポイント拡張で1回のAPI呼び出しに
   - 対象: `getAdminLogsWithMetadata` と参加者データ取得の統合
+  - 優先度: 低（現状でも十分高速）
 
 ---
 
 ## Refactoring (リファクタリング)
+
+- [ ] **フォーム入力キャッシュの重複コード削減**
+  - ダッシュボード・履歴ビューで重複している `input` イベントリスナー設定を共通化
+  - `SimpleStateManager` に `setupTextareaCache(textarea, cacheKey)` メソッド追加
+  - 優先度: 低（動作に問題なし、保守性向上のため）
+  - 📄 実装詳細: [docs/RELOAD_OPTIMIZATION.md](docs/RELOAD_OPTIMIZATION.md)
+
+- [ ] **型定義の整備（formInputCache）**
+  - `UIState` インターフェースに `formInputCache` プロパティを明示的に追加
+  - ブラケット表記（`state['formInputCache']`）から通常のプロパティアクセスへ変更
+  - 型安全性の向上
+  - 優先度: 低（TypeScript型チェックの恩恵を受けるため）
+  - 📄 実装詳細: [docs/RELOAD_OPTIMIZATION.md](docs/RELOAD_OPTIMIZATION.md)
 
 - [ ] 不要なコードを削除する
 
@@ -106,6 +135,9 @@
 
 ### 2026/01
 
+- [x] **リロード時データ再取得エラーのユーザー通知** (2026-01-11)
+  - データ再取得失敗時にエラーメッセージを表示
+  - UX改善とデバッグ支援
 - [x] **画面リロード時のデータ復元**
   - sessionStorage復元後にデータがない場合は自動で再取得
   - 管理者ログビューでもリロード後に正しくログが表示される
