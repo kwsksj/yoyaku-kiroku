@@ -282,8 +282,7 @@ export function render() {
       v = getLogView();
       break;
     case 'sessionConclusion':
-      // リロードの場合、キャッシュからウィザード状態を復元
-      tryRestoreWizardFromCache();
+      // ウィザード状態はデータ取得後に復元されるため、ここでは呼び出さない
       v = getCurrentSessionConclusionView();
       break;
   }
@@ -1427,6 +1426,15 @@ window.onload = function () {
 
           // フラグをリセット
           handlersStateManager.markDataRefreshComplete();
+
+          // sessionConclusionビューの場合、データ取得後にウィザード状態を復元
+          const currentView = handlersStateManager.getState().view;
+          if (currentView === 'sessionConclusion') {
+            console.log(
+              '🔄 リロード復元: データ取得後にウィザード状態を復元します',
+            );
+            tryRestoreWizardFromCache();
+          }
         } else {
           // ユーザーが見つからない場合はログイン画面へ
           console.warn('⚠️ リロード復元: ユーザーが見つかりません');
