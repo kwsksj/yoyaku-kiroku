@@ -1023,20 +1023,19 @@ export class SimpleStateManager {
 
   /**
    * フォーム入力をキャッシュに保存
+   * 注意: 再描画を避けるため dispatch を使わず直接 state を更新
    * @param {string} key - キャッシュキー（例: 'goalEdit', 'memoEdit:reservationId'）
    * @param {any} value - 保存する値
    */
   cacheFormInput(key, value) {
     const currentCache = this.state['formInputCache'] || {};
-    this.dispatch({
-      type: 'UPDATE_STATE',
-      payload: {
-        formInputCache: {
-          ...currentCache,
-          [key]: value,
-        },
-      },
-    });
+    // 直接stateを更新（dispatchすると再描画が走り保存処理が妨げられる）
+    this.state['formInputCache'] = {
+      ...currentCache,
+      [key]: value,
+    };
+    // sessionStorageに保存
+    this.saveStateToStorage();
   }
 
   /**
@@ -1050,25 +1049,24 @@ export class SimpleStateManager {
 
   /**
    * フォーム入力キャッシュをクリア
+   * 注意: 再描画を避けるため dispatch を使わず直接 state を更新
    * @param {string} key - クリアするキャッシュキー
    */
   clearFormInputCache(key) {
     const currentCache = { ...(this.state['formInputCache'] || {}) };
     delete currentCache[key];
-    this.dispatch({
-      type: 'UPDATE_STATE',
-      payload: { formInputCache: currentCache },
-    });
+    // 直接stateを更新
+    this.state['formInputCache'] = currentCache;
+    // sessionStorageに保存
+    this.saveStateToStorage();
   }
 
   /**
    * すべてのフォーム入力キャッシュをクリア
    */
   clearAllFormInputCache() {
-    this.dispatch({
-      type: 'UPDATE_STATE',
-      payload: { formInputCache: {} },
-    });
+    this.state['formInputCache'] = {};
+    this.saveStateToStorage();
   }
 }
 

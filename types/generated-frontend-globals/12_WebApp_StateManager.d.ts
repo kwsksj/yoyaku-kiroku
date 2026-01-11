@@ -183,6 +183,7 @@ export class SimpleStateManager {
     markDataRefreshComplete(): void;
     /**
      * フォーム入力をキャッシュに保存
+     * 注意: 再描画を避けるため dispatch を使わず直接 state を更新
      * @param {string} key - キャッシュキー（例: 'goalEdit', 'memoEdit:reservationId'）
      * @param {any} value - 保存する値
      */
@@ -195,6 +196,7 @@ export class SimpleStateManager {
     getFormInputCache(key: string): any;
     /**
      * フォーム入力キャッシュをクリア
+     * 注意: 再描画を避けるため dispatch を使わず直接 state を更新
      * @param {string} key - クリアするキャッシュキー
      */
     clearFormInputCache(key: string): void;
