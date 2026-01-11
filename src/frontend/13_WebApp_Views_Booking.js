@@ -80,7 +80,7 @@ window.handleBeginnerModeSelect = function (isBeginner) {
 
 /**
  * 初心者モード選択ボタングループのHTMLを生成
- * 自動判定で初回者の場合のみ表示
+ * 自動判定で初回者の場合のみ表示（ピル型トグルスイッチ形式）
  * @returns {string} HTML文字列
  */
 const renderBeginnerModeToggle = () => {
@@ -95,12 +95,8 @@ const renderBeginnerModeToggle = () => {
     typeof localStorage !== 'undefined'
       ? localStorage.getItem('beginnerModeOverride')
       : null;
-  const selectedValue =
-    override !== null
-      ? override
-      : resolveEffectiveBeginnerMode()
-        ? 'true'
-        : 'false';
+  // 初期値は「初回」。ユーザーが明示的に変更した場合のみoverride値を使用
+  const selectedValue = override !== null ? override : 'true';
 
   console.log('🎚️ BeginnerModeToggle:', {
     auto,
@@ -111,8 +107,8 @@ const renderBeginnerModeToggle = () => {
   return `
       <p class="text-sm ${DesignConfig.colors.textSubtle} mb-2 text-center">参加枠の表示</p>
       <div class="flex justify-center mb-6">
-        ${Components.buttonGroup({
-          buttons: [
+        ${Components.pillToggle({
+          options: [
             {
               value: 'true',
               label: '初回',
@@ -125,7 +121,7 @@ const renderBeginnerModeToggle = () => {
             },
           ],
           selectedValue: selectedValue,
-          className: 'max-w-md w-full',
+          className: 'max-w-xs w-full',
         })}
       </div>
       <hr class="border-ui-border-light"/>

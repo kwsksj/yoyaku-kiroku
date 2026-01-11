@@ -30,6 +30,16 @@ export namespace Components {
         selectedValue: string;
         className?: string;
     }): string;
+    function pillToggle({ options, selectedValue, className, size }: {
+        options: Array<{
+            value: string;
+            label: string;
+            onclick: string;
+        }>;
+        selectedValue: string;
+        className?: string;
+        size?: string;
+    }): string;
     function radioGroup({ name, label, options, selectedValue, layout, description, caption, }: {
         name: string;
         label: string;

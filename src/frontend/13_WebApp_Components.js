@@ -611,6 +611,48 @@ export const Components = {
   },
 
   /**
+   * ピル型トグルスイッチコンポーネント（2択選択）
+   * セッション終了フローの教室フィルターと同じデザイン形式
+   * @param {Object} config - 設定オブジェクト
+   * @param {Array<{value: string, label: string, onclick: string}>} config.options - 選択肢の配列（2つ）
+   * @param {string} config.selectedValue - 現在選択されている値
+   * @param {string} [config.className=''] - 追加のCSSクラス
+   * @param {string} [config.size='normal'] - サイズ（'small' | 'normal'）
+   * @returns {string} HTML文字列
+   */
+  pillToggle: ({ options, selectedValue, className = '', size = 'normal' }) => {
+    if (!Array.isArray(options) || options.length !== 2) {
+      console.error('pillToggle: options must be an array of 2 items');
+      return '';
+    }
+
+    // サイズに応じたスタイル
+    /** @type {Record<string, string>} */
+    const sizeClasses = {
+      small: 'py-1 px-2 text-xs',
+      normal: 'py-2 px-4 text-sm',
+    };
+    const sizeClass = sizeClasses[size] || sizeClasses['normal'];
+
+    const optionsHtml = options
+      .map(opt => {
+        const isSelected = opt.value === selectedValue;
+        const stateClass = isSelected
+          ? 'bg-action-primary-bg text-white'
+          : 'bg-gray-100 text-gray-500';
+
+        return `<button
+          type="button"
+          onclick="${escapeHTML(opt.onclick)}"
+          class="flex-1 ${sizeClass} font-bold rounded-full transition-colors ${stateClass}"
+        >${escapeHTML(opt.label)}</button>`;
+      })
+      .join('');
+
+    return `<div class="flex justify-center bg-gray-100 p-1 rounded-full ${className}">${optionsHtml}</div>`;
+  },
+
+  /**
    * ラジオボタングループコンポーネント
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.name - ラジオボタングループの名前
