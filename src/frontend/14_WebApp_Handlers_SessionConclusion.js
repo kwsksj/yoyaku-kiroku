@@ -1241,8 +1241,7 @@ export const sessionConclusionActionHandlers = {
  * 各ステップ移動時に呼び出される
  */
 function cacheWizardState() {
-  const stateManager = window.appWindow?.stateManager;
-  if (!stateManager) return;
+  if (!conclusionStateManager) return;
 
   // 保存対象：ユーザー入力データのみ（システムデータは除外）
   const cacheData = {
@@ -1260,7 +1259,7 @@ function cacheWizardState() {
     selectedLessonId: wizardState.selectedLesson?.lessonId || null,
   };
 
-  stateManager['cacheFormInput']('wizardState', cacheData);
+  conclusionStateManager['cacheFormInput']('wizardState', cacheData);
 }
 
 /**
@@ -1314,9 +1313,8 @@ function restoreWizardStateFromCache(reservationId) {
  * 完了・キャンセル時に呼び出される
  */
 function clearWizardStateCache() {
-  const stateManager = window.appWindow?.stateManager;
-  if (stateManager) {
-    stateManager['clearFormInputCache']('wizardState');
+  if (conclusionStateManager) {
+    conclusionStateManager['clearFormInputCache']('wizardState');
   }
 }
 
@@ -1326,10 +1324,9 @@ function clearWizardStateCache() {
  * @returns {boolean} 復元できた場合true
  */
 export function tryRestoreWizardFromCache() {
-  const stateManager = window.appWindow?.stateManager;
-  if (!stateManager) return false;
+  if (!conclusionStateManager) return false;
 
-  const cached = stateManager['getFormInputCache']('wizardState');
+  const cached = conclusionStateManager['getFormInputCache']('wizardState');
   if (!cached || !cached.currentReservationId) return false;
 
   // キャッシュされた予約IDから予約を検索
@@ -1396,7 +1393,7 @@ export function tryRestoreWizardFromCache() {
   }
 
   // ビューを sessionConclusion に遷移
-  stateManager.dispatch({
+  conclusionStateManager.dispatch({
     type: 'SET_STATE',
     payload: { view: 'sessionConclusion' },
   });
