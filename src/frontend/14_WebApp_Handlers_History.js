@@ -53,11 +53,36 @@ export const historyActionHandlers = {
     const currentMemo = item.sessionNote || '';
     if (d.reservationId) {
       historyStateManager.startEditMode(d.reservationId, currentMemo);
+      // formInputCacheに編集状態を保存（リロード対応）
+      historyStateManager['cacheFormInput'](`memoEdit:${d.reservationId}`, {
+        isEditing: true,
+        text: currentMemo,
+      });
     }
 
     // 該当カードのみを部分更新（ちらつき防止）
     if (d.reservationId) {
       updateSingleHistoryCard(d.reservationId);
+
+      // 入力時にキャッシュを更新
+      setTimeout(() => {
+        const textarea = /** @type {HTMLTextAreaElement | null} */ (
+          document.querySelector(
+            `[data-reservation-id="${d.reservationId}"] .memo-edit-textarea`,
+          )
+        );
+        if (textarea) {
+          textarea.addEventListener('input', () => {
+            historyStateManager['cacheFormInput'](
+              `memoEdit:${d.reservationId}`,
+              {
+                isEditing: true,
+                text: textarea.value,
+              },
+            );
+          });
+        }
+      }, 100);
     }
 
     // スクロール位置を復元
@@ -75,6 +100,8 @@ export const historyActionHandlers = {
     // 編集モードを解除（変更を破棄）
     if (d.reservationId) {
       historyStateManager.endEditMode(d.reservationId);
+      // キャッシュをクリア
+      historyStateManager['clearFormInputCache'](`memoEdit:${d.reservationId}`);
     }
 
     // 該当カードのみを部分更新（ちらつき防止）
@@ -118,6 +145,8 @@ export const historyActionHandlers = {
     // 編集モードを解除
     if (d.reservationId) {
       historyStateManager.endEditMode(d.reservationId);
+      // キャッシュをクリア
+      historyStateManager['clearFormInputCache'](`memoEdit:${d.reservationId}`);
     }
 
     showInfo('メモを保存しました', '保存完了');

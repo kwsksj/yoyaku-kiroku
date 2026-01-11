@@ -651,6 +651,18 @@ window.onload = function () {
           document.getElementById('goal-edit-textarea')
         );
         if (textarea) {
+          // 編集開始時にキャッシュに保存
+          handlersStateManager['cacheFormInput']('goalEdit', {
+            isEditing: true,
+            text: textarea.value,
+          });
+          // 入力時にキャッシュを更新
+          textarea.addEventListener('input', () => {
+            handlersStateManager['cacheFormInput']('goalEdit', {
+              isEditing: true,
+              text: textarea.value,
+            });
+          });
           textarea.focus();
         }
       }
@@ -664,6 +676,8 @@ window.onload = function () {
         displayMode.classList.remove('hidden');
         editMode.classList.add('hidden');
       }
+      // キャッシュをクリア
+      handlersStateManager['clearFormInputCache']('goalEdit');
     },
 
     /** けいかく・もくひょうを保存 */
@@ -737,6 +751,8 @@ window.onload = function () {
                   }
                 }
                 showInfo('けいかく・もくひょうを保存しました。', 'success');
+                // キャッシュをクリア
+                handlersStateManager['clearFormInputCache']('goalEdit');
               } else {
                 showInfo(result.message || '保存に失敗しました。', 'エラー');
               }

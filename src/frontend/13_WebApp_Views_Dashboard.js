@@ -118,10 +118,24 @@ export const getDashboardView = () => {
     let lastYear = null; // 年が変わったらセパレーターを表示するため
     const historyListItems = completedRecords.map(
       (/** @type {ReservationCore} */ h, index) => {
-        // 編集モード状態を取得
-        const isInEditMode = dashboardStateManager.isInEditMode(
-          h.reservationId,
+        // 編集モード状態を取得（formInputCacheからの復元も考慮）
+        const memoCache = dashboardStateManager['getFormInputCache'](
+          `memoEdit:${h.reservationId}`,
         );
+        let isInEditMode = dashboardStateManager.isInEditMode(h.reservationId);
+
+        // formInputCacheに編集状態があれば復元
+        if (memoCache?.isEditing) {
+          isInEditMode = true;
+          // stateManagerにも編集状態を反映
+          dashboardStateManager.startEditMode(
+            h.reservationId,
+            h.sessionNote || '',
+          );
+        }
+
+        // 編集中のテキストを取得（formInputCacheから復元されたもの優先）
+        const editingMemoText = memoCache?.text ?? (h.sessionNote || '');
 
         // 日付の年を取得
         const dateObj = new Date(h.date);
@@ -154,10 +168,10 @@ export const getDashboardView = () => {
           </div>
         `;
 
-        // メモセクション（改良版を維持）
+        // メモセクション（改良版を維持）- 復元されたテキストを使用
         const memoHtml = Components.memoSection({
           reservationId: h.reservationId,
-          sessionNote: h.sessionNote || '',
+          sessionNote: isInEditMode ? editingMemoText : h.sessionNote || '',
           isEditMode: isInEditMode,
           showSaveButton: true,
         });
@@ -287,22 +301,31 @@ export const getDashboardView = () => {
   const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
   // 編集アイコンSVG（共通関数を使用）
   const editIconSvg = Components.editIcon();
+
+  // formInputCacheから編集状態を復元（リロード対応）
+  const goalEditCache = dashboardStateManager['getFormInputCache']('goalEdit');
+  const isGoalEditMode = goalEditCache?.isEditing || false;
+  const goalEditText = goalEditCache?.text ?? nextLessonGoal;
+
+  // 編集モードで復元するか、目標が空の場合は編集モード
+  const shouldShowGoalEditMode = isGoalEditMode || !nextLessonGoal;
+
   const goalCardContent = `
     <div class="w-full max-w-md mx-auto">
       <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">
         <!-- 表示モード -->
-        <div id="goal-display-mode" class="${nextLessonGoal ? '' : 'hidden'}">
+        <div id="goal-display-mode" class="${shouldShowGoalEditMode ? 'hidden' : ''}">
           <div class="bg-white/75 rounded p-2 relative">
             <p id="goal-display-text" class="text-base text-brand-text whitespace-pre-wrap pr-8 min-h-8">${escapeHTML(nextLessonGoal) || 'まだ設定されていません'}</p>
             <button data-action="editGoal" class="absolute bottom-1 right-1 p-1 text-brand-subtle hover:text-brand-text active:bg-brand-light rounded transition-colors" aria-label="けいかく・もくひょうを編集">${editIconSvg}</button>
           </div>
         </div>
         <!-- 編集モード -->
-        <div id="goal-edit-mode" class="${nextLessonGoal ? 'hidden' : ''}">
+        <div id="goal-edit-mode" class="${shouldShowGoalEditMode ? '' : 'hidden'}">
           ${Components.textarea({
             id: 'goal-edit-textarea',
             label: '',
-            value: nextLessonGoal,
+            value: goalEditText,
             placeholder:
               'つくりたいもの、さぎょうよてい、けいかく、もくひょう など メモしましょう',
             rows: 5,

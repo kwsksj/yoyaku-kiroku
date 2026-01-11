@@ -170,6 +170,10 @@ export class SimpleStateManager {
       // --- Computed Data ---
       /** @type {ComputedStateData} */
       computed: {},
+
+      // --- Form Input Cache (リロード時保持用) ---
+      /** @type {Record<string, any>} */
+      formInputCache: {},
     };
   }
 
@@ -678,6 +682,9 @@ export class SimpleStateManager {
         registrationData: stateToSave.registrationData,
         registrationPhone: stateToSave.registrationPhone,
         editingReservationIds: stateToSave.editingReservationIds,
+        // フォーム入力キャッシュ（編集中の入力値を保持）
+        formInputCache:
+          /** @type {any} */ (stateToSave)['formInputCache'] || {},
         // タイムスタンプを追加（有効期限チェック用）
         savedAt: Date.now(),
         // アプリバージョン（更新検知用）
@@ -1008,6 +1015,60 @@ export class SimpleStateManager {
   markDataRefreshComplete() {
     this._restoredFromStorage = false;
     appWindow.PerformanceLog?.info('リロード復元: データ再取得完了');
+  }
+
+  // =================================================================
+  // --- Form Input Cache Methods (リロード時入力保持用) ---
+  // =================================================================
+
+  /**
+   * フォーム入力をキャッシュに保存
+   * @param {string} key - キャッシュキー（例: 'goalEdit', 'memoEdit:reservationId'）
+   * @param {any} value - 保存する値
+   */
+  cacheFormInput(key, value) {
+    const currentCache = this.state['formInputCache'] || {};
+    this.dispatch({
+      type: 'UPDATE_STATE',
+      payload: {
+        formInputCache: {
+          ...currentCache,
+          [key]: value,
+        },
+      },
+    });
+  }
+
+  /**
+   * フォーム入力キャッシュから値を取得
+   * @param {string} key - キャッシュキー
+   * @returns {any} キャッシュされた値（存在しない場合はundefined）
+   */
+  getFormInputCache(key) {
+    return (this.state['formInputCache'] || {})[key];
+  }
+
+  /**
+   * フォーム入力キャッシュをクリア
+   * @param {string} key - クリアするキャッシュキー
+   */
+  clearFormInputCache(key) {
+    const currentCache = { ...(this.state['formInputCache'] || {}) };
+    delete currentCache[key];
+    this.dispatch({
+      type: 'UPDATE_STATE',
+      payload: { formInputCache: currentCache },
+    });
+  }
+
+  /**
+   * すべてのフォーム入力キャッシュをクリア
+   */
+  clearAllFormInputCache() {
+    this.dispatch({
+      type: 'UPDATE_STATE',
+      payload: { formInputCache: {} },
+    });
   }
 }
 

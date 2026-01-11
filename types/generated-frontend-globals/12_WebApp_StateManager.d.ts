@@ -181,6 +181,27 @@ export class SimpleStateManager {
      * データ再取得完了後にフラグをリセット
      */
     markDataRefreshComplete(): void;
+    /**
+     * フォーム入力をキャッシュに保存
+     * @param {string} key - キャッシュキー（例: 'goalEdit', 'memoEdit:reservationId'）
+     * @param {any} value - 保存する値
+     */
+    cacheFormInput(key: string, value: any): void;
+    /**
+     * フォーム入力キャッシュから値を取得
+     * @param {string} key - キャッシュキー
+     * @returns {any} キャッシュされた値（存在しない場合はundefined）
+     */
+    getFormInputCache(key: string): any;
+    /**
+     * フォーム入力キャッシュをクリア
+     * @param {string} key - クリアするキャッシュキー
+     */
+    clearFormInputCache(key: string): void;
+    /**
+     * すべてのフォーム入力キャッシュをクリア
+     */
+    clearAllFormInputCache(): void;
 }
 export type StateManagerContract = SimpleStateManager;
 export type UIStateAlias = UIState;
