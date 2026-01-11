@@ -1452,6 +1452,13 @@ window.onload = function () {
         /** @param {Error} error */
         error => {
           console.error('❌ リロード復元: データ再取得エラー:', error);
+
+          // ユーザーにエラーを通知
+          showInfo(
+            'データの読み込みに失敗しました。再度ログインしてください。',
+            'エラー',
+          );
+
           // エラー時はログイン画面へ
           handlersStateManager.dispatch({
             type: 'NAVIGATE',
