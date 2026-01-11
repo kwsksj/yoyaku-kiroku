@@ -18,6 +18,12 @@ export function setupSessionConclusionUI(step?: string): void;
  * @param {string} step
  */
 export function setWizardStep(step: string): void;
+/**
+ * リロード後にウィザード状態を復元できるかチェックし、可能なら復元
+ * window.onload から呼び出される
+ * @returns {boolean} 復元できた場合true
+ */
+export function tryRestoreWizardFromCache(): boolean;
 export namespace sessionConclusionActionHandlers {
     function startSessionConclusion(d: ActionHandlerData): void;
     function conclusionNextStep(d: ActionHandlerData): void;

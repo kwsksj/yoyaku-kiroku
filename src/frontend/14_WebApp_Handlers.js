@@ -63,6 +63,7 @@ import {
   sessionConclusionActionHandlers,
   setupSessionConclusionUI,
   startSessionConclusion,
+  tryRestoreWizardFromCache,
 } from './14_WebApp_Handlers_SessionConclusion.js';
 
 // ================================================================
@@ -281,6 +282,8 @@ export function render() {
       v = getLogView();
       break;
     case 'sessionConclusion':
+      // リロードの場合、キャッシュからウィザード状態を復元
+      tryRestoreWizardFromCache();
       v = getCurrentSessionConclusionView();
       break;
   }

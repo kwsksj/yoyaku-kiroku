@@ -1319,3 +1319,87 @@ function clearWizardStateCache() {
     stateManager['clearFormInputCache']('wizardState');
   }
 }
+
+/**
+ * リロード後にウィザード状態を復元できるかチェックし、可能なら復元
+ * window.onload から呼び出される
+ * @returns {boolean} 復元できた場合true
+ */
+export function tryRestoreWizardFromCache() {
+  const stateManager = window.appWindow?.stateManager;
+  if (!stateManager) return false;
+
+  const cached = stateManager['getFormInputCache']('wizardState');
+  if (!cached || !cached.currentReservationId) return false;
+
+  // キャッシュされた予約IDから予約を検索
+  const state = stateManager.getState();
+  const myReservations = state.myReservations || [];
+  const reservation = myReservations.find(
+    (/** @type {ReservationCore} */ r) =>
+      r.reservationId === cached.currentReservationId,
+  );
+
+  if (!reservation) {
+    // 予約が見つからない場合はキャッシュをクリア
+    clearWizardStateCache();
+    return false;
+  }
+
+  // 予約が見つかった場合、ウィザードを再開
+  console.log('🔄 ウィザード状態をキャッシュから復元します');
+
+  // initializeWizardState を使わず、直接 wizardState を設定してビューに遷移
+  const classifiedItems = classifyAccountingItems(
+    state.accountingMaster || [],
+    reservation.classroom,
+  );
+  const futureReservation = myReservations.find(
+    (/** @type {ReservationCore} */ r) =>
+      r.date > reservation.date &&
+      r.status !== CONSTANTS.STATUS.COMPLETED &&
+      r.status !== CONSTANTS.STATUS.CANCELED,
+  );
+  const recommendedNextLesson = findRecommendedNextLesson(reservation);
+
+  // ウィザード状態を初期化
+  wizardState = {
+    currentStep: cached.currentStep || STEPS.RECORD,
+    currentReservation: reservation,
+    recommendedNextLesson: recommendedNextLesson,
+    selectedLesson: null,
+    existingFutureReservation: futureReservation || null,
+    reservationSkipped: cached.reservationSkipped || false,
+    isWaitlistRequest: false,
+    isLessonListExpanded: false,
+    sessionNoteToday: cached.sessionNoteToday || '',
+    nextLessonGoal: cached.nextLessonGoal || '',
+    sessionNoteNext: '',
+    nextStartTime: cached.nextStartTime || '',
+    nextEndTime: cached.nextEndTime || '',
+    classifiedItems: classifiedItems,
+    accountingFormData: cached.accountingFormData || {},
+    filterClassroom: cached.filterClassroom || 'current',
+    orderInput: cached.orderInput || '',
+    materialInput: cached.materialInput || '',
+  };
+
+  // 選択済みレッスンの復元
+  if (cached.selectedLessonId) {
+    const lessons = state.lessons || [];
+    const selectedLesson = lessons.find(
+      (/** @type {LessonCore} */ l) => l.lessonId === cached.selectedLessonId,
+    );
+    if (selectedLesson) {
+      wizardState.selectedLesson = selectedLesson;
+    }
+  }
+
+  // ビューを sessionConclusion に遷移
+  stateManager.dispatch({
+    type: 'SET_STATE',
+    payload: { view: 'sessionConclusion' },
+  });
+
+  return true;
+}

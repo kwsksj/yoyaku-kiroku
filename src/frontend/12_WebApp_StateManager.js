@@ -740,6 +740,15 @@ export class SimpleStateManager {
       // savedAtは内部データなので削除
       delete this.state.savedAt;
 
+      // ウィザード状態キャッシュがある場合、ビューをsessionConclusionに設定
+      // （実際の復元はtryRestoreWizardFromCacheで行う）
+      if (this.state['formInputCache']?.['wizardState']?.currentReservationId) {
+        this.state.view = 'sessionConclusion';
+        appWindow.PerformanceLog?.info(
+          'ウィザード状態キャッシュを検出、sessionConclusionビューに設定',
+        );
+      }
+
       appWindow.PerformanceLog?.info('状態をSessionStorageから復元しました');
       return true;
     } catch (error) {
