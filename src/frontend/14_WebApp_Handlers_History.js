@@ -67,9 +67,7 @@ export const historyActionHandlers = {
       // 入力時にキャッシュを更新
       setTimeout(() => {
         const textarea = /** @type {HTMLTextAreaElement | null} */ (
-          document.querySelector(
-            `[data-reservation-id="${d.reservationId}"] .memo-edit-textarea`,
-          )
+          document.getElementById(`memo-edit-textarea-${d.reservationId}`)
         );
         if (textarea) {
           textarea.addEventListener('input', () => {
@@ -120,8 +118,8 @@ export const historyActionHandlers = {
   saveInlineMemo: d => {
     // textarea要素から直接値を取得
     /** @type {HTMLTextAreaElement | null} */
-    const textarea = document.querySelector(
-      `[data-reservation-id="${d.reservationId}"] .memo-edit-textarea`,
+    const textarea = /** @type {HTMLTextAreaElement | null} */ (
+      document.getElementById(`memo-edit-textarea-${d.reservationId}`)
     );
     if (!textarea) return;
 
