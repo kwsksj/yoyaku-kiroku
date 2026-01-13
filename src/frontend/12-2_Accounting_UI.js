@@ -624,7 +624,7 @@ export const getPaymentOptionsHtml = selectedValue => {
   const optionCards = options
     .map(opt => {
       const isSelected = selectedValue === opt.value;
-      const baseClass = `flex items-center gap-2 px-2 py-2 border-2 ${DesignConfig.borderRadius.button} min-w-[140px] transition-all duration-150`;
+      const baseClass = `flex items-center gap-2 px-2 py-2 border-2 ${DesignConfig.borderRadius.container} min-w-[140px] transition-all duration-150`;
       const selectedClass =
         'border-action-attention bg-action-secondary-bg font-bold text-brand-text shadow-sm';
       const unselectedClass = 'border-ui-border bg-ui-surface text-brand-muted';
@@ -645,7 +645,7 @@ export const getPaymentOptionsHtml = selectedValue => {
  * @returns {string} HTML文字列
  */
 export const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
-  const baseWrapperStart = `<div class="bg-ui-surface border-2 border-ui-border p-3 ${DesignConfig.borderRadius.button} space-y-2">`;
+  const baseWrapperStart = `<div class="bg-ui-surface border-2 border-ui-border p-3 ${DesignConfig.borderRadius.container} space-y-2">`;
   const wrapperEnd = '</div>';
 
   if (!selectedPaymentMethod) {

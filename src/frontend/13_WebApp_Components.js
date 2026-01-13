@@ -94,7 +94,7 @@ export const Components = {
 
     return `
         <div id="${escapeHTML(config.id)}" class="modal-fade fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
-          <div class="bg-white ${DesignConfig.borderRadius.button} ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
+          <div class="bg-white ${DesignConfig.borderRadius.container} ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
             <div class="flex justify-between items-center p-4 border-b-2 border-ui-border">
               <h2 class="text-xl font-bold text-brand-text">${escapeHTML(config.title)}</h2>
               ${showCloseButton ? `<button onclick="Components.closeModal('${escapeHTML(config.id)}')" class="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>` : ''}
@@ -557,7 +557,7 @@ export const Components = {
         >${escapeHTML(helpText)}</button>`
         : '';
 
-    return `<div class="p-3 bg-gray-50 ${DesignConfig.borderRadius.button} ${className}">
+    return `<div class="p-3 bg-gray-50 ${DesignConfig.borderRadius.container} ${className}">
       <label class="flex items-center cursor-pointer">
         <div class="relative">
           <input
@@ -785,7 +785,7 @@ export const Components = {
       variant,
     )
       ? ''
-      : `${DesignConfig.borderRadius.button} border-2`;
+      : `${DesignConfig.borderRadius.container} border-2`;
 
     const finalClasses =
       `${variants[variant]} ${paddings[padding]} ${baseClasses} ${touchClass} ${customClass}`.trim();
@@ -913,8 +913,8 @@ export const Components = {
     const containerClass = [
       bordered ? 'border-2 border-ui-border' : '',
       responsive
-        ? `overflow-x-auto ${DesignConfig.borderRadius.button}`
-        : DesignConfig.borderRadius.button,
+        ? `overflow-x-auto ${DesignConfig.borderRadius.container}`
+        : DesignConfig.borderRadius.container,
     ]
       .filter(Boolean)
       .join(' ');
@@ -1223,7 +1223,7 @@ export const Components = {
     let timeSelectionHtml = '';
     if (type === 'timeBased' && scheduleInfo) {
       if (!scheduleInfo.firstStart || !scheduleInfo.firstEnd) {
-        return `<div class="text-ui-error-text p-4 bg-ui-error-bg ${DesignConfig.borderRadius.button}">エラー: この教室の講座時間が設定されていません。</div>`;
+        return `<div class="text-ui-error-text p-4 bg-ui-error-bg ${DesignConfig.borderRadius.container}">エラー: この教室の講座時間が設定されていません。</div>`;
       }
 
       // 講座時間の設定
@@ -1254,7 +1254,7 @@ export const Components = {
         .join('');
 
       timeSelectionHtml = `
-        <div class="mb-4 p-4 bg-gray-50 ${DesignConfig.borderRadius.button} border">
+        <div class="mb-4 p-4 bg-gray-50 ${DesignConfig.borderRadius.container} border">
           <h4 class="text-sm font-medium text-gray-700 mb-3">参加時間を選択してください</h4>
           <div class="grid grid-cols-3 gap-2 items-end">
             <div class="col-span-1">
@@ -1374,7 +1374,7 @@ export const Components = {
           <span class="mr-3 text-brand-accent transition-transform">▶</span>
           ${escapeHTML(title)}
         </div>
-        <span class="text-xs text-brand-subtle ${DesignConfig.borderRadius.button} bg-ui-surface border-2 border-ui-border p-1">タップで展開</span>
+        <span class="text-xs text-brand-subtle ${DesignConfig.borderRadius.container} bg-ui-surface border-2 border-ui-border p-1">タップで展開</span>
       </summary>`;
     }
 
@@ -2005,7 +2005,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.button} sticky top-16 z-[5] mb-1 participants-table-sticky-header">
+    return `<div class="bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} sticky top-16 z-[5] mb-1 participants-table-sticky-header">
       <div id="${escapeHTML(headerId)}" class="overflow-x-auto overflow-y-hidden scrollbar-hide">
         <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;height: 1rem;">
           ${columnsHtml}

@@ -805,11 +805,11 @@ export function renderStep3Reservation(state) {
   const orderInputHtml = !isSkipped
     ? `
     <details class="mb-4">
-      <summary class="flex items-center justify-between cursor-pointer text-sm text-brand-subtle py-2 px-3 bg-gray-50 ${DesignConfig.borderRadius.button} hover:bg-gray-100">
+      <summary class="flex items-center justify-between cursor-pointer text-sm text-brand-subtle py-2 px-3 bg-gray-50 ${DesignConfig.borderRadius.container} hover:bg-gray-100">
         <span>📦 ざいりょう・ちゅうもん の きぼう</span>
         <span class="text-xs text-gray-400">▼</span>
       </summary>
-      <div class="mt-2 p-3 bg-white border border-gray-200 ${DesignConfig.borderRadius.button}">
+      <div class="mt-2 p-3 bg-white border border-gray-200 ${DesignConfig.borderRadius.container}">
         ${Components.textarea({
           id: 'conclusion-order-input',
           label: 'ざいりょう の きぼう',
@@ -1121,7 +1121,7 @@ export function renderConclusionComplete(state) {
           // listCardで表示されなくなった「けいかく・もくひょう」をカード外に表示
           if (goal) {
             return `
-              <div class="mb-2 p-3 bg-blue-50 text-brand-text ${DesignConfig.borderRadius.button} border border-blue-100 text-left">
+              <div class="mb-2 p-3 bg-blue-50 text-brand-text ${DesignConfig.borderRadius.container} border border-blue-100 text-left">
                 <div class="text-xs font-bold text-blue-600 mb-1">けいかく・もくひょう</div>
                 <div class="text-sm whitespace-pre-wrap">${escapeHTML(goal)}</div>
               </div>
@@ -1193,7 +1193,7 @@ export function renderConclusionComplete(state) {
 
     if (expectedWaitlist && !isActuallyWaitlisted) {
       return `
-        <div class="bg-green-100 text-green-800 text-sm p-2 ${DesignConfig.borderRadius.button} flex items-center gap-2">
+        <div class="bg-green-100 text-green-800 text-sm p-2 ${DesignConfig.borderRadius.container} flex items-center gap-2">
           <span>🎉</span>
           <span>空きが でたので よやく できました！</span>
         </div>
