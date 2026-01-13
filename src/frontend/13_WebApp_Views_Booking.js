@@ -241,7 +241,7 @@ export const getBookingView = classroom => {
           ${renderBeginnerModeToggle()}
           <div class="text-center py-4">
             <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
-            <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border rounded-lg text-center">
+            <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
             <p class="${DesignConfig.text.caption} mb-3">
               今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
             </p>
@@ -273,7 +273,7 @@ export const getBookingView = classroom => {
               ${renderBeginnerModeToggle()}
               <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
 
-              <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border rounded-lg text-center">
+              <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
                 <p class="${DesignConfig.text.caption} mb-3">
                   今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
                 </p>
@@ -461,7 +461,7 @@ export const getReservationFormView = () => {
     // セッション制教室の場合、隠し入力として時刻を設定
     if (!isTimeBased) {
       if (!lessonInfo.firstStart || !lessonInfo.firstEnd) {
-        return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
+        return `<div class="text-ui-error-text p-4 bg-ui-error-bg ${DesignConfig.borderRadius.container}">エラー: この教室の時間設定が不正です</div>`;
       }
       return `
         <input type="hidden" id="res-start-time" value="${lessonInfo.firstStart}" />
@@ -470,7 +470,7 @@ export const getReservationFormView = () => {
     }
 
     if (!lessonInfo.firstStart || !lessonInfo.firstEnd) {
-      return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の時間設定が不正です</div>`;
+      return `<div class="text-ui-error-text p-4 bg-ui-error-bg ${DesignConfig.borderRadius.container}">エラー: この教室の時間設定が不正です</div>`;
     }
 
     // --- 時間生成ヘルパー関数 ---
@@ -589,8 +589,7 @@ export const getReservationFormView = () => {
       : '';
 
     // 会計画面と同じスタイル
-    const timeSelectClass =
-      'w-full px-3 py-2.5 text-base text-center border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus mobile-input touch-friendly font-bold';
+    const timeSelectClass = `w-full px-3 py-2.5 text-base text-center border-2 border-ui-border ${DesignConfig.borderRadius.button} focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus mobile-input touch-friendly font-bold`;
 
     return `
         <div class="mt-4 pt-4 border-t-2">
@@ -1151,20 +1150,19 @@ export const renderBookingLessons = (
               );
               if (reservationData?.status === CONSTANTS.STATUS.COMPLETED) {
                 // 受講済み（グリーン系、非インタラクティブ）
-                cardClass =
-                  'w-full text-left p-3 mb-2 bg-green-50 border-2 border-green-300 rounded-2xl opacity-50';
+                cardClass = `w-full text-left p-3 mb-2 bg-green-50 border-2 border-green-300 ${DesignConfig.borderRadius.container} opacity-50`;
                 statusBadge = `<span class="text-xs text-green-600 font-bold">受講済み</span>`;
                 actionAttribute = '';
               } else if (
                 reservationData?.status === CONSTANTS.STATUS.WAITLISTED
               ) {
                 // 空き通知済（Config参照）
-                cardClass = `w-full text-left p-3 mb-2 rounded-2xl ${DesignConfig.cards.state.waitlist.card}`;
+                cardClass = `w-full text-left p-3 mb-2 ${DesignConfig.borderRadius.container} ${DesignConfig.cards.state.waitlist.card}`;
                 statusBadge = `<span class="text-xs ${DesignConfig.cards.state.waitlist.text} font-bold">空き通知 登録済</span>`;
                 actionAttribute = '';
               } else {
                 // 予約済み（Config参照）
-                cardClass = `w-full text-left p-3 mb-2 rounded-2xl ${DesignConfig.cards.state.booked.card}`;
+                cardClass = `w-full text-left p-3 mb-2 ${DesignConfig.borderRadius.container} ${DesignConfig.cards.state.booked.card}`;
                 statusBadge = `<span class="text-sm ${DesignConfig.cards.state.booked.text} font-bold">よやく済み</span>`;
                 actionAttribute = '';
               }
@@ -1188,20 +1186,17 @@ export const renderBookingLessons = (
 
               if (!canBook) {
                 // 予約不可（グレー薄い、非インタラクティブ）
-                cardClass =
-                  'w-full text-left p-3 mb-2 bg-gray-100 border-2 border-gray-200 rounded-2xl opacity-50';
+                cardClass = `w-full text-left p-3 mb-2 bg-gray-100 border-2 border-gray-200 ${DesignConfig.borderRadius.container} opacity-50`;
                 statusBadge = `<span class="text-xs text-gray-400 font-bold">${statusText}</span>`;
                 actionAttribute = '';
               } else if (isSlotFull) {
                 // 満席（グレー濃い、空き通知登録可能）
-                cardClass =
-                  'w-full text-left p-3 mb-2 bg-gray-200 border-2 border-gray-300 rounded-2xl';
+                cardClass = `w-full text-left p-3 mb-2 bg-gray-200 border-2 border-gray-300 ${DesignConfig.borderRadius.container}`;
                 statusBadge = `<span class="text-xs text-gray-500 font-bold">満席（空き通知希望）</span>`;
                 actionAttribute = `data-action="${actions.waitlist}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
               } else {
                 // 空きあり（テラコッタボーダー、予約可能）
-                cardClass =
-                  'w-full text-left p-3 mb-2 bg-white border-2 border-action-primary-bg rounded-2xl';
+                cardClass = `w-full text-left p-3 mb-2 bg-white border-2 border-action-primary-bg ${DesignConfig.borderRadius.container}`;
                 statusBadge = `<span class="text-sm text-action-primary-bg font-bold">${statusText}</span>`;
                 actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
               }

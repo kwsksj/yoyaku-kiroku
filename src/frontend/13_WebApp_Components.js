@@ -94,7 +94,7 @@ export const Components = {
 
     return `
         <div id="${escapeHTML(config.id)}" class="modal-fade fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" onclick="Components.closeModalOnBackdrop(event, '${escapeHTML(config.id)}')">
-          <div class="bg-white rounded-lg ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
+          <div class="bg-white ${DesignConfig.borderRadius.button} ${maxWidth} mx-4 max-h-[90vh] overflow-y-auto" onclick="Components.handleModalContentClick(event)" data-modal-content="true">
             <div class="flex justify-between items-center p-4 border-b-2 border-ui-border">
               <h2 class="text-xl font-bold text-brand-text">${escapeHTML(config.title)}</h2>
               ${showCloseButton ? `<button onclick="Components.closeModal('${escapeHTML(config.id)}')" class="text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>` : ''}
@@ -557,7 +557,7 @@ export const Components = {
         >${escapeHTML(helpText)}</button>`
         : '';
 
-    return `<div class="p-3 bg-gray-50 rounded-lg ${className}">
+    return `<div class="p-3 bg-gray-50 ${DesignConfig.borderRadius.button} ${className}">
       <label class="flex items-center cursor-pointer">
         <div class="relative">
           <input
@@ -785,7 +785,7 @@ export const Components = {
       variant,
     )
       ? ''
-      : 'rounded-lg border-2';
+      : `${DesignConfig.borderRadius.button} border-2`;
 
     const finalClasses =
       `${variants[variant]} ${paddings[padding]} ${baseClasses} ${touchClass} ${customClass}`.trim();
@@ -912,7 +912,9 @@ export const Components = {
 
     const containerClass = [
       bordered ? 'border-2 border-ui-border' : '',
-      responsive ? 'overflow-x-auto rounded-lg' : 'rounded-lg',
+      responsive
+        ? `overflow-x-auto ${DesignConfig.borderRadius.button}`
+        : DesignConfig.borderRadius.button,
     ]
       .filter(Boolean)
       .join(' ');
@@ -1221,7 +1223,7 @@ export const Components = {
     let timeSelectionHtml = '';
     if (type === 'timeBased' && scheduleInfo) {
       if (!scheduleInfo.firstStart || !scheduleInfo.firstEnd) {
-        return `<div class="text-ui-error-text p-4 bg-ui-error-bg rounded-lg">エラー: この教室の講座時間が設定されていません。</div>`;
+        return `<div class="text-ui-error-text p-4 bg-ui-error-bg ${DesignConfig.borderRadius.button}">エラー: この教室の講座時間が設定されていません。</div>`;
       }
 
       // 講座時間の設定
@@ -1252,7 +1254,7 @@ export const Components = {
         .join('');
 
       timeSelectionHtml = `
-        <div class="mb-4 p-4 bg-gray-50 rounded-lg border">
+        <div class="mb-4 p-4 bg-gray-50 ${DesignConfig.borderRadius.button} border">
           <h4 class="text-sm font-medium text-gray-700 mb-3">参加時間を選択してください</h4>
           <div class="grid grid-cols-3 gap-2 items-end">
             <div class="col-span-1">
@@ -1372,7 +1374,7 @@ export const Components = {
           <span class="mr-3 text-brand-accent transition-transform">▶</span>
           ${escapeHTML(title)}
         </div>
-        <span class="text-xs text-brand-subtle rounded-lg bg-ui-surface border-2 border-ui-border p-1">タップで展開</span>
+        <span class="text-xs text-brand-subtle ${DesignConfig.borderRadius.button} bg-ui-surface border-2 border-ui-border p-1">タップで展開</span>
       </summary>`;
     }
 
@@ -1459,7 +1461,7 @@ export const Components = {
     // セクションタイトル：下線付きでシンプルに区切りを強調
     return `
         <div class="mb-2 w-full">
-          <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-2xl shadow-sm space-y-3">
+          <div class="bg-ui-surface border-2 border-ui-border p-3 ${DesignConfig.borderRadius.container} shadow-sm space-y-3">
             <h2 class="text-lg font-bold text-brand-text text-center pb-2 border-b-2 border-ui-border-light">${escapeHTML(title)}</h2>
             ${itemsHtml}
             ${moreButtonHtml}
@@ -1538,7 +1540,7 @@ export const Components = {
 
     return `
       <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
-        <div class="${cardColorClass} p-2 rounded-2xl shadow-sm relative" data-reservation-id="${item.reservationId}">
+        <div class="${cardColorClass} p-2 ${DesignConfig.borderRadius.container} shadow-sm relative" data-reservation-id="${item.reservationId}">
           <!-- 上部：教室情報+バッジ -->
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
@@ -1622,7 +1624,7 @@ export const Components = {
       // 編集モード：textareaと保存/キャンセルボタン（けいかくカードと同一構造：白枠なし）
       const buttonsHtml = showSaveButton
         ? `<div class="flex justify-end mt-2 gap-2">
-            <button data-action="closeEditMode" data-reservation-id="${reservationId}" class="text-sm text-action-secondary-text px-3 py-1 rounded-lg border border-ui-border">キャンセル</button>
+            <button data-action="closeEditMode" data-reservation-id="${reservationId}" class="text-sm text-action-secondary-text px-3 py-1 ${DesignConfig.borderRadius.button} border border-ui-border">キャンセル</button>
             ${Components.button({
               action: 'saveAndCloseMemo',
               text: 'ほぞん',
@@ -1703,7 +1705,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="p-4 bg-ui-surface border-2 border-ui-border rounded-2xl">
+    return `<div class="p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container}">
         <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売（材料・物販）</h3>
         <div class="mb-3 space-y-4">
           <label class="block text-brand-text text-base font-bold">材料代</label>
@@ -1757,7 +1759,7 @@ export const Components = {
         <div class="back-button-container fixed top-4 right-4 z-30">
           <button
             data-action="${escapeHTML(action)}"
-            class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
+            class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 ${DesignConfig.borderRadius.button} transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
           >
             ${escapeHTML(text)}
           </button>
@@ -1928,7 +1930,7 @@ export const Components = {
         })
       : '';
 
-    return `<div class="bg-white border-2 border-ui-border rounded-2xl p-2">
+    return `<div class="bg-white border-2 border-ui-border ${DesignConfig.borderRadius.container} p-2">
       <div class="text-xs text-gray-500 text-center">
         ${iconHtml}
         <p>${escapeHTML(message)}</p>
@@ -1962,7 +1964,7 @@ export const Components = {
     const arrowClass = isExpanded ? 'rotate-180' : '';
 
     return `<div class="mb-0.5" data-lesson-container="${escapeHTML(id)}">
-      <div class="${bgColor} border-2 ${borderColor} rounded-2xl overflow-hidden">
+      <div class="${bgColor} border-2 ${borderColor} ${DesignConfig.borderRadius.container} overflow-hidden">
         <button
           class="p-1 w-full hover:opacity-100"
           onclick="actionHandlers.${toggleHandler}('${escapeHTML(id)}')"
@@ -2003,7 +2005,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="bg-ui-surface border-2 border-ui-border rounded-lg sticky top-16 z-[5] mb-1 participants-table-sticky-header">
+    return `<div class="bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.button} sticky top-16 z-[5] mb-1 participants-table-sticky-header">
       <div id="${escapeHTML(headerId)}" class="overflow-x-auto overflow-y-hidden scrollbar-hide">
         <div class="grid gap-1 text-xs font-medium text-gray-600" style="grid-template-columns: ${gridTemplate}; min-width: 1200px;height: 1rem;">
           ${columnsHtml}

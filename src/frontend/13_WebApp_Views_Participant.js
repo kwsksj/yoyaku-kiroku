@@ -917,7 +917,7 @@ function renderLessonList(lessons) {
       // レッスンカード（白背景、コンパクト表示）
       return `
         <div class="mb-0.5" data-lesson-container="${escapeHTML(lesson.lessonId)}">
-          <div class="border-2 ${classroomColor.bg}  ${classroomColor.border} rounded-2xl overflow-hidden">
+          <div class="border-2 ${classroomColor.bg}  ${classroomColor.border} ${DesignConfig.borderRadius.container} overflow-hidden">
             ${accordionButton}
             ${accordionContent}
           </div>
@@ -929,7 +929,7 @@ function renderLessonList(lessons) {
   // データがない場合のメッセージ
   const emptyMessage =
     filteredLessons.length === 0
-      ? `<div class="bg-white border-2 border-ui-border rounded-2xl p-2">
+      ? `<div class="bg-white border-2 border-ui-border ${DesignConfig.borderRadius.container} p-2">
            <p class="text-xs text-gray-500 text-center">${escapeHTML(showPastLessons ? '過去の記録がありません' : '未来の予約がありません')}</p>
          </div>`
       : '';
@@ -1117,7 +1117,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
 
   // 基本情報（公開）
   const publicInfoHtml = `
-    <div class="mb-4 bg-gray-50 p-3 rounded-2xl">
+    <div class="mb-4 bg-gray-50 p-3 ${DesignConfig.borderRadius.container}">
       <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
         <span class="w-1 h-4 bg-brand-primary rounded-full"></span>
         基本情報
@@ -1135,7 +1135,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
   const detailedInfoHtml = isAdmin
     ? `
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-left">
-      <div class="bg-gray-50 p-3 rounded-2xl">
+      <div class="bg-gray-50 p-3 ${DesignConfig.borderRadius.container}">
         <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
           <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
           詳細情報
@@ -1153,7 +1153,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
       </div>
 
       <div class="space-y-4">
-        <div class="bg-gray-50 p-3 rounded-2xl">
+        <div class="bg-gray-50 p-3 ${DesignConfig.borderRadius.container}">
           <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
             <span class="w-1 h-4 bg-green-500 rounded-full"></span>
             アンケート情報
@@ -1167,7 +1167,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
           </div>
         </div>
 
-        <div class="bg-gray-50 p-3 rounded-2xl">
+        <div class="bg-gray-50 p-3 ${DesignConfig.borderRadius.container}">
           <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
             <span class="w-1 h-4 bg-orange-500 rounded-full"></span>
             来場・交通情報
@@ -1182,7 +1182,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
       </div>
     </div>
 
-    <div class="mb-4 bg-gray-50 p-3 rounded-2xl">
+    <div class="mb-4 bg-gray-50 p-3 ${DesignConfig.borderRadius.container}">
       <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
         <span class="w-1 h-4 bg-gray-500 rounded-full"></span>
         備考
@@ -1258,7 +1258,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
 
   // 予約履歴セクション（全ユーザーに公開）
   const reservationHistoryHtml = `
-    <div class="mb-4 bg-gray-50 p-3 rounded-2xl">
+    <div class="mb-4 bg-gray-50 p-3 ${DesignConfig.borderRadius.container}">
       <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
         <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
         予約履歴

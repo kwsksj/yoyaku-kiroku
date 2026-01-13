@@ -472,12 +472,12 @@ export function renderStep3Reservation(state) {
     return `
         <div class="flex items-center justify-center gap-2">
           <select id="${idPrefix}-start-time"
-                  class="px-2 py-1 border-2 border-action-primary-bg rounded-lg font-bold text-base text-center bg-white">
+                  class="px-2 py-1 border-2 border-action-primary-bg ${DesignConfig.borderRadius.button} font-bold text-base text-center bg-white">
             ${generateStartTimeOptions(lesson, currentStartTime)}
           </select>
           <span class="font-bold text-brand-text">〜</span>
           <select id="${idPrefix}-end-time"
-                  class="px-2 py-1 border-2 border-action-primary-bg rounded-lg font-bold text-base text-center bg-white">
+                  class="px-2 py-1 border-2 border-action-primary-bg ${DesignConfig.borderRadius.button} font-bold text-base text-center bg-white">
             ${generateEndTimeOptions(lesson, currentStartTime, currentEndTime)}
           </select>
         </div>
@@ -612,7 +612,7 @@ export function renderStep3Reservation(state) {
       : '';
 
     return `
-      <div class="slot-content-inner text-center py-4 border-2 ${styleConfig.borderClass} rounded-2xl ${styleConfig.bgClass}">
+      <div class="slot-content-inner text-center py-4 border-2 ${styleConfig.borderClass} ${DesignConfig.borderRadius.container} ${styleConfig.bgClass}">
         ${styleConfig.badge}
         <p class="text-2xl font-bold text-brand-text mb-1">${formattedDate}</p>
         ${badgesHtml}
@@ -633,7 +633,7 @@ export function renderStep3Reservation(state) {
     if (isSkipped) {
       slotDisplayStatus = 'skip';
       return `
-        <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50">
+        <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 ${DesignConfig.borderRadius.container} bg-gray-50">
           <p class="text-3xl mb-3">📅</p>
           <p class="text-lg font-bold text-gray-500 mb-1">いまは きめない</p>
           <p class="text-sm text-gray-400">あとで よやく してね</p>
@@ -677,7 +677,7 @@ export function renderStep3Reservation(state) {
     if (!targetLesson) {
       slotDisplayStatus = 'skip';
       return `
-        <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50">
+        <div class="slot-content-inner text-center py-8 border-2 border-dashed border-gray-300 ${DesignConfig.borderRadius.container} bg-gray-50">
           <p class="text-3xl mb-3">🔍</p>
 
           <p class="text-sm text-gray-400">にってい いちらん から えらんでください</p>
@@ -805,11 +805,11 @@ export function renderStep3Reservation(state) {
   const orderInputHtml = !isSkipped
     ? `
     <details class="mb-4">
-      <summary class="flex items-center justify-between cursor-pointer text-sm text-brand-subtle py-2 px-3 bg-gray-50 rounded-lg hover:bg-gray-100">
+      <summary class="flex items-center justify-between cursor-pointer text-sm text-brand-subtle py-2 px-3 bg-gray-50 ${DesignConfig.borderRadius.button} hover:bg-gray-100">
         <span>📦 ざいりょう・ちゅうもん の きぼう</span>
         <span class="text-xs text-gray-400">▼</span>
       </summary>
-      <div class="mt-2 p-3 bg-white border border-gray-200 rounded-lg">
+      <div class="mt-2 p-3 bg-white border border-gray-200 ${DesignConfig.borderRadius.button}">
         ${Components.textarea({
           id: 'conclusion-order-input',
           label: 'ざいりょう の きぼう',
@@ -1121,7 +1121,7 @@ export function renderConclusionComplete(state) {
           // listCardで表示されなくなった「けいかく・もくひょう」をカード外に表示
           if (goal) {
             return `
-              <div class="mb-2 p-3 bg-blue-50 text-brand-text rounded-lg border border-blue-100 text-left">
+              <div class="mb-2 p-3 bg-blue-50 text-brand-text ${DesignConfig.borderRadius.button} border border-blue-100 text-left">
                 <div class="text-xs font-bold text-blue-600 mb-1">けいかく・もくひょう</div>
                 <div class="text-sm whitespace-pre-wrap">${escapeHTML(goal)}</div>
               </div>
@@ -1158,7 +1158,7 @@ export function renderConclusionComplete(state) {
     const buildWaitlistNote = () => {
       if (type !== 'reservation' || !isWaitlisted) return '';
       return `
-        <div class="mt-2 p-2 bg-amber-50 rounded-2xl">
+        <div class="mt-2 p-2 bg-amber-50 ${DesignConfig.borderRadius.container}">
           <p class="text-sm text-amber-700 leading-relaxed">
             🔔 空きが でたら メールで おしらせします<br>
             このページから よやく してください（先着順です）
@@ -1193,7 +1193,7 @@ export function renderConclusionComplete(state) {
 
     if (expectedWaitlist && !isActuallyWaitlisted) {
       return `
-        <div class="bg-green-100 text-green-800 text-sm p-2 rounded-lg flex items-center gap-2">
+        <div class="bg-green-100 text-green-800 text-sm p-2 ${DesignConfig.borderRadius.button} flex items-center gap-2">
           <span>🎉</span>
           <span>空きが でたので よやく できました！</span>
         </div>
@@ -1202,7 +1202,7 @@ export function renderConclusionComplete(state) {
 
     if (!expectedWaitlist && isActuallyWaitlisted) {
       return `
-        <div class="bg-amber-100 text-amber-800 text-sm p-2 rounded-lg flex items-center gap-2">
+        <div class="bg-amber-100 text-amber-800 text-sm p-2 ${DesignConfig.borderRadius.button} flex items-center gap-2">
           <span>⚠️</span>
           <span>直前に よやく が入り 空き通知登録 になりました</span>
         </div>

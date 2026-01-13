@@ -379,6 +379,13 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
       autoMargin: 'mx-auto',
     },
 
+    // 角丸（統一設定）
+    borderRadius: {
+      container: 'rounded-2xl', // カード・コンテナ用
+      button: 'rounded-lg', // ボタン・入力フィールド用
+      badge: 'rounded-full', // バッジ・ピル用
+    },
+
     // カードスタイル（角丸: rounded-2xl で統一）
     cards: {
       base: 'w-full text-left p-3 rounded-2xl mobile-card touch-friendly transition-all duration-150',
