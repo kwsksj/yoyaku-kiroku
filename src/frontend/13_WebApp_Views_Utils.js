@@ -227,7 +227,7 @@ export const getCompleteView = msg => {
   let emailNoticeHtml = '';
   if (wasFirstTimeBooking && isReservationComplete) {
     emailNoticeHtml = `
-        <div class="bg-ui-info-bg border-2 border-ui-info-border rounded-lg p-4 mt-4">
+        <div class="bg-ui-info-bg border-2 border-ui-info-border ${DesignConfig.borderRadius.button} p-4 mt-4">
           <div class="flex items-start">
             <svg class="flex-shrink-0 h-5 w-5 text-ui-info-text mt-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
@@ -247,7 +247,7 @@ export const getCompleteView = msg => {
       `;
   } else if (studentHasEmail && emailPreference && isReservationComplete) {
     emailNoticeHtml = `
-        <div class="bg-ui-surface rounded-lg p-3 mt-4">
+        <div class="bg-ui-surface ${DesignConfig.borderRadius.button} p-3 mt-4">
           <p class="text-sm text-brand-subtle text-center">
           予約受付完了のメールをお送りしました！<br>
           （会場の住所や駐車場情報なども記載）<br>

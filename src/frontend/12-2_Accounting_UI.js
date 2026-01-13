@@ -24,14 +24,10 @@
 // ================================================================
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 
-const ACCOUNTING_SELECT_CLASS =
-  'w-full px-3 py-2.5 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus mobile-input touch-friendly';
-const ACCOUNTING_NUMBER_INPUT_CLASS =
-  'px-3 py-2 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus text-right';
-const ACCOUNTING_TEXT_INPUT_CLASS =
-  'px-3 py-2 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus';
-export const ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS =
-  'w-16 px-2 py-1.5 text-base border-2 border-ui-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus text-right';
+const ACCOUNTING_SELECT_CLASS = `w-full px-3 py-2.5 text-base border-2 border-ui-border ${DesignConfig.borderRadius.button} focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus mobile-input touch-friendly`;
+const ACCOUNTING_NUMBER_INPUT_CLASS = `px-3 py-2 text-base border-2 border-ui-border ${DesignConfig.borderRadius.button} focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus text-right`;
+const ACCOUNTING_TEXT_INPUT_CLASS = `px-3 py-2 text-base border-2 border-ui-border ${DesignConfig.borderRadius.button} focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus`;
+export const ACCOUNTING_COMPACT_NUMBER_INPUT_CLASS = `w-16 px-2 py-1.5 text-base border-2 border-ui-border ${DesignConfig.borderRadius.button} focus:outline-none focus:ring-2 focus:ring-brand-text bg-ui-input focus:bg-ui-input-focus text-right`;
 
 /**
  * 会計システム - UI生成層
@@ -628,8 +624,7 @@ export const getPaymentOptionsHtml = selectedValue => {
   const optionCards = options
     .map(opt => {
       const isSelected = selectedValue === opt.value;
-      const baseClass =
-        'flex items-center gap-2 px-2 py-2 border-2 rounded-lg min-w-[140px] transition-all duration-150';
+      const baseClass = `flex items-center gap-2 px-2 py-2 border-2 ${DesignConfig.borderRadius.button} min-w-[140px] transition-all duration-150`;
       const selectedClass =
         'border-action-attention bg-action-secondary-bg font-bold text-brand-text shadow-sm';
       const unselectedClass = 'border-ui-border bg-ui-surface text-brand-muted';
@@ -650,8 +645,7 @@ export const getPaymentOptionsHtml = selectedValue => {
  * @returns {string} HTML文字列
  */
 export const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
-  const baseWrapperStart =
-    '<div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg space-y-2">';
+  const baseWrapperStart = `<div class="bg-ui-surface border-2 border-ui-border p-3 ${DesignConfig.borderRadius.button} space-y-2">`;
   const wrapperEnd = '</div>';
 
   if (!selectedPaymentMethod) {

@@ -1586,7 +1586,7 @@ export const Components = {
 
     return `
       <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
-        <div class="${cardColorClass} p-2 rounded-2xl shadow-sm ${dimmedClass}">
+        <div class="${cardColorClass} p-2 ${DesignConfig.borderRadius.container} shadow-sm ${dimmedClass}">
           <!-- 上部：タイトル+バッジ -->
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">

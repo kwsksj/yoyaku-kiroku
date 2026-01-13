@@ -129,7 +129,7 @@ export const getLogView = () => {
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
       <p class="text-xs text-brand-subtle mb-2 text-right">直近30日分のログ（${logs.length}件）</p>
-      <div class="bg-white rounded-lg">
+      <div class="bg-white ${DesignConfig.borderRadius.button}">
         ${tableHtml}
       </div>
     </div>

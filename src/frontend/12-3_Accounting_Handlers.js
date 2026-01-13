@@ -1116,7 +1116,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
 
   return `
     <div id="payment-confirm-modal" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg mx-4 max-w-md w-full max-h-[80vh] flex flex-col">
+      <div class="bg-white ${DesignConfig.borderRadius.container} mx-4 max-w-md w-full max-h-[80vh] flex flex-col">
 
         <!-- モーダルヘッダー（固定） -->
         <div class="p-6 border-b-2 border-ui-border flex-shrink-0">
