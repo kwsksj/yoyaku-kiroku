@@ -1416,11 +1416,11 @@ export function clearStudentCache_DEV(studentId) {
 }
 
 /**
- * 【開発用】全予約キャッシュをクリアします。
+ * 【開発用】全よやくキャッシュをクリアします。
  */
 export function clearAllReservationsCache_DEV() {
   deleteCache(CACHE_KEYS.ALL_RESERVATIONS);
-  Logger.log('全予約キャッシュをクリアしました。');
+  Logger.log('全よやくキャッシュをクリアしました。');
 }
 
 /**

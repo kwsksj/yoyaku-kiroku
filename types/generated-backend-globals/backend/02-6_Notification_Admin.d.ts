@@ -5,8 +5,8 @@
  */
 export function sendAdminNotification(subject: string, body: string): void;
 /**
- * 予約操作の管理者通知（統一インターフェース）
- * @param {ReservationCore} reservation - 予約データ
+ * よやく操作の管理者通知（統一インターフェース）
+ * @param {ReservationCore} reservation - よやくデータ
  * @param {'created'|'cancelled'|'updated'} operationType - 操作種別
  * @param {{cancelMessage?: string, updateDetails?: string}} [additionalInfo] - 追加情報
  */
@@ -16,7 +16,7 @@ export function sendAdminNotificationForReservation(reservation: ReservationCore
 }): void;
 /**
  * 管理者通知のメッセージ内容を生成（操作種別に応じて）
- * @param {ReservationCore} reservation - 予約データ
+ * @param {ReservationCore} reservation - よやくデータ
  * @param {UserCore | undefined} student - 生徒情報
  * @param {'created'|'cancelled'|'updated'} operationType - 操作種別
  * @param {{cancelMessage?: string | undefined, updateDetails?: string | undefined}} additionalInfo - 追加情報

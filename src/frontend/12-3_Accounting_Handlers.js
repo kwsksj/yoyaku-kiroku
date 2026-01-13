@@ -1431,7 +1431,7 @@ export function handleSaveMemo(target) {
           // テキストエリアの値を更新
           textarea.value = newMemoText;
 
-          // 最新データで状態を更新（予約リストも更新される）
+          // 最新データで状態を更新（よやくリストも更新される）
           if (response.data) {
             stateManager.dispatch({
               type: 'UPDATE_STATE',
@@ -1492,7 +1492,7 @@ export function processAccountingPayment(formData, result) {
     const adminToken = /** @type {any} */ (state.currentUser)?.adminToken || '';
 
     if (!selectedReservation) {
-      showInfo('会計対象の予約が見つかりません。', 'エラー');
+      showInfo('会計対象のよやくが見つかりません。', 'エラー');
       hideLoading();
       return;
     }
@@ -1510,10 +1510,10 @@ export function processAccountingPayment(formData, result) {
       customSales: formData.customSales,
     };
 
-    // 2. 現在の予約情報と会計詳細、フォームの更新内容をマージして、新しいReservationCoreを構築
+    // 2. 現在のよやく情報と会計詳細、フォームの更新内容をマージして、新しいReservationCoreを構築
     /** @type {ReservationCore} */
     const reservationWithAccounting = {
-      ...selectedReservation, // 既存の予約情報
+      ...selectedReservation, // 既存のよやく情報
       accountingDetails: calculatedAccountingDetails, // 計算した会計詳細
       sessionNote: formData.sessionNote, // フォームから更新された制作メモ
       startTime: formData.startTime, // フォームから更新された時間

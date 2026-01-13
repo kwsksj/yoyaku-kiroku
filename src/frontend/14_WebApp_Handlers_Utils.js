@@ -6,7 +6,7 @@
  * 目的: ハンドラー層から共通利用されるDOM操作・データ変換ユーティリティを提供する
  * 主な責務:
  *   - 型安全なDOMアクセサーと入力値取得ヘルパーの提供
- *   - 予約データや時間データの整形
+ *   - よやくデータや時間データの整形
  *   - サーバー呼び出し失敗時の共通フォールバック処理
  * AI向けメモ:
  *   - ハンドラー間で共有したい処理はここにまとめ、グローバル副作用の追加時は`handlerUtilsStateManager`の利用可否を確認する
@@ -88,8 +88,8 @@ export function ensureDateString(date) {
 
 /**
  * ReservationObjectをReservationCoreに安全に変換する
- * @param {ReservationObject} reservationObj - 予約オブジェクト
- * @returns {ReservationCore} 変換された予約データ
+ * @param {ReservationObject} reservationObj - よやくオブジェクト
+ * @returns {ReservationCore} 変換されたよやくデータ
  */
 export function convertToReservationData(reservationObj) {
   return {
@@ -113,7 +113,7 @@ export function convertToReservationData(reservationObj) {
 /**
  * 時刻データを適切に取得するヘルパー関数
  * @param {string} elementId - 時刻入力要素のID
- * @param {ReservationCore | null} reservationData - 予約データ（フォールバック用）
+ * @param {ReservationCore | null} reservationData - よやくデータ（フォールバック用）
  * @param {string} timeField - 時刻フィールド名（'startTime' or 'endTime'）
  * @returns {string} 時刻文字列（HH:mm形式）
  */
@@ -128,7 +128,7 @@ export function getTimeValue(elementId, reservationData, timeField) {
     return elementValue;
   }
 
-  // 2. 予約データから取得を試行（編集時）
+  // 2. よやくデータから取得を試行（編集時）
   if (reservationData) {
     const headerField =
       /** @type {any} */ (CONSTANTS.HEADERS.RESERVATIONS)?.[
@@ -341,7 +341,7 @@ export function handleAdminImpersonationAfterAction({
 
 /**
  * バッチ処理でキャッシュから最新データを取得してappStateを更新
- * ユーザーの予約・履歴・スロット情報を一括取得し、指定されたビューに遷移
+ * ユーザーのよやく・履歴・スロット情報を一括取得し、指定されたビューに遷移
  * @param {string} targetView - データ取得後に遷移したいビュー名
  */
 export function updateAppStateFromCache(targetView) {
@@ -528,26 +528,21 @@ appWindow.normalizePhoneNumberFrontend = function (phoneInput) {
  * 販売品マスタから物販チェックリスト（折り畳み可能）を生成する関数
  * @param {AccountingMasterItemCore[]} accountingMaster - 販売品マスタ
  * @param {string[]} checkedValues - チェック済み項目名配列（任意）
- * @param {string} [title='販売品リスト'] - 見出しタイトル
+ * @param {string} [_title='販売品リスト'] - 見出しタイトル（未使用）
  * @returns {string} HTML文字列
  */
 export function buildSalesChecklist(
   accountingMaster,
   checkedValues = [],
-  title = '販売品リスト',
+  _title = '販売品リスト',
 ) {
   const salesList = (accountingMaster || []).filter(
     item =>
       item[CONSTANTS.HEADERS.ACCOUNTING.TYPE] === CONSTANTS.ITEM_TYPES.SALES,
   );
   if (!salesList.length) return '';
-  const checklistHtml = getSalesCheckboxListHtml(salesList, checkedValues);
-  return `
-    <details class="mt-4">
-      <summary class="cursor-pointer font-bold text-base py-2 px-3 bg-ui-surface border-2 border-ui-border rounded hover:bg-ui-hover">${title} <span class="ml-2 text-sm text-brand-subtle">（クリックで展開）</span></summary>
-      <div class="pt-2">${checklistHtml}</div>
-    </details>
-  `;
+  // 親セクション（販売品）が既に折りたたみなので、ここはシンプルなリストのみ
+  return getSalesCheckboxListHtml(salesList, checkedValues);
 }
 
 /**

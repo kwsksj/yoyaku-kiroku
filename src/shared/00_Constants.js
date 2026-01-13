@@ -18,7 +18,7 @@
  * 【役割】        : プロジェクト全体で利用される定数を `CONSTANTS` オブジェクトとして定義し、両環境で共通参照できるようにする。
  *
  * 【主な責務】
- *   - 教室名・予約ステータス・UI 設定など、アプリ全体で一貫して参照する値を管理
+ *   - 教室名・よやくステータス・UI 設定など、アプリ全体で一貫して参照する値を管理
  *   - ビルド時に `CONSTANTS` がグローバルへ自動注入される唯一の例外ファイルとして機能
  *   - TypeScript 型は `npm run types:refresh` により `types/generated-shared-globals` へ出力され、エディタ補完を支援
  *
@@ -72,7 +72,7 @@ export const CONSTANTS = {
   STATUS: {
     CANCELED: '取消', // キャンセル済み
     WAITLISTED: '待機', // 空き通知希望
-    CONFIRMED: '確定', // 予約確定（会計前）
+    CONFIRMED: '確定', // よやく確定（会計前）
     COMPLETED: '完了', // 完了（会計済み）
   },
 
@@ -194,15 +194,15 @@ export const CONSTANTS = {
 
   // ログアクション定数
   LOG_ACTIONS: {
-    // 予約関連
-    RESERVATION_CREATE: '予約作成',
-    RESERVATION_CREATE_DATE_CHANGE: '予約作成（予約日変更）',
+    // よやく関連
+    RESERVATION_CREATE: 'よやく作成',
+    RESERVATION_CREATE_DATE_CHANGE: 'よやく作成（よやく日変更）',
     RESERVATION_WAITLIST: '空き通知 登録',
-    RESERVATION_CANCEL: '予約キャンセル',
-    RESERVATION_CANCEL_DATE_CHANGE: '予約キャンセル（予約日変更）',
-    RESERVATION_UPDATE: '予約詳細更新',
-    RESERVATION_CONFIRM: '予約確定（空き通知から）',
-    RESERVATION_EDIT: '予約編集',
+    RESERVATION_CANCEL: 'よやくキャンセル',
+    RESERVATION_CANCEL_DATE_CHANGE: 'よやくキャンセル（よやく日変更）',
+    RESERVATION_UPDATE: 'よやく詳細更新',
+    RESERVATION_CONFIRM: 'よやく確定（空き通知から）',
+    RESERVATION_EDIT: 'よやく編集',
 
     // 会計関連
     ACCOUNTING_SAVE: '会計記録保存',
@@ -235,8 +235,8 @@ export const CONSTANTS = {
     BATCH_SALES_TRANSFER_START: '売上転載バッチ開始',
     BATCH_SALES_TRANSFER_SUCCESS: '売上転載バッチ完了',
     BATCH_SALES_TRANSFER_ERROR: '売上転載バッチエラー',
-    BATCH_SORT_SUCCESS: 'バッチ処理: 予約ソート成功',
-    BATCH_SORT_ERROR: 'バッチ処理: 予約ソートエラー',
+    BATCH_SORT_SUCCESS: 'バッチ処理: よやくソート成功',
+    BATCH_SORT_ERROR: 'バッチ処理: よやくソートエラー',
     SYSTEM_ERROR: 'システムエラー',
   },
 
@@ -290,7 +290,7 @@ export const CONSTANTS = {
       FROM: 'from',
       REGISTRATION_DATE: '登録日時',
       EMAIL: 'メールアドレス',
-      WANTS_RESERVATION_EMAIL: '予約メール希望',
+      WANTS_RESERVATION_EMAIL: 'よやくメール希望',
       WANTS_SCHEDULE_INFO: '日程連絡希望',
       NOTIFICATION_DAY: '通知日',
       NOTIFICATION_HOUR: '通知時刻',
@@ -406,7 +406,7 @@ export const CONSTANTS = {
     MODIFICATION_DEADLINE_HOUR: 20, // 20時
     /**
      * 売上表転載バッチの実行時刻
-     * 毎日この時刻に当日の会計済み予約を売上表に転載する
+     * 毎日この時刻に当日の会計済みよやくを売上表に転載する
      */
     SALES_TRANSFER_HOUR: 20, // 20時
   },

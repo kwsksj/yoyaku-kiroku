@@ -205,18 +205,18 @@ export const historyActionHandlers = {
   /** 会計記録を表示するモーダル
    * @param {ActionHandlerData} d */
   showHistoryAccounting: d => {
-    // 予約データを取得
+    // よやくデータを取得
     const state = historyStateManager.getState();
     const reservation = state.myReservations.find(
       (/** @type {ReservationCore} */ r) => r.reservationId === d.reservationId,
     );
 
     if (!reservation) {
-      showInfo('予約データが見つかりません', 'エラー');
+      showInfo('よやくデータが見つかりません', 'エラー');
       return;
     }
 
-    // 会計詳細データを予約シートから取得
+    // 会計詳細データをよやくシートから取得
     showLoading('会計記録を読み込み中...');
     google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
       hideLoading();
@@ -320,7 +320,7 @@ export const historyActionHandlers = {
     const state = historyStateManager.getState();
     const myReservations = state.myReservations || [];
 
-    // 完了済みの予約を抽出
+    // 完了済みのよやくを抽出
     const completedReservations = myReservations
       .filter(
         (/** @type {ReservationCore} */ res) =>

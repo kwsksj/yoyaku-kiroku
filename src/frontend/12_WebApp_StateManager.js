@@ -131,11 +131,11 @@ export class SimpleStateManager {
       selectedLesson: null,
       /** @type {ReservationCore | null} */
       editingReservationDetails: null,
-      /** @type {ReservationCore | null} - 会計画面の基本予約情報 (ID, 教室, 日付など) */
+      /** @type {ReservationCore | null} - 会計画面の基本よやく情報 (ID, 教室, 日付など) */
       accountingReservation: null,
-      /** @type {AccountingDetailsCore} - 予約固有の詳細情報 (開始時刻, レンタル, 割引など) */
+      /** @type {AccountingDetailsCore} - よやく固有の詳細情報 (開始時刻, レンタル, 割引など) */
       accountingReservationDetails: createEmptyAccountingDetails(),
-      /** @type {ScheduleInfo | null} - 講座固有情報 (教室形式, 開講時間など) */
+      /** @type {ScheduleInfo | null} - 講座固有情報 (教室形式, 開室時間など) */
       accountingScheduleInfo: null,
       /** @type {AccountingDetailsCore | null} - 会計計算結果 */
       accountingDetails: null,
@@ -148,7 +148,7 @@ export class SimpleStateManager {
       searchAttempted: false,
 
       // --- New Context for Forms ---
-      /** @type {ReservationFormContext | null} - 予約フォーム専用コンテキスト */
+      /** @type {ReservationFormContext | null} - よやくフォーム専用コンテキスト */
       currentReservationFormContext: null,
 
       // --- Navigation History ---
@@ -297,7 +297,7 @@ export class SimpleStateManager {
   updateComputed() {
     if (!this.state.myReservations) return;
 
-    // シンプルに完了済み予約の有無で判定
+    // シンプルに完了済みよやくの有無で判定
     // 空き通知希望だけでは経験者扱いにしない
     const hasCompletedReservation = this.state.myReservations.some(
       (/** @type {ReservationCore} */ reservation) => {
@@ -591,7 +591,7 @@ export class SimpleStateManager {
   }
 
   /**
-   * 指定された予約が編集モードかチェック
+   * 指定されたよやくが編集モードかチェック
    * @param {string} reservationId - 予約ID
    * @returns {boolean}
    */

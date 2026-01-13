@@ -4,7 +4,7 @@
  */
 export function setupTestEnvironment(): void;
 /**
- * 直近60日間の会計済み予約日を取得する
+ * 直近60日間の会計済みよやく日を取得する
  * @returns {string[]} 日付文字列の配列（YYYY-MM-DD形式、降順）
  */
 export function getRecentCompletedReservationDates(): string[];
@@ -25,10 +25,10 @@ export function transferSalesLogByDate(targetDate?: string): {
     successCount: number;
 };
 /**
- * 予約シート全体をソートします（バッチ処理用）
+ * よやくシート全体をソートします（バッチ処理用）
  *
  * @description
- * 予約シートのデータを以下の順序でソートします:
+ * よやくシートのデータを以下の順序でソートします:
  * 1. 日付順（降順: 新しい日付が上）
  * 2. ステータス順（完了=確定 > 待機 > 取消）
  * 3. 開始時間順（昇順）
@@ -43,7 +43,7 @@ export function sortReservationSheet(): {
     sortedCount: number;
 };
 /**
- * 【トリガー関数】毎日20時に実行: 当日の会計済み予約を売上表に転載する
+ * 【トリガー関数】毎日20時に実行: 当日の会計済みよやくを売上表に転載する
  * スクリプトのトリガー設定から呼び出される
  *
  * @description

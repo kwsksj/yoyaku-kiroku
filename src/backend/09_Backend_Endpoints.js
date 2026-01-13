@@ -5,13 +5,13 @@
  * 【役割】        : フロントエンドから呼び出される統合 API を公開し、認証・ルーティング・レスポンス整形を担う。
  *
  * 【主な責務】
- *   - ログイン／予約操作／会計処理など、WebApp の主要エンドポイントを提供
+ *   - ログイン／よやく操作／会計処理など、WebApp の主要エンドポイントを提供
  *   - 各業務モジュール（Write・AvailableSlots など）を呼び出し、結果を `ApiResponse` 形式で返却
  *   - バッチデータ取得 (`getBatchData`) でダッシュボード初期表示用のデータをまとめて返す
  *
  * 【関連モジュール】
  *   - `04_Backend_User.js`: 認証系関数
- *   - `05-2_Backend_Write.js`, `05-3_Backend_AvailableSlots.js`: 予約・空き枠の実処理
+ *   - `05-2_Backend_Write.js`, `05-3_Backend_AvailableSlots.js`: よやく・空き枠の実処理
  *   - `08_ErrorHandler.js`: エラー発生時のレスポンス生成
  *
  * 【利用時の留意点】
@@ -67,7 +67,7 @@ import {
  */
 
 /**
- * 予約操作後に最新データを取得して返す汎用関数
+ * よやく操作後に最新データを取得して返す汎用関数
  * @param {Function} operationFunction - 実行する操作関数 (makeReservation, cancelReservationなど)
  * @param {ReservationCore|AccountingDetailsCore|any} operationParams - 操作関数に渡すパラメータ (Core型)
  * @param {string} studentId - 対象生徒のID
@@ -86,7 +86,7 @@ export function executeOperationAndGetLatestData(
       return result;
     }
 
-    // 予約操作後の更新されたデータを取得（lessonsも含める）
+    // よやく操作後の更新されたデータを取得（lessonsも含める）
     const batchResult = getBatchData(
       ['reservations', 'lessons'],
       null,
@@ -110,8 +110,8 @@ export function executeOperationAndGetLatestData(
 }
 
 /**
- * 予約を実行し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} reservationInfo - 予約情報。`reservationId`と`status`はバックエンドで生成するため未設定でOK。
+ * よやくを実行し、成功した場合に最新の全初期化データを返す。
+ * @param {ReservationCore} reservationInfo - よやく情報。`reservationId`と`status`はバックエンドで生成するため未設定でOK。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function makeReservationAndGetLatestData(reservationInfo) {
@@ -122,7 +122,7 @@ export function makeReservationAndGetLatestData(reservationInfo) {
     makeReservation,
     reservationInfo,
     reservationInfo.studentId,
-    '予約を作成しました。',
+    'よやくを作成しました。',
   );
 
   // 初回フラグ情報を追加
@@ -146,7 +146,7 @@ export function makeReservationAndGetLatestData(reservationInfo) {
 }
 
 /**
- * 予約をキャンセルし、成功した場合に最新の全初期化データを返す。
+ * よやくをキャンセルし、成功した場合に最新の全初期化データを返す。
  * @param {ReservationCore} cancelInfo - キャンセル情報（reservationId, studentId, cancelMessageを含む）
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
@@ -155,13 +155,13 @@ export function cancelReservationAndGetLatestData(cancelInfo) {
     cancelReservation,
     cancelInfo,
     cancelInfo.studentId,
-    '予約をキャンセルしました。',
+    'よやくをキャンセルしました。',
   );
 }
 
 /**
- * 予約詳細を更新し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore & {nextLessonGoal?: string}} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
+ * よやく詳細を更新し、成功した場合に最新の全初期化データを返す。
+ * @param {ReservationCore & {nextLessonGoal?: string}} details - 更新するよやく詳細。`reservationId`と更新したいフィールドのみを持つ。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function updateReservationDetailsAndGetLatestData(details) {
@@ -171,7 +171,7 @@ export function updateReservationDetailsAndGetLatestData(details) {
     updateReservationDetails,
     details,
     details.studentId,
-    '予約内容を更新しました。',
+    'よやく内容を更新しました。',
   );
 
   // nextLessonGoalが提供されている場合は生徒名簿を更新
@@ -192,9 +192,9 @@ export function updateReservationDetailsAndGetLatestData(details) {
 }
 
 /**
- * 予約の参加日を変更し、成功した場合に最新の全初期化データを返す。
- * 内部的には新規予約作成と旧予約キャンセルを実行します。
- * @param {ReservationCore} newReservationData - 新しい予約データ
+ * よやくの参加日を変更し、成功した場合に最新の全初期化データを返す。
+ * 内部的には新規よやく作成と旧よやくキャンセルを実行します。
+ * @param {ReservationCore} newReservationData - 新しいよやくデータ
  * @param {string} originalReservationId - キャンセルする元の予約ID
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
@@ -204,8 +204,8 @@ export function changeReservationDateAndGetLatestData(
 ) {
   return withTransaction(() => {
     try {
-      // 1. 新しい予約を作成（先に実行して失敗時は元の予約を保持）
-      // 日程変更フラグを追加してログに「予約作成（予約日変更）」と記録
+      // 1. 新しいよやくを作成（先に実行して失敗時は元のよやくを保持）
+      // 日程変更フラグを追加してログに「よやく作成（よやく日変更）」と記録
       const reservationDataWithFlag = {
         ...newReservationData,
         _isDateChange: true,
@@ -214,17 +214,17 @@ export function changeReservationDateAndGetLatestData(
 
       if (!bookingResult.success) {
         throw new Error(
-          `新しい予約の作成に失敗しました: ${bookingResult.message}`,
+          `新しいよやくの作成に失敗しました: ${bookingResult.message}`,
         );
       }
 
-      // 2. 元の予約をキャンセル（新規予約成功後のみ実行）
-      // 日程変更フラグを追加してログに「予約キャンセル（予約日変更）」と記録
+      // 2. 元のよやくをキャンセル（新規よやく成功後のみ実行）
+      // 日程変更フラグを追加してログに「よやくキャンセル（よやく日変更）」と記録
       /** @type {import('../../types/core/reservation').CancelReservationParams} */
       const cancelParams = {
         reservationId: originalReservationId,
         studentId: newReservationData.studentId,
-        cancelMessage: '予約日変更のため自動キャンセル',
+        cancelMessage: 'よやく日変更のため自動キャンセル',
         _isByAdmin: /** @type {any} */ (newReservationData)._isByAdmin || false,
         _adminToken:
           /** @type {any} */ (newReservationData)._adminToken || null,
@@ -233,11 +233,11 @@ export function changeReservationDateAndGetLatestData(
       const cancelResult = cancelReservation(cancelParams);
 
       if (!cancelResult.success) {
-        // キャンセル失敗時、新規予約を削除して元の状態に戻す
-        // 注: 理想的には新規予約の削除処理を実装すべきだが、
+        // キャンセル失敗時、新規よやくを削除して元の状態に戻す
+        // 注: 理想的には新規よやくの削除処理を実装すべきだが、
         // 現時点では管理者による手動対応が必要
         throw new Error(
-          `元の予約のキャンセルに失敗しました: ${cancelResult.message}`,
+          `元のよやくのキャンセルに失敗しました: ${cancelResult.message}`,
         );
       }
 
@@ -249,21 +249,21 @@ export function changeReservationDateAndGetLatestData(
       );
       return {
         success: true,
-        message: '予約日を変更しました。',
+        message: 'よやく日を変更しました。',
         data: latestData.data,
       };
     } catch (error) {
-      Logger.log(`予約日変更エラー: ${error.message}`);
+      Logger.log(`よやく日変更エラー: ${error.message}`);
       return {
         success: false,
-        message: error.message || '予約日の変更に失敗しました。',
+        message: error.message || 'よやく日の変更に失敗しました。',
       };
     }
   });
 }
 
 /**
- * 予約のメモを更新し、成功した場合に最新の全初期化データを返す
+ * よやくのメモを更新し、成功した場合に最新の全初期化データを返す
  * @param {string} reservationId - 更新対象の予約ID
  * @param {string} studentId - 対象生徒のID
  * @param {string} newMemo - 新しいメモ内容
@@ -402,7 +402,7 @@ export function sendMessageToTeacher(payload) {
 
 /**
  * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
+ * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新されたよやくオブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function saveAccountingDetailsAndGetLatestData(
@@ -418,7 +418,7 @@ export function saveAccountingDetailsAndGetLatestData(
 
 /**
  * 会計修正を実行し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} reservationWithAccounting - 修正後の会計情報を含む予約オブジェクト。
+ * @param {ReservationCore} reservationWithAccounting - 修正後の会計情報を含むよやくオブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function updateAccountingDetailsAndGetLatestData(
@@ -829,7 +829,7 @@ export function getBatchData(dataTypes = [], phone = null, studentId = null) {
       Logger.log(`=== getBatchData: lessonsデータ設定完了 ===`);
     }
 
-    // 3. 個人予約データが要求されている場合
+    // 3. 個人よやくデータが要求されている場合
     if (dataTypes.includes('reservations')) {
       const targetStudentId =
         studentId || (result.user ? result.user.studentId : null);
@@ -930,7 +930,7 @@ export function getScheduleInfo(params) {
 // 代わりに、既存のgetBatchData(['lessons', 'reservations'], null, studentId)を使用してください
 
 /**
- * 指定した予約の会計詳細データを予約シートから取得する
+ * 指定したよやくの会計詳細データをよやくシートから取得する
  * @param {string} reservationId - 予約ID
  * @returns {ApiResponseGeneric<AccountingDetails>} 会計詳細データ
  */
@@ -944,7 +944,7 @@ export function getAccountingDetailsFromSheet(reservationId) {
       return createApiErrorResponse('必要なパラメータが不足しています');
     }
 
-    // 予約シートを取得
+    // よやくシートを取得
     const sheetName = CONSTANTS.SHEET_NAMES.RESERVATIONS;
     const sheet = SS_MANAGER.getSheet(sheetName);
 
@@ -987,15 +987,15 @@ export function getAccountingDetailsFromSheet(reservationId) {
       return createApiErrorResponse('予約ID列が見つかりません');
     }
 
-    // 該当する予約を検索
+    // 該当するよやくを検索
     const targetRow = data.find(
       /** @param {(string|number|Date)[]} row */
       row => row[reservationIdColumnIndex] === reservationId,
     );
 
     if (!targetRow) {
-      Logger.log(`❌ 予約が見つかりません: ${reservationId}`);
-      return createApiErrorResponse('指定された予約が見つかりません');
+      Logger.log(`❌ よやくが見つかりません: ${reservationId}`);
+      return createApiErrorResponse('指定されたよやくが見つかりません');
     }
 
     // 会計詳細データを取得
@@ -1035,7 +1035,7 @@ export function getAccountingDetailsFromSheet(reservationId) {
 }
 
 /**
- * 空席連絡希望の予約を確定予約に変更し、最新データを返却します。
+ * 空席連絡希望のよやくを確定よやくに変更し、最新データを返却します。
  * @param {{reservationId: string, studentId: string}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric} 処理結果と最新データ
  */
@@ -1044,7 +1044,7 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
     confirmWaitlistedReservation,
     confirmInfo,
     confirmInfo.studentId,
-    '予約が確定しました。',
+    'よやくが確定しました。',
   );
 }
 
@@ -1057,9 +1057,9 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
  * - キャッシュから6ヶ月前〜1年後のレッスン情報を取得
  * - 管理者・一般生徒を問わず、同じデータを返す（レッスン情報は公開情報）
  *
- * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用に予約）
+ * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用によやく）
  * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
- * @param {boolean} [includeReservations=false] - 予約データを含めるか
+ * @param {boolean} [includeReservations=false] - よやくデータを含めるか
  * @param {string} [adminLoginId=''] - 管理者用ログインID（PropertyServiceと突合する）
  * @returns {ApiResponseGeneric} レッスン一覧
  */
@@ -1128,28 +1128,28 @@ export function getLessonsForParticipantsView(
 
     const shouldIncludeReservations = includeReservations;
 
-    // 🚀 予約データを一括取得（オプション：管理者は個人情報付き、一般は公開情報のみ）
+    // 🚀 よやくデータを一括取得（オプション：管理者は個人情報付き、一般は公開情報のみ）
     /** @type {Record<string, any[]>} */
     const reservationsMap = {};
     if (shouldIncludeReservations) {
-      Logger.log('✅ 予約データを一括取得開始...');
+      Logger.log('✅ よやくデータを一括取得開始...');
 
-      // キャッシュから全予約データと全生徒データを1回だけ取得
+      // キャッシュから全よやくデータと全生徒データを1回だけ取得
       const allReservations =
         getCachedReservationsAsObjects(preloadedStudentsMap);
       /** @type {Record<string, any>} */
       const allStudents = preloadedStudentsMap || {};
       Logger.log(
-        `📚 データ取得: 予約${allReservations.length}件, 生徒${Object.keys(allStudents).length}件`,
+        `📚 データ取得: よやく${allReservations.length}件, 生徒${Object.keys(allStudents).length}件`,
       );
 
       if (allReservations && allReservations.length > 0) {
-        // 各生徒の完了済み予約日リストを事前に計算（ソート済み）
-        // これにより各予約ごとに「当日以前の完了数」を効率的に計算できる
+        // 各生徒の完了済みよやく日リストを事前に計算（ソート済み）
+        // これにより各よやくごとに「当日以前の完了数」を効率的に計算できる
         /** @type {Record<string, number[]>} */
         const completedDatesByStudent = {};
         allReservations.forEach(reservation => {
-          // 完了済みの予約のみ収集
+          // 完了済みのよやくのみ収集
           if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
             const studentId = reservation.studentId;
             if (!completedDatesByStudent[studentId]) {
@@ -1171,10 +1171,10 @@ export function getLessonsForParticipantsView(
         );
 
         /**
-         * 指定日以前の完了済み予約数をカウント（二分探索でupper bound）
+         * 指定日以前の完了済みよやく数をカウント（二分探索でupper bound）
          * @param {string} studentId - 生徒ID
-         * @param {string} reservationDate - 予約日（YYYY-MM-DD形式）
-         * @returns {number} 完了済み予約数
+         * @param {string} reservationDate - よやく日（YYYY-MM-DD形式）
+         * @returns {number} 完了済みよやく数
          */
         const getParticipationCountAsOf = (studentId, reservationDate) => {
           const dates = completedDatesByStudent[studentId];
@@ -1203,7 +1203,7 @@ export function getLessonsForParticipantsView(
           reservationsMap[lesson.lessonId] = [];
         });
 
-        // レッスンIDごとに予約をグループ化（1パス）
+        // レッスンIDごとによやくをグループ化（1パス）
         allReservations.forEach(reservation => {
           if (reservation.status === CONSTANTS.STATUS.CANCELED) return;
           const lesson = lessonMapById[reservation.lessonId];
@@ -1211,7 +1211,7 @@ export function getLessonsForParticipantsView(
 
           const student = allStudents[reservation.studentId];
 
-          // 生徒情報がない場合はスキップせず、予約情報だけでも返す
+          // 生徒情報がない場合はスキップせず、よやく情報だけでも返す
           const studentData = student || {};
 
           const nickname = studentData.nickname || '';
@@ -1273,7 +1273,7 @@ export function getLessonsForParticipantsView(
                     : '',
                 gender: studentData.gender || '',
                 address: studentData.address || '',
-                notes: reservation.notes || '', // 予約固有の備考
+                notes: reservation.notes || '', // よやく固有の備考
               }
             : baseInfo;
 
@@ -1281,14 +1281,14 @@ export function getLessonsForParticipantsView(
         });
 
         Logger.log(
-          `✅ 予約データ一括取得完了: ${Object.keys(reservationsMap).length}レッスン分`,
+          `✅ よやくデータ一括取得完了: ${Object.keys(reservationsMap).length}レッスン分`,
         );
       } else {
-        Logger.log('⚠️ 全予約データが取得できませんでした（キャッシュ空）');
+        Logger.log('⚠️ 全よやくデータが取得できませんでした（キャッシュ空）');
       }
     } else {
       Logger.log(
-        `❌ 予約データ取得スキップ: includeReservations=${includeReservations}, isAdmin=${isAdmin}`,
+        `❌ よやくデータ取得スキップ: includeReservations=${includeReservations}, isAdmin=${isAdmin}`,
       );
     }
 
@@ -1343,13 +1343,13 @@ export function getLessonsForParticipantsView(
 }
 
 /**
- * 特定レッスンの予約情報リストを取得する（権限に応じてフィルタリング）
+ * 特定レッスンのよやく情報リストを取得する（権限に応じてフィルタリング）
  * - 管理者: 全項目を返す（本名、電話番号、メールアドレスなど）
  * - 一般生徒: 公開情報のみ（本名、電話番号、メールアドレスを除外）
  *
  * @param {string} lessonId - レッスンID
  * @param {string} studentId - リクエストしている生徒のID
- * @returns {ApiResponseGeneric} 予約情報リスト
+ * @returns {ApiResponseGeneric} よやく情報リスト
  */
 export function getReservationsForLesson(lessonId, studentId) {
   try {
@@ -1366,13 +1366,13 @@ export function getReservationsForLesson(lessonId, studentId) {
     const isAdmin = studentId === 'ADMIN';
     Logger.log(`管理者権限: ${isAdmin}`);
 
-    // キャッシュから予約情報を取得（ReservationCore[]として取得）
+    // キャッシュからよやく情報を取得（ReservationCore[]として取得）
     const allReservations = getCachedReservationsAsObjects();
 
     if (!allReservations || allReservations.length === 0) {
-      Logger.log('予約データが見つかりません');
+      Logger.log('よやくデータが見つかりません');
       return createApiErrorResponse(
-        '予約情報の取得に失敗しました。しばらくしてから再度お試しください。',
+        'よやく情報の取得に失敗しました。しばらくしてから再度お試しください。',
       );
     }
 
@@ -1397,14 +1397,14 @@ export function getReservationsForLesson(lessonId, studentId) {
       return createApiErrorResponse('指定されたレッスンが見つかりません');
     }
 
-    // 該当レッスンの予約をフィルタリング
+    // 該当レッスンのよやくをフィルタリング
     const lessonReservations = allReservations.filter(
       reservation => reservation.lessonId === lessonId,
     );
 
-    Logger.log(`該当レッスンの予約: ${lessonReservations.length}件`);
+    Logger.log(`該当レッスンのよやく: ${lessonReservations.length}件`);
 
-    // 予約情報に生徒情報を結合し、権限に応じてフィルタリング
+    // よやく情報に生徒情報を結合し、権限に応じてフィルタリング
     const reservationsWithUserInfo = lessonReservations.map(reservation => {
       // 生徒情報を取得
       const student = getCachedStudentById(reservation.studentId);
@@ -1470,28 +1470,28 @@ export function getReservationsForLesson(lessonId, studentId) {
         date: targetLesson.date,
         venue: targetLesson.venue || '',
       },
-      message: '予約情報を取得しました',
+      message: 'よやく情報を取得しました',
     });
   } catch (error) {
     Logger.log(
       `getReservationsForLesson エラー: ${error.message}\nStack: ${error.stack}`,
     );
     return createApiErrorResponse(
-      `予約情報の取得中にエラーが発生しました: ${error.message}`,
+      `よやく情報の取得中にエラーが発生しました: ${error.message}`,
       true,
     );
   }
 }
 
 /**
- * 特定生徒の詳細情報と予約履歴を取得する（権限に応じてフィルタリング）
+ * 特定生徒の詳細情報とよやく履歴を取得する（権限に応じてフィルタリング）
  * - 管理者: 全項目を返す
  * - 一般生徒（本人）: 自分の情報のみ閲覧可能
  * - 一般生徒（他人）: 公開情報のみ（ニックネーム、参加回数など）
  *
  * @param {string} targetStudentId - 表示対象の生徒ID
  * @param {string} requestingStudentId - リクエストしている生徒のID
- * @returns {ApiResponseGeneric} 生徒詳細情報と予約履歴
+ * @returns {ApiResponseGeneric} 生徒詳細情報とよやく履歴
  */
 export function getStudentDetailsForParticipantsView(
   targetStudentId,
@@ -1519,17 +1519,17 @@ export function getStudentDetailsForParticipantsView(
       return createApiErrorResponse('指定された生徒が見つかりません');
     }
 
-    // 予約履歴を取得（ReservationCore[]として取得）
+    // よやく履歴を取得（ReservationCore[]として取得）
     const allReservations = getCachedReservationsAsObjects();
 
     if (!allReservations || allReservations.length === 0) {
-      Logger.log('予約データが見つかりません');
+      Logger.log('よやくデータが見つかりません');
       return createApiErrorResponse(
-        '予約情報の取得に失敗しました。しばらくしてから再度お試しください。',
+        'よやく情報の取得に失敗しました。しばらくしてから再度お試しください。',
       );
     }
 
-    // レッスン情報も取得（予約履歴に教室・会場情報を結合するため）
+    // レッスン情報も取得（よやく履歴に教室・会場情報を結合するため）
     const scheduleMasterCache = getTypedCachedData(
       CACHE_KEYS.MASTER_SCHEDULE_DATA,
     );
@@ -1541,12 +1541,12 @@ export function getStudentDetailsForParticipantsView(
       );
     }
 
-    // 該当生徒の予約履歴をフィルタリング
+    // 該当生徒のよやく履歴をフィルタリング
     const studentReservations = allReservations.filter(
       reservation => reservation.studentId === targetStudentId,
     );
 
-    // 予約履歴にレッスン情報を結合
+    // よやく履歴にレッスン情報を結合
     const reservationHistory = studentReservations
       .map(reservation => {
         const lesson = scheduleMasterCache.schedule.find(
@@ -1710,7 +1710,7 @@ export function processAccountingWithTransferOption(
       const isDuplicate = checkIfSalesAlreadyLogged(reservationId, date);
 
       if (!isDuplicate) {
-        // 予約情報を取得
+        // よやく情報を取得
         const reservations = getCachedReservationsAsObjects();
         const reservation = reservations.find(
           r => r.reservationId === reservationId,
@@ -1723,7 +1723,7 @@ export function processAccountingWithTransferOption(
           );
         } else {
           Logger.log(
-            `[processAccountingWithTransferOption] 予約情報が見つかりません: ${reservationId}`,
+            `[processAccountingWithTransferOption] よやく情報が見つかりません: ${reservationId}`,
           );
         }
       } else {
@@ -1753,10 +1753,10 @@ export function processAccountingWithTransferOption(
  * セッション終了ウィザードの統合処理エンドポイント
  * 1. 今日の記録（sessionNote）を更新
  * 2. 会計処理を実行
- * 3. オプションで次回予約を作成
+ * 3. オプションで次回よやくを作成
  *
  * @param {any} payload - メイン処理データ
- * @param {any} nextReservationPayload - 次回予約データ（null = スキップ）
+ * @param {any} nextReservationPayload - 次回よやくデータ（null = スキップ）
  * @returns {ApiResponseGeneric} 処理結果
  */
 export function processSessionConclusion(payload, nextReservationPayload) {
@@ -1768,7 +1768,7 @@ export function processSessionConclusion(payload, nextReservationPayload) {
       `[processSessionConclusion] 開始: reservationId=${payload.reservationId}`,
     );
 
-    // 1. 今日の予約の sessionNote を更新
+    // 1. 今日のよやくの sessionNote を更新
     const memoUpdatePayload = /** @type {ReservationCore} */ (
       /** @type {any} */ ({
         reservationId: payload.reservationId,
@@ -1835,13 +1835,13 @@ export function processSessionConclusion(payload, nextReservationPayload) {
       return accountingResult;
     }
 
-    // 3. 次回予約を作成（ペイロードがある場合のみ）
+    // 3. 次回よやくを作成（ペイロードがある場合のみ）
     /** @type {{created: boolean, status?: string | undefined, expectedWaitlist?: boolean | undefined, message?: string | undefined, date?: string | undefined, classroom?: string | undefined}} */
     let nextReservationResult = { created: false };
 
     if (nextReservationPayload) {
       Logger.log(
-        `[processSessionConclusion] 次回予約作成: lessonId=${nextReservationPayload.lessonId}`,
+        `[processSessionConclusion] 次回よやく作成: lessonId=${nextReservationPayload.lessonId}`,
       );
 
       const reservationResult = makeReservation(
@@ -1865,12 +1865,12 @@ export function processSessionConclusion(payload, nextReservationPayload) {
           classroom: nextReservationPayload.classroom,
         };
         Logger.log(
-          `[processSessionConclusion] 予約結果: status=${actualStatus}, isWaitlisted=${isWaitlisted}`,
+          `[processSessionConclusion] よやく結果: status=${actualStatus}, isWaitlisted=${isWaitlisted}`,
         );
       } else {
-        // 次回予約の失敗は警告扱いで続行（会計は完了済み）
+        // 次回よやくの失敗は警告扱いで続行（会計は完了済み）
         Logger.log(
-          `[processSessionConclusion] 次回予約作成失敗（警告）: ${reservationResult.message}`,
+          `[processSessionConclusion] 次回よやく作成失敗（警告）: ${reservationResult.message}`,
         );
         nextReservationResult = {
           created: false,

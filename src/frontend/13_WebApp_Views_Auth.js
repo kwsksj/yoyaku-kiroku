@@ -61,7 +61,7 @@ export const getLoginView = () => {
               <!-- 説明セクション -->
               <div class="text-center">
                 <p class="text-brand-text text-base mb-6">
-                  <span class="font-semibold text-action-primary-bg">参加予約</span>と<span class="font-semibold text-action-primary-bg">製作記録</span>のページです。
+                  <span class="font-semibold text-action-primary-bg">参加よやく</span>と<span class="font-semibold text-action-primary-bg">製作記録</span>のページです。
                 </p>
                 <p class="text-brand-subtle text-sm leading-relaxed mb-6">
                 はじめての方は、携帯電話番号を入力し<span class="font-bold text-brand-text">とうろく</span>してください。(日程連絡希望の方もこちらから)
@@ -209,10 +209,10 @@ export const getRegistrationStep1View = phone => {
           variant: 'default',
           content: Components.checkbox({
             id: 'reg-wants-email',
-            label: '予約受付 のメール連絡を希望する',
+            label: 'よやく受付 のメール連絡を希望する',
             checked: data.wantsEmail || false,
             caption:
-              '初回予約時は、すべての方へ送信します。予約状況に関してはこのページで確認可能です。',
+              '初回よやく時は、すべての方へ送信します。よやく状況に関してはこのページで確認可能です。',
           }),
         })}
      </form>
@@ -599,10 +599,10 @@ export const getEditProfileView = () => {
           variant: 'default',
           content: Components.checkbox({
             id: 'edit-wants-email',
-            label: '予約受付 のメール連絡を希望する',
+            label: 'よやく受付 のメール連絡を希望する',
             checked: userData.wantsEmail || false,
             caption:
-              '初回予約時は、すべての方へ送信します。予約状況に関してはこのページで確認可能です。',
+              '初回よやく時は、すべての方へ送信します。よやく状況に関してはこのページで確認可能です。',
           }),
         })}
         ${Components.input({

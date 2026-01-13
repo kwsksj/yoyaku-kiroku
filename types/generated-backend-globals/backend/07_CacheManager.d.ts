@@ -33,7 +33,7 @@ export function formatDateTimeValue(dateValue: any, type: "date" | "time"): stri
  *
  * 【主要機能】:
  * ✅ 統合データキャッシュ管理
- *   - 全予約データ（予約記録シート）
+ *   - 全よやくデータ（予約記録シート）
  *   - 生徒基本情報（生徒名簿）
  *   - 日程マスターデータ
  *   - 会計マスターデータ
@@ -57,22 +57,22 @@ export function formatDateTimeValue(dateValue: any, type: "date" | "time"): stri
  * =================================================================
  */
 /**
- * 予約キャッシュに新しい予約データを追加（インクリメンタル更新）
+ * よやくキャッシュに新しいよやくデータを追加（インクリメンタル更新）
  * シート全体の再読み込みを避けて、パフォーマンスを大幅に向上
- * @param {(string|number|Date)[]} newReservationRow - 新しい予約行データ
+ * @param {(string|number|Date)[]} newReservationRow - 新しいよやく行データ
  * @param {HeaderMapType} headerMap - ヘッダーマッピング
  */
 export function addReservationToCache(newReservationRow: (string | number | Date)[], headerMap: HeaderMapType): void;
 /**
- * キャッシュ内の予約ステータスを更新（インクリメンタル更新）
+ * キャッシュ内のよやくステータスを更新（インクリメンタル更新）
  * キャンセル処理などで使用し、シート全体の再読み込みを回避
  * @param {string} reservationId - 更新対象の予約ID
  * @param {string} newStatus - 新しいステータス
  */
 export function updateReservationStatusInCache(reservationId: string, newStatus: string): void;
 /**
- * キャッシュ内の予約データを完全に更新（インクリメンタル更新）
- * 予約詳細更新処理などで使用し、シート全体の再読み込みを回避
+ * キャッシュ内のよやくデータを完全に更新（インクリメンタル更新）
+ * よやく詳細更新処理などで使用し、シート全体の再読み込みを回避
  * @param {string} reservationId - 更新対象の予約ID
  * @param {(string|number|Date)[]} updatedRowData - 更新された行データ
  * @param {HeaderMapType} headerMap - ヘッダーマッピング
@@ -101,7 +101,7 @@ export function rebuildAllStudentsCache(): void;
  * スプレッドシートのメニューから手動実行される場合に使用されます。
  *
  * 再構築対象:
- * - 統合予約データキャッシュ
+ * - 統合よやくデータキャッシュ
  * - 生徒基本情報キャッシュ
  * - 会計マスターキャッシュ
  * - 日程マスターキャッシュ
@@ -116,7 +116,7 @@ export function rebuildAllCachesEntryPoint(): void;
  */
 export function shouldRebuildReservationCache(): boolean;
 /**
- * 予約記録シートから全予約データを読み込み、CacheServiceに保存する
+ * 予約記録シートから全よやくデータを読み込み、CacheServiceに保存する
  * 日付・時刻列を適切にフォーマットして配列形式でキャッシュに保存します。
  *
  * @throws {Error} 予約記録シートが見つからない場合
@@ -141,7 +141,7 @@ export function rebuildScheduleMasterCache(fromDate?: string, toDate?: string): 
     };
 };
 /**
- * 予約キャッシュからlessonIdを使ってreservationIdsを再構築し、日程シートとキャッシュを更新する
+ * よやくキャッシュからlessonIdを使ってreservationIdsを再構築し、日程シートとキャッシュを更新する
  * キャッシュ一括更新時に呼び出され、データの整合性を保証する
  */
 export function syncReservationIdsToSchedule(): void;
@@ -271,7 +271,7 @@ export function deleteAllCache(): void;
  */
 export function getDataCount(parsedData: object, cacheKey: string): number;
 /**
- * 予約キャッシュのインメモリスナップショットを無効化する
+ * よやくキャッシュのインメモリスナップショットを無効化する
  */
 export function invalidateReservationCacheSnapshot(): void;
 /**
@@ -279,7 +279,7 @@ export function invalidateReservationCacheSnapshot(): void;
  */
 export function invalidateStudentCacheSnapshot(): void;
 /**
- * 予約キャッシュのスナップショットを取得（実行中はインメモリ再利用）
+ * よやくキャッシュのスナップショットを取得（実行中はインメモリ再利用）
  * @param {boolean} [autoRebuild=true] - キャッシュ未存在時に再構築を許可するか
  * @returns {ReservationCacheData | null}
  */
@@ -291,9 +291,9 @@ export function getReservationCacheSnapshot(autoRebuild?: boolean): ReservationC
  */
 export function getStudentCacheSnapshot(autoRebuild?: boolean): StudentCacheData | null;
 /**
- * 予約IDを指定して、キャッシュから単一の予約データを取得する
- * @param {string} reservationId - 取得する予約のID
- * @returns {RawSheetRow | null} 予約データ配列、見つからない場合はnull
+ * 予約IDを指定して、キャッシュから単一のよやくデータを取得する
+ * @param {string} reservationId - 取得するよやくのID
+ * @returns {RawSheetRow | null} よやくデータ配列、見つからない場合はnull
  */
 export function getReservationByIdFromCache(reservationId: string): RawSheetRow | null;
 /**
@@ -310,15 +310,15 @@ export function getReservationByIdFromCache(reservationId: string): RawSheetRow 
  */
 export function getLessonByIdFromCache(lessonId: string): LessonCore | null;
 /**
- * 複数の予約IDから予約オブジェクトを一括取得
+ * 複数の予約IDからよやくオブジェクトを一括取得
  *
  * @param {string[]} reservationIds - 取得対象の予約IDの配列
  * @param {{ includeStudents?: boolean }=} options - 付加情報取得の挙動を制御するオプション
- * @returns {ReservationCore[]} 予約オブジェクトの配列（見つからないIDはスキップ）
+ * @returns {ReservationCore[]} よやくオブジェクトの配列（見つからないIDはスキップ）
  *
  * @example
  * const reservations = getReservationsByIdsFromCache(['R-001', 'R-002', 'R-003']);
- * console.log(`取得した予約数: ${reservations.length}`);
+ * console.log(`取得したよやく数: ${reservations.length}`);
  */
 export function getReservationsByIdsFromCache(reservationIds: string[], options?: {
     includeStudents?: boolean;

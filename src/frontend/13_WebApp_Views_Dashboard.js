@@ -5,7 +5,7 @@
  * 名称: 13_WebApp_Views_Dashboard.js
  * 目的: ダッシュボード画面の各セクションを構築する
  * 主な責務:
- *   - 予約/履歴カードの生成と表示制御
+ *   - よやく/履歴カードの生成と表示制御
  *   - stateManager を用いた表示件数や編集状態の管理
  *   - 既存ビュー/コンポーネントとの橋渡し
  * AI向けメモ:
@@ -32,9 +32,9 @@ export const getDashboardView = () => {
 
   console.log('📊 ダッシュボード表示開始');
   console.log('   myReservations:', myReservations);
-  console.log('   予約数:', myReservations.length);
+  console.log('   よやく数:', myReservations.length);
 
-  // 予約セクション用のカード配列を構築：確定・待機ステータスかつ当日以降のみ表示
+  // よやくセクション用のカード配列を構築：確定・待機ステータスかつ当日以降のみ表示
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -46,7 +46,7 @@ export const getDashboardView = () => {
         res.status === CONSTANTS.STATUS.WAITLISTED;
       if (!isActiveStatus) return false;
 
-      // 当日以降の予約のみ表示
+      // 当日以降のよやくのみ表示
       const resDate = new Date(res.date);
       resDate.setHours(0, 0, 0, 0);
       return resDate >= today;
@@ -56,14 +56,14 @@ export const getDashboardView = () => {
         new Date(a.date).getTime() - new Date(b.date).getTime(),
     ); // 日付順（古い順）
 
-  console.log('   アクティブな予約:', activeReservations.length, '件');
+  console.log('   アクティブなよやく:', activeReservations.length, '件');
 
-  // 予約カードを生成（今日の予約には「本日」バッジを追加）
+  // よやくカードを生成（今日のよやくには「本日」バッジを追加）
   const bookingCards = activeReservations.map(
     (/** @type {ReservationCore} */ b) => {
       const badges = _buildBookingBadges(b);
 
-      // 今日の予約に「本日」バッジを追加（UX改善）
+      // 今日のよやくに「本日」バッジを追加（UX改善）
       if (_isToday(b.date)) {
         badges.unshift({ type: 'attention', text: '本日' });
       }
@@ -78,7 +78,7 @@ export const getDashboardView = () => {
     },
   );
 
-  // 予約がない場合の空状態デザイン
+  // よやくがない場合の空状態デザイン
   const emptyBookingHtml =
     activeReservations.length === 0
       ? `<div class="text-center py-6 text-brand-muted">
@@ -87,7 +87,7 @@ export const getDashboardView = () => {
         </div>`
       : '';
 
-  // 予約セクションを生成（Componentsに構造生成を委任）
+  // よやくセクションを生成（Componentsに構造生成を委任）
   const yourBookingsHtml = Components.dashboardSection({
     title: 'よやく',
     items: activeReservations.length > 0 ? bookingCards : [emptyBookingHtml],
@@ -211,7 +211,7 @@ export const getDashboardView = () => {
   const currentUser = dashboardStateManager.getState().currentUser;
   const nickname = currentUser ? currentUser.nickname : '';
 
-  // 今日の予約を検索（会計フォールバックボタン用）
+  // 今日のよやくを検索（会計フォールバックボタン用）
   const todayReservation = activeReservations.find(
     (/** @type {ReservationCore} */ r) => _isToday(r.date),
   );
@@ -225,7 +225,7 @@ export const getDashboardView = () => {
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
-  // 新規予約ボタン（直接予約画面に遷移）
+  // 新規よやくボタン（直接よやく画面に遷移）
   const newBookingButton = Components.button({
     text: 'よやく<br>する',
     action: 'goToBookingView',
@@ -234,7 +234,7 @@ export const getDashboardView = () => {
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
-  // 今日の予約がある場合のみ表示するボタン（2カラム幅で目立たせる）
+  // 今日のよやくがある場合のみ表示するボタン（2カラム幅で目立たせる）
   const summaryMenuButton = todayReservation
     ? Components.button({
         text: 'きょう の まとめ<br>（かいけい）',
@@ -274,7 +274,7 @@ export const getDashboardView = () => {
   });
 
   // メニューアイテムを構築（すべてをフラットな配列にしてグリッド配置）
-  // 順序: まとめ、一覧、予約、会計履歴、ギャラリー、連絡
+  // 順序: まとめ、一覧、よやく、会計履歴、ギャラリー、連絡
   const allMenuButtons = [
     summaryMenuButton,
     menuButton,
@@ -365,15 +365,15 @@ export const getDashboardView = () => {
 };
 
 /**
- * 予約カードの編集ボタン配列を生成します。
- * @param {ReservationCore} booking - 予約データ
+ * よやくカードの編集ボタン配列を生成します。
+ * @param {ReservationCore} booking - よやくデータ
  * @returns {Array<any>} 編集ボタン設定配列
  */
 export const _buildEditButtons = booking => {
   const buttons = [];
 
   if (booking.status === CONSTANTS.STATUS.CONFIRMED) {
-    // 確定済み予約：確認/編集ボタンのみ
+    // 確定済みよやく：確認/編集ボタンのみ
     buttons.push({
       action: 'goToEditReservation',
       text: 'かくにん<br>へんしゅう',
@@ -404,8 +404,8 @@ export const _buildEditButtons = booking => {
 };
 
 /**
- * 予約カードのバッジ配列を生成します。
- * @param {ReservationCore} booking - 予約データ
+ * よやくカードのバッジ配列を生成します。
+ * @param {ReservationCore} booking - よやくデータ
  * @returns {Array<{type: BadgeType, text: string}>} バッジ設定配列
  */
 export const _buildBookingBadges = booking => {
@@ -423,7 +423,7 @@ export const _buildBookingBadges = booking => {
     // 空き通知希望の場合、現在の空席状況に応じてバッジを変更
     const isCurrentlyAvailable = _checkIfLessonAvailable(booking);
     if (isCurrentlyAvailable) {
-      badges.push({ type: 'success', text: '予約可能！' });
+      badges.push({ type: 'success', text: 'よやく可能！' });
     } else {
       badges.push({ type: 'warning', text: '空き通知希望' });
     }
@@ -433,9 +433,9 @@ export const _buildBookingBadges = booking => {
 };
 
 /**
- * 指定した予約に対応する講座が現在予約可能かチェック
- * @param {ReservationCore} booking - 予約データ
- * @returns {boolean} 予約可能な場合true
+ * 指定したよやくに対応する講座が現在よやく可能かチェック
+ * @param {ReservationCore} booking - よやくデータ
+ * @returns {boolean} よやく可能な場合true
  */
 export const _checkIfLessonAvailable = booking => {
   const state = dashboardStateManager.getState();
@@ -504,14 +504,14 @@ export const _checkIfLessonAvailable = booking => {
       return false;
     }
 
-    // --- 予約時間に基づいて、チェックが必要なセッションを判断 ---
+    // --- よやく時間に基づいて、チェックが必要なセッションを判断 ---
     const morningCheckRequired = bookingStartTime < morningEndTime;
     const afternoonCheckRequired = bookingEndTime > afternoonStartTime;
 
-    // 予約がどちらのセッションにもかからない場合、不正な予約時間とみなしfalseを返す
+    // よやくがどちらのセッションにもかからない場合、不正なよやく時間とみなしfalseを返す
     if (!morningCheckRequired && !afternoonCheckRequired) {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.warn('⚠️ 2部制判定警告: 予約時間がセッションの範囲外です。', {
+        console.warn('⚠️ 2部制判定警告: よやく時間がセッションの範囲外です。', {
           booking,
           targetLesson,
         });

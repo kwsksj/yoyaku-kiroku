@@ -155,7 +155,7 @@ export function clearAllStudentsCache_DEV(): void;
  */
 export function clearStudentCache_DEV(studentId: string): void;
 /**
- * 【開発用】全予約キャッシュをクリアします。
+ * 【開発用】全よやくキャッシュをクリアします。
  */
 export function clearAllReservationsCache_DEV(): void;
 /**

@@ -6,13 +6,13 @@
  *
  * 【主な責務】
  *   - 通知希望設定（通知日・時間）に基づき送信対象者を抽出
- *   - `getLessons` や予約キャッシュを参照して、個別の予約状況を本文へ反映
+ *   - `getLessons` やよやくキャッシュを参照して、個別のよやく状況を本文へ反映
  *   - 実行ログを `logActivity` に記録し、成功／失敗件数を把握できるようにする
  *
  * 【関連モジュール】
  *   - `05-3_Backend_AvailableSlots.js`: 直近のスケジュール取得
  *   - `02-7_Notification_StudentReservation.js`: 本文フォーマット用のユーティリティ（例：日付整形）
- *   - `07_CacheManager.js`: 生徒・予約キャッシュから基本データを取得
+ *   - `07_CacheManager.js`: 生徒・よやくキャッシュから基本データを取得
  *
  * 【利用時の留意点】
  *   - `ADMIN_EMAIL`（From アドレス）が未設定の場合は送信しない設計。デプロイ時に確認する
@@ -50,7 +50,7 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
       return;
     }
 
-    // ★改善: 新しいヘルパー関数で予約データをオブジェクトとして直接取得
+    // ★改善: 新しいヘルパー関数でよやくデータをオブジェクトとして直接取得
     const allReservations = getCachedReservationsAsObjects();
 
     // 共通データの取得（全生徒で共通）- 既存のgetLessons()を活用
@@ -76,7 +76,7 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
     const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
       ? ''
       : '[テスト]';
-    const emailSubject = `${subjectPrefix}【川崎誠二 木彫り教室】開催日程・予約状況のお知らせ`;
+    const emailSubject = `${subjectPrefix}【川崎誠二 木彫り教室】開催日程・よやく状況のお知らせ`;
 
     let successCount = 0;
     let failCount = 0;
@@ -90,7 +90,7 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
           r => r.studentId === student.studentId,
         );
 
-        // 未来の予約のみに絞り込み
+        // 未来のよやくのみに絞り込み
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -234,7 +234,7 @@ export function _getNotificationRecipients(targetDay, targetHour) {
 /**
  * メール本文を生成
  * @param {UserCore} student - 生徒情報
- * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒の予約一覧
+ * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒のよやく一覧
  * @param {LessonCore[]} lessons - 今後の日程一覧（getLessons()の結果）
  * @returns {string} メール本文
  * @private
@@ -244,9 +244,9 @@ export function _generateEmailBody(student, reservations, lessons) {
 
   let body = `${nickname}さま\n\n`;
   body += `こんにちは！\n川崎誠二 木彫り教室です。\n`;
-  body += `現在のご予約内容と、今後の教室日程のお知らせです！\n（メール下部に記載）\n\n`;
+  body += `現在のごよやく内容と、今後の教室日程のお知らせです！\n（メール下部に記載）\n\n`;
 
-  body += `ご予約やキャンセルは、こちらのページで行えます。\n`;
+  body += `ごよやくやキャンセルは、こちらのページで行えます。\n`;
   body += `【きぼりのよやく・きろく】 https://www.kibori-class.net/booking\n\n`;
   body += `メール配信の設定（配信の有無・日時）も、\n`;
   body += `上記のページでログイン後、プロフィール編集画面で変更できます。\n\n`;
@@ -254,13 +254,13 @@ export function _generateEmailBody(student, reservations, lessons) {
   body += `どうぞ今後ともよろしくお願いいたします！\n\n`;
 
   // ========================================
-  // セクション1: 生徒の予約一覧
+  // セクション1: 生徒のよやく一覧
   // ========================================
   body += `━━━━━━━━━━━━━━━━━━━━\n`;
-  body += `■ 現在のご予約内容 ■\n\n`;
+  body += `■ 現在のごよやく内容 ■\n\n`;
 
   if (reservations.length === 0) {
-    body += `現在、ご予約はありません。\n\n`;
+    body += `現在、ごよやくはありません。\n\n`;
   } else {
     for (const res of reservations) {
       if (!res.date) continue;
@@ -394,7 +394,7 @@ export function _formatTimeRange(startTime, endTime) {
 export function _formatStatus(status) {
   switch (status) {
     case CONSTANTS.STATUS.CONFIRMED:
-      return '予約確定';
+      return 'よやく確定';
     case CONSTANTS.STATUS.WAITLISTED:
       return '空き通知希望';
     case CONSTANTS.STATUS.COMPLETED:

@@ -88,7 +88,7 @@ function loadParticipantView(
   }
 
   // 既にデータがある場合はAPIコールをスキップ（レート制限対策）
-  // 重要: 予約データ（reservationsMap）も必要なのでチェック
+  // 重要: よやくデータ（reservationsMap）も必要なのでチェック
   if (
     !forceReload &&
     state.participantLessons &&
@@ -165,7 +165,7 @@ function fetchParticipantDataBackground(
 
   google.script.run
     .withSuccessHandler(function (response) {
-      console.log('✅ レッスン一覧+予約データ取得成功:', response);
+      console.log('✅ レッスン一覧+よやくデータ取得成功:', response);
 
       if (response.success) {
         const nextIsAdmin =
@@ -179,7 +179,7 @@ function fetchParticipantDataBackground(
           state.participantLessons || [],
         );
         const newLessonsJson = JSON.stringify(response.data.lessons || []);
-        // 予約データの比較
+        // よやくデータの比較
         const currentReservationsJson = JSON.stringify(
           state.participantReservationsMap || {},
         );
@@ -259,7 +259,7 @@ function fetchParticipantDataBackground(
 
         if (response.data.reservationsMap) {
           console.log(
-            `💾 予約データをstateManagerに保存: ${Object.keys(response.data.reservationsMap).length}レッスン分`,
+            `💾 よやくデータをstateManagerに保存: ${Object.keys(response.data.reservationsMap).length}レッスン分`,
           );
         }
 
@@ -505,7 +505,7 @@ function selectParticipantStudent(targetStudentId, _lessonId) {
 
   console.log(`✅ プリロードデータから生徒情報を取得: ${targetStudentId}`);
 
-  // 2. プリロードデータから予約履歴を生成
+  // 2. プリロードデータからよやく履歴を生成
   /** @type {any[]} */
   let reservationHistory = [];
   if (state.participantReservationsMap && state.participantLessons) {
@@ -517,7 +517,7 @@ function selectParticipantStudent(targetStudentId, _lessonId) {
       lessonsMap[lesson.lessonId] = lesson;
     });
 
-    // 全レッスンの予約データから該当生徒の予約を検索
+    // 全レッスンのよやくデータから該当生徒のよやくを検索
     const reservationsMap = state.participantReservationsMap;
     Object.keys(reservationsMap).forEach(lessonId => {
       const lessonReservations = reservationsMap[lessonId];
@@ -562,7 +562,7 @@ function selectParticipantStudent(targetStudentId, _lessonId) {
     });
   }
 
-  // 3. 生徒データに予約履歴をマージ
+  // 3. 生徒データによやく履歴をマージ
   const studentDataWithHistory = {
     ...studentData,
     reservationHistory: reservationHistory,

@@ -490,7 +490,7 @@ export function generateCustomSalesRow(index = 0, itemData = {}) {
 
 /**
  * 会計画面用よやくカード生成（ボタン非表示、制作メモ編集モード）
- * @param {ReservationCore | null} reservationData - 予約データ
+ * @param {ReservationCore | null} reservationData - よやくデータ
  * @returns {string} HTML文字列
  */
 export function generateAccountingReservationCard(reservationData) {
@@ -498,7 +498,7 @@ export function generateAccountingReservationCard(reservationData) {
     return '';
   }
 
-  // 予約カードを生成（ボタンなし、制作メモ編集モード、メモ保存ボタン非表示）
+  // よやくカードを生成（ボタンなし、制作メモ編集モード、メモ保存ボタン非表示）
   return Components.listCard({
     item: {
       reservationId: reservationData.reservationId || '',
@@ -522,7 +522,7 @@ export function generateAccountingReservationCard(reservationData) {
  * @param {ClassifiedAccountingItemsCore} classifiedItems - 分類済み会計項目
  * @param {string} classroom - 教室名
  * @param {AccountingFormDto} formData - フォームデータ
- * @param {ReservationCore | null} reservationData - 予約データ（講座基本情報表示用）
+ * @param {ReservationCore | null} reservationData - よやくデータ（講座基本情報表示用）
  * @returns {string} HTML文字列
  */
 export function generateAccountingView(

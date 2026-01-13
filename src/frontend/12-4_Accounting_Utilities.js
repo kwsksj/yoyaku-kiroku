@@ -339,9 +339,9 @@ export function loadAccountingCache() {
 }
 
 /**
- * 予約データから会計詳細をロードする（会計修正用）
+ * よやくデータから会計詳細をロードする（会計修正用）
  *
- * @param {ReservationCore} reservation - 予約データ
+ * @param {ReservationCore} reservation - よやくデータ
  * @returns {AccountingFormDto} フォームデータ
  *
  * @description
@@ -435,7 +435,7 @@ export function loadAccountingFromReservation(reservation) {
  * @param {AccountingMasterItemCore[]} masterData - 会計マスタデータ
  * @param {string} classroom - 教室名
  * @param {AccountingFormDto} initialFormData - 初期フォームデータ
- * @param {ReservationCore | null} reservationData - 予約データ（講座基本情報表示用）
+ * @param {ReservationCore | null} reservationData - よやくデータ（講座基本情報表示用）
  * @returns {string} 生成された会計画面HTML
  */
 export function initializeAccountingSystem(
@@ -480,7 +480,7 @@ export function initializeAccountingSystem(
     reservationData,
   );
 
-  // DOMに挿入後の初期化処理を予約
+  // DOMに挿入後の初期化処理をよやく
   setTimeout(() => {
     // 支払い方法UI初期化（初期状態では何も選択しない）
     initPaymentUI('');

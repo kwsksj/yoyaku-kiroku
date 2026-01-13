@@ -3,13 +3,13 @@
  * ファイル概要
  * -----------------------------------------------------------------
  * 名称: 14_WebApp_Handlers_Reservation.js
- * 目的: 予約作成・編集・キャンセルなど予約領域の操作を管理する
+ * 目的: よやく作成・編集・キャンセルなどよやく領域の操作を管理する
  * 主な責務:
- *   - 予約フォーム操作やモーダル表示の制御
+ *   - よやくフォーム操作やモーダル表示の制御
  *   - サーバーAPI呼び出しとstateManager更新の調整
  *   - 事前取得データのキャッシュ活用とUIへの反映
  * AI向けメモ:
- *   - 新しい予約フローを追加する際はフォームコンテキストとState更新を一貫させ、このファイル内で副作用を完結させる
+ *   - 新しいよやくフローを追加する際はフォームコンテキストとState更新を一貫させ、このファイル内で副作用を完結させる
  * =================================================================
  */
 
@@ -48,11 +48,11 @@ const getAdminToken = () => {
   );
 };
 
-/** 予約管理関連のアクションハンドラー群 */
+/** よやく管理関連のアクションハンドラー群 */
 export const reservationActionHandlers = {
   /**
-   * 予約をキャンセルします。
-   * @param {ActionHandlerData} d - キャンセル対象の予約情報を含むデータ
+   * よやくをキャンセルします。
+   * @param {ActionHandlerData} d - キャンセル対象のよやく情報を含むデータ
    */
   cancel: d => {
     const reservationDate = d.date ? String(d.date) : '';
@@ -60,7 +60,7 @@ export const reservationActionHandlers = {
     const classroomName = d.classroom || '';
     const message = `
         <div class="text-left space-y-4">
-          <p class="text-center"><b>${formattedDate}</b><br>${classroomName}<br>この予約を取り消しますか？</p>
+          <p class="text-center"><b>${formattedDate}</b><br>${classroomName}<br>このよやくを取り消しますか？</p>
           <div class="pt-4 border-t">
             <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
             <textarea id="cancel-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
@@ -68,7 +68,7 @@ export const reservationActionHandlers = {
         </div>
       `;
     showConfirm({
-      title: '予約の取り消し',
+      title: 'よやくの取り消し',
       message: message,
       confirmText: '取り消す',
       cancelText: 'やめる',
@@ -77,12 +77,12 @@ export const reservationActionHandlers = {
         if (
           reservationStateManager.isDataFetchInProgress('reservation-cancel')
         ) {
-          console.log('予約取り消し処理中のためキャンセルをスキップ');
+          console.log('よやく取り消し処理中のためキャンセルをスキップ');
           return;
         }
 
         showLoading('cancel');
-        // 予約取り消し処理中フラグを設定
+        // よやく取り消し処理中フラグを設定
         reservationStateManager.setDataFetchProgress(
           'reservation-cancel',
           true,
@@ -124,7 +124,7 @@ export const reservationActionHandlers = {
         };
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
           hideLoading();
-          // 予約取り消し処理中フラグをクリア
+          // よやく取り消し処理中フラグをクリア
           reservationStateManager.setDataFetchProgress(
             'reservation-cancel',
             false,
@@ -168,12 +168,12 @@ export const reservationActionHandlers = {
                 },
               });
               refreshParticipantsViewForAdmin();
-              showInfo(r.message || '予約をキャンセルしました。');
+              showInfo(r.message || 'よやくをキャンセルしました。');
               return;
             }
 
             if (r.data) {
-              // 予約取り消し後は個人予約データのみ更新（講座データは既存のキャッシュを利用）
+              // よやく取り消し後は個人よやくデータのみ更新（講座データは既存のキャッシュを利用）
               const currentState = reservationStateManager.getState();
               const updatedPayload = {
                 myReservations: r.data.myReservations || [],
@@ -210,12 +210,12 @@ export const reservationActionHandlers = {
                 },
               });
             }
-            // キャンセル完了画面を表示（予約完了や会計完了と同様のUX）
+            // キャンセル完了画面を表示（よやく完了や会計完了と同様のUX）
             reservationStateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 view: 'complete',
-                completionMessage: r.message || '予約をキャンセルしました。',
+                completionMessage: r.message || 'よやくをキャンセルしました。',
               },
             });
           } else {
@@ -224,7 +224,7 @@ export const reservationActionHandlers = {
         })
           .withFailureHandler((/** @type {Error} */ err) => {
             hideLoading();
-            // エラー時も予約取り消し処理中フラグをクリア
+            // エラー時もよやく取り消し処理中フラグをクリア
             reservationStateManager.setDataFetchProgress(
               'reservation-cancel',
               false,
@@ -237,20 +237,20 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 予約フォームの内容を元に予約を確定します。
+   * よやくフォームの内容を元によやくを確定します。
    * state.currentReservationFormContext を使用します。
    */
   confirmBooking: () => {
-    // 重複予約防止
+    // 重複よやく防止
     if (reservationStateManager.isDataFetchInProgress('reservation-booking')) {
-      console.log('予約処理中のため予約確定をスキップ');
+      console.log('よやく処理中のためよやく確定をスキップ');
       return;
     }
 
     const { currentUser, currentReservationFormContext } =
       reservationStateManager.getState();
     if (!currentReservationFormContext) {
-      showInfo('予約コンテキストが見つかりません。', 'エラー');
+      showInfo('よやくコンテキストが見つかりません。', 'エラー');
       return;
     }
     if (!currentUser) {
@@ -303,9 +303,9 @@ export const reservationActionHandlers = {
     `;
 
     showConfirm({
-      title: '予約の確認',
+      title: 'よやくの確認',
       message: confirmMessage,
-      confirmText: '予約する',
+      confirmText: 'よやくする',
       cancelText: 'やめる',
       onConfirm: () => {
         // メッセージを取得
@@ -315,7 +315,7 @@ export const reservationActionHandlers = {
         const messageToTeacher = messageInput?.value || '';
 
         showLoading('booking');
-        // 予約処理中フラグを設定
+        // よやく処理中フラグを設定
         reservationStateManager.setDataFetchProgress(
           'reservation-booking',
           true,
@@ -342,7 +342,7 @@ export const reservationActionHandlers = {
             /** @type {HTMLInputElement} */ (
               document.getElementById('hidden-first-lecture')
             )?.value === 'true' || isFirstTimeBooking,
-          sessionNote: wipValue, // 予約ログ用（けいかく・もくひょうのみ）
+          sessionNote: wipValue, // よやくログ用（けいかく・もくひょうのみ）
           nextLessonGoal: nextLessonGoalValue, // 生徒名簿に保存するけいかく・もくひょう
           order: combinedOrder, // 材料情報を含む購入希望
           messageToTeacher: messageToTeacher,
@@ -356,7 +356,7 @@ export const reservationActionHandlers = {
 
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
           hideLoading();
-          // 予約処理中フラグをクリア
+          // よやく処理中フラグをクリア
           reservationStateManager.setDataFetchProgress(
             'reservation-booking',
             false,
@@ -364,7 +364,7 @@ export const reservationActionHandlers = {
 
           if (r.success) {
             if (r.data) {
-              // 新規予約後は個人予約データと必要に応じて講座データを更新
+              // 新規よやく後は個人よやくデータと必要に応じて講座データを更新
               const currentState = reservationStateManager.getState();
 
               // currentUserのnextLessonGoalを更新（ダッシュボードで最新表示）
@@ -419,12 +419,12 @@ export const reservationActionHandlers = {
               });
             }
           } else {
-            showInfo(r.message || '予約に失敗しました。', 'エラー');
+            showInfo(r.message || 'よやくに失敗しました。', 'エラー');
           }
         })
           .withFailureHandler((/** @type {Error} */ error) => {
             hideLoading();
-            // エラー時も予約処理中フラグをクリア
+            // エラー時もよやく処理中フラグをクリア
             reservationStateManager.setDataFetchProgress(
               'reservation-booking',
               false,
@@ -437,13 +437,13 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 予約編集画面に遷移します。
-   * @param {ActionHandlerData} d - 編集対象の予約情報を含むデータ
+   * よやく編集画面に遷移します。
+   * @param {ActionHandlerData} d - 編集対象のよやく情報を含むデータ
    */
   goToEditReservation: d => {
     const state = reservationStateManager.getState();
 
-    // 1. 予約データを取得（キャッシュ済み）
+    // 1. よやくデータを取得（キャッシュ済み）
     const reservation = state.myReservations.find(
       (/** @type {ReservationCore} */ booking) =>
         booking.reservationId === d.reservationId &&
@@ -451,7 +451,7 @@ export const reservationActionHandlers = {
     );
 
     if (!reservation) {
-      showInfo('予約情報が見つかりませんでした。', 'エラー');
+      showInfo('よやく情報が見つかりませんでした。', 'エラー');
       return;
     }
 
@@ -535,7 +535,7 @@ export const reservationActionHandlers = {
 
         if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
           console.log(
-            '🎭 予約編集のためなりすましを開始します:',
+            '🎭 よやく編集のためなりすましを開始します:',
             targetUser.realName,
           );
         }
@@ -545,20 +545,20 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 予約情報を更新します。
+   * よやく情報を更新します。
    * state.currentReservationFormContext を使用します。
    */
   updateReservation: () => {
     // 重複更新防止
     if (reservationStateManager.isDataFetchInProgress('reservation-update')) {
-      console.log('予約更新処理中のため更新をスキップ');
+      console.log('よやく更新処理中のため更新をスキップ');
       return;
     }
 
     const { currentReservationFormContext, currentUser } =
       reservationStateManager.getState();
     if (!currentReservationFormContext) {
-      showInfo('予約コンテキストが見つかりません。', 'エラー');
+      showInfo('よやくコンテキストが見つかりません。', 'エラー');
       return;
     }
     if (!currentUser) {
@@ -567,7 +567,7 @@ export const reservationActionHandlers = {
     }
 
     const { reservationInfo, lessonInfo } = currentReservationFormContext;
-    // 予約編集ではreservationIdは必須
+    // よやく編集ではreservationIdは必須
     if (!reservationInfo.reservationId) {
       showInfo('予約IDが見つかりません。', 'エラー');
       return;
@@ -642,7 +642,7 @@ export const reservationActionHandlers = {
     `;
 
     showConfirm({
-      title: '予約の更新',
+      title: 'よやくの更新',
       message: confirmMessage,
       confirmText: '更新する',
       cancelText: 'やめる',
@@ -661,7 +661,7 @@ export const reservationActionHandlers = {
           firstLecture: firstLectureValue,
           startTime: startTime,
           endTime: endTime,
-          sessionNote: wipInputValue, // 予約ログ用（けいかく・もくひょうのみ）
+          sessionNote: wipInputValue, // よやくログ用（けいかく・もくひょうのみ）
           nextLessonGoal: wipInputValue, // 生徒名簿に保存するけいかく・もくひょう
           order: combinedOrder, // 材料情報を含む購入希望
           messageToTeacher: messageToTeacher,
@@ -670,7 +670,7 @@ export const reservationActionHandlers = {
           _adminToken: getAdminToken(),
         };
         showLoading('booking');
-        // 予約更新処理中フラグを設定
+        // よやく更新処理中フラグを設定
         reservationStateManager.setDataFetchProgress(
           'reservation-update',
           true,
@@ -679,7 +679,7 @@ export const reservationActionHandlers = {
         google.script.run['withSuccessHandler'](
           (/** @type {BatchDataResponse} */ r) => {
             hideLoading();
-            // 予約更新処理中フラグをクリア
+            // よやく更新処理中フラグをクリア
             reservationStateManager.setDataFetchProgress(
               'reservation-update',
               false,
@@ -728,14 +728,14 @@ export const reservationActionHandlers = {
                 refreshParticipantsViewForAdmin();
 
                 showInfo(
-                  `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+                  `<h3 class="font-bold mb-3">更新完了</h3>${r.message || 'よやく内容を更新しました。'} `,
                 );
 
                 return;
               }
 
               if (r.data) {
-                // 予約更新後は個人予約データを優先的に更新
+                // よやく更新後は個人よやくデータを優先的に更新
                 const currentState = reservationStateManager.getState();
 
                 // currentUserのnextLessonGoalを更新（ダッシュボードで最新表示）
@@ -794,7 +794,7 @@ export const reservationActionHandlers = {
                 });
               }
               showInfo(
-                `<h3 class="font-bold mb-3">更新完了</h3>${r.message || '予約内容を更新しました。'} `,
+                `<h3 class="font-bold mb-3">更新完了</h3>${r.message || 'よやく内容を更新しました。'} `,
               );
             } else {
               showInfo(r.message || '更新に失敗しました。', 'エラー');
@@ -803,7 +803,7 @@ export const reservationActionHandlers = {
         )
           .withFailureHandler((/** @type {Error} */ error) => {
             hideLoading();
-            // エラー時も予約更新処理中フラグをクリア
+            // エラー時もよやく更新処理中フラグをクリア
             reservationStateManager.setDataFetchProgress(
               'reservation-update',
               false,
@@ -822,7 +822,7 @@ export const reservationActionHandlers = {
     });
   },
 
-  /** 新規予約のための教室選択モーダルを表示します */
+  /** 新規よやくのための教室選択モーダルを表示します */
   showClassroomModal: () => {
     if (CONSTANTS.CLASSROOMS && Object.keys(CONSTANTS.CLASSROOMS).length > 0) {
       const existingModal = document.getElementById(
@@ -844,16 +844,16 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 直接予約画面（にってい いちらん）に遷移します。
+   * 直接よやく画面（にってい いちらん）に遷移します。
    * 「すべて」の教室を選択した状態で表示します。
    */
   goToBookingView: () => {
-    console.log('🏫 goToBookingView: 直接予約画面に遷移');
+    console.log('🏫 goToBookingView: 直接よやく画面に遷移');
     reservationActionHandlers.updateLessonsAndGoToBooking('all');
   },
 
   /**
-   * 教室を選択し、予約枠一覧画面に遷移します。
+   * 教室を選択し、よやく枠一覧画面に遷移します。
    * @param {ActionHandlerData} d - 選択した教室情報を含むデータ
    */
   selectClassroom: d => {
@@ -870,14 +870,14 @@ export const reservationActionHandlers = {
       reservationActionHandlers.updateLessonsAndGoToBooking(classroomName);
     } else {
       showInfo(
-        '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
+        'よやく枠の取得に失敗しました。時間をおいて再度お試しください。',
         'エラー',
       );
     }
   },
 
   /**
-   * 予約画面で教室フィルターを切り替えます（ピル型トグル用）。
+   * よやく画面で教室フィルターを切り替えます（ピル型トグル用）。
    * @param {ActionHandlerData} d - 選択した教室情報を含むデータ
    */
   filterBookingClassroom: d => {
@@ -895,7 +895,7 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * スロット情報を更新してから予約枠画面に遷移します。
+   * スロット情報を更新してからよやく枠画面に遷移します。
    * @param {string} classroomName - 対象の教室名
    */
   updateLessonsAndGoToBooking: classroomName => {
@@ -1006,7 +1006,7 @@ export const reservationActionHandlers = {
         });
       } else {
         showInfo(
-          '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
+          'よやく枠の取得に失敗しました。時間をおいて再度お試しください。',
         );
       }
     })
@@ -1015,7 +1015,7 @@ export const reservationActionHandlers = {
         // エラー時も取得中フラグをクリア
         reservationStateManager.setDataFetchProgress('lessons', false);
         showInfo(
-          '予約枠の取得に失敗しました。時間をおいて再度お試しください。',
+          'よやく枠の取得に失敗しました。時間をおいて再度お試しください。',
         );
         Logger.log(`fetchLatestLessonsDataエラー: ${error}`);
       })
@@ -1026,8 +1026,8 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 予約枠を選択し、予約フォーム画面に遷移します。
-   * @param {ActionHandlerData} d - 選択した予約枠の情報を含むデータ
+   * よやく枠を選択し、よやくフォーム画面に遷移します。
+   * @param {ActionHandlerData} d - 選択したよやく枠の情報を含むデータ
    */
   bookLesson: d => {
     const currentState = reservationStateManager.getState();
@@ -1059,12 +1059,12 @@ export const reservationActionHandlers = {
         },
       });
     } else {
-      showInfo('選択した予約枠が見つかりません。', 'エラー');
+      showInfo('選択したよやく枠が見つかりません。', 'エラー');
     }
   },
 
   /**
-   * 指定された日程の予約フォーム画面に遷移します。
+   * 指定された日程のよやくフォーム画面に遷移します。
    * @param {ActionHandlerData} d - 選択した日程の情報 (lessonId) を含むデータ
    */
   goToReservationFormForLesson: d => {
@@ -1094,24 +1094,24 @@ export const reservationActionHandlers = {
           );
           if (originalReservationJson) {
             const originalReservation = JSON.parse(originalReservationJson);
-            // 元の予約情報を使用（日付とlessonIdは新しいものに更新）
+            // 元のよやく情報を使用（日付とlessonIdは新しいものに更新）
             reservationInfo = {
               ...originalReservation,
               date: foundLesson.date,
               lessonId: foundLesson.lessonId,
               classroom: foundLesson.classroom,
-              // 予約IDは含めない（新規予約として扱う）
+              // 予約IDは含めない（新規よやくとして扱う）
               reservationId: undefined,
             };
           }
         } catch (e) {
-          console.error('元の予約情報の読み込みエラー:', e);
+          console.error('元のよやく情報の読み込みエラー:', e);
         }
       }
 
       // 通常モード、または日程変更モードで元情報が取得できなかった場合
       if (!reservationInfo) {
-        // ユーザーの既存予約を検索
+        // ユーザーの既存よやくを検索
         const existingReservation = (currentState.myReservations || []).find(
           (/** @type {ReservationCore} */ res) => res.lessonId === lessonId,
         );
@@ -1173,7 +1173,7 @@ export const reservationActionHandlers = {
     }
   },
 
-  /** 予約枠一覧画面に戻ります */
+  /** よやく枠一覧画面に戻ります */
   goBackToBooking: () => {
     const targetClassroom =
       reservationStateManager.getState().currentReservationFormContext
@@ -1214,8 +1214,8 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 空き通知希望の予約を確定予約に変更します。
-   * @param {ActionHandlerData} d - 確定対象の予約情報を含むデータ
+   * 空き通知希望のよやくを確定よやくに変更します。
+   * @param {ActionHandlerData} d - 確定対象のよやく情報を含むデータ
    */
   confirmWaitlistedReservation: d => {
     const targetDate = d.date ? String(d.date) : '';
@@ -1223,7 +1223,7 @@ export const reservationActionHandlers = {
     const classroomName = d.classroom || '';
     const message = `
         <div class="text-left space-y-4">
-          <p class="text-center"><b>${formattedDate}</b><br>${classroomName}<br>空き通知希望を確定予約に変更しますか？</p>
+          <p class="text-center"><b>${formattedDate}</b><br>${classroomName}<br>空き通知希望を確定よやくに変更しますか？</p>
           <div class="pt-4 border-t">
             <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
             <textarea id="confirm-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
@@ -1231,7 +1231,7 @@ export const reservationActionHandlers = {
         </div>
       `;
     showConfirm({
-      title: '予約確定',
+      title: 'よやく確定',
       message: message,
       confirmText: '確定する',
       cancelText: 'キャンセル',
@@ -1240,12 +1240,12 @@ export const reservationActionHandlers = {
         if (
           reservationStateManager.isDataFetchInProgress('reservation-confirm')
         ) {
-          console.log('予約確定処理中のため確定をスキップ');
+          console.log('よやく確定処理中のため確定をスキップ');
           return;
         }
 
         showLoading('booking');
-        // 予約確定処理中フラグを設定
+        // よやく確定処理中フラグを設定
         reservationStateManager.setDataFetchProgress(
           'reservation-confirm',
           true,
@@ -1299,7 +1299,7 @@ export const reservationActionHandlers = {
 
         google.script.run['withSuccessHandler']((/** @type {any} */ r) => {
           hideLoading();
-          // 予約確定処理中フラグをクリア
+          // よやく確定処理中フラグをクリア
           reservationStateManager.setDataFetchProgress(
             'reservation-confirm',
             false,
@@ -1338,21 +1338,21 @@ export const reservationActionHandlers = {
                 },
               });
               showInfo(
-                '空き通知希望から予約への変更が完了しました。',
-                '予約確定',
+                '空き通知希望からよやくへの変更が完了しました。',
+                'よやく確定',
               );
               refreshParticipantsViewForAdmin();
               return;
             }
 
-            // 予約確定成功のモーダル表示
+            // よやく確定成功のモーダル表示
             showInfo(
-              '空き通知希望から予約への変更が完了しました。',
-              '予約確定',
+              '空き通知希望からよやくへの変更が完了しました。',
+              'よやく確定',
             );
 
             if (r.data) {
-              // 予約確定後は個人予約データと講座データを更新
+              // よやく確定後は個人よやくデータと講座データを更新
               const currentState = reservationStateManager.getState();
               const updatedPayload = {
                 myReservations: r.data.myReservations || [],
@@ -1391,12 +1391,12 @@ export const reservationActionHandlers = {
               });
             }
           } else {
-            showInfo(r.message || '予約確定に失敗しました。', 'エラー');
+            showInfo(r.message || 'よやく確定に失敗しました。', 'エラー');
           }
         })
           .withFailureHandler((/** @type {Error} */ error) => {
             hideLoading();
-            // エラー時も予約確定処理中フラグをクリア
+            // エラー時もよやく確定処理中フラグをクリア
             reservationStateManager.setDataFetchProgress(
               'reservation-confirm',
               false,
@@ -1409,20 +1409,20 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 予約日の変更を開始します。
-   * 元の予約情報をsessionStorageに保存し、予約画面に遷移します。
-   * @param {ActionHandlerData} d - 変更対象の予約情報を含むデータ
+   * よやく日の変更を開始します。
+   * 元のよやく情報をsessionStorageに保存し、よやく画面に遷移します。
+   * @param {ActionHandlerData} d - 変更対象のよやく情報を含むデータ
    */
   changeReservationDate: d => {
     const state = reservationStateManager.getState();
     const currentContext = state.currentReservationFormContext;
 
     if (!currentContext) {
-      showInfo('予約情報が見つかりません。', 'エラー');
+      showInfo('よやく情報が見つかりません。', 'エラー');
       return;
     }
 
-    // 元の予約情報を取得
+    // 元のよやく情報を取得
     const originalReservation = {
       reservationId: d.reservationId || '',
       ...currentContext.reservationInfo,
@@ -1437,7 +1437,7 @@ export const reservationActionHandlers = {
       );
     } catch (e) {
       console.error('セッションストレージへの保存エラー:', e);
-      showInfo('予約情報の保存に失敗しました。', 'エラー');
+      showInfo('よやく情報の保存に失敗しました。', 'エラー');
       return;
     }
 
@@ -1453,7 +1453,7 @@ export const reservationActionHandlers = {
     const targetClassroom =
       d.classroom || currentContext.lessonInfo?.classroom || '';
 
-    // 対象生徒の最新レッスン・予約を取得してから遷移（一般ユーザーと同じルートに揃える）
+    // 対象生徒の最新レッスン・よやくを取得してから遷移（一般ユーザーと同じルートに揃える）
     showLoading('booking');
     google.script.run
       .withSuccessHandler((/** @type {BatchDataResponse} */ response) => {
@@ -1502,17 +1502,17 @@ export const reservationActionHandlers = {
   },
 
   /**
-   * 日程変更を確定します（新規予約作成 + 旧予約キャンセル）。
+   * 日程変更を確定します（新規よやく作成 + 旧よやくキャンセル）。
    */
   confirmDateChange: () => {
     const ctx =
       reservationStateManager.getState().currentReservationFormContext;
     if (!ctx) {
-      showInfo('予約フォーム情報が見つかりません。', 'エラー');
+      showInfo('よやくフォーム情報が見つかりません。', 'エラー');
       return;
     }
 
-    // 元の予約情報を一度だけ取得・パース
+    // 元のよやく情報を一度だけ取得・パース
     let originalReservation;
     try {
       const originalReservationJson = sessionStorage.getItem(
@@ -1522,11 +1522,11 @@ export const reservationActionHandlers = {
         originalReservation = JSON.parse(originalReservationJson);
       }
     } catch (e) {
-      console.error('元の予約情報の読み込みエラー:', e);
+      console.error('元のよやく情報の読み込みエラー:', e);
     }
 
     if (!originalReservation || !originalReservation.reservationId) {
-      showInfo('元の予約情報が見つかりません。', 'エラー');
+      showInfo('元のよやく情報が見つかりません。', 'エラー');
       return;
     }
 
@@ -1544,7 +1544,7 @@ export const reservationActionHandlers = {
           <p class="text-center font-bold">参加日を変更しますか？</p>
           <p class="text-sm text-brand-subtle">変更前: ${oldDate} ${classroom}</p>
           <p class="text-sm text-brand-text">変更後: ${newDate} ${classroom}</p>
-          <p class="text-xs text-brand-subtle mt-2">※ 元の予約はキャンセルされ、新しい日程で予約が作成されます</p>
+          <p class="text-xs text-brand-subtle mt-2">※ 元のよやくはキャンセルされ、新しい日程でよやくが作成されます</p>
           <div class="pt-4 border-t">
             <label class="block text-sm font-bold mb-2">先生へのメッセージ（任意）</label>
             <textarea id="date-change-message" class="w-full p-2 border-2 border-ui-border rounded" rows="3" placeholder=""></textarea>
@@ -1562,7 +1562,7 @@ export const reservationActionHandlers = {
         );
         const messageToTeacher = messageInput?.value || '';
 
-        // 新規予約データを構築
+        // 新規よやくデータを構築
         const currentUser = reservationStateManager.getState().currentUser;
         const adminToken = /** @type {any} */ (currentUser)?.adminToken || '';
         if (!currentUser) {
@@ -1573,7 +1573,7 @@ export const reservationActionHandlers = {
 
         /** @type {ReservationCore} */
         const newReservationData = {
-          reservationId: '', // 新規予約のため空文字列
+          reservationId: '', // 新規よやくのため空文字列
           status: '', // バックエンドで設定される
           lessonId: String(ctx.lessonInfo.lessonId || ''),
           studentId:
@@ -1617,7 +1617,7 @@ export const reservationActionHandlers = {
           _adminToken: adminToken,
         };
 
-        // バックエンドAPIを呼び出し（新規予約 + 旧予約キャンセル）
+        // バックエンドAPIを呼び出し（新規よやく + 旧よやくキャンセル）
         google.script.run
           .withSuccessHandler((/** @type {ApiResponseGeneric} */ response) => {
             hideLoading();
@@ -1804,7 +1804,7 @@ export const reservationActionHandlers = {
     ];
     let lesson = lessonsCandidates.find(l => l.lessonId === lessonId) || null;
 
-    // 予約データから最低限のレッスン情報を復元（過去データなどでlessonsに存在しない場合）
+    // よやくデータから最低限のレッスン情報を復元（過去データなどでlessonsに存在しない場合）
     if (!lesson) {
       const fallbackReservation =
         state['participantReservationsMap']?.[String(lessonId)]?.[0];
@@ -1886,7 +1886,7 @@ export const reservationActionHandlers = {
 
   /**
 
-           * 管理者用：予約編集画面へ遷移
+           * 管理者用：よやく編集画面へ遷移
 
            * @param {ActionHandlerData} d
 
@@ -1944,7 +1944,7 @@ export const reservationActionHandlers = {
         },
       });
     } else {
-      showInfo('予約情報が見つかりません', 'エラー');
+      showInfo('よやく情報が見つかりません', 'エラー');
     }
   },
 
@@ -1959,7 +1959,7 @@ export const reservationActionHandlers = {
   showAdminAccounting: d => {
     const reservationId = d.reservationId;
     if (!reservationId) {
-      showInfo('予約情報が見つかりません', 'エラー');
+      showInfo('よやく情報が見つかりません', 'エラー');
       return;
     }
 
@@ -2027,7 +2027,7 @@ function _showParticipantListModal(reservations, lesson) {
 
   const content = `
     <div class="max-h-[60vh] overflow-y-auto">
-      ${rows.length > 0 ? rows : '<p class="p-4 text-center text-brand-subtle">予約はありません</p>'}
+      ${rows.length > 0 ? rows : '<p class="p-4 text-center text-brand-subtle">よやくはありません</p>'}
     </div>
     <div class="p-4 border-t border-ui-border">
       ${Components.button({

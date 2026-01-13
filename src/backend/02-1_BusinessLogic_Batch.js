@@ -12,7 +12,7 @@
  * 【関連モジュール】
  *   - `08_Utilities.js`: エラーハンドリング・共通処理で連携
  *   - `07_CacheManager.js`: バッチ後にキャッシュ整合性を保つための再構築を呼び出すケースがある
- *   - `05-2_Backend_Write.js`: アーカイブ対象の予約データフォーマットを共有
+ *   - `05-2_Backend_Write.js`: アーカイブ対象のよやくデータフォーマットを共有
  *
  * 【利用時の留意点】
  *   - 本番環境での実行は手動確認が必要。データ破壊的操作が含まれるため十分にバックアップを取る
@@ -123,7 +123,7 @@ export function setupTestEnvironment() {
 }
 
 /**
- * 直近60日間の会計済み予約日を取得する
+ * 直近60日間の会計済みよやく日を取得する
  * @returns {string[]} 日付文字列の配列（YYYY-MM-DD形式、降順）
  */
 export function getRecentCompletedReservationDates() {
@@ -147,7 +147,7 @@ export function getRecentCompletedReservationDates() {
       .filter(id => typeof id === 'string' && id !== '');
     const accountingDetailsMap = getAccountingDetailsMap(reservationIds);
 
-    // 会計済み予約の日付を収集
+    // 会計済みよやくの日付を収集
     const dateSet = new Set();
     completedReservations.forEach(reservation => {
       if (!reservation.date) return;
@@ -202,7 +202,7 @@ function getAccountingDetailsMap(reservationIds) {
   const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);
   if (!sheet) {
     Logger.log(
-      '[getAccountingDetailsMap] 予約シートが取得できなかったため、会計詳細を取得できません。',
+      '[getAccountingDetailsMap] よやくシートが取得できなかったため、会計詳細を取得できません。',
     );
     return resultMap;
   }
@@ -287,7 +287,7 @@ export function transferSalesLogByDate(targetDate) {
     if (!reservations || reservations.length === 0) {
       SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
       Logger.log(
-        `[transferSalesLogByDate] 対象なし: ${targetDate}の予約データがキャッシュに存在しません`,
+        `[transferSalesLogByDate] 対象なし: ${targetDate}のよやくデータがキャッシュに存在しません`,
       );
       return {
         success: true,
@@ -307,7 +307,7 @@ export function transferSalesLogByDate(targetDate) {
     if (targetReservations.length === 0) {
       SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
       Logger.log(
-        `[transferSalesLogByDate] 対象なし: ${targetDate}の会計済み予約はありません`,
+        `[transferSalesLogByDate] 対象なし: ${targetDate}の会計済みよやくはありません`,
       );
       return {
         success: true,
@@ -321,7 +321,7 @@ export function transferSalesLogByDate(targetDate) {
       .filter(id => typeof id === 'string' && id !== '');
     const accountingDetailsMap = getAccountingDetailsMap(reservationIdList);
 
-    // 各予約から売上記録を書き込み（既存の関数を再利用）
+    // 各よやくから売上記録を書き込み（既存の関数を再利用）
     let successCount = 0;
     for (const targetReservation of targetReservations) {
       try {
@@ -348,12 +348,12 @@ export function transferSalesLogByDate(targetDate) {
           successCount++;
         } else {
           Logger.log(
-            `[transferSalesLogByDate] 失敗: 予約 ${targetReservation.reservationId} - ${result.error?.message}`,
+            `[transferSalesLogByDate] 失敗: よやく ${targetReservation.reservationId} - ${result.error?.message}`,
           );
         }
       } catch (err) {
         Logger.log(
-          `[transferSalesLogByDate] 予約 ${targetReservation.reservationId} の処理で予期せぬエラー: ${err.message}`,
+          `[transferSalesLogByDate] よやく ${targetReservation.reservationId} の処理で予期せぬエラー: ${err.message}`,
         );
       }
     }
@@ -361,7 +361,7 @@ export function transferSalesLogByDate(targetDate) {
     SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
 
     Logger.log(
-      `[transferSalesLogByDate] 完了: ${targetDate}, 予約${targetReservations.length}件, 成功${successCount}件`,
+      `[transferSalesLogByDate] 完了: ${targetDate}, よやく${targetReservations.length}件, 成功${successCount}件`,
     );
 
     return {
@@ -381,10 +381,10 @@ export function transferSalesLogByDate(targetDate) {
 }
 
 /**
- * 予約シート全体をソートします（バッチ処理用）
+ * よやくシート全体をソートします（バッチ処理用）
  *
  * @description
- * 予約シートのデータを以下の順序でソートします:
+ * よやくシートのデータを以下の順序でソートします:
  * 1. 日付順（降順: 新しい日付が上）
  * 2. ステータス順（完了=確定 > 待機 > 取消）
  * 3. 開始時間順（昇順）
@@ -399,7 +399,7 @@ export function sortReservationSheet() {
 
     const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.RESERVATIONS);
     if (!sheet) {
-      const errorMsg = '予約シートが取得できませんでした';
+      const errorMsg = 'よやくシートが取得できませんでした';
       Logger.log(`[sortReservationSheet] エラー: ${errorMsg}`);
       return { success: false, message: errorMsg, sortedCount: 0 };
     }
@@ -426,7 +426,7 @@ export function sortReservationSheet() {
 
     return {
       success: true,
-      message: `予約シートをソートしました（${sortedRows.length}件）`,
+      message: `よやくシートをソートしました（${sortedRows.length}件）`,
       sortedCount: sortedRows.length,
     };
   } catch (err) {
@@ -440,7 +440,7 @@ export function sortReservationSheet() {
 }
 
 /**
- * 【トリガー関数】毎日20時に実行: 当日の会計済み予約を売上表に転載する
+ * 【トリガー関数】毎日20時に実行: 当日の会計済みよやくを売上表に転載する
  * スクリプトのトリガー設定から呼び出される
  *
  * @description
@@ -472,7 +472,7 @@ export function dailySalesTransferBatch() {
     const result = transferSalesLogByDate();
 
     Logger.log(
-      `[dailySalesTransferBatch] 完了: 予約${result.totalCount}件, 成功${result.successCount}件`,
+      `[dailySalesTransferBatch] 完了: よやく${result.totalCount}件, 成功${result.successCount}件`,
     );
 
     // LOGシートにバッチ完了を記録
@@ -496,8 +496,8 @@ export function dailySalesTransferBatch() {
 
     sendAdminNotification(emailSubject, emailBody);
 
-    // 売上転載後に予約シート全体をソート
-    Logger.log('[dailySalesTransferBatch] 予約シートソート開始');
+    // 売上転載後によやくシート全体をソート
+    Logger.log('[dailySalesTransferBatch] よやくシートソート開始');
     const sortResult = sortReservationSheet();
 
     if (sortResult.success) {

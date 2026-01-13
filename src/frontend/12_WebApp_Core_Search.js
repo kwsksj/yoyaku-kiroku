@@ -3,7 +3,7 @@
  * ファイル概要
  * -----------------------------------------------------------------
  * 名称: 12_WebApp_Core_Search.js
- * 目的: 予約・記録データを統一的に探索する検索ユーティリティを提供する
+ * 目的: よやく・記録データを統一的に探索する検索ユーティリティを提供する
  * 主な責務:
  *   - 予約IDや日付などの条件で`myReservations`を検索
  *   - 検索結果に`type`属性を付与してビュー層で扱いやすい形に整形
@@ -18,9 +18,9 @@
  */
 
 /**
- * 予約データにtype属性を付与して分類する
- * @param {ReservationCore} reservation - 予約データ
- * @returns {ReservationSearchResult} type属性付きの予約データ
+ * よやくデータにtype属性を付与して分類する
+ * @param {ReservationCore} reservation - よやくデータ
+ * @returns {ReservationSearchResult} type属性付きのよやくデータ
  */
 function categorizeReservation(reservation) {
   return {
@@ -41,7 +41,7 @@ function categorizeReservation(reservation) {
  * 予約IDで「よやく」と「きろく」を統一的に検索します
  * @param {string} reservationId - 検索対象の予約ID
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
- * @returns {ReservationSearchResult | null} 見つかった予約/記録データ、見つからない場合はnull
+ * @returns {ReservationSearchResult | null} 見つかったよやく/記録データ、見つからない場合はnull
  */
 export function findReservationById(reservationId, state = null) {
   const currentState = state || appWindow.stateManager?.getState();
@@ -90,7 +90,7 @@ export function findReservationById(reservationId, state = null) {
  * @param {string} date - 検索対象の日付 (YYYY-MM-DD)
  * @param {string} classroom - 検索対象の教室名
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
- * @returns {ReservationSearchResult | null} 見つかった予約/記録データ、見つからない場合はnull
+ * @returns {ReservationSearchResult | null} 見つかったよやく/記録データ、見つからない場合はnull
  */
 export function findReservationByDateAndClassroom(
   date,
@@ -114,10 +114,10 @@ export function findReservationByDateAndClassroom(
 }
 
 /**
- * 指定されたステータスの予約/記録を検索します
+ * 指定されたステータスのよやく/記録を検索します
  * @param {string} status - 検索対象のステータス
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
- * @returns {ReservationSearchResult[]} 条件に合致する予約/記録の配列
+ * @returns {ReservationSearchResult[]} 条件に合致するよやく/記録の配列
  */
 export function findReservationsByStatus(status, state = null) {
   const currentState = state || appWindow.stateManager?.getState();

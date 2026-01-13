@@ -2,22 +2,22 @@
  * =================================================================
  * 【ファイル名】  : 02-7_Notification_StudentReservation.js
  * 【モジュール種別】: バックエンド（GAS）
- * 【役割】        : 生徒向けの予約関連メール（確定・キャンセルなど）を生成・送信する。
+ * 【役割】        : 生徒向けのよやく関連メール（確定・キャンセルなど）を生成・送信する。
  *
  * 【主な責務】
- *   - 予約確定・キャンセル・待機通知など、ステータスに応じた件名／本文の生成
+ *   - よやく確定・キャンセル・待機通知など、ステータスに応じた件名／本文の生成
  *   - `ADMIN_EMAIL` を送信元として利用し、教室名義でメールを送る
  *   - 送信結果を `logActivity` へ記録し、失敗時には例外を発生させずログで把握できるようにする
  *
  * 【関連モジュール】
- *   - `07_CacheManager.js`: 予約データや生徒データのキャッシュ参照
- *   - `05-2_Backend_Write.js`: 予約操作後の通知で呼び出される
+ *   - `07_CacheManager.js`: よやくデータや生徒データのキャッシュ参照
+ *   - `05-2_Backend_Write.js`: よやく操作後の通知で呼び出される
  *   - `02-5_Notification_StudentSchedule.js`: 定期通知用のフォーマッタとして一部関数を共有
  *
  * 【利用時の留意点】
  *   - GmailApp を直接呼び出すため、実行アカウントの送信制限に注意
  *   - メール本文はテキスト形式を前提としている。HTML 対応する場合は追加パラメータが必要
- *   - 予約データに `user` が含まれていない場合はキャッシュ補完が必要になるので呼び出し前に準備する
+ *   - よやくデータに `user` が含まれていない場合はキャッシュ補完が必要になるので呼び出し前に準備する
  * =================================================================
  */
 
@@ -29,8 +29,8 @@ import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
 import { logActivity } from './08_Utilities.js';
 
 /**
- * 予約確定メール送信機能（ReservationCore対応）
- * @param {ReservationCore} reservation - ユーザー情報を含む予約データ
+ * よやく確定メール送信機能（ReservationCore対応）
+ * @param {ReservationCore} reservation - ユーザー情報を含むよやくデータ
  * @returns {boolean} 送信成功・失敗
  */
 export function sendBookingConfirmationEmail(reservation) {
@@ -76,7 +76,7 @@ export function sendBookingConfirmationEmail(reservation) {
     const isFirstTime = reservation.firstLecture || false;
     const emailTypeText = isWaitlisted
       ? '空き通知希望登録メール'
-      : '予約確定メール';
+      : 'よやく確定メール';
     const userTypeText = isFirstTime ? '初回者' : '経験者';
     Logger.log(`メール送信成功: ${emailAddress} (${userTypeText})`);
     logActivity(
@@ -107,7 +107,7 @@ export function sendBookingConfirmationEmail(reservation) {
 
 /**
  * メールテンプレート生成（初回者・経験者対応）
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @returns {{subject: string, textBody: string}}
  */
 export function createBookingConfirmationTemplate(reservation) {
@@ -123,7 +123,7 @@ export function createBookingConfirmationTemplate(reservation) {
     return {
       subject: 'エラー: ユーザー情報不明',
       textBody:
-        '予約情報にユーザー情報が含まれていないため、メールを生成できませんでした。',
+        'よやく情報にユーザー情報が含まれていないため、メールを生成できませんでした。',
     };
   }
 
@@ -132,11 +132,11 @@ export function createBookingConfirmationTemplate(reservation) {
   // 日付フォーマット
   const formattedDate = formatDateForEmail(date);
   const isWaitlisted = status === CONSTANTS.STATUS.WAITLISTED;
-  const statusText = isWaitlisted ? '空き通知希望' : 'ご予約';
+  const statusText = isWaitlisted ? '空き通知希望' : 'ごよやく';
 
   // 件名（テスト環境では[テスト]プレフィックス追加）
   const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
-  const subjectType = isWaitlisted ? '空き通知希望登録完了' : '予約受付完了';
+  const subjectType = isWaitlisted ? '空き通知希望登録完了' : 'よやく受付完了';
   const subject = `${subjectPrefix}【川崎誠二 木彫り教室】${subjectType}のお知らせ - ${formattedDate} ${classroom}`;
 
   if (isFirstTime) {
@@ -166,7 +166,7 @@ export function createBookingConfirmationTemplate(reservation) {
 
 /**
  * 初回者向けテキストメール生成
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {UserCore} student - ユーザー情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
@@ -191,7 +191,7 @@ export function createFirstTimeEmailText(
     [
       '初回の方にはまずは「だるま」の木彫りを制作しながら、木彫りの基本をお話します。単純な形なので、ていねいに木目と刃の入れ方についてくわしく説明しますよ！きれいな断面を出しながら、カクカクしていてそれでいてころりんとしたかたちをつくっていきます。',
       '残りの時間からは自由にお好きなものを製作していただけます。こちらは、どのような形・大きさにするかにもよりますが、初回だけでは完成まで至らない可能性が大きいので、その点はご了承ください。',
-      '予約の確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\n次回以降の予約や会計記録や参加の記録もこちらからできますよ。\nスマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！\n\n下に教室に関して連絡事項をまとめました。1度目を通しておいてください。\n他にも質問あれば、このメールに直接ご返信ください。',
+      'よやくの確認やキャンセルは、こちらのページで行えます！（私のお手製Webアプリです！）\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\n次回以降のよやくや会計記録や参加の記録もこちらからできますよ。\nスマホのブラウザで「ホームに追加」や「ブックマーク」しておくと便利です！\n\n下に教室に関して連絡事項をまとめました。1度目を通しておいてください。\n他にも質問あれば、このメールに直接ご返信ください。',
       `それではどうぞよろしくお願いいたします！\n\n川崎誠二\n09013755977\n参加当日に場所がわからないなどあれば、こちらにお電話やSMSでご連絡ください。\n\n${getContactAndVenueInfoText()}`,
     ],
   );
@@ -199,7 +199,7 @@ export function createFirstTimeEmailText(
 
 /**
  * 経験者向けテキストメール生成
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {UserCore} student - ユーザー情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
@@ -216,13 +216,13 @@ export function createRegularEmailText(
 
   const greeting = isWaitlisted
     ? `お申し込みありがとうございます！\n現在、満席のため空き通知希望として登録させていただきました。\n空きが出ましたら、ご登録いただいたメールアドレスにご連絡いたします。`
-    : `お申し込みありがとうございます！\nご予約を承りました。`;
+    : `お申し込みありがとうございます！\nごよやくを承りました。`;
 
   return _composeStudentEmail(
     [`${displayName}さま`, greeting],
     [_buildBookingDetailsSection(reservation, formattedDate, statusText)],
     [
-      '予約の確認やキャンセルは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nメール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。\nまた次回以降の予約や会計記録や参加の記録もこちらからできます。\nスマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！\n\n何かご不明点があれば、このメールに直接ご返信ください。',
+      'よやくの確認やキャンセルは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)\n\nメール連絡が不要な場合は、上記のページでログイン後にプロフィール編集で設定を変更できます。\nまた次回以降のよやくや会計記録や参加の記録もこちらからできます。\nスマホのブラウザで【きぼりのよやく・きろく】ページを「ホームに追加」や「ブックマーク」しておくと便利です！\n\n何かご不明点があれば、このメールに直接ご返信ください。',
       `それではどうぞよろしくお願いいたします！\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n\n${getContactAndVenueInfoText()}`,
     ],
   );
@@ -324,7 +324,7 @@ export function getTuitionDisplayText(classroom) {
 
 /**
  * 共通の申込み内容セクション生成（テキスト版）
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
  * @returns {string} 申込み内容テキスト
@@ -466,7 +466,7 @@ X (Twitter) @kibori_class
 function _buildBookingDetailsSection(reservation, formattedDate, statusText) {
   const { classroom, venue, startTime, endTime } = reservation;
 
-  let timeDisplay = '予約webアプリ上か、各教室のページなどをご確認ください';
+  let timeDisplay = 'よやくwebアプリ上か、各教室のページなどをご確認ください';
   if (startTime && endTime) {
     timeDisplay = `${startTime} - ${endTime}`;
   }
@@ -519,8 +519,8 @@ function _buildSection(title, lines) {
 }
 
 /**
- * 予約関連メール送信（統一インターフェース）
- * @param {ReservationCore} reservation - 予約データ
+ * よやく関連メール送信（統一インターフェース）
+ * @param {ReservationCore} reservation - よやくデータ
  * @param {'confirmation'|'cancellation'} emailType - メール種別
  * @param {string} [cancelMessage] - キャンセル理由（cancellationの場合のみ）
  */
@@ -569,7 +569,7 @@ export function sendReservationEmailAsync(
       const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
       const emailTypeText = isWaitlisted
         ? '空き通知希望登録メール'
-        : '予約確定メール';
+        : 'よやく確定メール';
       const userTypeText = isFirstTime ? '初回者' : '経験者';
       Logger.log(
         `${emailTypeText}送信完了: ${studentId} (${userTypeText}, 予約ID: ${reservation.reservationId})`,
@@ -589,7 +589,7 @@ export function sendReservationEmailAsync(
 
 /**
  *キャンセル確認メール送信（実装）
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {string} [cancelMessage] - キャンセル理由
  * @returns {boolean} 送信成功・失敗
  */
@@ -672,7 +672,7 @@ export function sendCancellationEmail(reservation, cancelMessage) {
 
 /**
  *キャンセル確認メール本文生成
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} [cancelMessage] - キャンセル理由
  * @returns {string} メール本文テキスト
@@ -691,7 +691,7 @@ export function _createCancellationEmailText(
   const { classroom, venue, startTime, endTime } = reservation;
 
   // 時間表示
-  let timeDisplay = '予約webアプリ上をご確認ください';
+  let timeDisplay = 'よやくwebアプリ上をご確認ください';
   if (startTime && endTime) {
     timeDisplay = `${startTime} - ${endTime}`;
   }
@@ -702,7 +702,7 @@ export function _createCancellationEmailText(
     : '';
 
   const sections = [
-    _buildSection('【キャンセルされた予約】', [
+    _buildSection('【キャンセルされたよやく】', [
       `教室: ${classroom} ${venue}`,
       `日付: ${formattedDate}`,
       `時間: ${timeDisplay}`,
@@ -718,12 +718,12 @@ export function _createCancellationEmailText(
   ].filter(Boolean);
 
   const tail = [
-    '予約の確認や新しい予約は、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)',
+    'よやくの確認や新しいよやくは、こちらのページで行えます：\n【きぼりのよやく・きろく】(https://www.kibori-class.net/booking)',
     `またのご参加をお待ちしております。\n何かご不明点があれば、このメールに直接ご返信ください。\n\n川崎誠二\nEmail: shiawasenahito3000@gmail.com\nTel: 09013755977\n${getContactAndVenueInfoText()}`,
   ];
 
   return _composeStudentEmail(
-    [`${displayName}さま`, '予約のキャンセルを承りました。'],
+    [`${displayName}さま`, 'よやくのキャンセルを承りました。'],
     sections,
     tail,
   );

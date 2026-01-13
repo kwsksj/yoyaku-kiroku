@@ -2,22 +2,22 @@
  * =================================================================
  * 【ファイル名】  : 05-2_Backend_Write.gs
  * 【モジュール種別】: バックエンド（GAS）
- * 【役割】        : WebApp からの書き込み系リクエスト（予約作成・更新・キャンセル等）を一括処理する。
+ * 【役割】        : WebApp からの書き込み系リクエスト（よやく作成・更新・キャンセル等）を一括処理する。
  *
  * 【主な責務】
- *   - 予約情報の CRUD とキャッシュ更新（`addReservationToCache` / `updateReservationInCache` 連携）
+ *   - よやく情報の CRUD とキャッシュ更新（`addReservationToCache` / `updateReservationInCache` 連携）
  *   - 日程／定員チェック、キャンセル待ち繰り上げなどのビジネスルール適用
  *   - 会計情報の確定処理と売上ログ出力（別スプレッドシートへの書き込み）
- *   - 管理者通知・予約者メール送信など副作用の編成
+ *   - 管理者通知・よやく者メール送信など副作用の編成
  *
  * 【関連モジュール】
  *   - `07_CacheManager.js`: キャッシュ取得やヘッダー操作
  *   - `08_ErrorHandler.js`: API レスポンスの生成と統一的なエラーハンドリング
- *   - `05-3_Backend_AvailableSlots.js`: 空き枠再計算や予約者向けデータの再取得
+ *   - `05-3_Backend_AvailableSlots.js`: 空き枠再計算やよやく者向けデータの再取得
  *   - `02-6_Notification_Admin.js` / `02-7_Notification_StudentReservation.js`: 通知系機能
  *
  * 【利用時の留意点】
- *   - 予約関連の公開関数はすべて `withTransaction` で排他制御される想定。呼び出し側は重複トランザクションを避ける
+ *   - よやく関連の公開関数はすべて `withTransaction` で排他制御される想定。呼び出し側は重複トランザクションを避ける
  *   - キャッシュ未整備時に備え、`getLessons()` などの戻り値は `success` と `data` を確認してから使用する
  *   - 追加の副作用（メール・通知）を拡張する場合は、例外が主処理へ影響しないよう try-catch で囲む
  * =================================================================
@@ -89,10 +89,10 @@ function normalizeErrorResponse(errorResponse) {
 }
 
 /**
- * 指定したユーザーが同一日に予約を持っているかチェックする共通関数。
+ * 指定したユーザーが同一日によやくを持っているかチェックする共通関数。
  * @param {string} studentId - 学生ID
  * @param {string} date - 日付（YYYY-MM-DD形式）
- * @returns {boolean} - 同一日に有効な予約がある場合true
+ * @returns {boolean} - 同一日に有効なよやくがある場合true
  */
 export function checkDuplicateReservationOnSameDay(studentId, date) {
   try {
@@ -149,7 +149,7 @@ export function checkDuplicateReservationOnSameDay(studentId, date) {
 function _checkDuplicateReservationByScan(studentId, date) {
   const reservationsCache = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
   if (!reservationsCache?.['reservations']) {
-    Logger.log('予約キャッシュデータが見つかりません');
+    Logger.log('よやくキャッシュデータが見つかりません');
     return false;
   }
 
@@ -208,7 +208,7 @@ function _checkDuplicateReservationByScan(studentId, date) {
  * @param {string} date - 日付
  * @param {string} startTime - 開始時間
  * @param {string} endTime - 終了時間
- * @param {boolean} [isFirstLecture=false] - 初回予約の場合true
+ * @param {boolean} [isFirstLecture=false] - 初回よやくの場合true
  * @returns {boolean} - 定員超過の場合true
  */
 export function checkCapacityFull(
@@ -250,15 +250,15 @@ export function checkCapacityFull(
       ? getReservationsByIdsFromCache(reservationIds)
       : [];
 
-    // フォールバック: reservationIdsがあるのに予約が取得できない場合のみ、lessonIdで全予約を検索
-    // （reservationIdsが空の場合は本当に予約がないので、フォールバック不要）
+    // フォールバック: reservationIdsがあるのによやくが取得できない場合のみ、lessonIdで全よやくを検索
+    // （reservationIdsが空の場合は本当によやくがないので、フォールバック不要）
     if (
       reservations.length === 0 &&
       reservationIds.length > 0 &&
       targetLesson.lessonId
     ) {
       Logger.log(
-        `[checkCapacityFull] reservationIds(${reservationIds.length}件)から予約取得失敗。lessonIdでフォールバック検索: ${targetLesson.lessonId}`,
+        `[checkCapacityFull] reservationIds(${reservationIds.length}件)からよやく取得失敗。lessonIdでフォールバック検索: ${targetLesson.lessonId}`,
       );
       const allReservations = getCachedReservationsAsObjects();
       reservations = allReservations.filter(
@@ -285,7 +285,7 @@ export function checkCapacityFull(
 
     let isFull = false;
 
-    // 初回予約の場合は初回者枠をチェック
+    // 初回よやくの場合は初回者枠をチェック
     if (
       isFirstLecture &&
       slots.beginner !== null &&
@@ -320,17 +320,17 @@ export function checkCapacityFull(
         }
 
         if (isMorningRequest && isAfternoonRequest) {
-          // 両方のセッションにまたがる予約の場合、どちらか一方が満席ならNG
+          // 両方のセッションにまたがるよやくの場合、どちらか一方が満席ならNG
           isFull = (slots.first || 0) <= 0 || (slots.second || 0) <= 0;
         } else if (isMorningRequest) {
-          // 午前のみの予約
+          // 午前のみのよやく
           isFull = (slots.first || 0) <= 0;
         } else if (isAfternoonRequest) {
-          // 午後のみの予約
+          // 午後のみのよやく
           isFull = (slots.second || 0) <= 0;
         } else {
-          // 予約がセッション時間外の場合 (例: 休憩時間内)
-          // この予約は不正だが、ここでは満席とは扱わず、後続のバリデーションに任せる
+          // よやくがセッション時間外の場合 (例: 休憩時間内)
+          // このよやくは不正だが、ここでは満席とは扱わず、後続のバリデーションに任せる
           isFull = false;
         }
       } else {
@@ -346,7 +346,7 @@ export function checkCapacityFull(
     return isFull;
   } catch (error) {
     Logger.log(`checkCapacityFull エラー: ${error.message}`);
-    return false; // エラー時は予約を通す（保守的な動作）
+    return false; // エラー時はよやくを通す（保守的な動作）
   }
 }
 
@@ -437,7 +437,7 @@ function _checkCapacityFullLegacy(
 }
 
 /**
- * 時間制予約の時刻に関する検証を行うプライベートヘルパー関数。
+ * 時間制よやくの時刻に関する検証を行うプライベートヘルパー関数。
  * @param {string} startTime - 開始時刻 (HH:mm)。
  * @param {string} endTime - 終了時刻 (HH:mm)。
  * @param {LessonCore} scheduleRule - 日程マスタから取得した日程情報。
@@ -458,7 +458,7 @@ export function _validateTimeBasedReservation(
 
   const durationMinutes = (end.getTime() - start.getTime()) / 60000;
   if (durationMinutes < 120) {
-    throw new Error('最低予約時間は2時間です。');
+    throw new Error('最低よやく時間は2時間です。');
   }
 
   const scheduleData = scheduleRule;
@@ -477,18 +477,18 @@ export function _validateTimeBasedReservation(
   if (breakStart && breakEnd) {
     if (start >= breakStart && start < breakEnd)
       throw new Error(
-        `予約の開始時刻（${startTime}）を休憩時間内に設定することはできません。`,
+        `よやくの開始時刻（${startTime}）を休憩時間内に設定することはできません。`,
       );
     if (end > breakStart && end <= breakEnd)
       throw new Error(
-        `予約の終了時刻（${endTime}）を休憩時間内に設定することはできません。`,
+        `よやくの終了時刻（${endTime}）を休憩時間内に設定することはできません。`,
       );
   }
 }
 
 /**
  * 【内部関数】ReservationCoreオブジェクトをシートに書き込み、キャッシュを更新する
- * @param {ReservationCore} reservation - 保存する完全な予約オブジェクト
+ * @param {ReservationCore} reservation - 保存する完全なよやくオブジェクト
  * @param {'create' | 'update'} mode - 'create'なら新規追加、'update'なら上書き
  * @returns {{newRowData: RawSheetRow, headerMap: HeaderMapType}} 保存された行データとヘッダーマップ
  */
@@ -527,7 +527,7 @@ export function _saveReservationCoreToSheet(reservation, mode) {
         .setValues([newRowData]);
     } else {
       throw new Error(
-        `更新対象の予約が見つかりません: ${reservation.reservationId}`,
+        `更新対象のよやくが見つかりません: ${reservation.reservationId}`,
       );
     }
   }
@@ -642,9 +642,9 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
 }
 
 /**
- * 予約を実行します（Phase 8: Core型統一対応）
+ * よやくを実行します（Phase 8: Core型統一対応）
  *
- * @param {ReservationCore} reservationInfo - 予約作成リクエスト（Core型）。reservationId/statusはundefined可
+ * @param {ReservationCore} reservationInfo - よやく作成リクエスト（Core型）。reservationId/statusはundefined可
  * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  *
  * @example
@@ -696,7 +696,7 @@ export function makeReservation(reservationInfo) {
         );
       }
 
-      // 時間制予約（30分単位）の場合の検証
+      // 時間制よやく（30分単位）の場合の検証
       if (
         scheduleRule &&
         scheduleRule.classroomType === CONSTANTS.UNITS.THIRTY_MIN
@@ -708,18 +708,18 @@ export function makeReservation(reservationInfo) {
         );
       }
 
-      // 同一日重複予約チェック
+      // 同一日重複よやくチェック
       const hasDuplicateReservation = checkDuplicateReservationOnSameDay(
         reservationInfo.studentId,
         reservationInfo.date,
       );
       if (hasDuplicateReservation) {
         throw new Error(
-          '同じ日には一つの予約しか登録できません。既存の予約を編集・削除してください。',
+          '同じ日には一つのよやくしか登録できません。既存のよやくを編集・削除してください。',
         );
       }
       Logger.log(
-        `[makeReservation] 重複予約チェック完了: ${reservationInfo.studentId} ${reservationInfo.date} - 重複なし`,
+        `[makeReservation] 重複よやくチェック完了: ${reservationInfo.studentId} ${reservationInfo.date} - 重複なし`,
       );
 
       // 【パフォーマンス対策】シートアクセス前に事前ウォームアップ
@@ -740,7 +740,7 @@ export function makeReservation(reservationInfo) {
 
       // 完全なReservationCoreオブジェクトを構築
       const createdReservationId = Utilities.getUuid();
-      // 処理時点の空き状況でステータスを決定（空きがあれば予約確定、なければ空き通知登録）
+      // 処理時点の空き状況でステータスを決定（空きがあればよやく確定、なければ空き通知登録）
       const status = isFull
         ? CONSTANTS.STATUS.WAITLISTED
         : CONSTANTS.STATUS.CONFIRMED;
@@ -767,7 +767,7 @@ export function makeReservation(reservationInfo) {
       const reservationWithUser = getReservationCoreById(createdReservationId);
 
       if (!reservationWithUser) {
-        // キャッシュ再取得に失敗した場合でも、予約自体は成功している可能性があるため、
+        // キャッシュ再取得に失敗した場合でも、よやく自体は成功している可能性があるため、
         // 限定的な情報でログを残し、処理は成功として終了する。
         Logger.log(
           `[makeReservation] 警告: キャッシュからの再取得に失敗。ReservationID: ${createdReservationId}`,
@@ -780,7 +780,7 @@ export function makeReservation(reservationInfo) {
             classroom: reservationInfo.classroom,
             reservationId: createdReservationId,
             date: reservationInfo.date,
-            message: '予約が完了（キャッシュ再取得失敗）',
+            message: 'よやくが完了（キャッシュ再取得失敗）',
             details: {
               警告: 'キャッシュからの再取得に失敗',
               備考: '詳細はシート確認',
@@ -789,7 +789,7 @@ export function makeReservation(reservationInfo) {
         );
         // この場合、通知はスキップされる
         return createApiResponse(true, {
-          message: '予約は作成されましたが、通知処理中に問題が発生しました。',
+          message: 'よやくは作成されましたが、通知処理中に問題が発生しました。',
         });
       }
 
@@ -798,7 +798,7 @@ export function makeReservation(reservationInfo) {
         reservationWithUser.status === CONSTANTS.STATUS.WAITLISTED;
       const message = isNowWaiting
         ? '満席のため、空き通知希望で登録しました。'
-        : '予約が完了しました。';
+        : 'よやくが完了しました。';
 
       const actionType = isNowWaiting
         ? CONSTANTS.LOG_ACTIONS.RESERVATION_WAITLIST
@@ -832,12 +832,12 @@ export function makeReservation(reservationInfo) {
       // 管理者通知（統一関数使用）
       sendAdminNotificationForReservation(reservationWithUser, 'created');
 
-      // 予約確定メール送信（統一インターフェース使用）
+      // よやく確定メール送信（統一インターフェース使用）
       Utilities.sleep(100); // 短い待機
       try {
         sendReservationEmailAsync(reservationWithUser, 'confirmation');
       } catch (emailError) {
-        Logger.log(`メール送信エラー（予約は成功）: ${emailError.message}`);
+        Logger.log(`メール送信エラー（よやくは成功）: ${emailError.message}`);
       }
 
       return createApiResponse(true, {
@@ -853,7 +853,7 @@ export function makeReservation(reservationInfo) {
           classroom: reservationInfo.classroom,
           reservationId: '',
           date: reservationInfo.date,
-          message: '予約作成に失敗しました',
+          message: 'よやく作成に失敗しました',
           details: {
             エラー: err.message,
             スタック: err.stack,
@@ -872,9 +872,9 @@ ${err.stack}`);
 }
 
 /**
- * 予約をキャンセルします（Core型オブジェクト中心設計）
+ * よやくをキャンセルします（Core型オブジェクト中心設計）
  *
- * @param {import('../../types/core/reservation').CancelReservationParams} cancelInfo - 予約キャンセル情報。`reservationId`と`studentId`は必須。`cancelMessage`は任意。
+ * @param {import('../../types/core/reservation').CancelReservationParams} cancelInfo - よやくキャンセル情報。`reservationId`と`studentId`は必須。`cancelMessage`は任意。
  * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  */
 export function cancelReservation(cancelInfo) {
@@ -901,7 +901,7 @@ export function cancelReservation(cancelInfo) {
         existingReservation
       );
 
-      // 2. キャンセル後の新しい予約オブジェクトを構築
+      // 2. キャンセル後の新しいよやくオブジェクトを構築
       /** @type {ReservationCore} */
       const cancelledReservation = {
         ...validReservation,
@@ -924,7 +924,7 @@ export function cancelReservation(cancelInfo) {
       const isAdminOp = !!_isByAdmin;
       const adminUserId = isAdminOp && _adminToken ? _adminToken : null;
       const logMessage = isAdminOp
-        ? `【管理者操作】予約をキャンセルしました${adminUserId ? `（操作者: ${adminUserId}）` : ''}`
+        ? `【管理者操作】よやくをキャンセルしました${adminUserId ? `（操作者: ${adminUserId}）` : ''}`
         : cancelMessage || '';
 
       // ログ記録用のアクションタイプを決定
@@ -951,7 +951,7 @@ export function cancelReservation(cancelInfo) {
         if (cancelledReservation.lessonId) {
           notifyAvailabilityToWaitlistedUsers(
             cancelledReservation.lessonId,
-            validReservation, // 元の予約データ
+            validReservation, // 元のよやくデータ
           );
         } else {
           Logger.log(
@@ -983,7 +983,9 @@ export function cancelReservation(cancelInfo) {
         );
       }
 
-      return createApiResponse(true, { message: '予約をキャンセルしました。' });
+      return createApiResponse(true, {
+        message: 'よやくをキャンセルしました。',
+      });
     } catch (err) {
       logActivity(
         cancelInfo.studentId || 'N/A', // エラー発生時はcancelInfoから取得を試みる
@@ -1009,7 +1011,7 @@ ${err.stack}`);
 /**
  * キャンセル後の空き通知希望者への通知機能
  * @param {string} lessonId - レッスンID
- * @param {ReservationCore} _cancelledReservation - キャンセルされた予約データ（将来の拡張用）
+ * @param {ReservationCore} _cancelledReservation - キャンセルされたよやくデータ（将来の拡張用）
  */
 export function notifyAvailabilityToWaitlistedUsers(
   lessonId,
@@ -1151,7 +1153,7 @@ export function notifyAvailabilityToWaitlistedUsers(
 /**
  * 空き通知対象のユーザーリストを取得
  * @param {LessonCore} lessonWithSlots - 空き枠を含むレッスン情報
- * @param {ReservationCore[]} reservationsForLesson - 対象レッスンの予約一覧
+ * @param {ReservationCore[]} reservationsForLesson - 対象レッスンのよやく一覧
  * @returns {Array<{studentId: string, email: string, realName: string, isFirstTime: boolean}>}
  */
 export function getWaitlistedUsersForNotification(
@@ -1164,13 +1166,13 @@ export function getWaitlistedUsersForNotification(
     return [];
   }
 
-  // 予約一覧から待機中のもののみフィルタリング
+  // よやく一覧から待機中のもののみフィルタリング
   const waitlistedReservations = reservationsForLesson.filter(
     r => r.status === CONSTANTS.STATUS.WAITLISTED,
   );
 
   if (waitlistedReservations.length === 0) {
-    Logger.log('待機リストに予約がありません。');
+    Logger.log('待機リストによやくがありません。');
     return [];
   }
 
@@ -1183,7 +1185,7 @@ export function getWaitlistedUsersForNotification(
       const studentId = reservation.studentId;
       const isFirstTime = reservation.firstLecture;
 
-      // 予約内容と現在の空き枠を突き合わせて通知対象か判定
+      // よやく内容と現在の空き枠を突き合わせて通知対象か判定
       if (_canNotifyWaitlistedReservation(reservation, lessonWithSlots)) {
         // 生徒情報を取得
         const studentInfo = /** @type {UserCore} */ (
@@ -1210,7 +1212,7 @@ export function getWaitlistedUsersForNotification(
 }
 
 /**
- * 待機中予約が現在の枠で予約可能かを判定
+ * 待機中よやくが現在の枠でよやく可能かを判定
  * @param {ReservationCore} reservation
  * @param {LessonCore} lessonWithSlots
  * @returns {boolean}
@@ -1239,7 +1241,7 @@ function _canNotifyWaitlistedReservation(reservation, lessonWithSlots) {
     return beginnerSlots > 0;
   }
 
-  // 2部制の場合は予約時間帯に応じて判定
+  // 2部制の場合はよやく時間帯に応じて判定
   if (lessonWithSlots.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL) {
     const reqStart = reservation.startTime
       ? new Date(`1900-01-01T${reservation.startTime}`)
@@ -1296,10 +1298,10 @@ export function createAvailabilityNotificationEmail(recipient, lesson) {
   );
 
   let body = `${recipient.realName}様\n\n`;
-  body += `ご希望の ${dateFormatted} ${lesson.classroom} の予約に空きが出ましたのでお知らせいたします。\n\n`;
-  body += `下記URLよりログインし、予約の確定をお願いいたします。\n`;
+  body += `ご希望の ${dateFormatted} ${lesson.classroom} のよやくに空きが出ましたのでお知らせいたします。\n\n`;
+  body += `下記URLよりログインし、よやくの確定をお願いいたします。\n`;
   body += `${appUrl}\n\n`;
-  body += `※このメールは空席の確保を保証するものではありません。他の方が先に予約を確定された場合、再度満席となることがございますのでご了承ください。\n\n`;
+  body += `※このメールは空席の確保を保証するものではありません。他の方が先によやくを確定された場合、再度満席となることがございますのでご了承ください。\n\n`;
   body += `--------------------\n`;
   body += `きぼりのよやく・きろく\n`;
   body += `川崎 誠二\n`;
@@ -1310,9 +1312,9 @@ export function createAvailabilityNotificationEmail(recipient, lesson) {
 }
 
 /**
- * 予約の詳細情報を一括で更新します（Core型オブジェクト中心設計）
+ * よやくの詳細情報を一括で更新します（Core型オブジェクト中心設計）
  *
- * @param {ReservationCore} details - 予約更新リクエスト。`reservationId`と更新したいフィールドのみを持つ部分的な`ReservationCore`オブジェクト。
+ * @param {ReservationCore} details - よやく更新リクエスト。`reservationId`と更新したいフィールドのみを持つ部分的な`ReservationCore`オブジェクト。
  * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果
  */
 export function updateReservationDetails(details) {
@@ -1325,7 +1327,7 @@ export function updateReservationDetails(details) {
     /** @type {string | null} */
     let effectiveLessonId = null;
     try {
-      // 1. 既存の予約データをCore型オブジェクトとして取得
+      // 1. 既存のよやくデータをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(details.reservationId);
 
       const { _isByAdmin, _adminToken } = details;
@@ -1339,7 +1341,7 @@ export function updateReservationDetails(details) {
         existingReservation
       );
 
-      // 2. 更新内容をマージして、新しい予約オブジェクトを構築
+      // 2. 更新内容をマージして、新しいよやくオブジェクトを構築
       /** @type {ReservationCore} */
       const updatedReservation = {
         ...validReservation,
@@ -1363,7 +1365,7 @@ export function updateReservationDetails(details) {
         updatedReservation.classroom,
       );
 
-      // 時間制予約（30分単位）の場合の検証
+      // 時間制よやく（30分単位）の場合の検証
       if (
         scheduleRule &&
         scheduleRule.classroomType === CONSTANTS.UNITS.THIRTY_MIN
@@ -1375,7 +1377,7 @@ export function updateReservationDetails(details) {
         );
       }
 
-      // --- 定員チェック（予約更新時） ---
+      // --- 定員チェック（よやく更新時） ---
       const lessonIdFromDetails =
         typeof details.lessonId === 'string' ? details.lessonId : undefined;
       const lessonIdFromSchedule =
@@ -1428,7 +1430,7 @@ export function updateReservationDetails(details) {
         availabilityLookupMode = 'fallback-getLessons';
         const lessonsResponse = getLessons();
         if (!lessonsResponse.success || !lessonsResponse.data) {
-          throw new Error('空き状況の取得に失敗し、予約を更新できません。');
+          throw new Error('空き状況の取得に失敗し、よやくを更新できません。');
         }
         /** @type {LessonCore[]} */
         const lessonsData = /** @type {LessonCore[]} */ (lessonsResponse.data);
@@ -1449,7 +1451,7 @@ export function updateReservationDetails(details) {
         targetLesson &&
         targetLesson.classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL
       ) {
-        // 自分自身の予約を除外して空き状況を計算
+        // 自分自身のよやくを除外して空き状況を計算
         let oldMorningOccupied = false;
         let oldAfternoonOccupied = false;
         if (
@@ -1498,7 +1500,7 @@ export function updateReservationDetails(details) {
 
         if (!canFit) {
           throw new Error(
-            '満席のため、ご希望の時間帯に予約を変更することはできません。',
+            '満席のため、ご希望の時間帯によやくを変更することはできません。',
           );
         }
       }
@@ -1528,7 +1530,7 @@ export function updateReservationDetails(details) {
       const messageToTeacher = updatedReservation.messageToTeacher || '';
       const updateDetails = messageToTeacher
         ? `メッセージが更新されました: ${messageToTeacher}`
-        : '予約詳細が更新されました';
+        : 'よやく詳細が更新されました';
       sendAdminNotificationForReservation(updatedReservation, 'updated', {
         updateDetails,
       });
@@ -1561,7 +1563,7 @@ export function updateReservationDetails(details) {
       );
 
       return createApiResponse(true, {
-        message: '予約内容を更新しました。',
+        message: 'よやく内容を更新しました。',
         data: {
           myReservations: latestMyReservations,
           lessons: latestLessons,
@@ -1574,7 +1576,7 @@ ${err.stack}`,
       );
       // studentIdが取得できない場合もあるため、detailsから取得を試みる
       const studentIdForLog = details.studentId || '(不明)';
-      logActivity(studentIdForLog, '予約詳細更新', CONSTANTS.MESSAGES.ERROR, {
+      logActivity(studentIdForLog, 'よやく詳細更新', CONSTANTS.MESSAGES.ERROR, {
         details: {
           エラー: err.message,
         },
@@ -1594,7 +1596,7 @@ ${err.stack}`,
  * [設計思想] フロントエンドは「ユーザーが何を選択したか」という入力情報のみを渡し、
  * バックエンドが料金マスタと照合して金額を再計算・検証する責務を持つ。
  * この関数は、会計処理が完了したReservationCoreオブジェクトを受け取り、永続化する責務を持つ。
- * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
+ * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新されたよやくオブジェクト。
  * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果。
  */
 export function saveAccountingDetails(reservationWithAccounting) {
@@ -1616,7 +1618,7 @@ export function saveAccountingDetails(reservationWithAccounting) {
         );
       }
 
-      // 1. 既存の予約データをCore型オブジェクトとして取得
+      // 1. 既存のよやくデータをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(reservationId);
 
       const { _isByAdmin, _adminToken } = reservationWithAccounting;
@@ -1739,12 +1741,12 @@ ${err.stack}`);
 /**
  * 会計情報を修正します（当日20時まで可能）
  *
- * @param {ReservationCore} reservationWithUpdatedAccounting - 修正後の会計情報を含む予約オブジェクト。
+ * @param {ReservationCore} reservationWithUpdatedAccounting - 修正後の会計情報を含むよやくオブジェクト。
  * @returns {ApiResponseGeneric<{ message: string }>} - 処理結果。
  *
  * @description
  * 既存の会計データを修正する機能。修正締切（20時）までのみ実行可能。
- * 売上表への転載は20時のバッチ処理で行われるため、ここでは予約シートの更新のみを行う。
+ * 売上表への転載は20時のバッチ処理で行われるため、ここではよやくシートの更新のみを行う。
  * これにより、何度修正しても売上表に影響を与えずに修正が可能。
  */
 export function updateAccountingDetails(reservationWithUpdatedAccounting) {
@@ -1757,7 +1759,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
         throw new Error('会計修正に必要な情報が不足しています。');
       }
 
-      // 1. 既存の予約データをCore型オブジェクトとして取得
+      // 1. 既存のよやくデータをCore型オブジェクトとして取得
       const existingReservation = getReservationCoreById(reservationId);
 
       // 2. 権限チェック (共通関数を使用)
@@ -1774,7 +1776,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
 
       // 3. ステータスチェック：会計済み（完了）のみ修正可能
       if (validReservation.status !== CONSTANTS.STATUS.COMPLETED) {
-        throw new Error('会計処理が完了していない予約は修正できません。');
+        throw new Error('会計処理が完了していないよやくは修正できません。');
       }
 
       // 4. 時刻チェック：当日20時までのみ修正可能（管理者は例外）
@@ -1786,7 +1788,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
         const reservationDate = new Date(date || validReservation.date);
         const now = new Date();
 
-        // 予約日が今日でない場合はエラー
+        // よやく日が今日でない場合はエラー
         const todayStr = Utilities.formatDate(
           now,
           CONSTANTS.TIMEZONE,
@@ -1821,7 +1823,7 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
         // ステータスは「完了」のまま維持
       };
 
-      // 6. 予約シートに保存（売上表への転載は20時のバッチ処理で行う）
+      // 6. よやくシートに保存（売上表への転載は20時のバッチ処理で行う）
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
       // 7. ログと通知
@@ -1901,7 +1903,7 @@ ${err.stack}`);
  * ただし、バッチ処理等で成否を知る必要があるため、戻り値で結果を返す。
  *
  * @private
- * @param {ReservationCore} reservation - 売上ログを生成する対象の予約オブジェクト
+ * @param {ReservationCore} reservation - 売上ログを生成する対象のよやくオブジェクト
  * @param {AccountingDetailsCore} accountingDetails - 計算済みの会計詳細オブジェクト。
  * @returns {{ success: boolean, error?: Error }} 処理結果
  */
@@ -2009,7 +2011,7 @@ export function getScheduleInfoForDate(date, classroom) {
 }
 
 /**
- * 空き通知希望の予約を確定する
+ * 空き通知希望のよやくを確定する
  * @param {{reservationId: string, studentId: string, messageToTeacher?: string, _isByAdmin?: boolean, _adminToken?: string | null}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric<any>} 処理結果と最新データ
  */
@@ -2018,7 +2020,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
     try {
       const { reservationId, studentId, messageToTeacher } = confirmInfo;
 
-      // ★改善: getReservationCoreByIdを使用して予約情報を一行で取得
+      // ★改善: getReservationCoreByIdを使用してよやく情報を一行で取得
       const targetReservation = getReservationCoreById(reservationId);
 
       const { _isByAdmin, _adminToken } = confirmInfo;
@@ -2034,7 +2036,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
 
       // 現在のステータスが空き通知希望（待機）かチェック
       if (validReservation.status !== CONSTANTS.STATUS.WAITLISTED) {
-        throw new Error('この予約は空き通知希望ではありません。');
+        throw new Error('このよやくは空き通知希望ではありません。');
       }
 
       // 定員チェック（現在空席があるかチェック）
@@ -2049,7 +2051,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
         throw new Error('現在満席のため確定できません。');
       }
 
-      // 更新後の予約オブジェクトを構築
+      // 更新後のよやくオブジェクトを構築
       /** @type {ReservationCore} */
       const updatedReservation = {
         ...validReservation,
@@ -2084,7 +2086,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
       // 管理者通知
       sendAdminNotificationForReservation(updatedReservation, 'updated');
 
-      // 最新の予約データを取得して返却
+      // 最新のよやくデータを取得して返却
       /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */
       const userReservationsResult = getUserReservations(studentId);
       const latestMyReservations =
@@ -2102,7 +2104,7 @@ export function confirmWaitlistedReservation(confirmInfo) {
           : [];
 
       return createApiResponse(true, {
-        message: '予約を確定しました。',
+        message: 'よやくを確定しました。',
         data: {
           myReservations: latestMyReservations,
           lessons: latestLessons,
@@ -2131,7 +2133,7 @@ ${err.stack}`,
 /**
  * 指定した予約IDと日付の売上ログが既に記録されているか確認
  * @param {string} reservationId - 予約ID
- * @param {string} _date - 予約日（YYYY-MM-DD形式）※未使用（将来の拡張用）
+ * @param {string} _date - よやく日（YYYY-MM-DD形式）※未使用（将来の拡張用）
  * @returns {boolean} 既に記録されている場合はtrue
  */
 export function checkIfSalesAlreadyLogged(reservationId, _date) {

@@ -61,7 +61,7 @@ let wizardState = /** @type {SessionConclusionState} */ ({
 
 /**
  * 次回のおすすめレッスンを探す（3週間後以降、同じ曜日タイプ、同じ教室・会場）
- * @param {ReservationCore} currentReservation - 今日の予約データ
+ * @param {ReservationCore} currentReservation - 今日のよやくデータ
  * @returns {LessonCore | null} おすすめのレッスン、見つからなければnull
  */
 function findRecommendedNextLesson(currentReservation) {
@@ -127,7 +127,7 @@ function findRecommendedNextLesson(currentReservation) {
 export function startSessionConclusion(reservationId) {
   const state = conclusionStateManager.getState();
 
-  // 今日の予約を検索
+  // 今日のよやくを検索
   /** @type {ReservationCore | undefined} */
   let currentReservation;
 
@@ -151,7 +151,7 @@ export function startSessionConclusion(reservationId) {
   }
 
   if (!currentReservation) {
-    window.showInfo?.('予約データが見つかりませんでした。', 'エラー');
+    window.showInfo?.('よやくデータが見つかりませんでした。', 'エラー');
     return;
   }
 
@@ -165,7 +165,7 @@ export function startSessionConclusion(reservationId) {
   // おすすめレッスンを検索
   const recommendedNextLesson = findRecommendedNextLesson(currentReservation);
 
-  // 既存の未来予約を検索（翌日以降で最も近い日程の確定済み予約）
+  // 既存の未来よやくを検索（翌日以降で最も近い日程の確定済みよやく）
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const futureReservations = (state.myReservations || [])
@@ -185,12 +185,12 @@ export function startSessionConclusion(reservationId) {
   const futureReservation =
     futureReservations.length > 0 ? futureReservations[0] : null;
 
-  // 時間制クラスの場合、初期時間を「今日の予約時間」に合わせる
+  // 時間制クラスの場合、初期時間を「今日のよやく時間」に合わせる
   let initialStartTime = '';
   let initialEndTime = '';
 
   if (recommendedNextLesson && currentReservation) {
-    // 今日の予約時間があればそれを使う
+    // 今日のよやく時間があればそれを使う
     if (currentReservation.startTime && currentReservation.endTime) {
       initialStartTime = currentReservation.startTime;
       initialEndTime = currentReservation.endTime;
@@ -500,16 +500,16 @@ async function finalizeConclusion() {
       accountingDetails: accountingDetails,
     };
 
-    // 2. 次回予約を作成（スキップしていない場合）
+    // 2. 次回よやくを作成（スキップしていない場合）
     /** @type {any} */
     let nextReservationPayload = null;
 
-    // 予約対象のレッスン（ユーザー選択 > おすすめ）
+    // よやく対象のレッスン（ユーザー選択 > おすすめ）
     const nextLesson =
       wizardState.selectedLesson || wizardState.recommendedNextLesson;
 
-    // 予約をスキップした場合、または予約対象がない場合は次回予約を作成しない
-    // 既存予約があってもnextLessonがあれば追加で作成する
+    // よやくをスキップした場合、またはよやく対象がない場合は次回よやくを作成しない
+    // 既存よやくがあってもnextLessonがあれば追加で作成する
     const shouldCreateReservation =
       !wizardState.reservationSkipped && nextLesson;
 
@@ -535,7 +535,7 @@ async function finalizeConclusion() {
         studentId: currentUser.studentId,
         sessionNote: wizardState.sessionNoteNext,
         order: orderValue, // 材料/注文品の希望
-        // ユーザーの期待（予約 or 空き通知）を追跡（完了画面で差異を表示するため）
+        // ユーザーの期待（よやく or 空き通知）を追跡（完了画面で差異を表示するため）
         expectedWaitlist: wizardState.isWaitlistRequest,
       };
     }
@@ -549,7 +549,7 @@ async function finalizeConclusion() {
         }
 
         if (response.success) {
-          // 次回予約結果を保存
+          // 次回よやく結果を保存
           if (response.data?.nextReservationResult) {
             /** @type {any} */ (wizardState).nextReservationResult =
               response.data.nextReservationResult;
@@ -691,7 +691,7 @@ function handleConclusionClick(event) {
       break;
     }
     case 'conclusionSkipReservation':
-      // 予約をスキップして会計へ
+      // よやくをスキップして会計へ
       wizardState.recommendedNextLesson = null;
       goToStep(STEPS.ACCOUNTING);
       break;
@@ -699,7 +699,7 @@ function handleConclusionClick(event) {
       finalizeConclusion();
       break;
     case 'navigateToBooking': {
-      // 完了画面から予約画面へ遷移
+      // 完了画面からよやく画面へ遷移
       const classroom = actionElement.getAttribute('data-classroom') || '';
       closeConclusion();
       conclusionStateManager.dispatch({
@@ -761,7 +761,7 @@ function handleConclusionClick(event) {
       break;
     }
     case 'selectLessonForConclusion': {
-      // 日程選択（通常予約）— DOM操作でちらつき防止
+      // 日程選択（通常よやく）— DOM操作でちらつき防止
       const lessonId = actionElement.getAttribute('data-lesson-id');
       if (lessonId) {
         const state = conclusionStateManager.getState();
@@ -914,7 +914,7 @@ function handleConclusionClick(event) {
 
       // 変更ボタンを押したときは、時間選択もリセットするほうが自然だが、
       // ユーザーが「日時だけ変えたい」場合もあるかもしれない。
-      // 一旦、予約状態をクリアしてリストを表示する。
+      // 一旦、よやく状態をクリアしてリストを表示する。
 
       goToStep(STEPS.RESERVATION);
       break;
@@ -1249,9 +1249,9 @@ function restoreWizardStateFromCache(reservationId) {
   const cached = stateManager['getFormInputCache']('wizardState');
   if (!cached) return false;
 
-  // 同じ予約に対する編集中の状態か確認
+  // 同じよやくに対する編集中の状態か確認
   if (cached.currentReservationId !== reservationId) {
-    // 別の予約のキャッシュなのでクリア
+    // 別のよやくのキャッシュなのでクリア
     stateManager['clearFormInputCache']('wizardState');
     return false;
   }
@@ -1303,7 +1303,7 @@ export function tryRestoreWizardFromCache() {
   const cached = conclusionStateManager['getFormInputCache']('wizardState');
   if (!cached || !cached.currentReservationId) return false;
 
-  // キャッシュされた予約IDから予約を検索
+  // キャッシュされた予約IDからよやくを検索
   const state = stateManager.getState();
   const myReservations = state.myReservations || [];
   const reservation = myReservations.find(
@@ -1312,12 +1312,12 @@ export function tryRestoreWizardFromCache() {
   );
 
   if (!reservation) {
-    // 予約が見つからない場合はキャッシュをクリア
+    // よやくが見つからない場合はキャッシュをクリア
     clearWizardStateCache();
     return false;
   }
 
-  // 予約が見つかった場合、ウィザードを再開
+  // よやくが見つかった場合、ウィザードを再開
   console.log('🔄 ウィザード状態をキャッシュから復元します');
 
   // initializeWizardState を使わず、直接 wizardState を設定してビューに遷移

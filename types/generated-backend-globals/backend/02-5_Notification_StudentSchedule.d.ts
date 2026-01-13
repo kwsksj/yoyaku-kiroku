@@ -16,7 +16,7 @@ export function _getNotificationRecipients(targetDay: number, targetHour: number
 /**
  * メール本文を生成
  * @param {UserCore} student - 生徒情報
- * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒の予約一覧
+ * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒のよやく一覧
  * @param {LessonCore[]} lessons - 今後の日程一覧（getLessons()の結果）
  * @returns {string} メール本文
  * @private

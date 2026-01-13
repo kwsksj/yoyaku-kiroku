@@ -4,10 +4,10 @@
  */
 export function getScriptProperties(): GoogleAppsScript.Properties.Properties;
 /**
- * 予約データの事前バリデーション（パフォーマンス最適化）
+ * よやくデータの事前バリデーション（パフォーマンス最適化）
  * 冗長なデータ検証を削減するため、一度だけ全体構造を検証
- * @param {any[]} reservations - 予約データ配列
- * @returns {any[]} 有効な予約データのみを含む配列
+ * @param {any[]} reservations - よやくデータ配列
+ * @returns {any[]} 有効なよやくデータのみを含む配列
  */
 export function validateReservationsStructure(reservations: any[]): any[];
 /**
@@ -65,33 +65,33 @@ export function logActivity(userId: string, action: string, result: string, opti
  */
 export function setupConditionalFormattingForLogSheet(): void;
 /**
- * 予約操作の権限バリデーションを行う共通関数
- * @param {ReservationCore | null} reservation - 対象の予約オブジェクト
+ * よやく操作の権限バリデーションを行う共通関数
+ * @param {ReservationCore | null} reservation - 対象のよやくオブジェクト
  * @param {string} studentId - 操作を実行しようとしているユーザーのID
  * @param {boolean} [isByAdmin=false] - 管理者による操作かどうか
  * @param {string | null} [adminToken=null] - 管理者トークン
- * @throws {Error} 権限がない場合や予約が存在しない場合にエラーをスロー
+ * @throws {Error} 権限がない場合やよやくが存在しない場合にエラーをスロー
  */
 export function validateUserOperation(reservation: ReservationCore | null, studentId: string, isByAdmin?: boolean, adminToken?: string | null): void;
 /**
- * 配列形式の予約データをオブジェクト形式に変換
+ * 配列形式のよやくデータをオブジェクト形式に変換
  * フロントエンドの transformReservationArrayToObject と同じロジック
- * @param {RawSheetRow} resArray - 配列形式の予約データ
- * @returns {ReservationCore|null} オブジェクト形式の予約データ（生データ）
+ * @param {RawSheetRow} resArray - 配列形式のよやくデータ
+ * @returns {ReservationCore|null} オブジェクト形式のよやくデータ（生データ）
  */
 export function transformReservationArrayToObject(resArray: RawSheetRow): ReservationCore | null;
 /**
- * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
- * @param {RawSheetRow} resArray - 予約データの配列
+ * ヘッダーマップを使用してよやく配列データをオブジェクトに変換します
+ * @param {RawSheetRow} resArray - よやくデータの配列
  * @param {Map<string, number>} headerMap - ヘッダー名とインデックスのマッピング
  * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
- * @returns {ReservationCore|null} - 変換された予約オブジェクト、失敗時はnull
+ * @returns {ReservationCore|null} - 変換されたよやくオブジェクト、失敗時はnull
  */
 export function transformReservationArrayToObjectWithHeaders(resArray: RawSheetRow, headerMap: Map<string, number>, studentsMap?: Record<string, UserCore>): ReservationCore | null;
 /**
- * 生データの予約オブジェクトを正規化済みオブジェクトに変換
- * @param {RawReservationObject} rawReservation - 生データの予約オブジェクト
- * @returns {ReservationObject|null} 正規化済み予約オブジェクト
+ * 生データのよやくオブジェクトを正規化済みオブジェクトに変換
+ * @param {RawReservationObject} rawReservation - 生データのよやくオブジェクト
+ * @returns {ReservationObject|null} 正規化済みよやくオブジェクト
  */
 export function normalizeReservationObject(rawReservation: RawReservationObject): ReservationObject | null;
 /**
@@ -116,11 +116,11 @@ export function getSheetData(sheet: GoogleAppsScript.Spreadsheet.Sheet): SheetDa
  */
 export function getSheetDataWithSearch(sheet: GoogleAppsScript.Spreadsheet.Sheet, searchColumn: string, searchValue: string | number | Date | boolean | null): SheetSearchResult;
 /**
- * 特定日・教室の正規化済み予約データを取得する（推奨API）
+ * 特定日・教室の正規化済みよやくデータを取得する（推奨API）
  * @param {string} date - 検索対象の日付（yyyy-MM-dd形式）
  * @param {string} classroom - 教室名
- * @param {string} status - ステータス（省略可、デフォルトは確定済み予約のみ）
- * @returns {ReservationCore[]} 条件に合致する正規化済み予約配列
+ * @param {string} status - ステータス（省略可、デフォルトは確定済みよやくのみ）
+ * @returns {ReservationCore[]} 条件に合致する正規化済みよやく配列
  */
 export function getNormalizedReservationsFor(date: string, classroom: string, status?: string): ReservationCore[];
 /**
@@ -130,24 +130,24 @@ export function getNormalizedReservationsFor(date: string, classroom: string, st
  */
 export function getCachedStudentById(studentId: string): StudentData | null;
 /**
- * 予約配列データを統一的にオブジェクト配列に変換する
- * @param {RawSheetRow[]} reservations - 予約配列データ
+ * よやく配列データを統一的にオブジェクト配列に変換する
+ * @param {RawSheetRow[]} reservations - よやく配列データ
  * @param {Map<string, number>} headerMap - ヘッダーマップ
  * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
- * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
+ * @returns {ReservationCore[]} 変換済みよやくオブジェクト配列
  */
 export function convertReservationsToObjects(reservations: RawSheetRow[], headerMap: Map<string, number>, studentsMap?: Record<string, UserCore>): ReservationCore[];
 /**
- * キャッシュから全ての予約データを取得し、オブジェクトの配列として返す
+ * キャッシュから全てのよやくデータを取得し、オブジェクトの配列として返す
  * @param {Record<string, UserCore>=} studentsMapOverride - 事前取得済みの生徒マップ。
  *   指定時はキャッシュ読み込みを省略して再利用する（パフォーマンス最適化）。
  *   未指定の場合は内部でgetStudentCacheSnapshotを呼び出す。
- * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列
+ * @returns {ReservationCore[]} 変換済みのよやくオブジェクト配列
  */
 export function getCachedReservationsAsObjects(studentsMapOverride?: Record<string, UserCore> | undefined): ReservationCore[];
 /**
  * 予約IDを指定して、キャッシュから単一のReservationCoreオブジェクトを取得する
- * @param {string} reservationId - 取得する予約のID
+ * @param {string} reservationId - 取得するよやくのID
  * @returns {ReservationCore | null} ReservationCoreオブジェクト、見つからない場合はnull
  */
 export function getReservationCoreById(reservationId: string): ReservationCore | null;
@@ -197,14 +197,14 @@ export function convertUserToRow(user: UserCore, headerMap: HeaderMapType): RawS
  *
  * 統一Core型からSheets書き込み用の配列データに変換
  *
- * @param {ReservationCore} reservation - 統一Core型の予約データ
+ * @param {ReservationCore} reservation - 統一Core型のよやくデータ
  * @param {HeaderMapType} headerMap - ヘッダーマップ
  * @param {string[]} header - ヘッダー配列（列数決定用）
  * @returns {RawSheetRow} Sheets書き込み用配列データ
  */
 export function convertReservationToRow(reservation: ReservationCore, headerMap: HeaderMapType, header: string[]): RawSheetRow;
 /**
- * 予約データの行配列を多段階ソートします
+ * よやくデータの行配列を多段階ソートします
  *
  * ソート順序:
  * 1. 日付順（昇順: 古い日付が上）
@@ -231,7 +231,7 @@ export function updateStudentField(studentId: string, headerName: string, value:
 };
 /**
  * 【一時的なマイグレーション関数】
- * 未来の予約のsessionNoteを生徒名簿の次回目標に移植し、予約の制作メモをクリアする。
+ * 未来のよやくのsessionNoteを生徒名簿の次回目標に移植し、よやくの制作メモをクリアする。
  * スプレッドシートエディタから直接実行してください。
  * @returns {void}
  */

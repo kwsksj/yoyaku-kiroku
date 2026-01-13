@@ -1,12 +1,12 @@
 /**
- * 予約確定メール送信機能（ReservationCore対応）
- * @param {ReservationCore} reservation - ユーザー情報を含む予約データ
+ * よやく確定メール送信機能（ReservationCore対応）
+ * @param {ReservationCore} reservation - ユーザー情報を含むよやくデータ
  * @returns {boolean} 送信成功・失敗
  */
 export function sendBookingConfirmationEmail(reservation: ReservationCore): boolean;
 /**
  * メールテンプレート生成（初回者・経験者対応）
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @returns {{subject: string, textBody: string}}
  */
 export function createBookingConfirmationTemplate(reservation: ReservationCore): {
@@ -15,7 +15,7 @@ export function createBookingConfirmationTemplate(reservation: ReservationCore):
 };
 /**
  * 初回者向けテキストメール生成
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {UserCore} student - ユーザー情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
@@ -24,7 +24,7 @@ export function createBookingConfirmationTemplate(reservation: ReservationCore):
 export function createFirstTimeEmailText(reservation: ReservationCore, student: UserCore, formattedDate: string, statusText: string): string;
 /**
  * 経験者向けテキストメール生成
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {UserCore} student - ユーザー情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
@@ -42,7 +42,7 @@ export function createRegularEmailText(reservation: ReservationCore, student: Us
 export function getTuitionDisplayText(classroom: string): string;
 /**
  * 共通の申込み内容セクション生成（テキスト版）
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} statusText - ステータステキスト
  * @returns {string} 申込み内容テキスト
@@ -58,22 +58,22 @@ export function formatDateForEmail(dateInput: string | Date): string;
  */
 export function getContactAndVenueInfoText(): string;
 /**
- * 予約関連メール送信（統一インターフェース）
- * @param {ReservationCore} reservation - 予約データ
+ * よやく関連メール送信（統一インターフェース）
+ * @param {ReservationCore} reservation - よやくデータ
  * @param {'confirmation'|'cancellation'} emailType - メール種別
  * @param {string} [cancelMessage] - キャンセル理由（cancellationの場合のみ）
  */
 export function sendReservationEmailAsync(reservation: ReservationCore, emailType: "confirmation" | "cancellation", cancelMessage?: string): void;
 /**
  *キャンセル確認メール送信（実装）
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {string} [cancelMessage] - キャンセル理由
  * @returns {boolean} 送信成功・失敗
  */
 export function sendCancellationEmail(reservation: ReservationCore, cancelMessage?: string): boolean;
 /**
  *キャンセル確認メール本文生成
- * @param {ReservationCore} reservation - 予約情報
+ * @param {ReservationCore} reservation - よやく情報
  * @param {string} formattedDate - フォーマット済み日付
  * @param {string} [cancelMessage] - キャンセル理由
  * @returns {string} メール本文テキスト

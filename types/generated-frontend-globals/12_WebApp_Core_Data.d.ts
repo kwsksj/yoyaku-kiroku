@@ -1,7 +1,7 @@
 /**
  * シンプルなダッシュボード状態を構築する（簡素化版）
  * @param {any} currentUser - 軽量認証から取得したユーザー情報
- * @param {ReservationCore[]} myReservations - 個人の予約データ
+ * @param {ReservationCore[]} myReservations - 個人のよやくデータ
  * @returns {Partial<UIState>} シンプルなダッシュボード状態
  */
 export function createSimpleDashboardState(currentUser: any, myReservations: ReservationCore[]): Partial<UIState>;
@@ -31,8 +31,8 @@ export function isTimeBasedClassroom(scheduleData: ScheduleInfo): boolean;
  */
 export function getScheduleInfoFromCache(date: string, classroom: string): Promise<ScheduleInfo | null>;
 /**
- * 予約データから対応する日程マスタ情報を取得
- * @param {ReservationCore} reservation - 予約データ (date, classroom を含む)
+ * よやくデータから対応する日程マスタ情報を取得
+ * @param {ReservationCore} reservation - よやくデータ (date, classroom を含む)
  * @returns {ScheduleInfo | null} 日程マスタ情報またはnull (lessons経由の場合)
  */
 export function getScheduleDataFromLessons(reservation: ReservationCore): ScheduleInfo | null;

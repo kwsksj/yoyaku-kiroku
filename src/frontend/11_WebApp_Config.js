@@ -284,26 +284,26 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
       tokyo: {
         button: 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100',
         colorClass: 'bg-red-50 border-red-200 text-red-700',
-        badgeClass: 'bg-red-100 text-red-700 border border-red-300',
+        badgeClass: 'bg-red-100 text-red-700',
       },
       // つくば教室：エメラルド/ティール系の緑（落ち着いたトーン）
       tsukuba: {
         button:
           'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100',
         colorClass: 'bg-emerald-50 border-emerald-200 text-emerald-700',
-        badgeClass: 'bg-emerald-100 text-emerald-700 border border-emerald-300',
+        badgeClass: 'bg-emerald-100 text-emerald-700',
       },
       // 沼津教室：スカイブルー/シアン系の青（落ち着いたトーン）
       numazu: {
         button: 'bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100',
         colorClass: 'bg-sky-50 border-sky-200 text-sky-700',
-        badgeClass: 'bg-sky-100 text-sky-700 border border-sky-300',
+        badgeClass: 'bg-sky-100 text-sky-700',
       },
       // デフォルト：グレー
       default: {
         button: 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100',
         colorClass: 'bg-gray-50 border-gray-200 text-gray-600',
-        badgeClass: 'bg-gray-100 text-gray-600 border border-gray-300',
+        badgeClass: 'bg-gray-100 text-gray-600',
       },
     },
 
@@ -312,17 +312,17 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
       // 浅草橋：明るいコーラル/オレンジ寄りの赤
       浅草橋: {
         colorClass: 'bg-orange-50 border-orange-200 text-orange-800',
-        badgeClass: 'bg-orange-100 text-orange-700 border border-orange-300',
+        badgeClass: 'bg-orange-100 text-orange-700',
       },
       // 東池袋：フクシア/パープル系（東京教室の赤と明確に区別）
       東池袋: {
         colorClass: 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800',
-        badgeClass: 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-300',
+        badgeClass: 'bg-fuchsia-100 text-fuchsia-700',
       },
       // デフォルト：グレー
       default: {
         colorClass: 'bg-gray-50 border-gray-200 text-gray-600',
-        badgeClass: 'bg-gray-100 text-gray-600 border border-gray-300',
+        badgeClass: 'bg-gray-100 text-gray-600',
       },
     },
 
@@ -849,7 +849,7 @@ export const addCustomStyles = () => {
         font-style: italic;
       }
 
-      /* カード下部: 予約日以降に表示される会計ボタン */
+      /* カード下部: よやく日以降に表示される会計ボタン */
       .card-accounting-section {
         border-top: 2px solid var(--ui-border-light);
         padding-top: 0.75rem;
@@ -861,7 +861,7 @@ export const addCustomStyles = () => {
         min-width: 150px;
       }
 
-      /* 予約日未満の場合は会計セクションを非表示 */
+      /* よやく日未満の場合は会計セクションを非表示 */
       .card-accounting-section.hidden {
         display: none;
       }

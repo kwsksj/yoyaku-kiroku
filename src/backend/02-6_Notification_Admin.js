@@ -2,21 +2,21 @@
  * =================================================================
  * 【ファイル名】  : 02-6_Notification_Admin.js
  * 【モジュール種別】: バックエンド（GAS）
- * 【役割】        : 予約操作に伴う管理者向け通知メールを一元的に生成・送信する。
+ * 【役割】        : よやく操作に伴う管理者向け通知メールを一元的に生成・送信する。
  *
  * 【主な責務】
  *   - 操作種別（作成／更新／キャンセル）に応じた件名・本文テンプレートを組み立て
  *   - `ADMIN_EMAIL` 宛の送信を共通化し、テスト環境フラグによる prefix 付与を管理
- *   - 予約データに紐づく生徒情報を補完して通知内容を充実させる
+ *   - よやくデータに紐づく生徒情報を補完して通知内容を充実させる
  *
  * 【関連モジュール】
  *   - `01_Code.gs`: 管理者メールアドレスの設定取得
  *   - `08_Utilities.js`: `getCachedStudentById` で生徒情報を参照
- *   - `05-2_Backend_Write.js`: 予約操作後に管理者通知を呼び出す
+ *   - `05-2_Backend_Write.js`: よやく操作後に管理者通知を呼び出す
  *
  * 【利用時の留意点】
  *   - テスト環境では `[テスト]` プレフィックスが付与されるため、本番送信との区別が容易
- *   - 予約データに `user` 情報が無い場合はキャッシュから取得するため、キャッシュ整合に注意
+ *   - よやくデータに `user` 情報が無い場合はキャッシュから取得するため、キャッシュ整合に注意
  *   - HTML メール等へ拡張する場合は MailApp の制約を確認する
  * =================================================================
  */
@@ -45,7 +45,7 @@ export function sendAdminNotification(subject, body) {
     const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
       ? ''
       : '[テスト]';
-    const finalSubject = `${subjectPrefix}[予約システム通知] ${subject}`;
+    const finalSubject = `${subjectPrefix}[よやくシステム通知] ${subject}`;
 
     MailApp.sendEmail({
       to: ADMIN_EMAIL,
@@ -58,8 +58,8 @@ export function sendAdminNotification(subject, body) {
 }
 
 /**
- * 予約操作の管理者通知（統一インターフェース）
- * @param {ReservationCore} reservation - 予約データ
+ * よやく操作の管理者通知（統一インターフェース）
+ * @param {ReservationCore} reservation - よやくデータ
  * @param {'created'|'cancelled'|'updated'} operationType - 操作種別
  * @param {{cancelMessage?: string, updateDetails?: string}} [additionalInfo] - 追加情報
  */
@@ -96,7 +96,7 @@ export function sendAdminNotificationForReservation(
 
 /**
  * 管理者通知のメッセージ内容を生成（操作種別に応じて）
- * @param {ReservationCore} reservation - 予約データ
+ * @param {ReservationCore} reservation - よやくデータ
  * @param {UserCore | undefined} student - 生徒情報
  * @param {'created'|'cancelled'|'updated'} operationType - 操作種別
  * @param {{cancelMessage?: string | undefined, updateDetails?: string | undefined}} additionalInfo - 追加情報
@@ -117,7 +117,7 @@ export function _buildAdminNotificationContent(
         const statusText =
           reservation.status === CONSTANTS.STATUS.WAITLISTED
             ? '空き通知希望'
-            : '新規予約';
+            : '新規よやく';
         const firstTimeText = reservation.firstLecture ? '【初回参加】' : '';
         return `${statusText} (${reservation.classroom}) ${firstTimeText}${userDisplay}様`;
       },
@@ -125,13 +125,13 @@ export function _buildAdminNotificationContent(
         const actionText =
           reservation.status === CONSTANTS.STATUS.WAITLISTED
             ? '空き通知希望'
-            : '新しい予約';
+            : '新しいよやく';
 
         return _composeAdminBody(
           [`${actionText}が入りました。`],
           [
             _buildSection(
-              '【予約情報】',
+              '【よやく情報】',
               _buildReservationBasicSectionLines(reservation),
             ),
             _buildSection('【ユーザー情報】', _buildUserSectionLines(student)),
@@ -149,13 +149,13 @@ export function _buildAdminNotificationContent(
     },
     cancelled: {
       subject: () =>
-        `予約キャンセル (${reservation.classroom}) ${userDisplay}様`,
+        `よやくキャンセル (${reservation.classroom}) ${userDisplay}様`,
       body: () => {
         return _composeAdminBody(
-          ['予約がキャンセルされました。'],
+          ['よやくがキャンセルされました。'],
           [
             _buildSection(
-              '【予約情報】',
+              '【よやく情報】',
               _buildReservationBasicSectionLines(reservation, [
                 `キャンセル日時: ${_formatDateTime()}`,
               ]),
@@ -174,13 +174,13 @@ export function _buildAdminNotificationContent(
       },
     },
     updated: {
-      subject: () => `予約更新 (${reservation.classroom}) ${userDisplay}様`,
+      subject: () => `よやく更新 (${reservation.classroom}) ${userDisplay}様`,
       body: () => {
         return _composeAdminBody(
-          ['予約が更新されました。'],
+          ['よやくが更新されました。'],
           [
             _buildSection(
-              '【予約情報】',
+              '【よやく情報】',
               _buildReservationBasicSectionLines(reservation, [
                 `更新日時: ${_formatDateTime()}`,
               ]),
@@ -204,8 +204,8 @@ export function _buildAdminNotificationContent(
   if (!template) {
     Logger.log(`未知の操作種別: ${operationType}`);
     return {
-      subject: `予約操作通知 (${reservation.classroom})`,
-      body: `予約操作が実行されました。\n予約ID: ${reservation.reservationId}\n詳細はスプレッドシートを確認してください。`,
+      subject: `よやく操作通知 (${reservation.classroom})`,
+      body: `よやく操作が実行されました。\n予約ID: ${reservation.reservationId}\n詳細はスプレッドシートを確認してください。`,
     };
   }
 
@@ -461,14 +461,14 @@ function _buildUserOtherInfoLines(userData) {
   return [
     `きっかけ: ${userData.trigger || '未登録'}`,
     `初回メッセージ: ${userData.firstMessage || 'なし'}`,
-    `予約確認メール希望: ${userData.wantsEmail ? 'はい' : 'いいえ'}`,
+    `よやく確認メール希望: ${userData.wantsEmail ? 'はい' : 'いいえ'}`,
     `スケジュール通知希望: ${notificationInfo}`,
   ];
 }
 
 /**
- * 予約基本情報行を構築
- * @param {ReservationCore} reservation - 予約データ
+ * よやく基本情報行を構築
+ * @param {ReservationCore} reservation - よやくデータ
  * @param {string[]} [extraLines] - 追加行
  * @returns {string[]} 本文行
  */
@@ -487,7 +487,7 @@ function _buildReservationBasicSectionLines(reservation, extraLines = []) {
 
 /**
  * 講座情報行を構築
- * @param {ReservationCore} reservation - 予約データ
+ * @param {ReservationCore} reservation - よやくデータ
  * @returns {string[]} 本文行
  */
 function _buildLessonInfoSectionLines(reservation) {
@@ -500,8 +500,8 @@ function _buildLessonInfoSectionLines(reservation) {
 }
 
 /**
- * 予約の制作内容・メッセージ行を構築
- * @param {ReservationCore} reservation - 予約データ
+ * よやくの制作内容・メッセージ行を構築
+ * @param {ReservationCore} reservation - よやくデータ
  * @param {any} [additionalInfo] - 追加情報
  * @param {{includeRecordedCancelMessage?: boolean, suppressDuplicateCancelReason?: boolean}} [options] - 表示オプション
  * @returns {string[]} 本文行

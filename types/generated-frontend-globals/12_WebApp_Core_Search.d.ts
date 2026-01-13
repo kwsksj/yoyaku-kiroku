@@ -8,7 +8,7 @@
  * 予約IDで「よやく」と「きろく」を統一的に検索します
  * @param {string} reservationId - 検索対象の予約ID
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
- * @returns {ReservationSearchResult | null} 見つかった予約/記録データ、見つからない場合はnull
+ * @returns {ReservationSearchResult | null} 見つかったよやく/記録データ、見つからない場合はnull
  */
 export function findReservationById(reservationId: string, state?: UIState | null): ReservationSearchResult | null;
 /**
@@ -16,14 +16,14 @@ export function findReservationById(reservationId: string, state?: UIState | nul
  * @param {string} date - 検索対象の日付 (YYYY-MM-DD)
  * @param {string} classroom - 検索対象の教室名
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
- * @returns {ReservationSearchResult | null} 見つかった予約/記録データ、見つからない場合はnull
+ * @returns {ReservationSearchResult | null} 見つかったよやく/記録データ、見つからない場合はnull
  */
 export function findReservationByDateAndClassroom(date: string, classroom: string, state?: UIState | null): ReservationSearchResult | null;
 /**
- * 指定されたステータスの予約/記録を検索します
+ * 指定されたステータスのよやく/記録を検索します
  * @param {string} status - 検索対象のステータス
  * @param {UIState | null} [state=null] - stateManager.getState()の戻り値
- * @returns {ReservationSearchResult[]} 条件に合致する予約/記録の配列
+ * @returns {ReservationSearchResult[]} 条件に合致するよやく/記録の配列
  */
 export function findReservationsByStatus(status: string, state?: UIState | null): ReservationSearchResult[];
 export type ReservationSearchResult = ReservationCore & {

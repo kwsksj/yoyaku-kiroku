@@ -2,7 +2,7 @@
  * @typedef {import('../../types/core/reservation').ReservationCoreWithAccounting} ReservationCoreWithAccounting
  */
 /**
- * 予約操作後に最新データを取得して返す汎用関数
+ * よやく操作後に最新データを取得して返す汎用関数
  * @param {Function} operationFunction - 実行する操作関数 (makeReservation, cancelReservationなど)
  * @param {ReservationCore|AccountingDetailsCore|any} operationParams - 操作関数に渡すパラメータ (Core型)
  * @param {string} studentId - 対象生徒のID
@@ -11,35 +11,35 @@
  */
 export function executeOperationAndGetLatestData(operationFunction: Function, operationParams: ReservationCore | AccountingDetailsCore | any, studentId: string, successMessage: string): ApiResponseGeneric;
 /**
- * 予約を実行し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} reservationInfo - 予約情報。`reservationId`と`status`はバックエンドで生成するため未設定でOK。
+ * よやくを実行し、成功した場合に最新の全初期化データを返す。
+ * @param {ReservationCore} reservationInfo - よやく情報。`reservationId`と`status`はバックエンドで生成するため未設定でOK。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function makeReservationAndGetLatestData(reservationInfo: ReservationCore): ApiResponseGeneric;
 /**
- * 予約をキャンセルし、成功した場合に最新の全初期化データを返す。
+ * よやくをキャンセルし、成功した場合に最新の全初期化データを返す。
  * @param {ReservationCore} cancelInfo - キャンセル情報（reservationId, studentId, cancelMessageを含む）
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function cancelReservationAndGetLatestData(cancelInfo: ReservationCore): ApiResponseGeneric;
 /**
- * 予約詳細を更新し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore & {nextLessonGoal?: string}} details - 更新する予約詳細。`reservationId`と更新したいフィールドのみを持つ。
+ * よやく詳細を更新し、成功した場合に最新の全初期化データを返す。
+ * @param {ReservationCore & {nextLessonGoal?: string}} details - 更新するよやく詳細。`reservationId`と更新したいフィールドのみを持つ。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function updateReservationDetailsAndGetLatestData(details: ReservationCore & {
     nextLessonGoal?: string;
 }): ApiResponseGeneric;
 /**
- * 予約の参加日を変更し、成功した場合に最新の全初期化データを返す。
- * 内部的には新規予約作成と旧予約キャンセルを実行します。
- * @param {ReservationCore} newReservationData - 新しい予約データ
+ * よやくの参加日を変更し、成功した場合に最新の全初期化データを返す。
+ * 内部的には新規よやく作成と旧よやくキャンセルを実行します。
+ * @param {ReservationCore} newReservationData - 新しいよやくデータ
  * @param {string} originalReservationId - キャンセルする元の予約ID
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function changeReservationDateAndGetLatestData(newReservationData: ReservationCore, originalReservationId: string): ApiResponseGeneric;
 /**
- * 予約のメモを更新し、成功した場合に最新の全初期化データを返す
+ * よやくのメモを更新し、成功した場合に最新の全初期化データを返す
  * @param {string} reservationId - 更新対象の予約ID
  * @param {string} studentId - 対象生徒のID
  * @param {string} newMemo - 新しいメモ内容
@@ -66,13 +66,13 @@ export function sendMessageToTeacher(payload: {
 }): ApiResponse;
 /**
  * 会計処理を実行し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新された予約オブジェクト。
+ * @param {ReservationCore} reservationWithAccounting - 会計情報が追加/更新されたよやくオブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function saveAccountingDetailsAndGetLatestData(reservationWithAccounting: ReservationCore): ApiResponseGeneric;
 /**
  * 会計修正を実行し、成功した場合に最新の全初期化データを返す。
- * @param {ReservationCore} reservationWithAccounting - 修正後の会計情報を含む予約オブジェクト。
+ * @param {ReservationCore} reservationWithAccounting - 修正後の会計情報を含むよやくオブジェクト。
  * @returns {ApiResponseGeneric} 処理結果と最新の初期化データ
  */
 export function updateAccountingDetailsAndGetLatestData(reservationWithAccounting: ReservationCore): ApiResponseGeneric;
@@ -119,13 +119,13 @@ export function createApiErrorResponse(message: string, log?: boolean): ApiRespo
  */
 export function getScheduleInfo(params: ScheduleInfoParams): ApiResponseGeneric;
 /**
- * 指定した予約の会計詳細データを予約シートから取得する
+ * 指定したよやくの会計詳細データをよやくシートから取得する
  * @param {string} reservationId - 予約ID
  * @returns {ApiResponseGeneric<AccountingDetails>} 会計詳細データ
  */
 export function getAccountingDetailsFromSheet(reservationId: string): ApiResponseGeneric<AccountingDetails>;
 /**
- * 空席連絡希望の予約を確定予約に変更し、最新データを返却します。
+ * 空席連絡希望のよやくを確定よやくに変更し、最新データを返却します。
  * @param {{reservationId: string, studentId: string}} confirmInfo - 確定情報
  * @returns {ApiResponseGeneric} 処理結果と最新データ
  */
@@ -138,32 +138,32 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo: {
  * - キャッシュから6ヶ月前〜1年後のレッスン情報を取得
  * - 管理者・一般生徒を問わず、同じデータを返す（レッスン情報は公開情報）
  *
- * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用に予約）
+ * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用によやく）
  * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
- * @param {boolean} [includeReservations=false] - 予約データを含めるか
+ * @param {boolean} [includeReservations=false] - よやくデータを含めるか
  * @param {string} [adminLoginId=''] - 管理者用ログインID（PropertyServiceと突合する）
  * @returns {ApiResponseGeneric} レッスン一覧
  */
 export function getLessonsForParticipantsView(studentId: string, includeHistory?: boolean, includeReservations?: boolean, adminLoginId?: string): ApiResponseGeneric;
 /**
- * 特定レッスンの予約情報リストを取得する（権限に応じてフィルタリング）
+ * 特定レッスンのよやく情報リストを取得する（権限に応じてフィルタリング）
  * - 管理者: 全項目を返す（本名、電話番号、メールアドレスなど）
  * - 一般生徒: 公開情報のみ（本名、電話番号、メールアドレスを除外）
  *
  * @param {string} lessonId - レッスンID
  * @param {string} studentId - リクエストしている生徒のID
- * @returns {ApiResponseGeneric} 予約情報リスト
+ * @returns {ApiResponseGeneric} よやく情報リスト
  */
 export function getReservationsForLesson(lessonId: string, studentId: string): ApiResponseGeneric;
 /**
- * 特定生徒の詳細情報と予約履歴を取得する（権限に応じてフィルタリング）
+ * 特定生徒の詳細情報とよやく履歴を取得する（権限に応じてフィルタリング）
  * - 管理者: 全項目を返す
  * - 一般生徒（本人）: 自分の情報のみ閲覧可能
  * - 一般生徒（他人）: 公開情報のみ（ニックネーム、参加回数など）
  *
  * @param {string} targetStudentId - 表示対象の生徒ID
  * @param {string} requestingStudentId - リクエストしている生徒のID
- * @returns {ApiResponseGeneric} 生徒詳細情報と予約履歴
+ * @returns {ApiResponseGeneric} 生徒詳細情報とよやく履歴
  */
 export function getStudentDetailsForParticipantsView(targetStudentId: string, requestingStudentId: string): ApiResponseGeneric;
 /**
@@ -180,10 +180,10 @@ export function processAccountingWithTransferOption(formData: any, calculationRe
  * セッション終了ウィザードの統合処理エンドポイント
  * 1. 今日の記録（sessionNote）を更新
  * 2. 会計処理を実行
- * 3. オプションで次回予約を作成
+ * 3. オプションで次回よやくを作成
  *
  * @param {any} payload - メイン処理データ
- * @param {any} nextReservationPayload - 次回予約データ（null = スキップ）
+ * @param {any} nextReservationPayload - 次回よやくデータ（null = スキップ）
  * @returns {ApiResponseGeneric} 処理結果
  */
 export function processSessionConclusion(payload: any, nextReservationPayload: any): ApiResponseGeneric;

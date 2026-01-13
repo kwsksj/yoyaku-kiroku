@@ -359,9 +359,9 @@ function getVisibleColumns(isAdmin, showPastLessons = false) {
 }
 
 /**
- * アコーディオン展開時の予約詳細コンテンツを生成（ヘッダーなし、データ行のみ）
+ * アコーディオン展開時のよやく詳細コンテンツを生成（ヘッダーなし、データ行のみ）
  * @param {LessonCore} _lesson - レッスン情報（未使用）
- * @param {any[]} reservations - 予約一覧
+ * @param {any[]} reservations - よやく一覧
  * @param {boolean} isAdmin - 管理者フラグ
  * @param {boolean} showPastLessons - 過去表示フラグ
  * @returns {string} HTML文字列
@@ -452,7 +452,7 @@ function renderLessonList(lessons) {
     `;
   }
 
-  // stateManagerから予約データを取得
+  // stateManagerからよやくデータを取得
   const state = participantStateManager.getState();
   const reservationsMap = state.participantReservationsMap || {};
   const selectedClassroom = state.selectedParticipantClassroom || 'all';
@@ -581,7 +581,7 @@ function renderLessonList(lessons) {
 
   const lessonsHtml = filteredLessons
     .map(lesson => {
-      // 予約データをフィルタリング
+      // よやくデータをフィルタリング
       const allLessonReservations = reservationsMap[lesson.lessonId] || [];
       const confirmedReservations = allLessonReservations.filter(
         r => r.status === CONSTANTS.STATUS.CONFIRMED,
@@ -593,12 +593,12 @@ function renderLessonList(lessons) {
         r => r.status === CONSTANTS.STATUS.WAITLISTED,
       );
 
-      // 表示対象となるベースの予約（未来は確定、過去は完了）
+      // 表示対象となるベースのよやく（未来は確定、過去は完了）
       const baseBadgeReservations = showPastLessons
         ? completedReservations
         : confirmedReservations;
 
-      // 初回参加者数を計算（対象予約のみ）
+      // 初回参加者数を計算（対象よやくのみ）
       const firstLectureCount = baseBadgeReservations.filter(
         /** @param {any} r */ r => r.firstLecture,
       ).length;
@@ -626,8 +626,8 @@ function renderLessonList(lessons) {
             lesson.classroom.includes('午後')));
 
       /**
-       * 予約の時間帯を判定（午前・午後）
-       * @param {any} reservation - 予約データ
+       * よやくの時間帯を判定（午前・午後）
+       * @param {any} reservation - よやくデータ
        * @returns {'morning' | 'afternoon' | 'both'}
        */
       const getTimeSlot = reservation => {
@@ -686,7 +686,7 @@ function renderLessonList(lessons) {
       };
 
       /**
-       * 予約を午前・午後でカウント
+       * よやくを午前・午後でカウント
        * @param {any[]} reservations
        * @returns {{morning: number, afternoon: number}}
        */
@@ -857,7 +857,7 @@ function renderLessonList(lessons) {
         </button>
       `;
 
-      // 予約ボタンまたは管理ボタン
+      // よやくボタンまたは管理ボタン
       let reserveButtonHtml;
       if (isAdmin) {
         // 管理者用「管理」ボタン（モーダルでリスト表示・編集）
@@ -930,7 +930,7 @@ function renderLessonList(lessons) {
   const emptyMessage =
     filteredLessons.length === 0
       ? `<div class="bg-white border-2 border-ui-border ${DesignConfig.borderRadius.container} p-2">
-           <p class="text-xs text-gray-500 text-center">${escapeHTML(showPastLessons ? '過去の記録がありません' : '未来の予約がありません')}</p>
+           <p class="text-xs text-gray-500 text-center">${escapeHTML(showPastLessons ? '過去の記録がありません' : '未来のよやくがありません')}</p>
          </div>`
       : '';
 
@@ -953,9 +953,13 @@ function renderLessonList(lessons) {
         ${Components.button({
           text: '操作<br>ログ',
           action: 'goToLogView',
-          style: 'primary', // 統一感を出すためPrimaryにするか、LogView側がPrimary(参加者ビューへ)だったので逆にするか。
-          // LogView: Refresh(Secondary), Participants(Primary)
-          // ここでも Refresh(Secondary), Log(Primary) で合わせるのが良さそう。
+          style: 'primary',
+          size: 'xs',
+        })}
+        ${Components.button({
+          text: 'ログ<br>アウト',
+          action: 'logout',
+          style: 'danger',
           size: 'xs',
         })}
        </div>`
@@ -1015,7 +1019,7 @@ function renderLessonList(lessons) {
  * @returns {{text: string, action: string, class: string}|null}
  */
 function _getLocalButtonState(lesson, currentStudentId, lessonReservations) {
-  // 1. 予約済みチェック (確定 or 待機)
+  // 1. よやく済みチェック (確定 or 待機)
   const myReservation = lessonReservations.find(
     r =>
       r.studentId === currentStudentId &&
@@ -1024,7 +1028,7 @@ function _getLocalButtonState(lesson, currentStudentId, lessonReservations) {
   );
 
   if (myReservation) {
-    // 予約済み -> 「よやく へんしゅう」
+    // よやく済み -> 「よやく へんしゅう」
     return {
       text: 'よやく へんしゅう',
       action: 'goToReservationFormForLesson', // 編集モードで開くかはHandler側で制御、または同じフォームへ
@@ -1054,7 +1058,7 @@ function _getLocalButtonState(lesson, currentStudentId, lessonReservations) {
       (lesson.firstSlots || 0) > 0 || (lesson.beginnerSlots || 0) > 0;
   }
 
-  // 3. 空き通知登録チェック (未実装: ユーザープロファイル等に保持する必要があるが、現状は特定の予約ステータスがないため判定困難)
+  // 3. 空き通知登録チェック (未実装: ユーザープロファイル等に保持する必要があるが、現状は特定のよやくステータスがないため判定困難)
   // FIXME: 空き通知登録済みかどうかを判定するデータがないため、今回は「空席あり」か「満席」かで分岐
 
   if (hasVacancy) {
@@ -1194,7 +1198,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
   `
     : '';
 
-  // 予約履歴
+  // よやく履歴
   const historyHtml =
     student.reservationHistory && student.reservationHistory.length > 0
       ? student.reservationHistory
@@ -1254,14 +1258,14 @@ function renderStudentDetailModalContent(student, isAdmin) {
             },
           )
           .join('')
-      : '<p class="text-sm text-gray-500">予約履歴がありません</p>';
+      : '<p class="text-sm text-gray-500">よやく履歴がありません</p>';
 
-  // 予約履歴セクション（全ユーザーに公開）
+  // よやく履歴セクション（全ユーザーに公開）
   const reservationHistoryHtml = `
     <div class="mb-4 bg-gray-50 p-3 ${DesignConfig.borderRadius.container}">
       <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
         <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
-        予約履歴
+        よやく履歴
       </h3>
       ${historyHtml}
     </div>

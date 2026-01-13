@@ -30,14 +30,14 @@ export function getFormElementSafely(id: string): HTMLFormElement | null;
 export function ensureDateString(date: string | Date): string;
 /**
  * ReservationObjectをReservationCoreに安全に変換する
- * @param {ReservationObject} reservationObj - 予約オブジェクト
- * @returns {ReservationCore} 変換された予約データ
+ * @param {ReservationObject} reservationObj - よやくオブジェクト
+ * @returns {ReservationCore} 変換されたよやくデータ
  */
 export function convertToReservationData(reservationObj: ReservationObject): ReservationCore;
 /**
  * 時刻データを適切に取得するヘルパー関数
  * @param {string} elementId - 時刻入力要素のID
- * @param {ReservationCore | null} reservationData - 予約データ（フォールバック用）
+ * @param {ReservationCore | null} reservationData - よやくデータ（フォールバック用）
  * @param {string} timeField - 時刻フィールド名（'startTime' or 'endTime'）
  * @returns {string} 時刻文字列（HH:mm形式）
  */
@@ -75,7 +75,7 @@ export function handleAdminImpersonationAfterAction({ participantCacheUpdate, re
 }): boolean;
 /**
  * バッチ処理でキャッシュから最新データを取得してappStateを更新
- * ユーザーの予約・履歴・スロット情報を一括取得し、指定されたビューに遷移
+ * ユーザーのよやく・履歴・スロット情報を一括取得し、指定されたビューに遷移
  * @param {string} targetView - データ取得後に遷移したいビュー名
  */
 export function updateAppStateFromCache(targetView: string): void;
@@ -89,10 +89,10 @@ export function isDateToday(dateString: string): boolean;
  * 販売品マスタから物販チェックリスト（折り畳み可能）を生成する関数
  * @param {AccountingMasterItemCore[]} accountingMaster - 販売品マスタ
  * @param {string[]} checkedValues - チェック済み項目名配列（任意）
- * @param {string} [title='販売品リスト'] - 見出しタイトル
+ * @param {string} [_title='販売品リスト'] - 見出しタイトル（未使用）
  * @returns {string} HTML文字列
  */
-export function buildSalesChecklist(accountingMaster: AccountingMasterItemCore[], checkedValues?: string[], title?: string): string;
+export function buildSalesChecklist(accountingMaster: AccountingMasterItemCore[], checkedValues?: string[], _title?: string): string;
 /**
  * 物販リストをチェックボックスで表示するHTMLを返す（再利用可能）
  * @param {AccountingMasterItemCore[]} salesList - 物販アイテム配列

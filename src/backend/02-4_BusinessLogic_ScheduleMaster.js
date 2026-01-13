@@ -7,7 +7,7 @@
  * 【主な責務】
  *   - `getAllScheduledDates` でキャッシュから LessonCore 配列を取得・フィルタリング
  *   - 日付範囲指定などのユーティリティを提供し、フロントエンド／他モジュールの実装をシンプルにする
- *   - 予約判定ロジック（`05-2_Backend_Write.js` 等）で再利用される共通データを返す
+ *   - よやく判定ロジック（`05-2_Backend_Write.js` 等）で再利用される共通データを返す
  *
  * 【関連モジュール】
  *   - `07_CacheManager.js`: MASTER_SCHEDULE_DATA キャッシュを参照

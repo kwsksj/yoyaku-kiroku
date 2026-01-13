@@ -2,17 +2,17 @@
  * =================================================================
  * 【ファイル名】  : 05-3_Backend_AvailableSlots.js
  * 【モジュール種別】: バックエンド（GAS）
- * 【役割】        : レッスン空き枠 API を提供し、予約関連画面で必要となる最新スケジュールを計算する。
+ * 【役割】        : レッスン空き枠 API を提供し、よやく関連画面で必要となる最新スケジュールを計算する。
  *
  * 【主な責務】
- *   - `getLessons` で日程マスタ＋予約キャッシュを突合し、教室ごとの空き枠を算出
+ *   - `getLessons` で日程マスタ＋よやくキャッシュを突合し、教室ごとの空き枠を算出
  *   - `getUserReservations` など、フロントエンドへ返却する ReservationCore 配列を整形
- *   - 予約確定や空き通知の補助データ（待機リスト抽出 等）を共通化
+ *   - よやく確定や空き通知の補助データ（待機リスト抽出 等）を共通化
  *
  * 【関連モジュール】
  *   - `02-4_BusinessLogic_ScheduleMaster.js`: 日程マスタの読み出し
- *   - `07_CacheManager.js` / `08_Utilities.js`: 予約キャッシュからのデータ取得
- *   - `05-2_Backend_Write.js`: 予約確定・キャンセル後に呼び出され、最新データを返却
+ *   - `07_CacheManager.js` / `08_Utilities.js`: よやくキャッシュからのデータ取得
+ *   - `05-2_Backend_Write.js`: よやく確定・キャンセル後に呼び出され、最新データを返却
  *
  * 【利用時の留意点】
  *   - 返却値は `createApiResponse` でラップされるため、呼び出し側は `success` と `data` の存在確認が必須
@@ -91,7 +91,7 @@ export function getLessons(includePast = false) {
             )
           : String(schedule.date);
 
-      // ★最適化: reservationIdsから直接予約を取得（O(1)アクセス）
+      // ★最適化: reservationIdsから直接よやくを取得（O(1)アクセス）
       const allReservationsForLesson = getReservationsByIdsFromCache(
         schedule.reservationIds || [],
         { includeStudents: false },
@@ -108,7 +108,7 @@ export function getLessons(includePast = false) {
           ? allReservationsForLesson
           : buildReservationsMapByLessonId()[lessonIdKey] || [];
 
-      // 有効な予約のみフィルタリング（キャンセル・待機中を除外）
+      // 有効なよやくのみフィルタリング（キャンセル・待機中を除外）
       const reservationsForDate = reservationsForLookup.filter(
         r =>
           r.status !== CONSTANTS.STATUS.CANCELED &&
@@ -257,7 +257,7 @@ export function calculateAvailableSlots(schedule, reservations) {
 }
 
 /**
- * 予約が指定時間枠内にあるか判定
+ * よやくが指定時間枠内にあるか判定
  * @param {ReservationCore} reservation
  * @param {string} slotStart
  * @param {string} slotEnd
@@ -278,7 +278,7 @@ export function isInTimeSlot(reservation, slotStart, slotEnd) {
   const slotStartTime = new Date(`1900-01-01T${slotStart}`);
   const slotEndTime = new Date(`1900-01-01T${slotEnd}`);
 
-  // 予約開始時刻が枠終了時刻以前 AND 予約終了時刻が枠開始時刻以降
+  // よやく開始時刻が枠終了時刻以前 AND よやく終了時刻が枠開始時刻以降
   return resStart <= slotEndTime && resEnd >= slotStartTime;
 }
 
@@ -330,7 +330,7 @@ export function getLessonsForClassroom(classroom) {
 }
 
 /**
- * 特定の生徒の予約データを取得する
+ * 特定の生徒のよやくデータを取得する
  * @param {string} studentId - 生徒ID
  * @returns {ApiResponse<{ myReservations: ReservationCore[] }>}
  */
@@ -338,7 +338,7 @@ export function getUserReservations(studentId) {
   try {
     Logger.log(`getUserReservations - studentId: ${studentId}`);
 
-    // ★改善: 新しいヘルパー関数で予約データをオブジェクトとして直接取得
+    // ★改善: 新しいヘルパー関数でよやくデータをオブジェクトとして直接取得
     const convertedReservations = getCachedReservationsAsObjects();
 
     /** @type {ReservationCore[]} */
@@ -359,7 +359,7 @@ export function getUserReservations(studentId) {
 
     // ユーザー情報はtransformReservationArrayToObjectWithHeaders()で自動付与される
 
-    Logger.log(`生徒ID ${studentId} の予約: ${myReservations.length}件`);
+    Logger.log(`生徒ID ${studentId} のよやく: ${myReservations.length}件`);
     return /** @type {ApiResponse<{ myReservations: ReservationCore[] }>} */ (
       createApiResponse(true, { myReservations })
     );

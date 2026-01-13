@@ -6,7 +6,7 @@
  * 目的: フロントエンド全体のアクション制御とビュー遷移を統括する
  * 主な責務:
  *   - グローバル`actionHandlers`の生成と公開
- *   - 会計・予約・認証など個別ハンドラーの集約と調整
+ *   - 会計・よやく・認証など個別ハンドラーの集約と調整
  *   - UIレンダリング関数との連携ポイントを提供
  * AI向けメモ:
  *   - 新しい操作を追加する際は該当する分割ファイルに実装し、最後にこのファイルの統合処理へ登録する
@@ -248,7 +248,7 @@ export function render() {
           reservationData,
         );
 
-        // キャッシュ使用時の初期化処理を予約
+        // キャッシュ使用時の初期化処理をよやく
         setTimeout(() => {
           // 支払い方法UI初期化
           if (typeof initializePaymentMethodUI === 'function') {
@@ -789,7 +789,7 @@ window.onload = function () {
       const state = handlersStateManager.getState();
       const reservations = state.myReservations || [];
 
-      // 本日の確定済み予約を検索
+      // 本日の確定済みよやくを検索
       const todayCandidates = reservations.filter(reservation => {
         const dateValue = reservation?.date
           ? String(reservation.date).split('T')[0]
@@ -801,11 +801,11 @@ window.onload = function () {
       });
 
       if (todayCandidates.length === 0) {
-        showInfo('本日の予約がありません。', 'お知らせ');
+        showInfo('本日のよやくがありません。', 'お知らせ');
         return;
       }
 
-      // 最も早い開始時刻の予約を選択
+      // 最も早い開始時刻のよやくを選択
       const toSortableTime = (
         /** @type {string | null | undefined} */ value,
       ) => (value ? value.toString() : '99:99');
@@ -819,11 +819,11 @@ window.onload = function () {
         // セッション終了ウィザードを開始
         startSessionConclusion(candidate.reservationId);
       } else {
-        showInfo('本日の予約が見つかりませんでした。', 'お知らせ');
+        showInfo('本日のよやくが見つかりませんでした。', 'お知らせ');
       }
     },
 
-    /** 今日の予約を開いて会計画面へ遷移（レガシー） */
+    /** 今日のよやくを開いて会計画面へ遷移（レガシー） */
     goToTodayAccounting: () => {
       const state = handlersStateManager.getState();
       const reservations = state.myReservations || [];
@@ -843,7 +843,7 @@ window.onload = function () {
       });
 
       if (todayCandidates.length === 0) {
-        showInfo('本日の会計対象の予約がありません。', 'お知らせ');
+        showInfo('本日の会計対象のよやくがありません。', 'お知らせ');
         return;
       }
 
@@ -864,7 +864,7 @@ window.onload = function () {
           reservationId: candidate.reservationId,
         });
       } else {
-        showInfo('本日の会計対象の予約が見つかりませんでした。', 'お知らせ');
+        showInfo('本日の会計対象のよやくが見つかりませんでした。', 'お知らせ');
       }
     },
 
@@ -873,7 +873,7 @@ window.onload = function () {
       showLoading('accounting');
       const reservationId = d.reservationId;
 
-      // 統一検索関数を使用して予約データを取得
+      // 統一検索関数を使用してよやくデータを取得
       const reservationResult = findReservationById(reservationId);
       const reservationData = reservationResult
         ? {
@@ -926,7 +926,7 @@ window.onload = function () {
         const state = handlersStateManager.getState();
         const accountingMaster = state.accountingMaster || [];
 
-        // 予約データを状態に設定して会計画面に遷移
+        // よやくデータを状態に設定して会計画面に遷移
         handlersStateManager.dispatch({
           type: 'SET_STATE',
           payload: {
@@ -939,7 +939,7 @@ window.onload = function () {
         hideLoading();
       } else {
         hideLoading();
-        showInfo('予約・記録情報が見つかりませんでした。', 'エラー');
+        showInfo('よやく・記録情報が見つかりませんでした。', 'エラー');
       }
     },
 

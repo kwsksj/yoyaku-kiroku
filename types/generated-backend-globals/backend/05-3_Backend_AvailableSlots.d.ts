@@ -15,7 +15,7 @@ export function calculateAvailableSlots(schedule: LessonCore, reservations: Rese
     beginner: number | null;
 };
 /**
- * 予約が指定時間枠内にあるか判定
+ * よやくが指定時間枠内にあるか判定
  * @param {ReservationCore} reservation
  * @param {string} slotStart
  * @param {string} slotEnd
@@ -41,7 +41,7 @@ export function parseCapacity(capacity: number | string | undefined): number;
  */
 export function getLessonsForClassroom(classroom: string): ApiResponse<LessonCore[]>;
 /**
- * 特定の生徒の予約データを取得する
+ * 特定の生徒のよやくデータを取得する
  * @param {string} studentId - 生徒ID
  * @returns {ApiResponse<{ myReservations: ReservationCore[] }>}
  */

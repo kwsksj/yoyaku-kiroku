@@ -101,14 +101,14 @@ export function getScriptProperties() {
 }
 
 /**
- * 予約データの事前バリデーション（パフォーマンス最適化）
+ * よやくデータの事前バリデーション（パフォーマンス最適化）
  * 冗長なデータ検証を削減するため、一度だけ全体構造を検証
- * @param {any[]} reservations - 予約データ配列
- * @returns {any[]} 有効な予約データのみを含む配列
+ * @param {any[]} reservations - よやくデータ配列
+ * @returns {any[]} 有効なよやくデータのみを含む配列
  */
 export function validateReservationsStructure(reservations) {
   if (!Array.isArray(reservations)) {
-    PerformanceLog.error('予約データは配列である必要があります');
+    PerformanceLog.error('よやくデータは配列である必要があります');
     return [];
   }
 
@@ -150,7 +150,7 @@ export function handleError(message, isError) {
       : 'system';
     logActivity(userEmail, CONSTANTS.LOG_ACTIONS.SYSTEM_ERROR, '失敗', message);
     sendAdminNotification(
-      '予約システムでエラーが発生しました',
+      'よやくシステムでエラーが発生しました',
       `エラー詳細:\n\n${message}`,
     );
   }
@@ -357,18 +357,18 @@ export function setupConditionalFormattingForLogSheet() {
         '特殊ログイン試行',
         '電話番号なしユーザー検索',
         '新規ユーザー登録',
-        '予約作成',
+        'よやく作成',
       ],
       color: colors.lightBlue,
     },
     {
       text: [
         'プロフィール更新',
-        '予約詳細更新',
+        'よやく詳細更新',
         '制作メモ更新',
-        '予約キャンセル',
+        'よやくキャンセル',
         '名簿編集',
-        '予約シート編集',
+        'よやくシート編集',
         '行挿入',
       ],
       color: colors.lightOrange,
@@ -382,7 +382,7 @@ export function setupConditionalFormattingForLogSheet() {
         'カレンダー同期',
         '名簿キャッシュ更新',
         '履歴キャッシュ移行',
-        '予約キャッシュ移行',
+        'よやくキャッシュ移行',
         'フォーム選択肢更新',
         'サマリー更新',
         'サマリー更新(トリガー)',
@@ -428,12 +428,12 @@ export function setupConditionalFormattingForLogSheet() {
 // ===================================================================
 
 /**
- * 予約操作の権限バリデーションを行う共通関数
- * @param {ReservationCore | null} reservation - 対象の予約オブジェクト
+ * よやく操作の権限バリデーションを行う共通関数
+ * @param {ReservationCore | null} reservation - 対象のよやくオブジェクト
  * @param {string} studentId - 操作を実行しようとしているユーザーのID
  * @param {boolean} [isByAdmin=false] - 管理者による操作かどうか
  * @param {string | null} [adminToken=null] - 管理者トークン
- * @throws {Error} 権限がない場合や予約が存在しない場合にエラーをスロー
+ * @throws {Error} 権限がない場合やよやくが存在しない場合にエラーをスロー
  */
 export function validateUserOperation(
   reservation,
@@ -442,7 +442,7 @@ export function validateUserOperation(
   adminToken = null,
 ) {
   if (!reservation) {
-    throw new Error('予約が見つかりません。');
+    throw new Error('よやくが見つかりません。');
   }
 
   // 管理者フラグが立っている場合はトークン検証のうえ本人確認をスキップ
@@ -455,15 +455,15 @@ export function validateUserOperation(
 
   // 生徒IDの一致確認（管理者以外）
   if (reservation.studentId !== studentId) {
-    throw new Error('この予約を操作する権限がありません。');
+    throw new Error('このよやくを操作する権限がありません。');
   }
 }
 
 /**
- * 配列形式の予約データをオブジェクト形式に変換
+ * 配列形式のよやくデータをオブジェクト形式に変換
  * フロントエンドの transformReservationArrayToObject と同じロジック
- * @param {RawSheetRow} resArray - 配列形式の予約データ
- * @returns {ReservationCore|null} オブジェクト形式の予約データ（生データ）
+ * @param {RawSheetRow} resArray - 配列形式のよやくデータ
+ * @returns {ReservationCore|null} オブジェクト形式のよやくデータ（生データ）
  */
 export function transformReservationArrayToObject(resArray) {
   if (!Array.isArray(resArray) || resArray.length < 15) {
@@ -525,11 +525,11 @@ export function transformReservationArrayToObject(resArray) {
 }
 
 /**
- * ヘッダーマップを使用して予約配列データをオブジェクトに変換します
- * @param {RawSheetRow} resArray - 予約データの配列
+ * ヘッダーマップを使用してよやく配列データをオブジェクトに変換します
+ * @param {RawSheetRow} resArray - よやくデータの配列
  * @param {Map<string, number>} headerMap - ヘッダー名とインデックスのマッピング
  * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
- * @returns {ReservationCore|null} - 変換された予約オブジェクト、失敗時はnull
+ * @returns {ReservationCore|null} - 変換されたよやくオブジェクト、失敗時はnull
  */
 export function transformReservationArrayToObjectWithHeaders(
   resArray,
@@ -678,9 +678,9 @@ export function transformReservationArrayToObjectWithHeaders(
 }
 
 /**
- * 生データの予約オブジェクトを正規化済みオブジェクトに変換
- * @param {RawReservationObject} rawReservation - 生データの予約オブジェクト
- * @returns {ReservationObject|null} 正規化済み予約オブジェクト
+ * 生データのよやくオブジェクトを正規化済みオブジェクトに変換
+ * @param {RawReservationObject} rawReservation - 生データのよやくオブジェクト
+ * @returns {ReservationObject|null} 正規化済みよやくオブジェクト
  */
 export function normalizeReservationObject(rawReservation) {
   if (!rawReservation) return null;
@@ -725,7 +725,7 @@ export function normalizeReservationObject(rawReservation) {
         : undefined,
     };
   } catch (error) {
-    Logger.log(`予約データ正規化エラー: ${error.message}`);
+    Logger.log(`よやくデータ正規化エラー: ${error.message}`);
     return null;
   }
 }
@@ -818,11 +818,11 @@ export function getSheetDataWithSearch(sheet, searchColumn, searchValue) {
 // ===================================================================
 
 /**
- * 特定日・教室の正規化済み予約データを取得する（推奨API）
+ * 特定日・教室の正規化済みよやくデータを取得する（推奨API）
  * @param {string} date - 検索対象の日付（yyyy-MM-dd形式）
  * @param {string} classroom - 教室名
- * @param {string} status - ステータス（省略可、デフォルトは確定済み予約のみ）
- * @returns {ReservationCore[]} 条件に合致する正規化済み予約配列
+ * @param {string} status - ステータス（省略可、デフォルトは確定済みよやくのみ）
+ * @returns {ReservationCore[]} 条件に合致する正規化済みよやく配列
  */
 export function getNormalizedReservationsFor(
   date,
@@ -856,11 +856,11 @@ export function getCachedStudentById(studentId) {
 }
 
 /**
- * 予約配列データを統一的にオブジェクト配列に変換する
- * @param {RawSheetRow[]} reservations - 予約配列データ
+ * よやく配列データを統一的にオブジェクト配列に変換する
+ * @param {RawSheetRow[]} reservations - よやく配列データ
  * @param {Map<string, number>} headerMap - ヘッダーマップ
  * @param {Record<string, UserCore>} [studentsMap={}] - 全生徒のマップ（パフォーマンス最適化用）
- * @returns {ReservationCore[]} 変換済み予約オブジェクト配列
+ * @returns {ReservationCore[]} 変換済みよやくオブジェクト配列
  */
 export function convertReservationsToObjects(
   reservations,
@@ -882,11 +882,11 @@ export function convertReservationsToObjects(
 }
 
 /**
- * キャッシュから全ての予約データを取得し、オブジェクトの配列として返す
+ * キャッシュから全てのよやくデータを取得し、オブジェクトの配列として返す
  * @param {Record<string, UserCore>=} studentsMapOverride - 事前取得済みの生徒マップ。
  *   指定時はキャッシュ読み込みを省略して再利用する（パフォーマンス最適化）。
  *   未指定の場合は内部でgetStudentCacheSnapshotを呼び出す。
- * @returns {ReservationCore[]} 変換済みの予約オブジェクト配列
+ * @returns {ReservationCore[]} 変換済みのよやくオブジェクト配列
  */
 export function getCachedReservationsAsObjects(studentsMapOverride) {
   const reservationCache = getReservationCacheSnapshot();
@@ -917,7 +917,7 @@ export function getCachedReservationsAsObjects(studentsMapOverride) {
 
 /**
  * 予約IDを指定して、キャッシュから単一のReservationCoreオブジェクトを取得する
- * @param {string} reservationId - 取得する予約のID
+ * @param {string} reservationId - 取得するよやくのID
  * @returns {ReservationCore | null} ReservationCoreオブジェクト、見つからない場合はnull
  */
 export function getReservationCoreById(reservationId) {
@@ -935,7 +935,9 @@ export function getReservationCoreById(reservationId) {
   const cache = getReservationCacheSnapshot(false);
   const headerMap = toHeaderMap(cache?.headerMap);
   if (!cache || !headerMap) {
-    Logger.log(`[CORE] 予約キャッシュのヘッダーマップが取得できませんでした。`);
+    Logger.log(
+      `[CORE] よやくキャッシュのヘッダーマップが取得できませんでした。`,
+    );
     return null;
   }
 
@@ -1215,7 +1217,7 @@ export function convertUserToRow(user, headerMap) {
  *
  * 統一Core型からSheets書き込み用の配列データに変換
  *
- * @param {ReservationCore} reservation - 統一Core型の予約データ
+ * @param {ReservationCore} reservation - 統一Core型のよやくデータ
  * @param {HeaderMapType} headerMap - ヘッダーマップ
  * @param {string[]} header - ヘッダー配列（列数決定用）
  * @returns {RawSheetRow} Sheets書き込み用配列データ
@@ -1296,7 +1298,7 @@ export function convertReservationToRow(reservation, headerMap, header) {
 }
 
 /**
- * 予約データの行配列を多段階ソートします
+ * よやくデータの行配列を多段階ソートします
  *
  * ソート順序:
  * 1. 日付順（昇順: 古い日付が上）
@@ -1463,7 +1465,7 @@ export function updateStudentField(studentId, headerName, value) {
 
 /**
  * 【一時的なマイグレーション関数】
- * 未来の予約のsessionNoteを生徒名簿の次回目標に移植し、予約の制作メモをクリアする。
+ * 未来のよやくのsessionNoteを生徒名簿の次回目標に移植し、よやくの制作メモをクリアする。
  * スプレッドシートエディタから直接実行してください。
  * @returns {void}
  */
@@ -1483,7 +1485,7 @@ export function migrateSessionNoteToNextGoal() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 予約シートのヘッダー
+  // よやくシートのヘッダー
   const reservationHeader = reservationsSheet
     .getRange(1, 1, 1, reservationsSheet.getLastColumn())
     .getValues()[0];
@@ -1526,7 +1528,7 @@ export function migrateSessionNoteToNextGoal() {
     return;
   }
 
-  // 全予約データ取得
+  // 全よやくデータ取得
   const reservationData = reservationsSheet.getDataRange().getValues();
   const rosterData = rosterSheet.getDataRange().getValues();
 
@@ -1541,7 +1543,7 @@ export function migrateSessionNoteToNextGoal() {
 
   let migratedCount = 0;
 
-  // 未来の予約（CONFIRMED or WAITLISTED）で制作メモがあるものを処理
+  // 未来のよやく（CONFIRMED or WAITLISTED）で制作メモがあるものを処理
   for (let i = 1; i < reservationData.length; i++) {
     const row = reservationData[i];
     const studentId = row[studentIdCol];
@@ -1556,7 +1558,7 @@ export function migrateSessionNoteToNextGoal() {
       continue;
     }
 
-    // 未来の予約かつ有効なステータスか
+    // 未来のよやくかつ有効なステータスか
     const isFuture = reservationDate >= today;
     const isValidStatus =
       status === CONSTANTS.STATUS.CONFIRMED ||
@@ -1579,7 +1581,7 @@ export function migrateSessionNoteToNextGoal() {
         .getRange(studentRowIndex, nextGoalCol + 1)
         .setValue(sessionNote);
 
-      // 2. 予約の制作メモをクリア
+      // 2. よやくの制作メモをクリア
       reservationsSheet.getRange(i + 1, wipCol + 1).setValue('');
 
       Logger.log(

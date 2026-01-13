@@ -85,7 +85,7 @@ export const authActionHandlers = {
       if (response.success && response.userFound) {
         debugLog('✅ 統合ログイン成功 - ユーザー: ' + response.user.nickname);
         debugLog(
-          `📦 データ一括取得完了: 予約${response.data.myReservations?.length || 0}件, レッスン${response.data.lessons?.length || 0}件`,
+          `📦 データ一括取得完了: よやく${response.data.myReservations?.length || 0}件, レッスン${response.data.lessons?.length || 0}件`,
         );
         console.log('📦 myReservations詳細:', response.data.myReservations);
 
@@ -192,7 +192,7 @@ export const authActionHandlers = {
           console.log(
             '✅ dispatch完了 - 現在のstate:',
             authHandlersStateManager.getState().myReservations?.length,
-            '件の予約',
+            '件のよやく',
           );
 
           hideLoading();

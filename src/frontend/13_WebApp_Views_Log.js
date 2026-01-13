@@ -216,24 +216,24 @@ function renderLogTable(logs, lastViewedTime) {
         const action = /** @type {string} */ (val);
         /** @type {Record<string, {bg: string, text: string}>} */
         const actionStyles = {
-          予約作成: { bg: 'bg-green-100', text: 'text-green-800' },
-          '予約作成（予約日変更）': {
+          よやく作成: { bg: 'bg-green-100', text: 'text-green-800' },
+          'よやく作成（よやく日変更）': {
             bg: 'bg-amber-100',
             text: 'text-amber-800',
           },
           '空き通知 登録': { bg: 'bg-green-100', text: 'text-green-800' },
-          '予約確定（空き通知から）': {
+          'よやく確定（空き通知から）': {
             bg: 'bg-green-100',
             text: 'text-green-800',
           },
-          予約キャンセル: { bg: 'bg-red-100', text: 'text-red-800' },
-          '予約キャンセル（予約日変更）': {
+          よやくキャンセル: { bg: 'bg-red-100', text: 'text-red-800' },
+          'よやくキャンセル（よやく日変更）': {
             bg: 'bg-amber-100',
             text: 'text-amber-800',
           },
           退会: { bg: 'bg-red-100', text: 'text-red-800' },
-          予約詳細更新: { bg: 'bg-blue-100', text: 'text-blue-800' },
-          予約編集: { bg: 'bg-blue-100', text: 'text-blue-800' },
+          よやく詳細更新: { bg: 'bg-blue-100', text: 'text-blue-800' },
+          よやく編集: { bg: 'bg-blue-100', text: 'text-blue-800' },
           プロフィール更新: { bg: 'bg-blue-100', text: 'text-blue-800' },
           次回目標更新: { bg: 'bg-purple-100', text: 'text-purple-800' },
           会計記録保存: { bg: 'bg-orange-100', text: 'text-orange-800' },
@@ -294,7 +294,7 @@ function renderLogTable(logs, lastViewedTime) {
           const formattedDate = window.formatDate
             ? window.formatDate(dateStr)
             : dateStr;
-          content += `<div class="mb-1 text-xs font-semibold text-brand-text bg-brand-light/50 px-1 py-0.5 rounded inline-block">予約日: ${formattedDate}</div>`;
+          content += `<div class="mb-1 text-xs font-semibold text-brand-text bg-brand-light/50 px-1 py-0.5 rounded inline-block">よやく日: ${formattedDate}</div>`;
         }
 
         // 2. 教室・予約ID情報

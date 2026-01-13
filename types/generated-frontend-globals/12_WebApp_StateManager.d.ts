@@ -102,7 +102,7 @@ export class SimpleStateManager {
      */
     endEditMode(reservationId: string): void;
     /**
-     * 指定された予約が編集モードかチェック
+     * 指定されたよやくが編集モードかチェック
      * @param {string} reservationId - 予約ID
      * @returns {boolean}
      */
