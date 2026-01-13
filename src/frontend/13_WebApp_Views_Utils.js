@@ -152,9 +152,10 @@ export const getTimeOptionsHtml = (startHour, endHour, step, selectedValue) => {
 /**
  * 教室名に基づいてTailwindCSSのカラークラスを返します。
  * @param {ClassroomName} classroomName - 教室名
+ * @param {'colorClass' | 'badgeClass'} [type='colorClass'] - 取得するクラスの種類
  * @returns {string} Tailwindカラークラス
  */
-export const getClassroomColorClass = classroomName => {
+export const getClassroomColorClass = (classroomName, type = 'colorClass') => {
   /**
    * 教室名からDesignConfigのキーへ変換する対応表
    * @type {Record<string, keyof typeof DesignConfig.classroomColors>}
@@ -168,11 +169,27 @@ export const getClassroomColorClass = classroomName => {
   const classroomConfig = DesignConfig.classroomColors || {};
   const classroomKey = classroomKeyMap[classroomName];
 
-  if (classroomKey && classroomConfig[classroomKey]?.colorClass) {
-    return classroomConfig[classroomKey].colorClass;
+  if (classroomKey && classroomConfig[classroomKey]?.[type]) {
+    return classroomConfig[classroomKey][type];
   }
 
-  return classroomConfig.default?.colorClass || DesignConfig.colors.primary;
+  return classroomConfig.default?.[type] || '';
+};
+
+/**
+ * 会場名に基づいてTailwindCSSのカラークラスを返します。
+ * @param {string} venueName - 会場名（例: '浅草橋', '東池袋'）
+ * @param {'colorClass' | 'badgeClass'} [type='colorClass'] - 取得するクラスの種類
+ * @returns {string} Tailwindカラークラス
+ */
+export const getVenueColorClass = (venueName, type = 'colorClass') => {
+  const venueConfig = DesignConfig.venueColors || {};
+
+  if (venueName && venueConfig[venueName]?.[type]) {
+    return venueConfig[venueName][type];
+  }
+
+  return venueConfig.default?.[type] || '';
 };
 
 /**

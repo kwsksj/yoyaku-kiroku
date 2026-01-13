@@ -275,50 +275,76 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
         'bg-ui-error-bg text-ui-error-text border-2 border-ui-error-border',
     },
 
-    // 教室別のボタン色設定
+    // 教室の表示順序（アプリ全体で統一）
+    classroomOrder: ['東京教室', 'つくば教室', '沼津教室'],
+
+    // 教室別のボタン・バッジ色設定（サイトのテラコッタ系と調和するよう調整）
     classroomColors: {
+      // 東京教室：テラコッタ/コーラル系の赤（サイトのプライマリカラーと調和）
       tokyo: {
-        button: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
-        colorClass: 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100',
+        button: 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100',
+        colorClass: 'bg-red-50 border-red-200 text-red-700',
+        badgeClass: 'bg-red-100 text-red-700 border border-red-300',
       },
-      numazu: {
-        button: 'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
-        colorClass:
-          'bg-blue-50 border-blue-200 text-blue-800 hover:bg-blue-100',
-      },
+      // つくば教室：エメラルド/ティール系の緑（落ち着いたトーン）
       tsukuba: {
         button:
-          'bg-green-50 border-green-200 text-green-800 hover:bg-green-100',
-        colorClass:
-          'bg-green-50 border-green-200 text-green-800 hover:bg-green-100',
+          'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100',
+        colorClass: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+        badgeClass: 'bg-emerald-100 text-emerald-700 border border-emerald-300',
       },
+      // 沼津教室：スカイブルー/シアン系の青（落ち着いたトーン）
+      numazu: {
+        button: 'bg-sky-50 border-sky-200 text-sky-700 hover:bg-sky-100',
+        colorClass: 'bg-sky-50 border-sky-200 text-sky-700',
+        badgeClass: 'bg-sky-100 text-sky-700 border border-sky-300',
+      },
+      // デフォルト：グレー
       default: {
-        button:
-          'bg-state-available-bg border-state-available-border text-brand-text hover:bg-gray-50',
-        colorClass:
-          'bg-state-available-bg border-state-available-border text-brand-text hover:bg-gray-50',
+        button: 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100',
+        colorClass: 'bg-gray-50 border-gray-200 text-gray-600',
+        badgeClass: 'bg-gray-100 text-gray-600 border border-gray-300',
       },
     },
 
-    // ボタンの基本スタイル
+    // 会場別のバッジ色設定（東京教室の赤系をベースに区別）
+    venueColors: {
+      // 浅草橋：明るいコーラル/オレンジ寄りの赤
+      浅草橋: {
+        colorClass: 'bg-orange-50 border-orange-200 text-orange-800',
+        badgeClass: 'bg-orange-100 text-orange-700 border border-orange-300',
+      },
+      // 東池袋：フクシア/パープル系（東京教室の赤と明確に区別）
+      東池袋: {
+        colorClass: 'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-800',
+        badgeClass: 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-300',
+      },
+      // デフォルト：グレー
+      default: {
+        colorClass: 'bg-gray-50 border-gray-200 text-gray-600',
+        badgeClass: 'bg-gray-100 text-gray-600 border border-gray-300',
+      },
+    },
+
+    // ボタンの基本スタイル（角丸: rounded-lg で統一）
     buttons: {
-      base: 'font-bold rounded-md shadow transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
+      base: 'font-bold rounded-lg shadow transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly',
       full: 'w-[250px] mx-auto block',
       primary:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover',
+        'font-bold py-2.5 px-5 rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-primary-bg text-action-primary-text active:bg-action-primary-hover',
       secondary:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover',
+        'font-bold py-2.5 px-5 rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover',
       attention:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover',
+        'font-bold py-2.5 px-5 rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-attention-bg text-action-attention-text active:bg-action-attention-hover',
       danger:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-danger-bg text-action-danger-text active:bg-action-danger-hover',
+        'font-bold py-2.5 px-5 rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-danger-bg text-action-danger-text active:bg-action-danger-hover',
       accounting:
-        'font-bold py-2.5 px-5 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover',
+        'font-bold py-2.5 px-5 rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-action-accounting-bg text-action-accounting-text active:bg-action-accounting-hover',
       // カード内ボタン専用スタイル（カードと調和する色）
       bookingCard:
-        'font-bold text-sm py-1.5 px-1.5 leading-tight rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-green-100 text-green-800 active:bg-green-200 border-2 border-green-200',
+        'font-bold text-sm py-1.5 px-1.5 leading-tight rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-green-100 text-green-800 active:bg-green-200 border-2 border-green-200',
       recordCard:
-        'font-bold text-sm py-1.5 px-1.5 leading-tight rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-amber-100 text-amber-800 active:bg-amber-200 border-2 border-amber-200',
+        'font-bold text-sm py-1.5 px-1.5 leading-tight rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly bg-amber-100 text-amber-800 active:bg-amber-200 border-2 border-amber-200',
     },
 
     // テキストスタイル設定
@@ -332,12 +358,12 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
       labelBlock: 'block text-brand-text text-base font-bold mb-2',
     },
 
-    // レイアウトユーティリティ
+    // レイアウトユーティリティ（角丸: カード類は rounded-2xl）
     layout: {
       container: 'max-w-screen-sm mx-auto p-4',
       containerNoPadding: 'max-w-screen-xl mx-auto',
       section: 'mb-8',
-      card: 'shadow-card rounded-lg border-2 border-solid border-card-border',
+      card: 'shadow-card rounded-2xl border-2 border-solid border-card-border',
       centerContent: 'flex items-center justify-center',
       spaceBetween: 'flex items-center justify-between',
     },
@@ -353,23 +379,23 @@ appWindow.DesignConfig = /** @type {DesignSystemConfig} */ (
       autoMargin: 'mx-auto',
     },
 
-    // カードスタイル
+    // カードスタイル（角丸: rounded-2xl で統一）
     cards: {
-      base: 'w-full text-left p-3 rounded-lg mobile-card touch-friendly transition-all duration-150',
+      base: 'w-full text-left p-3 rounded-2xl mobile-card touch-friendly transition-all duration-150',
       container: 'max-w-md mx-auto space-y-3',
       background: 'bg-ui-surface border-2 border-ui-border',
       state: {
         available: {
-          card: 'bg-state-available-bg border-2 border-state-available-border mobile-card active:bg-state-available-hover',
-          text: 'text-state-available-text',
+          card: 'bg-blue-50 border-2 border-blue-200 mobile-card active:bg-blue-100',
+          text: 'text-blue-700',
         },
         waitlist: {
-          card: 'bg-state-waitlist-bg border-2 border-state-waitlist-border mobile-card',
-          text: 'text-state-waitlist-text',
+          card: 'bg-stone-50 border-2 border-stone-200 mobile-card',
+          text: 'text-stone-600',
         },
         booked: {
-          card: 'bg-state-booked-bg border-2 border-state-booked-border mobile-card',
-          text: 'text-state-booked-text',
+          card: 'bg-amber-50 border-2 border-amber-200 mobile-card',
+          text: 'text-brand-subtle',
         },
         history: {
           card: 'bg-amber-50 border-2 border-amber-200 mobile-card',

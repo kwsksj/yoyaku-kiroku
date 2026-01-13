@@ -5,24 +5,6 @@
  */
 export function getParticipantView(): string;
 export type LessonCore = import("../../types/core/lesson").LessonCore;
-export type ClassroomColorConfig = {
-    /**
-     * - 背景色クラス
-     */
-    bg: string;
-    /**
-     * - ボーダー色クラス
-     */
-    border: string;
-    /**
-     * - テキスト色クラス
-     */
-    text: string;
-    /**
-     * - バッジ色クラス
-     */
-    badge: string;
-};
 export type ParticipantColumnConfig = {
     /**
      * - データのキー

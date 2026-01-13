@@ -60,9 +60,11 @@ declare function selectParticipantStudent(targetStudentId: string, _lessonId?: s
 declare function backToParticipantList(): void;
 /**
  * 教室フィルタハンドラ
- * @param {string} classroom - 選択された教室（'all'または教室名）
+ * @param {string|{classroom?: string}} data - 選択された教室またはdataオブジェクト
  */
-declare function filterParticipantByClassroom(classroom: string): void;
+declare function filterParticipantByClassroom(data: string | {
+    classroom?: string;
+}): void;
 /**
  * 過去/未来のレッスン切り替えハンドラ
  * @param {boolean} showPast - 過去のレッスンを表示するか

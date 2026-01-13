@@ -54,6 +54,8 @@ export interface ClassroomColorConfig {
   button: string;
   /** カラークラス */
   colorClass: string;
+  /** バッジクラス（縁取り線付き） */
+  badgeClass: string;
 }
 
 /**
@@ -68,6 +70,34 @@ export interface ClassroomColors {
   tsukuba: ClassroomColorConfig;
   /** デフォルト */
   default: ClassroomColorConfig;
+}
+
+// =================================================================
+// デザインシステム - 会場別色設定
+// =================================================================
+
+/**
+ * 会場別の色設定
+ */
+export interface VenueColorConfig {
+  /** カラークラス */
+  colorClass: string;
+  /** バッジクラス */
+  badgeClass: string;
+}
+
+/**
+ * 会場別色マッピング
+ */
+export interface VenueColors {
+  /** 浅草橋（東京教室） */
+  浅草橋?: VenueColorConfig;
+  /** 東池袋（東京教室） */
+  東池袋?: VenueColorConfig;
+  /** デフォルト */
+  default: VenueColorConfig;
+  /** 任意の会場名 */
+  [key: string]: VenueColorConfig | undefined;
 }
 
 // =================================================================
@@ -248,8 +278,12 @@ export interface InputStyles {
 export interface DesignSystemConfig {
   /** 色設定 */
   colors: DesignColors;
+  /** 教室の表示順序 */
+  classroomOrder: string[];
   /** 教室別色設定 */
   classroomColors: ClassroomColors;
+  /** 会場別色設定 */
+  venueColors: VenueColors;
   /** ボタンスタイル */
   buttons: ButtonStyles;
   /** テキストスタイル */

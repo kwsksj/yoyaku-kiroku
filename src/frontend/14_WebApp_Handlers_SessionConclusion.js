@@ -858,35 +858,9 @@ function handleConclusionClick(event) {
     case 'setFilterClassroom': {
       const filter = actionElement.getAttribute('data-filter');
       if (filter && (filter === 'current' || filter === 'all')) {
-        // 即座にボタンのスタイルを更新（ちらつき軽減）
-        const activeClass = 'bg-action-primary-bg text-white';
-        const inactiveClass = 'bg-gray-100 text-gray-500';
-        const currentBtn = document.querySelector('.filter-btn-current');
-        const allBtn = document.querySelector('.filter-btn-all');
+        // DOM操作によるクラス切り替えは削除（全再描画で対応）
 
-        if (currentBtn && allBtn) {
-          if (filter === 'current') {
-            currentBtn.className = currentBtn.className.replace(
-              inactiveClass,
-              activeClass,
-            );
-            allBtn.className = allBtn.className.replace(
-              activeClass,
-              inactiveClass,
-            );
-          } else {
-            currentBtn.className = currentBtn.className.replace(
-              activeClass,
-              inactiveClass,
-            );
-            allBtn.className = allBtn.className.replace(
-              inactiveClass,
-              activeClass,
-            );
-          }
-        }
-
-        // 状態を更新してリスト再生成（リスト部分のみ再描画が理想だが、完全対応は複雑なため要件に応じて拡張）
+        // 状態を更新してリスト再生成
         wizardState.filterClassroom = filter;
 
         // リストの再生成（slot-list-contentの内容を更新）

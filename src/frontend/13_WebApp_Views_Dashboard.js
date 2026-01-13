@@ -69,15 +69,11 @@ export const getDashboardView = () => {
       }
 
       const editButtons = _buildEditButtons(b);
-      // 空きが出た場合はテキストボタン、それ以外はアイコンボタンを使用
-      const shouldUseEditIcon = !editButtons.some(btn => btn.useTextButton);
 
       return Components.listCard({
-        type: 'booking',
         item: b,
         badges: badges,
         editButtons: editButtons,
-        useEditIcon: shouldUseEditIcon,
       });
     },
   );
@@ -189,7 +185,7 @@ export const getDashboardView = () => {
     // リストビュー形式のきろくセクション
     const historyListHtml = `
       <div class="w-full max-w-md mx-auto">
-        <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">
+        <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-2xl">
           ${historyListItems.join('')}
         </div>
       </div>
@@ -229,10 +225,10 @@ export const getDashboardView = () => {
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
-  // 新規予約ボタン
+  // 新規予約ボタン（直接予約画面に遷移）
   const newBookingButton = Components.button({
     text: 'よやく<br>する',
-    action: 'showClassroomModal',
+    action: 'goToBookingView',
     style: 'secondary',
     customClass:
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
@@ -270,7 +266,7 @@ export const getDashboardView = () => {
 
   // 先生へ連絡ボタン
   const messageToTeacherButton = Components.button({
-    text: 'せんせいへ<br>れんらく',
+    text: 'せんせい へ<br>れんらく',
     action: 'showMessageToTeacherModal',
     style: 'secondary',
     customClass:
@@ -278,14 +274,14 @@ export const getDashboardView = () => {
   });
 
   // メニューアイテムを構築（すべてをフラットな配列にしてグリッド配置）
-  // 順序: 一覧、予約、(まとめ)、会計履歴、ギャラリー、連絡
+  // 順序: まとめ、一覧、予約、会計履歴、ギャラリー、連絡
   const allMenuButtons = [
+    summaryMenuButton,
     menuButton,
     newBookingButton,
-    summaryMenuButton,
-    accountingHistoryButton,
     photoButton,
     messageToTeacherButton,
+    accountingHistoryButton,
   ]
     .filter(Boolean)
     .join('');
@@ -312,7 +308,7 @@ export const getDashboardView = () => {
 
   const goalCardContent = `
     <div class="w-full max-w-md mx-auto">
-      <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-lg">
+      <div class="bg-brand-light border-2 border-brand-subtle/30 p-2 rounded-2xl">
         <!-- 表示モード -->
         <div id="goal-display-mode" class="${shouldShowGoalEditMode ? 'hidden' : ''}">
           <div class="bg-white/75 rounded p-2 relative">
@@ -332,7 +328,7 @@ export const getDashboardView = () => {
             caption: '「みんな の よやく・きろく」にも のります。',
           })}
           <div class="flex justify-end mt-2 gap-2">
-            ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>` : ''}
+            ${nextLessonGoal ? `<button data-action="cancelEditGoal" class="text-sm text-action-secondary-text px-3 py-1 rounded-lg border border-ui-border">キャンセル</button>` : ''}
             ${Components.button({
               action: 'saveGoal',
               text: 'ほぞん',
@@ -354,8 +350,8 @@ export const getDashboardView = () => {
         <div class="flex flex-col sm:flex-row justify-between sm:items-center mt-4 mb-2">
             <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-6 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
             <div class="flex items-center gap-1 self-end sm:self-auto">
-                <button data-action="showEditProfile" class="bg-brand-light text-xs text-action-secondary-text px-0.5 py-0.5 rounded-md active:bg-action-secondary-hover">プロフィール</button>
-                <button data-action="logout" class="bg-brand-light text-xs text-action-secondary-text px-0.5 py-0.5 rounded-md active:bg-action-secondary-hover">ログアウト</button>
+                <button data-action="showEditProfile" class="bg-brand-light text-xs text-action-secondary-text px-0.5 py-0.5 rounded-lg active:bg-action-secondary-hover">プロフィール</button>
+                <button data-action="logout" class="bg-brand-light text-xs text-action-secondary-text px-0.5 py-0.5 rounded-lg active:bg-action-secondary-hover">ログアウト</button>
             </div>
         </div>
         <!-- セクション順序: メニュー→けいかく→よやく→きろく -->

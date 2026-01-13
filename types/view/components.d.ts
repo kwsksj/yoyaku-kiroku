@@ -44,6 +44,7 @@ export interface ComponentConfig {
   action?: string;
   text?: string;
   style?: ComponentStyle;
+  icon?: string;
   size?: ComponentSize;
   disabled?: boolean;
   customClass?: string;
@@ -325,19 +326,15 @@ export interface DashboardSectionConfig {
   moreAction?: string;
 }
 
+
+
 /**
  * リストカード設定
  */
 export interface ListCardConfig {
   item: ReservationData;
   badges?: Array<{ type: BadgeType; text: string }>;
-  editButtons?: Array<{
-    action: string;
-    text: string;
-    style?: string;
-    size?: string;
-    details?: any;
-  }>;
+  editButtons?: Array<EditButtonConfig>;
   accountingButtons?: Array<{
     action: string;
     text: string;
@@ -470,6 +467,19 @@ export interface ComponentRenderer {
 import { Components as GeneratedComponents } from '../generated-frontend-globals/13_WebApp_Components';
 
 declare global {
+  /**
+   * 編集ボタン設定
+   */
+  interface EditButtonConfig {
+    action: string;
+    text: string;
+    style?: string;
+    size?: string;
+    icon?: string;
+    useTextButton?: boolean;
+    details?: any;
+  }
+
   /**
    * テーブルカラム設定
    */

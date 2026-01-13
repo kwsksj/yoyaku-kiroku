@@ -16,7 +16,11 @@
 // ================================================================
 // ユーティリティ系モジュール
 // ================================================================
-import { getTimeOptionsHtml } from './13_WebApp_Views_Utils.js';
+import {
+  getClassroomColorClass,
+  getTimeOptionsHtml,
+  getVenueColorClass,
+} from './13_WebApp_Views_Utils.js';
 
 const componentsStateManager = appWindow.stateManager;
 
@@ -611,45 +615,69 @@ export const Components = {
   },
 
   /**
-   * ピル型トグルスイッチコンポーネント（2択選択）
+   * ピル型トグルスイッチコンポーネント（複数選択対応）
    * セッション終了フローの教室フィルターと同じデザイン形式
    * @param {Object} config - 設定オブジェクト
-   * @param {Array<{value: string, label: string, onclick: string}>} config.options - 選択肢の配列（2つ）
+   * @param {Array<{value: string, label: string, onclick?: string, action?: string, dataAttributes?: Record<string, string>, colorClass?: string}>} config.options - 選択肢の配列
    * @param {string} config.selectedValue - 現在選択されている値
    * @param {string} [config.className=''] - 追加のCSSクラス
    * @param {string} [config.size='normal'] - サイズ（'small' | 'normal'）
    * @returns {string} HTML文字列
    */
   pillToggle: ({ options, selectedValue, className = '', size = 'normal' }) => {
-    if (!Array.isArray(options) || options.length !== 2) {
-      console.error('pillToggle: options must be an array of 2 items');
+    if (!Array.isArray(options) || options.length < 2) {
+      console.error('pillToggle: options must be an array of at least 2 items');
       return '';
     }
 
     // サイズに応じたスタイル
     /** @type {Record<string, string>} */
     const sizeClasses = {
-      small: 'py-1 px-2 text-xs',
-      normal: 'py-2 px-4 text-sm',
+      xs: 'py-0.5 px-1.5 text-xs',
+      small: 'py-1 px-2 text-sm',
+      normal: 'py-1 px-2 text-base',
     };
     const sizeClass = sizeClasses[size] || sizeClasses['normal'];
 
     const optionsHtml = options
       .map(opt => {
         const isSelected = opt.value === selectedValue;
-        const stateClass = isSelected
-          ? 'bg-action-primary-bg text-white'
-          : 'bg-gray-100 text-gray-500';
+
+        // 選択時の色: colorClassがあれば使用、なければデフォルト
+        // 非選択時の色: 薄いグレー
+        let stateClass;
+        if (isSelected) {
+          if (opt.colorClass) {
+            stateClass = opt.colorClass;
+          } else {
+            stateClass = 'bg-action-primary-bg text-white';
+          }
+        } else {
+          stateClass = 'bg-gray-100 text-gray-500';
+        }
+
+        // data-action/data-*属性のサポート
+        let attrs = '';
+        if (opt.onclick) {
+          attrs = `onclick="${escapeHTML(opt.onclick)}"`;
+        } else if (opt.action) {
+          attrs = `data-action="${escapeHTML(opt.action)}"`;
+          if (opt.dataAttributes) {
+            for (const [key, val] of Object.entries(opt.dataAttributes)) {
+              attrs += ` ${key}="${escapeHTML(val)}"`;
+            }
+          }
+        }
 
         return `<button
           type="button"
-          onclick="${escapeHTML(opt.onclick)}"
-          class="flex-1 ${sizeClass} font-bold rounded-full transition-colors ${stateClass}"
+          ${attrs}
+          class="flex-1 ${sizeClass} font-bold rounded-full transition-colors text-center ${stateClass}"
         >${escapeHTML(opt.label)}</button>`;
       })
       .join('');
 
-    return `<div class="flex justify-center bg-gray-100 p-1 rounded-full ${className}">${optionsHtml}</div>`;
+    return `<div class="flex gap-1 bg-gray-100 p-1 rounded-full ${className}">${optionsHtml}</div>`;
   },
 
   /**
@@ -787,7 +815,7 @@ export const Components = {
       beginner: 'bg-green-100 text-green-800',
     };
 
-    return `<span class="inline-block px-1 py-0.5 text-sm font-bold rounded ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
+    return `<span class="inline-block px-2 py-0.5 text-xs font-bold rounded-full ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
   },
 
   /**
@@ -1344,7 +1372,7 @@ export const Components = {
           <span class="mr-3 text-brand-accent transition-transform">▶</span>
           ${escapeHTML(title)}
         </div>
-        <span class="text-xs text-brand-subtle rounded-md bg-ui-surface border-2 border-ui-border p-1">タップで展開</span>
+        <span class="text-xs text-brand-subtle rounded-lg bg-ui-surface border-2 border-ui-border p-1">タップで展開</span>
       </summary>`;
     }
 
@@ -1431,7 +1459,7 @@ export const Components = {
     // セクションタイトル：下線付きでシンプルに区切りを強調
     return `
         <div class="mb-2 w-full">
-          <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg shadow-sm space-y-3">
+          <div class="bg-ui-surface border-2 border-ui-border p-3 rounded-2xl shadow-sm space-y-3">
             <h2 class="text-lg font-bold text-brand-text text-center pb-2 border-b-2 border-ui-border-light">${escapeHTML(title)}</h2>
             ${itemsHtml}
             ${moreButtonHtml}
@@ -1441,25 +1469,17 @@ export const Components = {
   },
 
   /**
-   * 統一カードレイアウト（予約・履歴共通）- 純粋描画層
-   * @param {ListCardConfig} config - 設定オブジェクト
+   * 予約カードコンポーネント（予約リスト表示専用）
+   * @param {{
+   *   item: ReservationCore,
+   *   badges?: {type: BadgeType, text: string}[],
+   *   editButtons?: EditButtonConfig[],
+   * }} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
-  listCard: ({
-    item,
-    badges = [],
-    editButtons = [],
-    accountingButtons = [],
-    type = 'booking',
-    isEditMode = false,
-    showMemoSaveButton = true,
-    useEditIcon = false,
-  }) => {
-    // カード基本スタイル
-    const cardColorClass =
-      type === 'booking'
-        ? `booking-card ${DesignConfig.cards.state.booked.card}`
-        : `record-card ${DesignConfig.cards.state.history.card}`;
+  listCard: ({ item, badges = [], editButtons = [] }) => {
+    // 常に予約カードスタイルを使用
+    const cardColorClass = `booking-card ${DesignConfig.cards.state.booked.card}`;
 
     // バッジHTML生成
     const badgesHtml = badges
@@ -1471,105 +1491,66 @@ export const Components = {
       )
       .join('');
 
-    // 編集アイコンSVG（共通関数を使用）
-    const editIconSvg = Components.editIcon();
+    // 編集ボタン生成
+    const editButtonsHtml = editButtons
+      .map(btn => {
+        const commonDataAttrs = {
+          classroom: item.classroom,
+          reservationId: item.reservationId,
+          date: item.date,
+          ...(btn.details && { details: JSON.stringify(btn.details) }),
+        };
 
-    // 編集ボタンHTML生成
-    let editButtonsHtml = '';
-    if (useEditIcon && editButtons.length > 0) {
-      // アイコンモード：最初の編集ボタンをアイコンで表示
-      const firstBtn = editButtons[0];
-      editButtonsHtml = `
-        <button
-          data-action="${firstBtn.action}"
-          data-classroom="${item.classroom || ''}"
-          data-reservation-id="${item.reservationId || ''}"
-          data-date="${item.date || ''}"
-          class="p-1 text-brand-subtle hover:text-brand-text active:bg-brand-light rounded transition-colors"
-          aria-label="編集"
-        >
-          ${editIconSvg}
-        </button>
-      `;
-    } else {
-      // 通常モード：テキストボタン
-      editButtonsHtml = editButtons
-        .map(btn =>
-          Components.button({
+        // テキストボタン強制フラグがある場合はテキストボタンとして表示
+        if (btn.useTextButton) {
+          return Components.button({
             action: btn.action,
             text: btn.text,
-            style: /** @type {ComponentStyle} */ (
-              btn.style || (type === 'booking' ? 'bookingCard' : 'recordCard')
-            ),
-            dataAttributes: {
-              classroom: item.classroom,
-              reservationId: item.reservationId,
-              date: item.date,
-              ...(btn.details && { details: JSON.stringify(btn.details) }),
-            },
-          }),
-        )
-        .join('');
-    }
+            style: /** @type {ComponentStyle} */ (btn.style || 'bookingCard'),
+            dataAttributes: commonDataAttrs,
+          });
+        }
 
-    // 会計ボタンHTML生成
-    const accountingButtonsHtml = accountingButtons
-      .map(btn =>
-        Components.button({
+        // デフォルトはアイコン表示（右下配置用）
+        return Components.button({
           action: btn.action,
-          text: btn.text,
-          style: /** @type {ComponentStyle} */ (
-            btn.style || (type === 'accounting' ? 'accounting' : 'normal')
-          ),
-          dataAttributes: {
-            classroom: item.classroom,
-            reservationId: item.reservationId,
-            date: item.date,
-            ...(btn.details && { details: JSON.stringify(btn.details) }),
-          },
-        }),
-      )
+          text: Components.editIcon(),
+          style: 'none',
+          customClass:
+            'text-brand-muted hover:text-brand-text transition-colors p-1',
+          dataAttributes: commonDataAttrs,
+        });
+      })
       .join('');
 
     // 日時・会場表示
     const dateTimeDisplay = item.startTime
       ? ` ${item.startTime}~${item.endTime}`.trim()
       : '';
-    const classroomDisplay = item.classroom ? ` ${item.classroom}` : '';
-    const venueDisplay = item.venue ? ` ${item.venue}` : '';
 
-    // メモ表示：完了（COMPLETED）の記録カードのみに表示
-    // 予約カード（CONFIRMED/WAITLISTED）にはメモを表示しない
-    const isCompleted = item.status === CONSTANTS.STATUS.COMPLETED;
-    const memoSection = isCompleted
-      ? Components.memoSection({
-          reservationId: item.reservationId,
-          sessionNote: item.sessionNote || '',
-          isEditMode: isEditMode,
-          showSaveButton: showMemoSaveButton,
-        })
+    // 教室・会場バッジ表示
+    const classroomBadgeHtml = item.classroom
+      ? `<span class="px-2 rounded-full text-sm ${getClassroomColorClass(item.classroom, 'badgeClass')}">${escapeHTML(item.classroom)}</span>`
       : '';
-
-    // 予約カード（メモなし）でアイコンモードの場合は右下、それ以外は右上に配置
-    const showButtonBottomRight =
-      useEditIcon && !isCompleted && type === 'booking';
+    const venueBadgeHtml = item.venue
+      ? `<span class="px-2 rounded-full text-sm ${getVenueColorClass(item.venue, 'badgeClass')}">${escapeHTML(item.venue)}</span>`
+      : '';
 
     return `
       <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
-        <div class="${cardColorClass} p-2 rounded-lg shadow-sm${showButtonBottomRight ? ' relative' : ''}" data-reservation-id="${item.reservationId}">
-          <!-- 上部：教室情報+会計・編集ボタン -->
+        <div class="${cardColorClass} p-2 rounded-2xl shadow-sm relative" data-reservation-id="${item.reservationId}">
+          <!-- 上部：教室情報+バッジ -->
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center flex-wrap">
+              <div class="flex items-center flex-wrap ">
                 <h3 class="text-base text-brand-text font-bold">${formatDate(item.date)}<span class="font-normal text-sm text-brand-subtle ml-2">${dateTimeDisplay}</span></h3>
+                ${badgesHtml ? `<div class="ml-auto flex-shrink-0">${badgesHtml}</div>` : ''}
               </div>
-              <h4 class="text-sm text-brand-text">${escapeHTML(classroomDisplay)}${escapeHTML(venueDisplay)} ${badgesHtml}</h4>
+              <div class="flex items-center gap-1 flex-wrap pt-1 pr-4">${classroomBadgeHtml}${venueBadgeHtml}</div>
             </div>
-            ${!showButtonBottomRight && (accountingButtonsHtml || editButtonsHtml) ? `<div class="flex-shrink-0 self-start flex gap-1 items-center">${accountingButtonsHtml}${editButtonsHtml}</div>` : ''}
           </div>
 
-          ${memoSection}
-          ${showButtonBottomRight && editButtonsHtml ? `<div class="absolute bottom-1 right-1">${editButtonsHtml}</div>` : ''}
+          ${editButtonsHtml ? `<div class="absolute bottom-1 right-1">${editButtonsHtml}</div>` : ''}
         </div>
       </div>
     `;
@@ -1603,7 +1584,7 @@ export const Components = {
 
     return `
       <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
-        <div class="${cardColorClass} p-2 rounded-lg shadow-sm ${dimmedClass}">
+        <div class="${cardColorClass} p-2 rounded-2xl shadow-sm ${dimmedClass}">
           <!-- 上部：タイトル+バッジ -->
           <div class="flex justify-between items-start mb-0">
             <div class="flex-1 min-w-0">
@@ -1641,7 +1622,7 @@ export const Components = {
       // 編集モード：textareaと保存/キャンセルボタン（けいかくカードと同一構造：白枠なし）
       const buttonsHtml = showSaveButton
         ? `<div class="flex justify-end mt-2 gap-2">
-            <button data-action="closeEditMode" data-reservation-id="${reservationId}" class="text-sm text-action-secondary-text px-3 py-1 rounded-md border border-ui-border">キャンセル</button>
+            <button data-action="closeEditMode" data-reservation-id="${reservationId}" class="text-sm text-action-secondary-text px-3 py-1 rounded-lg border border-ui-border">キャンセル</button>
             ${Components.button({
               action: 'saveAndCloseMemo',
               text: 'ほぞん',
@@ -1722,7 +1703,7 @@ export const Components = {
       })
       .join('');
 
-    return `<div class="p-4 bg-ui-surface border-2 border-ui-border rounded-lg">
+    return `<div class="p-4 bg-ui-surface border-2 border-ui-border rounded-2xl">
         <h3 class="text-xl font-bold mb-3 text-left text-brand-text">販売（材料・物販）</h3>
         <div class="mb-3 space-y-4">
           <label class="block text-brand-text text-base font-bold">材料代</label>
@@ -1776,7 +1757,7 @@ export const Components = {
         <div class="back-button-container fixed top-4 right-4 z-30">
           <button
             data-action="${escapeHTML(action)}"
-            class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-md transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
+            class="bg-action-secondary-bg text-action-secondary-text active:bg-action-secondary-hover font-bold py-2 px-4 rounded-lg transition-all duration-150 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2 mobile-button touch-friendly shadow-lg"
           >
             ${escapeHTML(text)}
           </button>
@@ -1947,7 +1928,7 @@ export const Components = {
         })
       : '';
 
-    return `<div class="bg-white border-2 border-ui-border rounded-lg p-2">
+    return `<div class="bg-white border-2 border-ui-border rounded-2xl p-2">
       <div class="text-xs text-gray-500 text-center">
         ${iconHtml}
         <p>${escapeHTML(message)}</p>
@@ -1981,7 +1962,7 @@ export const Components = {
     const arrowClass = isExpanded ? 'rotate-180' : '';
 
     return `<div class="mb-0.5" data-lesson-container="${escapeHTML(id)}">
-      <div class="${bgColor} border-2 ${borderColor} rounded-lg overflow-hidden">
+      <div class="${bgColor} border-2 ${borderColor} rounded-2xl overflow-hidden">
         <button
           class="p-1 w-full hover:opacity-100"
           onclick="actionHandlers.${toggleHandler}('${escapeHTML(id)}')"

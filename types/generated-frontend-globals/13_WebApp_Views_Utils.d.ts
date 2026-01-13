@@ -5,6 +5,7 @@ export const PRIVACY_POLICY_CONTENT: "# \u30D7\u30E9\u30A4\u30D0\u30B7\u30FC\u30
 export function _isToday(dateString: DateString): boolean;
 export function _isPastOrToday(dateString: DateString): boolean;
 export function getTimeOptionsHtml(startHour: number, endHour: number, step: number, selectedValue: TimeString | null): HTMLString;
-export function getClassroomColorClass(classroomName: ClassroomName): string;
+export function getClassroomColorClass(classroomName: ClassroomName, type?: "colorClass" | "badgeClass"): string;
+export function getVenueColorClass(venueName: string, type?: "colorClass" | "badgeClass"): string;
 export function getCompleteView(msg: string): string;
 export function getPrivacyPolicyModal(): string;

@@ -16,8 +16,11 @@
 // ================================================================
 // UI系モジュール
 // ================================================================
-import { Components } from './13_WebApp_Components.js';
-import { getClassroomColorClass } from './13_WebApp_Views_Utils.js';
+import { Components, escapeHTML } from './13_WebApp_Components.js';
+import {
+  getClassroomColorClass,
+  getVenueColorClass,
+} from './13_WebApp_Views_Utils.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -105,7 +108,7 @@ const renderBeginnerModeToggle = () => {
   });
 
   return `
-      <p class="text-sm ${DesignConfig.colors.textSubtle} mb-2 text-center">参加枠の表示</p>
+      <p class="text-sm font-bold text-gray-500 mb-2 border-l-2 border-gray-300 pl-2">参加枠</p>
       <div class="flex justify-center mb-6">
         ${Components.pillToggle({
           options: [
@@ -124,37 +127,109 @@ const renderBeginnerModeToggle = () => {
           className: 'max-w-xs w-full',
         })}
       </div>
-      <hr class="border-ui-border-light"/>
     `;
 };
 /**
- * 特定の教室の予約枠一覧画面のUIを生成します。
- * @param {string} classroom - 教室名
+ * 教室選択ピル型トグルを生成
+ * @param {string} selectedClassroom - 現在選択されている教室（'all'で全教室）
+ * @returns {string} HTML文字列
+ */
+const renderClassroomToggle = selectedClassroom => {
+  const classrooms = Object.values(CONSTANTS.CLASSROOMS || {});
+  if (!classrooms.length) return '';
+
+  // 表示順を定義（DesignConfigで一元管理）
+  const desiredOrder = DesignConfig.classroomOrder || [
+    '東京教室',
+    'つくば教室',
+    '沼津教室',
+  ];
+  const sortedClassrooms = [...classrooms].sort((a, b) => {
+    const indexA = desiredOrder.indexOf(a);
+    const indexB = desiredOrder.indexOf(b);
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+
+  // ボタン表示用に「教室」を除去
+  /** @param {string} name */
+  const formatClassroomName = name => name.replace('教室', '');
+
+  // pillToggle用のオプション配列を生成
+  /** @type {Array<{value: string, label: string, action: string, dataAttributes: Record<string, string>}>} */
+  const options = [
+    ...sortedClassrooms.map(c => ({
+      value: c,
+      label: formatClassroomName(c),
+      action: 'filterBookingClassroom',
+      dataAttributes: { 'data-classroom': c },
+    })),
+    {
+      value: 'all',
+      label: 'すべて',
+      action: 'filterBookingClassroom',
+      dataAttributes: { 'data-classroom': 'all' },
+    },
+  ];
+
+  return `
+    <div class="mb-4">
+      <p class="text-sm font-bold text-gray-500 mb-2 border-l-2 border-gray-300 pl-2">教室</p>
+      ${Components.pillToggle({
+        options,
+        selectedValue: selectedClassroom,
+        size: 'normal',
+      })}
+    </div>
+  `;
+};
+
+/**
+ * 予約枠一覧画面のUIを生成します（全教室対応）
+ * @param {string} classroom - 教室名（'all'で全教室表示）
  * @returns {string} HTML文字列
  */
 export const getBookingView = classroom => {
   const currentState = bookingStateManager.getState();
-  const relevantLessons =
+  const selectedClassroom = classroom || 'all';
+
+  // レッスンをフィルタリング
+  const allLessons =
     currentState.lessons && Array.isArray(currentState.lessons)
-      ? currentState.lessons.filter(
-          (/** @type {LessonCore} */ lesson) => lesson.classroom === classroom,
-        )
+      ? currentState.lessons
       : [];
 
+  const relevantLessons =
+    selectedClassroom === 'all'
+      ? allLessons
+      : allLessons.filter(
+          (/** @type {LessonCore} */ lesson) =>
+            lesson.classroom === selectedClassroom,
+        );
+
   console.log('🏫 getBookingView:', {
-    classroom,
-    totalLessons: currentState.lessons?.length,
+    classroom: selectedClassroom,
+    totalLessons: allLessons.length,
     relevantLessons: relevantLessons.length,
     override: localStorage.getItem('beginnerModeOverride'),
     isChangingDate: currentState['isChangingReservationDate'],
   });
 
   // 日程変更モードの場合はタイトルを変更
-  const pageTitle = currentState['isChangingReservationDate']
-    ? `${classroom} 予約日の変更`
-    : classroom;
+  const isChangingDate = currentState['isChangingReservationDate'];
+  const pageTitle = isChangingDate ? '予約日の変更' : 'にってい いちらん';
 
-  const bookingLessonsHtml = renderBookingLessons(relevantLessons);
+  // 日程変更モード時は教室フィルターを非表示
+  const classroomToggleHtml = isChangingDate
+    ? ''
+    : renderClassroomToggle(selectedClassroom);
+
+  const bookingLessonsHtml = renderBookingLessons(
+    relevantLessons,
+    selectedClassroom,
+  );
 
   if (!bookingLessonsHtml) {
     return `
@@ -162,13 +237,27 @@ export const getBookingView = classroom => {
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
+          ${classroomToggleHtml}
+          ${renderBeginnerModeToggle()}
           <div class="text-center py-4">
             <p class="${DesignConfig.colors.textSubtle} mb-6">現在、予約可能な日がありません。</p>
+            <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border rounded-lg text-center">
+            <p class="${DesignConfig.text.caption} mb-3">
+              今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
+            </p>
+            ${Components.button({
+              text: 'プロフィール編集',
+              action: 'showEditProfile',
+              style: 'secondary',
+              size: 'normal',
+            })}
+          </div>
+          <div class="mt-4">
             ${Components.button({
               text: 'ホームへもどる',
               action: 'goToDashboard',
-              style: 'primary',
-              size: 'full',
+              style: 'secondary',
+              size: 'normal',
             })}
           </div>
         `,
@@ -180,6 +269,7 @@ export const getBookingView = classroom => {
       ${Components.pageContainer({
         maxWidth: 'md',
         content: `
+              ${classroomToggleHtml}
               ${renderBeginnerModeToggle()}
               <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
 
@@ -190,6 +280,14 @@ export const getBookingView = classroom => {
                 ${Components.button({
                   text: 'プロフィール編集',
                   action: 'showEditProfile',
+                  style: 'secondary',
+                  size: 'normal',
+                })}
+              </div>
+              <div class="mt-4 text-center">
+                ${Components.button({
+                  text: 'ホームへもどる',
+                  action: 'goToDashboard',
                   style: 'secondary',
                   size: 'normal',
                 })}
@@ -305,7 +403,7 @@ export const getReservationFormView = () => {
 
   const _renderStatusHtml = () => {
     if (isEdit) {
-      return isWaiting ? '空き通知希望' : '予約済み';
+      return isWaiting ? '空き通知希望' : 'よやく済み';
     }
     if (isBeginnerMode) {
       return isBeginnerSlotFull
@@ -790,7 +888,7 @@ export const getReservationFormView = () => {
                 ${
                   isEdit
                     ? `<button
-                  class="px-3 text-sm rounded-md ${DesignConfig.buttons.secondary}"
+                  class="px-3 text-sm rounded-lg ${DesignConfig.buttons.secondary}"
                   data-action="changeReservationDate"
                   data-reservation-id="${reservationInfo.reservationId || ''}"
                   data-classroom="${reservationInfo.classroom || ''}"
@@ -825,16 +923,52 @@ export const getReservationFormView = () => {
  * 予約スロットのリストからHTMLを生成します。
  * この関数は getBookingView と getCompleteView で共有されます。
  * @param {LessonCore[]} lessons - 表示する講座情報の配列
+ * @param {string} [selectedClassroom=''] - 選択中の教室（'all'または教室名）
  * @returns {string} HTML文字列
  */
-export const renderBookingLessons = lessons => {
-  console.log('📚 renderBookingLessons called:', {
-    lessonsCount: lessons?.length || 0,
-    override: localStorage.getItem('beginnerModeOverride'),
-  });
+/**
+ * 予約スロットのリストからHTMLを生成します。
+ * この関数は getBookingView と getCompleteView で共有されます。
+ * @param {LessonCore[]} lessons - 表示する講座情報の配列
+ * @param {string} [selectedClassroom=''] - 選択中の教室（'all'または教室名）
+ * @param {Object} [options={}] - オプション設定
+ * @param {ReservationCore[]} [options.reservations] - 予約情報の配列（指定がない場合はStoreから取得）
+ * @param {Object} [options.actions] - アクション名のマップ
+ * @param {string} [options.actions.book] - 予約アクション名
+ * @param {string} [options.actions.waitlist] - 空き通知アクション名
+ * @param {string} [options.actions.changeDate] - 日程変更アクション名
+ * @param {boolean} [options.isChangingDate] - 日程変更モードかどうか（指定がない場合はStoreから取得）
+ * @param {boolean} [options.isBeginnerMode] - 初回者モードかどうか（指定がない場合は自動判定）
+ * @returns {string} HTML文字列
+ */
+export const renderBookingLessons = (
+  lessons,
+  selectedClassroom = '',
+  options = {},
+) => {
+  const showClassroomLabel = selectedClassroom === 'all';
+
+  // デフォルトのアクション設定
+  const actions = {
+    book: 'bookLesson',
+    waitlist: options.actions?.waitlist || 'bookLesson', // デフォルトはbookLesson（既存動作維持）
+    changeDate: 'goToReservationFormForLesson',
+    ...options.actions,
+  };
 
   const state = bookingStateManager.getState();
-  const isChangingDate = Boolean(state['isChangingReservationDate']);
+  // オプションで指定があればそちらを優先、なければStoreから取得
+  const isChangingDate =
+    options.isChangingDate ?? Boolean(state['isChangingReservationDate']);
+
+  console.log('📚 renderBookingLessons called:', {
+    lessonsCount: lessons?.length || 0,
+    selectedClassroom,
+    showClassroomLabel,
+    override: localStorage.getItem('beginnerModeOverride'),
+    isChangingDate,
+  });
+
   const targetStudentId =
     state.currentReservationFormContext?.reservationInfo?.studentId || '';
 
@@ -850,11 +984,13 @@ export const renderBookingLessons = lessons => {
     return dateObj >= today;
   });
 
-  // 変更対象生徒の予約一覧を組み立て（管理者向け）
+  // 予約情報の取得（オプション優先）
   let effectiveReservations = /** @type {ReservationCore[]} */ (
-    state.myReservations || []
+    options.reservations || state.myReservations || []
   );
-  if (isChangingDate && targetStudentId) {
+
+  // 管理者による日程変更の場合の特殊処理（options.reservationsが明示的に渡されている場合はスキップしても良いが、既存ロジック維持）
+  if (!options.reservations && isChangingDate && targetStudentId) {
     const map = state.participantReservationsMap || {};
     const gathered = Object.keys(map).reduce((acc, key) => {
       const list = map[key] || [];
@@ -919,12 +1055,14 @@ export const renderBookingLessons = lessons => {
       const [yearStr, monthStr] = monthKey.split('-');
       const month = Number(monthStr);
       const year = Number(yearStr);
+      // 年ヘッダは翌年以降のみ表示（左寄せスタイル）
       const yearHeader =
         lastYear !== year && year > currentYear
-          ? `<h3 class="text-xl font-semibold ${DesignConfig.colors.textSubtle} mt-6 mb-2 text-center">${year}年</h3>`
+          ? `<p class="text-sm font-bold text-gray-500 mt-4 mb-2 border-l-2 border-gray-300 pl-2">${year}年</p>`
           : '';
       lastYear = year;
-      const monthHeader = `<h4 class="text-lg font-medium ${DesignConfig.colors.textSubtle} mt-2 mb-2 text-center">${month}月</h4>`;
+      // 月ヘッダ（左寄せスタイル）
+      const monthHeader = `<p class="text-sm font-bold text-gray-500 mt-2 mb-2 border-l-2 border-gray-300 pl-2">${month}月</p>`;
 
       const lessonsHtml = lessonsByMonth[monthKey]
         .slice()
@@ -943,17 +1081,16 @@ export const renderBookingLessons = lessons => {
             let cardClass, statusBadge, actionAttribute;
             const tag = isBooked ? 'div' : 'button';
 
-            // 日程変更モードの場合は異なるアクションを使用
-            const isChangingDate = state['isChangingReservationDate'];
             const bookAction = isChangingDate
-              ? 'goToReservationFormForLesson'
-              : 'bookLesson';
+              ? actions.changeDate
+              : actions.book;
 
             const autoFirstTime =
               bookingStateManager.getState().isFirstTimeBooking;
             // 日程変更モード時は元の予約の初回講習フラグを優先
-            let isBeginnerMode = resolveEffectiveBeginnerMode();
-            if (isChangingDate) {
+            let isBeginnerMode =
+              options.isBeginnerMode ?? resolveEffectiveBeginnerMode();
+            if (isChangingDate && options.isBeginnerMode === undefined) {
               try {
                 const storedJson = sessionStorage.getItem(
                   'changingReservation',
@@ -1013,18 +1150,22 @@ export const renderBookingLessons = lessons => {
                 }),
               );
               if (reservationData?.status === CONSTANTS.STATUS.COMPLETED) {
-                cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">受講済み</span>`;
+                // 受講済み（グリーン系、非インタラクティブ）
+                cardClass =
+                  'w-full text-left p-3 mb-2 bg-green-50 border-2 border-green-300 rounded-2xl opacity-50';
+                statusBadge = `<span class="text-xs text-green-600 font-bold">受講済み</span>`;
                 actionAttribute = '';
               } else if (
                 reservationData?.status === CONSTANTS.STATUS.WAITLISTED
               ) {
-                cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">空き通知 登録済</span>`;
+                // 空き通知済（Config参照）
+                cardClass = `w-full text-left p-3 mb-2 rounded-2xl ${DesignConfig.cards.state.waitlist.card}`;
+                statusBadge = `<span class="text-xs ${DesignConfig.cards.state.waitlist.text} font-bold">空き通知 登録済</span>`;
                 actionAttribute = '';
               } else {
-                cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.booked.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.booked.text}">予約済み</span>`;
+                // 予約済み（Config参照）
+                cardClass = `w-full text-left p-3 mb-2 rounded-2xl ${DesignConfig.cards.state.booked.card}`;
+                statusBadge = `<span class="text-sm ${DesignConfig.cards.state.booked.text} font-bold">よやく済み</span>`;
                 actionAttribute = '';
               }
             } else {
@@ -1046,22 +1187,44 @@ export const renderBookingLessons = lessons => {
               }
 
               if (!canBook) {
-                cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card} opacity-50`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">${statusText}</span>`;
+                // 予約不可（グレー薄い、非インタラクティブ）
+                cardClass =
+                  'w-full text-left p-3 mb-2 bg-gray-100 border-2 border-gray-200 rounded-2xl opacity-50';
+                statusBadge = `<span class="text-xs text-gray-400 font-bold">${statusText}</span>`;
                 actionAttribute = '';
               } else if (isSlotFull) {
-                cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.waitlist.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.waitlist.text}">満席（空き通知希望）</span>`;
-                actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
+                // 満席（グレー濃い、空き通知登録可能）
+                cardClass =
+                  'w-full text-left p-3 mb-2 bg-gray-200 border-2 border-gray-300 rounded-2xl';
+                statusBadge = `<span class="text-xs text-gray-500 font-bold">満席（空き通知希望）</span>`;
+                actionAttribute = `data-action="${actions.waitlist}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
               } else {
-                cardClass = `${DesignConfig.cards.base} ${DesignConfig.cards.state.available.card}`;
-                statusBadge = `<span class="text-sm font-bold ${DesignConfig.cards.state.available.text}">${statusText}</span>`;
+                // 空きあり（テラコッタボーダー、予約可能）
+                cardClass =
+                  'w-full text-left p-3 mb-2 bg-white border-2 border-action-primary-bg rounded-2xl';
+                statusBadge = `<span class="text-sm text-action-primary-bg font-bold">${statusText}</span>`;
                 actionAttribute = `data-action="${bookAction}" data-lesson-id="${lesson.lessonId}" data-classroom="${lesson.classroom}" data-date="${lesson.date}"`;
               }
             }
 
-            const venueDisplay = lesson.venue ? ` ${lesson.venue}` : '';
-            const text = `<div class="flex justify-between items-center w-full"><span class="${DesignConfig.colors.text}">${formatDate(lesson.date)}${venueDisplay}</span>${statusBadge}</div>`;
+            const venueDisplay = lesson.venue ? lesson.venue : '';
+            // 「すべて」表示時は教室ラベルを追加（縁取り線付きバッジ）
+            const classroomLabel = showClassroomLabel
+              ? `<span class="px-2 rounded-full ${getClassroomColorClass(lesson.classroom, 'badgeClass')}">${escapeHTML(lesson.classroom)}</span>`
+              : '';
+            // 会場表示を色付きバッジに（浅草橋・東池袋など）
+            const venueBadge = venueDisplay
+              ? `<span class="px-2 rounded-full text-sm ${getVenueColorClass(venueDisplay, 'badgeClass')}">${escapeHTML(venueDisplay)}</span>`
+              : '';
+            // 区切りの良いところで改行: 日付 | 教室+会場 | ステータス（常に右端）
+            const text = `
+              <div class="flex flex-wrap justify-between items-center gap-1">
+                <div class="flex flex-wrap items-center gap-1 flex-1 min-w-0">
+                  <span class="whitespace-nowrap">${formatDate(lesson.date)}</span>
+                  ${classroomLabel || venueBadge ? `<span class="text-sm whitespace-nowrap flex gap-1">${classroomLabel}${venueBadge}</span>` : ''}
+                </div>
+                <div class="ml-auto flex-shrink-0">${statusBadge}</div>
+              </div>`;
 
             return `<${tag} ${actionAttribute} class="${cardClass}">${text}</${tag}>`;
           },
@@ -1092,7 +1255,11 @@ export const getClassroomSelectionModalContent = () => {
     return `<div class="text-center"><p class="text-brand-subtle mb-4">現在、予約可能な教室がありません。</p></div>`;
   }
 
-  const desiredOrder = ['東京教室', 'つくば教室', '沼津教室'];
+  const desiredOrder = DesignConfig.classroomOrder || [
+    '東京教室',
+    'つくば教室',
+    '沼津教室',
+  ];
   const sortedClassrooms = classrooms.sort((a, b) => {
     const indexA = desiredOrder.indexOf(a);
     const indexB = desiredOrder.indexOf(b);
@@ -1144,27 +1311,13 @@ export const getClassroomSelectionModal = () => {
  * 編集モード対応の履歴カードを生成します
  * @param {ReservationCore} historyItem - 履歴データ
  * @param {Array<any>} editButtons - 編集ボタン配列
- * @param {Array<any>} accountingButtons - 会計ボタン配列
- * @param {boolean} isInEditMode - 編集モード状態
  * @returns {string} HTML文字列
  */
-export function _buildHistoryCardWithEditMode(
-  historyItem,
-  editButtons,
-  accountingButtons,
-  isInEditMode,
-) {
-  // 【廃止】会計記録ボタンはメニューの「会計履歴」に統一したため、ここでは追加しない
-  const allAccountingButtons = [...accountingButtons];
-
+export const _buildHistoryCardWithEditMode = (historyItem, editButtons) => {
   // listCard を使用してカードを生成
   return Components.listCard({
     item: historyItem,
     badges: [], // 履歴カードはバッジなし
     editButtons: editButtons,
-    accountingButtons: allAccountingButtons,
-    type: 'record',
-    isEditMode: isInEditMode,
-    showMemoSaveButton: true,
   });
-}
+};

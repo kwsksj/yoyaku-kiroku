@@ -518,10 +518,6 @@ export function generateAccountingReservationCard(reservationData) {
     },
     badges: [], // ステータスバッジは表示しない
     editButtons: [], // 編集ボタンは表示しない
-    accountingButtons: [], // 会計ボタンは表示しない
-    type: 'booking', // 予約カードタイプ
-    isEditMode: true, // 制作メモを編集モードに設定
-    showMemoSaveButton: false, // 制作メモ保存ボタンは非表示
   });
 }
 
@@ -655,7 +651,7 @@ export const getPaymentOptionsHtml = selectedValue => {
  */
 export const getPaymentInfoHtml = (selectedPaymentMethod = '') => {
   const baseWrapperStart =
-    '<div class="bg-ui-surface border-2 border-ui-border p-3 rounded-md space-y-2">';
+    '<div class="bg-ui-surface border-2 border-ui-border p-3 rounded-lg space-y-2">';
   const wrapperEnd = '</div>';
 
   if (!selectedPaymentMethod) {

@@ -16,44 +16,8 @@ const participantStateManager = appWindow.stateManager;
 
 /** @typedef {import('../../types/core/lesson').LessonCore} LessonCore */
 
-/**
- * @typedef {Object} ClassroomColorConfig
- * @property {string} bg - 背景色クラス
- * @property {string} border - ボーダー色クラス
- * @property {string} text - テキスト色クラス
- * @property {string} badge - バッジ色クラス
- */
-
-/**
- * 教室ごとの色定義
- * @type {{[key: string]: ClassroomColorConfig}}
- */
-const CLASSROOM_COLORS = {
-  東京教室: {
-    bg: 'bg-red-50',
-    border: 'border-red-300',
-    text: 'text-red-800',
-    badge: 'bg-red-100 text-red-700',
-  },
-  つくば教室: {
-    bg: 'bg-green-50',
-    border: 'border-green-300',
-    text: 'text-green-800',
-    badge: 'bg-green-100 text-green-700',
-  },
-  沼津教室: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-300',
-    text: 'text-blue-800',
-    badge: 'bg-blue-100 text-blue-700',
-  },
-  default: {
-    bg: 'bg-gray-50',
-    border: 'border-gray-300',
-    text: 'text-gray-800',
-    badge: 'bg-gray-100 text-gray-700',
-  },
-};
+// Note: 教室の色はDesignConfigで一元管理
+// getClassroomColorClass関数を使用して取得する
 
 /**
  * @typedef {Object} ParticipantColumnConfig
@@ -295,14 +259,57 @@ const PARTICIPANT_TABLE_COLUMNS = [
 ];
 
 /**
- * 教室の色を取得
+ * 教室の色オブジェクトを取得（DesignConfigから）
  * @param {string} classroom - 教室名
- * @returns {ClassroomColorConfig} 色定義オブジェクト
+ * @returns {{bg: string, border: string, text: string, badge: string}} 色定義オブジェクト
  */
 function getClassroomColor(classroom) {
-  return /** @type {ClassroomColorConfig} */ (
-    CLASSROOM_COLORS[classroom] || CLASSROOM_COLORS['default']
-  );
+  /** @type {Record<string, string>} */
+  const classroomKeyMap = {
+    東京教室: 'tokyo',
+    沼津教室: 'numazu',
+    つくば教室: 'tsukuba',
+  };
+
+  /** @type {any} */
+  const classroomConfig = DesignConfig.classroomColors || {};
+  const key = classroomKeyMap[classroom] || 'default';
+  const config = classroomConfig[key] || classroomConfig['default'] || {};
+
+  // colorClassからbg, border, textを抽出
+  const colorClass = config.colorClass || '';
+  /** @type {string[]} */
+  const classes = colorClass.split(' ');
+  const bg =
+    classes.find((/** @type {string} */ c) => c.startsWith('bg-')) ||
+    'bg-gray-50';
+  const border =
+    classes.find((/** @type {string} */ c) => c.startsWith('border-')) ||
+    'border-gray-300';
+  const text =
+    classes.find((/** @type {string} */ c) => c.startsWith('text-')) ||
+    'text-gray-700';
+  const badge =
+    config.badgeClass || 'bg-gray-100 text-gray-600 border border-gray-300';
+
+  return { bg, border, text, badge };
+}
+
+/**
+ * 会場の色オブジェクトを取得（DesignConfigから）
+ * @param {string} venue - 会場名
+ * @returns {{colorClass: string, badgeClass: string}} 色定義オブジェクト
+ */
+function getVenueColor(venue) {
+  /** @type {any} */
+  const venueConfig = DesignConfig.venueColors || {};
+  const config = venueConfig[venue] || venueConfig['default'] || {};
+
+  return {
+    colorClass: config.colorClass || 'bg-gray-50 border-gray-200 text-gray-600',
+    badgeClass:
+      config.badgeClass || 'bg-gray-100 text-gray-600 border border-gray-300',
+  };
 }
 
 /**
@@ -522,15 +529,40 @@ function renderLessonList(lessons) {
     ],
   });
 
-  // フィルタUIの生成（コンポーネント使用）
-  const filterOptions = classrooms.map(classroom => ({
-    value: classroom,
-    label: classroom === 'all' ? 'すべて' : classroom,
-  }));
-  const filterHtml = Components.filterChips({
+  // フィルタUIの生成（pillToggleを使用、教室ごとの色を反映）
+  // 教室順序でソート
+  const desiredOrder = DesignConfig.classroomOrder || [
+    '東京教室',
+    'つくば教室',
+    '沼津教室',
+  ];
+  const sortedClassrooms = [...classrooms].sort((a, b) => {
+    if (a === 'all') return -1;
+    if (b === 'all') return 1;
+    const indexA = desiredOrder.indexOf(a);
+    const indexB = desiredOrder.indexOf(b);
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+
+  // pillToggle用オプションを生成（教室ごとの色付き）
+  /** @type {Array<{value: string, label: string, action: string, dataAttributes: Record<string, string>, colorClass: string}>} */
+  const filterOptions = sortedClassrooms.map(classroom => {
+    const colorConfig = getClassroomColor(classroom);
+    return {
+      value: classroom,
+      label: classroom === 'all' ? 'すべて' : classroom.replace('教室', ''),
+      action: 'filterParticipantByClassroom',
+      dataAttributes: { 'data-classroom': classroom },
+      colorClass: classroom === 'all' ? '' : colorConfig.badge,
+    };
+  });
+  const filterHtml = Components.pillToggle({
     options: filterOptions,
     selectedValue: selectedClassroom,
-    onClickHandler: 'filterParticipantByClassroom',
+    size: 'xs',
   });
 
   // 共通テーブルヘッダー（列定義から生成）
@@ -811,7 +843,7 @@ function renderLessonList(lessons) {
             <div class="flex items-center gap-1 sm:gap-2 min-w-0 w-[140px] sm:w-[200px] flex-shrink-0">
               <span class="text-xs sm:text-sm font-bold text-action-primary whitespace-nowrap">${formattedDate.replace(/class=".*?"/g, '')}</span>
               <span class="font-bold text-xs sm:text-sm ${classroomColor.text} truncate">${escapeHTML(lesson.classroom.replace('教室', ''))}</span>
-              ${lesson.venue ? `<span class="text-gray-500 text-xs truncate">@${escapeHTML(lesson.venue)}</span>` : ''}
+              ${lesson.venue ? `<span class="px-1 rounded-full text-xs ${getVenueColor(lesson.venue).badgeClass}">${escapeHTML(lesson.venue)}</span>` : ''}
               ${isCompleted ? '<span class="text-xs text-gray-500">✓</span>' : ''}
             </div>
             <div class="flex flex-wrap gap-0.5 items-center font-light">
@@ -885,7 +917,7 @@ function renderLessonList(lessons) {
       // レッスンカード（白背景、コンパクト表示）
       return `
         <div class="mb-0.5" data-lesson-container="${escapeHTML(lesson.lessonId)}">
-          <div class="border-2 ${classroomColor.bg}  ${classroomColor.border} rounded-lg overflow-hidden">
+          <div class="border-2 ${classroomColor.bg}  ${classroomColor.border} rounded-2xl overflow-hidden">
             ${accordionButton}
             ${accordionContent}
           </div>
@@ -897,7 +929,7 @@ function renderLessonList(lessons) {
   // データがない場合のメッセージ
   const emptyMessage =
     filteredLessons.length === 0
-      ? `<div class="bg-white border-2 border-ui-border rounded-lg p-2">
+      ? `<div class="bg-white border-2 border-ui-border rounded-2xl p-2">
            <p class="text-xs text-gray-500 text-center">${escapeHTML(showPastLessons ? '過去の記録がありません' : '未来の予約がありません')}</p>
          </div>`
       : '';
@@ -1085,7 +1117,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
 
   // 基本情報（公開）
   const publicInfoHtml = `
-    <div class="mb-4 bg-gray-50 p-3 rounded-lg">
+    <div class="mb-4 bg-gray-50 p-3 rounded-2xl">
       <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
         <span class="w-1 h-4 bg-brand-primary rounded-full"></span>
         基本情報
@@ -1103,7 +1135,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
   const detailedInfoHtml = isAdmin
     ? `
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-left">
-      <div class="bg-gray-50 p-3 rounded-lg">
+      <div class="bg-gray-50 p-3 rounded-2xl">
         <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
           <span class="w-1 h-4 bg-blue-500 rounded-full"></span>
           詳細情報
@@ -1121,7 +1153,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
       </div>
 
       <div class="space-y-4">
-        <div class="bg-gray-50 p-3 rounded-lg">
+        <div class="bg-gray-50 p-3 rounded-2xl">
           <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
             <span class="w-1 h-4 bg-green-500 rounded-full"></span>
             アンケート情報
@@ -1135,7 +1167,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
           </div>
         </div>
 
-        <div class="bg-gray-50 p-3 rounded-lg">
+        <div class="bg-gray-50 p-3 rounded-2xl">
           <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
             <span class="w-1 h-4 bg-orange-500 rounded-full"></span>
             来場・交通情報
@@ -1150,7 +1182,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
       </div>
     </div>
 
-    <div class="mb-4 bg-gray-50 p-3 rounded-lg">
+    <div class="mb-4 bg-gray-50 p-3 rounded-2xl">
       <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
         <span class="w-1 h-4 bg-gray-500 rounded-full"></span>
         備考
@@ -1226,7 +1258,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
 
   // 予約履歴セクション（全ユーザーに公開）
   const reservationHistoryHtml = `
-    <div class="mb-4 bg-gray-50 p-3 rounded-lg">
+    <div class="mb-4 bg-gray-50 p-3 rounded-2xl">
       <h3 class="text-sm font-bold text-brand-text mb-2 flex items-center gap-2">
         <span class="w-1 h-4 bg-purple-500 rounded-full"></span>
         予約履歴

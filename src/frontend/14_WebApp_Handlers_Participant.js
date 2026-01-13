@@ -639,9 +639,11 @@ function backToParticipantList() {
 
 /**
  * 教室フィルタハンドラ
- * @param {string} classroom - 選択された教室（'all'または教室名）
+ * @param {string|{classroom?: string}} data - 選択された教室またはdataオブジェクト
  */
-function filterParticipantByClassroom(classroom) {
+function filterParticipantByClassroom(data) {
+  // data-action経由（オブジェクト）と直接呼び出し（文字列）の両方をサポート
+  const classroom = typeof data === 'string' ? data : data?.classroom || 'all';
   console.log('🔍 教室フィルタ:', classroom);
 
   participantHandlersStateManager.dispatch({

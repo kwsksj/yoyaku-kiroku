@@ -844,6 +844,15 @@ export const reservationActionHandlers = {
   },
 
   /**
+   * 直接予約画面（にってい いちらん）に遷移します。
+   * 「すべて」の教室を選択した状態で表示します。
+   */
+  goToBookingView: () => {
+    console.log('🏫 goToBookingView: 直接予約画面に遷移');
+    reservationActionHandlers.updateLessonsAndGoToBooking('all');
+  },
+
+  /**
    * 教室を選択し、予約枠一覧画面に遷移します。
    * @param {ActionHandlerData} d - 選択した教室情報を含むデータ
    */
@@ -865,6 +874,24 @@ export const reservationActionHandlers = {
         'エラー',
       );
     }
+  },
+
+  /**
+   * 予約画面で教室フィルターを切り替えます（ピル型トグル用）。
+   * @param {ActionHandlerData} d - 選択した教室情報を含むデータ
+   */
+  filterBookingClassroom: d => {
+    const classroom = d?.classroom || 'all';
+    console.log('🏫 filterBookingClassroom:', classroom);
+
+    // 教室フィルターを変更して再描画
+    reservationStateManager.dispatch({
+      type: 'SET_STATE',
+      payload: {
+        selectedClassroom: classroom,
+        view: 'bookingLessons',
+      },
+    });
   },
 
   /**

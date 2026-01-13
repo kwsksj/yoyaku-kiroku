@@ -34,7 +34,10 @@ export namespace Components {
         options: Array<{
             value: string;
             label: string;
-            onclick: string;
+            onclick?: string;
+            action?: string;
+            dataAttributes?: Record<string, string>;
+            colorClass?: string;
         }>;
         selectedValue: string;
         className?: string;
@@ -97,7 +100,14 @@ export namespace Components {
         selectedValue?: string;
     }): string;
     function dashboardSection({ title, items, showMoreButton, moreAction }: DashboardSectionConfig): string;
-    function listCard({ item, badges, editButtons, accountingButtons, type, isEditMode, showMemoSaveButton, useEditIcon, }: ListCardConfig): string;
+    function listCard({ item, badges, editButtons }: {
+        item: ReservationCore;
+        badges?: {
+            type: BadgeType;
+            text: string;
+        }[];
+        editButtons?: EditButtonConfig[];
+    }): string;
     function placeholderCard({ title, badge, memoContent, dimmed, }: {
         title?: string;
         badge?: {

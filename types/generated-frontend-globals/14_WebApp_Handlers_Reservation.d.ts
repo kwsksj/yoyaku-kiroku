@@ -5,7 +5,9 @@ export namespace reservationActionHandlers {
     function updateReservation(): void;
     function showClassroomModal(): void;
     function closeClassroomModal(): void;
+    function goToBookingView(): void;
     function selectClassroom(d: ActionHandlerData): void;
+    function filterBookingClassroom(d: ActionHandlerData): void;
     function updateLessonsAndGoToBooking(classroomName: string): void;
     function fetchLatestLessonsData(classroomName: string, newLessonsVersion: string | null): void;
     function bookLesson(d: ActionHandlerData): void;
