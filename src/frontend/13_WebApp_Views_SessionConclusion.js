@@ -8,7 +8,7 @@
  *   - 3ステップウィザードのレンダリング
  *   - ステップ1：今日のきろく（セッションノート入力）
  *   - ステップ2：けいかく・もくひょう（次回目標入力）
- *   - ステップ3：予約（次回日程選択）
+ *   - ステップ3：よやく（次回日程選択）
  *   - ステップ4：会計（既存会計UIの再利用）
  * AI向けメモ:
  *   - 各ステップは独立した関数で描画し、Handlerからステップ遷移を管理する
@@ -22,10 +22,7 @@ import {
 import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
 import { renderBookingLessons } from './13_WebApp_Views_Booking.js';
-import {
-  getClassroomColorClass,
-  getVenueColorClass,
-} from './13_WebApp_Views_Utils.js';
+import { renderClassroomVenueBadges } from './13_WebApp_Views_Utils.js';
 
 /**
  * ウィザードのステップID定義
@@ -41,16 +38,16 @@ export const STEPS = {
 /**
  * @typedef {Object} SessionConclusionState
  * @property {string} currentStep - 現在のステップ (STEPS定数参照)
- * @property {ReservationCore | null} currentReservation - 今日の予約データ
+ * @property {ReservationCore | null} currentReservation - 今日のよやくデータ
  * @property {LessonCore | null} recommendedNextLesson - おすすめの次回レッスン
  * @property {LessonCore | null} selectedLesson - ユーザーが選択したレッスン
- * @property {ReservationCore | null} existingFutureReservation - 既存の未来予約
+ * @property {ReservationCore | null} existingFutureReservation - 既存の未来よやく
  * @property {boolean} reservationSkipped - 「いまはきめない」を選択
  * @property {boolean} isWaitlistRequest - 空き通知希望として選択
  * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
  * @property {string} sessionNoteToday - 今日のきろく（セッションノート）
  * @property {string} nextLessonGoal - けいかく・もくひょう（生徒名簿に保存）
- * @property {string} sessionNoteNext - 次回予約へのメッセージ
+ * @property {string} sessionNoteNext - 次回よやくへのメッセージ
  * @property {string} nextStartTime - 次回開始時間
  * @property {string} nextEndTime - 次回終了時間
  * @property {ClassifiedAccountingItemsCore | null} classifiedItems - 会計項目
@@ -221,7 +218,7 @@ export function renderStep2GoalInput(state) {
 }
 
 /**
- * ステップ3: 次回予約画面を生成（よやく）- スロット型UI
+ * ステップ3: 次回よやく画面を生成（よやく）- スロット型UI
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
@@ -234,12 +231,12 @@ export function renderStep3Reservation(state) {
   const isExpanded = state.isLessonListExpanded;
   const filterClassroom = state.filterClassroom || 'current';
 
-  // ユーザーの既存予約・空き通知情報を取得（日程リストのマーク表示用）
+  // ユーザーの既存よやく・空き通知情報を取得（日程リストのマーク表示用）
   const myReservations =
     window.appWindow?.stateManager?.getState()?.myReservations || [];
 
   /**
-   * 日程の表示ステータスと予約情報を取得（統合版）
+   * 日程の表示ステータスとよやく情報を取得（統合版）
    * @param {LessonCore | null} lesson
    * @returns {{
    *   displayStatus: 'reserved' | 'waitlist' | 'full' | 'recommended' | 'available' | 'skip',
@@ -252,7 +249,7 @@ export function renderStep3Reservation(state) {
       return { displayStatus: 'skip', isReserved: false, isWaitlisted: false };
     }
 
-    // myReservationsから該当レッスンの予約情報を検索
+    // myReservationsから該当レッスンのよやく情報を検索
     // lessonId または date+classroom で一致を確認
     const reservationRecord = myReservations.find(
       (/** @type {ReservationCore} */ r) =>
@@ -460,7 +457,7 @@ export function renderStep3Reservation(state) {
    * @param {LessonCore} lesson - 対象レッスン
    * @param {string} currentStartTime - 現在の開始時間
    * @param {string} currentEndTime - 現在の終了時間
-   * @param {string} idPrefix - IDプレフィックス（既存予約用）
+   * @param {string} idPrefix - IDプレフィックス（既存よやく用）
    * @returns {string} HTML文字列
    */
   const renderTimeSelectionUI = (
@@ -498,7 +495,7 @@ export function renderStep3Reservation(state) {
 
   /**
    * スロットカードHTMLを生成（統一レンダラー）
-   * @param {LessonCore | ReservationCore} lessonOrReservation - 対象レッスン/予約
+   * @param {LessonCore | ReservationCore} lessonOrReservation - 対象レッスン/よやく
    * @param {'reserved' | 'waitlist' | 'full' | 'recommended' | 'available' | 'skip'} status - 表示ステータス
    * @param {Object} options - 追加オプション
    * @param {boolean} [options.isTimeBased] - 時間制かどうか
@@ -525,19 +522,10 @@ export function renderStep3Reservation(state) {
       ? window.formatDate(lesson.date)
       : String(lesson.date);
 
-    // バッジ生成（教室・会場）
-    const classroomBadgeClass = getClassroomColorClass(
-      lesson.classroom,
-      'badgeClass',
-    );
-    const venueBadgeClass = lesson.venue
-      ? getVenueColorClass(lesson.venue, 'badgeClass')
-      : '';
-
+    // バッジ生成（教室・会場）- 統合関数を使用してピル型連結
     const badgesHtml = `
-      <div class="flex items-center justify-center gap-1 mb-2 flex-wrap">
-        <span class="px-2 py-0.5 rounded-full text-sm ${classroomBadgeClass}">${escapeHTML(lesson.classroom)}</span>
-        ${lesson.venue ? `<span class="px-2 py-0.5 rounded-full text-sm ${venueBadgeClass}">${escapeHTML(lesson.venue)}</span>` : ''}
+      <div class="flex items-center justify-center gap-0 mb-2 flex-wrap">
+        ${renderClassroomVenueBadges(lesson.classroom, lesson.venue)}
       </div>
     `;
 
@@ -602,7 +590,7 @@ export function renderStep3Reservation(state) {
         ? `<p class="text-sm text-brand-subtle mt-2">${currentStartTime} 〜 ${currentEndTime || ''}</p>`
         : '';
 
-    // 経験者のみラベル（予約済みの場合はスロット情報がないためスキップ）
+    // 経験者のみラベル（よやく済みの場合はスロット情報がないためスキップ）
     const slotStatus =
       status !== 'reserved'
         ? getSlotStatus(/** @type {LessonCore} */ (lesson))
@@ -778,7 +766,7 @@ export function renderStep3Reservation(state) {
   // 「ほか の にってい」ボタン（スロットコンテナ内に配置）
   const changeButtonHtml = Components.button({
     action: 'expandLessonList',
-    text: 'ほか の にってい',
+    text: 'ほか の にってい を みる',
     style: 'secondary',
     size: 'full',
     customClass: 'mt-3',
@@ -834,15 +822,15 @@ export function renderStep3Reservation(state) {
   // --- アクションボタン ---
   const canProceed = slotLesson || isSkipped || existingReservation;
 
-  // 新規予約を作成するかどうかの判定
-  // slotDisplayStatus が 'reserved' (予約済み) または 'skip' (プレースホルダー) 以外なら新規予約を作成
-  // 'recommended', 'available', 'full' は全て未予約の日程（予約を作成する）
+  // 新規よやくを作成するかどうかの判定
+  // slotDisplayStatus が 'reserved' (よやく済み) または 'skip' (プレースホルダー) 以外なら新規よやくを作成
+  // 'recommended', 'available', 'full' は全て未よやくの日程（よやくを作成する）
   const willCreateNewReservation =
     slotDisplayStatus !== 'reserved' && slotDisplayStatus !== 'skip';
 
   const getProceedButtonConfig = () => {
     if (willCreateNewReservation && slotTargetLesson) {
-      // 新規予約を作成する場合
+      // 新規よやくを作成する場合
       return {
         action: 'confirmRecommendedLesson',
         dataAttributes: {
@@ -850,7 +838,7 @@ export function renderStep3Reservation(state) {
         },
       };
     }
-    // 予約済みまたはスキップの場合
+    // よやく済みまたはスキップの場合
     return {
       action: 'conclusionNextStep',
       dataAttributes: { 'target-step': STEPS.ACCOUNTING },
@@ -858,7 +846,7 @@ export function renderStep3Reservation(state) {
   };
 
   const proceedConfig = getProceedButtonConfig();
-  // ボタン文言：新規予約を作成する場合 vs 既存予約のみ/スキップ
+  // ボタン文言：新規よやくを作成する場合 vs 既存よやくのみ/スキップ
   const proceedButtonText = willCreateNewReservation
     ? 'よやく して<br>かいけい に すすむ'
     : 'かいけい に すすむ';
@@ -959,7 +947,7 @@ export function renderStep4Accounting(state) {
 
       <div class="text-center mb-4">
         <p class="text-lg font-bold text-brand-text">きょう の おかいけい</p>
-        <p class="text-sm font-normal text-brand-subtle">りょうきん を けいさん します。 にゅうりょく してください。</p>
+        <p class="text-sm font-normal text-brand-subtle">りょうきん を けいさん します。<br>データ を にゅうりょく してください。</p>
       </div>
 
       <div class="accounting-container space-y-4">
@@ -1028,15 +1016,15 @@ export function renderStep4Accounting(state) {
  * @returns {string} HTML文字列
  */
 export function renderConclusionComplete(state) {
-  // 次回予約結果を取得（作成された場合のメタデータ用）
+  // 次回よやく結果を取得（作成された場合のメタデータ用）
   const nextResult = /** @type {any} */ (state).nextReservationResult;
   const nextLessonGoal = state.nextLessonGoal || '';
 
-  // 今日の日付（翌日以降の予約を探すため）
+  // 今日の日付（翌日以降のよやくを探すため）
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // myReservationsから翌日以降の最も近い有効な予約を探す
+  // myReservationsから翌日以降の最も近い有効なよやくを探す
   const myReservations =
     /** @type {ReservationCore[]} */ (
       /** @type {any} */ (state).myReservations
@@ -1060,7 +1048,7 @@ export function renderConclusionComplete(state) {
   // Components.listCard用のバッジを生成
   /**
    * @param {'confirmed' | 'waitlisted'} type
-   * @param {boolean} [isNewlyCreated] - 今回新規作成された予約かどうか
+   * @param {boolean} [isNewlyCreated] - 今回新規作成されたよやくかどうか
    */
   const buildCompletionBadges = (type, isNewlyCreated = false) => {
     /** @type {{type: BadgeType, text: string}[]} */
@@ -1082,7 +1070,7 @@ export function renderConclusionComplete(state) {
   };
 
   /**
-   * 予約カードを統一フォーマットで生成
+   * よやくカードを統一フォーマットで生成
    * @param {{
    *   type: 'reservation' | 'goal-only' | 'reminder',
    *   reservation?: ReservationCore,
@@ -1212,27 +1200,27 @@ export function renderConclusionComplete(state) {
     return '';
   };
 
-  // 予約メッセージHTML生成
+  // よやくメッセージHTML生成
   const buildReservationMessageHtml = () => {
-    // ケース1: 翌日以降の予約がある場合（複数対応）
+    // ケース1: 翌日以降のよやくがある場合（複数対応）
     if (futureReservations.length > 0) {
       const isNewReservation = !!nextResult?.created;
-      // 新規作成された予約を正確に特定（date/classroomで判定）
+      // 新規作成されたよやくを正確に特定（date/classroomで判定）
       const createdDate = nextResult?.date || '';
       const createdClassroom = nextResult?.classroom || '';
 
-      // 複数予約対応: すべての将来予約をカードとして表示
+      // 複数よやく対応: すべての将来よやくをカードとして表示
       const reservationCards = futureReservations.map((reservation, index) => {
         const isWaitlisted = reservation.status === CONSTANTS.STATUS.WAITLISTED;
-        // この予約が今回新規作成されたものかどうかを判定
+        // このよやくが今回新規作成されたものかどうかを判定
         const isThisNewlyCreated =
           isNewReservation &&
           reservation.date === createdDate &&
           reservation.classroom === createdClassroom;
-        // けいかくは最初の予約のみに表示（重複表示を避ける）
+        // けいかくは最初のよやくのみに表示（重複表示を避ける）
         const goalToShow =
           (index === 0 && nextLessonGoal) || reservation.sessionNote || '';
-        // ミスマッチノートは今回作成された予約のみ
+        // ミスマッチノートは今回作成されたよやくのみ
         const mismatchNote = isThisNewlyCreated ? buildMismatchNote() : '';
 
         return renderNextReservationSection({
@@ -1254,7 +1242,7 @@ export function renderConclusionComplete(state) {
       `;
     }
 
-    // ケース2: 予約なし + けいかくあり
+    // ケース2: よやくなし + けいかくあり
     if (nextLessonGoal) {
       return renderNextReservationSection({
         type: 'goal-only',
@@ -1262,13 +1250,13 @@ export function renderConclusionComplete(state) {
       });
     }
 
-    // ケース3: 予約なし + けいかくなし（リマインダー）
+    // ケース3: よやくなし + けいかくなし（リマインダー）
     return renderNextReservationSection({ type: 'reminder' });
   };
 
   const reservationMessageHtml = buildReservationMessageHtml();
 
-  // 予約がない場合のクイック予約ボタン
+  // よやくがない場合のクイックよやくボタン
   const hasNoFutureReservation = !nearestFutureReservation;
   const currentClassroom = state.currentReservation?.classroom || '';
   const quickBookingButtonHtml = hasNoFutureReservation
@@ -1368,7 +1356,7 @@ export function getSessionConclusionView(state) {
       stepContent = renderStep1Record(state);
   }
 
-  // 予約情報サマリー（ステップ共通で上部に表示）
+  // よやく情報サマリー（ステップ共通で上部に表示）
   const reservation = state.currentReservation;
   const summaryHtml = reservation
     ? `

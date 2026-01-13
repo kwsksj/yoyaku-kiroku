@@ -31,7 +31,7 @@ const viewsUtilsStateManager = appWindow.stateManager;
  */
 export const PRIVACY_POLICY_CONTENT = `# プライバシーポリシー
 
-川崎誠二木彫り教室 予約システム「きぼりの よやく・きろく」（以下「本サービス」といいます）は、利用者の皆様（以下「ユーザー」といいます）の個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
+川崎誠二木彫り教室 よやくシステム「きぼりの よやく・きろく」（以下「本サービス」といいます）は、利用者の皆様（以下「ユーザー」といいます）の個人情報の取り扱いについて、以下のとおりプライバシーポリシー（以下「本ポリシー」といいます）を定めます。
 
 ## 1. 事業者の名称および連絡先
 
@@ -40,7 +40,7 @@ export const PRIVACY_POLICY_CONTENT = `# プライバシーポリシー
 
 ## 2. 個人情報の取得方法
 
-本サービスは、ユーザーが利用登録または予約を行う際に、以下の情報をフォームへの入力によって取得します。
+本サービスは、ユーザーが利用登録またはよやくを行う際に、以下の情報をフォームへの入力によって取得します。
 
 **【登録に必須の情報】**
 
@@ -60,7 +60,7 @@ export const PRIVACY_POLICY_CONTENT = `# プライバシーポリシー
 取得した個人情報は、以下の目的で利用いたします。
 
 * ユーザーのアカウント認証および本人確認のため
-* 予約の受付、管理、および変更・キャンセル等の連絡のため
+* よやくの受付、管理、および変更・キャンセル等の連絡のため
 * 教室の利用に関する緊急の連絡のため
 * ユーザーからのお問い合わせに対応するため
 * 教室からの重要なお知らせ（日程変更など）を連絡のため
@@ -193,6 +193,75 @@ export const getVenueColorClass = (venueName, type = 'colorClass') => {
 };
 
 /**
+ * 教室バッジと会場バッジを統合して生成します（ピル型連結対応）
+ * 両方のバッジが存在する場合は連結表示（教室：左側丸み、会場：右側丸み）
+ * @param {string|null|undefined} classroom - 教室名
+ * @param {string|null|undefined} venue - 会場名
+ * @returns {string} HTML文字列
+ */
+export const renderClassroomVenueBadges = (classroom, venue) => {
+  const hasClassroom = !!classroom;
+  const hasVenue = !!venue;
+
+  // 両方なければ空文字列
+  if (!hasClassroom && !hasVenue) return '';
+
+  const badges = [];
+
+  // 教室バッジ
+  if (hasClassroom) {
+    const badgeClass = getClassroomColorClass(classroom, 'badgeClass');
+    // 会場バッジも存在する場合は右側の丸みを削除し、右パディングを削減
+    const borderRadius = hasVenue
+      ? 'rounded-l-full'
+      : DesignConfig.borderRadius?.badge || 'rounded-full';
+    const paddingClass = hasVenue ? 'pl-2 pr-1 py-0.1' : 'px-2 py-0.1';
+    badges.push(
+      `<span class="${badgeClass} ${paddingClass} ${borderRadius} text-base font-medium">${classroom}</span>`,
+    );
+  }
+
+  // 会場バッジ
+  if (hasVenue) {
+    const badgeClass = getVenueColorClass(venue, 'badgeClass');
+    // 教室バッジも存在する場合は左側の丸みを削除し、左パディングを削減
+    const borderRadius = hasClassroom
+      ? 'rounded-r-full'
+      : DesignConfig.borderRadius?.badge || 'rounded-full';
+    const paddingClass = hasClassroom ? 'pr-2 pl-1 py-0.1' : 'px-2 py-0.1';
+    badges.push(
+      `<span class="${badgeClass} ${paddingClass} ${borderRadius} text-base font-medium">${venue}</span>`,
+    );
+  }
+
+  return badges.join('');
+};
+
+/**
+ * 教室バッジのHTMLを生成します（統一スタイル）
+ * @param {string|null|undefined} classroom - 教室名
+ * @returns {string} HTML文字列
+ */
+export const renderClassroomBadge = classroom => {
+  if (!classroom) return '';
+  const badgeClass = getClassroomColorClass(classroom, 'badgeClass');
+  const borderRadius = DesignConfig.borderRadius?.badge || 'rounded-full';
+  return `<span class="${badgeClass} px-2 py-0.1 ${borderRadius} text-base font-medium">${classroom}</span>`;
+};
+
+/**
+ * 会場バッジのHTMLを生成します（統一スタイル）
+ * @param {string|null|undefined} venue - 会場名
+ * @returns {string} HTML文字列
+ */
+export const renderVenueBadge = venue => {
+  if (!venue) return '';
+  const badgeClass = getVenueColorClass(venue, 'badgeClass');
+  const borderRadius = DesignConfig.borderRadius?.badge || 'rounded-full';
+  return `<span class="${badgeClass} px-2 py-0.1 ${borderRadius} text-base font-medium">${venue}</span>`;
+};
+
+/**
  * 完了画面のUIを生成します。
  * @param {string} msg - 表示するメッセージ
  * @returns {string} HTML文字列
@@ -206,7 +275,7 @@ export const getCompleteView = msg => {
     state.currentReservationFormContext?.lessonInfo?.classroom ||
     state.selectedClassroom;
 
-  // 初回予約者かどうかを判定
+  // 初回よやく者かどうかを判定
   const wasFirstTimeBooking =
     viewsUtilsStateManager.getState().wasFirstTimeBooking || false;
   const currentUser = viewsUtilsStateManager.getState().currentUser;
@@ -223,7 +292,7 @@ export const getCompleteView = msg => {
   })();
   const isReservationComplete = completionType === 'reservation';
 
-  // メール送信に関する案内メッセージ（予約完了時のみ表示）
+  // メール送信に関する案内メッセージ（よやく完了時のみ表示）
   let emailNoticeHtml = '';
   if (wasFirstTimeBooking && isReservationComplete) {
     emailNoticeHtml = `
@@ -234,10 +303,10 @@ export const getCompleteView = msg => {
               <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
             </svg>
             <div class="ml-3">
-              <h3 class="text-sm font-medium text-ui-info-text">予約受付完了のメールをお送りしました！</h3>
+              <h3 class="text-sm font-medium text-ui-info-text">よやく受付完了のメールをお送りしました！</h3>
               <p class="mt-1 text-sm text-ui-info-text">
                 会場の住所や駐車場情報なども記載しています。メールが届かない場合は、迷惑メールフォルダもご確認ください。<br>
-                予約の確認やキャンセルは、このページ（Webアプリ上）でおこなえます<br>
+                よやくの確認やキャンセルは、このページ（Webアプリ上）でおこなえます<br>
                 <br>
                 送信元アドレス: shiawasenahito3000@gmail.com
               </p>
@@ -249,7 +318,7 @@ export const getCompleteView = msg => {
     emailNoticeHtml = `
         <div class="bg-ui-surface ${DesignConfig.borderRadius.container} p-3 mt-4">
           <p class="text-sm text-brand-subtle text-center">
-          予約受付完了のメールをお送りしました！<br>
+          よやく受付完了のメールをお送りしました！<br>
           （会場の住所や駐車場情報なども記載）<br>
           <br>
           送信元アドレス: shiawasenahito3000@gmail.com
@@ -260,7 +329,7 @@ export const getCompleteView = msg => {
 
   let nextBookingHtml = '';
 
-  // 該当教室の未来の予約枠が存在する場合
+  // 該当教室の未来のよやく枠が存在する場合
   if (classroom && viewsUtilsStateManager.getState().lessons) {
     // バックエンドで計算済みの空き情報を直接使用
     const relevantLessons = viewsUtilsStateManager
@@ -291,7 +360,7 @@ export const getCompleteView = msg => {
 
   // チェックマークの色を状況に応じて変更
   const checkmarkColorClass = isReservationComplete
-    ? 'text-state-available-text' // 予約完了時: 緑系
+    ? 'text-state-available-text' // よやく完了時: 緑系
     : 'text-yellow-500'; // 会計完了時: 黄色系
 
   return `

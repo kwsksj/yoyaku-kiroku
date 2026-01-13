@@ -17,9 +17,8 @@
 // ユーティリティ系モジュール
 // ================================================================
 import {
-  getClassroomColorClass,
   getTimeOptionsHtml,
-  getVenueColorClass,
+  renderClassroomVenueBadges,
 } from './13_WebApp_Views_Utils.js';
 
 const componentsStateManager = appWindow.stateManager;
@@ -1199,8 +1198,8 @@ export const Components = {
    * @param {Object} config - 設定オブジェクト
    * @param {string} config.type - 授業料タイプ（'timeBased' | 'fixed'）
    * @param {AccountingMasterItemCore[]} config.master - 会計マスター
-   * @param {ReservationCore} config.reservation - 予約データ
-   * @param {ReservationCore} config.reservationDetails - 予約固有情報
+   * @param {ReservationCore} config.reservation - よやくデータ
+   * @param {ReservationCore} config.reservationDetails - よやく固有情報
    * @param {ScheduleInfo} config.scheduleInfo - 講座固有情報
    * @returns {string} HTML文字列
    */
@@ -1440,11 +1439,11 @@ export const Components = {
   // =================================================================
   // --- Level 3: 画面セクション（Organisms） ---
   // -----------------------------------------------------------------
-  // 複合的なUIセクション（ホーム、予約一覧等）
+  // 複合的なUIセクション（ホーム、よやく一覧等）
   // =================================================================
 
   /**
-   * ホームセクション（予約または履歴）
+   * ホームセクション（よやくまたは履歴）
    * @param {DashboardSectionConfig} config - 設定オブジェクト
    * @returns {string} HTML文字列
    */
@@ -1471,7 +1470,7 @@ export const Components = {
   },
 
   /**
-   * 予約カードコンポーネント（予約リスト表示専用）
+   * よやくカードコンポーネント（よやくリスト表示専用）
    * @param {{
    *   item: ReservationCore,
    *   badges?: {type: BadgeType, text: string}[],
@@ -1480,7 +1479,7 @@ export const Components = {
    * @returns {string} HTML文字列
    */
   listCard: ({ item, badges = [], editButtons = [] }) => {
-    // 常に予約カードスタイルを使用
+    // 常によやくカードスタイルを使用
     const cardColorClass = `booking-card ${DesignConfig.cards.state.booked.card}`;
 
     // バッジHTML生成
@@ -1530,13 +1529,8 @@ export const Components = {
       ? ` ${item.startTime}~${item.endTime}`.trim()
       : '';
 
-    // 教室・会場バッジ表示
-    const classroomBadgeHtml = item.classroom
-      ? `<span class="px-2 rounded-full text-sm ${getClassroomColorClass(item.classroom, 'badgeClass')}">${escapeHTML(item.classroom)}</span>`
-      : '';
-    const venueBadgeHtml = item.venue
-      ? `<span class="px-2 rounded-full text-sm ${getVenueColorClass(item.venue, 'badgeClass')}">${escapeHTML(item.venue)}</span>`
-      : '';
+    // 教室・会場バッジ表示（統合関数を使用してピル型連結）
+    const badgesHtml2 = renderClassroomVenueBadges(item.classroom, item.venue);
 
     return `
       <div class="w-full max-w-md mx-auto mb-4 px-0 text-left">
@@ -1548,7 +1542,7 @@ export const Components = {
                 <h3 class="text-base text-brand-text font-bold">${formatDate(item.date)}<span class="font-normal text-sm text-brand-subtle ml-2">${dateTimeDisplay}</span></h3>
                 ${badgesHtml ? `<div class="ml-auto flex-shrink-0">${badgesHtml}</div>` : ''}
               </div>
-              <div class="flex items-center gap-1 flex-wrap pt-1 pr-4">${classroomBadgeHtml}${venueBadgeHtml}</div>
+              <div class="flex items-center gap-0 flex-wrap pt-1 pr-4">${badgesHtml2}</div>
             </div>
           </div>
 
@@ -1560,7 +1554,7 @@ export const Components = {
 
   /**
    * プレースホルダーカード（日程未定の場合用）
-   * listCardと同じ視覚構造で、予約がない場合に使用
+   * listCardと同じ視覚構造で、よやくがない場合に使用
    * @param {{
    *   title?: string,
    *   badge?: {type: BadgeType, text: string},
@@ -1673,7 +1667,7 @@ export const Components = {
    * 販売セクション
    * @param {Object} config - 設定オブジェクト
    * @param {AccountingMasterItemCore[]} config.master - 会計マスター
-   * @param {ReservationCore} config.reservationDetails - 予約固有情報
+   * @param {ReservationCore} config.reservationDetails - よやく固有情報
    * @returns {string} HTML文字列
    */
   salesSection: ({ master, reservationDetails }) => {

@@ -1,16 +1,16 @@
 /**
  * @typedef {Object} SessionConclusionState
  * @property {string} currentStep - 現在のステップ (STEPS定数参照)
- * @property {ReservationCore | null} currentReservation - 今日の予約データ
+ * @property {ReservationCore | null} currentReservation - 今日のよやくデータ
  * @property {LessonCore | null} recommendedNextLesson - おすすめの次回レッスン
  * @property {LessonCore | null} selectedLesson - ユーザーが選択したレッスン
- * @property {ReservationCore | null} existingFutureReservation - 既存の未来予約
+ * @property {ReservationCore | null} existingFutureReservation - 既存の未来よやく
  * @property {boolean} reservationSkipped - 「いまはきめない」を選択
  * @property {boolean} isWaitlistRequest - 空き通知希望として選択
  * @property {boolean} isLessonListExpanded - 日程一覧アコーディオン展開状態
  * @property {string} sessionNoteToday - 今日のきろく（セッションノート）
  * @property {string} nextLessonGoal - けいかく・もくひょう（生徒名簿に保存）
- * @property {string} sessionNoteNext - 次回予約へのメッセージ
+ * @property {string} sessionNoteNext - 次回よやくへのメッセージ
  * @property {string} nextStartTime - 次回開始時間
  * @property {string} nextEndTime - 次回終了時間
  * @property {ClassifiedAccountingItemsCore | null} classifiedItems - 会計項目
@@ -38,7 +38,7 @@ export function renderStep1Record(state: SessionConclusionState): string;
  */
 export function renderStep2GoalInput(state: SessionConclusionState): string;
 /**
- * ステップ3: 次回予約画面を生成（よやく）- スロット型UI
+ * ステップ3: 次回よやく画面を生成（よやく）- スロット型UI
  * @param {SessionConclusionState} state - 現在の状態
  * @returns {string} HTML文字列
  */
@@ -74,7 +74,7 @@ export type SessionConclusionState = {
      */
     currentStep: string;
     /**
-     * - 今日の予約データ
+     * - 今日のよやくデータ
      */
     currentReservation: ReservationCore | null;
     /**
@@ -86,7 +86,7 @@ export type SessionConclusionState = {
      */
     selectedLesson: LessonCore | null;
     /**
-     * - 既存の未来予約
+     * - 既存の未来よやく
      */
     existingFutureReservation: ReservationCore | null;
     /**
@@ -110,7 +110,7 @@ export type SessionConclusionState = {
      */
     nextLessonGoal: string;
     /**
-     * - 次回予約へのメッセージ
+     * - 次回よやくへのメッセージ
      */
     sessionNoteNext: string;
     /**
