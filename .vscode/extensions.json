@@ -9,7 +9,6 @@
 
     // Code Quality & Linting
     "dbaeumer.vscode-eslint",
-    "editorconfig.editorconfig",
 
     // Markdown Support
     "yzhang.markdown-all-in-one",
@@ -24,20 +23,13 @@
     // HTML & CSS
     "bradlc.vscode-tailwindcss",
     "formulahendry.auto-rename-tag",
-    "pranaygp.vscode-css-peek",
-
-    // JSON Support
-    "zainchen.json",
 
     // Utilities
-    "alefragnani.bookmarks",
-    "ms-vscode.wordcount",
     "streetsidesoftware.code-spell-checker",
     "aaron-bond.better-comments",
 
-    // Theme & UI (Optional)
-    "pkief.material-icon-theme",
-    "dracula-theme.theme-dracula"
+    // Theme & UI
+    "pkief.material-icon-theme"
   ],
   "unwantedRecommendations": [
     "ms-python.python",
