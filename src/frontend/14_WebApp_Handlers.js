@@ -1401,6 +1401,7 @@ window.onload = function () {
             payload: {
               currentUser: response.user,
               loginPhone: restorationInfo.phone,
+              view: restorationInfo.restoredView || 'dashboard', // 復元されたビューを保持
               lessons: response.data.lessons || [],
               myReservations: response.data.myReservations || [],
               accountingMaster: response.data.accountingMaster || [],
