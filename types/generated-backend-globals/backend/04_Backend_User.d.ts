@@ -33,9 +33,10 @@ export function getAllStudentsAsObject(): {
 /**
  * 電話番号からユーザーを認証します。
  * @param {string} phone - 認証に使用する電話番号
+ * @param {boolean} [isDataRefresh=false] - データ再取得フラグ（リロード時はtrue）
  * @returns {ApiResponseGeneric<UserCore>}
  */
-export function authenticateUser(phone: string): ApiResponseGeneric<UserCore>;
+export function authenticateUser(phone: string, isDataRefresh?: boolean): ApiResponseGeneric<UserCore>;
 /**
  * 電話番号が管理者パスワードと一致するかをチェック
  * PropertiesServiceに保存された管理者パスワード（電話番号形式）と照合します

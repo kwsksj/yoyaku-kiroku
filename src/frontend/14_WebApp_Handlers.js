@@ -1468,7 +1468,7 @@ window.onload = function () {
           render();
         },
       )
-      .getLoginData(restoredPhone);
+      .getLoginData(restoredPhone, true); // データ再取得フラグを渡す
   } else {
     // リロード復元不要の場合は通常通り描画
     render();

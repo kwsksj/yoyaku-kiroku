@@ -210,6 +210,7 @@ export const CONSTANTS = {
 
     // ユーザー管理関連
     USER_LOGIN: 'ログイン',
+    USER_DATA_REFRESH: 'データ再取得',
     USER_LOGOUT: 'ログアウト',
     USER_REGISTER: '新規登録',
     USER_UPDATE: 'プロフィール更新',

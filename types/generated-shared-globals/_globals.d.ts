@@ -120,6 +120,7 @@ declare global {
       readonly ACCOUNTING_SAVE: string;
       readonly ACCOUNTING_MODIFY: string;
       readonly USER_LOGIN: string;
+      readonly USER_DATA_REFRESH: string;
       readonly USER_LOGOUT: string;
       readonly USER_REGISTER: string;
       readonly USER_UPDATE: string;

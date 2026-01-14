@@ -198,9 +198,10 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
 /**
  * 電話番号からユーザーを認証します。
  * @param {string} phone - 認証に使用する電話番号
+ * @param {boolean} [isDataRefresh=false] - データ再取得フラグ（リロード時はtrue）
  * @returns {ApiResponseGeneric<UserCore>}
  */
-export function authenticateUser(phone) {
+export function authenticateUser(phone, isDataRefresh = false) {
   try {
     if (!phone) {
       return {
@@ -236,7 +237,7 @@ export function authenticateUser(phone) {
     });
 
     if (!matchedStudent) {
-      // ログイン失敗の記録
+      // ログイン失敗の記録（データ再取得時も失敗は「ログイン」として記録）
       Logger.log(`認証失敗: ${phone}`);
       logActivity('system', CONSTANTS.LOG_ACTIONS.USER_LOGIN, '失敗', {
         classroom: '',
@@ -255,10 +256,16 @@ export function authenticateUser(phone) {
       };
     }
 
-    // ログイン成功の記録
+    // ログイン成功の記録（初回ログインかデータ再取得かを区別）
     const studentId = matchedStudent.studentId || 'unknown-student';
-    Logger.log(`認証成功: ${studentId}`);
-    logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_LOGIN, '成功', {
+    const loginAction = isDataRefresh
+      ? CONSTANTS.LOG_ACTIONS.USER_DATA_REFRESH
+      : CONSTANTS.LOG_ACTIONS.USER_LOGIN;
+
+    Logger.log(
+      `認証成功: ${studentId} (${isDataRefresh ? 'データ再取得' : '初回ログイン'})`,
+    );
+    logActivity(studentId, loginAction, '成功', {
       classroom: matchedStudent['classroom'] || '',
       reservationId: '',
       date: '',
@@ -276,7 +283,7 @@ export function authenticateUser(phone) {
     };
   } catch (error) {
     Logger.log(`authenticateUser エラー: ${error.message}`);
-    // エラー時のログ記録
+    // エラー時のログ記録（データ再取得時もエラーは「ログイン」として記録）
     logActivity('system', CONSTANTS.LOG_ACTIONS.USER_LOGIN, 'エラー', {
       classroom: '',
       reservationId: '',

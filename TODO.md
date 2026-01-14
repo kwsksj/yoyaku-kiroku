@@ -12,6 +12,26 @@
   - `src/backend/05-2_Backend_Write.js` の `addReservationToCache` 使用箇所(L545付近)に「要確認」コメントあり
   - 新規予約時のキャッシュ更新と `rowForCache` のデータ形式を確認
 
+### リロード・デプロイ時の安定性
+
+- [ ] **リロード時のローディング状態管理改善** ⭐
+  - 現状: データ再取得中に古いデータが一瞬表示される可能性
+  - 改善: `needsDataRefresh()` が `true` の場合、`render()` を遅延実行
+  - 対象ファイル: `src/frontend/14_WebApp_Handlers.js` (L1377-1476)
+  - 優先度: 高（UX改善、ちらつき防止）
+
+- [ ] **状態復元時のビュー不整合対策**
+  - 現状: sessionStorage復元時、ビューとデータの不整合が発生する可能性
+  - 改善: 復元後のビュー検証ロジック追加（データ不足時は安全なビューへ遷移）
+  - 対象ファイル: `src/frontend/12_WebApp_StateManager.js` (L705-758)
+  - 優先度: 中（エッジケース対応）
+
+- [ ] **管理者ログイン時のビュー遷移タイミング改善**
+  - 現状: データ取得完了前にビュー遷移が発生し、空のログビューが表示される可能性
+  - 改善: `goToLogView()` 呼び出し前にデータ取得完了を確認
+  - 対象ファイル: `src/frontend/14_WebApp_Handlers_Auth.js` (L124-176)
+  - 優先度: 中（管理者UX改善）
+
 ---
 
 ## UI Improvements (UI改善)
@@ -83,6 +103,12 @@
   - 優先度: 中（UX向上、ただしデータ不整合リスク要対策）
   - 📄 実装詳細: [docs/RELOAD_OPTIMIZATION.md](docs/RELOAD_OPTIMIZATION.md)
 
+- [ ] **リロード時の二重データ取得防止**
+  - 現状: リロード時に `needsDataRefresh()` と初回 `render()` で二重にデータ取得される可能性
+  - 改善: データ取得フラグ（`_dataFetchInProgress`）の活用を強化
+  - 対象ファイル: `src/frontend/12_WebApp_StateManager.js` (L831-883)
+  - 優先度: 中（パフォーマンス改善、API呼び出し削減）
+
 - [ ] **sessionStorageサイズ監視機能**
   - `saveStateToStorage()` で保存サイズを監視
   - 4MB超過時に警告ログ出力
@@ -108,6 +134,22 @@
 
 ## Refactoring (リファクタリング)
 
+### 状態管理・データフロー
+
+- [ ] **ログイン処理とデータ再取得の分離**
+  - 現状: `authenticateUser()` が常にログを記録、状態復元時も「ログイン成功」として記録
+  - 改善: 認証とデータ取得を明確に分離、ログ記録を適切な箇所のみに
+  - 対象ファイル: `src/backend/04_Backend_User.js`, `src/backend/09_Backend_Endpoints.js`
+  - 優先度: 中（ログの正確性向上、コード整理）
+
+- [ ] **状態復元ロジックの整理**
+  - 現状: `restoreStateFromStorage()` と `needsDataRefresh()` の責務が不明確
+  - 改善: 復元フローを明確化、エラーハンドリング強化
+  - 対象ファイル: `src/frontend/12_WebApp_StateManager.js` (L705-997)
+  - 優先度: 中（保守性向上、バグ予防）
+
+### コード品質
+
 - [ ] **フォーム入力キャッシュの重複コード削減**
   - ダッシュボード・履歴ビューで重複している `input` イベントリスナー設定を共通化
   - `SimpleStateManager` に `setupTextareaCache(textarea, cacheKey)` メソッド追加
@@ -131,6 +173,11 @@
 
 ### 2026/01
 
+- [x] **ログイン種別の追加** (2026-01-15)
+  - 初回ログイン、リロード時のデータ再取得を区別できるようログ記録を改善
+  - 新しいログアクション定数 `USER_DATA_REFRESH` を追加
+  - `authenticateUser()`, `getLoginData()` にデータ再取得フラグを追加
+  - テスト環境にデプロイ済み（APP_VERSION: 2026.01.15.0012）
 - [x] **リロード時データ再取得エラーのユーザー通知** (2026-01-11)
   - データ再取得失敗時にエラーメッセージを表示
   - UX改善とデバッグ支援

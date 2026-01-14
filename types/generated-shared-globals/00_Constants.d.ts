@@ -117,6 +117,7 @@ export namespace CONSTANTS {
         let ACCOUNTING_SAVE: string;
         let ACCOUNTING_MODIFY: string;
         let USER_LOGIN: string;
+        let USER_DATA_REFRESH: string;
         let USER_LOGOUT: string;
         let USER_REGISTER: string;
         let USER_UPDATE: string;

@@ -80,9 +80,10 @@ export function updateAccountingDetailsAndGetLatestData(reservationWithAccountin
  * 統合ログインエンドポイント：認証 + 初期データ + 個人データを一括取得
  *
  * @param {string} phone - 電話番号（ユーザー認証用）
+ * @param {boolean} [isDataRefresh=false] - データ再取得フラグ（リロード時はtrue）
  * @returns {AuthenticationResponse | ApiErrorResponse} 認証結果、初期データ、個人データを含む結果
  */
-export function getLoginData(phone: string): AuthenticationResponse | ApiErrorResponse;
+export function getLoginData(phone: string, isDataRefresh?: boolean): AuthenticationResponse | ApiErrorResponse;
 /**
  * 統合新規登録エンドポイント：ユーザー登録 + 初期データを一括取得
  *

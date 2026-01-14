@@ -436,11 +436,14 @@ export function updateAccountingDetailsAndGetLatestData(
  * 統合ログインエンドポイント：認証 + 初期データ + 個人データを一括取得
  *
  * @param {string} phone - 電話番号（ユーザー認証用）
+ * @param {boolean} [isDataRefresh=false] - データ再取得フラグ（リロード時はtrue）
  * @returns {AuthenticationResponse | ApiErrorResponse} 認証結果、初期データ、個人データを含む結果
  */
-export function getLoginData(phone) {
+export function getLoginData(phone, isDataRefresh = false) {
   try {
-    Logger.log(`getLoginData統合処理開始: phone=${phone}`);
+    Logger.log(
+      `getLoginData統合処理開始: phone=${phone}, isDataRefresh=${isDataRefresh}`,
+    );
 
     // 管理者パスワード一致の場合（名簿に存在しない管理者IDを許可）
     if (isAdminLogin(phone)) {
@@ -499,8 +502,8 @@ export function getLoginData(phone) {
       return adminResponse;
     }
 
-    // 1. 軽量認証実行
-    const authResult = authenticateUser(phone);
+    // 1. 軽量認証実行（データ再取得フラグを渡す）
+    const authResult = authenticateUser(phone, isDataRefresh);
 
     if (authResult.success && authResult.user) {
       Logger.log(`認証成功: userId=${authResult.user.studentId}`);
