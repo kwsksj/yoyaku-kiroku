@@ -35,9 +35,11 @@ export function getAllStudentsAsObject(): {
  * @param {string} phone - 認証に使用する電話番号
  * @param {boolean} [isDataRefresh=false] - データ再取得フラグ（リロード時はtrue）
  * @param {string} [restorationReason] - 復元理由（データ再取得時のみ）
+ * @param {number} [elapsedSeconds] - リロードからの経過時間（秒）
+ * @param {string} [restoredView] - 復元されたビュー名
  * @returns {ApiResponseGeneric<UserCore>}
  */
-export function authenticateUser(phone: string, isDataRefresh?: boolean, restorationReason?: string): ApiResponseGeneric<UserCore>;
+export function authenticateUser(phone: string, isDataRefresh?: boolean, restorationReason?: string, elapsedSeconds?: number, restoredView?: string): ApiResponseGeneric<UserCore>;
 /**
  * 電話番号が管理者パスワードと一致するかをチェック
  * PropertiesServiceに保存された管理者パスワード（電話番号形式）と照合します

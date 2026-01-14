@@ -1379,7 +1379,7 @@ window.onload = function () {
     restorationInfo.phone
   ) {
     console.log(
-      `🔄 リロード復元: データ再取得を開始します（理由: ${restorationInfo.reason}）`,
+      `🔄 リロード復元: データ再取得を開始します（理由: ${restorationInfo.reason}、経過時間: ${restorationInfo.elapsedSeconds}秒、復元ビュー: ${restorationInfo.restoredView}）`,
     );
 
     // データ取得中はview-containerをクリアしてローディング画面のみ表示
@@ -1446,7 +1446,13 @@ window.onload = function () {
           render();
         },
       )
-      .getLoginData(restorationInfo.phone, true, restorationInfo.reason);
+      .getLoginData(
+        restorationInfo.phone,
+        true,
+        restorationInfo.reason,
+        restorationInfo.elapsedSeconds,
+        restorationInfo.restoredView,
+      );
   } else {
     // リロード復元不要の場合は通常通り描画
     render();

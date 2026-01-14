@@ -438,12 +438,20 @@ export function updateAccountingDetailsAndGetLatestData(
  * @param {string} phone - 電話番号（ユーザー認証用）
  * @param {boolean} [isDataRefresh=false] - データ再取得フラグ（リロード時はtrue）
  * @param {string} [restorationReason] - 復元理由（データ再取得時のみ）
+ * @param {number} [elapsedSeconds] - リロードからの経過時間（秒）
+ * @param {string} [restoredView] - 復元されたビュー名
  * @returns {AuthenticationResponse | ApiErrorResponse} 認証結果、初期データ、個人データを含む結果
  */
-export function getLoginData(phone, isDataRefresh = false, restorationReason) {
+export function getLoginData(
+  phone,
+  isDataRefresh = false,
+  restorationReason,
+  elapsedSeconds,
+  restoredView,
+) {
   try {
     Logger.log(
-      `getLoginData統合処理開始: phone=${phone}, isDataRefresh=${isDataRefresh}, reason=${restorationReason || 'N/A'}`,
+      `getLoginData統合処理開始: phone=${phone}, isDataRefresh=${isDataRefresh}, reason=${restorationReason || 'N/A'}, elapsed=${elapsedSeconds || 'N/A'}s, view=${restoredView || 'N/A'}`,
     );
 
     // 管理者パスワード一致の場合（名簿に存在しない管理者IDを許可）
@@ -508,6 +516,8 @@ export function getLoginData(phone, isDataRefresh = false, restorationReason) {
       phone,
       isDataRefresh,
       restorationReason,
+      elapsedSeconds,
+      restoredView,
     );
 
     if (authResult.success && authResult.user) {

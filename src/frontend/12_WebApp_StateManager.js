@@ -757,6 +757,10 @@ export class SimpleStateManager {
         editingReservationIds: new Set(parsedState.editingReservationIds || []),
       };
 
+      // 復元情報を保存（ログ記録用）
+      this._restoredSavedAt = parsedState.savedAt;
+      this._restoredView = parsedState.view;
+
       // savedAtは内部データなので削除
       delete this.state.savedAt;
 
@@ -1041,14 +1045,20 @@ export class SimpleStateManager {
 
   /**
    * 復元情報を取得（データ再取得用）
-   * @returns {{state: string, phone: string | null, reason: string | null}}
+   * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null}}
    */
   getRestorationInfo() {
     const state = this._restorationState;
 
     // 復元されていない、または再取得不要の場合
     if (state !== 'RESTORED_NEEDS_REFRESH') {
-      return { state, phone: null, reason: null };
+      return {
+        state,
+        phone: null,
+        reason: null,
+        elapsedSeconds: null,
+        restoredView: null,
+      };
     }
 
     // 電話番号を取得
@@ -1066,7 +1076,15 @@ export class SimpleStateManager {
       reason = '管理者ログなし';
     }
 
-    return { state, phone, reason };
+    // リロードからの経過時間を計算（秒単位）
+    const elapsedSeconds = this._restoredSavedAt
+      ? Math.floor((Date.now() - this._restoredSavedAt) / 1000)
+      : null;
+
+    // 復元されたビュー
+    const restoredView = this._restoredView || null;
+
+    return { state, phone, reason, elapsedSeconds, restoredView };
   }
 
   /**

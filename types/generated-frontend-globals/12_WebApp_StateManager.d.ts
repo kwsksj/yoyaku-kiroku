@@ -143,6 +143,8 @@ export class SimpleStateManager {
         reason: string | null;
         error?: string;
     };
+    _restoredSavedAt: any;
+    _restoredView: any;
     /**
      * 状態保存を無効にする（ログアウト時など）
      */
@@ -195,12 +197,14 @@ export class SimpleStateManager {
     needsDataRefresh(): boolean;
     /**
      * 復元情報を取得（データ再取得用）
-     * @returns {{state: string, phone: string | null, reason: string | null}}
+     * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null}}
      */
     getRestorationInfo(): {
         state: string;
         phone: string | null;
         reason: string | null;
+        elapsedSeconds: number | null;
+        restoredView: string | null;
     };
     /**
      * 復元された電話番号を取得（データ再取得用）

@@ -200,12 +200,16 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
  * @param {string} phone - 認証に使用する電話番号
  * @param {boolean} [isDataRefresh=false] - データ再取得フラグ（リロード時はtrue）
  * @param {string} [restorationReason] - 復元理由（データ再取得時のみ）
+ * @param {number} [elapsedSeconds] - リロードからの経過時間（秒）
+ * @param {string} [restoredView] - 復元されたビュー名
  * @returns {ApiResponseGeneric<UserCore>}
  */
 export function authenticateUser(
   phone,
   isDataRefresh = false,
   restorationReason,
+  elapsedSeconds,
+  restoredView,
 ) {
   try {
     if (!phone) {
@@ -277,9 +281,17 @@ export function authenticateUser(
       [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
     };
 
-    // データ再取得時は復元理由を追加
-    if (isDataRefresh && restorationReason) {
-      logDetails['復元理由'] = restorationReason;
+    // データ再取得時は追加情報を記録
+    if (isDataRefresh) {
+      if (restorationReason) {
+        logDetails['復元理由'] = restorationReason;
+      }
+      if (elapsedSeconds != null) {
+        logDetails['経過時間'] = `${elapsedSeconds}秒`;
+      }
+      if (restoredView) {
+        logDetails['復元ビュー'] = restoredView;
+      }
     }
 
     logActivity(studentId, loginAction, '成功', {
