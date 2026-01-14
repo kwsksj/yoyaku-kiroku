@@ -814,7 +814,10 @@ export const Components = {
       beginner: 'bg-green-100 text-green-800',
     };
 
-    return `<span class="inline-block px-2 py-0.5 text-xs font-bold rounded-full ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
+    // beginnerタイプは教室・会場バッジと同じtext-baseを使用
+    const fontSize = type === 'beginner' ? 'text-base' : 'text-xs';
+
+    return `<span class="inline-block px-2 py-0.1 ${fontSize} font-medium rounded-full ${typeClasses[type] || typeClasses.info}">${escapeHTML(text)}</span>`;
   },
 
   /**

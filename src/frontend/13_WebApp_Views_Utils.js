@@ -234,7 +234,8 @@ export const renderClassroomVenueBadges = (classroom, venue) => {
     );
   }
 
-  return badges.join('');
+  // 親要素のgapが作用しないよう、1つのspan要素でラップして返す
+  return `<span class="inline-flex">${badges.join('')}</span>`;
 };
 
 /**

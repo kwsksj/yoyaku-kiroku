@@ -893,7 +893,7 @@ export const getReservationFormView = () => {
               <div class="flex flex-wrap items-center gap-2">
                 <span class="font-bold w-20 flex-shrink-0">教室　　：</span>
                 ${renderClassroomVenueBadges(classroom, venue)}
-                ${(isEdit ? firstLecture : isBeginnerMode) ? `<span class="ml-1">${Components.statusBadge({ type: 'beginner', text: '初回' })}</span>` : ''}
+                ${(isEdit ? firstLecture : isBeginnerMode) ? Components.statusBadge({ type: 'beginner', text: '初回' }) : ''}
               </div>
               <div class="flex items-center justify-between gap-2">
                 <p class="flex-1"><span class="font-bold w-20 inline-block">日付　　：</span> ${formatDate(String(date))}</p>
