@@ -63,7 +63,6 @@ import {
   sessionConclusionActionHandlers,
   setupSessionConclusionUI,
   startSessionConclusion,
-  tryRestoreWizardFromCache,
 } from './14_WebApp_Handlers_SessionConclusion.js';
 
 // ================================================================
@@ -1370,17 +1369,23 @@ window.onload = function () {
   // -----------------------------------------------------------------
   // sessionStorageから復元されたがデータがない場合、
   // ログインと同様のフローでデータを再取得する
-  // =================================================================
-  const restoredPhone = handlersStateManager.getRestoredPhone();
-  const needsRefresh = handlersStateManager.needsDataRefresh();
+  // ========================================================
+  // リロード時のデータ再取得処理
+  // ========================================================
+  const restorationInfo = handlersStateManager.getRestorationInfo();
 
-  if (restoredPhone && needsRefresh) {
-    console.log('🔄 リロード復元: データ再取得を開始します');
+  if (
+    restorationInfo.state === 'RESTORED_NEEDS_REFRESH' &&
+    restorationInfo.phone
+  ) {
+    console.log(
+      `🔄 リロード復元: データ再取得を開始します（理由: ${restorationInfo.reason}）`,
+    );
 
     // データ取得中はview-containerをクリアしてローディング画面のみ表示
     const viewContainer = document.getElementById('view-container');
     if (viewContainer) {
-      viewContainer.innerHTML = ''; // 古いデータの表示を防ぐ
+      viewContainer.innerHTML = '';
     }
     showLoading('dataFetch');
 
@@ -1390,51 +1395,24 @@ window.onload = function () {
         if (response.success && response.userFound) {
           console.log('✅ リロード復元: データ再取得成功');
 
-          // 管理者かどうか判定
-          const isAdmin =
-            response.user?.isAdmin ||
-            response.user?.role === 'admin' ||
-            response.data?.isAdmin === true;
-
-          // 基本データを設定
-          /** @type {Partial<UIState>} */
-          const dataPayload = {
-            lessons: response.data?.lessons || [],
-            myReservations: response.data?.myReservations || [],
-            accountingMaster: response.data?.accountingMaster || [],
-          };
-
-          // 管理者の場合は追加データも設定
-          if (isAdmin && response.data?.adminLogs) {
-            dataPayload['adminLogs'] = response.data.adminLogs;
-            dataPayload['adminLogsLoading'] = false;
-          }
-
-          if (isAdmin && response.data?.participantData) {
-            dataPayload['participantReservationsMap'] =
-              response.data.participantData.reservationsMap || {};
-            dataPayload['participantLessons'] =
-              response.data.participantData.lessons || [];
-            dataPayload['participantAllStudents'] =
-              response.data.participantData.allStudents || {};
-          }
-
+          // 状態を更新
           handlersStateManager.dispatch({
-            type: 'UPDATE_STATE',
-            payload: dataPayload,
+            type: 'SET_STATE',
+            payload: {
+              currentUser: response.user,
+              loginPhone: restorationInfo.phone,
+              lessons: response.data.lessons || [],
+              myReservations: response.data.myReservations || [],
+              accountingMaster: response.data.accountingMaster || [],
+              cacheVersions: response.data.cacheVersions || {},
+              isAdmin: response.isAdmin || false,
+              participantData: response.data.participantData,
+              adminLogs: response.data.adminLogs || [],
+            },
           });
 
-          // フラグをリセット
+          // データ再取得完了をマーク
           handlersStateManager.markDataRefreshComplete();
-
-          // sessionConclusionビューの場合、データ取得後にウィザード状態を復元
-          const currentView = handlersStateManager.getState().view;
-          if (currentView === 'sessionConclusion') {
-            console.log(
-              '🔄 リロード復元: データ取得後にウィザード状態を復元します',
-            );
-            tryRestoreWizardFromCache();
-          }
         } else {
           // ユーザーが見つからない場合はログイン画面へ
           console.warn('⚠️ リロード復元: ユーザーが見つかりません');
@@ -1468,7 +1446,7 @@ window.onload = function () {
           render();
         },
       )
-      .getLoginData(restoredPhone, true); // データ再取得フラグを渡す
+      .getLoginData(restorationInfo.phone, true, restorationInfo.reason);
   } else {
     // リロード復元不要の場合は通常通り描画
     render();

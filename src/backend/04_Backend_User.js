@@ -199,9 +199,14 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
  * 電話番号からユーザーを認証します。
  * @param {string} phone - 認証に使用する電話番号
  * @param {boolean} [isDataRefresh=false] - データ再取得フラグ（リロード時はtrue）
+ * @param {string} [restorationReason] - 復元理由（データ再取得時のみ）
  * @returns {ApiResponseGeneric<UserCore>}
  */
-export function authenticateUser(phone, isDataRefresh = false) {
+export function authenticateUser(
+  phone,
+  isDataRefresh = false,
+  restorationReason,
+) {
   try {
     if (!phone) {
       return {
@@ -265,15 +270,24 @@ export function authenticateUser(phone, isDataRefresh = false) {
     Logger.log(
       `認証成功: ${studentId} (${isDataRefresh ? 'データ再取得' : '初回ログイン'})`,
     );
+
+    // ログ詳細を構築
+    const logDetails = {
+      [CONSTANTS.HEADERS.ROSTER.REAL_NAME]: matchedStudent.realName,
+      [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
+    };
+
+    // データ再取得時は復元理由を追加
+    if (isDataRefresh && restorationReason) {
+      logDetails['復元理由'] = restorationReason;
+    }
+
     logActivity(studentId, loginAction, '成功', {
       classroom: matchedStudent['classroom'] || '',
       reservationId: '',
       date: '',
       message: '',
-      details: {
-        [CONSTANTS.HEADERS.ROSTER.REAL_NAME]: matchedStudent.realName,
-        [CONSTANTS.HEADERS.ROSTER.PHONE]: phone,
-      },
+      details: logDetails,
     });
 
     return {
