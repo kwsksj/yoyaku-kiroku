@@ -1395,9 +1395,9 @@ window.onload = function () {
         if (response.success && response.userFound) {
           console.log('✅ リロード復元: データ再取得成功');
 
-          // 状態を更新
+          // 状態を更新（既存の状態を保持しつつ、データのみ更新）
           handlersStateManager.dispatch({
-            type: 'SET_STATE',
+            type: 'UPDATE_STATE',
             payload: {
               currentUser: response.user,
               loginPhone: restorationInfo.phone,
