@@ -82,11 +82,20 @@ export class SimpleStateManager {
     this.subscribers = [];
     /** @type {number | null} 自動保存タイマーID */
     this._saveTimeout = null;
-    /** @type {boolean} リロード時に状態が復元されたかどうか */
+
+    /**
+     * 復元状態を管理
+     * @type {'NOT_RESTORED' | 'RESTORED_VALID' | 'RESTORED_NEEDS_REFRESH' | 'REFRESH_COMPLETE'}
+     * @private
+     */
+    this._restorationState = 'NOT_RESTORED';
+
+    /** @type {boolean} リロード時に状態が復元されたかどうか（後方互換性のため残す） */
     this._restoredFromStorage = false;
 
     // 【リロード対応】ページロード時に保存状態を復元
-    this._restoredFromStorage = this.restoreStateFromStorage();
+    const restorationResult = this.restoreStateFromStorage();
+    this._restoredFromStorage = restorationResult.success; // 後方互換性
   }
 
   /**
@@ -702,12 +711,17 @@ export class SimpleStateManager {
    * リロード時状態保持機能 - SessionStorageから状態を復元
    * @returns {boolean} 復元が成功したかどうか
    */
+  /**
+   * sessionStorageから状態を復元
+   * @returns {{success: boolean, state: string, reason: string | null, error?: string}}
+   */
   restoreStateFromStorage() {
     try {
       const savedState = sessionStorage.getItem(this.STORAGE_KEY);
       if (!savedState) {
         appWindow.PerformanceLog?.debug('保存された状態がありません');
-        return false;
+        this._restorationState = 'NOT_RESTORED';
+        return { success: false, state: 'NOT_RESTORED', reason: 'not_found' };
       }
 
       const parsedState = JSON.parse(savedState);
@@ -717,7 +731,8 @@ export class SimpleStateManager {
       if (Date.now() - parsedState.savedAt > sixHoursInMs) {
         appWindow.PerformanceLog?.debug('保存された状態が期限切れです');
         sessionStorage.removeItem(this.STORAGE_KEY);
-        return false;
+        this._restorationState = 'NOT_RESTORED';
+        return { success: false, state: 'NOT_RESTORED', reason: 'expired' };
       }
 
       // バージョンチェック（アプリ更新検知）
@@ -727,7 +742,12 @@ export class SimpleStateManager {
           `アプリ更新を検知: ${parsedState.appVersion} → ${currentVersion}（自動ログアウト）`,
         );
         sessionStorage.removeItem(this.STORAGE_KEY);
-        return false;
+        this._restorationState = 'NOT_RESTORED';
+        return {
+          success: false,
+          state: 'NOT_RESTORED',
+          reason: 'version_mismatch',
+        };
       }
 
       // 状態を復元（マージ）
@@ -749,12 +769,31 @@ export class SimpleStateManager {
         );
       }
 
-      appWindow.PerformanceLog?.info('状態をSessionStorageから復元しました');
-      return true;
+      // データ再取得が必要かチェック
+      const needsRefresh = this._checkIfDataRefreshNeeded();
+      this._restorationState = needsRefresh
+        ? 'RESTORED_NEEDS_REFRESH'
+        : 'RESTORED_VALID';
+
+      appWindow.PerformanceLog?.info(
+        `状態をSessionStorageから復元しました（${this._restorationState}）`,
+      );
+
+      return {
+        success: true,
+        state: this._restorationState,
+        reason: null,
+      };
     } catch (error) {
       appWindow.PerformanceLog?.error(`状態復元エラー: ${error.message}`);
       sessionStorage.removeItem(this.STORAGE_KEY);
-      return false;
+      this._restorationState = 'NOT_RESTORED';
+      return {
+        success: false,
+        state: 'NOT_RESTORED',
+        reason: 'parse_error',
+        error: error.message,
+      };
     }
   }
 
@@ -944,17 +983,12 @@ export class SimpleStateManager {
   }
 
   /**
-   * リロード復元後にデータ再取得が必要かどうかを判定
-   * ユーザー情報はあるがデータがない場合にtrueを返す
-   * @returns {boolean} データ再取得が必要な場合true
+   * データ再取得が必要かチェック（内部用）
+   * @returns {boolean}
+   * @private
    */
-  needsDataRefresh() {
-    // 復元されていなければ不要
-    if (!this._restoredFromStorage) {
-      return false;
-    }
-
-    // ユーザー情報がなければ不要（ログイン画面へ）
+  _checkIfDataRefreshNeeded() {
+    // ユーザー情報がなければ不要
     if (!this.state.currentUser) {
       return false;
     }
@@ -997,33 +1031,67 @@ export class SimpleStateManager {
   }
 
   /**
-   * 復元された電話番号を取得（データ再取得用）
-   * @returns {string | null} 電話番号、またはnull
+   * リロード復元後にデータ再取得が必要かどうかを判定
+   * @deprecated getRestorationInfo() を使用してください
+   * @returns {boolean} データ再取得が必要な場合true
    */
-  getRestoredPhone() {
-    // 復元されていなければnull
-    if (!this._restoredFromStorage) {
-      return null;
-    }
-
-    // loginPhoneを優先、なければcurrentUserのphone
-    if (this.state.loginPhone) {
-      return this.state.loginPhone;
-    }
-
-    if (this.state.currentUser?.phone) {
-      return this.state.currentUser.phone;
-    }
-
-    return null;
+  needsDataRefresh() {
+    return this._restorationState === 'RESTORED_NEEDS_REFRESH';
   }
 
   /**
-   * データ再取得完了後にフラグをリセット
+   * 復元情報を取得（データ再取得用）
+   * @returns {{state: string, phone: string | null, reason: string | null}}
+   */
+  getRestorationInfo() {
+    const state = this._restorationState;
+
+    // 復元されていない、または再取得不要の場合
+    if (state !== 'RESTORED_NEEDS_REFRESH') {
+      return { state, phone: null, reason: null };
+    }
+
+    // 電話番号を取得
+    const phone =
+      this.state.loginPhone || this.state.currentUser?.phone || null;
+
+    // 再取得理由を判定
+    let reason = null;
+    if (!this.state.lessons?.length) {
+      reason = 'lessons data missing';
+    } else if (
+      this.state.currentUser?.isAdmin &&
+      !this.state['adminLogs']?.length
+    ) {
+      reason = 'admin logs missing';
+    }
+
+    return { state, phone, reason };
+  }
+
+  /**
+   * 復元された電話番号を取得（データ再取得用）
+   * @deprecated getRestorationInfo() を使用してください
+   * @returns {string | null} 電話番号、またはnull
+   */
+  getRestoredPhone() {
+    const info = this.getRestorationInfo();
+    return info.phone;
+  }
+
+  /**
+   * データ再取得完了後に状態を更新
    */
   markDataRefreshComplete() {
-    this._restoredFromStorage = false;
-    appWindow.PerformanceLog?.info('リロード復元: データ再取得完了');
+    if (this._restorationState === 'RESTORED_NEEDS_REFRESH') {
+      this._restorationState = 'REFRESH_COMPLETE';
+      this._restoredFromStorage = false; // 後方互換性
+      appWindow.PerformanceLog?.info('リロード復元: データ再取得完了');
+    } else {
+      appWindow.PerformanceLog?.error(
+        `markDataRefreshComplete called in unexpected state: ${this._restorationState}`,
+      );
+    }
   }
 
   // =================================================================

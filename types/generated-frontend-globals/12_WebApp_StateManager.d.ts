@@ -12,7 +12,13 @@ export class SimpleStateManager {
     subscribers: StateSubscriber[];
     /** @type {number | null} 自動保存タイマーID */
     _saveTimeout: number | null;
-    /** @type {boolean} リロード時に状態が復元されたかどうか */
+    /**
+     * 復元状態を管理
+     * @type {'NOT_RESTORED' | 'RESTORED_VALID' | 'RESTORED_NEEDS_REFRESH' | 'REFRESH_COMPLETE'}
+     * @private
+     */
+    private _restorationState;
+    /** @type {boolean} リロード時に状態が復元されたかどうか（後方互換性のため残す） */
     _restoredFromStorage: boolean;
     /**
      * 初期状態を返します
@@ -127,7 +133,16 @@ export class SimpleStateManager {
      * リロード時状態保持機能 - SessionStorageから状態を復元
      * @returns {boolean} 復元が成功したかどうか
      */
-    restoreStateFromStorage(): boolean;
+    /**
+     * sessionStorageから状態を復元
+     * @returns {{success: boolean, state: string, reason: string | null, error?: string}}
+     */
+    restoreStateFromStorage(): {
+        success: boolean;
+        state: string;
+        reason: string | null;
+        error?: string;
+    };
     /**
      * 状態保存を無効にする（ログアウト時など）
      */
@@ -167,18 +182,34 @@ export class SimpleStateManager {
      */
     updateLessonsVersion(newVersion: string): void;
     /**
+     * データ再取得が必要かチェック（内部用）
+     * @returns {boolean}
+     * @private
+     */
+    private _checkIfDataRefreshNeeded;
+    /**
      * リロード復元後にデータ再取得が必要かどうかを判定
-     * ユーザー情報はあるがデータがない場合にtrueを返す
+     * @deprecated getRestorationInfo() を使用してください
      * @returns {boolean} データ再取得が必要な場合true
      */
     needsDataRefresh(): boolean;
     /**
+     * 復元情報を取得（データ再取得用）
+     * @returns {{state: string, phone: string | null, reason: string | null}}
+     */
+    getRestorationInfo(): {
+        state: string;
+        phone: string | null;
+        reason: string | null;
+    };
+    /**
      * 復元された電話番号を取得（データ再取得用）
+     * @deprecated getRestorationInfo() を使用してください
      * @returns {string | null} 電話番号、またはnull
      */
     getRestoredPhone(): string | null;
     /**
-     * データ再取得完了後にフラグをリセット
+     * データ再取得完了後に状態を更新
      */
     markDataRefreshComplete(): void;
     /**
