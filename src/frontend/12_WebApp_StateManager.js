@@ -1055,15 +1055,15 @@ export class SimpleStateManager {
     const phone =
       this.state.loginPhone || this.state.currentUser?.phone || null;
 
-    // 再取得理由を判定
+    // 再取得理由を判定（日本語）
     let reason = null;
     if (!this.state.lessons?.length) {
-      reason = 'lessons data missing';
+      reason = 'レッスンデータなし';
     } else if (
       this.state.currentUser?.isAdmin &&
       !this.state['adminLogs']?.length
     ) {
-      reason = 'admin logs missing';
+      reason = '管理者ログなし';
     }
 
     return { state, phone, reason };
