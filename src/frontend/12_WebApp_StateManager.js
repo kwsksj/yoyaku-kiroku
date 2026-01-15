@@ -691,6 +691,12 @@ export class SimpleStateManager {
         registrationData: stateToSave.registrationData,
         registrationPhone: stateToSave.registrationPhone,
         editingReservationIds: stateToSave.editingReservationIds,
+        // ビュー固有のコンテキスト（リロード時復元用）
+        currentReservationFormContext:
+          stateToSave.currentReservationFormContext,
+        selectedLesson: stateToSave.selectedLesson,
+        accountingReservation: stateToSave.accountingReservation,
+        accountingReservationDetails: stateToSave.accountingReservationDetails,
         // フォーム入力キャッシュ（編集中の入力値を保持）
         formInputCache:
           /** @type {any} */ (stateToSave)['formInputCache'] || {},
