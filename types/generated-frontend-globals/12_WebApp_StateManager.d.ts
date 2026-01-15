@@ -18,8 +18,6 @@ export class SimpleStateManager {
      * @private
      */
     private _restorationState;
-    /** @type {boolean} リロード時に状態が復元されたかどうか（後方互換性のため残す） */
-    _restoredFromStorage: boolean;
     /**
      * 初期状態を返します
      * @returns {UIState} 初期状態
@@ -190,12 +188,6 @@ export class SimpleStateManager {
      */
     private _checkIfDataRefreshNeeded;
     /**
-     * リロード復元後にデータ再取得が必要かどうかを判定
-     * @deprecated getRestorationInfo() を使用してください
-     * @returns {boolean} データ再取得が必要な場合true
-     */
-    needsDataRefresh(): boolean;
-    /**
      * 復元情報を取得（データ再取得用）
      * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null}}
      */
@@ -206,12 +198,6 @@ export class SimpleStateManager {
         elapsedSeconds: number | null;
         restoredView: string | null;
     };
-    /**
-     * 復元された電話番号を取得（データ再取得用）
-     * @deprecated getRestorationInfo() を使用してください
-     * @returns {string | null} 電話番号、またはnull
-     */
-    getRestoredPhone(): string | null;
     /**
      * データ再取得完了後に状態を更新
      */

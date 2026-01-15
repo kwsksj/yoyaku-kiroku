@@ -90,12 +90,8 @@ export class SimpleStateManager {
      */
     this._restorationState = 'NOT_RESTORED';
 
-    /** @type {boolean} リロード時に状態が復元されたかどうか（後方互換性のため残す） */
-    this._restoredFromStorage = false;
-
     // 【リロード対応】ページロード時に保存状態を復元
-    const restorationResult = this.restoreStateFromStorage();
-    this._restoredFromStorage = restorationResult.success; // 後方互換性
+    this.restoreStateFromStorage();
   }
 
   /**
@@ -1041,15 +1037,6 @@ export class SimpleStateManager {
   }
 
   /**
-   * リロード復元後にデータ再取得が必要かどうかを判定
-   * @deprecated getRestorationInfo() を使用してください
-   * @returns {boolean} データ再取得が必要な場合true
-   */
-  needsDataRefresh() {
-    return this._restorationState === 'RESTORED_NEEDS_REFRESH';
-  }
-
-  /**
    * 復元情報を取得（データ再取得用）
    * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null}}
    */
@@ -1094,22 +1081,11 @@ export class SimpleStateManager {
   }
 
   /**
-   * 復元された電話番号を取得（データ再取得用）
-   * @deprecated getRestorationInfo() を使用してください
-   * @returns {string | null} 電話番号、またはnull
-   */
-  getRestoredPhone() {
-    const info = this.getRestorationInfo();
-    return info.phone;
-  }
-
-  /**
    * データ再取得完了後に状態を更新
    */
   markDataRefreshComplete() {
     if (this._restorationState === 'RESTORED_NEEDS_REFRESH') {
       this._restorationState = 'REFRESH_COMPLETE';
-      this._restoredFromStorage = false; // 後方互換性
       appWindow.PerformanceLog?.info('リロード復元: データ再取得完了');
     } else {
       appWindow.PerformanceLog?.error(
