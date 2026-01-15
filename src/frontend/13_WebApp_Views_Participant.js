@@ -508,25 +508,26 @@ function renderLessonList(lessons) {
     });
   }
 
-  // タブUIの生成（コンポーネント使用）
-  const tabsHtml = Components.tabGroup({
-    tabs: [
-      {
-        label: '未来のよやく',
-        count: futureLessons.length,
-        isActive: !showPastLessons,
-        onclick: 'actionHandlers.togglePastLessons(false)',
-      },
-      {
-        label:
-          isAdmin && totalPendingCount > 0
-            ? `過去のきろく ⚠${totalPendingCount}`
-            : '過去のきろく',
-        count: pastLessons.length,
-        isActive: showPastLessons,
-        onclick: 'actionHandlers.togglePastLessons(true)',
-      },
-    ],
+  // ビュー切り替えUIの生成（pillToggleを使用、教室フィルターと同じ形式）
+  const viewToggleOptions = [
+    {
+      value: 'future',
+      label: 'みんな の よやく',
+      onclick: 'actionHandlers.togglePastLessons(false)',
+    },
+    {
+      value: 'past',
+      label:
+        isAdmin && totalPendingCount > 0
+          ? `みんな の きろく ⚠${totalPendingCount}`
+          : 'みんな の きろく',
+      onclick: 'actionHandlers.togglePastLessons(true)',
+    },
+  ];
+  const viewToggleHtml = Components.pillToggle({
+    options: viewToggleOptions,
+    selectedValue: showPastLessons ? 'past' : 'future',
+    size: 'xs',
   });
 
   // フィルタUIの生成（pillToggleを使用、教室ごとの色を反映）
@@ -973,8 +974,10 @@ function renderLessonList(lessons) {
       customActionHtml: adminButtons,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
-      ${tabsHtml}
       <div class="flex flex-wrap items-start justify-between gap-1 sm:gap-2 mb-2">
+        <div class="flex-grow">
+          ${viewToggleHtml}
+        </div>
         <div class="flex-grow">
           ${filterHtml}
         </div>
