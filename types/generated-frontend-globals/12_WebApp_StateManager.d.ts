@@ -188,6 +188,13 @@ export class SimpleStateManager {
      */
     private _checkIfDataRefreshNeeded;
     /**
+     * 復元されたビューが必要なデータを持っているか検証
+     * データ不足の場合は安全なビューにフォールバック
+     * @returns {boolean} 検証成功時true
+     * @private
+     */
+    private _validateRestoredView;
+    /**
      * 復元情報を取得（データ再取得用）
      * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null}}
      */

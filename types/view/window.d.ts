@@ -6,14 +6,14 @@
  * =================================================================
  */
 
-import type { DesignSystemConfig } from './design-system';
-import type { ModalDialogConfig, ConfirmDialogConfig } from './components';
-import type { AccountingFormDto, SimpleStateManager, ViewType } from './state';
 import type {
-  AccountingDetailsCore,
-  ClassifiedAccountingItemsCore,
+    AccountingDetailsCore,
+    ClassifiedAccountingItemsCore,
 } from '../core/accounting';
 import type { ReservationCore } from '../core/reservation';
+import type { ConfirmDialogConfig, ModalDialogConfig } from './components';
+import type { DesignSystemConfig } from './design-system';
+import type { AccountingFormDto, SimpleStateManager, ViewType } from './state';
 
 // =================================================================
 // 共有定数型エイリアス
@@ -167,6 +167,7 @@ declare global {
     PerformanceLog?: {
       debug(message: string, ...args: any[]): void;
       info(message: string, ...args: any[]): void;
+      warn(message: string, ...args: any[]): void;
       error(message: string, ...args: any[]): void;
     };
 
@@ -329,4 +330,4 @@ declare global {
 
 export type AppWindow = Window & typeof globalThis;
 
-export {};
+export { };

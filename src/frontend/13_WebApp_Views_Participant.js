@@ -942,36 +942,39 @@ function renderLessonList(lessons) {
 
   const refreshIcon = `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
 
-  const adminButtons = isAdmin
-    ? `<div class="flex items-center gap-2">
-        ${Components.button({
-          action: 'refreshParticipantView',
-          text: refreshIcon,
-          style: 'secondary',
-          size: 'xs',
-          disabled: isRefreshing,
-        })}
-        ${Components.button({
-          text: '操作<br>ログ',
-          action: 'goToLogView',
-          style: 'primary',
-          size: 'xs',
-        })}
-        ${Components.button({
-          text: 'ログ<br>アウト',
-          action: 'logout',
-          style: 'danger',
-          size: 'xs',
-        })}
-       </div>`
-    : null;
+  // アクションボタン（更新は全員、操作ログ・ログアウトは管理者のみ）
+  const actionButtons = `<div class="flex items-center gap-2">
+      ${Components.button({
+        action: 'refreshParticipantView',
+        text: refreshIcon,
+        style: 'secondary',
+        size: 'xs',
+        disabled: isRefreshing,
+      })}
+      ${
+        isAdmin
+          ? `${Components.button({
+              text: '操作<br>ログ',
+              action: 'goToLogView',
+              style: 'primary',
+              size: 'xs',
+            })}
+            ${Components.button({
+              text: 'ログ<br>アウト',
+              action: 'logout',
+              style: 'danger',
+              size: 'xs',
+            })}`
+          : ''
+      }
+     </div>`;
 
   return `
     ${Components.pageHeader({
       title: 'みんな の よやく・きろく',
       showBackButton: !isAdmin,
       backAction: 'smartGoBack',
-      customActionHtml: adminButtons,
+      customActionHtml: actionButtons,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
       <div class="flex flex-wrap items-start justify-between gap-1 sm:gap-2 mb-2">

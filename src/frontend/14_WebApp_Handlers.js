@@ -1382,6 +1382,37 @@ window.onload = function () {
       `🔄 リロード復元: データ再取得を開始します（理由: ${restorationInfo.reason}、経過時間: ${restorationInfo.elapsedSeconds}秒、復元ビュー: ${restorationInfo.restoredView}）`,
     );
 
+    // タイムアウト設定（15秒）
+    const RELOAD_TIMEOUT_MS = 15000;
+    /** @type {ReturnType<typeof setTimeout> | null} */
+    let timeoutId = null;
+    let isCompleted = false;
+
+    // タイムアウトハンドラ
+    const handleTimeout = () => {
+      if (isCompleted) return; // 既に完了している場合は何もしない
+
+      console.error('❌ リロード復元: データ再取得がタイムアウトしました');
+
+      // ユーザーに通知
+      showInfo(
+        'データの読み込みに時間がかかっています。再度ログインしてください。',
+        'タイムアウト',
+      );
+
+      // ログイン画面へ遷移
+      handlersStateManager.dispatch({
+        type: 'NAVIGATE',
+        payload: { to: 'login' },
+      });
+
+      hideLoading();
+      render();
+    };
+
+    // タイムアウトを設定
+    timeoutId = setTimeout(handleTimeout, RELOAD_TIMEOUT_MS);
+
     // データ取得中はview-containerをクリアしてローディング画面のみ表示
     const viewContainer = document.getElementById('view-container');
     if (viewContainer) {
@@ -1392,6 +1423,10 @@ window.onload = function () {
     google.script.run['withSuccessHandler'](
       /** @param {any} response */
       response => {
+        // 完了フラグを設定（タイムアウト処理を防ぐ）
+        isCompleted = true;
+        if (timeoutId) clearTimeout(timeoutId);
+
         if (response.success && response.userFound) {
           console.log('✅ リロード復元: データ再取得成功');
 
@@ -1430,6 +1465,10 @@ window.onload = function () {
       ['withFailureHandler'](
         /** @param {Error} error */
         error => {
+          // 完了フラグを設定
+          isCompleted = true;
+          if (timeoutId) clearTimeout(timeoutId);
+
           console.error('❌ リロード復元: データ再取得エラー:', error);
 
           // ユーザーにエラーを通知

@@ -54,6 +54,11 @@ if (!appWindow.PerformanceLog) {
         console.info(`[INFO] ${message}`, ...args);
       }
     },
+    warn(/** @type {string} */ message, /** @type {...any} */ ...args) {
+      if (typeof console !== 'undefined') {
+        console.warn(`[WARN] ${message}`, ...args);
+      }
+    },
     error(/** @type {string} */ message, /** @type {...any} */ ...args) {
       if (typeof console !== 'undefined') {
         console.error(`[ERROR] ${message}`, ...args);
@@ -696,16 +701,80 @@ export class SimpleStateManager {
         // フォーム入力キャッシュ（編集中の入力値を保持）
         formInputCache:
           /** @type {any} */ (stateToSave)['formInputCache'] || {},
-        // タイムスタンプを追加（有効期限チェック用）
+
+        // 【Phase 2追加】基本データ（リロード時のデータ再取得を削減）
+        lessons: this.state.lessons,
+        myReservations: this.state.myReservations,
+        accountingMaster: this.state.accountingMaster,
+
+        // 【Phase 3追加】参加者ビュー用データ（リロード時の復元用）
+        participantLessons: this.state.participantLessons,
+        participantReservationsMap: this.state.participantReservationsMap,
+        participantIsAdmin: this.state.participantIsAdmin,
+        selectedParticipantClassroom: this.state.selectedParticipantClassroom,
+        showPastLessons: this.state.showPastLessons,
+        participantHasPastLessonsLoaded:
+          this.state.participantHasPastLessonsLoaded,
+
+        // メタデータ（データ整合性チェック用）
         savedAt: Date.now(),
-        // アプリバージョン（更新検知用）
         appVersion: CONSTANTS.ENVIRONMENT.APP_VERSION,
+        dataVersion: this.state._lessonsVersion || '', // データバージョン
       };
 
-      sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(essentialState));
+      // JSON文字列化
+      const serialized = JSON.stringify(essentialState);
+
+      // サイズ計算（Blobを使って正確なバイトサイズを取得）
+      const sizeInBytes = new Blob([serialized]).size;
+      const sizeInMB = sizeInBytes / 1024 / 1024;
+
+      // サイズ警告（4MB超過時）
+      if (sizeInBytes > 4 * 1024 * 1024) {
+        appWindow.PerformanceLog?.warn(
+          `sessionStorage サイズが大きい: ${sizeInMB.toFixed(2)}MB (推奨: 4MB以下)`,
+        );
+      }
+
+      // デバッグ用ログ（通常時は非表示）
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+        appWindow.PerformanceLog?.debug(
+          `sessionStorage保存サイズ: ${sizeInMB.toFixed(2)}MB`,
+        );
+      }
+
+      // sessionStorageに保存
+      sessionStorage.setItem(this.STORAGE_KEY, serialized);
       appWindow.PerformanceLog?.debug('状態をSessionStorageに保存しました');
     } catch (error) {
-      appWindow.PerformanceLog?.error(`状態保存エラー: ${error.message}`);
+      // QuotaExceededError（容量超過）のハンドリング
+      if (error.name === 'QuotaExceededError') {
+        appWindow.PerformanceLog?.error(
+          'sessionStorage容量超過: データを削減してください',
+        );
+
+        // フォールバック: 最小限のデータのみ保存
+        const minimalState = {
+          view: this.state.view,
+          currentUser: this.state.currentUser,
+          loginPhone: this.state.loginPhone,
+          savedAt: Date.now(),
+          appVersion: CONSTANTS.ENVIRONMENT.APP_VERSION,
+        };
+
+        try {
+          sessionStorage.setItem(
+            this.STORAGE_KEY,
+            JSON.stringify(minimalState),
+          );
+          appWindow.PerformanceLog?.warn('最小限の状態のみ保存しました');
+        } catch (_fallbackError) {
+          appWindow.PerformanceLog?.error('最小限の保存も失敗しました');
+        }
+      } else {
+        // その他のエラー
+        appWindow.PerformanceLog?.error(`状態保存エラー: ${error.message}`);
+      }
     }
   }
 
@@ -728,16 +797,20 @@ export class SimpleStateManager {
 
       const parsedState = JSON.parse(savedState);
 
-      // 有効期限チェック（6時間以内）
-      const sixHoursInMs = 6 * 60 * 60 * 1000;
-      if (Date.now() - parsedState.savedAt > sixHoursInMs) {
-        appWindow.PerformanceLog?.debug('保存された状態が期限切れです');
+      // 【Phase 3追加】有効期限チェック（30分以内）
+      const MAX_AGE_MS = 30 * 60 * 1000; // 30分
+      const age = Date.now() - (parsedState.savedAt || 0);
+
+      if (age > MAX_AGE_MS) {
+        appWindow.PerformanceLog?.warn(
+          `保存データが古い（${Math.floor(age / 1000 / 60)}分前）ため再取得します`,
+        );
         sessionStorage.removeItem(this.STORAGE_KEY);
         this._restorationState = 'NOT_RESTORED';
         return { success: false, state: 'NOT_RESTORED', reason: 'expired' };
       }
 
-      // バージョンチェック（アプリ更新検知）
+      // 【Phase 3追加】バージョンチェック（アプリ更新検知）
       const currentVersion = CONSTANTS.ENVIRONMENT.APP_VERSION;
       if (parsedState.appVersion && parsedState.appVersion !== currentVersion) {
         appWindow.PerformanceLog?.info(
@@ -774,6 +847,9 @@ export class SimpleStateManager {
           'ウィザード状態キャッシュを検出、sessionConclusionビューに設定',
         );
       }
+
+      // ビューとデータの整合性を検証
+      this._validateRestoredView();
 
       // データ再取得が必要かチェック
       const needsRefresh = this._checkIfDataRefreshNeeded();
@@ -1034,6 +1110,67 @@ export class SimpleStateManager {
     }
 
     return false;
+  }
+
+  /**
+   * 復元されたビューが必要なデータを持っているか検証
+   * データ不足の場合は安全なビューにフォールバック
+   * @returns {boolean} 検証成功時true
+   * @private
+   */
+  _validateRestoredView() {
+    const view = this.state.view;
+    const user = this.state.currentUser;
+
+    // ログイン・登録画面は常にOK
+    if (view === 'login' || view === 'register') {
+      return true;
+    }
+
+    // ログイン必須ビューでユーザー情報がない場合
+    const loginRequiredViews = [
+      'dashboard',
+      'bookingLessons',
+      'newReservation',
+      'editReservation',
+      'accounting',
+      'myReservations',
+      'sessionConclusion',
+      'participants',
+      'adminLog',
+    ];
+
+    if (loginRequiredViews.includes(view) && !user) {
+      appWindow.PerformanceLog?.warn(
+        `ビュー検証失敗: ${view}にユーザー情報がありません`,
+      );
+      this.state.view = 'login';
+      return false;
+    }
+
+    // 特定のコンテキストが必要なビュー
+    /** @type {Record<string, () => boolean>} */
+    const contextRequirements = {
+      accounting: () => !!this.state.accountingReservation,
+      editReservation: () => !!this.state.editingReservationDetails,
+      newReservation: () => !!this.state.selectedLesson,
+      sessionConclusion: () =>
+        !!this.state['formInputCache']?.['wizardState']?.currentReservationId,
+      participants: () =>
+        !!this.state.participantLessons &&
+        this.state.participantLessons.length > 0,
+    };
+
+    const requirement = contextRequirements[view];
+    if (requirement && !requirement()) {
+      appWindow.PerformanceLog?.warn(
+        `ビュー検証失敗: ${view}に必要なコンテキストがありません`,
+      );
+      this.state.view = user ? 'dashboard' : 'login';
+      return false;
+    }
+
+    return true;
   }
 
   /**
