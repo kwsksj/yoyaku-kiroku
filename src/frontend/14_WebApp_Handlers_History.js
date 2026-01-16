@@ -54,7 +54,7 @@ export const historyActionHandlers = {
     if (d.reservationId) {
       historyStateManager.startEditMode(d.reservationId, currentMemo);
       // formInputCacheに編集状態を保存（リロード対応）
-      historyStateManager['cacheFormInput'](`memoEdit:${d.reservationId}`, {
+      historyStateManager.cacheFormInput(`memoEdit:${d.reservationId}`, {
         isEditing: true,
         text: currentMemo,
       });
@@ -64,21 +64,17 @@ export const historyActionHandlers = {
     if (d.reservationId) {
       updateSingleHistoryCard(d.reservationId);
 
-      // 入力時にキャッシュを更新
+      // 入力時にキャッシュを更新（共通メソッドを使用）
       setTimeout(() => {
         const textarea = /** @type {HTMLTextAreaElement | null} */ (
           document.getElementById(`memo-edit-textarea-${d.reservationId}`)
         );
         if (textarea) {
-          textarea.addEventListener('input', () => {
-            historyStateManager['cacheFormInput'](
-              `memoEdit:${d.reservationId}`,
-              {
-                isEditing: true,
-                text: textarea.value,
-              },
-            );
-          });
+          historyStateManager.setupTextareaCache(
+            textarea,
+            `memoEdit:${d.reservationId}`,
+            false, // 自動フォーカスしない
+          );
         }
       }, 100);
     }
@@ -99,7 +95,7 @@ export const historyActionHandlers = {
     if (d.reservationId) {
       historyStateManager.endEditMode(d.reservationId);
       // キャッシュをクリア
-      historyStateManager['clearFormInputCache'](`memoEdit:${d.reservationId}`);
+      historyStateManager.clearFormInputCache(`memoEdit:${d.reservationId}`);
     }
 
     // 該当カードのみを部分更新（ちらつき防止）
@@ -144,7 +140,7 @@ export const historyActionHandlers = {
     if (d.reservationId) {
       historyStateManager.endEditMode(d.reservationId);
       // キャッシュをクリア
-      historyStateManager['clearFormInputCache'](`memoEdit:${d.reservationId}`);
+      historyStateManager.clearFormInputCache(`memoEdit:${d.reservationId}`);
     }
 
     showInfo('メモを保存しました', '保存完了');

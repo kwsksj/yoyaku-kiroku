@@ -114,6 +114,7 @@ export namespace CONSTANTS {
         let RESERVATION_UPDATE: string;
         let RESERVATION_CONFIRM: string;
         let RESERVATION_EDIT: string;
+        let RESERVATION_MEMO_UPDATE: string;
         let ACCOUNTING_SAVE: string;
         let ACCOUNTING_MODIFY: string;
         let USER_LOGIN: string;

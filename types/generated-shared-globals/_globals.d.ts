@@ -117,6 +117,7 @@ declare global {
       readonly RESERVATION_UPDATE: string;
       readonly RESERVATION_CONFIRM: string;
       readonly RESERVATION_EDIT: string;
+      readonly RESERVATION_MEMO_UPDATE: string;
       readonly ACCOUNTING_SAVE: string;
       readonly ACCOUNTING_MODIFY: string;
       readonly USER_LOGIN: string;

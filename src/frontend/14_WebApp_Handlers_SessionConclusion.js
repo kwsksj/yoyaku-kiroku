@@ -1233,7 +1233,7 @@ function cacheWizardState() {
     selectedLessonId: wizardState.selectedLesson?.lessonId || null,
   };
 
-  conclusionStateManager['cacheFormInput']('wizardState', cacheData);
+  conclusionStateManager.cacheFormInput('wizardState', cacheData);
 }
 
 /**
@@ -1246,13 +1246,13 @@ function restoreWizardStateFromCache(reservationId) {
   const stateManager = window.appWindow?.stateManager;
   if (!stateManager) return false;
 
-  const cached = stateManager['getFormInputCache']('wizardState');
+  const cached = stateManager.getFormInputCache('wizardState');
   if (!cached) return false;
 
   // 同じよやくに対する編集中の状態か確認
   if (cached.currentReservationId !== reservationId) {
     // 別のよやくのキャッシュなのでクリア
-    stateManager['clearFormInputCache']('wizardState');
+    stateManager.clearFormInputCache('wizardState');
     return false;
   }
 
@@ -1288,7 +1288,7 @@ function restoreWizardStateFromCache(reservationId) {
  */
 function clearWizardStateCache() {
   if (conclusionStateManager) {
-    conclusionStateManager['clearFormInputCache']('wizardState');
+    conclusionStateManager.clearFormInputCache('wizardState');
   }
 }
 
@@ -1300,7 +1300,7 @@ function clearWizardStateCache() {
 export function tryRestoreWizardFromCache() {
   if (!conclusionStateManager) return false;
 
-  const cached = conclusionStateManager['getFormInputCache']('wizardState');
+  const cached = conclusionStateManager.getFormInputCache('wizardState');
   if (!cached || !cached.currentReservationId) return false;
 
   // キャッシュされた予約IDからよやくを検索

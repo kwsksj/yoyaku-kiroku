@@ -234,6 +234,15 @@ export class SimpleStateManager {
      * すべてのフォーム入力キャッシュをクリア
      */
     clearAllFormInputCache(): void;
+    /**
+     * textarea要素に入力キャッシュ機能を設定
+     * リロード時の入力保持のため、編集中の内容をformInputCacheに自動保存
+     *
+     * @param {HTMLTextAreaElement} textarea - キャッシュ対象のtextarea要素
+     * @param {string} cacheKey - キャッシュキー（例: 'goalEdit', 'memoEdit:reservationId'）
+     * @param {boolean} [autoFocus=true] - 自動的にフォーカスするか
+     */
+    setupTextareaCache(textarea: HTMLTextAreaElement, cacheKey: string, autoFocus?: boolean): void;
 }
 export type StateManagerContract = SimpleStateManager;
 export type UIStateAlias = UIState;

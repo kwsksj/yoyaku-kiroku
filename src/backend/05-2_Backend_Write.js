@@ -1508,23 +1508,26 @@ export function updateReservationDetails(details) {
       // 共通関数を呼び出して保存
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
-      // ログ記録
-      logActivity(
-        updatedReservation.studentId,
-        CONSTANTS.LOG_ACTIONS.RESERVATION_UPDATE,
-        CONSTANTS.MESSAGES.SUCCESS,
-        {
-          classroom: updatedReservation.classroom,
-          reservationId: updatedReservation.reservationId,
-          date: updatedReservation.date,
-          message: updatedReservation.messageToTeacher || '',
-          details: {
-            [CONSTANTS.HEADERS.RESERVATIONS.STATUS]: updatedReservation.status,
-            [CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID]:
-              updatedReservation.lessonId,
+      // ログ記録（_skipDefaultLogがtrueの場合はスキップ - 呼び出し元で専用ログを記録）
+      if (!(/** @type {any} */ (details)._skipDefaultLog)) {
+        logActivity(
+          updatedReservation.studentId,
+          CONSTANTS.LOG_ACTIONS.RESERVATION_UPDATE,
+          CONSTANTS.MESSAGES.SUCCESS,
+          {
+            classroom: updatedReservation.classroom,
+            reservationId: updatedReservation.reservationId,
+            date: updatedReservation.date,
+            message: updatedReservation.messageToTeacher || '',
+            details: {
+              [CONSTANTS.HEADERS.RESERVATIONS.STATUS]:
+                updatedReservation.status,
+              [CONSTANTS.HEADERS.RESERVATIONS.LESSON_ID]:
+                updatedReservation.lessonId,
+            },
           },
-        },
-      );
+        );
+      }
 
       // 管理者通知
       const messageToTeacher = updatedReservation.messageToTeacher || '';

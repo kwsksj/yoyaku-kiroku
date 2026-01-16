@@ -115,7 +115,7 @@ export const getDashboardView = () => {
     const historyListItems = completedRecords.map(
       (/** @type {ReservationCore} */ h, index) => {
         // 編集モード状態を取得（formInputCacheからの復元も考慮）
-        const memoCache = dashboardStateManager['getFormInputCache'](
+        const memoCache = dashboardStateManager.getFormInputCache(
           `memoEdit:${h.reservationId}`,
         );
         let isInEditMode = dashboardStateManager.isInEditMode(h.reservationId);
@@ -299,7 +299,7 @@ export const getDashboardView = () => {
   const editIconSvg = Components.editIcon();
 
   // formInputCacheから編集状態を復元（リロード対応）
-  const goalEditCache = dashboardStateManager['getFormInputCache']('goalEdit');
+  const goalEditCache = dashboardStateManager.getFormInputCache('goalEdit');
   const isGoalEditMode = goalEditCache?.isEditing || false;
   const goalEditText = goalEditCache?.text ?? nextLessonGoal;
 

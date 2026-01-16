@@ -226,6 +226,35 @@ export interface UIState {
   // --- 動的プロパティ（データ管理用） ---
   _dataLastUpdated?: Record<string, number>;
 
+  // --- Form Input Cache (リロード時保持用) ---
+  /**
+   * フォーム入力キャッシュ
+   * リロード時に編集中の入力内容を復元するために使用
+   *
+   * キー例:
+   * - 'goalEdit': ダッシュボードの目標編集
+   * - 'memoEdit:{reservationId}': 履歴メモ編集
+   * - 'wizardState': セッション終了フローのウィザード状態
+   */
+  formInputCache: {
+    goalEdit?: { isEditing: boolean; text: string };
+    wizardState?: {
+      currentStep: string;
+      currentReservationId: string;
+      sessionNoteToday: string;
+      nextLessonGoal: string;
+      nextStartTime: string;
+      nextEndTime: string;
+      orderInput: string;
+      materialInput: string;
+      accountingFormData: Record<string, any>;
+      filterClassroom: string;
+      reservationSkipped: boolean;
+      selectedLessonId: string | null;
+    };
+    [key: string]: any;
+  };
+
   // --- AI開発最適化：完全に動的アクセスを許可 ---
   [key: string]: any;
 }
@@ -344,6 +373,18 @@ export interface SimpleStateManager {
   endImpersonation(): void;
 
   setBeginnerModeOverride(value: boolean): void;
+
+  // フォーム入力キャッシュ
+  cacheFormInput(key: string, value: any): void;
+  getFormInputCache(key: string): any;
+  clearFormInputCache(key: string): void;
+  clearAllFormInputCache(): void;
+  setupTextareaCache(
+    textarea: HTMLTextAreaElement,
+    cacheKey: string,
+    autoFocus?: boolean,
+  ): void;
+
   // AI開発最適化：動的プロパティアクセスを許可
   [key: string]: any;
 }

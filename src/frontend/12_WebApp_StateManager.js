@@ -699,8 +699,7 @@ export class SimpleStateManager {
         accountingReservation: stateToSave.accountingReservation,
         accountingReservationDetails: stateToSave.accountingReservationDetails,
         // フォーム入力キャッシュ（編集中の入力値を保持）
-        formInputCache:
-          /** @type {any} */ (stateToSave)['formInputCache'] || {},
+        formInputCache: stateToSave.formInputCache || {},
 
         // 【Phase 2追加】基本データ（リロード時のデータ再取得を削減）
         lessons: this.state.lessons,
@@ -845,7 +844,7 @@ export class SimpleStateManager {
 
       // ウィザード状態キャッシュがある場合、ビューをsessionConclusionに設定
       // （実際の復元はtryRestoreWizardFromCacheで行う）
-      if (this.state['formInputCache']?.['wizardState']?.currentReservationId) {
+      if (this.state.formInputCache?.['wizardState']?.currentReservationId) {
         this.state.view = 'sessionConclusion';
         appWindow.PerformanceLog?.info(
           'ウィザード状態キャッシュを検出、sessionConclusionビューに設定',
@@ -1176,7 +1175,7 @@ export class SimpleStateManager {
       editReservation: () => !!this.state.editingReservationDetails,
       newReservation: () => !!this.state.selectedLesson,
       sessionConclusion: () =>
-        !!this.state['formInputCache']?.['wizardState']?.currentReservationId,
+        !!this.state.formInputCache?.['wizardState']?.currentReservationId,
       participants: () =>
         !!this.state.participantLessons &&
         this.state.participantLessons.length > 0,
@@ -1271,9 +1270,9 @@ export class SimpleStateManager {
    * @param {any} value - 保存する値
    */
   cacheFormInput(key, value) {
-    const currentCache = this.state['formInputCache'] || {};
+    const currentCache = this.state.formInputCache || {};
     // 直接stateを更新（dispatchすると再描画が走り保存処理が妨げられる）
-    this.state['formInputCache'] = {
+    this.state.formInputCache = {
       ...currentCache,
       [key]: value,
     };
@@ -1287,7 +1286,7 @@ export class SimpleStateManager {
    * @returns {any} キャッシュされた値（存在しない場合はundefined）
    */
   getFormInputCache(key) {
-    return (this.state['formInputCache'] || {})[key];
+    return (this.state.formInputCache || {})[key];
   }
 
   /**
@@ -1296,10 +1295,10 @@ export class SimpleStateManager {
    * @param {string} key - クリアするキャッシュキー
    */
   clearFormInputCache(key) {
-    const currentCache = { ...(this.state['formInputCache'] || {}) };
+    const currentCache = { ...(this.state.formInputCache || {}) };
     delete currentCache[key];
     // 直接stateを更新
-    this.state['formInputCache'] = currentCache;
+    this.state.formInputCache = currentCache;
     // sessionStorageに保存
     this.saveStateToStorage();
   }
@@ -1308,8 +1307,44 @@ export class SimpleStateManager {
    * すべてのフォーム入力キャッシュをクリア
    */
   clearAllFormInputCache() {
-    this.state['formInputCache'] = {};
+    this.state.formInputCache = {};
     this.saveStateToStorage();
+  }
+
+  /**
+   * textarea要素に入力キャッシュ機能を設定
+   * リロード時の入力保持のため、編集中の内容をformInputCacheに自動保存
+   *
+   * @param {HTMLTextAreaElement} textarea - キャッシュ対象のtextarea要素
+   * @param {string} cacheKey - キャッシュキー（例: 'goalEdit', 'memoEdit:reservationId'）
+   * @param {boolean} [autoFocus=true] - 自動的にフォーカスするか
+   */
+  setupTextareaCache(textarea, cacheKey, autoFocus = true) {
+    if (!textarea) {
+      appWindow.PerformanceLog?.warn(
+        `setupTextareaCache: textarea not found for key "${cacheKey}"`,
+      );
+      return;
+    }
+
+    // 初期値をキャッシュに保存
+    this.cacheFormInput(cacheKey, {
+      isEditing: true,
+      text: textarea.value,
+    });
+
+    // 入力時にキャッシュを更新
+    textarea.addEventListener('input', () => {
+      this.cacheFormInput(cacheKey, {
+        isEditing: true,
+        text: textarea.value,
+      });
+    });
+
+    // フォーカス
+    if (autoFocus) {
+      textarea.focus();
+    }
   }
 }
 

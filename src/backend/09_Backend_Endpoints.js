@@ -274,16 +274,67 @@ export function updateReservationMemoAndGetLatestData(
   studentId,
   newMemo,
 ) {
-  return executeOperationAndGetLatestData(
-    updateReservationDetails,
-    {
-      reservationId,
+  try {
+    // 変更前のよやく情報を取得（ログ記録用）
+    const existingReservations = getCachedReservationsAsObjects();
+    const existingReservation = existingReservations.find(
+      r => r.reservationId === reservationId,
+    );
+    const oldMemo = existingReservation?.sessionNote || '';
+
+    // 内部関数を呼び出して更新
+    const result = executeOperationAndGetLatestData(
+      updateReservationDetails,
+      {
+        reservationId,
+        studentId,
+        sessionNote: newMemo, // 制作メモのみを更新
+        _skipDefaultLog: true, // 汎用ログを抑制（専用ログを使用）
+      },
       studentId,
-      sessionNote: newMemo, // 制作メモのみを更新
-    },
-    studentId,
-    '制作メモを更新しました。',
-  );
+      '制作メモを更新しました。',
+    );
+
+    // 専用のログアクションで記録（変更内容を詳細に）
+    if (result.success) {
+      const truncate = (/** @type {string} */ str, len = 50) =>
+        str.length > len ? str.substring(0, len) + '...' : str;
+
+      logActivity(
+        studentId,
+        CONSTANTS.LOG_ACTIONS.RESERVATION_MEMO_UPDATE,
+        CONSTANTS.MESSAGES.SUCCESS,
+        {
+          reservationId,
+          date: existingReservation?.date || '',
+          classroom: existingReservation?.classroom || '',
+          details: {
+            変更前: truncate(oldMemo || '(空白)'),
+            変更後: truncate(newMemo || '(空白に変更)'),
+          },
+        },
+      );
+    }
+
+    return result;
+  } catch (e) {
+    Logger.log(`updateReservationMemoAndGetLatestData でエラー: ${e.message}`);
+    // エラー時のログ
+    logActivity(
+      studentId,
+      CONSTANTS.LOG_ACTIONS.RESERVATION_MEMO_UPDATE,
+      CONSTANTS.MESSAGES.ERROR,
+      {
+        reservationId,
+        details: {
+          エラー: e.message,
+        },
+      },
+    );
+    return createApiResponse(false, {
+      message: '制作メモの更新に失敗しました。',
+    });
+  }
 }
 
 /**

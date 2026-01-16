@@ -203,6 +203,7 @@ export const CONSTANTS = {
     RESERVATION_UPDATE: 'よやく詳細更新',
     RESERVATION_CONFIRM: 'よやく確定（空き通知から）',
     RESERVATION_EDIT: 'よやく編集',
+    RESERVATION_MEMO_UPDATE: '制作メモ更新',
 
     // 会計関連
     ACCOUNTING_SAVE: '会計記録保存',
