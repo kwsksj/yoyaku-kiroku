@@ -420,18 +420,23 @@ function refreshAllAdminData() {
     } else {
       // 変更なし: 軽量な通知（枠外クリックで閉じる）
       render();
-      if (
-        appWindow.ModalManager &&
-        typeof appWindow.ModalManager.showInfoDismissable === 'function'
-      ) {
-        appWindow.ModalManager.showInfoDismissable(
-          '新しいデータはありません。\n最新の状態です。',
-          '更新完了',
-          3000, // 3秒後に自動で閉じる
-        );
-      } else {
-        showInfo('新しいデータはありません。最新の状態です。', '更新完了');
-      }
+      // renderはrequestAnimationFrameを使用しているため、DOM更新後にモーダルを表示
+      setTimeout(() => {
+        if (
+          appWindow.ModalManager &&
+          typeof appWindow.ModalManager.showInfoDismissable === 'function'
+        ) {
+          console.log('📢 showInfoDismissable を呼び出します');
+          appWindow.ModalManager.showInfoDismissable(
+            '新しいデータはありません。\n最新の状態です。',
+            '更新完了',
+            3000, // 3秒後に自動で閉じる
+          );
+        } else {
+          console.warn('⚠️ showInfoDismissable が見つかりません');
+          showInfo('新しいデータはありません。最新の状態です。', '更新完了');
+        }
+      }, 100); // render完了を待つために100ms遅延
     }
   };
 
