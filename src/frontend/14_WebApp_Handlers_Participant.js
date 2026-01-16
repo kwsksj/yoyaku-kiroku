@@ -342,17 +342,38 @@ function refreshAllAdminData() {
     let hasLogChanges = false;
 
     // 参加者データの差分チェック
+    // ※ JSON.stringifyはオブジェクトのプロパティ順序に依存するため、
+    //    replacer関数を使ってキーをソートしてから比較する
+    /**
+     * オブジェクトのキーをソートしてJSON文字列化
+     * @param {any} obj
+     * @returns {string}
+     */
+    const stableStringify = obj => {
+      return JSON.stringify(obj, (_key, value) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          return Object.keys(value)
+            .sort()
+            .reduce((sorted, k) => {
+              sorted[k] = value[k];
+              return sorted;
+            }, /** @type {Record<string, any>} */ ({}));
+        }
+        return value;
+      });
+    };
+
     if (participantResult?.success) {
-      const currentLessonsJson = JSON.stringify(
+      const currentLessonsJson = stableStringify(
         currentState.participantLessons || [],
       );
-      const newLessonsJson = JSON.stringify(
+      const newLessonsJson = stableStringify(
         participantResult.data.lessons || [],
       );
-      const currentReservationsJson = JSON.stringify(
+      const currentReservationsJson = stableStringify(
         currentState.participantReservationsMap || {},
       );
-      const newReservationsJson = JSON.stringify(
+      const newReservationsJson = stableStringify(
         participantResult.data.reservationsMap || {},
       );
 
@@ -414,9 +435,6 @@ function refreshAllAdminData() {
     if (hasParticipantChanges || hasLogChanges) {
       // 変更あり: サイレントに再描画
       render();
-      console.log(
-        `🔄 データ更新完了: 参加者=${hasParticipantChanges}, ログ=${hasLogChanges}`,
-      );
     } else {
       // 変更なし: 軽量な通知（枠外クリックで閉じる）
       render();
@@ -426,17 +444,15 @@ function refreshAllAdminData() {
           appWindow.ModalManager &&
           typeof appWindow.ModalManager.showInfoDismissable === 'function'
         ) {
-          console.log('📢 showInfoDismissable を呼び出します');
           appWindow.ModalManager.showInfoDismissable(
             '新しいデータはありません。\n最新の状態です。',
             '更新完了',
-            3000, // 3秒後に自動で閉じる
+            3000,
           );
         } else {
-          console.warn('⚠️ showInfoDismissable が見つかりません');
           showInfo('新しいデータはありません。最新の状態です。', '更新完了');
         }
-      }, 100); // render完了を待つために100ms遅延
+      }, 100);
     }
   };
 
