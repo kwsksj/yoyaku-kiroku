@@ -88,6 +88,7 @@ export interface ModalManager {
   hide(): void;
   showConfirm(config: any): void;
   showInfo(message: string, title?: string): void;
+  showInfoDismissable(message: string, title?: string, autoCloseMs?: number): void;
   setCallback(callback: () => void): void;
   clearCallback(): void;
   executeCallback(): void;
@@ -125,6 +126,7 @@ declare global {
       callback?: (() => void) | null,
     ) => void;
     showConfirm?: (config: ModalDialogConfig | ConfirmDialogConfig) => void;
+    showInfoDismissable?: (message: string, title?: string, autoCloseMs?: number) => void;
     showModal?: (config: ModalDialogConfig) => void;
     hideModal?: () => void;
     escapeHTML?: (text: string) => string;

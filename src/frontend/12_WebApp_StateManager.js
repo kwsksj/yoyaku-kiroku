@@ -716,6 +716,10 @@ export class SimpleStateManager {
         participantHasPastLessonsLoaded:
           this.state.participantHasPastLessonsLoaded,
 
+        // 【Phase 4追加】ログビュー用データとデータ取得日時
+        adminLogs: this.state['adminLogs'],
+        dataFetchedAt: this.state['dataFetchedAt'],
+
         // メタデータ（データ整合性チェック用）
         savedAt: Date.now(),
         appVersion: CONSTANTS.ENVIRONMENT.APP_VERSION,
@@ -1093,19 +1097,36 @@ export class SimpleStateManager {
       return true;
     }
 
-    // 管理者の場合はadminLogsもチェック（大きいデータなのでsessionStorageに保存していない）
+    // 管理者の場合、参加者ビュー/ログビューでデータがなければ再取得必要
+    // ただし、sessionStorageから復元された場合はバックグラウンド更新に任せる
     const isAdmin = this.state.currentUser?.isAdmin === true;
     if (isAdmin) {
-      const hasAdminLogs =
-        this.state['adminLogs'] &&
-        Array.isArray(this.state['adminLogs']) &&
-        this.state['adminLogs'].length > 0;
+      const isAdminView =
+        this.state.view === 'participants' || this.state.view === 'adminLog';
 
-      if (!hasAdminLogs) {
+      if (isAdminView) {
+        // 参加者データがあるか
+        const hasParticipantData =
+          this.state.participantLessons &&
+          Array.isArray(this.state.participantLessons) &&
+          this.state.participantLessons.length > 0;
+
+        // 参加者データがない場合のみ再取得必要
+        // adminLogsはsessionStorageから復元されるので、ここではチェックしない
+        if (!hasParticipantData) {
+          appWindow.PerformanceLog?.info(
+            'リロード復元: participantLessonsデータがないため再取得必要',
+          );
+          return true;
+        }
+
+        // データがある場合はバックグラウンド更新をスケジュール
+        // （ここではフラグを立てるだけで、実際の更新は描画後に行う）
+        this._needsBackgroundRefresh = true;
         appWindow.PerformanceLog?.info(
-          'リロード復元: adminLogsデータがないため再取得必要',
+          'リロード復元: データがあるためバックグラウンド更新をスケジュール',
         );
-        return true;
+        return false;
       }
     }
 
@@ -1175,7 +1196,7 @@ export class SimpleStateManager {
 
   /**
    * 復元情報を取得（データ再取得用）
-   * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null}}
+   * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null, needsBackgroundRefresh: boolean}}
    */
   getRestorationInfo() {
     const state = this._restorationState;
@@ -1187,7 +1208,8 @@ export class SimpleStateManager {
         phone: null,
         reason: null,
         elapsedSeconds: null,
-        restoredView: null,
+        restoredView: this._restoredView || null,
+        needsBackgroundRefresh: this._needsBackgroundRefresh === true,
       };
     }
 
@@ -1214,7 +1236,14 @@ export class SimpleStateManager {
     // 復元されたビュー
     const restoredView = this._restoredView || null;
 
-    return { state, phone, reason, elapsedSeconds, restoredView };
+    return {
+      state,
+      phone,
+      reason,
+      elapsedSeconds,
+      restoredView,
+      needsBackgroundRefresh: false,
+    };
   }
 
   /**
