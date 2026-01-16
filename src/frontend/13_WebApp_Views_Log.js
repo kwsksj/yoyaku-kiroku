@@ -42,8 +42,9 @@ export const getLogView = () => {
   /** @type {LogEntry[]} */
   const logs = state['adminLogs'] || [];
   const isLoading = state['adminLogsLoading'] || false;
-  // リフレッシュ中かどうか（バックグラウンド更新）
-  const isRefreshing = state['adminLogsRefreshing'] || false;
+  // リフレッシュ中かどうか（統合フラグ使用）
+  const isRefreshing =
+    state['adminLogsRefreshing'] || state['participantDataRefreshing'] || false;
 
   // 最後に表示した日時を取得（未読判定用）
   const lastViewedKey = 'YOYAKU_KIROKU_ADMIN_LOG_LAST_VIEWED';
@@ -121,6 +122,16 @@ export const getLogView = () => {
   // ログテーブルを生成
   const tableHtml = renderLogTable(logs, lastViewedTime);
 
+  // データ取得日時を表示
+  const dataFetchedAt = state['dataFetchedAt'];
+  let fetchedAtHtml = '';
+  if (dataFetchedAt) {
+    const fetchedDate = new Date(dataFetchedAt);
+    const dateStr = `${fetchedDate.getMonth() + 1}/${fetchedDate.getDate()}`;
+    const timeStr = `${String(fetchedDate.getHours()).padStart(2, '0')}:${String(fetchedDate.getMinutes()).padStart(2, '0')}`;
+    fetchedAtHtml = `<span class="text-[10px] text-gray-400 ml-2">最終更新: ${dateStr} ${timeStr}</span>`;
+  }
+
   return `
     ${Components.pageHeader({
       title: '<span class="hidden sm:inline">操作ログ</span>', // ボタン干渉時は非表示（モバイル）
@@ -128,7 +139,7 @@ export const getLogView = () => {
       customActionHtml: headerActions,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
-      <p class="text-xs text-brand-subtle mb-2 text-right">直近30日分のログ（${logs.length}件）</p>
+      <p class="text-xs text-brand-subtle mb-2 text-right">直近30日分のログ（${logs.length}件）${fetchedAtHtml}</p>
       <div class="bg-white ${DesignConfig.borderRadius.container}">
         ${tableHtml}
       </div>

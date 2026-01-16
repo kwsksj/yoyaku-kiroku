@@ -296,9 +296,11 @@ function fetchParticipantDataBackground(
 }
 
 /**
- * 参加者リストビューのデータ更新（手動リフレッシュ）
+ * 参加者ビューとログビューのデータを同時に更新（バックグラウンド）
+ * ローディング画面は表示せず、ヘッダーのアイコンをスピンさせる
+ * 変更がない場合は枠外クリックで閉じる軽量モーダルを表示
  */
-function refreshParticipantView() {
+function refreshAllAdminData() {
   const state = participantHandlersStateManager.getState();
   const studentId = state.currentUser?.studentId;
 
@@ -307,9 +309,176 @@ function refreshParticipantView() {
     return;
   }
 
-  showLoading('dataFetch');
-  // baseAppState=null, isManualRefresh=true
-  fetchParticipantDataBackground(studentId, 'dataFetch', null, true);
+  // ローディング状態をセット（アイコンスピン用）
+  participantHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      adminLogsRefreshing: true,
+      participantDataRefreshing: true,
+    },
+  });
+  render(); // アイコンスピン表示更新
+
+  // 参加者データとログデータを並列で取得
+  let participantResult = /** @type {any} */ (null);
+  let logResult = /** @type {any} */ (null);
+  let completedCount = 0;
+
+  /**
+   * 両方のデータ取得が完了した時の処理
+   */
+  const onBothComplete = () => {
+    completedCount++;
+    if (completedCount < 2) return;
+
+    // 両方完了した
+    const currentState = participantHandlersStateManager.getState();
+    let hasParticipantChanges = false;
+    let hasLogChanges = false;
+
+    // 参加者データの差分チェック
+    if (participantResult?.success) {
+      const currentLessonsJson = JSON.stringify(
+        currentState.participantLessons || [],
+      );
+      const newLessonsJson = JSON.stringify(
+        participantResult.data.lessons || [],
+      );
+      const currentReservationsJson = JSON.stringify(
+        currentState.participantReservationsMap || {},
+      );
+      const newReservationsJson = JSON.stringify(
+        participantResult.data.reservationsMap || {},
+      );
+
+      hasParticipantChanges =
+        currentLessonsJson !== newLessonsJson ||
+        currentReservationsJson !== newReservationsJson;
+    }
+
+    // ログデータの差分チェック
+    if (logResult?.success) {
+      const currentLogs = currentState['adminLogs'] || [];
+      const newLogs = logResult.data || [];
+
+      const latestCurrent =
+        currentLogs.length > 0 ? currentLogs[0].timestamp : '';
+      const latestNew = newLogs.length > 0 ? newLogs[0].timestamp : '';
+
+      hasLogChanges =
+        latestCurrent !== latestNew || currentLogs.length !== newLogs.length;
+    }
+
+    // 現在時刻を取得日時として保存
+    const now = new Date().toISOString();
+
+    // stateを更新
+    /** @type {Partial<UIState>} */
+    const updatePayload = {
+      adminLogsRefreshing: false,
+      participantDataRefreshing: false,
+      dataFetchedAt: now,
+    };
+
+    if (hasParticipantChanges && participantResult?.success) {
+      updatePayload.participantLessons = participantResult.data.lessons;
+      updatePayload.participantReservationsMap =
+        participantResult.data.reservationsMap || {};
+      updatePayload['participantAllStudents'] =
+        participantResult.data.allStudents || {};
+      updatePayload.participantHasPastLessonsLoaded = true;
+
+      // アコーディオン状態も更新
+      const allLessonIds = participantResult.data.lessons.map(
+        (/** @type {import('../../types/core/lesson').LessonCore} */ l) =>
+          l.lessonId,
+      );
+      localExpandedLessonIds = allLessonIds;
+    }
+
+    if (hasLogChanges && logResult?.success) {
+      updatePayload['adminLogs'] = logResult.data || [];
+    }
+
+    participantHandlersStateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: updatePayload,
+    });
+
+    // 変更有無に応じてメッセージ表示
+    if (hasParticipantChanges || hasLogChanges) {
+      // 変更あり: サイレントに再描画
+      render();
+      console.log(
+        `🔄 データ更新完了: 参加者=${hasParticipantChanges}, ログ=${hasLogChanges}`,
+      );
+    } else {
+      // 変更なし: 軽量な通知（枠外クリックで閉じる）
+      render();
+      if (
+        appWindow.ModalManager &&
+        typeof appWindow.ModalManager.showInfoDismissable === 'function'
+      ) {
+        appWindow.ModalManager.showInfoDismissable(
+          '新しいデータはありません。\n最新の状態です。',
+          '更新完了',
+          3000, // 3秒後に自動で閉じる
+        );
+      } else {
+        showInfo('新しいデータはありません。最新の状態です。', '更新完了');
+      }
+    }
+  };
+
+  // 参加者データ取得
+  google.script.run
+    .withSuccessHandler(
+      /** @param {any} response */
+      response => {
+        participantResult = response;
+        onBothComplete();
+      },
+    )
+    .withFailureHandler(
+      /** @param {Error} error */
+      error => {
+        console.error('❌ 参加者データ取得失敗:', error);
+        participantResult = { success: false };
+        onBothComplete();
+      },
+    )
+    .getLessonsForParticipantsView(
+      studentId,
+      true,
+      true,
+      state.currentUser?.phone || '',
+    );
+
+  // ログデータ取得
+  google.script.run
+    .withSuccessHandler(
+      /** @param {any} response */
+      response => {
+        logResult = response;
+        onBothComplete();
+      },
+    )
+    .withFailureHandler(
+      /** @param {Error} error */
+      error => {
+        console.error('❌ ログデータ取得失敗:', error);
+        logResult = { success: false };
+        onBothComplete();
+      },
+    )
+    .getRecentLogs(30);
+}
+
+/**
+ * 参加者リストビューのデータ更新（統合リフレッシュ関数に委譲）
+ */
+function refreshParticipantView() {
+  refreshAllAdminData();
 }
 
 // アコーディオン開閉状態をローカル変数で管理（StateManager外）
@@ -762,67 +931,8 @@ export const participantActionHandlers = {
     showInfo('すべてのログを既読にしました', '完了');
   },
   refreshLogView: () => {
-    // ログ更新ボタンハンドラ
-    participantHandlersStateManager.dispatch({
-      type: 'UPDATE_STATE',
-      payload: { adminLogsRefreshing: true },
-    });
-    render(); // ローディング表示更新
-
-    google.script.run
-      .withSuccessHandler(
-        /** @param {ApiResponseGeneric<any[]>} response */ response => {
-          let updatedLogs = [];
-          if (response.success && response.data) {
-            updatedLogs = response.data;
-          }
-
-          // 差分チェック相当（件数や最新タイムスタンプなど）
-          // 今回はシンプルに上書き更新し、データが変わったかどうかで通知を分ける
-          const currentState = participantHandlersStateManager.getState();
-          const currentLogs = currentState['adminLogs'] || [];
-
-          let message = 'ログを更新しました';
-          // 簡易チェック: 最新のログのタイムスタンプが同じなら変更なしとみなす
-          // （厳密には件数なども見るべきだが、シンプルなUXとして）
-          const latestCurrent =
-            currentLogs.length > 0 ? currentLogs[0].timestamp : '';
-          const latestUpdated =
-            updatedLogs.length > 0 ? updatedLogs[0].timestamp : '';
-
-          if (
-            latestCurrent === latestUpdated &&
-            currentLogs.length === updatedLogs.length
-          ) {
-            message = '新しいログはありません';
-            showInfo(message, '通知'); // 静かな通知
-          } else {
-            // 差分あり
-            showInfo('最新のログを読み込みました', '完了');
-          }
-
-          participantHandlersStateManager.dispatch({
-            type: 'UPDATE_STATE',
-            payload: {
-              adminLogs: updatedLogs,
-              adminLogsRefreshing: false,
-            },
-          });
-          render();
-        },
-      )
-      .withFailureHandler(
-        /** @param {Error} error */ error => {
-          console.error('❌ ログリフレッシュ失敗:', error);
-          participantHandlersStateManager.dispatch({
-            type: 'UPDATE_STATE',
-            payload: { adminLogsRefreshing: false },
-          });
-          showInfo('更新に失敗しました', 'エラー');
-          render();
-        },
-      )
-      .getRecentLogs(30);
+    // ログ更新ボタンハンドラ - 統合リフレッシュ関数に委譲
+    refreshAllAdminData();
   },
   goToLogView: () => {
     // ログビューに遷移

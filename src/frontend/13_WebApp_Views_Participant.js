@@ -937,8 +937,9 @@ function renderLessonList(lessons) {
 
   // 管理者向けのアクションボタン（更新・操作ログ）
   // LogViewと統一されたデザイン
-  const isRefreshing = state['adminLogsRefreshing'] || false; // 参加者ビューのリフレッシュ状態もこれを使うか、別途定義するか。
-  // participantHandlersStateManagerでは adminLogsRefreshing を使用している（653行目）
+  // 統合リフレッシュ状態を判定（参加者データまたはログデータのどちらかが更新中ならスピン）
+  const isRefreshing =
+    state['adminLogsRefreshing'] || state['participantDataRefreshing'] || false;
 
   const refreshIcon = `<svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
 
@@ -969,6 +970,16 @@ function renderLessonList(lessons) {
       }
      </div>`;
 
+  // データ取得日時を表示
+  const dataFetchedAt = state['dataFetchedAt'];
+  let fetchedAtHtml = '';
+  if (dataFetchedAt) {
+    const fetchedDate = new Date(dataFetchedAt);
+    const dateStr = `${fetchedDate.getMonth() + 1}/${fetchedDate.getDate()}`;
+    const timeStr = `${String(fetchedDate.getHours()).padStart(2, '0')}:${String(fetchedDate.getMinutes()).padStart(2, '0')}`;
+    fetchedAtHtml = `<p class="text-[10px] text-gray-400 text-right mb-1">最終更新: ${dateStr} ${timeStr}</p>`;
+  }
+
   return `
     ${Components.pageHeader({
       title: 'みんな の よやく・きろく',
@@ -977,6 +988,7 @@ function renderLessonList(lessons) {
       customActionHtml: actionButtons,
     })}
     <div class="${DesignConfig.layout.containerNoPadding}">
+      ${fetchedAtHtml}
       <div class="flex flex-wrap items-start justify-between gap-1 sm:gap-2 mb-2">
         <div class="flex-grow">
           ${viewToggleHtml}

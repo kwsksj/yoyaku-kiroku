@@ -26,7 +26,7 @@ export namespace participantActionHandlers {
  */
 declare function loadParticipantView(forceReload?: boolean, loadingCategory?: string | boolean, baseAppState?: Partial<UIState> | null, _includeHistory?: boolean): void;
 /**
- * 参加者リストビューのデータ更新（手動リフレッシュ）
+ * 参加者リストビューのデータ更新（統合リフレッシュ関数に委譲）
  */
 declare function refreshParticipantView(): void;
 /**

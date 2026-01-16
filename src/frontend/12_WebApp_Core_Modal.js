@@ -157,6 +157,48 @@ appWindow.ModalManager =
     },
 
     /**
+     * 枠外クリックで閉じる軽量な情報モーダル表示
+     * データ更新時の「変更なし」通知などに使用
+     * @param {string} msg - メッセージ
+     * @param {string} [t] - タイトル
+     * @param {number} [autoCloseMs] - 自動で閉じるまでのミリ秒（0で自動クローズなし）
+     */
+    showInfoDismissable: function (msg, t = '通知', autoCloseMs = 0) {
+      // 既存のdismissableモーダルがあれば削除
+      const existingModal = document.getElementById('dismissable-modal');
+      if (existingModal) {
+        existingModal.remove();
+      }
+
+      // モーダルHTMLを生成
+      const modalHtml = `
+        <div id="dismissable-modal" class="fixed inset-0 z-[9999] flex items-center justify-center"
+             onclick="if(event.target.id === 'dismissable-modal') this.remove()">
+          <div class="absolute inset-0 bg-black/30"></div>
+          <div class="relative bg-white rounded-xl shadow-xl p-6 mx-4 max-w-sm w-full transform animate-fade-in"
+               onclick="event.stopPropagation()">
+            <div class="text-center">
+              <h3 class="text-lg font-bold text-brand-text mb-2">${t}</h3>
+              <p class="text-sm text-brand-muted mb-4">${msg}</p>
+              <p class="text-xs text-gray-400">タップして閉じる</p>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // DOMに追加
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+      // 自動クローズ
+      if (autoCloseMs > 0) {
+        setTimeout(() => {
+          const modal = document.getElementById('dismissable-modal');
+          if (modal) modal.remove();
+        }, autoCloseMs);
+      }
+    },
+
+    /**
      * 確認モーダル表示
      * @param {ModalDialogConfig} c - モーダル設定
      */
@@ -176,6 +218,8 @@ if (appWindow.ModalManager) {
   appWindow.showInfo = appWindow.ModalManager.showInfo.bind(
     appWindow.ModalManager,
   );
+  appWindow.showInfoDismissable =
+    appWindow.ModalManager.showInfoDismissable.bind(appWindow.ModalManager);
   appWindow.showConfirm = appWindow.ModalManager.showConfirm.bind(
     appWindow.ModalManager,
   );
