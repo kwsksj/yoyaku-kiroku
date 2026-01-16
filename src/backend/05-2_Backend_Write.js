@@ -804,7 +804,9 @@ export function makeReservation(reservationInfo) {
         ? CONSTANTS.LOG_ACTIONS.RESERVATION_WAITLIST
         : /** @type {any} */ (reservationInfo)._isDateChange
           ? CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE_DATE_CHANGE
-          : CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE;
+          : /** @type {any} */ (reservationInfo)._isConclusion
+            ? CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE_CONCLUSION
+            : CONSTANTS.LOG_ACTIONS.RESERVATION_CREATE;
 
       logActivity(
         reservationWithUser.studentId,

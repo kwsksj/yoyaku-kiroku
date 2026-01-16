@@ -1018,7 +1018,10 @@ export function renderStep4Accounting(state) {
 export function renderConclusionComplete(state) {
   // 次回よやく結果を取得（作成された場合のメタデータ用）
   const nextResult = /** @type {any} */ (state).nextReservationResult;
-  const nextLessonGoal = state.nextLessonGoal || '';
+  // 目標は生徒名簿シートから更新された最新値を使用
+  // （ウィザード内の入力値ではなく、currentUserに反映済みの値）
+  const currentUser = window.appWindow?.stateManager?.getState()?.currentUser;
+  const nextLessonGoal = currentUser?.nextLessonGoal || '';
 
   // 今日の日付（翌日以降のよやくを探すため）
   const today = new Date();
@@ -1217,9 +1220,9 @@ export function renderConclusionComplete(state) {
           isNewReservation &&
           reservation.date === createdDate &&
           reservation.classroom === createdClassroom;
-        // けいかくは最初のよやくのみに表示（重複表示を避ける）
-        const goalToShow =
-          (index === 0 && nextLessonGoal) || reservation.sessionNote || '';
+        // けいかく・もくひょうのみ表示（sessionNoteは表示しない）
+        // 最初のよやくにのみ表示（重複表示を避ける）
+        const goalToShow = index === 0 ? nextLessonGoal : '';
         // ミスマッチノートは今回作成されたよやくのみ
         const mismatchNote = isThisNewlyCreated ? buildMismatchNote() : '';
 

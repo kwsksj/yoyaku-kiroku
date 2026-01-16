@@ -504,16 +504,29 @@ async function finalizeConclusion() {
     /** @type {any} */
     let nextReservationPayload = null;
 
-    // よやく対象のレッスン（ユーザー選択 > おすすめ）
-    const nextLesson =
-      wizardState.selectedLesson || wizardState.recommendedNextLesson;
+    // よやく対象のレッスン
+    // ユーザーが明示的に選択した場合のみ selectedLesson に値がある
+    const selectedLesson = wizardState.selectedLesson;
 
-    // よやくをスキップした場合、またはよやく対象がない場合は次回よやくを作成しない
-    // 既存よやくがあってもnextLessonがあれば追加で作成する
+    // 既存の未来よやく
+    const existingReservation = wizardState.existingFutureReservation;
+
+    // よやく作成条件:
+    // 1. スキップしていない
+    // 2. ユーザーが明示的にレッスンを選択している（selectedLessonがある）
+    // 3. 選択したレッスンが既存予約と異なる（重複防止）
+    //
+    // 既存予約がそのまま選択されている場合（selectedLessonがnull）は
+    // 既に予約済みなので新規作成は不要
+    const isNewLessonSelected =
+      selectedLesson &&
+      (!existingReservation ||
+        existingReservation.lessonId !== selectedLesson.lessonId);
+
     const shouldCreateReservation =
-      !wizardState.reservationSkipped && nextLesson;
+      !wizardState.reservationSkipped && isNewLessonSelected;
 
-    if (shouldCreateReservation) {
+    if (shouldCreateReservation && selectedLesson) {
       // 材料/注文品の希望をorder形式にまとめる
       const orderParts = [];
       if (wizardState.orderInput) {
@@ -525,12 +538,12 @@ async function finalizeConclusion() {
       const orderValue = orderParts.join('\n');
 
       nextReservationPayload = {
-        lessonId: nextLesson.lessonId,
-        classroom: nextLesson.classroom,
-        date: nextLesson.date,
-        venue: nextLesson.venue,
-        startTime: wizardState.nextStartTime || nextLesson.firstStart,
-        endTime: wizardState.nextEndTime || nextLesson.firstEnd,
+        lessonId: selectedLesson.lessonId,
+        classroom: selectedLesson.classroom,
+        date: selectedLesson.date,
+        venue: selectedLesson.venue,
+        startTime: wizardState.nextStartTime || selectedLesson.firstStart,
+        endTime: wizardState.nextEndTime || selectedLesson.firstEnd,
         user: currentUser,
         studentId: currentUser.studentId,
         sessionNote: wizardState.sessionNoteNext,

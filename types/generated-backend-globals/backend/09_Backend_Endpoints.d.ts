@@ -48,12 +48,13 @@ export function changeReservationDateAndGetLatestData(newReservationData: Reserv
 export function updateReservationMemoAndGetLatestData(reservationId: string, studentId: string, newMemo: string): ApiResponseGeneric;
 /**
  * 生徒のけいかく・もくひょうを更新する
- * @param {{ studentId: string, nextLessonGoal: string }} payload - 更新内容
+ * @param {{ studentId: string, nextLessonGoal: string, _isConclusion?: boolean }} payload - 更新内容
  * @returns {ApiResponse} 処理結果
  */
 export function updateNextLessonGoal(payload: {
     studentId: string;
     nextLessonGoal: string;
+    _isConclusion?: boolean;
 }): ApiResponse;
 /**
  * 先生へのメッセージをログに記録する

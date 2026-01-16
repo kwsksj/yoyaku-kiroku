@@ -107,6 +107,7 @@ export namespace CONSTANTS {
     }
     namespace LOG_ACTIONS {
         let RESERVATION_CREATE: string;
+        let RESERVATION_CREATE_CONCLUSION: string;
         let RESERVATION_CREATE_DATE_CHANGE: string;
         let RESERVATION_WAITLIST: string;
         let RESERVATION_CANCEL: string;
@@ -115,6 +116,7 @@ export namespace CONSTANTS {
         let RESERVATION_CONFIRM: string;
         let RESERVATION_EDIT: string;
         let RESERVATION_MEMO_UPDATE: string;
+        let RESERVATION_MEMO_UPDATE_CONCLUSION: string;
         let ACCOUNTING_SAVE: string;
         let ACCOUNTING_MODIFY: string;
         let USER_LOGIN: string;
@@ -123,6 +125,7 @@ export namespace CONSTANTS {
         let USER_REGISTER: string;
         let USER_UPDATE: string;
         let USER_GOAL_UPDATE: string;
+        let USER_GOAL_UPDATE_CONCLUSION: string;
         let USER_UPDATE_ERROR: string;
         let USER_PASSWORD_CHANGE: string;
         let USER_WITHDRAWAL: string;

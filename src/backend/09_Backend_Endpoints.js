@@ -339,12 +339,12 @@ export function updateReservationMemoAndGetLatestData(
 
 /**
  * 生徒のけいかく・もくひょうを更新する
- * @param {{ studentId: string, nextLessonGoal: string }} payload - 更新内容
+ * @param {{ studentId: string, nextLessonGoal: string, _isConclusion?: boolean }} payload - 更新内容
  * @returns {ApiResponse} 処理結果
  */
 export function updateNextLessonGoal(payload) {
   try {
-    const { studentId, nextLessonGoal } = payload;
+    const { studentId, nextLessonGoal, _isConclusion } = payload;
     if (!studentId) {
       return { success: false, message: '生徒IDが指定されていません。' };
     }
@@ -370,7 +370,11 @@ export function updateNextLessonGoal(payload) {
     );
 
     if (!result || !result.success) {
-      logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE, '失敗', {
+      // 終了フロー用のログアクションを使用
+      const logAction = _isConclusion
+        ? CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE_CONCLUSION
+        : CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE;
+      logActivity(studentId, logAction, '失敗', {
         details: {
           エラー: result?.message || '更新処理に失敗',
         },
@@ -384,8 +388,11 @@ export function updateNextLessonGoal(payload) {
       `[updateNextLessonGoal] キャッシュクリア: CACHE_KEYS.ALL_STUDENTS`,
     );
 
-    // ログシートに記録
-    logActivity(studentId, CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE, '成功', {
+    // ログシートに記録 - 終了フロー用のログアクションを使用
+    const logAction = _isConclusion
+      ? CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE_CONCLUSION
+      : CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE;
+    logActivity(studentId, logAction, '成功', {
       details: {
         更新内容: nextLessonGoal || '(空白にクリア)',
       },
@@ -397,16 +404,14 @@ export function updateNextLessonGoal(payload) {
     return { success: true, message: 'けいかく・もくひょうを更新しました。' };
   } catch (error) {
     Logger.log(`[updateNextLessonGoal] エラー: ${error.message}`);
-    logActivity(
-      payload?.studentId || 'unknown',
-      CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE,
-      '失敗',
-      {
-        details: {
-          エラー: error.message,
-        },
+    const logAction = payload?._isConclusion
+      ? CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE_CONCLUSION
+      : CONSTANTS.LOG_ACTIONS.USER_GOAL_UPDATE;
+    logActivity(payload?.studentId || 'unknown', logAction, '失敗', {
+      details: {
+        エラー: error.message,
       },
-    );
+    });
     return { success: false, message: `更新に失敗しました: ${error.message}` };
   }
 }
@@ -1843,6 +1848,7 @@ export function processSessionConclusion(payload, nextReservationPayload) {
         reservationId: payload.reservationId,
         studentId: payload.studentId,
         sessionNote: payload.sessionNote || '',
+        _skipDefaultLog: true, // 終了フロー専用ログを使用
       })
     );
     const memoResult = updateReservationDetails(memoUpdatePayload);
@@ -1854,6 +1860,23 @@ export function processSessionConclusion(payload, nextReservationPayload) {
       return memoResult;
     }
 
+    // 終了フロー専用のログアクションで記録
+    const truncate = (/** @type {string} */ str, len = 500) =>
+      str.length > len ? str.substring(0, len) + '...' : str;
+
+    logActivity(
+      payload.studentId,
+      CONSTANTS.LOG_ACTIONS.RESERVATION_MEMO_UPDATE_CONCLUSION,
+      CONSTANTS.MESSAGES.SUCCESS,
+      {
+        reservationId: payload.reservationId,
+        classroom: payload.classroom,
+        details: {
+          セッションノート: truncate(payload.sessionNote || '(空白)'),
+        },
+      },
+    );
+
     // 1.5. 次回目標を生徒名簿に保存（任意入力）- 共通関数を使用
     if (
       payload.nextLessonGoal !== undefined &&
@@ -1862,6 +1885,7 @@ export function processSessionConclusion(payload, nextReservationPayload) {
       const goalResult = updateNextLessonGoal({
         studentId: payload.studentId,
         nextLessonGoal: payload.nextLessonGoal,
+        _isConclusion: true, // 終了フロー用のログアクションを使用
       });
       if (!goalResult.success) {
         // 失敗しても続行（警告ログのみ）
@@ -1913,8 +1937,14 @@ export function processSessionConclusion(payload, nextReservationPayload) {
         `[processSessionConclusion] 次回よやく作成: lessonId=${nextReservationPayload.lessonId}`,
       );
 
+      // 終了フロー用のフラグを追加
+      const payloadWithFlag = {
+        ...nextReservationPayload,
+        _isConclusion: true,
+      };
+
       const reservationResult = makeReservation(
-        /** @type {ReservationCore} */ (nextReservationPayload),
+        /** @type {ReservationCore} */ (payloadWithFlag),
       );
       if (reservationResult.success) {
         // 成功の場合、makeReservationから返されたステータスを使用

@@ -196,6 +196,7 @@ export const CONSTANTS = {
   LOG_ACTIONS: {
     // よやく関連
     RESERVATION_CREATE: 'よやく作成',
+    RESERVATION_CREATE_CONCLUSION: 'よやく作成（終了フロー）',
     RESERVATION_CREATE_DATE_CHANGE: 'よやく作成（よやく日変更）',
     RESERVATION_WAITLIST: '空き通知 登録',
     RESERVATION_CANCEL: 'よやくキャンセル',
@@ -203,7 +204,8 @@ export const CONSTANTS = {
     RESERVATION_UPDATE: 'よやく詳細更新',
     RESERVATION_CONFIRM: 'よやく確定（空き通知から）',
     RESERVATION_EDIT: 'よやく編集',
-    RESERVATION_MEMO_UPDATE: '制作メモ更新',
+    RESERVATION_MEMO_UPDATE: 'セッションノート更新',
+    RESERVATION_MEMO_UPDATE_CONCLUSION: 'セッションノート更新（終了フロー）',
 
     // 会計関連
     ACCOUNTING_SAVE: '会計記録保存',
@@ -216,6 +218,7 @@ export const CONSTANTS = {
     USER_REGISTER: '新規登録',
     USER_UPDATE: 'プロフィール更新',
     USER_GOAL_UPDATE: 'けいかく更新',
+    USER_GOAL_UPDATE_CONCLUSION: 'けいかく更新（終了フロー）',
     USER_UPDATE_ERROR: 'プロフィール詳細取得エラー',
     USER_PASSWORD_CHANGE: 'パスワード変更',
     USER_WITHDRAWAL: '退会',

@@ -110,6 +110,7 @@ declare global {
     };
     readonly LOG_ACTIONS: {
       readonly RESERVATION_CREATE: string;
+      readonly RESERVATION_CREATE_CONCLUSION: string;
       readonly RESERVATION_CREATE_DATE_CHANGE: string;
       readonly RESERVATION_WAITLIST: string;
       readonly RESERVATION_CANCEL: string;
@@ -118,6 +119,7 @@ declare global {
       readonly RESERVATION_CONFIRM: string;
       readonly RESERVATION_EDIT: string;
       readonly RESERVATION_MEMO_UPDATE: string;
+      readonly RESERVATION_MEMO_UPDATE_CONCLUSION: string;
       readonly ACCOUNTING_SAVE: string;
       readonly ACCOUNTING_MODIFY: string;
       readonly USER_LOGIN: string;
@@ -126,6 +128,7 @@ declare global {
       readonly USER_REGISTER: string;
       readonly USER_UPDATE: string;
       readonly USER_GOAL_UPDATE: string;
+      readonly USER_GOAL_UPDATE_CONCLUSION: string;
       readonly USER_UPDATE_ERROR: string;
       readonly USER_PASSWORD_CHANGE: string;
       readonly USER_WITHDRAWAL: string;
