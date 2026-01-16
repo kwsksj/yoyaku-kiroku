@@ -209,6 +209,9 @@ function fetchParticipantDataBackground(
         // 変更がある場合、または初回ロードの場合は更新
         console.log('🔄 データ更新あり: 再描画します');
 
+        // データ取得日時を記録
+        const now = new Date().toISOString();
+
         /** @type {Partial<UIState>} */
         const payload = baseAppState
           ? {
@@ -225,6 +228,7 @@ function fetchParticipantDataBackground(
               recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
               isDataFresh: true,
               participantAllStudents: response.data.allStudents || {},
+              dataFetchedAt: now,
             }
           : {
               view: 'participants',
@@ -243,6 +247,7 @@ function fetchParticipantDataBackground(
               showPastLessons: state.showPastLessons || false,
               participantHasPastLessonsLoaded: true,
               participantAllStudents: response.data.allStudents || {},
+              dataFetchedAt: now,
             };
 
         // ローカルアコーディオン状態の更新
@@ -962,6 +967,7 @@ export const participantActionHandlers = {
                 adminLogs: response.data || [],
                 adminLogsLoading: false,
                 adminLogsRefreshing: false,
+                dataFetchedAt: new Date().toISOString(),
               },
             });
             // キャッシュがあった場合、サイレントに更新される

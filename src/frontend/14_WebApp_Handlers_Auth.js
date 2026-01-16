@@ -185,6 +185,8 @@ export const authActionHandlers = {
             view: 'dashboard',
             recordsToShow: CONSTANTS.UI.HISTORY_INITIAL_RECORDS,
             isDataFresh: true,
+            // データ取得日時を設定
+            dataFetchedAt: new Date().toISOString(),
           };
 
           authHandlersStateManager.dispatch({
