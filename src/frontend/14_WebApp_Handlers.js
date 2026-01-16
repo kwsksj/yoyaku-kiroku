@@ -1431,6 +1431,7 @@ window.onload = function () {
           console.log('✅ リロード復元: データ再取得成功');
 
           // 状態を更新（既存の状態を保持しつつ、データのみ更新）
+          const participantData = response.data.participantData;
           handlersStateManager.dispatch({
             type: 'UPDATE_STATE',
             payload: {
@@ -1442,8 +1443,15 @@ window.onload = function () {
               accountingMaster: response.data.accountingMaster || [],
               cacheVersions: response.data.cacheVersions || {},
               isAdmin: response.isAdmin || false,
-              participantData: response.data.participantData,
               adminLogs: response.data.adminLogs || [],
+              // 参加者ビュー用データ
+              participantLessons: participantData?.lessons || [],
+              participantReservationsMap:
+                participantData?.reservationsMap || {},
+              participantAllStudents: participantData?.allStudents || {},
+              participantIsAdmin: response.isAdmin || false,
+              // データ取得日時
+              dataFetchedAt: new Date().toISOString(),
             },
           });
 
@@ -1504,8 +1512,7 @@ window.onload = function () {
       state.view === 'participants' || state.view === 'adminLog';
     const isAdmin = state.currentUser?.isAdmin === true;
     const needsBackgroundRefresh =
-      /** @type {any} */ (handlersStateManager)._needsBackgroundRefresh ===
-      true;
+      restorationInfo.needsBackgroundRefresh === true;
 
     if (isAdmin && isAdminView && needsBackgroundRefresh) {
       // フラグをクリア

@@ -150,6 +150,9 @@ export const authActionHandlers = {
             adminState['adminLogsLoading'] = false;
           }
 
+          // データ取得日時を設定
+          adminState['dataFetchedAt'] = new Date().toISOString();
+
           authHandlersStateManager.dispatch({
             type: 'SET_STATE',
             payload: adminState,

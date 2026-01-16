@@ -1196,7 +1196,7 @@ export class SimpleStateManager {
 
   /**
    * 復元情報を取得（データ再取得用）
-   * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null}}
+   * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null, needsBackgroundRefresh: boolean}}
    */
   getRestorationInfo() {
     const state = this._restorationState;
@@ -1208,7 +1208,8 @@ export class SimpleStateManager {
         phone: null,
         reason: null,
         elapsedSeconds: null,
-        restoredView: null,
+        restoredView: this._restoredView || null,
+        needsBackgroundRefresh: this._needsBackgroundRefresh === true,
       };
     }
 
@@ -1235,7 +1236,14 @@ export class SimpleStateManager {
     // 復元されたビュー
     const restoredView = this._restoredView || null;
 
-    return { state, phone, reason, elapsedSeconds, restoredView };
+    return {
+      state,
+      phone,
+      reason,
+      elapsedSeconds,
+      restoredView,
+      needsBackgroundRefresh: false,
+    };
   }
 
   /**

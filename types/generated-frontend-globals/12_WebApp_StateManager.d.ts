@@ -197,7 +197,7 @@ export class SimpleStateManager {
     private _validateRestoredView;
     /**
      * 復元情報を取得（データ再取得用）
-     * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null}}
+     * @returns {{state: string, phone: string | null, reason: string | null, elapsedSeconds: number | null, restoredView: string | null, needsBackgroundRefresh: boolean}}
      */
     getRestorationInfo(): {
         state: string;
@@ -205,6 +205,7 @@ export class SimpleStateManager {
         reason: string | null;
         elapsedSeconds: number | null;
         restoredView: string | null;
+        needsBackgroundRefresh: boolean;
     };
     /**
      * データ再取得完了後に状態を更新
