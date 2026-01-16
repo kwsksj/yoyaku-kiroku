@@ -187,6 +187,7 @@ export class SimpleStateManager {
      * @private
      */
     private _checkIfDataRefreshNeeded;
+    _needsBackgroundRefresh: boolean;
     /**
      * 復元されたビューが必要なデータを持っているか検証
      * データ不足の場合は安全なビューにフォールバック

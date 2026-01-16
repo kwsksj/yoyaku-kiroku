@@ -1497,5 +1497,30 @@ window.onload = function () {
     // リロード復元不要の場合は通常通り描画
     render();
     hideLoading();
+
+    // 管理者ビュー（participants/adminLog）のリロード時はバックグラウンド更新をトリガー
+    const state = handlersStateManager.getState();
+    const isAdminView =
+      state.view === 'participants' || state.view === 'adminLog';
+    const isAdmin = state.currentUser?.isAdmin === true;
+    const needsBackgroundRefresh =
+      /** @type {any} */ (handlersStateManager)._needsBackgroundRefresh ===
+      true;
+
+    if (isAdmin && isAdminView && needsBackgroundRefresh) {
+      // フラグをクリア
+      /** @type {any} */ (handlersStateManager)._needsBackgroundRefresh = false;
+
+      // バックグラウンド更新を開始（更新ボタンと同じ挙動）
+      console.log('🔄 リロード復元: バックグラウンド更新を開始');
+      if (
+        typeof participantActionHandlers.refreshParticipantView === 'function'
+      ) {
+        // 少し遅延させて描画完了後に実行
+        setTimeout(() => {
+          participantActionHandlers.refreshParticipantView();
+        }, 500);
+      }
+    }
   }
 };
