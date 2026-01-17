@@ -33,6 +33,7 @@ const authViewsStateManager = appWindow.stateManager;
 /**
  * ログイン画面
  * 【主要機能】電話番号入力による認証とユーザー識別
+ * 【レイアウト方針】入力欄を画面上部に配置し、iOSキーボード表示時のスクロールを最小化
  * @returns {HTMLString} ログイン画面のHTML文字列
  */
 export const getLoginView = () => {
@@ -40,36 +41,26 @@ export const getLoginView = () => {
   return Components.pageContainer({
     maxWidth: 'md',
     content: `
-      <div class="w-full min-h-[80vh] flex flex-col justify-center py-8 md:py-12">
-        <!-- ヘッダーセクション（カードなし） -->
-        <div class="text-center mt-8 mb-8">
-          <h1 class="text-4xl md:text-5xl font-black text-brand-text tracking-tight leading-tight">
-            きぼりの<br>よやく・きろく
+      <div class="w-full min-h-[80vh] flex flex-col justify-start py-6 md:py-8">
+        <!-- コンパクトヘッダー -->
+        <div class="text-center mb-4">
+          <h1 class="text-3xl md:text-4xl font-black text-brand-text tracking-tight leading-tight">
+            きぼりの よやく・きろく
           </h1>
-          <p class="text-lg md:text-xl text-brand-subtle font-medium mt-3">
+          <p class="text-base md:text-lg text-brand-subtle font-medium mt-2">
             川崎誠二 木彫り教室
           </p>
         </div>
 
-        <!-- メインカード: 説明 + 入力フォーム -->
+        <!-- メインカード: 入力フォーム（上部配置でキーボード対策） -->
         ${Components.cardContainer({
           variant: 'default',
           padding: 'spacious',
           customClass: '',
           content: `
             <div class="">
-              <!-- 説明セクション -->
-              <div class="text-center">
-                <p class="text-brand-text text-base mb-6">
-                  <span class="font-semibold text-action-primary-bg">参加よやく</span>と<span class="font-semibold text-action-primary-bg">製作記録</span>のページです。
-                </p>
-                <p class="text-brand-subtle text-sm leading-relaxed mb-6">
-                はじめての方は、携帯電話番号を入力し<span class="font-bold text-brand-text">とうろく</span>してください。(日程連絡希望の方もこちらから)
-                </p>
-              </div>
-
-              <!-- 入力フォーム + ボタンセクション -->
-              <div class="flex flex-col items-center space-y-3">
+              <!-- 入力フォーム + ボタンセクション（先に表示） -->
+              <div class="flex flex-col items-center space-y-3 mb-6">
                 ${Components.input({
                   id: 'phone',
                   label: '携帯電話番号',
@@ -91,12 +82,22 @@ export const getLoginView = () => {
                   customClass: 'w-64 h-12 border-2 border-action-primary-bg',
                 })}
               </div>
+
+              <!-- 説明セクション（入力欄の下に移動） -->
+              <div class="text-center border-t border-ui-border-light pt-4">
+                <p class="text-brand-text text-sm mb-2">
+                  <span class="font-semibold text-action-primary-bg">参加よやく</span>と<span class="font-semibold text-action-primary-bg">製作記録</span>のページです。
+                </p>
+                <p class="text-brand-subtle text-xs leading-relaxed">
+                はじめての方は、携帯電話番号を入力し<span class="font-bold text-brand-text">とうろく</span>してください。<br>(日程連絡希望の方もこちらから)
+                </p>
+              </div>
             </div>
           `,
         })}
 
         <!-- フッターノート -->
-        <div class="text-center text-brand-text text-base mt-6">
+        <div class="text-center text-brand-subtle text-xs mt-4">
           <p>* ブラウザの「戻る」ボタンは使わないでください</p>
         </div>
       </div>

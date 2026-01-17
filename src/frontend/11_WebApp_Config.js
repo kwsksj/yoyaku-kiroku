@@ -1336,6 +1336,75 @@ export const setupMobileOptimizations = () => {
       { passive: false },
     );
   }
+
+  // =================================================================
+  // iOS Safari キーボード対策（Googleサイト埋め込み時のめり込み防止）
+  // =================================================================
+  // visualViewport APIを使用してキーボード表示を検知し、
+  // 親フレームへのスクロール命令を試みる + コンテンツ位置を調整する
+  if (window.visualViewport && detectEmbeddedEnvironment()) {
+    /** @type {number | null} */
+    let initialHeight = null;
+    let isKeyboardVisible = false;
+
+    const handleViewportResize = () => {
+      if (!window.visualViewport) return;
+
+      // 初回実行時に初期高さを記録
+      if (initialHeight === null) {
+        initialHeight = window.visualViewport.height;
+      }
+
+      // キーボード表示の判定（高さが100px以上縮んだ場合）
+      const heightDiff = initialHeight - window.visualViewport.height;
+      const keyboardNowVisible = heightDiff > 100;
+
+      if (keyboardNowVisible !== isKeyboardVisible) {
+        isKeyboardVisible = keyboardNowVisible;
+
+        if (isKeyboardVisible) {
+          // キーボード表示時: 親フレームへスクロールリセットを要求
+          try {
+            window.parent.postMessage(
+              { type: 'kibori-scroll-reset', scrollTop: 0 },
+              '*',
+            );
+          } catch (_e) {
+            // Cross-origin制限で失敗しても無視
+          }
+
+          // 現在フォーカス中の要素を取得
+          const activeElement = document.activeElement;
+          if (
+            activeElement instanceof HTMLInputElement ||
+            activeElement instanceof HTMLTextAreaElement
+          ) {
+            // 少し遅延させてから、要素を画面内に表示
+            setTimeout(() => {
+              activeElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center',
+              });
+            }, 150);
+          }
+
+          // ボディにキーボード表示中クラスを追加
+          document.body.classList.add('keyboard-visible');
+          document.body.style.setProperty(
+            '--keyboard-height',
+            `${heightDiff}px`,
+          );
+        } else {
+          // キーボード非表示時: クラスを削除
+          document.body.classList.remove('keyboard-visible');
+          document.body.style.removeProperty('--keyboard-height');
+        }
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleViewportResize);
+    window.visualViewport.addEventListener('scroll', handleViewportResize);
+  }
 };
 
 // =================================================================
