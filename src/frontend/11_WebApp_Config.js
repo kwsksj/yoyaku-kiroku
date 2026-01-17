@@ -139,13 +139,40 @@ const embedConfig = (appWindow.EmbedConfig = {
       // オフセット値をローカルストレージに保存
       embedConfig.saveOffset(offset);
 
+      // CSS変数としてヘッダーオフセットを設定
+      document.documentElement.style.setProperty(
+        '--header-offset',
+        `${offset}px`,
+      );
+
       // ページ全体のトップマージンを調整
       const style = document.createElement('style');
       style.id = 'google-sites-embed-styles';
       style.textContent = `
+        :root {
+          --header-offset: ${offset}px;
+          --safe-vh: calc(100vh - var(--header-offset));
+        }
+
         body {
           margin-top: 0px !important;
           min-height: 100% !important;
+          /* Googleサイトのヘッダー分だけ高さを制限 */
+          max-height: var(--safe-vh) !important;
+          overflow-y: auto;
+        }
+
+        /* メインコンテナの高さをヘッダー分縮める */
+        body.embedded-in-google-sites .page-container,
+        body.embedded-in-google-sites [data-view] {
+          min-height: var(--safe-vh);
+          max-height: var(--safe-vh);
+          overflow-y: auto;
+        }
+
+        /* ログイン画面など80vh使用箇所の調整 */
+        body.embedded-in-google-sites .min-h-\\[80vh\\] {
+          min-height: calc(var(--safe-vh) * 0.8) !important;
         }
 
         /* フィックス要素の位置調整 */
@@ -185,7 +212,7 @@ const embedConfig = (appWindow.EmbedConfig = {
       embedConfig.addOffsetControl(offset);
 
       console.log(
-        `Googleサイト環境を検出: ヘッダーオフセット ${offset}px を適用`,
+        `Googleサイト環境を検出: ヘッダーオフセット ${offset}px を適用（コンテンツ高さ制限有効）`,
       );
     }
   },
