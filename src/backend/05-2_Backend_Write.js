@@ -541,8 +541,12 @@ export function _saveReservationCoreToSheet(reservation, mode) {
       /** @param {string|number|Date|boolean} val */
       val => (typeof val === 'boolean' ? String(val).toUpperCase() : val),
     );
+    if (rowForCache.length !== header.length) {
+      throw new Error(
+        `キャッシュ更新用データの列数が一致しません。期待: ${header.length}, 実際: ${rowForCache.length}`,
+      );
+    }
     if (mode === 'create') {
-      //todo: 要確認
       addReservationToCache(rowForCache, headerMap);
     } else {
       updateReservationInCache(
