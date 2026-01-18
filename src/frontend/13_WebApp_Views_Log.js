@@ -227,7 +227,12 @@ function renderLogTable(logs, lastViewedTime) {
         const action = /** @type {string} */ (val);
         /** @type {Record<string, {bg: string, text: string}>} */
         const actionStyles = {
+          // よやく作成系: 緑
           よやく作成: { bg: 'bg-green-100', text: 'text-green-800' },
+          'よやく作成（終了フロー）': {
+            bg: 'bg-green-100',
+            text: 'text-green-800',
+          },
           'よやく作成（よやく日変更）': {
             bg: 'bg-amber-100',
             text: 'text-amber-800',
@@ -237,20 +242,57 @@ function renderLogTable(logs, lastViewedTime) {
             bg: 'bg-green-100',
             text: 'text-green-800',
           },
+          // よやくキャンセル系: 赤
           よやくキャンセル: { bg: 'bg-red-100', text: 'text-red-800' },
           'よやくキャンセル（よやく日変更）': {
             bg: 'bg-amber-100',
             text: 'text-amber-800',
           },
-          退会: { bg: 'bg-red-100', text: 'text-red-800' },
+          // よやく更新系: 青
           よやく詳細更新: { bg: 'bg-blue-100', text: 'text-blue-800' },
           よやく編集: { bg: 'bg-blue-100', text: 'text-blue-800' },
-          プロフィール更新: { bg: 'bg-blue-100', text: 'text-blue-800' },
-          次回目標更新: { bg: 'bg-purple-100', text: 'text-purple-800' },
+          セッションノート更新: { bg: 'bg-blue-100', text: 'text-blue-800' },
+          'セッションノート更新（終了フロー）': {
+            bg: 'bg-blue-100',
+            text: 'text-blue-800',
+          },
+          // 会計系: オレンジ
           会計記録保存: { bg: 'bg-orange-100', text: 'text-orange-800' },
           会計記録修正: { bg: 'bg-orange-100', text: 'text-orange-800' },
+          // ユーザー管理系: 紫
+          プロフィール更新: { bg: 'bg-blue-100', text: 'text-blue-800' },
           けいかく更新: { bg: 'bg-purple-100', text: 'text-purple-800' },
+          'けいかく更新（終了フロー）': {
+            bg: 'bg-purple-100',
+            text: 'text-purple-800',
+          },
+          次回目標更新: { bg: 'bg-purple-100', text: 'text-purple-800' },
+          新規登録: { bg: 'bg-green-100', text: 'text-green-800' },
+          退会: { bg: 'bg-red-100', text: 'text-red-800' },
+          // ログイン系: グレー
+          ログイン: { bg: 'bg-gray-100', text: 'text-gray-700' },
+          ログアウト: { bg: 'bg-gray-100', text: 'text-gray-700' },
+          データ再取得: { bg: 'bg-gray-100', text: 'text-gray-700' },
+          // コミュニケーション: シアン
           メッセージ送信: { bg: 'bg-cyan-100', text: 'text-cyan-800' },
+          空き通知メール送信: { bg: 'bg-cyan-100', text: 'text-cyan-800' },
+          // 管理者系: 黄
+          管理者トークン発行: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+          管理者トークン検証エラー: { bg: 'bg-red-100', text: 'text-red-800' },
+          管理者トークン失効: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+          // システム系: グレー
+          売上転載バッチ開始: { bg: 'bg-gray-100', text: 'text-gray-700' },
+          売上転載バッチ完了: { bg: 'bg-green-100', text: 'text-green-700' },
+          売上転載バッチエラー: { bg: 'bg-red-100', text: 'text-red-800' },
+          'バッチ処理: よやくソート成功': {
+            bg: 'bg-gray-100',
+            text: 'text-gray-700',
+          },
+          'バッチ処理: よやくソートエラー': {
+            bg: 'bg-red-100',
+            text: 'text-red-800',
+          },
+          システムエラー: { bg: 'bg-red-100', text: 'text-red-800' },
         };
         const style = actionStyles[action] || {
           bg: 'bg-gray-50',

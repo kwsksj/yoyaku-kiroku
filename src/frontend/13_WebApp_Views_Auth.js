@@ -45,7 +45,7 @@ export const getLoginView = () => {
         <!-- コンパクトヘッダー -->
         <div class="text-center mb-4">
           <h1 class="text-3xl md:text-4xl font-black text-brand-text tracking-tight leading-tight">
-            きぼりの よやく・きろく
+            きぼりの<br>よやく・きろく
           </h1>
           <p class="text-base md:text-lg text-brand-subtle font-medium mt-2">
             川崎誠二 木彫り教室
@@ -59,7 +59,7 @@ export const getLoginView = () => {
           customClass: '',
           content: `
             <div class="">
-              <!-- 入力フォーム + ボタンセクション（先に表示） -->
+              <!-- 入力フォーム + ボタンセクション -->
               <div class="flex flex-col items-center space-y-3 mb-6">
                 ${Components.input({
                   id: 'phone',
@@ -83,10 +83,10 @@ export const getLoginView = () => {
                 })}
               </div>
 
-              <!-- 説明セクション（入力欄の下に移動） -->
+              <!-- 説明セクション -->
               <div class="text-center border-t border-ui-border-light pt-4">
                 <p class="text-brand-text text-sm mb-2">
-                  <span class="font-semibold text-action-primary-bg">参加よやく</span>と<span class="font-semibold text-action-primary-bg">製作記録</span>のページです。
+                  <span class="font-semibold text-action-primary-bg">参加よやく</span>と<span class="font-semibold text-action-primary-bg">製作きろく</span>のページです。
                 </p>
                 <p class="text-brand-subtle text-xs leading-relaxed">
                 はじめての方は、携帯電話番号を入力し<span class="font-bold text-brand-text">とうろく</span>してください。<br>(日程連絡希望の方もこちらから)

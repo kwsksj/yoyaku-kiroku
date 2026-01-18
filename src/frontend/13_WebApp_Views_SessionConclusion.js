@@ -707,6 +707,7 @@ export function renderStep3Reservation(state) {
   });
 
   // レッスン一覧の生成（BookingViewと共通ロジックを利用）
+  // 終了フローでは会計完了前でも次回は経験者として扱うため、常に経験者枠を表示
   const lessonListHtml = renderBookingLessons(
     filteredLessons,
     filterClassroom,
@@ -717,6 +718,7 @@ export function renderStep3Reservation(state) {
         waitlist: 'requestWaitlistForConclusion',
       },
       isChangingDate: false,
+      isBeginnerMode: false, // 終了フローでは常に経験者として日程を表示
     },
   );
 

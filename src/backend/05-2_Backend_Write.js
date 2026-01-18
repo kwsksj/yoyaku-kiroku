@@ -123,9 +123,12 @@ export function checkDuplicateReservationOnSameDay(studentId, date) {
         ) {
           return false;
         }
+        // 確定、待機、完了のいずれかのステータスがあれば重複とみなす
+        // （取消以外のステータスはすべて対象）
         return (
           reservation.status === CONSTANTS.STATUS.CONFIRMED ||
-          reservation.status === CONSTANTS.STATUS.WAITLISTED
+          reservation.status === CONSTANTS.STATUS.WAITLISTED ||
+          reservation.status === CONSTANTS.STATUS.COMPLETED
         );
       });
       if (hasDuplicate) {
@@ -195,7 +198,8 @@ function _checkDuplicateReservationByScan(studentId, date) {
 
     return (
       reservationStatus === CONSTANTS.STATUS.CONFIRMED ||
-      reservationStatus === CONSTANTS.STATUS.WAITLISTED
+      reservationStatus === CONSTANTS.STATUS.WAITLISTED ||
+      reservationStatus === CONSTANTS.STATUS.COMPLETED
     );
   });
 
@@ -906,6 +910,13 @@ export function cancelReservation(cancelInfo) {
       const validReservation = /** @type {ReservationCore} */ (
         existingReservation
       );
+
+      // 完了済み（会計済み）のよやくはキャンセル不可
+      if (validReservation.status === CONSTANTS.STATUS.COMPLETED) {
+        throw new Error(
+          '会計済みのよやくはキャンセルできません。管理者にお問い合わせください。',
+        );
+      }
 
       // 2. キャンセル後の新しいよやくオブジェクトを構築
       /** @type {ReservationCore} */

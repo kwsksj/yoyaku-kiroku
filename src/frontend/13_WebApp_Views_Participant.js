@@ -901,12 +901,25 @@ function renderLessonList(lessons) {
       // 【変更】未来はデフォルト表示(hiddenクラスなし)、過去は非表示(hiddenクラスあり)
       const hiddenClass = isExpanded ? '' : 'hidden';
 
+      // 表示対象のよやくをフィルタリング
+      // - 未来（よやく）: 確定（CONFIRMED） + 待機（WAITLISTED）のみ表示、完了は非表示
+      // - 過去（きろく）: 完了（COMPLETED）のみ表示
+      const displayReservations = showPastLessons
+        ? allLessonReservations.filter(
+            r => r.status === CONSTANTS.STATUS.COMPLETED,
+          )
+        : allLessonReservations.filter(
+            r =>
+              r.status === CONSTANTS.STATUS.CONFIRMED ||
+              r.status === CONSTANTS.STATUS.WAITLISTED,
+          );
+
       const accordionContent = `
         <div class="accordion-content bg-white ${hiddenClass}" data-lesson-id="${escapeHTML(lesson.lessonId)}">
           <div class="overflow-x-auto participants-table-body">
             ${renderAccordionContent(
               lesson,
-              allLessonReservations,
+              displayReservations,
               isAdmin,
               showPastLessons,
             )}

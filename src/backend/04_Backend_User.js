@@ -1020,6 +1020,21 @@ export function registerNewUser(userData) {
         };
       }
 
+      // 並行リクエスト対策: 登録直前にシートから直接チェック
+      // withTransaction() のロック内で実行されるため、確実に二重登録を防止
+      const phoneExistsInSheet = _checkExistingUserByPhoneFromSheet(
+        userData.phone,
+      );
+      if (phoneExistsInSheet) {
+        Logger.log(
+          `registerNewUser: シート直接チェックで重複を検出 - ${userData.phone}`,
+        );
+        return {
+          success: false,
+          message: 'この電話番号は既に使用されています。',
+        };
+      }
+
       // 新しい生徒IDを生成
       const newStudentId = _generateNewStudentId();
 
@@ -1201,6 +1216,70 @@ function checkExistingUserByPhone(phone) {
   } catch (error) {
     Logger.log(`電話番号重複チェックエラー: ${error.message}`);
     return false; // エラー時は重複なしとして処理を続行
+  }
+}
+
+/**
+ * 指定された電話番号のユーザーが既に存在するかシートから直接チェックします。
+ * 並行リクエスト時の二重登録を防ぐため、キャッシュをバイパスして確認します。
+ *
+ * @param {string} phone - 電話番号
+ * @returns {boolean} 存在する場合はtrue
+ * @private
+ */
+function _checkExistingUserByPhoneFromSheet(phone) {
+  try {
+    const normalizedInput = normalizePhoneNumber(phone);
+    if (!normalizedInput.isValid) {
+      return false;
+    }
+
+    const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
+    if (!rosterSheet) {
+      Logger.log('シート直接チェック: 生徒名簿シートが見つかりません');
+      return false;
+    }
+
+    const headers = rosterSheet
+      .getRange(1, 1, 1, rosterSheet.getLastColumn())
+      .getValues()[0];
+    const phoneColIdx = headers.indexOf(CONSTANTS.HEADERS.ROSTER.PHONE);
+    if (phoneColIdx === -1) {
+      Logger.log('シート直接チェック: 電話番号列が見つかりません');
+      return false;
+    }
+
+    const lastRow = rosterSheet.getLastRow();
+    if (lastRow < 2) {
+      return false; // データなし
+    }
+
+    // 電話番号列のみ取得（パフォーマンス最適化）
+    const phoneColumn = rosterSheet
+      .getRange(2, phoneColIdx + 1, lastRow - 1, 1)
+      .getValues();
+
+    // 各電話番号と比較
+    for (let i = 0; i < phoneColumn.length; i++) {
+      const existingPhone = String(phoneColumn[i][0] || '').replace(/^'/, '');
+      if (!existingPhone) continue;
+
+      const normalizedExisting = normalizePhoneNumber(existingPhone);
+      if (
+        normalizedExisting.isValid &&
+        normalizedExisting.normalized === normalizedInput.normalized
+      ) {
+        Logger.log(
+          `シート直接チェック: 重複電話番号を検出 - ${normalizedInput.normalized}`,
+        );
+        return true;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    Logger.log(`シート直接チェックエラー: ${error.message}`);
+    return false;
   }
 }
 

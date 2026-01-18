@@ -984,16 +984,45 @@ export const renderBookingLessons = (
   const targetStudentId =
     state.currentReservationFormContext?.reservationInfo?.studentId || '';
 
-  // 変更時は過去レッスンを除外
+  // 変更時は過去レッスンを除外 + 当日の終了時間チェック
+  const now = new Date();
+  const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const currentTimeMin = now.getHours() * 60 + now.getMinutes();
+
   /** @type {LessonCore[]} */
   const lessonsToRender = (lessons || []).filter(lesson => {
     if (!lesson || !lesson.date) return false;
-    if (!isChangingDate) return true;
+    if (!isChangingDate) {
+      // 通常表示時も当日のレッスンは終了時間チェック
+      if (lesson.date === todayDateStr) {
+        // 終了時間を取得（secondEnd > firstEnd > endTime の優先順）
+        const endTimeStr =
+          lesson.secondEnd || lesson.firstEnd || lesson.endTime || '23:59';
+        const [endH, endM] = endTimeStr.split(':').map(Number);
+        const lessonEndMin = endH * 60 + (endM || 0);
+        // 現在時刻が終了時間を過ぎていれば除外
+        if (currentTimeMin >= lessonEndMin) {
+          return false;
+        }
+      }
+      return true;
+    }
     const dateObj = new Date(lesson.date);
     dateObj.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    return dateObj >= today;
+    // 日程変更時は当日以降を表示（当日はさらに終了時間チェック）
+    if (dateObj < today) return false;
+    if (dateObj.getTime() === today.getTime()) {
+      const endTimeStr =
+        lesson.secondEnd || lesson.firstEnd || lesson.endTime || '23:59';
+      const [endH, endM] = endTimeStr.split(':').map(Number);
+      const lessonEndMin = endH * 60 + (endM || 0);
+      if (currentTimeMin >= lessonEndMin) {
+        return false;
+      }
+    }
+    return true;
   });
 
   // よやく情報の取得（オプション優先）
