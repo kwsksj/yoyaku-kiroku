@@ -34,6 +34,19 @@ import { isCurrentUserAdmin } from './14_WebApp_Handlers_Utils.js';
 const conclusionStateManager = appWindow.stateManager;
 
 /**
+ * 管理者トークンを取得（なりすまし中も考慮）
+ * @returns {string}
+ */
+const getConclusionAdminToken = () => {
+  const state = conclusionStateManager.getState();
+  return (
+    state.adminImpersonationOriginalUser?.['adminToken'] ||
+    state.currentUser?.['adminToken'] ||
+    ''
+  );
+};
+
+/**
  * @typedef {import('./13_WebApp_Views_SessionConclusion.js').SessionConclusionState} SessionConclusionState
  */
 
@@ -476,10 +489,25 @@ async function finalizeConclusion() {
       reservation.classroom,
     );
 
+    const targetStudentId =
+      reservation.studentId || currentUser.studentId || '';
+    const isAdminOperation = isCurrentUserAdmin();
+    const adminToken = isAdminOperation ? getConclusionAdminToken() : '';
+    const adminUserId = isAdminOperation
+      ? state.adminImpersonationOriginalUser?.studentId ||
+        currentUser.studentId ||
+        ''
+      : '';
+    const participantStudents = state['participantAllStudents'] || {};
+    const targetUser =
+      targetStudentId === currentUser.studentId
+        ? currentUser
+        : participantStudents[targetStudentId];
+
     // 1. 今日の記録を更新 + 会計処理を同時に行う
     const payload = {
       reservationId: reservation.reservationId,
-      studentId: currentUser.studentId,
+      studentId: targetStudentId,
       classroom: reservation.classroom,
       // 今日の記録
       sessionNote: wizardState.sessionNoteToday,
@@ -495,7 +523,10 @@ async function finalizeConclusion() {
       startTime: reservation.startTime,
       endTime: reservation.endTime,
       // 管理者フラグ
-      isAdminOperation: isCurrentUserAdmin(),
+      isAdminOperation: isAdminOperation,
+      adminUserId: adminUserId,
+      _isByAdmin: isAdminOperation,
+      _adminToken: adminToken,
       // 計算済み会計詳細（明示的に含める）
       accountingDetails: accountingDetails,
     };
@@ -544,8 +575,8 @@ async function finalizeConclusion() {
         venue: selectedLesson.venue,
         startTime: wizardState.nextStartTime || selectedLesson.firstStart,
         endTime: wizardState.nextEndTime || selectedLesson.firstEnd,
-        user: currentUser,
-        studentId: currentUser.studentId,
+        user: targetUser,
+        studentId: targetStudentId,
         sessionNote: wizardState.sessionNoteNext,
         order: orderValue, // 材料/注文品の希望
         // ユーザーの期待（よやく or 空き通知）を追跡（完了画面で差異を表示するため）
@@ -577,18 +608,21 @@ async function finalizeConclusion() {
           // stateを更新（myReservationsなど）- 完了画面へ遷移する前に更新
           if (response.data) {
             const currentState = conclusionStateManager.getState();
+            const shouldUpdateCurrentUserGoal =
+              currentState.currentUser?.studentId === targetStudentId;
             conclusionStateManager.dispatch({
               type: 'SET_STATE',
               payload: {
                 myReservations:
                   response.data.myReservations || currentState.myReservations,
                 // currentUserのnextLessonGoalを更新（ダッシュボードで反映されるように）
-                currentUser: currentState.currentUser
-                  ? {
-                      ...currentState.currentUser,
-                      nextLessonGoal: wizardState.nextLessonGoal || '',
-                    }
-                  : currentState.currentUser,
+                currentUser:
+                  shouldUpdateCurrentUserGoal && currentState.currentUser
+                    ? {
+                        ...currentState.currentUser,
+                        nextLessonGoal: wizardState.nextLessonGoal || '',
+                      }
+                    : currentState.currentUser,
                 // 参加者リストキャッシュをクリア
                 participantLessons: null,
                 participantReservationsMap: null,

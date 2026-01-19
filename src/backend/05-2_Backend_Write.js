@@ -912,7 +912,10 @@ export function cancelReservation(cancelInfo) {
       );
 
       // 完了済み（会計済み）のよやくはキャンセル不可
-      if (validReservation.status === CONSTANTS.STATUS.COMPLETED) {
+      if (
+        validReservation.status === CONSTANTS.STATUS.COMPLETED &&
+        !_isByAdmin
+      ) {
         throw new Error(
           '会計済みのよやくはキャンセルできません。管理者にお問い合わせください。',
         );

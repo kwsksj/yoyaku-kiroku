@@ -985,16 +985,38 @@ export const renderBookingLessons = (
     state.currentReservationFormContext?.reservationInfo?.studentId || '';
 
   // 変更時は過去レッスンを除外 + 当日の終了時間チェック
+  /**
+   * @param {string | Date | null | undefined} value
+   * @returns {string}
+   */
+  const normalizeLessonDate = value => {
+    if (!value) return '';
+    if (typeof value === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+      }
+      const dateObj = new Date(value);
+      if (Number.isNaN(dateObj.getTime())) return '';
+      return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    }
+    if (value instanceof Date) {
+      return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+    }
+    return '';
+  };
+
   const now = new Date();
-  const todayDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const todayDateStr = normalizeLessonDate(now);
   const currentTimeMin = now.getHours() * 60 + now.getMinutes();
 
   /** @type {LessonCore[]} */
   const lessonsToRender = (lessons || []).filter(lesson => {
     if (!lesson || !lesson.date) return false;
+    const lessonDateStr = normalizeLessonDate(lesson.date);
+    if (!lessonDateStr) return false;
     if (!isChangingDate) {
       // 通常表示時も当日のレッスンは終了時間チェック
-      if (lesson.date === todayDateStr) {
+      if (lessonDateStr === todayDateStr) {
         // 終了時間を取得（secondEnd > firstEnd > endTime の優先順）
         const endTimeStr =
           lesson.secondEnd || lesson.firstEnd || lesson.endTime || '23:59';
@@ -1007,13 +1029,10 @@ export const renderBookingLessons = (
       }
       return true;
     }
-    const dateObj = new Date(lesson.date);
-    dateObj.setHours(0, 0, 0, 0);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = todayDateStr;
     // 日程変更時は当日以降を表示（当日はさらに終了時間チェック）
-    if (dateObj < today) return false;
-    if (dateObj.getTime() === today.getTime()) {
+    if (lessonDateStr < today) return false;
+    if (lessonDateStr === today) {
       const endTimeStr =
         lesson.secondEnd || lesson.firstEnd || lesson.endTime || '23:59';
       const [endH, endM] = endTimeStr.split(':').map(Number);

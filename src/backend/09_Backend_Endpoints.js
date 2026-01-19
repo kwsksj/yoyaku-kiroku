@@ -1841,6 +1841,10 @@ export function processSessionConclusion(payload, nextReservationPayload) {
     Logger.log(
       `[processSessionConclusion] 開始: reservationId=${payload.reservationId}`,
     );
+    const isAdminOperation =
+      Boolean(payload?._isByAdmin) || Boolean(payload?.isAdminOperation);
+    const adminToken = payload?._adminToken || payload?.adminToken || null;
+    const adminUserId = payload?.adminUserId || null;
 
     // 1. 今日のよやくの sessionNote を更新
     const memoUpdatePayload = /** @type {ReservationCore} */ (
@@ -1849,6 +1853,8 @@ export function processSessionConclusion(payload, nextReservationPayload) {
         studentId: payload.studentId,
         sessionNote: payload.sessionNote || '',
         _skipDefaultLog: true, // 終了フロー専用ログを使用
+        _isByAdmin: isAdminOperation,
+        _adminToken: adminToken,
       })
     );
     const memoResult = updateReservationDetails(memoUpdatePayload);
@@ -1917,6 +1923,10 @@ export function processSessionConclusion(payload, nextReservationPayload) {
           studentId: payload.studentId,
           classroom: payload.classroom,
           accountingDetails: accountingDetails,
+          _isByAdmin: isAdminOperation,
+          _adminToken: adminToken,
+          isAdminOperation: isAdminOperation,
+          adminUserId: adminUserId,
         })
       );
 

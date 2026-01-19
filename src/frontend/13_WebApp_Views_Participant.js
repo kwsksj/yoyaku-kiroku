@@ -906,7 +906,9 @@ function renderLessonList(lessons) {
       // - 過去（きろく）: 完了（COMPLETED）のみ表示
       const displayReservations = showPastLessons
         ? allLessonReservations.filter(
-            r => r.status === CONSTANTS.STATUS.COMPLETED,
+            r =>
+              r.status === CONSTANTS.STATUS.COMPLETED ||
+              r.status === CONSTANTS.STATUS.CONFIRMED,
           )
         : allLessonReservations.filter(
             r =>
