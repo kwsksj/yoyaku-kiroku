@@ -1668,7 +1668,18 @@ export function saveAccountingDetails(reservationWithAccounting) {
       // 4. 共通関数を呼び出して保存
       _saveReservationCoreToSheet(updatedReservation, 'update');
 
-      // 5. 売上ログの記録は20時のバッチ処理で実行されるためここでは行わない
+      // 5. 初回講習完了時の自動フラグ解除処理
+      if (updatedReservation.firstLecture) {
+        try {
+          processFirstTimeCompletion(studentId);
+        } catch (e) {
+          Logger.log(
+            `processFirstTimeCompletion エラー（会計自体は成功）: ${e.message}`,
+          );
+        }
+      }
+
+      // 6. 売上ログの記録は20時のバッチ処理で実行されるためここでは行わない
 
       // ログと通知
       // 管理者操作の場合はログにその旨を記録
@@ -2203,4 +2214,151 @@ export function checkIfSalesAlreadyLogged(reservationId, _date) {
     Logger.log(`[checkIfSalesAlreadyLogged] エラー: ${error.message}`);
     return false; // エラー時は重複なしとして処理継続
   }
+}
+/**
+ * 初回講習完了時の自動処理
+ * 未来の「初回」ステータスのよやくを「経験者」に変更し、必要な通知を行う
+ * @param {string} studentId - 生徒ID
+ */
+export function processFirstTimeCompletion(studentId) {
+  Logger.log(`[processFirstTimeCompletion] 開始: studentId=${studentId}`);
+
+  // 1. 該当ユーザーの未来のよやくを取得（キャッシュから）
+  const userReservationsResponse = getUserReservations(studentId);
+  if (
+    !userReservationsResponse.success ||
+    !userReservationsResponse.data?.myReservations
+  ) {
+    Logger.log('よやく情報の取得に失敗あるいはよやくがありません。');
+    return;
+  }
+
+  const myReservations = userReservationsResponse.data.myReservations;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 未来かつ「初回」フラグがついているよやくを抽出
+  const targetReservations = myReservations.filter(r => {
+    const resDate = new Date(r.date);
+    resDate.setHours(0, 0, 0, 0);
+    return resDate > today && r.firstLecture === true;
+  });
+
+  Logger.log(
+    `[processFirstTimeCompletion] 対象件数: ${targetReservations.length}件`,
+  );
+
+  if (targetReservations.length === 0) return;
+
+  // 2. 更新処理
+  targetReservations.forEach(reservation => {
+    try {
+      Logger.log(
+        `[processFirstTimeCompletion] 更新対象: ${reservation.date} ${reservation.reservationId}`,
+      );
+
+      // Coreオブジェクトを取得して更新（排他制御のためwithTransactionを使うべきだが、ここは副作用としての実行なので、saveReservationCoreToSheetを直接呼ぶ）
+      // ※注意: 親のsaveAccountingDetailsが既にTransaction内であるため、ここでさらにTransactionは張れない。
+      // _saveReservationCoreToSheet はTransactionを要求しないのでそのまま呼ぶ。
+
+      /** @type {ReservationCore} */
+      const updatedReservation = {
+        ...reservation,
+        firstLecture: false, // 初回フラグをオフ
+        messageToTeacher:
+          (reservation.messageToTeacher || '') +
+          '\n【システム自動更新】初回完了に伴い経験者ステータスへ変更',
+      };
+
+      _saveReservationCoreToSheet(updatedReservation, 'update');
+
+      // ログ記録
+      logActivity(
+        studentId,
+        CONSTANTS.LOG_ACTIONS.USER_STATUS_UPDATE, // システム更新用のアクションがあると良いが、一旦汎用的なものを使用
+        CONSTANTS.MESSAGES.SUCCESS,
+        {
+          reservationId: reservation.reservationId,
+          classroom: reservation.classroom,
+          date: reservation.date,
+          message: '初回完了に伴い、未来のよやくを経験者として更新しました',
+          details: {
+            変更前: '初回 (firstLecture=true)',
+            変更後: '経験者 (firstLecture=false)',
+          },
+        },
+      );
+
+      // 3. 通知・副作用処理
+
+      // ケースA: 確定済みのよやくが経験者に変更された → 「初回枠」が空いた
+      if (reservation.status === CONSTANTS.STATUS.CONFIRMED) {
+        if (reservation.lessonId) {
+          Logger.log(
+            `[processFirstTimeCompletion] 初回枠開放通知: lessonId=${reservation.lessonId}`,
+          );
+          notifyAvailabilityToWaitlistedUsers(
+            reservation.lessonId,
+            reservation,
+          );
+        }
+      }
+
+      // ケースB: キャンセル待ちのよやくが経験者に変更された → 「経験者枠」で入れるかチェック
+      else if (reservation.status === CONSTANTS.STATUS.WAITLISTED) {
+        // 定員チェック (isFirstLecture=falseでチェック)
+        const isFull = checkCapacityFull(
+          reservation.classroom,
+          reservation.date,
+          reservation.startTime || '',
+          reservation.endTime || '',
+          false, // 経験者としてチェック
+        );
+
+        Logger.log(
+          `[processFirstTimeCompletion] 経験者枠空きチェック: ${reservation.date}, 満席=${isFull}`,
+        );
+
+        if (!isFull) {
+          // 空きがあるなら、このユーザー本人に通知を送る
+          const studentInfo = getCachedStudentById(studentId);
+          if (studentInfo && studentInfo.email) {
+            // レッスン情報を取得
+            const lesson = getLessonByIdFromCache(reservation.lessonId || '');
+            if (lesson) {
+              const subject = `【きぼりのよやく】${lesson.classroom} ${lesson.date}のよやくが可能になりました`;
+              // 文面は既存の空き通知をベースにしつつ、ステータス変更に触れる
+              let body = `${studentInfo.realName}様\n\n`;
+              body += `初回体験の完了おつかれさまでした！\n`;
+              body += `キャンセル待ちをしていただいていた ${lesson.date} のよやくですが、\n`;
+              body += `経験者枠でのご案内が可能となりました。\n\n`;
+              body += `下記URLよりログインし、よやくの確定をお願いいたします。\n`;
+              body += `${CONSTANTS.WEB_APP_URL.PRODUCTION}\n\n`;
+              body += `※他の方が先によやくを確定された場合、再度満席となることがございます。\n\n`;
+              body += `--------------------\n`;
+              body += `きぼりのよやく・きろく\n`;
+
+              GmailApp.sendEmail(studentInfo.email, subject, body);
+              logActivity(
+                studentId,
+                CONSTANTS.LOG_ACTIONS.EMAIL_VACANCY_NOTIFICATION,
+                '成功',
+                {
+                  details: {
+                    理由: '初回完了による経験者枠への変更',
+                    教室: lesson.classroom,
+                    日付: lesson.date,
+                  },
+                },
+              );
+            }
+          }
+        }
+      }
+    } catch (innerError) {
+      Logger.log(
+        `[processFirstTimeCompletion] 個別処理エラー: ${innerError.message}`,
+      );
+    }
+  });
 }

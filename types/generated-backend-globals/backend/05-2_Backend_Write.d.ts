@@ -165,3 +165,9 @@ export function confirmWaitlistedReservation(confirmInfo: {
  * @returns {boolean} 既に記録されている場合はtrue
  */
 export function checkIfSalesAlreadyLogged(reservationId: string, _date: string): boolean;
+/**
+ * 初回講習完了時の自動処理
+ * 未来の「初回」ステータスのよやくを「経験者」に変更し、必要な通知を行う
+ * @param {string} studentId - 生徒ID
+ */
+export function processFirstTimeCompletion(studentId: string): void;

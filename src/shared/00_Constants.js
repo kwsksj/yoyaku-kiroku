@@ -220,6 +220,7 @@ export const CONSTANTS = {
     USER_GOAL_UPDATE: 'けいかく更新',
     USER_GOAL_UPDATE_CONCLUSION: 'けいかく更新（終了フロー）',
     USER_UPDATE_ERROR: 'プロフィール詳細取得エラー',
+    USER_STATUS_UPDATE: '生徒ステータス変更',
     USER_PASSWORD_CHANGE: 'パスワード変更',
     USER_WITHDRAWAL: '退会',
     USER_MESSAGE_SENT: 'メッセージ送信',
