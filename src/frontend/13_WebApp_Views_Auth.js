@@ -134,7 +134,7 @@ export const getRegistrationStep1View = phone => {
         <form id="register-step1-form" class="space-y-4">
         ${Components.input({
           id: 'reg-realname',
-          label: 'お名前 *必須項目*',
+          label: 'なまえ *必須項目*',
           type: 'text',
           required: true,
           value: data.realName || '',
@@ -147,7 +147,7 @@ export const getRegistrationStep1View = phone => {
           caption: '他の生徒さんにも表示されます',
           type: 'text',
           value: data.nickname || '',
-          placeholder: '空欄の場合はお名前',
+          placeholder: '空欄の場合はおなまえ',
           containerClass: '',
         })}
         <div class="mb-4">
@@ -231,6 +231,30 @@ export const getRegistrationStep1View = phone => {
           },
           layout: 'horizontal',
         })}
+      `,
+    })}
+
+    ${Components.modal({
+      id: 'welcome-modal',
+      title: 'ようこそ',
+      showCloseButton: false,
+      content: `
+        <div class="text-center py-4 space-y-6">
+          <div class="text-brand-text leading-relaxed font-medium">
+            <p>はじめまして。<br>川崎 誠二 木彫り教室へ ようこそ！</p>
+            <p class="mt-4">これからいっしょに 木彫り を たのしむために、あなたのことを すこしおしえてください。</p>
+            <p class="mt-4">とうろく が おわったら、さっそく よやく へすすみましょう。</p>
+          </div>
+          <div class="pt-2">
+            ${Components.button({
+              action: 'closeWelcomeModal',
+              text: 'じゅんび を はじめる！',
+              style: 'primary',
+              size: 'large',
+              customClass: 'w-full shadow-lg',
+            })}
+          </div>
+        </div>
       `,
     })}
   `;
@@ -520,7 +544,7 @@ export const getEditProfileView = () => {
         })}
         ${Components.input({
           id: 'edit-realname',
-          label: 'お名前 *必須項目*',
+          label: 'なまえ *必須項目*',
           type: 'text',
           required: true,
           value: userData.realName || '',
@@ -533,7 +557,7 @@ export const getEditProfileView = () => {
           caption: '他の生徒さんにも表示されます',
           type: 'text',
           value: userData.nickname || '',
-          placeholder: '空欄の場合はお名前',
+          placeholder: '空欄の場合はおなまえ',
           containerClass: '',
         })}
         <div class="mb-4">

@@ -15,4 +15,5 @@ export namespace authActionHandlers {
     function requestAccountDeletion(): void;
     function showPrivacyPolicy(): void;
     function closePrivacyPolicy(): void;
+    function closeWelcomeModal(): void;
 }

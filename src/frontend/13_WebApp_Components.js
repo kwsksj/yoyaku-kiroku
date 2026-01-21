@@ -112,6 +112,11 @@ export const Components = {
   showModal: modalId => {
     const modal = document.getElementById(modalId);
     if (modal) {
+      // モーダルをbody直下に移動して、親要素のスタッキングコンテキスト（transform等）の影響を回避する
+      if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
+
       modal.classList.remove('hidden');
       // フェードインアニメーションのための遅延
       requestAnimationFrame(() => {

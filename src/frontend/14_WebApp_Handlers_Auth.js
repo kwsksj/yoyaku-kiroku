@@ -228,6 +228,12 @@ export const authActionHandlers = {
             registrationPhone: normalizedPhone,
           },
         });
+
+        // 新規登録時のウェルカムメッセージを表示
+        // ビューの描画完了を待つために遅延させる
+        setTimeout(() => {
+          Components.showModal('welcome-modal');
+        }, 500);
       }
     })
       ['withFailureHandler']((/** @type {Error} */ err) => {
@@ -281,7 +287,8 @@ export const authActionHandlers = {
         : null;
 
     // バリデーション
-    if (!realName) return showInfo('お名前（本名）は必須です。', '入力エラー');
+    if (!realName)
+      return showInfo('おなまえ（本名）は必須です。', '入力エラー');
     if (!email || !email.includes('@'))
       return showInfo('有効なメールアドレスを入力してください。', '入力エラー');
 
@@ -591,7 +598,7 @@ export const authActionHandlers = {
     let n = nicknameInput?.value.trim();
     const address = addressInput?.value?.trim() || '';
 
-    if (!r) return showInfo('お名前（本名）は必須です。');
+    if (!r) return showInfo('おなまえ（本名）は必須です。');
     if (!n) n = r;
 
     // 電話番号は表示のみなので、現在の値を使用
@@ -787,5 +794,10 @@ export const authActionHandlers = {
   /** プライバシーポリシーモーダルを閉じます（タスク1実装） */
   closePrivacyPolicy: () => {
     Components.closeModal('privacy-policy-modal');
+  },
+
+  /** 新規ユーザー登録：ウェルカムメッセージを閉じる */
+  closeWelcomeModal: () => {
+    Components.closeModal('welcome-modal');
   },
 };
