@@ -73,7 +73,7 @@ const embedConfig = (appWindow.EmbedConfig = {
       const manualOffset = urlParams.get('headerOffset');
       if (manualOffset && !isNaN(parseInt(manualOffset))) {
         const offset = parseInt(manualOffset);
-        console.log(`手動指定のヘッダーオフセット: ${offset}px`);
+        debugLog(`手動指定のヘッダーオフセット: ${offset}px`);
         return offset;
       }
 
@@ -81,7 +81,7 @@ const embedConfig = (appWindow.EmbedConfig = {
       const savedOffset = localStorage.getItem('googleSitesHeaderOffset');
       if (savedOffset && !isNaN(parseInt(savedOffset))) {
         const offset = parseInt(savedOffset);
-        console.log(`記憶されたヘッダーオフセット: ${offset}px`);
+        debugLog(`記憶されたヘッダーオフセット: ${offset}px`);
         return offset;
       }
 
@@ -116,7 +116,7 @@ const embedConfig = (appWindow.EmbedConfig = {
 
       return defaultOffset;
     } catch (error) {
-      console.log('ヘッダーオフセット検出エラー:', error);
+      console.warn('ヘッダーオフセット検出エラー:', error);
       return 60; // フォールバックオフセット
     }
   },
@@ -125,9 +125,9 @@ const embedConfig = (appWindow.EmbedConfig = {
   saveOffset: (/** @type {number} */ offset) => {
     try {
       localStorage.setItem('googleSitesHeaderOffset', offset.toString());
-      console.log(`ヘッダーオフセット保存: ${offset}px`);
+      debugLog(`ヘッダーオフセット保存: ${offset}px`);
     } catch (error) {
-      console.log('オフセット保存エラー:', error);
+      console.warn('オフセット保存エラー:', error);
     }
   },
 
@@ -211,7 +211,7 @@ const embedConfig = (appWindow.EmbedConfig = {
       // デバッグ用のオフセット調整ボタンを追加
       embedConfig.addOffsetControl(offset);
 
-      console.log(
+      debugLog(
         `Googleサイト環境を検出: ヘッダーオフセット ${offset}px を適用（コンテンツ高さ制限有効）`,
       );
     }
@@ -1267,7 +1267,7 @@ export const setupMobileOptimizations = () => {
 
     // 埋め込み環境での基本調整のみ
     if (document.body.classList.contains('embedded-in-google-sites')) {
-      console.log('Googleサイト埋め込み環境を検出しました');
+      debugLog('Googleサイト埋め込み環境を検出しました');
     }
   };
 

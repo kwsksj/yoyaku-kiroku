@@ -92,7 +92,7 @@ export function preInitializeAccountingSystem(accountingMaster) {
     appWindow.accountingSystemCache = preInitializedData;
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('✅ 会計システム事前初期化完了:', {
+      debugLog('✅ 会計システム事前初期化完了:', {
         classrooms: classrooms.length,
         masterItems: accountingMaster.length,
       });
@@ -153,7 +153,7 @@ if (
   typeof appWindow.initializeStateManager === 'function' &&
   !appWindow.stateManager
 ) {
-  console.log('🔄 StateManagerを再初期化中...');
+  debugLog('🔄 StateManagerを再初期化中...');
   appWindow.initializeStateManager();
 }
 
@@ -236,7 +236,7 @@ export function getScheduleInfoFromCache(date, classroom) {
         /** @type {ServerResponse<{ scheduleInfo: ScheduleInfo }>} */ response,
       ) => {
         if (response.success && response.data) {
-          console.log(
+          debugLog(
             '✅ getScheduleInfoFromCache: 日程マスタ情報取得成功',
             response.data.scheduleInfo,
           );
@@ -287,7 +287,7 @@ export function getScheduleDataFromLessons(reservation) {
     return null;
   }
 
-  console.log('🔍 getScheduleDataFromLessons: 検索対象', {
+  debugLog('🔍 getScheduleDataFromLessons: 検索対象', {
     date: reservation.date,
     classroom: reservation.classroom,
     lessonsLength: lessons.length,
@@ -315,7 +315,7 @@ export function getScheduleDataFromLessons(reservation) {
     return null;
   }
 
-  console.log('✅ getScheduleDataFromLessons: 講座発見', matchingLesson);
+  debugLog('✅ getScheduleDataFromLessons: 講座発見', matchingLesson);
 
   // LessonCoreから日程マスタ形式の情報を返す
   return {

@@ -970,7 +970,7 @@ function handleConclusionClick(event) {
       window.showInfo?.('カレンダー選択機能は準備中です。', 'お知らせ');
       break;
     default:
-      console.log('Unknown action:', action);
+      debugLog('Unknown action:', action);
   }
 }
 
@@ -1365,7 +1365,7 @@ export function tryRestoreWizardFromCache() {
   }
 
   // よやくが見つかった場合、ウィザードを再開
-  console.log('🔄 ウィザード状態をキャッシュから復元します');
+  debugLog('🔄 ウィザード状態をキャッシュから復元します');
 
   // initializeWizardState を使わず、直接 wizardState を設定してビューに遷移
   const classifiedItems = classifyAccountingItems(

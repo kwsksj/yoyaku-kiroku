@@ -193,7 +193,7 @@ export class SimpleStateManager {
    */
   dispatch(action) {
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log(
+      debugLog(
         '🎯 Action dispatched:',
         action.type,
         action.payload ? Object.keys(action.payload) : 'no payload',
@@ -292,7 +292,7 @@ export class SimpleStateManager {
       this._autoSaveIfNeeded(oldState, newState);
 
       if (CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('✅ 状態更新完了:', Object.keys(newState));
+        debugLog('✅ 状態更新完了:', Object.keys(newState));
       }
     } catch (error) {
       console.error('❌ 状態更新エラー:', error);
@@ -377,7 +377,7 @@ export class SimpleStateManager {
     requestAnimationFrame(() => {
       this._renderScheduled = false;
       if (typeof appWindow.render === 'function') {
-        console.log('🎨 Auto-rendering UI...');
+        debugLog('🎨 Auto-rendering UI...');
         appWindow.render();
         // 特定のaction.typeでのみローディングを非表示（最終的な状態更新のみ）
         if (this._shouldHideLoadingAfterRender) {
@@ -539,7 +539,7 @@ export class SimpleStateManager {
   goBack() {
     const history = this.state.navigationHistory;
     if (history.length === 0) {
-      console.log('ナビゲーション履歴が空です - ホームに戻ります');
+      debugLog('ナビゲーション履歴が空です - ホームに戻ります');
       return { view: 'dashboard' };
     }
 
@@ -905,7 +905,7 @@ export class SimpleStateManager {
       currentState.adminImpersonationOriginalUser || currentState.currentUser;
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🎭 startImpersonation:', {
+      debugLog('🎭 startImpersonation:', {
         target: targetUser?.studentId,
         original: originalUser?.studentId,
       });
@@ -929,7 +929,7 @@ export class SimpleStateManager {
     const originalUser = currentState.adminImpersonationOriginalUser;
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🎭 endImpersonation:', {
+      debugLog('🎭 endImpersonation:', {
         hadOriginal: !!originalUser,
         originalId: originalUser?.studentId,
       });
@@ -1349,7 +1349,7 @@ export class SimpleStateManager {
 }
 
 // グローバルインスタンスを作成
-console.log('🔧 SimpleStateManager class defined:', typeof SimpleStateManager);
+debugLog('🔧 SimpleStateManager class defined:', typeof SimpleStateManager);
 appWindow.stateManager = new SimpleStateManager();
-console.log('✅ appWindow.stateManager initialized:', !!appWindow.stateManager);
-console.log('   stateManager type:', typeof appWindow.stateManager);
+debugLog('✅ appWindow.stateManager initialized:', !!appWindow.stateManager);
+debugLog('   stateManager type:', typeof appWindow.stateManager);

@@ -102,7 +102,7 @@ export function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
 
   // デバッグ: 計算開始
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 calculateTuitionSubtotal開始:', {
+    debugLog('🔍 calculateTuitionSubtotal開始:', {
       classroom,
       checkedItems: formData.checkedItems,
       tuitionItemsCount: allTuitionItems.length,
@@ -116,7 +116,7 @@ export function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
     const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🔍 tuitionItem処理中:', {
+      debugLog('🔍 tuitionItem処理中:', {
         itemName,
         price: item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
         isChecked: !!formData.checkedItems?.[itemName],
@@ -156,13 +156,13 @@ export function calculateTuitionSubtotal(formData, classifiedItems, classroom) {
       subtotal += price;
 
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('✅ 項目追加:', { name: itemName, price });
+        debugLog('✅ 項目追加:', { name: itemName, price });
       }
     }
   });
 
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 calculateTuitionSubtotal結果:', { items, subtotal });
+    debugLog('🔍 calculateTuitionSubtotal結果:', { items, subtotal });
   }
 
   return { items, subtotal };
@@ -276,7 +276,7 @@ export function calculateSalesSubtotal(formData, classifiedItems) {
 export function calculateAccountingTotal(formData, masterData, classroom) {
   // デバッグ: 計算開始
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 calculateAccountingTotal開始:', {
+    debugLog('🔍 calculateAccountingTotal開始:', {
       formData,
       masterDataLength: masterData.length,
       classroom,
@@ -351,7 +351,7 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
           // 回数制の場合：マスターデータに既に項目があるのでdynamicItemは作成不要
           // checkedItemsの状態を維持するのみ
           if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-            console.log(
+            debugLog(
               '🔍 回数制基本授業料: dynamicItem作成スキップ（マスターデータに既存）',
             );
           }
@@ -362,7 +362,7 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
           extendedMasterData.push(dynamicItem);
 
           if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-            console.log('🔍 動的項目をextendedMasterDataに追加:', {
+            debugLog('🔍 動的項目をextendedMasterDataに追加:', {
               itemName: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
               price: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE],
             });
@@ -377,7 +377,7 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
           ] = true;
 
           if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-            console.log('🔍 checkedItemsに追加:', {
+            debugLog('🔍 checkedItemsに追加:', {
               itemName: dynamicItem[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME],
               allCheckedItems: formData.checkedItems,
             });
@@ -410,10 +410,10 @@ export function calculateAccountingTotal(formData, masterData, classroom) {
 
     // デバッグ: 計算結果
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🔍 calculateAccountingTotal結果:', result);
-      console.log('🔍 授業料小計：', tuition.subtotal);
-      console.log('🔍 販売小計：', sales.subtotal);
-      console.log('🔍 総合計:', result.grandTotal);
+      debugLog('🔍 calculateAccountingTotal結果:', result);
+      debugLog('🔍 授業料小計：', tuition.subtotal);
+      debugLog('🔍 販売小計：', sales.subtotal);
+      debugLog('🔍 総合計:', result.grandTotal);
     }
 
     return result;

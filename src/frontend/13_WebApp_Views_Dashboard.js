@@ -30,9 +30,9 @@ export const getDashboardView = () => {
   const state = dashboardStateManager.getState();
   const myReservations = state.myReservations || [];
 
-  console.log('📊 ダッシュボード表示開始');
-  console.log('   myReservations:', myReservations);
-  console.log('   よやく数:', myReservations.length);
+  debugLog('📊 ダッシュボード表示開始');
+  debugLog('   myReservations:', myReservations);
+  debugLog('   よやく数:', myReservations.length);
 
   // よやくセクション用のカード配列を構築：確定・待機ステータスかつ当日以降のみ表示
   const today = new Date();
@@ -56,7 +56,7 @@ export const getDashboardView = () => {
         new Date(a.date).getTime() - new Date(b.date).getTime(),
     ); // 日付順（古い順）
 
-  console.log('   アクティブなよやく:', activeReservations.length, '件');
+  debugLog('   アクティブなよやく:', activeReservations.length, '件');
 
   // よやくカードを生成（今日のよやくには「本日」バッジを追加）
   const bookingCards = activeReservations.map(
@@ -442,7 +442,7 @@ export const _checkIfLessonAvailable = booking => {
   const lessons = state.lessons || [];
 
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 空席判定開始:', {
+    debugLog('🔍 空席判定開始:', {
       bookingDate: booking.date,
       bookingClassroom: booking.classroom,
       lessonsCount: lessons.length,
@@ -459,7 +459,7 @@ export const _checkIfLessonAvailable = booking => {
 
   if (!targetLesson) {
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('❌ 該当講座が見つかりません:', {
+      debugLog('❌ 該当講座が見つかりません:', {
         searchDate: String(booking.date),
         searchClassroom: booking.classroom,
         availableLessons: lessons.map((/** @type {LessonCore} */ l) => ({
@@ -544,7 +544,7 @@ export const _checkIfLessonAvailable = booking => {
     const isAvailable = morningHasSlots && afternoonHasSlots;
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('📊 2部制判定結果 (詳細ロジック):', {
+      debugLog('📊 2部制判定結果 (詳細ロジック):', {
         isFirstTimer,
         bookingTime: `${bookingStartTime}-${bookingEndTime}`,
         sessionBoundaries: {
@@ -577,7 +577,7 @@ export const _checkIfLessonAvailable = booking => {
       : (targetLesson.firstSlots || 0) > 0;
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('📊 通常講座判定結果:', {
+      debugLog('📊 通常講座判定結果:', {
         isFirstTimer,
         beginnerSlots: targetLesson.beginnerSlots,
         firstSlots: targetLesson.firstSlots,

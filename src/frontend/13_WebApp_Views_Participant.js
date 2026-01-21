@@ -321,7 +321,7 @@ export function getParticipantView() {
   const state = participantStateManager.getState();
   const subView = state.participantSubView || 'list';
 
-  console.log('🎨 参加者リストビュー表示:', subView);
+  debugLog('🎨 参加者リストビュー表示:', subView);
 
   switch (subView) {
     case 'list':

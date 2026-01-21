@@ -77,7 +77,7 @@ const resolveEffectiveBeginnerMode = () => {
  * @param {boolean} isBeginner - true: はじめて, false: 経験者
  */
 window.handleBeginnerModeSelect = function (isBeginner) {
-  console.log('🎚️ handleBeginnerModeSelect called:', { isBeginner });
+  debugLog('🎚️ handleBeginnerModeSelect called:', { isBeginner });
   bookingStateManager.setBeginnerModeOverride(isBeginner);
 };
 
@@ -101,7 +101,7 @@ const renderBeginnerModeToggle = () => {
   // 初期値は「初回」。ユーザーが明示的に変更した場合のみoverride値を使用
   const selectedValue = override !== null ? override : 'true';
 
-  console.log('🎚️ BeginnerModeToggle:', {
+  debugLog('🎚️ BeginnerModeToggle:', {
     auto,
     override,
     selectedValue,
@@ -209,7 +209,7 @@ export const getBookingView = classroom => {
             lesson.classroom === selectedClassroom,
         );
 
-  console.log('🏫 getBookingView:', {
+  debugLog('🏫 getBookingView:', {
     classroom: selectedClassroom,
     totalLessons: allLessons.length,
     relevantLessons: relevantLessons.length,
@@ -973,7 +973,7 @@ export const renderBookingLessons = (
   const isChangingDate =
     options.isChangingDate ?? Boolean(state['isChangingReservationDate']);
 
-  console.log('📚 renderBookingLessons called:', {
+  debugLog('📚 renderBookingLessons called:', {
     lessonsCount: lessons?.length || 0,
     selectedClassroom,
     showClassroomLabel,
@@ -1165,7 +1165,7 @@ export const renderBookingLessons = (
                 console.warn('sessionStorage読み取りエラー:', e);
               }
             }
-            console.log('📋 Lesson render:', lesson.date, {
+            debugLog('📋 Lesson render:', lesson.date, {
               autoFirstTime,
               isBeginnerMode,
               isChangingDate,
@@ -1287,7 +1287,7 @@ export const renderBookingLessons = (
     })
     .join('');
 
-  console.log('✅ renderBookingLessons result:', {
+  debugLog('✅ renderBookingLessons result:', {
     resultLength: result.length,
     isEmpty: !result,
     monthsCount: Object.keys(lessonsByMonth).length,

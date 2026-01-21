@@ -15,6 +15,10 @@
   <head>
     <meta charset="UTF-8" />
     <base target="_top" />
+    <script>
+      // サーバーサイドから渡されたデバッグフラグ
+      window.SERVER_DEBUG_MODE = <?!= (typeof isDebug !== 'undefined' && isDebug) ? 'true' : 'false' ?>;
+    </script>
     <title>きぼりの よやく・きろく 川崎誠二木彫り教室</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
@@ -210,18 +214,7 @@
 
     <script>
       // デバッグ情報をコンソールに出力する関数（本番環境では無効化）
-      function debugLog(message) {
-        if (
-          typeof CONSTANTS !== 'undefined' &&
-          CONSTANTS.ENVIRONMENT?.PRODUCTION_MODE
-        )
-          return; // 本番環境では何も表示しない
-        console.log(
-          '🔍 [DEBUG]',
-          new Date().toLocaleTimeString() + ':',
-          message,
-        );
-      }
+
       // 最初のテスト - これが表示されなければHTMLファイル自体が読み込まれていない
       debugLog('HTMLファイル読み込み確認テスト完了');
       debugLog('ページURL: ' + window.location.href);

@@ -60,7 +60,7 @@ export function clearAccountingCache() {
   }
 
   // その他の会計関連の一時データがあればここでクリア
-  console.log('会計キャッシュクリア完了');
+  debugLog('会計キャッシュクリア完了');
 }
 
 /**
@@ -109,7 +109,7 @@ export function collectAccountingFormData() {
 
   // デバッグ: フォームデータ収集開始
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 collectAccountingFormData開始');
+    debugLog('🔍 collectAccountingFormData開始');
   }
 
   // 時刻データ収集
@@ -125,7 +125,7 @@ export function collectAccountingFormData() {
 
   // デバッグ: 時刻要素の存在確認
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 時刻要素チェック:', {
+    debugLog('🔍 時刻要素チェック:', {
       startTimeEl: !!startTimeEl,
       endTimeEl: !!endTimeEl,
       breakTimeEl: !!breakTimeEl,
@@ -280,13 +280,13 @@ export function collectAccountingFormData() {
 
   // デバッグ: 収集されたフォームデータを出力
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 collectAccountingFormData結果:', formData);
+    debugLog('🔍 collectAccountingFormData結果:', formData);
     const baseTuitionCheckbox = /** @type {HTMLInputElement | null} */ (
       document.getElementById('base-tuition')
     );
-    console.log('🔍 基本授業料チェック状態:', baseTuitionCheckbox?.checked);
-    console.log('🔍 支払い方法:', formData.paymentMethod);
-    console.log('🔍 チェック済み項目:', formData.checkedItems);
+    debugLog('🔍 基本授業料チェック状態:', baseTuitionCheckbox?.checked);
+    debugLog('🔍 支払い方法:', formData.paymentMethod);
+    debugLog('🔍 チェック済み項目:', formData.checkedItems);
   }
 
   return formData;
@@ -426,7 +426,7 @@ export function loadAccountingFromReservation(reservation) {
     formData.sessionNote = reservation.sessionNote;
   }
 
-  console.log('📥 会計データをロードしました:', formData);
+  debugLog('📥 会計データをロードしました:', formData);
   return formData;
 }
 

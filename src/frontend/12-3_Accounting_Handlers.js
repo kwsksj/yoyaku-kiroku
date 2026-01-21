@@ -599,7 +599,7 @@ export function updateAccountingCalculation(classifiedItems, classroom) {
     const masterData = stateManager.getState().accountingMaster || [];
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🔍 updateAccountingCalculation: マスターデータ使用', {
+      debugLog('🔍 updateAccountingCalculation: マスターデータ使用', {
         masterDataLength: masterData.length,
       });
     }
@@ -960,7 +960,7 @@ export function convertToLegacyFormat(formData, result, classifiedItems) {
   void classifiedItems;
   // デバッグログ追加
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 convertToLegacyFormat入力データ:', {
+    debugLog('🔍 convertToLegacyFormat入力データ:', {
       formData,
       result,
       'result.tuition.items': result.tuition.items,
@@ -985,7 +985,7 @@ export function convertToLegacyFormat(formData, result, classifiedItems) {
 
   // デバッグログ追加
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔍 convertToLegacyFormat出力データ:', userInput);
+    debugLog('🔍 convertToLegacyFormat出力データ:', userInput);
   }
 
   return userInput;
@@ -1167,7 +1167,7 @@ export function generatePaymentConfirmModal(result, paymentMethod) {
 export function showPaymentConfirmModal(classifiedItems, classroom) {
   // デバッグ: 関数呼び出しを記録
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔵 showPaymentConfirmModal関数が呼び出されました');
+    debugLog('🔵 showPaymentConfirmModal関数が呼び出されました');
   }
 
   /** @type {AccountingFormDto | null} */
@@ -1194,7 +1194,7 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
 
     // デバッグ：計算前の情報
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🔍 支払い確認モーダル: 計算前データ確認', {
+      debugLog('🔍 支払い確認モーダル: 計算前データ確認', {
         masterDataLength: masterData.length,
         classroom,
       });
@@ -1209,7 +1209,7 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
 
     // デバッグログ
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🔍 支払い確認モーダル生成開始', {
+      debugLog('🔍 支払い確認モーダル生成開始', {
         formData: collectedFormData,
         result: computedResult,
       });
@@ -1222,7 +1222,7 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
     );
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('モーダルHTML生成完了:', modalHtml.substring(0, 200) + '...');
+      debugLog('モーダルHTML生成完了:', modalHtml.substring(0, 200) + '...');
     }
 
     // 既存のモーダルがあれば削除
@@ -1235,7 +1235,7 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('モーダル挿入完了');
+      debugLog('モーダル挿入完了');
     }
 
     // データを一時保存（後で処理時に使用）
@@ -1254,7 +1254,7 @@ export function showPaymentConfirmModal(classifiedItems, classroom) {
 
     // デバッグ情報
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('エラー発生時の状態:', {
+      debugLog('エラー発生時の状態:', {
         formData: debugFormData || 'undefined',
         result: debugResult || 'undefined',
         classifiedItems: classifiedItems || 'undefined',
@@ -1289,7 +1289,7 @@ export function handleProcessPayment() {
   // 重複実行防止チェック
   if (appWindow.paymentProcessing) {
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('⚠️ 支払い処理は既に実行中です');
+      debugLog('⚠️ 支払い処理は既に実行中です');
     }
     return;
   }
@@ -1297,7 +1297,7 @@ export function handleProcessPayment() {
   if (!appWindow.tempPaymentData) {
     console.error('支払いデータが見つかりません');
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('デバッグ: tempPaymentData =', appWindow.tempPaymentData);
+      debugLog('デバッグ: tempPaymentData =', appWindow.tempPaymentData);
     }
 
     showInfo(
@@ -1321,7 +1321,7 @@ export function handleProcessPayment() {
 
   // デバッグログ
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🟢 支払い処理開始:', {
+    debugLog('🟢 支払い処理開始:', {
       formData,
       result,
       classifiedItems,
@@ -1342,7 +1342,7 @@ export function handleProcessPayment() {
     );
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🔍 handleProcessPayment: 処理方法を判定中', {
+      debugLog('🔍 handleProcessPayment: 処理方法を判定中', {
         actionHandlers存在: typeof globalActionHandlers !== 'undefined',
         confirmAndPay存在:
           typeof globalActionHandlers !== 'undefined' &&
@@ -1352,14 +1352,14 @@ export function handleProcessPayment() {
 
     if (globalActionHandlers?.confirmAndPay) {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log(
+        debugLog(
           '🔍 handleProcessPayment: actionHandlers.confirmAndPay()を実行',
         );
       }
       globalActionHandlers.confirmAndPay();
     } else {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔍 handleProcessPayment: フォールバック処理を実行');
+        debugLog('🔍 handleProcessPayment: フォールバック処理を実行');
       }
       // フォールバック: 直接処理
       processAccountingPayment(formData, result);
@@ -1524,7 +1524,7 @@ export function processAccountingPayment(formData, result) {
 
     // デバッグログ：最終ペイロード
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log(
+      debugLog(
         '🔍 最終送信ペイロード (ReservationCore):',
         reservationWithAccounting,
       );
@@ -1645,7 +1645,7 @@ export function processAccountingPayment(formData, result) {
         });
 
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔍 呼び出しGASエンドポイント:', endpointName);
+        debugLog('🔍 呼び出しGASエンドポイント:', endpointName);
       }
 
       if (typeof scriptRunner[endpointName] === 'function') {

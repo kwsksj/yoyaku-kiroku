@@ -81,13 +81,13 @@ export const authActionHandlers = {
 
     // 統合エンドポイントで認証とすべてのデータを一括取得
     google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
-      console.log('🔍 ログインレスポンス受信:', response);
+      debugLog('🔍 ログインレスポンス受信:', response);
       if (response.success && response.userFound) {
         debugLog('✅ 統合ログイン成功 - ユーザー: ' + response.user.nickname);
         debugLog(
           `📦 データ一括取得完了: よやく${response.data.myReservations?.length || 0}件, レッスン${response.data.lessons?.length || 0}件`,
         );
-        console.log('📦 myReservations詳細:', response.data.myReservations);
+        debugLog('📦 myReservations詳細:', response.data.myReservations);
 
         // 管理者判定: isAdminフラグまたは電話番号がADMIN_PASSWORDと一致するか
         const isAdmin = response.user?.isAdmin || response.isAdmin || false;
@@ -110,7 +110,7 @@ export const authActionHandlers = {
           today: new Date().toISOString().split('T')[0],
         };
 
-        console.log('🎯 新しいアプリ状態を構築:', {
+        debugLog('🎯 新しいアプリ状態を構築:', {
           myReservationsCount: newAppState.myReservations.length,
           lessonsCount: newAppState.lessons.length,
         });
@@ -122,7 +122,7 @@ export const authActionHandlers = {
         // 管理者の場合は参加者リストビューのデータ取得で一括設定
         // loadParticipantsView内でrender()とhideLoading()が呼ばれる
         if (isAdmin) {
-          console.log('📋 管理者ログイン - ログビューへ遷移開始');
+          debugLog('📋 管理者ログイン - ログビューへ遷移開始');
           const participantData = response.data?.participantData;
 
           // 管理者として必要な基本データをstateに保存
@@ -194,7 +194,7 @@ export const authActionHandlers = {
             payload: statePayload,
           });
 
-          console.log(
+          debugLog(
             '✅ dispatch完了 - 現在のstate:',
             authHandlersStateManager.getState().myReservations?.length,
             '件のよやく',
@@ -485,7 +485,7 @@ export const authActionHandlers = {
     showLoading('login');
     google.script.run['withSuccessHandler']((/** @type {any} */ response) => {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔍 getRegistrationData レスポンス:', response);
+        debugLog('🔍 getRegistrationData レスポンス:', response);
       }
       hideLoading();
       if (response.success && response.userFound) {

@@ -34,7 +34,7 @@ function loadParticipantView(
   baseAppState = /** @type {Partial<UIState> | null} */ (null),
   _includeHistory = false,
 ) {
-  console.log('📋 参加者リストビュー初期化開始');
+  debugLog('📋 参加者リストビュー初期化開始');
 
   const state = participantHandlersStateManager.getState();
   const studentId =
@@ -96,7 +96,7 @@ function loadParticipantView(
     state.participantReservationsMap &&
     Object.keys(state.participantReservationsMap).length > 0
   ) {
-    console.log('✅ キャッシュ済みデータを使用 - APIコールをスキップ');
+    debugLog('✅ キャッシュ済みデータを使用 - APIコールをスキップ');
     /** @type {Partial<UIState>} */
     const cachePayload = baseAppState
       ? {
@@ -165,7 +165,7 @@ function fetchParticipantDataBackground(
 
   google.script.run
     .withSuccessHandler(function (response) {
-      console.log('✅ レッスン一覧+よやくデータ取得成功:', response);
+      debugLog('✅ レッスン一覧+よやくデータ取得成功:', response);
 
       if (response.success) {
         const nextIsAdmin =
@@ -192,7 +192,7 @@ function fetchParticipantDataBackground(
           currentReservationsJson !== newReservationsJson;
 
         if (!hasChanges && isManualRefresh) {
-          console.log('ℹ️ データに変更はありません');
+          debugLog('ℹ️ データに変更はありません');
           if (loadingCategory !== 'background') hideLoading();
           showInfo(
             '新しいデータはありませんでした。最新の状態です。',
@@ -202,12 +202,12 @@ function fetchParticipantDataBackground(
         }
 
         if (!hasChanges && loadingCategory === 'background') {
-          console.log('ℹ️ バックグラウンド更新: 変更なし');
+          debugLog('ℹ️ バックグラウンド更新: 変更なし');
           return;
         }
 
         // 変更がある場合、または初回ロードの場合は更新
-        console.log('🔄 データ更新あり: 再描画します');
+        debugLog('🔄 データ更新あり: 再描画します');
 
         // データ取得日時を記録
         const now = new Date().toISOString();
@@ -263,7 +263,7 @@ function fetchParticipantDataBackground(
         });
 
         if (response.data.reservationsMap) {
-          console.log(
+          debugLog(
             `💾 よやくデータをstateManagerに保存: ${Object.keys(response.data.reservationsMap).length}レッスン分`,
           );
         }
@@ -658,7 +658,7 @@ function updateToggleIcon(isExpanded) {
 function selectParticipantStudent(targetStudentId, _lessonId) {
   if (!targetStudentId) return;
 
-  console.log('👤 生徒選択:', targetStudentId);
+  debugLog('👤 生徒選択:', targetStudentId);
 
   const state = participantHandlersStateManager.getState();
 
@@ -698,7 +698,7 @@ function selectParticipantStudent(targetStudentId, _lessonId) {
     return;
   }
 
-  console.log(`✅ プリロードデータから生徒情報を取得: ${targetStudentId}`);
+  debugLog(`✅ プリロードデータから生徒情報を取得: ${targetStudentId}`);
 
   // 2. プリロードデータからよやく履歴を生成
   /** @type {any[]} */
@@ -820,7 +820,7 @@ function showStudentModal(student, isAdmin) {
  * レッスン一覧に戻る
  */
 function backToParticipantList() {
-  console.log('⬅️ レッスン一覧に戻る');
+  debugLog('⬅️ レッスン一覧に戻る');
 
   participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
@@ -839,7 +839,7 @@ function backToParticipantList() {
 function filterParticipantByClassroom(data) {
   // data-action経由（オブジェクト）と直接呼び出し（文字列）の両方をサポート
   const classroom = typeof data === 'string' ? data : data?.classroom || 'all';
-  console.log('🔍 教室フィルタ:', classroom);
+  debugLog('🔍 教室フィルタ:', classroom);
 
   participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
@@ -857,7 +857,7 @@ function filterParticipantByClassroom(data) {
  * @param {boolean} showPast - 過去のレッスンを表示するか
  */
 function togglePastLessons(showPast) {
-  console.log('📅 レッスン表示切り替え:', showPast ? '過去' : '未来');
+  debugLog('📅 レッスン表示切り替え:', showPast ? '過去' : '未来');
 
   const state = participantHandlersStateManager.getState();
   const alreadyLoaded = state.participantHasPastLessonsLoaded || false;

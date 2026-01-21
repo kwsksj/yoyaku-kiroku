@@ -1067,7 +1067,7 @@ export const Components = {
     const isImpersonating = !!sm?.getState().adminImpersonationOriginalUser;
 
     if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-      console.log('🖼️ pageHeader check:', { title, isImpersonating });
+      debugLog('🖼️ pageHeader check:', { title, isImpersonating });
     }
 
     const finalTitle = isImpersonating ? `${title}（管理者操作）` : title;

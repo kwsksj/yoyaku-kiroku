@@ -367,6 +367,45 @@ appWindow.hideLoading =
 // =================================================================
 
 // =================================================================
+// --- Debug Logging System ---
+// -----------------------------------------------------------------
+// デバッグモード時のみコンソール出力を許可するユーティリティ
+// URLパラメータ ?debug=true が指定されている場合にのみ出力される
+// =================================================================
+
+/**
+ * デバッグモードが有効かどうかを判定
+ * @returns {boolean}
+ */
+export const isDebugMode = () => {
+  // サーバーサイドから渡されたデバッグフラグを優先
+  if (typeof window.SERVER_DEBUG_MODE !== 'undefined') {
+    return window.SERVER_DEBUG_MODE;
+  }
+
+  // フォールバック: URLパラメータチェック（GASのiframe内では機能しない場合がある）
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('debug') === 'true';
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * デバッグログを出力する
+ * @param {...any} args - 出力する内容
+ */
+export const debugLog = (...args) => {
+  if (isDebugMode()) {
+    console.log('[DEBUG]', ...args);
+  }
+};
+
+// グローバルスコープにも公開（レガシー互換性のため）
+appWindow.debugLog = debugLog;
+
+// =================================================================
 // --- Event Listener Management ---
 // -----------------------------------------------------------------
 // イベントリスナーの登録・解除を追跡管理するヘルパー関数群

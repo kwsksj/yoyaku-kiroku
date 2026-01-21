@@ -141,7 +141,7 @@ export function render() {
     return;
   }
 
-  console.log('🎨 render実行:', appState.view);
+  debugLog('🎨 render実行:', appState.view);
 
   // 無限ループを避けるため、データ更新処理は削除
   // 単純にビューを描画するだけ
@@ -209,7 +209,7 @@ export function render() {
         // キャッシュから高速取得
         classifiedItems = accountingCache[classroom];
         if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-          console.log('✅ 会計システムキャッシュ使用:', classroom);
+          debugLog('✅ 会計システムキャッシュ使用:', classroom);
         }
       } else {
         // フォールバック: リアルタイム初期化
@@ -388,7 +388,7 @@ window.onload = function () {
 
   // デバッグ：reservationActionHandlersの状態確認
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔧 reservationActionHandlers確認:', {
+    debugLog('🔧 reservationActionHandlers確認:', {
       defined: typeof reservationActionHandlers !== 'undefined',
       hasCancel: typeof reservationActionHandlers?.cancel === 'function',
       keys:
@@ -880,7 +880,7 @@ window.onload = function () {
           const currentAdminId = state.currentUser?.studentId;
 
           if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-            console.log('👮 Admin Impersonation Check:', {
+            debugLog('👮 Admin Impersonation Check:', {
               isAdmin: true,
               target: targetStudentId,
               current: currentAdminId,
@@ -961,7 +961,7 @@ window.onload = function () {
       // window.tempPaymentDataが存在する場合はそれを使用（支払い確認モーダルから呼び出された場合）
       if (windowTyped.tempPaymentData) {
         if (!windowTyped.isProduction) {
-          console.log(
+          debugLog(
             '🔍 confirmAndPay: tempPaymentDataを使用',
             windowTyped.tempPaymentData,
           );
@@ -1108,7 +1108,7 @@ window.onload = function () {
     /** 支払い確認モーダルをキャンセル */
     cancelPaymentConfirm: () => {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔵 cancelPaymentConfirm実行');
+        debugLog('🔵 cancelPaymentConfirm実行');
       }
 
       if (typeof closePaymentConfirmModal === 'function') {
@@ -1126,7 +1126,7 @@ window.onload = function () {
     /** 会計確認画面表示 */
     showAccountingConfirmation: () => {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔵 showAccountingConfirmation実行');
+        debugLog('🔵 showAccountingConfirmation実行');
       }
       // 現在のconfirmAndPayと同じ動作
       actionHandlers.confirmAndPay();
@@ -1135,7 +1135,7 @@ window.onload = function () {
     /** 支払い処理を実行 */
     processPayment: () => {
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔵 processPayment実行（グローバルハンドラー）');
+        debugLog('🔵 processPayment実行（グローバルハンドラー）');
       }
 
       if (typeof handleProcessPayment === 'function') {
@@ -1179,7 +1179,7 @@ window.onload = function () {
 
       // デバッグ情報を追加
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-        console.log('🔘 クリックイベント:', {
+        debugLog('🔘 クリックイベント:', {
           action,
           data,
           element: matched,
@@ -1235,7 +1235,7 @@ window.onload = function () {
 
   // デバッグ：actionHandlers構築後の確認
   if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-    console.log('🔧 actionHandlers構築完了:', {
+    debugLog('🔧 actionHandlers構築完了:', {
       hasCancel: typeof actionHandlers['cancel'] === 'function',
       hasChangeReservationDate:
         typeof actionHandlers['changeReservationDate'] === 'function',
@@ -1303,7 +1303,7 @@ window.onload = function () {
       // デバッグログ
       if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
         if (element instanceof HTMLInputElement) {
-          console.log('🔄 会計フォーム変更イベント:', {
+          debugLog('🔄 会計フォーム変更イベント:', {
             element: element.name || element.id,
             value: element.value,
             checked: element.checked,
@@ -1367,7 +1367,7 @@ window.onload = function () {
     restorationInfo.state === 'RESTORED_NEEDS_REFRESH' &&
     restorationInfo.phone
   ) {
-    console.log(
+    debugLog(
       `🔄 リロード復元: データ再取得を開始します（理由: ${restorationInfo.reason}、経過時間: ${restorationInfo.elapsedSeconds}秒、復元ビュー: ${restorationInfo.restoredView}）`,
     );
 
@@ -1417,7 +1417,7 @@ window.onload = function () {
         if (timeoutId) clearTimeout(timeoutId);
 
         if (response.success && response.userFound) {
-          console.log('✅ リロード復元: データ再取得成功');
+          debugLog('✅ リロード復元: データ再取得成功');
 
           // 状態を更新（既存の状態を保持しつつ、データのみ更新）
           const participantData = response.data.participantData;
@@ -1508,7 +1508,7 @@ window.onload = function () {
       /** @type {any} */ (handlersStateManager)._needsBackgroundRefresh = false;
 
       // バックグラウンド更新を開始（更新ボタンと同じ挙動）
-      console.log('🔄 リロード復元: バックグラウンド更新を開始');
+      debugLog('🔄 リロード復元: バックグラウンド更新を開始');
       if (
         typeof participantActionHandlers.refreshParticipantView === 'function'
       ) {

@@ -77,7 +77,7 @@ export const reservationActionHandlers = {
         if (
           reservationStateManager.isDataFetchInProgress('reservation-cancel')
         ) {
-          console.log('よやく取り消し処理中のためキャンセルをスキップ');
+          debugLog('よやく取り消し処理中のためキャンセルをスキップ');
           return;
         }
 
@@ -243,7 +243,7 @@ export const reservationActionHandlers = {
   confirmBooking: () => {
     // 重複よやく防止
     if (reservationStateManager.isDataFetchInProgress('reservation-booking')) {
-      console.log('よやく処理中のためよやく確定をスキップ');
+      debugLog('よやく処理中のためよやく確定をスキップ');
       return;
     }
 
@@ -534,7 +534,7 @@ export const reservationActionHandlers = {
           });
 
         if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
-          console.log(
+          debugLog(
             '🎭 よやく編集のためなりすましを開始します:',
             targetUser.realName,
           );
@@ -551,7 +551,7 @@ export const reservationActionHandlers = {
   updateReservation: () => {
     // 重複更新防止
     if (reservationStateManager.isDataFetchInProgress('reservation-update')) {
-      console.log('よやく更新処理中のため更新をスキップ');
+      debugLog('よやく更新処理中のため更新をスキップ');
       return;
     }
 
@@ -848,7 +848,7 @@ export const reservationActionHandlers = {
    * 「すべて」の教室を選択した状態で表示します。
    */
   goToBookingView: () => {
-    console.log('🏫 goToBookingView: 直接よやく画面に遷移');
+    debugLog('🏫 goToBookingView: 直接よやく画面に遷移');
     reservationActionHandlers.updateLessonsAndGoToBooking('all');
   },
 
@@ -882,7 +882,7 @@ export const reservationActionHandlers = {
    */
   filterBookingClassroom: d => {
     const classroom = d?.classroom || 'all';
-    console.log('🏫 filterBookingClassroom:', classroom);
+    debugLog('🏫 filterBookingClassroom:', classroom);
 
     // 教室フィルターを変更して再描画
     reservationStateManager.dispatch({
@@ -1240,7 +1240,7 @@ export const reservationActionHandlers = {
         if (
           reservationStateManager.isDataFetchInProgress('reservation-confirm')
         ) {
-          console.log('よやく確定処理中のため確定をスキップ');
+          debugLog('よやく確定処理中のため確定をスキップ');
           return;
         }
 
@@ -1832,7 +1832,7 @@ export const reservationActionHandlers = {
       state['participantReservationsMap']?.[String(lessonId)];
 
     if (preloadedReservations) {
-      console.log('⚡ Using preloaded participant data for lesson:', lessonId);
+      debugLog('⚡ Using preloaded participant data for lesson:', lessonId);
 
       // 再描画を防ぐため、Stateではなくグローバルコンテキストに一時保存
 
