@@ -546,27 +546,49 @@ export function buildSalesChecklist(
 }
 
 /**
- * 物販リストをチェックボックスで表示するHTMLを返す（再利用可能）
+ * 物販リストをチェックボックスで表示するHTMLを返す（会計画面スタイル統一版）
  * @param {AccountingMasterItemCore[]} salesList - 物販アイテム配列
  * @param {string[]} checkedValues - チェック済み項目名配列（任意）
  * @returns {string} HTML文字列
  */
 export function getSalesCheckboxListHtml(salesList, checkedValues = []) {
   if (!salesList || salesList.length === 0) return '';
-  return `
-    <div class="mt-4 pt-4 border-t">
-      <label class="font-bold mb-2 block">購入希望（チェック可）</label>
-      <div class="grid grid-cols-1 gap-2">
-        ${salesList
-          .map(
-            item => `
-          <label class="flex items-center space-x-2">
-            <input type="checkbox" name="orderSales" value="${item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}" class="accent-action-primary-bg" ${checkedValues.includes(item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]) ? 'checked' : ''}>
-            <span>${item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME]}${item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE] ? `（¥${item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE]}）` : ''}</span>
+
+  const itemsHtml = salesList
+    .map(item => {
+      const itemName = item[CONSTANTS.HEADERS.ACCOUNTING.ITEM_NAME];
+      const price = Number(item[CONSTANTS.HEADERS.ACCOUNTING.UNIT_PRICE] || 0);
+      const isChecked = checkedValues.includes(itemName);
+      const checkedClass = isChecked
+        ? 'font-bold text-brand-text'
+        : 'text-brand-muted';
+      const priceClass = isChecked
+        ? 'font-bold text-brand-text'
+        : 'text-brand-muted';
+
+      return `
+        <div class="flex items-center justify-between py-1" data-checkbox-row>
+          <label class="flex items-center space-x-3 flex-1 ${checkedClass}">
+            <input
+              type="checkbox"
+              name="orderSales"
+              value="${itemName}"
+              class="h-5 w-5 accent-action-primary-bg"
+              ${isChecked ? 'checked' : ''}
+            >
+            <span>${itemName}</span>
           </label>
-        `,
-          )
-          .join('')}
+          <span class="price-display ${priceClass}">¥${price.toLocaleString()}</span>
+        </div>
+      `;
+    })
+    .join('');
+
+  return `
+    <div class="mt-4 pt-4 border-t border-ui-border">
+      <label class="font-bold mb-2 block">購入希望（チェック可）</label>
+      <div class="space-y-1">
+        ${itemsHtml}
       </div>
     </div>`;
 }

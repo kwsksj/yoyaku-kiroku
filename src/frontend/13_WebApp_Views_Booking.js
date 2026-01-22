@@ -669,15 +669,9 @@ export const getReservationFormView = () => {
         ? buildSalesChecklist(accountingMaster)
         : '';
     return `
-        <!-- 販売品セクション全体を折りたたみ -->
-        <details class="mt-4 group">
-          <summary class="cursor-pointer font-bold text-base py-3 px-4 bg-brand-accent/10 border-2 border-brand-accent/30 rounded-lg hover:bg-brand-accent/20 transition-colors flex items-center gap-2">
-            <svg class="w-5 h-5 text-brand-accent transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-            </svg>
-            <span>販売品</span>
-            <span class="ml-auto text-sm text-brand-subtle font-normal">タップで開く</span>
-          </summary>
+        <!-- 購入品セクション全体を折りたたみ -->
+        <details class="mt-4">
+          ${Components.sectionHeader({ title: '購入品 の きぼう', asSummary: true })}
           <div class="pt-4 space-y-4">
             <p class="text-sm text-brand-subtle">※在庫がない場合もあります</p>
             ${Components.textarea({ id: 'material-input', label: '材料の希望', placeholder: '例：「30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}

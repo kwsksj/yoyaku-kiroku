@@ -94,7 +94,7 @@ export function isDateToday(dateString: string): boolean;
  */
 export function buildSalesChecklist(accountingMaster: AccountingMasterItemCore[], checkedValues?: string[], _title?: string): string;
 /**
- * 物販リストをチェックボックスで表示するHTMLを返す（再利用可能）
+ * 物販リストをチェックボックスで表示するHTMLを返す（会計画面スタイル統一版）
  * @param {AccountingMasterItemCore[]} salesList - 物販アイテム配列
  * @param {string[]} checkedValues - チェック済み項目名配列（任意）
  * @returns {string} HTML文字列
