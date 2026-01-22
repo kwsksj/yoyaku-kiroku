@@ -527,7 +527,7 @@ function renderLessonList(lessons) {
   const viewToggleHtml = Components.pillToggle({
     options: viewToggleOptions,
     selectedValue: showPastLessons ? 'past' : 'future',
-    size: 'normal',
+    size: 'small',
   });
 
   // フィルタUIの生成（pillToggleを使用、教室ごとの色を反映）
@@ -563,7 +563,7 @@ function renderLessonList(lessons) {
   const filterHtml = Components.pillToggle({
     options: filterOptions,
     selectedValue: selectedClassroom,
-    size: 'normal',
+    size: 'small',
   });
 
   // 共通テーブルヘッダー（列定義から生成）
