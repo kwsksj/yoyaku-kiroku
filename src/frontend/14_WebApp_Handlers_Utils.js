@@ -585,8 +585,8 @@ export function getSalesCheckboxListHtml(salesList, checkedValues = []) {
     .join('');
 
   return `
-    <div class="mt-4 pt-4 border-t border-ui-border">
-      <label class="font-bold mb-2 block">購入希望（チェック可）</label>
+    <div class="mt-4">
+      <label class="font-bold mb-1 block">道具など の きぼう</label>
       <div class="space-y-1">
         ${itemsHtml}
       </div>

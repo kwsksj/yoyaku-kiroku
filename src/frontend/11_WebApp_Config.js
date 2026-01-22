@@ -456,10 +456,15 @@ export const addCustomStyles = () => {
   const style = document.createElement('style');
   style.textContent = `
       /* ========== Viewport Height Fix for Mobile Keyboards ========== */
+      html {
+        height: 100%;
+      }
       body {
         /* min-h-screen の挙動を上書き */
-        min-height: 100vh; /* フォールバック */
+        min-height: 100vh; /* フォールバック（PC/直接アクセス用） */
         min-height: calc(var(--vh, 1vh) * 100);
+        /* オーバースクロール時に親ページのスクロールを許可 */
+        overscroll-behavior: auto;
       }
 
       /* ========== Font Loading Optimization ========== */
@@ -546,9 +551,17 @@ export const addCustomStyles = () => {
 
       /* Googleサイト埋め込み時のモバイル対応 */
       @media screen and (max-width: 768px) {
+        html.embedded-in-google-sites,
         body.embedded-in-google-sites {
-          padding-top: 0;
+          /* iframe のサイズに従う（100vh ではなく 100%） */
+          height: 100%;
           min-height: 100%;
+          max-height: 100%;
+          padding-top: 0;
+          /* iframe 内スクロールが終端に達したら親ページをスクロール */
+          overscroll-behavior-y: auto;
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
         }
 
         body.embedded-in-google-sites .fixed.top-4 {
@@ -556,15 +569,21 @@ export const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites #app {
+          height: 100%;
           min-height: 100%;
+          overflow-y: auto;
         }
       }
 
-      /* より大きなメニューバーの場合 */
+      /* より小さなモバイル画面での追加調整 */
       @media screen and (max-width: 480px) {
+        html.embedded-in-google-sites,
         body.embedded-in-google-sites {
-          padding-top: 0;
+          height: 100%;
           min-height: 100%;
+          max-height: 100%;
+          padding-top: 0;
+          overscroll-behavior-y: auto;
         }
 
         body.embedded-in-google-sites .fixed.top-4 {
@@ -572,6 +591,7 @@ export const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites #app {
+          height: 100%;
           min-height: 100%;
         }
       }
@@ -1324,6 +1344,8 @@ export const setupMobileOptimizations = () => {
 
   // 埋め込み環境での調整を適用
   if (detectEmbeddedEnvironment()) {
+    // html と body 両方にクラスを追加（CSS セレクタ用）
+    document.documentElement.classList.add('embedded-in-google-sites');
     document.body.classList.add('embedded-in-google-sites');
 
     // 必要に応じて追加の調整

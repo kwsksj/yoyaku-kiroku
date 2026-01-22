@@ -670,13 +670,13 @@ export const getReservationFormView = () => {
         : '';
     return `
         <!-- 購入品セクション全体を折りたたみ -->
-        <details class="mt-4">
+        <details>
           ${Components.sectionHeader({ title: '購入品 の きぼう', asSummary: true })}
           <div class="pt-4 space-y-4">
             <p class="text-sm text-brand-subtle">※在庫がない場合もあります</p>
-            ${Components.textarea({ id: 'material-input', label: '材料の希望', placeholder: '例：「30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
+            ${Components.textarea({ id: 'material-input', label: '材料 の きぼう', placeholder: '例：「30×30×40mmくらい」「高さが6cmくらい」「たまごぐらい」 など', value: materialInfo || '' })}
             ${salesChecklistHtml}
-            ${Components.textarea({ id: 'order-input', label: 'その他購入希望', placeholder: '（任意）例：彫刻刀セット、テキスト', value: order || '' })}
+            ${Components.textarea({ id: 'order-input', label: 'その他購入 の きぼう', placeholder: '（任意）', value: order || '' })}
           </div>
         </details>`;
   };
