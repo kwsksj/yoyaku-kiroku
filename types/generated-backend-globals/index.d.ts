@@ -10,6 +10,7 @@ export * from './backend/02-4_BusinessLogic_ScheduleMaster';
 export * from './backend/02-5_Notification_StudentSchedule';
 export * from './backend/02-6_Notification_Admin';
 export * from './backend/02-7_Notification_StudentReservation';
+export * from './backend/02-8_Sync_Notion';
 export * from './backend/04_Backend_User';
 export * from './backend/05-2_Backend_Write';
 export * from './backend/05-3_Backend_AvailableSlots';

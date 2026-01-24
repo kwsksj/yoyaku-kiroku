@@ -26,6 +26,7 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotificationForUser } from './02-6_Notification_Admin.js';
+import { syncStudentToNotion } from './02-8_Sync_Notion.js';
 import {
   CACHE_KEYS,
   addCachedStudent,
@@ -944,6 +945,15 @@ export function updateUserProfile(userInfo) {
         },
       });
 
+      // Notion 同期（エラーは握りつぶして本体処理には影響させない）
+      try {
+        syncStudentToNotion(studentId, 'update');
+      } catch (notionError) {
+        Logger.log(
+          `Notion同期エラー（プロフィール更新）: ${notionError.message}`,
+        );
+      }
+
       return {
         success: true,
         message: 'プロフィールが正常に更新されました。',
@@ -1123,11 +1133,15 @@ export function registerNewUser(userData) {
       // シートに新しい行を追加
       allStudentsSheet.appendRow(newRow);
 
-      // 登録後のユーザーオブジェクトを作成
+      // 追加された行番号を取得（appendRowは最後の行に追加される）
+      const newRowIndex = allStudentsSheet.getLastRow();
+
+      // 登録後のユーザーオブジェクトを作成（rowIndexを含む）
       const registeredUser = {
         ...userData,
         studentId: newStudentId,
         nickname: nickname,
+        rowIndex: newRowIndex,
       };
 
       // キャッシュを更新
@@ -1149,6 +1163,13 @@ export function registerNewUser(userData) {
             userData.futureCreations || '',
         },
       });
+
+      // Notion 同期（エラーは握りつぶして本体処理には影響させない）
+      try {
+        syncStudentToNotion(newStudentId, 'create');
+      } catch (notionError) {
+        Logger.log(`Notion同期エラー（新規登録）: ${notionError.message}`);
+      }
 
       // 管理者通知
       sendAdminNotificationForUser(
@@ -1474,6 +1495,13 @@ export function requestAccountDeletion(studentId) {
 
       // キャッシュ更新
       rebuildAllStudentsCache();
+
+      // Notion 同期（ステータスを「退会済み」に更新）
+      try {
+        syncStudentToNotion(studentId, 'delete');
+      } catch (notionError) {
+        Logger.log(`Notion同期エラー（退会）: ${notionError.message}`);
+      }
 
       Logger.log(
         `requestAccountDeletion成功: studentId=${studentId}, 新電話番号=${newPhone}`,
