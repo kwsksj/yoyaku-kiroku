@@ -1152,6 +1152,7 @@ export const setupPageTransitionManagement =
     () => {
       let currentView = /** @type {ViewType | null} */ (null);
       let previousScrollPosition = 0;
+      let modalOpenedAtView = /** @type {ViewType | null} */ (null); // モーダルを開いた時のビューを記録
 
       // ページ遷移時のスクロール位置リセット（問題#16対応）
       const resetScrollPosition = () => {
@@ -1180,13 +1181,17 @@ export const setupPageTransitionManagement =
         const hasViewChanged = currentView !== newView;
 
         if (isModal) {
-          // モーダル開閉：スクロール位置を保持
+          // モーダル開閉：スクロール位置を保持（同じビューの場合のみ）
           if (newView) {
-            // モーダル開く時：現在位置を保存
+            // モーダル開く時：現在のビューを記録してスクロール位置を保存
+            modalOpenedAtView = currentView;
             saveScrollPosition();
           } else {
-            // モーダル閉じる時：位置を復元
-            restoreScrollPosition();
+            // モーダル閉じる時：同じビューの場合のみ位置を復元
+            if (modalOpenedAtView === currentView) {
+              restoreScrollPosition();
+            }
+            modalOpenedAtView = null;
           }
         } else if (hasViewChanged && newView) {
           // 実際のページ遷移：スクロール位置をリセット
