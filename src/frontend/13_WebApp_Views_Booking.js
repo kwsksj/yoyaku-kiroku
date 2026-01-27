@@ -45,6 +45,49 @@ const normalizeSlotValue = value => {
 };
 
 /**
+ * 開室時間の表示文字列を生成します。
+ * @param {Pick<LessonCore, 'firstStart' | 'firstEnd' | 'secondStart' | 'secondEnd' | 'startTime' | 'endTime'>} lesson
+ * @returns {string}
+ */
+const buildOpeningHoursText = lesson => {
+  const primaryStart = lesson.firstStart || lesson.startTime || '';
+  const primaryEnd = lesson.firstEnd || lesson.endTime || '';
+  if (!primaryStart || !primaryEnd) {
+    return '';
+  }
+  if (lesson.secondStart && lesson.secondEnd) {
+    return `${primaryStart}~${primaryEnd} / ${lesson.secondStart}~${lesson.secondEnd}`;
+  }
+  return `${primaryStart}~${primaryEnd}`;
+};
+
+/**
+ * 時刻文字列（HH:mm）を分に変換します。
+ * @param {string | undefined} timeStr
+ * @returns {number | null}
+ */
+const parseTimeToMinutes = timeStr => {
+  if (!timeStr) return null;
+  const [hourStr, minuteStr] = timeStr.split(':');
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr || '0');
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  return hour * 60 + minute;
+};
+
+/**
+ * 夜教室判定（開始時刻が夕方以降）
+ * @param {Pick<LessonCore, 'firstStart' | 'secondStart' | 'startTime'>} lesson
+ * @returns {boolean}
+ */
+const isNightLesson = lesson => {
+  const startTime =
+    lesson.firstStart || lesson.startTime || lesson.secondStart || '';
+  const startMinutes = parseTimeToMinutes(startTime);
+  return startMinutes !== null && startMinutes >= 17 * 60;
+};
+
+/**
  * lessonオブジェクトから正規化されたスロット数を取得します。
  * @param {LessonCore} lesson
  * @returns {{ hasSecondSlots: boolean; firstSlotsCount: number; secondSlotsCount: number; beginnerSlotsCount: number; beginnerCapacityCount: number; }}
@@ -359,6 +402,7 @@ export const getReservationFormView = () => {
     startTime,
     endTime,
   } = reservationInfo;
+  const isFirstTime = isEdit ? firstLecture : isBeginnerMode;
   const isWaiting = reservationInfo.status === CONSTANTS.STATUS.WAITLISTED;
 
   const isTimeBased = isTimeBasedClassroom(lessonInfo);
@@ -861,11 +905,38 @@ export const getReservationFormView = () => {
   });
 
   const _renderOpeningHoursHtml = () => {
-    if (!lessonInfo.firstStart || !lessonInfo.firstEnd)
+    const openingHoursText = buildOpeningHoursText(lessonInfo);
+    if (!openingHoursText) {
       return '<span class="text-ui-error-text text-sm">開室時間未設定</span>';
-    if (lessonInfo.secondStart && lessonInfo.secondEnd)
-      return `${lessonInfo.firstStart}~${lessonInfo.firstEnd}, ${lessonInfo.secondStart}~${lessonInfo.secondEnd}`;
-    return `${lessonInfo.firstStart}~${lessonInfo.firstEnd}`;
+    }
+    return openingHoursText;
+  };
+
+  const _renderOpeningHoursNoteHtml = () => {
+    const captionClass =
+      /** @type {any} */ (DesignConfig.text)?.caption ||
+      'text-sm text-brand-subtle';
+    const notes = [];
+    if (isFirstTime) {
+      const beginnerStartTime =
+        beginnerStart || lessonInfo.firstStart || lessonInfo.startTime || '';
+      if (beginnerStartTime) {
+        notes.push(
+          `<p class="${captionClass}">初回開始: ${beginnerStartTime}</p>`,
+        );
+      }
+      notes.push(
+        `<p class="${captionClass}">初回に参加しやすくなるように、開始時刻をずらしてあります。早く来て見学もOK</p>`,
+      );
+    }
+    if (
+      classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED &&
+      !isFirstTime
+    ) {
+      notes.push(`<p class="${captionClass}">時間内、出入り自由</p>`);
+    }
+    if (notes.length === 0) return '';
+    return `<div class="mt-1 space-y-1">${notes.join('')}</div>`;
   };
 
   return `
@@ -903,7 +974,7 @@ export const getReservationFormView = () => {
                 }
               </div>
               <p><span class="font-bold w-20 inline-block">状況　　：</span> ${_renderStatusHtml()}</p>
-              <div class="flex flex-wrap items-start"><span class="font-bold w-20 flex-shrink-0">開室時間：</span><span class="flex-1">${_renderOpeningHoursHtml()}</span></div>
+              <div class="flex flex-wrap items-start"><span class="font-bold w-20 flex-shrink-0">開室時間：</span><span class="flex-1">${_renderOpeningHoursHtml()}${_renderOpeningHoursNoteHtml()}</span></div>
               ${_renderTuitionDisplaySection()}
               ${_renderTimeOptionsSection()}
               ${_renderBookingOptionsSection()}
@@ -1262,17 +1333,30 @@ export const renderBookingLessons = (
             const badges = showClassroomLabel
               ? renderClassroomVenueBadges(lesson.classroom, venueDisplay)
               : renderClassroomVenueBadges(null, venueDisplay);
+            const nightBadgeHtml = isNightLesson(lesson)
+              ? Components.badge({ text: '夜', color: 'blue', size: 'xs' })
+              : '';
+            const badgeGroup = [badges, nightBadgeHtml]
+              .filter(Boolean)
+              .join('');
+            const badgeGroupHtml = badgeGroup
+              ? `<span class="text-sm whitespace-nowrap flex gap-1 items-center">${badgeGroup}</span>`
+              : '';
+            const openingHoursText = buildOpeningHoursText(lesson);
+            const openingHoursHtml = openingHoursText
+              ? `<div class="text-xs text-gray-500 mt-1">開室時間 ${openingHoursText}</div>`
+              : '';
             // 区切りの良いところで改行: 日付 | 教室+会場 | ステータス（常に右端）
             const text = `
               <div class="flex flex-wrap justify-between items-center gap-1">
                 <div class="flex flex-wrap items-center gap-1 flex-1 min-w-0">
                   <span class="whitespace-nowrap">${formatDate(lesson.date)}</span>
-                  ${badges ? `<span class="text-sm whitespace-nowrap flex gap-0">${badges}</span>` : ''}
+                  ${badgeGroupHtml}
                 </div>
                 <div class="ml-auto flex-shrink-0">${statusBadge}</div>
               </div>`;
 
-            return `<${tag} ${actionAttribute} class="${cardClass}">${text}</${tag}>`;
+            return `<${tag} ${actionAttribute} class="${cardClass}">${text}${openingHoursHtml}</${tag}>`;
           },
         )
         .join('');
