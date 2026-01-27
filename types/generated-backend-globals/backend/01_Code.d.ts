@@ -64,6 +64,7 @@ export function setAdminEmail(email?: string): void;
 /**
  * 月次通知メールトリガーを設定
  * すべての通知日・時刻の組み合わせに対してトリガーを作成
+ * さらに毎日実行のトリガーも追加（リトライキュー処理用）
  */
 export function setupMonthlyNotificationTriggers(): {
     success: boolean;
@@ -88,6 +89,22 @@ export function trigger_sendNotification_day25_hour9(): void;
 export function trigger_sendNotification_day25_hour12(): void;
 export function trigger_sendNotification_day25_hour18(): void;
 export function trigger_sendNotification_day25_hour21(): void;
+/**
+ * 毎日実行: 9時のリトライキュー処理（リトライ専用）
+ */
+export function trigger_sendNotification_daily_hour9(): void;
+/**
+ * 毎日実行: 12時のリトライキュー処理（リトライ専用）
+ */
+export function trigger_sendNotification_daily_hour12(): void;
+/**
+ * 毎日実行: 18時のリトライキュー処理（リトライ専用）
+ */
+export function trigger_sendNotification_daily_hour18(): void;
+/**
+ * 毎日実行: 21時のリトライキュー処理（リトライ専用）
+ */
+export function trigger_sendNotification_daily_hour21(): void;
 export const ADMIN_EMAIL: string;
 export const CALENDAR_IDS_RAW: string;
 export const CALENDAR_IDS: any;

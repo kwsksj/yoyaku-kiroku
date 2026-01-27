@@ -29,31 +29,294 @@ import { getLessons } from './05-3_Backend_AvailableSlots.js';
 import { CACHE_KEYS, getTypedCachedData } from './07_CacheManager.js';
 import { getCachedReservationsAsObjects, logActivity } from './08_Utilities.js';
 
+// ================================================================
+// リトライキュー管理
+// ================================================================
+
+/**
+ * PropertiesServiceに保存するリトライキューのキー
+ */
+const RETRY_QUEUE_KEY = 'NOTIFICATION_RETRY_QUEUE';
+
+/**
+ * メール送信残数の安全マージン（この数以下になったら送信を中断）
+ */
+const QUOTA_SAFETY_MARGIN = 15;
+
+/**
+ * リトライ回数の上限（この回数を超えたエントリは破棄）
+ */
+const MAX_RETRY_COUNT = 3;
+
+/**
+ * リトライキューの最大サイズ（PropertiesServiceの9KB制限対策）
+ */
+const MAX_QUEUE_SIZE = 150;
+
+/**
+ * エントリの有効期限（ミリ秒）- 7日
+ */
+const RETRY_ENTRY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * リトライキューに保存するエントリの型
+ * @typedef {Object} RetryQueueEntry
+ * @property {string} studentId - 生徒ID
+ * @property {number} targetHour - 元々の通知希望時刻
+ * @property {number} retryCount - リトライ回数
+ * @property {number} addedAt - 追加日時（timestamp）
+ */
+
+/**
+ * リトライキューを取得する（古いエントリとリトライ上限超過は自動削除）
+ * @returns {RetryQueueEntry[]} リトライ待ちエントリの配列
+ */
+function _getRetryQueue() {
+  try {
+    const queueJson =
+      PropertiesService.getScriptProperties().getProperty(RETRY_QUEUE_KEY);
+    if (!queueJson) return [];
+
+    const rawQueue = JSON.parse(queueJson);
+    const now = Date.now();
+
+    // フィルタリング: 有効期限内 かつ リトライ上限以下のエントリのみ保持
+    const validQueue = rawQueue.filter(
+      /** @param {RetryQueueEntry} entry */
+      entry => {
+        // 古い形式（addedAt/retryCountがない）は初回として扱う
+        const addedAt = entry.addedAt || now;
+        const retryCount = entry.retryCount || 0;
+
+        const isNotExpired = now - addedAt < RETRY_ENTRY_TTL_MS;
+        const isUnderRetryLimit = retryCount < MAX_RETRY_COUNT;
+
+        if (!isNotExpired) {
+          Logger.log(
+            `期限切れエントリを削除: ${entry.studentId} (${Math.floor((now - addedAt) / (24 * 60 * 60 * 1000))}日経過)`,
+          );
+        }
+        if (!isUnderRetryLimit) {
+          Logger.log(
+            `リトライ上限超過エントリを削除: ${entry.studentId} (${retryCount}回)`,
+          );
+        }
+
+        return isNotExpired && isUnderRetryLimit;
+      },
+    );
+
+    // フィルタリングで件数が変わった場合は保存し直す
+    if (validQueue.length !== rawQueue.length) {
+      Logger.log(
+        `リトライキュークリーンアップ: ${rawQueue.length}件 → ${validQueue.length}件`,
+      );
+      if (validQueue.length > 0) {
+        _setRetryQueueRaw(validQueue);
+      } else {
+        _clearRetryQueue();
+      }
+    }
+
+    return validQueue;
+  } catch (e) {
+    Logger.log(`リトライキュー読み込みエラー: ${e.message}`);
+    return [];
+  }
+}
+
+/**
+ * リトライキューを保存する（内部用、サイズチェックなし）
+ * @param {RetryQueueEntry[]} queue - 保存するキュー
+ * @private
+ */
+function _setRetryQueueRaw(queue) {
+  PropertiesService.getScriptProperties().setProperty(
+    RETRY_QUEUE_KEY,
+    JSON.stringify(queue),
+  );
+}
+
+/**
+ * リトライキューを保存する（サイズ上限チェック付き）
+ * @param {RetryQueueEntry[]} queue - 保存するキュー
+ */
+function _setRetryQueue(queue) {
+  try {
+    // キューサイズ上限チェック
+    let finalQueue = queue;
+    if (queue.length > MAX_QUEUE_SIZE) {
+      Logger.log(
+        `リトライキューがサイズ上限(${MAX_QUEUE_SIZE})を超過: ${queue.length}件`,
+      );
+      // 古いエントリから削除（addedAtでソートして新しいものを優先）
+      finalQueue = [...queue]
+        .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
+        .slice(0, MAX_QUEUE_SIZE);
+      Logger.log(`古いエントリを削除して${finalQueue.length}件に縮小`);
+    }
+
+    _setRetryQueueRaw(finalQueue);
+    Logger.log(`リトライキューを保存: ${finalQueue.length}件`);
+  } catch (e) {
+    Logger.log(`リトライキュー保存エラー: ${e.message}`);
+  }
+}
+
+/**
+ * リトライキューをクリアする
+ */
+function _clearRetryQueue() {
+  try {
+    PropertiesService.getScriptProperties().deleteProperty(RETRY_QUEUE_KEY);
+    Logger.log('リトライキューをクリア');
+  } catch (e) {
+    Logger.log(`リトライキュークリアエラー: ${e.message}`);
+  }
+}
+
+/**
+ * 現在のメール送信残Quotaを取得する
+ * @returns {number} 残り送信可能数
+ */
+function _getRemainingQuota() {
+  try {
+    return MailApp.getRemainingDailyQuota();
+  } catch (e) {
+    Logger.log(`Quota取得エラー: ${e.message}`);
+    return 0;
+  }
+}
+
 /**
  * 月次通知メールを送信するメインエントリーポイント（トリガーから実行）
  * 指定された日時に該当する生徒に通知メールを送信
+ * リトライキューがある場合は優先的に処理し、Quota上限に近づいたら中断してキューに保存
  * @param {number} targetDay - 通知対象日（5, 15, 25）
  * @param {number} targetHour - 通知対象時刻（9, 12, 18, 21）
  */
 export function sendMonthlyNotificationEmails(targetDay, targetHour) {
+  // ========================================
+  // 0. 排他制御: 同時実行によるキュー競合を防止
+  // ========================================
+  const lock = LockService.getScriptLock();
+  const lockAcquired = lock.tryLock(30000); // 30秒待機
+
+  if (!lockAcquired) {
+    Logger.log(
+      'ロック取得失敗: 他のプロセスが実行中です。処理をスキップします。',
+    );
+    return;
+  }
+
   try {
     Logger.log(
       `月次通知メール送信開始: ${targetDay}日 ${targetHour}時のトリガー`,
     );
 
-    // 送信対象者を抽出
-    const recipients = _getNotificationRecipients(targetDay, targetHour);
-    Logger.log(`送信対象者数: ${recipients.length}名`);
+    // 初期Quota確認
+    const initialQuota = _getRemainingQuota();
+    Logger.log(`初期メール送信Quota: ${initialQuota}通`);
 
-    if (recipients.length === 0) {
-      Logger.log('送信対象者なし。処理を終了します。');
+    if (initialQuota <= QUOTA_SAFETY_MARGIN) {
+      Logger.log(
+        `Quotaが安全マージン(${QUOTA_SAFETY_MARGIN})以下のため、送信をスキップします`,
+      );
       return;
     }
 
-    // ★改善: 新しいヘルパー関数でよやくデータをオブジェクトとして直接取得
+    // ========================================
+    // 1. リトライキューから該当時間帯のエントリを取得
+    // ========================================
+    const retryQueue = _getRetryQueue();
+    const retryEntriesForThisHour = retryQueue.filter(
+      entry => entry.targetHour === targetHour,
+    );
+    const remainingRetryEntries = retryQueue.filter(
+      entry => entry.targetHour !== targetHour,
+    );
+
+    Logger.log(
+      `リトライキュー: 全${retryQueue.length}件、今回対象${retryEntriesForThisHour.length}件`,
+    );
+
+    // リトライエントリ情報をMapで保持（studentId → RetryQueueEntry）
+    /** @type {Map<string, RetryQueueEntry>} */
+    const retryEntryMap = new Map();
+    for (const entry of retryEntriesForThisHour) {
+      retryEntryMap.set(entry.studentId, entry);
+    }
+
+    // ========================================
+    // 2. 新規送信対象者を抽出
+    // ========================================
+    // targetDay=0の場合は新規対象者を抽出しない（リトライ処理のみ）
+    const newRecipients =
+      targetDay > 0 ? _getNotificationRecipients(targetDay, targetHour) : [];
+    Logger.log(
+      `新規送信対象者数: ${newRecipients.length}名${targetDay === 0 ? ' (リトライ専用モード)' : ''}`,
+    );
+
+    // ========================================
+    // 3. リトライ対象の生徒情報を取得
+    // ========================================
+    const studentsCache = getTypedCachedData(CACHE_KEYS.ALL_STUDENTS);
+    const allStudentsMap = studentsCache?.students || {};
+
+    /** @type {UserCore[]} */
+    const retryRecipients = [];
+    /** @type {RetryQueueEntry[]} */
+    const cacheNotFoundEntries = []; // キャッシュ未ヒットのエントリを保持
+
+    for (const entry of retryEntriesForThisHour) {
+      const student = allStudentsMap[entry.studentId];
+      if (student) {
+        retryRecipients.push(student);
+      } else {
+        // キャッシュに見つからない場合はキューに残す（一時的な不整合対策）
+        Logger.log(
+          `キャッシュ未ヒット: ${entry.studentId} (リトライ${entry.retryCount || 0}回目) - 次回に再試行`,
+        );
+        cacheNotFoundEntries.push(entry);
+      }
+    }
+
+    Logger.log(
+      `リトライ対象: 有効${retryRecipients.length}名、キャッシュ未ヒット${cacheNotFoundEntries.length}名`,
+    );
+
+    // ========================================
+    // 4. 送信対象を統合（リトライ優先、重複除去）
+    // ========================================
+    const processedStudentIds = new Set(retryRecipients.map(s => s.studentId));
+    const combinedRecipients = [...retryRecipients];
+
+    for (const student of newRecipients) {
+      if (!processedStudentIds.has(student.studentId)) {
+        combinedRecipients.push(student);
+        processedStudentIds.add(student.studentId);
+      }
+    }
+
+    Logger.log(`統合後の送信対象者数: ${combinedRecipients.length}名`);
+
+    if (combinedRecipients.length === 0) {
+      Logger.log('送信対象者なし。処理を終了します。');
+      // リトライキューを更新（キャッシュ未ヒットエントリは保持）
+      const updatedQueue = [...remainingRetryEntries, ...cacheNotFoundEntries];
+      if (updatedQueue.length > 0) {
+        _setRetryQueue(updatedQueue);
+      } else {
+        _clearRetryQueue();
+      }
+      return;
+    }
+
+    // ========================================
+    // 5. 共通データの取得
+    // ========================================
     const allReservations = getCachedReservationsAsObjects();
 
-    // 共通データの取得（全生徒で共通）- 既存のgetLessons()を活用
     const lessonsResponse = getLessons();
     if (!lessonsResponse.success || !lessonsResponse.data) {
       Logger.log('日程データの取得に失敗しました');
@@ -63,7 +326,6 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
     const scheduleData = lessonsResponse.data;
     Logger.log(`取得した日程データ: ${scheduleData.length}件`);
 
-    // 送信元メールアドレスを取得
     const fromEmailRaw =
       PropertiesService.getScriptProperties().getProperty('ADMIN_EMAIL');
     if (!fromEmailRaw || String(fromEmailRaw).trim() === '') {
@@ -72,25 +334,53 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
     }
     const fromEmail = String(fromEmailRaw);
 
-    // 件名（テスト環境では[テスト]プレフィックス追加）
     const subjectPrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE
       ? ''
       : '[テスト]';
     const emailSubject = `${subjectPrefix}【川崎誠二 木彫り教室】開催日程・よやく状況のお知らせ`;
 
+    // ========================================
+    // 6. メール送信ループ（Quota確認付き）
+    // ========================================
     let successCount = 0;
     let failCount = 0;
+    /** @type {RetryQueueEntry[]} */
+    const newRetryEntries = [];
+    let quotaExhausted = false;
 
-    // 各生徒にメール送信
-    for (const student of recipients) {
+    for (let i = 0; i < combinedRecipients.length; i++) {
+      const student = combinedRecipients[i];
+
+      // Quota確認（毎回チェック）
+      const remainingQuota = _getRemainingQuota();
+      if (remainingQuota <= QUOTA_SAFETY_MARGIN) {
+        Logger.log(
+          `Quota残り${remainingQuota}通。安全マージンに達したため送信を中断`,
+        );
+        quotaExhausted = true;
+
+        // 残りの生徒をリトライキューに追加（retryCount継続）
+        for (let j = i; j < combinedRecipients.length; j++) {
+          const sid = combinedRecipients[j].studentId;
+          if (sid) {
+            const existingEntry = retryEntryMap.get(sid);
+            newRetryEntries.push({
+              studentId: sid,
+              targetHour: targetHour,
+              retryCount: existingEntry ? existingEntry.retryCount + 1 : 0,
+              addedAt: existingEntry?.addedAt || Date.now(),
+            });
+          }
+        }
+        break;
+      }
+
       try {
-        // ★修正: allReservationsはReservationCore[]なので、filterで正しい型の配列を取得
         const studentReservations = allReservations.filter(
           /** @param {ReservationCore} r */
           r => r.studentId === student.studentId,
         );
 
-        // 未来のよやくのみに絞り込み
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -101,7 +391,7 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
               const resDate = new Date(res.date);
               return (
                 resDate >= today && res.status !== CONSTANTS.STATUS.CANCELED
-              ); // キャンセル済みは除外
+              );
             },
           )
           .map(
@@ -148,6 +438,34 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
         Logger.log(
           `送信失敗: ${student.studentId} - ${error.message || error}`,
         );
+
+        // Quota超過判定: エラーメッセージ または getRemainingDailyQuota が0
+        const errorMessage = error?.message || String(error);
+        const isQuotaError =
+          errorMessage.includes('too many times') ||
+          errorMessage.includes('quota') ||
+          _getRemainingQuota() === 0;
+
+        if (isQuotaError) {
+          Logger.log('Quota超過エラーを検出。残りをリトライキューに追加');
+          quotaExhausted = true;
+
+          // 現在の生徒と残りの生徒をリトライキューに追加（retryCount継続）
+          for (let j = i; j < combinedRecipients.length; j++) {
+            const sid = combinedRecipients[j].studentId;
+            if (sid) {
+              const existingEntry = retryEntryMap.get(sid);
+              newRetryEntries.push({
+                studentId: sid,
+                targetHour: targetHour,
+                retryCount: existingEntry ? existingEntry.retryCount + 1 : 0,
+                addedAt: existingEntry?.addedAt || Date.now(),
+              });
+            }
+          }
+          break;
+        }
+
         const errorStudentId =
           typeof student.studentId === 'string'
             ? student.studentId
@@ -161,13 +479,35 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
       }
     }
 
+    // ========================================
+    // 7. リトライキューの更新（キャッシュ未ヒットエントリも保持）
+    // ========================================
+    const finalRetryQueue = [
+      ...remainingRetryEntries,
+      ...cacheNotFoundEntries,
+      ...newRetryEntries,
+    ];
+    if (finalRetryQueue.length > 0) {
+      _setRetryQueue(finalRetryQueue);
+      Logger.log(
+        `リトライキュー更新: 新規${newRetryEntries.length}件、キャッシュ未ヒット${cacheNotFoundEntries.length}件保持`,
+      );
+    } else {
+      _clearRetryQueue();
+    }
+
     Logger.log(
-      `月次通知メール送信完了: 成功 ${successCount}件、失敗 ${failCount}件`,
+      `月次通知メール送信完了: 成功 ${successCount}件、失敗 ${failCount}件` +
+        (quotaExhausted ? `、リトライ待ち ${newRetryEntries.length}件` : ''),
     );
 
-    // 管理者への通知
-    if (failCount > 0) {
-      _notifyAdminAboutFailures(successCount, failCount);
+    // 管理者への通知（失敗またはQuota中断があった場合）
+    if (failCount > 0 || quotaExhausted) {
+      _notifyAdminAboutFailures(
+        successCount,
+        failCount,
+        newRetryEntries.length,
+      );
     }
   } catch (error) {
     Logger.log(`月次通知メール送信でエラー: ${error.message || error}`);
@@ -178,6 +518,10 @@ export function sendMonthlyNotificationEmails(targetDay, targetHour) {
       error.message || String(error),
     );
     throw error;
+  } finally {
+    // ロックを必ず解放
+    lock.releaseLock();
+    Logger.log('ロック解放完了');
   }
 }
 
@@ -408,9 +752,14 @@ export function _formatStatus(status) {
  * 管理者へ送信失敗を通知
  * @param {number} successCount - 成功件数
  * @param {number} failCount - 失敗件数
+ * @param {number} [retryCount=0] - リトライ待ち件数
  * @private
  */
-export function _notifyAdminAboutFailures(successCount, failCount) {
+export function _notifyAdminAboutFailures(
+  successCount,
+  failCount,
+  retryCount = 0,
+) {
   try {
     const adminEmail = Session.getEffectiveUser().getEmail();
     if (!adminEmail) return;
@@ -421,14 +770,21 @@ export function _notifyAdminAboutFailures(successCount, failCount) {
       : '[テスト]';
     const subject = `${subjectPrefix}【システム通知】月次通知メール送信結果`;
 
+    let bodyText =
+      `月次通知メールの送信が完了しました。\n\n` +
+      `成功: ${successCount}件\n` +
+      `失敗: ${failCount}件\n`;
+
+    if (retryCount > 0) {
+      bodyText += `リトライ待ち: ${retryCount}件（翌日以降の同時刻に自動送信）\n`;
+    }
+
+    bodyText += `\n失敗の詳細はログシートをご確認ください。`;
+
     MailApp.sendEmail({
       to: adminEmail,
       subject: subject,
-      body:
-        `月次通知メールの送信が完了しました。\n\n` +
-        `成功: ${successCount}件\n` +
-        `失敗: ${failCount}件\n\n` +
-        `失敗の詳細はログシートをご確認ください。`,
+      body: bodyText,
     });
   } catch (error) {
     Logger.log(`管理者通知送信エラー: ${error.message || error}`);

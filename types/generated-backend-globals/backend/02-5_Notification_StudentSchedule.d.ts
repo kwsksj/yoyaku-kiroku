@@ -1,6 +1,7 @@
 /**
  * 月次通知メールを送信するメインエントリーポイント（トリガーから実行）
  * 指定された日時に該当する生徒に通知メールを送信
+ * リトライキューがある場合は優先的に処理し、Quota上限に近づいたら中断してキューに保存
  * @param {number} targetDay - 通知対象日（5, 15, 25）
  * @param {number} targetHour - 通知対象時刻（9, 12, 18, 21）
  */
@@ -48,11 +49,33 @@ export function _formatStatus(status: string): string;
  * 管理者へ送信失敗を通知
  * @param {number} successCount - 成功件数
  * @param {number} failCount - 失敗件数
+ * @param {number} [retryCount=0] - リトライ待ち件数
  * @private
  */
-export function _notifyAdminAboutFailures(successCount: number, failCount: number): void;
+export function _notifyAdminAboutFailures(successCount: number, failCount: number, retryCount?: number): void;
 /**
  * 【開発・テスト用】手動で通知メールを送信
  * メニューから実行可能
  */
 export function manualSendMonthlyNotificationEmails(): void;
+/**
+ * リトライキューに保存するエントリの型
+ */
+export type RetryQueueEntry = {
+    /**
+     * - 生徒ID
+     */
+    studentId: string;
+    /**
+     * - 元々の通知希望時刻
+     */
+    targetHour: number;
+    /**
+     * - リトライ回数
+     */
+    retryCount: number;
+    /**
+     * - 追加日時（timestamp）
+     */
+    addedAt: number;
+};

@@ -265,6 +265,7 @@ export function setAdminEmail(email = 'shiawasenahito3000@gmail.com') {
 /**
  * 月次通知メールトリガーを設定
  * すべての通知日・時刻の組み合わせに対してトリガーを作成
+ * さらに毎日実行のトリガーも追加（リトライキュー処理用）
  */
 export function setupMonthlyNotificationTriggers() {
   try {
@@ -276,7 +277,7 @@ export function setupMonthlyNotificationTriggers() {
 
     let triggerCount = 0;
 
-    // すべての日時の組み合わせに対してトリガーを作成
+    // 1. 月次トリガー: 特定の日・時刻の組み合わせ
     for (const day of days) {
       for (const hour of hours) {
         ScriptApp.newTrigger(`trigger_sendNotification_day${day}_hour${hour}`)
@@ -288,6 +289,18 @@ export function setupMonthlyNotificationTriggers() {
         triggerCount++;
         Logger.log(`トリガー作成: ${day}日 ${hour}時`);
       }
+    }
+
+    // 2. 毎日トリガー: リトライキュー処理用（各時間帯）
+    for (const hour of hours) {
+      ScriptApp.newTrigger(`trigger_sendNotification_daily_hour${hour}`)
+        .timeBased()
+        .everyDays(1)
+        .atHour(hour)
+        .create();
+
+      triggerCount++;
+      Logger.log(`毎日トリガー作成: ${hour}時`);
     }
 
     Logger.log(
@@ -371,4 +384,39 @@ export function trigger_sendNotification_day25_hour18() {
 }
 export function trigger_sendNotification_day25_hour21() {
   sendMonthlyNotificationEmails(25, 21);
+}
+
+// =================================================================
+// 毎日トリガー実行関数（リトライキュー処理専用）
+// 常にtargetDay=0を渡し、リトライキューの消化のみを行う
+// 新規送信は月次トリガーが担当するため、二重送信を防止
+// =================================================================
+
+/**
+ * 毎日実行: 9時のリトライキュー処理（リトライ専用）
+ */
+export function trigger_sendNotification_daily_hour9() {
+  // 常にtargetDay=0でリトライ専用（新規対象者は抽出しない）
+  sendMonthlyNotificationEmails(0, 9);
+}
+
+/**
+ * 毎日実行: 12時のリトライキュー処理（リトライ専用）
+ */
+export function trigger_sendNotification_daily_hour12() {
+  sendMonthlyNotificationEmails(0, 12);
+}
+
+/**
+ * 毎日実行: 18時のリトライキュー処理（リトライ専用）
+ */
+export function trigger_sendNotification_daily_hour18() {
+  sendMonthlyNotificationEmails(0, 18);
+}
+
+/**
+ * 毎日実行: 21時のリトライキュー処理（リトライ専用）
+ */
+export function trigger_sendNotification_daily_hour21() {
+  sendMonthlyNotificationEmails(0, 21);
 }

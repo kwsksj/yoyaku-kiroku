@@ -387,7 +387,7 @@ export const isDebugMode = () => {
   try {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('debug') === 'true';
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 };
