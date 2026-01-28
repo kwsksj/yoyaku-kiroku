@@ -29,7 +29,8 @@ export type BadgeType =
   | 'info'
   | 'accounting'
   | 'attention'
-  | 'beginner';
+  | 'beginner'
+  | 'night';
 
 // =================================================================
 // Component Config（基本設定）

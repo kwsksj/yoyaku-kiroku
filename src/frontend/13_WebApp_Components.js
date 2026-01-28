@@ -817,6 +817,7 @@ export const Components = {
       attention: 'bg-action-attention-bg text-action-attention-text',
       accounting: 'bg-action-attention-bg text-action-attention-text',
       beginner: 'bg-green-100 text-green-800',
+      night: 'bg-indigo-700 text-white',
     };
 
     // beginnerタイプは教室・会場バッジと同じtext-baseを使用

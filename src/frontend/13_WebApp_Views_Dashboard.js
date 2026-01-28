@@ -20,6 +20,43 @@ import { Components } from './13_WebApp_Components.js';
 import { _isToday } from './13_WebApp_Views_Utils.js';
 
 const dashboardStateManager = appWindow.stateManager;
+
+/**
+ * 時刻文字列（HH:mm）を分に変換します。
+ * @param {string | undefined} timeStr
+ * @returns {number | null}
+ */
+const parseTimeToMinutes = timeStr => {
+  if (!timeStr) return null;
+  const [hourStr, minuteStr] = timeStr.split(':');
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr || '0');
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  return hour * 60 + minute;
+};
+
+/**
+ * よやくが夜教室か判定します。
+ * @param {ReservationCore} booking
+ * @returns {boolean}
+ */
+const _isNightBooking = booking => {
+  const state = dashboardStateManager.getState();
+  const lessons = state.lessons || [];
+  const targetLesson = lessons.find(
+    (/** @type {LessonCore} */ lesson) =>
+      lesson.date === String(booking.date) &&
+      lesson.classroom === booking.classroom,
+  );
+  const startTime =
+    targetLesson?.firstStart ||
+    targetLesson?.startTime ||
+    targetLesson?.secondStart ||
+    booking.startTime ||
+    '';
+  const startMinutes = parseTimeToMinutes(startTime);
+  return startMinutes !== null && startMinutes >= 17 * 60;
+};
 /**
  * メインのホーム画面のUIを生成します。
  * 【改善】ビジネスロジックをヘルパー関数に分離して可読性向上
@@ -414,6 +451,10 @@ export const _buildBookingBadges = booking => {
 
   if (booking.firstLecture) {
     badges.push({ type: 'beginner', text: '初回講習' });
+  }
+
+  if (_isNightBooking(booking)) {
+    badges.push({ type: 'night', text: '夜' });
   }
 
   if (

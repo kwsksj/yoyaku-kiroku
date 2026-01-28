@@ -1332,7 +1332,7 @@ export const renderBookingLessons = (
               ? renderClassroomVenueBadges(lesson.classroom, venueDisplay)
               : renderClassroomVenueBadges(null, venueDisplay);
             const nightBadgeHtml = isNightLesson(lesson)
-              ? '<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-blue-900 text-white">夜</span>'
+              ? '<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-indigo-700 text-white">夜</span>'
               : '';
             const badgeGroupHtml = badges
               ? `<span class="text-sm whitespace-nowrap flex gap-1 items-center">${badges}</span>`
