@@ -925,9 +925,7 @@ export const getReservationFormView = () => {
           `<p class="${captionClass}">初回開始: ${beginnerStartTime}</p>`,
         );
       }
-      notes.push(
-        `<p class="${captionClass}">初回に参加しやすくなるように、開始時刻をずらしてあります。早く来て見学もOK</p>`,
-      );
+      notes.push(`<p class="${captionClass}">はやめにきて けんがく もOK</p>`);
     }
     if (
       classroomType === CONSTANTS.CLASSROOM_TYPES.SESSION_BASED &&
@@ -1334,17 +1332,14 @@ export const renderBookingLessons = (
               ? renderClassroomVenueBadges(lesson.classroom, venueDisplay)
               : renderClassroomVenueBadges(null, venueDisplay);
             const nightBadgeHtml = isNightLesson(lesson)
-              ? Components.badge({ text: '夜', color: 'blue', size: 'xs' })
+              ? '<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-blue-900 text-white">夜</span>'
               : '';
-            const badgeGroup = [badges, nightBadgeHtml]
-              .filter(Boolean)
-              .join('');
-            const badgeGroupHtml = badgeGroup
-              ? `<span class="text-sm whitespace-nowrap flex gap-1 items-center">${badgeGroup}</span>`
+            const badgeGroupHtml = badges
+              ? `<span class="text-sm whitespace-nowrap flex gap-1 items-center">${badges}</span>`
               : '';
             const openingHoursText = buildOpeningHoursText(lesson);
             const openingHoursHtml = openingHoursText
-              ? `<div class="text-xs text-gray-500 mt-1">開室時間 ${openingHoursText}</div>`
+              ? `<div class="text-xs text-gray-500 mt-1 flex items-center gap-1">${nightBadgeHtml}<span>開室時間 ${openingHoursText}</span></div>`
               : '';
             // 区切りの良いところで改行: 日付 | 教室+会場 | ステータス（常に右端）
             const text = `
