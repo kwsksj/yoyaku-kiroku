@@ -26,7 +26,7 @@ const dashboardStateManager = appWindow.stateManager;
  * @param {string | undefined} timeStr
  * @returns {number | null}
  */
-const parseTimeToMinutes = timeStr => {
+const parseTimeToMinutesForDashboard = timeStr => {
   if (!timeStr) return null;
   const [hourStr, minuteStr] = timeStr.split(':');
   const hour = Number(hourStr);
@@ -54,7 +54,7 @@ const _isNightBooking = booking => {
     targetLesson?.secondStart ||
     booking.startTime ||
     '';
-  const startMinutes = parseTimeToMinutes(startTime);
+  const startMinutes = parseTimeToMinutesForDashboard(startTime);
   return startMinutes !== null && startMinutes >= 17 * 60;
 };
 /**
