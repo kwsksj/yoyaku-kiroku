@@ -845,11 +845,11 @@ export const reservationActionHandlers = {
 
   /**
    * 直接よやく画面（にってい いちらん）に遷移します。
-   * 「すべて」の教室を選択した状態で表示します。
+   * 教室未選択の状態で表示します。
    */
   goToBookingView: () => {
     debugLog('🏫 goToBookingView: 直接よやく画面に遷移');
-    reservationActionHandlers.updateLessonsAndGoToBooking('all');
+    reservationActionHandlers.updateLessonsAndGoToBooking('');
   },
 
   /**

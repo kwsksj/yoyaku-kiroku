@@ -17,10 +17,7 @@
 // UI系モジュール
 // ================================================================
 import { Components } from './13_WebApp_Components.js';
-import {
-  getClassroomColorClass,
-  renderClassroomVenueBadges,
-} from './13_WebApp_Views_Utils.js';
+import { renderClassroomVenueBadges } from './13_WebApp_Views_Utils.js';
 
 // ================================================================
 // ユーティリティ系モジュール
@@ -141,7 +138,7 @@ const renderBeginnerModeToggle = () => {
     typeof localStorage !== 'undefined'
       ? localStorage.getItem('beginnerModeOverride')
       : null;
-  // 初期値は「初回」。ユーザーが明示的に変更した場合のみoverride値を使用
+  // 初期値は「初回」（ユーザーが明示的に変更した場合のみoverride値を使用）
   const selectedValue = override !== null ? override : 'true';
 
   debugLog('🎚️ BeginnerModeToggle:', {
@@ -175,11 +172,13 @@ const renderBeginnerModeToggle = () => {
 /**
  * 教室選択ピル型トグルを生成
  * @param {string} selectedClassroom - 現在選択されている教室（'all'で全教室）
+ * @param {{className?: string}} [options] - 追加クラス
  * @returns {string} HTML文字列
  */
-const renderClassroomToggle = selectedClassroom => {
+const renderClassroomToggle = (selectedClassroom, options = {}) => {
   const classrooms = Object.values(CONSTANTS.CLASSROOMS || {});
   if (!classrooms.length) return '';
+  const wrapperClass = options.className ? ` ${options.className}` : '';
 
   // 表示順を定義（DesignConfigで一元管理）
   const desiredOrder = DesignConfig.classroomOrder || [
@@ -202,7 +201,7 @@ const renderClassroomToggle = selectedClassroom => {
 
   // pillToggle用のオプション配列を生成
   /** @type {Array<{value: string, label: string, action: string, dataAttributes: Record<string, string>}>} */
-  const options = [
+  const toggleOptions = [
     ...sortedClassrooms.map(c => ({
       value: c,
       label: formatClassroomName(c),
@@ -218,10 +217,10 @@ const renderClassroomToggle = selectedClassroom => {
   ];
 
   return `
-    <div class="mb-4">
+    <div class="mb-4${wrapperClass}">
       <p class="text-sm font-bold text-gray-500 mb-2 border-l-2 border-gray-300 pl-2">教室</p>
       ${Components.pillToggle({
-        options,
+        options: toggleOptions,
         selectedValue: selectedClassroom,
         size: 'normal',
       })}
@@ -236,7 +235,8 @@ const renderClassroomToggle = selectedClassroom => {
  */
 export const getBookingView = classroom => {
   const currentState = bookingStateManager.getState();
-  const selectedClassroom = classroom || 'all';
+  const selectedClassroom = classroom || '';
+  const hasClassroomSelection = Boolean(selectedClassroom);
 
   // レッスンをフィルタリング
   const allLessons =
@@ -244,13 +244,14 @@ export const getBookingView = classroom => {
       ? currentState.lessons
       : [];
 
-  const relevantLessons =
-    selectedClassroom === 'all'
+  const relevantLessons = hasClassroomSelection
+    ? selectedClassroom === 'all'
       ? allLessons
       : allLessons.filter(
           (/** @type {LessonCore} */ lesson) =>
             lesson.classroom === selectedClassroom,
-        );
+        )
+    : [];
 
   debugLog('🏫 getBookingView:', {
     classroom: selectedClassroom,
@@ -273,6 +274,40 @@ export const getBookingView = classroom => {
     relevantLessons,
     selectedClassroom,
   );
+
+  if (!hasClassroomSelection) {
+    return `
+      ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
+      ${Components.pageContainer({
+        maxWidth: 'md',
+        content: `
+          ${classroomToggleHtml}
+          <div class="text-center pt-6 pb-20">
+            <p class="${DesignConfig.colors.textSubtle}">教室をえらんでください。</p>
+          </div>
+          <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
+            <p class="${DesignConfig.text.caption} mb-3">
+              今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
+            </p>
+            ${Components.button({
+              text: 'プロフィール編集',
+              action: 'showEditProfile',
+              style: 'secondary',
+              size: 'normal',
+            })}
+          </div>
+          <div class="mt-4 text-center">
+            ${Components.button({
+              text: 'ホームへもどる',
+              action: 'goToDashboard',
+              style: 'secondary',
+              size: 'normal',
+            })}
+          </div>
+        `,
+      })}
+    `;
+  }
 
   if (!bookingLessonsHtml) {
     return `
@@ -1385,7 +1420,7 @@ export const getClassroomSelectionModalContent = () => {
     'つくば教室',
     '沼津教室',
   ];
-  const sortedClassrooms = classrooms.sort((a, b) => {
+  const sortedClassrooms = [...classrooms].sort((a, b) => {
     const indexA = desiredOrder.indexOf(a);
     const indexB = desiredOrder.indexOf(b);
     if (indexA === -1 && indexB === -1) return a.localeCompare(b);
@@ -1394,27 +1429,41 @@ export const getClassroomSelectionModalContent = () => {
     return indexA - indexB;
   });
 
-  const classroomButtonsHtml = sortedClassrooms
-    .map(classroomName => {
-      const colorClass = getClassroomColorClass(classroomName);
-      const fullButtonClass = `w-full h-16 text-center px-6 py-4 rounded-xl mobile-card touch-friendly flex items-center justify-center text-xl font-bold border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 ${colorClass}`;
+  // ボタン表示用に「教室」を除去
+  /** @param {string} name */
+  const formatClassroomName = name => name.replace('教室', '');
 
-      return Components.button({
-        action: 'selectClassroom',
-        text: classroomName,
-        style: 'none',
-        customClass: fullButtonClass,
-        dataAttributes: {
-          classroomName: classroomName,
-          classroom: classroomName,
-        },
-      });
-    })
-    .join('');
+  /** @type {Array<{value: string, label: string, action: string, dataAttributes: Record<string, string>}>} */
+  const options = [
+    ...sortedClassrooms.map(classroomName => ({
+      value: classroomName,
+      label: formatClassroomName(classroomName),
+      action: 'selectClassroom',
+      dataAttributes: { 'data-classroom': classroomName },
+    })),
+    {
+      value: 'all',
+      label: 'すべて',
+      action: 'selectClassroom',
+      dataAttributes: { 'data-classroom': 'all' },
+    },
+  ];
+
+  const selectedClassroom =
+    bookingStateManager?.getState?.().selectedClassroom || '';
+  const selectedValue =
+    selectedClassroom && selectedClassroom !== 'all' ? selectedClassroom : '';
 
   return `
       <div class="space-y-4">
-        ${classroomButtonsHtml}
+        <p class="text-sm font-bold text-gray-500 mb-2 border-l-2 border-gray-300 pl-2">教室</p>
+        ${Components.pillToggle({
+          options,
+          selectedValue: selectedValue,
+          size: 'normal',
+          className: 'flex-wrap justify-center',
+        })}
+        <p class="text-xs text-brand-subtle text-center">教室をえらぶと日程が表示されます。</p>
       </div>
     `;
 };
