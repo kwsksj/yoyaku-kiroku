@@ -72,6 +72,7 @@ gh pr create --base main
 
 - ユーザーへの応答は**日本語**で行うこと
 - コードコメントも日本語で書くこと
+- **Implementation Plan、Task、Walkthroughなどのアーティファクトも全て日本語で記述すること**
 
 ---
 
