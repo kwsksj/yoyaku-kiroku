@@ -73,6 +73,10 @@
         background-color: var(--brand-bg);
         line-height: 1.6;
       }
+      /* ワイド表示（参加者/ログ） */
+      #app.app-wide {
+        max-width: 1280px;
+      }
       /* プレースホルダの透明度 */
       input::placeholder {
         opacity: 0.6;
@@ -300,6 +304,14 @@
             var needsRefresh =
               typeof window.stateManager.needsDataRefresh === 'function' &&
               window.stateManager.needsDataRefresh();
+
+            // ビュー変更リスナーのセットアップ（PC表示対応等）
+            if (typeof appWindow.setupViewListener === 'function') {
+              appWindow.setupViewListener();
+            } else {
+              console.warn('⚠️ setupViewListener not found');
+            }
+
             if (!needsRefresh) {
               hideLoading();
             } else {

@@ -1374,12 +1374,13 @@ export function getSessionConclusionView(state) {
 
   return `
     <div class="session-conclusion-view">
-      ${Components.pageHeader({
-        title: 'きょう の まとめ',
-        showBackButton: false,
-      })}
       ${Components.pageContainer({
+        maxWidth: 'md',
         content: `
+          ${Components.pageHeader({
+            title: 'きょう の まとめ',
+            showBackButton: false,
+          })}
           ${summaryHtml}
           <div class="session-conclusion-wizard">
             ${stepContent}

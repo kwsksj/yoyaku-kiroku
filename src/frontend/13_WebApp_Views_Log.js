@@ -82,41 +82,43 @@ export const getLogView = () => {
 
   // ローディング状態（初期ロード）
   if (isLoading) {
-    return `
+    return Components.pageContainer({
+      maxWidth: '7xl',
+      content: `
       ${Components.pageHeader({
         title: '操作ログ',
         backAction: 'logout',
         customActionHtml: headerActions, // ヘッダーは表示しておく
       })}
-      <div class="${DesignConfig.layout.container}">
         <div class="text-center py-12">
           <p class="text-brand-subtle">ログを読み込み中...</p>
         </div>
-      </div>
-    `;
+        `,
+    });
   }
 
   // ログがない場合
   if (logs.length === 0) {
-    return `
+    return Components.pageContainer({
+      maxWidth: '7xl',
+      content: `
       ${Components.pageHeader({
         title: '操作ログ',
         backAction: 'logout',
         customActionHtml: headerActions,
       })}
-      <div class="${DesignConfig.layout.container}">
-        ${Components.cardContainer({
-          variant: 'default',
-          padding: 'spacious',
-          customClass: 'bg-white',
-          content: `
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'spacious',
+        customClass: 'bg-white',
+        content: `
             <div class="text-center py-4">
               <p class="${DesignConfig.text.body}">ログがありません</p>
             </div>
           `,
-        })}
-      </div>
-    `;
+      })}
+      `,
+    });
   }
 
   // ログテーブルを生成
@@ -132,19 +134,20 @@ export const getLogView = () => {
     fetchedAtHtml = `<span class="text-[10px] text-gray-400 ml-2">最終更新: ${dateStr} ${timeStr}</span>`;
   }
 
-  return `
+  return Components.pageContainer({
+    maxWidth: '7xl',
+    content: `
     ${Components.pageHeader({
       title: '<span class="hidden sm:inline">操作ログ</span>', // ボタン干渉時は非表示（モバイル）
       showBackButton: false,
       customActionHtml: headerActions,
     })}
-    <div class="${DesignConfig.layout.containerNoPadding}">
       <p class="text-xs text-brand-subtle mb-2 text-right">直近30日分のログ（${logs.length}件）${fetchedAtHtml}</p>
       <div class="bg-white ${DesignConfig.borderRadius.container}">
         ${tableHtml}
       </div>
-    </div>
-  `;
+      `,
+  });
 };
 
 /**

@@ -364,7 +364,9 @@ export const getCompleteView = msg => {
     ? 'text-state-available-text' // よやく完了時: 緑系
     : 'text-yellow-500'; // 会計完了時: 黄色系
 
-  return `
+  return Components.pageContainer({
+    maxWidth: 'md',
+    content: `
     <div class="text-center pt-6 pb-4">
         <div class="mb-6">
             <svg class="w-12 h-12 mx-auto ${checkmarkColorClass}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -388,7 +390,8 @@ export const getCompleteView = msg => {
 
         ${nextBookingHtml}
 
-    </div>`;
+    </div>`,
+  });
 };
 
 /**

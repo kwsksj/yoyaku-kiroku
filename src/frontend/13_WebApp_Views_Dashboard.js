@@ -398,7 +398,10 @@ export const getDashboardView = () => {
         ${historyHtml}
     `;
 
-  return headerHtml;
+  return Components.pageContainer({
+    maxWidth: 'md',
+    content: headerHtml,
+  });
 };
 
 /**

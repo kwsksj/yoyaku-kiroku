@@ -415,6 +415,7 @@ appWindow.debugLog = debugLog;
 /** @type {Array<{element: Element, type: string, listener: EventListener, options?: AddEventListenerOptions}>} */
 /** @type {Array<{ element: Element; type: string; listener: EventListener; options?: AddEventListenerOptions }>} */
 export let activeListeners = [];
+let viewListenerSetup = false;
 
 /**
  * 登録されたイベントリスナーを全て解除する
@@ -455,45 +456,82 @@ export function addTrackedListener(element, type, listener, options) {
  * ビュー変更時のイベントリスナー管理を設定
  */
 export function setupViewListener() {
+  debugLog('🔌 setupViewListener called');
   if (!appWindow.stateManager) {
     console.error('StateManager not initialized. Cannot set up view listener.');
     return;
   }
+  if (viewListenerSetup) {
+    return;
+  }
+  viewListenerSetup = true;
 
-  appWindow.stateManager.subscribe(
-    (/** @type {UIState} */ newState, /** @type {UIState} */ oldState) => {
-      // ビューが変更された場合のみ処理
-      if (newState.view !== oldState.view) {
-        // 古いビューのリスナーを全て解除
-        teardownAllListeners();
+  const handleViewChange = (
+    /** @type {UIState} */ newState,
+    /** @type {UIState} */ oldState,
+  ) => {
+    // ビューが変更された場合のみ処理
+    if (newState.view !== oldState.view) {
+      // 古いビューのリスナーを全て解除
+      teardownAllListeners();
 
-        // 新しいビューに応じたリスナーを登録
-        // requestAnimationFrameでDOMの描画を待つ
-        requestAnimationFrame(() => {
-          if (newState.view === 'accounting') {
-            // 会計画面が表示された際の初期化処理
-            // イベントリスナーは14_WebApp_Handlers.htmlのイベント委譲で処理されます。
-            // ここでは、DOM描画後に初回計算を実行します。
-            if (typeof updateAccountingCalculation === 'function') {
-              // 会計画面用のデータを取得
-              const classifiedItems =
-                appWindow.currentClassifiedItems ||
-                /** @type {ClassifiedAccountingItemsCore} */ (
-                  /** @type {unknown} */ ({
-                    tuition: { items: [] },
-                    sales: { materialItems: [], productItems: [] },
-                  })
-                );
-              const classroom = appWindow.currentClassroom || '';
-              updateAccountingCalculation(classifiedItems, classroom);
-            }
+      // 新しいビューに応じたリスナーを登録
+      // requestAnimationFrameでDOMの描画を待つ
+      requestAnimationFrame(() => {
+        // PC表示サポート：ビューに応じたコンテナ幅の調整
+        const appElement = document.getElementById('app');
+        if (appElement) {
+          // ワイド表示（最大幅1280px）が必要なビューのリスト
+          // participants: 参加者データベース（テーブル）
+          // adminLog: 操作ログ（テーブル）
+          // dashboard: ユーザー要望により標準幅（~768px）に戻す
+          const wideViews = ['participants', 'adminLog'];
+          if (wideViews.includes(/** @type {string} */ (newState.view))) {
+            appElement.classList.add('app-wide');
+          } else {
+            appElement.classList.remove('app-wide');
           }
-          // 他のビューでリスナーが必要な場合はここに追加
-          // else if (newState.view === 'someOtherView') {
-          //   setupSomeOtherViewListeners();
-          // }
-        });
-      }
-    },
-  );
+        }
+
+        if (newState.view === 'accounting') {
+          // 会計画面が表示された際の初期化処理
+          // イベントリスナーは14_WebApp_Handlers.htmlのイベント委譲で処理されます。
+          // ここでは、DOM描画後に初回計算を実行します。
+          if (typeof updateAccountingCalculation === 'function') {
+            // 会計画面用のデータを取得
+            const classifiedItems =
+              appWindow.currentClassifiedItems ||
+              /** @type {ClassifiedAccountingItemsCore} */ (
+                /** @type {unknown} */ ({
+                  tuition: { items: [] },
+                  sales: { materialItems: [], productItems: [] },
+                })
+              );
+            const classroom = appWindow.currentClassroom || '';
+            updateAccountingCalculation(classifiedItems, classroom);
+          }
+        }
+        // 他のビューでリスナーが必要な場合はここに追加
+        // else if (newState.view === 'someOtherView') {
+        //   setupSomeOtherViewListeners();
+        // }
+      });
+    }
+  };
+
+  appWindow.stateManager.subscribe(handleViewChange);
+
+  // 初期ビューに対してもハンドラを実行（oldState.view を null にして必ず差分発生）
+  const currentState = appWindow.stateManager.getState?.();
+  if (currentState) {
+    handleViewChange(
+      currentState,
+      /** @type {UIState} */ (/** @type {unknown} */ ({ view: null })),
+    );
+  }
+}
+
+// Expose globally for initialization
+if (typeof appWindow !== 'undefined') {
+  /** @type {any} */ (appWindow).setupViewListener = setupViewListener;
 }

@@ -995,14 +995,15 @@ function renderLessonList(lessons) {
     fetchedAtHtml = `<p class="text-[10px] text-gray-400 text-right mb-1">最終更新: ${dateStr} ${timeStr}</p>`;
   }
 
-  return `
+  return Components.pageContainer({
+    maxWidth: '7xl',
+    content: `
     ${Components.pageHeader({
       title: 'みんな の よやく・きろく',
       showBackButton: !isAdmin,
       backAction: 'smartGoBack',
       customActionHtml: actionButtons,
     })}
-    <div class="${DesignConfig.layout.containerNoPadding}">
       ${fetchedAtHtml}
       <div class="flex flex-wrap items-start justify-between gap-1 sm:gap-2 mb-2">
         <div class="flex-grow">
@@ -1039,8 +1040,8 @@ function renderLessonList(lessons) {
           size: 'full',
         })}
       </div>
-    </div>
-  `;
+    `,
+  });
 }
 
 // Button State Logic Helper
@@ -1331,8 +1332,9 @@ function renderStudentDetailModalContent(student, isAdmin) {
  * @returns {string} HTML文字列
  */
 function renderError(message) {
-  return `
-    <div class="${DesignConfig.layout.container}">
+  return Components.pageContainer({
+    maxWidth: '7xl',
+    content: `
       ${Components.cardContainer({
         variant: 'default',
         padding: 'spacious',
@@ -1343,8 +1345,8 @@ function renderError(message) {
           <p class="text-center">${escapeHTML(message)}</p>
         `,
       })}
-    </div>
-  `;
+    `,
+  });
 }
 
 // ハンドラからモーダルコンテンツを生成するためにグローバルに公開

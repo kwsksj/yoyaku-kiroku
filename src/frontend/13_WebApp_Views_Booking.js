@@ -276,103 +276,97 @@ export const getBookingView = classroom => {
   );
 
   if (!hasClassroomSelection) {
-    return `
-      ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
-      ${Components.pageContainer({
-        maxWidth: 'md',
-        content: `
-          ${classroomToggleHtml}
-          <div class="text-center pt-6 pb-20">
-            <p class="${DesignConfig.colors.textSubtle}">教室をえらんでください。</p>
-          </div>
-          <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
-            <p class="${DesignConfig.text.caption} mb-3">
-              今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
-            </p>
-            ${Components.button({
-              text: 'プロフィール編集',
-              action: 'showEditProfile',
-              style: 'secondary',
-              size: 'normal',
-            })}
-          </div>
-          <div class="mt-4 text-center">
-            ${Components.button({
-              text: 'ホームへもどる',
-              action: 'goToDashboard',
-              style: 'secondary',
-              size: 'normal',
-            })}
-          </div>
-        `,
-      })}
-    `;
+    return Components.pageContainer({
+      maxWidth: 'md',
+      content: `
+        ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
+        ${classroomToggleHtml}
+        <div class="text-center pt-6 pb-20">
+          <p class="${DesignConfig.colors.textSubtle}">教室をえらんでください。</p>
+        </div>
+        <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
+          <p class="${DesignConfig.text.caption} mb-3">
+            今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
+          </p>
+          ${Components.button({
+            text: 'プロフィール編集',
+            action: 'showEditProfile',
+            style: 'secondary',
+            size: 'normal',
+          })}
+        </div>
+        <div class="mt-4 text-center">
+          ${Components.button({
+            text: 'ホームへもどる',
+            action: 'goToDashboard',
+            style: 'secondary',
+            size: 'normal',
+          })}
+        </div>
+      `,
+    });
   }
 
   if (!bookingLessonsHtml) {
-    return `
-      ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
-      ${Components.pageContainer({
-        maxWidth: 'md',
-        content: `
-          ${classroomToggleHtml}
-          ${renderBeginnerModeToggle()}
-          <div class="text-center py-4">
-            <p class="${DesignConfig.colors.textSubtle} mb-6">現在、よやく可能な日がありません。</p>
-            <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
-            <p class="${DesignConfig.text.caption} mb-3">
-              今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
-            </p>
-            ${Components.button({
-              text: 'プロフィール編集',
-              action: 'showEditProfile',
-              style: 'secondary',
-              size: 'normal',
-            })}
-          </div>
-          <div class="mt-4">
-            ${Components.button({
-              text: 'ホームへもどる',
-              action: 'goToDashboard',
-              style: 'secondary',
-              size: 'normal',
-            })}
-          </div>
-        `,
-      })}
-    `;
+    return Components.pageContainer({
+      maxWidth: 'md',
+      content: `
+        ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
+        ${classroomToggleHtml}
+        ${renderBeginnerModeToggle()}
+        <div class="text-center py-4">
+          <p class="${DesignConfig.colors.textSubtle} mb-6">現在、よやく可能な日がありません。</p>
+          <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
+          <p class="${DesignConfig.text.caption} mb-3">
+            今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
+          </p>
+          ${Components.button({
+            text: 'プロフィール編集',
+            action: 'showEditProfile',
+            style: 'secondary',
+            size: 'normal',
+          })}
+        </div>
+        <div class="mt-4">
+          ${Components.button({
+            text: 'ホームへもどる',
+            action: 'goToDashboard',
+            style: 'secondary',
+            size: 'normal',
+          })}
+        </div>
+      `,
+    });
   } else {
-    return `
-      ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
-      ${Components.pageContainer({
-        maxWidth: 'md',
-        content: `
-              ${classroomToggleHtml}
-              ${renderBeginnerModeToggle()}
-              <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
+    return Components.pageContainer({
+      maxWidth: 'md',
+      content: `
+        ${Components.pageHeader({ title: pageTitle, backAction: 'smartGoBack' })}
+        ${classroomToggleHtml}
+        ${renderBeginnerModeToggle()}
+        <div class="${DesignConfig.cards.container}">${bookingLessonsHtml}</div>
 
-              <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
-                <p class="${DesignConfig.text.caption} mb-3">
-                  今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
-                </p>
-                ${Components.button({
-                  text: 'プロフィール編集',
-                  action: 'showEditProfile',
-                  style: 'secondary',
-                  size: 'normal',
-                })}
-              </div>
-              <div class="mt-4 text-center">
-                ${Components.button({
-                  text: 'ホームへもどる',
-                  action: 'goToDashboard',
-                  style: 'secondary',
-                  size: 'normal',
-                })}
-              </div>
-        `,
-      })}
-    `;
+        <div class="mt-6 p-4 bg-ui-surface border-2 border-ui-border ${DesignConfig.borderRadius.container} text-center">
+          <p class="${DesignConfig.text.caption} mb-3">
+            今後の教室日程のメール連絡登録は、プロフィール編集でおこなえます！
+          </p>
+          ${Components.button({
+            text: 'プロフィール編集',
+            action: 'showEditProfile',
+            style: 'secondary',
+            size: 'normal',
+          })}
+        </div>
+        <div class="mt-4 text-center">
+          ${Components.button({
+            text: 'ホームへもどる',
+            action: 'goToDashboard',
+            style: 'secondary',
+            size: 'normal',
+          })}
+        </div>
+      `,
+    });
   }
 };
 
@@ -972,7 +966,7 @@ export const getReservationFormView = () => {
     return `<div class="mt-1 space-y-1">${notes.join('')}</div>`;
   };
 
-  return `
+  const contentHtml = `
       ${Components.pageHeader({ title: title, backAction: backAction })}
       <div class="space-y-6">
         <!-- 1. 計画・目標 -->
@@ -1027,6 +1021,11 @@ export const getReservationFormView = () => {
           ${buttonsHtml}
         </div>
       </div>`;
+
+  return Components.pageContainer({
+    maxWidth: 'md',
+    content: contentHtml,
+  });
 };
 
 /**
