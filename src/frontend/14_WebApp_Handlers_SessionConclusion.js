@@ -301,6 +301,9 @@ function goToStep(targetStep) {
       const viewHtml = getSessionConclusionView(wizardState);
       viewContainer.innerHTML = `<div class="fade-in">${viewHtml}</div>`;
       setupSessionConclusionUI();
+
+      // ステップ切り替え時にスクロール位置を先頭にリセット
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     }, 150); // フェードアウトのduration (0.15s) と同期
   }
 }
