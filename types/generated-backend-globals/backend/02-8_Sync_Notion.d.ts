@@ -2,6 +2,8 @@
  * @typedef {Object} NotionConfig
  * @property {string} token - Notion API トークン
  * @property {string} studentDbId - 生徒データベースID
+ * @property {string | null} [reservationDbId] - 予約記録データベースID
+ * @property {string | null} [scheduleDbId] - 日程データベースID
  */
 /**
  * @typedef {Object} NotionSyncResult
@@ -21,6 +23,7 @@
  * @property {boolean} [has_more]
  * @property {string} [next_cursor]
  * @property {Array<{plain_text: string}>} [title]
+ * @property {Record<string, any>} [properties]
  */
 /**
  * @typedef {Object} StudentData
@@ -29,6 +32,25 @@
  * @property {string | undefined} [realName]
  * @property {string | undefined} [phone]
  * @property {string | undefined} [status]
+ */
+/**
+ * @typedef {Object} NotionDatabaseSchema
+ * @property {string | null} titlePropertyName
+ * @property {Record<string, {type: string}>} properties
+ */
+/**
+ * @typedef {Object} SheetSnapshot
+ * @property {string[]} headers
+ * @property {number} idColIdx
+ * @property {Map<string, {values: Record<string, any>, rowIndex: number}>} byId
+ */
+/**
+ * @typedef {Object} NotionDatabaseCreationOptions
+ * @property {string} [token]
+ * @property {string} [studentDbName]
+ * @property {string} [reservationDbName]
+ * @property {string} [scheduleDbName]
+ * @property {string} [titlePropertyName]
  */
 /**
  * Notion 接続設定を取得します
@@ -48,6 +70,42 @@ export function getNotionConfig(): NotionConfig | null;
  * setNotionCredentials('secret_xxxxxx', '2f257846aac280cba2b9e971db618f8e');
  */
 export function setNotionCredentials(token: string, studentDbId: string): void;
+/**
+ * Notion トークンのみ保存します（DB作成時に使用）
+ * GASエディタから実行してください。
+ *
+ * @param {string} token - Notion Integration Token (secret_xxx)
+ * @returns {void}
+ */
+export function setNotionToken(token: string): void;
+/**
+ * 予約記録DBのIDを保存します
+ * GASエディタから実行してください。
+ *
+ * @param {string} reservationDbId - 予約記録データベースID
+ * @returns {void}
+ */
+export function setNotionReservationDatabaseId(reservationDbId: string): void;
+/**
+ * 日程DBのIDを保存します
+ * GASエディタから実行してください。
+ *
+ * @param {string} scheduleDbId - 日程データベースID
+ * @returns {void}
+ */
+export function setNotionScheduleDatabaseId(scheduleDbId: string): void;
+/**
+ * Notion 側に同期用DBを作成します
+ *
+ * @param {string} parentPageIdOrUrl - 親ページIDまたはURL
+ * @param {NotionDatabaseCreationOptions} [options]
+ * @returns {{studentDbId?: string, reservationDbId?: string, scheduleDbId?: string}}
+ */
+export function createNotionDatabasesForSync(parentPageIdOrUrl: string, options?: NotionDatabaseCreationOptions): {
+    studentDbId?: string;
+    reservationDbId?: string;
+    scheduleDbId?: string;
+};
 /**
  * Notion 接続設定を削除します（デバッグ用）
  * @returns {void}
@@ -75,6 +133,113 @@ export function syncAllStudentsToNotion(): {
     errors: number;
 };
 /**
+ * 全生徒データを分割で Notion に同期します（途中再開可能）
+ *
+ * @param {number} [batchSize=50] - 1回で処理する件数
+ * @returns {{success: boolean, created: number, updated: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
+ */
+export function syncAllStudentsToNotionChunk(batchSize?: number): {
+    success: boolean;
+    created: number;
+    updated: number;
+    errors: number;
+    processed: number;
+    total: number;
+    done: boolean;
+    nextIndex: number;
+};
+/**
+ * 生徒一括同期のカーソルをリセットします
+ * @returns {void}
+ */
+export function resetNotionStudentSyncCursor(): void;
+/**
+ * 予約一括同期のカーソルをリセットします
+ * @returns {void}
+ */
+export function resetNotionReservationSyncCursor(): void;
+/**
+ * 生徒IDを指定して Notion に同期します
+ *
+ * @param {string[] | string} studentIds - 生徒ID配列 またはカンマ/改行区切り文字列
+ * @param {'create' | 'update' | 'delete'} [action='update']
+ * @returns {{success: boolean, results: Array<{studentId: string, success: boolean, error?: string}>}}
+ */
+export function syncStudentsToNotionByIds(studentIds: string[] | string, action?: "create" | "update" | "delete"): {
+    success: boolean;
+    results: Array<{
+        studentId: string;
+        success: boolean;
+        error?: string;
+    }>;
+};
+/**
+ * 予約記録を Notion に同期します
+ *
+ * @param {string} reservationId - 予約ID
+ * @param {'create' | 'update' | 'delete'} [action='update'] - 同期アクション
+ * @returns {NotionSyncResult}
+ */
+export function syncReservationToNotion(reservationId: string, action?: "create" | "update" | "delete"): NotionSyncResult;
+/**
+ * 日程を Notion に同期します
+ *
+ * @param {string} lessonId - レッスンID
+ * @param {'create' | 'update' | 'delete'} [action='update'] - 同期アクション
+ * @returns {NotionSyncResult}
+ */
+export function syncScheduleToNotion(lessonId: string, action?: "create" | "update" | "delete"): NotionSyncResult;
+/**
+ * 予約記録を一括で Notion に同期します
+ *
+ * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ */
+export function syncAllReservationsToNotion(): {
+    success: boolean;
+    created: number;
+    updated: number;
+    errors: number;
+};
+/**
+ * 予約記録を分割で Notion に同期します（途中再開可能）
+ *
+ * @param {number} [batchSize=100] - 1回で処理する件数
+ * @returns {{success: boolean, created: number, updated: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
+ */
+export function syncAllReservationsToNotionChunk(batchSize?: number): {
+    success: boolean;
+    created: number;
+    updated: number;
+    errors: number;
+    processed: number;
+    total: number;
+    done: boolean;
+    nextIndex: number;
+};
+/**
+ * 日程を一括で Notion に同期します
+ *
+ * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ */
+export function syncAllSchedulesToNotion(): {
+    success: boolean;
+    created: number;
+    updated: number;
+    errors: number;
+};
+/**
+ * 当日以降の日程を Notion に同期します
+ *
+ * @returns {{success: boolean, created: number, updated: number, errors: number, skipped: number}}
+ */
+export function syncUpcomingSchedulesToNotion(): {
+    success: boolean;
+    created: number;
+    updated: number;
+    errors: number;
+    skipped: number;
+};
+/**
  * 【手動実行用】設定状態を確認します
  * GASエディタから実行してください
  */
@@ -100,6 +265,14 @@ export type NotionConfig = {
      * - 生徒データベースID
      */
     studentDbId: string;
+    /**
+     * - 予約記録データベースID
+     */
+    reservationDbId?: string | null;
+    /**
+     * - 日程データベースID
+     */
+    scheduleDbId?: string | null;
 };
 export type NotionSyncResult = {
     success: boolean;
@@ -118,6 +291,7 @@ export type NotionApiResponse = {
     title?: Array<{
         plain_text: string;
     }>;
+    properties?: Record<string, any>;
 };
 export type StudentData = {
     studentId?: string | undefined;
@@ -125,4 +299,25 @@ export type StudentData = {
     realName?: string | undefined;
     phone?: string | undefined;
     status?: string | undefined;
+};
+export type NotionDatabaseSchema = {
+    titlePropertyName: string | null;
+    properties: Record<string, {
+        type: string;
+    }>;
+};
+export type SheetSnapshot = {
+    headers: string[];
+    idColIdx: number;
+    byId: Map<string, {
+        values: Record<string, any>;
+        rowIndex: number;
+    }>;
+};
+export type NotionDatabaseCreationOptions = {
+    token?: string;
+    studentDbName?: string;
+    reservationDbName?: string;
+    scheduleDbName?: string;
+    titlePropertyName?: string;
 };

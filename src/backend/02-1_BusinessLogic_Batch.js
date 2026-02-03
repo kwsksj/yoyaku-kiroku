@@ -28,6 +28,10 @@ import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
 import {
+  rebuildScheduleMasterCache,
+  updateScheduleStatusToCompleted,
+} from './07_CacheManager.js';
+import {
   getCachedReservationsAsObjects,
   getSheetData,
   handleError,
@@ -495,6 +499,15 @@ export function dailySalesTransferBatch() {
       `詳細はスプレッドシートのLOGシートを確認してください。`;
 
     sendAdminNotification(emailSubject, emailBody);
+
+    // 売上転載のタイミングで日程ステータスを更新
+    const updatedStatusCount = updateScheduleStatusToCompleted();
+    if (updatedStatusCount > 0) {
+      Logger.log(
+        `[dailySalesTransferBatch] 日程ステータス更新: ${updatedStatusCount}件を開催済みに更新`,
+      );
+      rebuildScheduleMasterCache();
+    }
 
     // 売上転載後によやくシート全体をソート
     Logger.log('[dailySalesTransferBatch] よやくシートソート開始');

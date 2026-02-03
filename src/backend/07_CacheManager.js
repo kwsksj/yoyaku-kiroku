@@ -1572,6 +1572,25 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
         scheduleDataList?.length || 0
       }、期間: ${startDate} ～ ${endDate}`,
     );
+
+    // 日程キャッシュ更新後に Notion 同期（当日以降のみ）
+    try {
+      const syncFn = /** @type {any} */ (globalThis)
+        .syncUpcomingSchedulesToNotion;
+      if (typeof syncFn === 'function') {
+        const syncResult = syncFn();
+        if (syncResult?.success) {
+          Logger.log(
+            `[rebuildScheduleMasterCache] Notion日程同期完了: 作成${syncResult.created}, 更新${syncResult.updated}, スキップ${syncResult.skipped}, エラー${syncResult.errors}`,
+          );
+        }
+      }
+    } catch (syncError) {
+      Logger.log(
+        `[rebuildScheduleMasterCache] Notion日程同期エラー: ${syncError.message}`,
+      );
+    }
+
     return cacheData;
   } catch (error) {
     Logger.log(`rebuildScheduleMasterCacheでエラー: ${error.message}`);
@@ -1834,6 +1853,9 @@ export function updateScheduleStatusToCompleted() {
     }
     const dateColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
     const statusColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
+    const lessonIdColIndex = headers.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    );
 
     if (dateColIndex === -1 || statusColIndex === -1) {
       const errorMsg = `[ScheduleStatus] 必要な列が見つかりません: DATE=${dateColIndex}, STATUS=${statusColIndex}`;
@@ -1848,29 +1870,22 @@ export function updateScheduleStatusToCompleted() {
       const row = allData[i];
       const scheduleDate = row[dateColIndex];
       const currentStatus = row[statusColIndex];
+      const normalizedStatus = String(currentStatus || '').trim();
 
       // 開催予定のみを対象とする
-      if (currentStatus !== CONSTANTS.SCHEDULE_STATUS.SCHEDULED) {
+      if (normalizedStatus !== CONSTANTS.SCHEDULE_STATUS.SCHEDULED) {
         continue;
       }
 
       // 日付チェック
-      let isDatePast = false;
-      if (scheduleDate instanceof Date) {
-        isDatePast = scheduleDate < today;
-      } else if (scheduleDate && typeof scheduleDate === 'string') {
-        try {
-          const parsedDate = new Date(scheduleDate);
-          isDatePast = parsedDate < today;
-        } catch (error) {
-          Logger.log(
-            `[ScheduleStatus] 日付解析エラー: ${scheduleDate}, エラー: ${error.message}`,
-          );
-          continue;
-        }
-      } else {
+      const parsedDate = _parseScheduleDateValue(scheduleDate);
+      if (!parsedDate) {
+        Logger.log(
+          `[ScheduleStatus] 日付解析エラー: ${scheduleDate} (row=${i + 1})`,
+        );
         continue;
       }
+      const isDatePast = parsedDate < today;
 
       // 過去の日付の場合、開催済みに更新
       if (isDatePast) {
@@ -1882,6 +1897,20 @@ export function updateScheduleStatusToCompleted() {
         Logger.log(
           `[ScheduleStatus] 更新: ${scheduleDate} → ${CONSTANTS.SCHEDULE_STATUS.COMPLETED}`,
         );
+
+        const lessonId = lessonIdColIndex >= 0 ? row[lessonIdColIndex] : null;
+        if (lessonId) {
+          try {
+            const syncFn = /** @type {any} */ (globalThis).syncScheduleToNotion;
+            if (typeof syncFn === 'function') {
+              syncFn(String(lessonId), 'update');
+            }
+          } catch (syncError) {
+            Logger.log(
+              `[ScheduleStatus] Notion日程同期エラー: ${syncError.message}`,
+            );
+          }
+        }
       }
     }
 
@@ -1893,6 +1922,52 @@ export function updateScheduleStatusToCompleted() {
     Logger.log(`[ScheduleStatus] エラー: ${error.message}`);
     return 0;
   }
+}
+
+/**
+ * 日程のセル値を Date に変換します
+ *
+ * @param {any} value
+ * @returns {Date | null}
+ * @private
+ */
+function _parseScheduleDateValue(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    // スプレッドシートのシリアル値を日付に変換
+    const base = new Date(Date.UTC(1899, 11, 30));
+    const millis = base.getTime() + value * 24 * 60 * 60 * 1000;
+    const date = new Date(millis);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text) return null;
+
+    const match = text.match(/(\d{4})[\\/.-](\d{1,2})[\\/.-](\d{1,2})/);
+    if (match) {
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const day = Number(match[3]);
+      if (
+        Number.isFinite(year) &&
+        Number.isFinite(month) &&
+        Number.isFinite(day)
+      ) {
+        return new Date(year, month - 1, day);
+      }
+    }
+
+    const parsed = new Date(text);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return null;
 }
 
 /**

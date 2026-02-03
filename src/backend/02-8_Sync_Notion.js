@@ -23,6 +23,7 @@
 // ================================================================
 // 依存モジュール
 // ================================================================
+import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { getCachedAllStudents } from './07_CacheManager.js';
 import { getCachedStudentById } from './08_Utilities.js';
 
@@ -39,9 +40,30 @@ const NOTION_API_VERSION = '2022-06-28';
 /** PropertiesService のキー */
 const PROPS_KEY_NOTION_TOKEN = 'NOTION_API_TOKEN';
 const PROPS_KEY_NOTION_STUDENT_DB_ID = 'NOTION_STUDENT_DATABASE_ID';
+const PROPS_KEY_NOTION_RESERVATION_DB_ID = 'NOTION_RESERVATION_DATABASE_ID';
+const PROPS_KEY_NOTION_SCHEDULE_DB_ID = 'NOTION_SCHEDULE_DATABASE_ID';
+const PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR = 'NOTION_STUDENT_SYNC_CURSOR';
+const PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR =
+  'NOTION_RESERVATION_SYNC_CURSOR';
 
 /** バッチ同期時のレート制限対策（ミリ秒） */
 const RATE_LIMIT_DELAY_MS = 350;
+
+/** Notion DB スキーマキャッシュ（実行中のみ） */
+const NOTION_SCHEMA_CACHE = new Map();
+
+/** Notion DB スキーマキャッシュの有効期限（ミリ秒） */
+const NOTION_SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** Notion DB 初期作成時のデフォルト名 */
+const DEFAULT_NOTION_DB_NAMES = {
+  student: '生徒名簿',
+  reservation: '予約記録',
+  schedule: '日程',
+};
+
+/** Notion DB 初期作成時のタイトルプロパティ名 */
+const DEFAULT_NOTION_TITLE_PROPERTY_NAME = 'タイトル';
 
 // ================================================================
 // 型定義
@@ -51,6 +73,8 @@ const RATE_LIMIT_DELAY_MS = 350;
  * @typedef {Object} NotionConfig
  * @property {string} token - Notion API トークン
  * @property {string} studentDbId - 生徒データベースID
+ * @property {string | null} [reservationDbId] - 予約記録データベースID
+ * @property {string | null} [scheduleDbId] - 日程データベースID
  */
 
 /**
@@ -73,6 +97,7 @@ const RATE_LIMIT_DELAY_MS = 350;
  * @property {boolean} [has_more]
  * @property {string} [next_cursor]
  * @property {Array<{plain_text: string}>} [title]
+ * @property {Record<string, any>} [properties]
  */
 
 /**
@@ -82,6 +107,28 @@ const RATE_LIMIT_DELAY_MS = 350;
  * @property {string | undefined} [realName]
  * @property {string | undefined} [phone]
  * @property {string | undefined} [status]
+ */
+
+/**
+ * @typedef {Object} NotionDatabaseSchema
+ * @property {string | null} titlePropertyName
+ * @property {Record<string, {type: string}>} properties
+ */
+
+/**
+ * @typedef {Object} SheetSnapshot
+ * @property {string[]} headers
+ * @property {number} idColIdx
+ * @property {Map<string, {values: Record<string, any>, rowIndex: number}>} byId
+ */
+
+/**
+ * @typedef {Object} NotionDatabaseCreationOptions
+ * @property {string} [token]
+ * @property {string} [studentDbName]
+ * @property {string} [reservationDbName]
+ * @property {string} [scheduleDbName]
+ * @property {string} [titlePropertyName]
  */
 
 // ================================================================
@@ -97,12 +144,16 @@ export function getNotionConfig() {
     const props = PropertiesService.getScriptProperties();
     const token = props.getProperty(PROPS_KEY_NOTION_TOKEN);
     const studentDbId = props.getProperty(PROPS_KEY_NOTION_STUDENT_DB_ID);
+    const reservationDbId = props.getProperty(
+      PROPS_KEY_NOTION_RESERVATION_DB_ID,
+    );
+    const scheduleDbId = props.getProperty(PROPS_KEY_NOTION_SCHEDULE_DB_ID);
 
     if (!token || !studentDbId) {
       return null;
     }
 
-    return { token, studentDbId };
+    return { token, studentDbId, reservationDbId, scheduleDbId };
   } catch (error) {
     Logger.log(
       `getNotionConfig Error: ${/** @type {Error} */ (error).message}`,
@@ -137,6 +188,126 @@ export function setNotionCredentials(token, studentDbId) {
 }
 
 /**
+ * Notion トークンのみ保存します（DB作成時に使用）
+ * GASエディタから実行してください。
+ *
+ * @param {string} token - Notion Integration Token (secret_xxx)
+ * @returns {void}
+ */
+export function setNotionToken(token) {
+  if (!token) {
+    throw new Error('token は必須です');
+  }
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty(PROPS_KEY_NOTION_TOKEN, token);
+  Logger.log('Notionトークンを保存しました');
+}
+
+/**
+ * 予約記録DBのIDを保存します
+ * GASエディタから実行してください。
+ *
+ * @param {string} reservationDbId - 予約記録データベースID
+ * @returns {void}
+ */
+export function setNotionReservationDatabaseId(reservationDbId) {
+  if (!reservationDbId) {
+    throw new Error('reservationDbId は必須です');
+  }
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty(PROPS_KEY_NOTION_RESERVATION_DB_ID, reservationDbId);
+  Logger.log('Notion予約記録DB IDを保存しました');
+  Logger.log(`Reservation DB ID: ${reservationDbId}`);
+}
+
+/**
+ * 日程DBのIDを保存します
+ * GASエディタから実行してください。
+ *
+ * @param {string} scheduleDbId - 日程データベースID
+ * @returns {void}
+ */
+export function setNotionScheduleDatabaseId(scheduleDbId) {
+  if (!scheduleDbId) {
+    throw new Error('scheduleDbId は必須です');
+  }
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty(PROPS_KEY_NOTION_SCHEDULE_DB_ID, scheduleDbId);
+  Logger.log('Notion日程DB IDを保存しました');
+  Logger.log(`Schedule DB ID: ${scheduleDbId}`);
+}
+
+/**
+ * Notion 側に同期用DBを作成します
+ *
+ * @param {string} parentPageIdOrUrl - 親ページIDまたはURL
+ * @param {NotionDatabaseCreationOptions} [options]
+ * @returns {{studentDbId?: string, reservationDbId?: string, scheduleDbId?: string}}
+ */
+export function createNotionDatabasesForSync(parentPageIdOrUrl, options = {}) {
+  const token = options.token || _getNotionToken();
+  if (!token) {
+    throw new Error('Notionトークンが設定されていません');
+  }
+
+  const parentPageId = _normalizeNotionPageId(parentPageIdOrUrl);
+  if (!parentPageId) {
+    throw new Error('親ページIDが正しくありません');
+  }
+
+  const titlePropertyName =
+    options.titlePropertyName || DEFAULT_NOTION_TITLE_PROPERTY_NAME;
+  const studentDbName =
+    options.studentDbName || DEFAULT_NOTION_DB_NAMES.student;
+  const reservationDbName =
+    options.reservationDbName || DEFAULT_NOTION_DB_NAMES.reservation;
+  const scheduleDbName =
+    options.scheduleDbName || DEFAULT_NOTION_DB_NAMES.schedule;
+
+  /** @type {{studentDbId?: string, reservationDbId?: string, scheduleDbId?: string}} */
+  const created = {};
+
+  created.studentDbId = _createNotionDatabaseFromSheet(
+    token,
+    parentPageId,
+    studentDbName,
+    CONSTANTS.SHEET_NAMES.ROSTER,
+    titlePropertyName,
+  );
+  created.reservationDbId = _createNotionDatabaseFromSheet(
+    token,
+    parentPageId,
+    reservationDbName,
+    CONSTANTS.SHEET_NAMES.RESERVATIONS,
+    titlePropertyName,
+  );
+  created.scheduleDbId = _createNotionDatabaseFromSheet(
+    token,
+    parentPageId,
+    scheduleDbName,
+    CONSTANTS.SHEET_NAMES.SCHEDULE,
+    titlePropertyName,
+  );
+
+  const props = PropertiesService.getScriptProperties();
+  if (created.studentDbId) {
+    props.setProperty(PROPS_KEY_NOTION_STUDENT_DB_ID, created.studentDbId);
+  }
+  if (created.reservationDbId) {
+    props.setProperty(
+      PROPS_KEY_NOTION_RESERVATION_DB_ID,
+      created.reservationDbId,
+    );
+  }
+  if (created.scheduleDbId) {
+    props.setProperty(PROPS_KEY_NOTION_SCHEDULE_DB_ID, created.scheduleDbId);
+  }
+
+  Logger.log(`Notion同期DB作成完了: ${JSON.stringify(created)}`);
+  return created;
+}
+
+/**
  * Notion 接続設定を削除します（デバッグ用）
  * @returns {void}
  */
@@ -144,6 +315,10 @@ export function clearNotionCredentials() {
   const props = PropertiesService.getScriptProperties();
   props.deleteProperty(PROPS_KEY_NOTION_TOKEN);
   props.deleteProperty(PROPS_KEY_NOTION_STUDENT_DB_ID);
+  props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_DB_ID);
+  props.deleteProperty(PROPS_KEY_NOTION_SCHEDULE_DB_ID);
+  props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
+  props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
   Logger.log('Notion認証情報を削除しました');
 }
 
@@ -174,8 +349,18 @@ export function syncStudentToNotion(studentId, action) {
       return { success: false, error: '生徒が見つかりません' };
     }
 
+    const rosterSnapshot = _getRosterSnapshot();
+    const rosterValues = rosterSnapshot?.byId.get(studentId)?.values || null;
+    const schema = _getNotionDatabaseSchema(config, config.studentDbId);
+
     // 既存の Notion ページを検索
-    const existingPage = _findNotionPageByStudentId(config, studentId);
+    const existingPage = _findNotionPageByProperty(
+      config,
+      config.studentDbId,
+      CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+      studentId,
+      schema,
+    );
 
     /** @type {StudentData} */
     const studentData = student || { studentId };
@@ -184,24 +369,42 @@ export function syncStudentToNotion(studentId, action) {
       case 'create':
         if (existingPage) {
           // 既に存在する場合は更新
-          return _updateNotionPage(config, existingPage.id, studentData);
+          return _updateNotionPage(
+            config,
+            existingPage.id,
+            studentData,
+            rosterValues,
+            schema,
+          );
         }
-        return _createNotionPage(config, studentData);
+        return _createNotionPage(config, studentData, rosterValues, schema);
 
       case 'update':
         if (existingPage) {
-          return _updateNotionPage(config, existingPage.id, studentData);
+          return _updateNotionPage(
+            config,
+            existingPage.id,
+            studentData,
+            rosterValues,
+            schema,
+          );
         }
         // 存在しない場合は新規作成
-        return _createNotionPage(config, studentData);
+        return _createNotionPage(config, studentData, rosterValues, schema);
 
       case 'delete':
         if (existingPage) {
           // ステータスを「退会済み」に更新
-          return _updateNotionPage(config, existingPage.id, {
-            ...studentData,
-            status: '退会済み',
-          });
+          return _updateNotionPage(
+            config,
+            existingPage.id,
+            {
+              ...studentData,
+              status: '退会済み',
+            },
+            rosterValues,
+            schema,
+          );
         }
         return { success: true }; // 存在しなければ何もしない
 
@@ -246,8 +449,11 @@ export function syncAllStudentsToNotion() {
       return { success: true, created: 0, updated: 0, errors: 0 };
     }
 
+    const rosterSnapshot = _getRosterSnapshot();
+    const schema = _getNotionDatabaseSchema(config, config.studentDbId);
+
     // Notion側の既存ページを全取得
-    const existingPages = _getAllNotionPages(config);
+    const existingPages = _getAllNotionPages(config, config.studentDbId);
     /** @type {Map<string | null, NotionPage>} */
     const existingPageMap = new Map(
       existingPages.map(page => [_extractStudentIdFromPage(page), page]),
@@ -262,8 +468,11 @@ export function syncAllStudentsToNotion() {
       const student = allStudents[studentId];
 
       // 退会済みユーザーはスキップ（または「退会済み」ステータスで同期）
-      const isWithdrawn =
-        student.phone && student.phone.startsWith('_WITHDRAWN_');
+      const phoneText =
+        student.phone === null || student.phone === undefined
+          ? ''
+          : String(student.phone);
+      const isWithdrawn = phoneText.startsWith('_WITHDRAWN_');
 
       try {
         const existingPage = existingPageMap.get(studentId);
@@ -283,6 +492,8 @@ export function syncAllStudentsToNotion() {
             config,
             existingPage.id,
             studentData,
+            rosterSnapshot?.byId.get(studentId)?.values || null,
+            schema,
           );
           if (result.success) {
             updated++;
@@ -291,7 +502,12 @@ export function syncAllStudentsToNotion() {
           }
         } else if (!isWithdrawn) {
           // 新規作成（退会済みは新規作成しない）
-          const result = _createNotionPage(config, studentData);
+          const result = _createNotionPage(
+            config,
+            studentData,
+            rosterSnapshot?.byId.get(studentId)?.values || null,
+            schema,
+          );
           if (result.success) {
             created++;
           } else {
@@ -322,6 +538,844 @@ export function syncAllStudentsToNotion() {
       `syncAllStudentsToNotion Error: ${/** @type {Error} */ (error).message}`,
     );
     return { success: false, created, updated, errors: errors + 1 };
+  }
+}
+
+/**
+ * 全生徒データを分割で Notion に同期します（途中再開可能）
+ *
+ * @param {number} [batchSize=50] - 1回で処理する件数
+ * @returns {{success: boolean, created: number, updated: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
+ */
+export function syncAllStudentsToNotionChunk(batchSize = 50) {
+  let created = 0;
+  let updated = 0;
+  let errors = 0;
+
+  try {
+    const config = getNotionConfig();
+    if (!config) {
+      Logger.log('Notion一括同期スキップ: 設定が未完了です');
+      return {
+        success: false,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        processed: 0,
+        total: 0,
+        done: true,
+        nextIndex: 0,
+      };
+    }
+
+    const allStudents = getCachedAllStudents();
+    if (!allStudents || Object.keys(allStudents).length === 0) {
+      Logger.log('Notion一括同期: 生徒データがありません');
+      return {
+        success: true,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        processed: 0,
+        total: 0,
+        done: true,
+        nextIndex: 0,
+      };
+    }
+
+    const rosterSnapshot = _getRosterSnapshot();
+    const orderedIds = rosterSnapshot
+      ? _getOrderedIdsFromSnapshot(rosterSnapshot)
+      : Object.keys(allStudents);
+    const total = orderedIds.length;
+    if (total === 0) {
+      return {
+        success: true,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        processed: 0,
+        total: 0,
+        done: true,
+        nextIndex: 0,
+      };
+    }
+
+    const props = PropertiesService.getScriptProperties();
+    const storedCursor = props.getProperty(
+      PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR,
+    );
+    const cursorIndex = storedCursor ? Number(storedCursor) : 0;
+    const startIndex =
+      Number.isFinite(cursorIndex) && cursorIndex > 0 ? cursorIndex : 0;
+
+    if (startIndex >= total) {
+      props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
+      return {
+        success: true,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        processed: 0,
+        total,
+        done: true,
+        nextIndex: 0,
+      };
+    }
+
+    const safeBatchSize = Number(batchSize);
+    const effectiveBatchSize =
+      Number.isFinite(safeBatchSize) && safeBatchSize > 0
+        ? Math.floor(safeBatchSize)
+        : 50;
+    const endIndex = Math.min(startIndex + effectiveBatchSize, total);
+
+    const schema = _getNotionDatabaseSchema(config, config.studentDbId);
+    const existingPages = _getAllNotionPages(config, config.studentDbId);
+    /** @type {Map<string | null, NotionPage>} */
+    const existingPageMap = new Map(
+      existingPages.map(page => [_extractStudentIdFromPage(page), page]),
+    );
+
+    for (let idx = startIndex; idx < endIndex; idx++) {
+      const studentId = orderedIds[idx];
+      const student = allStudents[studentId] || getCachedStudentById(studentId);
+      const rosterValues = rosterSnapshot?.byId.get(studentId)?.values || null;
+
+      const phoneRaw =
+        student?.phone ?? rosterValues?.[CONSTANTS.HEADERS.ROSTER.PHONE] ?? '';
+      const phoneText =
+        phoneRaw === null || phoneRaw === undefined ? '' : String(phoneRaw);
+      const isWithdrawn = phoneText.startsWith('_WITHDRAWN_');
+
+      /** @type {StudentData} */
+      const studentData = {
+        studentId: student?.studentId || studentId,
+        nickname:
+          student?.nickname ||
+          _stringifyValue(rosterValues?.[CONSTANTS.HEADERS.ROSTER.NICKNAME]),
+        realName:
+          student?.realName ||
+          _stringifyValue(rosterValues?.[CONSTANTS.HEADERS.ROSTER.REAL_NAME]),
+        phone: phoneRaw,
+        status: isWithdrawn ? '退会済み' : '在籍中',
+      };
+
+      try {
+        const existingPage = existingPageMap.get(studentId);
+        if (existingPage) {
+          const result = _updateNotionPage(
+            config,
+            existingPage.id,
+            studentData,
+            rosterValues,
+            schema,
+          );
+          if (result.success) {
+            updated++;
+          } else {
+            errors++;
+          }
+        } else if (!isWithdrawn) {
+          const result = _createNotionPage(
+            config,
+            studentData,
+            rosterValues,
+            schema,
+          );
+          if (result.success) {
+            created++;
+          } else {
+            errors++;
+          }
+        }
+      } catch (error) {
+        Logger.log(
+          `Notion同期エラー (${studentId}): ${/** @type {Error} */ (error).message}`,
+        );
+        errors++;
+      }
+
+      Utilities.sleep(RATE_LIMIT_DELAY_MS);
+    }
+
+    const processed = endIndex - startIndex;
+    const done = endIndex >= total;
+    if (done) {
+      props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
+    } else {
+      props.setProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR, String(endIndex));
+    }
+
+    return {
+      success: true,
+      created,
+      updated,
+      errors,
+      processed,
+      total,
+      done,
+      nextIndex: done ? 0 : endIndex,
+    };
+  } catch (error) {
+    Logger.log(
+      `syncAllStudentsToNotionChunk Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      created,
+      updated,
+      errors: errors + 1,
+      processed: 0,
+      total: 0,
+      done: false,
+      nextIndex: 0,
+    };
+  }
+}
+
+/**
+ * 生徒一括同期のカーソルをリセットします
+ * @returns {void}
+ */
+export function resetNotionStudentSyncCursor() {
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
+  Logger.log('Notion生徒一括同期カーソルをリセットしました');
+}
+
+/**
+ * 予約一括同期のカーソルをリセットします
+ * @returns {void}
+ */
+export function resetNotionReservationSyncCursor() {
+  const props = PropertiesService.getScriptProperties();
+  props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
+  Logger.log('Notion予約一括同期カーソルをリセットしました');
+}
+
+/**
+ * 生徒IDを指定して Notion に同期します
+ *
+ * @param {string[] | string} studentIds - 生徒ID配列 またはカンマ/改行区切り文字列
+ * @param {'create' | 'update' | 'delete'} [action='update']
+ * @returns {{success: boolean, results: Array<{studentId: string, success: boolean, error?: string}>}}
+ */
+export function syncStudentsToNotionByIds(studentIds, action = 'update') {
+  const ids = _normalizeIdList(studentIds);
+  /** @type {Array<{studentId: string, success: boolean, error?: string}>} */
+  const results = [];
+
+  ids.forEach(id => {
+    const result = syncStudentToNotion(id, action);
+    if (result.error) {
+      results.push({
+        studentId: id,
+        success: result.success,
+        error: result.error,
+      });
+      return;
+    }
+    results.push({ studentId: id, success: result.success });
+  });
+
+  return {
+    success: results.every(item => item.success),
+    results,
+  };
+}
+
+// ================================================================
+// ★★★ 予約記録・日程の同期 ★★★
+// ================================================================
+
+/**
+ * 予約記録を Notion に同期します
+ *
+ * @param {string} reservationId - 予約ID
+ * @param {'create' | 'update' | 'delete'} [action='update'] - 同期アクション
+ * @returns {NotionSyncResult}
+ */
+export function syncReservationToNotion(reservationId, action = 'update') {
+  try {
+    const config = getNotionConfig();
+    const reservationDbId = config?.reservationDbId;
+    if (!reservationDbId) {
+      Logger.log('Notion予約同期スキップ: 予約DBが未設定です');
+      return { success: false, error: '予約DB未設定' };
+    }
+    if (!reservationId) {
+      return { success: false, error: 'reservationId が必要です' };
+    }
+
+    const snapshot = _getReservationSnapshot();
+    const rowValues = snapshot?.byId.get(String(reservationId))?.values || null;
+    if (!rowValues) {
+      Logger.log(
+        `Notion予約同期スキップ: 予約が見つかりません - ${reservationId}`,
+      );
+      return { success: false, error: '予約が見つかりません' };
+    }
+
+    const schema = _getNotionDatabaseSchema(config, reservationDbId);
+    const existingPage = _findNotionPageByProperty(
+      config,
+      reservationDbId,
+      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+      String(reservationId),
+      schema,
+    );
+
+    const titleValue = _getReservationTitle(rowValues);
+    const properties = _buildNotionPropertiesFromValues(
+      rowValues,
+      schema,
+      titleValue,
+    );
+
+    if (existingPage) {
+      return _updateNotionPageInDatabase(
+        config,
+        existingPage.id,
+        properties,
+        titleValue,
+      );
+    }
+
+    if (action === 'delete') {
+      return { success: true };
+    }
+
+    return _createNotionPageInDatabase(
+      config,
+      reservationDbId,
+      properties,
+      titleValue,
+    );
+  } catch (error) {
+    Logger.log(
+      `syncReservationToNotion Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return { success: false, error: /** @type {Error} */ (error).message };
+  }
+}
+
+/**
+ * 日程を Notion に同期します
+ *
+ * @param {string} lessonId - レッスンID
+ * @param {'create' | 'update' | 'delete'} [action='update'] - 同期アクション
+ * @returns {NotionSyncResult}
+ */
+export function syncScheduleToNotion(lessonId, action = 'update') {
+  try {
+    const config = getNotionConfig();
+    const scheduleDbId = config?.scheduleDbId;
+    if (!scheduleDbId) {
+      Logger.log('Notion日程同期スキップ: 日程DBが未設定です');
+      return { success: false, error: '日程DB未設定' };
+    }
+    if (!lessonId) {
+      return { success: false, error: 'lessonId が必要です' };
+    }
+
+    const snapshot = _getScheduleSnapshot();
+    const rowValues = snapshot?.byId.get(String(lessonId))?.values || null;
+    if (!rowValues) {
+      Logger.log(`Notion日程同期スキップ: 日程が見つかりません - ${lessonId}`);
+      return { success: false, error: '日程が見つかりません' };
+    }
+
+    const schema = _getNotionDatabaseSchema(config, scheduleDbId);
+    const existingPage = _findNotionPageByProperty(
+      config,
+      scheduleDbId,
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+      String(lessonId),
+      schema,
+    );
+
+    const titleValue = _getScheduleTitle(rowValues);
+    const properties = _buildNotionPropertiesFromValues(
+      rowValues,
+      schema,
+      titleValue,
+    );
+
+    if (existingPage) {
+      return _updateNotionPageInDatabase(
+        config,
+        existingPage.id,
+        properties,
+        titleValue,
+      );
+    }
+
+    if (action === 'delete') {
+      return { success: true };
+    }
+
+    return _createNotionPageInDatabase(
+      config,
+      scheduleDbId,
+      properties,
+      titleValue,
+    );
+  } catch (error) {
+    Logger.log(
+      `syncScheduleToNotion Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return { success: false, error: /** @type {Error} */ (error).message };
+  }
+}
+
+/**
+ * 予約記録を一括で Notion に同期します
+ *
+ * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ */
+export function syncAllReservationsToNotion() {
+  let created = 0;
+  let updated = 0;
+  let errors = 0;
+
+  try {
+    const config = getNotionConfig();
+    const reservationDbId = config?.reservationDbId;
+    if (!reservationDbId) {
+      Logger.log('Notion予約一括同期スキップ: 予約DBが未設定です');
+      return { success: false, created: 0, updated: 0, errors: 0 };
+    }
+
+    const snapshot = _getReservationSnapshot();
+    if (!snapshot) {
+      Logger.log('Notion予約一括同期: 予約データがありません');
+      return { success: true, created: 0, updated: 0, errors: 0 };
+    }
+
+    const schema = _getNotionDatabaseSchema(config, reservationDbId);
+    const existingPages = _getAllNotionPages(config, reservationDbId);
+    const pageMap = _mapNotionPagesByProperty(
+      existingPages,
+      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+    );
+
+    snapshot.byId.forEach((entry, reservationId) => {
+      try {
+        const titleValue = _getReservationTitle(entry.values);
+        const properties = _buildNotionPropertiesFromValues(
+          entry.values,
+          schema,
+          titleValue,
+        );
+
+        const existingPage = pageMap.get(String(reservationId));
+        if (existingPage) {
+          const result = _updateNotionPageInDatabase(
+            config,
+            existingPage.id,
+            properties,
+            titleValue,
+          );
+          if (result.success) {
+            updated++;
+          } else {
+            errors++;
+          }
+        } else {
+          const result = _createNotionPageInDatabase(
+            config,
+            reservationDbId,
+            properties,
+            titleValue,
+          );
+          if (result.success) {
+            created++;
+          } else {
+            errors++;
+          }
+        }
+      } catch (error) {
+        Logger.log(
+          `Notion予約一括同期エラー (${reservationId}): ${/** @type {Error} */ (error).message}`,
+        );
+        errors++;
+      }
+
+      Utilities.sleep(RATE_LIMIT_DELAY_MS);
+    });
+
+    return { success: true, created, updated, errors };
+  } catch (error) {
+    Logger.log(
+      `syncAllReservationsToNotion Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return { success: false, created, updated, errors: errors + 1 };
+  }
+}
+
+/**
+ * 予約記録を分割で Notion に同期します（途中再開可能）
+ *
+ * @param {number} [batchSize=100] - 1回で処理する件数
+ * @returns {{success: boolean, created: number, updated: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
+ */
+export function syncAllReservationsToNotionChunk(batchSize = 100) {
+  let created = 0;
+  let updated = 0;
+  let errors = 0;
+
+  try {
+    const config = getNotionConfig();
+    const reservationDbId = config?.reservationDbId;
+    if (!reservationDbId) {
+      Logger.log('Notion予約一括同期スキップ: 予約DBが未設定です');
+      return {
+        success: false,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        processed: 0,
+        total: 0,
+        done: true,
+        nextIndex: 0,
+      };
+    }
+
+    const snapshot = _getReservationSnapshot();
+    if (!snapshot) {
+      Logger.log('Notion予約一括同期: 予約データがありません');
+      return {
+        success: true,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        processed: 0,
+        total: 0,
+        done: true,
+        nextIndex: 0,
+      };
+    }
+
+    const orderedIds = _getOrderedIdsFromSnapshot(snapshot);
+    const total = orderedIds.length;
+    if (total === 0) {
+      return {
+        success: true,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        processed: 0,
+        total: 0,
+        done: true,
+        nextIndex: 0,
+      };
+    }
+
+    const props = PropertiesService.getScriptProperties();
+    const storedCursor = props.getProperty(
+      PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
+    );
+    const cursorIndex = storedCursor ? Number(storedCursor) : 0;
+    const startIndex =
+      Number.isFinite(cursorIndex) && cursorIndex > 0 ? cursorIndex : 0;
+
+    if (startIndex >= total) {
+      props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
+      return {
+        success: true,
+        created: 0,
+        updated: 0,
+        errors: 0,
+        processed: 0,
+        total,
+        done: true,
+        nextIndex: 0,
+      };
+    }
+
+    const safeBatchSize = Number(batchSize);
+    const effectiveBatchSize =
+      Number.isFinite(safeBatchSize) && safeBatchSize > 0
+        ? Math.floor(safeBatchSize)
+        : 100;
+    const endIndex = Math.min(startIndex + effectiveBatchSize, total);
+
+    const schema = _getNotionDatabaseSchema(config, reservationDbId);
+    const existingPages = _getAllNotionPages(config, reservationDbId);
+    const pageMap = _mapNotionPagesByProperty(
+      existingPages,
+      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+    );
+
+    for (let idx = startIndex; idx < endIndex; idx++) {
+      const reservationId = orderedIds[idx];
+      const entry = snapshot.byId.get(reservationId);
+      if (!entry) continue;
+
+      try {
+        const titleValue = _getReservationTitle(entry.values);
+        const properties = _buildNotionPropertiesFromValues(
+          entry.values,
+          schema,
+          titleValue,
+        );
+
+        const existingPage = pageMap.get(String(reservationId));
+        if (existingPage) {
+          const result = _updateNotionPageInDatabase(
+            config,
+            existingPage.id,
+            properties,
+            titleValue,
+          );
+          if (result.success) {
+            updated++;
+          } else {
+            errors++;
+          }
+        } else {
+          const result = _createNotionPageInDatabase(
+            config,
+            reservationDbId,
+            properties,
+            titleValue,
+          );
+          if (result.success) {
+            created++;
+          } else {
+            errors++;
+          }
+        }
+      } catch (error) {
+        Logger.log(
+          `Notion予約一括同期エラー (${reservationId}): ${/** @type {Error} */ (error).message}`,
+        );
+        errors++;
+      }
+
+      Utilities.sleep(RATE_LIMIT_DELAY_MS);
+    }
+
+    const processed = endIndex - startIndex;
+    const done = endIndex >= total;
+    if (done) {
+      props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
+    } else {
+      props.setProperty(
+        PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
+        String(endIndex),
+      );
+    }
+
+    return {
+      success: true,
+      created,
+      updated,
+      errors,
+      processed,
+      total,
+      done,
+      nextIndex: done ? 0 : endIndex,
+    };
+  } catch (error) {
+    Logger.log(
+      `syncAllReservationsToNotionChunk Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      created,
+      updated,
+      errors: errors + 1,
+      processed: 0,
+      total: 0,
+      done: false,
+      nextIndex: 0,
+    };
+  }
+}
+
+/**
+ * 日程を一括で Notion に同期します
+ *
+ * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ */
+export function syncAllSchedulesToNotion() {
+  let created = 0;
+  let updated = 0;
+  let errors = 0;
+
+  try {
+    const config = getNotionConfig();
+    const scheduleDbId = config?.scheduleDbId;
+    if (!scheduleDbId) {
+      Logger.log('Notion日程一括同期スキップ: 日程DBが未設定です');
+      return { success: false, created: 0, updated: 0, errors: 0 };
+    }
+
+    const snapshot = _getScheduleSnapshot();
+    if (!snapshot) {
+      Logger.log('Notion日程一括同期: 日程データがありません');
+      return { success: true, created: 0, updated: 0, errors: 0 };
+    }
+
+    const schema = _getNotionDatabaseSchema(config, scheduleDbId);
+    const existingPages = _getAllNotionPages(config, scheduleDbId);
+    const pageMap = _mapNotionPagesByProperty(
+      existingPages,
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    );
+
+    snapshot.byId.forEach((entry, lessonId) => {
+      try {
+        const titleValue = _getScheduleTitle(entry.values);
+        const properties = _buildNotionPropertiesFromValues(
+          entry.values,
+          schema,
+          titleValue,
+        );
+
+        const existingPage = pageMap.get(String(lessonId));
+        if (existingPage) {
+          const result = _updateNotionPageInDatabase(
+            config,
+            existingPage.id,
+            properties,
+            titleValue,
+          );
+          if (result.success) {
+            updated++;
+          } else {
+            errors++;
+          }
+        } else {
+          const result = _createNotionPageInDatabase(
+            config,
+            scheduleDbId,
+            properties,
+            titleValue,
+          );
+          if (result.success) {
+            created++;
+          } else {
+            errors++;
+          }
+        }
+      } catch (error) {
+        Logger.log(
+          `Notion日程一括同期エラー (${lessonId}): ${/** @type {Error} */ (error).message}`,
+        );
+        errors++;
+      }
+
+      Utilities.sleep(RATE_LIMIT_DELAY_MS);
+    });
+
+    return { success: true, created, updated, errors };
+  } catch (error) {
+    Logger.log(
+      `syncAllSchedulesToNotion Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return { success: false, created, updated, errors: errors + 1 };
+  }
+}
+
+/**
+ * 当日以降の日程を Notion に同期します
+ *
+ * @returns {{success: boolean, created: number, updated: number, errors: number, skipped: number}}
+ */
+export function syncUpcomingSchedulesToNotion() {
+  let created = 0;
+  let updated = 0;
+  let errors = 0;
+  let skipped = 0;
+
+  try {
+    const config = getNotionConfig();
+    const scheduleDbId = config?.scheduleDbId;
+    if (!scheduleDbId) {
+      Logger.log('Notion日程同期スキップ: 日程DBが未設定です');
+      return { success: false, created: 0, updated: 0, errors: 0, skipped: 0 };
+    }
+
+    const snapshot = _getScheduleSnapshot();
+    if (!snapshot) {
+      Logger.log('Notion日程同期: 日程データがありません');
+      return { success: true, created: 0, updated: 0, errors: 0, skipped: 0 };
+    }
+
+    const schema = _getNotionDatabaseSchema(config, scheduleDbId);
+    const existingPages = _getAllNotionPages(config, scheduleDbId);
+    const pageMap = _mapNotionPagesByProperty(
+      existingPages,
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    );
+
+    const today = _getTodayStart();
+
+    snapshot.byId.forEach((entry, lessonId) => {
+      try {
+        const dateValue = entry.values[CONSTANTS.HEADERS.SCHEDULE.DATE];
+        const parsedDate = _parseScheduleDateForComparison(dateValue);
+        if (!parsedDate) {
+          skipped++;
+          return;
+        }
+        if (parsedDate < today) {
+          skipped++;
+          return;
+        }
+
+        const titleValue = _getScheduleTitle(entry.values);
+        const properties = _buildNotionPropertiesFromValues(
+          entry.values,
+          schema,
+          titleValue,
+        );
+
+        const existingPage = pageMap.get(String(lessonId));
+        if (existingPage) {
+          const result = _updateNotionPageInDatabase(
+            config,
+            existingPage.id,
+            properties,
+            titleValue,
+          );
+          if (result.success) {
+            updated++;
+          } else {
+            errors++;
+          }
+        } else {
+          const result = _createNotionPageInDatabase(
+            config,
+            scheduleDbId,
+            properties,
+            titleValue,
+          );
+          if (result.success) {
+            created++;
+          } else {
+            errors++;
+          }
+        }
+      } catch (error) {
+        Logger.log(
+          `Notion日程同期エラー (${lessonId}): ${/** @type {Error} */ (error).message}`,
+        );
+        errors++;
+      }
+
+      Utilities.sleep(RATE_LIMIT_DELAY_MS);
+    });
+
+    return { success: true, created, updated, errors, skipped };
+  } catch (error) {
+    Logger.log(
+      `syncUpcomingSchedulesToNotion Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return { success: false, created, updated, errors: errors + 1, skipped };
   }
 }
 
@@ -367,25 +1421,154 @@ function _notionRequest(token, endpoint, method, payload = null) {
 }
 
 /**
+ * Notionトークンを取得します
+ *
+ * @returns {string | null}
+ * @private
+ */
+function _getNotionToken() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    return props.getProperty(PROPS_KEY_NOTION_TOKEN);
+  } catch (error) {
+    Logger.log(
+      `Notionトークン取得エラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * Notion DB をシート定義から作成します
+ *
+ * @param {string} token
+ * @param {string} parentPageId
+ * @param {string} dbName
+ * @param {string} sheetName
+ * @param {string} titlePropertyName
+ * @returns {string}
+ * @private
+ */
+function _createNotionDatabaseFromSheet(
+  token,
+  parentPageId,
+  dbName,
+  sheetName,
+  titlePropertyName,
+) {
+  const sheet = SS_MANAGER.getSheet(sheetName);
+  if (!sheet) {
+    throw new Error(`シートが見つかりません: ${sheetName}`);
+  }
+  const headers = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0]
+    .filter(header => header);
+
+  /** @type {Record<string, any>} */
+  const properties = {
+    [titlePropertyName]: { title: {} },
+  };
+
+  headers.forEach(header => {
+    if (header === titlePropertyName) return;
+    properties[header] = { rich_text: {} };
+  });
+
+  const response = _notionRequest(token, '/databases', 'post', {
+    parent: { type: 'page_id', page_id: parentPageId },
+    title: [{ text: { content: dbName } }],
+    properties,
+  });
+
+  if (!response?.id) {
+    throw new Error(`Notion DB作成に失敗しました: ${dbName}`);
+  }
+
+  Logger.log(`Notion DB作成成功: ${dbName} (${response.id})`);
+  return response.id;
+}
+
+/**
+ * NotionページIDを正規化します
+ *
+ * @param {string} input
+ * @returns {string | null}
+ * @private
+ */
+function _normalizeNotionPageId(input) {
+  if (!input) return null;
+  const trimmed = String(input).trim();
+  const idMatch = trimmed.match(/[0-9a-fA-F]{32}/);
+  if (idMatch) return idMatch[0];
+  const hyphenatedMatch = trimmed.match(
+    /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/,
+  );
+  if (hyphenatedMatch) {
+    return hyphenatedMatch[0].replace(/-/g, '');
+  }
+  return null;
+}
+
+/**
  * Notion に生徒ページを新規作成します
  *
  * @param {NotionConfig} config
  * @param {StudentData} student - 生徒データ
+ * @param {Record<string, any> | null} rosterValues - 生徒名簿の行データ
+ * @param {NotionDatabaseSchema | null} schema - Notion DB スキーマ
  * @returns {NotionSyncResult}
  * @private
  */
-function _createNotionPage(config, student) {
-  try {
-    const properties = _buildNotionProperties(student);
+function _createNotionPage(config, student, rosterValues, schema) {
+  const properties = _buildNotionProperties(student, rosterValues, schema);
+  return _createNotionPageInDatabase(
+    config,
+    config.studentDbId,
+    properties,
+    student.nickname || student.realName || '生徒',
+  );
+}
 
+/**
+ * Notion の生徒ページを更新します
+ *
+ * @param {NotionConfig} config
+ * @param {string} pageId - NotionページID
+ * @param {StudentData} student - 生徒データ
+ * @param {Record<string, any> | null} rosterValues - 生徒名簿の行データ
+ * @param {NotionDatabaseSchema | null} schema - Notion DB スキーマ
+ * @returns {NotionSyncResult}
+ * @private
+ */
+function _updateNotionPage(config, pageId, student, rosterValues, schema) {
+  const properties = _buildNotionProperties(student, rosterValues, schema);
+  return _updateNotionPageInDatabase(
+    config,
+    pageId,
+    properties,
+    student.nickname || student.realName || '生徒',
+  );
+}
+
+/**
+ * 任意DBにNotionページを作成します
+ *
+ * @param {NotionConfig} config
+ * @param {string} databaseId
+ * @param {Record<string, any>} properties
+ * @param {string} label
+ * @returns {NotionSyncResult}
+ * @private
+ */
+function _createNotionPageInDatabase(config, databaseId, properties, label) {
+  try {
     const response = _notionRequest(config.token, '/pages', 'post', {
-      parent: { database_id: config.studentDbId },
+      parent: { database_id: databaseId },
       properties: properties,
     });
 
-    Logger.log(
-      `Notionページ作成成功: ${response.id} (${student.nickname || student.realName})`,
-    );
+    Logger.log(`Notionページ作成成功: ${response.id} (${label})`);
     return { success: true, pageId: response.id };
   } catch (error) {
     Logger.log(
@@ -396,25 +1579,22 @@ function _createNotionPage(config, student) {
 }
 
 /**
- * Notion の生徒ページを更新します
+ * 任意DBのNotionページを更新します
  *
  * @param {NotionConfig} config
- * @param {string} pageId - NotionページID
- * @param {StudentData} student - 生徒データ
+ * @param {string} pageId
+ * @param {Record<string, any>} properties
+ * @param {string} label
  * @returns {NotionSyncResult}
  * @private
  */
-function _updateNotionPage(config, pageId, student) {
+function _updateNotionPageInDatabase(config, pageId, properties, label) {
   try {
-    const properties = _buildNotionProperties(student);
-
     const response = _notionRequest(config.token, `/pages/${pageId}`, 'patch', {
       properties: properties,
     });
 
-    Logger.log(
-      `Notionページ更新成功: ${response.id} (${student.nickname || student.realName})`,
-    );
+    Logger.log(`Notionページ更新成功: ${response.id} (${label})`);
     return { success: true, pageId: response.id };
   } catch (error) {
     Logger.log(
@@ -425,26 +1605,33 @@ function _updateNotionPage(config, pageId, student) {
 }
 
 /**
- * 生徒IDで Notion ページを検索します
+ * 任意のキーで Notion ページを検索します
  *
  * @param {NotionConfig} config
- * @param {string} studentId - 生徒ID
+ * @param {string} databaseId
+ * @param {string} propertyName
+ * @param {string} value
+ * @param {NotionDatabaseSchema | null} schema
  * @returns {{id: string} | null}
  * @private
  */
-function _findNotionPageByStudentId(config, studentId) {
+function _findNotionPageByProperty(
+  config,
+  databaseId,
+  propertyName,
+  value,
+  schema,
+) {
   try {
+    const filter = _buildNotionFilter(propertyName, value, schema);
+    if (!filter) return null;
+
     const response = _notionRequest(
       config.token,
-      `/databases/${config.studentDbId}/query`,
+      `/databases/${databaseId}/query`,
       'post',
       {
-        filter: {
-          property: '生徒ID',
-          rich_text: {
-            equals: studentId,
-          },
-        },
+        filter,
       },
     );
 
@@ -462,13 +1649,45 @@ function _findNotionPageByStudentId(config, studentId) {
 }
 
 /**
+ * フィルタ条件を構築します
+ *
+ * @param {string} propertyName
+ * @param {string} value
+ * @param {NotionDatabaseSchema | null} schema
+ * @returns {Object | null}
+ * @private
+ */
+function _buildNotionFilter(propertyName, value, schema) {
+  if (!propertyName || value === undefined || value === null) return null;
+  const valueText = String(value);
+  const propertyType = schema?.properties?.[propertyName]?.type;
+
+  switch (propertyType) {
+    case 'title':
+      return { property: propertyName, title: { equals: valueText } };
+    case 'rich_text':
+      return { property: propertyName, rich_text: { equals: valueText } };
+    case 'number': {
+      const numberValue = Number(valueText);
+      if (Number.isNaN(numberValue)) return null;
+      return { property: propertyName, number: { equals: numberValue } };
+    }
+    case 'select':
+      return { property: propertyName, select: { equals: valueText } };
+    default:
+      return { property: propertyName, rich_text: { equals: valueText } };
+  }
+}
+
+/**
  * Notion データベースの全ページを取得します
  *
  * @param {NotionConfig} config
+ * @param {string} databaseId
  * @returns {NotionPage[]}
  * @private
  */
-function _getAllNotionPages(config) {
+function _getAllNotionPages(config, databaseId) {
   /** @type {NotionPage[]} */
   const allPages = [];
   let hasMore = true;
@@ -485,7 +1704,7 @@ function _getAllNotionPages(config) {
 
       const response = _notionRequest(
         config.token,
-        `/databases/${config.studentDbId}/query`,
+        `/databases/${databaseId}/query`,
         'post',
         payload,
       );
@@ -516,55 +1735,746 @@ function _getAllNotionPages(config) {
  */
 function _extractStudentIdFromPage(page) {
   try {
-    const studentIdProp = page.properties['生徒ID'];
-    if (
-      studentIdProp &&
-      studentIdProp.rich_text &&
-      studentIdProp.rich_text.length > 0
-    ) {
-      return studentIdProp.rich_text[0].plain_text;
-    }
-    return null;
+    return _extractPropertyValueFromPage(
+      page,
+      CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+    );
   } catch (_error) {
     return null;
   }
 }
 
 /**
+ * Notionページから指定プロパティの値を抽出します
+ *
+ * @param {NotionPage} page
+ * @param {string} propertyName
+ * @returns {string | null}
+ * @private
+ */
+function _extractPropertyValueFromPage(page, propertyName) {
+  const prop = page.properties?.[propertyName];
+  if (!prop) return null;
+
+  switch (prop.type) {
+    case 'rich_text':
+      return prop.rich_text && prop.rich_text[0]
+        ? prop.rich_text[0].plain_text
+        : null;
+    case 'title':
+      return prop.title && prop.title[0] ? prop.title[0].plain_text : null;
+    case 'number':
+      return prop.number !== null && prop.number !== undefined
+        ? String(prop.number)
+        : null;
+    case 'select':
+      return prop.select?.name || null;
+    default:
+      return null;
+  }
+}
+
+/**
+ * Notionページ配列をキーでマッピングします
+ *
+ * @param {NotionPage[]} pages
+ * @param {string} propertyName
+ * @returns {Map<string, NotionPage>}
+ * @private
+ */
+function _mapNotionPagesByProperty(pages, propertyName) {
+  const map = new Map();
+  pages.forEach(page => {
+    const value = _extractPropertyValueFromPage(page, propertyName);
+    if (value) {
+      map.set(String(value), page);
+    }
+  });
+  return map;
+}
+
+/**
  * 生徒データから Notion プロパティオブジェクトを構築します
  *
  * @param {StudentData} student - 生徒データ
- * @returns {Object} Notionプロパティ
+ * @param {Record<string, any> | null} rosterValues - 生徒名簿の行データ
+ * @param {NotionDatabaseSchema | null} schema - Notion DB スキーマ
+ * @returns {Record<string, any>} Notionプロパティ
  * @private
  */
-function _buildNotionProperties(student) {
-  /** @type {Record<string, Object>} */
+function _buildNotionProperties(student, rosterValues, schema) {
+  const values = { ...(rosterValues || {}) };
+  if (student.studentId && values['生徒ID'] == null) {
+    values['生徒ID'] = student.studentId;
+  }
+  if (student.nickname && values['ニックネーム'] == null) {
+    values['ニックネーム'] = student.nickname;
+  }
+  if (student.realName && values['本名'] == null) {
+    values['本名'] = student.realName;
+  }
+  if (student.phone && values['電話番号'] == null) {
+    values['電話番号'] = student.phone;
+  }
+  if (student.status && values['ステータス'] == null) {
+    values['ステータス'] = student.status;
+  }
+
+  const titleValue = _getStudentTitle(values, student);
+  return _buildNotionPropertiesFromValues(values, schema, titleValue);
+}
+
+/**
+ * 任意の値マップから Notion プロパティを構築します
+ *
+ * @param {Record<string, any>} values
+ * @param {NotionDatabaseSchema | null} schema
+ * @param {string} titleValue
+ * @returns {Record<string, any>}
+ * @private
+ */
+function _buildNotionPropertiesFromValues(values, schema, titleValue) {
+  /** @type {Record<string, any>} */
   const properties = {};
 
-  // ニックネーム（Title）
-  // 本名と完全一致している場合は先頭2文字のみ使用（プライバシー保護）
-  let displayName = student.nickname || student.realName || '名前なし';
-  if (
-    student.nickname &&
-    student.realName &&
-    student.nickname === student.realName
-  ) {
-    displayName = student.realName.substring(0, 2);
-  }
-  properties['ニックネーム'] = {
-    title: [{ text: { content: displayName } }],
+  const schemaInfo = schema || null;
+  const titlePropertyName = schemaInfo?.titlePropertyName || 'タイトル';
+
+  properties[titlePropertyName] = {
+    title: [{ text: { content: titleValue || '名称未設定' } }],
   };
 
-  // 生徒ID（Text）
-  if (student.studentId) {
-    properties['生徒ID'] = {
-      rich_text: [{ text: { content: student.studentId } }],
-    };
-  }
+  const propertyMap = schemaInfo?.properties || {};
+  const hasSchema = !!schemaInfo;
 
-  // 注: 本名・ステータスは公開ギャラリーに不要なため同期しない
+  Object.entries(values).forEach(([propertyName, value]) => {
+    if (propertyName === titlePropertyName) return;
+
+    const propSchema = propertyMap[propertyName];
+    if (!propSchema) {
+      if (!hasSchema) {
+        properties[propertyName] = {
+          rich_text: _buildRichTextValue(value),
+        };
+      }
+      return;
+    }
+
+    let normalizedValue = value;
+    if (_shouldFormatTimeAsSelect(propertyName, propSchema.type)) {
+      normalizedValue = _formatTimeValue(value);
+    }
+
+    const propertyValue = _buildNotionPropertyValue(
+      propSchema.type,
+      normalizedValue,
+    );
+    if (propertyValue) {
+      properties[propertyName] = propertyValue;
+    }
+  });
 
   return properties;
+}
+
+/**
+ * Notion DB スキーマを取得します（キャッシュ付き）
+ *
+ * @param {NotionConfig} config
+ * @param {string} databaseId
+ * @returns {NotionDatabaseSchema | null}
+ * @private
+ */
+function _getNotionDatabaseSchema(config, databaseId) {
+  if (!databaseId) return null;
+
+  const now = Date.now();
+  const cacheEntry = NOTION_SCHEMA_CACHE.get(databaseId);
+  if (cacheEntry && now - cacheEntry.fetchedAt < NOTION_SCHEMA_CACHE_TTL_MS) {
+    return cacheEntry.schema;
+  }
+
+  try {
+    const response = _notionRequest(
+      config.token,
+      `/databases/${databaseId}`,
+      'get',
+    );
+    const properties = response?.properties || {};
+    /** @type {string | null} */
+    let titlePropertyName = null;
+
+    Object.entries(properties).forEach(([propertyName, propertyDef]) => {
+      if (propertyDef?.type === 'title') {
+        titlePropertyName = propertyName;
+      }
+    });
+
+    /** @type {NotionDatabaseSchema} */
+    const schema = {
+      titlePropertyName,
+      properties: /** @type {Record<string, {type: string}>} */ (properties),
+    };
+
+    NOTION_SCHEMA_CACHE.set(databaseId, { schema, fetchedAt: now });
+    return schema;
+  } catch (error) {
+    Logger.log(
+      `Notionスキーマ取得エラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * 生徒名簿シートのスナップショットを取得します
+ *
+ * @returns {SheetSnapshot | null}
+ * @private
+ */
+function _getRosterSnapshot() {
+  return _getSheetSnapshot(
+    CONSTANTS.SHEET_NAMES.ROSTER,
+    CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+    '生徒名簿',
+  );
+}
+
+/**
+ * スナップショットから行順のIDリストを作成します
+ *
+ * @param {SheetSnapshot} snapshot
+ * @returns {string[]}
+ * @private
+ */
+function _getOrderedIdsFromSnapshot(snapshot) {
+  return Array.from(snapshot.byId.entries())
+    .map(([id, entry]) => ({ id, rowIndex: entry.rowIndex }))
+    .sort((a, b) => a.rowIndex - b.rowIndex)
+    .map(item => item.id);
+}
+
+/**
+ * 予約記録シートのスナップショットを取得します
+ *
+ * @returns {SheetSnapshot | null}
+ * @private
+ */
+function _getReservationSnapshot() {
+  return _getSheetSnapshot(
+    CONSTANTS.SHEET_NAMES.RESERVATIONS,
+    CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+    '予約記録',
+  );
+}
+
+/**
+ * 日程シートのスナップショットを取得します
+ *
+ * @returns {SheetSnapshot | null}
+ * @private
+ */
+function _getScheduleSnapshot() {
+  return _getSheetSnapshot(
+    CONSTANTS.SHEET_NAMES.SCHEDULE,
+    CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    '日程',
+  );
+}
+
+/**
+ * 任意シートのスナップショットを取得します
+ *
+ * @param {string} sheetName
+ * @param {string} idHeaderName
+ * @param {string} label
+ * @returns {SheetSnapshot | null}
+ * @private
+ */
+function _getSheetSnapshot(sheetName, idHeaderName, label) {
+  try {
+    const sheet = SS_MANAGER.getSheet(sheetName);
+    if (!sheet || sheet.getLastRow() < 2) {
+      return null;
+    }
+
+    const headers = sheet
+      .getRange(1, 1, 1, sheet.getLastColumn())
+      .getValues()[0];
+    const idColIdx = headers.indexOf(idHeaderName);
+    if (idColIdx < 0) {
+      throw new Error(
+        `${label}に必須の「${idHeaderName}」列が見つかりません。`,
+      );
+    }
+
+    const rows = sheet
+      .getRange(2, 1, sheet.getLastRow() - 1, headers.length)
+      .getValues();
+
+    /** @type {Map<string, {values: Record<string, any>, rowIndex: number}>} */
+    const byId = new Map();
+
+    rows.forEach((row, index) => {
+      const idValue = row[idColIdx];
+      if (!idValue || !String(idValue).trim()) return;
+
+      /** @type {Record<string, any>} */
+      const values = {};
+      headers.forEach((header, colIdx) => {
+        values[header] = row[colIdx];
+      });
+      byId.set(String(idValue), { values, rowIndex: index + 2 });
+    });
+
+    return {
+      headers,
+      idColIdx,
+      byId,
+    };
+  } catch (error) {
+    Logger.log(
+      `${label}スナップショット取得エラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * 表示名を決定します
+ *
+ * @param {Record<string, any>} values
+ * @param {StudentData} student
+ * @returns {string}
+ * @private
+ */
+function _getStudentTitle(values, student) {
+  const nickname =
+    _stringifyValue(values['ニックネーム']) || student.nickname || '';
+  const realName = _stringifyValue(values['本名']) || student.realName || '';
+
+  if (nickname && realName) {
+    return `${nickname} ｜ ${realName}`;
+  }
+  if (nickname) return nickname;
+  if (realName) return realName;
+  return '名前なし';
+}
+
+/**
+ * 日程タイトルを生成します
+ *
+ * @param {Record<string, any>} values
+ * @returns {string}
+ * @private
+ */
+function _getScheduleTitle(values) {
+  const dateValue = values[CONSTANTS.HEADERS.SCHEDULE.DATE];
+  const classroomValue = _stringifyValue(
+    values[CONSTANTS.HEADERS.SCHEDULE.CLASSROOM],
+  );
+  const venueValue = _stringifyValue(values[CONSTANTS.HEADERS.SCHEDULE.VENUE]);
+
+  const dateLabel = _formatDateForTitle(dateValue);
+  const classroomLabel = _stripClassroomSuffix(classroomValue);
+
+  const parts = [dateLabel, classroomLabel].filter(Boolean);
+  if (venueValue) {
+    parts.push(venueValue);
+  }
+
+  return parts.length > 0 ? parts.join('｜') : '日程';
+}
+
+/**
+ * 予約記録タイトルを生成します
+ *
+ * @param {Record<string, any>} values
+ * @returns {string}
+ * @private
+ */
+function _getReservationTitle(values) {
+  const reservationId = _stringifyValue(
+    values[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID],
+  );
+  if (reservationId) return reservationId;
+
+  const dateLabel = _formatDateForTitle(
+    values[CONSTANTS.HEADERS.RESERVATIONS.DATE],
+  );
+  return dateLabel || '予約';
+}
+
+/**
+ * 時刻系プロパティか判定します
+ *
+ * @param {string} propertyName
+ * @returns {boolean}
+ * @private
+ */
+function _isTimePropertyName(propertyName) {
+  return (
+    propertyName === CONSTANTS.HEADERS.SCHEDULE.FIRST_START ||
+    propertyName === CONSTANTS.HEADERS.SCHEDULE.FIRST_END ||
+    propertyName === CONSTANTS.HEADERS.SCHEDULE.SECOND_START ||
+    propertyName === CONSTANTS.HEADERS.SCHEDULE.SECOND_END ||
+    propertyName === CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START ||
+    propertyName === CONSTANTS.HEADERS.RESERVATIONS.START_TIME ||
+    propertyName === CONSTANTS.HEADERS.RESERVATIONS.END_TIME
+  );
+}
+
+/**
+ * Select/Status で時刻を扱うべきか判定します
+ *
+ * @param {string} propertyName
+ * @param {string} type
+ * @returns {boolean}
+ * @private
+ */
+function _shouldFormatTimeAsSelect(propertyName, type) {
+  if (!propertyName) return false;
+  if (type !== 'select' && type !== 'status' && type !== 'multi_select') {
+    return false;
+  }
+  return _isTimePropertyName(propertyName);
+}
+
+/**
+ * 時刻値を "HH:mm" 形式に整形します
+ *
+ * @param {any} value
+ * @returns {string}
+ * @private
+ */
+function _formatTimeValue(value) {
+  if (value === null || value === undefined || value === '') return '';
+
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const totalMinutes = Math.round(value * 24 * 60);
+    if (!Number.isFinite(totalMinutes)) return '';
+    const hours = Math.floor(totalMinutes / 60) % 24;
+    const minutes = totalMinutes % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  }
+
+  const text = String(value).trim();
+  if (!text) return '';
+
+  const timeMatch = text.match(/(\d{1,2})[:時](\d{2})/);
+  if (timeMatch) {
+    const hours = Number(timeMatch[1]);
+    const minutes = Number(timeMatch[2]);
+    if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+  }
+
+  const dateLike = new Date(text);
+  if (!Number.isNaN(dateLike.getTime())) {
+    return Utilities.formatDate(dateLike, CONSTANTS.TIMEZONE, 'HH:mm');
+  }
+
+  return text;
+}
+
+/**
+ * 教室名から末尾の「教室」を除去します
+ *
+ * @param {string} classroom
+ * @returns {string}
+ * @private
+ */
+function _stripClassroomSuffix(classroom) {
+  if (!classroom) return '';
+  return classroom.replace(/教室$/, '');
+}
+
+/**
+ * タイトル用の日付表記に変換します
+ *
+ * @param {any} value
+ * @returns {string}
+ * @private
+ */
+function _formatDateForTitle(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return _stringifyValue(value);
+  return Utilities.formatDate(parsed, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+}
+
+/**
+ * 今日の0時（ローカル）を取得します
+ *
+ * @returns {Date}
+ * @private
+ */
+function _getTodayStart() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+/**
+ * 日程の日付セルを比較用 Date に変換します
+ *
+ * @param {any} value
+ * @returns {Date | null}
+ * @private
+ */
+function _parseScheduleDateForComparison(value) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const base = new Date(Date.UTC(1899, 11, 30));
+    const millis = base.getTime() + value * 24 * 60 * 60 * 1000;
+    const date = new Date(millis);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text) return null;
+
+    const match = text.match(/(\d{4})[\\/.-](\d{1,2})[\\/.-](\d{1,2})/);
+    if (match) {
+      const year = Number(match[1]);
+      const month = Number(match[2]);
+      const day = Number(match[3]);
+      if (
+        Number.isFinite(year) &&
+        Number.isFinite(month) &&
+        Number.isFinite(day)
+      ) {
+        return new Date(year, month - 1, day);
+      }
+    }
+
+    const parsed = new Date(text);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Notionのプロパティ値を構築します
+ *
+ * @param {string} type
+ * @param {any} value
+ * @returns {Object | null}
+ * @private
+ */
+function _buildNotionPropertyValue(type, value) {
+  switch (type) {
+    case 'title':
+      return {
+        title: _buildRichTextValue(value),
+      };
+    case 'rich_text':
+      return {
+        rich_text: _buildRichTextValue(value),
+      };
+    case 'number': {
+      const numberValue = _toNumberValue(value);
+      return { number: numberValue };
+    }
+    case 'select': {
+      const name = _sanitizeSelectOptionName(_stringifyValue(value));
+      return { select: name ? { name } : null };
+    }
+    case 'status': {
+      const name = _sanitizeSelectOptionName(_stringifyValue(value));
+      return { status: name ? { name } : null };
+    }
+    case 'multi_select': {
+      const names = _toMultiSelectValues(value)
+        .map(name => _sanitizeSelectOptionName(name))
+        .filter(Boolean);
+      return { multi_select: names.map(name => ({ name })) };
+    }
+    case 'date': {
+      const dateValue = _formatDateValue(value);
+      return { date: dateValue ? { start: dateValue } : null };
+    }
+    case 'checkbox':
+      return { checkbox: _toBooleanValue(value) };
+    case 'url': {
+      const urlValue = _stringifyValue(value);
+      return { url: urlValue || null };
+    }
+    case 'email': {
+      const emailValue = _stringifyValue(value);
+      return { email: emailValue || null };
+    }
+    case 'phone_number': {
+      const phoneValue = _stringifyValue(value);
+      return { phone_number: phoneValue || null };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * リッチテキスト値を構築します
+ *
+ * @param {any} value
+ * @returns {Array<{text: {content: string}}>}
+ * @private
+ */
+function _buildRichTextValue(value) {
+  const text = _stringifyValue(value);
+  if (!text) return [];
+  return [{ text: { content: text } }];
+}
+
+/**
+ * セレクト/ステータス用の文字列を整形します
+ *
+ * @param {string} name
+ * @returns {string}
+ * @private
+ */
+function _sanitizeSelectOptionName(name) {
+  if (!name) return '';
+  const sanitized = name.replace(/[，,]/g, '、');
+  if (sanitized !== name) {
+    Logger.log(`Notionセレクト値のカンマを置換: "${name}" -> "${sanitized}"`);
+  }
+  return sanitized;
+}
+
+/**
+ * 値を文字列化します
+ *
+ * @param {any} value
+ * @returns {string}
+ * @private
+ */
+function _stringifyValue(value) {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(
+      value,
+      CONSTANTS.TIMEZONE,
+      'yyyy-MM-dd HH:mm:ss',
+    );
+  }
+  if (Array.isArray(value)) {
+    return value
+      .map(item => _stringifyValue(item))
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'TRUE' : 'FALSE';
+  }
+  return String(value).trim();
+}
+
+/**
+ * 数値変換
+ *
+ * @param {any} value
+ * @returns {number | null}
+ * @private
+ */
+function _toNumberValue(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const numberValue = Number(value);
+  if (Number.isNaN(numberValue)) return null;
+  return numberValue;
+}
+
+/**
+ * マルチセレクト用の配列に変換
+ *
+ * @param {any} value
+ * @returns {string[]}
+ * @private
+ */
+function _toMultiSelectValues(value) {
+  if (Array.isArray(value)) {
+    return value.map(item => _stringifyValue(item)).filter(Boolean);
+  }
+  const text = _stringifyValue(value);
+  if (!text) return [];
+  return text
+    .split(/[、,]/)
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+/**
+ * 日付をNotion形式に変換
+ *
+ * @param {any} value
+ * @returns {string | null}
+ * @private
+ */
+function _formatDateValue(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Utilities.formatDate(
+      value,
+      CONSTANTS.TIMEZONE,
+      "yyyy-MM-dd'T'HH:mm:ssXXX",
+    );
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return Utilities.formatDate(
+    parsed,
+    CONSTANTS.TIMEZONE,
+    "yyyy-MM-dd'T'HH:mm:ssXXX",
+  );
+}
+
+/**
+ * 真偽値に変換
+ *
+ * @param {any} value
+ * @returns {boolean}
+ * @private
+ */
+function _toBooleanValue(value) {
+  if (value === true) return true;
+  if (value === false || value === null || value === undefined) return false;
+  if (typeof value === 'number') return value !== 0;
+  const text = String(value).trim().toLowerCase();
+  return (
+    text === 'true' || text === '1' || text === '希望する' || text === 'yes'
+  );
+}
+
+/**
+ * IDリストを正規化します
+ *
+ * @param {string[] | string} ids
+ * @returns {string[]}
+ * @private
+ */
+function _normalizeIdList(ids) {
+  if (Array.isArray(ids)) {
+    return ids.map(id => String(id).trim()).filter(Boolean);
+  }
+  const text = _stringifyValue(ids);
+  if (!text) return [];
+  return text
+    .split(/[\n,，]/)
+    .map(id => id.trim())
+    .filter(Boolean);
 }
 
 // ================================================================
@@ -580,6 +2490,12 @@ export function checkNotionConfig_DEV() {
   if (config) {
     Logger.log('Notion設定: 完了');
     Logger.log(`Database ID: ${config.studentDbId}`);
+    if (config.reservationDbId) {
+      Logger.log(`Reservation DB ID: ${config.reservationDbId}`);
+    }
+    if (config.scheduleDbId) {
+      Logger.log(`Schedule DB ID: ${config.scheduleDbId}`);
+    }
     Logger.log(`Token: ${config.token.substring(0, 15)}...`);
   } else {
     Logger.log('Notion設定: 未完了');
@@ -630,3 +2546,8 @@ export function syncSingleStudent_DEV(studentId) {
   const result = syncStudentToNotion(studentId, 'update');
   Logger.log(`同期結果: ${JSON.stringify(result)}`);
 }
+
+/**
+ * 【一時実行用】Notion同期DBを作成します
+ * 実行後は削除してください。
+ */
