@@ -2015,6 +2015,20 @@ export function triggerScheduledCacheRebuild() {
     rebuildScheduleMasterCache(); // ステータス更新後にキャッシュも再構築
     rebuildAccountingMasterCache();
 
+    // 3. 画像アップロードUI向けの参加者候補インデックスを更新（設定されている場合のみ）
+    try {
+      const pushResult = pushParticipantsIndexToWorker();
+      if (!pushResult.success) {
+        Logger.log(
+          `参加者候補インデックス更新: 失敗/スキップ - ${pushResult.message || 'N/A'}`,
+        );
+      }
+    } catch (pushError) {
+      Logger.log(
+        `参加者候補インデックス更新エラー: ${pushError.message || pushError}`,
+      );
+    }
+
     PerformanceLog.info('定期メンテナンス: 正常に完了しました。');
 
     Logger.log(
@@ -2026,6 +2040,355 @@ export function triggerScheduledCacheRebuild() {
     );
   } finally {
     scriptLock.releaseLock();
+  }
+}
+
+// =================================================================
+// 画像アップロードUI向け: 参加者候補インデックス生成・配信
+// =================================================================
+
+/** ScriptProperties: 参加者候補インデックスの送信先URL */
+const PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_URL =
+  'UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_URL';
+
+/** ScriptProperties: 参加者候補インデックスの送信用トークン（Bearer） */
+const PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN =
+  'UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN';
+
+/** インデックスの対象期間（過去） */
+const UPLOAD_UI_PARTICIPANTS_INDEX_PAST_DAYS = 730;
+
+/** インデックスの対象期間（未来） */
+const UPLOAD_UI_PARTICIPANTS_INDEX_FUTURE_DAYS = 60;
+
+/**
+ * 画像アップロードUI向けの参加者候補インデックスを生成します（副作用なし）
+ * - 予約キャッシュ（CacheService）から生成
+ * - 取消は除外
+ * - `date -> [{ lesson_id, classroom, venue, participants[] }]` を返す
+ *
+ * @returns {{
+ *   generated_at: string,
+ *   timezone: string,
+ *   source: { reservations_cache_version: number | null },
+ *   dates: Record<string, Array<{ lesson_id: string, classroom: string, venue: string, participants: Array<{ student_id: string, display_name: string }> }>>,
+ * }}
+ */
+export function buildParticipantsIndexForUploadUi() {
+  const now = new Date();
+  const generatedAt = Utilities.formatDate(
+    now,
+    CONSTANTS.TIMEZONE,
+    "yyyy-MM-dd'T'HH:mm:ssXXX",
+  );
+
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  const startDate = new Date(today);
+  startDate.setDate(
+    startDate.getDate() - UPLOAD_UI_PARTICIPANTS_INDEX_PAST_DAYS,
+  );
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + UPLOAD_UI_PARTICIPANTS_INDEX_FUTURE_DAYS);
+
+  const startYmd = Utilities.formatDate(
+    startDate,
+    CONSTANTS.TIMEZONE,
+    'yyyy-MM-dd',
+  );
+  const endYmd = Utilities.formatDate(
+    endDate,
+    CONSTANTS.TIMEZONE,
+    'yyyy-MM-dd',
+  );
+
+  const reservationCache = getReservationCacheSnapshot(false);
+  const versionRaw = reservationCache?.version ?? null;
+  const versionNum = Number(versionRaw);
+  const reservationsCacheVersion = Number.isFinite(versionNum)
+    ? versionNum
+    : null;
+
+  /** @type {Record<string, any[]>} */
+  const datesObject = {};
+
+  if (
+    !reservationCache ||
+    !Array.isArray(reservationCache.reservations) ||
+    !reservationCache.headerMap
+  ) {
+    Logger.log(
+      '参加者候補インデックス生成: 予約キャッシュが存在しないため空データで返します。',
+    );
+    return {
+      generated_at: generatedAt,
+      timezone: CONSTANTS.TIMEZONE,
+      source: { reservations_cache_version: reservationsCacheVersion },
+      dates: datesObject,
+    };
+  }
+
+  const headerMap =
+    toHeaderMapInstance(normalizeHeaderMap(reservationCache.headerMap || {})) ||
+    null;
+  const studentsCache = getStudentCacheSnapshot(false);
+  /** @type {Record<string, UserCore>} */
+  const studentsMap = studentsCache?.students || {};
+
+  /** @type {Map<string, Map<string, {lesson_id: string, classroom: string, venue: string, participantsMap: Map<string, string>}>>} */
+  const byDate = new Map();
+
+  reservationCache.reservations.forEach(row => {
+    const reservation = Array.isArray(row)
+      ? headerMap
+        ? transformReservationArrayToObjectWithHeaders(
+            row,
+            headerMap,
+            studentsMap,
+          )
+        : transformReservationArrayToObject(row)
+      : /** @type {any} */ (row);
+    if (!reservation) return;
+
+    const date = _normalizeDateToYmd(reservation.date);
+    if (!date) return;
+    if (date < startYmd || date > endYmd) return;
+
+    const status = _toTrimmedString(reservation.status);
+    if (status === CONSTANTS.STATUS.CANCELED) return;
+
+    const studentId = _toTrimmedString(reservation.studentId);
+    if (!studentId) return;
+
+    const student = studentsMap[studentId] || reservation.user || null;
+    const displayName = _toTrimmedString(
+      student?.displayName || student?.nickname || student?.realName,
+    );
+
+    const classroom = _toTrimmedString(reservation.classroom);
+    const venue = _toTrimmedString(reservation.venue);
+    const rawLessonId = _toTrimmedString(reservation.lessonId);
+    const groupKey = rawLessonId || `${date}__${classroom}__${venue}`;
+
+    let groupsByKey = byDate.get(date);
+    if (!groupsByKey) {
+      groupsByKey = new Map();
+      byDate.set(date, groupsByKey);
+    }
+
+    let group = groupsByKey.get(groupKey);
+    if (!group) {
+      group = {
+        lesson_id: rawLessonId || groupKey,
+        classroom,
+        venue,
+        participantsMap: new Map(),
+      };
+      groupsByKey.set(groupKey, group);
+    }
+
+    // 同一生徒の重複を排除しつつ、display_name が空なら上書きできるようにする
+    const existingName = group.participantsMap.get(studentId) || '';
+    if (!existingName) {
+      group.participantsMap.set(studentId, displayName);
+    } else if (displayName && displayName !== existingName) {
+      // 異なる値が入った場合は長い方を優先（ニックネーム＋本名などの混在対策）
+      const preferred =
+        displayName.length >= existingName.length ? displayName : existingName;
+      group.participantsMap.set(studentId, preferred);
+    }
+  });
+
+  // 日付順に安定化して出力
+  const sortedDates = Array.from(byDate.keys()).sort();
+  sortedDates.forEach(date => {
+    const groupsByKey = byDate.get(date);
+    if (!groupsByKey) return;
+
+    const groups = Array.from(groupsByKey.values()).map(group => {
+      const participants = Array.from(group.participantsMap.entries()).map(
+        ([studentId, name]) => ({
+          student_id: studentId,
+          display_name: name || '',
+        }),
+      );
+
+      participants.sort((a, b) => {
+        const nameCompare = a.display_name.localeCompare(b.display_name, 'ja');
+        if (nameCompare !== 0) return nameCompare;
+        return a.student_id.localeCompare(b.student_id, 'ja');
+      });
+
+      return {
+        lesson_id: group.lesson_id,
+        classroom: group.classroom,
+        venue: group.venue,
+        participants,
+      };
+    });
+
+    groups.sort((a, b) => {
+      const classroomCompare = a.classroom.localeCompare(b.classroom, 'ja');
+      if (classroomCompare !== 0) return classroomCompare;
+      const venueCompare = a.venue.localeCompare(b.venue, 'ja');
+      if (venueCompare !== 0) return venueCompare;
+      return a.lesson_id.localeCompare(b.lesson_id, 'ja');
+    });
+
+    datesObject[date] = groups;
+  });
+
+  return {
+    generated_at: generatedAt,
+    timezone: CONSTANTS.TIMEZONE,
+    source: { reservations_cache_version: reservationsCacheVersion },
+    dates: datesObject,
+  };
+}
+
+/**
+ * 画像アップロードUI向け参加者候補インデックスをCloudflare Workerへ送信します
+ *
+ * ScriptProperties:
+ * - UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_URL
+ * - UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN
+ *
+ * @returns {{success: boolean, message: string, statusCode?: number, durationMs?: number, bytes?: number, datesCount?: number, groupsCount?: number, participantsCount?: number}}
+ */
+export function pushParticipantsIndexToWorker() {
+  const startMs = Date.now();
+
+  const props = PropertiesService.getScriptProperties();
+  const url = props.getProperty(
+    PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_URL,
+  );
+  const token = props.getProperty(
+    PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN,
+  );
+
+  if (!url || !token) {
+    const missing = [
+      !url ? PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_URL : null,
+      !token ? PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN : null,
+    ]
+      .filter(Boolean)
+      .join(', ');
+    return {
+      success: false,
+      message: `設定が未完了のためスキップしました: ${missing}`,
+    };
+  }
+
+  const index = buildParticipantsIndexForUploadUi();
+  const payloadJson = JSON.stringify(index);
+  const bytes = Utilities.newBlob(payloadJson).getBytes().length;
+
+  const dates = index?.dates || {};
+  const datesCount = Object.keys(dates).length;
+  let groupsCount = 0;
+  let participantsCount = 0;
+
+  Object.values(dates).forEach(groups => {
+    if (!Array.isArray(groups)) return;
+    groupsCount += groups.length;
+    groups.forEach(group => {
+      const participants = group?.participants;
+      if (Array.isArray(participants)) {
+        participantsCount += participants.length;
+      }
+    });
+  });
+
+  const response = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: payloadJson,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    muteHttpExceptions: true,
+    followRedirects: true,
+  });
+
+  const statusCode = response.getResponseCode();
+  const ok = statusCode >= 200 && statusCode < 300;
+  const durationMs = Date.now() - startMs;
+
+  if (ok) {
+    Logger.log(
+      `参加者候補インデックス送信成功: status=${statusCode}, bytes=${bytes}, dates=${datesCount}, groups=${groupsCount}, participants=${participantsCount}, durationMs=${durationMs}`,
+    );
+    return {
+      success: true,
+      message: '送信しました',
+      statusCode,
+      durationMs,
+      bytes,
+      datesCount,
+      groupsCount,
+      participantsCount,
+    };
+  }
+
+  const responseText = response.getContentText() || '';
+  const preview =
+    responseText.length > 400
+      ? `${responseText.slice(0, 400)}...`
+      : responseText;
+  Logger.log(
+    `参加者候補インデックス送信失敗: status=${statusCode}, bytes=${bytes}, durationMs=${durationMs}, response=${preview}`,
+  );
+  return {
+    success: false,
+    message: `送信に失敗しました: status=${statusCode}`,
+    statusCode,
+    durationMs,
+    bytes,
+    datesCount,
+    groupsCount,
+    participantsCount,
+  };
+}
+
+/**
+ * 値をトリムした文字列へ正規化します
+ *
+ * @param {any} value
+ * @returns {string}
+ * @private
+ */
+function _toTrimmedString(value) {
+  if (value === null || value === undefined) return '';
+  return String(value).trim();
+}
+
+/**
+ * "YYYY-MM-DD" 形式に正規化します
+ *
+ * @param {any} value
+ * @returns {string}
+ * @private
+ */
+function _normalizeDateToYmd(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  }
+
+  const text = _toTrimmedString(value);
+  if (!text) return '';
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return text;
+  }
+
+  try {
+    const parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) return '';
+    return Utilities.formatDate(parsed, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  } catch (_error) {
+    return '';
   }
 }
 

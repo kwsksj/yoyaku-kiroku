@@ -168,6 +168,7 @@ export function addCacheMenu(menu) {
   menu
     .addSeparator()
     .addItem('キャッシュサービスを一括更新', 'rebuildAllCachesEntryPoint')
+    .addItem('参加者候補JSONを更新', 'pushParticipantsIndexToWorker')
     .addItem(
       'PropertiesServiceクリーンアップ',
       'cleanupPropertiesServiceCache',

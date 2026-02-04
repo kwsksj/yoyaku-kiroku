@@ -183,6 +183,54 @@ export function updateScheduleStatusToCompleted(): number;
  */
 export function triggerScheduledCacheRebuild(): void;
 /**
+ * 画像アップロードUI向けの参加者候補インデックスを生成します（副作用なし）
+ * - 予約キャッシュ（CacheService）から生成
+ * - 取消は除外
+ * - `date -> [{ lesson_id, classroom, venue, participants[] }]` を返す
+ *
+ * @returns {{
+ *   generated_at: string,
+ *   timezone: string,
+ *   source: { reservations_cache_version: number | null },
+ *   dates: Record<string, Array<{ lesson_id: string, classroom: string, venue: string, participants: Array<{ student_id: string, display_name: string }> }>>,
+ * }}
+ */
+export function buildParticipantsIndexForUploadUi(): {
+    generated_at: string;
+    timezone: string;
+    source: {
+        reservations_cache_version: number | null;
+    };
+    dates: Record<string, Array<{
+        lesson_id: string;
+        classroom: string;
+        venue: string;
+        participants: Array<{
+            student_id: string;
+            display_name: string;
+        }>;
+    }>>;
+};
+/**
+ * 画像アップロードUI向け参加者候補インデックスをCloudflare Workerへ送信します
+ *
+ * ScriptProperties:
+ * - UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_URL
+ * - UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN
+ *
+ * @returns {{success: boolean, message: string, statusCode?: number, durationMs?: number, bytes?: number, datesCount?: number, groupsCount?: number, participantsCount?: number}}
+ */
+export function pushParticipantsIndexToWorker(): {
+    success: boolean;
+    message: string;
+    statusCode?: number;
+    durationMs?: number;
+    bytes?: number;
+    datesCount?: number;
+    groupsCount?: number;
+    participantsCount?: number;
+};
+/**
  * 型定義に基づいたキャッシュ取得のオーバーロード定義
  * @template {CacheKey} K
  * @overload
