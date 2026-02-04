@@ -891,7 +891,8 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
       Number.isFinite(cursorIndex) && cursorIndex > 0 ? cursorIndex : 0;
 
     if (startIndex >= total) {
-      props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
+      // 完了済みの場合は、次回以降に0から再実行されないようカーソルを保持する
+      props.setProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR, String(total));
       return {
         success: true,
         created: 0,
@@ -1028,11 +1029,8 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
 
     const processed = endIndex - startIndex;
     const done = endIndex >= total;
-    if (done) {
-      props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
-    } else {
-      props.setProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR, String(endIndex));
-    }
+    // done のときもカーソルを保持し、次回以降の再実行を防止する
+    props.setProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR, String(endIndex));
 
     return {
       success: true,
@@ -1768,7 +1766,11 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
       Number.isFinite(cursorIndex) && cursorIndex > 0 ? cursorIndex : 0;
 
     if (startIndex >= total) {
-      props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
+      // 完了済みの場合は、次回以降に0から再実行されないようカーソルを保持する
+      props.setProperty(
+        PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
+        String(total),
+      );
       return {
         success: true,
         created: 0,
@@ -1886,14 +1888,11 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
 
     const processed = endIndex - startIndex;
     const done = endIndex >= total;
-    if (done) {
-      props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
-    } else {
-      props.setProperty(
-        PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
-        String(endIndex),
-      );
-    }
+    // done のときもカーソルを保持し、次回以降の再実行を防止する
+    props.setProperty(
+      PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
+      String(endIndex),
+    );
 
     return {
       success: true,
