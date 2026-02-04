@@ -34,6 +34,10 @@ import {
 } from './02-6_Notification_Admin.js';
 import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
 import {
+  syncReservationToNotion,
+  syncScheduleToNotion,
+} from './02-8_Sync_Notion.js';
+import {
   calculateAvailableSlots,
   getLessons,
   getUserReservations,
@@ -565,6 +569,13 @@ export function _saveReservationCoreToSheet(reservation, mode) {
     rebuildAllReservationsCache();
   }
 
+  // Notion同期（失敗しても本体処理は継続）
+  try {
+    syncReservationToNotion(reservation.reservationId, mode);
+  } catch (error) {
+    Logger.log(`Notion予約同期エラー: ${error.message}`);
+  }
+
   return { newRowData, headerMap };
 }
 
@@ -634,6 +645,14 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
       }
 
       reservationIdsCell.setValue(JSON.stringify(currentIds));
+
+      // Notion同期（失敗しても本体処理は継続）
+      try {
+        syncScheduleToNotion(lessonId, 'update');
+      } catch (error) {
+        Logger.log(`Notion日程同期エラー: ${error.message}`);
+      }
+
       try {
         updateLessonReservationIdsInCache(lessonId, currentIds);
       } catch (syncError) {
