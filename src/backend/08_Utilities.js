@@ -136,6 +136,22 @@ export function createHeaderMap(headerRow) {
 }
 
 /**
+ * ヘッダーと行データから値マップを作成します
+ * @param {string[]} headers
+ * @param {any[]} rowValues
+ * @returns {Record<string, any>}
+ */
+export function buildRowValuesMap(headers, rowValues) {
+  /** @type {Record<string, any>} */
+  const valuesMap = {};
+  headers.forEach((header, idx) => {
+    if (!header) return;
+    valuesMap[String(header)] = rowValues[idx];
+  });
+  return valuesMap;
+}
+
+/**
  * エラーまたは情報メッセージをログとUIに表示します。
  * @param {string} message - 表示する
  * @param {boolean} isError - エラーかどうか

@@ -37,6 +37,7 @@ import {
   updateCachedStudent,
 } from './07_CacheManager.js';
 import {
+  buildRowValuesMap,
   createHeaderMap,
   getCachedStudentById,
   getScriptProperties,
@@ -883,6 +884,8 @@ export function updateUserProfile(userInfo) {
 
       rowRange.setValues([rowValues]);
 
+      const rosterValuesMap = buildRowValuesMap(headers, rowValues);
+
       // 更新後のユーザー情報を生成
       const updatedUser = { ...targetStudent, ...userInfo };
       if (userInfo.nickname !== undefined) {
@@ -947,7 +950,10 @@ export function updateUserProfile(userInfo) {
 
       // Notion 同期（エラーは握りつぶして本体処理には影響させない）
       try {
-        syncStudentToNotion(studentId, 'update');
+        syncStudentToNotion(studentId, 'update', {
+          rosterValues: rosterValuesMap,
+          skipSheetAccess: true,
+        });
       } catch (notionError) {
         Logger.log(
           `Notion同期エラー（プロフィール更新）: ${notionError.message}`,
@@ -1135,6 +1141,7 @@ export function registerNewUser(userData) {
 
       // 追加された行番号を取得（appendRowは最後の行に追加される）
       const newRowIndex = allStudentsSheet.getLastRow();
+      const rosterValuesMap = buildRowValuesMap(headers, newRow);
 
       // 登録後のユーザーオブジェクトを作成（rowIndexを含む）
       const registeredUser = {
@@ -1166,7 +1173,10 @@ export function registerNewUser(userData) {
 
       // Notion 同期（エラーは握りつぶして本体処理には影響させない）
       try {
-        syncStudentToNotion(newStudentId, 'create');
+        syncStudentToNotion(newStudentId, 'create', {
+          rosterValues: rosterValuesMap,
+          skipSheetAccess: true,
+        });
       } catch (notionError) {
         Logger.log(`Notion同期エラー（新規登録）: ${notionError.message}`);
       }
@@ -1498,7 +1508,9 @@ export function requestAccountDeletion(studentId) {
 
       // Notion 同期（ステータスを「退会済み」に更新）
       try {
-        syncStudentToNotion(studentId, 'delete');
+        syncStudentToNotion(studentId, 'delete', {
+          skipSheetAccess: true,
+        });
       } catch (notionError) {
         Logger.log(`Notion同期エラー（退会）: ${notionError.message}`);
       }

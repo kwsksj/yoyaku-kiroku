@@ -9,6 +9,7 @@
  * @typedef {Object} NotionSyncResult
  * @property {boolean} success
  * @property {string | undefined} [pageId]
+ * @property {boolean | undefined} [skipped]
  * @property {string | undefined} [error]
  */
 /**
@@ -51,6 +52,39 @@
  * @property {string} [reservationDbName]
  * @property {string} [scheduleDbName]
  * @property {string} [titlePropertyName]
+ */
+/**
+ * @typedef {Object} NotionSyncMetaEntry
+ * @property {string} entity
+ * @property {string} sourceId
+ * @property {string} pageId
+ * @property {string} rowHash
+ * @property {number} rowIndex
+ * @property {string} [updatedAt]
+ */
+/**
+ * @typedef {Object} NotionStudentSyncOptions
+ * @property {SheetSnapshot | null} [rosterSnapshot]
+ * @property {Record<string, any> | null} [rosterValues]
+ * @property {NotionDatabaseSchema | null} [schema]
+ * @property {NotionPage | null} [existingPage]
+ * @property {boolean} [skipSheetAccess]
+ */
+/**
+ * @typedef {Object} NotionReservationSyncOptions
+ * @property {SheetSnapshot | null} [reservationSnapshot]
+ * @property {Record<string, any> | null} [reservationValues]
+ * @property {NotionDatabaseSchema | null} [schema]
+ * @property {NotionPage | null} [existingPage]
+ * @property {boolean} [skipSheetAccess]
+ */
+/**
+ * @typedef {Object} NotionScheduleSyncOptions
+ * @property {SheetSnapshot | null} [scheduleSnapshot]
+ * @property {Record<string, any> | null} [scheduleValues]
+ * @property {NotionDatabaseSchema | null} [schema]
+ * @property {NotionPage | null} [existingPage]
+ * @property {boolean} [skipSheetAccess]
  */
 /**
  * Notion 接続設定を取得します
@@ -117,31 +151,34 @@ export function clearNotionCredentials(): void;
  *
  * @param {string} studentId - 生徒ID
  * @param {'create' | 'update' | 'delete'} action - 同期アクション
+ * @param {NotionStudentSyncOptions} [options]
  * @returns {NotionSyncResult}
  */
-export function syncStudentToNotion(studentId: string, action: "create" | "update" | "delete"): NotionSyncResult;
+export function syncStudentToNotion(studentId: string, action: "create" | "update" | "delete", options?: NotionStudentSyncOptions): NotionSyncResult;
 /**
  * 全生徒データを Notion に同期します（差分同期）
  * 時間トリガーで1日1回実行することを想定しています
  *
- * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number}}
  */
 export function syncAllStudentsToNotion(): {
     success: boolean;
     created: number;
     updated: number;
+    skipped: number;
     errors: number;
 };
 /**
  * 全生徒データを分割で Notion に同期します（途中再開可能）
  *
  * @param {number} [batchSize=50] - 1回で処理する件数
- * @returns {{success: boolean, created: number, updated: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
  */
 export function syncAllStudentsToNotionChunk(batchSize?: number): {
     success: boolean;
     created: number;
     updated: number;
+    skipped: number;
     errors: number;
     processed: number;
     total: number;
@@ -158,6 +195,43 @@ export function resetNotionStudentSyncCursor(): void;
  * @returns {void}
  */
 export function resetNotionReservationSyncCursor(): void;
+/**
+ * Notion分割同期を開始します（手動実行用）
+ * 初回実行を即時に行い、残りは時間トリガーで継続します。
+ *
+ * @param {boolean} [resetCursor=true] - true の場合はカーソルをリセットして最初から同期します
+ * @returns {{success: boolean, message: string, runResult?: any}}
+ */
+export function startNotionSyncBatch(resetCursor?: boolean): {
+    success: boolean;
+    message: string;
+    runResult?: any;
+};
+/**
+ * Notion分割同期を1バッチ実行します（時間トリガー用）
+ * 生徒・予約記録が完了したら、最後に日程を一括同期してトリガーを停止します。
+ *
+ * @returns {{success: boolean, done: boolean, students: any, reservations: any, schedules: any, skippedByLock?: boolean, deletedTriggers?: number}}
+ */
+export function runNotionSyncBatch(): {
+    success: boolean;
+    done: boolean;
+    students: any;
+    reservations: any;
+    schedules: any;
+    skippedByLock?: boolean;
+    deletedTriggers?: number;
+};
+/**
+ * Notion分割同期トリガーを停止します
+ *
+ * @param {boolean} [resetCursor=false] - true の場合は同期カーソルも初期化します
+ * @returns {{success: boolean, deletedTriggers: number}}
+ */
+export function stopNotionSyncBatch(resetCursor?: boolean): {
+    success: boolean;
+    deletedTriggers: number;
+};
 /**
  * 生徒IDを指定して Notion に同期します
  *
@@ -178,38 +252,42 @@ export function syncStudentsToNotionByIds(studentIds: string[] | string, action?
  *
  * @param {string} reservationId - 予約ID
  * @param {'create' | 'update' | 'delete'} [action='update'] - 同期アクション
+ * @param {NotionReservationSyncOptions} [options]
  * @returns {NotionSyncResult}
  */
-export function syncReservationToNotion(reservationId: string, action?: "create" | "update" | "delete"): NotionSyncResult;
+export function syncReservationToNotion(reservationId: string, action?: "create" | "update" | "delete", options?: NotionReservationSyncOptions): NotionSyncResult;
 /**
  * 日程を Notion に同期します
  *
  * @param {string} lessonId - レッスンID
  * @param {'create' | 'update' | 'delete'} [action='update'] - 同期アクション
+ * @param {NotionScheduleSyncOptions} [options]
  * @returns {NotionSyncResult}
  */
-export function syncScheduleToNotion(lessonId: string, action?: "create" | "update" | "delete"): NotionSyncResult;
+export function syncScheduleToNotion(lessonId: string, action?: "create" | "update" | "delete", options?: NotionScheduleSyncOptions): NotionSyncResult;
 /**
  * 予約記録を一括で Notion に同期します
  *
- * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number}}
  */
 export function syncAllReservationsToNotion(): {
     success: boolean;
     created: number;
     updated: number;
+    skipped: number;
     errors: number;
 };
 /**
  * 予約記録を分割で Notion に同期します（途中再開可能）
  *
  * @param {number} [batchSize=100] - 1回で処理する件数
- * @returns {{success: boolean, created: number, updated: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
  */
 export function syncAllReservationsToNotionChunk(batchSize?: number): {
     success: boolean;
     created: number;
     updated: number;
+    skipped: number;
     errors: number;
     processed: number;
     total: number;
@@ -219,12 +297,13 @@ export function syncAllReservationsToNotionChunk(batchSize?: number): {
 /**
  * 日程を一括で Notion に同期します
  *
- * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number}}
  */
 export function syncAllSchedulesToNotion(): {
     success: boolean;
     created: number;
     updated: number;
+    skipped: number;
     errors: number;
 };
 /**
@@ -277,6 +356,7 @@ export type NotionConfig = {
 export type NotionSyncResult = {
     success: boolean;
     pageId?: string | undefined;
+    skipped?: boolean | undefined;
     error?: string | undefined;
 };
 export type NotionPage = {
@@ -320,4 +400,33 @@ export type NotionDatabaseCreationOptions = {
     reservationDbName?: string;
     scheduleDbName?: string;
     titlePropertyName?: string;
+};
+export type NotionSyncMetaEntry = {
+    entity: string;
+    sourceId: string;
+    pageId: string;
+    rowHash: string;
+    rowIndex: number;
+    updatedAt?: string;
+};
+export type NotionStudentSyncOptions = {
+    rosterSnapshot?: SheetSnapshot | null;
+    rosterValues?: Record<string, any> | null;
+    schema?: NotionDatabaseSchema | null;
+    existingPage?: NotionPage | null;
+    skipSheetAccess?: boolean;
+};
+export type NotionReservationSyncOptions = {
+    reservationSnapshot?: SheetSnapshot | null;
+    reservationValues?: Record<string, any> | null;
+    schema?: NotionDatabaseSchema | null;
+    existingPage?: NotionPage | null;
+    skipSheetAccess?: boolean;
+};
+export type NotionScheduleSyncOptions = {
+    scheduleSnapshot?: SheetSnapshot | null;
+    scheduleValues?: Record<string, any> | null;
+    schema?: NotionDatabaseSchema | null;
+    existingPage?: NotionPage | null;
+    skipSheetAccess?: boolean;
 };

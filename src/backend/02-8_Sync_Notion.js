@@ -45,6 +45,13 @@ const PROPS_KEY_NOTION_SCHEDULE_DB_ID = 'NOTION_SCHEDULE_DATABASE_ID';
 const PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR = 'NOTION_STUDENT_SYNC_CURSOR';
 const PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR =
   'NOTION_RESERVATION_SYNC_CURSOR';
+const PROPS_KEY_NOTION_BATCH_TRIGGER_ID = 'NOTION_BATCH_TRIGGER_ID';
+
+/** Notion分割同期のトリガー設定 */
+const NOTION_BATCH_TRIGGER_HANDLER = 'runNotionSyncBatch';
+const NOTION_BATCH_TRIGGER_INTERVAL_MINUTES = 1;
+const NOTION_BATCH_STUDENT_BATCH_SIZE = 30;
+const NOTION_BATCH_RESERVATION_BATCH_SIZE = 50;
 
 /** バッチ同期時のレート制限対策（ミリ秒） */
 const RATE_LIMIT_DELAY_MS = 350;
@@ -54,6 +61,37 @@ const NOTION_SCHEMA_CACHE = new Map();
 
 /** Notion DB スキーマキャッシュの有効期限（ミリ秒） */
 const NOTION_SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000;
+
+/** Notion側を手動編集しない前提で同期の問い合わせを省略する */
+const NOTION_ASSUME_NO_MANUAL_EDITS = true;
+
+/** Notion同期メタ情報シート名 */
+const NOTION_SYNC_META_SHEET_NAME = 'Notion同期メタ';
+
+/** Notion同期メタのヘッダー */
+const NOTION_SYNC_META_HEADERS = [
+  'entity',
+  'sourceId',
+  'pageId',
+  'rowHash',
+  'updatedAt',
+];
+
+/** Notion同期メタのエンティティ種別 */
+const NOTION_SYNC_ENTITY = {
+  STUDENT: 'student',
+  RESERVATION: 'reservation',
+  SCHEDULE: 'schedule',
+};
+
+/** Notion同期メタキャッシュ（実行中のみ） */
+/** @type {{loaded: boolean, sheet: GoogleAppsScript.Spreadsheet.Sheet | null, headerMap: Map<string, number> | null, byKey: Map<string, NotionSyncMetaEntry>}} */
+const NOTION_SYNC_META_STATE = {
+  loaded: false,
+  sheet: null,
+  headerMap: null,
+  byKey: new Map(),
+};
 
 /** Notion DB 初期作成時のデフォルト名 */
 const DEFAULT_NOTION_DB_NAMES = {
@@ -81,6 +119,7 @@ const DEFAULT_NOTION_TITLE_PROPERTY_NAME = 'タイトル';
  * @typedef {Object} NotionSyncResult
  * @property {boolean} success
  * @property {string | undefined} [pageId]
+ * @property {boolean | undefined} [skipped]
  * @property {string | undefined} [error]
  */
 
@@ -129,6 +168,43 @@ const DEFAULT_NOTION_TITLE_PROPERTY_NAME = 'タイトル';
  * @property {string} [reservationDbName]
  * @property {string} [scheduleDbName]
  * @property {string} [titlePropertyName]
+ */
+
+/**
+ * @typedef {Object} NotionSyncMetaEntry
+ * @property {string} entity
+ * @property {string} sourceId
+ * @property {string} pageId
+ * @property {string} rowHash
+ * @property {number} rowIndex
+ * @property {string} [updatedAt]
+ */
+
+/**
+ * @typedef {Object} NotionStudentSyncOptions
+ * @property {SheetSnapshot | null} [rosterSnapshot]
+ * @property {Record<string, any> | null} [rosterValues]
+ * @property {NotionDatabaseSchema | null} [schema]
+ * @property {NotionPage | null} [existingPage]
+ * @property {boolean} [skipSheetAccess]
+ */
+
+/**
+ * @typedef {Object} NotionReservationSyncOptions
+ * @property {SheetSnapshot | null} [reservationSnapshot]
+ * @property {Record<string, any> | null} [reservationValues]
+ * @property {NotionDatabaseSchema | null} [schema]
+ * @property {NotionPage | null} [existingPage]
+ * @property {boolean} [skipSheetAccess]
+ */
+
+/**
+ * @typedef {Object} NotionScheduleSyncOptions
+ * @property {SheetSnapshot | null} [scheduleSnapshot]
+ * @property {Record<string, any> | null} [scheduleValues]
+ * @property {NotionDatabaseSchema | null} [schema]
+ * @property {NotionPage | null} [existingPage]
+ * @property {boolean} [skipSheetAccess]
  */
 
 // ================================================================
@@ -332,9 +408,10 @@ export function clearNotionCredentials() {
  *
  * @param {string} studentId - 生徒ID
  * @param {'create' | 'update' | 'delete'} action - 同期アクション
+ * @param {NotionStudentSyncOptions} [options]
  * @returns {NotionSyncResult}
  */
-export function syncStudentToNotion(studentId, action) {
+export function syncStudentToNotion(studentId, action, options = {}) {
   try {
     const config = getNotionConfig();
     if (!config) {
@@ -349,62 +426,215 @@ export function syncStudentToNotion(studentId, action) {
       return { success: false, error: '生徒が見つかりません' };
     }
 
-    const rosterSnapshot = _getRosterSnapshot();
-    const rosterValues = rosterSnapshot?.byId.get(studentId)?.values || null;
-    const schema = _getNotionDatabaseSchema(config, config.studentDbId);
+    let rosterValues = options.rosterValues || null;
+    let rosterSnapshot = options.rosterSnapshot || null;
+    if (!rosterValues && !options.skipSheetAccess) {
+      if (!rosterSnapshot) {
+        rosterSnapshot = _getRosterSnapshot();
+      }
+      rosterValues = rosterSnapshot?.byId.get(studentId)?.values || null;
+    }
 
-    // 既存の Notion ページを検索
-    const existingPage = _findNotionPageByProperty(
-      config,
-      config.studentDbId,
-      CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
-      studentId,
-      schema,
-    );
+    const schema =
+      options.schema || _getNotionDatabaseSchema(config, config.studentDbId);
 
     /** @type {StudentData} */
     const studentData = student || { studentId };
+    if (action === 'delete') {
+      studentData.status = '退会済み';
+    }
+
+    const mergedValues = _mergeStudentValues(studentData, rosterValues);
+    const titleValue = _getStudentTitle(mergedValues, studentData);
+    const properties = _buildNotionPropertiesFromValues(
+      mergedValues,
+      schema,
+      titleValue,
+    );
+    const normalized = _buildNormalizedValuesForHash(
+      mergedValues,
+      schema,
+      titleValue,
+    );
+    const rowHash = _computeRowHash(normalized);
+    const propertyNames = Object.keys(normalized);
+    const meta = _getNotionSyncMeta(NOTION_SYNC_ENTITY.STUDENT, studentId);
+
+    const metaResult = _trySyncNotionByMeta(
+      config,
+      meta,
+      rowHash,
+      properties,
+      titleValue || '生徒',
+      NOTION_SYNC_ENTITY.STUDENT,
+      studentId,
+    );
+    if (metaResult) {
+      return metaResult;
+    }
+
+    /** @type {NotionPage | null} */
+    let existingPage = options.existingPage || null;
+    if (!existingPage && !NOTION_ASSUME_NO_MANUAL_EDITS) {
+      if (meta?.pageId) {
+        existingPage = _getNotionPageById(config, meta.pageId);
+        if (!existingPage) {
+          _clearNotionSyncMeta(NOTION_SYNC_ENTITY.STUDENT, studentId);
+        }
+      }
+    }
+
+    if (!existingPage) {
+      // 既存の Notion ページを検索
+      existingPage = _findNotionPageByProperty(
+        config,
+        config.studentDbId,
+        CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+        studentId,
+        schema,
+      );
+    }
 
     switch (action) {
       case 'create':
         if (existingPage) {
           // 既に存在する場合は更新
-          return _updateNotionPage(
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              existingPage.id,
+              rowHash,
+            );
+            return { success: true, pageId: existingPage.id, skipped: true };
+          }
+          const result = _updateNotionPageInDatabase(
             config,
             existingPage.id,
-            studentData,
-            rosterValues,
-            schema,
+            properties,
+            titleValue || '生徒',
           );
+          if (result.success) {
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              result.pageId || existingPage.id,
+              rowHash,
+            );
+          }
+          return result;
         }
-        return _createNotionPage(config, studentData, rosterValues, schema);
+        {
+          const result = _createNotionPageInDatabase(
+            config,
+            config.studentDbId,
+            properties,
+            titleValue || '生徒',
+          );
+          if (result.success && result.pageId) {
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              result.pageId,
+              rowHash,
+            );
+          }
+          return result;
+        }
 
       case 'update':
         if (existingPage) {
-          return _updateNotionPage(
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              existingPage.id,
+              rowHash,
+            );
+            return { success: true, pageId: existingPage.id, skipped: true };
+          }
+          const result = _updateNotionPageInDatabase(
             config,
             existingPage.id,
-            studentData,
-            rosterValues,
-            schema,
+            properties,
+            titleValue || '生徒',
           );
+          if (result.success) {
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              result.pageId || existingPage.id,
+              rowHash,
+            );
+          }
+          return result;
         }
         // 存在しない場合は新規作成
-        return _createNotionPage(config, studentData, rosterValues, schema);
+        {
+          const result = _createNotionPageInDatabase(
+            config,
+            config.studentDbId,
+            properties,
+            titleValue || '生徒',
+          );
+          if (result.success && result.pageId) {
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              result.pageId,
+              rowHash,
+            );
+          }
+          return result;
+        }
 
       case 'delete':
         if (existingPage) {
-          // ステータスを「退会済み」に更新
-          return _updateNotionPage(
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              existingPage.id,
+              rowHash,
+            );
+            return { success: true, pageId: existingPage.id, skipped: true };
+          }
+          const result = _updateNotionPageInDatabase(
             config,
             existingPage.id,
-            {
-              ...studentData,
-              status: '退会済み',
-            },
-            rosterValues,
-            schema,
+            properties,
+            titleValue || '生徒',
           );
+          if (result.success) {
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              result.pageId || existingPage.id,
+              rowHash,
+            );
+          }
+          return result;
         }
         return { success: true }; // 存在しなければ何もしない
 
@@ -427,26 +657,27 @@ export function syncStudentToNotion(studentId, action) {
  * 全生徒データを Notion に同期します（差分同期）
  * 時間トリガーで1日1回実行することを想定しています
  *
- * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number}}
  */
 export function syncAllStudentsToNotion() {
   const startTime = new Date();
   let created = 0;
   let updated = 0;
+  let skipped = 0;
   let errors = 0;
 
   try {
     const config = getNotionConfig();
     if (!config) {
       Logger.log('Notion一括同期スキップ: 設定が未完了です');
-      return { success: false, created: 0, updated: 0, errors: 0 };
+      return { success: false, created: 0, updated: 0, skipped: 0, errors: 0 };
     }
 
     // 全生徒データを取得
     const allStudents = getCachedAllStudents();
     if (!allStudents || Object.keys(allStudents).length === 0) {
       Logger.log('Notion一括同期: 生徒データがありません');
-      return { success: true, created: 0, updated: 0, errors: 0 };
+      return { success: true, created: 0, updated: 0, skipped: 0, errors: 0 };
     }
 
     const rosterSnapshot = _getRosterSnapshot();
@@ -486,30 +717,76 @@ export function syncAllStudentsToNotion() {
           status: isWithdrawn ? '退会済み' : '在籍中',
         };
 
+        const rosterValues =
+          rosterSnapshot?.byId.get(studentId)?.values || null;
+        const mergedValues = _mergeStudentValues(studentData, rosterValues);
+        const titleValue = _getStudentTitle(mergedValues, studentData);
+        const properties = _buildNotionPropertiesFromValues(
+          mergedValues,
+          schema,
+          titleValue,
+        );
+        const normalized = _buildNormalizedValuesForHash(
+          mergedValues,
+          schema,
+          titleValue,
+        );
+        const rowHash = _computeRowHash(normalized);
+        const propertyNames = Object.keys(normalized);
+
         if (existingPage) {
-          // 更新
-          const result = _updateNotionPage(
-            config,
-            existingPage.id,
-            studentData,
-            rosterSnapshot?.byId.get(studentId)?.values || null,
-            schema,
-          );
-          if (result.success) {
-            updated++;
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            skipped++;
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              existingPage.id,
+              rowHash,
+            );
           } else {
-            errors++;
+            const result = _updateNotionPageInDatabase(
+              config,
+              existingPage.id,
+              properties,
+              titleValue || '生徒',
+            );
+            if (result.success) {
+              updated++;
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.STUDENT,
+                studentId,
+                result.pageId || existingPage.id,
+                rowHash,
+              );
+            } else {
+              errors++;
+            }
           }
         } else if (!isWithdrawn) {
           // 新規作成（退会済みは新規作成しない）
-          const result = _createNotionPage(
+          const result = _createNotionPageInDatabase(
             config,
-            studentData,
-            rosterSnapshot?.byId.get(studentId)?.values || null,
-            schema,
+            config.studentDbId,
+            properties,
+            titleValue || '生徒',
           );
           if (result.success) {
             created++;
+            if (result.pageId) {
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.STUDENT,
+                studentId,
+                result.pageId,
+                rowHash,
+              );
+            }
           } else {
             errors++;
           }
@@ -529,15 +806,15 @@ export function syncAllStudentsToNotion() {
     const duration = (endTime.getTime() - startTime.getTime()) / 1000;
 
     Logger.log(
-      `Notion一括同期完了: 作成=${created}, 更新=${updated}, エラー=${errors}, 所要時間=${duration}秒`,
+      `Notion一括同期完了: 作成=${created}, 更新=${updated}, スキップ=${skipped}, エラー=${errors}, 所要時間=${duration}秒`,
     );
 
-    return { success: true, created, updated, errors };
+    return { success: true, created, updated, skipped, errors };
   } catch (error) {
     Logger.log(
       `syncAllStudentsToNotion Error: ${/** @type {Error} */ (error).message}`,
     );
-    return { success: false, created, updated, errors: errors + 1 };
+    return { success: false, created, updated, skipped, errors: errors + 1 };
   }
 }
 
@@ -545,11 +822,12 @@ export function syncAllStudentsToNotion() {
  * 全生徒データを分割で Notion に同期します（途中再開可能）
  *
  * @param {number} [batchSize=50] - 1回で処理する件数
- * @returns {{success: boolean, created: number, updated: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
  */
 export function syncAllStudentsToNotionChunk(batchSize = 50) {
   let created = 0;
   let updated = 0;
+  let skipped = 0;
   let errors = 0;
 
   try {
@@ -560,6 +838,7 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
         success: false,
         created: 0,
         updated: 0,
+        skipped: 0,
         errors: 0,
         processed: 0,
         total: 0,
@@ -575,6 +854,7 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
         success: true,
         created: 0,
         updated: 0,
+        skipped: 0,
         errors: 0,
         processed: 0,
         total: 0,
@@ -593,6 +873,7 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
         success: true,
         created: 0,
         updated: 0,
+        skipped: 0,
         errors: 0,
         processed: 0,
         total: 0,
@@ -610,11 +891,13 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
       Number.isFinite(cursorIndex) && cursorIndex > 0 ? cursorIndex : 0;
 
     if (startIndex >= total) {
-      props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
+      // 完了済みの場合は、次回以降に0から再実行されないようカーソルを保持する
+      props.setProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR, String(total));
       return {
         success: true,
         created: 0,
         updated: 0,
+        skipped: 0,
         errors: 0,
         processed: 0,
         total,
@@ -663,28 +946,73 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
 
       try {
         const existingPage = existingPageMap.get(studentId);
+        const mergedValues = _mergeStudentValues(studentData, rosterValues);
+        const titleValue = _getStudentTitle(mergedValues, studentData);
+        const properties = _buildNotionPropertiesFromValues(
+          mergedValues,
+          schema,
+          titleValue,
+        );
+        const normalized = _buildNormalizedValuesForHash(
+          mergedValues,
+          schema,
+          titleValue,
+        );
+        const rowHash = _computeRowHash(normalized);
+        const propertyNames = Object.keys(normalized);
+
         if (existingPage) {
-          const result = _updateNotionPage(
-            config,
-            existingPage.id,
-            studentData,
-            rosterValues,
-            schema,
-          );
-          if (result.success) {
-            updated++;
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            skipped++;
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.STUDENT,
+              studentId,
+              existingPage.id,
+              rowHash,
+            );
           } else {
-            errors++;
+            const result = _updateNotionPageInDatabase(
+              config,
+              existingPage.id,
+              properties,
+              titleValue || '生徒',
+            );
+            if (result.success) {
+              updated++;
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.STUDENT,
+                studentId,
+                result.pageId || existingPage.id,
+                rowHash,
+              );
+            } else {
+              errors++;
+            }
           }
         } else if (!isWithdrawn) {
-          const result = _createNotionPage(
+          const result = _createNotionPageInDatabase(
             config,
-            studentData,
-            rosterValues,
-            schema,
+            config.studentDbId,
+            properties,
+            titleValue || '生徒',
           );
           if (result.success) {
             created++;
+            if (result.pageId) {
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.STUDENT,
+                studentId,
+                result.pageId,
+                rowHash,
+              );
+            }
           } else {
             errors++;
           }
@@ -701,16 +1029,14 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
 
     const processed = endIndex - startIndex;
     const done = endIndex >= total;
-    if (done) {
-      props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
-    } else {
-      props.setProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR, String(endIndex));
-    }
+    // done のときもカーソルを保持し、次回以降の再実行を防止する
+    props.setProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR, String(endIndex));
 
     return {
       success: true,
       created,
       updated,
+      skipped,
       errors,
       processed,
       total,
@@ -725,6 +1051,7 @@ export function syncAllStudentsToNotionChunk(batchSize = 50) {
       success: false,
       created,
       updated,
+      skipped,
       errors: errors + 1,
       processed: 0,
       total: 0,
@@ -752,6 +1079,159 @@ export function resetNotionReservationSyncCursor() {
   const props = PropertiesService.getScriptProperties();
   props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
   Logger.log('Notion予約一括同期カーソルをリセットしました');
+}
+
+/**
+ * Notion分割同期を開始します（手動実行用）
+ * 初回実行を即時に行い、残りは時間トリガーで継続します。
+ *
+ * @param {boolean} [resetCursor=true] - true の場合はカーソルをリセットして最初から同期します
+ * @returns {{success: boolean, message: string, runResult?: any}}
+ */
+export function startNotionSyncBatch(resetCursor = true) {
+  const scriptLock = LockService.getScriptLock();
+  if (!scriptLock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) {
+    Logger.log(
+      'Notion分割同期開始: 他の処理が実行中のため開始をスキップしました。',
+    );
+    return {
+      success: false,
+      message: '他の処理が実行中のため開始できませんでした',
+    };
+  }
+
+  try {
+    if (resetCursor) {
+      resetNotionStudentSyncCursor();
+      resetNotionReservationSyncCursor();
+    }
+    _ensureNotionBatchTrigger();
+  } catch (error) {
+    Logger.log(
+      `Notion分割同期開始エラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      message: /** @type {Error} */ (error).message,
+    };
+  } finally {
+    scriptLock.releaseLock();
+  }
+
+  const runResult = runNotionSyncBatch();
+  return {
+    success: true,
+    message: 'Notion分割同期を開始しました',
+    runResult,
+  };
+}
+
+/**
+ * Notion分割同期を1バッチ実行します（時間トリガー用）
+ * 生徒・予約記録が完了したら、最後に日程を一括同期してトリガーを停止します。
+ *
+ * @returns {{success: boolean, done: boolean, students: any, reservations: any, schedules: any, skippedByLock?: boolean, deletedTriggers?: number}}
+ */
+export function runNotionSyncBatch() {
+  const scriptLock = LockService.getScriptLock();
+  if (!scriptLock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) {
+    Logger.log(
+      'Notion分割同期: 他の処理が実行中のため、このバッチ実行をスキップしました。',
+    );
+    return {
+      success: false,
+      done: false,
+      students: null,
+      reservations: null,
+      schedules: null,
+      skippedByLock: true,
+    };
+  }
+
+  try {
+    // 手動実行でも継続できるよう、未作成ならトリガーを作成しておく
+    _ensureNotionBatchTrigger();
+
+    const students = syncAllStudentsToNotionChunk(
+      NOTION_BATCH_STUDENT_BATCH_SIZE,
+    );
+    const reservations = syncAllReservationsToNotionChunk(
+      NOTION_BATCH_RESERVATION_BATCH_SIZE,
+    );
+    const done = students.done && reservations.done;
+
+    if (!done) {
+      return {
+        success: students.success && reservations.success,
+        done: false,
+        students,
+        reservations,
+        schedules: null,
+      };
+    }
+
+    const schedules = syncAllSchedulesToNotion();
+    const deletedTriggers = _deleteNotionBatchTriggers();
+    Logger.log(
+      `Notion分割同期が完了したためトリガーを停止しました（削除: ${deletedTriggers}件）。`,
+    );
+    return {
+      success: students.success && reservations.success && schedules.success,
+      done: true,
+      students,
+      reservations,
+      schedules,
+      deletedTriggers,
+    };
+  } catch (error) {
+    Logger.log(
+      `runNotionSyncBatch Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      done: false,
+      students: null,
+      reservations: null,
+      schedules: null,
+    };
+  } finally {
+    scriptLock.releaseLock();
+  }
+}
+
+/**
+ * Notion分割同期トリガーを停止します
+ *
+ * @param {boolean} [resetCursor=false] - true の場合は同期カーソルも初期化します
+ * @returns {{success: boolean, deletedTriggers: number}}
+ */
+export function stopNotionSyncBatch(resetCursor = false) {
+  const scriptLock = LockService.getScriptLock();
+  if (!scriptLock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) {
+    Logger.log(
+      'Notion分割同期停止: ロック取得に失敗したためスキップしました。',
+    );
+    return { success: false, deletedTriggers: 0 };
+  }
+
+  try {
+    const deletedTriggers = _deleteNotionBatchTriggers();
+    if (resetCursor) {
+      resetNotionStudentSyncCursor();
+      resetNotionReservationSyncCursor();
+    }
+    Logger.log(
+      `Notion分割同期トリガーを停止しました（削除: ${deletedTriggers}件）。`,
+    );
+    return { success: true, deletedTriggers };
+  } catch (error) {
+    Logger.log(
+      `stopNotionSyncBatch Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return { success: false, deletedTriggers: 0 };
+  } finally {
+    scriptLock.releaseLock();
+  }
 }
 
 /**
@@ -794,9 +1274,14 @@ export function syncStudentsToNotionByIds(studentIds, action = 'update') {
  *
  * @param {string} reservationId - 予約ID
  * @param {'create' | 'update' | 'delete'} [action='update'] - 同期アクション
+ * @param {NotionReservationSyncOptions} [options]
  * @returns {NotionSyncResult}
  */
-export function syncReservationToNotion(reservationId, action = 'update') {
+export function syncReservationToNotion(
+  reservationId,
+  action = 'update',
+  options = {},
+) {
   try {
     const config = getNotionConfig();
     const reservationDbId = config?.reservationDbId;
@@ -808,8 +1293,14 @@ export function syncReservationToNotion(reservationId, action = 'update') {
       return { success: false, error: 'reservationId が必要です' };
     }
 
-    const snapshot = _getReservationSnapshot();
-    const rowValues = snapshot?.byId.get(String(reservationId))?.values || null;
+    let rowValues = options.reservationValues || null;
+    let snapshot = options.reservationSnapshot || null;
+    if (!rowValues && !options.skipSheetAccess) {
+      if (!snapshot) {
+        snapshot = _getReservationSnapshot();
+      }
+      rowValues = snapshot?.byId.get(String(reservationId))?.values || null;
+    }
     if (!rowValues) {
       Logger.log(
         `Notion予約同期スキップ: 予約が見つかりません - ${reservationId}`,
@@ -817,41 +1308,112 @@ export function syncReservationToNotion(reservationId, action = 'update') {
       return { success: false, error: '予約が見つかりません' };
     }
 
-    const schema = _getNotionDatabaseSchema(config, reservationDbId);
-    const existingPage = _findNotionPageByProperty(
-      config,
-      reservationDbId,
-      CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
-      String(reservationId),
-      schema,
-    );
-
+    const schema =
+      options.schema || _getNotionDatabaseSchema(config, reservationDbId);
     const titleValue = _getReservationTitle(rowValues);
     const properties = _buildNotionPropertiesFromValues(
       rowValues,
       schema,
       titleValue,
     );
+    const normalized = _buildNormalizedValuesForHash(
+      rowValues,
+      schema,
+      titleValue,
+    );
+    const rowHash = _computeRowHash(normalized);
+    const propertyNames = Object.keys(normalized);
+    const meta = _getNotionSyncMeta(
+      NOTION_SYNC_ENTITY.RESERVATION,
+      String(reservationId),
+    );
+
+    const metaResult = _trySyncNotionByMeta(
+      config,
+      meta,
+      rowHash,
+      properties,
+      titleValue,
+      NOTION_SYNC_ENTITY.RESERVATION,
+      String(reservationId),
+    );
+    if (metaResult) {
+      return metaResult;
+    }
+
+    /** @type {NotionPage | null} */
+    let existingPage = options.existingPage || null;
+    if (!existingPage && !NOTION_ASSUME_NO_MANUAL_EDITS) {
+      if (meta?.pageId) {
+        existingPage = _getNotionPageById(config, meta.pageId);
+        if (!existingPage) {
+          _clearNotionSyncMeta(
+            NOTION_SYNC_ENTITY.RESERVATION,
+            String(reservationId),
+          );
+        }
+      }
+    }
+    if (!existingPage) {
+      existingPage = _findNotionPageByProperty(
+        config,
+        reservationDbId,
+        CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+        String(reservationId),
+        schema,
+      );
+    }
 
     if (existingPage) {
-      return _updateNotionPageInDatabase(
+      if (
+        _shouldSkipNotionUpdate(existingPage, schema, propertyNames, rowHash)
+      ) {
+        _upsertNotionSyncMeta(
+          NOTION_SYNC_ENTITY.RESERVATION,
+          String(reservationId),
+          existingPage.id,
+          rowHash,
+        );
+        return { success: true, pageId: existingPage.id, skipped: true };
+      }
+      const result = _updateNotionPageInDatabase(
         config,
         existingPage.id,
         properties,
         titleValue,
       );
+      if (result.success) {
+        _upsertNotionSyncMeta(
+          NOTION_SYNC_ENTITY.RESERVATION,
+          String(reservationId),
+          result.pageId || existingPage.id,
+          rowHash,
+        );
+      }
+      return result;
     }
 
     if (action === 'delete') {
       return { success: true };
     }
 
-    return _createNotionPageInDatabase(
-      config,
-      reservationDbId,
-      properties,
-      titleValue,
-    );
+    {
+      const result = _createNotionPageInDatabase(
+        config,
+        reservationDbId,
+        properties,
+        titleValue,
+      );
+      if (result.success && result.pageId) {
+        _upsertNotionSyncMeta(
+          NOTION_SYNC_ENTITY.RESERVATION,
+          String(reservationId),
+          result.pageId,
+          rowHash,
+        );
+      }
+      return result;
+    }
   } catch (error) {
     Logger.log(
       `syncReservationToNotion Error: ${/** @type {Error} */ (error).message}`,
@@ -865,9 +1427,14 @@ export function syncReservationToNotion(reservationId, action = 'update') {
  *
  * @param {string} lessonId - レッスンID
  * @param {'create' | 'update' | 'delete'} [action='update'] - 同期アクション
+ * @param {NotionScheduleSyncOptions} [options]
  * @returns {NotionSyncResult}
  */
-export function syncScheduleToNotion(lessonId, action = 'update') {
+export function syncScheduleToNotion(
+  lessonId,
+  action = 'update',
+  options = {},
+) {
   try {
     const config = getNotionConfig();
     const scheduleDbId = config?.scheduleDbId;
@@ -879,48 +1446,122 @@ export function syncScheduleToNotion(lessonId, action = 'update') {
       return { success: false, error: 'lessonId が必要です' };
     }
 
-    const snapshot = _getScheduleSnapshot();
-    const rowValues = snapshot?.byId.get(String(lessonId))?.values || null;
+    let rowValues = options.scheduleValues || null;
+    let snapshot = options.scheduleSnapshot || null;
+    if (!rowValues && !options.skipSheetAccess) {
+      if (!snapshot) {
+        snapshot = _getScheduleSnapshot();
+      }
+      rowValues = snapshot?.byId.get(String(lessonId))?.values || null;
+    }
     if (!rowValues) {
       Logger.log(`Notion日程同期スキップ: 日程が見つかりません - ${lessonId}`);
       return { success: false, error: '日程が見つかりません' };
     }
 
-    const schema = _getNotionDatabaseSchema(config, scheduleDbId);
-    const existingPage = _findNotionPageByProperty(
-      config,
-      scheduleDbId,
-      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
-      String(lessonId),
-      schema,
-    );
-
+    const schema =
+      options.schema || _getNotionDatabaseSchema(config, scheduleDbId);
     const titleValue = _getScheduleTitle(rowValues);
     const properties = _buildNotionPropertiesFromValues(
       rowValues,
       schema,
       titleValue,
     );
+    const normalized = _buildNormalizedValuesForHash(
+      rowValues,
+      schema,
+      titleValue,
+    );
+    const rowHash = _computeRowHash(normalized);
+    const propertyNames = Object.keys(normalized);
+    const meta = _getNotionSyncMeta(
+      NOTION_SYNC_ENTITY.SCHEDULE,
+      String(lessonId),
+    );
+
+    const metaResult = _trySyncNotionByMeta(
+      config,
+      meta,
+      rowHash,
+      properties,
+      titleValue,
+      NOTION_SYNC_ENTITY.SCHEDULE,
+      String(lessonId),
+    );
+    if (metaResult) {
+      return metaResult;
+    }
+
+    /** @type {NotionPage | null} */
+    let existingPage = options.existingPage || null;
+    if (!existingPage && !NOTION_ASSUME_NO_MANUAL_EDITS) {
+      if (meta?.pageId) {
+        existingPage = _getNotionPageById(config, meta.pageId);
+        if (!existingPage) {
+          _clearNotionSyncMeta(NOTION_SYNC_ENTITY.SCHEDULE, String(lessonId));
+        }
+      }
+    }
+    if (!existingPage) {
+      existingPage = _findNotionPageByProperty(
+        config,
+        scheduleDbId,
+        CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+        String(lessonId),
+        schema,
+      );
+    }
 
     if (existingPage) {
-      return _updateNotionPageInDatabase(
+      if (
+        _shouldSkipNotionUpdate(existingPage, schema, propertyNames, rowHash)
+      ) {
+        _upsertNotionSyncMeta(
+          NOTION_SYNC_ENTITY.SCHEDULE,
+          String(lessonId),
+          existingPage.id,
+          rowHash,
+        );
+        return { success: true, pageId: existingPage.id, skipped: true };
+      }
+      const result = _updateNotionPageInDatabase(
         config,
         existingPage.id,
         properties,
         titleValue,
       );
+      if (result.success) {
+        _upsertNotionSyncMeta(
+          NOTION_SYNC_ENTITY.SCHEDULE,
+          String(lessonId),
+          result.pageId || existingPage.id,
+          rowHash,
+        );
+      }
+      return result;
     }
 
     if (action === 'delete') {
       return { success: true };
     }
 
-    return _createNotionPageInDatabase(
-      config,
-      scheduleDbId,
-      properties,
-      titleValue,
-    );
+    {
+      const result = _createNotionPageInDatabase(
+        config,
+        scheduleDbId,
+        properties,
+        titleValue,
+      );
+      if (result.success && result.pageId) {
+        _upsertNotionSyncMeta(
+          NOTION_SYNC_ENTITY.SCHEDULE,
+          String(lessonId),
+          result.pageId,
+          rowHash,
+        );
+      }
+      return result;
+    }
   } catch (error) {
     Logger.log(
       `syncScheduleToNotion Error: ${/** @type {Error} */ (error).message}`,
@@ -932,11 +1573,12 @@ export function syncScheduleToNotion(lessonId, action = 'update') {
 /**
  * 予約記録を一括で Notion に同期します
  *
- * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number}}
  */
 export function syncAllReservationsToNotion() {
   let created = 0;
   let updated = 0;
+  let skipped = 0;
   let errors = 0;
 
   try {
@@ -944,13 +1586,13 @@ export function syncAllReservationsToNotion() {
     const reservationDbId = config?.reservationDbId;
     if (!reservationDbId) {
       Logger.log('Notion予約一括同期スキップ: 予約DBが未設定です');
-      return { success: false, created: 0, updated: 0, errors: 0 };
+      return { success: false, created: 0, updated: 0, skipped: 0, errors: 0 };
     }
 
     const snapshot = _getReservationSnapshot();
     if (!snapshot) {
       Logger.log('Notion予約一括同期: 予約データがありません');
-      return { success: true, created: 0, updated: 0, errors: 0 };
+      return { success: true, created: 0, updated: 0, skipped: 0, errors: 0 };
     }
 
     const schema = _getNotionDatabaseSchema(config, reservationDbId);
@@ -969,18 +1611,49 @@ export function syncAllReservationsToNotion() {
           titleValue,
         );
 
+        const normalized = _buildNormalizedValuesForHash(
+          entry.values,
+          schema,
+          titleValue,
+        );
+        const rowHash = _computeRowHash(normalized);
+        const propertyNames = Object.keys(normalized);
+
         const existingPage = pageMap.get(String(reservationId));
         if (existingPage) {
-          const result = _updateNotionPageInDatabase(
-            config,
-            existingPage.id,
-            properties,
-            titleValue,
-          );
-          if (result.success) {
-            updated++;
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            skipped++;
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.RESERVATION,
+              String(reservationId),
+              existingPage.id,
+              rowHash,
+            );
           } else {
-            errors++;
+            const result = _updateNotionPageInDatabase(
+              config,
+              existingPage.id,
+              properties,
+              titleValue,
+            );
+            if (result.success) {
+              updated++;
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.RESERVATION,
+                String(reservationId),
+                result.pageId || existingPage.id,
+                rowHash,
+              );
+            } else {
+              errors++;
+            }
           }
         } else {
           const result = _createNotionPageInDatabase(
@@ -991,6 +1664,14 @@ export function syncAllReservationsToNotion() {
           );
           if (result.success) {
             created++;
+            if (result.pageId) {
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.RESERVATION,
+                String(reservationId),
+                result.pageId,
+                rowHash,
+              );
+            }
           } else {
             errors++;
           }
@@ -1005,12 +1686,12 @@ export function syncAllReservationsToNotion() {
       Utilities.sleep(RATE_LIMIT_DELAY_MS);
     });
 
-    return { success: true, created, updated, errors };
+    return { success: true, created, updated, skipped, errors };
   } catch (error) {
     Logger.log(
       `syncAllReservationsToNotion Error: ${/** @type {Error} */ (error).message}`,
     );
-    return { success: false, created, updated, errors: errors + 1 };
+    return { success: false, created, updated, skipped, errors: errors + 1 };
   }
 }
 
@@ -1018,11 +1699,12 @@ export function syncAllReservationsToNotion() {
  * 予約記録を分割で Notion に同期します（途中再開可能）
  *
  * @param {number} [batchSize=100] - 1回で処理する件数
- * @returns {{success: boolean, created: number, updated: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number, processed: number, total: number, done: boolean, nextIndex: number}}
  */
 export function syncAllReservationsToNotionChunk(batchSize = 100) {
   let created = 0;
   let updated = 0;
+  let skipped = 0;
   let errors = 0;
 
   try {
@@ -1034,6 +1716,7 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
         success: false,
         created: 0,
         updated: 0,
+        skipped: 0,
         errors: 0,
         processed: 0,
         total: 0,
@@ -1049,6 +1732,7 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
         success: true,
         created: 0,
         updated: 0,
+        skipped: 0,
         errors: 0,
         processed: 0,
         total: 0,
@@ -1064,6 +1748,7 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
         success: true,
         created: 0,
         updated: 0,
+        skipped: 0,
         errors: 0,
         processed: 0,
         total: 0,
@@ -1081,11 +1766,16 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
       Number.isFinite(cursorIndex) && cursorIndex > 0 ? cursorIndex : 0;
 
     if (startIndex >= total) {
-      props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
+      // 完了済みの場合は、次回以降に0から再実行されないようカーソルを保持する
+      props.setProperty(
+        PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
+        String(total),
+      );
       return {
         success: true,
         created: 0,
         updated: 0,
+        skipped: 0,
         errors: 0,
         processed: 0,
         total,
@@ -1121,18 +1811,49 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
           titleValue,
         );
 
+        const normalized = _buildNormalizedValuesForHash(
+          entry.values,
+          schema,
+          titleValue,
+        );
+        const rowHash = _computeRowHash(normalized);
+        const propertyNames = Object.keys(normalized);
+
         const existingPage = pageMap.get(String(reservationId));
         if (existingPage) {
-          const result = _updateNotionPageInDatabase(
-            config,
-            existingPage.id,
-            properties,
-            titleValue,
-          );
-          if (result.success) {
-            updated++;
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            skipped++;
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.RESERVATION,
+              String(reservationId),
+              existingPage.id,
+              rowHash,
+            );
           } else {
-            errors++;
+            const result = _updateNotionPageInDatabase(
+              config,
+              existingPage.id,
+              properties,
+              titleValue,
+            );
+            if (result.success) {
+              updated++;
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.RESERVATION,
+                String(reservationId),
+                result.pageId || existingPage.id,
+                rowHash,
+              );
+            } else {
+              errors++;
+            }
           }
         } else {
           const result = _createNotionPageInDatabase(
@@ -1143,6 +1864,14 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
           );
           if (result.success) {
             created++;
+            if (result.pageId) {
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.RESERVATION,
+                String(reservationId),
+                result.pageId,
+                rowHash,
+              );
+            }
           } else {
             errors++;
           }
@@ -1159,19 +1888,17 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
 
     const processed = endIndex - startIndex;
     const done = endIndex >= total;
-    if (done) {
-      props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
-    } else {
-      props.setProperty(
-        PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
-        String(endIndex),
-      );
-    }
+    // done のときもカーソルを保持し、次回以降の再実行を防止する
+    props.setProperty(
+      PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
+      String(endIndex),
+    );
 
     return {
       success: true,
       created,
       updated,
+      skipped,
       errors,
       processed,
       total,
@@ -1186,6 +1913,7 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
       success: false,
       created,
       updated,
+      skipped,
       errors: errors + 1,
       processed: 0,
       total: 0,
@@ -1198,11 +1926,12 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
 /**
  * 日程を一括で Notion に同期します
  *
- * @returns {{success: boolean, created: number, updated: number, errors: number}}
+ * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number}}
  */
 export function syncAllSchedulesToNotion() {
   let created = 0;
   let updated = 0;
+  let skipped = 0;
   let errors = 0;
 
   try {
@@ -1210,13 +1939,13 @@ export function syncAllSchedulesToNotion() {
     const scheduleDbId = config?.scheduleDbId;
     if (!scheduleDbId) {
       Logger.log('Notion日程一括同期スキップ: 日程DBが未設定です');
-      return { success: false, created: 0, updated: 0, errors: 0 };
+      return { success: false, created: 0, updated: 0, skipped: 0, errors: 0 };
     }
 
     const snapshot = _getScheduleSnapshot();
     if (!snapshot) {
       Logger.log('Notion日程一括同期: 日程データがありません');
-      return { success: true, created: 0, updated: 0, errors: 0 };
+      return { success: true, created: 0, updated: 0, skipped: 0, errors: 0 };
     }
 
     const schema = _getNotionDatabaseSchema(config, scheduleDbId);
@@ -1235,18 +1964,49 @@ export function syncAllSchedulesToNotion() {
           titleValue,
         );
 
+        const normalized = _buildNormalizedValuesForHash(
+          entry.values,
+          schema,
+          titleValue,
+        );
+        const rowHash = _computeRowHash(normalized);
+        const propertyNames = Object.keys(normalized);
+
         const existingPage = pageMap.get(String(lessonId));
         if (existingPage) {
-          const result = _updateNotionPageInDatabase(
-            config,
-            existingPage.id,
-            properties,
-            titleValue,
-          );
-          if (result.success) {
-            updated++;
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            skipped++;
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.SCHEDULE,
+              String(lessonId),
+              existingPage.id,
+              rowHash,
+            );
           } else {
-            errors++;
+            const result = _updateNotionPageInDatabase(
+              config,
+              existingPage.id,
+              properties,
+              titleValue,
+            );
+            if (result.success) {
+              updated++;
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.SCHEDULE,
+                String(lessonId),
+                result.pageId || existingPage.id,
+                rowHash,
+              );
+            } else {
+              errors++;
+            }
           }
         } else {
           const result = _createNotionPageInDatabase(
@@ -1257,6 +2017,14 @@ export function syncAllSchedulesToNotion() {
           );
           if (result.success) {
             created++;
+            if (result.pageId) {
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.SCHEDULE,
+                String(lessonId),
+                result.pageId,
+                rowHash,
+              );
+            }
           } else {
             errors++;
           }
@@ -1271,12 +2039,12 @@ export function syncAllSchedulesToNotion() {
       Utilities.sleep(RATE_LIMIT_DELAY_MS);
     });
 
-    return { success: true, created, updated, errors };
+    return { success: true, created, updated, skipped, errors };
   } catch (error) {
     Logger.log(
       `syncAllSchedulesToNotion Error: ${/** @type {Error} */ (error).message}`,
     );
-    return { success: false, created, updated, errors: errors + 1 };
+    return { success: false, created, updated, skipped, errors: errors + 1 };
   }
 }
 
@@ -1334,18 +2102,49 @@ export function syncUpcomingSchedulesToNotion() {
           titleValue,
         );
 
+        const normalized = _buildNormalizedValuesForHash(
+          entry.values,
+          schema,
+          titleValue,
+        );
+        const rowHash = _computeRowHash(normalized);
+        const propertyNames = Object.keys(normalized);
+
         const existingPage = pageMap.get(String(lessonId));
         if (existingPage) {
-          const result = _updateNotionPageInDatabase(
-            config,
-            existingPage.id,
-            properties,
-            titleValue,
-          );
-          if (result.success) {
-            updated++;
+          if (
+            _shouldSkipNotionUpdate(
+              existingPage,
+              schema,
+              propertyNames,
+              rowHash,
+            )
+          ) {
+            skipped++;
+            _upsertNotionSyncMeta(
+              NOTION_SYNC_ENTITY.SCHEDULE,
+              String(lessonId),
+              existingPage.id,
+              rowHash,
+            );
           } else {
-            errors++;
+            const result = _updateNotionPageInDatabase(
+              config,
+              existingPage.id,
+              properties,
+              titleValue,
+            );
+            if (result.success) {
+              updated++;
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.SCHEDULE,
+                String(lessonId),
+                result.pageId || existingPage.id,
+                rowHash,
+              );
+            } else {
+              errors++;
+            }
           }
         } else {
           const result = _createNotionPageInDatabase(
@@ -1356,6 +2155,14 @@ export function syncUpcomingSchedulesToNotion() {
           );
           if (result.success) {
             created++;
+            if (result.pageId) {
+              _upsertNotionSyncMeta(
+                NOTION_SYNC_ENTITY.SCHEDULE,
+                String(lessonId),
+                result.pageId,
+                rowHash,
+              );
+            }
           } else {
             errors++;
           }
@@ -1511,47 +2318,6 @@ function _normalizeNotionPageId(input) {
 }
 
 /**
- * Notion に生徒ページを新規作成します
- *
- * @param {NotionConfig} config
- * @param {StudentData} student - 生徒データ
- * @param {Record<string, any> | null} rosterValues - 生徒名簿の行データ
- * @param {NotionDatabaseSchema | null} schema - Notion DB スキーマ
- * @returns {NotionSyncResult}
- * @private
- */
-function _createNotionPage(config, student, rosterValues, schema) {
-  const properties = _buildNotionProperties(student, rosterValues, schema);
-  return _createNotionPageInDatabase(
-    config,
-    config.studentDbId,
-    properties,
-    student.nickname || student.realName || '生徒',
-  );
-}
-
-/**
- * Notion の生徒ページを更新します
- *
- * @param {NotionConfig} config
- * @param {string} pageId - NotionページID
- * @param {StudentData} student - 生徒データ
- * @param {Record<string, any> | null} rosterValues - 生徒名簿の行データ
- * @param {NotionDatabaseSchema | null} schema - Notion DB スキーマ
- * @returns {NotionSyncResult}
- * @private
- */
-function _updateNotionPage(config, pageId, student, rosterValues, schema) {
-  const properties = _buildNotionProperties(student, rosterValues, schema);
-  return _updateNotionPageInDatabase(
-    config,
-    pageId,
-    properties,
-    student.nickname || student.realName || '生徒',
-  );
-}
-
-/**
  * 任意DBにNotionページを作成します
  *
  * @param {NotionConfig} config
@@ -1612,7 +2378,7 @@ function _updateNotionPageInDatabase(config, pageId, properties, label) {
  * @param {string} propertyName
  * @param {string} value
  * @param {NotionDatabaseSchema | null} schema
- * @returns {{id: string} | null}
+ * @returns {NotionPage | null}
  * @private
  */
 function _findNotionPageByProperty(
@@ -1636,13 +2402,35 @@ function _findNotionPageByProperty(
     );
 
     if (response.results && response.results.length > 0) {
-      return { id: response.results[0].id };
+      return response.results[0];
     }
 
     return null;
   } catch (error) {
     Logger.log(
       `Notionページ検索エラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return null;
+  }
+}
+
+/**
+ * NotionページIDからページ情報を取得します
+ *
+ * @param {NotionConfig} config
+ * @param {string} pageId
+ * @returns {NotionPage | null}
+ * @private
+ */
+function _getNotionPageById(config, pageId) {
+  if (!pageId) return null;
+  try {
+    const response = _notionRequest(config.token, `/pages/${pageId}`, 'get');
+    if (!response?.id) return null;
+    return /** @type {NotionPage} */ (response);
+  } catch (error) {
+    Logger.log(
+      `Notionページ取得エラー: ${/** @type {Error} */ (error).message}`,
     );
     return null;
   }
@@ -1794,15 +2582,14 @@ function _mapNotionPagesByProperty(pages, propertyName) {
 }
 
 /**
- * 生徒データから Notion プロパティオブジェクトを構築します
+ * 生徒データと名簿値をマージします
  *
- * @param {StudentData} student - 生徒データ
- * @param {Record<string, any> | null} rosterValues - 生徒名簿の行データ
- * @param {NotionDatabaseSchema | null} schema - Notion DB スキーマ
- * @returns {Record<string, any>} Notionプロパティ
+ * @param {StudentData} student
+ * @param {Record<string, any> | null} rosterValues
+ * @returns {Record<string, any>}
  * @private
  */
-function _buildNotionProperties(student, rosterValues, schema) {
+function _mergeStudentValues(student, rosterValues) {
   const values = { ...(rosterValues || {}) };
   if (student.studentId && values['生徒ID'] == null) {
     values['生徒ID'] = student.studentId;
@@ -1819,9 +2606,7 @@ function _buildNotionProperties(student, rosterValues, schema) {
   if (student.status && values['ステータス'] == null) {
     values['ステータス'] = student.status;
   }
-
-  const titleValue = _getStudentTitle(values, student);
-  return _buildNotionPropertiesFromValues(values, schema, titleValue);
+  return values;
 }
 
 /**
@@ -1877,6 +2662,319 @@ function _buildNotionPropertiesFromValues(values, schema, titleValue) {
   return properties;
 }
 
+// ================================================================
+// ★★★ Notion同期ハッシュ ★★★
+// ================================================================
+
+/**
+ * 同期用の正規化値マップを作成します
+ *
+ * @param {Record<string, any>} values
+ * @param {NotionDatabaseSchema | null} schema
+ * @param {string} titleValue
+ * @returns {Record<string, string>}
+ * @private
+ */
+function _buildNormalizedValuesForHash(values, schema, titleValue) {
+  /** @type {Record<string, string>} */
+  const normalized = {};
+  const schemaInfo = schema || null;
+  const titlePropertyName = schemaInfo?.titlePropertyName || 'タイトル';
+
+  normalized[titlePropertyName] = _normalizeValueForHash(
+    titleValue,
+    titlePropertyName,
+    'title',
+  );
+
+  const propertyMap = schemaInfo?.properties || {};
+  const hasSchema = !!schemaInfo;
+
+  Object.entries(values).forEach(([propertyName, value]) => {
+    if (propertyName === titlePropertyName) return;
+
+    const propSchema = propertyMap[propertyName];
+    if (hasSchema && !propSchema) {
+      return;
+    }
+
+    const propType = propSchema?.type || 'rich_text';
+    let normalizedValue = value;
+    if (_shouldFormatTimeAsSelect(propertyName, propType)) {
+      normalizedValue = _formatTimeValue(value);
+    }
+
+    normalized[propertyName] = _normalizeValueForHash(
+      normalizedValue,
+      propertyName,
+      propType,
+    );
+  });
+
+  return normalized;
+}
+
+/**
+ * Notionページから正規化値マップを作成します
+ *
+ * @param {NotionPage} page
+ * @param {NotionDatabaseSchema | null} schema
+ * @param {string[]} propertyNames
+ * @returns {Record<string, string> | null}
+ * @private
+ */
+function _buildNormalizedValuesFromNotionPage(page, schema, propertyNames) {
+  if (!page || !schema) return null;
+  const properties = page.properties || {};
+
+  /** @type {Record<string, string>} */
+  const normalized = {};
+
+  propertyNames.forEach(propertyName => {
+    const propSchema = schema.properties?.[propertyName];
+    const propType = propSchema?.type || 'rich_text';
+    const prop = properties[propertyName];
+    const rawValue = _extractRawValueFromNotionProperty(prop, propType);
+    const maybeFormatted = _shouldFormatTimeAsSelect(propertyName, propType)
+      ? _formatTimeValue(rawValue)
+      : rawValue;
+
+    normalized[propertyName] = _normalizeValueForHash(
+      maybeFormatted,
+      propertyName,
+      propType,
+    );
+  });
+
+  return normalized;
+}
+
+/**
+ * Notionプロパティから生値を抽出します
+ *
+ * @param {any} prop
+ * @param {string} propType
+ * @returns {any}
+ * @private
+ */
+function _extractRawValueFromNotionProperty(prop, propType) {
+  if (!prop) return '';
+
+  switch (propType) {
+    case 'title':
+      return Array.isArray(prop.title)
+        ? prop.title
+            .map(
+              /** @param {{plain_text?: string}} item */ item =>
+                item.plain_text || '',
+            )
+            .join('')
+        : '';
+    case 'rich_text':
+      return Array.isArray(prop.rich_text)
+        ? prop.rich_text
+            .map(
+              /** @param {{plain_text?: string}} item */ item =>
+                item.plain_text || '',
+            )
+            .join('')
+        : '';
+    case 'number':
+      return prop.number ?? '';
+    case 'select':
+      return prop.select?.name || '';
+    case 'status':
+      return prop.status?.name || '';
+    case 'multi_select':
+      return Array.isArray(prop.multi_select)
+        ? prop.multi_select
+            .map(/** @param {{name?: string}} item */ item => item.name || '')
+            .filter(Boolean)
+        : [];
+    case 'date':
+      return prop.date?.start || '';
+    case 'checkbox':
+      return prop.checkbox === true;
+    case 'url':
+      return prop.url || '';
+    case 'email':
+      return prop.email || '';
+    case 'phone_number':
+      return prop.phone_number || '';
+    default:
+      return '';
+  }
+}
+
+/**
+ * 正規化した値をハッシュ用に整形します
+ *
+ * @param {any} value
+ * @param {string} _propertyName
+ * @param {string} type
+ * @returns {string}
+ * @private
+ */
+function _normalizeValueForHash(value, _propertyName, type) {
+  switch (type) {
+    case 'number': {
+      const numberValue = _toNumberValue(value);
+      return numberValue === null ? '' : String(numberValue);
+    }
+    case 'select':
+    case 'status': {
+      const name = _sanitizeSelectOptionName(_stringifyValue(value));
+      return name || '';
+    }
+    case 'multi_select': {
+      const names = _toMultiSelectValues(value)
+        .map(name => _sanitizeSelectOptionName(name))
+        .filter(Boolean)
+        .sort();
+      return names.join('|');
+    }
+    case 'date':
+      return _normalizeDateForHash(value);
+    case 'checkbox':
+      return _toBooleanValue(value) ? 'TRUE' : 'FALSE';
+    case 'url':
+    case 'email':
+    case 'phone_number':
+    case 'title':
+    case 'rich_text':
+    default:
+      return _stringifyValue(value);
+  }
+}
+
+/**
+ * 日付をハッシュ比較用に正規化します
+ *
+ * @param {any} value
+ * @returns {string}
+ * @private
+ */
+function _normalizeDateForHash(value) {
+  if (!value) return '';
+
+  if (typeof value === 'string') {
+    const text = value.trim();
+    if (!text) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+      return text;
+    }
+    if (text.includes('T')) {
+      const parsedText = new Date(text);
+      if (!Number.isNaN(parsedText.getTime())) {
+        return Utilities.formatDate(
+          parsedText,
+          CONSTANTS.TIMEZONE,
+          "yyyy-MM-dd'T'HH:mm:ssXXX",
+        );
+      }
+      return text;
+    }
+  }
+
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const hours = value.getHours();
+    const minutes = value.getMinutes();
+    const seconds = value.getSeconds();
+    if (hours === 0 && minutes === 0 && seconds === 0) {
+      return Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+    }
+    return Utilities.formatDate(
+      value,
+      CONSTANTS.TIMEZONE,
+      "yyyy-MM-dd'T'HH:mm:ssXXX",
+    );
+  }
+
+  const parsed = new Date(value);
+  if (!Number.isNaN(parsed.getTime())) {
+    const hours = parsed.getHours();
+    const minutes = parsed.getMinutes();
+    const seconds = parsed.getSeconds();
+    if (hours === 0 && minutes === 0 && seconds === 0) {
+      return Utilities.formatDate(parsed, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+    }
+    return Utilities.formatDate(
+      parsed,
+      CONSTANTS.TIMEZONE,
+      "yyyy-MM-dd'T'HH:mm:ssXXX",
+    );
+  }
+
+  return _stringifyValue(value);
+}
+
+/**
+ * 正規化値マップからハッシュを生成します
+ *
+ * @param {Record<string, string>} normalized
+ * @returns {string}
+ * @private
+ */
+function _computeRowHash(normalized) {
+  const sortedKeys = Object.keys(normalized).sort();
+  /** @type {Record<string, string>} */
+  const sorted = {};
+  sortedKeys.forEach(key => {
+    sorted[key] = normalized[key];
+  });
+
+  const json = JSON.stringify(sorted);
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    json,
+    Utilities.Charset.UTF_8,
+  );
+  return digest
+    .map(byte => `0${(byte & 0xff).toString(16)}`.slice(-2))
+    .join('');
+}
+
+/**
+ * Notionページの値からハッシュを生成します
+ *
+ * @param {NotionPage} page
+ * @param {NotionDatabaseSchema | null} schema
+ * @param {string[]} propertyNames
+ * @returns {string | null}
+ * @private
+ */
+function _computeRowHashFromNotionPage(page, schema, propertyNames) {
+  if (!page || !schema) return null;
+  const normalized = _buildNormalizedValuesFromNotionPage(
+    page,
+    schema,
+    propertyNames,
+  );
+  if (!normalized) return null;
+  return _computeRowHash(normalized);
+}
+
+/**
+ * 更新スキップ判定を行います
+ *
+ * @param {NotionPage | null} page
+ * @param {NotionDatabaseSchema | null} schema
+ * @param {string[]} propertyNames
+ * @param {string} desiredHash
+ * @returns {boolean}
+ * @private
+ */
+function _shouldSkipNotionUpdate(page, schema, propertyNames, desiredHash) {
+  if (!page || !schema) return false;
+  const currentHash = _computeRowHashFromNotionPage(
+    page,
+    schema,
+    propertyNames,
+  );
+  if (!currentHash) return false;
+  return currentHash === desiredHash;
+}
+
 /**
  * Notion DB スキーマを取得します（キャッシュ付き）
  *
@@ -1924,6 +3022,447 @@ function _getNotionDatabaseSchema(config, databaseId) {
     );
     return null;
   }
+}
+
+// ================================================================
+// ★★★ Notion分割同期トリガー管理 ★★★
+// ================================================================
+
+/**
+ * Notion分割同期トリガーを取得します
+ *
+ * @returns {GoogleAppsScript.Script.Trigger | null}
+ * @private
+ */
+function _getNotionBatchTrigger() {
+  const props = PropertiesService.getScriptProperties();
+  const storedTriggerId = props.getProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+  const triggers = ScriptApp.getProjectTriggers();
+
+  if (storedTriggerId) {
+    const matchedById = triggers.find(trigger => {
+      return _getTriggerUniqueId(trigger) === storedTriggerId;
+    });
+    if (matchedById) {
+      return matchedById;
+    }
+  }
+
+  const matchedByHandler = triggers.find(trigger => {
+    return trigger.getHandlerFunction() === NOTION_BATCH_TRIGGER_HANDLER;
+  });
+  if (!matchedByHandler) {
+    props.deleteProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+    return null;
+  }
+
+  const triggerId = _getTriggerUniqueId(matchedByHandler);
+  if (triggerId) {
+    props.setProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID, triggerId);
+  }
+  return matchedByHandler;
+}
+
+/**
+ * Notion分割同期トリガーを作成または再利用します
+ *
+ * @returns {GoogleAppsScript.Script.Trigger}
+ * @private
+ */
+function _ensureNotionBatchTrigger() {
+  const existingTrigger = _getNotionBatchTrigger();
+  if (existingTrigger) {
+    return existingTrigger;
+  }
+
+  const trigger = ScriptApp.newTrigger(NOTION_BATCH_TRIGGER_HANDLER)
+    .timeBased()
+    .everyMinutes(NOTION_BATCH_TRIGGER_INTERVAL_MINUTES)
+    .create();
+  const triggerId = _getTriggerUniqueId(trigger);
+  if (triggerId) {
+    PropertiesService.getScriptProperties().setProperty(
+      PROPS_KEY_NOTION_BATCH_TRIGGER_ID,
+      triggerId,
+    );
+  }
+  Logger.log(
+    `Notion分割同期トリガーを作成しました（間隔: ${NOTION_BATCH_TRIGGER_INTERVAL_MINUTES}分）。`,
+  );
+  return trigger;
+}
+
+/**
+ * Notion分割同期トリガーを削除します
+ *
+ * @returns {number} - 削除件数
+ * @private
+ */
+function _deleteNotionBatchTriggers() {
+  const props = PropertiesService.getScriptProperties();
+  const storedTriggerId = props.getProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+  const triggers = ScriptApp.getProjectTriggers();
+  let deleted = 0;
+
+  triggers.forEach(trigger => {
+    const shouldDeleteByHandler =
+      trigger.getHandlerFunction() === NOTION_BATCH_TRIGGER_HANDLER;
+    const shouldDeleteById =
+      !!storedTriggerId && _getTriggerUniqueId(trigger) === storedTriggerId;
+    if (!shouldDeleteByHandler && !shouldDeleteById) {
+      return;
+    }
+    ScriptApp.deleteTrigger(trigger);
+    deleted++;
+  });
+
+  props.deleteProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+  return deleted;
+}
+
+/**
+ * Triggerの一意IDを安全に取得します
+ *
+ * @param {GoogleAppsScript.Script.Trigger} trigger
+ * @returns {string}
+ * @private
+ */
+function _getTriggerUniqueId(trigger) {
+  try {
+    return trigger.getUniqueId() || '';
+  } catch (_error) {
+    return '';
+  }
+}
+
+// ================================================================
+// ★★★ Notion同期メタ（page_id/rowHash） ★★★
+// ================================================================
+
+/**
+ * Notion同期メタシートを取得します（必要なら作成）
+ *
+ * @returns {GoogleAppsScript.Spreadsheet.Sheet}
+ * @private
+ */
+function _getNotionSyncMetaSheet() {
+  const spreadsheet = SS_MANAGER.getSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(NOTION_SYNC_META_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = spreadsheet.insertSheet(NOTION_SYNC_META_SHEET_NAME);
+    sheet
+      .getRange(1, 1, 1, NOTION_SYNC_META_HEADERS.length)
+      .setValues([NOTION_SYNC_META_HEADERS]);
+    sheet.setFrozenRows(1);
+    sheet.hideSheet();
+    return sheet;
+  }
+
+  _ensureNotionSyncMetaHeaders(sheet);
+  if (!sheet.isSheetHidden()) {
+    sheet.hideSheet();
+  }
+  return sheet;
+}
+
+/**
+ * Notion同期メタシートのヘッダーを整備します
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet
+ * @returns {void}
+ * @private
+ */
+function _ensureNotionSyncMetaHeaders(sheet) {
+  const lastColumn = sheet.getLastColumn();
+  const headerRow =
+    lastColumn > 0 ? sheet.getRange(1, 1, 1, lastColumn).getValues()[0] : [];
+  const existingHeaders = headerRow.map(header => String(header || '').trim());
+
+  let updated = false;
+  const nextHeaders = existingHeaders.slice();
+  NOTION_SYNC_META_HEADERS.forEach(header => {
+    if (!existingHeaders.includes(header)) {
+      nextHeaders.push(header);
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    sheet.getRange(1, 1, 1, nextHeaders.length).setValues([nextHeaders]);
+  }
+
+  if (sheet.getFrozenRows() === 0) {
+    sheet.setFrozenRows(1);
+  }
+}
+
+/**
+ * Notion同期メタの状態を取得します（実行内キャッシュ）
+ *
+ * @returns {{
+ *   sheet: GoogleAppsScript.Spreadsheet.Sheet,
+ *   headerMap: Map<string, number>,
+ *   byKey: Map<string, NotionSyncMetaEntry>,
+ * }}
+ * @private
+ */
+function _getNotionSyncMetaState() {
+  if (NOTION_SYNC_META_STATE.loaded) {
+    return /** @type {any} */ (NOTION_SYNC_META_STATE);
+  }
+
+  const sheet = _getNotionSyncMetaSheet();
+  const lastColumn = sheet.getLastColumn();
+  const headerRow =
+    lastColumn > 0 ? sheet.getRange(1, 1, 1, lastColumn).getValues()[0] : [];
+
+  /** @type {Map<string, number>} */
+  const headerMap = new Map();
+  headerRow.forEach((header, index) => {
+    if (!header) return;
+    headerMap.set(String(header).trim(), index);
+  });
+
+  /** @type {Map<string, NotionSyncMetaEntry>} */
+  const byKey = new Map();
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1 && lastColumn > 0) {
+    const rows = sheet.getRange(2, 1, lastRow - 1, lastColumn).getValues();
+    const entityIdx = headerMap.get('entity');
+    const sourceIdIdx = headerMap.get('sourceId');
+    const pageIdIdx = headerMap.get('pageId');
+    const rowHashIdx = headerMap.get('rowHash');
+    const updatedAtIdx = headerMap.get('updatedAt');
+
+    rows.forEach((row, idx) => {
+      const entity =
+        entityIdx !== undefined ? String(row[entityIdx] || '').trim() : '';
+      const sourceId =
+        sourceIdIdx !== undefined ? String(row[sourceIdIdx] || '').trim() : '';
+      if (!entity || !sourceId) return;
+
+      const pageId =
+        pageIdIdx !== undefined ? String(row[pageIdIdx] || '').trim() : '';
+      const rowHash =
+        rowHashIdx !== undefined ? String(row[rowHashIdx] || '').trim() : '';
+      const updatedAt =
+        updatedAtIdx !== undefined ? String(row[updatedAtIdx] || '') : '';
+
+      const key = _buildNotionSyncMetaKey(entity, sourceId);
+      byKey.set(key, {
+        entity,
+        sourceId,
+        pageId,
+        rowHash,
+        rowIndex: idx + 2,
+        updatedAt,
+      });
+    });
+  }
+
+  NOTION_SYNC_META_STATE.loaded = true;
+  NOTION_SYNC_META_STATE.sheet = sheet;
+  NOTION_SYNC_META_STATE.headerMap = headerMap;
+  NOTION_SYNC_META_STATE.byKey = byKey;
+
+  return /** @type {any} */ (NOTION_SYNC_META_STATE);
+}
+
+/**
+ * Notion同期メタのキーを生成します
+ *
+ * @param {string} entity
+ * @param {string} sourceId
+ * @returns {string}
+ * @private
+ */
+function _buildNotionSyncMetaKey(entity, sourceId) {
+  return `${entity}::${sourceId}`;
+}
+
+/**
+ * Notion同期メタを取得します
+ *
+ * @param {string} entity
+ * @param {string} sourceId
+ * @returns {NotionSyncMetaEntry | null}
+ * @private
+ */
+function _getNotionSyncMeta(entity, sourceId) {
+  if (!entity || !sourceId) return null;
+  const state = _getNotionSyncMetaState();
+  const key = _buildNotionSyncMetaKey(entity, sourceId);
+  return state.byKey.get(key) || null;
+}
+
+/**
+ * Notion同期メタを更新または追加します
+ *
+ * @param {string} entity
+ * @param {string} sourceId
+ * @param {string} pageId
+ * @param {string} rowHash
+ * @returns {void}
+ * @private
+ */
+function _upsertNotionSyncMeta(entity, sourceId, pageId, rowHash) {
+  if (!entity || !sourceId) return;
+  const state = _getNotionSyncMetaState();
+  const key = _buildNotionSyncMetaKey(entity, sourceId);
+  const now = new Date().toISOString();
+
+  const payload = {
+    entity,
+    sourceId,
+    pageId: pageId || '',
+    rowHash: rowHash || '',
+    updatedAt: now,
+  };
+
+  const existing = state.byKey.get(key);
+  if (existing?.rowIndex) {
+    _writeNotionSyncMetaValues(
+      state.sheet,
+      state.headerMap,
+      existing.rowIndex,
+      payload,
+    );
+    existing.pageId = payload.pageId;
+    existing.rowHash = payload.rowHash;
+    existing.updatedAt = payload.updatedAt;
+    return;
+  }
+
+  const nextRow = state.sheet.getLastRow() + 1;
+  _writeNotionSyncMetaValues(state.sheet, state.headerMap, nextRow, payload);
+  state.byKey.set(key, {
+    entity,
+    sourceId,
+    pageId: payload.pageId,
+    rowHash: payload.rowHash,
+    rowIndex: nextRow,
+    updatedAt: payload.updatedAt,
+  });
+}
+
+/**
+ * Notion同期メタを無効化します（pageId/rowHashをクリア）
+ *
+ * @param {string} entity
+ * @param {string} sourceId
+ * @returns {void}
+ * @private
+ */
+function _clearNotionSyncMeta(entity, sourceId) {
+  if (!entity || !sourceId) return;
+  const state = _getNotionSyncMetaState();
+  const key = _buildNotionSyncMetaKey(entity, sourceId);
+  const existing = state.byKey.get(key);
+  if (!existing?.rowIndex) return;
+
+  const now = new Date().toISOString();
+  _writeNotionSyncMetaValues(state.sheet, state.headerMap, existing.rowIndex, {
+    pageId: '',
+    rowHash: '',
+    updatedAt: now,
+  });
+
+  existing.pageId = '';
+  existing.rowHash = '';
+  existing.updatedAt = now;
+}
+
+/**
+ * Notion同期メタシートへ値を書き込みます
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet
+ * @param {Map<string, number>} headerMap
+ * @param {number} rowIndex
+ * @param {Record<string, any>} values
+ * @returns {void}
+ * @private
+ */
+function _writeNotionSyncMetaValues(sheet, headerMap, rowIndex, values) {
+  /** @type {number[]} */
+  const cols = [];
+  /** @type {Record<number, any>} */
+  const valueByCol = {};
+
+  Object.entries(values).forEach(([key, value]) => {
+    const colIdx = headerMap.get(key);
+    if (colIdx === undefined) return;
+    cols.push(colIdx);
+    valueByCol[colIdx] = value;
+  });
+
+  if (cols.length === 0) return;
+
+  const uniqueCols = Array.from(new Set(cols)).sort((a, b) => a - b);
+  const isContiguous = uniqueCols.every(
+    (col, idx) => col === uniqueCols[0] + idx,
+  );
+
+  if (isContiguous) {
+    const rowValues = uniqueCols.map(col => valueByCol[col] ?? '');
+    sheet
+      .getRange(rowIndex, uniqueCols[0] + 1, 1, rowValues.length)
+      .setValues([rowValues]);
+    return;
+  }
+
+  uniqueCols.forEach(colIdx => {
+    sheet.getRange(rowIndex, colIdx + 1).setValue(valueByCol[colIdx] ?? '');
+  });
+}
+
+/**
+ * Notion同期メタで完結できる場合は更新を行います
+ *
+ * @param {NotionConfig} config
+ * @param {NotionSyncMetaEntry | null} meta
+ * @param {string} rowHash
+ * @param {Record<string, any>} properties
+ * @param {string} label
+ * @param {string} entity
+ * @param {string} sourceId
+ * @returns {NotionSyncResult | null}
+ * @private
+ */
+function _trySyncNotionByMeta(
+  config,
+  meta,
+  rowHash,
+  properties,
+  label,
+  entity,
+  sourceId,
+) {
+  if (!NOTION_ASSUME_NO_MANUAL_EDITS) return null;
+  if (!meta?.pageId) return null;
+
+  if (meta.rowHash && meta.rowHash === rowHash) {
+    return { success: true, pageId: meta.pageId, skipped: true };
+  }
+
+  const result = _updateNotionPageInDatabase(
+    config,
+    meta.pageId,
+    properties,
+    label,
+  );
+  if (result.success) {
+    _upsertNotionSyncMeta(
+      entity,
+      sourceId,
+      result.pageId || meta.pageId,
+      rowHash,
+    );
+    return result;
+  }
+
+  _clearNotionSyncMeta(entity, sourceId);
+  return null;
 }
 
 /**
