@@ -93,6 +93,22 @@ function normalizeErrorResponse(errorResponse) {
 }
 
 /**
+ * ヘッダーと行データから値マップを作成します
+ * @param {string[]} headers
+ * @param {any[]} rowValues
+ * @returns {Record<string, any>}
+ */
+function _buildRowValuesMap(headers, rowValues) {
+  /** @type {Record<string, any>} */
+  const valuesMap = {};
+  headers.forEach((header, idx) => {
+    if (!header) return;
+    valuesMap[String(header)] = rowValues[idx];
+  });
+  return valuesMap;
+}
+
+/**
  * 指定したユーザーが同一日によやくを持っているかチェックする共通関数。
  * @param {string} studentId - 学生ID
  * @param {string} date - 日付（YYYY-MM-DD形式）
@@ -571,7 +587,11 @@ export function _saveReservationCoreToSheet(reservation, mode) {
 
   // Notion同期（失敗しても本体処理は継続）
   try {
-    syncReservationToNotion(reservation.reservationId, mode);
+    const reservationValuesMap = _buildRowValuesMap(header, newRowData);
+    syncReservationToNotion(reservation.reservationId, mode, {
+      reservationValues: reservationValuesMap,
+      skipSheetAccess: true,
+    });
   } catch (error) {
     Logger.log(`Notion予約同期エラー: ${error.message}`);
   }
@@ -646,9 +666,23 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
 
       reservationIdsCell.setValue(JSON.stringify(currentIds));
 
+      const updatedRow = dataRows[targetRowIndex];
+      if (updatedRow && reservationIdsColIdx !== -1) {
+        updatedRow[reservationIdsColIdx] = JSON.stringify(currentIds);
+      }
+
       // Notion同期（失敗しても本体処理は継続）
       try {
-        syncScheduleToNotion(lessonId, 'update');
+        const scheduleValuesMap = updatedRow
+          ? _buildRowValuesMap(header, updatedRow)
+          : null;
+        const syncOptions = scheduleValuesMap
+          ? {
+              scheduleValues: scheduleValuesMap,
+              skipSheetAccess: true,
+            }
+          : undefined;
+        syncScheduleToNotion(lessonId, 'update', syncOptions);
       } catch (error) {
         Logger.log(`Notion日程同期エラー: ${error.message}`);
       }
