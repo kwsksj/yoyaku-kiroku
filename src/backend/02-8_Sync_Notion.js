@@ -55,6 +55,9 @@ const NOTION_SCHEMA_CACHE = new Map();
 /** Notion DB スキーマキャッシュの有効期限（ミリ秒） */
 const NOTION_SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** Notion側を手動編集しない前提で同期の問い合わせを省略する */
+const NOTION_ASSUME_NO_MANUAL_EDITS = true;
+
 /** Notion同期メタ情報シート名 */
 const NOTION_SYNC_META_SHEET_NAME = 'Notion同期メタ';
 
@@ -428,29 +431,6 @@ export function syncStudentToNotion(studentId, action, options = {}) {
     const schema =
       options.schema || _getNotionDatabaseSchema(config, config.studentDbId);
 
-    /** @type {NotionPage | null} */
-    let existingPage = options.existingPage || null;
-    if (!existingPage) {
-      const meta = _getNotionSyncMeta(NOTION_SYNC_ENTITY.STUDENT, studentId);
-      if (meta?.pageId) {
-        existingPage = _getNotionPageById(config, meta.pageId);
-        if (!existingPage) {
-          _clearNotionSyncMeta(NOTION_SYNC_ENTITY.STUDENT, studentId);
-        }
-      }
-    }
-
-    if (!existingPage) {
-      // 既存の Notion ページを検索
-      existingPage = _findNotionPageByProperty(
-        config,
-        config.studentDbId,
-        CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
-        studentId,
-        schema,
-      );
-    }
-
     /** @type {StudentData} */
     const studentData = student || { studentId };
     if (action === 'delete') {
@@ -471,6 +451,42 @@ export function syncStudentToNotion(studentId, action, options = {}) {
     );
     const rowHash = _computeRowHash(normalized);
     const propertyNames = Object.keys(normalized);
+    const meta = _getNotionSyncMeta(NOTION_SYNC_ENTITY.STUDENT, studentId);
+
+    const metaResult = _trySyncNotionByMeta(
+      config,
+      meta,
+      rowHash,
+      properties,
+      titleValue || '生徒',
+      NOTION_SYNC_ENTITY.STUDENT,
+      studentId,
+    );
+    if (metaResult) {
+      return metaResult;
+    }
+
+    /** @type {NotionPage | null} */
+    let existingPage = options.existingPage || null;
+    if (!existingPage && !NOTION_ASSUME_NO_MANUAL_EDITS) {
+      if (meta?.pageId) {
+        existingPage = _getNotionPageById(config, meta.pageId);
+        if (!existingPage) {
+          _clearNotionSyncMeta(NOTION_SYNC_ENTITY.STUDENT, studentId);
+        }
+      }
+    }
+
+    if (!existingPage) {
+      // 既存の Notion ページを検索
+      existingPage = _findNotionPageByProperty(
+        config,
+        config.studentDbId,
+        CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+        studentId,
+        schema,
+      );
+    }
 
     switch (action) {
       case 'create':
@@ -1136,13 +1152,40 @@ export function syncReservationToNotion(
 
     const schema =
       options.schema || _getNotionDatabaseSchema(config, reservationDbId);
+    const titleValue = _getReservationTitle(rowValues);
+    const properties = _buildNotionPropertiesFromValues(
+      rowValues,
+      schema,
+      titleValue,
+    );
+    const normalized = _buildNormalizedValuesForHash(
+      rowValues,
+      schema,
+      titleValue,
+    );
+    const rowHash = _computeRowHash(normalized);
+    const propertyNames = Object.keys(normalized);
+    const meta = _getNotionSyncMeta(
+      NOTION_SYNC_ENTITY.RESERVATION,
+      String(reservationId),
+    );
+
+    const metaResult = _trySyncNotionByMeta(
+      config,
+      meta,
+      rowHash,
+      properties,
+      titleValue,
+      NOTION_SYNC_ENTITY.RESERVATION,
+      String(reservationId),
+    );
+    if (metaResult) {
+      return metaResult;
+    }
+
     /** @type {NotionPage | null} */
     let existingPage = options.existingPage || null;
-    if (!existingPage) {
-      const meta = _getNotionSyncMeta(
-        NOTION_SYNC_ENTITY.RESERVATION,
-        String(reservationId),
-      );
+    if (!existingPage && !NOTION_ASSUME_NO_MANUAL_EDITS) {
       if (meta?.pageId) {
         existingPage = _getNotionPageById(config, meta.pageId);
         if (!existingPage) {
@@ -1162,20 +1205,6 @@ export function syncReservationToNotion(
         schema,
       );
     }
-
-    const titleValue = _getReservationTitle(rowValues);
-    const properties = _buildNotionPropertiesFromValues(
-      rowValues,
-      schema,
-      titleValue,
-    );
-    const normalized = _buildNormalizedValuesForHash(
-      rowValues,
-      schema,
-      titleValue,
-    );
-    const rowHash = _computeRowHash(normalized);
-    const propertyNames = Object.keys(normalized);
 
     if (existingPage) {
       if (
@@ -1274,13 +1303,40 @@ export function syncScheduleToNotion(
 
     const schema =
       options.schema || _getNotionDatabaseSchema(config, scheduleDbId);
+    const titleValue = _getScheduleTitle(rowValues);
+    const properties = _buildNotionPropertiesFromValues(
+      rowValues,
+      schema,
+      titleValue,
+    );
+    const normalized = _buildNormalizedValuesForHash(
+      rowValues,
+      schema,
+      titleValue,
+    );
+    const rowHash = _computeRowHash(normalized);
+    const propertyNames = Object.keys(normalized);
+    const meta = _getNotionSyncMeta(
+      NOTION_SYNC_ENTITY.SCHEDULE,
+      String(lessonId),
+    );
+
+    const metaResult = _trySyncNotionByMeta(
+      config,
+      meta,
+      rowHash,
+      properties,
+      titleValue,
+      NOTION_SYNC_ENTITY.SCHEDULE,
+      String(lessonId),
+    );
+    if (metaResult) {
+      return metaResult;
+    }
+
     /** @type {NotionPage | null} */
     let existingPage = options.existingPage || null;
-    if (!existingPage) {
-      const meta = _getNotionSyncMeta(
-        NOTION_SYNC_ENTITY.SCHEDULE,
-        String(lessonId),
-      );
+    if (!existingPage && !NOTION_ASSUME_NO_MANUAL_EDITS) {
       if (meta?.pageId) {
         existingPage = _getNotionPageById(config, meta.pageId);
         if (!existingPage) {
@@ -1297,20 +1353,6 @@ export function syncScheduleToNotion(
         schema,
       );
     }
-
-    const titleValue = _getScheduleTitle(rowValues);
-    const properties = _buildNotionPropertiesFromValues(
-      rowValues,
-      schema,
-      titleValue,
-    );
-    const normalized = _buildNormalizedValuesForHash(
-      rowValues,
-      schema,
-      titleValue,
-    );
-    const rowHash = _computeRowHash(normalized);
-    const propertyNames = Object.keys(normalized);
 
     if (existingPage) {
       if (
@@ -3102,6 +3144,55 @@ function _writeNotionSyncMetaValues(sheet, headerMap, rowIndex, values) {
   uniqueCols.forEach(colIdx => {
     sheet.getRange(rowIndex, colIdx + 1).setValue(valueByCol[colIdx] ?? '');
   });
+}
+
+/**
+ * Notion同期メタで完結できる場合は更新を行います
+ *
+ * @param {NotionConfig} config
+ * @param {NotionSyncMetaEntry | null} meta
+ * @param {string} rowHash
+ * @param {Record<string, any>} properties
+ * @param {string} label
+ * @param {string} entity
+ * @param {string} sourceId
+ * @returns {NotionSyncResult | null}
+ * @private
+ */
+function _trySyncNotionByMeta(
+  config,
+  meta,
+  rowHash,
+  properties,
+  label,
+  entity,
+  sourceId,
+) {
+  if (!NOTION_ASSUME_NO_MANUAL_EDITS) return null;
+  if (!meta?.pageId) return null;
+
+  if (meta.rowHash && meta.rowHash === rowHash) {
+    return { success: true, pageId: meta.pageId, skipped: true };
+  }
+
+  const result = _updateNotionPageInDatabase(
+    config,
+    meta.pageId,
+    properties,
+    label,
+  );
+  if (result.success) {
+    _upsertNotionSyncMeta(
+      entity,
+      sourceId,
+      result.pageId || meta.pageId,
+      rowHash,
+    );
+    return result;
+  }
+
+  _clearNotionSyncMeta(entity, sourceId);
+  return null;
 }
 
 /**
