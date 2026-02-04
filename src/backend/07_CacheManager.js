@@ -2281,6 +2281,19 @@ export function pushParticipantsIndexToWorker() {
   }
 
   const index = buildParticipantsIndexForUploadUi();
+  const reservationsCacheVersion = index?.source?.reservations_cache_version;
+  if (
+    reservationsCacheVersion === null ||
+    reservationsCacheVersion === undefined
+  ) {
+    Logger.log(
+      '参加者候補インデックス送信スキップ: 予約キャッシュが未構築の可能性があります。',
+    );
+    return {
+      success: false,
+      message: '予約キャッシュが未構築のためスキップしました',
+    };
+  }
   const payloadJson = JSON.stringify(index);
   const bytes = Utilities.newBlob(payloadJson).getBytes().length;
 
