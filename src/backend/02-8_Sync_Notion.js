@@ -45,6 +45,13 @@ const PROPS_KEY_NOTION_SCHEDULE_DB_ID = 'NOTION_SCHEDULE_DATABASE_ID';
 const PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR = 'NOTION_STUDENT_SYNC_CURSOR';
 const PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR =
   'NOTION_RESERVATION_SYNC_CURSOR';
+const PROPS_KEY_NOTION_BATCH_TRIGGER_ID = 'NOTION_BATCH_TRIGGER_ID';
+
+/** Notion分割同期のトリガー設定 */
+const NOTION_BATCH_TRIGGER_HANDLER = 'runNotionSyncBatch';
+const NOTION_BATCH_TRIGGER_INTERVAL_MINUTES = 1;
+const NOTION_BATCH_STUDENT_BATCH_SIZE = 30;
+const NOTION_BATCH_RESERVATION_BATCH_SIZE = 50;
 
 /** バッチ同期時のレート制限対策（ミリ秒） */
 const RATE_LIMIT_DELAY_MS = 350;
@@ -1074,6 +1081,159 @@ export function resetNotionReservationSyncCursor() {
   const props = PropertiesService.getScriptProperties();
   props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
   Logger.log('Notion予約一括同期カーソルをリセットしました');
+}
+
+/**
+ * Notion分割同期を開始します（手動実行用）
+ * 初回実行を即時に行い、残りは時間トリガーで継続します。
+ *
+ * @param {boolean} [resetCursor=true] - true の場合はカーソルをリセットして最初から同期します
+ * @returns {{success: boolean, message: string, runResult?: any}}
+ */
+export function startNotionSyncBatch(resetCursor = true) {
+  const scriptLock = LockService.getScriptLock();
+  if (!scriptLock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) {
+    Logger.log(
+      'Notion分割同期開始: 他の処理が実行中のため開始をスキップしました。',
+    );
+    return {
+      success: false,
+      message: '他の処理が実行中のため開始できませんでした',
+    };
+  }
+
+  try {
+    if (resetCursor) {
+      resetNotionStudentSyncCursor();
+      resetNotionReservationSyncCursor();
+    }
+    _ensureNotionBatchTrigger();
+  } catch (error) {
+    Logger.log(
+      `Notion分割同期開始エラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      message: /** @type {Error} */ (error).message,
+    };
+  } finally {
+    scriptLock.releaseLock();
+  }
+
+  const runResult = runNotionSyncBatch();
+  return {
+    success: true,
+    message: 'Notion分割同期を開始しました',
+    runResult,
+  };
+}
+
+/**
+ * Notion分割同期を1バッチ実行します（時間トリガー用）
+ * 生徒・予約記録が完了したら、最後に日程を一括同期してトリガーを停止します。
+ *
+ * @returns {{success: boolean, done: boolean, students: any, reservations: any, schedules: any, skippedByLock?: boolean, deletedTriggers?: number}}
+ */
+export function runNotionSyncBatch() {
+  const scriptLock = LockService.getScriptLock();
+  if (!scriptLock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) {
+    Logger.log(
+      'Notion分割同期: 他の処理が実行中のため、このバッチ実行をスキップしました。',
+    );
+    return {
+      success: false,
+      done: false,
+      students: null,
+      reservations: null,
+      schedules: null,
+      skippedByLock: true,
+    };
+  }
+
+  try {
+    // 手動実行でも継続できるよう、未作成ならトリガーを作成しておく
+    _ensureNotionBatchTrigger();
+
+    const students = syncAllStudentsToNotionChunk(
+      NOTION_BATCH_STUDENT_BATCH_SIZE,
+    );
+    const reservations = syncAllReservationsToNotionChunk(
+      NOTION_BATCH_RESERVATION_BATCH_SIZE,
+    );
+    const done = students.done && reservations.done;
+
+    if (!done) {
+      return {
+        success: students.success && reservations.success,
+        done: false,
+        students,
+        reservations,
+        schedules: null,
+      };
+    }
+
+    const schedules = syncAllSchedulesToNotion();
+    const deletedTriggers = _deleteNotionBatchTriggers();
+    Logger.log(
+      `Notion分割同期が完了したためトリガーを停止しました（削除: ${deletedTriggers}件）。`,
+    );
+    return {
+      success: students.success && reservations.success && schedules.success,
+      done: true,
+      students,
+      reservations,
+      schedules,
+      deletedTriggers,
+    };
+  } catch (error) {
+    Logger.log(
+      `runNotionSyncBatch Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      done: false,
+      students: null,
+      reservations: null,
+      schedules: null,
+    };
+  } finally {
+    scriptLock.releaseLock();
+  }
+}
+
+/**
+ * Notion分割同期トリガーを停止します
+ *
+ * @param {boolean} [resetCursor=false] - true の場合は同期カーソルも初期化します
+ * @returns {{success: boolean, deletedTriggers: number}}
+ */
+export function stopNotionSyncBatch(resetCursor = false) {
+  const scriptLock = LockService.getScriptLock();
+  if (!scriptLock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) {
+    Logger.log(
+      'Notion分割同期停止: ロック取得に失敗したためスキップしました。',
+    );
+    return { success: false, deletedTriggers: 0 };
+  }
+
+  try {
+    const deletedTriggers = _deleteNotionBatchTriggers();
+    if (resetCursor) {
+      resetNotionStudentSyncCursor();
+      resetNotionReservationSyncCursor();
+    }
+    Logger.log(
+      `Notion分割同期トリガーを停止しました（削除: ${deletedTriggers}件）。`,
+    );
+    return { success: true, deletedTriggers };
+  } catch (error) {
+    Logger.log(
+      `stopNotionSyncBatch Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return { success: false, deletedTriggers: 0 };
+  } finally {
+    scriptLock.releaseLock();
+  }
 }
 
 /**
@@ -2862,6 +3022,117 @@ function _getNotionDatabaseSchema(config, databaseId) {
       `Notionスキーマ取得エラー: ${/** @type {Error} */ (error).message}`,
     );
     return null;
+  }
+}
+
+// ================================================================
+// ★★★ Notion分割同期トリガー管理 ★★★
+// ================================================================
+
+/**
+ * Notion分割同期トリガーを取得します
+ *
+ * @returns {GoogleAppsScript.Script.Trigger | null}
+ * @private
+ */
+function _getNotionBatchTrigger() {
+  const props = PropertiesService.getScriptProperties();
+  const storedTriggerId = props.getProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+  const triggers = ScriptApp.getProjectTriggers();
+
+  if (storedTriggerId) {
+    const matchedById = triggers.find(trigger => {
+      return _getTriggerUniqueId(trigger) === storedTriggerId;
+    });
+    if (matchedById) {
+      return matchedById;
+    }
+  }
+
+  const matchedByHandler = triggers.find(trigger => {
+    return trigger.getHandlerFunction() === NOTION_BATCH_TRIGGER_HANDLER;
+  });
+  if (!matchedByHandler) {
+    props.deleteProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+    return null;
+  }
+
+  const triggerId = _getTriggerUniqueId(matchedByHandler);
+  if (triggerId) {
+    props.setProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID, triggerId);
+  }
+  return matchedByHandler;
+}
+
+/**
+ * Notion分割同期トリガーを作成または再利用します
+ *
+ * @returns {GoogleAppsScript.Script.Trigger}
+ * @private
+ */
+function _ensureNotionBatchTrigger() {
+  const existingTrigger = _getNotionBatchTrigger();
+  if (existingTrigger) {
+    return existingTrigger;
+  }
+
+  const trigger = ScriptApp.newTrigger(NOTION_BATCH_TRIGGER_HANDLER)
+    .timeBased()
+    .everyMinutes(NOTION_BATCH_TRIGGER_INTERVAL_MINUTES)
+    .create();
+  const triggerId = _getTriggerUniqueId(trigger);
+  if (triggerId) {
+    PropertiesService.getScriptProperties().setProperty(
+      PROPS_KEY_NOTION_BATCH_TRIGGER_ID,
+      triggerId,
+    );
+  }
+  Logger.log(
+    `Notion分割同期トリガーを作成しました（間隔: ${NOTION_BATCH_TRIGGER_INTERVAL_MINUTES}分）。`,
+  );
+  return trigger;
+}
+
+/**
+ * Notion分割同期トリガーを削除します
+ *
+ * @returns {number} - 削除件数
+ * @private
+ */
+function _deleteNotionBatchTriggers() {
+  const props = PropertiesService.getScriptProperties();
+  const storedTriggerId = props.getProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+  const triggers = ScriptApp.getProjectTriggers();
+  let deleted = 0;
+
+  triggers.forEach(trigger => {
+    const shouldDeleteByHandler =
+      trigger.getHandlerFunction() === NOTION_BATCH_TRIGGER_HANDLER;
+    const shouldDeleteById =
+      !!storedTriggerId && _getTriggerUniqueId(trigger) === storedTriggerId;
+    if (!shouldDeleteByHandler && !shouldDeleteById) {
+      return;
+    }
+    ScriptApp.deleteTrigger(trigger);
+    deleted++;
+  });
+
+  props.deleteProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+  return deleted;
+}
+
+/**
+ * Triggerの一意IDを安全に取得します
+ *
+ * @param {GoogleAppsScript.Script.Trigger} trigger
+ * @returns {string}
+ * @private
+ */
+function _getTriggerUniqueId(trigger) {
+  try {
+    return trigger.getUniqueId() || '';
+  } catch (_error) {
+    return '';
   }
 }
 

@@ -196,6 +196,43 @@ export function resetNotionStudentSyncCursor(): void;
  */
 export function resetNotionReservationSyncCursor(): void;
 /**
+ * Notion分割同期を開始します（手動実行用）
+ * 初回実行を即時に行い、残りは時間トリガーで継続します。
+ *
+ * @param {boolean} [resetCursor=true] - true の場合はカーソルをリセットして最初から同期します
+ * @returns {{success: boolean, message: string, runResult?: any}}
+ */
+export function startNotionSyncBatch(resetCursor?: boolean): {
+    success: boolean;
+    message: string;
+    runResult?: any;
+};
+/**
+ * Notion分割同期を1バッチ実行します（時間トリガー用）
+ * 生徒・予約記録が完了したら、最後に日程を一括同期してトリガーを停止します。
+ *
+ * @returns {{success: boolean, done: boolean, students: any, reservations: any, schedules: any, skippedByLock?: boolean, deletedTriggers?: number}}
+ */
+export function runNotionSyncBatch(): {
+    success: boolean;
+    done: boolean;
+    students: any;
+    reservations: any;
+    schedules: any;
+    skippedByLock?: boolean;
+    deletedTriggers?: number;
+};
+/**
+ * Notion分割同期トリガーを停止します
+ *
+ * @param {boolean} [resetCursor=false] - true の場合は同期カーソルも初期化します
+ * @returns {{success: boolean, deletedTriggers: number}}
+ */
+export function stopNotionSyncBatch(resetCursor?: boolean): {
+    success: boolean;
+    deletedTriggers: number;
+};
+/**
  * 生徒IDを指定して Notion に同期します
  *
  * @param {string[] | string} studentIds - 生徒ID配列 またはカンマ/改行区切り文字列
