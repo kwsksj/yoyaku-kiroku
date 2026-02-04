@@ -37,6 +37,7 @@ import {
   updateCachedStudent,
 } from './07_CacheManager.js';
 import {
+  buildRowValuesMap,
   createHeaderMap,
   getCachedStudentById,
   getScriptProperties,
@@ -190,23 +191,6 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
   student.rowIndex = rowIndex; // 行番号を付与
 
   return student;
-}
-
-/**
- * ヘッダーと行データから値マップを作成します
- * @param {string[]} headers
- * @param {any[]} rowValues
- * @returns {Record<string, any>}
- * @private
- */
-function _buildRowValuesMap(headers, rowValues) {
-  /** @type {Record<string, any>} */
-  const valuesMap = {};
-  headers.forEach((header, idx) => {
-    if (!header) return;
-    valuesMap[String(header)] = rowValues[idx];
-  });
-  return valuesMap;
 }
 
 // =================================================================
@@ -900,7 +884,7 @@ export function updateUserProfile(userInfo) {
 
       rowRange.setValues([rowValues]);
 
-      const rosterValuesMap = _buildRowValuesMap(headers, rowValues);
+      const rosterValuesMap = buildRowValuesMap(headers, rowValues);
 
       // 更新後のユーザー情報を生成
       const updatedUser = { ...targetStudent, ...userInfo };
@@ -1157,7 +1141,7 @@ export function registerNewUser(userData) {
 
       // 追加された行番号を取得（appendRowは最後の行に追加される）
       const newRowIndex = allStudentsSheet.getLastRow();
-      const rosterValuesMap = _buildRowValuesMap(headers, newRow);
+      const rosterValuesMap = buildRowValuesMap(headers, newRow);
 
       // 登録後のユーザーオブジェクトを作成（rowIndexを含む）
       const registeredUser = {

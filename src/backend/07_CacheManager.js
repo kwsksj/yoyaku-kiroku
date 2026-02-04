@@ -28,6 +28,7 @@ import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { BackendErrorHandler } from './08_ErrorHandler.js';
 import {
   PerformanceLog,
+  buildRowValuesMap,
   createHeaderMap,
   getCachedReservationsAsObjects,
   handleError,
@@ -1892,6 +1893,7 @@ export function updateScheduleStatusToCompleted() {
         sheet
           .getRange(i + 1, statusColIndex + 1)
           .setValue(CONSTANTS.SCHEDULE_STATUS.COMPLETED);
+        row[statusColIndex] = CONSTANTS.SCHEDULE_STATUS.COMPLETED;
         updatedCount++;
 
         Logger.log(
@@ -1903,7 +1905,11 @@ export function updateScheduleStatusToCompleted() {
           try {
             const syncFn = /** @type {any} */ (globalThis).syncScheduleToNotion;
             if (typeof syncFn === 'function') {
-              syncFn(String(lessonId), 'update');
+              const scheduleValues = buildRowValuesMap(headers, row);
+              syncFn(String(lessonId), 'update', {
+                scheduleValues,
+                skipSheetAccess: true,
+              });
             }
           } catch (syncError) {
             Logger.log(

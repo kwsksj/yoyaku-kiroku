@@ -17,6 +17,13 @@ export function validateReservationsStructure(reservations: any[]): any[];
  */
 export function createHeaderMap(headerRow: string[]): HeaderMapType;
 /**
+ * ヘッダーと行データから値マップを作成します
+ * @param {string[]} headers
+ * @param {any[]} rowValues
+ * @returns {Record<string, any>}
+ */
+export function buildRowValuesMap(headers: string[], rowValues: any[]): Record<string, any>;
+/**
  * エラーまたは情報メッセージをログとUIに表示します。
  * @param {string} message - 表示する
  * @param {boolean} isError - エラーかどうか

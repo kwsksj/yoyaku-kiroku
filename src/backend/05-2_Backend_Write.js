@@ -56,6 +56,7 @@ import {
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
+  buildRowValuesMap,
   convertReservationToRow,
   createSalesRow,
   getCachedReservationsAsObjects,
@@ -90,22 +91,6 @@ function normalizeErrorResponse(errorResponse) {
     );
   }
   return baseResponse;
-}
-
-/**
- * ヘッダーと行データから値マップを作成します
- * @param {string[]} headers
- * @param {any[]} rowValues
- * @returns {Record<string, any>}
- */
-function _buildRowValuesMap(headers, rowValues) {
-  /** @type {Record<string, any>} */
-  const valuesMap = {};
-  headers.forEach((header, idx) => {
-    if (!header) return;
-    valuesMap[String(header)] = rowValues[idx];
-  });
-  return valuesMap;
 }
 
 /**
@@ -587,7 +572,7 @@ export function _saveReservationCoreToSheet(reservation, mode) {
 
   // Notion同期（失敗しても本体処理は継続）
   try {
-    const reservationValuesMap = _buildRowValuesMap(header, newRowData);
+    const reservationValuesMap = buildRowValuesMap(header, newRowData);
     syncReservationToNotion(reservation.reservationId, mode, {
       reservationValues: reservationValuesMap,
       skipSheetAccess: true,
@@ -674,7 +659,7 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
       // Notion同期（失敗しても本体処理は継続）
       try {
         const scheduleValuesMap = updatedRow
-          ? _buildRowValuesMap(header, updatedRow)
+          ? buildRowValuesMap(header, updatedRow)
           : null;
         const syncOptions = scheduleValuesMap
           ? {
