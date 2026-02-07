@@ -3624,7 +3624,7 @@ function _normalizeNicknameForNotion(nickname, realName) {
   if (!nick) return '';
   if (!real || nick !== real) return nick;
   const short = Array.from(real).slice(0, 2).join('').trim();
-  return short || nick;
+  return short;
 }
 
 /**
