@@ -2136,6 +2136,50 @@ export function buildParticipantsIndexForUploadUi() {
   /** @type {Record<string, UserCore>} */
   const studentsMap = studentsCache?.students || {};
 
+  // lessonId未設定の予約（古いデータ等）でも、日程キャッシュの reservationIds から lessonId を補完する
+  // （シートへはアクセスしない。キャッシュが無い場合は補完せずフォールバックキーでグルーピングする）
+  /** @type {Map<string, {lessonId: string, classroom: string, venue: string}>} */
+  const reservationIdToLessonMap = new Map();
+  try {
+    const scheduleCache = getTypedCachedData(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      false,
+    );
+    const scheduleList = scheduleCache?.schedule;
+    if (Array.isArray(scheduleList)) {
+      scheduleList.forEach(lesson => {
+        const lessonDate = _toTrimmedString(lesson?.date);
+        if (lessonDate && (lessonDate < startYmd || lessonDate > endYmd)) {
+          return;
+        }
+
+        const lessonId = _toTrimmedString(lesson?.lessonId);
+        if (!lessonId) return;
+
+        const lessonClassroom = _toTrimmedString(lesson?.classroom);
+        const lessonVenue = _toTrimmedString(lesson?.venue);
+        const reservationIds = Array.isArray(lesson?.reservationIds)
+          ? lesson.reservationIds
+          : [];
+
+        reservationIds.forEach(reservationId => {
+          const rid = _toTrimmedString(reservationId);
+          if (!rid) return;
+          if (reservationIdToLessonMap.has(rid)) return;
+          reservationIdToLessonMap.set(rid, {
+            lessonId,
+            classroom: lessonClassroom,
+            venue: lessonVenue,
+          });
+        });
+      });
+    }
+  } catch (error) {
+    Logger.log(
+      `参加者候補インデックス生成: 日程キャッシュ参照でエラー - ${/** @type {Error} */ (error).message}`,
+    );
+  }
+
   /** @type {Map<string, Map<string, {lesson_id: string, classroom: string, venue: string, participantsMap: Map<string, string>}>>} */
   const byDate = new Map();
 
@@ -2166,10 +2210,30 @@ export function buildParticipantsIndexForUploadUi() {
       student?.displayName || student?.nickname || student?.realName,
     );
 
-    const classroom = _toTrimmedString(reservation.classroom);
-    const venue = _toTrimmedString(reservation.venue);
+    const reservationId = _toTrimmedString(reservation.reservationId);
     const rawLessonId = _toTrimmedString(reservation.lessonId);
-    const groupKey = rawLessonId || `${date}__${classroom}__${venue}`;
+    const mappedLesson =
+      !rawLessonId && reservationId
+        ? reservationIdToLessonMap.get(reservationId)
+        : null;
+    const lessonId = rawLessonId || mappedLesson?.lessonId || '';
+
+    const classroom = _toTrimmedString(
+      mappedLesson?.classroom || reservation.classroom,
+    );
+    const venue = _toTrimmedString(mappedLesson?.venue || reservation.venue);
+    const startTime = _toTrimmedString(reservation.startTime);
+    const endTime = _toTrimmedString(reservation.endTime);
+
+    // lessonIdが無い場合は、時間帯もキーに含めて混在を避ける
+    let groupKey = lessonId;
+    if (!groupKey) {
+      groupKey = `${date}__${classroom}__${venue}__${startTime || 'NA'}__${endTime || 'NA'}`;
+      // 時刻も欠ける場合はreservationIdも含め、誤混在より「分かれすぎ」を優先する
+      if (!startTime && !endTime && reservationId) {
+        groupKey = `${groupKey}__${reservationId}`;
+      }
+    }
 
     let groupsByKey = byDate.get(date);
     if (!groupsByKey) {
@@ -2180,7 +2244,7 @@ export function buildParticipantsIndexForUploadUi() {
     let group = groupsByKey.get(groupKey);
     if (!group) {
       group = {
-        lesson_id: rawLessonId || groupKey,
+        lesson_id: lessonId || groupKey,
         classroom,
         venue,
         participantsMap: new Map(),
@@ -2281,24 +2345,41 @@ export function pushParticipantsIndexToWorker() {
   }
 
   const index = buildParticipantsIndexForUploadUi();
+  const reservationsCacheVersion = index?.source?.reservations_cache_version;
+  if (
+    reservationsCacheVersion === null ||
+    reservationsCacheVersion === undefined
+  ) {
+    Logger.log(
+      '参加者候補インデックス送信スキップ: 予約キャッシュが未構築の可能性があります。',
+    );
+    return {
+      success: false,
+      message: '予約キャッシュが未構築のためスキップしました',
+    };
+  }
   const payloadJson = JSON.stringify(index);
   const bytes = Utilities.newBlob(payloadJson).getBytes().length;
 
   const dates = index?.dates || {};
   const datesCount = Object.keys(dates).length;
-  let groupsCount = 0;
-  let participantsCount = 0;
-
-  Object.values(dates).forEach(groups => {
-    if (!Array.isArray(groups)) return;
-    groupsCount += groups.length;
-    groups.forEach(group => {
-      const participants = group?.participants;
-      if (Array.isArray(participants)) {
-        participantsCount += participants.length;
+  const { groupsCount, participantsCount } = Object.values(dates).reduce(
+    (counts, groups) => {
+      if (Array.isArray(groups)) {
+        counts.groupsCount += groups.length;
+        counts.participantsCount += groups.reduce(
+          (pCount, group) =>
+            pCount +
+            (Array.isArray(group?.participants)
+              ? group.participants.length
+              : 0),
+          0,
+        );
       }
-    });
-  });
+      return counts;
+    },
+    { groupsCount: 0, participantsCount: 0 },
+  );
 
   const response = UrlFetchApp.fetch(url, {
     method: 'post',
@@ -2315,19 +2396,23 @@ export function pushParticipantsIndexToWorker() {
   const ok = statusCode >= 200 && statusCode < 300;
   const durationMs = Date.now() - startMs;
 
+  const baseResult = {
+    statusCode,
+    durationMs,
+    bytes,
+    datesCount,
+    groupsCount,
+    participantsCount,
+  };
+
   if (ok) {
     Logger.log(
       `参加者候補インデックス送信成功: status=${statusCode}, bytes=${bytes}, dates=${datesCount}, groups=${groupsCount}, participants=${participantsCount}, durationMs=${durationMs}`,
     );
     return {
+      ...baseResult,
       success: true,
       message: '送信しました',
-      statusCode,
-      durationMs,
-      bytes,
-      datesCount,
-      groupsCount,
-      participantsCount,
     };
   }
 
@@ -2340,14 +2425,9 @@ export function pushParticipantsIndexToWorker() {
     `参加者候補インデックス送信失敗: status=${statusCode}, bytes=${bytes}, durationMs=${durationMs}, response=${preview}`,
   );
   return {
+    ...baseResult,
     success: false,
     message: `送信に失敗しました: status=${statusCode}`,
-    statusCode,
-    durationMs,
-    bytes,
-    datesCount,
-    groupsCount,
-    participantsCount,
   };
 }
 
