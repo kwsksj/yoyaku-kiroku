@@ -2606,6 +2606,16 @@ function _mergeStudentValues(student, rosterValues) {
   if (student.status && values['ステータス'] == null) {
     values['ステータス'] = student.status;
   }
+  const normalizedNickname = _normalizeNicknameForNotion(
+    _stringifyValue(values['ニックネーム']),
+    _stringifyValue(values['本名']),
+  );
+  if (
+    Object.prototype.hasOwnProperty.call(values, 'ニックネーム') ||
+    normalizedNickname
+  ) {
+    values['ニックネーム'] = normalizedNickname;
+  }
   return values;
 }
 
@@ -3588,8 +3598,10 @@ function _getSheetSnapshot(sheetName, idHeaderName, label) {
  * @private
  */
 function _getStudentTitle(values, student) {
-  const nickname =
-    _stringifyValue(values['ニックネーム']) || student.nickname || '';
+  const nickname = _normalizeNicknameForNotion(
+    _stringifyValue(values['ニックネーム']) || student.nickname || '',
+    _stringifyValue(values['本名']) || student.realName || '',
+  );
   const realName = _stringifyValue(values['本名']) || student.realName || '';
 
   if (nickname && realName) {
@@ -3598,6 +3610,25 @@ function _getStudentTitle(values, student) {
   if (nickname) return nickname;
   if (realName) return realName;
   return '名前なし';
+}
+
+/**
+ * Notion同期用のニックネームを正規化します
+ * - 本名と同一なら空白を除去した本名の先頭2文字へ置換
+ *
+ * @param {string} nickname
+ * @param {string} realName
+ * @returns {string}
+ * @private
+ */
+function _normalizeNicknameForNotion(nickname, realName) {
+  const nick = _stringifyValue(nickname).trim();
+  const real = _stringifyValue(realName).trim();
+  if (!nick) return '';
+  if (!real || nick !== real) return nick;
+  const realWithoutSpaces = real.replace(/\s+/g, '');
+  const short = Array.from(realWithoutSpaces).slice(0, 2).join('');
+  return short;
 }
 
 /**
