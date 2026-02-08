@@ -19,6 +19,82 @@ const participantHandlersStateManager = appWindow.stateManager;
 
 // 生徒詳細は participantAllStudents でプリロードされるため、個別キャッシュは不要になりました
 
+/** @type {boolean} 過去タブでさらに遡れるデータがあるか */
+let hasMorePastLessons = true;
+/** @type {boolean} 過去データ追加入力中フラグ */
+let isLoadingMorePastLessons = false;
+
+/**
+ * 過去データのページング状態を初期化します。
+ */
+function resetPastLessonsPaginationState() {
+  hasMorePastLessons = true;
+  isLoadingMorePastLessons = false;
+}
+
+/**
+ * 過去データのページング状態を更新します。
+ * @param {{hasMore?: boolean, isLoading?: boolean}} nextState
+ */
+function setPastLessonsPaginationState(nextState) {
+  if (Object.prototype.hasOwnProperty.call(nextState, 'hasMore')) {
+    hasMorePastLessons = !!nextState.hasMore;
+  }
+  if (Object.prototype.hasOwnProperty.call(nextState, 'isLoading')) {
+    isLoadingMorePastLessons = !!nextState.isLoading;
+  }
+}
+
+/**
+ * 再描画後にスクロール位置を復元します。
+ * @param {number} scrollY
+ */
+function renderWithScrollRestore(scrollY) {
+  render();
+  requestAnimationFrame(() => {
+    window.scrollTo(0, scrollY);
+  });
+}
+
+/**
+ * 現在表示している過去レッスン群のうち、最古日を返します。
+ * @param {import('../../types/core/lesson').LessonCore[] | undefined | null} lessons
+ * @returns {string}
+ */
+function getOldestPastLessonDate(lessons) {
+  if (!Array.isArray(lessons) || lessons.length === 0) return '';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayTs = today.getTime();
+
+  let oldest = '';
+  let oldestTs = Number.POSITIVE_INFINITY;
+
+  lessons.forEach(lesson => {
+    const dateStr = String(lesson?.date || '');
+    if (!dateStr) return;
+
+    const dateObj = new Date(dateStr);
+    const dateTs = dateObj.getTime();
+    if (isNaN(dateTs)) return;
+    if (dateTs > todayTs) return;
+
+    if (dateTs < oldestTs) {
+      oldestTs = dateTs;
+      oldest = dateStr;
+    }
+  });
+
+  return oldest;
+}
+
+// 参加者ビュー（過去タブ）の「もっと表示する」UIが参照する状態を公開
+appWindow.getParticipantPastPaginationState = () => ({
+  hasMorePastLessons,
+  isLoadingMorePastLessons,
+});
+
 /**
  * 参加者リストビュー初期化
  * ログイン成功後、管理者の場合に呼ばれる
@@ -62,6 +138,7 @@ function loadParticipantView(
     Array.isArray(baseAppState.participantLessons) &&
     baseAppState.participantLessons.length > 0
   ) {
+    resetPastLessonsPaginationState();
     const nextIsAdmin =
       baseAppState.participantIsAdmin ||
       baseAppState.currentUser?.isAdmin ||
@@ -97,6 +174,7 @@ function loadParticipantView(
     Object.keys(state.participantReservationsMap).length > 0
   ) {
     debugLog('✅ キャッシュ済みデータを使用 - APIコールをスキップ');
+    resetPastLessonsPaginationState();
     /** @type {Partial<UIState>} */
     const cachePayload = baseAppState
       ? {
@@ -256,6 +334,7 @@ function fetchParticipantDataBackground(
             l.lessonId,
         );
         localExpandedLessonIds = allLessonIds;
+        resetPastLessonsPaginationState();
 
         participantHandlersStateManager.dispatch({
           type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
@@ -413,6 +492,7 @@ function refreshAllAdminData() {
       updatePayload['participantAllStudents'] =
         participantResult.data.allStudents || {};
       updatePayload.participantHasPastLessonsLoaded = true;
+      resetPastLessonsPaginationState();
 
       // アコーディオン状態も更新
       const allLessonIds = participantResult.data.lessons.map(
@@ -893,6 +973,7 @@ function togglePastLessons(showPast) {
             l.lessonId,
         );
         localExpandedLessonIds = allLessonIds; // 直接更新
+        resetPastLessonsPaginationState();
 
         participantHandlersStateManager.dispatch({
           type: 'UPDATE_STATE',
@@ -931,6 +1012,7 @@ function togglePastLessons(showPast) {
 
   // タブ切り替え時はアコーディオンを閉じる
   localExpandedLessonIds = []; // 直接更新
+  setPastLessonsPaginationState({ isLoading: false });
 
   participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
@@ -941,6 +1023,139 @@ function togglePastLessons(showPast) {
   });
 
   render();
+}
+
+/**
+ * 参加者ビュー（過去タブ）で、さらに古いレッスンを追加読み込みします。
+ */
+function loadMorePastParticipantLessons() {
+  const preservedScrollY = window.scrollY;
+  const state = participantHandlersStateManager.getState();
+  if (!state.showPastLessons) return;
+  if (isLoadingMorePastLessons) return;
+
+  if (!hasMorePastLessons) {
+    showInfo('最過去まで表示しました。', '完了');
+    return;
+  }
+
+  const studentId = state.currentUser?.studentId;
+  if (!studentId) {
+    console.error('❌ studentIdが見つかりません');
+    return;
+  }
+
+  const oldestPastDate = getOldestPastLessonDate(state.participantLessons);
+  if (!oldestPastDate) {
+    setPastLessonsPaginationState({ hasMore: false });
+    renderWithScrollRestore(preservedScrollY);
+    return;
+  }
+
+  setPastLessonsPaginationState({ isLoading: true });
+  renderWithScrollRestore(preservedScrollY);
+  showLoading('dataFetch');
+
+  google.script.run
+    .withSuccessHandler(
+      /** @param {ApiResponseGeneric<any>} response */
+      response => {
+        hideLoading();
+        setPastLessonsPaginationState({ isLoading: false });
+
+        if (!response.success) {
+          showInfo(
+            response.message || '過去レッスンの追加取得に失敗しました',
+            'エラー',
+          );
+          renderWithScrollRestore(preservedScrollY);
+          return;
+        }
+
+        const fetchedLessons = Array.isArray(response.data?.lessons)
+          ? response.data.lessons
+          : [];
+        const fetchedReservationsMap = response.data?.reservationsMap || {};
+
+        if (fetchedLessons.length === 0) {
+          setPastLessonsPaginationState({ hasMore: false });
+          renderWithScrollRestore(preservedScrollY);
+          showInfo('最過去まで表示しました。', '完了');
+          return;
+        }
+
+        const latestState = participantHandlersStateManager.getState();
+        const existingLessons = Array.isArray(latestState.participantLessons)
+          ? latestState.participantLessons
+          : [];
+
+        /**
+         * レッスン同一性判定キーを返します。
+         * @param {import('../../types/core/lesson').LessonCore} lesson
+         * @returns {string}
+         */
+        const buildLessonKey = lesson => {
+          const lessonId = lesson?.lessonId ? String(lesson.lessonId) : '';
+          if (lessonId) return `id:${lessonId}`;
+          return `legacy:${String(lesson?.date || '')}:${String(
+            lesson?.classroom || '',
+          )}:${String(lesson?.venue || '')}:${String(
+            lesson?.firstStart || '',
+          )}:${String(lesson?.secondStart || '')}`;
+        };
+
+        /** @type {Record<string, import('../../types/core/lesson').LessonCore>} */
+        const mergedLessonMap = {};
+        [...existingLessons, ...fetchedLessons].forEach(lesson => {
+          mergedLessonMap[buildLessonKey(lesson)] = lesson;
+        });
+
+        const mergedLessons = Object.values(mergedLessonMap).sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        );
+
+        const mergedReservationsMap = {
+          ...(latestState.participantReservationsMap || {}),
+          ...fetchedReservationsMap,
+        };
+
+        setPastLessonsPaginationState({
+          hasMore: response.data?.hasMore === true,
+        });
+
+        participantHandlersStateManager.dispatch({
+          type: 'UPDATE_STATE',
+          payload: {
+            participantLessons: mergedLessons,
+            participantReservationsMap: mergedReservationsMap,
+            participantHasPastLessonsLoaded: true,
+            showPastLessons: true,
+          },
+        });
+
+        renderWithScrollRestore(preservedScrollY);
+
+        if (!hasMorePastLessons) {
+          showInfo('最過去まで表示しました。', '完了');
+        }
+      },
+    )
+    .withFailureHandler(
+      /** @param {Error} error */
+      error => {
+        hideLoading();
+        setPastLessonsPaginationState({ isLoading: false });
+        console.error('❌ 過去レッスン追加取得失敗:', error);
+        showInfo('通信エラーが発生しました', 'エラー');
+        renderWithScrollRestore(preservedScrollY);
+      },
+    )
+    .getPastLessonsForParticipantsView(
+      studentId,
+      oldestPastDate,
+      state.currentUser?.phone || '',
+      CONSTANTS.UI.HISTORY_LOAD_MORE_RECORDS || 10,
+    );
 }
 
 /**
@@ -1044,4 +1259,5 @@ export const participantActionHandlers = {
   },
   filterParticipantByClassroom,
   togglePastLessons,
+  loadMorePastParticipantLessons,
 };

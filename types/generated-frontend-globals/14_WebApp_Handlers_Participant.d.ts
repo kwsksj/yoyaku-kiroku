@@ -14,6 +14,7 @@ export namespace participantActionHandlers {
     export function backToParticipantsView(): void;
     export { filterParticipantByClassroom };
     export { togglePastLessons };
+    export { loadMorePastParticipantLessons };
 }
 /**
  * 参加者リストビュー初期化
@@ -70,4 +71,8 @@ declare function filterParticipantByClassroom(data: string | {
  * @param {boolean} showPast - 過去のレッスンを表示するか
  */
 declare function togglePastLessons(showPast: boolean): void;
+/**
+ * 参加者ビュー（過去タブ）で、さらに古いレッスンを追加読み込みします。
+ */
+declare function loadMorePastParticipantLessons(): void;
 export {};
