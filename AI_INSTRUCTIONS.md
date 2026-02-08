@@ -12,14 +12,14 @@ GAS製の木彫り教室予約管理システム「きぼりの よやく・き�
 
 ## コマンド
 
-| コマンド | 用途 |
-| --- | --- |
-| `npm run dev` | **メイン**: format修正 + lint修正 + 型再生成 + ビルド + テスト環境push |
-| `npm run validate` | チェックのみ（ビルド・pushしない） |
-| `npm run validate:fix` | 自動修正付きチェック（ビルド・pushしない） |
-| `npm run types:refresh` | 型定義の再生成 + 型チェック（JSDoc変更後に必須） |
-| `npm run release` | 本番デプロイ（テスト確認後のみ使用） |
-| `npm run build:force` | 品質チェックをスキップしてビルド（緊急時のみ） |
+| コマンド                | 用途                                                                   |
+| ----------------------- | ---------------------------------------------------------------------- |
+| `npm run dev`           | **メイン**: format修正 + lint修正 + 型再生成 + ビルド + テスト環境push |
+| `npm run validate`      | チェックのみ（ビルド・pushしない）                                     |
+| `npm run validate:fix`  | 自動修正付きチェック（ビルド・pushしない）                             |
+| `npm run types:refresh` | 型定義の再生成 + 型チェック（JSDoc変更後に必須）                       |
+| `npm run release`       | 本番デプロイ（テスト確認後のみ使用）                                   |
+| `npm run build:force`   | 品質チェックをスキップしてビルド（緊急時のみ）                         |
 
 ## プロジェクト構造
 
@@ -105,12 +105,12 @@ function updateStatus(reservation, newStatus) { ... }
 
 ### Core型（ドメインモデル）
 
-| 型名 | 用途 | 定義 |
-| --- | --- | --- |
-| `ReservationCore` | 予約 | `types/core/reservation.d.ts` |
-| `UserCore` | ユーザー | `types/core/user.d.ts` |
-| `LessonCore` | レッスン（日程） | `types/core/lesson.d.ts` |
-| `AccountingDetailsCore` | 会計 | `types/core/accounting.d.ts` |
+| 型名                    | 用途             | 定義                          |
+| ----------------------- | ---------------- | ----------------------------- |
+| `ReservationCore`       | 予約             | `types/core/reservation.d.ts` |
+| `UserCore`              | ユーザー         | `types/core/user.d.ts`        |
+| `LessonCore`            | レッスン（日程） | `types/core/lesson.d.ts`      |
+| `AccountingDetailsCore` | 会計             | `types/core/accounting.d.ts`  |
 
 ### 型に関する注意
 
@@ -167,12 +167,12 @@ addReservationToCache(newReservation);       // 2. キャッシュに差分追�
 
 UI要素の追加・変更時は既存の仕組みを使うこと:
 
-| 対象 | ファイル |
-| --- | --- |
-| デザイン定義（色, 余白, フォント） | `src/frontend/11_WebApp_Config.js` |
+| 対象                                       | ファイル                               |
+| ------------------------------------------ | -------------------------------------- |
+| デザイン定義（色, 余白, フォント）         | `src/frontend/11_WebApp_Config.js`     |
 | UIコンポーネント（button, modal, card 等） | `src/frontend/13_WebApp_Components.js` |
-| ビュー（画面構築） | `src/frontend/13_WebApp_Views_*.js` |
-| イベント処理 | `src/frontend/14_WebApp_Handlers_*.js` |
+| ビュー（画面構築）                         | `src/frontend/13_WebApp_Views_*.js`    |
+| イベント処理                               | `src/frontend/14_WebApp_Handlers_*.js` |
 
 **ゼロからHTMLを組み立てない。** 既存コンポーネントを組み合わせて画面を構築する。
 
@@ -216,12 +216,12 @@ UI要素の追加・変更時は既存の仕組みを使うこと:
 
 ## 詳細ドキュメント
 
-| ドキュメント | 内容 |
-| --- | --- |
-| [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) | アーキテクチャ全体図・データフロー |
-| [DATA_MODEL.md](docs/DATA_MODEL.md) | データモデル・シート構造 |
-| [TYPES_GUIDE.md](docs/TYPES_GUIDE.md) | 型定義・定数の使い方 |
-| [DATA_ACCESS_PRINCIPLES.md](docs/DATA_ACCESS_PRINCIPLES.md) | データアクセスパターン |
-| [FRONTEND_ARCHITECTURE_GUIDE.md](docs/FRONTEND_ARCHITECTURE_GUIDE.md) | フロントエンド設計 |
-| [STATE_MANAGEMENT_GUIDE.md](docs/STATE_MANAGEMENT_GUIDE.md) | 状態管理の仕様 |
-| [JS_TO_HTML_ARCHITECTURE.md](docs/JS_TO_HTML_ARCHITECTURE.md) | ビルドシステム詳細 |
+| ドキュメント                                                          | 内容                               |
+| --------------------------------------------------------------------- | ---------------------------------- |
+| [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md)                 | アーキテクチャ全体図・データフロー |
+| [DATA_MODEL.md](docs/DATA_MODEL.md)                                   | データモデル・シート構造           |
+| [TYPES_GUIDE.md](docs/TYPES_GUIDE.md)                                 | 型定義・定数の使い方               |
+| [DATA_ACCESS_PRINCIPLES.md](docs/DATA_ACCESS_PRINCIPLES.md)           | データアクセスパターン             |
+| [FRONTEND_ARCHITECTURE_GUIDE.md](docs/FRONTEND_ARCHITECTURE_GUIDE.md) | フロントエンド設計                 |
+| [STATE_MANAGEMENT_GUIDE.md](docs/STATE_MANAGEMENT_GUIDE.md)           | 状態管理の仕様                     |
+| [JS_TO_HTML_ARCHITECTURE.md](docs/JS_TO_HTML_ARCHITECTURE.md)         | ビルドシステム詳細                 |
