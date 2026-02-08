@@ -160,8 +160,7 @@ addReservationToCache(newReservation);       // 2. キャッシュに差分追�
 ### 単方向データフロー
 
 ```
-ユーザー操作 → Handlers(14_) → stateManager.dispatch() → State更新
-    → render() → Views(13_) → Components(13_) → DOM更新
+ユーザー操作 → Handlers(14_) → dispatch() → State更新 → render() → Views(13_) → Components(13_) → DOM更新
 ```
 
 ### UI開発
