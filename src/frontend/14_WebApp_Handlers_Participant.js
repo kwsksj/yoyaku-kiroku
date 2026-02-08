@@ -1111,7 +1111,7 @@ function loadMorePastParticipantLessons() {
         });
 
         const mergedLessons = Object.values(mergedLessonMap).sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
         );
 
         const mergedReservationsMap = {

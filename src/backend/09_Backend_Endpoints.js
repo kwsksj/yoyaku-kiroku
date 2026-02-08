@@ -1198,12 +1198,24 @@ function buildParticipantReservationsMapForLessons(
   const reservationsMap = {};
   /** @type {Record<string, LessonCore>} */
   const lessonMapById = {};
+  /** @type {Record<string, string>} */
+  const fallbackLessonIdByReservationId = {};
 
   lessons.forEach(lesson => {
     const lessonId = lesson?.lessonId ? String(lesson.lessonId) : '';
     if (!lessonId) return;
     lessonMapById[lessonId] = lesson;
     reservationsMap[lessonId] = [];
+
+    const reservationIds = Array.isArray(lesson?.reservationIds)
+      ? lesson.reservationIds
+      : [];
+    reservationIds.forEach(reservationId => {
+      const normalizedReservationId = String(reservationId || '').trim();
+      if (!normalizedReservationId) return;
+      if (fallbackLessonIdByReservationId[normalizedReservationId]) return;
+      fallbackLessonIdByReservationId[normalizedReservationId] = lessonId;
+    });
   });
 
   const lessonIds = Object.keys(lessonMapById);
@@ -1266,7 +1278,15 @@ function buildParticipantReservationsMapForLessons(
   allReservations.forEach(reservation => {
     if (reservation.status === CONSTANTS.STATUS.CANCELED) return;
 
-    const lessonId = reservation.lessonId ? String(reservation.lessonId) : '';
+    let lessonId = reservation.lessonId ? String(reservation.lessonId) : '';
+    if (!lessonId || !lessonMapById[lessonId]) {
+      const reservationId = reservation.reservationId
+        ? String(reservation.reservationId).trim()
+        : '';
+      lessonId = reservationId
+        ? fallbackLessonIdByReservationId[reservationId] || ''
+        : '';
+    }
     if (!lessonId) return;
     const lesson = lessonMapById[lessonId];
     if (!lesson) return;
