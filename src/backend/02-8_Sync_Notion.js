@@ -2610,7 +2610,10 @@ function _mergeStudentValues(student, rosterValues) {
     _stringifyValue(values['ニックネーム']),
     _stringifyValue(values['本名']),
   );
-  if (normalizedNickname) {
+  if (
+    Object.prototype.hasOwnProperty.call(values, 'ニックネーム') ||
+    normalizedNickname
+  ) {
     values['ニックネーム'] = normalizedNickname;
   }
   return values;
@@ -3611,7 +3614,7 @@ function _getStudentTitle(values, student) {
 
 /**
  * Notion同期用のニックネームを正規化します
- * - 本名と同一なら本名の先頭2文字へ置換
+ * - 本名と同一なら空白を除去した本名の先頭2文字へ置換
  *
  * @param {string} nickname
  * @param {string} realName
@@ -3623,7 +3626,8 @@ function _normalizeNicknameForNotion(nickname, realName) {
   const real = _stringifyValue(realName).trim();
   if (!nick) return '';
   if (!real || nick !== real) return nick;
-  const short = Array.from(real).slice(0, 2).join('').trim();
+  const realWithoutSpaces = real.replace(/\s+/g, '');
+  const short = Array.from(realWithoutSpaces).slice(0, 2).join('');
   return short;
 }
 
