@@ -65,15 +65,14 @@ docs/                # 詳細ドキュメント
 
 `src/` のコードはビルド時に以下の変換を受ける:
 
-- **backend/*.js** → `build-output/*.gs` にコピー（`import`/`export` 文は自動削除）
-- **frontend/*.js** → `<script>` タグで包まれ HTML に統合
+- **backend/\*.js** → `build-output/*.gs` にコピー（`import`/`export` 文は自動削除）
+- **frontend/\*.js** → `<script>` タグで包まれ HTML に統合
 - **shared/00_Constants.js** → backend・frontend 両方に注入
-- **templates/*.html** → そのままコピー
+- **templates/\*.html** → そのままコピー
 
 ### import 制約
 
-`src/` 内では ESM の `import`/`export` を記述できるが、ビルド時に自動削除される。
-以下は**禁止**（ビルドツールが正しく処理できない）:
+`src/` 内では ESM の `import`/`export` を記述できるが、ビルド時に自動削除される。以下は**禁止**（ビルドツールが正しく処理できない）:
 
 - デフォルトインポート (`import foo from '...'`)
 - 別名 (`import { foo as bar }`)
@@ -148,12 +147,12 @@ const sheet = SS_MANAGER.getSpreadsheet().getSheetByName('統合予約');
 ### 書き込み: シート + インクリメンタル更新
 
 ```javascript
-writeToSheet(newReservation);               // 1. シートに書き込み
-addReservationToCache(newReservation);       // 2. キャッシュに差分追加
+writeToSheet(newReservation); // 1. シートに書き込み
+addReservationToCache(newReservation); // 2. キャッシュに差分追加
 ```
 
-更新・削除も同様に `updateReservationInCache()` / `deleteReservationFromCache()` を使う。
-全体再構築 (`rebuild*Cache()`) はCacheManagerのみが担当。アプリケーションコードから呼ばない。
+- 更新・キャンセル（ステータス変更）は `updateReservationInCache()`（必要に応じて `updateReservationStatusInCache()`）で差分反映する。
+- 全体再構築 (`rebuild*Cache()`) は通常は直接呼ばず、インクリメンタル更新が失敗した場合のフォールバックとしてのみ使用する。
 
 ## フロントエンド設計
 
@@ -188,8 +187,7 @@ UI要素の追加・変更時は既存の仕組みを使うこと:
 
 ### APIエンドポイント
 
-フロントエンドからの全リクエストは `09_Backend_Endpoints.js` を経由する。
-フロントエンドからは `google.script.run.エンドポイント名()` で呼び出す。
+フロントエンドからの全リクエストは `09_Backend_Endpoints.js` を経由する。フロントエンドからは `google.script.run.エンドポイント名()` で呼び出す。
 
 ### キャッシュシステム（07_CacheManager.js）
 
