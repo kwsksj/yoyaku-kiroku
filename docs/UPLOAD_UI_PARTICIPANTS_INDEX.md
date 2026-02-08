@@ -156,4 +156,3 @@ const res = await fetch('https://<worker-domain>/participants-index', {
 
 - `participants_index.json` はGASが「予約キャッシュ/生徒キャッシュ」から生成し、Cloudflare WorkerへPOSTしてR2に保存する運用。
 - UIは常に `GET /participants-index` で取得する（頻度は 1セッション1回で十分）。
-
