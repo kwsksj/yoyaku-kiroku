@@ -950,6 +950,29 @@ function renderLessonList(lessons) {
          </div>`
       : '';
 
+  const participantPastPaginationState =
+    typeof appWindow.getParticipantPastPaginationState === 'function'
+      ? appWindow.getParticipantPastPaginationState()
+      : {
+          hasMorePastLessons: false,
+          isLoadingMorePastLessons: false,
+        };
+
+  const loadMorePastButtonHtml =
+    showPastLessons && participantPastPaginationState.hasMorePastLessons
+      ? `<div class="mt-3">
+          ${Components.button({
+            text: participantPastPaginationState.isLoadingMorePastLessons
+              ? '読み込み中...'
+              : 'もっと表示する',
+            action: 'loadMorePastParticipantLessons',
+            style: 'secondary',
+            size: 'full',
+            disabled: participantPastPaginationState.isLoadingMorePastLessons,
+          })}
+        </div>`
+      : '';
+
   // 管理者向けのアクションボタン（更新・操作ログ）
   // LogViewと統一されたデザイン
   // 統合リフレッシュ状態を判定（参加者データまたはログデータのどちらかが更新中ならスピン）
@@ -1032,6 +1055,7 @@ function renderLessonList(lessons) {
         ${lessonsHtml}
         ${emptyMessage}
       </div>
+      ${loadMorePastButtonHtml}
       <div class="mt-4">
         ${Components.button({
           text: 'ホーム画面にもどる',

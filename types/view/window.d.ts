@@ -146,6 +146,10 @@ declare global {
       student: any,
       isAdmin: boolean,
     ) => string;
+    getParticipantPastPaginationState?: () => {
+      hasMorePastLessons: boolean;
+      isLoadingMorePastLessons: boolean;
+    };
 
     // --- ページ遷移 ---
     pageTransitionManager?: PageTransitionManager;

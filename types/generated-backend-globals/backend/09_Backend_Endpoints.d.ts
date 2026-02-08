@@ -140,7 +140,7 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo: {
 }): ApiResponseGeneric;
 /**
  * 参加者リスト表示用のレッスン一覧を取得する
- * - キャッシュから6ヶ月前〜1年後のレッスン情報を取得
+ * - キャッシュから過去〜未来のレッスン情報を取得
  * - 管理者・一般生徒を問わず、同じデータを返す（レッスン情報は公開情報）
  *
  * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用によやく）
@@ -150,6 +150,17 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo: {
  * @returns {ApiResponseGeneric} レッスン一覧
  */
 export function getLessonsForParticipantsView(studentId: string, includeHistory?: boolean, includeReservations?: boolean, adminLoginId?: string): ApiResponseGeneric;
+/**
+ * 参加者ビューの過去レッスンを、指定日より前から追加取得します。
+ * データ量を抑えるため件数制限をかけ、同一日付は取りこぼし防止のためまとめて返します。
+ *
+ * @param {string} studentId - リクエストしている生徒ID
+ * @param {string} beforeDate - この日付より古いデータを取得する基準日（YYYY-MM-DD）
+ * @param {string} [adminLoginId=''] - 管理者用ログインID
+ * @param {number} [limit] - 1回で取得する最大件数（同一日付分は上限超過して返却）
+ * @returns {ApiResponseGeneric}
+ */
+export function getPastLessonsForParticipantsView(studentId: string, beforeDate: string, adminLoginId?: string, limit?: number): ApiResponseGeneric;
 /**
  * 特定レッスンのよやく情報リストを取得する（権限に応じてフィルタリング）
  * - 管理者: 全項目を返す（本名、電話番号、メールアドレスなど）

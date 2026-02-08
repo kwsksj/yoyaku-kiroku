@@ -1127,8 +1127,219 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo) {
 // ================================================================
 
 /**
+ * 日付値を `YYYY-MM-DD` 形式に正規化します。
+ * @param {string|Date|number|null|undefined} dateValue
+ * @returns {string}
+ */
+function normalizeDateToYmd(dateValue) {
+  if (!dateValue) return '';
+  if (dateValue instanceof Date) {
+    return Utilities.formatDate(dateValue, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  }
+
+  const rawValue = String(dateValue).trim();
+  if (!rawValue) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+    return rawValue;
+  }
+
+  const parsedDate = new Date(rawValue);
+  if (isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  return Utilities.formatDate(parsedDate, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+}
+
+/**
+ * 日程シートの予約IDセルを配列に変換します。
+ * @param {any} reservationIdsValue
+ * @returns {string[]}
+ */
+function parseScheduleReservationIds(reservationIdsValue) {
+  if (Array.isArray(reservationIdsValue)) {
+    return reservationIdsValue
+      .map(id => String(id || '').trim())
+      .filter(id => id !== '');
+  }
+
+  if (!reservationIdsValue) return [];
+  const rawValue = String(reservationIdsValue).trim();
+  if (!rawValue) return [];
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (Array.isArray(parsed)) {
+      return parsed.map(id => String(id || '').trim()).filter(id => id !== '');
+    }
+  } catch (_error) {
+    // JSON形式でない場合は下のフォールバックで処理
+  }
+
+  return rawValue
+    .split(',')
+    .map(id => id.trim())
+    .filter(id => id !== '');
+}
+
+/**
+ * 参加者ビュー用のよやくマップをレッスン単位で構築します。
+ * @param {LessonCore[]} lessons
+ * @param {Record<string, UserCore>} preloadedStudentsMap
+ * @param {boolean} isAdmin
+ * @returns {Record<string, any[]>}
+ */
+function buildParticipantReservationsMapForLessons(
+  lessons,
+  preloadedStudentsMap,
+  isAdmin,
+) {
+  /** @type {Record<string, any[]>} */
+  const reservationsMap = {};
+  /** @type {Record<string, LessonCore>} */
+  const lessonMapById = {};
+
+  lessons.forEach(lesson => {
+    const lessonId = lesson?.lessonId ? String(lesson.lessonId) : '';
+    if (!lessonId) return;
+    lessonMapById[lessonId] = lesson;
+    reservationsMap[lessonId] = [];
+  });
+
+  const lessonIds = Object.keys(lessonMapById);
+  if (lessonIds.length === 0) {
+    return reservationsMap;
+  }
+
+  const allReservations = getCachedReservationsAsObjects(preloadedStudentsMap);
+  if (!allReservations || allReservations.length === 0) {
+    return reservationsMap;
+  }
+
+  /** @type {Record<string, UserCore>} */
+  const allStudents = preloadedStudentsMap || {};
+
+  // 各生徒の完了済みよやく日リストを事前に計算（ソート済み）
+  /** @type {Record<string, number[]>} */
+  const completedDatesByStudent = {};
+  allReservations.forEach(reservation => {
+    if (reservation.status !== CONSTANTS.STATUS.COMPLETED) return;
+    const targetStudentId = reservation.studentId;
+    if (!completedDatesByStudent[targetStudentId]) {
+      completedDatesByStudent[targetStudentId] = [];
+    }
+    const dateTs = new Date(reservation.date).getTime();
+    if (!isNaN(dateTs)) {
+      completedDatesByStudent[targetStudentId].push(dateTs);
+    }
+  });
+  Object.values(completedDatesByStudent).forEach(dates =>
+    dates.sort((a, b) => a - b),
+  );
+
+  /**
+   * 指定日以前の完了済みよやく数をカウント（二分探索でupper bound）
+   * @param {string} targetStudentId
+   * @param {string|Date} reservationDate
+   * @returns {number}
+   */
+  const getParticipationCountAsOf = (targetStudentId, reservationDate) => {
+    const dates = completedDatesByStudent[targetStudentId];
+    if (!dates || dates.length === 0) return 0;
+
+    const targetTs = new Date(reservationDate).getTime();
+    if (isNaN(targetTs)) return 0;
+
+    let left = 0;
+    let right = dates.length;
+    while (left < right) {
+      const mid = Math.floor((left + right) / 2);
+      if (dates[mid] <= targetTs) {
+        left = mid + 1;
+      } else {
+        right = mid;
+      }
+    }
+    return left;
+  };
+
+  allReservations.forEach(reservation => {
+    if (reservation.status === CONSTANTS.STATUS.CANCELED) return;
+
+    const lessonId = reservation.lessonId ? String(reservation.lessonId) : '';
+    if (!lessonId) return;
+    const lesson = lessonMapById[lessonId];
+    if (!lesson) return;
+
+    const student = allStudents[reservation.studentId];
+    const studentData = student || {};
+
+    const nickname = studentData.nickname || '';
+    const rawDisplayName = studentData.displayName || nickname || '';
+    const realName = studentData.realName || '';
+    const shouldMaskDisplayName =
+      !isAdmin && realName && rawDisplayName && rawDisplayName === realName;
+    const publicDisplayName = shouldMaskDisplayName
+      ? rawDisplayName.substring(0, 2)
+      : rawDisplayName;
+
+    /** @type {any} */
+    const baseInfo = {
+      reservationId: reservation.reservationId,
+      date: reservation.date || lesson.date,
+      classroom: lesson.classroom,
+      venue: lesson.venue || '',
+      startTime: reservation.startTime || '',
+      endTime: reservation.endTime || '',
+      status: reservation.status,
+      studentId: reservation.studentId,
+      nickname: publicDisplayName,
+      displayName: publicDisplayName,
+      firstLecture: reservation.firstLecture || false,
+      chiselRental: reservation.chiselRental || false,
+      sessionNote: reservation.sessionNote || '',
+      order: reservation.order || '',
+      participationCount:
+        getParticipationCountAsOf(
+          reservation.studentId,
+          reservation.date || lesson.date,
+        ) + 1,
+      futureCreations: studentData.futureCreations || '',
+      nextLessonGoal: studentData.nextLessonGoal || '',
+      companion: reservation.companion || '',
+      transportation: reservation.transportation || '',
+      pickup: reservation.pickup || '',
+      car: reservation.car || '',
+    };
+
+    const fullInfo = isAdmin
+      ? {
+          ...baseInfo,
+          nickname: nickname || rawDisplayName,
+          displayName: rawDisplayName,
+          realName: realName,
+          messageToTeacher: reservation.messageToTeacher || '',
+          phone: studentData.phone || '',
+          email: studentData.email || '',
+          ageGroup:
+            studentData.ageGroup !== undefined && studentData.ageGroup !== null
+              ? String(studentData.ageGroup)
+              : '',
+          gender: studentData.gender || '',
+          address: studentData.address || '',
+          notes: reservation.notes || '',
+        }
+      : baseInfo;
+
+    reservationsMap[lessonId].push(fullInfo);
+  });
+
+  return reservationsMap;
+}
+
+/**
  * 参加者リスト表示用のレッスン一覧を取得する
- * - キャッシュから6ヶ月前〜1年後のレッスン情報を取得
+ * - キャッシュから過去〜未来のレッスン情報を取得
  * - 管理者・一般生徒を問わず、同じデータを返す（レッスン情報は公開情報）
  *
  * @param {string} studentId - リクエストしている生徒のID（将来の権限チェック用によやく）
@@ -1202,167 +1413,21 @@ export function getLessonsForParticipantsView(
 
     const shouldIncludeReservations = includeReservations;
 
-    // 🚀 よやくデータを一括取得（オプション：管理者は個人情報付き、一般は公開情報のみ）
-    /** @type {Record<string, any[]>} */
-    const reservationsMap = {};
-    if (shouldIncludeReservations) {
-      Logger.log('✅ よやくデータを一括取得開始...');
+    const reservationsMap = shouldIncludeReservations
+      ? buildParticipantReservationsMapForLessons(
+          lessons,
+          preloadedStudentsMap,
+          isAdmin,
+        )
+      : {};
 
-      // キャッシュから全よやくデータと全生徒データを1回だけ取得
-      const allReservations =
-        getCachedReservationsAsObjects(preloadedStudentsMap);
-      /** @type {Record<string, any>} */
-      const allStudents = preloadedStudentsMap || {};
-      Logger.log(
-        `📚 データ取得: よやく${allReservations.length}件, 生徒${Object.keys(allStudents).length}件`,
-      );
-
-      if (allReservations && allReservations.length > 0) {
-        // 各生徒の完了済みよやく日リストを事前に計算（ソート済み）
-        // これにより各よやくごとに「当日以前の完了数」を効率的に計算できる
-        /** @type {Record<string, number[]>} */
-        const completedDatesByStudent = {};
-        allReservations.forEach(reservation => {
-          // 完了済みのよやくのみ収集
-          if (reservation.status === CONSTANTS.STATUS.COMPLETED) {
-            const studentId = reservation.studentId;
-            if (!completedDatesByStudent[studentId]) {
-              completedDatesByStudent[studentId] = [];
-            }
-            // 日付をタイムスタンプとして保存（比較用）
-            const dateTs = new Date(reservation.date).getTime();
-            if (!isNaN(dateTs)) {
-              completedDatesByStudent[studentId].push(dateTs);
-            }
-          }
-        });
-        // 各生徒の完了日リストをソート（昇順）
-        Object.values(completedDatesByStudent).forEach(dates =>
-          dates.sort((a, b) => a - b),
-        );
-        Logger.log(
-          `📊 参加回数計算用データ準備完了: ${Object.keys(completedDatesByStudent).length}名分`,
-        );
-
-        /**
-         * 指定日以前の完了済みよやく数をカウント（二分探索でupper bound）
-         * @param {string} studentId - 生徒ID
-         * @param {string} reservationDate - よやく日（YYYY-MM-DD形式）
-         * @returns {number} 完了済みよやく数
-         */
-        const getParticipationCountAsOf = (studentId, reservationDate) => {
-          const dates = completedDatesByStudent[studentId];
-          if (!dates || dates.length === 0) return 0;
-          const targetTs = new Date(reservationDate).getTime();
-          if (isNaN(targetTs)) return 0;
-          // 二分探索: targetTs以下の要素数を求める（upper bound）
-          let left = 0;
-          let right = dates.length;
-          while (left < right) {
-            const mid = Math.floor((left + right) / 2);
-            if (dates[mid] <= targetTs) {
-              left = mid + 1;
-            } else {
-              right = mid;
-            }
-          }
-          return left;
-        };
-
-        // レッスンIDのセットと高速参照用マップを準備
-        /** @type {Record<string, any>} */
-        const lessonMapById = {};
-        lessons.forEach(lesson => {
-          lessonMapById[lesson.lessonId] = lesson;
-          reservationsMap[lesson.lessonId] = [];
-        });
-
-        // レッスンIDごとによやくをグループ化（1パス）
-        allReservations.forEach(reservation => {
-          if (reservation.status === CONSTANTS.STATUS.CANCELED) return;
-          const lesson = lessonMapById[reservation.lessonId];
-          if (!lesson) return; // 取得対象外のレッスン
-
-          const student = allStudents[reservation.studentId];
-
-          // 生徒情報がない場合はスキップせず、よやく情報だけでも返す
-          const studentData = student || {};
-
-          const nickname = studentData.nickname || '';
-          const rawDisplayName = studentData.displayName || nickname || '';
-          const realName = studentData.realName || '';
-          const shouldMaskDisplayName =
-            !isAdmin &&
-            realName &&
-            rawDisplayName &&
-            rawDisplayName === realName;
-          const publicDisplayName = shouldMaskDisplayName
-            ? rawDisplayName.substring(0, 2)
-            : rawDisplayName;
-
-          // 基本情報
-          const baseInfo = {
-            reservationId: reservation.reservationId,
-            date: reservation.date || lesson.date,
-            classroom: lesson.classroom,
-            venue: lesson.venue || '',
-            startTime: reservation.startTime || '',
-            endTime: reservation.endTime || '',
-            status: reservation.status,
-            studentId: reservation.studentId,
-            nickname: publicDisplayName,
-            displayName: publicDisplayName,
-            firstLecture: reservation.firstLecture || false,
-            chiselRental: reservation.chiselRental || false,
-            sessionNote: reservation.sessionNote || '',
-            order: reservation.order || '',
-            // 参加回数: 当日以前の完了数 + 1（何回目の参加か）
-            participationCount:
-              getParticipationCountAsOf(
-                reservation.studentId,
-                reservation.date || lesson.date,
-              ) + 1,
-            futureCreations: studentData.futureCreations || '',
-            nextLessonGoal: studentData.nextLessonGoal || '', // けいかく・もくひょう
-            companion: reservation.companion || '',
-            transportation: reservation.transportation || '',
-            pickup: reservation.pickup || '',
-            car: reservation.car || '',
-          };
-
-          // 管理者の場合は個人情報を追加（表示名はフルで保持）
-          const fullInfo = isAdmin
-            ? {
-                ...baseInfo,
-                nickname: nickname || rawDisplayName,
-                displayName: rawDisplayName,
-                realName: realName,
-                messageToTeacher: reservation.messageToTeacher || '',
-                phone: studentData.phone || '',
-                email: studentData.email || '',
-                ageGroup:
-                  studentData.ageGroup !== undefined &&
-                  studentData.ageGroup !== null
-                    ? String(studentData.ageGroup)
-                    : '',
-                gender: studentData.gender || '',
-                address: studentData.address || '',
-                notes: reservation.notes || '', // よやく固有の備考
-              }
-            : baseInfo;
-
-          reservationsMap[lesson.lessonId].push(fullInfo);
-        });
-
-        Logger.log(
-          `✅ よやくデータ一括取得完了: ${Object.keys(reservationsMap).length}レッスン分`,
-        );
-      } else {
-        Logger.log('⚠️ 全よやくデータが取得できませんでした（キャッシュ空）');
-      }
-    } else {
+    if (!shouldIncludeReservations) {
       Logger.log(
         `❌ よやくデータ取得スキップ: includeReservations=${includeReservations}, isAdmin=${isAdmin}`,
+      );
+    } else {
+      Logger.log(
+        `✅ よやくデータ一括取得完了: ${Object.keys(reservationsMap).length}レッスン分`,
       );
     }
 
@@ -1411,6 +1476,256 @@ export function getLessonsForParticipantsView(
     );
     return createApiErrorResponse(
       `レッスン一覧の取得中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
+}
+
+/**
+ * 参加者ビューの過去レッスンを、指定日より前から追加取得します。
+ * データ量を抑えるため件数制限をかけ、同一日付は取りこぼし防止のためまとめて返します。
+ *
+ * @param {string} studentId - リクエストしている生徒ID
+ * @param {string} beforeDate - この日付より古いデータを取得する基準日（YYYY-MM-DD）
+ * @param {string} [adminLoginId=''] - 管理者用ログインID
+ * @param {number} [limit] - 1回で取得する最大件数（同一日付分は上限超過して返却）
+ * @returns {ApiResponseGeneric}
+ */
+export function getPastLessonsForParticipantsView(
+  studentId,
+  beforeDate,
+  adminLoginId = '',
+  limit = CONSTANTS.UI.HISTORY_LOAD_MORE_RECORDS || 10,
+) {
+  try {
+    const normalizedBeforeDate = normalizeDateToYmd(beforeDate);
+    if (!normalizedBeforeDate) {
+      return createApiErrorResponse('取得基準日が不正です。');
+    }
+
+    const adminLoginIdSafe =
+      typeof adminLoginId === 'string' ? adminLoginId : '';
+    const isAdminBySpecialId = studentId === 'ADMIN';
+    const isAdminByLoginId = adminLoginIdSafe
+      ? isAdminLogin(adminLoginIdSafe)
+      : false;
+    const isAdmin = isAdminBySpecialId || isAdminByLoginId;
+
+    // 生徒キャッシュを1回取得（よやく整形で再利用）
+    const studentCache = getStudentCacheSnapshot();
+    /** @type {Record<string, UserCore>} */
+    const preloadedStudentsMap = studentCache?.students || {};
+
+    const safeLimit = Math.max(1, Number(limit) || 10);
+
+    const scheduleSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    if (!scheduleSheet) {
+      return createApiErrorResponse('日程マスターシートが見つかりません。');
+    }
+
+    const allValues = scheduleSheet.getDataRange().getValues();
+    const headerRowCandidate = allValues.shift();
+    if (!Array.isArray(headerRowCandidate)) {
+      return createApiErrorResponse('日程データのヘッダー取得に失敗しました。');
+    }
+    const headerRow = /** @type {string[]} */ (headerRowCandidate);
+
+    const dateColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
+    const lessonIdColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    );
+    const reservationIdsColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS,
+    );
+    const classroomColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.CLASSROOM,
+    );
+    const venueColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.VENUE);
+    const classroomTypeColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.TYPE,
+    );
+    const firstStartColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.FIRST_START,
+    );
+    const firstEndColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.FIRST_END,
+    );
+    const secondStartColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.SECOND_START,
+    );
+    const secondEndColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.SECOND_END,
+    );
+    const beginnerStartColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START,
+    );
+    const totalCapacityColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY,
+    );
+    const beginnerCapacityColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY,
+    );
+    const statusColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
+    const notesColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.NOTES);
+
+    if (dateColumn === -1 || classroomColumn === -1) {
+      return createApiErrorResponse(
+        '日程シートの必須列（日付・教室）が見つかりません。',
+      );
+    }
+
+    /**
+     * 時刻セルを文字列化します。
+     * @param {any} value
+     * @returns {string}
+     */
+    const toTimeString = value => {
+      if (!value) return '';
+      if (value instanceof Date) {
+        return Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
+      }
+      return String(value);
+    };
+
+    /**
+     * 定員セルを数値化します。
+     * @param {any} value
+     * @returns {number}
+     */
+    const toCapacityNumber = value => {
+      if (value === null || value === undefined || value === '') return 0;
+      const parsed = parseInt(String(value), 10);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    };
+
+    /** @type {LessonCore[]} */
+    const candidateLessons = [];
+    for (let i = 0; i < allValues.length; i += 1) {
+      const row = allValues[i];
+      const dateStr = normalizeDateToYmd(row[dateColumn]);
+      if (!dateStr || dateStr >= normalizedBeforeDate) continue;
+
+      const classroom = String(
+        classroomColumn >= 0 ? row[classroomColumn] || '' : '',
+      ).trim();
+      if (!classroom) continue;
+
+      const venue = String(
+        venueColumn >= 0 ? row[venueColumn] || '' : '',
+      ).trim();
+      const classroomType = String(
+        classroomTypeColumn >= 0 ? row[classroomTypeColumn] || '' : '',
+      ).trim();
+      const firstStart = toTimeString(
+        firstStartColumn >= 0 ? row[firstStartColumn] : '',
+      );
+      const firstEnd = toTimeString(
+        firstEndColumn >= 0 ? row[firstEndColumn] : '',
+      );
+      const secondStart = toTimeString(
+        secondStartColumn >= 0 ? row[secondStartColumn] : '',
+      );
+      const secondEnd = toTimeString(
+        secondEndColumn >= 0 ? row[secondEndColumn] : '',
+      );
+      const beginnerStart = toTimeString(
+        beginnerStartColumn >= 0 ? row[beginnerStartColumn] : '',
+      );
+      const totalCapacity = toCapacityNumber(
+        totalCapacityColumn >= 0 ? row[totalCapacityColumn] : 0,
+      );
+      const beginnerCapacity = toCapacityNumber(
+        beginnerCapacityColumn >= 0 ? row[beginnerCapacityColumn] : 0,
+      );
+      const status = String(statusColumn >= 0 ? row[statusColumn] || '' : '');
+      const notes = String(notesColumn >= 0 ? row[notesColumn] || '' : '');
+      const reservationIds = parseScheduleReservationIds(
+        reservationIdsColumn >= 0 ? row[reservationIdsColumn] : [],
+      );
+
+      const rawLessonId =
+        lessonIdColumn >= 0 ? String(row[lessonIdColumn] || '').trim() : '';
+      const fallbackClassroomKey = classroom.replace(/\s+/g, '');
+      const lessonId =
+        rawLessonId ||
+        `legacy_${dateStr}_${fallbackClassroomKey || 'classroom'}_${i + 2}`;
+
+      const isTimeDual = classroomType === CONSTANTS.CLASSROOM_TYPES.TIME_DUAL;
+
+      candidateLessons.push({
+        lessonId,
+        reservationIds,
+        classroom,
+        date: dateStr,
+        venue,
+        classroomType,
+        notes,
+        status,
+        firstStart,
+        firstEnd,
+        secondStart,
+        secondEnd,
+        beginnerStart,
+        startTime: firstStart,
+        endTime: secondEnd || firstEnd,
+        totalCapacity,
+        beginnerCapacity,
+        firstSlots: 0,
+        secondSlots: isTimeDual ? 0 : undefined,
+        beginnerSlots: 0,
+      });
+    }
+
+    // 新しい日付順（同日の場合は教室名降順）に並べる
+    candidateLessons.sort((a, b) => {
+      const dateCompare = String(b.date).localeCompare(String(a.date));
+      if (dateCompare !== 0) return dateCompare;
+      return String(b.classroom).localeCompare(String(a.classroom));
+    });
+
+    /** @type {LessonCore[]} */
+    const lessons = [];
+    let boundaryDate = '';
+    for (const lesson of candidateLessons) {
+      if (lessons.length < safeLimit) {
+        lessons.push(lesson);
+        boundaryDate = String(lesson.date || '');
+        continue;
+      }
+      if (String(lesson.date || '') === boundaryDate) {
+        lessons.push(lesson);
+        continue;
+      }
+      break;
+    }
+
+    const hasMore =
+      boundaryDate !== '' &&
+      candidateLessons.some(lesson => String(lesson.date || '') < boundaryDate);
+
+    const reservationsMap = buildParticipantReservationsMapForLessons(
+      lessons,
+      preloadedStudentsMap,
+      isAdmin,
+    );
+
+    Logger.log(
+      `getPastLessonsForParticipantsView完了: beforeDate=${normalizedBeforeDate}, 取得=${lessons.length}件, hasMore=${hasMore}`,
+    );
+
+    return createApiResponse(true, {
+      lessons,
+      reservationsMap,
+      hasMore,
+      isAdmin,
+      message: '過去レッスンを取得しました',
+    });
+  } catch (error) {
+    Logger.log(
+      `getPastLessonsForParticipantsView エラー: ${error.message}\nStack: ${error.stack}`,
+    );
+    return createApiErrorResponse(
+      `過去レッスン取得中にエラーが発生しました: ${error.message}`,
       true,
     );
   }
