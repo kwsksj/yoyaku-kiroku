@@ -1,116 +1,228 @@
-# AI_INSTRUCTIONS.md (AIへの指示書)
+# AI_INSTRUCTIONS.md
 
-> このファイルは、AIがこのリポジトリで作業する際のルールを定義する。
+GAS製の木彫り教室予約管理システム「きぼりの よやく・きろく」の開発ルール。
 
 ## 絶対ルール
 
-1. **`build-output/` は編集禁止** - すべての編集は `src/` ディレクトリで行うこと
-2. **コード変更後は `npm run dev` を実行** - テスト環境への反映に必須
-
----
+1. **`build-output/` は編集禁止** — 自動生成ディレクトリ。すべての編集は `src/` で行う
+2. **`types/generated-*/` は編集禁止** — 型定義の自動生成ディレクトリ
+3. **コード変更後は `npm run dev` を実行** — ビルド + テスト環境デプロイまで一括で行う
+4. **JSDoc（型注釈）を変更したら `npm run types:refresh`** — 型定義の再生成 + 型チェック
+5. **応答・コミットメッセージ・コードコメントはすべて日本語**
 
 ## コマンド
 
-| コマンド           | 用途                                    |
-| ------------------ | --------------------------------------- |
-| `npm run validate` | チェックのみ（push しない）             |
-| `npm run dev`      | **★メイン** 修正 + ビルド + テスト push |
-| `npm run release`  | 修正 + ビルド + 本番 push + デプロイ    |
+| コマンド | 用途 |
+| --- | --- |
+| `npm run dev` | **メイン**: format修正 + lint修正 + 型再生成 + ビルド + テスト環境push |
+| `npm run validate` | チェックのみ（ビルド・pushしない） |
+| `npm run validate:fix` | 自動修正付きチェック（ビルド・pushしない） |
+| `npm run types:refresh` | 型定義の再生成 + 型チェック（JSDoc変更後に必須） |
+| `npm run release` | 本番デプロイ（テスト確認後のみ使用） |
+| `npm run build:force` | 品質チェックをスキップしてビルド（緊急時のみ） |
 
-<details>
-<summary>その他のコマンド</summary>
+## プロジェクト構造
 
-| コマンド                | 用途                                    |
-| ----------------------- | --------------------------------------- |
-| `npm run types:refresh` | 型定義の再生成（`validate` に含まれる） |
-| `npm run build:force`   | 品質チェックスキップ（緊急時のみ）      |
-| `npm run watch`         | UI微調整時の自動ビルド（ユーザー用）    |
+```
+src/
+├── backend/         # GASサーバーサイド (.js → .gs)
+├── frontend/        # ブラウザサイド (.js → <script>タグとしてHTMLに統合)
+├── shared/          # backend/frontend両方に注入されるコード
+│   └── 00_Constants.js  # 定数定義（唯一の共有ファイル）
+└── templates/       # HTMLテンプレート
+    └── 10_WebApp.html
 
-</details>
+types/
+├── core/            # ドメイン型定義（手動管理・編集可）
+├── view/            # フロントエンド型定義（手動管理・編集可）
+├── global-aliases.d.ts   # 型エイリアス（手動管理・編集可）
+├── gas-custom.d.ts       # GASカスタム型（手動管理・編集可）
+└── generated-*-globals/  # 自動生成（編集禁止）
 
-## 開発フロー
-
-### 作業開始時の規模判断
-
-| 規模   | 条件                            | アクション    |
-| ------ | ------------------------------- | ------------- |
-| 小     | 1-2ファイル、単純な修正、typo   | main 直接作業 |
-| 中〜大 | 3ファイル以上、新機能、設計変更 | ブランチ作成  |
-
-**判断に迷う場合**: ブランチを作成すること
-
-### ブランチ作成時
-
-```bash
-git checkout -b feature/機能名  # または fix/バグ内容, refactor/対象
+build-output/        # デプロイ対象（自動生成・編集禁止）
+tools/               # ビルドツール群
+docs/                # 詳細ドキュメント
 ```
 
-### コミット
+### ファイル命名規則
 
-- 適切な節目で**自動コミット**（ユーザー確認不要）
-- コミットメッセージは日本語
-- 署名行（`🤖 Generated with ...`）を含める
+ファイル名の数字プレフィックスがGASでの実行順序を決定する。
 
-### 途中で規模が拡大した場合
+- `00_` — 定数・基盤（Constants, SpreadsheetManager）
+- `01_` — エントリーポイント（doGet, doPost, トリガー）
+- `02_`〜`03_` — ビジネスロジック（バッチ処理, 通知, Notion同期）
+- `04_` — ユーザー認証・管理
+- `05_` — API処理（書き込み, 空き枠計算）
+- `07_` — キャッシュ管理
+- `08_` — エラーハンドリング・ユーティリティ
+- `09_` — 統一APIエンドポイント（フロントエンドからの全リクエスト受付）
+- `11_` — フロントエンド設定（デザイントークン）
+- `12_` — コアロジック（状態管理, データ処理, 検索, モーダル）
+- `13_` — UI（コンポーネント, ビュー）
+- `14_` — イベントハンドラー
 
-1. 現在の変更をコミット
-2. ブランチに移動: `git stash && git checkout -b feature/... && git stash pop`
-3. ユーザーに「規模拡大のためブランチ作成」と報告
+## ビルドシステム
 
-### PR作成（ブランチ作業時）
+`src/` のコードはビルド時に以下の変換を受ける:
 
-```bash
-git push origin feature/機能名
-gh pr create --base main
+- **backend/*.js** → `build-output/*.gs` にコピー（`import`/`export` 文は自動削除）
+- **frontend/*.js** → `<script>` タグで包まれ HTML に統合
+- **shared/00_Constants.js** → backend・frontend 両方に注入
+- **templates/*.html** → そのままコピー
+
+### import 制約
+
+`src/` 内では ESM の `import`/`export` を記述できるが、ビルド時に自動削除される。
+以下は**禁止**（ビルドツールが正しく処理できない）:
+
+- デフォルトインポート (`import foo from '...'`)
+- 別名 (`import { foo as bar }`)
+- ワイルドカード (`import * as foo`)
+- 動的インポート (`import()`)
+
+許可される形式:
+
+```javascript
+import { ReservationCore } from '../types/core/reservation.d.ts';
+export { someFunction };
+export const SOME_VALUE = ...;
 ```
 
-**マージはユーザーが行う**（AIはマージしない）
+## 型システム
 
----
+JSDoc + TypeScript `checkJs` によるハイブリッド型チェック。
 
-## 言語
+### 型定義の書き方
 
-- ユーザーへの応答は**日本語**で行うこと
-- コードコメントも日本語で書くこと
-- **Implementation Plan、Task、Walkthroughなどのアーティファクトも全て日本語で記述すること**
+```javascript
+/**
+ * @param {ReservationCore} reservation - 予約データ
+ * @param {string} newStatus - 新しいステータス
+ * @returns {boolean}
+ */
+function updateStatus(reservation, newStatus) { ... }
+```
 
----
+### Core型（ドメインモデル）
 
-## UI開発
+| 型名 | 用途 | 定義 |
+| --- | --- | --- |
+| `ReservationCore` | 予約 | `types/core/reservation.d.ts` |
+| `UserCore` | ユーザー | `types/core/user.d.ts` |
+| `LessonCore` | レッスン（日程） | `types/core/lesson.d.ts` |
+| `AccountingDetailsCore` | 会計 | `types/core/accounting.d.ts` |
 
-UI要素を追加・変更する際は、既存コンポーネントを使用すること:
+### 型に関する注意
 
-- `src/frontend/13_WebApp_Components.js` - UI部品（button, modal, card など）
-- `src/frontend/11_WebApp_Config.js` - デザイン定義（色、余白、フォント）
+- `Object` や `any` は使わない — 必ず具体的なCore型を指定
+- オプショナルフィールドは `??` や `?.` で安全にアクセスする
+- シートデータとCore型の変換は `08_Utilities.js` の `convertRaw*` 関数を使う
+- 定数を追加・変更したら `npm run types:refresh` を実行
 
-**ゼロからHTMLを作成しないこと。**
+## 定数
 
----
+`src/shared/00_Constants.js` に定義。backend/frontend の両方で使える。
 
-## import 文
+```javascript
+// 推奨: CONSTANTS 経由でアクセス
+if (status === CONSTANTS.STATUS.CONFIRMED) { ... }
 
-`src/` 内では ESM の `import` 文を記述できるが、ビルド時に自動削除される。
+// 許容: 直接参照
+if (status === STATUS.CONFIRMED) { ... }
+```
 
-**禁止事項:**
+定数を追加・変更した場合は `npm run types:refresh` で型定義を再生成すること。
 
-- デフォルトインポート
-- 別名（`import { foo as bar }`）
-- `import * as foo`
-- 動的 `import()`
+## データアクセス
 
----
+### 読み取り: 常にキャッシュ経由
 
-## プロジェクト情報
+```javascript
+// 正しい
+const reservations = getCachedData(CACHE_KEYS.ALL_RESERVATIONS);
 
-GAS製の木彫り教室予約管理システム「きぼりの よやく・きろく」。
+// 禁止: シート直接アクセス
+const sheet = SS_MANAGER.getSpreadsheet().getSheetByName('統合予約');
+```
 
-- Googleスプレッドシートをデータベースとして使用
-- 開発は `src/` で行い、ビルド後に `build-output/` へ出力
+### 書き込み: シート + インクリメンタル更新
 
-### 関連ドキュメント
+```javascript
+writeToSheet(newReservation);               // 1. シートに書き込み
+addReservationToCache(newReservation);       // 2. キャッシュに差分追加
+```
 
-| ドキュメント                                          | 内容                 |
-| ----------------------------------------------------- | -------------------- |
-| [DATA_MODEL.md](docs/DATA_MODEL.md)                   | データモデル設計     |
-| [TYPES_GUIDE.md](docs/TYPES_GUIDE.md)                 | 型定義・定数の使い方 |
-| [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) | アーキテクチャ詳細   |
+更新・削除も同様に `updateReservationInCache()` / `deleteReservationFromCache()` を使う。
+全体再構築 (`rebuild*Cache()`) はCacheManagerのみが担当。アプリケーションコードから呼ばない。
+
+## フロントエンド設計
+
+### 単方向データフロー
+
+```
+ユーザー操作 → Handlers(14_) → stateManager.dispatch() → State更新
+    → render() → Views(13_) → Components(13_) → DOM更新
+```
+
+### UI開発
+
+UI要素の追加・変更時は既存の仕組みを使うこと:
+
+| 対象 | ファイル |
+| --- | --- |
+| デザイン定義（色, 余白, フォント） | `src/frontend/11_WebApp_Config.js` |
+| UIコンポーネント（button, modal, card 等） | `src/frontend/13_WebApp_Components.js` |
+| ビュー（画面構築） | `src/frontend/13_WebApp_Views_*.js` |
+| イベント処理 | `src/frontend/14_WebApp_Handlers_*.js` |
+
+**ゼロからHTMLを組み立てない。** 既存コンポーネントを組み合わせて画面を構築する。
+
+### 状態管理
+
+`SimpleStateManager`（`12_WebApp_StateManager.js`）がアプリの唯一の状態管理責任を持つ。
+
+- 状態変更は `dispatch()` 経由
+- ビュー関数は状態を読むだけ（書き込まない）
+- ハンドラーが状態変更とバックエンド通信を調整
+
+## バックエンド設計
+
+### APIエンドポイント
+
+フロントエンドからの全リクエストは `09_Backend_Endpoints.js` を経由する。
+フロントエンドからは `google.script.run.エンドポイント名()` で呼び出す。
+
+### キャッシュシステム（07_CacheManager.js）
+
+- CacheServiceベースの多層キャッシュ
+- 90KB超のデータは自動チャンク分割（最大20チャンク = 1.8MB）
+- 6時間ごとの自動再構築トリガー
+- インクリメンタル更新によるリアルタイム反映
+- バージョン管理によるフロントエンド差分検出
+
+## 開発時のチェックリスト
+
+### コード追加・変更
+
+- [ ] `src/` 内で編集した（`build-output/` は触っていない）
+- [ ] JSDoc型アノテーションを書いた
+- [ ] 既存のコンポーネント・ユーティリティを再利用した
+- [ ] 定数はハードコードせず `CONSTANTS` を使った
+- [ ] データ読み取りは `getCachedData()` 経由にした
+
+### 完了時
+
+- [ ] `npm run dev` が成功した（format + lint + 型チェック + ビルド + push）
+- [ ] JSDocを変更した場合は `npm run types:refresh` を実行済み
+
+## 詳細ドキュメント
+
+| ドキュメント | 内容 |
+| --- | --- |
+| [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) | アーキテクチャ全体図・データフロー |
+| [DATA_MODEL.md](docs/DATA_MODEL.md) | データモデル・シート構造 |
+| [TYPES_GUIDE.md](docs/TYPES_GUIDE.md) | 型定義・定数の使い方 |
+| [DATA_ACCESS_PRINCIPLES.md](docs/DATA_ACCESS_PRINCIPLES.md) | データアクセスパターン |
+| [FRONTEND_ARCHITECTURE_GUIDE.md](docs/FRONTEND_ARCHITECTURE_GUIDE.md) | フロントエンド設計 |
+| [STATE_MANAGEMENT_GUIDE.md](docs/STATE_MANAGEMENT_GUIDE.md) | 状態管理の仕様 |
+| [JS_TO_HTML_ARCHITECTURE.md](docs/JS_TO_HTML_ARCHITECTURE.md) | ビルドシステム詳細 |
