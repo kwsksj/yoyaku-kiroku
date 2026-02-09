@@ -12,6 +12,7 @@ declare global {
     };
     readonly WEB_APP_URL: {
       readonly PRODUCTION: string;
+      readonly GALLERY: string;
     };
     readonly CLASSROOMS: {
       readonly TOKYO: string;

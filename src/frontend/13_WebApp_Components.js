@@ -1098,7 +1098,7 @@ export const Components = {
     }
 
     return `
-      <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4 mx-0">
+      <div class="sticky top-0 bg-white border-b-2 border-ui-border z-10 py-3 mb-4" style="width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw);">
         <div class="flex justify-between items-center px-4">
           <h1 class="text-lg font-bold text-brand-text flex-1">${finalTitle}</h1>
           <div class="flex items-center gap-2">
