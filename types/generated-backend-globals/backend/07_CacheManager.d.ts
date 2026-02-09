@@ -192,7 +192,7 @@ export function triggerScheduledCacheRebuild(): void;
  *   generated_at: string,
  *   timezone: string,
  *   source: { reservations_cache_version: number | null },
- *   dates: Record<string, Array<{ lesson_id: string, classroom: string, venue: string, participants: Array<{ student_id: string, display_name: string }> }>>,
+ *   dates: Record<string, Array<{ lesson_id: string, classroom: string, venue: string, participants: Array<{ student_id: string, display_name: string, session_note?: string }> }>>,
  * }}
  */
 export function buildParticipantsIndexForUploadUi(): {
@@ -208,6 +208,7 @@ export function buildParticipantsIndexForUploadUi(): {
         participants: Array<{
             student_id: string;
             display_name: string;
+            session_note?: string;
         }>;
     }>>;
 };
