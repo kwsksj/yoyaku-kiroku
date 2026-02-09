@@ -41,6 +41,32 @@ if (typeof globalThis !== 'undefined') {
   globalThis.appWindow = appWindow;
 }
 
+/**
+ * iOS Safariかどうかを判定
+ * @returns {boolean}
+ */
+const isIOSSafari = () => {
+  const ua = navigator.userAgent || '';
+  const isIOSDevice = /iPhone|iPad|iPod/i.test(ua);
+  const isSafariEngine = /Safari/i.test(ua);
+  const isNonSafariIOSBrowser = /CriOS|FxiOS|EdgiOS|OPiOS|YaBrowser/i.test(ua);
+  return isIOSDevice && isSafariEngine && !isNonSafariIOSBrowser;
+};
+
+/**
+ * 数値文字列をオフセット値として安全に変換
+ * @param {string | null} value
+ * @param {number} min
+ * @param {number} max
+ * @returns {number | null}
+ */
+const parseOffsetValue = (value, min, max) => {
+  if (!value) return null;
+  const parsed = parseInt(value, 10);
+  if (Number.isNaN(parsed)) return null;
+  return Math.min(max, Math.max(min, parsed));
+};
+
 /** @type {import('../../types/view/window').EmbedConfig} */
 const embedConfig = (appWindow.EmbedConfig = {
   // Googleサイトのヘッダー高さ検出
@@ -70,17 +96,42 @@ const embedConfig = (appWindow.EmbedConfig = {
 
       // 2. URLパラメータでの手動指定をチェック
       const urlParams = new URLSearchParams(window.location.search);
+      const isIOSBrowser = isIOSSafari();
+
+      // iPhone Safari専用のヘッダーオフセット（任意指定）
+      const manualIOSOffset = parseOffsetValue(
+        urlParams.get('iosHeaderOffset'),
+        0,
+        240,
+      );
+      if (isIOSBrowser && manualIOSOffset !== null) {
+        debugLog(`iPhone Safari用手動ヘッダーオフセット: ${manualIOSOffset}px`);
+        return manualIOSOffset;
+      }
+
       const manualOffset = urlParams.get('headerOffset');
-      if (manualOffset && !isNaN(parseInt(manualOffset))) {
-        const offset = parseInt(manualOffset);
+      if (manualOffset && !Number.isNaN(parseInt(manualOffset, 10))) {
+        const offset = parseInt(manualOffset, 10);
         debugLog(`手動指定のヘッダーオフセット: ${offset}px`);
         return offset;
       }
 
       // 3. ローカルストレージでの記憶設定をチェック
+      const savedIOSOffset = parseOffsetValue(
+        localStorage.getItem('googleSitesIOSHeaderOffset'),
+        0,
+        240,
+      );
+      if (isIOSBrowser && savedIOSOffset !== null) {
+        debugLog(
+          `記憶されたiPhone Safari用ヘッダーオフセット: ${savedIOSOffset}px`,
+        );
+        return savedIOSOffset;
+      }
+
       const savedOffset = localStorage.getItem('googleSitesHeaderOffset');
-      if (savedOffset && !isNaN(parseInt(savedOffset))) {
-        const offset = parseInt(savedOffset);
+      if (savedOffset && !Number.isNaN(parseInt(savedOffset, 10))) {
+        const offset = parseInt(savedOffset, 10);
         debugLog(`記憶されたヘッダーオフセット: ${offset}px`);
         return offset;
       }
@@ -104,6 +155,10 @@ const embedConfig = (appWindow.EmbedConfig = {
       if (isMobile) {
         defaultOffset = 50; // モバイルデフォルト
       }
+      if (isMobile && isIOSBrowser) {
+        // iPhone Safari埋め込みではヘッダー重なりが出やすいため余裕を持たせる
+        defaultOffset = 80;
+      }
 
       // 6. 推定値に基づく調整
       if (estimatedHeaderHeight > 100) {
@@ -125,6 +180,9 @@ const embedConfig = (appWindow.EmbedConfig = {
   saveOffset: (/** @type {number} */ offset) => {
     try {
       localStorage.setItem('googleSitesHeaderOffset', offset.toString());
+      if (isIOSSafari()) {
+        localStorage.setItem('googleSitesIOSHeaderOffset', offset.toString());
+      }
       debugLog(`ヘッダーオフセット保存: ${offset}px`);
     } catch (error) {
       console.warn('オフセット保存エラー:', error);
@@ -136,30 +194,71 @@ const embedConfig = (appWindow.EmbedConfig = {
     const offset = embedConfig.detectGoogleSiteOffset();
 
     if (offset > 0) {
+      const isIOSBrowser = isIOSSafari();
+      const urlParams = new URLSearchParams(window.location.search);
+      const manualIOSShift = parseOffsetValue(
+        urlParams.get('iosEmbedShift'),
+        0,
+        160,
+      );
+      const savedIOSShift = parseOffsetValue(
+        localStorage.getItem('googleSitesIOSContentShift'),
+        0,
+        160,
+      );
+      const autoIOSShift = Math.min(
+        60,
+        Math.max(20, Math.round(offset * 0.35)),
+      );
+      const embedYShift = isIOSBrowser
+        ? (manualIOSShift ?? savedIOSShift ?? autoIOSShift)
+        : 0;
+
       // オフセット値をローカルストレージに保存
       embedConfig.saveOffset(offset);
+      if (isIOSBrowser) {
+        localStorage.setItem(
+          'googleSitesIOSContentShift',
+          embedYShift.toString(),
+        );
+      }
 
       // CSS変数としてヘッダーオフセットを設定
       document.documentElement.style.setProperty(
         '--header-offset',
         `${offset}px`,
       );
+      document.documentElement.style.setProperty(
+        '--embed-y-shift',
+        `${embedYShift}px`,
+      );
 
-      // ページ全体のトップマージンを調整
+      // 埋め込み環境向けに高さ制御とY方向補正を適用
       const style = document.createElement('style');
       style.id = 'google-sites-embed-styles';
       style.textContent = `
         :root {
           --header-offset: ${offset}px;
-          --safe-vh: calc(100vh - var(--header-offset));
+          --embed-y-shift: ${embedYShift}px;
+          --safe-vh: calc(100vh - var(--header-offset) - var(--embed-y-shift));
         }
 
         body {
           margin-top: 0px !important;
           min-height: 100% !important;
-          /* Googleサイトのヘッダー分だけ高さを制限 */
+          /* Googleサイトのヘッダー + iPhone補正分を差し引く */
           max-height: var(--safe-vh) !important;
           overflow-y: auto;
+        }
+
+        /* iPhone Safariでのみ、全体を下方向にオフセット */
+        body.embedded-in-google-sites {
+          transform: translateY(var(--embed-y-shift));
+          transform-origin: top center;
+        }
+
+        body.embedded-in-google-sites #app {
+          min-height: var(--safe-vh);
         }
 
         /* メインコンテナの高さをヘッダー分縮める */
@@ -189,7 +288,7 @@ const embedConfig = (appWindow.EmbedConfig = {
         /* オフセット設定ボタン（デバッグ用） */
         .embed-offset-control {
           position: fixed;
-          top: ${offset + 10}px;
+          top: ${offset + embedYShift + 10}px;
           right: 10px;
           z-index: 9999;
           background: rgba(0,0,0,0.7);
@@ -212,7 +311,7 @@ const embedConfig = (appWindow.EmbedConfig = {
       embedConfig.addOffsetControl(offset);
 
       debugLog(
-        `Googleサイト環境を検出: ヘッダーオフセット ${offset}px を適用（コンテンツ高さ制限有効）`,
+        `Googleサイト環境を検出: ヘッダーオフセット ${offset}px / Y補正 ${embedYShift}px を適用`,
       );
     }
   },
@@ -245,17 +344,43 @@ const embedConfig = (appWindow.EmbedConfig = {
   // オフセット調整のモーダル表示
   showOffsetAdjustment: () => {
     const currentOffset = embedConfig.detectGoogleSiteOffset();
+    const isIOSBrowser = isIOSSafari();
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentIOSShift =
+      parseOffsetValue(urlParams.get('iosEmbedShift'), 0, 160) ??
+      parseOffsetValue(
+        localStorage.getItem('googleSitesIOSContentShift'),
+        0,
+        160,
+      ) ??
+      0;
     const newOffset = prompt(
       `現在のヘッダーオフセット: ${currentOffset}px\n\n` +
-        '新しいオフセット値を入力してください（0-200）:',
+        `${isIOSBrowser ? `現在のiPhone Safari Y補正: ${currentIOSShift}px\n\n` : ''}` +
+        '新しいヘッダーオフセット値を入力してください（0-240）:',
       currentOffset.toString(),
     );
 
-    if (newOffset !== null && !isNaN(parseInt(newOffset))) {
-      const offset = Math.max(0, Math.min(200, parseInt(newOffset)));
+    if (newOffset !== null && !Number.isNaN(parseInt(newOffset, 10))) {
+      const offset = Math.max(0, Math.min(240, parseInt(newOffset, 10)));
       embedConfig.saveOffset(offset);
+
+      if (isIOSBrowser) {
+        const newShift = prompt(
+          `iPhone Safari向けY補正値を入力してください（0-160）:`,
+          currentIOSShift.toString(),
+        );
+        if (newShift !== null && !Number.isNaN(parseInt(newShift, 10))) {
+          const shift = Math.max(0, Math.min(160, parseInt(newShift, 10)));
+          localStorage.setItem('googleSitesIOSContentShift', shift.toString());
+        }
+      }
+
       embedConfig.reapplyStyles();
-      alert(`ヘッダーオフセットを ${offset}px に設定しました。`);
+      alert(
+        `ヘッダーオフセットを ${offset}px に設定しました。` +
+          `${isIOSBrowser ? `\niPhone Safari Y補正: ${localStorage.getItem('googleSitesIOSContentShift') || '0'}px` : ''}`,
+      );
     }
   },
 
