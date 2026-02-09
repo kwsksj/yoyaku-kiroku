@@ -43,7 +43,11 @@
         "classroom": "東京教室",
         "venue": "浅草橋",
         "participants": [
-          { "student_id": "user_xxx", "display_name": "けい" },
+          {
+            "student_id": "user_xxx",
+            "display_name": "けい",
+            "session_note": "彫刻刀は浅めの角度で。"
+          },
           { "student_id": "user_yyy", "display_name": "大山勝子" }
         ]
       }
@@ -72,6 +76,7 @@ export type ParticipantsIndexGroup = {
 export type ParticipantsIndexParticipant = {
   student_id: string;
   display_name: string;
+  session_note?: string; // 空値は省略
 };
 ```
 
@@ -149,7 +154,7 @@ const res = await fetch('https://<worker-domain>/participants-index', {
 
 ## 個人情報の扱い
 
-- JSONは `student_id` と `display_name` のみ（それ以外は含めない想定）
+- `participants` には `student_id` / `display_name` に加えて `session_note`（空値は省略）が含まれる場合がある
 - UI側で長期永続（`localStorage` 等）しないのが安全（必要なら短期キャッシュのみ）
 
 ## 生成・更新の仕組み（参考：UI側は意識不要）

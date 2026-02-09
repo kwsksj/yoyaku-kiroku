@@ -2071,7 +2071,7 @@ const UPLOAD_UI_PARTICIPANTS_INDEX_FUTURE_DAYS = 60;
  *   generated_at: string,
  *   timezone: string,
  *   source: { reservations_cache_version: number | null },
- *   dates: Record<string, Array<{ lesson_id: string, classroom: string, venue: string, participants: Array<{ student_id: string, display_name: string }> }>>,
+ *   dates: Record<string, Array<{ lesson_id: string, classroom: string, venue: string, participants: Array<{ student_id: string, display_name: string, session_note?: string }> }>>,
  * }}
  */
 export function buildParticipantsIndexForUploadUi() {
@@ -2180,7 +2180,7 @@ export function buildParticipantsIndexForUploadUi() {
     );
   }
 
-  /** @type {Map<string, Map<string, {lesson_id: string, classroom: string, venue: string, participantsMap: Map<string, string>}>>} */
+  /** @type {Map<string, Map<string, {lesson_id: string, classroom: string, venue: string, participantsMap: Map<string, {display_name: string, session_note: string}>}>>} */
   const byDate = new Map();
 
   reservationCache.reservations.forEach(row => {
@@ -2209,6 +2209,7 @@ export function buildParticipantsIndexForUploadUi() {
     const displayName = _toTrimmedString(
       student?.displayName || student?.nickname || student?.realName,
     );
+    const sessionNote = _toTrimmedString(reservation.sessionNote);
 
     const reservationId = _toTrimmedString(reservation.reservationId);
     const rawLessonId = _toTrimmedString(reservation.lessonId);
@@ -2252,16 +2253,27 @@ export function buildParticipantsIndexForUploadUi() {
       groupsByKey.set(groupKey, group);
     }
 
-    // 同一生徒の重複を排除しつつ、display_name が空なら上書きできるようにする
-    const existingName = group.participantsMap.get(studentId) || '';
-    if (!existingName) {
-      group.participantsMap.set(studentId, displayName);
-    } else if (displayName && displayName !== existingName) {
-      // 異なる値が入った場合は長い方を優先（ニックネーム＋本名などの混在対策）
-      const preferred =
-        displayName.length >= existingName.length ? displayName : existingName;
-      group.participantsMap.set(studentId, preferred);
-    }
+    // 同一生徒の重複を排除しつつ、display_name / session_note を補完・統合する
+    const existingParticipant = group.participantsMap.get(studentId) || {
+      display_name: '',
+      session_note: '',
+    };
+
+    // 異なる値が入った場合は長い方を優先（ニックネーム＋本名などの混在対策）
+    const preferredDisplayName = _preferLongerString(
+      existingParticipant.display_name,
+      displayName,
+    );
+    // 複数ノートが混在した場合は情報量が多い方（長い方）を優先
+    const preferredSessionNote = _preferLongerString(
+      existingParticipant.session_note,
+      sessionNote,
+    );
+
+    group.participantsMap.set(studentId, {
+      display_name: preferredDisplayName,
+      session_note: preferredSessionNote,
+    });
   });
 
   // 日付順に安定化して出力
@@ -2272,9 +2284,12 @@ export function buildParticipantsIndexForUploadUi() {
 
     const groups = Array.from(groupsByKey.values()).map(group => {
       const participants = Array.from(group.participantsMap.entries()).map(
-        ([studentId, name]) => ({
+        ([studentId, participant]) => ({
           student_id: studentId,
-          display_name: name || '',
+          display_name: participant.display_name || '',
+          ...(participant.session_note && {
+            session_note: participant.session_note,
+          }),
         }),
       );
 
@@ -2441,6 +2456,29 @@ export function pushParticipantsIndexToWorker() {
 function _toTrimmedString(value) {
   if (value === null || value === undefined) return '';
   return String(value).trim();
+}
+
+/**
+ * 既存値と新規値を比較して、空値補完 + 長い文字列優先で統合します
+ *
+ * @param {any} existing
+ * @param {any} next
+ * @returns {string}
+ * @private
+ */
+function _preferLongerString(existing, next) {
+  const current = _toTrimmedString(existing);
+  const incoming = _toTrimmedString(next);
+
+  if (!current) {
+    return incoming;
+  }
+
+  if (incoming && incoming !== current) {
+    return incoming.length >= current.length ? incoming : current;
+  }
+
+  return current;
 }
 
 /**
