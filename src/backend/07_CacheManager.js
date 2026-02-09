@@ -2259,27 +2259,16 @@ export function buildParticipantsIndexForUploadUi() {
       session_note: '',
     };
 
-    let preferredDisplayName = existingParticipant.display_name || '';
-    if (!preferredDisplayName) {
-      preferredDisplayName = displayName;
-    } else if (displayName && displayName !== preferredDisplayName) {
-      // 異なる値が入った場合は長い方を優先（ニックネーム＋本名などの混在対策）
-      preferredDisplayName =
-        displayName.length >= preferredDisplayName.length
-          ? displayName
-          : preferredDisplayName;
-    }
-
-    let preferredSessionNote = existingParticipant.session_note || '';
-    if (!preferredSessionNote) {
-      preferredSessionNote = sessionNote;
-    } else if (sessionNote && sessionNote !== preferredSessionNote) {
-      // 複数ノートが混在した場合は情報量が多い方（長い方）を優先
-      preferredSessionNote =
-        sessionNote.length >= preferredSessionNote.length
-          ? sessionNote
-          : preferredSessionNote;
-    }
+    // 異なる値が入った場合は長い方を優先（ニックネーム＋本名などの混在対策）
+    const preferredDisplayName = _preferLongerString(
+      existingParticipant.display_name,
+      displayName,
+    );
+    // 複数ノートが混在した場合は情報量が多い方（長い方）を優先
+    const preferredSessionNote = _preferLongerString(
+      existingParticipant.session_note,
+      sessionNote,
+    );
 
     group.participantsMap.set(studentId, {
       display_name: preferredDisplayName,
@@ -2295,19 +2284,13 @@ export function buildParticipantsIndexForUploadUi() {
 
     const groups = Array.from(groupsByKey.values()).map(group => {
       const participants = Array.from(group.participantsMap.entries()).map(
-        ([studentId, participant]) => {
-          const baseParticipant = {
-            student_id: studentId,
-            display_name: participant.display_name || '',
-          };
-
-          return participant.session_note
-            ? {
-                ...baseParticipant,
-                session_note: participant.session_note,
-              }
-            : baseParticipant;
-        },
+        ([studentId, participant]) => ({
+          student_id: studentId,
+          display_name: participant.display_name || '',
+          ...(participant.session_note && {
+            session_note: participant.session_note,
+          }),
+        }),
       );
 
       participants.sort((a, b) => {
@@ -2473,6 +2456,29 @@ export function pushParticipantsIndexToWorker() {
 function _toTrimmedString(value) {
   if (value === null || value === undefined) return '';
   return String(value).trim();
+}
+
+/**
+ * 既存値と新規値を比較して、空値補完 + 長い文字列優先で統合します
+ *
+ * @param {any} existing
+ * @param {any} next
+ * @returns {string}
+ * @private
+ */
+function _preferLongerString(existing, next) {
+  const current = _toTrimmedString(existing);
+  const incoming = _toTrimmedString(next);
+
+  if (!current) {
+    return incoming;
+  }
+
+  if (incoming && incoming !== current) {
+    return incoming.length >= current.length ? incoming : current;
+  }
+
+  return current;
 }
 
 /**
