@@ -6,6 +6,7 @@ export namespace CONSTANTS {
     }
     namespace WEB_APP_URL {
         let PRODUCTION: string;
+        let GALLERY: string;
     }
     namespace CLASSROOMS {
         let TOKYO: string;

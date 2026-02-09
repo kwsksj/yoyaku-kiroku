@@ -282,14 +282,14 @@ export const getDashboardView = () => {
       })
     : '';
 
-  // 写真ギャラリーリンク
+  // 作品集リンク
   const photoButton = Components.button({
     text: 'さくひん<br>ギャラリー',
     action: 'openPhotoGallery',
     style: 'secondary',
     customClass:
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
-    caption: 'Googleフォトのアルバムページが開きます',
+    caption: '作品集ページが開きます',
   });
 
   // 会計履歴ボタン

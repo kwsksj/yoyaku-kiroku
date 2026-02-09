@@ -55,6 +55,7 @@ export const CONSTANTS = {
   // WebアプリケーションURL
   WEB_APP_URL: {
     PRODUCTION: 'https://www.kibori-class.net/booking',
+    GALLERY: 'https://pub-c80f2f91aa634266b2e7178229073f65.r2.dev/gallery.html',
   },
 
   /**

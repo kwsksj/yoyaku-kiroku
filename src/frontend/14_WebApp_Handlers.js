@@ -759,13 +759,42 @@ window.onload = function () {
       }
     },
 
-    /** 写真ギャラリーを新しいタブで開く */
+    /** 作品集ページを新しいタブで開く */
     openPhotoGallery: () => {
-      window.open(
-        'https://photos.google.com/share/AF1QipNpD9FJ9rd-_c-GuL4n09UjADAOGlIcUV8c3fVWnUBqISR2jYSI_4FvZ53RJnX7GA?key=TVFISm56Uy1qSzF2bGNPWWticTdrd3hHdGZTX3NR',
-        '_blank',
-        'noopener,noreferrer',
-      );
+      const state = handlersStateManager.getState();
+      /** @type {UserCore | null} */
+      const currentUser = state.currentUser || null;
+      const galleryBaseUrl = /** @type {any} */ (
+        CONSTANTS.WEB_APP_URL.GALLERY || ''
+      ).trim();
+
+      if (!galleryBaseUrl) {
+        showInfo('作品集URLが未設定です。', 'エラー');
+        return;
+      }
+
+      const studentId = `${currentUser?.studentId || ''}`.trim();
+      const nickname = `${currentUser?.nickname || ''}`.trim();
+      const displayName =
+        `${currentUser?.displayName || currentUser?.realName || ''}`.trim();
+
+      /** @type {string} */
+      let targetUrl = galleryBaseUrl;
+      try {
+        const url = new URL(galleryBaseUrl);
+        url.searchParams.set('logged_in', '1');
+        if (studentId) url.searchParams.set('student_id', studentId);
+        if (nickname) url.searchParams.set('nickname', nickname);
+        if (displayName) url.searchParams.set('display_name', displayName);
+        targetUrl = url.toString();
+      } catch (error) {
+        console.warn(
+          '作品集URLの組み立てに失敗したため、ベースURLで開きます。',
+          error,
+        );
+      }
+
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
     },
 
     // =================================================================

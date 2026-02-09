@@ -758,6 +758,11 @@ export const addCustomStyles = () => {
 
       /* ========== Layout Components ========== */
       #loading { z-index: 100; }
+      .full-bleed {
+        width: 100vw;
+        margin-left: calc(50% - 50vw);
+        margin-right: calc(50% - 50vw);
+      }
       .modal-overlay {
         position: fixed; inset: 0; background-color: var(--modal-overlay);
         display: flex; align-items: center; justify-content: center;
