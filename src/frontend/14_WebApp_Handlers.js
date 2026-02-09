@@ -764,8 +764,8 @@ window.onload = function () {
       const state = handlersStateManager.getState();
       /** @type {UserCore | null} */
       const currentUser = state.currentUser || null;
-      const galleryBaseUrl = String(
-        /** @type {any} */ (CONSTANTS.WEB_APP_URL).GALLERY || '',
+      const galleryBaseUrl = /** @type {any} */ (
+        (CONSTANTS.WEB_APP_URL).GALLERY || ''
       ).trim();
 
       if (!galleryBaseUrl) {
@@ -773,16 +773,15 @@ window.onload = function () {
         return;
       }
 
-      const studentId = String(currentUser?.studentId || '').trim();
-      const nickname = String(currentUser?.nickname || '').trim();
-      const displayName = String(
-        currentUser?.displayName || currentUser?.realName || '',
-      ).trim();
+      const studentId = `${currentUser?.studentId || ''}`.trim();
+      const nickname = `${currentUser?.nickname || ''}`.trim();
+      const displayName =
+        `${currentUser?.displayName || currentUser?.realName || ''}`.trim();
 
       /** @type {string} */
       let targetUrl = galleryBaseUrl;
       try {
-        const url = new URL(galleryBaseUrl, window.location.href);
+        const url = new URL(galleryBaseUrl);
         url.searchParams.set('logged_in', '1');
         if (studentId) url.searchParams.set('student_id', studentId);
         if (nickname) url.searchParams.set('nickname', nickname);
