@@ -765,7 +765,7 @@ window.onload = function () {
       /** @type {UserCore | null} */
       const currentUser = state.currentUser || null;
       const galleryBaseUrl = /** @type {any} */ (
-        (CONSTANTS.WEB_APP_URL).GALLERY || ''
+        CONSTANTS.WEB_APP_URL.GALLERY || ''
       ).trim();
 
       if (!galleryBaseUrl) {
