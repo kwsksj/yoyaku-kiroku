@@ -266,7 +266,7 @@ export const getDashboardView = () => {
   const newBookingButton = Components.button({
     text: 'よやく<br>する',
     action: 'goToBookingView',
-    style: 'secondary',
+    style: 'primary',
     customClass:
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
@@ -276,7 +276,7 @@ export const getDashboardView = () => {
     ? Components.button({
         text: 'きょう の まとめ<br>（かいけい）',
         action: 'goToSessionConclusion',
-        style: 'accounting',
+        style: 'primary',
         customClass:
           'w-full h-[3.5rem] flex items-center justify-center leading-snug px-0 col-span-2',
       })
@@ -289,16 +289,33 @@ export const getDashboardView = () => {
     style: 'secondary',
     customClass:
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
-    caption: '作品集ページが開きます',
   });
+
+  // メニュー内の補助ボタン（控えめ表示・枠線なし）
+  const subtleMenuButtonClass = `w-full h-[2.75rem] flex items-center justify-center leading-tight text-xs font-normal !px-1 bg-brand-light text-brand-subtle active:bg-ui-input shadow-none ${DesignConfig.borderRadius.button}`;
 
   // 会計履歴ボタン
   const accountingHistoryButton = Components.button({
     text: 'かいけい<br>履歴',
     action: 'showAccountingHistory',
-    style: 'secondary',
-    customClass:
-      'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
+    style: 'none',
+    customClass: subtleMenuButtonClass,
+  });
+
+  // プロフィール編集ボタン
+  const profileEditButton = Components.button({
+    text: 'プロフィール<br>編集',
+    action: 'showEditProfile',
+    style: 'none',
+    customClass: subtleMenuButtonClass,
+  });
+
+  // ログアウトボタン（メニュー内の控えめ表示）
+  const logoutButton = Components.button({
+    text: 'ログアウト',
+    action: 'logout',
+    style: 'none',
+    customClass: subtleMenuButtonClass,
   });
 
   // 先生へ連絡ボタン
@@ -310,25 +327,36 @@ export const getDashboardView = () => {
       'w-full h-[3.5rem] flex items-center justify-center leading-snug !px-0',
   });
 
-  // メニューアイテムを構築（すべてをフラットな配列にしてグリッド配置）
-  // 順序: まとめ、一覧、よやく、会計履歴、ギャラリー、連絡
-  const allMenuButtons = [
+  // メニューアイテムを構築（通常ボタンと控えめボタンを分離）
+  const mainMenuButtons = [
     summaryMenuButton,
     menuButton,
     newBookingButton,
     photoButton,
     messageToTeacherButton,
-    accountingHistoryButton,
   ]
     .filter(Boolean)
     .join('');
 
-  const menuSectionHtml = Components.dashboardSection({
-    title: 'メニュー',
-    items: [
-      `<div class="w-full max-w-md mx-auto"><div class="grid grid-cols-2 gap-3 items-start">${allMenuButtons}</div></div>`,
-    ],
-  });
+  // 目立たない補助ボタンは3列で表示
+  const subtleMenuButtons = [
+    accountingHistoryButton,
+    profileEditButton,
+    logoutButton,
+  ]
+    .filter(Boolean)
+    .join('');
+
+  const menuSectionHtml = `
+    <div class="mb-2 w-full">
+      <div class="bg-ui-surface border-2 border-ui-border p-3 ${DesignConfig.borderRadius.container} shadow-sm space-y-3">
+        <div class="w-full max-w-md mx-auto">
+          <div class="grid grid-cols-2 gap-3 items-start">${mainMenuButtons}</div>
+          <div class="grid grid-cols-3 gap-2 items-start mt-2">${subtleMenuButtons}</div>
+        </div>
+      </div>
+    </div>
+  `;
 
   // けいかく・もくひょうセクション（生徒名簿から取得、編集可能）
   const nextLessonGoal = currentUser?.['nextLessonGoal'] || '';
@@ -384,12 +412,8 @@ export const getDashboardView = () => {
 
   // --- 4. Render Whole Dashboard ---
   const headerHtml = `
-        <div class="flex flex-col sm:flex-row justify-between sm:items-center mt-4 mb-2">
-            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text} mr-6 mb-1 sm:mb-0">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
-            <div class="flex items-center gap-1 self-end sm:self-auto">
-                <button data-action="showEditProfile" class="bg-brand-light text-xs text-action-secondary-text px-0.5 py-0.5 ${DesignConfig.borderRadius.button} active:bg-action-secondary-hover">プロフィール</button>
-                <button data-action="logout" class="bg-brand-light text-xs text-action-secondary-text px-0.5 py-0.5 ${DesignConfig.borderRadius.button} active:bg-action-secondary-hover">ログアウト</button>
-            </div>
+        <div class="mt-4 mb-2">
+            <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text}">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
         </div>
         <!-- セクション順序: メニュー→けいかく→よやく→きろく -->
         ${menuSectionHtml}
