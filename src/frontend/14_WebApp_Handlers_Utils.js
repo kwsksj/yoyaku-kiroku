@@ -20,6 +20,50 @@ import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
 
 const handlerUtilsStateManager = appWindow.stateManager;
 
+/**
+ * 画面全体のスクロール位置を先頭にリセットします。
+ * 埋め込み環境などでスクロール主体が異なる場合を考慮し、主要スクロール要素を同時にリセットします。
+ */
+export function resetAppScrollToTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  document.documentElement.scrollTop = 0;
+  if (document.body) {
+    document.body.scrollTop = 0;
+  }
+
+  const mainContent = document.getElementById('main-content');
+  if (mainContent) {
+    mainContent.scrollTop = 0;
+  }
+
+  const viewContainer = document.getElementById('view-container');
+  if (viewContainer) {
+    viewContainer.scrollTop = 0;
+  }
+}
+
+// Config層からも再利用できるようにグローバルへ公開
+appWindow.resetAppScrollToTop = resetAppScrollToTop;
+
+/**
+ * ビューが変更されていない場合のみ、スクロール位置を復元します。
+ * @param {number} scrollY
+ * @param {ViewType} expectedView
+ * @param {SimpleStateManager} stateManager
+ */
+export function restoreScrollPositionIfViewUnchanged(
+  scrollY,
+  expectedView,
+  stateManager,
+) {
+  requestAnimationFrame(() => {
+    if (stateManager.getState().view !== expectedView) {
+      return;
+    }
+    window.scrollTo(0, scrollY);
+  });
+}
+
 // =================================================================
 // --- DOM Type Safety Helper Functions ---
 // -----------------------------------------------------------------

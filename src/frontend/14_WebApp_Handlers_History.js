@@ -23,6 +23,7 @@ import { updateSingleHistoryCard } from './13_WebApp_Views_Dashboard.js';
 // ユーティリティ系モジュール
 // ================================================================
 import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
+import { restoreScrollPositionIfViewUnchanged } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
 // --- History Management Action Handlers ---
@@ -37,6 +38,7 @@ export const historyActionHandlers = {
   /** きろくカードの確認/編集ボタン
    * @param {ActionHandlerData} d */
   expandHistoryCard: d => {
+    const expectedView = historyStateManager.getState().view;
     // スクロール位置を保存
     const scrollY = window.scrollY;
 
@@ -80,14 +82,17 @@ export const historyActionHandlers = {
     }
 
     // スクロール位置を復元
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollY);
-    });
+    restoreScrollPositionIfViewUnchanged(
+      scrollY,
+      expectedView,
+      historyStateManager,
+    );
   },
 
   /** 編集モードを編集せずに閉じる
    * @param {ActionHandlerData} d */
   closeEditMode: d => {
+    const expectedView = historyStateManager.getState().view;
     // スクロール位置を保存
     const scrollY = window.scrollY;
 
@@ -104,9 +109,11 @@ export const historyActionHandlers = {
     }
 
     // スクロール位置を復元
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollY);
-    });
+    restoreScrollPositionIfViewUnchanged(
+      scrollY,
+      expectedView,
+      historyStateManager,
+    );
   },
 
   /** インライン編集のメモを保存

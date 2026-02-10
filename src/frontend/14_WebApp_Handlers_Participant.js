@@ -13,6 +13,7 @@
 
 import { Components } from './13_WebApp_Components.js';
 import { render } from './14_WebApp_Handlers.js';
+import { restoreScrollPositionIfViewUnchanged } from './14_WebApp_Handlers_Utils.js';
 
 /** @type {SimpleStateManager} */
 const participantHandlersStateManager = appWindow.stateManager;
@@ -50,10 +51,13 @@ function setPastLessonsPaginationState(nextState) {
  * @param {number} scrollY
  */
 function renderWithScrollRestore(scrollY) {
+  const previousView = participantHandlersStateManager.getState().view;
   render();
-  requestAnimationFrame(() => {
-    window.scrollTo(0, scrollY);
-  });
+  restoreScrollPositionIfViewUnchanged(
+    scrollY,
+    previousView,
+    participantHandlersStateManager,
+  );
 }
 
 /**
@@ -1031,6 +1035,10 @@ function togglePastLessons(showPast) {
 function loadMorePastParticipantLessons() {
   const preservedScrollY = window.scrollY;
   const state = participantHandlersStateManager.getState();
+  const shouldApplyLoadResult = () => {
+    const latestState = participantHandlersStateManager.getState();
+    return latestState.view === 'participants' && latestState.showPastLessons;
+  };
   if (!state.showPastLessons) return;
   if (isLoadingMorePastLessons) return;
 
@@ -1062,6 +1070,13 @@ function loadMorePastParticipantLessons() {
       response => {
         hideLoading();
         setPastLessonsPaginationState({ isLoading: false });
+
+        if (!shouldApplyLoadResult()) {
+          debugLog(
+            'ℹ️ 過去レッスン追加結果を破棄: 表示状態が切り替わっていたため',
+          );
+          return;
+        }
 
         if (!response.success) {
           showInfo(
@@ -1145,6 +1160,9 @@ function loadMorePastParticipantLessons() {
       error => {
         hideLoading();
         setPastLessonsPaginationState({ isLoading: false });
+        if (!shouldApplyLoadResult()) {
+          return;
+        }
         console.error('❌ 過去レッスン追加取得失敗:', error);
         showInfo('通信エラーが発生しました', 'エラー');
         renderWithScrollRestore(preservedScrollY);

@@ -79,6 +79,7 @@ import {
   handlePhoneInputFormatting,
   isCurrentUserAdmin,
   isDateToday,
+  resetAppScrollToTop,
   refreshParticipantsViewForAdmin,
 } from './14_WebApp_Handlers_Utils.js';
 
@@ -348,7 +349,7 @@ export function render() {
     }
   }
 
-  window.scrollTo(0, 0);
+  resetAppScrollToTop();
 }
 
 windowTyped.render = render;

@@ -150,6 +150,7 @@ declare global {
       hasMorePastLessons: boolean;
       isLoadingMorePastLessons: boolean;
     };
+    resetAppScrollToTop?: () => void;
 
     // --- ページ遷移 ---
     pageTransitionManager?: PageTransitionManager;
