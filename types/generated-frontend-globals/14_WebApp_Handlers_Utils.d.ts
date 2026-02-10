@@ -1,4 +1,16 @@
 /**
+ * 画面全体のスクロール位置を先頭にリセットします。
+ * 埋め込み環境などでスクロール主体が異なる場合を考慮し、主要スクロール要素を同時にリセットします。
+ */
+export function resetAppScrollToTop(): void;
+/**
+ * ビューが変更されていない場合のみ、スクロール位置を復元します。
+ * @param {number} scrollY
+ * @param {ViewType} expectedView
+ * @param {SimpleStateManager} stateManager
+ */
+export function restoreScrollPositionIfViewUnchanged(scrollY: number, expectedView: ViewType, stateManager: SimpleStateManager): void;
+/**
  * 型安全なHTMLElement取得ヘルパー
  * @param {string} id - 要素のID
  * @returns {HTMLElement | null}

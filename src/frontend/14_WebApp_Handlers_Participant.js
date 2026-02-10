@@ -13,6 +13,7 @@
 
 import { Components } from './13_WebApp_Components.js';
 import { render } from './14_WebApp_Handlers.js';
+import { restoreScrollPositionIfViewUnchanged } from './14_WebApp_Handlers_Utils.js';
 
 /** @type {SimpleStateManager} */
 const participantHandlersStateManager = appWindow.stateManager;
@@ -52,13 +53,11 @@ function setPastLessonsPaginationState(nextState) {
 function renderWithScrollRestore(scrollY) {
   const previousView = participantHandlersStateManager.getState().view;
   render();
-  requestAnimationFrame(() => {
-    // 別ビューへ遷移済みの場合は旧スクロール位置を復元しない
-    if (participantHandlersStateManager.getState().view !== previousView) {
-      return;
-    }
-    window.scrollTo(0, scrollY);
-  });
+  restoreScrollPositionIfViewUnchanged(
+    scrollY,
+    previousView,
+    participantHandlersStateManager,
+  );
 }
 
 /**

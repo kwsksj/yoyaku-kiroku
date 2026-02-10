@@ -23,6 +23,7 @@ import { updateSingleHistoryCard } from './13_WebApp_Views_Dashboard.js';
 // ユーティリティ系モジュール
 // ================================================================
 import { handleServerError } from './12_WebApp_Core_ErrorHandler.js';
+import { restoreScrollPositionIfViewUnchanged } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
 // --- History Management Action Handlers ---
@@ -81,12 +82,11 @@ export const historyActionHandlers = {
     }
 
     // スクロール位置を復元
-    requestAnimationFrame(() => {
-      if (historyStateManager.getState().view !== expectedView) {
-        return;
-      }
-      window.scrollTo(0, scrollY);
-    });
+    restoreScrollPositionIfViewUnchanged(
+      scrollY,
+      expectedView,
+      historyStateManager,
+    );
   },
 
   /** 編集モードを編集せずに閉じる
@@ -109,12 +109,11 @@ export const historyActionHandlers = {
     }
 
     // スクロール位置を復元
-    requestAnimationFrame(() => {
-      if (historyStateManager.getState().view !== expectedView) {
-        return;
-      }
-      window.scrollTo(0, scrollY);
-    });
+    restoreScrollPositionIfViewUnchanged(
+      scrollY,
+      expectedView,
+      historyStateManager,
+    );
   },
 
   /** インライン編集のメモを保存

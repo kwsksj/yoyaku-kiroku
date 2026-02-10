@@ -1286,21 +1286,7 @@ export const setupPageTransitionManagement =
 
       // ページ遷移時のスクロール位置リセット（問題#16対応）
       const resetScrollPosition = () => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        document.documentElement.scrollTop = 0;
-        if (document.body) {
-          document.body.scrollTop = 0;
-        }
-
-        const mainContent = document.getElementById('main-content');
-        if (mainContent) {
-          mainContent.scrollTop = 0;
-        }
-
-        const viewContainer = document.getElementById('view-container');
-        if (viewContainer) {
-          viewContainer.scrollTop = 0;
-        }
+        appWindow.resetAppScrollToTop?.();
       };
 
       // スクロール位置を保存
