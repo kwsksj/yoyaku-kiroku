@@ -2206,9 +2206,9 @@ export function buildParticipantsIndexForUploadUi() {
     if (!studentId) return;
 
     const student = studentsMap[studentId] || reservation.user || null;
-    const displayName = _toTrimmedString(
-      student?.displayName || student?.nickname || student?.realName,
-    );
+    const nickname = _toTrimmedString(student?.nickname);
+    const displayName =
+      nickname || _toTrimmedString(student?.displayName || student?.realName);
     const sessionNote = _toTrimmedString(reservation.sessionNote);
 
     const reservationId = _toTrimmedString(reservation.reservationId);
@@ -2259,11 +2259,10 @@ export function buildParticipantsIndexForUploadUi() {
       session_note: '',
     };
 
-    // 異なる値が入った場合は長い方を優先（ニックネーム＋本名などの混在対策）
-    const preferredDisplayName = _preferLongerString(
-      existingParticipant.display_name,
-      displayName,
-    );
+    // display_name は最初に取得できた値を維持し、空値のみ補完する
+    // （ニックネームが本名や別表記で上書きされることを防ぐ）
+    const preferredDisplayName =
+      existingParticipant.display_name || displayName;
     // 複数ノートが混在した場合は情報量が多い方（長い方）を優先
     const preferredSessionNote = _preferLongerString(
       existingParticipant.session_note,
