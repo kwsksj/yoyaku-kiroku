@@ -37,6 +37,7 @@ export const historyActionHandlers = {
   /** きろくカードの確認/編集ボタン
    * @param {ActionHandlerData} d */
   expandHistoryCard: d => {
+    const expectedView = historyStateManager.getState().view;
     // スクロール位置を保存
     const scrollY = window.scrollY;
 
@@ -81,6 +82,9 @@ export const historyActionHandlers = {
 
     // スクロール位置を復元
     requestAnimationFrame(() => {
+      if (historyStateManager.getState().view !== expectedView) {
+        return;
+      }
       window.scrollTo(0, scrollY);
     });
   },
@@ -88,6 +92,7 @@ export const historyActionHandlers = {
   /** 編集モードを編集せずに閉じる
    * @param {ActionHandlerData} d */
   closeEditMode: d => {
+    const expectedView = historyStateManager.getState().view;
     // スクロール位置を保存
     const scrollY = window.scrollY;
 
@@ -105,6 +110,9 @@ export const historyActionHandlers = {
 
     // スクロール位置を復元
     requestAnimationFrame(() => {
+      if (historyStateManager.getState().view !== expectedView) {
+        return;
+      }
       window.scrollTo(0, scrollY);
     });
   },

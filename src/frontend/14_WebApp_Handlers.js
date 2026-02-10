@@ -129,6 +129,28 @@ export const windowTyped = /** @type {any} */ (window);
 const handlersStateManager = windowTyped.stateManager;
 
 /**
+ * 画面遷移時のスクロール位置を先頭に強制リセットします。
+ * 埋め込み環境などでスクロール主体が異なる場合も考慮して主要要素を同時にリセットします。
+ */
+function resetAppScrollToTop() {
+  window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  document.documentElement.scrollTop = 0;
+  if (document.body) {
+    document.body.scrollTop = 0;
+  }
+
+  const mainContent = document.getElementById('main-content');
+  if (mainContent) {
+    mainContent.scrollTop = 0;
+  }
+
+  const viewContainer = document.getElementById('view-container');
+  if (viewContainer) {
+    viewContainer.scrollTop = 0;
+  }
+}
+
+/**
  * 現在のアプリケーションの状態に基づいて、適切なビューを描画する
  * データ更新の必要性を判定し、必要に応じて最新データ取得後に再描画
  * handlersStateManager.getState().viewの値に応じて対応するビュー関数を呼び出してUIを更新
@@ -348,7 +370,7 @@ export function render() {
     }
   }
 
-  window.scrollTo(0, 0);
+  resetAppScrollToTop();
 }
 
 windowTyped.render = render;
