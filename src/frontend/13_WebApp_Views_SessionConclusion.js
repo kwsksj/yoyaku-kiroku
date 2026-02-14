@@ -281,7 +281,7 @@ export function renderStep3Reservation(state) {
   // note: 表示ロジックはslotContentHtml内のrenderSlotCardで統一管理
   const slotLesson = selectedLesson || existingReservation || recommendedLesson;
 
-  // 時間の初期値（slotLessonまたはexistingReservationから取得）
+  // 時間の初期値（時間制の時間選択UI用）
   const startTime =
     state.nextStartTime ||
     /** @type {any} */ (slotLesson)?.firstStart ||
@@ -677,6 +677,27 @@ export function renderStep3Reservation(state) {
     const targetIsTimeBased = isTimeBasedClassroom(
       /** @type {any} */ (targetLesson),
     );
+    const targetLessonAny = /** @type {any} */ (targetLesson);
+    const scheduleLessons =
+      window.appWindow?.stateManager?.getState()?.lessons || [];
+    const targetScheduleLesson = targetLessonAny.lessonId
+      ? scheduleLessons.find(
+          (/** @type {LessonCore} */ l) =>
+            l.lessonId === targetLessonAny.lessonId,
+        )
+      : null;
+    const nonTimeBasedStartTime =
+      targetScheduleLesson?.firstStart ||
+      targetScheduleLesson?.startTime ||
+      targetLessonAny.firstStart ||
+      targetLessonAny.startTime ||
+      '';
+    const nonTimeBasedEndTime =
+      targetScheduleLesson?.firstEnd ||
+      targetScheduleLesson?.endTime ||
+      targetLessonAny.firstEnd ||
+      targetLessonAny.endTime ||
+      '';
     const idPrefix =
       existingReservation && !selectedLesson
         ? 'existing-reservation'
@@ -684,8 +705,10 @@ export function renderStep3Reservation(state) {
 
     return renderSlotCard(targetLesson, displayStatus, {
       isTimeBased: targetIsTimeBased,
-      startTime: startTime,
-      endTime: endTime,
+      // 回数制では日程シート由来の時刻を優先するため、
+      // time override は時間制のときだけ適用する
+      startTime: targetIsTimeBased ? startTime : nonTimeBasedStartTime,
+      endTime: targetIsTimeBased ? endTime : nonTimeBasedEndTime,
       idPrefix: idPrefix,
     });
   })();

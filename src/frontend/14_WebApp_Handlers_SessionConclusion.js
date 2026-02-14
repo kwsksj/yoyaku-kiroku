@@ -25,6 +25,7 @@ import {
   updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
+import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
 import {
   getSessionConclusionView,
   STEPS,
@@ -198,19 +199,32 @@ export function startSessionConclusion(reservationId) {
   const futureReservation =
     futureReservations.length > 0 ? futureReservations[0] : null;
 
-  // 時間制クラスの場合、初期時間を「今日のよやく時間」に合わせる
+  // 初期時間
+  // 時間制: 可能なら「今日のよやく時間」を引き継ぐ
+  // 回数制など: 日程シート（recommendedNextLesson）の値を使う
   let initialStartTime = '';
   let initialEndTime = '';
 
   if (recommendedNextLesson && currentReservation) {
-    // 今日のよやく時間があればそれを使う
-    if (currentReservation.startTime && currentReservation.endTime) {
-      initialStartTime = currentReservation.startTime;
-      initialEndTime = currentReservation.endTime;
+    const lessonStartTime =
+      recommendedNextLesson.firstStart || recommendedNextLesson.startTime || '';
+    const lessonEndTime =
+      recommendedNextLesson.firstEnd || recommendedNextLesson.endTime || '';
+
+    if (isTimeBasedClassroom(recommendedNextLesson)) {
+      // 今日のよやく時間があればそれを使う（時間制のみ）
+      if (currentReservation.startTime && currentReservation.endTime) {
+        initialStartTime = currentReservation.startTime;
+        initialEndTime = currentReservation.endTime;
+      } else {
+        // なければ日程シートの時刻を使う
+        initialStartTime = lessonStartTime;
+        initialEndTime = lessonEndTime;
+      }
     } else {
-      // なければレッスンの開始時間を使う（保険）
-      initialStartTime = recommendedNextLesson.firstStart || '';
-      initialEndTime = recommendedNextLesson.firstEnd || '';
+      // 回数制などは常に日程シートの時刻を使う
+      initialStartTime = lessonStartTime;
+      initialEndTime = lessonEndTime;
     }
   }
 
@@ -561,6 +575,18 @@ async function finalizeConclusion() {
       !wizardState.reservationSkipped && isNewLessonSelected;
 
     if (shouldCreateReservation && selectedLesson) {
+      const selectedLessonIsTimeBased = isTimeBasedClassroom(selectedLesson);
+      const lessonStartTime =
+        selectedLesson.firstStart || selectedLesson.startTime || '';
+      const lessonEndTime =
+        selectedLesson.firstEnd || selectedLesson.endTime || '';
+      const resolvedStartTime = selectedLessonIsTimeBased
+        ? wizardState.nextStartTime || lessonStartTime
+        : lessonStartTime || wizardState.nextStartTime || '';
+      const resolvedEndTime = selectedLessonIsTimeBased
+        ? wizardState.nextEndTime || lessonEndTime
+        : lessonEndTime || wizardState.nextEndTime || '';
+
       // 材料/注文品の希望をorder形式にまとめる
       const orderParts = [];
       if (wizardState.orderInput) {
@@ -576,8 +602,8 @@ async function finalizeConclusion() {
         classroom: selectedLesson.classroom,
         date: selectedLesson.date,
         venue: selectedLesson.venue,
-        startTime: wizardState.nextStartTime || selectedLesson.firstStart,
-        endTime: wizardState.nextEndTime || selectedLesson.firstEnd,
+        startTime: resolvedStartTime,
+        endTime: resolvedEndTime,
         user: targetUser,
         studentId: targetStudentId,
         sessionNote: wizardState.sessionNoteNext,
