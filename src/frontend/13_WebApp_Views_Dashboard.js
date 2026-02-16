@@ -412,7 +412,7 @@ export const getDashboardView = () => {
 
   // --- 4. Render Whole Dashboard ---
   const headerHtml = `
-        <div class="mt-4 mb-2">
+        <div class="mt-16 mb-2">
             <h1 class="text-base sm:text-xl font-bold ${DesignConfig.colors.text}">ようこそ <span class="text-xl whitespace-nowrap">${nickname} <span class="text-base">さん</span></span></h1>
         </div>
         <!-- セクション順序: メニュー→けいかく→よやく→きろく -->
