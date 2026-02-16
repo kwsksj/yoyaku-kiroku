@@ -3057,7 +3057,7 @@ function _buildNumazuLegacyCsvImportRequest(config = {}, dryRun = true) {
 
 /**
  * 旧つくばCSV（整形済み）を dry run で解析する
- * @param {Object} [config={}]
+ * @param {Record<string, unknown>} [config={}]
  * @returns {Record<string, unknown>}
  */
 export function dryRunTsukubaLegacyCsvImport(config = {}) {
@@ -3785,13 +3785,13 @@ export function reconcileLegacyImportedReservationsByApplication(config = {}) {
 
 /**
  * 取り込み済み旧CSV予約の生徒ID再照合を dry run で確認します。
- * @param {Object} [config={}]
- * @returns {Object}
+ * @param {Record<string, unknown>} [config={}]
+ * @returns {Record<string, unknown>}
  */
 export function dryRunReconcileLegacyImportedReservationsByApplication(
   config = {},
 ) {
-  const result = /** @type {Record<string, any>} */ (
+  const result = /** @type {Record<string, unknown>} */ (
     reconcileLegacyImportedReservationsByApplication({
       ...config,
       dryRun: true,
@@ -3872,7 +3872,7 @@ export function runReconcileLegacyImportedReservationsByApplication(
  * @param {number} [config.sourceDataStartRow=2]
  * @param {boolean} [config.onlyFillEmpty=true]
  * @param {boolean} [config.createUnmatched=true]
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
 export function syncLegacyApplicationProfilesToRoster(config = {}) {
   /** @type {Record<string, any>} */
@@ -3887,10 +3887,7 @@ export function syncLegacyApplicationProfilesToRoster(config = {}) {
   );
 
   const { warnings, errorMessages, pushWarning, pushError, finalize } =
-    _createMessageCollector(
-      '[syncLegacyApplicationProfilesToRoster]',
-      300,
-    );
+    _createMessageCollector('[syncLegacyApplicationProfilesToRoster]', 300);
 
   try {
     const sourceSpreadsheetId = String(
@@ -4565,9 +4562,7 @@ export function dedupeReservationsByStudentLessonDateStatus(config = {}) {
       : TSUKUBA_RESERVATION_DEDUPE_2023_PRESET.keyFields;
 
   const { warnings, errorMessages, pushError, finalize } =
-    _createMessageCollector(
-      '[dedupeReservationsByStudentLessonDateStatus]',
-    );
+    _createMessageCollector('[dedupeReservationsByStudentLessonDateStatus]');
 
   try {
     const reservationsSheet = SS_MANAGER.getSheet(
@@ -4697,25 +4692,21 @@ export function dedupeReservationsByStudentLessonDateStatus(config = {}) {
       const excessRows = totalCurrentRows - 1 - survivingRows.length;
       if (excessRows > 0) {
         reservationsSheet
-          .getRange(
-            survivingRows.length + 2,
-            1,
-            excessRows,
-            headerRow.length,
-          )
+          .getRange(survivingRows.length + 2, 1, excessRows, headerRow.length)
           .clearContent();
       }
       SpreadsheetApp.flush();
       rebuildAllReservationsCache();
       syncReservationIdsToSchedule();
 
+      const deletedCount = duplicates.length;
       logActivity('SYSTEM', 'よやく重複削除', '成功', {
-        message: `重複予約削除完了（${rowNumbersToDelete.length}件）`,
+        message: `重複予約削除完了（${deletedCount}件）`,
         details: {
           targetDateFrom: targetDateFrom || '-',
           targetDateTo: targetDateTo || '-',
           keyFields,
-          deletedCount: rowNumbersToDelete.length,
+          deletedCount,
           skippedByDate,
           skippedByMissingKey,
         },

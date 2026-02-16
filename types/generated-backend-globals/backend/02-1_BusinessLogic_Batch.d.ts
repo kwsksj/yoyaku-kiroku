@@ -35,10 +35,10 @@ export function importLegacyReservations(config?: {
 }): LegacyImportResult;
 /**
  * 旧つくばCSV（整形済み）を dry run で解析する
- * @param {Object} [config={}]
+ * @param {Record<string, unknown>} [config={}]
  * @returns {Record<string, unknown>}
  */
-export function dryRunTsukubaLegacyCsvImport(config?: any): Record<string, unknown>;
+export function dryRunTsukubaLegacyCsvImport(config?: Record<string, unknown>): Record<string, unknown>;
 /**
  * 旧つくばCSV（整形済み）を本取り込みする
  * @param {Object} [config={}]
@@ -99,10 +99,10 @@ export function reconcileLegacyImportedReservationsByApplication(config?: {
 }): Record<string, unknown>;
 /**
  * 取り込み済み旧CSV予約の生徒ID再照合を dry run で確認します。
- * @param {Object} [config={}]
- * @returns {Object}
+ * @param {Record<string, unknown>} [config={}]
+ * @returns {Record<string, unknown>}
  */
-export function dryRunReconcileLegacyImportedReservationsByApplication(config?: any): any;
+export function dryRunReconcileLegacyImportedReservationsByApplication(config?: Record<string, unknown>): Record<string, unknown>;
 /**
  * 取り込み済み旧CSV予約の生徒ID再照合を実行します（確認ダイアログ付き）。
  * @param {Object} [config={}]
@@ -124,7 +124,7 @@ export function runReconcileLegacyImportedReservationsByApplication(config?: any
  * @param {number} [config.sourceDataStartRow=2]
  * @param {boolean} [config.onlyFillEmpty=true]
  * @param {boolean} [config.createUnmatched=true]
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
 export function syncLegacyApplicationProfilesToRoster(config?: {
     dryRun?: boolean;
@@ -135,7 +135,7 @@ export function syncLegacyApplicationProfilesToRoster(config?: {
     sourceDataStartRow?: number;
     onlyFillEmpty?: boolean;
     createUnmatched?: boolean;
-}): any;
+}): Record<string, unknown>;
 /**
  * 2023年1〜9月 元申込みデータの名簿補完 dry run（引数なし実行用）
  * @returns {Object}
