@@ -496,10 +496,9 @@ export function transformReservationArrayToObject(resArray) {
     endTime,
     status,
     chiselRental,
-    firstLecture, // 来場手段をスキップ
-    ,
-    ,
-    // 送迎をスキップ
+    firstLecture,
+    transportation,
+    pickup,
     sessionNote,
     order,
     message, // 先生へのメッセージ
@@ -528,6 +527,8 @@ export function transformReservationArrayToObject(resArray) {
     status: String(status || ''),
     chiselRental: Boolean(chiselRental),
     firstLecture: Boolean(firstLecture),
+    transportation: String(transportation || ''),
+    pickup: String(pickup || ''),
     sessionNote: String(sessionNote || ''),
     order: String(order || ''),
     messageToTeacher: String(message || ''),
@@ -665,6 +666,10 @@ export function transformReservationArrayToObjectWithHeaders(
         value === true || String(value).toUpperCase() === 'TRUE' || value == 1
       );
     })(),
+    transportation: String(
+      getCellValue(CONSTANTS.HEADERS.RESERVATIONS.TRANSPORTATION) || '',
+    ),
+    pickup: String(getCellValue(CONSTANTS.HEADERS.RESERVATIONS.PICKUP) || ''),
     sessionNote: String(
       getCellValue(CONSTANTS.HEADERS.RESERVATIONS.SESSION_NOTE) || '',
     ),
@@ -1274,6 +1279,9 @@ export function convertReservationToRow(reservation, headerMap, header) {
     reservation.chiselRental ? 'TRUE' : '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE]] =
     reservation.firstLecture ? 'TRUE' : '';
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.TRANSPORTATION]] =
+    reservation.transportation || '';
+  row[hm[CONSTANTS.HEADERS.RESERVATIONS.PICKUP]] = reservation.pickup || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.SESSION_NOTE]] =
     reservation.sessionNote || '';
   row[hm[CONSTANTS.HEADERS.RESERVATIONS.ORDER]] = reservation.order || '';
