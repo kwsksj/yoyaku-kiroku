@@ -110,8 +110,29 @@ const LEGACY_IMPORT_AUTO_HEADER_CANDIDATES = {
  * 旧つくば予約表（マトリクス）取り込みの既定設定
  * 必要に応じて sheetNames を追加してください。
  */
+/**
+ * スクリプトプロパティからレガシーインポート設定を取得する（未設定時はフォールバック値を返す）
+ * @param {string} key - プロパティキー
+ * @param {string} fallback - フォールバック値
+ * @returns {string}
+ */
+function _getLegacyImportProperty(key, fallback) {
+  try {
+    const value = PropertiesService.getScriptProperties().getProperty(key);
+    return value || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 const TSUKUBA_LEGACY_GRID_IMPORT_DEFAULTS = Object.freeze({
-  sourceSpreadsheetId: '1frQ9oWzpxudi_u5n7UTQ6ZEwvXD4nbTr-bwyiW8Affo',
+  /** スクリプトプロパティ LEGACY_TSUKUBA_GRID_SPREADSHEET_ID で上書き可能 */
+  get sourceSpreadsheetId() {
+    return _getLegacyImportProperty(
+      'LEGACY_TSUKUBA_GRID_SPREADSHEET_ID',
+      '1frQ9oWzpxudi_u5n7UTQ6ZEwvXD4nbTr-bwyiW8Affo',
+    );
+  },
   sourceSheetNames: ['最新', '202409〜', '2024年', '2023年10〜12月'],
   defaultClassroom: CONSTANTS.CLASSROOMS.TSUKUBA,
   defaultStatus: CONSTANTS.STATUS.COMPLETED,
@@ -132,9 +153,19 @@ const TSUKUBA_LEGACY_CSV_IMPORT_DEFAULTS = Object.freeze({
   defaultStatus: CONSTANTS.STATUS.COMPLETED,
   defaultScheduleClassroomType: CONSTANTS.CLASSROOM_TYPES.TIME_FULL,
   defaultScheduleStatus: CONSTANTS.SCHEDULE_STATUS.COMPLETED,
-  matchingApplicationSpreadsheetId:
-    '1oKBKnP4rfm7RVBlkkBYQe5zwaG9i0u8R2NzSH70LzsM',
-  matchingApplicationSheetId: 1759574996,
+  /** スクリプトプロパティ LEGACY_TSUKUBA_CSV_APP_SPREADSHEET_ID で上書き可能 */
+  get matchingApplicationSpreadsheetId() {
+    return _getLegacyImportProperty(
+      'LEGACY_TSUKUBA_CSV_APP_SPREADSHEET_ID',
+      '1oKBKnP4rfm7RVBlkkBYQe5zwaG9i0u8R2NzSH70LzsM',
+    );
+  },
+  /** スクリプトプロパティ LEGACY_TSUKUBA_CSV_APP_SHEET_ID で上書き可能 */
+  get matchingApplicationSheetId() {
+    return Number(
+      _getLegacyImportProperty('LEGACY_TSUKUBA_CSV_APP_SHEET_ID', '1759574996'),
+    );
+  },
 });
 
 /**
@@ -216,6 +247,58 @@ const TSUKUBA_RESERVATION_DEDUPE_LEGACY_ALL_PRESET = Object.freeze({
   targetDateTo: '2025-02-16',
   keyFields: ['studentId', 'lessonId', 'date', 'status'],
 });
+
+/**
+ * 警告/エラーメッセージの収集ユーティリティを作成する
+ * 上限を超えたメッセージはLoggerに出力し、finalize() で切り詰め通知を付与する
+ * @param {string} logPrefix - ログ出力時のプレフィックス（例: '[importLegacyReservations]'）
+ * @param {number} [maxItems=200] - 保持する最大件数
+ * @returns {{
+ *   warnings: string[];
+ *   errorMessages: string[];
+ *   pushWarning: (message: string) => void;
+ *   pushError: (message: string) => void;
+ *   finalize: () => void;
+ * }}
+ */
+function _createMessageCollector(logPrefix, maxItems = 200) {
+  /** @type {string[]} */
+  const warnings = [];
+  /** @type {string[]} */
+  const errorMessages = [];
+  let droppedWarnings = 0;
+  let droppedErrors = 0;
+  return {
+    warnings,
+    errorMessages,
+    pushWarning(message) {
+      if (warnings.length < maxItems) {
+        warnings.push(message);
+      } else {
+        droppedWarnings++;
+      }
+      Logger.log(`${logPrefix}[WARN] ${message}`);
+    },
+    pushError(message) {
+      if (errorMessages.length < maxItems) {
+        errorMessages.push(message);
+      } else {
+        droppedErrors++;
+      }
+      Logger.log(`${logPrefix}[ERROR] ${message}`);
+    },
+    finalize() {
+      if (droppedWarnings > 0) {
+        warnings.push(`（他 ${droppedWarnings} 件の警告は省略されました）`);
+      }
+      if (droppedErrors > 0) {
+        errorMessages.push(
+          `（他 ${droppedErrors} 件のエラーは省略されました）`,
+        );
+      }
+    },
+  };
+}
 
 /**
  * ヘッダー行をトリム済みのインデックスマップへ変換
@@ -372,13 +455,16 @@ function _normalizeLegacyDate(value) {
 
   if (typeof value === 'number' && Number.isFinite(value)) {
     // Excel/Sheetsのシリアル日付（1900-01-00起点）を吸収
+    // シリアル日付はローカル時間のため、UTC経由ではなく直接日付部分を算出する
     if (value > 20000 && value < 80000) {
-      const serialEpoch = new Date(Date.UTC(1899, 11, 30));
-      const date = new Date(
-        serialEpoch.getTime() + Math.round(value * 24 * 60 * 60 * 1000),
-      );
-      if (!isNaN(date.getTime())) {
-        return Utilities.formatDate(date, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+      const daysSinceEpoch = Math.floor(value) - 2;
+      const baseDate = new Date(1900, 0, 1);
+      baseDate.setDate(baseDate.getDate() + daysSinceEpoch);
+      if (!isNaN(baseDate.getTime())) {
+        const yyyy = baseDate.getFullYear();
+        const mm = String(baseDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(baseDate.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
       }
     }
   }
@@ -443,18 +529,29 @@ function _normalizeLegacyTime(value) {
 
   const colon = raw.match(/^(\d{1,2}):(\d{1,2})$/);
   if (colon) {
-    const hh = String(Math.min(23, Number(colon[1]))).padStart(2, '0');
-    const mm = String(Math.min(59, Number(colon[2]))).padStart(2, '0');
+    const rawH = Number(colon[1]);
+    const rawM = Number(colon[2]);
+    if (rawH > 23 || rawM > 59) {
+      Logger.log(
+        `[_normalizeLegacyTime][WARN] 範囲外の時刻値をクランプ: "${raw}" → "${String(Math.min(23, rawH)).padStart(2, '0')}:${String(Math.min(59, rawM)).padStart(2, '0')}"`,
+      );
+    }
+    const hh = String(Math.min(23, rawH)).padStart(2, '0');
+    const mm = String(Math.min(59, rawM)).padStart(2, '0');
     return `${hh}:${mm}`;
   }
 
   const japanese = raw.match(/^(\d{1,2})時(?:(\d{1,2})分?)?$/);
   if (japanese) {
-    const hh = String(Math.min(23, Number(japanese[1]))).padStart(2, '0');
-    const mm = String(Math.min(59, Number(japanese[2] || '0'))).padStart(
-      2,
-      '0',
-    );
+    const rawH = Number(japanese[1]);
+    const rawM = Number(japanese[2] || '0');
+    if (rawH > 23 || rawM > 59) {
+      Logger.log(
+        `[_normalizeLegacyTime][WARN] 範囲外の時刻値をクランプ: "${raw}"`,
+      );
+    }
+    const hh = String(Math.min(23, rawH)).padStart(2, '0');
+    const mm = String(Math.min(59, rawM)).padStart(2, '0');
     return `${hh}:${mm}`;
   }
 
@@ -804,17 +901,8 @@ function _collectLegacyCsvScheduleCandidates(importConfig) {
  * }}
  */
 function _ensureScheduleRowsForLegacyCsvImport(importConfig, dryRun = true) {
-  /** @type {string[]} */
-  const warnings = [];
-  /** @type {string[]} */
-  const errorMessages = [];
-  /**
-   * @param {string} message
-   */
-  const pushError = message => {
-    if (errorMessages.length < 200) errorMessages.push(message);
-    Logger.log(`[ensureScheduleRowsForLegacyCsvImport][ERROR] ${message}`);
-  };
+  const { warnings, errorMessages, pushError, finalize } =
+    _createMessageCollector('[ensureScheduleRowsForLegacyCsvImport]');
 
   try {
     const collected = _collectLegacyCsvScheduleCandidates(importConfig);
@@ -1088,6 +1176,7 @@ function _ensureScheduleRowsForLegacyCsvImport(importConfig, dryRun = true) {
       });
     }
 
+    finalize();
     return {
       success: errorMessages.length === 0,
       dryRun,
@@ -1104,6 +1193,7 @@ function _ensureScheduleRowsForLegacyCsvImport(importConfig, dryRun = true) {
   } catch (error) {
     const message = `CSV日程補完でエラー: ${error.message}`;
     pushError(message);
+    finalize();
     return {
       success: false,
       dryRun,
@@ -2104,24 +2194,8 @@ export function importLegacyReservations(config = {}) {
     input['fieldMap'] || {}
   );
 
-  /** @type {string[]} */
-  const warnings = [];
-  /** @type {string[]} */
-  const errorMessages = [];
-  /**
-   * @param {string} message
-   */
-  const pushWarning = message => {
-    if (warnings.length < 200) warnings.push(message);
-    Logger.log(`[importLegacyReservations][WARN] ${message}`);
-  };
-  /**
-   * @param {string} message
-   */
-  const pushError = message => {
-    if (errorMessages.length < 200) errorMessages.push(message);
-    Logger.log(`[importLegacyReservations][ERROR] ${message}`);
-  };
+  const { warnings, errorMessages, pushWarning, pushError, finalize } =
+    _createMessageCollector('[importLegacyReservations]');
 
   if (!sourceSheetName) {
     return {
@@ -2699,6 +2773,7 @@ export function importLegacyReservations(config = {}) {
       });
     }
 
+    finalize();
     return {
       success: errorMessages.length === 0,
       dryRun,
@@ -2718,6 +2793,7 @@ export function importLegacyReservations(config = {}) {
   } catch (error) {
     const message = `旧フォーマット取り込みでエラー: ${error.message}`;
     Logger.log(`[importLegacyReservations] ${message}`);
+    finalize();
     return {
       success: false,
       dryRun,
@@ -2726,7 +2802,7 @@ export function importLegacyReservations(config = {}) {
       skipped: 0,
       errorCount: 1,
       warnings,
-      errorMessages: [message],
+      errorMessages: [...errorMessages, message],
       preview: [],
       resolvedFieldMap: {},
       supplementalApplicationEntryCount: 0,
@@ -2812,6 +2888,8 @@ function _buildTsukubaLegacyCsvImportRequest(config = {}, dryRun = true) {
     input['matchingApplicationSheetId'],
     TSUKUBA_LEGACY_CSV_IMPORT_DEFAULTS.matchingApplicationSheetId,
   );
+  // CSV取り込みでは旧IDを再生成するのがデフォルト
+  // （importLegacyReservations 本体のデフォルト 'skip' とは意図的に異なる）
   const duplicateReservationIdStrategyCandidate = String(
     input['duplicateReservationIdStrategy'] || 'regenerate',
   );
@@ -3230,28 +3308,11 @@ export function reconcileLegacyImportedReservationsByApplication(config = {}) {
   const targetDateFrom = _normalizeLegacyDate(input['targetDateFrom']);
   const targetDateTo = _normalizeLegacyDate(input['targetDateTo']);
 
-  /** @type {string[]} */
-  const warnings = [];
-  /** @type {string[]} */
-  const errorMessages = [];
-  /**
-   * @param {string} message
-   */
-  const pushWarning = message => {
-    if (warnings.length < 300) warnings.push(message);
-    Logger.log(
-      `[reconcileLegacyImportedReservationsByApplication][WARN] ${message}`,
+  const { warnings, errorMessages, pushWarning, pushError, finalize } =
+    _createMessageCollector(
+      '[reconcileLegacyImportedReservationsByApplication]',
+      300,
     );
-  };
-  /**
-   * @param {string} message
-   */
-  const pushError = message => {
-    if (errorMessages.length < 300) errorMessages.push(message);
-    Logger.log(
-      `[reconcileLegacyImportedReservationsByApplication][ERROR] ${message}`,
-    );
-  };
 
   try {
     /** @type {Record<string, any>} */
@@ -3658,6 +3719,7 @@ export function reconcileLegacyImportedReservationsByApplication(config = {}) {
       rebuildAllStudentsCache();
     }
 
+    finalize();
     return {
       success: errorMessages.length === 0,
       dryRun,
@@ -3699,6 +3761,7 @@ export function reconcileLegacyImportedReservationsByApplication(config = {}) {
     const message = `旧CSV取り込み済み予約の再照合でエラー: ${error.message}`;
     Logger.log(`[reconcileLegacyImportedReservationsByApplication] ${message}`);
     pushError(message);
+    finalize();
     return {
       success: false,
       dryRun,
@@ -3823,24 +3886,11 @@ export function syncLegacyApplicationProfilesToRoster(config = {}) {
     Number(input['sourceDataStartRow'] || sourceHeaderRow + 1),
   );
 
-  /** @type {string[]} */
-  const warnings = [];
-  /** @type {string[]} */
-  const errorMessages = [];
-  /**
-   * @param {string} message
-   */
-  const pushWarning = message => {
-    if (warnings.length < 300) warnings.push(message);
-    Logger.log(`[syncLegacyApplicationProfilesToRoster][WARN] ${message}`);
-  };
-  /**
-   * @param {string} message
-   */
-  const pushError = message => {
-    if (errorMessages.length < 300) errorMessages.push(message);
-    Logger.log(`[syncLegacyApplicationProfilesToRoster][ERROR] ${message}`);
-  };
+  const { warnings, errorMessages, pushWarning, pushError, finalize } =
+    _createMessageCollector(
+      '[syncLegacyApplicationProfilesToRoster]',
+      300,
+    );
 
   try {
     const sourceSpreadsheetId = String(
@@ -4346,15 +4396,33 @@ export function syncLegacyApplicationProfilesToRoster(config = {}) {
     });
 
     if (!dryRun) {
-      const sortedRowIndexes = Array.from(updatedRowIndexes).sort(
-        (a, b) => a - b,
-      );
-      sortedRowIndexes.forEach(rowIndex => {
-        if (rowIndex >= existingRosterRowCount) return;
-        rosterSheet
-          .getRange(rowIndex + 2, 1, 1, rosterHeader.length)
-          .setValues([mutableRosterRows[rowIndex]]);
-      });
+      // 更新行をバッチ書き込み（行単位API呼び出しを回避）
+      if (updatedRowIndexes.size > 0) {
+        const sortedRowIndexes = Array.from(updatedRowIndexes)
+          .filter(rowIndex => rowIndex < existingRosterRowCount)
+          .sort((a, b) => a - b);
+        if (sortedRowIndexes.length > 0) {
+          // 連続する行をグループ化して一括書き込み
+          let rangeStart = sortedRowIndexes[0];
+          let rangeEnd = rangeStart;
+          const writeRange = () => {
+            const rows = mutableRosterRows.slice(rangeStart, rangeEnd + 1);
+            rosterSheet
+              .getRange(rangeStart + 2, 1, rows.length, rosterHeader.length)
+              .setValues(rows);
+          };
+          for (let i = 1; i < sortedRowIndexes.length; i++) {
+            if (sortedRowIndexes[i] === rangeEnd + 1) {
+              rangeEnd = sortedRowIndexes[i];
+            } else {
+              writeRange();
+              rangeStart = sortedRowIndexes[i];
+              rangeEnd = rangeStart;
+            }
+          }
+          writeRange();
+        }
+      }
 
       if (newRowsToAppend.length > 0) {
         const chunkSize = 200;
@@ -4374,6 +4442,7 @@ export function syncLegacyApplicationProfilesToRoster(config = {}) {
       }
     }
 
+    finalize();
     return {
       success: errorMessages.length === 0,
       dryRun,
@@ -4401,6 +4470,7 @@ export function syncLegacyApplicationProfilesToRoster(config = {}) {
   } catch (error) {
     const message = `元申込み名簿補完でエラー: ${error.message}`;
     pushError(message);
+    finalize();
     return {
       success: false,
       dryRun,
@@ -4494,19 +4564,10 @@ export function dedupeReservationsByStudentLessonDateStatus(config = {}) {
       ? input['keyFields'].map(value => String(value || '').trim())
       : TSUKUBA_RESERVATION_DEDUPE_2023_PRESET.keyFields;
 
-  /** @type {string[]} */
-  const warnings = [];
-  /** @type {string[]} */
-  const errorMessages = [];
-  /**
-   * @param {string} message
-   */
-  const pushError = message => {
-    if (errorMessages.length < 200) errorMessages.push(message);
-    Logger.log(
-      `[dedupeReservationsByStudentLessonDateStatus][ERROR] ${message}`,
+  const { warnings, errorMessages, pushError, finalize } =
+    _createMessageCollector(
+      '[dedupeReservationsByStudentLessonDateStatus]',
     );
-  };
 
   try {
     const reservationsSheet = SS_MANAGER.getSheet(
@@ -4618,12 +4679,32 @@ export function dedupeReservationsByStudentLessonDateStatus(config = {}) {
     });
 
     if (!dryRun && duplicateRowIndexes.size > 0) {
-      const rowNumbersToDelete = Array.from(duplicateRowIndexes)
-        .map(rowIndex => rowIndex + 2)
-        .sort((a, b) => b - a);
-      rowNumbersToDelete.forEach(rowNumber => {
-        reservationsSheet.deleteRow(rowNumber);
-      });
+      // 非重複行のみを残してシートを一括書き換え（行単位削除はGAS実行時間制限リスクが高い）
+      const headerRow = reservationsSheet
+        .getRange(1, 1, 1, reservationsSheet.getLastColumn())
+        .getValues()[0];
+      const survivingRows = reservationRows.filter(
+        (_row, idx) => !duplicateRowIndexes.has(idx),
+      );
+      const totalCurrentRows = reservationsSheet.getLastRow();
+      // ヘッダー行 + 残行を書き込み
+      if (survivingRows.length > 0) {
+        reservationsSheet
+          .getRange(2, 1, survivingRows.length, headerRow.length)
+          .setValues(survivingRows);
+      }
+      // 余剰行をクリア
+      const excessRows = totalCurrentRows - 1 - survivingRows.length;
+      if (excessRows > 0) {
+        reservationsSheet
+          .getRange(
+            survivingRows.length + 2,
+            1,
+            excessRows,
+            headerRow.length,
+          )
+          .clearContent();
+      }
       SpreadsheetApp.flush();
       rebuildAllReservationsCache();
       syncReservationIdsToSchedule();
@@ -4641,6 +4722,7 @@ export function dedupeReservationsByStudentLessonDateStatus(config = {}) {
       });
     }
 
+    finalize();
     return {
       success: errorMessages.length === 0,
       dryRun,
@@ -4658,6 +4740,7 @@ export function dedupeReservationsByStudentLessonDateStatus(config = {}) {
     };
   } catch (error) {
     pushError(`予約重複削除でエラー: ${error.message}`);
+    finalize();
     return {
       success: false,
       dryRun,
@@ -5008,31 +5091,14 @@ export function importLegacyGridReservationsByName(config = {}) {
       ? 'error'
       : 'skip';
 
-  /** @type {string[]} */
-  const warnings = [];
-  /** @type {string[]} */
-  const errorMessages = [];
+  const { warnings, errorMessages, pushWarning, pushError, finalize } =
+    _createMessageCollector('[importLegacyGridReservationsByName]', 300);
   /** @type {Array<{sheetName: string; row: number; name: string; normalizedName: string}>} */
   const unmatchedNames = [];
   /** @type {Array<{sheetName: string; row: number; name: string; normalizedName: string; candidates: string[]}>} */
   const ambiguousNames = [];
   /** @type {Array<{sheetName: string; row: number; name: string; studentId: string; date: string; classroom: string; startTime: string; endTime: string}>} */
   const preview = [];
-
-  /**
-   * @param {string} message
-   */
-  const pushWarning = message => {
-    if (warnings.length < 300) warnings.push(message);
-    Logger.log(`[importLegacyGridReservationsByName][WARN] ${message}`);
-  };
-  /**
-   * @param {string} message
-   */
-  const pushError = message => {
-    if (errorMessages.length < 300) errorMessages.push(message);
-    Logger.log(`[importLegacyGridReservationsByName][ERROR] ${message}`);
-  };
 
   try {
     const sourceSpreadsheet = sourceSpreadsheetId
@@ -5198,9 +5264,14 @@ export function importLegacyGridReservationsByName(config = {}) {
               labels.includes(String(cell || '').trim()),
             );
 
+          const NAME_COL_FALLBACK = 22; // W列
           const nameCol = (() => {
             const found = findCol(['名前', '氏名', 'お名前']);
-            return found >= 0 ? found : 22; // W列フォールバック
+            if (found >= 0) return found;
+            pushWarning(
+              `${sourceSheet.getName()}!R${titleRow + 1}: 名前列ヘッダーが見つからないため列${NAME_COL_FALLBACK}(W列)をフォールバックとして使用`,
+            );
+            return NAME_COL_FALLBACK;
           })();
           const iconCol = Math.max(0, nameCol - 1); // V列想定（🚗/グループ記号）
           const durationCol = nameCol + 1; // X列想定（時間）
@@ -5457,6 +5528,7 @@ export function importLegacyGridReservationsByName(config = {}) {
       });
     }
 
+    finalize();
     return {
       success: errorMessages.length === 0,
       dryRun,
@@ -5476,6 +5548,7 @@ export function importLegacyGridReservationsByName(config = {}) {
   } catch (error) {
     const message = `旧予約表（マトリクス）取り込みでエラー: ${error.message}`;
     Logger.log(`[importLegacyGridReservationsByName] ${message}`);
+    finalize();
     return {
       success: false,
       dryRun,
@@ -5487,7 +5560,7 @@ export function importLegacyGridReservationsByName(config = {}) {
       ambiguousNameCount: ambiguousNames.length,
       indexedStudentCount: 0,
       warnings,
-      errorMessages: [message],
+      errorMessages: [...errorMessages, message],
       unmatchedNames: unmatchedNames.slice(0, 200),
       ambiguousNames: ambiguousNames.slice(0, 200),
       preview: [],
