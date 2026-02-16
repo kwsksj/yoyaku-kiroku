@@ -7,7 +7,7 @@
  * @param {string} [config.sourceSpreadsheetId] - 取り込み元スプレッドシートID（省略時は同一ブック）
  * @param {number} [config.sourceHeaderRow=1] - ヘッダー行番号
  * @param {number} [config.sourceDataStartRow=2] - データ開始行番号
- * @param {Record<string, any>} [config.fieldMap] - 現行項目名に対する列指定（列名/0始まり列番号/候補配列）
+ * @param {Record<string, LegacyFieldMappingSpec>} [config.fieldMap] - 現行項目名に対する列指定（列名/0始まり列番号/候補配列）
  * @param {Record<string, any>} [config.defaults] - 取り込み時のデフォルト値
  * @param {boolean} [config.dryRun=true] - true: 書き込まない
  * @param {number} [config.maxRows=0] - 処理件数上限（0は全件）
@@ -16,14 +16,14 @@
  * @param {boolean} [config.stopOnError=false] - 行エラーで即中断するか
  * @param {boolean} [config.autoCreateStudentOnNameUnmatched=false] - 生徒名未一致時に名簿へ仮登録するか
  * @param {boolean} [config.autoCreateStudentOnNameAmbiguous=false] - 生徒名複数一致時に名簿へ仮登録するか
- * @returns {Object} 取り込み結果サマリー
+ * @returns {LegacyImportResult} 取り込み結果サマリー
  */
 export function importLegacyReservations(config?: {
     sourceSheetName?: string;
     sourceSpreadsheetId?: string;
     sourceHeaderRow?: number;
     sourceDataStartRow?: number;
-    fieldMap?: Record<string, any>;
+    fieldMap?: Record<string, LegacyFieldMappingSpec>;
     defaults?: Record<string, any>;
     dryRun?: boolean;
     maxRows?: number;
@@ -32,31 +32,31 @@ export function importLegacyReservations(config?: {
     stopOnError?: boolean;
     autoCreateStudentOnNameUnmatched?: boolean;
     autoCreateStudentOnNameAmbiguous?: boolean;
-}): any;
+}): LegacyImportResult;
 /**
  * 旧つくばCSV（整形済み）を dry run で解析する
  * @param {Object} [config={}]
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
-export function dryRunTsukubaLegacyCsvImport(config?: any): any;
+export function dryRunTsukubaLegacyCsvImport(config?: any): Record<string, unknown>;
 /**
  * 旧つくばCSV（整形済み）を本取り込みする
  * @param {Object} [config={}]
- * @returns {Object | null}
+ * @returns {Record<string, unknown> | null}
  */
-export function runTsukubaLegacyCsvImport(config?: any): any | null;
+export function runTsukubaLegacyCsvImport(config?: any): Record<string, unknown> | null;
 /**
  * 旧沼津CSV（整形済み）を dry run で解析する（引数なし実行用）
  * @param {Object} [config={}]
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
-export function dryRunNumazuLegacyCsvImportAuto(config?: any): any;
+export function dryRunNumazuLegacyCsvImportAuto(config?: any): Record<string, unknown>;
 /**
  * 旧沼津CSV（整形済み）を本取り込みする（引数なし実行用）
  * @param {Object} [config={}]
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
-export function runNumazuLegacyCsvImportAuto(config?: any): any;
+export function runNumazuLegacyCsvImportAuto(config?: any): Record<string, unknown>;
 /**
  * 既に取り込み済みの旧CSV予約について、元申込みシート（電話/メール）を使って生徒IDを再照合します。
  * - 対象は原則「生徒名簿 notes に [legacy-import] がある仮登録生徒ID」の予約
@@ -69,16 +69,16 @@ export function runNumazuLegacyCsvImportAuto(config?: any): any;
  * @param {number} [config.matchingApplicationSheetId]
  * @param {number} [config.matchingApplicationHeaderRow=1]
  * @param {number} [config.matchingApplicationDataStartRow=2]
- * @param {any} [config.matchingApplicationNameFieldMap]
- * @param {any} [config.matchingApplicationPhoneFieldMap]
- * @param {any} [config.matchingApplicationEmailFieldMap]
+ * @param {LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>} [config.matchingApplicationNameFieldMap]
+ * @param {LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>} [config.matchingApplicationPhoneFieldMap]
+ * @param {LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>} [config.matchingApplicationEmailFieldMap]
  * @param {boolean} [config.onlyLegacyImportedStudents=true] - true の場合、[legacy-import] 付与生徒のみ再照合
  * @param {'skip'|'error'} [config.duplicateIdentityStrategy='skip'] - 生徒ID差し替え後の重複時の扱い
  * @param {boolean} [config.updateRosterNotes=true] - 本実行時に名簿notesへ再照合結果を追記するか
  * @param {string} [config.targetClassroom] - 指定時、その教室の予約のみ更新
  * @param {string} [config.targetDateFrom] - 指定時、この日付以上のみ更新（YYYY-MM-DD）
  * @param {string} [config.targetDateTo] - 指定時、この日付以下のみ更新（YYYY-MM-DD）
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
 export function reconcileLegacyImportedReservationsByApplication(config?: {
     dryRun?: boolean;
@@ -87,16 +87,16 @@ export function reconcileLegacyImportedReservationsByApplication(config?: {
     matchingApplicationSheetId?: number;
     matchingApplicationHeaderRow?: number;
     matchingApplicationDataStartRow?: number;
-    matchingApplicationNameFieldMap?: any;
-    matchingApplicationPhoneFieldMap?: any;
-    matchingApplicationEmailFieldMap?: any;
+    matchingApplicationNameFieldMap?: LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>;
+    matchingApplicationPhoneFieldMap?: LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>;
+    matchingApplicationEmailFieldMap?: LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>;
     onlyLegacyImportedStudents?: boolean;
     duplicateIdentityStrategy?: "skip" | "error";
     updateRosterNotes?: boolean;
     targetClassroom?: string;
     targetDateFrom?: string;
     targetDateTo?: string;
-}): any;
+}): Record<string, unknown>;
 /**
  * 取り込み済み旧CSV予約の生徒ID再照合を dry run で確認します。
  * @param {Object} [config={}]
@@ -301,3 +301,32 @@ export function sortReservationSheet(): {
  * 何度修正しても売上表に影響がない運用が実現できる。
  */
 export function dailySalesTransferBatch(): void;
+/**
+ * 旧データ取り込み時の列指定で許可する型
+ * - 文字列: 列名
+ * - 数値: 0始まり列番号
+ * - 配列: 候補列（優先順）
+ */
+export type LegacyFieldToken = string | number | ReadonlyArray<string | number>;
+/**
+ * 旧データ取り込み時のマッピング指定型
+ */
+export type LegacyFieldMappingSpec = LegacyFieldToken | ReadonlyArray<LegacyFieldToken>;
+/**
+ * 旧フォーマット取り込み結果
+ */
+export type LegacyImportResult = {
+    success: boolean;
+    dryRun: boolean;
+    processed: number;
+    imported: number;
+    skipped: number;
+    errorCount: number;
+    warnings: string[];
+    errorMessages: string[];
+    preview: Array<Record<string, unknown>>;
+    resolvedFieldMap: Record<string, number | undefined>;
+    supplementalApplicationEntryCount: number;
+    createdStudentCount: number;
+    createdStudentsPreview: Array<Record<string, unknown>>;
+};

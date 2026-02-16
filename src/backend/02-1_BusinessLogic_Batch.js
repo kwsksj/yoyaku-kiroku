@@ -45,6 +45,38 @@ import {
 } from './08_Utilities.js';
 
 /**
+ * 旧データ取り込み時の列指定で許可する型
+ * - 文字列: 列名
+ * - 数値: 0始まり列番号
+ * - 配列: 候補列（優先順）
+ * @typedef {string | number | ReadonlyArray<string | number>} LegacyFieldToken
+ */
+
+/**
+ * 旧データ取り込み時のマッピング指定型
+ * @typedef {LegacyFieldToken | ReadonlyArray<LegacyFieldToken>} LegacyFieldMappingSpec
+ */
+
+/**
+ * 旧フォーマット取り込み結果
+ * @typedef {{
+ *   success: boolean;
+ *   dryRun: boolean;
+ *   processed: number;
+ *   imported: number;
+ *   skipped: number;
+ *   errorCount: number;
+ *   warnings: string[];
+ *   errorMessages: string[];
+ *   preview: Array<Record<string, unknown>>;
+ *   resolvedFieldMap: Record<string, number | undefined>;
+ *   supplementalApplicationEntryCount: number;
+ *   createdStudentCount: number;
+ *   createdStudentsPreview: Array<Record<string, unknown>>;
+ * }} LegacyImportResult
+ */
+
+/**
  * 旧フォーマット取り込み時の自動ヘッダー推定候補
  * @type {Record<string, string[]>}
  */
@@ -209,7 +241,7 @@ function _createTrimmedHeaderMap(headerRow) {
 
 /**
  * 取り込みマッピング仕様（列名/列番号/候補配列）から列インデックスを解決
- * @param {any} mappingSpec
+ * @param {LegacyFieldMappingSpec | null | undefined} mappingSpec
  * @param {Record<string, number>} sourceHeaderMap
  * @returns {number | undefined}
  */
@@ -250,7 +282,7 @@ function _resolveLegacyFieldIndex(mappingSpec, sourceHeaderMap) {
 /**
  * 指定マッピングから行データのセル値を取得
  * @param {RawSheetRow} row
- * @param {any} mappingSpec
+ * @param {LegacyFieldMappingSpec | null | undefined} mappingSpec
  * @param {Record<string, number>} sourceHeaderMap
  * @returns {unknown}
  */
@@ -2035,7 +2067,7 @@ function _createReservationIdentityKey(reservation) {
  * @param {string} [config.sourceSpreadsheetId] - 取り込み元スプレッドシートID（省略時は同一ブック）
  * @param {number} [config.sourceHeaderRow=1] - ヘッダー行番号
  * @param {number} [config.sourceDataStartRow=2] - データ開始行番号
- * @param {Record<string, any>} [config.fieldMap] - 現行項目名に対する列指定（列名/0始まり列番号/候補配列）
+ * @param {Record<string, LegacyFieldMappingSpec>} [config.fieldMap] - 現行項目名に対する列指定（列名/0始まり列番号/候補配列）
  * @param {Record<string, any>} [config.defaults] - 取り込み時のデフォルト値
  * @param {boolean} [config.dryRun=true] - true: 書き込まない
  * @param {number} [config.maxRows=0] - 処理件数上限（0は全件）
@@ -2044,7 +2076,7 @@ function _createReservationIdentityKey(reservation) {
  * @param {boolean} [config.stopOnError=false] - 行エラーで即中断するか
  * @param {boolean} [config.autoCreateStudentOnNameUnmatched=false] - 生徒名未一致時に名簿へ仮登録するか
  * @param {boolean} [config.autoCreateStudentOnNameAmbiguous=false] - 生徒名複数一致時に名簿へ仮登録するか
- * @returns {Object} 取り込み結果サマリー
+ * @returns {LegacyImportResult} 取り込み結果サマリー
  */
 export function importLegacyReservations(config = {}) {
   /** @type {Record<string, any>} */
@@ -2961,7 +2993,7 @@ function _buildNumazuLegacyCsvImportRequest(config = {}, dryRun = true) {
 /**
  * 旧つくばCSV（整形済み）を dry run で解析する
  * @param {Object} [config={}]
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
 export function dryRunTsukubaLegacyCsvImport(config = {}) {
   const request = _buildTsukubaLegacyCsvImportRequest(config, true);
@@ -3005,7 +3037,7 @@ export function dryRunTsukubaLegacyCsvImport(config = {}) {
 /**
  * 旧つくばCSV（整形済み）を本取り込みする
  * @param {Object} [config={}]
- * @returns {Object | null}
+ * @returns {Record<string, unknown> | null}
  */
 export function runTsukubaLegacyCsvImport(config = {}) {
   const request = _buildTsukubaLegacyCsvImportRequest(config, false);
@@ -3063,7 +3095,7 @@ export function runTsukubaLegacyCsvImport(config = {}) {
 /**
  * 旧沼津CSV（整形済み）を dry run で解析する（引数なし実行用）
  * @param {Object} [config={}]
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
 export function dryRunNumazuLegacyCsvImportAuto(config = {}) {
   try {
@@ -3119,7 +3151,7 @@ export function dryRunNumazuLegacyCsvImportAuto(config = {}) {
 /**
  * 旧沼津CSV（整形済み）を本取り込みする（引数なし実行用）
  * @param {Object} [config={}]
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
 export function runNumazuLegacyCsvImportAuto(config = {}) {
   try {
@@ -3185,16 +3217,16 @@ export function runNumazuLegacyCsvImportAuto(config = {}) {
  * @param {number} [config.matchingApplicationSheetId]
  * @param {number} [config.matchingApplicationHeaderRow=1]
  * @param {number} [config.matchingApplicationDataStartRow=2]
- * @param {any} [config.matchingApplicationNameFieldMap]
- * @param {any} [config.matchingApplicationPhoneFieldMap]
- * @param {any} [config.matchingApplicationEmailFieldMap]
+ * @param {LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>} [config.matchingApplicationNameFieldMap]
+ * @param {LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>} [config.matchingApplicationPhoneFieldMap]
+ * @param {LegacyFieldMappingSpec | ReadonlyArray<LegacyFieldMappingSpec>} [config.matchingApplicationEmailFieldMap]
  * @param {boolean} [config.onlyLegacyImportedStudents=true] - true の場合、[legacy-import] 付与生徒のみ再照合
  * @param {'skip'|'error'} [config.duplicateIdentityStrategy='skip'] - 生徒ID差し替え後の重複時の扱い
  * @param {boolean} [config.updateRosterNotes=true] - 本実行時に名簿notesへ再照合結果を追記するか
  * @param {string} [config.targetClassroom] - 指定時、その教室の予約のみ更新
  * @param {string} [config.targetDateFrom] - 指定時、この日付以上のみ更新（YYYY-MM-DD）
  * @param {string} [config.targetDateTo] - 指定時、この日付以下のみ更新（YYYY-MM-DD）
- * @returns {Object}
+ * @returns {Record<string, unknown>}
  */
 export function reconcileLegacyImportedReservationsByApplication(config = {}) {
   /** @type {Record<string, any>} */
