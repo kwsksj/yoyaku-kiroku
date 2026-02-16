@@ -1404,19 +1404,6 @@ function _resolveLegacyCsvSourceSheetName(
     if (matched) return matched;
   }
 
-  const keywordMatched = sheets.find(sheet => {
-    const normalized = _normalizeSheetNameForMatching(sheet.getName());
-    return (
-      normalized.includes('legacy-reservations') ||
-      normalized.includes('legacy_reservations') ||
-      normalized.includes('legacy') ||
-      normalized.includes('取り込み')
-    );
-  });
-  if (keywordMatched) {
-    return keywordMatched.getName();
-  }
-
   throw new Error(
     `取り込み元シートが見つかりません。sourceSheetName を指定してください。（利用可能シート: ${sheets
       .map(sheet => sheet.getName())
@@ -4045,6 +4032,7 @@ export function syncLegacyApplicationProfilesToRoster(config = {}) {
     }
 
     const mutableRosterRows = rosterRows.map(row => row.slice());
+    const existingRosterRowCount = mutableRosterRows.length;
     /** @type {Map<string, number>} */
     const rosterRowIndexByStudentId = new Map();
     /** @type {Set<string>} */
@@ -4254,6 +4242,10 @@ export function syncLegacyApplicationProfilesToRoster(config = {}) {
           newRow[rosterNotesCol] =
             `[legacy-application-2023] created from ${entry.sheetName}!R${entry.sourceRow}`;
         }
+
+        const appendedRowIndex = mutableRosterRows.length;
+        mutableRosterRows.push(newRow);
+        rosterRowIndexByStudentId.set(newStudentId, appendedRowIndex);
         newRowsToAppend.push(newRow);
         createdStudents.push({
           studentId: newStudentId,
@@ -4358,6 +4350,7 @@ export function syncLegacyApplicationProfilesToRoster(config = {}) {
         (a, b) => a - b,
       );
       sortedRowIndexes.forEach(rowIndex => {
+        if (rowIndex >= existingRosterRowCount) return;
         rosterSheet
           .getRange(rowIndex + 2, 1, 1, rosterHeader.length)
           .setValues([mutableRosterRows[rowIndex]]);
