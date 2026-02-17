@@ -90,6 +90,8 @@ const LEGACY_IMPORT_AUTO_HEADER_CANDIDATES = {
   venue: ['会場', 'venue', 'location'],
   startTime: ['開始時刻', 'startTime', '開始', '開始時間'],
   endTime: ['終了時刻', 'endTime', '終了', '終了時間'],
+  durationHours: ['参加時間', 'durationHours', '受講時間', '滞在時間'],
+  legacyFrom: ['from', '地域', '住所'],
   status: ['ステータス', 'status', '状態'],
   chiselRental: ['彫刻刀レンタル', 'chiselRental', 'rental', 'レンタル'],
   firstLecture: ['初回', 'firstLecture', 'beginner', '初回講習'],
@@ -174,6 +176,18 @@ const TSUKUBA_LEGACY_CSV_IMPORT_DEFAULTS = Object.freeze({
 const NUMAZU_LEGACY_CSV_IMPORT_DEFAULTS = Object.freeze({
   sourceSpreadsheetId: '',
   sourceSheetNameCandidates: [
+    'legacy-reservations-from2019_to2021沼津教室',
+    'legacy-reservations-from2019_to2021沼津教室.csv',
+    'LegacyDataform2019to2021',
+    'LegacyDataform2019to2021.csv',
+    'LegacyDatafrom2019to2021',
+    'LegacyDatafrom2019to2021.csv',
+    'legacy-reservations-from2022_04-to2025_01沼津教室',
+    'legacy-reservations-from2022_04-to2025_01沼津教室.csv',
+    'LegacyDatafrom2022-04-to2025-01numazu',
+    'LegacyDatafrom2022-04-to2025-01numazu.csv',
+    '🌲沼津教室 予約表 のコピー データ吐き出し用 - LegacyDatafrom2022-04-to2025-01numazu',
+    '🌲沼津教室 予約表 のコピー データ吐き出し用 - LegacyDatafrom2022-04-to2025-01numazu.csv',
     'legacy-reservations-from2023_10_21-to2025_02_16沼津教室',
     'legacy-reservations-from2023_10_21-to2025_02_16沼津教室.csv',
     'legacy-reservations-from2023_01-to2023_09沼津教室',
@@ -439,6 +453,108 @@ function _normalizeLegacyBoolean(value, fallback = false) {
     return false;
   }
   return fallback;
+}
+
+/**
+ * 来場手段を正規化
+ * - 旧CSVの TRUE/○ などは「車」に寄せる
+ * @param {unknown} value
+ * @returns {string}
+ */
+function _normalizeLegacyTransportation(value) {
+  if (value === null || value === undefined || value === '') return '';
+  if (typeof value === 'boolean') return value ? '車' : '';
+  if (typeof value === 'number') return value !== 0 ? '車' : '';
+
+  const raw = String(value).trim();
+  if (!raw) return '';
+  if (_normalizeLegacyBoolean(raw, false)) return '車';
+  const normalized = raw.toLowerCase();
+  if (
+    ['false', '0', 'no', 'n', 'off', 'なし', '無', 'いいえ'].includes(
+      normalized,
+    )
+  ) {
+    return '';
+  }
+  if (raw.includes('🚗')) return '車';
+  return raw;
+}
+
+/**
+ * セッションノート中の住所情報を可能な範囲で除去
+ * @param {string} note
+ * @param {string} [addressHint='']
+ * @returns {string}
+ */
+function _sanitizeLegacySessionNote(note, addressHint = '') {
+  let sanitized = String(note || '')
+    .replace(/\u3000/g, ' ')
+    .trim();
+  if (!sanitized) return '';
+
+  const hint = String(addressHint || '')
+    .replace(/\u3000/g, ' ')
+    .trim();
+  if (hint) {
+    const escapedHint = hint.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    sanitized = sanitized.replace(new RegExp(escapedHint, 'g'), ' ');
+  }
+
+  const addressLikePatterns = [
+    /〒\s*\d{3}-?\d{4}/g,
+    /(?:北海道|東京都|京都府|大阪府|[^\s、,，/／;；]{2,3}県)[^\s、,，/／;；]{0,24}(?:市|区|町|村)[^\s、,，/／;；]{0,24}/g,
+    /\d{1,4}(?:丁目|番地|番|号)/g,
+  ];
+  addressLikePatterns.forEach(pattern => {
+    sanitized = sanitized.replace(pattern, ' ');
+  });
+
+  return sanitized
+    .replace(/\s+/g, ' ')
+    .replace(/^[,，、/／|｜;；\s]+|[,，、/／|｜;；\s]+$/g, '')
+    .trim();
+}
+
+/**
+ * 同一表記でも別人物として扱うべきプレースホルダ名か判定
+ * @param {string} name
+ * @returns {boolean}
+ */
+function _isLegacyCompanionPlaceholderName(name) {
+  const normalized = _normalizeNameForMatching(name).replace(
+    /[^一-龥ぁ-んァ-ヶa-z0-9]/gi,
+    '',
+  );
+  return normalized === 'お連れ' || normalized === '連れ';
+}
+
+/**
+ * セッションノートへ補足情報を追記（重複は追加しない）
+ * @param {string} baseNote
+ * @param {string} extraNote
+ * @returns {string}
+ */
+function _appendLegacySessionNote(baseNote, extraNote) {
+  const base = String(baseNote || '').trim();
+  const extra = String(extraNote || '').trim();
+  if (!extra) return base;
+  if (!base) return extra;
+  if (base.includes(extra)) return base;
+  return `${base} / ${extra}`;
+}
+
+/**
+ * セッションノート追記用の参加時間ラベルを作る
+ * @param {unknown} value
+ * @returns {string}
+ */
+function _formatLegacyDurationHoursForNote(value) {
+  const hours = _toFiniteNumber(value);
+  if (hours === null || hours <= 0) return '';
+  const rounded = Math.round(hours * 100) / 100;
+  const text = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  return `参加時間: ${text}時間`;
 }
 
 /**
@@ -2153,6 +2269,8 @@ function _createReservationIdentityKey(reservation) {
  * @param {boolean} [config.stopOnError=false] - 行エラーで即中断するか
  * @param {boolean} [config.autoCreateStudentOnNameUnmatched=false] - 生徒名未一致時に名簿へ仮登録するか
  * @param {boolean} [config.autoCreateStudentOnNameAmbiguous=false] - 生徒名複数一致時に名簿へ仮登録するか
+ * @param {boolean} [config.appendDurationToSessionNote=false] - 参加時間をセッションノートへ追記するか
+ * @param {boolean} [config.sanitizeSessionNoteAddress=false] - セッションノート内の住所らしき情報を除去するか
  * @returns {LegacyImportResult} 取り込み結果サマリー
  */
 export function importLegacyReservations(config = {}) {
@@ -2174,6 +2292,10 @@ export function importLegacyReservations(config = {}) {
     input['autoCreateStudentOnNameUnmatched'] === true;
   const autoCreateStudentOnNameAmbiguous =
     input['autoCreateStudentOnNameAmbiguous'] === true;
+  const appendDurationToSessionNote =
+    input['appendDurationToSessionNote'] === true;
+  const sanitizeSessionNoteAddress =
+    input['sanitizeSessionNoteAddress'] === true;
   const autoCreateStudentOnNameMismatch =
     autoCreateStudentOnNameUnmatched || autoCreateStudentOnNameAmbiguous;
   const duplicateStrategyInput = String(
@@ -2305,6 +2427,8 @@ export function importLegacyReservations(config = {}) {
     let rosterRegistrationDateColForAutoCreate;
     /** @type {number | undefined} */
     let rosterNotesColForAutoCreate;
+    /** @type {number | undefined} */
+    let rosterAddressColForAutoCreate;
 
     if (autoCreateStudentOnNameMismatch) {
       if (!fallbackNameResolver) {
@@ -2340,6 +2464,10 @@ export function importLegacyReservations(config = {}) {
       rosterNotesColForAutoCreate = _getHeaderIndexFromAnyMap(
         rosterHeaderMap,
         CONSTANTS.HEADERS.ROSTER.NOTES,
+      );
+      rosterAddressColForAutoCreate = _getHeaderIndexFromAnyMap(
+        rosterHeaderMap,
+        CONSTANTS.HEADERS.ROSTER.ADDRESS,
       );
 
       if (rosterStudentIdColForAutoCreate === undefined) {
@@ -2406,13 +2534,15 @@ export function importLegacyReservations(config = {}) {
 
     /**
      * 未一致/複数一致の名前を名簿へ仮登録して生徒IDを返す
-     * @param {{ studentName: string; normalizedName: string; reason: 'unmatched' | 'ambiguous'; candidates?: string[]; sourceRowNumber: number }} params
+     * @param {{ studentName: string; normalizedName: string; reason: 'unmatched' | 'ambiguous'; candidates?: string[]; sourceRowNumber: number; address?: string; forceUniqueKey?: boolean }} params
      * @returns {string}
      */
     const ensureCreatedStudent = params => {
       const normalizedName =
         params.normalizedName || _normalizeNameForMatching(params.studentName);
-      const key = normalizedName || `raw:${params.studentName}`;
+      const key = params.forceUniqueKey
+        ? `row:${params.sourceRowNumber}:${params.studentName}`
+        : normalizedName || `raw:${params.studentName}`;
       const already = createdStudentByNormalizedName.get(key);
       if (already?.studentId) {
         return already.studentId;
@@ -2450,6 +2580,7 @@ export function importLegacyReservations(config = {}) {
           phone: '',
           realName: params.studentName,
           nickname: params.studentName,
+          address: String(params.address || '').trim(),
           notes: note,
         };
         const provisionalRow = convertUserToRow(
@@ -2469,6 +2600,11 @@ export function importLegacyReservations(config = {}) {
         }
         if (rosterNotesColForAutoCreate !== undefined) {
           rowToAppend[rosterNotesColForAutoCreate] = note;
+        }
+        if (rosterAddressColForAutoCreate !== undefined) {
+          rowToAppend[rosterAddressColForAutoCreate] = String(
+            params.address || '',
+          ).trim();
         }
         createdStudentRowsToAppend.push(rowToAppend);
       }
@@ -2514,40 +2650,66 @@ export function importLegacyReservations(config = {}) {
           _firstNotEmpty(getValue('studentName'), defaults['studentName']) ||
             '',
         ).trim();
+        const legacyFrom = String(
+          _firstNotEmpty(getValue('legacyFrom'), defaults['legacyFrom']) || '',
+        ).trim();
         if (!studentId && studentName && fallbackNameResolver) {
-          const resolvedByName = fallbackNameResolver.resolve(studentName);
-          if (resolvedByName.status === 'matched') {
-            studentId = resolvedByName.studentId;
-          } else if (resolvedByName.status === 'ambiguous') {
-            if (autoCreateStudentOnNameAmbiguous) {
+          const isCompanionPlaceholder =
+            _isLegacyCompanionPlaceholderName(studentName);
+          if (isCompanionPlaceholder) {
+            if (autoCreateStudentOnNameUnmatched) {
               studentId = ensureCreatedStudent({
                 studentName,
-                normalizedName: resolvedByName.normalizedName,
-                reason: 'ambiguous',
-                candidates: resolvedByName.candidates,
+                normalizedName: _normalizeNameForMatching(studentName),
+                reason: 'unmatched',
                 sourceRowNumber,
+                address: legacyFrom,
+                forceUniqueKey: true,
               });
             } else {
               skipped++;
               pushWarning(
-                `行${sourceRowNumber}: 生徒名が複数一致のためスキップ（name=${studentName}, candidates=${resolvedByName.candidates.join(',')})`,
+                `行${sourceRowNumber}: 生徒名「${studentName}」は同名別人の可能性が高いため、名簿自動追加を有効にしてください`,
               );
               return;
             }
           } else {
-            if (autoCreateStudentOnNameUnmatched) {
-              studentId = ensureCreatedStudent({
-                studentName,
-                normalizedName: resolvedByName.normalizedName,
-                reason: 'unmatched',
-                sourceRowNumber,
-              });
+            const resolvedByName = fallbackNameResolver.resolve(studentName);
+            if (resolvedByName.status === 'matched') {
+              studentId = resolvedByName.studentId;
+            } else if (resolvedByName.status === 'ambiguous') {
+              if (autoCreateStudentOnNameAmbiguous) {
+                studentId = ensureCreatedStudent({
+                  studentName,
+                  normalizedName: resolvedByName.normalizedName,
+                  reason: 'ambiguous',
+                  candidates: resolvedByName.candidates,
+                  sourceRowNumber,
+                  address: legacyFrom,
+                });
+              } else {
+                skipped++;
+                pushWarning(
+                  `行${sourceRowNumber}: 生徒名が複数一致のためスキップ（name=${studentName}, candidates=${resolvedByName.candidates.join(',')})`,
+                );
+                return;
+              }
             } else {
-              skipped++;
-              pushWarning(
-                `行${sourceRowNumber}: 生徒名が名簿に見つからないためスキップ（name=${studentName})`,
-              );
-              return;
+              if (autoCreateStudentOnNameUnmatched) {
+                studentId = ensureCreatedStudent({
+                  studentName,
+                  normalizedName: resolvedByName.normalizedName,
+                  reason: 'unmatched',
+                  sourceRowNumber,
+                  address: legacyFrom,
+                });
+              } else {
+                skipped++;
+                pushWarning(
+                  `行${sourceRowNumber}: 生徒名が名簿に見つからないためスキップ（name=${studentName})`,
+                );
+                return;
+              }
             }
           }
         }
@@ -2635,19 +2797,32 @@ export function importLegacyReservations(config = {}) {
           _firstNotEmpty(getValue('firstLecture'), defaults['firstLecture']),
           false,
         );
-        const transportation = String(
+        const transportation = _normalizeLegacyTransportation(
           _firstNotEmpty(
             getValue('transportation'),
             defaults['transportation'],
-          ) || '',
-        ).trim();
+          ),
+        );
         const pickup = String(
           _firstNotEmpty(getValue('pickup'), defaults['pickup']) || '',
         ).trim();
-        const sessionNote = String(
+        const durationHours = _firstNotEmpty(
+          getValue('durationHours'),
+          defaults['durationHours'],
+        );
+        let sessionNote = String(
           _firstNotEmpty(getValue('sessionNote'), defaults['sessionNote']) ||
             '',
-        );
+        ).trim();
+        if (sanitizeSessionNoteAddress) {
+          sessionNote = _sanitizeLegacySessionNote(sessionNote, legacyFrom);
+        }
+        if (appendDurationToSessionNote) {
+          sessionNote = _appendLegacySessionNote(
+            sessionNote,
+            _formatLegacyDurationHoursForNote(durationHours),
+          );
+        }
         const order = String(
           _firstNotEmpty(getValue('order'), defaults['order']) || '',
         );
@@ -2989,6 +3164,9 @@ function _buildTsukubaLegacyCsvImportRequest(config = {}, dryRun = true) {
       ),
       autoCreateStudentOnNameUnmatched: true,
       autoCreateStudentOnNameAmbiguous: true,
+      appendDurationToSessionNote:
+        input['appendDurationToSessionNote'] === true,
+      sanitizeSessionNoteAddress: input['sanitizeSessionNoteAddress'] === true,
     },
     sourceSheetName,
   };
@@ -3004,6 +3182,27 @@ function _buildTsukubaLegacyCsvImportRequest(config = {}, dryRun = true) {
 function _buildNumazuLegacyCsvImportRequest(config = {}, dryRun = true) {
   /** @type {Record<string, any>} */
   const input = /** @type {Record<string, any>} */ (config || {});
+  const inputFieldMap =
+    typeof input['fieldMap'] === 'object' && input['fieldMap']
+      ? /** @type {Record<string, any>} */ (input['fieldMap'])
+      : {};
+  /** @type {Record<string, any>} */
+  const numazuFieldMap = {
+    venue: ['venue', '会場'],
+    firstLecture: ['TRUE回', '初回', 'firstLecture'],
+    chiselRental: ['刀', '彫刻刀', '彫刻刀レンタル', 'chiselRental'],
+    transportation: ['車', '来場手段', 'transportation'],
+    sessionNote: [
+      '作るもの・備考',
+      'セッションノート',
+      '備考',
+      'note',
+      'sessionNote',
+    ],
+    order: ['注文など', '注文', 'order'],
+    durationHours: ['参加時間', 'durationHours'],
+    legacyFrom: ['from'],
+  };
   const sourceSpreadsheetId = String(
     _firstNotEmpty(
       input['sourceSpreadsheetId'],
@@ -3050,6 +3249,12 @@ function _buildNumazuLegacyCsvImportRequest(config = {}, dryRun = true) {
         input['defaultScheduleStatus'],
         NUMAZU_LEGACY_CSV_IMPORT_DEFAULTS.defaultScheduleStatus,
       ),
+      fieldMap: {
+        ...numazuFieldMap,
+        ...inputFieldMap,
+      },
+      appendDurationToSessionNote:
+        input['appendDurationToSessionNote'] !== false,
     },
     dryRun,
   );

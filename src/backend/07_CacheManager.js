@@ -830,7 +830,7 @@ export function rebuildAllStudentsCache() {
     };
 
     const cacheDataJson = JSON.stringify(cacheData);
-    const dataSizeKB = Math.round(cacheDataJson.length / 1024);
+    const dataSizeKB = Math.round(getUtf8ByteLength(cacheDataJson) / 1024);
 
     Logger.log(
       `生徒全情報キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${studentsArray.length}`,
@@ -1206,7 +1206,7 @@ export function rebuildAllReservationsCache() {
     };
 
     const cacheDataJson = JSON.stringify(testCacheData);
-    const dataSizeKB = Math.round(cacheDataJson.length / 1024);
+    const dataSizeKB = Math.round(getUtf8ByteLength(cacheDataJson) / 1024);
 
     PerformanceLog.debug(
       `キャッシュデータサイズ: ${dataSizeKB}KB, 件数: ${sortedReservations.length}`,
@@ -1226,7 +1226,6 @@ export function rebuildAllReservationsCache() {
       const metadata = /** @type {ChunkedCacheMetadata} */ ({
         version: new Date().getTime(),
         headerMap: Object.fromEntries(headerColumnMap),
-        reservationIdIndexMap: reservationIdIndexMap,
         totalCount: sortedReservations.length,
         totalChunks: 0, // saveChunkedDataToCache内で設定される
         isChunked: true,
@@ -2753,6 +2752,22 @@ export const CHUNK_SIZE_LIMIT_KB = 90; // 90KBでチャンク分割（余裕を�
 export const MAX_CHUNKS = 20; // 最大チャンク数
 
 /**
+ * UTF-8バイト長を取得
+ * @param {unknown} value
+ * @returns {number}
+ */
+function getUtf8ByteLength(value) {
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  if (!text) return 0;
+  try {
+    return Utilities.newBlob(text).getBytes().length;
+  } catch {
+    // フォールバック（GAS実行時は通常ここに来ない）
+    return text.length;
+  }
+}
+
+/**
  * データを指定サイズで分割する関数
  * @param {(string|number|Date)[][]|StudentData[]} data - 分割対象のデータ配列
  * @param {number} maxSizeKB - 最大サイズ（KB）
@@ -2763,14 +2778,16 @@ export function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
 
   /** @type {((string|number|Date)[][]|StudentData[])[]} */
   const chunks = [];
+  const maxSizeBytes = maxSizeKB * 1024;
 
   // アイテムあたりの平均サイズを推定（全データの10%をサンプル）
   const sampleSize = Math.min(Math.ceil(data.length * 0.1), 50);
   const sampleItems = data.slice(0, sampleSize);
-  const sampleTotalSize = JSON.stringify(sampleItems).length;
-  const avgItemSizeBytes = sampleTotalSize / sampleSize;
-  const estimatedItemsPerChunk = Math.floor(
-    ((maxSizeKB * 1024) / avgItemSizeBytes) * 0.8,
+  const sampleTotalSizeBytes = getUtf8ByteLength(sampleItems);
+  const avgItemSizeBytes = sampleTotalSizeBytes / Math.max(1, sampleSize);
+  const estimatedItemsPerChunk = Math.max(
+    1,
+    Math.floor((maxSizeBytes / Math.max(1, avgItemSizeBytes)) * 0.8),
   ); // 80%の余裕を持つ
 
   Logger.log(
@@ -2780,31 +2797,39 @@ export function splitDataIntoChunks(data, maxSizeKB = CHUNK_SIZE_LIMIT_KB) {
   );
 
   for (let i = 0; i < data.length; i += estimatedItemsPerChunk) {
-    const chunkData = data.slice(i, i + estimatedItemsPerChunk);
+    const initialChunkData = data.slice(i, i + estimatedItemsPerChunk);
+    /** @type {Array<(string|number|Date)[][]|StudentData[]>} */
+    const pending = [initialChunkData];
 
-    // 実際のチャンクサイズを確認
-    const chunkSizeKB = Math.round(JSON.stringify(chunkData).length / 1024);
+    while (pending.length > 0) {
+      const chunkData = pending.pop();
+      if (!chunkData || chunkData.length === 0) continue;
 
-    if (chunkSizeKB <= maxSizeKB) {
-      chunks.push(chunkData);
-      Logger.log(
-        `チャンク${chunks.length - 1}: ${chunkData.length}件, ${chunkSizeKB}KB`,
-      );
-    } else {
-      // チャンクが大きすぎる場合は更に半分に分割
+      const chunkSizeBytes = getUtf8ByteLength(chunkData);
+      const chunkSizeKB = Math.round(chunkSizeBytes / 1024);
+
+      if (chunkSizeBytes <= maxSizeBytes || chunkData.length === 1) {
+        chunks.push(chunkData);
+        Logger.log(
+          `チャンク${chunks.length - 1}: ${chunkData.length}件, ${chunkSizeKB}KB`,
+        );
+        continue;
+      }
+
       const halfSize = Math.floor(chunkData.length / 2);
+      if (halfSize <= 0) {
+        chunks.push(chunkData);
+        Logger.log(
+          `⚠️ チャンク${chunks.length - 1}をサイズ超過のまま保存候補に追加: ${chunkData.length}件, ${chunkSizeKB}KB`,
+        );
+        continue;
+      }
+
       const firstHalf = chunkData.slice(0, halfSize);
       const secondHalf = chunkData.slice(halfSize);
-
-      chunks.push(firstHalf);
-      chunks.push(secondHalf);
-
-      Logger.log(
-        `チャンク${chunks.length - 2}: ${firstHalf.length}件 (分割1/2)`,
-      );
-      Logger.log(
-        `チャンク${chunks.length - 1}: ${secondHalf.length}件 (分割2/2)`,
-      );
+      // LIFOのため逆順で積み、元の順序を維持する
+      pending.push(secondHalf);
+      pending.push(firstHalf);
     }
   }
 
@@ -2840,7 +2865,26 @@ export function saveChunkedDataToCache(
       totalChunks: dataChunks.length,
       lastUpdated: new Date().toISOString(),
     };
-    cache.put(metaCacheKey, JSON.stringify(metaData), expiry);
+    /** @type {Record<string, any>} */
+    const metadataToSave = { ...metaData };
+    // reservationIdIndexMapはサイズが大きいため、分割キャッシュ時は再構築に委ねる
+    if (
+      baseKey === CACHE_KEYS.ALL_RESERVATIONS &&
+      metadataToSave['reservationIdIndexMap']
+    ) {
+      delete metadataToSave['reservationIdIndexMap'];
+    }
+
+    const metaJson = JSON.stringify(metadataToSave);
+    const metaSizeBytes = getUtf8ByteLength(metaJson);
+    const cachePutLimitBytes = 95 * 1024;
+    if (metaSizeBytes > cachePutLimitBytes) {
+      Logger.log(
+        `⚠️ メタデータが大きすぎるため保存できません: ${Math.round(metaSizeBytes / 1024)}KB`,
+      );
+      return false;
+    }
+    cache.put(metaCacheKey, metaJson, expiry);
 
     // 各チャンクを保存
     for (let i = 0; i < dataChunks.length; i++) {
@@ -2852,9 +2896,10 @@ export function saveChunkedDataToCache(
       };
 
       const chunkJson = JSON.stringify(chunkData);
-      const chunkSizeKB = Math.round(chunkJson.length / 1024);
+      const chunkSizeBytes = getUtf8ByteLength(chunkJson);
+      const chunkSizeKB = Math.round(chunkSizeBytes / 1024);
 
-      if (chunkSizeKB > 95) {
+      if (chunkSizeBytes > cachePutLimitBytes) {
         Logger.log(`⚠️ チャンク${i}が大きすぎます: ${chunkSizeKB}KB`);
         return false;
       }
@@ -3213,7 +3258,7 @@ function persistStudentCache(studentsMap, headerMap) {
   };
 
   const serialized = JSON.stringify(baseData);
-  const sizeKB = Math.round(serialized.length / 1024);
+  const sizeKB = Math.round(getUtf8ByteLength(serialized) / 1024);
 
   if (sizeKB >= CHUNK_SIZE_LIMIT_KB) {
     const studentArray = Object.values(studentsMap);
