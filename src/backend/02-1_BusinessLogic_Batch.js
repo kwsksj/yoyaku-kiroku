@@ -553,7 +553,7 @@ function _formatLegacyDurationHoursForNote(value) {
   const hours = _toFiniteNumber(value);
   if (hours === null || hours <= 0) return '';
   const rounded = Math.round(hours * 100) / 100;
-  const text = Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  const text = String(rounded);
   return `参加時間: ${text}時間`;
 }
 

@@ -1787,13 +1787,16 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
       );
       startIndex = 0;
     }
-    props.setProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH, orderHash);
 
     if (startIndex >= total) {
       // 完了済みの場合は、次回以降に0から再実行されないようカーソルを保持する
       props.setProperty(
         PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
         String(total),
+      );
+      props.setProperty(
+        PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH,
+        orderHash,
       );
       return {
         success: true,
@@ -1917,6 +1920,7 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
       PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
       String(endIndex),
     );
+    props.setProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH, orderHash);
 
     return {
       success: true,
