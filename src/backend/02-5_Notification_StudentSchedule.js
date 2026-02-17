@@ -576,6 +576,39 @@ export function _getNotificationRecipients(targetDay, targetHour) {
 }
 
 /**
+ * 時刻文字列（HH:mm）を分に変換
+ * @param {string|undefined} timeStr - 時刻文字列
+ * @returns {number|null} 分換算した値（変換不可時はnull）
+ * @private
+ */
+function _parseTimeToMinutes(timeStr) {
+  if (!timeStr) return null;
+  const [hourStr, minuteStr] = String(timeStr).split(':');
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr || '0');
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  return hour * 60 + minute;
+}
+
+/**
+ * 夜教室か判定（開始時刻が17:00以降）
+ * @param {LessonCore} lesson - 日程データ
+ * @returns {boolean} 夜教室ならtrue
+ * @private
+ */
+function _isNightLesson(lesson) {
+  const candidateTimes = [
+    lesson.firstStart,
+    lesson.startTime,
+    lesson.secondStart,
+  ];
+  return candidateTimes.some(timeStr => {
+    const startMinutes = _parseTimeToMinutes(timeStr);
+    return startMinutes !== null && startMinutes >= 17 * 60;
+  });
+}
+
+/**
  * メール本文を生成
  * @param {UserCore} student - 生徒情報
  * @param {Array<{date: string, startTime: string, endTime: string, status: string, classroom: string, venue: string}>} reservations - 生徒のよやく一覧
@@ -660,9 +693,10 @@ export function _generateEmailBody(student, reservations, lessons) {
         const monthDay = `${lessonDate.getMonth() + 1}/${String(lessonDate.getDate()).padStart(2, ' ')}`;
         const weekdays = ['日', '月', '火', '水', '木', '金', '土'];
         const weekday = weekdays[lessonDate.getDay()];
+        const nightLabel = _isNightLesson(lesson) ? ' 夜' : '';
 
         // 日付と会場
-        let line = `・${monthDay}${weekday}`;
+        let line = `・${monthDay}${weekday}${nightLabel}`;
         if (lesson.venue) {
           line += ` ${lesson.venue}`;
         }
