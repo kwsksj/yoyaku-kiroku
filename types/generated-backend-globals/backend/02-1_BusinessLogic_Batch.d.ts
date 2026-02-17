@@ -16,6 +16,8 @@
  * @param {boolean} [config.stopOnError=false] - 行エラーで即中断するか
  * @param {boolean} [config.autoCreateStudentOnNameUnmatched=false] - 生徒名未一致時に名簿へ仮登録するか
  * @param {boolean} [config.autoCreateStudentOnNameAmbiguous=false] - 生徒名複数一致時に名簿へ仮登録するか
+ * @param {boolean} [config.appendDurationToSessionNote=false] - 参加時間をセッションノートへ追記するか
+ * @param {boolean} [config.sanitizeSessionNoteAddress=false] - セッションノート内の住所らしき情報を除去するか
  * @returns {LegacyImportResult} 取り込み結果サマリー
  */
 export function importLegacyReservations(config?: {
@@ -32,6 +34,8 @@ export function importLegacyReservations(config?: {
     stopOnError?: boolean;
     autoCreateStudentOnNameUnmatched?: boolean;
     autoCreateStudentOnNameAmbiguous?: boolean;
+    appendDurationToSessionNote?: boolean;
+    sanitizeSessionNoteAddress?: boolean;
 }): LegacyImportResult;
 /**
  * 旧つくばCSV（整形済み）を dry run で解析する

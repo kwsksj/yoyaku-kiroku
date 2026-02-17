@@ -45,6 +45,8 @@ const PROPS_KEY_NOTION_SCHEDULE_DB_ID = 'NOTION_SCHEDULE_DATABASE_ID';
 const PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR = 'NOTION_STUDENT_SYNC_CURSOR';
 const PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR =
   'NOTION_RESERVATION_SYNC_CURSOR';
+const PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH =
+  'NOTION_RESERVATION_SYNC_ORDER_HASH';
 const PROPS_KEY_NOTION_BATCH_TRIGGER_ID = 'NOTION_BATCH_TRIGGER_ID';
 
 /** Notion分割同期のトリガー設定 */
@@ -395,6 +397,7 @@ export function clearNotionCredentials() {
   props.deleteProperty(PROPS_KEY_NOTION_SCHEDULE_DB_ID);
   props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
   props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
+  props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH);
   Logger.log('Notion認証情報を削除しました');
 }
 
@@ -1078,6 +1081,7 @@ export function resetNotionStudentSyncCursor() {
 export function resetNotionReservationSyncCursor() {
   const props = PropertiesService.getScriptProperties();
   props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
+  props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH);
   Logger.log('Notion予約一括同期カーソルをリセットしました');
 }
 
@@ -1762,14 +1766,37 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
       PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
     );
     const cursorIndex = storedCursor ? Number(storedCursor) : 0;
-    const startIndex =
+    let startIndex =
       Number.isFinite(cursorIndex) && cursorIndex > 0 ? cursorIndex : 0;
+    const orderHash = _computeStringArrayHash(orderedIds);
+    const storedOrderHash = props.getProperty(
+      PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH,
+    );
+    if (startIndex > 0 && !storedOrderHash) {
+      Logger.log(
+        'Notion予約一括同期: 順序ハッシュが未初期化のため、カーソルを先頭に戻して全件確認します。',
+      );
+      startIndex = 0;
+    } else if (
+      startIndex > 0 &&
+      storedOrderHash &&
+      storedOrderHash !== orderHash
+    ) {
+      Logger.log(
+        `Notion予約一括同期: 並び順変更を検知したためカーソルを先頭に戻します（旧=${storedOrderHash.slice(0, 8)}..., 新=${orderHash.slice(0, 8)}...）`,
+      );
+      startIndex = 0;
+    }
 
     if (startIndex >= total) {
       // 完了済みの場合は、次回以降に0から再実行されないようカーソルを保持する
       props.setProperty(
         PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
         String(total),
+      );
+      props.setProperty(
+        PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH,
+        orderHash,
       );
       return {
         success: true,
@@ -1893,6 +1920,7 @@ export function syncAllReservationsToNotionChunk(batchSize = 100) {
       PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR,
       String(endIndex),
     );
+    props.setProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH, orderHash);
 
     return {
       success: true,
@@ -1971,8 +1999,22 @@ export function syncAllSchedulesToNotion() {
         );
         const rowHash = _computeRowHash(normalized);
         const propertyNames = Object.keys(normalized);
+        const sourceId = String(lessonId);
+        const existingPage = pageMap.get(sourceId);
 
-        const existingPage = pageMap.get(String(lessonId));
+        const meta = _getNotionSyncMeta(NOTION_SYNC_ENTITY.SCHEDULE, sourceId);
+        // メタ rowHash だけでのスキップは、対象DB上にページが確認できる場合のみ許可する
+        if (existingPage && meta?.rowHash && meta.rowHash === rowHash) {
+          skipped++;
+          _upsertNotionSyncMeta(
+            NOTION_SYNC_ENTITY.SCHEDULE,
+            sourceId,
+            existingPage.id,
+            rowHash,
+          );
+          return;
+        }
+
         if (existingPage) {
           if (
             _shouldSkipNotionUpdate(
@@ -1985,7 +2027,7 @@ export function syncAllSchedulesToNotion() {
             skipped++;
             _upsertNotionSyncMeta(
               NOTION_SYNC_ENTITY.SCHEDULE,
-              String(lessonId),
+              sourceId,
               existingPage.id,
               rowHash,
             );
@@ -2000,7 +2042,7 @@ export function syncAllSchedulesToNotion() {
               updated++;
               _upsertNotionSyncMeta(
                 NOTION_SYNC_ENTITY.SCHEDULE,
-                String(lessonId),
+                sourceId,
                 result.pageId || existingPage.id,
                 rowHash,
               );
@@ -2020,7 +2062,7 @@ export function syncAllSchedulesToNotion() {
             if (result.pageId) {
               _upsertNotionSyncMeta(
                 NOTION_SYNC_ENTITY.SCHEDULE,
-                String(lessonId),
+                sourceId,
                 result.pageId,
                 rowHash,
               );
@@ -2934,6 +2976,28 @@ function _computeRowHash(normalized) {
   });
 
   const json = JSON.stringify(sorted);
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    json,
+    Utilities.Charset.UTF_8,
+  );
+  return digest
+    .map(byte => `0${(byte & 0xff).toString(16)}`.slice(-2))
+    .join('');
+}
+
+/**
+ * 文字列配列から順序依存ハッシュを生成します
+ *
+ * @param {string[]} values
+ * @returns {string}
+ * @private
+ */
+function _computeStringArrayHash(values) {
+  const normalized = Array.isArray(values)
+    ? values.map(value => String(value || ''))
+    : [];
+  const json = JSON.stringify(normalized);
   const digest = Utilities.computeDigest(
     Utilities.DigestAlgorithm.SHA_256,
     json,
