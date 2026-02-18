@@ -1441,6 +1441,15 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
             isValidRow = false;
             break;
           }
+        } else if (
+          header === CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT &&
+          value instanceof Date
+        ) {
+          value = Utilities.formatDate(
+            value,
+            CONSTANTS.TIMEZONE,
+            'yyyy-MM-dd HH:mm:ss',
+          );
         }
 
         // 日本語ヘッダーを英語プロパティ名に変換
@@ -1481,6 +1490,12 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
             break;
           case CONSTANTS.HEADERS.SCHEDULE.STATUS:
             propertyName = 'status';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS:
+            propertyName = 'salesTransferStatus';
+            break;
+          case CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT:
+            propertyName = 'salesTransferredAt';
             break;
           case CONSTANTS.HEADERS.SCHEDULE.NOTES:
             propertyName = 'notes';

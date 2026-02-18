@@ -192,7 +192,7 @@ export interface UIState {
   currentReservationFormContext: ReservationFormContext | null;
 
   // --- Participants View (Admin) ---
-  participantSubView?: 'list' | 'studentDetail';
+  participantSubView?: 'list' | 'studentDetail' | 'salesCelebration';
   participantLessons?: LessonCore[];
   participantReservationsMap?: Record<string, ReservationCore[]>; // 全レッスンの予約データ（キー: lessonId）
   participantSelectedStudent?: UserCore | null;

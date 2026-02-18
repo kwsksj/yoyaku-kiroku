@@ -193,6 +193,17 @@ export function processAccountingWithTransferOption(formData: any, calculationRe
     message: string;
 }>;
 /**
+ * 管理画面から売上転載を手動実行（または事前集計プレビュー）するエンドポイント
+ * @param {{ targetDate?: string, previewOnly?: boolean, adminToken?: string, _adminToken?: string }} payload
+ * @returns {ApiResponseGeneric<any>}
+ */
+export function runSalesTransferFromAdmin(payload?: {
+    targetDate?: string;
+    previewOnly?: boolean;
+    adminToken?: string;
+    _adminToken?: string;
+}): ApiResponseGeneric<any>;
+/**
  * セッション終了ウィザードの統合処理エンドポイント
  * 1. 今日の記録（sessionNote）を更新
  * 2. 会計処理を実行

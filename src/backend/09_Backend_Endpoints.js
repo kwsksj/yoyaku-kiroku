@@ -26,10 +26,15 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
+  buildSalesTransferReportByDate,
+  transferSalesLogByDate,
+} from './02-1_BusinessLogic_Batch.js';
+import {
   authenticateUser,
   isAdminLogin,
   issueAdminSessionToken,
   registerNewUser,
+  validateAdminSessionToken,
 } from './04_Backend_User.js';
 import {
   cancelReservation,
@@ -52,6 +57,8 @@ import {
   clearChunkedCache,
   getStudentCacheSnapshot,
   getTypedCachedData,
+  rebuildScheduleMasterCache,
+  updateScheduleStatusToCompleted,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
@@ -1586,6 +1593,12 @@ export function getPastLessonsForParticipantsView(
       CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY,
     );
     const statusColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
+    const salesTransferStatusColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS,
+    );
+    const salesTransferAtColumn = headerRow.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT,
+    );
     const notesColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.NOTES);
 
     if (dateColumn === -1 || classroomColumn === -1) {
@@ -1616,6 +1629,23 @@ export function getPastLessonsForParticipantsView(
       if (value === null || value === undefined || value === '') return 0;
       const parsed = parseInt(String(value), 10);
       return Number.isNaN(parsed) ? 0 : parsed;
+    };
+
+    /**
+     * 日時セルを表示文字列へ変換します。
+     * @param {any} value
+     * @returns {string}
+     */
+    const toDateTimeString = value => {
+      if (!value) return '';
+      if (value instanceof Date) {
+        return Utilities.formatDate(
+          value,
+          CONSTANTS.TIMEZONE,
+          'yyyy-MM-dd HH:mm:ss',
+        );
+      }
+      return String(value);
     };
 
     /** @type {LessonCore[]} */
@@ -1658,6 +1688,14 @@ export function getPastLessonsForParticipantsView(
         beginnerCapacityColumn >= 0 ? row[beginnerCapacityColumn] : 0,
       );
       const status = String(statusColumn >= 0 ? row[statusColumn] || '' : '');
+      const salesTransferStatus = String(
+        salesTransferStatusColumn >= 0
+          ? row[salesTransferStatusColumn] || ''
+          : '',
+      );
+      const salesTransferredAt = toDateTimeString(
+        salesTransferAtColumn >= 0 ? row[salesTransferAtColumn] : '',
+      );
       const notes = String(notesColumn >= 0 ? row[notesColumn] || '' : '');
       const reservationIds = parseScheduleReservationIds(
         reservationIdsColumn >= 0 ? row[reservationIdsColumn] : [],
@@ -1681,6 +1719,8 @@ export function getPastLessonsForParticipantsView(
         classroomType,
         notes,
         status,
+        salesTransferStatus,
+        salesTransferredAt,
         firstStart,
         firstEnd,
         secondStart,
@@ -2153,6 +2193,82 @@ export function processAccountingWithTransferOption(
     );
     return createApiErrorResponse(
       `会計処理中にエラーが発生しました: ${error.message}`,
+      true,
+    );
+  }
+}
+
+/**
+ * 管理画面から売上転載を手動実行（または事前集計プレビュー）するエンドポイント
+ * @param {{ targetDate?: string, previewOnly?: boolean, adminToken?: string, _adminToken?: string }} payload
+ * @returns {ApiResponseGeneric<any>}
+ */
+export function runSalesTransferFromAdmin(payload = {}) {
+  try {
+    const adminToken = payload?._adminToken || payload?.adminToken || '';
+    if (!validateAdminSessionToken(adminToken)) {
+      return createApiErrorResponse(
+        '管理者権限が確認できません。再ログインしてください。',
+      );
+    }
+
+    const targetDate = payload?.targetDate || '';
+    const previewOnly = payload?.previewOnly === true;
+
+    const reportResult = buildSalesTransferReportByDate(targetDate);
+    if (!reportResult.success) {
+      return createApiErrorResponse('売上集計の作成に失敗しました。');
+    }
+
+    if (previewOnly) {
+      return createApiResponse(true, {
+        message: '売上集計を取得しました。',
+        report: reportResult,
+      });
+    }
+
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_START,
+      '実行中',
+      `管理画面実行: 対象日 ${reportResult.targetDate}`,
+    );
+
+    const transferResult = transferSalesLogByDate(reportResult.targetDate);
+
+    // 手動転載でも、従来トリガー運用と同様に日程ステータスを開催済みに更新する
+    const updatedStatusCount = updateScheduleStatusToCompleted();
+    if (updatedStatusCount > 0) {
+      rebuildScheduleMasterCache();
+    }
+
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_SUCCESS,
+      '成功',
+      `管理画面実行: 対象日 ${reportResult.targetDate}, 処理件数 ${transferResult.totalCount}件, 成功 ${transferResult.successCount}件, 日程更新 ${updatedStatusCount}件`,
+    );
+
+    return createApiResponse(true, {
+      message: '売上転載が完了しました。',
+      report: reportResult,
+      transferResult,
+      updatedStatusCount,
+    });
+  } catch (error) {
+    Logger.log(
+      `[runSalesTransferFromAdmin] エラー: ${error.message}\nStack: ${error.stack}`,
+    );
+
+    logActivity(
+      'SYSTEM',
+      CONSTANTS.LOG_ACTIONS.BATCH_SALES_TRANSFER_ERROR,
+      '失敗',
+      `管理画面実行エラー: ${error.message}`,
+    );
+
+    return createApiErrorResponse(
+      `売上転載処理中にエラーが発生しました: ${error.message}`,
       true,
     );
   }

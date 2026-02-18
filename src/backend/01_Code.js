@@ -24,7 +24,10 @@
 // ================================================================
 // 依存モジュール
 // ================================================================
-import { repostSalesLogByDate } from './02-1_BusinessLogic_Batch.js';
+import {
+  populateTestSalesTransferData,
+  repostSalesLogByDate,
+} from './02-1_BusinessLogic_Batch.js';
 import { sendMonthlyNotificationEmails } from './02-5_Notification_StudentSchedule.js';
 import { rebuildAllCachesEntryPoint } from './07_CacheManager.js';
 import { handleError } from './08_Utilities.js';
@@ -55,6 +58,52 @@ export function include(filename) {
  * @param {GoogleAppsScript.Events.DoGet} e
  */
 export function doGet(e) {
+  if (
+    !CONSTANTS.ENVIRONMENT.PRODUCTION_MODE &&
+    e &&
+    e.parameter &&
+    e.parameter['seedTestSalesTransfer'] === 'run'
+  ) {
+    try {
+      const targetDate = String(e.parameter['targetDate'] || '').trim();
+      const sameDateOnlyParam = String(e.parameter['sameDateOnly'] || '')
+        .trim()
+        .toLowerCase();
+      const sameDateOnly =
+        sameDateOnlyParam === '1' ||
+        sameDateOnlyParam === 'true' ||
+        sameDateOnlyParam === 'yes';
+      const result = populateTestSalesTransferData(targetDate, {
+        sameDateOnly,
+      });
+      return ContentService.createTextOutput(
+        JSON.stringify(
+          {
+            success: true,
+            timestamp: new Date().toISOString(),
+            result,
+          },
+          null,
+          2,
+        ),
+      ).setMimeType(ContentService.MimeType.JSON);
+    } catch (error) {
+      return ContentService.createTextOutput(
+        JSON.stringify(
+          {
+            success: false,
+            message:
+              error && typeof error.message === 'string'
+                ? error.message
+                : String(error || 'Unknown error'),
+          },
+          null,
+          2,
+        ),
+      ).setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   // URLパラメータでテストモードかどうかを判定
   const isTestMode = e && e.parameter && e.parameter['test'] === 'true';
 

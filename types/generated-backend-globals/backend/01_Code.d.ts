@@ -7,7 +7,7 @@ export function include(filename: string): string;
 /**
  * @param {GoogleAppsScript.Events.DoGet} e
  */
-export function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutput;
+export function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Content.TextOutput | GoogleAppsScript.HTML.HtmlOutput;
 export function onOpen(): void;
 /**
  * 選択範囲変更時に実行されるシンプルトリガー

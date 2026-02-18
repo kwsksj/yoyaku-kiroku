@@ -344,6 +344,8 @@ export const CONSTANTS = {
       TOTAL_CAPACITY: '全体定員',
       BEGINNER_CAPACITY: '初回者定員',
       STATUS: 'ステータス',
+      SALES_TRANSFER_STATUS: '売上転載状態',
+      SALES_TRANSFER_AT: '売上転載日時',
       NOTES: '備考',
     },
 
@@ -416,6 +418,12 @@ export const CONSTANTS = {
      * 毎日この時刻に当日の会計済みよやくを売上表に転載する
      */
     SALES_TRANSFER_HOUR: 20, // 20時
+    SALES_TRANSFER_STATUS: {
+      PENDING: '未転載',
+      COMPLETED: '転載済み',
+      PARTIAL: '一部失敗',
+      FAILED: '失敗',
+    },
   },
 
   // メール通知設定

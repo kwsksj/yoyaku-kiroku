@@ -233,6 +233,8 @@ declare global {
         readonly TOTAL_CAPACITY: string;
         readonly BEGINNER_CAPACITY: string;
         readonly STATUS: string;
+        readonly SALES_TRANSFER_STATUS: string;
+        readonly SALES_TRANSFER_AT: string;
         readonly NOTES: string;
       };
       readonly SALES_LOG: {
@@ -285,6 +287,12 @@ declare global {
     readonly ACCOUNTING_SYSTEM: {
       readonly MODIFICATION_DEADLINE_HOUR: number;
       readonly SALES_TRANSFER_HOUR: number;
+      readonly SALES_TRANSFER_STATUS: {
+        readonly PENDING: string;
+        readonly COMPLETED: string;
+        readonly PARTIAL: string;
+        readonly FAILED: string;
+      };
     };
     readonly NOTIFICATION: {
       readonly DAYS: number[];

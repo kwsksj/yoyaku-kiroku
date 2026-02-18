@@ -24,6 +24,8 @@ const participantHandlersStateManager = appWindow.stateManager;
 let hasMorePastLessons = true;
 /** @type {boolean} 過去データ追加入力中フラグ */
 let isLoadingMorePastLessons = false;
+/** @type {ReturnType<typeof setTimeout> | null} 達成演出タイマー */
+let salesCelebrationTimer = null;
 
 /**
  * 過去データのページング状態を初期化します。
@@ -1177,12 +1179,367 @@ function loadMorePastParticipantLessons() {
 }
 
 /**
+ * ローカル日付（YYYY-MM-DD）を返します。
+ * @returns {string}
+ */
+function getLocalTodayYmd() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * 売上転載対象日の文字列を正規化します。
+ * @param {string | undefined | null} rawDate
+ * @returns {string}
+ */
+function normalizeSalesTransferTargetDate(rawDate) {
+  const value = String(rawDate || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : getLocalTodayYmd();
+}
+
+/**
+ * 売上転載対象日が未来日かどうかを判定します。
+ * @param {string} targetDate
+ * @returns {boolean}
+ */
+function isFutureSalesTransferTargetDate(targetDate) {
+  return normalizeSalesTransferTargetDate(targetDate) > getLocalTodayYmd();
+}
+
+/**
+ * 管理画面の売上転記対象日を取得します。
+ * @returns {string}
+ */
+function getAdminSalesTransferDate() {
+  const state = participantHandlersStateManager.getState();
+  const savedDate = String(state['adminSalesTransferTargetDate'] || '').trim();
+  return normalizeSalesTransferTargetDate(savedDate);
+}
+
+/**
+ * 管理者トークンを取得します（なりすまし時を含む）。
+ * @returns {string}
+ */
+function getAdminSalesTransferToken() {
+  const state = participantHandlersStateManager.getState();
+  return (
+    state.adminImpersonationOriginalUser?.['adminToken'] ||
+    state.currentUser?.['adminToken'] ||
+    ''
+  );
+}
+
+/**
+ * 売上転記対象日を更新します。
+ * @param {{ date?: string } | string} data
+ */
+function updateSalesTransferTargetDate(data) {
+  const state = participantHandlersStateManager.getState();
+  const nextDate =
+    typeof data === 'string' ? data : String(data?.date || '').trim();
+  const normalizedDate = /^\d{4}-\d{2}-\d{2}$/.test(nextDate)
+    ? nextDate
+    : getLocalTodayYmd();
+  const currentTargetDate = normalizeSalesTransferTargetDate(
+    state['adminSalesTransferTargetDate'],
+  );
+  const shouldResetReport = currentTargetDate !== normalizedDate;
+
+  participantHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      adminSalesTransferTargetDate: normalizedDate,
+      ...(shouldResetReport
+        ? {
+            adminSalesTransferReport: null,
+            adminSalesTransferLastTransferResult: null,
+            adminSalesTransferUpdatedStatusCount: 0,
+          }
+        : {}),
+    },
+  });
+  render();
+}
+
+/**
+ * 売上達成演出を短時間表示します。
+ * @param {string} message
+ */
+function triggerSalesCelebration(message) {
+  if (salesCelebrationTimer !== null) {
+    clearTimeout(salesCelebrationTimer);
+    salesCelebrationTimer = null;
+  }
+
+  participantHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      adminSalesTransferCelebrationActive: true,
+      adminSalesTransferCelebrationMessage: message,
+    },
+  });
+  render();
+
+  salesCelebrationTimer = setTimeout(() => {
+    participantHandlersStateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: {
+        adminSalesTransferCelebrationActive: false,
+      },
+    });
+    render();
+    salesCelebrationTimer = null;
+  }, 2800);
+}
+
+/**
+ * 売上達成専用ビューを開きます。
+ * @param {{ date?: string } | string} [data]
+ */
+function openSalesCelebrationView(data) {
+  const state = participantHandlersStateManager.getState();
+  const isAdmin =
+    state.participantIsAdmin || state.currentUser?.isAdmin || false;
+  if (!isAdmin) {
+    showInfo('管理者のみ利用できます。', 'エラー');
+    return;
+  }
+  const requestedDate =
+    typeof data === 'string' ? data : String(data?.date || '').trim();
+  const targetDate = normalizeSalesTransferTargetDate(
+    requestedDate || getAdminSalesTransferDate(),
+  );
+  const reportTargetDate = String(
+    state['adminSalesTransferReport']?.['targetDate'] || '',
+  ).trim();
+  const shouldResetReport = reportTargetDate && reportTargetDate !== targetDate;
+
+  participantHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      participantSubView: 'salesCelebration',
+      adminSalesTransferTargetDate: targetDate,
+      ...(shouldResetReport
+        ? {
+            adminSalesTransferReport: null,
+            adminSalesTransferLastTransferResult: null,
+            adminSalesTransferUpdatedStatusCount: 0,
+          }
+        : {}),
+    },
+  });
+  render();
+}
+
+/**
+ * 売上達成専用ビューを閉じて、参加者一覧に戻ります。
+ */
+function closeSalesCelebrationView() {
+  if (salesCelebrationTimer !== null) {
+    clearTimeout(salesCelebrationTimer);
+    salesCelebrationTimer = null;
+  }
+  participantHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      participantSubView: 'list',
+      adminSalesTransferCelebrationActive: false,
+    },
+  });
+  render();
+}
+
+/**
+ * 売上集計プレビュー/転記実行を管理画面から呼び出します。
+ * @param {{
+ *   previewOnly?: boolean;
+ *   skipConfirm?: boolean;
+ *   showCelebration?: boolean;
+ *   refreshAfterSuccess?: boolean;
+ *   targetDate?: string;
+ * }} [options]
+ */
+function runAdminSalesTransfer(options = {}) {
+  const previewOnly = options.previewOnly === true;
+  const skipConfirm = options.skipConfirm === true;
+  const showCelebration = options.showCelebration === true;
+  const refreshAfterSuccess = options.refreshAfterSuccess !== false;
+  const targetDate = normalizeSalesTransferTargetDate(
+    options.targetDate || getAdminSalesTransferDate(),
+  );
+  const adminToken = getAdminSalesTransferToken();
+
+  if (!adminToken) {
+    showInfo(
+      '管理者トークンが取得できません。再ログインしてからお試しください。',
+      'エラー',
+    );
+    return;
+  }
+
+  if (!previewOnly && isFutureSalesTransferTargetDate(targetDate)) {
+    showInfo(
+      '未来の日程は教室完了できません。対象日を確認してください。',
+      'エラー',
+    );
+    return;
+  }
+
+  if (!previewOnly && !skipConfirm) {
+    const ok = window.confirm(
+      `${targetDate} の売上を売上表へ転記します。実行してよいですか？`,
+    );
+    if (!ok) return;
+  }
+
+  participantHandlersStateManager.dispatch({
+    type: 'UPDATE_STATE',
+    payload: {
+      adminSalesTransferLoading: true,
+      adminSalesTransferTargetDate: targetDate,
+      adminSalesTransferUpdatedStatusCount: 0,
+    },
+  });
+  render();
+
+  google.script.run
+    .withSuccessHandler(
+      /** @param {ApiResponseGeneric<any>} response */
+      response => {
+        const report = response.data?.report || null;
+        const transferResult = response.data?.transferResult || null;
+        const updatedStatusCount = Number(
+          response.data?.updatedStatusCount || 0,
+        );
+
+        participantHandlersStateManager.dispatch({
+          type: 'UPDATE_STATE',
+          payload: {
+            adminSalesTransferLoading: false,
+            adminSalesTransferReport: report,
+            adminSalesTransferLastTransferResult: previewOnly
+              ? null
+              : transferResult,
+            adminSalesTransferUpdatedStatusCount: previewOnly
+              ? 0
+              : updatedStatusCount,
+            adminSalesTransferTargetDate: report?.targetDate || targetDate,
+          },
+        });
+        render();
+
+        if (!response.success) {
+          showInfo(response.message || '売上処理に失敗しました。', 'エラー');
+          return;
+        }
+
+        if (previewOnly) {
+          showInfo('売上集計を更新しました。', '完了');
+          return;
+        }
+
+        const totalCount = Number(transferResult?.totalCount || 0);
+        const successCount = Number(transferResult?.successCount || 0);
+        const hasSalesTargets = totalCount > 0;
+        const hasStatusUpdates = updatedStatusCount > 0;
+        const summaryMessage = hasSalesTargets
+          ? `教室完了 ⇢ 売上集計 が完了しました（成功 ${successCount} / 対象 ${totalCount}）。日程更新 ${updatedStatusCount}件。`
+          : hasStatusUpdates
+            ? `売上対象はありませんでしたが、日程更新 ${updatedStatusCount}件を完了しました。`
+            : '対象日の会計済みよやくはありませんでした。';
+
+        if (showCelebration) {
+          triggerSalesCelebration(
+            totalCount > 0
+              ? `${targetDate} の教室完了！ 売上 ${successCount}/${totalCount}`
+              : `${targetDate} の教室完了！`,
+          );
+        }
+
+        if (refreshAfterSuccess && (hasSalesTargets || hasStatusUpdates)) {
+          refreshAllAdminData();
+        }
+
+        showInfo(summaryMessage, '完了');
+      },
+    )
+    .withFailureHandler(
+      /** @param {Error} error */
+      error => {
+        participantHandlersStateManager.dispatch({
+          type: 'UPDATE_STATE',
+          payload: {
+            adminSalesTransferLoading: false,
+          },
+        });
+        render();
+
+        console.error('❌ 売上転載処理失敗:', error);
+        showInfo('売上転載処理で通信エラーが発生しました。', 'エラー');
+      },
+    )
+    .runSalesTransferFromAdmin({
+      targetDate,
+      previewOnly,
+      adminToken,
+    });
+}
+
+/**
+ * アコーディオン下部の「教室完了」ボタンから売上転載を実行します。
+ * （売上転載と教室完了を同義として扱う）
+ * @param {{ date?: string } | string} [data]
+ */
+function completeLessonSalesTransfer(data) {
+  const targetDate = normalizeSalesTransferTargetDate(
+    typeof data === 'string' ? data : String(data?.date || '').trim(),
+  );
+  openSalesCelebrationView({ date: targetDate });
+  runAdminSalesTransfer({
+    previewOnly: false,
+    skipConfirm: true,
+    showCelebration: true,
+    refreshAfterSuccess: true,
+    targetDate,
+  });
+}
+
+/**
  * 参加者リスト用アクションハンドラー
  */
 export const participantActionHandlers = {
   loadParticipantView,
   goToParticipantsView: () => loadParticipantView(),
   refreshParticipantView,
+  openSalesCelebrationView,
+  closeSalesCelebrationView,
+  completeLessonSalesTransfer,
+  completeTodayClassroom: () =>
+    runAdminSalesTransfer({
+      previewOnly: false,
+      skipConfirm: true,
+      showCelebration: true,
+      refreshAfterSuccess: true,
+      targetDate: getAdminSalesTransferDate(),
+    }),
+  updateSalesTransferTargetDate,
+  previewSalesTransfer: () =>
+    runAdminSalesTransfer({
+      previewOnly: true,
+      skipConfirm: true,
+      showCelebration: false,
+      refreshAfterSuccess: false,
+    }),
+  executeSalesTransfer: () =>
+    runAdminSalesTransfer({
+      previewOnly: false,
+      skipConfirm: false,
+      showCelebration: false,
+      refreshAfterSuccess: true,
+    }),
   markAllLogsAsViewed: () => {
     const lastViewedKey = 'YOYAKU_KIROKU_ADMIN_LOG_LAST_VIEWED';
     localStorage.setItem(lastViewedKey, new Date().toISOString());
