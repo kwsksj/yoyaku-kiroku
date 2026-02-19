@@ -921,31 +921,16 @@ export function rebuildAllCachesEntryPoint() {
     syncReservationIdsToSchedule();
 
     // 画像アップロードUI向けJSONを更新（設定されている場合のみ）
-    try {
-      const participantsPushResult = pushParticipantsIndexToWorker();
-      if (!participantsPushResult.success) {
-        Logger.log(
-          `キャッシュ一括更新: 参加者候補インデックス更新をスキップ/失敗 - ${participantsPushResult.message || 'N/A'}`,
-        );
-      }
-    } catch (pushError) {
-      Logger.log(
-        `キャッシュ一括更新: 参加者候補インデックス更新エラー - ${pushError.message || pushError}`,
-      );
-    }
-
-    try {
-      const schedulePushResult = pushScheduleIndexToWorker();
-      if (!schedulePushResult.success) {
-        Logger.log(
-          `キャッシュ一括更新: 日程インデックス更新をスキップ/失敗 - ${schedulePushResult.message || 'N/A'}`,
-        );
-      }
-    } catch (pushError) {
-      Logger.log(
-        `キャッシュ一括更新: 日程インデックス更新エラー - ${pushError.message || pushError}`,
-      );
-    }
+    _pushIndexWithLogging(
+      pushParticipantsIndexToWorker,
+      '参加者候補インデックス',
+      'キャッシュ一括更新',
+    );
+    _pushIndexWithLogging(
+      pushScheduleIndexToWorker,
+      '日程インデックス',
+      'キャッシュ一括更新',
+    );
 
     SS_MANAGER.getSpreadsheet().toast(
       'キャッシュデータの一括再構築が完了しました。',
@@ -2040,34 +2025,21 @@ export function triggerScheduledCacheRebuild() {
     rebuildAllStudentsCache();
     rebuildScheduleMasterCache(); // ステータス更新後にキャッシュも再構築
     rebuildAccountingMasterCache();
+    syncReservationIdsToSchedule();
 
     // 3. 画像アップロードUI向けの参加者候補インデックスを更新（設定されている場合のみ）
-    try {
-      const pushResult = pushParticipantsIndexToWorker();
-      if (!pushResult.success) {
-        Logger.log(
-          `参加者候補インデックス更新: 失敗/スキップ - ${pushResult.message || 'N/A'}`,
-        );
-      }
-    } catch (pushError) {
-      Logger.log(
-        `参加者候補インデックス更新エラー: ${pushError.message || pushError}`,
-      );
-    }
+    _pushIndexWithLogging(
+      pushParticipantsIndexToWorker,
+      '参加者候補インデックス',
+      '定期メンテナンス',
+    );
 
     // 4. 画像アップロードUI向けの日程インデックスを更新（設定されている場合のみ）
-    try {
-      const pushResult = pushScheduleIndexToWorker();
-      if (!pushResult.success) {
-        Logger.log(
-          `日程インデックス更新: 失敗/スキップ - ${pushResult.message || 'N/A'}`,
-        );
-      }
-    } catch (pushError) {
-      Logger.log(
-        `日程インデックス更新エラー: ${pushError.message || pushError}`,
-      );
-    }
+    _pushIndexWithLogging(
+      pushScheduleIndexToWorker,
+      '日程インデックス',
+      '定期メンテナンス',
+    );
 
     PerformanceLog.info('定期メンテナンス: 正常に完了しました。');
 
@@ -2111,6 +2083,31 @@ const UPLOAD_UI_PARTICIPANTS_INDEX_FUTURE_DAYS = 60;
 
 /** 日程インデックスのR2キー */
 const UPLOAD_UI_SCHEDULE_INDEX_R2_KEY = 'schedule_index.json';
+
+/**
+ * インデックス送信処理を共通ログ付きで実行します
+ *
+ * @param {() => { success: boolean, message?: string }} pushFn
+ * @param {string} indexName
+ * @param {string} context
+ * @private
+ */
+function _pushIndexWithLogging(pushFn, indexName, context) {
+  try {
+    const pushResult = pushFn();
+    if (!pushResult.success) {
+      Logger.log(
+        `${context}: ${indexName}更新をスキップ/失敗 - ${pushResult.message || 'N/A'}`,
+      );
+    }
+  } catch (pushError) {
+    const message =
+      pushError && typeof pushError === 'object' && 'message' in pushError
+        ? /** @type {{message?: string}} */ (pushError).message
+        : String(pushError);
+    Logger.log(`${context}: ${indexName}更新エラー - ${message || pushError}`);
+  }
+}
 
 /**
  * 画像アップロードUI向けの参加者候補インデックスを生成します（副作用なし）
@@ -2530,6 +2527,13 @@ export function buildScheduleIndexForUploadUi() {
     CONSTANTS.TIMEZONE,
     "yyyy-MM-dd'T'HH:mm:ssXXX",
   );
+  /** @type {() => ReturnType<typeof buildScheduleIndexForUploadUi>} */
+  const createEmptyIndex = () => ({
+    schema_version: /** @type {1} */ (1),
+    generated_at: generatedAt,
+    timezone: CONSTANTS.TIMEZONE,
+    dates: {},
+  });
 
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -2550,12 +2554,7 @@ export function buildScheduleIndexForUploadUi() {
     Logger.log(
       '日程インデックス生成: 日程シートが見つからないため空データを返します。',
     );
-    return {
-      schema_version: 1,
-      generated_at: generatedAt,
-      timezone: CONSTANTS.TIMEZONE,
-      dates: {},
-    };
+    return createEmptyIndex();
   }
 
   const allData = scheduleSheet.getDataRange().getValues();
@@ -2564,12 +2563,7 @@ export function buildScheduleIndexForUploadUi() {
     Logger.log(
       '日程インデックス生成: 日程シートのヘッダー行が取得できないため空データを返します。',
     );
-    return {
-      schema_version: 1,
-      generated_at: generatedAt,
-      timezone: CONSTANTS.TIMEZONE,
-      dates: {},
-    };
+    return createEmptyIndex();
   }
 
   const headers = /** @type {string[]} */ (headerCandidate);
@@ -2603,12 +2597,7 @@ export function buildScheduleIndexForUploadUi() {
     Logger.log(
       '日程インデックス生成: 必須列（日付）が見つからないため空データを返します。',
     );
-    return {
-      schema_version: 1,
-      generated_at: generatedAt,
-      timezone: CONSTANTS.TIMEZONE,
-      dates: {},
-    };
+    return createEmptyIndex();
   }
 
   allData.forEach(row => {
@@ -3029,7 +3018,7 @@ function _getScheduleSlotOrder(slot) {
  * @private
  */
 function _buildReservationBeginnerFlagMap() {
-  const reservationCache = getReservationCacheSnapshot(false);
+  const reservationCache = getReservationCacheSnapshot(true);
   if (!reservationCache || !Array.isArray(reservationCache.reservations)) {
     return new Map();
   }
