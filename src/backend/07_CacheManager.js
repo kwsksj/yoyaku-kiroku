@@ -920,6 +920,33 @@ export function rebuildAllCachesEntryPoint() {
     // 予約IDsをよやくキャッシュから再構築（シート編集によるズレを修正）
     syncReservationIdsToSchedule();
 
+    // 画像アップロードUI向けJSONを更新（設定されている場合のみ）
+    try {
+      const participantsPushResult = pushParticipantsIndexToWorker();
+      if (!participantsPushResult.success) {
+        Logger.log(
+          `キャッシュ一括更新: 参加者候補インデックス更新をスキップ/失敗 - ${participantsPushResult.message || 'N/A'}`,
+        );
+      }
+    } catch (pushError) {
+      Logger.log(
+        `キャッシュ一括更新: 参加者候補インデックス更新エラー - ${pushError.message || pushError}`,
+      );
+    }
+
+    try {
+      const schedulePushResult = pushScheduleIndexToWorker();
+      if (!schedulePushResult.success) {
+        Logger.log(
+          `キャッシュ一括更新: 日程インデックス更新をスキップ/失敗 - ${schedulePushResult.message || 'N/A'}`,
+        );
+      }
+    } catch (pushError) {
+      Logger.log(
+        `キャッシュ一括更新: 日程インデックス更新エラー - ${pushError.message || pushError}`,
+      );
+    }
+
     SS_MANAGER.getSpreadsheet().toast(
       'キャッシュデータの一括再構築が完了しました。',
       '成功',
@@ -2028,6 +2055,20 @@ export function triggerScheduledCacheRebuild() {
       );
     }
 
+    // 4. 画像アップロードUI向けの日程インデックスを更新（設定されている場合のみ）
+    try {
+      const pushResult = pushScheduleIndexToWorker();
+      if (!pushResult.success) {
+        Logger.log(
+          `日程インデックス更新: 失敗/スキップ - ${pushResult.message || 'N/A'}`,
+        );
+      }
+    } catch (pushError) {
+      Logger.log(
+        `日程インデックス更新エラー: ${pushError.message || pushError}`,
+      );
+    }
+
     PerformanceLog.info('定期メンテナンス: 正常に完了しました。');
 
     Logger.log(
@@ -2054,11 +2095,22 @@ const PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_URL =
 const PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN =
   'UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN';
 
+/** ScriptProperties: 日程インデックスの送信先URL */
+const PROPS_KEY_UPLOAD_UI_SCHEDULE_INDEX_PUSH_URL =
+  'UPLOAD_UI_SCHEDULE_INDEX_PUSH_URL';
+
+/** ScriptProperties: 日程インデックスの送信用トークン（Bearer） */
+const PROPS_KEY_UPLOAD_UI_SCHEDULE_INDEX_PUSH_TOKEN =
+  'UPLOAD_UI_SCHEDULE_INDEX_PUSH_TOKEN';
+
 /** インデックスの対象期間（過去） */
 const UPLOAD_UI_PARTICIPANTS_INDEX_PAST_DAYS = 730;
 
 /** インデックスの対象期間（未来） */
 const UPLOAD_UI_PARTICIPANTS_INDEX_FUTURE_DAYS = 60;
+
+/** 日程インデックスのR2キー */
+const UPLOAD_UI_SCHEDULE_INDEX_R2_KEY = 'schedule_index.json';
 
 /**
  * 画像アップロードUI向けの参加者候補インデックスを生成します（副作用なし）
@@ -2445,6 +2497,331 @@ export function pushParticipantsIndexToWorker() {
 }
 
 /**
+ * 画像アップロードUI向けの日程インデックスを生成します（副作用なし）
+ * - 日程シートから生成
+ * - 未来日程（当日含む）を全件対象
+ * - `date -> [{ lesson_id, slot, start_at, ... }]` を返す
+ *
+ * @returns {{
+ *   schema_version: 1,
+ *   generated_at: string,
+ *   timezone: string,
+ *   dates: Record<string, Array<{
+ *     lesson_id: string,
+ *     slot: 'first' | 'second' | 'beginner',
+ *     start_at: string,
+ *     end_at?: string,
+ *     classroom: string,
+ *     venue: string,
+ *     type: string,
+ *     status: 'open' | 'closed' | 'cancelled',
+ *     capacity_total: number,
+ *     capacity_beginner: number,
+ *     reserved_count_total: number,
+ *     reserved_count_beginner: number,
+ *     note: string,
+ *   }>>,
+ * }}
+ */
+export function buildScheduleIndexForUploadUi() {
+  const now = new Date();
+  const generatedAt = Utilities.formatDate(
+    now,
+    CONSTANTS.TIMEZONE,
+    "yyyy-MM-dd'T'HH:mm:ssXXX",
+  );
+
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+
+  const todayYmd = Utilities.formatDate(
+    today,
+    CONSTANTS.TIMEZONE,
+    'yyyy-MM-dd',
+  );
+
+  const beginnerFlagMap = _buildReservationBeginnerFlagMap();
+
+  /** @type {Map<string, Array<any>>} */
+  const byDate = new Map();
+
+  const scheduleSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+  if (!scheduleSheet) {
+    Logger.log(
+      '日程インデックス生成: 日程シートが見つからないため空データを返します。',
+    );
+    return {
+      schema_version: 1,
+      generated_at: generatedAt,
+      timezone: CONSTANTS.TIMEZONE,
+      dates: {},
+    };
+  }
+
+  const allData = scheduleSheet.getDataRange().getValues();
+  const headerCandidate = allData.shift();
+  if (!Array.isArray(headerCandidate)) {
+    Logger.log(
+      '日程インデックス生成: 日程シートのヘッダー行が取得できないため空データを返します。',
+    );
+    return {
+      schema_version: 1,
+      generated_at: generatedAt,
+      timezone: CONSTANTS.TIMEZONE,
+      dates: {},
+    };
+  }
+
+  const headers = /** @type {string[]} */ (headerCandidate);
+  const dateCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
+  const lessonIdCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
+  const reservationIdsCol = headers.indexOf(
+    CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS,
+  );
+  const classroomCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.CLASSROOM);
+  const venueCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.VENUE);
+  const typeCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.TYPE);
+  const firstStartCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.FIRST_START);
+  const firstEndCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.FIRST_END);
+  const secondStartCol = headers.indexOf(
+    CONSTANTS.HEADERS.SCHEDULE.SECOND_START,
+  );
+  const secondEndCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.SECOND_END);
+  const beginnerStartCol = headers.indexOf(
+    CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START,
+  );
+  const totalCapacityCol = headers.indexOf(
+    CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY,
+  );
+  const beginnerCapacityCol = headers.indexOf(
+    CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY,
+  );
+  const statusCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
+  const notesCol = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.NOTES);
+
+  if (dateCol === -1) {
+    Logger.log(
+      '日程インデックス生成: 必須列（日付）が見つからないため空データを返します。',
+    );
+    return {
+      schema_version: 1,
+      generated_at: generatedAt,
+      timezone: CONSTANTS.TIMEZONE,
+      dates: {},
+    };
+  }
+
+  allData.forEach(row => {
+    if (!Array.isArray(row)) return;
+    const date = _normalizeDateToYmd(row[dateCol]);
+    if (!date || date < todayYmd) {
+      return;
+    }
+
+    const lessonId = lessonIdCol >= 0 ? _toTrimmedString(row[lessonIdCol]) : '';
+    const reservationIds =
+      reservationIdsCol >= 0
+        ? _normalizeReservationIds(row[reservationIdsCol])
+        : [];
+    const reservedCountTotal = reservationIds.length;
+    const reservedCountBeginner = reservationIds.reduce(
+      (count, reservationId) =>
+        count + (beginnerFlagMap.get(reservationId) === true ? 1 : 0),
+      0,
+    );
+
+    const baseEntry = {
+      lesson_id: lessonId,
+      classroom: classroomCol >= 0 ? _toTrimmedString(row[classroomCol]) : '',
+      venue: venueCol >= 0 ? _toTrimmedString(row[venueCol]) : '',
+      type: typeCol >= 0 ? _toTrimmedString(row[typeCol]) : '',
+      status: _mapScheduleStatusForIndex(statusCol >= 0 ? row[statusCol] : ''),
+      capacity_total: _toNonNegativeInt(
+        totalCapacityCol >= 0 ? row[totalCapacityCol] : 0,
+      ),
+      capacity_beginner: _toNonNegativeInt(
+        beginnerCapacityCol >= 0 ? row[beginnerCapacityCol] : 0,
+      ),
+      reserved_count_total: reservedCountTotal,
+      reserved_count_beginner: reservedCountBeginner,
+      note: notesCol >= 0 ? _toTrimmedString(row[notesCol]) : '',
+    };
+
+    /** @type {Array<{slot: 'first' | 'second' | 'beginner', start: string, end?: string}>} */
+    const slots = [
+      {
+        slot: 'first',
+        start: _normalizeTimeToHm(firstStartCol >= 0 ? row[firstStartCol] : ''),
+        end: _normalizeTimeToHm(firstEndCol >= 0 ? row[firstEndCol] : ''),
+      },
+      {
+        slot: 'second',
+        start: _normalizeTimeToHm(
+          secondStartCol >= 0 ? row[secondStartCol] : '',
+        ),
+        end: _normalizeTimeToHm(secondEndCol >= 0 ? row[secondEndCol] : ''),
+      },
+      {
+        slot: 'beginner',
+        start: _normalizeTimeToHm(
+          beginnerStartCol >= 0 ? row[beginnerStartCol] : '',
+        ),
+      },
+    ];
+
+    slots.forEach(slotDef => {
+      if (!slotDef.start) return;
+
+      const startAt = _buildTokyoIsoDateTime(date, slotDef.start);
+      if (!startAt) return;
+
+      /** @type {any} */
+      const entry = {
+        ...baseEntry,
+        slot: slotDef.slot,
+        start_at: startAt,
+      };
+
+      const endAt = slotDef.end
+        ? _buildTokyoIsoDateTime(date, slotDef.end)
+        : '';
+      if (endAt) {
+        entry.end_at = endAt;
+      }
+
+      let entries = byDate.get(date);
+      if (!entries) {
+        entries = [];
+        byDate.set(date, entries);
+      }
+      entries.push(entry);
+    });
+  });
+
+  /** @type {Record<string, any[]>} */
+  const datesObject = {};
+  const sortedDates = Array.from(byDate.keys()).sort();
+  sortedDates.forEach(date => {
+    const entries = byDate.get(date) || [];
+    entries.sort((a, b) => {
+      const startCompare = a.start_at.localeCompare(b.start_at, 'ja');
+      if (startCompare !== 0) return startCompare;
+
+      const slotCompare =
+        _getScheduleSlotOrder(a.slot) - _getScheduleSlotOrder(b.slot);
+      if (slotCompare !== 0) return slotCompare;
+
+      return String(a.lesson_id || '').localeCompare(
+        String(b.lesson_id || ''),
+        'ja',
+      );
+    });
+    datesObject[date] = entries;
+  });
+
+  return {
+    schema_version: 1,
+    generated_at: generatedAt,
+    timezone: CONSTANTS.TIMEZONE,
+    dates: datesObject,
+  };
+}
+
+/**
+ * 画像アップロードUI向け日程インデックスをCloudflare Workerへ送信します
+ *
+ * ScriptProperties:
+ * - UPLOAD_UI_SCHEDULE_INDEX_PUSH_URL
+ * - UPLOAD_UI_SCHEDULE_INDEX_PUSH_TOKEN（未設定時は UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN を利用）
+ *
+ * @returns {{success: boolean, message: string, statusCode?: number, durationMs?: number, bytes?: number, datesCount?: number, slotsCount?: number}}
+ */
+export function pushScheduleIndexToWorker() {
+  const startMs = Date.now();
+
+  const props = PropertiesService.getScriptProperties();
+  const url = props.getProperty(PROPS_KEY_UPLOAD_UI_SCHEDULE_INDEX_PUSH_URL);
+  const token =
+    props.getProperty(PROPS_KEY_UPLOAD_UI_SCHEDULE_INDEX_PUSH_TOKEN) ||
+    props.getProperty(PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN);
+
+  if (!url || !token) {
+    const missing = [
+      !url ? PROPS_KEY_UPLOAD_UI_SCHEDULE_INDEX_PUSH_URL : null,
+      !token
+        ? `${PROPS_KEY_UPLOAD_UI_SCHEDULE_INDEX_PUSH_TOKEN} (fallback: ${PROPS_KEY_UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN})`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(', ');
+    return {
+      success: false,
+      message: `設定が未完了のためスキップしました: ${missing}`,
+    };
+  }
+
+  const index = buildScheduleIndexForUploadUi();
+  const payloadJson = JSON.stringify(index);
+  const bytes = Utilities.newBlob(payloadJson).getBytes().length;
+
+  const dates = index?.dates || {};
+  const datesCount = Object.keys(dates).length;
+  const slotsCount = Object.values(dates).reduce(
+    (count, slots) => count + (Array.isArray(slots) ? slots.length : 0),
+    0,
+  );
+
+  const response = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: payloadJson,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'X-R2-Key': UPLOAD_UI_SCHEDULE_INDEX_R2_KEY,
+    },
+    muteHttpExceptions: true,
+    followRedirects: true,
+  });
+
+  const statusCode = response.getResponseCode();
+  const ok = statusCode >= 200 && statusCode < 300;
+  const durationMs = Date.now() - startMs;
+
+  const baseResult = {
+    statusCode,
+    durationMs,
+    bytes,
+    datesCount,
+    slotsCount,
+  };
+
+  if (ok) {
+    Logger.log(
+      `日程インデックス送信成功: status=${statusCode}, bytes=${bytes}, dates=${datesCount}, slots=${slotsCount}, durationMs=${durationMs}`,
+    );
+    return {
+      ...baseResult,
+      success: true,
+      message: '送信しました',
+    };
+  }
+
+  const responseText = response.getContentText() || '';
+  const preview =
+    responseText.length > 400
+      ? `${responseText.slice(0, 400)}...`
+      : responseText;
+  Logger.log(
+    `日程インデックス送信失敗: status=${statusCode}, bytes=${bytes}, durationMs=${durationMs}, response=${preview}`,
+  );
+  return {
+    ...baseResult,
+    success: false,
+    message: `送信に失敗しました: status=${statusCode}`,
+  };
+}
+
+/**
  * 値をトリムした文字列へ正規化します
  *
  * @param {any} value
@@ -2477,6 +2854,217 @@ function _preferLongerString(existing, next) {
   }
 
   return current;
+}
+
+/**
+ * 真偽値を boolean として解釈します
+ *
+ * @param {any} value
+ * @returns {boolean}
+ * @private
+ */
+function _toBooleanFlag(value) {
+  if (value === true || value === 1) return true;
+  const text = _toTrimmedString(value).toUpperCase();
+  return text === 'TRUE' || text === '1';
+}
+
+/**
+ * 定員値を 0 以上の整数に正規化します
+ *
+ * @param {any} value
+ * @returns {number}
+ * @private
+ */
+function _toNonNegativeInt(value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    return Math.max(0, Math.floor(numeric));
+  }
+  const parsed = parseInt(_toTrimmedString(value), 10);
+  if (Number.isNaN(parsed)) return 0;
+  return Math.max(0, parsed);
+}
+
+/**
+ * 時刻を "HH:mm" 形式に正規化します
+ *
+ * @param {any} value
+ * @returns {string}
+ * @private
+ */
+function _normalizeTimeToHm(value) {
+  if (!value) return '';
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, CONSTANTS.TIMEZONE, 'HH:mm');
+  }
+
+  const text = _toTrimmedString(value).replace('：', ':');
+  if (!text) return '';
+
+  const match = text.match(/^(\d{1,2}):(\d{2})/);
+  if (match) {
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+    if (
+      Number.isFinite(hour) &&
+      Number.isFinite(minute) &&
+      hour >= 0 &&
+      hour <= 23 &&
+      minute >= 0 &&
+      minute <= 59
+    ) {
+      return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    }
+  }
+
+  try {
+    const parsed = new Date(text);
+    if (!Number.isNaN(parsed.getTime())) {
+      return Utilities.formatDate(parsed, CONSTANTS.TIMEZONE, 'HH:mm');
+    }
+  } catch (_error) {
+    // noop
+  }
+
+  return '';
+}
+
+/**
+ * "YYYY-MM-DDTHH:mm:ss+09:00" 形式に変換します
+ *
+ * @param {string} dateYmd
+ * @param {string} timeHm
+ * @returns {string}
+ * @private
+ */
+function _buildTokyoIsoDateTime(dateYmd, timeHm) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(_toTrimmedString(dateYmd))) {
+    return '';
+  }
+  const normalizedTime = _normalizeTimeToHm(timeHm);
+  if (!normalizedTime) return '';
+  return `${dateYmd}T${normalizedTime}:00+09:00`;
+}
+
+/**
+ * 予約ID配列を正規化します
+ *
+ * @param {any} value
+ * @returns {string[]}
+ * @private
+ */
+function _normalizeReservationIds(value) {
+  if (Array.isArray(value)) {
+    return value.map(v => _toTrimmedString(v)).filter(Boolean);
+  }
+
+  const text = _toTrimmedString(value);
+  if (!text) return [];
+
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) {
+      return parsed.map(v => _toTrimmedString(v)).filter(Boolean);
+    }
+  } catch (_error) {
+    // JSON文字列でない場合はそのまま下へ
+  }
+
+  if (text.includes(',')) {
+    return text
+      .split(',')
+      .map(part => _toTrimmedString(part))
+      .filter(Boolean);
+  }
+
+  return [text];
+}
+
+/**
+ * 日程ステータスを公開API向けステータスへ変換します
+ *
+ * @param {any} status
+ * @returns {'open' | 'closed' | 'cancelled'}
+ * @private
+ */
+function _mapScheduleStatusForIndex(status) {
+  const normalized = _toTrimmedString(status);
+  if (
+    !normalized ||
+    normalized === _toTrimmedString(CONSTANTS.SCHEDULE_STATUS.SCHEDULED)
+  ) {
+    return 'open';
+  }
+  if (normalized === _toTrimmedString(CONSTANTS.SCHEDULE_STATUS.CANCELLED)) {
+    return 'cancelled';
+  }
+  return 'closed';
+}
+
+/**
+ * スロットのソート優先度を返します
+ *
+ * @param {string} slot
+ * @returns {number}
+ * @private
+ */
+function _getScheduleSlotOrder(slot) {
+  switch (slot) {
+    case 'first':
+      return 1;
+    case 'second':
+      return 2;
+    case 'beginner':
+      return 3;
+    default:
+      return 99;
+  }
+}
+
+/**
+ * reservationId -> 初回者フラグのインデックスを作成します
+ *
+ * @returns {Map<string, boolean>}
+ * @private
+ */
+function _buildReservationBeginnerFlagMap() {
+  const reservationCache = getReservationCacheSnapshot(false);
+  if (!reservationCache || !Array.isArray(reservationCache.reservations)) {
+    return new Map();
+  }
+
+  const headerMap = normalizeHeaderMap(reservationCache.headerMap || {});
+  const reservationIdIndex =
+    headerMap[CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID];
+  const firstLectureIndex =
+    headerMap[CONSTANTS.HEADERS.RESERVATIONS.FIRST_LECTURE];
+
+  /** @type {Map<string, boolean>} */
+  const beginnerFlagMap = new Map();
+
+  reservationCache.reservations.forEach(rawReservation => {
+    if (!rawReservation) return;
+
+    let reservationId = '';
+    let isBeginner = false;
+
+    if (Array.isArray(rawReservation)) {
+      if (reservationIdIndex === undefined) return;
+      reservationId = _toTrimmedString(rawReservation[reservationIdIndex]);
+      if (firstLectureIndex !== undefined) {
+        isBeginner = _toBooleanFlag(rawReservation[firstLectureIndex]);
+      }
+    } else if (typeof rawReservation === 'object') {
+      reservationId = _toTrimmedString(rawReservation['reservationId']);
+      isBeginner = _toBooleanFlag(rawReservation['firstLecture']);
+    }
+
+    if (!reservationId || beginnerFlagMap.has(reservationId)) return;
+    beginnerFlagMap.set(reservationId, isBeginner);
+  });
+
+  return beginnerFlagMap;
 }
 
 /**
