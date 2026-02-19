@@ -232,6 +232,71 @@ export function pushParticipantsIndexToWorker(): {
     participantsCount?: number;
 };
 /**
+ * 画像アップロードUI向けの日程インデックスを生成します（副作用なし）
+ * - 日程シートから生成
+ * - 未来日程（当日含む）を全件対象
+ * - `date -> [{ lesson_id, slot, start_at, ... }]` を返す
+ *
+ * @returns {{
+ *   schema_version: 1,
+ *   generated_at: string,
+ *   timezone: string,
+ *   dates: Record<string, Array<{
+ *     lesson_id: string,
+ *     slot: 'first' | 'second' | 'beginner',
+ *     start_at: string,
+ *     end_at?: string,
+ *     classroom: string,
+ *     venue: string,
+ *     type: string,
+ *     status: 'open' | 'closed' | 'cancelled',
+ *     capacity_total: number,
+ *     capacity_beginner: number,
+ *     reserved_count_total: number,
+ *     reserved_count_beginner: number,
+ *     note: string,
+ *   }>>,
+ * }}
+ */
+export function buildScheduleIndexForUploadUi(): {
+    schema_version: 1;
+    generated_at: string;
+    timezone: string;
+    dates: Record<string, Array<{
+        lesson_id: string;
+        slot: "first" | "second" | "beginner";
+        start_at: string;
+        end_at?: string;
+        classroom: string;
+        venue: string;
+        type: string;
+        status: "open" | "closed" | "cancelled";
+        capacity_total: number;
+        capacity_beginner: number;
+        reserved_count_total: number;
+        reserved_count_beginner: number;
+        note: string;
+    }>>;
+};
+/**
+ * 画像アップロードUI向け日程インデックスをCloudflare Workerへ送信します
+ *
+ * ScriptProperties:
+ * - UPLOAD_UI_SCHEDULE_INDEX_PUSH_URL
+ * - UPLOAD_UI_SCHEDULE_INDEX_PUSH_TOKEN（未設定時は UPLOAD_UI_PARTICIPANTS_INDEX_PUSH_TOKEN を利用）
+ *
+ * @returns {{success: boolean, message: string, statusCode?: number, durationMs?: number, bytes?: number, datesCount?: number, slotsCount?: number}}
+ */
+export function pushScheduleIndexToWorker(): {
+    success: boolean;
+    message: string;
+    statusCode?: number;
+    durationMs?: number;
+    bytes?: number;
+    datesCount?: number;
+    slotsCount?: number;
+};
+/**
  * 型定義に基づいたキャッシュ取得のオーバーロード定義
  * @template {CacheKey} K
  * @overload
