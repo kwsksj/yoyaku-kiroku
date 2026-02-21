@@ -949,9 +949,8 @@ export const reservationActionHandlers = {
       reservationStateManager.setDataFetchProgress('lessons', false);
 
       const responseData = response?.data || {};
-      const latestLessons = Array.isArray(responseData.lessons)
-        ? responseData.lessons
-        : [];
+      const hasLessonsData = Array.isArray(responseData.lessons);
+      const latestLessons = hasLessonsData ? responseData.lessons : [];
       const cacheVersions =
         responseData && typeof responseData === 'object'
           ? responseData['cache-versions']
@@ -986,7 +985,7 @@ export const reservationActionHandlers = {
         return;
       }
 
-      if (response?.success && Array.isArray(latestLessons)) {
+      if (response?.success && hasLessonsData) {
         // バージョンを更新
         if (serverLessonsVersion) {
           reservationStateManager.updateLessonsVersion(serverLessonsVersion);
