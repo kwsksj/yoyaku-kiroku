@@ -249,7 +249,8 @@ function applyScheduleStatusDefaults(targetRows = []) {
  * @returns {number[]}
  */
 function resolveScheduleTargetRowsFromOnChange(event, sheet) {
-  if (String(event?.changeType || '') !== 'INSERT_ROW') return [];
+  const changeType = String(event?.changeType || '');
+  if (changeType !== 'INSERT_ROW' && changeType !== 'INSERT_GRID') return [];
   const activeRange = sheet.getActiveRange();
   if (!activeRange) return [];
 
@@ -276,18 +277,11 @@ export function handleOnChange(_e) {
     if (!activeSheet) return;
     if (activeSheet.getName() !== CONSTANTS.SHEET_NAMES.SCHEDULE) return;
     const changeType = String(_e?.changeType || '');
-    const shouldApplyDefaults =
-      changeType === 'INSERT_ROW' ||
-      changeType === 'INSERT_GRID' ||
-      changeType === 'OTHER';
-    if (!shouldApplyDefaults) return;
+    if (changeType !== 'INSERT_ROW' && changeType !== 'INSERT_GRID') return;
 
     const targetRows = resolveScheduleTargetRowsFromOnChange(_e, activeSheet);
-    if (targetRows.length > 0) {
-      applyScheduleStatusDefaults(targetRows);
-      return;
-    }
-    applyScheduleStatusDefaults();
+    if (targetRows.length === 0) return;
+    applyScheduleStatusDefaults(targetRows);
   } catch (err) {
     handleError(`OnChangeイベント処理中にエラー: ${err.message}`, true);
   } finally {
