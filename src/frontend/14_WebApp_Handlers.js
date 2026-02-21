@@ -486,7 +486,7 @@ window.onload = function () {
               withSalesTransfer
                 ? response.message || '会計処理と売上転載が完了しました'
                 : response.message ||
-                    '会計処理が完了しました（売上は20時に自動転載されます）',
+                    '会計処理が完了しました（売上転載は管理画面から実行できます）',
               '完了',
             );
 
@@ -998,7 +998,7 @@ window.onload = function () {
         }
         const { formData, result } = windowTyped.tempPaymentData;
 
-        // 生徒の場合は従来通り（20時のバッチで転載）
+        // 生徒の場合は売上転載なしで会計処理のみ実行
         if (typeof processAccountingPayment === 'function') {
           processAccountingPayment(formData, result);
         } else {
@@ -1074,7 +1074,7 @@ window.onload = function () {
             size: 'full',
           })}
           ${Components.button({
-            text: '転載しない（20時のバッチで自動転載）',
+            text: '転載しない（後で管理画面から実行）',
             action: 'confirmPaymentWithoutTransfer',
             style: 'secondary',
             size: 'full',

@@ -251,6 +251,8 @@ export namespace CONSTANTS {
             export let BEGINNER_CAPACITY: string;
             let STATUS_3: string;
             export { STATUS_3 as STATUS };
+            export let SALES_TRANSFER_STATUS: string;
+            export let SALES_TRANSFER_AT: string;
             let NOTES_3: string;
             export { NOTES_3 as NOTES };
         }
@@ -319,8 +321,16 @@ export namespace CONSTANTS {
         let HEADER_ROW: number;
     }
     namespace ACCOUNTING_SYSTEM {
-        let MODIFICATION_DEADLINE_HOUR: number;
-        let SALES_TRANSFER_HOUR: number;
+        export let MODIFICATION_DEADLINE_HOUR: number;
+        export let SALES_TRANSFER_HOUR: number;
+        export namespace SALES_TRANSFER_STATUS_1 {
+            export let PENDING: string;
+            let COMPLETED_2: string;
+            export { COMPLETED_2 as COMPLETED };
+            export let PARTIAL: string;
+            export let FAILED: string;
+        }
+        export { SALES_TRANSFER_STATUS_1 as SALES_TRANSFER_STATUS };
     }
     namespace NOTIFICATION {
         let DAYS: number[];

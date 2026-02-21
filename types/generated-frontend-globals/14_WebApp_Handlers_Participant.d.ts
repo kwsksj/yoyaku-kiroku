@@ -2,6 +2,13 @@ export namespace participantActionHandlers {
     export { loadParticipantView };
     export function goToParticipantsView(): void;
     export { refreshParticipantView };
+    export { openSalesCelebrationView };
+    export { closeSalesCelebrationView };
+    export { completeLessonSalesTransfer };
+    export function completeTodayClassroom(): void;
+    export { updateSalesTransferTargetDate };
+    export function previewSalesTransfer(): void;
+    export function executeSalesTransfer(): void;
     export function markAllLogsAsViewed(): void;
     export function refreshLogView(): void;
     export function goToLogView(): void;
@@ -30,6 +37,32 @@ declare function loadParticipantView(forceReload?: boolean, loadingCategory?: st
  * 参加者リストビューのデータ更新（統合リフレッシュ関数に委譲）
  */
 declare function refreshParticipantView(): void;
+/**
+ * 売上達成専用ビューを開きます。
+ * @param {{ date?: string } | string} [data]
+ */
+declare function openSalesCelebrationView(data?: {
+    date?: string;
+} | string): void;
+/**
+ * 売上達成専用ビューを閉じて、参加者一覧に戻ります。
+ */
+declare function closeSalesCelebrationView(): void;
+/**
+ * アコーディオン下部の「教室完了」ボタンから売上転載を実行します。
+ * （売上転載と教室完了を同義として扱う）
+ * @param {{ date?: string } | string} [data]
+ */
+declare function completeLessonSalesTransfer(data?: {
+    date?: string;
+} | string): void;
+/**
+ * 売上転記対象日を更新します。
+ * @param {{ date?: string } | string} data
+ */
+declare function updateSalesTransferTargetDate(data: {
+    date?: string;
+} | string): void;
 /**
  * アコーディオンの開閉を切り替えるハンドラ（DOM操作のみ、再描画なし）
  * @param {string} lessonId - レッスンID

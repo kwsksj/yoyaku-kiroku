@@ -313,6 +313,39 @@ function getVenueColor(venue) {
 }
 
 /**
+ * 日付値をローカル日付の YYYY-MM-DD に正規化します。
+ * 文字列の区切り揺れ（`/`, `.`）や Date オブジェクトも許容します。
+ * @param {string | Date | null | undefined} dateValue
+ * @returns {string}
+ */
+function normalizeLocalYmd(dateValue) {
+  if (!dateValue) return '';
+
+  if (typeof dateValue === 'string') {
+    const trimmed = dateValue.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    const slashOrDotMatch = trimmed.match(/^(\d{4})[/.](\d{1,2})[/.](\d{1,2})/);
+    if (slashOrDotMatch) {
+      return `${slashOrDotMatch[1]}-${String(Number(slashOrDotMatch[2])).padStart(2, '0')}-${String(Number(slashOrDotMatch[3])).padStart(2, '0')}`;
+    }
+  }
+
+  const parsedDate =
+    dateValue instanceof Date
+      ? new Date(dateValue.getTime())
+      : new Date(String(dateValue));
+  if (Number.isNaN(parsedDate.getTime())) return '';
+
+  const y = parsedDate.getFullYear();
+  const m = String(parsedDate.getMonth() + 1).padStart(2, '0');
+  const d = String(parsedDate.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
  * 参加者リストメインビュー
  * stateManagerの状態に応じて適切なサブビューを返す
  * @returns {string} HTML文字列
@@ -328,6 +361,8 @@ export function getParticipantView() {
       return renderLessonList(
         /** @type {LessonCore[]} */ (state.participantLessons || []),
       );
+    case 'salesCelebration':
+      return renderSalesCelebrationView();
     case 'studentDetail':
       return renderStudentDetailModalContent(
         state.participantSelectedStudent,
@@ -336,6 +371,628 @@ export function getParticipantView() {
     default:
       return renderError('不明なビューです');
   }
+}
+
+/**
+ * 売上達成演出を画面全体に表示するオーバーレイを生成します。
+ * @param {boolean} isActive
+ * @param {string} message
+ * @returns {string}
+ */
+function renderFullScreenSalesCelebrationOverlay(isActive, message) {
+  if (!isActive) return '';
+
+  const particlesHtml = Array.from({ length: 46 })
+    .map((_, i) => {
+      const left = ((i * 23) % 100) + 0.5;
+      const delay = (i % 12) * 0.08;
+      const duration = 1.6 + (i % 5) * 0.22;
+      const hue = 24 + (i % 4) * 14;
+      return `<span class="sales-screen-particle" style="left:${left}%; animation-delay:${delay}s; animation-duration:${duration}s; --sales-particle-h:${hue};"></span>`;
+    })
+    .join('');
+
+  return `
+    <div class="sales-screen-overlay" aria-hidden="true">
+      <div class="sales-screen-glow"></div>
+      <div class="sales-screen-particles">${particlesHtml}</div>
+      <div class="sales-screen-message-wrap">
+        <div class="sales-screen-message">${escapeHTML(message)}</div>
+      </div>
+    </div>
+    <style>
+      .sales-screen-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 120;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .sales-screen-glow {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 20% 20%, rgba(251, 191, 36, 0.35), transparent 45%),
+          radial-gradient(circle at 80% 30%, rgba(249, 115, 22, 0.25), transparent 46%),
+          radial-gradient(circle at 50% 85%, rgba(253, 186, 116, 0.28), transparent 50%);
+        animation: sales-screen-glow-fade 2.2s ease-out forwards;
+      }
+      .sales-screen-particles {
+        position: absolute;
+        inset: 0;
+      }
+      .sales-screen-particle {
+        position: absolute;
+        bottom: -12vh;
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: linear-gradient(
+          180deg,
+          hsl(var(--sales-particle-h), 94%, 60%),
+          hsl(calc(var(--sales-particle-h) + 24), 95%, 70%)
+        );
+        box-shadow: 0 0 8px rgba(251, 146, 60, 0.4);
+        opacity: 0;
+        animation-name: sales-screen-rise;
+        animation-timing-function: ease-out;
+        animation-fill-mode: forwards;
+      }
+      .sales-screen-message-wrap {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 1rem;
+      }
+      .sales-screen-message {
+        background: rgba(255, 255, 255, 0.92);
+        border: 2px solid rgba(251, 146, 60, 0.5);
+        color: #9a3412;
+        font-size: 1.125rem;
+        font-weight: 700;
+        padding: 0.7rem 1rem;
+        border-radius: 999px;
+        box-shadow: 0 8px 20px rgba(194, 65, 12, 0.2);
+        animation: sales-screen-message-pop 2.2s ease-out forwards;
+      }
+      @keyframes sales-screen-rise {
+        0% { transform: translateY(0) scale(0.45); opacity: 0; }
+        14% { opacity: 1; }
+        100% { transform: translateY(-115vh) scale(1.1); opacity: 0; }
+      }
+      @keyframes sales-screen-glow-fade {
+        0% { opacity: 0; }
+        15% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      @keyframes sales-screen-message-pop {
+        0% { transform: scale(0.7); opacity: 0; }
+        12% { transform: scale(1.06); opacity: 1; }
+        100% { transform: scale(1); opacity: 0; }
+      }
+    </style>
+  `;
+}
+
+/**
+ * 売上集計・転記の処理中に表示する演出オーバーレイを生成します。
+ * @param {boolean} isLoading
+ * @param {string} targetDate
+ * @returns {string}
+ */
+function renderSalesProcessingOverlay(isLoading, targetDate) {
+  if (!isLoading) return '';
+
+  const sparksHtml = Array.from({ length: 28 })
+    .map((_, i) => {
+      const left = ((i * 17) % 100) + 0.3;
+      const delay = (i % 10) * 0.12;
+      const duration = 1.5 + (i % 4) * 0.25;
+      return `<span class="sales-processing-spark" style="left:${left}%; animation-delay:${delay}s; animation-duration:${duration}s;"></span>`;
+    })
+    .join('');
+
+  return `
+    <div class="sales-processing-overlay" aria-live="polite" aria-busy="true">
+      <div class="sales-processing-backdrop"></div>
+      <div class="sales-processing-panel">
+        <div class="sales-processing-title">売上を集計中です...</div>
+        <div class="sales-processing-subtitle">${escapeHTML(targetDate)} のデータを整えています</div>
+        <div class="sales-processing-meter-wrap">
+          <div class="sales-processing-meter"></div>
+        </div>
+        <div class="sales-processing-coins">
+          ${sparksHtml}
+        </div>
+      </div>
+    </div>
+    <style>
+      .sales-processing-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 140;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: auto;
+      }
+      .sales-processing-backdrop {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(circle at 20% 20%, rgba(251, 191, 36, 0.3), transparent 45%),
+          radial-gradient(circle at 75% 25%, rgba(251, 146, 60, 0.28), transparent 45%),
+          rgba(255, 250, 242, 0.95);
+        backdrop-filter: blur(2px);
+      }
+      .sales-processing-panel {
+        position: relative;
+        width: min(92vw, 460px);
+        border-radius: 1rem;
+        border: 2px solid rgba(251, 146, 60, 0.45);
+        background: rgba(255, 255, 255, 0.96);
+        padding: 1rem 1rem 1.2rem;
+        box-shadow: 0 20px 48px rgba(194, 65, 12, 0.18);
+        text-align: center;
+      }
+      .sales-processing-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: #9a3412;
+      }
+      .sales-processing-subtitle {
+        margin-top: 0.25rem;
+        font-size: 0.78rem;
+        color: #9a3412;
+        opacity: 0.85;
+      }
+      .sales-processing-meter-wrap {
+        margin-top: 0.75rem;
+        border-radius: 999px;
+        background: rgba(251, 146, 60, 0.16);
+        overflow: hidden;
+        height: 10px;
+      }
+      .sales-processing-meter {
+        height: 100%;
+        width: 36%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #f97316, #f59e0b, #fb923c);
+        animation: sales-processing-meter-move 1.1s ease-in-out infinite;
+      }
+      .sales-processing-coins {
+        position: relative;
+        margin-top: 0.85rem;
+        height: 58px;
+        overflow: hidden;
+      }
+      .sales-processing-spark {
+        position: absolute;
+        bottom: -20px;
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 30% 30%, #fff7ed 0%, #f59e0b 55%, #ea580c 100%);
+        box-shadow: 0 0 8px rgba(251, 146, 60, 0.5);
+        opacity: 0;
+        animation-name: sales-processing-rise;
+        animation-timing-function: ease-out;
+        animation-iteration-count: infinite;
+      }
+      @keyframes sales-processing-meter-move {
+        0% { transform: translateX(-90%); }
+        50% { transform: translateX(170%); }
+        100% { transform: translateX(360%); }
+      }
+      @keyframes sales-processing-rise {
+        0% { transform: translateY(0) scale(0.5); opacity: 0; }
+        20% { opacity: 1; }
+        100% { transform: translateY(-72px) scale(1.05); opacity: 0; }
+      }
+    </style>
+  `;
+}
+
+/**
+ * 管理者向けの「教室完了」専用ビューを描画します。
+ * 売上転載実行と、売上細目/集計結果の確認を同一画面で行います。
+ * @returns {string}
+ */
+function renderSalesCelebrationView() {
+  const state = participantStateManager.getState();
+  const isAdmin =
+    state.participantIsAdmin || state.currentUser?.isAdmin || false;
+  if (!isAdmin) {
+    return renderError('管理者のみ利用できます');
+  }
+
+  const toYen = (/** @type {number | string | null | undefined} */ amount) =>
+    `¥${Number(amount || 0).toLocaleString()}`;
+  const localToday = (() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  })();
+  const targetDate = String(
+    state['adminSalesTransferTargetDate'] || localToday,
+  );
+  const isFutureTargetDate = targetDate > localToday;
+  const isLoading = Boolean(state['adminSalesTransferLoading']);
+  const report = state['adminSalesTransferReport'] || null;
+  const transferResult = state['adminSalesTransferLastTransferResult'] || null;
+  const isReportDateMismatch = Boolean(
+    report?.targetDate && String(report.targetDate) !== targetDate,
+  );
+  const celebrationActive = Boolean(
+    state['adminSalesTransferCelebrationActive'],
+  );
+  const celebrationMessage = String(
+    state['adminSalesTransferCelebrationMessage'] ||
+      'きょうの教室 完了！おつかれさまでした。',
+  );
+  const celebrationOverlayHtml = renderFullScreenSalesCelebrationOverlay(
+    celebrationActive,
+    celebrationMessage,
+  );
+  const processingOverlayHtml = renderSalesProcessingOverlay(
+    isLoading,
+    targetDate,
+  );
+  const updatedStatusCount = Number(
+    state['adminSalesTransferUpdatedStatusCount'] || 0,
+  );
+  const transferSuccessCount = Number(transferResult?.successCount || 0);
+  const transferTotalCount = Number(transferResult?.totalCount || 0);
+  const reportGrandTotal = Number(report?.totals?.grandTotal || 0);
+  const rewardPoints =
+    Math.max(0, Math.floor(reportGrandTotal / 1000) * 5) +
+    Math.max(0, transferSuccessCount * 2);
+  const stepStates = [
+    {
+      label: '対象日を確定',
+      done: true,
+      running: false,
+    },
+    {
+      label: '売上を集計',
+      done: Boolean(report) && !isReportDateMismatch,
+      running: isLoading,
+    },
+    {
+      label: '売上表へ転記',
+      done: Boolean(transferResult),
+      running: isLoading,
+    },
+    {
+      label: '日程を開催済みに更新',
+      done: Boolean(transferResult) || updatedStatusCount > 0,
+      running: isLoading,
+    },
+  ];
+  const completionStepsHtml = `
+    <div class="mt-3 p-3 rounded-xl border border-orange-200 bg-white/90">
+      <div class="text-xs font-bold text-orange-800">進行ステップ</div>
+      <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+        ${stepStates
+          .map(
+            step => `
+              <div class="sales-step-item ${step.done ? 'is-done' : ''} ${
+                !step.done && step.running ? 'is-running' : ''
+              }">
+                <span class="sales-step-check" aria-hidden="true">
+                  <svg viewBox="0 0 16 16" fill="none">
+                    <path d="M3.5 8.5L6.8 11.8L12.5 5.8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                  </svg>
+                </span>
+                <span class="text-xs sm:text-sm">${escapeHTML(step.label)}</span>
+              </div>
+            `,
+          )
+          .join('')}
+      </div>
+    </div>
+    <style>
+      .sales-step-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.48rem 0.55rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(251, 146, 60, 0.28);
+        background: rgba(255, 255, 255, 0.94);
+        color: #9a3412;
+      }
+      .sales-step-check {
+        width: 1.2rem;
+        height: 1.2rem;
+        border-radius: 999px;
+        border: 2px solid rgba(251, 146, 60, 0.5);
+        background: #fff7ed;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+      .sales-step-check svg {
+        width: 0.8rem;
+        height: 0.8rem;
+      }
+      .sales-step-check path {
+        stroke: #ffffff;
+        stroke-dasharray: 18;
+        stroke-dashoffset: 18;
+      }
+      .sales-step-item.is-done .sales-step-check {
+        border-color: #16a34a;
+        background: #16a34a;
+        animation: sales-step-pop 0.35s ease-out;
+      }
+      .sales-step-item.is-done .sales-step-check path {
+        stroke-dashoffset: 0;
+        transition: stroke-dashoffset 0.32s ease-out;
+      }
+      .sales-step-item.is-running {
+        border-color: #f59e0b;
+        animation: sales-step-running 1.2s ease-in-out infinite;
+      }
+      @keyframes sales-step-pop {
+        0% { transform: scale(0.72); }
+        100% { transform: scale(1); }
+      }
+      @keyframes sales-step-running {
+        0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.28); }
+        100% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
+      }
+    </style>
+  `;
+  const rewardPanelHtml =
+    !isLoading && transferResult
+      ? `
+        <div class="mt-4 p-4 rounded-2xl border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 via-lime-50 to-white shadow-sm reward-panel">
+          <div class="text-xs font-bold tracking-wide text-emerald-700">MISSION CLEAR</div>
+          <div class="mt-1 text-lg sm:text-xl font-extrabold text-emerald-800">おつかれさまでした！</div>
+          <div class="text-xs text-emerald-700">教室完了の記録ができました。</div>
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div class="rounded-lg border border-emerald-200 bg-white p-2">
+              <div class="text-[11px] text-emerald-700">計上金額</div>
+              <div class="text-lg font-extrabold text-emerald-800 reward-amount">${toYen(reportGrandTotal)}</div>
+            </div>
+            <div class="rounded-lg border border-emerald-200 bg-white p-2">
+              <div class="text-[11px] text-emerald-700">計上件数</div>
+              <div class="text-base font-bold text-emerald-800">${transferSuccessCount}/${transferTotalCount}</div>
+            </div>
+            <div class="rounded-lg border border-emerald-200 bg-white p-2">
+              <div class="text-[11px] text-emerald-700">達成ポイント</div>
+              <div class="text-base font-bold text-emerald-800">+${rewardPoints} pt</div>
+            </div>
+          </div>
+        </div>
+        <style>
+          .reward-panel {
+            animation: reward-panel-pop 0.48s ease-out;
+          }
+          .reward-amount {
+            animation: reward-amount-pop 0.56s ease-out;
+          }
+          @keyframes reward-panel-pop {
+            0% { transform: scale(0.97); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+          @keyframes reward-amount-pop {
+            0% { transform: translateY(4px) scale(0.9); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+          }
+        </style>
+      `
+      : '';
+
+  let reportHtml = `
+    <div class="mt-4">
+      ${Components.cardContainer({
+        variant: 'default',
+        padding: 'normal',
+        customClass: 'bg-white',
+        content: `
+          <div class="text-sm font-bold text-brand-text mb-1">売上集計</div>
+          <p class="text-xs text-brand-subtle">「集計だけ更新」または「教室完了 ⇢ 売上集計」を実行すると、ここに売上細目と集計が表示されます。</p>
+        `,
+      })}
+    </div>
+  `;
+
+  if (report) {
+    const breakdownRows = (report.itemBreakdown || [])
+      .slice(0, 15)
+      .map(
+        (/** @type {any} */ item) => `
+          <tr class="border-b border-ui-border-light text-xs">
+            <td class="py-1 pr-2 text-brand-subtle whitespace-nowrap">${escapeHTML(item.category || '')}</td>
+            <td class="py-1 pr-2">${escapeHTML(item.itemName || '')}</td>
+            <td class="py-1 pr-2 text-right">${Number(item.quantity || 0).toLocaleString()}</td>
+            <td class="py-1 text-right font-semibold">${toYen(item.amount || 0)}</td>
+          </tr>
+        `,
+      )
+      .join('');
+
+    const reservationRows = (report.reservationSummaries || [])
+      .slice(0, 12)
+      .map(
+        (/** @type {any} */ summary) => `
+          <tr class="border-b border-ui-border-light text-xs">
+            <td class="py-1 pr-2">${escapeHTML(summary.displayName || summary.studentId || '')}</td>
+            <td class="py-1 pr-2 text-brand-subtle">${escapeHTML(summary.classroom || '')}</td>
+            <td class="py-1 pr-2 text-right">${summary.itemCount || 0}</td>
+            <td class="py-1 text-right font-semibold">${toYen(summary.grandTotal || 0)}</td>
+          </tr>
+        `,
+      )
+      .join('');
+
+    const warnings = Array.isArray(report.warnings) ? report.warnings : [];
+    const warningsHtml =
+      warnings.length > 0
+        ? `<div class="mt-2 p-2 text-xs rounded border border-yellow-300 bg-yellow-50 text-yellow-800">${warnings
+            .slice(0, 3)
+            .map(
+              (/** @type {string} */ warning) =>
+                `<div>・${escapeHTML(warning)}</div>`,
+            )
+            .join('')}</div>`
+        : '';
+
+    const transferStatusHtml = transferResult
+      ? `<div class="mt-2 p-2 text-xs rounded border border-green-300 bg-green-50 text-green-800">
+          転記結果: 成功 ${Number(transferResult.successCount || 0)} / 対象 ${Number(transferResult.totalCount || 0)}
+        </div>`
+      : '';
+
+    const hasTransferTargets = Number(report.totalReservations || 0) > 0;
+    const reportSummaryHtml = hasTransferTargets
+      ? `
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-xs">
+          <div class="p-2 rounded border border-ui-border bg-white"><div class="text-brand-subtle">対象よやく</div><div class="text-base font-bold">${Number(report.totalReservations || 0)}件</div></div>
+          <div class="p-2 rounded border border-ui-border bg-white"><div class="text-brand-subtle">転記行数</div><div class="text-base font-bold">${Number(report.salesRowCount || 0)}行</div></div>
+          <div class="p-2 rounded border border-ui-border bg-white"><div class="text-brand-subtle">授業料</div><div class="text-base font-bold">${toYen(report.totals?.tuitionSubtotal || 0)}</div></div>
+          <div class="p-2 rounded border border-ui-border bg-white"><div class="text-brand-subtle">物販</div><div class="text-base font-bold">${toYen(report.totals?.salesSubtotal || 0)}</div></div>
+        </div>
+        <div class="mt-2 p-2 rounded border border-brand-subtle/40 bg-brand-light">
+          <div class="text-xs text-brand-subtle">合計金額</div>
+          <div class="text-lg font-bold">${toYen(report.totals?.grandTotal || 0)}</div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 mt-3">
+          <div class="p-2 rounded border border-ui-border bg-white">
+            <div class="text-xs font-bold mb-1">売上細目（上位15件）</div>
+            ${
+              breakdownRows
+                ? `<table class="w-full"><thead><tr class="text-[10px] text-brand-subtle border-b border-ui-border"><th class="py-1 pr-2 text-left">区分</th><th class="py-1 pr-2 text-left">項目</th><th class="py-1 pr-2 text-right">数量</th><th class="py-1 text-right">金額</th></tr></thead><tbody>${breakdownRows}</tbody></table>`
+                : '<p class="text-xs text-brand-subtle">細目データがありません。</p>'
+            }
+          </div>
+          <div class="p-2 rounded border border-ui-border bg-white">
+            <div class="text-xs font-bold mb-1">予約別集計（上位12件）</div>
+            ${
+              reservationRows
+                ? `<table class="w-full"><thead><tr class="text-[10px] text-brand-subtle border-b border-ui-border"><th class="py-1 pr-2 text-left">名前</th><th class="py-1 pr-2 text-left">教室</th><th class="py-1 pr-2 text-right">項目数</th><th class="py-1 text-right">合計</th></tr></thead><tbody>${reservationRows}</tbody></table>`
+                : '<p class="text-xs text-brand-subtle">予約別データがありません。</p>'
+            }
+          </div>
+        </div>
+      `
+      : `<div class="mt-3 text-xs text-brand-subtle">対象日の会計済みよやくはありません。</div>`;
+
+    reportHtml = `
+      <div class="mt-4">
+        ${Components.cardContainer({
+          variant: 'default',
+          padding: 'normal',
+          customClass: 'bg-white',
+          content: `
+            <div class="text-sm font-bold text-brand-text">売上集計</div>
+            <div class="text-xs text-brand-subtle mt-1">対象日: ${escapeHTML(report.targetDate || targetDate)}</div>
+            ${reportSummaryHtml}
+            ${warningsHtml}
+            ${transferStatusHtml}
+          `,
+        })}
+      </div>
+    `;
+  }
+
+  return Components.pageContainer({
+    maxWidth: '5xl',
+    content: `
+      ${processingOverlayHtml}
+      ${celebrationOverlayHtml}
+      ${Components.pageHeader({
+        title: '教室しめ・売上確認',
+        showBackButton: false,
+        customActionHtml: Components.button({
+          action: 'closeSalesCelebrationView',
+          text: '一覧にもどる',
+          style: 'secondary',
+          size: 'xs',
+        }),
+      })}
+
+      <div class="relative overflow-hidden rounded-xl border-2 border-amber-300 bg-gradient-to-br from-amber-50 via-orange-50 to-white p-4 sm:p-5">
+        <div class="relative z-10">
+          <h2 class="text-lg sm:text-xl font-bold text-brand-text">きょうの教室 完了！</h2>
+          <p class="text-xs sm:text-sm text-brand-subtle mt-1">売上転載と日程ステータス更新を一体で実行し、集計と細目を確認できます。</p>
+
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-2 items-end">
+            <div>
+              <label class="text-xs text-brand-subtle mb-1 block" for="admin-sales-celebration-date">対象日</label>
+              <input
+                id="admin-sales-celebration-date"
+                type="date"
+                value="${escapeHTML(targetDate)}"
+                onchange="actionHandlers.updateSalesTransferTargetDate({ date: this.value })"
+                class="${DesignConfig.inputs.base}"
+                ${isLoading ? 'disabled' : ''}
+              />
+            </div>
+            <div>
+              ${Components.button({
+                action: 'previewSalesTransfer',
+                text: isLoading ? '更新中...' : '集計だけ更新',
+                style: 'secondary',
+                size: 'small',
+                disabled: isLoading,
+              })}
+            </div>
+            <div>
+              ${Components.button({
+                action: 'completeTodayClassroom',
+                text: isLoading
+                  ? '集計・転載中...'
+                  : isFutureTargetDate
+                    ? '未来日は実行不可'
+                    : '教室完了 ⇢ 売上集計',
+                style: 'attention',
+                size: 'small',
+                disabled: isLoading || isFutureTargetDate,
+              })}
+            </div>
+          </div>
+
+          <div class="mt-2 text-xs text-brand-subtle">会計済みよやくの売上を売上表へ転送し、日程ステータスも更新します。</div>
+          ${
+            isFutureTargetDate
+              ? '<div class="mt-2 p-2 rounded border border-red-200 bg-red-50 text-xs text-red-700">未来日程は「教室完了 ⇢ 売上集計」を実行できません。</div>'
+              : ''
+          }
+          ${
+            isReportDateMismatch
+              ? '<div class="mt-2 p-2 rounded border border-blue-200 bg-blue-50 text-xs text-blue-700">対象日を変更しました。必要に応じて「集計だけ更新」で表示内容を最新化してください。</div>'
+              : ''
+          }
+          ${
+            celebrationActive
+              ? `<div class="mt-3 inline-flex items-center gap-2 rounded-full border border-orange-300 bg-white/90 px-3 py-1 text-sm font-bold text-orange-700 shadow-sm">${escapeHTML(celebrationMessage)}</div>`
+              : ''
+          }
+          ${completionStepsHtml}
+          ${rewardPanelHtml}
+        </div>
+      </div>
+
+      ${reportHtml}
+
+      <div class="mt-4">
+        ${Components.button({
+          action: 'closeSalesCelebrationView',
+          text: '参加者一覧にもどる',
+          style: 'secondary',
+          size: 'full',
+        })}
+      </div>
+    `,
+  });
 }
 
 // createBadge関数は削除 - Components.badge()を使用
@@ -459,6 +1116,17 @@ function renderLessonList(lessons) {
   const showPastLessons = state.showPastLessons || false;
   const isAdmin =
     state.participantIsAdmin || state.currentUser?.isAdmin || false;
+  const isSalesTransferLoading = Boolean(state['adminSalesTransferLoading']);
+  const currentSalesTargetDate = String(
+    state['adminSalesTransferTargetDate'] || '',
+  );
+  const celebrationOverlayHtml = renderFullScreenSalesCelebrationOverlay(
+    Boolean(state['adminSalesTransferCelebrationActive']),
+    String(
+      state['adminSalesTransferCelebrationMessage'] ||
+        'きょうの教室 完了！おつかれさまでした。',
+    ),
+  );
 
   // 教室一覧を取得（重複を除く）
   const classrooms = [
@@ -469,6 +1137,7 @@ function renderLessonList(lessons) {
   // 今日の日付（時刻を00:00:00にリセット）
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const todayYmd = normalizeLocalYmd(today);
 
   // 未来と過去のレッスンに分ける（当日は両方に含める）
   const futureLessons = lessons
@@ -809,6 +1478,43 @@ function renderLessonList(lessons) {
             })
           : '';
 
+      // 売上転載状態バッジ（管理者向け）
+      let salesTransferBadge = '';
+      if (isAdmin) {
+        const rawTransferStatus = String(lesson['salesTransferStatus'] || '');
+        if (rawTransferStatus) {
+          /** @type {Record<string, { text: string; color: 'gray'|'blue'|'green'|'red'|'orange'|'purple'|'yellow' }>} */
+          const transferBadgeMap = {
+            [CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING]: {
+              text: '売上 未転載',
+              color: 'yellow',
+            },
+            [CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.COMPLETED]: {
+              text: '売上 転載済',
+              color: 'green',
+            },
+            [CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PARTIAL]: {
+              text: '売上 一部失敗',
+              color: 'orange',
+            },
+            [CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.FAILED]: {
+              text: '売上 失敗',
+              color: 'red',
+            },
+          };
+          const transferInfo = transferBadgeMap[rawTransferStatus] || {
+            text: `売上 ${rawTransferStatus}`,
+            color: 'blue',
+          };
+          salesTransferBadge = Components.badge({
+            text: transferInfo.text,
+            color: transferInfo.color,
+            size: 'xs',
+            border: true,
+          });
+        }
+      }
+
       // アコーディオンが展開されているか（ローカル変数ではなくDOMから判定）
       // すべてのレッスンはデフォルト全開。DOM状態があればそれを優先
       let isExpanded = true; // デフォルト設定（全展開）
@@ -853,6 +1559,7 @@ function renderLessonList(lessons) {
               ${waitlistBadge}
               ${chiselBadge}
               ${pendingBadge}
+              ${salesTransferBadge}
             </div>
           </div>
         </button>
@@ -861,14 +1568,107 @@ function renderLessonList(lessons) {
       // よやくボタンまたは管理ボタン
       let reserveButtonHtml;
       if (isAdmin) {
+        const lessonDateYmd = normalizeLocalYmd(lesson.date);
+        const isPastOrToday = lessonDateYmd ? lessonDateYmd <= todayYmd : false;
+        const lessonStatus = String(lesson.status || '');
+        const scheduledStatusValue = String(
+          CONSTANTS.SCHEDULE_STATUS.SCHEDULED,
+        );
+        const salesTransferStatus = String(lesson['salesTransferStatus'] || '');
+        const pendingTransferStatusValue = String(
+          CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING,
+        );
+        const partialTransferStatusValue = String(
+          CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PARTIAL,
+        );
+        const failedTransferStatusValue = String(
+          CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.FAILED,
+        );
+        const normalizedLessonStatus = lessonStatus.replace(/\s+/g, '');
+        const normalizedScheduledStatus = scheduledStatusValue.replace(
+          /\s+/g,
+          '',
+        );
+        const normalizedSalesTransferStatus = salesTransferStatus.replace(
+          /\s+/g,
+          '',
+        );
+        const normalizedPendingTransferStatus =
+          pendingTransferStatusValue.replace(/\s+/g, '');
+        const normalizedPartialTransferStatus =
+          partialTransferStatusValue.replace(/\s+/g, '');
+        const normalizedFailedTransferStatus =
+          failedTransferStatusValue.replace(/\s+/g, '');
+        const isScheduledStatus =
+          normalizedLessonStatus === normalizedScheduledStatus ||
+          normalizedLessonStatus.includes(normalizedScheduledStatus);
+        const isPendingSalesTransfer =
+          normalizedSalesTransferStatus === normalizedPendingTransferStatus ||
+          normalizedSalesTransferStatus.includes(
+            normalizedPendingTransferStatus,
+          );
+        const isPartialSalesTransfer =
+          normalizedSalesTransferStatus === normalizedPartialTransferStatus ||
+          normalizedSalesTransferStatus.includes(
+            normalizedPartialTransferStatus,
+          );
+        const isFailedSalesTransfer =
+          normalizedSalesTransferStatus === normalizedFailedTransferStatus ||
+          normalizedSalesTransferStatus.includes(
+            normalizedFailedTransferStatus,
+          );
+        const isRetryableSalesTransferStatus =
+          isPendingSalesTransfer ||
+          isPartialSalesTransfer ||
+          isFailedSalesTransfer;
+        const isRunningThisLessonDate =
+          isSalesTransferLoading && currentSalesTargetDate === lessonDateYmd;
+        const shouldShowCompleteButton =
+          isPastOrToday &&
+          (isScheduledStatus || isRetryableSalesTransferStatus);
+        const isCompleteButtonEnabled =
+          shouldShowCompleteButton && !isSalesTransferLoading;
+        const completeDisabledReason = isSalesTransferLoading
+          ? '売上集計を処理中です'
+          : '';
+        const completeButtonClass = isCompleteButtonEnabled
+          ? 'bg-action-attention-bg text-action-attention-text hover:opacity-90'
+          : 'bg-orange-100 text-orange-300 cursor-not-allowed';
+        const shouldShowRetryLabel =
+          !isScheduledStatus &&
+          (isPartialSalesTransfer || isFailedSalesTransfer);
         // 管理者用「管理」ボタン（モーダルでリスト表示・編集）
         reserveButtonHtml = `
         <div class="pt-1 text-right px-2 pb-1">
-          <button class="bg-action-primary-bg text-white text-xs py-1 px-3 rounded hover:bg-action-primary-hover shadow-sm"
-                  data-action="showLessonParticipants"
-                  data-lesson-id="${lesson.lessonId}">
-            管理
-          </button>
+          <div class="flex flex-wrap justify-end gap-1">
+            <button
+                    type="button"
+                    class="inline-flex items-center justify-center whitespace-nowrap text-[11px] sm:text-xs font-bold leading-none py-1.5 px-2.5 rounded-md bg-action-primary-bg text-white shadow-sm hover:bg-action-primary-hover"
+                    data-action="showLessonParticipants"
+                    data-lesson-id="${lesson.lessonId}">
+              管理
+            </button>
+            ${
+              shouldShowCompleteButton
+                ? `<button
+                    type="button"
+                    class="inline-flex items-center justify-center whitespace-nowrap text-[11px] sm:text-xs font-bold leading-none py-1.5 px-2.5 rounded-md shadow-sm ${completeButtonClass}"
+                    data-action="completeLessonSalesTransfer"
+                    data-date="${escapeHTML(lessonDateYmd)}"
+                    ${isCompleteButtonEnabled ? '' : 'disabled'}
+                    title="${escapeHTML(completeDisabledReason)}"
+                  >
+                    ${
+                      isSalesTransferLoading && isRunningThisLessonDate
+                        ? '集計中...'
+                        : shouldShowRetryLabel
+                          ? '売上集計を再実行'
+                          : '教室完了 ⇢ 売上集計'
+                    }
+                  </button>`
+                : ''
+            }
+          </div>
         </div>`;
       } else {
         // 通常ユーザー用ボタン（状態に応じて出し分け）
@@ -1021,12 +1821,13 @@ function renderLessonList(lessons) {
   return Components.pageContainer({
     maxWidth: '7xl',
     content: `
-    ${Components.pageHeader({
-      title: 'みんな の よやく・きろく',
-      showBackButton: !isAdmin,
-      backAction: 'smartGoBack',
-      customActionHtml: actionButtons,
-    })}
+      ${Components.pageHeader({
+        title: 'みんな の よやく・きろく',
+        showBackButton: !isAdmin,
+        backAction: 'smartGoBack',
+        customActionHtml: actionButtons,
+      })}
+      ${celebrationOverlayHtml}
       ${fetchedAtHtml}
       <div class="flex flex-wrap items-start justify-between gap-1 sm:gap-2 mb-2">
         <div class="flex-grow">

@@ -7,7 +7,7 @@ export function include(filename: string): string;
 /**
  * @param {GoogleAppsScript.Events.DoGet} e
  */
-export function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.HTML.HtmlOutput;
+export function doGet(e: GoogleAppsScript.Events.DoGet): GoogleAppsScript.Content.TextOutput | GoogleAppsScript.HTML.HtmlOutput;
 export function onOpen(): void;
 /**
  * 選択範囲変更時に実行されるシンプルトリガー
@@ -34,13 +34,13 @@ export function addAdminMenu(menu: GoogleAppsScript.Base.Menu): void;
 export function addCacheMenu(menu: GoogleAppsScript.Base.Menu): void;
 /**
  * インストール型トリガー：シート変更時に実行。
- * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processChange` へ委譲します。
+ * 日程シートの手編集で追加された行に対して、状態の初期値補完を行います。
  * @param {GoogleAppsScript.Events.SheetsOnChange} _e - Google Sheets のイベントオブジェクト
  */
 export function handleOnChange(_e: GoogleAppsScript.Events.SheetsOnChange): void;
 /**
  * インストール型トリガー：シート編集時に実行。
- * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processCellEdit` へ委譲します。
+ * 日程シートの編集行に対して、状態の初期値補完を行います。
  * @param {GoogleAppsScript.Events.SheetsOnEdit} _e - Google Sheets のイベントオブジェクト
  */
 export function handleEdit(_e: GoogleAppsScript.Events.SheetsOnEdit): void;

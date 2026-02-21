@@ -26,13 +26,17 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
-import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
+import {
+  getSalesLoggedReservationIdSet,
+  logSalesForSingleReservation,
+} from './05-2_Backend_Write.js';
 import {
   rebuildAllReservationsCache,
   rebuildAllStudentsCache,
+  markScheduleStatusCompletedByDate,
   rebuildScheduleMasterCache,
   syncReservationIdsToSchedule,
-  updateScheduleStatusToCompleted,
+  updateScheduleSalesTransferStatusInCache,
 } from './07_CacheManager.js';
 import {
   convertReservationToRow,
@@ -5907,6 +5911,570 @@ export function setupTestEnvironment() {
 }
 
 /**
+ * 【開発用】売上転載テスト向けのサンプルデータを投入します。
+ * - 本番環境では実行不可
+ * - 既存のテスト行（予約ID prefix: test-sales-transfer-）は先に削除
+ * - 管理画面の売上転載パネルで確認しやすいよう、完了/未完了を混在させたデータを作成
+ *
+ * @param {string} [targetDate] - 対象日（YYYY-MM-DD）。省略時は当日
+ * @param {{ sameDateOnly?: boolean }} [options] - 追加オプション
+ * @returns {{
+ *   success: boolean;
+ *   targetDate: string;
+ *   removedReservations: number;
+ *   removedSchedules: number;
+ *   insertedStudents: number;
+ *   insertedReservations: number;
+ *   insertedSchedules: number;
+ *   targetDateCompletedCount: number;
+ *   reservationIds: string[];
+ *   lessonIds: string[];
+ * }}
+ */
+export function populateTestSalesTransferData(targetDate, options = {}) {
+  if (CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+    throw new Error(
+      '本番環境では実行できません。テスト環境のみで使用してください。',
+    );
+  }
+
+  const TEST_RESERVATION_PREFIX = 'test-sales-transfer-';
+  const TEST_LESSON_PREFIX = 'test-sales-lesson-';
+  const targetDateYmd = normalizeSalesTransferDate(targetDate);
+
+  /**
+   * @param {string} baseYmd
+   * @param {number} diffDays
+   * @returns {string}
+   */
+  const shiftDate = (baseYmd, diffDays) => {
+    const baseDate = new Date(`${baseYmd}T00:00:00+09:00`);
+    baseDate.setDate(baseDate.getDate() + diffDays);
+    return Utilities.formatDate(baseDate, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  };
+
+  const sameDateOnly = options.sameDateOnly === true;
+  const previousDateYmd = sameDateOnly
+    ? targetDateYmd
+    : shiftDate(targetDateYmd, -1);
+  const futureDateYmd = sameDateOnly
+    ? targetDateYmd
+    : shiftDate(targetDateYmd, 1);
+  const targetDateToken = targetDateYmd.replace(/-/g, '');
+  const previousDateToken = previousDateYmd.replace(/-/g, '');
+  const futureDateToken = futureDateYmd.replace(/-/g, '');
+
+  const lessonIds = {
+    targetTokyoMorning: `${TEST_LESSON_PREFIX}${targetDateToken}-tokyo-morning`,
+    targetTsukubaAfternoon: `${TEST_LESSON_PREFIX}${targetDateToken}-tsukuba-afternoon`,
+    targetNumazuAfternoon: `${TEST_LESSON_PREFIX}${targetDateToken}-numazu-afternoon`,
+    futureTokyoDaytime: `${TEST_LESSON_PREFIX}${futureDateToken}-tokyo-daytime`,
+    previousTsukubaMorning: `${TEST_LESSON_PREFIX}${previousDateToken}-tsukuba-morning`,
+  };
+
+  /**
+   * @param {Map<string, number> | Record<string, number>} headerMap
+   * @param {string | string[]} headerNameOrCandidates
+   * @returns {number | undefined}
+   */
+  const getColumnIndex = (headerMap, headerNameOrCandidates) => {
+    const candidates = Array.isArray(headerNameOrCandidates)
+      ? headerNameOrCandidates
+      : [headerNameOrCandidates];
+    for (const headerName of candidates) {
+      const index =
+        headerMap instanceof Map
+          ? headerMap.get(headerName)
+          : headerMap[headerName];
+      if (index !== undefined) return index;
+    }
+    return undefined;
+  };
+
+  /**
+   * @param {string} ymd
+   * @returns {Date}
+   */
+  const toSheetDate = ymd => new Date(`${ymd}T00:00:00+09:00`);
+
+  /**
+   * @param {string | undefined} hhmm
+   * @returns {Date | string}
+   */
+  const toSheetTime = hhmm => {
+    if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return '';
+    return new Date(`1900-01-01T${hhmm}:00+09:00`);
+  };
+
+  /**
+   * @param {Array<{name: string; price: number; unitPrice?: number; quantity?: number; unit?: string}>} tuitionItems
+   * @param {Array<{name: string; price: number; unitPrice?: number; quantity?: number; unit?: string}>} salesItems
+   * @param {string} paymentMethod
+   * @returns {AccountingDetailsCore}
+   */
+  const createAccountingDetails = (tuitionItems, salesItems, paymentMethod) => {
+    const tuitionSubtotal = tuitionItems.reduce(
+      (sum, item) => sum + Number(item.price || 0),
+      0,
+    );
+    const salesSubtotal = salesItems.reduce(
+      (sum, item) => sum + Number(item.price || 0),
+      0,
+    );
+    return {
+      tuition: {
+        items: tuitionItems,
+        subtotal: tuitionSubtotal,
+      },
+      sales: {
+        items: salesItems,
+        subtotal: salesSubtotal,
+      },
+      grandTotal: tuitionSubtotal + salesSubtotal,
+      paymentMethod,
+    };
+  };
+
+  /** @type {Array<UserCore & { studentId: string }>} */
+  const testStudents = [
+    {
+      studentId: 'user_test_sales_transfer_01',
+      realName: '売上テスト 太郎',
+      nickname: 'テスト太郎',
+      phone: '09000000001',
+      wantsEmail: false,
+      wantsScheduleNotification: false,
+    },
+    {
+      studentId: 'user_test_sales_transfer_02',
+      realName: '売上テスト 花子',
+      nickname: 'テスト花子',
+      phone: '09000000002',
+      wantsEmail: false,
+      wantsScheduleNotification: false,
+    },
+    {
+      studentId: 'user_test_sales_transfer_03',
+      realName: '売上テスト 次郎',
+      nickname: 'テスト次郎',
+      phone: '09000000003',
+      wantsEmail: false,
+      wantsScheduleNotification: false,
+    },
+    {
+      studentId: 'user_test_sales_transfer_04',
+      realName: '売上テスト 三郎',
+      nickname: 'テスト三郎',
+      phone: '09000000004',
+      wantsEmail: false,
+      wantsScheduleNotification: false,
+    },
+    {
+      studentId: 'user_test_sales_transfer_05',
+      realName: '売上テスト 四郎',
+      nickname: 'テスト四郎',
+      phone: '09000000005',
+      wantsEmail: false,
+      wantsScheduleNotification: false,
+    },
+  ];
+  const [student01, student02, student03, student04, student05] = testStudents;
+  if (!student01 || !student02 || !student03 || !student04 || !student05) {
+    throw new Error('テスト生徒データの初期化に失敗しました。');
+  }
+
+  safeSalesToast('売上転載テストデータを投入中です...', '処理中', -1);
+
+  // 1. 生徒名簿のテスト生徒を不足分のみ追加
+  const rosterSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.ROSTER);
+  if (!rosterSheet) {
+    throw new Error('生徒名簿シートが見つかりません。');
+  }
+  const { headerMap: rosterHeaderMap, dataRows: rosterRows } =
+    getSheetData(rosterSheet);
+  const rosterStudentIdCol = getColumnIndex(
+    rosterHeaderMap,
+    CONSTANTS.HEADERS.ROSTER.STUDENT_ID,
+  );
+  if (rosterStudentIdCol === undefined) {
+    throw new Error('生徒名簿の「生徒ID」列が見つかりません。');
+  }
+
+  const existingStudentIds = new Set(
+    rosterRows.map(row => String(row[rosterStudentIdCol] || '')),
+  );
+
+  /** @type {RawSheetRow[]} */
+  const rosterRowsToAppend = [];
+  testStudents.forEach(student => {
+    if (existingStudentIds.has(student.studentId)) return;
+    rosterRowsToAppend.push(convertUserToRow(student, rosterHeaderMap));
+  });
+
+  if (rosterRowsToAppend.length > 0) {
+    const rosterWriteWidth = rosterRowsToAppend[0]?.length || 0;
+    if (rosterWriteWidth > 0) {
+      rosterSheet
+        .getRange(
+          rosterSheet.getLastRow() + 1,
+          1,
+          rosterRowsToAppend.length,
+          rosterWriteWidth,
+        )
+        .setValues(rosterRowsToAppend);
+    }
+  }
+
+  // 2. 予約記録の既存テスト行を掃除
+  const reservationSheet = SS_MANAGER.getSheet(
+    CONSTANTS.SHEET_NAMES.RESERVATIONS,
+  );
+  if (!reservationSheet) {
+    throw new Error('予約記録シートが見つかりません。');
+  }
+  const {
+    header: reservationHeader,
+    headerMap: reservationHeaderMap,
+    dataRows: reservationRows,
+  } = getSheetData(reservationSheet);
+  const reservationIdCol = getColumnIndex(
+    reservationHeaderMap,
+    CONSTANTS.HEADERS.RESERVATIONS.RESERVATION_ID,
+  );
+  if (reservationIdCol === undefined) {
+    throw new Error('予約記録の「予約ID」列が見つかりません。');
+  }
+
+  let removedReservations = 0;
+  for (let i = reservationRows.length - 1; i >= 0; i -= 1) {
+    const reservationId = String(reservationRows[i]?.[reservationIdCol] || '');
+    if (!reservationId.startsWith(TEST_RESERVATION_PREFIX)) continue;
+    reservationSheet.deleteRow(i + 2);
+    removedReservations += 1;
+  }
+
+  // 2.5 日程の既存テスト行を掃除
+  const scheduleSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+  if (!scheduleSheet) {
+    throw new Error('日程シートが見つかりません。');
+  }
+  ensureScheduleSalesTransferColumns();
+  const {
+    header: scheduleHeader,
+    headerMap: scheduleHeaderMap,
+    dataRows: scheduleRows,
+  } = getSheetData(scheduleSheet);
+  const scheduleLessonIdCol = getColumnIndex(
+    scheduleHeaderMap,
+    CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+  );
+  if (scheduleLessonIdCol === undefined) {
+    throw new Error('日程の「レッスンID」列が見つかりません。');
+  }
+
+  let removedSchedules = 0;
+  for (let i = scheduleRows.length - 1; i >= 0; i -= 1) {
+    const lessonId = String(scheduleRows[i]?.[scheduleLessonIdCol] || '');
+    if (!lessonId.startsWith(TEST_LESSON_PREFIX)) continue;
+    scheduleSheet.deleteRow(i + 2);
+    removedSchedules += 1;
+  }
+
+  /** @type {ReservationCore[]} */
+  const sampleReservations = [
+    {
+      reservationId: `${TEST_RESERVATION_PREFIX}${targetDateToken}-01`,
+      lessonId: lessonIds.targetTokyoMorning,
+      studentId: student01.studentId,
+      classroom: CONSTANTS.CLASSROOMS.TOKYO,
+      venue: 'テスト会場A',
+      date: targetDateYmd,
+      startTime: '10:00',
+      endTime: '13:00',
+      status: CONSTANTS.STATUS.COMPLETED,
+      chiselRental: true,
+      firstLecture: false,
+      sessionNote: '売上転載テスト: 授業料+物販',
+      accountingDetails: createAccountingDetails(
+        [
+          {
+            name: '授業料（3時間）',
+            price: 6000,
+            unitPrice: 2000,
+            quantity: 3,
+            unit: '時間',
+          },
+        ],
+        [
+          {
+            name: 'ひのき材（小）',
+            price: 800,
+            unitPrice: 800,
+            quantity: 1,
+            unit: '個',
+          },
+          {
+            name: 'やすりセット',
+            price: 350,
+            unitPrice: 350,
+            quantity: 1,
+            unit: 'セット',
+          },
+        ],
+        CONSTANTS.PAYMENT_METHODS.CASH,
+      ),
+    },
+    {
+      reservationId: `${TEST_RESERVATION_PREFIX}${targetDateToken}-02`,
+      lessonId: lessonIds.targetTsukubaAfternoon,
+      studentId: student02.studentId,
+      classroom: CONSTANTS.CLASSROOMS.TSUKUBA,
+      venue: 'テスト会場B',
+      date: targetDateYmd,
+      startTime: '13:30',
+      endTime: '16:30',
+      status: CONSTANTS.STATUS.COMPLETED,
+      chiselRental: false,
+      firstLecture: true,
+      sessionNote: '売上転載テスト: 授業料のみ',
+      accountingDetails: createAccountingDetails(
+        [
+          {
+            name: '授業料（初回3時間）',
+            price: 6500,
+            unitPrice: 6500,
+            quantity: 1,
+            unit: '回',
+          },
+        ],
+        [],
+        CONSTANTS.PAYMENT_METHODS.TRANSFER,
+      ),
+    },
+    {
+      reservationId: `${TEST_RESERVATION_PREFIX}${targetDateToken}-03`,
+      lessonId: lessonIds.targetNumazuAfternoon,
+      studentId: student03.studentId,
+      classroom: CONSTANTS.CLASSROOMS.NUMAZU,
+      venue: 'テスト会場C',
+      date: targetDateYmd,
+      startTime: '14:00',
+      endTime: '17:00',
+      status: CONSTANTS.STATUS.COMPLETED,
+      chiselRental: true,
+      firstLecture: false,
+      sessionNote: '売上転載テスト: 複数物販',
+      accountingDetails: createAccountingDetails(
+        [
+          {
+            name: '授業料（3時間）',
+            price: 6000,
+            unitPrice: 2000,
+            quantity: 3,
+            unit: '時間',
+          },
+        ],
+        [
+          {
+            name: 'くり材（中）',
+            price: 1200,
+            unitPrice: 1200,
+            quantity: 1,
+            unit: '個',
+          },
+          {
+            name: '仕上げオイル',
+            price: 900,
+            unitPrice: 900,
+            quantity: 1,
+            unit: '個',
+          },
+        ],
+        CONSTANTS.PAYMENT_METHODS.CARD,
+      ),
+    },
+    {
+      reservationId: `${TEST_RESERVATION_PREFIX}${futureDateToken}-04`,
+      lessonId: lessonIds.futureTokyoDaytime,
+      studentId: student04.studentId,
+      classroom: CONSTANTS.CLASSROOMS.TOKYO,
+      venue: 'テスト会場D',
+      date: futureDateYmd,
+      startTime: '11:00',
+      endTime: '14:00',
+      status: CONSTANTS.STATUS.CONFIRMED,
+      chiselRental: false,
+      firstLecture: false,
+      sessionNote: '売上転載テスト: 未完了のため対象外',
+    },
+    {
+      reservationId: `${TEST_RESERVATION_PREFIX}${previousDateToken}-05`,
+      lessonId: lessonIds.previousTsukubaMorning,
+      studentId: student05.studentId,
+      classroom: CONSTANTS.CLASSROOMS.TSUKUBA,
+      venue: 'テスト会場E',
+      date: previousDateYmd,
+      startTime: '10:00',
+      endTime: '13:00',
+      status: CONSTANTS.STATUS.COMPLETED,
+      chiselRental: false,
+      firstLecture: false,
+      sessionNote: '売上転載テスト: 前日分',
+      accountingDetails: createAccountingDetails(
+        [
+          {
+            name: '授業料（3時間）',
+            price: 6000,
+            unitPrice: 2000,
+            quantity: 3,
+            unit: '時間',
+          },
+        ],
+        [{ name: '木彫りナイフ', price: 1500, unitPrice: 1500, quantity: 1 }],
+        CONSTANTS.PAYMENT_METHODS.CASH,
+      ),
+    },
+  ];
+
+  const reservationRowsToAppend = sampleReservations.map(reservation =>
+    convertReservationToRow(
+      reservation,
+      reservationHeaderMap,
+      reservationHeader,
+    ),
+  );
+
+  if (reservationRowsToAppend.length > 0) {
+    reservationSheet
+      .getRange(
+        reservationSheet.getLastRow() + 1,
+        1,
+        reservationRowsToAppend.length,
+        reservationHeader.length,
+      )
+      .setValues(reservationRowsToAppend);
+  }
+
+  /** @type {RawSheetRow[]} */
+  const scheduleRowsToAppend = sampleReservations.map(reservation => {
+    const row = new Array(scheduleHeader.length).fill('');
+    /**
+     * @param {string | string[]} headerNameOrCandidates
+     * @param {RawSheetRow[number]} value
+     */
+    const setScheduleValue = (headerNameOrCandidates, value) => {
+      const col = getColumnIndex(scheduleHeaderMap, headerNameOrCandidates);
+      if (col !== undefined) {
+        row[col] = value;
+      }
+    };
+
+    // テスト投入時点では「教室完了 ⇢ 売上集計」実行前を再現するため、
+    // 日程ステータスは予約ステータスに関わらず開催予定で統一する。
+    const scheduleStatus = CONSTANTS.SCHEDULE_STATUS.SCHEDULED;
+
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+      reservation.lessonId,
+    );
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.RESERVATION_IDS,
+      JSON.stringify([reservation.reservationId]),
+    );
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.DATE,
+      toSheetDate(String(reservation.date || targetDateYmd)),
+    );
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.CLASSROOM,
+      String(reservation.classroom || ''),
+    );
+    setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.VENUE, reservation.venue || '');
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.TYPE,
+      CONSTANTS.CLASSROOM_TYPES.TIME_FULL,
+    );
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.FIRST_START,
+      toSheetTime(reservation.startTime),
+    );
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.FIRST_END,
+      toSheetTime(reservation.endTime),
+    );
+    setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.SECOND_START, '');
+    setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.SECOND_END, '');
+    setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START, '');
+    setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY, 12);
+    setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY, 4);
+    setScheduleValue(
+      [CONSTANTS.HEADERS.SCHEDULE.STATUS, '状態', 'status'],
+      scheduleStatus,
+    );
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS,
+      CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING,
+    );
+    setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT, '');
+    setScheduleValue(
+      CONSTANTS.HEADERS.SCHEDULE.NOTES,
+      'テストデータ（売上転載・参加者ビュー確認用）',
+    );
+    return row;
+  });
+
+  if (scheduleRowsToAppend.length > 0) {
+    scheduleSheet
+      .getRange(
+        scheduleSheet.getLastRow() + 1,
+        1,
+        scheduleRowsToAppend.length,
+        scheduleHeader.length,
+      )
+      .setValues(scheduleRowsToAppend);
+  }
+
+  // 3. キャッシュ再構築（管理画面ですぐ確認できるようにする）
+  rebuildAllReservationsCache();
+  syncReservationIdsToSchedule();
+  rebuildScheduleMasterCache();
+  rebuildAllStudentsCache();
+
+  const targetDateCompletedCount = sampleReservations.filter(
+    reservation =>
+      reservation.date === targetDateYmd &&
+      reservation.status === CONSTANTS.STATUS.COMPLETED,
+  ).length;
+
+  const result = {
+    success: true,
+    targetDate: targetDateYmd,
+    sameDateOnly,
+    removedReservations,
+    removedSchedules,
+    insertedStudents: rosterRowsToAppend.length,
+    insertedReservations: sampleReservations.length,
+    insertedSchedules: scheduleRowsToAppend.length,
+    targetDateCompletedCount,
+    reservationIds: sampleReservations.map(
+      reservation => reservation.reservationId,
+    ),
+    lessonIds: sampleReservations.map(reservation => reservation.lessonId),
+  };
+
+  safeSalesToast(
+    `テストデータ投入完了（対象日完了: ${targetDateCompletedCount}件）`,
+    '完了',
+    5,
+  );
+  Logger.log(
+    `[populateTestSalesTransferData] ${JSON.stringify(result, null, 2)}`,
+  );
+
+  return result;
+}
+
+/**
  * 直近60日間の会計済みよやく日を取得する
  * @returns {string[]} 日付文字列の配列（YYYY-MM-DD形式、降順）
  */
@@ -6049,49 +6617,424 @@ function getAccountingDetailsMap(reservationIds) {
 }
 
 /**
+ * 売上転載対象の日付を正規化します。
+ * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）
+ * @returns {string} 正規化済み日付
+ */
+function normalizeSalesTransferDate(targetDate) {
+  if (!targetDate) {
+    return Utilities.formatDate(new Date(), CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
+  }
+
+  const normalized = String(targetDate).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    throw new Error(
+      `日付の形式が不正です。YYYY-MM-DD形式で指定してください: ${targetDate}`,
+    );
+  }
+  return normalized;
+}
+
+/**
+ * 売上転載で対象となる会計済みよやくを取得します。
+ * @param {string} targetDate - 対象日付（YYYY-MM-DD形式）
+ * @returns {ReservationCore[]}
+ */
+function getSalesTransferTargetReservations(targetDate) {
+  const reservations = getCachedReservationsAsObjects();
+  if (!Array.isArray(reservations) || reservations.length === 0) {
+    return [];
+  }
+
+  return reservations.filter(reservation => {
+    if (!reservation) return false;
+    if (reservation.date !== targetDate) return false;
+    return reservation.status === CONSTANTS.STATUS.COMPLETED;
+  });
+}
+
+/**
+ * 売上集計で使用する安全な数値変換ヘルパー。
+ * @param {unknown} value
+ * @returns {number}
+ */
+function toSalesNumber(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+/**
+ * スプレッドシートUIが利用可能な場合のみトーストを表示します。
+ * @param {string} message
+ * @param {string} title
+ * @param {number} timeoutSeconds
+ */
+function safeSalesToast(message, title = '', timeoutSeconds = 1) {
+  try {
+    const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    if (activeSpreadsheet && typeof activeSpreadsheet.toast === 'function') {
+      activeSpreadsheet.toast(message, title, timeoutSeconds);
+    }
+  } catch (_error) {
+    // WebApp経由などUIが使えない環境では無視する
+  }
+}
+
+/**
+ * 売上転載フラグ列が日程シートになければ追加し、列インデックスを返します。
+ * @returns {{
+ *   sheet: GoogleAppsScript.Spreadsheet.Sheet;
+ *   lessonIdCol: number;
+ *   transferStatusCol: number;
+ *   transferredAtCol: number;
+ * }}
+ */
+function ensureScheduleSalesTransferColumns() {
+  const scheduleSheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+  if (!scheduleSheet) {
+    throw new Error('日程シートが見つかりません。');
+  }
+
+  const lastColumn = scheduleSheet.getLastColumn();
+  if (lastColumn <= 0) {
+    throw new Error('日程シートのヘッダー行が見つかりません。');
+  }
+
+  /** @type {string[]} */
+  const headerRow = /** @type {string[]} */ (
+    scheduleSheet.getRange(1, 1, 1, lastColumn).getValues()[0]
+  );
+
+  const lessonIdCol = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.LESSON_ID);
+  if (lessonIdCol === -1) {
+    throw new Error('日程シートの「レッスンID」列が見つかりません。');
+  }
+
+  /**
+   * @param {string} canonicalHeaderName
+   * @param {string[]} [candidates]
+   * @returns {number}
+   */
+  const ensureHeaderColumn = (canonicalHeaderName, candidates = []) => {
+    const allCandidates = [canonicalHeaderName, ...candidates];
+    const existing = allCandidates
+      .map(name => headerRow.indexOf(name))
+      .find(index => index !== -1);
+    if (existing !== undefined) return existing;
+    headerRow.push(canonicalHeaderName);
+    return headerRow.length - 1;
+  };
+
+  const transferStatusCol = ensureHeaderColumn(
+    CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS,
+    ['売上転記状態', '売上転送状態', 'salesTransferStatus'],
+  );
+  const transferredAtCol = ensureHeaderColumn(
+    CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT,
+    ['売上転記日時', '売上転送日時', 'salesTransferredAt'],
+  );
+
+  // ヘッダーが拡張された場合は反映
+  if (scheduleSheet.getLastColumn() !== headerRow.length) {
+    scheduleSheet.getRange(1, 1, 1, headerRow.length).setValues([headerRow]);
+  }
+
+  return {
+    sheet: scheduleSheet,
+    lessonIdCol,
+    transferStatusCol,
+    transferredAtCol,
+  };
+}
+
+/**
+ * 売上転載結果を日程シートへ反映します。
+ * @param {Map<string, { status: string; transferredAt: string }>} lessonTransferStatusMap
+ * @returns {number} 更新した日程行数
+ */
+function updateScheduleSalesTransferFlags(lessonTransferStatusMap) {
+  if (
+    !lessonTransferStatusMap ||
+    !(lessonTransferStatusMap instanceof Map) ||
+    lessonTransferStatusMap.size === 0
+  ) {
+    return 0;
+  }
+
+  const { sheet, lessonIdCol, transferStatusCol, transferredAtCol } =
+    ensureScheduleSalesTransferColumns();
+  const rowCount = sheet.getLastRow();
+  if (rowCount <= 1) return 0;
+
+  const dataRange = sheet.getRange(2, 1, rowCount - 1, sheet.getLastColumn());
+  const dataRows = dataRange.getValues();
+  let updatedCount = 0;
+
+  for (let i = 0; i < dataRows.length; i += 1) {
+    const row = dataRows[i];
+    const lessonId = String(row[lessonIdCol] || '');
+    if (!lessonId) continue;
+
+    const transferState = lessonTransferStatusMap.get(lessonId);
+    if (!transferState) continue;
+
+    const nextStatus = String(transferState.status || '');
+    const nextTransferredAt = String(transferState.transferredAt || '');
+    const currentStatus = String(row[transferStatusCol] || '');
+    const currentTransferredAt = String(row[transferredAtCol] || '');
+
+    if (
+      currentStatus === nextStatus &&
+      currentTransferredAt === nextTransferredAt
+    ) {
+      continue;
+    }
+
+    row[transferStatusCol] = nextStatus;
+    row[transferredAtCol] = nextTransferredAt;
+    updatedCount += 1;
+  }
+
+  if (updatedCount > 0) {
+    dataRange.setValues(dataRows);
+  }
+  return updatedCount;
+}
+
+/**
+ * 指定日の売上転載プレビュー情報を作成します。
+ * 管理画面で「細目・集計結果」を表示するためのデータを返します。
+ *
+ * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
+ * @returns {{
+ *   success: boolean;
+ *   targetDate: string;
+ *   totalReservations: number;
+ *   transferableReservations: number;
+ *   skippedReservations: number;
+ *   salesRowCount: number;
+ *   totals: { grandTotal: number; tuitionSubtotal: number; salesSubtotal: number };
+ *   itemBreakdown: Array<{ category: string; itemName: string; amount: number; quantity: number; count: number }>;
+ *   reservationSummaries: Array<{
+ *     reservationId: string;
+ *     studentId: string;
+ *     displayName: string;
+ *     classroom: string;
+ *     venue: string;
+ *     paymentMethod: string;
+ *     grandTotal: number;
+ *     tuitionSubtotal: number;
+ *     salesSubtotal: number;
+ *     itemCount: number;
+ *     items: Array<{ category: string; itemName: string; unitPrice: number; quantity: number; amount: number }>;
+ *   }>;
+ *   warnings: string[];
+ * }}
+ */
+export function buildSalesTransferReportByDate(targetDate) {
+  const normalizedTargetDate = normalizeSalesTransferDate(targetDate);
+  const targetReservations =
+    getSalesTransferTargetReservations(normalizedTargetDate);
+
+  /** @type {string[]} */
+  const warnings = [];
+
+  if (targetReservations.length === 0) {
+    return {
+      success: true,
+      targetDate: normalizedTargetDate,
+      totalReservations: 0,
+      transferableReservations: 0,
+      skippedReservations: 0,
+      salesRowCount: 0,
+      totals: {
+        grandTotal: 0,
+        tuitionSubtotal: 0,
+        salesSubtotal: 0,
+      },
+      itemBreakdown: [],
+      reservationSummaries: [],
+      warnings: [],
+    };
+  }
+
+  const reservationIdList = targetReservations
+    .map(reservation => reservation.reservationId)
+    .filter(id => typeof id === 'string' && id !== '');
+  const accountingDetailsMap = getAccountingDetailsMap(reservationIdList);
+
+  let transferableReservations = 0;
+  let salesRowCount = 0;
+  let grandTotal = 0;
+  let tuitionSubtotal = 0;
+  let salesSubtotal = 0;
+
+  /** @type {Record<string, { category: string; itemName: string; amount: number; quantity: number; count: number }>} */
+  const itemBreakdownMap = {};
+  /** @type {Array<{
+   *   reservationId: string;
+   *   studentId: string;
+   *   displayName: string;
+   *   classroom: string;
+   *   venue: string;
+   *   paymentMethod: string;
+   *   grandTotal: number;
+   *   tuitionSubtotal: number;
+   *   salesSubtotal: number;
+   *   itemCount: number;
+   *   items: Array<{ category: string; itemName: string; unitPrice: number; quantity: number; amount: number }>;
+   * }>} */
+  const reservationSummaries = [];
+
+  targetReservations.forEach(reservation => {
+    let accountingDetails = reservation.accountingDetails;
+    if (!accountingDetails) {
+      accountingDetails = accountingDetailsMap.get(reservation.reservationId);
+    }
+
+    if (!accountingDetails || typeof accountingDetails !== 'object') {
+      warnings.push(
+        `会計詳細が見つからないためスキップ: ${reservation.reservationId}`,
+      );
+      return;
+    }
+
+    const tuitionItems = Array.isArray(accountingDetails.tuition?.items)
+      ? accountingDetails.tuition.items
+      : [];
+    const salesItems = Array.isArray(accountingDetails.sales?.items)
+      ? accountingDetails.sales.items
+      : [];
+
+    const reservationTuitionSubtotal =
+      toSalesNumber(accountingDetails.tuition?.subtotal) ||
+      tuitionItems.reduce((sum, item) => sum + toSalesNumber(item?.price), 0);
+    const reservationSalesSubtotal =
+      toSalesNumber(accountingDetails.sales?.subtotal) ||
+      salesItems.reduce((sum, item) => sum + toSalesNumber(item?.price), 0);
+    const reservationGrandTotal =
+      toSalesNumber(accountingDetails.grandTotal) ||
+      reservationTuitionSubtotal + reservationSalesSubtotal;
+
+    /** @type {Array<{ category: string; itemName: string; unitPrice: number; quantity: number; amount: number }>} */
+    const reservationItems = [];
+
+    /**
+     * @param {Array<{ name?: string; price?: number; unitPrice?: number; quantity?: number }>} items
+     * @param {string} category
+     */
+    const addItemsToSummary = (items, category) => {
+      items.forEach(item => {
+        const itemName = String(item?.name || '項目名なし');
+        const amount = toSalesNumber(item?.price);
+        const quantity = toSalesNumber(item?.quantity || 1);
+        const unitPrice =
+          item?.unitPrice !== undefined
+            ? toSalesNumber(item.unitPrice)
+            : amount || 0;
+
+        reservationItems.push({
+          category,
+          itemName,
+          unitPrice,
+          quantity,
+          amount,
+        });
+
+        const breakdownKey = `${category}__${itemName}`;
+        if (!itemBreakdownMap[breakdownKey]) {
+          itemBreakdownMap[breakdownKey] = {
+            category,
+            itemName,
+            amount: 0,
+            quantity: 0,
+            count: 0,
+          };
+        }
+        itemBreakdownMap[breakdownKey].amount += amount;
+        itemBreakdownMap[breakdownKey].quantity += quantity;
+        itemBreakdownMap[breakdownKey].count += 1;
+      });
+    };
+
+    addItemsToSummary(tuitionItems, '授業料');
+    addItemsToSummary(salesItems, '物販');
+
+    transferableReservations += 1;
+    salesRowCount += reservationItems.length;
+    grandTotal += reservationGrandTotal;
+    tuitionSubtotal += reservationTuitionSubtotal;
+    salesSubtotal += reservationSalesSubtotal;
+
+    const reservationUser = /** @type {any} */ (reservation.user || {});
+    const realName = String(reservationUser.realName || '');
+    const nickname = String(reservationUser.nickname || '');
+    const displayName =
+      realName && nickname
+        ? `${realName}（${nickname}）`
+        : realName || nickname || String(reservation.studentId || '不明');
+
+    reservationSummaries.push({
+      reservationId: String(reservation.reservationId || ''),
+      studentId: String(reservation.studentId || ''),
+      displayName,
+      classroom: String(reservation.classroom || ''),
+      venue: String(reservation.venue || ''),
+      paymentMethod: String(accountingDetails.paymentMethod || '不明'),
+      grandTotal: reservationGrandTotal,
+      tuitionSubtotal: reservationTuitionSubtotal,
+      salesSubtotal: reservationSalesSubtotal,
+      itemCount: reservationItems.length,
+      items: reservationItems,
+    });
+  });
+
+  const itemBreakdown = Object.values(itemBreakdownMap).sort(
+    (a, b) => b.amount - a.amount,
+  );
+
+  reservationSummaries.sort((a, b) => b.grandTotal - a.grandTotal);
+
+  return {
+    success: true,
+    targetDate: normalizedTargetDate,
+    totalReservations: targetReservations.length,
+    transferableReservations,
+    skippedReservations: targetReservations.length - transferableReservations,
+    salesRowCount,
+    totals: {
+      grandTotal,
+      tuitionSubtotal,
+      salesSubtotal,
+    },
+    itemBreakdown,
+    reservationSummaries,
+    warnings,
+  };
+}
+
+/**
  * 指定した日付の予約記録から売上ログを転載する
  * HTMLダイアログ（手動再転載）またはバッチ処理（日次転載）から呼び出される
  * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
  * @returns {{ success: boolean, totalCount: number, successCount: number }} 転載結果
  */
 export function transferSalesLogByDate(targetDate) {
-  // 日付が指定されていない場合は当日を使用
-  if (!targetDate) {
-    const today = new Date();
-    targetDate = Utilities.formatDate(today, CONSTANTS.TIMEZONE, 'yyyy-MM-dd');
-  }
+  const normalizedTargetDate = normalizeSalesTransferDate(targetDate);
   try {
-    SpreadsheetApp.getActiveSpreadsheet().toast(
-      `${targetDate}の売上記録を転載中...`,
+    safeSalesToast(
+      `${normalizedTargetDate}の売上記録を転載中...`,
       '処理中',
       -1,
     );
 
-    const reservations = getCachedReservationsAsObjects();
-    if (!reservations || reservations.length === 0) {
-      SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
-      Logger.log(
-        `[transferSalesLogByDate] 対象なし: ${targetDate}のよやくデータがキャッシュに存在しません`,
-      );
-      return {
-        success: true,
-        totalCount: 0,
-        successCount: 0,
-      };
-    }
-
-    /** @type {ReservationCore[]} */
-    const targetReservations = reservations.filter(reservation => {
-      if (!reservation) return false;
-      if (reservation.date !== targetDate) return false;
-      if (reservation.status !== CONSTANTS.STATUS.COMPLETED) return false;
-      return true;
-    });
+    const targetReservations =
+      getSalesTransferTargetReservations(normalizedTargetDate);
 
     if (targetReservations.length === 0) {
-      SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
+      safeSalesToast('', '', 1);
       Logger.log(
-        `[transferSalesLogByDate] 対象なし: ${targetDate}の会計済みよやくはありません`,
+        `[transferSalesLogByDate] 対象なし: ${normalizedTargetDate}の会計済みよやくはありません`,
       );
       return {
         success: true,
@@ -6104,11 +7047,45 @@ export function transferSalesLogByDate(targetDate) {
       .map(reservation => reservation.reservationId)
       .filter(id => typeof id === 'string' && id !== '');
     const accountingDetailsMap = getAccountingDetailsMap(reservationIdList);
+    const existingLoggedReservationIds = getSalesLoggedReservationIdSet();
+
+    /** @type {Map<string, number>} */
+    const totalReservationsByLesson = new Map();
+    targetReservations.forEach(reservation => {
+      const lessonId = String(reservation.lessonId || '');
+      if (!lessonId) return;
+      totalReservationsByLesson.set(
+        lessonId,
+        (totalReservationsByLesson.get(lessonId) || 0) + 1,
+      );
+    });
+    /** @type {Map<string, number>} */
+    const succeededReservationsByLesson = new Map();
 
     // 各よやくから売上記録を書き込み（既存の関数を再利用）
     let successCount = 0;
+    let duplicateCount = 0;
     for (const targetReservation of targetReservations) {
       try {
+        const reservationId = String(
+          targetReservation.reservationId || '',
+        ).trim();
+        if (reservationId && existingLoggedReservationIds.has(reservationId)) {
+          duplicateCount += 1;
+          successCount += 1;
+          const lessonId = String(targetReservation.lessonId || '');
+          if (lessonId) {
+            succeededReservationsByLesson.set(
+              lessonId,
+              (succeededReservationsByLesson.get(lessonId) || 0) + 1,
+            );
+          }
+          Logger.log(
+            `[transferSalesLogByDate] 既存売上ログを検知したためスキップ: ${reservationId}`,
+          );
+          continue;
+        }
+
         let accountingDetails = targetReservation.accountingDetails;
         if (!accountingDetails) {
           accountingDetails = accountingDetailsMap.get(
@@ -6130,6 +7107,16 @@ export function transferSalesLogByDate(targetDate) {
 
         if (result.success) {
           successCount++;
+          if (reservationId) {
+            existingLoggedReservationIds.add(reservationId);
+          }
+          const lessonId = String(targetReservation.lessonId || '');
+          if (lessonId) {
+            succeededReservationsByLesson.set(
+              lessonId,
+              (succeededReservationsByLesson.get(lessonId) || 0) + 1,
+            );
+          }
         } else {
           Logger.log(
             `[transferSalesLogByDate] 失敗: よやく ${targetReservation.reservationId} - ${result.error?.message}`,
@@ -6142,10 +7129,58 @@ export function transferSalesLogByDate(targetDate) {
       }
     }
 
-    SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
+    // 売上転載状態を日程シートへ反映
+    try {
+      const transferredAt = Utilities.formatDate(
+        new Date(),
+        CONSTANTS.TIMEZONE,
+        'yyyy-MM-dd HH:mm:ss',
+      );
+      /** @type {Map<string, { status: string; transferredAt: string }>} */
+      const lessonTransferStatusMap = new Map();
+
+      totalReservationsByLesson.forEach((totalCount, lessonId) => {
+        const successByLesson =
+          succeededReservationsByLesson.get(lessonId) || 0;
+        let transferStatus =
+          CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.FAILED;
+        if (successByLesson >= totalCount && totalCount > 0) {
+          transferStatus =
+            CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.COMPLETED;
+        } else if (successByLesson > 0) {
+          transferStatus =
+            CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PARTIAL;
+        }
+
+        lessonTransferStatusMap.set(lessonId, {
+          status: transferStatus,
+          transferredAt: successByLesson > 0 ? transferredAt : '',
+        });
+      });
+
+      const updatedScheduleRows = updateScheduleSalesTransferFlags(
+        lessonTransferStatusMap,
+      );
+      if (updatedScheduleRows > 0) {
+        const updatedScheduleCacheRows =
+          updateScheduleSalesTransferStatusInCache(lessonTransferStatusMap);
+        Logger.log(
+          `[transferSalesLogByDate] 日程キャッシュ差分更新: ${updatedScheduleCacheRows}件`,
+        );
+      }
+      Logger.log(
+        `[transferSalesLogByDate] 売上転載状態更新: ${updatedScheduleRows}件`,
+      );
+    } catch (markError) {
+      Logger.log(
+        `[transferSalesLogByDate] 売上転載状態更新でエラー: ${markError.message}`,
+      );
+    }
+
+    safeSalesToast('', '', 1);
 
     Logger.log(
-      `[transferSalesLogByDate] 完了: ${targetDate}, よやく${targetReservations.length}件, 成功${successCount}件`,
+      `[transferSalesLogByDate] 完了: ${normalizedTargetDate}, よやく${targetReservations.length}件, 成功${successCount}件（重複スキップ${duplicateCount}件）`,
     );
 
     return {
@@ -6154,7 +7189,7 @@ export function transferSalesLogByDate(targetDate) {
       successCount: successCount,
     };
   } catch (err) {
-    SpreadsheetApp.getActiveSpreadsheet().toast('', '', 1);
+    safeSalesToast('', '', 1);
 
     const errorMessage = `売上記録の転載中にエラーが発生しました: ${err.message}`;
     Logger.log(`[transferSalesLogByDate] エラー: ${errorMessage}`);
@@ -6234,6 +7269,17 @@ export function sortReservationSheet() {
  * 何度修正しても売上表に影響がない運用が実現できる。
  */
 export function dailySalesTransferBatch() {
+  const executionMode =
+    PropertiesService.getScriptProperties().getProperty(
+      'SALES_TRANSFER_EXECUTION_MODE',
+    ) || 'manual';
+  if (executionMode !== 'trigger') {
+    Logger.log(
+      `[dailySalesTransferBatch] スキップ: SALES_TRANSFER_EXECUTION_MODE=${executionMode}（管理画面からの手動実行モード）`,
+    );
+    return;
+  }
+
   const today = new Date();
   const targetDate = Utilities.formatDate(
     today,
@@ -6280,13 +7326,14 @@ export function dailySalesTransferBatch() {
 
     sendAdminNotification(emailSubject, emailBody);
 
-    // 売上転載のタイミングで日程ステータスを更新
-    const updatedStatusCount = updateScheduleStatusToCompleted();
+    // 売上転載のタイミングでは対象日の状態変化分のみ Notion 同期する
+    const updatedStatusCount = markScheduleStatusCompletedByDate(targetDate, {
+      syncNotion: true,
+    });
     if (updatedStatusCount > 0) {
       Logger.log(
         `[dailySalesTransferBatch] 日程ステータス更新: ${updatedStatusCount}件を開催済みに更新`,
       );
-      rebuildScheduleMasterCache();
     }
 
     // 売上転載後によやくシート全体をソート

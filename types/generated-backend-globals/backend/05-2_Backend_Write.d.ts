@@ -159,12 +159,18 @@ export function confirmWaitlistedReservation(confirmInfo: {
     _adminToken?: string | null;
 }): ApiResponseGeneric<any>;
 /**
+ * 売上ログシートに記録済みの予約ID一覧を取得します。
+ * @returns {Set<string>}
+ */
+export function getSalesLoggedReservationIdSet(): Set<string>;
+/**
  * 指定した予約IDと日付の売上ログが既に記録されているか確認
  * @param {string} reservationId - 予約ID
  * @param {string} _date - よやく日（YYYY-MM-DD形式）※未使用（将来の拡張用）
+ * @param {Set<string>} [existingReservationIds] - 事前取得済みの予約IDセット
  * @returns {boolean} 既に記録されている場合はtrue
  */
-export function checkIfSalesAlreadyLogged(reservationId: string, _date: string): boolean;
+export function checkIfSalesAlreadyLogged(reservationId: string, _date: string, existingReservationIds?: Set<string>): boolean;
 /**
  * 初回講習完了時の自動処理
  * 未来の「初回」ステータスのよやくを「経験者」に変更し、必要な通知を行う

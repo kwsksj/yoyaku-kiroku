@@ -307,11 +307,15 @@ export function syncAllSchedulesToNotion(): {
     errors: number;
 };
 /**
- * 当日以降の日程を Notion に同期します
+ * 指定日以降の日程を Notion に同期します。
+ * 既定では当日以降、`daysBack` を指定すると「当日 - daysBack」以降を同期します。
  *
+ * @param {{ daysBack?: number }} [options]
  * @returns {{success: boolean, created: number, updated: number, errors: number, skipped: number}}
  */
-export function syncUpcomingSchedulesToNotion(): {
+export function syncUpcomingSchedulesToNotion(options?: {
+    daysBack?: number;
+}): {
     success: boolean;
     created: number;
     updated: number;

@@ -128,6 +128,8 @@ export function getLessons(includePast = false) {
         classroomType: schedule.classroomType,
         notes: String(schedule.notes || ''),
         status: schedule.status,
+        salesTransferStatus: String(schedule['salesTransferStatus'] || ''),
+        salesTransferredAt: String(schedule['salesTransferredAt'] || ''),
         firstStart: formatTime(/** @type {any} */ (schedule.firstStart)),
         firstEnd: formatTime(/** @type {any} */ (schedule.firstEnd)),
         secondStart: formatTime(/** @type {any} */ (schedule.secondStart)),

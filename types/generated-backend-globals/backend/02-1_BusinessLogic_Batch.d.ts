@@ -256,6 +256,41 @@ export function runTsukubaLegacyGridImport(): any | null;
  */
 export function setupTestEnvironment(): void;
 /**
+ * 【開発用】売上転載テスト向けのサンプルデータを投入します。
+ * - 本番環境では実行不可
+ * - 既存のテスト行（予約ID prefix: test-sales-transfer-）は先に削除
+ * - 管理画面の売上転載パネルで確認しやすいよう、完了/未完了を混在させたデータを作成
+ *
+ * @param {string} [targetDate] - 対象日（YYYY-MM-DD）。省略時は当日
+ * @param {{ sameDateOnly?: boolean }} [options] - 追加オプション
+ * @returns {{
+ *   success: boolean;
+ *   targetDate: string;
+ *   removedReservations: number;
+ *   removedSchedules: number;
+ *   insertedStudents: number;
+ *   insertedReservations: number;
+ *   insertedSchedules: number;
+ *   targetDateCompletedCount: number;
+ *   reservationIds: string[];
+ *   lessonIds: string[];
+ * }}
+ */
+export function populateTestSalesTransferData(targetDate?: string, options?: {
+    sameDateOnly?: boolean;
+}): {
+    success: boolean;
+    targetDate: string;
+    removedReservations: number;
+    removedSchedules: number;
+    insertedStudents: number;
+    insertedReservations: number;
+    insertedSchedules: number;
+    targetDateCompletedCount: number;
+    reservationIds: string[];
+    lessonIds: string[];
+};
+/**
  * 直近60日間の会計済みよやく日を取得する
  * @returns {string[]} 日付文字列の配列（YYYY-MM-DD形式、降順）
  */
@@ -265,6 +300,76 @@ export function getRecentCompletedReservationDates(): string[];
  * カスタムメニューから手動実行する想定
  */
 export function repostSalesLogByDate(): void;
+/**
+ * 指定日の売上転載プレビュー情報を作成します。
+ * 管理画面で「細目・集計結果」を表示するためのデータを返します。
+ *
+ * @param {string} [targetDate] - 対象日付（YYYY-MM-DD形式）。省略時は当日。
+ * @returns {{
+ *   success: boolean;
+ *   targetDate: string;
+ *   totalReservations: number;
+ *   transferableReservations: number;
+ *   skippedReservations: number;
+ *   salesRowCount: number;
+ *   totals: { grandTotal: number; tuitionSubtotal: number; salesSubtotal: number };
+ *   itemBreakdown: Array<{ category: string; itemName: string; amount: number; quantity: number; count: number }>;
+ *   reservationSummaries: Array<{
+ *     reservationId: string;
+ *     studentId: string;
+ *     displayName: string;
+ *     classroom: string;
+ *     venue: string;
+ *     paymentMethod: string;
+ *     grandTotal: number;
+ *     tuitionSubtotal: number;
+ *     salesSubtotal: number;
+ *     itemCount: number;
+ *     items: Array<{ category: string; itemName: string; unitPrice: number; quantity: number; amount: number }>;
+ *   }>;
+ *   warnings: string[];
+ * }}
+ */
+export function buildSalesTransferReportByDate(targetDate?: string): {
+    success: boolean;
+    targetDate: string;
+    totalReservations: number;
+    transferableReservations: number;
+    skippedReservations: number;
+    salesRowCount: number;
+    totals: {
+        grandTotal: number;
+        tuitionSubtotal: number;
+        salesSubtotal: number;
+    };
+    itemBreakdown: Array<{
+        category: string;
+        itemName: string;
+        amount: number;
+        quantity: number;
+        count: number;
+    }>;
+    reservationSummaries: Array<{
+        reservationId: string;
+        studentId: string;
+        displayName: string;
+        classroom: string;
+        venue: string;
+        paymentMethod: string;
+        grandTotal: number;
+        tuitionSubtotal: number;
+        salesSubtotal: number;
+        itemCount: number;
+        items: Array<{
+            category: string;
+            itemName: string;
+            unitPrice: number;
+            quantity: number;
+            amount: number;
+        }>;
+    }>;
+    warnings: string[];
+};
 /**
  * 指定した日付の予約記録から売上ログを転載する
  * HTMLダイアログ（手動再転載）またはバッチ処理（日次転載）から呼び出される
