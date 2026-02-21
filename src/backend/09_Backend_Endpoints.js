@@ -885,18 +885,6 @@ export function getBatchData(dataTypes = [], phone = null, studentId = null) {
       user: /** @type {StudentData | null} */ (null),
     };
 
-    // 0. キャッシュバージョンが要求されている場合、または講座/予約取得時は同時に返す
-    if (
-      dataTypes.includes('cache-versions') ||
-      dataTypes.includes('lessons') ||
-      dataTypes.includes('reservations')
-    ) {
-      result.data = {
-        ...result.data,
-        'cache-versions': buildCacheVersionsSnapshot(),
-      };
-    }
-
     // 1. 会計マスターデータが要求されている場合
     if (dataTypes.includes('accounting')) {
       const accountingMaster = getTypedCachedData(
@@ -950,6 +938,18 @@ export function getBatchData(dataTypes = [], phone = null, studentId = null) {
           };
         }
       }
+    }
+
+    // 4. キャッシュバージョンはデータ取得後に返却（再構築が発生した場合も整合を保つ）
+    if (
+      dataTypes.includes('cache-versions') ||
+      dataTypes.includes('lessons') ||
+      dataTypes.includes('reservations')
+    ) {
+      result.data = {
+        ...result.data,
+        'cache-versions': buildCacheVersionsSnapshot(),
+      };
     }
 
     // 履歴データは reservations に統合済み（削除済み）
