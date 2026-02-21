@@ -48,12 +48,33 @@ const PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR =
 const PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH =
   'NOTION_RESERVATION_SYNC_ORDER_HASH';
 const PROPS_KEY_NOTION_BATCH_TRIGGER_ID = 'NOTION_BATCH_TRIGGER_ID';
+const PROPS_KEY_NOTION_SYNC_QUEUE = 'NOTION_SYNC_QUEUE';
+const PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID = 'NOTION_SYNC_QUEUE_TRIGGER_ID';
+const PROPS_KEY_NOTION_SYNC_QUEUE_RUNNER_STATE =
+  'NOTION_SYNC_QUEUE_RUNNER_STATE';
 
 /** Notion分割同期のトリガー設定 */
 const NOTION_BATCH_TRIGGER_HANDLER = 'runNotionSyncBatch';
 const NOTION_BATCH_TRIGGER_INTERVAL_MINUTES = 1;
 const NOTION_BATCH_STUDENT_BATCH_SIZE = 30;
 const NOTION_BATCH_RESERVATION_BATCH_SIZE = 50;
+const NOTION_SYNC_QUEUE_TRIGGER_HANDLER = 'runNotionSyncQueue';
+const NOTION_SYNC_QUEUE_TRIGGER_INTERVAL_MINUTES = 1;
+const NOTION_SYNC_QUEUE_BATCH_SIZE = 20;
+const NOTION_SYNC_QUEUE_MAX_TASKS = 50;
+const NOTION_SYNC_QUEUE_MAX_PROPERTY_CHARS = 8500;
+const NOTION_SYNC_QUEUE_MAX_RETRY = 3;
+const NOTION_SYNC_QUEUE_RUNNER_TTL_MS = 10 * 60 * 1000;
+const NOTION_SYNC_QUEUE_TRIGGER_CACHE_KEY = 'NOTION_SYNC_QUEUE_TRIGGER_CACHE';
+const NOTION_SYNC_QUEUE_TRIGGER_CACHE_TTL_SECONDS = 60;
+
+/** Notion同期キューのエンティティ種別 */
+const NOTION_SYNC_QUEUE_ENTITY = /** @type {const} */ ({
+  STUDENT: 'student',
+  RESERVATION: 'reservation',
+  SCHEDULE: 'schedule',
+  UPCOMING_SCHEDULES: 'upcoming-schedules',
+});
 
 /** バッチ同期時のレート制限対策（ミリ秒） */
 const RATE_LIMIT_DELAY_MS = 350;
@@ -207,6 +228,27 @@ const DEFAULT_NOTION_TITLE_PROPERTY_NAME = 'タイトル';
  * @property {NotionDatabaseSchema | null} [schema]
  * @property {NotionPage | null} [existingPage]
  * @property {boolean} [skipSheetAccess]
+ */
+
+/**
+ * @typedef {'student' | 'reservation' | 'schedule' | 'upcoming-schedules'} NotionSyncQueueEntity
+ */
+
+/**
+ * @typedef {Object} NotionSyncQueueTask
+ * @property {string} taskKey
+ * @property {NotionSyncQueueEntity} entity
+ * @property {string} sourceId
+ * @property {'create' | 'update' | 'delete'} [action]
+ * @property {number} enqueuedAt
+ * @property {number} retryCount
+ * @property {number} [daysBack]
+ */
+
+/**
+ * @typedef {Object} NotionSyncQueueRunnerState
+ * @property {string} runnerId
+ * @property {number} expiresAt
  */
 
 // ================================================================
@@ -398,6 +440,12 @@ export function clearNotionCredentials() {
   props.deleteProperty(PROPS_KEY_NOTION_STUDENT_SYNC_CURSOR);
   props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_CURSOR);
   props.deleteProperty(PROPS_KEY_NOTION_RESERVATION_SYNC_ORDER_HASH);
+  props.deleteProperty(PROPS_KEY_NOTION_SYNC_QUEUE);
+  props.deleteProperty(PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID);
+  props.deleteProperty(PROPS_KEY_NOTION_SYNC_QUEUE_RUNNER_STATE);
+  props.deleteProperty(PROPS_KEY_NOTION_BATCH_TRIGGER_ID);
+  _deleteNotionSyncQueueTriggers();
+  _deleteNotionBatchTriggers();
   Logger.log('Notion認証情報を削除しました');
 }
 
@@ -1572,6 +1620,645 @@ export function syncScheduleToNotion(
     );
     return { success: false, error: /** @type {Error} */ (error).message };
   }
+}
+
+/**
+ * 生徒同期をキューに登録します（非同期実行）。
+ * @param {string} studentId
+ * @param {'create' | 'update' | 'delete'} [action='update']
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ */
+export function enqueueStudentSyncToNotion(studentId, action = 'update') {
+  if (!studentId) {
+    return { success: false, queued: false, message: 'studentId が必要です' };
+  }
+  return _enqueueNotionSyncTask({
+    entity: NOTION_SYNC_QUEUE_ENTITY.STUDENT,
+    sourceId: String(studentId),
+    action,
+  });
+}
+
+/**
+ * 予約同期をキューに登録します（非同期実行）。
+ * @param {string} reservationId
+ * @param {'create' | 'update' | 'delete'} [action='update']
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ */
+export function enqueueReservationSyncToNotion(
+  reservationId,
+  action = 'update',
+) {
+  if (!reservationId) {
+    return {
+      success: false,
+      queued: false,
+      message: 'reservationId が必要です',
+    };
+  }
+  return _enqueueNotionSyncTask({
+    entity: NOTION_SYNC_QUEUE_ENTITY.RESERVATION,
+    sourceId: String(reservationId),
+    action,
+  });
+}
+
+/**
+ * 日程同期をキューに登録します（非同期実行）。
+ * @param {string} lessonId
+ * @param {'create' | 'update' | 'delete'} [action='update']
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ */
+export function enqueueScheduleSyncToNotion(lessonId, action = 'update') {
+  if (!lessonId) {
+    return { success: false, queued: false, message: 'lessonId が必要です' };
+  }
+  return _enqueueNotionSyncTask({
+    entity: NOTION_SYNC_QUEUE_ENTITY.SCHEDULE,
+    sourceId: String(lessonId),
+    action,
+  });
+}
+
+/**
+ * 直近日程の一括同期をキューに登録します（非同期実行）。
+ * @param {number} [daysBack=30]
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ */
+export function enqueueUpcomingSchedulesSyncToNotion(daysBack = 30) {
+  const parsedDaysBack = Number(daysBack);
+  const normalizedDaysBack =
+    Number.isFinite(parsedDaysBack) && parsedDaysBack > 0
+      ? Math.floor(parsedDaysBack)
+      : 30;
+
+  return _enqueueNotionSyncTask({
+    entity: NOTION_SYNC_QUEUE_ENTITY.UPCOMING_SCHEDULES,
+    sourceId: 'upcoming',
+    action: 'update',
+    daysBack: normalizedDaysBack,
+  });
+}
+
+/**
+ * Notion同期キューを1バッチ処理します（時間トリガー用）。
+ * @returns {{success: boolean, done: boolean, processed: number, failed: number, retried: number, dropped: number, remaining: number, skippedByLock?: boolean}}
+ */
+export function runNotionSyncQueue() {
+  const runnerId = Utilities.getUuid();
+  /** @type {NotionSyncQueueTask[]} */
+  let processing = [];
+
+  // 1) キュー取得フェーズ（短時間ロック）
+  const startLock = LockService.getScriptLock();
+  if (!startLock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) {
+    Logger.log(
+      'Notion同期キュー: 他の処理が実行中のため、このバッチ実行をスキップしました。',
+    );
+    return {
+      success: false,
+      done: false,
+      processed: 0,
+      failed: 0,
+      retried: 0,
+      dropped: 0,
+      remaining: 0,
+      skippedByLock: true,
+    };
+  }
+
+  try {
+    const now = Date.now();
+    const currentRunner = _getNotionSyncQueueRunnerState();
+    if (currentRunner && currentRunner.expiresAt > now) {
+      Logger.log(
+        'Notion同期キュー: 別ランナーが実行中のため、このバッチ実行をスキップしました。',
+      );
+      return {
+        success: false,
+        done: false,
+        processed: 0,
+        failed: 0,
+        retried: 0,
+        dropped: 0,
+        remaining: _getNotionSyncQueue().length,
+        skippedByLock: true,
+      };
+    }
+    _setNotionSyncQueueRunnerState(
+      runnerId,
+      now + NOTION_SYNC_QUEUE_RUNNER_TTL_MS,
+    );
+
+    const queue = _getNotionSyncQueue();
+    if (queue.length === 0) {
+      const deletedTriggers = _deleteNotionSyncQueueTriggers();
+      _clearNotionSyncQueueRunnerState(runnerId);
+      if (deletedTriggers > 0) {
+        Logger.log(
+          `Notion同期キューが空のためトリガーを停止しました（削除: ${deletedTriggers}件）。`,
+        );
+      }
+      return {
+        success: true,
+        done: true,
+        processed: 0,
+        failed: 0,
+        retried: 0,
+        dropped: 0,
+        remaining: 0,
+      };
+    }
+
+    const processingCount = Math.min(
+      queue.length,
+      NOTION_SYNC_QUEUE_BATCH_SIZE,
+    );
+    processing = queue.slice(0, processingCount);
+  } catch (error) {
+    _clearNotionSyncQueueRunnerState(runnerId);
+    Logger.log(
+      `runNotionSyncQueue 初期化エラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      done: false,
+      processed: 0,
+      failed: 0,
+      retried: 0,
+      dropped: 0,
+      remaining: _getNotionSyncQueue().length,
+    };
+  } finally {
+    startLock.releaseLock();
+  }
+
+  // 2) Notion同期実行フェーズ（ロックなし）
+  /** @type {Array<{taskKey: string, enqueuedAt: number, success: boolean}>} */
+  const executionResults = [];
+  processing.forEach(task => {
+    try {
+      const result = _executeNotionSyncQueueTask(task);
+      executionResults.push({
+        taskKey: task.taskKey,
+        enqueuedAt: Number(task.enqueuedAt || 0),
+        success: !!result.success,
+      });
+      if (!result.success) {
+        Logger.log(
+          `Notion同期キュー: 同期失敗 ${task.taskKey} (${result.error || 'unknown'})`,
+        );
+      }
+    } catch (error) {
+      executionResults.push({
+        taskKey: task.taskKey,
+        enqueuedAt: Number(task.enqueuedAt || 0),
+        success: false,
+      });
+      Logger.log(
+        `Notion同期キュー処理エラー (${task.taskKey}): ${/** @type {Error} */ (error).message}`,
+      );
+    }
+  });
+
+  // 3) キュー反映フェーズ（短時間ロック）
+  const commitLock = LockService.getScriptLock();
+  try {
+    commitLock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
+  } catch (lockError) {
+    _clearNotionSyncQueueRunnerState(runnerId);
+    Logger.log(
+      `runNotionSyncQueue 反映ロック取得エラー: ${/** @type {Error} */ (lockError).message}`,
+    );
+    return {
+      success: false,
+      done: false,
+      processed: 0,
+      failed: 0,
+      retried: 0,
+      dropped: 0,
+      remaining: _getNotionSyncQueue().length,
+      skippedByLock: true,
+    };
+  }
+
+  try {
+    const currentRunner = _getNotionSyncQueueRunnerState();
+    if (!currentRunner || currentRunner.runnerId !== runnerId) {
+      Logger.log(
+        'Notion同期キュー: 実行権が無効化されたため結果反映をスキップしました。',
+      );
+      return {
+        success: false,
+        done: false,
+        processed: 0,
+        failed: 0,
+        retried: 0,
+        dropped: 0,
+        remaining: _getNotionSyncQueue().length,
+        skippedByLock: true,
+      };
+    }
+
+    /** @type {NotionSyncQueueTask[]} */
+    const nextQueue = _getNotionSyncQueue();
+    let processed = 0;
+    let failed = 0;
+    let retried = 0;
+    let dropped = 0;
+
+    executionResults.forEach(result => {
+      const index = nextQueue.findIndex(
+        task => task.taskKey === result.taskKey,
+      );
+      if (index < 0) return;
+      const currentTask = nextQueue[index];
+      if (Number(currentTask.enqueuedAt || 0) !== result.enqueuedAt) {
+        // 実行中に同一キーの新しいタスクが上書き登録された場合は触らない
+        return;
+      }
+
+      if (result.success) {
+        nextQueue.splice(index, 1);
+        processed += 1;
+        return;
+      }
+
+      failed += 1;
+      const retryCount = Number(currentTask.retryCount || 0);
+      if (retryCount < NOTION_SYNC_QUEUE_MAX_RETRY) {
+        nextQueue[index] = {
+          ...currentTask,
+          retryCount: retryCount + 1,
+          enqueuedAt: Date.now(),
+        };
+        retried += 1;
+        Logger.log(
+          `Notion同期キュー: リトライ登録 ${currentTask.taskKey} (${retryCount + 1}/${NOTION_SYNC_QUEUE_MAX_RETRY})`,
+        );
+        return;
+      }
+
+      nextQueue.splice(index, 1);
+      dropped += 1;
+      Logger.log(
+        `Notion同期キュー: 最大リトライ超過で破棄 ${currentTask.taskKey}`,
+      );
+    });
+
+    const trimmedQueue = _trimNotionSyncQueue(nextQueue);
+    _setNotionSyncQueue(trimmedQueue);
+    if (trimmedQueue.length === 0) {
+      _deleteNotionSyncQueueTriggers();
+    }
+
+    return {
+      success: failed === 0,
+      done: trimmedQueue.length === 0,
+      processed,
+      failed,
+      retried,
+      dropped,
+      remaining: trimmedQueue.length,
+    };
+  } catch (error) {
+    Logger.log(
+      `runNotionSyncQueue Error: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      done: false,
+      processed: 0,
+      failed: 0,
+      retried: 0,
+      dropped: 0,
+      remaining: _getNotionSyncQueue().length,
+    };
+  } finally {
+    _clearNotionSyncQueueRunnerState(runnerId);
+    commitLock.releaseLock();
+  }
+}
+
+/**
+ * 同期タスクを実行します。
+ * @param {NotionSyncQueueTask} task
+ * @returns {NotionSyncResult}
+ * @private
+ */
+function _executeNotionSyncQueueTask(task) {
+  const action =
+    task.action === 'create' || task.action === 'delete'
+      ? task.action
+      : 'update';
+
+  switch (task.entity) {
+    case NOTION_SYNC_QUEUE_ENTITY.STUDENT:
+      return syncStudentToNotion(task.sourceId, action);
+    case NOTION_SYNC_QUEUE_ENTITY.RESERVATION:
+      return syncReservationToNotion(task.sourceId, action);
+    case NOTION_SYNC_QUEUE_ENTITY.SCHEDULE:
+      return syncScheduleToNotion(task.sourceId, action);
+    case NOTION_SYNC_QUEUE_ENTITY.UPCOMING_SCHEDULES: {
+      const result = syncUpcomingSchedulesToNotion({
+        daysBack:
+          Number.isFinite(Number(task.daysBack)) && Number(task.daysBack) > 0
+            ? Math.floor(Number(task.daysBack))
+            : 30,
+      });
+      return result.success
+        ? { success: true }
+        : { success: false, error: '直近日程同期に失敗しました' };
+    }
+    default:
+      return { success: false, error: `未知のentity: ${String(task.entity)}` };
+  }
+}
+
+/**
+ * 同期タスクをキューに追加します（同一キーは上書き）。
+ * @param {{entity: NotionSyncQueueEntity, sourceId: string, action?: 'create' | 'update' | 'delete', daysBack?: number}} payload
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ * @private
+ */
+function _enqueueNotionSyncTask(payload) {
+  const entity = payload?.entity;
+  const sourceId = String(payload?.sourceId || '').trim();
+  if (!_isValidNotionSyncQueueEntity(entity) || !sourceId) {
+    return {
+      success: false,
+      queued: false,
+      message: 'キュー登録パラメータが不正です',
+    };
+  }
+
+  const scriptLock = LockService.getScriptLock();
+  let lockAcquired = false;
+  try {
+    scriptLock.waitLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS);
+    lockAcquired = true;
+  } catch (_lockError) {
+    Logger.log(
+      `Notion同期キュー: ロック取得失敗のため登録をスキップしました（待機上限: ${CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS}ms）。`,
+    );
+    return {
+      success: false,
+      queued: false,
+      message: 'ロック取得に失敗したためキュー登録できませんでした',
+    };
+  }
+
+  try {
+    const taskKey = _buildNotionSyncQueueTaskKey(entity, sourceId);
+    const queue = _getNotionSyncQueue();
+    const queueWasEmpty = queue.length === 0;
+    /** @type {NotionSyncQueueTask} */
+    const task = {
+      taskKey,
+      entity,
+      sourceId,
+      action: payload.action || 'update',
+      enqueuedAt: Date.now(),
+      retryCount: 0,
+      ...(entity === NOTION_SYNC_QUEUE_ENTITY.UPCOMING_SCHEDULES
+        ? {
+            daysBack:
+              Number.isFinite(Number(payload.daysBack)) &&
+              Number(payload.daysBack) > 0
+                ? Math.floor(Number(payload.daysBack))
+                : 30,
+          }
+        : {}),
+    };
+
+    const existingIndex = queue.findIndex(item => item.taskKey === taskKey);
+    if (existingIndex >= 0) {
+      queue[existingIndex] = {
+        ...queue[existingIndex],
+        ...task,
+        retryCount: 0,
+        enqueuedAt: Date.now(),
+      };
+    } else {
+      queue.push(task);
+    }
+
+    const trimmedQueue = _trimNotionSyncQueue(queue);
+    _setNotionSyncQueue(trimmedQueue);
+    _ensureNotionSyncQueueTrigger(queueWasEmpty);
+
+    return {
+      success: true,
+      queued: true,
+      queueLength: trimmedQueue.length,
+    };
+  } catch (error) {
+    Logger.log(
+      `Notion同期キュー登録エラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return {
+      success: false,
+      queued: false,
+      message: /** @type {Error} */ (error).message,
+    };
+  } finally {
+    if (lockAcquired) {
+      scriptLock.releaseLock();
+    }
+  }
+}
+
+/**
+ * 同期キューを取得します。
+ * @returns {NotionSyncQueueTask[]}
+ * @private
+ */
+function _getNotionSyncQueue() {
+  try {
+    const queueJson = PropertiesService.getScriptProperties().getProperty(
+      PROPS_KEY_NOTION_SYNC_QUEUE,
+    );
+    if (!queueJson) return [];
+
+    const parsed = JSON.parse(queueJson);
+    if (!Array.isArray(parsed)) return [];
+
+    /** @type {NotionSyncQueueTask[]} */
+    const normalizedQueue = [];
+    parsed.forEach(item => {
+      const entity = item?.entity;
+      const sourceId = String(item?.sourceId || '').trim();
+      if (!_isValidNotionSyncQueueEntity(entity) || !sourceId) {
+        return;
+      }
+      const action =
+        item?.action === 'create' ||
+        item?.action === 'delete' ||
+        item?.action === 'update'
+          ? item.action
+          : 'update';
+      normalizedQueue.push({
+        taskKey:
+          String(item?.taskKey || '').trim() ||
+          _buildNotionSyncQueueTaskKey(entity, sourceId),
+        entity,
+        sourceId,
+        action,
+        enqueuedAt: Number(item?.enqueuedAt || Date.now()),
+        retryCount: Number(item?.retryCount || 0),
+        ...(entity === NOTION_SYNC_QUEUE_ENTITY.UPCOMING_SCHEDULES
+          ? {
+              daysBack:
+                Number.isFinite(Number(item?.daysBack)) &&
+                Number(item?.daysBack) > 0
+                  ? Math.floor(Number(item.daysBack))
+                  : 30,
+            }
+          : {}),
+      });
+    });
+    return normalizedQueue;
+  } catch (error) {
+    Logger.log(
+      `Notion同期キュー読み込みエラー: ${/** @type {Error} */ (error).message}`,
+    );
+    return [];
+  }
+}
+
+/**
+ * 同期キューを保存します。
+ * @param {NotionSyncQueueTask[]} queue
+ * @private
+ */
+function _setNotionSyncQueue(queue) {
+  const props = PropertiesService.getScriptProperties();
+  const trimmedQueue = _trimNotionSyncQueue(queue || []);
+  if (trimmedQueue.length === 0) {
+    props.deleteProperty(PROPS_KEY_NOTION_SYNC_QUEUE);
+    return;
+  }
+  props.setProperty(PROPS_KEY_NOTION_SYNC_QUEUE, JSON.stringify(trimmedQueue));
+}
+
+/**
+ * 同期キュー実行状態を取得します。
+ * @returns {NotionSyncQueueRunnerState | null}
+ * @private
+ */
+function _getNotionSyncQueueRunnerState() {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty(
+      PROPS_KEY_NOTION_SYNC_QUEUE_RUNNER_STATE,
+    );
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    const runnerId = String(parsed?.runnerId || '').trim();
+    const expiresAt = Number(parsed?.expiresAt || 0);
+    if (!runnerId || !Number.isFinite(expiresAt) || expiresAt <= 0) {
+      return null;
+    }
+    return { runnerId, expiresAt };
+  } catch (_error) {
+    return null;
+  }
+}
+
+/**
+ * 同期キュー実行状態を設定します。
+ * @param {string} runnerId
+ * @param {number} expiresAt
+ * @private
+ */
+function _setNotionSyncQueueRunnerState(runnerId, expiresAt) {
+  PropertiesService.getScriptProperties().setProperty(
+    PROPS_KEY_NOTION_SYNC_QUEUE_RUNNER_STATE,
+    JSON.stringify({ runnerId, expiresAt }),
+  );
+}
+
+/**
+ * 同期キュー実行状態をクリアします。
+ * @param {string} expectedRunnerId
+ * @private
+ */
+function _clearNotionSyncQueueRunnerState(expectedRunnerId) {
+  const props = PropertiesService.getScriptProperties();
+  const current = _getNotionSyncQueueRunnerState();
+  if (
+    current &&
+    expectedRunnerId &&
+    current.runnerId &&
+    current.runnerId !== expectedRunnerId
+  ) {
+    return;
+  }
+  props.deleteProperty(PROPS_KEY_NOTION_SYNC_QUEUE_RUNNER_STATE);
+}
+
+/**
+ * 同期キューの件数を上限内に丸めます。
+ * @param {NotionSyncQueueTask[]} queue
+ * @returns {NotionSyncQueueTask[]}
+ * @private
+ */
+function _trimNotionSyncQueue(queue) {
+  if (!Array.isArray(queue)) return [];
+  const sortedByNewest = [...queue].sort(
+    (a, b) => Number(b.enqueuedAt || 0) - Number(a.enqueuedAt || 0),
+  );
+  let droppedByCount = 0;
+  let droppedBySize = 0;
+
+  if (sortedByNewest.length > NOTION_SYNC_QUEUE_MAX_TASKS) {
+    droppedByCount = sortedByNewest.length - NOTION_SYNC_QUEUE_MAX_TASKS;
+    sortedByNewest.length = NOTION_SYNC_QUEUE_MAX_TASKS;
+  }
+
+  while (
+    sortedByNewest.length > 0 &&
+    JSON.stringify(sortedByNewest).length > NOTION_SYNC_QUEUE_MAX_PROPERTY_CHARS
+  ) {
+    sortedByNewest.pop();
+    droppedBySize += 1;
+  }
+
+  if (droppedByCount > 0 || droppedBySize > 0) {
+    Logger.log(
+      `Notion同期キューを上限内に調整しました（件数破棄: ${droppedByCount}件, サイズ破棄: ${droppedBySize}件, 最終件数: ${sortedByNewest.length}件）。`,
+    );
+  }
+
+  return sortedByNewest.sort(
+    (a, b) => Number(a.enqueuedAt || 0) - Number(b.enqueuedAt || 0),
+  );
+}
+
+/**
+ * キュータスクキーを作成します。
+ * @param {NotionSyncQueueEntity} entity
+ * @param {string} sourceId
+ * @returns {string}
+ * @private
+ */
+function _buildNotionSyncQueueTaskKey(entity, sourceId) {
+  return `${entity}:${sourceId}`;
+}
+
+/**
+ * キューエンティティの妥当性を判定します。
+ * @param {any} entity
+ * @returns {entity is NotionSyncQueueEntity}
+ * @private
+ */
+function _isValidNotionSyncQueueEntity(entity) {
+  return (
+    entity === NOTION_SYNC_QUEUE_ENTITY.STUDENT ||
+    entity === NOTION_SYNC_QUEUE_ENTITY.RESERVATION ||
+    entity === NOTION_SYNC_QUEUE_ENTITY.SCHEDULE ||
+    entity === NOTION_SYNC_QUEUE_ENTITY.UPCOMING_SCHEDULES
+  );
 }
 
 /**
@@ -3106,6 +3793,158 @@ function _getNotionDatabaseSchema(config, databaseId) {
     );
     return null;
   }
+}
+
+// ================================================================
+// ★★★ Notion同期キュートリガー管理 ★★★
+// ================================================================
+
+/**
+ * Notion同期キュートリガーの存在キャッシュを保存します。
+ * @param {string | null} triggerId
+ * @private
+ */
+function _cacheNotionSyncQueueTriggerId(triggerId) {
+  if (!triggerId) return;
+  try {
+    CacheService.getScriptCache().put(
+      NOTION_SYNC_QUEUE_TRIGGER_CACHE_KEY,
+      triggerId,
+      NOTION_SYNC_QUEUE_TRIGGER_CACHE_TTL_SECONDS,
+    );
+  } catch (_error) {
+    // CacheService失敗時はキャッシュなしで継続
+  }
+}
+
+/**
+ * Notion同期キュートリガーの存在キャッシュを削除します。
+ * @private
+ */
+function _clearNotionSyncQueueTriggerCache() {
+  try {
+    CacheService.getScriptCache().remove(NOTION_SYNC_QUEUE_TRIGGER_CACHE_KEY);
+  } catch (_error) {
+    // CacheService失敗時は何もしない
+  }
+}
+
+/**
+ * Notion同期キュートリガーを取得します
+ *
+ * @returns {GoogleAppsScript.Script.Trigger | null}
+ * @private
+ */
+function _getNotionSyncQueueTrigger() {
+  const props = PropertiesService.getScriptProperties();
+  const storedTriggerId = props.getProperty(
+    PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID,
+  );
+  const triggers = ScriptApp.getProjectTriggers();
+
+  if (storedTriggerId) {
+    const matchedById = triggers.find(trigger => {
+      return _getTriggerUniqueId(trigger) === storedTriggerId;
+    });
+    if (matchedById) {
+      _cacheNotionSyncQueueTriggerId(storedTriggerId);
+      return matchedById;
+    }
+  }
+
+  const matchedByHandler = triggers.find(trigger => {
+    return trigger.getHandlerFunction() === NOTION_SYNC_QUEUE_TRIGGER_HANDLER;
+  });
+  if (!matchedByHandler) {
+    props.deleteProperty(PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID);
+    _clearNotionSyncQueueTriggerCache();
+    return null;
+  }
+
+  const triggerId = _getTriggerUniqueId(matchedByHandler);
+  if (triggerId) {
+    props.setProperty(PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID, triggerId);
+  }
+  _cacheNotionSyncQueueTriggerId(triggerId);
+  return matchedByHandler;
+}
+
+/**
+ * Notion同期キュートリガーを作成または再利用します
+ *
+ * @param {boolean} [forceCheck=false] - true の場合は存在キャッシュを使わず実トリガーを確認
+ * @returns {GoogleAppsScript.Script.Trigger | null}
+ * @private
+ */
+function _ensureNotionSyncQueueTrigger(forceCheck = false) {
+  const props = PropertiesService.getScriptProperties();
+  const storedTriggerId = props.getProperty(
+    PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID,
+  );
+  if (!forceCheck && storedTriggerId) {
+    try {
+      const cachedTriggerId = CacheService.getScriptCache().get(
+        NOTION_SYNC_QUEUE_TRIGGER_CACHE_KEY,
+      );
+      if (cachedTriggerId === storedTriggerId) {
+        return null;
+      }
+    } catch (_error) {
+      // CacheService失敗時は通常フローで確認
+    }
+  }
+
+  const existingTrigger = _getNotionSyncQueueTrigger();
+  if (existingTrigger) {
+    const existingTriggerId = _getTriggerUniqueId(existingTrigger);
+    _cacheNotionSyncQueueTriggerId(existingTriggerId || storedTriggerId);
+    return existingTrigger;
+  }
+
+  const trigger = ScriptApp.newTrigger(NOTION_SYNC_QUEUE_TRIGGER_HANDLER)
+    .timeBased()
+    .everyMinutes(NOTION_SYNC_QUEUE_TRIGGER_INTERVAL_MINUTES)
+    .create();
+  const triggerId = _getTriggerUniqueId(trigger);
+  if (triggerId) {
+    props.setProperty(PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID, triggerId);
+  }
+  _cacheNotionSyncQueueTriggerId(triggerId);
+  Logger.log(
+    `Notion同期キュートリガーを作成しました（間隔: ${NOTION_SYNC_QUEUE_TRIGGER_INTERVAL_MINUTES}分）。`,
+  );
+  return trigger;
+}
+
+/**
+ * Notion同期キュートリガーを削除します
+ *
+ * @returns {number} - 削除件数
+ * @private
+ */
+function _deleteNotionSyncQueueTriggers() {
+  const props = PropertiesService.getScriptProperties();
+  const storedTriggerId = props.getProperty(
+    PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID,
+  );
+  const triggers = ScriptApp.getProjectTriggers();
+  let deleted = 0;
+
+  triggers.forEach(trigger => {
+    const shouldDeleteByHandler =
+      trigger.getHandlerFunction() === NOTION_SYNC_QUEUE_TRIGGER_HANDLER;
+    const shouldDeleteById =
+      !!storedTriggerId && _getTriggerUniqueId(trigger) === storedTriggerId;
+    if (!shouldDeleteByHandler && !shouldDeleteById) {
+      return;
+    }
+    ScriptApp.deleteTrigger(trigger);
+    deleted++;
+  });
+
+  props.deleteProperty(PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID);
+  _clearNotionSyncQueueTriggerCache();
+  return deleted;
 }
 
 // ================================================================

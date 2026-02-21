@@ -26,7 +26,7 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotificationForUser } from './02-6_Notification_Admin.js';
-import { syncStudentToNotion } from './02-8_Sync_Notion.js';
+import { enqueueStudentSyncToNotion } from './02-8_Sync_Notion.js';
 import {
   CACHE_KEYS,
   addCachedStudent,
@@ -37,7 +37,6 @@ import {
   updateCachedStudent,
 } from './07_CacheManager.js';
 import {
-  buildRowValuesMap,
   createHeaderMap,
   getCachedStudentById,
   getScriptProperties,
@@ -884,8 +883,6 @@ export function updateUserProfile(userInfo) {
 
       rowRange.setValues([rowValues]);
 
-      const rosterValuesMap = buildRowValuesMap(headers, rowValues);
-
       // 更新後のユーザー情報を生成
       const updatedUser = { ...targetStudent, ...userInfo };
       if (userInfo.nickname !== undefined) {
@@ -948,15 +945,12 @@ export function updateUserProfile(userInfo) {
         },
       });
 
-      // Notion 同期（エラーは握りつぶして本体処理には影響させない）
+      // Notion 同期キュー登録（エラーは握りつぶして本体処理には影響させない）
       try {
-        syncStudentToNotion(studentId, 'update', {
-          rosterValues: rosterValuesMap,
-          skipSheetAccess: true,
-        });
+        enqueueStudentSyncToNotion(studentId, 'update');
       } catch (notionError) {
         Logger.log(
-          `Notion同期エラー（プロフィール更新）: ${notionError.message}`,
+          `Notion同期キュー登録エラー（プロフィール更新）: ${notionError.message}`,
         );
       }
 
@@ -1141,8 +1135,6 @@ export function registerNewUser(userData) {
 
       // 追加された行番号を取得（appendRowは最後の行に追加される）
       const newRowIndex = allStudentsSheet.getLastRow();
-      const rosterValuesMap = buildRowValuesMap(headers, newRow);
-
       // 登録後のユーザーオブジェクトを作成（rowIndexを含む）
       const registeredUser = {
         ...userData,
@@ -1171,14 +1163,13 @@ export function registerNewUser(userData) {
         },
       });
 
-      // Notion 同期（エラーは握りつぶして本体処理には影響させない）
+      // Notion 同期キュー登録（エラーは握りつぶして本体処理には影響させない）
       try {
-        syncStudentToNotion(newStudentId, 'create', {
-          rosterValues: rosterValuesMap,
-          skipSheetAccess: true,
-        });
+        enqueueStudentSyncToNotion(newStudentId, 'create');
       } catch (notionError) {
-        Logger.log(`Notion同期エラー（新規登録）: ${notionError.message}`);
+        Logger.log(
+          `Notion同期キュー登録エラー（新規登録）: ${notionError.message}`,
+        );
       }
 
       // 管理者通知
@@ -1506,13 +1497,13 @@ export function requestAccountDeletion(studentId) {
       // キャッシュ更新
       rebuildAllStudentsCache();
 
-      // Notion 同期（ステータスを「退会済み」に更新）
+      // Notion 同期キュー登録（ステータスを「退会済み」に更新）
       try {
-        syncStudentToNotion(studentId, 'delete', {
-          skipSheetAccess: true,
-        });
+        enqueueStudentSyncToNotion(studentId, 'delete');
       } catch (notionError) {
-        Logger.log(`Notion同期エラー（退会）: ${notionError.message}`);
+        Logger.log(
+          `Notion同期キュー登録エラー（退会）: ${notionError.message}`,
+        );
       }
 
       Logger.log(

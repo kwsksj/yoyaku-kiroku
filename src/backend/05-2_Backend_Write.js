@@ -34,8 +34,8 @@ import {
 } from './02-6_Notification_Admin.js';
 import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
 import {
-  syncReservationToNotion,
-  syncScheduleToNotion,
+  enqueueReservationSyncToNotion,
+  enqueueScheduleSyncToNotion,
 } from './02-8_Sync_Notion.js';
 import {
   calculateAvailableSlots,
@@ -56,7 +56,6 @@ import {
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
-  buildRowValuesMap,
   convertReservationToRow,
   createSalesRow,
   getCachedReservationsAsObjects,
@@ -570,15 +569,11 @@ export function _saveReservationCoreToSheet(reservation, mode) {
     rebuildAllReservationsCache();
   }
 
-  // Notion同期（失敗しても本体処理は継続）
+  // Notion同期キュー登録（失敗しても本体処理は継続）
   try {
-    const reservationValuesMap = buildRowValuesMap(header, newRowData);
-    syncReservationToNotion(reservation.reservationId, mode, {
-      reservationValues: reservationValuesMap,
-      skipSheetAccess: true,
-    });
+    enqueueReservationSyncToNotion(reservation.reservationId, mode);
   } catch (error) {
-    Logger.log(`Notion予約同期エラー: ${error.message}`);
+    Logger.log(`Notion予約同期キュー登録エラー: ${error.message}`);
   }
 
   return { newRowData, headerMap };
@@ -656,20 +651,11 @@ function _updateReservationIdsInLesson(lessonId, reservationId, mode) {
         updatedRow[reservationIdsColIdx] = JSON.stringify(currentIds);
       }
 
-      // Notion同期（失敗しても本体処理は継続）
+      // Notion同期キュー登録（失敗しても本体処理は継続）
       try {
-        const scheduleValuesMap = updatedRow
-          ? buildRowValuesMap(header, updatedRow)
-          : null;
-        const syncOptions = scheduleValuesMap
-          ? {
-              scheduleValues: scheduleValuesMap,
-              skipSheetAccess: true,
-            }
-          : undefined;
-        syncScheduleToNotion(lessonId, 'update', syncOptions);
+        enqueueScheduleSyncToNotion(lessonId, 'update');
       } catch (error) {
-        Logger.log(`Notion日程同期エラー: ${error.message}`);
+        Logger.log(`Notion日程同期キュー登録エラー: ${error.message}`);
       }
 
       try {

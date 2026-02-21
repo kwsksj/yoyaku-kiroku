@@ -103,7 +103,7 @@ export function getRegistrationData(userData: UserCore): AuthenticationResponse 
 export function getCacheVersions(): ApiResponseGeneric;
 /**
  * 複数のデータタイプを一度に取得するバッチ処理関数
- * @param {string[]} dataTypes - 取得するデータタイプの配列 ['accounting', 'lessons', 'reservations']
+ * @param {string[]} dataTypes - 取得するデータタイプの配列 ['accounting', 'lessons', 'reservations', 'cache-versions']
  * @param {string|null} phone - 電話番号（ユーザー特定用、任意）
  * @param {string|null} studentId - 生徒ID（個人データ取得用、任意）
  * @returns {BatchDataResult} 要求されたすべてのデータを含む統合レスポンス
