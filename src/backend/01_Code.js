@@ -29,7 +29,11 @@ import {
   repostSalesLogByDate,
 } from './02-1_BusinessLogic_Batch.js';
 import { sendMonthlyNotificationEmails } from './02-5_Notification_StudentSchedule.js';
-import { rebuildAllCachesEntryPoint } from './07_CacheManager.js';
+import {
+  ensureScheduleStatusDefaults,
+  rebuildAllCachesEntryPoint,
+  rebuildScheduleMasterCache,
+} from './07_CacheManager.js';
 import { handleError } from './08_Utilities.js';
 
 //  管理者通知用のメールアドレス
@@ -225,8 +229,22 @@ export function addCacheMenu(menu) {
 }
 
 /**
+ * 日程シートの状態デフォルトを補完し、必要時に日程キャッシュを再構築します。
+ * @param {number[]} [targetRows=[]]
+ */
+function applyScheduleStatusDefaults(targetRows = []) {
+  const updatedCells = ensureScheduleStatusDefaults(targetRows);
+  if (updatedCells > 0) {
+    rebuildScheduleMasterCache(undefined, undefined, { skipNotionSync: true });
+    Logger.log(
+      `[ScheduleTrigger] 日程の状態補完を実施: ${updatedCells}セルを更新`,
+    );
+  }
+}
+
+/**
  * インストール型トリガー：シート変更時に実行。
- * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processChange` へ委譲します。
+ * 日程シートの手編集で追加された行に対して、状態の初期値補完を行います。
  * @param {GoogleAppsScript.Events.SheetsOnChange} _e - Google Sheets のイベントオブジェクト
  */
 export function handleOnChange(_e) {
@@ -234,6 +252,12 @@ export function handleOnChange(_e) {
   if (!lock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) return;
 
   try {
+    const source = _e?.source || SpreadsheetApp.getActiveSpreadsheet();
+    if (!source) return;
+    const activeSheet = source.getActiveSheet();
+    if (!activeSheet) return;
+    if (activeSheet.getName() !== CONSTANTS.SHEET_NAMES.SCHEDULE) return;
+    applyScheduleStatusDefaults();
   } catch (err) {
     handleError(`OnChangeイベント処理中にエラー: ${err.message}`, true);
   } finally {
@@ -243,13 +267,25 @@ export function handleOnChange(_e) {
 
 /**
  * インストール型トリガー：シート編集時に実行。
- * 実際の処理は `02-2_BusinessLogic_Handlers.gs` の `processCellEdit` へ委譲します。
+ * 日程シートの編集行に対して、状態の初期値補完を行います。
  * @param {GoogleAppsScript.Events.SheetsOnEdit} _e - Google Sheets のイベントオブジェクト
  */
 export function handleEdit(_e) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(CONSTANTS.LIMITS.LOCK_WAIT_TIME_MS)) return;
   try {
+    const range = _e?.range;
+    if (!range) return;
+    const sheet = range.getSheet();
+    if (!sheet) return;
+    if (sheet.getName() !== CONSTANTS.SHEET_NAMES.SCHEDULE) return;
+
+    const startRow = range.getRow();
+    const rowCount = range.getNumRows();
+    if (startRow <= 1 || rowCount <= 0) return;
+
+    const targetRows = Array.from({ length: rowCount }, (_, i) => startRow + i);
+    applyScheduleStatusDefaults(targetRows);
   } catch (err) {
     handleError(`セル編集処理中にエラー: ${err.message}`, true);
   } finally {

@@ -78,6 +78,76 @@ function toHeaderMapInstance(headerMap) {
 }
 
 /**
+ * 日程シートの日付列候補
+ * @type {string[]}
+ */
+const SCHEDULE_DATE_HEADER_CANDIDATES = [
+  CONSTANTS.HEADERS.SCHEDULE.DATE,
+  '開催日',
+  'date',
+];
+
+/**
+ * 日程シートの状態列候補
+ * 既存シートとの互換性維持のため、旧ヘッダー名も許容します。
+ * @type {string[]}
+ */
+const SCHEDULE_STATUS_HEADER_CANDIDATES = [
+  CONSTANTS.HEADERS.SCHEDULE.STATUS,
+  '状態',
+  'status',
+];
+
+/**
+ * 日程シートの売上転載状態列候補
+ * @type {string[]}
+ */
+const SCHEDULE_SALES_TRANSFER_STATUS_HEADER_CANDIDATES = [
+  CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS,
+  '売上転記状態',
+  '売上転送状態',
+  'salesTransferStatus',
+];
+
+/**
+ * ヘッダー候補から列インデックスを取得します。
+ * @param {string[]} headers
+ * @param {string[]} candidates
+ * @returns {number}
+ */
+function findHeaderIndexByCandidates(headers, candidates) {
+  if (!Array.isArray(headers) || !Array.isArray(candidates)) return -1;
+
+  /** @type {Map<string, number>} */
+  const indexMap = new Map();
+  headers.forEach((header, index) => {
+    const normalized = String(header || '').trim();
+    if (!normalized) return;
+    if (!indexMap.has(normalized)) {
+      indexMap.set(normalized, index);
+    }
+    const lower = normalized.toLowerCase();
+    if (!indexMap.has(lower)) {
+      indexMap.set(lower, index);
+    }
+  });
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = String(candidate || '').trim();
+    if (!normalizedCandidate) continue;
+    if (indexMap.has(normalizedCandidate)) {
+      return /** @type {number} */ (indexMap.get(normalizedCandidate));
+    }
+    const lower = normalizedCandidate.toLowerCase();
+    if (indexMap.has(lower)) {
+      return /** @type {number} */ (indexMap.get(lower));
+    }
+  }
+
+  return -1;
+}
+
+/**
  * lessonId → LessonCore のインメモリインデックスを保持するためのキャッシュ
  * @type {{ version: string | number | null, map: Map<string, LessonCore> }}
  */
@@ -1295,10 +1365,13 @@ export function rebuildAllReservationsCache() {
  *
  * @param {string} [fromDate] - 取得開始日（YYYY-MM-DD形式、省略時は今日）
  * @param {string} [toDate] - 取得終了日（YYYY-MM-DD形式、省略時は1年後）
+ * @param {{ skipNotionSync?: boolean }} [options] - 追加オプション
  * @throws {Error} 日程データの取得や処理中にエラーが発生した場合
  */
-export function rebuildScheduleMasterCache(fromDate, toDate) {
+export function rebuildScheduleMasterCache(fromDate, toDate, options = {}) {
   try {
+    const skipNotionSync = options?.skipNotionSync === true;
+
     // デフォルトの日付範囲を設定
     // 変更履歴: 7日前 → 6ヶ月前 → 1年前（参加者リスト機能で過去データを表示するため）
     const today = new Date();
@@ -1356,6 +1429,14 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
     const lessonIdColumn = headerRow.indexOf(
       CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
     ); // ★ 追加
+    const statusColumn = findHeaderIndexByCandidates(
+      headerRow,
+      SCHEDULE_STATUS_HEADER_CANDIDATES,
+    );
+    const salesTransferStatusColumn = findHeaderIndexByCandidates(
+      headerRow,
+      SCHEDULE_SALES_TRANSFER_STATUS_HEADER_CANDIDATES,
+    );
 
     if (dateColumn === -1) {
       throw new Error('日程マスターシートに必須の「日付」列が見つかりません。');
@@ -1398,6 +1479,33 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
           col: lessonIdColumn + 1,
           value: lessonId,
         });
+      }
+
+      // 手編集で追加された日程の初期状態を補完
+      if (statusColumn >= 0) {
+        const currentStatus = String(row[statusColumn] || '').trim();
+        if (!currentStatus) {
+          row[statusColumn] = CONSTANTS.SCHEDULE_STATUS.SCHEDULED;
+          updatesForSheet.push({
+            row: i + 2,
+            col: statusColumn + 1,
+            value: CONSTANTS.SCHEDULE_STATUS.SCHEDULED,
+          });
+        }
+      }
+      if (salesTransferStatusColumn >= 0) {
+        const currentTransferStatus = String(
+          row[salesTransferStatusColumn] || '',
+        ).trim();
+        if (!currentTransferStatus) {
+          row[salesTransferStatusColumn] =
+            CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING;
+          updatesForSheet.push({
+            row: i + 2,
+            col: salesTransferStatusColumn + 1,
+            value: CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING,
+          });
+        }
       }
 
       let isValidRow = true;
@@ -1489,9 +1597,12 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
             propertyName = 'beginnerCapacity';
             break;
           case CONSTANTS.HEADERS.SCHEDULE.STATUS:
+          case '状態':
             propertyName = 'status';
             break;
           case CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS:
+          case '売上転記状態':
+          case '売上転送状態':
             propertyName = 'salesTransferStatus';
             break;
           case CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT:
@@ -1530,6 +1641,18 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
           .filter(id => id !== '');
       } else {
         scheduleObj.reservationIds = [];
+      }
+
+      if (!scheduleObj.status && statusColumn >= 0) {
+        scheduleObj.status = String(row[statusColumn] || '').trim();
+      }
+      if (
+        !scheduleObj['salesTransferStatus'] &&
+        salesTransferStatusColumn >= 0
+      ) {
+        scheduleObj['salesTransferStatus'] = String(
+          row[salesTransferStatusColumn] || '',
+        ).trim();
       }
 
       scheduleDataList.push(scheduleObj);
@@ -1588,21 +1711,27 @@ export function rebuildScheduleMasterCache(fromDate, toDate) {
       }、期間: ${startDate} ～ ${endDate}`,
     );
 
-    // 日程キャッシュ更新後に Notion 同期（当日以降のみ）
-    try {
-      const syncFn = /** @type {any} */ (globalThis)
-        .syncUpcomingSchedulesToNotion;
-      if (typeof syncFn === 'function') {
-        const syncResult = syncFn();
-        if (syncResult?.success) {
-          Logger.log(
-            `[rebuildScheduleMasterCache] Notion日程同期完了: 作成${syncResult.created}, 更新${syncResult.updated}, スキップ${syncResult.skipped}, エラー${syncResult.errors}`,
-          );
+    // 日程キャッシュ更新後に Notion 同期（30日前以降）
+    if (!skipNotionSync) {
+      try {
+        const syncFn = /** @type {any} */ (globalThis)
+          .syncUpcomingSchedulesToNotion;
+        if (typeof syncFn === 'function') {
+          const syncResult = syncFn({ daysBack: 30 });
+          if (syncResult?.success) {
+            Logger.log(
+              `[rebuildScheduleMasterCache] Notion日程同期完了: 作成${syncResult.created}, 更新${syncResult.updated}, スキップ${syncResult.skipped}, エラー${syncResult.errors}`,
+            );
+          }
         }
+      } catch (syncError) {
+        Logger.log(
+          `[rebuildScheduleMasterCache] Notion日程同期エラー: ${syncError.message}`,
+        );
       }
-    } catch (syncError) {
+    } else {
       Logger.log(
-        `[rebuildScheduleMasterCache] Notion日程同期エラー: ${syncError.message}`,
+        '[rebuildScheduleMasterCache] Notion日程同期をスキップしました',
       );
     }
 
@@ -1832,10 +1961,12 @@ export function rebuildAccountingMasterCache() {
  * - 日付が今日より前
  * - ステータスが「開催予定」
  *
+ * @param {{ syncNotion?: boolean }} [options] - Notion同期設定
  * @returns {number} 更新した件数
  */
-export function updateScheduleStatusToCompleted() {
+export function updateScheduleStatusToCompleted(options = {}) {
   try {
+    const syncNotion = options?.syncNotion !== false;
     Logger.log('[ScheduleStatus] 開催済みステータス自動更新を開始');
 
     const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
@@ -1866,8 +1997,14 @@ export function updateScheduleStatusToCompleted() {
       Logger.log(errorMsg);
       throw new Error(errorMsg);
     }
-    const dateColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.DATE);
-    const statusColIndex = headers.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
+    const dateColIndex = findHeaderIndexByCandidates(
+      headers,
+      SCHEDULE_DATE_HEADER_CANDIDATES,
+    );
+    const statusColIndex = findHeaderIndexByCandidates(
+      headers,
+      SCHEDULE_STATUS_HEADER_CANDIDATES,
+    );
     const lessonIdColIndex = headers.indexOf(
       CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
     );
@@ -1915,7 +2052,7 @@ export function updateScheduleStatusToCompleted() {
         );
 
         const lessonId = lessonIdColIndex >= 0 ? row[lessonIdColIndex] : null;
-        if (lessonId) {
+        if (lessonId && syncNotion) {
           try {
             const syncFn = /** @type {any} */ (globalThis).syncScheduleToNotion;
             if (typeof syncFn === 'function') {
@@ -1940,6 +2077,214 @@ export function updateScheduleStatusToCompleted() {
     return updatedCount;
   } catch (error) {
     Logger.log(`[ScheduleStatus] エラー: ${error.message}`);
+    return 0;
+  }
+}
+
+/**
+ * 指定日の日程ステータスを開催済みに更新します。
+ * 「教室完了 ⇢ 売上集計」実行時に、対象日のみ明示的に締めるために使用します。
+ *
+ * @param {string | Date} targetDate
+ * @param {{ syncNotion?: boolean }} [options] - Notion同期設定
+ * @returns {number} 更新した件数
+ */
+export function markScheduleStatusCompletedByDate(targetDate, options = {}) {
+  try {
+    const syncNotion = options?.syncNotion !== false;
+    const parsedTargetDate = _parseScheduleDateValue(targetDate);
+    if (!parsedTargetDate) {
+      Logger.log(
+        `[ScheduleStatusByDate] 対象日が不正です: ${String(targetDate || '')}`,
+      );
+      return 0;
+    }
+
+    const targetYmd = Utilities.formatDate(
+      parsedTargetDate,
+      CONSTANTS.TIMEZONE,
+      'yyyy-MM-dd',
+    );
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    if (!sheet) return 0;
+
+    const allData = sheet.getDataRange().getValues();
+    if (allData.length <= 1) return 0;
+
+    const headers = allData[0];
+    if (!Array.isArray(headers)) return 0;
+
+    const dateColIndex = findHeaderIndexByCandidates(
+      headers,
+      SCHEDULE_DATE_HEADER_CANDIDATES,
+    );
+    const statusColIndex = findHeaderIndexByCandidates(
+      headers,
+      SCHEDULE_STATUS_HEADER_CANDIDATES,
+    );
+    const lessonIdColIndex = headers.indexOf(
+      CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
+    );
+
+    if (dateColIndex === -1 || statusColIndex === -1) return 0;
+
+    let updatedCount = 0;
+    /** @type {string[]} */
+    const updatedLessonIds = [];
+    for (let i = 1; i < allData.length; i += 1) {
+      const row = allData[i];
+      const parsedDate = _parseScheduleDateValue(row[dateColIndex]);
+      if (!parsedDate) continue;
+
+      const rowYmd = Utilities.formatDate(
+        parsedDate,
+        CONSTANTS.TIMEZONE,
+        'yyyy-MM-dd',
+      );
+      if (rowYmd !== targetYmd) continue;
+
+      const currentStatus = String(row[statusColIndex] || '').trim();
+      if (currentStatus !== CONSTANTS.SCHEDULE_STATUS.SCHEDULED) continue;
+
+      sheet
+        .getRange(i + 1, statusColIndex + 1)
+        .setValue(CONSTANTS.SCHEDULE_STATUS.COMPLETED);
+      row[statusColIndex] = CONSTANTS.SCHEDULE_STATUS.COMPLETED;
+      updatedCount += 1;
+
+      const lessonId = lessonIdColIndex >= 0 ? row[lessonIdColIndex] : null;
+      if (lessonId) {
+        updatedLessonIds.push(String(lessonId));
+      }
+      if (lessonId && syncNotion) {
+        try {
+          const syncFn = /** @type {any} */ (globalThis).syncScheduleToNotion;
+          if (typeof syncFn === 'function') {
+            const scheduleValues = buildRowValuesMap(headers, row);
+            syncFn(String(lessonId), 'update', {
+              scheduleValues,
+              skipSheetAccess: true,
+            });
+          }
+        } catch (syncError) {
+          Logger.log(
+            `[ScheduleStatusByDate] Notion日程同期エラー: ${syncError.message}`,
+          );
+        }
+      }
+    }
+
+    if (updatedLessonIds.length > 0) {
+      const cacheUpdatedCount = updateScheduleStatusInCacheByLessonIds(
+        updatedLessonIds,
+        CONSTANTS.SCHEDULE_STATUS.COMPLETED,
+      );
+      Logger.log(
+        `[ScheduleStatusByDate] キャッシュ差分更新完了: ${cacheUpdatedCount}件`,
+      );
+    }
+
+    Logger.log(
+      `[ScheduleStatusByDate] ${targetYmd} の開催済み更新完了: ${updatedCount}件`,
+    );
+    return updatedCount;
+  } catch (error) {
+    Logger.log(`[ScheduleStatusByDate] エラー: ${error.message}`);
+    return 0;
+  }
+}
+
+/**
+ * 日程シートの未設定状態を補完します。
+ * 手編集で日程を追加したとき、状態=開催予定 / 売上転載状態=未転載 を自動で埋めます。
+ *
+ * @param {number[]} [targetRows=[]] - 補完対象の行番号（1始まり）。未指定時は全行。
+ * @returns {number} 更新したセル数
+ */
+export function ensureScheduleStatusDefaults(targetRows = []) {
+  try {
+    const sheet = SS_MANAGER.getSheet(CONSTANTS.SHEET_NAMES.SCHEDULE);
+    if (!sheet) return 0;
+
+    const lastRow = sheet.getLastRow();
+    const lastColumn = sheet.getLastColumn();
+    if (lastRow <= 1 || lastColumn <= 0) return 0;
+
+    const headerCandidate = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+    if (!Array.isArray(headerCandidate)) return 0;
+    const headers = /** @type {string[]} */ (headerCandidate);
+
+    const dateColIndex = findHeaderIndexByCandidates(
+      headers,
+      SCHEDULE_DATE_HEADER_CANDIDATES,
+    );
+    const statusColIndex = findHeaderIndexByCandidates(
+      headers,
+      SCHEDULE_STATUS_HEADER_CANDIDATES,
+    );
+    const salesTransferStatusColIndex = findHeaderIndexByCandidates(
+      headers,
+      SCHEDULE_SALES_TRANSFER_STATUS_HEADER_CANDIDATES,
+    );
+    if (statusColIndex === -1) return 0;
+
+    const normalizedRows = Array.isArray(targetRows)
+      ? Array.from(
+          new Set(
+            targetRows
+              .map(row => Number(row))
+              .filter(
+                row => Number.isFinite(row) && row >= 2 && row <= lastRow,
+              ),
+          ),
+        )
+      : [];
+
+    /** @type {number[]} */
+    const rowsToProcess =
+      normalizedRows.length > 0
+        ? normalizedRows
+        : Array.from({ length: Math.max(lastRow - 1, 0) }, (_, i) => i + 2);
+
+    let updatedCells = 0;
+    rowsToProcess.forEach(rowNumber => {
+      const rowValues = sheet
+        .getRange(rowNumber, 1, 1, lastColumn)
+        .getValues()[0];
+      const hasDate = dateColIndex >= 0 ? rowValues[dateColIndex] !== '' : true;
+      if (!hasDate) return;
+
+      const currentStatus = String(rowValues[statusColIndex] || '').trim();
+      if (!currentStatus) {
+        sheet
+          .getRange(rowNumber, statusColIndex + 1)
+          .setValue(CONSTANTS.SCHEDULE_STATUS.SCHEDULED);
+        updatedCells += 1;
+      }
+
+      if (salesTransferStatusColIndex >= 0) {
+        const currentTransferStatus = String(
+          rowValues[salesTransferStatusColIndex] || '',
+        ).trim();
+        if (!currentTransferStatus) {
+          sheet
+            .getRange(rowNumber, salesTransferStatusColIndex + 1)
+            .setValue(
+              CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING,
+            );
+          updatedCells += 1;
+        }
+      }
+    });
+
+    if (updatedCells > 0) {
+      Logger.log(
+        `[ensureScheduleStatusDefaults] 状態補完を実施: ${updatedCells}セル`,
+      );
+    }
+    return updatedCells;
+  } catch (error) {
+    Logger.log(`[ensureScheduleStatusDefaults] エラー: ${error.message}`);
     return 0;
   }
 }
@@ -3542,6 +3887,158 @@ export function getReservationsByIdsFromCache(reservationIds, options = {}) {
 }
 
 /**
+ * 日程キャッシュを書き戻し、lessonIdインデックスを無効化します。
+ * @param {ScheduleCacheData} scheduleCache
+ */
+function persistUpdatedScheduleCache(scheduleCache) {
+  CacheService.getScriptCache().put(
+    CACHE_KEYS.MASTER_SCHEDULE_DATA,
+    JSON.stringify(scheduleCache),
+    CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
+  );
+
+  // lessonIdインデックスを再構築させるためバージョンをリセット
+  lessonIdCacheState.version = null;
+  lessonIdCacheState.map = new Map();
+}
+
+/**
+ * 日程キャッシュ内の特定レッスンの状態を差分更新します。
+ *
+ * @param {string[]} lessonIds - 更新対象のレッスンID配列
+ * @param {string} nextStatus - 次状態
+ * @returns {number} 更新した件数
+ */
+export function updateScheduleStatusInCacheByLessonIds(lessonIds, nextStatus) {
+  if (!Array.isArray(lessonIds) || lessonIds.length === 0) {
+    return 0;
+  }
+
+  const normalizedStatus = String(nextStatus || '').trim();
+  if (!normalizedStatus) {
+    return 0;
+  }
+
+  try {
+    /** @type {ScheduleCacheData | null} */
+    const scheduleCache = getTypedCachedData(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      false,
+    );
+    if (!scheduleCache || !Array.isArray(scheduleCache.schedule)) {
+      return 0;
+    }
+
+    const lessonIdSet = new Set(
+      lessonIds.map(id => String(id || '')).filter(id => id !== ''),
+    );
+    if (lessonIdSet.size === 0) return 0;
+
+    let updatedCount = 0;
+    scheduleCache.schedule.forEach(lesson => {
+      if (!lesson) return;
+      const lessonId = String(lesson.lessonId || '');
+      if (!lessonIdSet.has(lessonId)) return;
+
+      const currentStatus = String(lesson.status || '').trim();
+      if (currentStatus === normalizedStatus) return;
+
+      lesson.status = normalizedStatus;
+      updatedCount += 1;
+    });
+
+    if (updatedCount <= 0) return 0;
+
+    const updatedCache = {
+      ...scheduleCache,
+      schedule: scheduleCache.schedule,
+      version: new Date().getTime(),
+    };
+    persistUpdatedScheduleCache(updatedCache);
+    return updatedCount;
+  } catch (error) {
+    Logger.log(
+      `updateScheduleStatusInCacheByLessonIds Error: ${error.message}`,
+    );
+    return 0;
+  }
+}
+
+/**
+ * 日程キャッシュ内の売上転載状態を差分更新します。
+ *
+ * @param {Map<string, { status: string; transferredAt: string }>} lessonTransferStatusMap
+ * @returns {number} 更新した件数
+ */
+export function updateScheduleSalesTransferStatusInCache(
+  lessonTransferStatusMap,
+) {
+  if (
+    !lessonTransferStatusMap ||
+    !(lessonTransferStatusMap instanceof Map) ||
+    lessonTransferStatusMap.size === 0
+  ) {
+    return 0;
+  }
+
+  try {
+    /** @type {ScheduleCacheData | null} */
+    const scheduleCache = getTypedCachedData(
+      CACHE_KEYS.MASTER_SCHEDULE_DATA,
+      false,
+    );
+    if (!scheduleCache || !Array.isArray(scheduleCache.schedule)) {
+      return 0;
+    }
+
+    let updatedCount = 0;
+    scheduleCache.schedule.forEach(lesson => {
+      if (!lesson) return;
+      const lessonId = String(lesson.lessonId || '');
+      if (!lessonId) return;
+
+      const transferState = lessonTransferStatusMap.get(lessonId);
+      if (!transferState) return;
+
+      const nextStatus = String(transferState.status || '').trim();
+      const nextTransferredAt = String(
+        transferState.transferredAt || '',
+      ).trim();
+      const currentStatus = String(lesson['salesTransferStatus'] || '').trim();
+      const currentTransferredAt = String(
+        lesson['salesTransferredAt'] || '',
+      ).trim();
+
+      if (
+        currentStatus === nextStatus &&
+        currentTransferredAt === nextTransferredAt
+      ) {
+        return;
+      }
+
+      lesson['salesTransferStatus'] = nextStatus;
+      lesson['salesTransferredAt'] = nextTransferredAt;
+      updatedCount += 1;
+    });
+
+    if (updatedCount <= 0) return 0;
+
+    const updatedCache = {
+      ...scheduleCache,
+      schedule: scheduleCache.schedule,
+      version: new Date().getTime(),
+    };
+    persistUpdatedScheduleCache(updatedCache);
+    return updatedCount;
+  } catch (error) {
+    Logger.log(
+      `updateScheduleSalesTransferStatusInCache Error: ${error.message}`,
+    );
+    return 0;
+  }
+}
+
+/**
  * 日程キャッシュ内の特定レッスンの予約ID配列を最新化する
  * @param {string} lessonId - レッスンID
  * @param {string[]} reservationIds - 最新の予約ID配列
@@ -3575,16 +4072,7 @@ export function updateLessonReservationIdsInCache(lessonId, reservationIds) {
       schedule: scheduleCache.schedule,
       version: new Date().getTime(),
     };
-
-    CacheService.getScriptCache().put(
-      CACHE_KEYS.MASTER_SCHEDULE_DATA,
-      JSON.stringify(updatedCache),
-      CONSTANTS.SYSTEM.CACHE_EXPIRY_SECONDS,
-    );
-
-    // lessonIdインデックスを再構築させるためバージョンをリセット
-    lessonIdCacheState.version = null;
-    lessonIdCacheState.map = new Map();
+    persistUpdatedScheduleCache(updatedCache);
   } catch (error) {
     Logger.log(`updateLessonReservationIdsInCache Error: ${error.message}`);
   }

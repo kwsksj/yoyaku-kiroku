@@ -129,9 +129,12 @@ export function rebuildAllReservationsCache(): void;
  *
  * @param {string} [fromDate] - 取得開始日（YYYY-MM-DD形式、省略時は今日）
  * @param {string} [toDate] - 取得終了日（YYYY-MM-DD形式、省略時は1年後）
+ * @param {{ skipNotionSync?: boolean }} [options] - 追加オプション
  * @throws {Error} 日程データの取得や処理中にエラーが発生した場合
  */
-export function rebuildScheduleMasterCache(fromDate?: string, toDate?: string): {
+export function rebuildScheduleMasterCache(fromDate?: string, toDate?: string, options?: {
+    skipNotionSync?: boolean;
+}): {
     version: number;
     schedule: LessonCore[];
     dateRange: {
@@ -165,9 +168,31 @@ export function rebuildAccountingMasterCache(): {
  * - 日付が今日より前
  * - ステータスが「開催予定」
  *
+ * @param {{ syncNotion?: boolean }} [options] - Notion同期設定
  * @returns {number} 更新した件数
  */
-export function updateScheduleStatusToCompleted(): number;
+export function updateScheduleStatusToCompleted(options?: {
+    syncNotion?: boolean;
+}): number;
+/**
+ * 指定日の日程ステータスを開催済みに更新します。
+ * 「教室完了 ⇢ 売上集計」実行時に、対象日のみ明示的に締めるために使用します。
+ *
+ * @param {string | Date} targetDate
+ * @param {{ syncNotion?: boolean }} [options] - Notion同期設定
+ * @returns {number} 更新した件数
+ */
+export function markScheduleStatusCompletedByDate(targetDate: string | Date, options?: {
+    syncNotion?: boolean;
+}): number;
+/**
+ * 日程シートの未設定状態を補完します。
+ * 手編集で日程を追加したとき、状態=開催予定 / 売上転載状態=未転載 を自動で埋めます。
+ *
+ * @param {number[]} [targetRows=[]] - 補完対象の行番号（1始まり）。未指定時は全行。
+ * @returns {number} 更新したセル数
+ */
+export function ensureScheduleStatusDefaults(targetRows?: number[]): number;
 /**
  * 時間主導型トリガーから自動実行されるキャッシュ再構築関数
  * 定期的にスケジュールされたトリガーが呼び出す関数です。
@@ -372,6 +397,24 @@ export function getLessonByIdFromCache(lessonId: string): LessonCore | null;
 export function getReservationsByIdsFromCache(reservationIds: string[], options?: {
     includeStudents?: boolean;
 } | undefined): ReservationCore[];
+/**
+ * 日程キャッシュ内の特定レッスンの状態を差分更新します。
+ *
+ * @param {string[]} lessonIds - 更新対象のレッスンID配列
+ * @param {string} nextStatus - 次状態
+ * @returns {number} 更新した件数
+ */
+export function updateScheduleStatusInCacheByLessonIds(lessonIds: string[], nextStatus: string): number;
+/**
+ * 日程キャッシュ内の売上転載状態を差分更新します。
+ *
+ * @param {Map<string, { status: string; transferredAt: string }>} lessonTransferStatusMap
+ * @returns {number} 更新した件数
+ */
+export function updateScheduleSalesTransferStatusInCache(lessonTransferStatusMap: Map<string, {
+    status: string;
+    transferredAt: string;
+}>): number;
 /**
  * 日程キャッシュ内の特定レッスンの予約ID配列を最新化する
  * @param {string} lessonId - レッスンID

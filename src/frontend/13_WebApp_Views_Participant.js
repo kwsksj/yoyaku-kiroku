@@ -1569,28 +1569,53 @@ function renderLessonList(lessons) {
       let reserveButtonHtml;
       if (isAdmin) {
         const lessonDateYmd = normalizeLocalYmd(lesson.date);
-        const isPastOrToday =
-          Boolean(lessonDateYmd) && lessonDateYmd <= todayYmd;
-        const lessonStatus = String(lesson.status || '').trim();
+        const isPastOrToday = lessonDateYmd ? lessonDateYmd <= todayYmd : false;
+        const lessonStatus = String(lesson.status || '');
         const scheduledStatusValue = String(
           CONSTANTS.SCHEDULE_STATUS.SCHEDULED,
-        ).trim();
+        );
+        const salesTransferStatus = String(lesson['salesTransferStatus'] || '');
+        const pendingTransferStatusValue = String(
+          CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING,
+        );
+        const normalizedLessonStatus = lessonStatus.replace(/\s+/g, '');
+        const normalizedScheduledStatus = scheduledStatusValue.replace(
+          /\s+/g,
+          '',
+        );
+        const normalizedSalesTransferStatus = salesTransferStatus.replace(
+          /\s+/g,
+          '',
+        );
+        const normalizedPendingTransferStatus =
+          pendingTransferStatusValue.replace(/\s+/g, '');
         const isScheduledStatus =
-          lessonStatus === scheduledStatusValue ||
-          lessonStatus.includes(scheduledStatusValue);
-        const shouldShowCompleteButton = isPastOrToday && isScheduledStatus;
+          normalizedLessonStatus === normalizedScheduledStatus ||
+          normalizedLessonStatus.includes(normalizedScheduledStatus);
+        const isPendingSalesTransfer =
+          normalizedSalesTransferStatus === normalizedPendingTransferStatus ||
+          normalizedSalesTransferStatus.includes(
+            normalizedPendingTransferStatus,
+          );
         const isRunningThisLessonDate =
           isSalesTransferLoading && currentSalesTargetDate === lessonDateYmd;
-        const disabledCompleteClass = isSalesTransferLoading
-          ? 'opacity-60 cursor-not-allowed'
-          : 'hover:opacity-90';
+        const shouldShowCompleteButton =
+          isPastOrToday && (isScheduledStatus || isPendingSalesTransfer);
+        const isCompleteButtonEnabled =
+          shouldShowCompleteButton && !isSalesTransferLoading;
+        const completeDisabledReason = isSalesTransferLoading
+          ? '売上集計を処理中です'
+          : '';
+        const completeButtonClass = isCompleteButtonEnabled
+          ? 'bg-action-attention-bg text-action-attention-text hover:opacity-90'
+          : 'bg-orange-100 text-orange-300 cursor-not-allowed';
         // 管理者用「管理」ボタン（モーダルでリスト表示・編集）
         reserveButtonHtml = `
         <div class="pt-1 text-right px-2 pb-1">
           <div class="flex flex-wrap justify-end gap-1">
             <button
                     type="button"
-                    class="inline-flex items-center justify-center text-[11px] sm:text-xs font-bold leading-none py-1.5 px-2.5 rounded-md bg-action-primary-bg text-white shadow-sm hover:bg-action-primary-hover"
+                    class="inline-flex items-center justify-center whitespace-nowrap text-[11px] sm:text-xs font-bold leading-none py-1.5 px-2.5 rounded-md bg-action-primary-bg text-white shadow-sm hover:bg-action-primary-hover"
                     data-action="showLessonParticipants"
                     data-lesson-id="${lesson.lessonId}">
               管理
@@ -1599,10 +1624,11 @@ function renderLessonList(lessons) {
               shouldShowCompleteButton
                 ? `<button
                     type="button"
-                    class="inline-flex items-center justify-center text-[11px] sm:text-xs font-bold leading-none py-1.5 px-2.5 rounded-md bg-action-attention-bg text-action-attention-text shadow-sm ${disabledCompleteClass}"
+                    class="inline-flex items-center justify-center whitespace-nowrap text-[11px] sm:text-xs font-bold leading-none py-1.5 px-2.5 rounded-md shadow-sm ${completeButtonClass}"
                     data-action="completeLessonSalesTransfer"
                     data-date="${escapeHTML(lessonDateYmd)}"
-                    ${isSalesTransferLoading ? 'disabled' : ''}
+                    ${isCompleteButtonEnabled ? '' : 'disabled'}
+                    title="${escapeHTML(completeDisabledReason)}"
                   >
                     ${
                       isSalesTransferLoading && isRunningThisLessonDate

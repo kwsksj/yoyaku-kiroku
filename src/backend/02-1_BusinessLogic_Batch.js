@@ -30,9 +30,10 @@ import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
 import {
   rebuildAllReservationsCache,
   rebuildAllStudentsCache,
+  markScheduleStatusCompletedByDate,
   rebuildScheduleMasterCache,
   syncReservationIdsToSchedule,
-  updateScheduleStatusToCompleted,
+  updateScheduleSalesTransferStatusInCache,
 } from './07_CacheManager.js';
 import {
   convertReservationToRow,
@@ -5970,13 +5971,21 @@ export function populateTestSalesTransferData(targetDate, options = {}) {
 
   /**
    * @param {Map<string, number> | Record<string, number>} headerMap
-   * @param {string} headerName
+   * @param {string | string[]} headerNameOrCandidates
    * @returns {number | undefined}
    */
-  const getColumnIndex = (headerMap, headerName) => {
-    return headerMap instanceof Map
-      ? headerMap.get(headerName)
-      : headerMap[headerName];
+  const getColumnIndex = (headerMap, headerNameOrCandidates) => {
+    const candidates = Array.isArray(headerNameOrCandidates)
+      ? headerNameOrCandidates
+      : [headerNameOrCandidates];
+    for (const headerName of candidates) {
+      const index =
+        headerMap instanceof Map
+          ? headerMap.get(headerName)
+          : headerMap[headerName];
+      if (index !== undefined) return index;
+    }
+    return undefined;
   };
 
   /**
@@ -6347,20 +6356,19 @@ export function populateTestSalesTransferData(targetDate, options = {}) {
   const scheduleRowsToAppend = sampleReservations.map(reservation => {
     const row = new Array(scheduleHeader.length).fill('');
     /**
-     * @param {string} headerName
+     * @param {string | string[]} headerNameOrCandidates
      * @param {RawSheetRow[number]} value
      */
-    const setScheduleValue = (headerName, value) => {
-      const col = getColumnIndex(scheduleHeaderMap, headerName);
+    const setScheduleValue = (headerNameOrCandidates, value) => {
+      const col = getColumnIndex(scheduleHeaderMap, headerNameOrCandidates);
       if (col !== undefined) {
         row[col] = value;
       }
     };
 
-    const scheduleStatus =
-      reservation.status === CONSTANTS.STATUS.COMPLETED
-        ? CONSTANTS.SCHEDULE_STATUS.COMPLETED
-        : CONSTANTS.SCHEDULE_STATUS.SCHEDULED;
+    // テスト投入時点では「教室完了 ⇢ 売上集計」実行前を再現するため、
+    // 日程ステータスは予約ステータスに関わらず開催予定で統一する。
+    const scheduleStatus = CONSTANTS.SCHEDULE_STATUS.SCHEDULED;
 
     setScheduleValue(
       CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
@@ -6396,7 +6404,10 @@ export function populateTestSalesTransferData(targetDate, options = {}) {
     setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.BEGINNER_START, '');
     setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.TOTAL_CAPACITY, 12);
     setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY, 4);
-    setScheduleValue(CONSTANTS.HEADERS.SCHEDULE.STATUS, scheduleStatus);
+    setScheduleValue(
+      [CONSTANTS.HEADERS.SCHEDULE.STATUS, '状態', 'status'],
+      scheduleStatus,
+    );
     setScheduleValue(
       CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS,
       CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING,
@@ -6697,21 +6708,27 @@ function ensureScheduleSalesTransferColumns() {
   }
 
   /**
-   * @param {string} headerName
+   * @param {string} canonicalHeaderName
+   * @param {string[]} [candidates]
    * @returns {number}
    */
-  const ensureHeaderColumn = headerName => {
-    const existing = headerRow.indexOf(headerName);
-    if (existing !== -1) return existing;
-    headerRow.push(headerName);
+  const ensureHeaderColumn = (canonicalHeaderName, candidates = []) => {
+    const allCandidates = [canonicalHeaderName, ...candidates];
+    const existing = allCandidates
+      .map(name => headerRow.indexOf(name))
+      .find(index => index !== -1);
+    if (existing !== undefined) return existing;
+    headerRow.push(canonicalHeaderName);
     return headerRow.length - 1;
   };
 
   const transferStatusCol = ensureHeaderColumn(
     CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS,
+    ['売上転記状態', '売上転送状態', 'salesTransferStatus'],
   );
   const transferredAtCol = ensureHeaderColumn(
     CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT,
+    ['売上転記日時', '売上転送日時', 'salesTransferredAt'],
   );
 
   // ヘッダーが拡張された場合は反映
@@ -7118,7 +7135,11 @@ export function transferSalesLogByDate(targetDate) {
         lessonTransferStatusMap,
       );
       if (updatedScheduleRows > 0) {
-        rebuildScheduleMasterCache();
+        const updatedScheduleCacheRows =
+          updateScheduleSalesTransferStatusInCache(lessonTransferStatusMap);
+        Logger.log(
+          `[transferSalesLogByDate] 日程キャッシュ差分更新: ${updatedScheduleCacheRows}件`,
+        );
       }
       Logger.log(
         `[transferSalesLogByDate] 売上転載状態更新: ${updatedScheduleRows}件`,
@@ -7278,13 +7299,14 @@ export function dailySalesTransferBatch() {
 
     sendAdminNotification(emailSubject, emailBody);
 
-    // 売上転載のタイミングで日程ステータスを更新
-    const updatedStatusCount = updateScheduleStatusToCompleted();
+    // 売上転載のタイミングでは対象日の状態変化分のみ Notion 同期する
+    const updatedStatusCount = markScheduleStatusCompletedByDate(targetDate, {
+      syncNotion: true,
+    });
     if (updatedStatusCount > 0) {
       Logger.log(
         `[dailySalesTransferBatch] 日程ステータス更新: ${updatedStatusCount}件を開催済みに更新`,
       );
-      rebuildScheduleMasterCache();
     }
 
     // 売上転載後によやくシート全体をソート

@@ -2091,11 +2091,13 @@ export function syncAllSchedulesToNotion() {
 }
 
 /**
- * 当日以降の日程を Notion に同期します
+ * 指定日以降の日程を Notion に同期します。
+ * 既定では当日以降、`daysBack` を指定すると「当日 - daysBack」以降を同期します。
  *
+ * @param {{ daysBack?: number }} [options]
  * @returns {{success: boolean, created: number, updated: number, errors: number, skipped: number}}
  */
-export function syncUpcomingSchedulesToNotion() {
+export function syncUpcomingSchedulesToNotion(options = {}) {
   let created = 0;
   let updated = 0;
   let errors = 0;
@@ -2122,7 +2124,15 @@ export function syncUpcomingSchedulesToNotion() {
       CONSTANTS.HEADERS.SCHEDULE.LESSON_ID,
     );
 
-    const today = _getTodayStart();
+    const rawDaysBack = Number(options?.daysBack);
+    const daysBack =
+      Number.isFinite(rawDaysBack) && rawDaysBack > 0
+        ? Math.floor(rawDaysBack)
+        : 0;
+    const lowerBoundDate = _getTodayStart();
+    if (daysBack > 0) {
+      lowerBoundDate.setDate(lowerBoundDate.getDate() - daysBack);
+    }
 
     snapshot.byId.forEach((entry, lessonId) => {
       try {
@@ -2132,7 +2142,7 @@ export function syncUpcomingSchedulesToNotion() {
           skipped++;
           return;
         }
-        if (parsedDate < today) {
+        if (parsedDate < lowerBoundDate) {
           skipped++;
           return;
         }

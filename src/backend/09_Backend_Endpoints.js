@@ -57,8 +57,7 @@ import {
   clearChunkedCache,
   getStudentCacheSnapshot,
   getTypedCachedData,
-  rebuildScheduleMasterCache,
-  updateScheduleStatusToCompleted,
+  markScheduleStatusCompletedByDate,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
@@ -1190,6 +1189,40 @@ function parseScheduleReservationIds(reservationIdsValue) {
 }
 
 /**
+ * ヘッダー候補から列インデックスを取得します。
+ * @param {string[]} headerRow
+ * @param {string[]} candidates
+ * @returns {number}
+ */
+function findHeaderIndexByCandidates(headerRow, candidates) {
+  if (!Array.isArray(headerRow) || !Array.isArray(candidates)) return -1;
+
+  /** @type {Map<string, number>} */
+  const indexMap = new Map();
+  headerRow.forEach((header, index) => {
+    const normalized = String(header || '').trim();
+    if (!normalized) return;
+    if (!indexMap.has(normalized)) indexMap.set(normalized, index);
+    const lower = normalized.toLowerCase();
+    if (!indexMap.has(lower)) indexMap.set(lower, index);
+  });
+
+  for (const candidate of candidates) {
+    const normalizedCandidate = String(candidate || '').trim();
+    if (!normalizedCandidate) continue;
+    if (indexMap.has(normalizedCandidate)) {
+      return /** @type {number} */ (indexMap.get(normalizedCandidate));
+    }
+    const lower = normalizedCandidate.toLowerCase();
+    if (indexMap.has(lower)) {
+      return /** @type {number} */ (indexMap.get(lower));
+    }
+  }
+
+  return -1;
+}
+
+/**
  * 参加者ビュー用のよやくマップをレッスン単位で構築します。
  * @param {LessonCore[]} lessons
  * @param {Record<string, UserCore>} preloadedStudentsMap
@@ -1592,10 +1625,17 @@ export function getPastLessonsForParticipantsView(
     const beginnerCapacityColumn = headerRow.indexOf(
       CONSTANTS.HEADERS.SCHEDULE.BEGINNER_CAPACITY,
     );
-    const statusColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.STATUS);
-    const salesTransferStatusColumn = headerRow.indexOf(
+    const statusColumn = findHeaderIndexByCandidates(headerRow, [
+      CONSTANTS.HEADERS.SCHEDULE.STATUS,
+      '状態',
+      'status',
+    ]);
+    const salesTransferStatusColumn = findHeaderIndexByCandidates(headerRow, [
       CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_STATUS,
-    );
+      '売上転記状態',
+      '売上転送状態',
+      'salesTransferStatus',
+    ]);
     const salesTransferAtColumn = headerRow.indexOf(
       CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT,
     );
@@ -2236,11 +2276,12 @@ export function runSalesTransferFromAdmin(payload = {}) {
 
     const transferResult = transferSalesLogByDate(reportResult.targetDate);
 
-    // 手動転載でも、従来トリガー運用と同様に日程ステータスを開催済みに更新する
-    const updatedStatusCount = updateScheduleStatusToCompleted();
-    if (updatedStatusCount > 0) {
-      rebuildScheduleMasterCache();
-    }
+    // 管理画面実行時は対象日の状態変化分のみ Notion 同期する
+    const updatedTargetStatusCount = markScheduleStatusCompletedByDate(
+      reportResult.targetDate,
+      { syncNotion: true },
+    );
+    const updatedStatusCount = updatedTargetStatusCount;
 
     logActivity(
       'SYSTEM',
