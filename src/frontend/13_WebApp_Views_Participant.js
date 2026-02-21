@@ -1578,6 +1578,12 @@ function renderLessonList(lessons) {
         const pendingTransferStatusValue = String(
           CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING,
         );
+        const partialTransferStatusValue = String(
+          CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PARTIAL,
+        );
+        const failedTransferStatusValue = String(
+          CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.FAILED,
+        );
         const normalizedLessonStatus = lessonStatus.replace(/\s+/g, '');
         const normalizedScheduledStatus = scheduledStatusValue.replace(
           /\s+/g,
@@ -1589,6 +1595,10 @@ function renderLessonList(lessons) {
         );
         const normalizedPendingTransferStatus =
           pendingTransferStatusValue.replace(/\s+/g, '');
+        const normalizedPartialTransferStatus =
+          partialTransferStatusValue.replace(/\s+/g, '');
+        const normalizedFailedTransferStatus =
+          failedTransferStatusValue.replace(/\s+/g, '');
         const isScheduledStatus =
           normalizedLessonStatus === normalizedScheduledStatus ||
           normalizedLessonStatus.includes(normalizedScheduledStatus);
@@ -1597,10 +1607,25 @@ function renderLessonList(lessons) {
           normalizedSalesTransferStatus.includes(
             normalizedPendingTransferStatus,
           );
+        const isPartialSalesTransfer =
+          normalizedSalesTransferStatus === normalizedPartialTransferStatus ||
+          normalizedSalesTransferStatus.includes(
+            normalizedPartialTransferStatus,
+          );
+        const isFailedSalesTransfer =
+          normalizedSalesTransferStatus === normalizedFailedTransferStatus ||
+          normalizedSalesTransferStatus.includes(
+            normalizedFailedTransferStatus,
+          );
+        const isRetryableSalesTransferStatus =
+          isPendingSalesTransfer ||
+          isPartialSalesTransfer ||
+          isFailedSalesTransfer;
         const isRunningThisLessonDate =
           isSalesTransferLoading && currentSalesTargetDate === lessonDateYmd;
         const shouldShowCompleteButton =
-          isPastOrToday && (isScheduledStatus || isPendingSalesTransfer);
+          isPastOrToday &&
+          (isScheduledStatus || isRetryableSalesTransferStatus);
         const isCompleteButtonEnabled =
           shouldShowCompleteButton && !isSalesTransferLoading;
         const completeDisabledReason = isSalesTransferLoading
@@ -1609,6 +1634,9 @@ function renderLessonList(lessons) {
         const completeButtonClass = isCompleteButtonEnabled
           ? 'bg-action-attention-bg text-action-attention-text hover:opacity-90'
           : 'bg-orange-100 text-orange-300 cursor-not-allowed';
+        const shouldShowRetryLabel =
+          !isScheduledStatus &&
+          (isPartialSalesTransfer || isFailedSalesTransfer);
         // 管理者用「管理」ボタン（モーダルでリスト表示・編集）
         reserveButtonHtml = `
         <div class="pt-1 text-right px-2 pb-1">
@@ -1633,7 +1661,9 @@ function renderLessonList(lessons) {
                     ${
                       isSalesTransferLoading && isRunningThisLessonDate
                         ? '集計中...'
-                        : '教室完了 ⇢ 売上集計'
+                        : shouldShowRetryLabel
+                          ? '売上集計を再実行'
+                          : '教室完了 ⇢ 売上集計'
                     }
                   </button>`
                 : ''

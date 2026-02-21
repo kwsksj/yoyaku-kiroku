@@ -1942,14 +1942,14 @@ export function updateAccountingDetails(reservationWithUpdatedAccounting) {
         `合計金額: ¥${accountingDetails.grandTotal.toLocaleString()}
 
 ` +
-        `※売上表への転載は${deadlineHour}時のバッチ処理で自動的に行われます。
+        `※売上表への転載は、管理画面の「教室完了 ⇢ 売上集計」から実行してください。
 ` +
         `詳細はスプレッドシートを確認してください。`;
       sendAdminNotification(subject, body);
 
       return createApiResponse(true, {
         message:
-          '会計情報を修正しました。売上表への転載は20時に自動で行われます。',
+          '会計情報を修正しました。売上表への転載は管理画面から実行してください。',
       });
     } catch (err) {
       logActivity(

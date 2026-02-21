@@ -26,7 +26,10 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
-import { logSalesForSingleReservation } from './05-2_Backend_Write.js';
+import {
+  checkIfSalesAlreadyLogged,
+  logSalesForSingleReservation,
+} from './05-2_Backend_Write.js';
 import {
   rebuildAllReservationsCache,
   rebuildAllStudentsCache,
@@ -7060,8 +7063,32 @@ export function transferSalesLogByDate(targetDate) {
 
     // 各よやくから売上記録を書き込み（既存の関数を再利用）
     let successCount = 0;
+    let duplicateCount = 0;
     for (const targetReservation of targetReservations) {
       try {
+        const reservationId = String(targetReservation.reservationId || '');
+        if (reservationId) {
+          const isDuplicate = checkIfSalesAlreadyLogged(
+            reservationId,
+            normalizedTargetDate,
+          );
+          if (isDuplicate) {
+            duplicateCount += 1;
+            successCount += 1;
+            const lessonId = String(targetReservation.lessonId || '');
+            if (lessonId) {
+              succeededReservationsByLesson.set(
+                lessonId,
+                (succeededReservationsByLesson.get(lessonId) || 0) + 1,
+              );
+            }
+            Logger.log(
+              `[transferSalesLogByDate] 既存売上ログを検知したためスキップ: ${reservationId}`,
+            );
+            continue;
+          }
+        }
+
         let accountingDetails = targetReservation.accountingDetails;
         if (!accountingDetails) {
           accountingDetails = accountingDetailsMap.get(
@@ -7153,7 +7180,7 @@ export function transferSalesLogByDate(targetDate) {
     safeSalesToast('', '', 1);
 
     Logger.log(
-      `[transferSalesLogByDate] 完了: ${normalizedTargetDate}, よやく${targetReservations.length}件, 成功${successCount}件`,
+      `[transferSalesLogByDate] 完了: ${normalizedTargetDate}, よやく${targetReservations.length}件, 成功${successCount}件（重複スキップ${duplicateCount}件）`,
     );
 
     return {

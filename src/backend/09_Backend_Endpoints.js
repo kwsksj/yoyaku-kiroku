@@ -1636,9 +1636,12 @@ export function getPastLessonsForParticipantsView(
       '売上転送状態',
       'salesTransferStatus',
     ]);
-    const salesTransferAtColumn = headerRow.indexOf(
+    const salesTransferAtColumn = findHeaderIndexByCandidates(headerRow, [
       CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT,
-    );
+      '売上転記日時',
+      '売上転送日時',
+      'salesTransferredAt',
+    ]);
     const notesColumn = headerRow.indexOf(CONSTANTS.HEADERS.SCHEDULE.NOTES);
 
     if (dateColumn === -1 || classroomColumn === -1) {
@@ -2225,7 +2228,7 @@ export function processAccountingWithTransferOption(
     return createApiResponse(true, {
       message: withSalesTransfer
         ? '会計処理と売上転載が完了しました'
-        : '会計処理が完了しました（売上は20時に自動転載されます）',
+        : '会計処理が完了しました（売上転載は管理画面から実行できます）',
     });
   } catch (error) {
     Logger.log(

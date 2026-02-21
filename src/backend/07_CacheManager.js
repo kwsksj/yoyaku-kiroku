@@ -110,6 +110,17 @@ const SCHEDULE_SALES_TRANSFER_STATUS_HEADER_CANDIDATES = [
 ];
 
 /**
+ * 日程シートの売上転載日時列候補
+ * @type {string[]}
+ */
+const SCHEDULE_SALES_TRANSFER_AT_HEADER_CANDIDATES = [
+  CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT,
+  '売上転記日時',
+  '売上転送日時',
+  'salesTransferredAt',
+];
+
+/**
  * ヘッダー候補から列インデックスを取得します。
  * @param {string[]} headers
  * @param {string[]} candidates
@@ -1437,6 +1448,10 @@ export function rebuildScheduleMasterCache(fromDate, toDate, options = {}) {
       headerRow,
       SCHEDULE_SALES_TRANSFER_STATUS_HEADER_CANDIDATES,
     );
+    const salesTransferAtColumn = findHeaderIndexByCandidates(
+      headerRow,
+      SCHEDULE_SALES_TRANSFER_AT_HEADER_CANDIDATES,
+    );
 
     if (dateColumn === -1) {
       throw new Error('日程マスターシートに必須の「日付」列が見つかりません。');
@@ -1550,7 +1565,9 @@ export function rebuildScheduleMasterCache(fromDate, toDate, options = {}) {
             break;
           }
         } else if (
-          header === CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT &&
+          SCHEDULE_SALES_TRANSFER_AT_HEADER_CANDIDATES.includes(
+            String(header || '').trim(),
+          ) &&
           value instanceof Date
         ) {
           value = Utilities.formatDate(
@@ -1606,6 +1623,9 @@ export function rebuildScheduleMasterCache(fromDate, toDate, options = {}) {
             propertyName = 'salesTransferStatus';
             break;
           case CONSTANTS.HEADERS.SCHEDULE.SALES_TRANSFER_AT:
+          case '売上転記日時':
+          case '売上転送日時':
+          case 'salesTransferredAt':
             propertyName = 'salesTransferredAt';
             break;
           case CONSTANTS.HEADERS.SCHEDULE.NOTES:
@@ -1653,6 +1673,17 @@ export function rebuildScheduleMasterCache(fromDate, toDate, options = {}) {
         scheduleObj['salesTransferStatus'] = String(
           row[salesTransferStatusColumn] || '',
         ).trim();
+      }
+      if (!scheduleObj['salesTransferredAt'] && salesTransferAtColumn >= 0) {
+        const rawTransferredAt = row[salesTransferAtColumn];
+        scheduleObj['salesTransferredAt'] =
+          rawTransferredAt instanceof Date
+            ? Utilities.formatDate(
+                rawTransferredAt,
+                CONSTANTS.TIMEZONE,
+                'yyyy-MM-dd HH:mm:ss',
+              )
+            : String(rawTransferredAt || '').trim();
       }
 
       scheduleDataList.push(scheduleObj);
