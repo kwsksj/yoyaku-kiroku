@@ -2011,6 +2011,7 @@ function _enqueueNotionSyncTask(payload) {
   try {
     const taskKey = _buildNotionSyncQueueTaskKey(entity, sourceId);
     const queue = _getNotionSyncQueue();
+    const queueWasEmpty = queue.length === 0;
     /** @type {NotionSyncQueueTask} */
     const task = {
       taskKey,
@@ -2044,7 +2045,7 @@ function _enqueueNotionSyncTask(payload) {
 
     const trimmedQueue = _trimNotionSyncQueue(queue);
     _setNotionSyncQueue(trimmedQueue);
-    _ensureNotionSyncQueueTrigger();
+    _ensureNotionSyncQueueTrigger(queueWasEmpty);
 
     return {
       success: true,
@@ -3871,15 +3872,16 @@ function _getNotionSyncQueueTrigger() {
 /**
  * Notion同期キュートリガーを作成または再利用します
  *
+ * @param {boolean} [forceCheck=false] - true の場合は存在キャッシュを使わず実トリガーを確認
  * @returns {GoogleAppsScript.Script.Trigger | null}
  * @private
  */
-function _ensureNotionSyncQueueTrigger() {
+function _ensureNotionSyncQueueTrigger(forceCheck = false) {
   const props = PropertiesService.getScriptProperties();
   const storedTriggerId = props.getProperty(
     PROPS_KEY_NOTION_SYNC_QUEUE_TRIGGER_ID,
   );
-  if (storedTriggerId) {
+  if (!forceCheck && storedTriggerId) {
     try {
       const cachedTriggerId = CacheService.getScriptCache().get(
         NOTION_SYNC_QUEUE_TRIGGER_CACHE_KEY,
