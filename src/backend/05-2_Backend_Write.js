@@ -2203,18 +2203,18 @@ ${err.stack}`,
 }
 
 /**
- * 指定した予約IDと日付の売上ログが既に記録されているか確認
- * @param {string} reservationId - 予約ID
- * @param {string} _date - よやく日（YYYY-MM-DD形式）※未使用（将来の拡張用）
- * @returns {boolean} 既に記録されている場合はtrue
+ * 売上ログシートに記録済みの予約ID一覧を取得します。
+ * @returns {Set<string>}
  */
-export function checkIfSalesAlreadyLogged(reservationId, _date) {
+export function getSalesLoggedReservationIdSet() {
+  /** @type {Set<string>} */
+  const reservationIdSet = new Set();
   try {
     if (!SALES_SPREADSHEET_ID) {
       Logger.log(
-        `[checkIfSalesAlreadyLogged] SALES_SPREADSHEET_IDが設定されていません`,
+        `[getSalesLoggedReservationIdSet] SALES_SPREADSHEET_IDが設定されていません`,
       );
-      return false;
+      return reservationIdSet;
     }
 
     const salesLogSheet = SS_MANAGER.getExternalSheet(
@@ -2223,30 +2223,61 @@ export function checkIfSalesAlreadyLogged(reservationId, _date) {
     );
 
     if (!salesLogSheet) {
-      Logger.log(`[checkIfSalesAlreadyLogged] 売上ログシートが見つかりません`);
-      return false;
+      Logger.log(
+        `[getSalesLoggedReservationIdSet] 売上ログシートが見つかりません`,
+      );
+      return reservationIdSet;
     }
 
     const lastRow = salesLogSheet.getLastRow();
     if (lastRow < 2) {
+      return reservationIdSet;
+    }
+
+    // J列（予約ID）だけを読み込み、重複チェック用のSetを構築する
+    const reservationIdValues = salesLogSheet
+      .getRange(2, 10, lastRow - 1, 1)
+      .getValues();
+    reservationIdValues.forEach(([reservationIdValue]) => {
+      const normalizedReservationId = String(reservationIdValue || '').trim();
+      if (normalizedReservationId) {
+        reservationIdSet.add(normalizedReservationId);
+      }
+    });
+  } catch (error) {
+    Logger.log(`[getSalesLoggedReservationIdSet] エラー: ${error.message}`);
+  }
+  return reservationIdSet;
+}
+
+/**
+ * 指定した予約IDと日付の売上ログが既に記録されているか確認
+ * @param {string} reservationId - 予約ID
+ * @param {string} _date - よやく日（YYYY-MM-DD形式）※未使用（将来の拡張用）
+ * @param {Set<string>} [existingReservationIds] - 事前取得済みの予約IDセット
+ * @returns {boolean} 既に記録されている場合はtrue
+ */
+export function checkIfSalesAlreadyLogged(
+  reservationId,
+  _date,
+  existingReservationIds,
+) {
+  try {
+    const normalizedReservationId = String(reservationId || '').trim();
+    if (!normalizedReservationId) {
       return false;
     }
 
-    const data = salesLogSheet.getRange(2, 1, lastRow - 1, 10).getValues();
-
-    // 予約IDで重複チェック
-    for (const row of data) {
-      const logReservationId = String(row[9] || ''); // J列: 予約ID
-      const logDate = row[0]; // A列: 日付
-
-      if (logReservationId === reservationId) {
-        Logger.log(
-          `[checkIfSalesAlreadyLogged] 重複検出: ${reservationId}, 既存日付: ${logDate}`,
-        );
-        return true;
-      }
+    const reservationIdSet =
+      existingReservationIds instanceof Set
+        ? existingReservationIds
+        : getSalesLoggedReservationIdSet();
+    if (reservationIdSet.has(normalizedReservationId)) {
+      Logger.log(
+        `[checkIfSalesAlreadyLogged] 重複検出: ${normalizedReservationId}`,
+      );
+      return true;
     }
-
     return false;
   } catch (error) {
     Logger.log(`[checkIfSalesAlreadyLogged] エラー: ${error.message}`);

@@ -243,6 +243,24 @@ function applyScheduleStatusDefaults(targetRows = []) {
 }
 
 /**
+ * onChangeイベントから状態補完対象行を推定します。
+ * @param {GoogleAppsScript.Events.SheetsOnChange} event
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet
+ * @returns {number[]}
+ */
+function resolveScheduleTargetRowsFromOnChange(event, sheet) {
+  if (String(event?.changeType || '') !== 'INSERT_ROW') return [];
+  const activeRange = sheet.getActiveRange();
+  if (!activeRange) return [];
+
+  const startRow = activeRange.getRow();
+  const rowCount = activeRange.getNumRows();
+  if (startRow <= 1 || rowCount <= 0) return [];
+
+  return Array.from({ length: rowCount }, (_, i) => startRow + i);
+}
+
+/**
  * インストール型トリガー：シート変更時に実行。
  * 日程シートの手編集で追加された行に対して、状態の初期値補完を行います。
  * @param {GoogleAppsScript.Events.SheetsOnChange} _e - Google Sheets のイベントオブジェクト
@@ -257,6 +275,18 @@ export function handleOnChange(_e) {
     const activeSheet = source.getActiveSheet();
     if (!activeSheet) return;
     if (activeSheet.getName() !== CONSTANTS.SHEET_NAMES.SCHEDULE) return;
+    const changeType = String(_e?.changeType || '');
+    const shouldApplyDefaults =
+      changeType === 'INSERT_ROW' ||
+      changeType === 'INSERT_GRID' ||
+      changeType === 'OTHER';
+    if (!shouldApplyDefaults) return;
+
+    const targetRows = resolveScheduleTargetRowsFromOnChange(_e, activeSheet);
+    if (targetRows.length > 0) {
+      applyScheduleStatusDefaults(targetRows);
+      return;
+    }
     applyScheduleStatusDefaults();
   } catch (err) {
     handleError(`OnChangeイベント処理中にエラー: ${err.message}`, true);

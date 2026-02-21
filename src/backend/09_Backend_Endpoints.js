@@ -55,6 +55,7 @@ import { getRecentLogs } from './05-4_Backend_Log.js';
 import {
   CACHE_KEYS,
   clearChunkedCache,
+  findHeaderIndexByCandidates,
   getStudentCacheSnapshot,
   getTypedCachedData,
   markScheduleStatusCompletedByDate,
@@ -1189,40 +1190,6 @@ function parseScheduleReservationIds(reservationIdsValue) {
 }
 
 /**
- * ヘッダー候補から列インデックスを取得します。
- * @param {string[]} headerRow
- * @param {string[]} candidates
- * @returns {number}
- */
-function findHeaderIndexByCandidates(headerRow, candidates) {
-  if (!Array.isArray(headerRow) || !Array.isArray(candidates)) return -1;
-
-  /** @type {Map<string, number>} */
-  const indexMap = new Map();
-  headerRow.forEach((header, index) => {
-    const normalized = String(header || '').trim();
-    if (!normalized) return;
-    if (!indexMap.has(normalized)) indexMap.set(normalized, index);
-    const lower = normalized.toLowerCase();
-    if (!indexMap.has(lower)) indexMap.set(lower, index);
-  });
-
-  for (const candidate of candidates) {
-    const normalizedCandidate = String(candidate || '').trim();
-    if (!normalizedCandidate) continue;
-    if (indexMap.has(normalizedCandidate)) {
-      return /** @type {number} */ (indexMap.get(normalizedCandidate));
-    }
-    const lower = normalizedCandidate.toLowerCase();
-    if (indexMap.has(lower)) {
-      return /** @type {number} */ (indexMap.get(lower));
-    }
-  }
-
-  return -1;
-}
-
-/**
  * 参加者ビュー用のよやくマップをレッスン単位で構築します。
  * @param {LessonCore[]} lessons
  * @param {Record<string, UserCore>} preloadedStudentsMap
@@ -2268,6 +2235,17 @@ export function runSalesTransferFromAdmin(payload = {}) {
         message: '売上集計を取得しました。',
         report: reportResult,
       });
+    }
+
+    const todayYmd = Utilities.formatDate(
+      new Date(),
+      CONSTANTS.TIMEZONE,
+      'yyyy-MM-dd',
+    );
+    if (reportResult.targetDate > todayYmd) {
+      return createApiErrorResponse(
+        `未来日（${reportResult.targetDate}）は売上転載を実行できません。`,
+      );
     }
 
     logActivity(

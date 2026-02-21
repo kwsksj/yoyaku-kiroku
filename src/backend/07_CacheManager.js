@@ -126,7 +126,7 @@ const SCHEDULE_SALES_TRANSFER_AT_HEADER_CANDIDATES = [
  * @param {string[]} candidates
  * @returns {number}
  */
-function findHeaderIndexByCandidates(headers, candidates) {
+export function findHeaderIndexByCandidates(headers, candidates) {
   if (!Array.isArray(headers) || !Array.isArray(candidates)) return -1;
 
   /** @type {Map<string, number>} */
@@ -2241,7 +2241,9 @@ export function ensureScheduleStatusDefaults(targetRows = []) {
     const lastColumn = sheet.getLastColumn();
     if (lastRow <= 1 || lastColumn <= 0) return 0;
 
-    const headerCandidate = sheet.getRange(1, 1, 1, lastColumn).getValues()[0];
+    const dataRange = sheet.getRange(1, 1, lastRow, lastColumn);
+    const allValues = dataRange.getValues();
+    const headerCandidate = allValues[0];
     if (!Array.isArray(headerCandidate)) return 0;
     const headers = /** @type {string[]} */ (headerCandidate);
 
@@ -2278,19 +2280,18 @@ export function ensureScheduleStatusDefaults(targetRows = []) {
         : Array.from({ length: Math.max(lastRow - 1, 0) }, (_, i) => i + 2);
 
     let updatedCells = 0;
+    let hasSheetUpdate = false;
     rowsToProcess.forEach(rowNumber => {
-      const rowValues = sheet
-        .getRange(rowNumber, 1, 1, lastColumn)
-        .getValues()[0];
+      const rowValues = allValues[rowNumber - 1];
+      if (!Array.isArray(rowValues)) return;
       const hasDate = dateColIndex >= 0 ? rowValues[dateColIndex] !== '' : true;
       if (!hasDate) return;
 
       const currentStatus = String(rowValues[statusColIndex] || '').trim();
       if (!currentStatus) {
-        sheet
-          .getRange(rowNumber, statusColIndex + 1)
-          .setValue(CONSTANTS.SCHEDULE_STATUS.SCHEDULED);
+        rowValues[statusColIndex] = CONSTANTS.SCHEDULE_STATUS.SCHEDULED;
         updatedCells += 1;
+        hasSheetUpdate = true;
       }
 
       if (salesTransferStatusColIndex >= 0) {
@@ -2298,17 +2299,16 @@ export function ensureScheduleStatusDefaults(targetRows = []) {
           rowValues[salesTransferStatusColIndex] || '',
         ).trim();
         if (!currentTransferStatus) {
-          sheet
-            .getRange(rowNumber, salesTransferStatusColIndex + 1)
-            .setValue(
-              CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING,
-            );
+          rowValues[salesTransferStatusColIndex] =
+            CONSTANTS.ACCOUNTING_SYSTEM.SALES_TRANSFER_STATUS.PENDING;
           updatedCells += 1;
+          hasSheetUpdate = true;
         }
       }
     });
 
-    if (updatedCells > 0) {
+    if (hasSheetUpdate) {
+      dataRange.setValues(allValues);
       Logger.log(
         `[ensureScheduleStatusDefaults] 状態補完を実施: ${updatedCells}セル`,
       );

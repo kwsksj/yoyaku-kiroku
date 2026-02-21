@@ -27,7 +27,7 @@
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { sendAdminNotification } from './02-6_Notification_Admin.js';
 import {
-  checkIfSalesAlreadyLogged,
+  getSalesLoggedReservationIdSet,
   logSalesForSingleReservation,
 } from './05-2_Backend_Write.js';
 import {
@@ -7047,6 +7047,7 @@ export function transferSalesLogByDate(targetDate) {
       .map(reservation => reservation.reservationId)
       .filter(id => typeof id === 'string' && id !== '');
     const accountingDetailsMap = getAccountingDetailsMap(reservationIdList);
+    const existingLoggedReservationIds = getSalesLoggedReservationIdSet();
 
     /** @type {Map<string, number>} */
     const totalReservationsByLesson = new Map();
@@ -7066,27 +7067,23 @@ export function transferSalesLogByDate(targetDate) {
     let duplicateCount = 0;
     for (const targetReservation of targetReservations) {
       try {
-        const reservationId = String(targetReservation.reservationId || '');
-        if (reservationId) {
-          const isDuplicate = checkIfSalesAlreadyLogged(
-            reservationId,
-            normalizedTargetDate,
-          );
-          if (isDuplicate) {
-            duplicateCount += 1;
-            successCount += 1;
-            const lessonId = String(targetReservation.lessonId || '');
-            if (lessonId) {
-              succeededReservationsByLesson.set(
-                lessonId,
-                (succeededReservationsByLesson.get(lessonId) || 0) + 1,
-              );
-            }
-            Logger.log(
-              `[transferSalesLogByDate] 既存売上ログを検知したためスキップ: ${reservationId}`,
+        const reservationId = String(
+          targetReservation.reservationId || '',
+        ).trim();
+        if (reservationId && existingLoggedReservationIds.has(reservationId)) {
+          duplicateCount += 1;
+          successCount += 1;
+          const lessonId = String(targetReservation.lessonId || '');
+          if (lessonId) {
+            succeededReservationsByLesson.set(
+              lessonId,
+              (succeededReservationsByLesson.get(lessonId) || 0) + 1,
             );
-            continue;
           }
+          Logger.log(
+            `[transferSalesLogByDate] 既存売上ログを検知したためスキップ: ${reservationId}`,
+          );
+          continue;
         }
 
         let accountingDetails = targetReservation.accountingDetails;
@@ -7110,6 +7107,9 @@ export function transferSalesLogByDate(targetDate) {
 
         if (result.success) {
           successCount++;
+          if (reservationId) {
+            existingLoggedReservationIds.add(reservationId);
+          }
           const lessonId = String(targetReservation.lessonId || '');
           if (lessonId) {
             succeededReservationsByLesson.set(

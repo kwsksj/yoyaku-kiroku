@@ -12,6 +12,13 @@ export function getHeaderIndex(headerMap: HeaderMapType, headerName: string): nu
  */
 export function normalizeHeaderMap(headerMap: HeaderMapType): Record<string, number>;
 /**
+ * ヘッダー候補から列インデックスを取得します。
+ * @param {string[]} headers
+ * @param {string[]} candidates
+ * @returns {number}
+ */
+export function findHeaderIndexByCandidates(headers: string[], candidates: string[]): number;
+/**
  * キャッシュデータの型安全な取得ヘルパー関数
  * @param {any} cacheData - キャッシュデータ
  * @param {string} property - プロパティ名
