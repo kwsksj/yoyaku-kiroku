@@ -28,7 +28,6 @@ import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import { BackendErrorHandler } from './08_ErrorHandler.js';
 import {
   PerformanceLog,
-  buildRowValuesMap,
   createHeaderMap,
   getCachedReservationsAsObjects,
   handleError,
@@ -1754,22 +1753,20 @@ export function rebuildScheduleMasterCache(fromDate, toDate, options = {}) {
       }、期間: ${startDate} ～ ${endDate}`,
     );
 
-    // 日程キャッシュ更新後に Notion 同期（30日前以降）
+    // 日程キャッシュ更新後に Notion 同期キューへ登録（30日前以降）
     if (!skipNotionSync) {
       try {
-        const syncFn = /** @type {any} */ (globalThis)
-          .syncUpcomingSchedulesToNotion;
-        if (typeof syncFn === 'function') {
-          const syncResult = syncFn({ daysBack: 30 });
-          if (syncResult?.success) {
-            Logger.log(
-              `[rebuildScheduleMasterCache] Notion日程同期完了: 作成${syncResult.created}, 更新${syncResult.updated}, スキップ${syncResult.skipped}, エラー${syncResult.errors}`,
-            );
-          }
+        const enqueueFn = /** @type {any} */ (globalThis)
+          .enqueueUpcomingSchedulesSyncToNotion;
+        if (typeof enqueueFn === 'function') {
+          enqueueFn(30);
+          Logger.log(
+            '[rebuildScheduleMasterCache] Notion日程同期キューに登録しました',
+          );
         }
       } catch (syncError) {
         Logger.log(
-          `[rebuildScheduleMasterCache] Notion日程同期エラー: ${syncError.message}`,
+          `[rebuildScheduleMasterCache] Notion日程同期キュー登録エラー: ${syncError.message}`,
         );
       }
     } else {
@@ -2097,17 +2094,14 @@ export function updateScheduleStatusToCompleted(options = {}) {
         const lessonId = lessonIdColIndex >= 0 ? row[lessonIdColIndex] : null;
         if (lessonId && syncNotion) {
           try {
-            const syncFn = /** @type {any} */ (globalThis).syncScheduleToNotion;
-            if (typeof syncFn === 'function') {
-              const scheduleValues = buildRowValuesMap(headers, row);
-              syncFn(String(lessonId), 'update', {
-                scheduleValues,
-                skipSheetAccess: true,
-              });
+            const enqueueFn = /** @type {any} */ (globalThis)
+              .enqueueScheduleSyncToNotion;
+            if (typeof enqueueFn === 'function') {
+              enqueueFn(String(lessonId), 'update');
             }
           } catch (syncError) {
             Logger.log(
-              `[ScheduleStatus] Notion日程同期エラー: ${syncError.message}`,
+              `[ScheduleStatus] Notion日程同期キュー登録エラー: ${syncError.message}`,
             );
           }
         }
@@ -2201,17 +2195,14 @@ export function markScheduleStatusCompletedByDate(targetDate, options = {}) {
       }
       if (lessonId && syncNotion) {
         try {
-          const syncFn = /** @type {any} */ (globalThis).syncScheduleToNotion;
-          if (typeof syncFn === 'function') {
-            const scheduleValues = buildRowValuesMap(headers, row);
-            syncFn(String(lessonId), 'update', {
-              scheduleValues,
-              skipSheetAccess: true,
-            });
+          const enqueueFn = /** @type {any} */ (globalThis)
+            .enqueueScheduleSyncToNotion;
+          if (typeof enqueueFn === 'function') {
+            enqueueFn(String(lessonId), 'update');
           }
         } catch (syncError) {
           Logger.log(
-            `[ScheduleStatusByDate] Notion日程同期エラー: ${syncError.message}`,
+            `[ScheduleStatusByDate] Notion日程同期キュー登録エラー: ${syncError.message}`,
           );
         }
       }

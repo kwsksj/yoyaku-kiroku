@@ -87,6 +87,24 @@
  * @property {boolean} [skipSheetAccess]
  */
 /**
+ * @typedef {'student' | 'reservation' | 'schedule' | 'upcoming-schedules'} NotionSyncQueueEntity
+ */
+/**
+ * @typedef {Object} NotionSyncQueueTask
+ * @property {string} taskKey
+ * @property {NotionSyncQueueEntity} entity
+ * @property {string} sourceId
+ * @property {'create' | 'update' | 'delete'} [action]
+ * @property {number} enqueuedAt
+ * @property {number} retryCount
+ * @property {number} [daysBack]
+ */
+/**
+ * @typedef {Object} NotionSyncQueueRunnerState
+ * @property {string} runnerId
+ * @property {number} expiresAt
+ */
+/**
  * Notion 接続設定を取得します
  * @returns {NotionConfig | null}
  */
@@ -266,6 +284,67 @@ export function syncReservationToNotion(reservationId: string, action?: "create"
  */
 export function syncScheduleToNotion(lessonId: string, action?: "create" | "update" | "delete", options?: NotionScheduleSyncOptions): NotionSyncResult;
 /**
+ * 生徒同期をキューに登録します（非同期実行）。
+ * @param {string} studentId
+ * @param {'create' | 'update' | 'delete'} [action='update']
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ */
+export function enqueueStudentSyncToNotion(studentId: string, action?: "create" | "update" | "delete"): {
+    success: boolean;
+    queued: boolean;
+    queueLength?: number;
+    message?: string;
+};
+/**
+ * 予約同期をキューに登録します（非同期実行）。
+ * @param {string} reservationId
+ * @param {'create' | 'update' | 'delete'} [action='update']
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ */
+export function enqueueReservationSyncToNotion(reservationId: string, action?: "create" | "update" | "delete"): {
+    success: boolean;
+    queued: boolean;
+    queueLength?: number;
+    message?: string;
+};
+/**
+ * 日程同期をキューに登録します（非同期実行）。
+ * @param {string} lessonId
+ * @param {'create' | 'update' | 'delete'} [action='update']
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ */
+export function enqueueScheduleSyncToNotion(lessonId: string, action?: "create" | "update" | "delete"): {
+    success: boolean;
+    queued: boolean;
+    queueLength?: number;
+    message?: string;
+};
+/**
+ * 直近日程の一括同期をキューに登録します（非同期実行）。
+ * @param {number} [daysBack=30]
+ * @returns {{success: boolean, queued: boolean, queueLength?: number, message?: string}}
+ */
+export function enqueueUpcomingSchedulesSyncToNotion(daysBack?: number): {
+    success: boolean;
+    queued: boolean;
+    queueLength?: number;
+    message?: string;
+};
+/**
+ * Notion同期キューを1バッチ処理します（時間トリガー用）。
+ * @returns {{success: boolean, done: boolean, processed: number, failed: number, retried: number, dropped: number, remaining: number, skippedByLock?: boolean}}
+ */
+export function runNotionSyncQueue(): {
+    success: boolean;
+    done: boolean;
+    processed: number;
+    failed: number;
+    retried: number;
+    dropped: number;
+    remaining: number;
+    skippedByLock?: boolean;
+};
+/**
  * 予約記録を一括で Notion に同期します
  *
  * @returns {{success: boolean, created: number, updated: number, skipped: number, errors: number}}
@@ -433,4 +512,18 @@ export type NotionScheduleSyncOptions = {
     schema?: NotionDatabaseSchema | null;
     existingPage?: NotionPage | null;
     skipSheetAccess?: boolean;
+};
+export type NotionSyncQueueEntity = "student" | "reservation" | "schedule" | "upcoming-schedules";
+export type NotionSyncQueueTask = {
+    taskKey: string;
+    entity: NotionSyncQueueEntity;
+    sourceId: string;
+    action?: "create" | "update" | "delete";
+    enqueuedAt: number;
+    retryCount: number;
+    daysBack?: number;
+};
+export type NotionSyncQueueRunnerState = {
+    runnerId: string;
+    expiresAt: number;
 };

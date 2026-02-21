@@ -930,56 +930,16 @@ export const reservationActionHandlers = {
       }
     }
 
-    // 初回アクセスまたはデータ更新が必要な場合のみローディング表示とサーバー確認
+    // 初回アクセスまたはデータ更新が必要な場合のみローディング表示とサーバー取得
     showLoading('booking');
-    google.script.run['withSuccessHandler'](
-      (
-        /** @type {ServerResponse<Record<string, string>>} */ versionResponse,
-      ) => {
-        if (versionResponse.success && versionResponse.data) {
-          const currentLessonsVersion =
-            reservationStateManager.getState()._lessonsVersion;
-          const serverLessonsVersion = versionResponse.data['lessonsComposite'];
-          const currentLessonsState =
-            reservationStateManager.getState().lessons;
-          if (
-            currentLessonsVersion === serverLessonsVersion &&
-            currentLessonsState &&
-            Array.isArray(currentLessonsState) &&
-            currentLessonsState.length > 0
-          ) {
-            hideLoading();
-            reservationStateManager.dispatch({
-              type: 'SET_STATE',
-              payload: {
-                selectedClassroom: classroomName,
-                view: 'bookingLessons',
-                isDataFresh: true,
-              },
-            });
-            return;
-          }
-          reservationActionHandlers.fetchLatestLessonsData(
-            classroomName,
-            serverLessonsVersion,
-          );
-        } else {
-          reservationActionHandlers.fetchLatestLessonsData(classroomName, null);
-        }
-      },
-    )
-      .withFailureHandler(() => {
-        reservationActionHandlers.fetchLatestLessonsData(classroomName, null);
-      })
-      .getCacheVersions();
+    reservationActionHandlers.fetchLatestLessonsData(classroomName);
   },
 
   /**
    * 最新の講座データを取得します（内部処理）。
    * @param {string} classroomName - 対象の教室名
-   * @param {string | null} newLessonsVersion - 新しいバージョン情報
    */
-  fetchLatestLessonsData: (classroomName, newLessonsVersion) => {
+  fetchLatestLessonsData: classroomName => {
     // 取得中フラグを設定してダブルクリック防止
     reservationStateManager.setDataFetchProgress('lessons', true);
 
@@ -988,20 +948,59 @@ export const reservationActionHandlers = {
       // 取得完了をマーク
       reservationStateManager.setDataFetchProgress('lessons', false);
 
-      if (response.success && response.data && response.data.lessons) {
+      const responseData = response?.data || {};
+      const latestLessons = Array.isArray(responseData.lessons)
+        ? responseData.lessons
+        : [];
+      const cacheVersions =
+        responseData && typeof responseData === 'object'
+          ? responseData['cache-versions']
+          : null;
+      const serverLessonsVersion =
+        cacheVersions &&
+        typeof cacheVersions === 'object' &&
+        typeof cacheVersions.lessonsComposite === 'string'
+          ? cacheVersions.lessonsComposite
+          : null;
+
+      const currentLessonsVersion =
+        reservationStateManager.getState()._lessonsVersion;
+      const currentLessonsState = reservationStateManager.getState().lessons;
+      if (
+        response?.success &&
+        serverLessonsVersion &&
+        currentLessonsVersion === serverLessonsVersion &&
+        currentLessonsState &&
+        Array.isArray(currentLessonsState) &&
+        currentLessonsState.length > 0
+      ) {
+        reservationStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            selectedClassroom: classroomName,
+            view: 'bookingLessons',
+            isDataFresh: true,
+            _lessonsVersion: serverLessonsVersion,
+          },
+        });
+        return;
+      }
+
+      if (response?.success && Array.isArray(latestLessons)) {
         // バージョンを更新
-        if (newLessonsVersion) {
-          reservationStateManager.updateLessonsVersion(newLessonsVersion);
+        if (serverLessonsVersion) {
+          reservationStateManager.updateLessonsVersion(serverLessonsVersion);
         }
 
         reservationStateManager.dispatch({
           type: 'SET_STATE',
           payload: {
-            lessons: response.data.lessons,
+            lessons: latestLessons,
             selectedClassroom: classroomName,
             view: 'bookingLessons',
             isDataFresh: true,
-            _lessonsVersion: newLessonsVersion,
+            _lessonsVersion:
+              serverLessonsVersion || currentLessonsVersion || null,
           },
         });
       } else {
@@ -1020,7 +1019,7 @@ export const reservationActionHandlers = {
         Logger.log(`fetchLatestLessonsDataエラー: ${error}`);
       })
       .getBatchData(
-        ['lessons'],
+        ['lessons', 'cache-versions'],
         reservationStateManager.getState().currentUser?.phone || '',
       );
   },

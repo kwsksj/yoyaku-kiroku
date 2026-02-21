@@ -819,6 +819,31 @@ export function getRegistrationData(userData) {
 }
 
 /**
+ * キャッシュバージョンスナップショットを生成します。
+ * @returns {{allReservations: number, scheduleMaster: number, lessonsComposite: string}}
+ */
+function buildCacheVersionsSnapshot() {
+  const allReservationsCache = JSON.parse(
+    CacheService.getScriptCache().get(CACHE_KEYS.ALL_RESERVATIONS) ||
+      '{"version": 0}',
+  );
+  const scheduleMaster = JSON.parse(
+    CacheService.getScriptCache().get(CACHE_KEYS.MASTER_SCHEDULE_DATA) ||
+      '{"version": 0}',
+  );
+
+  const allReservationsVersion = Number(allReservationsCache.version) || 0;
+  const scheduleMasterVersion = Number(scheduleMaster.version) || 0;
+
+  return {
+    allReservations: allReservationsVersion,
+    scheduleMaster: scheduleMasterVersion,
+    // 空き枠関連バージョンの合成（変更検知用）
+    lessonsComposite: `${allReservationsVersion}-${scheduleMasterVersion}`,
+  };
+}
+
+/**
  *軽量なキャッシュバージョンチェック用API
  * 空き枠データの更新有無を高速で判定
  * @returns {ApiResponseGeneric} - { success: boolean, versions: object }
@@ -827,22 +852,7 @@ export function getCacheVersions() {
   try {
     Logger.log('getCacheVersions開始');
 
-    // 関連キャッシュのバージョンのみ取得
-    const allReservationsCache = JSON.parse(
-      CacheService.getScriptCache().get(CACHE_KEYS.ALL_RESERVATIONS) ||
-        '{"version": 0}',
-    );
-    const scheduleMaster = JSON.parse(
-      CacheService.getScriptCache().get(CACHE_KEYS.MASTER_SCHEDULE_DATA) ||
-        '{"version": 0}',
-    );
-
-    const versions = {
-      allReservations: allReservationsCache.version || 0,
-      scheduleMaster: scheduleMaster.version || 0,
-      // 空き枠関連バージョンの合成（変更検知用）
-      lessonsComposite: `${allReservationsCache.version || 0}-${scheduleMaster.version || 0}`,
-    };
+    const versions = buildCacheVersionsSnapshot();
 
     Logger.log(`getCacheVersions完了: ${JSON.stringify(versions)}`);
     return /** @type {ApiResponseGeneric} */ (
@@ -856,7 +866,7 @@ export function getCacheVersions() {
 
 /**
  * 複数のデータタイプを一度に取得するバッチ処理関数
- * @param {string[]} dataTypes - 取得するデータタイプの配列 ['accounting', 'lessons', 'reservations']
+ * @param {string[]} dataTypes - 取得するデータタイプの配列 ['accounting', 'lessons', 'reservations', 'cache-versions']
  * @param {string|null} phone - 電話番号（ユーザー特定用、任意）
  * @param {string|null} studentId - 生徒ID（個人データ取得用、任意）
  * @returns {BatchDataResult} 要求されたすべてのデータを含む統合レスポンス
@@ -874,6 +884,18 @@ export function getBatchData(dataTypes = [], phone = null, studentId = null) {
       userFound: false,
       user: /** @type {StudentData | null} */ (null),
     };
+
+    // 0. キャッシュバージョンが要求されている場合、または講座/予約取得時は同時に返す
+    if (
+      dataTypes.includes('cache-versions') ||
+      dataTypes.includes('lessons') ||
+      dataTypes.includes('reservations')
+    ) {
+      result.data = {
+        ...result.data,
+        'cache-versions': buildCacheVersionsSnapshot(),
+      };
+    }
 
     // 1. 会計マスターデータが要求されている場合
     if (dataTypes.includes('accounting')) {
