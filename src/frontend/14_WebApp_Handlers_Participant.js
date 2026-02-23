@@ -194,9 +194,74 @@ function buildMergedParticipantData(state, incomingData, includeHistory) {
   const incomingReservationsMap = incomingData?.reservationsMap || {};
 
   if (includeHistory) {
+    const hasLoadedPastLessons = state.participantHasPastLessonsLoaded === true;
+    if (!hasLoadedPastLessons || incomingLessons.length === 0) {
+      return {
+        lessons: incomingLessons,
+        reservationsMap: incomingReservationsMap,
+        hasPastLessonsLoaded: true,
+      };
+    }
+
+    const existingLessons = Array.isArray(state.participantLessons)
+      ? state.participantLessons
+      : [];
+    if (existingLessons.length === 0) {
+      return {
+        lessons: incomingLessons,
+        reservationsMap: incomingReservationsMap,
+        hasPastLessonsLoaded: true,
+      };
+    }
+
+    const oldestIncomingTs = incomingLessons.reduce((minTs, lesson) => {
+      const ts = new Date(String(lesson?.date || '')).getTime();
+      if (!Number.isFinite(ts)) return minTs;
+      return Math.min(minTs, ts);
+    }, Number.POSITIVE_INFINITY);
+
+    if (!Number.isFinite(oldestIncomingTs)) {
+      return {
+        lessons: incomingLessons,
+        reservationsMap: incomingReservationsMap,
+        hasPastLessonsLoaded: true,
+      };
+    }
+
+    const todayYmd = getLocalTodayYmd();
+    const existingOldPastLessons = existingLessons.filter(lesson => {
+      const dateStr = String(lesson?.date || '');
+      if (!dateStr || dateStr >= todayYmd) return false;
+      const lessonTs = new Date(dateStr).getTime();
+      return Number.isFinite(lessonTs) && lessonTs < oldestIncomingTs;
+    });
+
+    if (existingOldPastLessons.length === 0) {
+      return {
+        lessons: incomingLessons,
+        reservationsMap: incomingReservationsMap,
+        hasPastLessonsLoaded: true,
+      };
+    }
+
+    /** @type {Record<string, any[]>} */
+    const preservedOldPastReservationsMap = {};
+    const existingReservationsMap = state.participantReservationsMap || {};
+    existingOldPastLessons.forEach(lesson => {
+      const lessonId = String(lesson?.lessonId || '');
+      if (!lessonId) return;
+      if (Array.isArray(existingReservationsMap[lessonId])) {
+        preservedOldPastReservationsMap[lessonId] =
+          existingReservationsMap[lessonId];
+      }
+    });
+
     return {
-      lessons: incomingLessons,
-      reservationsMap: incomingReservationsMap,
+      lessons: mergeLessonsByIdentity(incomingLessons, existingOldPastLessons),
+      reservationsMap: {
+        ...preservedOldPastReservationsMap,
+        ...incomingReservationsMap,
+      },
       hasPastLessonsLoaded: true,
     };
   }
@@ -309,6 +374,37 @@ function getOldestPastLessonDate(lessons) {
   return oldest;
 }
 
+/**
+ * 参加者ビュー初期取得で利用する過去境界日（YYYY-MM-DD）を返します。
+ * @param {number} monthsBack
+ * @returns {string}
+ */
+function getParticipantHistoryBoundaryDate(monthsBack) {
+  const normalizedMonthsBack = Math.max(0, Number(monthsBack) || 0);
+  const boundaryDate = new Date();
+  boundaryDate.setHours(0, 0, 0, 0);
+  boundaryDate.setMonth(boundaryDate.getMonth() - normalizedMonthsBack);
+
+  const y = boundaryDate.getFullYear();
+  const m = String(boundaryDate.getMonth() + 1).padStart(2, '0');
+  const d = String(boundaryDate.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * 現在のレッスン一覧に存在しないアコーディオン状態を除去します。
+ * @param {import('../../types/core/lesson').LessonCore[]} lessons
+ */
+function pruneExpandedLessonIdsByLessons(lessons) {
+  if (!Array.isArray(lessons)) return;
+  const lessonIdSet = new Set(
+    lessons.map(lesson => String(lesson?.lessonId || '')).filter(Boolean),
+  );
+  localExpandedLessonIds = localExpandedLessonIds.filter(id =>
+    lessonIdSet.has(id),
+  );
+}
+
 // 参加者ビュー（過去タブ）の「もっと表示する」UIが参照する状態を公開
 appWindow.getParticipantPastPaginationState = () => ({
   hasMorePastLessons,
@@ -356,7 +452,8 @@ function loadParticipantView(
   if (
     baseAppState &&
     Array.isArray(baseAppState.participantLessons) &&
-    baseAppState.participantLessons.length > 0
+    baseAppState.participantReservationsMap &&
+    typeof baseAppState.participantReservationsMap === 'object'
   ) {
     const nextIsAdmin =
       baseAppState.participantIsAdmin ||
@@ -396,10 +493,9 @@ function loadParticipantView(
   // 重要: よやくデータ（reservationsMap）も必要なのでチェック
   if (
     !forceReload &&
-    state.participantLessons &&
-    state.participantLessons.length > 0 &&
+    Array.isArray(state.participantLessons) &&
     state.participantReservationsMap &&
-    Object.keys(state.participantReservationsMap).length > 0
+    typeof state.participantReservationsMap === 'object'
   ) {
     debugLog('✅ キャッシュ済みデータを使用 - APIコールをスキップ');
     const hasMorePastLessonsInState =
@@ -444,8 +540,8 @@ function loadParticipantView(
         'background',
         baseAppState,
         false,
-        true,
-        PARTICIPANT_INITIAL_PAST_MONTHS,
+        false,
+        0,
       );
     } else {
       debugLog('ℹ️ 参加者ビュー再検証をスキップ（取得直後のため）');
@@ -601,12 +697,8 @@ function fetchParticipantDataBackground(
               dataFetchedAt: now,
             };
 
-        // ローカルアコーディオン状態の更新
-        const allLessonIds = mergedParticipantData.lessons.map(
-          (/** @type {import('../../types/core/lesson').LessonCore} */ l) =>
-            l.lessonId,
-        );
-        localExpandedLessonIds = allLessonIds;
+        // ローカルアコーディオン状態は既存を維持し、存在しないIDのみ除去する
+        pruneExpandedLessonIdsByLessons(mergedParticipantData.lessons);
         setPastLessonsPaginationState({ isLoading: false });
         if (includeHistory === true) {
           setPastLessonsPaginationState({ hasMore: hasMorePastLessons });
@@ -672,8 +764,8 @@ function fetchParticipantDataBackground(
 function refreshAllAdminData(options = {}) {
   const state = participantHandlersStateManager.getState();
   const studentId = state.currentUser?.studentId;
-  const includeHistoryInRefresh = true;
-  const refreshPastMonthsLimit = PARTICIPANT_INITIAL_PAST_MONTHS;
+  const includeHistoryInRefresh = false;
+  const refreshPastMonthsLimit = 0;
   const showNoChangeInfo = options.showNoChangeInfo !== false;
   const showChangeInfo = options.showChangeInfo === true;
   const useLogLoading = options.useLogLoading === true;
@@ -808,12 +900,8 @@ function refreshAllAdminData(options = {}) {
         setPastLessonsPaginationState({ hasMore: true });
       }
 
-      // アコーディオン状態も更新
-      const allLessonIds = mergedParticipantData.lessons.map(
-        (/** @type {import('../../types/core/lesson').LessonCore} */ l) =>
-          l.lessonId,
-      );
-      localExpandedLessonIds = allLessonIds;
+      // アコーディオン状態は既存を維持し、存在しないIDのみ除去する
+      pruneExpandedLessonIdsByLessons(mergedParticipantData.lessons);
     }
 
     if (logResult?.success) {
@@ -1533,7 +1621,12 @@ function loadMorePastParticipantLessons() {
   }
 
   const oldestPastDate = getOldestPastLessonDate(state.participantLessons);
-  if (!oldestPastDate) {
+  const beforeDate =
+    oldestPastDate ||
+    (hasMorePastLessons
+      ? getParticipantHistoryBoundaryDate(PARTICIPANT_INITIAL_PAST_MONTHS)
+      : '');
+  if (!beforeDate) {
     setPastLessonsPaginationState({ hasMore: false });
     renderWithScrollRestore(preservedScrollY);
     return;
@@ -1641,7 +1734,7 @@ function loadMorePastParticipantLessons() {
     )
     .getPastLessonsForParticipantsView(
       studentId,
-      oldestPastDate,
+      beforeDate,
       state.currentUser?.phone || '',
       CONSTANTS.UI.HISTORY_LOAD_MORE_RECORDS || 10,
     );
@@ -2028,9 +2121,8 @@ export const participantActionHandlers = {
     const logDaysBack = getAdminLogDaysBackFromState(state);
     const hasParticipantCache =
       Array.isArray(state.participantLessons) &&
-      state.participantLessons.length > 0 &&
       state.participantReservationsMap &&
-      Object.keys(state.participantReservationsMap).length > 0;
+      typeof state.participantReservationsMap === 'object';
     const needsInitialPairFetch = !hasLogCache || !hasParticipantCache;
     const shouldRefreshLogs =
       needsInitialPairFetch ||
