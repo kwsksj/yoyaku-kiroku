@@ -1383,6 +1383,49 @@ window.onload = function () {
 
   app.addEventListener('input', handleInput);
 
+  /**
+   * 管理者ビュー表示中にタブ復帰した際の自動更新を試行します。
+   */
+  const triggerAdminAutoRefreshOnTabResume = () => {
+    if (
+      typeof participantActionHandlers.autoRefreshAdminViewsOnTabResume ===
+      'function'
+    ) {
+      participantActionHandlers.autoRefreshAdminViewsOnTabResume();
+    }
+  };
+
+  // タブを開きっぱなしで復帰したときに最新化（ローディング画面は表示しない）
+  let wasTabHidden = document.visibilityState === 'hidden';
+  /** @type {number} */
+  let lastTabResumeTriggeredAt = 0;
+  const TAB_RESUME_EVENT_DEBOUNCE_MS = 100;
+  const triggerAdminAutoRefreshDebounced = () => {
+    const now = Date.now();
+    if (now - lastTabResumeTriggeredAt < TAB_RESUME_EVENT_DEBOUNCE_MS) {
+      return;
+    }
+    lastTabResumeTriggeredAt = now;
+    triggerAdminAutoRefreshOnTabResume();
+  };
+  document.addEventListener('visibilitychange', () => {
+    const isHiddenNow = document.visibilityState === 'hidden';
+    if (wasTabHidden && !isHiddenNow) {
+      triggerAdminAutoRefreshDebounced();
+    }
+    wasTabHidden = isHiddenNow;
+  });
+  window.addEventListener('focus', () => {
+    if (document.visibilityState === 'visible') {
+      triggerAdminAutoRefreshDebounced();
+    }
+  });
+  window.addEventListener('pageshow', () => {
+    if (document.visibilityState === 'visible') {
+      triggerAdminAutoRefreshDebounced();
+    }
+  });
+
   // =================================================================
   // --- リロード時のデータ再取得処理 ---
   // -----------------------------------------------------------------
@@ -1451,6 +1494,7 @@ window.onload = function () {
 
           // 状態を更新（既存の状態を保持しつつ、データのみ更新）
           const participantData = response.data.participantData;
+          const now = new Date().toISOString();
           handlersStateManager.dispatch({
             type: 'UPDATE_STATE',
             payload: {
@@ -1463,14 +1507,20 @@ window.onload = function () {
               cacheVersions: response.data.cacheVersions || {},
               isAdmin: response.isAdmin || false,
               adminLogs: response.data.adminLogs || [],
+              adminLogsDaysBack: CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS,
               // 参加者ビュー用データ
               participantLessons: participantData?.lessons || [],
               participantReservationsMap:
                 participantData?.reservationsMap || {},
               participantAllStudents: participantData?.allStudents || {},
               participantIsAdmin: response.isAdmin || false,
+              participantHasPastLessonsLoaded: true,
+              participantHasMorePastLessons:
+                participantData?.hasMorePastLessons === true,
               // データ取得日時
-              dataFetchedAt: new Date().toISOString(),
+              participantDataFetchedAt: now,
+              adminLogsFetchedAt: now,
+              dataFetchedAt: now,
             },
           });
 

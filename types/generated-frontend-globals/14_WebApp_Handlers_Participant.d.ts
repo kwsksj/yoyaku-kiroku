@@ -10,7 +10,9 @@ export namespace participantActionHandlers {
     export function previewSalesTransfer(): void;
     export function executeSalesTransfer(): void;
     export function markAllLogsAsViewed(): void;
+    export { autoRefreshAdminViewsOnTabResume };
     export function refreshLogView(): void;
+    export { loadMoreAdminLogs };
     export function goToLogView(): void;
     export { toggleParticipantLessonAccordion };
     export { expandAllAccordions };
@@ -30,9 +32,9 @@ export namespace participantActionHandlers {
  * @param {boolean} forceReload - 強制的に再取得する場合はtrue
  * @param {string|boolean} loadingCategory - ローディングバリエーション（'participants' | 'dataFetch' 等）。falseの場合は非表示。
  * @param {Partial<UIState> | null} baseAppState - 初期状態
- * @param {boolean} _includeHistory - 過去の履歴も含めるか（現在は常にtrueで取得するため未使用）
+ * @param {boolean} includeHistory - 過去の履歴も含めるか
  */
-declare function loadParticipantView(forceReload?: boolean, loadingCategory?: string | boolean, baseAppState?: Partial<UIState> | null, _includeHistory?: boolean): void;
+declare function loadParticipantView(forceReload?: boolean, loadingCategory?: string | boolean, baseAppState?: Partial<UIState> | null, includeHistory?: boolean): void;
 /**
  * 参加者リストビューのデータ更新（統合リフレッシュ関数に委譲）
  */
@@ -63,6 +65,16 @@ declare function completeLessonSalesTransfer(data?: {
 declare function updateSalesTransferTargetDate(data: {
     date?: string;
 } | string): void;
+/**
+ * 管理者が参加者ビュー/ログビューを表示中にタブ復帰した際の自動更新。
+ * ローディング画面は表示せず、更新結果（差分あり/なし）をモーダルで通知します。
+ * @returns {boolean} 自動更新を開始した場合true
+ */
+declare function autoRefreshAdminViewsOnTabResume(): boolean;
+/**
+ * 操作ログをさらに1週間分さかのぼって取得します。
+ */
+declare function loadMoreAdminLogs(): void;
 /**
  * アコーディオンの開閉を切り替えるハンドラ（DOM操作のみ、再描画なし）
  * @param {string} lessonId - レッスンID

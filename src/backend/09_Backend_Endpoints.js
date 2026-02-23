@@ -72,6 +72,9 @@ import {
 /**
  * @typedef {import('../../types/core/reservation').ReservationCoreWithAccounting} ReservationCoreWithAccounting
  */
+const ADMIN_LOG_INITIAL_DAYS = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS;
+const PARTICIPANT_INITIAL_PAST_MONTHS =
+  CONSTANTS.UI.PARTICIPANT_INITIAL_PAST_MONTHS;
 
 /**
  * よやく操作後に最新データを取得して返す汎用関数
@@ -538,9 +541,10 @@ export function getLoginData(
         true,
         true,
         phone,
+        PARTICIPANT_INITIAL_PAST_MONTHS,
       );
-      // ログデータ取得（直近30日）
-      const logsResult = getRecentLogs(30);
+      // ログデータ取得（直近2週間）
+      const logsResult = getRecentLogs(ADMIN_LOG_INITIAL_DAYS);
 
       /** @type {InitialAppDataPayload & {adminToken: string, adminLogs: any[]}} */
       const adminData = {
@@ -620,6 +624,7 @@ export function getLoginData(
           true,
           true,
           authResult.user.phone || '',
+          PARTICIPANT_INITIAL_PAST_MONTHS,
         );
         if (participantResponse.success) {
           participantData = participantResponse.data || null;
@@ -630,7 +635,7 @@ export function getLoginData(
       /** @type {any[]} */
       let adminLogs = [];
       if (isAdmin) {
-        const logsResult = getRecentLogs(30);
+        const logsResult = getRecentLogs(ADMIN_LOG_INITIAL_DAYS);
         if (logsResult.success) {
           adminLogs = logsResult.data || [];
         }
@@ -705,7 +710,7 @@ export function getLoginData(
             lessons: batchResult.data['lessons'] || [],
             myReservations: [],
             adminLogs: (() => {
-              const logsResult = getRecentLogs(30);
+              const logsResult = getRecentLogs(ADMIN_LOG_INITIAL_DAYS);
               return logsResult.success ? logsResult.data || [] : [];
             })(),
           }),
@@ -1395,6 +1400,7 @@ function buildParticipantReservationsMapForLessons(
  * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
  * @param {boolean} [includeReservations=false] - よやくデータを含めるか
  * @param {string} [adminLoginId=''] - 管理者用ログインID（PropertyServiceと突合する）
+ * @param {number} [pastMonthsLimit=0] - 過去データを含める場合の遡り月数（0なら制限なし）
  * @returns {ApiResponseGeneric} レッスン一覧
  */
 export function getLessonsForParticipantsView(
@@ -1402,10 +1408,11 @@ export function getLessonsForParticipantsView(
   includeHistory = true,
   includeReservations = false,
   adminLoginId = '',
+  pastMonthsLimit = 0,
 ) {
   try {
     Logger.log(
-      `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}, includeReservations=${includeReservations}`,
+      `getLessonsForParticipantsView開始: studentId=${studentId}, includeHistory=${includeHistory}, includeReservations=${includeReservations}, pastMonthsLimit=${pastMonthsLimit}`,
     );
 
     // 生徒キャッシュを1回取得（以降の処理で使い回す）
@@ -1438,16 +1445,40 @@ export function getLessonsForParticipantsView(
     const today = new Date();
     today.setHours(0, 0, 0, 0); // 今日の0時0分0秒に設定
 
+    const normalizedPastMonthsLimit = includeHistory
+      ? Math.max(0, Number(pastMonthsLimit) || 0)
+      : 0;
+    const historyBoundaryDate =
+      normalizedPastMonthsLimit > 0
+        ? (() => {
+            const boundaryDate = new Date(today.getTime());
+            boundaryDate.setMonth(
+              boundaryDate.getMonth() - normalizedPastMonthsLimit,
+            );
+            boundaryDate.setHours(0, 0, 0, 0);
+            return boundaryDate;
+          })()
+        : null;
+
     // レッスン一覧をフィルタリング
-    let filteredLessons = allLessons.map(lesson => ({
+    const lessonsWithDate = allLessons.map(lesson => ({
       ...lesson,
       _dateObj: new Date(lesson.date),
     }));
+    let filteredLessons = lessonsWithDate;
+    let hasMorePastLessons = false;
 
     // 過去データを除外する場合
     if (!includeHistory) {
       filteredLessons = filteredLessons.filter(
         lesson => lesson._dateObj >= today,
+      );
+    } else if (historyBoundaryDate) {
+      filteredLessons = filteredLessons.filter(
+        lesson => lesson._dateObj >= historyBoundaryDate,
+      );
+      hasMorePastLessons = lessonsWithDate.some(
+        lesson => lesson._dateObj < historyBoundaryDate,
       );
     }
 
@@ -1509,7 +1540,7 @@ export function getLessonsForParticipantsView(
     });
 
     Logger.log(
-      `getLessonsForParticipantsView完了: ${lessons.length}件のレッスン, reservationsMapキー数=${Object.keys(reservationsMap).length}, allStudents=${Object.keys(allStudentsForResponse).length}件`,
+      `getLessonsForParticipantsView完了: ${lessons.length}件のレッスン, reservationsMapキー数=${Object.keys(reservationsMap).length}, allStudents=${Object.keys(allStudentsForResponse).length}件, hasMorePastLessons=${hasMorePastLessons}`,
     );
 
     return createApiResponse(true, {
@@ -1517,6 +1548,7 @@ export function getLessonsForParticipantsView(
       isAdmin: isAdmin,
       reservationsMap: shouldIncludeReservations ? reservationsMap : undefined,
       allStudents: allStudentsForResponse,
+      hasMorePastLessons,
       message: 'レッスン一覧を取得しました',
     });
   } catch (error) {

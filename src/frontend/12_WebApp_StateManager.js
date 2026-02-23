@@ -717,6 +717,9 @@ export class SimpleStateManager {
 
         // 【Phase 4追加】ログビュー用データとデータ取得日時
         adminLogs: this.state['adminLogs'],
+        adminLogsDaysBack: this.state['adminLogsDaysBack'],
+        participantDataFetchedAt: this.state['participantDataFetchedAt'],
+        adminLogsFetchedAt: this.state['adminLogsFetchedAt'],
         dataFetchedAt: this.state['dataFetchedAt'],
 
         // メタデータ（データ整合性チェック用）

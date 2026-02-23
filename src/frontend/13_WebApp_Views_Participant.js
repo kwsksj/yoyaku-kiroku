@@ -1809,7 +1809,8 @@ function renderLessonList(lessons) {
      </div>`;
 
   // データ取得日時を表示
-  const dataFetchedAt = state['dataFetchedAt'];
+  const dataFetchedAt =
+    state['participantDataFetchedAt'] || state['dataFetchedAt'];
   let fetchedAtHtml = '';
   if (dataFetchedAt) {
     const fetchedDate = new Date(dataFetchedAt);

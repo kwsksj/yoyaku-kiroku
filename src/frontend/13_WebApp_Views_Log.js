@@ -45,6 +45,16 @@ export const getLogView = () => {
   // リフレッシュ中かどうか（統合フラグ使用）
   const isRefreshing =
     state['adminLogsRefreshing'] || state['participantDataRefreshing'] || false;
+  const defaultLogDaysBack = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS;
+  const logDaysBackRaw = Number(state['adminLogsDaysBack']);
+  const logDaysBack =
+    Number.isFinite(logDaysBackRaw) && logDaysBackRaw > 0
+      ? Math.floor(logDaysBackRaw)
+      : defaultLogDaysBack;
+  const logRangeLabel =
+    logDaysBack % 7 === 0
+      ? `直近${Math.floor(logDaysBack / 7)}週間分のログ`
+      : `直近${logDaysBack}日分のログ`;
 
   // 最後に表示した日時を取得（未読判定用）
   const lastViewedKey = 'YOYAKU_KIROKU_ADMIN_LOG_LAST_VIEWED';
@@ -76,6 +86,17 @@ export const getLogView = () => {
         text: '参加者<br>ビュー',
         style: 'primary',
         size: 'xs',
+      })}
+    </div>
+  `;
+  const loadMoreButtonHtml = `
+    <div class="mt-3">
+      ${Components.button({
+        action: 'loadMoreAdminLogs',
+        text: isRefreshing ? '読み込み中...' : 'さらに1週間さかのぼる',
+        style: 'secondary',
+        size: 'full',
+        disabled: isRefreshing || isLoading,
       })}
     </div>
   `;
@@ -117,6 +138,7 @@ export const getLogView = () => {
             </div>
           `,
       })}
+      ${loadMoreButtonHtml}
       `,
     });
   }
@@ -125,7 +147,7 @@ export const getLogView = () => {
   const tableHtml = renderLogTable(logs, lastViewedTime);
 
   // データ取得日時を表示
-  const dataFetchedAt = state['dataFetchedAt'];
+  const dataFetchedAt = state['adminLogsFetchedAt'] || state['dataFetchedAt'];
   let fetchedAtHtml = '';
   if (dataFetchedAt) {
     const fetchedDate = new Date(dataFetchedAt);
@@ -142,10 +164,11 @@ export const getLogView = () => {
       showBackButton: false,
       customActionHtml: headerActions,
     })}
-      <p class="text-xs text-brand-subtle mb-2 text-right">直近30日分のログ（${logs.length}件）${fetchedAtHtml}</p>
+      <p class="text-xs text-brand-subtle mb-2 text-right">${logRangeLabel}（${logs.length}件）${fetchedAtHtml}</p>
       <div class="bg-white ${DesignConfig.borderRadius.container}">
         ${tableHtml}
       </div>
+      ${loadMoreButtonHtml}
       `,
   });
 };
