@@ -31,11 +31,12 @@ const PARTICIPANT_BACKGROUND_REFRESH_INTERVAL_MS = 2 * 60 * 1000;
 /** @type {number} 操作ログのバックグラウンド再検証間隔（ms） */
 const ADMIN_LOG_BACKGROUND_REFRESH_INTERVAL_MS = 60 * 1000;
 /** @type {number} 操作ログの初期取得日数（2週間） */
-const ADMIN_LOG_INITIAL_DAYS = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS || 14;
+const ADMIN_LOG_INITIAL_DAYS = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS;
 /** @type {number} 操作ログ追加取得時の遡り日数（1週間） */
-const ADMIN_LOG_LOAD_MORE_DAYS = CONSTANTS.UI.ADMIN_LOG_LOAD_MORE_DAYS || 7;
+const ADMIN_LOG_LOAD_MORE_DAYS = CONSTANTS.UI.ADMIN_LOG_LOAD_MORE_DAYS;
 /** @type {number} 参加者ビューで初期表示する過去遡り月数 */
-const PARTICIPANT_INITIAL_PAST_MONTHS = 3;
+const PARTICIPANT_INITIAL_PAST_MONTHS =
+  CONSTANTS.UI.PARTICIPANT_INITIAL_PAST_MONTHS;
 /** @type {number} タブ復帰時の自動再取得を間引く最小間隔（ms） */
 const ADMIN_AUTO_REFRESH_THROTTLE_MS = 10 * 1000;
 /** @type {number} タブ復帰時の前回自動再取得時刻（ms） */
@@ -126,6 +127,7 @@ function getAdminLogsFetchedAt(state) {
 
 /**
  * 操作ログ取得日数を正規化します。
+ * 初期表示日数未満は初期表示日数まで切り上げます。
  * @param {unknown} rawDaysBack
  * @returns {number}
  */
@@ -177,96 +179,113 @@ function shouldRevalidateParticipantData(state, forceReload) {
 }
 
 /**
- * 参加者データを最新レスポンスで統合し、必要に応じて既存の過去データを保持します。
+ * includeHistory=true のときの参加者データをマージします。
  * @param {UIState} state
- * @param {{lessons?: import('../../types/core/lesson').LessonCore[], reservationsMap?: Record<string, any[]>}} incomingData
- * @param {boolean} includeHistory
+ * @param {import('../../types/core/lesson').LessonCore[]} incomingLessons
+ * @param {Record<string, any[]>} incomingReservationsMap
  * @returns {{
  *   lessons: import('../../types/core/lesson').LessonCore[],
  *   reservationsMap: Record<string, any[]>,
  *   hasPastLessonsLoaded: boolean
  * }}
  */
-function buildMergedParticipantData(state, incomingData, includeHistory) {
-  const incomingLessons = Array.isArray(incomingData?.lessons)
-    ? incomingData.lessons
-    : [];
-  const incomingReservationsMap = incomingData?.reservationsMap || {};
-
-  if (includeHistory) {
-    const hasLoadedPastLessons = state.participantHasPastLessonsLoaded === true;
-    if (!hasLoadedPastLessons || incomingLessons.length === 0) {
-      return {
-        lessons: incomingLessons,
-        reservationsMap: incomingReservationsMap,
-        hasPastLessonsLoaded: true,
-      };
-    }
-
-    const existingLessons = Array.isArray(state.participantLessons)
-      ? state.participantLessons
-      : [];
-    if (existingLessons.length === 0) {
-      return {
-        lessons: incomingLessons,
-        reservationsMap: incomingReservationsMap,
-        hasPastLessonsLoaded: true,
-      };
-    }
-
-    const oldestIncomingTs = incomingLessons.reduce((minTs, lesson) => {
-      const ts = new Date(String(lesson?.date || '')).getTime();
-      if (!Number.isFinite(ts)) return minTs;
-      return Math.min(minTs, ts);
-    }, Number.POSITIVE_INFINITY);
-
-    if (!Number.isFinite(oldestIncomingTs)) {
-      return {
-        lessons: incomingLessons,
-        reservationsMap: incomingReservationsMap,
-        hasPastLessonsLoaded: true,
-      };
-    }
-
-    const todayYmd = getLocalTodayYmd();
-    const existingOldPastLessons = existingLessons.filter(lesson => {
-      const dateStr = String(lesson?.date || '');
-      if (!dateStr || dateStr >= todayYmd) return false;
-      const lessonTs = new Date(dateStr).getTime();
-      return Number.isFinite(lessonTs) && lessonTs < oldestIncomingTs;
-    });
-
-    if (existingOldPastLessons.length === 0) {
-      return {
-        lessons: incomingLessons,
-        reservationsMap: incomingReservationsMap,
-        hasPastLessonsLoaded: true,
-      };
-    }
-
-    /** @type {Record<string, any[]>} */
-    const preservedOldPastReservationsMap = {};
-    const existingReservationsMap = state.participantReservationsMap || {};
-    existingOldPastLessons.forEach(lesson => {
-      const lessonId = String(lesson?.lessonId || '');
-      if (!lessonId) return;
-      if (Array.isArray(existingReservationsMap[lessonId])) {
-        preservedOldPastReservationsMap[lessonId] =
-          existingReservationsMap[lessonId];
-      }
-    });
-
+function mergeParticipantDataWithHistory(
+  state,
+  incomingLessons,
+  incomingReservationsMap,
+) {
+  const hasLoadedPastLessons = state.participantHasPastLessonsLoaded === true;
+  // 初回取得やレスポンス空の場合は、そのまま受信データを採用する
+  if (!hasLoadedPastLessons || incomingLessons.length === 0) {
     return {
-      lessons: mergeLessonsByIdentity(incomingLessons, existingOldPastLessons),
-      reservationsMap: {
-        ...preservedOldPastReservationsMap,
-        ...incomingReservationsMap,
-      },
+      lessons: incomingLessons,
+      reservationsMap: incomingReservationsMap,
       hasPastLessonsLoaded: true,
     };
   }
 
+  const existingLessons = Array.isArray(state.participantLessons)
+    ? state.participantLessons
+    : [];
+  // 既存データがない場合は、受信データだけで成立する
+  if (existingLessons.length === 0) {
+    return {
+      lessons: incomingLessons,
+      reservationsMap: incomingReservationsMap,
+      hasPastLessonsLoaded: true,
+    };
+  }
+
+  const oldestIncomingTs = incomingLessons.reduce((minTs, lesson) => {
+    const ts = new Date(String(lesson?.date || '')).getTime();
+    if (!Number.isFinite(ts)) return minTs;
+    return Math.min(minTs, ts);
+  }, Number.POSITIVE_INFINITY);
+  // 日付境界を作れない場合は安全側で受信データのみを採用
+  if (!Number.isFinite(oldestIncomingTs)) {
+    return {
+      lessons: incomingLessons,
+      reservationsMap: incomingReservationsMap,
+      hasPastLessonsLoaded: true,
+    };
+  }
+
+  const todayYmd = getLocalTodayYmd();
+  const existingOldPastLessons = existingLessons.filter(lesson => {
+    const dateStr = String(lesson?.date || '');
+    if (!dateStr || dateStr >= todayYmd) return false;
+    const lessonTs = new Date(dateStr).getTime();
+    return Number.isFinite(lessonTs) && lessonTs < oldestIncomingTs;
+  });
+  // 保持対象の「より古い過去」がなければ、受信データをそのまま使う
+  if (existingOldPastLessons.length === 0) {
+    return {
+      lessons: incomingLessons,
+      reservationsMap: incomingReservationsMap,
+      hasPastLessonsLoaded: true,
+    };
+  }
+
+  /** @type {Record<string, any[]>} */
+  const preservedOldPastReservationsMap = {};
+  const existingReservationsMap = state.participantReservationsMap || {};
+  existingOldPastLessons.forEach(lesson => {
+    const lessonId = String(lesson?.lessonId || '');
+    if (!lessonId) return;
+    if (Array.isArray(existingReservationsMap[lessonId])) {
+      preservedOldPastReservationsMap[lessonId] =
+        existingReservationsMap[lessonId];
+    }
+  });
+
+  return {
+    lessons: mergeLessonsByIdentity(incomingLessons, existingOldPastLessons),
+    reservationsMap: {
+      ...preservedOldPastReservationsMap,
+      ...incomingReservationsMap,
+    },
+    hasPastLessonsLoaded: true,
+  };
+}
+
+/**
+ * includeHistory=false のときの参加者データをマージします。
+ * @param {UIState} state
+ * @param {import('../../types/core/lesson').LessonCore[]} incomingLessons
+ * @param {Record<string, any[]>} incomingReservationsMap
+ * @returns {{
+ *   lessons: import('../../types/core/lesson').LessonCore[],
+ *   reservationsMap: Record<string, any[]>,
+ *   hasPastLessonsLoaded: boolean
+ * }}
+ */
+function mergeParticipantDataWithoutHistory(
+  state,
+  incomingLessons,
+  incomingReservationsMap,
+) {
   const hasLoadedPastLessons = state.participantHasPastLessonsLoaded === true;
+  // 過去タブを未取得なら、未来側だけ更新して終了
   if (!hasLoadedPastLessons) {
     return {
       lessons: incomingLessons,
@@ -283,7 +302,7 @@ function buildMergedParticipantData(state, incomingData, includeHistory) {
     const lessonDate = String(lesson?.date || '');
     return lessonDate !== '' && lessonDate < todayYmd;
   });
-
+  // 保持対象の過去データがなければ、受信データをそのまま採用
   if (existingPastOnlyLessons.length === 0) {
     return {
       lessons: incomingLessons,
@@ -312,6 +331,38 @@ function buildMergedParticipantData(state, incomingData, includeHistory) {
     },
     hasPastLessonsLoaded: true,
   };
+}
+
+/**
+ * 参加者データを最新レスポンスで統合し、必要に応じて既存の過去データを保持します。
+ * @param {UIState} state
+ * @param {{lessons?: import('../../types/core/lesson').LessonCore[], reservationsMap?: Record<string, any[]>}} incomingData
+ * @param {boolean} includeHistory
+ * @returns {{
+ *   lessons: import('../../types/core/lesson').LessonCore[],
+ *   reservationsMap: Record<string, any[]>,
+ *   hasPastLessonsLoaded: boolean
+ * }}
+ */
+function buildMergedParticipantData(state, incomingData, includeHistory) {
+  const incomingLessons = Array.isArray(incomingData?.lessons)
+    ? incomingData.lessons
+    : [];
+  const incomingReservationsMap = incomingData?.reservationsMap || {};
+
+  if (includeHistory) {
+    return mergeParticipantDataWithHistory(
+      state,
+      incomingLessons,
+      incomingReservationsMap,
+    );
+  }
+
+  return mergeParticipantDataWithoutHistory(
+    state,
+    incomingLessons,
+    incomingReservationsMap,
+  );
 }
 
 /**
@@ -1052,6 +1103,23 @@ function autoRefreshAdminViewsOnTabResume() {
 }
 
 /**
+ * ログ配列の最古タイムスタンプ（ms）を返します。
+ * @param {any[] | undefined | null} logs
+ * @returns {number}
+ */
+function getOldestLogTimestampMs(logs) {
+  if (!Array.isArray(logs) || logs.length === 0) {
+    return Number.NaN;
+  }
+  return logs.reduce((oldestTs, entry) => {
+    const timestamp = new Date(String(entry?.timestamp || '')).getTime();
+    if (!Number.isFinite(timestamp)) return oldestTs;
+    if (!Number.isFinite(oldestTs)) return timestamp;
+    return Math.min(oldestTs, timestamp);
+  }, Number.NaN);
+}
+
+/**
  * 操作ログをさらに1週間分さかのぼって取得します。
  */
 function loadMoreAdminLogs() {
@@ -1066,6 +1134,7 @@ function loadMoreAdminLogs() {
   const currentLogs = Array.isArray(state['adminLogs'])
     ? state['adminLogs']
     : [];
+  const currentOldestLogTs = getOldestLogTimestampMs(currentLogs);
 
   participantHandlersStateManager.dispatch({
     type: 'UPDATE_STATE',
@@ -1098,6 +1167,11 @@ function loadMoreAdminLogs() {
         }
 
         const nextLogs = Array.isArray(response.data) ? response.data : [];
+        const nextOldestLogTs = getOldestLogTimestampMs(nextLogs);
+        const hasLoadedOlderLogs =
+          Number.isFinite(nextOldestLogTs) &&
+          (!Number.isFinite(currentOldestLogTs) ||
+            nextOldestLogTs < currentOldestLogTs);
         const now = new Date().toISOString();
         participantHandlersStateManager.dispatch({
           type: 'UPDATE_STATE',
@@ -1112,7 +1186,7 @@ function loadMoreAdminLogs() {
         });
         render();
 
-        if (nextLogs.length <= currentLogs.length) {
+        if (!hasLoadedOlderLogs) {
           showInfo(
             'この1週間の範囲では追加ログがありませんでした。',
             '更新完了',

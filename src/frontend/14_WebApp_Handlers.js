@@ -1397,21 +1397,32 @@ window.onload = function () {
 
   // タブを開きっぱなしで復帰したときに最新化（ローディング画面は表示しない）
   let wasTabHidden = document.visibilityState === 'hidden';
+  /** @type {number} */
+  let lastTabResumeTriggeredAt = 0;
+  const TAB_RESUME_EVENT_DEBOUNCE_MS = 100;
+  const triggerAdminAutoRefreshDebounced = () => {
+    const now = Date.now();
+    if (now - lastTabResumeTriggeredAt < TAB_RESUME_EVENT_DEBOUNCE_MS) {
+      return;
+    }
+    lastTabResumeTriggeredAt = now;
+    triggerAdminAutoRefreshOnTabResume();
+  };
   document.addEventListener('visibilitychange', () => {
     const isHiddenNow = document.visibilityState === 'hidden';
     if (wasTabHidden && !isHiddenNow) {
-      triggerAdminAutoRefreshOnTabResume();
+      triggerAdminAutoRefreshDebounced();
     }
     wasTabHidden = isHiddenNow;
   });
   window.addEventListener('focus', () => {
     if (document.visibilityState === 'visible') {
-      triggerAdminAutoRefreshOnTabResume();
+      triggerAdminAutoRefreshDebounced();
     }
   });
   window.addEventListener('pageshow', () => {
     if (document.visibilityState === 'visible') {
-      triggerAdminAutoRefreshOnTabResume();
+      triggerAdminAutoRefreshDebounced();
     }
   });
 
@@ -1496,7 +1507,7 @@ window.onload = function () {
               cacheVersions: response.data.cacheVersions || {},
               isAdmin: response.isAdmin || false,
               adminLogs: response.data.adminLogs || [],
-              adminLogsDaysBack: CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS || 14,
+              adminLogsDaysBack: CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS,
               // 参加者ビュー用データ
               participantLessons: participantData?.lessons || [],
               participantReservationsMap:

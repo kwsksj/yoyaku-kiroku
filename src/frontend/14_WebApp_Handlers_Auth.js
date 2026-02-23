@@ -142,8 +142,7 @@ export const authActionHandlers = {
           const adminLogs = response.data?.adminLogs || [];
           adminState['adminLogs'] = adminLogs;
           adminState['adminLogsLoading'] = false;
-          adminState['adminLogsDaysBack'] =
-            CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS || 14;
+          adminState['adminLogsDaysBack'] = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS;
 
           // データ取得日時を設定
           const now = new Date().toISOString();

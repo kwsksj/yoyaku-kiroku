@@ -72,7 +72,9 @@ import {
 /**
  * @typedef {import('../../types/core/reservation').ReservationCoreWithAccounting} ReservationCoreWithAccounting
  */
-const ADMIN_LOG_INITIAL_DAYS = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS || 14;
+const ADMIN_LOG_INITIAL_DAYS = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS;
+const PARTICIPANT_INITIAL_PAST_MONTHS =
+  CONSTANTS.UI.PARTICIPANT_INITIAL_PAST_MONTHS;
 
 /**
  * よやく操作後に最新データを取得して返す汎用関数
@@ -539,7 +541,7 @@ export function getLoginData(
         true,
         true,
         phone,
-        3,
+        PARTICIPANT_INITIAL_PAST_MONTHS,
       );
       // ログデータ取得（直近2週間）
       const logsResult = getRecentLogs(ADMIN_LOG_INITIAL_DAYS);
@@ -622,7 +624,7 @@ export function getLoginData(
           true,
           true,
           authResult.user.phone || '',
-          3,
+          PARTICIPANT_INITIAL_PAST_MONTHS,
         );
         if (participantResponse.success) {
           participantData = participantResponse.data || null;

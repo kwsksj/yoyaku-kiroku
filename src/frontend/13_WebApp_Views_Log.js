@@ -45,7 +45,7 @@ export const getLogView = () => {
   // リフレッシュ中かどうか（統合フラグ使用）
   const isRefreshing =
     state['adminLogsRefreshing'] || state['participantDataRefreshing'] || false;
-  const defaultLogDaysBack = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS || 14;
+  const defaultLogDaysBack = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS;
   const logDaysBackRaw = Number(state['adminLogsDaysBack']);
   const logDaysBack =
     Number.isFinite(logDaysBackRaw) && logDaysBackRaw > 0

@@ -41,12 +41,10 @@ import { getSheetData, PerformanceLog } from './08_Utilities.js';
  * ログシートから直近のログデータを取得します。
  * 管理者専用のエンドポイントから呼び出されます。
  *
- * @param {number} [daysBack=14] - 取得する日数（デフォルト14日）
+ * @param {number} [daysBack=CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS] - 取得する日数
  * @returns {ApiResponseGeneric<LogEntry[]>} ログデータの配列
  */
-export function getRecentLogs(
-  daysBack = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS || 14,
-) {
+export function getRecentLogs(daysBack = CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS) {
   try {
     const startTime = Date.now();
     PerformanceLog.info(`[getRecentLogs] 開始: 直近${daysBack}日分のログ取得`);

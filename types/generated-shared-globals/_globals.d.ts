@@ -45,6 +45,7 @@ declare global {
     readonly UI: {
       readonly HISTORY_INITIAL_RECORDS: number;
       readonly HISTORY_LOAD_MORE_RECORDS: number;
+      readonly PARTICIPANT_INITIAL_PAST_MONTHS: number;
       readonly ADMIN_LOG_INITIAL_DAYS: number;
       readonly ADMIN_LOG_LOAD_MORE_DAYS: number;
       readonly LOADING_MESSAGE_INTERVAL: number;
