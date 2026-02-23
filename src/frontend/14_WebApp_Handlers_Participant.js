@@ -20,8 +20,6 @@ const participantHandlersStateManager = appWindow.stateManager;
 
 // 生徒詳細は participantAllStudents でプリロードされるため、個別キャッシュは不要になりました
 
-/** @type {boolean} 過去タブでさらに遡れるデータがあるか */
-let hasMorePastLessons = true;
 /** @type {boolean} 過去データ追加入力中フラグ */
 let isLoadingMorePastLessons = false;
 /** @type {ReturnType<typeof setTimeout> | null} 達成演出タイマー */
@@ -146,6 +144,20 @@ function normalizeAdminLogDaysBack(rawDaysBack) {
  */
 function getAdminLogDaysBackFromState(state) {
   return normalizeAdminLogDaysBack(state['adminLogsDaysBack']);
+}
+
+/**
+ * 過去タブでさらに遡れるかをstateから判定します。
+ * 過去履歴を未取得の間は true 扱いとし、初回取得経路を維持します。
+ * @param {UIState} [state]
+ * @returns {boolean}
+ */
+function hasMorePastLessonsFromState(state) {
+  const targetState = state || participantHandlersStateManager.getState();
+  if (targetState.participantHasPastLessonsLoaded !== true) {
+    return true;
+  }
+  return targetState['participantHasMorePastLessons'] === true;
 }
 
 /**
@@ -367,12 +379,9 @@ function buildMergedParticipantData(state, incomingData, includeHistory) {
 
 /**
  * 過去データのページング状態を更新します。
- * @param {{hasMore?: boolean, isLoading?: boolean}} nextState
+ * @param {{isLoading?: boolean}} nextState
  */
 function setPastLessonsPaginationState(nextState) {
-  if (Object.prototype.hasOwnProperty.call(nextState, 'hasMore')) {
-    hasMorePastLessons = !!nextState.hasMore;
-  }
   if (Object.prototype.hasOwnProperty.call(nextState, 'isLoading')) {
     isLoadingMorePastLessons = !!nextState.isLoading;
   }
@@ -458,7 +467,7 @@ function pruneExpandedLessonIdsByLessons(lessons) {
 
 // 参加者ビュー（過去タブ）の「もっと表示する」UIが参照する状態を公開
 appWindow.getParticipantPastPaginationState = () => ({
-  hasMorePastLessons,
+  hasMorePastLessons: hasMorePastLessonsFromState(),
   isLoadingMorePastLessons,
 });
 
@@ -510,12 +519,7 @@ function loadParticipantView(
       baseAppState.participantIsAdmin ||
       baseAppState.currentUser?.isAdmin ||
       false;
-    const hasMorePastLessonsInBaseState =
-      baseAppState['participantHasMorePastLessons'] === true;
-    setPastLessonsPaginationState({
-      hasMore: hasMorePastLessonsInBaseState,
-      isLoading: false,
-    });
+    setPastLessonsPaginationState({ isLoading: false });
     const hasPastLessonsLoaded =
       baseAppState.participantHasPastLessonsLoaded === true ||
       includeHistory === true;
@@ -549,12 +553,7 @@ function loadParticipantView(
     typeof state.participantReservationsMap === 'object'
   ) {
     debugLog('✅ キャッシュ済みデータを使用 - APIコールをスキップ');
-    const hasMorePastLessonsInState =
-      state['participantHasMorePastLessons'] === true;
-    setPastLessonsPaginationState({
-      hasMore: hasMorePastLessonsInState,
-      isLoading: false,
-    });
+    setPastLessonsPaginationState({ isLoading: false });
     /** @type {Partial<UIState>} */
     const cachePayload = baseAppState
       ? {
@@ -656,7 +655,12 @@ function fetchParticipantDataBackground(
           response.data || {},
           includeHistory === true,
         );
-        const hasMorePastLessons = response.data?.hasMorePastLessons === true;
+        const responseHasMorePastLessons =
+          response.data?.hasMorePastLessons === true;
+        const nextHasMorePastLessons =
+          includeHistory === true
+            ? responseHasMorePastLessons
+            : hasMorePastLessonsFromState(latestState);
 
         // データの変化を確認
         const currentLessonsJson = stableStringify(
@@ -717,7 +721,7 @@ function fetchParticipantDataBackground(
                 response.data.allStudents ||
                 latestState['participantAllStudents'] ||
                 {},
-              participantHasMorePastLessons: hasMorePastLessons,
+              participantHasMorePastLessons: nextHasMorePastLessons,
               participantDataFetchedAt: now,
               dataFetchedAt: now,
             }
@@ -743,7 +747,7 @@ function fetchParticipantDataBackground(
                 response.data.allStudents ||
                 latestState['participantAllStudents'] ||
                 {},
-              participantHasMorePastLessons: hasMorePastLessons,
+              participantHasMorePastLessons: nextHasMorePastLessons,
               participantDataFetchedAt: now,
               dataFetchedAt: now,
             };
@@ -751,11 +755,6 @@ function fetchParticipantDataBackground(
         // ローカルアコーディオン状態は既存を維持し、存在しないIDのみ除去する
         pruneExpandedLessonIdsByLessons(mergedParticipantData.lessons);
         setPastLessonsPaginationState({ isLoading: false });
-        if (includeHistory === true) {
-          setPastLessonsPaginationState({ hasMore: hasMorePastLessons });
-        } else if (mergedParticipantData.hasPastLessonsLoaded !== true) {
-          setPastLessonsPaginationState({ hasMore: true });
-        }
 
         participantHandlersStateManager.dispatch({
           type: baseAppState ? 'SET_STATE' : 'UPDATE_STATE',
@@ -921,13 +920,14 @@ function refreshAllAdminData(options = {}) {
     }
 
     if (participantResult?.success) {
-      updatePayload['participantHasMorePastLessons'] =
+      const responseHasMorePastLessons =
         participantResult.data?.hasMorePastLessons === true;
+      const nextHasMorePastLessons = includeHistoryInRefresh
+        ? responseHasMorePastLessons
+        : hasMorePastLessonsFromState(currentState);
+      updatePayload['participantHasMorePastLessons'] = nextHasMorePastLessons;
       updatePayload['participantDataFetchedAt'] = now;
-      setPastLessonsPaginationState({
-        isLoading: false,
-        hasMore: participantResult.data?.hasMorePastLessons === true,
-      });
+      setPastLessonsPaginationState({ isLoading: false });
     }
 
     if (
@@ -943,13 +943,6 @@ function refreshAllAdminData(options = {}) {
       updatePayload.participantHasPastLessonsLoaded =
         mergedParticipantData.hasPastLessonsLoaded === true;
       setPastLessonsPaginationState({ isLoading: false });
-      if (includeHistoryInRefresh) {
-        setPastLessonsPaginationState({
-          hasMore: participantResult.data?.hasMorePastLessons === true,
-        });
-      } else if (mergedParticipantData.hasPastLessonsLoaded !== true) {
-        setPastLessonsPaginationState({ hasMore: true });
-      }
 
       // アコーディオン状態は既存を維持し、存在しないIDのみ除去する
       pruneExpandedLessonIdsByLessons(mergedParticipantData.lessons);
@@ -1608,9 +1601,6 @@ function togglePastLessons(showPast) {
             l.lessonId,
         );
         localExpandedLessonIds = allLessonIds; // 直接更新
-        setPastLessonsPaginationState({
-          hasMore: hasMorePastLessons,
-        });
 
         participantHandlersStateManager.dispatch({
           type: 'UPDATE_STATE',
@@ -1676,6 +1666,7 @@ function togglePastLessons(showPast) {
 function loadMorePastParticipantLessons() {
   const preservedScrollY = window.scrollY;
   const state = participantHandlersStateManager.getState();
+  const canLoadMorePastLessons = hasMorePastLessonsFromState(state);
   const shouldApplyLoadResult = () => {
     const latestState = participantHandlersStateManager.getState();
     return latestState.view === 'participants' && latestState.showPastLessons;
@@ -1683,7 +1674,7 @@ function loadMorePastParticipantLessons() {
   if (!state.showPastLessons) return;
   if (isLoadingMorePastLessons) return;
 
-  if (!hasMorePastLessons) {
+  if (!canLoadMorePastLessons) {
     showInfo('最過去まで表示しました。', '完了');
     return;
   }
@@ -1697,11 +1688,16 @@ function loadMorePastParticipantLessons() {
   const oldestPastDate = getOldestPastLessonDate(state.participantLessons);
   const beforeDate =
     oldestPastDate ||
-    (hasMorePastLessons
+    (canLoadMorePastLessons
       ? getParticipantHistoryBoundaryDate(PARTICIPANT_INITIAL_PAST_MONTHS)
       : '');
   if (!beforeDate) {
-    setPastLessonsPaginationState({ hasMore: false });
+    participantHandlersStateManager.dispatch({
+      type: 'UPDATE_STATE',
+      payload: {
+        participantHasMorePastLessons: false,
+      },
+    });
     renderWithScrollRestore(preservedScrollY);
     return;
   }
@@ -1740,7 +1736,6 @@ function loadMorePastParticipantLessons() {
 
         if (fetchedLessons.length === 0) {
           const now = new Date().toISOString();
-          setPastLessonsPaginationState({ hasMore: false });
           participantHandlersStateManager.dispatch({
             type: 'UPDATE_STATE',
             payload: {
@@ -1767,10 +1762,8 @@ function loadMorePastParticipantLessons() {
           ...(latestState.participantReservationsMap || {}),
           ...fetchedReservationsMap,
         };
+        const nextHasMorePastLessons = response.data?.hasMore === true;
 
-        setPastLessonsPaginationState({
-          hasMore: response.data?.hasMore === true,
-        });
         const now = new Date().toISOString();
 
         participantHandlersStateManager.dispatch({
@@ -1780,7 +1773,7 @@ function loadMorePastParticipantLessons() {
             participantReservationsMap: mergedReservationsMap,
             participantHasPastLessonsLoaded: true,
             showPastLessons: true,
-            participantHasMorePastLessons: response.data?.hasMore === true,
+            participantHasMorePastLessons: nextHasMorePastLessons,
             participantDataFetchedAt: now,
             dataFetchedAt: now,
           },
@@ -1788,7 +1781,7 @@ function loadMorePastParticipantLessons() {
 
         renderWithScrollRestore(preservedScrollY);
 
-        if (!hasMorePastLessons) {
+        if (!nextHasMorePastLessons) {
           showInfo('最過去まで表示しました。', '完了');
         }
       },
