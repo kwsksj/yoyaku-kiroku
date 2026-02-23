@@ -1483,6 +1483,7 @@ window.onload = function () {
 
           // 状態を更新（既存の状態を保持しつつ、データのみ更新）
           const participantData = response.data.participantData;
+          const now = new Date().toISOString();
           handlersStateManager.dispatch({
             type: 'UPDATE_STATE',
             payload: {
@@ -1506,7 +1507,9 @@ window.onload = function () {
               participantHasMorePastLessons:
                 participantData?.hasMorePastLessons === true,
               // データ取得日時
-              dataFetchedAt: new Date().toISOString(),
+              participantDataFetchedAt: now,
+              adminLogsFetchedAt: now,
+              dataFetchedAt: now,
             },
           });
 

@@ -146,7 +146,10 @@ export const authActionHandlers = {
             CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS || 14;
 
           // データ取得日時を設定
-          adminState['dataFetchedAt'] = new Date().toISOString();
+          const now = new Date().toISOString();
+          adminState['participantDataFetchedAt'] = now;
+          adminState['adminLogsFetchedAt'] = now;
+          adminState['dataFetchedAt'] = now;
 
           authHandlersStateManager.dispatch({
             type: 'SET_STATE',

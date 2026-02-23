@@ -147,7 +147,7 @@ export const getLogView = () => {
   const tableHtml = renderLogTable(logs, lastViewedTime);
 
   // データ取得日時を表示
-  const dataFetchedAt = state['dataFetchedAt'];
+  const dataFetchedAt = state['adminLogsFetchedAt'] || state['dataFetchedAt'];
   let fetchedAtHtml = '';
   if (dataFetchedAt) {
     const fetchedDate = new Date(dataFetchedAt);

@@ -107,6 +107,24 @@ function isDataStale(dataFetchedAt, thresholdMs) {
 }
 
 /**
+ * 参加者データの最終取得日時を返します。
+ * @param {UIState} state
+ * @returns {string | null | undefined}
+ */
+function getParticipantDataFetchedAt(state) {
+  return state['participantDataFetchedAt'] || state['dataFetchedAt'];
+}
+
+/**
+ * 操作ログデータの最終取得日時を返します。
+ * @param {UIState} state
+ * @returns {string | null | undefined}
+ */
+function getAdminLogsFetchedAt(state) {
+  return state['adminLogsFetchedAt'] || state['dataFetchedAt'];
+}
+
+/**
  * 操作ログ取得日数を正規化します。
  * @param {unknown} rawDaysBack
  * @returns {number}
@@ -153,7 +171,7 @@ function showRefreshResultInfo(message, title) {
 function shouldRevalidateParticipantData(state, forceReload) {
   if (forceReload) return true;
   return isDataStale(
-    state['dataFetchedAt'],
+    getParticipantDataFetchedAt(state),
     PARTICIPANT_BACKGROUND_REFRESH_INTERVAL_MS,
   );
 }
@@ -553,6 +571,7 @@ function fetchParticipantDataBackground(
                 latestState['participantAllStudents'] ||
                 {},
               participantHasMorePastLessons: hasMorePastLessons,
+              participantDataFetchedAt: now,
               dataFetchedAt: now,
             }
           : {
@@ -578,6 +597,7 @@ function fetchParticipantDataBackground(
                 latestState['participantAllStudents'] ||
                 {},
               participantHasMorePastLessons: hasMorePastLessons,
+              participantDataFetchedAt: now,
               dataFetchedAt: now,
             };
 
@@ -738,6 +758,10 @@ function refreshAllAdminData(options = {}) {
         latestCurrent !== latestNew || currentLogs.length !== newLogs.length;
     }
 
+    const participantFetchFailed = participantResult?.success !== true;
+    const logFetchFailed = logResult?.success !== true;
+    const hasFetchFailure = participantFetchFailed || logFetchFailed;
+
     // 現在時刻を取得日時として保存
     const now = new Date().toISOString();
 
@@ -747,12 +771,16 @@ function refreshAllAdminData(options = {}) {
       adminLogsRefreshing: false,
       participantDataRefreshing: false,
       adminLogsLoading: false,
-      dataFetchedAt: now,
     };
+
+    if (participantResult?.success || logResult?.success) {
+      updatePayload['dataFetchedAt'] = now;
+    }
 
     if (participantResult?.success) {
       updatePayload['participantHasMorePastLessons'] =
         participantResult.data?.hasMorePastLessons === true;
+      updatePayload['participantDataFetchedAt'] = now;
       setPastLessonsPaginationState({
         isLoading: false,
         hasMore: participantResult.data?.hasMorePastLessons === true,
@@ -791,6 +819,7 @@ function refreshAllAdminData(options = {}) {
     if (logResult?.success) {
       updatePayload['adminLogs'] = logResult.data || [];
       updatePayload['adminLogsDaysBack'] = logDaysBack;
+      updatePayload['adminLogsFetchedAt'] = now;
     }
 
     participantHandlersStateManager.dispatch({
@@ -799,8 +828,22 @@ function refreshAllAdminData(options = {}) {
     });
 
     // 変更有無に応じてメッセージ表示
-    const hasChanges = hasParticipantChanges || hasLogChanges;
     render();
+    if (hasFetchFailure) {
+      setTimeout(() => {
+        const failedTargets = [
+          participantFetchFailed ? '参加者データ' : '',
+          logFetchFailed ? '操作ログ' : '',
+        ].filter(Boolean);
+        showRefreshResultInfo(
+          `更新中に${failedTargets.join('・')}の取得に失敗しました。時間をおいて再度お試しください。`,
+          '更新エラー',
+        );
+      }, 100);
+      return;
+    }
+
+    const hasChanges = hasParticipantChanges || hasLogChanges;
     if (!showChangeInfo && !showNoChangeInfo) return;
 
     // renderはrequestAnimationFrameを使用しているため、DOM更新後にモーダルを表示
@@ -903,7 +946,11 @@ function autoRefreshAdminViewsOnTabResume() {
     currentView === 'adminLog'
       ? ADMIN_LOG_BACKGROUND_REFRESH_INTERVAL_MS
       : PARTICIPANT_BACKGROUND_REFRESH_INTERVAL_MS;
-  const shouldRefresh = isDataStale(state['dataFetchedAt'], staleThresholdMs);
+  const targetFetchedAt =
+    currentView === 'adminLog'
+      ? getAdminLogsFetchedAt(state)
+      : getParticipantDataFetchedAt(state);
+  const shouldRefresh = isDataStale(targetFetchedAt, staleThresholdMs);
   if (!shouldRefresh) return false;
 
   lastAdminAutoRefreshAt = now;
@@ -963,6 +1010,7 @@ function loadMoreAdminLogs() {
         }
 
         const nextLogs = Array.isArray(response.data) ? response.data : [];
+        const now = new Date().toISOString();
         participantHandlersStateManager.dispatch({
           type: 'UPDATE_STATE',
           payload: {
@@ -970,7 +1018,8 @@ function loadMoreAdminLogs() {
             adminLogsRefreshing: false,
             adminLogsLoading: false,
             adminLogsDaysBack: nextLogDaysBack,
-            dataFetchedAt: new Date().toISOString(),
+            adminLogsFetchedAt: now,
+            dataFetchedAt: now,
           },
         });
         render();
@@ -1389,6 +1438,7 @@ function togglePastLessons(showPast) {
           : [];
         const fetchedReservationsMap = response.data?.reservationsMap || {};
         const hasMorePastLessons = response.data?.hasMorePastLessons === true;
+        const now = new Date().toISOString();
 
         // 過去のレッスンを表示する場合も全て開く
         const allLessonIds = fetchedLessons.map(
@@ -1418,6 +1468,8 @@ function togglePastLessons(showPast) {
               latestState['participantAllStudents'] ||
               {},
             participantHasMorePastLessons: hasMorePastLessons,
+            participantDataFetchedAt: now,
+            dataFetchedAt: now,
           },
         });
         render();
@@ -1520,11 +1572,14 @@ function loadMorePastParticipantLessons() {
         const fetchedReservationsMap = response.data?.reservationsMap || {};
 
         if (fetchedLessons.length === 0) {
+          const now = new Date().toISOString();
           setPastLessonsPaginationState({ hasMore: false });
           participantHandlersStateManager.dispatch({
             type: 'UPDATE_STATE',
             payload: {
               participantHasMorePastLessons: false,
+              participantDataFetchedAt: now,
+              dataFetchedAt: now,
             },
           });
           renderWithScrollRestore(preservedScrollY);
@@ -1549,6 +1604,7 @@ function loadMorePastParticipantLessons() {
         setPastLessonsPaginationState({
           hasMore: response.data?.hasMore === true,
         });
+        const now = new Date().toISOString();
 
         participantHandlersStateManager.dispatch({
           type: 'UPDATE_STATE',
@@ -1558,6 +1614,8 @@ function loadMorePastParticipantLessons() {
             participantHasPastLessonsLoaded: true,
             showPastLessons: true,
             participantHasMorePastLessons: response.data?.hasMore === true,
+            participantDataFetchedAt: now,
+            dataFetchedAt: now,
           },
         });
 
@@ -1977,7 +2035,7 @@ export const participantActionHandlers = {
     const shouldRefreshLogs =
       needsInitialPairFetch ||
       isDataStale(
-        state['dataFetchedAt'],
+        getAdminLogsFetchedAt(state),
         ADMIN_LOG_BACKGROUND_REFRESH_INTERVAL_MS,
       );
 
