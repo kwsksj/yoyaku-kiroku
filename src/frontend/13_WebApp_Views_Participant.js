@@ -257,21 +257,6 @@ const PARTICIPANT_TABLE_COLUMNS = [
         `);
       }
 
-      // 「販売のみ」ボタン（管理者は常に表示可能）
-      if (row.lessonId) {
-        buttons.push(`
-          <button
-            class="text-xs px-2 py-1 rounded bg-orange-500 text-white hover:bg-orange-600 font-bold"
-            data-action="startSalesOnlyConclusion"
-            data-student-id="${escapeHTML(row.studentId)}"
-            data-lesson-id="${escapeHTML(row.lessonId)}"
-            data-classroom="${escapeHTML(row.classroom || '')}"
-          >
-            販売のみ
-          </button>
-        `);
-      }
-
       return buttons.length > 0
         ? `<div class="flex flex-col gap-1">${buttons.join('')}</div>`
         : '';
@@ -1669,6 +1654,14 @@ function renderLessonList(lessons) {
                     data-lesson-id="${lesson.lessonId}">
               管理
             </button>
+            <button
+                    type="button"
+                    class="inline-flex items-center justify-center whitespace-nowrap text-[11px] sm:text-xs font-bold leading-none py-1.5 px-2.5 rounded-md bg-orange-500 text-white shadow-sm hover:bg-orange-600"
+                    data-action="showSalesOnlyStudentSelector"
+                    data-lesson-id="${escapeHTML(lesson.lessonId)}"
+                    data-classroom="${escapeHTML(lesson.classroom || '')}">
+              販売のみ
+            </button>
             ${
               shouldShowCompleteButton
                 ? `<button
@@ -2195,6 +2188,58 @@ function renderError(message) {
     `,
   });
 }
+
+/**
+ * 販売のみ用の生徒選択リストを描画する
+ * @param {any[]} students - 選択可能な生徒のリスト
+ * @param {string} query - 検索クエリ
+ * @param {string} lessonId - 紐づけるレッスンID
+ * @param {string} classroom - 教室名
+ * @returns {string} HTML文字列
+ */
+// @ts-ignore
+appWindow.renderSalesOnlyStudentList = (
+  students,
+  query,
+  lessonId,
+  classroom,
+) => {
+  const normalizedQuery = (query || '').toLowerCase().trim();
+  const filtered = students.filter(s => {
+    const name = s.displayName || s.nickname || s.realName || '';
+    const ruby = s.ruby || '';
+    return (
+      name.toLowerCase().includes(normalizedQuery) ||
+      ruby.toLowerCase().includes(normalizedQuery)
+    );
+  });
+
+  if (filtered.length === 0) {
+    return `<div class="p-4 text-center text-brand-subtle">該当する生徒が見つかりません</div>`;
+  }
+
+  const items = filtered
+    .map(s => {
+      const name = s.displayName || s.nickname || s.realName || '不明';
+      return `
+      <div class="flex items-center justify-between p-3 border-b border-ui-border hover:bg-gray-50 transition-colors">
+        <div class="font-bold text-brand-text truncate mr-2">${escapeHTML(name)}</div>
+        <button
+          class="text-xs px-3 py-1.5 rounded-md bg-orange-500 text-white hover:bg-orange-600 font-bold whitespace-nowrap shadow-sm"
+          data-action="startSalesOnlyConclusion"
+          data-student-id="${escapeHTML(s.studentId)}"
+          data-lesson-id="${escapeHTML(lessonId)}"
+          data-classroom="${escapeHTML(classroom)}"
+        >
+          選択
+        </button>
+      </div>
+    `;
+    })
+    .join('');
+
+  return items;
+};
 
 // ハンドラからモーダルコンテンツを生成するためにグローバルに公開
 appWindow.renderStudentDetailModalContent = renderStudentDetailModalContent;

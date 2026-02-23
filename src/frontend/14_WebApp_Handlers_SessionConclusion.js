@@ -15,20 +15,20 @@
  */
 
 import {
-    calculateAccountingTotal,
-    classifyAccountingItems,
+  calculateAccountingTotal,
+  classifyAccountingItems,
 } from './12-1_Accounting_Calculation.js';
 import { getPaymentInfoHtml } from './12-2_Accounting_UI.js';
 import {
-    initializePaymentMethodUI,
-    setupAccountingEventListeners,
-    updateAccountingCalculation,
+  initializePaymentMethodUI,
+  setupAccountingEventListeners,
+  updateAccountingCalculation,
 } from './12-3_Accounting_Handlers.js';
 import { collectAccountingFormData } from './12-4_Accounting_Utilities.js';
 import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
 import {
-    getSessionConclusionView,
-    STEPS,
+  getSessionConclusionView,
+  STEPS,
 } from './13_WebApp_Views_SessionConclusion.js';
 import { isCurrentUserAdmin } from './14_WebApp_Handlers_Utils.js';
 
@@ -302,18 +302,39 @@ export function startSalesOnlyConclusion(studentId, lessonId, classroom) {
           return;
         }
 
-        // 最新データを反映
-        if (response.data?.data) {
+        // 作成された予約データを既存のステートに追加する
+        if (response.data?.reservation) {
           const currentState = conclusionStateManager.getState();
+          const newReservation = response.data.reservation;
+
+          // myReservations に追加
+          const newMyReservations = [
+            ...(currentState.myReservations || []),
+            newReservation,
+          ];
+
+          // 管理者モードの場合は participantReservationsMap にも追加しないと startSessionConclusion で見つからない
+          let newParticipantReservationsMap =
+            currentState.participantReservationsMap;
+          if (newParticipantReservationsMap) {
+            newParticipantReservationsMap = {
+              ...newParticipantReservationsMap,
+            };
+            const lessonIdStr = String(lessonId);
+            const lessonReservations = [
+              ...(newParticipantReservationsMap[lessonIdStr] || []),
+              newReservation,
+            ];
+            newParticipantReservationsMap[lessonIdStr] = lessonReservations;
+          }
+
           conclusionStateManager.dispatch({
             type: 'SET_STATE',
             payload: {
-              myReservations:
-                response.data.data.myReservations ||
-                currentState.myReservations,
-              lessons: response.data.data.lessons || currentState.lessons,
-              participantLessons: null,
-              participantReservationsMap: null,
+              myReservations: newMyReservations,
+              ...(newParticipantReservationsMap
+                ? { participantReservationsMap: newParticipantReservationsMap }
+                : {}),
             },
           });
         }
@@ -1237,6 +1258,17 @@ export const sessionConclusionActionHandlers = {
     const studentId = String(d['student-id'] || d['studentId'] || '');
     const lessonId = String(d['lesson-id'] || d['lessonId'] || '');
     const classroom = String(d['classroom'] || '');
+
+    // 生徒選択モーダルが開いていれば閉じる
+    try {
+      if (
+        typeof Components !== 'undefined' &&
+        typeof Components.closeModal === 'function'
+      ) {
+        Components.closeModal('sales-only-student-modal');
+      }
+    } catch (e) {}
+
     if (studentId && lessonId && classroom) {
       startSalesOnlyConclusion(studentId, lessonId, classroom);
     }

@@ -123,6 +123,7 @@ export namespace CONSTANTS {
         let RESERVATION_MEMO_UPDATE_CONCLUSION: string;
         let ACCOUNTING_SAVE: string;
         let ACCOUNTING_MODIFY: string;
+        let SALES_ONLY_CREATE: string;
         let USER_LOGIN: string;
         let USER_DATA_REFRESH: string;
         let USER_LOGOUT: string;

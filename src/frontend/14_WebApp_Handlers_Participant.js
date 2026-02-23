@@ -2137,12 +2137,118 @@ function completeLessonSalesTransfer(data) {
 }
 
 /**
+ * 販売のみ用の生徒選択モーダルを表示する
+ * @param {ActionHandlerData} d
+ */
+function showSalesOnlyStudentSelector(d) {
+  const lessonId = d.lessonId || '';
+  const classroom = d.classroom || '';
+  const state = participantHandlersStateManager.getState();
+  const allStudentsObj = state['participantAllStudents'] || {};
+
+  // オブジェクトから配列に変換し、フリガナ(ruby)または名前でソート
+  const allStudents = Object.values(allStudentsObj).sort((a, b) => {
+    const aName = String(
+      a.ruby || a.displayName || a.nickname || a.realName || '',
+    );
+    const bName = String(
+      b.ruby || b.displayName || b.nickname || b.realName || '',
+    );
+    return aName.localeCompare(bName, 'ja');
+  });
+
+  // 検索用にグローバル（window）にデータを保持（簡易的な状態管理）
+  // @ts-ignore
+  appWindow.salesOnlyStudentsCache = allStudents;
+  // @ts-ignore
+  appWindow.salesOnlyContext = { lessonId, classroom };
+
+  const listHtml =
+    // @ts-ignore
+    typeof appWindow.renderSalesOnlyStudentList === 'function'
+      ? // @ts-ignore
+        appWindow.renderSalesOnlyStudentList(
+          allStudents,
+          '',
+          lessonId,
+          classroom,
+        )
+      : '<div class="p-4 text-center text-brand-subtle">描画関数がありません</div>';
+
+  const content = `
+    <div class="px-4 py-3 border-b border-ui-border bg-gray-50 flex flex-col gap-2">
+      <div class="text-sm text-brand-subtle mb-1">会計を行う生徒を検索して選択してください。</div>
+      <input type="text" id="sales-only-search-input" class="w-full p-2 border-2 border-ui-border rounded-md focus:border-brand-primary" placeholder="名前やフリガナで検索..." oninput="actionHandlers.filterSalesOnlyStudents(this.value)">
+    </div>
+    <div id="sales-only-student-list-container" class="max-h-[50vh] overflow-y-auto">
+      ${listHtml}
+    </div>
+    <div class="p-4 border-t border-ui-border bg-gray-50">
+      ${Components.button({
+        text: 'キャンセル',
+        action: 'closeModal',
+        style: 'secondary',
+        size: 'full',
+        dataAttributes: { modalId: 'sales-only-student-modal' },
+      })}
+    </div>
+  `;
+
+  const modalHtml = Components.modal({
+    id: 'sales-only-student-modal',
+    title: '販売対象の生徒を選択',
+    content: content,
+  });
+
+  const existing = document.getElementById('sales-only-student-modal');
+  if (existing) existing.remove();
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  Components.showModal('sales-only-student-modal');
+
+  // 少し遅らせて検索ボックスにフォーカス
+  setTimeout(() => {
+    const input = document.getElementById('sales-only-search-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+/**
+ * 販売のみ用の生徒選択リストをフィルタリングする
+ * @param {string} query
+ */
+function filterSalesOnlyStudents(query) {
+  // @ts-ignore
+  const students = appWindow.salesOnlyStudentsCache || [];
+  // @ts-ignore
+  const context = appWindow.salesOnlyContext || {};
+  // @ts-ignore
+  if (typeof appWindow.renderSalesOnlyStudentList === 'function') {
+    // @ts-ignore
+    const html = appWindow.renderSalesOnlyStudentList(
+      students,
+      query,
+      context.lessonId,
+      context.classroom,
+    );
+    const container = document.getElementById(
+      'sales-only-student-list-container',
+    );
+    if (container) {
+      container.innerHTML = html;
+    }
+  }
+}
+
+/**
  * 参加者リスト用アクションハンドラー
  */
 export const participantActionHandlers = {
   loadParticipantView,
   goToParticipantsView: () => loadParticipantView(),
   refreshParticipantView,
+  showSalesOnlyStudentSelector,
+  filterSalesOnlyStudents,
   openSalesCelebrationView,
   closeSalesCelebrationView,
   completeLessonSalesTransfer,

@@ -18,13 +18,15 @@
  * @property {string} filterClassroom - 教室フィルター ('current' | 'all')
  * @property {string} [orderInput] - 材料希望入力
  * @property {string} [materialInput] - 注文品希望入力
+ * @property {boolean} [isSalesOnly] - 販売のみモード（教室参加なし）
  */
 /**
  * ウィザードの進行バーを生成
  * @param {string} currentStep - 現在のステップID
+ * @param {boolean} [isSalesOnly=false] - 販売のみモード
  * @returns {string} HTML文字列
  */
-export function renderWizardProgressBar(currentStep: string): string;
+export function renderWizardProgressBar(currentStep: string, isSalesOnly?: boolean): string;
 /**
  * ステップ1: 今日の記録画面を生成
  * @param {SessionConclusionState} state - 現在の状態
@@ -141,4 +143,8 @@ export type SessionConclusionState = {
      * - 注文品希望入力
      */
     materialInput?: string;
+    /**
+     * - 販売のみモード（教室参加なし）
+     */
+    isSalesOnly?: boolean;
 };

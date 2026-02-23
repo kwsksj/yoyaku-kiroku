@@ -26,48 +26,48 @@
 // ================================================================
 import { SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
-    buildSalesTransferReportByDate,
-    transferSalesLogByDate,
+  buildSalesTransferReportByDate,
+  transferSalesLogByDate,
 } from './02-1_BusinessLogic_Batch.js';
 import {
-    authenticateUser,
-    isAdminLogin,
-    issueAdminSessionToken,
-    registerNewUser,
-    validateAdminSessionToken,
+  authenticateUser,
+  isAdminLogin,
+  issueAdminSessionToken,
+  registerNewUser,
+  validateAdminSessionToken,
 } from './04_Backend_User.js';
 import {
-    cancelReservation,
-    checkIfSalesAlreadyLogged,
-    confirmWaitlistedReservation,
-    createSalesOnlyReservation,
-    getScheduleInfoForDate,
-    logSalesForSingleReservation,
-    makeReservation,
-    saveAccountingDetails,
-    updateAccountingDetails,
-    updateReservationDetails,
+  cancelReservation,
+  checkIfSalesAlreadyLogged,
+  confirmWaitlistedReservation,
+  createSalesOnlyReservation,
+  getScheduleInfoForDate,
+  logSalesForSingleReservation,
+  makeReservation,
+  saveAccountingDetails,
+  updateAccountingDetails,
+  updateReservationDetails,
 } from './05-2_Backend_Write.js';
 import {
-    getLessons,
-    getUserReservations,
+  getLessons,
+  getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
 import { getRecentLogs } from './05-4_Backend_Log.js';
 import {
-    CACHE_KEYS,
-    clearChunkedCache,
-    findHeaderIndexByCandidates,
-    getStudentCacheSnapshot,
-    getTypedCachedData,
-    markScheduleStatusCompletedByDate,
+  CACHE_KEYS,
+  clearChunkedCache,
+  findHeaderIndexByCandidates,
+  getStudentCacheSnapshot,
+  getTypedCachedData,
+  markScheduleStatusCompletedByDate,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
-    getCachedReservationsAsObjects,
-    getCachedStudentById,
-    logActivity,
-    updateStudentField,
-    withTransaction,
+  getCachedReservationsAsObjects,
+  getCachedStudentById,
+  logActivity,
+  updateStudentField,
+  withTransaction,
 } from './08_Utilities.js';
 
 /**
@@ -520,8 +520,8 @@ export function createSalesOnlyReservationAndGetLatestData(params) {
 
     return createApiResponse(true, {
       message: result.message || '販売のみの予約レコードを作成しました。',
-      reservationId: result.data?.reservationId,
-      reservation: result.data?.reservation,
+      reservationId: result.data ? result.data.reservationId : null,
+      reservation: result.data ? result.data.reservation : null,
       data: batchResult.success ? batchResult.data : {},
     });
   } catch (e) {

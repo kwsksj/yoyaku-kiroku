@@ -16,8 +16,8 @@
  */
 
 import {
-    generateSalesSection,
-    generateTuitionSection,
+  generateSalesSection,
+  generateTuitionSection,
 } from './12-2_Accounting_UI.js';
 import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';

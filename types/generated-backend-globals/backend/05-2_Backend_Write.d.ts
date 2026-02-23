@@ -54,6 +54,23 @@ export function makeReservation(reservationInfo: ReservationCore): ApiResponseGe
     message: string;
 }>;
 /**
+ * 販売のみの予約レコードを作成する（教室参加なし）
+ * 通常のmakeReservationと異なり、定員チェック・重複チェック・時間検証をスキップし、
+ * 会計処理用の軽量な予約レコードを作成する。
+ *
+ * @param {{ studentId: string, lessonId: string, classroom: string, _adminToken?: string }} params - 作成パラメータ
+ * @returns {ApiResponseGeneric<{ reservationId: string, reservation: ReservationCore }>} - 処理結果
+ */
+export function createSalesOnlyReservation(params: {
+    studentId: string;
+    lessonId: string;
+    classroom: string;
+    _adminToken?: string;
+}): ApiResponseGeneric<{
+    reservationId: string;
+    reservation: ReservationCore;
+}>;
+/**
  * よやくをキャンセルします（Core型オブジェクト中心設計）
  *
  * @param {import('../../types/core/reservation').CancelReservationParams} cancelInfo - よやくキャンセル情報。`reservationId`と`studentId`は必須。`cancelMessage`は任意。
