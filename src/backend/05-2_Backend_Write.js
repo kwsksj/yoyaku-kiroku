@@ -28,44 +28,44 @@
 // ================================================================
 import { SALES_SPREADSHEET_ID, SS_MANAGER } from './00_SpreadsheetManager.js';
 import {
-  formatAdminUserDisplay,
-  sendAdminNotification,
-  sendAdminNotificationForReservation,
+    formatAdminUserDisplay,
+    sendAdminNotification,
+    sendAdminNotificationForReservation,
 } from './02-6_Notification_Admin.js';
 import { sendReservationEmailAsync } from './02-7_Notification_StudentReservation.js';
 import {
-  enqueueReservationSyncToNotion,
-  enqueueScheduleSyncToNotion,
+    enqueueReservationSyncToNotion,
+    enqueueScheduleSyncToNotion,
 } from './02-8_Sync_Notion.js';
 import {
-  calculateAvailableSlots,
-  getLessons,
-  getUserReservations,
+    calculateAvailableSlots,
+    getLessons,
+    getUserReservations,
 } from './05-3_Backend_AvailableSlots.js';
 import {
-  addReservationToCache,
-  CACHE_KEYS,
-  getCachedData,
-  getHeaderIndex,
-  getLessonByIdFromCache,
-  getReservationsByIdsFromCache,
-  getTypedCachedData,
-  rebuildAllReservationsCache,
-  updateLessonReservationIdsInCache,
-  updateReservationInCache,
+    addReservationToCache,
+    CACHE_KEYS,
+    getCachedData,
+    getHeaderIndex,
+    getLessonByIdFromCache,
+    getReservationsByIdsFromCache,
+    getTypedCachedData,
+    rebuildAllReservationsCache,
+    updateLessonReservationIdsInCache,
+    updateReservationInCache,
 } from './07_CacheManager.js';
 import { BackendErrorHandler, createApiResponse } from './08_ErrorHandler.js';
 import {
-  convertReservationToRow,
-  createSalesRow,
-  getCachedReservationsAsObjects,
-  getCachedStudentById,
-  getReservationCoreById,
-  getSheetData,
-  logActivity,
-  PerformanceLog,
-  validateUserOperation,
-  withTransaction,
+    convertReservationToRow,
+    createSalesRow,
+    getCachedReservationsAsObjects,
+    getCachedStudentById,
+    getReservationCoreById,
+    getSheetData,
+    logActivity,
+    PerformanceLog,
+    validateUserOperation,
+    withTransaction,
 } from './08_Utilities.js';
 
 /**
@@ -899,6 +899,109 @@ ${err.stack}`);
       const errorResponse = BackendErrorHandler.handle(
         /** @type {Error} */ (err),
         'makeReservation',
+      );
+      return normalizeErrorResponse(errorResponse);
+    }
+  });
+}
+
+/**
+ * 販売のみの予約レコードを作成する（教室参加なし）
+ * 通常のmakeReservationと異なり、定員チェック・重複チェック・時間検証をスキップし、
+ * 会計処理用の軽量な予約レコードを作成する。
+ *
+ * @param {{ studentId: string, lessonId: string, classroom: string, _adminToken?: string }} params - 作成パラメータ
+ * @returns {ApiResponseGeneric<{ reservationId: string, reservation: ReservationCore }>} - 処理結果
+ */
+export function createSalesOnlyReservation(params) {
+  return withTransaction(() => {
+    try {
+      const { studentId, lessonId, classroom, _adminToken } = params;
+
+      if (!studentId || !lessonId || !classroom) {
+        throw new Error(
+          '販売のみ予約の作成に必要な情報が不足しています（studentId, lessonId, classroom）',
+        );
+      }
+
+      // 日程マスタから情報を取得
+      const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
+      let scheduleData = /** @type {LessonCore[]} */ ([]);
+      if (scheduleCache && scheduleCache['schedule']) {
+        scheduleData = /** @type {LessonCore[]} */ (scheduleCache['schedule']);
+      }
+
+      const scheduleRule = scheduleData.find(
+        item => item.lessonId === lessonId,
+      );
+
+      if (!scheduleRule) {
+        throw new Error(
+          `対象の日程情報が見つかりませんでした。lessonId: ${lessonId}`,
+        );
+      }
+
+      // 販売専用の予約レコードを作成
+      const createdReservationId = Utilities.getUuid();
+
+      /** @type {ReservationCore} */
+      const salesOnlyReservation = /** @type {any} */ ({
+        reservationId: createdReservationId,
+        lessonId: lessonId,
+        studentId: studentId,
+        date: scheduleRule.date,
+        classroom: classroom,
+        venue: scheduleRule.venue || '',
+        startTime: '', // 販売のみのため空
+        endTime: '', // 販売のみのため空
+        status: CONSTANTS.STATUS.CONFIRMED,
+        chiselRental: false,
+        firstLecture: false,
+        transportation: '',
+        pickup: '',
+        sessionNote: '販売のみ',
+        order: '',
+        messageToTeacher: '',
+        accountingDetails: null,
+        _isByAdmin: true,
+        _adminToken: _adminToken || null,
+      });
+
+      // シートに保存
+      _saveReservationCoreToSheet(salesOnlyReservation, 'create');
+
+      // 日程マスタのreservationIdsを更新
+      _updateReservationIdsInLesson(lessonId, createdReservationId, 'add');
+
+      // ログ記録
+      logActivity(
+        studentId,
+        CONSTANTS.LOG_ACTIONS.SALES_ONLY_CREATE,
+        CONSTANTS.MESSAGES.SUCCESS,
+        {
+          classroom: classroom,
+          reservationId: createdReservationId,
+          date: scheduleRule.date,
+          message: '販売のみの予約レコードを作成しました',
+        },
+      );
+
+      Logger.log(
+        `[createSalesOnlyReservation] 成功: reservationId=${createdReservationId}, studentId=${studentId}`,
+      );
+
+      return createApiResponse(true, {
+        message: '販売のみの予約レコードを作成しました。',
+        reservationId: createdReservationId,
+        reservation: salesOnlyReservation,
+      });
+    } catch (err) {
+      Logger.log(
+        `createSalesOnlyReservation Error: ${err.message}\n${err.stack}`,
+      );
+      const errorResponse = BackendErrorHandler.handle(
+        /** @type {Error} */ (err),
+        'createSalesOnlyReservation',
       );
       return normalizeErrorResponse(errorResponse);
     }

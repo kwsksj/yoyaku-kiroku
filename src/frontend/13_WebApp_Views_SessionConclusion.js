@@ -16,8 +16,8 @@
  */
 
 import {
-  generateSalesSection,
-  generateTuitionSection,
+    generateSalesSection,
+    generateTuitionSection,
 } from './12-2_Accounting_UI.js';
 import { isTimeBasedClassroom } from './12_WebApp_Core_Data.js';
 import { Components, escapeHTML } from './13_WebApp_Components.js';
@@ -55,14 +55,30 @@ export const STEPS = {
  * @property {string} filterClassroom - 教室フィルター ('current' | 'all')
  * @property {string} [orderInput] - 材料希望入力
  * @property {string} [materialInput] - 注文品希望入力
+ * @property {boolean} [isSalesOnly] - 販売のみモード（教室参加なし）
  */
 
 /**
  * ウィザードの進行バーを生成
  * @param {string} currentStep - 現在のステップID
+ * @param {boolean} [isSalesOnly=false] - 販売のみモード
  * @returns {string} HTML文字列
  */
-export function renderWizardProgressBar(currentStep) {
+export function renderWizardProgressBar(currentStep, isSalesOnly = false) {
+  // 販売のみモードの場合、会計ステップのみ表示
+  if (isSalesOnly) {
+    return `
+      <div class="flex justify-center items-start mb-6">
+        <div class="flex flex-col items-center">
+          <div class="w-8 h-8 rounded-full flex items-center justify-center bg-action-primary-bg text-white text-sm font-bold">
+            ¥
+          </div>
+          <span class="text-xs mt-1 text-brand-text font-bold">かいけい</span>
+        </div>
+      </div>
+    `;
+  }
+
   const steps = [
     { id: STEPS.RECORD, num: 1, label: 'きろく' },
     { id: STEPS.GOAL, num: 2, label: 'けいかく' },
@@ -952,6 +968,7 @@ export function renderStep4Accounting(state) {
   const classifiedItems = state.classifiedItems;
   const classroom = state.currentReservation?.classroom || '';
   const formData = state.accountingFormData || {};
+  const isSalesOnly = state.isSalesOnly || false;
 
   if (!classifiedItems) {
     return `
@@ -968,16 +985,16 @@ export function renderStep4Accounting(state) {
 
   return `
     <div class="session-conclusion-step4 session-conclusion-view">
-      ${renderWizardProgressBar(STEPS.ACCOUNTING)}
+      ${renderWizardProgressBar(STEPS.ACCOUNTING, isSalesOnly)}
 
       <div class="text-center mb-4">
-        <p class="text-lg font-bold text-brand-text">きょう の おかいけい</p>
-        <p class="text-sm font-normal text-brand-subtle">りょうきん を けいさん します。<br>データ を にゅうりょく してください。</p>
+        <p class="text-lg font-bold text-brand-text">${isSalesOnly ? 'はんばい のみ の おかいけい' : 'きょう の おかいけい'}</p>
+        <p class="text-sm font-normal text-brand-subtle">${isSalesOnly ? 'もの を おかいあげ します。' : 'りょうきん を けいさん します。<br>データ を にゅうりょく してください。'}</p>
       </div>
 
       <div class="accounting-container space-y-4">
-        <!-- 授業料セクション -->
-        ${generateTuitionSection(classifiedItems, classroom, formData)}
+        <!-- 授業料セクション（販売のみの場合は非表示） -->
+        ${isSalesOnly ? '' : generateTuitionSection(classifiedItems, classroom, formData)}
 
         <!-- 販売セクション -->
         ${generateSalesSection(classifiedItems, formData)}
@@ -1024,11 +1041,11 @@ export function renderStep4Accounting(state) {
           customClass: 'h-auto py-3 leading-relaxed',
         })}
         ${Components.button({
-          action: 'conclusionPrevStep',
-          text: 'もどる',
+          action: isSalesOnly ? 'conclusionCancel' : 'conclusionPrevStep',
+          text: isSalesOnly ? 'ホームへもどる' : 'もどる',
           style: 'secondary',
           size: 'full',
-          dataAttributes: { targetStep: STEPS.RESERVATION },
+          dataAttributes: isSalesOnly ? {} : { targetStep: STEPS.RESERVATION },
         })}
       </div>
     </div>

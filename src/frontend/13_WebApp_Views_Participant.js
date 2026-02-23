@@ -242,18 +242,39 @@ const PARTICIPANT_TABLE_COLUMNS = [
     align: 'center',
     adminOnly: true,
     render: /** @param {any} row */ row => {
-      if (row.status !== CONSTANTS.STATUS.CONFIRMED) {
-        return '';
+      const buttons = [];
+
+      // 「まとめ」ボタン（確定ステータスの場合のみ）
+      if (row.status === CONSTANTS.STATUS.CONFIRMED) {
+        buttons.push(`
+          <button
+            class="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 font-bold"
+            data-action="startSessionConclusion"
+            data-reservation-id="${escapeHTML(row.reservationId)}"
+          >
+            まとめ
+          </button>
+        `);
       }
-      return `
-        <button
-          class="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 font-bold"
-          data-action="startSessionConclusion"
-          data-reservation-id="${escapeHTML(row.reservationId)}"
-        >
-          まとめ
-        </button>
-      `;
+
+      // 「販売のみ」ボタン（管理者は常に表示可能）
+      if (row.lessonId) {
+        buttons.push(`
+          <button
+            class="text-xs px-2 py-1 rounded bg-orange-500 text-white hover:bg-orange-600 font-bold"
+            data-action="startSalesOnlyConclusion"
+            data-student-id="${escapeHTML(row.studentId)}"
+            data-lesson-id="${escapeHTML(row.lessonId)}"
+            data-classroom="${escapeHTML(row.classroom || '')}"
+          >
+            販売のみ
+          </button>
+        `);
+      }
+
+      return buttons.length > 0
+        ? `<div class="flex flex-col gap-1">${buttons.join('')}</div>`
+        : '';
     },
   },
 ];
