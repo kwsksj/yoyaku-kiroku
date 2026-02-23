@@ -16,7 +16,7 @@
  * ログシートから直近のログデータを取得します。
  * 管理者専用のエンドポイントから呼び出されます。
  *
- * @param {number} [daysBack=30] - 取得する日数（デフォルト30日）
+ * @param {number} [daysBack=14] - 取得する日数（デフォルト14日）
  * @returns {ApiResponseGeneric<LogEntry[]>} ログデータの配列
  */
 export function getRecentLogs(daysBack?: number): ApiResponseGeneric<LogEntry[]>;

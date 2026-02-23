@@ -1,7 +1,4 @@
 /**
- * @typedef {import('../../types/core/reservation').ReservationCoreWithAccounting} ReservationCoreWithAccounting
- */
-/**
  * よやく操作後に最新データを取得して返す汎用関数
  * @param {Function} operationFunction - 実行する操作関数 (makeReservation, cancelReservationなど)
  * @param {ReservationCore|AccountingDetailsCore|any} operationParams - 操作関数に渡すパラメータ (Core型)
@@ -147,9 +144,10 @@ export function confirmWaitlistedReservationAndGetLatestData(confirmInfo: {
  * @param {boolean} [includeHistory=true] - 過去のレッスンを含めるか（デフォルト: true）
  * @param {boolean} [includeReservations=false] - よやくデータを含めるか
  * @param {string} [adminLoginId=''] - 管理者用ログインID（PropertyServiceと突合する）
+ * @param {number} [pastMonthsLimit=0] - 過去データを含める場合の遡り月数（0なら制限なし）
  * @returns {ApiResponseGeneric} レッスン一覧
  */
-export function getLessonsForParticipantsView(studentId: string, includeHistory?: boolean, includeReservations?: boolean, adminLoginId?: string): ApiResponseGeneric;
+export function getLessonsForParticipantsView(studentId: string, includeHistory?: boolean, includeReservations?: boolean, adminLoginId?: string, pastMonthsLimit?: number): ApiResponseGeneric;
 /**
  * 参加者ビューの過去レッスンを、指定日より前から追加取得します。
  * データ量を抑えるため件数制限をかけ、同一日付は取りこぼし防止のためまとめて返します。

@@ -130,25 +130,20 @@ export const authActionHandlers = {
           const adminState = {
             ...newAppState,
             participantIsAdmin: true,
-            participantHasPastLessonsLoaded: false,
+            participantHasPastLessonsLoaded: true,
             participantLessons: participantData?.lessons || [],
             participantReservationsMap: participantData?.reservationsMap || {},
             participantAllStudents: participantData?.allStudents || {},
+            participantHasMorePastLessons:
+              participantData?.hasMorePastLessons === true,
           };
 
           // ログデータを反映（即時表示用）
           const adminLogs = response.data?.adminLogs || [];
-          if (adminLogs.length > 0) {
-            // ここでparticipantHandlersStateManagerのステートも更新必要があるが、
-            // participantHandlersStateManagerは14_WebApp_Handlers_Participant.jsで定義されており
-            // 相互参照になる可能性があるため、SimpleStateManagerを通じて更新するか、
-            // あるいはgoToLogView側でキャッシュを利用する仕組みになっているため、
-            // goToLogViewを呼ぶ前にadminStateに含めておく（set_stateは上書き）。
-
-            // adminStateにadminLogsを追加
-            adminState['adminLogs'] = adminLogs;
-            adminState['adminLogsLoading'] = false;
-          }
+          adminState['adminLogs'] = adminLogs;
+          adminState['adminLogsLoading'] = false;
+          adminState['adminLogsDaysBack'] =
+            CONSTANTS.UI.ADMIN_LOG_INITIAL_DAYS || 14;
 
           // データ取得日時を設定
           adminState['dataFetchedAt'] = new Date().toISOString();

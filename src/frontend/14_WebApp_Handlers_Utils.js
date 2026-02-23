@@ -829,13 +829,7 @@ export function refreshParticipantsViewForAdmin() {
     /** @type {any} */ (appWindow).participantActionHandlers ||
     /** @type {any} */ (window).participantActionHandlers;
   if (handler && typeof handler.loadParticipantView === 'function') {
-    const state = handlerUtilsStateManager.getState();
-    handler.loadParticipantView(
-      true,
-      true,
-      null,
-      state.showPastLessons || false,
-    );
+    handler.loadParticipantView(true, true, null, true);
   }
 }
 

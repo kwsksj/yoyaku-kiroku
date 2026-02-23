@@ -39,6 +39,8 @@ export namespace CONSTANTS {
     namespace UI {
         let HISTORY_INITIAL_RECORDS: number;
         let HISTORY_LOAD_MORE_RECORDS: number;
+        let ADMIN_LOG_INITIAL_DAYS: number;
+        let ADMIN_LOG_LOAD_MORE_DAYS: number;
         let LOADING_MESSAGE_INTERVAL: number;
         let MODAL_FADE_DURATION: number;
         namespace COLUMN_WIDTHS {
