@@ -526,6 +526,115 @@ window.onload = function () {
       .processAccountingWithTransferOption(formData, result, withSalesTransfer);
   };
 
+  /**
+   * @param {HTMLButtonElement | null} buttonElement
+   */
+  const showCopySuccessFeedback = buttonElement => {
+    if (!buttonElement) {
+      showInfo('コピーしました。');
+      return;
+    }
+
+    const originalText = buttonElement.textContent || 'コピー';
+    buttonElement.textContent = 'コピーしました!';
+    window.setTimeout(() => {
+      buttonElement.textContent = originalText;
+    }, 2000);
+  };
+
+  /**
+   * @param {string} textToCopy
+   * @returns {boolean}
+   */
+  const fallbackCopyText = textToCopy => {
+    const textArea = document.createElement('textarea');
+    textArea.style.position = 'fixed';
+    textArea.style.top = '-9999px';
+    textArea.style.left = '-9999px';
+    textArea.value = textToCopy;
+    textArea.setAttribute('readonly', '');
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    let copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch (error) {
+      copied = false;
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+        console.warn('フォールバックコピーに失敗しました:', error);
+      }
+    } finally {
+      document.body.removeChild(textArea);
+    }
+
+    return copied;
+  };
+
+  /**
+   * @param {string} textToCopy
+   * @returns {Promise<boolean>}
+   */
+  const copyTextToClipboard = async textToCopy => {
+    const canUseClipboardApi =
+      typeof navigator !== 'undefined' &&
+      !!navigator.clipboard &&
+      typeof navigator.clipboard.writeText === 'function' &&
+      window.isSecureContext;
+
+    if (canUseClipboardApi) {
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+        return true;
+      } catch (error) {
+        if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+          console.warn(
+            'Clipboard APIでのコピーに失敗したためフォールバックします:',
+            error,
+          );
+        }
+      }
+    }
+
+    return fallbackCopyText(textToCopy);
+  };
+
+  /**
+   * @param {ActionHandlerData | undefined} data
+   * @returns {Promise<void>}
+   */
+  const executeCopyToClipboardAction = async data => {
+    const targetElement = data?.['targetElement'];
+    const buttonElement =
+      targetElement instanceof HTMLButtonElement ? targetElement : null;
+    const dataCopyText =
+      targetElement instanceof HTMLElement
+        ? targetElement.dataset?.['copyText']
+        : '';
+    const rawText = data?.copyText || dataCopyText || '';
+    const textToCopy = String(rawText).replace(/,/g, '').trim();
+
+    if (!textToCopy) {
+      showInfo('コピーする内容が見つかりません。', 'エラー');
+      return;
+    }
+
+    try {
+      const copied = await copyTextToClipboard(textToCopy);
+      if (!copied) {
+        showInfo('コピーに失敗しました。', 'エラー');
+        return;
+      }
+      showCopySuccessFeedback(buttonElement);
+    } catch (error) {
+      if (!CONSTANTS.ENVIRONMENT.PRODUCTION_MODE) {
+        console.error('コピー処理エラー:', error);
+      }
+      showInfo('コピーに失敗しました。', 'エラー');
+    }
+  };
+
   actionHandlers = {
     // =================================================================
     // --- Core Navigation Handlers ---
@@ -596,6 +705,20 @@ window.onload = function () {
       if (modalId) {
         Components.closeModal(modalId);
       }
+    },
+
+    /** 指定されたテキストをクリップボードにコピーします */
+    copyToClipboard: (/** @type {ActionHandlerData | undefined} */ data) => {
+      void executeCopyToClipboardAction(data);
+    },
+
+    /** 合計金額の表示値から数値だけを抽出してコピーします */
+    copyGrandTotal: (/** @type {ActionHandlerData | undefined} */ data) => {
+      const totalText =
+        document.getElementById('grand-total-amount')?.textContent || '';
+      const numericTotal = totalText.replace(/[^0-9-]/g, '');
+      const nextData = { ...data, copyText: numericTotal };
+      void executeCopyToClipboardAction(nextData);
     },
 
     // =================================================================
