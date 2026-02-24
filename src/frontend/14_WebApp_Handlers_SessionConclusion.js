@@ -295,49 +295,74 @@ export function startSalesOnlyConclusion(studentId, lessonId, classroom) {
     .withSuccessHandler((/** @type {any} */ response) => {
       window.hideLoading?.();
       if (response.success) {
+        const responseData = /** @type {any} */ (response.data || {});
+        const latestData = /** @type {any} */ (responseData.data || {});
         const reservationId =
-          response.data?.reservationId || response.reservationId;
+          responseData.reservationId ||
+          latestData.reservationId ||
+          response.reservationId;
         if (!reservationId) {
           window.showInfo?.('予約IDの取得に失敗しました。', 'エラー');
           return;
         }
 
         // 作成された予約データを既存のステートに追加する
-        if (response.data?.reservation) {
-          const currentState = conclusionStateManager.getState();
-          const newReservation = response.data.reservation;
+        const newReservation =
+          responseData.reservation || latestData.reservation;
+        const currentState = conclusionStateManager.getState();
+        const latestMyReservations = Array.isArray(responseData.myReservations)
+          ? responseData.myReservations
+          : Array.isArray(latestData.myReservations)
+            ? latestData.myReservations
+            : null;
+        const latestLessons = Array.isArray(responseData.lessons)
+          ? responseData.lessons
+          : Array.isArray(latestData.lessons)
+            ? latestData.lessons
+            : null;
 
-          // myReservations に追加
-          const newMyReservations = [
-            ...(currentState.myReservations || []),
-            newReservation,
-          ];
-
-          // 管理者モードの場合は participantReservationsMap にも追加しないと startSessionConclusion で見つからない
-          let newParticipantReservationsMap =
-            currentState.participantReservationsMap;
-          if (newParticipantReservationsMap) {
-            newParticipantReservationsMap = {
-              ...newParticipantReservationsMap,
-            };
-            const lessonIdStr = String(lessonId);
-            const lessonReservations = [
-              ...(newParticipantReservationsMap[lessonIdStr] || []),
-              newReservation,
-            ];
-            newParticipantReservationsMap[lessonIdStr] = lessonReservations;
+        // myReservations はサーバー返却を優先し、未返却時は作成分のみ局所反映
+        let newMyReservations =
+          latestMyReservations || currentState.myReservations || [];
+        if (newReservation) {
+          const alreadyExists = newMyReservations.some(
+            (/** @type {ReservationCore} */ r) =>
+              r.reservationId === newReservation.reservationId,
+          );
+          if (!alreadyExists) {
+            newMyReservations = [...newMyReservations, newReservation];
           }
-
-          conclusionStateManager.dispatch({
-            type: 'SET_STATE',
-            payload: {
-              myReservations: newMyReservations,
-              ...(newParticipantReservationsMap
-                ? { participantReservationsMap: newParticipantReservationsMap }
-                : {}),
-            },
-          });
         }
+
+        // 管理者モードでは participantReservationsMap も更新
+        let newParticipantReservationsMap =
+          currentState.participantReservationsMap;
+        if (newParticipantReservationsMap && newReservation) {
+          newParticipantReservationsMap = { ...newParticipantReservationsMap };
+          const lessonIdStr = String(lessonId);
+          const lessonReservations = [
+            ...(newParticipantReservationsMap[lessonIdStr] || []),
+          ];
+          const existsInLesson = lessonReservations.some(
+            (/** @type {ReservationCore} */ r) =>
+              r.reservationId === newReservation.reservationId,
+          );
+          if (!existsInLesson) {
+            lessonReservations.push(newReservation);
+          }
+          newParticipantReservationsMap[lessonIdStr] = lessonReservations;
+        }
+
+        conclusionStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            myReservations: newMyReservations,
+            ...(latestLessons ? { lessons: latestLessons } : {}),
+            ...(newParticipantReservationsMap
+              ? { participantReservationsMap: newParticipantReservationsMap }
+              : {}),
+          },
+        });
 
         // 販売のみフラグを立ててセッション終了ウィザードを開始
         // 少し待ってから開始（データ反映を待つ）
@@ -1267,7 +1292,7 @@ export const sessionConclusionActionHandlers = {
       ) {
         Components.closeModal('sales-only-student-modal');
       }
-    } catch (e) {}
+    } catch (_e) {}
 
     if (studentId && lessonId && classroom) {
       startSalesOnlyConclusion(studentId, lessonId, classroom);

@@ -506,6 +506,13 @@ export function updateAccountingDetailsAndGetLatestData(
  */
 export function createSalesOnlyReservationAndGetLatestData(params) {
   try {
+    const adminToken = params?._adminToken || '';
+    if (!validateAdminSessionToken(adminToken)) {
+      return createApiErrorResponse(
+        '管理者権限が確認できません。再ログインしてください。',
+      );
+    }
+
     const result = createSalesOnlyReservation(params);
     if (!result.success) {
       return result;
@@ -517,12 +524,16 @@ export function createSalesOnlyReservationAndGetLatestData(params) {
       null,
       params.studentId,
     );
+    const latestData = batchResult.success ? batchResult.data || {} : {};
 
     return createApiResponse(true, {
       message: result.message || '販売のみの予約レコードを作成しました。',
-      reservationId: result.data ? result.data.reservationId : null,
-      reservation: result.data ? result.data.reservation : null,
-      data: batchResult.success ? batchResult.data : {},
+      data: {
+        reservationId: result.data ? result.data.reservationId : null,
+        reservation: result.data ? result.data.reservation : null,
+        myReservations: latestData.myReservations || [],
+        lessons: latestData.lessons || [],
+      },
     });
   } catch (e) {
     Logger.log(
