@@ -926,10 +926,9 @@ export function createSalesOnlyReservation(params) {
 
       // 日程マスタから情報を取得
       const scheduleCache = getCachedData(CACHE_KEYS.MASTER_SCHEDULE_DATA);
-      let scheduleData = /** @type {LessonCore[]} */ ([]);
-      if (scheduleCache && scheduleCache['schedule']) {
-        scheduleData = /** @type {LessonCore[]} */ (scheduleCache['schedule']);
-      }
+      const scheduleData = /** @type {LessonCore[]} */ (
+        scheduleCache?.['schedule'] || []
+      );
 
       const scheduleRule = scheduleData.find(
         item => item.lessonId === lessonId,

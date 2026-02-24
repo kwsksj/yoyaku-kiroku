@@ -295,31 +295,20 @@ export function startSalesOnlyConclusion(studentId, lessonId, classroom) {
     .withSuccessHandler((/** @type {any} */ response) => {
       window.hideLoading?.();
       if (response.success) {
-        const responseData = /** @type {any} */ (response.data || {});
-        const latestData = /** @type {any} */ (responseData.data || {});
-        const reservationId =
-          responseData.reservationId ||
-          latestData.reservationId ||
-          response.reservationId;
+        const data = /** @type {any} */ (response.data || {});
+        const reservationId = data.reservationId;
         if (!reservationId) {
           window.showInfo?.('予約IDの取得に失敗しました。', 'エラー');
           return;
         }
 
         // 作成された予約データを既存のステートに追加する
-        const newReservation =
-          responseData.reservation || latestData.reservation;
+        const newReservation = data.reservation;
         const currentState = conclusionStateManager.getState();
-        const latestMyReservations = Array.isArray(responseData.myReservations)
-          ? responseData.myReservations
-          : Array.isArray(latestData.myReservations)
-            ? latestData.myReservations
-            : null;
-        const latestLessons = Array.isArray(responseData.lessons)
-          ? responseData.lessons
-          : Array.isArray(latestData.lessons)
-            ? latestData.lessons
-            : null;
+        const latestMyReservations = Array.isArray(data.myReservations)
+          ? data.myReservations
+          : null;
+        const latestLessons = Array.isArray(data.lessons) ? data.lessons : null;
 
         // myReservations はサーバー返却を優先し、未返却時は作成分のみ局所反映
         let newMyReservations =
