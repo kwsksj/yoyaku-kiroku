@@ -1,8 +1,17 @@
 /**
  * ウィザードを開始する
  * @param {string} reservationId - 対象の予約ID
+ * @param {boolean} [isSalesOnly=false] - 販売のみモードかどうか
  */
-export function startSessionConclusion(reservationId: string): void;
+export function startSessionConclusion(reservationId: string, isSalesOnly?: boolean): void;
+/**
+ * 販売のみの会計フローを開始する（管理者専用）
+ * バックエンドで販売専用予約を作成後、会計ステップに直接遷移
+ * @param {string} studentId - 対象生徒のID
+ * @param {string} lessonId - 対象レッスンID
+ * @param {string} classroom - 教室名
+ */
+export function startSalesOnlyConclusion(studentId: string, lessonId: string, classroom: string): void;
 /**
  * 現在の状態に基づいてウィザードViewを取得（14_WebApp_Handlers.jsから呼ばれる）
  * @returns {string} View HTML
@@ -26,6 +35,7 @@ export function setWizardStep(step: string): void;
 export function tryRestoreWizardFromCache(): boolean;
 export namespace sessionConclusionActionHandlers {
     function startSessionConclusion(d: ActionHandlerData): void;
+    function startSalesOnlyConclusion(d: ActionHandlerData): void;
     function conclusionNextStep(d: ActionHandlerData): void;
     function conclusionPrevStep(d: ActionHandlerData): void;
     function conclusionSkipReservation(): void;

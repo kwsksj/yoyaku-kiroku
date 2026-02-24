@@ -214,6 +214,7 @@ export const CONSTANTS = {
     // 会計関連
     ACCOUNTING_SAVE: '会計記録保存',
     ACCOUNTING_MODIFY: '会計記録修正',
+    SALES_ONLY_CREATE: '販売のみ予約作成',
 
     // ユーザー管理関連
     USER_LOGIN: 'ログイン',

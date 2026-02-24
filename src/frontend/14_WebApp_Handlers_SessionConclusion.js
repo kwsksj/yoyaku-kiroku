@@ -71,6 +71,7 @@ let wizardState = /** @type {SessionConclusionState} */ ({
   filterClassroom: 'current', // 'current' | 'all'
   orderInput: '', // 材料希望
   materialInput: '', // 注文品希望
+  isSalesOnly: false, // 販売のみモード
 });
 
 /**
@@ -137,8 +138,9 @@ function findRecommendedNextLesson(currentReservation) {
 /**
  * ウィザードを開始する
  * @param {string} reservationId - 対象の予約ID
+ * @param {boolean} [isSalesOnly=false] - 販売のみモードかどうか
  */
-export function startSessionConclusion(reservationId) {
+export function startSessionConclusion(reservationId, isSalesOnly = false) {
   const state = conclusionStateManager.getState();
 
   // 今日のよやくを検索
@@ -246,7 +248,13 @@ export function startSessionConclusion(reservationId) {
     classifiedItems: classifiedItems,
     accountingFormData: {},
     filterClassroom: 'current',
+    isSalesOnly: isSalesOnly,
   };
+
+  // 販売のみモードの場合、直接会計ステップに遷移
+  if (isSalesOnly) {
+    wizardState.currentStep = STEPS.ACCOUNTING;
+  }
 
   // キャッシュから入力データを復元（リロード対応）
   if (currentReservation?.reservationId) {
@@ -264,6 +272,113 @@ export function startSessionConclusion(reservationId) {
       to: 'sessionConclusion',
     },
   });
+}
+
+/**
+ * 販売のみの会計フローを開始する（管理者専用）
+ * バックエンドで販売専用予約を作成後、会計ステップに直接遷移
+ * @param {string} studentId - 対象生徒のID
+ * @param {string} lessonId - 対象レッスンID
+ * @param {string} classroom - 教室名
+ */
+export function startSalesOnlyConclusion(studentId, lessonId, classroom) {
+  if (!isCurrentUserAdmin()) {
+    window.showInfo?.('管理者のみ利用できます。', 'エラー');
+    return;
+  }
+
+  window.showLoading?.('販売専用レコードを作成中...');
+
+  const adminToken = getConclusionAdminToken();
+
+  google.script.run
+    .withSuccessHandler((/** @type {any} */ response) => {
+      window.hideLoading?.();
+      if (response.success) {
+        const data = /** @type {any} */ (response.data || {});
+        const reservationId = data.reservationId;
+        if (!reservationId) {
+          window.showInfo?.('予約IDの取得に失敗しました。', 'エラー');
+          return;
+        }
+
+        // 作成された予約データを既存のステートに追加する
+        const newReservation = data.reservation;
+        const currentState = conclusionStateManager.getState();
+        const latestMyReservations = Array.isArray(data.myReservations)
+          ? data.myReservations
+          : null;
+        const latestLessons = Array.isArray(data.lessons) ? data.lessons : null;
+
+        // myReservations はサーバー返却を優先し、未返却時は作成分のみ局所反映
+        let newMyReservations =
+          latestMyReservations || currentState.myReservations || [];
+        if (newReservation) {
+          const alreadyExists = newMyReservations.some(
+            (/** @type {ReservationCore} */ r) =>
+              r.reservationId === newReservation.reservationId,
+          );
+          if (!alreadyExists) {
+            newMyReservations = [...newMyReservations, newReservation];
+          }
+        }
+
+        // 管理者モードでは participantReservationsMap も更新
+        let newParticipantReservationsMap =
+          currentState.participantReservationsMap;
+        if (newParticipantReservationsMap && newReservation) {
+          newParticipantReservationsMap = { ...newParticipantReservationsMap };
+          const lessonIdStr = String(lessonId);
+          const lessonReservations = [
+            ...(newParticipantReservationsMap[lessonIdStr] || []),
+          ];
+          const existsInLesson = lessonReservations.some(
+            (/** @type {ReservationCore} */ r) =>
+              r.reservationId === newReservation.reservationId,
+          );
+          if (!existsInLesson) {
+            lessonReservations.push(newReservation);
+          }
+          newParticipantReservationsMap[lessonIdStr] = lessonReservations;
+        }
+
+        conclusionStateManager.dispatch({
+          type: 'SET_STATE',
+          payload: {
+            myReservations: newMyReservations,
+            ...(latestLessons ? { lessons: latestLessons } : {}),
+            ...(newParticipantReservationsMap
+              ? { participantReservationsMap: newParticipantReservationsMap }
+              : {}),
+          },
+        });
+
+        // 販売のみフラグを立ててセッション終了ウィザードを開始
+        // 少し待ってから開始（データ反映を待つ）
+        setTimeout(() => {
+          startSessionConclusion(reservationId, true);
+        }, 100);
+      } else {
+        window.showInfo?.(
+          response.message || '販売専用レコードの作成に失敗しました。',
+          'エラー',
+        );
+      }
+    })
+    .withFailureHandler((/** @type {Error} */ error) => {
+      window.hideLoading?.();
+      console.error('Sales-only reservation creation error:', error);
+      window.showInfo?.(
+        '販売専用レコードの作成中にエラーが発生しました。',
+        'エラー',
+      );
+    })
+    .createSalesOnlyReservationAndGetLatestData({
+      studentId,
+      lessonId,
+      classroom,
+      _adminToken: adminToken,
+    });
 }
 
 /**
@@ -526,10 +641,12 @@ async function finalizeConclusion() {
       reservationId: reservation.reservationId,
       studentId: targetStudentId,
       classroom: reservation.classroom,
-      // 今日の記録
-      sessionNote: wizardState.sessionNoteToday,
-      // 次回目標（生徒名簿に保存される）
-      nextLessonGoal: wizardState.nextLessonGoal || null,
+      // 今日の記録（販売のみの場合は空）
+      sessionNote: wizardState.isSalesOnly ? '' : wizardState.sessionNoteToday,
+      // 次回目標（販売のみの場合はnull）
+      nextLessonGoal: wizardState.isSalesOnly
+        ? null
+        : wizardState.nextLessonGoal || null,
       // 会計データ（すべてのフィールドを展開）
       paymentMethod: paymentMethod,
       checkedItems: wizardState.accountingFormData?.checkedItems || {},
@@ -548,70 +665,73 @@ async function finalizeConclusion() {
       accountingDetails: accountingDetails,
     };
 
-    // 2. 次回よやくを作成（スキップしていない場合）
+    // 2. 次回よやくを作成（スキップしていない場合、かつ販売のみでない場合）
     /** @type {any} */
     let nextReservationPayload = null;
 
-    // よやく対象のレッスン
-    // ユーザーが明示的に選択した場合のみ selectedLesson に値がある
-    const selectedLesson = wizardState.selectedLesson;
+    // 販売のみの場合は次回よやくをスキップ
+    if (!wizardState.isSalesOnly) {
+      // よやく対象のレッスン
+      // ユーザーが明示的に選択した場合のみ selectedLesson に値がある
+      const selectedLesson = wizardState.selectedLesson;
 
-    // 既存の未来よやく
-    const existingReservation = wizardState.existingFutureReservation;
+      // 既存の未来よやく
+      const existingReservation = wizardState.existingFutureReservation;
 
-    // よやく作成条件:
-    // 1. スキップしていない
-    // 2. ユーザーが明示的にレッスンを選択している（selectedLessonがある）
-    // 3. 選択したレッスンが既存予約と異なる（重複防止）
-    //
-    // 既存予約がそのまま選択されている場合（selectedLessonがnull）は
-    // 既に予約済みなので新規作成は不要
-    const isNewLessonSelected =
-      selectedLesson &&
-      (!existingReservation ||
-        existingReservation.lessonId !== selectedLesson.lessonId);
+      // よやく作成条件:
+      // 1. スキップしていない
+      // 2. ユーザーが明示的にレッスンを選択している（selectedLessonがある）
+      // 3. 選択したレッスンが既存予約と異なる（重複防止）
+      //
+      // 既存予約がそのまま選択されている場合（selectedLessonがnull）は
+      // 既に予約済みなので新規作成は不要
+      const isNewLessonSelected =
+        selectedLesson &&
+        (!existingReservation ||
+          existingReservation.lessonId !== selectedLesson.lessonId);
 
-    const shouldCreateReservation =
-      !wizardState.reservationSkipped && isNewLessonSelected;
+      const shouldCreateReservation =
+        !wizardState.reservationSkipped && isNewLessonSelected;
 
-    if (shouldCreateReservation && selectedLesson) {
-      const selectedLessonIsTimeBased = isTimeBasedClassroom(selectedLesson);
-      const lessonStartTime =
-        selectedLesson.firstStart || selectedLesson.startTime || '';
-      const lessonEndTime =
-        selectedLesson.firstEnd || selectedLesson.endTime || '';
-      const resolvedStartTime = selectedLessonIsTimeBased
-        ? wizardState.nextStartTime || lessonStartTime
-        : lessonStartTime || wizardState.nextStartTime || '';
-      const resolvedEndTime = selectedLessonIsTimeBased
-        ? wizardState.nextEndTime || lessonEndTime
-        : lessonEndTime || wizardState.nextEndTime || '';
+      if (shouldCreateReservation && selectedLesson) {
+        const selectedLessonIsTimeBased = isTimeBasedClassroom(selectedLesson);
+        const lessonStartTime =
+          selectedLesson.firstStart || selectedLesson.startTime || '';
+        const lessonEndTime =
+          selectedLesson.firstEnd || selectedLesson.endTime || '';
+        const resolvedStartTime = selectedLessonIsTimeBased
+          ? wizardState.nextStartTime || lessonStartTime
+          : lessonStartTime || wizardState.nextStartTime || '';
+        const resolvedEndTime = selectedLessonIsTimeBased
+          ? wizardState.nextEndTime || lessonEndTime
+          : lessonEndTime || wizardState.nextEndTime || '';
 
-      // 材料/注文品の希望をorder形式にまとめる
-      const orderParts = [];
-      if (wizardState.orderInput) {
-        orderParts.push(`【材料希望】${wizardState.orderInput}`);
+        // 材料/注文品の希望をorder形式にまとめる
+        const orderParts = [];
+        if (wizardState.orderInput) {
+          orderParts.push(`【材料希望】${wizardState.orderInput}`);
+        }
+        if (wizardState.materialInput) {
+          orderParts.push(`【注文品】${wizardState.materialInput}`);
+        }
+        const orderValue = orderParts.join('\n');
+
+        nextReservationPayload = {
+          lessonId: selectedLesson.lessonId,
+          classroom: selectedLesson.classroom,
+          date: selectedLesson.date,
+          venue: selectedLesson.venue,
+          startTime: resolvedStartTime,
+          endTime: resolvedEndTime,
+          user: targetUser,
+          studentId: targetStudentId,
+          sessionNote: wizardState.sessionNoteNext,
+          order: orderValue, // 材料/注文品の希望
+          // ユーザーの期待（よやく or 空き通知）を追跡（完了画面で差異を表示するため）
+          expectedWaitlist: wizardState.isWaitlistRequest,
+        };
       }
-      if (wizardState.materialInput) {
-        orderParts.push(`【注文品】${wizardState.materialInput}`);
-      }
-      const orderValue = orderParts.join('\n');
-
-      nextReservationPayload = {
-        lessonId: selectedLesson.lessonId,
-        classroom: selectedLesson.classroom,
-        date: selectedLesson.date,
-        venue: selectedLesson.venue,
-        startTime: resolvedStartTime,
-        endTime: resolvedEndTime,
-        user: targetUser,
-        studentId: targetStudentId,
-        sessionNote: wizardState.sessionNoteNext,
-        order: orderValue, // 材料/注文品の希望
-        // ユーザーの期待（よやく or 空き通知）を追跡（完了画面で差異を表示するため）
-        expectedWaitlist: wizardState.isWaitlistRequest,
-      };
-    }
+    } // 販売のみでない場合の終わり
 
     // サーバー呼び出し
     google.script.run
@@ -1146,6 +1266,25 @@ export const sessionConclusionActionHandlers = {
   startSessionConclusion: (/** @type {ActionHandlerData} */ d) => {
     if (d.reservationId) {
       startSessionConclusion(String(d.reservationId));
+    }
+  },
+  startSalesOnlyConclusion: (/** @type {ActionHandlerData} */ d) => {
+    const studentId = String(d['student-id'] || d['studentId'] || '');
+    const lessonId = String(d['lesson-id'] || d['lessonId'] || '');
+    const classroom = String(d['classroom'] || '');
+
+    // 生徒選択モーダルが開いていれば閉じる
+    try {
+      if (
+        typeof Components !== 'undefined' &&
+        typeof Components.closeModal === 'function'
+      ) {
+        Components.closeModal('sales-only-student-modal');
+      }
+    } catch (_e) {}
+
+    if (studentId && lessonId && classroom) {
+      startSalesOnlyConclusion(studentId, lessonId, classroom);
     }
   },
   conclusionNextStep: (/** @type {ActionHandlerData} */ d) => {

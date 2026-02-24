@@ -2,6 +2,8 @@ export namespace participantActionHandlers {
     export { loadParticipantView };
     export function goToParticipantsView(): void;
     export { refreshParticipantView };
+    export { showSalesOnlyStudentSelector };
+    export { filterSalesOnlyStudents };
     export { openSalesCelebrationView };
     export { closeSalesCelebrationView };
     export { completeLessonSalesTransfer };
@@ -39,6 +41,16 @@ declare function loadParticipantView(forceReload?: boolean, loadingCategory?: st
  * 参加者リストビューのデータ更新（統合リフレッシュ関数に委譲）
  */
 declare function refreshParticipantView(): void;
+/**
+ * 販売のみ用の生徒選択モーダルを表示する
+ * @param {ActionHandlerData} d
+ */
+declare function showSalesOnlyStudentSelector(d: ActionHandlerData): void;
+/**
+ * 販売のみ用の生徒選択リストをフィルタリングする
+ * @param {string} query
+ */
+declare function filterSalesOnlyStudents(query: string): void;
 /**
  * 売上達成専用ビューを開きます。
  * @param {{ date?: string } | string} [data]

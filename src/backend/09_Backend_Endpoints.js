@@ -40,6 +40,7 @@ import {
   cancelReservation,
   checkIfSalesAlreadyLogged,
   confirmWaitlistedReservation,
+  createSalesOnlyReservation,
   getScheduleInfoForDate,
   logSalesForSingleReservation,
   makeReservation,
@@ -496,6 +497,53 @@ export function updateAccountingDetailsAndGetLatestData(
     reservationWithAccounting.studentId,
     '会計情報を修正しました。',
   );
+}
+
+/**
+ * 販売のみの予約レコードを作成し、最新データを返す
+ * @param {{ studentId: string, lessonId: string, classroom: string, _adminToken?: string }} params - 作成パラメータ
+ * @returns {ApiResponseGeneric} 処理結果と最新データ
+ */
+export function createSalesOnlyReservationAndGetLatestData(params) {
+  try {
+    const adminToken = params?._adminToken || '';
+    if (!validateAdminSessionToken(adminToken)) {
+      return createApiErrorResponse(
+        '管理者権限が確認できません。再ログインしてください。',
+      );
+    }
+
+    const result = createSalesOnlyReservation(params);
+    if (!result.success) {
+      return result;
+    }
+
+    // 最新データを取得
+    const batchResult = getBatchData(
+      ['reservations', 'lessons'],
+      null,
+      params.studentId,
+    );
+    const latestData = batchResult.success ? batchResult.data || {} : {};
+
+    return createApiResponse(true, {
+      message: result.message || '販売のみの予約レコードを作成しました。',
+      data: {
+        reservationId: result.data ? result.data.reservationId : null,
+        reservation: result.data ? result.data.reservation : null,
+        myReservations: latestData.myReservations || [],
+        lessons: latestData.lessons || [],
+      },
+    });
+  } catch (e) {
+    Logger.log(
+      `createSalesOnlyReservationAndGetLatestData でエラー: ${e.message}`,
+    );
+    return createApiErrorResponse(
+      '販売のみ予約の作成でエラーが発生しました。',
+      true,
+    );
+  }
 }
 
 /**

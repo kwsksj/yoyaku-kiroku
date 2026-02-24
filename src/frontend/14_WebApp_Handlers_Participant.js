@@ -2137,12 +2137,123 @@ function completeLessonSalesTransfer(data) {
 }
 
 /**
+ * 販売のみモーダル向けに生徒一覧を取得してソートする
+ * @returns {any[]}
+ */
+function getSalesOnlyStudentsSorted() {
+  const state = participantHandlersStateManager.getState();
+  const allStudentsObj = state['participantAllStudents'] || {};
+  return Object.values(allStudentsObj).sort((a, b) => {
+    const aName = String(
+      a.ruby || a.displayName || a.nickname || a.realName || '',
+    );
+    const bName = String(
+      b.ruby || b.displayName || b.nickname || b.realName || '',
+    );
+    return aName.localeCompare(bName, 'ja');
+  });
+}
+
+/**
+ * 販売のみ用の生徒選択モーダルを表示する
+ * @param {ActionHandlerData} d
+ */
+function showSalesOnlyStudentSelector(d) {
+  const lessonId = d.lessonId || '';
+  const classroom = d.classroom || '';
+  const allStudents = getSalesOnlyStudentsSorted();
+  const renderSalesOnlyStudentList = /** @type {any} */ (
+    /** @type {any} */ (appWindow)['renderSalesOnlyStudentList']
+  );
+
+  const listHtml =
+    typeof renderSalesOnlyStudentList === 'function'
+      ? renderSalesOnlyStudentList(allStudents, '', lessonId, classroom)
+      : '<div class="p-4 text-center text-brand-subtle">描画関数がありません</div>';
+
+  const content = `
+    <div class="px-4 py-3 border-b border-ui-border bg-gray-50 flex flex-col gap-2">
+      <div class="text-sm text-brand-subtle mb-1">会計を行う生徒を検索して選択してください。</div>
+      <input type="text" id="sales-only-search-input" class="w-full p-2 border-2 border-ui-border rounded-md focus:border-brand-primary" placeholder="名前やフリガナで検索..." oninput="actionHandlers.filterSalesOnlyStudents(this.value)">
+    </div>
+    <div id="sales-only-student-list-container" class="max-h-[50vh] overflow-y-auto">
+      ${listHtml}
+    </div>
+    <div class="p-4 border-t border-ui-border bg-gray-50">
+      ${Components.button({
+        text: 'キャンセル',
+        action: 'closeModal',
+        style: 'secondary',
+        size: 'full',
+        dataAttributes: { modalId: 'sales-only-student-modal' },
+      })}
+    </div>
+  `;
+
+  const modalHtml = Components.modal({
+    id: 'sales-only-student-modal',
+    title: '販売対象の生徒を選択',
+    content: content,
+  });
+
+  const existing = document.getElementById('sales-only-student-modal');
+  if (existing) existing.remove();
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  Components.showModal('sales-only-student-modal');
+
+  const listContainer = /** @type {HTMLDivElement | null} */ (
+    document.getElementById('sales-only-student-list-container')
+  );
+  if (listContainer) {
+    listContainer.dataset['lessonId'] = lessonId;
+    listContainer.dataset['classroom'] = classroom;
+  }
+
+  // 少し遅らせて検索ボックスにフォーカス
+  setTimeout(() => {
+    const input = document.getElementById('sales-only-search-input');
+    if (input) input.focus();
+  }, 100);
+}
+
+/**
+ * 販売のみ用の生徒選択リストをフィルタリングする
+ * @param {string} query
+ */
+function filterSalesOnlyStudents(query) {
+  const container = /** @type {HTMLDivElement | null} */ (
+    document.getElementById('sales-only-student-list-container')
+  );
+  if (!container) {
+    return;
+  }
+
+  const lessonId = container.dataset['lessonId'] || '';
+  const classroom = container.dataset['classroom'] || '';
+  const students = getSalesOnlyStudentsSorted();
+  const renderSalesOnlyStudentList = /** @type {any} */ (
+    /** @type {any} */ (appWindow)['renderSalesOnlyStudentList']
+  );
+  if (typeof renderSalesOnlyStudentList === 'function') {
+    container.innerHTML = renderSalesOnlyStudentList(
+      students,
+      query,
+      lessonId,
+      classroom,
+    );
+  }
+}
+
+/**
  * 参加者リスト用アクションハンドラー
  */
 export const participantActionHandlers = {
   loadParticipantView,
   goToParticipantsView: () => loadParticipantView(),
   refreshParticipantView,
+  showSalesOnlyStudentSelector,
+  filterSalesOnlyStudents,
   openSalesCelebrationView,
   closeSalesCelebrationView,
   completeLessonSalesTransfer,

@@ -75,6 +75,17 @@ export function saveAccountingDetailsAndGetLatestData(reservationWithAccounting:
  */
 export function updateAccountingDetailsAndGetLatestData(reservationWithAccounting: ReservationCore): ApiResponseGeneric;
 /**
+ * 販売のみの予約レコードを作成し、最新データを返す
+ * @param {{ studentId: string, lessonId: string, classroom: string, _adminToken?: string }} params - 作成パラメータ
+ * @returns {ApiResponseGeneric} 処理結果と最新データ
+ */
+export function createSalesOnlyReservationAndGetLatestData(params: {
+    studentId: string;
+    lessonId: string;
+    classroom: string;
+    _adminToken?: string;
+}): ApiResponseGeneric;
+/**
  * 統合ログインエンドポイント：認証 + 初期データ + 個人データを一括取得
  *
  * @param {string} phone - 電話番号（ユーザー認証用）
