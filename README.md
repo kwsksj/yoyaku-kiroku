@@ -157,6 +157,9 @@ types/
 - `npm run test:watch`: Vitestをwatchモードで実行します。
 - `npm run test:changed`: Git差分の影響を受けるテストのみ実行します（高速確認用）。
 - `npm run test:ci`: CI向けに `validate` → `test` を連続実行します。
+- `npm run smoke:gas`: テスト環境WebAppのGAS疎通チェック（副作用なし）。
+- `npm run smoke:gas:deep`: `smoke:gas` + `?test=true` 画面も確認。
+- `npm run smoke:gas:deploy`: テスト環境へ反映後に `smoke:gas:deep` を実行。
 
 **型定義関連（推奨順）**
 
