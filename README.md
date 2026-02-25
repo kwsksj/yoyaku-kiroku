@@ -155,6 +155,7 @@ types/
 - `npm run watch`: ファイル変更を監視し、自動でビルド（`build:force`）を実行します。
 - `npm run test`: Vitestでユニットテストを実行します。
 - `npm run test:watch`: Vitestをwatchモードで実行します。
+- `npm run test:changed`: Git差分の影響を受けるテストのみ実行します（高速確認用）。
 - `npm run test:ci`: CI向けに `validate` → `test` を連続実行します。
 
 **型定義関連（推奨順）**
@@ -200,8 +201,10 @@ types/
 
 - ワークフロー: `.github/workflows/ci.yml`
 - 実行トリガー: `push` / `pull_request`
+- 除外条件: `docs/**` と `*.md` のみ変更時は実行しません
 - 実行内容: `pnpm install --frozen-lockfile` → `pnpm run test:ci`
 - 失敗時: PRチェックが失敗となり、マージ前に検知できます
+- 効率化: 同一ブランチで新しいpushがあった場合、古い実行は自動キャンセルされます
 
 ## 📚 **詳細ドキュメント**
 

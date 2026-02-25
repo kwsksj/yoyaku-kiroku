@@ -9,6 +9,7 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:changed": "vitest run --changed",
     "test:ci": "npm run validate && npm run test",
     "types:check": "npm run types:check:backend && npm run types:check:frontend",
     "types:check:backend": "tsc --project tsconfig.check.backend.json",
