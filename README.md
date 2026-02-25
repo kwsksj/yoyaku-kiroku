@@ -153,6 +153,9 @@ types/
 - `npm run build`: `validate` を実行後、問題がなければビルドを実行します。
 - `npm run build:force`: 品質チェックをスキップして強制的にビルドを実行します。
 - `npm run watch`: ファイル変更を監視し、自動でビルド（`build:force`）を実行します。
+- `npm run test`: Vitestでユニットテストを実行します。
+- `npm run test:watch`: Vitestをwatchモードで実行します。
+- `npm run test:ci`: CI向けに `validate` → `test` を連続実行します。
 
 **型定義関連（推奨順）**
 
@@ -192,6 +195,13 @@ types/
 **その他**
 
 - `npm run switch:env -- prod|test`: `.clasp.json`を切り替えて、作業環境を変更します。
+
+## 🤖 自動テスト（GitHub Actions）
+
+- ワークフロー: `.github/workflows/ci.yml`
+- 実行トリガー: `push` / `pull_request`
+- 実行内容: `pnpm install --frozen-lockfile` → `pnpm run test:ci`
+- 失敗時: PRチェックが失敗となり、マージ前に検知できます
 
 ## 📚 **詳細ドキュメント**
 
