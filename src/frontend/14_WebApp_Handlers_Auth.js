@@ -39,6 +39,8 @@ const authHandlersStateManager = appWindow.stateManager;
 const MARKED_SCRIPT_SRC = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
 /** @type {Promise<void> | null} */
 let markedLoadPromise = null;
+/** @type {Promise<void> | null} */
+let privacyPolicyOpenPromise = null;
 
 /**
  * marked.js を必要時に読み込みます
@@ -76,7 +78,10 @@ function ensureMarkedLoaded() {
       });
       existingScript.addEventListener(
         'error',
-        () => reject(new Error('marked.jsの読み込みに失敗しました')),
+        () => {
+          existingScript.remove();
+          reject(new Error('marked.jsの読み込みに失敗しました'));
+        },
         { once: true },
       );
       return;
@@ -90,8 +95,10 @@ function ensureMarkedLoaded() {
       script.dataset['status'] = 'loaded';
       resolve(undefined);
     };
-    script.onerror = () =>
+    script.onerror = () => {
+      script.remove();
       reject(new Error('marked.jsの読み込みに失敗しました'));
+    };
     document.head.appendChild(script);
   }).catch(error => {
     markedLoadPromise = null;
@@ -836,30 +843,43 @@ export const authActionHandlers = {
 
   /** プライバシーポリシーを表示します（タスク1実装） */
   showPrivacyPolicy: async () => {
-    // 既存のモーダルを削除
-    const existingModal = document.getElementById('privacy-policy-modal');
-    if (existingModal) {
-      existingModal.remove();
-    }
-
-    try {
-      await ensureMarkedLoaded();
-    } catch (error) {
-      console.error('marked.jsの遅延読み込みに失敗しました:', error);
-      showInfo(
-        'プライバシーポリシーの読み込みに失敗しました。時間をおいて再度お試しください。',
-        '読み込みエラー',
-      );
+    if (privacyPolicyOpenPromise) {
+      await privacyPolicyOpenPromise;
       return;
     }
 
-    // モーダルHTMLを生成してDOMに追加
-    const modalHtml = getPrivacyPolicyModal();
-    const appContainer = document.getElementById('app');
-    if (appContainer) {
-      appContainer.insertAdjacentHTML('beforeend', modalHtml);
-      // モーダルを表示
-      Components.showModal('privacy-policy-modal');
+    privacyPolicyOpenPromise = (async () => {
+      try {
+        await ensureMarkedLoaded();
+      } catch (error) {
+        console.error('marked.jsの遅延読み込みに失敗しました:', error);
+        showInfo(
+          'プライバシーポリシーの読み込みに失敗しました。時間をおいて再度お試しください。',
+          '読み込みエラー',
+        );
+        return;
+      }
+
+      // 既存モーダルがあれば再利用して表示する
+      const existingModal = document.getElementById('privacy-policy-modal');
+      if (existingModal) {
+        Components.showModal('privacy-policy-modal');
+        return;
+      }
+
+      // モーダルHTMLを生成してDOMに追加
+      const modalHtml = getPrivacyPolicyModal();
+      const appContainer = document.getElementById('app');
+      if (appContainer) {
+        appContainer.insertAdjacentHTML('beforeend', modalHtml);
+        Components.showModal('privacy-policy-modal');
+      }
+    })();
+
+    try {
+      await privacyPolicyOpenPromise;
+    } finally {
+      privacyPolicyOpenPromise = null;
     }
   },
 
