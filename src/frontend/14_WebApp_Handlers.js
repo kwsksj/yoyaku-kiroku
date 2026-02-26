@@ -1315,13 +1315,20 @@ window.onload = function () {
   // イベントハンドラー関数を定義
   /** @type {ClickEventHandler} */
   const handleClick = e => {
-    // DOM要素の型安全性を確保
-    if (!e.target || !(e.target instanceof Element)) {
+    // モバイルSafariでは text node が target になることがあるため正規化する
+    const rawTarget = e.target;
+    const targetElement =
+      rawTarget instanceof Element
+        ? rawTarget
+        : rawTarget instanceof Node
+          ? rawTarget.parentElement
+          : null;
+    if (!targetElement) {
       return;
     }
 
     // 【修正】buttonまたはdata-action属性を持つ要素を対象にする
-    const matched = e.target.closest('button, [data-action]');
+    const matched = targetElement.closest('button, [data-action]');
     if (!matched || !(matched instanceof HTMLElement)) {
       return;
     }
@@ -1337,7 +1344,7 @@ window.onload = function () {
           data,
           element: matched,
           tagName: matched.tagName,
-          modalContext: e.target.closest('[data-modal-content]')
+          modalContext: targetElement.closest('[data-modal-content]')
             ? 'モーダル内'
             : '通常',
           timestamp: new Date().getTime(),
@@ -1347,7 +1354,7 @@ window.onload = function () {
 
       // モーダル内の場合は、イベント伝播を継続する
       if (
-        e.target.closest('[data-modal-content]') &&
+        targetElement.closest('[data-modal-content]') &&
         matched.dataset['action']
       ) {
         // イベント伝播を停止しない（モーダル内のボタンを有効にする）
