@@ -1598,7 +1598,8 @@ export const setupMobileOptimizations = () => {
 // PostCSS pluginやTailwind CLIの利用が困難なため、CDN版を使用しています。
 export const setupTailwindCSS = () => {
   const tailwindScript = document.createElement('script');
-  tailwindScript.src = 'https://cdn.tailwindcss.com';
+  // 末尾スラッシュURLの302リダイレクトを避けるため、バージョンを固定する
+  tailwindScript.src = 'https://cdn.tailwindcss.com/3.4.17';
 
   tailwindScript.onload = function () {
     // @ts-ignore

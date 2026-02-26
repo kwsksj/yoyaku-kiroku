@@ -36,6 +36,70 @@ import { getInputElementSafely } from './14_WebApp_Handlers_Utils.js';
 // =================================================================
 
 const authHandlersStateManager = appWindow.stateManager;
+const MARKED_SCRIPT_SRC = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+/** @type {Promise<void> | null} */
+let markedLoadPromise = null;
+
+/**
+ * marked.js を必要時に読み込みます
+ * @returns {Promise<void>}
+ */
+function ensureMarkedLoaded() {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('windowが利用できません'));
+  }
+
+  const markedLib = /** @type {any} */ (window).marked;
+  if (typeof markedLib !== 'undefined') {
+    return Promise.resolve(undefined);
+  }
+
+  if (markedLoadPromise) {
+    return markedLoadPromise;
+  }
+
+  markedLoadPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector(
+      `script[data-lib="marked"][src="${MARKED_SCRIPT_SRC}"]`,
+    );
+
+    if (existingScript) {
+      if (
+        existingScript instanceof HTMLScriptElement &&
+        existingScript.dataset['status'] === 'loaded'
+      ) {
+        resolve(undefined);
+        return;
+      }
+      existingScript.addEventListener('load', () => resolve(undefined), {
+        once: true,
+      });
+      existingScript.addEventListener(
+        'error',
+        () => reject(new Error('marked.jsの読み込みに失敗しました')),
+        { once: true },
+      );
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = MARKED_SCRIPT_SRC;
+    script.async = true;
+    script.dataset['lib'] = 'marked';
+    script.onload = () => {
+      script.dataset['status'] = 'loaded';
+      resolve(undefined);
+    };
+    script.onerror = () =>
+      reject(new Error('marked.jsの読み込みに失敗しました'));
+    document.head.appendChild(script);
+  }).catch(error => {
+    markedLoadPromise = null;
+    throw error;
+  });
+
+  return markedLoadPromise;
+}
 
 /** 認証関連のアクションハンドラー群 */
 export const authActionHandlers = {
@@ -771,11 +835,22 @@ export const authActionHandlers = {
   },
 
   /** プライバシーポリシーを表示します（タスク1実装） */
-  showPrivacyPolicy: () => {
+  showPrivacyPolicy: async () => {
     // 既存のモーダルを削除
     const existingModal = document.getElementById('privacy-policy-modal');
     if (existingModal) {
       existingModal.remove();
+    }
+
+    try {
+      await ensureMarkedLoaded();
+    } catch (error) {
+      console.error('marked.jsの遅延読み込みに失敗しました:', error);
+      showInfo(
+        'プライバシーポリシーの読み込みに失敗しました。時間をおいて再度お試しください。',
+        '読み込みエラー',
+      );
+      return;
     }
 
     // モーダルHTMLを生成してDOMに追加

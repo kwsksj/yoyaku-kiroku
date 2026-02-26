@@ -16,8 +16,15 @@
     <meta charset="UTF-8" />
     <base target="_top" />
     <script>
-      // サーバーサイドから渡されたデバッグフラグ
-      window.SERVER_DEBUG_MODE = <?!= (typeof isDebug !== 'undefined' && isDebug) ? 'true' : 'false' ?>;
+      // debug=true のときのみデバッグログを有効化
+      (function setServerDebugModeFromQuery() {
+        try {
+          var queryParams = new URLSearchParams(window.location.search);
+          window.SERVER_DEBUG_MODE = queryParams.get('debug') === 'true';
+        } catch (_error) {
+          window.SERVER_DEBUG_MODE = false;
+        }
+      })();
     </script>
     <title>きぼりの よやく・きろく 川崎誠二木彫り教室</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -150,7 +157,6 @@
         display: none; /* Chrome, Safari, Opera */
       }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   </head>
 
   <body class="bg-brand-bg h-full">

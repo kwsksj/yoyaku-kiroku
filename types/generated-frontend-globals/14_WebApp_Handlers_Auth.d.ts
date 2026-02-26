@@ -13,7 +13,7 @@ export namespace authActionHandlers {
     function goBackToLogin(): void;
     function logout(): void;
     function requestAccountDeletion(): void;
-    function showPrivacyPolicy(): void;
+    function showPrivacyPolicy(): Promise<void>;
     function closePrivacyPolicy(): void;
     function closeWelcomeModal(): void;
 }
