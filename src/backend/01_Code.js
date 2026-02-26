@@ -127,11 +127,7 @@ export function doGet(e) {
     const titlePrefix = CONSTANTS.ENVIRONMENT.PRODUCTION_MODE ? '' : '[テスト]';
     const title = `${titlePrefix}きぼりの よやく・きろく`;
 
-    const template = HtmlService.createTemplateFromFile('10_WebApp');
-    template['isDebug'] = e && e.parameter && e.parameter['debug'] === 'true';
-
-    return template
-      .evaluate()
+    return HtmlService.createHtmlOutputFromFile('10_WebApp')
       .setTitle(title)
       .addMetaTag('viewport', 'width=device-width, initial-scale=1')
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
