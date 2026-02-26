@@ -30,6 +30,9 @@
   "editor.bracketPairColorization.enabled": true,
   "editor.guides.bracketPairs": true,
   "editor.inlineSuggest.enabled": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
 
   // JavaScript/TypeScript Configuration for GAS
   "javascript.preferences.includePackageJsonAutoImports": "auto",
@@ -39,6 +42,7 @@
   "typescript.preferences.includePackageJsonAutoImports": "auto",
   "typescript.suggest.autoImports": true,
   "typescript.validate.enable": true,
+  "typescript.tsdk": "node_modules/typescript/lib",
   "typescript.implicitProjectConfig.checkJs": true,
 
   // GAS特有設定：重複定義エラーの抑制
@@ -56,6 +60,9 @@
   "typescript.preferences.inlayHints.variableTypes.enabled": true,
 
   // ESLint Configuration for HTML JavaScript
+  "eslint.useFlatConfig": true,
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.codeActionsOnSave.mode": "problems",
   "eslint.validate": ["javascript", "html"],
   "eslint.options": {
     "extensions": [".js", ".html"]
@@ -80,9 +87,19 @@
   "files.trimTrailingWhitespace": true,
   "files.trimFinalNewlines": true,
   "files.autoSave": "onFocusChange",
+  "files.watcherExclude": {
+    "**/build-output/**": true,
+    "**/types/generated-backend-globals/**": true,
+    "**/types/generated-frontend-globals/**": true,
+    "**/types/generated-shared-globals/**": true
+  },
   "files.exclude": {
     "**/node_modules": true,
     "**/.DS_Store": true,
+    "**/build-output": true,
+    "**/types/generated-backend-globals": true,
+    "**/types/generated-frontend-globals": true,
+    "**/types/generated-shared-globals": true,
     "**/test/10_WebApp_Unified_Test.html": true,
     "**/*.log": true
   },
@@ -90,6 +107,10 @@
   // Search Configuration
   "search.exclude": {
     "**/node_modules": true,
+    "**/build-output": true,
+    "**/types/generated-backend-globals": true,
+    "**/types/generated-frontend-globals": true,
+    "**/types/generated-shared-globals": true,
     "**/test/10_WebApp_Unified_Test.html": true,
     "**/*.log": true,
     "**/docs/archive": true

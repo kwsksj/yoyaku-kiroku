@@ -165,6 +165,7 @@ types/
 - `npm run smoke:gas`: テスト環境WebAppのGAS疎通チェック（副作用なし）。
 - `npm run smoke:gas:deep`: `smoke:gas` + `?test=true` 画面も確認。
 - `npm run smoke:gas:deploy`: テスト環境へ反映後に `smoke:gas:deep` を実行。
+- `npm run pr:auto`: PR作成/自動マージ設定/レビュー状態確認/（マージ済み時）ローカルブランチ整理を実行します。
 
 **型定義関連（推奨順）**
 
