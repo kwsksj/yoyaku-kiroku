@@ -899,11 +899,8 @@ window.onload = function () {
 
       const studentId = `${currentUser?.studentId || ''}`.trim();
       const nickname = `${currentUser?.nickname || ''}`.trim();
-      const displayNameResolver = appWindow.resolveUserDisplayName;
       const displayName =
-        typeof displayNameResolver === 'function'
-          ? displayNameResolver(currentUser, { visibility: 'public' })
-          : `${currentUser?.displayName || currentUser?.nickname || currentUser?.realName || ''}`.trim();
+        `${currentUser?.displayName || currentUser?.realName || ''}`.trim();
 
       /** @type {string} */
       let targetUrl = galleryBaseUrl;

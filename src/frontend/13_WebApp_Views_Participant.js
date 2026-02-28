@@ -45,8 +45,13 @@ const PARTICIPANT_TABLE_COLUMNS = [
     render: /** @param {any} row */ row => {
       const isAdmin =
         participantStateManager.getState().participantIsAdmin || false;
-      const displayName = row.nickname || row.displayName || '名前なし';
+      let displayName = row.nickname || row.displayName || '名前なし';
       const hasRealName = row.realName && row.realName.trim() !== '';
+
+      // 管理者でない、かつ表示名が本名と同じ場合は、表示名を最初の2文字にする
+      if (!isAdmin && hasRealName && displayName === row.realName) {
+        displayName = displayName.substring(0, 2);
+      }
 
       // バッジを生成
       const badges = [];

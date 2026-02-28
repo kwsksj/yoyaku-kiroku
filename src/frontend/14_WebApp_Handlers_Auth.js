@@ -366,7 +366,7 @@ export const authActionHandlers = {
         'registrationData'
       ],
       realName,
-      nickname: nickname || '',
+      nickname: nickname || realName,
       email,
       wantsEmail,
       wantsScheduleNotification,
@@ -663,10 +663,11 @@ export const authActionHandlers = {
 
     const futureCreations = futureCreationsInput?.value?.trim() || '';
     const r = realNameInput?.value;
-    const n = nicknameInput?.value.trim() || '';
+    let n = nicknameInput?.value.trim();
     const address = addressInput?.value?.trim() || '';
 
     if (!r) return showInfo('おなまえ（本名）は必須です。');
+    if (!n) n = r;
 
     // 電話番号は表示のみなので、現在の値を使用
     const currentUser = authHandlersStateManager.getState().currentUser;

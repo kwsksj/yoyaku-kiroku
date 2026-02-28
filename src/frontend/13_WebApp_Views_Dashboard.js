@@ -246,12 +246,7 @@ export const getDashboardView = () => {
   }
 
   const currentUser = dashboardStateManager.getState().currentUser;
-  const nickname = currentUser
-    ? currentUser.displayName ||
-      currentUser.nickname ||
-      currentUser.realName ||
-      ''
-    : '';
+  const nickname = currentUser ? currentUser.nickname : '';
 
   // 今日のよやくを検索（会計フォールバックボタン用）
   const todayReservation = activeReservations.find(
