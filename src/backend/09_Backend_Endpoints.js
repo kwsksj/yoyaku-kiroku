@@ -78,6 +78,73 @@ const PARTICIPANT_INITIAL_PAST_MONTHS =
   CONSTANTS.UI.PARTICIPANT_INITIAL_PAST_MONTHS;
 
 /**
+ * 値をtrim済み文字列として返します。
+ * @param {unknown} value
+ * @returns {string}
+ */
+function toTrimmedString(value) {
+  if (typeof value === 'string') return value.trim();
+  if (value == null) return '';
+  return String(value).trim();
+}
+
+/**
+ * 名前文字列から空白を除いた先頭2文字を返します。
+ * @param {string} value
+ * @returns {string}
+ */
+function toInitialTwoChars(value) {
+  const compact = toTrimmedString(value).replace(/\s+/g, '');
+  return Array.from(compact).slice(0, 2).join('');
+}
+
+/**
+ * 生徒名表示を閲覧者コンテキストに応じて解決します。
+ *
+ * ルール:
+ * - 生徒本人/管理者: ニックネーム空欄なら本名フル表示
+ * - 一般公開（他者表示）: ニックネーム空欄なら本名の先頭2文字表示
+ *
+ * @param {Partial<UserCore> | null | undefined} student
+ * @param {{isAdmin?: boolean, isSelf?: boolean}} [options]
+ * @returns {{
+ *   rawNickname: string;
+ *   rawDisplayName: string;
+ *   realName: string;
+ *   viewerNickname: string;
+ *   viewerDisplayName: string;
+ *   publicDisplayName: string;
+ * }}
+ */
+function resolveStudentDisplayNames(student, options = {}) {
+  const isAdmin = options.isAdmin === true;
+  const isSelf = options.isSelf === true;
+  const rawNickname = toTrimmedString(student?.nickname);
+  const realName = toTrimmedString(student?.realName);
+  const rawDisplayName =
+    toTrimmedString(student?.displayName) || rawNickname || realName;
+
+  const shouldMaskPublicName =
+    (!rawNickname && !!(realName || rawDisplayName)) ||
+    (!!realName && rawDisplayName === realName);
+  const publicDisplayName = shouldMaskPublicName
+    ? toInitialTwoChars(realName || rawDisplayName) || rawDisplayName
+    : rawDisplayName;
+
+  const viewerDisplayName =
+    isAdmin || isSelf ? rawDisplayName : publicDisplayName;
+
+  return {
+    rawNickname,
+    rawDisplayName,
+    realName,
+    viewerNickname: viewerDisplayName,
+    viewerDisplayName,
+    publicDisplayName,
+  };
+}
+
+/**
  * よやく操作後に最新データを取得して返す汎用関数
  * @param {Function} operationFunction - 実行する操作関数 (makeReservation, cancelReservationなど)
  * @param {ReservationCore|AccountingDetailsCore|any} operationParams - 操作関数に渡すパラメータ (Core型)
@@ -1269,12 +1336,14 @@ function parseScheduleReservationIds(reservationIdsValue) {
  * @param {LessonCore[]} lessons
  * @param {Record<string, UserCore>} preloadedStudentsMap
  * @param {boolean} isAdmin
+ * @param {string} [requestingStudentId='']
  * @returns {Record<string, any[]>}
  */
 function buildParticipantReservationsMapForLessons(
   lessons,
   preloadedStudentsMap,
   isAdmin,
+  requestingStudentId = '',
 ) {
   /** @type {Record<string, any[]>} */
   const reservationsMap = {};
@@ -1376,14 +1445,14 @@ function buildParticipantReservationsMapForLessons(
     const student = allStudents[reservation.studentId];
     const studentData = student || {};
 
-    const nickname = studentData.nickname || '';
-    const rawDisplayName = studentData.displayName || nickname || '';
-    const realName = studentData.realName || '';
-    const shouldMaskDisplayName =
-      !isAdmin && realName && rawDisplayName && rawDisplayName === realName;
-    const publicDisplayName = shouldMaskDisplayName
-      ? rawDisplayName.substring(0, 2)
-      : rawDisplayName;
+    const isSelf =
+      !isAdmin &&
+      requestingStudentId !== '' &&
+      reservation.studentId === requestingStudentId;
+    const displayNames = resolveStudentDisplayNames(studentData, {
+      isAdmin,
+      isSelf,
+    });
 
     /** @type {any} */
     const baseInfo = {
@@ -1395,8 +1464,8 @@ function buildParticipantReservationsMapForLessons(
       endTime: reservation.endTime || '',
       status: reservation.status,
       studentId: reservation.studentId,
-      nickname: publicDisplayName,
-      displayName: publicDisplayName,
+      nickname: displayNames.viewerNickname,
+      displayName: displayNames.viewerDisplayName,
       firstLecture: reservation.firstLecture || false,
       chiselRental: reservation.chiselRental || false,
       sessionNote: reservation.sessionNote || '',
@@ -1417,9 +1486,9 @@ function buildParticipantReservationsMapForLessons(
     const fullInfo = isAdmin
       ? {
           ...baseInfo,
-          nickname: nickname || rawDisplayName,
-          displayName: rawDisplayName,
-          realName: realName,
+          nickname: displayNames.rawNickname,
+          displayName: displayNames.rawDisplayName,
+          realName: displayNames.realName,
           messageToTeacher: reservation.messageToTeacher || '',
           phone: studentData.phone || '',
           email: studentData.email || '',
@@ -1546,6 +1615,7 @@ export function getLessonsForParticipantsView(
           lessons,
           preloadedStudentsMap,
           isAdmin,
+          studentId,
         )
       : {};
 
@@ -1563,25 +1633,25 @@ export function getLessonsForParticipantsView(
     /** @type {Record<string, any>} */
     const allStudentsForResponse = {};
     Object.entries(preloadedStudentsMap).forEach(([id, student]) => {
+      const isSelf = !isAdmin && studentId !== '' && id === studentId;
+      const displayNames = resolveStudentDisplayNames(student, {
+        isAdmin,
+        isSelf,
+      });
       if (isAdmin) {
         // 管理者: 全フィールドを返却
-        allStudentsForResponse[id] = student;
+        allStudentsForResponse[id] = {
+          ...student,
+          nickname: displayNames.rawNickname,
+          displayName: displayNames.rawDisplayName,
+          realName: displayNames.realName,
+        };
       } else {
         // 一般ユーザー: 公開情報のみ
-        const nickname = student.nickname || '';
-        const rawDisplayName = student.displayName || nickname || '';
-        const realName = student.realName || '';
-        // 本名と表示名が同じ場合はマスク
-        const shouldMaskDisplayName =
-          realName && rawDisplayName && rawDisplayName === realName;
-        const publicDisplayName = shouldMaskDisplayName
-          ? rawDisplayName.substring(0, 2)
-          : rawDisplayName;
-
         allStudentsForResponse[id] = {
           studentId: student.studentId,
-          nickname: publicDisplayName,
-          displayName: publicDisplayName,
+          nickname: displayNames.viewerNickname,
+          displayName: displayNames.viewerDisplayName,
           futureCreations: student.futureCreations || '',
         };
       }
@@ -1879,6 +1949,7 @@ export function getPastLessonsForParticipantsView(
       lessons,
       preloadedStudentsMap,
       isAdmin,
+      studentId,
     );
 
     Logger.log(
@@ -1969,14 +2040,12 @@ export function getReservationsForLesson(lessonId, studentId) {
     const reservationsWithUserInfo = lessonReservations.map(reservation => {
       // 生徒情報を取得
       const student = getCachedStudentById(reservation.studentId);
-      const nickname = student?.nickname || '';
-      const rawDisplayName = student?.displayName || nickname;
-      const realName = student?.realName || '';
-      const shouldMaskDisplayName =
-        !isAdmin && realName && rawDisplayName && rawDisplayName === realName;
-      const publicDisplayName = shouldMaskDisplayName
-        ? rawDisplayName.substring(0, 2)
-        : rawDisplayName;
+      const isSelf =
+        !isAdmin && studentId !== '' && reservation.studentId === studentId;
+      const displayNames = resolveStudentDisplayNames(student, {
+        isAdmin,
+        isSelf,
+      });
 
       // 基本情報（全員に公開）
       const baseInfo = {
@@ -1988,8 +2057,8 @@ export function getReservationsForLesson(lessonId, studentId) {
         endTime: reservation.endTime || '',
         status: reservation.status,
         studentId: reservation.studentId,
-        nickname: publicDisplayName,
-        displayName: publicDisplayName,
+        nickname: displayNames.viewerNickname,
+        displayName: displayNames.viewerDisplayName,
         firstLecture: reservation.firstLecture || false,
         chiselRental: reservation.chiselRental || false,
         sessionNote: reservation.sessionNote || '',
@@ -2000,9 +2069,9 @@ export function getReservationsForLesson(lessonId, studentId) {
       if (isAdmin) {
         return {
           ...baseInfo,
-          nickname: nickname || rawDisplayName,
-          displayName: rawDisplayName,
-          realName: realName,
+          nickname: displayNames.rawNickname,
+          displayName: displayNames.rawDisplayName,
+          realName: displayNames.realName,
           messageToTeacher: reservation.messageToTeacher || '',
           phone: student?.phone || '',
           email: student?.email || '',
@@ -2137,24 +2206,16 @@ export function getStudentDetailsForParticipantsView(
       ['完了', '会計待ち', '会計済み'].includes(r.status),
     ).length;
 
-    const rawNickname = targetStudent.nickname || '';
-    const rawDisplayName = targetStudent.displayName || rawNickname;
-    const realName = targetStudent.realName || '';
-    const shouldMaskDisplayName =
-      !isAdmin &&
-      !isSelf &&
-      realName &&
-      rawDisplayName &&
-      rawDisplayName === realName;
-    const publicDisplayName = shouldMaskDisplayName
-      ? rawDisplayName.substring(0, 2)
-      : rawDisplayName;
+    const displayNames = resolveStudentDisplayNames(targetStudent, {
+      isAdmin,
+      isSelf,
+    });
 
     // 基本情報（公開）
     const publicInfo = {
       studentId: targetStudent.studentId,
-      nickname: publicDisplayName,
-      displayName: publicDisplayName,
+      nickname: displayNames.viewerNickname,
+      displayName: displayNames.viewerDisplayName,
       participationCount: participationCount,
       futureCreations: targetStudent.futureCreations || '',
       reservationHistory: reservationHistory,
@@ -2164,9 +2225,9 @@ export function getStudentDetailsForParticipantsView(
     if (isAdmin || isSelf) {
       const detailedInfo = {
         ...publicInfo,
-        nickname: rawNickname || rawDisplayName,
-        displayName: rawDisplayName,
-        realName: targetStudent.realName || '',
+        nickname: displayNames.rawNickname,
+        displayName: displayNames.rawDisplayName,
+        realName: displayNames.realName,
         phone: targetStudent.phone || '',
         email: targetStudent.email || '',
         wantsEmail: targetStudent.wantsEmail || false,
