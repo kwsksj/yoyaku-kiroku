@@ -301,6 +301,37 @@ export function formatPhoneNumberForDisplay(phoneNumber) {
   return phoneNumber;
 }
 
+/**
+ * ユーザーの表示名を閲覧コンテキストに応じて解決します。
+ * - self: ニックネームが空欄なら本名を表示
+ * - public: ニックネームが空欄なら本名の先頭2文字を表示
+ *
+ * @param {Partial<UserCore> | null | undefined} user
+ * @param {{visibility?: 'self'|'public'}} [options]
+ * @returns {string}
+ */
+export function resolveUserDisplayName(user, options = {}) {
+  const visibility = options.visibility === 'public' ? 'public' : 'self';
+  const nickname = `${user?.nickname || ''}`.trim();
+  const realName = `${user?.realName || ''}`.trim();
+  const rawDisplayName =
+    `${user?.displayName || ''}`.trim() || nickname || realName;
+
+  if (!rawDisplayName) return '';
+  if (visibility === 'self') return rawDisplayName;
+
+  const shouldMask =
+    (!nickname && !!(realName || rawDisplayName)) ||
+    (!!realName && rawDisplayName === realName);
+  if (!shouldMask) return rawDisplayName;
+
+  const compact = (realName || rawDisplayName).replace(/\s+/g, '');
+  const masked = Array.from(compact).slice(0, 2).join('');
+  return masked || rawDisplayName;
+}
+
+appWindow.resolveUserDisplayName = resolveUserDisplayName;
+
 // =================================================================
 // --- Admin Context Helper Functions ---
 // -----------------------------------------------------------------

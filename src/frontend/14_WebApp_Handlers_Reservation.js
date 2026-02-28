@@ -1919,8 +1919,10 @@ export const reservationActionHandlers = {
         const adminR = /** @type {any} */ (reservation);
         const targetUser = /** @type {UserCore} */ ({
           studentId: targetStudentId,
-          realName: adminR.realName || adminR.nickname || '生徒',
-          nickname: adminR.nickname || adminR.realName || '生徒',
+          realName: adminR.realName || '',
+          nickname: adminR.nickname || '',
+          displayName:
+            adminR.displayName || adminR.nickname || adminR.realName || '生徒',
           isAdmin: false,
           email: adminR.email || '',
         });

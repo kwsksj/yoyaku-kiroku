@@ -7,10 +7,11 @@
  */
 
 import type {
-    AccountingDetailsCore,
-    ClassifiedAccountingItemsCore,
+  AccountingDetailsCore,
+  ClassifiedAccountingItemsCore,
 } from '../core/accounting';
 import type { ReservationCore } from '../core/reservation';
+import type { UserCore } from '../core/user';
 import type { ConfirmDialogConfig, ModalDialogConfig } from './components';
 import type { DesignSystemConfig } from './design-system';
 import type { AccountingFormDto, SimpleStateManager, ViewType } from './state';
@@ -151,6 +152,10 @@ declare global {
       isLoadingMorePastLessons: boolean;
     };
     resetAppScrollToTop?: () => void;
+    resolveUserDisplayName?: (
+      user: Partial<UserCore> | null | undefined,
+      options?: { visibility?: 'self' | 'public' },
+    ) => string;
 
     // --- ページ遷移 ---
     pageTransitionManager?: PageTransitionManager;
