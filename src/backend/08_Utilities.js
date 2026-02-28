@@ -1110,10 +1110,9 @@ export function convertRowToUser(row, headerMap) {
     studentId: String(row[hm[CONSTANTS.HEADERS.ROSTER.STUDENT_ID]] || ''),
     phone: String(row[hm[CONSTANTS.HEADERS.ROSTER.PHONE]] || ''),
     realName: String(row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]] || ''),
-    nickname: String(row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]] || ''),
-    displayName:
-      String(row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]] || '') ||
-      String(row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]] || '') ||
+    nickname:
+      String(row[hm[CONSTANTS.HEADERS.ROSTER.NICKNAME]]) ||
+      String(row[hm[CONSTANTS.HEADERS.ROSTER.REAL_NAME]]) ||
       '',
     email: row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]]
       ? String(row[hm[CONSTANTS.HEADERS.ROSTER.EMAIL]])

@@ -66,18 +66,6 @@ export function handlePhoneInputFormatting(inputElement: HTMLInputElement): void
  */
 export function formatPhoneNumberForDisplay(phoneNumber: string): string;
 /**
- * ユーザーの表示名を閲覧コンテキストに応じて解決します。
- * - self: ニックネームが空欄なら本名を表示
- * - public: ニックネームが空欄なら本名の先頭2文字を表示
- *
- * @param {Partial<UserCore> | null | undefined} user
- * @param {{visibility?: 'self'|'public'}} [options]
- * @returns {string}
- */
-export function resolveUserDisplayName(user: Partial<UserCore> | null | undefined, options?: {
-    visibility?: "self" | "public";
-}): string;
-/**
  * 現在のユーザーが管理者かどうかを判定（なりすまし中も判定可能）
  * @returns {boolean}
  */

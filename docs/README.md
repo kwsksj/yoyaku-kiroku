@@ -30,10 +30,9 @@
 
 未実装の機能計画書：
 
-| ファイル名                                                             | 内容                      | ステータス |
-| ---------------------------------------------------------------------- | ------------------------- | ---------- |
-| **[CALENDAR_SYNC_SPECIFICATION.md](CALENDAR_SYNC_SPECIFICATION.md)**   | カレンダー同期機能        | 計画段階   |
-| **[CLOUDFLARE_D1_MIGRATION_PLAN.md](CLOUDFLARE_D1_MIGRATION_PLAN.md)** | Cloudflare+D1統合移行計画 | 計画段階   |
+| ファイル名                                                           | 内容               | ステータス |
+| -------------------------------------------------------------------- | ------------------ | ---------- |
+| **[CALENDAR_SYNC_SPECIFICATION.md](CALENDAR_SYNC_SPECIFICATION.md)** | カレンダー同期機能 | 計画段階   |
 
 ## 📦 アーカイブ
 
