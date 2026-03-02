@@ -1482,7 +1482,7 @@ function showStudentModal(student, isAdmin) {
     return;
   }
 
-  const displayName = student.nickname || student.displayName || '名前なし';
+  const displayName = student.displayName || student.nickname || '名前なし';
 
   // モーダルコンテンツを生成（グローバル関数を使用）
   const content =

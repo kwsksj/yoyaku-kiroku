@@ -111,7 +111,6 @@ function toInitialTwoChars(value) {
  *   rawNickname: string;
  *   rawDisplayName: string;
  *   realName: string;
- *   viewerNickname: string;
  *   viewerDisplayName: string;
  *   publicDisplayName: string;
  * }}
@@ -138,7 +137,6 @@ function resolveStudentDisplayNames(student, options = {}) {
     rawNickname,
     rawDisplayName,
     realName,
-    viewerNickname: viewerDisplayName,
     viewerDisplayName,
     publicDisplayName,
   };
@@ -1464,7 +1462,7 @@ function buildParticipantReservationsMapForLessons(
       endTime: reservation.endTime || '',
       status: reservation.status,
       studentId: reservation.studentId,
-      nickname: displayNames.viewerNickname,
+      nickname: displayNames.viewerDisplayName,
       displayName: displayNames.viewerDisplayName,
       firstLecture: reservation.firstLecture || false,
       chiselRental: reservation.chiselRental || false,
@@ -1650,7 +1648,7 @@ export function getLessonsForParticipantsView(
         // 一般ユーザー: 公開情報のみ
         allStudentsForResponse[id] = {
           studentId: student.studentId,
-          nickname: displayNames.viewerNickname,
+          nickname: displayNames.viewerDisplayName,
           displayName: displayNames.viewerDisplayName,
           futureCreations: student.futureCreations || '',
         };
@@ -2057,7 +2055,7 @@ export function getReservationsForLesson(lessonId, studentId) {
         endTime: reservation.endTime || '',
         status: reservation.status,
         studentId: reservation.studentId,
-        nickname: displayNames.viewerNickname,
+        nickname: displayNames.viewerDisplayName,
         displayName: displayNames.viewerDisplayName,
         firstLecture: reservation.firstLecture || false,
         chiselRental: reservation.chiselRental || false,
@@ -2214,7 +2212,7 @@ export function getStudentDetailsForParticipantsView(
     // 基本情報（公開）
     const publicInfo = {
       studentId: targetStudent.studentId,
-      nickname: displayNames.viewerNickname,
+      nickname: displayNames.viewerDisplayName,
       displayName: displayNames.viewerDisplayName,
       participationCount: participationCount,
       futureCreations: targetStudent.futureCreations || '',

@@ -81,6 +81,7 @@ import {
   isDateToday,
   resetAppScrollToTop,
   refreshParticipantsViewForAdmin,
+  resolveUserDisplayName,
 } from './14_WebApp_Handlers_Utils.js';
 
 // =================================================================
@@ -899,11 +900,7 @@ window.onload = function () {
 
       const studentId = `${currentUser?.studentId || ''}`.trim();
       const nickname = `${currentUser?.nickname || ''}`.trim();
-      const displayNameResolver = appWindow.resolveUserDisplayName;
-      const displayName =
-        typeof displayNameResolver === 'function'
-          ? displayNameResolver(currentUser, { visibility: 'public' })
-          : `${currentUser?.displayName || currentUser?.nickname || currentUser?.realName || ''}`.trim();
+      const displayName = resolveUserDisplayName(currentUser, { visibility: 'public' });
 
       /** @type {string} */
       let targetUrl = galleryBaseUrl;

@@ -45,7 +45,7 @@ const PARTICIPANT_TABLE_COLUMNS = [
     render: /** @param {any} row */ row => {
       const isAdmin =
         participantStateManager.getState().participantIsAdmin || false;
-      const displayName = row.nickname || row.displayName || '名前なし';
+      const displayName = row.displayName || row.nickname || '名前なし';
       const hasRealName = row.realName && row.realName.trim() !== '';
 
       // バッジを生成
@@ -1972,7 +1972,7 @@ function renderStudentDetailModalContent(student, isAdmin) {
     `;
   }
 
-  const displayName = student.nickname || student.displayName || '名前なし';
+  const displayName = student.displayName || student.nickname || '名前なし';
 
   // Helper to create a list item if value exists
   /**
