@@ -185,8 +185,9 @@ function _createStudentObjectFromRow(row, headers, rowIndex) {
     }
   }
 
-  // 計算プロパティ
-  student.nickname = student.nickname || student.realName;
+  // 計算プロパティ（表示用途のみ。ニックネーム自体は空欄のまま保持）
+  student.displayName =
+    student.displayName || student.nickname || student.realName;
   student.rowIndex = rowIndex; // 行番号を付与
 
   return student;
@@ -659,7 +660,7 @@ export function getUserDetailForEdit(studentId) {
     const userDetail = {
       studentId: studentId,
       realName: realName,
-      nickname: nickname || realName,
+      nickname: nickname,
       phone: phoneColIdx !== -1 ? String(userRow[phoneColIdx]) : '',
       email: emailColIdx !== -1 ? String(userRow[emailColIdx]) : '',
       wantsEmail:
@@ -863,7 +864,7 @@ export function updateUserProfile(userInfo) {
           CONSTANTS.HEADERS.ROSTER.NICKNAME,
         );
         if (nicknameColIdx !== -1) {
-          updates[nicknameColIdx] = userInfo.nickname || targetStudent.realName;
+          updates[nicknameColIdx] = userInfo.nickname || '';
         }
       }
 
@@ -885,9 +886,12 @@ export function updateUserProfile(userInfo) {
 
       // 更新後のユーザー情報を生成
       const updatedUser = { ...targetStudent, ...userInfo };
-      if (userInfo.nickname !== undefined) {
-        updatedUser.nickname = userInfo.nickname || targetStudent.realName;
-      }
+      updatedUser.nickname =
+        userInfo.nickname !== undefined
+          ? String(userInfo.nickname || '')
+          : String(targetStudent.nickname || '');
+      updatedUser.displayName =
+        updatedUser.nickname || updatedUser.realName || '';
 
       // キャッシュを更新
       updateCachedStudent(updatedUser);
@@ -1121,14 +1125,8 @@ export function registerNewUser(userData) {
         }
       }
 
-      // 表示名を決定
-      const nickname = userData.nickname || userData.realName;
-      const nicknameColumn = resolveColumnIndex(
-        CONSTANTS.HEADERS.ROSTER.NICKNAME,
-      );
-      if (typeof nicknameColumn === 'number') {
-        newRow[nicknameColumn] = nickname;
-      }
+      const nickname = String(userData.nickname || '');
+      const displayName = nickname || String(userData.realName || '');
 
       // シートに新しい行を追加
       allStudentsSheet.appendRow(newRow);
@@ -1140,6 +1138,7 @@ export function registerNewUser(userData) {
         ...userData,
         studentId: newStudentId,
         nickname: nickname,
+        displayName: displayName,
         rowIndex: newRowIndex,
       };
 
