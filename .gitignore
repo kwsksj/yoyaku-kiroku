@@ -64,6 +64,8 @@ yarn-error.log*
 
 # Gemini CLI
 .gemini/
+# Codex desktop local config
+.codex/
 gha-creds-*.json
 
 # Completed Tasks
