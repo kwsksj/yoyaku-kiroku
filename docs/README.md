@@ -34,6 +34,8 @@
 | ---------------------------------------------------------------------- | ------------------------- | ---------- |
 | **[CALENDAR_SYNC_SPECIFICATION.md](CALENDAR_SYNC_SPECIFICATION.md)**   | カレンダー同期機能        | 計画段階   |
 | **[CLOUDFLARE_D1_MIGRATION_PLAN.md](CLOUDFLARE_D1_MIGRATION_PLAN.md)** | Cloudflare+D1統合移行計画 | 計画段階   |
+| **[CLOUDFLARE_D1_MEDIA_PLATFORM_INTEGRATION_NOTES.md](CLOUDFLARE_D1_MEDIA_PLATFORM_INTEGRATION_NOTES.md)** | media-platform連携検討メモ | 計画段階   |
+| **[CLOUDFLARE_D1_YOYAKU_KIROKU_MIGRATION_NOTES.md](CLOUDFLARE_D1_YOYAKU_KIROKU_MIGRATION_NOTES.md)** | yoyaku-kiroku詳細検討メモ | 計画段階   |
 
 ## 📦 アーカイブ
 
