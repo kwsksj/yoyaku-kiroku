@@ -2457,9 +2457,6 @@ const PROPS_KEY_UPLOAD_UI_SCHEDULE_INDEX_PUSH_URL =
 const PROPS_KEY_UPLOAD_UI_SCHEDULE_INDEX_PUSH_TOKEN =
   'UPLOAD_UI_SCHEDULE_INDEX_PUSH_TOKEN';
 
-/** インデックスの対象期間（過去） */
-const UPLOAD_UI_PARTICIPANTS_INDEX_PAST_DAYS = 730;
-
 /** インデックスの対象期間（未来） */
 const UPLOAD_UI_PARTICIPANTS_INDEX_FUTURE_DAYS = 60;
 
@@ -2515,18 +2512,9 @@ export function buildParticipantsIndexForUploadUi() {
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
 
-  const startDate = new Date(today);
-  startDate.setDate(
-    startDate.getDate() - UPLOAD_UI_PARTICIPANTS_INDEX_PAST_DAYS,
-  );
   const endDate = new Date(today);
   endDate.setDate(endDate.getDate() + UPLOAD_UI_PARTICIPANTS_INDEX_FUTURE_DAYS);
 
-  const startYmd = Utilities.formatDate(
-    startDate,
-    CONSTANTS.TIMEZONE,
-    'yyyy-MM-dd',
-  );
   const endYmd = Utilities.formatDate(
     endDate,
     CONSTANTS.TIMEZONE,
@@ -2579,7 +2567,7 @@ export function buildParticipantsIndexForUploadUi() {
     if (Array.isArray(scheduleList)) {
       scheduleList.forEach(lesson => {
         const lessonDate = _toTrimmedString(lesson?.date);
-        if (lessonDate && (lessonDate < startYmd || lessonDate > endYmd)) {
+        if (lessonDate && lessonDate > endYmd) {
           return;
         }
 
@@ -2627,7 +2615,7 @@ export function buildParticipantsIndexForUploadUi() {
 
     const date = _normalizeDateToYmd(reservation.date);
     if (!date) return;
-    if (date < startYmd || date > endYmd) return;
+    if (date > endYmd) return;
 
     const status = _toTrimmedString(reservation.status);
     if (status === CONSTANTS.STATUS.CANCELED) return;
