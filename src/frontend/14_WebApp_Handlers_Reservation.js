@@ -1711,15 +1711,23 @@ export const reservationActionHandlers = {
               }
 
               // 成功時は最新データで状態を更新（一般ユーザー）
+              const latestMyReservations = Array.isArray(
+                response.data?.myReservations,
+              )
+                ? response.data.myReservations
+                : null;
+              const latestLessons = Array.isArray(response.data?.lessons)
+                ? response.data.lessons
+                : null;
+
               if (response.data) {
-                const updatedPayload = /** @type {AppState} */ (
-                  /** @type {unknown} */ (response.data)
-                );
                 const currentState = reservationStateManager.getState();
-                if (!updatedPayload.lessons) {
-                  /** @type {any} */ (updatedPayload).lessons =
-                    currentState.lessons;
-                }
+                const updatedPayload = {
+                  myReservations:
+                    latestMyReservations || currentState.myReservations || [],
+                  lessons: latestLessons || currentState.lessons,
+                  isDataFresh: latestMyReservations !== null,
+                };
                 // 参加者リストのキャッシュをクリア（一般ユーザーも次回再取得させる）
                 /** @type {any} */ (updatedPayload).participantLessons = null;
                 /** @type {any} */ (updatedPayload).participantReservationsMap =
