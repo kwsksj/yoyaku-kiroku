@@ -35,8 +35,6 @@
     "format:fix": "prettier --write --cache --cache-location .tmp/prettier/.cache \"**/*.{js,html,json,md}\"",
     "lint": "eslint . --cache --cache-location .tmp/eslint/.cache --cache-strategy content --ext .js --ignore-pattern '*.d.ts'",
     "lint:fix": "eslint . --cache --cache-location .tmp/eslint/.cache --cache-strategy content --ext .js --fix --ignore-pattern '*.d.ts'",
-    "lint:md": "markdownlint \"**/*.md\"",
-    "lint:md:fix": "markdownlint \"**/*.md\" --fix",
     "validate": "npm run format && npm run lint && npm run types:refresh",
     "validate:fix": "npm run format:fix && npm run lint:fix && npm run types:refresh",
     "build": "npm run validate && node tools/unified-build.js build",
@@ -71,7 +69,6 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-googleappsscript": "^1.0.5",
     "globals": "^16.3.0",
-    "markdownlint-cli": "^0.46.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.2",
     "vitest": "^4.0.18"

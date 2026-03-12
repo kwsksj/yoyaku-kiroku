@@ -154,7 +154,7 @@
   "markdown.extension.toc.updateOnSave": true,
   "markdown.extension.list.indentationSize": "adaptive",
   "markdown.extension.orderedList.marker": "one",
-  "markdown.extension.orderedList.autoRenumber": false,
+  "markdown.extension.orderedList.autoRenumber": true,
   "markdown.extension.tableFormatter.enabled": true,
   "markdown.extension.tableFormatter.normalizeIndentation": true,
   "markdown.extension.tableFormatter.delimitersAroundTable": true,
@@ -180,9 +180,6 @@
     "editor.acceptSuggestionOnEnter": "on",
     "editor.formatOnSave": true,
     "editor.formatOnType": true,
-    "editor.codeActionsOnSave": {
-      "source.fixAll.markdownlint": "explicit"
-    },
     "editor.snippetSuggestions": "top"
   },
   "[html]": {

@@ -13,9 +13,6 @@
     // Markdown Support
     "yzhang.markdown-all-in-one",
     "bierner.markdown-mermaid",
-    "davidanson.vscode-markdownlint",
-
-    // Git & GitHub
     "github.vscode-pull-request-github",
     "github.copilot",
     "github.copilot-chat",
