@@ -342,6 +342,11 @@ appWindow.showLoading =
     loadingElement.classList.add('active');
 
     startLoadingMessageRotation(category);
+    if (
+      typeof (/** @type {any} */ (appWindow).notifyEmbedHeight) === 'function'
+    ) {
+      /** @type {any} */ (appWindow).notifyEmbedHeight();
+    }
   };
 
 appWindow.hideLoading =
@@ -357,6 +362,11 @@ appWindow.hideLoading =
     setTimeout(() => {
       loadingElement.classList.add('hidden');
       stopLoadingMessageRotation();
+      if (
+        typeof (/** @type {any} */ (appWindow).notifyEmbedHeight) === 'function'
+      ) {
+        /** @type {any} */ (appWindow).notifyEmbedHeight();
+      }
     }, 300); // CSS transitionと同じ時間
   };
 

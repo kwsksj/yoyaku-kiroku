@@ -350,6 +350,11 @@ export function render() {
   }
 
   resetAppScrollToTop();
+  if (
+    typeof (/** @type {any} */ (appWindow).notifyEmbedHeight) === 'function'
+  ) {
+    /** @type {any} */ (appWindow).notifyEmbedHeight();
+  }
 }
 
 windowTyped.render = render;

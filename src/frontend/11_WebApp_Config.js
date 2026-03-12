@@ -678,14 +678,13 @@ export const addCustomStyles = () => {
       @media screen and (max-width: 768px) {
         html.embedded-in-google-sites,
         body.embedded-in-google-sites {
-          /* iframe のサイズに従う（100vh ではなく 100%） */
-          height: 100%;
+          /* 埋め込み先ページ側の縦スクロールを使えるように自然高さへ戻す */
+          height: auto;
           min-height: 100%;
-          max-height: 100%;
+          max-height: none;
           padding-top: 0;
-          /* iframe 内スクロールが終端に達したら親ページをスクロール */
           overscroll-behavior-y: auto;
-          overflow-y: auto;
+          overflow-y: visible;
           -webkit-overflow-scrolling: touch;
         }
 
@@ -694,9 +693,23 @@ export const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites #app {
-          height: 100%;
+          height: auto;
           min-height: 100%;
-          overflow-y: auto;
+          overflow-y: visible;
+        }
+
+        html.embedded-in-class-site,
+        body.embedded-in-class-site {
+          height: auto;
+          min-height: 100%;
+          max-height: none;
+          overflow-y: visible;
+        }
+
+        body.embedded-in-class-site #app {
+          height: auto;
+          min-height: 100%;
+          overflow-y: visible;
         }
       }
 
@@ -704,11 +717,12 @@ export const addCustomStyles = () => {
       @media screen and (max-width: 480px) {
         html.embedded-in-google-sites,
         body.embedded-in-google-sites {
-          height: 100%;
+          height: auto;
           min-height: 100%;
-          max-height: 100%;
+          max-height: none;
           padding-top: 0;
           overscroll-behavior-y: auto;
+          overflow-y: visible;
         }
 
         body.embedded-in-google-sites .fixed.top-4 {
@@ -716,8 +730,23 @@ export const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites #app {
-          height: 100%;
+          height: auto;
           min-height: 100%;
+          overflow-y: visible;
+        }
+
+        html.embedded-in-class-site,
+        body.embedded-in-class-site {
+          height: auto;
+          min-height: 100%;
+          max-height: none;
+          overflow-y: visible;
+        }
+
+        body.embedded-in-class-site #app {
+          height: auto;
+          min-height: 100%;
+          overflow-y: visible;
         }
       }
 
@@ -1413,6 +1442,144 @@ appWindow.pageTransitionManager = setupPageTransitionManagement();
 // Mobile & Embedded Site Detection
 // =================================================================
 export const setupMobileOptimizations = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const embedHost = urlParams.get('embedHost') || '';
+  const embedId = urlParams.get('embedId') || '';
+  const parentOriginParam = urlParams.get('parentOrigin') || '';
+  const referrerUrl = (() => {
+    try {
+      return document.referrer ? new URL(document.referrer) : null;
+    } catch (_error) {
+      return null;
+    }
+  })();
+
+  const resolveEmbedTargetOrigin = () => {
+    try {
+      if (parentOriginParam) {
+        const parsedParentOrigin = new URL(parentOriginParam);
+        if (
+          parsedParentOrigin.protocol === 'http:' ||
+          parsedParentOrigin.protocol === 'https:'
+        ) {
+          return parsedParentOrigin.origin;
+        }
+      }
+    } catch (_error) {
+      return '*';
+    }
+
+    return '*';
+  };
+
+  /**
+   * 埋め込み元ページへpostMessageを送る
+   * @param {{ type: string, sourceApp: string, embedId?: string, height?: number, scrollTop?: number }} payload
+   */
+  const postMessageToEmbedParent = payload => {
+    const topWindow = window.top;
+    if (!topWindow || topWindow === window) return;
+
+    try {
+      topWindow.postMessage(payload, resolveEmbedTargetOrigin());
+    } catch (_error) {
+      // postMessageに失敗しても、通常の画面利用は継続させる
+    }
+  };
+
+  /**
+   * 埋め込み時に親ページへ現在の高さを通知する
+   * @param {boolean} isEmbeddedEnvironment
+   */
+  const setupEmbedHeightSync = isEmbeddedEnvironment => {
+    if (!isEmbeddedEnvironment) return;
+
+    const observedElements = [
+      document.documentElement,
+      document.body,
+      document.getElementById('app'),
+      document.getElementById('main-content'),
+      document.getElementById('view-container'),
+    ].filter(Boolean);
+
+    let rafId = 0;
+    let lastHeight = 0;
+
+    const syncHeight = () => {
+      rafId = 0;
+
+      const heightCandidates = [
+        document.documentElement.scrollHeight,
+        document.body?.scrollHeight || 0,
+      ];
+
+      for (const element of observedElements) {
+        if (!(element instanceof HTMLElement)) continue;
+        heightCandidates.push(
+          element.scrollHeight,
+          element.offsetHeight,
+          Math.ceil(element.getBoundingClientRect().height),
+        );
+      }
+
+      const nextHeight = Math.max(
+        ...heightCandidates.map(value => Number(value) || 0),
+      );
+      if (!nextHeight || Math.abs(nextHeight - lastHeight) < 2) return;
+
+      lastHeight = nextHeight;
+      postMessageToEmbedParent({
+        type: 'kibori-embed-height',
+        sourceApp: 'yoyaku-kiroku',
+        embedId,
+        height: nextHeight,
+      });
+    };
+
+    const requestSyncHeight = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(syncHeight);
+      });
+    };
+
+    /** @type {any} */ (appWindow).notifyEmbedHeight = requestSyncHeight;
+    requestSyncHeight();
+    window.addEventListener('load', requestSyncHeight);
+    window.addEventListener('resize', requestSyncHeight);
+    window.addEventListener('pageshow', requestSyncHeight);
+
+    if (document.fonts && typeof document.fonts.ready?.then === 'function') {
+      document.fonts.ready.then(requestSyncHeight).catch(() => {});
+    }
+
+    if (typeof ResizeObserver === 'function') {
+      const resizeObserver = new ResizeObserver(requestSyncHeight);
+      for (const element of observedElements) {
+        if (element instanceof Element) {
+          resizeObserver.observe(element);
+        }
+      }
+    }
+
+    const mutationTarget =
+      document.getElementById('app') ||
+      document.body ||
+      document.documentElement;
+    if (mutationTarget) {
+      const mutationObserver = new MutationObserver(requestSyncHeight);
+      mutationObserver.observe(mutationTarget, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        characterData: true,
+      });
+    }
+
+    setTimeout(requestSyncHeight, 300);
+    setTimeout(requestSyncHeight, 1000);
+  };
+
   // ビューポートの高さをCSSカスタムプロパティとして設定
   const setViewportHeight = () => {
     // window.innerHeight はキーボード表示時に変動する
@@ -1430,6 +1597,17 @@ export const setupMobileOptimizations = () => {
   setViewportHeight();
   window.addEventListener('resize', setViewportHeight);
 
+  const isFromClassSite = (() => {
+    const hostname = referrerUrl?.hostname || '';
+    return (
+      hostname === 'kibori-class.net' ||
+      hostname === 'www.kibori-class.net' ||
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '[::1]'
+    );
+  })();
+
   // Googleサイト埋め込み検知
   const detectEmbeddedEnvironment = () => {
     try {
@@ -1440,10 +1618,14 @@ export const setupMobileOptimizations = () => {
       const isFromGoogleSites = document.referrer.includes('sites.google.com');
 
       // URLのクエリパラメータでの判定（将来的な拡張用）
-      const urlParams = new URLSearchParams(window.location.search);
       const embedParam = urlParams.get('embedded');
 
-      return isInIframe || isFromGoogleSites || embedParam === 'true';
+      return (
+        isInIframe ||
+        isFromGoogleSites ||
+        embedParam === 'true' ||
+        Boolean(embedHost)
+      );
     } catch (_e) {
       // Cross-origin制限でエラーが発生した場合、埋め込み環境と判定
       return true;
@@ -1478,10 +1660,17 @@ export const setupMobileOptimizations = () => {
   };
 
   // 埋め込み環境での調整を適用
-  if (detectEmbeddedEnvironment()) {
+  const isEmbeddedEnvironment = detectEmbeddedEnvironment();
+
+  if (isEmbeddedEnvironment) {
     // html と body 両方にクラスを追加（CSS セレクタ用）
     document.documentElement.classList.add('embedded-in-google-sites');
     document.body.classList.add('embedded-in-google-sites');
+
+    if (embedHost === 'class-site' || isFromClassSite) {
+      document.documentElement.classList.add('embedded-in-class-site');
+      document.body.classList.add('embedded-in-class-site');
+    }
 
     // 必要に応じて追加の調整
     if (isMobile) {
@@ -1490,6 +1679,7 @@ export const setupMobileOptimizations = () => {
   }
 
   optimizeViewport();
+  setupEmbedHeightSync(isEmbeddedEnvironment);
 
   // タッチ操作の最適化
   if (isMobile) {
@@ -1526,7 +1716,7 @@ export const setupMobileOptimizations = () => {
   // =================================================================
   // visualViewport APIを使用してキーボード表示を検知し、
   // 親フレームへのスクロール命令を試みる + コンテンツ位置を調整する
-  if (window.visualViewport && detectEmbeddedEnvironment()) {
+  if (window.visualViewport && isEmbeddedEnvironment) {
     /** @type {number | null} */
     let initialHeight = null;
     let isKeyboardVisible = false;
@@ -1548,14 +1738,12 @@ export const setupMobileOptimizations = () => {
 
         if (isKeyboardVisible) {
           // キーボード表示時: 親フレームへスクロールリセットを要求
-          try {
-            window.parent.postMessage(
-              { type: 'kibori-scroll-reset', scrollTop: 0 },
-              '*',
-            );
-          } catch (_e) {
-            // Cross-origin制限で失敗しても無視
-          }
+          postMessageToEmbedParent({
+            type: 'kibori-scroll-reset',
+            sourceApp: 'yoyaku-kiroku',
+            embedId,
+            scrollTop: 0,
+          });
 
           // 現在フォーカス中の要素を取得
           const activeElement = document.activeElement;
