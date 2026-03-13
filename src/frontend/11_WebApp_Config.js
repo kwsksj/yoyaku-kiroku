@@ -678,13 +678,13 @@ export const addCustomStyles = () => {
       @media screen and (max-width: 768px) {
         html.embedded-in-google-sites,
         body.embedded-in-google-sites {
-          /* 埋め込み先ページ側の縦スクロールを使えるように自然高さへ戻す */
-          height: auto;
+          /* iframe のサイズに従う（従来の Google Sites 埋め込み互換） */
+          height: 100%;
           min-height: 100%;
-          max-height: none;
+          max-height: 100%;
           padding-top: 0;
           overscroll-behavior-y: auto;
-          overflow-y: visible;
+          overflow-y: auto;
           -webkit-overflow-scrolling: touch;
         }
 
@@ -693,9 +693,9 @@ export const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites #app {
-          height: auto;
+          height: 100%;
           min-height: 100%;
-          overflow-y: visible;
+          overflow-y: auto;
         }
 
         html.embedded-in-class-site,
@@ -717,12 +717,12 @@ export const addCustomStyles = () => {
       @media screen and (max-width: 480px) {
         html.embedded-in-google-sites,
         body.embedded-in-google-sites {
-          height: auto;
+          height: 100%;
           min-height: 100%;
-          max-height: none;
+          max-height: 100%;
           padding-top: 0;
           overscroll-behavior-y: auto;
-          overflow-y: visible;
+          overflow-y: auto;
         }
 
         body.embedded-in-google-sites .fixed.top-4 {
@@ -730,9 +730,9 @@ export const addCustomStyles = () => {
         }
 
         body.embedded-in-google-sites #app {
-          height: auto;
+          height: 100%;
           min-height: 100%;
-          overflow-y: visible;
+          overflow-y: auto;
         }
 
         html.embedded-in-class-site,
@@ -1446,6 +1446,16 @@ export const setupMobileOptimizations = () => {
   const embedHost = urlParams.get('embedHost') || '';
   const embedId = urlParams.get('embedId') || '';
   const parentOriginParam = urlParams.get('parentOrigin') || '';
+  const ancestorOriginUrls = Array.from(window.location.ancestorOrigins || []);
+  const ancestorOriginHosts = ancestorOriginUrls
+    .map(origin => {
+      try {
+        return new URL(origin).hostname;
+      } catch (_error) {
+        return '';
+      }
+    })
+    .filter(Boolean);
   const referrerUrl = (() => {
     try {
       return document.referrer ? new URL(document.referrer) : null;
@@ -1471,6 +1481,22 @@ export const setupMobileOptimizations = () => {
 
     return '*';
   };
+
+  /** @param {string} hostname */
+  const isClassSiteHost = hostname =>
+    hostname === 'kibori-class.net' ||
+    hostname === 'www.kibori-class.net' ||
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '[::1]' ||
+    hostname === 'kibori-class-site.pages.dev' ||
+    hostname.endsWith('.kibori-class-site.pages.dev');
+
+  /** @param {string} hostname */
+  const isGoogleSitesEmbedHost = hostname =>
+    hostname === 'www.gstatic.com' ||
+    hostname.endsWith('.atari-embeds.googleusercontent.com') ||
+    hostname.endsWith('-atari-embeds.googleusercontent.com');
 
   /**
    * 埋め込み元ページへpostMessageを送る
@@ -1597,14 +1623,17 @@ export const setupMobileOptimizations = () => {
   setViewportHeight();
   window.addEventListener('resize', setViewportHeight);
 
+  const isEmbeddedViaGoogleSitesShell = ancestorOriginHosts.some(
+    isGoogleSitesEmbedHost,
+  );
+
   const isFromClassSite = (() => {
     const hostname = referrerUrl?.hostname || '';
     return (
-      hostname === 'kibori-class.net' ||
-      hostname === 'www.kibori-class.net' ||
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '[::1]'
+      embedHost === 'class-site' ||
+      (!isEmbeddedViaGoogleSitesShell &&
+        (isClassSiteHost(hostname) ||
+          ancestorOriginHosts.some(isClassSiteHost)))
     );
   })();
 
@@ -1615,7 +1644,12 @@ export const setupMobileOptimizations = () => {
       const isInIframe = window.self !== window.top;
 
       // Googleサイトのreferrerを検知
-      const isFromGoogleSites = document.referrer.includes('sites.google.com');
+      const isFromGoogleSites =
+        document.referrer.includes('sites.google.com') ||
+        ancestorOriginUrls.some(origin =>
+          origin.includes('sites.google.com'),
+        ) ||
+        isEmbeddedViaGoogleSitesShell;
 
       // URLのクエリパラメータでの判定（将来的な拡張用）
       const embedParam = urlParams.get('embedded');
