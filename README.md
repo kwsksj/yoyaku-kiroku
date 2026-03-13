@@ -129,18 +129,16 @@ types/
 
 **3. テスト環境への反映（AI操作前に推奨）**
 
-- `npm run ai:test`
-  - `validate:fix` を実行し、テスト環境へデプロイします。
-  - **AIにテストしてもらう際の推奨コマンド。**
-- `npm run build-push:test`
-  - `build` を実行し、テスト環境へプッシュします（デプロイなし）。
+- `npm run dev`
+  - テスト環境へ切り替え、`build:fix` と `clasp push --force` を実行します。
+  - **AIにテストしてもらう前の標準コマンドです。**
+- `npm run smoke:gas:deploy`
+  - `npm run dev` のあとに、テスト環境の WebApp 疎通確認を深めて実行します。
 
 **4. 本番環境へのデプロイ**
 
-- `npm run ai:prod`
-  - `validate:fix` を実行し、本番環境へデプロイします。
-- `npm run build-push:prod`
-  - `build` を実行し、本番環境へプッシュします（デプロイなし）。
+- `npm run release`
+  - 本番環境へ切り替え、`build:fix`・`clasp push --force`・デプロイ更新をまとめて実行します。
 
 ---
 
@@ -185,15 +183,12 @@ types/
 - `npm run format:fix`: Prettierによるフォーマット自動修正。
 - `npm run lint`: ESLintによるLintチェック（修正なし）。
 - `npm run lint:fix`: ESLintによる自動修正。
-- `npm run lint:md`: Markdownファイルのチェック。
-- `npm run lint:md:fix`: Markdownファイルの自動修正。
 
 **デプロイ関連**
 
-- `npm run ai:test`: **AI操作前の推奨コマンド。** `validate:fix` + テスト環境へのデプロイ。
-- `npm run ai:prod`: **本番デプロイ前の推奨コマンド。** `validate:fix` + 本番環境へのデプロイ。
-- `npm run build-push:test`: `build` + テスト環境へのプッシュ（デプロイなし）。
-- `npm run build-push:prod`: `build` + 本番環境へのプッシュ（デプロイなし）。
+- `npm run dev`: **AI操作前の推奨コマンド。** テスト環境へ切り替え、`build:fix` + `clasp push --force` を実行。
+- `npm run smoke:gas:deploy`: テスト環境反映後に `smoke:gas:deep` まで実行。
+- `npm run release`: **本番デプロイ前の推奨コマンド。** 本番環境へ切り替え、`build:fix` + `clasp push --force` + デプロイ更新を実行。
 
 **URL取得（MCP DevTools用）**
 
@@ -248,8 +243,8 @@ types/
 
 ## ⚠️ **注意**
 
-- **本番影響:** `npm run ai:prod` でユーザーが利用するWebアプリが更新されます
+- **本番影響:** `npm run release` でユーザーが利用するWebアプリが更新されます
 - **設定ファイル:** `.clasp.config.json` には機密情報が含まれGit管理対象外です
 - **テスト環境:** スプレッドシートを開くたびに全キャッシュが自動再構築されます
 
-**最終更新:** 2025年10月20日 (コマンド体系の再構成とMCP DevTools対応)
+**最終更新:** 2026年3月13日 (現行コマンド体系に更新)

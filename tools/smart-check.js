@@ -164,11 +164,6 @@ function suggestCommands(paths, phase) {
       reason: 'ドキュメント変更のみのため、整形チェックを実行。',
       required: true,
     });
-    pushUnique(commands, {
-      command: 'npm run lint:md',
-      reason: 'Markdown品質を追加確認。',
-      required: false,
-    });
     return commands;
   }
 
